@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bgremover"
+version = "2.0.0"
+description = "Hintergrund-Entfernungs- und Bildbearbeitungs-Tool für macOS"
+requires-python = ">=3.9"
+dependencies = [
+    "PyQt6>=6.5",
+    "Pillow>=10",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+ai = ["rembg>=2.0"]
+test = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.6"]
+
+[tool.setuptools]
+py-modules = ["BgRemover"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+extend-select = ["E", "F", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# BgRemover.py: existierender Stil (kompakte Mehrfach-Statements mit Semikolons,
+# einige Qt-Symbole werden via Wildcards von PyQt6.QtWidgets/Gui importiert
+# und vom Linter nicht alle als verwendet erkannt).
+"BgRemover.py" = ["E702", "E741", "F401"]
+# conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
+"tests/conftest.py" = ["E402"]
