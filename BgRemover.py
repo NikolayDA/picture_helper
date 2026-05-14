@@ -7,6 +7,7 @@ Starten: python3 BgRemover.py
 import sys
 import os
 import io
+import logging
 import numpy as np
 from collections import deque
 from pathlib import Path
@@ -26,13 +27,15 @@ from PyQt6.QtGui import (
 )
 
 from PyQt6.QtCore import Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 try:
     from rembg import remove as rembg_remove
     REMBG_AVAILABLE = True
 except ImportError:
     REMBG_AVAILABLE = False
+
+logger = logging.getLogger("BgRemover")
 
 # ─────────────────────────────────────────────────────────────
 # Hilfsfunktionen
@@ -386,7 +389,8 @@ class AIWorker(QObject):
             result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
             self.finished.emit(result)
         except Exception as e:
-            self.error.emit(str(e))
+            logger.exception("rembg-Fehler")
+            self.error.emit(f"{type(e).__name__}: {e}")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -618,7 +622,11 @@ class ImageCanvas(QGraphicsView):
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str):
-        img = Image.open(path).convert("RGBA")
+        # EXIF-Orientierung anwenden: Smartphone-Fotos sind oft im Sensor
+        # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
+        # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
+        img = Image.open(path)
+        img = ImageOps.exif_transpose(img).convert("RGBA")
         self._original = img.copy()
         self._undo.clear()
         self._cancel_crop_overlay()
@@ -745,7 +753,7 @@ class ImageCanvas(QGraphicsView):
             self.viewport().update()
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
         except Exception as e:
-            import traceback; traceback.print_exc()
+            logger.exception("Fehler beim Entfernen")
             self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
 
     def apply_replace(self, color: QColor):
@@ -758,7 +766,7 @@ class ImageCanvas(QGraphicsView):
             self.viewport().update()
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
         except Exception as e:
-            import traceback; traceback.print_exc()
+            logger.exception("Fehler beim Ersetzen")
             self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
 
     def apply_ai_result(self, img: Image.Image):
@@ -933,9 +941,18 @@ class ImageCanvas(QGraphicsView):
             self._mask[y0:y1, x0:x1][circle] = False
         self._refresh_overlay()
 
+    # Zoom-Grenzen: verhindert dass Bild auf 0 schrumpft (kein Klick mehr
+    # möglich) oder so groß wird, dass Qt-Rasterung sichtbar wird.
+    ZOOM_MIN = 0.05
+    ZOOM_MAX = 40.0
+
+    def _zoom(self, factor: float) -> None:
+        new_scale = self.transform().m11() * factor
+        if self.ZOOM_MIN <= new_scale <= self.ZOOM_MAX:
+            self.scale(factor, factor)
+
     def wheelEvent(self, event):
-        factor = 1.15 if event.angleDelta().y() > 0 else 1 / 1.15
-        self.scale(factor, factor)
+        self._zoom(1.15 if event.angleDelta().y() > 0 else 1 / 1.15)
 
     # ── Drag & Drop ──────────────────────────────────────────
 
@@ -1904,6 +1921,18 @@ class MainWindow(QMainWindow):
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Logging: stderr + Datei in $HOME — exception()-Aufrufe in den
+    # Worker- und Canvas-Klassen landen so dauerhaft im Log.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stderr),
+            logging.FileHandler(Path.home() / ".bgremover.log",
+                                encoding="utf-8"),
+        ],
+    )
+
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setApplicationName("BgRemover")
