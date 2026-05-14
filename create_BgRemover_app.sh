@@ -138,7 +138,11 @@ ICNS_PATH="$APP_PATH/Contents/Resources/AppIcon.icns"
 
 if [ -f "$ICON_PNG" ]; then
     echo "🎨 Erstelle .icns Icon …"
-    ICONSET_DIR="$(mktemp -d)/AppIcon.iconset"
+    ICONSET_TMP="$(mktemp -d)"
+    # Sicherer Cleanup: nur das von mktemp angelegte Verzeichnis löschen,
+    # auch wenn das Skript vorzeitig abbricht.
+    trap 'rm -rf "$ICONSET_TMP"' EXIT
+    ICONSET_DIR="$ICONSET_TMP/AppIcon.iconset"
     mkdir -p "$ICONSET_DIR"
 
     "$PYTHON" - "$ICON_PNG" "$ICONSET_DIR" << 'PYEOF'
@@ -164,7 +168,7 @@ PYEOF
         cp "$ICON_PNG" "$APP_PATH/Contents/Resources/AppIcon.png"
         echo -e "${YELLOW}  ⚠️ iconutil fehlt – PNG als Fallback${NC}"
     fi
-    rm -rf "$(dirname "$ICONSET_DIR")"
+    # Cleanup übernimmt das oben gesetzte trap
 else
     echo -e "${YELLOW}  ⚠️ BgRemover_icon.png nicht gefunden – kein Icon${NC}"
 fi
