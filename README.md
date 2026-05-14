@@ -77,3 +77,23 @@ python3 BgRemover.py
 | 90° rechts drehen | ⌘→ |
 | Auswahl aufheben | Esc |
 | Fit to View | ⌘0 |
+
+## Entwicklung & Tests
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+pip install -e ".[test]"
+pytest
+```
+
+Die Test-Suite läuft headless (Qt-Platform `offscreen`) und prüft die
+Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Bei jedem
+Push und Pull-Request wird sie zusätzlich automatisch auf Linux und
+macOS unter Python 3.10 und 3.12 via GitHub Actions ausgeführt.
+
+Code-Style-Check:
+
+```bash
+ruff check BgRemover.py tests
+```
