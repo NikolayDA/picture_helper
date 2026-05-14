@@ -97,3 +97,9 @@ Code-Style-Check:
 ```bash
 ruff check BgRemover.py tests
 ```
+
+## Log-Datei
+
+Beim Programmstart wird eine Log-Datei unter `~/.bgremover.log` angelegt,
+in der Stacktraces und Status-Meldungen mitlaufen. Bei Problemen ist sie
+die erste Anlaufstelle für die Diagnose.
