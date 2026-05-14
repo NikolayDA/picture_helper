@@ -466,9 +466,11 @@ class CropOverlayItem(QGraphicsObject):
             new_w = max(MIN_PX, dy * self._aspect)
         new_h = new_w / self._aspect
 
-        # Nicht über Bildrand
-        new_w = min(new_w, float(self._iw))
-        new_h = min(new_h, float(self._ih))
+        # Nicht über Bildrand – gemeinsamen Skalierungsfaktor anwenden,
+        # damit das Seitenverhältnis erhalten bleibt
+        scale = min(self._iw / new_w, self._ih / new_h, 1.0)
+        new_w *= scale
+        new_h *= scale
 
         self._cw = new_w
         self._ch = new_h
@@ -502,7 +504,10 @@ class CropOverlayItem(QGraphicsObject):
                 self._cy <= sy <= self._cy + self._ch)
 
     def boundingRect(self) -> QRectF:
-        return QRectF(0, 0, self._iw, self._ih)
+        # Marge für Eck-Handles und zentrierten Hinweistext
+        margin = 220.0
+        return QRectF(-margin, -margin,
+                      self._iw + 2 * margin, self._ih + 2 * margin)
 
     def paint(self, painter: QPainter, option, widget):
         # ── Dunkles Außen-Overlay ──────────────────────────────
@@ -684,13 +689,18 @@ class ImageCanvas(QGraphicsView):
     def restore_original(self):
         if self._original:
             self._cancel_crop_overlay()
-            self._undo.clear()
+            # Aktuellen Stand für Undo aufbewahren, statt den Verlauf
+            # zu verwerfen – so kann der Nutzer das Zurücksetzen
+            # selbst wieder rückgängig machen.
+            if self._pil is not None:
+                self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
             self._pil  = self._original.copy()
             self._arr  = pil_to_numpy(self._pil)
             self._mask = np.zeros((self._pil.height, self._pil.width), dtype=bool)
             self._refresh_image()
             self._refresh_overlay()
-            self.historyChanged.emit([])
+            self.historyChanged.emit(
+                [d for _, d in reversed(list(self._undo))])
             self.statusMsg.emit("🔄  Original wiederhergestellt")
 
     def clear_selection(self):
@@ -761,8 +771,9 @@ class ImageCanvas(QGraphicsView):
         ext = Path(path).suffix.lower()
         if ext in (".jpg", ".jpeg"):
             # Transparenz auf weißem Hintergrund einbetten
-            bg = Image.new("RGBA", self._pil.size, (255, 255, 255, 255))
-            bg.paste(self._pil, mask=self._pil.split()[3])
+            src = self._pil if self._pil.mode == "RGBA" else self._pil.convert("RGBA")
+            bg = Image.new("RGBA", src.size, (255, 255, 255, 255))
+            bg.paste(src, mask=src.split()[3])
             bg.convert("RGB").save(path, quality=95)
         elif ext == ".webp":
             self._pil.save(path, "WEBP", quality=90)
@@ -937,13 +948,18 @@ class ImageCanvas(QGraphicsView):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QDropEvent):
-        for url in event.mimeData().urls():
-            path = url.toLocalFile()
-            if Path(path).suffix.lower() in (
-                    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif"):
-                self.load_image(path)
-                return
-        self.statusMsg.emit("Format nicht unterstützt")
+        exts = (".png", ".jpg", ".jpeg", ".webp",
+                ".bmp", ".tiff", ".tif", ".gif")
+        valid = [url.toLocalFile() for url in event.mimeData().urls()
+                 if Path(url.toLocalFile()).suffix.lower() in exts]
+        if not valid:
+            self.statusMsg.emit("Format nicht unterstützt")
+            return
+        self.load_image(valid[0])
+        if len(valid) > 1:
+            self.statusMsg.emit(
+                f"Geöffnet: {Path(valid[0]).name}  "
+                f"({len(valid) - 1} weitere Datei(en) ignoriert)")
 
     # ── Ecken abrunden ───────────────────────────────────────
 
@@ -1139,6 +1155,11 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 720)
         self._bg_color   = QColor(255, 255, 255)
         self._ai_thread: QThread | None = None
+        self._ai_worker: AIWorker | None = None
+        # Bild-Identität zum Startzeitpunkt der KI – verhindert, dass
+        # ein verspätet eintreffendes Ergebnis ein inzwischen geladenes
+        # anderes Bild überschreibt.
+        self._ai_input: Image.Image | None = None
         self._build_ui()
         self._build_menu()
 
@@ -1575,7 +1596,7 @@ class MainWindow(QMainWindow):
         row_q2 = QHBoxLayout(); row_q2.setSpacing(6)
         for label, deg, tip in [
             ("↺ 180°",  180, "Bild um 180° drehen"),
-            ("↺ 270°", -270, "270° gegen den Uhrzeigersinn (= 90° rechts)"),
+            ("↺ 270°",  270, "270° gegen den Uhrzeigersinn (= 90° rechts)"),
         ]:
             b = btn(label, ROT_BG, ROT_FG, ROT_HV, tip)
             b.clicked.connect(lambda _=False, d=deg: self._canvas.apply_rotate(d))
@@ -1817,24 +1838,47 @@ class MainWindow(QMainWindow):
         if self._canvas._pil is None:
             self.statusBar().showMessage("Kein Bild geladen")
             return
-        if self._ai_thread and self._ai_thread.isRunning():
+        if self._ai_thread is not None and self._ai_thread.isRunning():
             self.statusBar().showMessage("KI läuft bereits…")
             return
         self.statusBar().showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
         self._btn_ai.setEnabled(False)
 
-        self._ai_thread = QThread()
-        self._ai_worker = AIWorker(self._canvas._pil.copy())
-        self._ai_worker.moveToThread(self._ai_thread)
-        self._ai_thread.started.connect(self._ai_worker.run)
-        self._ai_worker.finished.connect(self._on_ai_done)
-        self._ai_worker.error.connect(self._on_ai_error)
-        self._ai_worker.finished.connect(self._ai_thread.quit)
-        self._ai_worker.error.connect(self._ai_thread.quit)
-        self._ai_thread.finished.connect(lambda: self._btn_ai.setEnabled(True))
-        self._ai_thread.start()
+        # Aktuelles Bild als „Eingabe-Identität“ merken, damit ein
+        # spät eintreffendes Ergebnis verworfen wird, falls inzwischen
+        # ein anderes Bild geladen wurde.
+        self._ai_input = self._canvas._pil
+
+        thread = QThread()
+        worker = AIWorker(self._canvas._pil.copy())
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_ai_done)
+        worker.error.connect(self._on_ai_error)
+        worker.finished.connect(thread.quit)
+        worker.error.connect(thread.quit)
+        # Aufräumen: Worker und Thread sauber freigeben, sobald fertig
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._on_ai_thread_finished)
+        self._ai_thread = thread
+        self._ai_worker = worker
+        thread.start()
+
+    def _on_ai_thread_finished(self):
+        self._btn_ai.setEnabled(True)
+        self._ai_thread = None
+        self._ai_worker = None
+        self._ai_input  = None
 
     def _on_ai_done(self, img: Image.Image):
+        # Wenn der Nutzer das Bild zwischenzeitlich gewechselt hat
+        # (z. B. neues Bild geladen, Original wiederhergestellt),
+        # verwerfen wir das KI-Ergebnis statt es über das aktuelle Bild zu legen.
+        if self._ai_input is None or self._canvas._pil is not self._ai_input:
+            self.statusBar().showMessage(
+                "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
+            return
         self._canvas.apply_ai_result(img)
 
     def _on_ai_error(self, msg: str):
