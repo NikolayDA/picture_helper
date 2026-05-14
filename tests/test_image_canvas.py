@@ -1,4 +1,4 @@
-"""Tests für ImageCanvas: Speichern und Undo/Restore-Logik.
+"""Tests für ImageCanvas: Laden, Speichern und Undo/Restore-Logik.
 
 Verteidigt:
 
@@ -6,6 +6,8 @@ Verteidigt:
   ohne Alpha-Kanal (defensives ``convert("RGBA")``).
 * Fix #9 — ``restore_original`` schiebt den aktuellen Stand in den Undo-Stack,
   statt den Verlauf zu verwerfen.
+* A1 — ``load_image`` wendet EXIF-Orientierung an, damit
+  Smartphone-Fotos nicht gekippt erscheinen.
 """
 import numpy as np
 from PIL import Image
@@ -95,3 +97,31 @@ def test_restore_original_without_original_is_noop(qapp):
     canvas._original = None
     canvas.restore_original()
     assert canvas._pil is None
+
+
+# ── A1: EXIF-Orientierung beim Laden ────────────────────────────────────
+
+def test_load_image_applies_exif_rotation(qapp, tmp_path):
+    """JPEG mit EXIF-Orientation=6 (90° im Uhrzeigersinn) muss beim Laden
+    automatisch rotiert werden — sonst erscheinen iPhone-Fotos gekippt."""
+    src = Image.new("RGB", (40, 20), (10, 20, 30))
+    exif = src.getexif()
+    exif[0x0112] = 6  # Orientation tag → 90° CW
+    p = tmp_path / "rot.jpg"
+    src.save(p, exif=exif)
+
+    canvas = ImageCanvas()
+    canvas.load_image(str(p))
+    # Nach exif_transpose sind Breite und Höhe getauscht
+    assert canvas._pil.size == (20, 40)
+
+
+def test_load_image_without_exif_keeps_orientation(qapp, tmp_path):
+    """Ohne EXIF-Tag bleibt die Bildgröße unverändert."""
+    src = Image.new("RGB", (30, 15), (200, 100, 50))
+    p = tmp_path / "plain.png"
+    src.save(p)
+
+    canvas = ImageCanvas()
+    canvas.load_image(str(p))
+    assert canvas._pil.size == (30, 15)
