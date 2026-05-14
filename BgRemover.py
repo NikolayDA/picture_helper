@@ -26,7 +26,10 @@ from PyQt6.QtGui import (
     QCursor, QPalette, QPen, QIcon, QPolygonF, QPainterPath
 )
 
-from PyQt6.QtCore import Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent
+from PyQt6.QtCore import (
+    Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent,
+    QSettings,
+)
 from PIL import Image, ImageDraw, ImageOps
 
 try:
@@ -578,6 +581,7 @@ class ImageCanvas(QGraphicsView):
     statusMsg      = pyqtSignal(str)
     historyChanged = pyqtSignal(list)   # list[str] – Beschreibungen, neueste zuerst
     cropModeChanged = pyqtSignal(bool)  # True = Crop-Overlay aktiv
+    imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -603,6 +607,9 @@ class ImageCanvas(QGraphicsView):
         self._mask:     np.ndarray  | None = None
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
         self._undo:     deque = deque(maxlen=20)
+        # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
+        # via _apply_pil(push=True) geleert.
+        self._redo:     deque = deque(maxlen=20)
 
         self._tool      = TOOL_WAND
         self._tolerance = 30
@@ -629,14 +636,18 @@ class ImageCanvas(QGraphicsView):
         img = ImageOps.exif_transpose(img).convert("RGBA")
         self._original = img.copy()
         self._undo.clear()
+        self._redo.clear()
         self._cancel_crop_overlay()
         self._apply_pil(img, push=False)
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
         self.statusMsg.emit(f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
+        self.imageLoaded.emit(str(Path(path).resolve()))
 
     def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung"):
         if push and self._pil is not None:
             self._undo.append((self._pil.copy(), desc))
+            # Neue Aktion ⇒ Redo-Branch verwerfen (klassisches Editor-Verhalten)
+            self._redo.clear()
             self.historyChanged.emit(
                 [d for _, d in reversed(list(self._undo))])
         self._pil  = img
@@ -665,7 +676,9 @@ class ImageCanvas(QGraphicsView):
             self.cancel_crop(); return
         if self._undo:
             img, desc = self._undo.pop()
-            # Direkt setzen ohne erneuten Push
+            # Aktuellen Stand für mögliches Redo aufbewahren
+            if self._pil is not None:
+                self._redo.append((self._pil.copy(), desc))
             self._pil  = img
             self._arr  = pil_to_numpy(img)
             self._mask = np.zeros((img.height, img.width), dtype=bool)
@@ -677,11 +690,33 @@ class ImageCanvas(QGraphicsView):
         else:
             self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
 
+    def redo(self):
+        """Macht ein zuvor mit ``undo()`` rückgängig gemachte Aktion wieder."""
+        if self._crop_overlay is not None:
+            return
+        if self._redo:
+            img, desc = self._redo.pop()
+            if self._pil is not None:
+                self._undo.append((self._pil.copy(), desc))
+            self._pil  = img
+            self._arr  = pil_to_numpy(img)
+            self._mask = np.zeros((img.height, img.width), dtype=bool)
+            self._refresh_image()
+            self._refresh_overlay()
+            self.historyChanged.emit(
+                [d for _, d in reversed(list(self._undo))])
+            self.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
+        else:
+            self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
+
     def undo_to(self, steps: int):
         """Mehrere Schritte auf einmal rückgängig machen."""
         actual = min(steps, len(self._undo))
         if actual <= 0:
             return
+        # Diese Mehrfach-Aktion eröffnet einen neuen Bearbeitungszweig –
+        # Redo-Stapel wird verworfen.
+        self._redo.clear()
         img, desc = None, ""
         for _ in range(actual):
             img, desc = self._undo.pop()
@@ -702,6 +737,8 @@ class ImageCanvas(QGraphicsView):
             # selbst wieder rückgängig machen.
             if self._pil is not None:
                 self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
+            # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
+            self._redo.clear()
             self._pil  = self._original.copy()
             self._arr  = pil_to_numpy(self._pil)
             self._mask = np.zeros((self._pil.height, self._pil.width), dtype=bool)
@@ -785,6 +822,9 @@ class ImageCanvas(QGraphicsView):
             bg.convert("RGB").save(path, quality=95)
         elif ext == ".webp":
             self._pil.save(path, "WEBP", quality=90)
+        elif ext in (".tif", ".tiff"):
+            # TIFF unterstützt RGBA + Transparenz nativ
+            self._pil.save(path, "TIFF", compression="tiff_lzw")
         else:
             self._pil.save(path, "PNG")
         self.statusMsg.emit(f"💾 Gespeichert: {Path(path).name}")
@@ -1166,6 +1206,10 @@ SLD_STYLE = """
 
 
 class MainWindow(QMainWindow):
+    # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
+    RECENT_MAX = 10
+    SETTINGS_RECENT_KEY = "recent_files"
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("BgRemover Pro")
@@ -1177,6 +1221,13 @@ class MainWindow(QMainWindow):
         # ein verspätet eintreffendes Ergebnis ein inzwischen geladenes
         # anderes Bild überschreibt.
         self._ai_input: Image.Image | None = None
+        # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
+        # Wird beim Laden eines neuen Bildes zurückgesetzt.
+        self._save_path: str | None = None
+        # Persistente Einstellungen (Recent-Files etc.).
+        self._settings = QSettings("BgRemover", "BgRemover")
+        # Submenü-Referenz wird in _build_menu gesetzt
+        self._recent_menu = None
         self._build_ui()
         self._build_menu()
 
@@ -1231,6 +1282,7 @@ class MainWindow(QMainWindow):
         self._canvas.statusMsg.connect(self.statusBar().showMessage)
         self._canvas.historyChanged.connect(self._on_history_changed)
         self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
+        self._canvas.imageLoaded.connect(self._on_image_loaded)
         cv_lay.addWidget(self._canvas, 1)
 
         root.addWidget(canvas_container, 1)
@@ -1338,7 +1390,7 @@ class MainWindow(QMainWindow):
             return b
 
         mini_btn("open", "Bild öffnen  (Cmd+O)",   self._open_image)
-        mini_btn("save", "Bild speichern  (Cmd+S)", self._save_image)
+        mini_btn("save", "Bild speichern  (Cmd+S)", self._save)
         return frame
 
     def _build_right_panel(self) -> QFrame:
@@ -1766,16 +1818,33 @@ class MainWindow(QMainWindow):
         a_open.triggered.connect(self._open_image)
         file_m.addAction(a_open)
 
-        a_save = QAction("Speichern…", self)
+        # Submenü „Zuletzt geöffnet" – wird nach dem ersten load_image
+        # mit Inhalt befüllt, persistiert über QSettings.
+        self._recent_menu = file_m.addMenu("Zuletzt geöffnet")
+        self._rebuild_recent_menu()
+
+        file_m.addSeparator()
+
+        a_save = QAction("Speichern", self)
         a_save.setShortcut(QKeySequence("Ctrl+S"))
-        a_save.triggered.connect(self._save_image)
+        a_save.triggered.connect(self._save)
         file_m.addAction(a_save)
+
+        a_save_as = QAction("Speichern unter…", self)
+        a_save_as.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        a_save_as.triggered.connect(self._save_as)
+        file_m.addAction(a_save_as)
 
         edit_m = mb.addMenu("Bearbeiten")
         a_undo = QAction("Rückgängig", self)
         a_undo.setShortcut(QKeySequence("Ctrl+Z"))
         a_undo.triggered.connect(self._canvas.undo)
         edit_m.addAction(a_undo)
+
+        a_redo = QAction("Wiederherstellen", self)
+        a_redo.setShortcut(QKeySequence("Ctrl+Shift+Z"))
+        a_redo.triggered.connect(self._canvas.redo)
+        edit_m.addAction(a_redo)
 
         edit_m.addSeparator()
         a_rot_l = QAction("90° links drehen", self)
@@ -1829,16 +1898,76 @@ class MainWindow(QMainWindow):
         if path:
             self._canvas.load_image(path)
 
-    def _save_image(self):
+    def _save(self):
+        """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
+        if self._save_path is None:
+            self._save_as()
+            return
         if self._canvas._pil is None:
             self.statusBar().showMessage("Kein Bild zum Speichern")
             return
+        self._canvas.save_image(self._save_path)
+
+    def _save_as(self):
+        """Speichern unter…: öffnet immer den Datei-Dialog."""
+        if self._canvas._pil is None:
+            self.statusBar().showMessage("Kein Bild zum Speichern")
+            return
+        suggest = self._save_path or "bild_bearbeitet"
         path, _ = QFileDialog.getSaveFileName(
-            self, "Bild speichern", "bild_bearbeitet",
-            "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp)"
+            self, "Bild speichern unter…", suggest,
+            "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tif)"
         )
         if path:
             self._canvas.save_image(path)
+            self._save_path = path
+
+    # ── Recent-Files ────────────────────────────────────────────
+
+    def _recent_paths(self) -> list[str]:
+        raw = self._settings.value(self.SETTINGS_RECENT_KEY, [])
+        if isinstance(raw, str):       # einzelner Eintrag → in Liste packen
+            return [raw]
+        return list(raw) if raw else []
+
+    def _add_recent(self, path: str) -> None:
+        canonical = str(Path(path).resolve())
+        items = [p for p in self._recent_paths() if p != canonical]
+        items.insert(0, canonical)
+        items = items[:self.RECENT_MAX]
+        self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
+        self._rebuild_recent_menu()
+
+    def _rebuild_recent_menu(self) -> None:
+        if self._recent_menu is None:
+            return
+        self._recent_menu.clear()
+        items = self._recent_paths()
+        if not items:
+            empty = QAction("(keine)", self)
+            empty.setEnabled(False)
+            self._recent_menu.addAction(empty)
+            return
+        for p in items:
+            act = QAction(Path(p).name, self)
+            act.setToolTip(p)
+            act.triggered.connect(lambda _=False, pp=p: self._open_recent(pp))
+            self._recent_menu.addAction(act)
+
+    def _open_recent(self, path: str) -> None:
+        if not Path(path).exists():
+            self.statusBar().showMessage(
+                f"Datei nicht mehr vorhanden: {Path(path).name}")
+            items = [p for p in self._recent_paths() if p != path]
+            self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
+            self._rebuild_recent_menu()
+            return
+        self._canvas.load_image(path)
+
+    def _on_image_loaded(self, path: str) -> None:
+        """Wird nach jedem load_image vom Canvas aufgerufen."""
+        self._save_path = None
+        self._add_recent(path)
 
     def _pick_color(self):
         c = QColorDialog.getColor(self._bg_color, self, "Hintergrundfarbe wählen")

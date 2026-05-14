@@ -72,11 +72,17 @@ python3 BgRemover.py
 |--------|----------|
 | Bild öffnen | ⌘O |
 | Bild speichern | ⌘S |
+| Bild speichern unter… | ⇧⌘S |
 | Rückgängig | ⌘Z |
+| Wiederherstellen | ⇧⌘Z |
 | 90° links drehen | ⌘← |
 | 90° rechts drehen | ⌘→ |
 | Auswahl aufheben | Esc |
 | Fit to View | ⌘0 |
+
+Im Datei-Menü gibt es zusätzlich ein Submenü **„Zuletzt geöffnet"** mit
+den 10 zuletzt geladenen Bildern — der Zustand wird über QSettings
+persistiert.
 
 ## Entwicklung & Tests
 

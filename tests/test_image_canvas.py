@@ -1,4 +1,4 @@
-"""Tests für ImageCanvas: Laden, Speichern und Undo/Restore-Logik.
+"""Tests für ImageCanvas: Laden, Speichern und Undo/Redo/Restore-Logik.
 
 Verteidigt:
 
@@ -8,11 +8,14 @@ Verteidigt:
   statt den Verlauf zu verwerfen.
 * A1 — ``load_image`` wendet EXIF-Orientierung an, damit
   Smartphone-Fotos nicht gekippt erscheinen.
+* A4 — ``save_image`` schreibt TIFF mit Transparenz.
+* A8 — ``redo()`` macht ein ``undo()`` rückgängig; neue Aktionen
+  verwerfen den Redo-Stapel.
 """
 import numpy as np
 from PIL import Image
 
-from BgRemover import ImageCanvas
+from BgRemover import ImageCanvas, pil_to_numpy
 
 
 # ── Fix #7: save_image ─────────────────────────────────────────────────
@@ -125,3 +128,76 @@ def test_load_image_without_exif_keeps_orientation(qapp, tmp_path):
     canvas = ImageCanvas()
     canvas.load_image(str(p))
     assert canvas._pil.size == (30, 15)
+
+
+# ── A4: TIFF-Speichern mit Transparenz ──────────────────────────────────
+
+def test_save_tiff_keeps_alpha(qapp, tmp_path):
+    canvas = ImageCanvas()
+    canvas._pil = Image.new("RGBA", (10, 10), (0, 255, 0, 128))
+    out = tmp_path / "test.tif"
+    canvas.save_image(str(out))
+    assert out.exists()
+    saved = Image.open(out)
+    assert saved.mode == "RGBA"
+    assert (np.array(saved)[:, :, 3] == 128).all()
+
+
+def test_save_tiff_with_tiff_extension(qapp, tmp_path):
+    canvas = ImageCanvas()
+    canvas._pil = Image.new("RGBA", (8, 8), (50, 100, 200, 255))
+    out = tmp_path / "explicit.tiff"
+    canvas.save_image(str(out))
+    assert out.exists()
+
+
+# ── A8: Redo-Stack ──────────────────────────────────────────────────────
+
+def _seed_canvas(color):
+    """Erzeugt einen Canvas mit einem definierten Startbild."""
+    c = ImageCanvas()
+    img = Image.new("RGBA", (8, 8), color)
+    c._pil  = img
+    c._arr  = pil_to_numpy(img)
+    c._mask = np.zeros((8, 8), dtype=bool)
+    return c
+
+
+def test_redo_restores_state_after_undo(qapp):
+    c = _seed_canvas((255, 0, 0, 255))
+    c._apply_pil(Image.new("RGBA", (8, 8), (0, 255, 0, 255)), desc="grün")
+    assert np.array(c._pil)[0, 0].tolist() == [0, 255, 0, 255]
+    c.undo()
+    assert np.array(c._pil)[0, 0].tolist() == [255, 0, 0, 255]
+    c.redo()
+    assert np.array(c._pil)[0, 0].tolist() == [0, 255, 0, 255]
+
+
+def test_new_action_clears_redo_stack(qapp):
+    c = _seed_canvas((255, 0, 0, 255))
+    c._apply_pil(Image.new("RGBA", (8, 8), (0, 255, 0, 255)), desc="grün")
+    c.undo()
+    assert len(c._redo) == 1
+    # Neue Aktion ⇒ Redo-Branch verworfen
+    c._apply_pil(Image.new("RGBA", (8, 8), (0, 0, 255, 255)), desc="blau")
+    assert len(c._redo) == 0
+
+
+def test_redo_on_empty_stack_is_noop(qapp):
+    c = _seed_canvas((100, 100, 100, 255))
+    # Darf nicht crashen, _pil bleibt identisch
+    c.redo()
+    assert np.array(c._pil)[0, 0].tolist() == [100, 100, 100, 255]
+
+
+def test_load_image_clears_both_stacks(qapp, tmp_path):
+    """Beim Laden eines neuen Bildes werden Undo und Redo geleert."""
+    c = _seed_canvas((10, 20, 30, 255))
+    c._apply_pil(Image.new("RGBA", (8, 8), (40, 50, 60, 255)), desc="x")
+    c.undo()
+    assert len(c._redo) == 1
+    p = tmp_path / "fresh.png"
+    Image.new("RGB", (12, 12), (200, 200, 200)).save(p)
+    c.load_image(str(p))
+    assert len(c._undo) == 0
+    assert len(c._redo) == 0
