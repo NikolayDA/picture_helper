@@ -81,7 +81,17 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   oder Homebrew-Python `pip install` per PEP 668 blockiert). Lösung:
   `bash create_BgRemover_app.sh` erneut ausführen und die venv anlegen
   lassen (Vorschlag mit Enter bestätigen) — das Skript installiert die
-  Abhängigkeiten dann in `./.venv` und backt dieses Python in die App.
+  Abhängigkeiten dann in eine venv unter
+  `~/Library/Application Support/BgRemover/venv` und backt dieses Python
+  in die App.
+- **`[Errno 1] Operation not permitted` beim Öffnen von `BgRemover.py`**
+  → macOS-Datenschutz (TCC). Liegt das Projekt in `~/Documents`,
+  `~/Desktop`, `~/Downloads` oder iCloud Drive, darf eine aus dem
+  Finder gestartete `.app` dort nicht lesen. Seit v3 ist das gelöst:
+  `BgRemover.py` wird ins App-Bundle kopiert und die venv liegt in
+  Application Support — `bash create_BgRemover_app.sh` einmal neu
+  ausführen. (Alternativ das Projekt nach z. B. `~/picture_helper`
+  verschieben und das Skript dort erneut ausführen.)
 - **Fehler direkt sehen (manuelle Diagnose)** → Launcher im Terminal
   starten, dann erscheint die echte Fehlermeldung:
   ```bash
