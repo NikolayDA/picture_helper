@@ -74,6 +74,20 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
 
 ## Troubleshooting
 
+- **App startet nicht / Doppelklick passiert nichts** → Seit v3 zeigt
+  die App einen Fehlerdialog mit „Log öffnen". Häufigste Ursache:
+  `PyQt6` ist nicht in dem Python installiert, das die App nutzt
+  (z. B. weil `pip install` in eine venv oder ein anderes Python ging,
+  oder Homebrew-Python `pip install` per PEP 668 blockiert). Lösung:
+  `bash create_BgRemover_app.sh` erneut ausführen und die venv anlegen
+  lassen (Vorschlag mit Enter bestätigen) — das Skript installiert die
+  Abhängigkeiten dann in `./.venv` und backt dieses Python in die App.
+- **Fehler direkt sehen (manuelle Diagnose)** → Launcher im Terminal
+  starten, dann erscheint die echte Fehlermeldung:
+  ```bash
+  ~/Applications/BgRemover.app/Contents/MacOS/BgRemover
+  ```
+  Erwartbar bei fehlenden Paketen: `ModuleNotFoundError: No module named 'PyQt6'`.
 - **„python3: command not found"** → `brew install python`
 - **pip-Fehler beim Installieren** → erst pip aktualisieren:
   ```bash
