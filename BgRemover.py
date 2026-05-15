@@ -18,13 +18,14 @@ from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsObject,
     QGraphicsEllipseItem,
     QToolButton, QButtonGroup, QGroupBox, QStatusBar,
-    QFrame, QSizePolicy, QMessageBox, QTabWidget, QSpinBox, QListWidget,
-    QScrollArea
+    QFrame, QSizePolicy, QMessageBox, QTabWidget, QTabBar, QSpinBox,
+    QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab
 )
 from PyQt6.QtGui import (
     QPixmap, QImage, QPainter, QColor, QBrush,
     QDragEnterEvent, QDropEvent, QAction, QKeySequence,
-    QCursor, QPalette, QPen, QIcon, QPolygonF, QPainterPath
+    QCursor, QPalette, QPen, QIcon, QPolygonF, QPainterPath,
+    QFontMetrics
 )
 
 from PyQt6.QtCore import (
@@ -1329,6 +1330,95 @@ SLD_STYLE = """
 """
 
 
+class TopIconTabBar(QTabBar):
+    """Tab-Bar mit großem Icon oben und zentriertem Text darunter.
+
+    Qt zeichnet das Icon standardmäßig links neben dem Text – ein reines
+    Stylesheet kann das nicht ändern. Deshalb wird das Tab hier manuell
+    gemalt: Tab-Hintergrund/-Rahmen weiter über den Stil (Stylesheet),
+    Icon und Text aber selbst und vertikal gestapelt.
+    """
+
+    _ICON_TOP_PAD = 9     # Abstand Tab-Oberkante → Icon
+    _ICON_TEXT_GAP = 5    # Abstand Icon → Text
+    _TEXT_BOTTOM_PAD = 7  # Abstand Text → Tab-Unterkante
+
+    def __init__(self, icon_px: int = 30, parent=None):
+        super().__init__(parent)
+        self._icon_px = icon_px
+
+    def _text_font(self):
+        f = self.font()
+        f.setPixelSize(11)
+        return f
+
+    def tabSizeHint(self, index: int) -> QSize:
+        fm = QFontMetrics(self._text_font())
+        text_w = fm.horizontalAdvance(self.tabText(index))
+        width = max(self._icon_px + 20, text_w + 16, 80)
+        height = (self._ICON_TOP_PAD + self._icon_px + self._ICON_TEXT_GAP
+                  + fm.height() + self._TEXT_BOTTOM_PAD)
+        return QSize(width, height)
+
+    def paintEvent(self, event):
+        painter = QStylePainter(self)
+        opt = QStyleOptionTab()
+        text_font = self._text_font()
+
+        for i in range(self.count()):
+            self.initStyleOption(opt, i)
+            rect = self.tabRect(i)
+
+            # Tab-Form (Hintergrund, Auswahl-Unterstrich) über den Stil –
+            # Icon/Text vom Stil ausblenden, da selbst gezeichnet wird.
+            opt.text = ""
+            opt.icon = QIcon()
+            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt)
+
+            selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+            hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
+            enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
+
+            # Icon zentriert oben
+            icon = self.tabIcon(i)
+            if not icon.isNull():
+                mode = (QIcon.Mode.Normal if enabled
+                        else QIcon.Mode.Disabled)
+                pm = icon.pixmap(QSize(self._icon_px, self._icon_px), mode)
+                ix = rect.x() + (rect.width() - self._icon_px) // 2
+                iy = rect.y() + self._ICON_TOP_PAD
+                painter.drawPixmap(ix, iy, pm)
+
+            # Text zentriert darunter
+            if not enabled:
+                color = QColor("#555")
+            elif selected:
+                color = QColor("#e0e0e0")
+            elif hovered:
+                color = QColor("#aaaaaa")
+            else:
+                color = QColor("#777777")
+            text_font.setBold(selected)
+            painter.setFont(text_font)
+            painter.setPen(color)
+            text_top = (rect.y() + self._ICON_TOP_PAD + self._icon_px
+                        + self._ICON_TEXT_GAP)
+            text_rect = QRect(rect.x(), text_top, rect.width(),
+                              rect.bottom() - text_top)
+            painter.drawText(
+                text_rect,
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+                self.tabText(i))
+
+
+class TopIconTabWidget(QTabWidget):
+    """QTabWidget, das die TopIconTabBar verwendet (setTabBar ist protected)."""
+
+    def __init__(self, icon_px: int = 30, parent=None):
+        super().__init__(parent)
+        self.setTabBar(TopIconTabBar(icon_px, self))
+
+
 class MainWindow(QMainWindow):
     # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
     RECENT_MAX = 10
@@ -1654,11 +1744,12 @@ class MainWindow(QMainWindow):
             return s
 
         # ── Tab-Widget ────────────────────────────────────────
-        tabs = QTabWidget()
+        TAB_ICON_PX = 30
+        tabs = TopIconTabWidget(TAB_ICON_PX)
         tabs.setDocumentMode(True)
         tabs.setStyleSheet(TAB_STYLE)
         tabs.setUsesScrollButtons(False)   # niemals Scroll-Pfeile — alle Tabs sichtbar
-        tabs.setIconSize(QSize(18, 18))
+        tabs.setIconSize(QSize(TAB_ICON_PX, TAB_ICON_PX))
         outer.addWidget(tabs)
 
         # ════════════════════════════════════════════════════
@@ -1666,7 +1757,7 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         t1, l1 = scroll_tab()
         tabs.addTab(t1, "Auswahl")
-        tabs.setTabIcon(0, make_tool_icon("clear_sel", 18))
+        tabs.setTabIcon(0, make_tool_icon("clear_sel", TAB_ICON_PX))
         tabs.setTabToolTip(0, "Auswahl – Zauberstab, Pinsel, Radiergummi")
 
         g_tool, gt = sec("Werkzeug", "#4a90d9")
@@ -1754,7 +1845,7 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         t2, l2 = scroll_tab()
         tabs.addTab(t2, "Hintergr.")
-        tabs.setTabIcon(1, make_tool_icon("bg", 18))
+        tabs.setTabIcon(1, make_tool_icon("bg", TAB_ICON_PX))
         tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen, Verlauf")
 
         g_bg, gb = sec("Hintergrund bearbeiten", "#e05555")
@@ -1811,7 +1902,7 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         t3, l3 = scroll_tab()
         tabs.addTab(t3, "Trans.")
-        tabs.setTabIcon(2, make_tool_icon("transparency", 18))
+        tabs.setTabIcon(2, make_tool_icon("transparency", TAB_ICON_PX))
         tabs.setTabToolTip(2, "Transform – Drehen, Spiegeln")
 
         g_rot, gr2 = sec("Drehen", "#e09a30")
@@ -1889,7 +1980,7 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         t4, l4 = scroll_tab()
         tabs.addTab(t4, "Form")
-        tabs.setTabIcon(3, make_tool_icon("form", 18))
+        tabs.setTabIcon(3, make_tool_icon("form", TAB_ICON_PX))
         tabs.setTabToolTip(3, "Form & Zuschnitt – Ecken abrunden, Format-Auswahl")
 
         g_corner, gc = sec("Ecken abrunden", "#30c060")
