@@ -20,14 +20,32 @@ brew install python git
 
 ## Schnellstart aus `main`
 
+**Empfohlen** ist das App-Bundle-Skript — es legt automatisch eine
+isolierte venv an, installiert alle Abhängigkeiten (inkl.
+`onnxruntime` für die KI), behandelt Apple Silicon korrekt und kopiert
+die Toolbar-Icons ins Bundle:
+
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
+bash create_BgRemover_app.sh
+```
+
+Beim venv-Hinweis mit **Enter** bestätigen; danach `BgRemover.app`
+unter `~/Applications` per Doppelklick starten.
+
+**Direkter Terminal-Start** — auf modernem macOS in einer venv, da
+System-Python `pip install` per PEP 668 blockiert:
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
 python3 BgRemover.py
 ```
 
-- `.[ai]` installiert auch `rembg` (KI-Hintergrundentfernung).
+- `.[ai]` installiert `rembg[cpu]` inkl. `onnxruntime` (KI-Hintergrundentfernung).
 - Ohne KI-Funktion reicht: `python3 -m pip install -e .`
 
 ## Startvarianten
@@ -36,9 +54,9 @@ Nach der Installation gibt es drei Wege, das Programm zu starten:
 
 | Variante | Befehl / Aktion | Ergebnis |
 |----------|-----------------|----------|
-| **A – macOS-App** | `bash create_BgRemover_app.sh` | Legt `BgRemover.app` unter `~/Applications` an (Doppelklick im Finder/Dock), entfernt die Quarantäne automatisch |
-| **B – Doppelklick** | `chmod +x BgRemover.command`, dann im Finder doppelklicken | Startet die App über ein Terminalfenster |
-| **C – Terminal** | `python3 BgRemover.py` | Direkter Start |
+| **A – macOS-App (empfohlen)** | `bash create_BgRemover_app.sh` | Legt eine isolierte venv an, installiert alle Abhängigkeiten (inkl. `onnxruntime`), kopiert die Icons und erzeugt ein eigenständiges `BgRemover.app` unter `~/Applications`. Quarantäne wird automatisch entfernt; das Projekt darf in `~/Documents` bleiben. |
+| **B – Doppelklick** | `BgRemover.command` im Finder doppelklicken | Startet im Terminalfenster; nutzt automatisch die vom Skript angelegte App-venv (Datei ist bereits ausführbar). |
+| **C – Terminal** | in einer venv: `python3 BgRemover.py` | Direkter Start (venv-Setup siehe Schnellstart oben). |
 
 ## Installation aus einem Branch (offene PRs testen)
 
@@ -50,10 +68,14 @@ PR-Branch-Namen stehen im jeweiligen Pull Request auf GitHub
 cd picture_helper
 git fetch origin
 git branch -r                       # verfügbare Branches anzeigen
-git checkout claude/selection-features-03824
-python3 -m pip install -e ".[ai]"   # nur nötig, wenn sich Abhängigkeiten geändert haben
+git checkout <branch>
+# in venv (siehe Schnellstart); nur nötig, wenn sich Abhängigkeiten geändert haben:
+python3 -m pip install -e ".[ai]"
 python3 BgRemover.py
 ```
+
+Alternativ auch auf einem Branch einfach `bash create_BgRemover_app.sh`
+ausführen — das übernimmt venv und Abhängigkeiten automatisch.
 
 **Variante 2 – einen Branch direkt klonen:**
 ```bash
@@ -123,4 +145,14 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   `BgRemover.app` → **Öffnen**. Das Build-Skript entfernt die
   Quarantäne bereits per `xattr`, ein Rechtsklick-Öffnen genügt im
   Zweifel trotzdem.
+- **App stürzt mit „No onnxruntime backend found" ab** → Neuere
+  `rembg`-Versionen liefern das Backend nicht mehr mit. Aktuell behoben
+  (das `ai`-Extra zieht `rembg[cpu]`/`onnxruntime`; fehlt es dennoch,
+  startet die App ohne KI statt abzustürzen). Lösung: einmal
+  `bash create_BgRemover_app.sh` neu bauen — oder ins venv nachinstallieren:
+  `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
+- **`.app` sieht anders aus als `BgRemover.command`** → Älteres Bundle
+  ohne Toolbar-Icons (App nutzte gezeichnete Ersatz-Icons). Aktuell
+  behoben — das Skript kopiert `icons/` ins Bundle; einmal
+  `bash create_BgRemover_app.sh` neu bauen.
 - **Diagnose bei Fehlern** → Logdatei `~/.bgremover.log` ansehen.
