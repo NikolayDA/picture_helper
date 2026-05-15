@@ -1342,11 +1342,14 @@ class TopIconTabBar(QTabBar):
     _ICON_TOP_PAD = 9     # Abstand Tab-Oberkante → Icon
     _ICON_TEXT_GAP = 5    # Abstand Icon → Text
     _TEXT_BOTTOM_PAD = 7  # Abstand Text → Tab-Unterkante
-    _MAX_TEXT_W = 86      # ab dieser Textbreite (px) → Umbruch in 2 Zeilen
+    _TEXT_SIDE_PAD = 6    # seitlicher Mindestabstand Text → Tab-Rand
 
     def __init__(self, icon_px: int = 30, parent=None):
         super().__init__(parent)
         self._icon_px = icon_px
+        # Breiten werden selbst gleichmäßig auf die volle Breite verteilt –
+        # Qts proportionale Expand-Heuristik darf das nicht verändern.
+        self.setExpanding(False)
 
     def _text_font(self, bold: bool = False):
         f = self.font()
@@ -1354,9 +1357,9 @@ class TopIconTabBar(QTabBar):
         f.setBold(bold)
         return f
 
-    def _wrap(self, text: str, fm: QFontMetrics) -> list:
-        """Bricht zu breite Labels in max. 2 Zeilen um (an '/' oder Space)."""
-        if fm.horizontalAdvance(text) <= self._MAX_TEXT_W:
+    def _wrap(self, text: str, fm: QFontMetrics, max_w: int) -> list:
+        """Bricht ein zu breites Label in max. 2 Zeilen um (an '/' oder Space)."""
+        if max_w <= 0 or fm.horizontalAdvance(text) <= max_w:
             return [text]
         if "/" in text:
             i = text.index("/")
@@ -1367,17 +1370,35 @@ class TopIconTabBar(QTabBar):
         mid = len(text) // 2
         return [text[:mid], text[mid:]]
 
+    def _equal_width(self, index: int) -> int:
+        """Volle Spaltenbreite gleichmäßig auf alle Tabs aufteilen.
+
+        Die Bar-Breite leitet sich aus der Summe der Tab-SizeHints ab –
+        deshalb wird hier die Breite des übergeordneten QTabWidget
+        verwendet (sonst zirkuläre Abhängigkeit → degenerierte Breite).
+        """
+        n = self.count() or 1
+        parent = self.parentWidget()
+        total = parent.width() if parent is not None else 0
+        if total <= 0:
+            total = self.width()
+        if total <= 0:                  # vor dem ersten Layout
+            return max(self._icon_px + 20, 80)
+        base = total // n
+        rem = total - base * n          # Restpixel auf die ersten Tabs verteilen
+        return base + (1 if index < rem else 0)
+
     def tabSizeHint(self, index: int) -> QSize:
-        # Mit fetter Schrift messen – der ausgewählte Tab wird fett
-        # gezeichnet und wäre sonst breiter als der gemessene Text.
         fm = QFontMetrics(self._text_font(bold=True))
-        lines = self._wrap(self.tabText(index), fm)
-        text_w = max(fm.horizontalAdvance(ln) for ln in lines)
-        width = max(self._icon_px + 20, text_w + 18, 70)
         # immer Platz für 2 Zeilen → alle Tabs gleich hoch
         height = (self._ICON_TOP_PAD + self._icon_px + self._ICON_TEXT_GAP
                   + 2 * fm.height() + self._TEXT_BOTTOM_PAD)
-        return QSize(width, height)
+        return QSize(self._equal_width(index), height)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Tab-Geometrie an die neue Bar-Breite anpassen (gleiche Breiten).
+        self.updateGeometry()
 
     def paintEvent(self, event):
         painter = QStylePainter(self)
@@ -1420,7 +1441,8 @@ class TopIconTabBar(QTabBar):
             painter.setFont(font)
             painter.setPen(color)
             fm = QFontMetrics(font)
-            lines = self._wrap(self.tabText(i), fm)
+            lines = self._wrap(self.tabText(i), fm,
+                               rect.width() - 2 * self._TEXT_SIDE_PAD)
             line_h = fm.height()
             block_top = (rect.y() + self._ICON_TOP_PAD + self._icon_px
                          + self._ICON_TEXT_GAP)
@@ -1440,6 +1462,16 @@ class TopIconTabWidget(QTabWidget):
     def __init__(self, icon_px: int = 30, parent=None):
         super().__init__(parent)
         self.setTabBar(TopIconTabBar(icon_px, self))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Bar deterministisch auf die volle Spaltenbreite ziehen – das löst
+        # in der Bar layoutTabs() aus, sodass alle Tabs gleich breit werden
+        # und die ganze Breite füllen.
+        bar = self.tabBar()
+        g = bar.geometry()
+        if g.width() != self.width():
+            bar.setGeometry(0, g.y(), self.width(), g.height())
 
 
 class MainWindow(QMainWindow):
