@@ -1342,28 +1342,46 @@ class TopIconTabBar(QTabBar):
     _ICON_TOP_PAD = 9     # Abstand Tab-Oberkante → Icon
     _ICON_TEXT_GAP = 5    # Abstand Icon → Text
     _TEXT_BOTTOM_PAD = 7  # Abstand Text → Tab-Unterkante
+    _MAX_TEXT_W = 86      # ab dieser Textbreite (px) → Umbruch in 2 Zeilen
 
     def __init__(self, icon_px: int = 30, parent=None):
         super().__init__(parent)
         self._icon_px = icon_px
 
-    def _text_font(self):
+    def _text_font(self, bold: bool = False):
         f = self.font()
         f.setPixelSize(11)
+        f.setBold(bold)
         return f
 
+    def _wrap(self, text: str, fm: QFontMetrics) -> list:
+        """Bricht zu breite Labels in max. 2 Zeilen um (an '/' oder Space)."""
+        if fm.horizontalAdvance(text) <= self._MAX_TEXT_W:
+            return [text]
+        if "/" in text:
+            i = text.index("/")
+            return [text[:i + 1], text[i + 1:].strip()]
+        if " " in text:
+            i = text.index(" ")
+            return [text[:i], text[i + 1:]]
+        mid = len(text) // 2
+        return [text[:mid], text[mid:]]
+
     def tabSizeHint(self, index: int) -> QSize:
-        fm = QFontMetrics(self._text_font())
-        text_w = fm.horizontalAdvance(self.tabText(index))
-        width = max(self._icon_px + 20, text_w + 16, 80)
+        # Mit fetter Schrift messen – der ausgewählte Tab wird fett
+        # gezeichnet und wäre sonst breiter als der gemessene Text.
+        fm = QFontMetrics(self._text_font(bold=True))
+        lines = self._wrap(self.tabText(index), fm)
+        text_w = max(fm.horizontalAdvance(ln) for ln in lines)
+        width = max(self._icon_px + 20, text_w + 18, 70)
+        # immer Platz für 2 Zeilen → alle Tabs gleich hoch
         height = (self._ICON_TOP_PAD + self._icon_px + self._ICON_TEXT_GAP
-                  + fm.height() + self._TEXT_BOTTOM_PAD)
+                  + 2 * fm.height() + self._TEXT_BOTTOM_PAD)
         return QSize(width, height)
 
     def paintEvent(self, event):
         painter = QStylePainter(self)
         opt = QStyleOptionTab()
-        text_font = self._text_font()
 
         for i in range(self.count()):
             self.initStyleOption(opt, i)
@@ -1389,7 +1407,7 @@ class TopIconTabBar(QTabBar):
                 iy = rect.y() + self._ICON_TOP_PAD
                 painter.drawPixmap(ix, iy, pm)
 
-            # Text zentriert darunter
+            # Text (1–2 Zeilen) zentriert darunter
             if not enabled:
                 color = QColor("#555")
             elif selected:
@@ -1398,17 +1416,22 @@ class TopIconTabBar(QTabBar):
                 color = QColor("#aaaaaa")
             else:
                 color = QColor("#777777")
-            text_font.setBold(selected)
-            painter.setFont(text_font)
+            font = self._text_font(bold=selected)
+            painter.setFont(font)
             painter.setPen(color)
-            text_top = (rect.y() + self._ICON_TOP_PAD + self._icon_px
-                        + self._ICON_TEXT_GAP)
-            text_rect = QRect(rect.x(), text_top, rect.width(),
-                              rect.bottom() - text_top)
-            painter.drawText(
-                text_rect,
-                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
-                self.tabText(i))
+            fm = QFontMetrics(font)
+            lines = self._wrap(self.tabText(i), fm)
+            line_h = fm.height()
+            block_top = (rect.y() + self._ICON_TOP_PAD + self._icon_px
+                         + self._ICON_TEXT_GAP)
+            # Zeilenblock vertikal in der für 2 Zeilen reservierten Höhe zentrieren
+            y0 = block_top + (2 * line_h - len(lines) * line_h) // 2
+            for k, line in enumerate(lines):
+                r = QRect(rect.x(), y0 + k * line_h, rect.width(), line_h)
+                painter.drawText(
+                    r,
+                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+                    line)
 
 
 class TopIconTabWidget(QTabWidget):
@@ -1844,7 +1867,7 @@ class MainWindow(QMainWindow):
         # Tab 2 – Hintergrund  🖼
         # ════════════════════════════════════════════════════
         t2, l2 = scroll_tab()
-        tabs.addTab(t2, "Hintergr.")
+        tabs.addTab(t2, "Hintergrund")
         tabs.setTabIcon(1, make_tool_icon("bg", TAB_ICON_PX))
         tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen, Verlauf")
 
@@ -1901,7 +1924,7 @@ class MainWindow(QMainWindow):
         # Tab 3 – Transform  ⟲
         # ════════════════════════════════════════════════════
         t3, l3 = scroll_tab()
-        tabs.addTab(t3, "Trans.")
+        tabs.addTab(t3, "Drehen/Spiegeln")
         tabs.setTabIcon(2, make_tool_icon("transparency", TAB_ICON_PX))
         tabs.setTabToolTip(2, "Transform – Drehen, Spiegeln")
 
