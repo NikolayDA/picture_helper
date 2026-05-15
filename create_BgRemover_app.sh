@@ -198,6 +198,18 @@ mkdir -p "$APP_PATH/Contents/Resources"
 BUNDLED_BGREMOVER="$APP_PATH/Contents/Resources/BgRemover.py"
 cp "$BGREMOVER_PY" "$BUNDLED_BGREMOVER"
 
+# Toolbar-PNGs mit ins Bundle: BgRemover.make_tool_icon() sucht den
+# icons/-Ordner NEBEN BgRemover.py. Ohne diese Kopie fällt die App auf
+# gezeichnete Ersatz-Icons zurück und sieht anders aus als der direkte
+# Skriptstart.
+if [ -d "$SCRIPT_DIR/icons" ]; then
+    rm -rf "$APP_PATH/Contents/Resources/icons"
+    cp -R "$SCRIPT_DIR/icons" "$APP_PATH/Contents/Resources/icons"
+    echo -e "${GREEN}✅  icons/ ins Bundle kopiert${NC}"
+else
+    echo -e "${YELLOW}⚠️  icons/ nicht gefunden – App nutzt gezeichnete Ersatz-Icons${NC}"
+fi
+
 # ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
