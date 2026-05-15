@@ -396,6 +396,50 @@ class AIWorker(QObject):
             self.error.emit(f"{type(e).__name__}: {e}")
 
 
+class RembgWarmupWorker(QObject):
+    """Lädt das rembg-ONNX-Modell einmalig im Hintergrund.
+
+    Ohne diesen Warmup blockt der erste KI-Klick rund zehn Sekunden,
+    weil rembg sein Modell on-demand initialisiert. Ein remove()-Aufruf
+    mit einem winzigen Dummy-Bild reicht, um die rembg-Session global
+    zu cachen – nachfolgende Aufrufe sind sofort schnell.
+    """
+    finished = pyqtSignal()
+
+    def run(self):
+        try:
+            buf = io.BytesIO()
+            Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(buf, format="PNG")
+            rembg_remove(buf.getvalue())
+            logger.info("rembg-Warmup abgeschlossen")
+        except Exception:
+            logger.exception("rembg-Warmup fehlgeschlagen")
+        finally:
+            self.finished.emit()
+
+
+class ImageLoadWorker(QObject):
+    """Lädt + EXIF-orientiert ein Bild im Hintergrund.
+
+    Vermeidet UI-Freeze bei großen Fotos.
+    """
+    finished = pyqtSignal(object, str)   # (PIL.Image, original_path)
+    error    = pyqtSignal(str)
+
+    def __init__(self, path: str):
+        super().__init__()
+        self._path = path
+
+    def run(self):
+        try:
+            img = Image.open(self._path)
+            img = ImageOps.exif_transpose(img).convert("RGBA")
+            self.finished.emit(img, self._path)
+        except Exception as e:
+            logger.exception("Bildladen fehlgeschlagen")
+            self.error.emit(f"{type(e).__name__}: {e}")
+
+
 # ─────────────────────────────────────────────────────────────
 # Crop-Overlay (rein visuell – Canvas steuert Interaktion)
 # ─────────────────────────────────────────────────────────────
@@ -629,18 +673,28 @@ class ImageCanvas(QGraphicsView):
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str):
+        """Synchroner Lade-Pfad – wird vom Drop-Event und von Tests genutzt.
+
+        Für den File-Dialog läuft der gleiche Vorgang in einem Worker
+        (siehe ``MainWindow._load_image_async`` + ``apply_loaded_image``).
+        """
         # EXIF-Orientierung anwenden: Smartphone-Fotos sind oft im Sensor
         # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
         # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
         img = Image.open(path)
         img = ImageOps.exif_transpose(img).convert("RGBA")
+        self.apply_loaded_image(img, path)
+
+    def apply_loaded_image(self, img: Image.Image, path: str) -> None:
+        """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
         self._original = img.copy()
         self._undo.clear()
         self._redo.clear()
         self._cancel_crop_overlay()
         self._apply_pil(img, push=False)
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
-        self.statusMsg.emit(f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
+        self.statusMsg.emit(
+            f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
 
     def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung"):
@@ -1228,8 +1282,15 @@ class MainWindow(QMainWindow):
         self._settings = QSettings("BgRemover", "BgRemover")
         # Submenü-Referenz wird in _build_menu gesetzt
         self._recent_menu = None
+        # Asynchrones Bildladen
+        self._load_thread: QThread | None = None
+        # rembg-Warmup (Hintergrund-Modellladung)
+        self._warmup_thread: QThread | None = None
+        self._warmup_done = False
         self._build_ui()
         self._build_menu()
+        if REMBG_AVAILABLE:
+            self._start_rembg_warmup()
 
     # ── UI aufbauen ──────────────────────────────────────────
 
@@ -1896,7 +1957,58 @@ class MainWindow(QMainWindow):
             "Alle Dateien (*)"
         )
         if path:
-            self._canvas.load_image(path)
+            self._load_image_async(path)
+
+    def _load_image_async(self, path: str) -> None:
+        """Lädt ein Bild im Hintergrund-Thread, damit die UI nicht blockt."""
+        if self._load_thread is not None and self._load_thread.isRunning():
+            self.statusBar().showMessage("Lädt bereits ein Bild…")
+            return
+        self.statusBar().showMessage(f"⏳ Lädt: {Path(path).name}…")
+        thread = QThread()
+        worker = ImageLoadWorker(path)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_image_load_done)
+        worker.error.connect(self._on_image_load_error)
+        worker.finished.connect(thread.quit)
+        worker.error.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._on_load_thread_finished)
+        self._load_thread = thread
+        thread.start()
+
+    def _on_image_load_done(self, img, path: str) -> None:
+        self._canvas.apply_loaded_image(img, path)
+
+    def _on_image_load_error(self, msg: str) -> None:
+        self.statusBar().showMessage(f"Ladefehler: {msg}")
+
+    def _on_load_thread_finished(self) -> None:
+        self._load_thread = None
+
+    # ── rembg-Warmup ────────────────────────────────────────────
+
+    def _start_rembg_warmup(self) -> None:
+        """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
+        nicht spürbar wartet."""
+        self.statusBar().showMessage("🤖 KI-Modell wird geladen…")
+        thread = QThread()
+        worker = RembgWarmupWorker()
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._on_warmup_done)
+        self._warmup_thread = thread
+        thread.start()
+
+    def _on_warmup_done(self) -> None:
+        self._warmup_done = True
+        self._warmup_thread = None
+        self.statusBar().showMessage("🤖 KI bereit")
 
     def _save(self):
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
