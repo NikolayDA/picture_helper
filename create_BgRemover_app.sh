@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════
-#  create_BgRemover_app.sh  v3.1
+#  create_BgRemover_app.sh  v3.2
 #  Erstellt BgRemover.app + setzt Icon auf BgRemover.command
 #  Ausführen: bash ~/Downloads/create_BgRemover_app.sh
 #
@@ -10,6 +10,23 @@
 # ══════════════════════════════════════════════════════════════
 
 set -e
+
+# user-site (~/Library/Python/*) global ausblenden: dort liegende
+# Pakete sind oft arch-fremd (Apple Silicon) und verfälschen Erkennung
+# wie Laufzeit. Alle Kind-Pythons erben das.
+export PYTHONNOUSERSITE=1
+
+# Native CPU-Architektur. venv/pip MÜSSEN in derselben Arch laufen wie
+# später der Launcher (der ebenfalls nativ startet), sonst arm64/x86_64-
+# Mismatch unter Rosetta.
+NATIVE_ARCH="$(uname -m 2>/dev/null || echo)"
+arch_run() {
+    if [ -n "$NATIVE_ARCH" ] && /usr/bin/arch -"$NATIVE_ARCH" "$1" -c 'pass' >/dev/null 2>&1; then
+        /usr/bin/arch -"$NATIVE_ARCH" "$@"
+    else
+        "$@"
+    fi
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BGREMOVER_PY="$SCRIPT_DIR/BgRemover.py"
@@ -22,7 +39,7 @@ BLUE='\033[0;34m'; NC='\033[0m'; BOLD='\033[1m'
 
 echo ""
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
-echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v3.1${NC}"
+echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v3.2${NC}"
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
 echo ""
 
@@ -40,11 +57,9 @@ py_version_ok() {
     major=${ver%%.*}; minor=${ver#*.}
     [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 9 ]
 }
-# PYTHONNOUSERSITE: ~/Library/Python/* (user-site) ignorieren. Dort
-# liegende Pakete sind oft arch-inkompatibel (Apple Silicon: arm64 vs
-# x86_64) und bringen sonst die App zum Absturz. Wir wollen Pakete im
-# venv/Interpreter selbst – nicht im fragilen user-site.
-has_deps() { PYTHONNOUSERSITE=1 "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
+# Prüft in nativer Arch + ohne user-site, ob die Pakete wirklich
+# importierbar sind – also genau so, wie der Launcher später startet.
+has_deps() { arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
 
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
@@ -110,14 +125,14 @@ else
     echo "🐍 Erstelle venv in $VENV_DIR …"
     mkdir -p "$APPSUPPORT_DIR"
     rm -rf "$VENV_DIR"
-    "$PYTHON" -m venv "$VENV_DIR" \
+    arch_run "$PYTHON" -m venv "$VENV_DIR" \
         || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
-    echo "📦 Installiere Abhängigkeiten … (kann einige Minuten dauern)"
-    "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
-    if ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e ".[ai]" ); then
+    echo "📦 Installiere Abhängigkeiten ($NATIVE_ARCH) … (kann einige Minuten dauern)"
+    arch_run "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
+    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e ".[ai]" ); then
         PYTHON="$VENV_PY"
         echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e "." ); then
+    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e "." ); then
         PYTHON="$VENV_PY"
         echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
     else
@@ -131,7 +146,7 @@ fi
 # Letzter Sicherheitscheck: kann das gewählte Python die Pakete
 # wirklich importieren? Fängt z.B. arm64/x86_64-Mismatch ab, BEVOR
 # eine garantiert kaputte App ausgeliefert wird.
-if ! IMPERR=$(PYTHONNOUSERSITE=1 "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy' 2>&1); then
+if ! IMPERR=$(arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy' 2>&1); then
     echo -e "${RED}❌ $PYTHON kann PyQt6/Pillow/numpy nicht importieren:${NC}"
     echo "$IMPERR" | tail -n 1
     echo "   Häufige Ursache: Architektur-Mismatch auf Apple Silicon"
