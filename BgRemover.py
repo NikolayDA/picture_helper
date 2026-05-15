@@ -36,7 +36,10 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps
 try:
     from rembg import remove as rembg_remove
     REMBG_AVAILABLE = True
-except ImportError:
+except BaseException:
+    # rembg ist optional. Fehlt das onnxruntime-Backend, scheitert der
+    # Import je nach rembg-Version unterschiedlich (auch via SystemExit) –
+    # das darf die App NICHT mitreißen; KI wird dann nur deaktiviert.
     REMBG_AVAILABLE = False
 
 logger = logging.getLogger("BgRemover")
