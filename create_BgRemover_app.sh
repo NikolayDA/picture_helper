@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════
-#  create_BgRemover_app.sh  v3.0
+#  create_BgRemover_app.sh  v3.2
 #  Erstellt BgRemover.app + setzt Icon auf BgRemover.command
 #  Ausführen: bash ~/Downloads/create_BgRemover_app.sh
 #
@@ -10,6 +10,23 @@
 # ══════════════════════════════════════════════════════════════
 
 set -e
+
+# user-site (~/Library/Python/*) global ausblenden: dort liegende
+# Pakete sind oft arch-fremd (Apple Silicon) und verfälschen Erkennung
+# wie Laufzeit. Alle Kind-Pythons erben das.
+export PYTHONNOUSERSITE=1
+
+# Native CPU-Architektur. venv/pip MÜSSEN in derselben Arch laufen wie
+# später der Launcher (der ebenfalls nativ startet), sonst arm64/x86_64-
+# Mismatch unter Rosetta.
+NATIVE_ARCH="$(uname -m 2>/dev/null || echo)"
+arch_run() {
+    if [ -n "$NATIVE_ARCH" ] && /usr/bin/arch -"$NATIVE_ARCH" "$1" -c 'pass' >/dev/null 2>&1; then
+        /usr/bin/arch -"$NATIVE_ARCH" "$@"
+    else
+        "$@"
+    fi
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BGREMOVER_PY="$SCRIPT_DIR/BgRemover.py"
@@ -22,7 +39,7 @@ BLUE='\033[0;34m'; NC='\033[0m'; BOLD='\033[1m'
 
 echo ""
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
-echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v2.0${NC}"
+echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v3.2${NC}"
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
 echo ""
 
@@ -40,7 +57,9 @@ py_version_ok() {
     major=${ver%%.*}; minor=${ver#*.}
     [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 9 ]
 }
-has_deps() { "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
+# Prüft in nativer Arch + ohne user-site, ob die Pakete wirklich
+# importierbar sind – also genau so, wie der Launcher später startet.
+has_deps() { arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
 
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
@@ -91,32 +110,49 @@ else
     echo -e "${YELLOW}⚠️  PyQt6 ist in keinem gefundenen Python installiert.${NC}"
     echo -e "    Genau deshalb startet die App nicht (lautloser Import-Fehler)."
     echo ""
-    echo "    Empfohlen: eine projekteigene venv anlegen unter"
-    echo "    $SCRIPT_DIR/.venv  und dort die Abhängigkeiten installieren."
+    echo "    Empfohlen: eine isolierte venv anlegen unter"
+    echo "    $VENV_DIR"
+    echo "    und dort die Abhängigkeiten installieren. Die venv ignoriert"
+    echo "    das fragile ~/Library/Python (genau dort entsteht z.B. der"
+    echo "    numpy-Architekturfehler arm64 vs x86_64)."
     read -p "    venv anlegen & installieren? [J/n]: " mkvenv
     if [[ "$mkvenv" =~ ^[nN] ]]; then
-        echo -e "${YELLOW}⚠️  Fortfahren ohne PyQt6 – die App wird vermutlich nicht starten.${NC}"
-    else
-        echo "🐍 Erstelle venv in $VENV_DIR …"
-        mkdir -p "$APPSUPPORT_DIR"
-        rm -rf "$VENV_DIR"
-        "$PYTHON" -m venv "$VENV_DIR" \
-            || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
-        echo "📦 Installiere Abhängigkeiten … (kann einige Minuten dauern)"
-        "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
-        if ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e ".[ai]" ); then
-            PYTHON="$VENV_PY"
-            echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
-        elif ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e "." ); then
-            PYTHON="$VENV_PY"
-            echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
-        else
-            echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
-            echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
-            echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install -e \".[ai]\""
-            exit 1
-        fi
+        echo -e "${RED}❌ Ohne venv kann keine lauffähige App erstellt werden.${NC}"
+        echo "   Bitte erneut ausführen und die venv anlegen lassen –"
+        echo "   ggf. vorab nativen Python installieren:  brew install python"
+        exit 1
     fi
+    echo "🐍 Erstelle venv in $VENV_DIR …"
+    mkdir -p "$APPSUPPORT_DIR"
+    rm -rf "$VENV_DIR"
+    arch_run "$PYTHON" -m venv "$VENV_DIR" \
+        || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
+    echo "📦 Installiere Abhängigkeiten ($NATIVE_ARCH) … (kann einige Minuten dauern)"
+    arch_run "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
+    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e ".[ai]" ); then
+        PYTHON="$VENV_PY"
+        echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
+    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e "." ); then
+        PYTHON="$VENV_PY"
+        echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
+    else
+        echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
+        echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
+        echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install -e \".[ai]\""
+        exit 1
+    fi
+fi
+
+# Letzter Sicherheitscheck: kann das gewählte Python die Pakete
+# wirklich importieren? Fängt z.B. arm64/x86_64-Mismatch ab, BEVOR
+# eine garantiert kaputte App ausgeliefert wird.
+if ! IMPERR=$(arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy' 2>&1); then
+    echo -e "${RED}❌ $PYTHON kann PyQt6/Pillow/numpy nicht importieren:${NC}"
+    echo "$IMPERR" | tail -n 1
+    echo "   Häufige Ursache: Architektur-Mismatch auf Apple Silicon"
+    echo "   (x86_64 vs arm64). Abhilfe: nativen Python installieren und"
+    echo "   das Skript erneut ausführen:  brew install python"
+    exit 1
 fi
 
 # ── Dateien prüfen ────────────────────────────────────────────
@@ -166,10 +202,15 @@ cp "$BGREMOVER_PY" "$BUNDLED_BGREMOVER"
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
 #!/bin/zsh
-# BgRemover Launcher v3 – sichtbare Fehlerdialoge statt lautlosem Abbruch.
+# BgRemover Launcher v4 – sichtbare Fehlerdialoge statt lautlosem Abbruch.
 # Eine aus dem Finder gestartete .app hat KEIN Terminal: ohne diese
 # Diagnose würde z.B. ein fehlendes PyQt6 spurlos scheitern.
 export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
+
+# user-site (~/Library/Python/*) ausblenden: dort liegende Pakete sind
+# oft arch-inkompatibel (Apple Silicon arm64 vs x86_64) und brachten
+# die App bisher mit einem numpy-ImportError zum Absturz.
+export PYTHONNOUSERSITE=1
 
 # Login-Profil laden (NICHT das interaktive .zshrc – das kann im
 # Finder-/launchd-Kontext hängen oder mit Fehlern abbrechen).
@@ -196,13 +237,23 @@ if [ ! -f "\$BGREMOVER" ]; then
     fail "BgRemover.py fehlt im App-Bundle:"\$'\\n'"\$BGREMOVER"\$'\\n\\n'"Das Bundle ist unvollständig. Bitte create_BgRemover_app.sh erneut ausführen."
 fi
 
-{ echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
-  echo "Python: \$PYTHON"; } >> "\$LOG" 2>&1
+# Native CPU-Architektur erzwingen: wird die .app via Rosetta
+# gestartet, läuft Python sonst als x86_64 und kann arm64-Pakete
+# nicht laden. Nur anwenden, wenn dieses Python die native Arch
+# wirklich unterstützt, sonst normal starten.
+NATIVE_ARCH="\$(/usr/bin/uname -m 2>/dev/null)"
+RUN=("\$PYTHON")
+if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON" -c 'pass' >/dev/null 2>&1; then
+    RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON")
+fi
 
-if ! "\$PYTHON" "\$BGREMOVER" "\$@" >> "\$LOG" 2>&1; then
+{ echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
+  echo "Python: \$PYTHON  (arch \$NATIVE_ARCH)"; } >> "\$LOG" 2>&1
+
+if ! "\${RUN[@]}" "\$BGREMOVER" "\$@" >> "\$LOG" 2>&1; then
     LASTERR=\$(grep -E 'Error|Exception|Traceback' "\$LOG" 2>/dev/null | tail -n 1)
     [ -z "\$LASTERR" ] && LASTERR="(siehe Logdatei)"
-    fail "BgRemover konnte nicht starten."\$'\\n\\n'"\$LASTERR"\$'\\n\\n'"Häufigste Ursache: PyQt6 fehlt in diesem Python. Fix: create_BgRemover_app.sh erneut ausführen und die venv anlegen lassen."
+    fail "BgRemover konnte nicht starten."\$'\\n\\n'"\$LASTERR"\$'\\n\\n'"Fix: create_BgRemover_app.sh erneut ausführen und die venv anlegen lassen (bei arm64/x86_64-Fehlern vorher: brew install python)."
 fi
 LAUNCHER_EOF
 chmod +x "$LAUNCHER"
