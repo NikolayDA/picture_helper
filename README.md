@@ -24,21 +24,33 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 
 ## Installation
 
-**Schnellstart aus `main`:**
+**Empfohlen (macOS): App-Bundle bauen.** Das Skript legt automatisch
+eine isolierte venv an, installiert alle Abhängigkeiten (inkl.
+`onnxruntime` für die KI), behandelt Apple Silicon korrekt und erzeugt
+ein eigenständiges `BgRemover.app`:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
+bash create_BgRemover_app.sh
+```
+
+Beim venv-Hinweis mit **Enter** bestätigen. Danach `BgRemover.app`
+(unter `~/Applications`) per Doppelklick starten — funktionsgleich zur
+mitgelieferten **`BgRemover.command`**. Das Projekt darf in
+`~/Documents` liegen bleiben (die App wird eigenständig gebaut).
+
+**Alternativ direkt im Terminal** — auf modernem macOS in einer venv,
+da System-Python `pip install` per PEP 668 blockiert:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
 python3 BgRemover.py
 ```
 
-`.[ai]` zieht `rembg` mit; ohne KI-Funktion reicht
-`python3 -m pip install -e .`.
-
-Statt direkt im Terminal zu starten, kann auch ein **App-Bundle**
-gebaut (`bash create_BgRemover_app.sh`) oder die mitgelieferte
-**`BgRemover.command`** per Doppelklick im Finder genutzt werden.
+`.[ai]` zieht die KI-Abhängigkeiten (`rembg[cpu]` inkl. `onnxruntime`)
+mit; ohne KI-Funktion reicht `python3 -m pip install -e .`.
 
 > Eine ausführliche Anleitung — inklusive **Installation aus einem
 > Branch** (zum Testen offener Pull Requests) und **Troubleshooting** —
