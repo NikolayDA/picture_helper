@@ -1658,13 +1658,15 @@ class MainWindow(QMainWindow):
         tabs.setDocumentMode(True)
         tabs.setStyleSheet(TAB_STYLE)
         tabs.setUsesScrollButtons(False)   # niemals Scroll-Pfeile — alle Tabs sichtbar
+        tabs.setIconSize(QSize(18, 18))
         outer.addWidget(tabs)
 
         # ════════════════════════════════════════════════════
         # Tab 1 – Auswahl  🎯
         # ════════════════════════════════════════════════════
         t1, l1 = scroll_tab()
-        tabs.addTab(t1, "🎯 Auswahl")
+        tabs.addTab(t1, "Auswahl")
+        tabs.setTabIcon(0, make_tool_icon("clear_sel", 18))
         tabs.setTabToolTip(0, "Auswahl – Zauberstab, Pinsel, Radiergummi")
 
         g_tool, gt = sec("Werkzeug", "#4a90d9")
@@ -1751,7 +1753,8 @@ class MainWindow(QMainWindow):
         # Tab 2 – Hintergrund  🖼
         # ════════════════════════════════════════════════════
         t2, l2 = scroll_tab()
-        tabs.addTab(t2, "🖼 Hintergr.")
+        tabs.addTab(t2, "Hintergr.")
+        tabs.setTabIcon(1, make_tool_icon("bg", 18))
         tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen, Verlauf")
 
         g_bg, gb = sec("Hintergrund bearbeiten", "#e05555")
@@ -1807,7 +1810,8 @@ class MainWindow(QMainWindow):
         # Tab 3 – Transform  ⟲
         # ════════════════════════════════════════════════════
         t3, l3 = scroll_tab()
-        tabs.addTab(t3, "⟲ Trans.")
+        tabs.addTab(t3, "Trans.")
+        tabs.setTabIcon(2, make_tool_icon("transparency", 18))
         tabs.setTabToolTip(2, "Transform – Drehen, Spiegeln")
 
         g_rot, gr2 = sec("Drehen", "#e09a30")
@@ -1884,7 +1888,8 @@ class MainWindow(QMainWindow):
         # Tab 4 – Form & Zuschnitt  ⬤
         # ════════════════════════════════════════════════════
         t4, l4 = scroll_tab()
-        tabs.addTab(t4, "⬤ Form")
+        tabs.addTab(t4, "Form")
+        tabs.setTabIcon(3, make_tool_icon("form", 18))
         tabs.setTabToolTip(3, "Form & Zuschnitt – Ecken abrunden, Format-Auswahl")
 
         g_corner, gc = sec("Ecken abrunden", "#30c060")
