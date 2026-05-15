@@ -19,42 +19,30 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 
 - **macOS** (das mitgelieferte App-Bundle nutzt macOS-spezifische Tools wie `iconutil`)
 - **Python 3.9 oder neuer**
-- Folgende Python-Pakete:
-  - `PyQt6`
-  - `Pillow`
-  - `numpy`
-  - `rembg` (optional, nur für die KI-Funktion)
+- Abhängigkeiten (`PyQt6`, `Pillow`, `numpy`, optional `rembg` für die
+  KI-Funktion) werden über `pyproject.toml` installiert.
 
 ## Installation
 
-### Variante A: Als macOS-App installieren (empfohlen)
+**Schnellstart aus `main`:**
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip3 install PyQt6 Pillow numpy rembg
-bash create_BgRemover_app.sh
-```
-
-Das Skript erstellt `BgRemover.app` unter `~/Applications` (oder optional `~/Desktop` bzw. `/Applications`) inklusive Icon. Danach kann die App per Doppelklick aus dem Finder oder dem Dock gestartet werden.
-
-### Variante B: Per Doppelklick auf `BgRemover.command`
-
-```bash
-git clone https://github.com/NikolayDA/picture_helper.git
-cd picture_helper
-pip3 install PyQt6 Pillow numpy rembg
-chmod +x BgRemover.command
-```
-
-Anschließend `BgRemover.command` im Finder doppelklicken — ein Terminalfenster startet die App.
-
-### Variante C: Direkt aus dem Terminal
-
-```bash
-pip3 install PyQt6 Pillow numpy rembg
+python3 -m pip install -e ".[ai]"
 python3 BgRemover.py
 ```
+
+`.[ai]` zieht `rembg` mit; ohne KI-Funktion reicht
+`python3 -m pip install -e .`.
+
+Statt direkt im Terminal zu starten, kann auch ein **App-Bundle**
+gebaut (`bash create_BgRemover_app.sh`) oder die mitgelieferte
+**`BgRemover.command`** per Doppelklick im Finder genutzt werden.
+
+> Eine ausführliche Anleitung — inklusive **Installation aus einem
+> Branch** (zum Testen offener Pull Requests) und **Troubleshooting** —
+> steht in **[INSTALL_MAC.md](INSTALL_MAC.md)**.
 
 ## Bedienung
 
