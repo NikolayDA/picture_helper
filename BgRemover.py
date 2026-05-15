@@ -19,7 +19,8 @@ from PyQt6.QtWidgets import (
     QGraphicsEllipseItem,
     QToolButton, QButtonGroup, QGroupBox, QStatusBar,
     QFrame, QSizePolicy, QMessageBox, QTabWidget, QTabBar, QSpinBox,
-    QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab
+    QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab,
+    QDialog, QLineEdit, QComboBox,
 )
 from PyQt6.QtGui import (
     QPixmap, QImage, QPainter, QColor, QBrush,
@@ -1474,6 +1475,111 @@ class TopIconTabWidget(QTabWidget):
             bar.setGeometry(0, g.y(), self.width(), g.height())
 
 
+class SettingsDialog(QDialog):
+    """Dialog zum Bearbeiten persistenter Nutzereinstellungen."""
+
+    FORMATS = ["PNG", "JPEG", "WebP", "TIFF"]
+    FORMAT_FILTERS = {
+        "PNG":  "PNG (*.png)",
+        "JPEG": "JPEG (*.jpg)",
+        "WebP": "WebP (*.webp)",
+        "TIFF": "TIFF (*.tif)",
+    }
+
+    def __init__(self, settings: QSettings, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Einstellungen")
+        self.setMinimumWidth(520)
+        self._settings = settings
+        self._build_ui()
+        self._load()
+
+    def _build_ui(self):
+        lay = QVBoxLayout(self)
+        lay.setSpacing(14)
+        lay.setContentsMargins(20, 20, 20, 20)
+
+        title = QLabel("Einstellungen")
+        title.setStyleSheet("font-size: 15px; font-weight: bold;")
+        lay.addWidget(title)
+
+        # Verzeichnis zum Öffnen
+        open_grp = QGroupBox("Standard-Verzeichnis zum Öffnen")
+        open_lay = QHBoxLayout(open_grp)
+        self._open_dir_edit = QLineEdit()
+        self._open_dir_edit.setPlaceholderText("Leer = zuletzt verwendetes Verzeichnis")
+        open_lay.addWidget(self._open_dir_edit)
+        btn_open = QPushButton("…")
+        btn_open.setFixedWidth(32)
+        btn_open.clicked.connect(self._pick_open_dir)
+        open_lay.addWidget(btn_open)
+        lay.addWidget(open_grp)
+
+        # Verzeichnis zum Speichern/Export
+        save_grp = QGroupBox("Standard-Verzeichnis für Export / Speichern")
+        save_lay = QHBoxLayout(save_grp)
+        self._save_dir_edit = QLineEdit()
+        self._save_dir_edit.setPlaceholderText("Leer = zuletzt verwendetes Verzeichnis")
+        save_lay.addWidget(self._save_dir_edit)
+        btn_save = QPushButton("…")
+        btn_save.setFixedWidth(32)
+        btn_save.clicked.connect(self._pick_save_dir)
+        save_lay.addWidget(btn_save)
+        lay.addWidget(save_grp)
+
+        # Bevorzugtes Dateiformat
+        fmt_grp = QGroupBox("Bevorzugtes Bilddateiformat")
+        fmt_lay = QHBoxLayout(fmt_grp)
+        self._fmt_combo = QComboBox()
+        self._fmt_combo.addItems(self.FORMATS)
+        self._fmt_combo.setFixedWidth(140)
+        fmt_lay.addWidget(self._fmt_combo)
+        fmt_lay.addStretch()
+        lay.addWidget(fmt_grp)
+
+        lay.addStretch()
+
+        # OK / Abbrechen
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_cancel = QPushButton("Abbrechen")
+        btn_cancel.clicked.connect(self.reject)
+        btn_ok = QPushButton("OK")
+        btn_ok.setDefault(True)
+        btn_ok.clicked.connect(self._save_and_accept)
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_ok)
+        lay.addLayout(btn_row)
+
+    def _pick_open_dir(self):
+        start = self._open_dir_edit.text().strip() or str(Path.home())
+        d = QFileDialog.getExistingDirectory(
+            self, "Verzeichnis zum Öffnen wählen", start)
+        if d:
+            self._open_dir_edit.setText(d)
+
+    def _pick_save_dir(self):
+        start = self._save_dir_edit.text().strip() or str(Path.home())
+        d = QFileDialog.getExistingDirectory(
+            self, "Verzeichnis für Export/Speichern wählen", start)
+        if d:
+            self._save_dir_edit.setText(d)
+
+    def _load(self):
+        self._open_dir_edit.setText(self._settings.value("open_dir", ""))
+        self._save_dir_edit.setText(self._settings.value("save_dir", ""))
+        fmt = self._settings.value("preferred_format", "PNG")
+        idx = self._fmt_combo.findText(fmt)
+        if idx >= 0:
+            self._fmt_combo.setCurrentIndex(idx)
+
+    def _save_and_accept(self):
+        self._settings.setValue("open_dir", self._open_dir_edit.text().strip())
+        self._settings.setValue("save_dir", self._save_dir_edit.text().strip())
+        self._settings.setValue("preferred_format", self._fmt_combo.currentText())
+        self.accept()
+
+
 class MainWindow(QMainWindow):
     # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
     RECENT_MAX = 10
@@ -2206,11 +2312,18 @@ class MainWindow(QMainWindow):
                 self._canvas._img_item, Qt.AspectRatioMode.KeepAspectRatio))
         view_m.addAction(a_fit)
 
+        extras_m = mb.addMenu("Extras")
+        a_prefs = QAction("Einstellungen…", self)
+        a_prefs.setShortcut(QKeySequence("Ctrl+,"))
+        a_prefs.triggered.connect(self._open_settings)
+        extras_m.addAction(a_prefs)
+
     # ── Slots ─────────────────────────────────────────────────
 
     def _open_image(self):
+        start_dir = self._settings.value("open_dir", "")
         path, _ = QFileDialog.getOpenFileName(
-            self, "Bild öffnen", "",
+            self, "Bild öffnen", start_dir,
             "Bilder (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
             "Alle Dateien (*)"
         )
@@ -2283,10 +2396,24 @@ class MainWindow(QMainWindow):
         if self._canvas._pil is None:
             self.statusBar().showMessage("Kein Bild zum Speichern")
             return
-        suggest = self._save_path or "bild_bearbeitet"
+        save_dir = self._settings.value("save_dir", "")
+        if self._save_path:
+            suggest = self._save_path
+        elif save_dir:
+            suggest = str(Path(save_dir) / "bild_bearbeitet")
+        else:
+            suggest = "bild_bearbeitet"
+        preferred = self._settings.value("preferred_format", "PNG")
+        all_filters = {
+            "PNG":  "PNG (*.png)",
+            "JPEG": "JPEG (*.jpg)",
+            "WebP": "WebP (*.webp)",
+            "TIFF": "TIFF (*.tif)",
+        }
+        ordered = [preferred] + [f for f in all_filters if f != preferred]
+        filter_str = ";;".join(all_filters[f] for f in ordered)
         path, _ = QFileDialog.getSaveFileName(
-            self, "Bild speichern unter…", suggest,
-            "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tif)"
+            self, "Bild speichern unter…", suggest, filter_str
         )
         if path:
             self._canvas.save_image(path)
@@ -2409,6 +2536,10 @@ class MainWindow(QMainWindow):
 
     def _on_crop_mode_changed(self, active: bool):
         self._crop_bar.setVisible(active)
+
+    def _open_settings(self):
+        dlg = SettingsDialog(self._settings, self)
+        dlg.exec()
 
     def _undo_to_item(self, item):
         row = self._history_list.row(item)
