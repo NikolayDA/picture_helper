@@ -1493,8 +1493,8 @@ class MainWindow(QMainWindow):
 
         def hist_btn(icon_name: str, tip: str, slot) -> QToolButton:
             b = QToolButton()
-            b.setIcon(make_tool_icon(icon_name, 36))
-            b.setIconSize(QSize(36, 36))
+            b.setIcon(make_tool_icon(icon_name, 38))
+            b.setIconSize(QSize(38, 38))
             b.setToolTip(tip)
             b.setFixedSize(54, 54)
             b.setStyleSheet(HIST_STYLE)
@@ -1511,10 +1511,10 @@ class MainWindow(QMainWindow):
 
         def mini_btn(icon_name: str, tip: str, slot) -> QToolButton:
             b = QToolButton()
-            b.setIcon(make_tool_icon(icon_name, 32))
-            b.setIconSize(QSize(32, 32))
+            b.setIcon(make_tool_icon(icon_name, 38))
+            b.setIconSize(QSize(38, 38))
             b.setToolTip(tip)
-            b.setFixedSize(54, 46)
+            b.setFixedSize(54, 54)
             b.setStyleSheet(TOOL_STYLE)
             b.clicked.connect(slot)
             lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
