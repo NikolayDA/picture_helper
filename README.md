@@ -78,6 +78,7 @@ python3 BgRemover.py
 | 90° links drehen | ⌘← |
 | 90° rechts drehen | ⌘→ |
 | Auswahl aufheben | Esc |
+| Auswahl invertieren | ⌘⇧I |
 | Fit to View | ⌘0 |
 
 Im Datei-Menü gibt es zusätzlich ein Submenü **„Zuletzt geöffnet"** mit
