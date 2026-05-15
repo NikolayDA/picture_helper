@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QPushButton, QSlider, QLabel, QFileDialog, QColorDialog,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsObject,
+    QGraphicsEllipseItem,
     QToolButton, QButtonGroup, QGroupBox, QStatusBar,
     QFrame, QSizePolicy, QMessageBox, QTabWidget, QSpinBox, QListWidget,
     QScrollArea
@@ -30,7 +31,7 @@ from PyQt6.QtCore import (
     Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent,
     QSettings,
 )
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 try:
     from rembg import remove as rembg_remove
@@ -670,6 +671,14 @@ class ImageCanvas(QGraphicsView):
         self._crop_resizing:     bool    = False   # True = Resize-Drag läuft
         self._crop_resize_corner: int    = -1      # 0-3 welche Ecke
 
+        # Pinsel-Vorschau-Kreis (sichtbar bei Tool=brush/eraser)
+        self._brush_preview = QGraphicsEllipseItem()
+        self._brush_preview.setPen(QPen(QColor(255, 255, 255, 200), 1.5))
+        self._brush_preview.setBrush(QBrush(QColor(74, 144, 217, 30)))
+        self._brush_preview.setZValue(20)
+        self._brush_preview.setVisible(False)
+        self._scene.addItem(self._brush_preview)
+
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str):
@@ -808,18 +817,58 @@ class ImageCanvas(QGraphicsView):
             self._refresh_overlay()
             self.statusMsg.emit("Auswahl aufgehoben")
 
+    def invert_selection(self):
+        """Kehrt die aktuelle Maske um (Vorder- ↔ Hintergrund)."""
+        if self._mask is None or self._pil is None:
+            self.statusMsg.emit("Kein Bild geladen")
+            return
+        self._mask = ~self._mask
+        self._refresh_overlay()
+        self.statusMsg.emit(
+            f"Auswahl invertiert: {int(self._mask.sum()):,} Pixel")
+
+    def _morphology(self, radius: int, kind: str) -> None:
+        """Erweitert oder schrumpft die Boolean-Maske um ``radius`` Pixel
+        mittels PIL-Morphologie-Filtern."""
+        if self._mask is None or self._pil is None or radius <= 0:
+            return
+        mask_img = Image.fromarray(
+            (self._mask * 255).astype(np.uint8), mode="L")
+        # PIL-Filter brauchen ungerade Kernelgrößen
+        size = radius * 2 + 1
+        if kind == "expand":
+            filt = ImageFilter.MaxFilter(size)
+            label = "erweitert"
+        else:
+            filt = ImageFilter.MinFilter(size)
+            label = "geschrumpft"
+        result = mask_img.filter(filt)
+        self._mask = np.array(result) > 127
+        self._refresh_overlay()
+        self.statusMsg.emit(
+            f"Auswahl um {radius} px {label}: "
+            f"{int(self._mask.sum()):,} Pixel")
+
+    def expand_selection(self, radius: int):
+        self._morphology(radius, "expand")
+
+    def shrink_selection(self, radius: int):
+        self._morphology(radius, "shrink")
+
     # ── Tool-Einstellungen ───────────────────────────────────
 
     def set_tool(self, tool: str):
         self._tool = tool
         if tool == TOOL_WAND:
             self.setCursor(make_wand_cursor())
+            self._brush_preview.setVisible(False)
         elif tool == TOOL_BRUSH:
             self.setCursor(make_brush_cursor(self._brush_r * 2))
         elif tool == TOOL_ERASER:
             self.setCursor(make_eraser_cursor(self._brush_r * 2))
         else:
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
+            self._brush_preview.setVisible(False)
 
     def set_tolerance(self, v: int):
         self._tolerance = v
@@ -831,6 +880,15 @@ class ImageCanvas(QGraphicsView):
             self.setCursor(make_brush_cursor(v))
         elif self._tool == TOOL_ERASER:
             self.setCursor(make_eraser_cursor(v))
+
+    def _update_brush_preview(self, sp: QPointF) -> None:
+        """Aktualisiert Position/Sichtbarkeit des Pinsel-Vorschau-Kreises."""
+        if self._tool not in (TOOL_BRUSH, TOOL_ERASER) or self._pil is None:
+            self._brush_preview.setVisible(False)
+            return
+        r = self._brush_r
+        self._brush_preview.setRect(sp.x() - r, sp.y() - r, r * 2, r * 2)
+        self._brush_preview.setVisible(True)
 
     # ── Operationen ──────────────────────────────────────────
 
@@ -959,6 +1017,10 @@ class ImageCanvas(QGraphicsView):
     def mouseMoveEvent(self, event):
         sp = self.mapToScene(event.position().toPoint())
 
+        # Pinsel-Vorschau (außerhalb von Crop-/Pan-Modi)
+        if self._crop_overlay is None and not self._panning:
+            self._update_brush_preview(sp)
+
         # ── Crop-Resize ───────────────────────────────────────
         if self._crop_resizing and self._crop_overlay is not None:
             self._crop_overlay.resize_from_corner(
@@ -1047,6 +1109,11 @@ class ImageCanvas(QGraphicsView):
 
     def wheelEvent(self, event):
         self._zoom(1.15 if event.angleDelta().y() > 0 else 1 / 1.15)
+
+    def leaveEvent(self, event):
+        # Pinsel-Vorschau verstecken, sobald die Maus den View verlässt
+        self._brush_preview.setVisible(False)
+        super().leaveEvent(event)
 
     # ── Drag & Drop ──────────────────────────────────────────
 
@@ -1643,6 +1710,38 @@ class MainWindow(QMainWindow):
                       icon_name="clear_sel")
         btn_clr.clicked.connect(lambda _=False: self._canvas.clear_selection())
         l1.addWidget(btn_clr)
+
+        btn_inv = btn("Auswahl invertieren", "#2a2a2a", "#c0c0c0", "#363636",
+                      "Tauscht aus- und nicht-ausgewählte Bereiche  (⌘⇧I)",
+                      icon_name="clear_sel")
+        btn_inv.clicked.connect(lambda _=False: self._canvas.invert_selection())
+        l1.addWidget(btn_inv)
+
+        # Auswahl erweitern / schrumpfen mit Radius-Spinbox
+        morph_row = QHBoxLayout(); morph_row.setSpacing(6)
+        self._spin_morph = QSpinBox()
+        self._spin_morph.setRange(1, 20); self._spin_morph.setValue(2)
+        self._spin_morph.setSuffix(" px")
+        self._spin_morph.setFixedWidth(72)
+        self._spin_morph.setToolTip(
+            "Radius in Pixeln für Erweitern/Schrumpfen der Auswahl")
+        self._spin_morph.setStyleSheet(
+            "QSpinBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
+            " border-radius:6px; padding:3px 5px; font-size:12px; }"
+            "QSpinBox::up-button, QSpinBox::down-button { width:18px; }")
+        btn_expand = btn("➕ Erweitern", "#1a3a1a", "#a0d0a0", "#2a5a2a",
+                         "Erweitert die Auswahl um den eingestellten Radius")
+        btn_expand.clicked.connect(
+            lambda _=False: self._canvas.expand_selection(self._spin_morph.value()))
+        btn_shrink = btn("➖ Schrumpfen", "#3a1a1a", "#d0a0a0", "#5a2a2a",
+                         "Schrumpft die Auswahl um den eingestellten Radius")
+        btn_shrink.clicked.connect(
+            lambda _=False: self._canvas.shrink_selection(self._spin_morph.value()))
+        morph_row.addWidget(self._spin_morph)
+        morph_row.addWidget(btn_expand, 1)
+        morph_row.addWidget(btn_shrink, 1)
+        l1.addLayout(morph_row)
+
         l1.addStretch()
 
         # ════════════════════════════════════════════════════
@@ -1935,6 +2034,11 @@ class MainWindow(QMainWindow):
         a_clear.setShortcut(QKeySequence("Escape"))
         a_clear.triggered.connect(self._canvas.clear_selection)
         edit_m.addAction(a_clear)
+
+        a_invert = QAction("Auswahl invertieren", self)
+        a_invert.setShortcut(QKeySequence("Ctrl+Shift+I"))
+        a_invert.triggered.connect(self._canvas.invert_selection)
+        edit_m.addAction(a_invert)
 
         a_orig = QAction("Original wiederherstellen", self)
         a_orig.triggered.connect(self._canvas.restore_original)
