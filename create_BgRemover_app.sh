@@ -42,10 +42,17 @@ py_version_ok() {
 }
 has_deps() { "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
 
-VENV_PY="$SCRIPT_DIR/.venv/bin/python3"
+# Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
+# ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
+# (TCC) den Zugriff einer aus dem Finder gestarteten .app. Application
+# Support ist nicht geschützt und überlebt ein Verschieben des Projekts.
+APPSUPPORT_DIR="$HOME/Library/Application Support/BgRemover"
+VENV_DIR="$APPSUPPORT_DIR/venv"
+VENV_PY="$VENV_DIR/bin/python3"
 
 PY_CANDIDATES=(
-    "$VENV_PY" "$SCRIPT_DIR/venv/bin/python3"
+    "$VENV_PY"
+    "$SCRIPT_DIR/.venv/bin/python3" "$SCRIPT_DIR/venv/bin/python3"
     python3.13 python3.12 python3.11 python3.10 python3.9 python3 python
     /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.13
     /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11
@@ -90,8 +97,10 @@ else
     if [[ "$mkvenv" =~ ^[nN] ]]; then
         echo -e "${YELLOW}⚠️  Fortfahren ohne PyQt6 – die App wird vermutlich nicht starten.${NC}"
     else
-        echo "🐍 Erstelle venv …"
-        "$PYTHON" -m venv "$SCRIPT_DIR/.venv" \
+        echo "🐍 Erstelle venv in $VENV_DIR …"
+        mkdir -p "$APPSUPPORT_DIR"
+        rm -rf "$VENV_DIR"
+        "$PYTHON" -m venv "$VENV_DIR" \
             || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
         echo "📦 Installiere Abhängigkeiten … (kann einige Minuten dauern)"
         "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
@@ -103,7 +112,7 @@ else
             echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
         else
             echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
-            echo "   Manuell:  \"$PYTHON\" -m venv \"$SCRIPT_DIR/.venv\""
+            echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
             echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install -e \".[ai]\""
             exit 1
         fi
@@ -113,6 +122,14 @@ fi
 # ── Dateien prüfen ────────────────────────────────────────────
 [ -f "$BGREMOVER_PY" ] || { echo -e "${RED}❌ BgRemover.py nicht gefunden.${NC}"; exit 1; }
 echo -e "${GREEN}✅  BgRemover.py gefunden${NC}"
+
+case "$SCRIPT_DIR/" in
+    "$HOME/Documents/"*|"$HOME/Desktop/"*|"$HOME/Downloads/"*|"$HOME/Library/Mobile Documents/"*)
+        echo -e "${YELLOW}ℹ️  Projekt liegt in einem macOS-geschützten Ordner.${NC}"
+        echo "    Kein Problem: die App wird in sich geschlossen gebaut"
+        echo "    (BgRemover.py wird ins Bundle kopiert, venv liegt in"
+        echo "    Application Support) – sie läuft auch von hier aus." ;;
+esac
 
 # ── Zielordner ────────────────────────────────────────────────
 mkdir -p "$HOME/Applications"
@@ -138,7 +155,14 @@ echo "📁 Erstelle App-Bundle …"
 mkdir -p "$APP_PATH/Contents/MacOS"
 mkdir -p "$APP_PATH/Contents/Resources"
 
-# ── Launcher (sourct Shell-Profile → Python wird gefunden) ────
+# BgRemover.py IN das Bundle kopieren. Damit ist die App in sich
+# geschlossen: sie liest beim Start nicht mehr aus dem Projektordner
+# (der in ~/Documents etc. von macOS gesperrt sein oder verschoben/
+# gelöscht werden kann), sondern aus dem eigenen Bundle.
+BUNDLED_BGREMOVER="$APP_PATH/Contents/Resources/BgRemover.py"
+cp "$BGREMOVER_PY" "$BUNDLED_BGREMOVER"
+
+# ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
 #!/bin/zsh
@@ -152,7 +176,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/o
 [ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
 PYTHON="$PYTHON"
-BGREMOVER="$BGREMOVER_PY"
+BGREMOVER="$BUNDLED_BGREMOVER"
 LOG="\$HOME/.bgremover.log"
 
 fail() {
@@ -169,7 +193,7 @@ if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
 fi
 if [ ! -f "\$BGREMOVER" ]; then
-    fail "BgRemover.py nicht gefunden:"\$'\\n'"\$BGREMOVER"\$'\\n\\n'"Wurde der Projektordner verschoben oder gelöscht? Dann create_BgRemover_app.sh dort erneut ausführen."
+    fail "BgRemover.py fehlt im App-Bundle:"\$'\\n'"\$BGREMOVER"\$'\\n\\n'"Das Bundle ist unvollständig. Bitte create_BgRemover_app.sh erneut ausführen."
 fi
 
 { echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
