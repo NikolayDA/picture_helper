@@ -92,6 +92,17 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   Application Support — `bash create_BgRemover_app.sh` einmal neu
   ausführen. (Alternativ das Projekt nach z. B. `~/picture_helper`
   verschieben und das Skript dort erneut ausführen.)
+- **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
+  → Apple Silicon: in `~/Library/Python/...` liegt ein arch-fremdes
+  Paket, das in einen mismatched Python „durchblutet". Seit v3.1 ist
+  das gelöst: der Launcher setzt `PYTHONNOUSERSITE=1` (user-site wird
+  ignoriert), erzwingt die native CPU-Architektur und es wird zwingend
+  eine isolierte venv genutzt. Lösung: am besten zuerst einen nativen
+  Python installieren, dann neu bauen:
+  ```bash
+  brew install python
+  bash create_BgRemover_app.sh   # venv-Abfrage mit Enter bestätigen
+  ```
 - **Fehler direkt sehen (manuelle Diagnose)** → Launcher im Terminal
   starten, dann erscheint die echte Fehlermeldung:
   ```bash
