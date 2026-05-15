@@ -76,3 +76,20 @@ def test_drop_event_reports_extra_files(functions):
     assert "weitere" in body, (
         "dropEvent muss melden, wenn weitere Dateien verworfen wurden."
     )
+
+
+# ── B3: rembg-Warmup ────────────────────────────────────────────────────
+
+def test_warmup_worker_class_exists(source: str):
+    tree = ast.parse(source)
+    names = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
+    assert "RembgWarmupWorker" in names, (
+        "RembgWarmupWorker muss als eigene Worker-Klasse existieren."
+    )
+
+
+def test_main_window_starts_warmup_when_rembg_available(source: str):
+    assert "_start_rembg_warmup" in source
+    # Aufruf an REMBG_AVAILABLE-Bedingung gekoppelt
+    assert "REMBG_AVAILABLE" in source
+    assert "self._start_rembg_warmup()" in source
