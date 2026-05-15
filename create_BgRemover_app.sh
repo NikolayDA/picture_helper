@@ -1,8 +1,12 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════
-#  create_BgRemover_app.sh  v2.0
+#  create_BgRemover_app.sh  v3.0
 #  Erstellt BgRemover.app + setzt Icon auf BgRemover.command
 #  Ausführen: bash ~/Downloads/create_BgRemover_app.sh
+#
+#  v3: wählt nur ein Python mit installiertem PyQt6 (oder legt
+#      bei Bedarf eine venv an) und der App-Launcher zeigt Fehler
+#      sichtbar als Dialog statt lautlos zu scheitern.
 # ══════════════════════════════════════════════════════════════
 
 set -e
@@ -23,9 +27,25 @@ echo -e "${BLUE}${BOLD}═══════════════════
 echo ""
 
 # ── Python finden ─────────────────────────────────────────────
+# Wichtig: Die App ist eine PyQt6-GUI. Sie startet NUR, wenn das
+# eingebackene Python auch "import PyQt6" kann. Wir bevorzugen
+# daher einen Interpreter, in dem die Abhängigkeiten wirklich
+# installiert sind (inkl. projekteigener venv) – und legen sonst
+# eine venv an, statt eine garantiert kaputte App zu erzeugen.
 export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/local/opt/python@3.12/bin:/usr/local/opt/python@3.11/bin:$HOME/.pyenv/shims:$HOME/Library/Python/3.12/bin:$HOME/Library/Python/3.11/bin:$HOME/Library/Python/3.10/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/usr/bin:$PATH"
 
+py_version_ok() {
+    local ver major minor
+    ver=$("$1" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null) || return 1
+    major=${ver%%.*}; minor=${ver#*.}
+    [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 9 ]
+}
+has_deps() { "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
+
+VENV_PY="$SCRIPT_DIR/.venv/bin/python3"
+
 PY_CANDIDATES=(
+    "$VENV_PY" "$SCRIPT_DIR/venv/bin/python3"
     python3.13 python3.12 python3.11 python3.10 python3.9 python3 python
     /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.13
     /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11
@@ -34,25 +54,60 @@ PY_CANDIDATES=(
     "$HOME/.pyenv/shims/python3"
 )
 
-PYTHON=""
+PYTHON=""        # erstes brauchbares Python 3.9+
+PYTHON_READY=""  # erstes Python 3.9+ MIT PyQt6/Pillow/numpy
 for py in "${PY_CANDIDATES[@]}"; do
     FULL_PATH=$(command -v "$py" 2>/dev/null || echo "$py")
     [ -x "$FULL_PATH" ] || continue
-    ver=$("$FULL_PATH" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "0.0")
-    major=${ver%%.*}; minor=${ver#*.}; minor=${minor%%.*}
-    if [ "$major" -ge 3 ] && [ "$minor" -ge 9 ]; then
-        PYTHON="$FULL_PATH"
-        echo -e "${GREEN}✅  Python $ver:${NC} $PYTHON"
+    py_version_ok "$FULL_PATH" || continue
+    if [ -z "$PYTHON" ]; then PYTHON="$FULL_PATH"; fi
+    if has_deps "$FULL_PATH"; then
+        PYTHON_READY="$FULL_PATH"
         break
     fi
 done
 
-if [ -z "$PYTHON" ]; then
-    echo -e "${YELLOW}⚠️  Python 3.9+ nicht automatisch gefunden.${NC}"
-    read -p "    Python-Pfad angeben (z.B. /usr/bin/python3): " USER_PY
-    FULL_PATH=$(command -v "$USER_PY" 2>/dev/null || echo "$USER_PY")
-    [ -x "$FULL_PATH" ] || { echo -e "${RED}❌ Nicht ausführbar.${NC}"; exit 1; }
-    PYTHON="$FULL_PATH"
+if [ -n "$PYTHON_READY" ]; then
+    PYTHON="$PYTHON_READY"
+    ver=$("$PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')
+    echo -e "${GREEN}✅  Python $ver mit PyQt6:${NC} $PYTHON"
+else
+    if [ -z "$PYTHON" ]; then
+        echo -e "${YELLOW}⚠️  Python 3.9+ nicht automatisch gefunden.${NC}"
+        read -p "    Python-Pfad angeben (z.B. /opt/homebrew/bin/python3): " USER_PY
+        FULL_PATH=$(command -v "$USER_PY" 2>/dev/null || echo "$USER_PY")
+        { [ -x "$FULL_PATH" ] && py_version_ok "$FULL_PATH"; } \
+            || { echo -e "${RED}❌ Kein nutzbares Python 3.9+.${NC}"; exit 1; }
+        PYTHON="$FULL_PATH"
+    fi
+
+    echo -e "${YELLOW}⚠️  PyQt6 ist in keinem gefundenen Python installiert.${NC}"
+    echo -e "    Genau deshalb startet die App nicht (lautloser Import-Fehler)."
+    echo ""
+    echo "    Empfohlen: eine projekteigene venv anlegen unter"
+    echo "    $SCRIPT_DIR/.venv  und dort die Abhängigkeiten installieren."
+    read -p "    venv anlegen & installieren? [J/n]: " mkvenv
+    if [[ "$mkvenv" =~ ^[nN] ]]; then
+        echo -e "${YELLOW}⚠️  Fortfahren ohne PyQt6 – die App wird vermutlich nicht starten.${NC}"
+    else
+        echo "🐍 Erstelle venv …"
+        "$PYTHON" -m venv "$SCRIPT_DIR/.venv" \
+            || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
+        echo "📦 Installiere Abhängigkeiten … (kann einige Minuten dauern)"
+        "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
+        if ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e ".[ai]" ); then
+            PYTHON="$VENV_PY"
+            echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
+        elif ( cd "$SCRIPT_DIR" && "$VENV_PY" -m pip install -e "." ); then
+            PYTHON="$VENV_PY"
+            echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
+        else
+            echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
+            echo "   Manuell:  \"$PYTHON\" -m venv \"$SCRIPT_DIR/.venv\""
+            echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install -e \".[ai]\""
+            exit 1
+        fi
+    fi
 fi
 
 # ── Dateien prüfen ────────────────────────────────────────────
@@ -87,17 +142,44 @@ mkdir -p "$APP_PATH/Contents/Resources"
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
 cat > "$LAUNCHER" << LAUNCHER_EOF
 #!/bin/zsh
-# BgRemover Launcher v2 – lädt Nutzer-Umgebung bevor Python gestartet wird
-export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/bin:\$PATH"
+# BgRemover Launcher v3 – sichtbare Fehlerdialoge statt lautlosem Abbruch.
+# Eine aus dem Finder gestartete .app hat KEIN Terminal: ohne diese
+# Diagnose würde z.B. ein fehlendes PyQt6 spurlos scheitern.
+export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
 
-[ -f "\$HOME/.zprofile" ]     && source "\$HOME/.zprofile"     2>/dev/null || true
-[ -f "\$HOME/.zshrc" ]        && source "\$HOME/.zshrc"        2>/dev/null || true
-[ -f "\$HOME/.bash_profile" ] && source "\$HOME/.bash_profile" 2>/dev/null || true
+# Login-Profil laden (NICHT das interaktive .zshrc – das kann im
+# Finder-/launchd-Kontext hängen oder mit Fehlern abbrechen).
+[ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
 PYTHON="$PYTHON"
 BGREMOVER="$BGREMOVER_PY"
+LOG="\$HOME/.bgremover.log"
 
-exec "\$PYTHON" "\$BGREMOVER" "\$@"
+fail() {
+    /usr/bin/osascript \\
+      -e 'on run argv' \\
+      -e 'set b to button returned of (display dialog (item 1 of argv) with title "BgRemover" buttons {"Log öffnen", "OK"} default button "OK" with icon stop)' \\
+      -e 'if b is "Log öffnen" then do shell script "open " & quoted form of (item 2 of argv)' \\
+      -e 'end run' \\
+      "\$1" "\$LOG" >/dev/null 2>&1
+    exit 1
+}
+
+if [ ! -x "\$PYTHON" ]; then
+    fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
+fi
+if [ ! -f "\$BGREMOVER" ]; then
+    fail "BgRemover.py nicht gefunden:"\$'\\n'"\$BGREMOVER"\$'\\n\\n'"Wurde der Projektordner verschoben oder gelöscht? Dann create_BgRemover_app.sh dort erneut ausführen."
+fi
+
+{ echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
+  echo "Python: \$PYTHON"; } >> "\$LOG" 2>&1
+
+if ! "\$PYTHON" "\$BGREMOVER" "\$@" >> "\$LOG" 2>&1; then
+    LASTERR=\$(grep -E 'Error|Exception|Traceback' "\$LOG" 2>/dev/null | tail -n 1)
+    [ -z "\$LASTERR" ] && LASTERR="(siehe Logdatei)"
+    fail "BgRemover konnte nicht starten."\$'\\n\\n'"\$LASTERR"\$'\\n\\n'"Häufigste Ursache: PyQt6 fehlt in diesem Python. Fix: create_BgRemover_app.sh erneut ausführen und die venv anlegen lassen."
+fi
 LAUNCHER_EOF
 chmod +x "$LAUNCHER"
 
@@ -111,8 +193,8 @@ cat > "$APP_PATH/Contents/Info.plist" << PLIST_EOF
     <key>CFBundleName</key>              <string>BgRemover</string>
     <key>CFBundleDisplayName</key>       <string>BgRemover</string>
     <key>CFBundleIdentifier</key>        <string>de.bgremover.app</string>
-    <key>CFBundleVersion</key>           <string>2.0.0</string>
-    <key>CFBundleShortVersionString</key><string>2.0</string>
+    <key>CFBundleVersion</key>           <string>3.0.0</string>
+    <key>CFBundleShortVersionString</key><string>3.0</string>
     <key>CFBundlePackageType</key>       <string>APPL</string>
     <key>CFBundleSignature</key>         <string>BGRM</string>
     <key>CFBundleExecutable</key>        <string>BgRemover</string>
