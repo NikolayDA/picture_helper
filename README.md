@@ -13,7 +13,8 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 - **⬤ Ecken abrunden** mit einstellbarem Radius.
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
-- Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund) oder **WebP**.
+- Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.
+- **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert.
 
 ## Voraussetzungen
 
@@ -64,7 +65,19 @@ mit; ohne KI-Funktion reicht `python3 -m pip install -e .`.
 3. **Hintergrund bearbeiten** (Tab *🖼 Hintergr.*): transparent machen oder Farbe ersetzen — oder direkt **KI** in der Werkzeugleiste.
 4. **Bild transformieren** (Tab *⟲ Trans.*): drehen, spiegeln.
 5. **Form & Zuschnitt** (Tab *⬤ Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
-6. **Speichern** über `Datei → Speichern` (⌘S) als PNG, JPEG oder WebP.
+6. **Speichern** über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF.
+
+### Einstellungen
+
+Über `Extras → Einstellungen…` (⌘,) lassen sich drei Nutzereinstellungen dauerhaft speichern:
+
+| Einstellung | Beschreibung |
+|---|---|
+| Standard-Verzeichnis zum Öffnen | Startverzeichnis des Öffnen-Dialogs; leer = zuletzt verwendetes Verzeichnis |
+| Standard-Verzeichnis für Export/Speichern | Startverzeichnis des Speichern-Dialogs; leer = zuletzt verwendetes Verzeichnis |
+| Bevorzugtes Bilddateiformat | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
+
+Die Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
 
 ### Tastatur-Kürzel
 
@@ -80,10 +93,11 @@ mit; ohne KI-Funktion reicht `python3 -m pip install -e .`.
 | Auswahl aufheben | Esc |
 | Auswahl invertieren | ⌘⇧I |
 | Fit to View | ⌘0 |
+| Einstellungen öffnen | ⌘, |
 
 Im Datei-Menü gibt es zusätzlich ein Submenü **„Zuletzt geöffnet"** mit
-den 10 zuletzt geladenen Bildern — der Zustand wird über QSettings
-persistiert.
+den 10 zuletzt geladenen Bildern — der Zustand wird zusammen mit den
+übrigen Einstellungen über QSettings persistiert.
 
 ## Entwicklung & Tests
 
