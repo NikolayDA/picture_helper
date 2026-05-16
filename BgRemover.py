@@ -26,7 +26,7 @@ from PyQt6.QtGui import (
     QPixmap, QImage, QPainter, QColor, QBrush,
     QDragEnterEvent, QDropEvent, QAction, QKeySequence,
     QCursor, QPalette, QPen, QIcon, QPolygonF, QPainterPath,
-    QFontMetrics
+    QFontMetrics, QFont,
 )
 
 from PyQt6.QtCore import (
@@ -49,6 +49,26 @@ logger = logging.getLogger("BgRemover")
 _MAX_MEGAPIXELS = 100
 # Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
+
+# ── UI-Layoutkonstanten ──────────────────────────────────────
+_TOOLBAR_WIDTH      = 66
+_TOOLBAR_BTN_SIZE   = 54
+_TOOLBAR_ICON_SIZE  = 38
+_RIGHT_PANEL_WIDTH  = 340
+_CROP_BAR_HEIGHT    = 46
+_HISTORY_LIST_H     = 160
+_COLOR_BTN_SIZE     = 38
+_TAB_ICON_PX        = 30
+_WINDOW_MIN_W       = 1100
+_WINDOW_MIN_H       = 720
+
+# ── Canvas-Standardwerte ─────────────────────────────────────
+_DEFAULT_TOLERANCE    = 30
+_DEFAULT_BRUSH_RADIUS = 15
+_ZOOM_FACTOR          = 1.15
+
+# ── Auswahloverlay-Farbe (RGBA) ──────────────────────────────
+_OVERLAY_COLOR = (220, 60, 60, 130)
 
 # ─────────────────────────────────────────────────────────────
 # Hilfsfunktionen
@@ -99,7 +119,7 @@ def flood_fill(arr: np.ndarray, x: int, y: int, tolerance: int) -> np.ndarray:
 def mask_to_overlay(mask: np.ndarray, w: int, h: int) -> QPixmap:
     """Konvertiert Boolean-Maske → halbtransparente rote Overlay-QPixmap."""
     overlay = np.zeros((h, w, 4), dtype=np.uint8)
-    overlay[mask] = [220, 60, 60, 130]
+    overlay[mask] = list(_OVERLAY_COLOR)
     raw = overlay.tobytes()
     qi = QImage(raw, w, h, w * 4, QImage.Format.Format_RGBA8888)
     return QPixmap.fromImage(qi.copy())
@@ -193,6 +213,113 @@ def make_eraser_cursor(diameter: int) -> QCursor:
 # Icon-Generatoren für Toolbar-Buttons
 # ─────────────────────────────────────────────────────────────
 
+def _draw_wand_icon(p: QPainter, s: int) -> None:
+    p.setPen(QPen(QColor(220, 220, 220), 2.2,
+                  Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(int(s*0.22), int(s*0.78), int(s*0.65), int(s*0.35))
+    p.setBrush(QBrush(QColor(220, 220, 220)))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawEllipse(int(s*0.10), int(s*0.66), int(s*0.24), int(s*0.24))
+    gold = QColor(255, 210, 50)
+    def _star(cx, cy, r) -> None:
+        p.setPen(QPen(gold, 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.drawLine(cx, cy-r, cx, cy+r); p.drawLine(cx-r, cy, cx+r, cy)
+    _star(int(s*0.75), int(s*0.22), int(s*0.12))
+    _star(int(s*0.88), int(s*0.48), int(s*0.08))
+    _star(int(s*0.60), int(s*0.12), int(s*0.07))
+
+
+def _draw_brush_icon(p: QPainter, s: int) -> None:
+    p.setPen(QPen(QColor(190, 190, 190), 2.5,
+                  Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(int(s*0.72), int(s*0.12), int(s*0.38), int(s*0.62))
+    p.setPen(QPen(QColor(160, 160, 170), 2))
+    p.drawLine(int(s*0.42), int(s*0.57), int(s*0.30), int(s*0.69))
+    p.setPen(QPen(QColor(80, 150, 240), 3,
+                  Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(int(s*0.28), int(s*0.71), int(s*0.18), int(s*0.88))
+    p.setPen(QPen(QColor(60, 130, 220), 2,
+                  Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(int(s*0.34), int(s*0.72), int(s*0.26), int(s*0.90))
+    p.drawLine(int(s*0.22), int(s*0.70), int(s*0.12), int(s*0.86))
+
+
+def _draw_eraser_icon(p: QPainter, s: int) -> None:
+    p.setPen(QPen(QColor(160, 160, 160), 1.5))
+    p.setBrush(QBrush(QColor(240, 185, 90, 220)))
+    p.drawRoundedRect(int(s*0.12), int(s*0.38), int(s*0.76), int(s*0.36), 3, 3)
+    p.setPen(QPen(QColor(200, 120, 50, 200), 2))
+    tx = int(s * 0.45)
+    p.drawLine(tx, int(s*0.38), tx, int(s*0.74))
+    p.setPen(QPen(QColor(120, 120, 120, 100), 1))
+    p.setBrush(QBrush(QColor(100, 100, 100, 60)))
+    p.drawRoundedRect(int(s*0.12), int(s*0.70), int(s*0.76), int(s*0.10), 2, 2)
+
+
+def _draw_ai_icon(p: QPainter, s: int) -> None:
+    bolt = QPolygonF([
+        QPointF(s*0.55, s*0.10), QPointF(s*0.28, s*0.52),
+        QPointF(s*0.48, s*0.52), QPointF(s*0.42, s*0.90),
+        QPointF(s*0.72, s*0.46), QPointF(s*0.52, s*0.46),
+    ])
+    p.setPen(QPen(QColor(80, 190, 255), 1.5))
+    p.setBrush(QBrush(QColor(80, 190, 255, 200)))
+    p.drawPolygon(bolt)
+
+
+def _draw_open_icon(p: QPainter, s: int) -> None:
+    p.setPen(QPen(QColor(200, 200, 200), 1.5))
+    p.setBrush(QBrush(QColor(200, 170, 80, 200)))
+    p.drawRoundedRect(int(s*0.10), int(s*0.38), int(s*0.80), int(s*0.46), 3, 3)
+    p.setBrush(QBrush(QColor(220, 190, 100, 200)))
+    p.drawRoundedRect(int(s*0.10), int(s*0.30), int(s*0.40), int(s*0.14), 3, 3)
+    p.setPen(QPen(QColor(255, 255, 255, 220), 2,
+                  Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    mx, my = int(s*0.50), int(s*0.56)
+    p.drawLine(mx, my+int(s*0.14), mx, my-int(s*0.10))
+    p.drawLine(mx-int(s*0.10), my, mx, my-int(s*0.12))
+    p.drawLine(mx+int(s*0.10), my, mx, my-int(s*0.12))
+
+
+def _draw_save_icon(p: QPainter, s: int) -> None:
+    p.setPen(QPen(QColor(160, 160, 160), 1.5))
+    p.setBrush(QBrush(QColor(80, 140, 200, 200)))
+    p.drawRoundedRect(int(s*0.12), int(s*0.12), int(s*0.76), int(s*0.76), 4, 4)
+    p.setBrush(QBrush(QColor(220, 220, 220, 200)))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawRect(int(s*0.26), int(s*0.12), int(s*0.48), int(s*0.32))
+    p.setBrush(QBrush(QColor(80, 140, 200, 200)))
+    p.drawRect(int(s*0.38), int(s*0.12), int(s*0.14), int(s*0.32))
+    p.setPen(QPen(QColor(160, 160, 160), 1))
+    p.setBrush(QBrush(QColor(60, 110, 170, 200)))
+    p.drawRect(int(s*0.22), int(s*0.56), int(s*0.56), int(s*0.28))
+
+
+def _draw_undo_icon(p: QPainter, s: int) -> None:
+    pen = QPen(QColor(180, 200, 230), max(2, int(s * 0.10)),
+               Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+               Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen); p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawArc(QRectF(s*0.15, s*0.20, s*0.65, s*0.55), 30 * 16, 240 * 16)
+    tip_x, tip_y = s*0.155, s*0.415
+    p.drawLine(QPointF(tip_x, tip_y), QPointF(tip_x + s*0.16, tip_y - s*0.14))
+    p.drawLine(QPointF(tip_x, tip_y), QPointF(tip_x + s*0.12, tip_y + s*0.18))
+
+
+def _draw_restore_icon(p: QPainter, s: int) -> None:
+    pen = QPen(QColor(150, 210, 160), max(2, int(s * 0.10)),
+               Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+               Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen); p.setBrush(Qt.BrushStyle.NoBrush)
+    arc_r = QRectF(s*0.15, s*0.15, s*0.70, s*0.70)
+    p.drawArc(arc_r,  20 * 16, 160 * 16)
+    p.drawArc(arc_r, 200 * 16, 160 * 16)
+    p.drawLine(QPointF(s*0.83, s*0.415), QPointF(s*0.68, s*0.22))
+    p.drawLine(QPointF(s*0.83, s*0.415), QPointF(s*0.62, s*0.50))
+    p.drawLine(QPointF(s*0.17, s*0.585), QPointF(s*0.32, s*0.78))
+    p.drawLine(QPointF(s*0.17, s*0.585), QPointF(s*0.38, s*0.50))
+
+
 def make_tool_icon(name: str, size: int = 28) -> QIcon:
     """Lädt PNG aus icons/-Ordner neben BgRemover.py via Pillow, fällt auf gezeichnetes Icon zurück."""
     # Mehrere Suchpfade für robuste Erkennung
@@ -224,149 +351,18 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     s = size
 
-    if name == "wand":
-        # Zauberstab: diagonale Linie + Sterne
-        p.setPen(QPen(QColor(220, 220, 220), 2.2,
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(int(s*0.22), int(s*0.78), int(s*0.65), int(s*0.35))
-        p.setBrush(QBrush(QColor(220, 220, 220)))
-        p.setPen(Qt.PenStyle.NoPen)
-        p.drawEllipse(int(s*0.10), int(s*0.66), int(s*0.24), int(s*0.24))
-        # Sterne (Kreuzform)
-        gold = QColor(255, 210, 50)
-        def star(cx, cy, r):
-            p.setPen(QPen(gold, 1.5, Qt.PenStyle.SolidLine,
-                          Qt.PenCapStyle.RoundCap))
-            p.drawLine(cx, cy-r, cx, cy+r)
-            p.drawLine(cx-r, cy, cx+r, cy)
-        star(int(s*0.75), int(s*0.22), int(s*0.12))
-        star(int(s*0.88), int(s*0.48), int(s*0.08))
-        star(int(s*0.60), int(s*0.12), int(s*0.07))
-
-    elif name == "brush":
-        # Pinsel: Griff + Borsten
-        p.setPen(QPen(QColor(190, 190, 190), 2.5,
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(int(s*0.72), int(s*0.12), int(s*0.38), int(s*0.62))
-        # Ferrule (Metallring)
-        p.setPen(QPen(QColor(160, 160, 170), 2))
-        p.drawLine(int(s*0.42), int(s*0.57), int(s*0.30), int(s*0.69))
-        # Borsten (blau)
-        p.setPen(QPen(QColor(80, 150, 240), 3,
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(int(s*0.28), int(s*0.71), int(s*0.18), int(s*0.88))
-        p.setPen(QPen(QColor(60, 130, 220), 2,
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(int(s*0.34), int(s*0.72), int(s*0.26), int(s*0.90))
-        p.drawLine(int(s*0.22), int(s*0.70), int(s*0.12), int(s*0.86))
-
-    elif name == "eraser":
-        # Radiergummi: abgerundetes Rechteck + Streifen
-        p.setPen(QPen(QColor(160, 160, 160), 1.5))
-        p.setBrush(QBrush(QColor(240, 185, 90, 220)))
-        p.drawRoundedRect(int(s*0.12), int(s*0.38),
-                          int(s*0.76), int(s*0.36), 3, 3)
-        # Trennstreifen
-        p.setPen(QPen(QColor(200, 120, 50, 200), 2))
-        tx = int(s * 0.45)
-        p.drawLine(tx, int(s*0.38), tx, int(s*0.74))
-        # Wischspur (Schatten unten)
-        p.setPen(QPen(QColor(120, 120, 120, 100), 1))
-        p.setBrush(QBrush(QColor(100, 100, 100, 60)))
-        p.drawRoundedRect(int(s*0.12), int(s*0.70),
-                          int(s*0.76), int(s*0.10), 2, 2)
-
-    elif name == "ai":
-        # KI: Blitz / Neuron-Symbol
-        bolt = QPolygonF([
-            QPointF(s*0.55, s*0.10),
-            QPointF(s*0.28, s*0.52),
-            QPointF(s*0.48, s*0.52),
-            QPointF(s*0.42, s*0.90),
-            QPointF(s*0.72, s*0.46),
-            QPointF(s*0.52, s*0.46),
-        ])
-        p.setPen(QPen(QColor(80, 190, 255), 1.5))
-        p.setBrush(QBrush(QColor(80, 190, 255, 200)))
-        p.drawPolygon(bolt)
-
-    elif name == "open":
-        # Ordner öffnen
-        p.setPen(QPen(QColor(200, 200, 200), 1.5))
-        p.setBrush(QBrush(QColor(200, 170, 80, 200)))
-        p.drawRoundedRect(int(s*0.10), int(s*0.38),
-                          int(s*0.80), int(s*0.46), 3, 3)
-        p.setBrush(QBrush(QColor(220, 190, 100, 200)))
-        p.drawRoundedRect(int(s*0.10), int(s*0.30),
-                          int(s*0.40), int(s*0.14), 3, 3)
-        # Pfeil
-        p.setPen(QPen(QColor(255, 255, 255, 220), 2,
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        mx, my = int(s*0.50), int(s*0.56)
-        p.drawLine(mx, my+int(s*0.14), mx, my-int(s*0.10))
-        p.drawLine(mx-int(s*0.10), my, mx, my-int(s*0.12))
-        p.drawLine(mx+int(s*0.10), my, mx, my-int(s*0.12))
-
-    elif name == "save":
-        # Diskette / Speichern
-        p.setPen(QPen(QColor(160, 160, 160), 1.5))
-        p.setBrush(QBrush(QColor(80, 140, 200, 200)))
-        p.drawRoundedRect(int(s*0.12), int(s*0.12),
-                          int(s*0.76), int(s*0.76), 4, 4)
-        # Etikettfläche
-        p.setBrush(QBrush(QColor(220, 220, 220, 200)))
-        p.setPen(Qt.PenStyle.NoPen)
-        p.drawRect(int(s*0.26), int(s*0.12),
-                   int(s*0.48), int(s*0.32))
-        # Spirale (Schreib-Nut)
-        p.setBrush(QBrush(QColor(80, 140, 200, 200)))
-        p.drawRect(int(s*0.38), int(s*0.12),
-                   int(s*0.14), int(s*0.32))
-        # Bodenfach
-        p.setPen(QPen(QColor(160, 160, 160), 1))
-        p.setBrush(QBrush(QColor(60, 110, 170, 200)))
-        p.drawRect(int(s*0.22), int(s*0.56),
-                   int(s*0.56), int(s*0.28))
-
-    elif name == "undo":
-        # Gebogener Rückgängig-Pfeil
-        pen = QPen(QColor(180, 200, 230), max(2, int(s * 0.10)),
-                   Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
-                   Qt.PenJoinStyle.RoundJoin)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        from PyQt6.QtCore import QRectF as _QRectF
-        import math
-        arc_rect = _QRectF(s*0.15, s*0.20, s*0.65, s*0.55)
-        p.drawArc(arc_rect, 30 * 16, 240 * 16)   # Bogen von 30° bis 270°
-        # Pfeilspitze links oben
-        tip_x, tip_y = s*0.155, s*0.415
-        p.setPen(QPen(QColor(180, 200, 230), max(2, int(s * 0.10)),
-                      Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
-                      Qt.PenJoinStyle.RoundJoin))
-        p.drawLine(QPointF(tip_x, tip_y),
-                   QPointF(tip_x + s*0.16, tip_y - s*0.14))
-        p.drawLine(QPointF(tip_x, tip_y),
-                   QPointF(tip_x + s*0.12, tip_y + s*0.18))
-
-    elif name == "restore":
-        # Kreisförmiger Refresh-Pfeil (zwei Halbbögen + Spitzen)
-        pen = QPen(QColor(150, 210, 160), max(2, int(s * 0.10)),
-                   Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
-                   Qt.PenJoinStyle.RoundJoin)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        from PyQt6.QtCore import QRectF as _QRectF2
-        arc_r = _QRectF2(s*0.15, s*0.15, s*0.70, s*0.70)
-        p.drawArc(arc_r,  20 * 16, 160 * 16)   # oberer Bogen
-        p.drawArc(arc_r, 200 * 16, 160 * 16)   # unterer Bogen
-        # obere Pfeilspitze (rechts)
-        p.drawLine(QPointF(s*0.83, s*0.415), QPointF(s*0.68, s*0.22))
-        p.drawLine(QPointF(s*0.83, s*0.415), QPointF(s*0.62, s*0.50))
-        # untere Pfeilspitze (links)
-        p.drawLine(QPointF(s*0.17, s*0.585), QPointF(s*0.32, s*0.78))
-        p.drawLine(QPointF(s*0.17, s*0.585), QPointF(s*0.38, s*0.50))
-
+    _ICON_DRAW = {
+        "wand":    _draw_wand_icon,
+        "brush":   _draw_brush_icon,
+        "eraser":  _draw_eraser_icon,
+        "ai":      _draw_ai_icon,
+        "open":    _draw_open_icon,
+        "save":    _draw_save_icon,
+        "undo":    _draw_undo_icon,
+        "restore": _draw_restore_icon,
+    }
+    if name in _ICON_DRAW:
+        _ICON_DRAW[name](p, s)
     p.end()
     return QIcon(pm)
 
@@ -390,11 +386,11 @@ class AIWorker(QObject):
     finished = pyqtSignal(object)   # PIL Image
     error = pyqtSignal(str)
 
-    def __init__(self, pil_image: Image.Image):
+    def __init__(self, pil_image: Image.Image) -> None:
         super().__init__()
         self._img = pil_image
 
-    def run(self):
+    def run(self) -> None:
         try:
             buf = io.BytesIO()
             self._img.save(buf, format="PNG")
@@ -416,7 +412,7 @@ class RembgWarmupWorker(QObject):
     """
     finished = pyqtSignal()
 
-    def run(self):
+    def run(self) -> None:
         try:
             buf = io.BytesIO()
             Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(buf, format="PNG")
@@ -436,11 +432,11 @@ class ImageLoadWorker(QObject):
     finished = pyqtSignal(object, str)   # (PIL.Image, original_path)
     error    = pyqtSignal(str)
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__()
         self._path = path
 
-    def run(self):
+    def run(self) -> None:
         try:
             img = Image.open(self._path)
             mp = img.width * img.height / 1_000_000
@@ -466,7 +462,7 @@ class CropOverlayItem(QGraphicsObject):
     HANDLE_R = 16.0
 
     def __init__(self, img_w: int, img_h: int,
-                 crop_w: int, crop_h: int, is_circle: bool = False):
+                 crop_w: int, crop_h: int, is_circle: bool = False) -> None:
         super().__init__()
         self._iw = img_w;  self._ih = img_h
         self._cw = float(crop_w); self._ch = float(crop_h)
@@ -480,7 +476,7 @@ class CropOverlayItem(QGraphicsObject):
         self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)   # Canvas übernimmt Events
 
     # ── Corners: index 0=TL 1=TR 2=BL 3=BR ──────────────────
-    def _corners(self):
+    def _corners(self) -> list[QPointF]:
         return [
             QPointF(self._cx,              self._cy),
             QPointF(self._cx + self._cw,   self._cy),
@@ -495,12 +491,12 @@ class CropOverlayItem(QGraphicsObject):
                 return i
         return -1
 
-    def set_position(self, cx: float, cy: float):
+    def set_position(self, cx: float, cy: float) -> None:
         self._cx = max(0.0, min(cx, self._iw - self._cw))
         self._cy = max(0.0, min(cy, self._ih - self._ch))
         self.update()
 
-    def resize_from_corner(self, corner_idx: int, sx: float, sy: float):
+    def resize_from_corner(self, corner_idx: int, sx: float, sy: float) -> None:
         """Skaliert den Ausschnitt proportional vom gegenüberliegenden Eck-Ankerpunkt."""
         # Ankerpunkt ist die gegenüberliegende Ecke
         if corner_idx == 0:    # TL gezogen → Anker BR
@@ -575,7 +571,7 @@ class CropOverlayItem(QGraphicsObject):
         return QRectF(-margin, -margin,
                       self._iw + 2 * margin, self._ih + 2 * margin)
 
-    def paint(self, painter: QPainter, option, widget):
+    def paint(self, painter: QPainter, option, widget) -> None:
         # ── Dunkles Außen-Overlay ──────────────────────────────
         outer = QPainterPath()
         outer.addRect(QRectF(0, 0, self._iw, self._ih))
@@ -642,7 +638,7 @@ class ImageCanvas(QGraphicsView):
     cropModeChanged = pyqtSignal(bool)  # True = Crop-Overlay aktiv
     imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._scene = QGraphicsScene(self)
         self.setScene(self._scene)
@@ -675,8 +671,8 @@ class ImageCanvas(QGraphicsView):
         self._redo:     deque = deque(maxlen=20)
 
         self._tool      = TOOL_WAND
-        self._tolerance = 30
-        self._brush_r   = 15
+        self._tolerance = _DEFAULT_TOLERANCE
+        self._brush_r   = _DEFAULT_BRUSH_RADIUS
         self._panning   = False
         self._pan_start = QPointF()
         self._drawing   = False
@@ -699,7 +695,7 @@ class ImageCanvas(QGraphicsView):
 
     # ── Laden ────────────────────────────────────────────────
 
-    def load_image(self, path: str):
+    def load_image(self, path: str) -> None:
         """Synchroner Lade-Pfad – wird vom Drop-Event und von Tests genutzt.
 
         Für den File-Dialog läuft der gleiche Vorgang in einem Worker
@@ -730,7 +726,7 @@ class ImageCanvas(QGraphicsView):
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
 
-    def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung"):
+    def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung") -> None:
         if push and self._pil is not None:
             self._undo.append((self._pil.copy(), desc))
             # Neue Aktion ⇒ Redo-Branch verwerfen (klassisches Editor-Verhalten)
@@ -748,7 +744,7 @@ class ImageCanvas(QGraphicsView):
         self._refresh_image()
         self._refresh_overlay()
 
-    def _refresh_image(self):
+    def _refresh_image(self) -> None:
         if self._pil:
             px = pil_to_qpixmap(self._pil)
             self._img_item.setPixmap(px)
@@ -756,14 +752,14 @@ class ImageCanvas(QGraphicsView):
             self._img_item.update()
             self.viewport().update()
 
-    def _refresh_overlay(self):
+    def _refresh_overlay(self) -> None:
         if self._mask is not None and self._pil:
             h, w = self._mask.shape
             self._overlay_item.setPixmap(mask_to_overlay(self._mask, w, h))
 
     # ── Undo / Original ──────────────────────────────────────
 
-    def undo(self):
+    def undo(self) -> None:
         if self._crop_overlay is not None:
             self.cancel_crop(); return
         if self._undo:
@@ -782,7 +778,7 @@ class ImageCanvas(QGraphicsView):
         else:
             self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
 
-    def redo(self):
+    def redo(self) -> None:
         """Macht ein zuvor mit ``undo()`` rückgängig gemachte Aktion wieder."""
         if self._crop_overlay is not None:
             return
@@ -801,7 +797,7 @@ class ImageCanvas(QGraphicsView):
         else:
             self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
 
-    def undo_to(self, steps: int):
+    def undo_to(self, steps: int) -> None:
         """Mehrere Schritte auf einmal rückgängig machen."""
         actual = min(steps, len(self._undo))
         if actual <= 0:
@@ -821,7 +817,7 @@ class ImageCanvas(QGraphicsView):
             [d for _, d in reversed(list(self._undo))])
         self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
 
-    def restore_original(self):
+    def restore_original(self) -> None:
         if self._original:
             self._cancel_crop_overlay()
             # Aktuellen Stand für Undo aufbewahren, statt den Verlauf
@@ -840,13 +836,13 @@ class ImageCanvas(QGraphicsView):
                 [d for _, d in reversed(list(self._undo))])
             self.statusMsg.emit("🔄  Original wiederhergestellt")
 
-    def clear_selection(self):
+    def clear_selection(self) -> None:
         if self._mask is not None:
             self._mask[:] = False
             self._refresh_overlay()
             self.statusMsg.emit("Auswahl aufgehoben")
 
-    def invert_selection(self):
+    def invert_selection(self) -> None:
         """Kehrt die aktuelle Maske um (Vorder- ↔ Hintergrund)."""
         if self._mask is None or self._pil is None:
             self.statusMsg.emit("Kein Bild geladen")
@@ -878,15 +874,15 @@ class ImageCanvas(QGraphicsView):
             f"Auswahl um {radius} px {label}: "
             f"{int(self._mask.sum()):,} Pixel")
 
-    def expand_selection(self, radius: int):
+    def expand_selection(self, radius: int) -> None:
         self._morphology(radius, "expand")
 
-    def shrink_selection(self, radius: int):
+    def shrink_selection(self, radius: int) -> None:
         self._morphology(radius, "shrink")
 
     # ── Tool-Einstellungen ───────────────────────────────────
 
-    def set_tool(self, tool: str):
+    def set_tool(self, tool: str) -> None:
         self._tool = tool
         if tool == TOOL_WAND:
             self.setCursor(make_wand_cursor())
@@ -899,10 +895,10 @@ class ImageCanvas(QGraphicsView):
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
             self._brush_preview.setVisible(False)
 
-    def set_tolerance(self, v: int):
+    def set_tolerance(self, v: int) -> None:
         self._tolerance = v
 
-    def set_brush_size(self, v: int):
+    def set_brush_size(self, v: int) -> None:
         self._brush_r = max(1, v // 2)
         # Cursor sofort aktualisieren
         if self._tool == TOOL_BRUSH:
@@ -921,7 +917,7 @@ class ImageCanvas(QGraphicsView):
 
     # ── Operationen ──────────────────────────────────────────
 
-    def apply_remove(self, _checked=False):
+    def apply_remove(self, _checked=False) -> None:
         try:
             if not self._check_selection():
                 return
@@ -934,7 +930,7 @@ class ImageCanvas(QGraphicsView):
             logger.exception("Fehler beim Entfernen")
             self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
 
-    def apply_replace(self, color: QColor):
+    def apply_replace(self, color: QColor) -> None:
         try:
             if not self._check_selection():
                 return
@@ -947,11 +943,11 @@ class ImageCanvas(QGraphicsView):
             logger.exception("Fehler beim Ersetzen")
             self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
 
-    def apply_ai_result(self, img: Image.Image):
+    def apply_ai_result(self, img: Image.Image) -> None:
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
         self.statusMsg.emit("✅ KI-Hintergrundentfernung abgeschlossen")
 
-    def save_image(self, path: str):
+    def save_image(self, path: str) -> None:
         if self._pil is None:
             return
         ext = Path(path).suffix.lower()
@@ -985,7 +981,7 @@ class ImageCanvas(QGraphicsView):
         sp = self.mapToScene(event.position().toPoint())
         return int(sp.x()), int(sp.y())
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if self._pil is None:
             return super().mousePressEvent(event)
 
@@ -1043,7 +1039,7 @@ class ImageCanvas(QGraphicsView):
             self._drawing = True
             self._paint_brush(x, y)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         sp = self.mapToScene(event.position().toPoint())
 
         # Pinsel-Vorschau (außerhalb von Crop-/Pan-Modi)
@@ -1092,7 +1088,7 @@ class ImageCanvas(QGraphicsView):
             self._paint_brush(int(sp.x()), int(sp.y()))
         super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         if self._crop_resizing:
             self._crop_resizing = False
             self._crop_resize_corner = -1
@@ -1111,7 +1107,7 @@ class ImageCanvas(QGraphicsView):
         self._drawing = False
         super().mouseReleaseEvent(event)
 
-    def _paint_brush(self, cx: int, cy: int):
+    def _paint_brush(self, cx: int, cy: int) -> None:
         if self._mask is None or self._pil is None:
             return
         r  = self._brush_r
@@ -1136,25 +1132,25 @@ class ImageCanvas(QGraphicsView):
         if self.ZOOM_MIN <= new_scale <= self.ZOOM_MAX:
             self.scale(factor, factor)
 
-    def wheelEvent(self, event):
-        self._zoom(1.15 if event.angleDelta().y() > 0 else 1 / 1.15)
+    def wheelEvent(self, event) -> None:
+        self._zoom(_ZOOM_FACTOR if event.angleDelta().y() > 0 else 1 / _ZOOM_FACTOR)
 
-    def leaveEvent(self, event):
+    def leaveEvent(self, event) -> None:
         # Pinsel-Vorschau verstecken, sobald die Maus den View verlässt
         self._brush_preview.setVisible(False)
         super().leaveEvent(event)
 
     # ── Drag & Drop ──────────────────────────────────────────
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
-    def dragMoveEvent(self, event):          # ← PFLICHT: ohne dies wird Drop abgelehnt
+    def dragMoveEvent(self, event) -> None:  # ← PFLICHT: ohne dies wird Drop abgelehnt
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QDropEvent):
+    def dropEvent(self, event: QDropEvent) -> None:
         exts = (".png", ".jpg", ".jpeg", ".webp",
                 ".bmp", ".tiff", ".tif", ".gif")
         valid = [url.toLocalFile() for url in event.mimeData().urls()
@@ -1170,7 +1166,7 @@ class ImageCanvas(QGraphicsView):
 
     # ── Ecken abrunden ───────────────────────────────────────
 
-    def apply_round_corners(self, radius: int):
+    def apply_round_corners(self, radius: int) -> None:
         """Rundet die Ecken des Bildes mit dem gegebenen Radius ab."""
         if self._pil is None:
             self.statusMsg.emit("Kein Bild geladen")
@@ -1198,7 +1194,7 @@ class ImageCanvas(QGraphicsView):
 
     # ── Drehen ───────────────────────────────────────────────
 
-    def apply_rotate(self, degrees: int):
+    def apply_rotate(self, degrees: int) -> None:
         """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn).
         Bei 90° / 270° werden Breite und Höhe getauscht.
         Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
@@ -1225,7 +1221,7 @@ class ImageCanvas(QGraphicsView):
 
     # ── Spiegeln ─────────────────────────────────────────────
 
-    def apply_flip(self, horizontal: bool):
+    def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
         if self._pil is None:
             self.statusMsg.emit("Kein Bild geladen")
@@ -1242,14 +1238,14 @@ class ImageCanvas(QGraphicsView):
 
     # ── Ausgabeformat – Crop-Overlay ─────────────────────────
 
-    def start_crop_circle(self):
+    def start_crop_circle(self) -> None:
         """Startet den interaktiven Kreis-Zuschnitt."""
         if self._pil is None:
             self.statusMsg.emit("Kein Bild geladen"); return
         size = min(self._pil.width, self._pil.height)
         self._start_crop_overlay(size, size, is_circle=True)
 
-    def start_crop_ratio(self, ratio_w: int, ratio_h: int):
+    def start_crop_ratio(self, ratio_w: int, ratio_h: int) -> None:
         """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
         if self._pil is None:
             self.statusMsg.emit("Kein Bild geladen"); return
@@ -1260,7 +1256,7 @@ class ImageCanvas(QGraphicsView):
             cw, ch = iw, int(iw * ratio_h / ratio_w)
         self._start_crop_overlay(cw, ch, is_circle=False)
 
-    def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool):
+    def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool) -> None:
         self._cancel_crop_overlay()
         self._crop_overlay = CropOverlayItem(
             self._pil.width, self._pil.height, cw, ch, is_circle)
@@ -1271,7 +1267,7 @@ class ImageCanvas(QGraphicsView):
         self.statusMsg.emit(
             f"✂  Ausschnitt verschieben  [{label}]  —  dann ✓ Anwenden klicken")
 
-    def confirm_crop(self):
+    def confirm_crop(self) -> None:
         """Wendet den aktuellen Crop-Overlay als Zuschnitt an."""
         if self._crop_overlay is None or self._pil is None:
             return
@@ -1298,14 +1294,14 @@ class ImageCanvas(QGraphicsView):
         self._apply_pil(result, desc=desc)
         self.statusMsg.emit(f"✂  Zugeschnitten: {result.width} × {result.height} px")
 
-    def cancel_crop(self):
+    def cancel_crop(self) -> None:
         """Bricht den Zuschnitt ab ohne Änderung."""
         self._cancel_crop_overlay()
         self.cropModeChanged.emit(False)
         self.set_tool(self._tool)
         self.statusMsg.emit("Zuschnitt abgebrochen")
 
-    def _cancel_crop_overlay(self):
+    def _cancel_crop_overlay(self) -> None:
         if self._crop_overlay is not None:
             self._scene.removeItem(self._crop_overlay)
             self._crop_overlay = None
@@ -1369,14 +1365,14 @@ class TopIconTabBar(QTabBar):
     _TEXT_BOTTOM_PAD = 7  # Abstand Text → Tab-Unterkante
     _TEXT_SIDE_PAD = 6    # seitlicher Mindestabstand Text → Tab-Rand
 
-    def __init__(self, icon_px: int = 30, parent=None):
+    def __init__(self, icon_px: int = 30, parent=None) -> None:
         super().__init__(parent)
         self._icon_px = icon_px
         # Breiten werden selbst gleichmäßig auf die volle Breite verteilt –
         # Qts proportionale Expand-Heuristik darf das nicht verändern.
         self.setExpanding(False)
 
-    def _text_font(self, bold: bool = False):
+    def _text_font(self, bold: bool = False) -> QFont:
         f = self.font()
         f.setPixelSize(11)
         f.setBold(bold)
@@ -1420,12 +1416,12 @@ class TopIconTabBar(QTabBar):
                   + 2 * fm.height() + self._TEXT_BOTTOM_PAD)
         return QSize(self._equal_width(index), height)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         # Tab-Geometrie an die neue Bar-Breite anpassen (gleiche Breiten).
         self.updateGeometry()
 
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:
         painter = QStylePainter(self)
         opt = QStyleOptionTab()
 
@@ -1484,11 +1480,11 @@ class TopIconTabBar(QTabBar):
 class TopIconTabWidget(QTabWidget):
     """QTabWidget, das die TopIconTabBar verwendet (setTabBar ist protected)."""
 
-    def __init__(self, icon_px: int = 30, parent=None):
+    def __init__(self, icon_px: int = 30, parent=None) -> None:
         super().__init__(parent)
         self.setTabBar(TopIconTabBar(icon_px, self))
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         # Bar deterministisch auf die volle Spaltenbreite ziehen – das löst
         # in der Bar layoutTabs() aus, sodass alle Tabs gleich breit werden
@@ -1510,7 +1506,7 @@ class SettingsDialog(QDialog):
         "TIFF": "TIFF (*.tif)",
     }
 
-    def __init__(self, settings: QSettings, parent=None):
+    def __init__(self, settings: QSettings, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Einstellungen")
         self.setMinimumWidth(520)
@@ -1518,7 +1514,7 @@ class SettingsDialog(QDialog):
         self._build_ui()
         self._load()
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         lay = QVBoxLayout(self)
         lay.setSpacing(14)
         lay.setContentsMargins(20, 20, 20, 20)
@@ -1575,21 +1571,21 @@ class SettingsDialog(QDialog):
         btn_row.addWidget(btn_ok)
         lay.addLayout(btn_row)
 
-    def _pick_open_dir(self):
+    def _pick_open_dir(self) -> None:
         start = self._open_dir_edit.text().strip() or str(Path.home())
         d = QFileDialog.getExistingDirectory(
             self, "Verzeichnis zum Öffnen wählen", start)
         if d:
             self._open_dir_edit.setText(d)
 
-    def _pick_save_dir(self):
+    def _pick_save_dir(self) -> None:
         start = self._save_dir_edit.text().strip() or str(Path.home())
         d = QFileDialog.getExistingDirectory(
             self, "Verzeichnis für Export/Speichern wählen", start)
         if d:
             self._save_dir_edit.setText(d)
 
-    def _load(self):
+    def _load(self) -> None:
         self._open_dir_edit.setText(self._settings.value("open_dir", ""))
         self._save_dir_edit.setText(self._settings.value("save_dir", ""))
         fmt = self._settings.value("preferred_format", "PNG")
@@ -1597,7 +1593,7 @@ class SettingsDialog(QDialog):
         if idx >= 0:
             self._fmt_combo.setCurrentIndex(idx)
 
-    def _save_and_accept(self):
+    def _save_and_accept(self) -> None:
         self._settings.setValue("open_dir", self._open_dir_edit.text().strip())
         self._settings.setValue("save_dir", self._save_dir_edit.text().strip())
         self._settings.setValue("preferred_format", self._fmt_combo.currentText())
@@ -1609,10 +1605,26 @@ class MainWindow(QMainWindow):
     RECENT_MAX = 10
     SETTINGS_RECENT_KEY = "recent_files"
 
-    def __init__(self):
+    _TAB_STYLE = """
+        QTabWidget::pane { border: none; background: #1a1a1a; }
+        QTabBar { background: #141414; }
+        QTabBar::tab {
+            background: #1e1e1e; color: #666;
+            padding: 10px 0px; min-width: 82px;
+            font-size: 12px; border: none;
+            border-bottom: 3px solid transparent;
+        }
+        QTabBar::tab:selected {
+            color: #e0e0e0; background: #1a1a1a;
+            border-bottom: 3px solid #4a90d9; font-weight: bold;
+        }
+        QTabBar::tab:hover:!selected { color: #aaa; background: #242424; }
+    """
+
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("BgRemover Pro")
-        self.setMinimumSize(1100, 720)
+        self.setMinimumSize(_WINDOW_MIN_W, _WINDOW_MIN_H)
         self._bg_color   = QColor(255, 255, 255)
         self._ai_thread: QThread | None = None
         self._ai_worker: AIWorker | None = None
@@ -1637,9 +1649,106 @@ class MainWindow(QMainWindow):
         if REMBG_AVAILABLE:
             self._start_rembg_warmup()
 
+    # ── Panel-Hilfsmethoden (ehem. nested in _build_right_panel) ─
+
+    @staticmethod
+    def _make_section(title: str, accent: str = "#4a90d9") -> tuple:
+        """Sektion ohne QGroupBox – farbiger Titel + dünne Trennlinie."""
+        container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        v = QVBoxLayout(container)
+        v.setSpacing(10)
+        v.setContentsMargins(0, 14, 0, 6)
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(f"""
+            color: {accent};
+            font-size: 13px;
+            font-weight: bold;
+            background: transparent;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #2e2e2e;
+        """)
+        v.addWidget(title_lbl)
+        return container, v
+
+    @staticmethod
+    def _make_label(text: str, color: str = "#888", size: int = 11) -> QLabel:
+        lbl = QLabel(text)
+        lbl.setStyleSheet(
+            f"color: {color}; font-size: {size}px; background: transparent;")
+        lbl.setWordWrap(True)
+        return lbl
+
+    @staticmethod
+    def _make_hdivider() -> QFrame:
+        f = QFrame()
+        f.setFrameShape(QFrame.Shape.HLine)
+        f.setStyleSheet("background: #2a2a2a; max-height: 1px; margin: 4px 0;")
+        return f
+
+    @staticmethod
+    def _make_scroll_tab() -> tuple:
+        """Gibt (outer_widget, inner_layout) mit ScrollArea zurück."""
+        outer_w = QWidget()
+        outer_w.setStyleSheet("background: #1a1a1a;")
+        outer_lay = QVBoxLayout(outer_w)
+        outer_lay.setContentsMargins(0, 0, 0, 0)
+        outer_lay.setSpacing(0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea { background: #1a1a1a; border: none; }
+            QScrollBar:vertical { background: #1a1a1a; width: 6px; margin: 0; }
+            QScrollBar::handle:vertical {
+                background: #3a3a3a; border-radius: 3px; min-height: 20px; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        """)
+        inner_w = QWidget()
+        inner_w.setStyleSheet("background: #1a1a1a;")
+        inner_lay = QVBoxLayout(inner_w)
+        inner_lay.setContentsMargins(14, 14, 14, 14)
+        inner_lay.setSpacing(12)
+        scroll.setWidget(inner_w)
+        outer_lay.addWidget(scroll)
+        return outer_w, inner_lay
+
+    @staticmethod
+    def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
+                        tooltip: str = "", height: int = 36,
+                        icon_name: str = "") -> QPushButton:
+        b = QPushButton(label)
+        b.setStyleSheet(f"""
+            QPushButton {{
+                background: {bg}; color: {fg}; border: none;
+                border-radius: 8px; padding: 0 14px;
+                font-size: 12px; font-weight: 500;
+                min-height: {height}px; text-align: center;
+            }}
+            QPushButton:hover {{ background: {hover}; }}
+            QPushButton:pressed {{ background: {bg}; }}
+            QPushButton:disabled {{ background: #252525; color: #555; }}
+        """)
+        if icon_name:
+            b.setIcon(make_tool_icon(icon_name, 22))
+            b.setIconSize(QSize(22, 22))
+        if tooltip:
+            b.setToolTip(tooltip)
+        return b
+
+    @staticmethod
+    def _make_slider(lo: int, hi: int, val: int, tip: str = "") -> QSlider:
+        s = QSlider(Qt.Orientation.Horizontal)
+        s.setRange(lo, hi)
+        s.setValue(val)
+        s.setStyleSheet(SLD_STYLE)
+        if tip:
+            s.setToolTip(tip)
+        return s
+
     # ── UI aufbauen ──────────────────────────────────────────
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         root_w = QWidget()
         self.setCentralWidget(root_w)
         root = QHBoxLayout(root_w)
@@ -1659,7 +1768,7 @@ class MainWindow(QMainWindow):
         self._crop_bar = QFrame()
         self._crop_bar.setStyleSheet(
             "QFrame { background: #1e3020; border-bottom: 1px solid #3a7a4a; }")
-        self._crop_bar.setFixedHeight(46)
+        self._crop_bar.setFixedHeight(_CROP_BAR_HEIGHT)
         cb_lay = QHBoxLayout(self._crop_bar)
         cb_lay.setContentsMargins(14, 4, 14, 4); cb_lay.setSpacing(10)
         crop_lbl = QLabel("✂  Ausschnitt positionieren, dann bestätigen:")
@@ -1701,7 +1810,7 @@ class MainWindow(QMainWindow):
 
     def _build_toolbar(self) -> QFrame:
         frame = QFrame()
-        frame.setFixedWidth(66)
+        frame.setFixedWidth(_TOOLBAR_WIDTH)
         frame.setStyleSheet("QFrame { background: #242424; border-right: 1px solid #3a3a3a; }")
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(9, 16, 9, 16)
@@ -1713,10 +1822,10 @@ class MainWindow(QMainWindow):
         def tbtn(icon_name: str, tip: str, tool: str) -> QToolButton:
             b = QToolButton()
             b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(38, 38))
+            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
             b.setToolTip(tip)
             b.setCheckable(True)
-            b.setFixedSize(54, 54)
+            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
             b.setStyleSheet(TOOL_STYLE)
             b.clicked.connect(lambda checked=False, t=tool: self._canvas.set_tool(t))
             self._btn_grp.addButton(b)
@@ -1739,12 +1848,12 @@ class MainWindow(QMainWindow):
 
         self._btn_ai = QToolButton()
         self._btn_ai.setIcon(make_tool_icon("ai", 38))
-        self._btn_ai.setIconSize(QSize(38, 38))
+        self._btn_ai.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
         self._btn_ai.setToolTip(
             "KI-Hintergrundentfernung (rembg)\nEntfernt den Hintergrund vollautomatisch"
             if REMBG_AVAILABLE else
             "rembg nicht installiert\n→ bash setup_bgremover.sh")
-        self._btn_ai.setFixedSize(54, 54)
+        self._btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
         self._btn_ai.setStyleSheet(TOOL_STYLE)
         self._btn_ai.setEnabled(REMBG_AVAILABLE)
         self._btn_ai.clicked.connect(self._run_ai)
@@ -1769,9 +1878,9 @@ class MainWindow(QMainWindow):
         def hist_btn(icon_name: str, tip: str, slot) -> QToolButton:
             b = QToolButton()
             b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(38, 38))
+            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
             b.setToolTip(tip)
-            b.setFixedSize(54, 54)
+            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
             b.setStyleSheet(HIST_STYLE)
             b.clicked.connect(slot)
             lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -1787,9 +1896,9 @@ class MainWindow(QMainWindow):
         def mini_btn(icon_name: str, tip: str, slot) -> QToolButton:
             b = QToolButton()
             b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(38, 38))
+            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
             b.setToolTip(tip)
-            b.setFixedSize(54, 54)
+            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
             b.setStyleSheet(TOOL_STYLE)
             b.clicked.connect(slot)
             lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -1801,151 +1910,29 @@ class MainWindow(QMainWindow):
 
     def _build_right_panel(self) -> QFrame:
         frame = QFrame()
-        frame.setFixedWidth(340)
+        frame.setFixedWidth(_RIGHT_PANEL_WIDTH)
         frame.setStyleSheet("QFrame { background: #1a1a1a; border-left: 1px solid #333; }")
         outer = QVBoxLayout(frame)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        # ── Styles ───────────────────────────────────────────
-        TAB_STYLE = """
-            QTabWidget::pane { border: none; background: #1a1a1a; }
-            QTabBar { background: #141414; }
-            QTabBar::tab {
-                background: #1e1e1e;
-                color: #666;
-                padding: 10px 0px;
-                min-width: 82px;
-                font-size: 12px;
-                border: none;
-                border-bottom: 3px solid transparent;
-            }
-            QTabBar::tab:selected {
-                color: #e0e0e0;
-                background: #1a1a1a;
-                border-bottom: 3px solid #4a90d9;
-                font-weight: bold;
-            }
-            QTabBar::tab:hover:!selected {
-                color: #aaa;
-                background: #242424;
-            }
-        """
-
-        def sec(title: str, accent: str = "#4a90d9") -> tuple:
-            """Sektion ohne QGroupBox – farbiger Titel + dünne Trennlinie."""
-            container = QWidget()
-            container.setStyleSheet("background: transparent;")
-            v = QVBoxLayout(container)
-            v.setSpacing(10)
-            v.setContentsMargins(0, 14, 0, 6)
-            # Titel-Label in Akzentfarbe
-            title_lbl = QLabel(title)
-            title_lbl.setStyleSheet(f"""
-                color: {accent};
-                font-size: 13px;
-                font-weight: bold;
-                background: transparent;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #2e2e2e;
-            """)
-            v.addWidget(title_lbl)
-            return container, v
-
-        def lbl(text: str, color: str = "#888", size: int = 11) -> QLabel:
-            l = QLabel(text)
-            l.setStyleSheet(f"color: {color}; font-size: {size}px; background: transparent;")
-            l.setWordWrap(True)
-            return l
-
-        def hdivider() -> QFrame:
-            f = QFrame()
-            f.setFrameShape(QFrame.Shape.HLine)
-            f.setStyleSheet("background: #2a2a2a; max-height: 1px; margin: 4px 0;")
-            return f
-
-        def scroll_tab() -> tuple:
-            """Returns (outer_widget, inner_layout) mit ScrollArea."""
-            outer_w = QWidget()
-            outer_w.setStyleSheet("background: #1a1a1a;")
-            outer_lay = QVBoxLayout(outer_w)
-            outer_lay.setContentsMargins(0, 0, 0, 0)
-            outer_lay.setSpacing(0)
-
-            scroll = QScrollArea()
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QFrame.Shape.NoFrame)
-            scroll.setStyleSheet("""
-                QScrollArea { background: #1a1a1a; border: none; }
-                QScrollBar:vertical {
-                    background: #1a1a1a; width: 6px; margin: 0;
-                }
-                QScrollBar::handle:vertical {
-                    background: #3a3a3a; border-radius: 3px; min-height: 20px;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-            """)
-
-            inner_w = QWidget()
-            inner_w.setStyleSheet("background: #1a1a1a;")
-            inner_lay = QVBoxLayout(inner_w)
-            inner_lay.setContentsMargins(14, 14, 14, 14)
-            inner_lay.setSpacing(12)
-
-            scroll.setWidget(inner_w)
-            outer_lay.addWidget(scroll)
-            return outer_w, inner_lay
-
-        def btn(label: str, bg: str, fg: str, hover: str,
-                tooltip: str = "", height: int = 36,
-                icon_name: str = "") -> QPushButton:
-            b = QPushButton(label)
-            b.setStyleSheet(f"""
-                QPushButton {{
-                    background: {bg}; color: {fg}; border: none;
-                    border-radius: 8px; padding: 0 14px;
-                    font-size: 12px; font-weight: 500;
-                    min-height: {height}px;
-                    text-align: center;
-                }}
-                QPushButton:hover {{ background: {hover}; }}
-                QPushButton:pressed {{ background: {bg}; }}
-                QPushButton:disabled {{ background: #252525; color: #555; }}
-            """)
-            if icon_name:
-                b.setIcon(make_tool_icon(icon_name, 22))
-                b.setIconSize(QSize(22, 22))
-            if tooltip:
-                b.setToolTip(tooltip)
-            return b
-
-        def slider_row(lo: int, hi: int, val: int,
-                       tip: str = "") -> QSlider:
-            s = QSlider(Qt.Orientation.Horizontal)
-            s.setRange(lo, hi); s.setValue(val)
-            s.setStyleSheet(SLD_STYLE)
-            if tip:
-                s.setToolTip(tip)
-            return s
-
         # ── Tab-Widget ────────────────────────────────────────
-        TAB_ICON_PX = 30
-        tabs = TopIconTabWidget(TAB_ICON_PX)
+        tabs = TopIconTabWidget(_TAB_ICON_PX)
         tabs.setDocumentMode(True)
-        tabs.setStyleSheet(TAB_STYLE)
+        tabs.setStyleSheet(self._TAB_STYLE)
         tabs.setUsesScrollButtons(False)   # niemals Scroll-Pfeile — alle Tabs sichtbar
-        tabs.setIconSize(QSize(TAB_ICON_PX, TAB_ICON_PX))
+        tabs.setIconSize(QSize(_TAB_ICON_PX, _TAB_ICON_PX))
         outer.addWidget(tabs)
 
         # ════════════════════════════════════════════════════
         # Tab 1 – Auswahl  🎯
         # ════════════════════════════════════════════════════
-        t1, l1 = scroll_tab()
+        t1, l1 = self._make_scroll_tab()
         tabs.addTab(t1, "Auswahl")
-        tabs.setTabIcon(0, make_tool_icon("clear_sel", TAB_ICON_PX))
+        tabs.setTabIcon(0, make_tool_icon("clear_sel", _TAB_ICON_PX))
         tabs.setTabToolTip(0, "Auswahl – Zauberstab, Pinsel, Radiergummi")
 
-        g_tool, gt = sec("Werkzeug", "#4a90d9")
+        g_tool, gt = self._make_section("Werkzeug", "#4a90d9")
         hint_box = QWidget()
         hint_box.setStyleSheet("background:#1e2a38; border-radius:7px;")
         hint_lay = QVBoxLayout(hint_box)
@@ -1956,16 +1943,16 @@ class MainWindow(QMainWindow):
             "🖌  Pinsel — Auswahl aufmalen",
             "◻  Radiergummi — Auswahl entfernen",
         ]:
-            hint_lay.addWidget(lbl(txt, "#7aacdd", 11))
-        hint_lay.addWidget(hdivider())
-        hint_lay.addWidget(lbl("Shift+Klick  →  Auswahl addieren", "#888", 10))
-        hint_lay.addWidget(lbl("Ctrl+Klick   →  Auswahl subtrahieren", "#888", 10))
+            hint_lay.addWidget(self._make_label(txt, "#7aacdd", 11))
+        hint_lay.addWidget(self._make_hdivider())
+        hint_lay.addWidget(self._make_label("Shift+Klick  →  Auswahl addieren", "#888", 10))
+        hint_lay.addWidget(self._make_label("Ctrl+Klick   →  Auswahl subtrahieren", "#888", 10))
         gt.addWidget(hint_box)
         l1.addWidget(g_tool)
 
-        g_sel, gs = sec("Einstellungen", "#4a90d9")
-        self._lbl_tol = lbl("Toleranz (Zauberstab):  30", "#aaa")
-        self._sld_tol = slider_row(0, 255, 30,
+        g_sel, gs = self._make_section("Einstellungen", "#4a90d9")
+        self._lbl_tol = self._make_label("Toleranz (Zauberstab):  30", "#aaa")
+        self._sld_tol = self._make_slider(0, 255, 30,
             "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
             "Niedrig = nur sehr ähnliche Farben · Hoch = viele Farbtöne")
         self._sld_tol.valueChanged.connect(lambda v: (
@@ -1974,9 +1961,9 @@ class MainWindow(QMainWindow):
         ))
         gs.addWidget(self._lbl_tol)
         gs.addWidget(self._sld_tol)
-        gs.addWidget(hdivider())
-        self._lbl_brush = lbl("Pinselgröße:  30 px", "#aaa")
-        self._sld_brush = slider_row(4, 200, 30,
+        gs.addWidget(self._make_hdivider())
+        self._lbl_brush = self._make_label("Pinselgröße:  30 px", "#aaa")
+        self._sld_brush = self._make_slider(4, 200, 30,
             "Größe des Pinsel-/Radiergummi-Werkzeugs in Pixeln")
         self._sld_brush.valueChanged.connect(lambda v: (
             self._canvas.set_brush_size(v),
@@ -1986,13 +1973,13 @@ class MainWindow(QMainWindow):
         gs.addWidget(self._sld_brush)
         l1.addWidget(g_sel)
 
-        btn_clr = btn("Auswahl aufheben", "#2a2a2a", "#c0c0c0", "#363636",
+        btn_clr = self._make_panel_btn("Auswahl aufheben", "#2a2a2a", "#c0c0c0", "#363636",
                       "Hebt die aktuelle Auswahl auf (auch: Esc-Taste)",
                       icon_name="clear_sel")
         btn_clr.clicked.connect(lambda _=False: self._canvas.clear_selection())
         l1.addWidget(btn_clr)
 
-        btn_inv = btn("Auswahl invertieren", "#2a2a2a", "#c0c0c0", "#363636",
+        btn_inv = self._make_panel_btn("Auswahl invertieren", "#2a2a2a", "#c0c0c0", "#363636",
                       "Tauscht aus- und nicht-ausgewählte Bereiche  (⌘⇧I)",
                       icon_name="clear_sel")
         btn_inv.clicked.connect(lambda _=False: self._canvas.invert_selection())
@@ -2010,11 +1997,11 @@ class MainWindow(QMainWindow):
             "QSpinBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
             " border-radius:6px; padding:3px 5px; font-size:12px; }"
             "QSpinBox::up-button, QSpinBox::down-button { width:18px; }")
-        btn_expand = btn("➕ Erweitern", "#1a3a1a", "#a0d0a0", "#2a5a2a",
+        btn_expand = self._make_panel_btn("➕ Erweitern", "#1a3a1a", "#a0d0a0", "#2a5a2a",
                          "Erweitert die Auswahl um den eingestellten Radius")
         btn_expand.clicked.connect(
             lambda _=False: self._canvas.expand_selection(self._spin_morph.value()))
-        btn_shrink = btn("➖ Schrumpfen", "#3a1a1a", "#d0a0a0", "#5a2a2a",
+        btn_shrink = self._make_panel_btn("➖ Schrumpfen", "#3a1a1a", "#d0a0a0", "#5a2a2a",
                          "Schrumpft die Auswahl um den eingestellten Radius")
         btn_shrink.clicked.connect(
             lambda _=False: self._canvas.shrink_selection(self._spin_morph.value()))
@@ -2028,24 +2015,24 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         # Tab 2 – Hintergrund  🖼
         # ════════════════════════════════════════════════════
-        t2, l2 = scroll_tab()
+        t2, l2 = self._make_scroll_tab()
         tabs.addTab(t2, "Hintergrund")
-        tabs.setTabIcon(1, make_tool_icon("bg", TAB_ICON_PX))
+        tabs.setTabIcon(1, make_tool_icon("bg", _TAB_ICON_PX))
         tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen, Verlauf")
 
-        g_bg, gb = sec("Hintergrund bearbeiten", "#e05555")
-        btn_rem = btn("Entfernen (transparent)", "#6a1a1a", "white", "#882020",
+        g_bg, gb = self._make_section("Hintergrund bearbeiten", "#e05555")
+        btn_rem = self._make_panel_btn("Entfernen (transparent)", "#6a1a1a", "white", "#882020",
                       "Macht den ausgewählten Bereich vollständig transparent.\n"
                       "Tipp: Zuerst mit Zauberstab Hintergrund auswählen.",
                       height=38, icon_name="transparency")
         btn_rem.clicked.connect(lambda _=False: self._canvas.apply_remove())
         gb.addWidget(btn_rem)
 
-        gb.addWidget(hdivider())
-        gb.addWidget(lbl("Farbe wählen und Auswahl einfärben:", "#888"))
+        gb.addWidget(self._make_hdivider())
+        gb.addWidget(self._make_label("Farbe wählen und Auswahl einfärben:", "#888"))
         color_row = QHBoxLayout(); color_row.setSpacing(8)
         self._color_btn = QPushButton()
-        self._color_btn.setFixedSize(38, 38)
+        self._color_btn.setFixedSize(_COLOR_BTN_SIZE, _COLOR_BTN_SIZE)
         self._color_btn.setToolTip("Klicken um Ersatz-Hintergrundfarbe zu wählen")
         self._color_btn.setStyleSheet(
             "QPushButton { border-radius:6px; border:2px solid #555; }"
@@ -2053,7 +2040,7 @@ class MainWindow(QMainWindow):
         self._color_btn.clicked.connect(lambda _=False: self._pick_color())
         self._update_color_btn()
         color_row.addWidget(self._color_btn)
-        btn_repl = btn("Farbe ersetzen", "#143a5a", "white", "#1e5080",
+        btn_repl = self._make_panel_btn("Farbe ersetzen", "#143a5a", "white", "#1e5080",
                        "Füllt den ausgewählten Bereich mit der gewählten Farbe",
                        icon_name="bg")
         btn_repl.clicked.connect(lambda _=False: self._canvas.apply_replace(self._bg_color))
@@ -2061,8 +2048,8 @@ class MainWindow(QMainWindow):
         gb.addLayout(color_row)
         l2.addWidget(g_bg)
 
-        g_hist, gh = sec("Verlauf", "#888")
-        gh.addWidget(lbl("Doppelklick auf Eintrag → zu diesem Schritt zurück", "#666", 10))
+        g_hist, gh = self._make_section("Verlauf", "#888")
+        gh.addWidget(self._make_label("Doppelklick auf Eintrag → zu diesem Schritt zurück", "#666", 10))
         self._history_list = QListWidget()
         self._history_list.setStyleSheet("""
             QListWidget {
@@ -2073,7 +2060,7 @@ class MainWindow(QMainWindow):
             QListWidget::item:selected { background: #1e3a5a; color: #7aacdd; }
             QListWidget::item:hover:!selected { background: #202020; }
         """)
-        self._history_list.setFixedHeight(160)
+        self._history_list.setFixedHeight(_HISTORY_LIST_H)
         self._history_list.setToolTip(
             "Verlauf aller Bearbeitungsschritte.\n"
             "Doppelklick auf einen Eintrag springt zu diesem Schritt zurück.")
@@ -2085,22 +2072,22 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         # Tab 3 – Transform  ⟲
         # ════════════════════════════════════════════════════
-        t3, l3 = scroll_tab()
+        t3, l3 = self._make_scroll_tab()
         tabs.addTab(t3, "Drehen/Spiegeln")
-        tabs.setTabIcon(2, make_tool_icon("transparency", TAB_ICON_PX))
+        tabs.setTabIcon(2, make_tool_icon("transparency", _TAB_ICON_PX))
         tabs.setTabToolTip(2, "Transform – Drehen, Spiegeln")
 
-        g_rot, gr2 = sec("Drehen", "#e09a30")
+        g_rot, gr2 = self._make_section("Drehen", "#e09a30")
         ROT_BG = "#2e2510"; ROT_FG = "#f0c060"; ROT_HV = "#4a3a18"
 
         # Schnell-Drehung
-        gr2.addWidget(lbl("Schnell-Drehung:", "#888"))
+        gr2.addWidget(self._make_label("Schnell-Drehung:", "#888"))
         row_q1 = QHBoxLayout(); row_q1.setSpacing(6)
         for label, deg, tip in [
             ("↺ 90° links",   90,  "90° gegen den Uhrzeigersinn drehen"),
             ("↻ 90° rechts", -90, "90° im Uhrzeigersinn drehen"),
         ]:
-            b = btn(label, ROT_BG, ROT_FG, ROT_HV, tip)
+            b = self._make_panel_btn(label, ROT_BG, ROT_FG, ROT_HV, tip)
             b.clicked.connect(lambda _=False, d=deg: self._canvas.apply_rotate(d))
             row_q1.addWidget(b)
         gr2.addLayout(row_q1)
@@ -2110,13 +2097,13 @@ class MainWindow(QMainWindow):
             ("↺ 180°",  180, "Bild um 180° drehen"),
             ("↺ 270°",  270, "270° gegen den Uhrzeigersinn (= 90° rechts)"),
         ]:
-            b = btn(label, ROT_BG, ROT_FG, ROT_HV, tip)
+            b = self._make_panel_btn(label, ROT_BG, ROT_FG, ROT_HV, tip)
             b.clicked.connect(lambda _=False, d=deg: self._canvas.apply_rotate(d))
             row_q2.addWidget(b)
         gr2.addLayout(row_q2)
 
-        gr2.addWidget(hdivider())
-        gr2.addWidget(lbl("Freier Winkel:", "#888"))
+        gr2.addWidget(self._make_hdivider())
+        gr2.addWidget(self._make_label("Freier Winkel:", "#888"))
         row_free = QHBoxLayout(); row_free.setSpacing(6)
         self._sld_rot = QSlider(Qt.Orientation.Horizontal)
         self._sld_rot.setRange(-180, 180); self._sld_rot.setValue(0)
@@ -2125,7 +2112,7 @@ class MainWindow(QMainWindow):
         self._spin_rot = QSpinBox()
         self._spin_rot.setRange(-180, 180); self._spin_rot.setValue(0)
         self._spin_rot.setSuffix("°")
-        self._spin_rot.setFixedWidth(66)
+        self._spin_rot.setFixedWidth(_TOOLBAR_WIDTH)
         self._spin_rot.setToolTip("Drehwinkel direkt eingeben")
         self._spin_rot.setStyleSheet(
             "QSpinBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
@@ -2137,7 +2124,7 @@ class MainWindow(QMainWindow):
         row_free.addWidget(self._spin_rot)
         gr2.addLayout(row_free)
 
-        btn_rot_free = btn("Winkel anwenden", ROT_BG, ROT_FG, ROT_HV,
+        btn_rot_free = self._make_panel_btn("Winkel anwenden", ROT_BG, ROT_FG, ROT_HV,
                            "Dreht das Bild um den eingestellten Winkel.\n"
                            "Transparente Ecken entstehen bei schrägen Winkeln.",
                            icon_name="undo")
@@ -2146,13 +2133,13 @@ class MainWindow(QMainWindow):
         gr2.addWidget(btn_rot_free)
         l3.addWidget(g_rot)
 
-        g_flip, gf = sec("Spiegeln", "#30a0a0")
+        g_flip, gf = self._make_section("Spiegeln", "#30a0a0")
         row_flip = QHBoxLayout(); row_flip.setSpacing(6)
-        btn_fh = btn("Horizontal", "#0e2a2a", "#7adada", "#1a4040",
+        btn_fh = self._make_panel_btn("Horizontal", "#0e2a2a", "#7adada", "#1a4040",
                      "Bild horizontal spiegeln (links ↔ rechts)")
         btn_fh.clicked.connect(lambda _=False: self._canvas.apply_flip(True))
         row_flip.addWidget(btn_fh)
-        btn_fv = btn("Vertikal", "#0e2a2a", "#7adada", "#1a4040",
+        btn_fv = self._make_panel_btn("Vertikal", "#0e2a2a", "#7adada", "#1a4040",
                      "Bild vertikal spiegeln (oben ↕ unten)")
         btn_fv.clicked.connect(lambda _=False: self._canvas.apply_flip(False))
         row_flip.addWidget(btn_fv)
@@ -2163,20 +2150,20 @@ class MainWindow(QMainWindow):
         # ════════════════════════════════════════════════════
         # Tab 4 – Form & Zuschnitt  ⬤
         # ════════════════════════════════════════════════════
-        t4, l4 = scroll_tab()
+        t4, l4 = self._make_scroll_tab()
         tabs.addTab(t4, "Form")
-        tabs.setTabIcon(3, make_tool_icon("form", TAB_ICON_PX))
+        tabs.setTabIcon(3, make_tool_icon("form", _TAB_ICON_PX))
         tabs.setTabToolTip(3, "Form & Zuschnitt – Ecken abrunden, Format-Auswahl")
 
-        g_corner, gc = sec("Ecken abrunden", "#30c060")
-        self._lbl_corner = lbl("Radius:  0 px", "#aaa")
-        self._sld_corner = slider_row(0, 500, 0,
+        g_corner, gc = self._make_section("Ecken abrunden", "#30c060")
+        self._lbl_corner = self._make_label("Radius:  0 px", "#aaa")
+        self._sld_corner = self._make_slider(0, 500, 0,
             "Radius der Eckenrundung in Pixeln.\n0 = keine Rundung · 500 = maximal rund")
         self._sld_corner.valueChanged.connect(
             lambda v: self._lbl_corner.setText(f"Radius:  {v} px"))
         gc.addWidget(self._lbl_corner)
         gc.addWidget(self._sld_corner)
-        btn_corner = btn("Ecken abrunden", "#0e2a14", "#7add9a", "#1a4520",
+        btn_corner = self._make_panel_btn("Ecken abrunden", "#0e2a14", "#7add9a", "#1a4520",
                          "Wendet die Eckenrundung an.\n"
                          "Das Ergebnis wird als PNG mit transparenten Ecken gespeichert.",
                          height=38, icon_name="form")
@@ -2185,20 +2172,20 @@ class MainWindow(QMainWindow):
         gc.addWidget(btn_corner)
         l4.addWidget(g_corner)
 
-        g_fmt, gfm = sec("Ausgabe-Format & Zuschnitt", "#9060d0")
+        g_fmt, gfm = self._make_section("Ausgabe-Format & Zuschnitt", "#9060d0")
 
         info_box = QWidget()
         info_box.setStyleSheet("background:#1e1628; border-radius:7px;")
         info_b = QVBoxLayout(info_box)
         info_b.setContentsMargins(10, 8, 10, 8)
-        info_b.addWidget(lbl(
+        info_b.addWidget(self._make_label(
             "⇲ Format wählen → Rahmen erscheint auf dem Bild\n"
             "• Rahmen verschieben: Mitte ziehen\n"
             "• Größe ändern: Ecken ziehen (Proportionen bleiben)", "#8a7aaa", 10))
         gfm.addWidget(info_box)
 
         # Kreis + Quadrat
-        gfm.addWidget(lbl("Sonderformate:", "#777", 10))
+        gfm.addWidget(self._make_label("Sonderformate:", "#777", 10))
         r_special = QHBoxLayout(); r_special.setSpacing(6)
         for label, tip, slot in [
             ("⬤  Kreis",  "Runden Ausschnitt positionieren und zuschneiden",
@@ -2206,14 +2193,14 @@ class MainWindow(QMainWindow):
             ("■  1 : 1", "Quadratischen Ausschnitt positionieren",
              lambda: self._canvas.start_crop_ratio(1, 1)),
         ]:
-            b = btn(label, "#141e38", "#8aaedd", "#1e2e52", tip)
+            b = self._make_panel_btn(label, "#141e38", "#8aaedd", "#1e2e52", tip)
             b.clicked.connect(lambda _=False, fn=slot: fn())
             r_special.addWidget(b)
         gfm.addLayout(r_special)
 
         # Querformat
-        gfm.addWidget(hdivider())
-        gfm.addWidget(lbl("Querformat:", "#777", 10))
+        gfm.addWidget(self._make_hdivider())
+        gfm.addWidget(self._make_label("Querformat:", "#777", 10))
         LAND_FORMATS = [
             ("16 : 9", 16, 9), ("4 : 3",  4, 3),
             ("3 : 2",  3, 2),  ("2 : 1",  2, 1),
@@ -2222,7 +2209,7 @@ class MainWindow(QMainWindow):
         for i in range(0, len(LAND_FORMATS), 2):
             row_fmt = QHBoxLayout(); row_fmt.setSpacing(6)
             for label, rw, rh in LAND_FORMATS[i:i+2]:
-                b = btn(f"▬  {label}", "#1e1428", "#c0a0f0", "#2e1e44",
+                b = self._make_panel_btn(f"▬  {label}", "#1e1428", "#c0a0f0", "#2e1e44",
                         f"Querformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben")
                 b.clicked.connect(
                     lambda _=False, w=rw, h=rh: self._canvas.start_crop_ratio(w, h))
@@ -2230,12 +2217,12 @@ class MainWindow(QMainWindow):
             gfm.addLayout(row_fmt)
 
         # Hochformat
-        gfm.addWidget(hdivider())
-        gfm.addWidget(lbl("Hochformat:", "#777", 10))
+        gfm.addWidget(self._make_hdivider())
+        gfm.addWidget(self._make_label("Hochformat:", "#777", 10))
         PORT_FORMATS = [("9 : 16", 9, 16), ("3 : 4", 3, 4)]
         row_port = QHBoxLayout(); row_port.setSpacing(6)
         for label, rw, rh in PORT_FORMATS:
-            b = btn(f"▮  {label}", "#141e28", "#90c8cc", "#1e2e38",
+            b = self._make_panel_btn(f"▮  {label}", "#141e28", "#90c8cc", "#1e2e38",
                     f"Hochformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben")
             b.clicked.connect(
                 lambda _=False, w=rw, h=rh: self._canvas.start_crop_ratio(w, h))
@@ -2247,7 +2234,7 @@ class MainWindow(QMainWindow):
         return frame
 
 
-    def _build_menu(self):
+    def _build_menu(self) -> None:
         mb = self.menuBar()
         mb.setStyleSheet("""
             QMenuBar { background: #1a1a1a; color: #ccc; }
@@ -2366,7 +2353,7 @@ class MainWindow(QMainWindow):
 
     # ── Slots ─────────────────────────────────────────────────
 
-    def _open_image(self):
+    def _open_image(self) -> None:
         start_dir = self._settings.value("open_dir", "")
         path, _ = QFileDialog.getOpenFileName(
             self, "Bild öffnen", start_dir,
@@ -2418,7 +2405,7 @@ class MainWindow(QMainWindow):
         self._warmup_thread = None
         self.statusBar().showMessage("🤖 KI bereit")
 
-    def _save(self):
+    def _save(self) -> None:
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
         if self._save_path is None:
             self._save_as()
@@ -2428,7 +2415,7 @@ class MainWindow(QMainWindow):
             return
         self._canvas.save_image(self._save_path)
 
-    def _save_as(self):
+    def _save_as(self) -> None:
         """Speichern unter…: öffnet immer den Datei-Dialog."""
         if self._canvas._pil is None:
             self.statusBar().showMessage("Kein Bild zum Speichern")
@@ -2503,18 +2490,18 @@ class MainWindow(QMainWindow):
         self._save_path = None
         self._add_recent(path)
 
-    def _pick_color(self):
+    def _pick_color(self) -> None:
         c = QColorDialog.getColor(self._bg_color, self, "Hintergrundfarbe wählen")
         if c.isValid():
             self._bg_color = c
             self._update_color_btn()
 
-    def _update_color_btn(self):
+    def _update_color_btn(self) -> None:
         self._color_btn.setStyleSheet(
             f"background: {self._bg_color.name()}; border-radius: 5px; border: 2px solid #555;"
         )
 
-    def _run_ai(self):
+    def _run_ai(self) -> None:
         if self._canvas._pil is None:
             self.statusBar().showMessage("Kein Bild geladen")
             return
@@ -2538,13 +2525,13 @@ class MainWindow(QMainWindow):
         )
         self._ai_worker = worker
 
-    def _on_ai_thread_finished(self):
+    def _on_ai_thread_finished(self) -> None:
         self._btn_ai.setEnabled(True)
         self._ai_thread = None
         self._ai_worker = None
         self._ai_input_version = -1
 
-    def _on_ai_done(self, img: Image.Image):
+    def _on_ai_done(self, img: Image.Image) -> None:
         # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
         # hat, ist _version erhöht worden und das KI-Ergebnis wird verworfen.
         if self._canvas._version != self._ai_input_version:
@@ -2553,24 +2540,24 @@ class MainWindow(QMainWindow):
             return
         self._canvas.apply_ai_result(img)
 
-    def _on_ai_error(self, msg: str):
+    def _on_ai_error(self, msg: str) -> None:
         self.statusBar().showMessage(f"KI-Fehler: {msg}")
         QMessageBox.warning(self, "KI-Fehler",
                             f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
 
-    def _on_history_changed(self, history: list):
+    def _on_history_changed(self, history: list) -> None:
         self._history_list.clear()
         for desc in history:
             self._history_list.addItem(desc)
 
-    def _on_crop_mode_changed(self, active: bool):
+    def _on_crop_mode_changed(self, active: bool) -> None:
         self._crop_bar.setVisible(active)
 
-    def _open_settings(self):
+    def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)
         dlg.exec()
 
-    def _undo_to_item(self, item):
+    def _undo_to_item(self, item) -> None:
         row = self._history_list.row(item)
         self._canvas.undo_to(row + 1)
 
