@@ -15,8 +15,8 @@
 
 | # | Empfehlung | Priorität | Aufwand |
 |---|-----------|-----------|---------|
-| 1 | Python-Versionskonflikt bei Type Hints | 🔴 Kritisch | Gering |
-| 2 | Breites Exception-Catching bei rembg-Import | 🔴 Kritisch | Gering |
+| 1 | ~~Python-Versionskonflikt bei Type Hints~~ | ✅ Behoben | – |
+| 2 | ~~Breites Exception-Catching bei rembg-Import~~ | ✅ Behoben | – |
 | 3 | Race Conditions in Worker-Threads | 🟠 Hoch | Mittel |
 | 4 | Bildgrössen-Validierung beim Laden | 🟠 Hoch | Mittel |
 | 5 | Speicherverbrauch Undo-Stack | 🟠 Hoch | Mittel |
@@ -33,37 +33,19 @@
 
 ## Empfehlungen im Detail
 
-### 🔴 1. Python-Versionskonflikt bei Type Hints
+### ✅ 1. Python-Versionskonflikt bei Type Hints *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeile 654–657), `pyproject.toml`
+**Datei**: `pyproject.toml`
 
-**Problem**: `pyproject.toml` deklariert `requires-python = ">=3.9"`, aber `BgRemover.py` verwendet den `X | Y`-Union-Operator (PEP 604), der erst ab Python 3.10 unterstützt wird. Auf Python 3.9 schlägt der Import mit einem `SyntaxError` fehl.
-
-**Lösung**: Mindestanforderung auf `>=3.10` erhöhen:
-```toml
-# pyproject.toml
-requires-python = ">=3.10"
-```
-Alternativ: `X | Y` durch `Optional[X]` / `Union[X, Y]` aus `typing` ersetzen.
+`requires-python` auf `>=3.10` angehoben, `ruff target-version` auf `py310` aktualisiert. Die im Code verwendete `X | Y`-Syntax (PEP 604) ist damit durch die deklarierten Mindestanforderungen abgedeckt.
 
 ---
 
-### 🔴 2. Zu breites Exception-Catching beim rembg-Import
+### ✅ 2. Zu breites Exception-Catching beim rembg-Import *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeile 38–42)
+**Datei**: `BgRemover.py` (Zeile 41)
 
-**Problem**: `except BaseException:` fängt neben `ImportError` auch `SystemExit` und `KeyboardInterrupt` ab. Kritische Laufzeitfehler (z.B. Speicherüberlauf) werden dadurch still ignoriert und `REMBG_AVAILABLE` fälschlicherweise auf `False` gesetzt.
-
-**Lösung**:
-```python
-# Vorher:
-except BaseException:
-    REMBG_AVAILABLE = False
-
-# Nachher:
-except (ImportError, RuntimeError, OSError):
-    REMBG_AVAILABLE = False
-```
+`except BaseException:` ersetzt durch `except (ImportError, RuntimeError, OSError, SystemExit):`. `KeyboardInterrupt` und andere kritische Signale werden nicht mehr abgefangen. `SystemExit` bleibt explizit enthalten, da bekannte rembg/onnxruntime-Versionen diesen beim Import auslösen können.
 
 ---
 
