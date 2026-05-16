@@ -55,7 +55,7 @@ _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
 _THREAD_SHUTDOWN_MS = 5000
 
 # ── UI-Layoutkonstanten ──────────────────────────────────────
-_TOOLBAR_WIDTH      = 66
+_TOOLBAR_WIDTH      = 74
 _TOOLBAR_BTN_SIZE   = 54
 _TOOLBAR_ICON_SIZE  = 38
 _RIGHT_PANEL_WIDTH  = 340
@@ -2120,7 +2120,7 @@ class MainWindow(QMainWindow):
         self._spin_rot = QSpinBox()
         self._spin_rot.setRange(-180, 180); self._spin_rot.setValue(0)
         self._spin_rot.setSuffix("°")
-        self._spin_rot.setFixedWidth(_TOOLBAR_WIDTH)
+        self._spin_rot.setFixedWidth(66)
         self._spin_rot.setToolTip("Drehwinkel direkt eingeben")
         self._spin_rot.setStyleSheet(
             "QSpinBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
