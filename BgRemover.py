@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QPushButton, QSlider, QLabel, QFileDialog, QColorDialog,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsObject,
-    QGraphicsEllipseItem,
+    QGraphicsEllipseItem, QGraphicsPathItem, QGraphicsLineItem,
     QToolButton, QButtonGroup, QGroupBox, QStatusBar,
     QFrame, QSizePolicy, QMessageBox, QTabWidget, QTabBar, QSpinBox,
     QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab,
@@ -263,6 +263,31 @@ def _draw_eraser_icon(p: QPainter, s: int) -> None:
     p.drawRoundedRect(int(s*0.12), int(s*0.70), int(s*0.76), int(s*0.10), 2, 2)
 
 
+def _draw_lasso_icon(p: QPainter, s: int) -> None:
+    pts = [
+        QPointF(s*0.50, s*0.10),
+        QPointF(s*0.88, s*0.38),
+        QPointF(s*0.76, s*0.82),
+        QPointF(s*0.24, s*0.82),
+        QPointF(s*0.12, s*0.38),
+    ]
+    pen = QPen(QColor(200, 200, 200), 1.8, Qt.PenStyle.DashLine,
+               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    path = QPainterPath()
+    path.moveTo(pts[0])
+    for pt in pts[1:]:
+        path.lineTo(pt)
+    path.closeSubpath()
+    p.drawPath(path)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(QColor(100, 180, 255)))
+    r = max(2, int(s * 0.065))
+    for pt in pts:
+        p.drawEllipse(pt, r, r)
+
+
 def _draw_ai_icon(p: QPainter, s: int) -> None:
     bolt = QPolygonF([
         QPointF(s*0.55, s*0.10), QPointF(s*0.28, s*0.52),
@@ -362,6 +387,7 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
         "wand":    _draw_wand_icon,
         "brush":   _draw_brush_icon,
         "eraser":  _draw_eraser_icon,
+        "lasso":   _draw_lasso_icon,
         "ai":      _draw_ai_icon,
         "open":    _draw_open_icon,
         "save":    _draw_save_icon,
@@ -637,6 +663,7 @@ class CropOverlayItem(QGraphicsObject):
 TOOL_WAND   = "wand"
 TOOL_BRUSH  = "brush"
 TOOL_ERASER = "eraser"
+TOOL_LASSO  = "lasso"
 
 
 class ImageCanvas(QGraphicsView):
@@ -683,6 +710,12 @@ class ImageCanvas(QGraphicsView):
         self._panning   = False
         self._pan_start = QPointF()
         self._drawing   = False
+
+        # Polygon-Lasso-Werkzeug
+        self._lasso_pts:       list[tuple[int, int]] = []
+        self._lasso_path_item: QGraphicsPathItem | None = None
+        self._lasso_line_item: QGraphicsLineItem | None = None
+        self._lasso_mods:      Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier
 
         # Crop-Overlay-Zustand
         self._crop_overlay:      CropOverlayItem | None = None
@@ -890,6 +923,8 @@ class ImageCanvas(QGraphicsView):
     # ── Tool-Einstellungen ───────────────────────────────────
 
     def set_tool(self, tool: str) -> None:
+        if self._tool == TOOL_LASSO and tool != TOOL_LASSO:
+            self._lasso_cancel()
         self._tool = tool
         if tool == TOOL_WAND:
             self.setCursor(make_wand_cursor())
@@ -898,6 +933,9 @@ class ImageCanvas(QGraphicsView):
             self.setCursor(make_brush_cursor(self._brush_r * 2))
         elif tool == TOOL_ERASER:
             self.setCursor(make_eraser_cursor(self._brush_r * 2))
+        elif tool == TOOL_LASSO:
+            self.setCursor(QCursor(Qt.CursorShape.CrossCursor))
+            self._brush_preview.setVisible(False)
         else:
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
             self._brush_preview.setVisible(False)
@@ -1042,6 +1080,12 @@ class ImageCanvas(QGraphicsView):
                     self._mask = new
                 self._refresh_overlay()
                 self.statusMsg.emit(f"Auswahl: {int(self._mask.sum()):,} Pixel")
+        elif self._tool == TOOL_LASSO:
+            w, h = self._pil.size
+            if 0 <= x < w and 0 <= y < h:
+                if not self._lasso_pts:
+                    self._lasso_mods = mods
+                self._lasso_add_point(x, y)
         else:
             self._drawing = True
             self._paint_brush(x, y)
@@ -1052,6 +1096,10 @@ class ImageCanvas(QGraphicsView):
         # Pinsel-Vorschau (außerhalb von Crop-/Pan-Modi)
         if self._crop_overlay is None and not self._panning:
             self._update_brush_preview(sp)
+            # Lasso-Vorschaulinie vom letzten Punkt zur Mausposition
+            if self._tool == TOOL_LASSO and self._lasso_pts and self._lasso_line_item is not None:
+                last = self._lasso_pts[-1]
+                self._lasso_line_item.setLine(last[0], last[1], sp.x(), sp.y())
 
         # ── Crop-Resize ───────────────────────────────────────
         if self._crop_resizing and self._crop_overlay is not None:
@@ -1113,6 +1161,79 @@ class ImageCanvas(QGraphicsView):
             return
         self._drawing = False
         super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if self._tool == TOOL_LASSO and event.button() == Qt.MouseButton.LeftButton:
+            if len(self._lasso_pts) >= 3:
+                self._lasso_close()
+            else:
+                self._lasso_cancel()
+            return
+        super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key.Key_Escape and self._lasso_pts:
+            self._lasso_cancel()
+            self.statusMsg.emit("Polygon-Lasso abgebrochen")
+            return
+        super().keyPressEvent(event)
+
+    def _lasso_add_point(self, x: int, y: int) -> None:
+        self._lasso_pts.append((x, y))
+        path = QPainterPath()
+        path.moveTo(*self._lasso_pts[0])
+        for px, py in self._lasso_pts[1:]:
+            path.lineTo(px, py)
+        pen = QPen(QColor(255, 255, 255, 220), 1.5, Qt.PenStyle.DashLine,
+                   Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        if self._lasso_path_item is None:
+            self._lasso_path_item = QGraphicsPathItem()
+            self._lasso_path_item.setZValue(25)
+            self._scene.addItem(self._lasso_path_item)
+        self._lasso_path_item.setPen(pen)
+        self._lasso_path_item.setPath(path)
+        if self._lasso_line_item is None:
+            line_pen = QPen(QColor(200, 200, 200, 160), 1.2, Qt.PenStyle.DotLine)
+            self._lasso_line_item = QGraphicsLineItem(x, y, x, y)
+            self._lasso_line_item.setPen(line_pen)
+            self._lasso_line_item.setZValue(25)
+            self._scene.addItem(self._lasso_line_item)
+        else:
+            self._lasso_line_item.setLine(x, y, x, y)
+        n = len(self._lasso_pts)
+        suffix = "e" if n != 1 else ""
+        self.statusMsg.emit(
+            f"Polygon-Lasso: {n} Punkt{suffix} — Doppelklick zum Abschließen · Esc = abbrechen")
+
+    def _lasso_close(self) -> None:
+        pts = self._lasso_pts.copy()
+        mods = self._lasso_mods
+        self._lasso_cancel()
+        if self._mask is None or self._pil is None:
+            return
+        h, w = self._mask.shape
+        mask_img = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask_img).polygon(pts, fill=255)
+        new_mask = np.array(mask_img) > 127
+        if mods & Qt.KeyboardModifier.ShiftModifier:
+            self._mask |= new_mask
+        elif mods & Qt.KeyboardModifier.ControlModifier:
+            self._mask &= ~new_mask
+        else:
+            self._mask = new_mask
+        self._refresh_overlay()
+        self.statusMsg.emit(
+            f"Polygon-Lasso: {int(self._mask.sum()):,} Pixel ausgewählt")
+
+    def _lasso_cancel(self) -> None:
+        if self._lasso_path_item is not None:
+            self._scene.removeItem(self._lasso_path_item)
+            self._lasso_path_item = None
+        if self._lasso_line_item is not None:
+            self._scene.removeItem(self._lasso_line_item)
+            self._lasso_line_item = None
+        self._lasso_pts.clear()
+        self._lasso_mods = Qt.KeyboardModifier.NoModifier
 
     def _paint_brush(self, cx: int, cy: int) -> None:
         if self._mask is None or self._pil is None:
@@ -1872,6 +1993,9 @@ class MainWindow(QMainWindow):
             "Pinsel\nBereiche manuell zur Auswahl hinzufügen", TOOL_BRUSH)
         self._btn_eraser = tbtn("eraser",
             "Radiergummi\nAuswahl-Bereiche wieder entfernen", TOOL_ERASER)
+        self._btn_lasso  = tbtn("lasso",
+            "Polygon-Lasso\nKlicken setzt Punkte · Doppelklick schließt Polygon\n"
+            "Shift = addieren  ·  Ctrl = subtrahieren  ·  Esc = abbrechen", TOOL_LASSO)
         self._btn_wand.setChecked(True)
 
         # Trennlinie
@@ -1977,6 +2101,7 @@ class MainWindow(QMainWindow):
             ("wand",   "Zauberstab — Farbfläche auswählen"),
             ("brush",  "Pinsel — Auswahl aufmalen"),
             ("eraser", "Radiergummi — Auswahl entfernen"),
+            ("lasso",  "Polygon-Lasso — Punkte klicken, Doppelklick abschließen"),
         ]:
             hint_lay.addWidget(self._make_icon_row(icon_name, txt, "#7aacdd", 11))
         hint_lay.addWidget(self._make_hdivider())
