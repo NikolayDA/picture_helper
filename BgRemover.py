@@ -1921,6 +1921,8 @@ class MainWindow(QMainWindow):
 
         hist_btn("undo",     "Rückgängig  (Cmd+Z)\nLetzten Bearbeitungsschritt rückgängig machen",
                  lambda: self._canvas.undo())
+        hist_btn("redo",     "Wiederherstellen  (Cmd+Shift+Z)\nLetzten rückgängig gemachten Schritt wiederherstellen",
+                 lambda: self._canvas.redo())
         hist_btn("restore",  "Original wiederherstellen\nAlle Bearbeitungen verwerfen",
                  lambda: self._canvas.restore_original())
 
