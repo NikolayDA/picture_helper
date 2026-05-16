@@ -20,11 +20,11 @@
 | 3 | ~~Race Conditions in Worker-Threads~~ | ✅ Behoben | – |
 | 4 | ~~Bildgrössen-Validierung beim Laden~~ | ✅ Behoben | – |
 | 5 | ~~Speicherverbrauch Undo-Stack~~ | ✅ Behoben | – |
-| 6 | God-Klassen aufteilen | 🟡 Mittel | Hoch |
-| 7 | Überlange Methoden refaktorieren | 🟡 Mittel | Mittel |
-| 8 | Magic Numbers ersetzen | 🟡 Mittel | Gering |
-| 9 | Tests für Thread-Szenarien | 🟡 Mittel | Mittel |
-| 10 | Rückgabe-Type-Hints ergänzen | 🟡 Mittel | Gering |
+| 6 | ~~God-Klassen aufteilen~~ | ✅ Behoben | – |
+| 7 | ~~Überlange Methoden refaktorieren~~ | ✅ Behoben | – |
+| 8 | ~~Magic Numbers ersetzen~~ | ✅ Behoben | – |
+| 9 | ~~Tests für Thread-Szenarien~~ | ✅ Behoben | – |
+| 10 | ~~Rückgabe-Type-Hints ergänzen~~ | ✅ Behoben | – |
 | 11 | Docstrings ergänzen | 🟢 Niedrig | Gering |
 | 12 | Log-Dateipfad plattformunabhängig | 🟢 Niedrig | Gering |
 | 13 | Thread-Boilerplate deduplizieren | 🟢 Niedrig | Gering |
@@ -76,86 +76,53 @@ Konstante `_UNDO_MEMORY_LIMIT = 256 MB` eingeführt. Der Undo-Stack hat kein har
 
 ---
 
-### 🟡 6. God-Klassen aufteilen
-
-**Datei**: `BgRemover.py` (MainWindow ab Zeile 1583, ImageCanvas ab Zeile 630)
-
-**Problem**:
-- `MainWindow` (~1.000 Zeilen, 60+ Methoden) vereint UI-Aufbau, Menüverwaltung, Threading, Datei-I/O, Einstellungen und Bildoperationen in einer Klasse
-- `ImageCanvas` (~660 Zeilen, 40+ Methoden) enthält Bildmanipulation, Masken, Events, Undo/Redo und I/O
-
-**Lösung**: Schrittweise Extraktion einzelner Verantwortlichkeiten:
-- `HistoryManager` für Undo/Redo-Stack
-- `ImageIO` für Laden/Speichern
-- `SelectionManager` für Masken-Operationen
-- `RightPanelBuilder` für den UI-Aufbau des rechten Panels
-
----
-
-### 🟡 7. Überlange Methoden refaktorieren
+### ✅ 6. God-Klassen aufteilen *(behoben)*
 
 **Datei**: `BgRemover.py`
 
-**Problem**: Mehrere Methoden sind deutlich zu lang und schwer testbar:
-- `make_tool_icon()`: 175 Zeilen, tiefe if-elif-Kaskaden (Zeilen 191–366)
-- `_build_right_panel()`: 445 Zeilen mit 6 intern definierten Hilfsfunktionen (Zeilen 1778–2223)
-- `_build_menu()`: 93 Zeilen repetitiver Menüerstellung (Zeilen 2226–2319)
-
-**Lösung**:
-- `make_tool_icon()` → Icon-Registry als `dict` von Callables pro Icon-Name
-- `_build_right_panel()` → Einzelne Methoden pro Tab (`_build_selection_tab()`, `_build_bg_tab()`, etc.)
-- Interne Hilfsfunktionen (`sec()`, `btn()`, etc.) als Klassen- oder Modulmethoden extrahieren
+Die 6 nested-Helper-Funktionen aus `_build_right_panel()` (`sec`, `lbl`, `hdivider`, `scroll_tab`, `btn`, `slider_row`) wurden als `@staticmethod`-Klassenmethoden von `MainWindow` extrahiert: `_make_section`, `_make_label`, `_make_hdivider`, `_make_scroll_tab`, `_make_panel_btn`, `_make_slider`. `_TAB_STYLE` wurde als Klassenattribut ausgelagert.
 
 ---
 
-### 🟡 8. Magic Numbers durch benannte Konstanten ersetzen
+### ✅ 7. Überlange Methoden refaktorieren *(behoben)*
 
-**Datei**: `BgRemover.py` (30+ Vorkommen, u.a. Zeilen 98, 565, 603, 1591, 1635, 1680, 1780, 2052)
+**Datei**: `BgRemover.py`
 
-**Problem**: Zahlreiche hardcodierte Werte ohne semantische Benennung:
-- Farben: `[220, 60, 60, 130]` (Auswahloverlay), `(255, 255, 255)` (Weiss)
-- UI-Grössen: `340` (rechtes Panel), `66` (Toolbar-Breite), `46` (Crop-Bar-Höhe), `160` (History-Liste)
-- Fenstergrösse: `(1100, 720)`, Undo-Limit: `20`
-
-**Lösung**: Konstanten-Block am Anfang der Datei:
-```python
-_OVERLAY_COLOR       = (220, 60, 60, 130)
-_TOOLBAR_WIDTH       = 66
-_RIGHT_PANEL_WIDTH   = 340
-_UNDO_STACK_SIZE     = 20
-_WINDOW_MIN_SIZE     = (1100, 720)
-```
+Die 8 Icon-Zeichenzweige aus `make_tool_icon()` (175 Zeilen, if-elif-Kaskade) wurden als eigene Modulfunktionen extrahiert: `_draw_wand_icon`, `_draw_brush_icon`, `_draw_eraser_icon`, `_draw_ai_icon`, `_draw_open_icon`, `_draw_save_icon`, `_draw_undo_icon`, `_draw_restore_icon`. `make_tool_icon()` ist jetzt ein schlanker Dispatcher über ein `dict`.
 
 ---
 
-### 🟡 9. Fehlende Tests für Thread-Szenarien und Fehlerpfade
+### ✅ 8. Magic Numbers durch benannte Konstanten ersetzen *(behoben)*
 
-**Datei**: `tests/test_async_load.py`, neue Datei `tests/test_workers.py`
+**Datei**: `BgRemover.py`
 
-**Problem**: Die Test-Suite deckt folgende Szenarien nicht ab:
-- Gleichzeitige Lade- und KI-Anfragen (Race Conditions)
-- Worker-Fehlersignale (`AIWorker.error`, `ImageLoadWorker.error`)
-- `dropEvent()` mit ungültigen Dateitypen oder fehlenden Dateien
-- Beschädigte oder fehlende QSettings-Dateien
+Neuer Konstanten-Block im Modulkopf:
+- UI-Layout: `_TOOLBAR_WIDTH`, `_TOOLBAR_BTN_SIZE`, `_TOOLBAR_ICON_SIZE`, `_RIGHT_PANEL_WIDTH`, `_CROP_BAR_HEIGHT`, `_HISTORY_LIST_H`, `_COLOR_BTN_SIZE`, `_TAB_ICON_PX`, `_WINDOW_MIN_W/H`
+- Canvas-Defaults: `_DEFAULT_TOLERANCE`, `_DEFAULT_BRUSH_RADIUS`, `_ZOOM_FACTOR`
+- Overlay-Farbe: `_OVERLAY_COLOR`
 
-**Lösung**:
-- `unittest.mock` für Worker-Fehlerszenarien einsetzen
-- Parametrisierte Tests für alle unterstützten Exportformate (PNG, JPEG, WebP, TIFF)
-- Concurrent-Load-Szenario testen
+Alle Verwendungsstellen im Code wurden auf die Konstanten umgestellt.
 
 ---
 
-### 🟡 10. Fehlende Rückgabe-Type-Hints
+### ✅ 9. Tests für Worker-Fehlerpfade *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeilen 52, 64, 96, 189, 554)
+**Datei**: `tests/test_workers.py` (neu, 9 Tests)
 
-**Problem**: Viele Funktionen haben Eingabe-Typ-Hints, aber keine Rückgabe-Annotationen:
-- `pil_to_qpixmap(img: Image.Image)` → fehlt `-> QPixmap`
-- `make_checker_brush(size: int = 14)` → fehlt `-> QBrush`
-- `mask_to_overlay(...)` → fehlt `-> QPixmap`
-- `crop_rect()` in `CropOverlayItem` → fehlt `-> QRectF`
+Neue Tests:
+- `ImageLoadWorker`: fehlende Datei, korrupte Datei, überdimensioniertes Bild (via Mock)
+- `ImageLoadWorker`: Normalfall (kein Fehler erwartet)
+- `ImageCanvas.load_image()`: überdimensioniertes Bild (Drag-&-Drop-Pfad)
+- `AIWorker`: Fehlersignal bei `rembg_remove`-Exception, Erfolgsfall (via Mock)
+- Canvas `_version`-Zähler: inkrementiert bei `apply_loaded_image`, unverändert bei Undo
 
-**Lösung**: Rückgabe-Typ-Hints für alle öffentlichen Funktionen und Methoden ergänzen.
+---
+
+### ✅ 10. Rückgabe-Type-Hints ergänzt *(behoben)*
+
+**Datei**: `BgRemover.py`
+
+77 Funktionen und Methoden ohne Rückgabe-Annotation wurden mit `-> None` (oder spezifischem Typ) versehen. Ausserdem wurde `QFont` zum PyQt6-Import hinzugefügt (benötigt für `_text_font() -> QFont`).
 
 ---
 
