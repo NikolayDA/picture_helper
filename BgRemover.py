@@ -31,7 +31,7 @@ from PyQt6.QtGui import (
 
 from PyQt6.QtCore import (
     Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent,
-    QSettings,
+    QSettings, QStandardPaths,
 )
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
@@ -1673,6 +1673,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _make_label(text: str, color: str = "#888", size: int = 11) -> QLabel:
+        """Einfaches Info-Label mit anpassbarer Farbe und Schriftgrösse."""
         lbl = QLabel(text)
         lbl.setStyleSheet(
             f"color: {color}; font-size: {size}px; background: transparent;")
@@ -1681,6 +1682,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _make_hdivider() -> QFrame:
+        """Dünne horizontale Trennlinie für das rechte Panel."""
         f = QFrame()
         f.setFrameShape(QFrame.Shape.HLine)
         f.setStyleSheet("background: #2a2a2a; max-height: 1px; margin: 4px 0;")
@@ -1717,6 +1719,7 @@ class MainWindow(QMainWindow):
     def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
                         tooltip: str = "", height: int = 36,
                         icon_name: str = "") -> QPushButton:
+        """Stilisierter Aktions-Button für das rechte Panel."""
         b = QPushButton(label)
         b.setStyleSheet(f"""
             QPushButton {{
@@ -1738,6 +1741,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _make_slider(lo: int, hi: int, val: int, tip: str = "") -> QSlider:
+        """Horizontaler Schieberegler mit einheitlichem Panel-Stil."""
         s = QSlider(Qt.Orientation.Horizontal)
         s.setRange(lo, hi)
         s.setValue(val)
@@ -2574,8 +2578,11 @@ if __name__ == "__main__":
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stderr),
-            logging.FileHandler(Path.home() / ".bgremover.log",
-                                encoding="utf-8"),
+            logging.FileHandler(
+                Path(QStandardPaths.writableLocation(
+                    QStandardPaths.StandardLocation.AppDataLocation))
+                / "bgremover.log",
+                encoding="utf-8"),
         ],
     )
 
