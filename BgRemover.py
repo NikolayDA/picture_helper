@@ -45,6 +45,11 @@ except (ImportError, RuntimeError, OSError, SystemExit):
 
 logger = logging.getLogger("BgRemover")
 
+# Bildgrössen-Limit beim Laden (Pixel), um UI-Freeze / OOM zu vermeiden.
+_MAX_MEGAPIXELS = 100
+# Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
+_UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
+
 # ─────────────────────────────────────────────────────────────
 # Hilfsfunktionen
 # ─────────────────────────────────────────────────────────────
@@ -438,6 +443,11 @@ class ImageLoadWorker(QObject):
     def run(self):
         try:
             img = Image.open(self._path)
+            mp = img.width * img.height / 1_000_000
+            if mp > _MAX_MEGAPIXELS:
+                self.error.emit(
+                    f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
+                return
             img = ImageOps.exif_transpose(img).convert("RGBA")
             self.finished.emit(img, self._path)
         except Exception as e:
@@ -654,8 +664,12 @@ class ImageCanvas(QGraphicsView):
         self._original: Image.Image | None = None
         self._arr:      np.ndarray  | None = None
         self._mask:     np.ndarray  | None = None
+        # Monotoner Zähler: wird bei jedem Bildwechsel erhöht.
+        # Externe Worker nutzen ihn als Stale-Check statt Objektidentität.
+        self._version:  int = 0
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
-        self._undo:     deque = deque(maxlen=20)
+        # Kein festes maxlen – Grösse wird durch _UNDO_MEMORY_LIMIT begrenzt.
+        self._undo:     deque = deque()
         # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
         # via _apply_pil(push=True) geleert.
         self._redo:     deque = deque(maxlen=20)
@@ -695,11 +709,17 @@ class ImageCanvas(QGraphicsView):
         # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
         # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
         img = Image.open(path)
+        mp = img.width * img.height / 1_000_000
+        if mp > _MAX_MEGAPIXELS:
+            self.statusMsg.emit(
+                f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
+            return
         img = ImageOps.exif_transpose(img).convert("RGBA")
         self.apply_loaded_image(img, path)
 
     def apply_loaded_image(self, img: Image.Image, path: str) -> None:
         """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
+        self._version += 1
         self._original = img.copy()
         self._undo.clear()
         self._redo.clear()
@@ -715,6 +735,11 @@ class ImageCanvas(QGraphicsView):
             self._undo.append((self._pil.copy(), desc))
             # Neue Aktion ⇒ Redo-Branch verwerfen (klassisches Editor-Verhalten)
             self._redo.clear()
+            # Älteste Einträge entfernen, solange das Speicherlimit überschritten ist.
+            total = sum(i.width * i.height * 4 for i, _ in self._undo)
+            while len(self._undo) > 1 and total > _UNDO_MEMORY_LIMIT:
+                evicted, _ = self._undo.popleft()
+                total -= evicted.width * evicted.height * 4
             self.historyChanged.emit(
                 [d for _, d in reversed(list(self._undo))])
         self._pil  = img
@@ -1591,10 +1616,10 @@ class MainWindow(QMainWindow):
         self._bg_color   = QColor(255, 255, 255)
         self._ai_thread: QThread | None = None
         self._ai_worker: AIWorker | None = None
-        # Bild-Identität zum Startzeitpunkt der KI – verhindert, dass
-        # ein verspätet eintreffendes Ergebnis ein inzwischen geladenes
-        # anderes Bild überschreibt.
-        self._ai_input: Image.Image | None = None
+        # Canvas-Version zum Startzeitpunkt der KI: verhindert, dass ein
+        # verspätet eintreffendes Ergebnis ein inzwischen geladenes anderes
+        # Bild überschreibt. Robuster als Objekt-Identität (is-Vergleich).
+        self._ai_input_version: int = -1
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
@@ -2317,6 +2342,28 @@ class MainWindow(QMainWindow):
         a_prefs.triggered.connect(self._open_settings)
         extras_m.addAction(a_prefs)
 
+    # ── Thread-Hilfsmethode ───────────────────────────────────
+
+    def _launch_worker(self, worker: QObject, quit_on: tuple,
+                       on_finished=None) -> QThread:
+        """Startet *worker* in einem neuen QThread.
+
+        *quit_on* ist ein Tupel von Worker-Signalen, die thread.quit() auslösen
+        (typischerweise (worker.finished, worker.error)).
+        *on_finished* wird an thread.finished angehängt, falls angegeben.
+        """
+        thread = QThread(self)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        for sig in quit_on:
+            sig.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        if on_finished is not None:
+            thread.finished.connect(on_finished)
+        thread.start()
+        return thread
+
     # ── Slots ─────────────────────────────────────────────────
 
     def _open_image(self):
@@ -2335,19 +2382,14 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Lädt bereits ein Bild…")
             return
         self.statusBar().showMessage(f"⏳ Lädt: {Path(path).name}…")
-        thread = QThread()
         worker = ImageLoadWorker(path)
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
         worker.finished.connect(self._on_image_load_done)
         worker.error.connect(self._on_image_load_error)
-        worker.finished.connect(thread.quit)
-        worker.error.connect(thread.quit)
-        thread.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-        thread.finished.connect(self._on_load_thread_finished)
-        self._load_thread = thread
-        thread.start()
+        self._load_thread = self._launch_worker(
+            worker,
+            quit_on=(worker.finished, worker.error),
+            on_finished=self._on_load_thread_finished,
+        )
 
     def _on_image_load_done(self, img, path: str) -> None:
         self._canvas.apply_loaded_image(img, path)
@@ -2364,16 +2406,12 @@ class MainWindow(QMainWindow):
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
         self.statusBar().showMessage("🤖 KI-Modell wird geladen…")
-        thread = QThread()
         worker = RembgWarmupWorker()
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        worker.finished.connect(thread.quit)
-        thread.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-        thread.finished.connect(self._on_warmup_done)
-        self._warmup_thread = thread
-        thread.start()
+        self._warmup_thread = self._launch_worker(
+            worker,
+            quit_on=(worker.finished,),
+            on_finished=self._on_warmup_done,
+        )
 
     def _on_warmup_done(self) -> None:
         self._warmup_done = True
@@ -2486,38 +2524,30 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
         self._btn_ai.setEnabled(False)
 
-        # Aktuelles Bild als „Eingabe-Identität“ merken, damit ein
-        # spät eintreffendes Ergebnis verworfen wird, falls inzwischen
-        # ein anderes Bild geladen wurde.
-        self._ai_input = self._canvas._pil
+        # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
+        # Bild lädt, wird das verspätete KI-Ergebnis in _on_ai_done verworfen.
+        self._ai_input_version = self._canvas._version
 
-        thread = QThread()
         worker = AIWorker(self._canvas._pil.copy())
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
         worker.finished.connect(self._on_ai_done)
         worker.error.connect(self._on_ai_error)
-        worker.finished.connect(thread.quit)
-        worker.error.connect(thread.quit)
-        # Aufräumen: Worker und Thread sauber freigeben, sobald fertig
-        thread.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-        thread.finished.connect(self._on_ai_thread_finished)
-        self._ai_thread = thread
+        self._ai_thread = self._launch_worker(
+            worker,
+            quit_on=(worker.finished, worker.error),
+            on_finished=self._on_ai_thread_finished,
+        )
         self._ai_worker = worker
-        thread.start()
 
     def _on_ai_thread_finished(self):
         self._btn_ai.setEnabled(True)
         self._ai_thread = None
         self._ai_worker = None
-        self._ai_input  = None
+        self._ai_input_version = -1
 
     def _on_ai_done(self, img: Image.Image):
-        # Wenn der Nutzer das Bild zwischenzeitlich gewechselt hat
-        # (z. B. neues Bild geladen, Original wiederhergestellt),
-        # verwerfen wir das KI-Ergebnis statt es über das aktuelle Bild zu legen.
-        if self._ai_input is None or self._canvas._pil is not self._ai_input:
+        # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
+        # hat, ist _version erhöht worden und das KI-Ergebnis wird verworfen.
+        if self._canvas._version != self._ai_input_version:
             self.statusBar().showMessage(
                 "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
             return
