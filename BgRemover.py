@@ -49,6 +49,10 @@ logger = logging.getLogger("BgRemover")
 _MAX_MEGAPIXELS = 100
 # Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
+# Maximale Wartezeit (ms) auf einen Hintergrund-Thread beim Schliessen,
+# bevor er hart terminiert wird. Der rembg-Warmup darf einige Sekunden
+# brauchen; danach ist hartes Beenden besser als ein Hänger oder Crash.
+_THREAD_SHUTDOWN_MS = 5000
 
 # ── UI-Layoutkonstanten ──────────────────────────────────────
 _TOOLBAR_WIDTH      = 66
@@ -2354,6 +2358,36 @@ class MainWindow(QMainWindow):
             thread.finished.connect(on_finished)
         thread.start()
         return thread
+
+    # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
+
+    def _shutdown_thread(self, thread: QThread | None, name: str) -> None:
+        """Beendet *thread* sauber, bevor das Fenster zerstört wird.
+
+        Worker-run() macht blockierende C-Aufrufe (rembg) – quit()
+        allein reicht nicht. Reihenfolge: quit() → wait(timeout) →
+        Notbremse terminate()+wait(), damit das QThread-Objekt nie
+        zerstört wird, solange der OS-Thread noch läuft.
+        """
+        if thread is None or not thread.isRunning():
+            return
+        thread.quit()
+        if not thread.wait(_THREAD_SHUTDOWN_MS):
+            logger.warning(
+                "Thread '%s' reagierte nicht – wird hart beendet", name)
+            thread.terminate()
+            thread.wait()
+
+    def closeEvent(self, event) -> None:
+        """Stoppt alle Hintergrund-Threads, bevor das Fenster (und damit
+        die QThread-C++-Objekte) zerstört wird – sonst stürzt Python
+        beim Schliessen ab, solange z. B. der KI-Warmup noch läuft.
+        """
+        self.statusBar().showMessage("Beende…")
+        self._shutdown_thread(self._ai_thread, "KI")
+        self._shutdown_thread(self._load_thread, "Bildladen")
+        self._shutdown_thread(self._warmup_thread, "rembg-Warmup")
+        super().closeEvent(event)
 
     # ── Slots ─────────────────────────────────────────────────
 
