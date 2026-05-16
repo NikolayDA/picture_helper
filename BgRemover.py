@@ -63,7 +63,6 @@ _TOOLBAR_BTN_SIZE   = 54
 _TOOLBAR_ICON_SIZE  = 38
 _RIGHT_PANEL_WIDTH  = 340
 _CROP_BAR_HEIGHT    = 46
-_HISTORY_LIST_H     = 160
 _COLOR_BTN_SIZE     = 38
 _TAB_ICON_PX        = 30
 _WINDOW_MIN_W       = 1100
@@ -352,6 +351,20 @@ def _draw_restore_icon(p: QPainter, s: int) -> None:
     p.drawLine(QPointF(s*0.17, s*0.585), QPointF(s*0.38, s*0.50))
 
 
+def _draw_history_icon(p: QPainter, s: int) -> None:
+    c = QColor(180, 200, 230)
+    pen = QPen(c, max(2, int(s * 0.09)),
+               Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+               Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen); p.setBrush(Qt.BrushStyle.NoBrush)
+    cx, cy, r = s * 0.50, s * 0.50, s * 0.34
+    p.drawEllipse(QRectF(cx - r, cy - r, r * 2, r * 2))
+    p.drawLine(QPointF(cx, cy), QPointF(cx, cy - r * 0.58))
+    p.drawLine(QPointF(cx, cy), QPointF(cx + r * 0.44, cy + r * 0.22))
+    p.drawLine(QPointF(cx, cy - r), QPointF(cx - s*0.13, cy - r + s*0.12))
+    p.drawLine(QPointF(cx, cy - r), QPointF(cx + s*0.10, cy - r + s*0.15))
+
+
 def make_tool_icon(name: str, size: int = 28) -> QIcon:
     """Lädt PNG aus icons/-Ordner neben BgRemover.py via Pillow, fällt auf gezeichnetes Icon zurück."""
     # Mehrere Suchpfade für robuste Erkennung
@@ -393,6 +406,7 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
         "save":    _draw_save_icon,
         "undo":    _draw_undo_icon,
         "restore": _draw_restore_icon,
+        "history": _draw_history_icon,
     }
     if name in _ICON_DRAW:
         _ICON_DRAW[name](p, s)
@@ -1947,6 +1961,8 @@ class MainWindow(QMainWindow):
         self._crop_bar.setVisible(False)
         cv_lay.addWidget(self._crop_bar)
 
+        self._hist_popup: QDialog | None = None
+
         self._canvas = ImageCanvas()
         self._canvas.statusMsg.connect(self.statusBar().showMessage)
         self._canvas.historyChanged.connect(self._on_history_changed)
@@ -2049,6 +2065,11 @@ class MainWindow(QMainWindow):
                  lambda: self._canvas.redo())
         hist_btn("restore",  "Original wiederherstellen\nAlle Bearbeitungen verwerfen",
                  lambda: self._canvas.restore_original())
+        self._btn_history = hist_btn(
+            "history",
+            "Änderungshistorie\nZeigt alle bisherigen Bearbeitungsschritte.\n"
+            "Doppelklick auf Eintrag → zu diesem Schritt zurück",
+            self._toggle_history_popup)
 
         lay.addStretch()
 
@@ -2179,7 +2200,7 @@ class MainWindow(QMainWindow):
         t2, l2 = self._make_scroll_tab()
         tabs.addTab(t2, "Hintergrund")
         tabs.setTabIcon(1, make_tool_icon("bg", _TAB_ICON_PX))
-        tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen, Verlauf")
+        tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen")
 
         g_bg, gb = self._make_section("Hintergrund bearbeiten", "#e05555")
         btn_rem = self._make_panel_btn("Entfernen (transparent)", "#6a1a1a", "white", "#882020",
@@ -2209,25 +2230,6 @@ class MainWindow(QMainWindow):
         gb.addLayout(color_row)
         l2.addWidget(g_bg)
 
-        g_hist, gh = self._make_section("Verlauf", "#888")
-        gh.addWidget(self._make_label("Doppelklick auf Eintrag → zu diesem Schritt zurück", "#666", 10))
-        self._history_list = QListWidget()
-        self._history_list.setStyleSheet("""
-            QListWidget {
-                background: #141414; color: #bbb; border: 1px solid #2a2a2a;
-                border-radius: 6px; font-size: 11px;
-            }
-            QListWidget::item { padding: 6px 10px; border-bottom: 1px solid #1e1e1e; }
-            QListWidget::item:selected { background: #1e3a5a; color: #7aacdd; }
-            QListWidget::item:hover:!selected { background: #202020; }
-        """)
-        self._history_list.setFixedHeight(_HISTORY_LIST_H)
-        self._history_list.setToolTip(
-            "Verlauf aller Bearbeitungsschritte.\n"
-            "Doppelklick auf einen Eintrag springt zu diesem Schritt zurück.")
-        self._history_list.itemDoubleClicked.connect(self._undo_to_item)
-        gh.addWidget(self._history_list)
-        l2.addWidget(g_hist)
         l2.addStretch()
 
         # ════════════════════════════════════════════════════
@@ -2736,7 +2738,53 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, "KI-Fehler",
                             f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
 
+    def _build_history_popup(self) -> None:
+        popup = QDialog(self, Qt.WindowType.Tool)
+        popup.setWindowTitle("Änderungshistorie")
+        popup.setMinimumWidth(270)
+        popup.setStyleSheet("QDialog { background: #1a1a1a; }")
+
+        lay = QVBoxLayout(popup)
+        lay.setContentsMargins(10, 10, 10, 10)
+        lay.setSpacing(6)
+
+        lbl = QLabel("Doppelklick auf Eintrag → zu diesem Schritt zurück")
+        lbl.setStyleSheet("color: #666; font-size: 10px; background: transparent;")
+        lay.addWidget(lbl)
+
+        self._history_list = QListWidget()
+        self._history_list.setStyleSheet("""
+            QListWidget {
+                background: #141414; color: #bbb; border: 1px solid #2a2a2a;
+                border-radius: 6px; font-size: 11px;
+            }
+            QListWidget::item { padding: 6px 10px; border-bottom: 1px solid #1e1e1e; }
+            QListWidget::item:selected { background: #1e3a5a; color: #7aacdd; }
+            QListWidget::item:hover:!selected { background: #202020; }
+        """)
+        self._history_list.setMinimumHeight(200)
+        self._history_list.setToolTip(
+            "Verlauf aller Bearbeitungsschritte.\n"
+            "Doppelklick auf einen Eintrag springt zu diesem Schritt zurück.")
+        self._history_list.itemDoubleClicked.connect(self._undo_to_item)
+        lay.addWidget(self._history_list)
+
+        self._hist_popup = popup
+
+    def _toggle_history_popup(self) -> None:
+        if self._hist_popup is None:
+            self._build_history_popup()
+        if self._hist_popup.isVisible():
+            self._hist_popup.hide()
+        else:
+            gp = self._btn_history.mapToGlobal(self._btn_history.rect().topRight())
+            self._hist_popup.move(gp.x() + 4, gp.y())
+            self._hist_popup.show()
+            self._hist_popup.raise_()
+
     def _on_history_changed(self, history: list) -> None:
+        if not hasattr(self, '_history_list'):
+            return
         self._history_list.clear()
         for desc in history:
             self._history_list.addItem(desc)
