@@ -1502,10 +1502,10 @@ class TopIconTabBar(QTabBar):
     Icon und Text aber selbst und vertikal gestapelt.
     """
 
-    _ICON_TOP_PAD = 9     # Abstand Tab-Oberkante → Icon
-    _ICON_TEXT_GAP = 5    # Abstand Icon → Text
-    _TEXT_BOTTOM_PAD = 7  # Abstand Text → Tab-Unterkante
-    _TEXT_SIDE_PAD = 6    # seitlicher Mindestabstand Text → Tab-Rand
+    _ICON_TOP_PAD = 11    # Abstand Tab-Oberkante → Icon
+    _ICON_TEXT_GAP = 6    # Abstand Icon → Text
+    _TEXT_BOTTOM_PAD = 9  # Abstand Text → Tab-Unterkante
+    _TEXT_SIDE_PAD = 8    # seitlicher Mindestabstand Text → Tab-Rand
 
     def __init__(self, icon_px: int = 30, parent=None) -> None:
         super().__init__(parent)
@@ -1516,7 +1516,7 @@ class TopIconTabBar(QTabBar):
 
     def _text_font(self, bold: bool = False) -> QFont:
         f = self.font()
-        f.setPixelSize(11)
+        f.setPixelSize(12)
         f.setBold(bold)
         return f
 
@@ -1800,21 +1800,21 @@ class MainWindow(QMainWindow):
         container.setStyleSheet("background: transparent;")
         v = QVBoxLayout(container)
         v.setSpacing(10)
-        v.setContentsMargins(0, 14, 0, 6)
+        v.setContentsMargins(0, 14, 0, 10)
         title_lbl = QLabel(title)
         title_lbl.setStyleSheet(f"""
             color: {accent};
             font-size: 13px;
             font-weight: bold;
             background: transparent;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #2e2e2e;
+            padding: 2px 0 4px 8px;
+            border-left: 3px solid {accent};
         """)
         v.addWidget(title_lbl)
         return container, v
 
     @staticmethod
-    def _make_label(text: str, color: str = "#888", size: int = 11) -> QLabel:
+    def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:
         """Einfaches Info-Label mit anpassbarer Farbe und Schriftgrösse."""
         lbl = QLabel(text)
         lbl.setStyleSheet(
@@ -1824,7 +1824,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _make_icon_row(icon_name: str, text: str, color: str = "#888",
-                       size: int = 11, icon_px: int = 18) -> QWidget:
+                       size: int = 12, icon_px: int = 18) -> QWidget:
         """Info-Zeile: Werkzeug-Icon (wie in der Toolbar) + Text, klein."""
         row = QWidget()
         row.setStyleSheet("background: transparent;")
@@ -1845,11 +1845,11 @@ class MainWindow(QMainWindow):
         return row
 
     @staticmethod
-    def _make_hdivider() -> QFrame:
+    def _make_hdivider() -> QWidget:
         """Dünne horizontale Trennlinie für das rechte Panel."""
-        f = QFrame()
-        f.setFrameShape(QFrame.Shape.HLine)
-        f.setStyleSheet("background: #2a2a2a; max-height: 1px; margin: 4px 0;")
+        f = QWidget()
+        f.setFixedHeight(1)
+        f.setStyleSheet("background: #2a2a2a;")
         return f
 
     @staticmethod
@@ -1873,8 +1873,8 @@ class MainWindow(QMainWindow):
         inner_w = QWidget()
         inner_w.setStyleSheet("background: #1a1a1a;")
         inner_lay = QVBoxLayout(inner_w)
-        inner_lay.setContentsMargins(14, 14, 14, 14)
-        inner_lay.setSpacing(12)
+        inner_lay.setContentsMargins(16, 16, 16, 16)
+        inner_lay.setSpacing(14)
         scroll.setWidget(inner_w)
         outer_lay.addWidget(scroll)
         return outer_w, inner_lay
@@ -2127,8 +2127,8 @@ class MainWindow(QMainWindow):
             hint_lay.addWidget(self._make_icon_row(icon_name, txt, "#7aacdd", 11))
         hint_lay.addWidget(self._make_hdivider())
         _sub_mod = "Cmd" if _IS_MACOS else "Ctrl"
-        hint_lay.addWidget(self._make_label("Shift+Klick  →  Auswahl addieren", "#888", 10))
-        hint_lay.addWidget(self._make_label(f"{_sub_mod}+Klick   →  Auswahl subtrahieren", "#888", 10))
+        hint_lay.addWidget(self._make_label("Shift+Klick  →  Auswahl addieren", "#888", 11))
+        hint_lay.addWidget(self._make_label(f"{_sub_mod}+Klick   →  Auswahl subtrahieren", "#888", 11))
         gt.addWidget(hint_box)
         l1.addWidget(g_tool)
 
