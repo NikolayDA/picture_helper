@@ -25,29 +25,29 @@ def functions(source: str) -> dict[str, ast.FunctionDef]:
 
 # ── Fix #1: KI-Race ────────────────────────────────────────────────────
 
-def test_run_ai_records_ai_input_identity(functions):
+def test_run_ai_records_ai_input_version(functions):
     body = ast.unparse(functions["_run_ai"])
-    assert "self._ai_input" in body, (
-        "_run_ai muss self._ai_input setzen, damit veraltete KI-Ergebnisse "
-        "erkannt werden können."
+    assert "self._ai_input_version" in body, (
+        "_run_ai muss self._ai_input_version setzen, damit veraltete "
+        "KI-Ergebnisse anhand des Canvas-Versionszählers erkannt werden."
     )
 
 
-def test_on_ai_done_checks_image_identity(functions):
+def test_on_ai_done_checks_version(functions):
     body = ast.unparse(functions["_on_ai_done"])
-    assert "self._ai_input" in body
-    assert (" is not " in body) or ("!=" in body), (
-        "_on_ai_done muss prüfen, ob das Eingabe-Bild noch identisch ist."
+    assert "self._ai_input_version" in body
+    assert "!=" in body, (
+        "_on_ai_done muss die Canvas-Version mit _ai_input_version vergleichen."
     )
 
 
 # ── Fix #6: Thread-Cleanup ─────────────────────────────────────────────
 
-def test_run_ai_uses_delete_later(functions):
-    body = ast.unparse(functions["_run_ai"])
+def test_launch_worker_uses_delete_later(functions):
+    body = ast.unparse(functions["_launch_worker"])
     assert "deleteLater" in body, (
-        "_run_ai muss deleteLater an Worker und Thread anhängen, um Qt-"
-        "Lecks zu vermeiden."
+        "_launch_worker muss deleteLater an Worker und Thread anhängen, um "
+        "Qt-Lecks zu vermeiden."
     )
 
 

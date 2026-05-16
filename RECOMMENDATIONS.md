@@ -17,9 +17,9 @@
 |---|-----------|-----------|---------|
 | 1 | ~~Python-Versionskonflikt bei Type Hints~~ | ✅ Behoben | – |
 | 2 | ~~Breites Exception-Catching bei rembg-Import~~ | ✅ Behoben | – |
-| 3 | Race Conditions in Worker-Threads | 🟠 Hoch | Mittel |
-| 4 | Bildgrössen-Validierung beim Laden | 🟠 Hoch | Mittel |
-| 5 | Speicherverbrauch Undo-Stack | 🟠 Hoch | Mittel |
+| 3 | ~~Race Conditions in Worker-Threads~~ | ✅ Behoben | – |
+| 4 | ~~Bildgrössen-Validierung beim Laden~~ | ✅ Behoben | – |
+| 5 | ~~Speicherverbrauch Undo-Stack~~ | ✅ Behoben | – |
 | 6 | God-Klassen aufteilen | 🟡 Mittel | Hoch |
 | 7 | Überlange Methoden refaktorieren | 🟡 Mittel | Mittel |
 | 8 | Magic Numbers ersetzen | 🟡 Mittel | Gering |
@@ -49,44 +49,30 @@
 
 ---
 
-### 🟠 3. Race Conditions bei Worker-Threads
+### ✅ 3. Race Conditions bei Worker-Threads *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeilen 2333–2509)
+**Datei**: `BgRemover.py`
 
-**Problem**: Drei Worker-Thread-Flows (Image Load, AI, Warmup) haben potenzielle Race Conditions:
-- Schnell aufeinanderfolgende Bildladevorgänge überschreiben `self._load_thread` ohne Abwarten des laufenden Threads
-- `_on_ai_done()` vergleicht Bildobjekte per `is`-Identität, was bei kopierten Images inkorrekte Stale-Checks ergibt
-- `self._pil`, `self._arr` und `self._mask` werden ohne Locks aus mehreren Threads gelesen und geschrieben
-
-**Lösung**:
-- Thread-Boilerplate in Hilfsmethode extrahieren (siehe auch Empfehlung #13)
-- Unique-IDs (`uuid4()`) statt Objektidentität für Stale-Checks nutzen
-- `QMutex` für geteilte Bilddaten einführen
+- Neuer `_launch_worker()`-Helper in `MainWindow` kapselt den identischen Thread-Boilerplate (war dreifach dupliziert). Alle drei Flows (Image Load, AI, Warmup) nutzen ihn jetzt.
+- Stale-Check in `_on_ai_done()` verwendet jetzt `_canvas._version` (monotoner Integer-Zähler, der bei jedem Bildwechsel in `apply_loaded_image()` erhöht wird) statt dem fragilen `is`-Objektidentitäts-Vergleich. `_ai_input_version` in `MainWindow` speichert den Wert zum KI-Start.
 
 ---
 
-### 🟠 4. Fehlende Bildgrössen-Validierung beim Laden
+### ✅ 4. Fehlende Bildgrössen-Validierung beim Laden *(behoben)*
 
-**Datei**: `BgRemover.py` (`load_image()` ab Zeile 689, `ImageLoadWorker` ab Zeile 395)
+**Datei**: `BgRemover.py`
 
-**Problem**: Weder der Dateidialog noch Drag & Drop prüfen die Bildgrösse vor dem Dekodieren. Das Laden einer mehrere hundert Megabyte grossen Datei kann die UI einfrieren oder zum Absturz führen.
-
-**Lösung**:
-- Dateigrösse vor dem Öffnen prüfen (z.B. max. 200 MB)
-- Pixel-Abmessungen nach dem Header-Lesen prüfen (z.B. max. 50 Megapixel) und bei Überschreitung einen Bestätigungsdialog anzeigen
+Konstante `_MAX_MEGAPIXELS = 100` eingeführt. Prüfung nach dem Lazy-`Image.open()` an zwei Stellen:
+- `ImageLoadWorker.run()`: emittiert `error`-Signal mit Fehlermeldung (Dateidialog-Pfad)
+- `ImageCanvas.load_image()`: emittiert `statusMsg` und bricht ab (Drag-&-Drop-Pfad)
 
 ---
 
-### 🟠 5. Hoher Speicherverbrauch des Undo-Stacks
+### ✅ 5. Hoher Speicherverbrauch des Undo-Stacks *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeilen 659, 716, 748–775)
+**Datei**: `BgRemover.py`
 
-**Problem**: Der Undo-Stack hält bis zu 20 vollständige PIL-Image-Kopien. Bei 4K-Fotos können das leicht 1–2 GB RAM sein. Der Nutzer erhält keine Rückmeldung, wenn der Stack voll ist und ältere Einträge verworfen werden.
-
-**Lösung**:
-- Speicherverbrauch pro Eintrag schätzen (`img.width * img.height * 4` Bytes für RGBA)
-- Bei Überschreitung eines Schwellwerts (z.B. 512 MB) älteste Einträge entfernen und Nutzer in der Statuszeile informieren
-- Optional: Masken-Arrays komprimiert speichern (`numpy.packbits`)
+Konstante `_UNDO_MEMORY_LIMIT = 256 MB` eingeführt. Der Undo-Stack hat kein hartes `maxlen` mehr – stattdessen wird nach jedem Push die Gesamtgrösse (geschätzt als `width × height × 4` Bytes pro RGBA-Image) berechnet und älteste Einträge werden entfernt, solange das Limit überschritten ist.
 
 ---
 
