@@ -61,7 +61,7 @@ _IS_MACOS = sys.platform == "darwin"
 _TOOLBAR_WIDTH      = 74
 _TOOLBAR_BTN_SIZE   = 54
 _TOOLBAR_ICON_SIZE  = 38
-_RIGHT_PANEL_WIDTH  = 340
+_RIGHT_PANEL_WIDTH  = 384
 _CROP_BAR_HEIGHT    = 46
 _COLOR_BTN_SIZE     = 38
 _TAB_ICON_PX        = 30
@@ -1752,7 +1752,7 @@ class MainWindow(QMainWindow):
         QTabBar { background: #141414; }
         QTabBar::tab {
             background: #1e1e1e; color: #666;
-            padding: 10px 0px; min-width: 82px;
+            padding: 10px 0px; min-width: 94px;
             font-size: 12px; border: none;
             border-bottom: 3px solid transparent;
         }
