@@ -54,6 +54,9 @@ _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
 # brauchen; danach ist hartes Beenden besser als ein Hänger oder Crash.
 _THREAD_SHUTDOWN_MS = 5000
 
+# Plattform-Erkennung für tastaturabhängige Hinweistexte (macOS = Cmd).
+_IS_MACOS = sys.platform == "darwin"
+
 # ── UI-Layoutkonstanten ──────────────────────────────────────
 _TOOLBAR_WIDTH      = 74
 _TOOLBAR_BTN_SIZE   = 54
@@ -1685,6 +1688,28 @@ class MainWindow(QMainWindow):
         return lbl
 
     @staticmethod
+    def _make_icon_row(icon_name: str, text: str, color: str = "#888",
+                       size: int = 11, icon_px: int = 18) -> QWidget:
+        """Info-Zeile: Werkzeug-Icon (wie in der Toolbar) + Text, klein."""
+        row = QWidget()
+        row.setStyleSheet("background: transparent;")
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(8)
+        ic = QLabel()
+        ic.setPixmap(make_tool_icon(icon_name, icon_px)
+                     .pixmap(QSize(icon_px, icon_px)))
+        ic.setFixedSize(icon_px, icon_px)
+        ic.setStyleSheet("background: transparent;")
+        txt = QLabel(text)
+        txt.setStyleSheet(
+            f"color: {color}; font-size: {size}px; background: transparent;")
+        txt.setWordWrap(True)
+        h.addWidget(ic, 0, Qt.AlignmentFlag.AlignVCenter)
+        h.addWidget(txt, 1)
+        return row
+
+    @staticmethod
     def _make_hdivider() -> QFrame:
         """Dünne horizontale Trennlinie für das rechte Panel."""
         f = QFrame()
@@ -1946,15 +1971,16 @@ class MainWindow(QMainWindow):
         hint_lay = QVBoxLayout(hint_box)
         hint_lay.setContentsMargins(10, 8, 10, 8)
         hint_lay.setSpacing(3)
-        for txt in [
-            "🪄  Zauberstab — Farbfläche auswählen",
-            "🖌  Pinsel — Auswahl aufmalen",
-            "◻  Radiergummi — Auswahl entfernen",
+        for icon_name, txt in [
+            ("wand",   "Zauberstab — Farbfläche auswählen"),
+            ("brush",  "Pinsel — Auswahl aufmalen"),
+            ("eraser", "Radiergummi — Auswahl entfernen"),
         ]:
-            hint_lay.addWidget(self._make_label(txt, "#7aacdd", 11))
+            hint_lay.addWidget(self._make_icon_row(icon_name, txt, "#7aacdd", 11))
         hint_lay.addWidget(self._make_hdivider())
+        _sub_mod = "Cmd" if _IS_MACOS else "Ctrl"
         hint_lay.addWidget(self._make_label("Shift+Klick  →  Auswahl addieren", "#888", 10))
-        hint_lay.addWidget(self._make_label("Ctrl+Klick   →  Auswahl subtrahieren", "#888", 10))
+        hint_lay.addWidget(self._make_label(f"{_sub_mod}+Klick   →  Auswahl subtrahieren", "#888", 10))
         gt.addWidget(hint_box)
         l1.addWidget(g_tool)
 
