@@ -57,6 +57,32 @@ def test_thread_finished_handler_resets_refs(functions):
     assert "self._ai_worker = None" in body
 
 
+# ── Fix: closeEvent stoppt Hintergrund-Threads ─────────────────────────
+
+def test_main_window_has_close_event(functions):
+    assert "closeEvent" in functions, (
+        "MainWindow muss closeEvent überschreiben, sonst crasht Python "
+        "beim Schliessen während ein QThread noch läuft."
+    )
+
+
+def test_close_event_shuts_down_all_threads(functions):
+    body = ast.unparse(functions["closeEvent"])
+    for ref in ("_ai_thread", "_load_thread", "_warmup_thread"):
+        assert ref in body, f"closeEvent muss self.{ref} herunterfahren."
+
+
+def test_shutdown_helper_uses_wait_and_terminate(functions):
+    body = ast.unparse(functions["_shutdown_thread"])
+    assert "isRunning" in body
+    assert ".quit()" in body
+    assert ".wait(" in body
+    assert ".terminate()" in body, (
+        "Notbremse terminate() nötig, weil rembg-run() blockierende "
+        "C-Aufrufe macht und auf quit() nicht reagiert."
+    )
+
+
 # ── Fix #4: 270°-Button-Vorzeichen ─────────────────────────────────────
 
 def test_270_button_uses_positive_value(source: str):
