@@ -259,11 +259,18 @@ if [ -n "\$NATIVE_ARCH" ] && /usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON" -c 'pass'
     RUN=(/usr/bin/arch -"\$NATIVE_ARCH" "\$PYTHON")
 fi
 
+# Logposition VOR diesem Start merken. Die Fehlersuche unten darf nur
+# Zeilen DIESES Laufs sehen – sonst zeigt der Dialog veraltete Fehler
+# aus alten, längst behobenen Läufen (z. B. einen früheren
+# numpy-ImportError), obwohl der aktuelle Start an etwas anderem
+# scheitert (das Log wird nur angehängt, nie gekürzt).
+LSTART=\$(wc -l < "\$LOG" 2>/dev/null || echo 0)
+
 { echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
   echo "Python: \$PYTHON  (arch \$NATIVE_ARCH)"; } >> "\$LOG" 2>&1
 
 if ! "\${RUN[@]}" "\$BGREMOVER" "\$@" >> "\$LOG" 2>&1; then
-    LASTERR=\$(grep -E 'Error|Exception|Traceback' "\$LOG" 2>/dev/null | tail -n 1)
+    LASTERR=\$(tail -n +\$((LSTART + 1)) "\$LOG" 2>/dev/null | grep -E 'Error|Exception|Traceback' | tail -n 1)
     [ -z "\$LASTERR" ] && LASTERR="(siehe Logdatei)"
     fail "BgRemover konnte nicht starten."\$'\\n\\n'"\$LASTERR"\$'\\n\\n'"Fix: create_BgRemover_app.sh erneut ausführen und die venv anlegen lassen (bei arm64/x86_64-Fehlern vorher: brew install python)."
 fi
