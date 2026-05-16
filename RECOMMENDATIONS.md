@@ -25,9 +25,9 @@
 | 8 | ~~Magic Numbers ersetzen~~ | ✅ Behoben | – |
 | 9 | ~~Tests für Thread-Szenarien~~ | ✅ Behoben | – |
 | 10 | ~~Rückgabe-Type-Hints ergänzen~~ | ✅ Behoben | – |
-| 11 | Docstrings ergänzen | 🟢 Niedrig | Gering |
-| 12 | Log-Dateipfad plattformunabhängig | 🟢 Niedrig | Gering |
-| 13 | Thread-Boilerplate deduplizieren | 🟢 Niedrig | Gering |
+| 11 | ~~Docstrings ergänzen~~ | ✅ Behoben | – |
+| 12 | ~~Log-Dateipfad plattformunabhängig~~ | ✅ Behoben | – |
+| 13 | ~~Thread-Boilerplate deduplizieren~~ | ✅ Behoben | – |
 
 ---
 
@@ -126,46 +126,24 @@ Neue Tests:
 
 ---
 
-### 🟢 11. Fehlende Docstrings bei Hilfsmethoden
+### ✅ 11. Fehlende Docstrings bei Hilfsmethoden *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeilen 107–184, 1811–1905)
+**Datei**: `BgRemover.py`
 
-**Problem**: Cursor-Generatoren (`make_wand_cursor`, `make_brush_cursor`, `make_eraser_cursor`) und intern definierte Widget-Helfer (`sec()`, `lbl()`, `btn()`) haben keine Docstrings.
-
-**Lösung**: Kurze Ein-Zeiler-Docstrings ergänzen, die Zweck und Rückgabewert beschreiben.
+Ein-Zeiler-Docstrings zu `_make_label`, `_make_hdivider`, `_make_panel_btn` und `_make_slider` ergänzt. Die Cursor-Generatoren (`make_wand_cursor`, `make_brush_cursor`, `make_eraser_cursor`) hatten bereits Docstrings.
 
 ---
 
-### 🟢 12. Log-Dateipfad plattformunabhängig machen
+### ✅ 12. Log-Dateipfad plattformunabhängig machen *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeile ~2561)
+**Datei**: `BgRemover.py`
 
-**Problem**: Die Log-Datei landet als `~/.bgremover.log` im Home-Verzeichnis. Auf Linux und Windows gibt es dafür Konventionen (`~/.local/share/`, `%APPDATA%`), die nicht eingehalten werden.
-
-**Lösung**: Qt-Standard-Pfade nutzen:
-```python
-log_path = Path(QStandardPaths.writableLocation(
-    QStandardPaths.StandardLocation.AppDataLocation)) / "bgremover.log"
-```
+`QStandardPaths` zu den PyQt6-Importen hinzugefügt. Log-Pfad von `Path.home() / ".bgremover.log"` auf `QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation) / "bgremover.log"` umgestellt (Linux: `~/.local/share/BgRemover/`, macOS: `~/Library/Application Support/BgRemover/`).
 
 ---
 
-### 🟢 13. Duplizierter Thread-Boilerplate deduplizieren
+### ✅ 13. Duplizierter Thread-Boilerplate deduplizieren *(behoben)*
 
-**Datei**: `BgRemover.py` (Zeilen 2333–2351, 2364–2377, 2495–2509)
+**Datei**: `BgRemover.py`
 
-**Problem**: Dasselbe Muster zum Erstellen und Verbinden von QThread-Workern wird dreimal nahezu identisch wiederholt.
-
-**Lösung**: Gemeinsame Hilfsmethode in `MainWindow`:
-```python
-def _start_worker_thread(self, worker, on_done, on_error=None):
-    thread = QThread(self)
-    worker.moveToThread(thread)
-    thread.started.connect(worker.run)
-    worker.done.connect(on_done)
-    if on_error:
-        worker.error.connect(on_error)
-    thread.finished.connect(thread.deleteLater)
-    thread.start()
-    return thread
-```
+`_launch_worker()`-Helper wurde bereits als Teil von Fix #3 (Race Conditions) eingeführt. Alle drei Worker-Flows (Image Load, AI, Warmup) nutzen ihn seither.
