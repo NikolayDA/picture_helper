@@ -33,7 +33,8 @@ jobs:
         run: |
           python scripts/generate_license_report.py \
             --report license-report.md \
-            --summary license-summary.md
+            --summary license-summary.md \
+            --all-langs
 
       - name: Raw dependency/license dump (reference)
         run: |
@@ -46,6 +47,12 @@ jobs:
           if ! git diff --quiet -- LICENSES.md; then
             echo "::notice::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
           fi
+          for lang in en es fr uk zh; do
+            f="docs/i18n/$lang/LICENSES.md"
+            if ! git diff --quiet -- "$f"; then
+              echo "::notice::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+            fi
+          done
 
       - name: Upload license report artifact
         uses: actions/upload-artifact@v4

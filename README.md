@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/README.md) · [Español](docs/i18n/es/README.md) · [Français](docs/i18n/fr/README.md) · [Українська](docs/i18n/uk/README.md) · [简体中文](docs/i18n/zh/README.md)
+
 # BgRemover
 
 Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten von Hintergründen** — mit KI-basierter automatischer Freistellung, Zauberstab-Auswahl, Pinsel/Radierer, Zuschnitt in verschiedenen Formaten, Drehen, Spiegeln und Eckenrundung.

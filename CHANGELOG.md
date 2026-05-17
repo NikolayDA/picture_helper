@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/CHANGELOG.md) · [Español](docs/i18n/es/CHANGELOG.md) · [Français](docs/i18n/fr/CHANGELOG.md) · [Українська](docs/i18n/uk/CHANGELOG.md) · [简体中文](docs/i18n/zh/CHANGELOG.md)
+
 # Changelog
 
 Alle nennenswerten Änderungen an BgRemover werden in dieser Datei
