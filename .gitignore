@@ -9,3 +9,8 @@ dist/
 .ruff_cache/
 .venv/
 venv/
+
+# Transiente Lizenz-Check-Artefakte (LICENSES.md wird committet)
+license-report.md
+license-summary.md
+license-raw-all-installed.md
