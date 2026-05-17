@@ -1,0 +1,196 @@
+# BgRemover – Installation unter Linux
+
+Kurzanleitung zum Installieren und Starten von BgRemover aus GitHub —
+sowohl aus dem `main`-Branch als auch aus einem Feature-Branch (z. B.
+um einen offenen Pull Request vor dem Merge zu testen).
+
+> Das macOS-App-Bundle (`create_BgRemover_app.sh`) ist macOS-spezifisch.
+> Unter Linux läuft BgRemover über den direkten Start
+> `python3 BgRemover.py` aus einer virtuellen Umgebung (venv) — optional
+> mit einem Desktop-Starter für den Doppelklick (siehe unten).
+
+## Voraussetzungen
+
+- **Eine Linux-Distribution mit Desktop** (X11 oder Wayland)
+- **Python 3.10 oder neuer** — prüfen mit:
+  ```bash
+  python3 --version
+  ```
+- **git** und das **venv**-Modul (`python3-venv`)
+- **Qt-Systembibliotheken** für PyQt6 — die PyQt6-Wheels enthalten Qt
+  selbst, benötigen aber einige X11/XCB-Systembibliotheken. Ohne sie
+  startet die GUI mit dem Fehler *„qt.qpa.plugin: Could not load the Qt
+  platform plugin xcb"*.
+
+### Systempakete installieren
+
+**Debian / Ubuntu / Linux Mint** (`apt`):
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git \
+  libegl1 libgl1 libfontconfig1 libxkbcommon0 libxkbcommon-x11-0 \
+  libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+  libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+  libxcb-xinerama0 libxcb-xkb1
+```
+(`libxcb-cursor0` wird von Qt 6.5+ für das `xcb`-Plugin u. a. unter
+Ubuntu 24.04 benötigt.)
+
+**Fedora / RHEL** (`dnf`):
+```bash
+sudo dnf install -y python3 python3-pip git \
+  libxcb xcb-util-cursor xcb-util-image xcb-util-keysyms \
+  xcb-util-renderutil xcb-util-wm libxkbcommon-x11 \
+  fontconfig mesa-libGL mesa-libEGL dbus-libs
+```
+
+**Arch / Manjaro** (`pacman`):
+```bash
+sudo pacman -S --needed python python-pip git \
+  libxcb xcb-util-cursor xcb-util-image xcb-util-keysyms \
+  xcb-util-renderutil xcb-util-wm libxkbcommon-x11 \
+  fontconfig mesa
+```
+
+## Schnellstart aus `main`
+
+Auf modernem Linux blockieren System-Python-Installationen `pip install`
+per PEP 668 („externally-managed-environment"). Deshalb wird in einer
+isolierten venv installiert:
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+- `.[ai]` installiert `rembg[cpu]` inkl. `onnxruntime`
+  (KI-Hintergrundentfernung).
+- Ohne KI-Funktion reicht: `python3 -m pip install -e .`
+
+Bei einer neuen Shell vor dem Start die venv erneut aktivieren:
+```bash
+cd picture_helper
+source .venv/bin/activate
+python3 BgRemover.py
+```
+
+## Startvarianten
+
+| Variante | Befehl / Aktion | Ergebnis |
+|----------|-----------------|----------|
+| **A – Terminal (empfohlen)** | venv aktivieren, dann `python3 BgRemover.py` | Direkter Start aus dem Projektverzeichnis. |
+| **B – Starter-Skript** | `./bgremover.sh` (siehe unten) | Aktiviert die venv automatisch und startet die App. |
+| **C – Anwendungsmenü** | `.desktop`-Eintrag (siehe unten) | Start per Doppelklick / aus dem Anwendungsmenü. |
+
+### B – Starter-Skript
+
+Eine Datei `bgremover.sh` im Projektverzeichnis anlegen:
+```bash
+#!/usr/bin/env bash
+cd "$(dirname "$0")" || exit 1
+source .venv/bin/activate
+exec python3 BgRemover.py "$@"
+```
+Ausführbar machen und starten:
+```bash
+chmod +x bgremover.sh
+./bgremover.sh
+```
+
+### C – Desktop-Eintrag (Anwendungsmenü)
+
+Eine Datei `~/.local/share/applications/bgremover.desktop` anlegen und
+`/PFAD/ZU/picture_helper` durch den absoluten Projektpfad ersetzen:
+```ini
+[Desktop Entry]
+Type=Application
+Name=BgRemover
+Comment=Hintergrund entfernen und Bilder bearbeiten
+Exec=/PFAD/ZU/picture_helper/bgremover.sh
+Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
+Categories=Graphics;Photography;
+Terminal=false
+```
+Danach die Desktop-Datenbank aktualisieren (optional):
+```bash
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+```
+BgRemover erscheint nun im Anwendungsmenü.
+
+## Installation aus einem Branch (offene PRs testen)
+
+PR-Branch-Namen stehen im jeweiligen Pull Request auf GitHub
+(„… wants to merge … from **`<branch>`**").
+
+**Variante 1 – im vorhandenen Klon-Verzeichnis:**
+```bash
+cd picture_helper
+git fetch origin
+git branch -r                       # verfügbare Branches anzeigen
+git checkout <branch>
+source .venv/bin/activate
+# nur nötig, wenn sich Abhängigkeiten geändert haben:
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+**Variante 2 – einen Branch direkt klonen:**
+```bash
+git clone --branch <branch-name> \
+  https://github.com/NikolayDA/picture_helper.git
+```
+
+## Aktualisieren / Branch wechseln
+
+```bash
+git checkout main && git pull          # neueste Hauptversion
+git checkout <branch> && git pull      # bestimmten Branch aktualisieren
+```
+
+Der Editable-Install (`pip install -e`) muss nach `git pull` **nicht**
+erneut ausgeführt werden — außer die Abhängigkeiten in
+`pyproject.toml` haben sich geändert.
+
+## Troubleshooting
+
+- **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
+  Es fehlen Qt-Systembibliotheken. Die Pakete aus dem Abschnitt
+  *„Systempakete installieren"* nachinstallieren (insbesondere
+  `libxcb-cursor0` unter Ubuntu 24.04). Welche Bibliothek genau fehlt,
+  zeigt:
+  ```bash
+  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  ```
+- **`error: externally-managed-environment` bei `pip install`** → PEP
+  668: nicht ins System-Python installieren, sondern in eine venv (siehe
+  Schnellstart). venv-Modul fehlt? → `sudo apt install python3-venv`.
+- **„python3: command not found" oder Version < 3.10** → einen aktuellen
+  Python über den Paketmanager der Distribution installieren (der Code
+  nutzt PEP-604-Typannotationen wie `QThread | None`; Python 3.9 schlägt
+  fehl).
+- **Wayland: Fenster/Skalierung wirkt fehlerhaft** → testweise auf das
+  X11-Plugin (XWayland) wechseln:
+  ```bash
+  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  ```
+- **pip-Fehler beim Installieren** → in der aktiven venv erst pip
+  aktualisieren, dann den Install-Befehl wiederholen:
+  ```bash
+  python3 -m pip install --upgrade pip
+  ```
+- **Erster KI-Klick dauert lange** → Beim allerersten Mal lädt `rembg`
+  sein Modell herunter (einige hundert MB, einmalig, Cache in
+  `~/.u2net`). Die Statusleiste zeigt „🤖 KI-Modell wird geladen…"
+  und danach „🤖 KI bereit".
+- **App startet ohne KI / „No onnxruntime backend found"** → Das
+  `ai`-Extra wurde nicht installiert. In der venv nachinstallieren:
+  ```bash
+  python3 -m pip install "rembg[cpu]"
+  ```
+- **Diagnose bei Fehlern** → Logdatei
+  `~/.local/share/BgRemover/bgremover.log` ansehen (Stacktraces und
+  Status-Meldungen). Beim Start aus dem Terminal erscheint die
+  Fehlermeldung zusätzlich direkt auf der Konsole.
