@@ -1,12 +1,15 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════
-#  create_BgRemover_app.sh  v3.2
+#  create_BgRemover_app.sh  v3.3
 #  Erstellt BgRemover.app + setzt Icon auf BgRemover.command
 #  Ausführen: bash ~/Downloads/create_BgRemover_app.sh
 #
 #  v3: wählt nur ein Python mit installiertem PyQt6 (oder legt
 #      bei Bedarf eine venv an) und der App-Launcher zeigt Fehler
 #      sichtbar als Dialog statt lautlos zu scheitern.
+#  v3.3: pyobjc-framework-Cocoa wird best-effort in die venv
+#        installiert, damit das Icon zuverlässig auf .app UND
+#        .command gesetzt wird; Python 3.14/3.15 werden erkannt.
 # ══════════════════════════════════════════════════════════════
 
 set -e
@@ -39,7 +42,7 @@ BLUE='\033[0;34m'; NC='\033[0m'; BOLD='\033[1m'
 
 echo ""
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
-echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v3.2${NC}"
+echo -e "${BLUE}${BOLD}  BgRemover.app – Setup v3.3${NC}"
 echo -e "${BLUE}${BOLD}══════════════════════════════════════════${NC}"
 echo ""
 
@@ -49,7 +52,7 @@ echo ""
 # daher einen Interpreter, in dem die Abhängigkeiten wirklich
 # installiert sind (inkl. projekteigener venv) – und legen sonst
 # eine venv an, statt eine garantiert kaputte App zu erzeugen.
-export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/local/opt/python@3.12/bin:/usr/local/opt/python@3.11/bin:$HOME/.pyenv/shims:$HOME/Library/Python/3.12/bin:$HOME/Library/Python/3.11/bin:$HOME/Library/Python/3.10/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/usr/bin:$PATH"
+export PATH="/opt/homebrew/bin:/opt/homebrew/opt/python@3.15/bin:/opt/homebrew/opt/python@3.14/bin:/opt/homebrew/opt/python@3.13/bin:/opt/homebrew/opt/python@3.12/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/python@3.10/bin:/usr/local/bin:/usr/local/opt/python@3.14/bin:/usr/local/opt/python@3.12/bin:/usr/local/opt/python@3.11/bin:$HOME/.pyenv/shims:$HOME/Library/Python/3.12/bin:$HOME/Library/Python/3.11/bin:$HOME/Library/Python/3.10/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/usr/bin:$PATH"
 
 py_version_ok() {
     local ver major minor
@@ -72,8 +75,9 @@ VENV_PY="$VENV_DIR/bin/python3"
 PY_CANDIDATES=(
     "$VENV_PY"
     "$SCRIPT_DIR/.venv/bin/python3" "$SCRIPT_DIR/venv/bin/python3"
-    python3.13 python3.12 python3.11 python3.10 python3.9 python3 python
-    /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.13
+    python3.15 python3.14 python3.13 python3.12 python3.11 python3.10 python3.9 python3 python
+    /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.15
+    /opt/homebrew/bin/python3.14 /opt/homebrew/bin/python3.13
     /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11
     /opt/homebrew/bin/python3.10 /opt/homebrew/bin/python3.9
     /usr/local/bin/python3 /usr/bin/python3
@@ -352,21 +356,52 @@ fi
 # ── Quarantäne entfernen ──────────────────────────────────────
 xattr -rd com.apple.quarantine "$APP_PATH" 2>/dev/null || true
 
-# ── Icon auch auf BgRemover.command setzen ────────────────────
-if [ -f "$COMMAND_FILE" ] && [ -f "$ICON_PNG" ]; then
+# ── Icon auf BgRemover.app (und optional BgRemover.command) setzen ──
+# setIcon:forFile: braucht PyObjC/AppKit. Das wird best-effort in die
+# EIGENE venv nachgezogen (kein Laufzeit-Dependency der App, daher nicht
+# in pyproject.toml). In eine fremde System-/Homebrew-Python wird bewusst
+# NICHT installiert (PEP 668 externally-managed) – dort bleibt es beim
+# Hinweis unten. Das .app-Icon ist über AppIcon.icns ohnehin gesetzt;
+# dieser Schritt sorgt für sofortiges Anzeigen ohne Cache-Refresh.
+if [ -f "$ICON_PNG" ]; then
+    if ! arch_run "$PYTHON" -c 'import AppKit' >/dev/null 2>&1 \
+       && [ "$PYTHON" = "$VENV_PY" ]; then
+        echo "📦 Installiere pyobjc-framework-Cocoa (für Icon-Setzen) …"
+        arch_run "$VENV_PY" -m pip install --quiet pyobjc-framework-Cocoa \
+            >/dev/null 2>&1 || true
+    fi
+
+    ICON_TARGETS=("$APP_PATH")
+    ICON_LABEL="BgRemover.app"
+    if [ -f "$COMMAND_FILE" ]; then
+        ICON_TARGETS+=("$COMMAND_FILE")
+        ICON_LABEL="$ICON_LABEL, BgRemover.command"
+    fi
+
     echo ""
-    echo "🎨 Setze Icon auf BgRemover.command …"
-    "$PYTHON" - "$ICON_PNG" "$COMMAND_FILE" << 'PYEOF'
-import sys, os
+    echo "🎨 Setze Icon ($ICON_LABEL) …"
+    "$PYTHON" - "$ICON_PNG" "${ICON_TARGETS[@]}" << 'PYEOF' || true
+import os, sys
 icon_path = os.path.abspath(sys.argv[1])
-target    = os.path.abspath(sys.argv[2])
+targets   = [os.path.abspath(t) for t in sys.argv[2:]]
 try:
     from AppKit import NSWorkspace, NSImage
     icon = NSImage.alloc().initWithContentsOfFile_(icon_path)
-    ok   = NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon, target, 0)
-    print("  ✅ Dock-Icon gesetzt" if ok else "  ⚠️  Icon konnte nicht gesetzt werden")
+    ws   = NSWorkspace.sharedWorkspace()
+    done = []
+    for t in targets:
+        if ws.setIcon_forFile_options_(icon, t, 0):
+            done.append(os.path.basename(t))
+        else:
+            print(f"  ⚠️  Icon konnte nicht gesetzt werden: {os.path.basename(t)}")
+    if done:
+        print("  ✅ Icon gesetzt: " + ", ".join(done))
 except Exception as e:
-    print(f"  ⚠️  AppKit nicht verfügbar ({e}) – Icon muss manuell gesetzt werden")
+    print(f"  ℹ️  PyObjC/AppKit nicht verfügbar ({e}).")
+    print("     Das .app-Icon ist bereits über AppIcon.icns gesetzt – betroffen")
+    print("     ist nur die optionale Datei BgRemover.command. Manuell setzen:")
+    print("     BgRemover_icon.png im Finder öffnen, ⌘C; dann BgRemover.command")
+    print("     auswählen, ⌘I (Informationen), Icon oben links anklicken, ⌘V.")
 PYEOF
 fi
 
