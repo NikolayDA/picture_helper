@@ -82,6 +82,10 @@ python3 BgRemover.py
 Vorher werden einige Qt-Systembibliotheken benötigt — Details siehe
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 
+Auf **Raspberry Pi OS (Desktop)** geht es besonders einfach — ganz ohne
+venv/pip (PyQt6, Pillow, numpy als Systempakete via `apt`); siehe den
+Raspberry-Pi-Abschnitt in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+
 > Ausführliche Anleitungen — inklusive **Installation aus einem Branch**
 > (zum Testen offener Pull Requests) und **Troubleshooting** — stehen in
 > **[INSTALL_MAC.md](INSTALL_MAC.md)** (macOS) bzw.

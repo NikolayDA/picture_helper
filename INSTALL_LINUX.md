@@ -11,6 +11,11 @@ um einen offenen Pull Request vor dem Merge zu testen).
 
 ## Voraussetzungen
 
+> **Raspberry Pi OS (Desktop)?** Dann den deutlich einfacheren Weg
+> [weiter unten](#raspberry-pi-os-desktop--der-einfache-weg) nehmen —
+> ganz ohne venv und pip. Der folgende Abschnitt gilt für allgemeines
+> Linux.
+
 - **Eine Linux-Distribution mit Desktop** (X11 oder Wayland)
 - **Python 3.10 oder neuer** — prüfen mit:
   ```bash
@@ -51,6 +56,76 @@ sudo pacman -S --needed python python-pip git \
   xcb-util-renderutil xcb-util-wm libxkbcommon-x11 \
   fontconfig mesa
 ```
+
+## Raspberry Pi OS (Desktop) – der einfache Weg
+
+Auf **Raspberry Pi OS „Bookworm" Desktop** (Debian 12, 64-Bit
+empfohlen) ist die Installation deutlich einfacher: PyQt6, Pillow und
+numpy gibt es als fertige Systempakete über `apt`. Es wird **keine
+venv, kein `pip` und kein editable-Install** benötigt — BgRemover läuft
+direkt aus dem Klon. Das Paket `python3-pyqt6` zieht die nötigen
+Qt6-/XCB-Bibliotheken automatisch als Abhängigkeit mit (die lange
+XCB-Liste oben entfällt).
+
+```bash
+sudo apt update
+sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 BgRemover.py
+```
+
+Das war's — das Hauptfenster öffnet sich. Die manuellen Werkzeuge
+(Zauberstab, Pinsel/Radierer, Zuschnitt, Drehen, Spiegeln, Ecken
+abrunden) funktionieren vollständig. Die **KI-Hintergrundentfernung ist
+in dieser Minimal-Installation deaktiviert** (der KI-Button ist
+ausgegraut) — bei Bedarf optional nachrüstbar (siehe unten).
+
+Aktualisieren später einfach per `git pull` im Projektordner; ein
+erneuter Installationsschritt entfällt.
+
+### Optional: Start aus dem Anwendungsmenü
+
+Eine Datei `~/.local/share/applications/bgremover.desktop` anlegen und
+`/PFAD/ZU/picture_helper` durch den absoluten Projektpfad ersetzen:
+```ini
+[Desktop Entry]
+Type=Application
+Name=BgRemover
+Comment=Hintergrund entfernen und Bilder bearbeiten
+Exec=python3 /PFAD/ZU/picture_helper/BgRemover.py
+Path=/PFAD/ZU/picture_helper
+Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
+Categories=Graphics;Photography;
+Terminal=false
+```
+BgRemover erscheint danach im Anwendungsmenü und startet per Klick —
+ohne venv oder Wrapper-Skript.
+
+### Optional: KI-Hintergrundentfernung nachrüsten
+
+> **Hinweis:** Auf dem Raspberry Pi ist die KI (`rembg` +
+> `onnxruntime`) **deutlich langsamer und speicherhungrig**. Empfohlen
+> nur auf **64-Bit Raspberry Pi OS** (`uname -m` → `aarch64`) und einem
+> Pi 4/5 mit ausreichend RAM (≥ 4 GB). Auf 32-Bit (`armv7l`/armhf) gibt
+> es i. d. R. keine passenden `onnxruntime`-Wheels — dort die KI besser
+> auslassen.
+
+Da `rembg` per pip nachinstalliert wird, dafür eine venv **mit Zugriff
+auf die System-Qt-Pakete** verwenden:
+```bash
+cd picture_helper
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install "rembg[cpu]"
+python3 BgRemover.py
+```
+`--system-site-packages` macht die per `apt` installierten
+PyQt6/Pillow/numpy in der venv sichtbar, sodass nur `rembg` und
+`onnxruntime` nachgeladen werden. Beim allerersten KI-Klick lädt `rembg`
+sein Modell einmalig herunter (einige hundert MB, Cache in `~/.u2net`).
+Künftige Starts dann aus der venv: `source .venv/bin/activate` und
+`python3 BgRemover.py`.
 
 ## Schnellstart aus `main`
 
@@ -190,6 +265,14 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   ```bash
   python3 -m pip install "rembg[cpu]"
   ```
+- **Raspberry Pi: `Unable to locate package python3-pyqt6`** → Ältere
+  Raspberry Pi OS-Versionen (Bullseye) liefern nur PyQt5. Auf
+  „Bookworm" (oder neuer) aktualisieren — oder dem allgemeinen
+  venv-/pip-Weg oben folgen.
+- **Raspberry Pi OS „Bookworm" (Pi 4/5) nutzt Wayland** → Bei Fenster-
+  oder Skalierungsproblemen testweise auf das X11-Plugin wechseln:
+  `QT_QPA_PLATFORM=xcb python3 BgRemover.py` (siehe Wayland-Hinweis
+  oben).
 - **Diagnose bei Fehlern** → Logdatei
   `~/.local/share/BgRemover/bgremover.log` ansehen (Stacktraces und
   Status-Meldungen). Beim Start aus dem Terminal erscheint die

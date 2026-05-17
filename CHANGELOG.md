@@ -12,7 +12,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 - Installationsanleitung für Linux (`INSTALL_LINUX.md`) ergänzt:
   Systempakete je Distribution (apt/dnf/pacman), venv-Setup,
   Starter-Skript bzw. `.desktop`-Eintrag und Troubleshooting; im README
-  verlinkt.
+  verlinkt. Inkl. besonders einfachem Weg für Raspberry Pi OS (Desktop)
+  ohne venv/pip (PyQt6/Pillow/numpy als Systempakete via `apt`), mit
+  optionalem KI-Nachrüst-Schritt.
 
 ## [2.0.0] – 2026-05-17
 
