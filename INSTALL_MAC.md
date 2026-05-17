@@ -7,7 +7,7 @@ um einen offenen Pull Request vor dem Merge zu testen).
 ## Voraussetzungen
 
 - **macOS**
-- **Python 3.9 oder neuer** — prüfen mit:
+- **Python 3.10 oder neuer** — prüfen mit:
   ```bash
   python3 --version
   ```

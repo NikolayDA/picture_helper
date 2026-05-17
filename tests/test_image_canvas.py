@@ -201,3 +201,37 @@ def test_load_image_clears_both_stacks(qapp, tmp_path):
     c.load_image(str(p))
     assert len(c._undo) == 0
     assert len(c._redo) == 0
+    assert c._undo_bytes == 0
+
+
+# ── Undo-Stack: Speicherlimit-Eviction (Fix #5) ────────────────────────
+
+def test_undo_stack_evicts_oldest_under_memory_limit(qapp, monkeypatch):
+    """Überschreitet der Undo-Stack das Byte-Limit, fallen älteste
+    Einträge raus – aber nie der letzte (mind. 1 Schritt bleibt)."""
+    import BgRemover
+    one_image = 8 * 8 * 4                       # RGBA-Rohdaten eines 8×8-Bilds
+    monkeypatch.setattr(BgRemover, "_UNDO_MEMORY_LIMIT", one_image)
+
+    c = _seed_canvas((0, 0, 0, 255))
+    for i in range(6):
+        c._apply_pil(Image.new("RGBA", (8, 8), (i, i, i, 255)),
+                     desc=f"edit{i}")
+
+    assert len(c._undo) == 1                    # nur 1 Eintrag passt rein
+    assert c._undo_bytes == one_image           # laufende Summe konsistent
+
+    c.undo()                                    # bleibt funktionsfähig
+    assert c._undo_bytes == 0
+
+
+def test_undo_bytes_tracks_push_and_pop(qapp):
+    """Die laufende Byte-Summe entspricht der tatsächlichen Stack-Grösse."""
+    c = _seed_canvas((1, 2, 3, 255))
+    c._apply_pil(Image.new("RGBA", (8, 8), (4, 5, 6, 255)), desc="a")
+    c._apply_pil(Image.new("RGBA", (8, 8), (7, 8, 9, 255)), desc="b")
+    assert c._undo_bytes == sum(
+        i.width * i.height * 4 for i, _ in c._undo)
+    c.undo()
+    assert c._undo_bytes == sum(
+        i.width * i.height * 4 for i, _ in c._undo)

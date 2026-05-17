@@ -19,7 +19,8 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 ## Voraussetzungen
 
 - **macOS** (das mitgelieferte App-Bundle nutzt macOS-spezifische Tools wie `iconutil`)
-- **Python 3.9 oder neuer**
+- **Python 3.10 oder neuer** (der Code nutzt PEP-604-Typannotationen
+  wie `QThread | None` direkt in Signaturen — Python 3.9 schlägt fehl)
 - Abhängigkeiten (`PyQt6`, `Pillow`, `numpy`, optional `rembg` für die
   KI-Funktion) werden über `pyproject.toml` installiert.
 
@@ -119,8 +120,48 @@ Code-Style-Check:
 ruff check BgRemover.py tests
 ```
 
+## Architektur (Kurzüberblick)
+
+BgRemover ist eine Einzeldatei-Anwendung (`BgRemover.py`):
+
+- **`ImageCanvas`** (QGraphicsView) hält den Bildzustand, die Auswahl­maske,
+  Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).
+- **`MainWindow`** baut Toolbar, das rechte Tab-Panel (vier `_build_tab_*`-
+  Builder), Menü und verbindet alles mit dem Canvas.
+- **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) laufen in
+  eigenen `QThread`s; `_launch_worker()` kapselt den Thread-Lebenszyklus.
+- Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI-Ergebnisse,
+  falls zwischenzeitlich ein anderes Bild geladen wurde.
+- Der Undo-Stapel ist nicht über `maxlen`, sondern über ein
+  **Speicherlimit** (`_UNDO_MEMORY_LIMIT`) begrenzt; eine laufende
+  Byte-Summe evakuiert die ältesten Einträge.
+
+## Bekannte Einschränkungen
+
+- **Maximale Bildgröße: 40 Megapixel.** Größere Bilder werden mit einer
+  Statusmeldung abgelehnt. Die Zauberstab-Auswahl (Flood-Fill) läuft
+  synchron im UI-Thread; jenseits dieser Grenze würde selbst die
+  vektorisierte Variante spürbar verzögern. Pillow ist zusätzlich gegen
+  „Decompression-Bomb"-Bilder abgesichert.
+- Der **App-Bundle-Build** ist macOS-spezifisch; unter Linux/Windows
+  läuft die Anwendung über den direkten `python BgRemover.py`-Start.
+
 ## Log-Datei
 
-Beim Programmstart wird eine Log-Datei unter `~/.bgremover.log` angelegt,
-in der Stacktraces und Status-Meldungen mitlaufen. Bei Problemen ist sie
-die erste Anlaufstelle für die Diagnose.
+Beim Programmstart wird eine Log-Datei `bgremover.log` im
+plattformspezifischen App-Datenverzeichnis angelegt
+(macOS: `~/Library/Application Support/BgRemover/`,
+Linux: `~/.local/share/BgRemover/`). Sie enthält Stacktraces und
+Status-Meldungen und ist bei Problemen die erste Anlaufstelle.
+
+## Lizenz
+
+BgRemover steht unter der **GNU General Public License v3.0 oder
+später** (`GPL-3.0-or-later`) — siehe [LICENSE](LICENSE).
+
+> **Hinweis zu PyQt6:** Die GUI-Abhängigkeit PyQt6 (Riverbank) ist
+> selbst GPL-v3-lizenziert (oder kommerziell). Die GPL-3.0 wurde
+> bewusst gewählt, damit die verteilte Anwendung — insbesondere das
+> gebündelte `BgRemover.app` — lizenzkonform ist. Wer ein permissives
+> Modell (MIT/Apache-2.0) anstrebt, müsste PyQt6 durch das LGPL-
+> lizenzierte **PySide6** ersetzen.

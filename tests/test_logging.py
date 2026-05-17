@@ -39,3 +39,33 @@ def test_apply_replace_logs_unexpected_exception(qapp, caplog):
     with caplog.at_level(logging.ERROR, logger="BgRemover"):
         canvas.apply_replace(QColor(255, 0, 0))
     assert any("Fehler" in record.message for record in caplog.records)
+
+
+def test_setup_logging_creates_missing_directory(tmp_path, monkeypatch):
+    """``_setup_logging`` muss das Zielverzeichnis anlegen – sonst bricht
+    der FileHandler den Programmstart mit FileNotFoundError ab."""
+    target = tmp_path / "deep" / "appdir"
+
+    class _FakeQSP:
+        class StandardLocation:
+            AppDataLocation = 0
+
+        @staticmethod
+        def writableLocation(_loc):
+            return str(target)
+
+    monkeypatch.setattr(BgRemover, "QStandardPaths", _FakeQSP)
+    root = logging.getLogger()
+    before = list(root.handlers)
+    try:
+        BgRemover._setup_logging()
+        assert target.exists()
+        assert (target / "bgremover.log").exists()
+    finally:
+        for h in list(root.handlers):
+            if h not in before:
+                h.close()
+                root.removeHandler(h)
+        for h in before:
+            if h not in root.handlers:
+                root.addHandler(h)
