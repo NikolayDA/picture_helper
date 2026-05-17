@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsObject,
     QGraphicsEllipseItem, QGraphicsPathItem, QGraphicsLineItem,
     QToolButton, QButtonGroup, QGroupBox, QStatusBar,
-    QFrame, QSizePolicy, QMessageBox, QTabWidget, QTabBar, QSpinBox,
+    QFrame, QMessageBox, QTabWidget, QTabBar, QSpinBox,
     QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab,
     QDialog, QLineEdit, QComboBox,
 )
@@ -30,7 +30,7 @@ from PyQt6.QtGui import (
 )
 
 from PyQt6.QtCore import (
-    Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject, QEvent,
+    Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject,
     QSettings, QStandardPaths,
 )
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
@@ -46,7 +46,11 @@ except (ImportError, RuntimeError, OSError, SystemExit):
 logger = logging.getLogger("BgRemover")
 
 # Bildgrössen-Limit beim Laden (Pixel), um UI-Freeze / OOM zu vermeiden.
-_MAX_MEGAPIXELS = 100
+# Die Zauberstab-Flood-Fill läuft synchron im GUI-Thread; jenseits ~40 MP
+# wird selbst die vektorisierte Variante spürbar träge.
+_MAX_MEGAPIXELS = 40
+# Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
+Image.MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
 # Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
 # Maximale Wartezeit (ms) auf einen Hintergrund-Thread beim Schliessen,
@@ -100,25 +104,35 @@ def numpy_to_pil(arr: np.ndarray) -> Image.Image:
 
 
 def flood_fill(arr: np.ndarray, x: int, y: int, tolerance: int) -> np.ndarray:
-    """Flood-Fill: gibt Boolean-Maske der zusammenhängenden Fläche zurück."""
+    """Flood-Fill: gibt Boolean-Maske der zusammenhängenden Fläche zurück.
+
+    Die Ähnlichkeitsprüfung ist vektorisiert (wenige NumPy-Operationen
+    über das ganze Bild); danach wächst nur noch die zusammenhängende
+    Region vom Saatpunkt aus. Das ist deutlich schneller und sparsamer
+    als ein Python-Loop, der pro Pixel einen NumPy-Aufruf macht.
+    """
     h, w = arr.shape[:2]
     mask = np.zeros((h, w), dtype=bool)
     if not (0 <= x < w and 0 <= y < h):
         return mask
-    target = arr[y, x, :3].astype(np.int32)
-    visited = np.zeros((h, w), dtype=bool)
-    queue = deque([(x, y)])
-    visited[y, x] = True
-    while queue:
-        cx, cy = queue.popleft()
-        diff = int(np.max(np.abs(arr[cy, cx, :3].astype(np.int32) - target)))
-        if diff <= tolerance:
-            mask[cy, cx] = True
-            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                nx, ny = cx + dx, cy + dy
-                if 0 <= nx < w and 0 <= ny < h and not visited[ny, nx]:
-                    visited[ny, nx] = True
-                    queue.append((nx, ny))
+    rgb = arr[:, :, :3]
+    target = rgb[y, x].astype(np.int16)
+    diff = np.abs(rgb[:, :, 0].astype(np.int16) - target[0])
+    np.maximum(diff, np.abs(rgb[:, :, 1].astype(np.int16) - target[1]), out=diff)
+    np.maximum(diff, np.abs(rgb[:, :, 2].astype(np.int16) - target[2]), out=diff)
+    similar = diff <= tolerance
+    if not similar[y, x]:
+        return mask
+    stack = [(x, y)]
+    mask[y, x] = True
+    while stack:
+        cx, cy = stack.pop()
+        for nx, ny in ((cx - 1, cy), (cx + 1, cy),
+                       (cx, cy - 1), (cx, cy + 1)):
+            if (0 <= nx < w and 0 <= ny < h
+                    and similar[ny, nx] and not mask[ny, nx]):
+                mask[ny, nx] = True
+                stack.append((nx, ny))
     return mask
 
 
@@ -377,9 +391,8 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
         png_path = os.path.join(_icon_dir, f"{name}.png")
         if os.path.isfile(png_path):
             try:
-                from PIL import Image as _Img
-                pil_img = _Img.open(png_path).convert("RGBA").resize(
-                    (size, size), _Img.LANCZOS)
+                pil_img = Image.open(png_path).convert("RGBA").resize(
+                    (size, size), Image.Resampling.LANCZOS)
                 data = pil_img.tobytes("raw", "RGBA")
                 qimg = QImage(data, size, size,
                               QImage.Format.Format_RGBA8888)
@@ -387,7 +400,8 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
                 if not pm.isNull():
                     return QIcon(pm)
             except Exception:
-                pass
+                logger.debug("Icon-PNG konnte nicht geladen werden: %s",
+                             png_path, exc_info=True)
             break
     # ── Fallback: gezeichnetes Vektor-Icon ──────────────────────────────────
     pm = QPixmap(size, size)
@@ -612,6 +626,16 @@ class CropOverlayItem(QGraphicsObject):
         return (self._cx <= sx <= self._cx + self._cw and
                 self._cy <= sy <= self._cy + self._ch)
 
+    @property
+    def top_left(self) -> QPointF:
+        """Linke obere Ecke des Ausschnitts in Bild-Koordinaten."""
+        return QPointF(self._cx, self._cy)
+
+    @property
+    def size(self) -> tuple[float, float]:
+        """Aktuelle (Breite, Höhe) des Ausschnitts."""
+        return self._cw, self._ch
+
     def boundingRect(self) -> QRectF:
         # Marge für Eck-Handles und zentrierten Hinweistext
         margin = 220.0
@@ -685,6 +709,7 @@ class ImageCanvas(QGraphicsView):
     historyChanged = pyqtSignal(list)   # list[str] – Beschreibungen, neueste zuerst
     cropModeChanged = pyqtSignal(bool)  # True = Crop-Overlay aktiv
     imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
+    loadRequested  = pyqtSignal(str)    # Drop/Recent → MainWindow lädt asynchron
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -714,6 +739,9 @@ class ImageCanvas(QGraphicsView):
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
         # Kein festes maxlen – Grösse wird durch _UNDO_MEMORY_LIMIT begrenzt.
         self._undo:     deque = deque()
+        # Laufende Summe der Undo-Rohdaten in Bytes (statt deque jedes Mal
+        # komplett aufzusummieren – O(1) statt O(n) pro Bearbeitung).
+        self._undo_bytes: int = 0
         # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
         # via _apply_pil(push=True) geleert.
         self._redo:     deque = deque(maxlen=20)
@@ -747,6 +775,32 @@ class ImageCanvas(QGraphicsView):
         self._brush_preview.setVisible(False)
         self._scene.addItem(self._brush_preview)
 
+    # ── Öffentliche Accessors (Kapselung) ────────────────────
+
+    @property
+    def image(self) -> Image.Image | None:
+        """Aktuell angezeigtes PIL-Bild (oder ``None``)."""
+        return self._pil
+
+    @property
+    def has_image(self) -> bool:
+        """True, sobald ein Bild geladen ist."""
+        return self._pil is not None
+
+    @property
+    def version(self) -> int:
+        """Monoton steigender Zähler; erhöht sich bei jedem Bildwechsel."""
+        return self._version
+
+    def fit_to_view(self) -> None:
+        """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
+        self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
+
+    @staticmethod
+    def _img_bytes(img: Image.Image) -> int:
+        """Geschätzte RGBA-Rohdatengrösse eines Bildes in Bytes."""
+        return img.width * img.height * 4
+
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str) -> None:
@@ -772,6 +826,7 @@ class ImageCanvas(QGraphicsView):
         self._version += 1
         self._original = img.copy()
         self._undo.clear()
+        self._undo_bytes = 0
         self._redo.clear()
         self._cancel_crop_overlay()
         self._apply_pil(img, push=False)
@@ -783,13 +838,13 @@ class ImageCanvas(QGraphicsView):
     def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung") -> None:
         if push and self._pil is not None:
             self._undo.append((self._pil.copy(), desc))
+            self._undo_bytes += self._img_bytes(self._pil)
             # Neue Aktion ⇒ Redo-Branch verwerfen (klassisches Editor-Verhalten)
             self._redo.clear()
             # Älteste Einträge entfernen, solange das Speicherlimit überschritten ist.
-            total = sum(i.width * i.height * 4 for i, _ in self._undo)
-            while len(self._undo) > 1 and total > _UNDO_MEMORY_LIMIT:
+            while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
                 evicted, _ = self._undo.popleft()
-                total -= evicted.width * evicted.height * 4
+                self._undo_bytes -= self._img_bytes(evicted)
             self.historyChanged.emit(
                 [d for _, d in reversed(list(self._undo))])
         self._pil  = img
@@ -818,6 +873,7 @@ class ImageCanvas(QGraphicsView):
             self.cancel_crop(); return
         if self._undo:
             img, desc = self._undo.pop()
+            self._undo_bytes -= self._img_bytes(img)
             # Aktuellen Stand für mögliches Redo aufbewahren
             if self._pil is not None:
                 self._redo.append((self._pil.copy(), desc))
@@ -840,6 +896,7 @@ class ImageCanvas(QGraphicsView):
             img, desc = self._redo.pop()
             if self._pil is not None:
                 self._undo.append((self._pil.copy(), desc))
+                self._undo_bytes += self._img_bytes(self._pil)
             self._pil  = img
             self._arr  = pil_to_numpy(img)
             self._mask = np.zeros((img.height, img.width), dtype=bool)
@@ -852,17 +909,23 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
 
     def undo_to(self, steps: int) -> None:
-        """Mehrere Schritte auf einmal rückgängig machen."""
+        """Mehrere Schritte auf einmal rückgängig machen.
+
+        Verhält sich wie mehrfaches ``undo()``: jeder übersprungene Stand
+        wandert auf den Redo-Stapel, der Sprung ist also wiederherstellbar.
+        """
+        if self._crop_overlay is not None:
+            self.cancel_crop(); return
         actual = min(steps, len(self._undo))
         if actual <= 0:
             return
-        # Diese Mehrfach-Aktion eröffnet einen neuen Bearbeitungszweig –
-        # Redo-Stapel wird verworfen.
-        self._redo.clear()
         img, desc = None, ""
         for _ in range(actual):
             img, desc = self._undo.pop()
-        self._pil  = img
+            self._undo_bytes -= self._img_bytes(img)
+            if self._pil is not None:
+                self._redo.append((self._pil.copy(), desc))
+            self._pil = img
         self._arr  = pil_to_numpy(img)
         self._mask = np.zeros((img.height, img.width), dtype=bool)
         self._refresh_image()
@@ -879,6 +942,7 @@ class ImageCanvas(QGraphicsView):
             # selbst wieder rückgängig machen.
             if self._pil is not None:
                 self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
+                self._undo_bytes += self._img_bytes(self._pil)
             # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
             self._redo.clear()
             self._pil  = self._original.copy()
@@ -1063,8 +1127,7 @@ class ImageCanvas(QGraphicsView):
                 elif self._crop_overlay.inside(sp.x(), sp.y()):
                     self._crop_dragging   = True
                     self._crop_drag_start = sp
-                    self._crop_start_pos  = QPointF(
-                        self._crop_overlay._cx, self._crop_overlay._cy)
+                    self._crop_start_pos  = self._crop_overlay.top_left
                     self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
             return  # alle anderen Aktionen im Crop-Modus blockieren
 
@@ -1119,9 +1182,9 @@ class ImageCanvas(QGraphicsView):
         if self._crop_resizing and self._crop_overlay is not None:
             self._crop_overlay.resize_from_corner(
                 self._crop_resize_corner, sp.x(), sp.y())
-            cw = int(round(self._crop_overlay._cw))
-            ch = int(round(self._crop_overlay._ch))
-            self.statusMsg.emit(f"⇲ Größe: {cw} × {ch} px")
+            cw, ch = self._crop_overlay.size
+            self.statusMsg.emit(
+                f"⇲ Größe: {int(round(cw))} × {int(round(ch))} px")
             return
 
         # ── Crop-Drag ─────────────────────────────────────────
@@ -1300,7 +1363,9 @@ class ImageCanvas(QGraphicsView):
         if not valid:
             self.statusMsg.emit("Format nicht unterstützt")
             return
-        self.load_image(valid[0])
+        # Asynchron laden (gleicher Worker-Pfad wie der Datei-Dialog),
+        # damit ein grosses Foto die UI nicht einfriert.
+        self.loadRequested.emit(valid[0])
         if len(valid) > 1:
             self.statusMsg.emit(
                 f"Geöffnet: {Path(valid[0]).name}  "
@@ -1968,6 +2033,7 @@ class MainWindow(QMainWindow):
         self._canvas.historyChanged.connect(self._on_history_changed)
         self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
         self._canvas.imageLoaded.connect(self._on_image_loaded)
+        self._canvas.loadRequested.connect(self._load_image_async)
         cv_lay.addWidget(self._canvas, 1)
 
         root.addWidget(canvas_container, 1)
@@ -2104,13 +2170,21 @@ class MainWindow(QMainWindow):
         tabs.setIconSize(QSize(_TAB_ICON_PX, _TAB_ICON_PX))
         outer.addWidget(tabs)
 
-        # ════════════════════════════════════════════════════
-        # Tab 1 – Auswahl  🎯
-        # ════════════════════════════════════════════════════
+        # Jeder Builder hängt genau einen Tab an – Aufrufreihenfolge = Tab-Index.
+        self._build_tab_selection(tabs)
+        self._build_tab_background(tabs)
+        self._build_tab_transform(tabs)
+        self._build_tab_shape(tabs)
+        return frame
+
+    # ── Tab-Builder (je genau ein Tab) ───────────────────────
+
+    def _build_tab_selection(self, tabs: TopIconTabWidget) -> None:
+        """Tab 1 – Auswahl 🎯: Werkzeug-Hinweise, Toleranz/Pinsel, Morphologie."""
         t1, l1 = self._make_scroll_tab()
-        tabs.addTab(t1, "Auswahl")
-        tabs.setTabIcon(0, make_tool_icon("clear_sel", _TAB_ICON_PX))
-        tabs.setTabToolTip(0, "Auswahl – Zauberstab, Pinsel, Radiergummi")
+        idx = tabs.addTab(t1, "Auswahl")
+        tabs.setTabIcon(idx, make_tool_icon("clear_sel", _TAB_ICON_PX))
+        tabs.setTabToolTip(idx, "Auswahl – Zauberstab, Pinsel, Radiergummi")
 
         g_tool, gt = self._make_section("Werkzeug", "#4a90d9")
         hint_box = QWidget()
@@ -2194,13 +2268,12 @@ class MainWindow(QMainWindow):
 
         l1.addStretch()
 
-        # ════════════════════════════════════════════════════
-        # Tab 2 – Hintergrund  🖼
-        # ════════════════════════════════════════════════════
+    def _build_tab_background(self, tabs: TopIconTabWidget) -> None:
+        """Tab 2 – Hintergrund 🖼: transparent machen oder Farbe ersetzen."""
         t2, l2 = self._make_scroll_tab()
-        tabs.addTab(t2, "Hintergrund")
-        tabs.setTabIcon(1, make_tool_icon("bg", _TAB_ICON_PX))
-        tabs.setTabToolTip(1, "Hintergrund – Entfernen, Farbe ersetzen")
+        idx = tabs.addTab(t2, "Hintergrund")
+        tabs.setTabIcon(idx, make_tool_icon("bg", _TAB_ICON_PX))
+        tabs.setTabToolTip(idx, "Hintergrund – Entfernen, Farbe ersetzen")
 
         g_bg, gb = self._make_section("Hintergrund bearbeiten", "#e05555")
         btn_rem = self._make_panel_btn("Entfernen (transparent)", "#6a1a1a", "white", "#882020",
@@ -2232,13 +2305,12 @@ class MainWindow(QMainWindow):
 
         l2.addStretch()
 
-        # ════════════════════════════════════════════════════
-        # Tab 3 – Transform  ⟲
-        # ════════════════════════════════════════════════════
+    def _build_tab_transform(self, tabs: TopIconTabWidget) -> None:
+        """Tab 3 – Transform ⟲: Drehen (Schnell + freier Winkel) und Spiegeln."""
         t3, l3 = self._make_scroll_tab()
-        tabs.addTab(t3, "Drehen/Spiegeln")
-        tabs.setTabIcon(2, make_tool_icon("transparency", _TAB_ICON_PX))
-        tabs.setTabToolTip(2, "Transform – Drehen, Spiegeln")
+        idx = tabs.addTab(t3, "Drehen/Spiegeln")
+        tabs.setTabIcon(idx, make_tool_icon("transparency", _TAB_ICON_PX))
+        tabs.setTabToolTip(idx, "Transform – Drehen, Spiegeln")
 
         g_rot, gr2 = self._make_section("Drehen", "#e09a30")
         ROT_BG = "#2e2510"; ROT_FG = "#f0c060"; ROT_HV = "#4a3a18"
@@ -2310,13 +2382,12 @@ class MainWindow(QMainWindow):
         l3.addWidget(g_flip)
         l3.addStretch()
 
-        # ════════════════════════════════════════════════════
-        # Tab 4 – Form & Zuschnitt  ⬤
-        # ════════════════════════════════════════════════════
+    def _build_tab_shape(self, tabs: TopIconTabWidget) -> None:
+        """Tab 4 – Form & Zuschnitt ⬤: Ecken abrunden, Format-/Crop-Auswahl."""
         t4, l4 = self._make_scroll_tab()
-        tabs.addTab(t4, "Form")
-        tabs.setTabIcon(3, make_tool_icon("form", _TAB_ICON_PX))
-        tabs.setTabToolTip(3, "Form & Zuschnitt – Ecken abrunden, Format-Auswahl")
+        idx = tabs.addTab(t4, "Form")
+        tabs.setTabIcon(idx, make_tool_icon("form", _TAB_ICON_PX))
+        tabs.setTabToolTip(idx, "Form & Zuschnitt – Ecken abrunden, Format-Auswahl")
 
         g_corner, gc = self._make_section("Ecken abrunden", "#30c060")
         self._lbl_corner = self._make_label("Radius:  0 px", "#aaa")
@@ -2393,9 +2464,6 @@ class MainWindow(QMainWindow):
         gfm.addLayout(row_port)
         l4.addWidget(g_fmt)
         l4.addStretch()
-
-        return frame
-
 
     def _build_menu(self) -> None:
         mb = self.menuBar()
@@ -2481,9 +2549,7 @@ class MainWindow(QMainWindow):
         view_m = mb.addMenu("Ansicht")
         a_fit = QAction("Fit to View", self)
         a_fit.setShortcut(QKeySequence("Ctrl+0"))
-        a_fit.triggered.connect(
-            lambda: self._canvas.fitInView(
-                self._canvas._img_item, Qt.AspectRatioMode.KeepAspectRatio))
+        a_fit.triggered.connect(lambda: self._canvas.fit_to_view())
         view_m.addAction(a_fit)
 
         extras_m = mb.addMenu("Extras")
@@ -2603,14 +2669,14 @@ class MainWindow(QMainWindow):
         if self._save_path is None:
             self._save_as()
             return
-        if self._canvas._pil is None:
+        if not self._canvas.has_image:
             self.statusBar().showMessage("Kein Bild zum Speichern")
             return
         self._canvas.save_image(self._save_path)
 
     def _save_as(self) -> None:
         """Speichern unter…: öffnet immer den Datei-Dialog."""
-        if self._canvas._pil is None:
+        if not self._canvas.has_image:
             self.statusBar().showMessage("Kein Bild zum Speichern")
             return
         save_dir = self._settings.value("save_dir", "")
@@ -2676,7 +2742,7 @@ class MainWindow(QMainWindow):
             self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
             self._rebuild_recent_menu()
             return
-        self._canvas.load_image(path)
+        self._load_image_async(path)
 
     def _on_image_loaded(self, path: str) -> None:
         """Wird nach jedem load_image vom Canvas aufgerufen."""
@@ -2695,7 +2761,7 @@ class MainWindow(QMainWindow):
         )
 
     def _run_ai(self) -> None:
-        if self._canvas._pil is None:
+        if not self._canvas.has_image:
             self.statusBar().showMessage("Kein Bild geladen")
             return
         if self._ai_thread is not None and self._ai_thread.isRunning():
@@ -2706,9 +2772,9 @@ class MainWindow(QMainWindow):
 
         # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
         # Bild lädt, wird das verspätete KI-Ergebnis in _on_ai_done verworfen.
-        self._ai_input_version = self._canvas._version
+        self._ai_input_version = self._canvas.version
 
-        worker = AIWorker(self._canvas._pil.copy())
+        worker = AIWorker(self._canvas.image.copy())
         worker.finished.connect(self._on_ai_done)
         worker.error.connect(self._on_ai_error)
         self._ai_thread = self._launch_worker(
@@ -2727,7 +2793,7 @@ class MainWindow(QMainWindow):
     def _on_ai_done(self, img: Image.Image) -> None:
         # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
         # hat, ist _version erhöht worden und das KI-Ergebnis wird verworfen.
-        if self._canvas._version != self._ai_input_version:
+        if self._canvas.version != self._ai_input_version:
             self.statusBar().showMessage(
                 "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
             return
@@ -2805,25 +2871,39 @@ class MainWindow(QMainWindow):
 # Start
 # ─────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    # Logging: stderr + Datei in $HOME — exception()-Aufrufe in den
-    # Worker- und Canvas-Klassen landen so dauerhaft im Log.
+def _setup_logging() -> None:
+    """Konfiguriert stderr- + Datei-Logging.
+
+    Muss NACH dem Erzeugen der QApplication und dem Setzen von
+    Application-/Organization-Name laufen, sonst liefert
+    ``QStandardPaths`` keinen app-spezifischen Pfad. Das Zielverzeichnis
+    wird angelegt – andernfalls bricht der ``FileHandler`` den Start mit
+    ``FileNotFoundError`` ab.
+    """
+    loc = QStandardPaths.writableLocation(
+        QStandardPaths.StandardLocation.AppDataLocation)
+    log_dir = Path(loc) if loc else (Path.home() / ".bgremover")
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        log_dir = Path.home()
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stderr),
-            logging.FileHandler(
-                Path(QStandardPaths.writableLocation(
-                    QStandardPaths.StandardLocation.AppDataLocation))
-                / "bgremover.log",
-                encoding="utf-8"),
+            logging.FileHandler(log_dir / "bgremover.log", encoding="utf-8"),
         ],
     )
 
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setStyle("Fusion")
     app.setApplicationName("BgRemover")
+    app.setOrganizationName("BgRemover")
+    # Erst jetzt – QApplication + App-Name stehen – ist der Log-Pfad korrekt.
+    _setup_logging()
+    app.setStyle("Fusion")
 
     # Dunkles Farbschema
     pal = QPalette()

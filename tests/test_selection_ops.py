@@ -6,9 +6,12 @@
 """
 import numpy as np
 from PIL import Image
-from PyQt6.QtCore import QPointF
+from PyQt6.QtCore import Qt, QPointF
+from PyQt6.QtGui import QColor
 
-from BgRemover import ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND
+from BgRemover import (
+    ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND, pil_to_numpy,
+)
 
 
 def _canvas_with_mask():
@@ -119,3 +122,93 @@ def test_brush_preview_hidden_without_image(qapp):
     c.set_tool(TOOL_BRUSH)
     c._update_brush_preview(QPointF(10, 10))
     assert not c._brush_preview.isVisible()
+
+
+# ── Pinsel/Radiergummi: tatsächlicher Maskeneffekt ─────────────────────
+
+def test_paint_brush_marks_circle(qapp):
+    c = _canvas_with_mask()
+    c._mask[:] = False
+    c.set_tool(TOOL_BRUSH)
+    c._brush_r = 3
+    c._paint_brush(10, 10)
+    assert c._mask[10, 10]
+    assert not c._mask[0, 0]
+
+
+def test_eraser_clears_circle(qapp):
+    c = _canvas_with_mask()
+    c._mask[:] = True
+    c.set_tool(TOOL_ERASER)
+    c._brush_r = 3
+    c._paint_brush(10, 10)
+    assert not c._mask[10, 10]
+    assert c._mask[0, 0]
+
+
+# ── Polygon-Lasso ──────────────────────────────────────────────────────
+
+def test_lasso_close_builds_mask_from_polygon(qapp):
+    c = _canvas_with_mask()
+    c._mask[:] = False
+    c._lasso_pts = [(2, 2), (10, 2), (10, 10), (2, 10)]
+    c._lasso_mods = Qt.KeyboardModifier.NoModifier
+    c._lasso_close()
+    assert c._mask[5, 5]            # innerhalb des Polygons
+    assert not c._mask[18, 18]      # ausserhalb
+    assert c._lasso_pts == []       # Punkte nach Abschluss geleert
+
+
+def test_lasso_close_shift_adds_to_existing(qapp):
+    c = _canvas_with_mask()         # 8:12, 8:12 = True
+    existing = c._mask.copy()
+    c._lasso_pts = [(0, 0), (4, 0), (4, 4), (0, 4)]
+    c._lasso_mods = Qt.KeyboardModifier.ShiftModifier
+    c._lasso_close()
+    assert c._mask[2, 2]            # neu hinzugefügt
+    assert c._mask[10, 10]          # alte Auswahl bleibt
+    assert (c._mask >= existing).all()
+
+
+def test_lasso_close_ctrl_subtracts(qapp):
+    c = _canvas_with_mask()         # 8:12, 8:12 = True
+    c._lasso_pts = [(8, 8), (12, 8), (12, 12), (8, 12)]
+    c._lasso_mods = Qt.KeyboardModifier.ControlModifier
+    c._lasso_close()
+    assert not c._mask[10, 10]      # Überlappung wurde abgezogen
+
+
+def test_lasso_cancel_clears_state(qapp):
+    c = _canvas_with_mask()
+    c._lasso_pts = [(1, 1), (2, 2)]
+    c._lasso_cancel()
+    assert c._lasso_pts == []
+    assert c._lasso_mods == Qt.KeyboardModifier.NoModifier
+
+
+# ── apply_remove / apply_replace – Erfolgsfall ─────────────────────────
+
+def test_apply_remove_makes_selection_transparent(qapp):
+    c = ImageCanvas()
+    img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
+    c._pil = img
+    c._arr = pil_to_numpy(img)
+    c._mask = np.zeros((10, 10), dtype=bool)
+    c._mask[2:5, 2:5] = True
+    c.apply_remove()
+    arr = np.array(c._pil)
+    assert (arr[2:5, 2:5, 3] == 0).all()    # Auswahl → transparent
+    assert arr[0, 0, 3] == 255              # Rest unverändert
+
+
+def test_apply_replace_fills_selection_with_color(qapp):
+    c = ImageCanvas()
+    img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
+    c._pil = img
+    c._arr = pil_to_numpy(img)
+    c._mask = np.zeros((10, 10), dtype=bool)
+    c._mask[0:4, 0:4] = True
+    c.apply_replace(QColor(255, 0, 0))
+    arr = np.array(c._pil)
+    assert arr[0, 0].tolist() == [255, 0, 0, 255]
+    assert arr[9, 9].tolist() == [10, 20, 30, 255]
