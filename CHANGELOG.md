@@ -7,6 +7,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Dokumentation
+
+- Installationsanleitung für Linux (`INSTALL_LINUX.md`) ergänzt:
+  Systempakete je Distribution (apt/dnf/pacman), venv-Setup,
+  Starter-Skript bzw. `.desktop`-Eintrag und Troubleshooting; im README
+  verlinkt.
+
 ## [2.0.0] – 2026-05-17
 
 Erste öffentlich getaggte Veröffentlichung.

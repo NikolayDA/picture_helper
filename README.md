@@ -68,9 +68,24 @@ python3 BgRemover.py
 `.[ai]` zieht die KI-Abhängigkeiten (`rembg[cpu]` inkl. `onnxruntime`)
 mit; ohne KI-Funktion reicht `python3 -m pip install -e .`.
 
-> Eine ausführliche Anleitung — inklusive **Installation aus einem
-> Branch** (zum Testen offener Pull Requests) und **Troubleshooting** —
-> steht in **[INSTALL_MAC.md](INSTALL_MAC.md)**.
+**Linux:** Es gibt kein App-Bundle; die Anwendung läuft über den
+direkten Start aus einer venv:
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+Vorher werden einige Qt-Systembibliotheken benötigt — Details siehe
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+
+> Ausführliche Anleitungen — inklusive **Installation aus einem Branch**
+> (zum Testen offener Pull Requests) und **Troubleshooting** — stehen in
+> **[INSTALL_MAC.md](INSTALL_MAC.md)** (macOS) bzw.
+> **[INSTALL_LINUX.md](INSTALL_LINUX.md)** (Linux).
 
 ## Bedienung
 
