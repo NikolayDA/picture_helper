@@ -147,3 +147,75 @@ Ein-Zeiler-Docstrings zu `_make_label`, `_make_hdivider`, `_make_panel_btn` und 
 **Datei**: `BgRemover.py`
 
 `_launch_worker()`-Helper wurde bereits als Teil von Fix #3 (Race Conditions) eingeführt. Alle drei Worker-Flows (Image Load, AI, Warmup) nutzen ihn seither.
+
+---
+
+## Runde 2 – Folge-Review (Code, Tests, Doku, Lizenz)
+
+> Korrektur zur Runde 1: Die Punkte **#6 (God-Klassen)** und **#8 (Magic
+> Numbers)** waren als ✅ markiert, traten aber nur _teilweise_ zu
+> (`MainWindow`/`_build_right_panel` blieb ~300 Zeilen; etliche
+> Stylesheet-/Layout-Zahlen blieben inline). Runde 2 adressiert die
+> verbleibenden Punkte.
+
+| # | Empfehlung | Priorität | Status |
+|---|-----------|-----------|--------|
+| R1 | Logging-Setup: Aufruf vor `QApplication`, Verzeichnis nicht angelegt | 🔴 | ✅ Behoben |
+| R2 | Flood-Fill blockiert UI; 100-MP-Limit zu hoch | 🟠 | ✅ Behoben |
+| R3 | Drag&Drop / „Zuletzt geöffnet" umgingen den Async-Worker | 🟠 | ✅ Behoben |
+| R4 | Kapselungsbruch (`_pil`/`_version`/`_img_item`/`_cx…`) | 🟡 | ✅ Behoben |
+| R5 | `undo_to` inkonsistent (nicht wiederherstellbar) | 🟡 | ✅ Behoben |
+| R6 | `MainWindow` God-Object / `_build_right_panel` | 🟡 | ✅ Behoben |
+| R7 | Kein Typecheck in CI | 🟡 | ✅ Behoben |
+| R8 | `pyproject` ignorierte `F401` global | 🟢 | ✅ Behoben |
+| R9 | `make_tool_icon`: Import in Schleife, stiller `except` | 🟢 | ✅ Behoben |
+| R10 | `_apply_pil` summierte Undo-Stack O(n) pro Aktion | 🟢 | ✅ Behoben |
+| R11 | Kein Decompression-Bomb-Schutz | 🟡 | ✅ Behoben |
+| R12 | Testlücken (Undo-Eviction, Geometrie, Lasso, Drop) | 🔴/🟠 | ✅ Behoben |
+| R13 | Doku: falsche Python-Version, fehlende Lizenz | 🟠 | ✅ Behoben |
+
+**R1** — Logging in `_setup_logging()` ausgelagert; wird in `__main__`
+**nach** `QApplication` + `setApplicationName/​setOrganizationName`
+aufgerufen. Zielverzeichnis wird via `mkdir(parents=True, exist_ok=True)`
+angelegt (Fallback `~/.bgremover`).
+
+**R2** — `flood_fill` ist vektorisiert (Ähnlichkeitsmaske in wenigen
+NumPy-Operationen, danach Region-Wachstum); `_MAX_MEGAPIXELS` von 100 → 40.
+
+**R3** — Neues Signal `ImageCanvas.loadRequested`; `dropEvent` und
+`_open_recent` laufen jetzt über `_load_image_async` (Worker-Pfad).
+`load_image` bleibt als synchroner Pfad für Tests/Drop-Fallback.
+
+**R4** — Öffentliche Accessors: `ImageCanvas.image/has_image/version/
+fit_to_view()` und `CropOverlayItem.top_left/size`. `MainWindow` und
+`ImageCanvas` greifen nicht mehr cross-class auf Private zu.
+
+**R5** — `undo_to()` verhält sich wie mehrfaches `undo()` (jeder Schritt
+auf den Redo-Stapel) und ist damit per `redo()` wiederherstellbar; zudem
+Crop-Guard wie bei `undo()`.
+
+**R6** — `_build_right_panel()` ist ein schlanker Dispatcher; vier
+`_build_tab_selection/background/transform/shape`-Builder hängen je einen
+Tab an (Tab-Index aus `addTab()`).
+
+**R7** — `mypy` in `pyproject.toml` konfiguriert (pragmatisch: Qt-Override-
+und Tuple-Lambda-Rauschen via `disable_error_code` stummgeschaltet) und
+als CI-Schritt ergänzt.
+
+**R8/R9/R10/R11** — `F401`-Ignore entfernt, zwei ungenutzte Importe
+gelöscht; `make_tool_icon` nutzt den Modul-`Image`-Import und loggt
+Fehlschläge mit `logger.debug`; laufende Undo-Byte-Summe `_undo_bytes`
+(O(1)); `Image.MAX_IMAGE_PIXELS` an `_MAX_MEGAPIXELS` gekoppelt.
+
+**R12** — Neue Tests (81 → 108): Undo-Speicherlimit-Eviction +
+Byte-Tracking, `tests/test_geometry.py` (Drehen/Spiegeln/Ecken/Crop),
+Lasso + `_paint_brush` + `apply_remove/replace`-Erfolgsfall,
+`tests/test_drop_and_history.py` (Async-Drop, `undo_to`-Redo),
+`_setup_logging`-Verzeichnisanlage.
+
+**R13** — README/INSTALL_MAC: Python **3.10+**; README um Architektur,
+bekannte Einschränkungen, korrekten Log-Pfad und **Lizenz-Abschnitt**
+erweitert; `LICENSE` (GPL-3.0) ergänzt; `pyproject.toml` mit
+`license`/`authors`/`urls`/`classifiers`. Lizenzempfehlung:
+**GPL-3.0-or-later** (passt zur GPL-Pflicht von PyQt6; permissiv nur mit
+Wechsel auf PySide6).

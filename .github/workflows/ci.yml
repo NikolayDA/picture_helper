@@ -36,6 +36,9 @@ jobs:
       - name: Lint with ruff
         run: ruff check BgRemover.py tests
 
+      - name: Type-check with mypy
+        run: mypy
+
       - name: Run pytest
         env:
           QT_QPA_PLATFORM: offscreen
