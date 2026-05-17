@@ -114,10 +114,11 @@ Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Bei jedem
 Push und Pull-Request wird sie zusätzlich automatisch auf Linux und
 macOS unter Python 3.10 und 3.12 via GitHub Actions ausgeführt.
 
-Code-Style-Check:
+Code-Style-Check und statische Typprüfung (beide auch im CI):
 
 ```bash
 ruff check BgRemover.py tests
+mypy
 ```
 
 ## Architektur (Kurzüberblick)
@@ -158,6 +159,9 @@ Status-Meldungen und ist bei Problemen die erste Anlaufstelle.
 
 BgRemover steht unter der **GNU General Public License v3.0 oder
 später** (`GPL-3.0-or-later`) — siehe [LICENSE](LICENSE).
+
+Eine vollständige Auflistung aller verwendeten Bibliotheken, Werkzeuge
+und Assets samt Lizenzen steht in **[RESOURCES.md](RESOURCES.md)**.
 
 > **Hinweis zu PyQt6:** Die GUI-Abhängigkeit PyQt6 (Riverbank) ist
 > selbst GPL-v3-lizenziert (oder kommerziell). Die GPL-3.0 wurde
