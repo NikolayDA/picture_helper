@@ -2569,6 +2569,11 @@ class MainWindow(QMainWindow):
         *on_finished* wird an thread.finished angehängt, falls angegeben.
         """
         thread = QThread(self)
+        # Starke Referenz: MainWindow → thread → worker. Ohne sie sammelt
+        # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet
+        # Slots gebundener Methoden nur schwach) – run() liefe nie, das
+        # Bild würde lautlos nicht geladen.
+        thread._worker = worker
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         for sig in quit_on:
