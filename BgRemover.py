@@ -10,6 +10,7 @@ import io
 import logging
 import numpy as np
 from collections import deque
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -42,6 +43,12 @@ except (ImportError, RuntimeError, OSError, SystemExit):
     # rembg ist optional; fehlt das onnxruntime-Backend, kann der Import
     # je nach rembg-Version unterschiedlich fehlschlagen (inkl. SystemExit).
     REMBG_AVAILABLE = False
+
+try:
+    __version__ = _pkg_version("bgremover")
+except PackageNotFoundError:
+    # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
+    __version__ = "2.0.0"
 
 logger = logging.getLogger("BgRemover")
 
@@ -1830,7 +1837,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("BgRemover Pro")
+        self.setWindowTitle(f"BgRemover Pro {__version__}")
         self.setMinimumSize(_WINDOW_MIN_W, _WINDOW_MIN_H)
         self._bg_color   = QColor(255, 255, 255)
         self._ai_thread: QThread | None = None
@@ -1997,6 +2004,16 @@ class MainWindow(QMainWindow):
         cv_lay.setContentsMargins(0, 0, 0, 0)
         cv_lay.setSpacing(0)
 
+        # Canvas zuerst erzeugen, damit die Crop-Leisten-Buttons weiter
+        # unten auf ein bereits zugewiesenes self._canvas verweisen
+        # (sonst Forward-Reference im Lambda → mypy has-type).
+        self._canvas = ImageCanvas()
+        self._canvas.statusMsg.connect(self.statusBar().showMessage)
+        self._canvas.historyChanged.connect(self._on_history_changed)
+        self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
+        self._canvas.imageLoaded.connect(self._on_image_loaded)
+        self._canvas.loadRequested.connect(self._load_image_async)
+
         # ── Crop-Bestätigungsleiste (initial versteckt) ───────
         self._crop_bar = QFrame()
         self._crop_bar.setStyleSheet(
@@ -2028,12 +2045,6 @@ class MainWindow(QMainWindow):
 
         self._hist_popup: QDialog | None = None
 
-        self._canvas = ImageCanvas()
-        self._canvas.statusMsg.connect(self.statusBar().showMessage)
-        self._canvas.historyChanged.connect(self._on_history_changed)
-        self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
-        self._canvas.imageLoaded.connect(self._on_image_loaded)
-        self._canvas.loadRequested.connect(self._load_image_async)
         cv_lay.addWidget(self._canvas, 1)
 
         root.addWidget(canvas_container, 1)
