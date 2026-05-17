@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/INSTALL_MAC.md) · [Español](docs/i18n/es/INSTALL_MAC.md) · [Français](docs/i18n/fr/INSTALL_MAC.md) · [Українська](docs/i18n/uk/INSTALL_MAC.md) · [简体中文](docs/i18n/zh/INSTALL_MAC.md)
+
 # BgRemover – Installation auf dem Mac
 
 Kurzanleitung zum Installieren und Starten von BgRemover aus GitHub —
