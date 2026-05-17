@@ -1,0 +1,160 @@
+[Deutsch](../../../INSTALL_MAC.md) · [English](../en/INSTALL_MAC.md) · [Español](../es/INSTALL_MAC.md) · [Français](../fr/INSTALL_MAC.md) · [Українська](../uk/INSTALL_MAC.md) · **简体中文**
+
+# BgRemover – 在 Mac 上安装
+
+从 GitHub 安装并启动 BgRemover 的简要说明——
+既可以从 `main` 分支，也可以从某个功能分支（例如
+为了在合并前测试一个开放的 Pull Request）。
+
+## 前提条件
+
+- **macOS**
+- **Python 3.10 或更新版本**——用以下命令检查：
+  ```bash
+  python3 --version
+  ```
+- **git**
+
+如果缺少 Python 或 git，最简单的方式是通过 [Homebrew](https://brew.sh)：
+```bash
+brew install python git
+```
+
+## 从 `main` 快速开始
+
+**推荐**使用应用程序包脚本——它会自动创建一个
+隔离的 venv，安装所有依赖项（包括用于
+AI 的 `onnxruntime`），正确处理 Apple Silicon，并把
+工具栏图标复制到应用程序包中：
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+bash create_BgRemover_app.sh
+```
+
+出现 venv 提示时按 **Enter** 确认；之后双击位于
+`~/Applications` 的 `BgRemover.app` 即可启动。
+
+**直接在终端中启动**——在现代 macOS 上需在 venv 中进行，
+因为系统 Python 会根据 PEP 668 阻止 `pip install`：
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+- `.[ai]` 会安装 `rembg[cpu]`，含 `onnxruntime`（AI 背景移除）。
+- 不需要 AI 功能时：`python3 -m pip install -e .` 即可
+
+## 启动方式
+
+安装之后，有三种方式启动程序：
+
+| 方式 | 命令 / 操作 | 结果 |
+|----------|-----------------|----------|
+| **A – macOS 应用程序（推荐）** | `bash create_BgRemover_app.sh` | 创建一个隔离的 venv，安装所有依赖项（包括 `onnxruntime`），复制图标，并在 `~/Applications` 下生成一个独立的 `BgRemover.app`。隔离属性会被自动移除；项目可以保留在 `~/Documents` 中。 |
+| **B – 双击** | 在 Finder 中双击 `BgRemover.command` | 在终端窗口中启动；自动使用脚本创建的应用程序 venv（文件已具有可执行权限）。 |
+| **C – 终端** | 在 venv 中：`python3 BgRemover.py` | 直接启动（venv 设置见上面的快速开始）。 |
+
+## 从某个分支安装（测试开放的 PR）
+
+PR 分支名称见 GitHub 上对应的 Pull Request
+（“… wants to merge … from **`<branch>`**”）。
+
+**方式 1 – 在已有的克隆目录中：**
+```bash
+cd picture_helper
+git fetch origin
+git branch -r                       # 显示可用的分支
+git checkout <branch>
+# 在 venv 中（见快速开始）；仅在依赖项发生变化时才需要：
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+或者在某个分支上直接执行 `bash create_BgRemover_app.sh`
+——它会自动处理 venv 和依赖项。
+
+**方式 2 – 直接克隆某个分支：**
+```bash
+git clone --branch <branch-name> \
+  https://github.com/NikolayDA/picture_helper.git
+```
+
+## 更新 / 切换分支
+
+```bash
+git checkout main && git pull          # 最新主版本
+git checkout <branch> && git pull      # 更新某个特定分支
+```
+
+在 `git pull` 之后**无需**再次执行 editable 安装
+（`pip install -e`）——除非 `pyproject.toml` 中的
+依赖项发生了变化。
+
+## 故障排除
+
+- **应用程序无法启动 / 双击没有反应** → 自 v3 起，
+  应用程序会显示一个带“打开日志”的错误对话框。最常见的原因：
+  应用程序所使用的 Python 中没有安装 `PyQt6`
+  （例如因为 `pip install` 装到了某个 venv 或另一个 Python，
+  或者 Homebrew Python 根据 PEP 668 阻止了 `pip install`）。解决办法：
+  再次执行 `bash create_BgRemover_app.sh` 并让它创建
+  venv（按 Enter 确认提议）——脚本随后会把
+  依赖项安装到位于
+  `~/Library/Application Support/BgRemover/venv` 的 venv，并把这个 Python
+  打包进应用程序中。
+- **打开 `BgRemover.py` 时出现 `[Errno 1] Operation not permitted`**
+  → macOS 隐私保护（TCC）。如果项目位于 `~/Documents`、
+  `~/Desktop`、`~/Downloads` 或 iCloud Drive，那么从
+  Finder 启动的 `.app` 就无法在那里读取。自 v3 起此问题已解决：
+  `BgRemover.py` 会被复制到应用程序包中，venv 位于
+  Application Support——只需重新执行一次
+  `bash create_BgRemover_app.sh`。（或者将项目移动到例如
+  `~/picture_helper`，然后在那里重新执行脚本。）
+- **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
+  → Apple Silicon：在 `~/Library/Python/...` 中存在一个架构不匹配的
+  软件包，它“渗透”到了一个不匹配的 Python 中。自 v3.1 起此问题已
+  解决：启动器设置了 `PYTHONNOUSERSITE=1`（忽略 user-site），
+  强制使用原生 CPU 架构，并且会强制使用
+  一个隔离的 venv。解决办法：最好先安装一个原生
+  Python，然后重新构建：
+  ```bash
+  brew install python
+  bash create_BgRemover_app.sh   # venv 询问按 Enter 确认
+  ```
+- **直接查看错误（手动诊断）** → 在终端中启动
+  启动器，这样就会出现真实的错误消息：
+  ```bash
+  ~/Applications/BgRemover.app/Contents/MacOS/BgRemover
+  ```
+  缺少软件包时可预期出现：`ModuleNotFoundError: No module named 'PyQt6'`。
+- **“python3: command not found”** → `brew install python`
+- **安装时出现 pip 错误** → 先升级 pip：
+  ```bash
+  python3 -m pip install --upgrade pip
+  ```
+  然后重新执行安装命令。
+- **首次点击 AI 耗时较长** → 在首次时，`rembg` 会
+  下载它的模型（几百 MB，一次性，缓存在
+  `~/.u2net`）。状态栏会显示“🤖 AI 模型加载中…”
+  然后显示“🤖 AI 就绪”。
+- **Gatekeeper：“未验证的开发者”** → 右键点击
+  `BgRemover.app` → **打开**。构建脚本已经通过 `xattr`
+  移除了隔离属性，不过保险起见，右键打开
+  仍然足够。
+- **应用程序以“No onnxruntime backend found”崩溃** → 较新的
+  `rembg` 版本不再附带该后端。当前已修复
+  （`ai` extra 会引入 `rembg[cpu]`/`onnxruntime`；即便仍然缺少，
+  应用程序也会在没有 AI 的情况下启动，而不是崩溃）。解决办法：重新
+  执行一次 `bash create_BgRemover_app.sh` 构建——或者向 venv 中补装：
+  `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`。
+- **`.app` 看起来与 `BgRemover.command` 不同** → 较旧的应用程序包
+  没有工具栏图标（应用程序使用了绘制的替代图标）。当前已
+  修复——脚本会把 `icons/` 复制到应用程序包中；重新
+  执行一次 `bash create_BgRemover_app.sh` 构建。
+- **出错时的诊断** → 查看日志文件 `~/.bgremover.log`。
