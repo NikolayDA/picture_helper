@@ -1,0 +1,86 @@
+name: License Check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project dependencies (runtime + ai + test)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[ai,test]"
+
+      - name: Install license tooling (pip-licenses)
+        run: pip install pip-licenses
+
+      - name: Generate license report
+        run: |
+          python scripts/generate_license_report.py \
+            --report license-report.md \
+            --summary license-summary.md
+
+      - name: Raw dependency/license dump (reference)
+        run: |
+          pip-licenses --format=markdown --with-authors --with-urls \
+            --order=license > license-raw-all-installed.md || true
+
+      - name: Refresh committed LICENSES.md
+        run: |
+          cp license-report.md LICENSES.md
+          if ! git diff --quiet -- LICENSES.md; then
+            echo "::notice::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+          fi
+
+      - name: Upload license report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: |
+            license-report.md
+            license-summary.md
+            license-raw-all-installed.md
+          if-no-files-found: error
+
+      - name: Comment summary on pull request
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- license-check-summary -->';
+            const body = marker + '\n' +
+              fs.readFileSync('license-summary.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(
+              c => c.body && c.body.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body,
+              });
+            }
