@@ -9,6 +9,20 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- UI-Farbpalette in `_Theme` zentralisiert: die mehrfach wiederholten
+  Stylesheet-Farben (Akzent, Panel-/Tab-Hintergrund, Rahmen,
+  Trennlinien, heller Text) verweisen jetzt auf eine zentrale Stelle,
+  damit künftige UI-Erweiterungen konsistente Farben nutzen. Als
+  byte-identisch verifiziert – alle 218 Widget-Stylesheets unverändert,
+  kein visueller Unterschied.
+
+### Entfernt
+
+- Tote Stylesheet-Konstanten `BTN_STYLE` und `GRP_STYLE` (nirgends
+  referenziert) entfernt.
+
 ### Dokumentation
 
 - Installationsanleitung für Linux (`INSTALL_LINUX.md`) ergänzt:

@@ -1534,41 +1534,40 @@ class ImageCanvas(QGraphicsView):
 # Haupt-Fenster
 # ─────────────────────────────────────────────────────────────
 
-BTN_STYLE = """
-    QPushButton {{
-        background: {bg}; color: {fg}; border: none;
-        border-radius: 6px; padding: 7px 10px; font-size: 12px;
-    }}
-    QPushButton:hover {{ background: {hover}; }}
-    QPushButton:disabled {{ background: #333; color: #666; }}
-"""
+class _Theme:
+    """Zentrale UI-Farbpalette.
 
-TOOL_STYLE = """
-    QToolButton {
+    Bündelt die im Stylesheet mehrfach wiederholten Farbwerte an einer
+    Stelle, damit künftige UI-Erweiterungen konsistente Farben nutzen.
+    Die Werte sind exakt die zuvor inline verwendeten – das
+    Erscheinungsbild ändert sich nicht (Stylesheets bleiben
+    byte-identisch).
+    """
+    ACCENT      = "#4a90d9"   # Hervorhebung: aktiver Tab, Slider, Auswahl
+    BG_PANEL    = "#1a1a1a"   # rechtes Panel / Tab-Pane / Statusleiste
+    BG_TABBAR   = "#141414"   # Tab-Leisten-Hintergrund
+    BORDER      = "#3a3a3a"   # Rahmen / Trennlinien / Slider-Groove
+    DIVIDER     = "#2a2a2a"   # dünne Trennflächen
+    TEXT_BRIGHT = "#e0e0e0"   # heller Text (aktiver Tab)
+
+
+TOOL_STYLE = f"""
+    QToolButton {{
         color: #ccc; font-size: 24px; border: none;
-        border-radius: 9px; background: #3a3a3a;
-    }
-    QToolButton:checked        { background: #4a90d9; color: white; }
-    QToolButton:hover          { background: #4f4f4f; }
-    QToolButton:checked:hover  { background: #4a90d9; color: white; }
-    QToolButton:disabled       { color: #555; background: #2a2a2a; }
+        border-radius: 9px; background: {_Theme.BORDER};
+    }}
+    QToolButton:checked        {{ background: {_Theme.ACCENT}; color: white; }}
+    QToolButton:hover          {{ background: #4f4f4f; }}
+    QToolButton:checked:hover  {{ background: {_Theme.ACCENT}; color: white; }}
+    QToolButton:disabled       {{ color: #555; background: {_Theme.DIVIDER}; }}
 """
 
-GRP_STYLE = """
-    QGroupBox {
-        color: #ddd; border: 1px solid #3f3f3f;
-        border-radius: 7px; margin-top: 10px; font-size: 12px;
-        font-weight: bold;
-    }
-    QGroupBox::title { subcontrol-origin: margin; left: 10px; }
-"""
-
-SLD_STYLE = """
-    QSlider::groove:horizontal { height: 4px; background: #3a3a3a; border-radius: 2px; }
-    QSlider::handle:horizontal {
-        background: #4a90d9; width: 14px; height: 14px;
+SLD_STYLE = f"""
+    QSlider::groove:horizontal {{ height: 4px; background: {_Theme.BORDER}; border-radius: 2px; }}
+    QSlider::handle:horizontal {{
+        background: {_Theme.ACCENT}; width: 14px; height: 14px;
         margin: -5px 0; border-radius: 7px;
-    }
+    }}
 """
 
 
@@ -1848,20 +1847,20 @@ class MainWindow(QMainWindow):
     RECENT_MAX = 10
     SETTINGS_RECENT_KEY = "recent_files"
 
-    _TAB_STYLE = """
-        QTabWidget::pane { border: none; background: #1a1a1a; }
-        QTabBar { background: #141414; }
-        QTabBar::tab {
+    _TAB_STYLE = f"""
+        QTabWidget::pane {{ border: none; background: {_Theme.BG_PANEL}; }}
+        QTabBar {{ background: {_Theme.BG_TABBAR}; }}
+        QTabBar::tab {{
             background: #1e1e1e; color: #666;
             padding: 10px 0px; min-width: 94px;
             font-size: 12px; border: none;
             border-bottom: 3px solid transparent;
-        }
-        QTabBar::tab:selected {
-            color: #e0e0e0; background: #1a1a1a;
-            border-bottom: 3px solid #4a90d9; font-weight: bold;
-        }
-        QTabBar::tab:hover:!selected { color: #aaa; background: #242424; }
+        }}
+        QTabBar::tab:selected {{
+            color: {_Theme.TEXT_BRIGHT}; background: {_Theme.BG_PANEL};
+            border-bottom: 3px solid {_Theme.ACCENT}; font-weight: bold;
+        }}
+        QTabBar::tab:hover:!selected {{ color: #aaa; background: #242424; }}
     """
 
     def __init__(self) -> None:
@@ -1950,14 +1949,14 @@ class MainWindow(QMainWindow):
         """Dünne horizontale Trennlinie für das rechte Panel."""
         f = QWidget()
         f.setFixedHeight(1)
-        f.setStyleSheet("background: #2a2a2a;")
+        f.setStyleSheet(f"background: {_Theme.DIVIDER};")
         return f
 
     @staticmethod
     def _make_scroll_tab() -> tuple:
         """Gibt (outer_widget, inner_layout) mit ScrollArea zurück."""
         outer_w = QWidget()
-        outer_w.setStyleSheet("background: #1a1a1a;")
+        outer_w.setStyleSheet(f"background: {_Theme.BG_PANEL};")
         outer_lay = QVBoxLayout(outer_w)
         outer_lay.setContentsMargins(0, 0, 0, 0)
         outer_lay.setSpacing(0)
@@ -1972,7 +1971,7 @@ class MainWindow(QMainWindow):
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         """)
         inner_w = QWidget()
-        inner_w.setStyleSheet("background: #1a1a1a;")
+        inner_w.setStyleSheet(f"background: {_Theme.BG_PANEL};")
         inner_lay = QVBoxLayout(inner_w)
         inner_lay.setContentsMargins(16, 16, 16, 16)
         inner_lay.setSpacing(14)
@@ -2122,7 +2121,7 @@ class MainWindow(QMainWindow):
 
         # Trennlinie
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color:#3a3a3a")
+        sep.setStyleSheet(f"color:{_Theme.BORDER}")
         lay.addSpacing(4); lay.addWidget(sep); lay.addSpacing(4)
 
         self._btn_ai = QToolButton()
@@ -2140,7 +2139,7 @@ class MainWindow(QMainWindow):
 
         # Trennlinie
         sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet("color:#3a3a3a")
+        sep2.setStyleSheet(f"color:{_Theme.BORDER}")
         lay.addSpacing(4); lay.addWidget(sep2); lay.addSpacing(4)
 
         # Rückgängig + Original
