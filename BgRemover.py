@@ -858,13 +858,8 @@ class ImageCanvas(QGraphicsView):
             while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
                 evicted, _ = self._undo.popleft()
                 self._undo_bytes -= self._img_bytes(evicted)
-            self.historyChanged.emit(
-                [d for _, d in reversed(list(self._undo))])
-        self._pil  = img
-        self._arr  = pil_to_numpy(img)
-        self._mask = np.zeros((img.height, img.width), dtype=bool)
-        self._refresh_image()
-        self._refresh_overlay()
+            self._emit_history()
+        self._set_image_state(img)
 
     def _refresh_image(self) -> None:
         if self._pil:
@@ -879,6 +874,24 @@ class ImageCanvas(QGraphicsView):
             h, w = self._mask.shape
             self._overlay_item.setPixmap(mask_to_overlay(self._mask, w, h))
 
+    def _set_image_state(self, img: Image.Image) -> None:
+        """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
+
+        Kapselt den Block, der zuvor identisch in ``_apply_pil``, ``undo``,
+        ``redo``, ``undo_to`` und ``restore_original`` stand. Setzt
+        ausschliesslich den Anzeigezustand – Undo-/Redo-Stapelpflege
+        bleibt Sache der Aufrufer.
+        """
+        self._pil  = img
+        self._arr  = pil_to_numpy(img)
+        self._mask = np.zeros((img.height, img.width), dtype=bool)
+        self._refresh_image()
+        self._refresh_overlay()
+
+    def _emit_history(self) -> None:
+        """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
+        self.historyChanged.emit([d for _, d in reversed(list(self._undo))])
+
     # ── Undo / Original ──────────────────────────────────────
 
     def undo(self) -> None:
@@ -890,13 +903,8 @@ class ImageCanvas(QGraphicsView):
             # Aktuellen Stand für mögliches Redo aufbewahren
             if self._pil is not None:
                 self._redo.append((self._pil.copy(), desc))
-            self._pil  = img
-            self._arr  = pil_to_numpy(img)
-            self._mask = np.zeros((img.height, img.width), dtype=bool)
-            self._refresh_image()
-            self._refresh_overlay()
-            self.historyChanged.emit(
-                [d for _, d in reversed(list(self._undo))])
+            self._set_image_state(img)
+            self._emit_history()
             self.statusMsg.emit(f"↩  Rückgängig: {desc}")
         else:
             self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
@@ -910,13 +918,8 @@ class ImageCanvas(QGraphicsView):
             if self._pil is not None:
                 self._undo.append((self._pil.copy(), desc))
                 self._undo_bytes += self._img_bytes(self._pil)
-            self._pil  = img
-            self._arr  = pil_to_numpy(img)
-            self._mask = np.zeros((img.height, img.width), dtype=bool)
-            self._refresh_image()
-            self._refresh_overlay()
-            self.historyChanged.emit(
-                [d for _, d in reversed(list(self._undo))])
+            self._set_image_state(img)
+            self._emit_history()
             self.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
         else:
             self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
@@ -939,12 +942,8 @@ class ImageCanvas(QGraphicsView):
             if self._pil is not None:
                 self._redo.append((self._pil.copy(), desc))
             self._pil = img
-        self._arr  = pil_to_numpy(img)
-        self._mask = np.zeros((img.height, img.width), dtype=bool)
-        self._refresh_image()
-        self._refresh_overlay()
-        self.historyChanged.emit(
-            [d for _, d in reversed(list(self._undo))])
+        self._set_image_state(img)
+        self._emit_history()
         self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
 
     def restore_original(self) -> None:
@@ -958,13 +957,8 @@ class ImageCanvas(QGraphicsView):
                 self._undo_bytes += self._img_bytes(self._pil)
             # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
             self._redo.clear()
-            self._pil  = self._original.copy()
-            self._arr  = pil_to_numpy(self._pil)
-            self._mask = np.zeros((self._pil.height, self._pil.width), dtype=bool)
-            self._refresh_image()
-            self._refresh_overlay()
-            self.historyChanged.emit(
-                [d for _, d in reversed(list(self._undo))])
+            self._set_image_state(self._original.copy())
+            self._emit_history()
             self.statusMsg.emit("🔄  Original wiederhergestellt")
 
     def clear_selection(self) -> None:
