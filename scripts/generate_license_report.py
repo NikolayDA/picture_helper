@@ -25,9 +25,16 @@ import datetime as _dt
 import importlib.metadata as md
 import re
 import sys
-import tomllib
 from collections import defaultdict
 from pathlib import Path
+
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10: optionaler Backport, sonst lazy
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
 
 from packaging.markers import default_environment
 from packaging.requirements import Requirement
@@ -35,6 +42,15 @@ from packaging.requirements import Requirement
 
 def _norm(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _load_pyproject(pyproject: Path) -> dict:
+    if tomllib is None:
+        raise RuntimeError(
+            "tomllib nicht verfuegbar (Python < 3.11). Diesen Generator mit "
+            "Python >=3.11 ausfuehren oder optional 'tomli' installieren."
+        )
+    return tomllib.loads(pyproject.read_text("utf-8"))
 
 
 # --- Lizenz-Wissensbasis ---------------------------------------------------
@@ -1217,7 +1233,7 @@ def classify(raw: str) -> tuple[str, str, str]:
 
 # --- Dependency-Aufloesung -------------------------------------------------
 def project_roots(pyproject: Path) -> tuple[list[str], dict[str, set[str]]]:
-    data = tomllib.loads(pyproject.read_text("utf-8"))
+    data = _load_pyproject(pyproject)
     proj = data.get("project", {})
     roots: list[str] = []
     extras_for: dict[str, set[str]] = {}
@@ -1340,7 +1356,7 @@ def _switcher(active: str, basename: str, at_root: bool) -> str:
 # --- Reporting -------------------------------------------------------------
 def build_reports(root_dir: Path, lang: str, nav_md: str):
     pyproject = root_dir / "pyproject.toml"
-    data = tomllib.loads(pyproject.read_text("utf-8"))
+    data = _load_pyproject(pyproject)
     proj = data.get("project", {})
     project_name = proj.get("name", "Projekt")
     project_version = proj.get("version", "")

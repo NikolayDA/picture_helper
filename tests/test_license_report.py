@@ -20,6 +20,14 @@ _SPEC.loader.exec_module(glr)
 
 TARGET_LANGS = ["en", "es", "fr", "uk", "zh"]
 
+# build_reports() parst pyproject.toml via tomllib (Python 3.11+).
+# Auf Python 3.10 ohne 'tomli'-Backport diese Fälle überspringen –
+# die String-Tabellen-Konsistenz wird davon unabhängig geprüft.
+needs_toml = pytest.mark.skipif(
+    glr.tomllib is None,
+    reason="tomllib nicht verfügbar (Python < 3.11, kein tomli-Backport)",
+)
+
 
 def _shape(obj):
     """Strukturelle Signatur: Dicts -> {key: shape}, Listen -> Länge,
@@ -57,6 +65,7 @@ def test_assessment_keys_match_license_categories():
         assert set(glr.STRINGS[lang]["assessment"]) == set(glr.LICENSE_CATEGORY)
 
 
+@needs_toml
 @pytest.mark.parametrize("lang", glr.LANGS)
 def test_build_reports_renders_without_error(lang):
     nav = glr._switcher(lang, "LICENSES.md", at_root=(lang == "de"))
@@ -83,6 +92,7 @@ def test_classify_returns_known_license_key(lang):
         assert glr.STRINGS[lang]["assessment"][key].strip()
 
 
+@needs_toml
 def test_german_output_deterministic():
     nav = glr._switcher("de", "LICENSES.md", at_root=True)
     a, sa = glr.build_reports(ROOT, "de", nav)
