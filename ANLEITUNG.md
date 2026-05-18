@@ -316,16 +316,17 @@ Wählen Sie im Dialog das gewünschte **Dateiformat**:
 
 ## 12. Einstellungen
 
-Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich drei
-Vorgaben dauerhaft speichern:
+Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
+Einstellungen verwalten:
 
 | Einstellung | Beschreibung |
 |---|---|
 | **Standard-Verzeichnis zum Öffnen** | Startordner des Öffnen-Dialogs (leer = zuletzt verwendet) |
 | **Standard-Verzeichnis für Export/Speichern** | Startordner des Speichern-Dialogs (leer = zuletzt verwendet) |
 | **Bevorzugtes Bilddateiformat** | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
+| **Protokolldatei** | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
-Die Einstellungen bleiben über Programmstarts hinweg erhalten.
+Die ersten drei Vorgaben bleiben über Programmstarts hinweg erhalten.
 
 ---
 
@@ -426,6 +427,11 @@ angelegt:
 
 Die Datei enthält Status-Meldungen und Fehlerdetails (Stacktraces) und
 ist bei Support-Anfragen die erste Anlaufstelle.
+
+Am einfachsten finden Sie die Datei über `Extras → Einstellungen… →
+Protokolldatei`: Dort wird der vollständige Pfad angezeigt, und der
+Knopf **„Ordner öffnen"** öffnet das Verzeichnis direkt im Dateimanager
+– ideal, um die Log-Datei an eine Support-Mail anzuhängen.
 
 | Problem | Mögliche Lösung |
 |---|---|

@@ -16,7 +16,7 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
 - Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.
-- **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert.
+- **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert; die Log-Datei lässt sich direkt aus den Einstellungen auffinden und ihr Ordner öffnen.
 
 ## Screenshots
 
@@ -112,15 +112,16 @@ Kurzüberblick:
 
 ### Einstellungen
 
-Über `Extras → Einstellungen…` (⌘,) lassen sich drei Nutzereinstellungen dauerhaft speichern:
+Über `Extras → Einstellungen…` (⌘,) lassen sich folgende Einstellungen verwalten:
 
 | Einstellung | Beschreibung |
 |---|---|
 | Standard-Verzeichnis zum Öffnen | Startverzeichnis des Öffnen-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Standard-Verzeichnis für Export/Speichern | Startverzeichnis des Speichern-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Bevorzugtes Bilddateiformat | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
+| Protokolldatei | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
-Die Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
+Die ersten drei Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
 
 ### Tastatur-Kürzel
 
@@ -196,6 +197,11 @@ plattformspezifischen App-Datenverzeichnis angelegt
 (macOS: `~/Library/Application Support/BgRemover/`,
 Linux: `~/.local/share/BgRemover/`). Sie enthält Stacktraces und
 Status-Meldungen und ist bei Problemen die erste Anlaufstelle.
+
+Den genauen Pfad zeigt der Dialog `Extras → Einstellungen… →
+Protokolldatei` an; der Knopf „Ordner öffnen" öffnet das Verzeichnis
+direkt im Dateimanager – praktisch, um die Datei zu finden oder an eine
+Support-Mail anzuhängen.
 
 ## Lizenz
 
