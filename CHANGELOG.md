@@ -9,6 +9,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- `save_image()` fängt E/A-Fehler ab (nicht beschreibbarer Pfad, voller
+  Datenträger, unbekanntes Format) und meldet sie als Statusmeldung,
+  statt unbehandelt zu propagieren – konsistent zu `apply_remove`/
+  `apply_replace`. „Speichern unter…“ merkt einen fehlgeschlagenen Pfad
+  nicht mehr als Quick-Save-Ziel.
+
 ### Dokumentation
 
 - Installationsanleitung für Linux (`INSTALL_LINUX.md`) ergänzt:

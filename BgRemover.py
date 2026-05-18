@@ -1083,24 +1083,40 @@ class ImageCanvas(QGraphicsView):
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
         self.statusMsg.emit("✅ KI-Hintergrundentfernung abgeschlossen")
 
-    def save_image(self, path: str) -> None:
+    def save_image(self, path: str) -> bool:
+        """Speichert das aktuelle Bild; gibt ``True`` bei Erfolg zurück.
+
+        E/A-Fehler (nicht beschreibbarer Pfad, voller Datenträger,
+        unbekanntes Format …) werden protokolliert und als Statusmeldung
+        gemeldet, statt unbehandelt zu propagieren – konsistent zu
+        ``apply_remove``/``apply_replace``. Der Rückgabewert erlaubt dem
+        Aufrufer, einen fehlgeschlagenen Pfad nicht als Quick-Save-Ziel
+        zu merken.
+        """
         if self._pil is None:
-            return
-        ext = Path(path).suffix.lower()
-        if ext in (".jpg", ".jpeg"):
-            # Transparenz auf weißem Hintergrund einbetten
-            src = self._pil if self._pil.mode == "RGBA" else self._pil.convert("RGBA")
-            bg = Image.new("RGBA", src.size, (255, 255, 255, 255))
-            bg.paste(src, mask=src.split()[3])
-            bg.convert("RGB").save(path, quality=95)
-        elif ext == ".webp":
-            self._pil.save(path, "WEBP", quality=90)
-        elif ext in (".tif", ".tiff"):
-            # TIFF unterstützt RGBA + Transparenz nativ
-            self._pil.save(path, "TIFF", compression="tiff_lzw")
-        else:
-            self._pil.save(path, "PNG")
+            self.statusMsg.emit("Kein Bild zum Speichern")
+            return False
+        try:
+            ext = Path(path).suffix.lower()
+            if ext in (".jpg", ".jpeg"):
+                # Transparenz auf weißem Hintergrund einbetten
+                src = self._pil if self._pil.mode == "RGBA" else self._pil.convert("RGBA")
+                bg = Image.new("RGBA", src.size, (255, 255, 255, 255))
+                bg.paste(src, mask=src.split()[3])
+                bg.convert("RGB").save(path, quality=95)
+            elif ext == ".webp":
+                self._pil.save(path, "WEBP", quality=90)
+            elif ext in (".tif", ".tiff"):
+                # TIFF unterstützt RGBA + Transparenz nativ
+                self._pil.save(path, "TIFF", compression="tiff_lzw")
+            else:
+                self._pil.save(path, "PNG")
+        except Exception as e:
+            logger.exception("Speichern fehlgeschlagen: %s", path)
+            self.statusMsg.emit(f"Speichern fehlgeschlagen: {e}")
+            return False
         self.statusMsg.emit(f"💾 Gespeichert: {Path(path).name}")
+        return True
 
     def _check_selection(self) -> bool:
         if self._pil is None:
@@ -2744,8 +2760,10 @@ class MainWindow(QMainWindow):
             self, "Bild speichern unter…", suggest, filter_str
         )
         if path:
-            self._canvas.save_image(path)
-            self._save_path = path
+            # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern
+            # tatsächlich geklappt hat.
+            if self._canvas.save_image(path):
+                self._save_path = path
 
     # ── Recent-Files ────────────────────────────────────────────
 
