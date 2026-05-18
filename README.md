@@ -95,6 +95,13 @@ Raspberry-Pi-Abschnitt in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 
 ## Bedienung
 
+> 📖 **Ausführliche Schritt-für-Schritt-Anleitung:**
+> **[ANLEITUNG.md](ANLEITUNG.md)** (auch als
+> [ANLEITUNG.pdf](ANLEITUNG.pdf)) — mit Oberflächen-Überblick, allen
+> Werkzeugen und Tabs, typischen Arbeitsabläufen und Fehlerbehebung.
+
+Kurzüberblick:
+
 1. **Bild öffnen** über `Datei → Öffnen` (⌘O) oder per Drag & Drop ins Fenster.
 2. **Auswahl treffen** mit Zauberstab, Pinsel oder Radiergummi (Tab *🎯 Auswahl*).
    - `Shift+Klick` addiert zur Auswahl, `Ctrl+Klick` zieht ab.
