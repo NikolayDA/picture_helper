@@ -221,3 +221,73 @@ des limitations connues, du chemin de journal correct et d'une **section Licence
 `license`/`authors`/`urls`/`classifiers`. Recommandation de licence :
 **GPL-3.0-or-later** (correspond à l'obligation GPL de PyQt6 ; permissif uniquement avec
 un passage à PySide6).
+
+---
+
+## Tour 3 – Avant l'extension de fonctionnalités
+
+> Deux tours d'optimisation sont terminés ; le tour 3 regroupe les
+> nettoyages à faible risque qu'il vaut la peine de faire avant une
+> extension de fonctionnalités prévue. La recommandation **#1
+> (monolithe → paquet)** est délibérément reportée : priorité élevée,
+> mais aussi effort/risque élevés et en conflit avec la décision de
+> conception en fichier unique documentée — une décision distincte. La
+> colonne d'état référence la PR qui l'implémente.
+
+| # | Recommandation | Priorité | Effort | État |
+|---|-----------|-----------|---------|--------|
+| 1 | Monolithe → paquet (`bgremover/` avec modules) | 🟠 Élevée | Élevé | Ouvert |
+| 2 | ~~`save_image()` sans gestion d'erreurs~~ | 🟡 Moyenne | Faible | ✅ #48 |
+| 3 | ~~Duplication d'état dans `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Moyenne | Faible | ✅ #52 |
+| 4 | ~~Feuilles de style en ligne éparpillées, pas de module de thème~~ | 🟡 Moyenne | Moyen | ✅ #53 |
+| 5 | ~~Pas de hook SessionStart pour Claude Code on the web~~ | 🟡 Moyenne | Faible | ✅ #51 |
+| 6 | Gardes « aucune image chargée » répétées (~8×) | 🟢 Faible | Faible | Ouvert |
+| 7 | Code répétitif des workers (try/except/log/emit) → classe de base | 🟢 Faible | Faible | Ouvert |
+| 8 | ~~Maintenir `CHANGELOG [Unreleased]`~~ | 🟢 Faible | Faible | ✅ continu |
+| 9 | `mypy` très permissif (7 codes désactivés) | 🟢 Faible | Moyen | Ouvert |
+
+**#1** — `BgRemover.py` reste un fichier unique (~3000 lignes :
+utilitaires, worker, canevas, IU, dialogues, journalisation, main). Le
+plus grand levier pour la croissance des fonctionnalités, mais le risque
+le plus élevé (risque : élevé) et en conflit avec la décision de fichier
+unique documentée. **Ouvert — délibérément reporté**, nécessite une
+décision de conception distincte.
+
+**#2** — Corrigé dans la **PR #48** : `save_image()` renvoie un `bool`
+et encapsule les opérations d'écriture dans `try/except`
+(journalisation + message d'état), cohérent avec `apply_remove/replace`
+; « Enregistrer sous… » ne retient plus un chemin échoué comme cible
+d'enregistrement rapide (`BgRemover.py:1080–1113`).
+
+**#3** — Corrigé dans la **PR #52** (initialement #49, recréée
+proprement après un conflit de fusion) : le bloc d'état d'image
+identique a été fusionné dans les utilitaires `_set_image_state()` /
+`_emit_history()` ; comportement inchangé (`BgRemover.py:877`, `:891`).
+
+**#4** — Corrigé dans la **PR #53** (initialement #50) : une palette de
+couleurs `_Theme` centrale que les modèles réutilisés référencent
+(vérifié octet par octet, 218 feuilles de style, aucune différence
+visuelle). Constantes mortes `BTN_STYLE`/`GRP_STYLE` supprimées
+(`BgRemover.py:1547`).
+
+**#5** — Corrigé dans la **PR #51** : un hook `SessionStart` synchrone
+(`.claude/hooks/session-start.sh`, mode git 100755) installe les
+bibliothèques système Qt + le projet et définit
+`QT_QPA_PLATFORM=offscreen` de manière persistante ; enregistré dans
+`.claude/settings.json`.
+
+**#6** — **Ouvert.** Le retour anticipé « aucune image chargée » se
+répète dans ~8 méthodes ; un petit utilitaire de garde le
+regrouperait.
+
+**#7** — **Ouvert.** Les trois flux de workers partagent du code
+répétitif `try/except/log/emit` ; une classe de base optionnelle
+réduirait la répétition.
+
+**#8** — Respecté : les PR du tour 3 #48/#52/#53 maintiennent chacune
+la section `CHANGELOG [Unreleased]` ; cette entrée documente en outre
+le tour 3 lui-même. Une pratique continue plutôt qu'une PR unique.
+
+**#9** — **Ouvert.** `mypy` est pragmatiquement assoupli dans
+`pyproject.toml` (7 `disable_error_code`) ; le durcir progressivement
+améliore la sûreté de typage (effort/risque : moyen).

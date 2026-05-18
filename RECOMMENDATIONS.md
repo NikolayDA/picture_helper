@@ -221,3 +221,69 @@ erweitert; `LICENSE` (GPL-3.0) ergänzt; `pyproject.toml` mit
 `license`/`authors`/`urls`/`classifiers`. Lizenzempfehlung:
 **GPL-3.0-or-later** (passt zur GPL-Pflicht von PyQt6; permissiv nur mit
 Wechsel auf PySide6).
+
+---
+
+## Runde 3 – Vor der Feature-Erweiterung
+
+> Zwei Optimierungsrunden sind abgeschlossen; Runde 3 sammelt die vor
+> einer geplanten Feature-Erweiterung sinnvollen, risikoarmen Cleanups.
+> Empfehlung **#1 (Monolith → Paket)** ist bewusst zurückgestellt: hohe
+> Priorität, aber auch hoher Aufwand/hohes Risiko und Widerspruch zur
+> dokumentierten Einzeldatei-Designentscheidung — eine separate
+> Entscheidung. Die Status-Spalte verweist auf den umsetzenden PR.
+
+| # | Empfehlung | Priorität | Aufwand | Status |
+|---|-----------|-----------|---------|--------|
+| 1 | Monolith → Paket (`bgremover/` mit Modulen) | 🟠 Hoch | Hoch | Offen |
+| 2 | ~~`save_image()` ohne Fehlerbehandlung~~ | 🟡 Mittel | Niedrig | ✅ #48 |
+| 3 | ~~Zustands-Duplizierung in `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Mittel | Niedrig | ✅ #52 |
+| 4 | ~~Verstreute Inline-Stylesheets, kein Theme-Modul~~ | 🟡 Mittel | Mittel | ✅ #53 |
+| 5 | ~~Kein SessionStart-Hook für Claude Code on the web~~ | 🟡 Mittel | Niedrig | ✅ #51 |
+| 6 | Wiederholte „Kein Bild geladen"-Guards (~8×) | 🟢 Niedrig | Niedrig | Offen |
+| 7 | Worker-Boilerplate (try/except/log/emit) → Basisklasse | 🟢 Niedrig | Niedrig | Offen |
+| 8 | ~~`CHANGELOG [Unreleased]` mitpflegen~~ | 🟢 Niedrig | Niedrig | ✅ laufend |
+| 9 | `mypy` sehr permissiv (7 disabled codes) | 🟢 Niedrig | Mittel | Offen |
+
+**#1** — `BgRemover.py` ist weiterhin eine Einzeldatei (~3000 Zeilen:
+Helfer, Worker, Canvas, UI, Dialoge, Logging, Main). Größter Hebel für
+Feature-Wachstum, aber höchstes Risiko (Risiko: Hoch) und Widerspruch
+zur dokumentierten Einzeldatei-Entscheidung. **Offen — bewusst
+zurückgestellt**, separate Designentscheidung nötig.
+
+**#2** — Behoben in **PR #48**: `save_image()` gibt `bool` zurück und
+kapselt die Schreiboperationen in `try/except` (Logging + Statusmeldung),
+konsistent zu `apply_remove/replace`; „Speichern unter…" merkt
+fehlgeschlagene Pfade nicht mehr als Quick-Save-Ziel
+(`BgRemover.py:1080–1113`).
+
+**#3** — Behoben in **PR #52** (ursprünglich #49, nach Merge-Konflikt
+sauber neu aufgelegt): der identische Bildzustands-Block ist in die
+Helfer `_set_image_state()` / `_emit_history()` zusammengeführt;
+Verhalten unverändert (`BgRemover.py:877`, `:891`).
+
+**#4** — Behoben in **PR #53** (ursprünglich #50): zentrale
+`_Theme`-Farbpalette, die wiederverwendeten Templates referenzieren sie
+(byte-identisch verifiziert, 218 Stylesheets, kein visueller
+Unterschied). Tote Konstanten `BTN_STYLE`/`GRP_STYLE` entfernt
+(`BgRemover.py:1547`).
+
+**#5** — Behoben in **PR #51**: synchroner `SessionStart`-Hook
+(`.claude/hooks/session-start.sh`, Git-Mode 100755) installiert die
+Qt-Systembibliotheken + das Projekt und setzt `QT_QPA_PLATFORM=offscreen`
+persistent; registriert in `.claude/settings.json`.
+
+**#6** — **Offen.** Der „kein Bild geladen"-Frühausstieg wiederholt
+sich in ~8 Methoden; ein kleiner Guard-Helfer würde das bündeln.
+
+**#7** — **Offen.** Die drei Worker-Flows teilen sich
+`try/except/log/emit`-Boilerplate; eine optionale Basisklasse würde die
+Wiederholung reduzieren.
+
+**#8** — Eingehalten: Die Runde-3-PRs #48/#52/#53 pflegen jeweils den
+`CHANGELOG [Unreleased]`-Abschnitt; dieser Eintrag dokumentiert
+zusätzlich Runde 3 selbst. Laufende Praxis statt Einzel-PR.
+
+**#9** — **Offen.** `mypy` ist in `pyproject.toml` pragmatisch entschärft
+(7 `disable_error_code`); schrittweises Verschärfen verbessert die
+Typsicherheit (Aufwand/Risiko: Mittel).
