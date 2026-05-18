@@ -1542,9 +1542,10 @@ TOOL_STYLE = """
         color: #ccc; font-size: 24px; border: none;
         border-radius: 9px; background: #3a3a3a;
     }
-    QToolButton:checked  { background: #4a90d9; color: white; }
-    QToolButton:hover    { background: #4f4f4f; }
-    QToolButton:disabled { color: #555; background: #2a2a2a; }
+    QToolButton:checked        { background: #4a90d9; color: white; }
+    QToolButton:hover          { background: #4f4f4f; }
+    QToolButton:checked:hover  { background: #4a90d9; color: white; }
+    QToolButton:disabled       { color: #555; background: #2a2a2a; }
 """
 
 GRP_STYLE = """
