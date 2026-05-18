@@ -16,6 +16,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   (Pixmap setzen, Maske leeren, Ansicht aktualisieren) ist in die
   Helfer `_set_image_state()` / `_emit_history()` zusammengeführt.
   Verhalten unverändert (verteidigt durch die bestehende Test-Suite).
+- UI-Farbpalette in `_Theme` zentralisiert: die mehrfach wiederholten
+  Stylesheet-Farben (Akzent, Panel-/Tab-Hintergrund, Rahmen,
+  Trennlinien, heller Text) verweisen jetzt auf eine zentrale Stelle,
+  damit künftige UI-Erweiterungen konsistente Farben nutzen. Als
+  byte-identisch verifiziert – alle 218 Widget-Stylesheets unverändert,
+  kein visueller Unterschied.
+
+### Entfernt
+
+- Tote Stylesheet-Konstanten `BTN_STYLE` und `GRP_STYLE` (nirgends
+  referenziert) entfernt.
 
 ### Behoben
 
