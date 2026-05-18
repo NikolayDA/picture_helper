@@ -151,6 +151,37 @@ def test_save_tiff_with_tiff_extension(qapp, tmp_path):
     assert out.exists()
 
 
+# ── Robustheit: save_image-Fehlerpfad ───────────────────────────────────
+
+def test_save_image_returns_true_on_success(qapp, tmp_path):
+    canvas = ImageCanvas()
+    canvas._pil = Image.new("RGBA", (8, 8), (10, 20, 30, 255))
+    assert canvas.save_image(str(tmp_path / "ok.png")) is True
+
+
+def test_save_image_io_error_reports_and_returns_false(qapp, tmp_path):
+    canvas = ImageCanvas()
+    canvas._pil = Image.new("RGBA", (8, 8), (10, 20, 30, 255))
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    # Zielverzeichnis existiert nicht → Pillow wirft FileNotFoundError.
+    out = tmp_path / "kein_ordner" / "out.png"
+    result = canvas.save_image(str(out))
+    assert result is False
+    assert not out.exists()
+    assert any("fehlgeschlagen" in m.lower() for m in msgs), msgs
+
+
+def test_save_image_without_image_reports_and_returns_false(qapp, tmp_path):
+    canvas = ImageCanvas()
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    out = tmp_path / "nichts.png"
+    assert canvas.save_image(str(out)) is False
+    assert not out.exists()
+    assert any("kein bild" in m.lower() for m in msgs), msgs
+
+
 # ── A8: Redo-Stack ──────────────────────────────────────────────────────
 
 def _seed_canvas(color):
