@@ -164,6 +164,17 @@ ruff check BgRemover.py tests
 mypy
 ```
 
+### Anleitung-PDF neu erzeugen
+
+`ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert. Nach Änderungen an
+der Markdown-Quelle die PDF reproduzierbar neu bauen (benötigt die
+DejaVu-Schriften, System-Paket `fonts-dejavu-core`):
+
+```bash
+pip install -e ".[docs]"
+python scripts/generate_anleitung_pdf.py
+```
+
 ## Architektur (Kurzüberblick)
 
 BgRemover ist eine Einzeldatei-Anwendung (`BgRemover.py`):
