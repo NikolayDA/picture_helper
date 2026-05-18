@@ -1,0 +1,69 @@
+[Deutsch](../../../CHANGELOG.md) · [English](../en/CHANGELOG.md) · [Español](../es/CHANGELOG.md) · **Français** · [Українська](../uk/CHANGELOG.md) · [简体中文](../zh/CHANGELOG.md)
+
+# Changelog
+
+Toutes les modifications notables de BgRemover sont
+documentées dans ce fichier. Le format s'inspire de
+[Keep a Changelog](https://keepachangelog.com/de/1.1.0/) ; le projet
+suit le [Semantic Versioning](https://semver.org/lang/de/).
+
+## [Unreleased]
+
+### Documentation
+
+- Ajout d'un guide d'installation pour Linux (`INSTALL_LINUX.md`) :
+  paquets système par distribution (apt/dnf/pacman), configuration du venv,
+  script de lancement ou entrée `.desktop` et dépannage ; lié depuis le README.
+  Y compris une voie particulièrement simple pour Raspberry Pi OS (Desktop)
+  sans venv/pip (PyQt6/Pillow/numpy en tant que paquets système via `apt`), avec
+  une étape facultative d'ajout de l'IA.
+
+## [2.0.0] – 2026-05-17
+
+Première publication taguée publiquement.
+
+### Fonctionnalités
+
+- Suppression d'arrière-plan par IA via `rembg` (extra `ai` facultatif) y compris
+  préchauffage en arrière-plan, pour que le premier clic ne bloque pas.
+- Outils de sélection : baguette magique (flood-fill vectorisé avec
+  curseur de tolérance), pinceau, gomme et lasso polygonal ; Maj/Ctrl
+  pour une sélection additive ou soustractive.
+- Rendre l'arrière-plan transparent ou le remplacer par une couleur.
+- Transformations : rotation (par pas de 90° et angle libre), miroir,
+  arrondi des coins, recadrage dans plusieurs formats avec grille des tiers.
+- Historique avec annulation/rétablissement (boutons de la barre d'outils) et retour à n'importe quelle
+  étape antérieure via une fenêtre flottante d'historique.
+- Glisser-déposer ainsi que « Récemment ouverts » (10 entrées), tous deux via le
+  worker de chargement asynchrone – pas de gel de l'interface.
+- Enregistrement en PNG, JPEG, WebP ou TIFF.
+- Paramètres persistants (répertoires par défaut, format de fichier
+  préféré) via `QSettings`.
+- Construction d'un bundle d'application macOS (`create_BgRemover_app.sh`) y compris venv
+  isolé, gestion d'Apple Silicon et définition de l'icône ; prend en charge Python
+  3.10–3.15.
+
+### Stabilité et qualité
+
+- Threads de worker sécurisés (pas de GC prématuré du worker,
+  arrêt propre du thread dans `closeEvent`, course de l'IA via un compteur de version
+  monotone du canevas).
+- Limite de taille d'image (40 MP) et protection contre les bombes de décompression au chargement.
+- Pile d'annulation limitée en mémoire (256 Mo) avec suivi des octets en O(1).
+- Chemin de journal indépendant de la plateforme (`bgremover.log` dans le répertoire de données d'application).
+- 108 tests ; `ruff` et `mypy` comme étapes de CI ; CI sur Ubuntu et macOS
+  sous Python 3.10 et 3.12.
+- `__version__` est lu depuis les métadonnées du paquet (source unique) ;
+  la version apparaît dans le titre de la fenêtre.
+
+### Documentation et licence
+
+- Licence **GPL-3.0-or-later** (`LICENSE`) ; conditionnée par le
+  binding PyQt6 sous licence GPL.
+- `RESOURCES.md` (toutes les bibliothèques/outils/assets ainsi que leurs licences),
+  `LICENSES.md` et un workflow automatisé de licence/conformité.
+- README avec architecture, limitations connues et guide
+  d'installation ; `INSTALL_MAC.md` détaillé.
+
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0

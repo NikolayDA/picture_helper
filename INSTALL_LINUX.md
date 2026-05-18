@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/INSTALL_LINUX.md) · [Español](docs/i18n/es/INSTALL_LINUX.md) · [Français](docs/i18n/fr/INSTALL_LINUX.md) · [Українська](docs/i18n/uk/INSTALL_LINUX.md) · [简体中文](docs/i18n/zh/INSTALL_LINUX.md)
+
 # BgRemover – Installation unter Linux
 
 Kurzanleitung zum Installieren und Starten von BgRemover aus GitHub —

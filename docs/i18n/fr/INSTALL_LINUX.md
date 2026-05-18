@@ -1,0 +1,280 @@
+[Deutsch](../../../INSTALL_LINUX.md) · [English](../en/INSTALL_LINUX.md) · [Español](../es/INSTALL_LINUX.md) · **Français** · [Українська](../uk/INSTALL_LINUX.md) · [简体中文](../zh/INSTALL_LINUX.md)
+
+# BgRemover – Installation sous Linux
+
+Guide rapide pour installer et lancer BgRemover depuis GitHub —
+aussi bien depuis la branche `main` que depuis une branche de fonctionnalité (p. ex.
+pour tester une pull request ouverte avant la fusion).
+
+> Le bundle d'application macOS (`create_BgRemover_app.sh`) est spécifique à macOS.
+> Sous Linux, BgRemover fonctionne via le lancement direct
+> `python3 BgRemover.py` depuis un environnement virtuel (venv) — éventuellement
+> avec un lanceur de bureau pour le double-clic (voir ci-dessous).
+
+## Prérequis
+
+> **Raspberry Pi OS (Desktop) ?** Alors empruntez la voie nettement plus simple
+> [plus bas](#raspberry-pi-os-desktop--la-voie-simple) —
+> totalement sans venv ni pip. La section suivante concerne Linux
+> en général.
+
+- **Une distribution Linux avec bureau** (X11 ou Wayland)
+- **Python 3.10 ou plus récent** — vérifier avec :
+  ```bash
+  python3 --version
+  ```
+- **git** et le module **venv** (`python3-venv`)
+- **Bibliothèques système Qt** pour PyQt6 — les wheels PyQt6 contiennent Qt
+  lui-même, mais nécessitent quelques bibliothèques système X11/XCB. Sans elles,
+  l'interface démarre avec l'erreur *« qt.qpa.plugin: Could not load the Qt
+  platform plugin xcb »*.
+
+### Installer les paquets système
+
+**Debian / Ubuntu / Linux Mint** (`apt`) :
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git \
+  libegl1 libgl1 libfontconfig1 libxkbcommon0 libxkbcommon-x11-0 \
+  libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+  libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+  libxcb-xinerama0 libxcb-xkb1
+```
+(`libxcb-cursor0` est requis par Qt 6.5+ pour le plugin `xcb`, entre autres sous
+Ubuntu 24.04.)
+
+**Fedora / RHEL** (`dnf`) :
+```bash
+sudo dnf install -y python3 python3-pip git \
+  libxcb xcb-util-cursor xcb-util-image xcb-util-keysyms \
+  xcb-util-renderutil xcb-util-wm libxkbcommon-x11 \
+  fontconfig mesa-libGL mesa-libEGL dbus-libs
+```
+
+**Arch / Manjaro** (`pacman`) :
+```bash
+sudo pacman -S --needed python python-pip git \
+  libxcb xcb-util-cursor xcb-util-image xcb-util-keysyms \
+  xcb-util-renderutil xcb-util-wm libxkbcommon-x11 \
+  fontconfig mesa
+```
+
+## Raspberry Pi OS (Desktop) – la voie simple
+
+Sur **Raspberry Pi OS « Bookworm » Desktop** (Debian 12, 64 bits
+recommandé), l'installation est nettement plus simple : PyQt6, Pillow et
+numpy sont disponibles sous forme de paquets système prêts à l'emploi via `apt`. **Aucun
+venv, aucun `pip` et aucune installation editable** ne sont nécessaires — BgRemover fonctionne
+directement depuis le clone. Le paquet `python3-pyqt6` entraîne automatiquement les
+bibliothèques Qt6/XCB nécessaires en tant que dépendance (la longue
+liste XCB ci-dessus est inutile).
+
+```bash
+sudo apt update
+sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 BgRemover.py
+```
+
+C'est tout — la fenêtre principale s'ouvre. Les outils manuels
+(baguette magique, pinceau/gomme, recadrage, rotation, miroir, arrondi des
+coins) fonctionnent intégralement. La **suppression d'arrière-plan par IA est
+désactivée dans cette installation minimale** (le bouton d'IA est
+grisé) — ajoutable facultativement au besoin (voir ci-dessous).
+
+Pour mettre à jour plus tard, il suffit de faire `git pull` dans le dossier du projet ; une
+nouvelle étape d'installation est inutile.
+
+### Facultatif : lancement depuis le menu des applications
+
+Créer un fichier `~/.local/share/applications/bgremover.desktop` et
+remplacer `/PFAD/ZU/picture_helper` par le chemin absolu du projet :
+```ini
+[Desktop Entry]
+Type=Application
+Name=BgRemover
+Comment=Hintergrund entfernen und Bilder bearbeiten
+Exec=python3 /PFAD/ZU/picture_helper/BgRemover.py
+Path=/PFAD/ZU/picture_helper
+Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
+Categories=Graphics;Photography;
+Terminal=false
+```
+BgRemover apparaît ensuite dans le menu des applications et démarre par un clic —
+sans venv ni script wrapper.
+
+### Facultatif : ajouter la suppression d'arrière-plan par IA
+
+> **Remarque :** sur le Raspberry Pi, l'IA (`rembg` +
+> `onnxruntime`) est **nettement plus lente et gourmande en mémoire**. Recommandée
+> uniquement sur **Raspberry Pi OS 64 bits** (`uname -m` → `aarch64`) et un
+> Pi 4/5 avec suffisamment de RAM (≥ 4 Go). Sur 32 bits (`armv7l`/armhf), il
+> n'existe en général pas de wheels `onnxruntime` adaptés — dans ce cas, mieux vaut
+> renoncer à l'IA.
+
+Comme `rembg` est installé après coup via pip, utiliser pour cela un venv **avec accès
+aux paquets Qt du système** :
+```bash
+cd picture_helper
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install "rembg[cpu]"
+python3 BgRemover.py
+```
+`--system-site-packages` rend les PyQt6/Pillow/numpy installés via `apt`
+visibles dans le venv, de sorte que seuls `rembg` et
+`onnxruntime` sont chargés en plus. Au tout premier clic d'IA, `rembg`
+télécharge son modèle une seule fois (quelques centaines de Mo, cache dans `~/.u2net`).
+Pour les démarrages suivants, depuis le venv : `source .venv/bin/activate` et
+`python3 BgRemover.py`.
+
+## Démarrage rapide depuis `main`
+
+Sur Linux moderne, les installations Python système bloquent `pip install`
+selon le PEP 668 (« externally-managed-environment »). C'est pourquoi l'installation se fait dans un
+venv isolé :
+
+```bash
+git clone https://github.com/NikolayDA/picture_helper.git
+cd picture_helper
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+- `.[ai]` installe `rembg[cpu]` y compris `onnxruntime`
+  (suppression d'arrière-plan par IA).
+- Sans la fonction d'IA, il suffit de : `python3 -m pip install -e .`
+
+Dans un nouveau shell, réactiver le venv avant le démarrage :
+```bash
+cd picture_helper
+source .venv/bin/activate
+python3 BgRemover.py
+```
+
+## Variantes de démarrage
+
+| Variante | Commande / action | Résultat |
+|----------|-----------------|----------|
+| **A – Terminal (recommandé)** | activer le venv, puis `python3 BgRemover.py` | Lancement direct depuis le répertoire du projet. |
+| **B – Script de lancement** | `./bgremover.sh` (voir ci-dessous) | Active automatiquement le venv et démarre l'application. |
+| **C – Menu des applications** | entrée `.desktop` (voir ci-dessous) | Lancement par double-clic / depuis le menu des applications. |
+
+### B – Script de lancement
+
+Créer un fichier `bgremover.sh` dans le répertoire du projet :
+```bash
+#!/usr/bin/env bash
+cd "$(dirname "$0")" || exit 1
+source .venv/bin/activate
+exec python3 BgRemover.py "$@"
+```
+Le rendre exécutable et le démarrer :
+```bash
+chmod +x bgremover.sh
+./bgremover.sh
+```
+
+### C – Entrée de bureau (menu des applications)
+
+Créer un fichier `~/.local/share/applications/bgremover.desktop` et
+remplacer `/PFAD/ZU/picture_helper` par le chemin absolu du projet :
+```ini
+[Desktop Entry]
+Type=Application
+Name=BgRemover
+Comment=Hintergrund entfernen und Bilder bearbeiten
+Exec=/PFAD/ZU/picture_helper/bgremover.sh
+Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
+Categories=Graphics;Photography;
+Terminal=false
+```
+Ensuite, mettre à jour la base de données du bureau (facultatif) :
+```bash
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+```
+BgRemover apparaît désormais dans le menu des applications.
+
+## Installation depuis une branche (tester des PRs ouvertes)
+
+Les noms des branches de PR figurent dans la pull request correspondante sur GitHub
+(« … wants to merge … from **`<branch>`** »).
+
+**Variante 1 – dans le répertoire de clone existant :**
+```bash
+cd picture_helper
+git fetch origin
+git branch -r                       # afficher les branches disponibles
+git checkout <branch>
+source .venv/bin/activate
+# nécessaire uniquement si les dépendances ont changé :
+python3 -m pip install -e ".[ai]"
+python3 BgRemover.py
+```
+
+**Variante 2 – cloner directement une branche :**
+```bash
+git clone --branch <branch-name> \
+  https://github.com/NikolayDA/picture_helper.git
+```
+
+## Mettre à jour / changer de branche
+
+```bash
+git checkout main && git pull          # dernière version principale
+git checkout <branch> && git pull      # mettre à jour une branche donnée
+```
+
+L'installation editable (`pip install -e`) n'a **pas** besoin d'être
+réexécutée après `git pull` — sauf si les dépendances dans
+`pyproject.toml` ont changé.
+
+## Dépannage
+
+- **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
+  Il manque des bibliothèques système Qt. Réinstaller les paquets de la section
+  *« Installer les paquets système »* (en particulier
+  `libxcb-cursor0` sous Ubuntu 24.04). Quelle bibliothèque manque exactement
+  est indiqué par :
+  ```bash
+  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  ```
+- **`error: externally-managed-environment` lors de `pip install`** → PEP
+  668 : ne pas installer dans le Python système, mais dans un venv (voir
+  Démarrage rapide). Le module venv manque ? → `sudo apt install python3-venv`.
+- **« python3: command not found » ou version < 3.10** → installer un Python
+  récent via le gestionnaire de paquets de la distribution (le code
+  utilise des annotations de type PEP 604 comme `QThread | None` ; Python 3.9 échoue).
+- **Wayland : fenêtre/mise à l'échelle semble défaillante** → basculer à titre d'essai vers le
+  plugin X11 (XWayland) :
+  ```bash
+  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  ```
+- **Erreur pip lors de l'installation** → dans le venv actif, mettre d'abord pip
+  à jour, puis réessayer la commande d'installation :
+  ```bash
+  python3 -m pip install --upgrade pip
+  ```
+- **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
+  télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans
+  `~/.u2net`). La barre d'état affiche « 🤖 KI-Modell wird geladen… »
+  puis « 🤖 KI bereit ».
+- **L'application démarre sans IA / « No onnxruntime backend found »** → l'extra
+  `ai` n'a pas été installé. L'installer après coup dans le venv :
+  ```bash
+  python3 -m pip install "rembg[cpu]"
+  ```
+- **Raspberry Pi : `Unable to locate package python3-pyqt6`** → les anciennes
+  versions de Raspberry Pi OS (Bullseye) ne fournissent que PyQt5. Passer à
+  « Bookworm » (ou plus récent) — ou suivre la voie générale
+  venv/pip ci-dessus.
+- **Raspberry Pi OS « Bookworm » (Pi 4/5) utilise Wayland** → en cas de problème de fenêtre
+  ou de mise à l'échelle, basculer à titre d'essai vers le plugin X11 :
+  `QT_QPA_PLATFORM=xcb python3 BgRemover.py` (voir la remarque Wayland
+  ci-dessus).
+- **Diagnostic en cas d'erreur** → consulter le fichier journal
+  `~/.local/share/BgRemover/bgremover.log` (traces d'appels et
+  messages d'état). Lors d'un lancement depuis le terminal, le message
+  d'erreur apparaît en plus directement dans la console.
