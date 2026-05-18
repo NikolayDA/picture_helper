@@ -44,6 +44,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   verlinkt. Inkl. besonders einfachem Weg für Raspberry Pi OS (Desktop)
   ohne venv/pip (PyQt6/Pillow/numpy als Systempakete via `apt`), mit
   optionalem KI-Nachrüst-Schritt.
+- `RECOMMENDATIONS.md` (+ i18n en/es/fr/uk/zh) um die Sektion „Runde 3"
+  ergänzt: die bewertete Empfehlungsliste mit Status (erledigt #48/#52/
+  #53/#51 bzw. offen), damit der Optimierungsstand dauerhaft im Repo
+  nachvollziehbar ist.
 
 ## [2.0.0] – 2026-05-17
 
