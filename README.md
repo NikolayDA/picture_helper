@@ -166,9 +166,13 @@ mypy
 
 ### Anleitung-PDF neu erzeugen
 
-`ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert. Nach Änderungen an
-der Markdown-Quelle die PDF reproduzierbar neu bauen (benötigt die
-DejaVu-Schriften, System-Paket `fonts-dejavu-core`):
+`ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert (Markdown → HTML →
+PDF via WeasyPrint, GitHub-ähnliches Layout). Nach Änderungen an der
+Markdown-Quelle die PDF reproduzierbar neu bauen. Benötigt die
+DejaVu-Schriften (System-Paket `fonts-dejavu-core`) sowie die
+WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf, unter
+Debian/Ubuntu z. B. `libpango-1.0-0 libpangoft2-1.0-0 libcairo2
+libgdk-pixbuf-2.0-0`):
 
 ```bash
 pip install -e ".[docs]"
