@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/RESOURCES.md) · [Español](docs/i18n/es/RESOURCES.md) · [Français](docs/i18n/fr/RESOURCES.md) · [Українська](docs/i18n/uk/RESOURCES.md) · [简体中文](docs/i18n/zh/RESOURCES.md)
+
 # Verwendete Ressourcen
 
 Dieses Dokument listet **alle externen Ressourcen** auf, die BgRemover

@@ -1,3 +1,5 @@
+**Deutsch** · [English](docs/i18n/en/LICENSES.md) · [Español](docs/i18n/es/LICENSES.md) · [Français](docs/i18n/fr/LICENSES.md) · [Українська](docs/i18n/uk/LICENSES.md) · [简体中文](docs/i18n/zh/LICENSES.md)
+
 # Lizenz- & Rechtsuebersicht – bgremover 2.0.0
 
 > Automatisch generiert – **rein technische Einschaetzung der Lizenzbedingungen, keine Rechtsberatung.**
@@ -31,7 +33,7 @@ Staerkste relevante Lizenz im Gesamtwerk: **Starkes Copyleft**.
 
 | Paket | Version | Lizenz | Kategorie | Einschaetzung |
 |---|---|---|---|---|
-| ast_serialize | 0.4.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
+| ast_serialize | 0.5.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
 | attrs | 26.1.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | Schwaches Copyleft (Datei) | Schwaches, dateibezogenes Copyleft. Kommerzielle Nutzung erlaubt; nur Aenderungen an den MPL-lizenzierten Dateien selbst muessen wieder unter MPL offengelegt werden. Mit GPL-3.0 vereinbar. |
 | charset-normalizer | 3.4.6 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
