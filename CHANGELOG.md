@@ -9,6 +9,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- Interne Refaktorierung: Der in `_apply_pil`, `undo`, `redo`,
+  `undo_to` und `restore_original` identische Bildzustands-Block
+  (Pixmap setzen, Maske leeren, Ansicht aktualisieren) ist in die
+  Helfer `_set_image_state()` / `_emit_history()` zusammengeführt.
+  Verhalten unverändert (verteidigt durch die bestehende Test-Suite).
+
 ### Behoben
 
 - `save_image()` fängt E/A-Fehler ab (nicht beschreibbarer Pfad, voller
