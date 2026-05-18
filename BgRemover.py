@@ -27,12 +27,12 @@ from PyQt6.QtGui import (
     QPixmap, QImage, QPainter, QColor, QBrush,
     QDragEnterEvent, QDropEvent, QAction, QKeySequence,
     QCursor, QPalette, QPen, QIcon, QPolygonF, QPainterPath,
-    QFontMetrics, QFont,
+    QFontMetrics, QFont, QDesktopServices,
 )
 
 from PyQt6.QtCore import (
     Qt, QRectF, QPointF, QSize, QRect, pyqtSignal, QThread, QObject,
-    QSettings, QStandardPaths,
+    QSettings, QStandardPaths, QUrl,
 )
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
@@ -51,6 +51,12 @@ except PackageNotFoundError:
     __version__ = "2.0.0"
 
 logger = logging.getLogger("BgRemover")
+
+LOG_FILENAME = "bgremover.log"
+# Vom Logging-Setup gesetzter, tatsächlich beschriebener Log-Pfad. Wird
+# vom Einstellungen-Dialog ausgelesen, damit Anzeige und FileHandler nie
+# auseinanderlaufen.
+_log_file_path: "Path | None" = None
 
 # Bildgrössen-Limit beim Laden (Pixel), um UI-Freeze / OOM zu vermeiden.
 # Die Zauberstab-Flood-Fill läuft synchron im GUI-Thread; jenseits ~40 MP
@@ -1772,6 +1778,19 @@ class SettingsDialog(QDialog):
         fmt_lay.addStretch()
         lay.addWidget(fmt_grp)
 
+        # Protokolldatei
+        log_grp = QGroupBox("Protokolldatei")
+        log_lay = QHBoxLayout(log_grp)
+        self._log_path_edit = QLineEdit()
+        self._log_path_edit.setReadOnly(True)
+        self._log_path_edit.setToolTip(
+            "Pfad der Log-Datei (markieren zum Kopieren)")
+        log_lay.addWidget(self._log_path_edit)
+        btn_log = QPushButton("Ordner öffnen")
+        btn_log.clicked.connect(self._open_log_dir)
+        log_lay.addWidget(btn_log)
+        lay.addWidget(log_grp)
+
         lay.addStretch()
 
         # OK / Abbrechen
@@ -1800,6 +1819,14 @@ class SettingsDialog(QDialog):
         if d:
             self._save_dir_edit.setText(d)
 
+    def _open_log_dir(self) -> None:
+        log_file = current_log_file()
+        target = log_file.parent if log_file.parent.exists() else Path.home()
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(target))):
+            QMessageBox.warning(
+                self, "Protokolldatei",
+                f"Ordner konnte nicht geöffnet werden:\n{target}")
+
     def _load(self) -> None:
         self._open_dir_edit.setText(self._settings.value("open_dir", ""))
         self._save_dir_edit.setText(self._settings.value("save_dir", ""))
@@ -1807,6 +1834,7 @@ class SettingsDialog(QDialog):
         idx = self._fmt_combo.findText(fmt)
         if idx >= 0:
             self._fmt_combo.setCurrentIndex(idx)
+        self._log_path_edit.setText(str(current_log_file()))
 
     def _save_and_accept(self) -> None:
         self._settings.setValue("open_dir", self._open_dir_edit.text().strip())
@@ -2888,14 +2916,11 @@ class MainWindow(QMainWindow):
 # Start
 # ─────────────────────────────────────────────────────────────
 
-def _setup_logging() -> None:
-    """Konfiguriert stderr- + Datei-Logging.
+def _resolve_log_dir() -> Path:
+    """Ermittelt das Log-Verzeichnis und legt es bei Bedarf an.
 
-    Muss NACH dem Erzeugen der QApplication und dem Setzen von
-    Application-/Organization-Name laufen, sonst liefert
-    ``QStandardPaths`` keinen app-spezifischen Pfad. Das Zielverzeichnis
-    wird angelegt – andernfalls bricht der ``FileHandler`` den Start mit
-    ``FileNotFoundError`` ab.
+    Das Zielverzeichnis wird angelegt – andernfalls bricht der
+    ``FileHandler`` den Start mit ``FileNotFoundError`` ab.
     """
     loc = QStandardPaths.writableLocation(
         QStandardPaths.StandardLocation.AppDataLocation)
@@ -2904,12 +2929,36 @@ def _setup_logging() -> None:
         log_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         log_dir = Path.home()
+    return log_dir
+
+
+def current_log_file() -> Path:
+    """Pfad der aktiven Log-Datei.
+
+    Liefert den vom ``_setup_logging`` gesetzten Pfad; falls noch kein
+    Setup lief (z. B. in Tests), wird er erneut aufgelöst.
+    """
+    if _log_file_path is not None:
+        return _log_file_path
+    return _resolve_log_dir() / LOG_FILENAME
+
+
+def _setup_logging() -> None:
+    """Konfiguriert stderr- + Datei-Logging.
+
+    Muss NACH dem Erzeugen der QApplication und dem Setzen von
+    Application-/Organization-Name laufen, sonst liefert
+    ``QStandardPaths`` keinen app-spezifischen Pfad.
+    """
+    global _log_file_path
+    log_dir = _resolve_log_dir()
+    _log_file_path = log_dir / LOG_FILENAME
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stderr),
-            logging.FileHandler(log_dir / "bgremover.log", encoding="utf-8"),
+            logging.FileHandler(_log_file_path, encoding="utf-8"),
         ],
     )
 

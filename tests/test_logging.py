@@ -69,3 +69,33 @@ def test_setup_logging_creates_missing_directory(tmp_path, monkeypatch):
         for h in before:
             if h not in root.handlers:
                 root.addHandler(h)
+
+
+def test_current_log_file_matches_setup(tmp_path, monkeypatch):
+    """``current_log_file()`` muss exakt den Pfad liefern, den
+    ``_setup_logging`` gerade als FileHandler-Ziel verwendet – sonst
+    zeigt der Einstellungen-Dialog einen falschen Pfad an."""
+    target = tmp_path / "appdir"
+
+    class _FakeQSP:
+        class StandardLocation:
+            AppDataLocation = 0
+
+        @staticmethod
+        def writableLocation(_loc):
+            return str(target)
+
+    monkeypatch.setattr(BgRemover, "QStandardPaths", _FakeQSP)
+    root = logging.getLogger()
+    before = list(root.handlers)
+    try:
+        BgRemover._setup_logging()
+        assert BgRemover.current_log_file() == target / "bgremover.log"
+    finally:
+        for h in list(root.handlers):
+            if h not in before:
+                h.close()
+                root.removeHandler(h)
+        for h in before:
+            if h not in root.handlers:
+                root.addHandler(h)

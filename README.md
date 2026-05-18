@@ -16,7 +16,7 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
 - Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.
-- **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert.
+- **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert; die Log-Datei lässt sich direkt aus den Einstellungen auffinden und ihr Ordner öffnen.
 
 ## Screenshots
 
@@ -112,15 +112,16 @@ Kurzüberblick:
 
 ### Einstellungen
 
-Über `Extras → Einstellungen…` (⌘,) lassen sich drei Nutzereinstellungen dauerhaft speichern:
+Über `Extras → Einstellungen…` (⌘,) lassen sich folgende Einstellungen verwalten:
 
 | Einstellung | Beschreibung |
 |---|---|
 | Standard-Verzeichnis zum Öffnen | Startverzeichnis des Öffnen-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Standard-Verzeichnis für Export/Speichern | Startverzeichnis des Speichern-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Bevorzugtes Bilddateiformat | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
+| Protokolldatei | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
-Die Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
+Die ersten drei Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
 
 ### Tastatur-Kürzel
 
@@ -163,6 +164,21 @@ ruff check BgRemover.py tests
 mypy
 ```
 
+### Anleitung-PDF neu erzeugen
+
+`ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert (Markdown → HTML →
+PDF via WeasyPrint, GitHub-ähnliches Layout). Nach Änderungen an der
+Markdown-Quelle die PDF reproduzierbar neu bauen. Benötigt die
+DejaVu-Schriften (System-Paket `fonts-dejavu-core`) sowie die
+WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf, unter
+Debian/Ubuntu z. B. `libpango-1.0-0 libpangoft2-1.0-0 libcairo2
+libgdk-pixbuf-2.0-0`):
+
+```bash
+pip install -e ".[docs]"
+python scripts/generate_anleitung_pdf.py
+```
+
 ## Architektur (Kurzüberblick)
 
 BgRemover ist eine Einzeldatei-Anwendung (`BgRemover.py`):
@@ -196,6 +212,11 @@ plattformspezifischen App-Datenverzeichnis angelegt
 (macOS: `~/Library/Application Support/BgRemover/`,
 Linux: `~/.local/share/BgRemover/`). Sie enthält Stacktraces und
 Status-Meldungen und ist bei Problemen die erste Anlaufstelle.
+
+Den genauen Pfad zeigt der Dialog `Extras → Einstellungen… →
+Protokolldatei` an; der Knopf „Ordner öffnen" öffnet das Verzeichnis
+direkt im Dateimanager – praktisch, um die Datei zu finden oder an eine
+Support-Mail anzuhängen.
 
 ## Lizenz
 
