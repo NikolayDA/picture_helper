@@ -299,6 +299,7 @@ class ImageCanvas(QGraphicsView):
             if self._pil is not None:
                 self._redo.append((self._pil.copy(), desc))
             self._pil = img
+        assert img is not None  # actual > 0 (Guard oben) -> Schleife lief ≥ 1×
         self._set_image_state(img)
         self._emit_history()
         self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
@@ -485,7 +486,7 @@ class ImageCanvas(QGraphicsView):
         return int(sp.x()), int(sp.y())
 
     def mousePressEvent(self, event) -> None:
-        if self._pil is None:
+        if self._pil is None or self._arr is None:
             return super().mousePressEvent(event)
 
         btn  = event.button()
