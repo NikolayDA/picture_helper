@@ -71,9 +71,12 @@ extend-select = ["E", "F", "W"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# BgRemover.py: bewusst kompakter Stil (Mehrfach-Statements mit Semikolons,
-# einzelne kurze Schleifenvariablen wie `l`/`b`).
+# Bewusst kompakter Stil (Mehrfach-Statements mit Semikolons, einzelne
+# kurze Schleifenvariablen wie `l`/`b`). Gilt für den Monolithen UND das
+# neue Paket (Runde 5, Phase B – der Stil zieht mit dem Code mit); der
+# BgRemover.py-Key entfällt mit dessen Löschung (Schritt 13).
 "BgRemover.py" = ["E702", "E741"]
+"bgremover/*.py" = ["E702", "E741"]
 # conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
 "tests/conftest.py" = ["E402"]
 
