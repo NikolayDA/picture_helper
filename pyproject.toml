@@ -83,11 +83,8 @@ ignore_missing_imports = true
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass
 # Namen/Importe/Signaturen grundsätzlich konsistent sind.
 check_untyped_defs = false
-# Wird schrittweise verschärft (RECOMMENDATIONS Runde 4 #4). `index`,
-# `operator`, `arg-type`, `attr-defined`, `assignment`,
-# `func-returns-value` und `override` sind bereits sauber und daher
-# aktiviert. Verbleibender Code mit gemessener Fehlerzahl:
-# union-attr (67).
-disable_error_code = [
-    "union-attr",
-]
+# Alle ehemals via `disable_error_code` deaktivierten Fehlerklassen sind
+# inzwischen aktiviert (RECOMMENDATIONS Runde 4 #4 abgeschlossen):
+# `index`, `operator`, `arg-type`, `attr-defined`, `assignment`,
+# `func-returns-value`, `override`, `union-attr`. Es bleibt nur
+# `check_untyped_defs = false` als pragmatischer Qt-Rauschdaempfer.
