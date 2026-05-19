@@ -282,7 +282,8 @@ def test_settings_opened_from_menu(main_window, monkeypatch):
 
 
 def test_settings_pick_dirs(main_window, qtbot, monkeypatch, tmp_path):
-    monkeypatch.setattr(BgRemover, "QFileDialog", _FakeFileDialog)
+    import bgremover.settings_dialog as _sd
+    monkeypatch.setattr(_sd, "QFileDialog", _FakeFileDialog)
     _FakeFileDialog.dir_ret = str(tmp_path)
     dlg = SettingsDialog(main_window._settings, main_window)
     qtbot.addWidget(dlg)
