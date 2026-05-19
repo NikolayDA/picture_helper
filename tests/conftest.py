@@ -59,10 +59,12 @@ def _qt_platform_diagnosis() -> str | None:
     hint = ""
     if sys.version_info[:2] >= (3, 14):
         hint = (
-            f"\nHinweis: Python {py} wird vom Projekt noch nicht "
-            "unterstützt (getestet: 3.10–3.13). PyQt6 hat dafür derzeit "
-            "kein funktionierendes 'offscreen'-Plugin.\n"
-            "  -> venv mit Python 3.12 oder 3.13 neu aufbauen:\n"
+            f"\nHinweis: Python {py} ist offiziell nicht getestet "
+            "(Classifier: 3.10–3.13), funktioniert aber mit "
+            "PyQt6 >= 6.11 (cp314-Wheels mit lauffähigem "
+            "'offscreen'-Plugin).\n"
+            "  -> zuerst:  pip install -U PyQt6\n"
+            "  -> hilft das nicht, venv auf 3.12/3.13 neu aufbauen:\n"
             "     rm -rf .venv && python3.12 -m venv .venv && "
             "source .venv/bin/activate && pip install -e \".[test]\"\n"
         )
