@@ -10,14 +10,34 @@ Wiedereinführung.
 import ast
 from pathlib import Path
 
-import BgRemover
+import bgremover
 
 
-SRC = Path(__file__).resolve().parent.parent / "BgRemover.py"
+_PKG = Path(__file__).resolve().parent.parent / "bgremover"
+
+
+def _pkg_assigned_names() -> set[str]:
+    """Sammelt die Modul-Level ``Name``-Ziele aller Zuweisungen im Paket.
+
+    Verteidigt die Regel ``BTN_STYLE``/``GRP_STYLE`` bleiben tot –
+    unabhaengig davon, in welchem Paket-Modul jemand sie kuenftig
+    versehentlich wieder anlegen wuerde.
+    """
+    names: set[str] = set()
+    for p in sorted(_PKG.glob("*.py")):
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        names |= {
+            t.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            for t in node.targets
+            if isinstance(t, ast.Name)
+        }
+    return names
 
 
 def test_theme_has_canonical_values():
-    t = BgRemover._Theme
+    t = bgremover._Theme
     assert t.ACCENT == "#4a90d9"
     assert t.BG_PANEL == "#1a1a1a"
     assert t.BG_TABBAR == "#141414"
@@ -29,27 +49,20 @@ def test_theme_has_canonical_values():
 def test_shared_templates_use_palette():
     # Die wiederverwendeten Templates müssen die Palette referenzieren,
     # nicht erneut hartkodierte Hex-Werte enthalten.
-    assert BgRemover._Theme.ACCENT in BgRemover.TOOL_STYLE
-    assert BgRemover._Theme.BORDER in BgRemover.SLD_STYLE
-    assert BgRemover._Theme.ACCENT in BgRemover.MainWindow._TAB_STYLE
+    assert bgremover._Theme.ACCENT in bgremover.TOOL_STYLE
+    assert bgremover._Theme.BORDER in bgremover.SLD_STYLE
+    assert bgremover._Theme.ACCENT in bgremover.MainWindow._TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
-    assert "{{" not in BgRemover.TOOL_STYLE
-    assert "}}" not in BgRemover.MainWindow._TAB_STYLE
+    assert "{{" not in bgremover.TOOL_STYLE
+    assert "}}" not in bgremover.MainWindow._TAB_STYLE
 
 
 def test_dead_style_constants_not_reintroduced():
     # BTN_STYLE/GRP_STYLE waren toter Code (nirgends referenziert) und
     # wurden entfernt – nicht erneut anlegen.
-    assert not hasattr(BgRemover, "BTN_STYLE")
-    assert not hasattr(BgRemover, "GRP_STYLE")
-    tree = ast.parse(SRC.read_text(encoding="utf-8"))
-    assigned = {
-        t.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        for t in node.targets
-        if isinstance(t, ast.Name)
-    }
+    assert not hasattr(bgremover, "BTN_STYLE")
+    assert not hasattr(bgremover, "GRP_STYLE")
+    assigned = _pkg_assigned_names()
     assert "BTN_STYLE" not in assigned
     assert "GRP_STYLE" not in assigned

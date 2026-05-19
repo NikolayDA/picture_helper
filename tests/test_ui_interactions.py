@@ -25,8 +25,8 @@ from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
 from PyQt6.QtGui import QAction, QMouseEvent
 from PyQt6.QtWidgets import QToolButton
 
-import BgRemover
-from BgRemover import (
+import bgremover
+from bgremover import (
     CropOverlayItem,
     ImageCanvas,
     MainWindow,
@@ -75,7 +75,7 @@ def loaded_window(main_window, tmp_path):
 
 
 class _FakeFileDialog:
-    """Ersetzt ``BgRemover.QFileDialog`` in Tests (keine nativen Dialoge)."""
+    """Ersetzt ``bgremover.QFileDialog`` in Tests (keine nativen Dialoge)."""
     open_ret: tuple = ("", "")
     dir_ret: str = ""
 
@@ -278,7 +278,7 @@ def test_settings_dialog_load_save(main_window, qtbot, tmp_path):
 
 def test_settings_opened_from_menu(main_window, monkeypatch):
     # Modale exec() durch No-op ersetzen, damit der Test nicht blockiert.
-    monkeypatch.setattr(BgRemover.SettingsDialog, "exec", lambda self: 0)
+    monkeypatch.setattr(bgremover.SettingsDialog, "exec", lambda self: 0)
     _action(main_window, "Einstellungen…").trigger()  # darf nicht werfen
 
 

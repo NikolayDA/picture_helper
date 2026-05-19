@@ -9,7 +9,7 @@ Verteidigt drei Bug-Fixes aus dem Code-Review:
 """
 import pytest
 
-from BgRemover import CropOverlayItem
+from bgremover import CropOverlayItem
 
 
 # ── Fix #2: Aspect-Ratio über Bildrand ─────────────────────────────────

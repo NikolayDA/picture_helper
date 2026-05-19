@@ -6,7 +6,7 @@ gezoomt werden, dass Qt-Rasterung sichtbar wurde.
 """
 from PIL import Image
 
-from BgRemover import ImageCanvas
+from bgremover import ImageCanvas
 
 
 def test_zoom_in_is_capped_at_max(qapp):
