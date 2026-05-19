@@ -311,7 +311,7 @@ mejora la seguridad de tipos (esfuerzo/riesgo: medio).
 | 1 | ~~Corte de versión 2.1.0 + etiqueta git~~ | 🟠 Alta | Bajo | ✅ Hecho (etiqueta tras merge) |
 | 2 | ~~Ayudante de guarda "ninguna imagen" (ronda 3 #6)~~ | 🟢 Baja | Bajo | ✅ Hecho |
 | 3 | ~~Clase base de worker (ronda 3 #7)~~ | 🟢 Baja | Bajo | ✅ Hecho |
-| 4 | Endurecer `mypy` paso a paso (ronda 3 #9) | 🟢 Baja | Medio | 🟢 Paso 1 hecho |
+| 4 | ~~Endurecer `mypy` paso a paso (ronda 3 #9)~~ | 🟢 Baja | Medio | ✅ Hecho (los 8 códigos activos) |
 | 5 | Monolito → paquete (ronda 3 #1) | 🟠 Alta | Alto | ✅ resuelto (ronda 5) |
 
 ### ✅ 1. Corte de versión 2.1.0 + etiqueta git *(hecho)*
@@ -353,25 +353,24 @@ implementan `_work()`. `RembgWarmupWorker` permanece deliberadamente
 independiente (sin señal `error`, `finished` siempre en `finally` –
 contrato distinto).
 
-### 🟢 4. Endurecer `mypy` paso a paso *(ronda 3 #9 – paso 1 hecho)*
+### ✅ 4. Endurecer `mypy` paso a paso *(ronda 3 #9 / ronda 4 #4 – hecho)*
 
-`disable_error_code` reducido de **8 a 6**: `index` y `operator` ya
-están limpios (**0 errores** cada uno, medido) y por tanto reactivados
-en `pyproject.toml` – sin cambio de código, sin riesgo. Hoja de ruta
-medida para los códigos restantes (un paso por PR, como se recomienda):
+**Todas las clases de error previamente deshabilitadas están ahora
+activas.** Tras el corte monolito → paquete (ronda 5), los seis
+códigos restantes pudieron activarse archivo por archivo:
 
-| Código | Errores abiertos | Carácter |
-|--------|------------------|----------|
-| `arg-type` | 2 | estrechamiento de None por guardas/decorador |
-| `attr-defined` | 2 | `QThread._worker`/`QObject.run` dinámicos |
-| `func-returns-value` | 4 | retorno void en tuplas lambda de UI |
-| `assignment` | 4 | tipos de asignación mixtos |
-| `override` | 7 | firmas de override de Qt |
-| `union-attr` | 67 | muy amplio – abordar al final |
+| Código | Antes | Estrategia |
+|--------|-------|------------|
+| `arg-type` | 2 | invariante `_pil`/`_arr` por doble guarda + `assert` en bucle |
+| `attr-defined` | 2 | `setattr(thread, "_worker", ...)`; parámetro `_Worker \| RembgWarmupWorker` |
+| `assignment` | 4 | anotaciones explícitas iniciales (`Image.Image`, `RankFilter`, `QMenu \| None`) |
+| `func-returns-value` | 4 | tuplas lambda de UI → `def` locales |
+| `override` | 7 | firmas alineadas con los stubs de PyQt6 (`QPainter \| None` etc.) |
+| `union-attr` | 67 | barra de estado/menú y viewport en caché; asserts puntuales |
 
-Siguiente paso sensato: `arg-type` o `attr-defined` (2 cada uno,
-mejoras pequeñas y reales). Esfuerzo/riesgo de los pasos restantes:
-medio.
+En `pyproject.toml` solo queda `check_untyped_defs = false` como
+amortiguador pragmático del ruido Qt (cubre las firmas Qt override
+event/option/widget).
 
 ### 🟠 5. Monolito → paquete *(ronda 3 #1, aplazado a propósito)*
 

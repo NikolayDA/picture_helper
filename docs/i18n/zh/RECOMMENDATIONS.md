@@ -295,7 +295,7 @@ fit_to_view()` 和 `CropOverlayItem.top_left/size`。`MainWindow` 和
 | 1 | ~~版本切割 2.1.0 + git 标签~~ | 🟠 高 | 低 | ✅ 已完成（标签于合并后） |
 | 2 | ~~“未加载图像”守卫辅助（第 3 轮 #6）~~ | 🟢 低 | 低 | ✅ 已完成 |
 | 3 | ~~Worker 基类（第 3 轮 #7）~~ | 🟢 低 | 低 | ✅ 已完成 |
-| 4 | 逐步收紧 `mypy`（第 3 轮 #9） | 🟢 低 | 中 | 🟢 步骤 1 已完成 |
+| 4 | ~~逐步收紧 `mypy`（第 3 轮 #9）~~ | 🟢 低 | 中 | ✅ 已完成（全部 8 个 code 已启用） |
 | 5 | 单体 → 包（第 3 轮 #1） | 🟠 高 | 高 | ✅ 已解决（第 5 轮） |
 
 ### ✅ 1. 版本切割 2.1.0 + git 标签 *(已完成)*
@@ -329,24 +329,22 @@ geladen"); return` 已合并到装饰器 `@_requires_image`。行为不变
 `_work()`。`RembgWarmupWorker` 有意保持独立（无 `error` 信号，
 `finished` 始终在 `finally` 中——契约不同）。
 
-### 🟢 4. 逐步收紧 `mypy` *(第 3 轮 #9 – 步骤 1 已完成)*
+### ✅ 4. 逐步收紧 `mypy` *(第 3 轮 #9 / 第 4 轮 #4 – 已完成)*
 
-`disable_error_code` 从 **8 个减至 6 个**：`index` 和 `operator` 已
-干净（各 **0 个错误**，已测量），因此在 `pyproject.toml` 中重新启用
-——无代码改动、无风险。其余 code 的实测路线图（每个 PR 一步，按
-建议）：
+**此前所有被禁用的错误类别现在均已启用。** 在单体 → 包的切分
+（第 5 轮）之后，余下的六个 code 得以按文件逐一激活：
 
-| Code | 未决错误 | 性质 |
-|------|----------|------|
-| `arg-type` | 2 | 经守卫/装饰器的 None 收窄 |
-| `attr-defined` | 2 | 动态 `QThread._worker`、`QObject.run` |
-| `func-returns-value` | 4 | UI lambda 元组中的 void 返回 |
-| `assignment` | 4 | 混合赋值类型 |
-| `override` | 7 | Qt 覆写签名 |
-| `union-attr` | 67 | 范围很广——最后处理 |
+| Code | 之前 | 策略 |
+|------|------|------|
+| `arg-type` | 2 | 通过双重守卫 + 循环 `assert` 表达 `_pil`/`_arr` 不变式 |
+| `attr-defined` | 2 | `setattr(thread, "_worker", ...)`；参数 `_Worker \| RembgWarmupWorker` |
+| `assignment` | 4 | 明确的首次注解（`Image.Image`、`RankFilter`、`QMenu \| None`） |
+| `func-returns-value` | 4 | UI lambda 元组 → 局部 `def` |
+| `override` | 7 | 签名与 PyQt6 stubs 对齐（`QPainter \| None` 等） |
+| `union-attr` | 67 | 缓存 status/menu bar 与 viewport；定点 assert |
 
-下一步合理选择：`arg-type` 或 `attr-defined`（各 2 个，小而真实的
-改进）。其余步骤工作量/风险：中。
+在 `pyproject.toml` 中仅保留 `check_untyped_defs = false` 作为务实
+的 Qt 噪声抑制（覆盖 Qt 覆写签名 event/option/widget）。
 
 ### 🟠 5. 单体 → 包 *(第 3 轮 #1，有意推迟)*
 
