@@ -309,7 +309,7 @@ mejora la seguridad de tipos (esfuerzo/riesgo: medio).
 | 1 | ~~Corte de versión 2.1.0 + etiqueta git~~ | 🟠 Alta | Bajo | ✅ Hecho (etiqueta tras merge) |
 | 2 | ~~Ayudante de guarda "ninguna imagen" (ronda 3 #6)~~ | 🟢 Baja | Bajo | ✅ Hecho |
 | 3 | ~~Clase base de worker (ronda 3 #7)~~ | 🟢 Baja | Bajo | ✅ Hecho |
-| 4 | Endurecer `mypy` paso a paso (ronda 3 #9) | 🟢 Baja | Medio | **← Siguiente paso** |
+| 4 | Endurecer `mypy` paso a paso (ronda 3 #9) | 🟢 Baja | Medio | 🟢 Paso 1 hecho |
 | 5 | Monolito → paquete (ronda 3 #1) | 🟠 Alta | Alto | Aplazado |
 
 ### ✅ 1. Corte de versión 2.1.0 + etiqueta git *(hecho)*
@@ -351,11 +351,25 @@ implementan `_work()`. `RembgWarmupWorker` permanece deliberadamente
 independiente (sin señal `error`, `finished` siempre en `finally` –
 contrato distinto).
 
-### 🟢 4. Endurecer `mypy` paso a paso *(ronda 3 #9 – siguiente paso)*
+### 🟢 4. Endurecer `mypy` paso a paso *(ronda 3 #9 – paso 1 hecho)*
 
-Siguen 7 `disable_error_code`. Recomendación: reactivar un código por
-PR y corregir los aciertos entonces visibles, en lugar de todo a la
-vez. Esfuerzo/riesgo: medio.
+`disable_error_code` reducido de **8 a 6**: `index` y `operator` ya
+están limpios (**0 errores** cada uno, medido) y por tanto reactivados
+en `pyproject.toml` – sin cambio de código, sin riesgo. Hoja de ruta
+medida para los códigos restantes (un paso por PR, como se recomienda):
+
+| Código | Errores abiertos | Carácter |
+|--------|------------------|----------|
+| `arg-type` | 2 | estrechamiento de None por guardas/decorador |
+| `attr-defined` | 2 | `QThread._worker`/`QObject.run` dinámicos |
+| `func-returns-value` | 4 | retorno void en tuplas lambda de UI |
+| `assignment` | 4 | tipos de asignación mixtos |
+| `override` | 7 | firmas de override de Qt |
+| `union-attr` | 67 | muy amplio – abordar al final |
+
+Siguiente paso sensato: `arg-type` o `attr-defined` (2 cada uno,
+mejoras pequeñas y reales). Esfuerzo/riesgo de los pasos restantes:
+medio.
 
 ### 🟠 5. Monolito → paquete *(ronda 3 #1, aplazado a propósito)*
 
