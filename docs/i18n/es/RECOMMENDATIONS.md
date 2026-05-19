@@ -240,7 +240,7 @@ permisiva solo con cambio a PySide6).
 
 | # | Recomendación | Prioridad | Esfuerzo | Estado |
 |---|-----------|-----------|---------|--------|
-| 1 | Monolito → paquete (`bgremover/` con módulos) | 🟠 Alta | Alto | Abierto |
+| 1 | Monolito → paquete (`bgremover/` con módulos) | 🟠 Alta | Alto | ✅ resuelto (ronda 5) |
 | 2 | ~~`save_image()` sin manejo de errores~~ | 🟡 Media | Bajo | ✅ #48 |
 | 3 | ~~Duplicación de estado en `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Media | Bajo | ✅ #52 |
 | 4 | ~~Hojas de estilo en línea dispersas, sin módulo de tema~~ | 🟡 Media | Medio | ✅ #53 |
@@ -256,6 +256,8 @@ palanca para el crecimiento de funciones, pero el mayor riesgo (riesgo:
 alto) y en conflicto con la decisión de archivo único documentada.
 **Abierto — aplazado deliberadamente**, requiere una decisión de diseño
 aparte.
+
+→ **Resuelto en la ronda 5** (decisión de diseño: corte limpio a paquete – ver abajo).
 
 **#2** — Resuelto en **PR #48**: `save_image()` devuelve `bool` y
 envuelve las operaciones de escritura en `try/except` (registro +
@@ -310,7 +312,7 @@ mejora la seguridad de tipos (esfuerzo/riesgo: medio).
 | 2 | ~~Ayudante de guarda "ninguna imagen" (ronda 3 #6)~~ | 🟢 Baja | Bajo | ✅ Hecho |
 | 3 | ~~Clase base de worker (ronda 3 #7)~~ | 🟢 Baja | Bajo | ✅ Hecho |
 | 4 | Endurecer `mypy` paso a paso (ronda 3 #9) | 🟢 Baja | Medio | 🟢 Paso 1 hecho |
-| 5 | Monolito → paquete (ronda 3 #1) | 🟠 Alta | Alto | Aplazado |
+| 5 | Monolito → paquete (ronda 3 #1) | 🟠 Alta | Alto | ✅ resuelto (ronda 5) |
 
 ### ✅ 1. Corte de versión 2.1.0 + etiqueta git *(hecho)*
 
@@ -380,3 +382,57 @@ documentada. Sigue siendo una decisión arquitectónica deliberada y
 separada – a reconsiderar a más tardar antes de la próxima expansión
 mayor de funcionalidades. Los quick wins #2/#3 ya reducen ligeramente
 el archivo y preparan una división posterior.
+
+→ **Resuelto en la ronda 5** (decisión de diseño: corte limpio a paquete – ver abajo).
+
+---
+
+## Ronda 5 – Decisión de diseño: monolito → paquete (resuelta)
+
+> La "decisión de diseño aparte" exigida explícitamente en la ronda 3 #1
+> y la ronda 4 #5 se toma aquí y queda así resuelta. La decisión de
+> diseño de archivo único documentada se **revierte deliberadamente**.
+
+**Decisión.** `BgRemover.py` (3026 líneas) se divide en un paquete Python
+`bgremover/`. Módulos: `constants`, `image_utils`, `icons`, `theme`,
+`workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+`logging_config`, `main_window`, `app`, `__main__`, `__init__`.
+
+**Corte limpio a paquete (sin shim de compatibilidad).** `BgRemover.py`
+se elimina por completo. La app se lanza mediante el script de consola
+`bgremover` **y** `python -m bgremover`. El modo anterior
+`python BgRemover.py` se **descarta deliberadamente**; los scripts de
+construcción (`create_BgRemover_app.sh`, `BgRemover.command`),
+`pyproject.toml`, Makefile/CI, pruebas y documentación (incl. i18n) se
+migran en el mismo corte.
+
+**Justificación.** Según la ronda 3 #1 / ronda 4 #5, el archivo único
+era la mayor palanca para el crecimiento de funciones; el único
+bloqueador era la decisión de archivo único documentada – que aquí se
+revierte explícitamente. El riesgo sigue siendo alto pero está
+controlado por el método.
+
+**Método.** Por fases con una compuerta dura: **Fase A** (preparación –
+este ADR + disposición/diseño, sin mover código) → **Compuerta** (línea
+base verde capturada: `ruff`/`mypy` limpios, **140 pruebas unitarias +
+16 de IU en verde**) → **Fase B** (división puramente mecánica e
+idéntica a nivel de bytes; código movido literalmente, solo se ajustan
+los imports; las pruebas siguen en verde). El único cambio de código
+intencionado: la resolución de recursos en `make_tool_icon`
+(`importlib.resources` en lugar de `__file__`/`argv`/`cwd`), sin
+cambio de comportamiento.
+
+**Orden / trabajo previo.** Recomendado antes del corte (acción del
+mantenedor en `main`, sin código): `git tag v2.1.0` como el último
+estado puro de archivo único (ronda 4 #1 – `git tag -l` está hasta
+ahora vacío).
+
+**Deliberadamente después, no antes.** El endurecimiento gradual de
+mypy (ronda 4 #4, 6 `disable_error_code` restantes) se hace **después**
+de la división – un movimiento grande invalida el progreso de tipos por
+archivo. Las limpiezas internas (consolidación de guard/worker) también
+quedan fuera de este corte.
+
+**Impacto en el estado.** La ronda 3 #1 y la ronda 4 #5 quedan
+**resueltas** con esta decisión; las columnas de estado de las tablas
+respectivas se actualizan en consecuencia.

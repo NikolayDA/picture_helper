@@ -235,7 +235,7 @@ Wechsel auf PySide6).
 
 | # | Empfehlung | Priorität | Aufwand | Status |
 |---|-----------|-----------|---------|--------|
-| 1 | Monolith → Paket (`bgremover/` mit Modulen) | 🟠 Hoch | Hoch | Offen |
+| 1 | Monolith → Paket (`bgremover/` mit Modulen) | 🟠 Hoch | Hoch | ✅ aufgelöst (Runde 5) |
 | 2 | ~~`save_image()` ohne Fehlerbehandlung~~ | 🟡 Mittel | Niedrig | ✅ #48 |
 | 3 | ~~Zustands-Duplizierung in `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Mittel | Niedrig | ✅ #52 |
 | 4 | ~~Verstreute Inline-Stylesheets, kein Theme-Modul~~ | 🟡 Mittel | Mittel | ✅ #53 |
@@ -250,6 +250,8 @@ Helfer, Worker, Canvas, UI, Dialoge, Logging, Main). Größter Hebel für
 Feature-Wachstum, aber höchstes Risiko (Risiko: Hoch) und Widerspruch
 zur dokumentierten Einzeldatei-Entscheidung. **Offen — bewusst
 zurückgestellt**, separate Designentscheidung nötig.
+
+→ **Aufgelöst in Runde 5** (Designentscheidung: Clean Package Break – siehe unten).
 
 **#2** — Behoben in **PR #48**: `save_image()` gibt `bool` zurück und
 kapselt die Schreiboperationen in `try/except` (Logging + Statusmeldung),
@@ -303,7 +305,7 @@ Typsicherheit (Aufwand/Risiko: Mittel).
 | 2 | ~~Guard-Helfer „Kein Bild geladen" (Runde 3 #6)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
 | 3 | ~~Worker-Basisklasse (Runde 3 #7)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
 | 4 | `mypy` schrittweise verschärfen (Runde 3 #9) | 🟢 Niedrig | Mittel | 🟢 Schritt 1 umgesetzt |
-| 5 | Monolith → Paket (Runde 3 #1) | 🟠 Hoch | Hoch | Zurückgestellt |
+| 5 | Monolith → Paket (Runde 3 #1) | 🟠 Hoch | Hoch | ✅ aufgelöst (Runde 5) |
 
 ### ✅ 1. Release-Schnitt 2.1.0 + git-Tag *(umgesetzt)*
 
@@ -379,3 +381,53 @@ eine bewusste, separate Architekturentscheidung – spätestens vor der
 nächsten größeren Feature-Erweiterung erneut abzuwägen. Die Quick-Wins
 #2/#3 verkleinern die Datei bereits leicht und bereiten einen späteren
 Schnitt vor.
+
+→ **Aufgelöst in Runde 5** (Designentscheidung: Clean Package Break – siehe unten).
+
+---
+
+## Runde 5 – Designentscheidung: Monolith → Paket (aufgelöst)
+
+> Die in Runde 3 #1 und Runde 4 #5 ausdrücklich geforderte „separate
+> Designentscheidung" wird hiermit getroffen und damit aufgelöst. Die
+> dokumentierte Einzeldatei-Designentscheidung wird **bewusst aufgehoben**.
+
+**Entscheidung.** `BgRemover.py` (3026 Zeilen) wird in ein Python-Paket
+`bgremover/` aufgeteilt. Module: `constants`, `image_utils`, `icons`,
+`theme`, `workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+`logging_config`, `main_window`, `app`, `__main__`, `__init__`.
+
+**Clean Package Break (kein Kompatibilitäts-Shim).** `BgRemover.py`
+entfällt ersatzlos. Der Start erfolgt künftig über das Console-Skript
+`bgremover` **und** `python -m bgremover`. Der bisherige
+`python BgRemover.py`-Modus wird **bewusst gestrichen**; Build-Skripte
+(`create_BgRemover_app.sh`, `BgRemover.command`), `pyproject.toml`,
+Makefile/CI, Tests und Doku (inkl. i18n) werden im selben Schnitt
+mitgezogen.
+
+**Begründung.** Die Einzeldatei war laut Runde 3 #1 / Runde 4 #5 der
+größte Hebel für Feature-Wachstum; der einzige Blocker war die
+dokumentierte Einzeldatei-Entscheidung – die hiermit explizit aufgehoben
+ist. Das Risiko bleibt hoch, wird aber durch die Methode beherrscht.
+
+**Methode.** Phasiert mit hartem Gate: **Phase A** (Vorbereitung – dieser
+ADR + Layout/Design, kein Code verschoben) → **Gate** (grüne Baseline
+erfasst: `ruff`/`mypy` sauber, **140 Unit- + 16 UI-Tests grün**) →
+**Phase B** (rein mechanischer, byte-identischer Split; Code verbatim
+verschoben, nur Imports angepasst; Tests bleiben grün). Einzige bewusste
+Code-Änderung: die Asset-Auflösung in `make_tool_icon`
+(`importlib.resources` statt `__file__`/`argv`/`cwd`), verhaltensneutral.
+
+**Reihenfolge / Vorarbeit.** Vor dem Schnitt empfohlen (Maintainer-Aktion
+auf `main`, kein Code): `git tag v2.1.0` als letzter reiner
+Einzeldatei-Stand (Runde 4 #1 – `git tag -l` ist bislang leer).
+
+**Bewusst danach, nicht davor.** Die schrittweise mypy-Verschärfung
+(Runde 4 #4, 6 verbleibende `disable_error_code`) erfolgt **nach** dem
+Split – ein großer Umzug entwertet dateiweise Typ-Fortschritte. Auch
+interne Cleanups (Guard-/Worker-Vereinheitlichung) bleiben außerhalb
+dieses Schnitts.
+
+**Status-Auswirkung.** Runde 3 #1 und Runde 4 #5 sind mit dieser
+Entscheidung **aufgelöst**; die Status-Spalten der jeweiligen Tabellen
+sind entsprechend aktualisiert.
