@@ -9,6 +9,22 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]（未发布）
 
+## [2.1.0] – 2026-05-19
+
+### 已更改
+
+- 将五个 `ImageCanvas` 方法（`apply_round_corners`、`apply_rotate`、
+  `apply_flip`、`start_crop_circle`、`start_crop_ratio`）的“未加载
+  图像”提前返回守卫合并到装饰器 `@_requires_image` 中——此前逐字节
+  相同的代码块消失；行为不变（由现有测试套件保护）。
+- 后台 worker `AIWorker` 和 `ImageLoadWorker` 现共用基类 `_Worker`，
+  封装相同的 `try/except → logger.exception → error.emit` 流程；
+  子类仅实现 `_work()`。`RembgWarmupWorker` 有意保持独立（无 `error`
+  信号，`finished` 始终在 `finally` 中）。
+- 版本切割 **2.1.0**：`pyproject.toml` 和 `BgRemover.py` 中的
+  `__version__` 回退提升至 `2.1.0`；此前归集在 `[Unreleased]` 下的
+  更改（#48/#52/#53、INSTALL_LINUX、第 3/4 轮）由此标注为 2.1.0。
+
 ### 文档
 
 - 补充了 Linux 安装说明（`INSTALL_LINUX.md`）：

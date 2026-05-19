@@ -290,43 +290,44 @@ fit_to_view()` 和 `CropOverlayItem.top_left/size`。`MainWindow` 和
 
 | # | 建议 | 优先级 | 工作量 | 状态 |
 |---|------|--------|--------|------|
-| 1 | **版本切割 2.1.0 + git 标签** | 🟠 高 | 低 | **← 下一步** |
-| 2 | “未加载图像”守卫辅助（第 3 轮 #6） | 🟢 低 | 低 | 未完成 |
-| 3 | Worker 基类（第 3 轮 #7） | 🟢 低 | 低 | 未完成 |
-| 4 | 逐步收紧 `mypy`（第 3 轮 #9） | 🟢 低 | 中 | 未完成 |
+| 1 | ~~版本切割 2.1.0 + git 标签~~ | 🟠 高 | 低 | ✅ 已完成（标签于合并后） |
+| 2 | ~~“未加载图像”守卫辅助（第 3 轮 #6）~~ | 🟢 低 | 低 | ✅ 已完成 |
+| 3 | ~~Worker 基类（第 3 轮 #7）~~ | 🟢 低 | 低 | ✅ 已完成 |
+| 4 | 逐步收紧 `mypy`（第 3 轮 #9） | 🟢 低 | 中 | **← 下一步** |
 | 5 | 单体 → 包（第 3 轮 #1） | 🟠 高 | 高 | 推迟 |
 
-### 🟠 1. 版本切割 2.1.0 + git 标签 *(推荐的下一步)*
+### ✅ 1. 版本切割 2.1.0 + git 标签 *(已完成)*
 
-**发现：** **不存在任何 git 标签**（`git tag -l` 为空），尽管
-CHANGELOG 声称有“首个公开打标签的发布 2.0.0”。自 2.0.0 起，
-`[Unreleased]` 块已累积了实质性变更（PR #48 保存错误处理、#52 状态
-去重、#53 `_Theme`、INSTALL_LINUX 文档、#55 本地测试运行器）。
-`pyproject.toml`（`version = "2.0.0"`）和 `__version__` 回退
-（`BgRemover.py:51`）仍为 `2.0.0` – 因此交付状态与 2.0.0 无法区分。
+**本 PR 已完成：** `pyproject.toml` 和 `BgRemover.py` 的 `__version__`
+回退提升至 `2.1.0`；`CHANGELOG.md`（+ i18n en/es/fr/uk/zh）的
+`[Unreleased]` 块注明为 `[2.1.0] – 2026-05-19`，并新增一个空的
+`[Unreleased]` 块。`git tag v2.1.0` **有意不**打在功能分支上；它应在
+合并后打在 `main` 的合并提交上（见 PR 说明）。
 
-**为何优先：** 工作量最低、清晰度最高。没有版本/标签切割就无法追溯
-交付了什么 – 这会阻碍任何干净的功能迭代。
+**发现（备查）：** **此前不存在任何 git 标签**（`git tag -l` 为空），
+尽管 CHANGELOG 声称有“首个公开打标签的发布 2.0.0”。自 2.0.0 起，
+`[Unreleased]` 块已累积实质性变更（PR #48 保存错误处理、#52 状态
+去重、#53 `_Theme`、INSTALL_LINUX 文档、#55 本地测试运行器），而
+`pyproject.toml` 和 `__version__` 回退仍为 `2.0.0`。
 
-**步骤：** 将 `pyproject.toml` 中的 `version` 和 `__version__` 回退
-提升至 `2.1.0`；将 `CHANGELOG.md`（+ i18n）的 `[Unreleased]` 注明为
-`[2.1.0] – <日期>` 并新增一个空的 `[Unreleased]` 块；打上并推送
-`git tag v2.1.0`。
+### ✅ 2. “未加载图像”守卫辅助 *(已完成，第 3 轮 #6)*
 
-### 🟢 2. “未加载图像”守卫辅助 *(第 3 轮 #6，仍未完成)*
+五个 `ImageCanvas` 方法 `apply_round_corners`、`apply_rotate`、
+`apply_flip`、`start_crop_circle`、`start_crop_ratio` 中逐字节相同的
+提前返回 `if self._pil is None: self.statusMsg.emit("Kein Bild
+geladen"); return` 已合并到装饰器 `@_requires_image`。行为不变
+（140 个单元测试 + 16 个 UI 测试通过）。`MainWindow` 的三处
+`has_image` 守卫有意保持内联：消息不同且存在依赖顺序的二次检查——
+在那里归并弊大于利。
 
-已验证：“未加载图像”的提前返回在约 10 个方法中重复（含
-`BgRemover.py:1474`、`:1481`、`:2726`、`:2733`）。一个小的
-装饰器/守卫辅助可将其归并。低风险快速收益，作为 #5 之前的热身最合适。
+### ✅ 3. Worker 基类 *(已完成，第 3 轮 #7)*
 
-### 🟢 3. Worker 基类 *(第 3 轮 #7，仍未完成)*
+`AIWorker` 和 `ImageLoadWorker` 现继承基类 `_Worker`，封装相同的
+`try/except → logger.exception → error.emit` 流程；子类仅实现
+`_work()`。`RembgWarmupWorker` 有意保持独立（无 `error` 信号，
+`finished` 始终在 `finally` 中——契约不同）。
 
-`AIWorker`、`RembgWarmupWorker` 和 `ImageLoadWorker`
-（`BgRemover.py:459–525`）共用 `try → logger.exception → error.emit`
-模式。一个带模板方法的精简 `QObject` 基类可在不改变线程模型的前提下
-减少重复。快速收益。
-
-### 🟢 4. 逐步收紧 `mypy` *(第 3 轮 #9，仍未完成)*
+### 🟢 4. 逐步收紧 `mypy` *(第 3 轮 #9 – 下一步)*
 
 仍有 7 个 `disable_error_code`。建议：每个 PR 重新启用一个 code 并
 修复随之可见的命中，而非一次全部。工作量/风险：中。

@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+## [2.1.0] – 2026-05-19
+
+### Змінено
+
+- Guard раннього виходу «зображення не завантажено» п'яти методів
+  `ImageCanvas` (`apply_round_corners`, `apply_rotate`, `apply_flip`,
+  `start_crop_circle`, `start_crop_ratio`) об'єднано в декоратор
+  `@_requires_image` – раніше побайтово ідентичний блок зникає;
+  поведінка незмінна (захищена наявним набором тестів).
+- Фонові worker-и `AIWorker` та `ImageLoadWorker` тепер мають спільний
+  базовий клас `_Worker`, який інкапсулює ідентичний потік
+  `try/except → logger.exception → error.emit`; підкласи реалізують
+  лише `_work()`. `RembgWarmupWorker` свідомо залишається самостійним
+  (без сигналу `error`, `finished` завжди у `finally`).
+- Зріз версії **2.1.0**: `pyproject.toml` і резервний `__version__` у
+  `BgRemover.py` піднято до `2.1.0`; зміни, раніше зібрані під
+  `[Unreleased]` (#48/#52/#53, INSTALL_LINUX, раунди 3/4), цим датовано
+  як 2.1.0.
+
 ### Документація
 
 - Додано інструкцію зі встановлення для Linux (`INSTALL_LINUX.md`):
