@@ -302,7 +302,7 @@ Typsicherheit (Aufwand/Risiko: Mittel).
 | 1 | ~~Release-Schnitt 2.1.0 + git-Tag~~ | 🟠 Hoch | Niedrig | ✅ Umgesetzt (Tag nach Merge) |
 | 2 | ~~Guard-Helfer „Kein Bild geladen" (Runde 3 #6)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
 | 3 | ~~Worker-Basisklasse (Runde 3 #7)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
-| 4 | `mypy` schrittweise verschärfen (Runde 3 #9) | 🟢 Niedrig | Mittel | **← Nächster Schritt** |
+| 4 | `mypy` schrittweise verschärfen (Runde 3 #9) | 🟢 Niedrig | Mittel | 🟢 Schritt 1 umgesetzt |
 | 5 | Monolith → Paket (Runde 3 #1) | 🟠 Hoch | Hoch | Zurückgestellt |
 
 ### ✅ 1. Release-Schnitt 2.1.0 + git-Tag *(umgesetzt)*
@@ -350,11 +350,25 @@ Unterklassen implementieren nur noch `_work()`. `RembgWarmupWorker`
 bleibt bewusst eigenständig (kein `error`-Signal, `finished` stets im
 `finally` – anderer Kontrakt).
 
-### 🟢 4. `mypy` schrittweise verschärfen *(Runde 3 #9 – nächster Schritt)*
+### 🟢 4. `mypy` schrittweise verschärfen *(Runde 3 #9 – Schritt 1 umgesetzt)*
 
-Unverändert 7 `disable_error_code`. Empfehlung: pro PR einen Code
-reaktivieren und die dann sichtbaren Treffer fixen, statt alles auf
-einmal. Aufwand/Risiko: Mittel.
+`disable_error_code` von **8 auf 6** reduziert: `index` und `operator`
+sind bereits sauber (je **0 Fehler**, gemessen) und daher in
+`pyproject.toml` reaktiviert – ohne Code-Änderung, ohne Risiko.
+Gemessene Roadmap für die verbleibenden Codes (ein Schritt pro PR, wie
+empfohlen):
+
+| Code | Offene Fehler | Charakter |
+|------|---------------|-----------|
+| `arg-type` | 2 | None-Verengung durch Guards/Decorator |
+| `attr-defined` | 2 | dynamisches `QThread._worker`, `QObject.run` |
+| `func-returns-value` | 4 | Void-Rückgabe in UI-Lambda-Tupeln |
+| `assignment` | 4 | gemischte Zuweisungstypen |
+| `override` | 7 | Qt-Override-Signaturen |
+| `union-attr` | 67 | sehr breit – zuletzt angehen |
+
+Nächster sinnvoller Schritt: `arg-type` oder `attr-defined` (je 2 kleine,
+echte Verbesserungen). Aufwand/Risiko der Restschritte: Mittel.
 
 ### 🟠 5. Monolith → Paket *(Runde 3 #1, bewusst zurückgestellt)*
 

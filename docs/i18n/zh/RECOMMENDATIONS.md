@@ -293,7 +293,7 @@ fit_to_view()` 和 `CropOverlayItem.top_left/size`。`MainWindow` 和
 | 1 | ~~版本切割 2.1.0 + git 标签~~ | 🟠 高 | 低 | ✅ 已完成（标签于合并后） |
 | 2 | ~~“未加载图像”守卫辅助（第 3 轮 #6）~~ | 🟢 低 | 低 | ✅ 已完成 |
 | 3 | ~~Worker 基类（第 3 轮 #7）~~ | 🟢 低 | 低 | ✅ 已完成 |
-| 4 | 逐步收紧 `mypy`（第 3 轮 #9） | 🟢 低 | 中 | **← 下一步** |
+| 4 | 逐步收紧 `mypy`（第 3 轮 #9） | 🟢 低 | 中 | 🟢 步骤 1 已完成 |
 | 5 | 单体 → 包（第 3 轮 #1） | 🟠 高 | 高 | 推迟 |
 
 ### ✅ 1. 版本切割 2.1.0 + git 标签 *(已完成)*
@@ -327,10 +327,24 @@ geladen"); return` 已合并到装饰器 `@_requires_image`。行为不变
 `_work()`。`RembgWarmupWorker` 有意保持独立（无 `error` 信号，
 `finished` 始终在 `finally` 中——契约不同）。
 
-### 🟢 4. 逐步收紧 `mypy` *(第 3 轮 #9 – 下一步)*
+### 🟢 4. 逐步收紧 `mypy` *(第 3 轮 #9 – 步骤 1 已完成)*
 
-仍有 7 个 `disable_error_code`。建议：每个 PR 重新启用一个 code 并
-修复随之可见的命中，而非一次全部。工作量/风险：中。
+`disable_error_code` 从 **8 个减至 6 个**：`index` 和 `operator` 已
+干净（各 **0 个错误**，已测量），因此在 `pyproject.toml` 中重新启用
+——无代码改动、无风险。其余 code 的实测路线图（每个 PR 一步，按
+建议）：
+
+| Code | 未决错误 | 性质 |
+|------|----------|------|
+| `arg-type` | 2 | 经守卫/装饰器的 None 收窄 |
+| `attr-defined` | 2 | 动态 `QThread._worker`、`QObject.run` |
+| `func-returns-value` | 4 | UI lambda 元组中的 void 返回 |
+| `assignment` | 4 | 混合赋值类型 |
+| `override` | 7 | Qt 覆写签名 |
+| `union-attr` | 67 | 范围很广——最后处理 |
+
+下一步合理选择：`arg-type` 或 `attr-defined`（各 2 个，小而真实的
+改进）。其余步骤工作量/风险：中。
 
 ### 🟠 5. 单体 → 包 *(第 3 轮 #1，有意推迟)*
 
