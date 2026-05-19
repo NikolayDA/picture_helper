@@ -52,7 +52,7 @@ def test_image_load_worker_rejects_oversized_image(qapp, tmp_path) -> None:
     worker.error.connect(errors.append)
     worker.finished.connect(lambda img, p: finished.append(img))
 
-    with patch("BgRemover.Image.open") as mock_open:
+    with patch("bgremover.workers.Image.open") as mock_open:
         mock_img = mock_open.return_value
         mock_img.width, mock_img.height = fake_size
         worker.run()
@@ -107,7 +107,7 @@ def test_canvas_load_image_rejects_oversized(qapp, tmp_path) -> None:
 @pytest.fixture()
 def _mock_rembg():
     """Stellt sicher, dass rembg_remove im Modul mockbar ist (auch wenn nicht installiert)."""
-    import BgRemover as _m
+    import bgremover.workers as _m
     had = hasattr(_m, "rembg_remove")
     if not had:
         _m.rembg_remove = None  # Platzhalter damit patch() greift
@@ -125,7 +125,7 @@ def test_ai_worker_error_signal_on_bad_input(qapp, _mock_rembg) -> None:
     worker.error.connect(errors.append)
     worker.finished.connect(finished.append)
 
-    with patch("BgRemover.rembg_remove", side_effect=RuntimeError("mock rembg failure")):
+    with patch("bgremover.workers.rembg_remove", side_effect=RuntimeError("mock rembg failure")):
         worker.run()
 
     assert len(errors) == 1
@@ -145,7 +145,7 @@ def test_ai_worker_finished_signal_on_success(qapp, _mock_rembg) -> None:
     result_buf = io.BytesIO()
     result_img.save(result_buf, format="PNG")
 
-    with patch("BgRemover.rembg_remove", return_value=result_buf.getvalue()):
+    with patch("bgremover.workers.rembg_remove", return_value=result_buf.getvalue()):
         worker.run()
 
     assert len(finished) == 1

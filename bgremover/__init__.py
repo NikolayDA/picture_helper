@@ -29,15 +29,23 @@ from bgremover.image_utils import (
     pil_to_qpixmap,
 )
 from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
+from bgremover.workers import (
+    REMBG_AVAILABLE,
+    AIWorker,
+    ImageLoadWorker,
+)
 
 __all__ = [
     "LOG_FILENAME",
+    "REMBG_AVAILABLE",
     "SLD_STYLE",
     "TOOL_BRUSH",
     "TOOL_ERASER",
     "TOOL_LASSO",
     "TOOL_STYLE",
     "TOOL_WAND",
+    "AIWorker",
+    "ImageLoadWorker",
     "_MAX_MEGAPIXELS",
     "_THREAD_SHUTDOWN_MS",
     "_UNDO_MEMORY_LIMIT",
