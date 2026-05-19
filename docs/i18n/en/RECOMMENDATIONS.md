@@ -284,3 +284,69 @@ round 3 itself. An ongoing practice rather than a single PR.
 **#9** — **Open.** `mypy` is pragmatically relaxed in `pyproject.toml`
 (7 `disable_error_code`); tightening it step by step improves type
 safety (effort/risk: medium).
+
+---
+
+## Round 4 – Status check & next step
+
+> Analysis state: `ruff` clean, `mypy` clean, **140 tests green**
+> (16 UI tests intentionally deselected). Code quality is high – round 4
+> therefore prioritizes **what to tackle next concretely**, rather than
+> hunting for new defects.
+
+| # | Recommendation | Priority | Effort | Status |
+|---|----------------|----------|--------|--------|
+| 1 | **Release cut 2.1.0 + git tag** | 🟠 High | Low | **← Next step** |
+| 2 | "No image loaded" guard helper (round 3 #6) | 🟢 Low | Low | Open |
+| 3 | Worker base class (round 3 #7) | 🟢 Low | Low | Open |
+| 4 | Tighten `mypy` step by step (round 3 #9) | 🟢 Low | Medium | Open |
+| 5 | Monolith → package (round 3 #1) | 🟠 High | High | Deferred |
+
+### 🟠 1. Release cut 2.1.0 + git tag *(recommended next step)*
+
+**Finding:** there is **not a single git tag** (`git tag -l` is empty),
+even though the CHANGELOG claims a "first publicly tagged release
+2.0.0". Since 2.0.0 the `[Unreleased]` block has accumulated
+substantial changes (PR #48 save error handling, #52 state dedup, #53
+`_Theme`, INSTALL_LINUX docs, #55 local test runner). `pyproject.toml`
+(`version = "2.0.0"`) and the `__version__` fallback
+(`BgRemover.py:51`) still read `2.0.0` – the shipped state is therefore
+indistinguishable from 2.0.0.
+
+**Why first:** lowest effort, maximum clarity. Without a version/tag
+cut there is no way to trace what was shipped – this blocks any clean
+feature iteration.
+
+**Steps:** bump `version` in `pyproject.toml` and the `__version__`
+fallback to `2.1.0`; date `[Unreleased]` in `CHANGELOG.md` (+ i18n) as
+`[2.1.0] – <date>` and add a fresh empty `[Unreleased]` block; set and
+push `git tag v2.1.0`.
+
+### 🟢 2. "No image loaded" guard helper *(round 3 #6, still open)*
+
+Verified: the "no image loaded" early-return repeats across ~10
+methods (incl. `BgRemover.py:1474`, `:1481`, `:2726`, `:2733`). A small
+decorator/guard helper consolidates it. Low-risk quick win, ideal as a
+warm-up before #5.
+
+### 🟢 3. Worker base class *(round 3 #7, still open)*
+
+`AIWorker`, `RembgWarmupWorker` and `ImageLoadWorker`
+(`BgRemover.py:459–525`) share the `try → logger.exception →
+error.emit` pattern. A thin `QObject` base class with a template method
+reduces the repetition without changing the threading model. Quick win.
+
+### 🟢 4. Tighten `mypy` step by step *(round 3 #9, still open)*
+
+Still 7 `disable_error_code`. Recommendation: re-enable one code per PR
+and fix the then-visible hits, rather than all at once. Effort/risk:
+medium.
+
+### 🟠 5. Monolith → package *(round 3 #1, intentionally deferred)*
+
+`BgRemover.py` is still a single file at **3003 lines**. Biggest lever
+for feature growth, but highest risk and in conflict with the
+documented single-file design decision. Remains a deliberate, separate
+architectural decision – to be reconsidered at the latest before the
+next larger feature expansion. Quick wins #2/#3 already shrink the file
+slightly and prepare a later split.

@@ -48,6 +48,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   ergänzt: die bewertete Empfehlungsliste mit Status (erledigt #48/#52/
   #53/#51 bzw. offen), damit der Optimierungsstand dauerhaft im Repo
   nachvollziehbar ist.
+- `RECOMMENDATIONS.md` (+ i18n en/es/fr/uk/zh) um „Runde 4 –
+  Standortbestimmung & nächster Schritt" ergänzt: Code-Gesundheit
+  (ruff/mypy sauber, 140 Tests grün) plus priorisierte Liste, was als
+  Nächstes anzugehen ist. Empfohlener nächster Schritt: Release-Schnitt
+  2.1.0 + git-Tag (kein git-Tag vorhanden trotz CHANGELOG-Behauptung;
+  `[Unreleased]` seit 2.0.0 mit #48/#52/#53/#55 gefüllt).
 
 ## [2.0.0] – 2026-05-17
 
