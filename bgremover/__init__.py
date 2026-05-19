@@ -31,6 +31,11 @@ from bgremover.image_utils import (
 from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
 from bgremover.canvas import ImageCanvas
 from bgremover.crop import CropOverlayItem
+from bgremover.logging_config import (
+    _resolve_log_dir,
+    _setup_logging,
+    current_log_file,
+)
 from bgremover.workers import (
     REMBG_AVAILABLE,
     AIWorker,
@@ -54,6 +59,9 @@ __all__ = [
     "_THREAD_SHUTDOWN_MS",
     "_UNDO_MEMORY_LIMIT",
     "_Theme",
+    "_resolve_log_dir",
+    "_setup_logging",
+    "current_log_file",
     "flood_fill",
     "logger",
     "mask_to_overlay",
