@@ -418,9 +418,11 @@ verschoben, nur Imports angepasst; Tests bleiben grün). Einzige bewusste
 Code-Änderung: die Asset-Auflösung in `make_tool_icon`
 (`importlib.resources` statt `__file__`/`argv`/`cwd`), verhaltensneutral.
 
-**Reihenfolge / Vorarbeit.** Vor dem Schnitt empfohlen (Maintainer-Aktion
-auf `main`, kein Code): `git tag v2.1.0` als letzter reiner
-Einzeldatei-Stand (Runde 4 #1 – `git tag -l` ist bislang leer).
+**Reihenfolge / Vorarbeit.** Vorbedingung erfüllt: `git tag v2.1.0` ist
+gesetzt (am Merge von PR #60) und als GitHub-Prerelease veröffentlicht –
+der letzte reine Einzeldatei-Stand ist damit markiert (Runde 4 #1). Dass
+der Tag wenige Commits hinter `main`-HEAD liegt, ist eine optionale
+Release-Entscheidung der Maintainerin und für den Schnitt ohne Belang.
 
 **Bewusst danach, nicht davor.** Die schrittweise mypy-Verschärfung
 (Runde 4 #4, 6 verbleibende `disable_error_code`) erfolgt **nach** dem

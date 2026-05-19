@@ -422,10 +422,12 @@ intencionado: la resolución de recursos en `make_tool_icon`
 (`importlib.resources` en lugar de `__file__`/`argv`/`cwd`), sin
 cambio de comportamiento.
 
-**Orden / trabajo previo.** Recomendado antes del corte (acción del
-mantenedor en `main`, sin código): `git tag v2.1.0` como el último
-estado puro de archivo único (ronda 4 #1 – `git tag -l` está hasta
-ahora vacío).
+**Orden / trabajo previo.** Condición previa cumplida: `git tag v2.1.0`
+está puesto (en el merge del PR #60) y publicado como prerelease de
+GitHub – el último estado puro de archivo único queda así marcado
+(ronda 4 #1). Que el tag esté unos commits por detrás de `main` HEAD es
+una decisión de release opcional del mantenedor e irrelevante para el
+corte.
 
 **Deliberadamente después, no antes.** El endurecimiento gradual de
 mypy (ronda 4 #4, 6 `disable_error_code` restantes) se hace **después**

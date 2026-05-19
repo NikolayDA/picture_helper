@@ -420,9 +420,12 @@ changement de code intentionnel : la résolution des ressources dans
 `make_tool_icon` (`importlib.resources` au lieu de
 `__file__`/`argv`/`cwd`), sans changement de comportement.
 
-**Ordre / travail préparatoire.** Recommandé avant la coupe (action du
-mainteneur sur `main`, sans code) : `git tag v2.1.0` comme dernier état
-pur en fichier unique (tour 4 #1 – `git tag -l` est jusqu'ici vide).
+**Ordre / travail préparatoire.** Précondition remplie : `git tag
+v2.1.0` est posé (au merge de la PR #60) et publié comme préversion
+GitHub – le dernier état pur en fichier unique est ainsi marqué (tour 4
+#1). Que le tag soit quelques commits derrière `main` HEAD est une
+décision de release optionnelle du mainteneur, sans incidence sur la
+coupe.
 
 **Délibérément après, pas avant.** Le durcissement progressif de mypy
 (tour 4 #4, 6 `disable_error_code` restants) se fait **après** la

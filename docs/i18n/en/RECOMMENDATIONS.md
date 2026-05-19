@@ -405,9 +405,11 @@ imports adjusted; tests stay green). The single intentional code change:
 asset resolution in `make_tool_icon` (`importlib.resources` instead of
 `__file__`/`argv`/`cwd`), behavior-preserving.
 
-**Order / preparatory work.** Recommended before the cut (maintainer
-action on `main`, no code): `git tag v2.1.0` as the last pure
-single-file state (round 4 #1 – `git tag -l` is so far empty).
+**Order / preparatory work.** Precondition met: `git tag v2.1.0` is set
+(at the PR #60 merge) and published as a GitHub prerelease – the last
+pure single-file state is thus marked (round 4 #1). That the tag sits a
+few commits behind `main` HEAD is an optional maintainer release
+decision and irrelevant to the cut.
 
 **Deliberately after, not before.** The incremental mypy hardening
 (round 4 #4, 6 remaining `disable_error_code`) happens **after** the
