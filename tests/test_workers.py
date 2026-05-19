@@ -90,7 +90,7 @@ def test_canvas_load_image_rejects_oversized(qapp, tmp_path) -> None:
     oversized_mp = _MAX_MEGAPIXELS + 1
     fake_size = (int((oversized_mp * 1_000_000) ** 0.5),) * 2
 
-    with patch("BgRemover.Image.open") as mock_open:
+    with patch("bgremover.canvas.Image.open") as mock_open:
         mock_img = mock_open.return_value
         mock_img.width, mock_img.height = fake_size
         canvas.load_image(str(small))

@@ -240,9 +240,9 @@ def test_load_image_clears_both_stacks(qapp, tmp_path):
 def test_undo_stack_evicts_oldest_under_memory_limit(qapp, monkeypatch):
     """Überschreitet der Undo-Stack das Byte-Limit, fallen älteste
     Einträge raus – aber nie der letzte (mind. 1 Schritt bleibt)."""
-    import BgRemover
+    import bgremover.canvas
     one_image = 8 * 8 * 4                       # RGBA-Rohdaten eines 8×8-Bilds
-    monkeypatch.setattr(BgRemover, "_UNDO_MEMORY_LIMIT", one_image)
+    monkeypatch.setattr(bgremover.canvas, "_UNDO_MEMORY_LIMIT", one_image)
 
     c = _seed_canvas((0, 0, 0, 255))
     for i in range(6):
