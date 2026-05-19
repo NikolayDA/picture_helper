@@ -44,7 +44,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` installs `rembg[cpu]` including `onnxruntime` (AI background removal).
@@ -58,7 +58,7 @@ After installation there are three ways to start the program:
 |----------|-----------------|----------|
 | **A – macOS app (recommended)** | `bash create_BgRemover_app.sh` | Creates an isolated venv, installs all dependencies (including `onnxruntime`), copies the icons, and produces a standalone `BgRemover.app` under `~/Applications`. Quarantine is removed automatically; the project may stay in `~/Documents`. |
 | **B – Double-click** | double-click `BgRemover.command` in the Finder | Starts in a terminal window; automatically uses the app venv created by the script (the file is already executable). |
-| **C – Terminal** | in a venv: `python3 BgRemover.py` | Direct start (for venv setup see Quick start above). |
+| **C – Terminal** | in a venv: `python3 -m bgremover` | Direct start (for venv setup see Quick start above). |
 
 ## Installation from a branch (testing open PRs)
 
@@ -73,7 +73,7 @@ git branch -r                       # show available branches
 git checkout <branch>
 # in a venv (see Quick start); only needed if dependencies have changed:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Alternatively, you can also simply run `bash create_BgRemover_app.sh`

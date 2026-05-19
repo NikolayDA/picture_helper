@@ -64,7 +64,7 @@ car le Python système bloque `pip install` selon le PEP 668 :
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 `.[ai]` entraîne l'installation des dépendances d'IA (`rembg[cpu]` y compris `onnxruntime`) ;
@@ -78,7 +78,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Au préalable, quelques bibliothèques système Qt sont nécessaires — voir les
@@ -152,7 +152,7 @@ macOS sous Python 3.10 et 3.12 via GitHub Actions.
 Vérification du style de code et contrôle de typage statique (tous deux également dans la CI) :
 
 ```bash
-ruff check BgRemover.py tests
+ruff check bgremover tests
 mypy
 ```
 
@@ -180,7 +180,7 @@ BgRemover est une application en un seul fichier (`BgRemover.py`) :
   variante vectorisée provoquerait un retard perceptible. Pillow est en outre protégé contre
   les images de type « bombe de décompression ».
 - La **construction du bundle d'application** est spécifique à macOS ; sous Linux/Windows
-  l'application fonctionne via le lancement direct `python BgRemover.py`.
+  l'application fonctionne via le lancement direct `python -m bgremover`.
 
 ## Fichier journal
 

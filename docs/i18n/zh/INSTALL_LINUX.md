@@ -8,7 +8,7 @@
 
 > macOS 应用程序包（`create_BgRemover_app.sh`）是 macOS 专属的。
 > 在 Linux 下，BgRemover 通过从虚拟环境（venv）中
-> 直接启动 `python3 BgRemover.py` 来运行——可选
+> 直接启动 `python3 -m bgremover` 来运行——可选
 > 配合一个桌面启动器实现双击启动（见下文）。
 
 ## 前提条件
@@ -74,7 +74,7 @@ sudo apt update
 sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 就这样——主窗口会打开。手动工具
@@ -120,14 +120,14 @@ cd picture_helper
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install "rembg[cpu]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 `--system-site-packages` 会让通过 `apt` 安装的
 PyQt6/Pillow/numpy 在 venv 中可见，这样就只需加载 `rembg` 和
 `onnxruntime`。首次点击 AI 时，`rembg` 会一次性
 下载它的模型（几百 MB，缓存在 `~/.u2net`）。
 之后从 venv 启动：`source .venv/bin/activate` 然后
-`python3 BgRemover.py`。
+`python3 -m bgremover`。
 
 ## 从 `main` 快速开始
 
@@ -140,7 +140,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` 会安装 `rembg[cpu]`，含 `onnxruntime`
@@ -151,14 +151,14 @@ python3 BgRemover.py
 ```bash
 cd picture_helper
 source .venv/bin/activate
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 ## 启动方式
 
 | 方式 | 命令 / 操作 | 结果 |
 |----------|-----------------|----------|
-| **A – 终端（推荐）** | 激活 venv，然后 `python3 BgRemover.py` | 从项目目录直接启动。 |
+| **A – 终端（推荐）** | 激活 venv，然后 `python3 -m bgremover` | 从项目目录直接启动。 |
 | **B – 启动脚本** | `./bgremover.sh`（见下文） | 自动激活 venv 并启动应用程序。 |
 | **C – 应用程序菜单** | `.desktop` 条目（见下文） | 通过双击 / 从应用程序菜单启动。 |
 
@@ -169,7 +169,7 @@ python3 BgRemover.py
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
 source .venv/bin/activate
-exec python3 BgRemover.py "$@"
+exec python3 -m bgremover "$@"
 ```
 赋予可执行权限并启动：
 ```bash
@@ -211,7 +211,7 @@ git checkout <branch>
 source .venv/bin/activate
 # 仅在依赖项发生变化时才需要：
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 **方式 2 – 直接克隆某个分支：**
@@ -239,7 +239,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
   `libxcb-cursor0`）。具体缺少哪个库，
   可用以下命令查看：
   ```bash
-  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  QT_DEBUG_PLUGINS=1 python3 -m bgremover 2>&1 | grep -i "cannot\|not found"
   ```
 - **执行 `pip install` 时出现 `error: externally-managed-environment`** → PEP
   668：不要安装到系统 Python 中，而是装到一个 venv（见
@@ -251,7 +251,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
 - **Wayland：窗口/缩放显示异常** → 试着切换到
   X11 插件（XWayland）：
   ```bash
-  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  QT_QPA_PLATFORM=xcb python3 -m bgremover
   ```
 - **安装时出现 pip 错误** → 在已激活的 venv 中先升级
   pip，然后重复安装命令：
@@ -273,7 +273,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
   通用的 venv/pip 方式操作。
 - **Raspberry Pi OS “Bookworm”（Pi 4/5）使用 Wayland** → 出现窗口
   或缩放问题时，试着切换到 X11 插件：
-  `QT_QPA_PLATFORM=xcb python3 BgRemover.py`（参见上面的 Wayland
+  `QT_QPA_PLATFORM=xcb python3 -m bgremover`（参见上面的 Wayland
   说明）。
 - **出错时的诊断** → 查看日志文件
   `~/.local/share/BgRemover/bgremover.log`（堆栈跟踪和

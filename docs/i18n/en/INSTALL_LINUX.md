@@ -8,7 +8,7 @@ to test an open pull request before merging).
 
 > The macOS app bundle (`create_BgRemover_app.sh`) is macOS-specific.
 > On Linux, BgRemover runs by starting it directly with
-> `python3 BgRemover.py` from a virtual environment (venv) — optionally
+> `python3 -m bgremover` from a virtual environment (venv) — optionally
 > with a desktop launcher for double-clicking (see below).
 
 ## Requirements
@@ -74,7 +74,7 @@ sudo apt update
 sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 That's it — the main window opens. The manual tools
@@ -120,14 +120,14 @@ cd picture_helper
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install "rembg[cpu]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 `--system-site-packages` makes the PyQt6/Pillow/numpy installed via
 `apt` visible in the venv, so that only `rembg` and
 `onnxruntime` are loaded additionally. On the very first AI click, `rembg`
 downloads its model once (a few hundred MB, cached in `~/.u2net`).
 Future starts then run from the venv: `source .venv/bin/activate` and
-`python3 BgRemover.py`.
+`python3 -m bgremover`.
 
 ## Quick start from `main`
 
@@ -140,7 +140,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` installs `rembg[cpu]` including `onnxruntime`
@@ -151,14 +151,14 @@ In a new shell, re-activate the venv before starting:
 ```bash
 cd picture_helper
 source .venv/bin/activate
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 ## Start variants
 
 | Variant | Command / action | Result |
 |----------|-----------------|----------|
-| **A – Terminal (recommended)** | activate the venv, then `python3 BgRemover.py` | Direct start from the project directory. |
+| **A – Terminal (recommended)** | activate the venv, then `python3 -m bgremover` | Direct start from the project directory. |
 | **B – Starter script** | `./bgremover.sh` (see below) | Activates the venv automatically and starts the app. |
 | **C – Application menu** | `.desktop` entry (see below) | Start by double-click / from the application menu. |
 
@@ -169,7 +169,7 @@ Create a file `bgremover.sh` in the project directory:
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
 source .venv/bin/activate
-exec python3 BgRemover.py "$@"
+exec python3 -m bgremover "$@"
 ```
 Make it executable and start it:
 ```bash
@@ -211,7 +211,7 @@ git checkout <branch>
 source .venv/bin/activate
 # only needed if dependencies have changed:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 **Variant 2 – cloning a branch directly:**
@@ -239,7 +239,7 @@ again after `git pull` — unless the dependencies in
   `libxcb-cursor0` under Ubuntu 24.04). Which library exactly is missing
   is shown by:
   ```bash
-  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  QT_DEBUG_PLUGINS=1 python3 -m bgremover 2>&1 | grep -i "cannot\|not found"
   ```
 - **`error: externally-managed-environment` on `pip install`** → PEP
   668: do not install into the system Python, but into a venv (see
@@ -250,7 +250,7 @@ again after `git pull` — unless the dependencies in
 - **Wayland: window/scaling appears faulty** → for testing, switch to the
   X11 plugin (XWayland):
   ```bash
-  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  QT_QPA_PLATFORM=xcb python3 -m bgremover
   ```
 - **pip error during installation** → in the active venv, first update
   pip, then repeat the install command:
@@ -272,7 +272,7 @@ again after `git pull` — unless the dependencies in
   venv/pip path above.
 - **Raspberry Pi OS "Bookworm" (Pi 4/5) uses Wayland** → For window
   or scaling issues, switch to the X11 plugin for testing:
-  `QT_QPA_PLATFORM=xcb python3 BgRemover.py` (see the Wayland note
+  `QT_QPA_PLATFORM=xcb python3 -m bgremover` (see the Wayland note
   above).
 - **Diagnosing errors** → Check the log file
   `~/.local/share/BgRemover/bgremover.log` (stack traces and

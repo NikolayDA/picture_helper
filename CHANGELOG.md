@@ -9,6 +9,29 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **Monolith → Paket (Runde 5).** Die Einzeldatei `BgRemover.py`
+  (3026 Zeilen) wurde in das installierbare Paket `bgremover/`
+  aufgeteilt (14 Module: `constants`, `image_utils`, `icons`, `theme`,
+  `workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+  `logging_config`, `main_window`, `app`, `__main__`, `__init__`).
+  Start künftig via `python -m bgremover` oder dem Console-Script
+  `bgremover`; die alte `python BgRemover.py`-Form entfällt
+  ersatzlos. `BgRemover.py` ist gelöscht. Phasiert in **13 mechanischen
+  Schritten** durchgeführt, jeder mit dem grünen Test-Oracle als Gate
+  (140 Unit- + 16 UI-Tests, ruff, mypy). Einzige bewusste, verhaltens-
+  neutrale Code-Änderung: `make_tool_icon` löst Icons jetzt über
+  `importlib.resources` aus den Paket-Daten (`bgremover/icons/`) auf
+  statt über `__file__`/`sys.argv`/`cwd` – Kontrakt unverändert.
+  `pyproject.toml`, `Makefile`, CI-Workflow und macOS-Build-Skript
+  (`create_BgRemover_app.sh`) sind im selben Schnitt mitgezogen; die
+  venv installiert das Paket nicht-editierbar (inkl. package-data),
+  daher unabhängig vom Projektordner.
+- Übergangs-Re-Exporte in `BgRemover.py` (Phase B) und alle
+  `BgRemover`-Test-Importe sind im finalen Schritt auf das Paket
+  umgestellt.
+
 ## [2.1.0] – 2026-05-19
 
 ### Geändert
