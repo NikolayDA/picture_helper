@@ -729,7 +729,9 @@ class ImageCanvas(QGraphicsView):
 
     # ── Drag & Drop ──────────────────────────────────────────
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        if event is None:
+            return
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
@@ -737,7 +739,9 @@ class ImageCanvas(QGraphicsView):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        if event is None:
+            return
         exts = (".png", ".jpg", ".jpeg", ".webp",
                 ".bmp", ".tiff", ".tif", ".gif")
         valid = [url.toLocalFile() for url in event.mimeData().urls()
