@@ -21,6 +21,13 @@ from bgremover.constants import (
     _UNDO_MEMORY_LIMIT,
     logger,
 )
+from bgremover.image_utils import (
+    flood_fill,
+    mask_to_overlay,
+    numpy_to_pil,
+    pil_to_numpy,
+    pil_to_qpixmap,
+)
 
 __all__ = [
     "LOG_FILENAME",
@@ -31,5 +38,10 @@ __all__ = [
     "_MAX_MEGAPIXELS",
     "_THREAD_SHUTDOWN_MS",
     "_UNDO_MEMORY_LIMIT",
+    "flood_fill",
     "logger",
+    "mask_to_overlay",
+    "numpy_to_pil",
+    "pil_to_numpy",
+    "pil_to_qpixmap",
 ]
