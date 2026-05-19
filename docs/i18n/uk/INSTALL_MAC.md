@@ -44,7 +44,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` встановлює `rembg[cpu]` включно з `onnxruntime` (видалення фону за допомогою ШІ).
@@ -58,7 +58,7 @@ python3 BgRemover.py
 |----------|-----------------|----------|
 | **A – застосунок macOS (рекомендовано)** | `bash create_BgRemover_app.sh` | Створює ізольоване venv, встановлює всі залежності (включно з `onnxruntime`), копіює іконки та створює самостійний `BgRemover.app` у `~/Applications`. Карантин видаляється автоматично; проєкт може залишатися в `~/Documents`. |
 | **B – подвійний клік** | подвійний клік на `BgRemover.command` у Finder | Запускається у вікні термінала; автоматично використовує створене скриптом App-venv (файл уже виконуваний). |
-| **C – термінал** | у venv: `python3 BgRemover.py` | Прямий запуск (налаштування venv див. у Швидкому старті вище). |
+| **C – термінал** | у venv: `python3 -m bgremover` | Прямий запуск (налаштування venv див. у Швидкому старті вище). |
 
 ## Встановлення з гілки (тестування відкритих PR)
 
@@ -73,7 +73,7 @@ git branch -r                       # показати доступні гілк
 git checkout <branch>
 # у venv (див. Швидкий старт); потрібно лише, якщо змінилися залежності:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Альтернативно на гілці можна просто виконати `bash create_BgRemover_app.sh`

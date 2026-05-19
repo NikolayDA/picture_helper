@@ -64,7 +64,7 @@ bash create_BgRemover_app.sh
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 `.[ai]` 会一并引入 AI 依赖项（`rembg[cpu]`，含 `onnxruntime`）；
@@ -78,7 +78,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 在此之前需要一些 Qt 系统库——详情参见
@@ -152,7 +152,7 @@ macOS 上以 Python 3.10 和 3.12 自动运行。
 代码风格检查与静态类型检查（两者也在 CI 中执行）：
 
 ```bash
-ruff check BgRemover.py tests
+ruff check bgremover tests
 mypy
 ```
 
@@ -180,7 +180,7 @@ BgRemover 是一个单文件应用程序（`BgRemover.py`）：
   向量化的实现也会明显延迟。Pillow 此外还针对
   “解压缩炸弹”图像做了防护。
 - **应用程序包构建**是 macOS 专属的；在 Linux/Windows 下
-  应用程序通过直接 `python BgRemover.py` 启动来运行。
+  应用程序通过直接 `python -m bgremover` 启动来运行。
 
 ## 日志文件
 

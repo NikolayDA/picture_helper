@@ -42,8 +42,15 @@ test = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.6", "mypy>=1.10"]
 # sowie die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
 docs = ["markdown>=3.5", "weasyprint>=61", "fonttools>=4.0"]
 
+[project.scripts]
+bgremover = "bgremover.app:main"
+
 [tool.setuptools]
-py-modules = ["BgRemover"]
+packages = ["bgremover"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+bgremover = ["icons/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -61,15 +68,16 @@ extend-select = ["E", "F", "W"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# BgRemover.py: bewusst kompakter Stil (Mehrfach-Statements mit Semikolons,
-# einzelne kurze Schleifenvariablen wie `l`/`b`).
-"BgRemover.py" = ["E702", "E741"]
+# Bewusst kompakter Stil (Mehrfach-Statements mit Semikolons, einzelne
+# kurze Schleifenvariablen wie `l`/`b`). Der Stil ist mit dem Code aus
+# dem ehemaligen Monolithen ins Paket gewandert (Runde 5, Phase B).
+"bgremover/*.py" = ["E702", "E741"]
 # conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
 "tests/conftest.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.10"
-files = ["BgRemover.py"]
+files = ["bgremover"]
 ignore_missing_imports = true
 # Qt-Override-Signaturen (event/option/widget) und dynamische Qt-Attribute
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass

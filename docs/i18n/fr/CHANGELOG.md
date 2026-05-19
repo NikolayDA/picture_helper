@@ -9,6 +9,30 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Modifié
+
+- **Monolithe → paquet (tour 5).** Le fichier unique `BgRemover.py`
+  (3026 lignes) a été scindé dans le paquet installable `bgremover/`
+  (14 modules : `constants`, `image_utils`, `icons`, `theme`,
+  `workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+  `logging_config`, `main_window`, `app`, `__main__`, `__init__`).
+  Lancement désormais via `python -m bgremover` ou le script de
+  console `bgremover` ; l'ancienne forme `python BgRemover.py` est
+  supprimée sans remplacement. `BgRemover.py` est supprimé. Réalisé
+  en **13 étapes mécaniques**, chacune verrouillée par l'oracle vert
+  (140 tests unitaires + 16 tests UI, ruff, mypy). Le seul changement
+  de code intentionnel, neutre en comportement : `make_tool_icon`
+  résout désormais les icônes via `importlib.resources` depuis les
+  données du paquet (`bgremover/icons/`) au lieu de `__file__`/
+  `sys.argv`/`cwd` — contrat inchangé. `pyproject.toml`, `Makefile`,
+  workflow CI et le script de build macOS (`create_BgRemover_app.sh`)
+  ont suivi dans la même coupe ; la venv installe le paquet en mode
+  non éditable (avec package-data), rendant l'application indépendante
+  du dossier du projet.
+- Les re-exports transitoires dans `BgRemover.py` (phase B) et toutes
+  les importations `BgRemover` des tests ont été basculés vers le
+  paquet dans l'étape finale.
+
 ## [2.1.0] – 2026-05-19
 
 ### Modifié

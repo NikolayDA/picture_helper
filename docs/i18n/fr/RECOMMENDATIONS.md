@@ -236,7 +236,7 @@ un passage à PySide6).
 
 | # | Recommandation | Priorité | Effort | État |
 |---|-----------|-----------|---------|--------|
-| 1 | Monolithe → paquet (`bgremover/` avec modules) | 🟠 Élevée | Élevé | Ouvert |
+| 1 | Monolithe → paquet (`bgremover/` avec modules) | 🟠 Élevée | Élevé | ✅ résolu (tour 5) |
 | 2 | ~~`save_image()` sans gestion d'erreurs~~ | 🟡 Moyenne | Faible | ✅ #48 |
 | 3 | ~~Duplication d'état dans `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Moyenne | Faible | ✅ #52 |
 | 4 | ~~Feuilles de style en ligne éparpillées, pas de module de thème~~ | 🟡 Moyenne | Moyen | ✅ #53 |
@@ -252,6 +252,8 @@ plus grand levier pour la croissance des fonctionnalités, mais le risque
 le plus élevé (risque : élevé) et en conflit avec la décision de fichier
 unique documentée. **Ouvert — délibérément reporté**, nécessite une
 décision de conception distincte.
+
+→ **Résolu au tour 5** (décision de conception : rupture nette vers un paquet – voir ci-dessous).
 
 **#2** — Corrigé dans la **PR #48** : `save_image()` renvoie un `bool`
 et encapsule les opérations d'écriture dans `try/except`
@@ -307,7 +309,7 @@ améliore la sûreté de typage (effort/risque : moyen).
 | 2 | ~~Utilitaire de garde « aucune image » (tour 3 #6)~~ | 🟢 Basse | Faible | ✅ Fait |
 | 3 | ~~Classe de base de worker (tour 3 #7)~~ | 🟢 Basse | Faible | ✅ Fait |
 | 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | 🟢 Étape 1 faite |
-| 5 | Monolithe → paquet (tour 3 #1) | 🟠 Haute | Élevé | Reporté |
+| 5 | Monolithe → paquet (tour 3 #1) | 🟠 Haute | Élevé | ✅ résolu (tour 5) |
 
 ### ✅ 1. Coupe de version 2.1.0 + tag git *(fait)*
 
@@ -378,3 +380,76 @@ unique documentée. Reste une décision architecturale délibérée et
 distincte – à réexaminer au plus tard avant la prochaine expansion
 majeure de fonctionnalités. Les quick wins #2/#3 réduisent déjà
 légèrement le fichier et préparent une scission ultérieure.
+
+→ **Résolu au tour 5** (décision de conception : rupture nette vers un paquet – voir ci-dessous).
+
+---
+
+## Tour 5 – Décision de conception : monolithe → paquet (résolue)
+
+> La « décision de conception distincte » explicitement exigée au tour 3
+> #1 et au tour 4 #5 est prise ici et donc résolue. La décision de
+> conception en fichier unique documentée est **délibérément annulée**.
+
+**Décision.** `BgRemover.py` (3026 lignes) est scindé en un paquet
+Python `bgremover/`. Modules : `constants`, `image_utils`, `icons`,
+`theme`, `workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+`logging_config`, `main_window`, `app`, `__main__`, `__init__`.
+
+**Rupture nette vers un paquet (sans shim de compatibilité).**
+`BgRemover.py` est supprimé purement et simplement. L'application est
+lancée via le script de console `bgremover` **et** `python -m bgremover`.
+Le mode précédent `python -m bgremover` est **délibérément abandonné** ;
+les scripts de construction (`create_BgRemover_app.sh`,
+`BgRemover.command`), `pyproject.toml`, Makefile/CI, tests et
+documentation (i18n incluse) sont migrés dans la même coupe.
+
+**Justification.** Selon le tour 3 #1 / tour 4 #5, le fichier unique
+était le plus grand levier pour la croissance des fonctionnalités ; le
+seul bloqueur était la décision de fichier unique documentée – qui est
+ici explicitement annulée. Le risque reste élevé mais il est maîtrisé
+par la méthode.
+
+**Méthode.** Par phases avec une barrière stricte : **Phase A**
+(préparation – cet ADR + disposition/conception, aucun code déplacé) →
+**Barrière** (référence verte capturée : `ruff`/`mypy` propres,
+**140 tests unitaires + 16 tests d'IU au vert**) → **Phase B** (scission
+purement mécanique et identique au bit près ; code déplacé tel quel,
+seuls les imports ajustés ; les tests restent au vert). Le seul
+changement de code intentionnel : la résolution des ressources dans
+`make_tool_icon` (`importlib.resources` au lieu de
+`__file__`/`argv`/`cwd`), sans changement de comportement.
+
+**Ordre / travail préparatoire.** Précondition remplie : `git tag
+v2.1.0` est posé (au merge de la PR #60) et publié comme préversion
+GitHub – le dernier état pur en fichier unique est ainsi marqué (tour 4
+#1). Que le tag soit quelques commits derrière `main` HEAD est une
+décision de release optionnelle du mainteneur, sans incidence sur la
+coupe.
+
+**Délibérément après, pas avant.** Le durcissement progressif de mypy
+(tour 4 #4, 6 `disable_error_code` restants) se fait **après** la
+scission – un grand déplacement invalide la progression de typage par
+fichier. Les nettoyages internes (consolidation guard/worker) restent
+également hors de cette coupe.
+
+**Impact sur le statut.** Le tour 3 #1 et le tour 4 #5 sont **résolus**
+par cette décision ; les colonnes de statut des tableaux respectifs sont
+mises à jour en conséquence.
+
+**Phase B terminée.** La coupe mécanique a atterri (13 étapes, chacune
+verrouillée par l'oracle vert : `make test` 140, `make ui` 16,
+`make type`, `make lint` ; les deux points d'entrée
+`python -m bgremover` et `bgremover` démarrent stablement).
+`BgRemover.py` est supprimé. Le paquet contient 14 modules sous
+`bgremover/` ; les icônes sont expédiées comme `package-data`
+(`bgremover/icons/`). Le seul changement de code intentionnel est resté
+celui promis : résolution des ressources via `importlib.resources` dans
+`make_tool_icon` (contrat inchangé). Script de build, Makefile/CI et
+documentation (i18n incluse) ont suivi.
+
+**Prochaine étape recommandée.** Avec la disposition par fichier, le
+tour 4 #4 (durcissement progressif de mypy) prend tout son sens :
+retirer un `disable_error_code` par module, corriger, recommencer. Les
+nettoyages internes marqués optionnels aux tours 3/4 (unification
+garde/worker) sont également moins risqués par fichier.

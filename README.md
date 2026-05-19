@@ -64,7 +64,7 @@ da System-Python `pip install` per PEP 668 blockiert:
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 `.[ai]` zieht die KI-Abhängigkeiten (`rembg[cpu]` inkl. `onnxruntime`)
@@ -78,7 +78,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Vorher werden einige Qt-Systembibliotheken benötigt — Details siehe
@@ -160,7 +160,7 @@ macOS unter Python 3.10 und 3.12 via GitHub Actions ausgeführt.
 Code-Style-Check und statische Typprüfung (beide auch im CI):
 
 ```bash
-ruff check BgRemover.py tests
+ruff check bgremover tests
 mypy
 ```
 
@@ -181,7 +181,8 @@ python scripts/generate_anleitung_pdf.py
 
 ## Architektur (Kurzüberblick)
 
-BgRemover ist eine Einzeldatei-Anwendung (`BgRemover.py`):
+BgRemover ist seit Runde 5 ein installierbares Paket (`bgremover/`,
+gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
 
 - **`ImageCanvas`** (QGraphicsView) hält den Bildzustand, die Auswahl­maske,
   Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).
@@ -203,7 +204,7 @@ BgRemover ist eine Einzeldatei-Anwendung (`BgRemover.py`):
   vektorisierte Variante spürbar verzögern. Pillow ist zusätzlich gegen
   „Decompression-Bomb"-Bilder abgesichert.
 - Der **App-Bundle-Build** ist macOS-spezifisch; unter Linux/Windows
-  läuft die Anwendung über den direkten `python BgRemover.py`-Start.
+  läuft die Anwendung über den direkten `python -m bgremover`-Start.
 
 ## Log-Datei
 

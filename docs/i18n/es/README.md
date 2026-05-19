@@ -66,7 +66,7 @@ según el PEP 668:
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 `.[ai]` incluye las dependencias de IA (`rembg[cpu]` incl. `onnxruntime`);
@@ -80,7 +80,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Previamente se necesitan algunas bibliotecas de sistema de Qt — para más
@@ -157,7 +157,7 @@ Comprobación del estilo de código y verificación estática de tipos
 (ambas también en el CI):
 
 ```bash
-ruff check BgRemover.py tests
+ruff check bgremover tests
 mypy
 ```
 
@@ -190,7 +190,7 @@ BgRemover es una aplicación de un solo archivo (`BgRemover.py`):
   «bomba de descompresión».
 - La **compilación del paquete de aplicación** es específica de macOS; en
   Linux/Windows la aplicación se ejecuta mediante el inicio directo
-  `python BgRemover.py`.
+  `python -m bgremover`.
 
 ## Archivo de registro
 

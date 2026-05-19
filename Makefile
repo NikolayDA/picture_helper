@@ -7,7 +7,7 @@ check: lint type test
 # (z. B. isoliert installierte Tools), nutzt denselben Interpreter wie das
 # Projekt. Befehle/Reihenfolge entsprechen exakt .github/workflows/ci.yml.
 lint:
-	python -m ruff check BgRemover.py tests
+	python -m ruff check bgremover tests
 
 type:
 	python -m mypy

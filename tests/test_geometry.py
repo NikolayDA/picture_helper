@@ -7,7 +7,7 @@ abgedeckt – hier wird der tatsächliche Pixel-Output geprüft.
 import numpy as np
 from PIL import Image
 
-from BgRemover import ImageCanvas, pil_to_numpy
+from bgremover import ImageCanvas, pil_to_numpy
 
 
 def _canvas(color=(10, 20, 30, 255), size=(40, 20)):
