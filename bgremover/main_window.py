@@ -475,20 +475,20 @@ class MainWindow(QMainWindow):
         self._sld_tol = self._make_slider(0, 255, 30,
             "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
             "Niedrig = nur sehr ähnliche Farben · Hoch = viele Farbtöne")
-        self._sld_tol.valueChanged.connect(lambda v: (
-            self._canvas.set_tolerance(v),
+        def _on_tol(v: int) -> None:
+            self._canvas.set_tolerance(v)
             self._lbl_tol.setText(f"Toleranz (Zauberstab):  {v}")
-        ))
+        self._sld_tol.valueChanged.connect(_on_tol)
         gs.addWidget(self._lbl_tol)
         gs.addWidget(self._sld_tol)
         gs.addWidget(self._make_hdivider())
         self._lbl_brush = self._make_label("Pinselgröße:  30 px", "#aaa")
         self._sld_brush = self._make_slider(4, 200, 30,
             "Größe des Pinsel-/Radiergummi-Werkzeugs in Pixeln")
-        self._sld_brush.valueChanged.connect(lambda v: (
-            self._canvas.set_brush_size(v),
+        def _on_brush(v: int) -> None:
+            self._canvas.set_brush_size(v)
             self._lbl_brush.setText(f"Pinselgröße:  {v} px")
-        ))
+        self._sld_brush.valueChanged.connect(_on_brush)
         gs.addWidget(self._lbl_brush)
         gs.addWidget(self._sld_brush)
         l1.addWidget(g_sel)
