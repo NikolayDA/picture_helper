@@ -97,7 +97,7 @@ class ImageLoadWorker(_Worker):
         self._path = path
 
     def _work(self) -> None:
-        img = Image.open(self._path)
+        img: Image.Image = Image.open(self._path)
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
             self.error.emit(

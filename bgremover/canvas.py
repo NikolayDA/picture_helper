@@ -182,7 +182,7 @@ class ImageCanvas(QGraphicsView):
         # EXIF-Orientierung anwenden: Smartphone-Fotos sind oft im Sensor
         # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
         # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
-        img = Image.open(path)
+        img: Image.Image = Image.open(path)
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
             self.statusMsg.emit(
@@ -344,6 +344,7 @@ class ImageCanvas(QGraphicsView):
             (self._mask * 255).astype(np.uint8), mode="L")
         # PIL-Filter brauchen ungerade Kernelgrößen
         size = radius * 2 + 1
+        filt: ImageFilter.RankFilter
         if kind == "expand":
             filt = ImageFilter.MaxFilter(size)
             label = "erweitert"
