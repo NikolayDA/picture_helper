@@ -87,3 +87,27 @@ def qapp():
         pytest.exit(diagnosis, returncode=1)
     app = QApplication.instance() or QApplication([])
     yield app
+
+
+@pytest.fixture(autouse=True)
+def _no_rembg_warmup(monkeypatch):
+    """Unterbindet den echten rembg-Warmup in *allen* Tests.
+
+    ``MainWindow.__init__`` startet bei installiertem ``rembg`` einen
+    Hintergrund-Thread, der beim ersten Aufruf ein ~176 MB ONNX-Modell
+    über das Netz herunterlädt (``rembg`` → ``pooch``). Im Testlauf ist
+    das nicht-deterministisch, langsam und kann – mehrere Tests bauen
+    ``MainWindow`` – den Prozess mit SIGABRT abreißen, sobald das
+    ``ai``-Extra im Test-venv installiert ist. Die Tests sollen
+    hermetisch und offline sein; einige Tests unterdrücken den Warmup
+    schon einzeln, hier wird das zentral für alle erzwungen. Das
+    Produktionsverhalten bleibt unverändert (nur der Testlauf ist
+    betroffen). ``raising=False``: greift auch, falls die Methode mal
+    umbenannt wird, ohne stillschweigend zu brechen.
+    """
+    import BgRemover
+
+    monkeypatch.setattr(
+        BgRemover.MainWindow, "_start_rembg_warmup",
+        lambda self: None, raising=False,
+    )
