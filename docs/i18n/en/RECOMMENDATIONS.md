@@ -296,47 +296,51 @@ safety (effort/risk: medium).
 
 | # | Recommendation | Priority | Effort | Status |
 |---|----------------|----------|--------|--------|
-| 1 | **Release cut 2.1.0 + git tag** | 🟠 High | Low | **← Next step** |
-| 2 | "No image loaded" guard helper (round 3 #6) | 🟢 Low | Low | Open |
-| 3 | Worker base class (round 3 #7) | 🟢 Low | Low | Open |
-| 4 | Tighten `mypy` step by step (round 3 #9) | 🟢 Low | Medium | Open |
+| 1 | ~~Release cut 2.1.0 + git tag~~ | 🟠 High | Low | ✅ Done (tag after merge) |
+| 2 | ~~"No image loaded" guard helper (round 3 #6)~~ | 🟢 Low | Low | ✅ Done |
+| 3 | ~~Worker base class (round 3 #7)~~ | 🟢 Low | Low | ✅ Done |
+| 4 | Tighten `mypy` step by step (round 3 #9) | 🟢 Low | Medium | **← Next step** |
 | 5 | Monolith → package (round 3 #1) | 🟠 High | High | Deferred |
 
-### 🟠 1. Release cut 2.1.0 + git tag *(recommended next step)*
+### ✅ 1. Release cut 2.1.0 + git tag *(done)*
 
-**Finding:** there is **not a single git tag** (`git tag -l` is empty),
-even though the CHANGELOG claims a "first publicly tagged release
-2.0.0". Since 2.0.0 the `[Unreleased]` block has accumulated
-substantial changes (PR #48 save error handling, #52 state dedup, #53
-`_Theme`, INSTALL_LINUX docs, #55 local test runner). `pyproject.toml`
-(`version = "2.0.0"`) and the `__version__` fallback
-(`BgRemover.py:51`) still read `2.0.0` – the shipped state is therefore
-indistinguishable from 2.0.0.
+**Done in this PR:** `pyproject.toml` and the `__version__` fallback
+(`BgRemover.py`) bumped to `2.1.0`; the `[Unreleased]` block in
+`CHANGELOG.md` (+ i18n en/es/fr/uk/zh) dated as `[2.1.0] – 2026-05-19`
+and a fresh empty `[Unreleased]` block added. The `git tag v2.1.0` is
+**deliberately not** set on the feature branch; it belongs on the merge
+commit in `main` after merge (see the PR description).
 
-**Why first:** lowest effort, maximum clarity. Without a version/tag
-cut there is no way to trace what was shipped – this blocks any clean
-feature iteration.
+**Finding (for the record):** there was **not a single git tag**
+(`git tag -l` empty), even though the CHANGELOG claims a "first
+publicly tagged release 2.0.0". Since 2.0.0 the `[Unreleased]` block
+had accumulated substantial changes (PR #48 save error handling, #52
+state dedup, #53 `_Theme`, INSTALL_LINUX docs, #55 local test runner),
+while `pyproject.toml` and the `__version__` fallback still read
+`2.0.0`.
 
-**Steps:** bump `version` in `pyproject.toml` and the `__version__`
-fallback to `2.1.0`; date `[Unreleased]` in `CHANGELOG.md` (+ i18n) as
-`[2.1.0] – <date>` and add a fresh empty `[Unreleased]` block; set and
-push `git tag v2.1.0`.
+### ✅ 2. "No image loaded" guard helper *(done, round 3 #6)*
 
-### 🟢 2. "No image loaded" guard helper *(round 3 #6, still open)*
+The byte-identical early-return `if self._pil is None:
+self.statusMsg.emit("Kein Bild geladen"); return` of the five
+`ImageCanvas` methods `apply_round_corners`, `apply_rotate`,
+`apply_flip`, `start_crop_circle`, `start_crop_ratio` is consolidated
+in the `@_requires_image` decorator. Behavior unchanged (140 unit + 16
+UI tests green). The three `MainWindow` `has_image` guards
+intentionally stay inline: differing messages and order-dependent
+secondary checks – consolidating them there would add more risk than
+value.
 
-Verified: the "no image loaded" early-return repeats across ~10
-methods (incl. `BgRemover.py:1474`, `:1481`, `:2726`, `:2733`). A small
-decorator/guard helper consolidates it. Low-risk quick win, ideal as a
-warm-up before #5.
+### ✅ 3. Worker base class *(done, round 3 #7)*
 
-### 🟢 3. Worker base class *(round 3 #7, still open)*
+`AIWorker` and `ImageLoadWorker` now inherit from the base class
+`_Worker`, which encapsulates the identical
+`try/except → logger.exception → error.emit` flow; subclasses only
+implement `_work()`. `RembgWarmupWorker` intentionally stays standalone
+(no `error` signal, `finished` always in `finally` – different
+contract).
 
-`AIWorker`, `RembgWarmupWorker` and `ImageLoadWorker`
-(`BgRemover.py:459–525`) share the `try → logger.exception →
-error.emit` pattern. A thin `QObject` base class with a template method
-reduces the repetition without changing the threading model. Quick win.
-
-### 🟢 4. Tighten `mypy` step by step *(round 3 #9, still open)*
+### 🟢 4. Tighten `mypy` step by step *(round 3 #9 – next step)*
 
 Still 7 `disable_error_code`. Recommendation: re-enable one code per PR
 and fix the then-visible hits, rather than all at once. Effort/risk:
