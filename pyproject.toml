@@ -47,7 +47,10 @@ py-modules = ["BgRemover"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not ui'"
+markers = [
+    "ui: lokale, qtbot-gesteuerte UI-Interaktionstests (laufen NICHT in der CI; lokal via `make ui`).",
+]
 
 [tool.ruff]
 line-length = 100
