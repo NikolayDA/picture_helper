@@ -48,17 +48,28 @@ bringen Qt mit.
 
 ### Unterstützte Python-Version
 
-Das venv mit **Python 3.10–3.13** anlegen. **Python 3.14 wird derzeit
-nicht unterstützt**: PyQt6 hat dafür noch kein funktionierendes
-`offscreen`-Plattform-Plugin, und der QApplication-Start im Test bricht
-sonst hart mit `Fatal Python error: Aborted` (SIGABRT) ab. Welche
-Version das venv nutzt, zeigt `python --version` (bzw. der Pfad
-`.venv/lib/pythonX.Y/`).
+Offiziell getestet ist **Python 3.10–3.13** (siehe `pyproject.toml`-
+Classifier). **Python 3.14 funktioniert in der Praxis ebenfalls**,
+sofern **PyQt6 ≥ 6.11** installiert ist – diese Version bringt
+`cp314`-Wheels mit funktionierendem `offscreen`-Plattform-Plugin mit.
+Ältere PyQt6-Builds haben für 3.14 **kein** lauffähiges
+`offscreen`-Plugin; der QApplication-Start bricht dann hart mit
+`Fatal Python error: Aborted` (SIGABRT) ab. Welche Version das venv
+nutzt, zeigt `python --version` (bzw. der Pfad `.venv/lib/pythonX.Y/`).
+
+Bei `Fatal Python error: Aborted` unter Python 3.14 zuerst PyQt6
+aktualisieren:
 
 ```bash
-# Beispiel: venv gezielt mit 3.12 (oder 3.13) neu aufbauen
+pip install -U PyQt6
+```
+
+Hilft das nicht (oder ist eine ältere PyQt6-Version vorgegeben), das
+venv gezielt auf einer offiziell getesteten Version neu aufbauen:
+
+```bash
 rm -rf .venv
-python3.12 -m venv .venv
+python3.12 -m venv .venv          # oder python3.13
 source .venv/bin/activate
 pip install -e ".[test]"
 ```
@@ -148,12 +159,13 @@ mehr aus.
 - **UI-Tests laufen bei `pytest` nicht mit** – das ist beabsichtigt;
   `make ui` bzw. `pytest -m ui` verwenden.
 - **`Fatal Python error: Aborted` / `Abort trap: 6` beim `qapp`-Fixture**
-  – Qt kann das `offscreen`-Plugin nicht laden. Häufigste Ursache: das
-  venv läuft auf einer **nicht unterstützten Python-Version** (siehe
-  „Unterstützte Python-Version“ oben, v. a. Python 3.14). `conftest.py`
-  fängt das ab und gibt jetzt eine klare Diagnose mit der echten
-  Qt-Meldung aus; Lösung ist in aller Regel ein venv-Neuaufbau auf
-  Python 3.12/3.13.
+  – Qt kann das `offscreen`-Plugin nicht laden. Häufigste Ursache: ein
+  zu altes PyQt6 für die genutzte Python-Version (v. a. Python 3.14).
+  Erst `pip install -U PyQt6` (≥ 6.11) versuchen; hilft das nicht, das
+  venv auf Python 3.12/3.13 neu aufbauen (siehe „Unterstützte
+  Python-Version“ oben). `conftest.py` fängt den Fall ab und gibt eine
+  klare Diagnose mit der echten Qt-Meldung aus statt eines
+  unleserlichen SIGABRT-Stacktrace.
 - **`Fatal Python error: Aborted` mit `rembg`/`pooch`/`download_models`
   im Stacktrace** – im Test-venv ist (fälschlich) das `ai`-Extra
   installiert; `MainWindow` startet dann den rembg-Warmup, der ein
