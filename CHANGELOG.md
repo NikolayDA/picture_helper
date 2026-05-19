@@ -9,8 +9,26 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.1.0] – 2026-05-19
+
 ### Geändert
 
+- Frühausstieg-Guard „Kein Bild geladen“ der fünf `ImageCanvas`-
+  Methoden (`apply_round_corners`, `apply_rotate`, `apply_flip`,
+  `start_crop_circle`, `start_crop_ratio`) im Decorator
+  `@_requires_image` zusammengefasst – der zuvor byte-identisch
+  wiederholte Block entfällt; Verhalten unverändert (durch die
+  bestehende Test-Suite verteidigt).
+- Hintergrund-Worker `AIWorker` und `ImageLoadWorker` nutzen jetzt die
+  gemeinsame Basisklasse `_Worker`, die den identischen
+  `try/except → logger.exception → error.emit`-Ablauf kapselt;
+  Unterklassen implementieren nur noch `_work()`. `RembgWarmupWorker`
+  bleibt bewusst eigenständig (kein `error`-Signal, `finished` stets im
+  `finally`).
+- Versions-Schnitt **2.1.0**: `pyproject.toml` und der
+  `__version__`-Fallback in `BgRemover.py` auf `2.1.0` gehoben; die
+  zuvor unter `[Unreleased]` gesammelten Änderungen (#48/#52/#53,
+  INSTALL_LINUX, Runde 3/4) sind hiermit als 2.1.0 datiert.
 - Interne Refaktorierung: Der in `_apply_pil`, `undo`, `redo`,
   `undo_to` und `restore_original` identische Bildzustands-Block
   (Pixmap setzen, Maske leeren, Ansicht aktualisieren) ist in die

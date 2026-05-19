@@ -8,6 +8,25 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.1.0] – 2026-05-19
+
+### Changed
+
+- Consolidated the "no image loaded" early-return guard of the five
+  `ImageCanvas` methods (`apply_round_corners`, `apply_rotate`,
+  `apply_flip`, `start_crop_circle`, `start_crop_ratio`) into the
+  `@_requires_image` decorator – the previously byte-identical block is
+  gone; behavior unchanged (defended by the existing test suite).
+- Background workers `AIWorker` and `ImageLoadWorker` now share the
+  common base class `_Worker`, which encapsulates the identical
+  `try/except → logger.exception → error.emit` flow; subclasses only
+  implement `_work()`. `RembgWarmupWorker` intentionally stays
+  standalone (no `error` signal, `finished` always in `finally`).
+- Version cut **2.1.0**: `pyproject.toml` and the `__version__`
+  fallback in `BgRemover.py` bumped to `2.1.0`; the changes previously
+  collected under `[Unreleased]` (#48/#52/#53, INSTALL_LINUX, rounds
+  3/4) are hereby dated as 2.1.0.
+
 ### Documentation
 
 - Added an installation guide for Linux (`INSTALL_LINUX.md`):

@@ -299,15 +299,24 @@ Typsicherheit (Aufwand/Risiko: Mittel).
 
 | # | Empfehlung | Priorität | Aufwand | Status |
 |---|-----------|-----------|---------|--------|
-| 1 | **Release-Schnitt 2.1.0 + git-Tag** | 🟠 Hoch | Niedrig | **← Nächster Schritt** |
-| 2 | Guard-Helfer „Kein Bild geladen" (Runde 3 #6) | 🟢 Niedrig | Niedrig | Offen |
-| 3 | Worker-Basisklasse (Runde 3 #7) | 🟢 Niedrig | Niedrig | Offen |
-| 4 | `mypy` schrittweise verschärfen (Runde 3 #9) | 🟢 Niedrig | Mittel | Offen |
+| 1 | ~~Release-Schnitt 2.1.0 + git-Tag~~ | 🟠 Hoch | Niedrig | ✅ Umgesetzt (Tag nach Merge) |
+| 2 | ~~Guard-Helfer „Kein Bild geladen" (Runde 3 #6)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
+| 3 | ~~Worker-Basisklasse (Runde 3 #7)~~ | 🟢 Niedrig | Niedrig | ✅ Umgesetzt |
+| 4 | `mypy` schrittweise verschärfen (Runde 3 #9) | 🟢 Niedrig | Mittel | **← Nächster Schritt** |
 | 5 | Monolith → Paket (Runde 3 #1) | 🟠 Hoch | Hoch | Zurückgestellt |
 
-### 🟠 1. Release-Schnitt 2.1.0 + git-Tag *(empfohlener nächster Schritt)*
+### ✅ 1. Release-Schnitt 2.1.0 + git-Tag *(umgesetzt)*
 
-**Befund:** Es existiert **kein einziger git-Tag** (`git tag -l` ist
+**Umgesetzt in diesem PR:** `pyproject.toml` und der
+`__version__`-Fallback (`BgRemover.py`) auf `2.1.0` gehoben; der
+`[Unreleased]`-Block in `CHANGELOG.md` (+ i18n en/es/fr/uk/zh) als
+`[2.1.0] – 2026-05-19` datiert und ein frischer leerer
+`[Unreleased]`-Block angelegt. Der `git tag v2.1.0` wird **bewusst
+nicht** auf dem Feature-Branch gesetzt, sondern gehört nach dem Merge
+auf den Merge-Commit in `main` (siehe PR-Beschreibung).
+
+**Befund (zur Nachvollziehbarkeit):** Es existierte **kein einziger
+git-Tag** (`git tag -l` ist
 leer), obwohl der CHANGELOG eine „erste öffentlich getaggte
 Veröffentlichung 2.0.0" behauptet. Seit 2.0.0 hat der
 `[Unreleased]`-Block substantielle Änderungen gesammelt (PR #48
@@ -321,27 +330,27 @@ Stand ist also nicht von 2.0.0 unterscheidbar.
 Versions-/Tag-Schnitt lässt sich nicht nachvollziehen, welcher Code
 ausgeliefert wurde – das blockiert jede saubere Feature-Iteration.
 
-**Schritte:** `version` in `pyproject.toml` und den `__version__`-
-Fallback auf `2.1.0` heben; `[Unreleased]` in `CHANGELOG.md`
-(+ i18n) als `[2.1.0] – <Datum>` datieren und einen neuen leeren
-`[Unreleased]`-Block anlegen; `git tag v2.1.0` setzen und pushen.
+### ✅ 2. Guard-Helfer „Kein Bild geladen" *(umgesetzt, Runde 3 #6)*
 
-### 🟢 2. Guard-Helfer „Kein Bild geladen" *(Runde 3 #6, weiter offen)*
+Der byte-identische Frühausstieg `if self._pil is None:
+self.statusMsg.emit("Kein Bild geladen"); return` der fünf
+`ImageCanvas`-Methoden `apply_round_corners`, `apply_rotate`,
+`apply_flip`, `start_crop_circle`, `start_crop_ratio` ist im Decorator
+`@_requires_image` zusammengefasst. Verhalten unverändert (140 Unit-
++ 16 UI-Tests grün). Die drei `MainWindow`-`has_image`-Guards bleiben
+bewusst inline: abweichende Meldungen und reihenfolgeabhängige
+Zweitprüfungen – eine Bündelung brächte dort mehr Risiko als Nutzen.
 
-Verifiziert: der „kein Bild geladen"-Frühausstieg wiederholt sich in
-~10 Methoden (u. a. `BgRemover.py:1474`, `:1481`, `:2726`, `:2733`).
-Ein kleiner Decorator/Guard-Helfer bündelt das. Risikoarmer Quick-Win,
-ideal als Aufwärmer vor #5.
+### ✅ 3. Worker-Basisklasse *(umgesetzt, Runde 3 #7)*
 
-### 🟢 3. Worker-Basisklasse *(Runde 3 #7, weiter offen)*
+`AIWorker` und `ImageLoadWorker` erben jetzt von der Basisklasse
+`_Worker`, die den identischen
+`try/except → logger.exception → error.emit`-Ablauf kapselt;
+Unterklassen implementieren nur noch `_work()`. `RembgWarmupWorker`
+bleibt bewusst eigenständig (kein `error`-Signal, `finished` stets im
+`finally` – anderer Kontrakt).
 
-`AIWorker`, `RembgWarmupWorker` und `ImageLoadWorker`
-(`BgRemover.py:459–525`) teilen das Muster
-`try → logger.exception → error.emit`. Eine schlanke `QObject`-
-Basisklasse mit Template-Methode reduziert die Wiederholung, ohne das
-Threading-Modell zu ändern. Quick-Win.
-
-### 🟢 4. `mypy` schrittweise verschärfen *(Runde 3 #9, weiter offen)*
+### 🟢 4. `mypy` schrittweise verschärfen *(Runde 3 #9 – nächster Schritt)*
 
 Unverändert 7 `disable_error_code`. Empfehlung: pro PR einen Code
 reaktivieren und die dann sichtbaren Treffer fixen, statt alles auf
