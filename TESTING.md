@@ -37,6 +37,28 @@ bringen Qt mit.
 
 > Bei jeder neuen Terminal-Sitzung zuerst `source .venv/bin/activate`.
 
+### Unterstützte Python-Version
+
+Das venv mit **Python 3.10–3.13** anlegen. **Python 3.14 wird derzeit
+nicht unterstützt**: PyQt6 hat dafür noch kein funktionierendes
+`offscreen`-Plattform-Plugin, und der QApplication-Start im Test bricht
+sonst hart mit `Fatal Python error: Aborted` (SIGABRT) ab. Welche
+Version das venv nutzt, zeigt `python --version` (bzw. der Pfad
+`.venv/lib/pythonX.Y/`).
+
+```bash
+# Beispiel: venv gezielt mit 3.12 (oder 3.13) neu aufbauen
+rm -rf .venv
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[test]"
+```
+
+`tests/conftest.py` prüft die Qt-Umgebung vor dem ersten GUI-Test in
+einem isolierten Subprozess. Schlägt der QApplication-Start fehl, bricht
+der Lauf **sauber mit einer erklärenden Meldung** (inkl. der echten
+Qt-Fehlerausgabe) ab – statt mit einem unleserlichen SIGABRT-Stacktrace.
+
 ## Tests lokal ausführen (`make`)
 
 Im Projektordner (venv aktiv):
@@ -116,3 +138,10 @@ mehr aus.
   automatisch).
 - **UI-Tests laufen bei `pytest` nicht mit** – das ist beabsichtigt;
   `make ui` bzw. `pytest -m ui` verwenden.
+- **`Fatal Python error: Aborted` / `Abort trap: 6` beim `qapp`-Fixture**
+  – Qt kann das `offscreen`-Plugin nicht laden. Häufigste Ursache: das
+  venv läuft auf einer **nicht unterstützten Python-Version** (siehe
+  „Unterstützte Python-Version“ oben, v. a. Python 3.14). `conftest.py`
+  fängt das ab und gibt jetzt eine klare Diagnose mit der echten
+  Qt-Meldung aus; Lösung ist in aller Regel ein venv-Neuaufbau auf
+  Python 3.12/3.13.
