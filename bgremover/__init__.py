@@ -29,6 +29,7 @@ from bgremover.image_utils import (
     pil_to_qpixmap,
 )
 from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
+from bgremover.crop import CropOverlayItem
 from bgremover.workers import (
     REMBG_AVAILABLE,
     AIWorker,
@@ -45,6 +46,7 @@ __all__ = [
     "TOOL_STYLE",
     "TOOL_WAND",
     "AIWorker",
+    "CropOverlayItem",
     "ImageLoadWorker",
     "_MAX_MEGAPIXELS",
     "_THREAD_SHUTDOWN_MS",
