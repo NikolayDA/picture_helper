@@ -38,6 +38,17 @@ from PyQt6.QtCore import (
 )
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
+from bgremover.constants import (
+    logger, LOG_FILENAME, _MAX_MEGAPIXELS, _UNDO_MEMORY_LIMIT,
+    _THREAD_SHUTDOWN_MS, _IS_MACOS,
+    _TOOLBAR_WIDTH, _TOOLBAR_BTN_SIZE, _TOOLBAR_ICON_SIZE,
+    _RIGHT_PANEL_WIDTH, _CROP_BAR_HEIGHT, _COLOR_BTN_SIZE, _TAB_ICON_PX,
+    _WINDOW_MIN_W, _WINDOW_MIN_H,
+    _DEFAULT_TOLERANCE, _DEFAULT_BRUSH_RADIUS, _ZOOM_FACTOR,
+    _OVERLAY_COLOR,
+    TOOL_WAND, TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO,
+)
+
 try:
     from rembg import remove as rembg_remove
     REMBG_AVAILABLE = True
@@ -52,48 +63,10 @@ except PackageNotFoundError:
     # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
     __version__ = "2.1.0"
 
-logger = logging.getLogger("BgRemover")
-
-LOG_FILENAME = "bgremover.log"
 # Vom Logging-Setup gesetzter, tatsächlich beschriebener Log-Pfad. Wird
 # vom Einstellungen-Dialog ausgelesen, damit Anzeige und FileHandler nie
 # auseinanderlaufen.
 _log_file_path: "Path | None" = None
-
-# Bildgrössen-Limit beim Laden (Pixel), um UI-Freeze / OOM zu vermeiden.
-# Die Zauberstab-Flood-Fill läuft synchron im GUI-Thread; jenseits ~40 MP
-# wird selbst die vektorisierte Variante spürbar träge.
-_MAX_MEGAPIXELS = 40
-# Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
-Image.MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
-# Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
-_UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
-# Maximale Wartezeit (ms) auf einen Hintergrund-Thread beim Schliessen,
-# bevor er hart terminiert wird. Der rembg-Warmup darf einige Sekunden
-# brauchen; danach ist hartes Beenden besser als ein Hänger oder Crash.
-_THREAD_SHUTDOWN_MS = 5000
-
-# Plattform-Erkennung für tastaturabhängige Hinweistexte (macOS = Cmd).
-_IS_MACOS = sys.platform == "darwin"
-
-# ── UI-Layoutkonstanten ──────────────────────────────────────
-_TOOLBAR_WIDTH      = 74
-_TOOLBAR_BTN_SIZE   = 54
-_TOOLBAR_ICON_SIZE  = 38
-_RIGHT_PANEL_WIDTH  = 384
-_CROP_BAR_HEIGHT    = 46
-_COLOR_BTN_SIZE     = 38
-_TAB_ICON_PX        = 30
-_WINDOW_MIN_W       = 1100
-_WINDOW_MIN_H       = 720
-
-# ── Canvas-Standardwerte ─────────────────────────────────────
-_DEFAULT_TOLERANCE    = 30
-_DEFAULT_BRUSH_RADIUS = 15
-_ZOOM_FACTOR          = 1.15
-
-# ── Auswahloverlay-Farbe (RGBA) ──────────────────────────────
-_OVERLAY_COLOR = (220, 60, 60, 130)
 
 # ─────────────────────────────────────────────────────────────
 # Hilfsfunktionen
@@ -726,11 +699,6 @@ class CropOverlayItem(QGraphicsObject):
 # ─────────────────────────────────────────────────────────────
 # Bild-Canvas
 # ─────────────────────────────────────────────────────────────
-
-TOOL_WAND   = "wand"
-TOOL_BRUSH  = "brush"
-TOOL_ERASER = "eraser"
-TOOL_LASSO  = "lasso"
 
 
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
