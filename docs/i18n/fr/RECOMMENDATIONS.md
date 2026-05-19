@@ -306,7 +306,7 @@ améliore la sûreté de typage (effort/risque : moyen).
 | 1 | ~~Coupe de version 2.1.0 + tag git~~ | 🟠 Haute | Faible | ✅ Fait (tag après merge) |
 | 2 | ~~Utilitaire de garde « aucune image » (tour 3 #6)~~ | 🟢 Basse | Faible | ✅ Fait |
 | 3 | ~~Classe de base de worker (tour 3 #7)~~ | 🟢 Basse | Faible | ✅ Fait |
-| 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | **← Prochaine étape** |
+| 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | 🟢 Étape 1 faite |
 | 5 | Monolithe → paquet (tour 3 #1) | 🟠 Haute | Élevé | Reporté |
 
 ### ✅ 1. Coupe de version 2.1.0 + tag git *(fait)*
@@ -348,11 +348,26 @@ n'implémentent plus que `_work()`. `RembgWarmupWorker` reste
 délibérément autonome (pas de signal `error`, `finished` toujours dans
 `finally` – contrat différent).
 
-### 🟢 4. Durcir `mypy` progressivement *(tour 3 #9 – prochaine étape)*
+### 🟢 4. Durcir `mypy` progressivement *(tour 3 #9 – étape 1 faite)*
 
-Toujours 7 `disable_error_code`. Recommandation : réactiver un code par
-PR et corriger les occurrences alors visibles, plutôt que tout d'un
-coup. Effort/risque : moyen.
+`disable_error_code` réduit de **8 à 6** : `index` et `operator` sont
+déjà propres (**0 erreur** chacun, mesuré) et donc réactivés dans
+`pyproject.toml` – sans changement de code, sans risque. Feuille de
+route mesurée pour les codes restants (une étape par PR, comme
+recommandé) :
+
+| Code | Erreurs ouvertes | Nature |
+|------|------------------|--------|
+| `arg-type` | 2 | rétrécissement None via gardes/décorateur |
+| `attr-defined` | 2 | `QThread._worker`/`QObject.run` dynamiques |
+| `func-returns-value` | 4 | retour void dans des tuples lambda d'UI |
+| `assignment` | 4 | types d'affectation mixtes |
+| `override` | 7 | signatures d'override Qt |
+| `union-attr` | 67 | très large – à traiter en dernier |
+
+Prochaine étape sensée : `arg-type` ou `attr-defined` (2 chacun,
+petites améliorations réelles). Effort/risque des étapes restantes :
+moyen.
 
 ### 🟠 5. Monolithe → paquet *(tour 3 #1, reporté volontairement)*
 
