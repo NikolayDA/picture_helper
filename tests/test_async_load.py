@@ -6,7 +6,7 @@ das Ergebnis ohne erneuten Disk-IO.
 """
 from PIL import Image
 
-from BgRemover import ImageCanvas, ImageLoadWorker
+from bgremover import ImageCanvas, ImageLoadWorker
 
 
 def test_apply_loaded_image_sets_state(qapp):

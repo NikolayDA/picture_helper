@@ -9,18 +9,48 @@ from pathlib import Path
 import pytest
 
 
-SRC_PATH = Path(__file__).resolve().parent.parent / "BgRemover.py"
+_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _source_files() -> list[Path]:
+    """Monolith (solange vorhanden) + Paketmodule.
+
+    Runde 5, Phase B: Code wandert schrittweise von ``BgRemover.py`` nach
+    ``bgremover/``. Die statischen Garantien gelten unabhängig davon, in
+    welchem Modul ein Symbol gerade liegt – jede Datei wird einzeln
+    geparst (``from __future__`` muss je Datei zuerst stehen).
+    """
+    files: list[Path] = []
+    mono = _ROOT / "BgRemover.py"
+    if mono.is_file():
+        files.append(mono)
+    files.extend(sorted((_ROOT / "bgremover").glob("*.py")))
+    return files
 
 
 @pytest.fixture(scope="module")
 def source() -> str:
-    return SRC_PATH.read_text(encoding="utf-8")
+    return "\n".join(p.read_text(encoding="utf-8") for p in _source_files())
 
 
 @pytest.fixture(scope="module")
-def functions(source: str) -> dict[str, ast.FunctionDef]:
-    tree = ast.parse(source)
-    return {n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+def functions() -> dict[str, ast.FunctionDef]:
+    out: dict[str, ast.FunctionDef] = {}
+    for p in _source_files():
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        for n in ast.walk(tree):
+            if isinstance(n, ast.FunctionDef):
+                out.setdefault(n.name, n)
+    return out
+
+
+@pytest.fixture(scope="module")
+def classes() -> set[str]:
+    names: set[str] = set()
+    for p in _source_files():
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        names |= {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
+    return names
 
 
 # ── Fix #1: KI-Race ────────────────────────────────────────────────────
@@ -106,10 +136,8 @@ def test_drop_event_reports_extra_files(functions):
 
 # ── B3: rembg-Warmup ────────────────────────────────────────────────────
 
-def test_warmup_worker_class_exists(source: str):
-    tree = ast.parse(source)
-    names = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
-    assert "RembgWarmupWorker" in names, (
+def test_warmup_worker_class_exists(classes: set[str]):
+    assert "RembgWarmupWorker" in classes, (
         "RembgWarmupWorker muss als eigene Worker-Klasse existieren."
     )
 

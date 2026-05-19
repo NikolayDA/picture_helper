@@ -16,7 +16,7 @@ from PIL import Image
 from PyQt6.QtCore import Qt, QPointF, QMimeData, QUrl
 from PyQt6.QtGui import QDropEvent
 
-from BgRemover import ImageCanvas, pil_to_numpy
+from bgremover import ImageCanvas, pil_to_numpy
 
 
 def test_drop_emits_load_requested_and_does_not_load_sync(qapp, tmp_path):

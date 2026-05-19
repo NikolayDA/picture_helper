@@ -9,6 +9,25 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]（未发布）
 
+### 更改
+
+- **单体 → 包（第 5 轮）。** 单文件 `BgRemover.py`（3026 行）已拆分为
+  可安装包 `bgremover/`（14 个模块：`constants`、`image_utils`、
+  `icons`、`theme`、`workers`、`crop`、`canvas`、`widgets`、
+  `settings_dialog`、`logging_config`、`main_window`、`app`、
+  `__main__`、`__init__`）。通过 `python -m bgremover` 或
+  console-script `bgremover` 启动；旧的 `python BgRemover.py` 形式被
+  无替代地移除。`BgRemover.py` 已删除。以 **13 个机械步骤**完成，每一
+  步都以绿色测试 oracle 为闸门（140 unit + 16 UI 测试、ruff、mypy）。
+  唯一有意的、行为中立的代码变更：`make_tool_icon` 现在通过
+  `importlib.resources` 从包数据（`bgremover/icons/`）解析图标，取代
+  `__file__`/`sys.argv`/`cwd` —— 契约不变。`pyproject.toml`、
+  `Makefile`、CI workflow 与 macOS 构建脚本
+  （`create_BgRemover_app.sh`）在同一次切分中同步跟进；venv 以非
+  editable 模式安装本包（含 package-data），因而应用不依赖项目目录。
+- `BgRemover.py` 中的过渡再导出（B 阶段）与测试中所有的 `BgRemover`
+  导入在最后一步被切换到包上。
+
 ## [2.1.0] – 2026-05-19
 
 ### 已更改

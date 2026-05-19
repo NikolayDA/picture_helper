@@ -2,7 +2,7 @@
 import numpy as np
 from PIL import Image
 
-from BgRemover import flood_fill, mask_to_overlay, numpy_to_pil, pil_to_numpy
+from bgremover import flood_fill, mask_to_overlay, numpy_to_pil, pil_to_numpy
 
 
 # ── pil_to_numpy / numpy_to_pil ─────────────────────────────────────────

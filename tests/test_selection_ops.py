@@ -9,7 +9,7 @@ from PIL import Image
 from PyQt6.QtCore import Qt, QPointF
 from PyQt6.QtGui import QColor
 
-from BgRemover import (
+from bgremover import (
     ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND, pil_to_numpy,
 )
 

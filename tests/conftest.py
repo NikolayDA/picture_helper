@@ -11,7 +11,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-# Repo-Root in sys.path aufnehmen, damit ``import BgRemover`` funktioniert,
+# Repo-Root in sys.path aufnehmen, damit ``import bgremover`` funktioniert,
 # wenn das Paket nicht per ``pip install -e .`` installiert wurde.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -107,9 +107,9 @@ def _no_rembg_warmup(monkeypatch):
     betroffen). ``raising=False``: greift auch, falls die Methode mal
     umbenannt wird, ohne stillschweigend zu brechen.
     """
-    import BgRemover
+    import bgremover
 
     monkeypatch.setattr(
-        BgRemover.MainWindow, "_start_rembg_warmup",
+        bgremover.MainWindow, "_start_rembg_warmup",
         lambda self: None, raising=False,
     )

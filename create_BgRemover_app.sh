@@ -32,7 +32,8 @@ arch_run() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BGREMOVER_PY="$SCRIPT_DIR/BgRemover.py"
+# Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
+# (`bgremover/`); die App wird ueber `python -m bgremover` gestartet.
 ICON_PNG="$SCRIPT_DIR/BgRemover_icon.png"
 COMMAND_FILE="$SCRIPT_DIR/BgRemover.command"
 APP_NAME="BgRemover"
@@ -133,16 +134,19 @@ else
         || { echo -e "${RED}❌ venv konnte nicht erstellt werden.${NC}"; exit 1; }
     echo "📦 Installiere Abhängigkeiten ($NATIVE_ARCH) … (kann einige Minuten dauern)"
     arch_run "$VENV_PY" -m pip install --upgrade pip >/dev/null 2>&1 || true
-    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e ".[ai]" ); then
+    # Nicht-editierbar installieren: die venv enthaelt eine eigene Kopie
+    # des Pakets (inkl. package-data icons/), damit die App vom Projekt-
+    # ordner unabhaengig ist (umbenennen/loeschen bricht sie nicht).
+    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install ".[ai]" ); then
         PYTHON="$VENV_PY"
         echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install -e "." ); then
+    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install "." ); then
         PYTHON="$VENV_PY"
         echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
     else
         echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
         echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
-        echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install -e \".[ai]\""
+        echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install \".[ai]\""
         exit 1
     fi
 fi
@@ -150,24 +154,21 @@ fi
 # Letzter Sicherheitscheck: kann das gewählte Python die Pakete
 # wirklich importieren? Fängt z.B. arm64/x86_64-Mismatch ab, BEVOR
 # eine garantiert kaputte App ausgeliefert wird.
-if ! IMPERR=$(arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy' 2>&1); then
-    echo -e "${RED}❌ $PYTHON kann PyQt6/Pillow/numpy nicht importieren:${NC}"
+if ! IMPERR=$(arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' 2>&1); then
+    echo -e "${RED}❌ $PYTHON kann PyQt6/Pillow/numpy/bgremover nicht importieren:${NC}"
     echo "$IMPERR" | tail -n 1
     echo "   Häufige Ursache: Architektur-Mismatch auf Apple Silicon"
-    echo "   (x86_64 vs arm64). Abhilfe: nativen Python installieren und"
-    echo "   das Skript erneut ausführen:  brew install python"
+    echo "   (x86_64 vs arm64) oder Paket nicht installiert. Abhilfe:"
+    echo "   nativen Python installieren oder venv neu anlegen:"
+    echo "     brew install python && bash create_BgRemover_app.sh"
     exit 1
 fi
-
-# ── Dateien prüfen ────────────────────────────────────────────
-[ -f "$BGREMOVER_PY" ] || { echo -e "${RED}❌ BgRemover.py nicht gefunden.${NC}"; exit 1; }
-echo -e "${GREEN}✅  BgRemover.py gefunden${NC}"
 
 case "$SCRIPT_DIR/" in
     "$HOME/Documents/"*|"$HOME/Desktop/"*|"$HOME/Downloads/"*|"$HOME/Library/Mobile Documents/"*)
         echo -e "${YELLOW}ℹ️  Projekt liegt in einem macOS-geschützten Ordner.${NC}"
         echo "    Kein Problem: die App wird in sich geschlossen gebaut"
-        echo "    (BgRemover.py wird ins Bundle kopiert, venv liegt in"
+        echo "    (venv inkl. installiertem bgremover-Paket liegt in"
         echo "    Application Support) – sie läuft auch von hier aus." ;;
 esac
 
@@ -195,24 +196,10 @@ echo "📁 Erstelle App-Bundle …"
 mkdir -p "$APP_PATH/Contents/MacOS"
 mkdir -p "$APP_PATH/Contents/Resources"
 
-# BgRemover.py IN das Bundle kopieren. Damit ist die App in sich
-# geschlossen: sie liest beim Start nicht mehr aus dem Projektordner
-# (der in ~/Documents etc. von macOS gesperrt sein oder verschoben/
-# gelöscht werden kann), sondern aus dem eigenen Bundle.
-BUNDLED_BGREMOVER="$APP_PATH/Contents/Resources/BgRemover.py"
-cp "$BGREMOVER_PY" "$BUNDLED_BGREMOVER"
-
-# Toolbar-PNGs mit ins Bundle: BgRemover.make_tool_icon() sucht den
-# icons/-Ordner NEBEN BgRemover.py. Ohne diese Kopie fällt die App auf
-# gezeichnete Ersatz-Icons zurück und sieht anders aus als der direkte
-# Skriptstart.
-if [ -d "$SCRIPT_DIR/icons" ]; then
-    rm -rf "$APP_PATH/Contents/Resources/icons"
-    cp -R "$SCRIPT_DIR/icons" "$APP_PATH/Contents/Resources/icons"
-    echo -e "${GREEN}✅  icons/ ins Bundle kopiert${NC}"
-else
-    echo -e "${YELLOW}⚠️  icons/ nicht gefunden – App nutzt gezeichnete Ersatz-Icons${NC}"
-fi
+# Hinweis: Mit dem bgremover-Paket (Runde 5, Phase B) liegt der Code
+# nicht mehr im Bundle, sondern in der venv unter Application Support
+# (nicht-editierbar installiert). icons/ ist Paket-Daten und liegt in
+# site-packages der venv – das Bundle braucht also keine eigene Kopie.
 
 # ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"
@@ -233,7 +220,6 @@ export PYTHONNOUSERSITE=1
 [ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
 PYTHON="$PYTHON"
-BGREMOVER="$BUNDLED_BGREMOVER"
 LOG="\$HOME/.bgremover.log"
 
 fail() {
@@ -249,8 +235,8 @@ fail() {
 if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
 fi
-if [ ! -f "\$BGREMOVER" ]; then
-    fail "BgRemover.py fehlt im App-Bundle:"\$'\\n'"\$BGREMOVER"\$'\\n\\n'"Das Bundle ist unvollständig. Bitte create_BgRemover_app.sh erneut ausführen."
+if ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
+    fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Das Bundle ist unvollständig. Bitte create_BgRemover_app.sh erneut ausführen."
 fi
 
 # Native CPU-Architektur erzwingen: wird die .app via Rosetta
@@ -273,7 +259,7 @@ LSTART=\$(wc -l < "\$LOG" 2>/dev/null || echo 0)
 { echo "--- \$(date '+%Y-%m-%d %H:%M:%S') BgRemover-Start ---"
   echo "Python: \$PYTHON  (arch \$NATIVE_ARCH)"; } >> "\$LOG" 2>&1
 
-if ! "\${RUN[@]}" "\$BGREMOVER" "\$@" >> "\$LOG" 2>&1; then
+if ! "\${RUN[@]}" -m bgremover "\$@" >> "\$LOG" 2>&1; then
     LASTERR=\$(tail -n +\$((LSTART + 1)) "\$LOG" 2>/dev/null | grep -E 'Error|Exception|Traceback' | tail -n 1)
     [ -z "\$LASTERR" ] && LASTERR="(siehe Logdatei)"
     fail "BgRemover konnte nicht starten."\$'\\n\\n'"\$LASTERR"\$'\\n\\n'"Fix: create_BgRemover_app.sh erneut ausführen und die venv anlegen lassen (bei arm64/x86_64-Fehlern vorher: brew install python)."

@@ -10,8 +10,7 @@ import time
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-import BgRemover
-from BgRemover import MainWindow
+from bgremover import MainWindow
 
 
 class _BlockingWorker(QObject):
@@ -75,7 +74,8 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
     # Kurzes Timeout: Test soll schnell sein und den terminate()-
     # Fallback-Pfad zuverlässig erzwingen.
-    monkeypatch.setattr(BgRemover, "_THREAD_SHUTDOWN_MS", 200)
+    import bgremover.main_window
+    monkeypatch.setattr(bgremover.main_window, "_THREAD_SHUTDOWN_MS", 200)
 
     win = MainWindow()
     worker = _BlockingWorker(5.0)          # läuft länger als Timeout

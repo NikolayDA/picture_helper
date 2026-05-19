@@ -64,7 +64,7 @@ bash create_BgRemover_app.sh
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 `.[ai]` підтягує залежності ШІ (`rembg[cpu]` включно з `onnxruntime`);
@@ -78,7 +78,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Попередньо потрібні деякі системні бібліотеки Qt — детальніше див.
@@ -152,7 +152,7 @@ macOS з Python 3.10 та 3.12 через GitHub Actions.
 Перевірка стилю коду та статична перевірка типів (обидві також у CI):
 
 ```bash
-ruff check BgRemover.py tests
+ruff check bgremover tests
 mypy
 ```
 
@@ -180,7 +180,7 @@ BgRemover — це застосунок з одного файлу (`BgRemover.p
   векторизований варіант помітно затримував би. Pillow додатково захищено
   від зображень типу «decompression bomb».
 - **Збірка App-бандла** специфічна для macOS; під Linux/Windows
-  застосунок працює через прямий запуск `python BgRemover.py`.
+  застосунок працює через прямий запуск `python -m bgremover`.
 
 ## Файл журналу
 
