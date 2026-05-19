@@ -387,7 +387,7 @@ slightly and prepare a later split.
 
 **Clean package break (no compatibility shim).** `BgRemover.py` is
 removed outright. The app is launched via the `bgremover` console script
-**and** `python -m bgremover`. The previous `python BgRemover.py` mode is
+**and** `python -m bgremover`. The previous `python -m bgremover` mode is
 **deliberately dropped**; the build scripts (`create_BgRemover_app.sh`,
 `BgRemover.command`), `pyproject.toml`, Makefile/CI, tests and docs
 (incl. i18n) are migrated in the same cut.
@@ -419,3 +419,19 @@ cleanups (guard/worker consolidation) likewise stay out of this cut.
 **Status impact.** Round 3 #1 and round 4 #5 are **resolved** with this
 decision; the status columns of the respective tables are updated
 accordingly.
+
+**Phase B complete.** The mechanical split has landed (13 steps, each
+gated on the green oracle: `make test` 140, `make ui` 16, `make type`,
+`make lint`; both entry points `python -m bgremover` and `bgremover`
+start stably). `BgRemover.py` is deleted. The package consists of 14
+modules under `bgremover/`; icons ship as `package-data`
+(`bgremover/icons/`). The only intentional code change remained the one
+promised: asset resolution via `importlib.resources` in
+`make_tool_icon` (contract unchanged). Build script, Makefile/CI and
+documentation (incl. i18n) have followed.
+
+**Recommended next step.** With the file-based layout, round 4 #4
+(incremental mypy tightening) now makes sense: remove one
+`disable_error_code` per module, fix, repeat. The internal cleanups
+marked optional in rounds 3/4 (guard/worker unification) are also less
+risky per file.

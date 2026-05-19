@@ -401,7 +401,7 @@ el archivo y preparan una división posterior.
 **Corte limpio a paquete (sin shim de compatibilidad).** `BgRemover.py`
 se elimina por completo. La app se lanza mediante el script de consola
 `bgremover` **y** `python -m bgremover`. El modo anterior
-`python BgRemover.py` se **descarta deliberadamente**; los scripts de
+`python -m bgremover` se **descarta deliberadamente**; los scripts de
 construcción (`create_BgRemover_app.sh`, `BgRemover.command`),
 `pyproject.toml`, Makefile/CI, pruebas y documentación (incl. i18n) se
 migran en el mismo corte.
@@ -438,3 +438,20 @@ quedan fuera de este corte.
 **Impacto en el estado.** La ronda 3 #1 y la ronda 4 #5 quedan
 **resueltas** con esta decisión; las columnas de estado de las tablas
 respectivas se actualizan en consecuencia.
+
+**Fase B completada.** El corte mecánico aterrizó (13 pasos, cada uno
+con el oráculo verde como compuerta: `make test` 140, `make ui` 16,
+`make type`, `make lint`; ambos puntos de entrada `python -m bgremover`
+y `bgremover` arrancan estables). `BgRemover.py` está eliminado. El
+paquete consta de 14 módulos en `bgremover/`; los iconos viajan como
+`package-data` (`bgremover/icons/`). El único cambio de código
+intencional siguió siendo el prometido: resolución de recursos vía
+`importlib.resources` en `make_tool_icon` (contrato sin cambios).
+Script de build, Makefile/CI y documentación (incluida i18n) se han
+adaptado.
+
+**Próximo paso recomendado.** Con el layout basado en archivos, la
+ronda 4 #4 (endurecimiento incremental de mypy) tiene sentido ahora:
+quitar un `disable_error_code` por módulo, corregir, repetir. Las
+limpiezas internas marcadas opcionales en rondas 3/4 (unificación de
+guards/workers) también son menos arriesgadas por archivo.

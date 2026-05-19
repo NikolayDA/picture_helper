@@ -44,7 +44,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` 会安装 `rembg[cpu]`，含 `onnxruntime`（AI 背景移除）。
@@ -58,7 +58,7 @@ python3 BgRemover.py
 |----------|-----------------|----------|
 | **A – macOS 应用程序（推荐）** | `bash create_BgRemover_app.sh` | 创建一个隔离的 venv，安装所有依赖项（包括 `onnxruntime`），复制图标，并在 `~/Applications` 下生成一个独立的 `BgRemover.app`。隔离属性会被自动移除；项目可以保留在 `~/Documents` 中。 |
 | **B – 双击** | 在 Finder 中双击 `BgRemover.command` | 在终端窗口中启动；自动使用脚本创建的应用程序 venv（文件已具有可执行权限）。 |
-| **C – 终端** | 在 venv 中：`python3 BgRemover.py` | 直接启动（venv 设置见上面的快速开始）。 |
+| **C – 终端** | 在 venv 中：`python3 -m bgremover` | 直接启动（venv 设置见上面的快速开始）。 |
 
 ## 从某个分支安装（测试开放的 PR）
 
@@ -73,7 +73,7 @@ git branch -r                       # 显示可用的分支
 git checkout <branch>
 # 在 venv 中（见快速开始）；仅在依赖项发生变化时才需要：
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 或者在某个分支上直接执行 `bash create_BgRemover_app.sh`

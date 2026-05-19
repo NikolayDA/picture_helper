@@ -433,3 +433,19 @@ dieses Schnitts.
 **Status-Auswirkung.** Runde 3 #1 und Runde 4 #5 sind mit dieser
 Entscheidung **aufgelöst**; die Status-Spalten der jeweiligen Tabellen
 sind entsprechend aktualisiert.
+
+**Phase B abgeschlossen.** Der mechanische Split ist gelandet (13
+Schritte, jeder mit dem grünen Oracle als Gate: `make test` 140, `make
+ui` 16, `make type`, `make lint`; beide Einstiege `python -m bgremover`
+und `bgremover` starten stabil). `BgRemover.py` ist gelöscht. Das Paket
+besteht aus 14 Modulen unter `bgremover/`, Icons liegen als
+`package-data` (`bgremover/icons/`). Die einzige bewusste Code-Änderung
+blieb die zugesagte: Asset-Auflösung via `importlib.resources` in
+`make_tool_icon` (Kontrakt unverändert). Build-Skript, Makefile/CI und
+Doku (inkl. i18n) sind mitgezogen.
+
+**Empfohlener nächster Schritt.** Mit dem dateibasierten Layout ist nun
+Runde 4 #4 (schrittweise mypy-Verschärfung) sinnvoll: pro Modul jeweils
+einen `disable_error_code` entfernen, fixen, dranlassen. Auch die in
+Runde 3/4 als optional markierten internen Cleanups (Guard-/Worker-
+Vereinheitlichung) sind jetzt risikoärmer pro Datei umsetzbar.

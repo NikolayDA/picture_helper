@@ -8,7 +8,7 @@ un pull request abierto antes del merge).
 
 > El paquete de aplicación de macOS (`create_BgRemover_app.sh`) es
 > específico de macOS. En Linux, BgRemover se ejecuta mediante el inicio
-> directo `python3 BgRemover.py` desde un entorno virtual (venv) —
+> directo `python3 -m bgremover` desde un entorno virtual (venv) —
 > opcionalmente con un lanzador de escritorio para el doble clic (ver
 > más abajo).
 
@@ -75,7 +75,7 @@ sudo apt update
 sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Eso es todo — la ventana principal se abre. Las herramientas manuales
@@ -122,14 +122,14 @@ cd picture_helper
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install "rembg[cpu]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 `--system-site-packages` hace visibles en el venv los PyQt6/Pillow/numpy
 instalados vía `apt`, de modo que solo se descargan adicionalmente
 `rembg` y `onnxruntime`. En el primerísimo clic de IA, `rembg` descarga
 su modelo una sola vez (algunos cientos de MB, caché en `~/.u2net`).
 Inicios posteriores entonces desde el venv: `source .venv/bin/activate`
-y `python3 BgRemover.py`.
+y `python3 -m bgremover`.
 
 ## Inicio rápido desde `main`
 
@@ -142,7 +142,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` instala `rembg[cpu]` incl. `onnxruntime` (eliminación de fondo
@@ -153,14 +153,14 @@ En una shell nueva, vuelve a activar el venv antes de iniciar:
 ```bash
 cd picture_helper
 source .venv/bin/activate
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 ## Variantes de inicio
 
 | Variante | Comando / Acción | Resultado |
 |----------|-----------------|----------|
-| **A – Terminal (recomendado)** | activar el venv, luego `python3 BgRemover.py` | Inicio directo desde el directorio del proyecto. |
+| **A – Terminal (recomendado)** | activar el venv, luego `python3 -m bgremover` | Inicio directo desde el directorio del proyecto. |
 | **B – Script de arranque** | `./bgremover.sh` (ver más abajo) | Activa el venv automáticamente e inicia la app. |
 | **C – Menú de aplicaciones** | entrada `.desktop` (ver más abajo) | Inicio con doble clic / desde el menú de aplicaciones. |
 
@@ -171,7 +171,7 @@ Crea un archivo `bgremover.sh` en el directorio del proyecto:
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
 source .venv/bin/activate
-exec python3 BgRemover.py "$@"
+exec python3 -m bgremover "$@"
 ```
 Hazlo ejecutable e inícialo:
 ```bash
@@ -213,7 +213,7 @@ git checkout <branch>
 source .venv/bin/activate
 # solo necesario si han cambiado las dependencias:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 **Variante 2 – clonar una rama directamente:**
@@ -241,7 +241,7 @@ en `pyproject.toml`.
   particular `libxcb-cursor0` en Ubuntu 24.04). Qué biblioteca falta
   exactamente lo muestra:
   ```bash
-  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  QT_DEBUG_PLUGINS=1 python3 -m bgremover 2>&1 | grep -i "cannot\|not found"
   ```
 - **`error: externally-managed-environment` en `pip install`** → PEP
   668: no instales en el Python del sistema, sino en un venv (ver
@@ -253,7 +253,7 @@ en `pyproject.toml`.
 - **Wayland: la ventana/escalado parece defectuosa** → cambia a modo de
   prueba al plugin X11 (XWayland):
   ```bash
-  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  QT_QPA_PLATFORM=xcb python3 -m bgremover
   ```
 - **Error de pip al instalar** → en el venv activo, actualiza primero
   pip, luego repite el comando de instalación:
@@ -275,7 +275,7 @@ en `pyproject.toml`.
   de venv/pip de arriba.
 - **Raspberry Pi OS «Bookworm» (Pi 4/5) usa Wayland** → Ante problemas
   de ventana o escalado, cambia a modo de prueba al plugin X11:
-  `QT_QPA_PLATFORM=xcb python3 BgRemover.py` (ver la nota sobre Wayland
+  `QT_QPA_PLATFORM=xcb python3 -m bgremover` (ver la nota sobre Wayland
   más arriba).
 - **Diagnóstico ante errores** → Consulta el archivo de registro
   `~/.local/share/BgRemover/bgremover.log` (trazas de pila y mensajes

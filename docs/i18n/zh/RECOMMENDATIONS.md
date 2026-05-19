@@ -371,7 +371,7 @@ geladen"); return` 已合并到装饰器 `@_requires_image`。行为不变
 
 **干净的包拆分（无兼容垫片）。** `BgRemover.py` 被彻底移除。应用
 通过控制台脚本 `bgremover` **以及** `python -m bgremover` 启动。
-此前的 `python BgRemover.py` 模式被**有意废弃**；构建脚本
+此前的 `python -m bgremover` 模式被**有意废弃**；构建脚本
 （`create_BgRemover_app.sh`、`BgRemover.command`）、`pyproject.toml`、
 Makefile/CI、测试与文档（含 i18n）在同一次切分中一并迁移。
 
@@ -399,3 +399,15 @@ Makefile/CI、测试与文档（含 i18n）在同一次切分中一并迁移。
 
 **状态影响。** 第 3 轮 #1 与第 4 轮 #5 由此决策**已解决**；相应
 表格的状态列已据此更新。
+
+**B 阶段完成。** 机械式拆分已落地（13 个步骤，每一步都以绿色 oracle
+为闸门：`make test` 140、`make ui` 16、`make type`、`make lint`；两个
+入口 `python -m bgremover` 和 `bgremover` 均稳定启动）。`BgRemover.py`
+已删除。包由 `bgremover/` 下的 14 个模块组成；图标作为 `package-data`
+（`bgremover/icons/`）随包发布。唯一有意的代码变更仍是承诺的那一项：
+在 `make_tool_icon` 中通过 `importlib.resources` 解析资源（契约不变）。
+构建脚本、Makefile/CI 与文档（含 i18n）已同步跟进。
+
+**推荐的下一步。** 在基于文件的布局下，第 4 轮 #4（逐步收紧 mypy）此时
+是合理的：每个模块移除一个 `disable_error_code`，修复，循环往复。第
+3/4 轮中标记为可选的内部清理（守卫/Worker 统一）按文件来做风险也更低。

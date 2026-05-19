@@ -9,6 +9,28 @@
 
 ## [Unreleased]
 
+### Змінено
+
+- **Моноліт → пакет (раунд 5).** Однофайловий `BgRemover.py`
+  (3026 рядків) розділено на встановлюваний пакет `bgremover/`
+  (14 модулів: `constants`, `image_utils`, `icons`, `theme`,
+  `workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+  `logging_config`, `main_window`, `app`, `__main__`, `__init__`).
+  Запуск через `python -m bgremover` або console-script
+  `bgremover`; стара форма `python BgRemover.py` усунена без
+  заміни. `BgRemover.py` видалено. Виконано в **13 механічних
+  кроках**, кожен зі зеленим тестовим оракулом як шлюзом (140 unit
+  + 16 UI тестів, ruff, mypy). Єдина навмисна, поведінково-нейтральна
+  зміна коду: `make_tool_icon` тепер розв'язує іконки через
+  `importlib.resources` із даних пакета (`bgremover/icons/`) замість
+  `__file__`/`sys.argv`/`cwd` — контракт без змін. `pyproject.toml`,
+  `Makefile`, CI workflow та macOS-скрипт збірки
+  (`create_BgRemover_app.sh`) пристосовані у тому самому зрізі; venv
+  встановлює пакет у режимі не-editable (зокрема package-data), тому
+  застосунок незалежний від каталогу проєкту.
+- Перехідні ре-експорти в `BgRemover.py` (фаза B) та всі імпорти
+  `BgRemover` у тестах переведено на пакет у фінальному кроці.
+
 ## [2.1.0] – 2026-05-19
 
 ### Змінено

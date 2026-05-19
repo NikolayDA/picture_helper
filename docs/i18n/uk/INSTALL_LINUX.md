@@ -8,7 +8,7 @@
 
 > App-бандл macOS (`create_BgRemover_app.sh`) специфічний для macOS.
 > Під Linux BgRemover працює через прямий запуск
-> `python3 BgRemover.py` з віртуального середовища (venv) — опційно
+> `python3 -m bgremover` з віртуального середовища (venv) — опційно
 > з десктопним стартером для подвійного кліку (див. нижче).
 
 ## Вимоги
@@ -74,7 +74,7 @@ sudo apt update
 sudo apt install -y git python3-pyqt6 python3-numpy python3-pil
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Ось і все — головне вікно відкриється. Ручні інструменти
@@ -120,14 +120,14 @@ cd picture_helper
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install "rembg[cpu]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 `--system-site-packages` робить встановлені через `apt`
 PyQt6/Pillow/numpy видимими у venv, тож доустановлюються лише `rembg` і
 `onnxruntime`. Під час найпершого кліку ШІ `rembg` одноразово завантажує
 свою модель (кілька сотень МБ, кеш у `~/.u2net`).
 Майбутні запуски тоді з venv: `source .venv/bin/activate` і
-`python3 BgRemover.py`.
+`python3 -m bgremover`.
 
 ## Швидкий старт із `main`
 
@@ -140,7 +140,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` встановлює `rembg[cpu]` включно з `onnxruntime`
@@ -151,14 +151,14 @@ python3 BgRemover.py
 ```bash
 cd picture_helper
 source .venv/bin/activate
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 ## Варіанти запуску
 
 | Варіант | Команда / дія | Результат |
 |----------|-----------------|----------|
-| **A – термінал (рекомендовано)** | активувати venv, потім `python3 BgRemover.py` | Прямий запуск із каталогу проєкту. |
+| **A – термінал (рекомендовано)** | активувати venv, потім `python3 -m bgremover` | Прямий запуск із каталогу проєкту. |
 | **B – стартовий скрипт** | `./bgremover.sh` (див. нижче) | Автоматично активує venv і запускає застосунок. |
 | **C – меню застосунків** | запис `.desktop` (див. нижче) | Запуск подвійним кліком / з меню застосунків. |
 
@@ -169,7 +169,7 @@ python3 BgRemover.py
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
 source .venv/bin/activate
-exec python3 BgRemover.py "$@"
+exec python3 -m bgremover "$@"
 ```
 Зробіть виконуваним і запустіть:
 ```bash
@@ -211,7 +211,7 @@ git checkout <branch>
 source .venv/bin/activate
 # потрібно лише, якщо змінилися залежності:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 **Варіант 2 – клонувати гілку напряму:**
@@ -239,7 +239,7 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   `libxcb-cursor0` під Ubuntu 24.04). Яка саме бібліотека відсутня,
   покаже:
   ```bash
-  QT_DEBUG_PLUGINS=1 python3 BgRemover.py 2>&1 | grep -i "cannot\|not found"
+  QT_DEBUG_PLUGINS=1 python3 -m bgremover 2>&1 | grep -i "cannot\|not found"
   ```
 - **`error: externally-managed-environment` при `pip install`** → PEP
   668: не встановлюйте в системний Python, а у venv (див.
@@ -251,7 +251,7 @@ Editable-встановлення (`pip install -e`) **не** потрібно
 - **Wayland: вікно/масштабування виглядає неправильно** → для проби перейдіть на
   плагін X11 (XWayland):
   ```bash
-  QT_QPA_PLATFORM=xcb python3 BgRemover.py
+  QT_QPA_PLATFORM=xcb python3 -m bgremover
   ```
 - **Помилка pip під час встановлення** → в активному venv спершу оновіть
   pip, потім повторіть команду встановлення:
@@ -273,7 +273,7 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   шляхом venv/pip вище.
 - **Raspberry Pi OS «Bookworm» (Pi 4/5) використовує Wayland** → У разі проблем
   із вікном чи масштабуванням для проби перейдіть на плагін X11:
-  `QT_QPA_PLATFORM=xcb python3 BgRemover.py` (див. примітку про Wayland
+  `QT_QPA_PLATFORM=xcb python3 -m bgremover` (див. примітку про Wayland
   вище).
 - **Діагностика помилок** → Перегляньте файл журналу
   `~/.local/share/BgRemover/bgremover.log` (трасування стека та
