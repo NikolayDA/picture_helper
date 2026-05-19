@@ -10,6 +10,14 @@ hierher verschoben.
 der finale Import-Wechsel ``from BgRemover import X`` →
 ``from bgremover import X`` ein minimaler Eingriff bleibt.
 """
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("bgremover")
+except PackageNotFoundError:
+    # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
+    __version__ = "2.1.0"
+
 from bgremover.constants import (
     LOG_FILENAME,
     TOOL_BRUSH,
@@ -43,6 +51,7 @@ from bgremover.workers import (
     AIWorker,
     ImageLoadWorker,
 )
+from bgremover.main_window import MainWindow
 
 __all__ = [
     "LOG_FILENAME",
@@ -57,6 +66,7 @@ __all__ = [
     "CropOverlayItem",
     "ImageCanvas",
     "ImageLoadWorker",
+    "MainWindow",
     "SettingsDialog",
     "TopIconTabBar",
     "TopIconTabWidget",
