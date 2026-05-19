@@ -213,7 +213,8 @@ def test_fit_to_view_action(loaded_window):
 
 def test_open_button_invokes_dialog(main_window, qtbot, monkeypatch, tmp_path):
     w = main_window
-    monkeypatch.setattr(BgRemover, "QFileDialog", _FakeFileDialog)
+    import bgremover.main_window as _mw
+    monkeypatch.setattr(_mw, "QFileDialog", _FakeFileDialog)
 
     btns = [b for b in w.findChildren(QToolButton)
             if b.toolTip().startswith("Bild öffnen")]
