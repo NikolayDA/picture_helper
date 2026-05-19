@@ -35,6 +35,15 @@ Damit stehen `pytest`, `pytest-qt`, `ruff` und `mypy` bereit. Auf macOS
 sind **keine zusätzlichen System-Bibliotheken** nötig – die PyQt6-Wheels
 bringen Qt mit.
 
+> **Nur `[test]` ins Test-venv** – **nicht** `[ai]` oder `[docs]`. Das
+> `ai`-Extra (`rembg`) gehört in die *Anwendungs*-Umgebung (das
+> App-Bundle bringt sein eigenes venv mit), nicht in die Test-Umgebung.
+> Die CI installiert ebenfalls nur `[test]`. Ein im Test-venv
+> installiertes `rembg` würde den rembg-Warmup scharf schalten (Modell-
+> Download über das Netz) – die Tests fangen das zwar zentral ab (kein
+> echter Warmup im Testlauf), aber das Extra hat dort schlicht nichts
+> verloren und bläht die Umgebung nur auf.
+
 > Bei jeder neuen Terminal-Sitzung zuerst `source .venv/bin/activate`.
 
 ### Unterstützte Python-Version
@@ -145,3 +154,11 @@ mehr aus.
   fängt das ab und gibt jetzt eine klare Diagnose mit der echten
   Qt-Meldung aus; Lösung ist in aller Regel ein venv-Neuaufbau auf
   Python 3.12/3.13.
+- **`Fatal Python error: Aborted` mit `rembg`/`pooch`/`download_models`
+  im Stacktrace** – im Test-venv ist (fälschlich) das `ai`-Extra
+  installiert; `MainWindow` startet dann den rembg-Warmup, der ein
+  ~176 MB Modell übers Netz lädt – mehrere Tests parallel reißen den
+  Prozess ab. `conftest.py` unterbindet den Warmup inzwischen zentral
+  in allen Tests, der Lauf ist also auch dann offline und stabil.
+  Sauber ist trotzdem ein Test-venv **ohne** `ai`/`docs`:
+  `pip install -e ".[test]"` (siehe Hinweis unter „Voraussetzungen“).
