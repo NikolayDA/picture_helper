@@ -294,3 +294,70 @@ propia ronda 3. Una práctica continua en lugar de un PR único.
 **#9** — **Abierto.** `mypy` está pragmáticamente relajado en
 `pyproject.toml` (7 `disable_error_code`); endurecerlo paso a paso
 mejora la seguridad de tipos (esfuerzo/riesgo: medio).
+
+---
+
+## Ronda 4 – Diagnóstico y siguiente paso
+
+> Estado del análisis: `ruff` limpio, `mypy` limpio, **140 pruebas en
+> verde** (16 pruebas de UI deseleccionadas a propósito). La calidad
+> del código es alta – la ronda 4 prioriza por tanto **qué abordar a
+> continuación de forma concreta**, en lugar de buscar nuevos defectos.
+
+| # | Recomendación | Prioridad | Esfuerzo | Estado |
+|---|---------------|-----------|----------|--------|
+| 1 | **Corte de versión 2.1.0 + etiqueta git** | 🟠 Alta | Bajo | **← Siguiente paso** |
+| 2 | Ayudante de guarda "ninguna imagen" (ronda 3 #6) | 🟢 Baja | Bajo | Abierto |
+| 3 | Clase base de worker (ronda 3 #7) | 🟢 Baja | Bajo | Abierto |
+| 4 | Endurecer `mypy` paso a paso (ronda 3 #9) | 🟢 Baja | Medio | Abierto |
+| 5 | Monolito → paquete (ronda 3 #1) | 🟠 Alta | Alto | Aplazado |
+
+### 🟠 1. Corte de versión 2.1.0 + etiqueta git *(siguiente paso recomendado)*
+
+**Hallazgo:** **no existe ni una sola etiqueta git** (`git tag -l`
+vacío), aunque el CHANGELOG afirma una "primera versión etiquetada
+públicamente 2.0.0". Desde 2.0.0 el bloque `[Unreleased]` ha acumulado
+cambios sustanciales (PR #48 manejo de errores al guardar, #52
+deduplicación de estado, #53 `_Theme`, documentación INSTALL_LINUX, #55
+ejecutor de pruebas local). `pyproject.toml` (`version = "2.0.0"`) y el
+fallback de `__version__` (`BgRemover.py:51`) siguen en `2.0.0` – el
+estado entregado es por tanto indistinguible de 2.0.0.
+
+**Por qué primero:** mínimo esfuerzo, máxima claridad. Sin un corte de
+versión/etiqueta no hay forma de rastrear qué se entregó – esto bloquea
+cualquier iteración limpia de funcionalidades.
+
+**Pasos:** subir `version` en `pyproject.toml` y el fallback de
+`__version__` a `2.1.0`; fechar `[Unreleased]` en `CHANGELOG.md`
+(+ i18n) como `[2.1.0] – <fecha>` y añadir un nuevo bloque
+`[Unreleased]` vacío; crear y publicar `git tag v2.1.0`.
+
+### 🟢 2. Ayudante de guarda "ninguna imagen cargada" *(ronda 3 #6, sigue abierto)*
+
+Verificado: el retorno temprano de "ninguna imagen cargada" se repite
+en ~10 métodos (incl. `BgRemover.py:1474`, `:1481`, `:2726`, `:2733`).
+Un pequeño decorador/ayudante de guarda lo consolida. Quick win de bajo
+riesgo, ideal como calentamiento antes de #5.
+
+### 🟢 3. Clase base de worker *(ronda 3 #7, sigue abierto)*
+
+`AIWorker`, `RembgWarmupWorker` e `ImageLoadWorker`
+(`BgRemover.py:459–525`) comparten el patrón `try → logger.exception →
+error.emit`. Una clase base `QObject` ligera con un método plantilla
+reduce la repetición sin cambiar el modelo de hilos. Quick win.
+
+### 🟢 4. Endurecer `mypy` paso a paso *(ronda 3 #9, sigue abierto)*
+
+Siguen 7 `disable_error_code`. Recomendación: reactivar un código por
+PR y corregir los aciertos entonces visibles, en lugar de todo a la
+vez. Esfuerzo/riesgo: medio.
+
+### 🟠 5. Monolito → paquete *(ronda 3 #1, aplazado a propósito)*
+
+`BgRemover.py` sigue siendo un único archivo con **3003 líneas**. La
+mayor palanca para el crecimiento de funcionalidades, pero el mayor
+riesgo y en conflicto con la decisión de diseño de archivo único
+documentada. Sigue siendo una decisión arquitectónica deliberada y
+separada – a reconsiderar a más tardar antes de la próxima expansión
+mayor de funcionalidades. Los quick wins #2/#3 ya reducen ligeramente
+el archivo y preparan una división posterior.
