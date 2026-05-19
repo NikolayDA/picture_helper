@@ -84,10 +84,10 @@ ignore_missing_imports = true
 # Namen/Importe/Signaturen grundsätzlich konsistent sind.
 check_untyped_defs = false
 # Wird schrittweise verschärft (RECOMMENDATIONS Runde 4 #4). `index`,
-# `operator` und `arg-type` sind bereits sauber und daher aktiviert.
-# Verbleibende Codes mit gemessener Fehlerzahl: attr-defined (2),
+# `operator`, `arg-type` und `attr-defined` sind bereits sauber und daher
+# aktiviert. Verbleibende Codes mit gemessener Fehlerzahl:
 # func-returns-value (4), override (7), union-attr (67), assignment (4).
 disable_error_code = [
-    "union-attr", "assignment", "attr-defined",
+    "union-attr", "assignment",
     "override", "func-returns-value",
 ]

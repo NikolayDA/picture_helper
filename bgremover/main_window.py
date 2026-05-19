@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QObject, QSettings, QSize, Qt, QThread
+from PyQt6.QtCore import QSettings, QSize, Qt, QThread
 from PyQt6.QtGui import QAction, QColor, QKeySequence
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -62,6 +62,7 @@ from bgremover.workers import (
     AIWorker,
     ImageLoadWorker,
     RembgWarmupWorker,
+    _Worker,
 )
 
 
@@ -822,7 +823,8 @@ class MainWindow(QMainWindow):
 
     # ── Thread-Hilfsmethode ───────────────────────────────────
 
-    def _launch_worker(self, worker: QObject, quit_on: tuple,
+    def _launch_worker(self, worker: _Worker | RembgWarmupWorker,
+                       quit_on: tuple,
                        on_finished=None) -> QThread:
         """Startet *worker* in einem neuen QThread.
 
@@ -834,8 +836,9 @@ class MainWindow(QMainWindow):
         # Starke Referenz: MainWindow → thread → worker. Ohne sie sammelt
         # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet
         # Slots gebundener Methoden nur schwach) – run() liefe nie, das
-        # Bild würde lautlos nicht geladen.
-        thread._worker = worker
+        # Bild würde lautlos nicht geladen. setattr statt Attribut-
+        # Zuweisung, weil QThread den Slot nicht im Type-Stub deklariert.
+        setattr(thread, "_worker", worker)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         for sig in quit_on:
