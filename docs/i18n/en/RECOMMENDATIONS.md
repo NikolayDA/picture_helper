@@ -301,7 +301,7 @@ safety (effort/risk: medium).
 | 1 | ~~Release cut 2.1.0 + git tag~~ | 🟠 High | Low | ✅ Done (tag after merge) |
 | 2 | ~~"No image loaded" guard helper (round 3 #6)~~ | 🟢 Low | Low | ✅ Done |
 | 3 | ~~Worker base class (round 3 #7)~~ | 🟢 Low | Low | ✅ Done |
-| 4 | Tighten `mypy` step by step (round 3 #9) | 🟢 Low | Medium | 🟢 Step 1 done |
+| 4 | ~~Tighten `mypy` step by step (round 3 #9)~~ | 🟢 Low | Medium | ✅ Done (all 8 codes active) |
 | 5 | Monolith → package (round 3 #1) | 🟠 High | High | ✅ resolved (round 5) |
 
 ### ✅ 1. Release cut 2.1.0 + git tag *(done)*
@@ -342,24 +342,24 @@ implement `_work()`. `RembgWarmupWorker` intentionally stays standalone
 (no `error` signal, `finished` always in `finally` – different
 contract).
 
-### 🟢 4. Tighten `mypy` step by step *(round 3 #9 – step 1 done)*
+### ✅ 4. Tighten `mypy` step by step *(round 3 #9 / round 4 #4 – done)*
 
-`disable_error_code` reduced from **8 to 6**: `index` and `operator`
-are already clean (**0 errors** each, measured) and therefore
-re-enabled in `pyproject.toml` – no code change, no risk. Measured
-roadmap for the remaining codes (one step per PR, as recommended):
+**All previously disabled error classes are now active.** After the
+monolith → package cut (round 5), the remaining six codes could be
+activated file by file:
 
-| Code | Open errors | Nature |
-|------|-------------|--------|
-| `arg-type` | 2 | None-narrowing via guards/decorator |
-| `attr-defined` | 2 | dynamic `QThread._worker`, `QObject.run` |
-| `func-returns-value` | 4 | void return in UI lambda tuples |
-| `assignment` | 4 | mixed assignment types |
-| `override` | 7 | Qt override signatures |
-| `union-attr` | 67 | very broad – tackle last |
+| Code | Was | Strategy |
+|------|-----|----------|
+| `arg-type` | 2 | `_pil`/`_arr` invariant via double-guard + loop `assert` |
+| `attr-defined` | 2 | `setattr(thread, "_worker", ...)`; `_Worker \| RembgWarmupWorker` param |
+| `assignment` | 4 | explicit first-time annotations (`Image.Image`, `RankFilter`, `QMenu \| None`) |
+| `func-returns-value` | 4 | UI lambda tuples → local `def` slots |
+| `override` | 7 | signatures aligned with the PyQt6 stubs (`QPainter \| None` etc.) |
+| `union-attr` | 67 | status/menu bar and viewport cached; targeted asserts |
 
-Next sensible step: `arg-type` or `attr-defined` (2 each, small, real
-improvements). Effort/risk of the remaining steps: medium.
+In `pyproject.toml`, only `check_untyped_defs = false` remains as a
+pragmatic Qt noise dampener (covers Qt override signatures
+event/option/widget).
 
 ### 🟠 5. Monolith → package *(round 3 #1, intentionally deferred)*
 
