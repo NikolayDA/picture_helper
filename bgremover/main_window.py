@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -104,7 +105,7 @@ class MainWindow(QMainWindow):
         # Persistente Einstellungen (Recent-Files etc.).
         self._settings = QSettings("BgRemover", "BgRemover")
         # Submenü-Referenz wird in _build_menu gesetzt
-        self._recent_menu = None
+        self._recent_menu: QMenu | None = None
         # Asynchrones Bildladen
         self._load_thread: QThread | None = None
         # rembg-Warmup (Hintergrund-Modellladung)
