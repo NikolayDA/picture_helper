@@ -36,6 +36,8 @@ from bgremover.logging_config import (
     _setup_logging,
     current_log_file,
 )
+from bgremover.settings_dialog import SettingsDialog
+from bgremover.widgets import TopIconTabBar, TopIconTabWidget
 from bgremover.workers import (
     REMBG_AVAILABLE,
     AIWorker,
@@ -55,6 +57,9 @@ __all__ = [
     "CropOverlayItem",
     "ImageCanvas",
     "ImageLoadWorker",
+    "SettingsDialog",
+    "TopIconTabBar",
+    "TopIconTabWidget",
     "_MAX_MEGAPIXELS",
     "_THREAD_SHUTDOWN_MS",
     "_UNDO_MEMORY_LIMIT",

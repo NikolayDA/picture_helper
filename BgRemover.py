@@ -11,19 +11,18 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QPushButton, QSlider, QLabel, QFileDialog, QColorDialog,
-    QToolButton, QButtonGroup, QGroupBox, QStatusBar,
-    QFrame, QMessageBox, QTabWidget, QTabBar, QSpinBox,
-    QListWidget, QScrollArea, QStyle, QStylePainter, QStyleOptionTab,
-    QDialog, QLineEdit, QComboBox,
+    QToolButton, QButtonGroup, QStatusBar,
+    QFrame, QMessageBox, QSpinBox,
+    QListWidget, QScrollArea, QDialog,
 )
 from PyQt6.QtGui import (
     QColor, QAction, QKeySequence,
-    QPalette, QIcon, QFontMetrics, QFont, QDesktopServices,
+    QPalette,
 )
 
 from PyQt6.QtCore import (
-    Qt, QSize, QRect, QThread, QObject,
-    QSettings, QUrl,
+    Qt, QSize, QThread, QObject,
+    QSettings,
 )
 from PIL import Image
 
@@ -42,7 +41,9 @@ from bgremover.workers import (
     AIWorker, ImageLoadWorker, REMBG_AVAILABLE, RembgWarmupWorker,
 )
 from bgremover.canvas import ImageCanvas
-from bgremover.logging_config import current_log_file, _setup_logging
+from bgremover.logging_config import _setup_logging
+from bgremover.settings_dialog import SettingsDialog
+from bgremover.widgets import TopIconTabWidget
 
 # Übergangs-Re-Export (Runde 5, Phase B): hält ``from BgRemover import X``
 # gültig, bis die Tests in Schritt 13 auf ``from bgremover import X``
@@ -68,277 +69,6 @@ except PackageNotFoundError:
 # ─────────────────────────────────────────────────────────────
 # Haupt-Fenster
 # ─────────────────────────────────────────────────────────────
-
-class TopIconTabBar(QTabBar):
-    """Tab-Bar mit großem Icon oben und zentriertem Text darunter.
-
-    Qt zeichnet das Icon standardmäßig links neben dem Text – ein reines
-    Stylesheet kann das nicht ändern. Deshalb wird das Tab hier manuell
-    gemalt: Tab-Hintergrund/-Rahmen weiter über den Stil (Stylesheet),
-    Icon und Text aber selbst und vertikal gestapelt.
-    """
-
-    _ICON_TOP_PAD = 11    # Abstand Tab-Oberkante → Icon
-    _ICON_TEXT_GAP = 6    # Abstand Icon → Text
-    _TEXT_BOTTOM_PAD = 9  # Abstand Text → Tab-Unterkante
-    _TEXT_SIDE_PAD = 8    # seitlicher Mindestabstand Text → Tab-Rand
-
-    def __init__(self, icon_px: int = 30, parent=None) -> None:
-        super().__init__(parent)
-        self._icon_px = icon_px
-        # Breiten werden selbst gleichmäßig auf die volle Breite verteilt –
-        # Qts proportionale Expand-Heuristik darf das nicht verändern.
-        self.setExpanding(False)
-
-    def _text_font(self, bold: bool = False) -> QFont:
-        f = self.font()
-        f.setPixelSize(12)
-        f.setBold(bold)
-        return f
-
-    def _wrap(self, text: str, fm: QFontMetrics, max_w: int) -> list:
-        """Bricht ein zu breites Label in max. 2 Zeilen um (an '/' oder Space)."""
-        if max_w <= 0 or fm.horizontalAdvance(text) <= max_w:
-            return [text]
-        if "/" in text:
-            i = text.index("/")
-            return [text[:i + 1], text[i + 1:].strip()]
-        if " " in text:
-            i = text.index(" ")
-            return [text[:i], text[i + 1:]]
-        mid = len(text) // 2
-        return [text[:mid], text[mid:]]
-
-    def _equal_width(self, index: int) -> int:
-        """Volle Spaltenbreite gleichmäßig auf alle Tabs aufteilen.
-
-        Die Bar-Breite leitet sich aus der Summe der Tab-SizeHints ab –
-        deshalb wird hier die Breite des übergeordneten QTabWidget
-        verwendet (sonst zirkuläre Abhängigkeit → degenerierte Breite).
-        """
-        n = self.count() or 1
-        parent = self.parentWidget()
-        total = parent.width() if parent is not None else 0
-        if total <= 0:
-            total = self.width()
-        if total <= 0:                  # vor dem ersten Layout
-            return max(self._icon_px + 20, 80)
-        base = total // n
-        rem = total - base * n          # Restpixel auf die ersten Tabs verteilen
-        return base + (1 if index < rem else 0)
-
-    def tabSizeHint(self, index: int) -> QSize:
-        fm = QFontMetrics(self._text_font(bold=True))
-        # immer Platz für 2 Zeilen → alle Tabs gleich hoch
-        height = (self._ICON_TOP_PAD + self._icon_px + self._ICON_TEXT_GAP
-                  + 2 * fm.height() + self._TEXT_BOTTOM_PAD)
-        return QSize(self._equal_width(index), height)
-
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        # Tab-Geometrie an die neue Bar-Breite anpassen (gleiche Breiten).
-        self.updateGeometry()
-
-    def paintEvent(self, event) -> None:
-        painter = QStylePainter(self)
-        opt = QStyleOptionTab()
-
-        for i in range(self.count()):
-            self.initStyleOption(opt, i)
-            rect = self.tabRect(i)
-
-            # Tab-Form (Hintergrund, Auswahl-Unterstrich) über den Stil –
-            # Icon/Text vom Stil ausblenden, da selbst gezeichnet wird.
-            opt.text = ""
-            opt.icon = QIcon()
-            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt)
-
-            selected = bool(opt.state & QStyle.StateFlag.State_Selected)
-            hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
-            enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
-
-            # Icon zentriert oben
-            icon = self.tabIcon(i)
-            if not icon.isNull():
-                mode = (QIcon.Mode.Normal if enabled
-                        else QIcon.Mode.Disabled)
-                pm = icon.pixmap(QSize(self._icon_px, self._icon_px), mode)
-                ix = rect.x() + (rect.width() - self._icon_px) // 2
-                iy = rect.y() + self._ICON_TOP_PAD
-                painter.drawPixmap(ix, iy, pm)
-
-            # Text (1–2 Zeilen) zentriert darunter
-            if not enabled:
-                color = QColor("#555")
-            elif selected:
-                color = QColor("#e0e0e0")
-            elif hovered:
-                color = QColor("#aaaaaa")
-            else:
-                color = QColor("#777777")
-            font = self._text_font(bold=selected)
-            painter.setFont(font)
-            painter.setPen(color)
-            fm = QFontMetrics(font)
-            lines = self._wrap(self.tabText(i), fm,
-                               rect.width() - 2 * self._TEXT_SIDE_PAD)
-            line_h = fm.height()
-            block_top = (rect.y() + self._ICON_TOP_PAD + self._icon_px
-                         + self._ICON_TEXT_GAP)
-            # Zeilenblock vertikal in der für 2 Zeilen reservierten Höhe zentrieren
-            y0 = block_top + (2 * line_h - len(lines) * line_h) // 2
-            for k, line in enumerate(lines):
-                r = QRect(rect.x(), y0 + k * line_h, rect.width(), line_h)
-                painter.drawText(
-                    r,
-                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
-                    line)
-
-
-class TopIconTabWidget(QTabWidget):
-    """QTabWidget, das die TopIconTabBar verwendet (setTabBar ist protected)."""
-
-    def __init__(self, icon_px: int = 30, parent=None) -> None:
-        super().__init__(parent)
-        self.setTabBar(TopIconTabBar(icon_px, self))
-
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        # Bar deterministisch auf die volle Spaltenbreite ziehen – das löst
-        # in der Bar layoutTabs() aus, sodass alle Tabs gleich breit werden
-        # und die ganze Breite füllen.
-        bar = self.tabBar()
-        g = bar.geometry()
-        if g.width() != self.width():
-            bar.setGeometry(0, g.y(), self.width(), g.height())
-
-
-class SettingsDialog(QDialog):
-    """Dialog zum Bearbeiten persistenter Nutzereinstellungen."""
-
-    FORMATS = ["PNG", "JPEG", "WebP", "TIFF"]
-    FORMAT_FILTERS = {
-        "PNG":  "PNG (*.png)",
-        "JPEG": "JPEG (*.jpg)",
-        "WebP": "WebP (*.webp)",
-        "TIFF": "TIFF (*.tif)",
-    }
-
-    def __init__(self, settings: QSettings, parent=None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Einstellungen")
-        self.setMinimumWidth(520)
-        self._settings = settings
-        self._build_ui()
-        self._load()
-
-    def _build_ui(self) -> None:
-        lay = QVBoxLayout(self)
-        lay.setSpacing(14)
-        lay.setContentsMargins(20, 20, 20, 20)
-
-        title = QLabel("Einstellungen")
-        title.setStyleSheet("font-size: 15px; font-weight: bold;")
-        lay.addWidget(title)
-
-        # Verzeichnis zum Öffnen
-        open_grp = QGroupBox("Standard-Verzeichnis zum Öffnen")
-        open_lay = QHBoxLayout(open_grp)
-        self._open_dir_edit = QLineEdit()
-        self._open_dir_edit.setPlaceholderText("Leer = zuletzt verwendetes Verzeichnis")
-        open_lay.addWidget(self._open_dir_edit)
-        btn_open = QPushButton("…")
-        btn_open.setFixedWidth(32)
-        btn_open.clicked.connect(self._pick_open_dir)
-        open_lay.addWidget(btn_open)
-        lay.addWidget(open_grp)
-
-        # Verzeichnis zum Speichern/Export
-        save_grp = QGroupBox("Standard-Verzeichnis für Export / Speichern")
-        save_lay = QHBoxLayout(save_grp)
-        self._save_dir_edit = QLineEdit()
-        self._save_dir_edit.setPlaceholderText("Leer = zuletzt verwendetes Verzeichnis")
-        save_lay.addWidget(self._save_dir_edit)
-        btn_save = QPushButton("…")
-        btn_save.setFixedWidth(32)
-        btn_save.clicked.connect(self._pick_save_dir)
-        save_lay.addWidget(btn_save)
-        lay.addWidget(save_grp)
-
-        # Bevorzugtes Dateiformat
-        fmt_grp = QGroupBox("Bevorzugtes Bilddateiformat")
-        fmt_lay = QHBoxLayout(fmt_grp)
-        self._fmt_combo = QComboBox()
-        self._fmt_combo.addItems(self.FORMATS)
-        self._fmt_combo.setFixedWidth(140)
-        fmt_lay.addWidget(self._fmt_combo)
-        fmt_lay.addStretch()
-        lay.addWidget(fmt_grp)
-
-        # Protokolldatei
-        log_grp = QGroupBox("Protokolldatei")
-        log_lay = QHBoxLayout(log_grp)
-        self._log_path_edit = QLineEdit()
-        self._log_path_edit.setReadOnly(True)
-        self._log_path_edit.setToolTip(
-            "Pfad der Log-Datei (markieren zum Kopieren)")
-        log_lay.addWidget(self._log_path_edit)
-        btn_log = QPushButton("Ordner öffnen")
-        btn_log.clicked.connect(self._open_log_dir)
-        log_lay.addWidget(btn_log)
-        lay.addWidget(log_grp)
-
-        lay.addStretch()
-
-        # OK / Abbrechen
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        btn_cancel = QPushButton("Abbrechen")
-        btn_cancel.clicked.connect(self.reject)
-        btn_ok = QPushButton("OK")
-        btn_ok.setDefault(True)
-        btn_ok.clicked.connect(self._save_and_accept)
-        btn_row.addWidget(btn_cancel)
-        btn_row.addWidget(btn_ok)
-        lay.addLayout(btn_row)
-
-    def _pick_open_dir(self) -> None:
-        start = self._open_dir_edit.text().strip() or str(Path.home())
-        d = QFileDialog.getExistingDirectory(
-            self, "Verzeichnis zum Öffnen wählen", start)
-        if d:
-            self._open_dir_edit.setText(d)
-
-    def _pick_save_dir(self) -> None:
-        start = self._save_dir_edit.text().strip() or str(Path.home())
-        d = QFileDialog.getExistingDirectory(
-            self, "Verzeichnis für Export/Speichern wählen", start)
-        if d:
-            self._save_dir_edit.setText(d)
-
-    def _open_log_dir(self) -> None:
-        log_file = current_log_file()
-        target = log_file.parent if log_file.parent.exists() else Path.home()
-        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(target))):
-            QMessageBox.warning(
-                self, "Protokolldatei",
-                f"Ordner konnte nicht geöffnet werden:\n{target}")
-
-    def _load(self) -> None:
-        self._open_dir_edit.setText(self._settings.value("open_dir", ""))
-        self._save_dir_edit.setText(self._settings.value("save_dir", ""))
-        fmt = self._settings.value("preferred_format", "PNG")
-        idx = self._fmt_combo.findText(fmt)
-        if idx >= 0:
-            self._fmt_combo.setCurrentIndex(idx)
-        self._log_path_edit.setText(str(current_log_file()))
-
-    def _save_and_accept(self) -> None:
-        self._settings.setValue("open_dir", self._open_dir_edit.text().strip())
-        self._settings.setValue("save_dir", self._save_dir_edit.text().strip())
-        self._settings.setValue("preferred_format", self._fmt_combo.currentText())
-        self.accept()
-
 
 class MainWindow(QMainWindow):
     # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
