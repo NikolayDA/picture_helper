@@ -28,16 +28,20 @@ from bgremover.image_utils import (
     pil_to_numpy,
     pil_to_qpixmap,
 )
+from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
 
 __all__ = [
     "LOG_FILENAME",
+    "SLD_STYLE",
     "TOOL_BRUSH",
     "TOOL_ERASER",
     "TOOL_LASSO",
+    "TOOL_STYLE",
     "TOOL_WAND",
     "_MAX_MEGAPIXELS",
     "_THREAD_SHUTDOWN_MS",
     "_UNDO_MEMORY_LIMIT",
+    "_Theme",
     "flood_fill",
     "logger",
     "mask_to_overlay",
