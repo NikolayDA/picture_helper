@@ -42,8 +42,18 @@ test = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.6", "mypy>=1.10"]
 # sowie die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
 docs = ["markdown>=3.5", "weasyprint>=61", "fonttools>=4.0"]
 
+[project.scripts]
+bgremover = "bgremover.app:main"
+
 [tool.setuptools]
+# Übergangszustand (Runde 5, Phase B): `py-modules` (Monolith) und das
+# neue `packages` (bgremover/) koexistieren, bis BgRemover.py entfällt.
 py-modules = ["BgRemover"]
+packages = ["bgremover"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+bgremover = ["icons/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -69,7 +79,9 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
-files = ["BgRemover.py"]
+# Übergangszustand (Runde 5, Phase B): Monolith UND neues Paket prüfen,
+# bis BgRemover.py entfällt (dann nur noch ["bgremover"]).
+files = ["BgRemover.py", "bgremover"]
 ignore_missing_imports = true
 # Qt-Override-Signaturen (event/option/widget) und dynamische Qt-Attribute
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass
