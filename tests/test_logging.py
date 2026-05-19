@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image
 
 import BgRemover
+from bgremover import logging_config as _lc
 from BgRemover import ImageCanvas
 
 
@@ -54,11 +55,11 @@ def test_setup_logging_creates_missing_directory(tmp_path, monkeypatch):
         def writableLocation(_loc):
             return str(target)
 
-    monkeypatch.setattr(BgRemover, "QStandardPaths", _FakeQSP)
+    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
     root = logging.getLogger()
     before = list(root.handlers)
     try:
-        BgRemover._setup_logging()
+        _lc._setup_logging()
         assert target.exists()
         assert (target / "bgremover.log").exists()
     finally:
@@ -85,12 +86,12 @@ def test_current_log_file_matches_setup(tmp_path, monkeypatch):
         def writableLocation(_loc):
             return str(target)
 
-    monkeypatch.setattr(BgRemover, "QStandardPaths", _FakeQSP)
+    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
     root = logging.getLogger()
     before = list(root.handlers)
     try:
-        BgRemover._setup_logging()
-        assert BgRemover.current_log_file() == target / "bgremover.log"
+        _lc._setup_logging()
+        assert _lc.current_log_file() == target / "bgremover.log"
     finally:
         for h in list(root.handlers):
             if h not in before:

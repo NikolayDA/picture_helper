@@ -5,7 +5,6 @@ Starten: python3 BgRemover.py
 """
 
 import sys
-import logging
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
 
@@ -24,12 +23,12 @@ from PyQt6.QtGui import (
 
 from PyQt6.QtCore import (
     Qt, QSize, QRect, QThread, QObject,
-    QSettings, QStandardPaths, QUrl,
+    QSettings, QUrl,
 )
 from PIL import Image
 
 from bgremover.constants import (
-    logger, LOG_FILENAME, _THREAD_SHUTDOWN_MS, _IS_MACOS,
+    logger, _THREAD_SHUTDOWN_MS, _IS_MACOS,
     _TOOLBAR_WIDTH, _TOOLBAR_BTN_SIZE, _TOOLBAR_ICON_SIZE,
     _RIGHT_PANEL_WIDTH, _CROP_BAR_HEIGHT, _COLOR_BTN_SIZE, _TAB_ICON_PX,
     _WINDOW_MIN_W, _WINDOW_MIN_H,
@@ -43,6 +42,7 @@ from bgremover.workers import (
     AIWorker, ImageLoadWorker, REMBG_AVAILABLE, RembgWarmupWorker,
 )
 from bgremover.canvas import ImageCanvas
+from bgremover.logging_config import current_log_file, _setup_logging
 
 # Übergangs-Re-Export (Runde 5, Phase B): hält ``from BgRemover import X``
 # gültig, bis die Tests in Schritt 13 auf ``from bgremover import X``
@@ -51,6 +51,7 @@ from bgremover import (  # noqa: F401
     CropOverlayItem,
     _MAX_MEGAPIXELS,
     _UNDO_MEMORY_LIMIT,
+    _resolve_log_dir,
     flood_fill,
     mask_to_overlay,
     numpy_to_pil,
@@ -63,11 +64,6 @@ try:
 except PackageNotFoundError:
     # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
     __version__ = "2.1.0"
-
-# Vom Logging-Setup gesetzter, tatsächlich beschriebener Log-Pfad. Wird
-# vom Einstellungen-Dialog ausgelesen, damit Anzeige und FileHandler nie
-# auseinanderlaufen.
-_log_file_path: "Path | None" = None
 
 # ─────────────────────────────────────────────────────────────
 # Haupt-Fenster
@@ -1418,53 +1414,6 @@ class MainWindow(QMainWindow):
 # ─────────────────────────────────────────────────────────────
 # Start
 # ─────────────────────────────────────────────────────────────
-
-def _resolve_log_dir() -> Path:
-    """Ermittelt das Log-Verzeichnis und legt es bei Bedarf an.
-
-    Das Zielverzeichnis wird angelegt – andernfalls bricht der
-    ``FileHandler`` den Start mit ``FileNotFoundError`` ab.
-    """
-    loc = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.AppDataLocation)
-    log_dir = Path(loc) if loc else (Path.home() / ".bgremover")
-    try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        log_dir = Path.home()
-    return log_dir
-
-
-def current_log_file() -> Path:
-    """Pfad der aktiven Log-Datei.
-
-    Liefert den vom ``_setup_logging`` gesetzten Pfad; falls noch kein
-    Setup lief (z. B. in Tests), wird er erneut aufgelöst.
-    """
-    if _log_file_path is not None:
-        return _log_file_path
-    return _resolve_log_dir() / LOG_FILENAME
-
-
-def _setup_logging() -> None:
-    """Konfiguriert stderr- + Datei-Logging.
-
-    Muss NACH dem Erzeugen der QApplication und dem Setzen von
-    Application-/Organization-Name laufen, sonst liefert
-    ``QStandardPaths`` keinen app-spezifischen Pfad.
-    """
-    global _log_file_path
-    log_dir = _resolve_log_dir()
-    _log_file_path = log_dir / LOG_FILENAME
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stderr),
-            logging.FileHandler(_log_file_path, encoding="utf-8"),
-        ],
-    )
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
