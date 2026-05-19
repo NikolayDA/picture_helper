@@ -7,11 +7,13 @@ Starten: python3 BgRemover.py
 import sys
 import os
 import io
+import functools
 import logging
 import numpy as np
 from collections import deque
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
+from typing import Callable
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
@@ -48,7 +50,7 @@ try:
     __version__ = _pkg_version("bgremover")
 except PackageNotFoundError:
     # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
-    __version__ = "2.0.0"
+    __version__ = "2.1.0"
 
 logger = logging.getLogger("BgRemover")
 
@@ -456,24 +458,42 @@ def make_checker_brush(size: int = 14) -> QBrush:
 # KI-Worker (läuft in eigenem Thread)
 # ─────────────────────────────────────────────────────────────
 
-class AIWorker(QObject):
-    finished = pyqtSignal(object)   # PIL Image
+class _Worker(QObject):
+    """Basisklasse für Hintergrund-Worker.
+
+    Kapselt den in mehreren Workern identischen Ablauf
+    ``try: _work() / except Exception: logger.exception(); error.emit()``.
+    Unterklassen deklarieren ihr eigenes ``finished``-Signal (die
+    Signaturen unterscheiden sich je Worker) und implementieren ``_work``.
+    """
     error = pyqtSignal(str)
+    _error_context = "Worker-Fehler"
+
+    def run(self) -> None:
+        try:
+            self._work()
+        except Exception as e:
+            logger.exception(self._error_context)
+            self.error.emit(f"{type(e).__name__}: {e}")
+
+    def _work(self) -> None:
+        raise NotImplementedError
+
+
+class AIWorker(_Worker):
+    finished = pyqtSignal(object)   # PIL Image
+    _error_context = "rembg-Fehler"
 
     def __init__(self, pil_image: Image.Image) -> None:
         super().__init__()
         self._img = pil_image
 
-    def run(self) -> None:
-        try:
-            buf = io.BytesIO()
-            self._img.save(buf, format="PNG")
-            result_bytes = rembg_remove(buf.getvalue())
-            result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
-            self.finished.emit(result)
-        except Exception as e:
-            logger.exception("rembg-Fehler")
-            self.error.emit(f"{type(e).__name__}: {e}")
+    def _work(self) -> None:
+        buf = io.BytesIO()
+        self._img.save(buf, format="PNG")
+        result_bytes = rembg_remove(buf.getvalue())
+        result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
+        self.finished.emit(result)
 
 
 class RembgWarmupWorker(QObject):
@@ -498,31 +518,27 @@ class RembgWarmupWorker(QObject):
             self.finished.emit()
 
 
-class ImageLoadWorker(QObject):
+class ImageLoadWorker(_Worker):
     """Lädt + EXIF-orientiert ein Bild im Hintergrund.
 
     Vermeidet UI-Freeze bei großen Fotos.
     """
     finished = pyqtSignal(object, str)   # (PIL.Image, original_path)
-    error    = pyqtSignal(str)
+    _error_context = "Bildladen fehlgeschlagen"
 
     def __init__(self, path: str) -> None:
         super().__init__()
         self._path = path
 
-    def run(self) -> None:
-        try:
-            img = Image.open(self._path)
-            mp = img.width * img.height / 1_000_000
-            if mp > _MAX_MEGAPIXELS:
-                self.error.emit(
-                    f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
-                return
-            img = ImageOps.exif_transpose(img).convert("RGBA")
-            self.finished.emit(img, self._path)
-        except Exception as e:
-            logger.exception("Bildladen fehlgeschlagen")
-            self.error.emit(f"{type(e).__name__}: {e}")
+    def _work(self) -> None:
+        img = Image.open(self._path)
+        mp = img.width * img.height / 1_000_000
+        if mp > _MAX_MEGAPIXELS:
+            self.error.emit(
+                f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
+            return
+        img = ImageOps.exif_transpose(img).convert("RGBA")
+        self.finished.emit(img, self._path)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -715,6 +731,21 @@ TOOL_WAND   = "wand"
 TOOL_BRUSH  = "brush"
 TOOL_ERASER = "eraser"
 TOOL_LASSO  = "lasso"
+
+
+def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
+    """Frühausstieg-Guard für ImageCanvas-Methoden ohne geladenes Bild.
+
+    Ersetzt den mehrfach byte-identisch wiederholten Block
+    ``if self._pil is None: self.statusMsg.emit("Kein Bild geladen"); return``.
+    """
+    @functools.wraps(method)
+    def wrapper(self: "ImageCanvas", *args: object, **kwargs: object) -> None:
+        if self._pil is None:
+            self.statusMsg.emit("Kein Bild geladen")
+            return
+        method(self, *args, **kwargs)
+    return wrapper
 
 
 class ImageCanvas(QGraphicsView):
@@ -1396,11 +1427,9 @@ class ImageCanvas(QGraphicsView):
 
     # ── Ecken abrunden ───────────────────────────────────────
 
+    @_requires_image
     def apply_round_corners(self, radius: int) -> None:
         """Rundet die Ecken des Bildes mit dem gegebenen Radius ab."""
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
         if radius <= 0:
             self.statusMsg.emit("Radius muss > 0 sein")
             return
@@ -1424,14 +1453,12 @@ class ImageCanvas(QGraphicsView):
 
     # ── Drehen ───────────────────────────────────────────────
 
+    @_requires_image
     def apply_rotate(self, degrees: int) -> None:
         """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn).
         Bei 90° / 270° werden Breite und Höhe getauscht.
         Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
         """
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
         img = self._pil.convert("RGBA")
 
         if degrees % 90 == 0:
@@ -1451,11 +1478,9 @@ class ImageCanvas(QGraphicsView):
 
     # ── Spiegeln ─────────────────────────────────────────────
 
+    @_requires_image
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
         img = self._pil.convert("RGBA")
         if horizontal:
             result = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
@@ -1468,17 +1493,15 @@ class ImageCanvas(QGraphicsView):
 
     # ── Ausgabeformat – Crop-Overlay ─────────────────────────
 
+    @_requires_image
     def start_crop_circle(self) -> None:
         """Startet den interaktiven Kreis-Zuschnitt."""
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen"); return
         size = min(self._pil.width, self._pil.height)
         self._start_crop_overlay(size, size, is_circle=True)
 
+    @_requires_image
     def start_crop_ratio(self, ratio_w: int, ratio_h: int) -> None:
         """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen"); return
         iw, ih = self._pil.size
         if iw / ih > ratio_w / ratio_h:
             cw, ch = int(ih * ratio_w / ratio_h), ih

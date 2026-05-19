@@ -9,6 +9,27 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.1.0] – 2026-05-19
+
+### Cambiado
+
+- Guarda de retorno temprano "ninguna imagen cargada" de los cinco
+  métodos de `ImageCanvas` (`apply_round_corners`, `apply_rotate`,
+  `apply_flip`, `start_crop_circle`, `start_crop_ratio`) consolidada en
+  el decorador `@_requires_image` – el bloque antes byte-idéntico
+  desaparece; comportamiento sin cambios (defendido por la suite de
+  pruebas existente).
+- Los workers de segundo plano `AIWorker` e `ImageLoadWorker` ahora
+  comparten la clase base común `_Worker`, que encapsula el flujo
+  idéntico `try/except → logger.exception → error.emit`; las subclases
+  solo implementan `_work()`. `RembgWarmupWorker` permanece
+  deliberadamente independiente (sin señal `error`, `finished` siempre
+  en `finally`).
+- Corte de versión **2.1.0**: `pyproject.toml` y el fallback de
+  `__version__` en `BgRemover.py` subidos a `2.1.0`; los cambios antes
+  recopilados bajo `[Unreleased]` (#48/#52/#53, INSTALL_LINUX, rondas
+  3/4) quedan fechados como 2.1.0.
+
 ### Documentación
 
 - Se añadió la guía de instalación para Linux (`INSTALL_LINUX.md`):

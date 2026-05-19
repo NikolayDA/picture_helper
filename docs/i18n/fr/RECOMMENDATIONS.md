@@ -303,48 +303,52 @@ améliore la sûreté de typage (effort/risque : moyen).
 
 | # | Recommandation | Priorité | Effort | Statut |
 |---|----------------|----------|--------|--------|
-| 1 | **Coupe de version 2.1.0 + tag git** | 🟠 Haute | Faible | **← Prochaine étape** |
-| 2 | Utilitaire de garde « aucune image » (tour 3 #6) | 🟢 Basse | Faible | Ouvert |
-| 3 | Classe de base de worker (tour 3 #7) | 🟢 Basse | Faible | Ouvert |
-| 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | Ouvert |
+| 1 | ~~Coupe de version 2.1.0 + tag git~~ | 🟠 Haute | Faible | ✅ Fait (tag après merge) |
+| 2 | ~~Utilitaire de garde « aucune image » (tour 3 #6)~~ | 🟢 Basse | Faible | ✅ Fait |
+| 3 | ~~Classe de base de worker (tour 3 #7)~~ | 🟢 Basse | Faible | ✅ Fait |
+| 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | **← Prochaine étape** |
 | 5 | Monolithe → paquet (tour 3 #1) | 🟠 Haute | Élevé | Reporté |
 
-### 🟠 1. Coupe de version 2.1.0 + tag git *(prochaine étape recommandée)*
+### ✅ 1. Coupe de version 2.1.0 + tag git *(fait)*
 
-**Constat :** il **n'existe pas un seul tag git** (`git tag -l` vide),
-bien que le CHANGELOG affirme une « première version publiquement
-taguée 2.0.0 ». Depuis 2.0.0, le bloc `[Unreleased]` a accumulé des
-changements substantiels (PR #48 gestion d'erreur de sauvegarde, #52
-déduplication d'état, #53 `_Theme`, doc INSTALL_LINUX, #55 lanceur de
-tests local). `pyproject.toml` (`version = "2.0.0"`) et le repli
-`__version__` (`BgRemover.py:51`) restent à `2.0.0` – l'état livré est
-donc indiscernable de 2.0.0.
+**Fait dans cette PR :** `pyproject.toml` et le repli `__version__`
+(`BgRemover.py`) passés à `2.1.0` ; le bloc `[Unreleased]` dans
+`CHANGELOG.md` (+ i18n en/es/fr/uk/zh) daté en `[2.1.0] – 2026-05-19`
+et un nouveau bloc `[Unreleased]` vide ajouté. Le `git tag v2.1.0`
+n'est **délibérément pas** posé sur la branche de fonctionnalité ; il
+revient au commit de merge dans `main` après le merge (voir la
+description de la PR).
 
-**Pourquoi en premier :** effort minimal, clarté maximale. Sans coupe
-de version/tag, impossible de tracer ce qui a été livré – cela bloque
-toute itération propre de fonctionnalités.
+**Constat (pour mémoire) :** il **n'existait pas un seul tag git**
+(`git tag -l` vide), bien que le CHANGELOG affirme une « première
+version publiquement taguée 2.0.0 ». Depuis 2.0.0, le bloc
+`[Unreleased]` avait accumulé des changements substantiels (PR #48
+gestion d'erreur de sauvegarde, #52 déduplication d'état, #53
+`_Theme`, doc INSTALL_LINUX, #55 lanceur de tests local), tandis que
+`pyproject.toml` et le repli `__version__` restaient à `2.0.0`.
 
-**Étapes :** passer `version` dans `pyproject.toml` et le repli
-`__version__` à `2.1.0` ; dater `[Unreleased]` dans `CHANGELOG.md`
-(+ i18n) en `[2.1.0] – <date>` et ajouter un nouveau bloc
-`[Unreleased]` vide ; poser et pousser `git tag v2.1.0`.
+### ✅ 2. Utilitaire de garde « aucune image chargée » *(fait, tour 3 #6)*
 
-### 🟢 2. Utilitaire de garde « aucune image chargée » *(tour 3 #6, toujours ouvert)*
+Le retour anticipé octet-identique `if self._pil is None:
+self.statusMsg.emit("Kein Bild geladen"); return` des cinq méthodes de
+`ImageCanvas` `apply_round_corners`, `apply_rotate`, `apply_flip`,
+`start_crop_circle`, `start_crop_ratio` est regroupé dans le décorateur
+`@_requires_image`. Comportement inchangé (140 tests unitaires + 16 UI
+au vert). Les trois gardes `has_image` de `MainWindow` restent
+délibérément en ligne : messages différents et vérifications
+secondaires dépendantes de l'ordre – les regrouper là ajouterait plus
+de risque que de valeur.
 
-Vérifié : le retour anticipé « aucune image chargée » se répète dans
-~10 méthodes (dont `BgRemover.py:1474`, `:1481`, `:2726`, `:2733`). Un
-petit décorateur/utilitaire de garde le regroupe. Quick win à faible
-risque, idéal en échauffement avant #5.
+### ✅ 3. Classe de base de worker *(fait, tour 3 #7)*
 
-### 🟢 3. Classe de base de worker *(tour 3 #7, toujours ouvert)*
+`AIWorker` et `ImageLoadWorker` héritent désormais de la classe de
+base `_Worker`, qui encapsule le flux identique
+`try/except → logger.exception → error.emit` ; les sous-classes
+n'implémentent plus que `_work()`. `RembgWarmupWorker` reste
+délibérément autonome (pas de signal `error`, `finished` toujours dans
+`finally` – contrat différent).
 
-`AIWorker`, `RembgWarmupWorker` et `ImageLoadWorker`
-(`BgRemover.py:459–525`) partagent le motif `try → logger.exception →
-error.emit`. Une classe de base `QObject` légère avec une méthode
-patron réduit la répétition sans changer le modèle de threads. Quick
-win.
-
-### 🟢 4. Durcir `mypy` progressivement *(tour 3 #9, toujours ouvert)*
+### 🟢 4. Durcir `mypy` progressivement *(tour 3 #9 – prochaine étape)*
 
 Toujours 7 `disable_error_code`. Recommandation : réactiver un code par
 PR et corriger les occurrences alors visibles, plutôt que tout d'un
