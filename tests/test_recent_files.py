@@ -22,7 +22,7 @@ def isolated_settings(tmp_path, monkeypatch):
 # ── A9: Recent-Files ────────────────────────────────────────────────────
 
 def test_recent_list_dedups_and_caps(qapp, isolated_settings):
-    from BgRemover import MainWindow
+    from bgremover import MainWindow
     w = MainWindow()
     # Erst Liste explizit leeren (in case)
     w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
@@ -35,7 +35,7 @@ def test_recent_list_dedups_and_caps(qapp, isolated_settings):
 
 
 def test_recent_brings_existing_to_front(qapp, isolated_settings):
-    from BgRemover import MainWindow
+    from bgremover import MainWindow
     w = MainWindow()
     w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
     a = str(isolated_settings / "a.png")
@@ -50,7 +50,7 @@ def test_recent_brings_existing_to_front(qapp, isolated_settings):
 
 
 def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
-    from BgRemover import MainWindow
+    from bgremover import MainWindow
     w = MainWindow()
     w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
     img_path = tmp_path / "x.png"
@@ -64,7 +64,7 @@ def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
 # ── A5: Quick-Save ──────────────────────────────────────────────────────
 
 def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
-    from BgRemover import MainWindow
+    from bgremover import MainWindow
     w = MainWindow()
     w._canvas._pil = Image.new("RGBA", (8, 8), (10, 20, 30, 255))
     target = tmp_path / "out.png"
@@ -74,7 +74,7 @@ def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
 
 
 def test_load_clears_save_path(qapp, isolated_settings, tmp_path):
-    from BgRemover import MainWindow
+    from bgremover import MainWindow
     w = MainWindow()
     w._save_path = "/tmp/somewhere.png"
     img_path = tmp_path / "fresh.png"

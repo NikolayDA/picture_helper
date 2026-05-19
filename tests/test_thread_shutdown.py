@@ -10,7 +10,7 @@ import time
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from BgRemover import MainWindow
+from bgremover import MainWindow
 
 
 class _BlockingWorker(QObject):

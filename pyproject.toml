@@ -46,9 +46,6 @@ docs = ["markdown>=3.5", "weasyprint>=61", "fonttools>=4.0"]
 bgremover = "bgremover.app:main"
 
 [tool.setuptools]
-# Übergangszustand (Runde 5, Phase B): `py-modules` (Monolith) und das
-# neue `packages` (bgremover/) koexistieren, bis BgRemover.py entfällt.
-py-modules = ["BgRemover"]
 packages = ["bgremover"]
 include-package-data = true
 
@@ -72,19 +69,15 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # Bewusst kompakter Stil (Mehrfach-Statements mit Semikolons, einzelne
-# kurze Schleifenvariablen wie `l`/`b`). Gilt für den Monolithen UND das
-# neue Paket (Runde 5, Phase B – der Stil zieht mit dem Code mit); der
-# BgRemover.py-Key entfällt mit dessen Löschung (Schritt 13).
-"BgRemover.py" = ["E702", "E741"]
+# kurze Schleifenvariablen wie `l`/`b`). Der Stil ist mit dem Code aus
+# dem ehemaligen Monolithen ins Paket gewandert (Runde 5, Phase B).
 "bgremover/*.py" = ["E702", "E741"]
 # conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
 "tests/conftest.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.10"
-# Übergangszustand (Runde 5, Phase B): Monolith UND neues Paket prüfen,
-# bis BgRemover.py entfällt (dann nur noch ["bgremover"]).
-files = ["BgRemover.py", "bgremover"]
+files = ["bgremover"]
 ignore_missing_imports = true
 # Qt-Override-Signaturen (event/option/widget) und dynamische Qt-Attribute
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass

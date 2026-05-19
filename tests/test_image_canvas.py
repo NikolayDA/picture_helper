@@ -15,7 +15,7 @@ Verteidigt:
 import numpy as np
 from PIL import Image
 
-from BgRemover import ImageCanvas, pil_to_numpy
+from bgremover import ImageCanvas, pil_to_numpy
 
 
 # ── Fix #7: save_image ─────────────────────────────────────────────────

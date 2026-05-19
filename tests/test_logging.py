@@ -9,14 +9,14 @@ import logging
 import numpy as np
 from PIL import Image
 
-import BgRemover
+import bgremover
 from bgremover import logging_config as _lc
-from BgRemover import ImageCanvas
+from bgremover import ImageCanvas
 
 
 def test_module_logger_exists():
-    assert isinstance(BgRemover.logger, logging.Logger)
-    assert BgRemover.logger.name == "BgRemover"
+    assert isinstance(bgremover.logger, logging.Logger)
+    assert bgremover.logger.name == "BgRemover"
 
 
 def test_apply_remove_logs_unexpected_exception(qapp, caplog):

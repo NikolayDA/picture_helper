@@ -34,7 +34,7 @@ jobs:
         run: pip install -e ".[test]"
 
       - name: Lint with ruff
-        run: ruff check BgRemover.py tests
+        run: ruff check bgremover tests
 
       - name: Type-check with mypy
         run: mypy
