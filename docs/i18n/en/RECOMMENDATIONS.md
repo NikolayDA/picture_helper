@@ -235,7 +235,7 @@ a switch to PySide6).
 
 | # | Recommendation | Priority | Effort | Status |
 |---|-----------|-----------|---------|--------|
-| 1 | Monolith → package (`bgremover/` with modules) | 🟠 High | High | Open |
+| 1 | Monolith → package (`bgremover/` with modules) | 🟠 High | High | ✅ resolved (round 5) |
 | 2 | ~~`save_image()` without error handling~~ | 🟡 Medium | Low | ✅ #48 |
 | 3 | ~~State duplication in `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Medium | Low | ✅ #52 |
 | 4 | ~~Scattered inline stylesheets, no theme module~~ | 🟡 Medium | Medium | ✅ #53 |
@@ -250,6 +250,8 @@ worker, canvas, UI, dialogs, logging, main). The biggest lever for
 feature growth, but the highest risk (risk: high) and in conflict with
 the documented single-file decision. **Open — deliberately deferred**,
 needs a separate design decision.
+
+→ **Resolved in round 5** (design decision: clean package break – see below).
 
 **#2** — Fixed in **PR #48**: `save_image()` returns `bool` and wraps
 the write operations in `try/except` (logging + status message),
@@ -300,7 +302,7 @@ safety (effort/risk: medium).
 | 2 | ~~"No image loaded" guard helper (round 3 #6)~~ | 🟢 Low | Low | ✅ Done |
 | 3 | ~~Worker base class (round 3 #7)~~ | 🟢 Low | Low | ✅ Done |
 | 4 | Tighten `mypy` step by step (round 3 #9) | 🟢 Low | Medium | 🟢 Step 1 done |
-| 5 | Monolith → package (round 3 #1) | 🟠 High | High | Deferred |
+| 5 | Monolith → package (round 3 #1) | 🟠 High | High | ✅ resolved (round 5) |
 
 ### ✅ 1. Release cut 2.1.0 + git tag *(done)*
 
@@ -367,3 +369,51 @@ documented single-file design decision. Remains a deliberate, separate
 architectural decision – to be reconsidered at the latest before the
 next larger feature expansion. Quick wins #2/#3 already shrink the file
 slightly and prepare a later split.
+
+→ **Resolved in round 5** (design decision: clean package break – see below).
+
+---
+
+## Round 5 – Design decision: monolith → package (resolved)
+
+> The "separate design decision" explicitly demanded in round 3 #1 and
+> round 4 #5 is hereby made and thus resolved. The documented
+> single-file design decision is **deliberately reversed**.
+
+**Decision.** `BgRemover.py` (3026 lines) is split into a Python package
+`bgremover/`. Modules: `constants`, `image_utils`, `icons`, `theme`,
+`workers`, `crop`, `canvas`, `widgets`, `settings_dialog`,
+`logging_config`, `main_window`, `app`, `__main__`, `__init__`.
+
+**Clean package break (no compatibility shim).** `BgRemover.py` is
+removed outright. The app is launched via the `bgremover` console script
+**and** `python -m bgremover`. The previous `python BgRemover.py` mode is
+**deliberately dropped**; the build scripts (`create_BgRemover_app.sh`,
+`BgRemover.command`), `pyproject.toml`, Makefile/CI, tests and docs
+(incl. i18n) are migrated in the same cut.
+
+**Rationale.** Per round 3 #1 / round 4 #5 the single file was the
+biggest lever for feature growth; the only blocker was the documented
+single-file decision – which is hereby explicitly reversed. The risk
+stays high but is controlled by the method.
+
+**Method.** Phased with a hard gate: **Phase A** (preparation – this ADR
++ layout/design, no code moved) → **Gate** (green baseline captured:
+`ruff`/`mypy` clean, **140 unit + 16 UI tests green**) → **Phase B**
+(purely mechanical, byte-identical split; code moved verbatim, only
+imports adjusted; tests stay green). The single intentional code change:
+asset resolution in `make_tool_icon` (`importlib.resources` instead of
+`__file__`/`argv`/`cwd`), behavior-preserving.
+
+**Order / preparatory work.** Recommended before the cut (maintainer
+action on `main`, no code): `git tag v2.1.0` as the last pure
+single-file state (round 4 #1 – `git tag -l` is so far empty).
+
+**Deliberately after, not before.** The incremental mypy hardening
+(round 4 #4, 6 remaining `disable_error_code`) happens **after** the
+split – a large move invalidates per-file type progress. Internal
+cleanups (guard/worker consolidation) likewise stay out of this cut.
+
+**Status impact.** Round 3 #1 and round 4 #5 are **resolved** with this
+decision; the status columns of the respective tables are updated
+accordingly.
