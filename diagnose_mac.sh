@@ -61,6 +61,32 @@ for py in "${CANDIDATES[@]}"; do
             echo "  ✗ $mod   → $LAST"
         fi
     done
+    # Echter Smoke-Test: QApplication-Erzeugung. `import PyQt6.QtWidgets`
+    # alleine zeigt nicht, ob Qt zur Laufzeit das `cocoa`-Plugin findet
+    # (typischer venv-Fehler: "Could not find the Qt platform plugin
+    # 'cocoa' in ''").
+    if QAOUT="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+        'from PyQt6.QtWidgets import QApplication; import sys; QApplication(sys.argv); print("ok")' 2>&1)"; then
+        if printf '%s' "$QAOUT" | grep -q '^ok$'; then
+            echo "  ✓ QApplication-Erzeugung (Qt-Plugin gefunden)"
+        else
+            LAST="$(printf '%s' "$QAOUT" | tail -n 1)"
+            echo "  ✗ QApplication unerwarteter Output: $LAST"
+        fi
+    else
+        LAST="$(printf '%s' "$QAOUT" | tail -n 1)"
+        echo "  ✗ QApplication-Erzeugung scheitert → $LAST"
+        # Plugin-Pfad mitschicken (haeufige Ursache: Suche in '')
+        PLUGIN_PATH="$("$py" -c 'import PyQt6, os; print(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins", "platforms"))' 2>/dev/null)"
+        if [ -n "$PLUGIN_PATH" ]; then
+            echo "    erwarteter Plugin-Pfad: $PLUGIN_PATH"
+            if [ -f "$PLUGIN_PATH/libqcocoa.dylib" ]; then
+                echo "    → libqcocoa.dylib vorhanden ($(/usr/bin/file "$PLUGIN_PATH/libqcocoa.dylib" 2>/dev/null | head -1))"
+            else
+                echo "    ✗ libqcocoa.dylib FEHLT in $PLUGIN_PATH"
+            fi
+        fi
+    fi
 done
 
 # ── App-Bundle ─────────────────────────────────────────────────
