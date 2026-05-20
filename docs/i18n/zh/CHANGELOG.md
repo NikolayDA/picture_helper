@@ -9,6 +9,22 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]（未发布）
 
+### 修复
+
+- **macOS 启动路径恢复可用。** 在包切分（第 5 轮）之后，
+  `BgRemover.command` 仍在寻找已不存在的 `BgRemover.py` 并以「未
+  找到」中止；德语版 `INSTALL_MAC.md` 以及 `INSTALL_LINUX.md` 和
+  `README.md` 的 i18n 版本也仍保留了部分旧命令（第 5 轮的步骤
+  15 在 glob 中漏掉了德语 `INSTALL_MAC.md` 以及 i18n 安装文档，
+  并且 i18n 的 `.desktop` 片段里还遗留有
+  `Exec=python3 /路径/.../BgRemover.py`）。后果：在 macOS 上三条
+  已记录的启动路径（App 包、双击 `.command`、终端）没有一条能
+  可靠使用。`BgRemover.command` 现在通过 `python3 -m bgremover`
+  启动，并预先检查 `import bgremover`（否则会输出指向
+  `create_BgRemover_app.sh` 的明确提示）。INSTALL_MAC 及所有
+  i18n 文档反映当前的包模型（包括把包以非 editable 方式安装到
+  App venv，以及通过 `importlib.resources` 解析资源）。
+
 ### 更改
 
 - **单体 → 包（第 5 轮）。** 单文件 `BgRemover.py`（3026 行）已拆分为

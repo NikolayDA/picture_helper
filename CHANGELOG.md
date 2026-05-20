@@ -9,6 +9,24 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- **macOS-Startwege wieder funktionsfähig.** Nach dem Paket-Schnitt
+  (Runde 5) suchte `BgRemover.command` weiterhin die nicht mehr
+  existierende `BgRemover.py` und brach mit „nicht gefunden" ab; auch
+  `INSTALL_MAC.md` (deutsch) plus die i18n-Versionen von
+  `INSTALL_LINUX.md`/`README.md` zeigten teils noch die alten Kommandos
+  (Schritt 15 des Paket-Schnitts hatte das deutsche `INSTALL_MAC.md`
+  und die i18n-Installations-Doku im Glob übersehen, sowie
+  `Exec=python3 /PFAD/.../BgRemover.py` in den i18n-`.desktop`-Mustern).
+  Folge: auf macOS war keiner der drei dokumentierten Start-Wege
+  (App-Bundle, Doppelklick auf `.command`, Terminal) verlässlich
+  benutzbar. `BgRemover.command` startet jetzt via `python3 -m
+  bgremover` und prüft vorab `import bgremover` (sonst sprechender
+  Hinweis auf `create_BgRemover_app.sh`). INSTALL_MAC + alle i18n-Docs
+  spiegeln das aktuelle Paket-Modell (inkl. nicht-editable Install des
+  Pakets in die App-venv und `importlib.resources`-Asset-Lookup).
+
 ### Geändert
 
 - **Monolith → Paket (Runde 5).** Die Einzeldatei `BgRemover.py`

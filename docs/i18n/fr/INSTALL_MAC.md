@@ -108,14 +108,17 @@ réexécutée après `git pull` — sauf si les dépendances dans
   dépendances dans un venv sous
   `~/Library/Application Support/BgRemover/venv` et intègre ce Python
   dans l'application.
-- **`[Errno 1] Operation not permitted` à l'ouverture de `BgRemover.py`**
+- **`[Errno 1] Operation not permitted` lors de l'accès au projet**
   → confidentialité macOS (TCC). Si le projet se trouve dans `~/Documents`,
   `~/Desktop`, `~/Downloads` ou iCloud Drive, une `.app` lancée depuis le
-  Finder n'a pas le droit d'y lire. Depuis la v3, c'est résolu :
-  `BgRemover.py` est copié dans le bundle d'application et le venv se trouve dans
-  Application Support — réexécuter une fois `bash create_BgRemover_app.sh`.
-  (Sinon, déplacer le projet vers p. ex. `~/picture_helper`
-  et y réexécuter le script.)
+  Finder n'a pas le droit d'y lire. Depuis le tour 5 (coupe en paquet)
+  c'est résolu : `create_BgRemover_app.sh` installe le paquet
+  `bgremover` de manière **non éditable** dans la venv sous
+  `~/Library/Application Support/BgRemover/venv` (copie propre du code
+  avec `icons/` en package-data), l'app est donc indépendante du
+  dossier du projet. Fix : réexécuter une fois
+  `bash create_BgRemover_app.sh`. (Sinon, déplacer le projet vers
+  p. ex. `~/picture_helper` et y réexécuter le script.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon : dans `~/Library/Python/...` se trouve un paquet
   d'architecture étrangère, qui « déteint » dans un Python à l'architecture incompatible. Depuis la v3.1, c'est
@@ -155,6 +158,8 @@ réexécutée après `git pull` — sauf si les dépendances dans
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **L'`.app` a un aspect différent de `BgRemover.command`** → ancien bundle
   sans icônes de barre d'outils (l'application utilisait des icônes de remplacement dessinées). Désormais
-  corrigé — le script copie `icons/` dans le bundle ; reconstruire une fois
-  avec `bash create_BgRemover_app.sh`.
+  corrigé — depuis le tour 5 les icônes sont `package-data` dans
+  `bgremover/icons/`, donc reprises automatiquement dans la venv par
+  `pip install` et chargées via `importlib.resources` ; reconstruire
+  une fois avec `bash create_BgRemover_app.sh`.
 - **Diagnostic en cas d'erreur** → consulter le fichier journal `~/.bgremover.log`.

@@ -9,6 +9,26 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corregido
+
+- **Rutas de inicio en macOS funcionando de nuevo.** Tras el corte de
+  paquete (ronda 5), `BgRemover.command` seguía buscando el archivo
+  `BgRemover.py` ya inexistente y abortaba con «no encontrado»; el
+  `INSTALL_MAC.md` alemán y las versiones i18n de `INSTALL_LINUX.md` y
+  `README.md` también conservaban algunos comandos antiguos (el paso
+  15 de la ronda 5 había omitido el `INSTALL_MAC.md` alemán y la
+  documentación de instalación i18n en el glob, además de
+  `Exec=python3 /RUTA/.../BgRemover.py` en los fragmentos `.desktop`
+  i18n). Efecto neto: en macOS ninguna de las tres vías de inicio
+  documentadas (paquete app, doble clic en `.command`, terminal) era
+  utilizable de forma fiable. Ahora `BgRemover.command` arranca vía
+  `python3 -m bgremover` y comprueba previamente `import bgremover`
+  (de lo contrario muestra una indicación clara hacia
+  `create_BgRemover_app.sh`). INSTALL_MAC + todos los documentos i18n
+  reflejan el modelo de paquete actual (incluida la instalación no
+  editable del paquete en el venv de la app y la búsqueda de recursos
+  vía `importlib.resources`).
+
 ### Cambiado
 
 - **Monolito → paquete (ronda 5).** El archivo único `BgRemover.py`
