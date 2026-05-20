@@ -28,6 +28,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   tous les documents i18n reflètent le modèle de paquet actuel (y
   compris l'installation non éditable du paquet dans la venv de
   l'app et la résolution des ressources via `importlib.resources`).
+- **`create_BgRemover_app.sh` : venv existante migrée proprement.**
+  Une venv de l'ère monolithique (avec PyQt6/Pillow/numpy installés,
+  mais bien sûr pas encore `bgremover`) était considérée à tort comme
+  « ready » parce que la vérification de setup `has_deps` ne testait
+  pas `bgremover`. Lors du re-run, l'installation du paquet était
+  donc ignorée — et le lanceur de l'app signalait ensuite à l'exécution
+  « Le paquet bgremover manque dans la venv ». La vérification inclut
+  désormais aussi `import bgremover` ; en outre, il y a un chemin
+  rapide : si la venv de l'app a déjà PyQt6/Pillow/numpy, on ajoute
+  seulement `pip install ".[ai]"` (secondes) au lieu de reconstruire
+  la venv avec toutes les dépendances (minutes).
 
 ### Modifié
 

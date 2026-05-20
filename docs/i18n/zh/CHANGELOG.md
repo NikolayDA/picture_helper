@@ -24,6 +24,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `create_BgRemover_app.sh` 的明确提示）。INSTALL_MAC 及所有
   i18n 文档反映当前的包模型（包括把包以非 editable 方式安装到
   App venv，以及通过 `importlib.resources` 解析资源）。
+- **`create_BgRemover_app.sh`：现有 venv 可被干净迁移。** 来自单体
+  时代的 venv（已安装 PyQt6/Pillow/numpy，但显然还没有 `bgremover`）
+  会被错误地视为「ready」，因为 setup 检查 `has_deps` 没有测试
+  `bgremover`。重新运行时，包安装因此被跳过——随后应用启动器在运行
+  时报告「venv 中缺少 bgremover 包」。该检查现在也包括
+  `import bgremover`；此外还有快速路径：若 App venv 已具备
+  PyQt6/Pillow/numpy，则仅追加 `pip install ".[ai]"`（数秒），而
+  不必带着所有依赖重新构建 venv（数分钟）。
 
 ### 更改
 

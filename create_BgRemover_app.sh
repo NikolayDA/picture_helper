@@ -63,7 +63,10 @@ py_version_ok() {
 }
 # Prüft in nativer Arch + ohne user-site, ob die Pakete wirklich
 # importierbar sind – also genau so, wie der Launcher später startet.
-has_deps() { arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; }
+# Inklusive `bgremover`: eine venv aus der Monolith-Aera (in der nur
+# PyQt6/Pillow/numpy installiert war) galt sonst als "ready", und der
+# Re-Install des Pakets wurde stillschweigend uebersprungen.
+has_deps() { arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1; }
 
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
@@ -101,7 +104,28 @@ done
 if [ -n "$PYTHON_READY" ]; then
     PYTHON="$PYTHON_READY"
     ver=$("$PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')
-    echo -e "${GREEN}✅  Python $ver mit PyQt6:${NC} $PYTHON"
+    echo -e "${GREEN}✅  Python $ver mit PyQt6 + bgremover:${NC} $PYTHON"
+elif [ -x "$VENV_PY" ] && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; then
+    # App-venv existiert mit PyQt6/Pillow/numpy, aber `bgremover` fehlt
+    # (typisch fuer einen venv aus der Monolith-Aera, vor dem Paket-
+    # Schnitt). Statt die venv komplett neu zu bauen (dauert Minuten,
+    # numpy/scipy/onnxruntime usw.), schieben wir nur das bgremover-
+    # Paket nach – das dauert Sekunden.
+    echo -e "${YELLOW}🔁  App-venv existiert (PyQt6/Pillow/numpy ok), aber bgremover fehlt –${NC}"
+    echo "    wird nachinstalliert (statt venv neu zu bauen) …"
+    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install ".[ai]" ); then
+        PYTHON="$VENV_PY"
+        echo -e "${GREEN}✅  venv aktualisiert (inkl. KI):${NC} $PYTHON"
+    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install "." ); then
+        PYTHON="$VENV_PY"
+        echo -e "${YELLOW}✅  venv aktualisiert (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
+    else
+        echo -e "${RED}❌ Nachinstallation fehlgeschlagen.${NC}"
+        echo "   Manuell:  cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install \".[ai]\""
+        echo "   Notfalls die alte venv loeschen und neu bauen:"
+        echo "             rm -rf \"$VENV_DIR\" && bash create_BgRemover_app.sh"
+        exit 1
+    fi
 else
     if [ -z "$PYTHON" ]; then
         echo -e "${YELLOW}⚠️  Python 3.9+ nicht automatisch gefunden.${NC}"
