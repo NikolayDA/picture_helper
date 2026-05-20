@@ -26,6 +26,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Hinweis auf `create_BgRemover_app.sh`). INSTALL_MAC + alle i18n-Docs
   spiegeln das aktuelle Paket-Modell (inkl. nicht-editable Install des
   Pakets in die App-venv und `importlib.resources`-Asset-Lookup).
+- **`create_BgRemover_app.sh`: bestehende venv wird sauber migriert.**
+  Eine venv aus der Monolith-Ära (PyQt6/Pillow/numpy installiert, aber
+  natürlich noch ohne `bgremover`) galt fälschlich als „ready", weil
+  der Setup-Check `has_deps` `bgremover` nicht prüfte. Beim re-run des
+  Skripts wurde das Paket-Install daher übersprungen – und der
+  App-Launcher meldete dann zur Laufzeit „Das bgremover-Paket fehlt
+  in der venv". Der Check umfasst nun auch `import bgremover`;
+  zusätzlich gibt es einen Schnellpfad: existiert die App-venv schon
+  mit PyQt6/Pillow/numpy, wird nur `pip install ".[ai]"` darin
+  nachgeschoben (Sekunden), statt die venv mit allen Dependencies neu
+  zu bauen (Minuten).
 
 ### Geändert
 
