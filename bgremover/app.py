@@ -3,18 +3,50 @@
 Verbatim aus dem ``__main__``-Block von ``BgRemover.py`` (Runde 5,
 Phase B – Schritt 12). Liefert ``int`` zurueck (Exit-Code), damit
 ``raise SystemExit(main())`` in ``__main__.py`` korrekt durchschlaegt.
-``BgRemover.py`` enthaelt vorerst denselben Body byte-identisch
-nochmal; ab Schritt 13 wird ``BgRemover.py`` entfernt.
 """
 from __future__ import annotations
 
+import os
 import sys
+from pathlib import Path
 
-from PyQt6.QtGui import QColor, QPalette
-from PyQt6.QtWidgets import QApplication
 
-from bgremover.logging_config import _setup_logging
-from bgremover.main_window import MainWindow
+def _ensure_qt_plugin_path() -> None:
+    """Macht die PyQt6-Plugins (insb. ``platforms/cocoa``) zuverlässig findbar.
+
+    Auf manchen macOS-Setups (vor allem in venv/conda-Installationen mit
+    PyQt6 6.11+) findet Qt sein eigenes ``cocoa``-Plugin nicht und bricht
+    den Start mit ``Could not find the Qt platform plugin "cocoa" in ""``
+    ab. Wir setzen ``QT_QPA_PLATFORM_PLUGIN_PATH`` und ``QT_PLUGIN_PATH``
+    explizit aus der PyQt6-Installation – das ist der zuverlässige Ort,
+    an dem die Plugins liegen. Vom Nutzer gesetzte Werte werden respek-
+    tiert (nichts überschrieben).
+
+    Muss VOR ``from PyQt6.QtWidgets import QApplication`` bzw. dem
+    ersten ``QApplication(...)``-Aufruf laufen, damit Qt die Variablen
+    beim Plugin-Lookup tatsächlich sieht.
+    """
+    try:
+        import PyQt6  # noqa: F401  -- nur um __file__ zu erhalten
+    except ImportError:
+        return
+    pkg_dir = Path(PyQt6.__file__).resolve().parent
+    plugins_root = pkg_dir / "Qt6" / "plugins"
+    if not plugins_root.is_dir():
+        return
+    platforms = plugins_root / "platforms"
+    if platforms.is_dir():
+        os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", str(platforms))
+    os.environ.setdefault("QT_PLUGIN_PATH", str(plugins_root))
+
+
+_ensure_qt_plugin_path()
+
+from PyQt6.QtGui import QColor, QPalette  # noqa: E402
+from PyQt6.QtWidgets import QApplication  # noqa: E402
+
+from bgremover.logging_config import _setup_logging  # noqa: E402
+from bgremover.main_window import MainWindow  # noqa: E402
 
 
 def main() -> int:
