@@ -259,8 +259,18 @@ fail() {
 if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
 fi
-if ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
-    fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Das Bundle ist unvollständig. Bitte create_BgRemover_app.sh erneut ausführen."
+# Genauen ImportError sichtbar machen, falls `import bgremover` schlaegt
+# fehl - sonst fuehrt z.B. ein numpy/PyQt6-Mismatch (Python-Version,
+# arch, beschaedigtes Wheel) zur missverstaendlichen "bgremover-Paket
+# fehlt"-Meldung, obwohl das Paket installiert ist, aber eine Abhaengig-
+# keit nicht importierbar.
+IMPORT_ERR="\$("\$PYTHON" -c 'import bgremover' 2>&1)"
+if [ -n "\$IMPORT_ERR" ]; then
+    if printf '%s' "\$IMPORT_ERR" | grep -qE "No module named '?bgremover'?"; then
+        fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
+    fi
+    LASTLINE="\$(printf '%s' "\$IMPORT_ERR" | tail -n 1)"
+    fail "bgremover laesst sich nicht importieren in:"\$'\\n'"\$PYTHON"\$'\\n\\n'"\$LASTLINE"\$'\\n\\n'"Fix: bash diagnose_mac.sh fuer Details ausfuehren, ggf. venv neu bauen."
 fi
 
 # Native CPU-Architektur erzwingen: wird die .app via Rosetta
