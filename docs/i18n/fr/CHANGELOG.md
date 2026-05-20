@@ -9,6 +9,26 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corrigé
+
+- **Chemins de lancement macOS de nouveau fonctionnels.** Après la
+  coupe en paquet (tour 5), `BgRemover.command` cherchait encore le
+  fichier `BgRemover.py` qui n'existe plus et s'arrêtait sur « non
+  trouvé » ; le `INSTALL_MAC.md` allemand ainsi que les versions i18n
+  de `INSTALL_LINUX.md` et `README.md` conservaient aussi quelques
+  anciennes commandes (l'étape 15 du tour 5 avait raté le
+  `INSTALL_MAC.md` allemand et la documentation d'installation i18n
+  dans le glob, ainsi que `Exec=python3 /CHEMIN/.../BgRemover.py`
+  dans les extraits `.desktop` i18n). Conséquence : sur macOS aucune
+  des trois voies de lancement documentées (paquet app, double-clic
+  sur `.command`, terminal) n'était utilisable de façon fiable.
+  `BgRemover.command` démarre maintenant via `python3 -m bgremover`
+  et vérifie au préalable `import bgremover` (sinon affiche une
+  indication claire vers `create_BgRemover_app.sh`). INSTALL_MAC +
+  tous les documents i18n reflètent le modèle de paquet actuel (y
+  compris l'installation non éditable du paquet dans la venv de
+  l'app et la résolution des ressources via `importlib.resources`).
+
 ### Modifié
 
 - **Monolithe → paquet (tour 5).** Le fichier unique `BgRemover.py`

@@ -163,7 +163,8 @@ mypy
 
 ## Arquitectura (resumen breve)
 
-BgRemover es una aplicación de un solo archivo (`BgRemover.py`):
+Desde la ronda 5, BgRemover es un paquete instalable (`bgremover/`,
+iniciado vía `python -m bgremover` o el script de consola `bgremover`):
 
 - **`ImageCanvas`** (QGraphicsView) mantiene el estado de la imagen, la
   máscara de selección, las pilas de Deshacer/Rehacer y las herramientas

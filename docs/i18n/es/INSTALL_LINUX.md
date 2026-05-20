@@ -97,7 +97,7 @@ reemplaza `/PFAD/ZU/picture_helper` por la ruta absoluta del proyecto:
 Type=Application
 Name=BgRemover
 Comment=Hintergrund entfernen und Bilder bearbeiten
-Exec=python3 /PFAD/ZU/picture_helper/BgRemover.py
+Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;

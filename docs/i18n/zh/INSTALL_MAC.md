@@ -108,12 +108,15 @@ git checkout <branch> && git pull      # 更新某个特定分支
   依赖项安装到位于
   `~/Library/Application Support/BgRemover/venv` 的 venv，并把这个 Python
   打包进应用程序中。
-- **打开 `BgRemover.py` 时出现 `[Errno 1] Operation not permitted`**
+- **访问项目时出现 `[Errno 1] Operation not permitted`**
   → macOS 隐私保护（TCC）。如果项目位于 `~/Documents`、
   `~/Desktop`、`~/Downloads` 或 iCloud Drive，那么从
-  Finder 启动的 `.app` 就无法在那里读取。自 v3 起此问题已解决：
-  `BgRemover.py` 会被复制到应用程序包中，venv 位于
-  Application Support——只需重新执行一次
+  Finder 启动的 `.app` 就无法在那里读取。自第 5 轮（包切分）
+  起此问题已解决：`create_BgRemover_app.sh` 以**非 editable**
+  方式将 `bgremover` 包安装到位于
+  `~/Library/Application Support/BgRemover/venv` 的 venv 中（包含
+  代码自身的副本以及作为 package-data 的 `icons/`），因此应用
+  独立于项目目录。修复：重新执行一次
   `bash create_BgRemover_app.sh`。（或者将项目移动到例如
   `~/picture_helper`，然后在那里重新执行脚本。）
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
@@ -155,6 +158,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`。
 - **`.app` 看起来与 `BgRemover.command` 不同** → 较旧的应用程序包
   没有工具栏图标（应用程序使用了绘制的替代图标）。当前已
-  修复——脚本会把 `icons/` 复制到应用程序包中；重新
-  执行一次 `bash create_BgRemover_app.sh` 构建。
+  修复——自第 5 轮起图标是 `bgremover/icons/` 中的 `package-data`，
+  因此在 `pip install` 时自动进入 venv，并通过
+  `importlib.resources` 加载；重新执行一次
+  `bash create_BgRemover_app.sh` 构建。
 - **出错时的诊断** → 查看日志文件 `~/.bgremover.log`。
