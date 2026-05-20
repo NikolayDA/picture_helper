@@ -18,3 +18,6 @@ license-raw-all-installed.md
 # Persönliche/auto-generierte Claude-Einstellungen (Projekt-Hook in
 # .claude/settings.json wird committet, lokale Overrides nicht)
 .claude/settings.local.json
+
+# JetBrains IDE (PyCharm/IntelliJ) – maschinenspezifische Konfiguration
+.idea/
