@@ -1,6 +1,8 @@
 #!/bin/zsh
 # BgRemover – Doppelklick-Starter
 # Dieses Script öffnet BgRemover direkt aus dem Finder (Terminalfenster).
+# Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
+# (`bgremover/`); das Script startet das Programm via `python3 -m bgremover`.
 
 # user-site (~/Library/Python/*) ausblenden: dort liegende Pakete sind
 # oft arch-fremd (Apple Silicon: arm64 vs x86_64) und brachten BgRemover
@@ -8,17 +10,11 @@
 export PYTHONNOUSERSITE=1
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BGREMOVER="$SCRIPT_DIR/BgRemover.py"
-
-if [ ! -f "$BGREMOVER" ]; then
-    echo "❌ BgRemover.py nicht gefunden in: $SCRIPT_DIR"
-    echo "   Bitte BgRemover.py und BgRemover.command im selben Ordner lassen."
-    read "?Enter zum Schließen drücken..."
-    exit 1
-fi
 
 # Bevorzugt die vom App-Setup angelegte venv (saubere, arch-passende
-# Pakete) – erst danach System-/Homebrew-Python.
+# Pakete inkl. installiertem bgremover-Paket) – erst danach Projekt-venv,
+# dann System-/Homebrew-Python (dort ist `bgremover` typisch NICHT
+# installiert; wir prüfen das gleich explizit).
 PYTHON=""
 for py in \
     "$HOME/Library/Application Support/BgRemover/venv/bin/python3" \
@@ -30,12 +26,31 @@ for py in \
     python3; do
     CAND="$(command -v "$py" 2>/dev/null || echo "$py")"
     [ -x "$CAND" ] || continue
-    PYTHON="$CAND"
-    break
+    # Erstes Python nehmen, in dem `import bgremover` funktioniert
+    # (sonst startet `python3 -m bgremover` mit „No module named bgremover").
+    if "$CAND" -c 'import bgremover' >/dev/null 2>&1; then
+        PYTHON="$CAND"
+        break
+    fi
+    # Fallback merken (erstes existierendes Python überhaupt) – wird
+    # unten nur für die Fehlermeldung benutzt.
+    [ -z "$PYTHON" ] && PYTHON="$CAND"
 done
 
 if [ -z "$PYTHON" ]; then
     echo "❌ Python 3 nicht gefunden."
+    read "?Enter zum Schließen drücken..."
+    exit 1
+fi
+
+# Sanity-Check: in dem ausgewählten Python muss das bgremover-Paket
+# wirklich importierbar sein – sonst macht ein -m-Start keinen Sinn.
+if ! "$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
+    echo "❌ Das bgremover-Paket ist im ausgewählten Python NICHT installiert:"
+    echo "   $PYTHON"
+    echo ""
+    echo "   Fix: einmal  bash create_BgRemover_app.sh  ausführen –"
+    echo "   das legt die venv an und installiert das Paket."
     read "?Enter zum Schließen drücken..."
     exit 1
 fi
@@ -50,15 +65,15 @@ fi
 
 echo "🎨 BgRemover startet..."
 echo "   Python: $PYTHON  (arch $NATIVE_ARCH)"
-echo "   Script: $BGREMOVER"
+echo "   Paket:  bgremover  (via python -m)"
 echo ""
 
-if ! "${RUN[@]}" "$BGREMOVER"; then
+if ! "${RUN[@]}" -m bgremover; then
     echo ""
     echo "❌ BgRemover ist mit einem Fehler beendet worden (siehe oben)."
     echo "   Häufige Ursache: PyQt6/numpy fehlen oder arch-Mismatch."
     echo "   Fix: einmal  bash create_BgRemover_app.sh  ausführen und die"
-    echo "        venv anlegen lassen (ggf. vorher: brew install python)."
+    echo "        venv neu anlegen lassen (ggf. vorher: brew install python)."
     read "?Enter zum Schließen drücken..."
     exit 1
 fi

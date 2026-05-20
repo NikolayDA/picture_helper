@@ -44,7 +44,7 @@ git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 - `.[ai]` installiert `rembg[cpu]` inkl. `onnxruntime` (KI-Hintergrundentfernung).
@@ -58,7 +58,7 @@ Nach der Installation gibt es drei Wege, das Programm zu starten:
 |----------|-----------------|----------|
 | **A – macOS-App (empfohlen)** | `bash create_BgRemover_app.sh` | Legt eine isolierte venv an, installiert alle Abhängigkeiten (inkl. `onnxruntime`), kopiert die Icons und erzeugt ein eigenständiges `BgRemover.app` unter `~/Applications`. Quarantäne wird automatisch entfernt; das Projekt darf in `~/Documents` bleiben. |
 | **B – Doppelklick** | `BgRemover.command` im Finder doppelklicken | Startet im Terminalfenster; nutzt automatisch die vom Skript angelegte App-venv (Datei ist bereits ausführbar). |
-| **C – Terminal** | in einer venv: `python3 BgRemover.py` | Direkter Start (venv-Setup siehe Schnellstart oben). |
+| **C – Terminal** | in einer venv: `python3 -m bgremover` | Direkter Start (venv-Setup siehe Schnellstart oben). |
 
 ## Installation aus einem Branch (offene PRs testen)
 
@@ -73,7 +73,7 @@ git branch -r                       # verfügbare Branches anzeigen
 git checkout <branch>
 # in venv (siehe Schnellstart); nur nötig, wenn sich Abhängigkeiten geändert haben:
 python3 -m pip install -e ".[ai]"
-python3 BgRemover.py
+python3 -m bgremover
 ```
 
 Alternativ auch auf einem Branch einfach `bash create_BgRemover_app.sh`
@@ -108,12 +108,15 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   Abhängigkeiten dann in eine venv unter
   `~/Library/Application Support/BgRemover/venv` und backt dieses Python
   in die App.
-- **`[Errno 1] Operation not permitted` beim Öffnen von `BgRemover.py`**
+- **`[Errno 1] Operation not permitted` beim Zugriff auf das Projekt**
   → macOS-Datenschutz (TCC). Liegt das Projekt in `~/Documents`,
   `~/Desktop`, `~/Downloads` oder iCloud Drive, darf eine aus dem
-  Finder gestartete `.app` dort nicht lesen. Seit v3 ist das gelöst:
-  `BgRemover.py` wird ins App-Bundle kopiert und die venv liegt in
-  Application Support — `bash create_BgRemover_app.sh` einmal neu
+  Finder gestartete `.app` dort nicht lesen. Seit Runde 5 (Paket-
+  Schnitt) ist das gelöst: `create_BgRemover_app.sh` installiert das
+  `bgremover`-Paket **nicht-editierbar** in die venv unter
+  `~/Library/Application Support/BgRemover/venv` (eigene Kopie des
+  Codes inkl. `icons/`-Paket-Daten), die App ist damit unabhängig vom
+  Projektordner. Lösung: einmal `bash create_BgRemover_app.sh` neu
   ausführen. (Alternativ das Projekt nach z. B. `~/picture_helper`
   verschieben und das Skript dort erneut ausführen.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
@@ -155,6 +158,8 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **`.app` sieht anders aus als `BgRemover.command`** → Älteres Bundle
   ohne Toolbar-Icons (App nutzte gezeichnete Ersatz-Icons). Aktuell
-  behoben — das Skript kopiert `icons/` ins Bundle; einmal
+  behoben — seit Runde 5 sind die Icons `package-data` in `bgremover/
+  icons/`, werden also bei `pip install` automatisch in die venv
+  übernommen und über `importlib.resources` geladen; einmal
   `bash create_BgRemover_app.sh` neu bauen.
 - **Diagnose bei Fehlern** → Logdatei `~/.bgremover.log` ansehen.
