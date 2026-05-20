@@ -108,14 +108,18 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   залежності у venv під
   `~/Library/Application Support/BgRemover/venv` і запече цей Python
   у застосунок.
-- **`[Errno 1] Operation not permitted` під час відкриття `BgRemover.py`**
+- **`[Errno 1] Operation not permitted` під час доступу до проєкту**
   → Захист даних macOS (TCC). Якщо проєкт лежить у `~/Documents`,
   `~/Desktop`, `~/Downloads` або iCloud Drive, запущений із
-  Finder `.app` не може там читати. Починаючи з v3 це вирішено:
-  `BgRemover.py` копіюється в App-бандл, а venv лежить у
-  Application Support — виконайте `bash create_BgRemover_app.sh` один раз
-  знову. (Альтернативно перемістіть проєкт, наприклад, у `~/picture_helper`
-  і виконайте скрипт там знову.)
+  Finder `.app` не може там читати. Починаючи з раунду 5 (зріз
+  на пакет) це вирішено: `create_BgRemover_app.sh` встановлює пакет
+  `bgremover` **не-editable** у venv під
+  `~/Library/Application Support/BgRemover/venv` (власна копія коду
+  разом із `icons/` як package-data), застосунок таким чином не
+  залежить від каталогу проєкту. Fix: виконайте
+  `bash create_BgRemover_app.sh` один раз знову. (Альтернативно
+  перемістіть проєкт, наприклад, у `~/picture_helper` і виконайте
+  скрипт там знову.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon: у `~/Library/Python/...` лежить пакет чужої архітектури,
   який «протікає» в Python з невідповідною архітектурою. Починаючи з v3.1 це
@@ -155,6 +159,8 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **`.app` виглядає інакше, ніж `BgRemover.command`** → Старіший бандл
   без іконок панелі інструментів (застосунок використовував намальовані замінні іконки). Наразі
-  виправлено — скрипт копіює `icons/` у бандл; один раз
-  зберіть наново `bash create_BgRemover_app.sh`.
+  виправлено — починаючи з раунду 5 іконки є `package-data` у
+  `bgremover/icons/`, тож автоматично потрапляють у venv при
+  `pip install` і завантажуються через `importlib.resources`; один
+  раз зберіть наново `bash create_BgRemover_app.sh`.
 - **Діагностика помилок** → Перегляньте файл журналу `~/.bgremover.log`.

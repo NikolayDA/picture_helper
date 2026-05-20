@@ -158,7 +158,8 @@ mypy
 
 ## 架构（简要概览）
 
-BgRemover 是一个单文件应用程序（`BgRemover.py`）：
+自第 5 轮起，BgRemover 是一个可安装的包（`bgremover/`，
+通过 `python -m bgremover` 或 console-script `bgremover` 启动）：
 
 - **`ImageCanvas`**（QGraphicsView）保存图像状态、选区蒙版、
   撤销/重做栈以及工具（魔棒、画笔、套索、裁剪）。

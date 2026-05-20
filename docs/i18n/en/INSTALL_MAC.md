@@ -108,12 +108,15 @@ again after `git pull` — unless the dependencies in
   dependencies into a venv under
   `~/Library/Application Support/BgRemover/venv` and bakes this Python
   into the app.
-- **`[Errno 1] Operation not permitted` when opening `BgRemover.py`**
+- **`[Errno 1] Operation not permitted` when accessing the project**
   → macOS privacy (TCC). If the project is in `~/Documents`,
   `~/Desktop`, `~/Downloads`, or iCloud Drive, an `.app` started from
-  the Finder is not allowed to read there. Since v3 this is resolved:
-  `BgRemover.py` is copied into the app bundle and the venv is located in
-  Application Support — run `bash create_BgRemover_app.sh` once more.
+  the Finder is not allowed to read there. Since round 5 (package
+  cut) this is resolved: `create_BgRemover_app.sh` installs the
+  `bgremover` package **non-editably** into the venv under
+  `~/Library/Application Support/BgRemover/venv` (own copy of the
+  code incl. `icons/` package-data), so the app is independent of the
+  project folder. Fix: run `bash create_BgRemover_app.sh` once more.
   (Alternatively, move the project to e.g. `~/picture_helper`
   and run the script there again.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
@@ -155,6 +158,8 @@ again after `git pull` — unless the dependencies in
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **`.app` looks different from `BgRemover.command`** → Older bundle
   without toolbar icons (the app used drawn fallback icons). Currently
-  fixed — the script copies `icons/` into the bundle; run
+  fixed — since round 5 the icons are `package-data` in `bgremover/
+  icons/`, so they are picked up automatically by `pip install` into
+  the venv and loaded via `importlib.resources`; run
   `bash create_BgRemover_app.sh` once to rebuild.
 - **Diagnosing errors** → Check the log file `~/.bgremover.log`.
