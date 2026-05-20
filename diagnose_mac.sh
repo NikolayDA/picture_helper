@@ -51,10 +51,12 @@ for py in "${CANDIDATES[@]}"; do
     echo "→ $py"
     echo "  Python $ver   arch: $arch_ok"
     for mod in PyQt6.QtWidgets PIL numpy bgremover; do
-        ERR="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" 2>&1)"
-        if [ -z "$ERR" ]; then
+        # Erst Exit-Code (robust gegen Warnings auf stderr); Output
+        # nur einholen, wenn der Import wirklich scheitert.
+        if /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" >/dev/null 2>&1; then
             echo "  ✓ $mod"
         else
+            ERR="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" 2>&1)"
             LAST="$(printf '%s' "$ERR" | tail -n 1)"
             echo "  ✗ $mod   → $LAST"
         fi
