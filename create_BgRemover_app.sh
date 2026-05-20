@@ -259,13 +259,13 @@ fail() {
 if [ ! -x "\$PYTHON" ]; then
     fail "Python wurde nicht gefunden:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
 fi
-# Genauen ImportError sichtbar machen, falls `import bgremover` schlaegt
-# fehl - sonst fuehrt z.B. ein numpy/PyQt6-Mismatch (Python-Version,
-# arch, beschaedigtes Wheel) zur missverstaendlichen "bgremover-Paket
-# fehlt"-Meldung, obwohl das Paket installiert ist, aber eine Abhaengig-
-# keit nicht importierbar.
-IMPORT_ERR="\$("\$PYTHON" -c 'import bgremover' 2>&1)"
-if [ -n "\$IMPORT_ERR" ]; then
+# Erst Exit-Code pruefen (robust gegen Warnings auf stderr); nur wenn
+# der Import wirklich scheitert, den echten Fehlertext fuer den Dialog
+# einholen. Sonst wuerde z.B. ein numpy/onnxruntime-Deprecation-Warning
+# beim Start zum falschen "fehlt"-Dialog fuehren, obwohl das Paket
+# einwandfrei importierbar ist.
+if ! "\$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
+    IMPORT_ERR="\$("\$PYTHON" -c 'import bgremover' 2>&1)"
     if printf '%s' "\$IMPORT_ERR" | grep -qE "No module named '?bgremover'?"; then
         fail "Das bgremover-Paket fehlt in der venv:"\$'\\n'"\$PYTHON"\$'\\n\\n'"Bitte create_BgRemover_app.sh erneut ausführen."
     fi
