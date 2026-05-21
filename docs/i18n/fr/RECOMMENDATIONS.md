@@ -241,10 +241,10 @@ un passage à PySide6).
 | 3 | ~~Duplication d'état dans `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Moyenne | Faible | ✅ #52 |
 | 4 | ~~Feuilles de style en ligne éparpillées, pas de module de thème~~ | 🟡 Moyenne | Moyen | ✅ #53 |
 | 5 | ~~Pas de hook SessionStart pour Claude Code on the web~~ | 🟡 Moyenne | Faible | ✅ #51 |
-| 6 | Gardes « aucune image chargée » répétées (~8×) | 🟢 Faible | Faible | Ouvert |
-| 7 | Code répétitif des workers (try/except/log/emit) → classe de base | 🟢 Faible | Faible | Ouvert |
+| 6 | ~~Gardes « aucune image chargée » répétées (~8×)~~ | 🟢 Faible | Faible | ✅ 2.1.0 |
+| 7 | ~~Code répétitif des workers (try/except/log/emit) → classe de base~~ | 🟢 Faible | Faible | ✅ 2.1.0 |
 | 8 | ~~Maintenir `CHANGELOG [Unreleased]`~~ | 🟢 Faible | Faible | ✅ continu |
-| 9 | `mypy` très permissif (7 codes désactivés) | 🟢 Faible | Moyen | Ouvert |
+| 9 | ~~`mypy` très permissif (7 codes désactivés)~~ | 🟢 Faible | Moyen | ✅ tour 4 #4 |
 
 **#1** — `BgRemover.py` reste un fichier unique (~3000 lignes :
 utilitaires, worker, canevas, IU, dialogues, journalisation, main). Le
@@ -278,21 +278,22 @@ bibliothèques système Qt + le projet et définit
 `QT_QPA_PLATFORM=offscreen` de manière persistante ; enregistré dans
 `.claude/settings.json`.
 
-**#6** — **Ouvert.** Le retour anticipé « aucune image chargée » se
-répète dans ~8 méthodes ; un petit utilitaire de garde le
-regrouperait.
+**#6** — **✅ Fait (2.1.0).** Le retour anticipé « aucune image
+chargée » des cinq méthodes `ImageCanvas` concernées est regroupé dans
+le décorateur `@_requires_image` (`bgremover/canvas.py`).
 
-**#7** — **Ouvert.** Les trois flux de workers partagent du code
-répétitif `try/except/log/emit` ; une classe de base optionnelle
-réduirait la répétition.
+**#7** — **✅ Fait (2.1.0).** `AIWorker` et `ImageLoadWorker`
+partagent la classe de base `_Worker`, qui encapsule le flux
+`try/except → logger.exception → error.emit` (`bgremover/workers.py`) ;
+`RembgWarmupWorker` reste délibérément autonome.
 
 **#8** — Respecté : les PR du tour 3 #48/#52/#53 maintiennent chacune
 la section `CHANGELOG [Unreleased]` ; cette entrée documente en outre
 le tour 3 lui-même. Une pratique continue plutôt qu'une PR unique.
 
-**#9** — **Ouvert.** `mypy` est pragmatiquement assoupli dans
-`pyproject.toml` (7 `disable_error_code`) ; le durcir progressivement
-améliore la sûreté de typage (effort/risque : moyen).
+**#9** — **✅ Fait (tour 4 #4).** `disable_error_code` est entièrement
+retiré de `pyproject.toml` – les 8 classes d'erreurs auparavant
+désactivées sont toutes actives (détails : voir tour 4 #4 ci-dessous).
 
 ---
 

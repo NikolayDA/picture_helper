@@ -240,10 +240,10 @@ a switch to PySide6).
 | 3 | ~~State duplication in `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Medium | Low | ✅ #52 |
 | 4 | ~~Scattered inline stylesheets, no theme module~~ | 🟡 Medium | Medium | ✅ #53 |
 | 5 | ~~No SessionStart hook for Claude Code on the web~~ | 🟡 Medium | Low | ✅ #51 |
-| 6 | Repeated "no image loaded" guards (~8×) | 🟢 Low | Low | Open |
-| 7 | Worker boilerplate (try/except/log/emit) → base class | 🟢 Low | Low | Open |
+| 6 | ~~Repeated "no image loaded" guards (~8×)~~ | 🟢 Low | Low | ✅ 2.1.0 |
+| 7 | ~~Worker boilerplate (try/except/log/emit) → base class~~ | 🟢 Low | Low | ✅ 2.1.0 |
 | 8 | ~~Maintain `CHANGELOG [Unreleased]`~~ | 🟢 Low | Low | ✅ ongoing |
-| 9 | `mypy` very permissive (7 disabled codes) | 🟢 Low | Medium | Open |
+| 9 | ~~`mypy` very permissive (7 disabled codes)~~ | 🟢 Low | Medium | ✅ round 4 #4 |
 
 **#1** — `BgRemover.py` is still a single file (~3000 lines: helpers,
 worker, canvas, UI, dialogs, logging, main). The biggest lever for
@@ -273,19 +273,23 @@ palette that the reused templates reference (byte-identical verified,
 system libraries + the project and sets `QT_QPA_PLATFORM=offscreen`
 persistently; registered in `.claude/settings.json`.
 
-**#6** — **Open.** The "no image loaded" early-return repeats across ~8
-methods; a small guard helper would consolidate it.
+**#6** — **✅ Done (2.1.0).** The "no image loaded" early-return of the
+five affected `ImageCanvas` methods is consolidated in the
+`@_requires_image` decorator (`bgremover/canvas.py`).
 
-**#7** — **Open.** The three worker flows share `try/except/log/emit`
-boilerplate; an optional base class would reduce the repetition.
+**#7** — **✅ Done (2.1.0).** `AIWorker` and `ImageLoadWorker` share the
+`_Worker` base class, which encapsulates the
+`try/except → logger.exception → error.emit` flow
+(`bgremover/workers.py`); `RembgWarmupWorker` deliberately stays
+standalone.
 
 **#8** — Honored: the round-3 PRs #48/#52/#53 each maintain the
 `CHANGELOG [Unreleased]` section; this entry additionally documents
 round 3 itself. An ongoing practice rather than a single PR.
 
-**#9** — **Open.** `mypy` is pragmatically relaxed in `pyproject.toml`
-(7 `disable_error_code`); tightening it step by step improves type
-safety (effort/risk: medium).
+**#9** — **✅ Done (round 4 #4).** `disable_error_code` is fully removed
+from `pyproject.toml` – all formerly 8 disabled error classes are
+active (details see round 4 #4 below).
 
 ---
 

@@ -238,10 +238,10 @@ fit_to_view()` 和 `CropOverlayItem.top_left/size`。`MainWindow` 和
 | 3 | ~~`undo/redo/undo_to/restore_original/_apply_pil` 中的状态重复~~ | 🟡 中 | 低 | ✅ #52 |
 | 4 | ~~分散的内联样式表，无主题模块~~ | 🟡 中 | 中 | ✅ #53 |
 | 5 | ~~缺少用于 Claude Code on the web 的 SessionStart 钩子~~ | 🟡 中 | 低 | ✅ #51 |
-| 6 | 重复的“未加载图像”守卫（约 8 处） | 🟢 低 | 低 | 未完成 |
-| 7 | Worker 样板代码（try/except/log/emit）→ 基类 | 🟢 低 | 低 | 未完成 |
+| 6 | ~~重复的“未加载图像”守卫（约 8 处）~~ | 🟢 低 | 低 | ✅ 2.1.0 |
+| 7 | ~~Worker 样板代码（try/except/log/emit）→ 基类~~ | 🟢 低 | 低 | ✅ 2.1.0 |
 | 8 | ~~维护 `CHANGELOG [Unreleased]`~~ | 🟢 低 | 低 | ✅ 持续 |
-| 9 | `mypy` 过于宽松（7 个禁用代码） | 🟢 低 | 中 | 未完成 |
+| 9 | ~~`mypy` 过于宽松（7 个禁用代码）~~ | 🟢 低 | 中 | ✅ 第 4 轮 #4 |
 
 **#1** — `BgRemover.py` 仍是单个文件（约 3000 行：辅助函数、worker、
 画布、界面、对话框、日志、main）。它是功能增长的最大杠杆，但风险
@@ -268,19 +268,22 @@ fit_to_view()` 和 `CropOverlayItem.top_left/size`。`MainWindow` 和
 + 项目，并持久设置 `QT_QPA_PLATFORM=offscreen`；在
 `.claude/settings.json` 中注册。
 
-**#6** — **未完成。**“未加载图像”的提前返回在约 8 个方法中重复；
-一个小的守卫辅助函数可将其归并。
+**#6** — **✅ 已完成（2.1.0）。** 五个相关 `ImageCanvas` 方法的
+“未加载图像”提前返回已归并到装饰器 `@_requires_image` 中
+（`bgremover/canvas.py`）。
 
-**#7** — **未完成。** 三个 worker 流程共用 `try/except/log/emit`
-样板代码；一个可选的基类可减少重复。
+**#7** — **✅ 已完成（2.1.0）。** `AIWorker` 和 `ImageLoadWorker`
+共用基类 `_Worker`，它封装了
+`try/except → logger.exception → error.emit` 流程
+（`bgremover/workers.py`）；`RembgWarmupWorker` 有意保持独立。
 
 **#8** — 已遵守：第 3 轮的 PR #48/#52/#53 各自维护
 `CHANGELOG [Unreleased]` 章节；本条目还额外记录了第 3 轮本身。这是
 持续的实践，而非单个 PR。
 
-**#9** — **未完成。** `mypy` 在 `pyproject.toml` 中被务实地放宽
-（7 个 `disable_error_code`）；逐步收紧可提升类型安全（工作量/
-风险：中）。
+**#9** — **✅ 已完成（第 4 轮 #4）。** `disable_error_code` 已从
+`pyproject.toml` 中完全移除——此前 8 个被禁用的错误类别现已全部
+启用（详情见下方第 4 轮 #4）。
 
 ---
 
