@@ -91,7 +91,13 @@ class ImageCanvas(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setBackgroundBrush(make_checker_brush())
         self.setAcceptDrops(True)
-        self.viewport().setAcceptDrops(True)
+        # viewport() liefert laut Stub Optional, ist hier nach Setup aber
+        # garantiert vorhanden – einmalig narrowen und cachen, damit
+        # spaetere `_vp.update()`-Aufrufe ohne wiederholten Guard auskommen.
+        vp = self.viewport()
+        assert vp is not None
+        self._vp = vp
+        self._vp.setAcceptDrops(True)
 
         self._img_item     = QGraphicsPixmapItem()
         self._overlay_item = QGraphicsPixmapItem()
@@ -182,7 +188,7 @@ class ImageCanvas(QGraphicsView):
         # EXIF-Orientierung anwenden: Smartphone-Fotos sind oft im Sensor
         # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
         # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
-        img = Image.open(path)
+        img: Image.Image = Image.open(path)
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
             self.statusMsg.emit(
@@ -224,7 +230,7 @@ class ImageCanvas(QGraphicsView):
             self._img_item.setPixmap(px)
             self._scene.setSceneRect(QRectF(px.rect()))
             self._img_item.update()
-            self.viewport().update()
+            self._vp.update()
 
     def _refresh_overlay(self) -> None:
         if self._mask is not None and self._pil:
@@ -299,6 +305,7 @@ class ImageCanvas(QGraphicsView):
             if self._pil is not None:
                 self._redo.append((self._pil.copy(), desc))
             self._pil = img
+        assert img is not None  # actual > 0 (Guard oben) -> Schleife lief ≥ 1×
         self._set_image_state(img)
         self._emit_history()
         self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
@@ -343,6 +350,7 @@ class ImageCanvas(QGraphicsView):
             (self._mask * 255).astype(np.uint8), mode="L")
         # PIL-Filter brauchen ungerade Kernelgrößen
         size = radius * 2 + 1
+        filt: ImageFilter.RankFilter
         if kind == "expand":
             filt = ImageFilter.MaxFilter(size)
             label = "erweitert"
@@ -408,10 +416,11 @@ class ImageCanvas(QGraphicsView):
         try:
             if not self._check_selection():
                 return
+            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
             arr = self._arr.copy()
             arr[self._mask, 3] = 0
             self._apply_pil(numpy_to_pil(arr), desc="Hintergrund entfernt")
-            self.viewport().update()
+            self._vp.update()
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
         except Exception as e:
             logger.exception("Fehler beim Entfernen")
@@ -421,10 +430,11 @@ class ImageCanvas(QGraphicsView):
         try:
             if not self._check_selection():
                 return
+            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
             arr = self._arr.copy()
             arr[self._mask] = [color.red(), color.green(), color.blue(), 255]
             self._apply_pil(numpy_to_pil(arr), desc=f"Farbe ersetzt ({color.name()})")
-            self.viewport().update()
+            self._vp.update()
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
         except Exception as e:
             logger.exception("Fehler beim Ersetzen")
@@ -485,7 +495,7 @@ class ImageCanvas(QGraphicsView):
         return int(sp.x()), int(sp.y())
 
     def mousePressEvent(self, event) -> None:
-        if self._pil is None:
+        if self._pil is None or self._arr is None:
             return super().mousePressEvent(event)
 
         btn  = event.button()
@@ -591,10 +601,11 @@ class ImageCanvas(QGraphicsView):
         if self._panning:
             delta = event.position() - self._pan_start
             self._pan_start = event.position()
-            self.horizontalScrollBar().setValue(
-                self.horizontalScrollBar().value() - int(delta.x()))
-            self.verticalScrollBar().setValue(
-                self.verticalScrollBar().value() - int(delta.y()))
+            hbar = self.horizontalScrollBar()
+            vbar = self.verticalScrollBar()
+            assert hbar is not None and vbar is not None
+            hbar.setValue(hbar.value() - int(delta.x()))
+            vbar.setValue(vbar.value() - int(delta.y()))
             return
         if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
             self._paint_brush(int(sp.x()), int(sp.y()))
@@ -727,18 +738,26 @@ class ImageCanvas(QGraphicsView):
 
     # ── Drag & Drop ──────────────────────────────────────────
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is not None and mime.hasUrls():
             event.acceptProposedAction()
 
     def dragMoveEvent(self, event) -> None:  # ← PFLICHT: ohne dies wird Drop abgelehnt
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is None:
+            return
         exts = (".png", ".jpg", ".jpeg", ".webp",
                 ".bmp", ".tiff", ".tif", ".gif")
-        valid = [url.toLocalFile() for url in event.mimeData().urls()
+        valid = [url.toLocalFile() for url in mime.urls()
                  if Path(url.toLocalFile()).suffix.lower() in exts]
         if not valid:
             self.statusMsg.emit("Format nicht unterstützt")
@@ -756,6 +775,7 @@ class ImageCanvas(QGraphicsView):
     @_requires_image
     def apply_round_corners(self, radius: int) -> None:
         """Rundet die Ecken des Bildes mit dem gegebenen Radius ab."""
+        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
         if radius <= 0:
             self.statusMsg.emit("Radius muss > 0 sein")
             return
@@ -785,6 +805,7 @@ class ImageCanvas(QGraphicsView):
         Bei 90° / 270° werden Breite und Höhe getauscht.
         Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
         """
+        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
         img = self._pil.convert("RGBA")
 
         if degrees % 90 == 0:
@@ -807,6 +828,7 @@ class ImageCanvas(QGraphicsView):
     @_requires_image
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
+        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
         img = self._pil.convert("RGBA")
         if horizontal:
             result = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
@@ -822,12 +844,14 @@ class ImageCanvas(QGraphicsView):
     @_requires_image
     def start_crop_circle(self) -> None:
         """Startet den interaktiven Kreis-Zuschnitt."""
+        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
         size = min(self._pil.width, self._pil.height)
         self._start_crop_overlay(size, size, is_circle=True)
 
     @_requires_image
     def start_crop_ratio(self, ratio_w: int, ratio_h: int) -> None:
         """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
+        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
         iw, ih = self._pil.size
         if iw / ih > ratio_w / ratio_h:
             cw, ch = int(ih * ratio_w / ratio_h), ih
@@ -836,6 +860,9 @@ class ImageCanvas(QGraphicsView):
         self._start_crop_overlay(cw, ch, is_circle=False)
 
     def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool) -> None:
+        # Aufrufer (start_crop_circle / start_crop_ratio) sind @_requires_image-
+        # dekoriert; _pil ist hier garantiert nicht None.
+        assert self._pil is not None
         self._cancel_crop_overlay()
         self._crop_overlay = CropOverlayItem(
             self._pil.width, self._pil.height, cw, ch, is_circle)

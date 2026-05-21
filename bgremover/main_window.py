@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QObject, QSettings, QSize, Qt, QThread
+from PyQt6.QtCore import QSettings, QSize, Qt, QThread
 from PyQt6.QtGui import QAction, QColor, QKeySequence
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -62,6 +63,7 @@ from bgremover.workers import (
     AIWorker,
     ImageLoadWorker,
     RembgWarmupWorker,
+    _Worker,
 )
 
 
@@ -103,7 +105,7 @@ class MainWindow(QMainWindow):
         # Persistente Einstellungen (Recent-Files etc.).
         self._settings = QSettings("BgRemover", "BgRemover")
         # Submenü-Referenz wird in _build_menu gesetzt
-        self._recent_menu = None
+        self._recent_menu: QMenu | None = None
         # Asynchrones Bildladen
         self._load_thread: QThread | None = None
         # rembg-Warmup (Hintergrund-Modellladung)
@@ -240,6 +242,13 @@ class MainWindow(QMainWindow):
     # ── UI aufbauen ──────────────────────────────────────────
 
     def _build_ui(self) -> None:
+        # Status-Bar zuerst anlegen und als typisiertes Attribut cachen,
+        # damit `self._sb.showMessage(...)` ohne None-Narrowing auskommt
+        # (QMainWindow.statusBar() liefert `QStatusBar | None`).
+        self._sb = QStatusBar()
+        self._sb.setStyleSheet("QStatusBar { background:#1a1a1a; color:#777; font-size:11px; border-top:1px solid #333; }")
+        self.setStatusBar(self._sb)
+
         root_w = QWidget()
         self.setCentralWidget(root_w)
         root = QHBoxLayout(root_w)
@@ -259,7 +268,7 @@ class MainWindow(QMainWindow):
         # unten auf ein bereits zugewiesenes self._canvas verweisen
         # (sonst Forward-Reference im Lambda → mypy has-type).
         self._canvas = ImageCanvas()
-        self._canvas.statusMsg.connect(self.statusBar().showMessage)
+        self._canvas.statusMsg.connect(self._sb.showMessage)
         self._canvas.historyChanged.connect(self._on_history_changed)
         self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
         self._canvas.imageLoaded.connect(self._on_image_loaded)
@@ -301,10 +310,7 @@ class MainWindow(QMainWindow):
         root.addWidget(canvas_container, 1)
         root.addWidget(self._build_right_panel())
 
-        sb = QStatusBar()
-        sb.setStyleSheet("QStatusBar { background:#1a1a1a; color:#777; font-size:11px; border-top:1px solid #333; }")
-        self.setStatusBar(sb)
-        sb.showMessage("Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche")
+        self._sb.showMessage("Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche")
 
     def _build_toolbar(self) -> QFrame:
         frame = QFrame()
@@ -473,20 +479,20 @@ class MainWindow(QMainWindow):
         self._sld_tol = self._make_slider(0, 255, 30,
             "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
             "Niedrig = nur sehr ähnliche Farben · Hoch = viele Farbtöne")
-        self._sld_tol.valueChanged.connect(lambda v: (
-            self._canvas.set_tolerance(v),
+        def _on_tol(v: int) -> None:
+            self._canvas.set_tolerance(v)
             self._lbl_tol.setText(f"Toleranz (Zauberstab):  {v}")
-        ))
+        self._sld_tol.valueChanged.connect(_on_tol)
         gs.addWidget(self._lbl_tol)
         gs.addWidget(self._sld_tol)
         gs.addWidget(self._make_hdivider())
         self._lbl_brush = self._make_label("Pinselgröße:  30 px", "#aaa")
         self._sld_brush = self._make_slider(4, 200, 30,
             "Größe des Pinsel-/Radiergummi-Werkzeugs in Pixeln")
-        self._sld_brush.valueChanged.connect(lambda v: (
-            self._canvas.set_brush_size(v),
+        def _on_brush(v: int) -> None:
+            self._canvas.set_brush_size(v)
             self._lbl_brush.setText(f"Pinselgröße:  {v} px")
-        ))
+        self._sld_brush.valueChanged.connect(_on_brush)
         gs.addWidget(self._lbl_brush)
         gs.addWidget(self._sld_brush)
         l1.addWidget(g_sel)
@@ -729,6 +735,10 @@ class MainWindow(QMainWindow):
 
     def _build_menu(self) -> None:
         mb = self.menuBar()
+        # menuBar()/addMenu() liefern laut PyQt-Stub `Optional`, in der
+        # Praxis aber nie None – einmalige asserts narrowen den Typ und
+        # ersparen Dutzende Punkt-zu-Punkt-Guards.
+        assert mb is not None
         mb.setStyleSheet("""
             QMenuBar { background: #1a1a1a; color: #ccc; }
             QMenuBar::item:selected { background: #333; }
@@ -737,6 +747,7 @@ class MainWindow(QMainWindow):
         """)
 
         file_m = mb.addMenu("Datei")
+        assert file_m is not None
         a_open = QAction("Öffnen…", self)
         a_open.setShortcut(QKeySequence("Ctrl+O"))
         a_open.triggered.connect(self._open_image)
@@ -760,6 +771,7 @@ class MainWindow(QMainWindow):
         file_m.addAction(a_save_as)
 
         edit_m = mb.addMenu("Bearbeiten")
+        assert edit_m is not None
         a_undo = QAction("Rückgängig", self)
         a_undo.setShortcut(QKeySequence("Ctrl+Z"))
         a_undo.triggered.connect(self._canvas.undo)
@@ -809,12 +821,14 @@ class MainWindow(QMainWindow):
         edit_m.addAction(a_orig)
 
         view_m = mb.addMenu("Ansicht")
+        assert view_m is not None
         a_fit = QAction("Fit to View", self)
         a_fit.setShortcut(QKeySequence("Ctrl+0"))
         a_fit.triggered.connect(lambda: self._canvas.fit_to_view())
         view_m.addAction(a_fit)
 
         extras_m = mb.addMenu("Extras")
+        assert extras_m is not None
         a_prefs = QAction("Einstellungen…", self)
         a_prefs.setShortcut(QKeySequence("Ctrl+,"))
         a_prefs.triggered.connect(self._open_settings)
@@ -822,7 +836,8 @@ class MainWindow(QMainWindow):
 
     # ── Thread-Hilfsmethode ───────────────────────────────────
 
-    def _launch_worker(self, worker: QObject, quit_on: tuple,
+    def _launch_worker(self, worker: _Worker | RembgWarmupWorker,
+                       quit_on: tuple,
                        on_finished=None) -> QThread:
         """Startet *worker* in einem neuen QThread.
 
@@ -834,8 +849,9 @@ class MainWindow(QMainWindow):
         # Starke Referenz: MainWindow → thread → worker. Ohne sie sammelt
         # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet
         # Slots gebundener Methoden nur schwach) – run() liefe nie, das
-        # Bild würde lautlos nicht geladen.
-        thread._worker = worker
+        # Bild würde lautlos nicht geladen. setattr statt Attribut-
+        # Zuweisung, weil QThread den Slot nicht im Type-Stub deklariert.
+        setattr(thread, "_worker", worker)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         for sig in quit_on:
@@ -871,7 +887,7 @@ class MainWindow(QMainWindow):
         die QThread-C++-Objekte) zerstört wird – sonst stürzt Python
         beim Schliessen ab, solange z. B. der KI-Warmup noch läuft.
         """
-        self.statusBar().showMessage("Beende…")
+        self._sb.showMessage("Beende…")
         self._shutdown_thread(self._ai_thread, "KI")
         self._shutdown_thread(self._load_thread, "Bildladen")
         self._shutdown_thread(self._warmup_thread, "rembg-Warmup")
@@ -892,9 +908,9 @@ class MainWindow(QMainWindow):
     def _load_image_async(self, path: str) -> None:
         """Lädt ein Bild im Hintergrund-Thread, damit die UI nicht blockt."""
         if self._load_thread is not None and self._load_thread.isRunning():
-            self.statusBar().showMessage("Lädt bereits ein Bild…")
+            self._sb.showMessage("Lädt bereits ein Bild…")
             return
-        self.statusBar().showMessage(f"⏳ Lädt: {Path(path).name}…")
+        self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
         worker = ImageLoadWorker(path)
         worker.finished.connect(self._on_image_load_done)
         worker.error.connect(self._on_image_load_error)
@@ -908,7 +924,7 @@ class MainWindow(QMainWindow):
         self._canvas.apply_loaded_image(img, path)
 
     def _on_image_load_error(self, msg: str) -> None:
-        self.statusBar().showMessage(f"Ladefehler: {msg}")
+        self._sb.showMessage(f"Ladefehler: {msg}")
 
     def _on_load_thread_finished(self) -> None:
         self._load_thread = None
@@ -918,7 +934,7 @@ class MainWindow(QMainWindow):
     def _start_rembg_warmup(self) -> None:
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
-        self.statusBar().showMessage("🤖 KI-Modell wird geladen…")
+        self._sb.showMessage("🤖 KI-Modell wird geladen…")
         worker = RembgWarmupWorker()
         self._warmup_thread = self._launch_worker(
             worker,
@@ -929,7 +945,7 @@ class MainWindow(QMainWindow):
     def _on_warmup_done(self) -> None:
         self._warmup_done = True
         self._warmup_thread = None
-        self.statusBar().showMessage("🤖 KI bereit")
+        self._sb.showMessage("🤖 KI bereit")
 
     def _save(self) -> None:
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
@@ -937,14 +953,14 @@ class MainWindow(QMainWindow):
             self._save_as()
             return
         if not self._canvas.has_image:
-            self.statusBar().showMessage("Kein Bild zum Speichern")
+            self._sb.showMessage("Kein Bild zum Speichern")
             return
         self._canvas.save_image(self._save_path)
 
     def _save_as(self) -> None:
         """Speichern unter…: öffnet immer den Datei-Dialog."""
         if not self._canvas.has_image:
-            self.statusBar().showMessage("Kein Bild zum Speichern")
+            self._sb.showMessage("Kein Bild zum Speichern")
             return
         save_dir = self._settings.value("save_dir", "")
         if self._save_path:
@@ -1005,7 +1021,7 @@ class MainWindow(QMainWindow):
 
     def _open_recent(self, path: str) -> None:
         if not Path(path).exists():
-            self.statusBar().showMessage(
+            self._sb.showMessage(
                 f"Datei nicht mehr vorhanden: {Path(path).name}")
             items = [p for p in self._recent_paths() if p != path]
             self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
@@ -1031,19 +1047,21 @@ class MainWindow(QMainWindow):
 
     def _run_ai(self) -> None:
         if not self._canvas.has_image:
-            self.statusBar().showMessage("Kein Bild geladen")
+            self._sb.showMessage("Kein Bild geladen")
             return
         if self._ai_thread is not None and self._ai_thread.isRunning():
-            self.statusBar().showMessage("KI läuft bereits…")
+            self._sb.showMessage("KI läuft bereits…")
             return
-        self.statusBar().showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
+        self._sb.showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
         self._btn_ai.setEnabled(False)
 
         # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
         # Bild lädt, wird das verspätete KI-Ergebnis in _on_ai_done verworfen.
         self._ai_input_version = self._canvas.version
 
-        worker = AIWorker(self._canvas.image.copy())
+        img = self._canvas.image
+        assert img is not None  # has_image-Check oben garantiert das
+        worker = AIWorker(img.copy())
         worker.finished.connect(self._on_ai_done)
         worker.error.connect(self._on_ai_error)
         self._ai_thread = self._launch_worker(
@@ -1063,13 +1081,13 @@ class MainWindow(QMainWindow):
         # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
         # hat, ist _version erhöht worden und das KI-Ergebnis wird verworfen.
         if self._canvas.version != self._ai_input_version:
-            self.statusBar().showMessage(
+            self._sb.showMessage(
                 "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
             return
         self._canvas.apply_ai_result(img)
 
     def _on_ai_error(self, msg: str) -> None:
-        self.statusBar().showMessage(f"KI-Fehler: {msg}")
+        self._sb.showMessage(f"KI-Fehler: {msg}")
         QMessageBox.warning(self, "KI-Fehler",
                             f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
 
@@ -1109,6 +1127,8 @@ class MainWindow(QMainWindow):
     def _toggle_history_popup(self) -> None:
         if self._hist_popup is None:
             self._build_history_popup()
+        # _build_history_popup setzt self._hist_popup garantiert.
+        assert self._hist_popup is not None
         if self._hist_popup.isVisible():
             self._hist_popup.hide()
         else:
