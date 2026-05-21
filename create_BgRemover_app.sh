@@ -66,7 +66,13 @@ py_version_ok() {
 # Inklusive `bgremover`: eine venv aus der Monolith-Aera (in der nur
 # PyQt6/Pillow/numpy installiert war) galt sonst als "ready", und der
 # Re-Install des Pakets wurde stillschweigend uebersprungen.
-has_deps() { arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1; }
+#
+# WICHTIG: aus `$HOME` aufrufen (subshell `cd $HOME`), damit Pythons
+# automatische sys.path[0]=cwd-Injection NICHT das `bgremover/`-Quell-
+# verzeichnis im Repo als „installiertes Paket" durchgehen laesst. Der
+# Bundle-Launcher startet mit anderem cwd; er wuerde sonst „bgremover
+# fehlt" melden, obwohl das Setup gesagt hat „ist da".
+has_deps() { ( cd "$HOME" && arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1 ); }
 
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
@@ -177,8 +183,9 @@ fi
 
 # Letzter Sicherheitscheck: kann das gewählte Python die Pakete
 # wirklich importieren? Fängt z.B. arm64/x86_64-Mismatch ab, BEVOR
-# eine garantiert kaputte App ausgeliefert wird.
-if ! IMPERR=$(arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' 2>&1); then
+# eine garantiert kaputte App ausgeliefert wird. `cd $HOME` aus dem
+# gleichen Grund wie `has_deps` (Pythons sys.path[0]=cwd-Injection).
+if ! IMPERR=$( ( cd "$HOME" && arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' ) 2>&1); then
     echo -e "${RED}❌ $PYTHON kann PyQt6/Pillow/numpy/bgremover nicht importieren:${NC}"
     echo "$IMPERR" | tail -n 1
     echo "   Häufige Ursache: Architektur-Mismatch auf Apple Silicon"
