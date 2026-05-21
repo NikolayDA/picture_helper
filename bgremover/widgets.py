@@ -155,6 +155,7 @@ class TopIconTabWidget(QTabWidget):
         # in der Bar layoutTabs() aus, sodass alle Tabs gleich breit werden
         # und die ganze Breite füllen.
         bar = self.tabBar()
+        assert bar is not None  # tabBar() liefert immer eine Bar (QTabWidget-Invariante)
         g = bar.geometry()
         if g.width() != self.width():
             bar.setGeometry(0, g.y(), self.width(), g.height())

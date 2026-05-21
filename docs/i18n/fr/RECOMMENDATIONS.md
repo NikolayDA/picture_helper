@@ -241,10 +241,10 @@ un passage à PySide6).
 | 3 | ~~Duplication d'état dans `undo/redo/undo_to/restore_original/_apply_pil`~~ | 🟡 Moyenne | Faible | ✅ #52 |
 | 4 | ~~Feuilles de style en ligne éparpillées, pas de module de thème~~ | 🟡 Moyenne | Moyen | ✅ #53 |
 | 5 | ~~Pas de hook SessionStart pour Claude Code on the web~~ | 🟡 Moyenne | Faible | ✅ #51 |
-| 6 | Gardes « aucune image chargée » répétées (~8×) | 🟢 Faible | Faible | Ouvert |
-| 7 | Code répétitif des workers (try/except/log/emit) → classe de base | 🟢 Faible | Faible | Ouvert |
+| 6 | ~~Gardes « aucune image chargée » répétées (~8×)~~ | 🟢 Faible | Faible | ✅ 2.1.0 |
+| 7 | ~~Code répétitif des workers (try/except/log/emit) → classe de base~~ | 🟢 Faible | Faible | ✅ 2.1.0 |
 | 8 | ~~Maintenir `CHANGELOG [Unreleased]`~~ | 🟢 Faible | Faible | ✅ continu |
-| 9 | `mypy` très permissif (7 codes désactivés) | 🟢 Faible | Moyen | Ouvert |
+| 9 | ~~`mypy` très permissif (7 codes désactivés)~~ | 🟢 Faible | Moyen | ✅ tour 4 #4 |
 
 **#1** — `BgRemover.py` reste un fichier unique (~3000 lignes :
 utilitaires, worker, canevas, IU, dialogues, journalisation, main). Le
@@ -278,21 +278,22 @@ bibliothèques système Qt + le projet et définit
 `QT_QPA_PLATFORM=offscreen` de manière persistante ; enregistré dans
 `.claude/settings.json`.
 
-**#6** — **Ouvert.** Le retour anticipé « aucune image chargée » se
-répète dans ~8 méthodes ; un petit utilitaire de garde le
-regrouperait.
+**#6** — **✅ Fait (2.1.0).** Le retour anticipé « aucune image
+chargée » des cinq méthodes `ImageCanvas` concernées est regroupé dans
+le décorateur `@_requires_image` (`bgremover/canvas.py`).
 
-**#7** — **Ouvert.** Les trois flux de workers partagent du code
-répétitif `try/except/log/emit` ; une classe de base optionnelle
-réduirait la répétition.
+**#7** — **✅ Fait (2.1.0).** `AIWorker` et `ImageLoadWorker`
+partagent la classe de base `_Worker`, qui encapsule le flux
+`try/except → logger.exception → error.emit` (`bgremover/workers.py`) ;
+`RembgWarmupWorker` reste délibérément autonome.
 
 **#8** — Respecté : les PR du tour 3 #48/#52/#53 maintiennent chacune
 la section `CHANGELOG [Unreleased]` ; cette entrée documente en outre
 le tour 3 lui-même. Une pratique continue plutôt qu'une PR unique.
 
-**#9** — **Ouvert.** `mypy` est pragmatiquement assoupli dans
-`pyproject.toml` (7 `disable_error_code`) ; le durcir progressivement
-améliore la sûreté de typage (effort/risque : moyen).
+**#9** — **✅ Fait (tour 4 #4).** `disable_error_code` est entièrement
+retiré de `pyproject.toml` – les 8 classes d'erreurs auparavant
+désactivées sont toutes actives (détails : voir tour 4 #4 ci-dessous).
 
 ---
 
@@ -308,7 +309,7 @@ améliore la sûreté de typage (effort/risque : moyen).
 | 1 | ~~Coupe de version 2.1.0 + tag git~~ | 🟠 Haute | Faible | ✅ Fait (tag après merge) |
 | 2 | ~~Utilitaire de garde « aucune image » (tour 3 #6)~~ | 🟢 Basse | Faible | ✅ Fait |
 | 3 | ~~Classe de base de worker (tour 3 #7)~~ | 🟢 Basse | Faible | ✅ Fait |
-| 4 | Durcir `mypy` progressivement (tour 3 #9) | 🟢 Basse | Moyen | 🟢 Étape 1 faite |
+| 4 | ~~Durcir `mypy` progressivement (tour 3 #9)~~ | 🟢 Basse | Moyen | ✅ Fait (les 8 codes actifs) |
 | 5 | Monolithe → paquet (tour 3 #1) | 🟠 Haute | Élevé | ✅ résolu (tour 5) |
 
 ### ✅ 1. Coupe de version 2.1.0 + tag git *(fait)*
@@ -350,26 +351,24 @@ n'implémentent plus que `_work()`. `RembgWarmupWorker` reste
 délibérément autonome (pas de signal `error`, `finished` toujours dans
 `finally` – contrat différent).
 
-### 🟢 4. Durcir `mypy` progressivement *(tour 3 #9 – étape 1 faite)*
+### ✅ 4. Durcir `mypy` progressivement *(tour 3 #9 / tour 4 #4 – fait)*
 
-`disable_error_code` réduit de **8 à 6** : `index` et `operator` sont
-déjà propres (**0 erreur** chacun, mesuré) et donc réactivés dans
-`pyproject.toml` – sans changement de code, sans risque. Feuille de
-route mesurée pour les codes restants (une étape par PR, comme
-recommandé) :
+**Toutes les classes d'erreurs auparavant désactivées sont maintenant
+actives.** Après la coupe monolithe → paquet (tour 5), les six codes
+restants ont pu être activés fichier par fichier :
 
-| Code | Erreurs ouvertes | Nature |
-|------|------------------|--------|
-| `arg-type` | 2 | rétrécissement None via gardes/décorateur |
-| `attr-defined` | 2 | `QThread._worker`/`QObject.run` dynamiques |
-| `func-returns-value` | 4 | retour void dans des tuples lambda d'UI |
-| `assignment` | 4 | types d'affectation mixtes |
-| `override` | 7 | signatures d'override Qt |
-| `union-attr` | 67 | très large – à traiter en dernier |
+| Code | Avant | Stratégie |
+|------|-------|-----------|
+| `arg-type` | 2 | invariant `_pil`/`_arr` via double garde + `assert` de boucle |
+| `attr-defined` | 2 | `setattr(thread, "_worker", ...)` ; paramètre `_Worker \| RembgWarmupWorker` |
+| `assignment` | 4 | annotations initiales explicites (`Image.Image`, `RankFilter`, `QMenu \| None`) |
+| `func-returns-value` | 4 | tuples lambda d'UI → `def` locaux |
+| `override` | 7 | signatures alignées sur les stubs PyQt6 (`QPainter \| None` etc.) |
+| `union-attr` | 67 | barre de statut/menu et viewport mis en cache ; asserts ciblés |
 
-Prochaine étape sensée : `arg-type` ou `attr-defined` (2 chacun,
-petites améliorations réelles). Effort/risque des étapes restantes :
-moyen.
+Dans `pyproject.toml`, seul `check_untyped_defs = false` reste comme
+amortisseur pragmatique du bruit Qt (couvre les signatures d'override
+Qt event/option/widget).
 
 ### 🟠 5. Monolithe → paquet *(tour 3 #1, reporté volontairement)*
 

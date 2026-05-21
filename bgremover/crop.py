@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QPointF, QRect, QRectF, Qt
 from PyQt6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QGraphicsObject
+from PyQt6.QtWidgets import (
+    QGraphicsObject,
+    QStyleOptionGraphicsItem,
+    QWidget,
+)
 
 
 class CropOverlayItem(QGraphicsObject):
@@ -137,7 +141,11 @@ class CropOverlayItem(QGraphicsObject):
         return QRectF(-margin, -margin,
                       self._iw + 2 * margin, self._ih + 2 * margin)
 
-    def paint(self, painter: QPainter, option, widget) -> None:
+    def paint(self, painter: QPainter | None,
+              option: QStyleOptionGraphicsItem | None = None,
+              widget: QWidget | None = None) -> None:
+        if painter is None:
+            return
         # ── Dunkles Außen-Overlay ──────────────────────────────
         outer = QPainterPath()
         outer.addRect(QRectF(0, 0, self._iw, self._ih))
