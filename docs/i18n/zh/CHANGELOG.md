@@ -9,6 +9,19 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]（未发布）
 
+### 新增
+
+- **应用启动的 CI 冒烟测试**（`tests/test_app_smoke.py`）。现有的 UI
+  测试通过 `-m 'not ui'` 被排除在 CI 之外，因此 CI 从未检查应用是否
+  能够完整启动——正是这个缺口让 macOS 启动故障溜了过去。新增测试不带
+  `ui` 标记（因此会在 CI 中运行）：`python -m bgremover` 和
+  console-script `bgremover` 从一个中性的工作目录完整启动（新的自检
+  钩子 `BGREMOVER_SMOKE_TEST` 在第一个事件循环周期后以退出码 0
+  结束）；检查 `_ensure_qt_plugin_path()` 产出有效的 Qt 插件路径；
+  对启动脚本（`create_BgRemover_app.sh`、`BgRemover.command`、
+  `diagnose_mac.sh`）以及打包进 App 包的启动器进行 shell 语法检查。
+  为此在 Linux CI job 中安装 `zsh`。
+
 ### 修复
 
 - **App 包：setup 中的 `bgremover` 检测不再依赖工作目录。**
