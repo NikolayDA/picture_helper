@@ -11,6 +11,22 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Paquet d'app : la détection de `bgremover` au setup ne dépend plus
+  du répertoire de travail.** `create_BgRemover_app.sh` considérait la
+  venv comme « prête » alors que `bgremover` n'y était pas installé :
+  la vérification `has_deps` s'exécutait avec `cwd` dans le dossier du
+  projet, et Python ajoute automatiquement le répertoire courant à
+  `sys.path[0]` – donc `import bgremover` trouvait le **répertoire
+  source** `bgremover/` du dépôt au lieu d'une vraie installation dans
+  la venv. Le lanceur de l'app démarre avec un autre `cwd`, ne voit
+  pas le répertoire source et signalait donc « Le paquet bgremover
+  manque dans la venv ». `has_deps` et la vérification finale
+  s'exécutent maintenant depuis `$HOME` (sous-shell `cd "$HOME"`), et
+  vérifient ainsi la même réalité que le lanceur ; si le paquet
+  manque, le chemin rapide pip install s'enclenche. `diagnose_mac.sh`
+  teste aussi depuis `$HOME` et affiche en plus `pip show bgremover`
+  de la venv de l'app (preuve indépendante du cwd indiquant si/où le
+  paquet est installé).
 - **Chemins de lancement macOS de nouveau fonctionnels.** Après la
   coupe en paquet (tour 5), `BgRemover.command` cherchait encore le
   fichier `BgRemover.py` qui n'existe plus et s'arrêtait sur « non

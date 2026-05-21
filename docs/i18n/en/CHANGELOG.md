@@ -10,6 +10,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **App bundle: `bgremover` detection in setup independent of the
+  working directory.** `create_BgRemover_app.sh` treated the venv as
+  “ready” even though `bgremover` was not installed there: the
+  `has_deps` check ran with `cwd` inside the project folder, and
+  Python automatically prepends the current directory to
+  `sys.path[0]` – so `import bgremover` found the repo's `bgremover/`
+  **source directory** instead of a real venv installation. The app
+  launcher starts with a different `cwd`, does not see the source
+  directory, and therefore reported “The bgremover package is missing
+  in the venv”. `has_deps` and the final sanity check now run from
+  `$HOME` (subshell `cd "$HOME"`), so they check the same reality as
+  the launcher; if the package is missing, the pip-install fast path
+  kicks in. `diagnose_mac.sh` also tests from `$HOME` and additionally
+  shows `pip show bgremover` of the app venv (cwd-independent proof of
+  whether/where the package is installed).
 - **macOS launch paths working again.** After the package cut (round
   5), `BgRemover.command` was still looking for the no-longer-existing
   `BgRemover.py` and bailed out with “not found”; the German
