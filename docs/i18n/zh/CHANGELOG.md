@@ -11,6 +11,17 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 修复
 
+- **App 包：setup 中的 `bgremover` 检测不再依赖工作目录。**
+  `create_BgRemover_app.sh` 把 venv 判定为「就绪」，尽管 `bgremover`
+  并未安装在其中：`has_deps` 检查在项目目录下以该 `cwd` 运行，而
+  Python 会自动把当前目录加到 `sys.path[0]` —— 于是
+  `import bgremover` 找到的是仓库的 `bgremover/` **源码目录**，而非
+  venv 中的真正安装。App 启动器以不同的 `cwd` 启动，看不到该源码
+  目录，因此报告「venv 中缺少 bgremover 包」。`has_deps` 与最终
+  完整性检查现在都从 `$HOME` 运行（子 shell `cd "$HOME"`），因而与
+  启动器检查的是同一现实；若包缺失，则触发 pip 安装快速路径。
+  `diagnose_mac.sh` 同样从 `$HOME` 测试，并额外显示 App venv 的
+  `pip show bgremover`（与 cwd 无关地证明包是否/安装到何处）。
 - **macOS 启动路径恢复可用。** 在包切分（第 5 轮）之后，
   `BgRemover.command` 仍在寻找已不存在的 `BgRemover.py` 并以「未
   找到」中止；德语版 `INSTALL_MAC.md` 以及 `INSTALL_LINUX.md` 和

@@ -53,10 +53,14 @@ for py in "${CANDIDATES[@]}"; do
     for mod in PyQt6.QtWidgets PIL numpy bgremover; do
         # Erst Exit-Code (robust gegen Warnings auf stderr); Output
         # nur einholen, wenn der Import wirklich scheitert.
-        if /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" >/dev/null 2>&1; then
+        # Aus $HOME ausfuehren: sonst zeigt Pythons sys.path[0]=cwd-
+        # Injection ein `bgremover/`-Quellverzeichnis im aktuellen
+        # Ordner faelschlich als „installiert" – genau so, wie der
+        # App-Launcher (anderer cwd) es eben NICHT sieht.
+        if ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) >/dev/null 2>&1; then
             echo "  ✓ $mod"
         else
-            ERR="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" 2>&1)"
+            ERR="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c "import $mod" ) 2>&1)"
             LAST="$(printf '%s' "$ERR" | tail -n 1)"
             echo "  ✗ $mod   → $LAST"
         fi
@@ -65,8 +69,8 @@ for py in "${CANDIDATES[@]}"; do
     # alleine zeigt nicht, ob Qt zur Laufzeit das `cocoa`-Plugin findet
     # (typischer venv-Fehler: "Could not find the Qt platform plugin
     # 'cocoa' in ''").
-    if QAOUT="$(/usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
-        'from PyQt6.QtWidgets import QApplication; import sys; QApplication(sys.argv); print("ok")' 2>&1)"; then
+    if QAOUT="$( ( cd "$HOME" && /usr/bin/arch -"$NATIVE_ARCH" "$py" -c \
+        'from PyQt6.QtWidgets import QApplication; import sys; QApplication(sys.argv); print("ok")' ) 2>&1)"; then
         if printf '%s' "$QAOUT" | grep -q '^ok$'; then
             echo "  ✓ QApplication-Erzeugung (Qt-Plugin gefunden)"
         else
@@ -139,6 +143,23 @@ if [ -d "$SCRIPT_DIR/bgremover" ]; then
     echo "bgremover/ vorhanden:  $(ls "$SCRIPT_DIR/bgremover"/*.py 2>/dev/null | wc -l | tr -d ' ') Module"
 else
     echo "  ✗ bgremover/ fehlt im Repo (`git pull` ausstehend?)"
+fi
+
+# ── bgremover in der App-venv WIRKLICH installiert? ─────────────
+# `pip show` ist cwd-unabhaengig und sagt eindeutig, ob (und wohin)
+# das Paket installiert ist – im Gegensatz zu `import bgremover`, das
+# ein Quellverzeichnis im cwd faelschlich „findet".
+print_header "bgremover-INSTALLATION (App-venv, cwd-neutral)"
+if [ -x "$APP_VENV" ]; then
+    SHOW="$( ( cd "$HOME" && "$APP_VENV" -m pip show bgremover ) 2>&1)"
+    if printf '%s' "$SHOW" | grep -q '^Name: bgremover'; then
+        printf '%s\n' "$SHOW" | grep -E '^(Name|Version|Location|Editable project location):'
+    else
+        echo "  ✗ bgremover ist in der App-venv NICHT via pip installiert"
+        echo "    → create_BgRemover_app.sh muss es nachinstallieren"
+    fi
+else
+    echo "  App-venv-Python fehlt: $APP_VENV"
 fi
 
 # ── Log ────────────────────────────────────────────────────────
