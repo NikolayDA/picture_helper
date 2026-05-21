@@ -9,6 +9,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **Smoke test de CI para el arranque de la app**
+  (`tests/test_app_smoke.py`). Las pruebas de UI existentes quedan
+  excluidas de la CI vía `-m 'not ui'`, así que la CI nunca comprobaba
+  si la aplicación llega a arrancar – justo la brecha por la que se
+  colaron los fallos de inicio en macOS. Nuevo, sin el marcador `ui`
+  (por lo que sí corre en la CI): `python -m bgremover` y el script de
+  consola `bgremover` arrancan por completo desde un directorio de
+  trabajo neutral (el nuevo hook de autotest `BGREMOVER_SMOKE_TEST`
+  termina tras el primer ciclo del event loop con código 0); se
+  comprueba que `_ensure_qt_plugin_path()` produzca una ruta de plugin
+  Qt válida; se verifica la sintaxis shell de los scripts de arranque
+  (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`) y
+  del lanzador incrustado en el paquete de app. Para ello se instala
+  `zsh` en el job de CI de Linux.
+
 ### Corregido
 
 - **Paquete de app: la detección de `bgremover` en el setup ya no

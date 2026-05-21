@@ -75,4 +75,14 @@ def main() -> int:
 
     win = MainWindow()
     win.show()
+
+    # Selbsttest-Hook für CI/Smoke-Tests: ist BGREMOVER_SMOKE_TEST
+    # gesetzt, beendet die App sich nach dem ersten Event-Loop-Durchlauf
+    # selbst (Exit-Code 0). Sie ist dann vollständig hochgefahren –
+    # QApplication, Palette, MainWindow inkl. Toolbar/Panels/Canvas –,
+    # ohne dass der Test einen Fensterprozess killen muss.
+    if os.environ.get("BGREMOVER_SMOKE_TEST"):
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, app.quit)
+
     return app.exec()
