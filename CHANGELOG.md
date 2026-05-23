@@ -27,9 +27,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
-- **Changelog-Referenzlinks auf den 2.1.0-Stand korrigiert.**
-  `[Unreleased]` vergleicht jetzt ab `v2.1.0`, und `[2.1.0]` zeigt auf
-  den Release-Vergleich `v2.0.0...v2.1.0`.
+- **Release-/Changelog-Links auf reale Refs korrigiert.**
+  `[Unreleased]` vergleicht ab `v2.1.0`; `[2.1.0]` nutzt den
+  dokumentierten 2.0.0-Release-Commit als Basis, weil im Repo kein
+  historischer `v2.0.0`-Tag existiert.
 - **KI-Ergebnisse werden nach Zwischenbearbeitungen verworfen.** Der
   Stale-Check nutzt eine öffentliche Canvas-Version, die der
   Content-Revision folgt und bei jeder sichtbaren Bildänderung steigt
@@ -173,7 +174,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [2.0.0] – 2026-05-17
 
-Erste öffentlich getaggte Veröffentlichung.
+Erster dokumentierter 2.0.0-Release-Stand. Ein historischer
+`v2.0.0`-Git-Tag existiert im Repo nicht.
 
 ### Funktionen
 
@@ -219,5 +221,5 @@ Erste öffentlich getaggte Veröffentlichung.
   anleitung; ausführliche `INSTALL_MAC.md`.
 
 [Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

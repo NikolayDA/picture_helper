@@ -28,9 +28,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
-- **Liens de référence du changelog corrigés pour l'état 2.1.0.**
-  `[Unreleased]` compare maintenant depuis `v2.1.0`, et `[2.1.0]`
-  pointe vers la comparaison de release `v2.0.0...v2.1.0`.
+- **Liens de release/changelog corrigés vers des refs réelles.**
+  `[Unreleased]` compare maintenant depuis `v2.1.0` ; `[2.1.0]`
+  utilise comme base le commit de release 2.0.0 documenté, car le dépôt
+  n'a pas de tag historique `v2.0.0`.
 - **Paquet d'app : la détection de `bgremover` au setup ne dépend plus
   du répertoire de travail.** `create_BgRemover_app.sh` considérait la
   venv comme « prête » alors que `bgremover` n'y était pas installé :
@@ -140,7 +141,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [2.0.0] – 2026-05-17
 
-Première publication taguée publiquement.
+Premier état de release 2.0.0 documenté. Le dépôt n'a pas de tag Git
+historique `v2.0.0`.
 
 ### Fonctionnalités
 
@@ -186,5 +188,5 @@ Première publication taguée publiquement.
   d'installation ; `INSTALL_MAC.md` détaillé.
 
 [Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

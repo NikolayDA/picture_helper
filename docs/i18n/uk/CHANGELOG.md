@@ -27,9 +27,10 @@
 
 ### Виправлено
 
-- **Виправлено посилання changelog для стану 2.1.0.**
-  `[Unreleased]` тепер порівнює від `v2.1.0`, а `[2.1.0]` веде на
-  release-порівняння `v2.0.0...v2.1.0`.
+- **Виправлено release/changelog-посилання на реальні refs.**
+  `[Unreleased]` тепер порівнює від `v2.1.0`; `[2.1.0]` використовує
+  документований 2.0.0 release-commit як базу, бо в репозиторії немає
+  історичного тегу `v2.0.0`.
 - **App-бандл: розпізнавання `bgremover` у setup більше не залежить
   від робочого каталогу.** `create_BgRemover_app.sh` вважав venv
   «готовим», хоча `bgremover` там не був встановлений: перевірка
@@ -130,7 +131,8 @@
 
 ## [2.0.0] – 2026-05-17
 
-Перший публічно позначений тегом реліз.
+Перший задокументований release-стан 2.0.0. У репозиторії немає
+історичного Git-тегу `v2.0.0`.
 
 ### Функції
 
@@ -176,5 +178,5 @@
   встановлення; докладний `INSTALL_MAC.md`.
 
 [Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
