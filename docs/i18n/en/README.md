@@ -169,7 +169,9 @@ launched via `python -m bgremover` or the `bgremover` console script):
 - **`ImageCanvas`** (QGraphicsView) holds the image state, the selection mask,
   undo/redo stacks, and the tools (magic wand, brush, lasso, crop).
 - **`MainWindow`** builds the toolbar, the right-hand tab panel (four `_build_tab_*`
-  builders), the menu, and connects everything to the canvas.
+  builders), and connects everything to the canvas.
+- **`menu_actions`** builds the menu bar, actions, and shortcuts; `MainWindow`
+  only supplies callbacks for it.
 - **`RecentFiles`** encapsulates persistence, de-duplication, and the menu
   adapter for "Open Recent", so `MainWindow` only delegates the load path.
 - **Workers** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) run in
