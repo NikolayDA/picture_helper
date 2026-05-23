@@ -9,6 +9,7 @@ from bgremover import (
     AIWorker,
     ImageCanvas,
     ImageLoadWorker,
+    MainWindow,
     _MAX_MEGAPIXELS,
 )
 
@@ -153,25 +154,61 @@ def test_ai_worker_finished_signal_on_success(qapp, _mock_rembg) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
-# Canvas – Versionszähler (Stale-Check für KI-Ergebnis)
+# Canvas – Versions- und Content-Revisionszähler (Stale-Check für KI-Ergebnis)
 # ─────────────────────────────────────────────────────────────
 
 def test_canvas_version_increments_on_load(qapp, tmp_path) -> None:
     canvas = ImageCanvas()
-    assert canvas._version == 0
+    assert canvas.version == 0
     img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
     canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
-    assert canvas._version == 1
+    assert canvas.version == 1
     canvas.apply_loaded_image(img, str(tmp_path / "y.png"))
-    assert canvas._version == 2
+    assert canvas.version == 2
 
 
-def test_canvas_version_not_incremented_by_undo(qapp, tmp_path) -> None:
+def test_canvas_version_tracks_edits_and_undo(qapp, tmp_path) -> None:
     canvas = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
     canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
-    v_after_load = canvas._version
-    # Undo verändert die Version nicht – nur apply_loaded_image tut das
+    v_after_load = canvas.version
     canvas._apply_pil(img.copy(), push=True, desc="test-edit")
+    assert canvas.version == v_after_load + 1
     canvas.undo()
-    assert canvas._version == v_after_load
+    assert canvas.version == v_after_load + 2
+
+
+def test_canvas_content_revision_tracks_edits_and_undo(qapp, tmp_path) -> None:
+    canvas = ImageCanvas()
+    img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
+    canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
+    rev_after_load = canvas.content_revision
+
+    canvas._apply_pil(Image.new("RGBA", (10, 10), (4, 5, 6, 255)),
+                      push=True, desc="test-edit")
+    assert canvas.content_revision == rev_after_load + 1
+
+    canvas.undo()
+    assert canvas.content_revision == rev_after_load + 2
+
+
+def test_ai_result_is_discarded_after_canvas_edit(qapp, tmp_path) -> None:
+    win = MainWindow()
+    try:
+        original = Image.new("RGBA", (4, 4), (10, 20, 30, 255))
+        edited = Image.new("RGBA", (4, 4), (40, 50, 60, 255))
+        stale_ai_result = Image.new("RGBA", (4, 4), (70, 80, 90, 255))
+
+        win._canvas.apply_loaded_image(original, str(tmp_path / "x.png"))
+        win._ai_input_version = win._canvas.version
+        win._canvas._apply_pil(edited, push=True, desc="edit-after-ai-start")
+
+        win._on_ai_done(stale_ai_result)
+
+        assert win._canvas.image is not None
+        assert win._canvas.image.getpixel((0, 0)) == (40, 50, 60, 255)
+        status_bar = win.statusBar()
+        assert status_bar is not None
+        assert "verworfen" in status_bar.currentMessage()
+    finally:
+        win.close()

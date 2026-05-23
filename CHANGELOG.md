@@ -27,6 +27,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **KI-Ergebnisse werden nach Zwischenbearbeitungen verworfen.** Der
+  Stale-Check nutzt eine öffentliche Canvas-Version, die der
+  Content-Revision folgt und bei jeder sichtbaren Bildänderung steigt
+  (z. B. Drehen, Zuschnitt, Undo). Dadurch überschreibt ein spät
+  eintreffendes `rembg`-Ergebnis keine inzwischen bearbeiteten Bilder
+  mehr.
 - **App-Bundle: `bgremover`-Erkennung im Setup unabhängig vom
   Arbeitsverzeichnis.** `create_BgRemover_app.sh` stufte die venv als
   „fertig" ein, obwohl `bgremover` dort gar nicht installiert war: der

@@ -109,9 +109,12 @@ class ImageCanvas(QGraphicsView):
         self._original: Image.Image | None = None
         self._arr:      np.ndarray  | None = None
         self._mask:     np.ndarray  | None = None
-        # Monotoner Zähler: wird bei jedem Bildwechsel erhöht.
-        # Externe Worker nutzen ihn als Stale-Check statt Objektidentität.
+        # Monotone Zähler:
+        # - _version ändert sich nur bei einem neu geladenen Bild.
+        # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
+        # Externe Worker nutzen content_revision als Stale-Check statt Objektidentität.
         self._version:  int = 0
+        self._content_revision: int = 0
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
         # Kein festes maxlen – Grösse wird durch _UNDO_MEMORY_LIMIT begrenzt.
         self._undo:     deque = deque()
@@ -168,6 +171,11 @@ class ImageCanvas(QGraphicsView):
         """Monoton steigender Zähler; erhöht sich bei jedem Bildwechsel."""
         return self._version
 
+    @property
+    def content_revision(self) -> int:
+        """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
+        return self._content_revision
+
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
@@ -211,7 +219,12 @@ class ImageCanvas(QGraphicsView):
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
 
-    def _apply_pil(self, img: Image.Image, push: bool = True, desc: str = "Bearbeitung") -> None:
+    def _apply_pil(
+        self,
+        img: Image.Image,
+        push: bool = True,
+        desc: str = "Bearbeitung",
+    ) -> None:
         if push and self._pil is not None:
             self._undo.append((self._pil.copy(), desc))
             self._undo_bytes += self._img_bytes(self._pil)
@@ -242,12 +255,13 @@ class ImageCanvas(QGraphicsView):
 
         Kapselt den Block, der zuvor identisch in ``_apply_pil``, ``undo``,
         ``redo``, ``undo_to`` und ``restore_original`` stand. Setzt
-        ausschliesslich den Anzeigezustand – Undo-/Redo-Stapelpflege
-        bleibt Sache der Aufrufer.
+        ausschliesslich den Anzeigezustand und die Content-Revision –
+        Undo-/Redo-Stapelpflege bleibt Sache der Aufrufer.
         """
         self._pil  = img
         self._arr  = pil_to_numpy(img)
         self._mask = np.zeros((img.height, img.width), dtype=bool)
+        self._content_revision += 1
         self._refresh_image()
         self._refresh_overlay()
 
