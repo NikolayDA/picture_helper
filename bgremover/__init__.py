@@ -1,14 +1,9 @@
 """BgRemover – Hintergrund-Entfernungs- und Bildbearbeitungs-Tool.
 
-Übergangszustand (Phase B des Monolith→Paket-Schnitts, Runde 5): Die
-Implementierung liegt aktuell noch in ``BgRemover.py``; dieses Paket
-stellt bereits den Paket-Einstiegspunkt bereit (``bgremover`` /
-``python -m bgremover``). Module werden schrittweise, verhaltensneutral
-hierher verschoben.
-
-Öffentliche Re-Exporte (für Tests / API): wachsen pro Schritt mit, damit
-der finale Import-Wechsel ``from BgRemover import X`` →
-``from bgremover import X`` ein minimaler Eingriff bleibt.
+Das Projekt ist als Paket ``bgremover`` strukturiert und kann per
+Console-Script ``bgremover`` oder ``python -m bgremover`` gestartet
+werden. Einige etablierte Klassen und Helfer werden hier für Tests und
+kleine Integrationen re-exportiert.
 """
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 

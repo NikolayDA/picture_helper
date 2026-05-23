@@ -79,6 +79,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Pure image operations extracted from `ImageCanvas`.**
+  `bgremover/image_ops.py` now owns background remove/replace, saving,
+  rotation, flipping, rounded corners, and crop masking as Qt-free
+  PIL/NumPy functions. `ImageCanvas` keeps UI state, undo/redo, signals,
+  and overlays; `tests/test_image_ops.py` checks the pixel operations
+  directly without a `QApplication`.
 - **Recommendations documentation brought up to current status.**
   `RECOMMENDATIONS.md` and the i18n versions now include a round-6
   status block for the latest PR series (#70, #72–#78) and explicitly

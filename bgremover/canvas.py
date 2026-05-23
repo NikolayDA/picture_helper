@@ -1,9 +1,7 @@
-"""Bild-Canvas: Werkzeuge, Auswahl-Maske, Undo/Redo, Crop.
+"""Bild-Canvas: Werkzeuge, Auswahl-Maske, Undo/Redo, Crop-UI.
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B - Schritt 8).
-``from __future__ import annotations`` macht alle Annotationen lazy -
-kein Laufzeit-Import von ``main_window`` noetig (Hazard H1: Kopplung
-ausschliesslich ueber Qt-Signale).
+Reine PIL/NumPy-Bildoperationen liegen in ``bgremover.image_ops``; diese
+Klasse besitzt UI-Zustand, Undo/Redo, Qt-Signale und interaktive Overlays.
 """
 from __future__ import annotations
 
@@ -49,11 +47,20 @@ from bgremover.constants import (
 )
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
+from bgremover.image_ops import (
+    crop_image,
+    crop_size_for_ratio,
+    flip_image,
+    remove_selection,
+    replace_selection,
+    rotate_image,
+    round_corners,
+    save_image_file,
+)
 from bgremover.image_utils import (
     flood_fill,
     make_checker_brush,
     mask_to_overlay,
-    numpy_to_pil,
     pil_to_numpy,
     pil_to_qpixmap,
 )
@@ -431,9 +438,11 @@ class ImageCanvas(QGraphicsView):
             if not self._check_selection():
                 return
             assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            arr = self._arr.copy()
-            arr[self._mask, 3] = 0
-            self._apply_pil(numpy_to_pil(arr), desc="Hintergrund entfernt")
+            assert self._mask is not None
+            self._apply_pil(
+                remove_selection(self._arr, self._mask),
+                desc="Hintergrund entfernt",
+            )
             self._vp.update()
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
         except Exception as e:
@@ -445,9 +454,12 @@ class ImageCanvas(QGraphicsView):
             if not self._check_selection():
                 return
             assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            arr = self._arr.copy()
-            arr[self._mask] = [color.red(), color.green(), color.blue(), 255]
-            self._apply_pil(numpy_to_pil(arr), desc=f"Farbe ersetzt ({color.name()})")
+            assert self._mask is not None
+            self._apply_pil(
+                replace_selection(self._arr, self._mask,
+                                  (color.red(), color.green(), color.blue())),
+                desc=f"Farbe ersetzt ({color.name()})",
+            )
             self._vp.update()
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
         except Exception as e:
@@ -472,20 +484,7 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit("Kein Bild zum Speichern")
             return False
         try:
-            ext = Path(path).suffix.lower()
-            if ext in (".jpg", ".jpeg"):
-                # Transparenz auf weißem Hintergrund einbetten
-                src = self._pil if self._pil.mode == "RGBA" else self._pil.convert("RGBA")
-                bg = Image.new("RGBA", src.size, (255, 255, 255, 255))
-                bg.paste(src, mask=src.split()[3])
-                bg.convert("RGB").save(path, quality=95)
-            elif ext == ".webp":
-                self._pil.save(path, "WEBP", quality=90)
-            elif ext in (".tif", ".tiff"):
-                # TIFF unterstützt RGBA + Transparenz nativ
-                self._pil.save(path, "TIFF", compression="tiff_lzw")
-            else:
-                self._pil.save(path, "PNG")
+            save_image_file(self._pil, path)
         except Exception as e:
             logger.exception("Speichern fehlgeschlagen: %s", path)
             self.statusMsg.emit(f"Speichern fehlgeschlagen: {e}")
@@ -793,21 +792,7 @@ class ImageCanvas(QGraphicsView):
         if radius <= 0:
             self.statusMsg.emit("Radius muss > 0 sein")
             return
-        img = self._pil.convert("RGBA")
-        w, h = img.size
-        r = min(radius, w // 2, h // 2)
-
-        # Neue Alpha-Maske: abgerundetes Rechteck
-        mask = Image.new("L", (w, h), 0)
-        draw_m = ImageDraw.Draw(mask)
-        draw_m.rounded_rectangle([0, 0, w - 1, h - 1], radius=r, fill=255)
-
-        # Vorhandene Alpha mit neuer Maske UND-verknüpfen
-        orig_a = np.array(img.split()[3])
-        new_a  = np.minimum(orig_a, np.array(mask))
-        channels = list(img.split())
-        channels[3] = Image.fromarray(new_a.astype(np.uint8))
-        result = Image.merge("RGBA", channels)
+        result, r = round_corners(self._pil, radius)
         self._apply_pil(result, desc=f"Ecken abgerundet ({r} px)")
         self.statusMsg.emit(f"Ecken abgerundet: {r} px Radius")
 
@@ -820,16 +805,7 @@ class ImageCanvas(QGraphicsView):
         Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
         """
         assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        img = self._pil.convert("RGBA")
-
-        if degrees % 90 == 0:
-            # Verlustfreie 90°-Schritte – kein Qualitätsverlust, exakte Pixelgröße
-            result = img.rotate(degrees, expand=True)
-        else:
-            # Freier Winkel: transparente Außenbereiche
-            result = img.rotate(degrees, expand=True,
-                                resample=Image.Resampling.BICUBIC)
-
+        result = rotate_image(self._pil, degrees)
         direction = "↺" if degrees > 0 else "↻"
         self._apply_pil(result, desc=f"{direction} Gedreht {abs(degrees)}°")
         self.statusMsg.emit(
@@ -843,13 +819,11 @@ class ImageCanvas(QGraphicsView):
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
         assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        img = self._pil.convert("RGBA")
+        result = flip_image(self._pil, horizontal)
         if horizontal:
-            result = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             self._apply_pil(result, desc="↔ Horizontal gespiegelt")
             self.statusMsg.emit("↔ Horizontal gespiegelt")
         else:
-            result = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
             self._apply_pil(result, desc="↕ Vertikal gespiegelt")
             self.statusMsg.emit("↕ Vertikal gespiegelt")
 
@@ -866,11 +840,7 @@ class ImageCanvas(QGraphicsView):
     def start_crop_ratio(self, ratio_w: int, ratio_h: int) -> None:
         """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
         assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        iw, ih = self._pil.size
-        if iw / ih > ratio_w / ratio_h:
-            cw, ch = int(ih * ratio_w / ratio_h), ih
-        else:
-            cw, ch = iw, int(iw * ratio_h / ratio_w)
+        cw, ch = crop_size_for_ratio(self._pil.size, ratio_w, ratio_h)
         self._start_crop_overlay(cw, ch, is_circle=False)
 
     def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool) -> None:
@@ -893,20 +863,12 @@ class ImageCanvas(QGraphicsView):
             return
         r = self._crop_overlay.crop_rect()
         cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
-        img = self._pil.convert("RGBA")
-        cropped = img.crop((cx, cy, cx + cw, cy + ch))
+        is_circle = self._crop_overlay.is_circle
+        result = crop_image(self._pil, (cx, cy, cw, ch), is_circle=is_circle)
 
-        if self._crop_overlay.is_circle:
-            mask = Image.new("L", (cw, ch), 0)
-            ImageDraw.Draw(mask).ellipse([0, 0, cw - 1, ch - 1], fill=255)
-            orig_a = np.array(cropped.split()[3])
-            new_a  = np.minimum(orig_a, np.array(mask))
-            channels = list(cropped.split())
-            channels[3] = Image.fromarray(new_a.astype(np.uint8))
-            result = Image.merge("RGBA", channels)
+        if is_circle:
             desc = "Format: Kreis"
         else:
-            result = cropped
             desc = f"Format: {cw}×{ch} px"
 
         self._cancel_crop_overlay()
