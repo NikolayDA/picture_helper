@@ -89,6 +89,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Ressourcen-Doku synchronisiert.** `RESOURCES.md` und die i18n-
+  Versionen spiegeln jetzt das Paketlayout (`bgremover/` statt
+  `BgRemover.py`), die Paketdaten unter `bgremover/icons/`, den
+  reproduzierbaren Constraints-Snapshot sowie PR-/Full-/Lizenz-
+  Workflows. Ein statischer Test schützt diese Angaben gegen erneutes
+  Veralten.
 - **`make pr-check` macht die lokale PR-Prüfung robuster.** Der Target
   installiert das Paket frisch mit `[test]`, führt den Doctor aus und
   startet danach `ruff`, `mypy` und `pytest`. Das Makefile findet

@@ -7,8 +7,8 @@
 附带用途、许可证和获取来源。
 
 > 版本说明：“最低”来自 `pyproject.toml`（强制性最低要求），“已验证”
-> 是当前开发/CI 环境中安装的版本。始终以软件包随附的许可证文本
-> 为准。
+> 是 `requirements/constraints.txt` 为当前本地/CI 检查固定的
+> Python 3.12 baseline。始终以软件包随附的许可证文本为准。
 
 ---
 
@@ -31,11 +31,11 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 在 `[project.optional-dependencies] ai` 下声明 —— 仅自动背景移除
 （`rembg` 工具）需要：
 
-| 资源 | 用途 | 最低 | 许可证 | 获取 |
-|-----------|-------|------|--------|-------|
-| **rembg[cpu]** | 基于 AI 的背景移除（`rembg.remove`） | `>=2.0` | MIT | PyPI |
-| **onnxruntime** | ONNX 推理后端（`rembg[cpu]` 的传递依赖） | （传递） | MIT (Microsoft) | PyPI |
-| **U²-Net 模型** (`u2net.onnx`) | 默认分割模型，由 rembg 在**运行时下载**（不包含在仓库中） | – | Apache-2.0（项目 *U-2-Net*） | 由 rembg 下载至用户缓存目录 |
+| 资源 | 用途 | 最低 | 已验证 | 许可证 | 获取 |
+|-----------|-------|------|---------|--------|-------|
+| **rembg[cpu]** | 基于 AI 的背景移除（`rembg.remove`） | `>=2.0` | 2.0.75 | MIT | PyPI |
+| **onnxruntime** | ONNX 推理后端（`rembg[cpu]` 的传递依赖） | （传递） | 1.26.0 | MIT (Microsoft) | PyPI |
+| **U²-Net 模型** (`u2net.onnx`) | 默认分割模型，由 rembg 在**运行时下载**（不包含在仓库中） | – | – | Apache-2.0（项目 *U-2-Net*） | 由 rembg 下载至用户缓存目录 |
 
 没有 `ai` extras 程序也能正常启动；此时 AI 按钮会被禁用
 （`REMBG_AVAILABLE = False`）。
@@ -45,7 +45,8 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 属于 CPython 的一部分，**无需额外安装**
 （许可证：PSF License Agreement）：
 
-`sys`、`os`、`io`、`logging`、`collections.deque`、`pathlib.Path`。
+`sys`、`os`、`io`、`logging`、`collections.deque`、`pathlib.Path`、
+`importlib.metadata`、`importlib.resources`、`contextlib`、`tempfile`。
 
 ## 4. 开发与测试工具
 
@@ -57,6 +58,18 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 | **pytest-qt** | Qt fixtures（无头 `offscreen`） | `>=4.4` | 4.5.0 | MIT |
 | **ruff** | Linting / 风格检查 | `>=0.6` | 0.15.13 | MIT |
 | **mypy** | 静态类型检查（CI 步骤） | `>=1.10` | 2.1.0 | MIT |
+| **packaging** | 在测试中解析 dependency constraints | `>=24` | 24.0 | Apache-2.0 或 BSD-2-Clause |
+
+可选文档/PDF 工具在 `[project.optional-dependencies] docs` 下声明：
+
+| 工具 | 用途 | 最低 | 许可证 |
+|----------|-------|------|--------|
+| **Markdown** | 为 `ANLEITUNG.pdf` 将 Markdown 转为 HTML | `>=3.5` | BSD |
+| **WeasyPrint** | 从 HTML/CSS 渲染 PDF | `>=61` | BSD-3-Clause |
+| **fonttools** | PDF 生成时检查字体 | `>=4.0` | MIT |
+
+PDF 生成还需要 DejaVu 字体以及 Pango/Cairo/GDK-Pixbuf 等系统资源
+（由发行版打包）。
 
 ## 5. 构建与分发工具（macOS）
 
@@ -65,7 +78,7 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 
 | 工具 | 用途 | 来源 |
 |----------|-------|----------|
-| `python3` + `venv` + `pip` | 创建隔离的 venv、安装依赖 | Python / PyPA |
+| `python3` + `venv` + `pip` | 创建隔离的 venv，并使用 `requirements/constraints.txt` 安装依赖 | Python / PyPA |
 | `setuptools`（构建后端） | 按 `[build-system]` 进行打包（`>=61`） | MIT |
 | `/usr/bin/arch`、`uname` | 强制使用原生 CPU 架构（Apple Silicon） | macOS |
 | `iconutil` | 从 iconset 生成 `.icns` 应用图标（回退：PNG） | macOS |
@@ -76,13 +89,20 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 
 ## 6. 持续集成
 
-在 `.github/workflows/ci.yml` 中定义（在 GitHub Actions runner 上
-运行 Ubuntu + macOS，Python 3.10/3.12）：
+在 `.github/workflows/pr-ci.yml`、`.github/workflows/ci.yml` 和
+`.github/workflows/license-check.yml` 中定义。Pull request 运行轻量级
+Ubuntu/Python 3.12 job；完整矩阵在 release 或手动触发时运行
+Ubuntu + macOS、Python 3.10/3.12；license workflow 生成依赖/license
+报告。
 
 | 资源 | 用途 | 许可证 |
 |-----------|-------|--------|
-| `actions/checkout@v4` | 检出仓库 | MIT |
-| `actions/setup-python@v5` | 设置 Python + Pip 缓存 | MIT |
+| `actions/checkout@v5` | 检出仓库 | MIT |
+| `actions/setup-python@v6` | 设置 Python + Pip 缓存 | MIT |
+| `actions/upload-artifact@v4` | 上传 license report artifacts | MIT |
+| `actions/github-script@v7` | 在 pull request 上评论 license 摘要 | MIT |
+| `pip-licenses` | 已安装软件包许可证的原始 dump | MIT |
+| `requirements/constraints.txt` | 用于本地检查、CI、license report 和 App Bundle 的可复现依赖 snapshot | 项目文件 |
 | 通过 `apt` 安装的 Qt 系统库（Linux） | 无头 Qt 运行时：`libegl1`、`libfontconfig1`、`libxkbcommon0`、`libdbus-1-3`、`libxcb-*` | 发行版打包，多种宽松/copyleft 许可证（Mesa、fontconfig、libxkbcommon、libxcb、dbus …） |
 
 ## 7. 项目自有资源
@@ -90,11 +110,12 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 项目自有作品，受项目许可证保护
 （GPL-3.0-or-later，参见 `LICENSE`）：
 
-- **源代码**：`BgRemover.py` 以及 `tests/` 下的测试套件。
-- **工具栏/标签页图标**：`icons/*.png`（`ai`、`bg`、`brush`、
+- **源代码**：可安装软件包 `bgremover/`、`tests/` 下的测试套件以及
+  `scripts/` 下的项目脚本。
+- **工具栏/标签页图标**：`bgremover/icons/*.png`（`ai`、`bg`、`brush`、
   `clear_sel`、`close`、`eraser`、`form`、`open`、`redo`、`restore`、
   `save`、`transparency`、`undo`、`wand`）。由 `make_tool_icon()`
-  加载。
+  通过 `importlib.resources` 作为 package data 加载。
 - **绘制的矢量图标**：当某个 PNG 缺失时，`make_tool_icon()` 用
   `QPainter` 以编程方式绘制图标（`_draw_*_icon` 函数）—— 无外部
   资源。
@@ -118,5 +139,8 @@ onnxruntime MIT、U²-Net Apache-2.0）均与 GPL-v3 兼容。
 
 ---
 
-*维护提示：* 当 `pyproject.toml`、`.github/workflows/ci.yml` 或
-`create_BgRemover_app.sh` 发生变更时，请一并更新本文档。
+*维护提示：* 当 `pyproject.toml`、`requirements/constraints.txt`、
+`.github/workflows/pr-ci.yml`、
+`.github/workflows/ci.yml`、`.github/workflows/license-check.yml`、
+`create_BgRemover_app.sh` 或 `bgremover/icons/` 下的 package data
+发生变更时，请一并更新本文档。
