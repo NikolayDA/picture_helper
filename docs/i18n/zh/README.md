@@ -169,7 +169,9 @@ make type
 - **`ImageCanvas`**（QGraphicsView）保存图像状态、选区蒙版、
   撤销/重做栈以及工具（魔棒、画笔、套索、裁剪）。
 - **`MainWindow`** 构建工具栏、右侧标签面板（四个 `_build_tab_*`
-  构建器）、菜单，并将一切与画布连接起来。
+  构建器），并将一切与画布连接起来。
+- **`menu_actions`** 构建菜单栏、actions 和快捷键；`MainWindow`
+  只提供回调。
 - **`RecentFiles`** 封装“最近打开”的持久化、去重和菜单适配器，
   因而 `MainWindow` 只需委托加载路径。
 - **Worker**（`ImageLoadWorker`、`AIWorker`、`RembgWarmupWorker`）运行在
