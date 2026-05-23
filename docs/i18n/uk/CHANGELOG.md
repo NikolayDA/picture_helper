@@ -39,6 +39,9 @@
   «Відкрити нещодавні» тепер живуть у `bgremover/recent_files.py`;
   `MainWindow` лише делегує завантаження, повідомлення стану та
   інтеграцію в меню Файл.
+- **Побудову меню/actions винесено з `MainWindow`.**
+  `bgremover/menu_actions.py` будує рядок меню, `QAction`-и, shortcuts
+  і підменю recent files; `MainWindow` лише передає доменні callbacks.
 
 ### Виправлено
 
