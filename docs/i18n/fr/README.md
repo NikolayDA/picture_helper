@@ -170,6 +170,9 @@ lancé via `python -m bgremover` ou le script de console `bgremover`) :
   les piles d'annulation/rétablissement et les outils (baguette magique, pinceau, lasso, recadrage).
 - **`MainWindow`** construit la barre d'outils, le panneau d'onglets de droite (quatre constructeurs `_build_tab_*`),
   le menu et relie le tout au canevas.
+- **`RecentFiles`** encapsule la persistance, la déduplication et
+  l'adaptateur de menu « Ouvrir récent », de sorte que `MainWindow` ne
+  délègue plus que le chemin de chargement.
 - Les **workers** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) s'exécutent dans
   leurs propres `QThread` ; `_launch_worker()` encapsule le cycle de vie du thread.
 - Un **compteur de version** monotone dans le canevas rejette les résultats d'IA obsolètes,

@@ -35,6 +35,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   del lanzador incrustado en el paquete de app. Para ello se instala
   `zsh` en el job de CI de Linux.
 
+### Cambiado
+
+- **MainWindow se modulariza más.** La persistencia y la semántica de
+  menú de "Abrir reciente" viven ahora en `bgremover/recent_files.py`;
+  `MainWindow` solo delega la carga, los mensajes de estado y la
+  integración en el menú Archivo.
+
 ### Corregido
 
 - **Enlaces de release/changelog corregidos a refs reales.**
