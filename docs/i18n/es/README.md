@@ -143,22 +143,23 @@ demás ajustes mediante QSettings.
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install -e ".[test]"
-pytest
+pip install ".[test]"
+make check
 ```
 
 La suite de pruebas se ejecuta sin interfaz gráfica (plataforma Qt
 `offscreen`) y verifica las operaciones de imagen, la geometría del
-recorte y la lógica de guardado. En cada push y pull request se ejecuta
-además automáticamente en Linux y macOS con Python 3.10 y 3.12 mediante
-GitHub Actions.
+recorte y la lógica de guardado. Los pull requests ejecutan una CI
+ligera en GitHub (Ubuntu, Python 3.12, `make check`). La matriz completa
+en Linux/macOS con Python 3.10 y 3.12 se ejecuta al publicar un release
+o manualmente. Consulta [TESTING.md](../../../TESTING.md) para el flujo
+completo de pruebas.
 
-Comprobación del estilo de código y verificación estática de tipos
-(ambas también en el CI):
+Comprobación del estilo de código y verificación estática de tipos:
 
 ```bash
-ruff check bgremover tests
-mypy
+make lint
+make type
 ```
 
 ## Arquitectura (resumen breve)

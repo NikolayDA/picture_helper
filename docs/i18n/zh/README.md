@@ -140,20 +140,22 @@ venv/pip（PyQt6、Pillow、numpy 作为系统软件包通过 `apt` 安装）；
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install -e ".[test]"
-pytest
+pip install ".[test]"
+make check
 ```
 
 测试套件以无头模式运行（Qt 平台为 `offscreen`），检验
-图像操作、裁剪几何和保存逻辑。每次推送和 Pull Request 时，
-它还会通过 GitHub Actions 在 Linux 和
-macOS 上以 Python 3.10 和 3.12 自动运行。
+图像操作、裁剪几何和保存逻辑。Pull Request 会运行轻量级
+GitHub PR CI（Ubuntu、Python 3.12、`make check`）。完整的
+Linux/macOS 矩阵（Python 3.10 和 3.12）会在发布 release
+或手动触发时运行。完整测试流程见
+[TESTING.md](../../../TESTING.md)。
 
-代码风格检查与静态类型检查（两者也在 CI 中执行）：
+代码风格检查与静态类型检查：
 
 ```bash
-ruff check bgremover tests
-mypy
+make lint
+make type
 ```
 
 ## 架构（简要概览）
