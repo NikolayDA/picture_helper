@@ -13,6 +13,30 @@
 
 ---
 
+## Estado actual (ronda 6)
+
+Este archivo conserva deliberadamente hallazgos históricos de la fase de
+monolito. El código actual vive ahora en el paquete `bgremover/`;
+`BgRemover.py` fue eliminado. La serie de PRs posterior al corte de
+paquete queda resumida aquí como registro de trabajo:
+
+| # | Paquete | Estado |
+|---|---------|--------|
+| 1 | Revisión del estado de IA: descartar resultados tardíos de `rembg` tras ediciones intermedias | ✅ #72 |
+| 2 | CI ligera para PR + sincronización de docs de tests | ✅ #73 |
+| 3 | Smoke test de la app en CI y checks de sintaxis de starters | ✅ #70 |
+| 4 | Higiene de release/changelog | ✅ #74/#75 |
+| 5 | Entorno local de tests más robusto (`make doctor`, `make pr-check`) | ✅ #76 |
+| 6 | Reproducibilidad de dependencias/build (`requirements/constraints.txt`) | ✅ #77 |
+| 7 | Docs de recursos sincronizadas con layout de paquete, constraints y workflows | ✅ #78 |
+| 8 | Docs de recomendaciones/roadmap actualizadas al estado actual | ✅ este PR |
+
+El test estático `tests/test_recommendations_docs.py` protege esta
+sección para que no vuelva a quedar obsoleta; el inventario de recursos
+también queda protegido por `tests/test_resource_docs.py`.
+
+---
+
 ## Resumen priorizado
 
 | # | Recomendación | Prioridad | Esfuerzo |
