@@ -27,6 +27,9 @@
 
 ### Виправлено
 
+- **Виправлено посилання changelog для стану 2.1.0.**
+  `[Unreleased]` тепер порівнює від `v2.1.0`, а `[2.1.0]` веде на
+  release-порівняння `v2.0.0...v2.1.0`.
 - **App-бандл: розпізнавання `bgremover` у setup більше не залежить
   від робочого каталогу.** `create_BgRemover_app.sh` вважав venv
   «готовим», хоча `bgremover` там не був встановлений: перевірка
@@ -172,5 +175,6 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
