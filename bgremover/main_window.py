@@ -22,7 +22,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -55,6 +54,12 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.icons import make_tool_icon
+from bgremover.recent_files import (
+    RECENT_MAX as DEFAULT_RECENT_MAX,
+    SETTINGS_RECENT_KEY as DEFAULT_SETTINGS_RECENT_KEY,
+    RecentFiles,
+    RecentFilesMenu,
+)
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
 from bgremover.widgets import TopIconTabWidget
@@ -69,8 +74,8 @@ from bgremover.workers import (
 
 class MainWindow(QMainWindow):
     # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
-    RECENT_MAX = 10
-    SETTINGS_RECENT_KEY = "recent_files"
+    RECENT_MAX = DEFAULT_RECENT_MAX
+    SETTINGS_RECENT_KEY = DEFAULT_SETTINGS_RECENT_KEY
 
     _TAB_STYLE = f"""
         QTabWidget::pane {{ border: none; background: {_Theme.BG_PANEL}; }}
@@ -104,8 +109,10 @@ class MainWindow(QMainWindow):
         self._save_path: str | None = None
         # Persistente Einstellungen (Recent-Files etc.).
         self._settings = QSettings("BgRemover", "BgRemover")
-        # Submenü-Referenz wird in _build_menu gesetzt
-        self._recent_menu: QMenu | None = None
+        self._recent_files = RecentFiles(
+            self._settings, self.SETTINGS_RECENT_KEY, self.RECENT_MAX)
+        # Submenü-Adapter wird in _build_menu gesetzt
+        self._recent_menu: RecentFilesMenu | None = None
         # Asynchrones Bildladen
         self._load_thread: QThread | None = None
         # rembg-Warmup (Hintergrund-Modellladung)
@@ -755,8 +762,15 @@ class MainWindow(QMainWindow):
 
         # Submenü „Zuletzt geöffnet" – wird nach dem ersten load_image
         # mit Inhalt befüllt, persistiert über QSettings.
-        self._recent_menu = file_m.addMenu("Zuletzt geöffnet")
-        self._rebuild_recent_menu()
+        recent_menu = file_m.addMenu("Zuletzt geöffnet")
+        assert recent_menu is not None
+        self._recent_menu = RecentFilesMenu(
+            self,
+            recent_menu,
+            self._recent_files,
+            open_path=self._load_image_async,
+            missing_path=self._on_recent_missing,
+        )
 
         file_m.addSeparator()
 
@@ -990,44 +1004,16 @@ class MainWindow(QMainWindow):
     # ── Recent-Files ────────────────────────────────────────────
 
     def _recent_paths(self) -> list[str]:
-        raw = self._settings.value(self.SETTINGS_RECENT_KEY, [])
-        if isinstance(raw, str):       # einzelner Eintrag → in Liste packen
-            return [raw]
-        return list(raw) if raw else []
+        return self._recent_files.paths()
 
     def _add_recent(self, path: str) -> None:
-        canonical = str(Path(path).resolve())
-        items = [p for p in self._recent_paths() if p != canonical]
-        items.insert(0, canonical)
-        items = items[:self.RECENT_MAX]
-        self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
-        self._rebuild_recent_menu()
-
-    def _rebuild_recent_menu(self) -> None:
         if self._recent_menu is None:
+            self._recent_files.add(path)
             return
-        self._recent_menu.clear()
-        items = self._recent_paths()
-        if not items:
-            empty = QAction("(keine)", self)
-            empty.setEnabled(False)
-            self._recent_menu.addAction(empty)
-            return
-        for p in items:
-            act = QAction(Path(p).name, self)
-            act.setToolTip(p)
-            act.triggered.connect(lambda _=False, pp=p: self._open_recent(pp))
-            self._recent_menu.addAction(act)
+        self._recent_menu.add(path)
 
-    def _open_recent(self, path: str) -> None:
-        if not Path(path).exists():
-            self._sb.showMessage(
-                f"Datei nicht mehr vorhanden: {Path(path).name}")
-            items = [p for p in self._recent_paths() if p != path]
-            self._settings.setValue(self.SETTINGS_RECENT_KEY, items)
-            self._rebuild_recent_menu()
-            return
-        self._load_image_async(path)
+    def _on_recent_missing(self, path: str) -> None:
+        self._sb.showMessage(f"Datei nicht mehr vorhanden: {Path(path).name}")
 
     def _on_image_loaded(self, path: str) -> None:
         """Wird nach jedem load_image vom Canvas aufgerufen."""
@@ -1154,4 +1140,3 @@ class MainWindow(QMainWindow):
     def _undo_to_item(self, item) -> None:
         row = self._history_list.row(item)
         self._canvas.undo_to(row + 1)
-

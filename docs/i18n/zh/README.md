@@ -170,6 +170,8 @@ make type
   撤销/重做栈以及工具（魔棒、画笔、套索、裁剪）。
 - **`MainWindow`** 构建工具栏、右侧标签面板（四个 `_build_tab_*`
   构建器）、菜单，并将一切与画布连接起来。
+- **`RecentFiles`** 封装“最近打开”的持久化、去重和菜单适配器，
+  因而 `MainWindow` 只需委托加载路径。
 - **Worker**（`ImageLoadWorker`、`AIWorker`、`RembgWarmupWorker`）运行在
   各自的 `QThread` 中；`_launch_worker()` 封装了线程生命周期。
 - 画布中的单调**版本计数器**会丢弃过时的 AI 结果，

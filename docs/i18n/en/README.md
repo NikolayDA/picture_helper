@@ -170,6 +170,8 @@ launched via `python -m bgremover` or the `bgremover` console script):
   undo/redo stacks, and the tools (magic wand, brush, lasso, crop).
 - **`MainWindow`** builds the toolbar, the right-hand tab panel (four `_build_tab_*`
   builders), the menu, and connects everything to the canvas.
+- **`RecentFiles`** encapsulates persistence, de-duplication, and the menu
+  adapter for "Open Recent", so `MainWindow` only delegates the load path.
 - **Workers** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) run in
   their own `QThread`s; `_launch_worker()` encapsulates the thread lifecycle.
 - A monotonic **version counter** in the canvas discards stale AI results
