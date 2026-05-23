@@ -27,6 +27,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Changelog-Referenzlinks auf den 2.1.0-Stand korrigiert.**
+  `[Unreleased]` vergleicht jetzt ab `v2.1.0`, und `[2.1.0]` zeigt auf
+  den Release-Vergleich `v2.0.0...v2.1.0`.
 - **KI-Ergebnisse werden nach Zwischenbearbeitungen verworfen.** Der
   Stale-Check nutzt eine öffentliche Canvas-Version, die der
   Content-Revision folgt und bei jeder sichtbaren Bildänderung steigt
@@ -215,5 +218,6 @@ Erste öffentlich getaggte Veröffentlichung.
 - README mit Architektur, bekannten Einschränkungen und Installations-
   anleitung; ausführliche `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
