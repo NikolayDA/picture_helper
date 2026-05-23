@@ -29,8 +29,5 @@ jobs:
             libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
             zsh
 
-      - name: Install package
-        run: python -m pip install ".[test]"
-
       - name: Run lightweight PR checks
-        run: make check
+        run: make pr-check

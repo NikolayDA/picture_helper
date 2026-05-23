@@ -148,14 +148,15 @@ den 10 zuletzt geladenen Bildern — der Zustand wird zusammen mit den
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install ".[test]"
-make check
+python3 -m venv .venv
+source .venv/bin/activate
+make pr-check
 ```
 
 Die Test-Suite läuft headless (Qt-Platform `offscreen`) und prüft die
 Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Pull
 Requests laufen auf GitHub über eine leichte PR-CI (Ubuntu, Python
-3.12, `make check`). Die volle Matrix auf Linux und macOS unter Python
+3.12, `make pr-check`). Die volle Matrix auf Linux und macOS unter Python
 3.10 und 3.12 läuft beim Veröffentlichen eines Releases oder manuell.
 Details stehen in [TESTING.md](TESTING.md).
 

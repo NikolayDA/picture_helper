@@ -1,28 +1,43 @@
-.PHONY: all check pr-check lint type test ui clean
+.PHONY: all check pr-check install-test doctor lint type test ui clean
+
+VENV_BIN := $(CURDIR)/.venv/bin
+PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
+QT_QPA_PLATFORM ?= offscreen
+RUN_ENV := PATH="$(VENV_BIN):$(PATH)"
+QT_ENV := QT_QPA_PLATFORM=$(QT_QPA_PLATFORM) PATH="$(VENV_BIN):$(PATH)"
 
 # Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
-pr-check: check
+# Installiert das Paket bewusst nicht-editable, damit die App-Smoke-Tests
+# denselben Einstieg wie CI/Release/App-Bundle pruefen.
+pr-check: install-test doctor check
+
+install-test:
+	$(RUN_ENV) $(PYTHON) -m pip install ".[test]"
+
+doctor:
+	$(RUN_ENV) $(PYTHON) scripts/check_test_env.py
 
 # Standardpruefung ohne ui-Tests. Laeuft in der PR-CI und in der vollen
 # Release-/Manual-Matrix.
 check: lint type test
 
-# 'python -m' statt der blanken Binaries: robust gegen PATH-/venv-Eigenheiten
-# (z. B. isoliert installierte Tools), nutzt denselben Interpreter wie das
-# Projekt.
+# '$(PYTHON) -m' statt der blanken Binaries: robust gegen PATH-/venv-
+# Eigenheiten (z. B. isoliert installierte Tools), nutzt denselben
+# Interpreter wie das Projekt. PYTHON kann bei Bedarf ueberschrieben werden:
+# make PYTHON=/pfad/zur/python check
 lint:
-	python -m ruff check bgremover tests
+	$(RUN_ENV) $(PYTHON) -m ruff check bgremover scripts tests
 
 type:
-	python -m mypy
+	$(RUN_ENV) $(PYTHON) -m mypy
 
 test:
-	QT_QPA_PLATFORM=offscreen python -m pytest
+	$(QT_ENV) $(PYTHON) -m pytest
 
 # Lokale UI-Interaktionstests. Explizites -m ui ueberschreibt das
 # '-m not ui' aus pyproject [tool.pytest.ini_options].addopts.
 ui:
-	QT_QPA_PLATFORM=offscreen python -m pytest -m ui
+	$(QT_ENV) $(PYTHON) -m pytest -m ui
 
 # Alles: check + lokale UI-Tests.
 all: check ui

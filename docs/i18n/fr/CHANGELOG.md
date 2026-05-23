@@ -11,6 +11,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Doctor local de l'environnement de tests** (`make doctor`,
+  `scripts/check_test_env.py`). Vérifie la version de Python, les
+  dépendances `[test]`, l'installation non éditable du paquet, le script
+  console `bgremover` et Qt `offscreen` avant qu'un échec local
+  n'apparaisse tard dans pytest.
 - **Test de smoke CI pour le démarrage de l'app**
   (`tests/test_app_smoke.py`). Les tests d'UI existants sont exclus de
   la CI via `-m 'not ui'` ; la CI ne vérifiait donc jamais si
@@ -20,8 +25,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   console `bgremover` démarrent entièrement depuis un répertoire de
   travail neutre (le nouveau hook d'autotest `BGREMOVER_SMOKE_TEST`
   quitte après le premier tour de boucle d'événements avec le code 0) ;
-  on vérifie que `_ensure_qt_plugin_path()` produit un chemin de plugin
-  Qt valide ; la syntaxe shell des scripts de démarrage
+  on vérifie que la configuration des plugins Qt produit un chemin
+  valide ; la syntaxe shell des scripts de démarrage
   (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`)
   et du lanceur intégré au paquet d'app est contrôlée. `zsh` est
   installé dans le job CI Linux à cet effet.
@@ -79,9 +84,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **`make pr-check` rend la vérification locale de PR plus robuste.** La
+  cible réinstalle le paquet avec `[test]`, lance le doctor puis démarre
+  `ruff`, `mypy` et `pytest`. Le Makefile trouve automatiquement
+  `.venv/bin/python` et, sinon, retombe sur `python`/`python3` ; GitHub
+  PR CI et Full CI utilisent la même cible. La configuration partagée
+  des plugins Qt copie les plugins de plateforme dans le répertoire
+  temporaire système si nécessaire, afin que les exécutions headless
+  locales sur macOS n'échouent pas sur le listing des plugins dans le
+  chemin du projet.
 - **CI légère pour PR ajoutée et documentation de tests synchronisée.**
   Les pull requests disposent maintenant d'un workflow peu coûteux
-  Ubuntu/Python 3.12 avec `make check` ; la matrice complète Linux/macOS
+  Ubuntu/Python 3.12 avec `make pr-check` ; la matrice complète Linux/macOS
   reste réservée aux releases et aux exécutions manuelles. Les workflows
   de test installent le paquet en mode non éditable afin que les smoke
   tests de l'app vérifient la réalité installée depuis un `cwd` externe.
