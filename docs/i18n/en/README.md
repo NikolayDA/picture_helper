@@ -63,12 +63,12 @@ since system Python blocks `pip install` via PEP 668:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` pulls in the AI dependencies (`rembg[cpu]` including `onnxruntime`);
-without the AI feature, `python3 -m pip install -e .` is sufficient.
+without the AI feature, `python3 -m pip install -c requirements/constraints.txt -e .` is sufficient.
 
 **Linux:** There is no app bundle; the application runs by starting it
 directly from a venv:
@@ -77,7 +77,7 @@ directly from a venv:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -149,8 +149,10 @@ The test suite runs headless (Qt platform `offscreen`) and checks the
 image operations, the crop geometry, and the save logic. Pull requests
 run a lightweight GitHub PR CI job (Ubuntu, Python 3.12, `make pr-check`).
 The full Linux/macOS matrix under Python 3.10 and 3.12 runs on release
-publishing or manually. See [TESTING.md](../../../TESTING.md) for the
-full testing workflow.
+publishing or manually. All local/CI test installs use
+`requirements/constraints.txt`; override it with
+`make PIP_CONSTRAINT=/path/to/file pr-check` when needed. See
+[TESTING.md](../../../TESTING.md) for the full testing workflow.
 
 Code-style check and static type checking:
 

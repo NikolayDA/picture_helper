@@ -63,12 +63,12 @@ bash create_BgRemover_app.sh
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` підтягує залежності ШІ (`rembg[cpu]` включно з `onnxruntime`);
-без функції ШІ достатньо `python3 -m pip install -e .`.
+без функції ШІ достатньо `python3 -m pip install -c requirements/constraints.txt -e .`.
 
 **Linux:** App-бандла немає; застосунок працює через
 прямий запуск з venv:
@@ -77,7 +77,7 @@ python3 -m bgremover
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -149,8 +149,10 @@ make pr-check
 операції із зображеннями, геометрію обрізання та логіку збереження. Для pull
 request запускається легка GitHub PR CI (Ubuntu, Python 3.12, `make pr-check`).
 Повна матриця Linux/macOS з Python 3.10 та 3.12 запускається під час
-публікації release або вручну. Повний процес тестування описано в
-[TESTING.md](../../../TESTING.md).
+публікації release або вручну. Усі локальні/CI test-встановлення
+використовують `requirements/constraints.txt`; за потреби шлях можна
+перевизначити через `make PIP_CONSTRAINT=/шлях/до/файлу pr-check`.
+Повний процес тестування описано в [TESTING.md](../../../TESTING.md).
 
 Перевірка стилю коду та статична перевірка типів:
 
