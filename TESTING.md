@@ -3,8 +3,7 @@
 # BgRemover – Tests ausführen
 
 Diese Anleitung beschreibt, wie die Tests **lokal auf dem Mac** laufen
-(als Ersatz für die früheren GitHub-Läufe bei jedem Push) und **wann sie
-auf GitHub** noch automatisch ausgeführt werden.
+und **wann sie auf GitHub** automatisch ausgeführt werden.
 
 ## Warum diese Änderung?
 
@@ -12,13 +11,14 @@ Die GitHub-Actions-Test-Matrix (Ubuntu + macOS × Python 3.10/3.12) lief
 früher bei **jedem Push und jedem Pull Request** – das wurde auf Dauer
 zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 
-| Wo            | Wann                                                        |
-|---------------|-------------------------------------------------------------|
-| **GitHub CI** | nur beim **Veröffentlichen eines Releases** oder **manuell** |
-| **Lokal/Mac** | jederzeit per `make` – ersetzt die alten Push-Läufe         |
+| Wo                 | Wann                                                                 |
+|--------------------|----------------------------------------------------------------------|
+| **GitHub PR CI**   | bei jedem Pull Request auf `main`/`master` (Ubuntu + Python 3.12)     |
+| **GitHub Full CI** | nur beim **Veröffentlichen eines Releases** oder **manuell**          |
+| **Lokal/Mac**      | jederzeit per `make` – dieselben Prüfungen wie die PR-CI plus UI bei Bedarf |
 
 Der zweite Workflow `License Check` ist davon **nicht** betroffen und
-läuft weiterhin bei Pull Requests.
+läuft weiterhin bei Pull Requests und auf `main`/`master`.
 
 ## Voraussetzungen (einmalig)
 
@@ -28,12 +28,18 @@ installieren:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[test]"
+pip install ".[test]"
 ```
 
 Damit stehen `pytest`, `pytest-qt`, `ruff` und `mypy` bereit. Auf macOS
 sind **keine zusätzlichen System-Bibliotheken** nötig – die PyQt6-Wheels
 bringen Qt mit.
+
+Für die Test-Referenz wird bewusst eine normale Paketinstallation
+verwendet. So prüfen die Smoke-Tests das installierte Paket aus einem
+fremden Arbeitsverzeichnis – genau wie CI, Release-Build und App-Bundle.
+Nach Änderungen an Paketcode, Startern oder Paketdaten vor `make check`
+einmal erneut `pip install ".[test]"` ausführen.
 
 > **Nur `[test]` ins Test-venv** – **nicht** `[ai]` oder `[docs]`. Das
 > `ai`-Extra (`rembg`) gehört in die *Anwendungs*-Umgebung (das
@@ -71,7 +77,7 @@ venv gezielt auf einer offiziell getesteten Version neu aufbauen:
 rm -rf .venv
 python3.12 -m venv .venv          # oder python3.13
 source .venv/bin/activate
-pip install -e ".[test]"
+pip install ".[test]"
 ```
 
 `tests/conftest.py` prüft die Qt-Umgebung vor dem ersten GUI-Test in
@@ -85,21 +91,28 @@ Im Projektordner (venv aktiv):
 
 | Befehl       | Was passiert                                                              |
 |--------------|---------------------------------------------------------------------------|
-| `make check` | **Ersatz für die GitHub-Tests:** `ruff` + `mypy` + `pytest` – exakt die CI-Schritte (UI-Tests ausgeschlossen) |
+| `make check` | **Schnelle PR-Prüfung:** `ruff` + `mypy` + `pytest` – exakt wie die PR-CI (UI-Tests ausgeschlossen) |
+| `make pr-check` | Alias für `make check`, wenn der Name zur GitHub-PR-CI passen soll |
 | `make ui`    | Nur die lokalen UI-Interaktionstests                                       |
 | `make all`   | Alles zusammen (`check` + `ui`)                                            |
 | `make lint`  | Nur `ruff` (Stil/Fehler)                                                   |
 | `make type`  | Nur `mypy` (Typprüfung)                                                    |
 | `make test`  | Nur `pytest` (ohne UI-Tests, wie die CI)                                   |
 
-Empfohlener Ablauf vor dem Pushen / vor einem Release:
+Empfohlener Ablauf vor einem Pull Request:
+
+```bash
+make check
+```
+
+Empfohlener Ablauf vor einem Release:
 
 ```bash
 make all
 ```
 
-Alles grün ⇒ der Stand entspricht dem, was die GitHub-CI beim Release
-ebenfalls prüfen würde.
+Alles grün ⇒ der Stand entspricht lokal den automatischen PR-Prüfungen;
+`make all` deckt zusätzlich die bewusst lokalen UI-Interaktionstests ab.
 
 ## Die UI-Tests
 
@@ -108,7 +121,7 @@ UI-Tests (Smoke, Zeichentools, Menü/Toolbar, Crop-Overlay,
 SettingsDialog). Sie sind mit dem Marker `ui` versehen und laufen
 **nur lokal**:
 
-- `pytest` (Standard, und damit auch die GitHub-CI) **überspringt** sie
+- `pytest` (Standard, und damit auch PR-CI/Full-CI) **überspringt** sie
   automatisch – konfiguriert über `addopts = "-q -m 'not ui'"` in
   `pyproject.toml`.
 - `make ui` bzw. `pytest -m ui` führt **gezielt nur** diese Tests aus
@@ -133,22 +146,25 @@ QT_QPA_PLATFORM=offscreen python -m pytest -m ui -v
 python -m pytest --markers
 ```
 
-## GitHub-Tests manuell oder bei Release auslösen
+## GitHub-Tests bei PR, manuell oder Release
 
-**Manuell:** Auf GitHub → Reiter **Actions** → Workflow **CI** →
+**Pull Request:** Der Workflow **PR CI** läuft automatisch auf
+Ubuntu/Python 3.12 und führt `make check` aus.
+
+**Manuell:** Auf GitHub → Reiter **Actions** → Workflow **Full CI** →
 Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 `workflow_dispatch`.)
 
 **Automatisch:** Beim **Veröffentlichen eines Releases** (GitHub →
 Releases → *Publish release*) startet die volle Matrix automatisch.
-Ein bloßer Push oder ein Pull Request löst die Test-Matrix **nicht**
-mehr aus.
+Ein bloßer Push löst die Test-Matrix **nicht** mehr aus; Pull Requests
+bekommen stattdessen die leichte **PR CI**.
 
 ## Fehlerbehebung
 
 - **`ModuleNotFoundError: No module named 'PyQt6'`** – venv nicht
   aktiviert oder Abhängigkeiten fehlen: `source .venv/bin/activate`
-  und `pip install -e ".[test]"`.
+  und `pip install ".[test]"`.
 - **`pytest`-Befehl nutzt die falsche Umgebung** – das Makefile ruft
   bewusst `python -m pytest` / `python -m ruff` / `python -m mypy`
   auf, um genau den venv-Interpreter zu verwenden. Bei manuellen
@@ -173,4 +189,4 @@ mehr aus.
   Prozess ab. `conftest.py` unterbindet den Warmup inzwischen zentral
   in allen Tests, der Lauf ist also auch dann offline und stabil.
   Sauber ist trotzdem ein Test-venv **ohne** `ai`/`docs`:
-  `pip install -e ".[test]"` (siehe Hinweis unter „Voraussetzungen“).
+  `pip install ".[test]"` (siehe Hinweis unter „Voraussetzungen“).

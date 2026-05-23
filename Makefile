@@ -1,11 +1,15 @@
-.PHONY: all check lint type test ui clean
+.PHONY: all check pr-check lint type test ui clean
 
-# Spiegelt .github/workflows/ci.yml exakt (ohne ui-Tests, wie die CI).
+# Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
+pr-check: check
+
+# Standardpruefung ohne ui-Tests. Laeuft in der PR-CI und in der vollen
+# Release-/Manual-Matrix.
 check: lint type test
 
 # 'python -m' statt der blanken Binaries: robust gegen PATH-/venv-Eigenheiten
 # (z. B. isoliert installierte Tools), nutzt denselben Interpreter wie das
-# Projekt. Befehle/Reihenfolge entsprechen exakt .github/workflows/ci.yml.
+# Projekt.
 lint:
 	python -m ruff check bgremover tests
 
@@ -20,7 +24,7 @@ test:
 ui:
 	QT_QPA_PLATFORM=offscreen python -m pytest -m ui
 
-# Alles: CI-Aequivalent + lokale UI-Tests.
+# Alles: check + lokale UI-Tests.
 all: check ui
 
 clean:

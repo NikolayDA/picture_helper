@@ -70,6 +70,13 @@
 
 ### Змінено
 
+- **Додано легку PR CI та синхронізовано документацію тестів.** Pull
+  request-и тепер отримують дешевий workflow Ubuntu/Python 3.12 з
+  `make check`; повна матриця Linux/macOS залишається для release та
+  ручних запусків. Тестові workflow встановлюють пакет не-editable, щоб
+  app smoke tests перевіряли встановлену реальність із чужого `cwd`.
+  `README`, i18n README, `TESTING.md` і `Makefile` тепер описують один
+  і той самий процес.
 - **Моноліт → пакет (раунд 5).** Однофайловий `BgRemover.py`
   (3026 рядків) розділено на встановлюваний пакет `bgremover/`
   (14 модулів: `constants`, `image_utils`, `icons`, `theme`,
