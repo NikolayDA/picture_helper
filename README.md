@@ -148,20 +148,22 @@ den 10 zuletzt geladenen Bildern — der Zustand wird zusammen mit den
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install -e ".[test]"
-pytest
+pip install ".[test]"
+make check
 ```
 
 Die Test-Suite läuft headless (Qt-Platform `offscreen`) und prüft die
-Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Bei jedem
-Push und Pull-Request wird sie zusätzlich automatisch auf Linux und
-macOS unter Python 3.10 und 3.12 via GitHub Actions ausgeführt.
+Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Pull
+Requests laufen auf GitHub über eine leichte PR-CI (Ubuntu, Python
+3.12, `make check`). Die volle Matrix auf Linux und macOS unter Python
+3.10 und 3.12 läuft beim Veröffentlichen eines Releases oder manuell.
+Details stehen in [TESTING.md](TESTING.md).
 
-Code-Style-Check und statische Typprüfung (beide auch im CI):
+Code-Style-Check und statische Typprüfung:
 
 ```bash
-ruff check bgremover tests
-mypy
+make lint
+make type
 ```
 
 ### Anleitung-PDF neu erzeugen

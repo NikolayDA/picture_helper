@@ -140,20 +140,22 @@ together with the other settings.
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install -e ".[test]"
-pytest
+pip install ".[test]"
+make check
 ```
 
 The test suite runs headless (Qt platform `offscreen`) and checks the
-image operations, the crop geometry, and the save logic. On every
-push and pull request it is additionally run automatically on Linux and
-macOS under Python 3.10 and 3.12 via GitHub Actions.
+image operations, the crop geometry, and the save logic. Pull requests
+run a lightweight GitHub PR CI job (Ubuntu, Python 3.12, `make check`).
+The full Linux/macOS matrix under Python 3.10 and 3.12 runs on release
+publishing or manually. See [TESTING.md](../../../TESTING.md) for the
+full testing workflow.
 
-Code-style check and static type checking (both also in CI):
+Code-style check and static type checking:
 
 ```bash
-ruff check bgremover tests
-mypy
+make lint
+make type
 ```
 
 ## Architecture (brief overview)

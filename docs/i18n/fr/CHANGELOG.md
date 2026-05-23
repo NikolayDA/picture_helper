@@ -75,6 +75,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **CI légère pour PR ajoutée et documentation de tests synchronisée.**
+  Les pull requests disposent maintenant d'un workflow peu coûteux
+  Ubuntu/Python 3.12 avec `make check` ; la matrice complète Linux/macOS
+  reste réservée aux releases et aux exécutions manuelles. Les workflows
+  de test installent le paquet en mode non éditable afin que les smoke
+  tests de l'app vérifient la réalité installée depuis un `cwd` externe.
+  `README`, READMEs i18n, `TESTING.md` et `Makefile` décrivent
+  désormais le même flux.
 - **Monolithe → paquet (tour 5).** Le fichier unique `BgRemover.py`
   (3026 lignes) a été scindé dans le paquet installable `bgremover/`
   (14 modules : `constants`, `image_utils`, `icons`, `theme`,
