@@ -8,9 +8,9 @@ and tools, third-party code, as well as the project's own assets — each
 with its purpose, license, and source.
 
 > Version notes: "Min." comes from `pyproject.toml` (the binding
-> minimum requirement), "Verified" is the version installed in the
-> current development/CI environment. The bundled license text of the
-> respective package is always authoritative.
+> minimum requirement), "Verified" is the Python 3.12 baseline pinned in
+> `requirements/constraints.txt` for the current local/CI checks. The
+> bundled license text of the respective package is always authoritative.
 
 ---
 
@@ -33,11 +33,11 @@ Qt itself is licensed under LGPL v3 / GPL / commercial license; the
 Declared under `[project.optional-dependencies] ai` — needed only for the
 automatic background removal (the `rembg` tool):
 
-| Resource | Purpose | Min. | License | Source |
-|-----------|-------|------|--------|-------|
-| **rembg[cpu]** | AI-assisted background removal (`rembg.remove`) | `>=2.0` | MIT | PyPI |
-| **onnxruntime** | ONNX inference backend (transitive dependency of `rembg[cpu]`) | (transitive) | MIT (Microsoft) | PyPI |
-| **U²-Net model** (`u2net.onnx`) | The default segmentation model that rembg **downloads at runtime** (not included in the repo) | – | Apache-2.0 (project *U-2-Net*) | Downloaded by rembg into the user cache directory |
+| Resource | Purpose | Min. | Verified | License | Source |
+|-----------|-------|------|---------|--------|-------|
+| **rembg[cpu]** | AI-assisted background removal (`rembg.remove`) | `>=2.0` | 2.0.75 | MIT | PyPI |
+| **onnxruntime** | ONNX inference backend (transitive dependency of `rembg[cpu]`) | (transitive) | 1.26.0 | MIT (Microsoft) | PyPI |
+| **U²-Net model** (`u2net.onnx`) | The default segmentation model that rembg **downloads at runtime** (not included in the repo) | – | – | Apache-2.0 (project *U-2-Net*) | Downloaded by rembg into the user cache directory |
 
 Without the `ai` extras the program starts normally; the AI button is
 then disabled (`REMBG_AVAILABLE = False`).
@@ -47,7 +47,8 @@ then disabled (`REMBG_AVAILABLE = False`).
 Part of CPython, **no additional installation** needed
 (license: PSF License Agreement):
 
-`sys`, `os`, `io`, `logging`, `collections.deque`, `pathlib.Path`.
+`sys`, `os`, `io`, `logging`, `collections.deque`, `pathlib.Path`,
+`importlib.metadata`, `importlib.resources`, `contextlib`, `tempfile`.
 
 ## 4. Development & test tools
 
@@ -59,6 +60,19 @@ Declared under `[project.optional-dependencies] test`:
 | **pytest-qt** | Qt fixtures (headless `offscreen`) | `>=4.4` | 4.5.0 | MIT |
 | **ruff** | Linting / style check | `>=0.6` | 0.15.13 | MIT |
 | **mypy** | Static type checking (CI step) | `>=1.10` | 2.1.0 | MIT |
+| **packaging** | Parses dependency constraints in tests | `>=24` | 24.0 | Apache-2.0 or BSD-2-Clause |
+
+Optional documentation/PDF tooling is declared under
+`[project.optional-dependencies] docs`:
+
+| Tool | Purpose | Min. | License |
+|----------|-------|------|--------|
+| **Markdown** | Markdown to HTML for `ANLEITUNG.pdf` | `>=3.5` | BSD |
+| **WeasyPrint** | PDF rendering from HTML/CSS | `>=61` | BSD-3-Clause |
+| **fonttools** | Font inspection for PDF generation | `>=4.0` | MIT |
+
+PDF generation also needs system resources such as DejaVu fonts and
+Pango/Cairo/GDK-Pixbuf (distro-packaged).
 
 ## 5. Build & distribution tools (macOS)
 
@@ -67,7 +81,7 @@ Required by the app bundle script `create_BgRemover_app.sh`. It bundles
 
 | Tool | Purpose | Origin |
 |----------|-------|----------|
-| `python3` + `venv` + `pip` | Create the isolated venv, install dependencies | Python / PyPA |
+| `python3` + `venv` + `pip` | Create the isolated venv, install dependencies with `requirements/constraints.txt` | Python / PyPA |
 | `setuptools` (build backend) | Packaging according to `[build-system]` (`>=61`) | MIT |
 | `/usr/bin/arch`, `uname` | Enforce the native CPU architecture (Apple Silicon) | macOS |
 | `iconutil` | Generate the `.icns` app icon from an iconset (fallback: PNG) | macOS |
@@ -79,13 +93,20 @@ own code).
 
 ## 6. Continuous integration
 
-Defined in `.github/workflows/ci.yml` (runs on GitHub Actions runners
-Ubuntu + macOS, Python 3.10/3.12):
+Defined in `.github/workflows/pr-ci.yml`, `.github/workflows/ci.yml`,
+and `.github/workflows/license-check.yml`. Pull requests run a
+lightweight Ubuntu/Python 3.12 job; the full matrix runs on Ubuntu +
+macOS with Python 3.10/3.12 for releases or manual runs; the license
+workflow generates the dependency/license report.
 
 | Resource | Purpose | License |
 |-----------|-------|--------|
-| `actions/checkout@v4` | Check out the repository | MIT |
-| `actions/setup-python@v5` | Set up Python + pip cache | MIT |
+| `actions/checkout@v5` | Check out the repository | MIT |
+| `actions/setup-python@v6` | Set up Python + pip cache | MIT |
+| `actions/upload-artifact@v4` | Upload license report artifacts | MIT |
+| `actions/github-script@v7` | Comment the license summary on pull requests | MIT |
+| `pip-licenses` | Raw dump of installed package licenses | MIT |
+| `requirements/constraints.txt` | Reproducible dependency snapshot for local checks, CI, license report, and app bundle | Project file |
 | Qt system libraries via `apt` (Linux) | Headless Qt runtime: `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | distro-packaged, various permissive/copyleft licenses (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |
 
 ## 7. The project's own resources
@@ -93,10 +114,12 @@ Ubuntu + macOS, Python 3.10/3.12):
 The project's own work, covered by the project license
 (GPL-3.0-or-later, see `LICENSE`):
 
-- **Source code**: `BgRemover.py` as well as the test suite under `tests/`.
-- **Toolbar/tab icons**: `icons/*.png` (`ai`, `bg`, `brush`,
+- **Source code**: the installable package `bgremover/`, the test suite
+  under `tests/`, and project scripts under `scripts/`.
+- **Toolbar/tab icons**: `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
   `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
-  `save`, `transparency`, `undo`, `wand`). Loaded by `make_tool_icon()`.
+  `save`, `transparency`, `undo`, `wand`). Loaded by `make_tool_icon()`
+  via `importlib.resources` as package data.
 - **Drawn vector icons**: If a PNG is unavailable, `make_tool_icon()`
   draws the icon programmatically with `QPainter`
   (`_draw_*_icon` functions) — no external asset.
@@ -123,5 +146,7 @@ PyQt6 were replaced by the LGPL-v3-licensed **PySide6**.
 ---
 
 *Maintenance note:* When making changes to `pyproject.toml`,
-`.github/workflows/ci.yml`, or `create_BgRemover_app.sh`, please update
-this document as well.
+`requirements/constraints.txt`, `.github/workflows/pr-ci.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/license-check.yml`,
+`create_BgRemover_app.sh`, or the package data under `bgremover/icons/`,
+please update this document as well.

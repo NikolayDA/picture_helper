@@ -8,9 +8,10 @@ und Werkzeuge, projektfremder Code sowie projekteigene Assets — jeweils
 mit Zweck, Lizenz und Bezugsquelle.
 
 > Versionsangaben: „Min." stammt aus `pyproject.toml` (verbindliche
-> Mindestanforderung), „geprüft" ist die in der aktuellen
-> Entwicklungs-/CI-Umgebung installierte Version. Maßgeblich ist immer
-> der jeweils mitgelieferte Lizenztext des Pakets.
+> Mindestanforderung), „geprüft" ist die durch
+> `requirements/constraints.txt` festgehaltene Python-3.12-Baseline der
+> aktuellen lokalen/CI-Checks. Maßgeblich ist immer der jeweils
+> mitgelieferte Lizenztext des Pakets.
 
 ---
 
@@ -33,11 +34,11 @@ Qt selbst steht unter LGPL v3 / GPL / kommerzieller Lizenz; das
 Deklariert unter `[project.optional-dependencies] ai` — nur nötig für die
 automatische Hintergrundentfernung (`rembg`-Werkzeug):
 
-| Ressource | Zweck | Min. | Lizenz | Bezug |
-|-----------|-------|------|--------|-------|
-| **rembg[cpu]** | KI-gestützte Hintergrundentfernung (`rembg.remove`) | `>=2.0` | MIT | PyPI |
-| **onnxruntime** | ONNX-Inferenz-Backend (transitive Abhängigkeit von `rembg[cpu]`) | (transitiv) | MIT (Microsoft) | PyPI |
-| **U²-Net-Modell** (`u2net.onnx`) | Standard-Segmentierungsmodell, das rembg **zur Laufzeit herunterlädt** (nicht im Repo enthalten) | – | Apache-2.0 (Projekt *U-2-Net*) | Download durch rembg in das Nutzer-Cache-Verzeichnis |
+| Ressource | Zweck | Min. | Geprüft | Lizenz | Bezug |
+|-----------|-------|------|---------|--------|-------|
+| **rembg[cpu]** | KI-gestützte Hintergrundentfernung (`rembg.remove`) | `>=2.0` | 2.0.75 | MIT | PyPI |
+| **onnxruntime** | ONNX-Inferenz-Backend (transitive Abhängigkeit von `rembg[cpu]`) | (transitiv) | 1.26.0 | MIT (Microsoft) | PyPI |
+| **U²-Net-Modell** (`u2net.onnx`) | Standard-Segmentierungsmodell, das rembg **zur Laufzeit herunterlädt** (nicht im Repo enthalten) | – | – | Apache-2.0 (Projekt *U-2-Net*) | Download durch rembg in das Nutzer-Cache-Verzeichnis |
 
 Ohne die `ai`-Extras startet das Programm normal; der KI-Button ist dann
 deaktiviert (`REMBG_AVAILABLE = False`).
@@ -47,7 +48,8 @@ deaktiviert (`REMBG_AVAILABLE = False`).
 Teil von CPython, **keine zusätzliche Installation** nötig
 (Lizenz: PSF License Agreement):
 
-`sys`, `os`, `io`, `logging`, `collections.deque`, `pathlib.Path`.
+`sys`, `os`, `io`, `logging`, `collections.deque`, `pathlib.Path`,
+`importlib.metadata`, `importlib.resources`, `contextlib`, `tempfile`.
 
 ## 4. Entwicklungs- & Test-Werkzeuge
 
@@ -59,6 +61,19 @@ Deklariert unter `[project.optional-dependencies] test`:
 | **pytest-qt** | Qt-Fixtures (headless `offscreen`) | `>=4.4` | 4.5.0 | MIT |
 | **ruff** | Linting / Style-Check | `>=0.6` | 0.15.13 | MIT |
 | **mypy** | Statische Typprüfung (CI-Schritt) | `>=1.10` | 2.1.0 | MIT |
+| **packaging** | Parsing der Dependency-Constraints in Tests | `>=24` | 24.0 | Apache-2.0 oder BSD-2-Clause |
+
+Optionale Dokumentations-/PDF-Werkzeuge sind unter
+`[project.optional-dependencies] docs` deklariert:
+
+| Werkzeug | Zweck | Min. | Lizenz |
+|----------|-------|------|--------|
+| **Markdown** | Markdown → HTML für `ANLEITUNG.pdf` | `>=3.5` | BSD |
+| **WeasyPrint** | PDF-Rendering aus HTML/CSS | `>=61` | BSD-3-Clause |
+| **fonttools** | Font-Inspection für PDF-Erzeugung | `>=4.0` | MIT |
+
+Zusätzlich benötigt die PDF-Erzeugung Systemressourcen wie DejaVu-
+Schriften sowie Pango/Cairo/GDK-Pixbuf (distro-paketiert).
 
 ## 5. Build- & Verteilungs-Werkzeuge (macOS)
 
@@ -67,7 +82,7 @@ Benötigt vom App-Bundle-Skript `create_BgRemover_app.sh`. Es bündelt
 
 | Werkzeug | Zweck | Herkunft |
 |----------|-------|----------|
-| `python3` + `venv` + `pip` | Isolierte venv anlegen, Abhängigkeiten installieren | Python / PyPA |
+| `python3` + `venv` + `pip` | Isolierte venv anlegen, Abhängigkeiten mit `requirements/constraints.txt` installieren | Python / PyPA |
 | `setuptools` (Build-Backend) | Paketierung gemäß `[build-system]` (`>=61`) | MIT |
 | `/usr/bin/arch`, `uname` | Native CPU-Architektur erzwingen (Apple Silicon) | macOS |
 | `iconutil` | `.icns`-App-Icon aus Iconset erzeugen (Fallback: PNG) | macOS |
@@ -79,13 +94,20 @@ Code des Projekts).
 
 ## 6. Continuous Integration
 
-Definiert in `.github/workflows/ci.yml` (läuft auf GitHub-Actions-Runnern
-Ubuntu + macOS, Python 3.10/3.12):
+Definiert in `.github/workflows/pr-ci.yml`,
+`.github/workflows/ci.yml` und `.github/workflows/license-check.yml`.
+Pull Requests laufen leichtgewichtig auf Ubuntu/Python 3.12; die volle
+Matrix läuft auf Ubuntu + macOS mit Python 3.10/3.12 bei Releases oder
+manuell; der Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
 
 | Ressource | Zweck | Lizenz |
 |-----------|-------|--------|
-| `actions/checkout@v4` | Repository auschecken | MIT |
-| `actions/setup-python@v5` | Python einrichten + Pip-Cache | MIT |
+| `actions/checkout@v5` | Repository auschecken | MIT |
+| `actions/setup-python@v6` | Python einrichten + Pip-Cache | MIT |
+| `actions/upload-artifact@v4` | Lizenzreport-Artefakte hochladen | MIT |
+| `actions/github-script@v7` | Lizenz-Kurzfassung am Pull Request kommentieren | MIT |
+| `pip-licenses` | Rohdump der installierten Paketlizenzen | MIT |
+| `requirements/constraints.txt` | Reproduzierbarer Dependency-Snapshot für lokale Checks, CI, Lizenzreport und App-Bundle | Projektdatei |
 | Qt-Systembibliotheken via `apt` (Linux) | Headless-Qt-Laufzeit: `libegl1`, `libfontconfig1`, `libxkbcommon0`, `libdbus-1-3`, `libxcb-*` | distro-paketiert, diverse permissive/Copyleft-Lizenzen (Mesa, fontconfig, libxkbcommon, libxcb, dbus …) |
 
 ## 7. Projekteigene Ressourcen
@@ -93,11 +115,12 @@ Ubuntu + macOS, Python 3.10/3.12):
 Eigenes Werk des Projekts, abgedeckt durch die Projektlizenz
 (GPL-3.0-or-later, siehe `LICENSE`):
 
-- **Quellcode**: `BgRemover.py` sowie die Test-Suite unter `tests/`.
-- **Toolbar-/Tab-Icons**: `icons/*.png` (`ai`, `bg`, `brush`,
+- **Quellcode**: das installierbare Paket `bgremover/`, die Test-Suite
+  unter `tests/` sowie Projekt-Skripte unter `scripts/`.
+- **Toolbar-/Tab-Icons**: `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
   `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
   `save`, `transparency`, `undo`, `wand`). Werden von `make_tool_icon()`
-  geladen.
+  über `importlib.resources` als Paketdaten geladen.
 - **Gezeichnete Vektor-Icons**: Fällt eine PNG aus, zeichnet
   `make_tool_icon()` das Icon programmatisch mit `QPainter`
   (`_draw_*_icon`-Funktionen) — kein externes Asset.
@@ -124,5 +147,7 @@ PyQt6 durch das LGPL-v3-lizenzierte **PySide6** ersetzt würde.
 ---
 
 *Pflege-Hinweis:* Bei Änderungen an `pyproject.toml`,
-`.github/workflows/ci.yml` oder `create_BgRemover_app.sh` bitte dieses
-Dokument mit aktualisieren.
+`requirements/constraints.txt`, `.github/workflows/pr-ci.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/license-check.yml`,
+`create_BgRemover_app.sh` oder den Paketdaten unter `bgremover/icons/`
+bitte dieses Dokument mit aktualisieren.
