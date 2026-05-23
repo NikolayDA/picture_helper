@@ -173,9 +173,10 @@ iniciado vía `python -m bgremover` o el script de consola `bgremover`):
 - **`ImageCanvas`** (QGraphicsView) mantiene el estado de la imagen, la
   máscara de selección, las pilas de Deshacer/Rehacer y las herramientas
   (varita mágica, pincel, lazo, recorte).
-- **`MainWindow`** construye la barra de herramientas, el panel de
-  pestañas a la derecha (cuatro constructores `_build_tab_*`) y conecta
-  todo con el lienzo.
+- **`MainWindow`** construye la barra de herramientas, la barra de estado/
+  recorte y conecta el lienzo, menús, panel derecho y workers.
+- **`right_panel`** construye las cuatro pestañas derechas de selección,
+  fondo, giro/espejo y forma/recorte a partir de un conjunto de callbacks.
 - **`menu_actions`** construye la barra de menú, acciones y atajos;
   `MainWindow` solo aporta callbacks.
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador

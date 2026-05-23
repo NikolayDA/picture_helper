@@ -37,6 +37,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **从 `MainWindow` 中抽出菜单/action 构建。**
   `bgremover/menu_actions.py` 负责菜单栏、`QAction`、快捷键和最近文件
   子菜单；`MainWindow` 只传入领域回调。
+- **从 `MainWindow` 中抽出右侧标签面板。**
+  `bgremover/right_panel.py` 负责选择、背景、变换和形状标签页，
+  包括滑块、spinbox 和面板按钮；`MainWindow` 只传入画布回调。
 
 ### 修复
 
