@@ -11,11 +11,16 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-# Repo-Root in sys.path aufnehmen, damit ``import bgremover`` funktioniert,
-# wenn das Paket nicht per ``pip install -e .`` installiert wurde.
+# Repo-Root in sys.path aufnehmen, damit Unit-Tests die aktuelle Quelle
+# importieren. Die App-Smoke-Tests prüfen zusätzlich die echte Installation
+# aus einem neutralen Arbeitsverzeichnis; dafür ``make install-test`` nutzen.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from bgremover.qt_plugins import ensure_qt_plugin_path
+
+ensure_qt_plugin_path()
 
 import pytest
 from PyQt6.QtWidgets import QApplication
@@ -60,13 +65,10 @@ def _qt_platform_diagnosis() -> str | None:
     if sys.version_info[:2] >= (3, 14):
         hint = (
             f"\nHinweis: Python {py} ist offiziell nicht getestet "
-            "(Classifier: 3.10–3.13), funktioniert aber mit "
-            "PyQt6 >= 6.11 (cp314-Wheels mit lauffähigem "
-            "'offscreen'-Plugin).\n"
-            "  -> zuerst:  pip install -U PyQt6\n"
-            "  -> hilft das nicht, venv auf 3.12/3.13 neu aufbauen:\n"
+            "(Classifier: 3.10–3.13).\n"
+            "  -> venv auf 3.12/3.13 neu aufbauen:\n"
             "     rm -rf .venv && python3.12 -m venv .venv && "
-            "source .venv/bin/activate && pip install -e \".[test]\"\n"
+            "source .venv/bin/activate && make install-test\n"
         )
     return (
         "Qt konnte das Plattform-Plugin 'offscreen' nicht initialisieren "

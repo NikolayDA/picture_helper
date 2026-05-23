@@ -140,13 +140,14 @@ autres paramètres via QSettings.
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install ".[test]"
-make check
+python3 -m venv .venv
+source .venv/bin/activate
+make pr-check
 ```
 
 La suite de tests s'exécute en mode headless (plateforme Qt `offscreen`) et vérifie les
 opérations sur l'image, la géométrie de recadrage et la logique d'enregistrement. Les pull
-requests lancent une CI GitHub légère (Ubuntu, Python 3.12, `make check`).
+requests lancent une CI GitHub légère (Ubuntu, Python 3.12, `make pr-check`).
 La matrice complète Linux/macOS sous Python 3.10 et 3.12 s'exécute lors
 de la publication d'une release ou manuellement. Voir
 [TESTING.md](../../../TESTING.md) pour le flux complet de tests.

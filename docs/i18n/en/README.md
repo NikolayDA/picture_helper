@@ -140,13 +140,14 @@ together with the other settings.
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install ".[test]"
-make check
+python3 -m venv .venv
+source .venv/bin/activate
+make pr-check
 ```
 
 The test suite runs headless (Qt platform `offscreen`) and checks the
 image operations, the crop geometry, and the save logic. Pull requests
-run a lightweight GitHub PR CI job (Ubuntu, Python 3.12, `make check`).
+run a lightweight GitHub PR CI job (Ubuntu, Python 3.12, `make pr-check`).
 The full Linux/macOS matrix under Python 3.10 and 3.12 runs on release
 publishing or manually. See [TESTING.md](../../../TESTING.md) for the
 full testing workflow.

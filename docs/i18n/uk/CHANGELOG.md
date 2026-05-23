@@ -11,6 +11,10 @@
 
 ### Додано
 
+- **Локальний doctor тестового середовища** (`make doctor`,
+  `scripts/check_test_env.py`). Перевіряє версію Python, залежності
+  `[test]`, не-editable встановлення пакета, console-script `bgremover`
+  і Qt `offscreen`, перш ніж локальний запуск впаде глибоко в pytest.
 - **CI-smoke-тест запуску застосунку** (`tests/test_app_smoke.py`).
   Наявні UI-тести виключені з CI через `-m 'not ui'`, тож CI ніколи
   не перевіряла, чи застосунок взагалі запускається – саме та
@@ -19,7 +23,7 @@
   console-script `bgremover` повністю стартують з нейтрального
   робочого каталогу (новий hook самотестування `BGREMOVER_SMOKE_TEST`
   завершує після першого проходу event loop з кодом 0); перевіряється,
-  що `_ensure_qt_plugin_path()` дає коректний шлях до Qt-плагінів;
+  що налаштування Qt-плагінів дає коректний шлях;
   перевіряється shell-синтаксис стартових скриптів
   (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`)
   та лаунчера, вбудованого в App-бандл. Для цього в Linux-CI-job
@@ -74,9 +78,17 @@
 
 ### Змінено
 
+- **`make pr-check` робить локальну PR-перевірку надійнішою.** Target
+  заново встановлює пакет із `[test]`, запускає doctor, а потім `ruff`,
+  `mypy` і `pytest`. Makefile автоматично знаходить `.venv/bin/python`,
+  а якщо його немає, переходить до `python`/`python3`; GitHub PR CI та
+  Full CI використовують той самий target. Спільне налаштування Qt-
+  плагінів за потреби копіює platform plugins у системний temp-каталог,
+  щоб локальні headless-запуски на macOS не падали через listing
+  plugins усередині шляху проєкту.
 - **Додано легку PR CI та синхронізовано документацію тестів.** Pull
   request-и тепер отримують дешевий workflow Ubuntu/Python 3.12 з
-  `make check`; повна матриця Linux/macOS залишається для release та
+  `make pr-check`; повна матриця Linux/macOS залишається для release та
   ручних запусків. Тестові workflow встановлюють пакет не-editable, щоб
   app smoke tests перевіряли встановлену реальність із чужого `cwd`.
   `README`, i18n README, `TESTING.md` і `Makefile` тепер описують один
