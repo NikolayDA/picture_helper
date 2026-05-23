@@ -63,12 +63,12 @@ car le Python système bloque `pip install` selon le PEP 668 :
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` entraîne l'installation des dépendances d'IA (`rembg[cpu]` y compris `onnxruntime`) ;
-sans la fonction d'IA, `python3 -m pip install -e .` suffit.
+sans la fonction d'IA, `python3 -m pip install -c requirements/constraints.txt -e .` suffit.
 
 **Linux :** il n'y a pas de bundle d'application ; l'application fonctionne via le
 lancement direct depuis un venv :
@@ -77,7 +77,7 @@ lancement direct depuis un venv :
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -149,7 +149,9 @@ La suite de tests s'exécute en mode headless (plateforme Qt `offscreen`) et vé
 opérations sur l'image, la géométrie de recadrage et la logique d'enregistrement. Les pull
 requests lancent une CI GitHub légère (Ubuntu, Python 3.12, `make pr-check`).
 La matrice complète Linux/macOS sous Python 3.10 et 3.12 s'exécute lors
-de la publication d'une release ou manuellement. Voir
+de la publication d'une release ou manuellement. Toutes les installations
+de test locales/CI utilisent `requirements/constraints.txt` ; on peut le
+remplacer si nécessaire via `PIP_CONSTRAINT=... make pr-check`. Voir
 [TESTING.md](../../../TESTING.md) pour le flux complet de tests.
 
 Vérification du style de code et contrôle de typage statique :

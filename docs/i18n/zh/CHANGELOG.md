@@ -11,6 +11,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **可复现的依赖 snapshot**（`requirements/constraints.txt`）。
+  Makefile、license workflow 和 macOS App 构建会使用同一份已提交的
+  constraints，用于测试、CI、license 和 App Bundle 安装。
 - **本地测试环境 doctor**（`make doctor`、
   `scripts/check_test_env.py`）。在本地运行深入 pytest 后才失败之前，
   先检查 Python 版本、`[test]` 依赖、非 editable 包安装、

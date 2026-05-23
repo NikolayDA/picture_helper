@@ -43,12 +43,12 @@ system Python blocks `pip install` via PEP 668:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` installs `rembg[cpu]` including `onnxruntime` (AI background removal).
-- Without the AI feature, this is sufficient: `python3 -m pip install -e .`
+- Without the AI feature, this is sufficient: `python3 -m pip install -c requirements/constraints.txt -e .`
 
 ## Start variants
 
@@ -72,7 +72,7 @@ git fetch origin
 git branch -r                       # show available branches
 git checkout <branch>
 # in a venv (see Quick start); only needed if dependencies have changed:
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -94,7 +94,7 @@ git checkout <branch> && git pull      # update a specific branch
 
 The editable install (`pip install -e`) does **not** need to be run
 again after `git pull` — unless the dependencies in
-`pyproject.toml` have changed.
+`pyproject.toml` or `requirements/constraints.txt` have changed.
 
 ## Troubleshooting
 

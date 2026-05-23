@@ -65,12 +65,12 @@ según el PEP 668:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` incluye las dependencias de IA (`rembg[cpu]` incl. `onnxruntime`);
-sin la función de IA basta con `python3 -m pip install -e .`.
+sin la función de IA basta con `python3 -m pip install -c requirements/constraints.txt -e .`.
 
 **Linux:** No hay paquete de aplicación; la aplicación se ejecuta
 mediante el inicio directo desde un venv:
@@ -79,7 +79,7 @@ mediante el inicio directo desde un venv:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -153,8 +153,10 @@ La suite de pruebas se ejecuta sin interfaz gráfica (plataforma Qt
 recorte y la lógica de guardado. Los pull requests ejecutan una CI
 ligera en GitHub (Ubuntu, Python 3.12, `make pr-check`). La matriz completa
 en Linux/macOS con Python 3.10 y 3.12 se ejecuta al publicar un release
-o manualmente. Consulta [TESTING.md](../../../TESTING.md) para el flujo
-completo de pruebas.
+o manualmente. Todas las instalaciones locales/CI de prueba usan
+`requirements/constraints.txt`; si hace falta, se puede sobrescribir con
+`make PIP_CONSTRAINT=/ruta/al/archivo pr-check`. Consulta
+[TESTING.md](../../../TESTING.md) para el flujo completo de pruebas.
 
 Comprobación del estilo de código y verificación estática de tipos:
 

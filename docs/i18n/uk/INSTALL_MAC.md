@@ -43,12 +43,12 @@ bash create_BgRemover_app.sh
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` встановлює `rembg[cpu]` включно з `onnxruntime` (видалення фону за допомогою ШІ).
-- Без функції ШІ достатньо: `python3 -m pip install -e .`
+- Без функції ШІ достатньо: `python3 -m pip install -c requirements/constraints.txt -e .`
 
 ## Варіанти запуску
 
@@ -72,7 +72,7 @@ git fetch origin
 git branch -r                       # показати доступні гілки
 git checkout <branch>
 # у venv (див. Швидкий старт); потрібно лише, якщо змінилися залежності:
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -94,7 +94,7 @@ git checkout <branch> && git pull      # оновити певну гілку
 
 Editable-встановлення (`pip install -e`) **не** потрібно
 виконувати повторно після `git pull` — окрім випадку, коли залежності в
-`pyproject.toml` змінилися.
+`pyproject.toml` або `requirements/constraints.txt` змінилися.
 
 ## Усунення несправностей
 

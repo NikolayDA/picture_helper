@@ -139,13 +139,13 @@ PyQt6/Pillow/numpy 在 venv 中可见，这样就只需加载 `rembg` 和
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` 会安装 `rembg[cpu]`，含 `onnxruntime`
   （AI 背景移除）。
-- 不需要 AI 功能时：`python3 -m pip install -e .` 即可
+- 不需要 AI 功能时：`python3 -m pip install -c requirements/constraints.txt -e .` 即可
 
 在新的 shell 中启动前要重新激活 venv：
 ```bash
@@ -210,7 +210,7 @@ git branch -r                       # 显示可用的分支
 git checkout <branch>
 source .venv/bin/activate
 # 仅在依赖项发生变化时才需要：
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -228,8 +228,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
 ```
 
 在 `git pull` 之后**无需**再次执行 editable 安装
-（`pip install -e`）——除非 `pyproject.toml` 中的
-依赖项发生了变化。
+（`pip install -e`）——除非 `pyproject.toml` 或
+`requirements/constraints.txt` 中的依赖项发生了变化。
 
 ## 故障排除
 

@@ -43,12 +43,12 @@ ya que el Python del sistema bloquea `pip install` según el PEP 668:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` instala `rembg[cpu]` incl. `onnxruntime` (eliminación de fondo con IA).
-- Sin la función de IA basta con: `python3 -m pip install -e .`
+- Sin la función de IA basta con: `python3 -m pip install -c requirements/constraints.txt -e .`
 
 ## Variantes de inicio
 
@@ -72,7 +72,7 @@ git fetch origin
 git branch -r                       # mostrar ramas disponibles
 git checkout <branch>
 # en un venv (ver Inicio rápido); solo necesario si han cambiado las dependencias:
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -95,7 +95,7 @@ git checkout <branch> && git pull      # actualizar una rama concreta
 
 La instalación editable (`pip install -e`) **no** hay que volver a
 ejecutarla tras `git pull` — salvo que hayan cambiado las dependencias
-en `pyproject.toml`.
+en `pyproject.toml` o `requirements/constraints.txt`.
 
 ## Resolución de problemas
 

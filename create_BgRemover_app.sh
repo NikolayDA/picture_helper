@@ -34,6 +34,7 @@ arch_run() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
 # (`bgremover/`); die App wird ueber `python -m bgremover` gestartet.
+CONSTRAINTS_FILE="$SCRIPT_DIR/requirements/constraints.txt"
 ICON_PNG="$SCRIPT_DIR/BgRemover_icon.png"
 COMMAND_FILE="$SCRIPT_DIR/BgRemover.command"
 APP_NAME="BgRemover"
@@ -59,7 +60,7 @@ py_version_ok() {
     local ver major minor
     ver=$("$1" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null) || return 1
     major=${ver%%.*}; minor=${ver#*.}
-    [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 9 ]
+    [ "${major:-0}" -ge 3 ] && [ "${minor:-0}" -ge 10 ]
 }
 # Prüft in nativer Arch + ohne user-site, ob die Pakete wirklich
 # importierbar sind – also genau so, wie der Launcher später startet.
@@ -74,6 +75,16 @@ py_version_ok() {
 # fehlt" melden, obwohl das Setup gesagt hat „ist da".
 has_deps() { ( cd "$HOME" && arch_run "$1" -c 'import PyQt6.QtWidgets, PIL, numpy, bgremover' >/dev/null 2>&1 ); }
 
+pip_install_project() {
+    local py="$1"
+    shift
+    if [ -f "$CONSTRAINTS_FILE" ]; then
+        arch_run "$py" -m pip install --constraint "$CONSTRAINTS_FILE" "$@"
+    else
+        arch_run "$py" -m pip install "$@"
+    fi
+}
+
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
 # (TCC) den Zugriff einer aus dem Finder gestarteten .app. Application
@@ -85,17 +96,17 @@ VENV_PY="$VENV_DIR/bin/python3"
 PY_CANDIDATES=(
     "$VENV_PY"
     "$SCRIPT_DIR/.venv/bin/python3" "$SCRIPT_DIR/venv/bin/python3"
-    python3.15 python3.14 python3.13 python3.12 python3.11 python3.10 python3.9 python3 python
+    python3.15 python3.14 python3.13 python3.12 python3.11 python3.10 python3 python
     /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.15
     /opt/homebrew/bin/python3.14 /opt/homebrew/bin/python3.13
     /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11
-    /opt/homebrew/bin/python3.10 /opt/homebrew/bin/python3.9
+    /opt/homebrew/bin/python3.10
     /usr/local/bin/python3 /usr/bin/python3
     "$HOME/.pyenv/shims/python3"
 )
 
-PYTHON=""        # erstes brauchbares Python 3.9+
-PYTHON_READY=""  # erstes Python 3.9+ MIT PyQt6/Pillow/numpy
+PYTHON=""        # erstes brauchbares Python 3.10+
+PYTHON_READY=""  # erstes Python 3.10+ MIT PyQt6/Pillow/numpy
 for py in "${PY_CANDIDATES[@]}"; do
     FULL_PATH=$(command -v "$py" 2>/dev/null || echo "$py")
     [ -x "$FULL_PATH" ] || continue
@@ -119,26 +130,26 @@ elif [ -x "$VENV_PY" ] && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, n
     # Paket nach – das dauert Sekunden.
     echo -e "${YELLOW}🔁  App-venv existiert (PyQt6/Pillow/numpy ok), aber bgremover fehlt –${NC}"
     echo "    wird nachinstalliert (statt venv neu zu bauen) …"
-    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install ".[ai]" ); then
+    if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
         PYTHON="$VENV_PY"
         echo -e "${GREEN}✅  venv aktualisiert (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install "." ); then
+    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
         PYTHON="$VENV_PY"
         echo -e "${YELLOW}✅  venv aktualisiert (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
     else
         echo -e "${RED}❌ Nachinstallation fehlgeschlagen.${NC}"
-        echo "   Manuell:  cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install \".[ai]\""
+        echo "   Manuell:  cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install --constraint \"$CONSTRAINTS_FILE\" \".[ai]\""
         echo "   Notfalls die alte venv loeschen und neu bauen:"
         echo "             rm -rf \"$VENV_DIR\" && bash create_BgRemover_app.sh"
         exit 1
     fi
 else
     if [ -z "$PYTHON" ]; then
-        echo -e "${YELLOW}⚠️  Python 3.9+ nicht automatisch gefunden.${NC}"
+        echo -e "${YELLOW}⚠️  Python 3.10+ nicht automatisch gefunden.${NC}"
         read -p "    Python-Pfad angeben (z.B. /opt/homebrew/bin/python3): " USER_PY
         FULL_PATH=$(command -v "$USER_PY" 2>/dev/null || echo "$USER_PY")
         { [ -x "$FULL_PATH" ] && py_version_ok "$FULL_PATH"; } \
-            || { echo -e "${RED}❌ Kein nutzbares Python 3.9+.${NC}"; exit 1; }
+            || { echo -e "${RED}❌ Kein nutzbares Python 3.10+.${NC}"; exit 1; }
         PYTHON="$FULL_PATH"
     fi
 
@@ -167,16 +178,16 @@ else
     # Nicht-editierbar installieren: die venv enthaelt eine eigene Kopie
     # des Pakets (inkl. package-data icons/), damit die App vom Projekt-
     # ordner unabhaengig ist (umbenennen/loeschen bricht sie nicht).
-    if ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install ".[ai]" ); then
+    if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
         PYTHON="$VENV_PY"
         echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && arch_run "$VENV_PY" -m pip install "." ); then
+    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
         PYTHON="$VENV_PY"
         echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
     else
         echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
         echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
-        echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install \".[ai]\""
+        echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install --constraint \"$CONSTRAINTS_FILE\" \".[ai]\""
         exit 1
     fi
 fi
