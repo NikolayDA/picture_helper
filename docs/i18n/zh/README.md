@@ -63,12 +63,12 @@ bash create_BgRemover_app.sh
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` 会一并引入 AI 依赖项（`rembg[cpu]`，含 `onnxruntime`）；
-若不需要 AI 功能，`python3 -m pip install -e .` 即可。
+若不需要 AI 功能，`python3 -m pip install -c requirements/constraints.txt -e .` 即可。
 
 **Linux：** 没有应用程序包；应用程序通过从 venv 中
 直接启动来运行：
@@ -77,7 +77,7 @@ python3 -m bgremover
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -149,7 +149,9 @@ make pr-check
 图像操作、裁剪几何和保存逻辑。Pull Request 会运行轻量级
 GitHub PR CI（Ubuntu、Python 3.12、`make pr-check`）。完整的
 Linux/macOS 矩阵（Python 3.10 和 3.12）会在发布 release
-或手动触发时运行。完整测试流程见
+或手动触发时运行。所有本地/CI 测试安装都使用
+`requirements/constraints.txt`；需要时可通过
+`make PIP_CONSTRAINT=/path/to/file pr-check` 覆盖。完整测试流程见
 [TESTING.md](../../../TESTING.md)。
 
 代码风格检查与静态类型检查：

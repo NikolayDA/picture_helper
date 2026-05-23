@@ -43,12 +43,12 @@ System-Python `pip install` per PEP 668 blockiert:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` installiert `rembg[cpu]` inkl. `onnxruntime` (KI-Hintergrundentfernung).
-- Ohne KI-Funktion reicht: `python3 -m pip install -e .`
+- Ohne KI-Funktion reicht: `python3 -m pip install -c requirements/constraints.txt -e .`
 
 ## Startvarianten
 
@@ -72,12 +72,13 @@ git fetch origin
 git branch -r                       # verfügbare Branches anzeigen
 git checkout <branch>
 # in venv (siehe Schnellstart); nur nötig, wenn sich Abhängigkeiten geändert haben:
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 Alternativ auch auf einem Branch einfach `bash create_BgRemover_app.sh`
-ausführen — das übernimmt venv und Abhängigkeiten automatisch.
+ausführen — das übernimmt venv und Abhängigkeiten automatisch mit dem
+committeten Constraint-Snapshot aus `requirements/constraints.txt`.
 
 **Variante 2 – einen Branch direkt klonen:**
 ```bash
@@ -94,7 +95,7 @@ git checkout <branch> && git pull      # bestimmten Branch aktualisieren
 
 Der Editable-Install (`pip install -e`) muss nach `git pull` **nicht**
 erneut ausgeführt werden — außer die Abhängigkeiten in
-`pyproject.toml` haben sich geändert.
+`pyproject.toml` oder `requirements/constraints.txt` haben sich geändert.
 
 ## Troubleshooting
 

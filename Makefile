@@ -3,8 +3,10 @@
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
 QT_QPA_PLATFORM ?= offscreen
+PIP_CONSTRAINT ?= $(CURDIR)/requirements/constraints.txt
 RUN_ENV := PATH="$(VENV_BIN):$(PATH)"
 QT_ENV := QT_QPA_PLATFORM=$(QT_QPA_PLATFORM) PATH="$(VENV_BIN):$(PATH)"
+PIP_INSTALL := $(RUN_ENV) $(PYTHON) -m pip install --constraint "$(PIP_CONSTRAINT)"
 
 # Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
 # Installiert das Paket bewusst nicht-editable, damit die App-Smoke-Tests
@@ -12,7 +14,7 @@ QT_ENV := QT_QPA_PLATFORM=$(QT_QPA_PLATFORM) PATH="$(VENV_BIN):$(PATH)"
 pr-check: install-test doctor check
 
 install-test:
-	$(RUN_ENV) $(PYTHON) -m pip install ".[test]"
+	$(PIP_INSTALL) ".[test]"
 
 doctor:
 	$(RUN_ENV) $(PYTHON) scripts/check_test_env.py

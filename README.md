@@ -63,12 +63,12 @@ da System-Python `pip install` per PEP 668 blockiert:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 `.[ai]` zieht die KI-Abhängigkeiten (`rembg[cpu]` inkl. `onnxruntime`)
-mit; ohne KI-Funktion reicht `python3 -m pip install -e .`.
+mit; ohne KI-Funktion reicht `python3 -m pip install -c requirements/constraints.txt -e .`.
 
 **Linux:** Es gibt kein App-Bundle; die Anwendung läuft über den
 direkten Start aus einer venv:
@@ -77,7 +77,7 @@ direkten Start aus einer venv:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -158,6 +158,9 @@ Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Pull
 Requests laufen auf GitHub über eine leichte PR-CI (Ubuntu, Python
 3.12, `make pr-check`). Die volle Matrix auf Linux und macOS unter Python
 3.10 und 3.12 läuft beim Veröffentlichen eines Releases oder manuell.
+Alle lokalen/CI-Testinstallationen nutzen `requirements/constraints.txt`;
+bei Bedarf kann der Pfad mit `make PIP_CONSTRAINT=/pfad/zur/datei pr-check`
+überschrieben werden.
 Details stehen in [TESTING.md](TESTING.md).
 
 Code-Style-Check und statische Typprüfung:

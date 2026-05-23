@@ -11,6 +11,10 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Snapshot reproducible de dependencias**
+  (`requirements/constraints.txt`). El Makefile, el workflow de licencias
+  y el build de la app macOS usan el mismo conjunto de constraints
+  commiteado para instalaciones de tests, CI, licencias y App Bundle.
 - **Doctor local del entorno de pruebas** (`make doctor`,
   `scripts/check_test_env.py`). Comprueba la versión de Python, las
   dependencias `[test]`, la instalación no editable del paquete, el
