@@ -45,6 +45,10 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `bgremover/menu_actions.py` construye la barra de menú, los `QAction`,
   los atajos y el submenú de archivos recientes; `MainWindow` solo
   entrega callbacks de dominio.
+- **Panel derecho de pestañas extraído de `MainWindow`.**
+  `bgremover/right_panel.py` construye las pestañas de selección,
+  fondo, transformación y forma, incluyendo sliders, spinboxes y botones
+  de panel; `MainWindow` solo entrega callbacks del canvas.
 
 ### Corregido
 
