@@ -69,6 +69,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 更改
 
+- **从 `ImageCanvas` 中提取纯图像操作。** `bgremover/image_ops.py`
+  现在以不依赖 Qt 的 PIL/NumPy 函数承载背景移除/替换、保存、旋转、
+  翻转、圆角和 crop mask。`ImageCanvas` 继续负责 UI 状态、undo/redo、
+  signals 与 overlays；`tests/test_image_ops.py` 会在没有
+  `QApplication` 的情况下直接检查像素操作。
 - **Recommendations 文档更新到当前状态。** `RECOMMENDATIONS.md` 及其
   i18n 版本现在包含第 6 轮状态块，记录最近的 PR 系列（#70、#72–#78），
   并明确说明旧的单体分析属于历史上下文。
