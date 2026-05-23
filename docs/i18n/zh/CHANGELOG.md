@@ -69,6 +69,10 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 更改
 
+- **Recommendations 文档更新到当前状态。** `RECOMMENDATIONS.md` 及其
+  i18n 版本现在包含第 6 轮状态块，记录最近的 PR 系列（#70、#72–#78），
+  并明确说明旧的单体分析属于历史上下文。
+  `tests/test_recommendations_docs.py` 会保护该状态块。
 - **同步资源文档。** `RESOURCES.md` 及其 i18n 版本现在反映包布局
   （`bgremover/` 而非 `BgRemover.py`）、`bgremover/icons/` 下的
   package data、可复现 constraints snapshot，以及 PR/full/license

@@ -13,6 +13,28 @@
 
 ---
 
+## 当前状态（第 6 轮）
+
+本文件有意保留单体阶段的历史分析。当前代码库已经是 `bgremover/`
+包；`BgRemover.py` 已删除。包拆分之后的最新 PR 系列在这里作为简短
+工作日志记录：
+
+| # | 包 | 状态 |
+|---|----|------|
+| 1 | AI 状态修订：在中间编辑后丢弃迟到的 `rembg` 结果 | ✅ #72 |
+| 2 | 轻量级 PR CI + 测试文档同步 | ✅ #73 |
+| 3 | CI 应用 smoke test 与启动脚本语法检查 | ✅ #70 |
+| 4 | Release/changelog hygiene | ✅ #74/#75 |
+| 5 | 更稳健的本地测试环境（`make doctor`、`make pr-check`） | ✅ #76 |
+| 6 | 依赖/build 可复现性（`requirements/constraints.txt`） | ✅ #77 |
+| 7 | 资源文档与包布局、constraints 和 workflows 同步 | ✅ #78 |
+| 8 | Recommendations/roadmap 文档更新到当前状态 | ✅ 本 PR |
+
+静态测试 `tests/test_recommendations_docs.py` 会防止本节再次过期；
+资源清单另由 `tests/test_resource_docs.py` 保护。
+
+---
+
 ## 按优先级汇总
 
 | # | 建议 | 优先级 | 工作量 |

@@ -89,6 +89,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Recommendations-Doku auf aktuellen Status gebracht.**
+  `RECOMMENDATIONS.md` und die i18n-Versionen enthalten nun einen
+  Runde-6-Statusblock für die jüngste PR-Serie (#70, #72–#78) und
+  markieren die alten Monolith-Befunde ausdrücklich als historischen
+  Kontext. `tests/test_recommendations_docs.py` schützt diesen Block.
 - **Ressourcen-Doku synchronisiert.** `RESOURCES.md` und die i18n-
   Versionen spiegeln jetzt das Paketlayout (`bgremover/` statt
   `BgRemover.py`), die Paketdaten unter `bgremover/icons/`, den

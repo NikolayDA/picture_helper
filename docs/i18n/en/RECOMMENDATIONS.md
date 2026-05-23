@@ -13,6 +13,30 @@
 
 ---
 
+## Current Status (Round 6)
+
+This file intentionally keeps historical findings from the monolith
+phase. The current codebase is now the `bgremover/` package;
+`BgRemover.py` has been deleted. The latest post-package-cut PR series
+is captured here as a compact work log:
+
+| # | Package | Status |
+|---|---------|--------|
+| 1 | AI state revision: discard late `rembg` results after intervening edits | ✅ #72 |
+| 2 | Lightweight PR CI + testing docs synchronization | ✅ #73 |
+| 3 | CI app smoke test and starter syntax checks | ✅ #70 |
+| 4 | Release/changelog hygiene | ✅ #74/#75 |
+| 5 | More robust local test environment (`make doctor`, `make pr-check`) | ✅ #76 |
+| 6 | Dependency/build reproducibility (`requirements/constraints.txt`) | ✅ #77 |
+| 7 | Resource docs synchronized with package layout, constraints, and workflows | ✅ #78 |
+| 8 | Recommendations/roadmap docs brought up to current status | ✅ this PR |
+
+The static test `tests/test_recommendations_docs.py` keeps this section
+from becoming stale again; the resource inventory is additionally guarded
+by `tests/test_resource_docs.py`.
+
+---
+
 ## Prioritized summary
 
 | # | Recommendation | Priority | Effort |
