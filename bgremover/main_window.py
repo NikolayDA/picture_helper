@@ -11,7 +11,7 @@ from pathlib import Path
 
 from PIL import Image
 from PyQt6.QtCore import QSettings, QSize, Qt, QThread
-from PyQt6.QtGui import QAction, QColor, QKeySequence
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QColorDialog,
@@ -54,6 +54,7 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.icons import make_tool_icon
+from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
     RECENT_MAX as DEFAULT_RECENT_MAX,
     SETTINGS_RECENT_KEY as DEFAULT_SETTINGS_RECENT_KEY,
@@ -741,112 +742,29 @@ class MainWindow(QMainWindow):
         l4.addStretch()
 
     def _build_menu(self) -> None:
-        mb = self.menuBar()
-        # menuBar()/addMenu() liefern laut PyQt-Stub `Optional`, in der
-        # Praxis aber nie None – einmalige asserts narrowen den Typ und
-        # ersparen Dutzende Punkt-zu-Punkt-Guards.
-        assert mb is not None
-        mb.setStyleSheet("""
-            QMenuBar { background: #1a1a1a; color: #ccc; }
-            QMenuBar::item:selected { background: #333; }
-            QMenu { background: #252525; color: #ccc; border: 1px solid #3a3a3a; }
-            QMenu::item:selected { background: #4a90d9; }
-        """)
-
-        file_m = mb.addMenu("Datei")
-        assert file_m is not None
-        a_open = QAction("Öffnen…", self)
-        a_open.setShortcut(QKeySequence("Ctrl+O"))
-        a_open.triggered.connect(self._open_image)
-        file_m.addAction(a_open)
-
-        # Submenü „Zuletzt geöffnet" – wird nach dem ersten load_image
-        # mit Inhalt befüllt, persistiert über QSettings.
-        recent_menu = file_m.addMenu("Zuletzt geöffnet")
-        assert recent_menu is not None
-        self._recent_menu = RecentFilesMenu(
+        menu_bar = self.menuBar()
+        assert menu_bar is not None
+        self._recent_menu = build_main_menu(
             self,
-            recent_menu,
+            menu_bar,
             self._recent_files,
-            open_path=self._load_image_async,
-            missing_path=self._on_recent_missing,
+            MainMenuCallbacks(
+                open_image=self._open_image,
+                open_recent_path=self._load_image_async,
+                recent_path_missing=self._on_recent_missing,
+                save=self._save,
+                save_as=self._save_as,
+                undo=self._canvas.undo,
+                redo=self._canvas.redo,
+                rotate=self._canvas.apply_rotate,
+                flip=self._canvas.apply_flip,
+                clear_selection=self._canvas.clear_selection,
+                invert_selection=self._canvas.invert_selection,
+                restore_original=self._canvas.restore_original,
+                fit_to_view=self._canvas.fit_to_view,
+                open_settings=self._open_settings,
+            ),
         )
-
-        file_m.addSeparator()
-
-        a_save = QAction("Speichern", self)
-        a_save.setShortcut(QKeySequence("Ctrl+S"))
-        a_save.triggered.connect(self._save)
-        file_m.addAction(a_save)
-
-        a_save_as = QAction("Speichern unter…", self)
-        a_save_as.setShortcut(QKeySequence("Ctrl+Shift+S"))
-        a_save_as.triggered.connect(self._save_as)
-        file_m.addAction(a_save_as)
-
-        edit_m = mb.addMenu("Bearbeiten")
-        assert edit_m is not None
-        a_undo = QAction("Rückgängig", self)
-        a_undo.setShortcut(QKeySequence("Ctrl+Z"))
-        a_undo.triggered.connect(self._canvas.undo)
-        edit_m.addAction(a_undo)
-
-        a_redo = QAction("Wiederherstellen", self)
-        a_redo.setShortcut(QKeySequence("Ctrl+Shift+Z"))
-        a_redo.triggered.connect(self._canvas.redo)
-        edit_m.addAction(a_redo)
-
-        edit_m.addSeparator()
-        a_rot_l = QAction("90° links drehen", self)
-        a_rot_l.setShortcut(QKeySequence("Ctrl+Left"))
-        a_rot_l.triggered.connect(lambda: self._canvas.apply_rotate(90))
-        edit_m.addAction(a_rot_l)
-
-        a_rot_r = QAction("90° rechts drehen", self)
-        a_rot_r.setShortcut(QKeySequence("Ctrl+Right"))
-        a_rot_r.triggered.connect(lambda: self._canvas.apply_rotate(-90))
-        edit_m.addAction(a_rot_r)
-
-        a_rot_180 = QAction("180° drehen", self)
-        a_rot_180.triggered.connect(lambda: self._canvas.apply_rotate(180))
-        edit_m.addAction(a_rot_180)
-
-        a_flip_h = QAction("Horizontal spiegeln", self)
-        a_flip_h.triggered.connect(lambda: self._canvas.apply_flip(True))
-        edit_m.addAction(a_flip_h)
-
-        a_flip_v = QAction("Vertikal spiegeln", self)
-        a_flip_v.triggered.connect(lambda: self._canvas.apply_flip(False))
-        edit_m.addAction(a_flip_v)
-        edit_m.addSeparator()
-
-        a_clear = QAction("Auswahl aufheben", self)
-        a_clear.setShortcut(QKeySequence("Escape"))
-        a_clear.triggered.connect(self._canvas.clear_selection)
-        edit_m.addAction(a_clear)
-
-        a_invert = QAction("Auswahl invertieren", self)
-        a_invert.setShortcut(QKeySequence("Ctrl+Shift+I"))
-        a_invert.triggered.connect(self._canvas.invert_selection)
-        edit_m.addAction(a_invert)
-
-        a_orig = QAction("Original wiederherstellen", self)
-        a_orig.triggered.connect(self._canvas.restore_original)
-        edit_m.addAction(a_orig)
-
-        view_m = mb.addMenu("Ansicht")
-        assert view_m is not None
-        a_fit = QAction("Fit to View", self)
-        a_fit.setShortcut(QKeySequence("Ctrl+0"))
-        a_fit.triggered.connect(lambda: self._canvas.fit_to_view())
-        view_m.addAction(a_fit)
-
-        extras_m = mb.addMenu("Extras")
-        assert extras_m is not None
-        a_prefs = QAction("Einstellungen…", self)
-        a_prefs.setShortcut(QKeySequence("Ctrl+,"))
-        a_prefs.triggered.connect(self._open_settings)
-        extras_m.addAction(a_prefs)
 
     # ── Thread-Hilfsmethode ───────────────────────────────────
 

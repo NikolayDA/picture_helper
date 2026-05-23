@@ -34,6 +34,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **继续模块化 MainWindow。** “最近打开”的持久化和菜单语义现在位于
   `bgremover/recent_files.py`；`MainWindow` 只负责委托加载、状态消息和
   文件菜单集成。
+- **从 `MainWindow` 中抽出菜单/action 构建。**
+  `bgremover/menu_actions.py` 负责菜单栏、`QAction`、快捷键和最近文件
+  子菜单；`MainWindow` 只传入领域回调。
 
 ### 修复
 

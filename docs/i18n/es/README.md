@@ -174,8 +174,10 @@ iniciado vía `python -m bgremover` o el script de consola `bgremover`):
   máscara de selección, las pilas de Deshacer/Rehacer y las herramientas
   (varita mágica, pincel, lazo, recorte).
 - **`MainWindow`** construye la barra de herramientas, el panel de
-  pestañas a la derecha (cuatro constructores `_build_tab_*`), el menú y
-  conecta todo con el lienzo.
+  pestañas a la derecha (cuatro constructores `_build_tab_*`) y conecta
+  todo con el lienzo.
+- **`menu_actions`** construye la barra de menú, acciones y atajos;
+  `MainWindow` solo aporta callbacks.
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador
   de menú de "Abrir reciente", de modo que `MainWindow` solo delega la ruta
   de carga.

@@ -41,6 +41,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   du menu « Ouvrir récent » vivent maintenant dans
   `bgremover/recent_files.py`; `MainWindow` ne délègue plus que le
   chargement, les messages d'état et l'intégration au menu Fichier.
+- **Construction des menus/actions extraite de `MainWindow`.**
+  `bgremover/menu_actions.py` construit la barre de menus, les `QAction`,
+  les raccourcis et le sous-menu des fichiers récents ; `MainWindow`
+  ne fournit plus que les callbacks métier.
 
 ### Corrigé
 

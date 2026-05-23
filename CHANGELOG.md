@@ -39,6 +39,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **MainWindow weiter modularisiert.** Die Persistenz- und Menülogik für
   „Zuletzt geöffnet“ liegt jetzt in `bgremover/recent_files.py`; `MainWindow`
   delegiert nur noch Laden, Statusmeldung und Einbindung ins Dateimenü.
+- **Menü-/Action-Aufbau aus `MainWindow` extrahiert.** `bgremover/menu_actions.py`
+  baut Menüleiste, `QAction`s, Shortcuts und Recent-Files-Untermenü; `MainWindow`
+  übergibt nur noch die fachlichen Callbacks.
 
 ### Behoben
 
