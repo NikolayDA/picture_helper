@@ -29,6 +29,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `diagnose_mac.sh`）以及打包进 App 包的启动器进行 shell 语法检查。
   为此在 Linux CI job 中安装 `zsh`。
 
+### 变更
+
+- **继续模块化 MainWindow。** “最近打开”的持久化和菜单语义现在位于
+  `bgremover/recent_files.py`；`MainWindow` 只负责委托加载、状态消息和
+  文件菜单集成。
+
 ### 修复
 
 - **将 release/changelog 链接修正为真实存在的 ref。** `[Unreleased]`
