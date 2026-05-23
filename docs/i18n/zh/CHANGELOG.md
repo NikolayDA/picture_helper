@@ -69,6 +69,10 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 更改
 
+- **同步资源文档。** `RESOURCES.md` 及其 i18n 版本现在反映包布局
+  （`bgremover/` 而非 `BgRemover.py`）、`bgremover/icons/` 下的
+  package data、可复现 constraints snapshot，以及 PR/full/license
+  workflows。新增静态测试防止这些引用再次过期。
 - **`make pr-check` 让本地 PR 检查更稳健。** 该 target 会重新安装带
   `[test]` 的包，运行 doctor，然后启动 `ruff`、`mypy` 和 `pytest`。
   Makefile 会自动找到 `.venv/bin/python`，否则回退到
