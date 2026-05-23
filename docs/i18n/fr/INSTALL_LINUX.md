@@ -139,13 +139,13 @@ venv isolé :
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
 - `.[ai]` installe `rembg[cpu]` y compris `onnxruntime`
   (suppression d'arrière-plan par IA).
-- Sans la fonction d'IA, il suffit de : `python3 -m pip install -e .`
+- Sans la fonction d'IA, il suffit de : `python3 -m pip install -c requirements/constraints.txt -e .`
 
 Dans un nouveau shell, réactiver le venv avant le démarrage :
 ```bash
@@ -210,7 +210,7 @@ git branch -r                       # afficher les branches disponibles
 git checkout <branch>
 source .venv/bin/activate
 # nécessaire uniquement si les dépendances ont changé :
-python3 -m pip install -e ".[ai]"
+python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
@@ -229,7 +229,7 @@ git checkout <branch> && git pull      # mettre à jour une branche donnée
 
 L'installation editable (`pip install -e`) n'a **pas** besoin d'être
 réexécutée après `git pull` — sauf si les dépendances dans
-`pyproject.toml` ont changé.
+`pyproject.toml` ou `requirements/constraints.txt` ont changé.
 
 ## Dépannage
 

@@ -10,6 +10,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Reproducible dependency snapshot** (`requirements/constraints.txt`).
+  The Makefile, license workflow, and macOS app build use the same
+  committed constraint set for test, CI, license, and app-bundle installs.
 - **Local test-environment doctor** (`make doctor`,
   `scripts/check_test_env.py`). Checks the Python version, `[test]`
   dependencies, non-editable package installation, the `bgremover`

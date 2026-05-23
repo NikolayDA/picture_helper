@@ -43,6 +43,14 @@ verwendet. So prüfen die Smoke-Tests das installierte Paket aus einem
 fremden Arbeitsverzeichnis – genau wie CI, Release-Build und App-Bundle.
 `make pr-check` führt diese Installation vor jedem PR-Check automatisch
 erneut aus; für schnelle Einzelprüfungen gibt es weiterhin `make check`.
+Die Installation läuft mit `requirements/constraints.txt`, damit lokale
+Checks, PR-CI, Lizenzreport und App-Bundle denselben getesteten
+Dependency-Snapshot verwenden. Für gezielte Aktualisierungstests kann der
+Pfad überschrieben werden:
+
+```bash
+make PIP_CONSTRAINT=/pfad/zur/constraints.txt pr-check
+```
 
 > **Nur `[test]` ins Test-venv** – **nicht** `[ai]` oder `[docs]`. Das
 > `ai`-Extra (`rembg`) gehört in die *Anwendungs*-Umgebung (das
@@ -87,7 +95,7 @@ Im Projektordner (venv aktiv):
 
 | Befehl       | Was passiert                                                              |
 |--------------|---------------------------------------------------------------------------|
-| `make install-test` | Installiert das Paket nicht-editable mit `[test]` in das Test-venv |
+| `make install-test` | Installiert das Paket nicht-editable mit `[test]` und `requirements/constraints.txt` in das Test-venv |
 | `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation, Console-Script und Qt-`offscreen` |
 | `make pr-check` | **Schnelle PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (UI-Tests ausgeschlossen) |
 | `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |

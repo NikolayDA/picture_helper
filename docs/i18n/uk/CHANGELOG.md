@@ -11,6 +11,10 @@
 
 ### Додано
 
+- **Відтворюваний snapshot залежностей**
+  (`requirements/constraints.txt`). Makefile, license workflow і macOS
+  app build використовують один і той самий зафіксований набір constraints
+  для test-, CI-, license- та App Bundle-встановлень.
 - **Локальний doctor тестового середовища** (`make doctor`,
   `scripts/check_test_env.py`). Перевіряє версію Python, залежності
   `[test]`, не-editable встановлення пакета, console-script `bgremover`
