@@ -82,6 +82,11 @@
 
 ### Змінено
 
+- **Синхронізовано документацію ресурсів.** `RESOURCES.md` та i18n-
+  версії тепер відображають layout пакета (`bgremover/` замість
+  `BgRemover.py`), package-data під `bgremover/icons/`, відтворюваний
+  constraints snapshot і PR/full/license workflows. Статичний тест
+  захищає ці посилання від повторного застарівання.
 - **`make pr-check` робить локальну PR-перевірку надійнішою.** Target
   заново встановлює пакет із `[test]`, запускає doctor, а потім `ruff`,
   `mypy` і `pytest`. Makefile автоматично знаходить `.venv/bin/python`,
