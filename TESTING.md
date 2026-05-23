@@ -28,18 +28,21 @@ installieren:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install ".[test]"
+make install-test
 ```
 
 Damit stehen `pytest`, `pytest-qt`, `ruff` und `mypy` bereit. Auf macOS
 sind **keine zusätzlichen System-Bibliotheken** nötig – die PyQt6-Wheels
-bringen Qt mit.
+bringen Qt mit. Das Projekt staged die kleinen Qt-Platform-Plugins bei
+Bedarf in das System-Temp-Verzeichnis, damit lokale macOS-Headless-Läufe
+nicht daran scheitern, dass Qt Plugin-Dateien im Projektpfad nicht
+auflisten kann.
 
 Für die Test-Referenz wird bewusst eine normale Paketinstallation
 verwendet. So prüfen die Smoke-Tests das installierte Paket aus einem
 fremden Arbeitsverzeichnis – genau wie CI, Release-Build und App-Bundle.
-Nach Änderungen an Paketcode, Startern oder Paketdaten vor `make check`
-einmal erneut `pip install ".[test]"` ausführen.
+`make pr-check` führt diese Installation vor jedem PR-Check automatisch
+erneut aus; für schnelle Einzelprüfungen gibt es weiterhin `make check`.
 
 > **Nur `[test]` ins Test-venv** – **nicht** `[ai]` oder `[docs]`. Das
 > `ai`-Extra (`rembg`) gehört in die *Anwendungs*-Umgebung (das
@@ -50,34 +53,27 @@ einmal erneut `pip install ".[test]"` ausführen.
 > echter Warmup im Testlauf), aber das Extra hat dort schlicht nichts
 > verloren und bläht die Umgebung nur auf.
 
-> Bei jeder neuen Terminal-Sitzung zuerst `source .venv/bin/activate`.
+> Bei manuellen `python -m ...`-Aufrufen zuerst
+> `source .venv/bin/activate`. Die Makefile-Targets finden eine lokale
+> `.venv/bin/python` automatisch; bei Bedarf lässt sich der Interpreter
+> mit `make PYTHON=/pfad/zur/python ...` überschreiben.
 
 ### Unterstützte Python-Version
 
 Offiziell getestet ist **Python 3.10–3.13** (siehe `pyproject.toml`-
-Classifier). **Python 3.14 funktioniert in der Praxis ebenfalls**,
-sofern **PyQt6 ≥ 6.11** installiert ist – diese Version bringt
-`cp314`-Wheels mit funktionierendem `offscreen`-Plattform-Plugin mit.
-Ältere PyQt6-Builds haben für 3.14 **kein** lauffähiges
-`offscreen`-Plugin; der QApplication-Start bricht dann hart mit
-`Fatal Python error: Aborted` (SIGABRT) ab. Welche Version das venv
-nutzt, zeigt `python --version` (bzw. der Pfad `.venv/lib/pythonX.Y/`).
+Classifier). **Python 3.14 ist für das lokale Test-venv derzeit nicht
+empfohlen**, weil das Projekt diese Version noch nicht in der Matrix
+absichert. Welche Version das venv nutzt, zeigt `python --version`
+(bzw. der Pfad `.venv/lib/pythonX.Y/`).
 
-Bei `Fatal Python error: Aborted` unter Python 3.14 zuerst PyQt6
-aktualisieren:
-
-```bash
-pip install -U PyQt6
-```
-
-Hilft das nicht (oder ist eine ältere PyQt6-Version vorgegeben), das
-venv gezielt auf einer offiziell getesteten Version neu aufbauen:
+Bei `Fatal Python error: Aborted` / `Abort trap: 6` das venv gezielt auf
+einer offiziell getesteten Version neu aufbauen:
 
 ```bash
 rm -rf .venv
 python3.12 -m venv .venv          # oder python3.13
 source .venv/bin/activate
-pip install ".[test]"
+make install-test
 ```
 
 `tests/conftest.py` prüft die Qt-Umgebung vor dem ersten GUI-Test in
@@ -91,8 +87,10 @@ Im Projektordner (venv aktiv):
 
 | Befehl       | Was passiert                                                              |
 |--------------|---------------------------------------------------------------------------|
-| `make check` | **Schnelle PR-Prüfung:** `ruff` + `mypy` + `pytest` – exakt wie die PR-CI (UI-Tests ausgeschlossen) |
-| `make pr-check` | Alias für `make check`, wenn der Name zur GitHub-PR-CI passen soll |
+| `make install-test` | Installiert das Paket nicht-editable mit `[test]` in das Test-venv |
+| `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation, Console-Script und Qt-`offscreen` |
+| `make pr-check` | **Schnelle PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (UI-Tests ausgeschlossen) |
+| `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |
 | `make ui`    | Nur die lokalen UI-Interaktionstests                                       |
 | `make all`   | Alles zusammen (`check` + `ui`)                                            |
 | `make lint`  | Nur `ruff` (Stil/Fehler)                                                   |
@@ -102,7 +100,7 @@ Im Projektordner (venv aktiv):
 Empfohlener Ablauf vor einem Pull Request:
 
 ```bash
-make check
+make pr-check
 ```
 
 Empfohlener Ablauf vor einem Release:
@@ -149,7 +147,7 @@ python -m pytest --markers
 ## GitHub-Tests bei PR, manuell oder Release
 
 **Pull Request:** Der Workflow **PR CI** läuft automatisch auf
-Ubuntu/Python 3.12 und führt `make check` aus.
+Ubuntu/Python 3.12 und führt `make pr-check` aus.
 
 **Manuell:** Auf GitHub → Reiter **Actions** → Workflow **Full CI** →
 Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
@@ -164,24 +162,26 @@ bekommen stattdessen die leichte **PR CI**.
 
 - **`ModuleNotFoundError: No module named 'PyQt6'`** – venv nicht
   aktiviert oder Abhängigkeiten fehlen: `source .venv/bin/activate`
-  und `pip install ".[test]"`.
-- **`pytest`-Befehl nutzt die falsche Umgebung** – das Makefile ruft
-  bewusst `python -m pytest` / `python -m ruff` / `python -m mypy`
-  auf, um genau den venv-Interpreter zu verwenden. Bei manuellen
-  Aufrufen ebenfalls `python -m pytest` statt nur `pytest` nutzen.
+  und `make install-test`.
+- **`python: No such file or directory` / falscher Interpreter** – das
+  Makefile bevorzugt automatisch `.venv/bin/python`, danach `python`,
+  danach `python3`. Bei Sonderfällen explizit setzen:
+  `make PYTHON=/pfad/zur/python pr-check`.
+- **Paket- oder Qt-Diagnose unklar** – `make doctor` ausführen. Der
+  Doctor prüft auch, ob `bgremover` aus einem neutralen Arbeitsverzeichnis
+  importierbar ist und ob das Console-Script auf `PATH` liegt.
 - **UI-Test öffnet ein Fenster / hängt** –
   `QT_QPA_PLATFORM=offscreen` setzen (geschieht in `make`/`conftest.py`
   automatisch).
 - **UI-Tests laufen bei `pytest` nicht mit** – das ist beabsichtigt;
   `make ui` bzw. `pytest -m ui` verwenden.
 - **`Fatal Python error: Aborted` / `Abort trap: 6` beim `qapp`-Fixture**
-  – Qt kann das `offscreen`-Plugin nicht laden. Häufigste Ursache: ein
-  zu altes PyQt6 für die genutzte Python-Version (v. a. Python 3.14).
-  Erst `pip install -U PyQt6` (≥ 6.11) versuchen; hilft das nicht, das
-  venv auf Python 3.12/3.13 neu aufbauen (siehe „Unterstützte
-  Python-Version“ oben). `conftest.py` fängt den Fall ab und gibt eine
-  klare Diagnose mit der echten Qt-Meldung aus statt eines
-  unleserlichen SIGABRT-Stacktrace.
+  – Qt kann das `offscreen`-Plugin nicht laden. Erst `make install-test`
+  und danach `make doctor` ausführen; hilft das nicht, das venv auf
+  Python 3.12/3.13 neu aufbauen (siehe „Unterstützte Python-Version“
+  oben). `conftest.py` fängt den Fall ab und gibt eine klare Diagnose
+  mit der echten Qt-Meldung aus statt eines unleserlichen
+  SIGABRT-Stacktrace.
 - **`Fatal Python error: Aborted` mit `rembg`/`pooch`/`download_models`
   im Stacktrace** – im Test-venv ist (fälschlich) das `ai`-Extra
   installiert; `MainWindow` startet dann den rembg-Warmup, der ein
@@ -189,4 +189,4 @@ bekommen stattdessen die leichte **PR CI**.
   Prozess ab. `conftest.py` unterbindet den Warmup inzwischen zentral
   in allen Tests, der Lauf ist also auch dann offline und stabil.
   Sauber ist trotzdem ein Test-venv **ohne** `ai`/`docs`:
-  `pip install ".[test]"` (siehe Hinweis unter „Voraussetzungen“).
+  `make install-test` (siehe Hinweis unter „Voraussetzungen“).

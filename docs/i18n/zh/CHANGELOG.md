@@ -11,13 +11,17 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **本地测试环境 doctor**（`make doctor`、
+  `scripts/check_test_env.py`）。在本地运行深入 pytest 后才失败之前，
+  先检查 Python 版本、`[test]` 依赖、非 editable 包安装、
+  `bgremover` console script 以及 Qt `offscreen`。
 - **应用启动的 CI 冒烟测试**（`tests/test_app_smoke.py`）。现有的 UI
   测试通过 `-m 'not ui'` 被排除在 CI 之外，因此 CI 从未检查应用是否
   能够完整启动——正是这个缺口让 macOS 启动故障溜了过去。新增测试不带
   `ui` 标记（因此会在 CI 中运行）：`python -m bgremover` 和
   console-script `bgremover` 从一个中性的工作目录完整启动（新的自检
   钩子 `BGREMOVER_SMOKE_TEST` 在第一个事件循环周期后以退出码 0
-  结束）；检查 `_ensure_qt_plugin_path()` 产出有效的 Qt 插件路径；
+  结束）；检查 Qt 插件配置产出有效路径；
   对启动脚本（`create_BgRemover_app.sh`、`BgRemover.command`、
   `diagnose_mac.sh`）以及打包进 App 包的启动器进行 shell 语法检查。
   为此在 Linux CI job 中安装 `zsh`。
@@ -62,8 +66,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 更改
 
+- **`make pr-check` 让本地 PR 检查更稳健。** 该 target 会重新安装带
+  `[test]` 的包，运行 doctor，然后启动 `ruff`、`mypy` 和 `pytest`。
+  Makefile 会自动找到 `.venv/bin/python`，否则回退到
+  `python`/`python3`；GitHub PR CI 和 Full CI 使用同一个 target。
+  共享的 Qt 插件配置会在需要时把 platform plugins 暂存到系统临时目录，
+  避免 macOS 本地 headless 运行因项目路径中的 Qt 插件列表问题而失败。
 - **新增轻量级 PR CI，并同步测试文档。** Pull Request 现在会运行低成本的
-  Ubuntu/Python 3.12 workflow（`make check`）；完整的 Linux/macOS
+  Ubuntu/Python 3.12 workflow（`make pr-check`）；完整的 Linux/macOS
   矩阵保留给 release 和手动运行。测试 workflow 使用非 editable 安装，
   让 app smoke test 从外部 `cwd` 检查真实安装后的包。`README`、
   i18n README、`TESTING.md` 和 `Makefile` 现在描述同一套流程。
