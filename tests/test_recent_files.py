@@ -8,6 +8,9 @@ from pathlib import Path
 import pytest
 from PIL import Image
 from PyQt6.QtCore import QSettings
+from PyQt6.QtWidgets import QMenu
+
+from bgremover.recent_files import RecentFiles, RecentFilesMenu
 
 
 @pytest.fixture
@@ -20,6 +23,67 @@ def isolated_settings(tmp_path, monkeypatch):
 
 
 # ── A9: Recent-Files ────────────────────────────────────────────────────
+
+def _settings() -> QSettings:
+    return QSettings("BgRemover", "BgRemover")
+
+
+def test_recent_files_helper_dedups_and_caps(isolated_settings):
+    recent = RecentFiles(_settings(), limit=3)
+    recent.clear()
+
+    a = isolated_settings / "a.png"
+    b = isolated_settings / "b.png"
+    c = isolated_settings / "c.png"
+    d = isolated_settings / "d.png"
+
+    recent.add(str(a))
+    recent.add(str(b))
+    recent.add(str(c))
+    recent.add(str(a))
+    paths = recent.add(str(d))
+
+    assert len(paths) == 3
+    assert paths[0] == str(d.resolve())
+    assert paths[1] == str(a.resolve())
+    assert paths[2] == str(c.resolve())
+
+
+def test_recent_files_helper_removes_missing_entry(isolated_settings):
+    recent = RecentFiles(_settings(), limit=5)
+    recent.clear()
+    a = str((isolated_settings / "a.png").resolve())
+    b = str((isolated_settings / "b.png").resolve())
+    recent.add(a)
+    recent.add(b)
+
+    paths = recent.remove(b)
+
+    assert paths == [a]
+
+
+def test_recent_files_menu_opens_existing_and_removes_missing(qapp, isolated_settings):
+    recent = RecentFiles(_settings(), limit=5)
+    recent.clear()
+    menu = QMenu()
+    opened: list[str] = []
+    missing: list[str] = []
+    adapter = RecentFilesMenu(menu, menu, recent, opened.append, missing.append)
+
+    existing = isolated_settings / "exists.png"
+    existing.write_text("x", encoding="utf-8")
+    absent = str((isolated_settings / "missing.png").resolve())
+    adapter.add(str(existing))
+    adapter.add(absent)
+
+    adapter.open(str(existing.resolve()))
+    adapter.open(absent)
+
+    assert opened == [str(existing.resolve())]
+    assert missing == [absent]
+    assert adapter.paths() == [str(existing.resolve())]
+    assert [action.text() for action in menu.actions()] == [existing.name]
+
 
 def test_recent_list_dedups_and_caps(qapp, isolated_settings):
     from bgremover import MainWindow

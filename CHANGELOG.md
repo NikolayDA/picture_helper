@@ -34,6 +34,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   sowie der ins App-Bundle eingebackene Launcher werden auf
   Shell-Syntax geprüft. `zsh` wird dafür im Linux-CI-Job mitinstalliert.
 
+### Geändert
+
+- **MainWindow weiter modularisiert.** Die Persistenz- und Menülogik für
+  „Zuletzt geöffnet“ liegt jetzt in `bgremover/recent_files.py`; `MainWindow`
+  delegiert nur noch Laden, Statusmeldung und Einbindung ins Dateimenü.
+
 ### Behoben
 
 - **Release-/Changelog-Links auf reale Refs korrigiert.**

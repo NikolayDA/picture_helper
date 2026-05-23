@@ -194,6 +194,8 @@ gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
   Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).
 - **`MainWindow`** baut Toolbar, das rechte Tab-Panel (vier `_build_tab_*`-
   Builder), Menü und verbindet alles mit dem Canvas.
+- **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für
+  „Zuletzt geöffnet“, sodass `MainWindow` nur noch den Ladepfad delegiert.
 - **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) laufen in
   eigenen `QThread`s; `_launch_worker()` kapselt den Thread-Lebenszyklus.
 - Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI-Ergebnisse,
