@@ -13,6 +13,30 @@
 
 ---
 
+## Aktueller Stand (Runde 6)
+
+Diese Datei enthält bewusst auch historische Befunde aus der Monolith-
+Phase. Maßgeblich für den aktuellen Code ist inzwischen das Paket
+`bgremover/`; `BgRemover.py` ist gelöscht. Die jüngste PR-Serie nach dem
+Paket-Schnitt ist hier als kompaktes Arbeitsprotokoll festgehalten:
+
+| # | Paket | Status |
+|---|-------|--------|
+| 1 | KI-State-Revision: späte `rembg`-Ergebnisse nach Zwischenbearbeitungen verwerfen | ✅ #72 |
+| 2 | Leichte PR-CI + Test-Doku synchronisieren | ✅ #73 |
+| 3 | CI-App-Smoke und Startweg-Syntax absichern | ✅ #70 |
+| 4 | Release-/Changelog-Hygiene | ✅ #74/#75 |
+| 5 | Lokale Testumgebung robuster machen (`make doctor`, `make pr-check`) | ✅ #76 |
+| 6 | Dependency-/Build-Reproduzierbarkeit (`requirements/constraints.txt`) | ✅ #77 |
+| 7 | Ressourcen-Doku mit Paketlayout, Constraints und Workflows synchronisieren | ✅ #78 |
+| 8 | Recommendations-/Roadmap-Doku auf aktuellen Status bringen | ✅ dieser PR |
+
+Der statische Test `tests/test_recommendations_docs.py` schützt diesen
+Abschnitt künftig vor erneutem Veralten; die Ressourcen-Inventur wird
+zusätzlich durch `tests/test_resource_docs.py` abgesichert.
+
+---
+
 ## Priorisierte Zusammenfassung
 
 | # | Empfehlung | Priorität | Aufwand |
