@@ -24,9 +24,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 修复
 
-- **修正 changelog 在 2.1.0 状态下的引用链接。** `[Unreleased]`
-  现在从 `v2.1.0` 开始比较，`[2.1.0]` 指向 release 比较
-  `v2.0.0...v2.1.0`。
+- **将 release/changelog 链接修正为真实存在的 ref。** `[Unreleased]`
+  现在从 `v2.1.0` 开始比较；由于仓库中没有历史 `v2.0.0` 标签，
+  `[2.1.0]` 使用已记录的 2.0.0 release commit 作为比较基点。
 - **App 包：setup 中的 `bgremover` 检测不再依赖工作目录。**
   `create_BgRemover_app.sh` 把 venv 判定为「就绪」，尽管 `bgremover`
   并未安装在其中：`has_deps` 检查在项目目录下以该 `cwd` 运行，而
@@ -111,7 +111,7 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [2.0.0] – 2026-05-17
 
-首个公开打标签的版本。
+首个已记录的 2.0.0 release 状态。仓库中没有历史 `v2.0.0` Git 标签。
 
 ### 功能
 
@@ -157,5 +157,5 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   说明的 README；详细的 `INSTALL_MAC.md`。
 
 [Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
