@@ -28,6 +28,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Liens de référence du changelog corrigés pour l'état 2.1.0.**
+  `[Unreleased]` compare maintenant depuis `v2.1.0`, et `[2.1.0]`
+  pointe vers la comparaison de release `v2.0.0...v2.1.0`.
 - **Paquet d'app : la détection de `bgremover` au setup ne dépend plus
   du répertoire de travail.** `create_BgRemover_app.sh` considérait la
   venv comme « prête » alors que `bgremover` n'y était pas installé :
@@ -182,5 +185,6 @@ Première publication taguée publiquement.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/releases/tag/v2.0.0
