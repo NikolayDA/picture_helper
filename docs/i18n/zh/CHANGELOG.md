@@ -59,6 +59,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 更改
 
+- **新增轻量级 PR CI，并同步测试文档。** Pull Request 现在会运行低成本的
+  Ubuntu/Python 3.12 workflow（`make check`）；完整的 Linux/macOS
+  矩阵保留给 release 和手动运行。测试 workflow 使用非 editable 安装，
+  让 app smoke test 从外部 `cwd` 检查真实安装后的包。`README`、
+  i18n README、`TESTING.md` 和 `Makefile` 现在描述同一套流程。
 - **单体 → 包（第 5 轮）。** 单文件 `BgRemover.py`（3026 行）已拆分为
   可安装包 `bgremover/`（14 个模块：`constants`、`image_utils`、
   `icons`、`theme`、`workers`、`crop`、`canvas`、`widgets`、
