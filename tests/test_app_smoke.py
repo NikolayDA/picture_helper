@@ -10,7 +10,7 @@ Abgedeckt:
 - ``python -m bgremover`` und das Console-Script ``bgremover`` starten
   aus einem NEUTRALEN Arbeitsverzeichnis vollständig durch
   (``BGREMOVER_SMOKE_TEST`` beendet nach dem ersten Event-Loop-Tick).
-- ``app._ensure_qt_plugin_path()`` trägt einen gültigen Qt-Plugin-Pfad
+- ``qt_plugins.ensure_qt_plugin_path()`` trägt einen gültigen Qt-Plugin-Pfad
   ein (Schutz gegen den ``cocoa``-Plugin-Fehler).
 - Die Shell-Starter und der ins Bundle eingebackene Launcher sind
   syntaktisch valide.
@@ -72,7 +72,7 @@ def test_app_starts_via_console_script(tmp_path):
 
 
 def test_qt_plugin_path_configured():
-    """``app._ensure_qt_plugin_path()`` setzt einen existierenden Plugin-Pfad.
+    """``qt_plugins.ensure_qt_plugin_path()`` setzt einen existierenden Plugin-Pfad.
 
     In einem frischen Prozess (ohne vorab gesetzte ``QT_*``-Variablen),
     damit ``os.environ.setdefault`` im App-Code tatsächlich greift.

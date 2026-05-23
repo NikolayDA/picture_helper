@@ -11,6 +11,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Lokaler Testumgebungs-Doctor** (`make doctor`,
+  `scripts/check_test_env.py`). Prüft Python-Version, `[test]`-
+  Abhängigkeiten, nicht-editable Paketinstallation, `bgremover`-
+  Console-Script und Qt-`offscreen`, bevor ein lokaler Lauf tief in
+  Pytest scheitert.
 - **CI-Smoke-Test für den App-Start** (`tests/test_app_smoke.py`). Die
   bisherigen UI-Tests sind in der CI über `-m 'not ui'` ausgeschlossen,
   d. h. die CI prüfte nie, ob sich die Anwendung überhaupt vollständig
@@ -19,8 +24,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `python -m bgremover` und das Console-Script `bgremover` werden aus
   einem neutralen Arbeitsverzeichnis vollständig hochgefahren (neuer
   Selbsttest-Hook `BGREMOVER_SMOKE_TEST` beendet nach dem ersten
-  Event-Loop-Tick mit Exit-Code 0); `_ensure_qt_plugin_path()` wird auf
-  einen gültigen Qt-Plugin-Pfad geprüft; die Starter-Skripte
+  Event-Loop-Tick mit Exit-Code 0); das Qt-Plugin-Setup wird auf einen
+  gültigen Plugin-Pfad geprüft; die Starter-Skripte
   (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`)
   sowie der ins App-Bundle eingebackene Launcher werden auf
   Shell-Syntax geprüft. `zsh` wird dafür im Linux-CI-Job mitinstalliert.
@@ -80,9 +85,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **`make pr-check` macht die lokale PR-Prüfung robuster.** Der Target
+  installiert das Paket frisch mit `[test]`, führt den Doctor aus und
+  startet danach `ruff`, `mypy` und `pytest`. Das Makefile findet
+  `.venv/bin/python` automatisch und fällt sonst auf `python`/`python3`
+  zurück; GitHub PR CI und Full CI nutzen denselben Target. Das
+  gemeinsame Qt-Plugin-Setup staged die Platform-Plugins bei Bedarf ins
+  System-Temp-Verzeichnis, damit lokale macOS-Headless-Läufe nicht an
+  Qt-Plugin-Listing-Problemen im Projektpfad scheitern.
 - **Leichte PR-CI ergänzt und Test-Doku synchronisiert.** Pull Requests
   bekommen jetzt einen günstigen Ubuntu/Python-3.12-Workflow mit
-  `make check`; die volle Linux/macOS-Matrix bleibt Release- und
+  `make pr-check`; die volle Linux/macOS-Matrix bleibt Release- und
   manuellen Läufen vorbehalten. Die Test-Workflows installieren das
   Paket nicht-editable, damit die App-Smoke-Tests die installierte
   Realität aus fremdem `cwd` prüfen. `README`, i18n-READMEs,

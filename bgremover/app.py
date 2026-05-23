@@ -8,39 +8,11 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
+
+from bgremover.qt_plugins import ensure_qt_plugin_path
 
 
-def _ensure_qt_plugin_path() -> None:
-    """Macht die PyQt6-Plugins (insb. ``platforms/cocoa``) zuverlässig findbar.
-
-    Auf manchen macOS-Setups (vor allem in venv/conda-Installationen mit
-    PyQt6 6.11+) findet Qt sein eigenes ``cocoa``-Plugin nicht und bricht
-    den Start mit ``Could not find the Qt platform plugin "cocoa" in ""``
-    ab. Wir setzen ``QT_QPA_PLATFORM_PLUGIN_PATH`` und ``QT_PLUGIN_PATH``
-    explizit aus der PyQt6-Installation – das ist der zuverlässige Ort,
-    an dem die Plugins liegen. Vom Nutzer gesetzte Werte werden respek-
-    tiert (nichts überschrieben).
-
-    Muss VOR ``from PyQt6.QtWidgets import QApplication`` bzw. dem
-    ersten ``QApplication(...)``-Aufruf laufen, damit Qt die Variablen
-    beim Plugin-Lookup tatsächlich sieht.
-    """
-    try:
-        import PyQt6  # noqa: F401  -- nur um __file__ zu erhalten
-    except ImportError:
-        return
-    pkg_dir = Path(PyQt6.__file__).resolve().parent
-    plugins_root = pkg_dir / "Qt6" / "plugins"
-    if not plugins_root.is_dir():
-        return
-    platforms = plugins_root / "platforms"
-    if platforms.is_dir():
-        os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", str(platforms))
-    os.environ.setdefault("QT_PLUGIN_PATH", str(plugins_root))
-
-
-_ensure_qt_plugin_path()
+ensure_qt_plugin_path()
 
 from PyQt6.QtGui import QColor, QPalette  # noqa: E402
 from PyQt6.QtWidgets import QApplication  # noqa: E402

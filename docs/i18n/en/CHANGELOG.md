@@ -10,6 +10,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Local test-environment doctor** (`make doctor`,
+  `scripts/check_test_env.py`). Checks the Python version, `[test]`
+  dependencies, non-editable package installation, the `bgremover`
+  console script, and Qt `offscreen` before a local run fails deep in
+  pytest.
 - **CI smoke test for application start** (`tests/test_app_smoke.py`).
   The existing UI tests are excluded from CI via `-m 'not ui'`, so CI
   never checked whether the application starts up at all – exactly the
@@ -17,8 +22,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `ui` marker (so it runs in CI): `python -m bgremover` and the
   `bgremover` console script are fully started from a neutral working
   directory (new self-test hook `BGREMOVER_SMOKE_TEST` quits after the
-  first event-loop tick with exit code 0); `_ensure_qt_plugin_path()`
-  is checked to yield a valid Qt plugin path; the starter scripts
+  first event-loop tick with exit code 0); the Qt plugin setup is
+  checked to yield a valid plugin path; the starter scripts
   (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`)
   and the launcher baked into the app bundle are shell-syntax checked.
   `zsh` is installed in the Linux CI job for this.
@@ -71,9 +76,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **`make pr-check` makes the local PR check more robust.** The target
+  refreshes the `[test]` package installation, runs the doctor, and then
+  starts `ruff`, `mypy`, and `pytest`. The Makefile finds
+  `.venv/bin/python` automatically and otherwise falls back to
+  `python`/`python3`; GitHub PR CI and Full CI use the same target. The
+  shared Qt plugin setup stages platform plugins into the system temp
+  directory when needed so local macOS headless runs do not fail on Qt
+  plugin listing issues inside the project path.
 - **Lightweight PR CI added and testing docs synchronized.** Pull
   requests now get a cheap Ubuntu/Python 3.12 workflow with
-  `make check`; the full Linux/macOS matrix remains reserved for
+  `make pr-check`; the full Linux/macOS matrix remains reserved for
   release and manual runs. The test workflows install the package
   non-editably so the app smoke tests check the installed reality from
   a foreign `cwd`. `README`, i18n READMEs, `TESTING.md`, and `Makefile`

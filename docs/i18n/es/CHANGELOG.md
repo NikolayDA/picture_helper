@@ -11,6 +11,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Doctor local del entorno de pruebas** (`make doctor`,
+  `scripts/check_test_env.py`). Comprueba la versión de Python, las
+  dependencias `[test]`, la instalación no editable del paquete, el
+  console-script `bgremover` y Qt `offscreen` antes de que un fallo local
+  aparezca tarde dentro de pytest.
 - **Smoke test de CI para el arranque de la app**
   (`tests/test_app_smoke.py`). Las pruebas de UI existentes quedan
   excluidas de la CI vía `-m 'not ui'`, así que la CI nunca comprobaba
@@ -20,8 +25,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   consola `bgremover` arrancan por completo desde un directorio de
   trabajo neutral (el nuevo hook de autotest `BGREMOVER_SMOKE_TEST`
   termina tras el primer ciclo del event loop con código 0); se
-  comprueba que `_ensure_qt_plugin_path()` produzca una ruta de plugin
-  Qt válida; se verifica la sintaxis shell de los scripts de arranque
+  comprueba que la configuración de plugins Qt produzca una ruta válida;
+  se verifica la sintaxis shell de los scripts de arranque
   (`create_BgRemover_app.sh`, `BgRemover.command`, `diagnose_mac.sh`) y
   del lanzador incrustado en el paquete de app. Para ello se instala
   `zsh` en el job de CI de Linux.
@@ -79,9 +84,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **`make pr-check` hace más robusta la comprobación local de PR.** El
+  target reinstala el paquete con `[test]`, ejecuta el doctor y después
+  arranca `ruff`, `mypy` y `pytest`. El Makefile encuentra
+  `.venv/bin/python` automáticamente y, si no existe, usa
+  `python`/`python3`; GitHub PR CI y Full CI usan el mismo target. La
+  configuración compartida de plugins Qt copia los plugins de plataforma
+  al directorio temporal del sistema cuando hace falta, para que los
+  runs headless locales en macOS no fallen al listar plugins dentro del
+  path del proyecto.
 - **CI ligera para PR añadida y documentación de pruebas sincronizada.**
   Los pull requests tienen ahora un workflow barato en Ubuntu/Python
-  3.12 con `make check`; la matriz completa Linux/macOS queda reservada
+  3.12 con `make pr-check`; la matriz completa Linux/macOS queda reservada
   para releases y ejecuciones manuales. Los workflows de pruebas
   instalan el paquete no editable para que los smoke tests de la app
   verifiquen la realidad instalada desde un `cwd` ajeno. `README`,

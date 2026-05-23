@@ -140,13 +140,14 @@ venv/pip (PyQt6, Pillow, numpy як системні пакети через `ap
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
-pip install ".[test]"
-make check
+python3 -m venv .venv
+source .venv/bin/activate
+make pr-check
 ```
 
 Набір тестів запускається headless (Qt-платформа `offscreen`) і перевіряє
 операції із зображеннями, геометрію обрізання та логіку збереження. Для pull
-request запускається легка GitHub PR CI (Ubuntu, Python 3.12, `make check`).
+request запускається легка GitHub PR CI (Ubuntu, Python 3.12, `make pr-check`).
 Повна матриця Linux/macOS з Python 3.10 та 3.12 запускається під час
 публікації release або вручну. Повний процес тестування описано в
 [TESTING.md](../../../TESTING.md).
