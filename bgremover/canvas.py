@@ -52,6 +52,12 @@ from bgremover.canvas_history import (
     undo_to as _undo_to_impl,
 )
 from bgremover.canvas_lasso import CanvasLasso
+from bgremover.canvas_crop_flow import (
+    cancel_crop as _cancel_crop_impl,
+    cancel_crop_overlay as _cancel_crop_overlay_impl,
+    confirm_crop as _confirm_crop_impl,
+    start_crop_overlay as _start_crop_overlay_impl,
+)
 from bgremover.canvas_events import (
     drag_enter_event as _drag_enter_event_impl,
     drag_move_event as _drag_move_event_impl,
@@ -74,7 +80,6 @@ from bgremover.canvas_selection import (
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
-    crop_image,
     crop_size_for_ratio,
     flip_image,
     rotate_image,
@@ -663,49 +668,15 @@ class ImageCanvas(QGraphicsView):
         self._start_crop_overlay(cw, ch, is_circle=False)
 
     def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool) -> None:
-        # Aufrufer (start_crop_circle / start_crop_ratio) sind @_requires_image-
-        # dekoriert; _pil ist hier garantiert nicht None.
-        assert self._pil is not None
-        self._cancel_crop_overlay()
-        self._crop_overlay = CropOverlayItem(
-            self._pil.width, self._pil.height, cw, ch, is_circle)
-        self._scene.addItem(self._crop_overlay)
-        self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-        self.cropModeChanged.emit(True)
-        label = "Kreis" if is_circle else f"{cw} × {ch} px"
-        self.statusMsg.emit(
-            f"✂  Ausschnitt verschieben  [{label}]  —  dann ✓ Anwenden klicken")
+        _start_crop_overlay_impl(self, cw, ch, is_circle)
 
     def confirm_crop(self) -> None:
         """Wendet den aktuellen Crop-Overlay als Zuschnitt an."""
-        if self._crop_overlay is None or self._pil is None:
-            return
-        r = self._crop_overlay.crop_rect()
-        cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
-        is_circle = self._crop_overlay.is_circle
-        result = crop_image(self._pil, (cx, cy, cw, ch), is_circle=is_circle)
-
-        if is_circle:
-            desc = "Format: Kreis"
-        else:
-            desc = f"Format: {cw}×{ch} px"
-
-        self._cancel_crop_overlay()
-        self.cropModeChanged.emit(False)
-        self._apply_pil(result, desc=desc)
-        self.statusMsg.emit(f"✂  Zugeschnitten: {result.width} × {result.height} px")
+        _confirm_crop_impl(self)
 
     def cancel_crop(self) -> None:
         """Bricht den Zuschnitt ab ohne Änderung."""
-        self._cancel_crop_overlay()
-        self.cropModeChanged.emit(False)
-        self.set_tool(self._tool)
-        self.statusMsg.emit("Zuschnitt abgebrochen")
+        _cancel_crop_impl(self)
 
     def _cancel_crop_overlay(self) -> None:
-        if self._crop_overlay is not None:
-            self._scene.removeItem(self._crop_overlay)
-            self._crop_overlay = None
-        self._crop_dragging      = False
-        self._crop_resizing      = False
-        self._crop_resize_corner = -1
+        _cancel_crop_overlay_impl(self)
