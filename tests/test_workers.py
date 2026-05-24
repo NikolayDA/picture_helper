@@ -55,11 +55,52 @@ def test_image_load_worker_rejects_oversized_image(qapp, tmp_path) -> None:
 
     with patch("bgremover.workers.Image.open") as mock_open:
         mock_img = mock_open.return_value
+        mock_img.format = "PNG"
         mock_img.width, mock_img.height = fake_size
         worker.run()
 
     assert len(errors) == 1
     assert str(_MAX_MEGAPIXELS) in errors[0]
+    assert len(finished) == 0
+
+
+def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
+    p = tmp_path / "icon.xyz"
+    p.write_bytes(b"fake image")
+    worker = ImageLoadWorker(str(p))
+    errors: list[str] = []
+    finished: list = []
+    worker.error.connect(errors.append)
+    worker.finished.connect(lambda img, path: finished.append((img, path)))
+
+    with patch("bgremover.workers.Image.open") as mock_open:
+        mock_img = mock_open.return_value
+        mock_img.format = "ICO"
+        worker.run()
+
+    assert errors == ["Format nicht unterstützt: ICO"]
+    assert len(finished) == 0
+
+
+def test_image_load_worker_error_on_decode_failure(qapp, tmp_path) -> None:
+    p = tmp_path / "bad.png"
+    p.write_bytes(b"fake png")
+    worker = ImageLoadWorker(str(p))
+    errors: list[str] = []
+    finished: list = []
+    worker.error.connect(errors.append)
+    worker.finished.connect(lambda img, path: finished.append((img, path)))
+
+    with patch("bgremover.workers.Image.open") as mock_open:
+        mock_img = mock_open.return_value
+        mock_img.format = "PNG"
+        mock_img.width = 10
+        mock_img.height = 10
+        mock_img.load.side_effect = OSError("decode failed")
+        worker.run()
+
+    assert len(errors) == 1
+    assert "decode failed" in errors[0]
     assert len(finished) == 0
 
 

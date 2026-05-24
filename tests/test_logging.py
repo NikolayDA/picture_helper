@@ -4,7 +4,9 @@ Vor dem Fix landeten Ausnahmen in ``apply_remove``/``apply_replace`` und
 im ``AIWorker`` nur über ``traceback.print_exc()`` auf stderr — nie im
 UI, nie in einer Datei. Jetzt wird ein modulweiter Logger genutzt.
 """
+from contextlib import contextmanager
 import logging
+from logging.handlers import RotatingFileHandler
 
 import numpy as np
 from PIL import Image
@@ -12,6 +14,36 @@ from PIL import Image
 import bgremover
 from bgremover import logging_config as _lc
 from bgremover import ImageCanvas
+
+
+@contextmanager
+def _isolated_logging_setup(target, monkeypatch):
+    class _FakeQSP:
+        class StandardLocation:
+            AppDataLocation = 0
+
+        @staticmethod
+        def writableLocation(_loc):
+            return str(target)
+
+    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
+    root = logging.getLogger()
+    before = list(root.handlers)
+    before_level = root.level
+    previous_log_file = _lc._log_file_path
+    for handler in before:
+        root.removeHandler(handler)
+    try:
+        _lc._setup_logging()
+        yield
+    finally:
+        for handler in list(root.handlers):
+            handler.close()
+            root.removeHandler(handler)
+        for handler in before:
+            root.addHandler(handler)
+        root.setLevel(before_level)
+        _lc._log_file_path = previous_log_file
 
 
 def test_module_logger_exists():
@@ -44,32 +76,27 @@ def test_apply_replace_logs_unexpected_exception(qapp, caplog):
 
 def test_setup_logging_creates_missing_directory(tmp_path, monkeypatch):
     """``_setup_logging`` muss das Zielverzeichnis anlegen – sonst bricht
-    der FileHandler den Programmstart mit FileNotFoundError ab."""
+    der Datei-Handler den Programmstart mit FileNotFoundError ab."""
     target = tmp_path / "deep" / "appdir"
 
-    class _FakeQSP:
-        class StandardLocation:
-            AppDataLocation = 0
-
-        @staticmethod
-        def writableLocation(_loc):
-            return str(target)
-
-    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
-    root = logging.getLogger()
-    before = list(root.handlers)
-    try:
-        _lc._setup_logging()
+    with _isolated_logging_setup(target, monkeypatch):
         assert target.exists()
-        assert (target / "bgremover.log").exists()
-    finally:
-        for h in list(root.handlers):
-            if h not in before:
-                h.close()
-                root.removeHandler(h)
-        for h in before:
-            if h not in root.handlers:
-                root.addHandler(h)
+        assert not (target / "bgremover.log").exists()
+
+
+def test_setup_logging_uses_rotating_file_handler(tmp_path, monkeypatch):
+    target = tmp_path / "appdir"
+
+    with _isolated_logging_setup(target, monkeypatch):
+        rotating_handlers = [
+            handler
+            for handler in logging.getLogger().handlers
+            if isinstance(handler, RotatingFileHandler)
+        ]
+
+    assert len(rotating_handlers) == 1
+    assert rotating_handlers[0].maxBytes == 5 * 1024 * 1024
+    assert rotating_handlers[0].backupCount == 3
 
 
 def test_current_log_file_matches_setup(tmp_path, monkeypatch):
@@ -78,25 +105,5 @@ def test_current_log_file_matches_setup(tmp_path, monkeypatch):
     zeigt der Einstellungen-Dialog einen falschen Pfad an."""
     target = tmp_path / "appdir"
 
-    class _FakeQSP:
-        class StandardLocation:
-            AppDataLocation = 0
-
-        @staticmethod
-        def writableLocation(_loc):
-            return str(target)
-
-    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
-    root = logging.getLogger()
-    before = list(root.handlers)
-    try:
-        _lc._setup_logging()
+    with _isolated_logging_setup(target, monkeypatch):
         assert _lc.current_log_file() == target / "bgremover.log"
-    finally:
-        for h in list(root.handlers):
-            if h not in before:
-                h.close()
-                root.removeHandler(h)
-        for h in before:
-            if h not in root.handlers:
-                root.addHandler(h)

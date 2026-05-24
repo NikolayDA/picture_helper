@@ -11,7 +11,7 @@ import io
 from PIL import Image, ImageOps
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from bgremover.constants import _MAX_MEGAPIXELS, logger
+from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS, logger
 
 try:
     from rembg import remove as rembg_remove
@@ -96,10 +96,14 @@ class ImageLoadWorker(_Worker):
 
     def _work(self) -> None:
         img: Image.Image = Image.open(self._path)
+        if img.format not in _ALLOWED_IMAGE_FORMATS:
+            self.error.emit(f"Format nicht unterstützt: {img.format}")
+            return
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
             self.error.emit(
                 f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
             return
+        img.load()
         img = ImageOps.exif_transpose(img).convert("RGBA")
         self.finished.emit(img, self._path)
