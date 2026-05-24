@@ -1,9 +1,8 @@
 """Zentrale UI-Farbpalette und davon abhängige Stylesheet-Vorlagen.
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 5).
 ``_Theme`` und die beiden f-Strings ``TOOL_STYLE``/``SLD_STYLE`` bleiben
 bewusst zusammen (die f-Strings werden beim Import ausgewertet und
-referenzieren ``_Theme``). Keine Verhaltensänderung.
+referenzieren ``_Theme``).
 """
 from __future__ import annotations
 

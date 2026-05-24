@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from PIL import Image
-from PyQt6.QtCore import QObject, QThread
+from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
 from bgremover.constants import _THREAD_SHUTDOWN_MS, logger
-from bgremover.workers import AIWorker, ImageLoadWorker, RembgWarmupWorker
+from bgremover.workers import _Worker, AIWorker, ImageLoadWorker, RembgWarmupWorker
+
+
+QuitSignals = tuple[pyqtBoundSignal, ...]
 
 
 class WorkerController:
@@ -31,13 +33,23 @@ class WorkerController:
     def is_ai_running(self) -> bool:
         return self.ai_thread is not None and self.ai_thread.isRunning()
 
-    def launch_worker(self, worker: Any, quit_on: tuple, on_finished=None) -> QThread:
+    def launch_worker(
+        self,
+        worker: _Worker | RembgWarmupWorker,
+        quit_on: QuitSignals,
+        on_finished: Callable[[], None] | None = None,
+    ) -> QThread:
         """Start *worker* in a new QThread and return the thread."""
         thread = self._build_thread(worker, quit_on, on_finished)
         thread.start()
         return thread
 
-    def _build_thread(self, worker: Any, quit_on: tuple, on_finished=None) -> QThread:
+    def _build_thread(
+        self,
+        worker: _Worker | RembgWarmupWorker,
+        quit_on: QuitSignals,
+        on_finished: Callable[[], None] | None = None,
+    ) -> QThread:
         thread = QThread(self._parent)
         # Starke Referenz: Controller -> thread -> worker. Ohne sie sammelt
         # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet

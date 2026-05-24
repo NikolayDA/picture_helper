@@ -1,8 +1,4 @@
-"""Bild-/Array-Konvertierung, Flood-Fill, Overlay, Schachbrett-Brush.
-
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 3).
-Keine Verhaltensänderung.
-"""
+"""Bild-/Array-Konvertierung, Flood-Fill, Overlay, Schachbrett-Brush."""
 from __future__ import annotations
 
 import numpy as np

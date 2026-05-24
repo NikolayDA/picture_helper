@@ -1,11 +1,8 @@
 """Cursor- und Toolbar-Icon-Generatoren.
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 4),
-mit *einer* bewussten, verhaltensneutralen Änderung (Hazard H7):
-``make_tool_icon`` löst die PNGs jetzt über ``importlib.resources`` aus
-den Paket-Daten ``bgremover/icons/`` auf statt über
-``__file__``/``sys.argv[0]``/``cwd``. Kontrakt unverändert: PNG vorhanden
-⇒ PNG-Icon, sonst das gezeichnete Vektor-Fallback.
+Asset-Auflösung läuft über ``importlib.resources`` aus den Paket-Daten
+``bgremover/icons/``. Kontrakt: PNG vorhanden ⇒ PNG-Icon, sonst das
+gezeichnete Vektor-Fallback.
 """
 from __future__ import annotations
 

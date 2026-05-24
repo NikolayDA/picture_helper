@@ -1,8 +1,7 @@
 """Modulweite Konstanten und der Logger.
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 2).
-Keine Verhaltensänderung. ``_log_file_path`` bleibt bewusst hier *nicht*
-enthalten (zentrale Quelle: ``logging_config``, Schritt 9).
+``_log_file_path`` lebt bewusst nicht hier, sondern in ``logging_config``
+als zentrale Quelle.
 """
 from __future__ import annotations
 

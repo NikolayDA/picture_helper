@@ -1,9 +1,8 @@
 """Einstellungen-Dialog (persistente Nutzereinstellungen).
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 10).
 Liest den aktiven Log-Pfad ueber ``current_log_file()`` aus
 ``logging_config`` – nie ueber den Modul-Globalwert ``_log_file_path``
-(H2). Keine Verhaltensaenderung.
+direkt.
 """
 from __future__ import annotations
 
