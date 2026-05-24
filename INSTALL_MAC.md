@@ -163,4 +163,4 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   icons/`, werden also bei `pip install` automatisch in die venv
   übernommen und über `importlib.resources` geladen; einmal
   `bash create_BgRemover_app.sh` neu bauen.
-- **Diagnose bei Fehlern** → Logdatei `~/.bgremover.log` ansehen.
+- **Diagnose bei Fehlern** → Logdatei `~/Library/Application Support/BgRemover/bgremover.log` ansehen.

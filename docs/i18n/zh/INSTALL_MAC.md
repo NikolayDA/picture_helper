@@ -162,4 +162,4 @@ git checkout <branch> && git pull      # 更新某个特定分支
   因此在 `pip install` 时自动进入 venv，并通过
   `importlib.resources` 加载；重新执行一次
   `bash create_BgRemover_app.sh` 构建。
-- **出错时的诊断** → 查看日志文件 `~/.bgremover.log`。
+- **出错时的诊断** → 查看日志文件 `~/Library/Application Support/BgRemover/bgremover.log`。
