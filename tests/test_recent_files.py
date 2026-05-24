@@ -10,7 +10,12 @@ from PIL import Image
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QMenu
 
-from bgremover.recent_files import RecentFiles, RecentFilesMenu
+from bgremover.recent_files import (
+    RECENT_MAX,
+    SETTINGS_RECENT_KEY,
+    RecentFiles,
+    RecentFilesMenu,
+)
 
 
 @pytest.fixture
@@ -89,11 +94,11 @@ def test_recent_list_dedups_and_caps(qapp, isolated_settings):
     from bgremover import MainWindow
     w = MainWindow()
     # Erst Liste explizit leeren (in case)
-    w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
+    w._settings.setValue(SETTINGS_RECENT_KEY, [])
     for i in range(12):
         w._add_recent(str(isolated_settings / f"img{i}.png"))
     paths = w._recent_paths()
-    assert len(paths) == MainWindow.RECENT_MAX
+    assert len(paths) == RECENT_MAX
     # Letzter eingefügter Eintrag steht vorn
     assert Path(paths[0]).name == "img11.png"
 
@@ -101,7 +106,7 @@ def test_recent_list_dedups_and_caps(qapp, isolated_settings):
 def test_recent_brings_existing_to_front(qapp, isolated_settings):
     from bgremover import MainWindow
     w = MainWindow()
-    w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
+    w._settings.setValue(SETTINGS_RECENT_KEY, [])
     a = str(isolated_settings / "a.png")
     b = str(isolated_settings / "b.png")
     w._add_recent(a)
@@ -116,7 +121,7 @@ def test_recent_brings_existing_to_front(qapp, isolated_settings):
 def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
     from bgremover import MainWindow
     w = MainWindow()
-    w._settings.setValue(MainWindow.SETTINGS_RECENT_KEY, [])
+    w._settings.setValue(SETTINGS_RECENT_KEY, [])
     img_path = tmp_path / "x.png"
     Image.new("RGB", (8, 8), (1, 2, 3)).save(img_path)
     w._canvas.load_image(str(img_path))

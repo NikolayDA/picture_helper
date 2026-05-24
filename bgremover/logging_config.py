@@ -1,10 +1,8 @@
 """Logging-Konfiguration und der aktive Log-Pfad (einzige Quelle).
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 9).
-``_log_file_path`` lebt ausschließlich hier (Hazard H2); die einzige
-Auslese-Schnittstelle ist ``current_log_file()`` – auch der
-Einstellungen-Dialog liest darüber, nie den Modul-Globalwert direkt.
-Keine Verhaltensänderung.
+``_log_file_path`` lebt ausschließlich hier; die Auslese-Schnittstelle
+ist ``current_log_file()``. Auch der Einstellungen-Dialog liest darüber,
+nie den Modul-Globalwert direkt.
 """
 from __future__ import annotations
 

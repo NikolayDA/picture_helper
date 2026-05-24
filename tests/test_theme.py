@@ -11,6 +11,7 @@ import ast
 from pathlib import Path
 
 import bgremover
+from bgremover.right_panel import TAB_STYLE
 
 
 _PKG = Path(__file__).resolve().parent.parent / "bgremover"
@@ -51,11 +52,11 @@ def test_shared_templates_use_palette():
     # nicht erneut hartkodierte Hex-Werte enthalten.
     assert bgremover._Theme.ACCENT in bgremover.TOOL_STYLE
     assert bgremover._Theme.BORDER in bgremover.SLD_STYLE
-    assert bgremover._Theme.ACCENT in bgremover.MainWindow._TAB_STYLE
+    assert bgremover._Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
     assert "{{" not in bgremover.TOOL_STYLE
-    assert "}}" not in bgremover.MainWindow._TAB_STYLE
+    assert "}}" not in TAB_STYLE
 
 
 def test_dead_style_constants_not_reintroduced():

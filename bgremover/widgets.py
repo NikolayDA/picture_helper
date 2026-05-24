@@ -1,8 +1,4 @@
-"""TopIconTabBar / TopIconTabWidget – Tabs mit grossem Icon oben.
-
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 10).
-Keine Verhaltensaenderung.
-"""
+"""TopIconTabBar / TopIconTabWidget – Tabs mit grossem Icon oben."""
 from __future__ import annotations
 
 from PyQt6.QtCore import QRect, QSize, Qt

@@ -1,8 +1,7 @@
 """Anwendungs-Einstiegspunkt.
 
-Verbatim aus dem ``__main__``-Block von ``BgRemover.py`` (Runde 5,
-Phase B – Schritt 12). Liefert ``int`` zurueck (Exit-Code), damit
-``raise SystemExit(main())`` in ``__main__.py`` korrekt durchschlaegt.
+Liefert ``int`` zurueck (Exit-Code), damit ``raise SystemExit(main())``
+in ``__main__.py`` korrekt durchschlaegt.
 """
 from __future__ import annotations
 
