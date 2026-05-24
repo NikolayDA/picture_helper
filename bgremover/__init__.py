@@ -48,14 +48,6 @@ from bgremover.workers import (
 )
 from bgremover.main_window import MainWindow
 
-
-def _canvas_version(canvas: ImageCanvas) -> int:
-    """Öffentliche Stale-Revision für laufende Hintergrund-Worker."""
-    return canvas.content_revision
-
-
-setattr(ImageCanvas, "version", property(_canvas_version))
-
 __all__ = [
     "LOG_FILENAME",
     "REMBG_AVAILABLE",
