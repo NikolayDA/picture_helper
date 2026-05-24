@@ -228,6 +228,10 @@ class ImageCanvas(QGraphicsView):
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
 
+    def apply_edit(self, img: Image.Image, desc: str = "Bearbeitung") -> None:
+        """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
+        self._apply_pil(img, push=True, desc=desc)
+
     def _apply_pil(
         self,
         img: Image.Image,
