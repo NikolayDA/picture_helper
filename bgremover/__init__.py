@@ -11,7 +11,7 @@ try:
     __version__ = _pkg_version("bgremover")
 except PackageNotFoundError:
     # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
-    __version__ = "2.1.0"
+    __version__ = "2.2.0"
 
 from bgremover.constants import (
     LOG_FILENAME,
