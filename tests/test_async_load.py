@@ -15,9 +15,14 @@ def test_apply_loaded_image_sets_state(qapp):
     canvas.apply_loaded_image(img, "/tmp/x.png")
     assert canvas._pil is img
     assert canvas._mask.shape == (24, 32)
-    assert canvas._original is not None
-    assert len(canvas._undo) == 0
-    assert len(canvas._redo) == 0
+    canvas.undo()
+    assert canvas.image is img
+    canvas.redo()
+    assert canvas.image is img
+    canvas.apply_edit(Image.new("RGBA", (32, 24), (1, 2, 3, 255)), desc="edit")
+    canvas.restore_original()
+    assert canvas.image is not None
+    assert canvas.image.getpixel((0, 0)) == (50, 100, 150, 255)
 
 
 def test_apply_loaded_image_emits_image_loaded(qapp):

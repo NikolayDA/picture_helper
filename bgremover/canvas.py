@@ -6,7 +6,6 @@ Klasse besitzt UI-Zustand, Undo/Redo, Qt-Signale und interaktive Overlays.
 from __future__ import annotations
 
 import functools
-from collections import deque
 from pathlib import Path
 from typing import Callable
 
@@ -38,19 +37,10 @@ from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
     _MAX_MEGAPIXELS,
-    _REDO_MAX_ENTRIES,
-    _UNDO_MEMORY_LIMIT,
     _ZOOM_FACTOR,
     logger,
 )
-from bgremover.canvas_history import (
-    emit_history as _emit_history_impl,
-    img_bytes as _img_bytes_impl,
-    redo as _redo_impl,
-    restore_original as _restore_original_impl,
-    undo as _undo_impl,
-    undo_to as _undo_to_impl,
-)
+from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import (
     apply_remove as _apply_remove_impl,
@@ -126,10 +116,9 @@ class ImageCanvas(QGraphicsView):
         self._scene.addItem(self._overlay_item)
         self._overlay_item.setZValue(1)
 
-        self._pil:      Image.Image | None = None
-        self._original: Image.Image | None = None
-        self._arr:      np.ndarray  | None = None
-        self._mask:     np.ndarray  | None = None
+        self._pil:  Image.Image | None = None
+        self._arr:  np.ndarray  | None = None
+        self._mask: np.ndarray  | None = None
         # Monotone Zähler:
         # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
         # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
@@ -137,15 +126,7 @@ class ImageCanvas(QGraphicsView):
         # Objektidentität.
         self._version:  int = 0
         self._content_revision: int = 0
-        # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
-        # Kein festes maxlen – Grösse wird durch _UNDO_MEMORY_LIMIT begrenzt.
-        self._undo:     deque = deque()
-        # Laufende Summe der Undo-Rohdaten in Bytes (statt deque jedes Mal
-        # komplett aufzusummieren – O(1) statt O(n) pro Bearbeitung).
-        self._undo_bytes: int = 0
-        # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
-        # via _apply_pil(push=True) geleert.
-        self._redo:     deque = deque(maxlen=_REDO_MAX_ENTRIES)
+        self._history = CanvasHistory()
 
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
@@ -216,11 +197,6 @@ class ImageCanvas(QGraphicsView):
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
 
-    @staticmethod
-    def _img_bytes(img: Image.Image) -> int:
-        """Geschätzte RGBA-Rohdatengrösse eines Bildes in Bytes."""
-        return _img_bytes_impl(img)
-
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str) -> None:
@@ -244,10 +220,8 @@ class ImageCanvas(QGraphicsView):
     def apply_loaded_image(self, img: Image.Image, path: str) -> None:
         """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
         self._version += 1
-        self._original = img.copy()
-        self._undo.clear()
-        self._undo_bytes = 0
-        self._redo.clear()
+        self._history.clear()
+        self._history.set_original(img)
         self._cancel_crop_overlay()
         self._apply_pil(img, push=False)
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
@@ -266,15 +240,8 @@ class ImageCanvas(QGraphicsView):
         desc: str = "Bearbeitung",
     ) -> None:
         if push and self._pil is not None:
-            self._undo.append((self._pil.copy(), desc))
-            self._undo_bytes += self._img_bytes(self._pil)
-            # Neue Aktion ⇒ Redo-Branch verwerfen (klassisches Editor-Verhalten)
-            self._redo.clear()
-            # Älteste Einträge entfernen, solange das Speicherlimit überschritten ist.
-            while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
-                evicted, _ = self._undo.popleft()
-                self._undo_bytes -= self._img_bytes(evicted)
-            _emit_history_impl(self)
+            self._history.push(self._pil, desc)
+            self._emit_history()
         self._set_image_state(img)
 
     def _refresh_image(self) -> None:
@@ -293,10 +260,8 @@ class ImageCanvas(QGraphicsView):
     def _set_image_state(self, img: Image.Image) -> None:
         """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
 
-        Kapselt den Block, der zuvor identisch in ``_apply_pil``, ``undo``,
-        ``redo``, ``undo_to`` und ``restore_original`` stand. Setzt
-        ausschliesslich den Anzeigezustand und die Content-Revision –
-        Undo-/Redo-Stapelpflege bleibt Sache der Aufrufer.
+        Kapselt den Anzeigezustand und die Content-Revision. Die
+        Undo-/Redo-Stapelpflege liegt in ``CanvasHistory``.
         """
         self._pil  = img
         self._arr  = pil_to_numpy(img)
@@ -307,21 +272,63 @@ class ImageCanvas(QGraphicsView):
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
-        _emit_history_impl(self)
+        self.historyChanged.emit(self._history.descriptions())
+
+    def _apply_history_step(
+        self,
+        result: tuple[Image.Image, str] | None,
+        empty_message: str,
+        status_template: str,
+    ) -> None:
+        if result is None:
+            self.statusMsg.emit(empty_message)
+            return
+        img, desc = result
+        self._set_image_state(img)
+        self._emit_history()
+        self.statusMsg.emit(status_template.format(desc=desc))
 
     # ── Undo / Original ──────────────────────────────────────
 
     def undo(self) -> None:
-        _undo_impl(self)
+        if self._crop_overlay is not None:
+            self.cancel_crop()
+            return
+        self._apply_history_step(
+            self._history.undo(self._pil),
+            "Nichts mehr zum Rückgängigmachen",
+            "↩  Rückgängig: {desc}",
+        )
 
     def redo(self) -> None:
-        _redo_impl(self)
+        if self._crop_overlay is not None:
+            return
+        self._apply_history_step(
+            self._history.redo(self._pil),
+            "Nichts mehr zum Wiederherstellen",
+            "↪  Wiederherstellen: {desc}",
+        )
 
     def undo_to(self, steps: int) -> None:
-        _undo_to_impl(self, steps)
+        if self._crop_overlay is not None:
+            self.cancel_crop()
+            return
+        result = self._history.undo_to(self._pil, steps)
+        if result is None:
+            return
+        img, desc, actual = result
+        self._set_image_state(img)
+        self._emit_history()
+        self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
 
     def restore_original(self) -> None:
-        _restore_original_impl(self)
+        restored = self._history.restore(self._pil)
+        if restored is None:
+            return
+        self._cancel_crop_overlay()
+        self._set_image_state(restored)
+        self._emit_history()
+        self.statusMsg.emit("🔄  Original wiederhergestellt")
 
     def clear_selection(self) -> None:
         _clear_selection_impl(self)
