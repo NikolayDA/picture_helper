@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.logging_config import current_log_file
+from bgremover.theme import SETTINGS_TITLE_STYLE
 
 
 class SettingsDialog(QDialog):
@@ -52,7 +53,7 @@ class SettingsDialog(QDialog):
         lay.setContentsMargins(20, 20, 20, 20)
 
         title = QLabel("Einstellungen")
-        title.setStyleSheet("font-size: 15px; font-weight: bold;")
+        title.setStyleSheet(SETTINGS_TITLE_STYLE)
         lay.addWidget(title)
 
         # Verzeichnis zum Öffnen
@@ -152,4 +153,3 @@ class SettingsDialog(QDialog):
         self._settings.setValue("save_dir", self._save_dir_edit.text().strip())
         self._settings.setValue("preferred_format", self._fmt_combo.currentText())
         self.accept()
-

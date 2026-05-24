@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -20,14 +20,11 @@ from PyQt6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
     QPainter,
-    QPainterPath,
     QPen,
 )
 from PyQt6.QtWidgets import (
     QApplication,
     QGraphicsEllipseItem,
-    QGraphicsLineItem,
-    QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
@@ -41,10 +38,12 @@ from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
     _MAX_MEGAPIXELS,
+    _REDO_MAX_ENTRIES,
     _UNDO_MEMORY_LIMIT,
     _ZOOM_FACTOR,
     logger,
 )
+from bgremover.canvas_lasso import CanvasLasso
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
@@ -117,9 +116,10 @@ class ImageCanvas(QGraphicsView):
         self._arr:      np.ndarray  | None = None
         self._mask:     np.ndarray  | None = None
         # Monotone Zähler:
-        # - _version ändert sich nur bei einem neu geladenen Bild.
+        # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
         # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
-        # Externe Worker nutzen content_revision als Stale-Check statt Objektidentität.
+        # Externe Worker nutzen diese content_revision als Stale-Check statt
+        # Objektidentität.
         self._version:  int = 0
         self._content_revision: int = 0
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
@@ -130,7 +130,7 @@ class ImageCanvas(QGraphicsView):
         self._undo_bytes: int = 0
         # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
         # via _apply_pil(push=True) geleert.
-        self._redo:     deque = deque(maxlen=20)
+        self._redo:     deque = deque(maxlen=_REDO_MAX_ENTRIES)
 
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
@@ -140,10 +140,7 @@ class ImageCanvas(QGraphicsView):
         self._drawing   = False
 
         # Polygon-Lasso-Werkzeug
-        self._lasso_pts:       list[tuple[int, int]] = []
-        self._lasso_path_item: QGraphicsPathItem | None = None
-        self._lasso_line_item: QGraphicsLineItem | None = None
-        self._lasso_mods:      Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier
+        self._lasso = CanvasLasso(self._scene)
 
         # Crop-Overlay-Zustand
         self._crop_overlay:      CropOverlayItem | None = None
@@ -175,13 +172,30 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def version(self) -> int:
-        """Monoton steigender Zähler; erhöht sich bei jedem Bildwechsel."""
-        return self._version
+        """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
+        return self._content_revision
 
     @property
     def content_revision(self) -> int:
         """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
+
+    # ── Backward-Compat für bestehende Tests (Refactor-Übergang) ───────
+    @property
+    def _lasso_pts(self) -> list[tuple[int, int]]:
+        return self._lasso.points
+
+    @_lasso_pts.setter
+    def _lasso_pts(self, pts: list[tuple[int, int]]) -> None:
+        self._lasso.points = pts
+
+    @property
+    def _lasso_mods(self) -> Qt.KeyboardModifier:
+        return self._lasso.modifiers
+
+    @_lasso_mods.setter
+    def _lasso_mods(self, mods: Qt.KeyboardModifier) -> None:
+        self._lasso.modifiers = mods
 
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
@@ -225,6 +239,10 @@ class ImageCanvas(QGraphicsView):
         self.statusMsg.emit(
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
+
+    def apply_edit(self, img: Image.Image, desc: str = "Bearbeitung") -> None:
+        """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
+        self._apply_pil(img, push=True, desc=desc)
 
     def _apply_pil(
         self,
@@ -507,48 +525,51 @@ class ImageCanvas(QGraphicsView):
         sp = self.mapToScene(event.position().toPoint())
         return int(sp.x()), int(sp.y())
 
-    def mousePressEvent(self, event) -> None:
-        if self._pil is None or self._arr is None:
-            return super().mousePressEvent(event)
+    def _handle_crop_press(self, btn: Qt.MouseButton, sp: QPointF) -> bool:
+        """Verarbeitet Press-Events im Crop-Modus; True => Event konsumiert."""
+        if self._crop_overlay is None:
+            return False
+        if btn == Qt.MouseButton.LeftButton:
+            corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
+            if corner >= 0:
+                self._crop_resizing = True
+                self._crop_resize_corner = corner
+                self._crop_drag_start = sp
+                self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
+                                      if corner in (0, 3)
+                                      else Qt.CursorShape.SizeBDiagCursor))
+            elif self._crop_overlay.inside(sp.x(), sp.y()):
+                self._crop_dragging = True
+                self._crop_drag_start = sp
+                self._crop_start_pos = self._crop_overlay.top_left
+                self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+        return True
 
-        btn  = event.button()
-        sp   = self.mapToScene(event.position().toPoint())
-        mods = QApplication.keyboardModifiers()
-
-        # ── Crop-Modus ────────────────────────────────────────
-        if self._crop_overlay is not None:
-            if btn == Qt.MouseButton.LeftButton:
-                corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
-                if corner >= 0:
-                    # Resize-Drag starten
-                    self._crop_resizing      = True
-                    self._crop_resize_corner = corner
-                    self._crop_drag_start    = sp
-                    self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
-                                          if corner in (0, 3)
-                                          else Qt.CursorShape.SizeBDiagCursor))
-                elif self._crop_overlay.inside(sp.x(), sp.y()):
-                    self._crop_dragging   = True
-                    self._crop_drag_start = sp
-                    self._crop_start_pos  = self._crop_overlay.top_left
-                    self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return  # alle anderen Aktionen im Crop-Modus blockieren
-
-        # ── Pan: Alt+Drag oder Mittelklick ────────────────────
+    def _start_pan_if_requested(
+        self,
+        btn: Qt.MouseButton,
+        mods: Qt.KeyboardModifier,
+        pos: QPointF,
+    ) -> bool:
+        """Startet Pan-Modus (Alt+LMB oder MMB); True => Event konsumiert."""
         if (btn == Qt.MouseButton.MiddleButton or
                 (btn == Qt.MouseButton.LeftButton and
                  mods & Qt.KeyboardModifier.AltModifier)):
-            self._panning   = True
-            self._pan_start = event.position()
+            self._panning = True
+            self._pan_start = pos
             self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return
+            return True
+        return False
 
-        if btn != Qt.MouseButton.LeftButton:
-            return super().mousePressEvent(event)
-
-        x, y = int(sp.x()), int(sp.y())
-
+    def _handle_tool_press(
+        self,
+        x: int,
+        y: int,
+        mods: Qt.KeyboardModifier,
+    ) -> None:
+        """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
         if self._tool == TOOL_WAND:
+            assert self._pil is not None and self._arr is not None and self._mask is not None
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
                 new = flood_fill(self._arr, x, y, self._tolerance)
@@ -561,44 +582,39 @@ class ImageCanvas(QGraphicsView):
                 self._refresh_overlay()
                 self.statusMsg.emit(f"Auswahl: {int(self._mask.sum()):,} Pixel")
         elif self._tool == TOOL_LASSO:
+            assert self._pil is not None
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
-                if not self._lasso_pts:
-                    self._lasso_mods = mods
-                self._lasso_add_point(x, y)
+                self._lasso.set_modifiers_if_first(mods)
+                self.statusMsg.emit(self._lasso.add_point(x, y))
         else:
             self._drawing = True
             self._paint_brush(x, y)
 
-    def mouseMoveEvent(self, event) -> None:
-        sp = self.mapToScene(event.position().toPoint())
-
-        # Pinsel-Vorschau (außerhalb von Crop-/Pan-Modi)
+    def _update_preview_and_lasso_line(self, sp: QPointF) -> None:
+        """Aktualisiert Pinselvorschau und optionale Lasso-Vorschaulinie."""
         if self._crop_overlay is None and not self._panning:
             self._update_brush_preview(sp)
-            # Lasso-Vorschaulinie vom letzten Punkt zur Mausposition
-            if self._tool == TOOL_LASSO and self._lasso_pts and self._lasso_line_item is not None:
-                last = self._lasso_pts[-1]
-                self._lasso_line_item.setLine(last[0], last[1], sp.x(), sp.y())
+            if self._tool == TOOL_LASSO:
+                self._lasso.update_preview_line(sp.x(), sp.y())
 
-        # ── Crop-Resize ───────────────────────────────────────
+    def _handle_crop_move(self, sp: QPointF) -> bool:
+        """Verarbeitet Crop-Drag/Resize/Cursor-Logik; True => Event konsumiert."""
         if self._crop_resizing and self._crop_overlay is not None:
             self._crop_overlay.resize_from_corner(
                 self._crop_resize_corner, sp.x(), sp.y())
             cw, ch = self._crop_overlay.size
             self.statusMsg.emit(
                 f"⇲ Größe: {int(round(cw))} × {int(round(ch))} px")
-            return
+            return True
 
-        # ── Crop-Drag ─────────────────────────────────────────
         if self._crop_dragging and self._crop_overlay is not None:
             delta = sp - self._crop_drag_start
             self._crop_overlay.set_position(
                 self._crop_start_pos.x() + delta.x(),
                 self._crop_start_pos.y() + delta.y())
-            return
+            return True
 
-        # Cursor im Crop-Modus anpassen
         if self._crop_overlay is not None:
             corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
             if corner >= 0:
@@ -609,112 +625,131 @@ class ImageCanvas(QGraphicsView):
                 self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
             else:
                 self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
-            return
+            return True
+        return False
 
-        if self._panning:
-            delta = event.position() - self._pan_start
-            self._pan_start = event.position()
-            hbar = self.horizontalScrollBar()
-            vbar = self.verticalScrollBar()
-            assert hbar is not None and vbar is not None
-            hbar.setValue(hbar.value() - int(delta.x()))
-            vbar.setValue(vbar.value() - int(delta.y()))
-            return
-        if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
+    def _handle_panning_move(self, event) -> bool:
+        """Verarbeitet Pan-Move; True => Event konsumiert."""
+        if not self._panning:
+            return False
+        delta = event.position() - self._pan_start
+        self._pan_start = event.position()
+        hbar = self.horizontalScrollBar()
+        vbar = self.verticalScrollBar()
+        assert hbar is not None and vbar is not None
+        hbar.setValue(hbar.value() - int(delta.x()))
+        vbar.setValue(vbar.value() - int(delta.y()))
+        return True
+
+    def _handle_drawing_move(self, sp: QPointF, buttons: Qt.MouseButton) -> bool:
+        """Verarbeitet Brush/Eraser-Drag; True => gezeichnet."""
+        if self._drawing and buttons & Qt.MouseButton.LeftButton:
             self._paint_brush(int(sp.x()), int(sp.y()))
-        super().mouseMoveEvent(event)
+            return True
+        return False
 
-    def mouseReleaseEvent(self, event) -> None:
+    def _handle_release_state(self) -> bool:
+        """Verarbeitet Release-Folgezustände; True => Event konsumiert."""
         if self._crop_resizing:
             self._crop_resizing = False
             self._crop_resize_corner = -1
             if self._crop_overlay is not None:
                 self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-            return
+            return True
         if self._crop_dragging:
             self._crop_dragging = False
             if self._crop_overlay is not None:
                 self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-            return
+            return True
         if self._panning:
             self._panning = False
             self.set_tool(self._tool)
+            return True
+        return False
+
+    def _handle_lasso_double_click(self, event) -> bool:
+        """Schließt/abbricht Lasso bei Doppelklick; True => Event konsumiert."""
+        if self._tool != TOOL_LASSO or event.button() != Qt.MouseButton.LeftButton:
+            return False
+        # Qt liefert vor dem Doppelklick bereits ein MousePress.
+        # Nur ein dadurch entstandenes Duplikat an der Klickposition verwerfen.
+        sp = self.mapToScene(event.position().toPoint())
+        self._lasso.undo_last_point_if_duplicate(int(sp.x()), int(sp.y()))
+        if self._lasso.point_count >= 3:
+            self._lasso_close()
+        else:
+            self._lasso_cancel()
+        return True
+
+    def _handle_lasso_escape(self, key: int) -> bool:
+        """Behandelt Escape-Abbruch fürs Lasso; True => Event konsumiert."""
+        if key == Qt.Key.Key_Escape and self._lasso.has_points:
+            self._lasso_cancel()
+            self.statusMsg.emit("Polygon-Lasso abgebrochen")
+            return True
+        return False
+
+    def mousePressEvent(self, event) -> None:
+        if self._pil is None or self._arr is None:
+            return super().mousePressEvent(event)
+
+        btn  = event.button()
+        sp   = self.mapToScene(event.position().toPoint())
+        mods = QApplication.keyboardModifiers()
+
+        if self._handle_crop_press(btn, sp):
+            return
+
+        if self._start_pan_if_requested(btn, mods, event.position()):
+            return
+
+        if btn != Qt.MouseButton.LeftButton:
+            return super().mousePressEvent(event)
+
+        x, y = int(sp.x()), int(sp.y())
+
+        self._handle_tool_press(x, y, mods)
+
+    def mouseMoveEvent(self, event) -> None:
+        sp = self.mapToScene(event.position().toPoint())
+
+        self._update_preview_and_lasso_line(sp)
+
+        if self._handle_crop_move(sp):
+            return
+
+        if self._handle_panning_move(event):
+            return
+
+        self._handle_drawing_move(sp, event.buttons())
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if self._handle_release_state():
             return
         self._drawing = False
         super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if self._tool == TOOL_LASSO and event.button() == Qt.MouseButton.LeftButton:
-            if len(self._lasso_pts) >= 3:
-                self._lasso_close()
-            else:
-                self._lasso_cancel()
+        if self._handle_lasso_double_click(event):
             return
         super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key.Key_Escape and self._lasso_pts:
-            self._lasso_cancel()
-            self.statusMsg.emit("Polygon-Lasso abgebrochen")
+        if self._handle_lasso_escape(event.key()):
             return
         super().keyPressEvent(event)
 
-    def _lasso_add_point(self, x: int, y: int) -> None:
-        self._lasso_pts.append((x, y))
-        path = QPainterPath()
-        path.moveTo(*self._lasso_pts[0])
-        for px, py in self._lasso_pts[1:]:
-            path.lineTo(px, py)
-        pen = QPen(QColor(255, 255, 255, 220), 1.5, Qt.PenStyle.DashLine,
-                   Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-        if self._lasso_path_item is None:
-            self._lasso_path_item = QGraphicsPathItem()
-            self._lasso_path_item.setZValue(25)
-            self._scene.addItem(self._lasso_path_item)
-        self._lasso_path_item.setPen(pen)
-        self._lasso_path_item.setPath(path)
-        if self._lasso_line_item is None:
-            line_pen = QPen(QColor(200, 200, 200, 160), 1.2, Qt.PenStyle.DotLine)
-            self._lasso_line_item = QGraphicsLineItem(x, y, x, y)
-            self._lasso_line_item.setPen(line_pen)
-            self._lasso_line_item.setZValue(25)
-            self._scene.addItem(self._lasso_line_item)
-        else:
-            self._lasso_line_item.setLine(x, y, x, y)
-        n = len(self._lasso_pts)
-        suffix = "e" if n != 1 else ""
-        self.statusMsg.emit(
-            f"Polygon-Lasso: {n} Punkt{suffix} — Doppelklick zum Abschließen · Esc = abbrechen")
-
     def _lasso_close(self) -> None:
-        pts = self._lasso_pts.copy()
-        mods = self._lasso_mods
-        self._lasso_cancel()
         if self._mask is None or self._pil is None:
             return
-        h, w = self._mask.shape
-        mask_img = Image.new("L", (w, h), 0)
-        ImageDraw.Draw(mask_img).polygon(pts, fill=255)
-        new_mask = np.array(mask_img) > 127
-        if mods & Qt.KeyboardModifier.ShiftModifier:
-            self._mask |= new_mask
-        elif mods & Qt.KeyboardModifier.ControlModifier:
-            self._mask &= ~new_mask
-        else:
-            self._mask = new_mask
+        self._mask = self._lasso.close_to_mask(self._mask)
         self._refresh_overlay()
         self.statusMsg.emit(
             f"Polygon-Lasso: {int(self._mask.sum()):,} Pixel ausgewählt")
 
     def _lasso_cancel(self) -> None:
-        if self._lasso_path_item is not None:
-            self._scene.removeItem(self._lasso_path_item)
-            self._lasso_path_item = None
-        if self._lasso_line_item is not None:
-            self._scene.removeItem(self._lasso_line_item)
-            self._lasso_line_item = None
-        self._lasso_pts.clear()
-        self._lasso_mods = Qt.KeyboardModifier.NoModifier
+        self._lasso.cancel()
 
     def _paint_brush(self, cx: int, cy: int) -> None:
         if self._mask is None or self._pil is None:
