@@ -39,6 +39,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 - **Menu/action construction extracted from `MainWindow`.**
   `bgremover/menu_actions.py` builds the menu bar, `QAction`s, shortcuts,
   and Recent-Files submenu; `MainWindow` only passes domain callbacks.
+- **Right-side tab panel extracted from `MainWindow`.**
+  `bgremover/right_panel.py` builds the Selection, Background, Transform,
+  and Shape tabs including sliders, spin boxes, and panel buttons;
+  `MainWindow` only passes canvas callbacks.
 
 ### Fixed
 

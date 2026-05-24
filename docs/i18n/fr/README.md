@@ -168,8 +168,11 @@ lancé via `python -m bgremover` ou le script de console `bgremover`) :
 
 - **`ImageCanvas`** (QGraphicsView) gère l'état de l'image, le masque de sélection,
   les piles d'annulation/rétablissement et les outils (baguette magique, pinceau, lasso, recadrage).
-- **`MainWindow`** construit la barre d'outils, le panneau d'onglets de droite (quatre constructeurs `_build_tab_*`),
-  et relie le tout au canevas.
+- **`MainWindow`** construit la barre d'outils, la barre d'état/recadrage,
+  et relie le canevas, les menus, le panneau droit et les workers.
+- **`right_panel`** construit les quatre onglets droits pour la sélection,
+  l'arrière-plan, la rotation/miroir et la forme/recadrage à partir d'un
+  jeu de callbacks.
 - **`menu_actions`** construit la barre de menus, les actions et les
   raccourcis ; `MainWindow` ne fournit plus que les callbacks.
 - **`RecentFiles`** encapsule la persistance, la déduplication et

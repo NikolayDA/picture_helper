@@ -45,6 +45,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `bgremover/menu_actions.py` construit la barre de menus, les `QAction`,
   les raccourcis et le sous-menu des fichiers récents ; `MainWindow`
   ne fournit plus que les callbacks métier.
+- **Panneau d'onglets droit extrait de `MainWindow`.**
+  `bgremover/right_panel.py` construit les onglets Sélection, Arrière-plan,
+  Transformation et Forme, y compris sliders, spinboxes et boutons de
+  panneau ; `MainWindow` ne fournit plus que les callbacks du canevas.
 
 ### Corrigé
 
