@@ -41,6 +41,7 @@ from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
     _MAX_MEGAPIXELS,
+    _REDO_MAX_ENTRIES,
     _UNDO_MEMORY_LIMIT,
     _ZOOM_FACTOR,
     logger,
@@ -131,7 +132,7 @@ class ImageCanvas(QGraphicsView):
         self._undo_bytes: int = 0
         # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
         # via _apply_pil(push=True) geleert.
-        self._redo:     deque = deque(maxlen=20)
+        self._redo:     deque = deque(maxlen=_REDO_MAX_ENTRIES)
 
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
