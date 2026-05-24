@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import numpy as np
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -43,21 +43,45 @@ from bgremover.constants import (
     _ZOOM_FACTOR,
     logger,
 )
+from bgremover.canvas_history import (
+    emit_history as _emit_history_impl,
+    img_bytes as _img_bytes_impl,
+    redo as _redo_impl,
+    restore_original as _restore_original_impl,
+    undo as _undo_impl,
+    undo_to as _undo_to_impl,
+)
 from bgremover.canvas_lasso import CanvasLasso
+from bgremover.canvas_events import (
+    drag_enter_event as _drag_enter_event_impl,
+    drag_move_event as _drag_move_event_impl,
+    drop_event as _drop_event_impl,
+    handle_crop_press as _handle_crop_press_impl,
+    handle_tool_press as _handle_tool_press_impl,
+    start_pan_if_requested as _start_pan_if_requested_impl,
+    to_img_xy as _to_img_xy_impl,
+    zoom as _zoom_impl,
+)
+from bgremover.canvas_selection import (
+    apply_remove as _apply_remove_impl,
+    apply_replace as _apply_replace_impl,
+    check_selection as _check_selection_impl,
+    clear_selection as _clear_selection_impl,
+    invert_selection as _invert_selection_impl,
+    morphology as _morphology_impl,
+    paint_brush as _paint_brush_impl,
+)
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
     crop_image,
     crop_size_for_ratio,
     flip_image,
-    remove_selection,
-    replace_selection,
     rotate_image,
     round_corners,
     save_image_file,
 )
 from bgremover.image_utils import (
-    flood_fill,
     make_checker_brush,
     mask_to_overlay,
     pil_to_numpy,
@@ -204,7 +228,7 @@ class ImageCanvas(QGraphicsView):
     @staticmethod
     def _img_bytes(img: Image.Image) -> int:
         """Geschätzte RGBA-Rohdatengrösse eines Bildes in Bytes."""
-        return img.width * img.height * 4
+        return _img_bytes_impl(img)
 
     # ── Laden ────────────────────────────────────────────────
 
@@ -259,7 +283,7 @@ class ImageCanvas(QGraphicsView):
             while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
                 evicted, _ = self._undo.popleft()
                 self._undo_bytes -= self._img_bytes(evicted)
-            self._emit_history()
+            _emit_history_impl(self)
         self._set_image_state(img)
 
     def _refresh_image(self) -> None:
@@ -292,116 +316,30 @@ class ImageCanvas(QGraphicsView):
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
-        self.historyChanged.emit([d for _, d in reversed(list(self._undo))])
+        _emit_history_impl(self)
 
     # ── Undo / Original ──────────────────────────────────────
 
     def undo(self) -> None:
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        if self._undo:
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            # Aktuellen Stand für mögliches Redo aufbewahren
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↩  Rückgängig: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
+        _undo_impl(self)
 
     def redo(self) -> None:
-        """Macht ein zuvor mit ``undo()`` rückgängig gemachte Aktion wieder."""
-        if self._crop_overlay is not None:
-            return
-        if self._redo:
-            img, desc = self._redo.pop()
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), desc))
-                self._undo_bytes += self._img_bytes(self._pil)
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
+        _redo_impl(self)
 
     def undo_to(self, steps: int) -> None:
-        """Mehrere Schritte auf einmal rückgängig machen.
-
-        Verhält sich wie mehrfaches ``undo()``: jeder übersprungene Stand
-        wandert auf den Redo-Stapel, der Sprung ist also wiederherstellbar.
-        """
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        actual = min(steps, len(self._undo))
-        if actual <= 0:
-            return
-        img, desc = None, ""
-        for _ in range(actual):
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._pil = img
-        assert img is not None  # actual > 0 (Guard oben) -> Schleife lief ≥ 1×
-        self._set_image_state(img)
-        self._emit_history()
-        self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
+        _undo_to_impl(self, steps)
 
     def restore_original(self) -> None:
-        if self._original:
-            self._cancel_crop_overlay()
-            # Aktuellen Stand für Undo aufbewahren, statt den Verlauf
-            # zu verwerfen – so kann der Nutzer das Zurücksetzen
-            # selbst wieder rückgängig machen.
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
-                self._undo_bytes += self._img_bytes(self._pil)
-            # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
-            self._redo.clear()
-            self._set_image_state(self._original.copy())
-            self._emit_history()
-            self.statusMsg.emit("🔄  Original wiederhergestellt")
+        _restore_original_impl(self)
 
     def clear_selection(self) -> None:
-        if self._mask is not None:
-            self._mask[:] = False
-            self._refresh_overlay()
-            self.statusMsg.emit("Auswahl aufgehoben")
+        _clear_selection_impl(self)
 
     def invert_selection(self) -> None:
-        """Kehrt die aktuelle Maske um (Vorder- ↔ Hintergrund)."""
-        if self._mask is None or self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
-        self._mask = ~self._mask
-        self._refresh_overlay()
-        self.statusMsg.emit(
-            f"Auswahl invertiert: {int(self._mask.sum()):,} Pixel")
+        _invert_selection_impl(self)
 
     def _morphology(self, radius: int, kind: str) -> None:
-        """Erweitert oder schrumpft die Boolean-Maske um ``radius`` Pixel
-        mittels PIL-Morphologie-Filtern."""
-        if self._mask is None or self._pil is None or radius <= 0:
-            return
-        mask_img = Image.fromarray(
-            (self._mask * 255).astype(np.uint8), mode="L")
-        # PIL-Filter brauchen ungerade Kernelgrößen
-        size = radius * 2 + 1
-        filt: ImageFilter.RankFilter
-        if kind == "expand":
-            filt = ImageFilter.MaxFilter(size)
-            label = "erweitert"
-        else:
-            filt = ImageFilter.MinFilter(size)
-            label = "geschrumpft"
-        result = mask_img.filter(filt)
-        self._mask = np.array(result) > 127
-        self._refresh_overlay()
-        self.statusMsg.emit(
-            f"Auswahl um {radius} px {label}: "
-            f"{int(self._mask.sum()):,} Pixel")
+        _morphology_impl(self, radius, kind)
 
     def expand_selection(self, radius: int) -> None:
         self._morphology(radius, "expand")
@@ -452,37 +390,10 @@ class ImageCanvas(QGraphicsView):
     # ── Operationen ──────────────────────────────────────────
 
     def apply_remove(self, _checked=False) -> None:
-        try:
-            if not self._check_selection():
-                return
-            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            assert self._mask is not None
-            self._apply_pil(
-                remove_selection(self._arr, self._mask),
-                desc="Hintergrund entfernt",
-            )
-            self._vp.update()
-            self.statusMsg.emit("Hintergrund entfernt (transparent)")
-        except Exception as e:
-            logger.exception("Fehler beim Entfernen")
-            self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
+        _apply_remove_impl(self, _checked)
 
     def apply_replace(self, color: QColor) -> None:
-        try:
-            if not self._check_selection():
-                return
-            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            assert self._mask is not None
-            self._apply_pil(
-                replace_selection(self._arr, self._mask,
-                                  (color.red(), color.green(), color.blue())),
-                desc=f"Farbe ersetzt ({color.name()})",
-            )
-            self._vp.update()
-            self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
-        except Exception as e:
-            logger.exception("Fehler beim Ersetzen")
-            self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
+        _apply_replace_impl(self, color)
 
     def apply_ai_result(self, img: Image.Image) -> None:
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
@@ -511,39 +422,15 @@ class ImageCanvas(QGraphicsView):
         return True
 
     def _check_selection(self) -> bool:
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return False
-        if self._mask is None or not self._mask.any():
-            self.statusMsg.emit("Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen")
-            return False
-        return True
+        return _check_selection_impl(self)
 
     # ── Maus-Events ──────────────────────────────────────────
 
     def _to_img_xy(self, event) -> tuple[int, int]:
-        sp = self.mapToScene(event.position().toPoint())
-        return int(sp.x()), int(sp.y())
+        return _to_img_xy_impl(self, event)
 
     def _handle_crop_press(self, btn: Qt.MouseButton, sp: QPointF) -> bool:
-        """Verarbeitet Press-Events im Crop-Modus; True => Event konsumiert."""
-        if self._crop_overlay is None:
-            return False
-        if btn == Qt.MouseButton.LeftButton:
-            corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
-            if corner >= 0:
-                self._crop_resizing = True
-                self._crop_resize_corner = corner
-                self._crop_drag_start = sp
-                self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
-                                      if corner in (0, 3)
-                                      else Qt.CursorShape.SizeBDiagCursor))
-            elif self._crop_overlay.inside(sp.x(), sp.y()):
-                self._crop_dragging = True
-                self._crop_drag_start = sp
-                self._crop_start_pos = self._crop_overlay.top_left
-                self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-        return True
+        return _handle_crop_press_impl(self, btn, sp)
 
     def _start_pan_if_requested(
         self,
@@ -551,15 +438,7 @@ class ImageCanvas(QGraphicsView):
         mods: Qt.KeyboardModifier,
         pos: QPointF,
     ) -> bool:
-        """Startet Pan-Modus (Alt+LMB oder MMB); True => Event konsumiert."""
-        if (btn == Qt.MouseButton.MiddleButton or
-                (btn == Qt.MouseButton.LeftButton and
-                 mods & Qt.KeyboardModifier.AltModifier)):
-            self._panning = True
-            self._pan_start = pos
-            self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return True
-        return False
+        return _start_pan_if_requested_impl(self, btn, mods, pos)
 
     def _handle_tool_press(
         self,
@@ -567,29 +446,7 @@ class ImageCanvas(QGraphicsView):
         y: int,
         mods: Qt.KeyboardModifier,
     ) -> None:
-        """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
-        if self._tool == TOOL_WAND:
-            assert self._pil is not None and self._arr is not None and self._mask is not None
-            w, h = self._pil.size
-            if 0 <= x < w and 0 <= y < h:
-                new = flood_fill(self._arr, x, y, self._tolerance)
-                if mods & Qt.KeyboardModifier.ShiftModifier:
-                    self._mask |= new
-                elif mods & Qt.KeyboardModifier.ControlModifier:
-                    self._mask &= ~new
-                else:
-                    self._mask = new
-                self._refresh_overlay()
-                self.statusMsg.emit(f"Auswahl: {int(self._mask.sum()):,} Pixel")
-        elif self._tool == TOOL_LASSO:
-            assert self._pil is not None
-            w, h = self._pil.size
-            if 0 <= x < w and 0 <= y < h:
-                self._lasso.set_modifiers_if_first(mods)
-                self.statusMsg.emit(self._lasso.add_point(x, y))
-        else:
-            self._drawing = True
-            self._paint_brush(x, y)
+        _handle_tool_press_impl(self, x, y, mods)
 
     def mousePressEvent(self, event) -> None:
         if self._pil is None or self._arr is None:
@@ -716,19 +573,7 @@ class ImageCanvas(QGraphicsView):
         self._lasso.cancel()
 
     def _paint_brush(self, cx: int, cy: int) -> None:
-        if self._mask is None or self._pil is None:
-            return
-        r  = self._brush_r
-        h, w = self._mask.shape
-        y0, y1 = max(0, cy - r), min(h, cy + r + 1)
-        x0, x1 = max(0, cx - r), min(w, cx + r + 1)
-        yy, xx = np.ogrid[y0:y1, x0:x1]
-        circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= r ** 2
-        if self._tool == TOOL_BRUSH:
-            self._mask[y0:y1, x0:x1][circle] = True
-        else:
-            self._mask[y0:y1, x0:x1][circle] = False
-        self._refresh_overlay()
+        _paint_brush_impl(self, cx, cy)
 
     # Zoom-Grenzen: verhindert dass Bild auf 0 schrumpft (kein Klick mehr
     # möglich) oder so groß wird, dass Qt-Rasterung sichtbar wird.
@@ -736,9 +581,7 @@ class ImageCanvas(QGraphicsView):
     ZOOM_MAX = 40.0
 
     def _zoom(self, factor: float) -> None:
-        new_scale = self.transform().m11() * factor
-        if self.ZOOM_MIN <= new_scale <= self.ZOOM_MAX:
-            self.scale(factor, factor)
+        _zoom_impl(self, factor)
 
     def wheelEvent(self, event) -> None:
         self._zoom(_ZOOM_FACTOR if event.angleDelta().y() > 0 else 1 / _ZOOM_FACTOR)
@@ -751,36 +594,13 @@ class ImageCanvas(QGraphicsView):
     # ── Drag & Drop ──────────────────────────────────────────
 
     def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
-        if event is None:
-            return
-        mime = event.mimeData()
-        if mime is not None and mime.hasUrls():
-            event.acceptProposedAction()
+        _drag_enter_event_impl(self, event)
 
     def dragMoveEvent(self, event) -> None:  # ← PFLICHT: ohne dies wird Drop abgelehnt
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+        _drag_move_event_impl(self, event)
 
     def dropEvent(self, event: QDropEvent | None) -> None:
-        if event is None:
-            return
-        mime = event.mimeData()
-        if mime is None:
-            return
-        exts = (".png", ".jpg", ".jpeg", ".webp",
-                ".bmp", ".tiff", ".tif", ".gif")
-        valid = [url.toLocalFile() for url in mime.urls()
-                 if Path(url.toLocalFile()).suffix.lower() in exts]
-        if not valid:
-            self.statusMsg.emit("Format nicht unterstützt")
-            return
-        # Asynchron laden (gleicher Worker-Pfad wie der Datei-Dialog),
-        # damit ein grosses Foto die UI nicht einfriert.
-        self.loadRequested.emit(valid[0])
-        if len(valid) > 1:
-            self.statusMsg.emit(
-                f"Geöffnet: {Path(valid[0]).name}  "
-                f"({len(valid) - 1} weitere Datei(en) ignoriert)")
+        _drop_event_impl(self, event)
 
     # ── Ecken abrunden ───────────────────────────────────────
 
