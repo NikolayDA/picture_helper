@@ -1,10 +1,4 @@
-"""MainWindow – die Top-Level-Fensterklasse.
-
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 11).
-``from __future__ import annotations`` macht alle Annotationen lazy –
-kein Laufzeit-Import des Monolithen noetig (Hazard H1: Kopplung zur
-Canvas nur ueber Qt-Signale). Keine Verhaltensaenderung.
-"""
+"""MainWindow – die Top-Level-Fensterklasse."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,13 +32,12 @@ from bgremover.history_popup import HistoryPopup
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
-    RECENT_MAX as DEFAULT_RECENT_MAX,
-    SETTINGS_RECENT_KEY as DEFAULT_SETTINGS_RECENT_KEY,
+    RECENT_MAX,
+    SETTINGS_RECENT_KEY,
     RecentFiles,
     RecentFilesMenu,
 )
 from bgremover.right_panel import (
-    TAB_STYLE as RIGHT_PANEL_TAB_STYLE,
     RightPanelActions,
     build_right_panel,
 )
@@ -62,12 +55,6 @@ from bgremover.workers import REMBG_AVAILABLE
 
 
 class MainWindow(QMainWindow):
-    # Anzahl der zuletzt geöffneten Bilder, die im Datei-Menü angezeigt werden.
-    RECENT_MAX = DEFAULT_RECENT_MAX
-    SETTINGS_RECENT_KEY = DEFAULT_SETTINGS_RECENT_KEY
-
-    _TAB_STYLE = RIGHT_PANEL_TAB_STYLE
-
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"BgRemover Pro {__version__}")
@@ -83,7 +70,7 @@ class MainWindow(QMainWindow):
         # Persistente Einstellungen (Recent-Files etc.).
         self._settings = QSettings("BgRemover", "BgRemover")
         self._recent_files = RecentFiles(
-            self._settings, self.SETTINGS_RECENT_KEY, self.RECENT_MAX)
+            self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
         # Submenü-Adapter wird in _build_menu gesetzt
         self._recent_menu: RecentFilesMenu | None = None
         self._worker_controller = WorkerController(

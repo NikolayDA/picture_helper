@@ -1,7 +1,6 @@
 """Crop-Overlay (rein visuell – die Canvas steuert die Interaktion).
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 7).
-Keine Verhaltensänderung. Werkzeug-Namen liegen in ``constants`` (H3);
+Werkzeug-Namen liegen in ``constants``;
 ``CropOverlayItem`` benötigt sie nicht.
 """
 from __future__ import annotations

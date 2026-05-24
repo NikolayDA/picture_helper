@@ -1,10 +1,8 @@
 """Hintergrund-Worker (eigene QThreads) und der optionale rembg-Import.
 
-Verbatim aus ``BgRemover.py`` verschoben (Runde 5, Phase B – Schritt 6).
 Der optionale ``rembg``-Import liegt hier, weil ausschließlich dieses
 Modul ``rembg_remove`` aufruft; Tests patchen entsprechend
 ``bgremover.workers.rembg_remove`` bzw. ``bgremover.workers.Image.open``.
-Keine Verhaltensänderung.
 """
 from __future__ import annotations
 
