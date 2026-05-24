@@ -42,6 +42,10 @@
 - **Побудову меню/actions винесено з `MainWindow`.**
   `bgremover/menu_actions.py` будує рядок меню, `QAction`-и, shortcuts
   і підменю recent files; `MainWindow` лише передає доменні callbacks.
+- **Праву панель вкладок винесено з `MainWindow`.**
+  `bgremover/right_panel.py` будує вкладки вибору, фону, трансформації
+  та форми, включно зі sliders, spinboxes і кнопками панелі; `MainWindow`
+  лише передає callbacks полотна.
 
 ### Виправлено
 
