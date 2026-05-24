@@ -206,6 +206,13 @@ if ! IMPERR=$( ( cd "$HOME" && arch_run "$PYTHON" -c 'import PyQt6.QtWidgets, PI
     exit 1
 fi
 
+if ! APP_VERSION=$( ( cd "$HOME" && arch_run "$PYTHON" -c 'import bgremover; print(bgremover.__version__)' ) 2>/dev/null); then
+    echo -e "${RED}❌ Paketversion konnte nicht ermittelt werden.${NC}"
+    exit 1
+fi
+[ -n "$APP_VERSION" ] || { echo -e "${RED}❌ Paketversion ist leer.${NC}"; exit 1; }
+echo -e "${GREEN}🏷️  App-Version:${NC} $APP_VERSION"
+
 case "$SCRIPT_DIR/" in
     "$HOME/Documents/"*|"$HOME/Desktop/"*|"$HOME/Downloads/"*|"$HOME/Library/Mobile Documents/"*)
         echo -e "${YELLOW}ℹ️  Projekt liegt in einem macOS-geschützten Ordner.${NC}"
@@ -262,7 +269,9 @@ export PYTHONNOUSERSITE=1
 [ -f "\$HOME/.zprofile" ] && source "\$HOME/.zprofile" 2>/dev/null || true
 
 PYTHON="$PYTHON"
-LOG="\$HOME/.bgremover.log"
+LOG="\$HOME/Library/Application Support/BgRemover/bgremover.log"
+LOG_DIR="\${LOG%/*}"
+mkdir -p "\$LOG_DIR" 2>/dev/null || true
 
 fail() {
     /usr/bin/osascript \\
@@ -329,8 +338,8 @@ cat > "$APP_PATH/Contents/Info.plist" << PLIST_EOF
     <key>CFBundleName</key>              <string>BgRemover</string>
     <key>CFBundleDisplayName</key>       <string>BgRemover</string>
     <key>CFBundleIdentifier</key>        <string>de.bgremover.app</string>
-    <key>CFBundleVersion</key>           <string>3.0.0</string>
-    <key>CFBundleShortVersionString</key><string>3.0</string>
+    <key>CFBundleVersion</key>           <string>$APP_VERSION</string>
+    <key>CFBundleShortVersionString</key><string>$APP_VERSION</string>
     <key>CFBundlePackageType</key>       <string>APPL</string>
     <key>CFBundleSignature</key>         <string>BGRM</string>
     <key>CFBundleExecutable</key>        <string>BgRemover</string>

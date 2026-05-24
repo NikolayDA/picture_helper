@@ -162,4 +162,4 @@ again after `git pull` — unless the dependencies in
   icons/`, so they are picked up automatically by `pip install` into
   the venv and loaded via `importlib.resources`; run
   `bash create_BgRemover_app.sh` once to rebuild.
-- **Diagnosing errors** → Check the log file `~/.bgremover.log`.
+- **Diagnosing errors** → Check the log file `~/Library/Application Support/BgRemover/bgremover.log`.
