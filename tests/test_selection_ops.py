@@ -9,19 +9,22 @@ from PIL import Image
 from PyQt6.QtCore import Qt, QPointF
 from PyQt6.QtGui import QColor
 
-from bgremover import (
-    ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND, pil_to_numpy,
-)
+from bgremover import ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND
 
 
 def _canvas_with_mask():
     """Canvas mit 20×20-Bild und 4×4-Auswahl in der Mitte."""
     c = ImageCanvas()
-    c._pil  = Image.new("RGBA", (20, 20), (0, 0, 0, 255))
-    c._arr  = np.zeros((20, 20, 4), dtype=np.uint8)
+    c.apply_loaded_image(Image.new("RGBA", (20, 20), (0, 0, 0, 255)), "seed.png")
     c._mask = np.zeros((20, 20), dtype=bool)
     c._mask[8:12, 8:12] = True
     return c
+
+
+def _canvas_image(c: ImageCanvas) -> Image.Image:
+    img = c.image
+    assert img is not None
+    return img
 
 
 # ── E1: invert_selection ────────────────────────────────────────────────
@@ -151,19 +154,19 @@ def test_eraser_clears_circle(qapp):
 def test_lasso_close_builds_mask_from_polygon(qapp):
     c = _canvas_with_mask()
     c._mask[:] = False
-    c._lasso_pts = [(2, 2), (10, 2), (10, 10), (2, 10)]
-    c._lasso_mods = Qt.KeyboardModifier.NoModifier
+    c._lasso.points = [(2, 2), (10, 2), (10, 10), (2, 10)]
+    c._lasso.modifiers = Qt.KeyboardModifier.NoModifier
     c._lasso_close()
     assert c._mask[5, 5]            # innerhalb des Polygons
     assert not c._mask[18, 18]      # ausserhalb
-    assert c._lasso_pts == []       # Punkte nach Abschluss geleert
+    assert c._lasso.points == []    # Punkte nach Abschluss geleert
 
 
 def test_lasso_close_shift_adds_to_existing(qapp):
     c = _canvas_with_mask()         # 8:12, 8:12 = True
     existing = c._mask.copy()
-    c._lasso_pts = [(0, 0), (4, 0), (4, 4), (0, 4)]
-    c._lasso_mods = Qt.KeyboardModifier.ShiftModifier
+    c._lasso.points = [(0, 0), (4, 0), (4, 4), (0, 4)]
+    c._lasso.modifiers = Qt.KeyboardModifier.ShiftModifier
     c._lasso_close()
     assert c._mask[2, 2]            # neu hinzugefügt
     assert c._mask[10, 10]          # alte Auswahl bleibt
@@ -172,18 +175,18 @@ def test_lasso_close_shift_adds_to_existing(qapp):
 
 def test_lasso_close_ctrl_subtracts(qapp):
     c = _canvas_with_mask()         # 8:12, 8:12 = True
-    c._lasso_pts = [(8, 8), (12, 8), (12, 12), (8, 12)]
-    c._lasso_mods = Qt.KeyboardModifier.ControlModifier
+    c._lasso.points = [(8, 8), (12, 8), (12, 12), (8, 12)]
+    c._lasso.modifiers = Qt.KeyboardModifier.ControlModifier
     c._lasso_close()
     assert not c._mask[10, 10]      # Überlappung wurde abgezogen
 
 
 def test_lasso_cancel_clears_state(qapp):
     c = _canvas_with_mask()
-    c._lasso_pts = [(1, 1), (2, 2)]
-    c._lasso_cancel()
-    assert c._lasso_pts == []
-    assert c._lasso_mods == Qt.KeyboardModifier.NoModifier
+    c._lasso.points = [(1, 1), (2, 2)]
+    c._lasso.cancel()
+    assert c._lasso.points == []
+    assert c._lasso.modifiers == Qt.KeyboardModifier.NoModifier
 
 
 # ── apply_remove / apply_replace – Erfolgsfall ─────────────────────────
@@ -191,12 +194,11 @@ def test_lasso_cancel_clears_state(qapp):
 def test_apply_remove_makes_selection_transparent(qapp):
     c = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
-    c._pil = img
-    c._arr = pil_to_numpy(img)
+    c.apply_loaded_image(img, "seed.png")
     c._mask = np.zeros((10, 10), dtype=bool)
     c._mask[2:5, 2:5] = True
     c.apply_remove()
-    arr = np.array(c._pil)
+    arr = np.array(_canvas_image(c))
     assert (arr[2:5, 2:5, 3] == 0).all()    # Auswahl → transparent
     assert arr[0, 0, 3] == 255              # Rest unverändert
 
@@ -204,11 +206,10 @@ def test_apply_remove_makes_selection_transparent(qapp):
 def test_apply_replace_fills_selection_with_color(qapp):
     c = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
-    c._pil = img
-    c._arr = pil_to_numpy(img)
+    c.apply_loaded_image(img, "seed.png")
     c._mask = np.zeros((10, 10), dtype=bool)
     c._mask[0:4, 0:4] = True
     c.apply_replace(QColor(255, 0, 0))
-    arr = np.array(c._pil)
+    arr = np.array(_canvas_image(c))
     assert arr[0, 0].tolist() == [255, 0, 0, 255]
     assert arr[9, 9].tolist() == [10, 20, 30, 255]

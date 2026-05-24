@@ -23,7 +23,7 @@ def test_apply_remove_logs_unexpected_exception(qapp, caplog):
     """Wenn die Auswahl-Anwendung crasht, muss der Logger das
     aufzeichnen (statt das Programm stumm zu lassen)."""
     canvas = ImageCanvas()
-    canvas._pil  = Image.new("RGBA", (10, 10), (0, 0, 0, 255))
+    canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
     canvas._arr  = None                          # provoziert AttributeError
     canvas._mask = np.ones((10, 10), dtype=bool)
     with caplog.at_level(logging.ERROR, logger="BgRemover"):
@@ -34,7 +34,7 @@ def test_apply_remove_logs_unexpected_exception(qapp, caplog):
 def test_apply_replace_logs_unexpected_exception(qapp, caplog):
     from PyQt6.QtGui import QColor
     canvas = ImageCanvas()
-    canvas._pil  = Image.new("RGBA", (10, 10), (0, 0, 0, 255))
+    canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
     canvas._arr  = None
     canvas._mask = np.ones((10, 10), dtype=bool)
     with caplog.at_level(logging.ERROR, logger="BgRemover"):

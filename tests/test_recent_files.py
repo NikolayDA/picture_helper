@@ -130,7 +130,7 @@ def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
 def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
     from bgremover import MainWindow
     w = MainWindow()
-    w._canvas._pil = Image.new("RGBA", (8, 8), (10, 20, 30, 255))
+    w._canvas.apply_loaded_image(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), "seed.png")
     target = tmp_path / "out.png"
     w._save_path = str(target)
     w._save()
