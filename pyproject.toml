@@ -24,9 +24,9 @@ classifiers = [
     "Topic :: Multimedia :: Graphics :: Editors",
 ]
 dependencies = [
-    "PyQt6>=6.5",
-    "Pillow>=10",
-    "numpy>=1.24",
+    "PyQt6>=6.5,<7",
+    "Pillow>=10,<13",
+    "numpy>=1.24,<3",
 ]
 
 [project.urls]
@@ -35,7 +35,7 @@ Repository = "https://github.com/NikolayDA/picture_helper"
 Issues = "https://github.com/NikolayDA/picture_helper/issues"
 
 [project.optional-dependencies]
-ai = ["rembg[cpu]>=2.0"]
+ai = ["rembg[cpu]>=2.0,<3"]
 test = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.6", "mypy>=1.10", "packaging>=24"]
 # Erzeugt ANLEITUNG.pdf aus ANLEITUNG.md (scripts/generate_anleitung_pdf.py).
 # Zusaetzlich noetig: DejaVu-Schriften (System-Paket fonts-dejavu-core)
