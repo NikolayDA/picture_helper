@@ -20,9 +20,11 @@ LOG_FILENAME = "bgremover.log"
 # wird selbst die vektorisierte Variante spürbar träge.
 _MAX_MEGAPIXELS = 40
 # Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
-Image.MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
+_MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
 # Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
+# Maximale Anzahl Redo-Einträge.
+_REDO_MAX_ENTRIES = 20
 # Maximale Wartezeit (ms) auf einen Hintergrund-Thread beim Schliessen,
 # bevor er hart terminiert wird. Der rembg-Warmup darf einige Sekunden
 # brauchen; danach ist hartes Beenden besser als ein Hänger oder Crash.
@@ -55,3 +57,8 @@ TOOL_WAND   = "wand"
 TOOL_BRUSH  = "brush"
 TOOL_ERASER = "eraser"
 TOOL_LASSO  = "lasso"
+
+
+def init_runtime() -> None:
+    """Initialisiert explizite Runtime-Seiteneffekte für die Anwendung."""
+    Image.MAX_IMAGE_PIXELS = _MAX_IMAGE_PIXELS

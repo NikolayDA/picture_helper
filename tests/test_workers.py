@@ -97,7 +97,7 @@ def test_canvas_load_image_rejects_oversized(qapp, tmp_path) -> None:
         canvas.load_image(str(small))
 
     # Kein Bild geladen, Fehlermeldung in Status
-    assert canvas._pil is None
+    assert canvas.image is None
     assert any(str(_MAX_MEGAPIXELS) in m for m in msgs)
 
 
@@ -172,7 +172,7 @@ def test_canvas_version_tracks_edits_and_undo(qapp, tmp_path) -> None:
     img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
     canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
     v_after_load = canvas.version
-    canvas._apply_pil(img.copy(), push=True, desc="test-edit")
+    canvas.apply_edit(img.copy(), desc="test-edit")
     assert canvas.version == v_after_load + 1
     canvas.undo()
     assert canvas.version == v_after_load + 2
@@ -184,8 +184,8 @@ def test_canvas_content_revision_tracks_edits_and_undo(qapp, tmp_path) -> None:
     canvas.apply_loaded_image(img, str(tmp_path / "x.png"))
     rev_after_load = canvas.content_revision
 
-    canvas._apply_pil(Image.new("RGBA", (10, 10), (4, 5, 6, 255)),
-                      push=True, desc="test-edit")
+    canvas.apply_edit(Image.new("RGBA", (10, 10), (4, 5, 6, 255)),
+                      desc="test-edit")
     assert canvas.content_revision == rev_after_load + 1
 
     canvas.undo()
@@ -201,7 +201,7 @@ def test_ai_result_is_discarded_after_canvas_edit(qapp, tmp_path) -> None:
 
         win._canvas.apply_loaded_image(original, str(tmp_path / "x.png"))
         win._ai_input_version = win._canvas.version
-        win._canvas._apply_pil(edited, push=True, desc="edit-after-ai-start")
+        win._canvas.apply_edit(edited, desc="edit-after-ai-start")
 
         win._on_ai_done(stale_ai_result)
 
