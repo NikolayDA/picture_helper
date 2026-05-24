@@ -1,101 +1,97 @@
-"""Auswahl-/Maskenoperationen für ImageCanvas."""
+"""Auswahl-/Maskenzustand für ``ImageCanvas``."""
 from __future__ import annotations
+
+from typing import Literal
 
 import numpy as np
 from PIL import Image, ImageFilter
 
-from bgremover.constants import TOOL_BRUSH, logger
 from bgremover.image_ops import remove_selection, replace_selection
 
 
-def clear_selection(canvas) -> None:
-    if canvas._mask is not None:
-        canvas._mask[:] = False
-        canvas._refresh_overlay()
-        canvas.statusMsg.emit("Auswahl aufgehoben")
+class CanvasSelection:
+    """Verwaltet Auswahlmasken ohne Zugriff auf Canvas-Interna."""
 
+    def __init__(self, width: int, height: int) -> None:
+        self._mask = np.zeros((height, width), dtype=bool)
 
-def invert_selection(canvas) -> None:
-    """Kehrt die aktuelle Maske um (Vorder- ↔ Hintergrund)."""
-    if canvas._mask is None or canvas._pil is None:
-        canvas.statusMsg.emit("Kein Bild geladen")
-        return
-    canvas._mask = ~canvas._mask
-    canvas._refresh_overlay()
-    canvas.statusMsg.emit(f"Auswahl invertiert: {int(canvas._mask.sum()):,} Pixel")
+    @property
+    def mask(self) -> np.ndarray:
+        return self._mask
 
+    @property
+    def has_selection(self) -> bool:
+        return bool(self._mask.any())
 
-def morphology(canvas, radius: int, kind: str) -> None:
-    """Erweitert oder schrumpft die Boolean-Maske um ``radius`` Pixel."""
-    if canvas._mask is None or canvas._pil is None or radius <= 0:
-        return
-    mask_img = Image.fromarray((canvas._mask * 255).astype(np.uint8), mode="L")
-    size = radius * 2 + 1
-    filt: ImageFilter.RankFilter
-    if kind == "expand":
-        filt = ImageFilter.MaxFilter(size)
-        label = "erweitert"
-    else:
-        filt = ImageFilter.MinFilter(size)
-        label = "geschrumpft"
-    result = mask_img.filter(filt)
-    canvas._mask = np.array(result) > 127
-    canvas._refresh_overlay()
-    canvas.statusMsg.emit(f"Auswahl um {radius} px {label}: {int(canvas._mask.sum()):,} Pixel")
+    def reset(self, width: int, height: int) -> None:
+        self._mask = np.zeros((height, width), dtype=bool)
 
+    def clear(self) -> None:
+        self._mask[:] = False
 
-def check_selection(canvas) -> bool:
-    if canvas._pil is None:
-        canvas.statusMsg.emit("Kein Bild geladen")
-        return False
-    if canvas._mask is None or not canvas._mask.any():
-        canvas.statusMsg.emit("Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen")
-        return False
-    return True
+    def invert(self) -> int:
+        self._mask = ~self._mask
+        return int(self._mask.sum())
 
+    def morphology(self, radius: int, kind: Literal["expand", "shrink"]) -> int:
+        if radius <= 0:
+            return int(self._mask.sum())
+        mask_img = Image.fromarray((self._mask * 255).astype(np.uint8), mode="L")
+        size = radius * 2 + 1
+        filt: ImageFilter.RankFilter
+        if kind == "expand":
+            filt = ImageFilter.MaxFilter(size)
+        else:
+            filt = ImageFilter.MinFilter(size)
+        result = mask_img.filter(filt)
+        self._mask = np.array(result) > 127
+        return int(self._mask.sum())
 
-def apply_remove(canvas, _checked=False) -> None:
-    try:
-        if not check_selection(canvas):
+    def set_wand_result(
+        self,
+        new_mask: np.ndarray,
+        mode: Literal["set", "add", "subtract"],
+    ) -> int:
+        return self._set_result(new_mask, mode)
+
+    def set_polygon_result(
+        self,
+        new_mask: np.ndarray,
+        mode: Literal["set", "add", "subtract"],
+    ) -> int:
+        return self._set_result(new_mask, mode)
+
+    def paint_brush(self, cx: int, cy: int, radius: int, additive: bool) -> None:
+        h, w = self._mask.shape
+        y0, y1 = max(0, cy - radius), min(h, cy + radius + 1)
+        x0, x1 = max(0, cx - radius), min(w, cx + radius + 1)
+        if y0 >= y1 or x0 >= x1:
             return
-        assert canvas._arr is not None
-        assert canvas._mask is not None
-        canvas._apply_pil(remove_selection(canvas._arr, canvas._mask), desc="Hintergrund entfernt")
-        canvas._vp.update()
-        canvas.statusMsg.emit("Hintergrund entfernt (transparent)")
-    except Exception as e:
-        logger.exception("Fehler beim Entfernen")
-        canvas.statusMsg.emit(f"Fehler beim Entfernen: {e}")
+        yy, xx = np.ogrid[y0:y1, x0:x1]
+        circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= radius ** 2
+        region = self._mask[y0:y1, x0:x1]
+        region[circle] = additive
 
+    def remove_background(self, arr: np.ndarray) -> Image.Image:
+        return remove_selection(arr, self._mask)
 
-def apply_replace(canvas, color) -> None:
-    try:
-        if not check_selection(canvas):
-            return
-        assert canvas._arr is not None
-        assert canvas._mask is not None
-        canvas._apply_pil(
-            replace_selection(canvas._arr, canvas._mask, (color.red(), color.green(), color.blue())),
-            desc=f"Farbe ersetzt ({color.name()})",
-        )
-        canvas._vp.update()
-        canvas.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
-    except Exception as e:
-        logger.exception("Fehler beim Ersetzen")
-        canvas.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
+    def replace_background(
+        self,
+        arr: np.ndarray,
+        color: tuple[int, int, int],
+    ) -> Image.Image:
+        return replace_selection(arr, self._mask, color)
 
-
-def paint_brush(canvas, cx: int, cy: int) -> None:
-    if canvas._mask is None or canvas._pil is None:
-        return
-    r = canvas._brush_r
-    h, w = canvas._mask.shape
-    y0, y1 = max(0, cy - r), min(h, cy + r + 1)
-    x0, x1 = max(0, cx - r), min(w, cx + r + 1)
-    yy, xx = np.ogrid[y0:y1, x0:x1]
-    circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= r ** 2
-    if canvas._tool == TOOL_BRUSH:
-        canvas._mask[y0:y1, x0:x1][circle] = True
-    else:
-        canvas._mask[y0:y1, x0:x1][circle] = False
-    canvas._refresh_overlay()
+    def _set_result(
+        self,
+        new_mask: np.ndarray,
+        mode: Literal["set", "add", "subtract"],
+    ) -> int:
+        incoming = np.asarray(new_mask, dtype=bool)
+        if mode == "add":
+            self._mask |= incoming
+        elif mode == "subtract":
+            self._mask &= ~incoming
+        else:
+            self._mask = incoming.copy()
+        return int(self._mask.sum())
