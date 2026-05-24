@@ -145,3 +145,24 @@ def test_bundled_launcher_syntax():
     r = subprocess.run([shell, "-n", "/dev/stdin"], input=body,
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, f"Bundle-Launcher: Syntaxfehler\n{r.stderr}"
+
+
+def test_mac_bundle_metadata_uses_package_version():
+    """Info.plist übernimmt die installierte bgremover-Paketversion."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+
+    assert "APP_VERSION=$(" in text
+    assert "bgremover.__version__" in text
+    assert "<key>CFBundleVersion</key>           <string>$APP_VERSION</string>" in text
+    assert "<key>CFBundleShortVersionString</key><string>$APP_VERSION</string>" in text
+    assert "<key>CFBundleVersion</key>           <string>3.0.0</string>" not in text
+    assert "<key>CFBundleShortVersionString</key><string>3.0</string>" not in text
+
+
+def test_bundled_launcher_uses_app_data_log_path():
+    """Der Bundle-Launcher schreibt in denselben macOS-Logordner wie die App."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+
+    assert 'LOG="\\$HOME/Library/Application Support/BgRemover/bgremover.log"' in text
+    assert 'mkdir -p "\\$LOG_DIR"' in text
+    assert 'LOG="\\$HOME/.bgremover.log"' not in text

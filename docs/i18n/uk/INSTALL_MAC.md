@@ -163,4 +163,4 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   `bgremover/icons/`, тож автоматично потрапляють у venv при
   `pip install` і завантажуються через `importlib.resources`; один
   раз зберіть наново `bash create_BgRemover_app.sh`.
-- **Діагностика помилок** → Перегляньте файл журналу `~/.bgremover.log`.
+- **Діагностика помилок** → Перегляньте файл журналу `~/Library/Application Support/BgRemover/bgremover.log`.

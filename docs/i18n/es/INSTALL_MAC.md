@@ -166,4 +166,4 @@ en `pyproject.toml` o `requirements/constraints.txt`.
   incluyen automáticamente en el venv con `pip install` y se cargan
   vía `importlib.resources`; recompila una vez con
   `bash create_BgRemover_app.sh`.
-- **Diagnóstico ante errores** → Consulta el archivo de registro `~/.bgremover.log`.
+- **Diagnóstico ante errores** → Consulta el archivo de registro `~/Library/Application Support/BgRemover/bgremover.log`.
