@@ -10,16 +10,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QSettings, Qt
+from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QColorDialog,
-    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QListWidget,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -36,6 +34,7 @@ from bgremover.constants import (
     _WINDOW_MIN_H,
     _WINDOW_MIN_W,
 )
+from bgremover.history_popup import HistoryPopup
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
@@ -128,6 +127,8 @@ class MainWindow(QMainWindow):
         self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
         self._canvas.imageLoaded.connect(self._on_image_loaded)
         self._canvas.loadRequested.connect(self._load_image_async)
+        self._history_popup = HistoryPopup(
+            self, self._toolbar.btn_history, on_jump=self._canvas.undo_to)
 
         # ── Crop-Bestätigungsleiste (initial versteckt) ───────
         self._crop_bar = QFrame()
@@ -150,8 +151,6 @@ class MainWindow(QMainWindow):
         self._crop_bar.setVisible(False)
         cv_lay.addWidget(self._crop_bar)
 
-        self._hist_popup: QDialog | None = None
-
         cv_lay.addWidget(self._canvas, 1)
 
         root.addWidget(canvas_container, 1)
@@ -167,7 +166,7 @@ class MainWindow(QMainWindow):
                 undo=lambda: self._canvas.undo(),
                 redo=lambda: self._canvas.redo(),
                 restore_original=lambda: self._canvas.restore_original(),
-                toggle_history=self._toggle_history_popup,
+                toggle_history=lambda: self._history_popup.toggle(),
                 open_image=self._open_image,
                 save=self._save,
             ),
@@ -402,58 +401,8 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, "KI-Fehler",
                             f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
 
-    def _build_history_popup(self) -> None:
-        popup = QDialog(self, Qt.WindowType.Tool)
-        popup.setWindowTitle("Änderungshistorie")
-        popup.setMinimumWidth(270)
-        popup.setStyleSheet("QDialog { background: #1a1a1a; }")
-
-        lay = QVBoxLayout(popup)
-        lay.setContentsMargins(10, 10, 10, 10)
-        lay.setSpacing(6)
-
-        lbl = QLabel("Doppelklick auf Eintrag → zu diesem Schritt zurück")
-        lbl.setStyleSheet("color: #666; font-size: 10px; background: transparent;")
-        lay.addWidget(lbl)
-
-        self._history_list = QListWidget()
-        self._history_list.setStyleSheet("""
-            QListWidget {
-                background: #141414; color: #bbb; border: 1px solid #2a2a2a;
-                border-radius: 6px; font-size: 11px;
-            }
-            QListWidget::item { padding: 6px 10px; border-bottom: 1px solid #1e1e1e; }
-            QListWidget::item:selected { background: #1e3a5a; color: #7aacdd; }
-            QListWidget::item:hover:!selected { background: #202020; }
-        """)
-        self._history_list.setMinimumHeight(200)
-        self._history_list.setToolTip(
-            "Verlauf aller Bearbeitungsschritte.\n"
-            "Doppelklick auf einen Eintrag springt zu diesem Schritt zurück.")
-        self._history_list.itemDoubleClicked.connect(self._undo_to_item)
-        lay.addWidget(self._history_list)
-
-        self._hist_popup = popup
-
-    def _toggle_history_popup(self) -> None:
-        if self._hist_popup is None:
-            self._build_history_popup()
-        assert self._hist_popup is not None
-        if self._hist_popup.isVisible():
-            self._hist_popup.hide()
-        else:
-            gp = self._toolbar.btn_history.mapToGlobal(
-                self._toolbar.btn_history.rect().topRight())
-            self._hist_popup.move(gp.x() + 4, gp.y())
-            self._hist_popup.show()
-            self._hist_popup.raise_()
-
-    def _on_history_changed(self, history: list) -> None:
-        if not hasattr(self, '_history_list'):
-            return
-        self._history_list.clear()
-        for desc in history:
-            self._history_list.addItem(desc)
+    def _on_history_changed(self, history: list[str]) -> None:
+        self._history_popup.update_entries(history)
 
     def _on_crop_mode_changed(self, active: bool) -> None:
         self._crop_bar.setVisible(active)
@@ -461,7 +410,3 @@ class MainWindow(QMainWindow):
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)
         dlg.exec()
-
-    def _undo_to_item(self, item) -> None:
-        row = self._history_list.row(item)
-        self._canvas.undo_to(row + 1)
