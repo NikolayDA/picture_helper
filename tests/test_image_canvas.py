@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image
 
 from bgremover import ImageCanvas
+from bgremover.canvas_history import CanvasHistory
 
 
 # ── Fix #7: save_image ─────────────────────────────────────────────────
@@ -73,11 +74,13 @@ def test_save_image_without_loaded_image_is_noop(qapp, tmp_path):
 
 def test_restore_original_pushes_current_state_to_undo(qapp):
     canvas = ImageCanvas()
+    history: list[list[str]] = []
+    canvas.historyChanged.connect(history.append)
     canvas.apply_loaded_image(Image.new("RGBA", (20, 20), (255, 0, 0, 255)), "orig.png")
     canvas.apply_edit(Image.new("RGBA", (20, 20), (0, 255, 0, 255)), desc="edit")
-    assert len(canvas._undo) == 1
+    assert history[-1] == ["edit"]
     canvas.restore_original()
-    assert len(canvas._undo) == 2
+    assert history[-1] == ["🔄 Original wiederhergestellt", "edit"]
     assert canvas.image is not None
     assert np.array(canvas.image)[0, 0].tolist() == [255, 0, 0, 255]
 
@@ -206,10 +209,13 @@ def test_new_action_clears_redo_stack(qapp):
     c = _seed_canvas((255, 0, 0, 255))
     c.apply_edit(Image.new("RGBA", (8, 8), (0, 255, 0, 255)), desc="grün")
     c.undo()
-    assert len(c._redo) == 1
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [255, 0, 0, 255]
     # Neue Aktion ⇒ Redo-Branch verworfen
     c.apply_edit(Image.new("RGBA", (8, 8), (0, 0, 255, 255)), desc="blau")
-    assert len(c._redo) == 0
+    c.redo()
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [0, 0, 255, 255]
 
 
 def test_redo_on_empty_stack_is_noop(qapp):
@@ -225,42 +231,50 @@ def test_load_image_clears_both_stacks(qapp, tmp_path):
     c = _seed_canvas((10, 20, 30, 255))
     c.apply_edit(Image.new("RGBA", (8, 8), (40, 50, 60, 255)), desc="x")
     c.undo()
-    assert len(c._redo) == 1
     p = tmp_path / "fresh.png"
     Image.new("RGB", (12, 12), (200, 200, 200)).save(p)
     c.load_image(str(p))
-    assert len(c._undo) == 0
-    assert len(c._redo) == 0
-    assert c._undo_bytes == 0
+    assert c.image is not None
+    assert c.image.size == (12, 12)
+    assert np.array(c.image)[0, 0].tolist() == [200, 200, 200, 255]
+    c.undo()
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [200, 200, 200, 255]
+    c.redo()
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [200, 200, 200, 255]
 
 
 # ── Undo-Stack: Speicherlimit-Eviction (Fix #5) ────────────────────────
 
-def test_undo_stack_evicts_oldest_under_memory_limit(qapp, monkeypatch):
+def test_undo_stack_evicts_oldest_under_memory_limit():
     """Überschreitet der Undo-Stack das Byte-Limit, fallen älteste
     Einträge raus – aber nie der letzte (mind. 1 Schritt bleibt)."""
-    import bgremover.canvas
     one_image = 8 * 8 * 4                       # RGBA-Rohdaten eines 8×8-Bilds
-    monkeypatch.setattr(bgremover.canvas, "_UNDO_MEMORY_LIMIT", one_image)
+    history = CanvasHistory(memory_limit=one_image)
 
-    c = _seed_canvas((0, 0, 0, 255))
+    current = Image.new("RGBA", (8, 8), (0, 0, 0, 255))
     for i in range(6):
-        c.apply_edit(Image.new("RGBA", (8, 8), (i, i, i, 255)), desc=f"edit{i}")
+        history.push(current, f"edit{i}")
+        current = Image.new("RGBA", (8, 8), (i, i, i, 255))
 
-    assert len(c._undo) == 1                    # nur 1 Eintrag passt rein
-    assert c._undo_bytes == one_image           # laufende Summe konsistent
-
-    c.undo()                                    # bleibt funktionsfähig
-    assert c._undo_bytes == 0
+    assert history.descriptions() == ["edit5"]  # nur 1 Eintrag passt rein
+    assert history.undo(current) is not None     # bleibt funktionsfähig
+    assert history.undo(current) is None
 
 
-def test_undo_bytes_tracks_push_and_pop(qapp):
-    """Die laufende Byte-Summe entspricht der tatsächlichen Stack-Grösse."""
-    c = _seed_canvas((1, 2, 3, 255))
-    c.apply_edit(Image.new("RGBA", (8, 8), (4, 5, 6, 255)), desc="a")
-    c.apply_edit(Image.new("RGBA", (8, 8), (7, 8, 9, 255)), desc="b")
-    assert c._undo_bytes == sum(
-        i.width * i.height * 4 for i, _ in c._undo)
-    c.undo()
-    assert c._undo_bytes == sum(
-        i.width * i.height * 4 for i, _ in c._undo)
+def test_history_descriptions_track_push_undo_and_redo():
+    """Die öffentliche Verlaufsliste folgt Push/Undo/Redo-Bewegungen."""
+    history = CanvasHistory()
+    first = Image.new("RGBA", (8, 8), (1, 2, 3, 255))
+    second = Image.new("RGBA", (8, 8), (4, 5, 6, 255))
+    current = Image.new("RGBA", (8, 8), (7, 8, 9, 255))
+    history.push(first, "a")
+    history.push(second, "b")
+    assert history.descriptions() == ["b", "a"]
+    undone = history.undo(current)
+    assert undone is not None
+    assert history.descriptions() == ["a"]
+    redone = history.redo(undone[0])
+    assert redone is not None
+    assert history.descriptions() == ["b", "a"]

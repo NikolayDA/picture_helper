@@ -189,10 +189,12 @@ def test_rotate_flip_actions(loaded_window):
     c = w._canvas
     _action(w, "90° rechts drehen").trigger()
     assert (c._pil.width, c._pil.height) == (30, 40)
-    n = len(c._undo)
     _action(w, "Horizontal spiegeln").trigger()
     assert (c._pil.width, c._pil.height) == (30, 40)
-    assert len(c._undo) == n + 1
+    _action(w, "Rückgängig").trigger()
+    assert (c._pil.width, c._pil.height) == (30, 40)
+    _action(w, "Rückgängig").trigger()
+    assert (c._pil.width, c._pil.height) == (40, 30)
 
 
 def test_selection_actions(loaded_window):
