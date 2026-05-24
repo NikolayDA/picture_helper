@@ -177,7 +177,8 @@ launched via `python -m bgremover` or the `bgremover` console script):
 - **`RecentFiles`** encapsulates persistence, de-duplication, and the menu
   adapter for "Open Recent", so `MainWindow` only delegates the load path.
 - **Workers** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) run in
-  their own `QThread`s; `_launch_worker()` encapsulates the thread lifecycle.
+  their own `QThread`s; `WorkerController` encapsulates start, strong worker
+  references, `deleteLater`, and shutdown.
 - A monotonic **version counter** in the canvas discards stale AI results
   if a different image was loaded in the meantime.
 - The undo stack is limited not by `maxlen` but by a **memory limit**

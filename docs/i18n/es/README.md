@@ -183,8 +183,8 @@ iniciado vía `python -m bgremover` o el script de consola `bgremover`):
   de menú de "Abrir reciente", de modo que `MainWindow` solo delega la ruta
   de carga.
 - Los **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) se
-  ejecutan en sus propios `QThread`s; `_launch_worker()` encapsula el
-  ciclo de vida del hilo.
+  ejecutan en sus propios `QThread`s; `WorkerController` encapsula el
+  arranque, las referencias fuertes a workers, `deleteLater` y el shutdown.
 - Un **contador de versión** monótono en el lienzo descarta resultados
   de IA obsoletos si entretanto se cargó otra imagen.
 - La pila de Deshacer no está limitada por `maxlen`, sino por un

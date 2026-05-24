@@ -43,6 +43,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `bgremover/right_panel.py` builds the Selection, Background, Transform,
   and Shape tabs including sliders, spin boxes, and panel buttons;
   `MainWindow` only passes canvas callbacks.
+- **Worker orchestration encapsulated out of `MainWindow`.**
+  `bgremover/worker_controller.py` now owns load, AI, and warmup threads,
+  including strong worker references, `deleteLater` wiring, and shared
+  shutdown.
 
 ### Fixed
 
