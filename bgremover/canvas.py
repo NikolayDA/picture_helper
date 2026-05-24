@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import numpy as np
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -43,15 +43,30 @@ from bgremover.constants import (
     _ZOOM_FACTOR,
     logger,
 )
+from bgremover.canvas_history import (
+    emit_history as _emit_history_impl,
+    img_bytes as _img_bytes_impl,
+    redo as _redo_impl,
+    restore_original as _restore_original_impl,
+    undo as _undo_impl,
+    undo_to as _undo_to_impl,
+)
 from bgremover.canvas_lasso import CanvasLasso
+from bgremover.canvas_selection import (
+    apply_remove as _apply_remove_impl,
+    apply_replace as _apply_replace_impl,
+    check_selection as _check_selection_impl,
+    clear_selection as _clear_selection_impl,
+    invert_selection as _invert_selection_impl,
+    morphology as _morphology_impl,
+    paint_brush as _paint_brush_impl,
+)
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
     crop_image,
     crop_size_for_ratio,
     flip_image,
-    remove_selection,
-    replace_selection,
     rotate_image,
     round_corners,
     save_image_file,
@@ -204,7 +219,7 @@ class ImageCanvas(QGraphicsView):
     @staticmethod
     def _img_bytes(img: Image.Image) -> int:
         """Geschätzte RGBA-Rohdatengrösse eines Bildes in Bytes."""
-        return img.width * img.height * 4
+        return _img_bytes_impl(img)
 
     # ── Laden ────────────────────────────────────────────────
 
@@ -259,7 +274,7 @@ class ImageCanvas(QGraphicsView):
             while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
                 evicted, _ = self._undo.popleft()
                 self._undo_bytes -= self._img_bytes(evicted)
-            self._emit_history()
+            _emit_history_impl(self)
         self._set_image_state(img)
 
     def _refresh_image(self) -> None:
@@ -292,116 +307,30 @@ class ImageCanvas(QGraphicsView):
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
-        self.historyChanged.emit([d for _, d in reversed(list(self._undo))])
+        _emit_history_impl(self)
 
     # ── Undo / Original ──────────────────────────────────────
 
     def undo(self) -> None:
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        if self._undo:
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            # Aktuellen Stand für mögliches Redo aufbewahren
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↩  Rückgängig: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
+        _undo_impl(self)
 
     def redo(self) -> None:
-        """Macht ein zuvor mit ``undo()`` rückgängig gemachte Aktion wieder."""
-        if self._crop_overlay is not None:
-            return
-        if self._redo:
-            img, desc = self._redo.pop()
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), desc))
-                self._undo_bytes += self._img_bytes(self._pil)
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
+        _redo_impl(self)
 
     def undo_to(self, steps: int) -> None:
-        """Mehrere Schritte auf einmal rückgängig machen.
-
-        Verhält sich wie mehrfaches ``undo()``: jeder übersprungene Stand
-        wandert auf den Redo-Stapel, der Sprung ist also wiederherstellbar.
-        """
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        actual = min(steps, len(self._undo))
-        if actual <= 0:
-            return
-        img, desc = None, ""
-        for _ in range(actual):
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._pil = img
-        assert img is not None  # actual > 0 (Guard oben) -> Schleife lief ≥ 1×
-        self._set_image_state(img)
-        self._emit_history()
-        self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
+        _undo_to_impl(self, steps)
 
     def restore_original(self) -> None:
-        if self._original:
-            self._cancel_crop_overlay()
-            # Aktuellen Stand für Undo aufbewahren, statt den Verlauf
-            # zu verwerfen – so kann der Nutzer das Zurücksetzen
-            # selbst wieder rückgängig machen.
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
-                self._undo_bytes += self._img_bytes(self._pil)
-            # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
-            self._redo.clear()
-            self._set_image_state(self._original.copy())
-            self._emit_history()
-            self.statusMsg.emit("🔄  Original wiederhergestellt")
+        _restore_original_impl(self)
 
     def clear_selection(self) -> None:
-        if self._mask is not None:
-            self._mask[:] = False
-            self._refresh_overlay()
-            self.statusMsg.emit("Auswahl aufgehoben")
+        _clear_selection_impl(self)
 
     def invert_selection(self) -> None:
-        """Kehrt die aktuelle Maske um (Vorder- ↔ Hintergrund)."""
-        if self._mask is None or self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
-        self._mask = ~self._mask
-        self._refresh_overlay()
-        self.statusMsg.emit(
-            f"Auswahl invertiert: {int(self._mask.sum()):,} Pixel")
+        _invert_selection_impl(self)
 
     def _morphology(self, radius: int, kind: str) -> None:
-        """Erweitert oder schrumpft die Boolean-Maske um ``radius`` Pixel
-        mittels PIL-Morphologie-Filtern."""
-        if self._mask is None or self._pil is None or radius <= 0:
-            return
-        mask_img = Image.fromarray(
-            (self._mask * 255).astype(np.uint8), mode="L")
-        # PIL-Filter brauchen ungerade Kernelgrößen
-        size = radius * 2 + 1
-        filt: ImageFilter.RankFilter
-        if kind == "expand":
-            filt = ImageFilter.MaxFilter(size)
-            label = "erweitert"
-        else:
-            filt = ImageFilter.MinFilter(size)
-            label = "geschrumpft"
-        result = mask_img.filter(filt)
-        self._mask = np.array(result) > 127
-        self._refresh_overlay()
-        self.statusMsg.emit(
-            f"Auswahl um {radius} px {label}: "
-            f"{int(self._mask.sum()):,} Pixel")
+        _morphology_impl(self, radius, kind)
 
     def expand_selection(self, radius: int) -> None:
         self._morphology(radius, "expand")
@@ -452,37 +381,10 @@ class ImageCanvas(QGraphicsView):
     # ── Operationen ──────────────────────────────────────────
 
     def apply_remove(self, _checked=False) -> None:
-        try:
-            if not self._check_selection():
-                return
-            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            assert self._mask is not None
-            self._apply_pil(
-                remove_selection(self._arr, self._mask),
-                desc="Hintergrund entfernt",
-            )
-            self._vp.update()
-            self.statusMsg.emit("Hintergrund entfernt (transparent)")
-        except Exception as e:
-            logger.exception("Fehler beim Entfernen")
-            self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
+        _apply_remove_impl(self, _checked)
 
     def apply_replace(self, color: QColor) -> None:
-        try:
-            if not self._check_selection():
-                return
-            assert self._arr is not None  # _check_selection garantiert _pil; _arr ist invariant zusammen gesetzt
-            assert self._mask is not None
-            self._apply_pil(
-                replace_selection(self._arr, self._mask,
-                                  (color.red(), color.green(), color.blue())),
-                desc=f"Farbe ersetzt ({color.name()})",
-            )
-            self._vp.update()
-            self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
-        except Exception as e:
-            logger.exception("Fehler beim Ersetzen")
-            self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
+        _apply_replace_impl(self, color)
 
     def apply_ai_result(self, img: Image.Image) -> None:
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
@@ -511,13 +413,7 @@ class ImageCanvas(QGraphicsView):
         return True
 
     def _check_selection(self) -> bool:
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return False
-        if self._mask is None or not self._mask.any():
-            self.statusMsg.emit("Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen")
-            return False
-        return True
+        return _check_selection_impl(self)
 
     # ── Maus-Events ──────────────────────────────────────────
 
@@ -716,19 +612,7 @@ class ImageCanvas(QGraphicsView):
         self._lasso.cancel()
 
     def _paint_brush(self, cx: int, cy: int) -> None:
-        if self._mask is None or self._pil is None:
-            return
-        r  = self._brush_r
-        h, w = self._mask.shape
-        y0, y1 = max(0, cy - r), min(h, cy + r + 1)
-        x0, x1 = max(0, cx - r), min(w, cx + r + 1)
-        yy, xx = np.ogrid[y0:y1, x0:x1]
-        circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= r ** 2
-        if self._tool == TOOL_BRUSH:
-            self._mask[y0:y1, x0:x1][circle] = True
-        else:
-            self._mask[y0:y1, x0:x1][circle] = False
-        self._refresh_overlay()
+        _paint_brush_impl(self, cx, cy)
 
     # Zoom-Grenzen: verhindert dass Bild auf 0 schrumpft (kein Klick mehr
     # möglich) oder so groß wird, dass Qt-Rasterung sichtbar wird.
