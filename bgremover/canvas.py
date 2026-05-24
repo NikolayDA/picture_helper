@@ -117,9 +117,10 @@ class ImageCanvas(QGraphicsView):
         self._arr:      np.ndarray  | None = None
         self._mask:     np.ndarray  | None = None
         # Monotone Zähler:
-        # - _version ändert sich nur bei einem neu geladenen Bild.
+        # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
         # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
-        # Externe Worker nutzen content_revision als Stale-Check statt Objektidentität.
+        # Externe Worker nutzen diese content_revision als Stale-Check statt
+        # Objektidentität.
         self._version:  int = 0
         self._content_revision: int = 0
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
@@ -175,8 +176,8 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def version(self) -> int:
-        """Monoton steigender Zähler; erhöht sich bei jedem Bildwechsel."""
-        return self._version
+        """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
+        return self._content_revision
 
     @property
     def content_revision(self) -> int:
