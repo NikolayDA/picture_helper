@@ -59,7 +59,18 @@ from bgremover.right_panel import (
     build_right_panel,
 )
 from bgremover.settings_dialog import SettingsDialog
-from bgremover.theme import TOOL_STYLE, _Theme
+from bgremover.theme import (
+    CANVAS_CONTAINER_STYLE,
+    CROP_BAR_STYLE,
+    CROP_CANCEL_STYLE,
+    CROP_CONFIRM_STYLE,
+    CROP_LABEL_STYLE,
+    HISTORY_BUTTON_STYLE,
+    STATUS_BAR_STYLE,
+    TOOLBAR_FRAME_STYLE,
+    TOOL_STYLE,
+    _Theme,
+)
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import AIWorker, REMBG_AVAILABLE
 
@@ -103,7 +114,7 @@ class MainWindow(QMainWindow):
         # damit `self._sb.showMessage(...)` ohne None-Narrowing auskommt
         # (QMainWindow.statusBar() liefert `QStatusBar | None`).
         self._sb = QStatusBar()
-        self._sb.setStyleSheet("QStatusBar { background:#1a1a1a; color:#777; font-size:11px; border-top:1px solid #333; }")
+        self._sb.setStyleSheet(STATUS_BAR_STYLE)
         self.setStatusBar(self._sb)
 
         root_w = QWidget()
@@ -116,7 +127,7 @@ class MainWindow(QMainWindow):
 
         # Canvas + Crop-Bestätigungsleiste in vertikalem Container
         canvas_container = QWidget()
-        canvas_container.setStyleSheet("background: transparent;")
+        canvas_container.setStyleSheet(CANVAS_CONTAINER_STYLE)
         cv_lay = QVBoxLayout(canvas_container)
         cv_lay.setContentsMargins(0, 0, 0, 0)
         cv_lay.setSpacing(0)
@@ -133,27 +144,19 @@ class MainWindow(QMainWindow):
 
         # ── Crop-Bestätigungsleiste (initial versteckt) ───────
         self._crop_bar = QFrame()
-        self._crop_bar.setStyleSheet(
-            "QFrame { background: #1e3020; border-bottom: 1px solid #3a7a4a; }")
+        self._crop_bar.setStyleSheet(CROP_BAR_STYLE)
         self._crop_bar.setFixedHeight(_CROP_BAR_HEIGHT)
         cb_lay = QHBoxLayout(self._crop_bar)
         cb_lay.setContentsMargins(14, 4, 14, 4); cb_lay.setSpacing(10)
         crop_lbl = QLabel("✂  Ausschnitt positionieren, dann bestätigen:")
-        crop_lbl.setStyleSheet("color: #8fdd9f; font-size: 12px; font-weight: bold;"
-                               " background: transparent;")
+        crop_lbl.setStyleSheet(CROP_LABEL_STYLE)
         cb_lay.addWidget(crop_lbl)
         cb_lay.addStretch()
         btn_confirm = QPushButton("✓  Zuschnitt anwenden")
-        btn_confirm.setStyleSheet(
-            "QPushButton { background:#2a6a2a; color:white; border:none;"
-            " border-radius:5px; padding:7px 16px; font-size:12px; font-weight:bold; }"
-            "QPushButton:hover { background:#3a8a3a; }")
+        btn_confirm.setStyleSheet(CROP_CONFIRM_STYLE)
         btn_confirm.clicked.connect(lambda: self._canvas.confirm_crop())
         btn_cancel = QPushButton("✗  Abbrechen")
-        btn_cancel.setStyleSheet(
-            "QPushButton { background:#5a2525; color:white; border:none;"
-            " border-radius:5px; padding:7px 14px; font-size:12px; }"
-            "QPushButton:hover { background:#7a3535; }")
+        btn_cancel.setStyleSheet(CROP_CANCEL_STYLE)
         btn_cancel.clicked.connect(lambda: self._canvas.cancel_crop())
         cb_lay.addWidget(btn_confirm)
         cb_lay.addWidget(btn_cancel)
@@ -172,7 +175,7 @@ class MainWindow(QMainWindow):
     def _build_toolbar(self) -> QFrame:
         frame = QFrame()
         frame.setFixedWidth(_TOOLBAR_WIDTH)
-        frame.setStyleSheet("QFrame { background: #242424; border-right: 1px solid #3a3a3a; }")
+        frame.setStyleSheet(TOOLBAR_FRAME_STYLE)
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(9, 16, 9, 16)
         lay.setSpacing(8)
@@ -229,23 +232,13 @@ class MainWindow(QMainWindow):
         lay.addSpacing(4); lay.addWidget(sep2); lay.addSpacing(4)
 
         # Rückgängig + Original
-        HIST_STYLE = """
-            QToolButton {
-                color: #bbb; font-size: 20px; border: none;
-                border-radius: 9px; background: #2e2e2e;
-            }
-            QToolButton:hover    { background: #3e3e3e; }
-            QToolButton:pressed  { background: #252525; }
-            QToolButton:disabled { color: #444; background: #222; }
-        """
-
         def hist_btn(icon_name: str, tip: str, slot) -> QToolButton:
             b = QToolButton()
             b.setIcon(make_tool_icon(icon_name, 38))
             b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
             b.setToolTip(tip)
             b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-            b.setStyleSheet(HIST_STYLE)
+            b.setStyleSheet(HISTORY_BUTTON_STYLE)
             b.clicked.connect(slot)
             lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
             return b
