@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -42,15 +42,7 @@ from bgremover.constants import (
 )
 from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
-from bgremover.canvas_selection import (
-    apply_remove as _apply_remove_impl,
-    apply_replace as _apply_replace_impl,
-    check_selection as _check_selection_impl,
-    clear_selection as _clear_selection_impl,
-    invert_selection as _invert_selection_impl,
-    morphology as _morphology_impl,
-    paint_brush as _paint_brush_impl,
-)
+from bgremover.canvas_selection import CanvasSelection
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
@@ -83,6 +75,16 @@ def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
             return
         method(self, *args, **kwargs)
     return wrapper
+
+
+def _selection_mode_from_modifiers(
+    mods: Qt.KeyboardModifier,
+) -> Literal["set", "add", "subtract"]:
+    if mods & Qt.KeyboardModifier.ShiftModifier:
+        return "add"
+    if mods & Qt.KeyboardModifier.ControlModifier:
+        return "subtract"
+    return "set"
 
 
 class ImageCanvas(QGraphicsView):
@@ -118,7 +120,7 @@ class ImageCanvas(QGraphicsView):
 
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
-        self._mask: np.ndarray  | None = None
+        self._selection = CanvasSelection(0, 0)
         # Monotone Zähler:
         # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
         # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
@@ -175,6 +177,22 @@ class ImageCanvas(QGraphicsView):
     def content_revision(self) -> int:
         """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
+
+    @property
+    def _mask(self) -> np.ndarray | None:
+        """Übergangs-Accessor für ältere Tests und interne Debug-Zugriffe."""
+        if self._pil is None:
+            return None
+        return self._selection.mask
+
+    @_mask.setter
+    def _mask(self, mask: np.ndarray | None) -> None:
+        if mask is None:
+            if self._pil is not None:
+                self._selection.reset(self._pil.width, self._pil.height)
+            return
+        self._selection.reset(mask.shape[1], mask.shape[0])
+        self._selection.mask[:] = mask
 
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
@@ -236,9 +254,10 @@ class ImageCanvas(QGraphicsView):
             self._vp.update()
 
     def _refresh_overlay(self) -> None:
-        if self._mask is not None and self._pil:
-            h, w = self._mask.shape
-            self._overlay_item.setPixmap(mask_to_overlay(self._mask, w, h))
+        if self._pil:
+            mask = self._selection.mask
+            h, w = mask.shape
+            self._overlay_item.setPixmap(mask_to_overlay(mask, w, h))
 
     def _set_image_state(self, img: Image.Image) -> None:
         """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
@@ -248,7 +267,7 @@ class ImageCanvas(QGraphicsView):
         """
         self._pil  = img
         self._arr  = pil_to_numpy(img)
-        self._mask = np.zeros((img.height, img.width), dtype=bool)
+        self._selection.reset(img.width, img.height)
         self._content_revision += 1
         self._refresh_image()
         self._refresh_overlay()
@@ -314,13 +333,26 @@ class ImageCanvas(QGraphicsView):
         self.statusMsg.emit("🔄  Original wiederhergestellt")
 
     def clear_selection(self) -> None:
-        _clear_selection_impl(self)
+        if self._pil is not None:
+            self._selection.clear()
+            self._refresh_overlay()
+            self.statusMsg.emit("Auswahl aufgehoben")
 
     def invert_selection(self) -> None:
-        _invert_selection_impl(self)
+        if self._pil is None:
+            self.statusMsg.emit("Kein Bild geladen")
+            return
+        pixels = self._selection.invert()
+        self._refresh_overlay()
+        self.statusMsg.emit(f"Auswahl invertiert: {pixels:,} Pixel")
 
-    def _morphology(self, radius: int, kind: str) -> None:
-        _morphology_impl(self, radius, kind)
+    def _morphology(self, radius: int, kind: Literal["expand", "shrink"]) -> None:
+        if self._pil is None or radius <= 0:
+            return
+        pixels = self._selection.morphology(radius, kind)
+        self._refresh_overlay()
+        label = "erweitert" if kind == "expand" else "geschrumpft"
+        self.statusMsg.emit(f"Auswahl um {radius} px {label}: {pixels:,} Pixel")
 
     def expand_selection(self, radius: int) -> None:
         self._morphology(radius, "expand")
@@ -371,10 +403,37 @@ class ImageCanvas(QGraphicsView):
     # ── Operationen ──────────────────────────────────────────
 
     def apply_remove(self, _checked=False) -> None:
-        _apply_remove_impl(self, _checked)
+        try:
+            if not self._check_selection():
+                return
+            assert self._arr is not None
+            self._apply_pil(
+                self._selection.remove_background(self._arr),
+                desc="Hintergrund entfernt",
+            )
+            self._vp.update()
+            self.statusMsg.emit("Hintergrund entfernt (transparent)")
+        except Exception as e:
+            logger.exception("Fehler beim Entfernen")
+            self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
 
     def apply_replace(self, color: QColor) -> None:
-        _apply_replace_impl(self, color)
+        try:
+            if not self._check_selection():
+                return
+            assert self._arr is not None
+            self._apply_pil(
+                self._selection.replace_background(
+                    self._arr,
+                    (color.red(), color.green(), color.blue()),
+                ),
+                desc=f"Farbe ersetzt ({color.name()})",
+            )
+            self._vp.update()
+            self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
+        except Exception as e:
+            logger.exception("Fehler beim Ersetzen")
+            self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
 
     def apply_ai_result(self, img: Image.Image) -> None:
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
@@ -403,7 +462,13 @@ class ImageCanvas(QGraphicsView):
         return True
 
     def _check_selection(self) -> bool:
-        return _check_selection_impl(self)
+        if self._pil is None:
+            self.statusMsg.emit("Kein Bild geladen")
+            return False
+        if not self._selection.has_selection:
+            self.statusMsg.emit("Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen")
+            return False
+        return True
 
     # ── Maus-Events ──────────────────────────────────────────
 
@@ -455,18 +520,14 @@ class ImageCanvas(QGraphicsView):
     ) -> None:
         """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
         if self._tool == TOOL_WAND:
-            assert self._pil is not None and self._arr is not None and self._mask is not None
+            assert self._pil is not None and self._arr is not None
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
                 new = flood_fill(self._arr, x, y, self._tolerance)
-                if mods & Qt.KeyboardModifier.ShiftModifier:
-                    self._mask |= new
-                elif mods & Qt.KeyboardModifier.ControlModifier:
-                    self._mask &= ~new
-                else:
-                    self._mask = new
+                pixels = self._selection.set_wand_result(
+                    new, _selection_mode_from_modifiers(mods))
                 self._refresh_overlay()
-                self.statusMsg.emit(f"Auswahl: {int(self._mask.sum()):,} Pixel")
+                self.statusMsg.emit(f"Auswahl: {pixels:,} Pixel")
         elif self._tool == TOOL_LASSO:
             assert self._pil is not None
             w, h = self._pil.size
@@ -591,18 +652,24 @@ class ImageCanvas(QGraphicsView):
         super().keyPressEvent(event)
 
     def _lasso_close(self) -> None:
-        if self._mask is None or self._pil is None:
+        if self._pil is None:
             return
-        self._mask = self._lasso.close_to_mask(self._mask)
+        mode = _selection_mode_from_modifiers(self._lasso.modifiers)
+        new_mask = self._lasso.close_to_selection_mask(self._selection.mask.shape)
+        pixels = self._selection.set_polygon_result(new_mask, mode)
         self._refresh_overlay()
         self.statusMsg.emit(
-            f"Polygon-Lasso: {int(self._mask.sum()):,} Pixel ausgewählt")
+            f"Polygon-Lasso: {pixels:,} Pixel ausgewählt")
 
     def _lasso_cancel(self) -> None:
         self._lasso.cancel()
 
     def _paint_brush(self, cx: int, cy: int) -> None:
-        _paint_brush_impl(self, cx, cy)
+        if self._pil is None:
+            return
+        self._selection.paint_brush(
+            cx, cy, self._brush_r, additive=self._tool == TOOL_BRUSH)
+        self._refresh_overlay()
 
     # Zoom-Grenzen: verhindert dass Bild auf 0 schrumpft (kein Klick mehr
     # möglich) oder so groß wird, dass Qt-Rasterung sichtbar wird.

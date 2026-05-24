@@ -99,18 +99,25 @@ class CanvasLasso:
     def close_to_mask(self, base_mask: np.ndarray) -> np.ndarray:
         pts = self._pts.copy()
         mods = self._mods
-        self.cancel()
+        new_mask = self.close_to_selection_mask(base_mask.shape)
         if len(pts) < 3:
             return base_mask
-        h, w = base_mask.shape
-        mask_img = Image.new("L", (w, h), 0)
-        ImageDraw.Draw(mask_img).polygon(pts, fill=255)
-        new_mask = np.array(mask_img) > 127
         if mods & Qt.KeyboardModifier.ShiftModifier:
             return base_mask | new_mask
         if mods & Qt.KeyboardModifier.ControlModifier:
             return base_mask & ~new_mask
         return new_mask
+
+    def close_to_selection_mask(self, shape: tuple[int, int]) -> np.ndarray:
+        pts = self._pts.copy()
+        self.cancel()
+        h, w = shape
+        new_mask = np.zeros((h, w), dtype=bool)
+        if len(pts) < 3:
+            return new_mask
+        mask_img = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask_img).polygon(pts, fill=255)
+        return np.array(mask_img) > 127
 
     def cancel(self) -> None:
         if self._path_item is not None:
