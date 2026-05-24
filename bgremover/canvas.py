@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -20,14 +20,11 @@ from PyQt6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
     QPainter,
-    QPainterPath,
     QPen,
 )
 from PyQt6.QtWidgets import (
     QApplication,
     QGraphicsEllipseItem,
-    QGraphicsLineItem,
-    QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
@@ -41,10 +38,12 @@ from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
     _MAX_MEGAPIXELS,
+    _REDO_MAX_ENTRIES,
     _UNDO_MEMORY_LIMIT,
     _ZOOM_FACTOR,
     logger,
 )
+from bgremover.canvas_lasso import CanvasLasso
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
@@ -117,9 +116,10 @@ class ImageCanvas(QGraphicsView):
         self._arr:      np.ndarray  | None = None
         self._mask:     np.ndarray  | None = None
         # Monotone Zähler:
-        # - _version ändert sich nur bei einem neu geladenen Bild.
+        # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
         # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
-        # Externe Worker nutzen content_revision als Stale-Check statt Objektidentität.
+        # Externe Worker nutzen diese content_revision als Stale-Check statt
+        # Objektidentität.
         self._version:  int = 0
         self._content_revision: int = 0
         # Undo-Stack: (Image, Beschreibung der Aktion die dazu führte)
@@ -130,7 +130,7 @@ class ImageCanvas(QGraphicsView):
         self._undo_bytes: int = 0
         # Redo-Stack: gespiegelt zum Undo. Wird bei jeder neuen Aktion
         # via _apply_pil(push=True) geleert.
-        self._redo:     deque = deque(maxlen=20)
+        self._redo:     deque = deque(maxlen=_REDO_MAX_ENTRIES)
 
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
@@ -140,10 +140,7 @@ class ImageCanvas(QGraphicsView):
         self._drawing   = False
 
         # Polygon-Lasso-Werkzeug
-        self._lasso_pts:       list[tuple[int, int]] = []
-        self._lasso_path_item: QGraphicsPathItem | None = None
-        self._lasso_line_item: QGraphicsLineItem | None = None
-        self._lasso_mods:      Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier
+        self._lasso = CanvasLasso(self._scene)
 
         # Crop-Overlay-Zustand
         self._crop_overlay:      CropOverlayItem | None = None
@@ -175,8 +172,8 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def version(self) -> int:
-        """Monoton steigender Zähler; erhöht sich bei jedem Bildwechsel."""
-        return self._version
+        """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
+        return self._content_revision
 
     @property
     def content_revision(self) -> int:
@@ -225,6 +222,10 @@ class ImageCanvas(QGraphicsView):
         self.statusMsg.emit(
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
+
+    def apply_edit(self, img: Image.Image, desc: str = "Bearbeitung") -> None:
+        """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
+        self._apply_pil(img, push=True, desc=desc)
 
     def _apply_pil(
         self,
@@ -563,9 +564,8 @@ class ImageCanvas(QGraphicsView):
         elif self._tool == TOOL_LASSO:
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
-                if not self._lasso_pts:
-                    self._lasso_mods = mods
-                self._lasso_add_point(x, y)
+                self._lasso.set_modifiers_if_first(mods)
+                self.statusMsg.emit(self._lasso.add_point(x, y))
         else:
             self._drawing = True
             self._paint_brush(x, y)
@@ -577,9 +577,8 @@ class ImageCanvas(QGraphicsView):
         if self._crop_overlay is None and not self._panning:
             self._update_brush_preview(sp)
             # Lasso-Vorschaulinie vom letzten Punkt zur Mausposition
-            if self._tool == TOOL_LASSO and self._lasso_pts and self._lasso_line_item is not None:
-                last = self._lasso_pts[-1]
-                self._lasso_line_item.setLine(last[0], last[1], sp.x(), sp.y())
+            if self._tool == TOOL_LASSO:
+                self._lasso.update_preview_line(sp.x(), sp.y())
 
         # ── Crop-Resize ───────────────────────────────────────
         if self._crop_resizing and self._crop_overlay is not None:
@@ -645,7 +644,7 @@ class ImageCanvas(QGraphicsView):
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self._tool == TOOL_LASSO and event.button() == Qt.MouseButton.LeftButton:
-            if len(self._lasso_pts) >= 3:
+            if self._lasso.point_count >= 3:
                 self._lasso_close()
             else:
                 self._lasso_cancel()
@@ -653,68 +652,22 @@ class ImageCanvas(QGraphicsView):
         super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key.Key_Escape and self._lasso_pts:
+        if event.key() == Qt.Key.Key_Escape and self._lasso.has_points:
             self._lasso_cancel()
             self.statusMsg.emit("Polygon-Lasso abgebrochen")
             return
         super().keyPressEvent(event)
 
-    def _lasso_add_point(self, x: int, y: int) -> None:
-        self._lasso_pts.append((x, y))
-        path = QPainterPath()
-        path.moveTo(*self._lasso_pts[0])
-        for px, py in self._lasso_pts[1:]:
-            path.lineTo(px, py)
-        pen = QPen(QColor(255, 255, 255, 220), 1.5, Qt.PenStyle.DashLine,
-                   Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-        if self._lasso_path_item is None:
-            self._lasso_path_item = QGraphicsPathItem()
-            self._lasso_path_item.setZValue(25)
-            self._scene.addItem(self._lasso_path_item)
-        self._lasso_path_item.setPen(pen)
-        self._lasso_path_item.setPath(path)
-        if self._lasso_line_item is None:
-            line_pen = QPen(QColor(200, 200, 200, 160), 1.2, Qt.PenStyle.DotLine)
-            self._lasso_line_item = QGraphicsLineItem(x, y, x, y)
-            self._lasso_line_item.setPen(line_pen)
-            self._lasso_line_item.setZValue(25)
-            self._scene.addItem(self._lasso_line_item)
-        else:
-            self._lasso_line_item.setLine(x, y, x, y)
-        n = len(self._lasso_pts)
-        suffix = "e" if n != 1 else ""
-        self.statusMsg.emit(
-            f"Polygon-Lasso: {n} Punkt{suffix} — Doppelklick zum Abschließen · Esc = abbrechen")
-
     def _lasso_close(self) -> None:
-        pts = self._lasso_pts.copy()
-        mods = self._lasso_mods
-        self._lasso_cancel()
         if self._mask is None or self._pil is None:
             return
-        h, w = self._mask.shape
-        mask_img = Image.new("L", (w, h), 0)
-        ImageDraw.Draw(mask_img).polygon(pts, fill=255)
-        new_mask = np.array(mask_img) > 127
-        if mods & Qt.KeyboardModifier.ShiftModifier:
-            self._mask |= new_mask
-        elif mods & Qt.KeyboardModifier.ControlModifier:
-            self._mask &= ~new_mask
-        else:
-            self._mask = new_mask
+        self._mask = self._lasso.close_to_mask(self._mask)
         self._refresh_overlay()
         self.statusMsg.emit(
             f"Polygon-Lasso: {int(self._mask.sum()):,} Pixel ausgewählt")
 
     def _lasso_cancel(self) -> None:
-        if self._lasso_path_item is not None:
-            self._scene.removeItem(self._lasso_path_item)
-            self._lasso_path_item = None
-        if self._lasso_line_item is not None:
-            self._scene.removeItem(self._lasso_line_item)
-            self._lasso_line_item = None
-        self._lasso_pts.clear()
-        self._lasso_mods = Qt.KeyboardModifier.NoModifier
+        self._lasso.cancel()
 
     def _paint_brush(self, cx: int, cy: int) -> None:
         if self._mask is None or self._pil is None:
