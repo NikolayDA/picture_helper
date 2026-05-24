@@ -15,7 +15,7 @@ Headless-Strategie (Begruendung):
   QFileDialog``; ein Patch auf die PyQt-Klasse selbst greift nicht).
 - Canvas wird synchron via ``apply_loaded_image`` befuellt statt ueber den
   Async-Worker-Thread.
-- Assertions pruefen den Modellzustand (``_mask``/``_pil``/``_crop_overlay``),
+- Assertions pruefen den Modellzustand (``_mask``/``image``/``_crop_overlay``),
   nicht View-Pixel.
 """
 from PIL import Image
@@ -86,6 +86,12 @@ class _FakeFileDialog:
     @staticmethod
     def getExistingDirectory(*args, **kwargs):
         return _FakeFileDialog.dir_ret
+
+
+def _canvas_image(c: ImageCanvas) -> Image.Image:
+    img = c.image
+    assert img is not None
+    return img
 
 
 def _action(window, text: str) -> QAction:
@@ -177,24 +183,24 @@ def test_undo_redo_actions(loaded_window):
     w = loaded_window
     c = w._canvas
     c.apply_rotate(90)  # 40x30 → 30x40, legt Undo-Schritt an
-    assert (c._pil.width, c._pil.height) == (30, 40)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
     _action(w, "Rückgängig").trigger()
-    assert (c._pil.width, c._pil.height) == (40, 30)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (40, 30)
     _action(w, "Wiederherstellen").trigger()
-    assert (c._pil.width, c._pil.height) == (30, 40)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
 
 
 def test_rotate_flip_actions(loaded_window):
     w = loaded_window
     c = w._canvas
     _action(w, "90° rechts drehen").trigger()
-    assert (c._pil.width, c._pil.height) == (30, 40)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
     _action(w, "Horizontal spiegeln").trigger()
-    assert (c._pil.width, c._pil.height) == (30, 40)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
     _action(w, "Rückgängig").trigger()
-    assert (c._pil.width, c._pil.height) == (30, 40)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
     _action(w, "Rückgängig").trigger()
-    assert (c._pil.width, c._pil.height) == (40, 30)
+    assert (_canvas_image(c).width, _canvas_image(c).height) == (40, 30)
 
 
 def test_selection_actions(loaded_window):
@@ -226,7 +232,7 @@ def test_open_button_invokes_dialog(main_window, qtbot, monkeypatch, tmp_path):
     # Abbruch (leerer Pfad) ⇒ kein Lade-Thread.
     _FakeFileDialog.open_ret = ("", "")
     qtbot.mouseClick(btn, Qt.MouseButton.LeftButton)
-    assert w._load_thread is None
+    assert w._worker_controller.load_thread is None
 
     # Echter Pfad ⇒ _load_image_async wird mit genau diesem Pfad gerufen.
     png = tmp_path / "pic.png"
@@ -251,7 +257,7 @@ def test_crop_activate_and_confirm(loaded_window, qtbot):
     c.confirm_crop()
     assert c._crop_overlay is None
     assert not w._crop_bar.isVisibleTo(w)
-    assert c._pil.width == c._pil.height  # 1:1 aus 40x30 → 30x30
+    assert _canvas_image(c).width == _canvas_image(c).height  # 1:1 aus 40x30 → 30x30
 
 
 def test_crop_cancel(loaded_window):

@@ -13,7 +13,7 @@ def test_apply_loaded_image_sets_state(qapp):
     canvas = ImageCanvas()
     img = Image.new("RGBA", (32, 24), (50, 100, 150, 255))
     canvas.apply_loaded_image(img, "/tmp/x.png")
-    assert canvas._pil is img
+    assert canvas.image is img
     assert canvas._mask.shape == (24, 32)
     canvas.undo()
     assert canvas.image is img

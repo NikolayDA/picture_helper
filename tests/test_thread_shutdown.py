@@ -1,7 +1,7 @@
 """Test für sauberes Thread-Shutdown beim Schliessen des Fensters.
 
 Headless (offscreen): startet einen künstlich blockierenden Worker über
-den echten ``_launch_worker``-Pfad, schliesst das Fenster und prüft, dass
+den echten ``WorkerController.launch_worker``-Pfad, schliesst das Fenster und prüft, dass
 ``closeEvent`` den Thread sauber stoppt, statt zu crashen (Regression
 gegen „QThread: Destroyed while thread is still running“).
 """
@@ -39,7 +39,7 @@ class _RecordingWorker(QObject):
 
 
 def test_launch_worker_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
-    """Regression: ``_launch_worker`` muss eine starke Referenz auf den
+    """Regression: ``WorkerController.launch_worker`` muss eine starke Referenz auf den
     Worker halten. Sonst sammelt CPython ihn ein, sobald der Aufrufer
     keine Referenz mehr hält (PyQt verbindet Slots gebundener Methoden
     nur schwach) – ``run()`` liefe nie, das Bild würde lautlos nicht
@@ -53,15 +53,16 @@ def test_launch_worker_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
         # Der Worker existiert NUR in dieser Funktion und verlässt sie
         # nicht – exakt die Situation in _load_image_async / _run_ai.
         w = _RecordingWorker(ran)
-        return win._launch_worker(w, quit_on=(w.finished,))
+        return win._worker_controller.launch_worker(w, quit_on=(w.finished,))
 
-    win._ai_thread = _start_without_keeping_worker_ref()
+    thread = _start_without_keeping_worker_ref()
+    win._worker_controller.ai_thread = thread
     gc.collect()                       # ohne Fix: Worker hier bereits weg
 
     deadline = time.monotonic() + 5.0
-    while not win._ai_thread.isFinished() and time.monotonic() < deadline:
+    while not thread.isFinished() and time.monotonic() < deadline:
         qapp.processEvents()
-        win._ai_thread.wait(50)
+        thread.wait(50)
 
     # run() lief trotz fehlender Aufrufer-Referenz → Worker überlebte.
     assert ran == [True]
@@ -79,16 +80,17 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
 
     win = MainWindow()
     worker = _BlockingWorker(5.0)          # läuft länger als Timeout
-    win._ai_thread = win._launch_worker(worker, quit_on=(worker.finished,))
-    assert win._ai_thread.isRunning()
+    thread = win._worker_controller.launch_worker(worker, quit_on=(worker.finished,))
+    win._worker_controller.ai_thread = thread
+    assert thread.isRunning()
 
     win.close()                            # darf NICHT crashen
 
-    assert not win._ai_thread.isRunning()  # Thread sauber beendet
+    assert not thread.isRunning()          # Thread sauber beendet
 
 
 def test_close_event_noop_without_threads(qapp, monkeypatch):
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
     win = MainWindow()
-    assert win._ai_thread is None
+    assert win._worker_controller.ai_thread is None
     win.close()                            # keine Threads -> kein Fehler
