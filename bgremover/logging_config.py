@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from PyQt6.QtCore import QStandardPaths
@@ -24,7 +25,7 @@ def _resolve_log_dir() -> Path:
     """Ermittelt das Log-Verzeichnis und legt es bei Bedarf an.
 
     Das Zielverzeichnis wird angelegt – andernfalls bricht der
-    ``FileHandler`` den Start mit ``FileNotFoundError`` ab.
+    Datei-Handler den Start mit ``FileNotFoundError`` ab.
     """
     loc = QStandardPaths.writableLocation(
         QStandardPaths.StandardLocation.AppDataLocation)
@@ -62,6 +63,12 @@ def _setup_logging() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(sys.stderr),
-            logging.FileHandler(_log_file_path, encoding="utf-8"),
+            RotatingFileHandler(
+                _log_file_path,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=3,
+                encoding="utf-8",
+                delay=True,
+            ),
         ],
     )
