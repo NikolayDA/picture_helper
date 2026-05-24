@@ -9,6 +9,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]（未发布）
 
+## [2.2.0] – 2026-05-25
+
 ### 新增
 
 - **可复现的依赖 snapshot**（`requirements/constraints.txt`）。
@@ -197,6 +199,7 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
