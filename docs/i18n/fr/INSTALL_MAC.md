@@ -162,4 +162,4 @@ réexécutée après `git pull` — sauf si les dépendances dans
   `bgremover/icons/`, donc reprises automatiquement dans la venv par
   `pip install` et chargées via `importlib.resources` ; reconstruire
   une fois avec `bash create_BgRemover_app.sh`.
-- **Diagnostic en cas d'erreur** → consulter le fichier journal `~/.bgremover.log`.
+- **Diagnostic en cas d'erreur** → consulter le fichier journal `~/Library/Application Support/BgRemover/bgremover.log`.
