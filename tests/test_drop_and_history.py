@@ -16,7 +16,7 @@ from PIL import Image
 from PyQt6.QtCore import Qt, QPointF, QMimeData, QUrl
 from PyQt6.QtGui import QDropEvent
 
-from bgremover import ImageCanvas, pil_to_numpy
+from bgremover import ImageCanvas
 
 
 def test_drop_emits_load_requested_and_does_not_load_sync(qapp, tmp_path):
@@ -33,7 +33,7 @@ def test_drop_emits_load_requested_and_does_not_load_sync(qapp, tmp_path):
     c.dropEvent(ev)
 
     assert requested == [str(p)]
-    assert c._pil is None          # NICHT synchron geladen → kein Freeze
+    assert c.image is None         # NICHT synchron geladen → kein Freeze
 
 
 def test_drop_unsupported_format_reports_status(qapp, tmp_path):
@@ -76,17 +76,18 @@ def test_drop_multifile_reports_ignored_extras(qapp, tmp_path):
 def test_undo_to_is_redoable(qapp):
     c = ImageCanvas()
     img = Image.new("RGBA", (8, 8), (255, 0, 0, 255))
-    c._pil = img
-    c._arr = pil_to_numpy(img)
-    c._mask = np.zeros((8, 8), dtype=bool)
-    c._apply_pil(Image.new("RGBA", (8, 8), (0, 255, 0, 255)), desc="grün")
-    c._apply_pil(Image.new("RGBA", (8, 8), (0, 0, 255, 255)), desc="blau")
+    c.apply_loaded_image(img, "seed.png")
+    c.apply_edit(Image.new("RGBA", (8, 8), (0, 255, 0, 255)), desc="grün")
+    c.apply_edit(Image.new("RGBA", (8, 8), (0, 0, 255, 255)), desc="blau")
 
     c.undo_to(2)                                   # zwei Schritte zurück
-    assert np.array(c._pil)[0, 0].tolist() == [255, 0, 0, 255]
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [255, 0, 0, 255]
 
     # Anders als früher (Redo verworfen) ist der Sprung wiederherstellbar
     c.redo()
-    assert np.array(c._pil)[0, 0].tolist() == [0, 255, 0, 255]
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [0, 255, 0, 255]
     c.redo()
-    assert np.array(c._pil)[0, 0].tolist() == [0, 0, 255, 255]
+    assert c.image is not None
+    assert np.array(c.image)[0, 0].tolist() == [0, 0, 255, 255]
