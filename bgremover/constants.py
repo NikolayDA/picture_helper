@@ -20,6 +20,10 @@ LOG_FILENAME = "bgremover.log"
 _MAX_MEGAPIXELS = 40
 # Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
 _MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
+# Explizit unterstützte Eingabeformate für den asynchronen Ladepfad.
+_ALLOWED_IMAGE_FORMATS = frozenset({
+    "PNG", "JPEG", "WEBP", "TIFF", "BMP", "GIF"
+})
 # Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
 # Maximale Anzahl Redo-Einträge.
