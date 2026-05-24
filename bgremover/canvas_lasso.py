@@ -65,9 +65,17 @@ class CanvasLasso:
             last = self._pts[-1]
             self._line_item.setLine(last[0], last[1], x, y)
 
-    def undo_last_point(self) -> None:
-        """Entfernt den zuletzt gesetzten Punkt (z. B. bei Doppelklick-Sequenz)."""
-        if self._pts:
+    def undo_last_point_if_duplicate(self, x: int, y: int) -> None:
+        """Entfernt den letzten Punkt nur dann, wenn er der Doppelklick-Position entspricht.
+
+        Qt liefert vor ``mouseDoubleClickEvent`` bereits ein ``mousePressEvent``.
+        Dadurch kann ein Duplikatpunkt entstehen, wenn per Doppelklick nur
+        abgeschlossen werden soll. Ein bewusst gesetzter neuer Eckpunkt bleibt
+        erhalten.
+        """
+        if not self._pts:
+            return
+        if self._pts[-1] == (x, y):
             self._pts.pop()
 
     def close_to_mask(self, base_mask: np.ndarray) -> np.ndarray:
