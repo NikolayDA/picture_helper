@@ -1,77 +1,97 @@
-"""Undo/Redo-Verlaufslogik für ImageCanvas."""
+"""Undo/Redo-Verlaufszustand für ImageCanvas."""
 from __future__ import annotations
+
+from collections import deque
 
 from PIL import Image
 
-
-def img_bytes(img: Image.Image) -> int:
-    """Geschätzte RGBA-Rohdatengröße eines Bildes in Bytes."""
-    return img.width * img.height * 4
+from bgremover.constants import _REDO_MAX_ENTRIES, _UNDO_MEMORY_LIMIT
 
 
-def emit_history(canvas) -> None:
-    """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
-    canvas.historyChanged.emit([d for _, d in reversed(list(canvas._undo))])
+class CanvasHistory:
+    """Verwaltet Undo/Redo-Bildzustände ohne Zugriff auf Canvas-Interna."""
 
+    def __init__(
+        self,
+        memory_limit: int = _UNDO_MEMORY_LIMIT,
+        redo_max: int = _REDO_MAX_ENTRIES,
+    ) -> None:
+        self._undo: deque[tuple[Image.Image, str]] = deque()
+        self._undo_bytes: int = 0
+        self._redo: deque[tuple[Image.Image, str]] = deque(maxlen=redo_max)
+        self._original: Image.Image | None = None
+        self._memory_limit: int = memory_limit
+        self._redo_max: int = redo_max
 
-def undo(canvas) -> None:
-    if canvas._crop_overlay is not None:
-        canvas.cancel_crop()
-        return
-    if canvas._undo:
-        img, desc = canvas._undo.pop()
-        canvas._undo_bytes -= img_bytes(img)
-        if canvas._pil is not None:
-            canvas._redo.append((canvas._pil.copy(), desc))
-        canvas._set_image_state(img)
-        emit_history(canvas)
-        canvas.statusMsg.emit(f"↩  Rückgängig: {desc}")
-    else:
-        canvas.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
+    @staticmethod
+    def _img_bytes(img: Image.Image) -> int:
+        return img.width * img.height * 4
 
+    def push(self, current: Image.Image, desc: str) -> None:
+        self._undo.append((current.copy(), desc))
+        self._undo_bytes += self._img_bytes(current)
+        self._redo.clear()
+        while len(self._undo) > 1 and self._undo_bytes > self._memory_limit:
+            evicted, _ = self._undo.popleft()
+            self._undo_bytes -= self._img_bytes(evicted)
 
-def redo(canvas) -> None:
-    if canvas._crop_overlay is not None:
-        return
-    if canvas._redo:
-        img, desc = canvas._redo.pop()
-        if canvas._pil is not None:
-            canvas._undo.append((canvas._pil.copy(), desc))
-            canvas._undo_bytes += img_bytes(canvas._pil)
-        canvas._set_image_state(img)
-        emit_history(canvas)
-        canvas.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
-    else:
-        canvas.statusMsg.emit("Nichts mehr zum Wiederherstellen")
+    def undo(self, current: Image.Image | None) -> tuple[Image.Image, str] | None:
+        if not self._undo:
+            return None
+        img, desc = self._undo.pop()
+        self._undo_bytes -= self._img_bytes(img)
+        if current is not None:
+            self._redo.append((current.copy(), desc))
+        return img, desc
 
+    def redo(self, current: Image.Image | None) -> tuple[Image.Image, str] | None:
+        if not self._redo:
+            return None
+        img, desc = self._redo.pop()
+        if current is not None:
+            self._undo.append((current.copy(), desc))
+            self._undo_bytes += self._img_bytes(current)
+        return img, desc
 
-def undo_to(canvas, steps: int) -> None:
-    if canvas._crop_overlay is not None:
-        canvas.cancel_crop()
-        return
-    actual = min(steps, len(canvas._undo))
-    if actual <= 0:
-        return
-    img, desc = None, ""
-    for _ in range(actual):
-        img, desc = canvas._undo.pop()
-        canvas._undo_bytes -= img_bytes(img)
-        if canvas._pil is not None:
-            canvas._redo.append((canvas._pil.copy(), desc))
-        canvas._pil = img
-    assert img is not None
-    canvas._set_image_state(img)
-    emit_history(canvas)
-    canvas.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
+    def undo_to(
+        self,
+        current: Image.Image | None,
+        steps: int,
+    ) -> tuple[Image.Image, str, int] | None:
+        actual = min(steps, len(self._undo))
+        if actual <= 0:
+            return None
 
+        img: Image.Image | None = None
+        desc = ""
+        redo_current = current
+        for _ in range(actual):
+            img, desc = self._undo.pop()
+            self._undo_bytes -= self._img_bytes(img)
+            if redo_current is not None:
+                self._redo.append((redo_current.copy(), desc))
+            redo_current = img
 
-def restore_original(canvas) -> None:
-    if canvas._original:
-        canvas._cancel_crop_overlay()
-        if canvas._pil is not None:
-            canvas._undo.append((canvas._pil.copy(), "🔄 Original wiederhergestellt"))
-            canvas._undo_bytes += img_bytes(canvas._pil)
-        canvas._redo.clear()
-        canvas._set_image_state(canvas._original.copy())
-        emit_history(canvas)
-        canvas.statusMsg.emit("🔄  Original wiederhergestellt")
+        assert img is not None
+        return img, desc, actual
+
+    def set_original(self, img: Image.Image) -> None:
+        self._original = img.copy()
+
+    def restore(self, current: Image.Image | None) -> Image.Image | None:
+        if self._original is None:
+            return None
+        if current is not None:
+            self._undo.append((current.copy(), "🔄 Original wiederhergestellt"))
+            self._undo_bytes += self._img_bytes(current)
+        self._redo.clear()
+        return self._original.copy()
+
+    def descriptions(self) -> list[str]:
+        return [desc for _, desc in reversed(self._undo)]
+
+    def clear(self) -> None:
+        self._undo.clear()
+        self._undo_bytes = 0
+        self._redo.clear()
+        self._original = None
