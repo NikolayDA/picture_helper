@@ -75,9 +75,9 @@ def test_restore_original_pushes_current_state_to_undo(qapp):
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (20, 20), (255, 0, 0, 255)), "orig.png")
     canvas.apply_edit(Image.new("RGBA", (20, 20), (0, 255, 0, 255)), desc="edit")
-    assert len(canvas._undo) == 0
-    canvas.restore_original()
     assert len(canvas._undo) == 1
+    canvas.restore_original()
+    assert len(canvas._undo) == 2
     assert canvas.image is not None
     assert np.array(canvas.image)[0, 0].tolist() == [255, 0, 0, 255]
 
