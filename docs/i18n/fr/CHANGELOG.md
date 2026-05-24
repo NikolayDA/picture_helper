@@ -49,6 +49,10 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `bgremover/right_panel.py` construit les onglets Sélection, Arrière-plan,
   Transformation et Forme, y compris sliders, spinboxes et boutons de
   panneau ; `MainWindow` ne fournit plus que les callbacks du canevas.
+- **Orchestration des workers encapsulée hors de `MainWindow`.**
+  `bgremover/worker_controller.py` possède maintenant les threads de
+  chargement, d'IA et de warmup, y compris les références fortes aux
+  workers, le câblage `deleteLater` et le shutdown partagé.
 
 ### Corrigé
 
