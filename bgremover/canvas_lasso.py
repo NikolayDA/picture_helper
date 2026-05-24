@@ -65,6 +65,11 @@ class CanvasLasso:
             last = self._pts[-1]
             self._line_item.setLine(last[0], last[1], x, y)
 
+    def undo_last_point(self) -> None:
+        """Entfernt den zuletzt gesetzten Punkt (z. B. bei Doppelklick-Sequenz)."""
+        if self._pts:
+            self._pts.pop()
+
     def close_to_mask(self, base_mask: np.ndarray) -> np.ndarray:
         pts = self._pts.copy()
         mods = self._mods

@@ -644,6 +644,9 @@ class ImageCanvas(QGraphicsView):
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self._tool == TOOL_LASSO and event.button() == Qt.MouseButton.LeftButton:
+            # Qt liefert vor dem Doppelklick bereits einen zusätzlichen
+            # MousePress; den dadurch gesetzten letzten Punkt verwerfen.
+            self._lasso.undo_last_point()
             if self._lasso.point_count >= 3:
                 self._lasso_close()
             else:
