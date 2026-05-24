@@ -30,6 +30,24 @@ class CanvasLasso:
     def point_count(self) -> int:
         return len(self._pts)
 
+    @property
+    def points(self) -> list[tuple[int, int]]:
+        """Aktuelle Polygonpunkte (kompatibel zu älteren Tests)."""
+        return self._pts
+
+    @points.setter
+    def points(self, pts: list[tuple[int, int]]) -> None:
+        self._pts = list(pts)
+
+    @property
+    def modifiers(self) -> Qt.KeyboardModifier:
+        """Modifikatorzustand des aktuellen Lasso-Durchlaufs."""
+        return self._mods
+
+    @modifiers.setter
+    def modifiers(self, mods: Qt.KeyboardModifier) -> None:
+        self._mods = mods
+
     def set_modifiers_if_first(self, mods: Qt.KeyboardModifier) -> None:
         if not self._pts:
             self._mods = mods
@@ -82,6 +100,8 @@ class CanvasLasso:
         pts = self._pts.copy()
         mods = self._mods
         self.cancel()
+        if len(pts) < 3:
+            return base_mask
         h, w = base_mask.shape
         mask_img = Image.new("L", (w, h), 0)
         ImageDraw.Draw(mask_img).polygon(pts, fill=255)
