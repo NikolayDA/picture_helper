@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.2.0] – 2026-05-25
+
 ### Added
 
 - **Reproducible dependency snapshot** (`requirements/constraints.txt`).
@@ -223,6 +225,7 @@ First documented 2.0.0 release state. The repository has no historical
 - README with architecture, known limitations, and installation
   instructions; detailed `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

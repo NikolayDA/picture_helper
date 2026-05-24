@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.2.0] – 2026-05-25
+
 ### Ajouté
 
 - **Snapshot reproductible des dépendances**
@@ -243,6 +245,7 @@ historique `v2.0.0`.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
