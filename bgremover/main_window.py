@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QSettings, QSize, Qt, QThread
+from PyQt6.QtCore import QSettings, QSize, Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -72,7 +72,7 @@ from bgremover.theme import (
     _Theme,
 )
 from bgremover.worker_controller import WorkerController
-from bgremover.workers import AIWorker, REMBG_AVAILABLE
+from bgremover.workers import REMBG_AVAILABLE
 
 
 class MainWindow(QMainWindow):
@@ -329,55 +329,7 @@ class MainWindow(QMainWindow):
             ),
         )
 
-    # ── Worker-Controller-Delegation ──────────────────────────
-
-    @property
-    def _load_thread(self) -> QThread | None:
-        return self._worker_controller.load_thread
-
-    @_load_thread.setter
-    def _load_thread(self, thread: QThread | None) -> None:
-        self._worker_controller.load_thread = thread
-
-    @property
-    def _ai_thread(self) -> QThread | None:
-        return self._worker_controller.ai_thread
-
-    @_ai_thread.setter
-    def _ai_thread(self, thread: QThread | None) -> None:
-        self._worker_controller.ai_thread = thread
-
-    @property
-    def _ai_worker(self) -> AIWorker | None:
-        return self._worker_controller.ai_worker
-
-    @_ai_worker.setter
-    def _ai_worker(self, worker: AIWorker | None) -> None:
-        self._worker_controller.ai_worker = worker
-
-    @property
-    def _warmup_thread(self) -> QThread | None:
-        return self._worker_controller.warmup_thread
-
-    @_warmup_thread.setter
-    def _warmup_thread(self, thread: QThread | None) -> None:
-        self._worker_controller.warmup_thread = thread
-
-    @property
-    def _warmup_done(self) -> bool:
-        return self._worker_controller.warmup_done
-
-    @_warmup_done.setter
-    def _warmup_done(self, done: bool) -> None:
-        self._worker_controller.warmup_done = done
-
-    def _launch_worker(self, worker, quit_on: tuple, on_finished=None) -> QThread:
-        return self._worker_controller.launch_worker(worker, quit_on, on_finished)
-
     # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
-
-    def _shutdown_thread(self, thread: QThread | None, name: str) -> None:
-        self._worker_controller.shutdown_thread(thread, name)
 
     def closeEvent(self, event) -> None:
         """Stoppt alle Hintergrund-Threads, bevor das Fenster (und damit

@@ -176,23 +176,6 @@ class ImageCanvas(QGraphicsView):
         """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
 
-    # ── Backward-Compat für bestehende Tests (Refactor-Übergang) ───────
-    @property
-    def _lasso_pts(self) -> list[tuple[int, int]]:
-        return self._lasso.points
-
-    @_lasso_pts.setter
-    def _lasso_pts(self, pts: list[tuple[int, int]]) -> None:
-        self._lasso.points = pts
-
-    @property
-    def _lasso_mods(self) -> Qt.KeyboardModifier:
-        return self._lasso.modifiers
-
-    @_lasso_mods.setter
-    def _lasso_mods(self, mods: Qt.KeyboardModifier) -> None:
-        self._lasso.modifiers = mods
-
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)

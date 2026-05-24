@@ -64,7 +64,7 @@ def test_save_webp(qapp, tmp_path):
 
 def test_save_image_without_loaded_image_is_noop(qapp, tmp_path):
     canvas = ImageCanvas()
-    # _pil ist None → save_image darf nicht crashen und nichts schreiben
+    # image ist None → save_image darf nicht crashen und nichts schreiben
     out = tmp_path / "should_not_exist.png"
     canvas.save_image(str(out))
     assert not out.exists()
@@ -220,7 +220,7 @@ def test_new_action_clears_redo_stack(qapp):
 
 def test_redo_on_empty_stack_is_noop(qapp):
     c = _seed_canvas((100, 100, 100, 255))
-    # Darf nicht crashen, _pil bleibt identisch
+    # Darf nicht crashen, image bleibt identisch
     c.redo()
     assert c.image is not None
     assert np.array(c.image)[0, 0].tolist() == [100, 100, 100, 255]
