@@ -43,3 +43,31 @@ SLD_STYLE = f"""
         margin: -5px 0; border-radius: 7px;
     }}
 """
+
+STATUS_BAR_STYLE = (
+    "QStatusBar { background:#1a1a1a; color:#777; font-size:11px; border-top:1px solid #333; }"
+)
+CANVAS_CONTAINER_STYLE = "background: transparent;"
+TOOLBAR_FRAME_STYLE = "QFrame { background: #242424; border-right: 1px solid #3a3a3a; }"
+CROP_BAR_STYLE = "QFrame { background: #1e3020; border-bottom: 1px solid #3a7a4a; }"
+CROP_LABEL_STYLE = "color: #8fdd9f; font-size: 12px; font-weight: bold; background: transparent;"
+CROP_CONFIRM_STYLE = (
+    "QPushButton { background:#2a6a2a; color:white; border:none;"
+    " border-radius:5px; padding:7px 16px; font-size:12px; font-weight:bold; }"
+    "QPushButton:hover { background:#3a8a3a; }"
+)
+CROP_CANCEL_STYLE = (
+    "QPushButton { background:#5a2525; color:white; border:none;"
+    " border-radius:5px; padding:7px 14px; font-size:12px; }"
+    "QPushButton:hover { background:#7a3535; }"
+)
+HISTORY_BUTTON_STYLE = """
+    QToolButton {
+        color: #bbb; font-size: 20px; border: none;
+        border-radius: 9px; background: #2e2e2e;
+    }
+    QToolButton:hover    { background: #3e3e3e; }
+    QToolButton:pressed  { background: #252525; }
+    QToolButton:disabled { color: #444; background: #222; }
+"""
+SETTINGS_TITLE_STYLE = "font-size: 15px; font-weight: bold;"
