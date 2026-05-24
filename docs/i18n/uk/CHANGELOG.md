@@ -46,6 +46,10 @@
   `bgremover/right_panel.py` будує вкладки вибору, фону, трансформації
   та форми, включно зі sliders, spinboxes і кнопками панелі; `MainWindow`
   лише передає callbacks полотна.
+- **Оркестрацію worker-ів винесено з `MainWindow`.**
+  `bgremover/worker_controller.py` тепер володіє потоками завантаження,
+  ШІ та warmup, включно із сильними посиланнями на worker-и,
+  `deleteLater`-зв'язками та спільним shutdown.
 
 ### Виправлено
 

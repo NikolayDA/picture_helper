@@ -179,7 +179,8 @@ lancé via `python -m bgremover` ou le script de console `bgremover`) :
   l'adaptateur de menu « Ouvrir récent », de sorte que `MainWindow` ne
   délègue plus que le chemin de chargement.
 - Les **workers** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) s'exécutent dans
-  leurs propres `QThread` ; `_launch_worker()` encapsule le cycle de vie du thread.
+  leurs propres `QThread` ; `WorkerController` encapsule le démarrage,
+  les références fortes aux workers, `deleteLater` et le shutdown.
 - Un **compteur de version** monotone dans le canevas rejette les résultats d'IA obsolètes,
   si une autre image a été chargée entre-temps.
 - La pile d'annulation n'est pas limitée par `maxlen`, mais par une

@@ -177,7 +177,8 @@ make type
 - **`RecentFiles`** 封装“最近打开”的持久化、去重和菜单适配器，
   因而 `MainWindow` 只需委托加载路径。
 - **Worker**（`ImageLoadWorker`、`AIWorker`、`RembgWarmupWorker`）运行在
-  各自的 `QThread` 中；`_launch_worker()` 封装了线程生命周期。
+  各自的 `QThread` 中；`WorkerController` 封装启动、强 worker 引用、
+  `deleteLater` 和 shutdown。
 - 画布中的单调**版本计数器**会丢弃过时的 AI 结果，
   以防期间加载了另一张图像。
 - 撤销栈不是通过 `maxlen`，而是通过
