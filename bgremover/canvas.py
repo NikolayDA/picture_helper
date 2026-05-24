@@ -525,48 +525,51 @@ class ImageCanvas(QGraphicsView):
         sp = self.mapToScene(event.position().toPoint())
         return int(sp.x()), int(sp.y())
 
-    def mousePressEvent(self, event) -> None:
-        if self._pil is None or self._arr is None:
-            return super().mousePressEvent(event)
+    def _handle_crop_press(self, btn: Qt.MouseButton, sp: QPointF) -> bool:
+        """Verarbeitet Press-Events im Crop-Modus; True => Event konsumiert."""
+        if self._crop_overlay is None:
+            return False
+        if btn == Qt.MouseButton.LeftButton:
+            corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
+            if corner >= 0:
+                self._crop_resizing = True
+                self._crop_resize_corner = corner
+                self._crop_drag_start = sp
+                self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
+                                      if corner in (0, 3)
+                                      else Qt.CursorShape.SizeBDiagCursor))
+            elif self._crop_overlay.inside(sp.x(), sp.y()):
+                self._crop_dragging = True
+                self._crop_drag_start = sp
+                self._crop_start_pos = self._crop_overlay.top_left
+                self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+        return True
 
-        btn  = event.button()
-        sp   = self.mapToScene(event.position().toPoint())
-        mods = QApplication.keyboardModifiers()
-
-        # ── Crop-Modus ────────────────────────────────────────
-        if self._crop_overlay is not None:
-            if btn == Qt.MouseButton.LeftButton:
-                corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
-                if corner >= 0:
-                    # Resize-Drag starten
-                    self._crop_resizing      = True
-                    self._crop_resize_corner = corner
-                    self._crop_drag_start    = sp
-                    self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
-                                          if corner in (0, 3)
-                                          else Qt.CursorShape.SizeBDiagCursor))
-                elif self._crop_overlay.inside(sp.x(), sp.y()):
-                    self._crop_dragging   = True
-                    self._crop_drag_start = sp
-                    self._crop_start_pos  = self._crop_overlay.top_left
-                    self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return  # alle anderen Aktionen im Crop-Modus blockieren
-
-        # ── Pan: Alt+Drag oder Mittelklick ────────────────────
+    def _start_pan_if_requested(
+        self,
+        btn: Qt.MouseButton,
+        mods: Qt.KeyboardModifier,
+        pos: QPointF,
+    ) -> bool:
+        """Startet Pan-Modus (Alt+LMB oder MMB); True => Event konsumiert."""
         if (btn == Qt.MouseButton.MiddleButton or
                 (btn == Qt.MouseButton.LeftButton and
                  mods & Qt.KeyboardModifier.AltModifier)):
-            self._panning   = True
-            self._pan_start = event.position()
+            self._panning = True
+            self._pan_start = pos
             self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return
+            return True
+        return False
 
-        if btn != Qt.MouseButton.LeftButton:
-            return super().mousePressEvent(event)
-
-        x, y = int(sp.x()), int(sp.y())
-
+    def _handle_tool_press(
+        self,
+        x: int,
+        y: int,
+        mods: Qt.KeyboardModifier,
+    ) -> None:
+        """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
         if self._tool == TOOL_WAND:
+            assert self._pil is not None and self._arr is not None and self._mask is not None
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
                 new = flood_fill(self._arr, x, y, self._tolerance)
@@ -579,6 +582,7 @@ class ImageCanvas(QGraphicsView):
                 self._refresh_overlay()
                 self.statusMsg.emit(f"Auswahl: {int(self._mask.sum()):,} Pixel")
         elif self._tool == TOOL_LASSO:
+            assert self._pil is not None
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
                 self._lasso.set_modifiers_if_first(mods)
@@ -586,6 +590,27 @@ class ImageCanvas(QGraphicsView):
         else:
             self._drawing = True
             self._paint_brush(x, y)
+
+    def mousePressEvent(self, event) -> None:
+        if self._pil is None or self._arr is None:
+            return super().mousePressEvent(event)
+
+        btn  = event.button()
+        sp   = self.mapToScene(event.position().toPoint())
+        mods = QApplication.keyboardModifiers()
+
+        if self._handle_crop_press(btn, sp):
+            return
+
+        if self._start_pan_if_requested(btn, mods, event.position()):
+            return
+
+        if btn != Qt.MouseButton.LeftButton:
+            return super().mousePressEvent(event)
+
+        x, y = int(sp.x()), int(sp.y())
+
+        self._handle_tool_press(x, y, mods)
 
     def mouseMoveEvent(self, event) -> None:
         sp = self.mapToScene(event.position().toPoint())
