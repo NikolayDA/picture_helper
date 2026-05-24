@@ -6,7 +6,7 @@ QT_QPA_PLATFORM ?= offscreen
 PIP_CONSTRAINT ?= $(CURDIR)/requirements/constraints.txt
 RUN_ENV := PATH="$(VENV_BIN):$(PATH)"
 QT_ENV := QT_QPA_PLATFORM=$(QT_QPA_PLATFORM) PATH="$(VENV_BIN):$(PATH)"
-PIP_INSTALL := $(RUN_ENV) $(PYTHON) -m pip install --constraint "$(PIP_CONSTRAINT)"
+PIP_INSTALL := $(RUN_ENV) "$(PYTHON)" -m pip install --constraint "$(PIP_CONSTRAINT)"
 
 # Schnelle lokale PR-Pruefung; entspricht .github/workflows/pr-ci.yml.
 # Installiert das Paket bewusst nicht-editable, damit die App-Smoke-Tests
@@ -17,7 +17,7 @@ install-test:
 	$(PIP_INSTALL) ".[test]"
 
 doctor:
-	$(RUN_ENV) $(PYTHON) scripts/check_test_env.py
+	$(RUN_ENV) "$(PYTHON)" scripts/check_test_env.py
 
 # Standardpruefung ohne ui-Tests. Laeuft in der PR-CI und in der vollen
 # Release-/Manual-Matrix.
@@ -28,18 +28,18 @@ check: lint type test
 # Interpreter wie das Projekt. PYTHON kann bei Bedarf ueberschrieben werden:
 # make PYTHON=/pfad/zur/python check
 lint:
-	$(RUN_ENV) $(PYTHON) -m ruff check bgremover scripts tests
+	$(RUN_ENV) "$(PYTHON)" -m ruff check bgremover scripts tests
 
 type:
-	$(RUN_ENV) $(PYTHON) -m mypy
+	$(RUN_ENV) "$(PYTHON)" -m mypy
 
 test:
-	$(QT_ENV) $(PYTHON) -m pytest
+	$(QT_ENV) "$(PYTHON)" -m pytest
 
 # Lokale UI-Interaktionstests. Explizites -m ui ueberschreibt das
 # '-m not ui' aus pyproject [tool.pytest.ini_options].addopts.
 ui:
-	$(QT_ENV) $(PYTHON) -m pytest -m ui
+	$(QT_ENV) "$(PYTHON)" -m pytest -m ui
 
 # Alles: check + lokale UI-Tests.
 all: check ui
