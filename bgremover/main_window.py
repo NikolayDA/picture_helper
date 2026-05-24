@@ -10,10 +10,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QSettings, QSize, Qt
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QColorDialog,
     QDialog,
     QFileDialog,
@@ -25,7 +24,6 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QStatusBar,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -33,19 +31,12 @@ from PyQt6.QtWidgets import (
 from bgremover import __version__
 from bgremover.canvas import ImageCanvas
 from bgremover.constants import (
-    TOOL_BRUSH,
-    TOOL_ERASER,
-    TOOL_LASSO,
-    TOOL_WAND,
     _CROP_BAR_HEIGHT,
     _THREAD_SHUTDOWN_MS,
-    _TOOLBAR_BTN_SIZE,
-    _TOOLBAR_ICON_SIZE,
-    _TOOLBAR_WIDTH,
     _WINDOW_MIN_H,
     _WINDOW_MIN_W,
 )
-from bgremover.icons import make_tool_icon
+from bgremover.main_toolbar import ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
     RECENT_MAX as DEFAULT_RECENT_MAX,
@@ -65,11 +56,7 @@ from bgremover.theme import (
     CROP_CANCEL_STYLE,
     CROP_CONFIRM_STYLE,
     CROP_LABEL_STYLE,
-    HISTORY_BUTTON_STYLE,
     STATUS_BAR_STYLE,
-    TOOLBAR_FRAME_STYLE,
-    TOOL_STYLE,
-    _Theme,
 )
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import REMBG_AVAILABLE
@@ -173,104 +160,27 @@ class MainWindow(QMainWindow):
         self._sb.showMessage("Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche")
 
     def _build_toolbar(self) -> QFrame:
-        frame = QFrame()
-        frame.setFixedWidth(_TOOLBAR_WIDTH)
-        frame.setStyleSheet(TOOLBAR_FRAME_STYLE)
-        lay = QVBoxLayout(frame)
-        lay.setContentsMargins(9, 16, 9, 16)
-        lay.setSpacing(8)
-
-        self._btn_grp = QButtonGroup(self)
-        self._btn_grp.setExclusive(True)
-
-        def tbtn(icon_name: str, tip: str, tool: str) -> QToolButton:
-            b = QToolButton()
-            b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-            b.setToolTip(tip)
-            b.setCheckable(True)
-            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-            b.setStyleSheet(TOOL_STYLE)
-            b.clicked.connect(lambda checked=False, t=tool: self._canvas.set_tool(t))
-            self._btn_grp.addButton(b)
-            lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
-            return b
-
-        self._btn_wand   = tbtn("wand",
-            "Zauberstab\nKlick wählt Farbfläche (Flood Fill)\n"
-            "Shift = addieren  ·  Ctrl = subtrahieren", TOOL_WAND)
-        self._btn_brush  = tbtn("brush",
-            "Pinsel\nBereiche manuell zur Auswahl hinzufügen", TOOL_BRUSH)
-        self._btn_eraser = tbtn("eraser",
-            "Radiergummi\nAuswahl-Bereiche wieder entfernen", TOOL_ERASER)
-        self._btn_lasso  = tbtn("lasso",
-            "Polygon-Lasso\nKlicken setzt Punkte · Doppelklick schließt Polygon\n"
-            "Shift = addieren  ·  Ctrl = subtrahieren  ·  Esc = abbrechen", TOOL_LASSO)
-        self._btn_wand.setChecked(True)
-
-        # Trennlinie
-        sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet(f"color:{_Theme.BORDER}")
-        lay.addSpacing(4); lay.addWidget(sep); lay.addSpacing(4)
-
-        self._btn_ai = QToolButton()
-        self._btn_ai.setIcon(make_tool_icon("ai", 38))
-        self._btn_ai.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-        self._btn_ai.setToolTip(
-            "KI-Hintergrundentfernung (rembg)\nEntfernt den Hintergrund vollautomatisch"
-            if REMBG_AVAILABLE else
-            "rembg nicht installiert\n→ bash setup_bgremover.sh")
-        self._btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        self._btn_ai.setStyleSheet(TOOL_STYLE)
-        self._btn_ai.setEnabled(REMBG_AVAILABLE)
-        self._btn_ai.clicked.connect(self._run_ai)
-        lay.addWidget(self._btn_ai, alignment=Qt.AlignmentFlag.AlignHCenter)
-
-        # Trennlinie
-        sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet(f"color:{_Theme.BORDER}")
-        lay.addSpacing(4); lay.addWidget(sep2); lay.addSpacing(4)
-
-        # Rückgängig + Original
-        def hist_btn(icon_name: str, tip: str, slot) -> QToolButton:
-            b = QToolButton()
-            b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-            b.setToolTip(tip)
-            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-            b.setStyleSheet(HISTORY_BUTTON_STYLE)
-            b.clicked.connect(slot)
-            lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
-            return b
-
-        hist_btn("undo",     "Rückgängig  (Cmd+Z)\nLetzten Bearbeitungsschritt rückgängig machen",
-                 lambda: self._canvas.undo())
-        hist_btn("redo",     "Wiederherstellen  (Cmd+Shift+Z)\nLetzten rückgängig gemachten Schritt wiederherstellen",
-                 lambda: self._canvas.redo())
-        hist_btn("restore",  "Original wiederherstellen\nAlle Bearbeitungen verwerfen",
-                 lambda: self._canvas.restore_original())
-        self._btn_history = hist_btn(
-            "history",
-            "Änderungshistorie\nZeigt alle bisherigen Bearbeitungsschritte.\n"
-            "Doppelklick auf Eintrag → zu diesem Schritt zurück",
-            self._toggle_history_popup)
-
-        lay.addStretch()
-
-        def mini_btn(icon_name: str, tip: str, slot) -> QToolButton:
-            b = QToolButton()
-            b.setIcon(make_tool_icon(icon_name, 38))
-            b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-            b.setToolTip(tip)
-            b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-            b.setStyleSheet(TOOL_STYLE)
-            b.clicked.connect(slot)
-            lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
-            return b
-
-        mini_btn("open", "Bild öffnen  (Cmd+O)",   self._open_image)
-        mini_btn("save", "Bild speichern  (Cmd+S)", self._save)
-        return frame
+        self._toolbar = build_toolbar(
+            ToolbarActions(
+                set_tool=lambda tool: self._canvas.set_tool(tool),
+                run_ai=self._run_ai,
+                undo=lambda: self._canvas.undo(),
+                redo=lambda: self._canvas.redo(),
+                restore_original=lambda: self._canvas.restore_original(),
+                toggle_history=self._toggle_history_popup,
+                open_image=self._open_image,
+                save=self._save,
+            ),
+            rembg_available=REMBG_AVAILABLE,
+        )
+        self._btn_grp = self._toolbar.button_group
+        self._btn_wand = self._toolbar.btn_wand
+        self._btn_brush = self._toolbar.btn_brush
+        self._btn_eraser = self._toolbar.btn_eraser
+        self._btn_lasso = self._toolbar.btn_lasso
+        self._btn_ai = self._toolbar.btn_ai
+        self._btn_history = self._toolbar.btn_history
+        return self._toolbar.frame
 
     def _build_right_panel(self) -> QFrame:
         panel = build_right_panel(
@@ -459,7 +369,7 @@ class MainWindow(QMainWindow):
             self._sb.showMessage("KI läuft bereits…")
             return
         self._sb.showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
-        self._btn_ai.setEnabled(False)
+        self._toolbar.btn_ai.setEnabled(False)
 
         # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
         # Bild lädt, wird das verspätete KI-Ergebnis in _on_ai_done verworfen.
@@ -475,7 +385,7 @@ class MainWindow(QMainWindow):
         )
 
     def _on_ai_thread_finished(self) -> None:
-        self._btn_ai.setEnabled(True)
+        self._toolbar.btn_ai.setEnabled(True)
         self._ai_input_version = -1
 
     def _on_ai_done(self, img: Image.Image) -> None:
@@ -528,12 +438,12 @@ class MainWindow(QMainWindow):
     def _toggle_history_popup(self) -> None:
         if self._hist_popup is None:
             self._build_history_popup()
-        # _build_history_popup setzt self._hist_popup garantiert.
         assert self._hist_popup is not None
         if self._hist_popup.isVisible():
             self._hist_popup.hide()
         else:
-            gp = self._btn_history.mapToGlobal(self._btn_history.rect().topRight())
+            gp = self._toolbar.btn_history.mapToGlobal(
+                self._toolbar.btn_history.rect().topRight())
             self._hist_popup.move(gp.x() + 4, gp.y())
             self._hist_popup.show()
             self._hist_popup.raise_()
