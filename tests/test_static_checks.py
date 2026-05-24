@@ -74,17 +74,17 @@ def test_on_ai_done_checks_version(functions):
 # ── Fix #6: Thread-Cleanup ─────────────────────────────────────────────
 
 def test_launch_worker_uses_delete_later(functions):
-    body = ast.unparse(functions["_launch_worker"])
+    body = ast.unparse(functions["_build_thread"])
     assert "deleteLater" in body, (
-        "_launch_worker muss deleteLater an Worker und Thread anhängen, um "
-        "Qt-Lecks zu vermeiden."
+        "WorkerController._build_thread muss deleteLater an Worker und "
+        "Thread anhängen, um Qt-Lecks zu vermeiden."
     )
 
 
 def test_thread_finished_handler_resets_refs(functions):
-    body = ast.unparse(functions["_on_ai_thread_finished"])
-    assert "self._ai_thread = None" in body
-    assert "self._ai_worker = None" in body
+    body = ast.unparse(functions["_finish_ai_thread"])
+    assert "self.ai_thread = None" in body
+    assert "self.ai_worker = None" in body
 
 
 # ── Fix: closeEvent stoppt Hintergrund-Threads ─────────────────────────
@@ -98,12 +98,11 @@ def test_main_window_has_close_event(functions):
 
 def test_close_event_shuts_down_all_threads(functions):
     body = ast.unparse(functions["closeEvent"])
-    for ref in ("_ai_thread", "_load_thread", "_warmup_thread"):
-        assert ref in body, f"closeEvent muss self.{ref} herunterfahren."
+    assert "self._worker_controller.shutdown_all()" in body
 
 
 def test_shutdown_helper_uses_wait_and_terminate(functions):
-    body = ast.unparse(functions["_shutdown_thread"])
+    body = ast.unparse(functions["shutdown_thread"])
     assert "isRunning" in body
     assert ".quit()" in body
     assert ".wait(" in body

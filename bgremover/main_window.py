@@ -44,7 +44,6 @@ from bgremover.constants import (
     _TOOLBAR_WIDTH,
     _WINDOW_MIN_H,
     _WINDOW_MIN_W,
-    logger,
 )
 from bgremover.icons import make_tool_icon
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
@@ -61,13 +60,8 @@ from bgremover.right_panel import (
 )
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.theme import TOOL_STYLE, _Theme
-from bgremover.workers import (
-    REMBG_AVAILABLE,
-    AIWorker,
-    ImageLoadWorker,
-    RembgWarmupWorker,
-    _Worker,
-)
+from bgremover.worker_controller import WorkerController
+from bgremover.workers import AIWorker, REMBG_AVAILABLE
 
 
 class MainWindow(QMainWindow):
@@ -82,8 +76,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"BgRemover Pro {__version__}")
         self.setMinimumSize(_WINDOW_MIN_W, _WINDOW_MIN_H)
         self._bg_color   = QColor(255, 255, 255)
-        self._ai_thread: QThread | None = None
-        self._ai_worker: AIWorker | None = None
         # Canvas-Version zum Startzeitpunkt der KI: verhindert, dass ein
         # verspätet eintreffendes Ergebnis ein inzwischen geladenes anderes
         # Bild überschreibt. Robuster als Objekt-Identität (is-Vergleich).
@@ -97,11 +89,8 @@ class MainWindow(QMainWindow):
             self._settings, self.SETTINGS_RECENT_KEY, self.RECENT_MAX)
         # Submenü-Adapter wird in _build_menu gesetzt
         self._recent_menu: RecentFilesMenu | None = None
-        # Asynchrones Bildladen
-        self._load_thread: QThread | None = None
-        # rembg-Warmup (Hintergrund-Modellladung)
-        self._warmup_thread: QThread | None = None
-        self._warmup_done = False
+        self._worker_controller = WorkerController(
+            self, shutdown_ms=_THREAD_SHUTDOWN_MS)
         self._build_ui()
         self._build_menu()
         if REMBG_AVAILABLE:
@@ -347,53 +336,55 @@ class MainWindow(QMainWindow):
             ),
         )
 
-    # ── Thread-Hilfsmethode ───────────────────────────────────
+    # ── Worker-Controller-Delegation ──────────────────────────
 
-    def _launch_worker(self, worker: _Worker | RembgWarmupWorker,
-                       quit_on: tuple,
-                       on_finished=None) -> QThread:
-        """Startet *worker* in einem neuen QThread.
+    @property
+    def _load_thread(self) -> QThread | None:
+        return self._worker_controller.load_thread
 
-        *quit_on* ist ein Tupel von Worker-Signalen, die thread.quit() auslösen
-        (typischerweise (worker.finished, worker.error)).
-        *on_finished* wird an thread.finished angehängt, falls angegeben.
-        """
-        thread = QThread(self)
-        # Starke Referenz: MainWindow → thread → worker. Ohne sie sammelt
-        # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet
-        # Slots gebundener Methoden nur schwach) – run() liefe nie, das
-        # Bild würde lautlos nicht geladen. setattr statt Attribut-
-        # Zuweisung, weil QThread den Slot nicht im Type-Stub deklariert.
-        setattr(thread, "_worker", worker)
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        for sig in quit_on:
-            sig.connect(thread.quit)
-        thread.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-        if on_finished is not None:
-            thread.finished.connect(on_finished)
-        thread.start()
-        return thread
+    @_load_thread.setter
+    def _load_thread(self, thread: QThread | None) -> None:
+        self._worker_controller.load_thread = thread
+
+    @property
+    def _ai_thread(self) -> QThread | None:
+        return self._worker_controller.ai_thread
+
+    @_ai_thread.setter
+    def _ai_thread(self, thread: QThread | None) -> None:
+        self._worker_controller.ai_thread = thread
+
+    @property
+    def _ai_worker(self) -> AIWorker | None:
+        return self._worker_controller.ai_worker
+
+    @_ai_worker.setter
+    def _ai_worker(self, worker: AIWorker | None) -> None:
+        self._worker_controller.ai_worker = worker
+
+    @property
+    def _warmup_thread(self) -> QThread | None:
+        return self._worker_controller.warmup_thread
+
+    @_warmup_thread.setter
+    def _warmup_thread(self, thread: QThread | None) -> None:
+        self._worker_controller.warmup_thread = thread
+
+    @property
+    def _warmup_done(self) -> bool:
+        return self._worker_controller.warmup_done
+
+    @_warmup_done.setter
+    def _warmup_done(self, done: bool) -> None:
+        self._worker_controller.warmup_done = done
+
+    def _launch_worker(self, worker, quit_on: tuple, on_finished=None) -> QThread:
+        return self._worker_controller.launch_worker(worker, quit_on, on_finished)
 
     # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
 
     def _shutdown_thread(self, thread: QThread | None, name: str) -> None:
-        """Beendet *thread* sauber, bevor das Fenster zerstört wird.
-
-        Worker-run() macht blockierende C-Aufrufe (rembg) – quit()
-        allein reicht nicht. Reihenfolge: quit() → wait(timeout) →
-        Notbremse terminate()+wait(), damit das QThread-Objekt nie
-        zerstört wird, solange der OS-Thread noch läuft.
-        """
-        if thread is None or not thread.isRunning():
-            return
-        thread.quit()
-        if not thread.wait(_THREAD_SHUTDOWN_MS):
-            logger.warning(
-                "Thread '%s' reagierte nicht – wird hart beendet", name)
-            thread.terminate()
-            thread.wait()
+        self._worker_controller.shutdown_thread(thread, name)
 
     def closeEvent(self, event) -> None:
         """Stoppt alle Hintergrund-Threads, bevor das Fenster (und damit
@@ -401,9 +392,7 @@ class MainWindow(QMainWindow):
         beim Schliessen ab, solange z. B. der KI-Warmup noch läuft.
         """
         self._sb.showMessage("Beende…")
-        self._shutdown_thread(self._ai_thread, "KI")
-        self._shutdown_thread(self._load_thread, "Bildladen")
-        self._shutdown_thread(self._warmup_thread, "rembg-Warmup")
+        self._worker_controller.shutdown_all()
         super().closeEvent(event)
 
     # ── Slots ─────────────────────────────────────────────────
@@ -420,17 +409,14 @@ class MainWindow(QMainWindow):
 
     def _load_image_async(self, path: str) -> None:
         """Lädt ein Bild im Hintergrund-Thread, damit die UI nicht blockt."""
-        if self._load_thread is not None and self._load_thread.isRunning():
+        if self._worker_controller.is_loading:
             self._sb.showMessage("Lädt bereits ein Bild…")
             return
         self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
-        worker = ImageLoadWorker(path)
-        worker.finished.connect(self._on_image_load_done)
-        worker.error.connect(self._on_image_load_error)
-        self._load_thread = self._launch_worker(
-            worker,
-            quit_on=(worker.finished, worker.error),
-            on_finished=self._on_load_thread_finished,
+        self._worker_controller.start_image_load(
+            path,
+            on_loaded=self._on_image_load_done,
+            on_error=self._on_image_load_error,
         )
 
     def _on_image_load_done(self, img, path: str) -> None:
@@ -439,25 +425,15 @@ class MainWindow(QMainWindow):
     def _on_image_load_error(self, msg: str) -> None:
         self._sb.showMessage(f"Ladefehler: {msg}")
 
-    def _on_load_thread_finished(self) -> None:
-        self._load_thread = None
-
     # ── rembg-Warmup ────────────────────────────────────────────
 
     def _start_rembg_warmup(self) -> None:
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
         self._sb.showMessage("🤖 KI-Modell wird geladen…")
-        worker = RembgWarmupWorker()
-        self._warmup_thread = self._launch_worker(
-            worker,
-            quit_on=(worker.finished,),
-            on_finished=self._on_warmup_done,
-        )
+        self._worker_controller.start_warmup(on_finished=self._on_warmup_done)
 
     def _on_warmup_done(self) -> None:
-        self._warmup_done = True
-        self._warmup_thread = None
         self._sb.showMessage("🤖 KI bereit")
 
     def _save(self) -> None:
@@ -534,7 +510,7 @@ class MainWindow(QMainWindow):
         if not self._canvas.has_image:
             self._sb.showMessage("Kein Bild geladen")
             return
-        if self._ai_thread is not None and self._ai_thread.isRunning():
+        if self._worker_controller.is_ai_running:
             self._sb.showMessage("KI läuft bereits…")
             return
         self._sb.showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
@@ -546,20 +522,15 @@ class MainWindow(QMainWindow):
 
         img = self._canvas.image
         assert img is not None  # has_image-Check oben garantiert das
-        worker = AIWorker(img.copy())
-        worker.finished.connect(self._on_ai_done)
-        worker.error.connect(self._on_ai_error)
-        self._ai_thread = self._launch_worker(
-            worker,
-            quit_on=(worker.finished, worker.error),
+        self._worker_controller.start_ai(
+            img,
+            on_done=self._on_ai_done,
+            on_error=self._on_ai_error,
             on_finished=self._on_ai_thread_finished,
         )
-        self._ai_worker = worker
 
     def _on_ai_thread_finished(self) -> None:
         self._btn_ai.setEnabled(True)
-        self._ai_thread = None
-        self._ai_worker = None
         self._ai_input_version = -1
 
     def _on_ai_done(self, img: Image.Image) -> None:

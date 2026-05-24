@@ -201,7 +201,8 @@ gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
 - **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für
   „Zuletzt geöffnet“, sodass `MainWindow` nur noch den Ladepfad delegiert.
 - **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) laufen in
-  eigenen `QThread`s; `_launch_worker()` kapselt den Thread-Lebenszyklus.
+  eigenen `QThread`s; `WorkerController` kapselt Start, starke Worker-
+  Referenzen, `deleteLater` und Shutdown.
 - Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI-Ergebnisse,
   falls zwischenzeitlich ein anderes Bild geladen wurde.
 - Der Undo-Stapel ist nicht über `maxlen`, sondern über ein

@@ -45,6 +45,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **Rechtes Tab-Panel aus `MainWindow` extrahiert.** `bgremover/right_panel.py`
   baut Auswahl-, Hintergrund-, Transform- und Form-Tab inklusive Slider,
   Spinboxen und Panel-Buttons; `MainWindow` übergibt nur noch Canvas-Callbacks.
+- **Worker-Steuerung aus `MainWindow` gekapselt.** `bgremover/worker_controller.py`
+  besitzt jetzt Lade-, KI- und Warmup-Threads inklusive starker Worker-Referenz,
+  `deleteLater`-Verdrahtung und gemeinsamem Shutdown.
 
 ### Behoben
 

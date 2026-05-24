@@ -49,6 +49,10 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `bgremover/right_panel.py` construye las pestañas de selección,
   fondo, transformación y forma, incluyendo sliders, spinboxes y botones
   de panel; `MainWindow` solo entrega callbacks del canvas.
+- **Orquestación de workers encapsulada fuera de `MainWindow`.**
+  `bgremover/worker_controller.py` posee ahora los hilos de carga, IA y
+  warmup, incluyendo referencias fuertes a workers, cableado `deleteLater`
+  y shutdown compartido.
 
 ### Corregido
 
