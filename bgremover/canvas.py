@@ -43,6 +43,14 @@ from bgremover.constants import (
     _ZOOM_FACTOR,
     logger,
 )
+from bgremover.canvas_history import (
+    emit_history as _emit_history_impl,
+    img_bytes as _img_bytes_impl,
+    redo as _redo_impl,
+    restore_original as _restore_original_impl,
+    undo as _undo_impl,
+    undo_to as _undo_to_impl,
+)
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
@@ -204,7 +212,7 @@ class ImageCanvas(QGraphicsView):
     @staticmethod
     def _img_bytes(img: Image.Image) -> int:
         """Geschätzte RGBA-Rohdatengrösse eines Bildes in Bytes."""
-        return img.width * img.height * 4
+        return _img_bytes_impl(img)
 
     # ── Laden ────────────────────────────────────────────────
 
@@ -259,7 +267,7 @@ class ImageCanvas(QGraphicsView):
             while len(self._undo) > 1 and self._undo_bytes > _UNDO_MEMORY_LIMIT:
                 evicted, _ = self._undo.popleft()
                 self._undo_bytes -= self._img_bytes(evicted)
-            self._emit_history()
+            _emit_history_impl(self)
         self._set_image_state(img)
 
     def _refresh_image(self) -> None:
@@ -292,77 +300,21 @@ class ImageCanvas(QGraphicsView):
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
-        self.historyChanged.emit([d for _, d in reversed(list(self._undo))])
+        _emit_history_impl(self)
 
     # ── Undo / Original ──────────────────────────────────────
 
     def undo(self) -> None:
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        if self._undo:
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            # Aktuellen Stand für mögliches Redo aufbewahren
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↩  Rückgängig: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Rückgängigmachen")
+        _undo_impl(self)
 
     def redo(self) -> None:
-        """Macht ein zuvor mit ``undo()`` rückgängig gemachte Aktion wieder."""
-        if self._crop_overlay is not None:
-            return
-        if self._redo:
-            img, desc = self._redo.pop()
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), desc))
-                self._undo_bytes += self._img_bytes(self._pil)
-            self._set_image_state(img)
-            self._emit_history()
-            self.statusMsg.emit(f"↪  Wiederherstellen: {desc}")
-        else:
-            self.statusMsg.emit("Nichts mehr zum Wiederherstellen")
+        _redo_impl(self)
 
     def undo_to(self, steps: int) -> None:
-        """Mehrere Schritte auf einmal rückgängig machen.
-
-        Verhält sich wie mehrfaches ``undo()``: jeder übersprungene Stand
-        wandert auf den Redo-Stapel, der Sprung ist also wiederherstellbar.
-        """
-        if self._crop_overlay is not None:
-            self.cancel_crop(); return
-        actual = min(steps, len(self._undo))
-        if actual <= 0:
-            return
-        img, desc = None, ""
-        for _ in range(actual):
-            img, desc = self._undo.pop()
-            self._undo_bytes -= self._img_bytes(img)
-            if self._pil is not None:
-                self._redo.append((self._pil.copy(), desc))
-            self._pil = img
-        assert img is not None  # actual > 0 (Guard oben) -> Schleife lief ≥ 1×
-        self._set_image_state(img)
-        self._emit_history()
-        self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
+        _undo_to_impl(self, steps)
 
     def restore_original(self) -> None:
-        if self._original:
-            self._cancel_crop_overlay()
-            # Aktuellen Stand für Undo aufbewahren, statt den Verlauf
-            # zu verwerfen – so kann der Nutzer das Zurücksetzen
-            # selbst wieder rückgängig machen.
-            if self._pil is not None:
-                self._undo.append((self._pil.copy(), "🔄 Original wiederhergestellt"))
-                self._undo_bytes += self._img_bytes(self._pil)
-            # Redo verwerfen – „Original wiederherstellen" ist ein Sprung.
-            self._redo.clear()
-            self._set_image_state(self._original.copy())
-            self._emit_history()
-            self.statusMsg.emit("🔄  Original wiederhergestellt")
+        _restore_original_impl(self)
 
     def clear_selection(self) -> None:
         if self._mask is not None:
