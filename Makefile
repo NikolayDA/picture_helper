@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint type test ui clean
+.PHONY: all check pr-check install-test doctor lint type test coverage ui clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -35,6 +35,11 @@ type:
 
 test:
 	$(QT_ENV) "$(PYTHON)" -m pytest
+
+coverage:
+	$(QT_ENV) "$(PYTHON)" -m coverage run -m pytest
+	$(RUN_ENV) "$(PYTHON)" -m coverage report
+	$(RUN_ENV) "$(PYTHON)" -m coverage html
 
 # Lokale UI-Interaktionstests. Explizites -m ui ueberschreibt das
 # '-m not ui' aus pyproject [tool.pytest.ini_options].addopts.

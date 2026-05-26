@@ -253,6 +253,7 @@ class MainWindow(QMainWindow):
         if self._worker_controller.is_loading:
             self._sb.showMessage("Lädt bereits ein Bild…")
             return
+        self._worker_controller.cancel_ai()
         self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
         self._worker_controller.start_image_load(
             path,
