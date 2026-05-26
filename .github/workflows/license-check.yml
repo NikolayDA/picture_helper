@@ -31,9 +31,20 @@ jobs:
 
       - name: Generate license report
         run: |
+          # Stabiles Datum fuer den Drift-Vergleich: das committete
+          # LICENSES.md traegt das Datum des Commits, der es zuletzt
+          # angefasst hat. Solange niemand die Datei neu committet, bleibt
+          # der regenerierte Inhalt damit byte-identisch zum Committeten.
+          # Faellt zurueck auf 'heute', falls die Datei (noch) nicht im
+          # git-Log auftaucht (z. B. frischer Branch ohne LICENSES.md).
+          gen_date="$(git log -1 --format=%cs -- LICENSES.md 2>/dev/null || true)"
+          if [ -z "$gen_date" ]; then
+            gen_date="$(date -u +%Y-%m-%d)"
+          fi
           python scripts/generate_license_report.py \
             --report license-report.md \
             --summary license-summary.md \
+            --generated-date "$gen_date" \
             --all-langs
 
       - name: Raw dependency/license dump (reference)
@@ -44,15 +55,21 @@ jobs:
       - name: Refresh committed LICENSES.md
         run: |
           cp license-report.md LICENSES.md
+          drift=0
           if ! git diff --quiet -- LICENSES.md; then
-            echo "::notice::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+            echo "::error::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+            drift=1
           fi
           for lang in en es fr uk zh; do
             f="docs/i18n/$lang/LICENSES.md"
             if ! git diff --quiet -- "$f"; then
-              echo "::notice::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+              echo "::error::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+              drift=1
             fi
           done
+          if [ "$drift" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload license report artifact
         uses: actions/upload-artifact@v4

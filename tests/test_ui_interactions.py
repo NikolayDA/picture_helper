@@ -18,23 +18,22 @@ Headless-Strategie (Begruendung):
 - Assertions pruefen den Modellzustand (``_mask``/``image``/``_crop_overlay``),
   nicht View-Pixel.
 """
-from PIL import Image
-
 import pytest
+from PIL import Image
 from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
 from PyQt6.QtGui import QAction, QMouseEvent
 from PyQt6.QtWidgets import QToolButton
 
 import bgremover
 from bgremover import (
-    CropOverlayItem,
-    ImageCanvas,
-    MainWindow,
-    SettingsDialog,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_LASSO,
     TOOL_WAND,
+    CropOverlayItem,
+    ImageCanvas,
+    MainWindow,
+    SettingsDialog,
 )
 
 # Alle Tests dieser Datei sind lokale UI-Tests (siehe Modul-Docstring).

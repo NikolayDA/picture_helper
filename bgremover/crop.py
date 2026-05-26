@@ -81,10 +81,7 @@ class CropOverlayItem(QGraphicsObject):
 
         # Größe aus der größeren Delta-Achse, Proportionen halten
         MIN_PX = 20.0
-        if dx / self._aspect >= dy:
-            new_w = max(MIN_PX, dx)
-        else:
-            new_w = max(MIN_PX, dy * self._aspect)
+        new_w = max(MIN_PX, dx) if dx / self._aspect >= dy else max(MIN_PX, dy * self._aspect)
         new_h = new_w / self._aspect
 
         # Nicht über Bildrand – gemeinsamen Skalierungsfaktor anwenden,

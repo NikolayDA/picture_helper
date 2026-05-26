@@ -146,7 +146,7 @@ elif [ -x "$VENV_PY" ] && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, n
 else
     if [ -z "$PYTHON" ]; then
         echo -e "${YELLOW}⚠️  Python 3.10+ nicht automatisch gefunden.${NC}"
-        read -p "    Python-Pfad angeben (z.B. /opt/homebrew/bin/python3): " USER_PY
+        read -r -p "    Python-Pfad angeben (z.B. /opt/homebrew/bin/python3): " USER_PY
         FULL_PATH=$(command -v "$USER_PY" 2>/dev/null || echo "$USER_PY")
         { [ -x "$FULL_PATH" ] && py_version_ok "$FULL_PATH"; } \
             || { echo -e "${RED}❌ Kein nutzbares Python 3.10+.${NC}"; exit 1; }
@@ -161,7 +161,7 @@ else
     echo "    und dort die Abhängigkeiten installieren. Die venv ignoriert"
     echo "    das fragile ~/Library/Python (genau dort entsteht z.B. der"
     echo "    numpy-Architekturfehler arm64 vs x86_64)."
-    read -p "    venv anlegen & installieren? [J/n]: " mkvenv
+    read -r -p "    venv anlegen & installieren? [J/n]: " mkvenv
     if [[ "$mkvenv" =~ ^[nN] ]]; then
         echo -e "${RED}❌ Ohne venv kann keine lauffähige App erstellt werden.${NC}"
         echo "   Bitte erneut ausführen und die venv anlegen lassen –"
@@ -229,7 +229,7 @@ echo "  1) ~/Applications  (empfohlen)"
 echo "  2) ~/Desktop"
 echo "  3) /Applications   (systemweit, braucht Passwort)"
 echo ""
-read -p "Auswahl [1/2/3] (Enter = 1): " choice
+read -r -p "Auswahl [1/2/3] (Enter = 1): " choice
 case "$choice" in
     2) INSTALL_DIR="$HOME/Desktop" ;;
     3) INSTALL_DIR="/Applications" ;;
@@ -468,5 +468,5 @@ echo "  1. Im Finder auf BgRemover.app doppelklicken"
 echo "  2. Oder Dock-Icon: open \"$INSTALL_DIR\" → App in Dock ziehen"
 echo ""
 
-read -p "App jetzt starten? [j/N]: " run_now
+read -r -p "App jetzt starten? [j/N]: " run_now
 [[ "$run_now" =~ ^[jJyY] ]] && open "$APP_PATH"

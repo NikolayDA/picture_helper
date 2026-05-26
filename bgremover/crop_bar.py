@@ -53,7 +53,7 @@ class CropBar(QFrame):
 
         self.setVisible(False)
 
-    def bind(self, canvas: "ImageCanvas") -> None:
+    def bind(self, canvas: ImageCanvas) -> None:
         """Verbindet Buttons und Sichtbarkeit mit dem ``ImageCanvas``."""
         self._btn_confirm.clicked.connect(lambda: canvas.confirm_crop())
         self._btn_cancel.clicked.connect(lambda: canvas.cancel_crop())

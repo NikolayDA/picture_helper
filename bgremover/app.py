@@ -10,7 +10,6 @@ import sys
 
 from bgremover.qt_plugins import ensure_qt_plugin_path
 
-
 ensure_qt_plugin_path()
 
 from PyQt6.QtGui import QColor, QPalette  # noqa: E402

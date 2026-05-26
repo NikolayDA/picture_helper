@@ -13,7 +13,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE_PACKAGE = ROOT / "bgremover"
 REQUIRED_DISTS = ("pytest", "pytest-qt", "ruff", "mypy", "PyQt6", "PyQt6-Qt6")
@@ -45,7 +44,10 @@ def _dist_version(name: str) -> str | None:
 
 def _check_python(reporter: Reporter) -> None:
     version = ".".join(str(x) for x in sys.version_info[:3])
-    if sys.version_info < (3, 10):
+    # Defensive Pruefung im Diagnose-Skript: die App selbst setzt 3.10+ via
+    # `requires-python` voraus, das Skript laeuft aber u.U. mit dem
+    # System-Python und soll dann verstaendlich abbrechen.
+    if sys.version_info < (3, 10):  # noqa: UP036
         reporter.fail(f"Python {version} is too old; use Python 3.10+.")
     else:
         reporter.ok(f"Python {version}: {sys.executable}")

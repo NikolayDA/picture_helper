@@ -1354,7 +1354,7 @@ def _switcher(active: str, basename: str, at_root: bool) -> str:
 
 
 # --- Reporting -------------------------------------------------------------
-def build_reports(root_dir: Path, lang: str, nav_md: str):
+def build_reports(root_dir: Path, lang: str, nav_md: str, generated: str | None = None):
     pyproject = root_dir / "pyproject.toml"
     data = _load_pyproject(pyproject)
     proj = data.get("project", {})
@@ -1384,7 +1384,8 @@ def build_reports(root_dir: Path, lang: str, nav_md: str):
         if STRENGTH.get(cat, -1) > STRENGTH.get(strongest, -1):
             strongest = cat
 
-    generated = _dt.date.today().isoformat()
+    if generated is None:
+        generated = _dt.date.today().isoformat()
     full = _render_full(
         project_name,
         project_version,
@@ -1539,13 +1540,22 @@ def main(argv=None):
         action="store_true",
         help="zusaetzlich docs/i18n/<lang>/LICENSES.md fuer en,es,fr,uk,zh erzeugen",
     )
+    # Stabiles Datum fuer reproduzierbare Reports: ohne diese Option wandert
+    # der "Stand:"-Zeitstempel mit dem Tag der Generierung, was bei
+    # gehaerteter Drift-Pruefung jeden CI-Lauf nach Mitternacht UTC roten
+    # macht. Default = heute (alter Pfad bleibt unveraendert).
+    ap.add_argument(
+        "--generated-date",
+        default=None,
+        help="Datumsstempel im Report (YYYY-MM-DD); Default: heute (UTC)",
+    )
     args = ap.parse_args(argv)
 
     # Primaerausgabe in --lang (Default de) -> Root-Verhalten unveraendert.
     # Diese Datei landet via CI als Root-LICENSES.md, daher Switcher mit
     # Root-relativen Pfaden.
     nav = _switcher(args.lang, "LICENSES.md", at_root=(args.lang == "de"))
-    full, summary = build_reports(args.root, args.lang, nav)
+    full, summary = build_reports(args.root, args.lang, nav, args.generated_date)
     args.report.write_text(full, "utf-8")
     args.summary.write_text(summary, "utf-8")
     print(STRINGS[args.lang]["cli"]["report_written"].format(path=args.report))
@@ -1554,7 +1564,7 @@ def main(argv=None):
     if args.all_langs:
         for lang in ("en", "es", "fr", "uk", "zh"):
             nav_l = _switcher(lang, "LICENSES.md", at_root=False)
-            full_l, _ = build_reports(args.root, lang, nav_l)
+            full_l, _ = build_reports(args.root, lang, nav_l, args.generated_date)
             out = args.root / "docs" / "i18n" / lang / "LICENSES.md"
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(full_l, "utf-8")

@@ -5,8 +5,8 @@ laufen (CI, lokale Server ohne Display) und stellt eine geteilte
 ``QApplication`` als Session-Fixture bereit.
 """
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -24,7 +24,6 @@ ensure_qt_plugin_path()
 
 import pytest
 from PyQt6.QtWidgets import QApplication
-
 
 # Mini-Programm, das genau den riskanten Schritt macht: QApplication
 # konstruieren. Schlägt das Plattform-Plugin fehl, ruft Qt qFatal() →
@@ -60,7 +59,7 @@ def _qt_platform_diagnosis() -> str | None:
         return None
 
     qt_msg = (proc.stderr or "").strip() or "(keine Qt-Ausgabe erfasst)"
-    py = "%d.%d.%d" % sys.version_info[:3]
+    py = "{}.{}.{}".format(*sys.version_info[:3])
     hint = ""
     if sys.version_info[:2] >= (3, 14):
         hint = (

@@ -4,16 +4,16 @@ Vor dem Fix landeten Ausnahmen in ``apply_remove``/``apply_replace`` und
 im ``AIWorker`` nur über ``traceback.print_exc()`` auf stderr — nie im
 UI, nie in einer Datei. Jetzt wird ein modulweiter Logger genutzt.
 """
-from contextlib import contextmanager
 import logging
+from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 
 import numpy as np
 from PIL import Image
 
 import bgremover
-from bgremover import logging_config as _lc
 from bgremover import ImageCanvas
+from bgremover import logging_config as _lc
 
 
 @contextmanager

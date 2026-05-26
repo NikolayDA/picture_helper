@@ -13,7 +13,6 @@ from PyQt6.QtCore import QObject, QSettings
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMenu
 
-
 RECENT_MAX = 10
 SETTINGS_RECENT_KEY = "recent_files"
 

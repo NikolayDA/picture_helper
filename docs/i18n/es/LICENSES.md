@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · **Español** · [Français](../fr/LICENSES.md) · [Українська](../uk/LICENSES.md) · [简体中文](../zh/LICENSES.md)
 
-# Resumen de Licencias y Aspectos Legales – bgremover 2.1.0
+# Resumen de Licencias y Aspectos Legales – bgremover 2.2.0
 
 > Generado automáticamente – **una evaluación puramente técnica de los términos de licencia, no asesoramiento jurídico.**
-> A fecha de: 2026-05-23 · Licencia propia del proyecto: `GPL-3.0-or-later` · 44 dependencias analizadas.
+> A fecha de: 2026-05-26 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
 
 ## Evaluación general – usabilidad comercial
 
@@ -27,7 +27,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | Copyleft fuerte | 1 | PyQt6 |
 | Copyleft débil (biblioteca) | 1 | PyQt6-Qt6 |
 | Copyleft débil (archivo) | 3 | certifi, pathspec, tqdm |
-| Permisiva | 39 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Permisiva | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Dependencias en detalle
 
@@ -37,6 +37,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | attrs | 26.1.0 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | Copyleft débil (archivo) | Copyleft débil, a nivel de archivo. Se permite el uso comercial; solo los cambios en los propios archivos con licencia MPL deben divulgarse de nuevo bajo MPL. Compatible con GPL-3.0. |
 | charset-normalizer | 3.4.6 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
+| coverage | 7.14.0 | `Apache-2.0` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
 | flatbuffers | 25.12.19 | `Apache Software License` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
 | idna | 3.11 | `BSD-3-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
@@ -82,6 +83,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 
 - **ast_serialize** – https://github.com/mypyc/ast_serialize
 - **certifi** – https://github.com/certifi/python-certifi
+- **coverage** – https://github.com/coveragepy/coveragepy
 - **flatbuffers** – https://google.github.io/flatbuffers/
 - **idna** – https://github.com/kjd/idna
 - **ImageIO** – https://github.com/imageio/imageio

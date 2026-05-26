@@ -1,14 +1,14 @@
 """QThread lifecycle management for image load, AI, and warmup workers."""
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 
 from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
 from bgremover.constants import _THREAD_SHUTDOWN_MS, logger
-from bgremover.workers import _Worker, AIWorker, ImageLoadWorker, RembgWarmupWorker
-
+from bgremover.workers import AIWorker, ImageLoadWorker, RembgWarmupWorker, _Worker
 
 QuitSignals = tuple[pyqtBoundSignal, ...]
 
@@ -72,12 +72,10 @@ class WorkerController:
 
     def _release_worker(self, worker: QObject) -> None:
         """Gibt die Python-Referenz auf *worker* nach Threadende frei."""
-        try:
+        # Doppelt verbundener Slot oder shutdown_all-Race – idempotent
+        # halten, nicht den finished-Pfad mit einer Exception belasten.
+        with contextlib.suppress(ValueError):
             self._workers.remove(worker)
-        except ValueError:
-            # Doppelt verbundener Slot oder shutdown_all-Race – idempotent
-            # halten, nicht den finished-Pfad mit einer Exception belasten.
-            pass
 
     def start_image_load(
         self,
