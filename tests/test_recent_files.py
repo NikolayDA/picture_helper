@@ -90,13 +90,40 @@ def test_recent_files_menu_opens_existing_and_removes_missing(qapp, isolated_set
     assert [action.text() for action in menu.actions()] == [existing.name]
 
 
+def test_recent_files_menu_silently_filters_missing_on_rebuild(qapp, isolated_settings):
+    """rebuild() entfernt nicht-existente Pfade stumm aus der Liste und dem Menue."""
+    recent = RecentFiles(_settings(), limit=5)
+    recent.clear()
+    existing = isolated_settings / "alive.png"
+    existing.write_text("x", encoding="utf-8")
+    absent = str((isolated_settings / "ghost.png").resolve())
+    # QSettings direkt vorbereiten – damit umgehen wir den add()-Pfad und
+    # zwingen rebuild(), eine bereits stale Persistenz zu finden.
+    recent._settings.setValue(recent.key, [absent, str(existing.resolve())])
+
+    menu = QMenu()
+    opened: list[str] = []
+    missing: list[str] = []
+    adapter = RecentFilesMenu(menu, menu, recent, opened.append, missing.append)
+
+    assert absent not in adapter.paths()
+    assert adapter.paths() == [str(existing.resolve())]
+    assert [action.text() for action in menu.actions()] == [existing.name]
+    # Stummer Pfad: missing_path-Callback bleibt aktiven Klicks vorbehalten.
+    assert missing == []
+
+
 def test_recent_list_dedups_and_caps(qapp, isolated_settings):
     from bgremover import MainWindow
     w = MainWindow()
     # Erst Liste explizit leeren (in case)
     w._settings.setValue(SETTINGS_RECENT_KEY, [])
+    # rebuild() filtert inzwischen geloeschte Pfade stumm aus – die Test-
+    # dateien muessen daher real existieren, damit Dedup/Cap testbar bleibt.
     for i in range(12):
-        w._add_recent(str(isolated_settings / f"img{i}.png"))
+        p = isolated_settings / f"img{i}.png"
+        p.write_text("x", encoding="utf-8")
+        w._add_recent(str(p))
     paths = w._recent_paths()
     assert len(paths) == RECENT_MAX
     # Letzter eingefügter Eintrag steht vorn
@@ -107,8 +134,12 @@ def test_recent_brings_existing_to_front(qapp, isolated_settings):
     from bgremover import MainWindow
     w = MainWindow()
     w._settings.setValue(SETTINGS_RECENT_KEY, [])
-    a = str(isolated_settings / "a.png")
-    b = str(isolated_settings / "b.png")
+    a_path = isolated_settings / "a.png"
+    b_path = isolated_settings / "b.png"
+    a_path.write_text("x", encoding="utf-8")
+    b_path.write_text("x", encoding="utf-8")
+    a = str(a_path)
+    b = str(b_path)
     w._add_recent(a)
     w._add_recent(b)
     w._add_recent(a)             # a wieder nach vorn

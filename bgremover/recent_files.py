@@ -89,13 +89,22 @@ class RecentFilesMenu:
 
     def rebuild(self) -> None:
         self._menu.clear()
+        # Inzwischen geloeschte Dateien stumm aussortieren, bevor sie sichtbar
+        # werden. Der missing_path-Callback bleibt aktiven Klicks vorbehalten;
+        # der Rebuild soll keine Warnungen produzieren, sondern lediglich den
+        # persistierten Zustand mit dem Dateisystem abgleichen.
         items = self._recent_files.paths()
-        if not items:
+        existing = [p for p in items if Path(p).exists()]
+        if existing != items:
+            for stale in items:
+                if stale not in existing:
+                    self._recent_files.remove(stale)
+        if not existing:
             empty = QAction("(keine)", self._parent)
             empty.setEnabled(False)
             self._menu.addAction(empty)
             return
-        for path in items:
+        for path in existing:
             act = QAction(Path(path).name, self._parent)
             act.setToolTip(path)
             act.triggered.connect(lambda _=False, pp=path: self.open(pp))
