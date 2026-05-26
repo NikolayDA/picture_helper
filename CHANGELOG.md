@@ -32,6 +32,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `requirements/constraints.txt` gepinnt (`==7.14.0`), damit ein neuer
   `coverage`-Upstream-Release den `LICENSES.md`-Drift-Vergleich der
   License-Workflow nicht mehr rot färbt.
+- **License-Check gegen Zeitzonen-Drift gehärtet.** Das `gen_date` aus
+  `git log -1 --format=%cs -- LICENSES.md` formatiert das Datum sonst im
+  Committer-TZ des betroffenen Commits – ein Merge-Commit mit
+  `+02:00`-Offset (web-flow + CEST-Region) verschob den Tag dann um eine
+  Position, sobald die UTC-Zeit knapp vor Mitternacht lag (Beispiel:
+  `2026-05-26T23:10:10Z` ≡ `2026-05-27T01:10:10+02:00` → `%cs` =
+  `2026-05-27`). Zusätzlich gewann das Datum des Merge-Commits dadurch
+  Bedeutung, dass `actions/checkout@v5` bei `pull_request`-Events
+  standardmäßig den synthetischen `refs/pull/N/merge`-Commit shallow
+  auscheckt – ohne Parent vergleicht `git log -- LICENSES.md` nichts,
+  und der Merge-Commit erscheint als „letzte Änderung". Fix:
+  `fetch-depth: 0` in `actions/checkout` plus `TZ=UTC` und
+  `--date=short-local` für den `git log`-Aufruf, sodass sowohl der echte
+  Edit-Commit gefunden als auch das Datum deterministisch in UTC
+  formatiert wird.
 
 ### Entfernt
 
