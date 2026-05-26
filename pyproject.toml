@@ -109,3 +109,20 @@ check_untyped_defs = false
 # `index`, `operator`, `arg-type`, `attr-defined`, `assignment`,
 # `func-returns-value`, `override`, `union-attr`. Es bleibt nur
 # `check_untyped_defs = false` als pragmatischer Qt-Rauschdaempfer.
+
+# Qt-arme Logikmodule sollen strenger geprueft werden: hier wuerde
+# `check_untyped_defs = false` echte Luecken verstecken. Die Module
+# enthalten kaum Qt-Overrides, daher ist disallow_untyped_defs hier
+# realistisch.
+[[tool.mypy.overrides]]
+module = [
+    "bgremover.image_ops",
+    "bgremover.image_utils",
+    "bgremover.crop",
+    "bgremover.recent_files",
+    "bgremover.canvas_history",
+    "bgremover.canvas_selection",
+    "bgremover.canvas_lasso",
+]
+disallow_untyped_defs = true
+check_untyped_defs = true
