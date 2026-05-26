@@ -18,9 +18,27 @@ def pil_to_qpixmap(img: Image.Image) -> QPixmap:
 
 
 def pil_to_numpy(img: Image.Image) -> np.ndarray:
+    """RGBA-Sicht als unabhaengiges, schreibbares Array.
+
+    Defensive Variante mit Heap-Kopie – fuer Aufrufer, die das Ergebnis
+    mutieren (z. B. ein bearbeitetes Bild zurueckschreiben).
+    """
     if img.mode != "RGBA":
         img = img.convert("RGBA")
     return np.asarray(img).copy()
+
+
+def pil_to_numpy_readonly(img: Image.Image) -> np.ndarray:
+    """RGBA-Sicht ohne defensive Kopie.
+
+    Spart bei grossen Bildern eine Heap-Allokation. Das Array ist nicht
+    schreibbar (numpy meldet ``ValueError`` bei jedem Schreibversuch);
+    Aufrufer, die mutieren wollen, muessen ``pil_to_numpy`` oder ein
+    explizites ``.copy()`` nehmen.
+    """
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    return np.asarray(img)
 
 
 def numpy_to_pil(arr: np.ndarray) -> Image.Image:

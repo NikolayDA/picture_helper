@@ -24,6 +24,13 @@ class WorkerController:
         self.ai_worker: AIWorker | None = None
         self.warmup_thread: QThread | None = None
         self.warmup_done = False
+        # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
+        # Slots gebundener Methoden nur schwach: ohne diese Liste sammelt
+        # CPython den Worker direkt nach _build_thread ein und run() liefe
+        # nie. Frueher hing der Worker per setattr(thread, "_worker", w)
+        # am QThread – das war ein versteckter Vertrag; die explizite Liste
+        # macht Eigentumsverhaeltnisse und Cleanup sichtbar.
+        self._workers: list[QObject] = []
 
     @property
     def is_loading(self) -> bool:
@@ -51,19 +58,26 @@ class WorkerController:
         on_finished: Callable[[], None] | None = None,
     ) -> QThread:
         thread = QThread(self._parent)
-        # Starke Referenz: Controller -> thread -> worker. Ohne sie sammelt
-        # CPython den Worker direkt nach dem Aufruf ein (PyQt verbindet
-        # Slots gebundener Methoden nur schwach) – run() liefe nie.
-        setattr(thread, "_worker", worker)
+        self._workers.append(worker)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         for sig in quit_on:
             sig.connect(thread.quit)
         thread.finished.connect(worker.deleteLater)
         thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(lambda w=worker: self._release_worker(w))
         if on_finished is not None:
             thread.finished.connect(on_finished)
         return thread
+
+    def _release_worker(self, worker: QObject) -> None:
+        """Gibt die Python-Referenz auf *worker* nach Threadende frei."""
+        try:
+            self._workers.remove(worker)
+        except ValueError:
+            # Doppelt verbundener Slot oder shutdown_all-Race – idempotent
+            # halten, nicht den finished-Pfad mit einer Exception belasten.
+            pass
 
     def start_image_load(
         self,

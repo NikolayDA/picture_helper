@@ -1,8 +1,15 @@
 """Tests für die reinen Hilfsfunktionen aus BgRemover.py."""
 import numpy as np
+import pytest
 from PIL import Image
 
-from bgremover import flood_fill, mask_to_overlay, numpy_to_pil, pil_to_numpy
+from bgremover import (
+    flood_fill,
+    mask_to_overlay,
+    numpy_to_pil,
+    pil_to_numpy,
+    pil_to_numpy_readonly,
+)
 
 
 # ── pil_to_numpy / numpy_to_pil ─────────────────────────────────────────
@@ -15,6 +22,21 @@ def test_pil_to_numpy_returns_rgba_array():
     # RGB → RGBA: Alpha = 255
     assert (arr[:, :, 3] == 255).all()
     assert (arr[:, :, 0] == 10).all()
+    # Defensive Variante: das Resultat ist schreibbar.
+    assert arr.flags.writeable
+    arr[0, 0, 0] = 99
+
+
+def test_pil_to_numpy_readonly_is_not_writable():
+    """Spar-Variante teilt sich den PIL-Buffer; jedes Schreiben muss
+    fehlschlagen, damit Aufrufer ihre Mutationen bewusst auf eine Kopie
+    lenken."""
+    img = Image.new("RGBA", (3, 2), (10, 20, 30, 255))
+    arr = pil_to_numpy_readonly(img)
+    assert arr.shape == (2, 3, 4)
+    assert not arr.flags.writeable
+    with pytest.raises(ValueError):
+        arr[0, 0, 0] = 5
 
 
 def test_numpy_to_pil_round_trip():

@@ -117,6 +117,29 @@ def test_image_load_worker_accepts_normal_size(qapp, tmp_path) -> None:
     assert len(errors) == 0
 
 
+def test_image_load_worker_verify_rejects_truncated_png(qapp, tmp_path) -> None:
+    """verify() muss strukturell kaputte PNGs (z. B. abgeschnittener IDAT)
+    abweisen, bevor der eigentliche Decode laeuft."""
+    src = io.BytesIO()
+    Image.new("RGB", (32, 32), (200, 100, 50)).save(src, format="PNG")
+    raw = src.getvalue()
+
+    # IEND-Chunk (letzte 12 Bytes) abschneiden und mitten im IDAT kuerzen.
+    truncated = raw[: max(64, len(raw) - 40)]
+    bad = tmp_path / "truncated.png"
+    bad.write_bytes(truncated)
+
+    worker = ImageLoadWorker(str(bad))
+    finished: list = []
+    errors: list[str] = []
+    worker.finished.connect(lambda img, path: finished.append((img, path)))
+    worker.error.connect(errors.append)
+    worker.run()
+
+    assert len(errors) == 1
+    assert len(finished) == 0
+
+
 # ─────────────────────────────────────────────────────────────
 # ImageCanvas – synchroner Ladepfad (Drag & Drop)
 # ─────────────────────────────────────────────────────────────
