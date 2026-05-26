@@ -38,7 +38,14 @@ Issues = "https://github.com/NikolayDA/picture_helper/issues"
 
 [project.optional-dependencies]
 ai = ["rembg[cpu]>=2.0,<3"]
-test = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.6", "mypy>=1.10", "packaging>=24"]
+test = [
+    "pytest>=8",
+    "pytest-qt>=4.4",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "packaging>=24",
+    "coverage[toml]>=7.6",
+]
 # Erzeugt ANLEITUNG.pdf aus ANLEITUNG.md (scripts/generate_anleitung_pdf.py).
 # Zusaetzlich noetig: DejaVu-Schriften (System-Paket fonts-dejavu-core)
 # sowie die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
@@ -60,6 +67,18 @@ addopts = "-q -m 'not ui'"
 markers = [
     "ui: lokale, qtbot-gesteuerte UI-Interaktionstests (laufen NICHT in der CI; lokal via `make ui`).",
 ]
+
+[tool.coverage.run]
+source = ["bgremover"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 68
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.ruff]
 line-length = 100
