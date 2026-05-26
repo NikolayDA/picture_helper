@@ -51,11 +51,17 @@ class AIWorker(_Worker):
     def __init__(self, pil_image: Image.Image) -> None:
         super().__init__()
         self._img = pil_image
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
 
     def _work(self) -> None:
         buf = io.BytesIO()
         self._img.save(buf, format="PNG")
         result_bytes = rembg_remove(buf.getvalue())
+        if self._cancelled:
+            return
         result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
         self.finished.emit(result)
 

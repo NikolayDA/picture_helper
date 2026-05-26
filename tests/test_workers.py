@@ -194,6 +194,26 @@ def test_ai_worker_finished_signal_on_success(qapp, _mock_rembg) -> None:
     assert len(errors) == 0
 
 
+def test_ai_worker_cancel_skips_finished_signal(qapp, _mock_rembg) -> None:
+    img = Image.new("RGBA", (4, 4), (0, 0, 0, 255))
+    worker = AIWorker(img)
+    finished: list = []
+    errors: list[str] = []
+    worker.finished.connect(finished.append)
+    worker.error.connect(errors.append)
+    worker.cancel()
+
+    result_img = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
+    result_buf = io.BytesIO()
+    result_img.save(result_buf, format="PNG")
+
+    with patch("bgremover.workers.rembg_remove", return_value=result_buf.getvalue()):
+        worker.run()
+
+    assert len(finished) == 0
+    assert len(errors) == 0
+
+
 # ─────────────────────────────────────────────────────────────
 # Canvas – Versions- und Content-Revisionszähler (Stale-Check für KI-Ergebnis)
 # ─────────────────────────────────────────────────────────────
