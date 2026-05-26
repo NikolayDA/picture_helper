@@ -12,7 +12,7 @@ from typing import Literal
 
 import numpy as np
 from PIL import Image, ImageOps
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
     QColor,
@@ -34,11 +34,12 @@ from bgremover.canvas_crop import CanvasCrop
 from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import CanvasSelection
+from bgremover.canvas_transform import CanvasTransform
+from bgremover.canvas_viewport import CanvasViewport
 from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
     _MAX_MEGAPIXELS,
-    _ZOOM_FACTOR,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_LASSO,
@@ -47,18 +48,12 @@ from bgremover.constants import (
 )
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
-from bgremover.image_ops import (
-    flip_image,
-    rotate_image,
-    round_corners,
-    save_image_file,
-)
+from bgremover.image_ops import save_image_file
 from bgremover.image_utils import (
     flood_fill,
     make_checker_brush,
     mask_to_overlay,
     pil_to_numpy_readonly,
-    pil_to_qpixmap,
 )
 
 
@@ -133,8 +128,6 @@ class ImageCanvas(QGraphicsView):
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
         self._brush_r   = _DEFAULT_BRUSH_RADIUS
-        self._panning   = False
-        self._pan_start = QPointF()
         self._drawing   = False
 
         # Polygon-Lasso-Werkzeug
@@ -143,6 +136,13 @@ class ImageCanvas(QGraphicsView):
         # Crop-Overlay (Zustand + Mausgesten in eigener Klasse)
         self._crop = CanvasCrop(
             self._scene, self, self.cropModeChanged.emit)
+
+        # Geometrie-Transformationen (Drehen/Spiegeln/Ecken abrunden)
+        self._transform = CanvasTransform(self)
+
+        # Viewport (Zoom, Pan, Fit-to-View, Pixmap-Refresh)
+        self._viewport = CanvasViewport(
+            self, self._scene, self._img_item, self._vp)
 
         # Pinsel-Vorschau-Kreis (sichtbar bei Tool=brush/eraser)
         self._brush_preview = QGraphicsEllipseItem()
@@ -197,7 +197,7 @@ class ImageCanvas(QGraphicsView):
 
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
-        self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
+        self._viewport.fit_to_view()
 
     # ── Laden ────────────────────────────────────────────────
 
@@ -226,7 +226,7 @@ class ImageCanvas(QGraphicsView):
         self._history.set_original(img)
         self._crop.cancel_overlay_only()
         self._apply_pil(img, push=False)
-        self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
+        self._viewport.fit_to_view()
         self.statusMsg.emit(
             f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
         self.imageLoaded.emit(str(Path(path).resolve()))
@@ -247,12 +247,7 @@ class ImageCanvas(QGraphicsView):
         self._set_image_state(img)
 
     def _refresh_image(self) -> None:
-        if self._pil:
-            px = pil_to_qpixmap(self._pil)
-            self._img_item.setPixmap(px)
-            self._scene.setSceneRect(QRectF(px.rect()))
-            self._img_item.update()
-            self._vp.update()
+        self._viewport.refresh_image(self._pil)
 
     def _refresh_overlay(self) -> None:
         if self._pil:
@@ -480,22 +475,6 @@ class ImageCanvas(QGraphicsView):
         sp = self.mapToScene(event.position().toPoint())
         return int(sp.x()), int(sp.y())
 
-    def _start_pan_if_requested(
-        self,
-        btn: Qt.MouseButton,
-        mods: Qt.KeyboardModifier,
-        pos: QPointF,
-    ) -> bool:
-        """Startet Pan-Modus (Alt+LMB oder MMB); True => Event konsumiert."""
-        if (btn == Qt.MouseButton.MiddleButton or
-                (btn == Qt.MouseButton.LeftButton and
-                 mods & Qt.KeyboardModifier.AltModifier)):
-            self._panning = True
-            self._pan_start = pos
-            self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-            return True
-        return False
-
     def _handle_tool_press(
         self,
         x: int,
@@ -533,7 +512,7 @@ class ImageCanvas(QGraphicsView):
         if self._crop.handle_press(btn, sp):
             return
 
-        if self._start_pan_if_requested(btn, mods, event.position()):
+        if self._viewport.start_pan_if_requested(btn, mods, event.position()):
             return
 
         if btn != Qt.MouseButton.LeftButton:
@@ -547,7 +526,7 @@ class ImageCanvas(QGraphicsView):
         sp = self.mapToScene(event.position().toPoint())
 
         # Pinsel-Vorschau (außerhalb von Crop-/Pan-Modi)
-        if not self._crop.active and not self._panning:
+        if not self._crop.active and not self._viewport.is_panning:
             self._update_brush_preview(sp)
             # Lasso-Vorschaulinie vom letzten Punkt zur Mausposition
             if self._tool == TOOL_LASSO:
@@ -556,14 +535,8 @@ class ImageCanvas(QGraphicsView):
         if self._crop.handle_move(sp):
             return
 
-        if self._panning:
-            delta = event.position() - self._pan_start
-            self._pan_start = event.position()
-            hbar = self.horizontalScrollBar()
-            vbar = self.verticalScrollBar()
-            assert hbar is not None and vbar is not None
-            hbar.setValue(hbar.value() - int(delta.x()))
-            vbar.setValue(vbar.value() - int(delta.y()))
+        if self._viewport.is_panning:
+            self._viewport.update_pan(event.position())
             return
         if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
             self._paint_brush(int(sp.x()), int(sp.y()))
@@ -572,8 +545,8 @@ class ImageCanvas(QGraphicsView):
     def mouseReleaseEvent(self, event) -> None:
         if self._crop.handle_release():
             return
-        if self._panning:
-            self._panning = False
+        if self._viewport.is_panning:
+            self._viewport.stop_pan()
             self.set_tool(self._tool)
             return
         self._drawing = False
@@ -619,18 +592,17 @@ class ImageCanvas(QGraphicsView):
             cx, cy, self._brush_r, additive=self._tool == TOOL_BRUSH)
         self._refresh_overlay()
 
-    # Zoom-Grenzen: verhindert dass Bild auf 0 schrumpft (kein Klick mehr
-    # möglich) oder so groß wird, dass Qt-Rasterung sichtbar wird.
-    ZOOM_MIN = 0.05
-    ZOOM_MAX = 40.0
+    # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier nur als
+    # Convenience-Reexport, damit bestehende Tests ``canvas.ZOOM_MIN`` /
+    # ``canvas.ZOOM_MAX`` weiter ohne Umweg lesen können.
+    ZOOM_MIN = CanvasViewport.ZOOM_MIN
+    ZOOM_MAX = CanvasViewport.ZOOM_MAX
 
     def _zoom(self, factor: float) -> None:
-        new_scale = self.transform().m11() * factor
-        if self.ZOOM_MIN <= new_scale <= self.ZOOM_MAX:
-            self.scale(factor, factor)
+        self._viewport.zoom(factor)
 
     def wheelEvent(self, event) -> None:
-        self._zoom(_ZOOM_FACTOR if event.angleDelta().y() > 0 else 1 / _ZOOM_FACTOR)
+        self._viewport.handle_wheel(event.angleDelta().y())
 
     def leaveEvent(self, event) -> None:
         # Pinsel-Vorschau verstecken, sobald die Maus den View verlässt
@@ -671,49 +643,22 @@ class ImageCanvas(QGraphicsView):
                 f"Geöffnet: {Path(valid[0]).name}  "
                 f"({len(valid) - 1} weitere Datei(en) ignoriert)")
 
-    # ── Ecken abrunden ───────────────────────────────────────
+    # ── Geometrie-Transformationen (Delegatoren) ─────────────
 
     @_requires_image
     def apply_round_corners(self, radius: int) -> None:
         """Rundet die Ecken des Bildes mit dem gegebenen Radius ab."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        if radius <= 0:
-            self.statusMsg.emit("Radius muss > 0 sein")
-            return
-        result, r = round_corners(self._pil, radius)
-        self._apply_pil(result, desc=f"Ecken abgerundet ({r} px)")
-        self.statusMsg.emit(f"Ecken abgerundet: {r} px Radius")
-
-    # ── Drehen ───────────────────────────────────────────────
+        self._transform.apply_round_corners(radius)
 
     @_requires_image
     def apply_rotate(self, degrees: int) -> None:
-        """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn).
-        Bei 90° / 270° werden Breite und Höhe getauscht.
-        Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
-        """
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        result = rotate_image(self._pil, degrees)
-        direction = "↺" if degrees > 0 else "↻"
-        self._apply_pil(result, desc=f"{direction} Gedreht {abs(degrees)}°")
-        self.statusMsg.emit(
-            f"{direction} Gedreht: {abs(degrees)}°  "
-            f"({result.width} × {result.height} px)"
-        )
-
-    # ── Spiegeln ─────────────────────────────────────────────
+        """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn)."""
+        self._transform.apply_rotate(degrees)
 
     @_requires_image
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        result = flip_image(self._pil, horizontal)
-        if horizontal:
-            self._apply_pil(result, desc="↔ Horizontal gespiegelt")
-            self.statusMsg.emit("↔ Horizontal gespiegelt")
-        else:
-            self._apply_pil(result, desc="↕ Vertikal gespiegelt")
-            self.statusMsg.emit("↕ Vertikal gespiegelt")
+        self._transform.apply_flip(horizontal)
 
     # ── Ausgabeformat – Crop-Overlay (Delegatoren) ───────────
 
