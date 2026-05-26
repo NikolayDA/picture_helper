@@ -44,15 +44,21 @@ jobs:
       - name: Refresh committed LICENSES.md
         run: |
           cp license-report.md LICENSES.md
+          drift=0
           if ! git diff --quiet -- LICENSES.md; then
-            echo "::notice::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+            echo "::error::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+            drift=1
           fi
           for lang in en es fr uk zh; do
             f="docs/i18n/$lang/LICENSES.md"
             if ! git diff --quiet -- "$f"; then
-              echo "::notice::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+              echo "::error::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+              drift=1
             fi
           done
+          if [ "$drift" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload license report artifact
         uses: actions/upload-artifact@v4
