@@ -25,7 +25,6 @@ Die vollständigen historischen Befunde und Arbeitsprotokolle aus Runden 1-5 lie
 
 | Prio | Empfehlung | Aufwand | Status |
 |------|------------|---------|--------|
-| 🟢 | Python-Classifier 3.11/3.13 ergänzen | Klein | Offen |
 | 🟡 | i18n-Drift-Test: `CHANGELOG`/`INSTALL` strukturell synchron halten | Mittel | Offen |
 | 🟡 | Laufzeit-Test für `RembgWarmupWorker` ergänzen | Mittel | Offen |
 | 🟢 | Doku-Sprache vereinheitlichen, wo Module DE/EN mischen | Mittel | Offen |
