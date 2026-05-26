@@ -11,10 +11,8 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
-    QLabel,
     QMainWindow,
     QMessageBox,
-    QPushButton,
     QStatusBar,
     QVBoxLayout,
     QWidget,
@@ -23,11 +21,11 @@ from PyQt6.QtWidgets import (
 from bgremover import __version__
 from bgremover.canvas import ImageCanvas
 from bgremover.constants import (
-    _CROP_BAR_HEIGHT,
     _THREAD_SHUTDOWN_MS,
     _WINDOW_MIN_H,
     _WINDOW_MIN_W,
 )
+from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
@@ -44,10 +42,6 @@ from bgremover.right_panel import (
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
-    CROP_BAR_STYLE,
-    CROP_CANCEL_STYLE,
-    CROP_CONFIRM_STYLE,
-    CROP_LABEL_STYLE,
     STATUS_BAR_STYLE,
 )
 from bgremover.worker_controller import WorkerController
@@ -111,31 +105,13 @@ class MainWindow(QMainWindow):
         self._canvas = ImageCanvas()
         self._canvas.statusMsg.connect(self._sb.showMessage)
         self._canvas.historyChanged.connect(self._on_history_changed)
-        self._canvas.cropModeChanged.connect(self._on_crop_mode_changed)
         self._canvas.imageLoaded.connect(self._on_image_loaded)
         self._canvas.loadRequested.connect(self._load_image_async)
         self._history_popup = HistoryPopup(
             self, self._toolbar.btn_history, on_jump=self._canvas.undo_to)
 
-        # ── Crop-Bestätigungsleiste (initial versteckt) ───────
-        self._crop_bar = QFrame()
-        self._crop_bar.setStyleSheet(CROP_BAR_STYLE)
-        self._crop_bar.setFixedHeight(_CROP_BAR_HEIGHT)
-        cb_lay = QHBoxLayout(self._crop_bar)
-        cb_lay.setContentsMargins(14, 4, 14, 4); cb_lay.setSpacing(10)
-        crop_lbl = QLabel("✂  Ausschnitt positionieren, dann bestätigen:")
-        crop_lbl.setStyleSheet(CROP_LABEL_STYLE)
-        cb_lay.addWidget(crop_lbl)
-        cb_lay.addStretch()
-        btn_confirm = QPushButton("✓  Zuschnitt anwenden")
-        btn_confirm.setStyleSheet(CROP_CONFIRM_STYLE)
-        btn_confirm.clicked.connect(lambda: self._canvas.confirm_crop())
-        btn_cancel = QPushButton("✗  Abbrechen")
-        btn_cancel.setStyleSheet(CROP_CANCEL_STYLE)
-        btn_cancel.clicked.connect(lambda: self._canvas.cancel_crop())
-        cb_lay.addWidget(btn_confirm)
-        cb_lay.addWidget(btn_cancel)
-        self._crop_bar.setVisible(False)
+        self._crop_bar = CropBar()
+        self._crop_bar.bind(self._canvas)
         cv_lay.addWidget(self._crop_bar)
 
         cv_lay.addWidget(self._canvas, 1)
@@ -187,16 +163,7 @@ class MainWindow(QMainWindow):
                 start_crop_ratio=self._canvas.start_crop_ratio,
             )
         )
-        self._lbl_tol = panel.tolerance_label
-        self._sld_tol = panel.tolerance_slider
-        self._lbl_brush = panel.brush_label
-        self._sld_brush = panel.brush_slider
-        self._spin_morph = panel.morph_spin
         self._color_btn = panel.color_button
-        self._sld_rot = panel.rotation_slider
-        self._spin_rot = panel.rotation_spin
-        self._lbl_corner = panel.corner_label
-        self._sld_corner = panel.corner_slider
         self._update_color_btn()
         return panel.frame
 
@@ -391,9 +358,6 @@ class MainWindow(QMainWindow):
 
     def _on_history_changed(self, history: list[str]) -> None:
         self._history_popup.update_entries(history)
-
-    def _on_crop_mode_changed(self, active: bool) -> None:
-        self._crop_bar.setVisible(active)
 
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)
