@@ -14,6 +14,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
 
+### Entfernt
+
+- **Toten Code aus Canvas, Lasso und MainWindow entfernt.** Der ungenutzte
+  Schatten-Zähler `ImageCanvas._version`, die nicht mehr referenzierte
+  Methode `CanvasLasso.close_to_mask` und die ungenutzte Toolbar-Button-
+  Group-Referenz `MainWindow._btn_grp` sind ersatzlos entfallen.
+
 ## [2.2.0] – 2026-05-25
 
 ### Hinzugefügt

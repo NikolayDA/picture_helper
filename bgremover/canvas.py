@@ -116,12 +116,9 @@ class ImageCanvas(QGraphicsView):
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
         self._selection = CanvasSelection(0, 0)
-        # Monotone Zähler:
-        # - _version ist ein Legacy-Zähler für reine Bildwechsel (Laden).
-        # - _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
-        # Externe Worker nutzen diese content_revision als Stale-Check statt
+        # _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
+        # Externe Worker nutzen diese Revision als Stale-Check statt
         # Objektidentität.
-        self._version:  int = 0
         self._content_revision: int = 0
         self._history = CanvasHistory()
 
@@ -221,7 +218,6 @@ class ImageCanvas(QGraphicsView):
 
     def apply_loaded_image(self, img: Image.Image, path: str) -> None:
         """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
-        self._version += 1
         self._history.clear()
         self._history.set_original(img)
         self._crop.cancel_overlay_only()
