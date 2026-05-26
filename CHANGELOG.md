@@ -14,6 +14,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
 
+### Behoben
+
+- **License-Check stabilisiert.** `coverage` ist jetzt in
+  `requirements/constraints.txt` gepinnt (`==7.14.0`), damit ein neuer
+  `coverage`-Upstream-Release den `LICENSES.md`-Drift-Vergleich der
+  License-Workflow nicht mehr rot färbt.
+
 ### Entfernt
 
 - **Toten Code aus Canvas, Lasso und MainWindow entfernt.** Der ungenutzte
