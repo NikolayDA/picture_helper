@@ -9,6 +9,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
+  3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
+
 ## [2.2.0] – 2026-05-25
 
 ### Hinzugefügt
