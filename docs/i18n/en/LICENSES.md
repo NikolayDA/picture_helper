@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · **English** · [Español](../es/LICENSES.md) · [Français](../fr/LICENSES.md) · [Українська](../uk/LICENSES.md) · [简体中文](../zh/LICENSES.md)
 
-# License & Legal Overview – bgremover 2.1.0
+# License & Legal Overview – bgremover 2.2.0
 
 > Automatically generated – **a purely technical assessment of the license terms, not legal advice.**
-> As of: 2026-05-23 · Project's own license: `GPL-3.0-or-later` · 44 dependencies analyzed.
+> As of: 2026-05-26 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
 
 ## Overall Assessment – Commercial Usability
 
@@ -27,7 +27,7 @@ Strongest relevant license in the combined work: **Strong copyleft**.
 | Strong copyleft | 1 | PyQt6 |
 | Weak copyleft (library) | 1 | PyQt6-Qt6 |
 | Weak copyleft (file) | 3 | certifi, pathspec, tqdm |
-| Permissive | 39 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Permissive | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Dependencies in Detail
 
@@ -37,6 +37,7 @@ Strongest relevant license in the combined work: **Strong copyleft**.
 | attrs | 26.1.0 | `MIT` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | Weak copyleft (file) | Weak, file-level copyleft. Commercial use is allowed; only changes to the MPL-licensed files themselves must be disclosed again under the MPL. Compatible with GPL-3.0. |
 | charset-normalizer | 3.4.6 | `MIT` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
+| coverage | 7.14.0 | `Apache-2.0` | Permissive | Permissive license with an explicit patent grant. Commercial and proprietary use is allowed; the license/copyright notice and change notes (NOTICE) must be retained. |
 | flatbuffers | 25.12.19 | `Apache Software License` | Permissive | Permissive license with an explicit patent grant. Commercial and proprietary use is allowed; the license/copyright notice and change notes (NOTICE) must be retained. |
 | idna | 3.11 | `BSD-3-Clause` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |
@@ -82,6 +83,7 @@ Strongest relevant license in the combined work: **Strong copyleft**.
 
 - **ast_serialize** – https://github.com/mypyc/ast_serialize
 - **certifi** – https://github.com/certifi/python-certifi
+- **coverage** – https://github.com/coveragepy/coveragepy
 - **flatbuffers** – https://google.github.io/flatbuffers/
 - **idna** – https://github.com/kjd/idna
 - **ImageIO** – https://github.com/imageio/imageio
