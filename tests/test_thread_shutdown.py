@@ -41,6 +41,26 @@ class _RecordingWorker(QObject):
         self.finished.emit()
 
 
+class _FakeStuckThread:
+    def __init__(self) -> None:
+        self.quit_called = False
+        self.terminate_called = False
+        self.wait_calls = 0
+
+    def isRunning(self) -> bool:
+        return True
+
+    def quit(self) -> None:
+        self.quit_called = True
+
+    def wait(self, _ms=None) -> bool:
+        self.wait_calls += 1
+        return self.terminate_called
+
+    def terminate(self) -> None:
+        self.terminate_called = True
+
+
 def test_launch_worker_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
     """Regression: ``WorkerController.launch_worker`` muss eine starke Referenz auf den
     Worker halten. Sonst sammelt CPython ihn ein, sobald der Aufrufer
@@ -76,13 +96,9 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
     # Warmup nicht automatisch starten (rembg evtl. nicht installiert
     # bzw. nicht-deterministisch).
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
-    # Kurzes Timeout: Test soll schnell sein und den terminate()-
-    # Fallback-Pfad zuverlässig erzwingen.
-    import bgremover.main_window
-    monkeypatch.setattr(bgremover.main_window, "_THREAD_SHUTDOWN_MS", 200)
 
     win = MainWindow()
-    worker = _BlockingWorker(5.0)          # läuft länger als Timeout
+    worker = _BlockingWorker(0.05)
     thread = win._worker_controller.launch_worker(worker, quit_on=(worker.finished,))
     win._worker_controller.ai_thread = thread
     assert thread.isRunning()
@@ -90,6 +106,19 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
     win.close()                            # darf NICHT crashen
 
     assert not thread.isRunning()          # Thread sauber beendet
+
+
+def test_shutdown_thread_terminates_after_timeout(qapp, monkeypatch):
+    monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
+    win = MainWindow()
+    fake_thread = _FakeStuckThread()
+
+    win._worker_controller.shutdown_thread(fake_thread, "KI")
+
+    assert fake_thread.quit_called
+    assert fake_thread.terminate_called
+    assert fake_thread.wait_calls == 2
+    win.close()
 
 
 def test_close_event_noop_without_threads(qapp, monkeypatch):
