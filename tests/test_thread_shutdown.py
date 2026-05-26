@@ -6,9 +6,12 @@ den echten ``WorkerController.launch_worker``-Pfad, schliesst das Fenster und pr
 gegen „QThread: Destroyed while thread is still running“).
 """
 import gc
+import threading
 import time
+from unittest.mock import patch
 
 from PyQt6.QtCore import QObject, pyqtSignal
+from PIL import Image
 
 from bgremover import MainWindow
 
@@ -94,3 +97,50 @@ def test_close_event_noop_without_threads(qapp, monkeypatch):
     win = MainWindow()
     assert win._worker_controller.ai_thread is None
     win.close()                            # keine Threads -> kein Fehler
+
+
+def test_cancelled_ai_shutdown_skips_result_decode(qapp, monkeypatch):
+    monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
+    win = MainWindow()
+    win._worker_controller._shutdown_ms = 1000
+    rembg_started = threading.Event()
+    rembg_can_return = threading.Event()
+
+    def _fake_rembg(_data):
+        rembg_started.set()
+        assert rembg_can_return.wait(2.0)
+        return b"result png"
+
+    def _slow_open(_data):
+        time.sleep(1.5)
+        return Image.new("RGBA", (2, 2), (0, 0, 0, 0))
+
+    try:
+        with (
+            patch("bgremover.workers.rembg_remove", side_effect=_fake_rembg, create=True),
+            patch("bgremover.workers.Image.open", side_effect=_slow_open),
+        ):
+            started = win._worker_controller.start_ai(
+                Image.new("RGBA", (2, 2), (1, 2, 3, 255)),
+                on_done=lambda _img: None,
+                on_error=lambda _msg: None,
+                on_finished=lambda: None,
+            )
+            assert started
+
+            deadline = time.monotonic() + 2.0
+            while not rembg_started.is_set() and time.monotonic() < deadline:
+                qapp.processEvents()
+                time.sleep(0.01)
+            assert rembg_started.is_set()
+
+            win._worker_controller.cancel_ai()
+            rembg_can_return.set()
+            started_at = time.monotonic()
+            win._worker_controller.shutdown_all()
+            elapsed = time.monotonic() - started_at
+
+        assert elapsed < 0.5
+    finally:
+        rembg_can_return.set()
+        win.close()
