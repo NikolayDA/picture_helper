@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import io
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, UnidentifiedImageError
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS, logger
@@ -101,6 +101,18 @@ class ImageLoadWorker(_Worker):
         self._path = path
 
     def _work(self) -> None:
+        # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
+        # dekodieren – manipulierte oder abgeschnittene Dateien werden so
+        # frueh abgewiesen, bevor load() Speicher allokiert. PIL invalidiert
+        # das Image-Objekt nach verify(); fuer den echten Decode-Pfad muss
+        # erneut geoeffnet werden.
+        try:
+            with Image.open(self._path) as probe:
+                probe.verify()
+        except (UnidentifiedImageError, SyntaxError, OSError) as e:
+            self.error.emit(f"{type(e).__name__}: {e}")
+            return
+
         img: Image.Image = Image.open(self._path)
         if img.format not in _ALLOWED_IMAGE_FORMATS:
             self.error.emit(f"Format nicht unterstützt: {img.format}")

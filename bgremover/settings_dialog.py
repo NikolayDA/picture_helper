@@ -148,7 +148,22 @@ class SettingsDialog(QDialog):
         self._log_path_edit.setText(str(current_log_file()))
 
     def _save_and_accept(self) -> None:
-        self._settings.setValue("open_dir", self._open_dir_edit.text().strip())
-        self._settings.setValue("save_dir", self._save_dir_edit.text().strip())
+        open_dir = self._open_dir_edit.text().strip()
+        save_dir = self._save_dir_edit.text().strip()
+        # Leerer String bleibt erlaubt und bedeutet "zuletzt verwendetes
+        # Verzeichnis"; jeder andere Wert muss ein existierendes Verzeichnis
+        # sein, sonst landet beim naechsten Datei-Dialog ein toter Pfad.
+        for label, value in (
+            ("Standard-Verzeichnis zum Öffnen", open_dir),
+            ("Standard-Verzeichnis für Export / Speichern", save_dir),
+        ):
+            if value and not Path(value).is_dir():
+                QMessageBox.warning(
+                    self, "Ungültiges Verzeichnis",
+                    f"{label} ist kein existierendes Verzeichnis:\n{value}",
+                )
+                return
+        self._settings.setValue("open_dir", open_dir)
+        self._settings.setValue("save_dir", save_dir)
         self._settings.setValue("preferred_format", self._fmt_combo.currentText())
         self.accept()
