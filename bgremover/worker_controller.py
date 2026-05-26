@@ -136,7 +136,17 @@ class WorkerController:
         self.ai_worker = None
         on_finished()
 
+    def cancel_ai(self) -> None:
+        """Markiert den laufenden AI-Worker als abgebrochen.
+
+        Der Thread läuft die aktuelle rembg-Berechnung noch zu Ende, aber
+        das Ergebnis wird nicht emittiert.
+        """
+        if self.ai_worker is not None:
+            self.ai_worker.cancel()
+
     def shutdown_all(self) -> None:
+        self.cancel_ai()
         self.shutdown_thread(self.ai_thread, "KI")
         self.shutdown_thread(self.load_thread, "Bildladen")
         self.shutdown_thread(self.warmup_thread, "rembg-Warmup")
