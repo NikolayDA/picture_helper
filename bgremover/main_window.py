@@ -132,7 +132,6 @@ class MainWindow(QMainWindow):
             ),
             rembg_available=REMBG_AVAILABLE,
         )
-        self._btn_grp = self._toolbar.button_group
         self._btn_wand = self._toolbar.btn_wand
         self._btn_brush = self._toolbar.btn_brush
         self._btn_eraser = self._toolbar.btn_eraser
@@ -340,7 +339,7 @@ class MainWindow(QMainWindow):
 
     def _on_ai_done(self, img: Image.Image) -> None:
         # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
-        # hat, ist _version erhöht worden und das KI-Ergebnis wird verworfen.
+        # hat, ist die Canvas-Revision erhöht worden und das KI-Ergebnis wird verworfen.
         if self._canvas.version != self._ai_input_version:
             self._sb.showMessage(
                 "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
