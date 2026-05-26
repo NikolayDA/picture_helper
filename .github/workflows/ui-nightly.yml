@@ -1,0 +1,39 @@
+name: UI Nightly
+
+on:
+  schedule:
+    # Nachts 03:00 UTC – ausserhalb regulaerer Entwicklungszeiten.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    name: Nightly UI interaction tests
+    runs-on: ubuntu-latest
+    # Job darf fehlschlagen, ohne PR-Gates zu blockieren: er laeuft nur
+    # nightly und meldet UI-Regressionen, ist aber bewusst kein Merge-Gate.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: System packages for Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 libgl1 libfontconfig1 libxkbcommon0 libdbus-1-3 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install test environment
+        run: make install-test
+
+      - name: Run UI interaction tests
+        run: make ui
