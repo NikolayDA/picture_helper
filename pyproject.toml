@@ -124,6 +124,7 @@ module = [
     "bgremover.canvas_selection",
     "bgremover.canvas_lasso",
     "bgremover.canvas_transform",
+    "bgremover.canvas_viewport",
 ]
 disallow_untyped_defs = true
 check_untyped_defs = true
