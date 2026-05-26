@@ -56,7 +56,7 @@ from bgremover.image_utils import (
     flood_fill,
     make_checker_brush,
     mask_to_overlay,
-    pil_to_numpy,
+    pil_to_numpy_readonly,
     pil_to_qpixmap,
 )
 
@@ -266,7 +266,10 @@ class ImageCanvas(QGraphicsView):
         Undo-/Redo-Stapelpflege liegt in ``CanvasHistory``.
         """
         self._pil  = img
-        self._arr  = pil_to_numpy(img)
+        # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
+        # lesen nur und kopieren bei Bedarf selbst. Spart eine grosse
+        # Heap-Allokation pro Bildwechsel.
+        self._arr  = pil_to_numpy_readonly(img)
         self._selection.reset(img.width, img.height)
         self._content_revision += 1
         self._refresh_image()

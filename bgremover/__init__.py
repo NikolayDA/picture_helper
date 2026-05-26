@@ -29,6 +29,7 @@ from bgremover.image_utils import (
     mask_to_overlay,
     numpy_to_pil,
     pil_to_numpy,
+    pil_to_numpy_readonly,
     pil_to_qpixmap,
 )
 from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
@@ -77,5 +78,6 @@ __all__ = [
     "mask_to_overlay",
     "numpy_to_pil",
     "pil_to_numpy",
+    "pil_to_numpy_readonly",
     "pil_to_qpixmap",
 ]
