@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · [Español](../es/LICENSES.md) · [Français](../fr/LICENSES.md) · **Українська** · [简体中文](../zh/LICENSES.md)
 
-# Огляд ліцензій та правових аспектів – bgremover 2.1.0
+# Огляд ліцензій та правових аспектів – bgremover 2.2.0
 
 > Згенеровано автоматично – **суто технічна оцінка умов ліцензій, а не юридична консультація.**
-> Станом на: 2026-05-23 · Власна ліцензія проєкту: `GPL-3.0-or-later` · проаналізовано залежностей: 44.
+> Станом на: 2026-05-26 · Власна ліцензія проєкту: `GPL-3.0-or-later` · проаналізовано залежностей: 45.
 
 ## Загальна оцінка – комерційна придатність
 
@@ -27,7 +27,7 @@
 | Сильний копілефт | 1 | PyQt6 |
 | Слабкий копілефт (бібліотека) | 1 | PyQt6-Qt6 |
 | Слабкий копілефт (файл) | 3 | certifi, pathspec, tqdm |
-| Дозвільна | 39 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Дозвільна | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Залежності детально
 
@@ -37,6 +37,7 @@
 | attrs | 26.1.0 | `MIT` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | Слабкий копілефт (файл) | Слабкий копілефт на рівні файлів. Комерційне використання дозволене; лише зміни у самих файлах під ліцензією MPL мають знову розкриватися під MPL. Сумісна з GPL-3.0. |
 | charset-normalizer | 3.4.6 | `MIT` | Дозвільна | Дозвільна ліцензія. Використання, зміна та поширення – зокрема комерційне та у пропрієтарних продуктах – дозволені, доки збережено повідомлення про авторські права та ліцензію. |
+| coverage | 7.14.0 | `Apache-2.0` | Дозвільна | Дозвільна ліцензія з явним наданням патенту. Комерційне та пропрієтарне використання дозволене; повідомлення про ліцензію/авторські права та примітки про зміни (NOTICE) мають зберігатися. |
 | flatbuffers | 25.12.19 | `Apache Software License` | Дозвільна | Дозвільна ліцензія з явним наданням патенту. Комерційне та пропрієтарне використання дозволене; повідомлення про ліцензію/авторські права та примітки про зміни (NOTICE) мають зберігатися. |
 | idna | 3.11 | `BSD-3-Clause` | Дозвільна | Дозвільна ліцензія (родина BSD). Комерційне та пропрієтарне використання дозволене; повідомлення про авторські права/ліцензію має додаватися, реклама з іменами авторів без згоди заборонена. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Дозвільна | Дозвільна ліцензія (родина BSD). Комерційне та пропрієтарне використання дозволене; повідомлення про авторські права/ліцензію має додаватися, реклама з іменами авторів без згоди заборонена. |
@@ -82,6 +83,7 @@
 
 - **ast_serialize** – https://github.com/mypyc/ast_serialize
 - **certifi** – https://github.com/certifi/python-certifi
+- **coverage** – https://github.com/coveragepy/coveragepy
 - **flatbuffers** – https://google.github.io/flatbuffers/
 - **idna** – https://github.com/kjd/idna
 - **ImageIO** – https://github.com/imageio/imageio
