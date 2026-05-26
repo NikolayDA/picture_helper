@@ -38,11 +38,9 @@ class CanvasSelection:
             return int(self._mask.sum())
         mask_img = Image.fromarray((self._mask * 255).astype(np.uint8), mode="L")
         size = radius * 2 + 1
-        filt: ImageFilter.RankFilter
-        if kind == "expand":
-            filt = ImageFilter.MaxFilter(size)
-        else:
-            filt = ImageFilter.MinFilter(size)
+        filt: ImageFilter.RankFilter = (
+            ImageFilter.MaxFilter(size) if kind == "expand" else ImageFilter.MinFilter(size)
+        )
         result = mask_img.filter(filt)
         self._mask = np.array(result) > 127
         return int(self._mask.sum())

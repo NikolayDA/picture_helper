@@ -11,7 +11,6 @@ import pytest
 
 from bgremover import CropOverlayItem
 
-
 # ── Fix #2: Aspect-Ratio über Bildrand ─────────────────────────────────
 
 def test_resize_preserves_aspect_when_dragged_past_edge(qapp):

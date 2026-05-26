@@ -27,7 +27,6 @@ from bgremover.right_panel_tabs import (
 from bgremover.theme import _Theme
 from bgremover.widgets import TopIconTabWidget
 
-
 TAB_STYLE = f"""
     QTabWidget::pane {{ border: none; background: {_Theme.BG_PANEL}; }}
     QTabBar {{ background: {_Theme.BG_TABBAR}; }}

@@ -6,10 +6,10 @@
 """
 import numpy as np
 from PIL import Image
-from PyQt6.QtCore import Qt, QPointF
+from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QColor
 
-from bgremover import ImageCanvas, TOOL_BRUSH, TOOL_ERASER, TOOL_WAND
+from bgremover import TOOL_BRUSH, TOOL_ERASER, TOOL_WAND, ImageCanvas
 
 
 def _canvas_with_mask():

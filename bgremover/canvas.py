@@ -6,8 +6,9 @@ Klasse besitzt UI-Zustand, Undo/Redo, Qt-Signale und interaktive Overlays.
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -29,21 +30,21 @@ from PyQt6.QtWidgets import (
     QGraphicsView,
 )
 
-from bgremover.constants import (
-    TOOL_BRUSH,
-    TOOL_ERASER,
-    TOOL_LASSO,
-    TOOL_WAND,
-    _DEFAULT_BRUSH_RADIUS,
-    _DEFAULT_TOLERANCE,
-    _MAX_MEGAPIXELS,
-    _ZOOM_FACTOR,
-    logger,
-)
 from bgremover.canvas_crop import CanvasCrop
 from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import CanvasSelection
+from bgremover.constants import (
+    _DEFAULT_BRUSH_RADIUS,
+    _DEFAULT_TOLERANCE,
+    _MAX_MEGAPIXELS,
+    _ZOOM_FACTOR,
+    TOOL_BRUSH,
+    TOOL_ERASER,
+    TOOL_LASSO,
+    TOOL_WAND,
+    logger,
+)
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
@@ -68,7 +69,7 @@ def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
     ``if self._pil is None: self.statusMsg.emit("Kein Bild geladen"); return``.
     """
     @functools.wraps(method)
-    def wrapper(self: "ImageCanvas", *args: object, **kwargs: object) -> None:
+    def wrapper(self: ImageCanvas, *args: object, **kwargs: object) -> None:
         if self._pil is None:
             self.statusMsg.emit("Kein Bild geladen")
             return

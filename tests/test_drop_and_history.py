@@ -13,7 +13,7 @@ ausgelagert, der das Objekt fallen lassen würde.
 """
 import numpy as np
 from PIL import Image
-from PyQt6.QtCore import Qt, QPointF, QMimeData, QUrl
+from PyQt6.QtCore import QMimeData, QPointF, Qt, QUrl
 from PyQt6.QtGui import QDropEvent
 
 from bgremover import ImageCanvas

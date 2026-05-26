@@ -13,7 +13,6 @@ from pathlib import Path
 import bgremover
 from bgremover.right_panel import TAB_STYLE
 
-
 _PKG = Path(__file__).resolve().parent.parent / "bgremover"
 
 

@@ -18,7 +18,6 @@ from PIL import Image
 from bgremover import ImageCanvas
 from bgremover.canvas_history import CanvasHistory
 
-
 # ── Fix #7: save_image ─────────────────────────────────────────────────
 
 def test_save_jpeg_with_rgb_input_does_not_crash(qapp, tmp_path):
