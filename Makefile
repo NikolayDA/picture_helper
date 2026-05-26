@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint type test coverage ui clean
+.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -27,8 +27,17 @@ check: lint type test
 # Eigenheiten (z. B. isoliert installierte Tools), nutzt denselben
 # Interpreter wie das Projekt. PYTHON kann bei Bedarf ueberschrieben werden:
 # make PYTHON=/pfad/zur/python check
-lint:
+lint: lint-shell
 	$(RUN_ENV) "$(PYTHON)" -m ruff check bgremover scripts tests
+
+# shellcheck nur ausfuehren, wenn das Tool installiert ist – Entwickler
+# ohne shellcheck sollen nicht hart scheitern (CI installiert es separat).
+lint-shell:
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		shellcheck -x BgRemover.command create_BgRemover_app.sh diagnose_mac.sh; \
+	else \
+		echo "shellcheck nicht installiert – ueberspringe Shell-Lint (CI installiert das Paket)."; \
+	fi
 
 type:
 	$(RUN_ENV) "$(PYTHON)" -m mypy
