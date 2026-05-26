@@ -276,11 +276,10 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(
             self, "Bild speichern unter…", suggest, filter_str
         )
-        if path:
-            # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern
-            # tatsächlich geklappt hat.
-            if self._canvas.save_image(path):
-                self._save_path = path
+        # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern
+        # tatsächlich geklappt hat.
+        if path and self._canvas.save_image(path):
+            self._save_path = path
 
     # ── Recent-Files ────────────────────────────────────────────
 

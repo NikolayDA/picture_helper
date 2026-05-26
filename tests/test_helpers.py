@@ -11,7 +11,6 @@ from bgremover import (
     pil_to_numpy_readonly,
 )
 
-
 # ── pil_to_numpy / numpy_to_pil ─────────────────────────────────────────
 
 def test_pil_to_numpy_returns_rgba_array():

@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import QMenu, QMenuBar
 
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
 
-
 MENU_STYLE = """
     QMenuBar { background: #1a1a1a; color: #ccc; }
     QMenuBar::item:selected { background: #333; }

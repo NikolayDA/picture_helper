@@ -6,7 +6,8 @@ nächste Refaktor-Phase weniger Zuständigkeiten trägt.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QCursor
@@ -25,7 +26,7 @@ class CanvasCrop:
     def __init__(
         self,
         scene: QGraphicsScene,
-        canvas: "ImageCanvas",
+        canvas: ImageCanvas,
         on_mode_changed: Callable[[bool], None],
     ) -> None:
         self._scene = scene
@@ -94,10 +95,7 @@ class CanvasCrop:
         cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
         is_circle = self.overlay.is_circle
         result = crop_image(img, (cx, cy, cw, ch), is_circle=is_circle)
-        if is_circle:
-            desc = "Format: Kreis"
-        else:
-            desc = f"Format: {cw}×{ch} px"
+        desc = "Format: Kreis" if is_circle else f"Format: {cw}×{ch} px"
         self.cancel_overlay_only()
         self._on_mode_changed(False)
         self._canvas._apply_pil(result, desc=desc)

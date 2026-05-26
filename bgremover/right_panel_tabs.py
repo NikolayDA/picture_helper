@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 class SelectionTab:
     """Werkzeug-Hinweise, Toleranz/Pinsel, Morphologie."""
 
-    def __init__(self, actions: "RightPanelActions") -> None:
+    def __init__(self, actions: RightPanelActions) -> None:
         self._actions = actions
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
@@ -139,7 +139,7 @@ class SelectionTab:
 class BackgroundTab:
     """Transparent machen oder Farbe ersetzen."""
 
-    def __init__(self, actions: "RightPanelActions") -> None:
+    def __init__(self, actions: RightPanelActions) -> None:
         self._actions = actions
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
@@ -183,7 +183,7 @@ class BackgroundTab:
 class TransformTab:
     """Drehen und Spiegeln."""
 
-    def __init__(self, actions: "RightPanelActions") -> None:
+    def __init__(self, actions: RightPanelActions) -> None:
         self._actions = actions
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
@@ -267,7 +267,7 @@ class TransformTab:
 class ShapeTab:
     """Ecken abrunden und Ausgabeformat-Zuschnitt."""
 
-    def __init__(self, actions: "RightPanelActions") -> None:
+    def __init__(self, actions: RightPanelActions) -> None:
         self._actions = actions
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
