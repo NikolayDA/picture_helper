@@ -123,6 +123,7 @@ module = [
     "bgremover.canvas_history",
     "bgremover.canvas_selection",
     "bgremover.canvas_lasso",
+    "bgremover.canvas_transform",
 ]
 disallow_untyped_defs = true
 check_untyped_defs = true
