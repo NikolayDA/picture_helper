@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · [Español](../es/LICENSES.md) · [Français](../fr/LICENSES.md) · [Українська](../uk/LICENSES.md) · **简体中文**
 
-# 许可证与法律概览 – bgremover 2.1.0
+# 许可证与法律概览 – bgremover 2.2.0
 
 > 自动生成 – **纯粹是对许可条款的技术性评估，并非法律意见。**
-> 截至：2026-05-23 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 44 个依赖。
+> 截至：2026-05-26 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 45 个依赖。
 
 ## 总体评估 – 商业可用性
 
@@ -27,7 +27,7 @@
 | 强 copyleft | 1 | PyQt6 |
 | 弱 copyleft（库） | 1 | PyQt6-Qt6 |
 | 弱 copyleft（文件） | 3 | certifi, pathspec, tqdm |
-| 宽松 | 39 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| 宽松 | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## 依赖详情
 
@@ -37,6 +37,7 @@
 | attrs | 26.1.0 | `MIT` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | 弱 copyleft（文件） | 弱的、文件级 copyleft。允许商业用途；仅对 MPL 许可文件本身的修改必须再次以 MPL 公开。与 GPL-3.0 兼容。 |
 | charset-normalizer | 3.4.6 | `MIT` | 宽松 | 宽松许可证。只要保留版权声明和许可证声明，即可使用、修改和再分发，包括商业用途和在专有产品中使用。 |
+| coverage | 7.14.0 | `Apache-2.0` | 宽松 | 带有明确专利授权的宽松许可证。允许商业和专有用途；必须保留许可证/版权声明和变更说明（NOTICE）。 |
 | flatbuffers | 25.12.19 | `Apache Software License` | 宽松 | 带有明确专利授权的宽松许可证。允许商业和专有用途；必须保留许可证/版权声明和变更说明（NOTICE）。 |
 | idna | 3.11 | `BSD-3-Clause` | 宽松 | 宽松许可证（BSD 系列）。允许商业和专有用途；必须随附版权/许可证声明，未经同意不得使用作者姓名进行宣传。 |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | 宽松 | 宽松许可证（BSD 系列）。允许商业和专有用途；必须随附版权/许可证声明，未经同意不得使用作者姓名进行宣传。 |
@@ -82,6 +83,7 @@
 
 - **ast_serialize** – https://github.com/mypyc/ast_serialize
 - **certifi** – https://github.com/certifi/python-certifi
+- **coverage** – https://github.com/coveragepy/coveragepy
 - **flatbuffers** – https://google.github.io/flatbuffers/
 - **idna** – https://github.com/kjd/idna
 - **ImageIO** – https://github.com/imageio/imageio
