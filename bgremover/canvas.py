@@ -34,6 +34,7 @@ from bgremover.canvas_crop import CanvasCrop
 from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import CanvasSelection
+from bgremover.canvas_transform import CanvasTransform
 from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
@@ -47,12 +48,7 @@ from bgremover.constants import (
 )
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
-from bgremover.image_ops import (
-    flip_image,
-    rotate_image,
-    round_corners,
-    save_image_file,
-)
+from bgremover.image_ops import save_image_file
 from bgremover.image_utils import (
     flood_fill,
     make_checker_brush,
@@ -143,6 +139,9 @@ class ImageCanvas(QGraphicsView):
         # Crop-Overlay (Zustand + Mausgesten in eigener Klasse)
         self._crop = CanvasCrop(
             self._scene, self, self.cropModeChanged.emit)
+
+        # Geometrie-Transformationen (Drehen/Spiegeln/Ecken abrunden)
+        self._transform = CanvasTransform(self)
 
         # Pinsel-Vorschau-Kreis (sichtbar bei Tool=brush/eraser)
         self._brush_preview = QGraphicsEllipseItem()
@@ -671,49 +670,22 @@ class ImageCanvas(QGraphicsView):
                 f"Geöffnet: {Path(valid[0]).name}  "
                 f"({len(valid) - 1} weitere Datei(en) ignoriert)")
 
-    # ── Ecken abrunden ───────────────────────────────────────
+    # ── Geometrie-Transformationen (Delegatoren) ─────────────
 
     @_requires_image
     def apply_round_corners(self, radius: int) -> None:
         """Rundet die Ecken des Bildes mit dem gegebenen Radius ab."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        if radius <= 0:
-            self.statusMsg.emit("Radius muss > 0 sein")
-            return
-        result, r = round_corners(self._pil, radius)
-        self._apply_pil(result, desc=f"Ecken abgerundet ({r} px)")
-        self.statusMsg.emit(f"Ecken abgerundet: {r} px Radius")
-
-    # ── Drehen ───────────────────────────────────────────────
+        self._transform.apply_round_corners(radius)
 
     @_requires_image
     def apply_rotate(self, degrees: int) -> None:
-        """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn).
-        Bei 90° / 270° werden Breite und Höhe getauscht.
-        Bei beliebigen Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
-        """
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        result = rotate_image(self._pil, degrees)
-        direction = "↺" if degrees > 0 else "↻"
-        self._apply_pil(result, desc=f"{direction} Gedreht {abs(degrees)}°")
-        self.statusMsg.emit(
-            f"{direction} Gedreht: {abs(degrees)}°  "
-            f"({result.width} × {result.height} px)"
-        )
-
-    # ── Spiegeln ─────────────────────────────────────────────
+        """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn)."""
+        self._transform.apply_rotate(degrees)
 
     @_requires_image
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        result = flip_image(self._pil, horizontal)
-        if horizontal:
-            self._apply_pil(result, desc="↔ Horizontal gespiegelt")
-            self.statusMsg.emit("↔ Horizontal gespiegelt")
-        else:
-            self._apply_pil(result, desc="↕ Vertikal gespiegelt")
-            self.statusMsg.emit("↕ Vertikal gespiegelt")
+        self._transform.apply_flip(horizontal)
 
     # ── Ausgabeformat – Crop-Overlay (Delegatoren) ───────────
 
