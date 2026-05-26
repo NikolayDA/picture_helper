@@ -410,7 +410,6 @@ class ImageCanvas(QGraphicsView):
                 self._selection.remove_background(self._arr),
                 desc="Hintergrund entfernt",
             )
-            self._vp.update()
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
         except Exception as e:
             logger.exception("Fehler beim Entfernen")
@@ -428,7 +427,6 @@ class ImageCanvas(QGraphicsView):
                 ),
                 desc=f"Farbe ersetzt ({color.name()})",
             )
-            self._vp.update()
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
         except Exception as e:
             logger.exception("Fehler beim Ersetzen")
@@ -470,10 +468,6 @@ class ImageCanvas(QGraphicsView):
         return True
 
     # ── Maus-Events ──────────────────────────────────────────
-
-    def _to_img_xy(self, event) -> tuple[int, int]:
-        sp = self.mapToScene(event.position().toPoint())
-        return int(sp.x()), int(sp.y())
 
     def _handle_tool_press(
         self,
