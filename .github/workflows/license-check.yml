@@ -58,12 +58,14 @@ jobs:
           drift=0
           if ! git diff --quiet -- LICENSES.md; then
             echo "::error::LICENSES.md weicht vom generierten Report ab – bitte aktualisiert committen."
+            git --no-pager diff -- LICENSES.md
             drift=1
           fi
           for lang in en es fr uk zh; do
             f="docs/i18n/$lang/LICENSES.md"
             if ! git diff --quiet -- "$f"; then
               echo "::error::$f weicht vom generierten Report ab – bitte aktualisiert committen."
+              git --no-pager diff -- "$f"
               drift=1
             fi
           done
