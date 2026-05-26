@@ -1,8 +1,13 @@
 #!/bin/zsh
+# shellcheck shell=bash
 # BgRemover – Doppelklick-Starter
 # Dieses Script öffnet BgRemover direkt aus dem Finder (Terminalfenster).
 # Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
 # (`bgremover/`); das Script startet das Programm via `python3 -m bgremover`.
+#
+# Hinweis Linter: Wir laufen unter zsh (macOS-Default), nutzen aber nur
+# Syntax, die in bash und zsh identisch funktioniert – daher shell=bash
+# (siehe Direktive oben), damit das Skript geprueft werden kann.
 
 # user-site (~/Library/Python/*) ausblenden: dort liegende Pakete sind
 # oft arch-fremd (Apple Silicon: arm64 vs x86_64) und brachten BgRemover
@@ -39,7 +44,8 @@ done
 
 if [ -z "$PYTHON" ]; then
     echo "❌ Python 3 nicht gefunden."
-    read "?Enter zum Schließen drücken..."
+    printf 'Enter zum Schließen drücken...'
+    read -r _
     exit 1
 fi
 
@@ -51,7 +57,8 @@ if ! "$PYTHON" -c 'import bgremover' >/dev/null 2>&1; then
     echo ""
     echo "   Fix: einmal  bash create_BgRemover_app.sh  ausführen –"
     echo "   das legt die venv an und installiert das Paket."
-    read "?Enter zum Schließen drücken..."
+    printf 'Enter zum Schließen drücken...'
+    read -r _
     exit 1
 fi
 
@@ -74,7 +81,8 @@ if ! "${RUN[@]}" -m bgremover; then
     echo "   Häufige Ursache: PyQt6/numpy fehlen oder arch-Mismatch."
     echo "   Fix: einmal  bash create_BgRemover_app.sh  ausführen und die"
     echo "        venv neu anlegen lassen (ggf. vorher: brew install python)."
-    read "?Enter zum Schließen drücken..."
+    printf 'Enter zum Schließen drücken...'
+    read -r _
     exit 1
 fi
 

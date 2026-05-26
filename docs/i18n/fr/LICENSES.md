@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · [Español](../es/LICENSES.md) · **Français** · [Українська](../uk/LICENSES.md) · [简体中文](../zh/LICENSES.md)
 
-# Aperçu des licences et aspects juridiques – bgremover 2.1.0
+# Aperçu des licences et aspects juridiques – bgremover 2.2.0
 
 > Généré automatiquement – **une évaluation purement technique des conditions de licence, pas un conseil juridique.**
-> Au : 2026-05-23 · Licence propre du projet : `GPL-3.0-or-later` · 44 dépendances analysées.
+> Au : 2026-05-26 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
 
 ## Évaluation globale – utilisabilité commerciale
 
@@ -27,7 +27,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 | Copyleft fort | 1 | PyQt6 |
 | Copyleft faible (bibliothèque) | 1 | PyQt6-Qt6 |
 | Copyleft faible (fichier) | 3 | certifi, pathspec, tqdm |
-| Permissive | 39 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
+| Permissive | 40 | ImageIO, PyMatting, PyQt6_sip, Pygments, ast_serialize, attrs, charset-normalizer, coverage, flatbuffers, idna, iniconfig, jsonschema, jsonschema-specifications, lazy-loader, librt, llvmlite, mypy, mypy_extensions, networkx, numba, numpy, onnxruntime, packaging, pillow, platformdirs, pluggy, pooch, protobuf, pytest, pytest-qt, referencing, rembg, requests, rpds-py, ruff, scikit-image, scipy, tifffile, typing_extensions, urllib3 |
 
 ## Dépendances en détail
 
@@ -37,6 +37,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 | attrs | 26.1.0 | `MIT` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | certifi | 2026.2.25 | `Mozilla Public License 2.0 (MPL 2.0)` | Copyleft faible (fichier) | Copyleft faible, au niveau du fichier. Utilisation commerciale autorisée ; seules les modifications des fichiers sous licence MPL eux-mêmes doivent être à nouveau divulguées sous MPL. Compatible avec GPL-3.0. |
 | charset-normalizer | 3.4.6 | `MIT` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
+| coverage | 7.14.0 | `Apache-2.0` | Permissive | Licence permissive avec octroi de brevet explicite. Utilisation commerciale et propriétaire autorisée ; la mention de licence/copyright et les notes de modification (NOTICE) doivent être conservées. |
 | flatbuffers | 25.12.19 | `Apache Software License` | Permissive | Licence permissive avec octroi de brevet explicite. Utilisation commerciale et propriétaire autorisée ; la mention de licence/copyright et les notes de modification (NOTICE) doivent être conservées. |
 | idna | 3.11 | `BSD-3-Clause` | Permissive | Licence permissive (famille BSD). Utilisation commerciale et propriétaire autorisée ; la mention de copyright/licence doit être fournie et le nom des auteurs ne peut pas être utilisé à des fins publicitaires sans accord. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Permissive | Licence permissive (famille BSD). Utilisation commerciale et propriétaire autorisée ; la mention de copyright/licence doit être fournie et le nom des auteurs ne peut pas être utilisé à des fins publicitaires sans accord. |
@@ -82,6 +83,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 
 - **ast_serialize** – https://github.com/mypyc/ast_serialize
 - **certifi** – https://github.com/certifi/python-certifi
+- **coverage** – https://github.com/coveragepy/coveragepy
 - **flatbuffers** – https://google.github.io/flatbuffers/
 - **idna** – https://github.com/kjd/idna
 - **ImageIO** – https://github.com/imageio/imageio

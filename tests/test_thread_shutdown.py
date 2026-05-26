@@ -10,8 +10,8 @@ import threading
 import time
 from unittest.mock import patch
 
-from PyQt6.QtCore import QObject, pyqtSignal
 from PIL import Image
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from bgremover import MainWindow
 

@@ -8,19 +8,19 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QButtonGroup, QFrame, QToolButton, QVBoxLayout
 
 from bgremover.constants import (
+    _TOOLBAR_BTN_SIZE,
+    _TOOLBAR_ICON_SIZE,
+    _TOOLBAR_WIDTH,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_LASSO,
     TOOL_WAND,
-    _TOOLBAR_BTN_SIZE,
-    _TOOLBAR_ICON_SIZE,
-    _TOOLBAR_WIDTH,
 )
 from bgremover.icons import make_tool_icon
 from bgremover.theme import (
     HISTORY_BUTTON_STYLE,
-    TOOLBAR_FRAME_STYLE,
     TOOL_STYLE,
+    TOOLBAR_FRAME_STYLE,
     _Theme,
 )
 

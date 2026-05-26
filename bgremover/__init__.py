@@ -5,7 +5,8 @@ Console-Script ``bgremover`` oder ``python -m bgremover`` gestartet
 werden. Einige etablierte Klassen und Helfer werden hier für Tests und
 kleine Integrationen re-exportiert.
 """
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 try:
     __version__ = _pkg_version("bgremover")
@@ -13,17 +14,19 @@ except PackageNotFoundError:
     # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
     __version__ = "2.2.0"
 
+from bgremover.canvas import ImageCanvas
 from bgremover.constants import (
+    _MAX_MEGAPIXELS,
+    _THREAD_SHUTDOWN_MS,
+    _UNDO_MEMORY_LIMIT,
     LOG_FILENAME,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_LASSO,
     TOOL_WAND,
-    _MAX_MEGAPIXELS,
-    _THREAD_SHUTDOWN_MS,
-    _UNDO_MEMORY_LIMIT,
     logger,
 )
+from bgremover.crop import CropOverlayItem
 from bgremover.image_utils import (
     flood_fill,
     mask_to_overlay,
@@ -32,22 +35,20 @@ from bgremover.image_utils import (
     pil_to_numpy_readonly,
     pil_to_qpixmap,
 )
-from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
-from bgremover.canvas import ImageCanvas
-from bgremover.crop import CropOverlayItem
 from bgremover.logging_config import (
     _resolve_log_dir,
     _setup_logging,
     current_log_file,
 )
+from bgremover.main_window import MainWindow
 from bgremover.settings_dialog import SettingsDialog
+from bgremover.theme import SLD_STYLE, TOOL_STYLE, _Theme
 from bgremover.widgets import TopIconTabBar, TopIconTabWidget
 from bgremover.workers import (
     REMBG_AVAILABLE,
     AIWorker,
     ImageLoadWorker,
 )
-from bgremover.main_window import MainWindow
 
 __all__ = [
     "LOG_FILENAME",
