@@ -28,6 +28,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Synchroner Lade-Pfad nutzt dieselben Schutzprüfungen wie der Worker.**
+  `ImageCanvas.load_image` (Drag & Drop, Tests) ging bislang am
+  strukturellen `verify()`, an der Format-Whitelist
+  (`_ALLOWED_IMAGE_FORMATS`) und am sauberen Decode-Fehlerpfad vorbei,
+  die der `ImageLoadWorker` seit der Format-/Struktur-Härtung leistet –
+  nur der Megapixel-Check war gemeinsam. Beide Wege rufen jetzt den
+  neuen Helfer `bgremover.image_loading.open_validated_image` auf, sodass
+  manipulierte Dateien und nicht unterstützte Formate auch via
+  Drag & Drop sauber als Statusmeldung enden statt mit unbehandelten
+  PIL-Exceptions.
 - **License-Check stabilisiert.** `coverage` ist jetzt in
   `requirements/constraints.txt` gepinnt (`==7.14.0`), damit ein neuer
   `coverage`-Upstream-Release den `LICENSES.md`-Drift-Vergleich der
