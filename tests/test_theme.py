@@ -12,6 +12,7 @@ from pathlib import Path
 
 import bgremover
 from bgremover.right_panel import TAB_STYLE
+from bgremover.theme import _Theme
 
 _PKG = Path(__file__).resolve().parent.parent / "bgremover"
 
@@ -37,7 +38,7 @@ def _pkg_assigned_names() -> set[str]:
 
 
 def test_theme_has_canonical_values():
-    t = bgremover._Theme
+    t = _Theme
     assert t.ACCENT == "#4a90d9"
     assert t.BG_PANEL == "#1a1a1a"
     assert t.BG_TABBAR == "#141414"
@@ -49,9 +50,9 @@ def test_theme_has_canonical_values():
 def test_shared_templates_use_palette():
     # Die wiederverwendeten Templates müssen die Palette referenzieren,
     # nicht erneut hartkodierte Hex-Werte enthalten.
-    assert bgremover._Theme.ACCENT in bgremover.TOOL_STYLE
-    assert bgremover._Theme.BORDER in bgremover.SLD_STYLE
-    assert bgremover._Theme.ACCENT in TAB_STYLE
+    assert _Theme.ACCENT in bgremover.TOOL_STYLE
+    assert _Theme.BORDER in bgremover.SLD_STYLE
+    assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
     assert "{{" not in bgremover.TOOL_STYLE

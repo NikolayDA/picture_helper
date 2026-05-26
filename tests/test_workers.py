@@ -6,12 +6,12 @@ import pytest
 from PIL import Image
 
 from bgremover import (
-    _MAX_MEGAPIXELS,
     AIWorker,
     ImageCanvas,
     ImageLoadWorker,
     MainWindow,
 )
+from bgremover.constants import _MAX_MEGAPIXELS
 
 # ─────────────────────────────────────────────────────────────
 # ImageLoadWorker – Fehlerpfade
