@@ -13,6 +13,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
+- **Öffentliche Paket-API entschlackt (kleiner Breaking Change für externe
+  Konsumenten).** Privates Vokabular ist nicht länger vom `bgremover`-
+  Top-Level re-exportiert: `_MAX_MEGAPIXELS`, `_THREAD_SHUTDOWN_MS`,
+  `_UNDO_MEMORY_LIMIT`, `_Theme`, `_setup_logging` und `_resolve_log_dir`
+  sind aus `bgremover/__init__.py` (Import-Block und `__all__`) entfernt.
+  Code, der diese Symbole braucht, importiert direkt aus den Submodulen
+  (`bgremover.constants`, `bgremover.theme`, `bgremover.logging_config`).
+  `logger`, `LOG_FILENAME`, `REMBG_AVAILABLE` und `current_log_file`
+  bleiben als legitime öffentliche API erhalten. Zusätzlich entfällt die
+  reine Test-Vorderkante `MainWindow._recent_paths()`; die drei Tests in
+  `tests/test_recent_files.py` greifen direkt auf
+  `w._recent_files.paths()` zu.
 
 ### Behoben
 
@@ -20,6 +32,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `requirements/constraints.txt` gepinnt (`==7.14.0`), damit ein neuer
   `coverage`-Upstream-Release den `LICENSES.md`-Drift-Vergleich der
   License-Workflow nicht mehr rot färbt.
+- **License-Check gegen Zeitzonen-Drift gehärtet.** Das `gen_date` aus
+  `git log -1 --format=%cs -- LICENSES.md` formatiert das Datum sonst im
+  Committer-TZ des betroffenen Commits – ein Merge-Commit mit
+  `+02:00`-Offset (web-flow + CEST-Region) verschob den Tag dann um eine
+  Position, sobald die UTC-Zeit knapp vor Mitternacht lag (Beispiel:
+  `2026-05-26T23:10:10Z` ≡ `2026-05-27T01:10:10+02:00` → `%cs` =
+  `2026-05-27`). Zusätzlich gewann das Datum des Merge-Commits dadurch
+  Bedeutung, dass `actions/checkout@v5` bei `pull_request`-Events
+  standardmäßig den synthetischen `refs/pull/N/merge`-Commit shallow
+  auscheckt – ohne Parent vergleicht `git log -- LICENSES.md` nichts,
+  und der Merge-Commit erscheint als „letzte Änderung". Fix:
+  `fetch-depth: 0` in `actions/checkout` plus `TZ=UTC` und
+  `--date=short-local` für den `git log`-Aufruf, sodass sowohl der echte
+  Edit-Commit gefunden als auch das Datum deterministisch in UTC
+  formatiert wird.
 
 ### Entfernt
 

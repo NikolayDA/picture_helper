@@ -124,7 +124,7 @@ def test_recent_list_dedups_and_caps(qapp, isolated_settings):
         p = isolated_settings / f"img{i}.png"
         p.write_text("x", encoding="utf-8")
         w._add_recent(str(p))
-    paths = w._recent_paths()
+    paths = w._recent_files.paths()
     assert len(paths) == RECENT_MAX
     # Letzter eingefügter Eintrag steht vorn
     assert Path(paths[0]).name == "img11.png"
@@ -143,7 +143,7 @@ def test_recent_brings_existing_to_front(qapp, isolated_settings):
     w._add_recent(a)
     w._add_recent(b)
     w._add_recent(a)             # a wieder nach vorn
-    paths = w._recent_paths()
+    paths = w._recent_files.paths()
     assert paths[0] == str(Path(a).resolve())
     # Insgesamt nur 2 Einträge (keine Duplikate)
     assert len(paths) == 2
@@ -156,7 +156,7 @@ def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
     img_path = tmp_path / "x.png"
     Image.new("RGB", (8, 8), (1, 2, 3)).save(img_path)
     w._canvas.load_image(str(img_path))
-    paths = w._recent_paths()
+    paths = w._recent_files.paths()
     assert len(paths) == 1
     assert Path(paths[0]).resolve() == img_path.resolve()
 

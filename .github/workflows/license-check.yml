@@ -15,6 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Volle History, damit `git log -- LICENSES.md` den tatsaechlichen
+          # Edit-Commit findet statt des Merge-Commits (refs/pull/N/merge),
+          # den actions/checkout bei pull_request-Events standardmaessig
+          # auscheckt – sonst leitet ein shallow Clone das Datum vom Merge-
+          # Commit ab statt von der letzten echten Aenderung.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
@@ -37,7 +44,11 @@ jobs:
           # der regenerierte Inhalt damit byte-identisch zum Committeten.
           # Faellt zurueck auf 'heute', falls die Datei (noch) nicht im
           # git-Log auftaucht (z. B. frischer Branch ohne LICENSES.md).
-          gen_date="$(git log -1 --format=%cs -- LICENSES.md 2>/dev/null || true)"
+          # `%cs` formatiert das Datum sonst im Committer-TZ des Commits –
+          # ein Commit mit z. B. +02:00 schiebt den Tag dann um, sobald die
+          # UTC-Zeit knapp vor Mitternacht liegt. `TZ=UTC` + `short-local`
+          # erzwingen UTC und machen den Wert TZ-unabhaengig.
+          gen_date="$(TZ=UTC git log -1 --format=%cd --date=short-local -- LICENSES.md 2>/dev/null || true)"
           if [ -z "$gen_date" ]; then
             gen_date="$(date -u +%Y-%m-%d)"
           fi
