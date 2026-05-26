@@ -1,6 +1,10 @@
 #!/bin/zsh
+# shellcheck shell=bash
 # diagnose_mac.sh – sammelt alles, was zum Diagnostizieren eines
 # fehlgeschlagenen BgRemover-Starts auf macOS noetig ist.
+#
+# Hinweis Linter: zsh-Shebang fuer macOS, aber nur bash-/zsh-kompatible
+# Syntax – shell=bash (siehe Direktive oben) erlaubt die Pruefung.
 #
 # Aufruf:
 #   bash diagnose_mac.sh
@@ -108,6 +112,7 @@ for app_dir in \
         echo "  PYTHON-Variable im Launcher:"
         grep '^PYTHON=' "$launcher" | head -1 | sed 's/^/    /'
         echo "  Letzte Zeile (Start-Befehl):"
+        # shellcheck disable=SC2016  # Literal-Pattern, $-Expansion bewusst aus.
         grep -E '^(if ! "\$\{RUN|"\$PYTHON" -m bgremover)' "$launcher" | head -1 | sed 's/^/    /'
     else
         echo "  ✗ Launcher fehlt: $launcher"
@@ -120,13 +125,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMMAND_FILE="$SCRIPT_DIR/BgRemover.command"
 if [ -f "$COMMAND_FILE" ]; then
     echo "Datei: $COMMAND_FILE"
-    if grep -q '"$BGREMOVER"' "$COMMAND_FILE"; then
-        echo "  ⚠️  ALT (sucht BgRemover.py) – `git pull` ausstehend?"
-    elif grep -q '"\${RUN\[@\]}" -m bgremover' "$COMMAND_FILE"; then
-        echo "  ✓ aktuell (startet via 'python -m bgremover')"
-    else
-        echo "  ? unbekannter Stand"
-    fi
+    # SC2016: Literal-Pattern, $-Expansion in der grep-Suche bewusst aus.
+    # shellcheck disable=SC2016
+    {
+        if grep -q '"$BGREMOVER"' "$COMMAND_FILE"; then
+            echo '  ⚠️  ALT (sucht BgRemover.py) – `git pull` ausstehend?'
+        elif grep -q '"\${RUN\[@\]}" -m bgremover' "$COMMAND_FILE"; then
+            echo "  ✓ aktuell (startet via 'python -m bgremover')"
+        else
+            echo "  ? unbekannter Stand"
+        fi
+    }
 else
     echo "  fehlt: $COMMAND_FILE"
 fi
@@ -140,9 +149,11 @@ if [ -d "$SCRIPT_DIR/.git" ]; then
     ( cd "$SCRIPT_DIR" && echo "git HEAD: $(git log --oneline -1 2>&1)" )
 fi
 if [ -d "$SCRIPT_DIR/bgremover" ]; then
-    echo "bgremover/ vorhanden:  $(ls "$SCRIPT_DIR/bgremover"/*.py 2>/dev/null | wc -l | tr -d ' ') Module"
+    py_count="$(find "$SCRIPT_DIR/bgremover" -maxdepth 1 -name '*.py' 2>/dev/null | wc -l | tr -d ' ')"
+    echo "bgremover/ vorhanden:  ${py_count} Module"
 else
-    echo "  ✗ bgremover/ fehlt im Repo (`git pull` ausstehend?)"
+    # shellcheck disable=SC2016  # Backticks sind Anzeigetext, nicht Substitution.
+    echo '  ✗ bgremover/ fehlt im Repo (`git pull` ausstehend?)'
 fi
 
 # ── bgremover in der App-venv WIRKLICH installiert? ─────────────
