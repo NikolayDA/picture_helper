@@ -5,9 +5,8 @@ Klasse besitzt UI-Zustand, Undo/Redo, Qt-Signale und interaktive Overlays.
 """
 from __future__ import annotations
 
-import functools
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -41,13 +40,12 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.canvas_history import CanvasHistory
+from bgremover.canvas_crop import CanvasCrop
+from bgremover.canvas_helpers import _requires_image, _selection_mode_from_modifiers
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import CanvasSelection
-from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_ops import (
-    crop_image,
-    crop_size_for_ratio,
     flip_image,
     rotate_image,
     round_corners,
@@ -60,31 +58,6 @@ from bgremover.image_utils import (
     pil_to_numpy,
     pil_to_qpixmap,
 )
-
-
-def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
-    """Frühausstieg-Guard für ImageCanvas-Methoden ohne geladenes Bild.
-
-    Ersetzt den mehrfach byte-identisch wiederholten Block
-    ``if self._pil is None: self.statusMsg.emit("Kein Bild geladen"); return``.
-    """
-    @functools.wraps(method)
-    def wrapper(self: "ImageCanvas", *args: object, **kwargs: object) -> None:
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
-        method(self, *args, **kwargs)
-    return wrapper
-
-
-def _selection_mode_from_modifiers(
-    mods: Qt.KeyboardModifier,
-) -> Literal["set", "add", "subtract"]:
-    if mods & Qt.KeyboardModifier.ShiftModifier:
-        return "add"
-    if mods & Qt.KeyboardModifier.ControlModifier:
-        return "subtract"
-    return "set"
 
 
 class ImageCanvas(QGraphicsView):
@@ -139,14 +112,14 @@ class ImageCanvas(QGraphicsView):
 
         # Polygon-Lasso-Werkzeug
         self._lasso = CanvasLasso(self._scene)
-
-        # Crop-Overlay-Zustand
-        self._crop_overlay:      CropOverlayItem | None = None
-        self._crop_dragging:     bool    = False
-        self._crop_drag_start:   QPointF = QPointF()
-        self._crop_start_pos:    QPointF = QPointF()
-        self._crop_resizing:     bool    = False   # True = Resize-Drag läuft
-        self._crop_resize_corner: int    = -1      # 0-3 welche Ecke
+        self._crop = CanvasCrop(
+            self._scene,
+            self,
+            self.statusMsg.emit,
+            self.cropModeChanged.emit,
+            self.setCursor,
+            lambda: self.set_tool(self._tool),
+        )
 
         # Pinsel-Vorschau-Kreis (sichtbar bei Tool=brush/eraser)
         self._brush_preview = QGraphicsEllipseItem()
@@ -160,27 +133,22 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def image(self) -> Image.Image | None:
-        """Aktuell angezeigtes PIL-Bild (oder ``None``)."""
         return self._pil
 
     @property
     def has_image(self) -> bool:
-        """True, sobald ein Bild geladen ist."""
         return self._pil is not None
 
     @property
     def version(self) -> int:
-        """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
 
     @property
     def content_revision(self) -> int:
-        """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
 
     @property
     def _mask(self) -> np.ndarray | None:
-        """Übergangs-Accessor für ältere Tests und interne Debug-Zugriffe."""
         if self._pil is None:
             return None
         return self._selection.mask
@@ -194,8 +162,11 @@ class ImageCanvas(QGraphicsView):
         self._selection.reset(mask.shape[1], mask.shape[0])
         self._selection.mask[:] = mask
 
+    @property
+    def _crop_overlay(self):
+        return self._crop.overlay
+
     def fit_to_view(self) -> None:
-        """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
         self.fitInView(self._img_item, Qt.AspectRatioMode.KeepAspectRatio)
 
     # ── Laden ────────────────────────────────────────────────
@@ -231,7 +202,6 @@ class ImageCanvas(QGraphicsView):
         self.imageLoaded.emit(str(Path(path).resolve()))
 
     def apply_edit(self, img: Image.Image, desc: str = "Bearbeitung") -> None:
-        """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
         self._apply_pil(img, push=True, desc=desc)
 
     def _apply_pil(
@@ -260,11 +230,6 @@ class ImageCanvas(QGraphicsView):
             self._overlay_item.setPixmap(mask_to_overlay(mask, w, h))
 
     def _set_image_state(self, img: Image.Image) -> None:
-        """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
-
-        Kapselt den Anzeigezustand und die Content-Revision. Die
-        Undo-/Redo-Stapelpflege liegt in ``CanvasHistory``.
-        """
         self._pil  = img
         self._arr  = pil_to_numpy(img)
         self._selection.reset(img.width, img.height)
@@ -273,7 +238,6 @@ class ImageCanvas(QGraphicsView):
         self._refresh_overlay()
 
     def _emit_history(self) -> None:
-        """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
         self.historyChanged.emit(self._history.descriptions())
 
     def _apply_history_step(
@@ -472,29 +436,8 @@ class ImageCanvas(QGraphicsView):
 
     # ── Maus-Events ──────────────────────────────────────────
 
-    def _to_img_xy(self, event) -> tuple[int, int]:
-        sp = self.mapToScene(event.position().toPoint())
-        return int(sp.x()), int(sp.y())
-
     def _handle_crop_press(self, btn: Qt.MouseButton, sp: QPointF) -> bool:
-        """Verarbeitet Press-Events im Crop-Modus; True => Event konsumiert."""
-        if self._crop_overlay is None:
-            return False
-        if btn == Qt.MouseButton.LeftButton:
-            corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
-            if corner >= 0:
-                self._crop_resizing = True
-                self._crop_resize_corner = corner
-                self._crop_drag_start = sp
-                self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
-                                      if corner in (0, 3)
-                                      else Qt.CursorShape.SizeBDiagCursor))
-            elif self._crop_overlay.inside(sp.x(), sp.y()):
-                self._crop_dragging = True
-                self._crop_drag_start = sp
-                self._crop_start_pos = self._crop_overlay.top_left
-                self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
-        return True
+        return self._crop.handle_press(btn, sp)
 
     def _start_pan_if_requested(
         self,
@@ -569,34 +512,7 @@ class ImageCanvas(QGraphicsView):
             if self._tool == TOOL_LASSO:
                 self._lasso.update_preview_line(sp.x(), sp.y())
 
-        # ── Crop-Resize ───────────────────────────────────────
-        if self._crop_resizing and self._crop_overlay is not None:
-            self._crop_overlay.resize_from_corner(
-                self._crop_resize_corner, sp.x(), sp.y())
-            cw, ch = self._crop_overlay.size
-            self.statusMsg.emit(
-                f"⇲ Größe: {int(round(cw))} × {int(round(ch))} px")
-            return
-
-        # ── Crop-Drag ─────────────────────────────────────────
-        if self._crop_dragging and self._crop_overlay is not None:
-            delta = sp - self._crop_drag_start
-            self._crop_overlay.set_position(
-                self._crop_start_pos.x() + delta.x(),
-                self._crop_start_pos.y() + delta.y())
-            return
-
-        # Cursor im Crop-Modus anpassen
-        if self._crop_overlay is not None:
-            corner = self._crop_overlay.corner_hit(sp.x(), sp.y())
-            if corner >= 0:
-                self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor
-                                       if corner in (0, 3)
-                                       else Qt.CursorShape.SizeBDiagCursor))
-            elif self._crop_overlay.inside(sp.x(), sp.y()):
-                self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-            else:
-                self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
+        if self._crop.handle_move(sp):
             return
 
         if self._panning:
@@ -613,16 +529,8 @@ class ImageCanvas(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
-        if self._crop_resizing:
-            self._crop_resizing = False
-            self._crop_resize_corner = -1
-            if self._crop_overlay is not None:
-                self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-            return
-        if self._crop_dragging:
-            self._crop_dragging = False
-            if self._crop_overlay is not None:
-                self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
+        sp = self.mapToScene(event.position().toPoint())
+        if self._crop.handle_release(sp):
             return
         if self._panning:
             self._panning = False
@@ -771,62 +679,20 @@ class ImageCanvas(QGraphicsView):
 
     @_requires_image
     def start_crop_circle(self) -> None:
-        """Startet den interaktiven Kreis-Zuschnitt."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        size = min(self._pil.width, self._pil.height)
-        self._start_crop_overlay(size, size, is_circle=True)
+        self._crop.start_circle()
 
     @_requires_image
     def start_crop_ratio(self, ratio_w: int, ratio_h: int) -> None:
-        """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
-        assert self._pil is not None  # @_requires_image-Dekorator garantiert das
-        cw, ch = crop_size_for_ratio(self._pil.size, ratio_w, ratio_h)
-        self._start_crop_overlay(cw, ch, is_circle=False)
+        self._crop.start_ratio(ratio_w, ratio_h)
 
     def _start_crop_overlay(self, cw: int, ch: int, is_circle: bool) -> None:
-        # Aufrufer (start_crop_circle / start_crop_ratio) sind @_requires_image-
-        # dekoriert; _pil ist hier garantiert nicht None.
-        assert self._pil is not None
-        self._cancel_crop_overlay()
-        self._crop_overlay = CropOverlayItem(
-            self._pil.width, self._pil.height, cw, ch, is_circle)
-        self._scene.addItem(self._crop_overlay)
-        self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-        self.cropModeChanged.emit(True)
-        label = "Kreis" if is_circle else f"{cw} × {ch} px"
-        self.statusMsg.emit(
-            f"✂  Ausschnitt verschieben  [{label}]  —  dann ✓ Anwenden klicken")
+        self._crop.start_overlay(cw, ch, is_circle)
 
     def confirm_crop(self) -> None:
-        """Wendet den aktuellen Crop-Overlay als Zuschnitt an."""
-        if self._crop_overlay is None or self._pil is None:
-            return
-        r = self._crop_overlay.crop_rect()
-        cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
-        is_circle = self._crop_overlay.is_circle
-        result = crop_image(self._pil, (cx, cy, cw, ch), is_circle=is_circle)
-
-        if is_circle:
-            desc = "Format: Kreis"
-        else:
-            desc = f"Format: {cw}×{ch} px"
-
-        self._cancel_crop_overlay()
-        self.cropModeChanged.emit(False)
-        self._apply_pil(result, desc=desc)
-        self.statusMsg.emit(f"✂  Zugeschnitten: {result.width} × {result.height} px")
+        self._crop.confirm()
 
     def cancel_crop(self) -> None:
-        """Bricht den Zuschnitt ab ohne Änderung."""
-        self._cancel_crop_overlay()
-        self.cropModeChanged.emit(False)
-        self.set_tool(self._tool)
-        self.statusMsg.emit("Zuschnitt abgebrochen")
+        self._crop.cancel()
 
     def _cancel_crop_overlay(self) -> None:
-        if self._crop_overlay is not None:
-            self._scene.removeItem(self._crop_overlay)
-            self._crop_overlay = None
-        self._crop_dragging      = False
-        self._crop_resizing      = False
-        self._crop_resize_corner = -1
+        self._crop.clear()
