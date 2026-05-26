@@ -282,9 +282,6 @@ class MainWindow(QMainWindow):
 
     # ── Recent-Files ────────────────────────────────────────────
 
-    def _recent_paths(self) -> list[str]:
-        return self._recent_files.paths()
-
     def _add_recent(self, path: str) -> None:
         if self._recent_menu is None:
             self._recent_files.add(path)

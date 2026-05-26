@@ -13,6 +13,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
+- **Öffentliche Paket-API entschlackt (kleiner Breaking Change für externe
+  Konsumenten).** Privates Vokabular ist nicht länger vom `bgremover`-
+  Top-Level re-exportiert: `_MAX_MEGAPIXELS`, `_THREAD_SHUTDOWN_MS`,
+  `_UNDO_MEMORY_LIMIT`, `_Theme`, `_setup_logging` und `_resolve_log_dir`
+  sind aus `bgremover/__init__.py` (Import-Block und `__all__`) entfernt.
+  Code, der diese Symbole braucht, importiert direkt aus den Submodulen
+  (`bgremover.constants`, `bgremover.theme`, `bgremover.logging_config`).
+  `logger`, `LOG_FILENAME`, `REMBG_AVAILABLE` und `current_log_file`
+  bleiben als legitime öffentliche API erhalten. Zusätzlich entfällt die
+  reine Test-Vorderkante `MainWindow._recent_paths()`; die drei Tests in
+  `tests/test_recent_files.py` greifen direkt auf
+  `w._recent_files.paths()` zu.
 
 ### Behoben
 
