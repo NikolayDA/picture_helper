@@ -42,7 +42,7 @@ class WorkerController:
 
     def launch_worker(
         self,
-        worker: _Worker | RembgWarmupWorker,
+        worker: _Worker,
         quit_on: QuitSignals,
         on_finished: Callable[[], None] | None = None,
     ) -> QThread:
@@ -53,7 +53,7 @@ class WorkerController:
 
     def _build_thread(
         self,
-        worker: _Worker | RembgWarmupWorker,
+        worker: _Worker,
         quit_on: QuitSignals,
         on_finished: Callable[[], None] | None = None,
     ) -> QThread:

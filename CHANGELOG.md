@@ -9,10 +9,33 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Laufzeit-Test für `RembgWarmupWorker`.** Zwei neue Tests in
+  `tests/test_workers.py` prüfen den Always-emit-`finished`-Vertrag
+  (Erfolgs- und Fehlerfall des Warmups) mit gepatchtem `rembg_remove`.
+  Ein neuer Controller-Test in `tests/test_worker_controller.py`
+  verifiziert zusätzlich, dass der `WorkerController` den Thread-
+  Lifecycle auch dann sauber abschließt (Worker freigegeben,
+  `warmup_done` gesetzt, `on_finished` aufgerufen), wenn `rembg_remove`
+  beim ersten Start eine Exception wirft – sonst hängt der Bootstrap,
+  falls das ONNX-Modell offline nicht geladen werden kann.
+
 ### Geändert
 
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
+- **`RembgWarmupWorker` erbt von `_Worker`.** Der Warmup-Worker war
+  bisher der einzige Worker mit eigenem `try/except/finally`-Boilerplate
+  außerhalb der gemeinsamen Basis. `_Worker.run` bekommt einen
+  `_always_finished()`-Hook im `finally`-Zweig (Default no-op), den
+  `RembgWarmupWorker` überschreibt, um sein parameterloses
+  `finished`-Signal weiterhin sowohl im Erfolgs- als auch im Fehlerfall
+  zu feuern – der `WorkerController` braucht das, um den Thread-
+  Lifecycle abzuschließen. Konsistente Logging-/Error-Semantik (jetzt
+  via `_error_context = "rembg-Warmup"`); `WorkerController`-
+  Typannotationen vereinheitlicht (`_Worker | RembgWarmupWorker` →
+  `_Worker`).
 - **Canvas-Submodule nutzen die öffentliche Edit-API.** `CanvasCrop` und
   `CanvasTransform` riefen bislang `ImageCanvas._apply_pil(...)` direkt
   auf, obwohl `ImageCanvas` dafür den öffentlichen Eintritt
