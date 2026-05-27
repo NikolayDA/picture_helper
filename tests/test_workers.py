@@ -258,6 +258,49 @@ def test_ai_worker_cancel_skips_finished_signal(qapp, _mock_rembg) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
+# RembgWarmupWorker – Always-emit-finished-Vertrag
+# ─────────────────────────────────────────────────────────────
+
+def test_warmup_worker_emits_finished_on_success(qapp, _mock_rembg) -> None:
+    """Erfolgsfall: ``finished`` muss genau einmal feuern, ``rembg_remove``
+    bekommt das Dummy-Bild zu sehen."""
+    from bgremover.workers import RembgWarmupWorker
+
+    worker = RembgWarmupWorker()
+    finished: list = []
+    worker.finished.connect(lambda: finished.append(True))
+
+    calls: list[bytes] = []
+
+    def fake_remove(payload: bytes) -> bytes:
+        calls.append(payload)
+        return b""
+
+    with patch("bgremover.workers.rembg_remove", side_effect=fake_remove):
+        worker.run()
+
+    assert finished == [True]
+    assert len(calls) == 1
+    assert calls[0]  # Nicht-leeres Dummy-PNG
+
+
+def test_warmup_worker_emits_finished_on_error(qapp, _mock_rembg) -> None:
+    """Fehlerfall: ``finished`` muss trotzdem feuern – sonst hängt der
+    WorkerController-Thread-Lifecycle (``warmup_done`` würde nie gesetzt)."""
+    from bgremover.workers import RembgWarmupWorker
+
+    worker = RembgWarmupWorker()
+    finished: list = []
+    worker.finished.connect(lambda: finished.append(True))
+
+    with patch("bgremover.workers.rembg_remove",
+               side_effect=RuntimeError("mock warmup failure")):
+        worker.run()
+
+    assert finished == [True]
+
+
+# ─────────────────────────────────────────────────────────────
 # Canvas – Versions- und Content-Revisionszähler (Stale-Check für KI-Ergebnis)
 # ─────────────────────────────────────────────────────────────
 
