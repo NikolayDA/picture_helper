@@ -13,6 +13,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
+- **Canvas-Submodule nutzen die öffentliche Edit-API.** `CanvasCrop` und
+  `CanvasTransform` riefen bislang `ImageCanvas._apply_pil(...)` direkt
+  auf, obwohl `ImageCanvas` dafür den öffentlichen Eintritt
+  `apply_edit(img, desc=...)` anbietet; analog griff `CanvasCrop.cancel`
+  auf das private `_tool` zu. Beide Submodule nutzen jetzt
+  `apply_edit(...)` bzw. die neue Read-Only-Property
+  `ImageCanvas.current_tool`. `_apply_pil` bleibt intern für
+  `apply_loaded_image`/`apply_edit`/Undo-/AI-Pfade. Zusätzlich nutzen
+  `clear_selection`, `invert_selection`, `expand_selection` und
+  `shrink_selection` jetzt den vorhandenen `_requires_image`-Decorator
+  statt vier verschiedener inline-Guards; `clear_selection` meldet im
+  Leerzustand jetzt einheitlich „Kein Bild geladen" statt stumm zu
+  bleiben.
 - **Öffentliche Paket-API entschlackt (kleiner Breaking Change für externe
   Konsumenten).** Privates Vokabular ist nicht länger vom `bgremover`-
   Top-Level re-exportiert: `_MAX_MEGAPIXELS`, `_THREAD_SHUTDOWN_MS`,

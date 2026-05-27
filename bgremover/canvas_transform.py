@@ -32,7 +32,7 @@ class CanvasTransform:
             self._canvas.statusMsg.emit("Radius muss > 0 sein")
             return
         result, r = round_corners(img, radius)
-        self._canvas._apply_pil(result, desc=f"Ecken abgerundet ({r} px)")
+        self._canvas.apply_edit(result, desc=f"Ecken abgerundet ({r} px)")
         self._canvas.statusMsg.emit(f"Ecken abgerundet: {r} px Radius")
 
     def apply_rotate(self, degrees: int) -> None:
@@ -45,7 +45,7 @@ class CanvasTransform:
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
         result = rotate_image(img, degrees)
         direction = "↺" if degrees > 0 else "↻"
-        self._canvas._apply_pil(result, desc=f"{direction} Gedreht {abs(degrees)}°")
+        self._canvas.apply_edit(result, desc=f"{direction} Gedreht {abs(degrees)}°")
         self._canvas.statusMsg.emit(
             f"{direction} Gedreht: {abs(degrees)}°  "
             f"({result.width} × {result.height} px)"
@@ -57,8 +57,8 @@ class CanvasTransform:
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
         result = flip_image(img, horizontal)
         if horizontal:
-            self._canvas._apply_pil(result, desc="↔ Horizontal gespiegelt")
+            self._canvas.apply_edit(result, desc="↔ Horizontal gespiegelt")
             self._canvas.statusMsg.emit("↔ Horizontal gespiegelt")
         else:
-            self._canvas._apply_pil(result, desc="↕ Vertikal gespiegelt")
+            self._canvas.apply_edit(result, desc="↕ Vertikal gespiegelt")
             self._canvas.statusMsg.emit("↕ Vertikal gespiegelt")

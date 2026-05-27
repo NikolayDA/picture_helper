@@ -162,6 +162,11 @@ class ImageCanvas(QGraphicsView):
         return self._pil is not None
 
     @property
+    def current_tool(self) -> str:
+        """Aktuell aktives Werkzeug-Token (TOOL_WAND/BRUSH/ERASER/LASSO)."""
+        return self._tool
+
+    @property
     def version(self) -> int:
         """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
         return self._content_revision
@@ -325,31 +330,31 @@ class ImageCanvas(QGraphicsView):
         self._emit_history()
         self.statusMsg.emit("🔄  Original wiederhergestellt")
 
+    @_requires_image
     def clear_selection(self) -> None:
-        if self._pil is not None:
-            self._selection.clear()
-            self._refresh_overlay()
-            self.statusMsg.emit("Auswahl aufgehoben")
+        self._selection.clear()
+        self._refresh_overlay()
+        self.statusMsg.emit("Auswahl aufgehoben")
 
+    @_requires_image
     def invert_selection(self) -> None:
-        if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
-            return
         pixels = self._selection.invert()
         self._refresh_overlay()
         self.statusMsg.emit(f"Auswahl invertiert: {pixels:,} Pixel")
 
     def _morphology(self, radius: int, kind: Literal["expand", "shrink"]) -> None:
-        if self._pil is None or radius <= 0:
+        if radius <= 0:
             return
         pixels = self._selection.morphology(radius, kind)
         self._refresh_overlay()
         label = "erweitert" if kind == "expand" else "geschrumpft"
         self.statusMsg.emit(f"Auswahl um {radius} px {label}: {pixels:,} Pixel")
 
+    @_requires_image
     def expand_selection(self, radius: int) -> None:
         self._morphology(radius, "expand")
 
+    @_requires_image
     def shrink_selection(self, radius: int) -> None:
         self._morphology(radius, "shrink")
 
