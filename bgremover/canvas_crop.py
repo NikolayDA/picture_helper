@@ -98,7 +98,7 @@ class CanvasCrop:
         desc = "Format: Kreis" if is_circle else f"Format: {cw}×{ch} px"
         self.cancel_overlay_only()
         self._on_mode_changed(False)
-        self._canvas._apply_pil(result, desc=desc)
+        self._canvas.apply_edit(result, desc=desc)
         self._canvas.statusMsg.emit(
             f"✂  Zugeschnitten: {result.width} × {result.height} px")
 
@@ -107,7 +107,7 @@ class CanvasCrop:
         self.cancel_overlay_only()
         self._on_mode_changed(False)
         # Tool-Cursor wiederherstellen
-        self._canvas.set_tool(self._canvas._tool)
+        self._canvas.set_tool(self._canvas.current_tool)
         self._canvas.statusMsg.emit("Zuschnitt abgebrochen")
 
     def cancel_overlay_only(self) -> None:
