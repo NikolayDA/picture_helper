@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -39,7 +39,6 @@ from bgremover.canvas_viewport import CanvasViewport
 from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_TOLERANCE,
-    _MAX_MEGAPIXELS,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_LASSO,
@@ -48,6 +47,7 @@ from bgremover.constants import (
 )
 from bgremover.crop import CropOverlayItem
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
+from bgremover.image_loading import open_validated_image
 from bgremover.image_ops import save_image_file
 from bgremover.image_utils import (
     flood_fill,
@@ -203,17 +203,15 @@ class ImageCanvas(QGraphicsView):
 
         Für den File-Dialog läuft der gleiche Vorgang in einem Worker
         (siehe ``MainWindow._load_image_async`` + ``apply_loaded_image``).
+        Beide Pfade nutzen denselben Validierungs-Helfer, damit
+        Format-Whitelist, ``verify()`` und Megapixel-Schutz nicht nur dem
+        Worker zugutekommen.
         """
-        # EXIF-Orientierung anwenden: Smartphone-Fotos sind oft im Sensor
-        # gespeichert wie aufgenommen und werden erst über das EXIF-Tag
-        # korrekt orientiert. Ohne exif_transpose() erscheinen sie gekippt.
-        img: Image.Image = Image.open(path)
-        mp = img.width * img.height / 1_000_000
-        if mp > _MAX_MEGAPIXELS:
-            self.statusMsg.emit(
-                f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
+        img, err = open_validated_image(path)
+        if err is not None:
+            self.statusMsg.emit(err)
             return
-        img = ImageOps.exif_transpose(img).convert("RGBA")
+        assert img is not None
         self.apply_loaded_image(img, path)
 
     def apply_loaded_image(self, img: Image.Image, path: str) -> None:
