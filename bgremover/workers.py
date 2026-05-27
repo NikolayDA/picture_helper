@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import io
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS, logger
+from bgremover.constants import logger
+from bgremover.image_loading import open_validated_image
 
 try:
     from rembg import remove as rembg_remove
@@ -101,27 +102,9 @@ class ImageLoadWorker(_Worker):
         self._path = path
 
     def _work(self) -> None:
-        # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
-        # dekodieren – manipulierte oder abgeschnittene Dateien werden so
-        # frueh abgewiesen, bevor load() Speicher allokiert. PIL invalidiert
-        # das Image-Objekt nach verify(); fuer den echten Decode-Pfad muss
-        # erneut geoeffnet werden.
-        try:
-            with Image.open(self._path) as probe:
-                probe.verify()
-        except (UnidentifiedImageError, SyntaxError, OSError) as e:
-            self.error.emit(f"{type(e).__name__}: {e}")
+        img, err = open_validated_image(self._path)
+        if err is not None:
+            self.error.emit(err)
             return
-
-        img: Image.Image = Image.open(self._path)
-        if img.format not in _ALLOWED_IMAGE_FORMATS:
-            self.error.emit(f"Format nicht unterstützt: {img.format}")
-            return
-        mp = img.width * img.height / 1_000_000
-        if mp > _MAX_MEGAPIXELS:
-            self.error.emit(
-                f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
-            return
-        img.load()
-        img = ImageOps.exif_transpose(img).convert("RGBA")
+        assert img is not None
         self.finished.emit(img, self._path)

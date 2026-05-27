@@ -52,7 +52,7 @@ def test_image_load_worker_rejects_oversized_image(qapp, tmp_path) -> None:
     worker.error.connect(errors.append)
     worker.finished.connect(lambda img, p: finished.append(img))
 
-    with patch("bgremover.workers.Image.open") as mock_open:
+    with patch("bgremover.image_loading.Image.open") as mock_open:
         mock_img = mock_open.return_value
         mock_img.format = "PNG"
         mock_img.width, mock_img.height = fake_size
@@ -72,7 +72,7 @@ def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
     worker.error.connect(errors.append)
     worker.finished.connect(lambda img, path: finished.append((img, path)))
 
-    with patch("bgremover.workers.Image.open") as mock_open:
+    with patch("bgremover.image_loading.Image.open") as mock_open:
         mock_img = mock_open.return_value
         mock_img.format = "ICO"
         worker.run()
@@ -90,7 +90,7 @@ def test_image_load_worker_error_on_decode_failure(qapp, tmp_path) -> None:
     worker.error.connect(errors.append)
     worker.finished.connect(lambda img, path: finished.append((img, path)))
 
-    with patch("bgremover.workers.Image.open") as mock_open:
+    with patch("bgremover.image_loading.Image.open") as mock_open:
         mock_img = mock_open.return_value
         mock_img.format = "PNG"
         mock_img.width = 10
@@ -154,14 +154,35 @@ def test_canvas_load_image_rejects_oversized(qapp, tmp_path) -> None:
     oversized_mp = _MAX_MEGAPIXELS + 1
     fake_size = (int((oversized_mp * 1_000_000) ** 0.5),) * 2
 
-    with patch("bgremover.canvas.Image.open") as mock_open:
+    with patch("bgremover.image_loading.Image.open") as mock_open:
         mock_img = mock_open.return_value
+        mock_img.format = "PNG"
         mock_img.width, mock_img.height = fake_size
         canvas.load_image(str(small))
 
     # Kein Bild geladen, Fehlermeldung in Status
     assert canvas.image is None
     assert any(str(_MAX_MEGAPIXELS) in m for m in msgs)
+
+
+def test_canvas_load_image_rejects_unknown_format(qapp, tmp_path) -> None:
+    """Der synchrone Lade-Pfad muss dieselbe Format-Whitelist nutzen wie
+    der Worker – sonst akzeptiert Drag & Drop Formate, die der File-
+    Dialog ablehnt."""
+    p = tmp_path / "icon.xyz"
+    p.write_bytes(b"fake image")
+
+    canvas = ImageCanvas()
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+
+    with patch("bgremover.image_loading.Image.open") as mock_open:
+        mock_img = mock_open.return_value
+        mock_img.format = "ICO"
+        canvas.load_image(str(p))
+
+    assert canvas.image is None
+    assert any("Format nicht unterstützt: ICO" in m for m in msgs)
 
 
 # ─────────────────────────────────────────────────────────────
