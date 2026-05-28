@@ -11,6 +11,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **QSettings-Schema-Version eingefuehrt.** Neuer Helfer
+  `bgremover/settings_schema.py` mit `SCHEMA_VERSION = 1` und
+  `migrate(settings)`; `MainWindow.__init__` ruft die Migration direkt
+  nach der `QSettings`-Konstruktion auf. Aktuell ist nur die
+  Initialisierung aktiv – kuenftige Format-Wechsel (z. B. Layout der
+  `recent_files`-Liste) haengen sich an dieser zentralen Stelle ein,
+  ohne dass alte gespeicherte Werte den Start crashen lassen. Zukuenftige
+  Versionen werden nicht zurueckgeschrieben (Downgrade-Schutz) und nur
+  geloggt; ein nicht-numerischer `schema_version`-Wert wird wie
+  "nicht gesetzt" behandelt. Tests in `tests/test_settings_schema.py`
+  decken Initialisierung, Pre-Schema-Upgrade ohne Datenverlust,
+  Idempotenz, Future-Version-Warnung und korrupten Wert ab.
 - **Laufzeit-Test für `RembgWarmupWorker`.** Zwei neue Tests in
   `tests/test_workers.py` prüfen den Always-emit-`finished`-Vertrag
   (Erfolgs- und Fehlerfall des Warmups) mit gepatchtem `rembg_remove`.

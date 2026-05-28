@@ -28,5 +28,4 @@ Los hallazgos históricos y registros de trabajo completos de las rondas 1-5 est
 | 🟢 | Añadir classifiers de Python 3.11/3.13 | Bajo | Abierto |
 | 🟡 | Test de drift i18n: mantener `CHANGELOG`/`INSTALL` estructuralmente sincronizados | Medio | Abierto |
 | 🟢 | Unificar el idioma de la documentación donde los módulos mezclan DE/EN | Medio | Abierto |
-| 🟡 | Versionado de esquema de QSettings para futuras migraciones de ajustes | Medio | Abierto |
 | 🟢 | Añadir screenshot al README | Bajo | Abierto |
