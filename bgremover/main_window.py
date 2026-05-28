@@ -41,6 +41,7 @@ from bgremover.right_panel import (
 )
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.settings_schema import migrate as migrate_settings
+from bgremover.status_messages import StatusMessages as SM
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     STATUS_BAR_STYLE,
@@ -121,7 +122,7 @@ class MainWindow(QMainWindow):
         root.addWidget(canvas_container, 1)
         root.addWidget(self._build_right_panel())
 
-        self._sb.showMessage("Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche")
+        self._sb.showMessage(SM.START_HINWEIS)
 
     def _build_toolbar(self) -> QFrame:
         self._toolbar = build_toolbar(
@@ -200,7 +201,7 @@ class MainWindow(QMainWindow):
         die QThread-C++-Objekte) zerstört wird – sonst stürzt Python
         beim Schliessen ab, solange z. B. der KI-Warmup noch läuft.
         """
-        self._sb.showMessage("Beende…")
+        self._sb.showMessage(SM.BEENDE)
         self._worker_controller.shutdown_all()
         super().closeEvent(event)
 
@@ -219,7 +220,7 @@ class MainWindow(QMainWindow):
     def _load_image_async(self, path: str) -> None:
         """Lädt ein Bild im Hintergrund-Thread, damit die UI nicht blockt."""
         if self._worker_controller.is_loading:
-            self._sb.showMessage("Lädt bereits ein Bild…")
+            self._sb.showMessage(SM.LAEDT_BEREITS)
             return
         self._worker_controller.cancel_ai()
         self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
@@ -263,11 +264,11 @@ class MainWindow(QMainWindow):
     def _start_rembg_warmup(self) -> None:
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
-        self._sb.showMessage("🤖 KI-Modell wird geladen…")
+        self._sb.showMessage(SM.KI_MODELL_LADEN)
         self._worker_controller.start_warmup(on_finished=self._on_warmup_done)
 
     def _on_warmup_done(self) -> None:
-        self._sb.showMessage("🤖 KI bereit")
+        self._sb.showMessage(SM.KI_BEREIT)
 
     def _save(self) -> None:
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
@@ -275,14 +276,14 @@ class MainWindow(QMainWindow):
             self._save_as()
             return
         if not self._canvas.has_image:
-            self._sb.showMessage("Kein Bild zum Speichern")
+            self._sb.showMessage(SM.KEIN_BILD_ZUM_SPEICHERN)
             return
         self._canvas.save_image(self._save_path)
 
     def _save_as(self) -> None:
         """Speichern unter…: öffnet immer den Datei-Dialog."""
         if not self._canvas.has_image:
-            self._sb.showMessage("Kein Bild zum Speichern")
+            self._sb.showMessage(SM.KEIN_BILD_ZUM_SPEICHERN)
             return
         save_dir = self._settings.value("save_dir", "")
         if self._save_path:
@@ -337,12 +338,12 @@ class MainWindow(QMainWindow):
 
     def _run_ai(self) -> None:
         if not self._canvas.has_image:
-            self._sb.showMessage("Kein Bild geladen")
+            self._sb.showMessage(SM.KEIN_BILD_GELADEN)
             return
         if self._worker_controller.is_ai_running:
-            self._sb.showMessage("KI läuft bereits…")
+            self._sb.showMessage(SM.KI_LAEUFT_BEREITS)
             return
-        self._sb.showMessage("🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)")
+        self._sb.showMessage(SM.KI_VERARBEITET)
         self._toolbar.btn_ai.setEnabled(False)
 
         # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
@@ -366,8 +367,7 @@ class MainWindow(QMainWindow):
         # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
         # hat, ist die Canvas-Revision erhöht worden und das KI-Ergebnis wird verworfen.
         if self._canvas.version != self._ai_input_version:
-            self._sb.showMessage(
-                "KI-Ergebnis verworfen – Bild wurde inzwischen geändert")
+            self._sb.showMessage(SM.KI_ERGEBNIS_VERWORFEN)
             return
         self._canvas.apply_ai_result(img)
 

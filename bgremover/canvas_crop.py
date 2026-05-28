@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QGraphicsScene
 
 from bgremover.crop import CropOverlayItem
 from bgremover.image_ops import crop_image, crop_size_for_ratio
+from bgremover.status_messages import StatusMessages as SM
 
 if TYPE_CHECKING:
     from bgremover.canvas import ImageCanvas
@@ -60,7 +61,7 @@ class CanvasCrop:
         """Startet den interaktiven Kreis-Zuschnitt."""
         img = self._canvas.image
         if img is None:
-            self._canvas.statusMsg.emit("Kein Bild geladen")
+            self._canvas.statusMsg.emit(SM.KEIN_BILD_GELADEN)
             return
         size = min(img.width, img.height)
         self._start(size, size, is_circle=True)
@@ -69,7 +70,7 @@ class CanvasCrop:
         """Startet den interaktiven Zuschnitt für ein Seitenverhältnis."""
         img = self._canvas.image
         if img is None:
-            self._canvas.statusMsg.emit("Kein Bild geladen")
+            self._canvas.statusMsg.emit(SM.KEIN_BILD_GELADEN)
             return
         cw, ch = crop_size_for_ratio(img.size, ratio_w, ratio_h)
         self._start(cw, ch, is_circle=False)

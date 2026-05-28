@@ -54,6 +54,7 @@ from bgremover.image_utils import (
     mask_to_overlay,
     pil_to_numpy_readonly,
 )
+from bgremover.status_messages import StatusMessages as SM
 
 
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
@@ -65,7 +66,7 @@ def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
     @functools.wraps(method)
     def wrapper(self: ImageCanvas, *args: object, **kwargs: object) -> None:
         if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
+            self.statusMsg.emit(SM.KEIN_BILD_GELADEN)
             return
         method(self, *args, **kwargs)
     return wrapper
@@ -460,8 +461,7 @@ class ImageCanvas(QGraphicsView):
             return
         self._wand_busy = False
         if self._content_revision != self._wand_pending_revision:
-            self.statusMsg.emit(
-                "Wand-Auswahl verworfen – Bild wurde inzwischen geändert")
+            self.statusMsg.emit(SM.WAND_VERWORFEN)
             return
         pixels = self._selection.set_wand_result(
             mask, self._wand_pending_mode)
@@ -486,7 +486,7 @@ class ImageCanvas(QGraphicsView):
         zu merken.
         """
         if self._pil is None:
-            self.statusMsg.emit("Kein Bild zum Speichern")
+            self.statusMsg.emit(SM.KEIN_BILD_ZUM_SPEICHERN)
             return False
         try:
             save_image_file(self._pil, path)
@@ -499,10 +499,10 @@ class ImageCanvas(QGraphicsView):
 
     def _check_selection(self) -> bool:
         if self._pil is None:
-            self.statusMsg.emit("Kein Bild geladen")
+            self.statusMsg.emit(SM.KEIN_BILD_GELADEN)
             return False
         if not self._selection.has_selection:
-            self.statusMsg.emit("Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen")
+            self.statusMsg.emit(SM.KEINE_AUSWAHL)
             return False
         return True
 
@@ -518,14 +518,14 @@ class ImageCanvas(QGraphicsView):
         if self._tool == TOOL_WAND:
             assert self._pil is not None and self._arr is not None
             if self._wand_busy:
-                self.statusMsg.emit("Zauberstab arbeitet noch…")
+                self.statusMsg.emit(SM.ZAUBERSTAB_ARBEITET)
                 return
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
                 self._wand_busy = True
                 self._wand_pending_mode = _selection_mode_from_modifiers(mods)
                 self._wand_pending_revision = self._content_revision
-                self.statusMsg.emit("⏳ Auswahl wird berechnet…")
+                self.statusMsg.emit(SM.AUSWAHL_BERECHNUNG)
                 self.wandRequested.emit(
                     self._arr, x, y, self._tolerance)
         elif self._tool == TOOL_LASSO:

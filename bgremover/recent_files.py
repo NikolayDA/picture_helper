@@ -1,8 +1,8 @@
-"""Persistence helper for the "recent files" list.
+"""Persistenz-Helfer für die „Zuletzt geöffnet"-Liste.
 
-The UI menu still lives in ``MainWindow``; this module owns the list
-semantics: QSettings I/O, path canonicalization, de-duplication, capping,
-and removal of missing entries.
+Das UI-Menü liegt weiterhin in ``MainWindow``; dieses Modul besitzt die
+Listensemantik: QSettings-I/O, Pfad-Kanonisierung, Deduplizierung,
+Begrenzung der Einträge und Entfernung fehlender Dateien.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ SETTINGS_RECENT_KEY = "recent_files"
 
 
 class RecentFiles:
-    """Small wrapper around the persisted recent-file list."""
+    """Kleine Wrapper-Klasse um die persistierte Liste zuletzt geöffneter Dateien."""
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class RecentFiles:
 
 
 class RecentFilesMenu:
-    """Qt menu adapter for ``RecentFiles``."""
+    """Qt-Menü-Adapter für ``RecentFiles``."""
 
     def __init__(
         self,
