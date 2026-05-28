@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 
+import numpy as np
 import pytest
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -159,3 +160,73 @@ def test_release_worker_is_idempotent(controller):
     controller._release_worker(sentinel)
     controller._release_worker(sentinel)
     assert controller._workers == []
+
+
+def test_flood_fill_releases_worker_on_completion(qapp, controller):
+    arr = np.zeros((6, 8, 4), dtype=np.uint8)
+    arr[..., 3] = 255  # opak; Pixelinhalt egal fuer Tolerance=0/Saat (0,0)
+    masks: list[np.ndarray] = []
+    started = controller.start_flood_fill(
+        arr, 0, 0, tolerance=0,
+        on_done=masks.append,
+        on_error=lambda _msg: None,
+    )
+    assert started
+    assert len(controller._workers) == 1
+    thread = controller.flood_fill_thread
+    assert thread is not None
+
+    _drain(qapp, thread.isFinished)
+    qapp.processEvents()
+
+    assert controller.flood_fill_thread is None
+    assert controller._workers == []
+    assert len(masks) == 1
+    assert masks[0].shape == (6, 8)
+    assert masks[0].all()
+
+
+def test_flood_fill_concurrent_call_returns_false(qapp, controller, monkeypatch):
+    """Zweiter Start waehrend der erste laeuft muss False liefern (kein
+    parallel laufender Wand-Worker, weil sonst zwei Resultate gleichzeitig
+    auf den Canvas-State zugreifen wuerden)."""
+    import threading
+
+    import bgremover.workers as _wm
+
+    # Den Flood-Fill in einen Bremsklotz patchen: blockiert solange, bis
+    # wir es freigeben. Damit ist der erste Worker waehrend des zweiten
+    # start_flood_fill-Aufrufs garantiert noch aktiv.
+    gate = threading.Event()
+
+    def slow_flood_fill(arr, x, y, tol):
+        gate.wait(timeout=5.0)
+        return np.zeros(arr.shape[:2], dtype=bool)
+
+    monkeypatch.setattr(_wm, "flood_fill", slow_flood_fill)
+
+    arr = np.zeros((4, 4, 4), dtype=np.uint8)
+    arr[..., 3] = 255
+
+    first = controller.start_flood_fill(
+        arr, 0, 0, tolerance=0,
+        on_done=lambda _m: None,
+        on_error=lambda _msg: None,
+    )
+    assert first
+    # Solange der erste Worker im Slow-Path haengt, lehnt der Controller
+    # einen Parallelstart ab.
+    second = controller.start_flood_fill(
+        arr, 0, 0, tolerance=0,
+        on_done=lambda _m: None,
+        on_error=lambda _msg: None,
+    )
+    assert not second
+
+    # Bremsklotz freigeben und sauber abklingen lassen.
+    gate.set()
+    thread = controller.flood_fill_thread
+    assert thread is not None
+    _drain(qapp, thread.isFinished)
+    qapp.processEvents()
+    assert controller.flood_fill_thread is None
