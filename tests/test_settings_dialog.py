@@ -129,3 +129,82 @@ def test_save_accepts_existing_dirs(qapp, isolated_settings, monkeypatch, tmp_pa
     assert accepted == [True]
     assert settings.value("open_dir") == str(open_dir)
     assert settings.value("save_dir") == str(save_dir)
+
+
+# ── Verzeichnis-Auswahl (QFileDialog gepatcht) ─────────────────────────
+
+def test_pick_open_dir_sets_text_on_selection(qapp, isolated_settings, monkeypatch, tmp_path):
+    dlg = SettingsDialog(_settings())
+    monkeypatch.setattr(
+        _sd.QFileDialog, "getExistingDirectory",
+        lambda *a, **k: str(tmp_path),
+    )
+    dlg._pick_open_dir()
+    assert dlg._open_dir_edit.text() == str(tmp_path)
+
+
+def test_pick_open_dir_cancel_keeps_previous_text(qapp, isolated_settings, monkeypatch):
+    dlg = SettingsDialog(_settings())
+    dlg._open_dir_edit.setText("/zuvor")
+    # Abbruch des Dialogs liefert leeren String → Text bleibt unverändert.
+    monkeypatch.setattr(
+        _sd.QFileDialog, "getExistingDirectory", lambda *a, **k: "",
+    )
+    dlg._pick_open_dir()
+    assert dlg._open_dir_edit.text() == "/zuvor"
+
+
+def test_pick_save_dir_sets_text_on_selection(qapp, isolated_settings, monkeypatch, tmp_path):
+    dlg = SettingsDialog(_settings())
+    monkeypatch.setattr(
+        _sd.QFileDialog, "getExistingDirectory",
+        lambda *a, **k: str(tmp_path),
+    )
+    dlg._pick_save_dir()
+    assert dlg._save_dir_edit.text() == str(tmp_path)
+
+
+def test_pick_save_dir_cancel_keeps_previous_text(qapp, isolated_settings, monkeypatch):
+    dlg = SettingsDialog(_settings())
+    dlg._save_dir_edit.setText("/zuvor")
+    monkeypatch.setattr(
+        _sd.QFileDialog, "getExistingDirectory", lambda *a, **k: "",
+    )
+    dlg._pick_save_dir()
+    assert dlg._save_dir_edit.text() == "/zuvor"
+
+
+def test_load_ignores_unknown_preferred_format(qapp, isolated_settings):
+    """Ein nicht in ``FORMATS`` enthaltenes gespeichertes Format darf den
+    Combo-Index nicht verstellen – ``findText`` liefert -1, der Default
+    bleibt erhalten."""
+    settings = _settings()
+    settings.setValue("preferred_format", "EXR")  # unbekannt
+    dlg = SettingsDialog(settings)
+    # Index bleibt beim ersten Eintrag (PNG), nicht negativ.
+    assert dlg._fmt_combo.currentIndex() == 0
+
+
+# ── Log-Ordner öffnen (QDesktopServices gepatcht) ──────────────────────
+
+def test_open_log_dir_opens_folder(qapp, isolated_settings, monkeypatch):
+    dlg = SettingsDialog(_settings())
+    opened: list[object] = []
+    monkeypatch.setattr(
+        _sd.QDesktopServices, "openUrl",
+        lambda url: opened.append(url) or True,
+    )
+    dlg._open_log_dir()
+    assert len(opened) == 1
+
+
+def test_open_log_dir_warns_when_open_fails(qapp, isolated_settings, monkeypatch):
+    dlg = SettingsDialog(_settings())
+    monkeypatch.setattr(_sd.QDesktopServices, "openUrl", lambda url: False)
+    warnings: list[tuple] = []
+    monkeypatch.setattr(
+        _sd.QMessageBox, "warning",
+        lambda *a, **k: warnings.append(a) or 0,
+    )
+    dlg._open_log_dir()
+    assert len(warnings) == 1
