@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -421,7 +421,10 @@ class ImageCanvas(QGraphicsView):
                 desc="Hintergrund entfernt",
             )
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
+            # Bewusst eng gefasst: erwartete Bild-/IO-Probleme landen als
+            # Statusmeldung, echte Bugs (AttributeError, IndexError, …)
+            # propagieren stattdessen sichtbar nach oben.
             logger.exception("Fehler beim Entfernen")
             self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
 
@@ -438,7 +441,7 @@ class ImageCanvas(QGraphicsView):
                 desc=f"Farbe ersetzt ({color.name()})",
             )
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.exception("Fehler beim Ersetzen")
             self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
 
@@ -533,7 +536,7 @@ class ImageCanvas(QGraphicsView):
                 self.statusMsg.emit(self._lasso.add_point(x, y))
         else:
             self._drawing = True
-            self._paint_brush(x, y)
+            self._paint_brush(x, y, additive=self._tool == TOOL_BRUSH)
 
     def mousePressEvent(self, event) -> None:
         if self._pil is None or self._arr is None:
@@ -573,7 +576,10 @@ class ImageCanvas(QGraphicsView):
             self._viewport.update_pan(event.position())
             return
         if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
-            self._paint_brush(int(sp.x()), int(sp.y()))
+            self._paint_brush(
+                int(sp.x()), int(sp.y()),
+                additive=self._tool == TOOL_BRUSH,
+            )
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
@@ -619,11 +625,11 @@ class ImageCanvas(QGraphicsView):
     def _lasso_cancel(self) -> None:
         self._lasso.cancel()
 
-    def _paint_brush(self, cx: int, cy: int) -> None:
+    def _paint_brush(self, cx: int, cy: int, *, additive: bool) -> None:
         if self._pil is None:
             return
         self._selection.paint_brush(
-            cx, cy, self._brush_r, additive=self._tool == TOOL_BRUSH)
+            cx, cy, self._brush_r, additive=additive)
         self._refresh_overlay()
 
     # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier nur als

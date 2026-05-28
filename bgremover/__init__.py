@@ -5,14 +5,12 @@ Console-Script ``bgremover`` oder ``python -m bgremover`` gestartet
 werden. Einige etablierte Klassen und Helfer werden hier für Tests und
 kleine Integrationen re-exportiert.
 """
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as _pkg_version
+from bgremover._version import (
+    _read_pyproject_version as _read_pyproject_version,
+)
+from bgremover._version import get_version
 
-try:
-    __version__ = _pkg_version("bgremover")
-except PackageNotFoundError:
-    # Quelle-Lauf ohne installiertes Paket – pyproject.toml ist maßgeblich.
-    __version__ = "2.2.0"
+__version__ = get_version()
 
 from bgremover.canvas import ImageCanvas
 from bgremover.constants import (

@@ -40,6 +40,11 @@ class RecentFiles:
 
     def paths(self) -> list[str]:
         raw = self._settings.value(self._key, [])
+        # QSettings serialisiert eine Liste mit genau einem Eintrag als
+        # rohen String zurück (statt als ``[str]``). Den Sonderfall hier
+        # zurueck in eine Liste heben, sonst zerlegt ``list(raw)`` den
+        # Pfad zeichenweise – Auswirkung wäre eine kaputte Recent-Liste
+        # nach dem ersten Öffnen.
         if isinstance(raw, str):
             return [raw]
         return list(raw) if raw else []
