@@ -20,17 +20,7 @@ An image-editing tool for macOS for **removing, replacing, and editing backgroun
 
 ## Screenshots
 
-<!--
-  Before the release, place a screenshot/GIF at docs/screenshot.png
-  and uncomment the following line (the placeholder deliberately
-  does not render a broken image while the file is missing):
-
 ![BgRemover – main window](../../screenshot.png)
--->
-
-> _Screenshot to follow._ An image of the main window (toolbar, canvas with
-> selection, right-hand tab panel) belongs here before publication —
-> recommended path `docs/screenshot.png`.
 
 ## Requirements
 
