@@ -1,8 +1,8 @@
-"""Pure image operations used by the Qt canvas.
+"""Reine Bildoperationen für den Qt-Canvas.
 
-The functions in this module do not know about Qt widgets, signals, undo
-stacks, or application settings. ``ImageCanvas`` owns that UI state and calls
-these helpers for the pixel work.
+Die Funktionen dieses Moduls kennen keine Qt-Widgets, Signale, Undo-Stapel
+oder Einstellungen. ``ImageCanvas`` hält diesen UI-Zustand und ruft diese
+Hilfsfunktionen für die Pixelarbeit auf.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from bgremover.image_utils import numpy_to_pil
 
 
 def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
-    """Return a copy of ``arr`` with the selected pixels made transparent."""
+    """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel transparent sind."""
     result = arr.copy()
     result[mask, 3] = 0
     return numpy_to_pil(result)
@@ -23,14 +23,14 @@ def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
 
 def replace_selection(arr: np.ndarray, mask: np.ndarray,
                       color: tuple[int, int, int]) -> Image.Image:
-    """Return a copy of ``arr`` with the selected pixels replaced by ``color``."""
+    """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel durch ``color`` ersetzt sind."""
     result = arr.copy()
     result[mask] = [color[0], color[1], color[2], 255]
     return numpy_to_pil(result)
 
 
 def save_image_file(img: Image.Image, path: str | Path) -> None:
-    """Save ``img`` to ``path`` using the app's format-specific defaults."""
+    """Speichert ``img`` unter ``path`` mit den format-spezifischen Vorgaben der Anwendung."""
     out = Path(path)
     ext = out.suffix.lower()
     if ext in (".jpg", ".jpeg"):
@@ -48,7 +48,7 @@ def save_image_file(img: Image.Image, path: str | Path) -> None:
 
 
 def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:
-    """Return ``img`` with rounded alpha corners and the clamped radius used."""
+    """Gibt ``img`` mit abgerundeten Alpha-Ecken zurück sowie den tatsächlich verwendeten Radius."""
     rgba = img.convert("RGBA")
     w, h = rgba.size
     r = min(radius, w // 2, h // 2)
@@ -65,7 +65,7 @@ def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:
 
 
 def rotate_image(img: Image.Image, degrees: int) -> Image.Image:
-    """Rotate ``img`` by ``degrees`` while expanding the canvas as needed."""
+    """Dreht ``img`` um ``degrees`` und vergrößert die Arbeitsfläche bei Bedarf."""
     rgba = img.convert("RGBA")
     if degrees % 90 == 0:
         return rgba.rotate(degrees, expand=True)
@@ -73,7 +73,7 @@ def rotate_image(img: Image.Image, degrees: int) -> Image.Image:
 
 
 def flip_image(img: Image.Image, horizontal: bool) -> Image.Image:
-    """Mirror ``img`` horizontally or vertically."""
+    """Spiegelt ``img`` horizontal oder vertikal."""
     rgba = img.convert("RGBA")
     if horizontal:
         return rgba.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
@@ -82,7 +82,7 @@ def flip_image(img: Image.Image, horizontal: bool) -> Image.Image:
 
 def crop_size_for_ratio(size: tuple[int, int], ratio_w: int,
                         ratio_h: int) -> tuple[int, int]:
-    """Return the largest centered crop size for ``size`` and aspect ratio."""
+    """Gibt die größte zentrierte Zuschnittgröße für ``size`` und das Seitenverhältnis zurück."""
     iw, ih = size
     if iw / ih > ratio_w / ratio_h:
         return int(ih * ratio_w / ratio_h), ih
@@ -91,7 +91,7 @@ def crop_size_for_ratio(size: tuple[int, int], ratio_w: int,
 
 def crop_image(img: Image.Image, rect: tuple[int, int, int, int],
                is_circle: bool) -> Image.Image:
-    """Crop ``img`` to ``rect`` and optionally apply a circular alpha mask."""
+    """Schneidet ``img`` auf ``rect`` zu und wendet optional eine kreisförmige Alpha-Maske an."""
     x, y, w, h = rect
     cropped = img.convert("RGBA").crop((x, y, x + w, y + h))
     if not is_circle:

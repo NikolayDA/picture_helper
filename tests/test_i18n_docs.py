@@ -14,6 +14,7 @@ DOC_NAMES = (
     "INSTALL_MAC.md",
     "RESOURCES.md",
     "RECOMMENDATIONS.md",
+    "ANLEITUNG.md",
 )
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
