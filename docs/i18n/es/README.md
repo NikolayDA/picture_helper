@@ -20,18 +20,7 @@ Una herramienta de edición de imágenes para macOS para **eliminar, reemplazar 
 
 ## Capturas de pantalla
 
-<!--
-  Antes del lanzamiento, coloca una captura de pantalla/GIF en docs/screenshot.png
-  y descomenta la siguiente línea (el marcador de posición no renderiza
-  intencionadamente ninguna imagen rota mientras falte el archivo):
-
 ![BgRemover – Ventana principal](../../screenshot.png)
--->
-
-> _Captura de pantalla pendiente._ Antes de la publicación debería ir
-> aquí una imagen de la ventana principal (barra de herramientas, lienzo
-> con selección, panel de pestañas a la derecha) — ruta recomendada
-> `docs/screenshot.png`.
 
 ## Requisitos
 

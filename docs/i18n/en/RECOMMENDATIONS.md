@@ -28,4 +28,3 @@ The full historical findings and work logs from rounds 1-5 are archived at [../.
 | 🟢 | Add Python classifiers for 3.11/3.13 | Small | Open |
 | 🟡 | i18n drift test: keep `CHANGELOG`/`INSTALL` structurally synchronized | Medium | Open |
 | 🟢 | Unify documentation language where modules mix DE/EN | Medium | Open |
-| 🟢 | Add README screenshot | Small | Open |

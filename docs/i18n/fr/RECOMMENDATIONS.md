@@ -28,4 +28,3 @@ Les constats historiques complets et journaux de travail des séries 1-5 sont ar
 | 🟢 | Ajouter les classifiers Python 3.11/3.13 | Petit | Ouvert |
 | 🟡 | Test de dérive i18n : garder `CHANGELOG`/`INSTALL` structurellement synchronisés | Moyen | Ouvert |
 | 🟢 | Unifier la langue de documentation là où les modules mélangent DE/EN | Moyen | Ouvert |
-| 🟢 | Ajouter une capture d'écran au README | Petit | Ouvert |
