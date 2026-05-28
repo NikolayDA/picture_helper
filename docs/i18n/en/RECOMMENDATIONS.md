@@ -26,5 +26,5 @@ The full historical findings and work logs from rounds 1-5 are archived at [../.
 | Priority | Recommendation | Effort | Status |
 |----------|----------------|--------|--------|
 | 🟢 | Add Python classifiers for 3.11/3.13 | Small | Open |
-| 🟡 | i18n drift test: keep `CHANGELOG`/`INSTALL` structurally synchronized | Medium | Open |
+| 🟡 | Review `CHANGELOG.md` language scope; alternative: keep only DE/EN canonical and link other languages, because changelogs drift quickly | Small | Open |
 | 🟢 | Unify documentation language where modules mix DE/EN | Medium | Open |

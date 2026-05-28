@@ -151,6 +151,17 @@ make lint
 make type
 ```
 
+### Régénérer le PDF du guide
+
+`ANLEITUNG.pdf` est généré depuis `ANLEITUNG.md` (Markdown vers HTML
+puis PDF via WeasyPrint). Après une modification de la source Markdown,
+reconstruire le PDF de manière reproductible :
+
+```bash
+pip install -e ".[docs]"
+python scripts/generate_anleitung_pdf.py
+```
+
 ## Architecture (aperçu rapide)
 
 Depuis le tour 5, BgRemover est un paquet installable (`bgremover/`,
