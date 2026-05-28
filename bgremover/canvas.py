@@ -50,7 +50,6 @@ from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cur
 from bgremover.image_loading import open_validated_image
 from bgremover.image_ops import save_image_file
 from bgremover.image_utils import (
-    flood_fill,
     make_checker_brush,
     mask_to_overlay,
     pil_to_numpy_readonly,
@@ -88,6 +87,7 @@ class ImageCanvas(QGraphicsView):
     cropModeChanged = pyqtSignal(bool)  # True = Crop-Overlay aktiv
     imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
     loadRequested  = pyqtSignal(str)    # Drop/Recent → MainWindow lädt asynchron
+    wandRequested  = pyqtSignal(object, int, int, int)  # arr, x, y, tolerance
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -126,6 +126,17 @@ class ImageCanvas(QGraphicsView):
         self._tolerance = _DEFAULT_TOLERANCE
         self._brush_r   = _DEFAULT_BRUSH_RADIUS
         self._drawing   = False
+
+        # Zauberstab-Berechnung laeuft asynchron im Worker – damit grosse
+        # einfarbige Flaechen die UI nicht einfrieren. Diese Felder halten
+        # den Aufruf-Kontext (Modus und Bildrevision) ueber den Async-
+        # Sprung, damit das Ergebnis korrekt mit der bestehenden Auswahl
+        # verrechnet und ein veraltetes Ergebnis (Bild inzwischen
+        # gewechselt) verworfen werden kann. ``_wand_busy`` blockt
+        # gleichzeitig weitere Wand-Klicks, solange die Berechnung laeuft.
+        self._wand_busy = False
+        self._wand_pending_mode: Literal["set", "add", "subtract"] = "set"
+        self._wand_pending_revision: int = -1
 
         # Polygon-Lasso-Werkzeug
         self._lasso = CanvasLasso(self._scene)
@@ -435,6 +446,32 @@ class ImageCanvas(QGraphicsView):
         self._apply_pil(img, desc="KI-Hintergrundentfernung")
         self.statusMsg.emit("✅ KI-Hintergrundentfernung abgeschlossen")
 
+    def apply_wand_result(self, mask: np.ndarray) -> None:
+        """Uebernimmt die im Worker berechnete Zauberstab-Maske.
+
+        Verwirft das Ergebnis, falls die Canvas-Revision sich seit Klick
+        veraendert hat (Bild gewechselt/editiert) – das verhindert, dass
+        die Auswahl auf das falsche Bild gemalt wird.
+        """
+        if not self._wand_busy:
+            return
+        self._wand_busy = False
+        if self._content_revision != self._wand_pending_revision:
+            self.statusMsg.emit(
+                "Wand-Auswahl verworfen – Bild wurde inzwischen geändert")
+            return
+        pixels = self._selection.set_wand_result(
+            mask, self._wand_pending_mode)
+        self._refresh_overlay()
+        self.statusMsg.emit(f"Auswahl: {pixels:,} Pixel")
+
+    def cancel_pending_wand(self, msg: str) -> None:
+        """Bricht eine laufende Wand-Berechnung im Fehlerfall ab."""
+        if not self._wand_busy:
+            return
+        self._wand_busy = False
+        self.statusMsg.emit(f"Auswahl-Fehler: {msg}")
+
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Bild; gibt ``True`` bei Erfolg zurück.
 
@@ -477,13 +514,17 @@ class ImageCanvas(QGraphicsView):
         """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
         if self._tool == TOOL_WAND:
             assert self._pil is not None and self._arr is not None
+            if self._wand_busy:
+                self.statusMsg.emit("Zauberstab arbeitet noch…")
+                return
             w, h = self._pil.size
             if 0 <= x < w and 0 <= y < h:
-                new = flood_fill(self._arr, x, y, self._tolerance)
-                pixels = self._selection.set_wand_result(
-                    new, _selection_mode_from_modifiers(mods))
-                self._refresh_overlay()
-                self.statusMsg.emit(f"Auswahl: {pixels:,} Pixel")
+                self._wand_busy = True
+                self._wand_pending_mode = _selection_mode_from_modifiers(mods)
+                self._wand_pending_revision = self._content_revision
+                self.statusMsg.emit("⏳ Auswahl wird berechnet…")
+                self.wandRequested.emit(
+                    self._arr, x, y, self._tolerance)
         elif self._tool == TOOL_LASSO:
             assert self._pil is not None
             w, h = self._pil.size

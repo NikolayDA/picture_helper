@@ -145,7 +145,7 @@ def test_brush_paints_and_eraser_clears(loaded_window):
     assert not c._mask[15, 20]
 
 
-def test_magic_wand_selects_region(loaded_window):
+def test_magic_wand_selects_region(loaded_window, qtbot):
     c = loaded_window._canvas
     c.set_tool(TOOL_WAND)
     c._mask[:] = False
@@ -159,8 +159,9 @@ def test_magic_wand_selects_region(loaded_window):
                      Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
                      Qt.KeyboardModifier.NoModifier)
     c.mousePressEvent(ev)
-    # Einfarbiges Bild ⇒ Flood-Fill selektiert die gesamte Flaeche.
-    assert c._mask.sum() > 0
+    # Flood-Fill laeuft im Worker; auf das Maskenupdate warten, bevor
+    # die Auswahlflaeche geprueft wird. Einfarbiges Bild ⇒ alles selektiert.
+    qtbot.waitUntil(lambda: c._mask.sum() > 0, timeout=3000)
 
 
 # ── Menue / Toolbar ──────────────────────────────────────────────────────

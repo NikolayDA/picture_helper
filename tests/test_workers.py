@@ -2,11 +2,13 @@
 import io
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 from PIL import Image
 
 from bgremover import (
     AIWorker,
+    FloodFillWorker,
     ImageCanvas,
     ImageLoadWorker,
     MainWindow,
@@ -255,6 +257,65 @@ def test_ai_worker_cancel_skips_finished_signal(qapp, _mock_rembg) -> None:
 
     assert len(finished) == 0
     assert len(errors) == 0
+
+
+# ─────────────────────────────────────────────────────────────
+# FloodFillWorker – Wand-Auswahl im Hintergrund
+# ─────────────────────────────────────────────────────────────
+
+def _solid_rgba(w: int, h: int, color=(50, 100, 150)) -> np.ndarray:
+    arr = np.zeros((h, w, 4), dtype=np.uint8)
+    arr[:, :, 0] = color[0]
+    arr[:, :, 1] = color[1]
+    arr[:, :, 2] = color[2]
+    arr[:, :, 3] = 255
+    return arr
+
+
+def test_flood_fill_worker_emits_finished_with_mask(qapp) -> None:
+    """Einfarbiger Block ⇒ Worker liefert eine Maske, die alles selektiert."""
+    arr = _solid_rgba(8, 6)
+    worker = FloodFillWorker(arr, 0, 0, tolerance=0)
+    results: list[np.ndarray] = []
+    errors: list[str] = []
+    worker.finished.connect(results.append)
+    worker.error.connect(errors.append)
+
+    worker.run()
+
+    assert len(results) == 1
+    assert errors == []
+    mask = results[0]
+    assert mask.shape == (6, 8)
+    assert mask.dtype == bool
+    assert mask.all()
+
+
+def test_flood_fill_worker_emits_empty_mask_for_click_outside(qapp) -> None:
+    arr = _solid_rgba(4, 4)
+    worker = FloodFillWorker(arr, -1, 0, tolerance=10)
+    results: list[np.ndarray] = []
+    worker.finished.connect(results.append)
+
+    worker.run()
+
+    assert len(results) == 1
+    assert not results[0].any()
+
+
+def test_flood_fill_worker_error_signal_on_bad_array(qapp) -> None:
+    """flood_fill greift auf ``arr.shape`` zu – ein nicht-Array fliegt
+    direkt mit AttributeError und muss im ``error``-Signal landen."""
+    worker = FloodFillWorker("not an array", 0, 0, 0)  # type: ignore[arg-type]
+    finished: list = []
+    errors: list[str] = []
+    worker.finished.connect(finished.append)
+    worker.error.connect(errors.append)
+
+    worker.run()
+
+    assert finished == []
+    assert len(errors) == 1
 
 
 # ─────────────────────────────────────────────────────────────

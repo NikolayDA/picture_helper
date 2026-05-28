@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import io
 
+import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from bgremover.constants import logger
 from bgremover.image_loading import open_validated_image
+from bgremover.image_utils import flood_fill
 
 try:
     from rembg import remove as rembg_remove
@@ -119,3 +121,33 @@ class ImageLoadWorker(_Worker):
             return
         assert img is not None
         self.finished.emit(img, self._path)
+
+
+class FloodFillWorker(_Worker):
+    """Berechnet die Zauberstab-Auswahl im Hintergrund.
+
+    Bei grossen, einfarbigen Flaechen friert ein synchroner Flood-Fill
+    die UI sichtbar ein – die zusammenhaengende Region wird per
+    Python-Loop ueber die Boolean-Maske ``similar`` aufgebaut. Der Worker
+    laeuft auf einem kurzlebigen ``QThread``; das Ergebnis kommt per
+    ``finished``-Signal auf den UI-Thread zurueck. Der ``arr``-Parameter
+    ist die schreibgeschuetzte NumPy-Sicht aus ``ImageCanvas._arr``;
+    weil ``np.asarray`` eine ``base``-Referenz auf das PIL-Bild haelt,
+    bleibt der Buffer waehrend der Worker-Laufzeit auch dann gueltig,
+    wenn der Canvas das Bild zwischenzeitlich austauscht.
+    """
+    finished = pyqtSignal(object)   # np.ndarray (bool-Maske)
+    _error_context = "Flood-Fill-Fehler"
+
+    def __init__(
+        self, arr: np.ndarray, x: int, y: int, tolerance: int,
+    ) -> None:
+        super().__init__()
+        self._arr = arr
+        self._x = x
+        self._y = y
+        self._tolerance = tolerance
+
+    def _work(self) -> None:
+        mask = flood_fill(self._arr, self._x, self._y, self._tolerance)
+        self.finished.emit(mask)
