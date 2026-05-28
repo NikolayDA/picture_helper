@@ -11,6 +11,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Test-Coverage auf 88 % erhöht (zweite Runde, zuvor 82 %).** Neue Datei
+  `tests/test_canvas_events.py` deckt die bislang ungetesteten Event-Handler
+  und die Steuerlogik von `canvas.py` ab: Maus-, Tastatur-, Wheel- und
+  Drag-Handler (über synthetische Qt-Events, bewusst ohne `ui`-Marker, damit
+  sie in die CI-Coverage zählen), die Zauberstab-Ergebnisflüsse (Treffer,
+  veraltete Revision, nicht-aktiv), Tool-Einstellungen, Undo/Redo/Undo-to bei
+  aktivem Crop sowie die Guard-Pfade ohne geladenes Bild. Damit steigt
+  `canvas.py` von 64 % auf 99 %; die Coverage-Schwelle `fail_under` wurde von
+  80 auf 86 angehoben.
 - **Test-Coverage auf 82 % erhöht (zuvor 74 %).** Neue, verhaltensbasierte
   Tests für bislang dünn abgedeckte Logikmodule: `tests/test_lasso.py`
   (Polygon-Lasso-Zustand, Vorschaulinie, Doppelklick-Duplikat, Polygon→Maske),
