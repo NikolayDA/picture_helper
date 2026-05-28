@@ -27,5 +27,4 @@ Die vollständigen historischen Befunde und Arbeitsprotokolle aus Runden 1-5 lie
 |------|------------|---------|--------|
 | 🟡 | i18n-Drift-Test: `CHANGELOG`/`INSTALL` strukturell synchron halten | Mittel | Offen |
 | 🟢 | Doku-Sprache vereinheitlichen, wo Module DE/EN mischen | Mittel | Offen |
-| 🟡 | QSettings-Schema-Versionierung für künftige Settings-Migrationen | Mittel | Offen |
 | 🟢 | README-Screenshot ergänzen | Klein | Offen |
