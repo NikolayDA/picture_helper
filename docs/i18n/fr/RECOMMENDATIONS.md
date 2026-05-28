@@ -26,5 +26,5 @@ Les constats historiques complets et journaux de travail des séries 1-5 sont ar
 | Priorité | Recommandation | Effort | État |
 |----------|----------------|--------|------|
 | 🟢 | Ajouter les classifiers Python 3.11/3.13 | Petit | Ouvert |
-| 🟡 | Test de dérive i18n : garder `CHANGELOG`/`INSTALL` structurellement synchronisés | Moyen | Ouvert |
+| 🟡 | Revoir le périmètre linguistique de `CHANGELOG.md` ; alternative : garder DE/EN comme canoniques et lier les autres langues, car les changelogs dérivent vite | Petit | Ouvert |
 | 🟢 | Unifier la langue de documentation là où les modules mélangent DE/EN | Moyen | Ouvert |
