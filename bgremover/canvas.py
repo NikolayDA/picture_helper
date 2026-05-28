@@ -533,7 +533,7 @@ class ImageCanvas(QGraphicsView):
                 self.statusMsg.emit(self._lasso.add_point(x, y))
         else:
             self._drawing = True
-            self._paint_brush(x, y)
+            self._paint_brush(x, y, additive=self._tool == TOOL_BRUSH)
 
     def mousePressEvent(self, event) -> None:
         if self._pil is None or self._arr is None:
@@ -573,7 +573,10 @@ class ImageCanvas(QGraphicsView):
             self._viewport.update_pan(event.position())
             return
         if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
-            self._paint_brush(int(sp.x()), int(sp.y()))
+            self._paint_brush(
+                int(sp.x()), int(sp.y()),
+                additive=self._tool == TOOL_BRUSH,
+            )
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
@@ -619,11 +622,11 @@ class ImageCanvas(QGraphicsView):
     def _lasso_cancel(self) -> None:
         self._lasso.cancel()
 
-    def _paint_brush(self, cx: int, cy: int) -> None:
+    def _paint_brush(self, cx: int, cy: int, *, additive: bool) -> None:
         if self._pil is None:
             return
         self._selection.paint_brush(
-            cx, cy, self._brush_r, additive=self._tool == TOOL_BRUSH)
+            cx, cy, self._brush_r, additive=additive)
         self._refresh_overlay()
 
     # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier nur als
