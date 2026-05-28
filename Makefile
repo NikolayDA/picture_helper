@@ -59,4 +59,4 @@ ui:
 all: check ui
 
 clean:
-	rm -rf .pytest_cache
+	rm -rf .pytest_cache build dist *.egg-info
