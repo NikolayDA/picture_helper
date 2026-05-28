@@ -137,11 +137,11 @@ def test_brush_paints_and_eraser_clears(loaded_window):
     c = loaded_window._canvas
     c.set_tool(TOOL_BRUSH)
     c._mask[:] = False
-    c._paint_brush(20, 15)
+    c._paint_brush(20, 15, additive=True)
     assert c._mask.any()
     assert c._mask[15, 20]
     c.set_tool(TOOL_ERASER)
-    c._paint_brush(20, 15)
+    c._paint_brush(20, 15, additive=False)
     assert not c._mask[15, 20]
 
 

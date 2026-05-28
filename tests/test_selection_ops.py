@@ -134,7 +134,7 @@ def test_paint_brush_marks_circle(qapp):
     c._mask[:] = False
     c.set_tool(TOOL_BRUSH)
     c._brush_r = 3
-    c._paint_brush(10, 10)
+    c._paint_brush(10, 10, additive=True)
     assert c._mask[10, 10]
     assert not c._mask[0, 0]
 
@@ -144,7 +144,7 @@ def test_eraser_clears_circle(qapp):
     c._mask[:] = True
     c.set_tool(TOOL_ERASER)
     c._brush_r = 3
-    c._paint_brush(10, 10)
+    c._paint_brush(10, 10, additive=False)
     assert not c._mask[10, 10]
     assert c._mask[0, 0]
 
