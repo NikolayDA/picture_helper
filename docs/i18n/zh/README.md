@@ -151,6 +151,17 @@ make lint
 make type
 ```
 
+### 重新生成指南 PDF
+
+`ANLEITUNG.pdf` 由 `ANLEITUNG.md` 生成（Markdown → HTML → PDF，
+通过 WeasyPrint）。修改 Markdown 源文件后，请以可复现方式重新生成
+PDF：
+
+```bash
+pip install -e ".[docs]"
+python scripts/generate_anleitung_pdf.py
+```
+
 ## 架构（简要概览）
 
 自第 5 轮起，BgRemover 是一个可安装的包（`bgremover/`，

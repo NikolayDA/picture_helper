@@ -151,6 +151,17 @@ make lint
 make type
 ```
 
+### Повторно згенерувати PDF-інструкцію
+
+`ANLEITUNG.pdf` генерується з `ANLEITUNG.md` (Markdown → HTML → PDF
+через WeasyPrint). Після змін у Markdown-джерелі PDF треба відтворювано
+перезібрати:
+
+```bash
+pip install -e ".[docs]"
+python scripts/generate_anleitung_pdf.py
+```
+
 ## Архітектура (короткий огляд)
 
 Починаючи з раунду 5, BgRemover — встановлюваний пакет (`bgremover/`,

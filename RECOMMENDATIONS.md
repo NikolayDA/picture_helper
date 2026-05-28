@@ -25,5 +25,5 @@ Die vollständigen historischen Befunde und Arbeitsprotokolle aus Runden 1-5 lie
 
 | Prio | Empfehlung | Aufwand | Status |
 |------|------------|---------|--------|
-| 🟡 | i18n-Drift-Test: `CHANGELOG`/`INSTALL` strukturell synchron halten | Mittel | Offen |
+| 🟡 | `CHANGELOG.md`-Sprachenumfang prüfen; Alternative: nur DE/EN kanonisch pflegen und andere Sprachen verlinken, da Changelogs schnell driften | Klein | Offen |
 | 🟢 | Doku-Sprache vereinheitlichen, wo Module DE/EN mischen | Mittel | Offen |

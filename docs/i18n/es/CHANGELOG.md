@@ -9,6 +9,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+### Cambiado
+
+### Corregido
+
+### Eliminado
+
 ## [2.2.0] – 2026-05-25
 
 ### Añadido
@@ -186,6 +194,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `__version__` en `BgRemover.py` subidos a `2.1.0`; los cambios antes
   recopilados bajo `[Unreleased]` (#48/#52/#53, INSTALL_LINUX, rondas
   3/4) quedan fechados como 2.1.0.
+
+### Eliminado
+
+- Eliminadas las constantes de stylesheet muertas `BTN_STYLE` y
+  `GRP_STYLE`.
+
+### Corregido
+
+- `save_image()` ahora informa los fallos de E/S como mensaje de estado
+  en lugar de propagarlos sin manejar.
 
 ### Documentación
 
