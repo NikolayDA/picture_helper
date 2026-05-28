@@ -1,4 +1,4 @@
-"""QThread lifecycle management for image load, AI, and warmup workers."""
+"""QThread-Lifecycle-Verwaltung für Bildlade-, KI- und Warmup-Worker."""
 from __future__ import annotations
 
 import contextlib
@@ -21,7 +21,7 @@ QuitSignals = tuple[pyqtBoundSignal, ...]
 
 
 class WorkerController:
-    """Owns background worker threads and their shutdown semantics."""
+    """Besitzt und verwaltet Hintergrund-Worker-Threads und ihre Shutdown-Semantik."""
 
     def __init__(self, parent: QObject, shutdown_ms: int = _THREAD_SHUTDOWN_MS) -> None:
         self._parent = parent
@@ -59,7 +59,7 @@ class WorkerController:
         quit_on: QuitSignals,
         on_finished: Callable[[], None] | None = None,
     ) -> QThread:
-        """Start *worker* in a new QThread and return the thread."""
+        """Startet *worker* in einem neuen QThread und gibt den Thread zurück."""
         thread = self._build_thread(worker, quit_on, on_finished)
         thread.start()
         return thread
@@ -96,7 +96,7 @@ class WorkerController:
         on_loaded: Callable[[object, str], None],
         on_error: Callable[[str], None],
     ) -> bool:
-        """Start asynchronous image loading; return False if a load is active."""
+        """Startet asynchrones Bildladen; gibt False zurück, wenn bereits ein Ladevorgang läuft."""
         if self.is_loading:
             return False
         worker = ImageLoadWorker(path)
@@ -115,7 +115,7 @@ class WorkerController:
         self.load_thread = None
 
     def start_warmup(self, on_finished: Callable[[], None]) -> bool:
-        """Start rembg warmup; return False if warmup is already active."""
+        """Startet den rembg-Warmup; gibt False zurück, wenn der Warmup bereits läuft."""
         if self.warmup_thread is not None and self.warmup_thread.isRunning():
             return False
         worker = RembgWarmupWorker()
@@ -140,7 +140,7 @@ class WorkerController:
         on_error: Callable[[str], None],
         on_finished: Callable[[], None],
     ) -> bool:
-        """Start AI background removal; return False if AI is already active."""
+        """Startet die KI-Hintergrundentfernung; gibt False zurück, wenn die KI bereits läuft."""
         if self.is_ai_running:
             return False
         worker = AIWorker(image.copy())
@@ -179,7 +179,7 @@ class WorkerController:
         on_done: Callable[[np.ndarray], None],
         on_error: Callable[[str], None],
     ) -> bool:
-        """Start asynchronous wand flood-fill; return False if one is active."""
+        """Startet den asynchronen Zauberstab-Flood-Fill; gibt False zurück, wenn bereits einer läuft."""
         if self.is_flood_fill_running:
             return False
         worker = FloodFillWorker(arr, x, y, tolerance)
@@ -205,7 +205,7 @@ class WorkerController:
         self.shutdown_thread(self.flood_fill_thread, "Flood-Fill")
 
     def shutdown_thread(self, thread: QThread | None, name: str) -> None:
-        """Stop *thread* cleanly before the owning window is destroyed."""
+        """Beendet *thread* sauber, bevor das besitzende Fenster zerstört wird."""
         if thread is None or not thread.isRunning():
             return
         thread.quit()

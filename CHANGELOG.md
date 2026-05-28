@@ -11,6 +11,22 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **ANLEITUNG.md i18n.** Fünf Übersetzungen der deutschen Nutzungsanleitung
+  angelegt: `docs/i18n/{en,es,fr,uk,zh}/ANLEITUNG.md`. Das DOC_NAMES-Tuple
+  in `tests/test_i18n_docs.py` wurde um `"ANLEITUNG.md"` erweitert, sodass
+  die strukturelle Synchronitätsprüfung alle fünf Kopien automatisch erfasst.
+  Ein Hinweis in jedem i18n-Header erklärt, dass `ANLEITUNG.pdf` nur für das
+  deutsche Original erzeugt wird.
+- **Soft-Drift-Test `tests/test_i18n_sync.py`.** Prüft Heading-Hierarchie
+  und Code-Block-Anzahl von `CHANGELOG.md`, `INSTALL_MAC.md` und
+  `INSTALL_LINUX.md` gegen die deutschen Originale. Abweichungen erzeugen
+  lesbare Warnungen statt harter Testfehler, damit das CI grün bleibt.
+- **`bgremover/status_messages.py` – zentrale Status-Meldungen.** Alle
+  UI-sichtbaren Status-Strings aus `canvas.py`, `canvas_crop.py` und
+  `main_window.py` in die neue Klasse `StatusMessages` gezogen. Kein
+  i18n-Framework – nur ein zentraler Sammelpunkt als Vorbereitung für
+  künftige Lokalisierung.
+
 - **QSettings-Schema-Version eingefuehrt.** Neuer Helfer
   `bgremover/settings_schema.py` mit `SCHEMA_VERSION = 1` und
   `migrate(settings)`; `MainWindow.__init__` ruft die Migration direkt
@@ -34,6 +50,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   falls das ONNX-Modell offline nicht geladen werden kann.
 
 ### Geändert
+
+- **Docstring-Sprache vereinheitlicht.** `bgremover/image_ops.py`,
+  `bgremover/recent_files.py` und `bgremover/worker_controller.py` hatten
+  englische Modul- und Methoden-Docstrings; alle drei auf Deutsch gebracht,
+  konsistent mit dem Rest des Projekts.
 
 - **Code-Hygiene-Sammelrunde (kleine, voneinander unabhängige Cleanups).**
   - `bgremover/__init__.py` + neues `bgremover/_version.py`: Das
