@@ -20,17 +20,7 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 
 ## Screenshots
 
-<!--
-  Vor dem Release ein Screenshot/GIF unter docs/screenshot.png ablegen
-  und die folgende Zeile einkommentieren (der Platzhalter rendert
-  bewusst kein kaputtes Bild, solange die Datei fehlt):
-
 ![BgRemover – Hauptfenster](docs/screenshot.png)
--->
-
-> _Screenshot folgt._ Ein Bild des Hauptfensters (Toolbar, Canvas mit
-> Auswahl, rechtes Tab-Panel) gehört vor der Veröffentlichung hierher —
-> empfohlener Pfad `docs/screenshot.png`.
 
 ## Voraussetzungen
 
