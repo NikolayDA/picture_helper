@@ -40,6 +40,7 @@ from bgremover.right_panel import (
     build_right_panel,
 )
 from bgremover.settings_dialog import SettingsDialog
+from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     STATUS_BAR_STYLE,
@@ -61,8 +62,11 @@ class MainWindow(QMainWindow):
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
-        # Persistente Einstellungen (Recent-Files etc.).
+        # Persistente Einstellungen (Recent-Files etc.). Schema-Migration
+        # vor dem ersten Lese-/Schreibzugriff, damit kuenftige Format-
+        # Wechsel an einem zentralen Punkt greifen koennen.
         self._settings = QSettings("BgRemover", "BgRemover")
+        migrate_settings(self._settings)
         self._recent_files = RecentFiles(
             self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
         # Submenü-Adapter wird in _build_menu gesetzt
