@@ -8,6 +8,7 @@ Verteidigt drei Bug-Fixes aus dem Code-Review:
 * Fix #5 — ``boundingRect`` enthält Marge für Eck-Handles und Hinweistext.
 """
 import pytest
+from PyQt6.QtGui import QImage, QPainter
 
 from bgremover import CropOverlayItem
 
@@ -97,3 +98,93 @@ def test_crop_rect_returns_pixel_coordinates(qapp):
     assert rect.y() == 225
     assert rect.width() == 200
     assert rect.height() == 150
+
+
+# ── resize_from_corner: jede Ecke verankert die gegenüberliegende ──────
+#
+# Beim Ziehen einer Ecke bleibt die gegenüberliegende Ecke fix (Anker).
+# Bisher war nur corner_idx=3 (BR) abgedeckt; hier kommen TL/TR/BL dazu.
+# 1000×1000-Bild, 400×400-Crop, zentriert: TL(300,300) BR(700,700).
+
+def test_resize_from_corner_tl_anchors_br(qapp):
+    ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
+    ov.resize_from_corner(corner_idx=0, sx=200.0, sy=200.0)
+    # BR-Ecke bleibt bei (700, 700).
+    assert ov._cx + ov._cw == pytest.approx(700.0)
+    assert ov._cy + ov._ch == pytest.approx(700.0)
+    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+
+
+def test_resize_from_corner_tr_anchors_bl(qapp):
+    ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
+    ov.resize_from_corner(corner_idx=1, sx=800.0, sy=200.0)
+    # BL-Ecke bleibt bei (300, 700): linke Kante + untere Kante fix.
+    assert ov._cx == pytest.approx(300.0)
+    assert ov._cy + ov._ch == pytest.approx(700.0)
+    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+
+
+def test_resize_from_corner_bl_anchors_tr(qapp):
+    ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
+    ov.resize_from_corner(corner_idx=2, sx=200.0, sy=800.0)
+    # TR-Ecke bleibt bei (700, 300): rechte Kante + obere Kante fix.
+    assert ov._cx + ov._cw == pytest.approx(700.0)
+    assert ov._cy == pytest.approx(300.0)
+    assert ov._cw / ov._ch == pytest.approx(ov._aspect, rel=1e-6)
+
+
+# ── inside ─────────────────────────────────────────────────────────────
+
+def test_inside_true_within_frame(qapp):
+    ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
+    # Mittelpunkt des zentrierten Rahmens.
+    assert ov.inside(500.0, 500.0) is True
+
+
+def test_inside_false_outside_frame(qapp):
+    ov = CropOverlayItem(img_w=1000, img_h=1000, crop_w=400, crop_h=400)
+    assert ov.inside(10.0, 10.0) is False
+
+
+# ── Properties ─────────────────────────────────────────────────────────
+
+def test_top_left_property(qapp):
+    ov = CropOverlayItem(img_w=800, img_h=600, crop_w=200, crop_h=150)
+    tl = ov.top_left
+    assert (tl.x(), tl.y()) == (300.0, 225.0)
+
+
+def test_size_property(qapp):
+    ov = CropOverlayItem(img_w=800, img_h=600, crop_w=200, crop_h=150)
+    assert ov.size == (200.0, 150.0)
+
+
+# ── paint: läuft offscreen ohne Fehler durch beide Zweige ──────────────
+
+def _render(ov: CropOverlayItem) -> None:
+    """Rendert das Overlay in ein Offscreen-``QImage`` (kein Fenster)."""
+    img = QImage(ov._iw, ov._ih, QImage.Format.Format_ARGB32)
+    img.fill(0)
+    painter = QPainter(img)
+    try:
+        ov.paint(painter, None, None)
+    finally:
+        painter.end()
+
+
+def test_paint_rectangle_overlay_runs(qapp):
+    ov = CropOverlayItem(img_w=120, img_h=80, crop_w=60, crop_h=40,
+                         is_circle=False)
+    _render(ov)  # Rechteck-Zweig inkl. Rule-of-Thirds-Raster
+
+
+def test_paint_circle_overlay_runs(qapp):
+    ov = CropOverlayItem(img_w=120, img_h=120, crop_w=80, crop_h=80,
+                         is_circle=True)
+    _render(ov)  # Ellipsen-Zweig
+
+
+def test_paint_with_none_painter_is_noop(qapp):
+    ov = CropOverlayItem(img_w=100, img_h=100, crop_w=50, crop_h=50)
+    # Defensive Guard: paint(None) darf nicht abstürzen.
+    ov.paint(None, None, None)

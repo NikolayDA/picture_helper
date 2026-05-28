@@ -17,6 +17,7 @@ import logging
 import pytest
 from PyQt6.QtCore import QSettings
 
+import bgremover.settings_schema as _ss
 from bgremover.settings_schema import (
     SCHEMA_VERSION,
     SCHEMA_VERSION_KEY,
@@ -116,6 +117,49 @@ def test_migrate_with_corrupt_version_recovers(isolated_settings, caplog):
     settings.sync()
     assert int(_settings().value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
     assert any("unleserlicher" in record.message for record in caplog.records)
+
+
+def test_migrate_from_older_version_without_registered_step(
+    isolated_settings, caplog,
+):
+    """Eine bestehende, aber ältere Version (0) durchläuft die
+    Migrationsschleife. Da für 0→1 (noch) kein Schritt registriert ist,
+    wird gewarnt und die Version direkt auf ``SCHEMA_VERSION`` gehoben –
+    ohne Datenverlust und ohne Crash.
+    """
+    settings = _settings()
+    settings.setValue("recent_files", ["/tmp/x.png"])
+    settings.setValue(SCHEMA_VERSION_KEY, 0)
+    settings.sync()
+
+    with caplog.at_level(logging.WARNING, logger="BgRemover"):
+        migrate(settings)
+
+    settings.sync()
+    after = _settings()
+    assert int(after.value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
+    assert after.value("recent_files") == ["/tmp/x.png"]
+    assert any("keine Migration" in record.message for record in caplog.records)
+
+
+def test_migrate_runs_registered_step(isolated_settings, monkeypatch):
+    """Sichert das Migrationsmuster für künftige Schritte: ist ein Schritt
+    für die aktuelle Version registriert, wird er ausgeführt und die
+    Version anschließend hochgezogen. Aktuell ist ``_MIGRATIONS`` leer,
+    daher wird hier ein Schritt für 0→1 temporär eingehängt.
+    """
+    calls: list[bool] = []
+    monkeypatch.setitem(_ss._MIGRATIONS, 0, lambda s: calls.append(True))
+
+    settings = _settings()
+    settings.setValue(SCHEMA_VERSION_KEY, 0)
+    settings.sync()
+
+    migrate(settings)
+    settings.sync()
+
+    assert calls == [True]
+    assert int(_settings().value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
 
 
 def test_main_window_runs_migration_on_construction(qapp, isolated_settings):

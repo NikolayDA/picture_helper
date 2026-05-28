@@ -11,6 +11,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Test-Coverage auf 82 % erhöht (zuvor 74 %).** Neue, verhaltensbasierte
+  Tests für bislang dünn abgedeckte Logikmodule: `tests/test_lasso.py`
+  (Polygon-Lasso-Zustand, Vorschaulinie, Doppelklick-Duplikat, Polygon→Maske),
+  `tests/test_canvas_crop.py` (Crop-Gesten Press/Move/Release, Guards ohne
+  geladenes Bild) und `tests/test_viewport.py` (Zoom-Grenzen, Pan-Routing,
+  Scrollbar-Verschiebung). `tests/test_crop_overlay.py` deckt jetzt das
+  Resize von allen vier Ecken, `inside`/Properties und den `paint`-Pfad
+  (offscreen) ab; `tests/test_settings_schema.py` den Migrationsschritt-Pfad
+  und `tests/test_settings_dialog.py` die Verzeichnis-/Log-Ordner-Auswahl.
+  Damit stehen `crop.py`, `canvas_lasso.py`, `canvas_viewport.py`,
+  `settings_schema.py` und `settings_dialog.py` bei 100 %, `canvas_crop.py`
+  bei 98 %. Die Coverage-Schwelle `fail_under` wurde von 68 auf 80 angehoben.
 - **ANLEITUNG.md i18n.** Fünf Übersetzungen der deutschen Nutzungsanleitung
   angelegt: `docs/i18n/{en,es,fr,uk,zh}/ANLEITUNG.md`. Das DOC_NAMES-Tuple
   in `tests/test_i18n_docs.py` wurde um `"ANLEITUNG.md"` erweitert, sodass
