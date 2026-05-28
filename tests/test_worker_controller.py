@@ -124,6 +124,34 @@ def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
     assert controller._workers == []
 
 
+def test_warmup_releases_worker_when_rembg_raises(qapp, controller, monkeypatch):
+    """Wirft ``rembg_remove`` waehrend des Warmups, muss der Controller den
+    Thread-Lifecycle trotzdem komplett abschliessen (Worker freigegeben,
+    ``warmup_done`` gesetzt, ``on_finished`` aufgerufen). Sonst haengt das
+    Bootstrap, falls das Modell beim ersten Start nicht geladen werden
+    kann (z. B. offline)."""
+    import bgremover.workers as _wm
+
+    def _raise(_b):
+        raise RuntimeError("mock warmup failure")
+
+    monkeypatch.setattr(_wm, "rembg_remove", _raise, raising=False)
+
+    done: list[bool] = []
+    started = controller.start_warmup(on_finished=lambda: done.append(True))
+    assert started
+    thread = controller.warmup_thread
+    assert thread is not None
+
+    _drain(qapp, thread.isFinished)
+    qapp.processEvents()
+
+    assert controller.warmup_thread is None
+    assert controller.warmup_done
+    assert done == [True]
+    assert controller._workers == []
+
+
 def test_release_worker_is_idempotent(controller):
     """``_release_worker`` darf doppelt feuern, ohne zu werfen."""
     sentinel = QObject()
