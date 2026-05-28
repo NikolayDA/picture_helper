@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
         self._canvas.historyChanged.connect(self._on_history_changed)
         self._canvas.imageLoaded.connect(self._on_image_loaded)
         self._canvas.loadRequested.connect(self._load_image_async)
+        self._canvas.wandRequested.connect(self._start_flood_fill_async)
         self._history_popup = HistoryPopup(
             self, self._toolbar.btn_history, on_jump=self._canvas.undo_to)
 
@@ -229,6 +230,29 @@ class MainWindow(QMainWindow):
 
     def _on_image_load_error(self, msg: str) -> None:
         self._sb.showMessage(f"Ladefehler: {msg}")
+
+    # ── Zauberstab (asynchron) ──────────────────────────────────
+
+    def _start_flood_fill_async(
+        self, arr, x: int, y: int, tolerance: int,
+    ) -> None:
+        """Reicht den Wand-Klick an den Worker weiter.
+
+        Der Canvas blockt selbst weitere Wand-Klicks waehrend der
+        Berechnung; ein zweiter Aufruf hier wuerde der Controller mit
+        ``False`` ablehnen – das verbleibende ``_wand_busy`` im Canvas
+        wuerde haengen. Deshalb ist das ``start_flood_fill``-Ergebnis
+        hier defensiv geprueft und der Canvas-State im Konfliktfall
+        zurueckgesetzt.
+        """
+        started = self._worker_controller.start_flood_fill(
+            arr, x, y, tolerance,
+            on_done=self._canvas.apply_wand_result,
+            on_error=self._canvas.cancel_pending_wand,
+        )
+        if not started:
+            self._canvas.cancel_pending_wand(
+                "Eine Wand-Berechnung läuft bereits")
 
     # ── rembg-Warmup ────────────────────────────────────────────
 

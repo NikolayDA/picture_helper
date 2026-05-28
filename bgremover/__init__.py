@@ -40,6 +40,7 @@ from bgremover.widgets import TopIconTabBar, TopIconTabWidget
 from bgremover.workers import (
     REMBG_AVAILABLE,
     AIWorker,
+    FloodFillWorker,
     ImageLoadWorker,
 )
 
@@ -54,6 +55,7 @@ __all__ = [
     "TOOL_WAND",
     "AIWorker",
     "CropOverlayItem",
+    "FloodFillWorker",
     "ImageCanvas",
     "ImageLoadWorker",
     "MainWindow",

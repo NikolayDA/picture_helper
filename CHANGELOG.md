@@ -23,6 +23,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Wand-Auswahl friert die UI nicht mehr ein.** Der Flood-Fill der
+  Zauberstab-Auswahl lief bisher synchron im UI-Thread; bei 40-MP-Bildern
+  mit grossen einfarbigen Flaechen war der Klick spuerbar laggy. Die
+  Berechnung laeuft jetzt im neuen ``FloodFillWorker`` auf einem
+  kurzlebigen ``QThread`` (analog zu ``ImageLoadWorker``); das Ergebnis
+  kommt per ``finished``-Signal zurueck und wird via Stale-Check auf
+  ``content_revision`` verworfen, falls der Nutzer das Bild
+  zwischenzeitlich gewechselt oder editiert hat. Pannen/Zoomen bleibt
+  waehrend der Berechnung reaktiv; nur ein paralleler Wand-Klick wird
+  mit einer Statusmeldung blockiert.
 - **CI-Testmatrix erweitert.** Der Full-CI-Workflow prüft jetzt Python
   3.10, 3.11, 3.12 und 3.13 auf Ubuntu und macOS.
 - **`RembgWarmupWorker` erbt von `_Worker`.** Der Warmup-Worker war
