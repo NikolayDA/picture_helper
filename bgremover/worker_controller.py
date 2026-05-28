@@ -4,11 +4,18 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Callable
 
+import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
 from bgremover.constants import _THREAD_SHUTDOWN_MS, logger
-from bgremover.workers import AIWorker, ImageLoadWorker, RembgWarmupWorker, _Worker
+from bgremover.workers import (
+    AIWorker,
+    FloodFillWorker,
+    ImageLoadWorker,
+    RembgWarmupWorker,
+    _Worker,
+)
 
 QuitSignals = tuple[pyqtBoundSignal, ...]
 
@@ -24,6 +31,7 @@ class WorkerController:
         self.ai_worker: AIWorker | None = None
         self.warmup_thread: QThread | None = None
         self.warmup_done = False
+        self.flood_fill_thread: QThread | None = None
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
         # Slots gebundener Methoden nur schwach: ohne diese Liste sammelt
         # CPython den Worker direkt nach _build_thread ein und run() liefe
@@ -39,6 +47,11 @@ class WorkerController:
     @property
     def is_ai_running(self) -> bool:
         return self.ai_thread is not None and self.ai_thread.isRunning()
+
+    @property
+    def is_flood_fill_running(self) -> bool:
+        return (self.flood_fill_thread is not None
+                and self.flood_fill_thread.isRunning())
 
     def launch_worker(
         self,
@@ -157,11 +170,39 @@ class WorkerController:
         if self.ai_worker is not None:
             self.ai_worker.cancel()
 
+    def start_flood_fill(
+        self,
+        arr: np.ndarray,
+        x: int,
+        y: int,
+        tolerance: int,
+        on_done: Callable[[np.ndarray], None],
+        on_error: Callable[[str], None],
+    ) -> bool:
+        """Start asynchronous wand flood-fill; return False if one is active."""
+        if self.is_flood_fill_running:
+            return False
+        worker = FloodFillWorker(arr, x, y, tolerance)
+        worker.finished.connect(on_done)
+        worker.error.connect(on_error)
+        thread = self._build_thread(
+            worker,
+            quit_on=(worker.finished, worker.error),
+            on_finished=self._finish_flood_fill_thread,
+        )
+        self.flood_fill_thread = thread
+        thread.start()
+        return True
+
+    def _finish_flood_fill_thread(self) -> None:
+        self.flood_fill_thread = None
+
     def shutdown_all(self) -> None:
         self.cancel_ai()
         self.shutdown_thread(self.ai_thread, "KI")
         self.shutdown_thread(self.load_thread, "Bildladen")
         self.shutdown_thread(self.warmup_thread, "rembg-Warmup")
+        self.shutdown_thread(self.flood_fill_thread, "Flood-Fill")
 
     def shutdown_thread(self, thread: QThread | None, name: str) -> None:
         """Stop *thread* cleanly before the owning window is destroyed."""
