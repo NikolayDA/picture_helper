@@ -28,5 +28,4 @@
 | 🟢 | 补充 Python 3.11/3.13 classifiers | 小 | 未完成 |
 | 🟡 | i18n drift test：保持 `CHANGELOG`/`INSTALL` 结构同步 | 中 | 未完成 |
 | 🟢 | 统一模块文档语言，避免 DE/EN 混用 | 中 | 未完成 |
-| 🟡 | 为未来设置迁移加入 QSettings schema versioning | 中 | 未完成 |
 | 🟢 | 为 README 添加截图 | 小 | 未完成 |
