@@ -23,8 +23,5 @@ Los hallazgos históricos y registros de trabajo completos de las rondas 1-5 est
 
 ## Puntos de pulido abiertos
 
-| Prioridad | Recomendación | Esfuerzo | Estado |
-|-----------|---------------|----------|--------|
-| 🟢 | Añadir classifiers de Python 3.11/3.13 | Bajo | Abierto |
-| 🟡 | Revisar el alcance idiomático de `CHANGELOG.md`; alternativa: mantener canónico solo DE/EN y enlazar los demás idiomas, porque los changelogs derivan rápido | Bajo | Abierto |
-| 🟢 | Unificar el idioma de la documentación donde los módulos mezclan DE/EN | Medio | Abierto |
+Todos los puntos de pulido anotados anteriormente han sido resueltos. El
+proyecto no tiene actualmente ninguna recomendación abierta.

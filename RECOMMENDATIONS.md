@@ -23,7 +23,5 @@ Die vollständigen historischen Befunde und Arbeitsprotokolle aus Runden 1-5 lie
 
 ## Offene Polish-Punkte
 
-| Prio | Empfehlung | Aufwand | Status |
-|------|------------|---------|--------|
-| 🟡 | `CHANGELOG.md`-Sprachenumfang prüfen; Alternative: nur DE/EN kanonisch pflegen und andere Sprachen verlinken, da Changelogs schnell driften | Klein | Offen |
-| 🟢 | Doku-Sprache vereinheitlichen, wo Module DE/EN mischen | Mittel | Offen |
+Alle bisher notierten Polish-Punkte sind erledigt. Das Projekt enthält
+derzeit keine offenen Empfehlungen.

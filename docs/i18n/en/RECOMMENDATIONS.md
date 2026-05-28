@@ -23,8 +23,5 @@ The full historical findings and work logs from rounds 1-5 are archived at [../.
 
 ## Open polish items
 
-| Priority | Recommendation | Effort | Status |
-|----------|----------------|--------|--------|
-| 🟢 | Add Python classifiers for 3.11/3.13 | Small | Open |
-| 🟡 | Review `CHANGELOG.md` language scope; alternative: keep only DE/EN canonical and link other languages, because changelogs drift quickly | Small | Open |
-| 🟢 | Unify documentation language where modules mix DE/EN | Medium | Open |
+All previously noted polish items have been resolved. The project currently
+has no open recommendations.
