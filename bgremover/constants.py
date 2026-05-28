@@ -63,5 +63,13 @@ TOOL_LASSO  = "lasso"
 
 
 def init_runtime() -> None:
-    """Initialisiert explizite Runtime-Seiteneffekte für die Anwendung."""
+    """Initialisiert explizite Runtime-Seiteneffekte für die Anwendung.
+
+    Achtung – prozessweiter Seiteneffekt: setzt ``Image.MAX_IMAGE_PIXELS``
+    auf das Megapixel-Limit der App. Das hebt den Pillow-eigenen
+    Decompression-Bomb-Schutz für *jeden* Aufrufer im selben Prozess an
+    (auch importierte Bibliotheken, die selbst Pillow nutzen). Wird daher
+    explizit aus ``bgremover.app.main`` aufgerufen und nicht implizit beim
+    Import von ``bgremover``.
+    """
     Image.MAX_IMAGE_PIXELS = _MAX_IMAGE_PIXELS
