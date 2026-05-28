@@ -51,27 +51,46 @@ def test_module_logger_exists():
     assert bgremover.logger.name == "BgRemover"
 
 
-def test_apply_remove_logs_unexpected_exception(qapp, caplog):
-    """Wenn die Auswahl-Anwendung crasht, muss der Logger das
-    aufzeichnen (statt das Programm stumm zu lassen)."""
+def _raise_value_error(*_args, **_kwargs):
+    raise ValueError("simulierter Bildverarbeitungsfehler")
+
+
+def test_apply_remove_logs_expected_value_error(qapp, caplog, monkeypatch):
+    """Erwartete Bildverarbeitungsfehler (ValueError) landen im Logger
+    und als Statusmeldung statt unbehandelt auf stderr zu enden."""
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
-    canvas._arr  = None                          # provoziert AttributeError
     canvas._mask = np.ones((10, 10), dtype=bool)
+    monkeypatch.setattr(
+        canvas._selection, "remove_background", _raise_value_error)
     with caplog.at_level(logging.ERROR, logger="BgRemover"):
         canvas.apply_remove()
     assert any("Fehler" in record.message for record in caplog.records)
 
 
-def test_apply_replace_logs_unexpected_exception(qapp, caplog):
+def test_apply_replace_logs_expected_value_error(qapp, caplog, monkeypatch):
     from PyQt6.QtGui import QColor
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
-    canvas._arr  = None
     canvas._mask = np.ones((10, 10), dtype=bool)
+    monkeypatch.setattr(
+        canvas._selection, "replace_background", _raise_value_error)
     with caplog.at_level(logging.ERROR, logger="BgRemover"):
         canvas.apply_replace(QColor(255, 0, 0))
     assert any("Fehler" in record.message for record in caplog.records)
+
+
+def test_apply_remove_propagates_unexpected_bug(qapp):
+    """Echte Bugs (AttributeError o.ä.) werden bewusst nicht mehr
+    stillschweigend verschluckt – der Engpass im except ist eng auf
+    OSError/ValueError/UnidentifiedImageError gefasst."""
+    import pytest
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
+    canvas._arr  = None                          # provoziert AssertionError
+    canvas._mask = np.ones((10, 10), dtype=bool)
+    with pytest.raises(AssertionError):
+        canvas.apply_remove()
 
 
 def test_setup_logging_creates_missing_directory(tmp_path, monkeypatch):

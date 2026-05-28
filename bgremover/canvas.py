@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -421,7 +421,10 @@ class ImageCanvas(QGraphicsView):
                 desc="Hintergrund entfernt",
             )
             self.statusMsg.emit("Hintergrund entfernt (transparent)")
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
+            # Bewusst eng gefasst: erwartete Bild-/IO-Probleme landen als
+            # Statusmeldung, echte Bugs (AttributeError, IndexError, …)
+            # propagieren stattdessen sichtbar nach oben.
             logger.exception("Fehler beim Entfernen")
             self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
 
@@ -438,7 +441,7 @@ class ImageCanvas(QGraphicsView):
                 desc=f"Farbe ersetzt ({color.name()})",
             )
             self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.exception("Fehler beim Ersetzen")
             self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
 
