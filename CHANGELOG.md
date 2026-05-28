@@ -35,6 +35,31 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Code-Hygiene-Sammelrunde (kleine, voneinander unabhängige Cleanups).**
+  - `bgremover/__init__.py` + neues `bgremover/_version.py`: Das
+    Source-Lauf-Fallback für `__version__` liest jetzt `pyproject.toml`
+    direkt (`tomllib` ab Py3.11, Regex auf Py3.10) statt eines
+    hardgecodeten Versions-Literals; pyproject.toml ist damit Single
+    Source of Truth, ein Versionsbump kann den Fallback nicht mehr
+    vergessen. `tests/test_version.py` validiert das neue Verhalten.
+  - `bgremover/canvas.py`: `_paint_brush(cx, cy)` liest nicht mehr
+    `self._tool` intern; der Aufrufer übergibt das `additive`-Flag
+    explizit (keyword-only), Tests entsprechend angepasst.
+  - `bgremover/canvas.py`: `apply_remove`/`apply_replace` fangen statt
+    `Exception` nur noch `OSError`/`ValueError`/`PIL.UnidentifiedImageError`;
+    echte Bugs (AttributeError, IndexError …) propagieren wieder
+    sichtbar nach oben, statt als Statusmeldung verschluckt zu werden.
+  - `bgremover/constants.py`: Docstring von `init_runtime` benennt den
+    prozessweiten Seiteneffekt auf `Image.MAX_IMAGE_PIXELS` ausdrücklich;
+    außerdem dokumentiert ein Kommentar neben dem zentralen
+    `logger`-Objekt die Empfehlung, in neuem Sub-Modul-Code
+    `logging.getLogger(__name__)` zu verwenden.
+  - `bgremover/recent_files.py`: Kommentar erklärt den QSettings-Sonderfall,
+    in dem eine Ein-Element-Liste als roher String zurückkommt.
+  - `Makefile`: `make clean` räumt jetzt zusätzlich `*.egg-info/`,
+    `build/` und `dist/` (Reste von `pip install -e .`).
+  - `pyproject.toml`: `description` reflektiert den dokumentierten
+    Linux-Support („macOS und Linux") statt nur macOS.
 - **Wand-Auswahl friert die UI nicht mehr ein.** Der Flood-Fill der
   Zauberstab-Auswahl lief bisher synchron im UI-Thread; bei 40-MP-Bildern
   mit grossen einfarbigen Flaechen war der Klick spuerbar laggy. Die
@@ -86,6 +111,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **`apply_remove`/`apply_replace` verschlucken keine echten Bugs mehr.**
+  Der frühere `except Exception` schluckte u. a. `AttributeError` und
+  `AssertionError` – also genau die Klasse Fehler, die als Bug sichtbar
+  werden sollte. Der neue, enge Filter (`OSError`, `ValueError`,
+  `PIL.UnidentifiedImageError`) lässt diese Bugs wieder propagieren,
+  fängt aber erwartete Bild-/IO-Fehler weiterhin als Statusmeldung ab.
 - **Synchroner Lade-Pfad nutzt dieselben Schutzprüfungen wie der Worker.**
   `ImageCanvas.load_image` (Drag & Drop, Tests) ging bislang am
   strukturellen `verify()`, an der Format-Whitelist
