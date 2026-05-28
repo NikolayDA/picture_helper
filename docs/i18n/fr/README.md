@@ -20,17 +20,7 @@ Un outil de retouche d'image pour macOS permettant de **supprimer, remplacer et 
 
 ## Captures d'écran
 
-<!--
-  Avant la publication, placer une capture d'écran/un GIF sous docs/screenshot.png
-  et décommenter la ligne suivante (l'espace réservé n'affiche
-  volontairement pas d'image cassée tant que le fichier est absent) :
-
 ![BgRemover – fenêtre principale](../../screenshot.png)
--->
-
-> _Capture d'écran à venir._ Une image de la fenêtre principale (barre d'outils, canevas avec
-> sélection, panneau d'onglets de droite) a sa place ici avant la publication —
-> chemin recommandé `docs/screenshot.png`.
 
 ## Prérequis
 
