@@ -109,6 +109,8 @@ def _add_action(
     action = QAction(text, parent)
     if shortcut is not None:
         action.setShortcut(QKeySequence(shortcut))
-    action.triggered.connect(triggered)
+    # QAction.triggered delivers a `bool` (checked state) that none of these
+    # zero-arg callbacks accept – swallow it via a small adapter.
+    action.triggered.connect(lambda _checked=False: triggered())
     menu.addAction(action)
     return action
