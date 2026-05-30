@@ -59,6 +59,14 @@ y editar fondos**. Las funciones principales:
 
 ## 2. La ventana de la aplicación de un vistazo
 
+![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+
+*La ventana principal justo tras el inicio: la barra de herramientas a la
+izquierda, el lienzo con el tablero de transparencia en el centro, el panel de
+pestañas a la derecha (aquí la pestaña "Selección") y la barra de estado abajo.
+Las capturas muestran la interfaz en alemán; las etiquetas se corresponden con
+los términos usados en esta guía.*
+
 La ventana está dividida en cuatro áreas:
 
 ```
@@ -98,6 +106,12 @@ Elimina un fondo en menos de un minuto:
 5. **Guardar** – `Archivo → Guardar` (⌘S), elige el formato **PNG** (conserva
    la transparencia).
 
+![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+
+*Tras un clic en el ícono de IA, el fondo queda recortado automáticamente; la
+barra de estado confirma que la eliminación de fondo con IA ha finalizado y el
+patrón de cuadros marca las áreas transparentes.*
+
 Las siguientes secciones explican cada paso en detalle.
 
 ---
@@ -111,6 +125,11 @@ Hay tres formas de cargar una imagen:
   archivos directamente al lienzo.
 - **Archivos recientes:** `Archivo → Archivos recientes` lista las últimas
   10 imágenes abiertas.
+
+![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+
+*El menú "Archivo" agrupa Abrir (⌘O), "Archivos recientes", Guardar (⌘S) y
+Guardar como… (⇧⌘S).*
 
 Se admiten formatos comunes como PNG, JPEG, WebP, TIFF y BMP. Las imágenes
 grandes se cargan en segundo plano — la barra de estado muestra el progreso.
@@ -156,6 +175,11 @@ Para todas las herramientas de selección:
 | ⟲ | **Restaurar original** – descartar todas las ediciones |
 | 🕘 | **Historial de ediciones** – lista de todos los pasos; **doble clic** en una entrada para saltar a ese estado |
 
+![Ventana emergente "Historial de ediciones"](../../../app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+
+*El historial de ediciones lista cada paso de edición; un doble clic en una
+entrada vuelve exactamente a ese estado.*
+
 ### Archivo
 
 | Ícono | Función |
@@ -173,6 +197,11 @@ Para todas las herramientas de selección:
 Casi todas las ediciones (hacer transparente, reemplazar color) actúan sobre
 el **área actualmente seleccionada**. La selección se resalta en color sobre
 la imagen.
+
+![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+
+*Una imagen cargada con una selección activa: el área de fondo seleccionada se
+resalta en color sobre el lienzo.*
 
 ### Con la varita mágica (recomendado para fondos de color sólido)
 
@@ -200,7 +229,8 @@ la imagen.
 ## 7. Pestaña "Selección"
 
 La primera pestaña del panel derecho controla el comportamiento de la
-selección.
+selección; ya aparece en la vista general de arriba (sección 2) y en la figura
+de la sección 6.
 
 ### Sugerencias de herramientas
 
@@ -231,6 +261,11 @@ Ctrl/Cmd = sustraer).
 
 Aquí se modifica realmente la selección actual.
 
+![La pestaña "Fondo"](../../../app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+
+*La pestaña "Fondo": "Eliminar (transparente)" hace transparente la selección;
+el cuadro de color y "Reemplazar color" la rellenan con un color.*
+
 | Acción | Descripción |
 |---|---|
 | **Eliminar (transparente)** | Hace el área seleccionada completamente transparente. Consejo: primero selecciona el fondo con la varita mágica. |
@@ -245,6 +280,11 @@ identidad).
 ---
 
 ## 9. Pestaña "Rotar/Voltear"
+
+![La pestaña "Rotar/Voltear"](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+
+*La pestaña "Rotar/Voltear" con rotación rápida (90°/180°/270°), ángulo libre y
+los botones para voltear horizontal y verticalmente.*
 
 ### Rotar
 
@@ -266,6 +306,11 @@ identidad).
 
 ## 10. Pestaña "Forma" – Esquinas y recorte
 
+![La pestaña "Forma"](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+
+*La pestaña "Forma": arriba "Redondear esquinas" con control deslizante de
+radio; debajo, los formatos de recorte (especiales, horizontal y vertical).*
+
 ### Redondear esquinas
 
 1. Usa el control deslizante **Radio** para ajustar el redondeo (0 = sin
@@ -286,6 +331,11 @@ El resultado se guarda con esquinas transparentes — mejor como PNG.
 4. Aparece una barra debajo del lienzo:
    - **✓ Aplicar recorte** – recorta la imagen.
    - **✗ Cancelar** – descarta el marco.
+
+![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+
+*Ejemplo "Círculo": el marco de recorte se sitúa sobre la imagen con tiradores.
+"✓ Aplicar recorte" recorta la imagen y "✗ Cancelar" descarta el marco.*
 
 ---
 
@@ -312,6 +362,12 @@ Elige el **formato de archivo** deseado en el diálogo:
 
 A través de `Extras → Configuración…` (⌘, / Ctrl+,) puedes gestionar los
 siguientes ajustes:
+
+![El diálogo de configuración](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+
+*El diálogo de configuración: los directorios predeterminados de apertura y
+guardado, el formato de imagen preferido y la ruta del archivo de registro con
+el botón "Abrir carpeta".*
 
 | Ajuste | Descripción |
 |---|---|
