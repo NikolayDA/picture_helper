@@ -62,6 +62,14 @@ modifier les arrière-plans**. Les fonctionnalités principales :
 
 ## 2. La fenêtre de l'application en un coup d'œil
 
+![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+
+*La fenêtre principale juste après le lancement : la barre d'outils à gauche, le
+canevas avec le damier de transparence au centre, le panneau d'onglets à droite
+(ici l'onglet « Sélection ») et la barre d'état en bas. Les captures montrent
+l'interface en allemand ; les libellés correspondent aux termes utilisés dans
+ce guide.*
+
 La fenêtre est divisée en quatre zones :
 
 ```
@@ -101,6 +109,12 @@ Supprimez un arrière-plan en moins d'une minute :
 5. **Enregistrer** – `Fichier → Enregistrer` (⌘S), choisissez le format **PNG**
    (conserve la transparence).
 
+![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+
+*Après un clic sur l'icône IA, l'arrière-plan est détouré automatiquement ; la
+barre d'état confirme que la suppression d'arrière-plan par IA est terminée, et
+le damier indique les zones transparentes.*
+
 Les sections suivantes expliquent chaque étape en détail.
 
 ---
@@ -114,6 +128,11 @@ Il existe trois façons de charger une image :
   de fichiers directement sur le canevas.
 - **Fichiers récents :** `Fichier → Fichiers récents` liste les 10 dernières
   images ouvertes.
+
+![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+
+*Le menu « Fichier » regroupe Ouvrir (⌘O), « Fichiers récents »,
+Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
 
 Les formats courants tels que PNG, JPEG, WebP, TIFF et BMP sont pris en
 charge. Les grandes images sont chargées en arrière-plan — la barre d'état
@@ -160,6 +179,11 @@ Pour tous les outils de sélection :
 | ⟲ | **Restaurer l'original** – abandonner toutes les modifications |
 | 🕘 | **Historique des modifications** – liste de toutes les étapes ; **double-clic** sur une entrée pour revenir à cet état |
 
+![Fenêtre « Historique des modifications »](../../../app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+
+*L'historique des modifications liste chaque étape ; un double-clic sur une
+entrée revient exactement à cet état.*
+
 ### Fichier
 
 | Icône | Fonction |
@@ -176,6 +200,11 @@ Pour tous les outils de sélection :
 Presque toutes les modifications (rendre transparent, remplacer la couleur)
 s'appliquent à la **zone actuellement sélectionnée**. La sélection est mise en
 surbrillance en couleur sur l'image.
+
+![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+
+*Une image chargée avec une sélection active : la zone d'arrière-plan
+sélectionnée est mise en surbrillance en couleur sur le canevas.*
 
 ### Avec la baguette magique (recommandé pour les arrière-plans unis)
 
@@ -203,7 +232,9 @@ surbrillance en couleur sur l'image.
 
 ## 7. Onglet « Sélection »
 
-Le premier onglet du panneau droit contrôle le comportement de la sélection.
+Le premier onglet du panneau droit contrôle le comportement de la sélection ;
+il apparaît déjà dans la vue d'ensemble ci-dessus (section 2) et dans la figure
+de la section 6.
 
 ### Indications sur les outils
 
@@ -235,6 +266,12 @@ Ctrl/Cmd = soustraire).
 
 C'est ici que la sélection actuelle est réellement modifiée.
 
+![L'onglet « Arrière-plan »](../../../app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+
+*L'onglet « Arrière-plan » : « Supprimer (transparent) » rend la sélection
+transparente ; le carré de couleur et « Remplacer la couleur » la remplissent
+d'une couleur.*
+
 | Action | Description |
 |---|---|
 | **Supprimer (transparent)** | Rend la zone sélectionnée complètement transparente. Conseil : sélectionnez d'abord l'arrière-plan avec la baguette magique. |
@@ -249,6 +286,11 @@ pour des photos d'identité).
 ---
 
 ## 9. Onglet « Rotation/Miroir »
+
+![L'onglet « Rotation/Miroir »](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+
+*L'onglet « Rotation/Miroir » avec la rotation rapide (90°/180°/270°), l'angle
+libre et les boutons pour retourner horizontalement et verticalement.*
 
 ### Rotation
 
@@ -270,6 +312,11 @@ pour des photos d'identité).
 
 ## 10. Onglet « Forme » – Coins et recadrage
 
+![L'onglet « Forme »](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+
+*L'onglet « Forme » : en haut « Arrondir les coins » avec le curseur de rayon ;
+en dessous, les formats de recadrage (spéciaux, paysage et portrait).*
+
 ### Arrondir les coins
 
 1. Utilisez le curseur **Rayon** pour régler l'arrondi (0 = pas d'arrondi,
@@ -290,6 +337,12 @@ Le résultat est enregistré avec des coins transparents — de préférence en 
 4. Une barre apparaît sous le canevas :
    - **✓ Appliquer le recadrage** – recadre l'image.
    - **✗ Annuler** – abandonne le cadre.
+
+![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+
+*Exemple « Cercle » : le cadre de recadrage se place sur l'image avec des
+poignées. « ✓ Appliquer le recadrage » recadre l'image, « ✗ Annuler » abandonne
+le cadre.*
 
 ---
 
@@ -316,6 +369,12 @@ Choisissez le **format de fichier** souhaité dans la boîte de dialogue :
 
 Via `Extras → Paramètres…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
+
+![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+
+*La boîte de dialogue des paramètres : les répertoires d'ouverture et
+d'enregistrement par défaut, le format d'image préféré et le chemin du fichier
+journal avec le bouton « Ouvrir le dossier ».*
 
 | Paramètre | Description |
 |---|---|
