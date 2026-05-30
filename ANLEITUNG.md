@@ -60,6 +60,12 @@ und Bearbeiten von Hintergründen**. Die wichtigsten Funktionen:
 
 ## 2. Die Programmoberfläche im Überblick
 
+![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+
+*Das Hauptfenster direkt nach dem Start: Werkzeugleiste links, Arbeitsfläche
+mit Transparenz-Schachbrett in der Mitte, Tab-Panel rechts (hier der Tab
+„Auswahl") und die Statusleiste unten.*
+
 Das Fenster ist in vier Bereiche aufgeteilt:
 
 ```
@@ -99,6 +105,12 @@ So entfernen Sie einen Hintergrund in unter einer Minute:
 5. **Speichern** – `Datei → Speichern` (⌘S), Format **PNG** wählen
    (behält die Transparenz).
 
+![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+
+*Nach einem Klick auf das KI-Symbol ist der Hintergrund automatisch
+freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
+abgeschlossen", freie Bereiche zeigt das Schachbrettmuster an.*
+
 Die folgenden Kapitel erklären jeden Schritt im Detail.
 
 ---
@@ -112,6 +124,11 @@ Es gibt drei Wege, ein Bild zu laden:
   Arbeitsfläche ziehen.
 - **Zuletzt geöffnet:** `Datei → Zuletzt geöffnet` listet die letzten
   10 geladenen Bilder auf.
+
+![Das Menü „Datei"](app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+
+*Das Menü „Datei" bündelt Öffnen (⌘O), „Zuletzt geöffnet", Speichern (⌘S)
+und Speichern unter… (⇧⌘S).*
 
 Unterstützt werden gängige Formate wie PNG, JPEG, WebP, TIFF und BMP.
 Große Bilder werden im Hintergrund geladen – die Statusleiste zeigt den
@@ -159,6 +176,11 @@ Bei allen Auswahl-Werkzeugen gilt:
 | ⟲ | **Original wiederherstellen** – alle Bearbeitungen verwerfen |
 | 🕘 | **Änderungshistorie** – Liste aller Schritte; **Doppelklick** auf einen Eintrag springt zu diesem Zustand zurück |
 
+![Popup „Änderungshistorie"](app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+
+*Die Änderungshistorie listet jeden Bearbeitungsschritt auf; ein Doppelklick
+auf einen Eintrag springt zu genau diesem Zustand zurück.*
+
 ### Datei
 
 | Symbol | Funktion |
@@ -176,6 +198,11 @@ Bei allen Auswahl-Werkzeugen gilt:
 Fast alle Bearbeitungen (transparent machen, Farbe ersetzen) wirken auf
 den **aktuell ausgewählten Bereich**. Die Auswahl wird auf dem Bild
 farblich hervorgehoben.
+
+![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+
+*Ein geladenes Bild mit aktiver Auswahl: Der ausgewählte Hintergrundbereich
+ist auf der Arbeitsfläche farblich hervorgehoben.*
 
 ### Mit dem Zauberstab (empfohlen für einfarbige Hintergründe)
 
@@ -204,7 +231,9 @@ farblich hervorgehoben.
 
 ## 7. Tab „Auswahl"
 
-Der erste Reiter im rechten Panel steuert das Auswahlverhalten.
+Der erste Reiter im rechten Panel steuert das Auswahlverhalten – er ist
+im Überblick oben (Abschnitt 2) und in der Abbildung in Abschnitt 6
+bereits zu sehen.
 
 ### Werkzeug-Hinweise
 
@@ -236,6 +265,11 @@ aufgelistet.
 
 Hier wird die getroffene Auswahl tatsächlich verändert.
 
+![Der Tab „Hintergrund"](app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+
+*Der Tab „Hintergrund": „Entfernen (transparent)" macht die Auswahl
+durchsichtig; das Farbfeld und „Farbe ersetzen" füllen sie mit einer Farbe.*
+
 | Aktion | Beschreibung |
 |---|---|
 | **Entfernen (transparent)** | Macht den ausgewählten Bereich vollständig durchsichtig. Tipp: zuerst mit dem Zauberstab den Hintergrund auswählen. |
@@ -250,6 +284,11 @@ Farbe wählen und *Farbe ersetzen* für einen einfarbigen Hintergrund
 ---
 
 ## 9. Tab „Drehen/Spiegeln"
+
+![Der Tab „Drehen/Spiegeln"](app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+
+*Der Tab „Drehen/Spiegeln" mit Schnell-Drehung (90°/180°/270°), freiem
+Winkel und den Schaltflächen zum horizontalen und vertikalen Spiegeln.*
 
 ### Drehen
 
@@ -270,6 +309,11 @@ Farbe wählen und *Farbe ersetzen* für einen einfarbigen Hintergrund
 ---
 
 ## 10. Tab „Form" – Ecken & Zuschnitt
+
+![Der Tab „Form"](app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+
+*Der Tab „Form": oben „Ecken abrunden" mit Radius-Regler, darunter die
+Zuschnitt-Formate (Sonderformate, Quer- und Hochformat).*
 
 ### Ecken abrunden
 
@@ -292,6 +336,12 @@ PNG.
 4. Unter der Arbeitsfläche erscheint eine Leiste:
    - **✓ Zuschnitt anwenden** – schneidet das Bild zu.
    - **✗ Abbrechen** – verwirft den Rahmen.
+
+![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+
+*Beispiel „Kreis": Der Zuschnitt-Rahmen liegt mit Anfasspunkten über dem
+Bild. Über „✓ Zuschnitt anwenden" wird zugeschnitten, „✗ Abbrechen" verwirft
+den Rahmen.*
 
 ---
 
@@ -318,6 +368,12 @@ Wählen Sie im Dialog das gewünschte **Dateiformat**:
 
 Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
 Einstellungen verwalten:
+
+![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+
+*Der Einstellungen-Dialog: Standard-Verzeichnisse zum Öffnen und Speichern,
+das bevorzugte Bilddateiformat sowie der Pfad zur Protokolldatei mit dem
+Knopf „Ordner öffnen".*
 
 | Einstellung | Beschreibung |
 |---|---|
