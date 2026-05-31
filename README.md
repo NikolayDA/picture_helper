@@ -59,13 +59,9 @@ nutzt die separat installierte venv unter
 Die `.app` ist nicht als einzelne Datei portabel. Schlägt die Installation
 der KI-Abhängigkeiten fehl, baut das Skript eine nutzbare App ohne KI.
 
-Nach einem Update oder Branch-Wechsel die vorhandene App-venv vor dem
-Neuaufbau entfernen, damit das aktuelle Checkout neu installiert wird:
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+Nach einem Update oder Branch-Wechsel `bash create_BgRemover_app.sh`
+erneut ausführen. Das Skript installiert das aktuelle Checkout
+nicht-editierbar über die vorhandene App-venv und baut den Launcher neu.
 
 **Alternativ direkt im Terminal** — auf modernem macOS in einer venv,
 da System-Python `pip install` per PEP 668 blockiert:
@@ -183,11 +179,13 @@ make type
 
 `ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert (Markdown → HTML →
 PDF via WeasyPrint, GitHub-ähnliches Layout). Nach Änderungen an der
-Markdown-Quelle die PDF reproduzierbar neu bauen. Benötigt die
+Markdown-Quelle die PDF reproduzierbar neu bauen. Unter Linux werden die
 DejaVu-Schriften (System-Paket `fonts-dejavu-core`) sowie die
-WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf, unter
+WeasyPrint-Systembibliotheken benötigt (Pango/Cairo/GDK-Pixbuf, unter
 Debian/Ubuntu z. B. `libpango-1.0-0 libpangoft2-1.0-0 libcairo2
-libgdk-pixbuf-2.0-0`):
+libgdk-pixbuf-2.0-0`). Unter macOS verwendet der Generator die
+Systemschriften Arial/Courier New; Pango lässt sich mit
+`brew install pango` installieren:
 
 ```bash
 pip install -e ".[docs]"

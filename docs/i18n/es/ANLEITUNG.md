@@ -461,21 +461,27 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 - La **función IA** requiere el componente opcional `rembg`. Sin él, el botón
   de IA está desactivado; todas las herramientas manuales siguen funcionando.
 - El **paquete de aplicación** (`BgRemover.app`) es específico de macOS; en
-  Linux/Windows la aplicación se inicia directamente.
+  Linux la aplicación se inicia directamente. Windows no forma parte
+  actualmente de la matriz probada oficialmente.
 
 ---
 
 ## 17. Solución de problemas y archivo de registro
 
-Si surgen problemas, consulta el **archivo de registro** `bgremover.log`. Se
-crea al iniciar la aplicación en el directorio de datos específico de la
-plataforma:
+Si surgen problemas, consulta el **archivo de registro** interno
+`bgremover.log`. Se guarda en el directorio de datos determinado por Qt y se
+crea con la primera entrada de registro. La ruta exacta puede variar según la
+plataforma y la configuración de Qt:
 
-- **macOS:** `~/Library/Application Support/BgRemover/`
-- **Linux:** `~/.local/share/BgRemover/`
+- **macOS (configuración actual):**
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`
+- **Linux:** bajo `~/.local/share/`
 
-El archivo contiene mensajes de estado y detalles de errores (trazas de pila)
-y es el primer punto de contacto para solicitudes de soporte.
+El launcher del paquete de aplicación para macOS escribe además diagnósticos
+de arranque en `~/Library/Application Support/BgRemover/bgremover.log`.
+
+El archivo interno contiene mensajes de ejecución y detalles de errores
+(trazas de pila) y es el primer punto de contacto para solicitudes de soporte.
 
 La forma más fácil de encontrar el archivo es a través de
 `Extras → Configuración… → Archivo de registro`: allí se muestra la ruta

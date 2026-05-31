@@ -418,20 +418,25 @@ Ctrl/Cmd = 减去）。
 - **最大图片尺寸：40 兆像素。** 超出限制的图片将被拒绝。
 - **AI 功能**需要可选组件 `rembg`。没有它时，AI 按钮被禁用；所有手动
   工具仍可正常使用。
-- **应用程序包**（`BgRemover.app`）是 macOS 专用的；在 Linux/Windows
-  上，应用程序直接启动。
+- **应用程序包**（`BgRemover.app`）是 macOS 专用的；在 Linux 上，
+  应用程序直接启动。Windows 目前不在官方测试矩阵中。
 
 ---
 
 ## 17. 故障排除和日志文件
 
-遇到问题时，请查看**日志文件** `bgremover.log`。它在程序启动时创建于
-特定于平台的应用数据目录中：
+遇到问题时，请查看内部**日志文件** `bgremover.log`。它保存在 Qt 确定的
+应用数据目录中，并在写入第一条日志时创建。确切路径可能因平台和 Qt
+配置而异：
 
-- **macOS：** `~/Library/Application Support/BgRemover/`
-- **Linux：** `~/.local/share/BgRemover/`
+- **macOS（当前配置）：**
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`
+- **Linux：** 位于 `~/.local/share/` 下
 
-该文件包含状态消息和错误详情（堆栈跟踪），是支持请求的第一个参考来源。
+macOS 应用程序包启动器还会将启动诊断信息写入
+`~/Library/Application Support/BgRemover/bgremover.log`。
+
+内部文件包含运行时消息和错误详情（堆栈跟踪），是支持请求的第一个参考来源。
 
 查找该文件最简便的方式是通过 `扩展 → 设置… → 日志文件`：那里会显示完整
 路径，**"打开文件夹"**按钮会直接在文件管理器中打开该目录 —— 非常适合将

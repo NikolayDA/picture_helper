@@ -3,17 +3,18 @@
 
 Markdown -> HTML (python-markdown) -> PDF (WeasyPrint) mit einem an
 GitHub angelehnten Stylesheet, damit Ueberschriften, Tabellen, Listen,
-Zitate und Code-Bloecke sauber gesetzt werden. Die DejaVu-Schriften
-werden eingebettet (Umlaute, Box-Zeichnung, Pfeile, ⌘); Emoji, die
-DejaVu nicht enthaelt, werden vorab durch lesbare Platzhalter ersetzt.
+Zitate und Code-Bloecke sauber gesetzt werden. Geeignete Systemschriften
+werden eingebettet (Umlaute, Box-Zeichnung, Pfeile, ⌘); nicht enthaltene
+Emoji werden vorab durch lesbare Platzhalter ersetzt.
 
 Aufruf:
   python scripts/generate_anleitung_pdf.py            # ANLEITUNG.md -> ANLEITUNG.pdf
   python scripts/generate_anleitung_pdf.py --in DOC.md --out DOC.pdf
 
 Abhaengigkeiten: pip install -e ".[docs]"
-Zusaetzlich noetig: DejaVu-Schriften (System-Paket fonts-dejavu-core)
-und die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
+Zusaetzlich noetig: DejaVu-Schriften (Linux-System-Paket
+fonts-dejavu-core) oder die macOS-Systemschriften Arial/Courier New und
+die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
 """
 from __future__ import annotations
 
@@ -27,12 +28,34 @@ from weasyprint import HTML
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# DejaVu liegt auf Debian/Ubuntu unter diesem Pfad (Paket: fonts-dejavu-core).
-FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
-SANS = FONT_DIR / "DejaVuSans.ttf"
-SANS_BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
-MONO = FONT_DIR / "DejaVuSansMono.ttf"
-MONO_BOLD = FONT_DIR / "DejaVuSansMono-Bold.ttf"
+# DejaVu liegt auf Debian/Ubuntu unter diesem Pfad. Auf macOS verwenden
+# wir die mitgelieferten Arial-/Courier-New-Schriften als Fallback.
+DEJAVU_DIR = Path("/usr/share/fonts/truetype/dejavu")
+MAC_FONT_DIR = Path("/System/Library/Fonts/Supplemental")
+FONT_SETS = (
+    (
+        DEJAVU_DIR / "DejaVuSans.ttf",
+        DEJAVU_DIR / "DejaVuSans-Bold.ttf",
+        DEJAVU_DIR / "DejaVuSansMono.ttf",
+        DEJAVU_DIR / "DejaVuSansMono-Bold.ttf",
+    ),
+    (
+        MAC_FONT_DIR / "Arial.ttf",
+        MAC_FONT_DIR / "Arial Bold.ttf",
+        MAC_FONT_DIR / "Courier New.ttf",
+        MAC_FONT_DIR / "Courier New Bold.ttf",
+    ),
+)
+
+
+def _select_font_set() -> tuple[Path, Path, Path, Path]:
+    for font_set in FONT_SETS:
+        if all(path.is_file() for path in font_set):
+            return font_set
+    return FONT_SETS[0]
+
+
+SANS, SANS_BOLD, MONO, MONO_BOLD = _select_font_set()
 
 # Bewusste Ersetzungen; alle uebrigen, von der Schrift nicht abgedeckten
 # Zeichen (v. a. Deko-Emoji) werden entfernt (Fallback "").
@@ -40,7 +63,7 @@ EMOJI_FALLBACK = {"⬤": "●"}
 
 
 def _covered_codepoints() -> set[int]:
-    """Vereinigt die cmaps von DejaVu Sans + Mono."""
+    """Vereinigt die cmaps der eingebetteten Sans- und Mono-Schriften."""
     cps: set[int] = set()
     for path in (SANS, MONO):
         tt = TTFont(str(path), fontNumber=0)
@@ -63,11 +86,11 @@ def _sanitize(text: str, covered: set[int]) -> str:
 def _css() -> str:
     """An GitHub-Markdown angelehntes Stylesheet (Druck/A4)."""
     return f"""
-@font-face {{ font-family:'DejaVu Sans'; src:url('file://{SANS}'); }}
-@font-face {{ font-family:'DejaVu Sans'; font-weight:bold;
+@font-face {{ font-family:'BgRemover Sans'; src:url('file://{SANS}'); }}
+@font-face {{ font-family:'BgRemover Sans'; font-weight:bold;
               src:url('file://{SANS_BOLD}'); }}
-@font-face {{ font-family:'DejaVu Sans Mono'; src:url('file://{MONO}'); }}
-@font-face {{ font-family:'DejaVu Sans Mono'; font-weight:bold;
+@font-face {{ font-family:'BgRemover Sans Mono'; src:url('file://{MONO}'); }}
+@font-face {{ font-family:'BgRemover Sans Mono'; font-weight:bold;
               src:url('file://{MONO_BOLD}'); }}
 
 @page {{
@@ -75,12 +98,12 @@ def _css() -> str:
   margin: 18mm 16mm;
   @bottom-center {{
     content: counter(page) " / " counter(pages);
-    font-family:'DejaVu Sans'; font-size: 8pt; color:#8b949e;
+    font-family:'BgRemover Sans'; font-size: 8pt; color:#8b949e;
   }}
 }}
 
 body {{
-  font-family:'DejaVu Sans', sans-serif;
+  font-family:'BgRemover Sans', sans-serif;
   font-size: 10pt; line-height: 1.55; color:#1f2328;
 }}
 a {{ color:#0969da; text-decoration:none; }}
@@ -109,13 +132,13 @@ blockquote {{
 blockquote p {{ margin: 0.3em 0; }}
 
 code, kbd, samp {{
-  font-family:'DejaVu Sans Mono', monospace; font-size: 0.88em;
+  font-family:'BgRemover Sans Mono', monospace; font-size: 0.88em;
 }}
 :not(pre) > code {{
   background:#eaeef2; padding:.15em .35em; border-radius:4px;
 }}
 pre {{
-  font-family:'DejaVu Sans Mono', monospace; font-size: 8pt;
+  font-family:'BgRemover Sans Mono', monospace; font-size: 8pt;
   line-height: 1.35; background:#f6f8fa; color:#1f2328;
   padding: 12px 14px; border:1px solid #d0d7de; border-radius:6px;
   white-space: pre; overflow: hidden; break-inside: avoid;
@@ -143,7 +166,8 @@ def build_pdf(md_path: Path, pdf_path: Path) -> None:
         if not fp.exists():
             sys.exit(
                 f"Schriftdatei fehlt: {fp}\n"
-                "Bitte das Paket 'fonts-dejavu-core' installieren."
+                "Bitte 'fonts-dejavu-core' installieren oder unter macOS "
+                "die Systemschriften Arial/Courier New pruefen."
             )
     covered = _covered_codepoints()
     raw = _sanitize(md_path.read_text(encoding="utf-8"), covered)

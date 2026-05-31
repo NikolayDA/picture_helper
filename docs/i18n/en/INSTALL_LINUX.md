@@ -274,7 +274,8 @@ again after `git pull` — unless the dependencies in
   or scaling issues, switch to the X11 plugin for testing:
   `QT_QPA_PLATFORM=xcb python3 -m bgremover` (see the Wayland note
   above).
-- **Diagnosing errors** → Check the log file
-  `~/.local/share/BgRemover/bgremover.log` (stack traces and
-  status messages). When started from the terminal, the
-  error message additionally appears directly on the console.
+- **Diagnosing errors** → The exact path of the internal runtime log is
+  shown under `Tools → Settings… → Log file`; on Linux it is located in
+  the Qt-determined directory below `~/.local/share/`. When started
+  from the terminal, the error message additionally appears directly
+  on the console.

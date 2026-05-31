@@ -56,13 +56,9 @@ bash create_BgRemover_app.sh
 单独的 `.app` 文件并不可移植。如果 AI 依赖项安装失败，脚本会构建
 一个不带 AI 但仍可使用的应用程序。
 
-更新或切换分支后，请先移除已有的 app venv，再重新构建，以便重新
-安装当前 checkout：
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+更新或切换分支后，请再次执行 `bash create_BgRemover_app.sh`。脚本会以
+非 editable 方式将当前 checkout 覆盖安装到已有 app venv 中，并重新
+构建启动器。
 
 **或者直接在终端中运行**——在现代 macOS 上需在 venv 中进行，
 因为系统 Python 会根据 PEP 668 阻止 `pip install`：
@@ -172,7 +168,9 @@ make type
 
 `ANLEITUNG.pdf` 由 `ANLEITUNG.md` 生成（Markdown → HTML → PDF，
 通过 WeasyPrint）。修改 Markdown 源文件后，请以可复现方式重新生成
-PDF：
+PDF。在 Linux 上，需要 DejaVu 字体和发行版提供的
+Pango/Cairo/GDK-Pixbuf 软件包。在 macOS 上，生成器使用系统字体
+Arial/Courier New；请用 `brew install pango` 安装 Pango：
 
 ```bash
 pip install -e ".[docs]"
