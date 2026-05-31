@@ -47,8 +47,8 @@ test = [
     "coverage[toml]>=7.6",
 ]
 # Erzeugt ANLEITUNG.pdf aus ANLEITUNG.md (scripts/generate_anleitung_pdf.py).
-# Zusaetzlich noetig: DejaVu-Schriften (System-Paket fonts-dejavu-core)
-# sowie die WeasyPrint-Systembibliotheken (Pango/Cairo/GDK-Pixbuf).
+# Zusaetzlich noetig: unter Linux DejaVu-Schriften (fonts-dejavu-core),
+# unter macOS Arial/Courier New; dazu Pango/Cairo/GDK-Pixbuf.
 docs = ["markdown>=3.5", "weasyprint>=61", "fonttools>=4.0"]
 
 [project.scripts]

@@ -467,22 +467,28 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
 - Die **KI-Funktion** benötigt die optionale Komponente `rembg`. Ohne
   sie ist die KI-Schaltfläche deaktiviert; alle manuellen Werkzeuge
   funktionieren weiterhin.
-- Das **App-Bundle** (`BgRemover.app`) ist macOS-spezifisch; unter
-  Linux/Windows läuft die Anwendung über den direkten Programmstart.
+- Das **App-Bundle** (`BgRemover.app`) ist macOS-spezifisch; unter Linux
+  läuft die Anwendung über den direkten Programmstart. Windows gehört
+  derzeit nicht zur offiziell getesteten Matrix.
 
 ---
 
 ## 17. Fehlerbehebung & Log-Datei
 
-Bei Problemen lohnt ein Blick in die **Log-Datei** `bgremover.log`. Sie
-wird beim Programmstart im plattformspezifischen App-Datenverzeichnis
-angelegt:
+Bei Problemen lohnt ein Blick in die interne **Log-Datei**
+`bgremover.log`. Sie liegt im von Qt ermittelten App-Datenverzeichnis
+und wird beim ersten Log-Eintrag angelegt. Der genaue Pfad kann je nach
+Plattform und Qt-Konfiguration variieren:
 
-- **macOS:** `~/Library/Application Support/BgRemover/`
-- **Linux:** `~/.local/share/BgRemover/`
+- **macOS (aktuelle Konfiguration):**
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`
+- **Linux:** unter `~/.local/share/`
 
-Die Datei enthält Status-Meldungen und Fehlerdetails (Stacktraces) und
-ist bei Support-Anfragen die erste Anlaufstelle.
+Der macOS-App-Bundle-Launcher schreibt Startdiagnosen zusätzlich nach
+`~/Library/Application Support/BgRemover/bgremover.log`.
+
+Die interne Datei enthält Laufzeitmeldungen und Fehlerdetails
+(Stacktraces) und ist bei Support-Anfragen die erste Anlaufstelle.
 
 Am einfachsten finden Sie die Datei über `Extras → Einstellungen… →
 Protokolldatei`: Dort wird der vollständige Pfad angezeigt, und der

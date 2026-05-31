@@ -20,9 +20,9 @@ logger = logging.getLogger("BgRemover")
 
 LOG_FILENAME = "bgremover.log"
 
-# Bildgrössen-Limit beim Laden (Pixel), um UI-Freeze / OOM zu vermeiden.
-# Die Zauberstab-Flood-Fill läuft synchron im GUI-Thread; jenseits ~40 MP
-# wird selbst die vektorisierte Variante spürbar träge.
+# Bildgrössen-Limit beim Laden (Pixel), um hohe Laufzeit / OOM zu vermeiden.
+# Die Zauberstab-Flood-Fill läuft zwar asynchron, braucht bei sehr grossen
+# Bildern aber weiterhin entsprechend Zeit und Speicher.
 _MAX_MEGAPIXELS = 40
 # Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
 _MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000

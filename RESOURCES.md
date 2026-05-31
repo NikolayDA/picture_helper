@@ -72,8 +72,10 @@ Optionale Dokumentations-/PDF-Werkzeuge sind unter
 | **WeasyPrint** | PDF-Rendering aus HTML/CSS | `>=61` | BSD-3-Clause |
 | **fonttools** | Font-Inspection für PDF-Erzeugung | `>=4.0` | MIT |
 
-Zusätzlich benötigt die PDF-Erzeugung Systemressourcen wie DejaVu-
-Schriften sowie Pango/Cairo/GDK-Pixbuf (distro-paketiert).
+Zusätzlich benötigt die PDF-Erzeugung unter Linux DejaVu-Schriften sowie
+Pango/Cairo/GDK-Pixbuf (distro-paketiert). Unter macOS verwendet der
+Generator Arial/Courier New aus dem System; Pango lässt sich mit
+`brew install pango` installieren.
 
 ## 5. Build- & Verteilungs-Werkzeuge (macOS)
 

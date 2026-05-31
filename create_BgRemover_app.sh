@@ -85,6 +85,19 @@ pip_install_project() {
     fi
 }
 
+install_app_project() {
+    local success_label="$1"
+    if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
+        PYTHON="$VENV_PY"
+        echo -e "${GREEN}✅  $success_label (inkl. KI):${NC} $PYTHON"
+    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
+        PYTHON="$VENV_PY"
+        echo -e "${YELLOW}✅  $success_label (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
+    else
+        return 1
+    fi
+}
+
 # Die venv liegt bewusst NICHT im Projektordner: Liegt das Projekt in
 # ~/Documents, ~/Desktop, ~/Downloads oder iCloud, blockiert macOS
 # (TCC) den Zugriff einer aus dem Finder gestarteten .app. Application
@@ -94,7 +107,6 @@ VENV_DIR="$APPSUPPORT_DIR/venv"
 VENV_PY="$VENV_DIR/bin/python3"
 
 PY_CANDIDATES=(
-    "$VENV_PY"
     "$SCRIPT_DIR/.venv/bin/python3" "$SCRIPT_DIR/venv/bin/python3"
     python3.15 python3.14 python3.13 python3.12 python3.11 python3.10 python3 python
     /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.15
@@ -105,24 +117,35 @@ PY_CANDIDATES=(
     "$HOME/.pyenv/shims/python3"
 )
 
-PYTHON=""        # erstes brauchbares Python 3.10+
-PYTHON_READY=""  # erstes Python 3.10+ MIT PyQt6/Pillow/numpy
+APP_VENV_READY=""
+if [ -x "$VENV_PY" ] && py_version_ok "$VENV_PY" && has_deps "$VENV_PY"; then
+    APP_VENV_READY=1
+fi
+
+# Basis-Python nur zum Erzeugen einer neuen dedizierten App-venv. Ein
+# bereits eingerichtetes Projekt-/System-Python wird nie direkt in den
+# Launcher eingebrannt: sonst wäre die .app wieder vom Projektpfad oder
+# von einer zufälligen lokalen Umgebung abhängig.
+PYTHON=""
 for py in "${PY_CANDIDATES[@]}"; do
     FULL_PATH=$(command -v "$py" 2>/dev/null || echo "$py")
     [ -x "$FULL_PATH" ] || continue
     py_version_ok "$FULL_PATH" || continue
-    if [ -z "$PYTHON" ]; then PYTHON="$FULL_PATH"; fi
-    if has_deps "$FULL_PATH"; then
-        PYTHON_READY="$FULL_PATH"
-        break
-    fi
+    PYTHON="$FULL_PATH"
+    break
 done
 
-if [ -n "$PYTHON_READY" ]; then
-    PYTHON="$PYTHON_READY"
-    ver=$("$PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')
-    echo -e "${GREEN}✅  Python $ver mit PyQt6 + bgremover:${NC} $PYTHON"
-elif [ -x "$VENV_PY" ] && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; then
+if [ -n "$APP_VENV_READY" ]; then
+    # Nicht-editierbar aus dem aktuellen Checkout aktualisieren. Ohne
+    # Re-Install würde ein erneuter Build nach git pull/Branch-Wechsel
+    # weiterhin die alte Paketkopie aus der App-venv starten.
+    echo -e "${YELLOW}🔁  Aktualisiere App-venv aus aktuellem Checkout …${NC}"
+    if ! install_app_project "App-venv aktualisiert"; then
+        echo -e "${RED}❌ Aktualisierung der App-venv fehlgeschlagen.${NC}"
+        exit 1
+    fi
+elif [ -x "$VENV_PY" ] && py_version_ok "$VENV_PY" \
+     && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, numpy' >/dev/null 2>&1; then
     # App-venv existiert mit PyQt6/Pillow/numpy, aber `bgremover` fehlt
     # (typisch fuer einen venv aus der Monolith-Aera, vor dem Paket-
     # Schnitt). Statt die venv komplett neu zu bauen (dauert Minuten,
@@ -130,13 +153,7 @@ elif [ -x "$VENV_PY" ] && arch_run "$VENV_PY" -c 'import PyQt6.QtWidgets, PIL, n
     # Paket nach – das dauert Sekunden.
     echo -e "${YELLOW}🔁  App-venv existiert (PyQt6/Pillow/numpy ok), aber bgremover fehlt –${NC}"
     echo "    wird nachinstalliert (statt venv neu zu bauen) …"
-    if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
-        PYTHON="$VENV_PY"
-        echo -e "${GREEN}✅  venv aktualisiert (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
-        PYTHON="$VENV_PY"
-        echo -e "${YELLOW}✅  venv aktualisiert (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
-    else
+    if ! install_app_project "App-venv aktualisiert"; then
         echo -e "${RED}❌ Nachinstallation fehlgeschlagen.${NC}"
         echo "   Manuell:  cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install --constraint \"$CONSTRAINTS_FILE\" \".[ai]\""
         echo "   Notfalls die alte venv loeschen und neu bauen:"
@@ -153,8 +170,7 @@ else
         PYTHON="$FULL_PATH"
     fi
 
-    echo -e "${YELLOW}⚠️  PyQt6 ist in keinem gefundenen Python installiert.${NC}"
-    echo -e "    Genau deshalb startet die App nicht (lautloser Import-Fehler)."
+    echo -e "${YELLOW}⚠️  Keine einsatzbereite App-venv gefunden.${NC}"
     echo ""
     echo "    Empfohlen: eine isolierte venv anlegen unter"
     echo "    $VENV_DIR"
@@ -178,13 +194,7 @@ else
     # Nicht-editierbar installieren: die venv enthaelt eine eigene Kopie
     # des Pakets (inkl. package-data icons/), damit die App vom Projekt-
     # ordner unabhaengig ist (umbenennen/loeschen bricht sie nicht).
-    if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
-        PYTHON="$VENV_PY"
-        echo -e "${GREEN}✅  venv bereit (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
-        PYTHON="$VENV_PY"
-        echo -e "${YELLOW}✅  venv bereit (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
-    else
+    if ! install_app_project "App-venv bereit"; then
         echo -e "${RED}❌ Installation fehlgeschlagen.${NC}"
         echo "   Manuell:  \"$PYTHON\" -m venv \"$VENV_DIR\""
         echo "             cd \"$SCRIPT_DIR\" && \"$VENV_PY\" -m pip install --constraint \"$CONSTRAINTS_FILE\" \".[ai]\""

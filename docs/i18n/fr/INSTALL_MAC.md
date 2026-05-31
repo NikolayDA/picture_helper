@@ -22,10 +22,11 @@ brew install python git
 
 ## Démarrage rapide depuis `main`
 
-Le script de bundle d'application est **recommandé** — il crée automatiquement un
-venv isolé, installe toutes les dépendances (y compris
-`onnxruntime` pour l'IA), gère correctement Apple Silicon et copie
-les icônes de la barre d'outils dans le bundle :
+Le script de bundle d'application est **recommandé** — il utilise un
+venv dédié à l'application, y installe le checkout courant de manière
+non éditable (y compris les icônes de la barre d'outils), gère
+correctement Apple Silicon et tente aussi d'installer les dépendances
+pour l'IA :
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -33,8 +34,9 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-Confirmer avec **Entrée** lors de l'invite relative au venv ; ensuite, lancer `BgRemover.app`
-sous `~/Applications` par double-clic.
+Si un nouveau venv d'application est créé, confirmer avec **Entrée**
+lors de l'invite ; ensuite, lancer `BgRemover.app` sous
+`~/Applications` par double-clic.
 
 **Lancement direct dans le terminal** — sur macOS moderne dans un venv, car le
 Python système bloque `pip install` selon le PEP 668 :
@@ -56,7 +58,7 @@ Après l'installation, il existe trois façons de lancer le programme :
 
 | Variante | Commande / action | Résultat |
 |----------|-----------------|----------|
-| **A – Application macOS (recommandé)** | `bash create_BgRemover_app.sh` | Crée un venv isolé, installe toutes les dépendances (y compris `onnxruntime`), copie les icônes et produit un `BgRemover.app` autonome sous `~/Applications`. La quarantaine est automatiquement supprimée ; le projet peut rester dans `~/Documents`. |
+| **A – Application macOS (recommandé)** | `bash create_BgRemover_app.sh` | Maintient un venv dédié à l'application, y installe le checkout courant de manière non éditable, tente d'installer les dépendances pour l'IA, copie les icônes et produit un `BgRemover.app` autonome sous `~/Applications`. La quarantaine est automatiquement supprimée ; le projet peut rester dans `~/Documents`. |
 | **B – Double-clic** | double-cliquer sur `BgRemover.command` dans le Finder | Démarre dans une fenêtre de terminal ; utilise automatiquement le venv d'application créé par le script (le fichier est déjà exécutable). |
 | **C – Terminal** | dans un venv : `python3 -m bgremover` | Lancement direct (configuration du venv : voir le démarrage rapide ci-dessus). |
 
@@ -76,8 +78,9 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-Sinon, il suffit aussi d'exécuter `bash create_BgRemover_app.sh` sur une branche
-— cela prend en charge automatiquement le venv et les dépendances.
+Sinon, il suffit aussi d'exécuter `bash create_BgRemover_app.sh` sur une
+branche — cela réinstalle le checkout courant dans le venv de
+l'application et prend automatiquement en charge les dépendances.
 
 **Variante 2 – cloner directement une branche :**
 ```bash
@@ -95,6 +98,11 @@ git checkout <branch> && git pull      # mettre à jour une branche donnée
 L'installation editable (`pip install -e`) n'a **pas** besoin d'être
 réexécutée après `git pull` — sauf si les dépendances dans
 `pyproject.toml` ou `requirements/constraints.txt` ont changé.
+
+Si vous utilisez `BgRemover.app`, réexécutez
+`bash create_BgRemover_app.sh` après une mise à jour ou un changement
+de branche. Le script actualise automatiquement la copie du paquet dans
+le venv dédié à l'application.
 
 ## Dépannage
 
@@ -162,4 +170,8 @@ réexécutée après `git pull` — sauf si les dépendances dans
   `bgremover/icons/`, donc reprises automatiquement dans la venv par
   `pip install` et chargées via `importlib.resources` ; reconstruire
   une fois avec `bash create_BgRemover_app.sh`.
-- **Diagnostic en cas d'erreur** → consulter le fichier journal `~/Library/Application Support/BgRemover/bgremover.log`.
+- **Diagnostic en cas d'erreur** → le lanceur du bundle écrit ses
+  diagnostics de démarrage dans
+  `~/Library/Application Support/BgRemover/bgremover.log`. Le journal
+  d'exécution interne peut se trouver dans un sous-dossier ; son chemin
+  exact est affiché sous `Outils → Réglages… → Fichier journal`.

@@ -277,7 +277,8 @@ en `pyproject.toml` o `requirements/constraints.txt`.
   de ventana o escalado, cambia a modo de prueba al plugin X11:
   `QT_QPA_PLATFORM=xcb python3 -m bgremover` (ver la nota sobre Wayland
   más arriba).
-- **Diagnóstico ante errores** → Consulta el archivo de registro
-  `~/.local/share/BgRemover/bgremover.log` (trazas de pila y mensajes
-  de estado). Al iniciar desde el terminal, el mensaje de error aparece
-  además directamente en la consola.
+- **Diagnóstico ante errores** → La ruta exacta del registro interno de
+  ejecución aparece en `Extras → Ajustes… → Archivo de registro`; en
+  Linux se encuentra en el directorio determinado por Qt bajo
+  `~/.local/share/`. Al iniciar desde el terminal, el mensaje de error
+  aparece además directamente en la consola.

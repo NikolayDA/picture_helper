@@ -275,7 +275,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
   或缩放问题时，试着切换到 X11 插件：
   `QT_QPA_PLATFORM=xcb python3 -m bgremover`（参见上面的 Wayland
   说明）。
-- **出错时的诊断** → 查看日志文件
-  `~/.local/share/BgRemover/bgremover.log`（堆栈跟踪和
-  状态消息）。从终端启动时，错误消息
+- **出错时的诊断** → 内部运行时日志的确切路径显示在
+  `工具 → 设置… → 日志文件` 中；在 Linux 上，该文件位于 Qt
+  确定的 `~/.local/share/` 下的目录中。从终端启动时，错误消息
   还会直接出现在控制台上。

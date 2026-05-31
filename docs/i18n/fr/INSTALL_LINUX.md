@@ -274,7 +274,9 @@ réexécutée après `git pull` — sauf si les dépendances dans
   ou de mise à l'échelle, basculer à titre d'essai vers le plugin X11 :
   `QT_QPA_PLATFORM=xcb python3 -m bgremover` (voir la remarque Wayland
   ci-dessus).
-- **Diagnostic en cas d'erreur** → consulter le fichier journal
-  `~/.local/share/BgRemover/bgremover.log` (traces d'appels et
-  messages d'état). Lors d'un lancement depuis le terminal, le message
-  d'erreur apparaît en plus directement dans la console.
+- **Diagnostic en cas d'erreur** → le chemin exact du journal
+  d'exécution interne est affiché sous
+  `Outils → Réglages… → Fichier journal` ; sous Linux, il se trouve
+  dans le dossier déterminé par Qt sous `~/.local/share/`. Lors d'un
+  lancement depuis le terminal, le message d'erreur apparaît en plus
+  directement dans la console.

@@ -58,13 +58,9 @@ launcher uses the separately installed venv under
 is not portable as a single file. If the AI dependency installation
 fails, the script builds a usable app without AI.
 
-After an update or branch switch, remove the existing app venv before
-rebuilding so that the current checkout is installed again:
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+After an update or branch switch, run `bash create_BgRemover_app.sh`
+again. The script installs the current checkout non-editably over the
+existing app venv and rebuilds the launcher.
 
 **Alternatively, directly in the terminal** — on modern macOS in a venv,
 since system Python blocks `pip install` via PEP 668:
@@ -175,7 +171,10 @@ make type
 
 `ANLEITUNG.pdf` is generated from `ANLEITUNG.md` (Markdown to HTML to
 PDF via WeasyPrint). After changing the Markdown source, rebuild the PDF
-reproducibly:
+reproducibly. On Linux this requires DejaVu fonts and the
+Pango/Cairo/GDK-Pixbuf distribution packages. On macOS the generator
+uses the Arial/Courier New system fonts; install Pango with
+`brew install pango`:
 
 ```bash
 pip install -e ".[docs]"

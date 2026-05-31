@@ -71,8 +71,10 @@ Les outils optionnels de documentation/PDF sont déclarés sous
 | **WeasyPrint** | Rendu PDF depuis HTML/CSS | `>=61` | BSD-3-Clause |
 | **fonttools** | Inspection des polices pour la génération PDF | `>=4.0` | MIT |
 
-La génération PDF nécessite également des ressources système telles que
-les polices DejaVu et Pango/Cairo/GDK-Pixbuf (paquets de distribution).
+Sous Linux, la génération PDF nécessite également les polices DejaVu et
+Pango/Cairo/GDK-Pixbuf (paquets de distribution). Sous macOS, le
+générateur utilise les polices système Arial/Courier New ; installer
+Pango avec `brew install pango`.
 
 ## 5. Outils de construction et de distribution (macOS)
 

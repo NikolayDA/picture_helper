@@ -60,14 +60,10 @@ una unidad: el archivo `.app` no es portátil por sí solo. Si falla la
 instalación de las dependencias de IA, el script genera una app utilizable
 sin IA.
 
-Después de una actualización o un cambio de rama, elimina el venv
-existente de la app antes de recompilar para instalar de nuevo el checkout
-actual:
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+Después de una actualización o un cambio de rama, vuelve a ejecutar
+`bash create_BgRemover_app.sh`. El script instala el checkout actual de
+forma no editable sobre el venv existente de la app y vuelve a generar el
+lanzador.
 
 **Alternativamente, directamente en el terminal** — en macOS moderno
 dentro de un venv, ya que el Python del sistema bloquea `pip install`
@@ -182,7 +178,10 @@ make type
 
 `ANLEITUNG.pdf` se genera desde `ANLEITUNG.md` (Markdown a HTML a PDF
 con WeasyPrint). Tras cambiar la fuente Markdown, vuelve a generar el
-PDF de forma reproducible:
+PDF de forma reproducible. En Linux se necesitan las fuentes DejaVu y
+los paquetes de distribución Pango/Cairo/GDK-Pixbuf. En macOS el
+generador usa las fuentes del sistema Arial/Courier New; instala Pango
+con `brew install pango`:
 
 ```bash
 pip install -e ".[docs]"

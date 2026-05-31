@@ -71,8 +71,10 @@ Optional documentation/PDF tooling is declared under
 | **WeasyPrint** | PDF rendering from HTML/CSS | `>=61` | BSD-3-Clause |
 | **fonttools** | Font inspection for PDF generation | `>=4.0` | MIT |
 
-PDF generation also needs system resources such as DejaVu fonts and
-Pango/Cairo/GDK-Pixbuf (distro-packaged).
+On Linux, PDF generation also needs DejaVu fonts and
+Pango/Cairo/GDK-Pixbuf (distro-packaged). On macOS the generator uses
+the Arial/Courier New system fonts; install Pango with
+`brew install pango`.
 
 ## 5. Build & distribution tools (macOS)
 

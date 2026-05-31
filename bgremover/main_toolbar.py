@@ -114,7 +114,7 @@ class _ToolbarBuilder:
         btn_ai.setToolTip(
             "KI-Hintergrundentfernung (rembg)\nEntfernt den Hintergrund vollautomatisch"
             if self._rembg_available else
-            "rembg nicht installiert\n→ bash setup_bgremover.sh"
+            'rembg nicht installiert\n→ python3 -m pip install -e ".[ai]"'
         )
         btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
         btn_ai.setStyleSheet(TOOL_STYLE)

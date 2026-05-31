@@ -72,8 +72,10 @@ Las herramientas opcionales de documentación/PDF se declaran bajo
 | **WeasyPrint** | Renderizado PDF desde HTML/CSS | `>=61` | BSD-3-Clause |
 | **fonttools** | Inspección de fuentes para generar el PDF | `>=4.0` | MIT |
 
-La generación del PDF también necesita recursos de sistema como fuentes
-DejaVu y Pango/Cairo/GDK-Pixbuf (empaquetados por la distribución).
+En Linux, la generación del PDF también necesita fuentes DejaVu y
+Pango/Cairo/GDK-Pixbuf (empaquetados por la distribución). En macOS el
+generador usa las fuentes del sistema Arial/Courier New; instala Pango
+con `brew install pango`.
 
 ## 5. Herramientas de compilación y distribución (macOS)
 
