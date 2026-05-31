@@ -235,7 +235,7 @@ class ImageCanvas(QGraphicsView):
         """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
         self._history.clear()
         self._history.set_original(img)
-        self._crop.cancel_overlay_only()
+        self._reset_transient_state()
         self._apply_pil(img, push=False)
         self._viewport.fit_to_view()
         self.statusMsg.emit(
@@ -281,6 +281,21 @@ class ImageCanvas(QGraphicsView):
         self._content_revision += 1
         self._refresh_image()
         self._refresh_overlay()
+
+    def _reset_transient_state(self) -> None:
+        """Verwirft schwebende Werkzeug-Interaktionen vor einem Inhaltswechsel.
+
+        Entfernt ein Crop-Overlay und meldet das Modus-Ende nur, wenn ein
+        Overlay aktiv war – sonst bliebe ein ``cropModeChanged(True)`` ohne
+        passendes ``False`` hängen und die Crop-Leiste verschwände nicht.
+        Bricht außerdem ein begonnenes Polygon-Lasso ab, damit alte Punkte
+        und Vorschaulinien nicht auf das neue Bild übertragen werden.
+        """
+        was_cropping = self._crop.active
+        self._crop.cancel_overlay_only()
+        if was_cropping:
+            self.cropModeChanged.emit(False)
+        self._lasso.cancel()
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
@@ -337,7 +352,7 @@ class ImageCanvas(QGraphicsView):
         restored = self._history.restore(self._pil)
         if restored is None:
             return
-        self._crop.cancel_overlay_only()
+        self._reset_transient_state()
         self._set_image_state(restored)
         self._emit_history()
         self.statusMsg.emit("🔄  Original wiederhergestellt")
