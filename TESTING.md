@@ -7,7 +7,7 @@ und **wann sie auf GitHub** automatisch ausgeführt werden.
 
 ## Warum diese Änderung?
 
-Die GitHub-Actions-Test-Matrix (Ubuntu + macOS × Python 3.10/3.12) lief
+Die GitHub-Actions-Test-Matrix (Ubuntu + macOS × Python 3.10–3.13) lief
 früher bei **jedem Push und jedem Pull Request** – das wurde auf Dauer
 zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 
