@@ -60,14 +60,10 @@ le fichier `.app` n'est pas portable à lui seul. Si l'installation des
 dépendances d'IA échoue, le script construit une application utilisable
 sans IA.
 
-Après une mise à jour ou un changement de branche, supprimer le venv
-existant de l'application avant de reconstruire afin de réinstaller le
-checkout actuel :
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+Après une mise à jour ou un changement de branche, relancer
+`bash create_BgRemover_app.sh`. Le script réinstalle le checkout actuel
+de façon non éditable par-dessus le venv existant de l'application et
+reconstruit le lanceur.
 
 **Sinon, directement dans le terminal** — sur macOS moderne dans un venv,
 car le Python système bloque `pip install` selon le PEP 668 :
@@ -178,7 +174,10 @@ make type
 
 `ANLEITUNG.pdf` est généré depuis `ANLEITUNG.md` (Markdown vers HTML
 puis PDF via WeasyPrint). Après une modification de la source Markdown,
-reconstruire le PDF de manière reproductible :
+reconstruire le PDF de manière reproductible. Sous Linux, les polices
+DejaVu et les paquets de distribution Pango/Cairo/GDK-Pixbuf sont
+nécessaires. Sous macOS, le générateur utilise les polices système
+Arial/Courier New ; installer Pango avec `brew install pango` :
 
 ```bash
 pip install -e ".[docs]"

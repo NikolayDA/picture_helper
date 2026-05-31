@@ -22,10 +22,11 @@ brew install python git
 
 ## Quick start from `main`
 
-**Recommended** is the app bundle script — it automatically creates an
-isolated venv, installs all dependencies (including
-`onnxruntime` for the AI), handles Apple Silicon correctly, and copies
-the toolbar icons into the bundle:
+**Recommended** is the app bundle script — it automatically creates a
+dedicated app venv under `~/Library/Application Support/BgRemover/venv`,
+installs the current checkout non-editably including its icons, attempts
+to install the AI dependencies including `onnxruntime`, and handles Apple
+Silicon correctly:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -33,8 +34,8 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-Confirm the venv prompt with **Enter**; afterwards, double-click
-`BgRemover.app` under `~/Applications` to start it.
+If the app venv is newly created, confirm the prompt with **Enter**;
+afterwards, double-click `BgRemover.app` under `~/Applications` to start it.
 
 **Direct terminal start** — on modern macOS in a venv, since
 system Python blocks `pip install` via PEP 668:
@@ -56,7 +57,7 @@ After installation there are three ways to start the program:
 
 | Variant | Command / action | Result |
 |----------|-----------------|----------|
-| **A – macOS app (recommended)** | `bash create_BgRemover_app.sh` | Creates an isolated venv, installs all dependencies (including `onnxruntime`), copies the icons, and produces a standalone `BgRemover.app` under `~/Applications`. Quarantine is removed automatically; the project may stay in `~/Documents`. |
+| **A – macOS app (recommended)** | `bash create_BgRemover_app.sh` | Updates a dedicated app venv, attempts to install the AI dependencies including `onnxruntime`, and produces a `BgRemover.app` launcher under `~/Applications`. The app and venv belong together; the project may stay in `~/Documents`. |
 | **B – Double-click** | double-click `BgRemover.command` in the Finder | Starts in a terminal window; automatically uses the app venv created by the script (the file is already executable). |
 | **C – Terminal** | in a venv: `python3 -m bgremover` | Direct start (for venv setup see Quick start above). |
 
@@ -77,7 +78,8 @@ python3 -m bgremover
 ```
 
 Alternatively, you can also simply run `bash create_BgRemover_app.sh`
-on a branch — this handles the venv and dependencies automatically.
+on a branch — this handles the venv and dependencies automatically and
+reinstalls the current checkout into the app venv.
 
 **Variant 2 – cloning a branch directly:**
 ```bash
@@ -95,6 +97,10 @@ git checkout <branch> && git pull      # update a specific branch
 The editable install (`pip install -e`) does **not** need to be run
 again after `git pull` — unless the dependencies in
 `pyproject.toml` or `requirements/constraints.txt` have changed.
+
+For the app bundle, simply run `bash create_BgRemover_app.sh` again after
+an update or branch switch. The script automatically refreshes the
+non-editable package copy in the app venv.
 
 ## Troubleshooting
 
@@ -162,4 +168,8 @@ again after `git pull` — unless the dependencies in
   icons/`, so they are picked up automatically by `pip install` into
   the venv and loaded via `importlib.resources`; run
   `bash create_BgRemover_app.sh` once to rebuild.
-- **Diagnosing errors** → Check the log file `~/Library/Application Support/BgRemover/bgremover.log`.
+- **Diagnosing errors** → The bundle launcher writes startup diagnostics
+  to `~/Library/Application Support/BgRemover/bgremover.log`. The exact
+  internal runtime-log path is shown under `Tools → Settings… → Log file`;
+  with the current macOS configuration it is
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`.

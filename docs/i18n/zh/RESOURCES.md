@@ -68,8 +68,9 @@ LGPL v3 / GPL / 商业许可证；而 **PyQt6 绑定**为 GPL v3 —— 参见
 | **WeasyPrint** | 从 HTML/CSS 渲染 PDF | `>=61` | BSD-3-Clause |
 | **fonttools** | PDF 生成时检查字体 | `>=4.0` | MIT |
 
-PDF 生成还需要 DejaVu 字体以及 Pango/Cairo/GDK-Pixbuf 等系统资源
-（由发行版打包）。
+在 Linux 上，PDF 生成还需要 DejaVu 字体以及由发行版打包的
+Pango/Cairo/GDK-Pixbuf。在 macOS 上，生成器使用系统字体
+Arial/Courier New；请用 `brew install pango` 安装 Pango。
 
 ## 5. 构建与分发工具（macOS）
 

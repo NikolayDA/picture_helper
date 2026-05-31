@@ -22,10 +22,9 @@ brew install python git
 
 ## 从 `main` 快速开始
 
-**推荐**使用应用程序包脚本——它会自动创建一个
-隔离的 venv，安装所有依赖项（包括用于
-AI 的 `onnxruntime`），正确处理 Apple Silicon，并把
-工具栏图标复制到应用程序包中：
+**推荐**使用应用程序包脚本——它会使用专用的应用程序 venv，
+以非 editable 方式安装当前 checkout（包括工具栏图标），正确处理
+Apple Silicon，并尝试安装 AI 依赖项：
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -33,8 +32,8 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-出现 venv 提示时按 **Enter** 确认；之后双击位于
-`~/Applications` 的 `BgRemover.app` 即可启动。
+如果创建新的应用程序 venv，出现提示时按 **Enter** 确认；之后
+双击位于 `~/Applications` 的 `BgRemover.app` 即可启动。
 
 **直接在终端中启动**——在现代 macOS 上需在 venv 中进行，
 因为系统 Python 会根据 PEP 668 阻止 `pip install`：
@@ -56,7 +55,7 @@ python3 -m bgremover
 
 | 方式 | 命令 / 操作 | 结果 |
 |----------|-----------------|----------|
-| **A – macOS 应用程序（推荐）** | `bash create_BgRemover_app.sh` | 创建一个隔离的 venv，安装所有依赖项（包括 `onnxruntime`），复制图标，并在 `~/Applications` 下生成一个独立的 `BgRemover.app`。隔离属性会被自动移除；项目可以保留在 `~/Documents` 中。 |
+| **A – macOS 应用程序（推荐）** | `bash create_BgRemover_app.sh` | 维护一个专用的应用程序 venv，以非 editable 方式安装当前 checkout，尝试安装 AI 依赖项，复制图标，并在 `~/Applications` 下生成一个独立的 `BgRemover.app`。隔离属性会被自动移除；项目可以保留在 `~/Documents` 中。 |
 | **B – 双击** | 在 Finder 中双击 `BgRemover.command` | 在终端窗口中启动；自动使用脚本创建的应用程序 venv（文件已具有可执行权限）。 |
 | **C – 终端** | 在 venv 中：`python3 -m bgremover` | 直接启动（venv 设置见上面的快速开始）。 |
 
@@ -77,7 +76,8 @@ python3 -m bgremover
 ```
 
 或者在某个分支上直接执行 `bash create_BgRemover_app.sh`
-——它会自动处理 venv 和依赖项。
+——它会把当前 checkout 重新安装到应用程序 venv 中，并自动处理
+依赖项。
 
 **方式 2 – 直接克隆某个分支：**
 ```bash
@@ -95,6 +95,10 @@ git checkout <branch> && git pull      # 更新某个特定分支
 在 `git pull` 之后**无需**再次执行 editable 安装
 （`pip install -e`）——除非 `pyproject.toml` 或
 `requirements/constraints.txt` 中的依赖项发生了变化。
+
+如果使用 `BgRemover.app`，请在更新或切换分支后再次执行
+`bash create_BgRemover_app.sh`。脚本会自动更新专用应用程序 venv
+中的软件包副本。
 
 ## 故障排除
 
@@ -162,4 +166,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
   因此在 `pip install` 时自动进入 venv，并通过
   `importlib.resources` 加载；重新执行一次
   `bash create_BgRemover_app.sh` 构建。
-- **出错时的诊断** → 查看日志文件 `~/Library/Application Support/BgRemover/bgremover.log`。
+- **出错时的诊断** → 应用程序包启动器会将启动诊断信息写入
+  `~/Library/Application Support/BgRemover/bgremover.log`。内部运行时
+  日志可能位于子目录中；其确切路径显示在
+  `工具 → 设置… → 日志文件` 中。

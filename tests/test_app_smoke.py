@@ -160,9 +160,29 @@ def test_mac_bundle_metadata_uses_package_version():
 
 
 def test_bundled_launcher_uses_app_data_log_path():
-    """Der Bundle-Launcher schreibt in denselben macOS-Logordner wie die App."""
+    """Der Bundle-Launcher schreibt Startdiagnosen in den festen macOS-Logordner."""
     text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
 
     assert 'LOG="\\$HOME/Library/Application Support/BgRemover/bgremover.log"' in text
     assert 'mkdir -p "\\$LOG_DIR"' in text
     assert 'LOG="\\$HOME/.bgremover.log"' not in text
+
+
+def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
+    """Ein erneuter Build darf nicht still die alte Paketkopie weiterverwenden."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+    ready_branch = text[text.index('if [ -n "$APP_VENV_READY" ]'):text.index(
+        'elif [ -x "$VENV_PY" ]'
+    )]
+
+    assert 'Aktualisiere App-venv aus aktuellem Checkout' in ready_branch
+    assert 'install_app_project "App-venv aktualisiert"' in ready_branch
+    assert 'PYTHON_READY' not in text
+
+
+def test_disabled_ai_tooltip_uses_existing_install_command():
+    """Der deaktivierte KI-Button darf nicht auf ein nicht existentes Skript verweisen."""
+    text = (ROOT / "bgremover" / "main_toolbar.py").read_text(encoding="utf-8")
+
+    assert "setup_bgremover.sh" not in text
+    assert 'python3 -m pip install -e ".[ai]"' in text

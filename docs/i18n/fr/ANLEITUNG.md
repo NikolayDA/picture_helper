@@ -473,23 +473,29 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 - La **fonctionnalité IA** nécessite le composant facultatif `rembg`. Sans lui,
   le bouton IA est désactivé ; tous les outils manuels continuent de
   fonctionner.
-- Le **bundle d'application** (`BgRemover.app`) est spécifique à macOS ; sur
-  Linux/Windows, l'application est lancée directement.
+- Le **bundle d'application** (`BgRemover.app`) est spécifique à macOS ; sous
+  Linux, l'application est lancée directement. Windows ne fait actuellement
+  pas partie de la matrice officiellement testée.
 
 ---
 
 ## 17. Résolution de problèmes et fichier journal
 
-En cas de problème, consultez le **fichier journal** `bgremover.log`. Il est
-créé au démarrage de l'application dans le répertoire de données spécifique
-à la plateforme :
+En cas de problème, consultez le **fichier journal** interne
+`bgremover.log`. Il est stocké dans le répertoire de données déterminé par Qt
+et créé lors de la première entrée de journal. Le chemin exact peut varier
+selon la plateforme et la configuration de Qt :
 
-- **macOS :** `~/Library/Application Support/BgRemover/`
-- **Linux :** `~/.local/share/BgRemover/`
+- **macOS (configuration actuelle) :**
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`
+- **Linux :** sous `~/.local/share/`
 
-Le fichier contient des messages d'état et des détails sur les erreurs (traces
-de pile) et constitue le premier point de contact pour les demandes
-d'assistance.
+Le lanceur du bundle d'application macOS écrit en plus ses diagnostics de
+démarrage dans `~/Library/Application Support/BgRemover/bgremover.log`.
+
+Le fichier interne contient des messages d'exécution et des détails sur les
+erreurs (traces de pile) et constitue le premier point de contact pour les
+demandes d'assistance.
 
 Le moyen le plus simple de trouver le fichier est via
 `Extras → Paramètres… → Fichier journal` : le chemin complet y est affiché,
