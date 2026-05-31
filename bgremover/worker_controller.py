@@ -149,7 +149,10 @@ class WorkerController:
         self.ai_worker = worker
         thread = self._build_thread(
             worker,
-            quit_on=(worker.finished, worker.error),
+            # ``done`` feuert über _always_finished IMMER (Erfolg, Fehler,
+            # Abbruch). Nur deshalb quittet der Thread auch nach cancel_ai(),
+            # bei dem weder ``finished`` noch ``error`` emittiert wird.
+            quit_on=(worker.done,),
             on_finished=lambda: self._finish_ai_thread(on_finished),
         )
         self.ai_thread = thread

@@ -56,7 +56,19 @@ class _Worker(QObject):
 
 
 class AIWorker(_Worker):
-    finished = pyqtSignal(object)   # PIL Image
+    """Entfernt den Hintergrund per rembg im Hintergrund-Thread.
+
+    ``finished`` trägt das Ergebnisbild und feuert nur im Erfolgsfall.
+    ``done`` ist parameterlos und feuert über ``_always_finished``
+    **immer** – auch bei Abbruch und Fehler – und dient dem
+    WorkerController als Quit-Signal für den Thread-Lifecycle. Ohne ein
+    garantiert feuerndes Abschluss-Signal liefe der QThread nach einem
+    ``cancel()`` weiter (``_work`` kehrt dann ohne ``finished``/``error``
+    zurück): ``ai_thread``/``ai_worker`` blieben gesetzt, ``on_finished``
+    liefe nie und der KI-Button bliebe die restliche Session deaktiviert.
+    """
+    finished = pyqtSignal(object)   # PIL Image – nur bei Erfolg
+    done = pyqtSignal()             # immer – Thread-Abschluss (auch Abbruch/Fehler)
     _error_context = "rembg-Fehler"
 
     def __init__(self, pil_image: Image.Image) -> None:
@@ -75,6 +87,9 @@ class AIWorker(_Worker):
             return
         result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
         self.finished.emit(result)
+
+    def _always_finished(self) -> None:
+        self.done.emit()
 
 
 class RembgWarmupWorker(_Worker):
