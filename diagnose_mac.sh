@@ -175,11 +175,23 @@ fi
 
 # ── Log ────────────────────────────────────────────────────────
 print_header "LOG (letzte 40 Zeilen)"
-LOG="$HOME/.bgremover.log"
+# Der interne Logger schreibt nach QStandardPaths AppDataLocation; auf
+# macOS ist das ~/Library/Application Support/BgRemover/bgremover.log.
+# Aeltere Builds nutzten ~/.bgremover.log – als Fallback mitpruefen.
+LOG_PRIMARY="$HOME/Library/Application Support/BgRemover/bgremover.log"
+LOG_FALLBACK="$HOME/.bgremover.log"
+if [ -f "$LOG_PRIMARY" ]; then
+    LOG="$LOG_PRIMARY"
+else
+    LOG="$LOG_FALLBACK"
+fi
 if [ -f "$LOG" ]; then
+    echo "Log: $LOG"
     tail -n 40 "$LOG"
 else
-    echo "kein Log unter $LOG"
+    echo "kein Log gefunden unter:"
+    echo "  $LOG_PRIMARY"
+    echo "  $LOG_FALLBACK"
 fi
 
 echo
