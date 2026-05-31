@@ -2,13 +2,14 @@
 
 # BgRemover
 
-Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten von Hintergründen** — mit KI-basierter automatischer Freistellung, Zauberstab-Auswahl, Pinsel/Radierer, Zuschnitt in verschiedenen Formaten, Drehen, Spiegeln und Eckenrundung.
+Ein Bildbearbeitungs-Tool für macOS und Linux zum **Entfernen, Ersetzen und Bearbeiten von Hintergründen** — mit KI-basierter automatischer Freistellung, Zauberstab-Auswahl, Pinsel/Radierer, Polygon-Lasso, Zuschnitt in verschiedenen Formaten, Drehen, Spiegeln und Eckenrundung.
 
 ## Funktionen
 
 - **🤖 KI-Hintergrundentfernung** über [rembg](https://github.com/danielgatis/rembg) – ein Klick, fertig.
 - **🪄 Zauberstab** – wählt zusammenhängende Farbflächen per Flood-Fill (mit Toleranz-Slider).
 - **🖌 Pinsel / Radiergummi** – Auswahl manuell aufmalen oder entfernen.
+- **➰ Polygon-Lasso** – Auswahl durch gesetzte Eckpunkte präzise eingrenzen.
 - **🎨 Hintergrund ersetzen** – Auswahl mit beliebiger Farbe füllen oder auf Transparenz setzen.
 - **✂ Zuschnitt** mit Rule-of-Thirds-Raster: Kreis, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Drehen** in 90°-Schritten oder beliebigem Winkel; **↔ Spiegeln** horizontal/vertikal.
@@ -24,18 +25,24 @@ Ein Bildbearbeitungs-Tool für macOS zum **Entfernen, Ersetzen und Bearbeiten vo
 
 ## Voraussetzungen
 
-- **macOS** (das mitgelieferte App-Bundle nutzt macOS-spezifische Tools wie `iconutil`)
+- **macOS** oder eine **Linux-Desktop-Umgebung** (das optionale App-Bundle
+  nutzt macOS-spezifische Tools wie `iconutil`)
 - **Python 3.10 oder neuer** (der Code nutzt PEP-604-Typannotationen
   wie `QThread | None` direkt in Signaturen — Python 3.9 schlägt fehl)
 - Abhängigkeiten (`PyQt6`, `Pillow`, `numpy`, optional `rembg` für die
   KI-Funktion) werden über `pyproject.toml` installiert.
 
+Für den reproduzierbaren KI-/App-Snapshot wird **Python 3.11 oder neuer**
+empfohlen: Einige aktuelle transitive KI-Abhängigkeiten sind unter Python
+3.10 nicht mehr verfügbar. Die Basis-App ohne KI unterstützt weiterhin
+Python 3.10.
+
 ## Installation
 
 **Empfohlen (macOS): App-Bundle bauen.** Das Skript legt automatisch
-eine isolierte venv an, installiert alle Abhängigkeiten (inkl.
-`onnxruntime` für die KI), behandelt Apple Silicon korrekt und erzeugt
-ein eigenständiges `BgRemover.app`:
+eine isolierte App-venv an, versucht die KI-Abhängigkeiten inklusive
+`onnxruntime` zu installieren, behandelt Apple Silicon korrekt und erzeugt
+einen `BgRemover.app`-Launcher:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -43,10 +50,22 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-Beim venv-Hinweis mit **Enter** bestätigen. Danach `BgRemover.app`
-(unter `~/Applications`) per Doppelklick starten — funktionsgleich zur
-mitgelieferten **`BgRemover.command`**. Das Projekt darf in
-`~/Documents` liegen bleiben (die App wird eigenständig gebaut).
+Falls die App-venv neu angelegt wird, den Hinweis mit **Enter** bestätigen.
+Danach `BgRemover.app` (unter `~/Applications`) per Doppelklick starten —
+funktionsgleich zur mitgelieferten **`BgRemover.command`**. Der Launcher
+nutzt die separat installierte venv unter
+`~/Library/Application Support/BgRemover/venv`; das Projekt darf daher in
+`~/Documents` liegen bleiben. App und App-venv gehören jedoch zusammen:
+Die `.app` ist nicht als einzelne Datei portabel. Schlägt die Installation
+der KI-Abhängigkeiten fehl, baut das Skript eine nutzbare App ohne KI.
+
+Nach einem Update oder Branch-Wechsel die vorhandene App-venv vor dem
+Neuaufbau entfernen, damit das aktuelle Checkout neu installiert wird:
+
+```bash
+rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+bash create_BgRemover_app.sh
+```
 
 **Alternativ direkt im Terminal** — auf modernem macOS in einer venv,
 da System-Python `pip install` per PEP 668 blockiert:
@@ -93,8 +112,8 @@ Raspberry-Pi-Abschnitt in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 Kurzüberblick:
 
 1. **Bild öffnen** über `Datei → Öffnen` (⌘O) oder per Drag & Drop ins Fenster.
-2. **Auswahl treffen** mit Zauberstab, Pinsel oder Radiergummi (Tab *🎯 Auswahl*).
-   - `Shift+Klick` addiert zur Auswahl, `Ctrl+Klick` zieht ab.
+2. **Auswahl treffen** mit Zauberstab, Pinsel, Radiergummi oder Polygon-Lasso (Tab *🎯 Auswahl*).
+   - `Shift+Klick` addiert zur Auswahl, `⌘+Klick` (macOS) bzw. `Ctrl+Klick` (Linux) zieht ab.
 3. **Hintergrund bearbeiten** (Tab *🖼 Hintergr.*): transparent machen oder Farbe ersetzen — oder direkt **KI** in der Werkzeugleiste.
 4. **Bild transformieren** (Tab *⟲ Trans.*): drehen, spiegeln.
 5. **Form & Zuschnitt** (Tab *⬤ Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
@@ -147,7 +166,7 @@ Die Test-Suite läuft headless (Qt-Platform `offscreen`) und prüft die
 Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Pull
 Requests laufen auf GitHub über eine leichte PR-CI (Ubuntu, Python
 3.12, `make pr-check`). Die volle Matrix auf Linux und macOS unter Python
-3.10 und 3.12 läuft beim Veröffentlichen eines Releases oder manuell.
+3.10, 3.11, 3.12 und 3.13 läuft beim Veröffentlichen eines Releases oder manuell.
 Alle lokalen/CI-Testinstallationen nutzen `requirements/constraints.txt`;
 bei Bedarf kann der Pfad mit `make PIP_CONSTRAINT=/pfad/zur/datei pr-check`
 überschrieben werden.
@@ -190,11 +209,13 @@ gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
   liefert dafür nur noch Callbacks.
 - **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für
   „Zuletzt geöffnet“, sodass `MainWindow` nur noch den Ladepfad delegiert.
-- **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) laufen in
+- **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`,
+  `FloodFillWorker`) laufen in
   eigenen `QThread`s; `WorkerController` kapselt Start, starke Worker-
   Referenzen, `deleteLater` und Shutdown.
-- Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI-Ergebnisse,
-  falls zwischenzeitlich ein anderes Bild geladen wurde.
+- Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI- und
+  Flood-Fill-Ergebnisse, falls zwischenzeitlich ein anderes Bild geladen
+  oder der Bildzustand geändert wurde.
 - Der Undo-Stapel ist nicht über `maxlen`, sondern über ein
   **Speicherlimit** (`_UNDO_MEMORY_LIMIT`) begrenzt; eine laufende
   Byte-Summe evakuiert die ältesten Einträge.
@@ -202,20 +223,27 @@ gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
 ## Bekannte Einschränkungen
 
 - **Maximale Bildgröße: 40 Megapixel.** Größere Bilder werden mit einer
-  Statusmeldung abgelehnt. Die Zauberstab-Auswahl (Flood-Fill) läuft
-  synchron im UI-Thread; jenseits dieser Grenze würde selbst die
-  vektorisierte Variante spürbar verzögern. Pillow ist zusätzlich gegen
-  „Decompression-Bomb"-Bilder abgesichert.
-- Der **App-Bundle-Build** ist macOS-spezifisch; unter Linux/Windows
-  läuft die Anwendung über den direkten `python -m bgremover`-Start.
+  Statusmeldung abgelehnt, um Speicherbedarf und Verarbeitungszeit zu
+  begrenzen. Die Zauberstab-Auswahl (Flood-Fill) läuft asynchron in einem
+  eigenen `QThread`, damit die Oberfläche während der Berechnung bedienbar
+  bleibt. Pillow ist zusätzlich gegen „Decompression-Bomb"-Bilder
+  abgesichert.
+- Der **App-Bundle-Build** ist macOS-spezifisch; unter Linux läuft die
+  Anwendung über den direkten `python -m bgremover`-Start. Windows gehört
+  derzeit nicht zur offiziell getesteten Matrix.
 
 ## Log-Datei
 
-Beim Programmstart wird eine Log-Datei `bgremover.log` im
-plattformspezifischen App-Datenverzeichnis angelegt
-(macOS: `~/Library/Application Support/BgRemover/`,
-Linux: `~/.local/share/BgRemover/`). Sie enthält Stacktraces und
-Status-Meldungen und ist bei Problemen die erste Anlaufstelle.
+Der interne App-Logger verwendet eine Log-Datei `bgremover.log` im von Qt
+ermittelten App-Datenverzeichnis. Der genaue Pfad hängt von Plattform und
+Qt-Konfiguration ab; mit der aktuellen macOS-Konfiguration ist es
+`~/Library/Application Support/BgRemover/BgRemover/bgremover.log`, unter
+Linux liegt die Datei unter `~/.local/share/`. Sie enthält Laufzeitmeldungen
+und Stacktraces protokollierter Fehler und wird beim ersten Log-Eintrag
+angelegt.
+
+Der macOS-App-Bundle-Launcher schreibt Startdiagnosen zusätzlich nach
+`~/Library/Application Support/BgRemover/bgremover.log`.
 
 Den genauen Pfad zeigt der Dialog `Extras → Einstellungen… →
 Protokolldatei` an; der Knopf „Ordner öffnen" öffnet das Verzeichnis
