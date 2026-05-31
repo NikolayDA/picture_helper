@@ -99,6 +99,11 @@ Muchas acciones también están disponibles desde la barra de menú:
   o a una pestaña.
 - **Ver** – *Ajustar a la vista* (⌘0); consulta "Zoom y vista" abajo.
 
+![El menú "Editar"](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+
+*El menú "Editar" reúne deshacer/rehacer, rotar, voltear y las acciones de
+selección.*
+
 ### Zoom y vista
 
 - **Zoom:** usa la **rueda del ratón** sobre el lienzo para acercar o
@@ -142,7 +147,8 @@ Hay tres formas de cargar una imagen:
 
 - **Menú:** `Archivo → Abrir…` (⌘O / Ctrl+O).
 - **Arrastrar y soltar:** arrastra un archivo de imagen desde el gestor de
-  archivos directamente al lienzo.
+  archivos directamente al lienzo. Si arrastras varios archivos, solo se
+  carga la primera imagen.
 - **Archivos recientes:** `Archivo → Archivos recientes` lista las últimas
   10 imágenes abiertas.
 
@@ -250,8 +256,8 @@ resalta en color sobre el lienzo.*
 ## 7. Pestaña "Selección"
 
 La primera pestaña del panel derecho controla el comportamiento de la
-selección; ya aparece en la vista general de arriba (sección 2) y en la figura
-de la sección 6.
+selección; ya aparece en la vista general de arriba ([sección 2](#2-la-ventana-de-la-aplicación-de-un-vistazo)) y en la figura
+de la [sección 6](#6-hacer-una-selección).
 
 ### Sugerencias de herramientas
 
@@ -292,6 +298,11 @@ el cuadro de color y "Reemplazar color" la rellenan con un color.*
 | **Eliminar (transparente)** | Hace el área seleccionada completamente transparente. Consejo: primero selecciona el fondo con la varita mágica. |
 | **Elegir color** | Abre un selector de color. El pequeño botón de color muestra el color de reemplazo elegido actualmente. |
 | **Reemplazar color** | Rellena el área seleccionada con el color elegido. |
+
+![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+
+*"Elegir color" abre el selector de color; el color elegido aparece en el
+cuadro y se aplica a la selección con "Reemplazar color".*
 
 **Flujo de trabajo típico:** seleccionar fondo con varita mágica/IA →
 *Eliminar (transparente)* para un PNG recortado, **o** elegir un color y
