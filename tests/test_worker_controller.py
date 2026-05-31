@@ -105,6 +105,58 @@ def test_ai_releases_worker_on_completion(qapp, controller, monkeypatch):
     assert controller._workers == []
 
 
+def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatch):
+    """Abbruch mitten im KI-Lauf muss den Thread-Lifecycle dennoch voll
+    abschliessen.
+
+    Regression fuer „Bild laden, waehrend die KI rechnet": ``AIWorker._work``
+    kehrt bei Abbruch ohne ``finished``/``error`` zurueck. Quittet der Thread
+    dann nicht ueber sein eigenes ``done``-Signal, bleiben
+    ``ai_thread``/``ai_worker`` gesetzt, ``on_finished`` laeuft nie und der
+    KI-Button bliebe die restliche Session deaktiviert.
+    """
+    import io as _io
+    import threading
+
+    import bgremover.workers as _wm
+
+    gate = threading.Event()
+    result_buf = _io.BytesIO()
+    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
+
+    def slow_rembg(_b):
+        # Blockiert, bis der Test abgebrochen und das Tor geoeffnet hat – so
+        # ist der Worker beim cancel_ai() garantiert noch aktiv.
+        gate.wait(timeout=5.0)
+        return result_buf.getvalue()
+
+    monkeypatch.setattr(_wm, "rembg_remove", slow_rembg, raising=False)
+
+    applied: list = []
+    finished: list[bool] = []
+    started = controller.start_ai(
+        Image.new("RGBA", (4, 4), (10, 20, 30, 255)),
+        on_done=applied.append,
+        on_error=lambda _msg: None,
+        on_finished=lambda: finished.append(True),
+    )
+    assert started
+    thread = controller.ai_thread
+    assert thread is not None
+
+    controller.cancel_ai()
+    gate.set()
+
+    _drain(qapp, thread.isFinished)
+    qapp.processEvents()
+
+    assert controller.ai_thread is None
+    assert controller.ai_worker is None
+    assert controller._workers == []
+    assert finished == [True]   # Thread-Abschluss lief -> Button reaktiviert
+    assert applied == []        # abgebrochenes Ergebnis wird nicht angewandt
+
+
 def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
     import bgremover.workers as _wm
     monkeypatch.setattr(_wm, "rembg_remove", lambda _b: b"", raising=False)
