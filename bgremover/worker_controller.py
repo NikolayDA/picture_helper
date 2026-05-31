@@ -114,11 +114,20 @@ class WorkerController:
     def _finish_load_thread(self) -> None:
         self.load_thread = None
 
-    def start_warmup(self, on_finished: Callable[[], None]) -> bool:
+    def start_warmup(
+        self,
+        on_finished: Callable[[], None],
+        on_error: Callable[[str], None] | None = None,
+    ) -> bool:
         """Startet den rembg-Warmup; gibt False zurück, wenn der Warmup bereits läuft."""
         if self.warmup_thread is not None and self.warmup_thread.isRunning():
             return False
         worker = RembgWarmupWorker()
+        if on_error is not None:
+            # ``error`` feuert nur im Fehlerfall (vor dem finished/Lifecycle).
+            # So kann der Aufrufer einen fehlgeschlagenen Warmup von einem
+            # erfolgreichen unterscheiden, statt blind „KI bereit" zu melden.
+            worker.error.connect(on_error)
         thread = self._build_thread(
             worker,
             quit_on=(worker.finished,),

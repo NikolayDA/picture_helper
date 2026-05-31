@@ -16,6 +16,7 @@ class StatusMessages:
     KI_VERARBEITET    = "🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)"
     KI_BEREIT         = "🤖 KI bereit"
     KI_MODELL_LADEN   = "🤖 KI-Modell wird geladen…"
+    KI_FEHLER_WARMUP  = "⚠️ KI-Modell konnte nicht geladen werden"
     KI_ERGEBNIS_VERWORFEN = "KI-Ergebnis verworfen – Bild wurde inzwischen geändert"
 
     # ── Zauberstab ───────────────────────────────────────────
