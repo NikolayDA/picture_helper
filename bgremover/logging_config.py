@@ -71,4 +71,12 @@ def _setup_logging() -> None:
                 delay=True,
             ),
         ],
+        # Ohne force=True ist basicConfig ein No-op, sobald der Root-Logger
+        # bereits Handler hat (z. B. durch eine importierte Bibliothek).
+        # Dann würde _log_file_path zwar gesetzt und im Einstellungen-Dialog
+        # angezeigt, aber gar kein FileHandler installiert. BgRemover besitzt
+        # seinen Prozess allein und konfiguriert das Logging genau einmal
+        # nach QApplication-Start – das kontrollierte Ersetzen vorhandener
+        # Root-Handler ist hier sicher.
+        force=True,
     )
