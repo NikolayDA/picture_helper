@@ -37,6 +37,7 @@ def test_root_resource_doc_tracks_current_ci_workflows() -> None:
     expected = {
         ".github/workflows/pr-ci.yml",
         ".github/workflows/ci.yml",
+        ".github/workflows/ui-nightly.yml",
         ".github/workflows/license-check.yml",
         "actions/checkout@v5",
         "actions/setup-python@v6",
@@ -48,3 +49,11 @@ def test_root_resource_doc_tracks_current_ci_workflows() -> None:
 
     stale = {"actions/checkout@v4", "actions/setup-python@v5"}
     assert all(token not in text for token in stale)
+
+
+def test_root_resource_doc_tracks_current_python_matrix() -> None:
+    """Die dokumentierte Voll-Matrix muss zur ci.yml passen (3.10–3.13);
+    die alte 3.10/3.12-Angabe darf nicht zurückkehren."""
+    text = _read(ROOT / "RESOURCES.md")
+    assert "3.10–3.13" in text
+    assert "3.10/3.12" not in text

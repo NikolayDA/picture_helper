@@ -11,6 +11,7 @@ from PIL import Image
 from PyQt6.QtCore import QPointF, Qt
 
 from bgremover import ImageCanvas
+from bgremover.constants import TOOL_LASSO
 from bgremover.status_messages import StatusMessages as SM
 
 
@@ -233,3 +234,37 @@ def test_cancel_removes_overlay_and_keeps_image(qapp):
     c.cancel_crop()
     assert c._crop.overlay is None
     assert c.image is before
+
+
+# ── Transienter Zustand bei Bildwechsel (Fix #2) ───────────────────────
+
+def test_loading_image_during_crop_emits_mode_off(qapp):
+    """Bild laden bei aktivem Crop muss das Overlay entfernen UND
+    cropModeChanged(False) melden – sonst bleibt die Crop-Leiste sichtbar."""
+    c = _canvas_with_crop()
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    assert c._crop_overlay is not None
+    c.apply_loaded_image(Image.new("RGBA", (50, 50), (1, 2, 3, 255)), "next.png")
+    assert c._crop_overlay is None
+    assert modes == [False]
+
+
+def test_loading_image_clears_pending_lasso(qapp):
+    """Begonnenes Polygon-Lasso darf nicht auf das neue Bild übertragen werden."""
+    c = _canvas()
+    c.set_tool(TOOL_LASSO)
+    c._handle_tool_press(10, 10, Qt.KeyboardModifier.NoModifier)
+    c._handle_tool_press(20, 20, Qt.KeyboardModifier.NoModifier)
+    assert c._lasso.has_points
+    c.apply_loaded_image(Image.new("RGBA", (50, 50), (1, 2, 3, 255)), "next.png")
+    assert not c._lasso.has_points
+
+
+def test_loading_image_without_crop_emits_no_mode_signal(qapp):
+    """Ohne aktiven Crop darf kein spurious cropModeChanged(False) feuern."""
+    c = _canvas()
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    c.apply_loaded_image(Image.new("RGBA", (40, 40), (5, 6, 7, 255)), "next.png")
+    assert modes == []

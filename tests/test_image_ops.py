@@ -4,13 +4,18 @@ import numpy as np
 from PIL import Image
 
 from bgremover.image_ops import (
+    DEFAULT_SAVE_FORMAT,
+    SAVE_FORMATS,
     crop_image,
     crop_size_for_ratio,
+    ensure_save_extension,
     flip_image,
+    normalize_save_format,
     remove_selection,
     replace_selection,
     rotate_image,
     round_corners,
+    save_dialog_filter,
     save_image_file,
 )
 from bgremover.image_utils import pil_to_numpy
@@ -94,3 +99,36 @@ def test_crop_image_can_apply_circle_alpha_mask() -> None:
 
     assert arr[0, 0, 3] == 0
     assert arr[10, 10, 3] == 255
+
+
+# ── Ausgabeformat-Modell (Fix #8) ──────────────────────────────────────
+
+def test_normalize_save_format_falls_back_on_unknown() -> None:
+    assert normalize_save_format("JPEG") == "JPEG"
+    assert normalize_save_format("EXR") == DEFAULT_SAVE_FORMAT
+    assert normalize_save_format(None) == DEFAULT_SAVE_FORMAT
+
+
+def test_save_dialog_filter_lists_preferred_first_without_keyerror() -> None:
+    # Unbekanntes preferred darf nicht mehr werfen (früher KeyError).
+    flt = save_dialog_filter("EXR")
+    assert flt.startswith(SAVE_FORMATS[DEFAULT_SAVE_FORMAT][0])
+    # JPEG zuerst, alle vier Formate enthalten.
+    jpeg = save_dialog_filter("JPEG")
+    assert jpeg.startswith("JPEG (*.jpg)")
+    assert jpeg.count(";;") == len(SAVE_FORMATS) - 1
+
+
+def test_ensure_save_extension_appends_from_selected_filter() -> None:
+    assert ensure_save_extension("/x/y", "JPEG (*.jpg)", "PNG") == "/x/y.jpg"
+    assert ensure_save_extension("/x/y", "WebP (*.webp)", "PNG") == "/x/y.webp"
+
+
+def test_ensure_save_extension_keeps_existing_suffix() -> None:
+    assert ensure_save_extension("/x/y.png", "JPEG (*.jpg)", "PNG") == "/x/y.png"
+
+
+def test_ensure_save_extension_uses_preferred_when_filter_unknown() -> None:
+    # Kein zuordenbarer Filter → Default-Suffix des (normalisierten) preferred.
+    assert ensure_save_extension("/x/y", "Alle (*)", "TIFF") == "/x/y.tif"
+    assert ensure_save_extension("/x/y", "Alle (*)", "EXR") == "/x/y.png"

@@ -13,9 +13,9 @@ jobs:
   ui:
     name: Nightly UI interaction tests
     runs-on: ubuntu-latest
-    # Job darf fehlschlagen, ohne PR-Gates zu blockieren: er laeuft nur
-    # nightly und meldet UI-Regressionen, ist aber bewusst kein Merge-Gate.
-    continue-on-error: true
+    # Bewusst KEIN continue-on-error: Der Job laeuft nur nightly/manuell
+    # (nicht auf PRs) und blockiert daher keine Merges – darf bei einer
+    # UI-Regression aber sichtbar rot werden, statt den Fehler zu maskieren.
     steps:
       - uses: actions/checkout@v5
 
