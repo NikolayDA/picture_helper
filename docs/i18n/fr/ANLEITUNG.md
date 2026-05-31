@@ -92,6 +92,27 @@ La fenêtre est divisée en quatre zones :
 | **Panneau d'onglets** (droite) | Quatre onglets : Sélection, Arrière-plan, Rotation/Miroir, Forme |
 | **Barre d'état** (bas) | Conseils et retours de l'application |
 
+### Menus « Édition » et « Affichage »
+
+De nombreuses actions sont aussi accessibles depuis la barre de menus :
+
+- **Édition** – annuler/rétablir, rotation (90° gauche/droite), retournement
+  horizontal/vertical, ainsi que désélectionner/inverser la sélection et
+  *Restaurer l'original*. Pratique si vous préférez le menu à la barre
+  d'outils ou à un onglet.
+- **Affichage** – *Ajuster à la vue* (⌘0) ; voir « Zoom et affichage »
+  ci-dessous.
+
+### Zoom et affichage
+
+- **Zoom :** utilisez la **molette de la souris** sur le canevas pour
+  agrandir ou réduire.
+- **Déplacer :** si l'image est plus grande que la fenêtre, naviguez avec
+  les **barres de défilement** des bords droit et inférieur.
+- **Ajuster :** `Affichage → Ajuster à la vue` (⌘0) remet l'image
+  entièrement à l'échelle dans la fenêtre. Cela se produit aussi
+  automatiquement au chargement d'une image.
+
 ---
 
 ## 3. Démarrage rapide en 5 étapes
@@ -134,8 +155,9 @@ Il existe trois façons de charger une image :
 *Le menu « Fichier » regroupe Ouvrir (⌘O), « Fichiers récents »,
 Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
 
-Les formats courants tels que PNG, JPEG, WebP, TIFF et BMP sont pris en
-charge. Les grandes images sont chargées en arrière-plan — la barre d'état
+À l'ouverture, les formats courants tels que PNG, JPEG, WebP, TIFF, BMP et
+GIF sont pris en charge ; l'enregistrement se fait en PNG, JPEG, WebP ou
+TIFF. Les grandes images sont chargées en arrière-plan — la barre d'état
 affiche la progression.
 
 > **Taille maximale de l'image : 40 mégapixels.** Les images plus grandes sont
@@ -246,8 +268,8 @@ Ctrl/Cmd = soustraire).
 
 | Curseur | Plage | Effet |
 |---|---|---|
-| **Tolérance (baguette magique)** | 0 – 255 | Degré de similitude que doivent avoir les couleurs pour être sélectionnées ensemble. **Bas** = uniquement les couleurs très similaires · **Haut** = de nombreuses nuances. |
-| **Taille du pinceau** | 4 – 200 px | Diamètre du pinceau et de la gomme. |
+| **Tolérance (baguette magique)** | 0 – 255 (par défaut : 30) | Degré de similitude que doivent avoir les couleurs pour être sélectionnées ensemble. **Bas** = uniquement les couleurs très similaires · **Haut** = de nombreuses nuances. |
+| **Taille du pinceau** | 4 – 200 px (par défaut : 30 px) | Diamètre du pinceau et de la gomme. |
 
 ### Actions de sélection
 
@@ -257,7 +279,7 @@ Ctrl/Cmd = soustraire).
   sélectionnées. Utile : sélectionnez d'abord l'*objet*, puis inversez pour
   modifier l'*arrière-plan*.
 - **Développer / Réduire** – agrandit ou réduit la sélection du rayon
-  adjacent (1 – 20 px). Utile pour supprimer un fin liseré coloré après le
+  adjacent (1 – 20 px, par défaut : 2 px). Utile pour supprimer un fin liseré coloré après le
   détourage.
 
 ---
@@ -334,7 +356,7 @@ Le résultat est enregistré avec des coins transparents — de préférence en 
 2. **Déplacer le cadre :** cliquez au centre et faites glisser.
 3. **Redimensionner :** faites glisser les coins – le rapport d'aspect est
    préservé.
-4. Une barre apparaît sous le canevas :
+4. Une barre apparaît au-dessus du canevas :
    - **✓ Appliquer le recadrage** – recadre l'image.
    - **✗ Annuler** – abandonne le cadre.
 

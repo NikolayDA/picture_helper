@@ -89,6 +89,26 @@ La ventana está dividida en cuatro áreas:
 | **Panel de pestañas** (derecha) | Cuatro pestañas: Selección, Fondo, Rotar/Voltear, Forma |
 | **Barra de estado** (abajo) | Sugerencias y respuestas de la aplicación |
 
+### Menús "Editar" y "Ver"
+
+Muchas acciones también están disponibles desde la barra de menú:
+
+- **Editar** – deshacer/rehacer, rotar (90° izquierda/derecha), voltear
+  horizontal/verticalmente, así como deseleccionar/invertir selección y
+  *Restaurar original*. Útil si prefieres el menú a la barra de herramientas
+  o a una pestaña.
+- **Ver** – *Ajustar a la vista* (⌘0); consulta "Zoom y vista" abajo.
+
+### Zoom y vista
+
+- **Zoom:** usa la **rueda del ratón** sobre el lienzo para acercar o
+  alejar.
+- **Desplazar:** si la imagen es mayor que la ventana, navega con las
+  **barras de desplazamiento** de los bordes derecho e inferior.
+- **Ajustar:** `Ver → Ajustar a la vista` (⌘0) vuelve a escalar la imagen
+  por completo dentro de la ventana. También ocurre automáticamente al
+  cargar una imagen.
+
 ---
 
 ## 3. Inicio rápido en 5 pasos
@@ -131,7 +151,8 @@ Hay tres formas de cargar una imagen:
 *El menú "Archivo" agrupa Abrir (⌘O), "Archivos recientes", Guardar (⌘S) y
 Guardar como… (⇧⌘S).*
 
-Se admiten formatos comunes como PNG, JPEG, WebP, TIFF y BMP. Las imágenes
+Al abrir se admiten formatos comunes como PNG, JPEG, WebP, TIFF, BMP y GIF;
+el guardado es en PNG, JPEG, WebP o TIFF. Las imágenes
 grandes se cargan en segundo plano — la barra de estado muestra el progreso.
 
 > **Tamaño máximo de imagen: 40 megapíxeles.** Las imágenes más grandes se
@@ -242,8 +263,8 @@ Ctrl/Cmd = sustraer).
 
 | Control deslizante | Rango | Efecto |
 |---|---|---|
-| **Tolerancia (varita mágica)** | 0 – 255 | Qué tan similares deben ser los colores para seleccionarse juntos. **Bajo** = solo colores muy similares · **Alto** = muchos tonos. |
-| **Tamaño del pincel** | 4 – 200 px | Diámetro del pincel y la goma. |
+| **Tolerancia (varita mágica)** | 0 – 255 (predeterminado: 30) | Qué tan similares deben ser los colores para seleccionarse juntos. **Bajo** = solo colores muy similares · **Alto** = muchos tonos. |
+| **Tamaño del pincel** | 4 – 200 px (predeterminado: 30 px) | Diámetro del pincel y la goma. |
 
 ### Acciones de selección
 
@@ -252,7 +273,7 @@ Ctrl/Cmd = sustraer).
   seleccionadas. Útil: primero selecciona el *objeto*, luego invierte para
   editar el *fondo*.
 - **Expandir / Contraer** – agranda o reduce la selección por el radio
-  adyacente (1 – 20 px). Útil para eliminar un fino borde de color tras el
+  adyacente (1 – 20 px, predeterminado: 2 px). Útil para eliminar un fino borde de color tras el
   recorte.
 
 ---
@@ -328,7 +349,7 @@ El resultado se guarda con esquinas transparentes — mejor como PNG.
 2. **Mover marco:** haz clic en el centro y arrastra.
 3. **Redimensionar:** arrastra las esquinas – se preserva la relación de
    aspecto.
-4. Aparece una barra debajo del lienzo:
+4. Aparece una barra encima del lienzo:
    - **✓ Aplicar recorte** – recorta la imagen.
    - **✗ Cancelar** – descarta el marco.
 
