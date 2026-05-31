@@ -126,3 +126,46 @@ def test_current_log_file_matches_setup(tmp_path, monkeypatch):
 
     with _isolated_logging_setup(target, monkeypatch):
         assert _lc.current_log_file() == target / "bgremover.log"
+
+
+def test_setup_logging_installs_file_handler_despite_existing_root_handler(
+    tmp_path, monkeypatch,
+):
+    """Regression (#11): hatte der Root-Logger bereits einen (Fremd-)Handler,
+    war ``basicConfig`` ein No-op und es wurde KEIN FileHandler installiert –
+    obwohl ``current_log_file()`` einen Pfad anzeigt. ``force=True`` behebt das.
+    """
+    target = tmp_path / "appdir"
+
+    class _FakeQSP:
+        class StandardLocation:
+            AppDataLocation = 0
+
+        @staticmethod
+        def writableLocation(_loc):
+            return str(target)
+
+    monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
+
+    root = logging.getLogger()
+    before = list(root.handlers)
+    before_level = root.level
+    previous_log_file = _lc._log_file_path
+    for handler in before:
+        root.removeHandler(handler)
+    root.addHandler(logging.StreamHandler())  # simuliert einen Fremd-Handler
+    try:
+        _lc._setup_logging()
+        rotating = [
+            h for h in root.handlers if isinstance(h, RotatingFileHandler)
+        ]
+        assert len(rotating) == 1
+        assert _lc.current_log_file() == target / "bgremover.log"
+    finally:
+        for handler in list(root.handlers):
+            handler.close()
+            root.removeHandler(handler)
+        for handler in before:
+            root.addHandler(handler)
+        root.setLevel(before_level)
+        _lc._log_file_path = previous_log_file

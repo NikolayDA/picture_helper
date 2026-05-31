@@ -29,6 +29,50 @@ def replace_selection(arr: np.ndarray, mask: np.ndarray,
     return numpy_to_pil(result)
 
 
+# ── Ausgabeformate (einzige Quelle) ──────────────────────────────────
+# label -> (Qt-Dateifilter, Default-Suffix). Wird vom Einstellungen-Dialog
+# (Auswahl) und vom Speichern-Dialog (Filterliste + Endung) gemeinsam
+# genutzt, damit die Liste nicht an zwei Stellen driftet und ein unbekannt
+# gespeichertes ``preferred_format`` keinen KeyError mehr auslöst.
+SAVE_FORMATS: dict[str, tuple[str, str]] = {
+    "PNG":  ("PNG (*.png)", ".png"),
+    "JPEG": ("JPEG (*.jpg)", ".jpg"),
+    "WebP": ("WebP (*.webp)", ".webp"),
+    "TIFF": ("TIFF (*.tif)", ".tif"),
+}
+DEFAULT_SAVE_FORMAT = "PNG"
+
+
+def normalize_save_format(preferred: str | None) -> str:
+    """Gültiges Format-Label; fällt bei Unbekanntem auf den Default zurück."""
+    return preferred if preferred in SAVE_FORMATS else DEFAULT_SAVE_FORMAT
+
+
+def save_dialog_filter(preferred: str | None) -> str:
+    """Qt-Filterstring für den Speichern-Dialog – *preferred* zuerst."""
+    pref = normalize_save_format(preferred)
+    ordered = [pref] + [f for f in SAVE_FORMATS if f != pref]
+    return ";;".join(SAVE_FORMATS[f][0] for f in ordered)
+
+
+def ensure_save_extension(
+    path: str, selected_filter: str, preferred: str | None,
+) -> str:
+    """Hängt einen Default-Suffix an, wenn *path* keine Endung hat.
+
+    Der Suffix richtet sich nach dem im Dialog gewählten Filter; lässt sich
+    der nicht zuordnen, nach *preferred* (bzw. dem Default). Verhindert, dass
+    eine Datei ohne Endung still als PNG landet, obwohl ein anderes Format
+    gewählt war. Eine bereits vorhandene Endung bleibt unangetastet.
+    """
+    if Path(path).suffix:
+        return path
+    for _label, (flt, suffix) in SAVE_FORMATS.items():
+        if flt == selected_filter:
+            return path + suffix
+    return path + SAVE_FORMATS[normalize_save_format(preferred)][1]
+
+
 def save_image_file(img: Image.Image, path: str | Path) -> None:
     """Speichert ``img`` unter ``path`` mit den format-spezifischen Vorgaben der Anwendung."""
     out = Path(path)

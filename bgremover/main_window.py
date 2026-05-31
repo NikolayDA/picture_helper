@@ -27,6 +27,11 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
+from bgremover.image_ops import (
+    DEFAULT_SAVE_FORMAT,
+    ensure_save_extension,
+    save_dialog_filter,
+)
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
@@ -292,21 +297,19 @@ class MainWindow(QMainWindow):
             suggest = str(Path(save_dir) / "bild_bearbeitet")
         else:
             suggest = "bild_bearbeitet"
-        preferred = self._settings.value("preferred_format", "PNG")
-        all_filters = {
-            "PNG":  "PNG (*.png)",
-            "JPEG": "JPEG (*.jpg)",
-            "WebP": "WebP (*.webp)",
-            "TIFF": "TIFF (*.tif)",
-        }
-        ordered = [preferred] + [f for f in all_filters if f != preferred]
-        filter_str = ";;".join(all_filters[f] for f in ordered)
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Bild speichern unter…", suggest, filter_str
+        preferred = self._settings.value("preferred_format", DEFAULT_SAVE_FORMAT)
+        path, selected = QFileDialog.getSaveFileName(
+            self, "Bild speichern unter…", suggest,
+            save_dialog_filter(preferred),
         )
-        # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern
-        # tatsächlich geklappt hat.
-        if path and self._canvas.save_image(path):
+        if not path:
+            return
+        # Fehlt die Endung, aus dem gewählten Filter ableiten – sonst würde
+        # save_image_file still als PNG speichern, obwohl ein anderes Format
+        # gewählt war. Eine getippte Endung bleibt unangetastet.
+        path = ensure_save_extension(path, selected, preferred)
+        # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern klappte.
+        if self._canvas.save_image(path):
             self._save_path = path
 
     # ── Recent-Files ────────────────────────────────────────────

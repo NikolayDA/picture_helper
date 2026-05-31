@@ -90,10 +90,10 @@ Arial/Courier New；请用 `brew install pango` 安装 Pango。
 
 ## 6. 持续集成
 
-在 `.github/workflows/pr-ci.yml`、`.github/workflows/ci.yml` 和
-`.github/workflows/license-check.yml` 中定义。Pull request 运行轻量级
-Ubuntu/Python 3.12 job；完整矩阵在 release 或手动触发时运行
-Ubuntu + macOS、Python 3.10/3.12；license workflow 生成依赖/license
+在 `.github/workflows/pr-ci.yml`、`.github/workflows/ci.yml`、
+`.github/workflows/ui-nightly.yml` 和 `.github/workflows/license-check.yml` 中定义。Pull request 运行轻量级
+Ubuntu/Python 3.12 job；完整矩阵在版本标签（发布候选）、release 或手动触发时运行
+Ubuntu + macOS、Python 3.10–3.13；`ui-nightly.yml` 每晚运行 UI 交互测试；license workflow 生成依赖/license
 报告。
 
 | 资源 | 用途 | 许可证 |
@@ -142,6 +142,6 @@ onnxruntime MIT、U²-Net Apache-2.0）均与 GPL-v3 兼容。
 
 *维护提示：* 当 `pyproject.toml`、`requirements/constraints.txt`、
 `.github/workflows/pr-ci.yml`、
-`.github/workflows/ci.yml`、`.github/workflows/license-check.yml`、
+`.github/workflows/ci.yml`、`.github/workflows/ui-nightly.yml`、`.github/workflows/license-check.yml`、
 `create_BgRemover_app.sh` 或 `bgremover/icons/` 下的 package data
 发生变更时，请一并更新本文档。

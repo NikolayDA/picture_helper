@@ -1,6 +1,12 @@
 name: Full CI
 
 on:
+  # Release-Gate: Die Vollmatrix laeuft bereits beim Pushen eines
+  # Versions-Tags (Release-Kandidat) – also VOR dem Veroeffentlichen des
+  # Releases. So ist sie ein echtes Gate und nicht erst nach Publikation.
+  push:
+    tags:
+      - 'v*'
   release:
     types: [published]
   workflow_dispatch:
