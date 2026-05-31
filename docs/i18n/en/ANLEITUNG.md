@@ -87,6 +87,23 @@ The window is divided into four areas:
 | **Tab panel** (right) | Four tabs: Selection, Background, Rotate/Flip, Shape |
 | **Status bar** (bottom) | Hints and feedback from the application |
 
+### Menus "Edit" & "View"
+
+Many actions are also available from the menu bar:
+
+- **Edit** – undo/redo, rotate (90° left/right), flip horizontally/vertically,
+  as well as deselect/invert selection and *Restore original*. Handy when you
+  prefer the menu over the toolbar or a tab.
+- **View** – *Fit to view* (⌘0); see "Zooming & view" below.
+
+### Zooming & view
+
+- **Zoom:** use the **mouse wheel** over the canvas to zoom in and out.
+- **Pan:** when the image is larger than the window, navigate with the
+  **scroll bars** on the right and bottom edges.
+- **Fit:** `View → Fit to view` (⌘0) scales the image fully back into the
+  window. This also happens automatically when you load an image.
+
 ---
 
 ## 3. Quick start in 5 steps
@@ -127,7 +144,8 @@ There are three ways to load an image:
 *The "File" menu groups Open (⌘O), "Recent files", Save (⌘S), and
 Save as… (⇧⌘S).*
 
-Common formats such as PNG, JPEG, WebP, TIFF, and BMP are supported. Large
+When opening, common formats such as PNG, JPEG, WebP, TIFF, BMP, and GIF
+are supported; saving is to PNG, JPEG, WebP, or TIFF. Large
 images are loaded in the background — the status bar shows progress.
 
 > **Maximum image size: 40 megapixels.** Larger images are rejected with a
@@ -233,8 +251,8 @@ the modifier keys (Shift = add, Ctrl/Cmd = subtract).
 
 | Slider | Range | Effect |
 |---|---|---|
-| **Tolerance (magic wand)** | 0 – 255 | How similar colours must be to be selected together. **Low** = only very similar colours · **High** = many shades. |
-| **Brush size** | 4 – 200 px | Diameter of brush and eraser. |
+| **Tolerance (magic wand)** | 0 – 255 (default: 30) | How similar colours must be to be selected together. **Low** = only very similar colours · **High** = many shades. |
+| **Brush size** | 4 – 200 px (default: 30 px) | Diameter of brush and eraser. |
 
 ### Selection actions
 
@@ -242,7 +260,7 @@ the modifier keys (Shift = add, Ctrl/Cmd = subtract).
 - **Invert selection** (⌘⇧I) – swaps selected and unselected areas. Useful:
   first select the *object*, then invert to edit the *background*.
 - **Expand / Shrink** – grows or shrinks the selection by the adjacent radius
-  (1 – 20 px). Useful for removing a thin colour fringe after cutting out.
+  (1 – 20 px, default: 2 px). Useful for removing a thin colour fringe after cutting out.
 
 ---
 
@@ -313,7 +331,7 @@ The result is saved with transparent corners — best as PNG.
    - **Portrait:** 9:16, 3:4
 2. **Move frame:** click in the centre and drag.
 3. **Resize:** drag the corners – the aspect ratio is preserved.
-4. A bar appears below the canvas:
+4. A bar appears above the canvas:
    - **✓ Apply crop** – crops the image.
    - **✗ Cancel** – discards the frame.
 

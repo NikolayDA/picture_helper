@@ -88,6 +88,26 @@ Das Fenster ist in vier Bereiche aufgeteilt:
 | **Tab-Panel** (rechts) | Vier Reiter: Auswahl, Hintergrund, Drehen/Spiegeln, Form |
 | **Statusleiste** (unten) | Hinweise und Rückmeldungen des Programms |
 
+### Menüs „Bearbeiten" & „Ansicht"
+
+Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
+
+- **Bearbeiten** – Rückgängig/Wiederherstellen, Drehen (90° links/rechts),
+  Horizontal/Vertikal spiegeln sowie Auswahl aufheben/invertieren und
+  *Original wiederherstellen*. Praktisch, wenn Sie eine Funktion lieber
+  über das Menü als über Werkzeugleiste oder Tab aufrufen.
+- **Ansicht** – *Fit to View* (⌘0); siehe „Zoomen & Ansicht" unten.
+
+### Zoomen & Ansicht
+
+- **Zoomen:** Mit dem **Mausrad** über der Arbeitsfläche vergrößern bzw.
+  verkleinern Sie die Ansicht.
+- **Verschieben:** Ist das Bild größer als das Fenster, navigieren Sie
+  über die **Bildlaufleisten** am rechten und unteren Rand.
+- **Einpassen:** `Ansicht → Fit to View` (⌘0) passt das Bild wieder
+  vollständig ins Fenster ein. Beim Laden eines Bildes geschieht das
+  automatisch.
+
 ---
 
 ## 3. Schnellstart in 5 Schritten
@@ -130,7 +150,8 @@ Es gibt drei Wege, ein Bild zu laden:
 *Das Menü „Datei" bündelt Öffnen (⌘O), „Zuletzt geöffnet", Speichern (⌘S)
 und Speichern unter… (⇧⌘S).*
 
-Unterstützt werden gängige Formate wie PNG, JPEG, WebP, TIFF und BMP.
+Unterstützt werden beim Öffnen gängige Formate wie PNG, JPEG, WebP, TIFF,
+BMP und GIF; gespeichert wird in PNG, JPEG, WebP oder TIFF.
 Große Bilder werden im Hintergrund geladen – die Statusleiste zeigt den
 Fortschritt an.
 
@@ -245,8 +266,8 @@ aufgelistet.
 
 | Regler | Bereich | Wirkung |
 |---|---|---|
-| **Toleranz (Zauberstab)** | 0 – 255 | Wie ähnlich Farben sein müssen, um mit dem Zauberstab gemeinsam ausgewählt zu werden. **Niedrig** = nur sehr ähnliche Farben · **Hoch** = viele Farbtöne. |
-| **Pinselgröße** | 4 – 200 px | Durchmesser von Pinsel und Radiergummi. |
+| **Toleranz (Zauberstab)** | 0 – 255 (Standard: 30) | Wie ähnlich Farben sein müssen, um mit dem Zauberstab gemeinsam ausgewählt zu werden. **Niedrig** = nur sehr ähnliche Farben · **Hoch** = viele Farbtöne. |
+| **Pinselgröße** | 4 – 200 px (Standard: 30 px) | Durchmesser von Pinsel und Radiergummi. |
 
 ### Auswahl-Aktionen
 
@@ -256,7 +277,7 @@ aufgelistet.
   ausgewählte Bereiche. Praktisch: erst das *Objekt* auswählen, dann
   invertieren, um den *Hintergrund* zu bearbeiten.
 - **Erweitern / Schrumpfen** – vergrößert bzw. verkleinert die Auswahl
-  um den daneben eingestellten Radius (1 – 20 px). Nützlich, um einen
+  um den daneben eingestellten Radius (1 – 20 px, Standard: 2 px). Nützlich, um einen
   schmalen Farbsaum nach der Freistellung zu entfernen.
 
 ---
@@ -333,7 +354,7 @@ PNG.
 2. **Rahmen verschieben:** in die Mitte klicken und ziehen.
 3. **Größe ändern:** an den Ecken ziehen – das Seitenverhältnis bleibt
    erhalten.
-4. Unter der Arbeitsfläche erscheint eine Leiste:
+4. Oberhalb der Arbeitsfläche erscheint eine Leiste:
    - **✓ Zuschnitt anwenden** – schneidet das Bild zu.
    - **✗ Abbrechen** – verwirft den Rahmen.
 
