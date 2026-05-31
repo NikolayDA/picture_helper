@@ -162,7 +162,8 @@ Die Test-Suite läuft headless (Qt-Platform `offscreen`) und prüft die
 Bildoperationen, die Crop-Geometrie und die Speicher-Logik. Pull
 Requests laufen auf GitHub über eine leichte PR-CI (Ubuntu, Python
 3.12, `make pr-check`). Die volle Matrix auf Linux und macOS unter Python
-3.10, 3.11, 3.12 und 3.13 läuft beim Veröffentlichen eines Releases oder manuell.
+3.10, 3.11, 3.12 und 3.13 läuft beim Push eines Versions-Tags
+(Release-Kandidat), beim Veröffentlichen eines Releases oder manuell.
 Alle lokalen/CI-Testinstallationen nutzen `requirements/constraints.txt`;
 bei Bedarf kann der Pfad mit `make PIP_CONSTRAINT=/pfad/zur/datei pr-check`
 überschrieben werden.

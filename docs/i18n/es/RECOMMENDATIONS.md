@@ -15,9 +15,18 @@
 
 ## Estado actual (2026, revisión «admiring-mayer»)
 
-Revisión de una lista de recomendaciones enviada externamente (15 hallazgos) contra el código real. Resultado: **14 confirmados, 1 falso positivo** (#4). Los hallazgos confirmados se agrupan abajo en **seis paquetes de implementación**; el orden de los paquetes es también el orden de trabajo recomendado. Cada entrada indica el hallazgo, la evidencia (`archivo:línea`) y la dirección de la corrección. La numeración (#1–#15) corresponde a la lista de revisión original.
+Revisión de una lista de recomendaciones enviada externamente (15 hallazgos) contra el código real. Resultado: **14 confirmados, 1 falso positivo** (#4). Los hallazgos confirmados se agrupan abajo en **seis paquetes de implementación**; el orden de los paquetes es también el orden de trabajo recomendado. Cada entrada conserva el hallazgo original, la evidencia (`archivo:línea`) y la dirección de la corrección; la tabla siguiente rige el estado actual de implementación. La numeración (#1–#15) corresponde a la lista de revisión original.
 
 Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md).
+
+### Estado de finalización (comprobado el 2026-05-31)
+
+| Estado | Puntos |
+|--------|--------|
+| ✅ Hecho | #1, #2, #8, #10, #11, #14, #15 |
+| 🟡 Hecho parcialmente | #13 – están cubiertas cinco de las seis áreas de tests dinámicos solicitadas; aún falta el test del presupuesto tras restaurar |
+| ⬜ Abierto | #3, #5, #6, #7, #12 |
+| ➖ Descartado | #4 – falso positivo |
 
 ---
 
@@ -27,7 +36,7 @@ Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../hi
 
 - **#1 La cancelación de la IA debe finalizar el hilo.** `AIWorker._work` (`bgremover/workers.py:74`) retorna al cancelar sin emitir señal; `quit_on=(finished, error)` (`bgremover/worker_controller.py:152`) entonces nunca se dispara → el QThread sigue corriendo, `ai_thread`/`ai_worker` quedan fijados y el botón de IA queda desactivado el resto de la sesión (disparador: «cargar una imagen mientras la IA está procesando»). Solución: emitir una señal `done` sin parámetros en el bloque `finally` (`_always_finished`) e incluirla en `quit_on`; la infraestructura ya existe (worker de warmup). **Implementado en este PR, incl. test del ciclo de cancelación.**
 
-**Paquete 2 — Victorias rápidas y seguras** 🟠 🟡
+**Paquete 2 — Victorias rápidas y seguras (hecho)** 🟠 🟡
 
 - **#2 Restablecer el estado transitorio del canvas de forma central.** `apply_loaded_image` (`canvas.py:234`) llama a `cancel_overlay_only()` sin `cropModeChanged(False)` y no cancela el lazo → la secuencia de señal de recorte queda en `[True]` y sobreviven puntos de lazo antiguos. Introducir un método `_reset_transient_state()`.
 - **#11 Configurar el logging con independencia de handlers ajenos.** `logging.basicConfig()` (`logging_config.py:61`) es un no-op si el logger raíz ya tiene handlers → la ruta de log mostrada ≠ la que realmente se escribe. Configurar explícitamente el logger nombrado `BgRemover` (más limpio que `force=True`).

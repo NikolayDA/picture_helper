@@ -72,6 +72,13 @@ LANGUAGE_MARKERS = {
     ),
 }
 RATING_SYMBOLS = ("🔴", "🟠", "🟡", "🟢")
+CURRENT_STATUS_TOKENS = (
+    "2026-05-31",
+    "#1, #2, #8, #10, #11, #14, #15",
+    "#3, #5, #6, #7, #12",
+    "#13",
+    "#4",
+)
 
 
 def _read(path: Path) -> str:
@@ -89,6 +96,7 @@ def test_recommendations_docs_have_current_shortform_structure() -> None:
         assert all(marker in first_line for marker in LANGUAGE_MARKERS[lang])
         assert ARCHIVE_LINKS[lang] in text
         assert all(symbol in text for symbol in RATING_SYMBOLS)
+        assert all(token in text for token in CURRENT_STATUS_TOKENS)
 
 
 def test_recommendations_archives_exist_and_are_linked() -> None:
