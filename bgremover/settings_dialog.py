@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from bgremover.image_ops import SAVE_FORMATS
 from bgremover.logging_config import current_log_file
 from bgremover.theme import SETTINGS_TITLE_STYLE
 
@@ -30,13 +31,9 @@ from bgremover.theme import SETTINGS_TITLE_STYLE
 class SettingsDialog(QDialog):
     """Dialog zum Bearbeiten persistenter Nutzereinstellungen."""
 
-    FORMATS = ["PNG", "JPEG", "WebP", "TIFF"]
-    FORMAT_FILTERS = {
-        "PNG":  "PNG (*.png)",
-        "JPEG": "JPEG (*.jpg)",
-        "WebP": "WebP (*.webp)",
-        "TIFF": "TIFF (*.tif)",
-    }
+    # Auswahlliste aus der zentralen Format-Quelle (siehe image_ops) –
+    # keine eigene Kopie, damit Dialog und Speichern-Logik nicht driften.
+    FORMATS = list(SAVE_FORMATS)
 
     def __init__(self, settings: QSettings, parent=None) -> None:
         super().__init__(parent)
