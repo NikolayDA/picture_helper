@@ -2,13 +2,14 @@
 
 # BgRemover
 
-Una herramienta de edición de imágenes para macOS para **eliminar, reemplazar y editar fondos**: con recorte automático basado en IA, selección con varita mágica, pincel/borrador, recorte en distintos formatos, rotación, reflejo y redondeo de esquinas.
+Una herramienta de edición de imágenes para macOS y Linux para **eliminar, reemplazar y editar fondos**: con recorte automático basado en IA, selección con varita mágica, pincel/borrador, lazo poligonal, recorte en distintos formatos, rotación, reflejo y redondeo de esquinas.
 
 ## Funciones
 
 - **🤖 Eliminación de fondo con IA** mediante [rembg](https://github.com/danielgatis/rembg): un clic y listo.
 - **🪄 Varita mágica**: selecciona áreas de color contiguas mediante relleno por difusión (flood-fill) (con control deslizante de tolerancia).
 - **🖌 Pincel / Borrador**: dibuja o elimina la selección manualmente.
+- **➰ Lazo poligonal**: delimita la selección con precisión mediante puntos de esquina.
 - **🎨 Reemplazar fondo**: rellena la selección con cualquier color o establécela como transparente.
 - **✂ Recorte** con rejilla de la regla de los tercios: círculo, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotar** en pasos de 90° o en cualquier ángulo; **↔ Reflejar** horizontal/vertical.
@@ -16,7 +17,7 @@ Una herramienta de edición de imágenes para macOS para **eliminar, reemplazar 
 - **↩ Historial** con Deshacer y salto a cualquier paso anterior.
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
 - Guardar como **PNG** (con transparencia), **JPEG** (sobre fondo blanco), **WebP** o **TIFF**.
-- **⚙ Ajustes persistentes**: los directorios predeterminados y el formato de archivo preferido se mantienen guardados.
+- **⚙ Ajustes persistentes**: los directorios predeterminados y el formato de archivo preferido se mantienen guardados; desde los ajustes se puede localizar el archivo de registro y abrir su carpeta.
 
 ## Capturas de pantalla
 
@@ -24,18 +25,24 @@ Una herramienta de edición de imágenes para macOS para **eliminar, reemplazar 
 
 ## Requisitos
 
-- **macOS** (el paquete de aplicación incluido usa herramientas específicas de macOS como `iconutil`)
+- **macOS** o un **entorno de escritorio Linux** (el paquete de aplicación
+  opcional usa herramientas específicas de macOS como `iconutil`)
 - **Python 3.10 o posterior** (el código usa anotaciones de tipo PEP-604
   como `QThread | None` directamente en las firmas — Python 3.9 falla)
 - Las dependencias (`PyQt6`, `Pillow`, `numpy`, opcionalmente `rembg` para
   la función de IA) se instalan mediante `pyproject.toml`.
 
+Para el snapshot reproducible de IA/app se recomienda **Python 3.11 o
+posterior**: algunas dependencias transitivas actuales de IA ya no están
+disponibles en Python 3.10. La aplicación base sin IA sigue admitiendo
+Python 3.10.
+
 ## Instalación
 
 **Recomendado (macOS): compilar el paquete de aplicación.** El script crea
-automáticamente un venv aislado, instala todas las dependencias (incl.
-`onnxruntime` para la IA), maneja correctamente Apple Silicon y genera
-un `BgRemover.app` independiente:
+automáticamente un venv aislado para la app, intenta instalar las
+dependencias de IA incluido `onnxruntime`, maneja correctamente Apple
+Silicon y genera un lanzador `BgRemover.app`:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -43,10 +50,24 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-Confirma con **Enter** ante el aviso del venv. Después, inicia
-`BgRemover.app` (en `~/Applications`) con doble clic — funcionalmente
-idéntico al **`BgRemover.command`** incluido. El proyecto puede
-permanecer en `~/Documents` (la app se compila de forma independiente).
+Si se crea un nuevo venv para la app, confirma el aviso con **Enter**.
+Después, inicia `BgRemover.app` (en `~/Applications`) con doble clic —
+funcionalmente idéntico al **`BgRemover.command`** incluido. El lanzador
+usa el venv instalado por separado en
+`~/Library/Application Support/BgRemover/venv`, por lo que el proyecto
+puede permanecer en `~/Documents`. Sin embargo, la app y su venv forman
+una unidad: el archivo `.app` no es portátil por sí solo. Si falla la
+instalación de las dependencias de IA, el script genera una app utilizable
+sin IA.
+
+Después de una actualización o un cambio de rama, elimina el venv
+existente de la app antes de recompilar para instalar de nuevo el checkout
+actual:
+
+```bash
+rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+bash create_BgRemover_app.sh
+```
 
 **Alternativamente, directamente en el terminal** — en macOS moderno
 dentro de un venv, ya que el Python del sistema bloquea `pip install`
@@ -88,8 +109,8 @@ consulta la sección de Raspberry Pi en
 ## Uso
 
 1. **Abre una imagen** mediante `Archivo → Abrir` (⌘O) o arrastrando y soltando en la ventana.
-2. **Realiza una selección** con la varita mágica, el pincel o el borrador (pestaña *🎯 Selección*).
-   - `Shift+clic` añade a la selección, `Ctrl+clic` resta.
+2. **Realiza una selección** con la varita mágica, el pincel, el borrador o el lazo poligonal (pestaña *🎯 Selección*).
+   - `Shift+clic` añade a la selección; `⌘+clic` (macOS) o `Ctrl+clic` (Linux) resta.
 3. **Edita el fondo** (pestaña *🖼 Fondo*): hazlo transparente o reemplaza el color — o directamente con **IA** en la barra de herramientas.
 4. **Transforma la imagen** (pestaña *⟲ Trans.*): rota, refleja.
 5. **Forma y recorte** (pestaña *⬤ Forma*): redondea esquinas o recorta a un formato — mueve/escala el marco, luego ✓ Aplicar.
@@ -97,15 +118,18 @@ consulta la sección de Raspberry Pi en
 
 ### Ajustes
 
-Mediante `Herramientas → Ajustes…` (⌘,) se pueden guardar de forma permanente tres preferencias de usuario:
+Mediante `Herramientas → Ajustes…` (⌘,) se pueden gestionar los siguientes ajustes:
 
 | Ajuste | Descripción |
 |---|---|
 | Directorio predeterminado para abrir | Directorio inicial del diálogo de apertura; vacío = último directorio utilizado |
 | Directorio predeterminado para exportar/guardar | Directorio inicial del diálogo de guardado; vacío = último directorio utilizado |
 | Formato de archivo de imagen preferido | PNG, JPEG, WebP o TIFF – aparece como primera opción en el diálogo de guardado |
+| Archivo de registro | Muestra la ruta del archivo de registro; el botón «Abrir carpeta» abre el directorio en el gestor de archivos |
 
-Los ajustes se guardan de forma persistente mediante **QSettings** y se restauran automáticamente en el siguiente inicio del programa.
+Los tres primeros ajustes se guardan de forma persistente mediante
+**QSettings** y se restauran automáticamente en el siguiente inicio del
+programa.
 
 ### Atajos de teclado
 
@@ -141,7 +165,7 @@ La suite de pruebas se ejecuta sin interfaz gráfica (plataforma Qt
 `offscreen`) y verifica las operaciones de imagen, la geometría del
 recorte y la lógica de guardado. Los pull requests ejecutan una CI
 ligera en GitHub (Ubuntu, Python 3.12, `make pr-check`). La matriz completa
-en Linux/macOS con Python 3.10 y 3.12 se ejecuta al publicar un release
+en Linux/macOS con Python 3.10, 3.11, 3.12 y 3.13 se ejecuta al publicar un release
 o manualmente. Todas las instalaciones locales/CI de prueba usan
 `requirements/constraints.txt`; si hace falta, se puede sobrescribir con
 `make PIP_CONSTRAINT=/ruta/al/archivo pr-check`. Consulta
@@ -182,11 +206,13 @@ iniciado vía `python -m bgremover` o el script de consola `bgremover`):
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador
   de menú de "Abrir reciente", de modo que `MainWindow` solo delega la ruta
   de carga.
-- Los **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`) se
+- Los **Worker** (`ImageLoadWorker`, `AIWorker`, `RembgWarmupWorker`,
+  `FloodFillWorker`) se
   ejecutan en sus propios `QThread`s; `WorkerController` encapsula el
   arranque, las referencias fuertes a workers, `deleteLater` y el shutdown.
 - Un **contador de versión** monótono en el lienzo descarta resultados
-  de IA obsoletos si entretanto se cargó otra imagen.
+  obsoletos de IA y flood-fill si entretanto se cargó otra imagen o cambió
+  el estado de la imagen.
 - La pila de Deshacer no está limitada por `maxlen`, sino por un
   **límite de memoria** (`_UNDO_MEMORY_LIMIT`); una suma de bytes en
   curso evacúa las entradas más antiguas.
@@ -194,22 +220,32 @@ iniciado vía `python -m bgremover` o el script de consola `bgremover`):
 ## Limitaciones conocidas
 
 - **Tamaño máximo de imagen: 40 megapíxeles.** Las imágenes más grandes
-  se rechazan con un mensaje de estado. La selección con varita mágica
-  (flood-fill) se ejecuta de forma síncrona en el hilo de la interfaz;
-  más allá de este límite, incluso la variante vectorizada provocaría un
-  retraso notable. Pillow está además protegido contra imágenes de tipo
-  «bomba de descompresión».
+  se rechazan con un mensaje de estado para limitar el uso de memoria y el
+  tiempo de procesamiento. La selección con varita mágica (flood-fill) se
+  ejecuta de forma asíncrona en su propio `QThread`, de modo que la
+  interfaz sigue respondiendo durante el cálculo. Pillow está además
+  protegido contra imágenes de tipo «bomba de descompresión».
 - La **compilación del paquete de aplicación** es específica de macOS; en
-  Linux/Windows la aplicación se ejecuta mediante el inicio directo
-  `python -m bgremover`.
+  Linux la aplicación se ejecuta mediante el inicio directo
+  `python -m bgremover`. Windows no forma parte actualmente de la matriz
+  probada oficialmente.
 
 ## Archivo de registro
 
-Al iniciar el programa se crea un archivo de registro `bgremover.log` en
-el directorio de datos de la aplicación específico de la plataforma
-(macOS: `~/Library/Application Support/BgRemover/`,
-Linux: `~/.local/share/BgRemover/`). Contiene trazas de pila y mensajes
-de estado y es el primer punto de consulta ante problemas.
+El logger interno de la aplicación usa un archivo `bgremover.log` en el
+directorio de datos determinado por Qt. La ruta exacta depende de la
+plataforma y la configuración de Qt; con la configuración actual de macOS
+es `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`, y
+en Linux el archivo se encuentra bajo `~/.local/share/`. Contiene mensajes
+de ejecución y trazas de pila de los errores registrados y se crea con la
+primera entrada de log.
+
+El lanzador del paquete de aplicación de macOS también escribe diagnósticos
+de inicio en `~/Library/Application Support/BgRemover/bgremover.log`.
+
+La ruta interna exacta aparece en `Herramientas → Ajustes… → Archivo de
+registro`; el botón «Abrir carpeta» abre directamente el directorio en el
+gestor de archivos.
 
 ## Licencia
 
