@@ -97,11 +97,13 @@ del proyecto).
 
 ## 6. Integración continua
 
-Definida en `.github/workflows/pr-ci.yml`, `.github/workflows/ci.yml`
-y `.github/workflows/license-check.yml`. Los pull requests ejecutan un
-job ligero en Ubuntu/Python 3.12; la matriz completa corre en Ubuntu +
-macOS con Python 3.10/3.12 para releases o ejecuciones manuales; el
-workflow de licencias genera el informe de dependencias/licencias.
+Definida en `.github/workflows/pr-ci.yml`, `.github/workflows/ci.yml`,
+`.github/workflows/ui-nightly.yml` y `.github/workflows/license-check.yml`.
+Los pull requests ejecutan un job ligero en Ubuntu/Python 3.12; la matriz
+completa corre en Ubuntu + macOS con Python 3.10–3.13 en un tag de versión
+(candidato a release), en release o en ejecuciones manuales; `ui-nightly.yml`
+ejecuta las pruebas de interacción de UI cada noche; el workflow de licencias
+genera el informe de dependencias/licencias.
 
 | Recurso | Propósito | Licencia |
 |-----------|-------|--------|
@@ -152,6 +154,6 @@ si PyQt6 fuera reemplazado por el **PySide6** licenciado bajo LGPL-v3.
 
 *Nota de mantenimiento:* Ante cambios en `pyproject.toml`,
 `requirements/constraints.txt`, `.github/workflows/pr-ci.yml`,
-`.github/workflows/ci.yml`, `.github/workflows/license-check.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/ui-nightly.yml`, `.github/workflows/license-check.yml`,
 `create_BgRemover_app.sh` o los datos del paquete bajo `bgremover/icons/`,
 actualiza también este documento.

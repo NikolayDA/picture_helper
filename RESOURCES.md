@@ -97,10 +97,13 @@ Code des Projekts).
 ## 6. Continuous Integration
 
 Definiert in `.github/workflows/pr-ci.yml`,
-`.github/workflows/ci.yml` und `.github/workflows/license-check.yml`.
+`.github/workflows/ci.yml`, `.github/workflows/ui-nightly.yml` und
+`.github/workflows/license-check.yml`.
 Pull Requests laufen leichtgewichtig auf Ubuntu/Python 3.12; die volle
-Matrix läuft auf Ubuntu + macOS mit Python 3.10/3.12 bei Releases oder
-manuell; der Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
+Matrix läuft auf Ubuntu + macOS mit Python 3.10–3.13 bei einem
+Versions-Tag (Release-Kandidat), beim Release oder manuell;
+`ui-nightly.yml` führt die UI-Interaktionstests nächtlich aus; der
+Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
 
 | Ressource | Zweck | Lizenz |
 |-----------|-------|--------|
@@ -150,6 +153,7 @@ PyQt6 durch das LGPL-v3-lizenzierte **PySide6** ersetzt würde.
 
 *Pflege-Hinweis:* Bei Änderungen an `pyproject.toml`,
 `requirements/constraints.txt`, `.github/workflows/pr-ci.yml`,
-`.github/workflows/ci.yml`, `.github/workflows/license-check.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/ui-nightly.yml`,
+`.github/workflows/license-check.yml`,
 `create_BgRemover_app.sh` oder den Paketdaten unter `bgremover/icons/`
 bitte dieses Dokument mit aktualisieren.
