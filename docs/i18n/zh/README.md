@@ -2,13 +2,14 @@
 
 # BgRemover
 
-一款用于 macOS 的图像处理工具，可**移除、替换和编辑背景**——具备基于 AI 的自动抠图、魔棒选区、画笔/橡皮擦、多种比例的裁剪、旋转、镜像翻转以及圆角处理功能。
+一款用于 macOS 和 Linux 的图像处理工具，可**移除、替换和编辑背景**——具备基于 AI 的自动抠图、魔棒选区、画笔/橡皮擦、多边形套索、多种比例的裁剪、旋转、镜像翻转以及圆角处理功能。
 
 ## 功能
 
 - **🤖 AI 背景移除**：通过 [rembg](https://github.com/danielgatis/rembg) 实现——一键完成。
 - **🪄 魔棒**：通过 Flood-Fill 选择相连的色块（带容差滑块）。
 - **🖌 画笔 / 橡皮擦**：手动绘制或擦除选区。
+- **➰ 多边形套索**：通过设置角点精确限定选区。
 - **🎨 替换背景**：用任意颜色填充选区，或将其设置为透明。
 - **✂ 裁剪**：带三分法网格：圆形、1:1、16:9、4:3、3:2、2:1、14:9、9:16、3:4。
 - **⟲ 旋转**：以 90° 为步长或任意角度旋转；**↔ 镜像翻转**水平/垂直。
@@ -16,7 +17,7 @@
 - **↩ 历史记录**：支持撤销以及跳转到任意此前的步骤。
 - **📥 拖放**：可将图像直接拖到窗口中。
 - 保存为 **PNG**（带透明度）、**JPEG**（白色背景）、**WebP** 或 **TIFF**。
-- **⚙ 持久化设置**：默认目录和首选文件格式将被保留。
+- **⚙ 持久化设置**：默认目录和首选文件格式将被保留；还可在设置中定位日志文件并打开其目录。
 
 ## 截图
 
@@ -24,18 +25,22 @@
 
 ## 前提条件
 
-- **macOS**（随附的应用程序包使用了 macOS 专属工具，如 `iconutil`）
+- **macOS** 或 **Linux 桌面环境**（可选的应用程序包使用了
+  macOS 专属工具，如 `iconutil`）
 - **Python 3.10 或更新版本**（代码在函数签名中直接使用了
   PEP-604 类型注解，如 `QThread | None`——Python 3.9 会失败）
 - 依赖项（`PyQt6`、`Pillow`、`numpy`，AI 功能可选用 `rembg`）
   通过 `pyproject.toml` 安装。
 
+对于可复现的 AI/app 依赖快照，建议使用 **Python 3.11 或更新版本**：
+部分当前的 AI 传递依赖已不再支持 Python 3.10。不带 AI 的基础应用
+仍支持 Python 3.10。
+
 ## 安装
 
-**推荐（macOS）：构建应用程序包。** 该脚本会自动创建一个
-隔离的 venv，安装所有依赖项（包括用于 AI 的
-`onnxruntime`），正确处理 Apple Silicon，并生成一个
-独立的 `BgRemover.app`：
+**推荐（macOS）：构建应用程序包。** 该脚本会自动创建隔离的
+app venv，尝试安装 AI 依赖项（包括 `onnxruntime`），正确处理
+Apple Silicon，并生成一个 `BgRemover.app` 启动器：
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -43,10 +48,21 @@ cd picture_helper
 bash create_BgRemover_app.sh
 ```
 
-出现 venv 提示时按 **Enter** 确认。之后双击 `BgRemover.app`
-（位于 `~/Applications`）即可启动——其功能与随附的
-**`BgRemover.command`** 相同。项目可以保留在
-`~/Documents` 中（应用程序会被独立构建）。
+如果需要新建 app venv，请在提示时按 **Enter** 确认。之后双击
+`BgRemover.app`（位于 `~/Applications`）即可启动——其功能与随附的
+**`BgRemover.command`** 相同。启动器使用单独安装在
+`~/Library/Application Support/BgRemover/venv` 下的 venv，因此项目
+可以保留在 `~/Documents` 中。但 app 与 app venv 必须配套使用：
+单独的 `.app` 文件并不可移植。如果 AI 依赖项安装失败，脚本会构建
+一个不带 AI 但仍可使用的应用程序。
+
+更新或切换分支后，请先移除已有的 app venv，再重新构建，以便重新
+安装当前 checkout：
+
+```bash
+rm -rf "$HOME/Library/Application Support/BgRemover/venv"
+bash create_BgRemover_app.sh
+```
 
 **或者直接在终端中运行**——在现代 macOS 上需在 venv 中进行，
 因为系统 Python 会根据 PEP 668 阻止 `pip install`：
@@ -86,8 +102,8 @@ venv/pip（PyQt6、Pillow、numpy 作为系统软件包通过 `apt` 安装）；
 ## 使用方法
 
 1. 通过 `文件 → 打开`（⌘O）或将图像拖放到窗口中**打开图像**。
-2. 用魔棒、画笔或橡皮擦**进行选区**（标签 *🎯 选区*）。
-   - `Shift+点击` 添加到选区，`Ctrl+点击` 从选区中减去。
+2. 用魔棒、画笔、橡皮擦或多边形套索**进行选区**（标签 *🎯 选区*）。
+   - `Shift+点击` 添加到选区；`⌘+点击`（macOS）或 `Ctrl+点击`（Linux）从选区中减去。
 3. **编辑背景**（标签 *🖼 背景*）：设为透明或替换颜色——或直接使用工具栏中的 **AI**。
 4. **变换图像**（标签 *⟲ 变换*）：旋转、镜像翻转。
 5. **形状与裁剪**（标签 *⬤ 形状*）：圆角处理或按比例裁剪——移动/缩放边框，然后点击 ✓ 应用。
@@ -95,15 +111,16 @@ venv/pip（PyQt6、Pillow、numpy 作为系统软件包通过 `apt` 安装）；
 
 ### 设置
 
-通过 `工具 → 设置…`（⌘,）可永久保存三项用户设置：
+通过 `工具 → 设置…`（⌘,）可管理以下设置：
 
 | 设置 | 说明 |
 |---|---|
 | 默认打开目录 | 打开对话框的起始目录；留空 = 上次使用的目录 |
 | 默认导出/保存目录 | 保存对话框的起始目录；留空 = 上次使用的目录 |
 | 首选图像文件格式 | PNG、JPEG、WebP 或 TIFF——在保存对话框中作为第一个选项出现 |
+| 日志文件 | 显示日志文件路径；“打开文件夹”按钮会在文件管理器中打开其目录 |
 
-设置通过 **QSettings** 持久化保存，并在下次启动程序时自动恢复。
+前三项设置通过 **QSettings** 持久化保存，并在下次启动程序时自动恢复。
 
 ### 键盘快捷键
 
@@ -138,7 +155,7 @@ make pr-check
 测试套件以无头模式运行（Qt 平台为 `offscreen`），检验
 图像操作、裁剪几何和保存逻辑。Pull Request 会运行轻量级
 GitHub PR CI（Ubuntu、Python 3.12、`make pr-check`）。完整的
-Linux/macOS 矩阵（Python 3.10 和 3.12）会在发布 release
+Linux/macOS 矩阵（Python 3.10、3.11、3.12 和 3.13）会在发布 release
 或手动触发时运行。所有本地/CI 测试安装都使用
 `requirements/constraints.txt`；需要时可通过
 `make PIP_CONSTRAINT=/path/to/file pr-check` 覆盖。完整测试流程见
@@ -177,32 +194,39 @@ python scripts/generate_anleitung_pdf.py
   只提供回调。
 - **`RecentFiles`** 封装“最近打开”的持久化、去重和菜单适配器，
   因而 `MainWindow` 只需委托加载路径。
-- **Worker**（`ImageLoadWorker`、`AIWorker`、`RembgWarmupWorker`）运行在
+- **Worker**（`ImageLoadWorker`、`AIWorker`、`RembgWarmupWorker`、
+  `FloodFillWorker`）运行在
   各自的 `QThread` 中；`WorkerController` 封装启动、强 worker 引用、
   `deleteLater` 和 shutdown。
-- 画布中的单调**版本计数器**会丢弃过时的 AI 结果，
-  以防期间加载了另一张图像。
+- 画布中的单调**版本计数器**会丢弃过时的 AI 和 flood-fill 结果，
+  以防期间加载了另一张图像或图像状态发生变化。
 - 撤销栈不是通过 `maxlen`，而是通过
   **内存上限**（`_UNDO_MEMORY_LIMIT`）来限制；持续累加的
   字节总和会清除最旧的条目。
 
 ## 已知限制
 
-- **最大图像尺寸：40 兆像素。** 更大的图像会以
-  状态消息被拒绝。魔棒选区（Flood-Fill）在 UI 线程中
-  同步运行；超过此限制后，即使是
-  向量化的实现也会明显延迟。Pillow 此外还针对
-  “解压缩炸弹”图像做了防护。
-- **应用程序包构建**是 macOS 专属的；在 Linux/Windows 下
-  应用程序通过直接 `python -m bgremover` 启动来运行。
+- **最大图像尺寸：40 兆像素。** 更大的图像会以状态消息被拒绝，
+  以限制内存占用和处理时间。魔棒选区（Flood-Fill）会在独立的
+  `QThread` 中异步运行，因此计算期间界面仍可响应。Pillow 此外还
+  针对“解压缩炸弹”图像做了防护。
+- **应用程序包构建**是 macOS 专属的；在 Linux 下应用程序通过直接
+  `python -m bgremover` 启动来运行。Windows 当前不在官方测试矩阵中。
 
 ## 日志文件
 
-程序启动时会在平台专属的应用数据目录中创建一个
-日志文件 `bgremover.log`
-（macOS：`~/Library/Application Support/BgRemover/`，
-Linux：`~/.local/share/BgRemover/`）。它包含堆栈跟踪和
-状态消息，在出现问题时是首要的排查入口。
+应用程序内部 logger 会使用 Qt 确定的应用数据目录中的
+`bgremover.log` 文件。具体路径取决于平台和 Qt 配置；在当前 macOS
+配置下为
+`~/Library/Application Support/BgRemover/BgRemover/bgremover.log`，
+在 Linux 下则位于 `~/.local/share/` 之下。该文件包含运行时消息和
+已记录错误的堆栈跟踪，并在首次写入日志时创建。
+
+macOS 应用程序包启动器还会将启动诊断信息写入
+`~/Library/Application Support/BgRemover/bgremover.log`。
+
+内部日志的准确路径显示在 `工具 → 设置… → 日志文件` 中；
+“打开文件夹”按钮可直接在文件管理器中打开其目录。
 
 ## 许可证
 
