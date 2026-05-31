@@ -59,13 +59,9 @@ bash create_BgRemover_app.sh
 залежностей ШІ не вдається, скрипт збирає придатний до використання
 застосунок без ШІ.
 
-Після оновлення або перемикання гілки видаліть наявне app-venv перед
-повторною збіркою, щоб поточний checkout було встановлено заново:
-
-```bash
-rm -rf "$HOME/Library/Application Support/BgRemover/venv"
-bash create_BgRemover_app.sh
-```
+Після оновлення або перемикання гілки знову виконайте
+`bash create_BgRemover_app.sh`. Скрипт не-editable перевстановить поточний
+checkout поверх наявного app-venv і перебудує launcher.
 
 **Альтернативно напряму в терміналі** — на сучасному macOS у venv,
 оскільки системний Python блокує `pip install` згідно з PEP 668:
@@ -176,7 +172,9 @@ make type
 
 `ANLEITUNG.pdf` генерується з `ANLEITUNG.md` (Markdown → HTML → PDF
 через WeasyPrint). Після змін у Markdown-джерелі PDF треба відтворювано
-перезібрати:
+перезібрати. У Linux потрібні шрифти DejaVu та пакети дистрибутива
+Pango/Cairo/GDK-Pixbuf. У macOS генератор використовує системні шрифти
+Arial/Courier New; встановіть Pango командою `brew install pango`:
 
 ```bash
 pip install -e ".[docs]"

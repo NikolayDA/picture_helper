@@ -440,21 +440,27 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 - **Maximum image size: 40 megapixels.** Larger images are rejected.
 - The **AI feature** requires the optional component `rembg`. Without it the
   AI button is disabled; all manual tools continue to work.
-- The **app bundle** (`BgRemover.app`) is macOS-specific; on Linux/Windows
-  the application is launched directly.
+- The **app bundle** (`BgRemover.app`) is macOS-specific; on Linux the
+  application is launched directly. Windows is currently not part of
+  the officially tested matrix.
 
 ---
 
 ## 17. Troubleshooting & log file
 
-If problems arise, check the **log file** `bgremover.log`. It is created at
-application start in the platform-specific app data directory:
+If problems arise, check the internal **log file** `bgremover.log`. It is
+stored in the app data directory determined by Qt and is created with the
+first log entry. The exact path can vary by platform and Qt configuration:
 
-- **macOS:** `~/Library/Application Support/BgRemover/`
-- **Linux:** `~/.local/share/BgRemover/`
+- **macOS (current configuration):**
+  `~/Library/Application Support/BgRemover/BgRemover/bgremover.log`
+- **Linux:** below `~/.local/share/`
 
-The file contains status messages and error details (stack traces) and is
-the first port of call for support requests.
+The macOS app bundle launcher additionally writes startup diagnostics to
+`~/Library/Application Support/BgRemover/bgremover.log`.
+
+The internal file contains runtime messages and error details (stack traces)
+and is the first port of call for support requests.
 
 The easiest way to find the file is via `Extras → Settings… → Log file`:
 the full path is shown there, and the **"Open folder"** button opens the

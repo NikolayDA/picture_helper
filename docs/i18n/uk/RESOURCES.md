@@ -72,8 +72,10 @@
 | **WeasyPrint** | PDF-рендеринг з HTML/CSS | `>=61` | BSD-3-Clause |
 | **fonttools** | Інспекція шрифтів для генерації PDF | `>=4.0` | MIT |
 
-Генерація PDF також потребує системних ресурсів, зокрема шрифтів
-DejaVu та Pango/Cairo/GDK-Pixbuf (пакети дистрибутива).
+У Linux генерація PDF також потребує шрифтів DejaVu та
+Pango/Cairo/GDK-Pixbuf (пакети дистрибутива). У macOS генератор
+використовує системні шрифти Arial/Courier New; встановіть Pango
+командою `brew install pango`.
 
 ## 5. Інструменти збірки та розповсюдження (macOS)
 

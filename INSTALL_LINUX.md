@@ -275,7 +275,8 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   oder Skalierungsproblemen testweise auf das X11-Plugin wechseln:
   `QT_QPA_PLATFORM=xcb python3 -m bgremover` (siehe Wayland-Hinweis
   oben).
-- **Diagnose bei Fehlern** → Logdatei
-  `~/.local/share/BgRemover/bgremover.log` ansehen (Stacktraces und
-  Status-Meldungen). Beim Start aus dem Terminal erscheint die
-  Fehlermeldung zusätzlich direkt auf der Konsole.
+- **Diagnose bei Fehlern** → Den genauen Pfad des internen Laufzeit-Logs
+  zeigt `Extras → Einstellungen… → Protokolldatei`; unter Linux liegt
+  es im von Qt ermittelten Verzeichnis unter `~/.local/share/`. Beim
+  Start aus dem Terminal erscheint die Fehlermeldung zusätzlich direkt
+  auf der Konsole.
