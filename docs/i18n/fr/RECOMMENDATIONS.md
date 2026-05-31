@@ -15,9 +15,18 @@
 
 ## État actuel (2026, revue « admiring-mayer »)
 
-Revue d'une liste de recommandations soumise en externe (15 constats) face au code réel. Résultat : **14 confirmés, 1 faux positif** (#4). Les constats confirmés sont regroupés ci-dessous en **six paquets d'implémentation** ; l'ordre des paquets est aussi l'ordre de travail recommandé. Chaque entrée indique le constat, la preuve (`fichier:ligne`) et l'orientation du correctif. La numérotation (#1–#15) correspond à la liste de revue d'origine.
+Revue d'une liste de recommandations soumise en externe (15 constats) face au code réel. Résultat : **14 confirmés, 1 faux positif** (#4). Les constats confirmés sont regroupés ci-dessous en **six paquets d'implémentation** ; l'ordre des paquets est aussi l'ordre de travail recommandé. Chaque entrée conserve le constat d'origine, la preuve (`fichier:ligne`) et l'orientation du correctif ; le tableau suivant fait foi pour l'état actuel. La numérotation (#1–#15) correspond à la liste de revue d'origine.
 
 Constats historiques et journaux de travail complets (séries 1–5) : [../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md).
+
+### État d'avancement (vérifié le 2026-05-31)
+
+| Statut | Points |
+|--------|--------|
+| ✅ Terminé | #1, #2, #8, #10, #11, #14, #15 |
+| 🟡 Partiellement terminé | #13 – cinq des six domaines de tests dynamiques demandés sont couverts ; le test du budget après restauration manque encore |
+| ⬜ Ouvert | #3, #5, #6, #7, #12 |
+| ➖ Abandonné | #4 – faux positif |
 
 ---
 
@@ -27,7 +36,7 @@ Constats historiques et journaux de travail complets (séries 1–5) : [../../hi
 
 - **#1 L'annulation de l'IA doit terminer le thread.** `AIWorker._work` (`bgremover/workers.py:74`) retourne à l'annulation sans émettre de signal ; `quit_on=(finished, error)` (`bgremover/worker_controller.py:152`) ne se déclenche alors jamais → le QThread continue de tourner, `ai_thread`/`ai_worker` restent définis et le bouton IA reste désactivé pour le reste de la session (déclencheur : « charger une image pendant que l'IA calcule »). Correctif : émettre un signal `done` sans paramètre dans le bloc `finally` (`_always_finished`) et l'ajouter à `quit_on` ; l'infrastructure existe déjà (worker de warmup). **Implémenté dans cette PR, avec un test du cycle d'annulation.**
 
-**Paquet 2 — Gains rapides et sûrs** 🟠 🟡
+**Paquet 2 — Gains rapides et sûrs (terminé)** 🟠 🟡
 
 - **#2 Réinitialiser l'état transitoire du canvas de façon centrale.** `apply_loaded_image` (`canvas.py:234`) appelle `cancel_overlay_only()` sans `cropModeChanged(False)` et n'annule pas le lasso → la séquence du signal de recadrage reste `[True]`, d'anciens points de lasso survivent. Introduire une méthode `_reset_transient_state()`.
 - **#11 Configurer le logging indépendamment des handlers tiers.** `logging.basicConfig()` (`logging_config.py:61`) est un no-op dès que le logger racine a déjà des handlers → le chemin de log affiché ≠ celui réellement écrit. Configurer explicitement le logger nommé `BgRemover` (plus propre que `force=True`).

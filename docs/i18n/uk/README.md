@@ -156,7 +156,8 @@ make pr-check
 операції із зображеннями, геометрію обрізання та логіку збереження. Для pull
 request запускається легка GitHub PR CI (Ubuntu, Python 3.12, `make pr-check`).
 Повна матриця Linux/macOS з Python 3.10, 3.11, 3.12 та 3.13 запускається під час
-публікації release або вручну. Усі локальні/CI test-встановлення
+push тега версії (кандидата на release), публікації release або вручну. Усі
+локальні/CI test-встановлення
 використовують `requirements/constraints.txt`; за потреби шлях можна
 перевизначити через `make PIP_CONSTRAINT=/шлях/до/файлу pr-check`.
 Повний процес тестування описано в [TESTING.md](../../../TESTING.md).

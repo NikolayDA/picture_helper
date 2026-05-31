@@ -14,10 +14,11 @@ zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 | Wo                 | Wann                                                                 |
 |--------------------|----------------------------------------------------------------------|
 | **GitHub PR CI**   | bei jedem Pull Request auf `main`/`master` (Ubuntu + Python 3.12)     |
-| **GitHub Full CI** | nur beim **Veröffentlichen eines Releases** oder **manuell**          |
+| **GitHub Full CI** | beim Push eines Versions-Tags (Release-Kandidat), beim **Veröffentlichen eines Releases** oder **manuell** |
+| **GitHub UI Nightly** | jede Nacht und manuell (Ubuntu + Python 3.12, UI-Interaktionstests) |
 | **Lokal/Mac**      | jederzeit per `make` – dieselben Prüfungen wie die PR-CI plus UI bei Bedarf |
 
-Der zweite Workflow `License Check` ist davon **nicht** betroffen und
+Der Workflow `License Check` ist davon **nicht** betroffen und
 läuft weiterhin bei Pull Requests und auf `main`/`master`.
 
 ## Voraussetzungen (einmalig)
@@ -152,7 +153,7 @@ QT_QPA_PLATFORM=offscreen python -m pytest -m ui -v
 python -m pytest --markers
 ```
 
-## GitHub-Tests bei PR, manuell oder Release
+## GitHub-Tests bei PR, Tag, manuell oder Release
 
 **Pull Request:** Der Workflow **PR CI** läuft automatisch auf
 Ubuntu/Python 3.12 und führt `make pr-check` aus.
@@ -161,10 +162,12 @@ Ubuntu/Python 3.12 und führt `make pr-check` aus.
 Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 `workflow_dispatch`.)
 
-**Automatisch:** Beim **Veröffentlichen eines Releases** (GitHub →
-Releases → *Publish release*) startet die volle Matrix automatisch.
-Ein bloßer Push löst die Test-Matrix **nicht** mehr aus; Pull Requests
-bekommen stattdessen die leichte **PR CI**.
+**Automatisch:** Bereits beim Push eines Versions-Tags (Release-Kandidat)
+startet die volle Matrix; beim **Veröffentlichen eines Releases** (GitHub →
+Releases → *Publish release*) läuft sie erneut. Ein bloßer Branch-Push löst
+die Test-Matrix **nicht** aus; Pull Requests bekommen stattdessen die leichte
+**PR CI**. Der Workflow **UI Nightly** führt die UI-Interaktionstests jede
+Nacht und bei manueller Auslösung separat aus.
 
 ## Fehlerbehebung
 

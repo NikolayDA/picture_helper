@@ -15,9 +15,18 @@
 
 ## Aktueller Stand (2026, Review „admiring-mayer")
 
-Review einer extern eingereichten Empfehlungsliste (15 Befunde) gegen die tatsächliche Codebasis. Ergebnis: **14 bestätigt, 1 Fehlalarm** (#4). Die bestätigten Befunde sind unten in **sechs Umsetzungspakete** gebündelt; die Paketreihenfolge ist zugleich die empfohlene Bearbeitungsfolge. Jeder Eintrag nennt Befund, Beleg (`datei:zeile`) und Stoßrichtung. Die Nummerierung (#1–#15) entspricht der Original-Reviewliste.
+Review einer extern eingereichten Empfehlungsliste (15 Befunde) gegen die tatsächliche Codebasis. Ergebnis: **14 bestätigt, 1 Fehlalarm** (#4). Die bestätigten Befunde sind unten in **sechs Umsetzungspakete** gebündelt; die Paketreihenfolge ist zugleich die empfohlene Bearbeitungsfolge. Jeder Eintrag hält den ursprünglichen Befund, Beleg (`datei:zeile`) und die Stoßrichtung fest; für den aktuellen Umsetzungsstand gilt die nachfolgende Tabelle. Die Nummerierung (#1–#15) entspricht der Original-Reviewliste.
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
+
+### Erledigungsstand (Abgleich 2026-05-31)
+
+| Status | Punkte |
+|--------|--------|
+| ✅ Erledigt | #1, #2, #8, #10, #11, #14, #15 |
+| 🟡 Teilweise erledigt | #13 – fünf von sechs geforderten dynamischen Testbereichen sind abgedeckt; der Restore-Budget-Test fehlt noch |
+| ⬜ Offen | #3, #5, #6, #7, #12 |
+| ➖ Verworfen | #4 – Fehlalarm |
 
 ---
 
@@ -27,7 +36,7 @@ Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMEN
 
 - **#1 KI-Abbruch muss den Thread abschließen.** `AIWorker._work` (`bgremover/workers.py:74`) kehrt bei Abbruch ohne Signal zurück; `quit_on=(finished, error)` (`bgremover/worker_controller.py:152`) feuert dann nie → der QThread läuft weiter, `ai_thread`/`ai_worker` bleiben gesetzt, und der KI-Button bleibt die restliche Session deaktiviert (Trigger: „Bild laden während die KI rechnet"). Fix: parameterloses `done`-Signal im `finally`-Zweig (`_always_finished`) emittieren und in `quit_on` aufnehmen — die Infrastruktur dafür existiert bereits (Warmup-Worker). **In diesem PR umgesetzt, inkl. Cancel-Lebenszyklus-Test.**
 
-**Paket 2 — Schnelle, sichere Wins** 🟠 🟡
+**Paket 2 — Schnelle, sichere Wins (erledigt)** 🟠 🟡
 
 - **#2 Transienten Canvas-Zustand zentral zurücksetzen.** `apply_loaded_image` (`canvas.py:234`) ruft `cancel_overlay_only()` ohne `cropModeChanged(False)` und bricht das Lasso nicht ab → Crop-Signalfolge bleibt `[True]`, alte Lasso-Punkte überleben. Eine `_reset_transient_state()`-Methode einführen.
 - **#11 Logging unabhängig von Fremd-Handlern.** `logging.basicConfig()` (`logging_config.py:61`) ist ein No-op, sobald der Root-Logger bereits Handler hat → angezeigter Logpfad ≠ tatsächlich beschriebener. Den benannten `BgRemover`-Logger explizit konfigurieren (sauberer als `force=True`).

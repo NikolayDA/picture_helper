@@ -15,9 +15,18 @@
 
 ## Current status (2026, "admiring-mayer" review)
 
-Review of an externally submitted recommendation list (15 findings) against the actual codebase. Result: **14 confirmed, 1 false positive** (#4). The confirmed findings are grouped below into **six implementation packages**; the package order is also the recommended order of work. Each entry names the finding, the evidence (`file:line`), and the direction of the fix. The numbering (#1–#15) matches the original review list.
+Review of an externally submitted recommendation list (15 findings) against the actual codebase. Result: **14 confirmed, 1 false positive** (#4). The confirmed findings are grouped below into **six implementation packages**; the package order is also the recommended order of work. Each entry records the original finding, the evidence (`file:line`), and the direction of the fix; the table below is authoritative for the current implementation status. The numbering (#1–#15) matches the original review list.
 
 Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md).
+
+### Completion status (checked 2026-05-31)
+
+| Status | Items |
+|--------|-------|
+| ✅ Done | #1, #2, #8, #10, #11, #14, #15 |
+| 🟡 Partially done | #13 – five of the six requested dynamic test areas are covered; the restore-budget test is still missing |
+| ⬜ Open | #3, #5, #6, #7, #12 |
+| ➖ Discarded | #4 – false positive |
 
 ---
 
@@ -27,7 +36,7 @@ Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDA
 
 - **#1 AI cancellation must finish the thread.** `AIWorker._work` (`bgremover/workers.py:74`) returns on cancel without emitting a signal; `quit_on=(finished, error)` (`bgremover/worker_controller.py:152`) then never fires → the QThread keeps running, `ai_thread`/`ai_worker` stay set, and the AI button stays disabled for the rest of the session (trigger: "load an image while the AI is running"). Fix: emit a parameterless `done` signal in the `finally` branch (`_always_finished`) and add it to `quit_on` — the infrastructure already exists (warmup worker). **Implemented in this PR, incl. a cancel-lifecycle test.**
 
-**Package 2 — Quick, safe wins** 🟠 🟡
+**Package 2 — Quick, safe wins (done)** 🟠 🟡
 
 - **#2 Reset transient canvas state centrally.** `apply_loaded_image` (`canvas.py:234`) calls `cancel_overlay_only()` without `cropModeChanged(False)` and does not cancel the lasso → the crop signal sequence stays `[True]`, old lasso points survive. Introduce a `_reset_transient_state()` method.
 - **#11 Configure logging independently of foreign handlers.** `logging.basicConfig()` (`logging_config.py:61`) is a no-op once the root logger already has handlers → the displayed log path ≠ the one actually written. Configure the named `BgRemover` logger explicitly (cleaner than `force=True`).
