@@ -103,6 +103,11 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
 - **Affichage** – *Ajuster à la vue* (⌘0) ; voir « Zoom et affichage »
   ci-dessous.
 
+![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+
+*Le menu « Édition » regroupe annuler/rétablir, rotation, retournement et les
+actions de sélection.*
+
 ### Zoom et affichage
 
 - **Zoom :** utilisez la **molette de la souris** sur le canevas pour
@@ -146,7 +151,8 @@ Il existe trois façons de charger une image :
 
 - **Menu :** `Fichier → Ouvrir…` (⌘O / Ctrl+O).
 - **Glisser-déposer :** faites glisser un fichier image depuis le gestionnaire
-  de fichiers directement sur le canevas.
+  de fichiers directement sur le canevas. Si vous glissez plusieurs fichiers,
+  seule la première image est chargée.
 - **Fichiers récents :** `Fichier → Fichiers récents` liste les 10 dernières
   images ouvertes.
 
@@ -255,8 +261,8 @@ sélectionnée est mise en surbrillance en couleur sur le canevas.*
 ## 7. Onglet « Sélection »
 
 Le premier onglet du panneau droit contrôle le comportement de la sélection ;
-il apparaît déjà dans la vue d'ensemble ci-dessus (section 2) et dans la figure
-de la section 6.
+il apparaît déjà dans la vue d'ensemble ci-dessus ([section 2](#2-la-fenêtre-de-lapplication-en-un-coup-dœil)) et dans la figure
+de la [section 6](#6-faire-une-sélection).
 
 ### Indications sur les outils
 
@@ -299,6 +305,12 @@ d'une couleur.*
 | **Supprimer (transparent)** | Rend la zone sélectionnée complètement transparente. Conseil : sélectionnez d'abord l'arrière-plan avec la baguette magique. |
 | **Choisir une couleur** | Ouvre un sélecteur de couleur. Le petit bouton coloré affiche la couleur de remplacement actuellement choisie. |
 | **Remplacer la couleur** | Remplit la zone sélectionnée avec la couleur choisie. |
+
+![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+
+*« Choisir une couleur » ouvre le sélecteur de couleur ; la couleur choisie
+apparaît dans le carré et s'applique à la sélection avec « Remplacer la
+couleur ».*
 
 **Flux de travail typique :** sélectionner l'arrière-plan avec la baguette
 magique/l'IA → *Supprimer (transparent)* pour un PNG détouré, **ou** choisir

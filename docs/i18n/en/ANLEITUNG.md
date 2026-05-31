@@ -96,6 +96,10 @@ Many actions are also available from the menu bar:
   prefer the menu over the toolbar or a tab.
 - **View** – *Fit to view* (⌘0); see "Zooming & view" below.
 
+![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+
+*The "Edit" menu groups undo/redo, rotate, flip, and the selection actions.*
+
 ### Zooming & view
 
 - **Zoom:** use the **mouse wheel** over the canvas to zoom in and out.
@@ -136,7 +140,7 @@ There are three ways to load an image:
 
 - **Menu:** `File → Open…` (⌘O / Ctrl+O).
 - **Drag & Drop:** drag an image file from the file manager directly onto the
-  canvas.
+  canvas. If you drag several files, only the first image is loaded.
 - **Recent files:** `File → Recent files` lists the last 10 opened images.
 
 ![The "File" menu](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
@@ -240,7 +244,7 @@ highlighted in colour on the canvas.*
 ## 7. Tab "Selection"
 
 The first tab in the right panel controls selection behaviour – it can already
-be seen in the overview above (section 2) and in the figure in section 6.
+be seen in the overview above ([section 2](#2-the-application-window-at-a-glance)) and in the figure in [section 6](#6-making-a-selection).
 
 ### Tool hints
 
@@ -278,6 +282,11 @@ the colour swatch and "Replace colour" fill it with a colour.*
 | **Remove (transparent)** | Makes the selected area completely transparent. Tip: first select the background with the magic wand. |
 | **Pick colour** | Opens a colour picker. The small coloured button shows the currently chosen replacement colour. |
 | **Replace colour** | Fills the selected area with the chosen colour. |
+
+![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+
+*"Pick colour" opens the colour picker; the chosen colour appears in the swatch
+and is applied to the selection with "Replace colour".*
 
 **Typical workflow:** select background with magic wand/AI →
 *Remove (transparent)* for a cut-out PNG, **or** pick a colour and
