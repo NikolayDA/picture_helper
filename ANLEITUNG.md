@@ -98,6 +98,11 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   über das Menü als über Werkzeugleiste oder Tab aufrufen.
 - **Ansicht** – *Fit to View* (⌘0); siehe „Zoomen & Ansicht" unten.
 
+![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+
+*Das Menü „Bearbeiten" bündelt Rückgängig/Wiederherstellen, Drehen, Spiegeln
+und die Auswahl-Aktionen.*
+
 ### Zoomen & Ansicht
 
 - **Zoomen:** Mit dem **Mausrad** über der Arbeitsfläche vergrößern bzw.
@@ -141,7 +146,8 @@ Es gibt drei Wege, ein Bild zu laden:
 
 - **Menü:** `Datei → Öffnen…` (⌘O / Strg+O).
 - **Drag & Drop:** Eine Bilddatei aus dem Dateimanager direkt auf die
-  Arbeitsfläche ziehen.
+  Arbeitsfläche ziehen. Beim Ziehen mehrerer Dateien wird nur das erste
+  Bild geladen.
 - **Zuletzt geöffnet:** `Datei → Zuletzt geöffnet` listet die letzten
   10 geladenen Bilder auf.
 
@@ -253,7 +259,7 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
 ## 7. Tab „Auswahl"
 
 Der erste Reiter im rechten Panel steuert das Auswahlverhalten – er ist
-im Überblick oben (Abschnitt 2) und in der Abbildung in Abschnitt 6
+im Überblick oben ([Abschnitt 2](#2-die-programmoberfläche-im-überblick)) und in der Abbildung in [Abschnitt 6](#6-eine-auswahl-treffen)
 bereits zu sehen.
 
 ### Werkzeug-Hinweise
@@ -296,6 +302,11 @@ durchsichtig; das Farbfeld und „Farbe ersetzen" füllen sie mit einer Farbe.*
 | **Entfernen (transparent)** | Macht den ausgewählten Bereich vollständig durchsichtig. Tipp: zuerst mit dem Zauberstab den Hintergrund auswählen. |
 | **Farbe wählen** | Öffnet einen Farbwähler. Die kleine farbige Schaltfläche zeigt die aktuell gewählte Ersatzfarbe. |
 | **Farbe ersetzen** | Füllt den ausgewählten Bereich mit der gewählten Farbe. |
+
+![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+
+*Über „Farbe wählen" öffnet sich der Farbwähler; die gewählte Farbe landet
+im Farbfeld und wird mit „Farbe ersetzen" auf die Auswahl angewendet.*
 
 **Typischer Ablauf:** Hintergrund mit Zauberstab/KI auswählen →
 *Entfernen (transparent)* für eine freigestellte PNG-Datei, **oder** eine
