@@ -33,6 +33,17 @@ Revisión profunda del código posterior a v2.2 (código, docs, tests). Base exc
 
 ---
 
+## Recomendaciones abiertas
+
+Mejoras surgidas del segundo análisis aún no implementadas (producto/proceso):
+
+- **O1 🟠 — Localización de la app.** La UI está codificada en alemán; no hay i18n en tiempo de ejecución (sin `QTranslator`/`tr()`), aunque la documentación existe en cinco idiomas. Los mensajes de estado ya están centralizados (`status_messages.py`). De forma incremental vía Qt Linguist (`.ts`) o una tabla de cadenas ligera por `QLocale`.
+- **O2 🟡 — App de Linux / empaquetado.** No hay bundle para Linux; arranque solo vía `python -m bgremover` desde una venv. Un paquete instalable (AppImage/Flatpak/`.deb`) para **Raspberry Pi OS** y grandes distribuciones (Debian/Ubuntu/Fedora) reduce la barrera de entrada para quienes no programan, análogo al bundle `.app` de macOS.
+- **O3 🟡 — Matriz completa de CI antes.** La matriz completa (Linux/macOS × 3.10–3.13) solo corre en tags/release; las regresiones en macOS o Python 3.10/3.13 aparecen tarde. Ejecutarla también en push a `main` o como cron semanal.
+- **O4 🟢 — Atajos de teclado para herramientas.** Varita/pincel/borrador/lazo solo se alcanzan con el ratón; añadir cambio con una tecla (p. ej. `B`/`E`).
+
+---
+
 ## Ronda anterior (v2.2, «admiring-mayer»)
 
 Lista externa de 15 puntos verificada contra el código: **#1–#15 hechos, #4 descartado** (falso positivo). Detalles en los PR fusionados y el archivo.

@@ -33,6 +33,17 @@
 
 ---
 
+## 待办建议
+
+第二次分析中提出、尚未实现的改进（产品/流程）：
+
+- **O1 🟠 — 应用本地化。** UI 硬编码为德语；没有运行时 i18n（无 `QTranslator`/`tr()`），尽管文档已有五种语言。状态消息已集中（`status_messages.py`）。可逐步通过 Qt Linguist（`.ts`）或轻量的 `QLocale` 字符串表实现。
+- **O2 🟡 — Linux 应用 / 打包。** 没有 Linux 的应用包；仅能通过 venv 中的 `python -m bgremover` 启动。为 **Raspberry Pi OS** 和主流发行版（Debian/Ubuntu/Fedora）提供可安装包（AppImage/Flatpak/`.deb`），可降低非开发者的上手门槛——类似 macOS 的 `.app` 包。
+- **O3 🟡 — 更早运行完整 CI 矩阵。** 完整矩阵（Linux/macOS × 3.10–3.13）仅在 tag/release 时运行；macOS 或 Python 3.10/3.13 的回归发现得太晚。应同时在推送到 `main` 时或每周 cron 运行。
+- **O4 🟢 — 工具的键盘快捷键。** 魔棒/画笔/橡皮擦/套索只能用鼠标；增加单键切换（如 `B`/`E`）。
+
+---
+
 ## 上一轮（v2.2，"admiring-mayer"）
 
 针对代码库审查了一份外部提交的 15 项清单：**#1–#15 已完成，#4 放弃**（误报）。详情见已合并的 PR 与归档。
