@@ -13,51 +13,28 @@
 
 ---
 
-## 当前状态（2026，"admiring-mayer" 评审）
+## 当前状态（2026-06-01，"modest-shannon" 评审）
 
-针对实际代码库，对一份外部提交的建议清单（15 项）进行了评审。结论：**14 项确认，1 项误报**（#4）。已确认的项目在下面归为**六个实施包**；包的顺序同时也是建议的处理顺序。每条都保留原始问题、证据（`文件:行`）以及修复方向；当前实施状态以下表为准。编号（#1–#15）对应原始评审清单。
+针对 v2.2 之后的代码库（代码、文档、测试）进行了深入审查。基线良好：ruff/mypy 干净、测试套件通过、覆盖率 88%。共发现 **5 项（A–E）**——均已实现并带回归测试，通过 **PR #135**（A、B）与 **PR #136**（C–E）合并。证据以文件/函数引用给出。
 
-第 1–5 轮的完整历史发现与工作日志：[../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md)。
-
-### 完成状态（核对日期：2026-06-01）
+### 完成状态
 
 | 状态 | 条目 |
 |------|------|
-| ✅ 已完成 | #1, #2, #3, #5, #6, #7, #8, #10, #11, #12, #13, #14, #15 |
-| ➖ 已放弃 | #4 – 误报 |
+| ✅ 已完成 | A, B, C, D, E |
+
+### 发现的问题
+
+- **A 🟠 — 捕获 `DecompressionBombError`。** `image_loading.py` 未捕获 Pillow 的 `DecompressionBombError`（它不是 `OSError` 的子类）→ 超过 2× `MAX_IMAGE_PIXELS`（80 MP）的图像绕过了友好的"过大"提示，并在同步 `load_image` 路径上未被捕获地抛出。现已在两个打开阶段捕获并映射到标准提示；回归测试触发 Pillow 真实的炸弹防护（不再 mock `Image.open`）。
+- **B 🟡 — 换图时的魔棒生命周期。** `_reset_transient_state`（`canvas.py`）未重置 `_wand_busy`，且 `_load_image_async`（`main_window.py`）未取消 flood fill——与 `cancel_ai()` 不对称。结果：换图/还原后魔棒被阻塞，并浪费 CPU。现集中重置标志并在加载时调用 `cancel_flood_fill()`。
+- **C 🟡 — 日志隔离。** `_setup_logging`（`logging_config.py`）在根 logger 上使用 `basicConfig(force=True)` → 第三方日志（rembg/onnxruntime/Pillow）混入支持用日志文件，并清除了外部 handler。现改为带自有 handler 的具名 `BgRemover` logger（`propagate=False`）。
+- **D 🟢 — 测试遗留物。** `test_static_checks.py` 仍探测已删除的单体 `BgRemover.py`，并带有误导性的 `#N` 标记（历史轮次 ≠ 当前编号）。已移除单体分支，并在 docstring 中澄清来源。
+- **E 🟢 — i18n 安全网。** 软漂移检查只覆盖 8 个翻译文档中的 3 个。`WATCHED_DOCS` 已扩展到全部 8 个（目前结构均同步）。
 
 ---
 
-## 建议包
+## 上一轮（v2.2，"admiring-mayer"）
 
-**包 1 — 立即处理** 🔴
+针对代码库审查了一份外部提交的 15 项清单：**#1–#15 已完成，#4 放弃**（误报）。详情见已合并的 PR 与归档。
 
-- **#1 取消 AI 必须结束线程。** `AIWorker._work`（`bgremover/workers.py:74`）在取消时直接返回而不发出信号；`quit_on=(finished, error)`（`bgremover/worker_controller.py:152`）于是永远不触发 → QThread 持续运行，`ai_thread`/`ai_worker` 一直被保留，AI 按钮在本次会话剩余时间内保持禁用（触发条件：「AI 正在计算时加载图片」）。修复：在 `finally` 分支（`_always_finished`）发出一个无参 `done` 信号并加入 `quit_on`——相关基础设施已存在（预热 worker）。**已在本 PR 中实现，并附取消生命周期测试。**
-
-**包 2 — 快速且安全的改进（已完成）** 🟠 🟡
-
-- **#2 集中重置画布的瞬时状态。** `apply_loaded_image`（`canvas.py:234`）调用 `cancel_overlay_only()` 却不发 `cropModeChanged(False)`，也不取消套索 → 裁剪信号序列停留在 `[True]`，旧套索点残留。引入 `_reset_transient_state()` 方法。
-- **#11 让日志独立于外部 handler 配置。** `logging.basicConfig()`（`logging_config.py:61`）在根 logger 已有 handler 时是 no-op → 显示的日志路径 ≠ 实际写入的路径。显式配置具名的 `BgRemover` logger（比 `force=True` 更干净）。
-- **#10 让诊断脚本指向当前日志路径。** `diagnose_mac.sh:178` 仍读取 `~/.bgremover.log`；logger 实际写入 `~/Library/Application Support/BgRemover/bgremover.log`（QStandardPaths）。对齐该路径。
-- **#8 稳健地规范导出格式。** `_save_as`（`main_window.py:304`）丢弃了对话框所选的过滤器；`save_image_file`（`image_ops.py:46`）在缺少扩展名时静默保存为 PNG。建立带默认后缀的中央格式模型；合并重复的格式字典（对话框 vs. MainWindow）。*(所报告的 EXR `KeyError` 仅在被篡改的设置/字典漂移下可达；缺扩展名才是用户可见的核心。)*
-- **#14 同步 CI 与文档检查。** `RESOURCES.md:102` 和 `TESTING.md:10` 仍写「3.10/3.12」（实际为 3.10–3.13）；`ui-nightly.yml` 未出现在 workflow 列表和 `test_resource_docs.py:35` 中。也应检查 workflow 列表和 Python 矩阵。
-- **#15 让 release CI 成为真正的关卡。** `ci.yml` 仅在 `release: published` 时跑完整矩阵（作为关卡太晚）；`ui-nightly.yml:18` 的 `continue-on-error: true` 掩盖了失败。增加 tag/预发布候选运行，并让 nightly 失败可见地升级。
-
-**包 3 — 需测量的实质改进（已完成）** 🟠
-
-- **#5 不要在每次画笔移动时重建 overlay。** `_refresh_overlay`（`canvas.py:263`）→ `mask_to_overlay` 构建完整 RGBA overlay（40 MP ≈ 160 MiB）——即使掩码为空、即使每次鼠标移动。改为惰性构建、更新脏区域或合并事件。
-- **#6 限制魔棒、使其可取消、做基准测试。** `flood_fill`（`image_utils.py:48`）在 Python 层扩张区域；实测 2.25 MP 约 3.3 秒（→ 40 MP 为两位数秒）。引入扫描线/原生实现（如 `scipy.ndimage.label`）并加上取消路径。
-- **#7 串行化 rembg 预热与 AI 调用。** `_on_warmup_done`（`main_window.py:270`）即便预热出错也显示「AI 就绪」；预热期间 AI 按钮仍可用 → 并行的模型初始化。区分成功/失败，并在预热结束前禁用按钮。
-- **#3 强制执行历史的内存预算。** `restore`（`canvas_history.py:81`）和 `redo`（`:47`）向 undo 栈追加却绕过了 `push` 的逐出 → 反复恢复会无限增长。使用共享的裁剪辅助函数并测试总预算。
-
-**包 4 — 安全（已完成）** 🟡
-
-- **#12 加固临时 Qt 插件暂存。** `qt_plugins.py`（第 26/29/48 行）在 macOS 上使用 `/private/tmp` 下的可预测路径、固定的 `.tmp` 文件，且仅比较大小。由于从那里加载的是可执行的 Qt 插件，预先投放是一个本地代码注入向量。改用用户专属的 `0700` 目录、唯一的临时文件以及内容/哈希校验。
-
-**包 5 — 测试与方法** 🟡
-
-- **#13 让测试面向行为，而非源代码文本。** `test_static_checks.py` 中的 AST 检查只检查字符串出现，捕获不到取消 AI 的缺陷（#1）。补充动态测试：取消生命周期、裁剪/套索期间加载、预热错误、未知导出格式、已有 handler 时的日志，以及恢复后的内存预算。
-
-**包 6 — 放弃 / 改作他用** 🟢
-
-- **#4 macOS 上的 Cmd 相减——误报。** 在未设置 `AA_MacDontSwapCtrlAndMeta`（任何地方都没设）时，Qt 在 macOS 上将 Cmd→`ControlModifier`；因此 `canvas.py:80` 的检查已经能响应 Cmd+点击，UI 文案也正确。额外接受 `MetaModifier` 反而会把物理 Control 键错误地绑定到「相减」。**放弃该代码改动**；至多添加一个平台测试以锁定 Qt 的映射。
+第 1–5 轮的完整历史发现与工作日志：[../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md)。
