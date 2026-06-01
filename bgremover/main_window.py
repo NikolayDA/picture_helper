@@ -71,6 +71,10 @@ class MainWindow(QMainWindow):
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
+        # Canvas-Revision zum Zeitpunkt des letzten Speicherns/Ladens.
+        # „Ungespeicherte Änderungen" = aktuelle Revision weicht davon ab.
+        # Schützt vor stillem Arbeitsverlust beim Schließen/Bildwechsel.
+        self._saved_revision: int = 0
         # Persistente Einstellungen (Recent-Files etc.). Schema-Migration
         # vor dem ersten Lese-/Schreibzugriff, damit kuenftige Format-
         # Wechsel an einem zentralen Punkt greifen koennen.
@@ -205,13 +209,64 @@ class MainWindow(QMainWindow):
     # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
 
     def closeEvent(self, event) -> None:
-        """Stoppt alle Hintergrund-Threads, bevor das Fenster (und damit
-        die QThread-C++-Objekte) zerstört wird – sonst stürzt Python
-        beim Schliessen ab, solange z. B. der KI-Warmup noch läuft.
+        """Fragt bei ungespeicherten Änderungen nach und stoppt dann alle
+        Hintergrund-Threads, bevor das Fenster (und damit die
+        QThread-C++-Objekte) zerstört wird – sonst stürzt Python beim
+        Schliessen ab, solange z. B. der KI-Warmup noch läuft.
+
+        Bricht der Nutzer in der Speichern-Nachfrage ab, wird das
+        Close-Event verworfen und das Fenster bleibt offen.
         """
+        if not self._confirm_discard_changes():
+            event.ignore()
+            return
         self._sb.showMessage(SM.BEENDE)
         self._worker_controller.shutdown_all()
         super().closeEvent(event)
+
+    # ── Ungespeicherte Änderungen ─────────────────────────────
+
+    def _mark_saved(self) -> None:
+        """Setzt den „sauber"-Punkt auf den aktuellen Canvas-Zustand."""
+        self._saved_revision = self._canvas.content_revision
+
+    def _has_unsaved_changes(self) -> bool:
+        """True, wenn seit dem letzten Speichern/Laden bearbeitet wurde.
+
+        Stützt sich auf den monoton steigenden ``content_revision``-Zähler:
+        jede Zustandsänderung (Bearbeitung, KI, Crop, Undo/Redo) erhöht ihn.
+        Bewusst konservativ – im Zweifel lieber einmal zu viel nachfragen,
+        als Arbeit stillschweigend zu verlieren.
+        """
+        return (self._canvas.has_image
+                and self._canvas.content_revision != self._saved_revision)
+
+    def _confirm_discard_changes(self) -> bool:
+        """Fragt vor dem Verwerfen bearbeiteter, ungespeicherter Bilder nach.
+
+        Gibt ``True`` zurück, wenn der Aufrufer fortfahren darf (nichts zu
+        verlieren, erfolgreich gespeichert oder bewusst verworfen), und
+        ``False``, wenn die Aktion abgebrochen werden soll.
+        """
+        if not self._has_unsaved_changes():
+            return True
+        reply = QMessageBox.warning(
+            self, "Ungespeicherte Änderungen",
+            "Das Bild wurde bearbeitet. Änderungen speichern, bevor es "
+            "verworfen wird?",
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
+        )
+        if reply == QMessageBox.StandardButton.Cancel:
+            return False
+        if reply == QMessageBox.StandardButton.Save:
+            self._save()
+            # Speichern abgebrochen (kein Pfad gewählt) oder fehlgeschlagen →
+            # Aktion abbrechen, damit die Arbeit nicht doch verloren geht.
+            return not self._has_unsaved_changes()
+        return True  # Discard – bewusst verwerfen
 
     # ── Slots ─────────────────────────────────────────────────
 
@@ -229,6 +284,10 @@ class MainWindow(QMainWindow):
         """Lädt ein Bild im Hintergrund-Thread, damit die UI nicht blockt."""
         if self._worker_controller.is_loading:
             self._sb.showMessage(SM.LAEDT_BEREITS)
+            return
+        # Vor dem Verwerfen des aktuellen Bildes (Öffnen/Recent/Drag&Drop)
+        # bei ungespeicherten Änderungen nachfragen.
+        if not self._confirm_discard_changes():
             return
         self._worker_controller.cancel_ai()
         # Eine noch laufende Zauberstab-Berechnung gehört zum alten Bild –
@@ -317,7 +376,8 @@ class MainWindow(QMainWindow):
         if not self._canvas.has_image:
             self._sb.showMessage(SM.KEIN_BILD_ZUM_SPEICHERN)
             return
-        self._canvas.save_image(self._save_path)
+        if self._canvas.save_image(self._save_path):
+            self._mark_saved()
 
     def _save_as(self) -> None:
         """Speichern unter…: öffnet immer den Datei-Dialog."""
@@ -345,6 +405,7 @@ class MainWindow(QMainWindow):
         # Pfad nur als Quick-Save-Ziel merken, wenn das Speichern klappte.
         if self._canvas.save_image(path):
             self._save_path = path
+            self._mark_saved()
 
     # ── Recent-Files ────────────────────────────────────────────
 
@@ -360,6 +421,9 @@ class MainWindow(QMainWindow):
     def _on_image_loaded(self, path: str) -> None:
         """Wird nach jedem load_image vom Canvas aufgerufen."""
         self._save_path = None
+        # Frisch geladenes Bild gilt als „sauber" (= keine ungespeicherten
+        # Änderungen), bis der Nutzer es bearbeitet.
+        self._mark_saved()
         self._add_recent(path)
 
     def _pick_color(self) -> None:
