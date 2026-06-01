@@ -33,6 +33,17 @@ Deep review of the post-v2.2 codebase (code, docs, tests). Baseline excellent: r
 
 ---
 
+## Open recommendations
+
+Improvements from the second analysis that are not yet implemented (product/process):
+
+- **O1 🟠 — App localization.** The UI is hardcoded German; there is no runtime i18n (no `QTranslator`/`tr()`), although the docs exist in five languages. Status messages are already centralized (`status_messages.py`). Incrementally via Qt Linguist (`.ts`) or a lightweight `QLocale` string table.
+- **O2 🟡 — Linux app / packaging.** No app bundle for Linux; launch only via `python -m bgremover` from a venv. An installable package (AppImage/Flatpak/`.deb`) for **Raspberry Pi OS** and major distributions (Debian/Ubuntu/Fedora) lowers the entry barrier for non-developers — analogous to the macOS `.app` bundle.
+- **O3 🟡 — Full CI matrix earlier.** The full matrix (Linux/macOS × 3.10–3.13) runs only on tags/release; regressions on macOS or Python 3.10/3.13 surface late. Also run it on push to `main` or as a weekly cron.
+- **O4 🟢 — Keyboard shortcuts for tools.** Magic wand/brush/eraser/lasso are reachable only by mouse; add single-key switching (e.g. `B`/`E`).
+
+---
+
 ## Previous round (v2.2, "admiring-mayer")
 
 External 15-point list checked against the codebase: **#1–#15 done, #4 discarded** (false positive). Details in the merged PRs and the archive.
