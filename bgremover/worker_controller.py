@@ -32,6 +32,7 @@ class WorkerController:
         self.warmup_thread: QThread | None = None
         self.warmup_done = False
         self.flood_fill_thread: QThread | None = None
+        self.flood_fill_worker: FloodFillWorker | None = None
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
         # Slots gebundener Methoden nur schwach: ohne diese Liste sammelt
         # CPython den Worker direkt nach _build_thread ein und run() liefe
@@ -114,11 +115,20 @@ class WorkerController:
     def _finish_load_thread(self) -> None:
         self.load_thread = None
 
-    def start_warmup(self, on_finished: Callable[[], None]) -> bool:
+    def start_warmup(
+        self,
+        on_finished: Callable[[], None],
+        on_error: Callable[[str], None] | None = None,
+    ) -> bool:
         """Startet den rembg-Warmup; gibt False zurück, wenn der Warmup bereits läuft."""
         if self.warmup_thread is not None and self.warmup_thread.isRunning():
             return False
         worker = RembgWarmupWorker()
+        if on_error is not None:
+            # ``error`` feuert nur im Fehlerfall (vor dem finished/Lifecycle).
+            # So kann der Aufrufer einen fehlgeschlagenen Warmup von einem
+            # erfolgreichen unterscheiden, statt blind „KI bereit" zu melden.
+            worker.error.connect(on_error)
         thread = self._build_thread(
             worker,
             quit_on=(worker.finished,),
@@ -188,20 +198,34 @@ class WorkerController:
         worker = FloodFillWorker(arr, x, y, tolerance)
         worker.finished.connect(on_done)
         worker.error.connect(on_error)
+        self.flood_fill_worker = worker
         thread = self._build_thread(
             worker,
-            quit_on=(worker.finished, worker.error),
+            # ``done`` feuert über _always_finished IMMER (Erfolg, Fehler,
+            # Abbruch). Nur deshalb quittet der Thread auch nach cancel().
+            quit_on=(worker.done,),
             on_finished=self._finish_flood_fill_thread,
         )
         self.flood_fill_thread = thread
         thread.start()
         return True
 
+    def cancel_flood_fill(self) -> None:
+        """Markiert einen laufenden Flood-Fill als abgebrochen.
+
+        Der Worker bricht die Berechnung beim nächsten Abbruch-Check ab und
+        emittiert kein Ergebnis; der Thread-Lifecycle läuft über ``done``.
+        """
+        if self.flood_fill_worker is not None:
+            self.flood_fill_worker.cancel()
+
     def _finish_flood_fill_thread(self) -> None:
         self.flood_fill_thread = None
+        self.flood_fill_worker = None
 
     def shutdown_all(self) -> None:
         self.cancel_ai()
+        self.cancel_flood_fill()
         self.shutdown_thread(self.ai_thread, "KI")
         self.shutdown_thread(self.load_thread, "Bildladen")
         self.shutdown_thread(self.warmup_thread, "rembg-Warmup")
