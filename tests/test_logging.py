@@ -18,6 +18,13 @@ from bgremover import logging_config as _lc
 
 @contextmanager
 def _isolated_logging_setup(target, monkeypatch):
+    """Ruft ``_setup_logging`` isoliert auf und stellt den App-Logger danach
+    wieder her.
+
+    ``_setup_logging`` konfiguriert seit dem #C-Re-Review gezielt den
+    benannten ``BgRemover``-Logger (nicht mehr den Root), daher snapshottet
+    der Helfer dessen Handler/Level/Propagation.
+    """
     class _FakeQSP:
         class StandardLocation:
             AppDataLocation = 0
@@ -27,22 +34,24 @@ def _isolated_logging_setup(target, monkeypatch):
             return str(target)
 
     monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
-    root = logging.getLogger()
-    before = list(root.handlers)
-    before_level = root.level
+    app_logger = logging.getLogger("BgRemover")
+    before = list(app_logger.handlers)
+    before_level = app_logger.level
+    before_propagate = app_logger.propagate
     previous_log_file = _lc._log_file_path
     for handler in before:
-        root.removeHandler(handler)
+        app_logger.removeHandler(handler)
     try:
         _lc._setup_logging()
         yield
     finally:
-        for handler in list(root.handlers):
+        for handler in list(app_logger.handlers):
             handler.close()
-            root.removeHandler(handler)
+            app_logger.removeHandler(handler)
         for handler in before:
-            root.addHandler(handler)
-        root.setLevel(before_level)
+            app_logger.addHandler(handler)
+        app_logger.setLevel(before_level)
+        app_logger.propagate = before_propagate
         _lc._log_file_path = previous_log_file
 
 
@@ -107,11 +116,15 @@ def test_setup_logging_uses_rotating_file_handler(tmp_path, monkeypatch):
     target = tmp_path / "appdir"
 
     with _isolated_logging_setup(target, monkeypatch):
+        app_logger = logging.getLogger("BgRemover")
         rotating_handlers = [
             handler
-            for handler in logging.getLogger().handlers
+            for handler in app_logger.handlers
             if isinstance(handler, RotatingFileHandler)
         ]
+        # Der App-Logger darf nicht zum Root propagieren – sonst würde sein
+        # FileHandler bei künftiger Root-Konfiguration doppelt schreiben.
+        assert app_logger.propagate is False
 
     assert len(rotating_handlers) == 1
     assert rotating_handlers[0].maxBytes == 5 * 1024 * 1024
@@ -128,12 +141,19 @@ def test_current_log_file_matches_setup(tmp_path, monkeypatch):
         assert _lc.current_log_file() == target / "bgremover.log"
 
 
-def test_setup_logging_installs_file_handler_despite_existing_root_handler(
+def test_setup_logging_isolates_app_logger_from_foreign_root_handler(
     tmp_path, monkeypatch,
 ):
-    """Regression (#11): hatte der Root-Logger bereits einen (Fremd-)Handler,
-    war ``basicConfig`` ein No-op und es wurde KEIN FileHandler installiert –
-    obwohl ``current_log_file()`` einen Pfad anzeigt. ``force=True`` behebt das.
+    """Regression (#11 / Re-Review #C): das Logging-Setup darf nicht vom
+    Root-Logger-Zustand abhängen.
+
+    Historie: Ursprünglich war ``basicConfig`` ein No-op, sobald der Root
+    bereits einen Fremd-Handler hatte → KEIN FileHandler. Der Nachfolger
+    ``force=True`` installierte zwar einen, riss dafür aber alle Fremd-Handler
+    vom Root und zog deren Logs in die App-Datei. Jetzt wird der benannte
+    ``BgRemover``-Logger direkt konfiguriert: der FileHandler landet
+    unabhängig vom Root, und ein vorhandener Fremd-Root-Handler bleibt
+    unangetastet.
     """
     target = tmp_path / "appdir"
 
@@ -147,25 +167,65 @@ def test_setup_logging_installs_file_handler_despite_existing_root_handler(
 
     monkeypatch.setattr(_lc, "QStandardPaths", _FakeQSP)
 
-    root = logging.getLogger()
-    before = list(root.handlers)
-    before_level = root.level
+    app_logger = logging.getLogger("BgRemover")
+    before = list(app_logger.handlers)
+    before_level = app_logger.level
+    before_propagate = app_logger.propagate
     previous_log_file = _lc._log_file_path
     for handler in before:
-        root.removeHandler(handler)
-    root.addHandler(logging.StreamHandler())  # simuliert einen Fremd-Handler
+        app_logger.removeHandler(handler)
+
+    root = logging.getLogger()
+    foreign = logging.StreamHandler()
+    root.addHandler(foreign)  # simuliert einen Fremd-Handler einer Bibliothek
     try:
         _lc._setup_logging()
         rotating = [
-            h for h in root.handlers if isinstance(h, RotatingFileHandler)
+            h for h in app_logger.handlers if isinstance(h, RotatingFileHandler)
         ]
         assert len(rotating) == 1
         assert _lc.current_log_file() == target / "bgremover.log"
+        # Fremd-Handler am Root bleibt unberührt (kein force=True-Kahlschlag).
+        assert foreign in root.handlers
     finally:
-        for handler in list(root.handlers):
+        for handler in list(app_logger.handlers):
             handler.close()
-            root.removeHandler(handler)
+            app_logger.removeHandler(handler)
         for handler in before:
-            root.addHandler(handler)
-        root.setLevel(before_level)
+            app_logger.addHandler(handler)
+        app_logger.setLevel(before_level)
+        app_logger.propagate = before_propagate
+        root.removeHandler(foreign)
+        foreign.close()
         _lc._log_file_path = previous_log_file
+
+
+def test_setup_logging_keeps_third_party_logs_out_of_app_file(
+    tmp_path, monkeypatch,
+):
+    """Kern von #C: Logs von Fremdbibliotheken (über den Root-Logger) dürfen
+    NICHT in der App-Logdatei landen.
+
+    Der frühere ``basicConfig(force=True)`` hängte den FileHandler an den
+    Root, sodass jeder INFO-Log irgendeiner importierten Bibliothek in
+    ``bgremover.log`` geschrieben wurde – schlecht für eine als Support-Hilfe
+    gedachte Datei. Mit dem benannten App-Logger ist nur noch dessen eigener
+    Output in der Datei.
+    """
+    target = tmp_path / "appdir"
+
+    # NullHandler am Root verhindert nur Pythons "last resort"-Ausgabe auf
+    # stderr während des Tests; er schreibt selbst nichts in die App-Datei.
+    root = logging.getLogger()
+    null = logging.NullHandler()
+    root.addHandler(null)
+    try:
+        with _isolated_logging_setup(target, monkeypatch):
+            logging.getLogger("some_third_party_lib").warning("FREMD-RAUSCHEN")
+            logging.getLogger("BgRemover").warning("APP-EINTRAG")
+    finally:
+        root.removeHandler(null)
+
+    content = (target / "bgremover.log").read_text(encoding="utf-8")
+    assert "APP-EINTRAG" in content
+    assert "FREMD-RAUSCHEN" not in content

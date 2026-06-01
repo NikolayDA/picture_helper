@@ -49,34 +49,51 @@ def current_log_file() -> Path:
 
 
 def _setup_logging() -> None:
-    """Konfiguriert stderr- + Datei-Logging.
+    """Konfiguriert stderr- + Datei-Logging für den benannten App-Logger.
 
     Muss NACH dem Erzeugen der QApplication und dem Setzen von
     Application-/Organization-Name laufen, sonst liefert
     ``QStandardPaths`` keinen app-spezifischen Pfad.
+
+    Konfiguriert gezielt den ``BgRemover``-Logger (alle App-Module teilen
+    sich diesen, siehe ``constants.logger``) statt des Root-Loggers und
+    schaltet dessen Propagation ab. Das hat zwei Vorteile gegenüber dem
+    früheren ``logging.basicConfig(force=True)``:
+
+    1. **Kein Fremd-Rauschen in der Support-Logdatei.** Der Datei-Handler
+       hängt nur am App-Logger; INFO-Logs von Fremdbibliotheken
+       (rembg/onnxruntime/Pillow) laufen über den Root und landen NICHT in
+       ``bgremover.log``. Die Datei, die der Einstellungen-Dialog für
+       Support-Mails anbietet, bleibt damit lesbar.
+    2. **Keine Kollision mit Fremd-Handlern.** ``force=True`` riss alle
+       bereits am Root registrierten Handler ab; der benannte Logger
+       konfiguriert sich unabhängig vom Root-Zustand.
+
+    Idempotent: vorhandene Handler des App-Loggers werden zuvor entfernt
+    und geschlossen (z. B. bei wiederholtem Setup in Tests).
     """
     global _log_file_path
     log_dir = _resolve_log_dir()
     _log_file_path = log_dir / LOG_FILENAME
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stderr),
-            RotatingFileHandler(
-                _log_file_path,
-                maxBytes=5 * 1024 * 1024,
-                backupCount=3,
-                encoding="utf-8",
-                delay=True,
-            ),
-        ],
-        # Ohne force=True ist basicConfig ein No-op, sobald der Root-Logger
-        # bereits Handler hat (z. B. durch eine importierte Bibliothek).
-        # Dann würde _log_file_path zwar gesetzt und im Einstellungen-Dialog
-        # angezeigt, aber gar kein FileHandler installiert. BgRemover besitzt
-        # seinen Prozess allein und konfiguriert das Logging genau einmal
-        # nach QApplication-Start – das kontrollierte Ersetzen vorhandener
-        # Root-Handler ist hier sicher.
-        force=True,
+
+    app_logger = logging.getLogger("BgRemover")
+    app_logger.setLevel(logging.INFO)
+    app_logger.propagate = False
+    for handler in list(app_logger.handlers):
+        app_logger.removeHandler(handler)
+        handler.close()
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s")
+    stream_handler = logging.StreamHandler(sys.stderr)
+    stream_handler.setFormatter(formatter)
+    file_handler = RotatingFileHandler(
+        _log_file_path,
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+        delay=True,
     )
+    file_handler.setFormatter(formatter)
+    app_logger.addHandler(stream_handler)
+    app_logger.addHandler(file_handler)
