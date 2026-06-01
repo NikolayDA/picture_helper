@@ -1,5 +1,5 @@
 """Soft-Drift-Prüfung: strukturelle Synchronität zwischen DE-Original
-und i18n-Kopien für CHANGELOG.md, INSTALL_MAC.md und INSTALL_LINUX.md.
+und i18n-Kopien für **alle** übersetzten Doks (siehe ``WATCHED_DOCS``).
 
 „Strukturell" = identische Heading-Hierarchie und identische Anzahl
 Code-Blöcke. Abweichungen schlagen nicht hart fehl, sondern werden als
@@ -16,10 +16,18 @@ ROOT = Path(__file__).resolve().parent.parent
 I18N_ROOT = ROOT / "docs" / "i18n"
 LANGUAGES = ("en", "es", "fr", "uk", "zh")
 
+# Alle Doks mit i18n-Kopien unter ``docs/i18n/<lang>/``. Jede wird strukturell
+# (gleiche Heading-Hierarchie + Code-Block-Zahl) gegen ihr deutsches Original
+# geprüft. Beim Hinzufügen einer neuen übersetzten Doku hier eintragen.
 WATCHED_DOCS = (
+    "README.md",
+    "ANLEITUNG.md",
     "CHANGELOG.md",
     "INSTALL_MAC.md",
     "INSTALL_LINUX.md",
+    "LICENSES.md",
+    "RESOURCES.md",
+    "RECOMMENDATIONS.md",
 )
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)

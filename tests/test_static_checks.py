@@ -2,6 +2,13 @@
 zuverlässig isoliert werden können (KI-Worker, Qt-Connection-Topologie).
 Sie schützen vor einer versehentlichen Re-Introduktion der Bugs durch
 spätere Refaktorierungen.
+
+Die ``#N``-/``Bn``-Marken in den Abschnittsüberschriften verweisen auf die
+**historischen** Review-Runden vor v2.2
+(``docs/history/RECOMMENDATIONS-2026-pre-v2.2.md``) – NICHT auf die
+Nummerierung der aktuellen ``RECOMMENDATIONS.md`` (dort ist #4 z. B. ein
+anderer, verworfener Befund). Die Marken bleiben als Herkunftshinweis
+stehen; maßgeblich ist jeweils der beschreibende Titel.
 """
 import ast
 from pathlib import Path
@@ -12,19 +19,14 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 
 def _source_files() -> list[Path]:
-    """Monolith (solange vorhanden) + Paketmodule.
+    """Alle Paketmodule unter ``bgremover/`` (je Datei einzeln geparst).
 
-    Runde 5, Phase B: Code wandert schrittweise von ``BgRemover.py`` nach
-    ``bgremover/``. Die statischen Garantien gelten unabhängig davon, in
-    welchem Modul ein Symbol gerade liegt – jede Datei wird einzeln
-    geparst (``from __future__`` muss je Datei zuerst stehen).
+    Der frühere Monolith ``BgRemover.py`` ist vollständig nach ``bgremover/``
+    migriert; die statischen Garantien gelten unabhängig davon, in welchem
+    Modul ein Symbol liegt. ``from __future__`` muss je Datei zuerst stehen,
+    daher wird pro Datei geparst statt über konkatenierten Quelltext.
     """
-    files: list[Path] = []
-    mono = _ROOT / "BgRemover.py"
-    if mono.is_file():
-        files.append(mono)
-    files.extend(sorted((_ROOT / "bgremover").glob("*.py")))
-    return files
+    return sorted((_ROOT / "bgremover").glob("*.py"))
 
 
 @pytest.fixture(scope="module")
