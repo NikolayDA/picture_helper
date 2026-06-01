@@ -23,8 +23,7 @@ Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMEN
 
 | Status | Punkte |
 |--------|--------|
-| ✅ Erledigt | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
-| ⬜ Offen | #12 |
+| ✅ Erledigt | #1, #2, #3, #5, #6, #7, #8, #10, #11, #12, #13, #14, #15 |
 | ➖ Verworfen | #4 – Fehlalarm |
 
 ---
@@ -51,7 +50,7 @@ Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMEN
 - **#7 rembg-Warmup und KI-Aufruf serialisieren.** `_on_warmup_done` (`main_window.py:270`) zeigt auch nach Warmup-Fehlern „KI bereit"; der KI-Button bleibt während des Warmups nutzbar → paralleler Modell-Init. Erfolg/Fehler trennen, Button bis Warmup-Ende gaten.
 - **#3 Speicherbudget des Verlaufs durchsetzen.** `restore` (`canvas_history.py:81`) und `redo` (`:47`) hängen an den Undo-Stapel an, umgehen aber die Eviction aus `push` → wiederholtes Wiederherstellen wächst unbeschränkt. Gemeinsamen Trim-Helper nutzen und Gesamtbudget testen.
 
-**Paket 4 — Sicherheit** 🟡
+**Paket 4 — Sicherheit (erledigt)** 🟡
 
 - **#12 Temporäres Qt-Plugin-Staging härten.** `qt_plugins.py` (Z. 26/29/48) nutzt unter macOS einen vorhersagbaren Pfad in `/private/tmp`, feste `.tmp`-Dateien und nur einen Größenvergleich. Da dort ausführbare Qt-Plugins geladen werden, ist Pre-Seeding ein lokaler Code-Injection-Vektor. Nutzerspezifisches `0700`-Verzeichnis, eindeutige Temp-Dateien und Inhalts-/Hash-Prüfung.
 

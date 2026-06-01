@@ -23,8 +23,7 @@ Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../hi
 
 | Estado | Puntos |
 |--------|--------|
-| ✅ Hecho | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
-| ⬜ Abierto | #12 |
+| ✅ Hecho | #1, #2, #3, #5, #6, #7, #8, #10, #11, #12, #13, #14, #15 |
 | ➖ Descartado | #4 – falso positivo |
 
 ---
@@ -51,7 +50,7 @@ Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../hi
 - **#7 Serializar el warmup de rembg y la llamada de IA.** `_on_warmup_done` (`main_window.py:270`) muestra «IA lista» incluso tras errores de warmup; el botón de IA sigue usable durante el warmup → init de modelo en paralelo. Separar éxito/error y bloquear el botón hasta terminar el warmup.
 - **#3 Aplicar el presupuesto de memoria del historial.** `restore` (`canvas_history.py:81`) y `redo` (`:47`) añaden a la pila de deshacer pero saltan la expulsión de `push` → restaurar repetidamente crece sin límite. Usar un helper de recorte común y testear el presupuesto total.
 
-**Paquete 4 — Seguridad** 🟡
+**Paquete 4 — Seguridad (hecho)** 🟡
 
 - **#12 Endurecer el staging temporal de plugins de Qt.** `qt_plugins.py` (líneas 26/29/48) usa en macOS una ruta predecible en `/private/tmp`, archivos `.tmp` fijos y solo una comparación de tamaño. Como ahí se cargan plugins de Qt ejecutables, el pre-sembrado es un vector local de inyección de código. Usar un directorio `0700` específico de usuario, archivos temporales únicos y comprobación de contenido/hash.
 
