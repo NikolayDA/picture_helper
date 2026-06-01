@@ -151,7 +151,8 @@ class FloodFillWorker(_Worker):
     bleibt der Buffer waehrend der Worker-Laufzeit auch dann gueltig,
     wenn der Canvas das Bild zwischenzeitlich austauscht.
     """
-    finished = pyqtSignal(object)   # np.ndarray (bool-Maske)
+    finished = pyqtSignal(object)   # np.ndarray (bool-Maske) – nur bei Erfolg
+    done = pyqtSignal()             # immer – Thread-Abschluss (auch Abbruch/Fehler)
     _error_context = "Flood-Fill-Fehler"
 
     def __init__(
@@ -162,7 +163,19 @@ class FloodFillWorker(_Worker):
         self._x = x
         self._y = y
         self._tolerance = tolerance
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
 
     def _work(self) -> None:
-        mask = flood_fill(self._arr, self._x, self._y, self._tolerance)
+        mask = flood_fill(
+            self._arr, self._x, self._y, self._tolerance,
+            should_cancel=lambda: self._cancelled,
+        )
+        if self._cancelled:
+            return
         self.finished.emit(mask)
+
+    def _always_finished(self) -> None:
+        self.done.emit()

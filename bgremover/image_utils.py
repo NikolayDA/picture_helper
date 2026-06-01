@@ -1,6 +1,8 @@
 """Bild-/Array-Konvertierung, Flood-Fill, Overlay, Schachbrett-Brush."""
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 from PIL import Image
 from PyQt6.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
@@ -45,13 +47,28 @@ def numpy_to_pil(arr: np.ndarray) -> Image.Image:
     return Image.fromarray(arr.astype(np.uint8), "RGBA")
 
 
-def flood_fill(arr: np.ndarray, x: int, y: int, tolerance: int) -> np.ndarray:
+def flood_fill(
+    arr: np.ndarray,
+    x: int,
+    y: int,
+    tolerance: int,
+    should_cancel: Callable[[], bool] | None = None,
+) -> np.ndarray:
     """Flood-Fill: gibt Boolean-Maske der zusammenhängenden Fläche zurück.
 
-    Die Ähnlichkeitsprüfung ist vektorisiert (wenige NumPy-Operationen
-    über das ganze Bild); danach wächst nur noch die zusammenhängende
-    Region vom Saatpunkt aus. Das ist deutlich schneller und sparsamer
-    als ein Python-Loop, der pro Pixel einen NumPy-Aufruf macht.
+    Zuerst wird die Ähnlichkeit vektorisiert über das ganze Bild bestimmt;
+    danach wächst die zusammenhängende Region per **Scanline-Verfahren**:
+    pro Iteration wird eine ganze horizontale Spanne auf einmal gefüllt und
+    die beiden Nachbarzeilen werden vektorisiert (NumPy) nach neuen
+    Saatpunkten abgesucht. Damit läuft die innere Arbeit in NumPy statt in
+    einer Python-Schleife pro Pixel – bei großen, einfarbigen Flächen ist
+    das um Größenordnungen schneller (eine Spanne pro Zeile statt Millionen
+    einzelner Pixel-Pushes).
+
+    ``should_cancel`` wird gelegentlich abgefragt; liefert es ``True``, kehrt
+    die Funktion früh mit der bis dahin gefüllten (Teil-)Maske zurück. So
+    kann ein abgebrochener Worker zügig aussteigen, statt eine sehr große
+    Fläche zu Ende zu rechnen.
     """
     h, w = arr.shape[:2]
     mask = np.zeros((h, w), dtype=bool)
@@ -65,16 +82,39 @@ def flood_fill(arr: np.ndarray, x: int, y: int, tolerance: int) -> np.ndarray:
     similar = diff <= tolerance
     if not similar[y, x]:
         return mask
-    stack = [(x, y)]
-    mask[y, x] = True
+
+    stack: list[tuple[int, int]] = [(x, y)]
+    steps = 0
+    # Eine Iteration füllt grob eine Bildzeile; alle 256 Zeilen den Abbruch
+    # prüfen hält den Callback billig und bleibt selbst bei 40 MP (~6300
+    # Zeilen → ~25 Prüfungen) reaktionsschnell.
+    _CANCEL_INTERVAL = 256
     while stack:
         cx, cy = stack.pop()
-        for nx, ny in ((cx - 1, cy), (cx + 1, cy),
-                       (cx, cy - 1), (cx, cy + 1)):
-            if (0 <= nx < w and 0 <= ny < h
-                    and similar[ny, nx] and not mask[ny, nx]):
-                mask[ny, nx] = True
-                stack.append((nx, ny))
+        if mask[cy, cx] or not similar[cy, cx]:
+            continue
+        row = similar[cy]
+        # Maximale zusammenhängende similar-Spanne, die cx enthält.
+        left_falses = np.flatnonzero(~row[:cx])
+        xl = int(left_falses[-1]) + 1 if left_falses.size else 0
+        right_falses = np.flatnonzero(~row[cx + 1:])
+        xr = cx + int(right_falses[0]) if right_falses.size else w - 1
+        mask[cy, xl:xr + 1] = True
+        # Nachbarzeilen nach neuen, noch nicht gefüllten Spannen absuchen und
+        # je zusammenhängendem Lauf genau einen Saatpunkt pushen.
+        for ny in (cy - 1, cy + 1):
+            if 0 <= ny < h:
+                seg = similar[ny, xl:xr + 1] & ~mask[ny, xl:xr + 1]
+                idx = np.flatnonzero(seg)
+                if idx.size:
+                    run_starts = idx[np.concatenate(([True], np.diff(idx) > 1))]
+                    for s in run_starts:
+                        stack.append((int(s) + xl, ny))
+        steps += 1
+        if (should_cancel is not None
+                and steps % _CANCEL_INTERVAL == 0
+                and should_cancel()):
+            return mask
     return mask
 
 
