@@ -21,6 +21,7 @@ from PyQt6.QtGui import (
     QDropEvent,
     QPainter,
     QPen,
+    QPixmap,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -113,6 +114,9 @@ class ImageCanvas(QGraphicsView):
         self._scene.addItem(self._img_item)
         self._scene.addItem(self._overlay_item)
         self._overlay_item.setZValue(1)
+        # Persistentes Overlay-Pixmap für inkrementelle Pinsel-Updates;
+        # None = kein Overlay aktiv (leere Auswahl).
+        self._overlay_pixmap: QPixmap | None = None
 
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
@@ -260,11 +264,35 @@ class ImageCanvas(QGraphicsView):
     def _refresh_image(self) -> None:
         self._viewport.refresh_image(self._pil)
 
-    def _refresh_overlay(self) -> None:
-        if self._pil:
-            mask = self._selection.mask
-            h, w = mask.shape
-            self._overlay_item.setPixmap(mask_to_overlay(mask, w, h))
+    def _refresh_overlay(self, dirty: tuple[int, int, int, int] | None = None) -> None:
+        """Aktualisiert das rote Auswahl-Overlay.
+
+        Ohne *dirty* wird das Overlay vollständig neu aufgebaut – bei leerer
+        Maske aber nur geleert, statt ein volles RGBA-Bild (bei 40 MP rund
+        160 MiB) zu allokieren. Mit *dirty* = ``(x0, y0, x1, y1)`` wird nur
+        dieses Rechteck in das bestehende Pixmap gemalt (Pinselstrich); das
+        spart die wiederholte Vollallokation bei jeder Mausbewegung.
+        """
+        if self._pil is None:
+            return
+        mask = self._selection.mask
+        if dirty is not None and self._overlay_pixmap is not None:
+            x0, y0, x1, y1 = dirty
+            patch = mask_to_overlay(mask[y0:y1, x0:x1], x1 - x0, y1 - y0)
+            painter = QPainter(self._overlay_pixmap)
+            painter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_Source)
+            painter.drawPixmap(x0, y0, patch)
+            painter.end()
+            self._overlay_item.setPixmap(self._overlay_pixmap)
+            return
+        if not self._selection.has_selection:
+            self._overlay_pixmap = None
+            self._overlay_item.setPixmap(QPixmap())
+            return
+        h, w = mask.shape
+        self._overlay_pixmap = mask_to_overlay(mask, w, h)
+        self._overlay_item.setPixmap(self._overlay_pixmap)
 
     def _set_image_state(self, img: Image.Image) -> None:
         """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
@@ -643,9 +671,10 @@ class ImageCanvas(QGraphicsView):
     def _paint_brush(self, cx: int, cy: int, *, additive: bool) -> None:
         if self._pil is None:
             return
-        self._selection.paint_brush(
+        dirty = self._selection.paint_brush(
             cx, cy, self._brush_r, additive=additive)
-        self._refresh_overlay()
+        if dirty is not None:
+            self._refresh_overlay(dirty)
 
     # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier nur als
     # Convenience-Reexport, damit bestehende Tests ``canvas.ZOOM_MIN`` /

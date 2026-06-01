@@ -19,13 +19,12 @@ Review of an externally submitted recommendation list (15 findings) against the 
 
 Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md).
 
-### Completion status (checked 2026-05-31)
+### Completion status (checked 2026-06-01)
 
 | Status | Items |
 |--------|-------|
-| ✅ Done | #1, #2, #8, #10, #11, #14, #15 |
-| 🟡 Partially done | #13 – five of the six requested dynamic test areas are covered; the restore-budget test is still missing |
-| ⬜ Open | #3, #5, #6, #7, #12 |
+| ✅ Done | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
+| ⬜ Open | #12 |
 | ➖ Discarded | #4 – false positive |
 
 ---
@@ -45,7 +44,7 @@ Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDA
 - **#14 Sync CI and doc checks.** `RESOURCES.md:102` and `TESTING.md:10` still say "3.10/3.12" (actually 3.10–3.13); `ui-nightly.yml` is missing from the workflow lists and from `test_resource_docs.py:35`. Check the workflow list and the Python matrix too.
 - **#15 Make the release CI a real gate.** `ci.yml` runs the full matrix only on `release: published` (too late as a gate); `ui-nightly.yml:18` `continue-on-error: true` masks failures. Add a tag/pre-release candidate run and let nightly failures escalate visibly.
 
-**Package 3 — Substance with measurement** 🟠
+**Package 3 — Substance with measurement (done)** 🟠
 
 - **#5 Don't reallocate the overlay on every brush move.** `_refresh_overlay` (`canvas.py:263`) → `mask_to_overlay` builds a full RGBA overlay (40 MP ≈ 160 MiB) — even for an empty mask and on every mouse move. Build it lazily, update a dirty region, or coalesce events.
 - **#6 Bound the magic wand, make it cancellable, benchmark it.** `flood_fill` (`image_utils.py:48`) grows the region in Python; measured ≈ 3.3 s at 2.25 MP (→ double-digit seconds at 40 MP). Add a scanline/native implementation (e.g. `scipy.ndimage.label`) and a cancel path.

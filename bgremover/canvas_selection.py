@@ -59,16 +59,25 @@ class CanvasSelection:
     ) -> int:
         return self._set_result(new_mask, mode)
 
-    def paint_brush(self, cx: int, cy: int, radius: int, additive: bool) -> None:
+    def paint_brush(
+        self, cx: int, cy: int, radius: int, additive: bool,
+    ) -> tuple[int, int, int, int] | None:
+        """Malt einen Kreis in die Maske; gibt das geänderte Rechteck zurück.
+
+        Rückgabe ``(x0, y0, x1, y1)`` ist die Bounding-Box des Pinsels –
+        der Canvas aktualisiert damit nur diesen Ausschnitt des Overlays.
+        ``None``, wenn der Pinsel komplett außerhalb des Bildes liegt.
+        """
         h, w = self._mask.shape
         y0, y1 = max(0, cy - radius), min(h, cy + radius + 1)
         x0, x1 = max(0, cx - radius), min(w, cx + radius + 1)
         if y0 >= y1 or x0 >= x1:
-            return
+            return None
         yy, xx = np.ogrid[y0:y1, x0:x1]
         circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= radius ** 2
         region = self._mask[y0:y1, x0:x1]
         region[circle] = additive
+        return (x0, y0, x1, y1)
 
     def remove_background(self, arr: np.ndarray) -> Image.Image:
         return remove_selection(arr, self._mask)

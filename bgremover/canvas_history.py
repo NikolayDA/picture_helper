@@ -27,13 +27,24 @@ class CanvasHistory:
     def _img_bytes(img: Image.Image) -> int:
         return img.width * img.height * 4
 
+    def _trim(self) -> None:
+        """Setzt das Undo-Speicherbudget durch (behält mind. einen Eintrag).
+
+        Einzige Stelle der Eviction – von jedem Pfad aufgerufen, der den
+        Undo-Stapel wachsen lässt (``push``, ``redo``, ``restore``). Ohne
+        diesen gemeinsamen Aufruf umgingen ``redo``/``restore`` das Budget
+        und wiederholtes Wiederherstellen ließe den Speicher unbeschränkt
+        wachsen.
+        """
+        while len(self._undo) > 1 and self._undo_bytes > self._memory_limit:
+            evicted, _ = self._undo.popleft()
+            self._undo_bytes -= self._img_bytes(evicted)
+
     def push(self, current: Image.Image, desc: str) -> None:
         self._undo.append((current.copy(), desc))
         self._undo_bytes += self._img_bytes(current)
         self._redo.clear()
-        while len(self._undo) > 1 and self._undo_bytes > self._memory_limit:
-            evicted, _ = self._undo.popleft()
-            self._undo_bytes -= self._img_bytes(evicted)
+        self._trim()
 
     def undo(self, current: Image.Image | None) -> tuple[Image.Image, str] | None:
         if not self._undo:
@@ -51,6 +62,7 @@ class CanvasHistory:
         if current is not None:
             self._undo.append((current.copy(), desc))
             self._undo_bytes += self._img_bytes(current)
+            self._trim()
         return img, desc
 
     def undo_to(
@@ -84,6 +96,7 @@ class CanvasHistory:
         if current is not None:
             self._undo.append((current.copy(), "🔄 Original wiederhergestellt"))
             self._undo_bytes += self._img_bytes(current)
+            self._trim()
         self._redo.clear()
         return self._original.copy()
 

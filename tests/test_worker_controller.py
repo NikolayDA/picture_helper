@@ -251,7 +251,7 @@ def test_flood_fill_concurrent_call_returns_false(qapp, controller, monkeypatch)
     # start_flood_fill-Aufrufs garantiert noch aktiv.
     gate = threading.Event()
 
-    def slow_flood_fill(arr, x, y, tol):
+    def slow_flood_fill(arr, x, y, tol, should_cancel=None):
         gate.wait(timeout=5.0)
         return np.zeros(arr.shape[:2], dtype=bool)
 
@@ -282,3 +282,42 @@ def test_flood_fill_concurrent_call_returns_false(qapp, controller, monkeypatch)
     _drain(qapp, thread.isFinished)
     qapp.processEvents()
     assert controller.flood_fill_thread is None
+
+
+def test_flood_fill_cancel_completes_lifecycle_without_result(qapp, controller, monkeypatch):
+    """Abbruch eines laufenden Flood-Fill: kein Ergebnis angewandt, aber der
+    Thread-Lifecycle wird vollständig abgeschlossen (Worker/Thread freigegeben)."""
+    import threading
+
+    import bgremover.workers as _wm
+
+    gate = threading.Event()
+
+    def slow_flood_fill(arr, x, y, tol, should_cancel=None):
+        gate.wait(timeout=5.0)
+        return np.ones(arr.shape[:2], dtype=bool)
+
+    monkeypatch.setattr(_wm, "flood_fill", slow_flood_fill)
+
+    arr = np.zeros((4, 4, 4), dtype=np.uint8)
+    arr[..., 3] = 255
+    masks: list = []
+    started = controller.start_flood_fill(
+        arr, 0, 0, tolerance=0,
+        on_done=masks.append,
+        on_error=lambda _msg: None,
+    )
+    assert started
+    thread = controller.flood_fill_thread
+    assert thread is not None
+
+    controller.cancel_flood_fill()
+    gate.set()
+
+    _drain(qapp, thread.isFinished)
+    qapp.processEvents()
+
+    assert controller.flood_fill_thread is None
+    assert controller.flood_fill_worker is None
+    assert controller._workers == []
+    assert masks == []   # abgebrochenes Ergebnis wird nicht zugestellt

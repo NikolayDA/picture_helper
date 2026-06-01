@@ -19,13 +19,12 @@ Review einer extern eingereichten Empfehlungsliste (15 Befunde) gegen die tatsä
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
 
-### Erledigungsstand (Abgleich 2026-05-31)
+### Erledigungsstand (Abgleich 2026-06-01)
 
 | Status | Punkte |
 |--------|--------|
-| ✅ Erledigt | #1, #2, #8, #10, #11, #14, #15 |
-| 🟡 Teilweise erledigt | #13 – fünf von sechs geforderten dynamischen Testbereichen sind abgedeckt; der Restore-Budget-Test fehlt noch |
-| ⬜ Offen | #3, #5, #6, #7, #12 |
+| ✅ Erledigt | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
+| ⬜ Offen | #12 |
 | ➖ Verworfen | #4 – Fehlalarm |
 
 ---
@@ -45,7 +44,7 @@ Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMEN
 - **#14 CI- und Doku-Checks synchronisieren.** `RESOURCES.md:102` und `TESTING.md:10` nennen noch „3.10/3.12" (real 3.10–3.13); `ui-nightly.yml` fehlt in den Workflow-Listen und in `test_resource_docs.py:35`. Workflow-Liste und Python-Matrix mitprüfen.
 - **#15 Release-CI als echtes Gate.** `ci.yml` startet die Vollmatrix erst bei `release: published` (zu spät als Gate); `ui-nightly.yml:18` `continue-on-error: true` maskiert Fehler. Tag-/Pre-Release-Kandidatenlauf vorsehen und Nightly-Fehler sichtbar eskalieren lassen.
 
-**Paket 3 — Substanz mit Messung** 🟠
+**Paket 3 — Substanz mit Messung (erledigt)** 🟠
 
 - **#5 Overlay nicht bei jeder Pinselbewegung neu allokieren.** `_refresh_overlay` (`canvas.py:263`) → `mask_to_overlay` baut ein volles RGBA-Overlay (40 MP ≈ 160 MiB) — sogar bei leerer Maske und bei jeder Mausbewegung. Lazy erzeugen, Dirty-Region aktualisieren oder Events bündeln.
 - **#6 Zauberstab begrenzen, abbrechbar machen, benchmarken.** `flood_fill` (`image_utils.py:48`) wächst die Region in Python; nachgemessen ≈ 3,3 s bei 2,25 MP (→ zweistellige Sekunden bei 40 MP). Scanline-/native Implementierung (z. B. `scipy.ndimage.label`) und Abbruchpfad ergänzen.

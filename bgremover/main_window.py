@@ -65,6 +65,9 @@ class MainWindow(QMainWindow):
         # verspätet eintreffendes Ergebnis ein inzwischen geladenes anderes
         # Bild überschreibt. Robuster als Objekt-Identität (is-Vergleich).
         self._ai_input_version: int = -1
+        # True, sobald der rembg-Warmup mit Fehler endete: unterdrückt die
+        # irreführende „KI bereit"-Meldung im Abschluss-Callback.
+        self._warmup_failed: bool = False
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
@@ -269,11 +272,36 @@ class MainWindow(QMainWindow):
     def _start_rembg_warmup(self) -> None:
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
+        self._warmup_failed = False
         self._sb.showMessage(SM.KI_MODELL_LADEN)
-        self._worker_controller.start_warmup(on_finished=self._on_warmup_done)
+        # KI-Button bis Warmup-Ende sperren: ein KI-Klick während des Warmups
+        # würde rembg parallel initialisieren (doppelter Modell-Load / Race).
+        self._toolbar.btn_ai.setEnabled(False)
+        self._worker_controller.start_warmup(
+            on_finished=self._on_warmup_done,
+            on_error=self._on_warmup_error,
+        )
 
     def _on_warmup_done(self) -> None:
+        # Läuft als Thread-Abschluss IMMER (auch nach Fehler). Button wieder
+        # freigeben; ein fehlgeschlagener Warmup darf dennoch nicht als
+        # „KI bereit" gemeldet werden – on_error hat das Flag bereits gesetzt.
+        self._toolbar.btn_ai.setEnabled(True)
+        if self._warmup_failed:
+            return
         self._sb.showMessage(SM.KI_BEREIT)
+
+    def _on_warmup_error(self, _msg: str) -> None:
+        """Warmup fehlgeschlagen (z. B. Modell-Download offline nicht möglich).
+
+        Wird vor ``_on_warmup_done`` zugestellt; setzt das Flag, das dort die
+        falsche Bereitschaftsmeldung verhindert. Den Fehler protokolliert
+        bereits der Worker (``_Worker.run`` → ``logger.exception``). Die KI
+        bleibt nutzbar – ein späterer Klick versucht rembg erneut und meldet
+        Fehler ggf. sichtbar.
+        """
+        self._warmup_failed = True
+        self._sb.showMessage(SM.KI_FEHLER_WARMUP)
 
     def _save(self) -> None:
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
