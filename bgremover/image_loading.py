@@ -1,7 +1,8 @@
 """Shared image-load helper for the sync canvas path and the async worker.
 
-Both ``ImageCanvas.load_image`` (drag & drop, tests) and
-``ImageLoadWorker._work`` (file dialog) route through ``open_validated_image``
+Both ``ImageCanvas.load_image`` (direct callers and tests) and
+``ImageLoadWorker._work`` (file dialog, recent files and drag & drop) route
+through ``open_validated_image``
 so they share the same structural verify, format whitelist and megapixel
 cap. Without it, the synchronous path silently accepted formats and
 malformed files the worker had been rejecting since the format/structure

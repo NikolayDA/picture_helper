@@ -141,10 +141,10 @@ class ImageLoadWorker(_Worker):
 class FloodFillWorker(_Worker):
     """Berechnet die Zauberstab-Auswahl im Hintergrund.
 
-    Bei grossen, einfarbigen Flaechen friert ein synchroner Flood-Fill
-    die UI sichtbar ein – die zusammenhaengende Region wird per
-    Python-Loop ueber die Boolean-Maske ``similar`` aufgebaut. Der Worker
-    laeuft auf einem kurzlebigen ``QThread``; das Ergebnis kommt per
+    Bei grossen, einfarbigen Flaechen kann ein synchroner Flood-Fill die UI
+    sichtbar blockieren. Trotz Scanline-Optimierung wird die
+    zusammenhaengende Region schrittweise aufgebaut. Der Worker laeuft auf
+    einem kurzlebigen ``QThread``; das Ergebnis kommt per
     ``finished``-Signal auf den UI-Thread zurueck. Der ``arr``-Parameter
     ist die schreibgeschuetzte NumPy-Sicht aus ``ImageCanvas._arr``;
     weil ``np.asarray`` eine ``base``-Referenz auf das PIL-Bild haelt,

@@ -1,8 +1,8 @@
 """Geometrie-Transformationen für ``ImageCanvas``.
 
-Kapselt Drehen, Spiegeln und Ecken-Abrunden, damit ``canvas.py`` als
-fortgeschrittene Refaktor-Phase weniger Zuständigkeiten trägt – analog
-zu ``CanvasCrop`` / ``CanvasHistory`` / ``CanvasLasso`` / ``CanvasSelection``.
+Kapselt Drehen, Spiegeln und Ecken-Abrunden, damit ``canvas.py`` analog zu
+``CanvasCrop`` / ``CanvasHistory`` / ``CanvasLasso`` / ``CanvasSelection``
+weniger Zuständigkeiten trägt.
 
 Die Methoden setzen voraus, dass auf dem Canvas ein Bild geladen ist;
 der ``None``-Guard und das ``statusMsg``-Signal leben weiter auf der

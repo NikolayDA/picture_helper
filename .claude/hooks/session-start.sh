@@ -22,7 +22,7 @@ cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
 # Headless-Qt für alle Session-Befehle persistent setzen. conftest.py
 # setzt es für pytest ohnehin per setdefault – das hier deckt direkte
-# Qt-Aufrufe (z. B. import BgRemover in einem Ad-hoc-Skript) mit ab.
+# Qt-Aufrufe (z. B. `import bgremover` in einem Ad-hoc-Skript) mit ab.
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
 fi

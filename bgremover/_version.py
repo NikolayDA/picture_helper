@@ -1,10 +1,8 @@
 """Versionsermittlung für ``bgremover.__version__``.
 
-Nur aus ``bgremover/__init__.py`` aufgerufen; in ein eigenes Modul
-ausgelagert, damit ``__init__.py`` den Block sauber zwischen den
-``importlib.metadata``-Importen und den Re-Export-Importen aus
-``bgremover.*`` einbinden kann, ohne ruff E402 zu verletzen (eine
-``def`` zwischen Imports ist nicht erlaubt, ein ``from … import …`` schon).
+In ein eigenes Modul ausgelagert, damit ``bgremover/__init__.py`` die
+Version ermitteln und anschließend seine öffentlichen Symbole re-exportieren
+kann, ohne ruff E402 zu verletzen.
 """
 from __future__ import annotations
 
@@ -25,8 +23,8 @@ def _read_pyproject_version() -> str:
     try:
         import tomllib  # stdlib ab Py3.11
     except ImportError:
-        # Py3.10 ohne tomli-Abhängigkeit: einfache Regex genügt, weil
-        # pyproject.toml die ``version = "..."``-Zeile auf Top-Ebene führt.
+        # Py3.10 ohne tomli-Abhängigkeit: einfache Regex genügt, weil die
+        # ``version = "..."``-Zeile im aktuellen pyproject eindeutig ist.
         import re
         m = re.search(
             r'^version\s*=\s*"([^"]+)"',
