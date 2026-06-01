@@ -1,5 +1,6 @@
 """Tests für Worker-Klassen: Fehlerpfade, Grössenvalidierung und Concurrent-Load-Schutz."""
 import io
+from collections.abc import Callable
 from unittest.mock import patch
 
 import numpy as np
@@ -447,25 +448,36 @@ def test_ai_result_is_discarded_after_canvas_edit(qapp, tmp_path) -> None:
         win.close()
 
 
-def test_load_image_async_cancels_running_flood_fill(qapp, monkeypatch) -> None:
-    """Beim Laden eines neuen Bildes muss eine laufende Zauberstab-Berechnung
-    abgebrochen werden – symmetrisch zu ``cancel_ai()``. Sonst verbrennt der
-    alte Flood-Fill-Worker CPU auf einem bereits ersetzten Bild und blockiert
-    (über ``is_flood_fill_running``) den nächsten Zauberstab-Klick.
+def test_failed_image_load_after_flood_fill_cancel_releases_wand_gate(qapp, monkeypatch) -> None:
+    """Ein fehlgeschlagener Bildwechsel darf den Zauberstab nicht blockieren.
+
+    Beim Start des Ladeversuchs wird der Flood-Fill des alten Bildes
+    abgebrochen. Schlägt das Laden danach fehl, bleibt das alte Bild aktiv;
+    sein ``_wand_busy``-Gate muss trotzdem bereits still freigegeben sein.
     """
     win = MainWindow()
     try:
+        old_image = Image.new("RGBA", (8, 8), (10, 20, 30, 255))
+        win._canvas.apply_loaded_image(old_image, "alt.png")
+        win._canvas._wand_busy = True
         calls: list[str] = []
+        callbacks: dict[str, Callable[[str], None]] = {}
         monkeypatch.setattr(
             win._worker_controller, "cancel_flood_fill",
             lambda: calls.append("flood"))
-        # Echten Ladevorgang unterdrücken – nur die Cancel-Logik prüfen.
-        monkeypatch.setattr(
-            win._worker_controller, "start_image_load",
-            lambda *a, **k: True)
+
+        def _fake_start(_path, *, on_loaded, on_error):
+            callbacks["on_error"] = on_error
+            return True
+
+        monkeypatch.setattr(win._worker_controller, "start_image_load", _fake_start)
 
         win._load_image_async("/beliebiger/pfad.png")
+        callbacks["on_error"]("kaputt")
 
         assert calls == ["flood"]
+        assert win._canvas.image is old_image
+        assert win._canvas._wand_busy is False
+        assert win._sb.currentMessage() == "Ladefehler: kaputt"
     finally:
         win.close()

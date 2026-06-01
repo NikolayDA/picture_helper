@@ -42,6 +42,17 @@ Améliorations issues de la deuxième analyse, pas encore implémentées (produi
 - **O3 🟡 — Matrice CI complète plus tôt.** La matrice complète (Linux/macOS × 3.10–3.13) ne tourne qu'aux tags/release ; les régressions sous macOS ou Python 3.10/3.13 apparaissent tard. La lancer aussi au push sur `main` ou via un cron hebdomadaire.
 - **O4 🟢 — Raccourcis clavier pour les outils.** Baguette/pinceau/gomme/lasso ne sont accessibles qu'à la souris ; ajouter un changement par touche unique (p. ex. `B`/`E`).
 
+
+## Lots d’implémentation issus de la contre-revue qualité
+
+Les constats confirmés de qualité et de stabilité sont regroupés en quatre lots distincts :
+
+- **P1 ✅ — Correctifs rapides baguette / CI (N1, N6, N8).** Libérer silencieusement le verrou de la baguette au début d’un changement d’image afin qu’un échec de chargement ultérieur ne bloque pas l’outil. La CI Linux complète installe désormais aussi `libgl1` ; un test statique de dérive protège les listes de paquets système Qt. La note obsolète sur le chemin synchrone du glisser-déposer a été corrigée.
+- **P2 🟡 — Durcir l’enregistrement (N4, N5).** Valider explicitement les extensions d’export et remplacer les fichiers existants via un fichier temporaire puis un remplacement atomique.
+- **P3 🟠 — Budget mémoire adaptatif (N2, N3).** Vérifier la taille attendue avant les rotations libres ; budgéter ensemble undo, redo, état original et opérations gourmandes en mémoire, en particulier pour Raspberry Pi.
+- **P4 🟡 — Découpler les imports du paquet (N7).** Réduire prudemment ou charger paresseusement les réexports GUI eager afin que les modules de logique pure soient testables et réutilisables sans runtime Qt complet. Ce n’est pas un bug de bootstrap ; les imports publics doivent rester compatibles.
+
+
 ---
 
 ## Série précédente (v2.2, « admiring-mayer »)

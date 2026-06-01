@@ -225,6 +225,17 @@ def test_cancel_pending_wand_when_idle_is_noop(qapp):
     assert msgs == []
 
 
+def test_cancel_pending_wand_silently_clears_gate_without_status(qapp):
+    c = _canvas()
+    c._wand_busy = True
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+    assert c.cancel_pending_wand_silently() is True
+    assert c._wand_busy is False
+    assert msgs == []
+    assert c.cancel_pending_wand_silently() is False
+
+
 def test_apply_loaded_image_resets_pending_wand(qapp):
     """Bildwechsel während laufender Zauberstab-Berechnung darf das
     ``_wand_busy``-Gate nicht hängen lassen – sonst bliebe der Zauberstab auf

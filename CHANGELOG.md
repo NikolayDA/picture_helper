@@ -153,6 +153,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Zauberstab bleibt nach fehlgeschlagenem Bildwechsel nutzbar (Paket P1).**
+  Beim Start eines asynchronen Bildwechsels wird das Gate einer laufenden
+  Zauberstab-Berechnung jetzt direkt und ohne irreführende Fehlermeldung
+  freigegeben. Schlägt das Laden des neuen Bildes fehl, kann der Nutzer auf
+  dem weiterhin sichtbaren alten Bild erneut arbeiten. Zusätzlich enthält
+  die Linux-Vollmatrix nun wie PR-CI, Nightly und Session-Hook explizit
+  `libgl1`; ein statischer Test schützt die Qt-Systempaketlisten vor Drift.
+
 - **`apply_remove`/`apply_replace` verschlucken keine echten Bugs mehr.**
   Der frühere `except Exception` schluckte u. a. `AttributeError` und
   `AssertionError` – also genau die Klasse Fehler, die als Bug sichtbar

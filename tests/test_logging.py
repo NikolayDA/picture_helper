@@ -21,8 +21,8 @@ def _isolated_logging_setup(target, monkeypatch):
     """Ruft ``_setup_logging`` isoliert auf und stellt den App-Logger danach
     wieder her.
 
-    ``_setup_logging`` konfiguriert seit dem #C-Re-Review gezielt den
-    benannten ``BgRemover``-Logger (nicht mehr den Root), daher snapshottet
+    ``_setup_logging`` konfiguriert gezielt den benannten ``BgRemover``-Logger
+    (nicht den Root), daher snapshottet
     der Helfer dessen Handler/Level/Propagation.
     """
     class _FakeQSP:

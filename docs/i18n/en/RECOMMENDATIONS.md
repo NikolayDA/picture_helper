@@ -42,6 +42,17 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **O3 🟡 — Full CI matrix earlier.** The full matrix (Linux/macOS × 3.10–3.13) runs only on tags/release; regressions on macOS or Python 3.10/3.13 surface late. Also run it on push to `main` or as a weekly cron.
 - **O4 🟢 — Keyboard shortcuts for tools.** Magic wand/brush/eraser/lasso are reachable only by mouse; add single-key switching (e.g. `B`/`E`).
 
+
+## Implementation packages from the quality counter-review
+
+The confirmed quality and stability findings are grouped into four separate packages:
+
+- **P1 ✅ — Magic-wand / CI quick wins (N1, N6, N8).** Release the wand gate silently when an image switch starts so a subsequent load failure cannot block the tool. Full Linux CI now also installs `libgl1`; a static drift test protects the Qt system-package lists. The stale synchronous drop-path note was corrected.
+- **P2 🟡 — Harden saving (N4, N5).** Validate export suffixes explicitly and replace existing files through a temporary file plus atomic replace.
+- **P3 🟠 — Adaptive memory budget (N2, N3).** Check expected size before free rotations; budget undo, redo, original state and memory-intensive operations together, especially for Raspberry Pi.
+- **P4 🟡 — Decouple package imports (N7).** Carefully reduce or lazily load eager GUI re-exports so pure logic modules can be tested and reused without a complete Qt runtime. This is not a bootstrap bug; public imports must remain compatible.
+
+
 ---
 
 ## Previous round (v2.2, "admiring-mayer")

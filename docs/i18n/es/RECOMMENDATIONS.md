@@ -42,6 +42,17 @@ Mejoras surgidas del segundo análisis aún no implementadas (producto/proceso):
 - **O3 🟡 — Matriz completa de CI antes.** La matriz completa (Linux/macOS × 3.10–3.13) solo corre en tags/release; las regresiones en macOS o Python 3.10/3.13 aparecen tarde. Ejecutarla también en push a `main` o como cron semanal.
 - **O4 🟢 — Atajos de teclado para herramientas.** Varita/pincel/borrador/lazo solo se alcanzan con el ratón; añadir cambio con una tecla (p. ej. `B`/`E`).
 
+
+## Paquetes de implementación de la contrarrevisión de calidad
+
+Los hallazgos confirmados de calidad y estabilidad se agrupan en cuatro paquetes separados:
+
+- **P1 ✅ — Mejoras rápidas de varita / CI (N1, N6, N8).** Liberar silenciosamente el bloqueo de la varita al iniciar un cambio de imagen para que un fallo posterior de carga no bloquee la herramienta. La CI completa de Linux instala ahora también `libgl1`; un test estático de deriva protege las listas de paquetes de sistema Qt. Se corrigió la nota obsoleta sobre la ruta síncrona de arrastrar y soltar.
+- **P2 🟡 — Reforzar el guardado (N4, N5).** Validar explícitamente las extensiones de exportación y sustituir archivos existentes mediante un archivo temporal y reemplazo atómico.
+- **P3 🟠 — Presupuesto de memoria adaptativo (N2, N3).** Comprobar el tamaño esperado antes de rotaciones libres; presupuestar conjuntamente undo, redo, estado original y operaciones intensivas en memoria, especialmente para Raspberry Pi.
+- **P4 🟡 — Desacoplar imports del paquete (N7).** Reducir cuidadosamente o cargar de forma diferida los reexports GUI eager para que los módulos de lógica pura puedan probarse y reutilizarse sin un runtime Qt completo. No es un bug de bootstrap; los imports públicos deben seguir siendo compatibles.
+
+
 ---
 
 ## Ronda anterior (v2.2, «admiring-mayer»)

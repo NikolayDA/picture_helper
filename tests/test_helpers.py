@@ -1,4 +1,4 @@
-"""Tests für die reinen Hilfsfunktionen aus BgRemover.py."""
+"""Tests für die reinen Hilfsfunktionen aus ``bgremover.image_utils``."""
 import numpy as np
 import pytest
 from PIL import Image

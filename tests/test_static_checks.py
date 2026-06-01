@@ -147,3 +147,25 @@ def test_main_window_starts_warmup_when_rembg_available(source: str):
     # Aufruf an REMBG_AVAILABLE-Bedingung gekoppelt
     assert "REMBG_AVAILABLE" in source
     assert "self._start_rembg_warmup()" in source
+
+
+# ── Fix: Linux-Qt-Systempakete bleiben zwischen CI-Pfaden synchron ──────
+
+_QT_LINUX_PACKAGES = (
+    "libegl1", "libgl1", "libfontconfig1", "libxkbcommon0", "libdbus-1-3",
+    "libxcb-icccm4", "libxcb-image0", "libxcb-keysyms1", "libxcb-randr0",
+    "libxcb-render-util0", "libxcb-shape0", "libxcb-xinerama0", "libxcb-xkb1",
+)
+_QT_PACKAGE_FILES = (
+    ".github/workflows/ci.yml",
+    ".github/workflows/pr-ci.yml",
+    ".github/workflows/ui-nightly.yml",
+    ".claude/hooks/session-start.sh",
+)
+
+
+def test_linux_qt_package_lists_contain_required_packages() -> None:
+    for relative_path in _QT_PACKAGE_FILES:
+        text = (_ROOT / relative_path).read_text(encoding="utf-8")
+        missing = [package for package in _QT_LINUX_PACKAGES if package not in text]
+        assert not missing, f"{relative_path} fehlen Qt-Systempakete: {missing}"

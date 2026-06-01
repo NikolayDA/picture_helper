@@ -32,8 +32,8 @@ arch_run() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
-# (`bgremover/`); die App wird ueber `python -m bgremover` gestartet.
+# BgRemover ist als Paket (`bgremover/`) installiert; die App wird ueber
+# `python -m bgremover` gestartet.
 CONSTRAINTS_FILE="$SCRIPT_DIR/requirements/constraints.txt"
 ICON_PNG="$SCRIPT_DIR/BgRemover_icon.png"
 COMMAND_FILE="$SCRIPT_DIR/BgRemover.command"
@@ -255,10 +255,9 @@ echo "📁 Erstelle App-Bundle …"
 mkdir -p "$APP_PATH/Contents/MacOS"
 mkdir -p "$APP_PATH/Contents/Resources"
 
-# Hinweis: Mit dem bgremover-Paket (Runde 5, Phase B) liegt der Code
-# nicht mehr im Bundle, sondern in der venv unter Application Support
-# (nicht-editierbar installiert). icons/ ist Paket-Daten und liegt in
-# site-packages der venv – das Bundle braucht also keine eigene Kopie.
+# Der Code liegt nicht im Bundle, sondern als nicht-editierbar installiertes
+# Paket in der venv unter Application Support. icons/ ist Paket-Daten und liegt
+# in site-packages der venv – das Bundle braucht also keine eigene Kopie.
 
 # ── Launcher ──────────────────────────────────────────────────
 LAUNCHER="$APP_PATH/Contents/MacOS/$APP_NAME"

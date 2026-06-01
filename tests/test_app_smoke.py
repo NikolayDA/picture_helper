@@ -1,7 +1,7 @@
 """Smoke-Tests für den App-Start und die macOS-Starter-Skripte.
 
-Verteidigt die Mac-Start-Regressionen aus Runde 5 / Phase B. Wichtig:
-diese Tests sind NICHT mit ``ui`` markiert, laufen also – anders als
+Verteidigt die behobenen macOS-Start-Regressionen. Wichtig: Diese Tests
+sind NICHT mit ``ui`` markiert, laufen also – anders als
 ``test_ui_interactions`` – auch in der CI (die UI-Tests sind dort über
 ``-m 'not ui'`` ausgeschlossen). Damit deckt die CI erstmals ab, dass
 sich die Anwendung überhaupt vollständig starten lässt.

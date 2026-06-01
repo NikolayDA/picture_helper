@@ -220,10 +220,11 @@ class ImageCanvas(QGraphicsView):
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str) -> None:
-        """Synchroner Lade-Pfad – wird vom Drop-Event und von Tests genutzt.
+        """Synchroner Lade-Pfad – wird von direkten Aufrufern und Tests genutzt.
 
-        Für den File-Dialog läuft der gleiche Vorgang in einem Worker
-        (siehe ``MainWindow._load_image_async`` + ``apply_loaded_image``).
+        Für Datei-Dialog, Recent Files und Drag & Drop läuft der gleiche
+        Vorgang in einem Worker (siehe ``MainWindow._load_image_async`` +
+        ``apply_loaded_image``).
         Beide Pfade nutzen denselben Validierungs-Helfer, damit
         Format-Whitelist, ``verify()`` und Megapixel-Schutz nicht nur dem
         Worker zugutekommen.
@@ -520,12 +521,17 @@ class ImageCanvas(QGraphicsView):
         self._refresh_overlay()
         self.statusMsg.emit(f"Auswahl: {pixels:,} Pixel")
 
+    def cancel_pending_wand_silently(self) -> bool:
+        """Gibt das Wand-Gate ohne Statusmeldung frei; ``True`` bei aktivem Lauf."""
+        if not self._wand_busy:
+            return False
+        self._wand_busy = False
+        return True
+
     def cancel_pending_wand(self, msg: str) -> None:
         """Bricht eine laufende Wand-Berechnung im Fehlerfall ab."""
-        if not self._wand_busy:
-            return
-        self._wand_busy = False
-        self.statusMsg.emit(f"Auswahl-Fehler: {msg}")
+        if self.cancel_pending_wand_silently():
+            self.statusMsg.emit(f"Auswahl-Fehler: {msg}")
 
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Bild; gibt ``True`` bei Erfolg zurück.

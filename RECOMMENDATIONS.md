@@ -42,6 +42,17 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 - **O3 🟡 — Volle CI-Matrix früher.** Die Vollmatrix (Linux/macOS × 3.10–3.13) läuft nur bei Tags/Release; Regressionen unter macOS oder Python 3.10/3.13 fallen erst spät auf. Zusätzlich bei Push auf `main` oder als wöchentlicher Cron laufen lassen.
 - **O4 🟢 — Tastatur-Kürzel für Werkzeuge.** Zauberstab/Pinsel/Radierer/Lasso sind nur per Maus erreichbar; Ein-Tasten-Wechsel (z. B. `B`/`E`) ergänzen.
 
+
+## Umsetzungspakete aus dem Qualitäts-Gegencheck
+
+Die bestätigten Qualitäts- und Stabilitätsbefunde werden in vier getrennten Paketen umgesetzt:
+
+- **P1 ✅ — Zauberstab-/CI-Quick-Wins (N1, N6, N8).** Das Wand-Gate wird beim Start eines Bildwechsels still freigegeben, damit ein anschließender Ladefehler den Zauberstab nicht blockiert. Die Linux-Vollmatrix installiert nun ebenfalls `libgl1`; ein statischer Drift-Test schützt die Qt-Systempaketlisten. Der veraltete synchrone Drop-Hinweis wurde korrigiert.
+- **P2 🟡 — Speichern härten (N4, N5).** Export-Endungen explizit validieren und bestehende Dateien über temporäre Datei + atomaren Replace ersetzen.
+- **P3 🟠 — Adaptives Speicherbudget (N2, N3).** Erwartete Größe vor freien Rotationen prüfen; Undo, Redo, Originalzustand und speicherintensive Operationen gemeinsam budgetieren, insbesondere für Raspberry Pi.
+- **P4 🟡 — Paketimporte entkoppeln (N7).** Eager GUI-Re-Exporte vorsichtig reduzieren oder lazy laden, damit reine Logikmodule ohne vollständige Qt-Laufzeit testbar und wiederverwendbar sind. Kein Bootstrap-Bug; öffentliche Imports müssen kompatibel bleiben.
+
+
 ---
 
 ## Vorige Runde (v2.2, „admiring-mayer")
