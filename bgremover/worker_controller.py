@@ -1,4 +1,4 @@
-"""QThread-Lifecycle-Verwaltung für Bildlade-, KI- und Warmup-Worker."""
+"""QThread-Lifecycle-Verwaltung für Bildlade-, KI-, Warmup- und Flood-Fill-Worker."""
 from __future__ import annotations
 
 import contextlib
