@@ -33,6 +33,17 @@ Tiefenprüfung der Codebasis nach v2.2 (Code, Doku, Tests). Baseline exzellent: 
 
 ---
 
+## Offene Empfehlungen
+
+Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Prozess):
+
+- **O1 🟠 — App-Lokalisierung.** Die UI ist hartkodiert Deutsch; es gibt keine Laufzeit-i18n (kein `QTranslator`/`tr()`), obwohl die Doku in fünf Sprachen vorliegt. Statusmeldungen liegen bereits zentral (`status_messages.py`). Schrittweise via Qt Linguist (`.ts`) oder leichtgewichtige `QLocale`-Stringtabelle.
+- **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
+- **O3 🟡 — Volle CI-Matrix früher.** Die Vollmatrix (Linux/macOS × 3.10–3.13) läuft nur bei Tags/Release; Regressionen unter macOS oder Python 3.10/3.13 fallen erst spät auf. Zusätzlich bei Push auf `main` oder als wöchentlicher Cron laufen lassen.
+- **O4 🟢 — Tastatur-Kürzel für Werkzeuge.** Zauberstab/Pinsel/Radierer/Lasso sind nur per Maus erreichbar; Ein-Tasten-Wechsel (z. B. `B`/`E`) ergänzen.
+
+---
+
 ## Vorige Runde (v2.2, „admiring-mayer")
 
 Externe 15-Punkte-Liste gegen die Codebasis geprüft: **#1–#15 erledigt, #4 verworfen** (Fehlalarm). Details in den gemergten PRs und im Archiv.
