@@ -14,6 +14,7 @@ from bgremover import (
     MainWindow,
 )
 from bgremover.constants import _MAX_MEGAPIXELS
+from bgremover.image_loading import open_validated_image
 
 # ─────────────────────────────────────────────────────────────
 # ImageLoadWorker – Fehlerpfade
@@ -63,6 +64,30 @@ def test_image_load_worker_rejects_oversized_image(qapp, tmp_path) -> None:
     assert len(errors) == 1
     assert str(_MAX_MEGAPIXELS) in errors[0]
     assert len(finished) == 0
+
+
+def test_open_validated_image_handles_decompression_bomb(tmp_path, monkeypatch) -> None:
+    """Bilder über 2× MAX_IMAGE_PIXELS lösen Pillows ``DecompressionBombError``
+    schon in ``verify()``/``open()`` aus – noch bevor die App-eigene
+    Megapixel-Prüfung greift. Dieser Fehler ist KEINE ``OSError``-Subklasse;
+    ohne expliziten Handler entkäme er dem ``except``-Tupel.
+
+    Anders als ``test_image_load_worker_rejects_oversized_image`` wird hier
+    ``Image.open`` NICHT gemockt, sondern Pillows echter Bomb-Schutz über ein
+    abgesenktes ``MAX_IMAGE_PIXELS`` real ausgelöst – genau der Pfad, den der
+    gemockte Test nicht abdeckt.
+    """
+    p = tmp_path / "bomb.png"
+    Image.new("RGB", (100, 100), (1, 2, 3)).save(p)
+    # 100×100 = 10 000 px > 2×5 → Bomb-Error bereits beim Öffnen.
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 5)
+
+    img, err = open_validated_image(str(p))   # darf NICHT werfen
+
+    assert img is None
+    assert err is not None
+    assert "zu groß" in err
+    assert str(_MAX_MEGAPIXELS) in err
 
 
 def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
@@ -418,5 +443,29 @@ def test_ai_result_is_discarded_after_canvas_edit(qapp, tmp_path) -> None:
         status_bar = win.statusBar()
         assert status_bar is not None
         assert "verworfen" in status_bar.currentMessage()
+    finally:
+        win.close()
+
+
+def test_load_image_async_cancels_running_flood_fill(qapp, monkeypatch) -> None:
+    """Beim Laden eines neuen Bildes muss eine laufende Zauberstab-Berechnung
+    abgebrochen werden – symmetrisch zu ``cancel_ai()``. Sonst verbrennt der
+    alte Flood-Fill-Worker CPU auf einem bereits ersetzten Bild und blockiert
+    (über ``is_flood_fill_running``) den nächsten Zauberstab-Klick.
+    """
+    win = MainWindow()
+    try:
+        calls: list[str] = []
+        monkeypatch.setattr(
+            win._worker_controller, "cancel_flood_fill",
+            lambda: calls.append("flood"))
+        # Echten Ladevorgang unterdrücken – nur die Cancel-Logik prüfen.
+        monkeypatch.setattr(
+            win._worker_controller, "start_image_load",
+            lambda *a, **k: True)
+
+        win._load_image_async("/beliebiger/pfad.png")
+
+        assert calls == ["flood"]
     finally:
         win.close()
