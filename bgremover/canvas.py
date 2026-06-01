@@ -318,12 +318,21 @@ class ImageCanvas(QGraphicsView):
         passendes ``False`` hängen und die Crop-Leiste verschwände nicht.
         Bricht außerdem ein begonnenes Polygon-Lasso ab, damit alte Punkte
         und Vorschaulinien nicht auf das neue Bild übertragen werden.
+
+        Setzt schließlich das ``_wand_busy``-Gate zurück: läuft beim
+        Bildwechsel/Restore noch eine Zauberstab-Berechnung, bliebe das Gate
+        sonst gesetzt und blockierte den Zauberstab auf dem neuen Bild, bis
+        der alte Worker fertig ist. ``apply_wand_result`` ignoriert ein
+        verspätetes Ergebnis dank des ``if not self._wand_busy``-Guards
+        sauber; den alten Worker bricht ``MainWindow._load_image_async``
+        zusätzlich ab, damit er keine CPU mehr verbrennt.
         """
         was_cropping = self._crop.active
         self._crop.cancel_overlay_only()
         if was_cropping:
             self.cropModeChanged.emit(False)
         self._lasso.cancel()
+        self._wand_busy = False
 
     def _emit_history(self) -> None:
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
