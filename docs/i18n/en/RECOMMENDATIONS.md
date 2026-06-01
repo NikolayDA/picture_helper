@@ -23,8 +23,7 @@ Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDA
 
 | Status | Items |
 |--------|-------|
-| ✅ Done | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
-| ⬜ Open | #12 |
+| ✅ Done | #1, #2, #3, #5, #6, #7, #8, #10, #11, #12, #13, #14, #15 |
 | ➖ Discarded | #4 – false positive |
 
 ---
@@ -51,7 +50,7 @@ Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDA
 - **#7 Serialize the rembg warmup and the AI call.** `_on_warmup_done` (`main_window.py:270`) shows "AI ready" even after warmup errors; the AI button stays usable during warmup → parallel model init. Separate success/error, gate the button until warmup finishes.
 - **#3 Enforce the history memory budget.** `restore` (`canvas_history.py:81`) and `redo` (`:47`) append to the undo stack but bypass the eviction in `push` → repeated restoring grows unbounded. Use a shared trim helper and test the total budget.
 
-**Package 4 — Security** 🟡
+**Package 4 — Security (done)** 🟡
 
 - **#12 Harden the temporary Qt plugin staging.** `qt_plugins.py` (lines 26/29/48) uses a predictable path under `/private/tmp` on macOS, fixed `.tmp` files, and only a size comparison. Since executable Qt plugins are loaded from there, pre-seeding is a local code-injection vector. Use a user-specific `0700` directory, unique temp files, and a content/hash check.
 

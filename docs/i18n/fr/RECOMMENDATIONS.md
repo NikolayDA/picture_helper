@@ -23,8 +23,7 @@ Constats historiques et journaux de travail complets (séries 1–5) : [../../hi
 
 | Statut | Points |
 |--------|--------|
-| ✅ Terminé | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
-| ⬜ Ouvert | #12 |
+| ✅ Terminé | #1, #2, #3, #5, #6, #7, #8, #10, #11, #12, #13, #14, #15 |
 | ➖ Abandonné | #4 – faux positif |
 
 ---
@@ -51,7 +50,7 @@ Constats historiques et journaux de travail complets (séries 1–5) : [../../hi
 - **#7 Sérialiser le warmup rembg et l'appel IA.** `_on_warmup_done` (`main_window.py:270`) affiche « IA prête » même après des erreurs de warmup ; le bouton IA reste utilisable pendant le warmup → init du modèle en parallèle. Séparer succès/erreur et verrouiller le bouton jusqu'à la fin du warmup.
 - **#3 Appliquer le budget mémoire de l'historique.** `restore` (`canvas_history.py:81`) et `redo` (`:47`) ajoutent à la pile d'annulation mais contournent l'éviction de `push` → restaurer de façon répétée croît sans limite. Utiliser un helper de rognage commun et tester le budget total.
 
-**Paquet 4 — Sécurité** 🟡
+**Paquet 4 — Sécurité (terminé)** 🟡
 
 - **#12 Durcir la mise en scène temporaire des plugins Qt.** `qt_plugins.py` (lignes 26/29/48) utilise sous macOS un chemin prévisible dans `/private/tmp`, des fichiers `.tmp` fixes et seulement une comparaison de taille. Comme des plugins Qt exécutables y sont chargés, le pré-amorçage est un vecteur local d'injection de code. Utiliser un répertoire `0700` propre à l'utilisateur, des fichiers temporaires uniques et une vérification de contenu/hash.
 
