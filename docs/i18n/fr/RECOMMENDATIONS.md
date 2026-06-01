@@ -19,13 +19,12 @@ Revue d'une liste de recommandations soumise en externe (15 constats) face au co
 
 Constats historiques et journaux de travail complets (séries 1–5) : [../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md).
 
-### État d'avancement (vérifié le 2026-05-31)
+### État d'avancement (vérifié le 2026-06-01)
 
 | Statut | Points |
 |--------|--------|
-| ✅ Terminé | #1, #2, #8, #10, #11, #14, #15 |
-| 🟡 Partiellement terminé | #13 – cinq des six domaines de tests dynamiques demandés sont couverts ; le test du budget après restauration manque encore |
-| ⬜ Ouvert | #3, #5, #6, #7, #12 |
+| ✅ Terminé | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
+| ⬜ Ouvert | #12 |
 | ➖ Abandonné | #4 – faux positif |
 
 ---
@@ -45,7 +44,7 @@ Constats historiques et journaux de travail complets (séries 1–5) : [../../hi
 - **#14 Synchroniser CI et vérifications de doc.** `RESOURCES.md:102` et `TESTING.md:10` indiquent encore « 3.10/3.12 » (en réalité 3.10–3.13) ; `ui-nightly.yml` manque dans les listes de workflows et dans `test_resource_docs.py:35`. Vérifier aussi la liste des workflows et la matrice Python.
 - **#15 Faire de la CI de release une vraie barrière.** `ci.yml` ne lance la matrice complète que sur `release: published` (trop tard comme barrière) ; `ui-nightly.yml:18` `continue-on-error: true` masque les échecs. Ajouter un run candidat par tag/pré-release et faire remonter visiblement les échecs nocturnes.
 
-**Paquet 3 — Substance avec mesure** 🟠
+**Paquet 3 — Substance avec mesure (terminé)** 🟠
 
 - **#5 Ne pas réallouer l'overlay à chaque mouvement du pinceau.** `_refresh_overlay` (`canvas.py:263`) → `mask_to_overlay` construit un overlay RGBA complet (40 MP ≈ 160 Mio) — même pour un masque vide et à chaque mouvement de souris. Le créer paresseusement, mettre à jour une région sale ou regrouper les événements.
 - **#6 Borner la baguette magique, la rendre annulable, la mesurer.** `flood_fill` (`image_utils.py:48`) fait croître la région en Python ; mesuré ≈ 3,3 s à 2,25 MP (→ secondes à deux chiffres à 40 MP). Ajouter une implémentation scanline/native (p. ex. `scipy.ndimage.label`) et un chemin d'annulation.
