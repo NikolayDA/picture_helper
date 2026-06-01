@@ -10,12 +10,10 @@ import sys
 
 from PIL import Image
 
-# Zentraler App-Logger. Sub-Module dürfen den hier importieren oder einen
-# eigenen ``logger = logging.getLogger(__name__)`` führen – letzteres ist
-# in neuem Code zu bevorzugen, weil es Log-Filter pro Modul ermöglicht,
-# ohne die zentrale "BgRemover"-Konfiguration anzufassen. Eine
-# durchgängige Migration ist ausdrücklich Folge-PR-Material, kein
-# Big-Bang im selben Commit.
+# Zentraler App-Logger. Sub-Module importieren ihn direkt, damit ihre Meldungen
+# in den von ``logging_config`` eingerichteten Support-Handlern landen. Falls
+# später modulspezifische Filter nötig werden, können Kind-Logger unterhalb von
+# ``BgRemover`` verwendet werden.
 logger = logging.getLogger("BgRemover")
 
 LOG_FILENAME = "bgremover.log"

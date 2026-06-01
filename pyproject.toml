@@ -90,8 +90,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # Bewusst kompakter Stil (Mehrfach-Statements mit Semikolons, einzelne
-# kurze Schleifenvariablen wie `l`/`b`). Der Stil ist mit dem Code aus
-# dem ehemaligen Monolithen ins Paket gewandert (Runde 5, Phase B).
+# kurze Schleifenvariablen wie `l`/`b`).
 "bgremover/*.py" = ["E702", "E741"]
 # conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
 "tests/conftest.py" = ["E402"]
@@ -104,11 +103,8 @@ ignore_missing_imports = true
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass
 # Namen/Importe/Signaturen grundsätzlich konsistent sind.
 check_untyped_defs = false
-# Alle ehemals via `disable_error_code` deaktivierten Fehlerklassen sind
-# inzwischen aktiviert (RECOMMENDATIONS Runde 4 #4 abgeschlossen):
-# `index`, `operator`, `arg-type`, `attr-defined`, `assignment`,
-# `func-returns-value`, `override`, `union-attr`. Es bleibt nur
-# `check_untyped_defs = false` als pragmatischer Qt-Rauschdaempfer.
+# Es bleibt nur `check_untyped_defs = false` als pragmatischer
+# Qt-Rauschdaempfer; Fehlerklassen werden nicht pauschal deaktiviert.
 
 # Qt-arme Logikmodule sollen strenger geprueft werden: hier wuerde
 # `check_untyped_defs = false` echte Luecken verstecken. Die Module

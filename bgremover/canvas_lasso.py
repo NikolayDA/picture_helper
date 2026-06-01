@@ -1,7 +1,7 @@
 """Polygon-Lasso-Interaktion für ``ImageCanvas``.
 
 Kapselt Zustand + Overlay-Objekte des Lasso-Werkzeugs, damit ``canvas.py``
-als nächste Refaktor-Phase weniger Zuständigkeiten trägt.
+weniger Zuständigkeiten trägt.
 """
 from __future__ import annotations
 

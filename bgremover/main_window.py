@@ -293,8 +293,8 @@ class MainWindow(QMainWindow):
         # Eine noch laufende Zauberstab-Berechnung gehört zum alten Bild –
         # abbrechen, damit sie keine CPU mehr verbrennt. Das Canvas-Gate
         # ``_wand_busy`` setzt ``apply_loaded_image`` → ``_reset_transient_state``
-        # zurück; ohne diesen Cancel liefe der Worker bis zum Ende durch und
-        # blockierte den Zauberstab auf dem neuen Bild.
+        # zurück. Der Cancel verhindert zusätzlich unnötige Arbeit und gibt den
+        # Controller für den nächsten Zauberstab-Klick möglichst schnell frei.
         self._worker_controller.cancel_flood_fill()
         self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
         self._worker_controller.start_image_load(
