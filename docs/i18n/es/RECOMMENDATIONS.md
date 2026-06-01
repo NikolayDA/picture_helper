@@ -19,13 +19,12 @@ Revisión de una lista de recomendaciones enviada externamente (15 hallazgos) co
 
 Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md).
 
-### Estado de finalización (comprobado el 2026-05-31)
+### Estado de finalización (comprobado el 2026-06-01)
 
 | Estado | Puntos |
 |--------|--------|
-| ✅ Hecho | #1, #2, #8, #10, #11, #14, #15 |
-| 🟡 Hecho parcialmente | #13 – están cubiertas cinco de las seis áreas de tests dinámicos solicitadas; aún falta el test del presupuesto tras restaurar |
-| ⬜ Abierto | #3, #5, #6, #7, #12 |
+| ✅ Hecho | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
+| ⬜ Abierto | #12 |
 | ➖ Descartado | #4 – falso positivo |
 
 ---
@@ -45,7 +44,7 @@ Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../hi
 - **#14 Sincronizar CI y comprobaciones de documentación.** `RESOURCES.md:102` y `TESTING.md:10` aún dicen «3.10/3.12» (en realidad 3.10–3.13); `ui-nightly.yml` falta en las listas de workflows y en `test_resource_docs.py:35`. Comprobar también la lista de workflows y la matriz de Python.
 - **#15 Convertir la CI de release en una verdadera puerta.** `ci.yml` ejecuta la matriz completa solo en `release: published` (demasiado tarde como puerta); `ui-nightly.yml:18` `continue-on-error: true` enmascara fallos. Añadir una ejecución candidata por tag/pre-release y dejar que los fallos nocturnos escalen de forma visible.
 
-**Paquete 3 — Sustancia con medición** 🟠
+**Paquete 3 — Sustancia con medición (hecho)** 🟠
 
 - **#5 No reasignar el overlay en cada movimiento del pincel.** `_refresh_overlay` (`canvas.py:263`) → `mask_to_overlay` construye un overlay RGBA completo (40 MP ≈ 160 MiB), incluso con máscara vacía y en cada movimiento del ratón. Crearlo de forma diferida, actualizar una región sucia o agrupar eventos.
 - **#6 Acotar la varita mágica, hacerla cancelable, medirla.** `flood_fill` (`image_utils.py:48`) hace crecer la región en Python; medido ≈ 3,3 s a 2,25 MP (→ segundos de dos cifras a 40 MP). Añadir una implementación scanline/nativa (p. ej. `scipy.ndimage.label`) y una ruta de cancelación.

@@ -19,13 +19,12 @@
 
 第 1–5 轮的完整历史发现与工作日志：[../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md)。
 
-### 完成状态（核对日期：2026-05-31）
+### 完成状态（核对日期：2026-06-01）
 
 | 状态 | 条目 |
 |------|------|
-| ✅ 已完成 | #1, #2, #8, #10, #11, #14, #15 |
-| 🟡 部分完成 | #13 – 要求的六类动态测试中已有五类覆盖；恢复后的内存预算测试仍缺失 |
-| ⬜ 待处理 | #3, #5, #6, #7, #12 |
+| ✅ 已完成 | #1, #2, #3, #5, #6, #7, #8, #10, #11, #13, #14, #15 |
+| ⬜ 待处理 | #12 |
 | ➖ 已放弃 | #4 – 误报 |
 
 ---
@@ -45,7 +44,7 @@
 - **#14 同步 CI 与文档检查。** `RESOURCES.md:102` 和 `TESTING.md:10` 仍写「3.10/3.12」（实际为 3.10–3.13）；`ui-nightly.yml` 未出现在 workflow 列表和 `test_resource_docs.py:35` 中。也应检查 workflow 列表和 Python 矩阵。
 - **#15 让 release CI 成为真正的关卡。** `ci.yml` 仅在 `release: published` 时跑完整矩阵（作为关卡太晚）；`ui-nightly.yml:18` 的 `continue-on-error: true` 掩盖了失败。增加 tag/预发布候选运行，并让 nightly 失败可见地升级。
 
-**包 3 — 需测量的实质改进** 🟠
+**包 3 — 需测量的实质改进（已完成）** 🟠
 
 - **#5 不要在每次画笔移动时重建 overlay。** `_refresh_overlay`（`canvas.py:263`）→ `mask_to_overlay` 构建完整 RGBA overlay（40 MP ≈ 160 MiB）——即使掩码为空、即使每次鼠标移动。改为惰性构建、更新脏区域或合并事件。
 - **#6 限制魔棒、使其可取消、做基准测试。** `flood_fill`（`image_utils.py:48`）在 Python 层扩张区域；实测 2.25 MP 约 3.3 秒（→ 40 MP 为两位数秒）。引入扫描线/原生实现（如 `scipy.ndimage.label`）并加上取消路径。
