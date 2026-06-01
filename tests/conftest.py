@@ -114,3 +114,23 @@ def _no_rembg_warmup(monkeypatch):
         bgremover.MainWindow, "_start_rembg_warmup",
         lambda self: None, raising=False,
     )
+
+
+@pytest.fixture(autouse=True)
+def _auto_confirm_discard(monkeypatch):
+    """Neutralisiert die „Ungespeicherte Änderungen"-Nachfrage in allen Tests.
+
+    ``MainWindow`` fragt vor dem Schließen/Bildwechsel bei ungespeicherten
+    Änderungen per modalem ``QMessageBox`` nach – das würde headless ohne
+    Klick eine eigene Event-Loop starten und den Testlauf blockieren. Hier
+    zentral auf „fortfahren" (True) gesetzt, damit bestehende Tests wie
+    bisher schließen/laden. Tests, die das Verhalten gezielt prüfen,
+    überschreiben den Patch auf Instanzebene. ``raising=False``: greift auch,
+    falls die Methode umbenannt wird, ohne stillschweigend zu brechen.
+    """
+    import bgremover
+
+    monkeypatch.setattr(
+        bgremover.MainWindow, "_confirm_discard_changes",
+        lambda self: True, raising=False,
+    )
