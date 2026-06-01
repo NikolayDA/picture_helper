@@ -2,8 +2,8 @@
 # shellcheck shell=bash
 # BgRemover – Doppelklick-Starter
 # Dieses Script öffnet BgRemover direkt aus dem Finder (Terminalfenster).
-# Seit Runde 5 (Phase B) ist BgRemover ein installierbares Paket
-# (`bgremover/`); das Script startet das Programm via `python3 -m bgremover`.
+# BgRemover ist als Paket (`bgremover/`) installiert; das Script startet
+# das Programm via `python3 -m bgremover`.
 #
 # Hinweis Linter: Wir laufen unter zsh (macOS-Default), nutzen aber nur
 # Syntax, die in bash und zsh identisch funktioniert – daher shell=bash
