@@ -225,6 +225,33 @@ def test_cancel_pending_wand_when_idle_is_noop(qapp):
     assert msgs == []
 
 
+def test_apply_loaded_image_resets_pending_wand(qapp):
+    """Bildwechsel während laufender Zauberstab-Berechnung darf das
+    ``_wand_busy``-Gate nicht hängen lassen – sonst bliebe der Zauberstab auf
+    dem neuen Bild blockiert, bis der alte Worker fertig ist. Ein verspätet
+    eintreffendes Ergebnis des alten Workers wird sauber ignoriert.
+    """
+    c = _canvas()
+    c._handle_tool_press(5, 5, NO_MOD)   # setzt _wand_busy
+    assert c._wand_busy
+    c.apply_loaded_image(Image.new("RGBA", (20, 20), (9, 9, 9, 255)), "neu.png")
+    assert c._wand_busy is False
+    # Verspätetes Ergebnis des alten Workers: dank _wand_busy-Guard ignoriert.
+    c.apply_wand_result(np.ones((20, 20), dtype=bool))
+    assert not c._mask.any()
+
+
+def test_restore_original_resets_pending_wand(qapp):
+    """Auch ``restore_original`` läuft durch ``_reset_transient_state`` und
+    muss ein hängendes ``_wand_busy`` lösen."""
+    c = _canvas()
+    c.apply_edit(Image.new("RGBA", (20, 20), (5, 5, 5, 255)), desc="edit")
+    c._handle_tool_press(5, 5, NO_MOD)
+    assert c._wand_busy
+    c.restore_original()
+    assert c._wand_busy is False
+
+
 # ── _handle_tool_press ─────────────────────────────────────────────────
 
 def test_handle_tool_press_wand_in_bounds_starts_request(qapp):
