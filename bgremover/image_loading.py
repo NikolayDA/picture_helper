@@ -14,6 +14,13 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS
 
 
+def _too_large_message(mp: float | None = None) -> str:
+    """Einheitliche „Bild zu groß"-Meldung – mit Megapixel-Angabe, wenn bekannt."""
+    if mp is None:
+        return f"Bild zu groß – Maximum: {_MAX_MEGAPIXELS} MP"
+    return f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP"
+
+
 def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     """Open *path*, validate it, and return ``(rgba_image, None)`` on success.
 
@@ -28,6 +35,14 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     try:
         with Image.open(path) as probe:
             probe.verify()
+    except Image.DecompressionBombError:
+        # Pillow lehnt Bilder über 2× MAX_IMAGE_PIXELS bereits hier ab –
+        # noch bevor die Megapixel-Prüfung unten greift. DecompressionBombError
+        # ist KEINE OSError-Subklasse und entkäme sonst dem except-Tupel
+        # (im synchronen load_image-Pfad als ungefangene Exception). Auf
+        # dieselbe nutzerfreundliche „zu groß"-Meldung abbilden statt den
+        # rohen DOS-Schutz-Text durchzureichen.
+        return None, _too_large_message()
     except (UnidentifiedImageError, SyntaxError, OSError) as e:
         return None, f"{type(e).__name__}: {e}"
 
@@ -37,9 +52,10 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
             return None, f"Format nicht unterstützt: {img.format}"
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
-            return None, (
-                f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP")
+            return None, _too_large_message(mp)
         img.load()
+    except Image.DecompressionBombError:
+        return None, _too_large_message()
     except (UnidentifiedImageError, OSError) as e:
         return None, f"{type(e).__name__}: {e}"
 

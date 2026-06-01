@@ -130,6 +130,27 @@ def test_load_image_without_exif_keeps_orientation(qapp, tmp_path):
     assert canvas.image.size == (30, 15)
 
 
+def test_load_image_handles_decompression_bomb(qapp, tmp_path, monkeypatch):
+    """Der synchrone ``load_image``-Pfad (Drag&Drop/öffentliche API) darf bei
+    einem Bomb-Bild nicht mit einer ungefangenen ``DecompressionBombError``
+    abstürzen, sondern muss es als Statusmeldung abweisen und kein Bild laden.
+    """
+    src = Image.new("RGB", (100, 100), (1, 2, 3))
+    p = tmp_path / "bomb.png"
+    src.save(p)
+    # 100×100 = 10 000 px > 2×5 → Pillow wirft DecompressionBombError.
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 5)
+
+    canvas = ImageCanvas()
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+
+    canvas.load_image(str(p))   # darf NICHT werfen
+
+    assert not canvas.has_image
+    assert any("zu groß" in m for m in msgs)
+
+
 # ── A4: TIFF-Speichern mit Transparenz ──────────────────────────────────
 
 def test_save_tiff_keeps_alpha(qapp, tmp_path):
