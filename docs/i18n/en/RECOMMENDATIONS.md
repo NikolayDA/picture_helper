@@ -44,7 +44,7 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **O1 🟠 — App localization.** The UI is hardcoded German; there is no runtime i18n (no `QTranslator`/`tr()`), although the docs exist in five languages. Status messages are already centralized (`status_messages.py`). Incrementally via Qt Linguist (`.ts`) or a lightweight `QLocale` string table.
 - **O2 🟡 — Linux app / packaging.** No app bundle for Linux; launch only via `python -m bgremover` from a venv. An installable package (AppImage/Flatpak/`.deb`) for **Raspberry Pi OS** and major distributions (Debian/Ubuntu/Fedora) lowers the entry barrier for non-developers — analogous to the macOS `.app` bundle.
 - **O3 🟡 — Full CI matrix earlier.** The full matrix (Linux/macOS × 3.10–3.13) runs only on tags/release; regressions on macOS or Python 3.10/3.13 surface late. Also run it on push to `main` or as a weekly cron.
-- **O5 🟡 — UI smoke earlier in CI.** The full `ui` tests run nightly/manually; PR and Full CI run only `make pr-check`. Add a small stable UI smoke to PR/Full CI while keeping the complete UI suite nightly.
+- **O5 🟢 — Interaction smoke (qtbot) earlier in CI.** The app-start smoke (`test_app_smoke.py`) and MainWindow/widget tests already run in the PR gate; only the qtbot-driven interaction suite (`test_ui_interactions.py`) is limited to nightly via `-m 'not ui'`. Pull a small, explicitly marked subset (e.g. an `ui_smoke` marker) into PR/Full CI; the full qtbot suite stays nightly.
 
 **✅ Done since this round (PR #146):** O4 — single-key tool switching (`W`/`B`/`E`/`L`) with synchronized toolbar state; O6 — tooltips emit `Cmd`/`Ctrl` per platform via `_shortcut_label()`. Regression test `test_tool_shortcuts.py`.
 
