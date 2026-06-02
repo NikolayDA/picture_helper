@@ -51,6 +51,38 @@ def test_rotate_free_angle_expands_canvas(qapp):
     assert w > 40 and h > 20            # Expand verhindert Abschneiden
 
 
+def test_rotate_rejected_when_result_exceeds_pixel_limit(qapp, monkeypatch):
+    """N2: Eine schräge Drehung, deren expandiertes Ergebnis das
+    Megapixel-Limit überschreitet, wird abgelehnt – das Bild bleibt
+    unverändert und der Nutzer sieht eine „zu groß"-Meldung. Ohne dieses
+    Gate griffe der Megapixel-Schutz nur beim Laden, nicht auf dem
+    Rotationsergebnis (das schräg bis ~2× aufblähen kann).
+    """
+    import bgremover.canvas_transform as ct
+    monkeypatch.setattr(ct, "_MAX_MEGAPIXELS", 0.001)   # Limit: 1000 px
+
+    c = _canvas(size=(40, 20))           # 45° ⇒ ~43×43 ≈ 1849 px > Limit
+    before = _canvas_image(c).size
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+
+    c.apply_rotate(45)
+
+    assert _canvas_image(c).size == before           # nicht gedreht
+    assert any("zu groß" in m for m in msgs)
+
+
+def test_rotate_quarter_turn_unaffected_by_pixel_limit(qapp, monkeypatch):
+    """90°-Drehung vergrößert die Fläche nicht und darf daher auch unter einem
+    knappen Limit nicht abgelehnt werden – nur schräge Drehungen expandieren."""
+    import bgremover.canvas_transform as ct
+    monkeypatch.setattr(ct, "_MAX_MEGAPIXELS", 0.001)   # Limit: 1000 px
+
+    c = _canvas(size=(40, 20))           # 90° ⇒ 20×40 = 800 px < Limit
+    c.apply_rotate(90)
+    assert _canvas_image(c).size == (20, 40)          # gedreht
+
+
 def test_rotate_without_image_is_noop(qapp):
     c = ImageCanvas()
     c.apply_rotate(90)                  # darf nicht crashen

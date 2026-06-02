@@ -44,7 +44,7 @@
 - **O1 🟠 — 应用本地化。** UI 硬编码为德语；没有运行时 i18n（无 `QTranslator`/`tr()`），尽管文档已有五种语言。状态消息已集中（`status_messages.py`）。可逐步通过 Qt Linguist（`.ts`）或轻量的 `QLocale` 字符串表实现。
 - **O2 🟡 — Linux 应用 / 打包。** 没有 Linux 的应用包；仅能通过 venv 中的 `python -m bgremover` 启动。为 **Raspberry Pi OS** 和主流发行版（Debian/Ubuntu/Fedora）提供可安装包（AppImage/Flatpak/`.deb`），可降低非开发者的上手门槛——类似 macOS 的 `.app` 包。
 - **O3 🟡 — 更早运行完整 CI 矩阵。** 完整矩阵（Linux/macOS × 3.10–3.13）仅在 tag/release 时运行；macOS 或 Python 3.10/3.13 的回归发现得太晚。应同时在推送到 `main` 时或每周 cron 运行。
-- **O5 🟡 — 更早在 CI 中运行 UI smoke。** 完整 `ui` 测试只在 nightly/手动运行；PR CI 和 Full CI 只执行 `make pr-check`。在 PR/Full CI 中加入小而稳定的 UI smoke，完整 UI 套件继续 nightly。
+- **O5 🟢 — 交互 smoke（qtbot）更早进入 CI。** 应用启动 smoke（`test_app_smoke.py`）和 MainWindow/控件测试已在 PR gate 中运行；仅 qtbot 驱动的交互套件（`test_ui_interactions.py`）经由 `-m 'not ui'` 限定为 nightly。将一个小而明确标记的子集（如 `ui_smoke` 标记）引入 PR/Full CI；完整的 qtbot 套件保留在 nightly。
 
 **✅ 本轮起已完成（PR #146）：** O4 — 单键切换工具（`W`/`B`/`E`/`L`）并同步 toolbar 状态；O6 — tooltips 通过 `_shortcut_label()` 按平台显示 `Cmd`/`Ctrl`。回归测试 `test_tool_shortcuts.py`。
 
