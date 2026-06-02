@@ -220,13 +220,14 @@ class ImageCanvas(QGraphicsView):
     # ── Laden ────────────────────────────────────────────────
 
     def load_image(self, path: str) -> None:
-        """Synchroner Lade-Pfad – wird vom Drop-Event und von Tests genutzt.
+        """Synchroner Lade-Pfad – wird von direkten Aufrufern und Tests genutzt.
 
-        Für den File-Dialog läuft der gleiche Vorgang in einem Worker
-        (siehe ``MainWindow._load_image_async`` + ``apply_loaded_image``).
-        Beide Pfade nutzen denselben Validierungs-Helfer, damit
-        Format-Whitelist, ``verify()`` und Megapixel-Schutz nicht nur dem
-        Worker zugutekommen.
+        Die interaktiven Pfade (Datei-Dialog, Drag & Drop, Zuletzt geöffnet)
+        laufen dagegen asynchron im Worker (``dropEvent`` emittiert
+        ``loadRequested`` → ``MainWindow._load_image_async`` →
+        ``apply_loaded_image``). Beide Pfade nutzen denselben
+        Validierungs-Helfer, damit Format-Whitelist, ``verify()`` und
+        Megapixel-Schutz nicht nur dem Worker zugutekommen.
         """
         img, err = open_validated_image(path)
         if err is not None:
