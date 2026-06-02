@@ -13,23 +13,27 @@
 
 ---
 
-## Aktueller Stand (2026-06-01, Review „modest-shannon")
+## Aktueller Stand (2026-06-02, Review „adoring-johnson")
 
-Tiefenprüfung der Codebasis nach v2.2 (Code, Doku, Tests). Baseline exzellent: Ruff/mypy sauber, Test-Suite grün, Coverage 88 %. Gefunden wurden **5 Befunde (A–E)** – alle umgesetzt, mit Regressionstests, und gemergt über **PR #135** (A, B) bzw. **PR #136** (C–E). Beleg jeweils mit Datei-/Funktionsbezug.
+Gezielte Folge-Prüfung nach „modest-shannon", Schwerpunkt Speicher-, Lade- und CI-Pfad. **8 Punkte (N1–N8):** 5 behoben mit Regressionstests – gemergt über **PR #142** (N1), **#143** (N6, N8) und **#144** (N4, N5); 2 offen (N2, N7); 1 bereits abgedeckt (N3). Baseline weiter grün: Ruff/mypy sauber, Suite grün.
 
 ### Erledigungsstand
 
 | Status | Punkte |
 |--------|--------|
-| ✅ Erledigt | A, B, C, D, E |
+| ✅ Erledigt | N1, N4, N5, N6, N8 |
+| ⏳ Offen | N2, N7 |
 
 ### Befunde
 
-- **A 🟠 — `DecompressionBombError` abfangen.** `image_loading.py` fing Pillows `DecompressionBombError` (keine `OSError`-Subklasse) nicht ab → Bilder über 2× `MAX_IMAGE_PIXELS` (80 MP) umgingen die freundliche „zu groß"-Meldung und schlugen im synchronen `load_image`-Pfad ungefangen durch. Jetzt in beiden Öffnungs-Phasen abgefangen und auf die Standardmeldung abgebildet; der Regressionstest löst Pillows echten Bomb-Schutz aus (kein `Image.open`-Mock).
-- **B 🟡 — Zauberstab-Lebenszyklus beim Bildwechsel.** `_reset_transient_state` (`canvas.py`) setzte `_wand_busy` nicht zurück, und `_load_image_async` (`main_window.py`) brach den Flood-Fill nicht ab – asymmetrisch zu `cancel_ai()`. Folge: der Zauberstab blieb nach Bildwechsel/Restore blockiert, dazu verschwendete CPU. Zentraler Flag-Reset + `cancel_flood_fill()` beim Laden.
-- **C 🟡 — Logging-Isolation.** `_setup_logging` (`logging_config.py`) nutzte `basicConfig(force=True)` am Root → Fremd-Logs (rembg/onnxruntime/Pillow) landeten in der Support-Logdatei, Fremd-Handler wurden abgerissen. Jetzt benannter `BgRemover`-Logger mit eigenen Handlern (`propagate=False`).
-- **D 🟢 — Test-Altlasten.** `test_static_checks.py` suchte den entfernten Monolithen `BgRemover.py` und trug irreführende `#N`-Marken (historische Runden ≠ aktuelle Nummerierung). Monolith-Zweig entfernt, Herkunft im Docstring klargestellt.
-- **E 🟢 — i18n-Sicherheitsnetz.** Die Soft-Drift-Prüfung deckte nur 3 von 8 übersetzten Docs ab. `WATCHED_DOCS` auf alle 8 erweitert (alle aktuell strukturell synchron).
+- **N1 🟠 — Zauberstab-Gate im Fehlerpfad freigeben** (PR #142). Folgebefund zu „modest-shannon"-B: Beim Bildwechsel bricht `_load_image_async` den Flood-Fill ab, der dann weder `finished` noch `error` emittiert. Der Gate-Reset lief nur über den Erfolgspfad (`apply_loaded_image`) – schlug das Laden fehl, blieb `_wand_busy` gesetzt und der Zauberstab auf dem alten Bild blockiert. Neue stille `reset_pending_wand()` direkt neben `cancel_flood_fill()`.
+- **N2 🟡 — Rotations-Größenlimit** (offen). `rotate_image` (`image_ops.py`) dreht mit `expand=True`; der Megapixel-Schutz greift nur beim Laden (`Image.MAX_IMAGE_PIXELS`), nicht auf dem Ergebnis. Eine knapp zulässige Vorlage kann sich bei ~45° auf ~2× aufblähen – Speicherspitze ohne Gate.
+- **N3 ➖ — History-Speicherbudget** (bereits abgedeckt). `CanvasHistory` (`canvas_history.py`) erzwingt das Undo-Budget längst über `_trim()`/`_UNDO_MEMORY_LIMIT`, Redo ist über `_REDO_MAX_ENTRIES` gedeckelt. Kein Handlungsbedarf.
+- **N4 🟢 — Endungs-Ehrlichkeit beim Speichern** (PR #144). `save_image_file` schrieb für unbekannte Endungen still PNG-Bytes; jetzt klare `ValueError`-Ablehnung, leere Endung bleibt PNG-Default.
+- **N5 🟡 — Atomares Speichern** (PR #144). Direktes Schreiben ans Ziel zerstörte bei Abbruch die vorhandene Datei. Jetzt `mkstemp` → `os.replace` im Zielverzeichnis (Muster wie `qt_plugins._copy_if_needed`), mit Rechte-Erhalt und temp-Aufräumen.
+- **N6 🟡 — `libgl1` in CI-Vollmatrix + Drift-Test** (PR #143). Die Vollmatrix installierte `libgl1` nicht (anders als die übrigen Qt-Paketquellen) → `import PyQt6` riskierte `libGL.so.1`. Ergänzt; neuer `test_ci_qt_packages.py` hält alle vier Paketlisten konsistent.
+- **N7 🟢 — Eager-Imports** (offen). `workers.py` importiert `rembg` (zieht onnxruntime) auf Modulebene; da `main_window` `workers` lädt, fallen die Importkosten schon beim Start an – auch ohne KI-Nutzung. Lazy-Import + `find_spec`-Probe für `REMBG_AVAILABLE`.
+- **N8 🟢 — Veralteter `load_image`-Docstring** (PR #143). Nannte den Drop-Pfad als synchronen Aufrufer, obwohl Drag & Drop längst asynchron läuft. Korrigiert.
 
 ---
 
@@ -44,8 +48,9 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 
 ---
 
-## Vorige Runde (v2.2, „admiring-mayer")
+## Vorige Runden
 
-Externe 15-Punkte-Liste gegen die Codebasis geprüft: **#1–#15 erledigt, #4 verworfen** (Fehlalarm). Details in den gemergten PRs und im Archiv.
+- **2026-06-01, „modest-shannon" (A–E)** — 5 Befunde, alle erledigt (PR #135/#136); u. a. Decompression-Bomb-Handling und der Zauberstab-Lebenszyklus, den N1 nun im Fehlerpfad vervollständigt.
+- **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, #1–#15 erledigt, #4 verworfen (Fehlalarm).
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
