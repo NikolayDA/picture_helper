@@ -48,10 +48,10 @@ class SelectionTab:
         hint_lay.setContentsMargins(10, 8, 10, 8)
         hint_lay.setSpacing(3)
         for icon_name, txt in [
-            ("wand",   "Zauberstab — Farbfläche auswählen"),
-            ("brush",  "Pinsel — Auswahl aufmalen"),
-            ("eraser", "Radiergummi — Auswahl entfernen"),
-            ("lasso",  "Polygon-Lasso — Punkte klicken, Doppelklick abschließen"),
+            ("wand",   "Zauberstab (W) — Farbfläche auswählen"),
+            ("brush",  "Pinsel (B) — Auswahl aufmalen"),
+            ("eraser", "Radiergummi (E) — Auswahl entfernen"),
+            ("lasso",  "Polygon-Lasso (L) — Punkte klicken, Doppelklick abschließen"),
         ]:
             hint_lay.addWidget(_make_icon_row(icon_name, txt, "#7aacdd", 11))
         hint_lay.addWidget(_make_hdivider())
@@ -96,7 +96,7 @@ class SelectionTab:
         layout.addWidget(btn_clr)
 
         btn_inv = _make_panel_btn("Auswahl invertieren", "#2a2a2a", "#c0c0c0", "#363636",
-                      "Tauscht aus- und nicht-ausgewählte Bereiche  (⌘⇧I)",
+                      f"Tauscht aus- und nicht-ausgewählte Bereiche  ({sub_mod}+Shift+I)",
                       icon_name="clear_sel")
         btn_inv.clicked.connect(lambda _=False: self._actions.invert_selection())
         layout.addWidget(btn_inv)

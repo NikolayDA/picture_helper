@@ -179,6 +179,9 @@ La barra vertical en el borde izquierdo contiene, de arriba a abajo:
 | 🧽 | **Goma** | Eliminar la selección pintada. |
 | ⬡ | **Lazo poligonal** | Haz clic en los puntos uno a uno; **doble clic** cierra el polígono. **Esc** cancela. |
 
+Cambio rápido con teclado: **W** varita, **B** pincel,
+**E** borrador, **L** lazo.
+
 Para todas las herramientas de selección:
 
 - **Shift + clic** → **añadir** a la selección
@@ -418,6 +421,10 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 
 | Acción | Atajo |
 |---|---|
+| Seleccionar varita mágica | W |
+| Seleccionar pincel | B |
+| Seleccionar borrador | E |
+| Seleccionar lazo poligonal | L |
 | Abrir imagen | ⌘O |
 | Guardar imagen | ⌘S |
 | Guardar imagen como… | ⇧⌘S |

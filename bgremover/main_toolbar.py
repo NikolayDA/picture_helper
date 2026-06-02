@@ -8,6 +8,7 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QButtonGroup, QFrame, QToolButton, QVBoxLayout
 
 from bgremover.constants import (
+    _IS_MACOS,
     _TOOLBAR_BTN_SIZE,
     _TOOLBAR_ICON_SIZE,
     _TOOLBAR_WIDTH,
@@ -23,6 +24,10 @@ from bgremover.theme import (
     TOOLBAR_FRAME_STYLE,
     _Theme,
 )
+
+
+def _shortcut_label(shortcut: str) -> str:
+    return shortcut.replace("Ctrl", "Cmd" if _IS_MACOS else "Ctrl")
 
 
 @dataclass(frozen=True)
@@ -78,30 +83,31 @@ class _ToolbarBuilder:
             lay,
             button_group,
             "wand",
-            "Zauberstab\nKlick wählt Farbfläche (Flood Fill)\n"
-            "Shift = addieren  ·  Ctrl = subtrahieren",
+            "Zauberstab  (W)\nKlick wählt Farbfläche (Flood Fill)\n"
+            f"Shift = addieren  ·  {_shortcut_label('Ctrl')} = subtrahieren",
             TOOL_WAND,
         )
         btn_brush = self._tool_button(
             lay,
             button_group,
             "brush",
-            "Pinsel\nBereiche manuell zur Auswahl hinzufügen",
+            "Pinsel  (B)\nBereiche manuell zur Auswahl hinzufügen",
             TOOL_BRUSH,
         )
         btn_eraser = self._tool_button(
             lay,
             button_group,
             "eraser",
-            "Radiergummi\nAuswahl-Bereiche wieder entfernen",
+            "Radiergummi  (E)\nAuswahl-Bereiche wieder entfernen",
             TOOL_ERASER,
         )
         btn_lasso = self._tool_button(
             lay,
             button_group,
             "lasso",
-            "Polygon-Lasso\nKlicken setzt Punkte · Doppelklick schließt Polygon\n"
-            "Shift = addieren  ·  Ctrl = subtrahieren  ·  Esc = abbrechen",
+            "Polygon-Lasso  (L)\nKlicken setzt Punkte · Doppelklick schließt Polygon\n"
+            f"Shift = addieren  ·  {_shortcut_label('Ctrl')} = subtrahieren"
+            "  ·  Esc = abbrechen",
             TOOL_LASSO,
         )
         btn_wand.setChecked(True)
@@ -127,13 +133,14 @@ class _ToolbarBuilder:
         self._history_button(
             lay,
             "undo",
-            "Rückgängig  (Cmd+Z)\nLetzten Bearbeitungsschritt rückgängig machen",
+            f"Rückgängig  ({_shortcut_label('Ctrl+Z')})\n"
+            "Letzten Bearbeitungsschritt rückgängig machen",
             self._actions.undo,
         )
         self._history_button(
             lay,
             "redo",
-            "Wiederherstellen  (Cmd+Shift+Z)\n"
+            f"Wiederherstellen  ({_shortcut_label('Ctrl+Shift+Z')})\n"
             "Letzten rückgängig gemachten Schritt wiederherstellen",
             self._actions.redo,
         )
@@ -153,8 +160,12 @@ class _ToolbarBuilder:
 
         lay.addStretch()
 
-        self._mini_button(lay, "open", "Bild öffnen  (Cmd+O)", self._actions.open_image)
-        self._mini_button(lay, "save", "Bild speichern  (Cmd+S)", self._actions.save)
+        self._mini_button(
+            lay, "open", f"Bild öffnen  ({_shortcut_label('Ctrl+O')})",
+            self._actions.open_image)
+        self._mini_button(
+            lay, "save", f"Bild speichern  ({_shortcut_label('Ctrl+S')})",
+            self._actions.save)
 
         return Toolbar(
             frame=frame,
