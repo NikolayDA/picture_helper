@@ -13,23 +13,27 @@
 
 ---
 
-## 当前状态（2026-06-01，"modest-shannon" 评审）
+## 当前状态（2026-06-02，"adoring-johnson" 评审）
 
-针对 v2.2 之后的代码库（代码、文档、测试）进行了深入审查。基线良好：ruff/mypy 干净、测试套件通过、覆盖率 88%。共发现 **5 项（A–E）**——均已实现并带回归测试，通过 **PR #135**（A、B）与 **PR #136**（C–E）合并。证据以文件/函数引用给出。
+在 "modest-shannon" 之后的针对性跟进评审，聚焦保存、加载与 CI 路径。**共 8 项（N1–N8）：** 5 项已修复并带回归测试，通过 **PR #142**（N1）、**#143**（N6、N8）与 **#144**（N4、N5）合并；2 项待办（N2、N7）；1 项已覆盖（N3）。基线仍为绿色：ruff/mypy 干净、测试套件通过。
 
 ### 完成状态
 
 | 状态 | 条目 |
 |------|------|
-| ✅ 已完成 | A, B, C, D, E |
+| ✅ 已完成 | N1, N4, N5, N6, N8 |
+| ⏳ 待办 | N2, N7 |
 
 ### 发现的问题
 
-- **A 🟠 — 捕获 `DecompressionBombError`。** `image_loading.py` 未捕获 Pillow 的 `DecompressionBombError`（它不是 `OSError` 的子类）→ 超过 2× `MAX_IMAGE_PIXELS`（80 MP）的图像绕过了友好的"过大"提示，并在同步 `load_image` 路径上未被捕获地抛出。现已在两个打开阶段捕获并映射到标准提示；回归测试触发 Pillow 真实的炸弹防护（不再 mock `Image.open`）。
-- **B 🟡 — 换图时的魔棒生命周期。** `_reset_transient_state`（`canvas.py`）未重置 `_wand_busy`，且 `_load_image_async`（`main_window.py`）未取消 flood fill——与 `cancel_ai()` 不对称。结果：换图/还原后魔棒被阻塞，并浪费 CPU。现集中重置标志并在加载时调用 `cancel_flood_fill()`。
-- **C 🟡 — 日志隔离。** `_setup_logging`（`logging_config.py`）在根 logger 上使用 `basicConfig(force=True)` → 第三方日志（rembg/onnxruntime/Pillow）混入支持用日志文件，并清除了外部 handler。现改为带自有 handler 的具名 `BgRemover` logger（`propagate=False`）。
-- **D 🟢 — 测试遗留物。** `test_static_checks.py` 仍探测已删除的单体 `BgRemover.py`，并带有误导性的 `#N` 标记（历史轮次 ≠ 当前编号）。已移除单体分支，并在 docstring 中澄清来源。
-- **E 🟢 — i18n 安全网。** 软漂移检查只覆盖 8 个翻译文档中的 3 个。`WATCHED_DOCS` 已扩展到全部 8 个（目前结构均同步）。
+- **N1 🟠 — 在错误路径上释放魔棒闸门**（PR #142）。承接 "modest-shannon" B：换图时 `_load_image_async` 取消 flood fill，而后者既不发 `finished` 也不发 `error`。闸门重置只走成功路径（`apply_loaded_image`）——若加载失败，`_wand_busy` 仍置位，魔棒被旧图阻塞。新增静默的 `reset_pending_wand()`，紧挨 `cancel_flood_fill()`。
+- **N2 🟡 — 旋转尺寸限制**（待办）。`rotate_image`（`image_ops.py`）以 `expand=True` 旋转；兆像素保护只在加载时生效（`Image.MAX_IMAGE_PIXELS`），不作用于结果。一张刚好不超限的图在 ~45° 时可膨胀到约 2×——没有闸门的内存峰值。
+- **N3 ➖ — 历史内存预算**（已覆盖）。`CanvasHistory`（`canvas_history.py`）早已通过 `_trim()`/`_UNDO_MEMORY_LIMIT` 强制撤销预算，重做由 `_REDO_MAX_ENTRIES` 封顶。无需处理。
+- **N4 🟢 — 保存时的扩展名诚实**（PR #144）。`save_image_file` 曾对未知扩展名静默写入 PNG 字节；现以 `ValueError` 明确拒绝，而空扩展名仍默认 PNG。
+- **N5 🟡 — 原子保存**（PR #144）。直接写入目标会在中断时损坏既有文件。现改为在目标目录中 `mkstemp` → `os.replace`（即 `qt_plugins._copy_if_needed` 的模式），保留权限并清理临时文件。
+- **N6 🟡 — 完整 CI 矩阵中的 `libgl1` + 漂移测试**（PR #143）。完整矩阵未安装 `libgl1`（与其他 Qt 包来源不同）→ `import PyQt6` 可能触发 `libGL.so.1`。已补上；新的 `test_ci_qt_packages.py` 让四份包清单保持一致。
+- **N7 🟢 — 急切导入**（待办）。`workers.py` 在模块层导入 `rembg`（会拖入 onnxruntime）；由于 `main_window` 加载 `workers`，导入开销在启动时即产生——即便不使用 AI。应改为惰性导入，并用 `find_spec` 探测 `REMBG_AVAILABLE`。
+- **N8 🟢 — 过时的 `load_image` docstring**（PR #143）。它把拖放路径称作同步调用方，而拖放早已异步运行。已更正。
 
 ---
 
@@ -44,8 +48,9 @@
 
 ---
 
-## 上一轮（v2.2，"admiring-mayer"）
+## 往轮
 
-针对代码库审查了一份外部提交的 15 项清单：**#1–#15 已完成，#4 放弃**（误报）。详情见已合并的 PR 与归档。
+- **2026-06-01，"modest-shannon"（A–E）** — 5 项发现，全部完成（PR #135/#136）；其中包括解压缩炸弹处理，以及 N1 现已在错误路径上补全的魔棒生命周期。
+- **v2.2，"admiring-mayer"（#1–#15）** — 外部清单，#1–#15 完成，#4 放弃（误报）。
 
 第 1–5 轮的完整历史发现与工作日志：[../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.zh.md)。
