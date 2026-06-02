@@ -15,6 +15,7 @@ from bgremover.image_ops import (
     remove_selection,
     replace_selection,
     rotate_image,
+    rotated_size,
     round_corners,
     save_dialog_filter,
     save_image_file,
@@ -128,6 +129,37 @@ def test_rotate_and_flip_images() -> None:
 
     assert rotated.size == (2, 4)
     assert flipped.getpixel((3, 0)) == (255, 0, 0, 255)
+
+
+def test_rotated_size_quarter_turns_are_exact() -> None:
+    # 0/180/360° unverändert, 90/270/-90° vertauscht – exakt wie Pillow.
+    assert rotated_size(40, 20, 0) == (40, 20)
+    assert rotated_size(40, 20, 180) == (40, 20)
+    assert rotated_size(40, 20, 360) == (40, 20)
+    assert rotated_size(40, 20, 90) == (20, 40)
+    assert rotated_size(40, 20, 270) == (20, 40)
+    assert rotated_size(40, 20, -90) == (20, 40)
+
+
+def test_rotated_size_oblique_grows_and_is_symmetric() -> None:
+    base = rotated_size(40, 20, 45)
+    w, h = base
+    assert w > 40 and h > 20                   # schräg ⇒ Arbeitsfläche wächst
+    assert rotated_size(40, 20, -45) == base   # spiegelsymmetrisch
+    assert rotated_size(40, 20, 135) == base   # Bounding-Box ist 180°-periodisch
+
+
+@pytest.mark.parametrize("size", [(40, 20), (123, 57), (640, 480)])
+@pytest.mark.parametrize("deg", [15, 30, 45, 60, 75, 137, -30])
+def test_rotated_size_tracks_pillow_within_one_pixel(size, deg) -> None:
+    """Die Schätzung muss Pillows echte expand-Größe eng treffen und darf sie
+    nie überschreiten – sonst gatete das Megapixel-Limit am falschen Wert.
+    Pillow rundet die Eckpunkte einzeln und liegt je Achse bis ~1 px höher."""
+    w, h = size
+    ew, eh = Image.new("RGBA", (w, h)).rotate(deg, expand=True).size
+    gw, gh = rotated_size(w, h, deg)
+    assert 0 <= ew - gw <= 2
+    assert 0 <= eh - gh <= 2
 
 
 def test_crop_size_for_ratio_uses_largest_centered_crop() -> None:

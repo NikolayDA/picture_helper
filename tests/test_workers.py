@@ -1,5 +1,8 @@
 """Tests für Worker-Klassen: Fehlerpfade, Grössenvalidierung und Concurrent-Load-Schutz."""
 import io
+import os
+import subprocess
+import sys
 from unittest.mock import patch
 
 import numpy as np
@@ -384,6 +387,40 @@ def test_warmup_worker_emits_finished_on_error(qapp, _mock_rembg) -> None:
         worker.run()
 
     assert finished == [True]
+
+
+# ─────────────────────────────────────────────────────────────
+# N7 – rembg wird lazy importiert (App-Start-Latenz)
+# ─────────────────────────────────────────────────────────────
+
+def test_rembg_available_is_bool_and_lazy_loader_present() -> None:
+    """``REMBG_AVAILABLE`` stammt aus ``find_spec`` (kein teurer Import beim
+    Modul-Load); der lazy Loader ``_ensure_rembg_remove`` zieht rembg erst im
+    Worker-Thread und ist bis dahin ungebunden."""
+    from bgremover import workers
+
+    assert isinstance(workers.REMBG_AVAILABLE, bool)
+    assert callable(workers._ensure_rembg_remove)
+
+
+def test_importing_workers_does_not_eager_import_rembg() -> None:
+    """N7: Der Modul-Import von ``workers`` darf weder ``rembg`` noch
+    ``onnxruntime`` laden – sonst zahlt jeder App-Start (``main_window``
+    importiert ``workers`` für ``REMBG_AVAILABLE``) die Importkosten, auch ohne
+    KI-Nutzung. Frischer Subprozess, damit ein in anderen Tests evtl. schon
+    geladenes Modul das Ergebnis nicht verfälscht."""
+    code = (
+        "import sys, bgremover.workers; "
+        "assert 'rembg' not in sys.modules, 'rembg eager-importiert'; "
+        "assert 'onnxruntime' not in sys.modules, 'onnxruntime eager-importiert'; "
+        "print('OK')"
+    )
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+    r = subprocess.run([sys.executable, "-c", code], env=env,
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0 and "OK" in r.stdout, (
+        f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
+    )
 
 
 # ─────────────────────────────────────────────────────────────
