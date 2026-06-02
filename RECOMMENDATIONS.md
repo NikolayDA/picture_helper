@@ -43,16 +43,13 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 
 - **O1 🟠 — App-Lokalisierung.** Die UI ist hartkodiert Deutsch; es gibt keine Laufzeit-i18n (kein `QTranslator`/`tr()`), obwohl die Doku in fünf Sprachen vorliegt. Statusmeldungen liegen bereits zentral (`status_messages.py`). Schrittweise via Qt Linguist (`.ts`) oder leichtgewichtige `QLocale`-Stringtabelle.
 - **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
-- **O3 🟡 — Volle CI-Matrix früher.** Die Vollmatrix (Linux/macOS × 3.10–3.13) läuft nur bei Tags/Release; Regressionen unter macOS oder Python 3.10/3.13 fallen erst spät auf. Zusätzlich bei Push auf `main` oder als wöchentlicher Cron laufen lassen.
-- **O5 🟢 — Interaktions-Smoke (qtbot) früher in CI.** App-Start-Smoke (`test_app_smoke.py`) und MainWindow-/Widget-Tests laufen bereits im PR-Gate; nur die qtbot-gesteuerte Interaktionssuite (`test_ui_interactions.py`) ist über `-m 'not ui'` aufs Nightly beschränkt. Ein klein gehaltenes, explizit markiertes Subset (z. B. Marker `ui_smoke`) ins PR/Full-CI ziehen; die volle qtbot-Suite bleibt nightly.
-
-**✅ Erledigt seit dieser Runde (PR #146):** O4 — Ein-Tasten-Werkzeugwechsel (`W`/`B`/`E`/`L`) mit synchronisiertem Toolbar-Status; O6 — Tooltips geben über `_shortcut_label()` plattformgerecht `Cmd`/`Ctrl` aus. Regressionstest `test_tool_shortcuts.py`.
+**✅ Erledigt:** O4/O6 — Ein-Tasten-Werkzeugwechsel (`W`/`B`/`E`/`L`) & plattformgerechte `Cmd`/`Ctrl`-Hinweise (PR #146, `test_tool_shortcuts.py`); O3 — Vollmatrix zusätzlich wöchentlich per Cron (PR #149); O5 — `ui_smoke`-Subset läuft in PR/Full-CI mit, volle qtbot-Suite bleibt nightly (PR #149).
 
 ## Umsetzungsplan in PR-Paketen (ab 2026-06-02)
 
 - **PR 0 — Code-Härtung (N2 + N7).** ✅ Erledigt (PR #148). N2 — Megapixel-Gate auch auf das Rotationsergebnis (`rotated_size()` schätzt die Zielgröße vorab, `apply_rotate` lehnt über dem Limit mit Statusmeldung ab); N7 — `rembg` lazy importieren und `REMBG_AVAILABLE` per `find_spec` proben (das bestehende Warmup-Fehler-Handling deckt ein defektes Backend ab).
 - **PR 1 — Tool-Shortcuts & Shortcut-Hinweise.** ✅ Erledigt (PR #146). O4 + O6: Ein-Tasten-Wechsel (`W`/`B`/`E`/`L`), Toolbar-Checked-State synchronisiert, Tooltips/README/Anleitung aktualisiert, Regressionstest für Shortcut-Wiring.
-- **PR 2 — CI früher absichern.** O3 + O5: Full-Matrix zusätzlich wöchentlich oder auf `main`, kleiner UI-Smoke in PR/Full-CI, Nightly-UI als ausführliche Suite behalten.
+- **PR 2 — CI früher absichern.** ✅ Erledigt (PR #149). O3 — Vollmatrix zusätzlich wöchentlich (Cron); O5 — `ui_smoke`-Subset in PR/Full-CI, Nightly-UI als ausführliche Suite behalten.
 - **PR 3 — i18n-Grundgerüst.** O1 vorbereiten: Runtime-Locale/Fallback einführen, sichtbare Strings schrittweise zentralisieren, Deutsch als stabiler Default.
 - **PR 4 — i18n-Rollout.** O1 nutzbar machen: mindestens Englisch als Runtime-Sprache, danach weitere vorhandene Dokusprachen, Smoke-Checks pro Locale.
 - **PR 5 — Linux-Packaging Foundation.** O2 starten: Zielartefakt festlegen (AppImage/`.deb`/Flatpak), Desktop-Datei/Icon/AppStream-Metadaten und Linux-Build-Smoke.
