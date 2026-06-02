@@ -291,11 +291,18 @@ class MainWindow(QMainWindow):
             return
         self._worker_controller.cancel_ai()
         # Eine noch laufende Zauberstab-Berechnung gehört zum alten Bild –
-        # abbrechen, damit sie keine CPU mehr verbrennt. Das Canvas-Gate
-        # ``_wand_busy`` setzt ``apply_loaded_image`` → ``_reset_transient_state``
-        # zurück. Der Cancel verhindert zusätzlich unnötige Arbeit und gibt den
-        # Controller für den nächsten Zauberstab-Klick möglichst schnell frei.
+        # abbrechen, damit sie keine CPU mehr verbrennt, UND das Canvas-Gate
+        # ``_wand_busy`` direkt hier freigeben. Der abgebrochene Worker
+        # emittiert weder ``finished`` noch ``error`` (nur ``done`` für den
+        # Thread-Lifecycle), also setzt ihn sonst nichts zurück. Auf dem
+        # Erfolgspfad erledigt den Reset zwar ``apply_loaded_image`` →
+        # ``_reset_transient_state``; schlägt das Laden aber fehl, wird dieser
+        # Pfad nie erreicht (``_on_image_load_error`` zeigt nur die Meldung) und
+        # der Zauberstab bliebe für das weiterhin sichtbare alte Bild dauerhaft
+        # blockiert. Der stille Reset vermeidet zugleich die irreführende
+        # „Auswahl-Fehler"-Meldung von ``cancel_pending_wand``.
         self._worker_controller.cancel_flood_fill()
+        self._canvas.reset_pending_wand()
         self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
         self._worker_controller.start_image_load(
             path,
