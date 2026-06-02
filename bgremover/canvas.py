@@ -527,6 +527,21 @@ class ImageCanvas(QGraphicsView):
         self._wand_busy = False
         self.statusMsg.emit(f"Auswahl-Fehler: {msg}")
 
+    def reset_pending_wand(self) -> None:
+        """Gibt das ``_wand_busy``-Gate ohne Statusmeldung frei (stiller Abbruch).
+
+        Für den Bildwechsel über ``MainWindow._load_image_async`` gedacht: der
+        dort abgebrochene Flood-Fill-Worker emittiert weder ``finished`` (→
+        ``apply_wand_result``) noch ``error`` (→ ``cancel_pending_wand``) – nur
+        ``done`` für den Thread-Lifecycle. Ohne diese Freigabe bliebe das Gate
+        gesetzt, falls der anschließende Ladevorgang fehlschlägt und der
+        Reset über ``apply_loaded_image`` → ``_reset_transient_state`` nie
+        erreicht wird. Anders als ``cancel_pending_wand`` wird bewusst *keine*
+        „Auswahl-Fehler"-Meldung gezeigt, weil hier kein Fehler vorliegt.
+        Idempotent – ein bereits freies Gate bleibt frei.
+        """
+        self._wand_busy = False
+
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Bild; gibt ``True`` bei Erfolg zurück.
 

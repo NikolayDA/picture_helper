@@ -469,3 +469,38 @@ def test_load_image_async_cancels_running_flood_fill(qapp, monkeypatch) -> None:
         assert calls == ["flood"]
     finally:
         win.close()
+
+
+def test_load_image_async_frees_wand_gate_on_load_error(qapp, monkeypatch) -> None:
+    """N1: Schlägt das asynchrone Laden fehl, wird ``apply_loaded_image`` →
+    ``_reset_transient_state`` nie erreicht. Das ``_wand_busy``-Gate muss
+    dennoch frei werden, sonst bliebe der Zauberstab auf dem weiterhin
+    sichtbaren alten Bild blockiert. Der abgebrochene Flood-Fill-Worker
+    emittiert dafür kein Signal – die Freigabe passiert im Ladepfad selbst.
+    """
+    win = MainWindow()
+    try:
+        win._canvas.apply_loaded_image(
+            Image.new("RGBA", (8, 8), (1, 2, 3, 255)), "alt.png")
+        # Laufende Zauberstab-Berechnung simulieren.
+        win._canvas._wand_busy = True
+
+        # Ladevorgang scheitert sofort: on_error läuft, on_loaded nie.
+        def fail_load(_path, on_loaded, on_error):  # noqa: ARG001
+            on_error("Format nicht unterstützt")
+            return False
+
+        monkeypatch.setattr(
+            win._worker_controller, "start_image_load", fail_load)
+
+        win._load_image_async("/kaputt/bild.xyz")
+
+        # Gate frei → ein erneuter Zauberstab-Klick ist wieder möglich.
+        assert win._canvas._wand_busy is False
+        status_bar = win.statusBar()
+        assert status_bar is not None
+        # Nutzer sieht den Ladefehler, nicht den irreführenden Auswahl-Fehler.
+        assert "Ladefehler" in status_bar.currentMessage()
+        assert "Auswahl-Fehler" not in status_bar.currentMessage()
+    finally:
+        win.close()
