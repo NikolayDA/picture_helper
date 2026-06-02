@@ -13,23 +13,27 @@
 
 ---
 
-## État actuel (2026-06-01, revue « modest-shannon »)
+## État actuel (2026-06-02, revue « adoring-johnson »)
 
-Revue approfondie du code après la v2.2 (code, docs, tests). Base excellente : ruff/mypy propres, suite verte, couverture 88 %. **5 constats (A–E)** trouvés : tous implémentés, avec tests de régression, et fusionnés via **PR #135** (A, B) et **PR #136** (C–E). Preuve donnée avec une référence fichier/fonction.
+Revue de suivi après « modest-shannon », axée sur les chemins de sauvegarde, de chargement et de CI. **8 points (N1–N8) :** 5 corrigés avec tests de régression, fusionnés via **PR #142** (N1), **#143** (N6, N8) et **#144** (N4, N5) ; 2 ouverts (N2, N7) ; 1 déjà couvert (N3). Base toujours verte : ruff/mypy propres, suite verte.
 
 ### État d'avancement
 
 | Statut | Points |
 |--------|--------|
-| ✅ Terminé | A, B, C, D, E |
+| ✅ Terminé | N1, N4, N5, N6, N8 |
+| ⏳ Ouvert | N2, N7 |
 
 ### Constats
 
-- **A 🟠 — Intercepter `DecompressionBombError`.** `image_loading.py` n'interceptait pas le `DecompressionBombError` de Pillow (pas une sous-classe d'`OSError`) → les images au-delà de 2× `MAX_IMAGE_PIXELS` (80 MP) contournaient le message convivial « trop grande » et se propageaient sans être interceptées sur le chemin synchrone `load_image`. Désormais intercepté dans les deux phases d'ouverture et ramené au message standard ; le test de régression déclenche la vraie protection de Pillow (sans mock de `Image.open`).
-- **B 🟡 — Cycle de vie de la baguette magique au changement d'image.** `_reset_transient_state` (`canvas.py`) ne réinitialisait pas `_wand_busy`, et `_load_image_async` (`main_window.py`) n'annulait pas le flood fill : asymétrie avec `cancel_ai()`. Conséquence : la baguette restait bloquée après un changement/restauration d'image, plus du CPU gaspillé. Réinitialisation centralisée du drapeau + `cancel_flood_fill()` au chargement.
-- **C 🟡 — Isolation du logging.** `_setup_logging` (`logging_config.py`) utilisait `basicConfig(force=True)` sur la racine → des logs tiers (rembg/onnxruntime/Pillow) finissaient dans le fichier de log destiné au support, et les handlers tiers étaient arrachés. Désormais le logger nommé `BgRemover` avec ses propres handlers (`propagate=False`).
-- **D 🟢 — Reliquats de tests.** `test_static_checks.py` cherchait le monolithe `BgRemover.py` supprimé et portait des marqueurs `#N` trompeurs (séries historiques ≠ numérotation actuelle). Branche monolithe retirée, origine clarifiée dans la docstring.
-- **E 🟢 — Filet de sécurité i18n.** La vérification de dérive douce ne couvrait que 3 des 8 docs traduits. `WATCHED_DOCS` étendu aux 8 (toutes actuellement synchronisées structurellement).
+- **N1 🟠 — Libérer le verrou de la baguette magique sur le chemin d'erreur** (PR #142). Suite de « modest-shannon » B : au changement d'image, `_load_image_async` annule le flood fill, qui n'émet alors ni `finished` ni `error`. La réinitialisation du verrou ne passait que par le chemin de succès (`apply_loaded_image`) : si le chargement échouait, `_wand_busy` restait actif et la baguette bloquée sur l'ancienne image. Nouvelle `reset_pending_wand()` silencieuse juste à côté de `cancel_flood_fill()`.
+- **N2 🟡 — Limite de taille à la rotation** (ouvert). `rotate_image` (`image_ops.py`) tourne avec `expand=True` ; la protection mégapixels ne s'applique qu'au chargement (`Image.MAX_IMAGE_PIXELS`), pas au résultat. Une image juste sous la limite peut gonfler à ~2× à ~45° : un pic mémoire sans garde-fou.
+- **N3 ➖ — Budget mémoire de l'historique** (déjà couvert). `CanvasHistory` (`canvas_history.py`) impose depuis longtemps le budget d'annulation via `_trim()`/`_UNDO_MEMORY_LIMIT`, le rétablissement étant plafonné par `_REDO_MAX_ENTRIES`. Aucune action requise.
+- **N4 🟢 — Honnêteté de l'extension à l'enregistrement** (PR #144). `save_image_file` écrivait silencieusement des octets PNG pour les extensions inconnues ; désormais un rejet clair par `ValueError`, tandis qu'une extension vide reste le PNG par défaut.
+- **N5 🟡 — Enregistrement atomique** (PR #144). Écrire directement à la cible détruisait le fichier existant en cas d'interruption. Désormais `mkstemp` → `os.replace` dans le répertoire cible (le motif de `qt_plugins._copy_if_needed`), avec conservation des permissions et nettoyage du temporaire.
+- **N6 🟡 — `libgl1` dans la matrice CI complète + test de dérive** (PR #143). La matrice complète n'installait pas `libgl1` (contrairement aux autres sources de paquets Qt) → `import PyQt6` risquait `libGL.so.1`. Ajouté ; le nouveau `test_ci_qt_packages.py` garde les quatre listes de paquets cohérentes.
+- **N7 🟢 — Imports précoces** (ouvert). `workers.py` importe `rembg` (qui entraîne onnxruntime) au niveau du module ; comme `main_window` charge `workers`, le coût d'import est payé au démarrage, même sans utiliser l'IA. Import paresseux + sonde `find_spec` pour `REMBG_AVAILABLE`.
+- **N8 🟢 — Docstring obsolète de `load_image`** (PR #143). Elle nommait le chemin de drop comme appelant synchrone, alors que le glisser-déposer est asynchrone depuis longtemps. Corrigé.
 
 ---
 
@@ -44,8 +48,9 @@ Améliorations issues de la deuxième analyse, pas encore implémentées (produi
 
 ---
 
-## Série précédente (v2.2, « admiring-mayer »)
+## Séries précédentes
 
-Liste externe de 15 points vérifiée face au code : **#1–#15 terminés, #4 abandonné** (faux positif). Détails dans les PR fusionnées et l'archive.
+- **2026-06-01, « modest-shannon » (A–E)** — 5 constats, tous terminés (PR #135/#136) ; dont la gestion des bombes de décompression et le cycle de vie de la baguette que N1 complète désormais sur le chemin d'erreur.
+- **v2.2, « admiring-mayer » (#1–#15)** — liste externe, #1–#15 terminés, #4 abandonné (faux positif).
 
 Constats historiques et journaux de travail complets (séries 1–5) : [../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md).
