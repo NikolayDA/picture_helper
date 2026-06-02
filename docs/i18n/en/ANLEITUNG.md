@@ -170,6 +170,9 @@ The vertical bar on the left edge contains, from top to bottom:
 | 🧽 | **Eraser** | Remove painted selection. |
 | ⬡ | **Polygon lasso** | Click points one by one; **double-click** closes the polygon. **Esc** cancels. |
 
+Quick keyboard switching: **W** magic wand, **B** brush,
+**E** eraser, **L** lasso.
+
 For all selection tools:
 
 - **Shift + click** → **add** to selection
@@ -396,6 +399,10 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 
 | Action | Shortcut |
 |---|---|
+| Select magic wand | W |
+| Select brush | B |
+| Select eraser | E |
+| Select polygon lasso | L |
 | Open image | ⌘O |
 | Save image | ⌘S |
 | Save image as… | ⇧⌘S |

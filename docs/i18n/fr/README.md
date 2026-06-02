@@ -105,6 +105,7 @@ section Raspberry Pi dans **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 1. **Ouvrir une image** via `Fichier → Ouvrir` (⌘O) ou par glisser-déposer dans la fenêtre.
 2. **Effectuer une sélection** avec la baguette magique, le pinceau, la gomme ou le lasso polygonal (onglet *🎯 Sélection*).
    - `Maj+Clic` ajoute à la sélection ; `⌘+Clic` (macOS) ou `Ctrl+Clic` (Linux) retire.
+   - Changer d'outil au clavier : `W` baguette, `B` pinceau, `E` gomme, `L` lasso.
 3. **Modifier l'arrière-plan** (onglet *🖼 Arr.-plan*) : le rendre transparent ou remplacer la couleur — ou directement l'**IA** dans la barre d'outils.
 4. **Transformer l'image** (onglet *⟲ Trans.*) : pivoter, mettre en miroir.
 5. **Forme et recadrage** (onglet *⬤ Forme*) : arrondir les coins ou recadrer au format — déplacer/redimensionner le cadre, puis ✓ Appliquer.
@@ -126,8 +127,14 @@ Les trois premiers paramètres sont enregistrés de façon persistante via
 
 ### Raccourcis clavier
 
+Sur macOS, la touche modificatrice est **⌘ (Cmd)** ; sur Linux, **Ctrl**.
+
 | Action | Raccourci |
 |--------|----------|
+| Sélectionner la baguette magique | W |
+| Sélectionner le pinceau | B |
+| Sélectionner la gomme | E |
+| Sélectionner le lasso polygonal | L |
 | Ouvrir une image | ⌘O |
 | Enregistrer l'image | ⌘S |
 | Enregistrer l'image sous… | ⇧⌘S |

@@ -107,6 +107,7 @@ consulta la sección de Raspberry Pi en
 1. **Abre una imagen** mediante `Archivo → Abrir` (⌘O) o arrastrando y soltando en la ventana.
 2. **Realiza una selección** con la varita mágica, el pincel, el borrador o el lazo poligonal (pestaña *🎯 Selección*).
    - `Shift+clic` añade a la selección; `⌘+clic` (macOS) o `Ctrl+clic` (Linux) resta.
+   - Cambia de herramienta con el teclado: `W` varita, `B` pincel, `E` borrador, `L` lazo.
 3. **Edita el fondo** (pestaña *🖼 Fondo*): hazlo transparente o reemplaza el color — o directamente con **IA** en la barra de herramientas.
 4. **Transforma la imagen** (pestaña *⟲ Trans.*): rota, refleja.
 5. **Forma y recorte** (pestaña *⬤ Forma*): redondea esquinas o recorta a un formato — mueve/escala el marco, luego ✓ Aplicar.
@@ -129,8 +130,14 @@ programa.
 
 ### Atajos de teclado
 
+En macOS la tecla modificadora es **⌘ (Cmd)**; en Linux, **Ctrl**.
+
 | Acción | Atajo |
 |--------|----------|
+| Seleccionar varita mágica | W |
+| Seleccionar pincel | B |
+| Seleccionar borrador | E |
+| Seleccionar lazo poligonal | L |
 | Abrir imagen | ⌘O |
 | Guardar imagen | ⌘S |
 | Guardar imagen como… | ⇧⌘S |

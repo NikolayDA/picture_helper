@@ -179,6 +179,9 @@ Die senkrechte Leiste am linken Rand enthält von oben nach unten:
 | 🧽 | **Radiergummi** | Aufgemalte Auswahl wieder entfernen. |
 | ⬡ | **Polygon-Lasso** | Punkte nacheinander anklicken; **Doppelklick** schließt das Polygon. **Esc** bricht ab. |
 
+Schnellwechsel per Tastatur: **W** Zauberstab, **B** Pinsel,
+**E** Radiergummi, **L** Lasso.
+
 Bei allen Auswahl-Werkzeugen gilt:
 
 - **Shift + Klick** → zur Auswahl **hinzufügen**
@@ -425,6 +428,10 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
 
 | Aktion | Shortcut |
 |---|---|
+| Zauberstab wählen | W |
+| Pinsel wählen | B |
+| Radiergummi wählen | E |
+| Polygon-Lasso wählen | L |
 | Bild öffnen | ⌘O |
 | Bild speichern | ⌘S |
 | Bild speichern unter… | ⇧⌘S |
