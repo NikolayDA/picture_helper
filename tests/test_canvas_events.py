@@ -225,6 +225,26 @@ def test_cancel_pending_wand_when_idle_is_noop(qapp):
     assert msgs == []
 
 
+def test_reset_pending_wand_clears_gate_silently(qapp):
+    """Stiller Gate-Reset für den Ladepfad: gibt ``_wand_busy`` frei, ohne
+    die (hier irreführende) „Auswahl-Fehler"-Meldung von
+    ``cancel_pending_wand`` zu senden.
+    """
+    c = _canvas()
+    c._wand_busy = True
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+    c.reset_pending_wand()
+    assert c._wand_busy is False
+    assert msgs == []
+
+
+def test_reset_pending_wand_when_idle_is_noop(qapp):
+    c = _canvas()
+    c.reset_pending_wand()
+    assert c._wand_busy is False
+
+
 def test_apply_loaded_image_resets_pending_wand(qapp):
     """Bildwechsel während laufender Zauberstab-Berechnung darf das
     ``_wand_busy``-Gate nicht hängen lassen – sonst bliebe der Zauberstab auf
