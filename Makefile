@@ -19,8 +19,10 @@ install-test:
 doctor:
 	$(RUN_ENV) "$(PYTHON)" scripts/check_test_env.py
 
-# Standardpruefung ohne ui-Tests. Laeuft in der PR-CI und in der vollen
-# Release-/Manual-Matrix.
+# Standardpruefung. Laeuft in der PR-CI und in der vollen Release-/Manual-
+# Matrix. 'test' zieht ueber das addopts-Filter '-m not ui or ui_smoke' das
+# kleine ui_smoke-Subset mit; die volle qtbot-Suite bleibt dem 'ui'-Target
+# (nightly) vorbehalten.
 check: lint type test
 
 # '$(PYTHON) -m' statt der blanken Binaries: robust gegen PATH-/venv-
@@ -50,8 +52,9 @@ coverage:
 	$(RUN_ENV) "$(PYTHON)" -m coverage report
 	$(RUN_ENV) "$(PYTHON)" -m coverage html
 
-# Lokale UI-Interaktionstests. Explizites -m ui ueberschreibt das
-# '-m not ui' aus pyproject [tool.pytest.ini_options].addopts.
+# Volle UI-Interaktionssuite (nightly). Explizites -m ui ueberschreibt das
+# '-m not ui or ui_smoke' aus pyproject [tool.pytest.ini_options].addopts und
+# laeuft damit alle ui-Tests (inkl. des ui_smoke-Subsets).
 ui:
 	$(QT_ENV) "$(PYTHON)" -m pytest -m ui
 
