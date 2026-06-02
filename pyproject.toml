@@ -63,9 +63,12 @@ bgremover = ["icons/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q -m 'not ui'"
+# 'not ui or ui_smoke': die volle qtbot-Suite ist deselektiert, das kleine
+# ``ui_smoke``-Subset laeuft aber ueberall mit (PR-/Full-CI via ``make test``).
+addopts = "-q -m 'not ui or ui_smoke'"
 markers = [
-    "ui: lokale, qtbot-gesteuerte UI-Interaktionstests (laufen NICHT in der CI; lokal via `make ui`).",
+    "ui: qtbot-gesteuerte UI-Interaktionstests; die volle Suite laeuft nur nightly via `make ui`.",
+    "ui_smoke: kleines, stabiles UI-Smoke-Subset (zusaetzlich `ui`); laeuft in PR/Full-CI im normalen Testlauf.",
 ]
 
 [tool.coverage.run]
