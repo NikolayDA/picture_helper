@@ -102,6 +102,7 @@ the Raspberry Pi section in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 1. **Open an image** via `File → Open` (⌘O) or by dragging and dropping it onto the window.
 2. **Make a selection** with the magic wand, brush, eraser, or polygon lasso (tab *🎯 Selection*).
    - `Shift+Click` adds to the selection; `⌘+Click` (macOS) or `Ctrl+Click` (Linux) subtracts.
+   - Switch tools from the keyboard: `W` magic wand, `B` brush, `E` eraser, `L` lasso.
 3. **Edit the background** (tab *🖼 Backgr.*): make it transparent or replace the color — or use **AI** directly in the toolbar.
 4. **Transform the image** (tab *⟲ Trans.*): rotate, flip.
 5. **Shape & crop** (tab *⬤ Shape*): round corners or crop to a format — move/resize the frame, then ✓ Apply.
@@ -123,8 +124,14 @@ automatically restored the next time the program starts.
 
 ### Keyboard shortcuts
 
+On macOS the modifier key is **⌘ (Cmd)**, on Linux **Ctrl**.
+
 | Action | Shortcut |
 |--------|----------|
+| Select magic wand | W |
+| Select brush | B |
+| Select eraser | E |
+| Select polygon lasso | L |
 | Open image | ⌘O |
 | Save image | ⌘S |
 | Save image as… | ⇧⌘S |

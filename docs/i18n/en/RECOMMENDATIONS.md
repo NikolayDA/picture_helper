@@ -45,6 +45,17 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **O2 🟡 — Linux app / packaging.** No app bundle for Linux; launch only via `python -m bgremover` from a venv. An installable package (AppImage/Flatpak/`.deb`) for **Raspberry Pi OS** and major distributions (Debian/Ubuntu/Fedora) lowers the entry barrier for non-developers — analogous to the macOS `.app` bundle.
 - **O3 🟡 — Full CI matrix earlier.** The full matrix (Linux/macOS × 3.10–3.13) runs only on tags/release; regressions on macOS or Python 3.10/3.13 surface late. Also run it on push to `main` or as a weekly cron.
 - **O4 🟢 — Keyboard shortcuts for tools.** Magic wand/brush/eraser/lasso are reachable only by mouse; add single-key switching (e.g. `B`/`E`).
+- **O5 🟡 — UI smoke earlier in CI.** The full `ui` tests run nightly/manually; PR and Full CI run only `make pr-check`. Add a small stable UI smoke to PR/Full CI while keeping the complete UI suite nightly.
+- **O6 🟢 — Platform-correct shortcut hints.** Some tooltips/docs mention `Cmd` although Linux uses `Ctrl`. Generate shortcut text centrally or platform-dependently.
+
+## Implementation plan by PR package (from 2026-06-02)
+
+- **PR 1 — Tool shortcuts & shortcut hints.** O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
+- **PR 2 — Earlier CI coverage.** O3 + O5: full matrix additionally weekly or on `main`, small UI smoke in PR/Full CI, Nightly UI remains the full suite.
+- **PR 3 — i18n foundation.** Prepare O1: add runtime locale/fallback, centralize visible strings incrementally, keep German as the stable default.
+- **PR 4 — i18n rollout.** Make O1 usable: at least English as a runtime language, then the other existing documentation languages, with smoke checks per locale.
+- **PR 5 — Linux packaging foundation.** Start O2: choose target artifact (AppImage/`.deb`/Flatpak), add desktop file/icon/AppStream metadata and a Linux build smoke.
+- **PR 6 — Linux packaging expansion.** Complete O2: Raspberry Pi OS variant, optional second package format, and release workflow for Linux artifacts.
 
 ---
 

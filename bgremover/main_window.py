@@ -4,8 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QSettings
-from PyQt6.QtGui import QColor
+from PyQt6.QtCore import QSettings, Qt
+from PyQt6.QtGui import QColor, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QColorDialog,
     QFileDialog,
@@ -24,6 +24,10 @@ from bgremover.constants import (
     _THREAD_SHUTDOWN_MS,
     _WINDOW_MIN_H,
     _WINDOW_MIN_W,
+    TOOL_BRUSH,
+    TOOL_ERASER,
+    TOOL_LASSO,
+    TOOL_WAND,
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
@@ -86,8 +90,10 @@ class MainWindow(QMainWindow):
         self._recent_menu: RecentFilesMenu | None = None
         self._worker_controller = WorkerController(
             self, shutdown_ms=_THREAD_SHUTDOWN_MS)
+        self._tool_shortcuts: list[QShortcut] = []
         self._build_ui()
         self._build_menu()
+        self._build_tool_shortcuts()
         if REMBG_AVAILABLE:
             self._start_rembg_warmup()
 
@@ -139,7 +145,7 @@ class MainWindow(QMainWindow):
     def _build_toolbar(self) -> QFrame:
         self._toolbar = build_toolbar(
             ToolbarActions(
-                set_tool=lambda tool: self._canvas.set_tool(tool),
+                set_tool=self._set_tool,
                 run_ai=self._run_ai,
                 undo=lambda: self._canvas.undo(),
                 redo=lambda: self._canvas.redo(),
@@ -181,6 +187,18 @@ class MainWindow(QMainWindow):
         self._update_color_btn()
         return panel.frame
 
+    def _set_tool(self, tool: str) -> None:
+        """Selects a canvas tool and mirrors the choice in the toolbar."""
+        self._canvas.set_tool(tool)
+        buttons = {
+            TOOL_WAND: self._toolbar.btn_wand,
+            TOOL_BRUSH: self._toolbar.btn_brush,
+            TOOL_ERASER: self._toolbar.btn_eraser,
+            TOOL_LASSO: self._toolbar.btn_lasso,
+        }
+        if tool in buttons:
+            buttons[tool].setChecked(True)
+
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
         assert menu_bar is not None
@@ -205,6 +223,18 @@ class MainWindow(QMainWindow):
                 open_settings=self._open_settings,
             ),
         )
+
+    def _build_tool_shortcuts(self) -> None:
+        for key, tool in (
+            ("W", TOOL_WAND),
+            ("B", TOOL_BRUSH),
+            ("E", TOOL_ERASER),
+            ("L", TOOL_LASSO),
+        ):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+            shortcut.activated.connect(lambda t=tool: self._set_tool(t))
+            self._tool_shortcuts.append(shortcut)
 
     # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
 

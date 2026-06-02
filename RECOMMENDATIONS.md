@@ -45,6 +45,17 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 - **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
 - **O3 🟡 — Volle CI-Matrix früher.** Die Vollmatrix (Linux/macOS × 3.10–3.13) läuft nur bei Tags/Release; Regressionen unter macOS oder Python 3.10/3.13 fallen erst spät auf. Zusätzlich bei Push auf `main` oder als wöchentlicher Cron laufen lassen.
 - **O4 🟢 — Tastatur-Kürzel für Werkzeuge.** Zauberstab/Pinsel/Radierer/Lasso sind nur per Maus erreichbar; Ein-Tasten-Wechsel (z. B. `B`/`E`) ergänzen.
+- **O5 🟡 — UI-Smoke früher in CI.** Die ausführlichen `ui`-Tests laufen nightly/manuell; PR- und Full-CI führen nur `make pr-check` aus. Einen kleinen stabilen UI-Smoke in PR/Full-CI aufnehmen, die vollständige UI-Suite weiter nightly lassen.
+- **O6 🟢 — Plattformgerechte Shortcut-Hinweise.** Einige Tooltips/Doku-Hinweise nennen `Cmd`, obwohl Linux `Ctrl` nutzt. Shortcut-Texte zentral oder plattformabhängig ausgeben.
+
+## Umsetzungsplan in PR-Paketen (ab 2026-06-02)
+
+- **PR 1 — Tool-Shortcuts & Shortcut-Hinweise.** O4 + O6: Ein-Tasten-Wechsel (`W`/`B`/`E`/`L`), Toolbar-Checked-State synchronisieren, Tooltips/README/Anleitung aktualisieren, Regressionstest für Shortcut-Wiring.
+- **PR 2 — CI früher absichern.** O3 + O5: Full-Matrix zusätzlich wöchentlich oder auf `main`, kleiner UI-Smoke in PR/Full-CI, Nightly-UI als ausführliche Suite behalten.
+- **PR 3 — i18n-Grundgerüst.** O1 vorbereiten: Runtime-Locale/Fallback einführen, sichtbare Strings schrittweise zentralisieren, Deutsch als stabiler Default.
+- **PR 4 — i18n-Rollout.** O1 nutzbar machen: mindestens Englisch als Runtime-Sprache, danach weitere vorhandene Dokusprachen, Smoke-Checks pro Locale.
+- **PR 5 — Linux-Packaging Foundation.** O2 starten: Zielartefakt festlegen (AppImage/`.deb`/Flatpak), Desktop-Datei/Icon/AppStream-Metadaten und Linux-Build-Smoke.
+- **PR 6 — Linux-Packaging erweitern.** O2 abrunden: Raspberry-Pi-OS-Variante, optionale zweite Paketform und Release-Workflow für Linux-Artefakte.
 
 ---
 

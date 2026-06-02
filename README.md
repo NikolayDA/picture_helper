@@ -110,6 +110,7 @@ Kurzüberblick:
 1. **Bild öffnen** über `Datei → Öffnen` (⌘O) oder per Drag & Drop ins Fenster.
 2. **Auswahl treffen** mit Zauberstab, Pinsel, Radiergummi oder Polygon-Lasso (Tab *🎯 Auswahl*).
    - `Shift+Klick` addiert zur Auswahl, `⌘+Klick` (macOS) bzw. `Ctrl+Klick` (Linux) zieht ab.
+   - Werkzeuge wechseln per Tastatur: `W` Zauberstab, `B` Pinsel, `E` Radiergummi, `L` Lasso.
 3. **Hintergrund bearbeiten** (Tab *🖼 Hintergr.*): transparent machen oder Farbe ersetzen — oder direkt **KI** in der Werkzeugleiste.
 4. **Bild transformieren** (Tab *⟲ Trans.*): drehen, spiegeln.
 5. **Form & Zuschnitt** (Tab *⬤ Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
@@ -130,8 +131,14 @@ Die ersten drei Einstellungen werden über **QSettings** persistent gespeichert 
 
 ### Tastatur-Kürzel
 
+Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux **Ctrl**.
+
 | Aktion | Shortcut |
 |--------|----------|
+| Zauberstab wählen | W |
+| Pinsel wählen | B |
+| Radiergummi wählen | E |
+| Polygon-Lasso wählen | L |
 | Bild öffnen | ⌘O |
 | Bild speichern | ⌘S |
 | Bild speichern unter… | ⇧⌘S |
