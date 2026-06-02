@@ -72,12 +72,12 @@ LANGUAGE_MARKERS = {
     ),
 }
 RATING_SYMBOLS = ("🔴", "🟠", "🟡", "🟢")
-# Pflicht-Tokens der AKTUELLEN Runde (modest-shannon, 2026-06-01). Bewusst
+# Pflicht-Tokens der AKTUELLEN Runde (adoring-johnson, 2026-06-02). Bewusst
 # sprachneutral gewählt, damit sie unverändert in allen sechs Sprachdateien
 # vorkommen. Bei einer neuen Runde hier auf deren Erledigt-Liste umstellen.
 CURRENT_STATUS_TOKENS = (
-    "2026-06-01",
-    "A, B, C, D, E",
+    "2026-06-02",
+    "N1, N4, N5, N6, N8",
 )
 
 
