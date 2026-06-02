@@ -9,6 +9,12 @@ on:
       - 'v*'
   release:
     types: [published]
+  # O3: Woechentliche Vollmatrix (So 06:00 UTC) faengt Regressionen unter macOS
+  # oder Python 3.10/3.13 frueh ab – nicht erst beim Release-Tag. Cron statt
+  # Push-auf-main gewaehlt: deckt dieselbe Drift ab, ohne jeden Merge die volle
+  # 8er-Matrix auszuloesen.
+  schedule:
+    - cron: '0 6 * * 0'
   workflow_dispatch:
 
 permissions:
