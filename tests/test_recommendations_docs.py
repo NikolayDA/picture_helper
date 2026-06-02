@@ -77,7 +77,7 @@ RATING_SYMBOLS = ("🔴", "🟠", "🟡", "🟢")
 # vorkommen. Bei einer neuen Runde hier auf deren Erledigt-Liste umstellen.
 CURRENT_STATUS_TOKENS = (
     "2026-06-02",
-    "N1, N4, N5, N6, N8",
+    "N1, N2, N4, N5, N6, N7, N8",
 )
 
 

@@ -1,10 +1,11 @@
-"""Lokale, qtbot-gesteuerte UI-Interaktionstests.
+"""qtbot-gesteuerte UI-Interaktionstests.
 
-Diese Tests laufen NICHT in der GitHub-CI: ``pyproject.toml`` setzt
-``addopts = "-q -m 'not ui'"``, sodass ein einfaches ``pytest`` (wie es
-die CI bei Release ausfuehrt) alle ``ui``-markierten Tests deselektiert.
-Lokal werden sie via ``make ui`` (``pytest -m ui``) ausgefuehrt – das
-explizite ``-m ui`` ueberschreibt das Default-``-m 'not ui'``.
+Die *volle* Suite laeuft NICHT in der PR-/Full-CI: ``pyproject.toml`` setzt
+``addopts = "-q -m 'not ui or ui_smoke'"``, sodass ein einfaches ``pytest``
+(wie es die CI ausfuehrt) die ``ui``-markierten Tests deselektiert – mit
+Ausnahme des kleinen, zusaetzlich ``ui_smoke``-markierten Subsets, das als
+Frueh-Smoke ueberall mitlaeuft. Die komplette Suite laeuft nightly via
+``make ui`` (``pytest -m ui`` ueberschreibt das Default-Filter).
 
 Headless-Strategie (Begruendung):
 - Menue-Aktionen werden ueber ``QAction.trigger()`` ausgeloest, nie ueber
@@ -102,6 +103,7 @@ def _action(window, text: str) -> QAction:
 
 # ── Smoke ────────────────────────────────────────────────────────────────
 
+@pytest.mark.ui_smoke
 def test_mainwindow_builds(main_window):
     w = main_window
     assert isinstance(w._canvas, ImageCanvas)
@@ -120,6 +122,7 @@ def test_imagecanvas_builds(qtbot):
 
 # ── Zeichentools ─────────────────────────────────────────────────────────
 
+@pytest.mark.ui_smoke
 def test_toolbar_selects_tools(main_window, qtbot):
     w = main_window
     c = w._canvas
@@ -190,6 +193,7 @@ def test_undo_redo_actions(loaded_window):
     assert (_canvas_image(c).width, _canvas_image(c).height) == (30, 40)
 
 
+@pytest.mark.ui_smoke
 def test_rotate_flip_actions(loaded_window):
     w = loaded_window
     c = w._canvas
