@@ -45,6 +45,17 @@ Améliorations issues de la deuxième analyse, pas encore implémentées (produi
 - **O2 🟡 — App Linux / empaquetage.** Pas de bundle pour Linux ; lancement seulement via `python -m bgremover` depuis une venv. Un paquet installable (AppImage/Flatpak/`.deb`) pour **Raspberry Pi OS** et les grandes distributions (Debian/Ubuntu/Fedora) abaisse la barrière d'entrée pour les non-développeurs — analogue au bundle `.app` de macOS.
 - **O3 🟡 — Matrice CI complète plus tôt.** La matrice complète (Linux/macOS × 3.10–3.13) ne tourne qu'aux tags/release ; les régressions sous macOS ou Python 3.10/3.13 apparaissent tard. La lancer aussi au push sur `main` ou via un cron hebdomadaire.
 - **O4 🟢 — Raccourcis clavier pour les outils.** Baguette/pinceau/gomme/lasso ne sont accessibles qu'à la souris ; ajouter un changement par touche unique (p. ex. `B`/`E`).
+- **O5 🟡 — Smoke UI plus tôt dans la CI.** Les tests `ui` complets tournent nightly/manuellement ; PR CI et Full CI n'exécutent que `make pr-check`. Ajouter un petit smoke UI stable à PR/Full CI, tout en gardant la suite complète nightly.
+- **O6 🟢 — Indications de raccourcis correctes selon la plateforme.** Certains tooltips/docs citent `Cmd` alors que Linux utilise `Ctrl`. Générer les textes de raccourcis de façon centralisée ou dépendante de la plateforme.
+
+## Plan d'implémentation par paquets de PR (à partir du 2026-06-02)
+
+- **PR 1 — Raccourcis d'outils et indications.** O4 + O6 : changement par touche unique (`W`/`B`/`E`/`L`), état coché de la toolbar synchronisé, tooltips/README/manuel mis à jour, test de régression du câblage des raccourcis.
+- **PR 2 — CI sécurisée plus tôt.** O3 + O5 : matrice complète aussi chaque semaine ou sur `main`, petit smoke UI en PR/Full CI, Nightly UI reste la suite complète.
+- **PR 3 — Socle i18n.** Préparer O1 : locale/fallback à l'exécution, centralisation progressive des chaînes visibles, allemand conservé comme défaut stable.
+- **PR 4 — Déploiement i18n.** Rendre O1 utilisable : au moins l'anglais comme langue runtime, puis les autres langues de documentation existantes, avec smoke checks par locale.
+- **PR 5 — Base du packaging Linux.** Démarrer O2 : choisir l'artefact cible (AppImage/`.deb`/Flatpak), fichier desktop/icône/métadonnées AppStream et smoke de build Linux.
+- **PR 6 — Extension du packaging Linux.** Finaliser O2 : variante Raspberry Pi OS, deuxième format de paquet optionnel et workflow de release pour les artefacts Linux.
 
 ---
 

@@ -184,6 +184,9 @@ La barre verticale sur le bord gauche contient, de haut en bas :
 | 🧽 | **Gomme** | Supprimer la sélection peinte. |
 | ⬡ | **Lasso polygonal** | Cliquez sur les points un par un ; **double-clic** ferme le polygone. **Échap** annule. |
 
+Changement rapide au clavier : **W** baguette, **B** pinceau,
+**E** gomme, **L** lasso.
+
 Pour tous les outils de sélection :
 
 - **Shift + clic** → **ajouter** à la sélection
@@ -429,6 +432,10 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 
 | Action | Raccourci |
 |---|---|
+| Sélectionner la baguette magique | W |
+| Sélectionner le pinceau | B |
+| Sélectionner la gomme | E |
+| Sélectionner le lasso polygonal | L |
 | Ouvrir une image | ⌘O |
 | Enregistrer l'image | ⌘S |
 | Enregistrer l'image sous… | ⇧⌘S |

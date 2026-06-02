@@ -45,6 +45,17 @@
 - **O2 🟡 — Linux 应用 / 打包。** 没有 Linux 的应用包；仅能通过 venv 中的 `python -m bgremover` 启动。为 **Raspberry Pi OS** 和主流发行版（Debian/Ubuntu/Fedora）提供可安装包（AppImage/Flatpak/`.deb`），可降低非开发者的上手门槛——类似 macOS 的 `.app` 包。
 - **O3 🟡 — 更早运行完整 CI 矩阵。** 完整矩阵（Linux/macOS × 3.10–3.13）仅在 tag/release 时运行；macOS 或 Python 3.10/3.13 的回归发现得太晚。应同时在推送到 `main` 时或每周 cron 运行。
 - **O4 🟢 — 工具的键盘快捷键。** 魔棒/画笔/橡皮擦/套索只能用鼠标；增加单键切换（如 `B`/`E`）。
+- **O5 🟡 — 更早在 CI 中运行 UI smoke。** 完整 `ui` 测试只在 nightly/手动运行；PR CI 和 Full CI 只执行 `make pr-check`。在 PR/Full CI 中加入小而稳定的 UI smoke，完整 UI 套件继续 nightly。
+- **O6 🟢 — 按平台显示正确的快捷键提示。** 部分 tooltip/docs 提到 `Cmd`，但 Linux 使用 `Ctrl`。快捷键文本应集中生成或按平台生成。
+
+## 按 PR 包实施计划（自 2026-06-02 起）
+
+- **PR 1 — 工具快捷键与提示。** O4 + O6：单键切换（`W`/`B`/`E`/`L`）、同步 toolbar 选中状态、更新 tooltips/README/手册，并加入快捷键 wiring 回归测试。
+- **PR 2 — 更早加强 CI。** O3 + O5：完整矩阵也每周或在 `main` 上运行，PR/Full CI 加入小型 UI smoke，Nightly UI 保留完整套件。
+- **PR 3 — i18n 基础。** 准备 O1：加入 runtime locale/fallback，逐步集中可见字符串，德语保持稳定默认值。
+- **PR 4 — i18n 推出。** 让 O1 可用：至少英语作为运行时语言，然后覆盖现有其他文档语言，并为每个 locale 做 smoke check。
+- **PR 5 — Linux 打包基础。** 启动 O2：选择目标产物（AppImage/`.deb`/Flatpak）、desktop 文件/图标/AppStream 元数据和 Linux build smoke。
+- **PR 6 — Linux 打包扩展。** 完成 O2：Raspberry Pi OS 变体、可选第二种包格式，以及 Linux 产物 release workflow。
 
 ---
 
