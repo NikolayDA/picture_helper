@@ -27,8 +27,11 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
 fi
 
-# Qt-Systembibliotheken – identische Liste wie im CI-Workflow
-# (.github/workflows/ci.yml), dort auf ubuntu-latest erprobt.
+# Qt-Systembibliotheken – dieselbe Qt-Lib-Liste wie in den CI-Workflows
+# (.github/workflows/ci.yml, pr-ci.yml, ui-nightly.yml), dort auf
+# ubuntu-latest erprobt. Ein Drift-Test (tests/test_ci_qt_packages.py)
+# haelt diese Listen konsistent – fehlt z. B. libgl1 irgendwo, schlaegt
+# beim Import von PyQt6 sonst nur „libGL.so.1: cannot open shared object".
 if command -v apt-get >/dev/null 2>&1; then
   # Best-effort: defekte Fremd-PPAs (z. B. deadsnakes/php in manchen
   # Containern) dürfen das Setup nicht abbrechen – die benötigten
