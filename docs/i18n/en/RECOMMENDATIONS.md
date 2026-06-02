@@ -44,13 +44,14 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **O1 🟠 — App localization.** The UI is hardcoded German; there is no runtime i18n (no `QTranslator`/`tr()`), although the docs exist in five languages. Status messages are already centralized (`status_messages.py`). Incrementally via Qt Linguist (`.ts`) or a lightweight `QLocale` string table.
 - **O2 🟡 — Linux app / packaging.** No app bundle for Linux; launch only via `python -m bgremover` from a venv. An installable package (AppImage/Flatpak/`.deb`) for **Raspberry Pi OS** and major distributions (Debian/Ubuntu/Fedora) lowers the entry barrier for non-developers — analogous to the macOS `.app` bundle.
 - **O3 🟡 — Full CI matrix earlier.** The full matrix (Linux/macOS × 3.10–3.13) runs only on tags/release; regressions on macOS or Python 3.10/3.13 surface late. Also run it on push to `main` or as a weekly cron.
-- **O4 🟢 — Keyboard shortcuts for tools.** Magic wand/brush/eraser/lasso are reachable only by mouse; add single-key switching (e.g. `B`/`E`).
 - **O5 🟡 — UI smoke earlier in CI.** The full `ui` tests run nightly/manually; PR and Full CI run only `make pr-check`. Add a small stable UI smoke to PR/Full CI while keeping the complete UI suite nightly.
-- **O6 🟢 — Platform-correct shortcut hints.** Some tooltips/docs mention `Cmd` although Linux uses `Ctrl`. Generate shortcut text centrally or platform-dependently.
+
+**✅ Done since this round (PR #146):** O4 — single-key tool switching (`W`/`B`/`E`/`L`) with synchronized toolbar state; O6 — tooltips emit `Cmd`/`Ctrl` per platform via `_shortcut_label()`. Regression test `test_tool_shortcuts.py`.
 
 ## Implementation plan by PR package (from 2026-06-02)
 
-- **PR 1 — Tool shortcuts & shortcut hints.** O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
+- **PR 0 — Code hardening (N2 + N7).** Bundle the two open findings from "adoring-johnson": N2 — apply the megapixel gate to the rotation result too (compute the target size up front from angle/diagonal, with a status message instead of an unbounded memory spike); N7 — import `rembg` lazily and probe `REMBG_AVAILABLE` via `find_spec`, moving the AI-button gating to the warmup failure. Small and low-risk, no UX break — before the large packages.
+- **PR 1 — Tool shortcuts & shortcut hints.** ✅ Done (PR #146). O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
 - **PR 2 — Earlier CI coverage.** O3 + O5: full matrix additionally weekly or on `main`, small UI smoke in PR/Full CI, Nightly UI remains the full suite.
 - **PR 3 — i18n foundation.** Prepare O1: add runtime locale/fallback, centralize visible strings incrementally, keep German as the stable default.
 - **PR 4 — i18n rollout.** Make O1 usable: at least English as a runtime language, then the other existing documentation languages, with smoke checks per locale.

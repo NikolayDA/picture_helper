@@ -44,13 +44,14 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 - **O1 🟠 — App-Lokalisierung.** Die UI ist hartkodiert Deutsch; es gibt keine Laufzeit-i18n (kein `QTranslator`/`tr()`), obwohl die Doku in fünf Sprachen vorliegt. Statusmeldungen liegen bereits zentral (`status_messages.py`). Schrittweise via Qt Linguist (`.ts`) oder leichtgewichtige `QLocale`-Stringtabelle.
 - **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
 - **O3 🟡 — Volle CI-Matrix früher.** Die Vollmatrix (Linux/macOS × 3.10–3.13) läuft nur bei Tags/Release; Regressionen unter macOS oder Python 3.10/3.13 fallen erst spät auf. Zusätzlich bei Push auf `main` oder als wöchentlicher Cron laufen lassen.
-- **O4 🟢 — Tastatur-Kürzel für Werkzeuge.** Zauberstab/Pinsel/Radierer/Lasso sind nur per Maus erreichbar; Ein-Tasten-Wechsel (z. B. `B`/`E`) ergänzen.
 - **O5 🟡 — UI-Smoke früher in CI.** Die ausführlichen `ui`-Tests laufen nightly/manuell; PR- und Full-CI führen nur `make pr-check` aus. Einen kleinen stabilen UI-Smoke in PR/Full-CI aufnehmen, die vollständige UI-Suite weiter nightly lassen.
-- **O6 🟢 — Plattformgerechte Shortcut-Hinweise.** Einige Tooltips/Doku-Hinweise nennen `Cmd`, obwohl Linux `Ctrl` nutzt. Shortcut-Texte zentral oder plattformabhängig ausgeben.
+
+**✅ Erledigt seit dieser Runde (PR #146):** O4 — Ein-Tasten-Werkzeugwechsel (`W`/`B`/`E`/`L`) mit synchronisiertem Toolbar-Status; O6 — Tooltips geben über `_shortcut_label()` plattformgerecht `Cmd`/`Ctrl` aus. Regressionstest `test_tool_shortcuts.py`.
 
 ## Umsetzungsplan in PR-Paketen (ab 2026-06-02)
 
-- **PR 1 — Tool-Shortcuts & Shortcut-Hinweise.** O4 + O6: Ein-Tasten-Wechsel (`W`/`B`/`E`/`L`), Toolbar-Checked-State synchronisieren, Tooltips/README/Anleitung aktualisieren, Regressionstest für Shortcut-Wiring.
+- **PR 0 — Code-Härtung (N2 + N7).** Die beiden offenen Befunde aus „adoring-johnson" bündeln: N2 — Megapixel-Gate auch auf das Rotationsergebnis (Zielgröße vorab aus Winkel/Diagonale berechnen, mit Statusmeldung statt ungebremster Speicherspitze); N7 — `rembg` lazy importieren und `REMBG_AVAILABLE` per `find_spec` proben, KI-Button-Gating beim Warmup-Fehlschlag nachziehen. Klein und risikoarm, ohne UX-Bruch — vor den großen Paketen.
+- **PR 1 — Tool-Shortcuts & Shortcut-Hinweise.** ✅ Erledigt (PR #146). O4 + O6: Ein-Tasten-Wechsel (`W`/`B`/`E`/`L`), Toolbar-Checked-State synchronisiert, Tooltips/README/Anleitung aktualisiert, Regressionstest für Shortcut-Wiring.
 - **PR 2 — CI früher absichern.** O3 + O5: Full-Matrix zusätzlich wöchentlich oder auf `main`, kleiner UI-Smoke in PR/Full-CI, Nightly-UI als ausführliche Suite behalten.
 - **PR 3 — i18n-Grundgerüst.** O1 vorbereiten: Runtime-Locale/Fallback einführen, sichtbare Strings schrittweise zentralisieren, Deutsch als stabiler Default.
 - **PR 4 — i18n-Rollout.** O1 nutzbar machen: mindestens Englisch als Runtime-Sprache, danach weitere vorhandene Dokusprachen, Smoke-Checks pro Locale.
