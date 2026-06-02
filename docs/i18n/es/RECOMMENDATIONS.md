@@ -43,16 +43,13 @@ Mejoras surgidas del segundo análisis aún no implementadas (producto/proceso):
 
 - **O1 🟠 — Localización de la app.** La UI está codificada en alemán; no hay i18n en tiempo de ejecución (sin `QTranslator`/`tr()`), aunque la documentación existe en cinco idiomas. Los mensajes de estado ya están centralizados (`status_messages.py`). De forma incremental vía Qt Linguist (`.ts`) o una tabla de cadenas ligera por `QLocale`.
 - **O2 🟡 — App de Linux / empaquetado.** No hay bundle para Linux; arranque solo vía `python -m bgremover` desde una venv. Un paquete instalable (AppImage/Flatpak/`.deb`) para **Raspberry Pi OS** y grandes distribuciones (Debian/Ubuntu/Fedora) reduce la barrera de entrada para quienes no programan, análogo al bundle `.app` de macOS.
-- **O3 🟡 — Matriz completa de CI antes.** La matriz completa (Linux/macOS × 3.10–3.13) solo corre en tags/release; las regresiones en macOS o Python 3.10/3.13 aparecen tarde. Ejecutarla también en push a `main` o como cron semanal.
-- **O5 🟢 — Smoke de interacción (qtbot) antes en CI.** El smoke de arranque de la app (`test_app_smoke.py`) y los tests de MainWindow/widgets ya corren en el gate de PR; solo la suite de interacción guiada por qtbot (`test_ui_interactions.py`) queda limitada a nightly vía `-m 'not ui'`. Llevar un subconjunto pequeño y marcado explícitamente (p. ej. un marcador `ui_smoke`) a PR/Full CI; la suite qtbot completa sigue nightly.
-
-**✅ Hecho desde esta ronda (PR #146):** O4 — cambio de herramienta con una tecla (`W`/`B`/`E`/`L`) con estado de toolbar sincronizado; O6 — los tooltips muestran `Cmd`/`Ctrl` según la plataforma vía `_shortcut_label()`. Test de regresión `test_tool_shortcuts.py`.
+**✅ Hecho:** O4/O6 — cambio de herramienta con una tecla (`W`/`B`/`E`/`L`) e indicaciones `Cmd`/`Ctrl` por plataforma (PR #146, `test_tool_shortcuts.py`); O3 — matriz completa además semanal por cron (PR #149); O5 — el subconjunto `ui_smoke` corre en PR/Full CI, la suite qtbot completa sigue nightly (PR #149).
 
 ## Plan de implementación por paquetes de PR (desde 2026-06-02)
 
 - **PR 0 — Endurecimiento del código (N2 + N7).** ✅ Hecho (PR #148). N2 — aplicar la barrera de megapíxeles también al resultado de la rotación (`rotated_size()` estima el tamaño objetivo de antemano, `apply_rotate` rechaza los resultados sobre el límite con un mensaje de estado); N7 — importar `rembg` de forma diferida y sondear `REMBG_AVAILABLE` con `find_spec` (el manejo de fallo de warmup existente cubre un backend defectuoso).
 - **PR 1 — Atajos de herramientas e indicaciones.** ✅ Hecho (PR #146). O4 + O6: cambio con una tecla (`W`/`B`/`E`/`L`), estado marcado de la toolbar sincronizado, tooltips/README/manual actualizados, test de regresión para el cableado de atajos.
-- **PR 2 — CI antes y con más cobertura.** O3 + O5: matriz completa también semanal o en `main`, smoke de UI pequeño en PR/Full CI, Nightly UI conserva la suite completa.
+- **PR 2 — CI antes y con más cobertura.** ✅ Hecho (PR #149). O3 — matriz completa además semanal (cron); O5 — subconjunto `ui_smoke` en PR/Full CI, Nightly UI conserva la suite completa.
 - **PR 3 — Base de i18n.** Preparar O1: locale/fallback en runtime, centralizar strings visibles de forma incremental, mantener alemán como default estable.
 - **PR 4 — Despliegue i18n.** Hacer O1 usable: al menos inglés como idioma runtime, luego los demás idiomas de documentación existentes, con smoke checks por locale.
 - **PR 5 — Base de empaquetado Linux.** Iniciar O2: elegir artefacto objetivo (AppImage/`.deb`/Flatpak), desktop file/icono/metadatos AppStream y smoke de build Linux.
