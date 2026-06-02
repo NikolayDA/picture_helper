@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bgremover.image_ops import flip_image, rotate_image, round_corners
+from bgremover.constants import _MAX_MEGAPIXELS
+from bgremover.image_ops import flip_image, rotate_image, rotated_size, round_corners
 
 if TYPE_CHECKING:
     from bgremover.canvas import ImageCanvas
@@ -40,9 +41,20 @@ class CanvasTransform:
 
         Bei 90° / 270° werden Breite und Höhe getauscht. Bei beliebigen
         Winkeln wird die Canvas so vergrößert, dass nichts abgeschnitten wird.
+        Eine schräge Drehung kann die Fläche bis ~2× aufblähen; überschreitet
+        das Ergebnis das Megapixel-Limit, wird sie abgelehnt (Statusmeldung)
+        statt eine ungebremste Speicherspitze zu riskieren – analog zum
+        Lade-Gate, das nur die *Eingabe* prüft, nicht das Rotationsergebnis.
         """
         img = self._canvas.image
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
+        new_w, new_h = rotated_size(img.width, img.height, degrees)
+        if new_w * new_h / 1_000_000 > _MAX_MEGAPIXELS:
+            self._canvas.statusMsg.emit(
+                f"Drehung um {abs(degrees)}° würde das Bild zu groß machen "
+                f"({new_w * new_h / 1_000_000:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP"
+            )
+            return
         result = rotate_image(img, degrees)
         direction = "↺" if degrees > 0 else "↻"
         self._canvas.apply_edit(result, desc=f"{direction} Gedreht {abs(degrees)}°")

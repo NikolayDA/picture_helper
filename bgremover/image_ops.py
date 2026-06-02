@@ -7,6 +7,7 @@ Hilfsfunktionen für die Pixelarbeit auf.
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import tempfile
 from pathlib import Path
@@ -154,6 +155,35 @@ def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:
     channels = list(rgba.split())
     channels[3] = Image.fromarray(new_a.astype(np.uint8))
     return Image.merge("RGBA", channels), r
+
+
+def rotated_size(width: int, height: int, degrees: float) -> tuple[int, int]:
+    """Schätzt die Bounding-Box, die ``rotate_image`` (``expand=True``) erzeugt.
+
+    Liefert das Ergebnis-Maß *ohne* die teure Rotation, damit der Aufrufer ein
+    Megapixel-Gate setzen kann, bevor Pillow die vergrößerte Arbeitsfläche
+    allokiert. 90°-Vielfache tauschen höchstens Breite/Höhe (keine
+    Vergrößerung); bei schrägen Winkeln wächst die Fläche bis ~2× (Maximum bei
+    45°). Die ``abs(cos)``/``abs(sin)``-Formel deckt alle vier Quadranten ab und
+    ist damit symmetrisch in der Drehrichtung.
+
+    Es ist eine *Näherung*: Pillow rundet die transformierten Eckpunkte einzeln
+    und liegt dadurch je Achse um bis zu ~1 px höher. Für ein 40-MP-Gate ist das
+    vernachlässigbar (Flächenfehler < 0,1 %); die Schätzung fällt nie *größer*
+    als Pillows tatsächliches Ergebnis aus.
+    """
+    d = degrees % 180
+    if d == 0:
+        return width, height
+    if d == 90:
+        return height, width
+    rad = math.radians(d)
+    cos = abs(math.cos(rad))
+    sin = abs(math.sin(rad))
+    return (
+        math.ceil(width * cos + height * sin),
+        math.ceil(width * sin + height * cos),
+    )
 
 
 def rotate_image(img: Image.Image, degrees: int) -> Image.Image:

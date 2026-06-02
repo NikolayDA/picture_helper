@@ -6,6 +6,7 @@ Modul ``rembg_remove`` aufruft; Tests patchen entsprechend
 """
 from __future__ import annotations
 
+import importlib.util
 import io
 
 import numpy as np
@@ -16,13 +17,39 @@ from bgremover.constants import logger
 from bgremover.image_loading import open_validated_image
 from bgremover.image_utils import flood_fill
 
+# rembg (zieht onnxruntime) wird bewusst NICHT auf Modulebene importiert: der
+# Import kostet beim Start mehrere Sekunden, und ``main_window`` lädt ``workers``
+# für ``REMBG_AVAILABLE`` schon vor dem ersten Fensterzeichnen. ``find_spec``
+# prüft nur die *Installation* (ohne den teuren Import); der echte Import läuft
+# lazy im Hintergrund-Thread (Warmup / erster KI-Klick), wo ein defektes
+# onnxruntime-Backend als normaler Worker-Fehler gemeldet wird statt den Start
+# zu verzögern.
 try:
-    from rembg import remove as rembg_remove
-    REMBG_AVAILABLE = True
-except (ImportError, RuntimeError, OSError, SystemExit):
-    # rembg ist optional; fehlt das onnxruntime-Backend, kann der Import
-    # je nach rembg-Version unterschiedlich fehlschlagen (inkl. SystemExit).
+    REMBG_AVAILABLE = importlib.util.find_spec("rembg") is not None
+except (ImportError, ValueError):
     REMBG_AVAILABLE = False
+
+# Lazy-Handle auf ``rembg.remove`` (befüllt beim ersten echten Bedarf im
+# Worker-Thread). Modulebene, damit Tests ``bgremover.workers.rembg_remove``
+# direkt patchen können.
+rembg_remove = None
+
+
+def _ensure_rembg_remove():
+    """Importiert ``rembg.remove`` beim ersten Aufruf und cached es modulweit.
+
+    Hält den teuren ``onnxruntime``-Import aus dem App-Start heraus – er läuft
+    erst hier, im Warmup- bzw. KI-Worker-Thread. Schlägt der Import fehl (z. B.
+    defektes Backend), propagiert die Exception in ``_Worker.run`` und wird wie
+    ein fehlgeschlagener ``remove()``-Aufruf als ``error`` gemeldet. Ist
+    ``rembg_remove`` bereits gesetzt (echter Import *oder* Test-Patch), wird es
+    unverändert zurückgegeben.
+    """
+    global rembg_remove
+    if rembg_remove is None:
+        from rembg import remove
+        rembg_remove = remove
+    return rembg_remove
 
 
 class _Worker(QObject):
@@ -80,9 +107,10 @@ class AIWorker(_Worker):
         self._cancelled = True
 
     def _work(self) -> None:
+        remove = _ensure_rembg_remove()
         buf = io.BytesIO()
         self._img.save(buf, format="PNG")
-        result_bytes = rembg_remove(buf.getvalue())
+        result_bytes = remove(buf.getvalue())
         if self._cancelled:
             return
         result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
@@ -108,9 +136,10 @@ class RembgWarmupWorker(_Worker):
     _error_context = "rembg-Warmup"
 
     def _work(self) -> None:
+        remove = _ensure_rembg_remove()
         buf = io.BytesIO()
         Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(buf, format="PNG")
-        rembg_remove(buf.getvalue())
+        remove(buf.getvalue())
         logger.info("rembg-Warmup abgeschlossen")
 
     def _always_finished(self) -> None:
