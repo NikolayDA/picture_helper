@@ -6,6 +6,9 @@ Hilfsfunktionen für die Pixelarbeit auf.
 """
 from __future__ import annotations
 
+import contextlib
+import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -74,21 +77,66 @@ def ensure_save_extension(
 
 
 def save_image_file(img: Image.Image, path: str | Path) -> None:
-    """Speichert ``img`` unter ``path`` mit den format-spezifischen Vorgaben der Anwendung."""
+    """Speichert ``img`` *atomar* unter ``path`` mit den App-Format-Vorgaben.
+
+    Geschrieben wird zuerst in eine eindeutige temporäre Datei im
+    Zielverzeichnis, die anschließend per ``os.replace()`` an die Zielstelle
+    gehoben wird. So zerstört ein abgebrochener Schreibvorgang (Platte voll,
+    Encoder-Fehler) keine bereits vorhandene Datei – ``os.replace`` ersetzt das
+    Ziel atomar über bestehende Dateien hinweg (auch unter Windows). Dasselbe
+    ``mkstemp``+``os.replace``-Muster nutzt bereits
+    ``qt_plugins._copy_if_needed``.
+
+    Eine *nicht-leere, unbekannte* Endung wird mit ``ValueError`` abgelehnt,
+    statt still PNG-Bytes unter einem falschen Namen abzulegen (die App kennt
+    genau die Formate aus ``SAVE_FORMATS``). Eine fehlende Endung bleibt als
+    PNG-Default erhalten – das ist das Sicherheitsnetz für direkte Aufrufer.
+    """
     out = Path(path)
     ext = out.suffix.lower()
+    encoded: Image.Image
+    fmt: str
+    params: dict[str, object]
     if ext in (".jpg", ".jpeg"):
-        # JPEG has no alpha channel. Composite transparencies onto white.
+        # JPEG kennt kein Alpha → Transparenz auf Weiß komponieren.
         src = img if img.mode == "RGBA" else img.convert("RGBA")
         bg = Image.new("RGBA", src.size, (255, 255, 255, 255))
         bg.paste(src, mask=src.split()[3])
-        bg.convert("RGB").save(out, quality=95)
+        encoded, fmt, params = bg.convert("RGB"), "JPEG", {"quality": 95}
     elif ext == ".webp":
-        img.save(out, "WEBP", quality=90)
+        encoded, fmt, params = img, "WEBP", {"quality": 90}
     elif ext in (".tif", ".tiff"):
-        img.save(out, "TIFF", compression="tiff_lzw")
+        encoded, fmt, params = img, "TIFF", {"compression": "tiff_lzw"}
+    elif ext in ("", ".png"):
+        encoded, fmt, params = img, "PNG", {}
     else:
-        img.save(out, "PNG")
+        raise ValueError(
+            f"Nicht unterstütztes Speicherformat: '{ext}'. "
+            "Unterstützt werden .png, .jpg, .webp und .tif."
+        )
+
+    # Explizites ``fmt`` ist Pflicht, weil das temporäre Ziel die Endung nicht
+    # trägt – PIL könnte das Format sonst nicht aus dem Namen ableiten.
+    fd, tmp_name = tempfile.mkstemp(dir=str(out.parent), prefix=f".{out.name}.")
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            encoded.save(fh, fmt, **params)
+        # ``mkstemp`` legt 0600 an: beim Überschreiben den Modus der Zieldatei
+        # übernehmen, sonst die üblichen umask-Default-Rechte vergeben – damit
+        # gespeicherte Bilder nicht überraschend nur für den Eigentümer lesbar
+        # werden.
+        if out.exists():
+            os.chmod(tmp, out.stat().st_mode & 0o777)
+        else:
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(tmp, 0o666 & ~umask)
+        os.replace(tmp, out)
+    except Exception:
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+        raise
 
 
 def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:

@@ -1,6 +1,7 @@
 """Pure image operation tests that do not need a QApplication."""
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from bgremover.image_ops import (
@@ -62,6 +63,51 @@ def test_save_image_file_preserves_tiff_alpha(tmp_path) -> None:
     saved = Image.open(out)
     assert saved.mode == "RGBA"
     assert (np.array(saved)[:, :, 3] == 128).all()
+
+
+def test_save_image_file_overwrites_existing_atomically(tmp_path) -> None:
+    out = tmp_path / "pic.png"
+    save_image_file(Image.new("RGBA", (4, 4), (255, 0, 0, 255)), out)
+    save_image_file(Image.new("RGBA", (4, 4), (0, 255, 0, 255)), out)
+
+    with Image.open(out) as saved:
+        assert saved.convert("RGBA").getpixel((0, 0)) == (0, 255, 0, 255)
+    # Nach erfolgreichem os.replace bleibt keine .pic.png.*-Zwischendatei übrig.
+    assert list(tmp_path.glob(".pic.png.*")) == []
+
+
+def test_save_image_file_keeps_original_when_encoding_fails(
+    tmp_path, monkeypatch,
+) -> None:
+    out = tmp_path / "keep.png"
+    out.write_bytes(b"ORIGINAL")
+
+    def boom(*_a, **_k):
+        raise OSError("kein Platz auf dem Gerät")
+
+    # Encoder schlägt mitten im Schreiben fehl: die vorhandene Datei darf nicht
+    # beschädigt werden und die temporäre Datei muss aufgeräumt sein.
+    monkeypatch.setattr(Image.Image, "save", boom)
+    with pytest.raises(OSError):
+        save_image_file(Image.new("RGBA", (4, 4)), out)
+
+    assert out.read_bytes() == b"ORIGINAL"
+    assert list(tmp_path.glob(".keep.png.*")) == []
+
+
+def test_save_image_file_rejects_unknown_extension(tmp_path) -> None:
+    out = tmp_path / "pic.bmp"
+    # Lieber ein klarer Fehler als still PNG-Bytes unter falschem Namen.
+    with pytest.raises(ValueError, match=r"\.bmp"):
+        save_image_file(Image.new("RGBA", (4, 4)), out)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_save_image_file_empty_extension_defaults_to_png(tmp_path) -> None:
+    out = tmp_path / "noext"
+    save_image_file(Image.new("RGBA", (4, 4), (1, 2, 3, 255)), out)
+    with Image.open(out) as saved:
+        assert saved.format == "PNG"
 
 
 def test_round_corners_clamps_radius_and_clears_corner_alpha() -> None:
