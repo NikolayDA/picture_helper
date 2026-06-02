@@ -15,24 +15,24 @@
 
 ## État actuel (2026-06-02, revue « adoring-johnson »)
 
-Revue de suivi après « modest-shannon », axée sur les chemins de sauvegarde, de chargement et de CI. **8 points (N1–N8) :** 5 corrigés avec tests de régression, fusionnés via **PR #142** (N1), **#143** (N6, N8) et **#144** (N4, N5) ; 2 ouverts (N2, N7) ; 1 déjà couvert (N3). Base toujours verte : ruff/mypy propres, suite verte.
+Revue de suivi après « modest-shannon », axée sur les chemins de sauvegarde, de chargement et de CI. **8 points (N1–N8) :** 7 corrigés avec tests de régression, fusionnés via **PR #142** (N1), **#143** (N6, N8), **#144** (N4, N5) et **#148** (N2, N7) ; 1 déjà couvert (N3). Base toujours verte : ruff/mypy propres, suite verte.
 
 ### État d'avancement
 
 | Statut | Points |
 |--------|--------|
-| ✅ Terminé | N1, N4, N5, N6, N8 |
-| ⏳ Ouvert | N2, N7 |
+| ✅ Terminé | N1, N2, N4, N5, N6, N7, N8 |
+| ⏳ Ouvert | – |
 
 ### Constats
 
 - **N1 🟠 — Libérer le verrou de la baguette magique sur le chemin d'erreur** (PR #142). Suite de « modest-shannon » B : au changement d'image, `_load_image_async` annule le flood fill, qui n'émet alors ni `finished` ni `error`. La réinitialisation du verrou ne passait que par le chemin de succès (`apply_loaded_image`) : si le chargement échouait, `_wand_busy` restait actif et la baguette bloquée sur l'ancienne image. Nouvelle `reset_pending_wand()` silencieuse juste à côté de `cancel_flood_fill()`.
-- **N2 🟡 — Limite de taille à la rotation** (ouvert). `rotate_image` (`image_ops.py`) tourne avec `expand=True` ; la protection mégapixels ne s'applique qu'au chargement (`Image.MAX_IMAGE_PIXELS`), pas au résultat. Une image juste sous la limite peut gonfler à ~2× à ~45° : un pic mémoire sans garde-fou.
+- **N2 🟡 — Limite de taille à la rotation** (PR #148). `rotate_image` (`image_ops.py`) tourne avec `expand=True` ; la protection mégapixels ne s'appliquait qu'au chargement (`Image.MAX_IMAGE_PIXELS`), pas au résultat : une image juste sous la limite pouvait gonfler à ~2× à ~45°. Désormais `rotated_size()` estime la bounding box étendue en amont ; `apply_rotate` rejette les résultats au-dessus de la limite avec un message d'état.
 - **N3 ➖ — Budget mémoire de l'historique** (déjà couvert). `CanvasHistory` (`canvas_history.py`) impose depuis longtemps le budget d'annulation via `_trim()`/`_UNDO_MEMORY_LIMIT`, le rétablissement étant plafonné par `_REDO_MAX_ENTRIES`. Aucune action requise.
 - **N4 🟢 — Honnêteté de l'extension à l'enregistrement** (PR #144). `save_image_file` écrivait silencieusement des octets PNG pour les extensions inconnues ; désormais un rejet clair par `ValueError`, tandis qu'une extension vide reste le PNG par défaut.
 - **N5 🟡 — Enregistrement atomique** (PR #144). Écrire directement à la cible détruisait le fichier existant en cas d'interruption. Désormais `mkstemp` → `os.replace` dans le répertoire cible (le motif de `qt_plugins._copy_if_needed`), avec conservation des permissions et nettoyage du temporaire.
 - **N6 🟡 — `libgl1` dans la matrice CI complète + test de dérive** (PR #143). La matrice complète n'installait pas `libgl1` (contrairement aux autres sources de paquets Qt) → `import PyQt6` risquait `libGL.so.1`. Ajouté ; le nouveau `test_ci_qt_packages.py` garde les quatre listes de paquets cohérentes.
-- **N7 🟢 — Imports précoces** (ouvert). `workers.py` importe `rembg` (qui entraîne onnxruntime) au niveau du module ; comme `main_window` charge `workers`, le coût d'import est payé au démarrage, même sans utiliser l'IA. Import paresseux + sonde `find_spec` pour `REMBG_AVAILABLE`.
+- **N7 🟢 — Imports précoces** (PR #148). `workers.py` importait `rembg` (qui entraîne onnxruntime) au niveau du module ; comme `main_window` charge `workers`, le coût d'import était payé au démarrage, même sans utiliser l'IA. Désormais une sonde `find_spec` pour `REMBG_AVAILABLE` plus un import paresseux de `rembg` uniquement dans le thread worker (warmup/premier clic IA).
 - **N8 🟢 — Docstring obsolète de `load_image`** (PR #143). Elle nommait le chemin de drop comme appelant synchrone, alors que le glisser-déposer est asynchrone depuis longtemps. Corrigé.
 
 ---
@@ -50,7 +50,7 @@ Améliorations issues de la deuxième analyse, pas encore implémentées (produi
 
 ## Plan d'implémentation par paquets de PR (à partir du 2026-06-02)
 
-- **PR 0 — Durcissement du code (N2 + N7).** Regrouper les deux constats ouverts de « adoring-johnson » : N2 — appliquer le garde-fou mégapixels aussi au résultat de la rotation (calculer la taille cible en amont à partir de l'angle/diagonale, avec un message d'état au lieu d'un pic mémoire sans limite) ; N7 — importer `rembg` de façon paresseuse et sonder `REMBG_AVAILABLE` via `find_spec`, en déplaçant le gating du bouton IA vers l'échec du warmup. Petit et à faible risque, sans rupture d'UX — avant les gros paquets.
+- **PR 0 — Durcissement du code (N2 + N7).** ✅ Terminé (PR #148). N2 — appliquer le garde-fou mégapixels aussi au résultat de la rotation (`rotated_size()` estime la taille cible en amont, `apply_rotate` rejette les résultats au-dessus de la limite avec un message d'état) ; N7 — importer `rembg` de façon paresseuse et sonder `REMBG_AVAILABLE` via `find_spec` (la gestion d'échec du warmup existante couvre un backend défectueux).
 - **PR 1 — Raccourcis d'outils et indications.** ✅ Terminé (PR #146). O4 + O6 : changement par touche unique (`W`/`B`/`E`/`L`), état coché de la toolbar synchronisé, tooltips/README/manuel mis à jour, test de régression du câblage des raccourcis.
 - **PR 2 — CI sécurisée plus tôt.** O3 + O5 : matrice complète aussi chaque semaine ou sur `main`, petit smoke UI en PR/Full CI, Nightly UI reste la suite complète.
 - **PR 3 — Socle i18n.** Préparer O1 : locale/fallback à l'exécution, centralisation progressive des chaînes visibles, allemand conservé comme défaut stable.

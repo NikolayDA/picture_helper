@@ -15,24 +15,24 @@
 
 ## Current status (2026-06-02, "adoring-johnson" review)
 
-Targeted follow-up review after "modest-shannon", focused on the save, load, and CI paths. **8 items (N1–N8):** 5 fixed with regression tests – merged via **PR #142** (N1), **#143** (N6, N8), and **#144** (N4, N5); 2 open (N2, N7); 1 already covered (N3). Baseline still green: ruff/mypy clean, suite green.
+Targeted follow-up review after "modest-shannon", focused on the save, load, and CI paths. **8 items (N1–N8):** 7 fixed with regression tests – merged via **PR #142** (N1), **#143** (N6, N8), **#144** (N4, N5), and **#148** (N2, N7); 1 already covered (N3). Baseline still green: ruff/mypy clean, suite green.
 
 ### Completion status
 
 | Status | Items |
 |--------|-------|
-| ✅ Done | N1, N4, N5, N6, N8 |
-| ⏳ Open | N2, N7 |
+| ✅ Done | N1, N2, N4, N5, N6, N7, N8 |
+| ⏳ Open | – |
 
 ### Findings
 
 - **N1 🟠 — Release the magic-wand gate on the error path** (PR #142). Follow-up to "modest-shannon" B: on an image change, `_load_image_async` cancels the flood fill, which then emits neither `finished` nor `error`. The gate reset ran only on the success path (`apply_loaded_image`) – if the load failed, `_wand_busy` stayed set and the wand was blocked on the old image. New silent `reset_pending_wand()` right next to `cancel_flood_fill()`.
-- **N2 🟡 — Rotation size limit** (open). `rotate_image` (`image_ops.py`) rotates with `expand=True`; the megapixel guard only applies on load (`Image.MAX_IMAGE_PIXELS`), not to the result. A just-under-limit source can balloon to ~2× at ~45° – a memory spike with no gate.
+- **N2 🟡 — Rotation size limit** (PR #148). `rotate_image` (`image_ops.py`) rotates with `expand=True`; the megapixel guard only applied on load (`Image.MAX_IMAGE_PIXELS`), not to the result – a just-under-limit source could balloon to ~2× at ~45°. Now `rotated_size()` estimates the expand bounding box up front; `apply_rotate` rejects results over the limit with a status message.
 - **N3 ➖ — History memory budget** (already covered). `CanvasHistory` (`canvas_history.py`) has long enforced the undo budget via `_trim()`/`_UNDO_MEMORY_LIMIT`, with redo capped by `_REDO_MAX_ENTRIES`. No action needed.
 - **N4 🟢 — Extension honesty when saving** (PR #144). `save_image_file` silently wrote PNG bytes for unknown extensions; now a clear `ValueError` rejection, while an empty extension stays the PNG default.
 - **N5 🟡 — Atomic save** (PR #144). Writing straight to the target destroyed the existing file on an abort. Now `mkstemp` → `os.replace` in the target directory (the `qt_plugins._copy_if_needed` pattern), preserving permissions and cleaning up the temp file.
 - **N6 🟡 — `libgl1` in the full CI matrix + drift test** (PR #143). The full matrix did not install `libgl1` (unlike the other Qt package sources) → `import PyQt6` risked `libGL.so.1`. Added; the new `test_ci_qt_packages.py` keeps all four package lists consistent.
-- **N7 🟢 — Eager imports** (open). `workers.py` imports `rembg` (which drags in onnxruntime) at module level; since `main_window` loads `workers`, the import cost is paid at startup – even without using the AI. Lazy import + a `find_spec` probe for `REMBG_AVAILABLE`.
+- **N7 🟢 — Eager imports** (PR #148). `workers.py` imported `rembg` (which drags in onnxruntime) at module level; since `main_window` loads `workers`, the import cost was paid at startup – even without using the AI. Now a `find_spec` probe for `REMBG_AVAILABLE` plus a lazy import of `rembg` only in the worker thread (warmup/first AI click).
 - **N8 🟢 — Stale `load_image` docstring** (PR #143). It named the drop path as a synchronous caller, although drag & drop has long run asynchronously. Corrected.
 
 ---
@@ -50,7 +50,7 @@ Improvements from the second analysis that are not yet implemented (product/proc
 
 ## Implementation plan by PR package (from 2026-06-02)
 
-- **PR 0 — Code hardening (N2 + N7).** Bundle the two open findings from "adoring-johnson": N2 — apply the megapixel gate to the rotation result too (compute the target size up front from angle/diagonal, with a status message instead of an unbounded memory spike); N7 — import `rembg` lazily and probe `REMBG_AVAILABLE` via `find_spec`, moving the AI-button gating to the warmup failure. Small and low-risk, no UX break — before the large packages.
+- **PR 0 — Code hardening (N2 + N7).** ✅ Done (PR #148). N2 — apply the megapixel gate to the rotation result too (`rotated_size()` estimates the target size up front, `apply_rotate` rejects over-limit results with a status message); N7 — import `rembg` lazily and probe `REMBG_AVAILABLE` via `find_spec` (the existing warmup-failure handling covers a broken backend).
 - **PR 1 — Tool shortcuts & shortcut hints.** ✅ Done (PR #146). O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
 - **PR 2 — Earlier CI coverage.** O3 + O5: full matrix additionally weekly or on `main`, small UI smoke in PR/Full CI, Nightly UI remains the full suite.
 - **PR 3 — i18n foundation.** Prepare O1: add runtime locale/fallback, centralize visible strings incrementally, keep German as the stable default.
