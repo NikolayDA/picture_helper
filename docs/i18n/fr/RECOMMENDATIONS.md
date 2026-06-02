@@ -44,13 +44,14 @@ Améliorations issues de la deuxième analyse, pas encore implémentées (produi
 - **O1 🟠 — Localisation de l'app.** L'UI est codée en dur en allemand ; pas d'i18n à l'exécution (pas de `QTranslator`/`tr()`), bien que la doc existe en cinq langues. Les messages d'état sont déjà centralisés (`status_messages.py`). De façon incrémentale via Qt Linguist (`.ts`) ou une table de chaînes légère selon `QLocale`.
 - **O2 🟡 — App Linux / empaquetage.** Pas de bundle pour Linux ; lancement seulement via `python -m bgremover` depuis une venv. Un paquet installable (AppImage/Flatpak/`.deb`) pour **Raspberry Pi OS** et les grandes distributions (Debian/Ubuntu/Fedora) abaisse la barrière d'entrée pour les non-développeurs — analogue au bundle `.app` de macOS.
 - **O3 🟡 — Matrice CI complète plus tôt.** La matrice complète (Linux/macOS × 3.10–3.13) ne tourne qu'aux tags/release ; les régressions sous macOS ou Python 3.10/3.13 apparaissent tard. La lancer aussi au push sur `main` ou via un cron hebdomadaire.
-- **O4 🟢 — Raccourcis clavier pour les outils.** Baguette/pinceau/gomme/lasso ne sont accessibles qu'à la souris ; ajouter un changement par touche unique (p. ex. `B`/`E`).
 - **O5 🟡 — Smoke UI plus tôt dans la CI.** Les tests `ui` complets tournent nightly/manuellement ; PR CI et Full CI n'exécutent que `make pr-check`. Ajouter un petit smoke UI stable à PR/Full CI, tout en gardant la suite complète nightly.
-- **O6 🟢 — Indications de raccourcis correctes selon la plateforme.** Certains tooltips/docs citent `Cmd` alors que Linux utilise `Ctrl`. Générer les textes de raccourcis de façon centralisée ou dépendante de la plateforme.
+
+**✅ Terminé depuis cette série (PR #146) :** O4 — changement d'outil par touche unique (`W`/`B`/`E`/`L`) avec état de toolbar synchronisé ; O6 — les tooltips affichent `Cmd`/`Ctrl` selon la plateforme via `_shortcut_label()`. Test de régression `test_tool_shortcuts.py`.
 
 ## Plan d'implémentation par paquets de PR (à partir du 2026-06-02)
 
-- **PR 1 — Raccourcis d'outils et indications.** O4 + O6 : changement par touche unique (`W`/`B`/`E`/`L`), état coché de la toolbar synchronisé, tooltips/README/manuel mis à jour, test de régression du câblage des raccourcis.
+- **PR 0 — Durcissement du code (N2 + N7).** Regrouper les deux constats ouverts de « adoring-johnson » : N2 — appliquer le garde-fou mégapixels aussi au résultat de la rotation (calculer la taille cible en amont à partir de l'angle/diagonale, avec un message d'état au lieu d'un pic mémoire sans limite) ; N7 — importer `rembg` de façon paresseuse et sonder `REMBG_AVAILABLE` via `find_spec`, en déplaçant le gating du bouton IA vers l'échec du warmup. Petit et à faible risque, sans rupture d'UX — avant les gros paquets.
+- **PR 1 — Raccourcis d'outils et indications.** ✅ Terminé (PR #146). O4 + O6 : changement par touche unique (`W`/`B`/`E`/`L`), état coché de la toolbar synchronisé, tooltips/README/manuel mis à jour, test de régression du câblage des raccourcis.
 - **PR 2 — CI sécurisée plus tôt.** O3 + O5 : matrice complète aussi chaque semaine ou sur `main`, petit smoke UI en PR/Full CI, Nightly UI reste la suite complète.
 - **PR 3 — Socle i18n.** Préparer O1 : locale/fallback à l'exécution, centralisation progressive des chaînes visibles, allemand conservé comme défaut stable.
 - **PR 4 — Déploiement i18n.** Rendre O1 utilisable : au moins l'anglais comme langue runtime, puis les autres langues de documentation existantes, avec smoke checks par locale.
