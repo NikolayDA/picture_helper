@@ -5,7 +5,7 @@ Current status: ../i18n/en/RECOMMENDATIONS.md.
 
 ---
 
-[Deutsch](../../../RECOMMENDATIONS.md) · **English** · [Español](../es/RECOMMENDATIONS.md) · [Français](../fr/RECOMMENDATIONS.md) · [Українська](../uk/RECOMMENDATIONS.md) · [简体中文](../zh/RECOMMENDATIONS.md)
+[Deutsch](../../RECOMMENDATIONS.md) · **English** · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
 
 # Code analysis & rated recommendations: BgRemover
 

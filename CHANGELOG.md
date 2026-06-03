@@ -77,6 +77,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   englische Modul- und Methoden-Docstrings; alle drei auf Deutsch gebracht,
   konsistent mit dem Rest des Projekts.
 
+- **Nutzerdokumentation für Linux-Pakete und Spracheinstellung aktualisiert.**
+  README, `INSTALL_LINUX.md` und `ANLEITUNG.md` nennen AppImage/`.deb` als
+  empfohlenen Linux-Endnutzerpfad und dokumentieren die persistente
+  Spracheinstellung inklusive Neustart-Hinweis; die i18n-Kopien sind
+  entsprechend synchronisiert.
+
 - **Code-Hygiene-Sammelrunde (kleine, voneinander unabhängige Cleanups).**
   - `bgremover/__init__.py` + neues `bgremover/_version.py`: Das
     Source-Lauf-Fallback für `__version__` liest jetzt `pyproject.toml`
