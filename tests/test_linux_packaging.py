@@ -1,16 +1,19 @@
-"""Linux packaging smoke checks (PR 5 — packaging foundation).
+"""Linux packaging smoke checks (PR 5 foundation + PR 6 expansion).
 
-Validates the AppImage packaging metadata without any external tooling
-(`desktop-file-validate`/`appstreamcli` are not assumed to be installed), so it
-runs in the normal PR CI. It keeps the desktop entry, the AppStream metainfo and
-the build script self-consistent and in sync with ``pyproject.toml`` (app id,
-license, version, the ``bgremover`` entry point).
+Validates the AppImage/.deb packaging metadata, the build scripts and the
+release workflow. The metadata checks need no external tooling
+(`desktop-file-validate`/`appstreamcli` are not assumed to be installed), so they
+run in the normal PR CI; the end-to-end ``.deb`` build runs only where
+``dpkg-deb`` is available. Everything stays in sync with ``pyproject.toml``
+(app id, license, version, the ``bgremover`` entry point).
 """
 from __future__ import annotations
 
 import configparser
 import os
 import re
+import shutil
+import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -23,6 +26,8 @@ APP_ID = "de.bgremover.app"
 DESKTOP = PKG / f"{APP_ID}.desktop"
 METAINFO = PKG / f"{APP_ID}.metainfo.xml"
 BUILD_SH = PKG / "build_appimage.sh"
+BUILD_DEB = PKG / "build_deb.sh"
+WORKFLOW = ROOT / ".github" / "workflows" / "release-linux.yml"
 ICON = ROOT / "BgRemover_icon.png"
 
 _PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
@@ -159,3 +164,69 @@ def test_build_script_is_executable_and_sane() -> None:
     assert "set -euo pipefail" in txt
     assert "python-appimage" in txt
     assert APP_ID in txt
+
+
+# ── .deb second package format (PR 6) ──────────────────────────────────
+
+def test_deb_build_script_sane() -> None:
+    assert os.access(BUILD_DEB, os.X_OK), ".deb build script must be executable"
+    txt = BUILD_DEB.read_text(encoding="utf-8")
+    assert txt.startswith("#!/usr/bin/env bash")
+    assert "set -euo pipefail" in txt
+    assert "dpkg-deb --build" in txt
+    assert APP_ID in txt
+    assert "libfuse2" in txt  # FUSE dep so the wrapped AppImage runs
+
+
+@pytest.mark.skipif(shutil.which("dpkg-deb") is None, reason="dpkg-deb not available")
+def test_deb_build_produces_valid_package(tmp_path) -> None:
+    # Build a .deb from a stub AppImage and inspect it — no network needed.
+    appimage = tmp_path / "BgRemover-stub.AppImage"
+    appimage.write_bytes(b"#!/bin/sh\nexit 0\n")
+    env = {**os.environ, "BUILD_DIR": str(tmp_path / "build")}
+    subprocess.run(
+        ["bash", str(BUILD_DEB), str(appimage)],
+        cwd=str(ROOT), env=env, check=True, capture_output=True, text=True,
+    )
+    debs = list((tmp_path / "build" / "deb").glob("*.deb"))
+    assert len(debs) == 1, f"expected one .deb, got {debs}"
+
+    info = subprocess.run(
+        ["dpkg-deb", "--info", str(debs[0])],
+        check=True, capture_output=True, text=True).stdout
+    assert "Package: bgremover" in info
+    assert f"Version: {_pyproject_version()}" in info
+    assert re.search(r"Architecture: (amd64|arm64|armhf)", info)
+    assert "Depends: libfuse2" in info
+
+    contents = subprocess.run(
+        ["dpkg-deb", "--contents", str(debs[0])],
+        check=True, capture_output=True, text=True).stdout
+    for expected in (
+        "/opt/BgRemover/BgRemover.AppImage",
+        f"/usr/share/applications/{APP_ID}.desktop",
+        f"/usr/share/icons/hicolor/512x512/apps/{APP_ID}.png",
+        f"/usr/share/metainfo/{APP_ID}.metainfo.xml",
+    ):
+        assert expected in contents, f"missing from .deb: {expected}"
+
+
+# ── Release workflow (PR 6) ────────────────────────────────────────────
+
+def test_release_workflow_builds_both_arches_and_formats() -> None:
+    # Text-based (no PyYAML dependency — matches tests/test_ci_qt_packages.py
+    # and keeps the test runnable with only the declared ``[test]`` extras).
+    text = WORKFLOW.read_text(encoding="utf-8")
+    # Triggers: version tags + manual dispatch.
+    assert "'v*'" in text
+    assert "workflow_dispatch:" in text
+    # Release upload needs write permission.
+    assert re.search(r"(?m)^\s*contents:\s*write\b", text)
+    # Both target architectures, with a native arm64 runner (Raspberry Pi OS).
+    assert "arch: x86_64" in text
+    assert "arch: aarch64" in text
+    assert re.search(r"runner:\s*ubuntu-\S*-arm\b", text), "needs a native arm64 runner"
+    # Builds both formats and publishes them to the GitHub Release.
+    assert "build_appimage.sh" in text
+    assert "build_deb.sh" in text
+    assert "gh release" in text
