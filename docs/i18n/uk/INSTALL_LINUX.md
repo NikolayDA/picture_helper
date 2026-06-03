@@ -11,6 +11,12 @@
 > `python3 -m bgremover` з віртуального середовища (venv) — опційно
 > з десктопним стартером для подвійного кліку (див. нижче).
 
+> **Починаючи з першого тегованого релізу** також є готові пакети **AppImage** і
+> **`.deb`** (x86_64 та aarch64/Raspberry Pi OS) на
+> [сторінці Releases](https://github.com/NikolayDA/picture_helper/releases):
+> зробити AppImage виконуваним і запустити або `sudo apt install ./bgremover-*.deb`
+> — зовсім без venv. Наведена нижче інструкція описує запуск із вихідного коду (venv).
+
 ## Вимоги
 
 > **Raspberry Pi OS (Desktop)?** Тоді скористайтеся значно простішим способом

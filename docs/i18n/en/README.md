@@ -18,6 +18,7 @@ An image-editing tool for macOS and Linux for **removing, replacing, and editing
 - **📥 Drag & drop** for images directly onto the window.
 - Save as **PNG** (with transparency), **JPEG** (on a white background), **WebP**, or **TIFF**.
 - **⚙ Persistent settings** – default directories and preferred file format are remembered; the log file can be located directly from the settings and its folder can be opened.
+- **🌐 Bilingual UI** – German and English, switchable in the settings (takes effect after a restart).
 
 ## Screenshots
 
@@ -74,8 +75,11 @@ python3 -m bgremover
 `.[ai]` pulls in the AI dependencies (`rembg[cpu]` including `onnxruntime`);
 without the AI feature, `python3 -m pip install -c requirements/constraints.txt -e .` is sufficient.
 
-**Linux:** There is no app bundle; the application runs by starting it
-directly from a venv:
+**Linux:** From the first tagged release, ready-made **AppImage** and **`.deb`**
+packages (x86_64 and aarch64/Raspberry Pi OS) are available under *Releases* —
+make the AppImage executable and run it, or `sudo apt install ./bgremover-*.deb`,
+entirely without a venv. From source, the app runs by starting it directly from
+a venv:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git

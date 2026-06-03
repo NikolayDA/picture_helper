@@ -18,6 +18,7 @@
 - **📥 拖放**：可将图像直接拖到窗口中。
 - 保存为 **PNG**（带透明度）、**JPEG**（白色背景）、**WebP** 或 **TIFF**。
 - **⚙ 持久化设置**：默认目录和首选文件格式将被保留；还可在设置中定位日志文件并打开其目录。
+- **🌐 双语界面**：德语与英语，可在设置中切换（重启后生效）。
 
 ## 截图
 
@@ -72,8 +73,10 @@ python3 -m bgremover
 `.[ai]` 会一并引入 AI 依赖项（`rembg[cpu]`，含 `onnxruntime`）；
 若不需要 AI 功能，`python3 -m pip install -c requirements/constraints.txt -e .` 即可。
 
-**Linux：** 没有应用程序包；应用程序通过从 venv 中
-直接启动来运行：
+**Linux：** 从第一个打标签的 release 起，*Releases* 中提供现成的 **AppImage** 和
+**`.deb`** 包（x86_64 与 aarch64/Raspberry Pi OS）——将 AppImage 设为可执行并运行，
+或 `sudo apt install ./bgremover-*.deb`，完全无需 venv。若从源码运行，应用程序
+通过从 venv 中直接启动来运行：
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git

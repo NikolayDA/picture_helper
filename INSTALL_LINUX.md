@@ -11,6 +11,13 @@ um einen offenen Pull Request vor dem Merge zu testen).
 > `python3 -m bgremover` aus einer virtuellen Umgebung (venv) — optional
 > mit einem Desktop-Starter für den Doppelklick (siehe unten).
 
+> **Ab dem ersten getaggten Release** gibt es zudem fertige **AppImage**- und
+> **`.deb`**-Pakete (x86_64 und aarch64/Raspberry Pi OS) auf der
+> [Releases-Seite](https://github.com/NikolayDA/picture_helper/releases):
+> AppImage ausführbar machen und starten bzw.
+> `sudo apt install ./bgremover-*.deb` — ganz ohne venv. Die folgende Anleitung
+> deckt den Start aus dem Quellcode (venv) ab.
+
 ## Voraussetzungen
 
 > **Raspberry Pi OS (Desktop)?** Dann den deutlich einfacheren Weg

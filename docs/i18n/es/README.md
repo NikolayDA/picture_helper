@@ -18,6 +18,7 @@ Una herramienta de edición de imágenes para macOS y Linux para **eliminar, ree
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
 - Guardar como **PNG** (con transparencia), **JPEG** (sobre fondo blanco), **WebP** o **TIFF**.
 - **⚙ Ajustes persistentes**: los directorios predeterminados y el formato de archivo preferido se mantienen guardados; desde los ajustes se puede localizar el archivo de registro y abrir su carpeta.
+- **🌐 Interfaz bilingüe**: alemán e inglés, conmutable en los ajustes (se aplica tras reiniciar).
 
 ## Capturas de pantalla
 
@@ -78,8 +79,11 @@ python3 -m bgremover
 `.[ai]` incluye las dependencias de IA (`rembg[cpu]` incl. `onnxruntime`);
 sin la función de IA basta con `python3 -m pip install -c requirements/constraints.txt -e .`.
 
-**Linux:** No hay paquete de aplicación; la aplicación se ejecuta
-mediante el inicio directo desde un venv:
+**Linux:** A partir del primer release etiquetado hay paquetes **AppImage** y
+**`.deb`** listos (x86_64 y aarch64/Raspberry Pi OS) en *Releases* — haz
+ejecutable la AppImage y ejecútala, o `sudo apt install ./bgremover-*.deb`, sin
+ninguna venv. Desde el código, la aplicación se ejecuta mediante el inicio
+directo desde un venv:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git

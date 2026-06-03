@@ -11,6 +11,12 @@ to test an open pull request before merging).
 > `python3 -m bgremover` from a virtual environment (venv) — optionally
 > with a desktop launcher for double-clicking (see below).
 
+> **From the first tagged release** there are also ready-made **AppImage** and
+> **`.deb`** packages (x86_64 and aarch64/Raspberry Pi OS) on the
+> [Releases page](https://github.com/NikolayDA/picture_helper/releases): make
+> the AppImage executable and run it, or `sudo apt install ./bgremover-*.deb` —
+> entirely without a venv. The guide below covers running from source (venv).
+
 ## Requirements
 
 > **Raspberry Pi OS (Desktop)?** Then take the much simpler path

@@ -11,6 +11,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Mehrsprachige Oberfläche (Deutsch / Englisch) zur Laufzeit.** Neues Modul
+  `bgremover.i18n` mit zentraler String-Tabelle und stabilem Deutsch-Fallback;
+  die gesamte sichtbare UI – Menü, Toolbar, Panels, Dialoge, Canvas-Statusmeldungen
+  und Verlaufseinträge – läuft über `tr()`. Eine **Sprachauswahl** im
+  Einstellungen-Dialog schaltet zwischen Deutsch und Englisch um (wird beim
+  nächsten Start wirksam); abgesichert durch Key-/Platzhalter-Parität,
+  Per-Locale-UI-Smoke und einen AST-Guard gegen neue unübersetzte Literale.
+- **Linux-Pakete: AppImage und `.deb`.** `packaging/linux` mit
+  Freedesktop-`.desktop`, AppStream-Metadaten und Build-Skripten
+  (`build_appimage.sh`, `build_deb.sh`); ein GitHub-Actions-Release-Workflow baut
+  AppImage + `.deb` für **x86_64 und aarch64/Raspberry Pi OS** und hängt sie an
+  getaggte Releases – senkt die Einstiegshürde analog zum macOS-`.app`-Bundle.
 - **Test-Coverage auf 88 % erhöht (zweite Runde, zuvor 82 %).** Neue Datei
   `tests/test_canvas_events.py` deckt die bislang ungetesteten Event-Handler
   und die Steuerlogik von `canvas.py` ab: Maus-, Tastatur-, Wheel- und

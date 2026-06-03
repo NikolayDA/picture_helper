@@ -18,6 +18,7 @@ Un outil de retouche d'image pour macOS et Linux permettant de **supprimer, remp
 - **📥 Glisser-déposer** des images directement sur la fenêtre.
 - Enregistrement en **PNG** (avec transparence), **JPEG** (sur fond blanc), **WebP** ou **TIFF**.
 - **⚙ Paramètres persistants** – les répertoires par défaut et le format de fichier préféré restent enregistrés ; le fichier journal peut être localisé depuis les paramètres et son dossier peut être ouvert.
+- **🌐 Interface bilingue** – allemand et anglais, commutable dans les paramètres (effectif après redémarrage).
 
 ## Captures d'écran
 
@@ -77,8 +78,11 @@ python3 -m bgremover
 `.[ai]` entraîne l'installation des dépendances d'IA (`rembg[cpu]` y compris `onnxruntime`) ;
 sans la fonction d'IA, `python3 -m pip install -c requirements/constraints.txt -e .` suffit.
 
-**Linux :** il n'y a pas de bundle d'application ; l'application fonctionne via le
-lancement direct depuis un venv :
+**Linux :** à partir de la première release taguée, des paquets **AppImage** et
+**`.deb`** prêts à l'emploi (x86_64 et aarch64/Raspberry Pi OS) sont disponibles
+dans *Releases* — rendre l'AppImage exécutable et la lancer, ou
+`sudo apt install ./bgremover-*.deb`, sans aucune venv. Depuis les sources,
+l'application fonctionne via le lancement direct depuis un venv :
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git

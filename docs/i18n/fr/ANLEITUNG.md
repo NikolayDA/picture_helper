@@ -409,18 +409,19 @@ suivants :
 
 ![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
 
-*La boîte de dialogue des paramètres : les répertoires d'ouverture et
-d'enregistrement par défaut, le format d'image préféré et le chemin du fichier
-journal avec le bouton « Ouvrir le dossier ».*
+*La boîte de dialogue des paramètres : la langue de l'interface, les répertoires
+d'ouverture et d'enregistrement par défaut, le format d'image préféré et le
+chemin du fichier journal avec le bouton « Ouvrir le dossier ».*
 
 | Paramètre | Description |
 |---|---|
+| **Langue** | Langue de l'interface : allemand ou anglais (effectif au prochain démarrage) |
 | **Répertoire d'ouverture par défaut** | Dossier de départ de la boîte de dialogue d'ouverture (vide = dernier utilisé) |
 | **Répertoire d'export/enregistrement par défaut** | Dossier de départ de la boîte de dialogue d'enregistrement (vide = dernier utilisé) |
 | **Format d'image préféré** | PNG, JPEG, WebP ou TIFF – apparaît comme première option dans la boîte de dialogue d'enregistrement |
 | **Fichier journal** | Affiche le chemin du fichier journal ; le bouton « Ouvrir le dossier » ouvre le répertoire dans le gestionnaire de fichiers |
 
-Les trois premières préférences sont mémorisées entre les redémarrages de
+La langue, les répertoires et le format sont mémorisés entre les redémarrages de
 l'application.
 
 ---

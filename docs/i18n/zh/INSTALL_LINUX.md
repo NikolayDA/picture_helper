@@ -11,6 +11,11 @@
 > 直接启动 `python3 -m bgremover` 来运行——可选
 > 配合一个桌面启动器实现双击启动（见下文）。
 
+> **从第一个打标签的 release 起**，[Releases 页面](https://github.com/NikolayDA/picture_helper/releases)
+> 还提供现成的 **AppImage** 和 **`.deb`** 包（x86_64 与 aarch64/Raspberry Pi OS）：
+> 将 AppImage 设为可执行并运行，或 `sudo apt install ./bgremover-*.deb`——完全无需 venv。
+> 下面的指南介绍从源码（venv）启动。
+
 ## 前提条件
 
 > **使用 Raspberry Pi OS（桌面版）？** 那就采用下文中

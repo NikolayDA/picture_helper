@@ -406,18 +406,19 @@ Einstellungen verwalten:
 
 ![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
 
-*Der Einstellungen-Dialog: Standard-Verzeichnisse zum Öffnen und Speichern,
-das bevorzugte Bilddateiformat sowie der Pfad zur Protokolldatei mit dem
-Knopf „Ordner öffnen".*
+*Der Einstellungen-Dialog: Sprache der Oberfläche, Standard-Verzeichnisse zum
+Öffnen und Speichern, das bevorzugte Bilddateiformat sowie der Pfad zur
+Protokolldatei mit dem Knopf „Ordner öffnen".*
 
 | Einstellung | Beschreibung |
 |---|---|
+| **Sprache** | Sprache der Oberfläche: Deutsch oder English (wird beim nächsten Start wirksam) |
 | **Standard-Verzeichnis zum Öffnen** | Startordner des Öffnen-Dialogs (leer = zuletzt verwendet) |
 | **Standard-Verzeichnis für Export/Speichern** | Startordner des Speichern-Dialogs (leer = zuletzt verwendet) |
 | **Bevorzugtes Bilddateiformat** | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
 | **Protokolldatei** | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
-Die ersten drei Vorgaben bleiben über Programmstarts hinweg erhalten.
+Sprache, Verzeichnisse und Format bleiben über Programmstarts hinweg erhalten.
 
 ---
 

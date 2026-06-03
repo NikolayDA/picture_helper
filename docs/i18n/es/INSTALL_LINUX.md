@@ -12,6 +12,12 @@ un pull request abierto antes del merge).
 > opcionalmente con un lanzador de escritorio para el doble clic (ver
 > más abajo).
 
+> **A partir del primer release etiquetado** también hay paquetes **AppImage** y
+> **`.deb`** listos (x86_64 y aarch64/Raspberry Pi OS) en la
+> [página de Releases](https://github.com/NikolayDA/picture_helper/releases):
+> haz ejecutable la AppImage y ejecútala, o `sudo apt install ./bgremover-*.deb`
+> — sin ninguna venv. La guía siguiente cubre la ejecución desde el código (venv).
+
 ## Requisitos
 
 > **¿Raspberry Pi OS (Desktop)?** Entonces toma la vía claramente más

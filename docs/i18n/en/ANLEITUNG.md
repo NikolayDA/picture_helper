@@ -379,17 +379,18 @@ Via `Extras → Settings…` (⌘, / Ctrl+,) you can manage the following settin
 
 ![The settings dialog](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
 
-*The settings dialog: the default open/save directories, the preferred image
-format, and the path to the log file with the "Open folder" button.*
+*The settings dialog: the UI language, the default open/save directories, the
+preferred image format, and the path to the log file with the "Open folder" button.*
 
 | Setting | Description |
 |---|---|
+| **Language** | UI language: German or English (takes effect on the next start) |
 | **Default open directory** | Start folder for the open dialog (empty = last used) |
 | **Default export/save directory** | Start folder for the save dialog (empty = last used) |
 | **Preferred image format** | PNG, JPEG, WebP, or TIFF – appears as the first option in the save dialog |
 | **Log file** | Shows the path of the log file; the "Open folder" button opens the directory in the file manager |
 
-The first three preferences are remembered across application restarts.
+The language, directories, and format are remembered across application restarts.
 
 ---
 
