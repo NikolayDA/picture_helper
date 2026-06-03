@@ -1,0 +1,74 @@
+name: Release Linux artifacts
+
+# Builds portable Linux artifacts (AppImage + .deb) for x86_64 and aarch64
+# (Raspberry Pi OS / arm64) and attaches them to the GitHub Release on a
+# version tag (v*). Also runnable on demand via workflow_dispatch.
+#
+# This workflow only bundles the bgremover wheel + dependencies into an
+# AppImage; it never imports PyQt6 at build time, so it needs no Qt system
+# libraries (unlike ci.yml / pr-ci.yml).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      with_ai:
+        description: 'Bundle rembg (AI background removal) into the AppImage'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # create/upload GitHub Release assets
+
+jobs:
+  build:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm   # native arm64 runner → Raspberry Pi OS
+            arch: aarch64
+    env:
+      # appimagetool needs FUSE to run; extract-and-run avoids requiring it
+      # (and the FUSE2 package) on the CI runner.
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build AppImage
+        run: ./packaging/linux/build_appimage.sh ${{ (github.event_name == 'workflow_dispatch' && inputs.with_ai) && '--ai' || '' }}
+
+      - name: Build .deb (wraps the AppImage)
+        run: ./packaging/linux/build_deb.sh
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/appimage/*.AppImage dist/
+          cp build/deb/*.deb dist/
+          ls -lh dist/
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bgremover-linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
+            --notes "Automated Linux build (AppImage + .deb)." --verify-tag || true
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
