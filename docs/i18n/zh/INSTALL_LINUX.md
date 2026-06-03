@@ -7,9 +7,31 @@
 为了在合并前测试一个开放的 Pull Request）。
 
 > macOS 应用程序包（`create_BgRemover_app.sh`）是 macOS 专属的。
-> 在 Linux 下，BgRemover 通过从虚拟环境（venv）中
-> 直接启动 `python3 -m bgremover` 来运行——可选
-> 配合一个桌面启动器实现双击启动（见下文）。
+> 在 Linux 下，AppImage 和 `.deb` 是推荐给最终用户的构件；从 venv
+> 直接启动仍作为开发、分支测试和本地修改的方式记录在下文。
+
+## 推荐：使用 release 构件
+
+对于普通 Linux 安装，release 构件是最方便的方式——**无需 venv、无需 pip、也无需
+Git checkout**：
+
+- **AppImage：** 便携式单文件；赋予执行权限后即可启动。
+- **`.deb`：** 面向 Debian/Ubuntu/Raspberry Pi OS 的可安装软件包，带菜单项，
+  可通过 apt/dpkg 干净移除。
+
+从 GitHub Release 下载匹配的构件：
+
+```bash
+# AppImage（x86_64 示例）
+chmod +x BgRemover-*-x86_64.AppImage
+./BgRemover-*-x86_64.AppImage
+
+# .deb（amd64 示例；apt 会安装 FUSE 依赖）
+sudo apt install ./BgRemover-*-amd64.deb
+```
+
+提供 **x86_64** 和 **aarch64/Raspberry Pi OS 64-bit** 构建。下面的 venv/Git
+说明仍适用于从 `main`、功能分支或本地修改进行测试。
 
 ## 前提条件
 

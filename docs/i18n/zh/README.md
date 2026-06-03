@@ -72,8 +72,12 @@ python3 -m bgremover
 `.[ai]` 会一并引入 AI 依赖项（`rembg[cpu]`，含 `onnxruntime`）；
 若不需要 AI 功能，`python3 -m pip install -c requirements/constraints.txt -e .` 即可。
 
-**Linux：** 没有应用程序包；应用程序通过从 venv 中
-直接启动来运行：
+**Linux：** 对最终用户，推荐使用 release 构件：便携式 **AppImage** 和可安装的
+**`.deb`**（均提供 x86_64 与 aarch64/Raspberry Pi OS 版本）。安装详情见
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)**；构建/打包详情见
+**[packaging/linux/README.md](../../../packaging/linux/README.md)**。
+
+直接从 venv 启动仍然最适合开发、分支测试和本地修改：
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -83,12 +87,9 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-在此之前需要一些 Qt 系统库——详情参见
-**[INSTALL_LINUX.md](INSTALL_LINUX.md)**。
-
-在 **Raspberry Pi OS（桌面版）**上尤其简单——完全无需
-venv/pip（PyQt6、Pillow、numpy 作为系统软件包通过 `apt` 安装）；参见
-**[INSTALL_LINUX.md](INSTALL_LINUX.md)** 中的 Raspberry Pi 章节。
+从 venv 启动前需要一些 Qt 系统库——见 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**。
+在 **Raspberry Pi OS（桌面版）** 上也可以完全不使用 venv/pip（PyQt6、Pillow、numpy
+通过 `apt` 作为系统包安装）；同样见 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**。
 
 > 详细的说明——包括**从某个分支安装**
 > （用于测试开放的 Pull Request）和**故障排除**——见
@@ -115,9 +116,10 @@ venv/pip（PyQt6、Pillow、numpy 作为系统软件包通过 `apt` 安装）；
 | 默认打开目录 | 打开对话框的起始目录；留空 = 上次使用的目录 |
 | 默认导出/保存目录 | 保存对话框的起始目录；留空 = 上次使用的目录 |
 | 首选图像文件格式 | PNG、JPEG、WebP 或 TIFF——在保存对话框中作为第一个选项出现 |
+| 语言 | 德语或英语；更改在重启后生效 |
 | 日志文件 | 显示日志文件路径；“打开文件夹”按钮会在文件管理器中打开其目录 |
 
-前三项设置通过 **QSettings** 持久化保存，并在下次启动程序时自动恢复。
+目录、首选格式和语言通过 **QSettings** 持久保存，并在下次启动程序时自动恢复。
 
 ### 键盘快捷键
 

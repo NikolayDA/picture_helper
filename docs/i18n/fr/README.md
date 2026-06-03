@@ -77,8 +77,15 @@ python3 -m bgremover
 `.[ai]` entraîne l'installation des dépendances d'IA (`rembg[cpu]` y compris `onnxruntime`) ;
 sans la fonction d'IA, `python3 -m pip install -c requirements/constraints.txt -e .` suffit.
 
-**Linux :** il n'y a pas de bundle d'application ; l'application fonctionne via le
-lancement direct depuis un venv :
+**Linux :** Pour les utilisateurs finaux, les artefacts de release sont
+recommandés : une **AppImage** portable et un **`.deb`** installable (tous deux
+pour x86_64 et aarch64/Raspberry Pi OS). Consultez
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)** pour l'installation et
+**[packaging/linux/README.md](../../../packaging/linux/README.md)** pour les
+détails de build/paquetage.
+
+Le lancement direct depuis un venv reste la meilleure voie pour le
+développement, les tests de branches et les changements locaux :
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -88,12 +95,11 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-Au préalable, quelques bibliothèques système Qt sont nécessaires — voir les
-détails dans **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
-
-Sur **Raspberry Pi OS (Desktop)**, c'est particulièrement simple — sans aucun
-venv/pip (PyQt6, Pillow, numpy en tant que paquets système via `apt`) ; voir la
-section Raspberry Pi dans **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+Avant le lancement depuis le venv, quelques bibliothèques système Qt sont
+nécessaires — voir **[INSTALL_LINUX.md](INSTALL_LINUX.md)**. Sur
+**Raspberry Pi OS (Desktop)**, c'est aussi possible sans venv/pip (PyQt6,
+Pillow, numpy en paquets système via `apt`) ; voir également
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 
 > Des instructions détaillées — y compris l'**installation depuis une branche**
 > (pour tester des pull requests ouvertes) et le **dépannage** — figurent dans
@@ -120,10 +126,12 @@ Via `Outils → Paramètres…` (⌘,), les paramètres suivants peuvent être g
 | Répertoire par défaut pour l'ouverture | Répertoire de départ de la boîte de dialogue d'ouverture ; vide = dernier répertoire utilisé |
 | Répertoire par défaut pour l'export/l'enregistrement | Répertoire de départ de la boîte de dialogue d'enregistrement ; vide = dernier répertoire utilisé |
 | Format de fichier image préféré | PNG, JPEG, WebP ou TIFF – apparaît comme première option dans la boîte de dialogue d'enregistrement |
+| Langue | Allemand ou anglais ; le changement s’applique après un redémarrage |
 | Fichier journal | Affiche le chemin du fichier journal ; le bouton « Ouvrir le dossier » ouvre le répertoire dans le gestionnaire de fichiers |
 
-Les trois premiers paramètres sont enregistrés de façon persistante via
-**QSettings** et automatiquement restaurés au prochain démarrage du programme.
+Les répertoires, le format préféré et la langue sont enregistrés de façon
+persistante via **QSettings** et restaurés automatiquement au prochain
+démarrage du programme.
 
 ### Raccourcis clavier
 

@@ -400,18 +400,20 @@ siguientes ajustes:
 
 ![El diálogo de configuración](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
 
-*El diálogo de configuración: los directorios predeterminados de apertura y
-guardado, el formato de imagen preferido y la ruta del archivo de registro con
-el botón "Abrir carpeta".*
+*El diálogo de configuración: idioma, directorios predeterminados de apertura y
+guardado, formato de imagen preferido y ruta del archivo de registro con el
+botón "Abrir carpeta".*
 
 | Ajuste | Descripción |
 |---|---|
 | **Directorio de apertura predeterminado** | Carpeta de inicio del diálogo de apertura (vacío = último usado) |
 | **Directorio de exportación/guardado predeterminado** | Carpeta de inicio del diálogo de guardado (vacío = último usado) |
 | **Formato de imagen preferido** | PNG, JPEG, WebP o TIFF – aparece como primera opción en el diálogo de guardado |
+| **Idioma** | Alemán o inglés; el cambio se aplica después de reiniciar |
 | **Archivo de registro** | Muestra la ruta del archivo de registro; el botón "Abrir carpeta" abre el directorio en el gestor de archivos |
 
-Los primeros tres ajustes se conservan entre reinicios de la aplicación.
+Los directorios, el formato preferido y el idioma se conservan entre reinicios
+de la aplicación.
 
 ---
 
