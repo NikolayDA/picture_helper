@@ -23,7 +23,14 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from bgremover.i18n import tr
+from bgremover.i18n import (
+    LOCALE_NAMES,
+    SETTINGS_LOCALE_KEY,
+    available_locales,
+    current_locale,
+    normalize_locale,
+    tr,
+)
 from bgremover.image_ops import SAVE_FORMATS
 from bgremover.logging_config import current_log_file
 from bgremover.theme import SETTINGS_TITLE_STYLE
@@ -52,6 +59,17 @@ class SettingsDialog(QDialog):
         title = QLabel(tr("settings.title"))
         title.setStyleSheet(SETTINGS_TITLE_STYLE)
         lay.addWidget(title)
+
+        # Sprache / Language – nur Locales mit hinterlegter Tabelle anbieten.
+        lang_grp = QGroupBox(tr("settings.language.label"))
+        lang_lay = QHBoxLayout(lang_grp)
+        self._lang_combo = QComboBox()
+        for code in available_locales():
+            self._lang_combo.addItem(LOCALE_NAMES.get(code, code), code)
+        self._lang_combo.setFixedWidth(180)
+        lang_lay.addWidget(self._lang_combo)
+        lang_lay.addStretch()
+        lay.addWidget(lang_grp)
 
         # Verzeichnis zum Öffnen
         open_grp = QGroupBox(tr("settings.open_dir.label"))
@@ -136,6 +154,10 @@ class SettingsDialog(QDialog):
                 tr("settings.log.open_failed", target=target))
 
     def _load(self) -> None:
+        current = normalize_locale(self._settings.value(SETTINGS_LOCALE_KEY, None))
+        lang_idx = self._lang_combo.findData(current)
+        if lang_idx >= 0:
+            self._lang_combo.setCurrentIndex(lang_idx)
         self._open_dir_edit.setText(self._settings.value("open_dir", ""))
         self._save_dir_edit.setText(self._settings.value("save_dir", ""))
         fmt = self._settings.value("preferred_format", "PNG")
@@ -163,4 +185,13 @@ class SettingsDialog(QDialog):
         self._settings.setValue("open_dir", open_dir)
         self._settings.setValue("save_dir", save_dir)
         self._settings.setValue("preferred_format", self._fmt_combo.currentText())
+
+        selected_locale = self._lang_combo.currentData()
+        self._settings.setValue(SETTINGS_LOCALE_KEY, selected_locale)
+        # Strings werden bei der Widget-Konstruktion aufgeloest; ein Wechsel
+        # greift daher erst nach einem Neustart (kein Live-Retranslate).
+        if selected_locale != current_locale():
+            QMessageBox.information(
+                self, tr("settings.language.restart_title"),
+                tr("settings.language.restart_hint"))
         self.accept()
