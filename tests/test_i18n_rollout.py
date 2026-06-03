@@ -69,7 +69,9 @@ def test_every_string_formats_without_error() -> None:
     }
     for locale, table in i18n._TRANSLATIONS.items():
         for key, value in table.items():
-            kwargs = {f: sample.get(f, "x") for f in _placeholders(value)}
+            # Numeric default so fields with numeric specs ({pixels:,}, {mp:.0f})
+            # also format cleanly; text fields are supplied as strings above.
+            kwargs = {f: sample.get(f, 1000) for f in _placeholders(value)}
             try:
                 value.format(**kwargs)  # malformed braces / unknown placeholder
             except (KeyError, ValueError, IndexError) as exc:
