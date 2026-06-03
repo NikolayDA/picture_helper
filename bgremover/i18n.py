@@ -39,6 +39,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche"
         ),
         "status.quitting": "Beende…",
+        # Status bar messages with interpolated values
+        "status.loading": "⏳ Lädt: {name}…",
+        "status.load_error": "Ladefehler: {msg}",
+        "status.file_missing": "Datei nicht mehr vorhanden: {name}",
+        "status.ai_error": "KI-Fehler: {msg}",
         # Main menu
         "menu.file": "Datei",
         "menu.recent_files": "Zuletzt geöffnet",

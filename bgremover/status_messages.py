@@ -77,5 +77,18 @@ class _StatusMessages:
     def BEENDE(self) -> str:
         return tr("status.quitting")
 
+    # ── Dynamisch (mit eingesetzten Werten) ──────────────────
+    def LAEDT(self, name: str) -> str:
+        return tr("status.loading", name=name)
+
+    def LADEFEHLER(self, msg: str) -> str:
+        return tr("status.load_error", msg=msg)
+
+    def DATEI_NICHT_VORHANDEN(self, name: str) -> str:
+        return tr("status.file_missing", name=name)
+
+    def KI_FEHLER(self, msg: str) -> str:
+        return tr("status.ai_error", msg=msg)
+
 
 StatusMessages = _StatusMessages()
