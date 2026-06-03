@@ -11,6 +11,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPainterPath, QPen
 from PyQt6.QtWidgets import QGraphicsLineItem, QGraphicsPathItem, QGraphicsScene
 
+from bgremover.i18n import tr
+
 
 class CanvasLasso:
     """Verwaltet Polygon-Lasso-Zustand und Vorschau-Overlays."""
@@ -75,8 +77,9 @@ class CanvasLasso:
         else:
             self._line_item.setLine(x, y, x, y)
         n = len(self._pts)
-        suffix = "e" if n != 1 else ""
-        return f"Polygon-Lasso: {n} Punkt{suffix} — Doppelklick zum Abschließen · Esc = abbrechen"
+        if n == 1:
+            return tr("canvas.lasso_points_one", n=n)
+        return tr("canvas.lasso_points_many", n=n)
 
     def update_preview_line(self, x: float, y: float) -> None:
         if self._pts and self._line_item is not None:

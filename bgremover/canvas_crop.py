@@ -14,6 +14,7 @@ from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QGraphicsScene
 
 from bgremover.crop import CropOverlayItem
+from bgremover.i18n import tr
 from bgremover.image_ops import crop_image, crop_size_for_ratio
 from bgremover.status_messages import StatusMessages as SM
 
@@ -83,9 +84,10 @@ class CanvasCrop:
         self._scene.addItem(self.overlay)
         self._canvas.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
         self._on_mode_changed(True)
-        label = "Kreis" if is_circle else f"{cw} × {ch} px"
-        self._canvas.statusMsg.emit(
-            f"✂  Ausschnitt verschieben  [{label}]  —  dann ✓ Anwenden klicken")
+        if is_circle:
+            self._canvas.statusMsg.emit(tr("canvas.crop_start_circle"))
+        else:
+            self._canvas.statusMsg.emit(tr("canvas.crop_start_ratio", w=cw, h=ch))
 
     def confirm(self) -> None:
         """Wendet den aktuellen Crop-Overlay als Zuschnitt an."""
@@ -96,12 +98,15 @@ class CanvasCrop:
         cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
         is_circle = self.overlay.is_circle
         result = crop_image(img, (cx, cy, cw, ch), is_circle=is_circle)
-        desc = "Format: Kreis" if is_circle else f"Format: {cw}×{ch} px"
+        if is_circle:
+            desc = tr("history.desc.crop_circle")
+        else:
+            desc = tr("history.desc.crop_ratio", w=cw, h=ch)
         self.cancel_overlay_only()
         self._on_mode_changed(False)
         self._canvas.apply_edit(result, desc=desc)
-        self._canvas.statusMsg.emit(
-            f"✂  Zugeschnitten: {result.width} × {result.height} px")
+        self._canvas.statusMsg.emit(tr(
+            "canvas.cropped", w=result.width, h=result.height))
 
     def cancel(self) -> None:
         """Bricht den Zuschnitt ohne Änderung ab."""
@@ -109,7 +114,7 @@ class CanvasCrop:
         self._on_mode_changed(False)
         # Tool-Cursor wiederherstellen
         self._canvas.set_tool(self._canvas.current_tool)
-        self._canvas.statusMsg.emit("Zuschnitt abgebrochen")
+        self._canvas.statusMsg.emit(tr("canvas.crop_cancelled"))
 
     def cancel_overlay_only(self) -> None:
         """Entfernt das Overlay-Item, ohne ``cropModeChanged`` zu feuern.
@@ -154,7 +159,7 @@ class CanvasCrop:
                 self._resize_corner, sp.x(), sp.y())
             cw, ch = self.overlay.size
             self._canvas.statusMsg.emit(
-                f"⇲ Größe: {int(round(cw))} × {int(round(ch))} px")
+                tr("canvas.crop_size", w=int(round(cw)), h=int(round(ch))))
             return True
         if self._dragging and self.overlay is not None:
             delta = sp - self._drag_start

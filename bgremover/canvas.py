@@ -47,6 +47,7 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
+from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
 from bgremover.image_ops import save_image_file
@@ -243,11 +244,11 @@ class ImageCanvas(QGraphicsView):
         self._reset_transient_state()
         self._apply_pil(img, push=False)
         self._viewport.fit_to_view()
-        self.statusMsg.emit(
-            f"Geöffnet: {Path(path).name}  ({img.width} × {img.height} px)")
+        self.statusMsg.emit(tr(
+            "canvas.opened", name=Path(path).name, w=img.width, h=img.height))
         self.imageLoaded.emit(str(Path(path).resolve()))
 
-    def apply_edit(self, img: Image.Image, desc: str = "Bearbeitung") -> None:
+    def apply_edit(self, img: Image.Image, desc: str | None = None) -> None:
         """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
         self._apply_pil(img, push=True, desc=desc)
 
@@ -255,10 +256,10 @@ class ImageCanvas(QGraphicsView):
         self,
         img: Image.Image,
         push: bool = True,
-        desc: str = "Bearbeitung",
+        desc: str | None = None,
     ) -> None:
         if push and self._pil is not None:
-            self._history.push(self._pil, desc)
+            self._history.push(self._pil, desc or tr("history.desc.generic"))
             self._emit_history()
         self._set_image_state(img)
 
@@ -361,8 +362,8 @@ class ImageCanvas(QGraphicsView):
             return
         self._apply_history_step(
             self._history.undo(self._pil),
-            "Nichts mehr zum Rückgängigmachen",
-            "↩  Rückgängig: {desc}",
+            tr("canvas.undo_none"),
+            tr("canvas.undo_done"),
         )
 
     def redo(self) -> None:
@@ -370,8 +371,8 @@ class ImageCanvas(QGraphicsView):
             return
         self._apply_history_step(
             self._history.redo(self._pil),
-            "Nichts mehr zum Wiederherstellen",
-            "↪  Wiederherstellen: {desc}",
+            tr("canvas.redo_none"),
+            tr("canvas.redo_done"),
         )
 
     def undo_to(self, steps: int) -> None:
@@ -384,7 +385,7 @@ class ImageCanvas(QGraphicsView):
         img, desc, actual = result
         self._set_image_state(img)
         self._emit_history()
-        self.statusMsg.emit(f"↩  {actual} Schritt(e) rückgängig  (bis: {desc})")
+        self.statusMsg.emit(tr("canvas.undo_to", steps=actual, desc=desc))
 
     def restore_original(self) -> None:
         restored = self._history.restore(self._pil)
@@ -393,27 +394,31 @@ class ImageCanvas(QGraphicsView):
         self._reset_transient_state()
         self._set_image_state(restored)
         self._emit_history()
-        self.statusMsg.emit("🔄  Original wiederhergestellt")
+        self.statusMsg.emit(tr("canvas.original_restored"))
 
     @_requires_image
     def clear_selection(self) -> None:
         self._selection.clear()
         self._refresh_overlay()
-        self.statusMsg.emit("Auswahl aufgehoben")
+        self.statusMsg.emit(tr("canvas.selection_cleared"))
 
     @_requires_image
     def invert_selection(self) -> None:
         pixels = self._selection.invert()
         self._refresh_overlay()
-        self.statusMsg.emit(f"Auswahl invertiert: {pixels:,} Pixel")
+        self.statusMsg.emit(tr("canvas.selection_inverted", pixels=pixels))
 
     def _morphology(self, radius: int, kind: Literal["expand", "shrink"]) -> None:
         if radius <= 0:
             return
         pixels = self._selection.morphology(radius, kind)
         self._refresh_overlay()
-        label = "erweitert" if kind == "expand" else "geschrumpft"
-        self.statusMsg.emit(f"Auswahl um {radius} px {label}: {pixels:,} Pixel")
+        if kind == "expand":
+            self.statusMsg.emit(
+                tr("canvas.selection_expanded", radius=radius, pixels=pixels))
+        else:
+            self.statusMsg.emit(
+                tr("canvas.selection_shrunk", radius=radius, pixels=pixels))
 
     @_requires_image
     def expand_selection(self, radius: int) -> None:
@@ -472,15 +477,15 @@ class ImageCanvas(QGraphicsView):
             assert self._arr is not None
             self._apply_pil(
                 self._selection.remove_background(self._arr),
-                desc="Hintergrund entfernt",
+                desc=tr("history.desc.bg_removed"),
             )
-            self.statusMsg.emit("Hintergrund entfernt (transparent)")
+            self.statusMsg.emit(tr("canvas.bg_removed"))
         except (OSError, ValueError, UnidentifiedImageError) as e:
             # Bewusst eng gefasst: erwartete Bild-/IO-Probleme landen als
             # Statusmeldung, echte Bugs (AttributeError, IndexError, …)
             # propagieren stattdessen sichtbar nach oben.
             logger.exception("Fehler beim Entfernen")
-            self.statusMsg.emit(f"Fehler beim Entfernen: {e}")
+            self.statusMsg.emit(tr("canvas.remove_error", error=e))
 
     def apply_replace(self, color: QColor) -> None:
         try:
@@ -492,16 +497,16 @@ class ImageCanvas(QGraphicsView):
                     self._arr,
                     (color.red(), color.green(), color.blue()),
                 ),
-                desc=f"Farbe ersetzt ({color.name()})",
+                desc=tr("history.desc.color_replaced", color=color.name()),
             )
-            self.statusMsg.emit(f"Hintergrund ersetzt: {color.name()}")
+            self.statusMsg.emit(tr("canvas.bg_replaced", color=color.name()))
         except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.exception("Fehler beim Ersetzen")
-            self.statusMsg.emit(f"Fehler beim Ersetzen: {e}")
+            self.statusMsg.emit(tr("canvas.replace_error", error=e))
 
     def apply_ai_result(self, img: Image.Image) -> None:
-        self._apply_pil(img, desc="KI-Hintergrundentfernung")
-        self.statusMsg.emit("✅ KI-Hintergrundentfernung abgeschlossen")
+        self._apply_pil(img, desc=tr("history.desc.ai_bg"))
+        self.statusMsg.emit(tr("canvas.ai_done"))
 
     def apply_wand_result(self, mask: np.ndarray) -> None:
         """Uebernimmt die im Worker berechnete Zauberstab-Maske.
@@ -519,14 +524,14 @@ class ImageCanvas(QGraphicsView):
         pixels = self._selection.set_wand_result(
             mask, self._wand_pending_mode)
         self._refresh_overlay()
-        self.statusMsg.emit(f"Auswahl: {pixels:,} Pixel")
+        self.statusMsg.emit(tr("canvas.selection_pixels", pixels=pixels))
 
     def cancel_pending_wand(self, msg: str) -> None:
         """Bricht eine laufende Wand-Berechnung im Fehlerfall ab."""
         if not self._wand_busy:
             return
         self._wand_busy = False
-        self.statusMsg.emit(f"Auswahl-Fehler: {msg}")
+        self.statusMsg.emit(tr("canvas.selection_error", msg=msg))
 
     def reset_pending_wand(self) -> None:
         """Gibt das ``_wand_busy``-Gate ohne Statusmeldung frei (stiller Abbruch).
@@ -560,9 +565,9 @@ class ImageCanvas(QGraphicsView):
             save_image_file(self._pil, path)
         except Exception as e:
             logger.exception("Speichern fehlgeschlagen: %s", path)
-            self.statusMsg.emit(f"Speichern fehlgeschlagen: {e}")
+            self.statusMsg.emit(tr("canvas.save_failed", error=e))
             return False
-        self.statusMsg.emit(f"💾 Gespeichert: {Path(path).name}")
+        self.statusMsg.emit(tr("canvas.saved", name=Path(path).name))
         return True
 
     def _check_selection(self) -> bool:
@@ -676,7 +681,7 @@ class ImageCanvas(QGraphicsView):
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key.Key_Escape and self._lasso.has_points:
             self._lasso_cancel()
-            self.statusMsg.emit("Polygon-Lasso abgebrochen")
+            self.statusMsg.emit(tr("canvas.lasso_cancelled"))
             return
         super().keyPressEvent(event)
 
@@ -687,8 +692,7 @@ class ImageCanvas(QGraphicsView):
         new_mask = self._lasso.close_to_selection_mask(self._selection.mask.shape)
         pixels = self._selection.set_polygon_result(new_mask, mode)
         self._refresh_overlay()
-        self.statusMsg.emit(
-            f"Polygon-Lasso: {pixels:,} Pixel ausgewählt")
+        self.statusMsg.emit(tr("canvas.lasso_selected", pixels=pixels))
 
     def _lasso_cancel(self) -> None:
         self._lasso.cancel()
@@ -742,15 +746,15 @@ class ImageCanvas(QGraphicsView):
         valid = [url.toLocalFile() for url in mime.urls()
                  if Path(url.toLocalFile()).suffix.lower() in exts]
         if not valid:
-            self.statusMsg.emit("Format nicht unterstützt")
+            self.statusMsg.emit(tr("canvas.format_unsupported"))
             return
         # Asynchron laden (gleicher Worker-Pfad wie der Datei-Dialog),
         # damit ein grosses Foto die UI nicht einfriert.
         self.loadRequested.emit(valid[0])
         if len(valid) > 1:
-            self.statusMsg.emit(
-                f"Geöffnet: {Path(valid[0]).name}  "
-                f"({len(valid) - 1} weitere Datei(en) ignoriert)")
+            self.statusMsg.emit(tr(
+                "canvas.opened_extra", name=Path(valid[0]).name,
+                extra=len(valid) - 1))
 
     # ── Geometrie-Transformationen (Delegatoren) ─────────────
 

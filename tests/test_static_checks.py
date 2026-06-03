@@ -132,9 +132,12 @@ def test_270_button_uses_positive_value(source: str):
 # ── Fix #8: dropEvent meldet ignorierte Dateien ────────────────────────
 
 def test_drop_event_reports_extra_files(functions):
-    body = ast.unparse(functions["dropEvent"]).lower()
-    assert "weitere" in body, (
-        "dropEvent muss melden, wenn weitere Dateien verworfen wurden."
+    # Die Meldung über ignorierte Zusatzdateien läuft seit der i18n-Umstellung
+    # über tr("canvas.opened_extra") statt eines inline-deutschen Literals.
+    body = ast.unparse(functions["dropEvent"])
+    assert "canvas.opened_extra" in body, (
+        "dropEvent muss melden, wenn weitere Dateien verworfen wurden "
+        "(Statusmeldung über tr('canvas.opened_extra'))."
     )
 
 
