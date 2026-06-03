@@ -1,6 +1,6 @@
 **Deutsch** · [English](docs/i18n/en/LICENSES.md) · [Español](docs/i18n/es/LICENSES.md) · [Français](docs/i18n/fr/LICENSES.md) · [Українська](docs/i18n/uk/LICENSES.md) · [简体中文](docs/i18n/zh/LICENSES.md)
 
-# Lizenz- & Rechtsuebersicht – bgremover 2.2.0
+# Lizenz- & Rechtsuebersicht – bgremover 2.3.0
 
 > Automatisch generiert – **rein technische Einschaetzung der Lizenzbedingungen, keine Rechtsberatung.**
 > Stand: 2026-05-26 · Eigenlizenz des Projekts: `GPL-3.0-or-later` · 45 Dependencies analysiert.

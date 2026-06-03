@@ -1,4 +1,4 @@
-"""Menu and QAction wiring for the main window."""
+"""Menü- und QAction-Verdrahtung für das Hauptfenster."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -21,7 +21,7 @@ MENU_STYLE = """
 
 @dataclass(frozen=True)
 class MainMenuCallbacks:
-    """Slots used by the main menu without depending on ``MainWindow``."""
+    """Slots für das Hauptmenü, ohne direkte Abhängigkeit von ``MainWindow``."""
 
     open_image: Callable[[], None]
     open_recent_path: Callable[[str], None]
@@ -45,7 +45,7 @@ def build_main_menu(
     recent_files: RecentFiles,
     callbacks: MainMenuCallbacks,
 ) -> RecentFilesMenu:
-    """Build the top-level menu bar and return the recent-files adapter."""
+    """Baut die Menüleiste und gibt den Recent-Files-Adapter zurück."""
 
     menu_bar.setStyleSheet(MENU_STYLE)
 
@@ -110,8 +110,8 @@ def _add_action(
     action = QAction(text, parent)
     if shortcut is not None:
         action.setShortcut(QKeySequence(shortcut))
-    # QAction.triggered delivers a `bool` (checked state) that none of these
-    # zero-arg callbacks accept – swallow it via a small adapter.
+    # QAction.triggered liefert den checked-State; die Callbacks erwarten
+    # keine Argumente.
     action.triggered.connect(lambda _checked=False: triggered())
     menu.addAction(action)
     return action

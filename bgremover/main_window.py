@@ -321,17 +321,9 @@ class MainWindow(QMainWindow):
         if not self._confirm_discard_changes():
             return
         self._worker_controller.cancel_ai()
-        # Eine noch laufende Zauberstab-Berechnung gehört zum alten Bild –
-        # abbrechen, damit sie keine CPU mehr verbrennt, UND das Canvas-Gate
-        # ``_wand_busy`` direkt hier freigeben. Der abgebrochene Worker
-        # emittiert weder ``finished`` noch ``error`` (nur ``done`` für den
-        # Thread-Lifecycle), also setzt ihn sonst nichts zurück. Auf dem
-        # Erfolgspfad erledigt den Reset zwar ``apply_loaded_image`` →
-        # ``_reset_transient_state``; schlägt das Laden aber fehl, wird dieser
-        # Pfad nie erreicht (``_on_image_load_error`` zeigt nur die Meldung) und
-        # der Zauberstab bliebe für das weiterhin sichtbare alte Bild dauerhaft
-        # blockiert. Der stille Reset vermeidet zugleich die irreführende
-        # „Auswahl-Fehler"-Meldung von ``cancel_pending_wand``.
+        # Eine laufende Zauberstab-Berechnung gehört zum bisherigen Bild.
+        # Abbrechen spart CPU; der stille Canvas-Reset hält den Zauberstab
+        # auch dann bedienbar, wenn das anschließende Laden fehlschlägt.
         self._worker_controller.cancel_flood_fill()
         self._canvas.reset_pending_wand()
         self._sb.showMessage(SM.LAEDT(Path(path).name))
@@ -485,8 +477,7 @@ class MainWindow(QMainWindow):
         self._sb.showMessage(SM.KI_VERARBEITET)
         self._toolbar.btn_ai.setEnabled(False)
 
-        # Canvas-Version merken: falls der Nutzer inzwischen ein anderes
-        # Bild lädt, wird das verspätete KI-Ergebnis in _on_ai_done verworfen.
+        # Revision merken, damit verspätete KI-Ergebnisse verworfen werden.
         self._ai_input_version = self._canvas.version
 
         img = self._canvas.image
@@ -503,8 +494,7 @@ class MainWindow(QMainWindow):
         self._ai_input_version = -1
 
     def _on_ai_done(self, img: Image.Image) -> None:
-        # Versionsprüfung: Falls der Nutzer das Bild zwischenzeitlich gewechselt
-        # hat, ist die Canvas-Revision erhöht worden und das KI-Ergebnis wird verworfen.
+        # Ergebnis nur übernehmen, wenn sich der Canvas seit KI-Start nicht geändert hat.
         if self._canvas.version != self._ai_input_version:
             self._sb.showMessage(SM.KI_ERGEBNIS_VERWORFEN)
             return

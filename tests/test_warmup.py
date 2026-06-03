@@ -1,4 +1,4 @@
-"""Tests für den rembg-Warmup-Lebenszyklus (Fix #7).
+"""Tests für den rembg-Warmup-Lebenszyklus.
 
 Geprüft wird, dass ein fehlgeschlagener Warmup NICHT als „KI bereit"
 gemeldet wird und dass der KI-Button während des Warmups gesperrt ist

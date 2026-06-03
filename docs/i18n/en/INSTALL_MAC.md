@@ -117,8 +117,8 @@ non-editable package copy in the app venv.
 - **`[Errno 1] Operation not permitted` when accessing the project**
   → macOS privacy (TCC). If the project is in `~/Documents`,
   `~/Desktop`, `~/Downloads`, or iCloud Drive, an `.app` started from
-  the Finder is not allowed to read there. Since round 5 (package
-  cut) this is resolved: `create_BgRemover_app.sh` installs the
+  the Finder is not allowed to read there. The package layout solves this:
+  `create_BgRemover_app.sh` installs the
   `bgremover` package **non-editably** into the venv under
   `~/Library/Application Support/BgRemover/venv` (own copy of the
   code incl. `icons/` package-data), so the app is independent of the
@@ -128,7 +128,7 @@ non-editable package copy in the app venv.
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon: an architecture-foreign package is located in
   `~/Library/Python/...` that "bleeds through" into a mismatched Python.
-  Since v3.1 this is resolved: the launcher sets `PYTHONNOUSERSITE=1`
+  The launcher sets `PYTHONNOUSERSITE=1`
   (user-site is ignored), enforces the native CPU architecture, and an
   isolated venv is mandatorily used. Solution: best to first install a
   native Python, then rebuild:
@@ -163,10 +163,9 @@ non-editable package copy in the app venv.
   `bash create_BgRemover_app.sh` once to rebuild — or install it afterwards into the venv:
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **`.app` looks different from `BgRemover.command`** → Older bundle
-  without toolbar icons (the app used drawn fallback icons). Currently
-  fixed — since round 5 the icons are `package-data` in `bgremover/
-  icons/`, so they are picked up automatically by `pip install` into
-  the venv and loaded via `importlib.resources`; run
+  without toolbar icons (the app used drawn fallback icons). The icons are
+  `package-data` in `bgremover/icons/`, so they are picked up automatically
+  by `pip install` into the venv and loaded via `importlib.resources`; run
   `bash create_BgRemover_app.sh` once to rebuild.
 - **Diagnosing errors** → The bundle launcher writes startup diagnostics
   to `~/Library/Application Support/BgRemover/bgremover.log`. The exact

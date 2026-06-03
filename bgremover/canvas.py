@@ -62,8 +62,7 @@ from bgremover.status_messages import StatusMessages as SM
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
     """Frühausstieg-Guard für ImageCanvas-Methoden ohne geladenes Bild.
 
-    Ersetzt den mehrfach byte-identisch wiederholten Block
-    ``if self._pil is None: self.statusMsg.emit("Kein Bild geladen"); return``.
+    Sorgt für eine einheitliche Statusmeldung statt stiller No-ops.
     """
     @functools.wraps(method)
     def wrapper(self: ImageCanvas, *args: object, **kwargs: object) -> None:
@@ -185,22 +184,22 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def version(self) -> int:
-        """Öffentliche Stale-Revision; erhöht sich bei jeder Bildänderung."""
+        """Alias für ``content_revision``; von Worker-Stale-Checks genutzt."""
         return self._content_revision
 
     @property
     def content_revision(self) -> int:
-        """Monoton steigender Zähler; erhöht sich bei jeder Bildänderung."""
+        """Monotoner Zähler; erhöht sich bei jeder sichtbaren Bildänderung."""
         return self._content_revision
 
     @property
     def _crop_overlay(self) -> CropOverlayItem | None:
-        """Delegator auf ``CanvasCrop`` — von Tests/Debug-Code gelesen."""
+        """Test-/Debug-Accessor für das aktive Crop-Overlay."""
         return self._crop.overlay
 
     @property
     def _mask(self) -> np.ndarray | None:
-        """Übergangs-Accessor für ältere Tests und interne Debug-Zugriffe."""
+        """Test-/Debug-Accessor für die aktuelle Auswahlmaske."""
         if self._pil is None:
             return None
         return self._selection.mask
@@ -536,15 +535,10 @@ class ImageCanvas(QGraphicsView):
     def reset_pending_wand(self) -> None:
         """Gibt das ``_wand_busy``-Gate ohne Statusmeldung frei (stiller Abbruch).
 
-        Für den Bildwechsel über ``MainWindow._load_image_async`` gedacht: der
-        dort abgebrochene Flood-Fill-Worker emittiert weder ``finished`` (→
-        ``apply_wand_result``) noch ``error`` (→ ``cancel_pending_wand``) – nur
-        ``done`` für den Thread-Lifecycle. Ohne diese Freigabe bliebe das Gate
-        gesetzt, falls der anschließende Ladevorgang fehlschlägt und der
-        Reset über ``apply_loaded_image`` → ``_reset_transient_state`` nie
-        erreicht wird. Anders als ``cancel_pending_wand`` wird bewusst *keine*
-        „Auswahl-Fehler"-Meldung gezeigt, weil hier kein Fehler vorliegt.
-        Idempotent – ein bereits freies Gate bleibt frei.
+        Beim Bildwechsel kann der Flood-Fill-Worker abgebrochen werden, ohne
+        ``finished`` oder ``error`` zu emittieren. Diese Methode hält den
+        Canvas in diesem Fall bedienbar und zeigt bewusst keine
+        „Auswahl-Fehler"-Meldung.
         """
         self._wand_busy = False
 
@@ -790,4 +784,3 @@ class ImageCanvas(QGraphicsView):
     def cancel_crop(self) -> None:
         """Bricht den Zuschnitt ab ohne Änderung."""
         self._crop.cancel()
-

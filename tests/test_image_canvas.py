@@ -2,14 +2,14 @@
 
 Verteidigt:
 
-* Fix #7 — ``save_image`` mit JPEG-Pfad funktioniert auch für RGB-Bilder
+- ``save_image`` mit JPEG-Pfad funktioniert auch für RGB-Bilder
   ohne Alpha-Kanal (defensives ``convert("RGBA")``).
-* Fix #9 — ``restore_original`` schiebt den aktuellen Stand in den Undo-Stack,
+- ``restore_original`` schiebt den aktuellen Stand in den Undo-Stack,
   statt den Verlauf zu verwerfen.
-* A1 — ``load_image`` wendet EXIF-Orientierung an, damit
+- ``load_image`` wendet EXIF-Orientierung an, damit
   Smartphone-Fotos nicht gekippt erscheinen.
-* A4 — ``save_image`` schreibt TIFF mit Transparenz.
-* A8 — ``redo()`` macht ein ``undo()`` rückgängig; neue Aktionen
+- ``save_image`` schreibt TIFF mit Transparenz.
+- ``redo()`` macht ein ``undo()`` rückgängig; neue Aktionen
   verwerfen den Redo-Stapel.
 """
 import numpy as np
@@ -18,7 +18,7 @@ from PIL import Image
 from bgremover import ImageCanvas
 from bgremover.canvas_history import CanvasHistory
 
-# ── Fix #7: save_image ─────────────────────────────────────────────────
+# ── Speichern ──────────────────────────────────────────────────────────
 
 def test_save_jpeg_with_rgb_input_does_not_crash(qapp, tmp_path):
     canvas = ImageCanvas()
@@ -69,7 +69,7 @@ def test_save_image_without_loaded_image_is_noop(qapp, tmp_path):
     assert not out.exists()
 
 
-# ── Fix #9: restore_original schiebt in Undo ───────────────────────────
+# ── Original wiederherstellen ──────────────────────────────────────────
 
 def test_restore_original_pushes_current_state_to_undo(qapp):
     canvas = ImageCanvas()
@@ -100,7 +100,7 @@ def test_restore_original_without_original_is_noop(qapp):
     assert canvas.image is None
 
 
-# ── A1: EXIF-Orientierung beim Laden ────────────────────────────────────
+# ── EXIF-Orientierung beim Laden ───────────────────────────────────────
 
 def test_load_image_applies_exif_rotation(qapp, tmp_path):
     """JPEG mit EXIF-Orientation=6 (90° im Uhrzeigersinn) muss beim Laden
@@ -151,7 +151,7 @@ def test_load_image_handles_decompression_bomb(qapp, tmp_path, monkeypatch):
     assert any("zu groß" in m for m in msgs)
 
 
-# ── A4: TIFF-Speichern mit Transparenz ──────────────────────────────────
+# ── TIFF-Speichern mit Transparenz ─────────────────────────────────────
 
 def test_save_tiff_keeps_alpha(qapp, tmp_path):
     canvas = ImageCanvas()
@@ -203,7 +203,7 @@ def test_save_image_without_image_reports_and_returns_false(qapp, tmp_path):
     assert any("kein bild" in m.lower() for m in msgs), msgs
 
 
-# ── A8: Redo-Stack ──────────────────────────────────────────────────────
+# ── Redo-Stack ─────────────────────────────────────────────────────────
 
 def _seed_canvas(color):
     """Erzeugt einen Canvas mit einem definierten Startbild."""
@@ -265,7 +265,7 @@ def test_load_image_clears_both_stacks(qapp, tmp_path):
     assert np.array(c.image)[0, 0].tolist() == [200, 200, 200, 255]
 
 
-# ── Undo-Stack: Speicherlimit-Eviction (Fix #5) ────────────────────────
+# ── Undo-Stack: Speicherlimit-Eviction ─────────────────────────────────
 
 def test_undo_stack_evicts_oldest_under_memory_limit():
     """Überschreitet der Undo-Stack das Byte-Limit, fallen älteste

@@ -1,4 +1,4 @@
-"""Tests für das inkrementelle Auswahl-Overlay (Fix #5).
+"""Tests für das inkrementelle Auswahl-Overlay.
 
 Statt bei jeder Pinselbewegung ein volles RGBA-Overlay (bei 40 MP rund
 160 MiB) neu zu bauen, hält der Canvas ein persistentes Pixmap und malt

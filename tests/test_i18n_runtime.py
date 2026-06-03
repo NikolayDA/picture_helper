@@ -1,4 +1,4 @@
-"""Tests for the lightweight runtime-i18n foundation."""
+"""Tests für das schlanke Runtime-i18n-Fundament."""
 from __future__ import annotations
 
 import pytest
