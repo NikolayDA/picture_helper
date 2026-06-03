@@ -28,7 +28,8 @@ def test_normalize_locale_uses_supported_language_and_german_fallback() -> None:
     assert normalize_locale("") == "de"
     assert normalize_locale("de-DE") == "de"
     assert normalize_locale("de_AT.UTF-8") == "de"
-    assert normalize_locale("en-US") == "de"
+    assert normalize_locale("en-US") == "en"   # region stripped to supported language
+    assert normalize_locale("zz-ZZ") == "de"   # unsupported → German fallback
 
 
 def test_translate_uses_active_locale_then_german_fallback(monkeypatch) -> None:
