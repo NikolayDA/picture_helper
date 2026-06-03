@@ -236,7 +236,7 @@ def test_cancel_removes_overlay_and_keeps_image(qapp):
     assert c.image is before
 
 
-# ── Transienter Zustand bei Bildwechsel (Fix #2) ───────────────────────
+# ── Transienter Zustand bei Bildwechsel ────────────────────────────────
 
 def test_loading_image_during_crop_emits_mode_off(qapp):
     """Bild laden bei aktivem Crop muss das Overlay entfernen UND

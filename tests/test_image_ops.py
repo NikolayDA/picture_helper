@@ -179,7 +179,7 @@ def test_crop_image_can_apply_circle_alpha_mask() -> None:
     assert arr[10, 10, 3] == 255
 
 
-# ── Ausgabeformat-Modell (Fix #8) ──────────────────────────────────────
+# ── Ausgabeformat-Modell ───────────────────────────────────────────────
 
 def test_normalize_save_format_falls_back_on_unknown() -> None:
     assert normalize_save_format("JPEG") == "JPEG"
@@ -188,7 +188,7 @@ def test_normalize_save_format_falls_back_on_unknown() -> None:
 
 
 def test_save_dialog_filter_lists_preferred_first_without_keyerror() -> None:
-    # Unbekanntes preferred darf nicht mehr werfen (früher KeyError).
+    # Unbekanntes preferred fällt auf das Default-Format zurück.
     flt = save_dialog_filter("EXR")
     assert flt.startswith(SAVE_FORMATS[DEFAULT_SAVE_FORMAT][0])
     # JPEG zuerst, alle vier Formate enthalten.

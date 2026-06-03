@@ -11,6 +11,17 @@
 
 ### Додано
 
+### Змінено
+
+### Виправлено
+
+### Видалено
+
+## [2.3.0] – 2026-06-04
+
+
+### Додано
+
 - **Покриття тестами збільшено до 88 % (друга хвиля, раніше 82 %).** Новий файл
   `tests/test_canvas_events.py` покриває обробники подій і логіку `canvas.py`:
   мишу, клавіатуру, колесо, drag, потоки результатів чарівної палички,
@@ -45,6 +56,12 @@
   при першому запуску.
 
 ### Змінено
+
+- Очищено документацію й коментарі коду: застарілі PR/round-маркери прибрано
+  з живих документів, macOS-нотатки встановлення оновлено, а рекомендації
+  скорочено до поточного review/roadmap-стану.
+- Версію проєкту піднято до 2.3.0 у метаданих пакета, AppStream, оглядах
+  ліцензій і changelog-посиланнях.
 
 - **Мову docstring уніфіковано.** `bgremover/image_ops.py`,
   `bgremover/recent_files.py` і `bgremover/worker_controller.py` переведено з
@@ -326,7 +343,8 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

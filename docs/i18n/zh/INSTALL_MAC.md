@@ -115,8 +115,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
 - **访问项目时出现 `[Errno 1] Operation not permitted`**
   → macOS 隐私保护（TCC）。如果项目位于 `~/Documents`、
   `~/Desktop`、`~/Downloads` 或 iCloud Drive，那么从
-  Finder 启动的 `.app` 就无法在那里读取。自第 5 轮（包切分）
-  起此问题已解决：`create_BgRemover_app.sh` 以**非 editable**
+  Finder 启动的 `.app` 就无法在那里读取。当前包布局已解决这一点：
+  `create_BgRemover_app.sh` 以**非 editable**
   方式将 `bgremover` 包安装到位于
   `~/Library/Application Support/BgRemover/venv` 的 venv 中（包含
   代码自身的副本以及作为 package-data 的 `icons/`），因此应用
@@ -125,8 +125,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
   `~/picture_helper`，然后在那里重新执行脚本。）
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon：在 `~/Library/Python/...` 中存在一个架构不匹配的
-  软件包，它“渗透”到了一个不匹配的 Python 中。自 v3.1 起此问题已
-  解决：启动器设置了 `PYTHONNOUSERSITE=1`（忽略 user-site），
+  软件包，它“渗透”到了一个不匹配的 Python 中。启动器设置了
+  `PYTHONNOUSERSITE=1`（忽略 user-site），
   强制使用原生 CPU 架构，并且会强制使用
   一个隔离的 venv。解决办法：最好先安装一个原生
   Python，然后重新构建：
@@ -161,10 +161,9 @@ git checkout <branch> && git pull      # 更新某个特定分支
   执行一次 `bash create_BgRemover_app.sh` 构建——或者向 venv 中补装：
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`。
 - **`.app` 看起来与 `BgRemover.command` 不同** → 较旧的应用程序包
-  没有工具栏图标（应用程序使用了绘制的替代图标）。当前已
-  修复——自第 5 轮起图标是 `bgremover/icons/` 中的 `package-data`，
-  因此在 `pip install` 时自动进入 venv，并通过
-  `importlib.resources` 加载；重新执行一次
+  没有工具栏图标（应用程序使用了绘制的替代图标）。图标是
+  `bgremover/icons/` 中的 `package-data`，因此在 `pip install` 时
+  自动进入 venv，并通过 `importlib.resources` 加载；重新执行一次
   `bash create_BgRemover_app.sh` 构建。
 - **出错时的诊断** → 应用程序包启动器会将启动诊断信息写入
   `~/Library/Application Support/BgRemover/bgremover.log`。内部运行时

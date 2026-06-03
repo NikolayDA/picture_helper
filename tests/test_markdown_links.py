@@ -10,6 +10,17 @@ FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
+IGNORED_MARKDOWN_DIRS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "bgremover.egg-info",
+    "build",
+    "dist",
+    "htmlcov",
+}
 
 
 def _without_fenced_code(text: str) -> str:
@@ -55,6 +66,10 @@ def test_all_markdown_local_links_and_images_resolve() -> None:
 
     missing: list[str] = []
     for path in sorted(ROOT.rglob("*.md")):
+        relative_parts = path.relative_to(ROOT).parts
+        if any(part in IGNORED_MARKDOWN_DIRS for part in relative_parts[:-1]):
+            continue
+
         text = _without_fenced_code(path.read_text(encoding="utf-8"))
         for kind, pattern in (("link", MARKDOWN_LINK_RE), ("image", IMAGE_LINK_RE)):
             for match in pattern.finditer(text):

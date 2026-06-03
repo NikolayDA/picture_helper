@@ -106,8 +106,8 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
 
 ## Troubleshooting
 
-- **App startet nicht / Doppelklick passiert nichts** → Seit v3 zeigt
-  die App einen Fehlerdialog mit „Log öffnen". Häufigste Ursache:
+- **App startet nicht / Doppelklick passiert nichts** → Die App zeigt
+  einen Fehlerdialog mit „Log öffnen". Häufigste Ursache:
   `PyQt6` ist nicht in dem Python installiert, das die App nutzt
   (z. B. weil `pip install` in eine venv oder ein anderes Python ging,
   oder Homebrew-Python `pip install` per PEP 668 blockiert). Lösung:
@@ -119,8 +119,8 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
 - **`[Errno 1] Operation not permitted` beim Zugriff auf das Projekt**
   → macOS-Datenschutz (TCC). Liegt das Projekt in `~/Documents`,
   `~/Desktop`, `~/Downloads` oder iCloud Drive, darf eine aus dem
-  Finder gestartete `.app` dort nicht lesen. Seit Runde 5 (Paket-
-  Schnitt) ist das gelöst: `create_BgRemover_app.sh` installiert das
+  Finder gestartete `.app` dort nicht lesen. Der Paket-Schnitt löst das:
+  `create_BgRemover_app.sh` installiert das
   `bgremover`-Paket **nicht-editierbar** in die venv unter
   `~/Library/Application Support/BgRemover/venv` (eigene Kopie des
   Codes inkl. `icons/`-Paket-Daten), die App ist damit unabhängig vom
@@ -129,8 +129,8 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
   verschieben und das Skript dort erneut ausführen.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon: in `~/Library/Python/...` liegt ein arch-fremdes
-  Paket, das in einen mismatched Python „durchblutet". Seit v3.1 ist
-  das gelöst: der Launcher setzt `PYTHONNOUSERSITE=1` (user-site wird
+  Paket, das in einen mismatched Python „durchblutet". Der Launcher
+  setzt `PYTHONNOUSERSITE=1` (user-site wird
   ignoriert), erzwingt die native CPU-Architektur und es wird zwingend
   eine isolierte venv genutzt. Lösung: am besten zuerst einen nativen
   Python installieren, dann neu bauen:
@@ -165,9 +165,9 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
   `bash create_BgRemover_app.sh` neu bauen — oder ins venv nachinstallieren:
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **`.app` sieht anders aus als `BgRemover.command`** → Älteres Bundle
-  ohne Toolbar-Icons (App nutzte gezeichnete Ersatz-Icons). Aktuell
-  behoben — seit Runde 5 sind die Icons `package-data` in `bgremover/
-  icons/`, werden also bei `pip install` automatisch in die venv
+  ohne Toolbar-Icons (App nutzte gezeichnete Ersatz-Icons). Die Icons
+  sind `package-data` in `bgremover/icons/` und werden bei `pip install`
+  automatisch in die venv
   übernommen und über `importlib.resources` geladen; einmal
   `bash create_BgRemover_app.sh` neu bauen.
 - **Diagnose bei Fehlern** → Der Bundle-Launcher schreibt Startdiagnosen

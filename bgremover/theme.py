@@ -10,11 +10,8 @@ from __future__ import annotations
 class _Theme:
     """Zentrale UI-Farbpalette.
 
-    Bündelt die im Stylesheet mehrfach wiederholten Farbwerte an einer
-    Stelle, damit künftige UI-Erweiterungen konsistente Farben nutzen.
-    Die Werte sind exakt die zuvor inline verwendeten – das
-    Erscheinungsbild ändert sich nicht (Stylesheets bleiben
-    byte-identisch).
+    Bündelt die gemeinsam genutzten Farbwerte an einer Stelle, damit
+    UI-Erweiterungen konsistente Farben nutzen.
     """
     ACCENT      = "#4a90d9"   # Hervorhebung: aktiver Tab, Slider, Auswahl
     BG_PANEL    = "#1a1a1a"   # rechtes Panel / Tab-Pane / Statusleiste

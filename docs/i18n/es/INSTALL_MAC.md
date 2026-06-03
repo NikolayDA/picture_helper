@@ -119,8 +119,8 @@ automáticamente la copia del paquete en el venv dedicado de la app.
 - **`[Errno 1] Operation not permitted` al acceder al proyecto**
   → Privacidad de macOS (TCC). Si el proyecto está en `~/Documents`,
   `~/Desktop`, `~/Downloads` o iCloud Drive, una `.app` iniciada desde
-  el Finder no puede leer ahí. Desde la ronda 5 (corte de paquete)
-  esto está resuelto: `create_BgRemover_app.sh` instala el paquete
+  el Finder no puede leer ahí. El layout de paquete lo resuelve:
+  `create_BgRemover_app.sh` instala el paquete
   `bgremover` de forma **no editable** en el venv bajo
   `~/Library/Application Support/BgRemover/venv` (copia propia del
   código incl. `icons/` como package-data), por lo que la app es
@@ -131,7 +131,7 @@ automáticamente la copia del paquete en el venv dedicado de la app.
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon: en `~/Library/Python/...` hay un paquete de otra
   arquitectura que se «filtra» a un Python con arquitectura no
-  coincidente. Desde la v3.1 esto está resuelto: el launcher establece
+  coincidente. El launcher establece
   `PYTHONNOUSERSITE=1` (el user-site se ignora), fuerza la arquitectura
   de CPU nativa y se usa obligatoriamente un venv aislado. Solución: lo
   mejor es instalar primero un Python nativo, luego recompilar:
@@ -168,10 +168,9 @@ automáticamente la copia del paquete en el venv dedicado de la app.
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **La `.app` se ve distinta a `BgRemover.command`** → Bundle antiguo
   sin los iconos de la barra de herramientas (la app usaba iconos de
-  reemplazo dibujados). Actualmente resuelto — desde la ronda 5 los
-  iconos son `package-data` en `bgremover/icons/`, por lo que se
-  incluyen automáticamente en el venv con `pip install` y se cargan
-  vía `importlib.resources`; recompila una vez con
+  reemplazo dibujados). Los iconos son `package-data` en `bgremover/icons/`,
+  por lo que se incluyen automáticamente en el venv con `pip install` y se
+  cargan vía `importlib.resources`; recompila una vez con
   `bash create_BgRemover_app.sh`.
 - **Diagnóstico ante errores** → El launcher del bundle escribe sus
   diagnósticos de arranque en

@@ -1,9 +1,7 @@
-"""Coverage guards for the runtime-i18n string table (PR 4a).
+"""Coverage-Guards für die Runtime-i18n-Stringtabelle.
 
-PR 4a routes the right-panel tab contents, the settings dialog and the
-remaining ``QMessageBox`` dialogs through :func:`bgremover.i18n.tr`. These
-tests keep the central table in sync with the call sites and verify that the
-German strings still render byte-for-byte after the refactor.
+Die Tests halten die zentrale Tabelle mit den Aufrufstellen synchron und
+prüfen, dass die deutschen Referenzstrings unverändert gerendert werden.
 """
 from __future__ import annotations
 
@@ -19,8 +17,8 @@ import bgremover.i18n as i18n
 from bgremover.i18n import DEFAULT_LOCALE, configure_locale, tr
 
 _SRC_DIR = Path(i18n.__file__).resolve().parent
-# Standalone ``tr("…")`` calls only – the lookbehind avoids matching method
-# calls or identifiers that merely end in ``tr`` (e.g. ``attr(``).
+# Nur eigenständige ``tr("…")``-Aufrufe; der Lookbehind vermeidet Treffer
+# auf Methoden oder Bezeichner, die nur auf ``tr`` enden (z. B. ``attr(``).
 _TR_KEY_RE = re.compile(r'(?<![\w.])tr\(\s*"([^"]+)"')
 
 
@@ -66,7 +64,7 @@ def test_right_panel_tabs_build_and_render_german(qapp) -> None:
     for name, (widget, _refs) in built.items():
         assert widget is not None, name
 
-    # Dynamic labels with their initial values + tricky double spaces.
+    # Dynamische Labels mit Startwerten und absichtlich doppelten Leerzeichen.
     _w, sel = built["SelectionTab"]
     assert sel["tolerance_label"].text() == "Toleranz (Zauberstab):  30"
     assert sel["brush_label"].text() == "Pinselgröße:  30 px"
@@ -97,21 +95,19 @@ def test_panel_label_is_runtime_translated(qapp, monkeypatch) -> None:
     from bgremover.right_panel_tabs import SelectionTab
 
     _widget, refs = SelectionTab(MagicMock()).build()
-    # Unmapped keys still fall back to German; the mapped one is translated.
+    # Nicht gemappte Keys fallen weiter auf Deutsch zurück.
     assert refs["tolerance_label"].text() == "Tolerance:  30"
 
 
-# ── Guard against new untranslated user-facing literals ────────────────
+# ── Guard gegen neue unübersetzte nutzerseitige Literale ───────────────
 #
-# The key-hygiene tests above only prove that *referenced* keys exist. They
-# cannot see strings that never reach ``tr()`` at all. This AST guard closes
-# that gap for the dynamic sinks that previously leaked German into a non-German
-# UI: the canvas status signal, the native Qt dialogs and history ``desc=``.
-# A literal (plain string or f-string) carrying letters at one of these sinks
-# must instead be a ``tr(...)`` call or a variable already resolved via ``tr``.
+# Die Key-Hygiene-Tests oben sehen nur *referenzierte* Keys. Dieser AST-Guard
+# findet Strings, die ``tr()`` gar nicht erreichen: Canvas-Statussignal,
+# native Qt-Dialoge und History-``desc=``. Literale mit Buchstaben müssen an
+# diesen Stellen über ``tr(...)`` oder bereits übersetzte Variablen laufen.
 
-# Qt static-method sinks: receiver class -> {method: positional arg indices
-# that carry translatable text}.
+# Qt-Static-Method-Senken: Empfängerklasse -> {Methode: Positionsargumente
+# mit übersetzbarem Text}.
 _QT_SINKS = {
     "QMessageBox": {
         "warning": (1, 2), "information": (1, 2),

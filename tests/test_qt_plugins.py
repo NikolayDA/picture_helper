@@ -1,6 +1,6 @@
-"""Tests für das gehärtete Qt-Plugin-Staging (Fix #12).
+"""Tests für das gehärtete Qt-Plugin-Staging.
 
-Geprüft werden die drei Härtungen gegenüber dem früheren Stand:
+Geprüft werden die drei Sicherheitsanforderungen:
 * nutzerspezifisches ``0700``-Staging-Verzeichnis (kein welt-schreibbarer,
   vorhersagbarer Pfad → kein Pre-Seeding fremder Plugin-Dylibs),
 * Inhalts-(SHA-256-)Vergleich statt reinem Größenvergleich,
@@ -79,8 +79,7 @@ def test_copy_if_needed_copies_when_absent(tmp_path):
 
 
 def test_copy_if_needed_refreshes_on_content_change_same_size(tmp_path):
-    """Gleiche Größe, anderer Inhalt: muss neu kopiert werden (früher wurde
-    nur die Größe verglichen → untergeschobene Datei blieb stehen)."""
+    """Gleiche Größe, anderer Inhalt: muss neu kopiert werden."""
     src = tmp_path / "src.bin"
     dst = tmp_path / "dst.bin"
     src.write_bytes(b"AAAA")

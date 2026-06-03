@@ -38,10 +38,9 @@ def _changelog_release_date(version: str) -> str:
 
 
 def test_translated_changelogs_keep_unreleased_entries_in_sync() -> None:
-    """Translated changelogs must not leave [Unreleased] empty when German has entries."""
+    """Translated changelogs mirror the German [Unreleased] bullet count."""
 
     german_count = _top_level_bullet_count(_unreleased_section(_read(ROOT / "CHANGELOG.md")))
-    assert german_count > 0
 
     for language in LANGUAGES:
         path = ROOT / "docs" / "i18n" / language / "CHANGELOG.md"

@@ -2,7 +2,7 @@
 
 Schwerpunkt: das Undo-Speicherbudget muss auf JEDEM wachsenden Pfad
 greifen – nicht nur in ``push``, sondern auch in ``redo`` und ``restore``
-(Fix #3 / verbleibender #13-Verhaltenstest).
+– und selbst bei sehr kleinem Budget mindestens einen Undo-Schritt behalten.
 """
 from __future__ import annotations
 

@@ -11,6 +11,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+### Cambiado
+
+### Corregido
+
+### Eliminado
+
+## [2.3.0] – 2026-06-04
+
+
+### Añadido
+
 - **Cobertura de pruebas aumentada al 88 % (segunda ronda; antes 82 %).** La
   nueva `tests/test_canvas_events.py` cubre manejadores de eventos y lógica de
   `canvas.py`: ratón, teclado, rueda, arrastre, flujos de resultado de la varita,
@@ -43,6 +54,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   si `rembg_remove` falla al primer arranque.
 
 ### Cambiado
+
+- Documentación y comentarios de código limpiados: se retiraron marcadores
+  obsoletos de PR/rondas en la documentación viva, se actualizaron las notas
+  de instalación de macOS y las recomendaciones quedaron como estado actual
+  breve de review/roadmap.
+- La versión del proyecto subió a 2.3.0 en metadatos del paquete, AppStream,
+  resúmenes de licencias y enlaces del changelog.
 
 - **Idioma de docstrings unificado.** `bgremover/image_ops.py`,
   `bgremover/recent_files.py` y `bgremover/worker_controller.py` pasan de
@@ -350,7 +368,8 @@ tag Git histórico `v2.0.0`.
 - README con arquitectura, limitaciones conocidas e instrucciones de
   instalación; `INSTALL_MAC.md` detallado.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

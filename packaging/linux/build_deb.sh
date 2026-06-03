@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 #
 # Build a .deb that installs the self-contained AppImage system-wide
-# (PR 6 — Linux packaging expansion). The package ships the AppImage built by
-# build_appimage.sh under /opt and adds a desktop launcher + icon + AppStream
-# metadata, so apt users get menu integration and clean install/remove without
-# any Python packaging complexity.
+# The package ships the AppImage built by build_appimage.sh under /opt and
+# adds a desktop launcher + icon + AppStream metadata, so apt users get menu
+# integration and clean install/remove without Python packaging complexity.
 #
 # Usage:
 #   ./packaging/linux/build_appimage.sh          # produce the AppImage first

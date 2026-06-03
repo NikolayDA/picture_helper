@@ -1,4 +1,4 @@
-"""Tests für den Scanline-Flood-Fill (Fix #6).
+"""Tests für den Scanline-Flood-Fill.
 
 Der frühere Algorithmus pushte jeden Pixel einzeln auf einen Python-Stack
 (bei 2,25 MP einfarbig ≈ 3,3 s gemessen). Die Scanline-Variante füllt ganze
