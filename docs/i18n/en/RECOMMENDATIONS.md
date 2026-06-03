@@ -50,7 +50,7 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **PR 0 — Code hardening (N2 + N7).** ✅ Done (PR #148). N2 — apply the megapixel gate to the rotation result too (`rotated_size()` estimates the target size up front, `apply_rotate` rejects over-limit results with a status message); N7 — import `rembg` lazily and probe `REMBG_AVAILABLE` via `find_spec` (the existing warmup-failure handling covers a broken backend).
 - **PR 1 — Tool shortcuts & shortcut hints.** ✅ Done (PR #146). O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
 - **PR 2 — Earlier CI coverage.** ✅ Done (PR #149). O3 — full matrix additionally weekly (cron); O5 — `ui_smoke` subset in PR/Full CI, Nightly UI remains the full suite.
-- **PR 3 — i18n foundation.** Prepare O1: add runtime locale/fallback, centralize visible strings incrementally, keep German as the stable default.
+- **PR 3 — i18n foundation.** ✅ Done. O1 prepared: `bgremover.i18n` with runtime locale/fallback, German as the stable default, first central string table for status messages, menu, toolbar, tabs, history, and crop bar; regression tests for locale normalization, fallback, and UI wiring.
 - **PR 4 — i18n rollout.** Make O1 usable: at least English as a runtime language, then the other existing documentation languages, with smoke checks per locale.
 - **PR 5 — Linux packaging foundation.** Start O2: choose target artifact (AppImage/`.deb`/Flatpak), add desktop file/icon/AppStream metadata and a Linux build smoke.
 - **PR 6 — Linux packaging expansion.** Complete O2: Raspberry Pi OS variant, optional second package format, and release workflow for Linux artifacts.

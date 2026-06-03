@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.constants import _CROP_BAR_HEIGHT
+from bgremover.i18n import tr
 from bgremover.theme import (
     CROP_BAR_STYLE,
     CROP_CANCEL_STYLE,
@@ -39,14 +40,14 @@ class CropBar(QFrame):
         lay.setContentsMargins(14, 4, 14, 4)
         lay.setSpacing(10)
 
-        label = QLabel("✂  Ausschnitt positionieren, dann bestätigen:")
+        label = QLabel(tr("crop_bar.label"))
         label.setStyleSheet(CROP_LABEL_STYLE)
         lay.addWidget(label)
         lay.addStretch()
 
-        self._btn_confirm = QPushButton("✓  Zuschnitt anwenden")
+        self._btn_confirm = QPushButton(tr("crop_bar.confirm"))
         self._btn_confirm.setStyleSheet(CROP_CONFIRM_STYLE)
-        self._btn_cancel = QPushButton("✗  Abbrechen")
+        self._btn_cancel = QPushButton(tr("crop_bar.cancel"))
         self._btn_cancel.setStyleSheet(CROP_CANCEL_STYLE)
         lay.addWidget(self._btn_confirm)
         lay.addWidget(self._btn_cancel)

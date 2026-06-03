@@ -31,6 +31,7 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
+from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings
 from bgremover.image_ops import (
     DEFAULT_SAVE_FORMAT,
     ensure_save_extension,
@@ -84,6 +85,8 @@ class MainWindow(QMainWindow):
         # Wechsel an einem zentralen Punkt greifen koennen.
         self._settings = QSettings("BgRemover", "BgRemover")
         migrate_settings(self._settings)
+        init_locale_from_settings(
+            self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
             self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
         # Submenü-Adapter wird in _build_menu gesetzt
@@ -333,7 +336,7 @@ class MainWindow(QMainWindow):
         # „Auswahl-Fehler"-Meldung von ``cancel_pending_wand``.
         self._worker_controller.cancel_flood_fill()
         self._canvas.reset_pending_wand()
-        self._sb.showMessage(f"⏳ Lädt: {Path(path).name}…")
+        self._sb.showMessage(SM.LAEDT(Path(path).name))
         self._worker_controller.start_image_load(
             path,
             on_loaded=self._on_image_load_done,
@@ -344,7 +347,7 @@ class MainWindow(QMainWindow):
         self._canvas.apply_loaded_image(img, path)
 
     def _on_image_load_error(self, msg: str) -> None:
-        self._sb.showMessage(f"Ladefehler: {msg}")
+        self._sb.showMessage(SM.LADEFEHLER(msg))
 
     # ── Zauberstab (asynchron) ──────────────────────────────────
 
@@ -453,7 +456,7 @@ class MainWindow(QMainWindow):
         self._recent_menu.add(path)
 
     def _on_recent_missing(self, path: str) -> None:
-        self._sb.showMessage(f"Datei nicht mehr vorhanden: {Path(path).name}")
+        self._sb.showMessage(SM.DATEI_NICHT_VORHANDEN(Path(path).name))
 
     def _on_image_loaded(self, path: str) -> None:
         """Wird nach jedem load_image vom Canvas aufgerufen."""
@@ -510,7 +513,7 @@ class MainWindow(QMainWindow):
         self._canvas.apply_ai_result(img)
 
     def _on_ai_error(self, msg: str) -> None:
-        self._sb.showMessage(f"KI-Fehler: {msg}")
+        self._sb.showMessage(SM.KI_FEHLER(msg))
         QMessageBox.warning(self, "KI-Fehler",
                             f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
 

@@ -1,38 +1,94 @@
 """Zentrale Sammlung aller Status-Meldungsstrings.
 
-Keine i18n-Bibliothek – nur ein Ort für alle sichtbaren Status-Texte,
-damit eine spätere Lokalisierung die Strings ohne Streusuche findet.
+Die Attribute bleiben für bestehende Aufrufer bewusst gleich, werden aber
+über ``bgremover.i18n.tr`` aufgelöst. Damit kann ein späterer Sprach-Rollout
+die Statusleiste umstellen, ohne jeden Aufruf im Canvas/MainWindow erneut
+anzufassen.
 """
+from __future__ import annotations
+
+from bgremover.i18n import tr
 
 
-class StatusMessages:
+class _StatusMessages:
     # ── Laden & Speichern ────────────────────────────────────
-    KEIN_BILD_GELADEN       = "Kein Bild geladen"
-    KEIN_BILD_ZUM_SPEICHERN = "Kein Bild zum Speichern"
-    LAEDT_BEREITS           = "Lädt bereits ein Bild…"
+    @property
+    def KEIN_BILD_GELADEN(self) -> str:
+        return tr("status.no_image_loaded")
+
+    @property
+    def KEIN_BILD_ZUM_SPEICHERN(self) -> str:
+        return tr("status.no_image_to_save")
+
+    @property
+    def LAEDT_BEREITS(self) -> str:
+        return tr("status.already_loading")
 
     # ── KI ───────────────────────────────────────────────────
-    KI_LAEUFT_BEREITS = "KI läuft bereits…"
-    KI_VERARBEITET    = "🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)"
-    KI_BEREIT         = "🤖 KI bereit"
-    KI_MODELL_LADEN   = "🤖 KI-Modell wird geladen…"
-    KI_FEHLER_WARMUP  = "⚠️ KI-Modell konnte nicht geladen werden"
-    KI_ERGEBNIS_VERWORFEN = "KI-Ergebnis verworfen – Bild wurde inzwischen geändert"
+    @property
+    def KI_LAEUFT_BEREITS(self) -> str:
+        return tr("status.ai_already_running")
+
+    @property
+    def KI_VERARBEITET(self) -> str:
+        return tr("status.ai_processing")
+
+    @property
+    def KI_BEREIT(self) -> str:
+        return tr("status.ai_ready")
+
+    @property
+    def KI_MODELL_LADEN(self) -> str:
+        return tr("status.ai_model_loading")
+
+    @property
+    def KI_FEHLER_WARMUP(self) -> str:
+        return tr("status.ai_warmup_failed")
+
+    @property
+    def KI_ERGEBNIS_VERWORFEN(self) -> str:
+        return tr("status.ai_result_discarded")
 
     # ── Zauberstab ───────────────────────────────────────────
-    ZAUBERSTAB_ARBEITET = "Zauberstab arbeitet noch…"
-    AUSWAHL_BERECHNUNG  = "⏳ Auswahl wird berechnet…"
-    WAND_VERWORFEN      = "Wand-Auswahl verworfen – Bild wurde inzwischen geändert"
+    @property
+    def ZAUBERSTAB_ARBEITET(self) -> str:
+        return tr("status.wand_busy")
+
+    @property
+    def AUSWAHL_BERECHNUNG(self) -> str:
+        return tr("status.selection_calculating")
+
+    @property
+    def WAND_VERWORFEN(self) -> str:
+        return tr("status.wand_discarded")
 
     # ── Auswahl ──────────────────────────────────────────────
-    KEINE_AUSWAHL = (
-        "Keine Auswahl – erst Bereich mit Zauberstab oder Pinsel auswählen"
-    )
+    @property
+    def KEINE_AUSWAHL(self) -> str:
+        return tr("status.no_selection")
 
     # ── Start-Hinweis ────────────────────────────────────────
-    START_HINWEIS = (
-        "Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche"
-    )
+    @property
+    def START_HINWEIS(self) -> str:
+        return tr("status.start_hint")
 
     # ── Beenden ──────────────────────────────────────────────
-    BEENDE = "Beende…"
+    @property
+    def BEENDE(self) -> str:
+        return tr("status.quitting")
+
+    # ── Dynamisch (mit eingesetzten Werten) ──────────────────
+    def LAEDT(self, name: str) -> str:
+        return tr("status.loading", name=name)
+
+    def LADEFEHLER(self, msg: str) -> str:
+        return tr("status.load_error", msg=msg)
+
+    def DATEI_NICHT_VORHANDEN(self, name: str) -> str:
+        return tr("status.file_missing", name=name)
+
+    def KI_FEHLER(self, msg: str) -> str:
+        return tr("status.ai_error", msg=msg)
+
+
+StatusMessages = _StatusMessages()

@@ -17,6 +17,7 @@ from bgremover.constants import (
     TOOL_LASSO,
     TOOL_WAND,
 )
+from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.theme import (
     HISTORY_BUTTON_STYLE,
@@ -83,31 +84,28 @@ class _ToolbarBuilder:
             lay,
             button_group,
             "wand",
-            "Zauberstab  (W)\nKlick wählt Farbfläche (Flood Fill)\n"
-            f"Shift = addieren  ·  {_shortcut_label('Ctrl')} = subtrahieren",
+            tr("toolbar.wand.tooltip", modifier=_shortcut_label("Ctrl")),
             TOOL_WAND,
         )
         btn_brush = self._tool_button(
             lay,
             button_group,
             "brush",
-            "Pinsel  (B)\nBereiche manuell zur Auswahl hinzufügen",
+            tr("toolbar.brush.tooltip"),
             TOOL_BRUSH,
         )
         btn_eraser = self._tool_button(
             lay,
             button_group,
             "eraser",
-            "Radiergummi  (E)\nAuswahl-Bereiche wieder entfernen",
+            tr("toolbar.eraser.tooltip"),
             TOOL_ERASER,
         )
         btn_lasso = self._tool_button(
             lay,
             button_group,
             "lasso",
-            "Polygon-Lasso  (L)\nKlicken setzt Punkte · Doppelklick schließt Polygon\n"
-            f"Shift = addieren  ·  {_shortcut_label('Ctrl')} = subtrahieren"
-            "  ·  Esc = abbrechen",
+            tr("toolbar.lasso.tooltip", modifier=_shortcut_label("Ctrl")),
             TOOL_LASSO,
         )
         btn_wand.setChecked(True)
@@ -118,9 +116,9 @@ class _ToolbarBuilder:
         btn_ai.setIcon(make_tool_icon("ai", 38))
         btn_ai.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
         btn_ai.setToolTip(
-            "KI-Hintergrundentfernung (rembg)\nEntfernt den Hintergrund vollautomatisch"
+            tr("toolbar.ai.available.tooltip")
             if self._rembg_available else
-            'rembg nicht installiert\n→ python3 -m pip install -e ".[ai]"'
+            tr("toolbar.ai.missing.tooltip")
         )
         btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
         btn_ai.setStyleSheet(TOOL_STYLE)
@@ -133,38 +131,35 @@ class _ToolbarBuilder:
         self._history_button(
             lay,
             "undo",
-            f"Rückgängig  ({_shortcut_label('Ctrl+Z')})\n"
-            "Letzten Bearbeitungsschritt rückgängig machen",
+            tr("toolbar.undo.tooltip", shortcut=_shortcut_label("Ctrl+Z")),
             self._actions.undo,
         )
         self._history_button(
             lay,
             "redo",
-            f"Wiederherstellen  ({_shortcut_label('Ctrl+Shift+Z')})\n"
-            "Letzten rückgängig gemachten Schritt wiederherstellen",
+            tr("toolbar.redo.tooltip", shortcut=_shortcut_label("Ctrl+Shift+Z")),
             self._actions.redo,
         )
         self._history_button(
             lay,
             "restore",
-            "Original wiederherstellen\nAlle Bearbeitungen verwerfen",
+            tr("toolbar.restore.tooltip"),
             self._actions.restore_original,
         )
         btn_history = self._history_button(
             lay,
             "history",
-            "Änderungshistorie\nZeigt alle bisherigen Bearbeitungsschritte.\n"
-            "Doppelklick auf Eintrag → zu diesem Schritt zurück",
+            tr("toolbar.history.tooltip"),
             self._actions.toggle_history,
         )
 
         lay.addStretch()
 
         self._mini_button(
-            lay, "open", f"Bild öffnen  ({_shortcut_label('Ctrl+O')})",
+            lay, "open", tr("toolbar.open.tooltip", shortcut=_shortcut_label("Ctrl+O")),
             self._actions.open_image)
         self._mini_button(
-            lay, "save", f"Bild speichern  ({_shortcut_label('Ctrl+S')})",
+            lay, "save", tr("toolbar.save.tooltip", shortcut=_shortcut_label("Ctrl+S")),
             self._actions.save)
 
         return Toolbar(

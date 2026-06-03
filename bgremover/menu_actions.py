@@ -8,6 +8,7 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QMenu, QMenuBar
 
+from bgremover.i18n import tr
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
 
 MENU_STYLE = """
@@ -48,10 +49,10 @@ def build_main_menu(
 
     menu_bar.setStyleSheet(MENU_STYLE)
 
-    file_menu = _add_menu(menu_bar, "Datei")
-    _add_action(file_menu, parent, "Öffnen…", callbacks.open_image, "Ctrl+O")
+    file_menu = _add_menu(menu_bar, tr("menu.file"))
+    _add_action(file_menu, parent, tr("action.open"), callbacks.open_image, "Ctrl+O")
 
-    recent_qmenu = _add_submenu(file_menu, "Zuletzt geöffnet")
+    recent_qmenu = _add_submenu(file_menu, tr("menu.recent_files"))
     recent_menu = RecentFilesMenu(
         parent,
         recent_qmenu,
@@ -61,28 +62,28 @@ def build_main_menu(
     )
 
     file_menu.addSeparator()
-    _add_action(file_menu, parent, "Speichern", callbacks.save, "Ctrl+S")
-    _add_action(file_menu, parent, "Speichern unter…", callbacks.save_as, "Ctrl+Shift+S")
+    _add_action(file_menu, parent, tr("action.save"), callbacks.save, "Ctrl+S")
+    _add_action(file_menu, parent, tr("action.save_as"), callbacks.save_as, "Ctrl+Shift+S")
 
-    edit_menu = _add_menu(menu_bar, "Bearbeiten")
-    _add_action(edit_menu, parent, "Rückgängig", callbacks.undo, "Ctrl+Z")
-    _add_action(edit_menu, parent, "Wiederherstellen", callbacks.redo, "Ctrl+Shift+Z")
+    edit_menu = _add_menu(menu_bar, tr("menu.edit"))
+    _add_action(edit_menu, parent, tr("action.undo"), callbacks.undo, "Ctrl+Z")
+    _add_action(edit_menu, parent, tr("action.redo"), callbacks.redo, "Ctrl+Shift+Z")
     edit_menu.addSeparator()
-    _add_action(edit_menu, parent, "90° links drehen", lambda: callbacks.rotate(90), "Ctrl+Left")
-    _add_action(edit_menu, parent, "90° rechts drehen", lambda: callbacks.rotate(-90), "Ctrl+Right")
-    _add_action(edit_menu, parent, "180° drehen", lambda: callbacks.rotate(180))
-    _add_action(edit_menu, parent, "Horizontal spiegeln", lambda: callbacks.flip(True))
-    _add_action(edit_menu, parent, "Vertikal spiegeln", lambda: callbacks.flip(False))
+    _add_action(edit_menu, parent, tr("action.rotate_left_90"), lambda: callbacks.rotate(90), "Ctrl+Left")
+    _add_action(edit_menu, parent, tr("action.rotate_right_90"), lambda: callbacks.rotate(-90), "Ctrl+Right")
+    _add_action(edit_menu, parent, tr("action.rotate_180"), lambda: callbacks.rotate(180))
+    _add_action(edit_menu, parent, tr("action.flip_horizontal"), lambda: callbacks.flip(True))
+    _add_action(edit_menu, parent, tr("action.flip_vertical"), lambda: callbacks.flip(False))
     edit_menu.addSeparator()
-    _add_action(edit_menu, parent, "Auswahl aufheben", callbacks.clear_selection, "Escape")
-    _add_action(edit_menu, parent, "Auswahl invertieren", callbacks.invert_selection, "Ctrl+Shift+I")
-    _add_action(edit_menu, parent, "Original wiederherstellen", callbacks.restore_original)
+    _add_action(edit_menu, parent, tr("action.clear_selection"), callbacks.clear_selection, "Escape")
+    _add_action(edit_menu, parent, tr("action.invert_selection"), callbacks.invert_selection, "Ctrl+Shift+I")
+    _add_action(edit_menu, parent, tr("action.restore_original"), callbacks.restore_original)
 
-    view_menu = _add_menu(menu_bar, "Ansicht")
-    _add_action(view_menu, parent, "Fit to View", callbacks.fit_to_view, "Ctrl+0")
+    view_menu = _add_menu(menu_bar, tr("menu.view"))
+    _add_action(view_menu, parent, tr("action.fit_to_view"), callbacks.fit_to_view, "Ctrl+0")
 
-    extras_menu = _add_menu(menu_bar, "Extras")
-    _add_action(extras_menu, parent, "Einstellungen…", callbacks.open_settings, "Ctrl+,")
+    extras_menu = _add_menu(menu_bar, tr("menu.extras"))
+    _add_action(extras_menu, parent, tr("action.settings"), callbacks.open_settings, "Ctrl+,")
 
     return recent_menu
 
