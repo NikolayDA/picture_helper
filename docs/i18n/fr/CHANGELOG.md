@@ -11,11 +11,93 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Couverture de tests portée à 88 % (deuxième ronde, auparavant 82 %).** Le
+  nouveau fichier `tests/test_canvas_events.py` couvre les gestionnaires
+  d'événements et la logique de `canvas.py` : souris, clavier, molette,
+  glisser-déposer, flux de résultat de la baguette, réglages d'outils,
+  undo/redo/undo-to pendant un crop actif et guards sans image chargée.
+  `canvas.py` passe de 64 % à 99 % et `fail_under` de 80 à 86.
+- **Couverture de tests portée à 82 % (auparavant 74 %).** De nouveaux tests de
+  comportement couvrent `tests/test_lasso.py`, `tests/test_canvas_crop.py`,
+  `tests/test_viewport.py`, `tests/test_crop_overlay.py`,
+  `tests/test_settings_schema.py` et `tests/test_settings_dialog.py`. Plusieurs
+  modules atteignent 100 %, `canvas_crop.py` 98 %, et `fail_under` passe de 68 à
+  80.
+- **i18n de ANLEITUNG.md.** Cinq traductions du guide allemand ont été ajoutées
+  dans `docs/i18n/{en,es,fr,uk,zh}/ANLEITUNG.md`; `tests/test_i18n_docs.py`
+  inclut désormais `"ANLEITUNG.md"` et chaque traduction précise que
+  `ANLEITUNG.pdf` n'est généré que pour l'original allemand.
+- **Test soft-drift `tests/test_i18n_sync.py`.** Compare la hiérarchie des
+  titres et le nombre de blocs de code de `CHANGELOG.md`, `INSTALL_MAC.md` et
+  `INSTALL_LINUX.md` avec les originaux allemands ; les écarts produisent des
+  avertissements lisibles plutôt que des échecs bloquants.
+- **`bgremover/status_messages.py` – messages d'état centralisés.** Les textes
+  d'état visibles depuis `canvas.py`, `canvas_crop.py` et `main_window.py` sont
+  regroupés dans `StatusMessages`, en préparation d'une future localisation.
+- **Version de schéma QSettings.** Nouveau `bgremover/settings_schema.py` avec
+  `SCHEMA_VERSION = 1` et `migrate(settings)` ; `MainWindow.__init__` lance la
+  migration à la création de `QSettings`. Protection downgrade, valeurs
+  corrompues et tests dans `tests/test_settings_schema.py` sont couverts.
+- **Test runtime pour `RembgWarmupWorker`.** De nouveaux tests dans
+  `tests/test_workers.py` et `tests/test_worker_controller.py` vérifient que le
+  warmup émet toujours `finished` et que le cycle de vie du thread se termine
+  même si `rembg_remove` échoue au premier démarrage.
+
 ### Modifié
+
+- **Langue des docstrings unifiée.** `bgremover/image_ops.py`,
+  `bgremover/recent_files.py` et `bgremover/worker_controller.py` passent de
+  docstrings anglaises à l'allemand, conformément au reste du projet.
+- **Documentation utilisateur des paquets Linux et du réglage de langue mise à
+  jour.** README, `INSTALL_LINUX.md` et `ANLEITUNG.md` mentionnent AppImage/`.deb`
+  comme voie recommandée pour les utilisateurs Linux et documentent la langue
+  persistante avec l'indication de redémarrage ; les copies i18n sont
+  synchronisées.
+- **Ronde d'hygiène de code.** Le fallback de version lit `pyproject.toml`,
+  `_paint_brush` reçoit `additive` explicitement, `apply_remove`/`apply_replace`
+  ne capturent que les erreurs attendues, les effets globaux et cas QSettings
+  sont documentés, `make clean` nettoie plus d'artefacts et la description du
+  projet reflète le support macOS/Linux.
+- **La sélection par baguette ne bloque plus l'UI.** Le flood-fill passe dans
+  `FloodFillWorker` sur un `QThread` court avec vérification stale par
+  `content_revision`; pan/zoom restent réactifs et seul un clic parallèle de
+  baguette est bloqué avec un message d'état.
+- **Matrice CI étendue.** Full CI vérifie Python 3.10, 3.11, 3.12 et 3.13 sur
+  Ubuntu et macOS.
+- **`RembgWarmupWorker` hérite de `_Worker`.** Le boilerplate commun passe dans
+  la base avec le hook `_always_finished()`, tout en conservant le contrat
+  `finished` et en unifiant logging, erreurs et annotations de `WorkerController`.
+- **Les sous-modules Canvas utilisent l'API publique d'édition.** `CanvasCrop` et
+  `CanvasTransform` utilisent `apply_edit(...)` et `ImageCanvas.current_tool` ;
+  plusieurs opérations de sélection utilisent `_requires_image` et l'état vide
+  signale désormais clairement l'absence d'image.
+- **API publique du paquet allégée.** Les symboles privés ne sont plus
+  réexportés depuis `bgremover`; les consommateurs doivent importer depuis les
+  sous-modules. `logger`, `LOG_FILENAME`, `REMBG_AVAILABLE` et
+  `current_log_file` restent publics ; la façade de test `MainWindow._recent_paths()`
+  est supprimée.
 
 ### Corrigé
 
+- **`apply_remove`/`apply_replace` ne masquent plus les vrais bugs.** Le filtre
+  étroit laisse remonter `AttributeError`, `AssertionError` et similaires tout en
+  convertissant les erreurs image/IO attendues en messages d'état.
+- **Le chemin de chargement synchrone utilise les mêmes protections que le
+  worker.** `ImageCanvas.load_image` appelle désormais `open_validated_image`,
+  donc les fichiers manipulés et formats non pris en charge se terminent aussi
+  proprement via message d'état lors du drag & drop.
+- **License check stabilisé.** `coverage` est épinglé dans
+  `requirements/constraints.txt` (`==7.14.0`) pour éviter un drift de
+  `LICENSES.md` dû aux releases upstream.
+- **License check renforcé contre le drift de fuseau horaire.**
+  `actions/checkout` utilise `fetch-depth: 0` et la date est calculée avec
+  `TZ=UTC` et `--date=short-local`, afin de trouver le vrai commit et de
+  formater la date de manière déterministe.
+
 ### Supprimé
+
+- **Code mort supprimé de Canvas, Lasso et MainWindow.** `ImageCanvas._version`,
+  `CanvasLasso.close_to_mask` et `MainWindow._btn_grp` sont supprimés.
 
 ## [2.2.0] – 2026-05-25
 
