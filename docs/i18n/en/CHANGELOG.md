@@ -10,11 +10,178 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Test coverage increased to 88% (second round, previously 82%).** New file
+  `tests/test_canvas_events.py` covers previously untested event handlers and
+  `canvas.py` control logic: mouse, keyboard, wheel and drag handlers (via
+  synthetic Qt events, intentionally without the `ui` marker so they count
+  toward CI coverage), magic-wand result flows (hit, stale revision,
+  inactive), tool settings, undo/redo/undo-to during active crop, and guard
+  paths without a loaded image. This raises `canvas.py` from 64% to 99%; the
+  coverage threshold `fail_under` was raised from 80 to 86.
+- **Test coverage increased to 82% (previously 74%).** New behavior-based tests
+  cover logic modules that had only thin coverage so far: `tests/test_lasso.py`
+  (polygon-lasso state, preview line, double-click duplicate, polygon→mask),
+  `tests/test_canvas_crop.py` (crop gestures press/move/release, guards without
+  loaded image), and `tests/test_viewport.py` (zoom limits, pan routing,
+  scrollbar movement). `tests/test_crop_overlay.py` now covers resizing from all
+  four corners, `inside`/properties and the `paint` path (offscreen);
+  `tests/test_settings_schema.py` covers the migration-step path and
+  `tests/test_settings_dialog.py` covers directory/log-folder selection. As a
+  result, `crop.py`, `canvas_lasso.py`, `canvas_viewport.py`,
+  `settings_schema.py` and `settings_dialog.py` are at 100%, and
+  `canvas_crop.py` is at 98%. The coverage threshold `fail_under` was raised
+  from 68 to 80.
+- **ANLEITUNG.md i18n.** Added five translations of the German user guide:
+  `docs/i18n/{en,es,fr,uk,zh}/ANLEITUNG.md`. The `DOC_NAMES` tuple in
+  `tests/test_i18n_docs.py` now includes `"ANLEITUNG.md"`, so the structural
+  synchronization check automatically covers all five copies. A note in each
+  i18n header explains that `ANLEITUNG.pdf` is generated only for the German
+  original.
+- **Soft-drift test `tests/test_i18n_sync.py`.** Compares heading hierarchy and
+  number of code blocks in `CHANGELOG.md`, `INSTALL_MAC.md` and
+  `INSTALL_LINUX.md` against the German originals. Differences produce readable
+  warnings instead of hard test failures, keeping CI green while making drift
+  visible.
+- **`bgremover/status_messages.py` – centralized status messages.** All
+  user-visible status strings from `canvas.py`, `canvas_crop.py` and
+  `main_window.py` were moved into the new `StatusMessages` class. This is not
+  an i18n framework yet, just a central collection point preparing future
+  localization.
+- **Introduced QSettings schema version.** New helper
+  `bgremover/settings_schema.py` with `SCHEMA_VERSION = 1` and
+  `migrate(settings)`; `MainWindow.__init__` runs the migration directly after
+  constructing `QSettings`. Currently only initialization is active; future
+  format changes (for example the layout of the `recent_files` list) can hook
+  into this central place without old saved values crashing startup. Future
+  versions are not written back (downgrade protection) and only logged; a
+  non-numeric `schema_version` value is treated as "unset". Tests in
+  `tests/test_settings_schema.py` cover initialization, pre-schema upgrade
+  without data loss, idempotence, future-version warning and corrupt values.
+- **Runtime test for `RembgWarmupWorker`.** Two new tests in
+  `tests/test_workers.py` verify the always-emit-`finished` contract (success
+  and failure of warmup) with patched `rembg_remove`. A new controller test in
+  `tests/test_worker_controller.py` additionally verifies that
+  `WorkerController` completes the thread lifecycle (worker released,
+  `warmup_done` set, `on_finished` called) even when `rembg_remove` raises on
+  first start; otherwise bootstrap would hang if the ONNX model cannot be
+  loaded offline.
+
 ### Changed
+
+- **Docstring language unified.** `bgremover/image_ops.py`,
+  `bgremover/recent_files.py` and `bgremover/worker_controller.py` had English
+  module and method docstrings; all three now use German, consistent with the
+  rest of the project.
+- **User documentation for Linux packages and the language setting updated.**
+  README, `INSTALL_LINUX.md` and `ANLEITUNG.md` now list AppImage/`.deb` as the
+  recommended Linux end-user path and document the persistent language setting
+  including the restart hint; the i18n copies are synchronized accordingly.
+- **Code-hygiene collection round (small independent cleanups).**
+  - `bgremover/__init__.py` + new `bgremover/_version.py`: the source-run
+    fallback for `__version__` now reads `pyproject.toml` directly (`tomllib`
+    from Py3.11, regex on Py3.10) instead of a hard-coded version literal;
+    pyproject.toml is therefore the single source of truth and a version bump
+    can no longer forget the fallback. `tests/test_version.py` validates the new
+    behavior.
+  - `bgremover/canvas.py`: `_paint_brush(cx, cy)` no longer reads
+    `self._tool` internally; the caller passes the `additive` flag explicitly
+    (keyword-only), and tests were adjusted accordingly.
+  - `bgremover/canvas.py`: `apply_remove`/`apply_replace` now catch only
+    `OSError`/`ValueError`/`PIL.UnidentifiedImageError` instead of `Exception`;
+    real bugs (AttributeError, IndexError, …) propagate visibly again instead
+    of being swallowed as status messages.
+  - `bgremover/constants.py`: the `init_runtime` docstring explicitly names the
+    process-wide side effect on `Image.MAX_IMAGE_PIXELS`; a comment next to the
+    central `logger` object also documents the recommendation to use
+    `logging.getLogger(__name__)` in new submodule code.
+  - `bgremover/recent_files.py`: a comment explains the QSettings special case
+    where a one-element list comes back as a raw string.
+  - `Makefile`: `make clean` now also removes `*.egg-info/`, `build/` and
+    `dist/` (leftovers from `pip install -e .`).
+  - `pyproject.toml`: `description` reflects the documented Linux support
+    ("macOS and Linux") instead of only macOS.
+- **Magic-wand selection no longer freezes the UI.** The flood fill for
+  magic-wand selection previously ran synchronously in the UI thread; with
+  40-MP images containing large solid-color areas the click became noticeably
+  laggy. The computation now runs in the new `FloodFillWorker` on a short-lived
+  `QThread` (analogous to `ImageLoadWorker`); the result returns via a
+  `finished` signal and is discarded via a stale check on `content_revision` if
+  the user has changed or edited the image in the meantime. Panning/zooming
+  stays responsive during calculation; only a parallel wand click is blocked
+  with a status message.
+- **CI test matrix expanded.** The Full CI workflow now checks Python 3.10,
+  3.11, 3.12 and 3.13 on Ubuntu and macOS.
+- **`RembgWarmupWorker` now inherits from `_Worker`.** The warmup worker used to
+  be the only worker with its own `try/except/finally` boilerplate outside the
+  shared base. `_Worker.run` now has an `_always_finished()` hook in the
+  `finally` branch (default no-op), which `RembgWarmupWorker` overrides so its
+  parameterless `finished` signal still fires on both success and failure – the
+  `WorkerController` needs this to finish the thread lifecycle. Logging/error
+  semantics are now consistent (`_error_context = "rembg warmup"`), and
+  `WorkerController` type annotations were unified (`_Worker | RembgWarmupWorker`
+  → `_Worker`).
+- **Canvas submodules use the public edit API.** `CanvasCrop` and
+  `CanvasTransform` previously called `ImageCanvas._apply_pil(...)` directly
+  even though `ImageCanvas` exposes the public entry point
+  `apply_edit(img, desc=...)`; similarly, `CanvasCrop.cancel` accessed the
+  private `_tool`. Both submodules now use `apply_edit(...)` or the new read-only
+  property `ImageCanvas.current_tool`. `_apply_pil` remains internal for
+  `apply_loaded_image`/`apply_edit`/undo/AI paths. In addition,
+  `clear_selection`, `invert_selection`, `expand_selection` and
+  `shrink_selection` now use the existing `_requires_image` decorator instead
+  of four different inline guards; `clear_selection` now reports "No image
+  loaded" consistently in the empty state instead of staying silent.
+- **Public package API slimmed down (small breaking change for external
+  consumers).** Private vocabulary is no longer re-exported from the
+  `bgremover` top level: `_MAX_MEGAPIXELS`, `_THREAD_SHUTDOWN_MS`,
+  `_UNDO_MEMORY_LIMIT`, `_Theme`, `_setup_logging` and `_resolve_log_dir` were
+  removed from `bgremover/__init__.py` (import block and `__all__`). Code that
+  needs these symbols should import directly from the submodules
+  (`bgremover.constants`, `bgremover.theme`, `bgremover.logging_config`).
+  `logger`, `LOG_FILENAME`, `REMBG_AVAILABLE` and `current_log_file` remain
+  legitimate public API. The test-only edge `MainWindow._recent_paths()` also
+  disappears; the three tests in `tests/test_recent_files.py` now access
+  `w._recent_files.paths()` directly.
 
 ### Fixed
 
+- **`apply_remove`/`apply_replace` no longer swallow real bugs.** The previous
+  `except Exception` swallowed `AttributeError` and `AssertionError` among
+  others – exactly the class of errors that should stay visible as bugs. The
+  new narrow filter (`OSError`, `ValueError`, `PIL.UnidentifiedImageError`)
+  lets those bugs propagate again while still catching expected image/I/O
+  errors as status messages.
+- **Synchronous loading path uses the same safeguards as the worker.**
+  `ImageCanvas.load_image` (drag & drop, tests) previously bypassed structural
+  `verify()`, the format whitelist (`_ALLOWED_IMAGE_FORMATS`) and the clean
+  decode-error path already provided by `ImageLoadWorker` after the
+  format/structure hardening – only the megapixel check was shared. Both paths
+  now call the new helper `bgremover.image_loading.open_validated_image`, so
+  manipulated files and unsupported formats also end via status message on
+  drag & drop instead of unhandled PIL exceptions.
+- **License check stabilized.** `coverage` is now pinned in
+  `requirements/constraints.txt` (`==7.14.0`) so a new upstream `coverage`
+  release no longer turns the `LICENSES.md` drift comparison red.
+- **License check hardened against timezone drift.** The `gen_date` from
+  `git log -1 --format=%cs -- LICENSES.md` otherwise formats the date in the
+  committer timezone of the affected commit; a merge commit with a `+02:00`
+  offset (web-flow + CEST region) shifted the date by one position when the UTC
+  time was just before midnight (example: `2026-05-26T23:10:10Z` ≡
+  `2026-05-27T01:10:10+02:00` → `%cs` = `2026-05-27`). The date of the merge
+  commit also became relevant because `actions/checkout@v5` checks out the
+  synthetic `refs/pull/N/merge` commit shallowly for `pull_request` events by
+  default – without the parent, `git log -- LICENSES.md` compares nothing and
+  the merge commit appears as the "last change". Fix: `fetch-depth: 0` in
+  `actions/checkout` plus `TZ=UTC` and `--date=short-local` for the `git log`
+  call, so the real edit commit is found and the date is formatted
+  deterministically in UTC.
+
 ### Removed
+
+- **Removed dead code from Canvas, Lasso and MainWindow.** The unused shadow
+  counter `ImageCanvas._version`, the no-longer referenced method
+  `CanvasLasso.close_to_mask`, and the unused toolbar button-group reference
+  `MainWindow._btn_grp` were removed without replacement.
 
 ## [2.2.0] – 2026-05-25
 
