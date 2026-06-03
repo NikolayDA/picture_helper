@@ -31,6 +31,7 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
+from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings
 from bgremover.image_ops import (
     DEFAULT_SAVE_FORMAT,
     ensure_save_extension,
@@ -84,6 +85,8 @@ class MainWindow(QMainWindow):
         # Wechsel an einem zentralen Punkt greifen koennen.
         self._settings = QSettings("BgRemover", "BgRemover")
         migrate_settings(self._settings)
+        self._locale = init_locale_from_settings(
+            self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
             self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
         # Submenü-Adapter wird in _build_menu gesetzt

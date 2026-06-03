@@ -50,7 +50,7 @@
 - **PR 0 — 代码加固（N2 + N7）。** ✅ 已完成（PR #148）。N2 — 将兆像素闸门也应用于旋转结果（`rotated_size()` 预先估算目标尺寸，`apply_rotate` 以状态消息拒绝超过上限的结果）；N7 — 惰性导入 `rembg` 并用 `find_spec` 探测 `REMBG_AVAILABLE`（现有的 warmup 失败处理可覆盖损坏的后端）。
 - **PR 1 — 工具快捷键与提示。** ✅ 已完成（PR #146）。O4 + O6：单键切换（`W`/`B`/`E`/`L`）、同步 toolbar 选中状态、更新 tooltips/README/手册，并加入快捷键 wiring 回归测试。
 - **PR 2 — 更早加强 CI。** ✅ 已完成（PR #149）。O3 — 完整矩阵额外每周（cron）运行；O5 — `ui_smoke` 子集进入 PR/Full CI，Nightly UI 保留完整套件。
-- **PR 3 — i18n 基础。** 准备 O1：加入 runtime locale/fallback，逐步集中可见字符串，德语保持稳定默认值。
+- **PR 3 — i18n 基础。** ✅ 已完成。O1 已准备：新增带 runtime locale/fallback 的 `bgremover.i18n`，德语保持稳定默认值，首个集中字符串表覆盖状态消息、菜单、toolbar、tabs、历史和裁剪栏；加入 locale 规范化、fallback 与 UI wiring 回归测试。
 - **PR 4 — i18n 推出。** 让 O1 可用：至少英语作为运行时语言，然后覆盖现有其他文档语言，并为每个 locale 做 smoke check。
 - **PR 5 — Linux 打包基础。** 启动 O2：选择目标产物（AppImage/`.deb`/Flatpak）、desktop 文件/图标/AppStream 元数据和 Linux build smoke。
 - **PR 6 — Linux 打包扩展。** 完成 O2：Raspberry Pi OS 变体、可选第二种包格式，以及 Linux 产物 release workflow。

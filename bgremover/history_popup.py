@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from bgremover.i18n import tr
+
 
 class HistoryPopup:
     def __init__(
@@ -47,7 +49,7 @@ class HistoryPopup:
 
     def _build(self) -> None:
         popup = QDialog(self._parent, Qt.WindowType.Tool)
-        popup.setWindowTitle("Änderungshistorie")
+        popup.setWindowTitle(tr("history.window_title"))
         popup.setMinimumWidth(270)
         popup.setStyleSheet("QDialog { background: #1a1a1a; }")
 
@@ -55,7 +57,7 @@ class HistoryPopup:
         lay.setContentsMargins(10, 10, 10, 10)
         lay.setSpacing(6)
 
-        lbl = QLabel("Doppelklick auf Eintrag → zu diesem Schritt zurück")
+        lbl = QLabel(tr("history.hint"))
         lbl.setStyleSheet("color: #666; font-size: 10px; background: transparent;")
         lay.addWidget(lbl)
 
@@ -70,9 +72,7 @@ class HistoryPopup:
             QListWidget::item:hover:!selected { background: #202020; }
         """)
         history_list.setMinimumHeight(200)
-        history_list.setToolTip(
-            "Verlauf aller Bearbeitungsschritte.\n"
-            "Doppelklick auf einen Eintrag springt zu diesem Schritt zurück.")
+        history_list.setToolTip(tr("history.list.tooltip"))
         history_list.itemDoubleClicked.connect(self._jump_to_item)
         lay.addWidget(history_list)
 
