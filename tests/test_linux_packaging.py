@@ -214,21 +214,19 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
 # ── Release workflow (PR 6) ────────────────────────────────────────────
 
 def test_release_workflow_builds_both_arches_and_formats() -> None:
-    import yaml
-
-    wf = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    # YAML 1.1 parses the bare ``on`` key as the boolean True; accept either.
-    triggers = wf.get("on", wf.get(True))
-    assert "v*" in triggers["push"]["tags"]
-    assert "workflow_dispatch" in triggers
-    assert wf["permissions"]["contents"] == "write"
-
-    job = wf["jobs"]["build"]
-    include = job["strategy"]["matrix"]["include"]
-    assert {"x86_64", "aarch64"} <= {e["arch"] for e in include}
-    assert any("arm" in e["runner"] for e in include), "needs a native arm64 runner"
-
-    run_steps = "\n".join(s.get("run", "") for s in job["steps"])
-    assert "build_appimage.sh" in run_steps
-    assert "build_deb.sh" in run_steps
-    assert "gh release" in run_steps
+    # Text-based (no PyYAML dependency — matches tests/test_ci_qt_packages.py
+    # and keeps the test runnable with only the declared ``[test]`` extras).
+    text = WORKFLOW.read_text(encoding="utf-8")
+    # Triggers: version tags + manual dispatch.
+    assert "'v*'" in text
+    assert "workflow_dispatch:" in text
+    # Release upload needs write permission.
+    assert re.search(r"(?m)^\s*contents:\s*write\b", text)
+    # Both target architectures, with a native arm64 runner (Raspberry Pi OS).
+    assert "arch: x86_64" in text
+    assert "arch: aarch64" in text
+    assert re.search(r"runner:\s*ubuntu-\S*-arm\b", text), "needs a native arm64 runner"
+    # Builds both formats and publishes them to the GitHub Release.
+    assert "build_appimage.sh" in text
+    assert "build_deb.sh" in text
+    assert "gh release" in text
