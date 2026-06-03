@@ -41,7 +41,7 @@ Gezielte Folge-Prüfung nach „modest-shannon", Schwerpunkt Speicher-, Lade- un
 
 Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Prozess):
 
-- **O1 🟠 — App-Lokalisierung.** Die UI ist hartkodiert Deutsch; es gibt keine Laufzeit-i18n (kein `QTranslator`/`tr()`), obwohl die Doku in fünf Sprachen vorliegt. Statusmeldungen liegen bereits zentral (`status_messages.py`). Schrittweise via Qt Linguist (`.ts`) oder leichtgewichtige `QLocale`-Stringtabelle.
+- **O1 🟠 — App-Lokalisierung.** Laufzeit-i18n umgesetzt: `bgremover.i18n` mit zentraler Stringtabelle und stabilem Deutsch-Fallback; **Deutsch und Englisch** sind zur Laufzeit umschaltbar (Sprachauswahl im Einstellungen-Dialog mit Neustart-Hinweis). Die komplette sichtbare Oberfläche – inkl. Canvas-Statusmeldungen, Verlaufseinträgen und Dialogen – läuft über `tr()`, abgesichert durch einen AST-Guard gegen neue unübersetzte Literale. Offen: weitere vorhandene Dokusprachen (es/fr/uk/zh) als Runtime-Locales (**PR 4c**).
 - **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
 **✅ Erledigt:** O4/O6 — Ein-Tasten-Werkzeugwechsel (`W`/`B`/`E`/`L`) & plattformgerechte `Cmd`/`Ctrl`-Hinweise (PR #146, `test_tool_shortcuts.py`); O3 — Vollmatrix zusätzlich wöchentlich per Cron (PR #149); O5 — `ui_smoke`-Subset läuft in PR/Full-CI mit, volle qtbot-Suite bleibt nightly (PR #149).
 
@@ -51,7 +51,8 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 - **PR 1 — Tool-Shortcuts & Shortcut-Hinweise.** ✅ Erledigt (PR #146). O4 + O6: Ein-Tasten-Wechsel (`W`/`B`/`E`/`L`), Toolbar-Checked-State synchronisiert, Tooltips/README/Anleitung aktualisiert, Regressionstest für Shortcut-Wiring.
 - **PR 2 — CI früher absichern.** ✅ Erledigt (PR #149). O3 — Vollmatrix zusätzlich wöchentlich (Cron); O5 — `ui_smoke`-Subset in PR/Full-CI, Nightly-UI als ausführliche Suite behalten.
 - **PR 3 — i18n-Grundgerüst.** ✅ Erledigt. O1 vorbereitet: `bgremover.i18n` mit Runtime-Locale/Fallback, Deutsch als stabiler Default, erste zentrale String-Tabelle für Statusmeldungen, Menü, Toolbar, Tabs, Verlauf und Crop-Leiste; Regressionstests für Locale-Normalisierung, Fallback und UI-Wiring.
-- **PR 4 — i18n-Rollout.** O1 nutzbar machen: mindestens Englisch als Runtime-Sprache, danach weitere vorhandene Dokusprachen, Smoke-Checks pro Locale.
+- **PR 4 — i18n-Rollout.** ✅ Erledigt. O1 nutzbar gemacht: **4a** – `tr()`-Coverage auf rechtes Panel, Settings-Dialog und alle Dialoge ausgeweitet (Deutsch byte-identisch, per Golden-Diff geprüft); **4b** – vollständige englische Tabelle + Sprachauswahl (Persistenz, Neustart-Hinweis); **4b.1** – Canvas-Statusmeldungen, Verlaufs-Beschreibungen und `main_window`-Dialoge (Öffnen/Speichern/Farbe/Ungespeichert) über `tr()`, plus AST-Guard gegen neue unübersetzte Literale an Nutzer-Senken. Key-/Platzhalter-Parität und Per-Locale-UI-Smoke getestet.
+- **PR 4c — i18n weitere Sprachen.** O1 abrunden: es/fr/uk/zh als Runtime-Locales ergänzen (Tabellen key-für-key spiegeln – Parität/Smoke/Guard greifen dann automatisch) und die übersetzten `RECOMMENDATIONS`-Kopien prosaisch nachziehen.
 - **PR 5 — Linux-Packaging Foundation.** O2 starten: Zielartefakt festlegen (AppImage/`.deb`/Flatpak), Desktop-Datei/Icon/AppStream-Metadaten und Linux-Build-Smoke.
 - **PR 6 — Linux-Packaging erweitern.** O2 abrunden: Raspberry-Pi-OS-Variante, optionale zweite Paketform und Release-Workflow für Linux-Artefakte.
 

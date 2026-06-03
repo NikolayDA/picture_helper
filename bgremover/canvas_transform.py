@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bgremover.constants import _MAX_MEGAPIXELS
+from bgremover.i18n import tr
 from bgremover.image_ops import flip_image, rotate_image, rotated_size, round_corners
 
 if TYPE_CHECKING:
@@ -30,11 +31,11 @@ class CanvasTransform:
         img = self._canvas.image
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
         if radius <= 0:
-            self._canvas.statusMsg.emit("Radius muss > 0 sein")
+            self._canvas.statusMsg.emit(tr("canvas.radius_positive"))
             return
         result, r = round_corners(img, radius)
-        self._canvas.apply_edit(result, desc=f"Ecken abgerundet ({r} px)")
-        self._canvas.statusMsg.emit(f"Ecken abgerundet: {r} px Radius")
+        self._canvas.apply_edit(result, desc=tr("history.desc.round_corners", r=r))
+        self._canvas.statusMsg.emit(tr("canvas.corners_rounded", r=r))
 
     def apply_rotate(self, degrees: int) -> None:
         """Dreht das Bild um den angegebenen Winkel (gegen den Uhrzeigersinn).
@@ -50,27 +51,26 @@ class CanvasTransform:
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
         new_w, new_h = rotated_size(img.width, img.height, degrees)
         if new_w * new_h / 1_000_000 > _MAX_MEGAPIXELS:
-            self._canvas.statusMsg.emit(
-                f"Drehung um {abs(degrees)}° würde das Bild zu groß machen "
-                f"({new_w * new_h / 1_000_000:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP"
-            )
+            self._canvas.statusMsg.emit(tr(
+                "canvas.rotate_too_large",
+                degrees=abs(degrees),
+                mp=new_w * new_h / 1_000_000,
+                maximum=_MAX_MEGAPIXELS,
+            ))
             return
         result = rotate_image(img, degrees)
         direction = "↺" if degrees > 0 else "↻"
-        self._canvas.apply_edit(result, desc=f"{direction} Gedreht {abs(degrees)}°")
-        self._canvas.statusMsg.emit(
-            f"{direction} Gedreht: {abs(degrees)}°  "
-            f"({result.width} × {result.height} px)"
-        )
+        self._canvas.apply_edit(result, desc=tr(
+            "history.desc.rotated", direction=direction, degrees=abs(degrees)))
+        self._canvas.statusMsg.emit(tr(
+            "canvas.rotated", direction=direction, degrees=abs(degrees),
+            w=result.width, h=result.height))
 
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
         img = self._canvas.image
         assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
         result = flip_image(img, horizontal)
-        if horizontal:
-            self._canvas.apply_edit(result, desc="↔ Horizontal gespiegelt")
-            self._canvas.statusMsg.emit("↔ Horizontal gespiegelt")
-        else:
-            self._canvas.apply_edit(result, desc="↕ Vertikal gespiegelt")
-            self._canvas.statusMsg.emit("↕ Vertikal gespiegelt")
+        msg = tr("canvas.flipped_h") if horizontal else tr("canvas.flipped_v")
+        self._canvas.apply_edit(result, desc=msg)
+        self._canvas.statusMsg.emit(msg)

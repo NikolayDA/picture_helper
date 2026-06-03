@@ -7,6 +7,7 @@ German strings still render byte-for-byte after the refactor.
 """
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -15,7 +16,7 @@ import pytest
 from PyQt6.QtCore import QSettings
 
 import bgremover.i18n as i18n
-from bgremover.i18n import DEFAULT_LOCALE, configure_locale
+from bgremover.i18n import DEFAULT_LOCALE, configure_locale, tr
 
 _SRC_DIR = Path(i18n.__file__).resolve().parent
 # Standalone ``tr("…")`` calls only – the lookbehind avoids matching method
@@ -98,3 +99,107 @@ def test_panel_label_is_runtime_translated(qapp, monkeypatch) -> None:
     _widget, refs = SelectionTab(MagicMock()).build()
     # Unmapped keys still fall back to German; the mapped one is translated.
     assert refs["tolerance_label"].text() == "Tolerance:  30"
+
+
+# ── Guard against new untranslated user-facing literals ────────────────
+#
+# The key-hygiene tests above only prove that *referenced* keys exist. They
+# cannot see strings that never reach ``tr()`` at all. This AST guard closes
+# that gap for the dynamic sinks that previously leaked German into a non-German
+# UI: the canvas status signal, the native Qt dialogs and history ``desc=``.
+# A literal (plain string or f-string) carrying letters at one of these sinks
+# must instead be a ``tr(...)`` call or a variable already resolved via ``tr``.
+
+# Qt static-method sinks: receiver class -> {method: positional arg indices
+# that carry translatable text}.
+_QT_SINKS = {
+    "QMessageBox": {
+        "warning": (1, 2), "information": (1, 2),
+        "critical": (1, 2), "question": (1, 2),
+    },
+    "QFileDialog": {
+        "getOpenFileName": (1,), "getSaveFileName": (1,),
+        "getExistingDirectory": (1,),
+    },
+    "QColorDialog": {"getColor": (2,)},
+}
+
+
+def _carries_text(node: ast.expr | None) -> bool:
+    """True if *node* is a string literal / f-string containing letters."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return any(ch.isalpha() for ch in node.value)
+    if isinstance(node, ast.JoinedStr):  # f-string
+        return any(
+            isinstance(part, ast.Constant)
+            and isinstance(part.value, str)
+            and any(ch.isalpha() for ch in part.value)
+            for part in node.values
+        )
+    return False
+
+
+def _untranslated_sink_literals() -> list[str]:
+    hits: list[str] = []
+    for path in _SRC_DIR.glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not isinstance(func, ast.Attribute):
+                continue
+            # 1) <...>.statusMsg.emit(<text>)
+            if (func.attr == "emit"
+                    and isinstance(func.value, ast.Attribute)
+                    and func.value.attr == "statusMsg"
+                    and node.args and _carries_text(node.args[0])):
+                hits.append(f"{path.name}:{node.lineno}: statusMsg.emit")
+            # 2) QMessageBox/QFileDialog/QColorDialog static dialogs
+            if (isinstance(func.value, ast.Name)
+                    and func.value.id in _QT_SINKS
+                    and func.attr in _QT_SINKS[func.value.id]):
+                for idx in _QT_SINKS[func.value.id][func.attr]:
+                    if idx < len(node.args) and _carries_text(node.args[idx]):
+                        hits.append(
+                            f"{path.name}:{node.lineno}: "
+                            f"{func.value.id}.{func.attr} arg{idx}")
+            # 3) history ``desc=`` keyword on edits
+            for kw in node.keywords:
+                if kw.arg == "desc" and _carries_text(kw.value):
+                    hits.append(f"{path.name}:{node.lineno}: desc=")
+    return hits
+
+
+def test_no_untranslated_literals_at_user_facing_sinks() -> None:
+    hits = _untranslated_sink_literals()
+    assert not hits, (
+        "Unübersetzte Literale an Nutzer-Senken (müssen über tr() laufen):\n"
+        + "\n".join(hits)
+    )
+
+
+def test_representative_german_strings_unchanged() -> None:
+    """Lock tricky German values moved into the table during the canvas/dialog
+    rollout (symbols, double spaces, numeric format specs) so they cannot drift.
+    """
+    configure_locale("de")
+    cases = [
+        (tr("canvas.opened", name="foo.png", w=10, h=20),
+         "Geöffnet: foo.png  (10 × 20 px)"),
+        (tr("canvas.undo_done"), "↩  Rückgängig: {desc}"),
+        (tr("canvas.original_restored"), "🔄  Original wiederhergestellt"),
+        (tr("canvas.flipped_h"), "↔ Horizontal gespiegelt"),
+        (tr("canvas.rotated", direction="↺", degrees=90, w=10, h=20),
+         "↺ Gedreht: 90°  (10 × 20 px)"),
+        (tr("canvas.selection_inverted", pixels=1234),
+         "Auswahl invertiert: 1,234 Pixel"),
+        (tr("canvas.crop_start_circle"),
+         "✂  Ausschnitt verschieben  [Kreis]  —  dann ✓ Anwenden klicken"),
+        (tr("canvas.saved", name="a.png"), "💾 Gespeichert: a.png"),
+        (tr("history.desc.rotated", direction="↻", degrees=90), "↻ Gedreht 90°"),
+        (tr("dialog.unsaved.title"), "Ungespeicherte Änderungen"),
+        (tr("dialog.color.title"), "Hintergrundfarbe wählen"),
+    ]
+    for actual, expected in cases:
+        assert actual == expected, f"{actual!r} != {expected!r}"
