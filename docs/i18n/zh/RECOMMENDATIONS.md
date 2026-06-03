@@ -42,7 +42,7 @@
 第二次分析中提出、尚未实现的改进（产品/流程）：
 
 - **O1 🟠 — 应用本地化。** 已实现运行时 i18n：`bgremover.i18n` 提供集中字符串表与稳定的德语 fallback；**德语与英语**可在运行时切换（设置对话框中的语言选择，附带重启提示）。整个可见界面——包括画布状态消息、历史条目与对话框——均通过 `tr()`，并由 AST 检查防止新增未翻译字面量。待办：将其他现有文档语言（es/fr/uk/zh）作为运行时 locale（**PR 4c**）。
-- **O2 🟡 — Linux 应用 / 打包。** 没有 Linux 的应用包；仅能通过 venv 中的 `python -m bgremover` 启动。为 **Raspberry Pi OS** 和主流发行版（Debian/Ubuntu/Fedora）提供可安装包（AppImage/Flatpak/`.deb`），可降低非开发者的上手门槛——类似 macOS 的 `.app` 包。
+- **O2 🟢 — Linux 应用 / 打包。** ✅ 已完成（PR 5 + PR 6）：便携 **AppImage** 加上第二种格式 **.deb**（desktop 文件、图标、AppStream 元数据）；一个 **release workflow** 在原生 runner 上为 **x86_64 与 aarch64/Raspberry Pi OS** 构建两者并附加到 release。Smoke 测试保持元数据与 workflow 一致——像 macOS 的 `.app` 包一样降低上手门槛。
 **✅ 已完成：** O4/O6 — 单键切换工具（`W`/`B`/`E`/`L`）与按平台显示的 `Cmd`/`Ctrl` 提示（PR #146，`test_tool_shortcuts.py`）；O3 — 完整矩阵额外每周通过 cron 运行（PR #149）；O5 — `ui_smoke` 子集在 PR/Full CI 中运行，完整 qtbot 套件保留在 nightly（PR #149）。
 
 ## 按 PR 包实施计划（自 2026-06-02 起）
@@ -53,8 +53,8 @@
 - **PR 3 — i18n 基础。** ✅ 已完成。O1 已准备：新增带 runtime locale/fallback 的 `bgremover.i18n`，德语保持稳定默认值，首个集中字符串表覆盖状态消息、菜单、toolbar、tabs、历史和裁剪栏；加入 locale 规范化、fallback 与 UI wiring 回归测试。
 - **PR 4 — i18n 推出。** ✅ 已完成。已让 O1 可用：**4a** — 将 `tr()` 覆盖扩展到右侧面板、设置对话框和所有对话框（德语逐字节一致，经 golden diff 验证）；**4b** — 完整英语表 + 语言选择（持久化、重启提示）；**4b.1** — 画布状态消息、历史描述与 `main_window` 对话框（打开/保存/颜色/未保存）通过 `tr()`，并新增 AST guard 防止用户可见位置出现新的未翻译字面量。已测试键/占位符对等性与按 locale 的 UI smoke。
 - **PR 4c — i18n 更多语言（可选，已搁置）。** 如有需要，将 es/fr/uk/zh 添加为运行时 locale（按键逐一镜像表——对等性/smoke/guard 随后自动生效）。目前未计划。
-- **PR 5 — Linux 打包基础。** 启动 O2：选择目标产物（AppImage/`.deb`/Flatpak）、desktop 文件/图标/AppStream 元数据和 Linux build smoke。
-- **PR 6 — Linux 打包扩展。** 完成 O2：Raspberry Pi OS 变体、可选第二种包格式，以及 Linux 产物 release workflow。
+- **PR 5 — Linux 打包基础。** ✅ 已完成。以 AppImage 为目标产物：`packaging/linux` 含 Freedesktop `.desktop`、AppStream metainfo 与 `python-appimage` 构建脚本；应用 id `de.bgremover.app`（与 macOS bundle 一致），`app.py` 调用 `setDesktopFileName`；自包含 smoke 测试（desktop/AppStream/pyproject 一致性）。
+- **PR 6 — Linux 打包扩展。** ✅ 已完成。第二种格式 `.deb`（封装 AppImage → apt 安装 + 菜单集成）、aarch64/Raspberry Pi OS 变体，以及一个 GitHub Actions release workflow（为 x86_64 与 aarch64 构建 AppImage + `.deb` 并附加到 release）；smoke 测试会实际构建一个 `.deb` 并检查 workflow。
 
 ---
 
