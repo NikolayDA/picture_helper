@@ -75,8 +75,14 @@ python3 -m bgremover
 `.[ai]` zieht die KI-Abhängigkeiten (`rembg[cpu]` inkl. `onnxruntime`)
 mit; ohne KI-Funktion reicht `python3 -m pip install -c requirements/constraints.txt -e .`.
 
-**Linux:** Es gibt kein App-Bundle; die Anwendung läuft über den
-direkten Start aus einer venv:
+**Linux:** Für Endnutzerinnen und Endnutzer sind die Release-Artefakte
+empfohlen: ein portables **AppImage** und ein installierbares **`.deb`**
+(jeweils für x86_64 und aarch64/Raspberry Pi OS). Details stehen in
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)**; die Build-/Paketierungsdetails in
+**[packaging/linux/README.md](packaging/linux/README.md)**.
+
+Der direkte Start aus einer venv bleibt der beste Weg für Entwicklung,
+Branch-Tests und lokale Änderungen:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -86,12 +92,10 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-Vorher werden einige Qt-Systembibliotheken benötigt — Details siehe
-**[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
-
-Auf **Raspberry Pi OS (Desktop)** geht es besonders einfach — ganz ohne
-venv/pip (PyQt6, Pillow, numpy als Systempakete via `apt`); siehe den
-Raspberry-Pi-Abschnitt in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+Vor dem venv-Start werden einige Qt-Systembibliotheken benötigt — Details
+siehe **[INSTALL_LINUX.md](INSTALL_LINUX.md)**. Auf **Raspberry Pi OS
+(Desktop)** geht es auch ganz ohne venv/pip (PyQt6, Pillow, numpy als
+Systempakete via `apt`); siehe ebenfalls **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 
 > Ausführliche Anleitungen — inklusive **Installation aus einem Branch**
 > (zum Testen offener Pull Requests) und **Troubleshooting** — stehen in
@@ -125,9 +129,12 @@ Kurzüberblick:
 | Standard-Verzeichnis zum Öffnen | Startverzeichnis des Öffnen-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Standard-Verzeichnis für Export/Speichern | Startverzeichnis des Speichern-Dialogs; leer = zuletzt verwendetes Verzeichnis |
 | Bevorzugtes Bilddateiformat | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
+| Sprache | Deutsch oder Englisch; die Änderung wird nach einem Neustart wirksam |
 | Protokolldatei | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
-Die ersten drei Einstellungen werden über **QSettings** persistent gespeichert und beim nächsten Programmstart automatisch wiederhergestellt.
+Die Verzeichnisse, das bevorzugte Dateiformat und die Sprache werden über
+**QSettings** persistent gespeichert und beim nächsten Programmstart
+automatisch wiederhergestellt.
 
 ### Tastatur-Kürzel
 
