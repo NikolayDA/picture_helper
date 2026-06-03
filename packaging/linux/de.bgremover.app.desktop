@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=BgRemover
+GenericName=Background Remover
+GenericName[de]=Hintergrund-Entferner
+Comment=Remove image backgrounds and edit pictures
+Comment[de]=Bildhintergründe entfernen und Bilder bearbeiten
+Exec=bgremover %F
+TryExec=bgremover
+Icon=de.bgremover.app
+Terminal=false
+Categories=Graphics;Photography;RasterGraphics;Qt;
+MimeType=image/png;image/jpeg;image/webp;image/bmp;image/tiff;image/gif;
+Keywords=background;removal;remove;image;photo;editor;rembg;transparent;
+StartupNotify=true
+StartupWMClass=BgRemover

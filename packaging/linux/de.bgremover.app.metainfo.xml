@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata for the BgRemover Linux packaging foundation (PR 5).
+     The component id, the launchable desktop-id and the icon name are kept
+     identical to packaging/linux/de.bgremover.app.desktop. The release version
+     mirrors [project].version in pyproject.toml. -->
+<component type="desktop-application">
+  <id>de.bgremover.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>BgRemover</name>
+  <summary>Remove image backgrounds and edit pictures</summary>
+  <summary xml:lang="de">Bildhintergründe entfernen und Bilder bearbeiten</summary>
+
+  <description>
+    <p>
+      BgRemover is a desktop tool to cut out image backgrounds and do quick
+      edits. Select areas with a magic wand, brush, eraser or polygon lasso,
+      make the background transparent or replace its color, then rotate, flip,
+      crop and round corners — all with undo/redo.
+    </p>
+    <p>Highlights:</p>
+    <ul>
+      <li>Selection tools: magic wand (flood fill), brush, eraser, polygon lasso</li>
+      <li>Make the background transparent or replace it with a color</li>
+      <li>Optional one-click AI background removal (rembg)</li>
+      <li>Rotate, flip, crop to ratios/circle and round corners</li>
+      <li>German and English user interface, switchable at runtime</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">de.bgremover.app.desktop</launchable>
+  <icon type="stock">de.bgremover.app</icon>
+
+  <categories>
+    <category>Graphics</category>
+    <category>Photography</category>
+  </categories>
+
+  <keywords>
+    <keyword>background</keyword>
+    <keyword>removal</keyword>
+    <keyword>transparent</keyword>
+    <keyword>image</keyword>
+    <keyword>photo</keyword>
+    <keyword>editor</keyword>
+    <keyword>rembg</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/NikolayDA/picture_helper</url>
+  <url type="bugtracker">https://github.com/NikolayDA/picture_helper/issues</url>
+  <url type="vcs-browser">https://github.com/NikolayDA/picture_helper</url>
+
+  <developer id="io.github.nikolayda">
+    <name>NikolayDA</name>
+  </developer>
+
+  <provides>
+    <binary>bgremover</binary>
+  </provides>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="2.2.0" date="2026-06-03"/>
+  </releases>
+</component>
