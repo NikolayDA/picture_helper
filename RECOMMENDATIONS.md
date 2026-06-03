@@ -42,7 +42,7 @@ Gezielte Folge-Prüfung nach „modest-shannon", Schwerpunkt Speicher-, Lade- un
 Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Prozess):
 
 - **O1 🟠 — App-Lokalisierung.** Laufzeit-i18n umgesetzt: `bgremover.i18n` mit zentraler Stringtabelle und stabilem Deutsch-Fallback; **Deutsch und Englisch** sind zur Laufzeit umschaltbar (Sprachauswahl im Einstellungen-Dialog mit Neustart-Hinweis). Die komplette sichtbare Oberfläche – inkl. Canvas-Statusmeldungen, Verlaufseinträgen und Dialogen – läuft über `tr()`, abgesichert durch einen AST-Guard gegen neue unübersetzte Literale. Offen: weitere vorhandene Dokusprachen (es/fr/uk/zh) als Runtime-Locales (**PR 4c**).
-- **O2 🟡 — Linux-App / Paketierung.** Kein App-Bundle für Linux; Start nur via `python -m bgremover` aus einer venv. Ein installierbares Paket (AppImage/Flatpak/`.deb`) für **Raspberry Pi OS** und große Distributionen (Debian/Ubuntu/Fedora) senkt die Einstiegshürde für Nicht-Entwickler – analog zum macOS-`.app`-Bundle.
+- **O2 🟢 — Linux-App / Paketierung.** ✅ Umgesetzt (PR 5 + PR 6): portable **AppImage** plus **.deb** als zweite Paketform (Desktop-Eintrag, Icon, AppStream-Metadaten); ein **Release-Workflow** baut beide für **x86_64 und aarch64/Raspberry Pi OS** auf nativen Runnern und hängt sie ans Release. Smoke-Tests halten Metadaten und Workflow konsistent – senkt die Einstiegshürde analog zum macOS-`.app`-Bundle.
 **✅ Erledigt:** O4/O6 — Ein-Tasten-Werkzeugwechsel (`W`/`B`/`E`/`L`) & plattformgerechte `Cmd`/`Ctrl`-Hinweise (PR #146, `test_tool_shortcuts.py`); O3 — Vollmatrix zusätzlich wöchentlich per Cron (PR #149); O5 — `ui_smoke`-Subset läuft in PR/Full-CI mit, volle qtbot-Suite bleibt nightly (PR #149).
 
 ## Umsetzungsplan in PR-Paketen (ab 2026-06-02)
@@ -53,8 +53,8 @@ Aus der zweiten Analyse hervorgegangene, noch offene Verbesserungen (Produkt/Pro
 - **PR 3 — i18n-Grundgerüst.** ✅ Erledigt. O1 vorbereitet: `bgremover.i18n` mit Runtime-Locale/Fallback, Deutsch als stabiler Default, erste zentrale String-Tabelle für Statusmeldungen, Menü, Toolbar, Tabs, Verlauf und Crop-Leiste; Regressionstests für Locale-Normalisierung, Fallback und UI-Wiring.
 - **PR 4 — i18n-Rollout.** ✅ Erledigt. O1 nutzbar gemacht: **4a** – `tr()`-Coverage auf rechtes Panel, Settings-Dialog und alle Dialoge ausgeweitet (Deutsch byte-identisch, per Golden-Diff geprüft); **4b** – vollständige englische Tabelle + Sprachauswahl (Persistenz, Neustart-Hinweis); **4b.1** – Canvas-Statusmeldungen, Verlaufs-Beschreibungen und `main_window`-Dialoge (Öffnen/Speichern/Farbe/Ungespeichert) über `tr()`, plus AST-Guard gegen neue unübersetzte Literale an Nutzer-Senken. Key-/Platzhalter-Parität und Per-Locale-UI-Smoke getestet.
 - **PR 4c — i18n weitere Sprachen (optional, zurückgestellt).** Bei Bedarf es/fr/uk/zh als Runtime-Locales ergänzen (Tabellen key-für-key spiegeln – Parität/Smoke/Guard greifen dann automatisch). Aktuell nicht eingeplant.
-- **PR 5 — Linux-Packaging Foundation.** O2 starten: Zielartefakt festlegen (AppImage/`.deb`/Flatpak), Desktop-Datei/Icon/AppStream-Metadaten und Linux-Build-Smoke.
-- **PR 6 — Linux-Packaging erweitern.** O2 abrunden: Raspberry-Pi-OS-Variante, optionale zweite Paketform und Release-Workflow für Linux-Artefakte.
+- **PR 5 — Linux-Packaging Foundation.** ✅ Erledigt. AppImage als Zielartefakt: `packaging/linux` mit Freedesktop-`.desktop`, AppStream-Metainfo und `python-appimage`-Build-Skript; App-ID `de.bgremover.app` (konsistent zum macOS-Bundle), `app.py` setzt `setDesktopFileName`; self-contained Smoke-Test (Desktop-/AppStream-/pyproject-Konsistenz).
+- **PR 6 — Linux-Packaging erweitern.** ✅ Erledigt. `.deb` als zweite Paketform (verpackt die AppImage → apt-Install + Menü-Integration), aarch64/Raspberry-Pi-OS-Variante und ein GitHub-Actions-Release-Workflow (AppImage + `.deb` für x86_64 und aarch64, ans Release angehängt); der Smoke-Test baut testweise ein `.deb` und prüft den Workflow.
 
 ---
 

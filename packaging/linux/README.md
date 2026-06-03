@@ -1,14 +1,18 @@
 # Linux packaging — BgRemover
 
-Foundation for shipping BgRemover to Linux as a portable **AppImage** — a
-single self-contained file that runs on Debian/Ubuntu, Fedora and Raspberry Pi
-OS without a venv or `pip`, analogous to the macOS `.app` bundle.
+Ships BgRemover to Linux as self-contained, no-`pip`/no-venv artifacts,
+analogous to the macOS `.app` bundle:
 
-> **Scope (PR 5 — foundation):** target artifact decided (AppImage), desktop
-> entry + AppStream metadata + icon, a reproducible build script, and a CI
-> smoke test that validates the metadata. Building the artifact in release CI,
-> the Raspberry Pi (aarch64) variant and an optional second package format are
-> the follow-up (**PR 6**).
+- **AppImage** (primary) — one portable file that runs on Debian/Ubuntu, Fedora
+  and Raspberry Pi OS.
+- **`.deb`** (second format) — wraps the AppImage for apt users (menu
+  integration, clean install/remove on Debian/Ubuntu/Raspberry Pi OS).
+
+A GitHub Actions **release workflow** builds both for **x86_64 and aarch64**
+(Raspberry Pi OS / arm64) on every `v*` tag and attaches them to the release.
+
+> **Status:** PR 5 (foundation: AppImage + desktop/AppStream metadata + smoke
+> test) and PR 6 (expansion: `.deb`, aarch64/Pi build, release workflow) — done.
 
 ## Files
 
@@ -17,33 +21,55 @@ OS without a venv or `pip`, analogous to the macOS `.app` bundle.
 | `de.bgremover.app.desktop` | Freedesktop desktop entry (menu item, icon, MIME types) |
 | `de.bgremover.app.metainfo.xml` | AppStream metadata (software centers, release info) |
 | `build_appimage.sh` | Builds the AppImage via `python-appimage` |
+| `build_deb.sh` | Wraps a built AppImage into a `.deb` |
+| `../../.github/workflows/release-linux.yml` | Builds + publishes both, per arch |
 
 The application id `de.bgremover.app` matches the macOS bundle identifier and is
 used identically as the desktop-file id, the AppStream component id and the icon
 name. The icon source is the repository-root `BgRemover_icon.png`.
 
-## Building
+## Building locally
 
-Run on a Linux host of the **same architecture** you target (build the Pi
-variant on a Pi). Needs `python3` + `pip` and network access:
+Build on a Linux host of the **same architecture** you target (build the Pi
+variant on a Pi or an arm64 host). Needs `python3` + `pip` and network access:
 
 ```bash
-./packaging/linux/build_appimage.sh          # GUI only (smaller)
-./packaging/linux/build_appimage.sh --ai      # also bundle rembg (AI removal; large)
-PYVER=3.12 ./packaging/linux/build_appimage.sh
+# 1) AppImage (GUI only; add --ai to also bundle rembg, or PYVER=3.12 to choose Python)
+./packaging/linux/build_appimage.sh
+
+# 2) .deb wrapping the AppImage just built (needs dpkg-dev)
+./packaging/linux/build_deb.sh
 ```
 
-The result lands in `build/appimage/BgRemover-<version>-<arch>.AppImage`. Make
-it executable and run it (double-click, or from a terminal). On hosts without
-FUSE, run with `--appimage-extract-and-run`.
+Outputs land in `build/appimage/BgRemover-<version>-<arch>.AppImage` and
+`build/deb/BgRemover-<version>-<arch>.deb`.
+
+## Architectures / Raspberry Pi OS
+
+`uname -m` selects the architecture automatically: `x86_64` and `aarch64`
+(Raspberry Pi OS 64-bit) are supported; the `.deb` maps these to `amd64` /
+`arm64`. The release workflow builds both on native runners
+(`ubuntu-24.04` and `ubuntu-24.04-arm`), so no cross-compilation/QEMU is needed.
+
+## Installing
+
+```bash
+# AppImage — make executable and run (double-click also works)
+chmod +x BgRemover-*-x86_64.AppImage
+./BgRemover-*-x86_64.AppImage          # or: ... --appimage-extract-and-run  (no FUSE)
+
+# .deb — apt resolves the FUSE dependency
+sudo apt install ./BgRemover-*-amd64.deb
+```
 
 ## Validation
 
-`tests/test_linux_packaging.py` keeps the metadata self-consistent and in sync
-with the project (app id, license, version, the `bgremover` entry point) and
-checks that the desktop entry and AppStream XML are well-formed. It needs no
-external tooling, so it runs in the normal PR CI. To additionally lint with the
-upstream validators (optional, not required by CI):
+`tests/test_linux_packaging.py` runs in normal PR CI **without external tools**:
+it keeps the desktop entry, AppStream metadata, the build scripts and the
+release workflow self-consistent and in sync with the project (app id, license,
+version, the `bgremover` entry point), and — where `dpkg-deb` is available —
+actually builds a `.deb` from a stub AppImage and inspects it. To additionally
+lint with the upstream validators (optional, not required by CI):
 
 ```bash
 desktop-file-validate packaging/linux/de.bgremover.app.desktop
