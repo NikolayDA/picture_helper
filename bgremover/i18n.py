@@ -273,6 +273,79 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "dialog.ai_error.body": (
             "Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}"
         ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "Ungespeicherte Änderungen",
+        "dialog.unsaved.body": (
+            "Das Bild wurde bearbeitet. Änderungen speichern, bevor es "
+            "verworfen wird?"
+        ),
+        "dialog.open.title": "Bild öffnen",
+        "dialog.open.filter": (
+            "Bilder (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "Alle Dateien (*)"
+        ),
+        "dialog.save.title": "Bild speichern unter…",
+        "dialog.color.title": "Hintergrundfarbe wählen",
+        # Canvas status messages
+        "canvas.opened": "Geöffnet: {name}  ({w} × {h} px)",
+        "canvas.opened_extra": (
+            "Geöffnet: {name}  ({extra} weitere Datei(en) ignoriert)"
+        ),
+        "canvas.undo_none": "Nichts mehr zum Rückgängigmachen",
+        "canvas.undo_done": "↩  Rückgängig: {desc}",
+        "canvas.redo_none": "Nichts mehr zum Wiederherstellen",
+        "canvas.redo_done": "↪  Wiederherstellen: {desc}",
+        "canvas.undo_to": "↩  {steps} Schritt(e) rückgängig  (bis: {desc})",
+        "canvas.original_restored": "🔄  Original wiederhergestellt",
+        "canvas.selection_cleared": "Auswahl aufgehoben",
+        "canvas.selection_inverted": "Auswahl invertiert: {pixels:,} Pixel",
+        "canvas.selection_expanded": "Auswahl um {radius} px erweitert: {pixels:,} Pixel",
+        "canvas.selection_shrunk": "Auswahl um {radius} px geschrumpft: {pixels:,} Pixel",
+        "canvas.bg_removed": "Hintergrund entfernt (transparent)",
+        "canvas.remove_error": "Fehler beim Entfernen: {error}",
+        "canvas.bg_replaced": "Hintergrund ersetzt: {color}",
+        "canvas.replace_error": "Fehler beim Ersetzen: {error}",
+        "canvas.ai_done": "✅ KI-Hintergrundentfernung abgeschlossen",
+        "canvas.selection_pixels": "Auswahl: {pixels:,} Pixel",
+        "canvas.selection_error": "Auswahl-Fehler: {msg}",
+        "canvas.lasso_cancelled": "Polygon-Lasso abgebrochen",
+        "canvas.lasso_selected": "Polygon-Lasso: {pixels:,} Pixel ausgewählt",
+        "canvas.lasso_points_one": (
+            "Polygon-Lasso: {n} Punkt — Doppelklick zum Abschließen · Esc = abbrechen"
+        ),
+        "canvas.lasso_points_many": (
+            "Polygon-Lasso: {n} Punkte — Doppelklick zum Abschließen · Esc = abbrechen"
+        ),
+        "canvas.format_unsupported": "Format nicht unterstützt",
+        "canvas.radius_positive": "Radius muss > 0 sein",
+        "canvas.corners_rounded": "Ecken abgerundet: {r} px Radius",
+        "canvas.rotate_too_large": (
+            "Drehung um {degrees}° würde das Bild zu groß machen "
+            "({mp:.0f} MP) – Maximum: {maximum} MP"
+        ),
+        "canvas.rotated": "{direction} Gedreht: {degrees}°  ({w} × {h} px)",
+        "canvas.flipped_h": "↔ Horizontal gespiegelt",
+        "canvas.flipped_v": "↕ Vertikal gespiegelt",
+        "canvas.crop_cancelled": "Zuschnitt abgebrochen",
+        "canvas.crop_size": "⇲ Größe: {w} × {h} px",
+        "canvas.crop_start_circle": (
+            "✂  Ausschnitt verschieben  [Kreis]  —  dann ✓ Anwenden klicken"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  Ausschnitt verschieben  [{w} × {h} px]  —  dann ✓ Anwenden klicken"
+        ),
+        "canvas.cropped": "✂  Zugeschnitten: {w} × {h} px",
+        "canvas.save_failed": "Speichern fehlgeschlagen: {error}",
+        "canvas.saved": "💾 Gespeichert: {name}",
+        # History step descriptions
+        "history.desc.generic": "Bearbeitung",
+        "history.desc.bg_removed": "Hintergrund entfernt",
+        "history.desc.color_replaced": "Farbe ersetzt ({color})",
+        "history.desc.ai_bg": "KI-Hintergrundentfernung",
+        "history.desc.round_corners": "Ecken abgerundet ({r} px)",
+        "history.desc.rotated": "{direction} Gedreht {degrees}°",
+        "history.desc.crop_circle": "Format: Kreis",
+        "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
     "en": {
         # Status bar messages
@@ -520,6 +593,78 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "dialog.ai_error.body": (
             "Error during automatic background removal:\n\n{msg}"
         ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "Unsaved changes",
+        "dialog.unsaved.body": (
+            "The image has been edited. Save changes before discarding it?"
+        ),
+        "dialog.open.title": "Open image",
+        "dialog.open.filter": (
+            "Images (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "All files (*)"
+        ),
+        "dialog.save.title": "Save image as…",
+        "dialog.color.title": "Choose background color",
+        # Canvas status messages
+        "canvas.opened": "Opened: {name}  ({w} × {h} px)",
+        "canvas.opened_extra": (
+            "Opened: {name}  ({extra} more file(s) ignored)"
+        ),
+        "canvas.undo_none": "Nothing left to undo",
+        "canvas.undo_done": "↩  Undone: {desc}",
+        "canvas.redo_none": "Nothing left to redo",
+        "canvas.redo_done": "↪  Redone: {desc}",
+        "canvas.undo_to": "↩  {steps} step(s) undone  (to: {desc})",
+        "canvas.original_restored": "🔄  Original restored",
+        "canvas.selection_cleared": "Selection cleared",
+        "canvas.selection_inverted": "Selection inverted: {pixels:,} pixels",
+        "canvas.selection_expanded": "Selection grown by {radius} px: {pixels:,} pixels",
+        "canvas.selection_shrunk": "Selection shrunk by {radius} px: {pixels:,} pixels",
+        "canvas.bg_removed": "Background removed (transparent)",
+        "canvas.remove_error": "Error while removing: {error}",
+        "canvas.bg_replaced": "Background replaced: {color}",
+        "canvas.replace_error": "Error while replacing: {error}",
+        "canvas.ai_done": "✅ AI background removal complete",
+        "canvas.selection_pixels": "Selection: {pixels:,} pixels",
+        "canvas.selection_error": "Selection error: {msg}",
+        "canvas.lasso_cancelled": "Polygon lasso cancelled",
+        "canvas.lasso_selected": "Polygon lasso: {pixels:,} pixels selected",
+        "canvas.lasso_points_one": (
+            "Polygon lasso: {n} point — double-click to finish · Esc = cancel"
+        ),
+        "canvas.lasso_points_many": (
+            "Polygon lasso: {n} points — double-click to finish · Esc = cancel"
+        ),
+        "canvas.format_unsupported": "Format not supported",
+        "canvas.radius_positive": "Radius must be > 0",
+        "canvas.corners_rounded": "Corners rounded: {r} px radius",
+        "canvas.rotate_too_large": (
+            "Rotating by {degrees}° would make the image too large "
+            "({mp:.0f} MP) – maximum: {maximum} MP"
+        ),
+        "canvas.rotated": "{direction} Rotated: {degrees}°  ({w} × {h} px)",
+        "canvas.flipped_h": "↔ Flipped horizontally",
+        "canvas.flipped_v": "↕ Flipped vertically",
+        "canvas.crop_cancelled": "Crop cancelled",
+        "canvas.crop_size": "⇲ Size: {w} × {h} px",
+        "canvas.crop_start_circle": (
+            "✂  Move the crop  [Circle]  —  then click ✓ Apply"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  Move the crop  [{w} × {h} px]  —  then click ✓ Apply"
+        ),
+        "canvas.cropped": "✂  Cropped: {w} × {h} px",
+        "canvas.save_failed": "Save failed: {error}",
+        "canvas.saved": "💾 Saved: {name}",
+        # History step descriptions
+        "history.desc.generic": "Edit",
+        "history.desc.bg_removed": "Background removed",
+        "history.desc.color_replaced": "Color replaced ({color})",
+        "history.desc.ai_bg": "AI background removal",
+        "history.desc.round_corners": "Corners rounded ({r} px)",
+        "history.desc.rotated": "{direction} Rotated {degrees}°",
+        "history.desc.crop_circle": "Format: Circle",
+        "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
 }
 

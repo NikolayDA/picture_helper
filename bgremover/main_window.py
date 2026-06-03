@@ -284,9 +284,8 @@ class MainWindow(QMainWindow):
         if not self._has_unsaved_changes():
             return True
         reply = QMessageBox.warning(
-            self, "Ungespeicherte Änderungen",
-            "Das Bild wurde bearbeitet. Änderungen speichern, bevor es "
-            "verworfen wird?",
+            self, tr("dialog.unsaved.title"),
+            tr("dialog.unsaved.body"),
             QMessageBox.StandardButton.Save
             | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel,
@@ -306,9 +305,8 @@ class MainWindow(QMainWindow):
     def _open_image(self) -> None:
         start_dir = self._settings.value("open_dir", "")
         path, _ = QFileDialog.getOpenFileName(
-            self, "Bild öffnen", start_dir,
-            "Bilder (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
-            "Alle Dateien (*)"
+            self, tr("dialog.open.title"), start_dir,
+            tr("dialog.open.filter"),
         )
         if path:
             self._load_image_async(path)
@@ -433,7 +431,7 @@ class MainWindow(QMainWindow):
             suggest = "bild_bearbeitet"
         preferred = self._settings.value("preferred_format", DEFAULT_SAVE_FORMAT)
         path, selected = QFileDialog.getSaveFileName(
-            self, "Bild speichern unter…", suggest,
+            self, tr("dialog.save.title"), suggest,
             save_dialog_filter(preferred),
         )
         if not path:
@@ -467,7 +465,7 @@ class MainWindow(QMainWindow):
         self._add_recent(path)
 
     def _pick_color(self) -> None:
-        c = QColorDialog.getColor(self._bg_color, self, "Hintergrundfarbe wählen")
+        c = QColorDialog.getColor(self._bg_color, self, tr("dialog.color.title"))
         if c.isValid():
             self._bg_color = c
             self._update_color_btn()
