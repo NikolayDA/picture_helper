@@ -78,8 +78,14 @@ python3 -m bgremover
 `.[ai]` incluye las dependencias de IA (`rembg[cpu]` incl. `onnxruntime`);
 sin la función de IA basta con `python3 -m pip install -c requirements/constraints.txt -e .`.
 
-**Linux:** No hay paquete de aplicación; la aplicación se ejecuta
-mediante el inicio directo desde un venv:
+**Linux:** Para usuarios finales se recomiendan los artefactos de release:
+un **AppImage** portable y un **`.deb`** instalable (ambos para x86_64 y
+aarch64/Raspberry Pi OS). Consulta **[INSTALL_LINUX.md](INSTALL_LINUX.md)**
+para la instalación y **[packaging/linux/README.md](../../../packaging/linux/README.md)**
+para detalles de build/paquetización.
+
+El inicio directo desde un venv sigue siendo la mejor vía para desarrollo,
+pruebas de ramas y cambios locales:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -89,13 +95,10 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-Previamente se necesitan algunas bibliotecas de sistema de Qt — para más
-detalles consulta **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
-
-En **Raspberry Pi OS (Desktop)** es especialmente sencillo — sin ningún
-venv/pip (PyQt6, Pillow, numpy como paquetes de sistema vía `apt`);
-consulta la sección de Raspberry Pi en
-**[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+Antes del inicio desde venv se necesitan algunas bibliotecas de sistema de Qt —
+consulta **[INSTALL_LINUX.md](INSTALL_LINUX.md)**. En **Raspberry Pi OS
+(Desktop)** también es posible sin venv/pip (PyQt6, Pillow, numpy como paquetes
+de sistema vía `apt`); consulta igualmente **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
 
 > Las instrucciones detalladas — incluida la **instalación desde una
 > rama** (para probar pull requests abiertos) y la **resolución de
@@ -122,11 +125,12 @@ Mediante `Herramientas → Ajustes…` (⌘,) se pueden gestionar los siguientes
 | Directorio predeterminado para abrir | Directorio inicial del diálogo de apertura; vacío = último directorio utilizado |
 | Directorio predeterminado para exportar/guardar | Directorio inicial del diálogo de guardado; vacío = último directorio utilizado |
 | Formato de archivo de imagen preferido | PNG, JPEG, WebP o TIFF – aparece como primera opción en el diálogo de guardado |
+| Idioma | Alemán o inglés; el cambio se aplica después de reiniciar |
 | Archivo de registro | Muestra la ruta del archivo de registro; el botón «Abrir carpeta» abre el directorio en el gestor de archivos |
 
-Los tres primeros ajustes se guardan de forma persistente mediante
-**QSettings** y se restauran automáticamente en el siguiente inicio del
-programa.
+Los directorios, el formato preferido y el idioma se guardan de forma
+persistente mediante **QSettings** y se restauran automáticamente en el
+siguiente inicio del programa.
 
 ### Atajos de teclado
 

@@ -74,8 +74,14 @@ python3 -m bgremover
 `.[ai]` pulls in the AI dependencies (`rembg[cpu]` including `onnxruntime`);
 without the AI feature, `python3 -m pip install -c requirements/constraints.txt -e .` is sufficient.
 
-**Linux:** There is no app bundle; the application runs by starting it
-directly from a venv:
+**Linux:** For end users, the recommended path is the release artifacts:
+a portable **AppImage** and an installable **`.deb`** (both for x86_64 and
+aarch64/Raspberry Pi OS). See **[INSTALL_LINUX.md](INSTALL_LINUX.md)** for
+installation details and **[packaging/linux/README.md](../../../packaging/linux/README.md)**
+for build/packaging details.
+
+Starting directly from a venv remains the best path for development,
+branch testing, and local changes:
 
 ```bash
 git clone https://github.com/NikolayDA/picture_helper.git
@@ -85,12 +91,10 @@ python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
 
-Beforehand, a few Qt system libraries are required — for details, see
-**[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
-
-On **Raspberry Pi OS (Desktop)** it is particularly simple — entirely
-without venv/pip (PyQt6, Pillow, numpy as system packages via `apt`); see
-the Raspberry Pi section in **[INSTALL_LINUX.md](INSTALL_LINUX.md)**.
+Before the venv start, a few Qt system libraries are required — see
+**[INSTALL_LINUX.md](INSTALL_LINUX.md)**. On **Raspberry Pi OS (Desktop)**
+it is also possible entirely without venv/pip (PyQt6, Pillow, numpy as
+system packages via `apt`); see **[INSTALL_LINUX.md](INSTALL_LINUX.md)** as well.
 
 > Detailed instructions — including **installation from a branch**
 > (to test open pull requests) and **troubleshooting** — are available in
@@ -117,10 +121,11 @@ Via `Tools → Settings…` (⌘,), the following settings can be managed:
 | Default directory for opening | Start directory of the open dialog; empty = last used directory |
 | Default directory for export/save | Start directory of the save dialog; empty = last used directory |
 | Preferred image file format | PNG, JPEG, WebP, or TIFF – appears as the first option in the save dialog |
+| Language | German or English; the change takes effect after a restart |
 | Log file | Shows the log-file path; the "Open Folder" button opens the directory in the file manager |
 
-The first three settings are stored persistently via **QSettings** and
-automatically restored the next time the program starts.
+The directories, preferred file format, and language are stored persistently
+via **QSettings** and automatically restored the next time the program starts.
 
 ### Keyboard shortcuts
 

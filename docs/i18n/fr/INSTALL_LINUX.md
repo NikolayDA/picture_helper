@@ -7,9 +7,33 @@ aussi bien depuis la branche `main` que depuis une branche de fonctionnalité (p
 pour tester une pull request ouverte avant la fusion).
 
 > Le bundle d'application macOS (`create_BgRemover_app.sh`) est spécifique à macOS.
-> Sous Linux, BgRemover fonctionne via le lancement direct
-> `python3 -m bgremover` depuis un environnement virtuel (venv) — éventuellement
-> avec un lanceur de bureau pour le double-clic (voir ci-dessous).
+> Sous Linux, AppImage et `.deb` sont les artefacts recommandés pour les
+> utilisateurs finaux ; le lancement direct depuis un venv reste documenté
+> pour le développement, les tests de branches et les changements locaux.
+
+## Recommandé : utiliser les artefacts de release
+
+Pour une installation Linux normale, les artefacts de release sont la voie la
+plus simple — **sans venv, sans pip et sans checkout Git** :
+
+- **AppImage :** fichier portable unique ; rendez-le exécutable puis lancez-le.
+- **`.deb` :** paquet installable pour Debian/Ubuntu/Raspberry Pi OS avec entrée
+  de menu et désinstallation propre via apt/dpkg.
+
+Téléchargez l'artefact adapté depuis le GitHub Release :
+
+```bash
+# AppImage (exemple x86_64)
+chmod +x BgRemover-*-x86_64.AppImage
+./BgRemover-*-x86_64.AppImage
+
+# .deb (exemple amd64 ; apt installe la dépendance FUSE)
+sudo apt install ./BgRemover-*-amd64.deb
+```
+
+Des builds existent pour **x86_64** et **aarch64/Raspberry Pi OS 64-bit**. Les
+instructions venv/Git ci-dessous restent utiles pour tester depuis `main`, une
+branche de fonctionnalité ou avec des changements locaux.
 
 ## Prérequis
 
