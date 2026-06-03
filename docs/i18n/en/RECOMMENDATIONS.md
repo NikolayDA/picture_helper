@@ -41,7 +41,7 @@ Targeted follow-up review after "modest-shannon", focused on the save, load, and
 
 Improvements from the second analysis that are not yet implemented (product/process):
 
-- **O1 🟠 — App localization.** The UI is hardcoded German; there is no runtime i18n (no `QTranslator`/`tr()`), although the docs exist in five languages. Status messages are already centralized (`status_messages.py`). Incrementally via Qt Linguist (`.ts`) or a lightweight `QLocale` string table.
+- **O1 🟠 — App localization.** Runtime i18n implemented: `bgremover.i18n` with a central string table and a stable German fallback; **German and English** are switchable at runtime (language selector in the settings dialog with a restart hint). The entire visible surface — including canvas status messages, history entries and dialogs — goes through `tr()`, guarded by an AST check against new untranslated literals. Open: the other existing documentation languages (es/fr/uk/zh) as runtime locales (**PR 4c**).
 - **O2 🟡 — Linux app / packaging.** No app bundle for Linux; launch only via `python -m bgremover` from a venv. An installable package (AppImage/Flatpak/`.deb`) for **Raspberry Pi OS** and major distributions (Debian/Ubuntu/Fedora) lowers the entry barrier for non-developers — analogous to the macOS `.app` bundle.
 **✅ Done:** O4/O6 — single-key tool switching (`W`/`B`/`E`/`L`) & platform-correct `Cmd`/`Ctrl` hints (PR #146, `test_tool_shortcuts.py`); O3 — full matrix additionally weekly via cron (PR #149); O5 — `ui_smoke` subset runs in PR/Full CI, the full qtbot suite stays nightly (PR #149).
 
@@ -51,7 +51,8 @@ Improvements from the second analysis that are not yet implemented (product/proc
 - **PR 1 — Tool shortcuts & shortcut hints.** ✅ Done (PR #146). O4 + O6: single-key switching (`W`/`B`/`E`/`L`), synchronized toolbar checked state, updated tooltips/README/manual, regression test for shortcut wiring.
 - **PR 2 — Earlier CI coverage.** ✅ Done (PR #149). O3 — full matrix additionally weekly (cron); O5 — `ui_smoke` subset in PR/Full CI, Nightly UI remains the full suite.
 - **PR 3 — i18n foundation.** ✅ Done. O1 prepared: `bgremover.i18n` with runtime locale/fallback, German as the stable default, first central string table for status messages, menu, toolbar, tabs, history, and crop bar; regression tests for locale normalization, fallback, and UI wiring.
-- **PR 4 — i18n rollout.** Make O1 usable: at least English as a runtime language, then the other existing documentation languages, with smoke checks per locale.
+- **PR 4 — i18n rollout.** ✅ Done. Made O1 usable: **4a** — extended `tr()` coverage to the right panel, settings dialog and all dialogs (German byte-identical, verified via golden diff); **4b** — complete English table + language selector (persistence, restart hint); **4b.1** — canvas status messages, history descriptions and `main_window` dialogs (open/save/color/unsaved) via `tr()`, plus an AST guard against new untranslated literals at user-facing sinks. Key/placeholder parity and per-locale UI smoke tested.
+- **PR 4c — i18n further languages (optional, deferred).** If needed, add es/fr/uk/zh as runtime locales (mirror the tables key-for-key — parity/smoke/guard then apply automatically). Not currently planned.
 - **PR 5 — Linux packaging foundation.** Start O2: choose target artifact (AppImage/`.deb`/Flatpak), add desktop file/icon/AppStream metadata and a Linux build smoke.
 - **PR 6 — Linux packaging expansion.** Complete O2: Raspberry Pi OS variant, optional second package format, and release workflow for Linux artifacts.
 

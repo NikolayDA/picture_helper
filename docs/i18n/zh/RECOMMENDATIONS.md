@@ -41,7 +41,7 @@
 
 第二次分析中提出、尚未实现的改进（产品/流程）：
 
-- **O1 🟠 — 应用本地化。** UI 硬编码为德语；没有运行时 i18n（无 `QTranslator`/`tr()`），尽管文档已有五种语言。状态消息已集中（`status_messages.py`）。可逐步通过 Qt Linguist（`.ts`）或轻量的 `QLocale` 字符串表实现。
+- **O1 🟠 — 应用本地化。** 已实现运行时 i18n：`bgremover.i18n` 提供集中字符串表与稳定的德语 fallback；**德语与英语**可在运行时切换（设置对话框中的语言选择，附带重启提示）。整个可见界面——包括画布状态消息、历史条目与对话框——均通过 `tr()`，并由 AST 检查防止新增未翻译字面量。待办：将其他现有文档语言（es/fr/uk/zh）作为运行时 locale（**PR 4c**）。
 - **O2 🟡 — Linux 应用 / 打包。** 没有 Linux 的应用包；仅能通过 venv 中的 `python -m bgremover` 启动。为 **Raspberry Pi OS** 和主流发行版（Debian/Ubuntu/Fedora）提供可安装包（AppImage/Flatpak/`.deb`），可降低非开发者的上手门槛——类似 macOS 的 `.app` 包。
 **✅ 已完成：** O4/O6 — 单键切换工具（`W`/`B`/`E`/`L`）与按平台显示的 `Cmd`/`Ctrl` 提示（PR #146，`test_tool_shortcuts.py`）；O3 — 完整矩阵额外每周通过 cron 运行（PR #149）；O5 — `ui_smoke` 子集在 PR/Full CI 中运行，完整 qtbot 套件保留在 nightly（PR #149）。
 
@@ -51,7 +51,8 @@
 - **PR 1 — 工具快捷键与提示。** ✅ 已完成（PR #146）。O4 + O6：单键切换（`W`/`B`/`E`/`L`）、同步 toolbar 选中状态、更新 tooltips/README/手册，并加入快捷键 wiring 回归测试。
 - **PR 2 — 更早加强 CI。** ✅ 已完成（PR #149）。O3 — 完整矩阵额外每周（cron）运行；O5 — `ui_smoke` 子集进入 PR/Full CI，Nightly UI 保留完整套件。
 - **PR 3 — i18n 基础。** ✅ 已完成。O1 已准备：新增带 runtime locale/fallback 的 `bgremover.i18n`，德语保持稳定默认值，首个集中字符串表覆盖状态消息、菜单、toolbar、tabs、历史和裁剪栏；加入 locale 规范化、fallback 与 UI wiring 回归测试。
-- **PR 4 — i18n 推出。** 让 O1 可用：至少英语作为运行时语言，然后覆盖现有其他文档语言，并为每个 locale 做 smoke check。
+- **PR 4 — i18n 推出。** ✅ 已完成。已让 O1 可用：**4a** — 将 `tr()` 覆盖扩展到右侧面板、设置对话框和所有对话框（德语逐字节一致，经 golden diff 验证）；**4b** — 完整英语表 + 语言选择（持久化、重启提示）；**4b.1** — 画布状态消息、历史描述与 `main_window` 对话框（打开/保存/颜色/未保存）通过 `tr()`，并新增 AST guard 防止用户可见位置出现新的未翻译字面量。已测试键/占位符对等性与按 locale 的 UI smoke。
+- **PR 4c — i18n 更多语言（可选，已搁置）。** 如有需要，将 es/fr/uk/zh 添加为运行时 locale（按键逐一镜像表——对等性/smoke/guard 随后自动生效）。目前未计划。
 - **PR 5 — Linux 打包基础。** 启动 O2：选择目标产物（AppImage/`.deb`/Flatpak）、desktop 文件/图标/AppStream 元数据和 Linux build smoke。
 - **PR 6 — Linux 打包扩展。** 完成 O2：Raspberry Pi OS 变体、可选第二种包格式，以及 Linux 产物 release workflow。
 
