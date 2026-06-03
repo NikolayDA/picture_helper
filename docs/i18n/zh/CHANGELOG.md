@@ -11,11 +11,79 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **测试覆盖率提高到 88%（第二轮，之前为 82%）。** 新增
+  `tests/test_canvas_events.py`，覆盖 `canvas.py` 中此前未测的事件处理和控制
+  逻辑：鼠标、键盘、滚轮、拖拽、魔棒结果流、工具设置、活动裁剪中的
+  undo/redo/undo-to，以及未加载图片时的 guard 路径。`canvas.py` 从 64% 提升到
+  99%，`fail_under` 从 80 提升到 86。
+- **测试覆盖率提高到 82%（之前为 74%）。** 新的行为测试覆盖
+  `tests/test_lasso.py`、`tests/test_canvas_crop.py`、`tests/test_viewport.py`、
+  `tests/test_crop_overlay.py`、`tests/test_settings_schema.py` 和
+  `tests/test_settings_dialog.py`。多个模块达到 100%，`canvas_crop.py` 达到
+  98%，`fail_under` 从 68 提升到 80。
+- **ANLEITUNG.md i18n。** 为德语用户指南新增五种译文：
+  `docs/i18n/{en,es,fr,uk,zh}/ANLEITUNG.md`；`tests/test_i18n_docs.py` 的
+  `DOC_NAMES` 现在包含 `"ANLEITUNG.md"`，每个 i18n 头部也说明
+  `ANLEITUNG.pdf` 只从德语原文生成。
+- **Soft-drift 测试 `tests/test_i18n_sync.py`。** 将 `CHANGELOG.md`、
+  `INSTALL_MAC.md` 和 `INSTALL_LINUX.md` 的标题层级与代码块数量同德语原文
+  对比；差异会生成可读警告，而不是让 CI 硬失败。
+- **`bgremover/status_messages.py` – 集中 status 消息。** 将 `canvas.py`、
+  `canvas_crop.py` 和 `main_window.py` 中用户可见的 status 字符串移入
+  `StatusMessages`，作为未来本地化的准备。
+- **引入 QSettings schema version。** 新增 `bgremover/settings_schema.py`，包含
+  `SCHEMA_VERSION = 1` 和 `migrate(settings)`；`MainWindow.__init__` 在创建
+  `QSettings` 后立即执行迁移。覆盖 downgrade 保护、损坏值和
+  `tests/test_settings_schema.py` 中的相关测试。
+- **`RembgWarmupWorker` runtime 测试。** `tests/test_workers.py` 与
+  `tests/test_worker_controller.py` 新增测试，验证 warmup 总会发出 `finished`，
+  且即使 `rembg_remove` 首次启动失败，thread lifecycle 也能完成。
+
 ### 变更
+
+- **统一 docstring 语言。** `bgremover/image_ops.py`、
+  `bgremover/recent_files.py` 和 `bgremover/worker_controller.py` 的 docstring
+  从英文改为德文，与项目其他部分保持一致。
+- **更新 Linux 包和语言设置的用户文档。** README、`INSTALL_LINUX.md` 和
+  `ANLEITUNG.md` 现在将 AppImage/`.deb` 作为 Linux 最终用户的推荐路径，
+  并记录持久化语言设置及重启提示；i18n 副本同步更新。
+- **代码卫生汇总轮。** version fallback 读取 `pyproject.toml`，
+  `_paint_brush` 显式接收 `additive`，`apply_remove`/`apply_replace` 只捕获
+  预期错误，补充全局副作用与 QSettings 特例说明，`make clean` 清理更多
+  构建产物，项目描述反映 macOS/Linux 支持。
+- **魔棒选区不再冻结 UI。** Flood-fill 移入短生命周期 `QThread` 上的
+  `FloodFillWorker`，并通过 `content_revision` 做 stale 检查；pan/zoom 保持
+  响应，只有并行魔棒点击会用 status 消息阻止。
+- **扩展 CI 测试矩阵。** Full CI 现在在 Ubuntu 和 macOS 上检查 Python 3.10、
+  3.11、3.12 和 3.13。
+- **`RembgWarmupWorker` 继承 `_Worker`。** 公共 boilerplate 移入基类并加入
+  `_always_finished()` hook，保留 `finished` 合约，同时统一 logging、错误语义和
+  `WorkerController` 类型注解。
+- **Canvas 子模块使用公共 edit API。** `CanvasCrop` 和 `CanvasTransform` 使用
+  `apply_edit(...)` 与 `ImageCanvas.current_tool`；多项 selection 操作改用
+  `_requires_image`，空状态会一致地提示未加载图片。
+- **精简包的公共 API。** 私有符号不再从 `bgremover` 顶层 re-export；需要这些
+  符号的代码应从子模块导入。`logger`、`LOG_FILENAME`、`REMBG_AVAILABLE` 和
+  `current_log_file` 保持公共；测试边缘 `MainWindow._recent_paths()` 被移除。
 
 ### 修复
 
+- **`apply_remove`/`apply_replace` 不再吞掉真实 bug。** 窄过滤器会让
+  `AttributeError`、`AssertionError` 等继续向上传播，同时仍把预期的 image/IO
+  错误转为 status 消息。
+- **同步加载路径使用与 worker 相同的保护。** `ImageCanvas.load_image` 现在调用
+  `open_validated_image`，因此 drag & drop 中的恶意文件和不支持格式也会以干净的
+  status 消息结束。
+- **稳定 License Check。** `coverage` 固定在 `requirements/constraints.txt`
+  (`==7.14.0`)，避免上游 release 造成 `LICENSES.md` drift 比较失败。
+- **License Check 加强 timezone drift 防护。** `actions/checkout` 使用
+  `fetch-depth: 0`，日期计算使用 `TZ=UTC` 和 `--date=short-local`，从而找到真实
+  edit commit 并确定性地格式化日期。
+
 ### 移除
+
+- **移除 Canvas、Lasso 和 MainWindow 中的死代码。** 删除 `ImageCanvas._version`、
+  `CanvasLasso.close_to_mask` 和 `MainWindow._btn_grp`。
 
 ## [2.2.0] – 2026-05-25
 
