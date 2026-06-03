@@ -56,6 +56,26 @@ def test_status_messages_are_runtime_translated(monkeypatch) -> None:
     assert SM.KEIN_BILD_ZUM_SPEICHERN == "Kein Bild zum Speichern"
 
 
+def test_parameterized_status_messages_format_values() -> None:
+    assert SM.LAEDT("foto.png") == "⏳ Lädt: foto.png…"
+    assert SM.LADEFEHLER("kaputt") == "Ladefehler: kaputt"
+    assert SM.DATEI_NICHT_VORHANDEN("foto.png") == "Datei nicht mehr vorhanden: foto.png"
+    assert SM.KI_FEHLER("boom") == "KI-Fehler: boom"
+
+
+def test_parameterized_status_messages_are_runtime_translated(monkeypatch) -> None:
+    monkeypatch.setitem(
+        i18n._TRANSLATIONS,
+        "zz",
+        {"status.load_error": "Load failed: {msg}"},
+    )
+    configure_locale("zz")
+
+    assert SM.LADEFEHLER("disk full") == "Load failed: disk full"
+    # Unmapped key falls back to the German template, still formatted.
+    assert SM.KI_FEHLER("boom") == "KI-Fehler: boom"
+
+
 def test_main_window_initializes_locale_from_settings(qapp, tmp_path, monkeypatch) -> None:
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
