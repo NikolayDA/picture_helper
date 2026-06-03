@@ -5,7 +5,7 @@
 
 ---
 
-[Deutsch](../../../RECOMMENDATIONS.md) · [English](../en/RECOMMENDATIONS.md) · [Español](../es/RECOMMENDATIONS.md) · [Français](../fr/RECOMMENDATIONS.md) · **Українська** · [简体中文](../zh/RECOMMENDATIONS.md)
+[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · **Українська** · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
 
 # Аналіз коду та оцінені рекомендації: BgRemover
 

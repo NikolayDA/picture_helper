@@ -5,7 +5,7 @@ Gelé le : 2026-05-24, commit 1cf8461.
 
 ---
 
-[Deutsch](../../../RECOMMENDATIONS.md) · [English](../en/RECOMMENDATIONS.md) · [Español](../es/RECOMMENDATIONS.md) · **Français** · [Українська](../uk/RECOMMENDATIONS.md) · [简体中文](../zh/RECOMMENDATIONS.md)
+[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · **Français** · [Українська](../i18n/uk/RECOMMENDATIONS.md) · [简体中文](../i18n/zh/RECOMMENDATIONS.md)
 
 # Analyse de code et recommandations évaluées : BgRemover
 
