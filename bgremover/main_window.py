@@ -31,7 +31,7 @@ from bgremover.constants import (
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
-from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings
+from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
 from bgremover.image_ops import (
     DEFAULT_SAVE_FORMAT,
     ensure_save_extension,
@@ -514,8 +514,8 @@ class MainWindow(QMainWindow):
 
     def _on_ai_error(self, msg: str) -> None:
         self._sb.showMessage(SM.KI_FEHLER(msg))
-        QMessageBox.warning(self, "KI-Fehler",
-                            f"Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}")
+        QMessageBox.warning(self, tr("dialog.ai_error.title"),
+                            tr("dialog.ai_error.body", msg=msg))
 
     def _on_history_changed(self, history: list[str]) -> None:
         self._history_popup.update_entries(history)

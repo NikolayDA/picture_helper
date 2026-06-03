@@ -127,6 +127,134 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "crop_bar.label": "✂  Ausschnitt positionieren, dann bestätigen:",
         "crop_bar.confirm": "✓  Zuschnitt anwenden",
         "crop_bar.cancel": "✗  Abbrechen",
+        # Right panel — Selection tab contents
+        "right_panel.selection.section.tool": "Werkzeug",
+        "right_panel.selection.hint.wand": "Zauberstab (W) — Farbfläche auswählen",
+        "right_panel.selection.hint.brush": "Pinsel (B) — Auswahl aufmalen",
+        "right_panel.selection.hint.eraser": "Radiergummi (E) — Auswahl entfernen",
+        "right_panel.selection.hint.lasso": (
+            "Polygon-Lasso (L) — Punkte klicken, Doppelklick abschließen"
+        ),
+        "right_panel.selection.hint.add": "Shift+Klick  →  Auswahl addieren",
+        "right_panel.selection.hint.subtract": "{modifier}+Klick   →  Auswahl subtrahieren",
+        "right_panel.selection.section.settings": "Einstellungen",
+        "right_panel.selection.tolerance": "Toleranz (Zauberstab):  {value}",
+        "right_panel.selection.tolerance.tooltip": (
+            "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
+            "Niedrig = nur sehr ähnliche Farben · Hoch = viele Farbtöne"
+        ),
+        "right_panel.selection.brush_size": "Pinselgröße:  {value} px",
+        "right_panel.selection.brush_size.tooltip": (
+            "Größe des Pinsel-/Radiergummi-Werkzeugs in Pixeln"
+        ),
+        "right_panel.selection.clear": "Auswahl aufheben",
+        "right_panel.selection.clear.tooltip": (
+            "Hebt die aktuelle Auswahl auf (auch: Esc-Taste)"
+        ),
+        "right_panel.selection.invert": "Auswahl invertieren",
+        "right_panel.selection.invert.tooltip": (
+            "Tauscht aus- und nicht-ausgewählte Bereiche  ({modifier}+Shift+I)"
+        ),
+        "right_panel.selection.morph.tooltip": (
+            "Radius in Pixeln für Erweitern/Schrumpfen der Auswahl"
+        ),
+        "right_panel.selection.expand": "➕ Erweitern",
+        "right_panel.selection.expand.tooltip": (
+            "Erweitert die Auswahl um den eingestellten Radius"
+        ),
+        "right_panel.selection.shrink": "➖ Schrumpfen",
+        "right_panel.selection.shrink.tooltip": (
+            "Schrumpft die Auswahl um den eingestellten Radius"
+        ),
+        # Right panel — Background tab contents
+        "right_panel.background.section": "Hintergrund bearbeiten",
+        "right_panel.background.remove": "Entfernen (transparent)",
+        "right_panel.background.remove.tooltip": (
+            "Macht den ausgewählten Bereich vollständig transparent.\n"
+            "Tipp: Zuerst mit Zauberstab Hintergrund auswählen."
+        ),
+        "right_panel.background.color_label": "Farbe wählen und Auswahl einfärben:",
+        "right_panel.background.color.tooltip": "Klicken um Ersatz-Hintergrundfarbe zu wählen",
+        "right_panel.background.replace": "Farbe ersetzen",
+        "right_panel.background.replace.tooltip": (
+            "Füllt den ausgewählten Bereich mit der gewählten Farbe"
+        ),
+        # Right panel — Transform tab contents
+        "right_panel.transform.section.rotate": "Drehen",
+        "right_panel.transform.quick_label": "Schnell-Drehung:",
+        "right_panel.transform.rotate_left_90": "↺ 90° links",
+        "right_panel.transform.rotate_left_90.tooltip": "90° gegen den Uhrzeigersinn drehen",
+        "right_panel.transform.rotate_right_90": "↻ 90° rechts",
+        "right_panel.transform.rotate_right_90.tooltip": "90° im Uhrzeigersinn drehen",
+        "right_panel.transform.rotate_180": "↺ 180°",
+        "right_panel.transform.rotate_180.tooltip": "Bild um 180° drehen",
+        "right_panel.transform.rotate_270": "↺ 270°",
+        "right_panel.transform.rotate_270.tooltip": "270° gegen den Uhrzeigersinn (= 90° rechts)",
+        "right_panel.transform.free_label": "Freier Winkel:",
+        "right_panel.transform.angle_slider.tooltip": "Drehwinkel einstellen: −180° bis +180°",
+        "right_panel.transform.angle_spin.tooltip": "Drehwinkel direkt eingeben",
+        "right_panel.transform.apply_angle": "Winkel anwenden",
+        "right_panel.transform.apply_angle.tooltip": (
+            "Dreht das Bild um den eingestellten Winkel.\n"
+            "Transparente Ecken entstehen bei schrägen Winkeln."
+        ),
+        "right_panel.transform.section.flip": "Spiegeln",
+        "right_panel.transform.flip_h": "Horizontal",
+        "right_panel.transform.flip_h.tooltip": "Bild horizontal spiegeln (links ↔ rechts)",
+        "right_panel.transform.flip_v": "Vertikal",
+        "right_panel.transform.flip_v.tooltip": "Bild vertikal spiegeln (oben ↕ unten)",
+        # Right panel — Shape tab contents
+        "right_panel.shape.section.corner": "Ecken abrunden",
+        "right_panel.shape.radius": "Radius:  {value} px",
+        "right_panel.shape.radius.tooltip": (
+            "Radius der Eckenrundung in Pixeln.\n"
+            "0 = keine Rundung · 500 = maximal rund"
+        ),
+        "right_panel.shape.round": "Ecken abrunden",
+        "right_panel.shape.round.tooltip": (
+            "Wendet die Eckenrundung an.\n"
+            "Das Ergebnis wird als PNG mit transparenten Ecken gespeichert."
+        ),
+        "right_panel.shape.section.format": "Ausgabe-Format & Zuschnitt",
+        "right_panel.shape.format_info": (
+            "⇲ Format wählen → Rahmen erscheint auf dem Bild\n"
+            "• Rahmen verschieben: Mitte ziehen\n"
+            "• Größe ändern: Ecken ziehen (Proportionen bleiben)"
+        ),
+        "right_panel.shape.special_label": "Sonderformate:",
+        "right_panel.shape.circle": "⬤  Kreis",
+        "right_panel.shape.circle.tooltip": "Runden Ausschnitt positionieren und zuschneiden",
+        "right_panel.shape.square": "■  1 : 1",
+        "right_panel.shape.square.tooltip": "Quadratischen Ausschnitt positionieren",
+        "right_panel.shape.landscape_label": "Querformat:",
+        "right_panel.shape.landscape.tooltip": (
+            "Querformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
+        ),
+        "right_panel.shape.portrait_label": "Hochformat:",
+        "right_panel.shape.portrait.tooltip": (
+            "Hochformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
+        ),
+        # Settings dialog
+        "settings.title": "Einstellungen",
+        "settings.open_dir.label": "Standard-Verzeichnis zum Öffnen",
+        "settings.save_dir.label": "Standard-Verzeichnis für Export / Speichern",
+        "settings.dir.placeholder": "Leer = zuletzt verwendetes Verzeichnis",
+        "settings.format.label": "Bevorzugtes Bilddateiformat",
+        "settings.log.label": "Protokolldatei",
+        "settings.log.tooltip": "Pfad der Log-Datei (markieren zum Kopieren)",
+        "settings.log.open_button": "Ordner öffnen",
+        "settings.log.open_failed": "Ordner konnte nicht geöffnet werden:\n{target}",
+        "settings.cancel": "Abbrechen",
+        "settings.ok": "OK",
+        "settings.pick_open.title": "Verzeichnis zum Öffnen wählen",
+        "settings.pick_save.title": "Verzeichnis für Export/Speichern wählen",
+        "settings.invalid_dir.title": "Ungültiges Verzeichnis",
+        "settings.invalid_dir.body": "{label} ist kein existierendes Verzeichnis:\n{value}",
+        # Dialogs (QMessageBox)
+        "dialog.ai_error.title": "KI-Fehler",
+        "dialog.ai_error.body": (
+            "Fehler bei der automatischen Hintergrundentfernung:\n\n{msg}"
+        ),
     },
 }
 
