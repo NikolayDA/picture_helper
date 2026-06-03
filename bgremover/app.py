@@ -25,6 +25,10 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("BgRemover")
     app.setOrganizationName("BgRemover")
+    # Verknüpft das Fenster unter Linux (X11/Wayland) mit der installierten
+    # .desktop-Datei (packaging/linux) → korrektes Task-Leisten-Icon und
+    # App-Zuordnung. Auf anderen Plattformen ein harmloser No-op.
+    app.setDesktopFileName("de.bgremover.app")
     # Erst jetzt – QApplication + App-Name stehen – ist der Log-Pfad korrekt.
     _setup_logging()
     app.setStyle("Fusion")
