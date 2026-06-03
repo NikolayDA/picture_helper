@@ -11,6 +11,7 @@ anderer, verworfener Befund). Die Marken bleiben als Herkunftshinweis
 stehen; maßgeblich ist jeweils der beschreibende Titel.
 """
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -116,9 +117,12 @@ def test_shutdown_helper_uses_wait_and_terminate(functions):
 # ── Fix #4: 270°-Button-Vorzeichen ─────────────────────────────────────
 
 def test_270_button_uses_positive_value(source: str):
-    # Das Tuple in der Toolbar muss '270' und nicht '-270' enthalten
-    assert "270°\",  270," in source or '270°", 270,' in source, (
-        "270°-Button muss positiven Winkel verwenden, damit Drehrichtung "
+    # Der 270°-Dreh-Button muss den positiven Winkel 270 (nicht -270) übergeben,
+    # damit die Drehrichtung der Pfeilbeschriftung entspricht. Seit der i18n-
+    # Umstellung steht die Beschriftung als tr()-Key direkt neben dem Winkelwert
+    # (``tr("…rotate_270"), 270,``) – whitespace-tolerant geprüft.
+    assert re.search(r'rotate_270"\)\s*,\s*270\b', source), (
+        "270°-Button muss positiven Winkel 270 verwenden, damit Drehrichtung "
         "der Pfeilbeschriftung entspricht."
     )
     # Sicherstellen, dass kein -270 mehr im Quelltext steckt
