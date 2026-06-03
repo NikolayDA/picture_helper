@@ -182,7 +182,9 @@ def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
 
 def test_disabled_ai_tooltip_uses_existing_install_command():
     """Der deaktivierte KI-Button darf nicht auf ein nicht existentes Skript verweisen."""
-    text = (ROOT / "bgremover" / "main_toolbar.py").read_text(encoding="utf-8")
+    toolbar_text = (ROOT / "bgremover" / "main_toolbar.py").read_text(encoding="utf-8")
+    i18n_text = (ROOT / "bgremover" / "i18n.py").read_text(encoding="utf-8")
 
-    assert "setup_bgremover.sh" not in text
-    assert 'python3 -m pip install -e ".[ai]"' in text
+    assert "setup_bgremover.sh" not in toolbar_text + i18n_text
+    assert "toolbar.ai.missing.tooltip" in toolbar_text
+    assert 'python3 -m pip install -e ".[ai]"' in i18n_text

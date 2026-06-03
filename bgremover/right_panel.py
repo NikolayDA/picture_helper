@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.constants import _RIGHT_PANEL_WIDTH, _TAB_ICON_PX
+from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.right_panel_tabs import (
     BackgroundTab,
@@ -92,13 +93,6 @@ def build_right_panel(actions: RightPanelActions) -> RightPanel:
 class _RightPanelBuilder:
     """Orchestriert die vier Tab-Klassen und befüllt das ``RightPanel``-DTO."""
 
-    _TAB_SPECS = [
-        ("Auswahl",         "clear_sel",    "Auswahl – Zauberstab, Pinsel, Radiergummi"),
-        ("Hintergrund",     "bg",           "Hintergrund – Entfernen, Farbe ersetzen"),
-        ("Drehen/Spiegeln", "transparency", "Transform – Drehen, Spiegeln"),
-        ("Form",            "form",         "Form & Zuschnitt – Ecken abrunden, Format-Auswahl"),
-    ]
-
     def __init__(self, actions: RightPanelActions) -> None:
         self._actions = actions
 
@@ -123,8 +117,30 @@ class _RightPanelBuilder:
             TransformTab(self._actions),
             ShapeTab(self._actions),
         ]
+        tab_specs = [
+            (
+                tr("right_panel.tab.selection"),
+                "clear_sel",
+                tr("right_panel.tab.selection.tooltip"),
+            ),
+            (
+                tr("right_panel.tab.background"),
+                "bg",
+                tr("right_panel.tab.background.tooltip"),
+            ),
+            (
+                tr("right_panel.tab.transform"),
+                "transparency",
+                tr("right_panel.tab.transform.tooltip"),
+            ),
+            (
+                tr("right_panel.tab.shape"),
+                "form",
+                tr("right_panel.tab.shape.tooltip"),
+            ),
+        ]
         refs: dict[str, QWidget] = {}
-        for builder, (name, icon, tip) in zip(builders, self._TAB_SPECS, strict=True):
+        for builder, (name, icon, tip) in zip(builders, tab_specs, strict=True):
             widget, widget_refs = builder.build()
             idx = tabs.addTab(widget, name)
             tabs.setTabIcon(idx, make_tool_icon(icon, _TAB_ICON_PX))
