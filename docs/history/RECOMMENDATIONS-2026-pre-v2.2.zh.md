@@ -5,7 +5,7 @@
 
 ---
 
-[Deutsch](../../../RECOMMENDATIONS.md) · [English](../en/RECOMMENDATIONS.md) · [Español](../es/RECOMMENDATIONS.md) · [Français](../fr/RECOMMENDATIONS.md) · [Українська](../uk/RECOMMENDATIONS.md) · **简体中文**
+[Deutsch](../../RECOMMENDATIONS.md) · [English](../i18n/en/RECOMMENDATIONS.md) · [Español](../i18n/es/RECOMMENDATIONS.md) · [Français](../i18n/fr/RECOMMENDATIONS.md) · [Українська](../i18n/uk/RECOMMENDATIONS.md) · **简体中文**
 
 # 代码分析与评级建议：BgRemover
 
