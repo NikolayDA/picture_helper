@@ -27,6 +27,9 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   mit plattformgerechten Hinweisen.
 - **#164** ist umgesetzt und gemerged (PR #172): Python-3.11-KI-Hinweis,
   Releases-Link und lokalisierte UI-Strings in den Install-Guides.
+- **#167 / #168** sind geschlossen: die High-/Medium-Befunde wurden via PR
+  #173/#174 ausgeliefert; die übrigen Befunde laufen fokussiert in
+  #176/#177/#178 weiter.
 
 ### Noch offen
 
@@ -39,19 +42,23 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test-Suite-Audit: veraltete Tests, fehlende Assertions, private Kopplung, Coverage-Lücken | 🔴 Hoch | 🔴 Hoch | 🔴 erledigt (PR #173); 🟠/🟡 offen – aufteilen & verfeinern |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code-Review: Qualität, Wartbarkeit & kleinere Issues | 🔴 Hoch | 🟡 Mittel | Medium (Race, TOCTOU) erledigt (PR #174); Low offen – bündeln |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
+| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Test-Audit-Folge (Medium): Behavioral-Assertions + Coverage-Lücken | 🟠 Hoch | 🟡 Mittel | PR-bereit (aus #168) |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5"-Fix PR-bereit; Clone-URL blockiert (Repo-Sichtbarkeit) |
+| [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5" erledigt; Clone-URL zurückgestellt (Owner-Entscheidung) |
+| [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Test-Audit-Folge (Low): private Internals entkoppeln + Doppeltests | 🟢 Niedrig | 🟡 Mittel | PR-bereit (aus #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Kommentar-Audit: Sprachinkonsistenz & kleine Ungenauigkeit | 🟢 Niedrig | 🟢 Niedrig | PR-bereit |
 
 ### Empfohlene PR-Reihenfolge
 
 1. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
 2. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
-3. **#161 teilweise** — „Runde 5" aus dem README-Architekturtext entfernen (Clone-URL erfordert Entscheidung über Repo-Sichtbarkeit).
-4. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+3. **#177** — Test-Härtung: Behavioral-Assertions ergänzen + Coverage-Lücken schließen (aus #168).
+4. **#176** — Code-Quality-Sammlung aus #167: E741, check_untyped_defs, cancel_ai-UX, shutdown_all.
+5. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
+6. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+7. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
 
 ## Vorige Runden
 

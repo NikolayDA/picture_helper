@@ -27,6 +27,8 @@ siguen siendo la baseline antes de nuevos PRs.
   herramientas con indicaciones correctas por plataforma.
 - **#164** está hecho y mergeado (PR #172): aviso Python 3.11/IA, enlace a
   releases y cadenas UI localizadas en las guías de instalación.
+- **#167 / #168** están cerrados: los hallazgos High/Medium se entregaron vía
+  PR #173/#174; el resto continúa de forma enfocada en #176/#177/#178.
 
 ### Aún Abierto
 
@@ -39,19 +41,23 @@ siguen siendo la baseline antes de nuevos PRs.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Auditoría de la suite de tests: tests obsoletos, assertions faltantes, acoplamiento privado, brechas de cobertura | 🔴 Alta | 🔴 Alta | Hallazgos 🔴 hechos (PR #173); 🟠/🟡 abiertos — dividir y refinar |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revisión de código: calidad, mantenibilidad y problemas menores | 🔴 Alta | 🟡 Media | Hallazgos Medium (race, TOCTOU) hechos (PR #174); hallazgos Low: agrupar |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: enlaces de versión rotos + entradas 2.3.0 faltantes | 🔴 Alta | 🟡 Media | Cambios de contenido → Listos para PR; etiquetas git necesitan refinamiento |
+| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Seguimiento de auditoría de tests (Medium): assertions de comportamiento + brechas de cobertura | 🟠 Alta | 🟡 Media | Listo para PR (de #168) |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: tres inexactitudes respecto al código actual | 🟡 Media | 🟢 Baja | Listo para PR |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Corrección de "Runde 5" → Listo para PR; URL de clonación → Bloqueado (decisión de visibilidad del repo) |
+| [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Seguimiento de revisión de código (Low): E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Media | 🟢 Baja | Listo para PR (de #167) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Jerga "Runde 5" corregida; URL de clonación aplazada (decisión del owner) |
+| [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Seguimiento de auditoría de tests (Low): desacoplar de internals privados + deduplicar | 🟢 Baja | 🟡 Media | Listo para PR (de #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Auditoría de comentarios: inconsistencias de idioma e imprecisión menor | 🟢 Baja | 🟢 Baja | Listo para PR |
 
 ### Orden de PRs Recomendado
 
 1. **#165** — Correcciones de TESTING.md: bajo riesgo y bien delimitado.
 2. **#163 contenido** — Añadir features 2.3.0 faltantes + entradas `[Unreleased]` en CHANGELOG; gestionar etiquetas git por separado.
-3. **#161 parcial** — Eliminar la jerga "Runde 5" del texto de arquitectura del README (corrección de URL de clonación requiere decisión sobre visibilidad del repo).
-4. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
+3. **#177** — Endurecer tests: añadir assertions de comportamiento + cerrar brechas de cobertura (de #168).
+4. **#176** — Lote de calidad de código de #167: E741, check_untyped_defs, UX de cancel_ai, shutdown_all.
+5. **#178** — Desacoplar tests de internals privados + reducir tests duplicados (de #168).
+6. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
+7. **#161 aplazado** — "Runde 5" hecho; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo).
 
 ## Rondas Anteriores
 
