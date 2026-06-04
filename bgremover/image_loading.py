@@ -8,6 +8,8 @@ identisch.
 """
 from __future__ import annotations
 
+import io
+
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS
@@ -28,13 +30,24 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     Erfolgreich geladene Bilder sind EXIF-orientiert und nach RGBA
     konvertiert.
     """
+    # Datei genau EINMAL lesen und verify() wie Decode aus diesem Puffer
+    # bedienen. Frueher wurde der Pfad zweimal geoeffnet (verify schliesst das
+    # File, der Decode oeffnet neu) – dazwischen konnte unter demselben Pfad
+    # eine andere Datei liegen (TOCTOU). Ein einzelner Read schliesst dieses
+    # Fenster; der Megapixel-/Bomb-Schutz bleibt unten vor dem load() erhalten.
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read()
+    except OSError as e:
+        return None, f"{type(e).__name__}: {e}"
+
     # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
     # dekodieren – manipulierte oder abgeschnittene Dateien werden so
     # frueh abgewiesen, bevor load() Speicher allokiert. PIL invalidiert
     # das Image-Objekt nach verify(); fuer den echten Decode-Pfad muss
-    # erneut geoeffnet werden.
+    # erneut aus dem Puffer geoeffnet werden.
     try:
-        with Image.open(path) as probe:
+        with Image.open(io.BytesIO(data)) as probe:
             probe.verify()
     except Image.DecompressionBombError:
         # Pillow lehnt Bilder über 2× MAX_IMAGE_PIXELS bereits hier ab –
@@ -48,7 +61,7 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
         return None, f"{type(e).__name__}: {e}"
 
     try:
-        img: Image.Image = Image.open(path)
+        img: Image.Image = Image.open(io.BytesIO(data))
         if img.format not in _ALLOWED_IMAGE_FORMATS:
             return None, f"Format nicht unterstützt: {img.format}"
         mp = img.width * img.height / 1_000_000
