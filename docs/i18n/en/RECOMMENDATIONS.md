@@ -37,7 +37,7 @@ baseline before new PRs.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings → Ready for PR immediately; remainder: split & refine |
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings → in PR #173; remainder: split & refine |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: quality, maintainability & minor issues | 🔴 High | 🟡 Medium | Medium findings (race, TOCTOU) → Ready for PR; Low findings: batch together |
 | [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 High | 🟢 Low | PR #172 open |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: broken version links + missing 2.3.0 entries | 🔴 High | 🟡 Medium | Content changes → Ready for PR; git tagging needs refinement |
@@ -48,7 +48,7 @@ baseline before new PRs.
 ### Recommended PR Order
 
 1. **#164** — Install docs (Python 3.11 AI note, Releases link + localized UI strings): implemented in **PR #172** (all six language versions; merge pending).
-2. **#168 🔴** — `test_canvas_events.py:174` (locale assertion already broken in CI) and `test_async_load.py:34` (weak OR assertion): focused bugfix PR.
+2. **#168 🔴** — `test_canvas_events.py:174` (locale assertion already broken in CI) and `test_async_load.py:34` (weak OR assertion): implemented in **PR #173** (merge pending; remaining #168 findings separate).
 3. **#167 Medium** — Double-checked lock in `_ensure_rembg_remove()` + TOCTOU window in `open_validated_image`: clean bugfix PR.
 4. **#165** — TESTING.md corrections: low-risk and well-scoped.
 5. **#163 content** — Add missing 2.3.0 features + `[Unreleased]` entries to CHANGELOG; handle git tagging separately.
