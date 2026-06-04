@@ -33,6 +33,28 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Runtime-Locales umgesetzt; bei Bedarf key-für-key in `bgremover.i18n`
   ergänzen und mit Paritäts-/Smoke-Tests absichern.
 
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-04)
+
+| # | Titel | Relevanz | Komplexität | Empfehlung |
+|---|-------|----------|-------------|------------|
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test-Suite-Audit: veraltete Tests, fehlende Assertions, private Kopplung, Coverage-Lücken | 🔴 Hoch | 🔴 Hoch | 🔴-Befunde sofort als PR; Rest aufteilen & verfeinern |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code-Review: Qualität, Wartbarkeit & kleinere Issues | 🔴 Hoch | 🟡 Mittel | Medium-Befunde (Race, TOCTOU) PR-bereit; Low-Befunde bündeln |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc-Review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 Issues | 🔴 Hoch | 🟢 Niedrig | PR-bereit |
+| [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
+| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5"-Fix PR-bereit; Clone-URL blockiert (Repo-Sichtbarkeit) |
+| [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Kommentar-Audit: Sprachinkonsistenz & kleine Ungenauigkeit | 🟢 Niedrig | 🟢 Niedrig | PR-bereit |
+
+### Empfohlene PR-Reihenfolge
+
+1. **#164** — Install-Docs (Python-3.10/KI-Hinweis + englische UI-Strings): kleine, eigenständige Textänderungen mit direktem Nutzernutzen.
+2. **#168 🔴** — `test_canvas_events.py:174` (Locale-Assertion in CI bereits kaputt) und `test_async_load.py:34` (schwache OR-Assertion): fokussierter Bugfix-PR.
+3. **#167 Medium** — Double-checked Lock in `_ensure_rembg_remove()` + TOCTOU-Fenster in `open_validated_image`: klarer Bugfix-PR.
+4. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
+5. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
+6. **#161 teilweise** — „Runde 5" aus dem README-Architekturtext entfernen (Clone-URL erfordert Entscheidung über Repo-Sichtbarkeit).
+7. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+
 ## Vorige Runden
 
 - **2026-06-01, „modest-shannon" (A–E)** — 5 Befunde, alle erledigt.
