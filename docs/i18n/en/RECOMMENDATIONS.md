@@ -40,7 +40,7 @@ baseline before new PRs.
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings done (PR #173); 🟠/🟡 open — split & refine |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: quality, maintainability & minor issues | 🔴 High | 🟡 Medium | Medium findings (race, TOCTOU) → in PR #174; Low findings: batch together |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: quality, maintainability & minor issues | 🔴 High | 🟡 Medium | Medium findings (race, TOCTOU) done (PR #174); Low findings: batch together |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: broken version links + missing 2.3.0 entries | 🔴 High | 🟡 Medium | Content changes → Ready for PR; git tagging needs refinement |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: three inaccuracies vs. current codebase | 🟡 Medium | 🟢 Low | Ready for PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | "Runde 5" jargon fix → Ready for PR; clone URL → Blocked (repo visibility decision) |
@@ -48,11 +48,10 @@ baseline before new PRs.
 
 ### Recommended PR Order
 
-1. **#167 Medium** — Double-checked lock in `_ensure_rembg_remove()` + TOCTOU window in `open_validated_image`: implemented in **PR #174** (merge pending; Low findings separate).
-2. **#165** — TESTING.md corrections: low-risk and well-scoped.
-3. **#163 content** — Add missing 2.3.0 features + `[Unreleased]` entries to CHANGELOG; handle git tagging separately.
-4. **#161 partial** — Remove "Runde 5" jargon from README architecture text (clone URL fix requires a repo-visibility decision).
-5. **#166** — Docstring language cleanup as a small housekeeping PR.
+1. **#165** — TESTING.md corrections: low-risk and well-scoped.
+2. **#163 content** — Add missing 2.3.0 features + `[Unreleased]` entries to CHANGELOG; handle git tagging separately.
+3. **#161 partial** — Remove "Runde 5" jargon from README architecture text (clone URL fix requires a repo-visibility decision).
+4. **#166** — Docstring language cleanup as a small housekeeping PR.
 
 ## Previous Rounds
 
