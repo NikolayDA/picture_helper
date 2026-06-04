@@ -38,7 +38,7 @@
 | # | Назва | Релевантність | Складність | Рекомендація |
 |---|-------|---------------|------------|--------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Аудит тест-сюїту: застарілі тести, відсутні assertions, приватне зв'язування, прогалини покриття | 🔴 Висока | 🔴 Висока | 🔴-знахідки → у PR #173; решту — розбити й уточнити |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: якість, підтримуваність та дрібні проблеми | 🔴 Висока | 🟡 Середня | Medium-знахідки (race, TOCTOU) → готово до PR; Low-знахідки — об'єднати |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: якість, підтримуваність та дрібні проблеми | 🔴 Висока | 🟡 Середня | Medium-знахідки (race, TOCTOU) → у PR #174; Low-знахідки — об'єднати |
 | [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Огляд документації: INSTALL_MAC.md & INSTALL_LINUX.md — 4 проблеми | 🔴 Висока | 🟢 Низька | PR #172 відкритий |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: зламані посилання на версії + відсутні записи 2.3.0 | 🔴 Висока | 🟡 Середня | Зміни контенту → готово до PR; git-теги потребують уточнення |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: три неточності відносно поточного коду | 🟡 Середня | 🟢 Низька | Готово до PR |
@@ -49,7 +49,7 @@
 
 1. **#164** — Docs встановлення (примітка щодо ШІ Python 3.11, посилання на releases + локалізовані рядки UI): реалізовано в **PR #172** (усі шість мовних версій; merge очікується).
 2. **#168 🔴** — `test_canvas_events.py:174` (locale-assertion вже зламана в CI) та `test_async_load.py:34` (слабка OR-assertion): реалізовано в **PR #173** (merge очікується; решта знахідок #168 окремо).
-3. **#167 Medium** — Double-checked lock у `_ensure_rembg_remove()` + TOCTOU-вікно в `open_validated_image`: чистий bugfix-PR.
+3. **#167 Medium** — Double-checked lock у `_ensure_rembg_remove()` + TOCTOU-вікно в `open_validated_image`: реалізовано в **PR #174** (merge очікується; Low-знахідки окремо).
 4. **#165** — Виправлення у TESTING.md: низький ризик, добре обмежено.
 5. **#163 контент** — Додати відсутні features 2.3.0 + записи `[Unreleased]` у CHANGELOG; git-теги вирішити окремо.
 6. **#161 частково** — Видалити жаргон «Runde 5» з опису архітектури в README (виправлення URL клонування потребує рішення про видимість репо).
