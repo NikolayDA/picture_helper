@@ -40,7 +40,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test-Suite-Audit: veraltete Tests, fehlende Assertions, private Kopplung, Coverage-Lücken | 🔴 Hoch | 🔴 Hoch | 🔴 erledigt (PR #173); 🟠/🟡 offen – aufteilen & verfeinern |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code-Review: Qualität, Wartbarkeit & kleinere Issues | 🔴 Hoch | 🟡 Mittel | Medium-Befunde (Race, TOCTOU) in PR #174; Low-Befunde bündeln |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code-Review: Qualität, Wartbarkeit & kleinere Issues | 🔴 Hoch | 🟡 Mittel | Medium (Race, TOCTOU) erledigt (PR #174); Low offen – bündeln |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5"-Fix PR-bereit; Clone-URL blockiert (Repo-Sichtbarkeit) |
@@ -48,11 +48,10 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#167 Medium** — Double-checked Lock in `_ensure_rembg_remove()` + TOCTOU-Fenster in `open_validated_image`: umgesetzt in **PR #174** (Merge ausstehend; Low-Befunde separat).
-2. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
-3. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
-4. **#161 teilweise** — „Runde 5" aus dem README-Architekturtext entfernen (Clone-URL erfordert Entscheidung über Repo-Sichtbarkeit).
-5. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+1. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
+2. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
+3. **#161 teilweise** — „Runde 5" aus dem README-Architekturtext entfernen (Clone-URL erfordert Entscheidung über Repo-Sichtbarkeit).
+4. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
 
 ## Vorige Runden
 
