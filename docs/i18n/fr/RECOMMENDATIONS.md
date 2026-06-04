@@ -34,6 +34,28 @@ la baseline avant de nouveaux PRs.
   clé par clé dans `bgremover.i18n` et les protéger par des tests de
   parité/smoke.
 
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-04)
+
+| # | Titre | Pertinence | Complexité | Recommandation |
+|---|-------|------------|------------|----------------|
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Audit de la suite de tests : tests obsolètes, assertions manquantes, couplage privé, lacunes de couverture | 🔴 Haute | 🔴 Haute | Constats 🔴 → Prêts pour PR immédiatement ; reste : diviser et affiner |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revue de code : qualité, maintenabilité et problèmes mineurs | 🔴 Haute | 🟡 Moyenne | Constats Medium (race, TOCTOU) → Prêts pour PR ; constats Low : regrouper |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revue de docs : INSTALL_MAC.md & INSTALL_LINUX.md — 4 problèmes | 🔴 Haute | 🟢 Basse | Prêt pour PR |
+| [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md : liens de version brisés + entrées 2.3.0 manquantes | 🔴 Haute | 🟡 Moyenne | Modifications de contenu → Prêtes pour PR ; tags git à affiner séparément |
+| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Correction de « Runde 5 » → Prête pour PR ; URL de clonage → Bloquée (décision de visibilité du dépôt) |
+| [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Audit des commentaires : incohérences de langue et imprécision mineure | 🟢 Basse | 🟢 Basse | Prêt pour PR |
+
+### Ordre de PR Recommandé
+
+1. **#164** — Docs d'installation (avertissement Python 3.10/IA + chaînes UI en anglais) : petites modifications textuelles indépendantes à impact direct pour l'utilisateur.
+2. **#168 🔴** — `test_canvas_events.py:174` (assertion locale déjà cassée en CI) et `test_async_load.py:34` (assertion OR faible) : PR de bugfix ciblé.
+3. **#167 Medium** — Verrou double-vérification dans `_ensure_rembg_remove()` + fenêtre TOCTOU dans `open_validated_image` : PR de bugfix propre.
+4. **#165** — Corrections de TESTING.md : faible risque et bien délimité.
+5. **#163 contenu** — Ajouter les features 2.3.0 manquantes + entrées `[Unreleased]` dans CHANGELOG ; gérer les tags git séparément.
+6. **#161 partiel** — Supprimer le jargon « Runde 5 » du texte d'architecture du README (correction de l'URL de clonage nécessite une décision de visibilité du dépôt).
+7. **#166** — Nettoyage de langue dans les docstrings en tant que petit PR de maintenance.
+
 ## Séries Précédentes
 
 - **2026-06-01, « modest-shannon » (A–E)** — 5 constats, tous terminés.
