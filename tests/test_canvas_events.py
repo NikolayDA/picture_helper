@@ -24,6 +24,7 @@ from PyQt6.QtGui import (
 )
 
 from bgremover import TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO, TOOL_WAND, ImageCanvas
+from bgremover.i18n import tr
 from bgremover.status_messages import StatusMessages as SM
 
 NO_MOD = Qt.KeyboardModifier.NoModifier
@@ -171,7 +172,9 @@ def test_apply_ai_result_replaces_image(qapp):
     c.statusMsg.connect(msgs.append)
     c.apply_ai_result(Image.new("RGBA", (5, 5), (9, 9, 9, 255)))
     assert c.image is not None and c.image.size == (5, 5)
-    assert any("KI" in m for m in msgs)
+    # Locale-unabhaengig: gegen denselben tr()-Schluessel pruefen, den
+    # apply_ai_result emittiert (Substring "KI" war DE-only und brach im EN-CI).
+    assert tr("canvas.ai_done") in msgs
 
 
 # ── Zauberstab-Ergebnis ────────────────────────────────────────────────
