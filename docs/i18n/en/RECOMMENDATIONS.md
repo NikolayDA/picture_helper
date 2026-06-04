@@ -25,6 +25,8 @@ baseline before new PRs.
 - **O2/O3/O4/O5/O6** are implemented: Linux AppImage/`.deb`, release workflow,
   weekly full matrix, `ui_smoke` in PR/Full CI, and tool shortcuts with
   platform-correct hints.
+- **#164** is done and merged (PR #172): Python 3.11 AI note, Releases link,
+  and localized UI strings in the install guides.
 
 ### Still Open
 
@@ -37,9 +39,8 @@ baseline before new PRs.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings → in PR #173; remainder: split & refine |
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings done (PR #173); 🟠/🟡 open — split & refine |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: quality, maintainability & minor issues | 🔴 High | 🟡 Medium | Medium findings (race, TOCTOU) → in PR #174; Low findings: batch together |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 High | 🟢 Low | PR #172 open |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: broken version links + missing 2.3.0 entries | 🔴 High | 🟡 Medium | Content changes → Ready for PR; git tagging needs refinement |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: three inaccuracies vs. current codebase | 🟡 Medium | 🟢 Low | Ready for PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | "Runde 5" jargon fix → Ready for PR; clone URL → Blocked (repo visibility decision) |
@@ -47,13 +48,11 @@ baseline before new PRs.
 
 ### Recommended PR Order
 
-1. **#164** — Install docs (Python 3.11 AI note, Releases link + localized UI strings): implemented in **PR #172** (all six language versions; merge pending).
-2. **#168 🔴** — `test_canvas_events.py:174` (locale assertion already broken in CI) and `test_async_load.py:34` (weak OR assertion): implemented in **PR #173** (merge pending; remaining #168 findings separate).
-3. **#167 Medium** — Double-checked lock in `_ensure_rembg_remove()` + TOCTOU window in `open_validated_image`: implemented in **PR #174** (merge pending; Low findings separate).
-4. **#165** — TESTING.md corrections: low-risk and well-scoped.
-5. **#163 content** — Add missing 2.3.0 features + `[Unreleased]` entries to CHANGELOG; handle git tagging separately.
-6. **#161 partial** — Remove "Runde 5" jargon from README architecture text (clone URL fix requires a repo-visibility decision).
-7. **#166** — Docstring language cleanup as a small housekeeping PR.
+1. **#167 Medium** — Double-checked lock in `_ensure_rembg_remove()` + TOCTOU window in `open_validated_image`: implemented in **PR #174** (merge pending; Low findings separate).
+2. **#165** — TESTING.md corrections: low-risk and well-scoped.
+3. **#163 content** — Add missing 2.3.0 features + `[Unreleased]` entries to CHANGELOG; handle git tagging separately.
+4. **#161 partial** — Remove "Runde 5" jargon from README architecture text (clone URL fix requires a repo-visibility decision).
+5. **#166** — Docstring language cleanup as a small housekeeping PR.
 
 ## Previous Rounds
 
