@@ -15,6 +15,10 @@ um einen offenen Pull Request vor dem Merge zu testen).
   ```
 - **git**
 
+> **KI-Hinweis:** Die Kern-App läuft mit Python 3.10+. Die
+> KI-Hintergrundentfernung (`.[ai]`) benötigt **Python 3.11 oder neuer**
+> (die aktuellen `onnxruntime`- und `rembg`-Builds zielen auf Python 3.11+).
+
 Falls Python oder git fehlen, am einfachsten über [Homebrew](https://brew.sh):
 ```bash
 brew install python git

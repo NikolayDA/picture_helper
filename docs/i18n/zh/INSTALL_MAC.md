@@ -15,6 +15,10 @@
   ```
 - **git**
 
+> **AI 说明：** 核心应用可在 Python 3.10+ 上运行。AI 背景移除
+> （`.[ai]`）需要 **Python 3.11 或更新版本**（当前的 `onnxruntime` 和
+> `rembg` 构建面向 Python 3.11+）。
+
 如果缺少 Python 或 git，最简单的方式是通过 [Homebrew](https://brew.sh)：
 ```bash
 brew install python git

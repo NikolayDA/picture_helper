@@ -15,6 +15,10 @@ to test an open pull request before merging).
   ```
 - **git**
 
+> **AI note:** The core app works on Python 3.10+. AI background removal
+> (`.[ai]`) requires **Python 3.11 or newer** (current `onnxruntime` and
+> `rembg` builds target Python 3.11+).
+
 If Python or git are missing, the easiest way is via [Homebrew](https://brew.sh):
 ```bash
 brew install python git
@@ -150,8 +154,8 @@ non-editable package copy in the app venv.
   then run the install command again.
 - **First AI click takes a long time** → On the very first time, `rembg`
   downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "🤖 KI-Modell wird geladen…"
-  and then "🤖 KI bereit".
+  `~/.u2net`). The status bar shows "🤖 Loading AI model…"
+  and then "🤖 AI ready".
 - **Gatekeeper: "unverified developer"** → Right-click on
   `BgRemover.app` → **Open**. The build script already removes the
   quarantine via `xattr`; a right-click open is enough in any
