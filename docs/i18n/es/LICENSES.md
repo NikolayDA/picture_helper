@@ -3,7 +3,7 @@
 # Resumen de Licencias y Aspectos Legales – bgremover 2.3.0
 
 > Generado automáticamente – **una evaluación puramente técnica de los términos de licencia, no asesoramiento jurídico.**
-> A fecha de: 2026-05-26 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
+> A fecha de: 2026-06-04 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
 
 ## Evaluación general – usabilidad comercial
 

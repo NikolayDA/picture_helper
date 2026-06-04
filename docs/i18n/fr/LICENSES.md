@@ -3,7 +3,7 @@
 # Aperçu des licences et aspects juridiques – bgremover 2.3.0
 
 > Généré automatiquement – **une évaluation purement technique des conditions de licence, pas un conseil juridique.**
-> Au : 2026-05-26 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
+> Au : 2026-06-04 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
 
 ## Évaluation globale – utilisabilité commerciale
 
