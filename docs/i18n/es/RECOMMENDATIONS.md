@@ -25,6 +25,8 @@ siguen siendo la baseline antes de nuevos PRs.
 - **O2/O3/O4/O5/O6** están implementados: Linux AppImage/`.deb`, release
   workflow, matriz completa semanal, `ui_smoke` en PR/Full CI y atajos de
   herramientas con indicaciones correctas por plataforma.
+- **#164** está hecho y mergeado (PR #172): aviso Python 3.11/IA, enlace a
+  releases y cadenas UI localizadas en las guías de instalación.
 
 ### Aún Abierto
 
@@ -37,9 +39,8 @@ siguen siendo la baseline antes de nuevos PRs.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Auditoría de la suite de tests: tests obsoletos, assertions faltantes, acoplamiento privado, brechas de cobertura | 🔴 Alta | 🔴 Alta | Hallazgos 🔴 → en PR #173; resto: dividir y refinar |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revisión de código: calidad, mantenibilidad y problemas menores | 🔴 Alta | 🟡 Media | Hallazgos Medium (race, TOCTOU) → Listos para PR; hallazgos Low: agrupar |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revisión de docs: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 Alta | 🟢 Baja | PR #172 abierto |
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Auditoría de la suite de tests: tests obsoletos, assertions faltantes, acoplamiento privado, brechas de cobertura | 🔴 Alta | 🔴 Alta | Hallazgos 🔴 hechos (PR #173); 🟠/🟡 abiertos — dividir y refinar |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revisión de código: calidad, mantenibilidad y problemas menores | 🔴 Alta | 🟡 Media | Hallazgos Medium (race, TOCTOU) → en PR #174; hallazgos Low: agrupar |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: enlaces de versión rotos + entradas 2.3.0 faltantes | 🔴 Alta | 🟡 Media | Cambios de contenido → Listos para PR; etiquetas git necesitan refinamiento |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: tres inexactitudes respecto al código actual | 🟡 Media | 🟢 Baja | Listo para PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Corrección de "Runde 5" → Listo para PR; URL de clonación → Bloqueado (decisión de visibilidad del repo) |
@@ -47,13 +48,11 @@ siguen siendo la baseline antes de nuevos PRs.
 
 ### Orden de PRs Recomendado
 
-1. **#164** — Docs de instalación (aviso Python 3.11/IA, enlace a releases + cadenas UI localizadas): implementado en **PR #172** (las seis versiones de idioma; merge pendiente).
-2. **#168 🔴** — `test_canvas_events.py:174` (assertion de locale ya rota en CI) y `test_async_load.py:34` (assertion OR débil): implementado en **PR #173** (merge pendiente; resto de hallazgos #168 aparte).
-3. **#167 Medium** — Double-checked lock en `_ensure_rembg_remove()` + ventana TOCTOU en `open_validated_image`: PR de bugfix limpio.
-4. **#165** — Correcciones de TESTING.md: bajo riesgo y bien delimitado.
-5. **#163 contenido** — Añadir features 2.3.0 faltantes + entradas `[Unreleased]` en CHANGELOG; gestionar etiquetas git por separado.
-6. **#161 parcial** — Eliminar la jerga "Runde 5" del texto de arquitectura del README (corrección de URL de clonación requiere decisión sobre visibilidad del repo).
-7. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
+1. **#167 Medium** — Double-checked lock en `_ensure_rembg_remove()` + ventana TOCTOU en `open_validated_image`: implementado en **PR #174** (merge pendiente; hallazgos Low aparte).
+2. **#165** — Correcciones de TESTING.md: bajo riesgo y bien delimitado.
+3. **#163 contenido** — Añadir features 2.3.0 faltantes + entradas `[Unreleased]` en CHANGELOG; gestionar etiquetas git por separado.
+4. **#161 parcial** — Eliminar la jerga "Runde 5" del texto de arquitectura del README (corrección de URL de clonación requiere decisión sobre visibilidad del repo).
+5. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
 
 ## Rondas Anteriores
 
