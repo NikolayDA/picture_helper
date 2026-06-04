@@ -40,7 +40,7 @@ la baseline avant de nouveaux PRs.
 |---|-------|------------|------------|----------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Audit de la suite de tests : tests obsolètes, assertions manquantes, couplage privé, lacunes de couverture | 🔴 Haute | 🔴 Haute | Constats 🔴 → Prêts pour PR immédiatement ; reste : diviser et affiner |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revue de code : qualité, maintenabilité et problèmes mineurs | 🔴 Haute | 🟡 Moyenne | Constats Medium (race, TOCTOU) → Prêts pour PR ; constats Low : regrouper |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revue de docs : INSTALL_MAC.md & INSTALL_LINUX.md — 4 problèmes | 🔴 Haute | 🟢 Basse | Prêt pour PR |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revue de docs : INSTALL_MAC.md & INSTALL_LINUX.md — 4 problèmes | 🔴 Haute | 🟢 Basse | PR #172 ouvert |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md : liens de version brisés + entrées 2.3.0 manquantes | 🔴 Haute | 🟡 Moyenne | Modifications de contenu → Prêtes pour PR ; tags git à affiner séparément |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Correction de « Runde 5 » → Prête pour PR ; URL de clonage → Bloquée (décision de visibilité du dépôt) |
@@ -48,7 +48,7 @@ la baseline avant de nouveaux PRs.
 
 ### Ordre de PR Recommandé
 
-1. **#164** — Docs d'installation (avertissement Python 3.10/IA + chaînes UI en anglais) : petites modifications textuelles indépendantes à impact direct pour l'utilisateur.
+1. **#164** — Docs d'installation (note IA Python 3.11, lien releases + chaînes UI localisées) : implémenté dans **PR #172** (les six versions linguistiques ; fusion en attente).
 2. **#168 🔴** — `test_canvas_events.py:174` (assertion locale déjà cassée en CI) et `test_async_load.py:34` (assertion OR faible) : PR de bugfix ciblé.
 3. **#167 Medium** — Verrou double-vérification dans `_ensure_rembg_remove()` + fenêtre TOCTOU dans `open_validated_image` : PR de bugfix propre.
 4. **#165** — Corrections de TESTING.md : faible risque et bien délimité.
