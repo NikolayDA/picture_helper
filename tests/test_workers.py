@@ -3,6 +3,7 @@ import io
 import os
 import subprocess
 import sys
+import threading
 from unittest.mock import patch
 
 import numpy as np
@@ -91,6 +92,31 @@ def test_open_validated_image_handles_decompression_bomb(tmp_path, monkeypatch) 
     assert err is not None
     assert "zu groß" in err
     assert str(_MAX_MEGAPIXELS) in err
+
+
+def test_open_validated_image_reads_path_only_once(tmp_path) -> None:
+    """TOCTOU-Schutz: Der Pfad darf nur EINMAL vom Dateisystem geoeffnet
+    werden – verify() und Decode laufen danach aus dem In-Memory-Puffer.
+    Zweimaliges Oeffnen liesse ein Fenster, in dem unter dem Pfad eine andere
+    Datei landen koennte."""
+    import builtins
+
+    p = tmp_path / "ok.png"
+    Image.new("RGB", (8, 8), (10, 20, 30)).save(p)
+
+    real_open = builtins.open
+    path_opens: list[str] = []
+
+    def counting_open(file, *args, **kwargs):
+        if file == str(p):
+            path_opens.append(str(file))
+        return real_open(file, *args, **kwargs)
+
+    with patch("builtins.open", side_effect=counting_open):
+        img, err = open_validated_image(str(p))
+
+    assert err is None and img is not None
+    assert path_opens == [str(p)]  # ein Disk-Open statt getrenntem verify+decode
 
 
 def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
@@ -421,6 +447,56 @@ def test_importing_workers_does_not_eager_import_rembg() -> None:
     assert r.returncode == 0 and "OK" in r.stdout, (
         f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
     )
+
+
+def test_ensure_rembg_remove_imports_once_under_concurrency() -> None:
+    """Double-Checked Locking: Sehen mehrere Threads gleichzeitig
+    ``rembg_remove is None``, darf trotzdem nur EIN Thread den Lazy-Import
+    betreten. Ohne Lock waere das ein latenter Race um den teuren Import."""
+    import time
+    import types
+
+    import bgremover.workers as _m
+
+    saved = _m.rembg_remove
+    _m.rembg_remove = None
+
+    importing_threads: set[int] = set()
+    fake = types.ModuleType("rembg")
+
+    def _module_getattr(name: str):
+        # ``from rembg import remove`` loest dies aus (``remove`` ist kein
+        # echtes Attribut). Haelt das Race-Fenster offen und vermerkt, welcher
+        # Thread den Import-Block betritt – robust gegen die mehrfachen
+        # getattr-Aufrufe eines einzelnen ``from``-Imports.
+        if name == "remove":
+            importing_threads.add(threading.get_ident())
+            time.sleep(0.05)
+            return lambda data: data
+        raise AttributeError(name)
+
+    fake.__getattr__ = _module_getattr
+
+    results: list = []
+    start = threading.Barrier(8)
+
+    def call() -> None:
+        start.wait(timeout=5)
+        results.append(_m._ensure_rembg_remove())
+
+    threads = [threading.Thread(target=call) for _ in range(8)]
+    try:
+        with patch.dict(sys.modules, {"rembg": fake}):
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=5)
+
+        assert len(importing_threads) == 1, importing_threads
+        assert len(results) == 8
+        assert all(r is results[0] for r in results)
+    finally:
+        _m.rembg_remove = saved
 
 
 # ─────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import threading
 
 import numpy as np
 from PIL import Image
@@ -34,6 +35,11 @@ except (ImportError, ValueError):
 # direkt patchen können.
 rembg_remove = None
 
+# Serialisiert den Lazy-Import unten gegen konkurrierende Threads. Der
+# ``WorkerController`` reiht Warmup/KI zwar ohnehin sequenziell ein – der Lock
+# macht ``_ensure_rembg_remove`` aber unabhängig davon thread-sicher.
+_rembg_lock = threading.Lock()
+
 
 def _ensure_rembg_remove():
     """Importiert ``rembg.remove`` beim ersten Aufruf und cached es modulweit.
@@ -44,11 +50,19 @@ def _ensure_rembg_remove():
     ein fehlgeschlagener ``remove()``-Aufruf als ``error`` gemeldet. Ist
     ``rembg_remove`` bereits gesetzt (echter Import *oder* Test-Patch), wird es
     unverändert zurückgegeben.
+
+    Der Lazy-Import ist per Double-Checked-Locking thread-sicher: ohne Lock
+    könnten zwei Threads gleichzeitig ``rembg_remove is None`` sehen und beide
+    den Import-Pfad betreten.
     """
     global rembg_remove
     if rembg_remove is None:
-        from rembg import remove
-        rembg_remove = remove
+        with _rembg_lock:
+            # Zweite Prüfung im Lock: ein konkurrierender Thread kann
+            # ``rembg_remove`` während des Wartens bereits gesetzt haben.
+            if rembg_remove is None:
+                from rembg import remove
+                rembg_remove = remove
     return rembg_remove
 
 
