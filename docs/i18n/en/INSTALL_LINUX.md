@@ -20,7 +20,7 @@ For normal Linux installation, the release artifacts are the easiest path —
 - **`.deb`:** installable package for Debian/Ubuntu/Raspberry Pi OS with a
   menu entry and clean removal via apt/dpkg.
 
-Download the matching artifact from the GitHub Release:
+Download the matching artifact from the [GitHub Releases page](https://github.com/NikolayDA/picture_helper/releases):
 
 ```bash
 # AppImage (x86_64 example)
@@ -52,6 +52,10 @@ The venv/Git instructions below remain useful when you want to test from
   itself but require a few X11/XCB system libraries. Without them
   the GUI fails to start with the error *"qt.qpa.plugin: Could not load the Qt
   platform plugin xcb"*.
+
+> **AI note:** The core app works on Python 3.10+. AI background removal
+> (`.[ai]`) requires **Python 3.11 or newer** (current `onnxruntime` and
+> `rembg` builds target Python 3.11+).
 
 ### Installing system packages
 
@@ -118,7 +122,7 @@ replace `/PFAD/ZU/picture_helper` with the absolute project path:
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Remove background and edit images
 Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
@@ -209,7 +213,7 @@ replace `/PFAD/ZU/picture_helper` with the absolute project path:
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Remove background and edit images
 Exec=/PFAD/ZU/picture_helper/bgremover.sh
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;
@@ -283,8 +287,8 @@ again after `git pull` — unless the dependencies in
   ```
 - **First AI click takes a long time** → On the very first time, `rembg`
   downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "🤖 KI-Modell wird geladen…"
-  and then "🤖 KI bereit".
+  `~/.u2net`). The status bar shows "🤖 Loading AI model…"
+  and then "🤖 AI ready".
 - **App starts without AI / "No onnxruntime backend found"** → The
   `ai` extra was not installed. Install it afterwards in the venv:
   ```bash

@@ -39,7 +39,7 @@
 |---|-------|---------------|------------|--------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Аудит тест-сюїту: застарілі тести, відсутні assertions, приватне зв'язування, прогалини покриття | 🔴 Висока | 🔴 Висока | 🔴-знахідки → негайно у PR; решту — розбити й уточнити |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: якість, підтримуваність та дрібні проблеми | 🔴 Висока | 🟡 Середня | Medium-знахідки (race, TOCTOU) → готово до PR; Low-знахідки — об'єднати |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Огляд документації: INSTALL_MAC.md & INSTALL_LINUX.md — 4 проблеми | 🔴 Висока | 🟢 Низька | Готово до PR |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Огляд документації: INSTALL_MAC.md & INSTALL_LINUX.md — 4 проблеми | 🔴 Висока | 🟢 Низька | PR #172 відкритий |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: зламані посилання на версії + відсутні записи 2.3.0 | 🔴 Висока | 🟡 Середня | Зміни контенту → готово до PR; git-теги потребують уточнення |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: три неточності відносно поточного коду | 🟡 Середня | 🟢 Низька | Готово до PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Аудит README: зламане посилання та внутрішній жаргон | 🟡 Середня | 🟢 Низька | Виправлення «Runde 5» → готово до PR; URL клонування → заблоковано (рішення про видимість репо) |
@@ -47,7 +47,7 @@
 
 ### Рекомендований Порядок PR
 
-1. **#164** — Docs встановлення (попередження Python 3.10/AI + рядки UI англійською): невеликі самостійні текстові зміни з прямим впливом на користувача.
+1. **#164** — Docs встановлення (примітка щодо ШІ Python 3.11, посилання на releases + локалізовані рядки UI): реалізовано в **PR #172** (усі шість мовних версій; merge очікується).
 2. **#168 🔴** — `test_canvas_events.py:174` (locale-assertion вже зламана в CI) та `test_async_load.py:34` (слабка OR-assertion): сфокусований bugfix-PR.
 3. **#167 Medium** — Double-checked lock у `_ensure_rembg_remove()` + TOCTOU-вікно в `open_validated_image`: чистий bugfix-PR.
 4. **#165** — Виправлення у TESTING.md: низький ризик, добре обмежено.

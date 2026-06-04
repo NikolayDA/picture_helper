@@ -20,7 +20,7 @@ Weg — **ohne venv, ohne pip und ohne Git-Checkout**:
 - **`.deb`:** installierbares Paket für Debian/Ubuntu/Raspberry Pi OS mit
   Menüeintrag und sauberem Entfernen über apt/dpkg.
 
-Lade das passende Artefakt aus dem GitHub-Release herunter:
+Lade das passende Artefakt von der [GitHub-Releases-Seite](https://github.com/NikolayDA/picture_helper/releases) herunter:
 
 ```bash
 # AppImage (Beispiel x86_64)
@@ -52,6 +52,10 @@ Feature-Branch oder mit lokalen Änderungen testen willst.
   selbst, benötigen aber einige X11/XCB-Systembibliotheken. Ohne sie
   startet die GUI mit dem Fehler *„qt.qpa.plugin: Could not load the Qt
   platform plugin xcb"*.
+
+> **KI-Hinweis:** Die Kern-App läuft mit Python 3.10+. Die
+> KI-Hintergrundentfernung (`.[ai]`) benötigt **Python 3.11 oder neuer**
+> (die aktuellen `onnxruntime`- und `rembg`-Builds zielen auf Python 3.11+).
 
 ### Systempakete installieren
 

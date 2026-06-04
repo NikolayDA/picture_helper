@@ -39,7 +39,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 |---|-------|----------|-------------|------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test-Suite-Audit: veraltete Tests, fehlende Assertions, private Kopplung, Coverage-Lücken | 🔴 Hoch | 🔴 Hoch | 🔴-Befunde sofort als PR; Rest aufteilen & verfeinern |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code-Review: Qualität, Wartbarkeit & kleinere Issues | 🔴 Hoch | 🟡 Mittel | Medium-Befunde (Race, TOCTOU) PR-bereit; Low-Befunde bündeln |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc-Review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 Issues | 🔴 Hoch | 🟢 Niedrig | PR-bereit |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc-Review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 Issues | 🔴 Hoch | 🟢 Niedrig | PR #172 offen |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5"-Fix PR-bereit; Clone-URL blockiert (Repo-Sichtbarkeit) |
@@ -47,7 +47,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#164** — Install-Docs (Python-3.10/KI-Hinweis + englische UI-Strings): kleine, eigenständige Textänderungen mit direktem Nutzernutzen.
+1. **#164** — Install-Docs (Python-3.11-KI-Hinweis, Releases-Link + lokalisierte UI-Strings): umgesetzt in **PR #172** (alle sechs Sprachfassungen; Merge ausstehend).
 2. **#168 🔴** — `test_canvas_events.py:174` (Locale-Assertion in CI bereits kaputt) und `test_async_load.py:34` (schwache OR-Assertion): fokussierter Bugfix-PR.
 3. **#167 Medium** — Double-checked Lock in `_ensure_rembg_remove()` + TOCTOU-Fenster in `open_validated_image`: klarer Bugfix-PR.
 4. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
