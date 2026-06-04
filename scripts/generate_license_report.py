@@ -91,9 +91,8 @@ LANG_LABEL = {
     "zh": "简体中文",
 }
 
-# Alle benutzerseitigen Texte. de = wortgetreu wie zuvor (damit das
-# deutsche Root-Output byte-identisch bleibt); uebrige Sprachen mit
-# vollem Unicode.
+# Alle benutzerseitigen Texte. ``de`` ist die Referenzausgabe fuer
+# Root-LICENSES.md; die uebrigen Sprachen nutzen volles Unicode.
 STRINGS: dict[str, dict] = {
     "de": {
         "assessment": {
@@ -1543,7 +1542,7 @@ def main(argv=None):
     # Stabiles Datum fuer reproduzierbare Reports: ohne diese Option wandert
     # der "Stand:"-Zeitstempel mit dem Tag der Generierung, was bei
     # gehaerteter Drift-Pruefung jeden CI-Lauf nach Mitternacht UTC roten
-    # macht. Default = heute (alter Pfad bleibt unveraendert).
+    # macht. Default = heute, wenn kein stabiler Wert uebergeben wird.
     ap.add_argument(
         "--generated-date",
         default=None,
@@ -1551,7 +1550,7 @@ def main(argv=None):
     )
     args = ap.parse_args(argv)
 
-    # Primaerausgabe in --lang (Default de) -> Root-Verhalten unveraendert.
+    # Primaerausgabe in --lang (Default de).
     # Diese Datei landet via CI als Root-LICENSES.md, daher Switcher mit
     # Root-relativen Pfaden.
     nav = _switcher(args.lang, "LICENSES.md", at_root=(args.lang == "de"))

@@ -119,8 +119,8 @@ le venv dédié à l'application.
 - **`[Errno 1] Operation not permitted` lors de l'accès au projet**
   → confidentialité macOS (TCC). Si le projet se trouve dans `~/Documents`,
   `~/Desktop`, `~/Downloads` ou iCloud Drive, une `.app` lancée depuis le
-  Finder n'a pas le droit d'y lire. Depuis le tour 5 (coupe en paquet)
-  c'est résolu : `create_BgRemover_app.sh` installe le paquet
+  Finder n'a pas le droit d'y lire. Le layout en paquet résout cela :
+  `create_BgRemover_app.sh` installe le paquet
   `bgremover` de manière **non éditable** dans la venv sous
   `~/Library/Application Support/BgRemover/venv` (copie propre du code
   avec `icons/` en package-data), l'app est donc indépendante du
@@ -129,8 +129,8 @@ le venv dédié à l'application.
   p. ex. `~/picture_helper` et y réexécuter le script.)
 - **`numpy ... incompatible architecture (have 'arm64', need 'x86_64')`**
   → Apple Silicon : dans `~/Library/Python/...` se trouve un paquet
-  d'architecture étrangère, qui « déteint » dans un Python à l'architecture incompatible. Depuis la v3.1, c'est
-  résolu : le lanceur définit `PYTHONNOUSERSITE=1` (le user-site est
+  d'architecture étrangère, qui « déteint » dans un Python à l'architecture
+  incompatible. Le lanceur définit `PYTHONNOUSERSITE=1` (le user-site est
   ignoré), force l'architecture CPU native et un venv isolé est
   obligatoirement utilisé. Solution : de préférence, installer d'abord un Python
   natif, puis reconstruire :
@@ -165,8 +165,8 @@ le venv dédié à l'application.
   avec `bash create_BgRemover_app.sh` — ou l'installer après coup dans le venv :
   `"~/Library/Application Support/BgRemover/venv/bin/python3" -m pip install "rembg[cpu]"`.
 - **L'`.app` a un aspect différent de `BgRemover.command`** → ancien bundle
-  sans icônes de barre d'outils (l'application utilisait des icônes de remplacement dessinées). Désormais
-  corrigé — depuis le tour 5 les icônes sont `package-data` dans
+  sans icônes de barre d'outils (l'application utilisait des icônes de
+  remplacement dessinées). Les icônes sont `package-data` dans
   `bgremover/icons/`, donc reprises automatiquement dans la venv par
   `pip install` et chargées via `importlib.resources` ; reconstruire
   une fois avec `bash create_BgRemover_app.sh`.

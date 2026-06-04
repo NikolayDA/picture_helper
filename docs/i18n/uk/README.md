@@ -196,8 +196,8 @@ python scripts/generate_anleitung_pdf.py
 
 ## Архітектура (короткий огляд)
 
-Починаючи з раунду 5, BgRemover — встановлюваний пакет (`bgremover/`,
-запуск через `python -m bgremover` або console-script `bgremover`):
+BgRemover — встановлюваний пакет (`bgremover/`, запуск через
+`python -m bgremover` або console-script `bgremover`):
 
 - **`ImageCanvas`** (QGraphicsView) зберігає стан зображення, маску виділення,
   стеки скасування/повторення та інструменти (чарівна паличка, пензель, ласо, обрізання).

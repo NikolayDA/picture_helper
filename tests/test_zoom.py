@@ -1,4 +1,4 @@
-"""Tests für die Zoom-Limits in ImageCanvas (Fix A2).
+"""Tests für die Zoom-Limits in ImageCanvas.
 
 Vor dem Fix war ``wheelEvent`` unbegrenzt — durch mehrfaches Scrollen
 konnte das Bild auf 0 schrumpfen (kein Klick mehr möglich) oder so groß

@@ -11,8 +11,8 @@ analogous to the macOS `.app` bundle:
 A GitHub Actions **release workflow** builds both for **x86_64 and aarch64**
 (Raspberry Pi OS / arm64) on every `v*` tag and attaches them to the release.
 
-> **Status:** PR 5 (foundation: AppImage + desktop/AppStream metadata + smoke
-> test) and PR 6 (expansion: `.deb`, aarch64/Pi build, release workflow) — done.
+> **Status:** AppImage, `.deb`, aarch64/Pi builds and release publishing are
+> implemented and covered by smoke tests.
 
 ## Files
 

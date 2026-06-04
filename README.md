@@ -209,8 +209,8 @@ python scripts/generate_anleitung_pdf.py
 
 ## Architektur (Kurzüberblick)
 
-BgRemover ist seit Runde 5 ein installierbares Paket (`bgremover/`,
-gestartet via `python -m bgremover` oder dem Console-Script `bgremover`):
+BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
+`python -m bgremover` oder dem Console-Script `bgremover`):
 
 - **`ImageCanvas`** (QGraphicsView) hält den Bildzustand, die Auswahl­maske,
   Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).

@@ -1,4 +1,4 @@
-"""Linux packaging smoke checks (PR 5 foundation + PR 6 expansion).
+"""Linux packaging smoke checks.
 
 Validates the AppImage/.deb packaging metadata, the build scripts and the
 release workflow. The metadata checks need no external tooling
@@ -166,7 +166,7 @@ def test_build_script_is_executable_and_sane() -> None:
     assert APP_ID in txt
 
 
-# ── .deb second package format (PR 6) ──────────────────────────────────
+# ── .deb package format ────────────────────────────────────────────────
 
 def test_deb_build_script_sane() -> None:
     assert os.access(BUILD_DEB, os.X_OK), ".deb build script must be executable"
@@ -211,7 +211,7 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
         assert expected in contents, f"missing from .deb: {expected}"
 
 
-# ── Release workflow (PR 6) ────────────────────────────────────────────
+# ── Release workflow ───────────────────────────────────────────────────
 
 def test_release_workflow_builds_both_arches_and_formats() -> None:
     # Text-based (no PyYAML dependency — matches tests/test_ci_qt_packages.py

@@ -1,12 +1,10 @@
-"""Shared image-load helper for the sync canvas path and the async worker.
+"""Gemeinsamer Bildlade-Helfer für Canvas und Worker.
 
-Both ``ImageCanvas.load_image`` (direct callers and tests) and
-``ImageLoadWorker._work`` (file dialog, recent files and drag & drop) route
-through ``open_validated_image``
-so they share the same structural verify, format whitelist and megapixel
-cap. Without it, the synchronous path silently accepted formats and
-malformed files the worker had been rejecting since the format/structure
-hardening landed.
+``ImageCanvas.load_image`` (direkte Aufrufer und Tests) und
+``ImageLoadWorker._work`` (Dateidialog, zuletzt geöffnete Dateien und
+Drag & Drop) nutzen ``open_validated_image``. Dadurch greifen
+Strukturprüfung, Format-Whitelist und Megapixel-Schutz in beiden Pfaden
+identisch.
 """
 from __future__ import annotations
 
@@ -23,10 +21,12 @@ def _too_large_message(mp: float | None = None) -> str:
 
 
 def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
-    """Open *path*, validate it, and return ``(rgba_image, None)`` on success.
+    """Öffnet und validiert *path*.
 
-    On failure returns ``(None, message)`` with a user-facing status string.
-    The image is EXIF-oriented and converted to RGBA.
+    Bei Erfolg kommt ``(rgba_image, None)`` zurück. Bei Fehlern kommt
+    ``(None, message)`` mit einer nutzerverständlichen Statusmeldung.
+    Erfolgreich geladene Bilder sind EXIF-orientiert und nach RGBA
+    konvertiert.
     """
     # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
     # dekodieren – manipulierte oder abgeschnittene Dateien werden so

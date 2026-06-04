@@ -7,7 +7,18 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/)；本项目
 遵循[语义化版本](https://semver.org/lang/de/)。
 
-## [Unreleased]（未发布）
+## [Unreleased]
+
+### 新增
+
+### 变更
+
+### 修复
+
+### 移除
+
+## [2.3.0] – 2026-06-04
+
 
 ### 新增
 
@@ -40,6 +51,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   且即使 `rembg_remove` 首次启动失败，thread lifecycle 也能完成。
 
 ### 变更
+
+- 清理了文档和代码注释：从活文档中移除过时的 PR/轮次标记，更新
+  macOS 安装说明，并将建议文档压缩为当前 review/roadmap 状态。
+- 项目版本在包元数据、AppStream、许可证概览和 changelog 链接中提升
+  到 2.3.0。
 
 - **统一 docstring 语言。** `bgremover/image_ops.py`、
   `bgremover/recent_files.py` 和 `bgremover/worker_controller.py` 的 docstring
@@ -284,7 +300,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
