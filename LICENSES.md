@@ -39,7 +39,7 @@ Staerkste relevante Lizenz im Gesamtwerk: **Starkes Copyleft**.
 | charset-normalizer | 3.4.6 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
 | coverage | 7.14.0 | `Apache-2.0` | Permissiv | Permissive Lizenz mit ausdruecklicher Patentlizenz. Kommerzielle und proprietaere Nutzung erlaubt; Lizenz-/Copyright-Hinweis und Aenderungsvermerke (NOTICE) muessen erhalten bleiben. |
 | flatbuffers | 25.12.19 | `Apache Software License` | Permissiv | Permissive Lizenz mit ausdruecklicher Patentlizenz. Kommerzielle und proprietaere Nutzung erlaubt; Lizenz-/Copyright-Hinweis und Aenderungsvermerke (NOTICE) muessen erhalten bleiben. |
-| idna | 3.11 | `BSD-3-Clause` | Permissiv | Permissive Lizenz (BSD-Familie). Kommerzielle und proprietaere Nutzung erlaubt; Copyright-/Lizenzhinweis muss mitgeliefert werden, keine Werbung mit den Autorennamen ohne Zustimmung. |
+| idna | 3.15 | `BSD-3-Clause` | Permissiv | Permissive Lizenz (BSD-Familie). Kommerzielle und proprietaere Nutzung erlaubt; Copyright-/Lizenzhinweis muss mitgeliefert werden, keine Werbung mit den Autorennamen ohne Zustimmung. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Permissiv | Permissive Lizenz (BSD-Familie). Kommerzielle und proprietaere Nutzung erlaubt; Copyright-/Lizenzhinweis muss mitgeliefert werden, keine Werbung mit den Autorennamen ohne Zustimmung. |
 | iniconfig | 2.3.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
 | jsonschema | 4.26.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
@@ -77,7 +77,7 @@ Staerkste relevante Lizenz im Gesamtwerk: **Starkes Copyleft**.
 | tifffile | 2026.3.3 | `BSD-3-Clause` | Permissiv | Permissive Lizenz (BSD-Familie). Kommerzielle und proprietaere Nutzung erlaubt; Copyright-/Lizenzhinweis muss mitgeliefert werden, keine Werbung mit den Autorennamen ohne Zustimmung. |
 | tqdm | 4.67.3 | `MPL-2.0 AND MIT` | Schwaches Copyleft (Datei) | Schwaches, dateibezogenes Copyleft. Kommerzielle Nutzung erlaubt; nur Aenderungen an den MPL-lizenzierten Dateien selbst muessen wieder unter MPL offengelegt werden. Mit GPL-3.0 vereinbar. |
 | typing_extensions | 4.15.0 | `PSF-2.0` | Permissiv | Permissive Python-Software-Foundation-Lizenz. Kommerzielle und proprietaere Nutzung erlaubt; Lizenz- und Copyright-Hinweis beibehalten. |
-| urllib3 | 2.6.3 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
+| urllib3 | 2.7.0 | `MIT` | Permissiv | Permissive Lizenz. Nutzung, Aenderung und Weitergabe – auch kommerziell und in proprietaeren Produkten – sind erlaubt, solange Copyright- und Lizenzhinweis erhalten bleiben. |
 
 ## Quellen / Projektseiten
 
