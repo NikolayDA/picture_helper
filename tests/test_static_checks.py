@@ -1,14 +1,7 @@
-"""Statische AST-Prüfungen für Fixes, die zur Laufzeit nur schwer
+"""Statische AST-Prüfungen für Regeln, die zur Laufzeit nur schwer
 zuverlässig isoliert werden können (KI-Worker, Qt-Connection-Topologie).
-Sie schützen vor einer versehentlichen Re-Introduktion der Bugs durch
+Sie schützen vor einer versehentlichen Re-Introduktion von Bugs durch
 spätere Refaktorierungen.
-
-Die ``#N``-/``Bn``-Marken in den Abschnittsüberschriften verweisen auf die
-**historischen** Review-Runden vor v2.2
-(``docs/history/RECOMMENDATIONS-2026-pre-v2.2.md``) – NICHT auf die
-Nummerierung der aktuellen ``RECOMMENDATIONS.md`` (dort ist #4 z. B. ein
-anderer, verworfener Befund). Die Marken bleiben als Herkunftshinweis
-stehen; maßgeblich ist jeweils der beschreibende Titel.
 """
 import ast
 import re
@@ -55,7 +48,7 @@ def classes() -> set[str]:
     return names
 
 
-# ── Fix #1: KI-Race ────────────────────────────────────────────────────
+# ── KI-Race ────────────────────────────────────────────────────────────
 
 def test_run_ai_records_ai_input_version(functions):
     body = ast.unparse(functions["_run_ai"])
@@ -73,7 +66,7 @@ def test_on_ai_done_checks_version(functions):
     )
 
 
-# ── Fix #6: Thread-Cleanup ─────────────────────────────────────────────
+# ── Thread-Cleanup ─────────────────────────────────────────────────────
 
 def test_launch_worker_uses_delete_later(functions):
     body = ast.unparse(functions["_build_thread"])
@@ -89,7 +82,7 @@ def test_thread_finished_handler_resets_refs(functions):
     assert "self.ai_worker = None" in body
 
 
-# ── Fix: closeEvent stoppt Hintergrund-Threads ─────────────────────────
+# ── closeEvent stoppt Hintergrund-Threads ──────────────────────────────
 
 def test_main_window_has_close_event(functions):
     assert "closeEvent" in functions, (
@@ -114,7 +107,7 @@ def test_shutdown_helper_uses_wait_and_terminate(functions):
     )
 
 
-# ── Fix #4: 270°-Button-Vorzeichen ─────────────────────────────────────
+# ── 270°-Button-Vorzeichen ─────────────────────────────────────────────
 
 def test_270_button_uses_positive_value(source: str):
     # Der 270°-Dreh-Button muss den positiven Winkel 270 (nicht -270) übergeben,
@@ -129,7 +122,7 @@ def test_270_button_uses_positive_value(source: str):
     assert "-270" not in source
 
 
-# ── Fix #8: dropEvent meldet ignorierte Dateien ────────────────────────
+# ── dropEvent meldet ignorierte Dateien ────────────────────────────────
 
 def test_drop_event_reports_extra_files(functions):
     # Die Meldung über ignorierte Zusatzdateien läuft seit der i18n-Umstellung
@@ -141,7 +134,7 @@ def test_drop_event_reports_extra_files(functions):
     )
 
 
-# ── B3: rembg-Warmup ────────────────────────────────────────────────────
+# ── rembg-Warmup ───────────────────────────────────────────────────────
 
 def test_warmup_worker_class_exists(classes: set[str]):
     assert "RembgWarmupWorker" in classes, (

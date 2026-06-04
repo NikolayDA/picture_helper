@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build a portable BgRemover AppImage (PR 5 — Linux packaging foundation).
+# Build a portable BgRemover AppImage.
 #
 # Approach: python-appimage bundles a relocatable manylinux CPython together
 # with the installed `bgremover` wheel and its dependencies (PyQt6/Pillow/numpy)

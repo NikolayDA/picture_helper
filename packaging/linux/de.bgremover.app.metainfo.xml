@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- AppStream metadata for the BgRemover Linux packaging foundation (PR 5).
+<!-- AppStream metadata for the BgRemover Linux packages.
      The component id, the launchable desktop-id and the icon name are kept
      identical to packaging/linux/de.bgremover.app.desktop. The release version
      mirrors [project].version in pyproject.toml. -->
@@ -62,6 +62,6 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
-    <release version="2.2.0" date="2026-05-25"/>
+    <release version="2.3.0" date="2026-06-04"/>
   </releases>
 </component>

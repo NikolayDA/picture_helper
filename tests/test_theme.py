@@ -1,11 +1,7 @@
 """Schützt die zentralisierte UI-Farbpalette (_Theme).
 
-Hintergrund: Die zuvor dutzendfach inline wiederholten Stylesheet-Farben
-sind in `_Theme` gebündelt. Die Refaktorierung wurde als
-*byte-identisch* verifiziert (alle 218 Widget-Stylesheets unverändert).
-Diese Tests dokumentieren die kanonischen Werte und verteidigen die
-Entfernung der toten Konstanten gegen eine versehentliche
-Wiedereinführung.
+Die Tests dokumentieren die kanonischen Werte und verteidigen die
+Entfernung der toten Konstanten gegen eine versehentliche Wiedereinführung.
 """
 import ast
 from pathlib import Path
@@ -20,9 +16,8 @@ _PKG = Path(__file__).resolve().parent.parent / "bgremover"
 def _pkg_assigned_names() -> set[str]:
     """Sammelt die Modul-Level ``Name``-Ziele aller Zuweisungen im Paket.
 
-    Verteidigt die Regel ``BTN_STYLE``/``GRP_STYLE`` bleiben tot –
-    unabhaengig davon, in welchem Paket-Modul jemand sie kuenftig
-    versehentlich wieder anlegen wuerde.
+    Prüft paketweit, dass ``BTN_STYLE``/``GRP_STYLE`` nicht erneut als
+    Modulkonstanten auftauchen.
     """
     names: set[str] = set()
     for p in sorted(_PKG.glob("*.py")):

@@ -1,4 +1,4 @@
-"""Qt plugin path setup shared by the app and local test helpers."""
+"""Qt-Pluginpfad-Setup für App-Start und lokale Test-Helfer."""
 
 from __future__ import annotations
 
@@ -60,14 +60,12 @@ def _secure_stage_root(base_tmp: Path, qt_version: str) -> Path | None:
     den versionierten Unterordner zurück; ``None``, wenn der Pfad nicht
     abgesichert werden kann.
 
-    Der frühere Code nutzte einen für alle Nutzer vorhersagbaren,
-    welt-schreibbaren Pfad (``/private/tmp/bgremover_qt_plugins/<ver>``). Ein
-    anderer lokaler Nutzer konnte dort die ausführbaren Qt-Plugin-Dylibs
-    vorab platzieren – beim ``QApplication``-Start hätte Qt fremden Code aus
-    diesem Verzeichnis geladen. Ein nutzerspezifisches, auf ``0700``
-    beschränktes Verzeichnis (Name inkl. UID) schließt dieses Pre-Seeding
-    aus: gehört das Verzeichnis bereits jemand anderem, schlägt ``chmod``
-    fehl bzw. ``_secure_dir`` lehnt ab und das Staging unterbleibt.
+    Ein nutzerspezifisches, auf ``0700`` beschränktes Verzeichnis (Name
+    inkl. UID) verhindert, dass ein anderer lokaler Nutzer ausführbare
+    Qt-Plugin-Dylibs vorab in einen gemeinsam beschreibbaren Temp-Pfad
+    legt. Gehört das Verzeichnis bereits jemand anderem, schlägt
+    ``chmod`` fehl bzw. ``_secure_dir`` lehnt ab und das Staging
+    unterbleibt.
     """
     uid = os.geteuid() if _POSIX else 0
     root = base_tmp / f"bgremover_qt_plugins_{uid}"
@@ -94,11 +92,11 @@ def _copy_if_needed(src: Path, dst: Path) -> None:
     """Kopiert *src* nach *dst*, wenn nötig – atomar und ohne vorhersagbare
     Zwischendatei.
 
-    Ein SHA-256-Inhaltsvergleich (statt des früheren reinen Größenvergleichs)
-    entscheidet, ob neu kopiert wird: eine untergeschobene Datei gleicher
-    Größe würde sonst unbemerkt geladen. Die Zwischendatei bekommt über
-    ``mkstemp`` einen eindeutigen Namen im Zielverzeichnis – kein fester
-    ``.tmp``-Name, den ein Angreifer vorab als Symlink anlegen könnte.
+    Ein SHA-256-Inhaltsvergleich entscheidet, ob neu kopiert wird: eine
+    untergeschobene Datei gleicher Größe würde sonst unbemerkt geladen.
+    Die Zwischendatei bekommt über ``mkstemp`` einen eindeutigen Namen im
+    Zielverzeichnis – kein fester ``.tmp``-Name, den ein Angreifer vorab
+    als Symlink anlegen könnte.
     """
     if dst.exists():
         dst_stat = dst.stat()
@@ -120,11 +118,12 @@ def _copy_if_needed(src: Path, dst: Path) -> None:
 
 
 def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
-    """Copy Qt platform plugins to temp if they are visible to Python.
+    """Kopiert Qt-Platform-Plugins bei Bedarf in ein Temp-Verzeichnis.
 
-    Some macOS runners can let Python list a venv under Documents while Qt's
-    own directory listing sees an empty plugin directory. A temp copy avoids
-    that privacy/sandbox edge case without changing the user's environment.
+    Manche macOS-Läufe können eine venv unter ``Documents`` aus Python
+    heraus lesen, während Qts eigene Verzeichnisabfrage dort keine
+    Plugin-Dateien sieht. Die temporäre Kopie umgeht diesen
+    Datenschutz-/Sandbox-Randfall, ohne die Nutzerumgebung zu verändern.
     Das Staging-Ziel ist ein nutzerspezifisches ``0700``-Verzeichnis (siehe
     ``_secure_stage_root``); lässt es sich nicht absichern, unterbleibt das
     Staging und der Aufrufer fällt auf den Original-Pluginpfad zurück.
@@ -153,7 +152,7 @@ def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
 
 
 def ensure_qt_plugin_path() -> None:
-    """Make PyQt6 platform plugins discoverable before QApplication starts."""
+    """Macht PyQt6-Platform-Plugins vor ``QApplication`` auffindbar."""
     try:
         import PyQt6  # noqa: F401 -- only used for package location
     except ImportError:

@@ -1,9 +1,8 @@
-"""Rollout guards for the i18n runtime languages (PR 4b).
+"""Guards für die Runtime-i18n-Sprachen.
 
-PR 4b adds English as a runtime language plus a language selector in the
-settings dialog. These tests enforce that every locale stays key-for-key and
-placeholder-for-placeholder in sync with German, that the whole UI builds under
-each locale, and that the selector persists the choice with a restart hint.
+Diese Tests stellen sicher, dass jede Locale key- und platzhaltergenau mit
+Deutsch synchron bleibt, die UI unter jeder Locale baut und die Sprachauswahl
+persistiert wird.
 """
 from __future__ import annotations
 
@@ -45,7 +44,7 @@ def _use_settings_path(tmp_path) -> QSettings:
     return settings
 
 
-# ── Cross-locale table invariants ──────────────────────────────────────
+# ── Tabelleninvarianten über Locales hinweg ────────────────────────────
 
 def test_every_locale_matches_german_keys() -> None:
     de_keys = set(i18n._TRANSLATIONS[DEFAULT_LOCALE])
@@ -87,7 +86,7 @@ def test_english_is_available() -> None:
     assert "en" in available_locales()
 
 
-# ── Per-locale UI smoke ────────────────────────────────────────────────
+# ── UI-Smoke je Locale ─────────────────────────────────────────────────
 
 @pytest.mark.parametrize("locale", list(available_locales()))
 def test_main_window_builds_in_every_locale(qapp, tmp_path, locale) -> None:

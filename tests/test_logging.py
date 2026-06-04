@@ -1,4 +1,4 @@
-"""Tests für das Logging-Setup (Fix A3).
+"""Tests für das Logging-Setup.
 
 Vor dem Fix landeten Ausnahmen in ``apply_remove``/``apply_replace`` und
 im ``AIWorker`` nur über ``traceback.print_exc()`` auf stderr — nie im
