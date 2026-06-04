@@ -34,7 +34,7 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | 测试套件审计：过期测试、缺失 assertion、私有耦合、覆盖率缺口 | 🔴 高 | 🔴 高 | 🔴 发现 → 已在 PR #173；其余：拆分并细化 |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | 代码审查：质量、可维护性与小问题 | 🔴 高 | 🟡 中 | Medium 发现（竞态、TOCTOU）→ 可提 PR；Low 发现：合并处理 |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | 代码审查：质量、可维护性与小问题 | 🔴 高 | 🟡 中 | Medium 发现（竞态、TOCTOU）→ 已在 PR #174；Low 发现：合并处理 |
 | [#164](https://github.com/NikolayDA/picture_helper/issues/164) | 文档审查：INSTALL_MAC.md & INSTALL_LINUX.md — 4 个问题 | 🔴 高 | 🟢 低 | PR #172 进行中 |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md：版本链接损坏 + 缺少 2.3.0 条目 | 🔴 高 | 🟡 中 | 内容更新 → 可提 PR；git tag 需要细化 |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md：与当前代码相比存在三处不准确 | 🟡 中 | 🟢 低 | 可提 PR |
@@ -45,7 +45,7 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 1. **#164** — 安装文档（Python 3.11 AI 提示、Releases 链接 + 本地化 UI 字符串）：已在 **PR #172** 中实现（全部六个语言版本；待合并）。
 2. **#168 🔴** — `test_canvas_events.py:174`（locale assertion 在 CI 中已损坏）和 `test_async_load.py:34`（弱 OR assertion）：已在 **PR #173** 中实现（待合并；#168 其余发现另行处理）。
-3. **#167 Medium** — `_ensure_rembg_remove()` 中的双重检查锁 + `open_validated_image` 中的 TOCTOU 窗口：干净的 bugfix PR。
+3. **#167 Medium** — `_ensure_rembg_remove()` 中的双重检查锁 + `open_validated_image` 中的 TOCTOU 窗口：已在 **PR #174** 中实现（待合并；Low 发现另行处理）。
 4. **#165** — TESTING.md 修正：风险低，范围明确。
 5. **#163 内容** — 在 CHANGELOG 中补充缺失的 2.3.0 特性及 `[Unreleased]` 条目；git tag 单独处理。
 6. **#161 部分** — 从 README 架构说明中移除"Runde 5"术语（clone URL 修复需要关于仓库可见性的决策）。

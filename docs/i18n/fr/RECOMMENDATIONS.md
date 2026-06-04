@@ -39,7 +39,7 @@ la baseline avant de nouveaux PRs.
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Audit de la suite de tests : tests obsolètes, assertions manquantes, couplage privé, lacunes de couverture | 🔴 Haute | 🔴 Haute | Constats 🔴 → dans PR #173 ; reste : diviser et affiner |
-| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revue de code : qualité, maintenabilité et problèmes mineurs | 🔴 Haute | 🟡 Moyenne | Constats Medium (race, TOCTOU) → Prêts pour PR ; constats Low : regrouper |
+| [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revue de code : qualité, maintenabilité et problèmes mineurs | 🔴 Haute | 🟡 Moyenne | Constats Medium (race, TOCTOU) → dans PR #174 ; constats Low : regrouper |
 | [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revue de docs : INSTALL_MAC.md & INSTALL_LINUX.md — 4 problèmes | 🔴 Haute | 🟢 Basse | PR #172 ouvert |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md : liens de version brisés + entrées 2.3.0 manquantes | 🔴 Haute | 🟡 Moyenne | Modifications de contenu → Prêtes pour PR ; tags git à affiner séparément |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR |
@@ -50,7 +50,7 @@ la baseline avant de nouveaux PRs.
 
 1. **#164** — Docs d'installation (note IA Python 3.11, lien releases + chaînes UI localisées) : implémenté dans **PR #172** (les six versions linguistiques ; fusion en attente).
 2. **#168 🔴** — `test_canvas_events.py:174` (assertion locale déjà cassée en CI) et `test_async_load.py:34` (assertion OR faible) : implémenté dans **PR #173** (fusion en attente ; autres constats #168 séparément).
-3. **#167 Medium** — Verrou double-vérification dans `_ensure_rembg_remove()` + fenêtre TOCTOU dans `open_validated_image` : PR de bugfix propre.
+3. **#167 Medium** — Verrou double-vérification dans `_ensure_rembg_remove()` + fenêtre TOCTOU dans `open_validated_image` : implémenté dans **PR #174** (fusion en attente ; constats Low séparément).
 4. **#165** — Corrections de TESTING.md : faible risque et bien délimité.
 5. **#163 contenu** — Ajouter les features 2.3.0 manquantes + entrées `[Unreleased]` dans CHANGELOG ; gérer les tags git séparément.
 6. **#161 partiel** — Supprimer le jargon « Runde 5 » du texte d'architecture du README (correction de l'URL de clonage nécessite une décision de visibilité du dépôt).
