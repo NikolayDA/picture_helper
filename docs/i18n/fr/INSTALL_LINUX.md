@@ -20,7 +20,7 @@ plus simple — **sans venv, sans pip et sans checkout Git** :
 - **`.deb` :** paquet installable pour Debian/Ubuntu/Raspberry Pi OS avec entrée
   de menu et désinstallation propre via apt/dpkg.
 
-Téléchargez l'artefact adapté depuis le GitHub Release :
+Téléchargez l'artefact adapté depuis la [page des releases GitHub](https://github.com/NikolayDA/picture_helper/releases) :
 
 ```bash
 # AppImage (exemple x86_64)
@@ -52,6 +52,10 @@ branche de fonctionnalité ou avec des changements locaux.
   lui-même, mais nécessitent quelques bibliothèques système X11/XCB. Sans elles,
   l'interface démarre avec l'erreur *« qt.qpa.plugin: Could not load the Qt
   platform plugin xcb »*.
+
+> **Remarque IA :** L'application principale fonctionne avec Python 3.10+. La
+> suppression d'arrière-plan par IA (`.[ai]`) nécessite **Python 3.11 ou plus
+> récent** (les builds actuels d'`onnxruntime` et de `rembg` ciblent Python 3.11+).
 
 ### Installer les paquets système
 
@@ -118,7 +122,7 @@ remplacer `/PFAD/ZU/picture_helper` par le chemin absolu du projet :
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Supprimer l'arrière-plan et modifier les images
 Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
@@ -209,7 +213,7 @@ remplacer `/PFAD/ZU/picture_helper` par le chemin absolu du projet :
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Supprimer l'arrière-plan et modifier les images
 Exec=/PFAD/ZU/picture_helper/bgremover.sh
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;
@@ -283,8 +287,8 @@ réexécutée après `git pull` — sauf si les dépendances dans
   ```
 - **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
   télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans
-  `~/.u2net`). La barre d'état affiche « 🤖 KI-Modell wird geladen… »
-  puis « 🤖 KI bereit ».
+  `~/.u2net`). La barre d'état affiche « 🤖 Chargement du modèle IA… »
+  puis « 🤖 IA prête ».
 - **L'application démarre sans IA / « No onnxruntime backend found »** → l'extra
   `ai` n'a pas été installé. L'installer après coup dans le venv :
   ```bash

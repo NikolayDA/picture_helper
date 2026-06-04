@@ -20,7 +20,7 @@
 - **`.deb`:** встановлюваний пакет для Debian/Ubuntu/Raspberry Pi OS із пунктом
   меню та чистим видаленням через apt/dpkg.
 
-Завантажте відповідний артефакт із GitHub Release:
+Завантажте відповідний артефакт зі [сторінки релізів GitHub](https://github.com/NikolayDA/picture_helper/releases):
 
 ```bash
 # AppImage (приклад x86_64)
@@ -52,6 +52,10 @@ sudo apt install ./BgRemover-*-amd64.deb
   але потребують деяких системних бібліотек X11/XCB. Без них
   GUI запускається з помилкою *«qt.qpa.plugin: Could not load the Qt
   platform plugin xcb»*.
+
+> **Примітка щодо ШІ:** Основний застосунок працює на Python 3.10+.
+> Видалення фону за допомогою ШІ (`.[ai]`) потребує **Python 3.11 або новішого**
+> (поточні builds `onnxruntime` та `rembg` орієнтовані на Python 3.11+).
 
 ### Встановлення системних пакетів
 
@@ -118,7 +122,7 @@ python3 -m bgremover
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Видалення фону та редагування зображень
 Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
@@ -209,7 +213,7 @@ chmod +x bgremover.sh
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Видалення фону та редагування зображень
 Exec=/PFAD/ZU/picture_helper/bgremover.sh
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;

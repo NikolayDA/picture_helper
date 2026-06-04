@@ -20,7 +20,7 @@ cómoda — **sin venv, sin pip y sin checkout de Git**:
 - **`.deb`:** paquete instalable para Debian/Ubuntu/Raspberry Pi OS con entrada
   de menú y desinstalación limpia vía apt/dpkg.
 
-Descarga el artefacto adecuado desde el GitHub Release:
+Descarga el artefacto adecuado desde la [página de releases de GitHub](https://github.com/NikolayDA/picture_helper/releases):
 
 ```bash
 # AppImage (ejemplo x86_64)
@@ -52,6 +52,10 @@ instrucciones venv/Git siguientes siguen siendo útiles si quieres probar desde
   contienen Qt en sí, pero necesitan algunas bibliotecas de sistema
   X11/XCB. Sin ellas, la GUI se inicia con el error *«qt.qpa.plugin:
   Could not load the Qt platform plugin xcb»*.
+
+> **Nota sobre la IA:** La app principal funciona con Python 3.10+. La
+> eliminación de fondo con IA (`.[ai]`) requiere **Python 3.11 o posterior**
+> (los builds actuales de `onnxruntime` y `rembg` apuntan a Python 3.11+).
 
 ### Instalar paquetes de sistema
 
@@ -119,7 +123,7 @@ reemplaza `/PFAD/ZU/picture_helper` por la ruta absoluta del proyecto:
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Quitar el fondo y editar imágenes
 Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
@@ -210,7 +214,7 @@ reemplaza `/PFAD/ZU/picture_helper` por la ruta absoluta del proyecto:
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=Quitar el fondo y editar imágenes
 Exec=/PFAD/ZU/picture_helper/bgremover.sh
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;

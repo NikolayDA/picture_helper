@@ -39,7 +39,7 @@ baseline before new PRs.
 |---|-------|-----------|------------|----------------|
 | [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Test suite audit: stale tests, missing assertions, private coupling, coverage gaps | 🔴 High | 🔴 High | 🔴 findings → Ready for PR immediately; remainder: split & refine |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Code review: quality, maintainability & minor issues | 🔴 High | 🟡 Medium | Medium findings (race, TOCTOU) → Ready for PR; Low findings: batch together |
-| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 High | 🟢 Low | Ready for PR |
+| [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Doc review: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 High | 🟢 Low | PR #172 open |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: broken version links + missing 2.3.0 entries | 🔴 High | 🟡 Medium | Content changes → Ready for PR; git tagging needs refinement |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: three inaccuracies vs. current codebase | 🟡 Medium | 🟢 Low | Ready for PR |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | "Runde 5" jargon fix → Ready for PR; clone URL → Blocked (repo visibility decision) |
@@ -47,7 +47,7 @@ baseline before new PRs.
 
 ### Recommended PR Order
 
-1. **#164** — Install docs (Python 3.10/AI warning + English UI strings): small, self-contained text changes with direct user impact.
+1. **#164** — Install docs (Python 3.11 AI note, Releases link + localized UI strings): implemented in **PR #172** (all six language versions; merge pending).
 2. **#168 🔴** — `test_canvas_events.py:174` (locale assertion already broken in CI) and `test_async_load.py:34` (weak OR assertion): focused bugfix PR.
 3. **#167 Medium** — Double-checked lock in `_ensure_rembg_remove()` + TOCTOU window in `open_validated_image`: clean bugfix PR.
 4. **#165** — TESTING.md corrections: low-risk and well-scoped.

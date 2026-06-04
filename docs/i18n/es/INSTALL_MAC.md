@@ -15,6 +15,10 @@ un pull request abierto antes del merge).
   ```
 - **git**
 
+> **Nota sobre la IA:** La app principal funciona con Python 3.10+. La
+> eliminación de fondo con IA (`.[ai]`) requiere **Python 3.11 o posterior**
+> (los builds actuales de `onnxruntime` y `rembg` apuntan a Python 3.11+).
+
 Si faltan Python o git, lo más sencillo es mediante [Homebrew](https://brew.sh):
 ```bash
 brew install python git

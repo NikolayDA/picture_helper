@@ -15,6 +15,10 @@ pour tester une pull request ouverte avant la fusion).
   ```
 - **git**
 
+> **Remarque IA :** L'application principale fonctionne avec Python 3.10+. La
+> suppression d'arrière-plan par IA (`.[ai]`) nécessite **Python 3.11 ou plus
+> récent** (les builds actuels d'`onnxruntime` et de `rembg` ciblent Python 3.11+).
+
 Si Python ou git manquent, le plus simple est de passer par [Homebrew](https://brew.sh) :
 ```bash
 brew install python git
@@ -152,8 +156,8 @@ le venv dédié à l'application.
   puis réexécuter la commande d'installation.
 - **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
   télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans
-  `~/.u2net`). La barre d'état affiche « 🤖 KI-Modell wird geladen… »
-  puis « 🤖 KI bereit ».
+  `~/.u2net`). La barre d'état affiche « 🤖 Chargement du modèle IA… »
+  puis « 🤖 IA prête ».
 - **Gatekeeper : « développeur non vérifié »** → clic droit sur
   `BgRemover.app` → **Ouvrir**. Le script de construction supprime déjà la
   quarantaine via `xattr`, mais un clic droit suivi d'Ouvrir suffit en
