@@ -15,6 +15,10 @@
   ```
 - **git**
 
+> **Примітка щодо ШІ:** Основний застосунок працює на Python 3.10+.
+> Видалення фону за допомогою ШІ (`.[ai]`) потребує **Python 3.11 або новішого**
+> (поточні builds `onnxruntime` та `rembg` орієнтовані на Python 3.11+).
+
 Якщо Python або git відсутні, найпростіше через [Homebrew](https://brew.sh):
 ```bash
 brew install python git

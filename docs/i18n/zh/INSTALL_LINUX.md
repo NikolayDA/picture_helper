@@ -19,7 +19,7 @@ Git checkout**：
 - **`.deb`：** 面向 Debian/Ubuntu/Raspberry Pi OS 的可安装软件包，带菜单项，
   可通过 apt/dpkg 干净移除。
 
-从 GitHub Release 下载匹配的构件：
+从 [GitHub Releases 页面](https://github.com/NikolayDA/picture_helper/releases) 下载匹配的构件：
 
 ```bash
 # AppImage（x86_64 示例）
@@ -50,6 +50,10 @@ sudo apt install ./BgRemover-*-amd64.deb
   本体，但需要一些 X11/XCB 系统库。缺少它们时，
   GUI 会以错误启动失败：*“qt.qpa.plugin: Could not load the Qt
   platform plugin xcb”*。
+
+> **AI 说明：** 核心应用可在 Python 3.10+ 上运行。AI 背景移除
+> （`.[ai]`）需要 **Python 3.11 或更新版本**（当前的 `onnxruntime` 和
+> `rembg` 构建面向 Python 3.11+）。
 
 ### 安装系统软件包
 
@@ -116,7 +120,7 @@ python3 -m bgremover
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=移除背景并编辑图片
 Exec=python3 -m bgremover
 Path=/PFAD/ZU/picture_helper
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
@@ -207,7 +211,7 @@ chmod +x bgremover.sh
 [Desktop Entry]
 Type=Application
 Name=BgRemover
-Comment=Hintergrund entfernen und Bilder bearbeiten
+Comment=移除背景并编辑图片
 Exec=/PFAD/ZU/picture_helper/bgremover.sh
 Icon=/PFAD/ZU/picture_helper/BgRemover_icon.png
 Categories=Graphics;Photography;
