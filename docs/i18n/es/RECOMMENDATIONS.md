@@ -37,7 +37,7 @@ siguen siendo la baseline antes de nuevos PRs.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Auditoría de la suite de tests: tests obsoletos, assertions faltantes, acoplamiento privado, brechas de cobertura | 🔴 Alta | 🔴 Alta | Hallazgos 🔴 → Listos para PR de inmediato; resto: dividir y refinar |
+| [#168](https://github.com/NikolayDA/picture_helper/issues/168) | Auditoría de la suite de tests: tests obsoletos, assertions faltantes, acoplamiento privado, brechas de cobertura | 🔴 Alta | 🔴 Alta | Hallazgos 🔴 → en PR #173; resto: dividir y refinar |
 | [#167](https://github.com/NikolayDA/picture_helper/issues/167) | Revisión de código: calidad, mantenibilidad y problemas menores | 🔴 Alta | 🟡 Media | Hallazgos Medium (race, TOCTOU) → Listos para PR; hallazgos Low: agrupar |
 | [#164](https://github.com/NikolayDA/picture_helper/issues/164) | Revisión de docs: INSTALL_MAC.md & INSTALL_LINUX.md — 4 issues | 🔴 Alta | 🟢 Baja | PR #172 abierto |
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: enlaces de versión rotos + entradas 2.3.0 faltantes | 🔴 Alta | 🟡 Media | Cambios de contenido → Listos para PR; etiquetas git necesitan refinamiento |
@@ -48,7 +48,7 @@ siguen siendo la baseline antes de nuevos PRs.
 ### Orden de PRs Recomendado
 
 1. **#164** — Docs de instalación (aviso Python 3.11/IA, enlace a releases + cadenas UI localizadas): implementado en **PR #172** (las seis versiones de idioma; merge pendiente).
-2. **#168 🔴** — `test_canvas_events.py:174` (assertion de locale ya rota en CI) y `test_async_load.py:34` (assertion OR débil): PR de bugfix enfocado.
+2. **#168 🔴** — `test_canvas_events.py:174` (assertion de locale ya rota en CI) y `test_async_load.py:34` (assertion OR débil): implementado en **PR #173** (merge pendiente; resto de hallazgos #168 aparte).
 3. **#167 Medium** — Double-checked lock en `_ensure_rembg_remove()` + ventana TOCTOU en `open_validated_image`: PR de bugfix limpio.
 4. **#165** — Correcciones de TESTING.md: bajo riesgo y bien delimitado.
 5. **#163 contenido** — Añadir features 2.3.0 faltantes + entradas `[Unreleased]` en CHANGELOG; gestionar etiquetas git por separado.
