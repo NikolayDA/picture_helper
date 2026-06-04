@@ -39,7 +39,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | charset-normalizer | 3.4.6 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | coverage | 7.14.0 | `Apache-2.0` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
 | flatbuffers | 25.12.19 | `Apache Software License` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
-| idna | 3.11 | `BSD-3-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
+| idna | 3.15 | `BSD-3-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | ImageIO | 2.37.3 | `BSD-2-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | iniconfig | 2.3.0 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | jsonschema | 4.26.0 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
@@ -77,7 +77,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | tifffile | 2026.3.3 | `BSD-3-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | tqdm | 4.67.3 | `MPL-2.0 AND MIT` | Copyleft débil (archivo) | Copyleft débil, a nivel de archivo. Se permite el uso comercial; solo los cambios en los propios archivos con licencia MPL deben divulgarse de nuevo bajo MPL. Compatible con GPL-3.0. |
 | typing_extensions | 4.15.0 | `PSF-2.0` | Permisiva | Licencia permisiva de la Python Software Foundation. Se permite el uso comercial y propietario; conservar el aviso de licencia y de copyright. |
-| urllib3 | 2.6.3 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
+| urllib3 | 2.7.0 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 
 ## Fuentes / páginas del proyecto
 
