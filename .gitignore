@@ -23,3 +23,8 @@ license-raw-all-installed.md
 
 # JetBrains IDE (PyCharm/IntelliJ) – maschinenspezifische Konfiguration
 .idea/
+
+# Laufzeit-/Export-Artefakte aus lokalen Screenshot-Läufen (die nummerierten
+# Doku-Screenshots werden committet, _runtime/ und _exports/ nicht)
+app_screenshots/**/_runtime/
+app_screenshots/**/_exports/
