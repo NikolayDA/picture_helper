@@ -4,6 +4,8 @@
 Schritt im Hintergrund aus; ``ImageCanvas.apply_loaded_image`` übernimmt
 das Ergebnis ohne erneuten Disk-IO.
 """
+from pathlib import Path
+
 from PIL import Image
 
 from bgremover import ImageCanvas, ImageLoadWorker
@@ -31,7 +33,10 @@ def test_apply_loaded_image_emits_image_loaded(qapp):
     canvas.imageLoaded.connect(received.append)
     img = Image.new("RGBA", (10, 10), (1, 2, 3, 255))
     canvas.apply_loaded_image(img, "/tmp/x.png")
-    assert received == ["/tmp/x.png"] or received[0].endswith("x.png")
+    # imageLoaded liefert laut Signal-Vertrag den aufgeloesten absoluten Pfad
+    # (str(Path(path).resolve())) – plattformneutral exakt pruefen statt per
+    # schwacher OR-Klausel, die jeden auf "x.png" endenden Pfad durchwinkt.
+    assert received == [str(Path("/tmp/x.png").resolve())]
 
 
 def test_image_load_worker_emits_finished(qapp, tmp_path):
