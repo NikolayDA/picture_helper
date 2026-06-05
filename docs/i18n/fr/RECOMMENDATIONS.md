@@ -40,19 +40,25 @@ la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-05)
 
-8 issues ouvertes, toutes `documentation` ou `quality/testing`. Aucun bug de
-code ouvert (🔴) : les constats critiques de #167/#168 ont été livrés via
-#173/#174 ; il reste des corrections de documentation et du durcissement de
-tests.
+12 issues ouvertes : `documentation`, `quality/testing` ainsi que **quatre
+nouveaux constats de sécurité** (#182–#185) du scan Codex `8c04b92`. Aucun bug
+de code 🔴 ouvert — mais **#184** (le chargement d'image asynchrone peut écraser
+des éditions plus récentes, intégrité des données) et **#182** (l'AppImage de
+release contourne les contraintes de dépendances, chaîne d'approvisionnement)
+sont à prioriser au-dessus des items docs/tests.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md : liens de version brisés + entrées 2.3.0 manquantes | 🔴 Haute | 🟡 Moyenne | Modifications de contenu → Prêtes pour PR ; tags git à affiner séparément |
+| [#182](https://github.com/NikolayDA/picture_helper/issues/182) | Sécurité : le release AppImage Linux contourne les contraintes de dépendances (chaîne d'approvisionnement) | 🟠 Haute | 🟡 Moyenne | Prêt pour PR ; intégrer les constraints dans le build + test de régression |
+| [#184](https://github.com/NikolayDA/picture_helper/issues/184) | Sécurité : le chargement d'image asynchrone peut écraser des éditions plus récentes (intégrité des données) | 🟠 Haute | 🟡 Moyenne | Prêt pour PR ; capturer génération/`content_revision` + test de régression |
 | [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Suite de l'audit de tests (Medium) : assertions comportementales + lacunes de couverture | 🟠 Haute | 🟡 Moyenne | Prêt pour PR (de #168) ; commentaire 2026-06-05 ajoute `history_popup.py` (35 % couverture) |
+| [#183](https://github.com/NikolayDA/picture_helper/issues/183) | Sécurité : le token du workflow license-check de PR est trop large (durcissement CI) | 🟡 Moyenne | 🟡 Moyenne | Prêt pour PR ; exécuter le code de PR en lecture seule, séparer le job de commentaire |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; regrouper avec #180 |
 | [#180](https://github.com/NikolayDA/picture_helper/issues/180) | TESTING.md : deux inexactitudes (filtre addopts, ligne coverage manquante) | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; chevauche #165 (addopts) — à faire ensemble |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Suite de la revue de code (Low) : E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (de #167) |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Partiellement bloqué : jargon « Runde 5 » corrigé ; URL de clonage reportée (décision de l'owner) |
+| [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Sécurité : le diagnostic macOS divulgue des chemins locaux + queue de log brute (vie privée) | 🟢 Basse | 🟡 Moyenne | Prêt pour PR ; masquer `$HOME`/chemins + flag `--include-raw-logs` + test shell |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Suite de l'audit de tests (Low) : découpler des internals privés + dédupliquer | 🟢 Basse | 🟡 Moyenne | Prêt pour PR (de #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Audit des commentaires : incohérences de langue et imprécision mineure | 🟢 Basse | 🟢 Basse | Prêt pour PR |
 
@@ -60,11 +66,15 @@ tests.
 
 1. **#165 + #180** — Corrections de TESTING.md regroupées (les deux touchent le filtre `addopts`) : faible risque et bien délimité.
 2. **#163 contenu** — Ajouter les features 2.3.0 manquantes + entrées `[Unreleased]` dans CHANGELOG ; gérer les tags git séparément.
-3. **#177** — Durcissement des tests : ajouter des assertions comportementales + combler les lacunes de couverture, incl. `history_popup.py` (de #168).
-4. **#176** — Lot qualité de code de #167 : E741, check_untyped_defs, UX de cancel_ai, shutdown_all.
-5. **#178** — Découpler les tests des internals privés + réduire les tests en double (de #168).
-6. **#166** — Nettoyage de langue dans les docstrings en tant que petit PR de maintenance.
-7. **#161 reporté** — « Runde 5 » fait ; il ne reste que l'URL de clonage (décision de l'owner sur la visibilité du dépôt).
+3. **#184** — Corriger la condition de course asynchrone (intégrité des données) : revérifier génération/`content_revision` avant `apply_loaded_image` + test de régression.
+4. **#182** — Intégrer `requirements/constraints.txt` dans le build AppImage + test de régression (durcissement de la chaîne d'approvisionnement des artefacts de release).
+5. **#177** — Durcissement des tests : ajouter des assertions comportementales + combler les lacunes de couverture, incl. `history_popup.py` (de #168).
+6. **#183** — Durcir le workflow license-check : exécuter le code de PR en lecture seule, déplacer `pull-requests: write` dans un job de commentaire séparé.
+7. **#176** — Lot qualité de code de #167 : E741, check_untyped_defs, UX de cancel_ai, shutdown_all.
+8. **#185** — Masquer le diagnostic macOS (`$HOME`/chemins) + flag `--include-raw-logs` + test shell.
+9. **#178** — Découpler les tests des internals privés + réduire les tests en double (de #168).
+10. **#166** — Nettoyage de langue dans les docstrings en tant que petit PR de maintenance.
+11. **#161 reporté** — « Runde 5 » fait ; il ne reste que l'URL de clonage (décision de l'owner sur la visibilité du dépôt).
 
 ## Séries Précédentes
 
