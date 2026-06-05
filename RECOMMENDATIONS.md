@@ -40,18 +40,24 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-05)
 
-8 offene Issues, ausschließlich `documentation` und `quality/testing`. Keine
-offenen Code-Fehler (🔴): die kritischen Befunde aus #167/#168 sind via
-#173/#174 ausgeliefert; was bleibt, sind Doku-Korrekturen und Test-Härtung.
+12 offene Issues: `documentation`, `quality/testing` sowie **vier neue
+Security-Befunde** (#182–#185) aus dem Codex-Scan `8c04b92`. Kein offener
+🔴-Code-Fehler – aber **#184** (Async-Bildladen überschreibt neuere Edits,
+Datenintegrität) und **#182** (Release-AppImage umgeht Dependency-Constraints,
+Supply-Chain) sind höher zu priorisieren als die Doku-/Test-Befunde.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
+| [#182](https://github.com/NikolayDA/picture_helper/issues/182) | Security: Linux-AppImage-Release umgeht Dependency-Constraints (Supply-Chain) | 🟠 Hoch | 🟡 Mittel | PR-bereit; Constraints in den Build verdrahten + Regressionstest |
+| [#184](https://github.com/NikolayDA/picture_helper/issues/184) | Security: Async-Bildladen kann neuere Edits überschreiben (Datenintegrität) | 🟠 Hoch | 🟡 Mittel | PR-bereit; Generation/`content_revision`-Check + Regressionstest |
 | [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Test-Audit-Folge (Medium): Behavioral-Assertions + Coverage-Lücken | 🟠 Hoch | 🟡 Mittel | PR-bereit (aus #168); Kommentar 2026-06-05 ergänzt `history_popup.py` (35 % Coverage) |
+| [#183](https://github.com/NikolayDA/picture_helper/issues/183) | Security: PR-license-check-Workflow-Token zu breit (CI-Härtung) | 🟡 Mittel | 🟡 Mittel | PR-bereit; PR-Code read-only ausführen, Kommentar-Job trennen |
 | [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit; mit #180 bündeln |
 | [#180](https://github.com/NikolayDA/picture_helper/issues/180) | TESTING.md: 2 Ungenauigkeiten (addopts-Filter, fehlende coverage-Zeile) | 🟡 Mittel | 🟢 Niedrig | PR-bereit; überschneidet sich mit #165 (addopts) – gemeinsam erledigen |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167) |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Teilweise blockiert: „Runde 5" erledigt; Clone-URL zurückgestellt (Owner-Entscheidung) |
+| [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Security: macOS-Diagnose offenbart lokale Pfade + Roh-Log-Tail (Privacy) | 🟢 Niedrig | 🟡 Mittel | PR-bereit; `$HOME`/Pfade redaktieren + `--include-raw-logs`-Flag + Shell-Test |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Test-Audit-Folge (Low): private Internals entkoppeln + Doppeltests | 🟢 Niedrig | 🟡 Mittel | PR-bereit (aus #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Kommentar-Audit: Sprachinkonsistenz & kleine Ungenauigkeit | 🟢 Niedrig | 🟢 Niedrig | PR-bereit |
 
@@ -59,11 +65,15 @@ offenen Code-Fehler (🔴): die kritischen Befunde aus #167/#168 sind via
 
 1. **#165 + #180** — TESTING.md-Korrekturen gebündelt (beide betreffen den `addopts`-Filter): risikoarm und gut abgegrenzt.
 2. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
-3. **#177** — Test-Härtung: Behavioral-Assertions ergänzen + Coverage-Lücken schließen, inkl. `history_popup.py` (aus #168).
-4. **#176** — Code-Quality-Sammlung aus #167: E741, check_untyped_defs, cancel_ai-UX, shutdown_all.
-5. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
-6. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
-7. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
+3. **#184** — Async-Race beheben (Datenintegrität): Load-Generation/`content_revision` vor `apply_loaded_image` prüfen + Regressionstest.
+4. **#182** — `requirements/constraints.txt` in den AppImage-Build verdrahten + Regressionstest (Supply-Chain-Härtung der Release-Artefakte).
+5. **#177** — Test-Härtung: Behavioral-Assertions ergänzen + Coverage-Lücken schließen, inkl. `history_popup.py` (aus #168).
+6. **#183** — license-check-Workflow härten: PR-Code read-only ausführen, `pull-requests: write` in einen separaten Kommentar-Job ziehen.
+7. **#176** — Code-Quality-Sammlung aus #167: E741, check_untyped_defs, cancel_ai-UX, shutdown_all.
+8. **#185** — macOS-Diagnose redaktieren (`$HOME`/Pfade) + `--include-raw-logs`-Flag + Shell-Test.
+9. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
+10. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+11. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
 
 ## Vorige Runden
 
