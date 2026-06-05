@@ -38,23 +38,29 @@ la baseline avant de nouveaux PRs.
   clé par clé dans `bgremover.i18n` et les protéger par des tests de
   parité/smoke.
 
-## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-04)
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-05)
+
+8 issues ouvertes, toutes `documentation` ou `quality/testing`. Aucun bug de
+code ouvert (🔴) : les constats critiques de #167/#168 ont été livrés via
+#173/#174 ; il reste des corrections de documentation et du durcissement de
+tests.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md : liens de version brisés + entrées 2.3.0 manquantes | 🔴 Haute | 🟡 Moyenne | Modifications de contenu → Prêtes pour PR ; tags git à affiner séparément |
-| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Suite de l'audit de tests (Medium) : assertions comportementales + lacunes de couverture | 🟠 Haute | 🟡 Moyenne | Prêt pour PR (de #168) |
-| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR |
+| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Suite de l'audit de tests (Medium) : assertions comportementales + lacunes de couverture | 🟠 Haute | 🟡 Moyenne | Prêt pour PR (de #168) ; commentaire 2026-06-05 ajoute `history_popup.py` (35 % couverture) |
+| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md : trois inexactitudes par rapport au code actuel | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; regrouper avec #180 |
+| [#180](https://github.com/NikolayDA/picture_helper/issues/180) | TESTING.md : deux inexactitudes (filtre addopts, ligne coverage manquante) | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; chevauche #165 (addopts) — à faire ensemble |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Suite de la revue de code (Low) : E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (de #167) |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Jargon « Runde 5 » corrigé ; URL de clonage reportée (décision de l'owner) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Partiellement bloqué : jargon « Runde 5 » corrigé ; URL de clonage reportée (décision de l'owner) |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Suite de l'audit de tests (Low) : découpler des internals privés + dédupliquer | 🟢 Basse | 🟡 Moyenne | Prêt pour PR (de #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Audit des commentaires : incohérences de langue et imprécision mineure | 🟢 Basse | 🟢 Basse | Prêt pour PR |
 
 ### Ordre de PR Recommandé
 
-1. **#165** — Corrections de TESTING.md : faible risque et bien délimité.
+1. **#165 + #180** — Corrections de TESTING.md regroupées (les deux touchent le filtre `addopts`) : faible risque et bien délimité.
 2. **#163 contenu** — Ajouter les features 2.3.0 manquantes + entrées `[Unreleased]` dans CHANGELOG ; gérer les tags git séparément.
-3. **#177** — Durcissement des tests : ajouter des assertions comportementales + combler les lacunes de couverture (de #168).
+3. **#177** — Durcissement des tests : ajouter des assertions comportementales + combler les lacunes de couverture, incl. `history_popup.py` (de #168).
 4. **#176** — Lot qualité de code de #167 : E741, check_untyped_defs, UX de cancel_ai, shutdown_all.
 5. **#178** — Découpler les tests des internals privés + réduire les tests en double (de #168).
 6. **#166** — Nettoyage de langue dans les docstrings en tant que petit PR de maintenance.
