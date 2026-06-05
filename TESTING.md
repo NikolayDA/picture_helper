@@ -14,7 +14,7 @@ zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 | Wo                 | Wann                                                                 |
 |--------------------|----------------------------------------------------------------------|
 | **GitHub PR CI**   | bei jedem Pull Request auf `main`/`master` (Ubuntu + Python 3.12)     |
-| **GitHub Full CI** | beim Push eines Versions-Tags (Release-Kandidat), beim **Veröffentlichen eines Releases** oder **manuell** |
+| **GitHub Full CI** | beim Push eines Versions-Tags (Release-Kandidat), beim **Veröffentlichen eines Releases**, wöchentlich sonntags 06:00 UTC oder **manuell** |
 | **GitHub UI Nightly** | jede Nacht und manuell (Ubuntu + Python 3.12, UI-Interaktionstests) |
 | **Lokal/Mac**      | jederzeit per `make` – dieselben Prüfungen wie die PR-CI plus UI bei Bedarf |
 
@@ -98,13 +98,14 @@ Im Projektordner (venv aktiv):
 |--------------|---------------------------------------------------------------------------|
 | `make install-test` | Installiert das Paket nicht-editable mit `[test]` und `requirements/constraints.txt` in das Test-venv |
 | `make doctor` | Prüft Python-Version, Test-Abhängigkeiten, Paketinstallation, Console-Script und Qt-`offscreen` |
-| `make pr-check` | **Schnelle PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (UI-Tests ausgeschlossen) |
+| `make pr-check` | **Schnelle PR-Prüfung:** `install-test` + `doctor` + `ruff` + `mypy` + `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit) |
 | `make check` | Schnelle Wiederholung ohne Neuinstallation/Doctor: `ruff` + `mypy` + `pytest` |
-| `make ui`    | Nur die lokalen UI-Interaktionstests                                       |
+| `make ui`    | Volle lokale UI-Interaktionssuite inkl. `ui_smoke`                         |
 | `make all`   | Alles zusammen (`check` + `ui`)                                            |
-| `make lint`  | Nur `ruff` (Stil/Fehler)                                                   |
+| `make lint`  | `shellcheck` für Shell-Skripte (falls installiert) + `ruff` (Stil/Fehler)  |
 | `make type`  | Nur `mypy` (Typprüfung)                                                    |
-| `make test`  | Nur `pytest` (ohne UI-Tests, wie die CI)                                   |
+| `make test`  | Nur `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit)         |
+| `make coverage` | `pytest` mit Coverage-Messung und HTML-Report (`fail_under = 86`)      |
 
 Empfohlener Ablauf vor einem Pull Request:
 
@@ -125,14 +126,16 @@ Alles grün ⇒ der Stand entspricht lokal den automatischen PR-Prüfungen;
 
 `tests/test_ui_interactions.py` enthält automatische, qtbot-gesteuerte
 UI-Tests (Smoke, Zeichentools, Menü/Toolbar, Crop-Overlay,
-SettingsDialog). Sie sind mit dem Marker `ui` versehen und laufen
-**nur lokal**:
+SettingsDialog). Sie sind mit dem Marker `ui` versehen. Das kleine,
+stabile `ui_smoke`-Subset trägt zusätzlich den Marker `ui_smoke` und
+läuft in jedem normalen `pytest`-Lauf mit:
 
-- `pytest` (Standard, und damit auch PR-CI/Full-CI) **überspringt** sie
-  automatisch – konfiguriert über `addopts = "-q -m 'not ui'"` in
-  `pyproject.toml`.
-- `make ui` bzw. `pytest -m ui` führt **gezielt nur** diese Tests aus
-  (das explizite `-m ui` hebt den Standard-Ausschluss auf).
+- `pytest` (Standard, und damit auch PR-CI/Full-CI) überspringt die
+  volle UI-Suite, nimmt aber `ui_smoke` mit – konfiguriert über
+  `addopts = "-q -m 'not ui or ui_smoke'"` in `pyproject.toml`.
+- `make ui` bzw. `pytest -m ui` führt die volle UI-Suite aus, inklusive
+  der `ui_smoke`-Tests (das explizite `-m ui` hebt den
+  Standard-Ausschluss auf).
 
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet
 sich also **kein Fenster**.
@@ -149,7 +152,7 @@ python -m pytest tests/test_ui_interactions.py::test_crop_cancel -v
 # Alle UI-Tests ausführlich
 QT_QPA_PLATFORM=offscreen python -m pytest -m ui -v
 
-# Registrierte Marker anzeigen (enthält 'ui')
+# Registrierte Marker anzeigen (enthält 'ui' und 'ui_smoke')
 python -m pytest --markers
 ```
 
@@ -164,10 +167,11 @@ Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 
 **Automatisch:** Bereits beim Push eines Versions-Tags (Release-Kandidat)
 startet die volle Matrix; beim **Veröffentlichen eines Releases** (GitHub →
-Releases → *Publish release*) läuft sie erneut. Ein bloßer Branch-Push löst
-die Test-Matrix **nicht** aus; Pull Requests bekommen stattdessen die leichte
-**PR CI**. Der Workflow **UI Nightly** führt die UI-Interaktionstests jede
-Nacht und bei manueller Auslösung separat aus.
+Releases → *Publish release*) läuft sie erneut. Zusätzlich läuft die volle
+Matrix wöchentlich sonntags um 06:00 UTC per Schedule. Ein bloßer
+Branch-Push löst die Test-Matrix **nicht** aus; Pull Requests bekommen
+stattdessen die leichte **PR CI**. Der Workflow **UI Nightly** führt die
+UI-Interaktionstests jede Nacht und bei manueller Auslösung separat aus.
 
 ## Fehlerbehebung
 
@@ -184,8 +188,9 @@ Nacht und bei manueller Auslösung separat aus.
 - **UI-Test öffnet ein Fenster / hängt** –
   `QT_QPA_PLATFORM=offscreen` setzen (geschieht in `make`/`conftest.py`
   automatisch).
-- **UI-Tests laufen bei `pytest` nicht mit** – das ist beabsichtigt;
-  `make ui` bzw. `pytest -m ui` verwenden.
+- **Die volle UI-Suite läuft bei `pytest` nicht mit** – das ist
+  beabsichtigt; nur das `ui_smoke`-Subset läuft standardmäßig. Für die
+  vollständige Suite `make ui` bzw. `pytest -m ui` verwenden.
 - **`Fatal Python error: Aborted` / `Abort trap: 6` beim `qapp`-Fixture**
   – Qt kann das `offscreen`-Plugin nicht laden. Erst `make install-test`
   und danach `make doctor` ausführen; hilft das nicht, das venv auf
