@@ -12,6 +12,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Dependencies updated.** `idna` was raised to 3.15 and `urllib3` to 2.7.0;
+  `LICENSES.md` is synchronized with the new dependency snapshot.
+
 ### Fixed
 
 ### Removed
@@ -58,6 +61,19 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `main_window.py` were moved into the new `StatusMessages` class. This is not
   an i18n framework yet, just a central collection point preparing future
   localization.
+- **Runtime i18n with English support.** German and English can be switched at
+  runtime; the Settings dialog includes a persistent language selector with a
+  restart hint, and UI strings in the canvas, dialogs and right panel use the
+  central translation layer.
+- **Tool keyboard shortcuts.** Editing tools can now be switched from the
+  keyboard; toolbar tooltips and documentation list the platform-appropriate
+  shortcuts.
+- **Linux AppImage packaging.** The release build now produces an AppImage as
+  the recommended Linux end-user path, with packaging scripts, CI coverage and
+  installation notes.
+- **Linux `.deb`, aarch64/Raspberry Pi and release workflow.** Linux packaging
+  was extended with Debian packages, aarch64/Pi support and the associated
+  release workflow.
 - **Introduced QSettings schema version.** New helper
   `bgremover/settings_schema.py` with `SCHEMA_VERSION = 1` and
   `migrate(settings)`; `MainWindow.__init__` runs the migration directly after
@@ -426,8 +442,8 @@ First documented 2.0.0 release state. The repository has no historical
 - README with architecture, known limitations, and installation
   instructions; detailed `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
-[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/da7186869e63cf9612897b31d80a84c1cc409062...5fa8025dbabd997484e4739b1f547e9c59aed319
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66...da7186869e63cf9612897b31d80a84c1cc409062
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
