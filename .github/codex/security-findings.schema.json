@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scan_summary", "findings"],
+  "properties": {
+    "scan_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "method", "limitations"],
+      "properties": {
+        "scope": { "type": "string" },
+        "method": { "type": "string" },
+        "limitations": { "type": "string" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "severity",
+          "confidence",
+          "category",
+          "cwe",
+          "dedupe_key",
+          "reportable",
+          "summary",
+          "impact",
+          "evidence",
+          "affected_locations",
+          "remediation",
+          "notes"
+        ],
+        "properties": {
+          "title": { "type": "string", "minLength": 8 },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "category": { "type": "string" },
+          "cwe": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "dedupe_key": { "type": "string", "minLength": 8 },
+          "reportable": { "type": "boolean" },
+          "summary": { "type": "string" },
+          "impact": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "affected_locations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path"],
+              "properties": {
+                "path": { "type": "string" },
+                "start_line": { "type": ["integer", "null"], "minimum": 1 },
+                "end_line": { "type": ["integer", "null"], "minimum": 1 },
+                "label": { "type": "string" }
+              }
+            },
+            "minItems": 1
+          },
+          "remediation": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

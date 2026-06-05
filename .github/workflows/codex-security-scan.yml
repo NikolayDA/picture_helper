@@ -1,0 +1,151 @@
+name: Codex Security Scan
+
+on:
+  # GitHub cron has no native "every two weeks" interval. This workflow wakes
+  # up weekly and the cadence job runs the scan only every 14 days from the
+  # anchor date below.
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      min_severity:
+        description: 'Lowest severity that should create issues'
+        type: choice
+        options: [low, medium, high, critical]
+        default: low
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-security-scan
+  cancel-in-progress: false
+
+env:
+  SCAN_ANCHOR_DATE: '2026-06-08'
+
+jobs:
+  cadence:
+    name: Check 14-day cadence
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.cadence.outputs.should_run }}
+      min_severity: ${{ steps.config.outputs.min_severity }}
+    steps:
+      - name: Resolve configuration
+        id: config
+        env:
+          INPUT_MIN_SEVERITY: ${{ inputs.min_severity || 'low' }}
+        run: echo "min_severity=${INPUT_MIN_SEVERITY}" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether the scheduled scan should run
+        id: cadence
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" != "schedule" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          anchor_seconds="$(date -u -d "$SCAN_ANCHOR_DATE" +%s)"
+          now_seconds="$(date -u +%s)"
+          days_since_anchor="$(( (now_seconds - anchor_seconds) / 86400 ))"
+          if [ "$days_since_anchor" -lt 0 ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$(( days_since_anchor % 14 ))" -eq 0 ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  scan:
+    name: Run Codex scan
+    needs: cadence
+    if: needs.cadence.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Check OpenAI API key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY repository secret is required for openai/codex-action."
+            exit 1
+          fi
+
+      - name: Run scheduled security scan
+        id: codex_security
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/security-scan-prompt.md
+          output-schema-file: .github/codex/security-findings.schema.json
+          output-file: codex-security-findings.json
+          sandbox: read-only
+          safety-strategy: read-only
+          allow-bots: true
+          effort: high
+
+      - name: Validate scan JSON
+        run: |
+          python3 -m json.tool codex-security-findings.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("codex-security-findings.json").read_text(encoding="utf-8"))
+          if not isinstance(data.get("findings"), list):
+              raise SystemExit("codex-security-findings.json must contain a findings array")
+          print(f"findings={len(data['findings'])}")
+          PY
+
+      - name: Upload scan JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-security-findings
+          path: codex-security-findings.json
+          if-no-files-found: error
+
+  create-issues:
+    name: Create GitHub issues
+    needs: [cadence, scan]
+    if: needs.scan.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Download scan JSON
+        uses: actions/download-artifact@v4
+        with:
+          name: codex-security-findings
+
+      - name: Create or reuse security issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SECURITY_SCAN_MIN_SEVERITY: ${{ needs.cadence.outputs.min_severity }}
+        run: |
+          python3 scripts/create_security_scan_issues.py \
+            codex-security-findings.json \
+            --results security-issue-results.json
+
+      - name: Upload issue sync results
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-security-issue-results
+          path: security-issue-results.json
+          if-no-files-found: error
