@@ -38,23 +38,28 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Runtime-Locales umgesetzt; bei Bedarf key-für-key in `bgremover.i18n`
   ergänzen und mit Paritäts-/Smoke-Tests absichern.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-04)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-05)
+
+8 offene Issues, ausschließlich `documentation` und `quality/testing`. Keine
+offenen Code-Fehler (🔴): die kritischen Befunde aus #167/#168 sind via
+#173/#174 ausgeliefert; was bleibt, sind Doku-Korrekturen und Test-Härtung.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
 | [#163](https://github.com/NikolayDA/picture_helper/issues/163) | CHANGELOG.md: fehlerhafte Versionslinks + fehlende 2.3.0-Einträge | 🔴 Hoch | 🟡 Mittel | Inhaltsänderungen PR-bereit; Git-Tags brauchen Klärung |
-| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Test-Audit-Folge (Medium): Behavioral-Assertions + Coverage-Lücken | 🟠 Hoch | 🟡 Mittel | PR-bereit (aus #168) |
-| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit |
+| [#177](https://github.com/NikolayDA/picture_helper/issues/177) | Test-Audit-Folge (Medium): Behavioral-Assertions + Coverage-Lücken | 🟠 Hoch | 🟡 Mittel | PR-bereit (aus #168); Kommentar 2026-06-05 ergänzt `history_popup.py` (35 % Coverage) |
+| [#165](https://github.com/NikolayDA/picture_helper/issues/165) | TESTING.md: 3 Ungenauigkeiten gegenüber dem aktuellen Code | 🟡 Mittel | 🟢 Niedrig | PR-bereit; mit #180 bündeln |
+| [#180](https://github.com/NikolayDA/picture_helper/issues/180) | TESTING.md: 2 Ungenauigkeiten (addopts-Filter, fehlende coverage-Zeile) | 🟡 Mittel | 🟢 Niedrig | PR-bereit; überschneidet sich mit #165 (addopts) – gemeinsam erledigen |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167) |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | „Runde 5" erledigt; Clone-URL zurückgestellt (Owner-Entscheidung) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Teilweise blockiert: „Runde 5" erledigt; Clone-URL zurückgestellt (Owner-Entscheidung) |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Test-Audit-Folge (Low): private Internals entkoppeln + Doppeltests | 🟢 Niedrig | 🟡 Mittel | PR-bereit (aus #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Kommentar-Audit: Sprachinkonsistenz & kleine Ungenauigkeit | 🟢 Niedrig | 🟢 Niedrig | PR-bereit |
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#165** — TESTING.md-Korrekturen: risikoarm und gut abgegrenzt.
+1. **#165 + #180** — TESTING.md-Korrekturen gebündelt (beide betreffen den `addopts`-Filter): risikoarm und gut abgegrenzt.
 2. **#163 Inhalt** — Fehlende 2.3.0-Features + `[Unreleased]`-Einträge in CHANGELOG nachpflegen; Git-Tags separat klären.
-3. **#177** — Test-Härtung: Behavioral-Assertions ergänzen + Coverage-Lücken schließen (aus #168).
+3. **#177** — Test-Härtung: Behavioral-Assertions ergänzen + Coverage-Lücken schließen, inkl. `history_popup.py` (aus #168).
 4. **#176** — Code-Quality-Sammlung aus #167: E741, check_untyped_defs, cancel_ai-UX, shutdown_all.
 5. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
 6. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
