@@ -101,6 +101,7 @@ Ubuntu + macOS、Python 3.10–3.13；`ui-nightly.yml` 每晚运行 UI 交互测
 | `actions/checkout@v5` | 检出仓库 | MIT |
 | `actions/setup-python@v6` | 设置 Python + Pip 缓存 | MIT |
 | `actions/upload-artifact@v4` | 上传 license report artifacts | MIT |
+| `actions/download-artifact@v4` | 在独立评论 job 中下载 license 摘要 | MIT |
 | `actions/github-script@v7` | 在 pull request 上评论 license 摘要 | MIT |
 | `pip-licenses` | 已安装软件包许可证的原始 dump | MIT |
 | `requirements/constraints.txt` | 用于本地检查、CI、license report 和 App Bundle 的可复现依赖 snapshot | 项目文件 |
