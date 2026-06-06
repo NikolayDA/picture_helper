@@ -23,8 +23,16 @@ def _canvas(size=(120, 80)) -> ImageCanvas:
 
 def test_refresh_image_with_none_is_noop(qapp):
     c = _canvas()
-    # Darf ohne Bild nicht abstürzen und keine Exception werfen.
+    item = c._viewport._img_item
+    before_pixmap = item.pixmap().cacheKey()
+    scene = c.scene()
+    assert scene is not None
+    before_rect = scene.sceneRect()
+
     c._viewport.refresh_image(None)
+
+    assert item.pixmap().cacheKey() == before_pixmap
+    assert scene.sceneRect() == before_rect
 
 
 # ── Zoom ───────────────────────────────────────────────────────────────

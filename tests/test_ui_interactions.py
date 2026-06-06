@@ -218,9 +218,17 @@ def test_selection_actions(loaded_window):
     assert not c._mask.any()
 
 
-def test_fit_to_view_action(loaded_window):
-    # Smoke: darf headless nicht werfen.
+def test_fit_to_view_action(loaded_window, monkeypatch):
+    calls: list[bool] = []
+    monkeypatch.setattr(
+        loaded_window._canvas._viewport,
+        "fit_to_view",
+        lambda: calls.append(True),
+    )
+
     _action(loaded_window, "Fit to View").trigger()
+
+    assert calls == [True]
 
 
 def test_open_button_invokes_dialog(main_window, qtbot, monkeypatch, tmp_path):
@@ -289,9 +297,18 @@ def test_settings_dialog_load_save(main_window, qtbot, tmp_path):
 
 
 def test_settings_opened_from_menu(main_window, monkeypatch):
-    # Modale exec() durch No-op ersetzen, damit der Test nicht blockiert.
-    monkeypatch.setattr(bgremover.SettingsDialog, "exec", lambda self: 0)
-    _action(main_window, "Einstellungen…").trigger()  # darf nicht werfen
+    opened: list[SettingsDialog] = []
+
+    def record_exec(dialog):
+        opened.append(dialog)
+        return 0
+
+    monkeypatch.setattr(bgremover.SettingsDialog, "exec", record_exec)
+
+    _action(main_window, "Einstellungen…").trigger()
+
+    assert len(opened) == 1
+    assert opened[0].parent() is main_window
 
 
 def test_settings_pick_dirs(main_window, qtbot, monkeypatch, tmp_path):
