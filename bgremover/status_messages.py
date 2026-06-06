@@ -24,6 +24,10 @@ class _StatusMessages:
     def LAEDT_BEREITS(self) -> str:
         return tr("status.already_loading")
 
+    @property
+    def LADEERGEBNIS_VERWORFEN(self) -> str:
+        return tr("status.load_result_discarded")
+
     # ── KI ───────────────────────────────────────────────────
     @property
     def KI_LAEUFT_BEREITS(self) -> str:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from PIL import Image
 from PyQt6.QtCore import QSettings, Qt
@@ -70,6 +71,10 @@ class MainWindow(QMainWindow):
         # verspätet eintreffendes Ergebnis ein inzwischen geladenes anderes
         # Bild überschreibt. Robuster als Objekt-Identität (is-Vergleich).
         self._ai_input_version: int = -1
+        # Monotone ID fuer asynchrone Bildlade-Auftraege. Zusammen mit der
+        # Canvas-Revision verhindert sie, dass ein verspaeteter Callback einen
+        # neueren Ladeauftrag oder zwischenzeitliche Bearbeitungen ueberschreibt.
+        self._load_generation: int = 0
         # True, sobald der rembg-Warmup mit Fehler endete: unterdrückt die
         # irreführende „KI bereit"-Meldung im Abschluss-Callback.
         self._warmup_failed: bool = False
@@ -327,14 +332,31 @@ class MainWindow(QMainWindow):
         self._worker_controller.cancel_flood_fill()
         self._canvas.reset_pending_wand()
         self._sb.showMessage(SM.LAEDT(Path(path).name))
-        self._worker_controller.start_image_load(
+        previous_generation = self._load_generation
+        load_generation = previous_generation + 1
+        self._load_generation = load_generation
+        content_revision = self._canvas.content_revision
+        started = self._worker_controller.start_image_load(
             path,
-            on_loaded=self._on_image_load_done,
+            on_loaded=lambda img, loaded_path: self._on_image_load_done(
+                img, loaded_path, load_generation, content_revision),
             on_error=self._on_image_load_error,
         )
+        if not started:
+            self._load_generation = previous_generation
 
-    def _on_image_load_done(self, img, path: str) -> None:
-        self._canvas.apply_loaded_image(img, path)
+    def _on_image_load_done(
+        self,
+        img: object,
+        path: str,
+        load_generation: int,
+        content_revision: int,
+    ) -> None:
+        if (load_generation != self._load_generation
+                or content_revision != self._canvas.content_revision):
+            self._sb.showMessage(SM.LADEERGEBNIS_VERWORFEN)
+            return
+        self._canvas.apply_loaded_image(cast(Image.Image, img), path)
 
     def _on_image_load_error(self, msg: str) -> None:
         self._sb.showMessage(SM.LADEFEHLER(msg))
