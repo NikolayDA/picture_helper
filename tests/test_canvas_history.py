@@ -33,7 +33,7 @@ def test_restore_does_not_grow_undo_unbounded() -> None:
     h.set_original(_img())
     current = _img()
     for _ in range(20):
-        restored = h.restore(current)
+        restored = h.restore(current, "restored")
         assert restored is not None
         current = restored
     assert h._undo_bytes <= _LIMIT

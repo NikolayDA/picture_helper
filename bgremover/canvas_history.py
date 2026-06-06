@@ -90,11 +90,15 @@ class CanvasHistory:
     def set_original(self, img: Image.Image) -> None:
         self._original = img.copy()
 
-    def restore(self, current: Image.Image | None) -> Image.Image | None:
+    def restore(
+        self,
+        current: Image.Image | None,
+        desc: str,
+    ) -> Image.Image | None:
         if self._original is None:
             return None
         if current is not None:
-            self._undo.append((current.copy(), "🔄 Original wiederhergestellt"))
+            self._undo.append((current.copy(), desc))
             self._undo_bytes += self._img_bytes(current)
             self._trim()
         self._redo.clear()

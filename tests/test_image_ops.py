@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
+import bgremover.image_ops as image_ops
 from bgremover.image_ops import (
     DEFAULT_SAVE_FORMAT,
     SAVE_FORMATS,
@@ -90,6 +91,24 @@ def test_save_image_file_keeps_original_when_encoding_fails(
     # beschädigt werden und die temporäre Datei muss aufgeräumt sein.
     monkeypatch.setattr(Image.Image, "save", boom)
     with pytest.raises(OSError):
+        save_image_file(Image.new("RGBA", (4, 4)), out)
+
+    assert out.read_bytes() == b"ORIGINAL"
+    assert list(tmp_path.glob(".keep.png.*")) == []
+
+
+def test_save_image_file_keeps_original_when_replace_fails(
+    tmp_path, monkeypatch,
+) -> None:
+    out = tmp_path / "keep.png"
+    out.write_bytes(b"ORIGINAL")
+
+    def fail_replace(_src, _dst):
+        raise OSError("cross-device link")
+
+    monkeypatch.setattr(image_ops.os, "replace", fail_replace)
+
+    with pytest.raises(OSError, match="cross-device"):
         save_image_file(Image.new("RGBA", (4, 4)), out)
 
     assert out.read_bytes() == b"ORIGINAL"

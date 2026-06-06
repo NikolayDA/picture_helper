@@ -319,12 +319,30 @@ def test_handle_tool_press_brush_starts_drawing(qapp):
 
 def test_lasso_close_without_image_is_noop(qapp):
     c = ImageCanvas()
-    c._lasso_close()  # _pil None → früher Ausstieg, kein Crash
+    c._lasso.add_point(4, 5)
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+
+    c._lasso_close()
+
+    assert c.image is None
+    assert c._lasso.points == [(4, 5)]
+    assert msgs == []
 
 
-def test_paint_brush_without_image_is_noop(qapp):
+def test_paint_brush_without_image_is_noop(qapp, monkeypatch):
     c = ImageCanvas()
-    c._paint_brush(0, 0, additive=True)  # _pil None → return
+    painted: list[tuple[int, int, bool]] = []
+    monkeypatch.setattr(
+        c._selection,
+        "paint_brush",
+        lambda x, y, *, additive: painted.append((x, y, additive)),
+    )
+
+    c._paint_brush(0, 0, additive=True)
+
+    assert c.image is None
+    assert painted == []
 
 
 # ── Maus-Events (synthetische QMouseEvents) ────────────────────────────
@@ -439,12 +457,27 @@ def test_drag_move_accepts_image_urls(qapp):
 
 def test_drag_enter_none_is_noop(qapp):
     c = ImageCanvas()
-    c.dragEnterEvent(None)  # Guard: kein Crash
+    requested: list[str] = []
+    c.loadRequested.connect(requested.append)
+
+    c.dragEnterEvent(None)
+
+    assert requested == []
+    assert c.image is None
 
 
 def test_drop_none_is_noop(qapp):
     c = ImageCanvas()
-    c.dropEvent(None)  # Guard: kein Crash
+    requested: list[str] = []
+    msgs: list[str] = []
+    c.loadRequested.connect(requested.append)
+    c.statusMsg.connect(msgs.append)
+
+    c.dropEvent(None)
+
+    assert requested == []
+    assert msgs == []
+    assert c.image is None
 
 
 def test_drag_enter_without_urls_is_not_accepted(qapp):
@@ -554,9 +587,14 @@ def test_wheel_event_zooms_in(qapp):
 
 # ── Sonstige Delegatoren / Guards ──────────────────────────────────────
 
-def test_fit_to_view_delegates_without_error(qapp):
+def test_fit_to_view_delegates_to_viewport(qapp, monkeypatch):
     c = _canvas()
-    c.fit_to_view()  # öffentlicher Wrapper auf den Viewport
+    calls: list[bool] = []
+    monkeypatch.setattr(c._viewport, "fit_to_view", lambda: calls.append(True))
+
+    c.fit_to_view()
+
+    assert calls == [True]
 
 
 def test_apply_replace_without_selection_reports_status(qapp):
