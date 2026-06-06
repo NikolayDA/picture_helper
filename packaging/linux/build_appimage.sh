@@ -29,6 +29,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 BUILD="${BUILD_DIR:-$ROOT/build/appimage}"
 RECIPE="$BUILD/recipe"
+CONSTRAINTS_FILE="${PIP_CONSTRAINT:-$ROOT/requirements/constraints.txt}"
+
+[ -f "$CONSTRAINTS_FILE" ] || {
+  echo "!! Dependency constraints not found: $CONSTRAINTS_FILE"
+  exit 1
+}
+CONSTRAINTS_DIR="$(cd "$(dirname "$CONSTRAINTS_FILE")" && pwd)"
+CONSTRAINTS_FILE="$CONSTRAINTS_DIR/$(basename "$CONSTRAINTS_FILE")"
+# python-appimage installs the recipe with pip in a subprocess. Exporting the
+# absolute path constrains that resolver as well as this script's own pip calls.
+export PIP_CONSTRAINT="$CONSTRAINTS_FILE"
 
 WITH_AI=0
 [ "${1:-}" = "--ai" ] && WITH_AI=1
@@ -36,6 +47,7 @@ WITH_AI=0
 VERSION="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$ROOT/pyproject.toml" | head -1)"
 ARCH="$(uname -m)"
 echo ">> Building ${APP_NAME} ${VERSION} AppImage (python ${PYVER}, arch ${ARCH}, ai=${WITH_AI})"
+echo ">> Constraints: $PIP_CONSTRAINT"
 
 command -v python3 >/dev/null || { echo "!! python3 not found"; exit 1; }
 
