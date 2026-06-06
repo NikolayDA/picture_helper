@@ -1,5 +1,5 @@
 # Dependency constraints for reproducible local checks, CI, license reports,
-# and macOS app-bundle builds.
+# macOS app-bundle builds, and Linux AppImage release artifacts.
 #
 # These pins mirror the committed license-report snapshot on Python 3.12.
 # pyproject.toml intentionally keeps broad dependency ranges so the package
