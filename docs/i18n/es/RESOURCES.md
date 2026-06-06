@@ -110,6 +110,7 @@ genera el informe de dependencias/licencias.
 | `actions/checkout@v5` | Hacer checkout del repositorio | MIT |
 | `actions/setup-python@v6` | Configurar Python + caché de pip | MIT |
 | `actions/upload-artifact@v4` | Subir artefactos del informe de licencias | MIT |
+| `actions/download-artifact@v4` | Descargar el resumen de licencias en el job de comentarios separado | MIT |
 | `actions/github-script@v7` | Comentar el resumen de licencias en pull requests | MIT |
 | `pip-licenses` | Volcado bruto de licencias de paquetes instalados | MIT |
 | `requirements/constraints.txt` | Snapshot reproducible de dependencias para checks locales, CI, informe de licencias y App Bundle | Archivo del proyecto |
