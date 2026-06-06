@@ -13,6 +13,9 @@
 
 ### Змінено
 
+- **Оновлено залежності.** `idna` піднято до 3.15, а `urllib3` до 2.7.0;
+  `LICENSES.md` синхронізовано з новим dependency snapshot.
+
 ### Виправлено
 
 ### Видалено
@@ -46,6 +49,19 @@
   видимі користувачу status-рядки з `canvas.py`, `canvas_crop.py` і
   `main_window.py` перенесено до `StatusMessages` як підготовку до майбутньої
   локалізації.
+- **Runtime-i18n з підтримкою англійської.** Німецьку й англійську можна
+  перемикати під час роботи; діалог налаштувань містить персистентний вибір
+  мови з підказкою про перезапуск, а UI-рядки canvas, діалогів і правої панелі
+  проходять через центральний шар перекладу.
+- **Клавіатурні shortcuts для інструментів.** Інструменти редагування тепер
+  можна перемикати з клавіатури; toolbar-tooltips і документація показують
+  платформно коректні комбінації.
+- **Linux AppImage packaging.** Release build створює AppImage як
+  рекомендований шлях для кінцевих Linux-користувачів, включно зі скриптами
+  пакування, CI-покриттям і нотатками встановлення.
+- **Linux `.deb`, aarch64/Raspberry Pi і release workflow.** Linux-пакування
+  розширено Debian-пакетами, підтримкою aarch64/Pi і відповідним release
+  workflow.
 - **Версія схеми QSettings.** Новий `bgremover/settings_schema.py` із
   `SCHEMA_VERSION = 1` і `migrate(settings)`; `MainWindow.__init__` запускає
   міграцію після створення `QSettings`. Покрито downgrade-захист, пошкоджені
@@ -343,8 +359,8 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
-[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/da7186869e63cf9612897b31d80a84c1cc409062...5fa8025dbabd997484e4739b1f547e9c59aed319
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66...da7186869e63cf9612897b31d80a84c1cc409062
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1

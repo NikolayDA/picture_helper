@@ -13,6 +13,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 变更
 
+- **更新依赖。** `idna` 升级到 3.15，`urllib3` 升级到 2.7.0；
+  `LICENSES.md` 已与新的依赖快照同步。
+
 ### 修复
 
 ### 移除
@@ -42,6 +45,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **`bgremover/status_messages.py` – 集中 status 消息。** 将 `canvas.py`、
   `canvas_crop.py` 和 `main_window.py` 中用户可见的 status 字符串移入
   `StatusMessages`，作为未来本地化的准备。
+- **支持英语的 runtime i18n。** 德语和英语可在运行时切换；设置对话框包含
+  持久化语言选择器和重启提示，canvas、对话框和右侧面板的 UI 字符串通过
+  集中翻译层处理。
+- **工具键盘快捷键。** 编辑工具现在可以通过键盘切换；toolbar tooltip 和文档会列出
+  各平台对应的快捷键。
+- **Linux AppImage 打包。** release build 现在会生成 AppImage，作为 Linux
+  最终用户的推荐路径，并包含打包脚本、CI 覆盖和安装说明。
+- **Linux `.deb`、aarch64/Raspberry Pi 与 release workflow。** Linux 打包扩展了
+  Debian 包、aarch64/Pi 支持以及对应的 release workflow。
 - **引入 QSettings schema version。** 新增 `bgremover/settings_schema.py`，包含
   `SCHEMA_VERSION = 1` 和 `migrate(settings)`；`MainWindow.__init__` 在创建
   `QSettings` 后立即执行迁移。覆盖 downgrade 保护、损坏值和
@@ -300,8 +312,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...HEAD
-[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...v2.1.0
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...HEAD
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/da7186869e63cf9612897b31d80a84c1cc409062...5fa8025dbabd997484e4739b1f547e9c59aed319
+[2.2.0]: https://github.com/NikolayDA/picture_helper/compare/4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66...da7186869e63cf9612897b31d80a84c1cc409062
+[2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1
