@@ -166,6 +166,78 @@ def test_build_script_is_executable_and_sane() -> None:
     assert APP_ID in txt
 
 
+def test_appimage_build_exports_constraints_to_bundler(tmp_path) -> None:
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    fake_python = fake_bin / "python3"
+    fake_python.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${1:-}" = "-m" ] && [ "${2:-}" = "venv" ]; then
+  toolenv="$3"
+  mkdir -p "$toolenv/bin"
+  cp "$0" "$toolenv/bin/python"
+  cat > "$toolenv/bin/activate" <<EOF
+PATH="$toolenv/bin:\\$PATH"
+export PATH
+deactivate() { :; }
+EOF
+  cat > "$toolenv/bin/python-appimage" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+test "${PIP_CONSTRAINT:-}" = "${EXPECTED_CONSTRAINTS:?}"
+test -f "$PIP_CONSTRAINT"
+touch "$PWD/python-appimage-stub.AppImage"
+EOF
+  chmod +x "$toolenv/bin/python" "$toolenv/bin/python-appimage"
+  exit 0
+fi
+
+if [ "${1:-}" = "-m" ] && [ "${2:-}" = "build" ]; then
+  shift 2
+  outdir=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --outdir)
+        outdir="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  test -n "$outdir"
+  mkdir -p "$outdir"
+  touch "$outdir/bgremover-2.3.0-py3-none-any.whl"
+fi
+""",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+
+    build_dir = tmp_path / "build"
+    constraints = ROOT / "requirements" / "constraints.txt"
+    env = {
+        **os.environ,
+        "BUILD_DIR": str(build_dir),
+        "EXPECTED_CONSTRAINTS": str(constraints),
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+    }
+    subprocess.run(
+        ["bash", str(BUILD_SH)],
+        cwd=str(ROOT),
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    outputs = list(build_dir.glob("BgRemover-*-*.AppImage"))
+    assert len(outputs) == 1
+
+
 # ── .deb package format ────────────────────────────────────────────────
 
 def test_deb_build_script_sane() -> None:

@@ -44,6 +44,12 @@ variant on a Pi or an arm64 host). Needs `python3` + `pip` and network access:
 Outputs land in `build/appimage/BgRemover-<version>-<arch>.AppImage` and
 `build/deb/BgRemover-<version>-<arch>.deb`.
 
+`build_appimage.sh` applies the committed
+`requirements/constraints.txt` snapshot to both its own `pip` calls and the
+dependency resolver run by `python-appimage`. The build stops if that file is
+missing. Set `PIP_CONSTRAINT=/path/to/constraints.txt` only when intentionally
+testing a different dependency snapshot.
+
 ## Architectures / Raspberry Pi OS
 
 `uname -m` selects the architecture automatically: `x86_64` and `aarch64`

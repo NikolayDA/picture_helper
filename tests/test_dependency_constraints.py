@@ -43,8 +43,13 @@ def test_constraints_include_qt_wheel_companions() -> None:
 def test_installers_use_constraints_file() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     app_builder = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+    linux_app_builder = (
+        ROOT / "packaging" / "linux" / "build_appimage.sh"
+    ).read_text(encoding="utf-8")
     license_ci = (ROOT / ".github/workflows/license-check.yml").read_text(encoding="utf-8")
 
     assert "PIP_CONSTRAINT" in makefile
     assert "requirements/constraints.txt" in app_builder
+    assert "PIP_CONSTRAINT" in linux_app_builder
+    assert "requirements/constraints.txt" in linux_app_builder
     assert "--constraint requirements/constraints.txt" in license_ci
