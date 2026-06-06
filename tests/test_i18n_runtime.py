@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import pytest
+from PIL import Image
 from PyQt6.QtCore import QSettings
 
 import bgremover.i18n as i18n
+from bgremover import ImageCanvas
 from bgremover.i18n import (
     DEFAULT_LOCALE,
     SETTINGS_LOCALE_KEY,
@@ -85,6 +87,27 @@ def test_parameterized_status_messages_are_runtime_translated(monkeypatch) -> No
     assert SM.LADEFEHLER("disk full") == "Load failed: disk full"
     # Unmapped key falls back to the German template, still formatted.
     assert SM.KI_FEHLER("boom") == "KI-Fehler: boom"
+
+
+def test_canvas_operations_use_english_locale(qapp) -> None:
+    configure_locale("en")
+    canvas = ImageCanvas()
+    statuses: list[str] = []
+    histories: list[list[str]] = []
+    canvas.statusMsg.connect(statuses.append)
+    canvas.historyChanged.connect(histories.append)
+
+    canvas.apply_loaded_image(
+        Image.new("RGBA", (8, 6), (255, 0, 0, 255)),
+        "seed.png",
+    )
+    canvas.apply_edit(Image.new("RGBA", (8, 6), (0, 255, 0, 255)))
+    canvas.restore_original()
+
+    assert statuses[0] == "Opened: seed.png  (8 × 6 px)"
+    assert histories[-2] == ["Edit"]
+    assert histories[-1] == ["🔄 Original restored", "Edit"]
+    assert statuses[-1] == "🔄  Original restored"
 
 
 def test_main_window_initializes_locale_from_settings(qapp, tmp_path, monkeypatch) -> None:
