@@ -64,6 +64,16 @@ def test_parameterized_status_messages_format_values() -> None:
     assert SM.KI_FEHLER("boom") == "KI-Fehler: boom"
 
 
+def test_load_result_discarded_is_runtime_translated() -> None:
+    assert SM.LADEERGEBNIS_VERWORFEN == (
+        "Ladeergebnis verworfen – Bild wurde inzwischen geändert"
+    )
+    configure_locale("en")
+    assert SM.LADEERGEBNIS_VERWORFEN == (
+        "Load result discarded – the image changed in the meantime"
+    )
+
+
 def test_parameterized_status_messages_are_runtime_translated(monkeypatch) -> None:
     monkeypatch.setitem(
         i18n._TRANSLATIONS,

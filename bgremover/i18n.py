@@ -32,6 +32,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.no_image_loaded": "Kein Bild geladen",
         "status.no_image_to_save": "Kein Bild zum Speichern",
         "status.already_loading": "Lädt bereits ein Bild…",
+        "status.load_result_discarded": (
+            "Ladeergebnis verworfen – Bild wurde inzwischen geändert"
+        ),
         "status.ai_already_running": "KI läuft bereits…",
         "status.ai_processing": "🤖 KI verarbeitet Bild… (kann einige Sekunden dauern)",
         "status.ai_ready": "🤖 KI bereit",
@@ -352,6 +355,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.no_image_loaded": "No image loaded",
         "status.no_image_to_save": "No image to save",
         "status.already_loading": "Already loading an image…",
+        "status.load_result_discarded": (
+            "Load result discarded – the image changed in the meantime"
+        ),
         "status.ai_already_running": "AI is already running…",
         "status.ai_processing": "🤖 AI is processing the image… (may take a few seconds)",
         "status.ai_ready": "🤖 AI ready",
