@@ -42,6 +42,7 @@ def test_root_resource_doc_tracks_current_ci_workflows() -> None:
         "actions/checkout@v5",
         "actions/setup-python@v6",
         "actions/upload-artifact@v4",
+        "actions/download-artifact@v4",
         "actions/github-script@v7",
     }
     missing = {token for token in expected if token not in text}

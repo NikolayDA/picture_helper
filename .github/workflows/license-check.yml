@@ -8,14 +8,18 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   license-check:
     runs-on: ubuntu-latest
+    # This job installs and executes pull-request-controlled repository code.
+    # Keep its token read-only and out of the checkout's Git configuration.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
         with:
+          persist-credentials: false
           # Volle History, damit `git log -- LICENSES.md` den tatsaechlichen
           # Edit-Commit findet statt des Merge-Commits (refs/pull/N/merge),
           # den actions/checkout bei pull_request-Events standardmaessig
@@ -94,8 +98,22 @@ jobs:
             license-raw-all-installed.md
           if-no-files-found: error
 
+  comment-summary:
+    name: Comment license summary
+    needs: license-check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    # The write token is isolated from PR code: this job only downloads text
+    # produced by the read-only job and passes it to GitHub's comment API.
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download license summary
+        uses: actions/download-artifact@v4
+        with:
+          name: license-report
+
       - name: Comment summary on pull request
-        if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: actions/github-script@v7
         with:

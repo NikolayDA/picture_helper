@@ -110,6 +110,7 @@ Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
 | `actions/checkout@v5` | Repository auschecken | MIT |
 | `actions/setup-python@v6` | Python einrichten + Pip-Cache | MIT |
 | `actions/upload-artifact@v4` | Lizenzreport-Artefakte hochladen | MIT |
+| `actions/download-artifact@v4` | Lizenz-Kurzfassung im separaten Kommentar-Job herunterladen | MIT |
 | `actions/github-script@v7` | Lizenz-Kurzfassung am Pull Request kommentieren | MIT |
 | `pip-licenses` | Rohdump der installierten Paketlizenzen | MIT |
 | `requirements/constraints.txt` | Reproduzierbarer Dependency-Snapshot für lokale Checks, CI, Lizenzreport und App-Bundle | Projektdatei |

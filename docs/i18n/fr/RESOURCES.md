@@ -108,6 +108,7 @@ workflow de licences génère le rapport dépendances/licences.
 | `actions/checkout@v5` | Récupérer le dépôt | MIT |
 | `actions/setup-python@v6` | Configurer Python + cache pip | MIT |
 | `actions/upload-artifact@v4` | Téléverser les artefacts du rapport de licences | MIT |
+| `actions/download-artifact@v4` | Télécharger le résumé des licences dans le job de commentaire séparé | MIT |
 | `actions/github-script@v7` | Commenter le résumé des licences sur les pull requests | MIT |
 | `pip-licenses` | Dump brut des licences des paquets installés | MIT |
 | `requirements/constraints.txt` | Snapshot reproductible des dépendances pour checks locaux, CI, rapport de licences et App Bundle | Fichier du projet |
