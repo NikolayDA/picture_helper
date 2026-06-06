@@ -13,6 +13,7 @@ Verteidigt:
   verwerfen den Redo-Stapel.
 """
 import numpy as np
+import pytest
 from PIL import Image
 
 from bgremover import ImageCanvas
@@ -102,20 +103,35 @@ def test_restore_original_without_original_is_noop(qapp):
 
 # ── EXIF-Orientierung beim Laden ───────────────────────────────────────
 
-def test_load_image_applies_exif_rotation(qapp, tmp_path):
-    """JPEG mit EXIF-Orientation=6 (90° im Uhrzeigersinn) muss beim Laden
-    automatisch rotiert werden — sonst erscheinen iPhone-Fotos gekippt."""
-    src = Image.new("RGB", (40, 20), (10, 20, 30))
+@pytest.mark.parametrize(
+    ("orientation", "expected"),
+    [
+        (2, [[2, 1, 0], [5, 4, 3]]),
+        (3, [[5, 4, 3], [2, 1, 0]]),
+        (4, [[3, 4, 5], [0, 1, 2]]),
+        (5, [[0, 3], [1, 4], [2, 5]]),
+        (6, [[3, 0], [4, 1], [5, 2]]),
+        (7, [[5, 2], [4, 1], [3, 0]]),
+        (8, [[2, 5], [1, 4], [0, 3]]),
+    ],
+)
+def test_load_image_applies_all_exif_orientations(
+    qapp, tmp_path, orientation, expected,
+):
+    """Alle EXIF-Spiegelungs- und Rotationswerte werden beim Laden normalisiert."""
+    pixels = np.zeros((2, 3, 3), dtype=np.uint8)
+    pixels[:, :, 0] = np.arange(6, dtype=np.uint8).reshape(2, 3)
+    src = Image.fromarray(pixels, "RGB")
     exif = src.getexif()
-    exif[0x0112] = 6  # Orientation tag → 90° CW
-    p = tmp_path / "rot.jpg"
+    exif[0x0112] = orientation
+    p = tmp_path / f"orientation-{orientation}.png"
     src.save(p, exif=exif)
 
     canvas = ImageCanvas()
     canvas.load_image(str(p))
-    # Nach exif_transpose sind Breite und Höhe getauscht
+
     assert canvas.image is not None
-    assert canvas.image.size == (20, 40)
+    assert np.array(canvas.image)[:, :, 0].tolist() == expected
 
 
 def test_load_image_without_exif_keeps_orientation(qapp, tmp_path):

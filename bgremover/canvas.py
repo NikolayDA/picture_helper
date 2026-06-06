@@ -387,7 +387,10 @@ class ImageCanvas(QGraphicsView):
         self.statusMsg.emit(tr("canvas.undo_to", steps=actual, desc=desc))
 
     def restore_original(self) -> None:
-        restored = self._history.restore(self._pil)
+        restored = self._history.restore(
+            self._pil,
+            tr("history.desc.original_restored"),
+        )
         if restored is None:
             return
         self._reset_transient_state()

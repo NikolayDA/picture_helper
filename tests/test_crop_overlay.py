@@ -161,7 +161,7 @@ def test_size_property(qapp):
 
 # ── paint: läuft offscreen ohne Fehler durch beide Zweige ──────────────
 
-def _render(ov: CropOverlayItem) -> None:
+def _render(ov: CropOverlayItem) -> QImage:
     """Rendert das Overlay in ein Offscreen-``QImage`` (kein Fenster)."""
     img = QImage(ov._iw, ov._ih, QImage.Format.Format_ARGB32)
     img.fill(0)
@@ -170,21 +170,31 @@ def _render(ov: CropOverlayItem) -> None:
         ov.paint(painter, None, None)
     finally:
         painter.end()
+    return img
 
 
 def test_paint_rectangle_overlay_runs(qapp):
     ov = CropOverlayItem(img_w=120, img_h=80, crop_w=60, crop_h=40,
                          is_circle=False)
-    _render(ov)  # Rechteck-Zweig inkl. Rule-of-Thirds-Raster
+    rendered = _render(ov)
+
+    assert rendered.pixelColor(5, 5).alpha() == 150
+    assert rendered.pixelColor(40, 25).alpha() == 0
 
 
 def test_paint_circle_overlay_runs(qapp):
     ov = CropOverlayItem(img_w=120, img_h=120, crop_w=80, crop_h=80,
                          is_circle=True)
-    _render(ov)  # Ellipsen-Zweig
+    rendered = _render(ov)
+
+    assert rendered.pixelColor(60, 35).alpha() == 0
+    assert rendered.pixelColor(30, 30).alpha() == 150
 
 
 def test_paint_with_none_painter_is_noop(qapp):
     ov = CropOverlayItem(img_w=100, img_h=100, crop_w=50, crop_h=50)
-    # Defensive Guard: paint(None) darf nicht abstürzen.
+    before = ov.crop_rect()
+
     ov.paint(None, None, None)
+
+    assert ov.crop_rect() == before

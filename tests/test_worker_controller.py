@@ -49,9 +49,10 @@ def test_launch_worker_registers_and_releases_worker(qapp, controller):
     thread = controller.launch_worker(worker, quit_on=(worker.finished,))
     assert worker in controller._workers
 
-    _drain(qapp, thread.isFinished)
-    # Ein zweiter processEvents-Tick, damit die finished-Slots durchlaufen.
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: thread.isFinished() and controller._workers == [],
+    )
     assert controller._workers == []
 
 
@@ -68,9 +69,57 @@ def test_image_load_releases_worker_on_completion(qapp, controller, tmp_path):
     thread = controller.load_thread
     assert thread is not None
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: controller.load_thread is None and controller._workers == [],
+    )
 
+    assert thread.isFinished()
+    assert controller.load_thread is None
+    assert controller._workers == []
+
+
+def test_image_load_concurrent_call_returns_false(
+    qapp, controller, monkeypatch,
+):
+    import threading
+
+    from bgremover.workers import ImageLoadWorker
+
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow_load(worker):
+        started.set()
+        release.wait(timeout=5.0)
+        worker.error.emit("released")
+
+    monkeypatch.setattr(ImageLoadWorker, "_work", slow_load)
+
+    first = controller.start_image_load(
+        "first.png",
+        on_loaded=lambda _img, _path: None,
+        on_error=lambda _msg: None,
+    )
+    assert first
+    assert started.wait(timeout=2.0)
+    thread = controller.load_thread
+    assert thread is not None
+
+    second = controller.start_image_load(
+        "second.png",
+        on_loaded=lambda _img, _path: None,
+        on_error=lambda _msg: None,
+    )
+    assert second is False
+    assert len(controller._workers) == 1
+
+    release.set()
+    _drain(
+        qapp,
+        lambda: controller.load_thread is None and controller._workers == [],
+    )
+    assert thread.isFinished()
     assert controller.load_thread is None
     assert controller._workers == []
 
@@ -97,9 +146,16 @@ def test_ai_releases_worker_on_completion(qapp, controller, monkeypatch):
     thread = controller.ai_thread
     assert thread is not None
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: (
+            controller.ai_thread is None
+            and controller.ai_worker is None
+            and controller._workers == []
+        ),
+    )
 
+    assert thread.isFinished()
     assert controller.ai_thread is None
     assert controller.ai_worker is None
     assert controller._workers == []
@@ -147,14 +203,104 @@ def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatc
     controller.cancel_ai()
     gate.set()
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: (
+            controller.ai_thread is None
+            and controller.ai_worker is None
+            and controller._workers == []
+        ),
+    )
 
+    assert thread.isFinished()
     assert controller.ai_thread is None
     assert controller.ai_worker is None
     assert controller._workers == []
     assert finished == [True]   # Thread-Abschluss lief -> Button reaktiviert
     assert applied == []        # abgebrochenes Ergebnis wird nicht angewandt
+
+
+def test_ai_and_flood_fill_use_independent_slots(
+    qapp, controller, monkeypatch,
+):
+    import io
+    import threading
+
+    import bgremover.workers as _wm
+
+    ai_started = threading.Event()
+    flood_started = threading.Event()
+    release = threading.Event()
+    result_buf = io.BytesIO()
+    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
+
+    def slow_rembg(_data):
+        ai_started.set()
+        release.wait(timeout=5.0)
+        return result_buf.getvalue()
+
+    def slow_flood_fill(arr, _x, _y, _tol, should_cancel=None):
+        flood_started.set()
+        release.wait(timeout=5.0)
+        return np.ones(arr.shape[:2], dtype=bool)
+
+    monkeypatch.setattr(_wm, "rembg_remove", slow_rembg, raising=False)
+    monkeypatch.setattr(_wm, "flood_fill", slow_flood_fill)
+
+    image = Image.new("RGBA", (4, 4), (10, 20, 30, 255))
+    arr = np.array(image)
+    ai_results: list[Image.Image] = []
+    flood_results: list[np.ndarray] = []
+    ai_finished: list[bool] = []
+
+    assert controller.start_ai(
+        image,
+        on_done=ai_results.append,
+        on_error=lambda _msg: None,
+        on_finished=lambda: ai_finished.append(True),
+    )
+    assert ai_started.wait(timeout=2.0)
+    ai_thread = controller.ai_thread
+    assert ai_thread is not None
+
+    assert controller.start_ai(
+        image,
+        on_done=lambda _img: None,
+        on_error=lambda _msg: None,
+        on_finished=lambda: None,
+    ) is False
+
+    assert controller.start_flood_fill(
+        arr, 0, 0, tolerance=0,
+        on_done=flood_results.append,
+        on_error=lambda _msg: None,
+    )
+    assert flood_started.wait(timeout=2.0)
+    flood_thread = controller.flood_fill_thread
+    assert flood_thread is not None
+
+    assert controller.is_ai_running
+    assert controller.is_flood_fill_running
+    assert len(controller._workers) == 2
+
+    release.set()
+    _drain(
+        qapp,
+        lambda: (
+            controller.ai_thread is None
+            and controller.flood_fill_thread is None
+            and controller._workers == []
+        ),
+    )
+
+    assert ai_thread.isFinished()
+    assert flood_thread.isFinished()
+    assert controller.ai_thread is None
+    assert controller.flood_fill_thread is None
+    assert controller._workers == []
+    assert len(ai_results) == 1
+    assert len(flood_results) == 1
+    assert ai_finished == [True]
 
 
 def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
@@ -168,9 +314,12 @@ def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
     thread = controller.warmup_thread
     assert thread is not None
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: controller.warmup_thread is None and controller._workers == [],
+    )
 
+    assert thread.isFinished()
     assert controller.warmup_thread is None
     assert controller.warmup_done
     assert done == [True]
@@ -196,9 +345,12 @@ def test_warmup_releases_worker_when_rembg_raises(qapp, controller, monkeypatch)
     thread = controller.warmup_thread
     assert thread is not None
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: controller.warmup_thread is None and controller._workers == [],
+    )
 
+    assert thread.isFinished()
     assert controller.warmup_thread is None
     assert controller.warmup_done
     assert done == [True]
@@ -212,6 +364,49 @@ def test_release_worker_is_idempotent(controller):
     controller._release_worker(sentinel)
     controller._release_worker(sentinel)
     assert controller._workers == []
+
+
+def test_shutdown_all_cancels_workers_and_visits_every_thread(
+    controller, monkeypatch,
+):
+    class Cancellable:
+        def __init__(self):
+            self.cancelled = False
+
+        def cancel(self):
+            self.cancelled = True
+
+    ai_worker = Cancellable()
+    flood_worker = Cancellable()
+    threads = {
+        "KI": object(),
+        "Bildladen": object(),
+        "rembg-Warmup": object(),
+        "Flood-Fill": object(),
+    }
+    controller.ai_worker = ai_worker
+    controller.flood_fill_worker = flood_worker
+    controller.ai_thread = threads["KI"]
+    controller.load_thread = threads["Bildladen"]
+    controller.warmup_thread = threads["rembg-Warmup"]
+    controller.flood_fill_thread = threads["Flood-Fill"]
+    shutdowns: list[tuple[object, str]] = []
+    monkeypatch.setattr(
+        controller,
+        "shutdown_thread",
+        lambda thread, name: shutdowns.append((thread, name)),
+    )
+
+    controller.shutdown_all()
+
+    assert ai_worker.cancelled
+    assert flood_worker.cancelled
+    assert shutdowns == [
+        (threads["KI"], "KI"),
+        (threads["Bildladen"], "Bildladen"),
+        (threads["rembg-Warmup"], "rembg-Warmup"),
+        (threads["Flood-Fill"], "Flood-Fill"),
+    ]
 
 
 def test_flood_fill_releases_worker_on_completion(qapp, controller):
@@ -228,9 +423,16 @@ def test_flood_fill_releases_worker_on_completion(qapp, controller):
     thread = controller.flood_fill_thread
     assert thread is not None
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: (
+            controller.flood_fill_thread is None
+            and controller.flood_fill_worker is None
+            and controller._workers == []
+        ),
+    )
 
+    assert thread.isFinished()
     assert controller.flood_fill_thread is None
     assert controller._workers == []
     assert len(masks) == 1
@@ -279,8 +481,15 @@ def test_flood_fill_concurrent_call_returns_false(qapp, controller, monkeypatch)
     gate.set()
     thread = controller.flood_fill_thread
     assert thread is not None
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: (
+            controller.flood_fill_thread is None
+            and controller.flood_fill_worker is None
+            and controller._workers == []
+        ),
+    )
+    assert thread.isFinished()
     assert controller.flood_fill_thread is None
 
 
@@ -314,9 +523,16 @@ def test_flood_fill_cancel_completes_lifecycle_without_result(qapp, controller, 
     controller.cancel_flood_fill()
     gate.set()
 
-    _drain(qapp, thread.isFinished)
-    qapp.processEvents()
+    _drain(
+        qapp,
+        lambda: (
+            controller.flood_fill_thread is None
+            and controller.flood_fill_worker is None
+            and controller._workers == []
+        ),
+    )
 
+    assert thread.isFinished()
     assert controller.flood_fill_thread is None
     assert controller.flood_fill_worker is None
     assert controller._workers == []

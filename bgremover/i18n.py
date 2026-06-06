@@ -342,6 +342,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.saved": "💾 Gespeichert: {name}",
         # History step descriptions
         "history.desc.generic": "Bearbeitung",
+        "history.desc.original_restored": "🔄 Original wiederhergestellt",
         "history.desc.bg_removed": "Hintergrund entfernt",
         "history.desc.color_replaced": "Farbe ersetzt ({color})",
         "history.desc.ai_bg": "KI-Hintergrundentfernung",
@@ -664,6 +665,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.saved": "💾 Saved: {name}",
         # History step descriptions
         "history.desc.generic": "Edit",
+        "history.desc.original_restored": "🔄 Original restored",
         "history.desc.bg_removed": "Background removed",
         "history.desc.color_replaced": "Color replaced ({color})",
         "history.desc.ai_bg": "AI background removal",
