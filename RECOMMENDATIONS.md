@@ -45,16 +45,17 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Runtime-Locales umgesetzt; bei Bedarf key-für-key in `bgremover.i18n`
   ergänzen und mit Paritäts-/Smoke-Tests absichern.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-06)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-07)
 
-Nur noch **fünf** offene Issues, alle 🟡/🟢: zwei `documentation` (#161, #166),
-zwei `quality/testing` (#176, #178) und ein Privacy-Security-Befund (#185).
-#163/#165/#177/#180 sowie die drei höher priorisierten Security-Befunde des
-Codex-Scans `8c04b92` (#182/#183/#184) sind seit dem letzten Review geschlossen
-und verifiziert. **Kein offener 🔴-/🟠-Befund mehr.**
+Jetzt **sechs** offene Issues: ein 🟠-CI-Blocker (#195) sowie fünf 🟡/🟢: zwei
+`documentation` (#161, #166), zwei `quality/testing` (#176, #178) und ein
+Privacy-Security-Befund (#185). #163/#165/#177/#180 sowie die drei höher
+priorisierten Security-Befunde des Codex-Scans `8c04b92` (#182/#183/#184) sind
+seit dem letzten Review geschlossen und verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
+| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Full-CI-Blocker (mypy/3.10): `canvas_selection.py` Shape-Typing – numpy-2.2.6-Stubs | 🟠 Hoch | 🟢 Niedrig | PR-bereit; `self._mask: npt.NDArray[np.bool_]` — verifizierter Einzeiler-Fix |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167); `E741`/`check_untyped_defs` in `pyproject.toml` noch unverändert |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Teilweise erledigt: „Runde 5" entfernt; nur Clone-URL offen (Owner-Entscheidung) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Security: macOS-Diagnose offenbart lokale Pfade + Roh-Log-Tail (Privacy) | 🟢 Niedrig | 🟡 Mittel | PR-bereit; `$HOME`/Pfade redaktieren + `--include-raw-logs`-Flag + Shell-Test |
@@ -63,11 +64,12 @@ und verifiziert. **Kein offener 🔴-/🟠-Befund mehr.**
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#176** — Code-Quality-Sammlung aus #167: `E741` eingrenzen, `check_untyped_defs` inkrementell, cancel_ai-UX, `shutdown_all`-Thread-Referenzen nullen.
-2. **#185** — macOS-Diagnose redaktieren (`$HOME`/Pfade) + `--include-raw-logs`-Flag + Shell-Test.
-3. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
-4. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
-5. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
+1. **#195** — `self._mask: npt.NDArray[np.bool_]` in `canvas_selection.py`; Full-CI-Python-3.10-Zellen wieder grün.
+2. **#176** — Code-Quality-Sammlung aus #167: `E741` eingrenzen, `check_untyped_defs` inkrementell, cancel_ai-UX, `shutdown_all`-Thread-Referenzen nullen.
+3. **#185** — macOS-Diagnose redaktieren (`$HOME`/Pfade) + `--include-raw-logs`-Flag + Shell-Test.
+4. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
+5. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+6. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
 
 ## Vorige Runden
 

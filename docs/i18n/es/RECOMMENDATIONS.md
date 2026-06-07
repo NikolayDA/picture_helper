@@ -45,16 +45,17 @@ siguen siendo la baseline antes de nuevos PRs.
   son runtime locales; si hace falta, añadirlos clave por clave en
   `bgremover.i18n` y protegerlos con tests de paridad/smoke.
 
-## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-06)
+## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-07)
 
-Solo quedan **cinco** issues abiertos, todos 🟡/🟢: dos `documentation` (#161,
-#166), dos `quality/testing` (#176, #178) y un hallazgo de seguridad/privacidad
-(#185). #163/#165/#177/#180 y los tres hallazgos de seguridad de mayor prioridad
-del escaneo Codex `8c04b92` (#182/#183/#184) están cerrados y verificados desde
-la última revisión. **No queda ningún hallazgo 🔴/🟠 abierto.**
+Ahora **seis** issues abiertos: un bloqueador 🟠 de CI (#195) y cinco 🟡/🟢:
+dos `documentation` (#161, #166), dos `quality/testing` (#176, #178) y un
+hallazgo de seguridad/privacidad (#185). #163/#165/#177/#180 y los tres hallazgos
+de seguridad de mayor prioridad del escaneo Codex `8c04b92` (#182/#183/#184)
+están cerrados y verificados desde la última revisión.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
+| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Bloqueador Full-CI (mypy/3.10): Shape-typing en `canvas_selection.py` – stubs numpy-2.2.6 | 🟠 Alta | 🟢 Baja | Listo para PR; `self._mask: npt.NDArray[np.bool_]` — fix de una línea verificado |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Seguimiento de revisión de código (Low): E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Media | 🟢 Baja | Listo para PR (de #167); `E741`/`check_untyped_defs` en `pyproject.toml` aún sin cambios |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Parcialmente hecho: jerga "Runde 5" eliminada; solo queda la URL de clonación (decisión del owner) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Seguridad: el diagnóstico de macOS revela rutas locales + cola de log en bruto (privacidad) | 🟢 Baja | 🟡 Media | Listo para PR; redactar `$HOME`/rutas + flag `--include-raw-logs` + test de shell |
@@ -63,11 +64,12 @@ la última revisión. **No queda ningún hallazgo 🔴/🟠 abierto.**
 
 ### Orden de PRs Recomendado
 
-1. **#176** — Lote de calidad de código de #167: acotar `E741`, `check_untyped_defs` de forma incremental, UX de cancel_ai, anular referencias de hilos en `shutdown_all`.
-2. **#185** — Redactar el diagnóstico de macOS (`$HOME`/rutas) + flag `--include-raw-logs` + test de shell.
-3. **#178** — Desacoplar tests de internals privados + reducir tests duplicados (de #168).
-4. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
-5. **#161 aplazado** — "Runde 5" hecho; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo).
+1. **#195** — `self._mask: npt.NDArray[np.bool_]` en `canvas_selection.py`; celdas Full-CI Python-3.10 en verde de nuevo.
+2. **#176** — Lote de calidad de código de #167: acotar `E741`, `check_untyped_defs` de forma incremental, UX de cancel_ai, anular referencias de hilos en `shutdown_all`.
+3. **#185** — Redactar el diagnóstico de macOS (`$HOME`/rutas) + flag `--include-raw-logs` + test de shell.
+4. **#178** — Desacoplar tests de internals privados + reducir tests duplicados (de #168).
+5. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
+6. **#161 aplazado** — "Runde 5" hecho; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo).
 
 ## Rondas Anteriores
 
