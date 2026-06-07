@@ -92,9 +92,8 @@ extend-select = ["E", "F", "W", "I", "B", "UP", "SIM"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# Bewusst kompakter Stil (Mehrfach-Statements mit Semikolons, einzelne
-# kurze Schleifenvariablen wie `l`/`b`).
-"bgremover/*.py" = ["E702", "E741"]
+# Bewusst kompakter Stil mit einzelnen Mehrfach-Statements.
+"bgremover/*.py" = ["E702"]
 # conftest.py muss QT_QPA_PLATFORM setzen, bevor PyQt6 importiert wird.
 "tests/conftest.py" = ["E402"]
 
@@ -106,8 +105,8 @@ ignore_missing_imports = true
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass
 # Namen/Importe/Signaturen grundsätzlich konsistent sind.
 check_untyped_defs = false
-# Es bleibt nur `check_untyped_defs = false` als pragmatischer
-# Qt-Rauschdaempfer; Fehlerklassen werden nicht pauschal deaktiviert.
+# Fehlerklassen werden nicht pauschal deaktiviert. Logiklastige Qt-Module
+# werden unten inkrementell auch in unannotierten Funktionskörpern geprüft.
 
 # Qt-arme Logikmodule sollen strenger geprueft werden: hier wuerde
 # `check_untyped_defs = false` echte Luecken verstecken. Die Module
@@ -126,4 +125,15 @@ module = [
     "bgremover.canvas_viewport",
 ]
 disallow_untyped_defs = true
+check_untyped_defs = true
+
+# Diese Qt-Module enthalten relevante Zustands- und Lifecycle-Logik. Ihre
+# unannotierten Qt-Callbacks werden deshalb ebenfalls inhaltlich geprüft,
+# ohne bereits alle UI-Module auf einmal umzustellen.
+[[tool.mypy.overrides]]
+module = [
+    "bgremover.canvas",
+    "bgremover.main_window",
+    "bgremover.worker_controller",
+]
 check_untyped_defs = true
