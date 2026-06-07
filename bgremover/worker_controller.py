@@ -230,6 +230,13 @@ class WorkerController:
         self.shutdown_thread(self.load_thread, "Bildladen")
         self.shutdown_thread(self.warmup_thread, "rembg-Warmup")
         self.shutdown_thread(self.flood_fill_thread, "Flood-Fill")
+        # ``thread.finished``-Slots werden beim blockierenden wait() nicht
+        # zwingend sofort im Besitzer-Thread zugestellt. Nach dem synchronen
+        # Shutdown dürfen deshalb keine stale QThread-Referenzen verbleiben.
+        self.ai_thread = None
+        self.load_thread = None
+        self.warmup_thread = None
+        self.flood_fill_thread = None
 
     def shutdown_thread(self, thread: QThread | None, name: str) -> None:
         """Beendet *thread* sauber, bevor das besitzende Fenster zerstört wird."""

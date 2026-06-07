@@ -40,6 +40,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "🤖 KI bereit",
         "status.ai_model_loading": "🤖 KI-Modell wird geladen…",
         "status.ai_warmup_failed": "⚠️ KI-Modell konnte nicht geladen werden",
+        "status.ai_cancelling": "Abbruch – warte auf laufende KI…",
+        "status.ai_cancelled": "KI-Verarbeitung abgebrochen",
         "status.ai_result_discarded": (
             "KI-Ergebnis verworfen – Bild wurde inzwischen geändert"
         ),
@@ -364,6 +366,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "🤖 AI ready",
         "status.ai_model_loading": "🤖 Loading AI model…",
         "status.ai_warmup_failed": "⚠️ Could not load the AI model",
+        "status.ai_cancelling": "Cancelling – waiting for the running AI…",
+        "status.ai_cancelled": "AI processing cancelled",
         "status.ai_result_discarded": (
             "AI result discarded – the image changed in the meantime"
         ),
