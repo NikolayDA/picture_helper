@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal
 
 import numpy as np
+import numpy.typing as npt
 from PIL import Image, ImageFilter
 
 from bgremover.image_ops import remove_selection, replace_selection
@@ -13,7 +14,7 @@ class CanvasSelection:
     """Verwaltet Auswahlmasken ohne Zugriff auf Canvas-Interna."""
 
     def __init__(self, width: int, height: int) -> None:
-        self._mask = np.zeros((height, width), dtype=bool)
+        self._mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
 
     @property
     def mask(self) -> np.ndarray:
