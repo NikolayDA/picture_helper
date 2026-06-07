@@ -407,6 +407,10 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
         (threads["rembg-Warmup"], "rembg-Warmup"),
         (threads["Flood-Fill"], "Flood-Fill"),
     ]
+    assert controller.ai_thread is None
+    assert controller.load_thread is None
+    assert controller.warmup_thread is None
+    assert controller.flood_fill_thread is None
 
 
 def test_flood_fill_releases_worker_on_completion(qapp, controller):

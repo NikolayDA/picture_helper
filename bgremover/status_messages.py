@@ -50,6 +50,14 @@ class _StatusMessages:
         return tr("status.ai_warmup_failed")
 
     @property
+    def KI_ABBRUCH_WARTET(self) -> str:
+        return tr("status.ai_cancelling")
+
+    @property
+    def KI_ABGEBROCHEN(self) -> str:
+        return tr("status.ai_cancelled")
+
+    @property
     def KI_ERGEBNIS_VERWORFEN(self) -> str:
         return tr("status.ai_result_discarded")
 

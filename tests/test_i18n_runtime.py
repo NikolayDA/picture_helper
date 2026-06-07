@@ -76,6 +76,14 @@ def test_load_result_discarded_is_runtime_translated() -> None:
     )
 
 
+def test_ai_cancellation_status_is_runtime_translated() -> None:
+    assert SM.KI_ABBRUCH_WARTET == "Abbruch – warte auf laufende KI…"
+    assert SM.KI_ABGEBROCHEN == "KI-Verarbeitung abgebrochen"
+    configure_locale("en")
+    assert SM.KI_ABBRUCH_WARTET == "Cancelling – waiting for the running AI…"
+    assert SM.KI_ABGEBROCHEN == "AI processing cancelled"
+
+
 def test_parameterized_status_messages_are_runtime_translated(monkeypatch) -> None:
     monkeypatch.setitem(
         i18n._TRANSLATIONS,

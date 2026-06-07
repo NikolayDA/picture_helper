@@ -19,6 +19,7 @@ from bgremover import (
 )
 from bgremover.constants import _MAX_MEGAPIXELS
 from bgremover.image_loading import open_validated_image
+from bgremover.status_messages import StatusMessages as SM
 
 # ─────────────────────────────────────────────────────────────
 # ImageLoadWorker – Fehlerpfade
@@ -581,6 +582,50 @@ def test_load_image_async_cancels_running_flood_fill(qapp, monkeypatch) -> None:
 
         assert calls == ["flood"]
     finally:
+        win.close()
+
+
+def test_load_image_async_reports_pending_ai_cancellation(qapp, monkeypatch) -> None:
+    """Bildwechsel während rembg läuft erklärt die unvermeidbare Wartezeit.
+
+    ``AIWorker.cancel`` kann den blockierenden rembg-Aufruf nicht abbrechen;
+    bis zu dessen Rückkehr bleibt der KI-Button deaktiviert. Die Statusleiste
+    muss diesen Zustand anzeigen und nach Threadende sauber abschließen.
+    """
+    win = MainWindow()
+    try:
+        class RunningThread:
+            @staticmethod
+            def isRunning() -> bool:
+                return True
+
+        class CancellableWorker:
+            def __init__(self) -> None:
+                self.cancelled = False
+
+            def cancel(self) -> None:
+                self.cancelled = True
+
+        worker = CancellableWorker()
+        win._worker_controller.ai_thread = RunningThread()
+        win._worker_controller.ai_worker = worker
+        monkeypatch.setattr(
+            win._worker_controller, "start_image_load",
+            lambda *a, **k: True,
+        )
+
+        win._load_image_async("/beliebiger/pfad.png")
+
+        assert worker.cancelled
+        assert win.statusBar().currentMessage() == SM.KI_ABBRUCH_WARTET
+
+        win._on_ai_thread_finished()
+
+        assert win.statusBar().currentMessage() == SM.KI_ABGEBROCHEN
+        assert win._toolbar.btn_ai.isEnabled()
+    finally:
+        win._worker_controller.ai_thread = None
+        win._worker_controller.ai_worker = None
         win.close()
 
 

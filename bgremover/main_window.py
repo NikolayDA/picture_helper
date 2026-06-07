@@ -325,13 +325,20 @@ class MainWindow(QMainWindow):
         # bei ungespeicherten Änderungen nachfragen.
         if not self._confirm_discard_changes():
             return
+        ai_was_running = self._worker_controller.is_ai_running
         self._worker_controller.cancel_ai()
         # Eine laufende Zauberstab-Berechnung gehört zum bisherigen Bild.
         # Abbrechen spart CPU; der stille Canvas-Reset hält den Zauberstab
         # auch dann bedienbar, wenn das anschließende Laden fehlschlägt.
         self._worker_controller.cancel_flood_fill()
         self._canvas.reset_pending_wand()
-        self._sb.showMessage(SM.LAEDT(Path(path).name))
+        if ai_was_running:
+            # rembg selbst ist nicht unterbrechbar. Das Ergebnis wird
+            # verworfen, aber bis zur Rückkehr des C-Aufrufs bleibt der
+            # KI-Button gesperrt; diese Wartezeit soll sichtbar sein.
+            self._sb.showMessage(SM.KI_ABBRUCH_WARTET)
+        else:
+            self._sb.showMessage(SM.LAEDT(Path(path).name))
         previous_generation = self._load_generation
         load_generation = previous_generation + 1
         self._load_generation = load_generation
@@ -514,6 +521,8 @@ class MainWindow(QMainWindow):
     def _on_ai_thread_finished(self) -> None:
         self._toolbar.btn_ai.setEnabled(True)
         self._ai_input_version = -1
+        if self._sb.currentMessage() == SM.KI_ABBRUCH_WARTET:
+            self._sb.showMessage(SM.KI_ABGEBROCHEN)
 
     def _on_ai_done(self, img: Image.Image) -> None:
         # Ergebnis nur übernehmen, wenn sich der Canvas seit KI-Start nicht geändert hat.
