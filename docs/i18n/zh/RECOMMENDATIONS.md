@@ -39,15 +39,16 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
   （es/fr/uk/zh）尚未作为 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加，并用 parity/smoke tests 保护。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-06）
+## 开放的 GitHub Issues — 优先级评估（2026-06-07）
 
-仅剩 **五** 个开放 issue，均为 🟡/🟢：两个 `documentation`（#161、#166）、
-两个 `quality/testing`（#176、#178）和一个隐私安全发现（#185）。
-#163/#165/#177/#180 以及 Codex 扫描 `8c04b92` 中优先级更高的三个安全发现
-（#182/#183/#184）自上次 review 以来已关闭并验证。**不再有开放的 🔴/🟠 发现。**
+现有 **六** 个开放 issue：一个 🟠 CI 阻断项（#195）以及五个 🟡/🟢：两个
+`documentation`（#161、#166）、两个 `quality/testing`（#176、#178）和一个
+隐私安全发现（#185）。#163/#165/#177/#180 以及 Codex 扫描 `8c04b92` 中优先级
+更高的三个安全发现（#182/#183/#184）自上次 review 以来已关闭并验证。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
+| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Full-CI 阻断（mypy/3.10）：`canvas_selection.py` Shape-Typing — numpy-2.2.6 Stubs | 🟠 高 | 🟢 低 | 可提 PR；`self._mask: npt.NDArray[np.bool_]` — 已验证的单行修复 |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 部分完成："Runde 5" 术语已移除；仅剩 clone URL（需所有者决定） |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | 安全：macOS 诊断泄露本地路径 + 原始日志尾部（隐私） | 🟢 低 | 🟡 中 | 可提 PR；脱敏 `$HOME`/路径 + `--include-raw-logs` 标志 + shell 测试 |
@@ -56,11 +57,12 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 ### 推荐 PR 顺序
 
-1. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
-2. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
-3. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
-4. **#166** — docstring 语言清理，作为小型维护 PR。
-5. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
+1. **#195** — `canvas_selection.py` 中 `self._mask: npt.NDArray[np.bool_]`；Full-CI Python-3.10 单元格重新变绿。
+2. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
+3. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
+4. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
+5. **#166** — docstring 语言清理，作为小型维护 PR。
+6. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
 
 ## 先前轮次
 

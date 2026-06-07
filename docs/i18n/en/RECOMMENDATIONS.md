@@ -45,16 +45,17 @@ baseline before new PRs.
   runtime locales; add them key-for-key in `bgremover.i18n` if needed and
   protect them with parity/smoke tests.
 
-## Open GitHub Issues — Priority Assessment (2026-06-06)
+## Open GitHub Issues — Priority Assessment (2026-06-07)
 
-Only **five** open issues remain, all 🟡/🟢: two `documentation` (#161, #166),
-two `quality/testing` (#176, #178), and one privacy security finding (#185).
-#163/#165/#177/#180 plus the three higher-priority security findings from the
-Codex scan `8c04b92` (#182/#183/#184) are closed and verified since the last
-review. **No open 🔴/🟠 finding remains.**
+Now **six** open issues: one 🟠 CI blocker (#195) and five 🟡/🟢: two
+`documentation` (#161, #166), two `quality/testing` (#176, #178), and one
+privacy security finding (#185). #163/#165/#177/#180 plus the three
+higher-priority security findings from the Codex scan `8c04b92`
+(#182/#183/#184) are closed and verified since the last review.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
+| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Full-CI blocker (mypy/3.10): `canvas_selection.py` shape-typing – numpy-2.2.6 stubs | 🟠 High | 🟢 Low | Ready for PR; `self._mask: npt.NDArray[np.bool_]` — verified one-liner fix |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-review follow-up (Low): E741, check_untyped_defs, cancel_ai UX, shutdown_all | 🟡 Medium | 🟢 Low | Ready for PR (from #167); `E741`/`check_untyped_defs` in `pyproject.toml` still unchanged |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Partly done: "Runde 5" jargon removed; only clone URL remains (owner decision) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Security: macOS diagnostics disclose local paths + raw log tail (privacy) | 🟢 Low | 🟡 Medium | Ready for PR; redact `$HOME`/paths + `--include-raw-logs` flag + shell test |
@@ -63,11 +64,12 @@ review. **No open 🔴/🟠 finding remains.**
 
 ### Recommended PR Order
 
-1. **#176** — Code-quality batch from #167: narrow `E741`, `check_untyped_defs` incrementally, cancel_ai UX, null `shutdown_all` thread references.
-2. **#185** — Redact macOS diagnostics (`$HOME`/paths) + add `--include-raw-logs` flag + shell test.
-3. **#178** — Decouple tests from private internals + reduce duplicate tests (from #168).
-4. **#166** — Docstring language cleanup as a small housekeeping PR.
-5. **#161 deferred** — "Runde 5" done; only the clone URL remains (owner decision on repo visibility).
+1. **#195** — `self._mask: npt.NDArray[np.bool_]` in `canvas_selection.py`; Full-CI Python-3.10 cells green again.
+2. **#176** — Code-quality batch from #167: narrow `E741`, `check_untyped_defs` incrementally, cancel_ai UX, null `shutdown_all` thread references.
+3. **#185** — Redact macOS diagnostics (`$HOME`/paths) + add `--include-raw-logs` flag + shell test.
+4. **#178** — Decouple tests from private internals + reduce duplicate tests (from #168).
+5. **#166** — Docstring language cleanup as a small housekeeping PR.
+6. **#161 deferred** — "Runde 5" done; only the clone URL remains (owner decision on repo visibility).
 
 ## Previous Rounds
 
