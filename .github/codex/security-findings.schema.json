@@ -47,8 +47,7 @@
           "category": { "type": "string" },
           "cwe": {
             "type": "array",
-            "items": { "type": "string" },
-            "minItems": 0
+            "items": { "type": "string" }
           },
           "dedupe_key": { "type": "string", "minLength": 8 },
           "reportable": { "type": "boolean" },
@@ -64,7 +63,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["path"],
+              "required": ["path", "start_line", "end_line", "label"],
               "properties": {
                 "path": { "type": "string" },
                 "start_line": { "type": ["integer", "null"], "minimum": 1 },
