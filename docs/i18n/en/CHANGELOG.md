@@ -10,6 +10,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Image-pipeline performance benchmark.** `scripts/benchmark.py` measures
+  processing time per output format (PNG/JPEG/WebP/TIFF) through the real
+  `image_ops` paths, stores dated results under `benchmarks/results/` and
+  compares consecutive runs; formats that regress by more than 10% are flagged
+  and optionally reported as GitHub issues (`make bench` / `make bench-compare`).
+
 ### Changed
 
 - **Dependencies updated.** `idna` was raised to 3.15 and `urllib3` to 2.7.0;
