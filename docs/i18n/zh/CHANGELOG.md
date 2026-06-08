@@ -11,6 +11,13 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **图像处理流水线性能基准测试。** `scripts/benchmark.py` 通过真实的
+  `image_ops` 路径测量每种输出格式（PNG/JPEG/WebP/TIFF）的处理时间，将带日期的
+  结果保存到 `benchmarks/results/`，并比较相邻的运行；退化超过 10% 的格式会被标记，
+  并可选地作为 GitHub issue 上报（`make bench` / `make bench-compare`）。
+  每周一次的 CI 工作流（`.github/workflows/benchmark.yml`）在固定硬件上运行并比较，
+  并将结果提交回仓库作为下一次的基线。
+
 ### 变更
 
 - **更新依赖。** `idna` 升级到 3.15，`urllib3` 升级到 2.7.0；

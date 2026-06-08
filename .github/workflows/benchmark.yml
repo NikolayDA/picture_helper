@@ -1,0 +1,99 @@
+name: Performance Benchmark
+
+on:
+  # Woechentlich (Mo 05:17 UTC) – versetzt zum Security-Scan, damit sich die
+  # Montags-Jobs nicht draengeln. Vergleicht den frischen Lauf gegen das zuletzt
+  # eingecheckte Ergebnis unter benchmarks/results/ und meldet Regressionen.
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: 'Regressions-Schwelle in Prozent'
+        type: string
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: Run and compare benchmark
+    runs-on: ubuntu-latest
+    permissions:
+      # contents: write, um das neue Ergebnis-JSON als Baseline fuer den
+      # naechsten Lauf zurueckzucommitten; issues: write fuer die
+      # Regressions-Issues.
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # Qt-Systembibliotheken: das Benchmark-Skript importiert ueber
+      # bgremover.image_ops transitiv PyQt6; ohne libgl1/libegl1 scheitert
+      # bereits der Import (libGL.so.1). Liste identisch zu den anderen
+      # Qt-installierenden Dateien halten (Befund N6,
+      # tests/test_ci_qt_packages.py).
+      - name: System packages for Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 libgl1 libfontconfig1 libxkbcommon0 libdbus-1-3 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install package and test extra
+        run: make install-test
+
+      - name: Run benchmark, compare and report regressions
+        id: bench
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/benchmark.py run \
+            --threshold "${{ inputs.threshold || '10' }}" \
+            --fail-on-regression \
+            --post-issues
+
+      # Das neue Ergebnis wird als Baseline fuer den naechsten Lauf
+      # zurueckgeschrieben. Laeuft unabhaengig vom Regressions-Ausgang, damit die
+      # Historie auch bei einer gemeldeten Regression fortgeschrieben wird.
+      - name: Commit new benchmark result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmarks/results/
+          if git diff --cached --quiet; then
+            echo "Kein neues Benchmark-Ergebnis zu committen."
+          else
+            git commit -m "ci: Benchmark-Ergebnis erfasst [skip ci]"
+            git push
+          fi
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/results/
+          if-no-files-found: error
+
+      # continue-on-error oben haelt den Job am Leben, damit Commit/Upload noch
+      # laufen; hier wird der Job am Ende sichtbar rot, wenn ein Format ueber der
+      # Schwelle lag.
+      - name: Fail if a format regressed
+        if: steps.bench.outcome == 'failure'
+        run: |
+          echo "::error::Mindestens ein Format hat sich um mehr als die Schwelle verschlechtert."
+          exit 1

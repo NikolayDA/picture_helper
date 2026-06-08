@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Benchmark de rendimiento de la canalización de imágenes.**
+  `scripts/benchmark.py` mide el tiempo de procesamiento por formato de salida
+  (PNG/JPEG/WebP/TIFF) a través de las rutas reales de `image_ops`, guarda
+  resultados fechados en `benchmarks/results/` y compara ejecuciones
+  consecutivas; los formatos que empeoran más de un 10 % se marcan y se informan
+  opcionalmente como incidencias de GitHub (`make bench` / `make bench-compare`).
+  Un flujo de CI semanal (`.github/workflows/benchmark.yml`) ejecuta y compara en
+  hardware constante y vuelve a registrar el resultado como próxima referencia.
+
 ### Cambiado
 
 - **Dependencias actualizadas.** `idna` sube a 3.15 y `urllib3` a 2.7.0;
