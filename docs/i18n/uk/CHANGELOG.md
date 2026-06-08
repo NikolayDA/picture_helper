@@ -16,7 +16,9 @@
   (PNG/JPEG/WebP/TIFF) реальними шляхами `image_ops`, зберігає датовані
   результати в `benchmarks/results/` і порівнює послідовні запуски; формати з
   регресією понад 10 % позначаються та за потреби повідомляються як issue на
-  GitHub (`make bench` / `make bench-compare`).
+  GitHub (`make bench` / `make bench-compare`). Щотижневий CI-workflow
+  (`.github/workflows/benchmark.yml`) виконує запуск і порівняння на сталому
+  обладнанні та записує результат назад як наступну базову лінію.
 
 ### Змінено
 
