@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Benchmark de performance du pipeline d'images.** `scripts/benchmark.py`
+  mesure le temps de traitement par format de sortie (PNG/JPEG/WebP/TIFF) via les
+  vrais chemins `image_ops`, enregistre des résultats datés sous
+  `benchmarks/results/` et compare les exécutions successives ; les formats qui
+  régressent de plus de 10 % sont signalés et éventuellement remontés comme
+  tickets GitHub (`make bench` / `make bench-compare`). Un workflow CI
+  hebdomadaire (`.github/workflows/benchmark.yml`) exécute et compare sur un
+  matériel constant et réenregistre le résultat comme prochaine référence.
+
 ### Modifié
 
 - **Dépendances mises à jour.** `idna` passe à 3.15 et `urllib3` à 2.7.0 ;
