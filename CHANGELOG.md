@@ -16,7 +16,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `image_ops`-Pfade, legt datierte Ergebnisse unter `benchmarks/results/` ab und
   vergleicht aufeinanderfolgende Läufe; Formate mit über 10 % Regression werden
   geflaggt und optional als GitHub-Issue gemeldet (`make bench` /
-  `make bench-compare`).
+  `make bench-compare`). Ein wöchentlicher CI-Workflow
+  (`.github/workflows/benchmark.yml`) führt Lauf und Vergleich auf konstanter
+  Hardware aus und schreibt das Ergebnis als Baseline zurück.
 
 ### Geändert
 

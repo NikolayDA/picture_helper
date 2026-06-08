@@ -16,7 +16,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   vrais chemins `image_ops`, enregistre des résultats datés sous
   `benchmarks/results/` et compare les exécutions successives ; les formats qui
   régressent de plus de 10 % sont signalés et éventuellement remontés comme
-  tickets GitHub (`make bench` / `make bench-compare`).
+  tickets GitHub (`make bench` / `make bench-compare`). Un workflow CI
+  hebdomadaire (`.github/workflows/benchmark.yml`) exécute et compare sur un
+  matériel constant et réenregistre le résultat comme prochaine référence.
 
 ### Modifié
 

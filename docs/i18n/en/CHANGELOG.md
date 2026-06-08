@@ -15,6 +15,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `image_ops` paths, stores dated results under `benchmarks/results/` and
   compares consecutive runs; formats that regress by more than 10% are flagged
   and optionally reported as GitHub issues (`make bench` / `make bench-compare`).
+  A weekly CI workflow (`.github/workflows/benchmark.yml`) runs and compares on
+  consistent hardware and commits the result back as the next baseline.
 
 ### Changed
 
