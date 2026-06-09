@@ -49,18 +49,19 @@ la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-09)
 
-Maintenant **treize** issues ouvertes. Nouveau depuis la dernière revue : un lot
-de sécurité `pip-audit` du 2026-06-07 (#200–#206) plus un constat de code mort
-(#199) ; #195 est clos et vérifié.
+Maintenant **onze** issues ouvertes. **#200/#201 sont résolues depuis la PR
+#209** (backend de build épinglé). Le lot de sécurité `pip-audit` du 2026-06-07
+(#200–#206) plus un constat de code mort (#199) restent triés ; #195 est clos et
+vérifié.
 
 Triage du lot de sécurité face à l'état réel du projet
 (`requirements/constraints.txt` + `pyproject.toml`) :
 
-- **#200 (setuptools) est le seul constat 🟠** — `setuptools>=61` est une
-  **dépendance de build directe** (`pyproject.toml`) et **n'est pas** épinglée
-  dans `constraints.txt`. RCE CRITICAL.
-- **#201 (wheel)/#202 (pip)** sont réellement actionnables : `wheel` non épinglé,
-  `pip` arrive sans contrôle en CI/dev.
+- **#200/#201 sont faites (PR #209)** — `setuptools` est désormais épinglé à
+  `>=78.1.1` dans `pyproject.toml` (`[build-system]`) et `constraints.txt`, et
+  `wheel` à `==0.46.2` ; des tests de régression liés aux CVE les protègent.
+- **#202 (pip)** reste réellement actionnable : `pip` arrive sans contrôle en
+  CI/dev.
 - **#203 (cryptography)/#204 (pyjwt)** **ne sont pas** des dépendances du projet
   (purement transitives/système) → informatif, aucun changement de
   `constraints.txt`.
@@ -69,8 +70,6 @@ Triage du lot de sécurité face à l'état réel du projet
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
-| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH : RCE + path traversal | 🟠 Haute | 🟢 Basse | Prêt pour PR ; dépendance de build directe — épingler `setuptools>=78.1.1` dans `pyproject.toml` + `constraints.txt` |
-| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH : path traversal (permissions de fichiers) | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; épingler `wheel==0.46.2` dans `constraints.txt` (regrouper avec #200) |
 | [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM : 5 CVEs (path traversal, symlink) | 🟡 Moyenne | 🟢 Basse | Prêt pour PR ; exiger `pip>=26.1.2` dans les étapes de setup CI + docs dev |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Suite de la revue de code (Low) : E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (de #167) ; `E741`/`check_untyped_defs` dans `pyproject.toml` encore inchangés |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Bloqué : jargon « Runde 5 » retiré ; seule l'URL de clonage reste (décision de l'owner sur la visibilité du dépôt) |
@@ -85,8 +84,8 @@ Triage du lot de sécurité face à l'état réel du projet
 
 ### Ordre de PR Recommandé
 
-1. **#200** — épingler `setuptools>=78.1.1` dans `pyproject.toml` (`[build-system]`) **et** `constraints.txt`. Priorité maximale : RCE CRITICAL dans une dépendance de build directe.
-2. **#201** — épingler `wheel==0.46.2` dans `constraints.txt` ; regrouper avec #200 en un seul PR d'épinglage de chaîne d'approvisionnement.
+1. **#200 faite (PR #209)** — `setuptools>=78.1.1` épinglé dans `pyproject.toml` (`[build-system]`) **et** `constraints.txt` ; RCE CRITICAL fermée.
+2. **#201 faite (PR #209)** — `wheel==0.46.2` épinglé dans `constraints.txt` ; regroupé avec #200 en un seul PR d'épinglage de chaîne d'approvisionnement.
 3. **#202** — exiger `pip>=26.1.2` dans les étapes de setup CI + docs d'installation dev.
 4. **#176** — Lot qualité de code de #167 : restreindre `E741`, `check_untyped_defs` progressivement, UX de cancel_ai, annuler les références de threads dans `shutdown_all`.
 5. **#199** — supprimer `_redo_max` (écriture seule) de `canvas_history.py` (correctif trivial, régression couverte par `make check`).
