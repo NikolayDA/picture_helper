@@ -21,7 +21,6 @@ class CanvasHistory:
         self._redo: deque[tuple[Image.Image, str]] = deque(maxlen=redo_max)
         self._original: Image.Image | None = None
         self._memory_limit: int = memory_limit
-        self._redo_max: int = redo_max
 
     @staticmethod
     def _img_bytes(img: Image.Image) -> int:
