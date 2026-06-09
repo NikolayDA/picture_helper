@@ -45,31 +45,54 @@
   потреби додати їх key-by-key у `bgremover.i18n` і захистити parity/smoke
   tests.
 
-## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-07)
+## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-09)
 
-Тепер **шість** відкритих issues: один 🟠-блокер CI (#195) та п'ять 🟡/🟢:
-дві `documentation` (#161, #166), дві `quality/testing` (#176, #178) та одна
-знахідка безпеки/приватності (#185). #163/#165/#177/#180, а також три
-пріоритетніші знахідки безпеки зі сканування Codex `8c04b92` (#182/#183/#184)
-закрито й верифіковано з останнього review.
+Тепер **тринадцять** відкритих issues. Нове з останнього review: батч безпеки
+`pip-audit` від 2026-06-07 (#200–#206) та знахідка мертвого коду (#199);
+#195 закрито й верифіковано.
+
+Тріаж батчу безпеки відносно реального стану проєкту
+(`requirements/constraints.txt` + `pyproject.toml`):
+
+- **#200 (setuptools) — єдина 🟠-знахідка** — `setuptools>=61` є **прямою
+  build-залежністю** (`pyproject.toml`) і **не** запінено в `constraints.txt`.
+  CRITICAL RCE.
+- **#201 (wheel)/#202 (pip)** реально дієві: `wheel` не запінено,
+  `pip` потрапляє в CI/dev безконтрольно.
+- **#203 (cryptography)/#204 (pyjwt)** **не** є залежностями проєкту (суто
+  транзитивні/системні) → інформативно, без зміни `constraints.txt`.
+- **#205 (urllib3)/#206 (idna)** у проєкті вже **запінено чисто**
+  (`urllib3==2.7.0`, `idna==3.15`); знахідка лише на рівні системи → закриваємо.
 
 | # | Назва | Релевантність | Складність | Рекомендація |
 |---|-------|---------------|------------|--------------|
-| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Блокер Full-CI (mypy/3.10): shape-typing у `canvas_selection.py` – стаби numpy-2.2.6 | 🟠 Висока | 🟢 Низька | Готово до PR; `self._mask: npt.NDArray[np.bool_]` — верифікований однорядковий fix |
+| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH: RCE + path traversal | 🟠 Висока | 🟢 Низька | Готово до PR; пряма build-залежність — запінити `setuptools>=78.1.1` у `pyproject.toml` + `constraints.txt` |
+| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH: path traversal (права файлів) | 🟡 Середня | 🟢 Низька | Готово до PR; запінити `wheel==0.46.2` у `constraints.txt` (об'єднати з #200) |
+| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVE (path traversal, symlink) | 🟡 Середня | 🟢 Низька | Готово до PR; вимагати `pip>=26.1.2` у кроках setup CI + dev-доці |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Продовження код-рев'ю (Low): E741, check_untyped_defs, UX cancel_ai, shutdown_all | 🟡 Середня | 🟢 Низька | Готово до PR (з #167); `E741`/`check_untyped_defs` у `pyproject.toml` ще без змін |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Аудит README: зламане посилання та внутрішній жаргон | 🟡 Середня | 🟢 Низька | Частково зроблено: жаргон «Runde 5» прибрано; лишається лише URL клонування (рішення власника) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Аудит README: зламане посилання та внутрішній жаргон | 🟡 Середня | 🟢 Низька | Заблоковано: жаргон «Runde 5» прибрано; лишається лише URL клонування (рішення власника щодо видимості репо) |
+| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Мертвий код (Low): `_redo_max` лише на запис у `canvas_history.py` | 🟢 Низька | 🟢 Низька | Готово до PR; видалити один рядок (модуль строго типізований — `make check`) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Безпека: macOS-діагностика розкриває локальні шляхи + сирий хвіст логу (приватність) | 🟢 Низька | 🟡 Середня | Готово до PR; редагувати `$HOME`/шляхи + прапорець `--include-raw-logs` + shell-тест |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Продовження тест-аудиту (Low): відв'язати від приватних internals + дедуплікація | 🟢 Низька | 🟡 Середня | Готово до PR (з #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Аудит коментарів: мовні невідповідності та дрібна неточність | 🟢 Низька | 🟢 Низька | Готово до PR; англійські docstrings у `right_panel.py`/`main_window.py` |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVE | 🟢 Низька | 🟢 Низька | Не залежність проєкту (транзитивна/системна) → інформативно, без зміни `constraints.txt` |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVE | 🟢 Низька | 🟢 Низька | Не залежність проєкту → інформативно, без дії проєкту |
+| [#205](https://github.com/NikolayDA/picture_helper/issues/205) | urllib3 2.6.3 — MEDIUM: 2 CVE | 🟢 Низька | 🟢 Низька | Без дії; проєкт уже пінить `urllib3==2.7.0` (чисто) → закриваємо |
+| [#206](https://github.com/NikolayDA/picture_helper/issues/206) | idna 3.11 — MEDIUM: DoS через `idna.encode()` | 🟢 Низька | 🟢 Низька | Без дії; проєкт уже пінить `idna==3.15` (чисто) → закриваємо |
 
 ### Рекомендований Порядок PR
 
-1. **#195** — `self._mask: npt.NDArray[np.bool_]` у `canvas_selection.py`; осередки Full-CI Python-3.10 знову зелені.
-2. **#176** — Набір якості коду з #167: звузити `E741`, `check_untyped_defs` поступово, UX cancel_ai, обнулити thread-посилання у `shutdown_all`.
-3. **#185** — Редагувати macOS-діагностику (`$HOME`/шляхи) + прапорець `--include-raw-logs` + shell-тест.
-4. **#178** — Відв'язати тести від приватних internals + зменшити дублікати (з #168).
-5. **#166** — Мовне очищення docstrings як невеликий PR технічного обслуговування.
-6. **#161 відкладено** — «Runde 5» зроблено; лишається тільки URL клонування (рішення власника щодо видимості репо).
+1. **#200** — запінити `setuptools>=78.1.1` у `pyproject.toml` (`[build-system]`) **та** `constraints.txt`. Найвищий пріоритет: CRITICAL RCE у прямій build-залежності.
+2. **#201** — запінити `wheel==0.46.2` у `constraints.txt`; об'єднати з #200 в один PR пінінгу ланцюга постачання.
+3. **#202** — вимагати `pip>=26.1.2` у кроках setup CI + dev-доці встановлення.
+4. **#176** — Набір якості коду з #167: звузити `E741`, `check_untyped_defs` поступово, UX cancel_ai, обнулити thread-посилання у `shutdown_all`.
+5. **#199** — видалити `_redo_max` (лише на запис) з `canvas_history.py` (тривіальний fix, регресія через `make check`).
+6. **#166** — Мовне очищення docstrings як невеликий PR технічного обслуговування.
+7. **#185** — Редагувати macOS-діагностику (`$HOME`/шляхи) + прапорець `--include-raw-logs` + shell-тест.
+8. **#178** — Відв'язати тести від приватних internals + зменшити дублікати (з #168).
+9. **#205/#206 закриваємо** — пінінг проєкту вже коректний (`urllib3==2.7.0`, `idna==3.15`); знахідки лише на рівні системи.
+10. **#203/#204 як спостережні пункти** — не залежності проєкту; пінити лише якщо майбутня фіча введе їх напряму.
+11. **#161 відкладено** — «Runde 5» зроблено; лишається тільки URL клонування (рішення власника щодо видимості репо).
 
 ## Попередні Раунди
 
