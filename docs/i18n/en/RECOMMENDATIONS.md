@@ -47,10 +47,10 @@ baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-09)
 
-Now **ten** open issues. **#200/#201/#202 are resolved** (build backend pinned
-via PR #209, pip pin via PR #211). The `pip-audit` security batch from 2026-06-07
-(#200–#206) plus a dead-code finding (#199) remain triaged; #195 is closed and
-verified.
+Now **nine** open issues. **#199/#200/#201/#202 are resolved** (dead-code
+removal via PR #215, build backend pinned via PR #209, pip pin via PR #211). The
+`pip-audit` security batch from 2026-06-07 (#200–#206) remains triaged; #195 is
+closed and verified.
 
 Triage of the security batch against the project's actual state
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -71,7 +71,6 @@ Triage of the security batch against the project's actual state
 |---|-------|-----------|------------|----------------|
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-review follow-up (Low): E741, check_untyped_defs, cancel_ai UX, shutdown_all | 🟡 Medium | 🟢 Low | Ready for PR (from #167); `E741`/`check_untyped_defs` in `pyproject.toml` still unchanged |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Blocked: "Runde 5" jargon removed; only clone URL remains (owner decision on repo visibility) |
-| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Dead code (Low): write-only `_redo_max` in `canvas_history.py` | 🟢 Low | 🟢 Low | Ready for PR; delete one line (module is strictly typed — `make check`) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Security: macOS diagnostics disclose local paths + raw log tail (privacy) | 🟢 Low | 🟡 Medium | Ready for PR; redact `$HOME`/paths + `--include-raw-logs` flag + shell test |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Test-audit follow-up (Low): decouple from private internals + dedupe | 🟢 Low | 🟡 Medium | Ready for PR (from #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Comment audit: language inconsistencies and minor phrasing inaccuracy | 🟢 Low | 🟢 Low | Ready for PR; English docstrings in `right_panel.py`/`main_window.py` |
@@ -86,7 +85,7 @@ Triage of the security batch against the project's actual state
 2. **#201 done (PR #209)** — pinned `wheel==0.46.2` in `constraints.txt`; bundled with #200 as a single supply-chain pinning PR.
 3. **#202 done (PR #211)** — `pip>=26.1.2` enforced in the CI setup steps, the SessionStart hook + dev install docs; CVE batch (path traversal/symlink/module hijacking) closed.
 4. **#176** — Code-quality batch from #167: narrow `E741`, `check_untyped_defs` incrementally, cancel_ai UX, null `shutdown_all` thread references.
-5. **#199** — remove the write-only `_redo_max` from `canvas_history.py` (trivial fix, regression covered by `make check`).
+5. **#199 done (PR #215)** — removed the write-only `_redo_max` from `canvas_history.py`; regression test `test_redo_stack_capped_by_maxlen`, `make check` green.
 6. **#166** — Docstring language cleanup as a small housekeeping PR.
 7. **#185** — Redact macOS diagnostics (`$HOME`/paths) + add `--include-raw-logs` flag + shell test.
 8. **#178** — Decouple tests from private internals + reduce duplicate tests (from #168).
