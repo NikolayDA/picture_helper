@@ -167,6 +167,7 @@ PyQt6/Pillow/numpy видимими у venv, тож доустановлюють
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -238,6 +239,7 @@ git branch -r                       # показати доступні гілк
 git checkout <branch>
 source .venv/bin/activate
 # потрібно лише, якщо змінилися залежності:
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -284,7 +286,7 @@ Editable-встановлення (`pip install -e`) **не** потрібно
 - **Помилка pip під час встановлення** → в активному venv спершу оновіть
   pip, потім повторіть команду встановлення:
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
 - **Перший клік ШІ триває довго** → Найпершого разу `rembg`
   завантажує свою модель (кілька сотень МБ, одноразово, кеш у

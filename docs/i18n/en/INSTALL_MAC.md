@@ -48,6 +48,7 @@ system Python blocks `pip install` via PEP 668:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -77,6 +78,7 @@ git fetch origin
 git branch -r                       # show available branches
 git checkout <branch>
 # in a venv (see Quick start); only needed if dependencies have changed:
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -149,7 +151,7 @@ non-editable package copy in the app venv.
 - **"python3: command not found"** → `brew install python`
 - **pip error during installation** → first update pip:
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   then run the install command again.
 - **First AI click takes a long time** → On the very first time, `rembg`
