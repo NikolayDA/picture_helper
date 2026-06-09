@@ -167,6 +167,7 @@ venv isolé :
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -238,6 +239,7 @@ git branch -r                       # afficher les branches disponibles
 git checkout <branch>
 source .venv/bin/activate
 # nécessaire uniquement si les dépendances ont changé :
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -283,7 +285,7 @@ réexécutée après `git pull` — sauf si les dépendances dans
 - **Erreur pip lors de l'installation** → dans le venv actif, mettre d'abord pip
   à jour, puis réessayer la commande d'installation :
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
 - **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
   télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans

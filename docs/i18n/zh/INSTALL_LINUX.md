@@ -165,6 +165,7 @@ PyQt6/Pillow/numpy 在 venv 中可见，这样就只需加载 `rembg` 和
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -236,6 +237,7 @@ git branch -r                       # 显示可用的分支
 git checkout <branch>
 source .venv/bin/activate
 # 仅在依赖项发生变化时才需要：
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -282,7 +284,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
 - **安装时出现 pip 错误** → 在已激活的 venv 中先升级
   pip，然后重复安装命令：
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
 - **首次点击 AI 耗时较长** → 在首次时，`rembg` 会
   下载它的模型（几百 MB，一次性，缓存在

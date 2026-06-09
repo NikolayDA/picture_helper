@@ -30,6 +30,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   traversal), y `wheel` a `==0.46.2` en `constraints.txt` (CVE-2026-24049). Así
   la compilación aislada del wheel ya no puede traer herramientas de compilación
   vulnerables (#200, #201).
+- **pip elevado a una versión parcheada en CI/dev.** Los workflows de CI que
+  instalan con pip (`ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`,
+  `license-check.yml`) y el hook SessionStart web suben `pip` a `>=26.1.2` antes
+  de instalar, igual que la documentación de instalación para dev
+  (`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`). Cierra el lote de
+  `pip-audit` de CVE de path traversal, symlink y secuestro de módulos; pip es
+  la propia herramienta de instalación y por eso no se puede fijar vía
+  `constraints.txt` (#202).
 
 ### Corregido
 

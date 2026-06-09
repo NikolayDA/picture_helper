@@ -46,6 +46,7 @@ bash create_BgRemover_app.sh
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -75,6 +76,7 @@ git fetch origin
 git branch -r                       # 显示可用的分支
 git checkout <branch>
 # 在 venv 中（见快速开始）；仅在依赖项发生变化时才需要：
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -147,7 +149,7 @@ git checkout <branch> && git pull      # 更新某个特定分支
 - **“python3: command not found”** → `brew install python`
 - **安装时出现 pip 错误** → 先升级 pip：
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   然后重新执行安装命令。
 - **首次点击 AI 耗时较长** → 在首次时，`rembg` 会

@@ -27,6 +27,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   （CVE-2024-6345 RCE、CVE-2025-47273 路径遍历），`wheel` 在 `constraints.txt`
   中升级到 `==0.46.2`（CVE-2026-24049）。这样隔离的 wheel 构建就不会再拉取存在
   漏洞的构建工具（#200、#201）。
+- **在 CI/开发环境中将 pip 升级到已修复版本。** 使用 pip 安装的 CI 工作流
+  （`ci.yml`、`pr-ci.yml`、`ui-nightly.yml`、`benchmark.yml`、`license-check.yml`）
+  和 Web SessionStart 钩子在安装前将 `pip` 升级到 `>=26.1.2`，开发安装文档
+  （`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`）同样如此。修复了
+  `pip-audit` 报告的路径遍历、符号链接和模块劫持 CVE 批次；pip 本身就是安装
+  工具，因此无法通过 `constraints.txt` 固定（#202）。
 
 ### 修复
 
