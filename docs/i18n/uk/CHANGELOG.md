@@ -30,6 +30,14 @@
   traversal), а `wheel` до `==0.46.2` у `constraints.txt` (CVE-2026-24049). Тож
   ізольований збір wheel більше не може підтягнути вразливі складальні
   інструменти (#200, #201).
+- **pip піднято до виправленої версії в CI/dev.** CI-воркфлоу, що
+  встановлюють через pip (`ci.yml`, `pr-ci.yml`, `ui-nightly.yml`,
+  `benchmark.yml`, `license-check.yml`), та веб-хук SessionStart піднімають
+  `pip` до `>=26.1.2` перед встановленням, так само як dev-документація зі
+  встановлення (`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`). Закриває батч
+  `pip-audit` із CVE path traversal, symlink і захоплення модулів; pip — це сам
+  інструмент встановлення, тож його не можна закріпити через
+  `constraints.txt` (#202).
 
 ### Виправлено
 

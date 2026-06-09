@@ -49,6 +49,7 @@ ya que el Python del sistema bloquea `pip install` según el PEP 668:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -78,6 +79,7 @@ git fetch origin
 git branch -r                       # mostrar ramas disponibles
 git checkout <branch>
 # en un venv (ver Inicio rápido); solo necesario si han cambiado las dependencias:
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -152,7 +154,7 @@ automáticamente la copia del paquete en el venv dedicado de la app.
 - **«python3: command not found»** → `brew install python`
 - **Error de pip al instalar** → actualiza primero pip:
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   luego ejecuta de nuevo el comando de instalación.
 - **El primer clic de IA tarda mucho** → La primerísima vez, `rembg`
