@@ -47,10 +47,10 @@ siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-09)
 
-Ahora **once** issues abiertos. **#200/#201 están resueltos desde el PR #209**
-(backend de compilación fijado). El lote de seguridad de `pip-audit` del
-2026-06-07 (#200–#206) más un hallazgo de código muerto (#199) siguen triados;
-#195 está cerrado y verificado.
+Ahora **diez** issues abiertos. **#200/#201/#202 están resueltos** (backend de
+compilación fijado vía PR #209, pip fijado vía PR #211). El lote de seguridad de
+`pip-audit` del 2026-06-07 (#200–#206) más un hallazgo de código muerto (#199)
+siguen triados; #195 está cerrado y verificado.
 
 Triaje del lote de seguridad frente al estado real del proyecto
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -58,8 +58,10 @@ Triaje del lote de seguridad frente al estado real del proyecto
 - **#200/#201 están hechos (PR #209)** — `setuptools` ahora está fijado a
   `>=78.1.1` en `pyproject.toml` (`[build-system]`) y `constraints.txt`, y
   `wheel` a `==0.46.2`; tests de regresión ligados a CVE lo protegen.
-- **#202 (pip)** sigue siendo realmente accionable: `pip` llega sin control a
-  CI/dev.
+- **#202 (pip) está hecho (PR #211)** — se exige `pip>=26.1.2` en los pasos de
+  setup de CI (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
+  `license-check.yml`), el hook SessionStart web y los docs de instalación dev;
+  un test de regresión ligado a CVE lo protege.
 - **#203 (cryptography)/#204 (pyjwt)** **no** son dependencias del proyecto
   (puramente transitivas/del sistema) → informativo, sin cambio en
   `constraints.txt`.
@@ -68,7 +70,6 @@ Triaje del lote de seguridad frente al estado real del proyecto
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVEs (path traversal, symlink) | 🟡 Media | 🟢 Baja | Listo para PR; exigir `pip>=26.1.2` en pasos de setup de CI + docs de dev |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Seguimiento de revisión de código (Low): E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Media | 🟢 Baja | Listo para PR (de #167); `E741`/`check_untyped_defs` en `pyproject.toml` aún sin cambios |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Bloqueado: jerga "Runde 5" eliminada; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo) |
 | [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Código muerto (Low): `_redo_max` solo de escritura en `canvas_history.py` | 🟢 Baja | 🟢 Baja | Listo para PR; eliminar una línea (módulo con tipado estricto — `make check`) |
@@ -84,7 +85,7 @@ Triaje del lote de seguridad frente al estado real del proyecto
 
 1. **#200 hecho (PR #209)** — `setuptools>=78.1.1` fijado en `pyproject.toml` (`[build-system]`) **y** `constraints.txt`; RCE CRITICAL cerrado.
 2. **#201 hecho (PR #209)** — `wheel==0.46.2` fijado en `constraints.txt`; agrupado con #200 como un único PR de fijado de cadena de suministro.
-3. **#202** — exigir `pip>=26.1.2` en los pasos de setup de CI + docs de instalación de dev.
+3. **#202 hecho (PR #211)** — `pip>=26.1.2` exigido en los pasos de setup de CI, el hook SessionStart + docs de instalación dev; lote de CVE (path traversal/symlink/secuestro de módulos) cerrado.
 4. **#176** — Lote de calidad de código de #167: acotar `E741`, `check_untyped_defs` de forma incremental, UX de cancel_ai, anular referencias de hilos en `shutdown_all`.
 5. **#199** — eliminar `_redo_max` (solo de escritura) de `canvas_history.py` (fix trivial, regresión cubierta por `make check`).
 6. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.

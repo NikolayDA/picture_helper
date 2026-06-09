@@ -47,9 +47,10 @@ baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-09)
 
-Now **eleven** open issues. **#200/#201 are resolved as of PR #209** (build
-backend pinned). The `pip-audit` security batch from 2026-06-07 (#200–#206) plus
-a dead-code finding (#199) remain triaged; #195 is closed and verified.
+Now **ten** open issues. **#200/#201/#202 are resolved** (build backend pinned
+via PR #209, pip pin via PR #211). The `pip-audit` security batch from 2026-06-07
+(#200–#206) plus a dead-code finding (#199) remain triaged; #195 is closed and
+verified.
 
 Triage of the security batch against the project's actual state
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -57,8 +58,10 @@ Triage of the security batch against the project's actual state
 - **#200/#201 are done (PR #209)** — `setuptools` is now pinned to `>=78.1.1` in
   `pyproject.toml` (`[build-system]`) and `constraints.txt`, and `wheel` to
   `==0.46.2`; CVE-tied regression tests guard against regressions.
-- **#202 (pip)** remains genuinely actionable: `pip` ships uncontrolled in
-  CI/dev.
+- **#202 (pip) is done (PR #211)** — `pip>=26.1.2` is enforced in the CI setup
+  steps (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
+  `license-check.yml`), the web SessionStart hook and the dev install docs; a
+  CVE-tied regression test guards it.
 - **#203 (cryptography)/#204 (pyjwt)** are **not** project dependencies (purely
   transitive/system) → informational, no `constraints.txt` change.
 - **#205 (urllib3)/#206 (idna)** are **already pinned clean** in the project
@@ -66,7 +69,6 @@ Triage of the security batch against the project's actual state
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVEs (path traversal, symlink) | 🟡 Medium | 🟢 Low | Ready for PR; require `pip>=26.1.2` in CI setup steps + dev docs |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-review follow-up (Low): E741, check_untyped_defs, cancel_ai UX, shutdown_all | 🟡 Medium | 🟢 Low | Ready for PR (from #167); `E741`/`check_untyped_defs` in `pyproject.toml` still unchanged |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Blocked: "Runde 5" jargon removed; only clone URL remains (owner decision on repo visibility) |
 | [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Dead code (Low): write-only `_redo_max` in `canvas_history.py` | 🟢 Low | 🟢 Low | Ready for PR; delete one line (module is strictly typed — `make check`) |
@@ -82,7 +84,7 @@ Triage of the security batch against the project's actual state
 
 1. **#200 done (PR #209)** — pinned `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **and** `constraints.txt`; CRITICAL RCE closed.
 2. **#201 done (PR #209)** — pinned `wheel==0.46.2` in `constraints.txt`; bundled with #200 as a single supply-chain pinning PR.
-3. **#202** — require `pip>=26.1.2` in the CI setup steps + dev install docs.
+3. **#202 done (PR #211)** — `pip>=26.1.2` enforced in the CI setup steps, the SessionStart hook + dev install docs; CVE batch (path traversal/symlink/module hijacking) closed.
 4. **#176** — Code-quality batch from #167: narrow `E741`, `check_untyped_defs` incrementally, cancel_ai UX, null `shutdown_all` thread references.
 5. **#199** — remove the write-only `_redo_max` from `canvas_history.py` (trivial fix, regression covered by `make check`).
 6. **#166** — Docstring language cleanup as a small housekeeping PR.
