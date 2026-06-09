@@ -29,11 +29,17 @@ Ein Paket, `bgremover/`:
 - **Einstieg:** `app.py` (`main()`), `__main__.py` → `python -m bgremover`;
   `main_window.py` verdrahtet die UI.
 - **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
-  Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`.
+  Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
+  `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker.
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py` (rembg läuft
   im Thread; `rembg` ist optionales `ai`-Extra und wird lazy importiert).
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `settings_dialog.py`,
-  `menu_actions.py`, `widgets.py`, `theme.py`, `icons*.py`.
+  `menu_actions.py`, `crop_bar.py`, `history_popup.py`, `widgets.py`, `theme.py`,
+  `icons*.py`.
+- **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
+  `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
+  `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
+  („Zuletzt geöffnet"-Persistenz).
 - **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
   unter `docs/i18n/`.
 
@@ -41,8 +47,9 @@ Ein Paket, `bgremover/`:
 
 - **Kommentare & Docstrings auf Deutsch** (Code-Identifier englisch). Den
   bestehenden, bewusst kompakten Stil treffen.
-- **ruff:** line-length 100, `E501` ignoriert, Ziel py310. In `bgremover/*` sind
-  `E702`/`E741` erlaubt (kompakter Stil), in `tests/conftest.py` `E402`.
+- **ruff:** line-length 100, Regeln `E,F,W,I,B,UP,SIM`, `E501` ignoriert, Ziel
+  py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
+  `tests/conftest.py` `E402`.
 - **mypy:** Qt-arme Logikmodule (`image_ops`, `image_utils`, `crop`,
   `recent_files`, `canvas_history/_selection/_lasso/_transform/_viewport`) sind
   streng getypt (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
