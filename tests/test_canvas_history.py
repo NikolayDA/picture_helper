@@ -70,3 +70,26 @@ def test_trim_keeps_at_least_one_entry() -> None:
     h.push(_img(), "b")
     assert len(h._undo) == 1
     assert h._undo_bytes == _IMG_BYTES
+
+
+def test_redo_stack_capped_by_maxlen() -> None:
+    """Der Redo-Stapel wird allein durch ``deque(maxlen=redo_max)`` begrenzt.
+
+    Regression für #199: Das früher separat gepflegte Attribut ``_redo_max``
+    war write-only – ``maxlen`` ist die einzige Quelle der Begrenzung. Nach
+    mehr Undo-Schritten als ``redo_max`` darf der Redo-Stapel nicht über die
+    Obergrenze hinaus wachsen.
+    """
+    cap = 3
+    h = CanvasHistory(redo_max=cap)
+    assert h._redo.maxlen == cap
+    current = _img()
+    for _ in range(cap + 5):
+        h.push(current, "edit")
+        current = _img()
+    for _ in range(cap + 5):
+        result = h.undo(current)
+        if result is None:
+            break
+        current = result[0]
+    assert len(h._redo) == cap
