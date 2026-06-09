@@ -47,18 +47,18 @@
 
 ## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-09)
 
-Тепер **тринадцять** відкритих issues. Нове з останнього review: батч безпеки
-`pip-audit` від 2026-06-07 (#200–#206) та знахідка мертвого коду (#199);
-#195 закрито й верифіковано.
+Тепер **одинадцять** відкритих issues. **#200/#201 виконано в PR #209**
+(build-бекенд запінено). Батч безпеки `pip-audit` від 2026-06-07 (#200–#206) та
+знахідка мертвого коду (#199) лишаються в тріажі; #195 закрито й верифіковано.
 
 Тріаж батчу безпеки відносно реального стану проєкту
 (`requirements/constraints.txt` + `pyproject.toml`):
 
-- **#200 (setuptools) — єдина 🟠-знахідка** — `setuptools>=61` є **прямою
-  build-залежністю** (`pyproject.toml`) і **не** запінено в `constraints.txt`.
-  CRITICAL RCE.
-- **#201 (wheel)/#202 (pip)** реально дієві: `wheel` не запінено,
-  `pip` потрапляє в CI/dev безконтрольно.
+- **#200/#201 виконано (PR #209)** — `setuptools` тепер запінено на `>=78.1.1`
+  у `pyproject.toml` (`[build-system]`) та `constraints.txt`, а `wheel` на
+  `==0.46.2`; CVE-прив'язані регресійні тести це захищають.
+- **#202 (pip)** лишається реально дієвим: `pip` потрапляє в CI/dev
+  безконтрольно.
 - **#203 (cryptography)/#204 (pyjwt)** **не** є залежностями проєкту (суто
   транзитивні/системні) → інформативно, без зміни `constraints.txt`.
 - **#205 (urllib3)/#206 (idna)** у проєкті вже **запінено чисто**
@@ -66,8 +66,6 @@
 
 | # | Назва | Релевантність | Складність | Рекомендація |
 |---|-------|---------------|------------|--------------|
-| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH: RCE + path traversal | 🟠 Висока | 🟢 Низька | Готово до PR; пряма build-залежність — запінити `setuptools>=78.1.1` у `pyproject.toml` + `constraints.txt` |
-| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH: path traversal (права файлів) | 🟡 Середня | 🟢 Низька | Готово до PR; запінити `wheel==0.46.2` у `constraints.txt` (об'єднати з #200) |
 | [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVE (path traversal, symlink) | 🟡 Середня | 🟢 Низька | Готово до PR; вимагати `pip>=26.1.2` у кроках setup CI + dev-доці |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Продовження код-рев'ю (Low): E741, check_untyped_defs, UX cancel_ai, shutdown_all | 🟡 Середня | 🟢 Низька | Готово до PR (з #167); `E741`/`check_untyped_defs` у `pyproject.toml` ще без змін |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Аудит README: зламане посилання та внутрішній жаргон | 🟡 Середня | 🟢 Низька | Заблоковано: жаргон «Runde 5» прибрано; лишається лише URL клонування (рішення власника щодо видимості репо) |
@@ -82,8 +80,8 @@
 
 ### Рекомендований Порядок PR
 
-1. **#200** — запінити `setuptools>=78.1.1` у `pyproject.toml` (`[build-system]`) **та** `constraints.txt`. Найвищий пріоритет: CRITICAL RCE у прямій build-залежності.
-2. **#201** — запінити `wheel==0.46.2` у `constraints.txt`; об'єднати з #200 в один PR пінінгу ланцюга постачання.
+1. **#200 виконано (PR #209)** — `setuptools>=78.1.1` запінено у `pyproject.toml` (`[build-system]`) **та** `constraints.txt`; CRITICAL RCE закрито.
+2. **#201 виконано (PR #209)** — `wheel==0.46.2` запінено у `constraints.txt`; об'єднано з #200 в один PR пінінгу ланцюга постачання.
 3. **#202** — вимагати `pip>=26.1.2` у кроках setup CI + dev-доці встановлення.
 4. **#176** — Набір якості коду з #167: звузити `E741`, `check_untyped_defs` поступово, UX cancel_ai, обнулити thread-посилання у `shutdown_all`.
 5. **#199** — видалити `_redo_max` (лише на запис) з `canvas_history.py` (тривіальний fix, регресія через `make check`).

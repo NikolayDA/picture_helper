@@ -41,16 +41,17 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-09）
 
-现有 **十三** 个开放 issue。自上次 review 以来新增：一批 `pip-audit` 安全发现
-（2026-06-07，#200–#206）以及一处死代码发现（#199）；#195 已关闭并验证。
+现有 **十一** 个开放 issue。**#200/#201 已在 PR #209 中完成**（构建后端已固定）。
+`pip-audit` 安全批次（2026-06-07，#200–#206）以及一处死代码发现（#199）仍在分诊中；
+#195 已关闭并验证。
 
 针对项目实际状态（`requirements/constraints.txt` + `pyproject.toml`）对安全批次
 进行分诊：
 
-- **#200（setuptools）是唯一的 🟠 发现** — `setuptools>=61` 是**直接构建依赖**
-  （`pyproject.toml`），且在 `constraints.txt` 中**未**固定。CRITICAL RCE。
-- **#201（wheel）/#202（pip）** 确有可操作性：`wheel` 未固定，`pip` 在 CI/dev
-  中不受控地随附。
+- **#200/#201 已完成（PR #209）** — `setuptools` 现已在 `pyproject.toml`
+  （`[build-system]`）和 `constraints.txt` 中固定为 `>=78.1.1`，`wheel` 固定为
+  `==0.46.2`；与 CVE 绑定的回归测试加以保护。
+- **#202（pip）** 仍具可操作性：`pip` 在 CI/dev 中不受控地随附。
 - **#203（cryptography）/#204（pyjwt）** **不是**项目依赖（纯传递/系统层）→
   仅作参考，无需改动 `constraints.txt`。
 - **#205（urllib3）/#206（idna）** 在项目中**已干净固定**（`urllib3==2.7.0`、
@@ -58,8 +59,6 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH：RCE + 路径遍历 | 🟠 高 | 🟢 低 | 可提 PR；直接构建依赖 — 在 `pyproject.toml` + `constraints.txt` 固定 `setuptools>=78.1.1` |
-| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH：路径遍历（文件权限） | 🟡 中 | 🟢 低 | 可提 PR；在 `constraints.txt` 固定 `wheel==0.46.2`（与 #200 合并） |
 | [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM：5 个 CVE（路径遍历、符号链接） | 🟡 中 | 🟢 低 | 可提 PR；在 CI setup 步骤 + dev 文档中要求 `pip>=26.1.2` |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
@@ -74,8 +73,8 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 ### 推荐 PR 顺序
 
-1. **#200** — 在 `pyproject.toml`（`[build-system]`）**和** `constraints.txt` 中固定 `setuptools>=78.1.1`。最高优先级：直接构建依赖中的 CRITICAL RCE。
-2. **#201** — 在 `constraints.txt` 中固定 `wheel==0.46.2`；与 #200 合并为单个供应链固定 PR。
+1. **#200 已完成（PR #209）** — 已在 `pyproject.toml`（`[build-system]`）**和** `constraints.txt` 中固定 `setuptools>=78.1.1`；CRITICAL RCE 已关闭。
+2. **#201 已完成（PR #209）** — 已在 `constraints.txt` 中固定 `wheel==0.46.2`；与 #200 合并为单个供应链固定 PR。
 3. **#202** — 在 CI setup 步骤 + dev 安装文档中要求 `pip>=26.1.2`。
 4. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
 5. **#199** — 从 `canvas_history.py` 删除只写的 `_redo_max`（琐碎修复，`make check` 覆盖回归）。
