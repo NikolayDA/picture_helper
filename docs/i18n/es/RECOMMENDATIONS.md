@@ -47,10 +47,10 @@ siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-09)
 
-Ahora **diez** issues abiertos. **#200/#201/#202 están resueltos** (backend de
-compilación fijado vía PR #209, pip fijado vía PR #211). El lote de seguridad de
-`pip-audit` del 2026-06-07 (#200–#206) más un hallazgo de código muerto (#199)
-siguen triados; #195 está cerrado y verificado.
+Ahora **nueve** issues abiertos. **#199/#200/#201/#202 están resueltos**
+(eliminación de código muerto vía PR #215, backend de compilación fijado vía
+PR #209, pip fijado vía PR #211). El lote de seguridad de `pip-audit` del
+2026-06-07 (#200–#206) sigue triado; #195 está cerrado y verificado.
 
 Triaje del lote de seguridad frente al estado real del proyecto
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -72,7 +72,6 @@ Triaje del lote de seguridad frente al estado real del proyecto
 |---|--------|------------|-------------|---------------|
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Seguimiento de revisión de código (Low): E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Media | 🟢 Baja | Listo para PR (de #167); `E741`/`check_untyped_defs` en `pyproject.toml` aún sin cambios |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Bloqueado: jerga "Runde 5" eliminada; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo) |
-| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Código muerto (Low): `_redo_max` solo de escritura en `canvas_history.py` | 🟢 Baja | 🟢 Baja | Listo para PR; eliminar una línea (módulo con tipado estricto — `make check`) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Seguridad: el diagnóstico de macOS revela rutas locales + cola de log en bruto (privacidad) | 🟢 Baja | 🟡 Media | Listo para PR; redactar `$HOME`/rutas + flag `--include-raw-logs` + test de shell |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Seguimiento de auditoría de tests (Low): desacoplar de internals privados + deduplicar | 🟢 Baja | 🟡 Media | Listo para PR (de #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Auditoría de comentarios: inconsistencias de idioma e imprecisión menor | 🟢 Baja | 🟢 Baja | Listo para PR; docstrings en inglés en `right_panel.py`/`main_window.py` |
@@ -87,7 +86,7 @@ Triaje del lote de seguridad frente al estado real del proyecto
 2. **#201 hecho (PR #209)** — `wheel==0.46.2` fijado en `constraints.txt`; agrupado con #200 como un único PR de fijado de cadena de suministro.
 3. **#202 hecho (PR #211)** — `pip>=26.1.2` exigido en los pasos de setup de CI, el hook SessionStart + docs de instalación dev; lote de CVE (path traversal/symlink/secuestro de módulos) cerrado.
 4. **#176** — Lote de calidad de código de #167: acotar `E741`, `check_untyped_defs` de forma incremental, UX de cancel_ai, anular referencias de hilos en `shutdown_all`.
-5. **#199** — eliminar `_redo_max` (solo de escritura) de `canvas_history.py` (fix trivial, regresión cubierta por `make check`).
+5. **#199 hecho (PR #215)** — eliminado `_redo_max` (solo de escritura) de `canvas_history.py`; test de regresión `test_redo_stack_capped_by_maxlen`, `make check` en verde.
 6. **#166** — Limpieza de idioma en docstrings como PR de mantenimiento menor.
 7. **#185** — Redactar el diagnóstico de macOS (`$HOME`/rutas) + flag `--include-raw-logs` + test de shell.
 8. **#178** — Desacoplar tests de internals privados + reducir tests duplicados (de #168).

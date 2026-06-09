@@ -41,8 +41,8 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-09）
 
-现有 **十** 个开放 issue。**#200/#201/#202 已完成**（构建后端在 PR #209 中固定，
-pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#206）以及一处死代码发现（#199）仍在分诊中；
+现有 **九** 个开放 issue。**#199/#200/#201/#202 已完成**（死代码删除见 PR #215，构建后端在 PR #209 中固定，
+pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#206）仍在分诊中；
 #195 已关闭并验证。
 
 针对项目实际状态（`requirements/constraints.txt` + `pyproject.toml`）对安全批次
@@ -63,7 +63,6 @@ pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#2
 |---|------|--------|--------|------|
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
-| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | 死代码（Low）：`canvas_history.py` 中只写的 `_redo_max` | 🟢 低 | 🟢 低 | 可提 PR；删除一行（该模块严格类型化 — `make check`） |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | 安全：macOS 诊断泄露本地路径 + 原始日志尾部（隐私） | 🟢 低 | 🟡 中 | 可提 PR；脱敏 `$HOME`/路径 + `--include-raw-logs` 标志 + shell 测试 |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | 测试审计后续（Low）：与私有内部解耦 + 去重 | 🟢 低 | 🟡 中 | 可提 PR（来自 #168） |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | 注释审计：语言不一致与小措辞不准确 | 🟢 低 | 🟢 低 | 可提 PR；`right_panel.py`/`main_window.py` 中存在英文 docstring |
@@ -78,7 +77,7 @@ pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#2
 2. **#201 已完成（PR #209）** — 已在 `constraints.txt` 中固定 `wheel==0.46.2`；与 #200 合并为单个供应链固定 PR。
 3. **#202 已完成（PR #211）** — 已在 CI setup 步骤、SessionStart 钩子 + dev 安装文档中强制 `pip>=26.1.2`；CVE 批次（路径遍历/符号链接/模块劫持）已关闭。
 4. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
-5. **#199** — 从 `canvas_history.py` 删除只写的 `_redo_max`（琐碎修复，`make check` 覆盖回归）。
+5. **#199 已完成（PR #215）** — 已从 `canvas_history.py` 删除只写的 `_redo_max`；回归测试 `test_redo_stack_capped_by_maxlen`，`make check` 通过。
 6. **#166** — docstring 语言清理，作为小型维护 PR。
 7. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
 8. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
