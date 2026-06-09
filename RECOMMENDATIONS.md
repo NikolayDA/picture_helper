@@ -47,10 +47,10 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-09)
 
-Jetzt **elf** offene Issues. **#200/#201 sind seit PR #209 erledigt**
-(Build-Backend gepinnt). Der `pip-audit`-Security-Batch vom 2026-06-07
-(#200–#206) und ein Dead-Code-Befund (#199) bleiben eingeordnet; #195 ist seit
-dem letzten Review geschlossen und verifiziert.
+Jetzt **zehn** offene Issues. **#200/#201/#202 sind erledigt** (Build-Backend
+gepinnt via PR #209, pip-Pin via PR #211). Der `pip-audit`-Security-Batch vom
+2026-06-07 (#200–#206) und ein Dead-Code-Befund (#199) bleiben eingeordnet;
+#195 ist seit dem letzten Review geschlossen und verifiziert.
 
 Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -58,8 +58,10 @@ Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 - **#200/#201 sind erledigt (PR #209)** — `setuptools` ist jetzt in
   `pyproject.toml` (`[build-system]`) und `constraints.txt` auf `>=78.1.1`
   gepinnt, `wheel` auf `==0.46.2`; CVE-gebundene Regressionstests sichern das ab.
-- **#202 (pip)** bleibt real umsetzbar: `pip` wird in CI/Dev unkontrolliert
-  mitgeliefert.
+- **#202 (pip) ist erledigt (PR #211)** — `pip>=26.1.2` wird in den
+  CI-Setup-Schritten (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
+  `license-check.yml`), im Web-SessionStart-Hook und in der Dev-Install-Doku
+  erzwungen; ein CVE-gebundener Regressionstest sichert das ab.
 - **#203 (cryptography)/#204 (pyjwt)** sind **keine** Projekt-Abhängigkeiten
   (rein transitiv/systemseitig) → informativ, keine `constraints.txt`-Änderung.
 - **#205 (urllib3)/#206 (idna)** sind im Projekt **bereits sauber gepinnt**
@@ -67,7 +69,6 @@ Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVEs (Path-Traversal, Symlink) | 🟡 Mittel | 🟢 Niedrig | PR-bereit; `pip>=26.1.2` in CI-Setup-Schritten + Dev-Doku |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167); `E741`/`check_untyped_defs` in `pyproject.toml` noch unverändert |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Blockiert: „Runde 5" entfernt; nur Clone-URL offen (Owner-Entscheidung zur Repo-Sichtbarkeit) |
 | [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Dead-Code (Low): write-only `_redo_max` in `canvas_history.py` | 🟢 Niedrig | 🟢 Niedrig | PR-bereit; eine Zeile entfernen (Modul ist streng getypt — `make check`) |
@@ -83,7 +84,7 @@ Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 
 1. **#200 erledigt (PR #209)** — `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **und** `constraints.txt` gepinnt; CRITICAL RCE geschlossen.
 2. **#201 erledigt (PR #209)** — `wheel==0.46.2` in `constraints.txt` gepinnt; mit #200 als Supply-Chain-Pinning-PR gebündelt.
-3. **#202** — `pip>=26.1.2` in den CI-Setup-Schritten + Dev-Install-Doku erzwingen.
+3. **#202 erledigt (PR #211)** — `pip>=26.1.2` in den CI-Setup-Schritten, im SessionStart-Hook + Dev-Install-Doku erzwungen; CVE-Batch (Path-Traversal/Symlink/Modul-Hijacking) geschlossen.
 4. **#176** — Code-Quality-Sammlung aus #167: `E741` eingrenzen, `check_untyped_defs` inkrementell, cancel_ai-UX, `shutdown_all`-Thread-Referenzen nullen.
 5. **#199** — write-only `_redo_max` aus `canvas_history.py` entfernen (Trivial-Fix, Regressionstest via `make check`).
 6. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
