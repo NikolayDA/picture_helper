@@ -45,31 +45,54 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Runtime-Locales umgesetzt; bei Bedarf key-für-key in `bgremover.i18n`
   ergänzen und mit Paritäts-/Smoke-Tests absichern.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-07)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-09)
 
-Jetzt **sechs** offene Issues: ein 🟠-CI-Blocker (#195) sowie fünf 🟡/🟢: zwei
-`documentation` (#161, #166), zwei `quality/testing` (#176, #178) und ein
-Privacy-Security-Befund (#185). #163/#165/#177/#180 sowie die drei höher
-priorisierten Security-Befunde des Codex-Scans `8c04b92` (#182/#183/#184) sind
-seit dem letzten Review geschlossen und verifiziert.
+Jetzt **dreizehn** offene Issues. Neu ist ein `pip-audit`-Security-Batch vom
+2026-06-07 (#200–#206) sowie ein Dead-Code-Befund (#199); #195 ist seit dem
+letzten Review geschlossen und verifiziert.
+
+Einordnung des Security-Batches gegen den tatsächlichen Projektstand
+(`requirements/constraints.txt` + `pyproject.toml`):
+
+- **#200 (setuptools) ist der einzige 🟠-Befund** — `setuptools>=61` ist eine
+  **direkte Build-Abhängigkeit** (`pyproject.toml`) und in `constraints.txt`
+  **nicht** gepinnt. CRITICAL RCE.
+- **#201 (wheel)/#202 (pip)** sind real umsetzbar: `wheel` ist nicht gepinnt,
+  `pip` wird in CI/Dev unkontrolliert mitgeliefert.
+- **#203 (cryptography)/#204 (pyjwt)** sind **keine** Projekt-Abhängigkeiten
+  (rein transitiv/systemseitig) → informativ, keine `constraints.txt`-Änderung.
+- **#205 (urllib3)/#206 (idna)** sind im Projekt **bereits sauber gepinnt**
+  (`urllib3==2.7.0`, `idna==3.15`); reiner System-Befund → schließbar.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Full-CI-Blocker (mypy/3.10): `canvas_selection.py` Shape-Typing – numpy-2.2.6-Stubs | 🟠 Hoch | 🟢 Niedrig | PR-bereit; `self._mask: npt.NDArray[np.bool_]` — verifizierter Einzeiler-Fix |
+| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH: RCE + Path-Traversal | 🟠 Hoch | 🟢 Niedrig | PR-bereit; direkte Build-Abhängigkeit — `setuptools>=78.1.1` in `pyproject.toml` + `constraints.txt` pinnen |
+| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH: Path-Traversal (Dateirechte) | 🟡 Mittel | 🟢 Niedrig | PR-bereit; `wheel==0.46.2` in `constraints.txt` pinnen (mit #200 bündeln) |
+| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVEs (Path-Traversal, Symlink) | 🟡 Mittel | 🟢 Niedrig | PR-bereit; `pip>=26.1.2` in CI-Setup-Schritten + Dev-Doku |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-Review-Folge (Low): E741, check_untyped_defs, cancel_ai-UX, shutdown_all | 🟡 Mittel | 🟢 Niedrig | PR-bereit (aus #167); `E741`/`check_untyped_defs` in `pyproject.toml` noch unverändert |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Teilweise erledigt: „Runde 5" entfernt; nur Clone-URL offen (Owner-Entscheidung) |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Blockiert: „Runde 5" entfernt; nur Clone-URL offen (Owner-Entscheidung zur Repo-Sichtbarkeit) |
+| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | Dead-Code (Low): write-only `_redo_max` in `canvas_history.py` | 🟢 Niedrig | 🟢 Niedrig | PR-bereit; eine Zeile entfernen (Modul ist streng getypt — `make check`) |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Security: macOS-Diagnose offenbart lokale Pfade + Roh-Log-Tail (Privacy) | 🟢 Niedrig | 🟡 Mittel | PR-bereit; `$HOME`/Pfade redaktieren + `--include-raw-logs`-Flag + Shell-Test |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Test-Audit-Folge (Low): private Internals entkoppeln + Doppeltests | 🟢 Niedrig | 🟡 Mittel | PR-bereit (aus #168) |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Kommentar-Audit: Sprachinkonsistenz & kleine Ungenauigkeit | 🟢 Niedrig | 🟢 Niedrig | PR-bereit; englische Docstrings in `right_panel.py`/`main_window.py` |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Niedrig | 🟢 Niedrig | Keine Projekt-Abhängigkeit (transitiv/systemseitig) → informativ, keine `constraints.txt`-Änderung |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Niedrig | 🟢 Niedrig | Keine Projekt-Abhängigkeit → informativ, keine Projekt-Aktion |
+| [#205](https://github.com/NikolayDA/picture_helper/issues/205) | urllib3 2.6.3 — MEDIUM: 2 CVEs | 🟢 Niedrig | 🟢 Niedrig | Keine Aktion; Projekt pinnt bereits `urllib3==2.7.0` (sauber) → schließbar |
+| [#206](https://github.com/NikolayDA/picture_helper/issues/206) | idna 3.11 — MEDIUM: DoS via `idna.encode()` | 🟢 Niedrig | 🟢 Niedrig | Keine Aktion; Projekt pinnt bereits `idna==3.15` (sauber) → schließbar |
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#195** — `self._mask: npt.NDArray[np.bool_]` in `canvas_selection.py`; Full-CI-Python-3.10-Zellen wieder grün.
-2. **#176** — Code-Quality-Sammlung aus #167: `E741` eingrenzen, `check_untyped_defs` inkrementell, cancel_ai-UX, `shutdown_all`-Thread-Referenzen nullen.
-3. **#185** — macOS-Diagnose redaktieren (`$HOME`/Pfade) + `--include-raw-logs`-Flag + Shell-Test.
-4. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
-5. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
-6. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
+1. **#200** — `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **und** `constraints.txt` pinnen. Höchste Priorität: CRITICAL RCE in einer direkten Build-Abhängigkeit.
+2. **#201** — `wheel==0.46.2` in `constraints.txt` pinnen; als gemeinsamen Supply-Chain-Pinning-PR mit #200 bündeln.
+3. **#202** — `pip>=26.1.2` in den CI-Setup-Schritten + Dev-Install-Doku erzwingen.
+4. **#176** — Code-Quality-Sammlung aus #167: `E741` eingrenzen, `check_untyped_defs` inkrementell, cancel_ai-UX, `shutdown_all`-Thread-Referenzen nullen.
+5. **#199** — write-only `_redo_max` aus `canvas_history.py` entfernen (Trivial-Fix, Regressionstest via `make check`).
+6. **#166** — Docstring-Sprachbereinigung als kleinen Pflege-PR.
+7. **#185** — macOS-Diagnose redaktieren (`$HOME`/Pfade) + `--include-raw-logs`-Flag + Shell-Test.
+8. **#178** — Tests von privaten Internals entkoppeln + Doppeltests reduzieren (aus #168).
+9. **#205/#206 schließbar** — Projekt-Pinning bereits korrekt (`urllib3==2.7.0`, `idna==3.15`); reine System-Befunde.
+10. **#203/#204 als Beobachtungsposten** — keine Projekt-Abhängigkeiten; erst pinnen, falls ein künftiges Feature sie direkt einzieht.
+11. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
 
 ## Vorige Runden
 

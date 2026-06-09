@@ -39,30 +39,52 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
   （es/fr/uk/zh）尚未作为 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加，并用 parity/smoke tests 保护。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-07）
+## 开放的 GitHub Issues — 优先级评估（2026-06-09）
 
-现有 **六** 个开放 issue：一个 🟠 CI 阻断项（#195）以及五个 🟡/🟢：两个
-`documentation`（#161、#166）、两个 `quality/testing`（#176、#178）和一个
-隐私安全发现（#185）。#163/#165/#177/#180 以及 Codex 扫描 `8c04b92` 中优先级
-更高的三个安全发现（#182/#183/#184）自上次 review 以来已关闭并验证。
+现有 **十三** 个开放 issue。自上次 review 以来新增：一批 `pip-audit` 安全发现
+（2026-06-07，#200–#206）以及一处死代码发现（#199）；#195 已关闭并验证。
+
+针对项目实际状态（`requirements/constraints.txt` + `pyproject.toml`）对安全批次
+进行分诊：
+
+- **#200（setuptools）是唯一的 🟠 发现** — `setuptools>=61` 是**直接构建依赖**
+  （`pyproject.toml`），且在 `constraints.txt` 中**未**固定。CRITICAL RCE。
+- **#201（wheel）/#202（pip）** 确有可操作性：`wheel` 未固定，`pip` 在 CI/dev
+  中不受控地随附。
+- **#203（cryptography）/#204（pyjwt）** **不是**项目依赖（纯传递/系统层）→
+  仅作参考，无需改动 `constraints.txt`。
+- **#205（urllib3）/#206（idna）** 在项目中**已干净固定**（`urllib3==2.7.0`、
+  `idna==3.15`）；仅系统层发现 → 可关闭。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#195](https://github.com/NikolayDA/picture_helper/issues/195) | Full-CI 阻断（mypy/3.10）：`canvas_selection.py` Shape-Typing — numpy-2.2.6 Stubs | 🟠 高 | 🟢 低 | 可提 PR；`self._mask: npt.NDArray[np.bool_]` — 已验证的单行修复 |
+| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH：RCE + 路径遍历 | 🟠 高 | 🟢 低 | 可提 PR；直接构建依赖 — 在 `pyproject.toml` + `constraints.txt` 固定 `setuptools>=78.1.1` |
+| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH：路径遍历（文件权限） | 🟡 中 | 🟢 低 | 可提 PR；在 `constraints.txt` 固定 `wheel==0.46.2`（与 #200 合并） |
+| [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM：5 个 CVE（路径遍历、符号链接） | 🟡 中 | 🟢 低 | 可提 PR；在 CI setup 步骤 + dev 文档中要求 `pip>=26.1.2` |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 部分完成："Runde 5" 术语已移除；仅剩 clone URL（需所有者决定） |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
+| [#199](https://github.com/NikolayDA/picture_helper/issues/199) | 死代码（Low）：`canvas_history.py` 中只写的 `_redo_max` | 🟢 低 | 🟢 低 | 可提 PR；删除一行（该模块严格类型化 — `make check`） |
 | [#185](https://github.com/NikolayDA/picture_helper/issues/185) | 安全：macOS 诊断泄露本地路径 + 原始日志尾部（隐私） | 🟢 低 | 🟡 中 | 可提 PR；脱敏 `$HOME`/路径 + `--include-raw-logs` 标志 + shell 测试 |
 | [#178](https://github.com/NikolayDA/picture_helper/issues/178) | 测试审计后续（Low）：与私有内部解耦 + 去重 | 🟢 低 | 🟡 中 | 可提 PR（来自 #168） |
 | [#166](https://github.com/NikolayDA/picture_helper/issues/166) | 注释审计：语言不一致与小措辞不准确 | 🟢 低 | 🟢 低 | 可提 PR；`right_panel.py`/`main_window.py` 中存在英文 docstring |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM：6 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖（传递/系统）→ 仅作参考，无需改动 `constraints.txt` |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM：5 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖 → 仅作参考，无需项目操作 |
+| [#205](https://github.com/NikolayDA/picture_helper/issues/205) | urllib3 2.6.3 — MEDIUM：2 个 CVE | 🟢 低 | 🟢 低 | 无需操作；项目已固定 `urllib3==2.7.0`（干净）→ 可关闭 |
+| [#206](https://github.com/NikolayDA/picture_helper/issues/206) | idna 3.11 — MEDIUM：经 `idna.encode()` 的 DoS | 🟢 低 | 🟢 低 | 无需操作；项目已固定 `idna==3.15`（干净）→ 可关闭 |
 
 ### 推荐 PR 顺序
 
-1. **#195** — `canvas_selection.py` 中 `self._mask: npt.NDArray[np.bool_]`；Full-CI Python-3.10 单元格重新变绿。
-2. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
-3. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
-4. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
-5. **#166** — docstring 语言清理，作为小型维护 PR。
-6. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
+1. **#200** — 在 `pyproject.toml`（`[build-system]`）**和** `constraints.txt` 中固定 `setuptools>=78.1.1`。最高优先级：直接构建依赖中的 CRITICAL RCE。
+2. **#201** — 在 `constraints.txt` 中固定 `wheel==0.46.2`；与 #200 合并为单个供应链固定 PR。
+3. **#202** — 在 CI setup 步骤 + dev 安装文档中要求 `pip>=26.1.2`。
+4. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
+5. **#199** — 从 `canvas_history.py` 删除只写的 `_redo_max`（琐碎修复，`make check` 覆盖回归）。
+6. **#166** — docstring 语言清理，作为小型维护 PR。
+7. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
+8. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
+9. **#205/#206 可关闭** — 项目固定已正确（`urllib3==2.7.0`、`idna==3.15`）；仅系统层发现。
+10. **#203/#204 作为观察项** — 非项目依赖；仅当未来功能直接引入时再固定。
+11. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
 
 ## 先前轮次
 
