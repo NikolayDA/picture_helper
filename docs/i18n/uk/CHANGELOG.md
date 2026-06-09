@@ -24,6 +24,12 @@
 
 - **Оновлено залежності.** `idna` піднято до 3.15, а `urllib3` до 2.7.0;
   `LICENSES.md` синхронізовано з новим dependency snapshot.
+- **Складальний бекенд закріплено проти CVE ланцюга постачання.** `setuptools`
+  піднято до `>=78.1.1` у `pyproject.toml` (`[build-system]`) та
+  `requirements/constraints.txt` (CVE-2024-6345 RCE, CVE-2025-47273 path
+  traversal), а `wheel` до `==0.46.2` у `constraints.txt` (CVE-2026-24049). Тож
+  ізольований збір wheel більше не може підтягнути вразливі складальні
+  інструменти (#200, #201).
 
 ### Виправлено
 

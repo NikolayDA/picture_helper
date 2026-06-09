@@ -1,5 +1,10 @@
+# setuptools>=78.1.1: schliesst CVE-2024-6345 (RCE in package_index) und
+# CVE-2025-47273 (Path-Traversal in PackageIndex._download_url). setuptools ist
+# eine direkte Build-Abhaengigkeit; der Build-Backend laeuft in pip-Isolation,
+# daher wird die sichere Version hier (und in requirements/constraints.txt)
+# erzwungen.
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=78.1.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
