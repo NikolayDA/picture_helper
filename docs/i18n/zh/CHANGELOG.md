@@ -22,6 +22,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 - **更新依赖。** `idna` 升级到 3.15，`urllib3` 升级到 2.7.0；
   `LICENSES.md` 已与新的依赖快照同步。
+- **固定构建后端以防范供应链 CVE。** `setuptools` 在 `pyproject.toml`
+  （`[build-system]`）和 `requirements/constraints.txt` 中升级到 `>=78.1.1`
+  （CVE-2024-6345 RCE、CVE-2025-47273 路径遍历），`wheel` 在 `constraints.txt`
+  中升级到 `==0.46.2`（CVE-2026-24049）。这样隔离的 wheel 构建就不会再拉取存在
+  漏洞的构建工具（#200、#201）。
 
 ### 修复
 

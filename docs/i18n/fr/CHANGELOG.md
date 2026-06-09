@@ -24,6 +24,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Dépendances mises à jour.** `idna` passe à 3.15 et `urllib3` à 2.7.0 ;
   `LICENSES.md` est synchronisé avec le nouveau snapshot de dépendances.
+- **Backend de build épinglé contre des CVE de chaîne d'approvisionnement.**
+  `setuptools` passe à `>=78.1.1` dans `pyproject.toml` (`[build-system]`) et
+  `requirements/constraints.txt` (CVE-2024-6345 RCE, CVE-2025-47273 path
+  traversal), et `wheel` à `==0.46.2` dans `constraints.txt` (CVE-2026-24049).
+  Le build isolé du wheel ne peut plus tirer d'outils de build vulnérables
+  (#200, #201).
 
 ### Corrigé
 

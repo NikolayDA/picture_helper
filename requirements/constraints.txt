@@ -11,6 +11,12 @@
 # transitive packages. The test install remains supported on 3.10 via the
 # numpy 2.2.x marker below; the reproducible AI/app snapshot targets the
 # Python 3.12 CI/license baseline.
+#
+# Build backend (setuptools/wheel) is pinned to patched releases so constrained
+# installs and the isolated wheel build cannot pull vulnerable versions:
+#   setuptools==78.1.1 -> CVE-2024-6345 (RCE), CVE-2025-47273 (path traversal)
+#   wheel==0.46.2      -> CVE-2026-24049 (path traversal in `wheel unpack`)
+# setuptools is also pinned in pyproject.toml's [build-system].requires.
 
 ast_serialize==0.5.0
 attrs==26.1.0
@@ -54,7 +60,9 @@ rpds-py==0.30.0
 ruff==0.15.13
 scikit-image==0.26.0; python_version >= "3.11"
 scipy==1.17.1; python_version >= "3.11"
+setuptools==78.1.1
 tifffile==2026.3.3; python_version >= "3.12"
 tqdm==4.67.3
 typing_extensions==4.15.0
 urllib3==2.7.0
+wheel==0.46.2
