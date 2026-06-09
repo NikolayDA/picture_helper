@@ -45,6 +45,12 @@ if command -v apt-get >/dev/null 2>&1; then
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
 fi
 
+# pip>=26.1.2 vor dem Install erzwingen: schliesst den pip-CVE-Batch (#202,
+# Path-Traversal/Symlink/Modul-Hijacking) auch in der Web-Session – pip ist das
+# Installationswerkzeug selbst und laesst sich daher nicht ueber constraints.txt
+# anheben. Gleiche Mindestversion wie in den CI-Workflows (tests/test_ci_pip_pin.py).
+python3 -m pip install -q --upgrade "pip>=26.1.2"
+
 # Projekt inkl. Test-/Lint-Werkzeuge (pytest, pytest-qt, ruff, mypy).
 # Idempotent; -e nutzt den Container-Cache bei Folge-Sessions.
 python3 -m pip install -q -e ".[test]"

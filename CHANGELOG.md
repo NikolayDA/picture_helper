@@ -30,6 +30,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `>=78.1.1` angehoben (CVE-2024-6345 RCE, CVE-2025-47273 Path-Traversal),
   `wheel` in `constraints.txt` auf `==0.46.2` (CVE-2026-24049). So zieht der
   isolierte Wheel-Build keine verwundbaren Build-Werkzeuge mehr (#200, #201).
+- **pip in CI/Dev auf eine gepatchte Version angehoben.** Die
+  pip-installierenden CI-Workflows (`ci.yml`, `pr-ci.yml`, `ui-nightly.yml`,
+  `benchmark.yml`, `license-check.yml`) und der Web-SessionStart-Hook heben
+  `pip` vor dem Installieren auf `>=26.1.2` an; die Dev-Install-Doku
+  (`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`) ebenso. Schliesst den
+  `pip-audit`-Batch um Path-Traversal-, Symlink- und Modul-Hijacking-CVEs;
+  pip ist das Installationswerkzeug selbst und daher nicht über
+  `constraints.txt` pinbar (#202).
 
 ### Behoben
 

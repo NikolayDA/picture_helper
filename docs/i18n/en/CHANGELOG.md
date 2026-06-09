@@ -27,6 +27,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `requirements/constraints.txt` (CVE-2024-6345 RCE, CVE-2025-47273 path
   traversal), and `wheel` to `==0.46.2` in `constraints.txt` (CVE-2026-24049).
   The isolated wheel build can no longer pull vulnerable build tools (#200, #201).
+- **pip raised to a patched release in CI/dev.** The pip-installing CI workflows
+  (`ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`, `license-check.yml`)
+  and the web SessionStart hook upgrade `pip` to `>=26.1.2` before installing, as
+  do the dev install docs (`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`).
+  Closes the `pip-audit` batch of path-traversal, symlink and module-hijacking
+  CVEs; pip is the installer itself and therefore cannot be pinned via
+  `constraints.txt` (#202).
 
 ### Fixed
 

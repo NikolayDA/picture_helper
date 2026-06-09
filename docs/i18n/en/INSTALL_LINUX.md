@@ -167,6 +167,7 @@ is done in an isolated venv:
 git clone https://github.com/NikolayDA/picture_helper.git
 cd picture_helper
 python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -238,6 +239,7 @@ git branch -r                       # show available branches
 git checkout <branch>
 source .venv/bin/activate
 # only needed if dependencies have changed:
+python3 -m pip install --upgrade "pip>=26.1.2"
 python3 -m pip install -c requirements/constraints.txt -e ".[ai]"
 python3 -m bgremover
 ```
@@ -283,7 +285,7 @@ again after `git pull` — unless the dependencies in
 - **pip error during installation** → in the active venv, first update
   pip, then repeat the install command:
   ```bash
-  python3 -m pip install --upgrade pip
+  python3 -m pip install --upgrade "pip>=26.1.2"
   ```
 - **First AI click takes a long time** → On the very first time, `rembg`
   downloads its model (a few hundred MB, one-time, cached in
