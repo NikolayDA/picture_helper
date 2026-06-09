@@ -1,0 +1,135 @@
+"""Dedizierte Unit-Tests für den Anwendungs-Einstiegspunkt ``bgremover.app``.
+
+Ergänzt die Subprozess-Smoke-Tests (``test_app_smoke.py``): die starten die
+App in einem echten Kindprozess und zählen daher nicht zur Coverage. Hier
+läuft ``main()`` in-process mit gefälschtem ``QApplication``/``MainWindow``.
+So sind Verdrahtung (App-Name, Style, Palette, ``show()``) und Exit-Code
+deterministisch prüfbar, ohne ein zweites echtes ``QApplication`` neben der
+Test-Session anzulegen.
+"""
+from __future__ import annotations
+
+import pytest
+
+from bgremover import app as app_module
+
+
+class _FakeApp:
+    """Minimaler QApplication-Ersatz, der die Konfigurationsaufrufe mitschreibt."""
+
+    def __init__(self, argv) -> None:
+        self.argv = argv
+        self.calls: dict = {}
+
+    def setApplicationName(self, name) -> None:
+        self.calls["app_name"] = name
+
+    def setOrganizationName(self, name) -> None:
+        self.calls["org_name"] = name
+
+    def setDesktopFileName(self, name) -> None:
+        self.calls["desktop"] = name
+
+    def setStyle(self, style) -> None:
+        self.calls["style"] = style
+
+    def setPalette(self, palette) -> None:
+        self.calls["palette"] = palette
+
+    def quit(self) -> None:
+        self.calls["quit"] = True
+
+    def exec(self) -> int:
+        self.calls["exec"] = True
+        return 0
+
+
+class _FakeWindow:
+    def __init__(self) -> None:
+        self.shown = False
+
+    def show(self) -> None:
+        self.shown = True
+
+
+@pytest.fixture
+def patched_app(monkeypatch):
+    """Verdrahtet ``main()`` mit Fakes; gibt die erzeugten Objekte zurück.
+
+    Bewusst KEINE ``qapp``-Fixture: ``main()`` würde sonst ein zweites echtes
+    ``QApplication`` neben der Session-Instanz konstruieren (Qt bricht das mit
+    einer Warnung/abort ab). Der Fake umgeht das vollständig.
+    """
+    created: dict = {}
+
+    def make_app(argv):
+        app = _FakeApp(argv)
+        created["app"] = app
+        return app
+
+    def make_window():
+        win = _FakeWindow()
+        created["window"] = win
+        return win
+
+    monkeypatch.setattr(app_module, "QApplication", make_app)
+    monkeypatch.setattr(app_module, "MainWindow", make_window)
+    monkeypatch.setattr(app_module, "_setup_logging",
+                        lambda: created.__setitem__("logging", True))
+    monkeypatch.setattr(app_module, "init_runtime",
+                        lambda: created.__setitem__("runtime", True))
+    monkeypatch.delenv("BGREMOVER_SMOKE_TEST", raising=False)
+    return created
+
+
+def test_main_configures_application(patched_app):
+    """``main()`` setzt App-Identität, Style, Palette und zeigt das Fenster."""
+    rc = app_module.main()
+    app = patched_app["app"]
+
+    assert rc == 0
+    assert app.calls["app_name"] == "BgRemover"
+    assert app.calls["org_name"] == "BgRemover"
+    assert app.calls["desktop"] == "de.bgremover.app"
+    assert app.calls["style"] == "Fusion"
+    assert "palette" in app.calls
+    assert patched_app["window"].shown is True
+    # Reihenfolge-Verträge: Runtime-Init und Logging laufen beide an.
+    assert patched_app["runtime"] is True
+    assert patched_app["logging"] is True
+
+
+def test_main_returns_exec_exit_code(patched_app, monkeypatch):
+    """Der Rückgabewert von ``main()`` ist der Exit-Code von ``app.exec()``."""
+    monkeypatch.setattr(_FakeApp, "exec", lambda self: 42)
+    assert app_module.main() == 42
+
+
+def test_main_without_smoke_hook_does_not_schedule_quit(patched_app):
+    """Ohne ``BGREMOVER_SMOKE_TEST`` wird kein Selbst-Quit eingeplant."""
+    app_module.main()
+    assert "quit" not in patched_app["app"].calls
+
+
+def test_main_smoke_hook_schedules_self_quit(patched_app, monkeypatch):
+    """Mit ``BGREMOVER_SMOKE_TEST`` plant ``main()`` ``app.quit`` für den
+    ersten Event-Loop-Tick ein – der Selbsttest-Hook für CI/Smoke."""
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["ms"] = ms
+            scheduled["callback"] = callback
+
+    # Der Import ``from PyQt6.QtCore import QTimer`` im Hook löst erst beim
+    # Aufruf auf – Patch am Quellmodul greift daher zur Laufzeit.
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_SMOKE_TEST", "1")
+
+    app_module.main()
+
+    assert scheduled["ms"] == 0
+    # Der eingeplante Callback ist ``app.quit``.
+    scheduled["callback"]()
+    assert patched_app["app"].calls.get("quit") is True
