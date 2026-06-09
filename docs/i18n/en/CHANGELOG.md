@@ -22,6 +22,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Dependencies updated.** `idna` was raised to 3.15 and `urllib3` to 2.7.0;
   `LICENSES.md` is synchronized with the new dependency snapshot.
+- **Build backend pinned against supply-chain CVEs.** `setuptools` is raised to
+  `>=78.1.1` in `pyproject.toml` (`[build-system]`) and
+  `requirements/constraints.txt` (CVE-2024-6345 RCE, CVE-2025-47273 path
+  traversal), and `wheel` to `==0.46.2` in `constraints.txt` (CVE-2026-24049).
+  The isolated wheel build can no longer pull vulnerable build tools (#200, #201).
 
 ### Fixed
 
