@@ -47,18 +47,18 @@ baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-09)
 
-Now **thirteen** open issues. New since the last review: a `pip-audit` security
-batch from 2026-06-07 (#200–#206) plus a dead-code finding (#199); #195 is
-closed and verified.
+Now **eleven** open issues. **#200/#201 are resolved as of PR #209** (build
+backend pinned). The `pip-audit` security batch from 2026-06-07 (#200–#206) plus
+a dead-code finding (#199) remain triaged; #195 is closed and verified.
 
 Triage of the security batch against the project's actual state
 (`requirements/constraints.txt` + `pyproject.toml`):
 
-- **#200 (setuptools) is the only 🟠 finding** — `setuptools>=61` is a **direct
-  build dependency** (`pyproject.toml`) and is **not** pinned in
-  `constraints.txt`. CRITICAL RCE.
-- **#201 (wheel)/#202 (pip)** are genuinely actionable: `wheel` is unpinned,
-  `pip` ships uncontrolled in CI/dev.
+- **#200/#201 are done (PR #209)** — `setuptools` is now pinned to `>=78.1.1` in
+  `pyproject.toml` (`[build-system]`) and `constraints.txt`, and `wheel` to
+  `==0.46.2`; CVE-tied regression tests guard against regressions.
+- **#202 (pip)** remains genuinely actionable: `pip` ships uncontrolled in
+  CI/dev.
 - **#203 (cryptography)/#204 (pyjwt)** are **not** project dependencies (purely
   transitive/system) → informational, no `constraints.txt` change.
 - **#205 (urllib3)/#206 (idna)** are **already pinned clean** in the project
@@ -66,8 +66,6 @@ Triage of the security batch against the project's actual state
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#200](https://github.com/NikolayDA/picture_helper/issues/200) | setuptools 68.1.2 — CRITICAL/HIGH: RCE + path traversal | 🟠 High | 🟢 Low | Ready for PR; direct build dependency — pin `setuptools>=78.1.1` in `pyproject.toml` + `constraints.txt` |
-| [#201](https://github.com/NikolayDA/picture_helper/issues/201) | wheel 0.42.0 — HIGH: path traversal (file permissions) | 🟡 Medium | 🟢 Low | Ready for PR; pin `wheel==0.46.2` in `constraints.txt` (bundle with #200) |
 | [#202](https://github.com/NikolayDA/picture_helper/issues/202) | pip 24.0 — HIGH/MEDIUM: 5 CVEs (path traversal, symlink) | 🟡 Medium | 🟢 Low | Ready for PR; require `pip>=26.1.2` in CI setup steps + dev docs |
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Code-review follow-up (Low): E741, check_untyped_defs, cancel_ai UX, shutdown_all | 🟡 Medium | 🟢 Low | Ready for PR (from #167); `E741`/`check_untyped_defs` in `pyproject.toml` still unchanged |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Blocked: "Runde 5" jargon removed; only clone URL remains (owner decision on repo visibility) |
@@ -82,8 +80,8 @@ Triage of the security batch against the project's actual state
 
 ### Recommended PR Order
 
-1. **#200** — pin `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **and** `constraints.txt`. Top priority: CRITICAL RCE in a direct build dependency.
-2. **#201** — pin `wheel==0.46.2` in `constraints.txt`; bundle with #200 as a single supply-chain pinning PR.
+1. **#200 done (PR #209)** — pinned `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **and** `constraints.txt`; CRITICAL RCE closed.
+2. **#201 done (PR #209)** — pinned `wheel==0.46.2` in `constraints.txt`; bundled with #200 as a single supply-chain pinning PR.
 3. **#202** — require `pip>=26.1.2` in the CI setup steps + dev install docs.
 4. **#176** — Code-quality batch from #167: narrow `E741`, `check_untyped_defs` incrementally, cancel_ai UX, null `shutdown_all` thread references.
 5. **#199** — remove the write-only `_redo_max` from `canvas_history.py` (trivial fix, regression covered by `make check`).
