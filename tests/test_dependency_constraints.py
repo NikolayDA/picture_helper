@@ -80,12 +80,16 @@ def test_installers_use_constraints_file() -> None:
         ROOT / "packaging" / "linux" / "build_appimage.sh"
     ).read_text(encoding="utf-8")
     license_ci = (ROOT / ".github/workflows/license-check.yml").read_text(encoding="utf-8")
+    session_hook = (ROOT / ".claude/hooks/session-start.sh").read_text(encoding="utf-8")
 
     assert "PIP_CONSTRAINT" in makefile
     assert "requirements/constraints.txt" in app_builder
     assert "PIP_CONSTRAINT" in linux_app_builder
     assert "requirements/constraints.txt" in linux_app_builder
     assert "--constraint requirements/constraints.txt" in license_ci
+    # Web-Session-Hook: ohne Constraints loest pip frei auf und kann aeltere
+    # (verwundbare) urllib3/idna-Versionen einspielen (#205/#206-Remediation).
+    assert "--constraint requirements/constraints.txt" in session_hook
 
 
 def test_build_system_setuptools_excludes_known_rce() -> None:
@@ -111,3 +115,29 @@ def test_constraints_pin_patched_build_backend() -> None:
     wheel_spec = reqs["wheel"].specifier
     assert Version("0.46.2") in wheel_spec
     assert Version("0.46.1") not in wheel_spec  # CVE-2026-24049
+
+
+def test_constraints_pin_patched_urllib3() -> None:
+    """constraints.txt darf urllib3 nicht unter 2.7.0 zulassen
+    (CVE-2026-44432 Decompression-DoS, CVE-2026-44431 Header-Leak bei
+    Cross-Origin-Redirects). Befund #205 war ein reiner System-Befund –
+    dieser Test friert das saubere Projekt-Pinning gegen Downgrades ein."""
+    reqs = _constraint_requirements()
+
+    assert "urllib3" in reqs, "urllib3 fehlt in requirements/constraints.txt"
+    spec = reqs["urllib3"].specifier
+    assert Version("2.7.0") in spec
+    assert Version("2.6.3") not in spec  # die im System vorgefundene Altversion
+
+
+def test_constraints_pin_patched_idna() -> None:
+    """constraints.txt darf idna nicht unter 3.15 zulassen (CVE-2026-45409,
+    DoS via idna.encode(); Wiederoeffnung von CVE-2024-3651). Befund #206
+    war ein reiner System-Befund – dieser Test friert das saubere
+    Projekt-Pinning gegen Downgrades ein."""
+    reqs = _constraint_requirements()
+
+    assert "idna" in reqs, "idna fehlt in requirements/constraints.txt"
+    spec = reqs["idna"].specifier
+    assert Version("3.15") in spec
+    assert Version("3.11") not in spec  # die im System vorgefundene Altversion
