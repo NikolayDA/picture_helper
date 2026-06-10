@@ -38,7 +38,7 @@ from bgremover.image_ops import (
     ensure_save_extension,
     save_dialog_filter,
 )
-from bgremover.main_toolbar import ToolbarActions, build_toolbar
+from bgremover.main_toolbar import Toolbar, ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.recent_files import (
     RECENT_MAX,
@@ -164,13 +164,12 @@ class MainWindow(QMainWindow):
             ),
             rembg_available=REMBG_AVAILABLE,
         )
-        self._btn_wand = self._toolbar.btn_wand
-        self._btn_brush = self._toolbar.btn_brush
-        self._btn_eraser = self._toolbar.btn_eraser
-        self._btn_lasso = self._toolbar.btn_lasso
-        self._btn_ai = self._toolbar.btn_ai
-        self._btn_history = self._toolbar.btn_history
         return self._toolbar.frame
+
+    @property
+    def toolbar(self) -> Toolbar:
+        """Die Toolbar-Bausteine (DTO mit öffentlichen Widget-Feldern); nur lesen."""
+        return self._toolbar
 
     def _build_right_panel(self) -> QFrame:
         panel = build_right_panel(

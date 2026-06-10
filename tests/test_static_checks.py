@@ -1,5 +1,5 @@
 """Statische AST-Prüfungen für Regeln, die zur Laufzeit nur schwer
-zuverlässig isoliert werden können (KI-Worker, Qt-Connection-Topologie).
+zuverlässig isoliert werden können (Fenster-Lifecycle, UI-Verdrahtung).
 Sie schützen vor einer versehentlichen Re-Introduktion von Bugs durch
 spätere Refaktorierungen.
 """
@@ -48,38 +48,13 @@ def classes() -> set[str]:
     return names
 
 
-# ── KI-Race ────────────────────────────────────────────────────────────
-
-def test_run_ai_records_ai_input_version(functions):
-    body = ast.unparse(functions["_run_ai"])
-    assert "self._ai_input_version" in body, (
-        "_run_ai muss self._ai_input_version setzen, damit veraltete "
-        "KI-Ergebnisse anhand des Canvas-Versionszählers erkannt werden."
-    )
-
-
-def test_on_ai_done_checks_version(functions):
-    body = ast.unparse(functions["_on_ai_done"])
-    assert "self._ai_input_version" in body
-    assert "!=" in body, (
-        "_on_ai_done muss die Canvas-Version mit _ai_input_version vergleichen."
-    )
-
-
-# ── Thread-Cleanup ─────────────────────────────────────────────────────
-
-def test_launch_worker_uses_delete_later(functions):
-    body = ast.unparse(functions["_build_thread"])
-    assert "deleteLater" in body, (
-        "WorkerController._build_thread muss deleteLater an Worker und "
-        "Thread anhängen, um Qt-Lecks zu vermeiden."
-    )
-
-
-def test_thread_finished_handler_resets_refs(functions):
-    body = ast.unparse(functions["_finish_ai_thread"])
-    assert "self.ai_thread = None" in body
-    assert "self.ai_worker = None" in body
+# Hinweis: Die früheren AST-Checks zum KI-Race (_ai_input_version) und zum
+# Thread-Cleanup (deleteLater, Referenz-Reset) sind durch Verhaltenstests
+# ersetzt: Stale-KI-Ergebnisse deckt test_workers.py (verworfenes Ergebnis
+# nach Bildwechsel) bzw. test_main_window.py (Versionsvergabe) ab; das
+# Qt-Aufräumen testet test_worker_controller.py (Worker-Freigabe nach
+# Threadende, tatsächliche C++-Löschung via deleteLater, ai_thread/ai_worker
+# wieder None) – Methodenrümpfe werden dafür nicht mehr als Text geparst.
 
 
 # ── closeEvent stoppt Hintergrund-Threads ──────────────────────────────

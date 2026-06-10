@@ -654,7 +654,7 @@ def test_load_image_async_frees_wand_gate_on_load_error(qapp, monkeypatch) -> No
         win._load_image_async("/kaputt/bild.xyz")
 
         # Gate frei → ein erneuter Zauberstab-Klick ist wieder möglich.
-        assert win._canvas._wand_busy is False
+        assert win._canvas.wand_busy is False
         status_bar = win.statusBar()
         assert status_bar is not None
         # Nutzer sieht den Ladefehler, nicht den irreführenden Auswahl-Fehler.

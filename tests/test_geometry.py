@@ -7,14 +7,14 @@ abgedeckt – hier wird der tatsächliche Pixel-Output geprüft.
 import numpy as np
 from PIL import Image
 
-from bgremover import ImageCanvas, pil_to_numpy
+from bgremover import ImageCanvas
 
 
 def _canvas(color=(10, 20, 30, 255), size=(40, 20)):
     c = ImageCanvas()
     img = Image.new("RGBA", size, color)
+    # apply_loaded_image initialisiert auch die (leere) Auswahlmaske.
     c.apply_loaded_image(img, "seed.png")
-    c._mask = np.zeros((size[1], size[0]), dtype=bool)
     return c
 
 
@@ -92,19 +92,21 @@ def test_rotate_without_image_is_noop(qapp):
 # ── Spiegeln ───────────────────────────────────────────────────────────
 
 def test_flip_horizontal_mirrors(qapp):
-    c = _canvas(size=(4, 1))
-    img = _canvas_image(c)
+    # Markierungspixel VOR dem Laden setzen – so bleibt der Test komplett
+    # auf der Public API (kein nachträglicher _arr-Resync nötig).
+    img = Image.new("RGBA", (4, 1), (10, 20, 30, 255))
     img.putpixel((0, 0), (255, 0, 0, 255))
-    c._arr = pil_to_numpy(img)
+    c = ImageCanvas()
+    c.apply_loaded_image(img, "seed.png")
     c.apply_flip(True)
     assert _canvas_image(c).getpixel((3, 0)) == (255, 0, 0, 255)
 
 
 def test_flip_vertical_mirrors(qapp):
-    c = _canvas(size=(1, 4))
-    img = _canvas_image(c)
+    img = Image.new("RGBA", (1, 4), (10, 20, 30, 255))
     img.putpixel((0, 0), (0, 255, 0, 255))
-    c._arr = pil_to_numpy(img)
+    c = ImageCanvas()
+    c.apply_loaded_image(img, "seed.png")
     c.apply_flip(False)
     assert _canvas_image(c).getpixel((0, 3)) == (0, 255, 0, 255)
 
