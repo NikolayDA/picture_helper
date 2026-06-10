@@ -47,12 +47,15 @@ la baseline avant de nouveaux PRs.
   clé par clé dans `bgremover.i18n` et les protéger par des tests de
   parité/smoke.
 
-## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-09)
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-10)
 
-Maintenant **neuf** issues ouvertes. **#199/#200/#201/#202 sont résolues**
-(suppression de code mort via la PR #215, backend de build épinglé via la
-PR #209, pip épinglé via la PR #211). Le lot de sécurité `pip-audit` du
-2026-06-07 (#200–#206) reste trié ; #195 est clos et vérifié.
+Maintenant **quatre** issues ouvertes. **#166/#178/#185 sont résolues**
+(docstrings via la PR #219, caviardage du diagnostic via la PR #220,
+découplage des tests via la PR #221), **#205/#206 sont closes** (épinglages
+verrouillés par tests via la PR #222) ; #199/#200/#201/#202 étaient déjà
+résolues (PR #215/#209/#211). Du lot `pip-audit` du 2026-06-07 (#200–#206) ne
+restent ouverts que les points de veille #203/#204 ; #195 reste clos et
+vérifié.
 
 Triage du lot de sécurité face à l'état réel du projet
 (`requirements/constraints.txt` + `pyproject.toml`) :
@@ -67,20 +70,17 @@ Triage du lot de sécurité face à l'état réel du projet
 - **#203 (cryptography)/#204 (pyjwt)** **ne sont pas** des dépendances du projet
   (purement transitives/système) → informatif, aucun changement de
   `constraints.txt`.
-- **#205 (urllib3)/#206 (idna)** sont déjà **épinglés proprement** dans le projet
-  (`urllib3==2.7.0`, `idna==3.15`) ; constat système uniquement → clôturable.
+- **#205 (urllib3)/#206 (idna) sont faites (PR #222)** — le projet épingle les
+  versions corrigées (`urllib3==2.7.0`, `idna==3.15`) ; des tests de régression
+  liés aux CVE les gèlent et le hook SessionStart installe désormais avec les
+  constraints.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Suite de la revue de code (Low) : E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (de #167) ; `E741`/`check_untyped_defs` dans `pyproject.toml` encore inchangés |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Bloqué : jargon « Runde 5 » retiré ; seule l'URL de clonage reste (décision de l'owner sur la visibilité du dépôt) |
-| [#185](https://github.com/NikolayDA/picture_helper/issues/185) | Sécurité : le diagnostic macOS divulgue des chemins locaux + queue de log brute (vie privée) | 🟢 Basse | 🟡 Moyenne | Prêt pour PR ; masquer `$HOME`/chemins + flag `--include-raw-logs` + test shell |
-| [#178](https://github.com/NikolayDA/picture_helper/issues/178) | Suite de l'audit de tests (Low) : découpler des internals privés + dédupliquer | 🟢 Basse | 🟡 Moyenne | Prêt pour PR (de #168) |
-| [#166](https://github.com/NikolayDA/picture_helper/issues/166) | Audit des commentaires : incohérences de langue et imprécision mineure | 🟢 Basse | 🟢 Basse | Prêt pour PR ; docstrings en anglais dans `right_panel.py`/`main_window.py` |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM : 6 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet (transitive/système) → informatif, aucun changement de `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM : 5 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet → informatif, aucune action projet |
-| [#205](https://github.com/NikolayDA/picture_helper/issues/205) | urllib3 2.6.3 — MEDIUM : 2 CVEs | 🟢 Basse | 🟢 Basse | Aucune action ; le projet épingle déjà `urllib3==2.7.0` (propre) → clôturable |
-| [#206](https://github.com/NikolayDA/picture_helper/issues/206) | idna 3.11 — MEDIUM : DoS via `idna.encode()` | 🟢 Basse | 🟢 Basse | Aucune action ; le projet épingle déjà `idna==3.15` (propre) → clôturable |
 
 ### Ordre de PR Recommandé
 
@@ -89,10 +89,10 @@ Triage du lot de sécurité face à l'état réel du projet
 3. **#202 faite (PR #211)** — `pip>=26.1.2` exigé dans les étapes de setup CI, le hook SessionStart + docs d'installation dev ; lot de CVE (path traversal/lien symbolique/détournement de module) fermé.
 4. **#176** — Lot qualité de code de #167 : restreindre `E741`, `check_untyped_defs` progressivement, UX de cancel_ai, annuler les références de threads dans `shutdown_all`.
 5. **#199 faite (PR #215)** — `_redo_max` (écriture seule) supprimé de `canvas_history.py` ; test de régression `test_redo_stack_capped_by_maxlen`, `make check` au vert.
-6. **#166** — Nettoyage de langue dans les docstrings en tant que petit PR de maintenance.
-7. **#185** — Masquer le diagnostic macOS (`$HOME`/chemins) + flag `--include-raw-logs` + test shell.
-8. **#178** — Découpler les tests des internals privés + réduire les tests en double (de #168).
-9. **#205/#206 clôturables** — épinglage du projet déjà correct (`urllib3==2.7.0`, `idna==3.15`) ; constats système uniquement.
+6. **#166 faite (PR #219)** — docstrings/commentaires anglais germanisés dans tout le paquet ; commentaire « pas de copie propre » précisé.
+7. **#185 faite (PR #220)** — le diagnostic caviarde `$HOME`/chemins et n'affiche plus qu'un résumé filtré du log ; flag `--include-raw-logs` + test shell.
+8. **#178 faite (PR #221)** — tests passés aux accesseurs publics, checks AST remplacés par des tests comportementaux, tests en double supprimés (de #168).
+9. **#205/#206 faites (PR #222)** — épinglages propres gelés par tests de régression liés aux CVE, le hook SessionStart installe avec les constraints ; issues closes.
 10. **#203/#204 comme points de veille** — pas des dépendances du projet ; épingler seulement si une future fonctionnalité les introduit directement.
 11. **#161 reporté** — « Runde 5 » fait ; il ne reste que l'URL de clonage (décision de l'owner sur la visibilité du dépôt).
 
