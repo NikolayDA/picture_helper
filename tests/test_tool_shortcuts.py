@@ -32,12 +32,12 @@ def test_tool_shortcuts_switch_canvas_tool_and_toolbar_state(
     assert {"W", "B", "E", "L"} <= set(shortcuts)
 
     cases = (
-        ("B", TOOL_BRUSH, "_btn_brush"),
-        ("E", TOOL_ERASER, "_btn_eraser"),
-        ("L", TOOL_LASSO, "_btn_lasso"),
-        ("W", TOOL_WAND, "_btn_wand"),
+        ("B", TOOL_BRUSH, "btn_brush"),
+        ("E", TOOL_ERASER, "btn_eraser"),
+        ("L", TOOL_LASSO, "btn_lasso"),
+        ("W", TOOL_WAND, "btn_wand"),
     )
     for key, tool, button_attr in cases:
         shortcuts[key].activated.emit()
         assert window._canvas.current_tool == tool
-        assert getattr(window, button_attr).isChecked()
+        assert getattr(window.toolbar, button_attr).isChecked()

@@ -33,16 +33,9 @@ def test_save_jpeg_with_rgb_input_does_not_crash(qapp, tmp_path):
     assert saved.mode in ("RGB", "L")
 
 
-def test_save_jpeg_composites_alpha_on_white(qapp, tmp_path):
-    canvas = ImageCanvas()
-    # RGBA: vollständig transparent → muss als weiß rauskommen
-    canvas.apply_loaded_image(Image.new("RGBA", (16, 16), (200, 50, 50, 0)), "seed.png")
-    out = tmp_path / "transparent.jpg"
-    canvas.save_image(str(out))
-    saved = np.array(Image.open(out).convert("RGB"))
-    # Alle Pixel sollen (praktisch) weiß sein
-    assert (saved >= 250).all()
-
+# Hinweis: Das JPEG-Alpha-auf-Weiß-Kompositing prüft test_image_ops.py
+# (test_save_image_file_composites_jpeg_alpha_on_white) auf Unit-Ebene;
+# das Canvas-Wiring deckt test_save_jpeg_with_rgb_input_does_not_crash ab.
 
 def test_save_png_keeps_alpha(qapp, tmp_path):
     canvas = ImageCanvas()
@@ -167,18 +160,9 @@ def test_load_image_handles_decompression_bomb(qapp, tmp_path, monkeypatch):
     assert any("zu groß" in m for m in msgs)
 
 
-# ── TIFF-Speichern mit Transparenz ─────────────────────────────────────
-
-def test_save_tiff_keeps_alpha(qapp, tmp_path):
-    canvas = ImageCanvas()
-    canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 255, 0, 128)), "seed.png")
-    out = tmp_path / "test.tif"
-    canvas.save_image(str(out))
-    assert out.exists()
-    saved = Image.open(out)
-    assert saved.mode == "RGBA"
-    assert (np.array(saved)[:, :, 3] == 128).all()
-
+# ── TIFF-Speichern ─────────────────────────────────────────────────────
+# Hinweis: Den TIFF-Alpha-Erhalt prüft test_image_ops.py
+# (test_save_image_file_preserves_tiff_alpha) auf Unit-Ebene.
 
 def test_save_tiff_with_tiff_extension(qapp, tmp_path):
     canvas = ImageCanvas()

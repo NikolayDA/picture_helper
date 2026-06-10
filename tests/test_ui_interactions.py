@@ -108,16 +108,16 @@ def test_mainwindow_builds(main_window):
     w = main_window
     assert isinstance(w._canvas, ImageCanvas)
     assert w.menuBar() is not None
-    for attr in ("_btn_wand", "_btn_brush", "_btn_eraser",
-                 "_btn_lasso", "_btn_ai", "_btn_history"):
-        assert isinstance(getattr(w, attr), QToolButton)
+    for btn in (w.toolbar.btn_wand, w.toolbar.btn_brush, w.toolbar.btn_eraser,
+                w.toolbar.btn_lasso, w.toolbar.btn_ai, w.toolbar.btn_history):
+        assert isinstance(btn, QToolButton)
 
 
 def test_imagecanvas_builds(qtbot):
     c = ImageCanvas()
     qtbot.addWidget(c)
     assert c.has_image is False
-    assert c._tool == TOOL_WAND
+    assert c.current_tool == TOOL_WAND
 
 
 # ── Zeichentools ─────────────────────────────────────────────────────────
@@ -126,14 +126,14 @@ def test_imagecanvas_builds(qtbot):
 def test_toolbar_selects_tools(main_window, qtbot):
     w = main_window
     c = w._canvas
-    qtbot.mouseClick(w._btn_brush, Qt.MouseButton.LeftButton)
-    assert c._tool == TOOL_BRUSH
-    qtbot.mouseClick(w._btn_eraser, Qt.MouseButton.LeftButton)
-    assert c._tool == TOOL_ERASER
-    qtbot.mouseClick(w._btn_lasso, Qt.MouseButton.LeftButton)
-    assert c._tool == TOOL_LASSO
-    qtbot.mouseClick(w._btn_wand, Qt.MouseButton.LeftButton)
-    assert c._tool == TOOL_WAND
+    qtbot.mouseClick(w.toolbar.btn_brush, Qt.MouseButton.LeftButton)
+    assert c.current_tool == TOOL_BRUSH
+    qtbot.mouseClick(w.toolbar.btn_eraser, Qt.MouseButton.LeftButton)
+    assert c.current_tool == TOOL_ERASER
+    qtbot.mouseClick(w.toolbar.btn_lasso, Qt.MouseButton.LeftButton)
+    assert c.current_tool == TOOL_LASSO
+    qtbot.mouseClick(w.toolbar.btn_wand, Qt.MouseButton.LeftButton)
+    assert c.current_tool == TOOL_WAND
 
 
 def test_brush_paints_and_eraser_clears(loaded_window):

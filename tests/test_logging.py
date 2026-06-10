@@ -14,6 +14,7 @@ from PIL import Image
 import bgremover
 from bgremover import ImageCanvas
 from bgremover import logging_config as _lc
+from bgremover.canvas_selection import CanvasSelection
 
 
 @contextmanager
@@ -89,16 +90,23 @@ def test_apply_replace_logs_expected_value_error(qapp, caplog, monkeypatch):
     assert any("Fehler" in record.message for record in caplog.records)
 
 
-def test_apply_remove_propagates_unexpected_bug(qapp):
+def _raise_attribute_error(*_args, **_kwargs):
+    raise AttributeError("simulierter interner Bug")
+
+
+def test_apply_remove_propagates_unexpected_bug(qapp, monkeypatch):
     """Echte Bugs (AttributeError o.ä.) werden bewusst nicht mehr
     stillschweigend verschluckt – der Engpass im except ist eng auf
-    OSError/ValueError/UnidentifiedImageError gefasst."""
+    OSError/ValueError/UnidentifiedImageError gefasst. Der Bug wird als
+    Klassen-Monkeypatch simuliert statt durch Korrumpieren privater
+    Canvas-Attribute."""
     import pytest
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
-    canvas._arr  = None                          # provoziert AssertionError
-    canvas._mask = np.ones((10, 10), dtype=bool)
-    with pytest.raises(AssertionError):
+    canvas.invert_selection()                    # volle Auswahl über die Public API
+    monkeypatch.setattr(
+        CanvasSelection, "remove_background", _raise_attribute_error)
+    with pytest.raises(AttributeError):
         canvas.apply_remove()
 
 

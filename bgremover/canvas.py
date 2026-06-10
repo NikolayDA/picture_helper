@@ -193,6 +193,21 @@ class ImageCanvas(QGraphicsView):
         return self._content_revision
 
     @property
+    def wand_busy(self) -> bool:
+        """True, solange ein Zauberstab-Ergebnis aussteht (``_wand_busy``-Gate)."""
+        return self._wand_busy
+
+    @property
+    def overlay_pixmap(self) -> QPixmap | None:
+        """Aktuelles Auswahl-Overlay-Pixmap (``None`` bei leerer Auswahl); nur lesen."""
+        return self._overlay_pixmap
+
+    @property
+    def selection_mask(self) -> np.ndarray | None:
+        """Aktuelle Auswahlmaske als Read-only-Sicht (``None`` ohne Bild)."""
+        return self._mask
+
+    @property
     def _crop_overlay(self) -> CropOverlayItem | None:
         """Test-/Debug-Accessor für das aktive Crop-Overlay."""
         return self._crop.overlay

@@ -47,14 +47,14 @@ def test_paint_brush_fully_outside_returns_none(qapp) -> None:
 def test_empty_selection_has_no_overlay_pixmap(qapp) -> None:
     c = _canvas()
     # Frisch geladen → leere Maske → kein Overlay allokiert.
-    assert c._overlay_pixmap is None
+    assert c.overlay_pixmap is None
 
 
 def test_paint_brush_allocates_overlay_pixmap(qapp) -> None:
     c = _canvas()
     c.set_tool(TOOL_BRUSH)
     c._paint_brush(20, 20, additive=True)
-    assert c._overlay_pixmap is not None
+    assert c.overlay_pixmap is not None
 
 
 def test_incremental_stroke_reuses_overlay_pixmap(qapp) -> None:
@@ -63,20 +63,20 @@ def test_incremental_stroke_reuses_overlay_pixmap(qapp) -> None:
     c.set_tool(TOOL_BRUSH)
     c._brush_r = 3
     c._paint_brush(8, 8, additive=True)
-    first = c._overlay_pixmap
+    first = c.overlay_pixmap
     assert first is not None
     c._paint_brush(30, 30, additive=True)
-    assert c._overlay_pixmap is first  # gleiches Objekt → inkrementell
+    assert c.overlay_pixmap is first  # gleiches Objekt → inkrementell
 
 
 def test_clearing_selection_drops_overlay_pixmap(qapp) -> None:
     c = _canvas()
     c.set_tool(TOOL_BRUSH)
     c._paint_brush(20, 20, additive=True)
-    assert c._overlay_pixmap is not None
+    assert c.overlay_pixmap is not None
     c.clear_selection()
     # Vollaufbau bei leerer Maske → Pixmap freigegeben.
-    assert c._overlay_pixmap is None
+    assert c.overlay_pixmap is None
 
 
 def test_incremental_update_matches_full_rebuild(qapp) -> None:
@@ -90,9 +90,9 @@ def test_incremental_update_matches_full_rebuild(qapp) -> None:
     c._brush_r = 3
     c._paint_brush(8, 8, additive=True)
     c._paint_brush(30, 30, additive=True)
-    incremental = c._overlay_pixmap.toImage()
+    incremental = c.overlay_pixmap.toImage()
 
     # Vollaufbau erzwingen (dirty=None) und vergleichen.
     c._refresh_overlay()
-    full = c._overlay_pixmap.toImage()
+    full = c.overlay_pixmap.toImage()
     assert incremental == full
