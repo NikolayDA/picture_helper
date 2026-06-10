@@ -1,4 +1,4 @@
-"""Right-side tab panel construction for the main window."""
+"""Aufbau des rechten Tab-Panels für das Hauptfenster."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -47,7 +47,7 @@ TAB_STYLE = f"""
 
 @dataclass(frozen=True)
 class RightPanelActions:
-    """Callbacks used by the right-side panel without depending on MainWindow."""
+    """Callbacks des rechten Panels – ohne Abhängigkeit vom MainWindow."""
 
     set_tolerance: Callable[[int], None]
     set_brush_size: Callable[[int], None]
@@ -67,7 +67,7 @@ class RightPanelActions:
 
 @dataclass(frozen=True)
 class RightPanel:
-    """Constructed panel plus widgets MainWindow still updates directly."""
+    """Fertig gebautes Panel samt Widgets, die das MainWindow weiterhin direkt aktualisiert."""
 
     frame: QFrame
     tolerance_label: QLabel
