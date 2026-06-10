@@ -38,6 +38,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `pip-audit` de CVE de path traversal, symlink y secuestro de módulos; pip es
   la propia herramienta de instalación y por eso no se puede fijar vía
   `constraints.txt` (#202).
+- **El diagnóstico de macOS redacta rutas sensibles.** `diagnose_mac.sh`
+  sustituye ahora `$HOME` por `~` de forma predeterminada, acorta las demás
+  rutas `/Users/<name>` e imprime un resumen filtrado de errores con rutas
+  redactadas en lugar de las últimas 40 líneas crudas del log — la salida
+  puede adjuntarse sin riesgo a los informes de errores. La nueva opción
+  `--include-raw-logs` ofrece el diagnóstico completo (incluido el log crudo);
+  una prueba de shell (`tests/test_diagnose_mac.py`) garantiza que el
+  directorio home y las rutas de imágenes no lleguen a la salida
+  predeterminada (#185).
 
 ### Corregido
 
