@@ -22,8 +22,8 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
   扩展名、原子保存、CI Qt 包、`rembg` 惰性导入以及 `load_image` docstring。
 - **O2/O3/O4/O5/O6** 已实现：Linux AppImage/`.deb`、release workflow、
   每周完整矩阵、PR/Full CI 中的 `ui_smoke`，以及带平台提示的工具快捷键。
-- **#164/#167/#168** 已完成（PR #172/#174/#173）；其余发现在 #176/#178 中
-  聚焦推进。
+- **#164/#167/#168** 已完成（PR #172/#174/#173）；其余发现此后也已通过
+  #176/#178 完成。
 - **2026-06-06 已验证为干净关闭**（PR #188–#193，每个都带回归测试，
   `make check` 通过 — 504 passed）：**#163**（CHANGELOG 链接改为 GitHub 可
   解析的真实 commit SHA；补齐四个缺失的 2.3.0 特性 + idna/urllib3 条目；
@@ -41,9 +41,9 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-10）
 
-现有 **四** 个开放 issue。**#166/#178/#185 已完成**（docstring 清理见 PR #219，
-诊断脱敏见 PR #220，测试解耦见 PR #221），**#205/#206 已关闭**（固定由 PR #222
-的测试加固）；#199/#200/#201/#202 此前已完成（PR #215/#209/#211）。`pip-audit`
+现有 **三** 个开放 issue。**#176 已完成**（代码质量批次见 PR #198/#214，
+issue 已关闭）；此前 #166/#178/#185（PR #219–#221）、#205/#206（PR #222）与
+#199/#200/#201/#202（PR #215/#209/#211）已完成。`pip-audit`
 安全批次（2026-06-07，#200–#206）仅剩观察项 #203/#204 开放；#195 已关闭并验证。
 
 针对项目实际状态（`requirements/constraints.txt` + `pyproject.toml`）对安全批次
@@ -63,7 +63,6 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM：6 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖（传递/系统）→ 仅作参考，无需改动 `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM：5 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖 → 仅作参考，无需项目操作 |
@@ -73,7 +72,7 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
 1. **#200 已完成（PR #209）** — 已在 `pyproject.toml`（`[build-system]`）**和** `constraints.txt` 中固定 `setuptools>=78.1.1`；CRITICAL RCE 已关闭。
 2. **#201 已完成（PR #209）** — 已在 `constraints.txt` 中固定 `wheel==0.46.2`；与 #200 合并为单个供应链固定 PR。
 3. **#202 已完成（PR #211）** — 已在 CI setup 步骤、SessionStart 钩子 + dev 安装文档中强制 `pip>=26.1.2`；CVE 批次（路径遍历/符号链接/模块劫持）已关闭。
-4. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
+4. **#176 已完成（PR #198/#214）** — 移除全局 `E741` ignore，`check_untyped_defs` 已对 `canvas`/`main_window`/`worker_controller` 启用，cancel_ai 的等待通过状态栏消息可见，`shutdown_all` 清空线程引用；为 `app.py`/`main_window.py` 新增专门测试。已于 2026-06-10 对照 `main` 验证（`make check` 通过）。
 5. **#199 已完成（PR #215）** — 已从 `canvas_history.py` 删除只写的 `_redo_max`；回归测试 `test_redo_stack_capped_by_maxlen`，`make check` 通过。
 6. **#166 已完成（PR #219）** — 包内英文 docstring/注释已全部德语化；"无自有副本"注释已修正。
 7. **#185 已完成（PR #220）** — 诊断脚本脱敏 `$HOME`/路径并只输出过滤后的日志摘要；`--include-raw-logs` 标志 + shell 测试。
