@@ -1,11 +1,11 @@
-"""Lightweight runtime string lookup with a stable German fallback.
+"""Leichtgewichtiges Laufzeit-String-Lookup mit stabilem deutschen Fallback.
 
-The central ``_TRANSLATIONS`` table maps string keys to per-locale values.
-German is the default and the guaranteed fallback for any key a locale is
-missing; English is available as a runtime language and the settings dialog
-exposes a language selector. Further locales can be added by extending
-``_TRANSLATIONS`` (kept key-for-key in sync with German) without touching the
-call sites.
+Die zentrale ``_TRANSLATIONS``-Tabelle bildet String-Keys auf Werte je Locale
+ab. Deutsch ist Default und garantierter Fallback für jeden Key, der einer
+Locale fehlt; Englisch ist als Laufzeitsprache verfügbar, der
+Einstellungsdialog bietet eine Sprachauswahl. Weitere Locales lassen sich durch
+Erweitern von ``_TRANSLATIONS`` ergänzen (Key-für-Key synchron zum Deutschen),
+ohne die Aufrufstellen anzufassen.
 """
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from typing import Final
 DEFAULT_LOCALE: Final = "de"
 SETTINGS_LOCALE_KEY: Final = "locale"
 
-# Endonyms for the language selector; only locales actually present in
-# ``_TRANSLATIONS`` are offered at runtime (see ``available_locales``).
+# Endonyme für die Sprachauswahl; zur Laufzeit werden nur Locales angeboten,
+# die tatsächlich in ``_TRANSLATIONS`` vorhanden sind (siehe ``available_locales``).
 LOCALE_NAMES: Final[Mapping[str, str]] = {
     "de": "Deutsch",
     "en": "English",
@@ -57,7 +57,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche"
         ),
         "status.quitting": "Beende…",
-        # Status bar messages with interpolated values
+        # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Lädt: {name}…",
         "status.load_error": "Ladefehler: {msg}",
         "status.file_missing": "Datei nicht mehr vorhanden: {name}",
@@ -383,7 +383,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Open an image: File → Open  or  drag & drop onto the canvas"
         ),
         "status.quitting": "Quitting…",
-        # Status bar messages with interpolated values
+        # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Loading: {name}…",
         "status.load_error": "Load error: {msg}",
         "status.file_missing": "File no longer exists: {name}",
@@ -690,7 +690,7 @@ def available_locales() -> tuple[str, ...]:
 
 
 def normalize_locale(locale: object | None) -> str:
-    """Normalize a locale-ish value and fall back to German if unsupported."""
+    """Normalisiert einen Locale-artigen Wert; Fallback auf Deutsch, falls nicht unterstützt."""
 
     if locale is None:
         return DEFAULT_LOCALE
@@ -707,7 +707,7 @@ def normalize_locale(locale: object | None) -> str:
 
 
 def configure_locale(locale: object | None) -> str:
-    """Set the process-local UI locale and return the effective locale."""
+    """Setzt die prozesslokale UI-Locale und gibt die effektive Locale zurück."""
 
     global _current_locale
     _current_locale = normalize_locale(locale)
@@ -715,23 +715,24 @@ def configure_locale(locale: object | None) -> str:
 
 
 def init_locale_from_settings(settings_value: object | None) -> str:
-    """Initialize runtime locale from persisted settings.
+    """Initialisiert die Laufzeit-Locale aus den persistierten Einstellungen.
 
-    An unset value intentionally resolves to German, so a fresh install starts
-    in the default language until the user picks another in the settings dialog.
+    Ein nicht gesetzter Wert führt bewusst zu Deutsch, damit eine frische
+    Installation in der Default-Sprache startet, bis der Nutzer im
+    Einstellungsdialog eine andere wählt.
     """
 
     return configure_locale(settings_value)
 
 
 def current_locale() -> str:
-    """Return the effective process-local UI locale."""
+    """Gibt die effektive prozesslokale UI-Locale zurück."""
 
     return _current_locale
 
 
 def tr(key: str, **values: object) -> str:
-    """Translate ``key`` for the current locale, falling back to German."""
+    """Übersetzt ``key`` für die aktuelle Locale, mit Fallback auf Deutsch."""
 
     active = _TRANSLATIONS.get(_current_locale, {})
     fallback = _TRANSLATIONS[DEFAULT_LOCALE]

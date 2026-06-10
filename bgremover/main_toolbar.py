@@ -1,4 +1,4 @@
-"""Left-side toolbar construction for the main window."""
+"""Aufbau der linken Werkzeugleiste für das Hauptfenster."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -33,7 +33,7 @@ def _shortcut_label(shortcut: str) -> str:
 
 @dataclass(frozen=True)
 class ToolbarActions:
-    """Callbacks used by the toolbar without depending on MainWindow."""
+    """Callbacks der Toolbar – ohne Abhängigkeit vom MainWindow."""
 
     set_tool: Callable[[str], None]
     run_ai: Callable[[], None]
@@ -47,7 +47,7 @@ class ToolbarActions:
 
 @dataclass(frozen=True)
 class Toolbar:
-    """Constructed toolbar plus widgets MainWindow still updates directly."""
+    """Fertig gebaute Toolbar samt Widgets, die das MainWindow weiterhin direkt aktualisiert."""
 
     frame: QFrame
     button_group: QButtonGroup
