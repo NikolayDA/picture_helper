@@ -34,6 +34,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   Closes the `pip-audit` batch of path-traversal, symlink and module-hijacking
   CVEs; pip is the installer itself and therefore cannot be pinned via
   `constraints.txt` (#202).
+- **macOS diagnostics redact sensitive paths.** `diagnose_mac.sh` now replaces
+  `$HOME` with `~` by default, shortens remaining `/Users/<name>` paths, and
+  prints a filtered error summary with redacted paths instead of the raw last
+  40 log lines — the output can safely be attached to bug reports. The new
+  `--include-raw-logs` flag provides the full diagnostics (including the raw
+  log); a shell test (`tests/test_diagnose_mac.py`) ensures the home directory
+  and image paths never reach the default output (#185).
 
 ### Fixed
 

@@ -7,10 +7,34 @@
 # Syntax – shell=bash (siehe Direktive oben) erlaubt die Pruefung.
 #
 # Aufruf:
-#   bash diagnose_mac.sh
+#   bash diagnose_mac.sh                      # Pfade redaktiert, Log als
+#                                             # gefilterte Zusammenfassung
+#   bash diagnose_mac.sh --include-raw-logs   # volle Pfade + roher Log-Auszug
 #
 # Sicher: aendert nichts am System, schreibt nichts ausser auf stdout.
-# Output bitte an den Bug-Report anhaengen.
+# Standardmaessig werden $HOME-/Nutzerpfade redaktiert und der Log nur als
+# gefilterte Fehler-Zusammenfassung ausgegeben (Befund #185) – die Ausgabe
+# kann damit bedenkenlos an den Bug-Report angehaengt werden. Die volle
+# Diagnose (sensibler, vor dem Teilen selbst pruefen!) liefert
+# --include-raw-logs.
+
+usage() {
+    echo "Aufruf: bash diagnose_mac.sh [--include-raw-logs]"
+    echo "  Standard: \$HOME-/Nutzerpfade redaktiert, Log als gefilterte Zusammenfassung."
+    echo "  --include-raw-logs: volle Pfade + rohe letzte 40 Log-Zeilen (sensibler!)."
+}
+
+INCLUDE_RAW_LOGS=0
+for arg in "$@"; do
+    case "$arg" in
+        --include-raw-logs) INCLUDE_RAW_LOGS=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unbekannte Option: $arg" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+# Auf Top-Level ermitteln: in zsh-Funktionen waere $0 der Funktionsname.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 print_header() {
     echo
@@ -18,6 +42,24 @@ print_header() {
     echo "  $1"
     echo "========================================="
 }
+
+# Redaktion der Standard-Ausgabe: das eigene $HOME wird zu '~', uebrige
+# /Users/<name>-Pfade (z. B. aus Log-/Launcher-Zeilen) werden gekuerzt.
+# $HOME wird als Literal ersetzt – reale Home-Pfade enthalten keine
+# sed-Metazeichen mit Nebenwirkung.
+redact_output() {
+    sed -E -e "s|$HOME|~|g" -e 's|/Users/[^/[:space:]"]+|/Users/<redacted>|g'
+}
+
+# Log-Zeilen: ab dem ersten absoluten Pfad bis zum Zeilenende redaktieren.
+# Faengt so auch Pfade mit Leerzeichen ("Application Support", Bildnamen)
+# und damit Bild- wie Paketpfade sicher ein (Befund #185).
+redact_log_paths() {
+    sed -E -e 's|^/.*$|<pfad redaktiert>|' \
+           -e 's|([[:space:]"(=])/.*$|\1<pfad redaktiert>|'
+}
+
+run_diagnostics() {
 
 # ── System ─────────────────────────────────────────────────────
 print_header "SYSTEM"
@@ -121,7 +163,6 @@ done
 
 # ── BgRemover.command ──────────────────────────────────────────
 print_header "BgRemover.command"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMMAND_FILE="$SCRIPT_DIR/BgRemover.command"
 if [ -f "$COMMAND_FILE" ]; then
     echo "Datei: $COMMAND_FILE"
@@ -174,7 +215,7 @@ else
 fi
 
 # ── Log ────────────────────────────────────────────────────────
-print_header "LOG (letzte 40 Zeilen)"
+print_header "LOG"
 # Der interne Logger schreibt nach QStandardPaths AppDataLocation; auf
 # macOS ist das ~/Library/Application Support/BgRemover/bgremover.log.
 # Aeltere Builds nutzten ~/.bgremover.log – als Fallback mitpruefen.
@@ -187,7 +228,23 @@ else
 fi
 if [ -f "$LOG" ]; then
     echo "Log: $LOG"
-    tail -n 40 "$LOG"
+    if [ "$INCLUDE_RAW_LOGS" -eq 1 ]; then
+        echo "(roher Auszug – letzte 40 Zeilen)"
+        tail -n 40 "$LOG"
+    else
+        # Statt des rohen Tails (kann Bild-/Nutzerpfade aus Fehlermeldungen
+        # enthalten) nur Fehler/Warnungen mit redaktierten Pfaden zeigen.
+        total="$(wc -l < "$LOG" | tr -d '[:space:]')"
+        echo "(gefilterte Zusammenfassung: Fehler/Warnungen der letzten 200 von ${total} Zeilen,"
+        echo " Pfade redaktiert – voller Auszug: bash diagnose_mac.sh --include-raw-logs)"
+        SUMMARY="$(tail -n 200 "$LOG" | grep -E 'CRITICAL|ERROR|WARNING|Traceback' \
+            | tail -n 15 | redact_log_paths)"
+        if [ -n "$SUMMARY" ]; then
+            printf '%s\n' "$SUMMARY"
+        else
+            echo "keine Fehler/Warnungen in den letzten 200 Log-Zeilen"
+        fi
+    fi
 else
     echo "kein Log gefunden unter:"
     echo "  $LOG_PRIMARY"
@@ -196,5 +253,19 @@ fi
 
 echo
 echo "========================================="
-echo "  ENDE  –  bitte diese Ausgabe komplett mitschicken"
+if [ "$INCLUDE_RAW_LOGS" -eq 1 ]; then
+    echo "  ENDE  –  ⚠️  Ausgabe enthaelt UNREDAKTIERTE Pfade und Log-Zeilen:"
+    echo "  vor dem Teilen selbst pruefen."
+else
+    echo "  ENDE  –  bitte diese Ausgabe komplett mitschicken"
+    echo "  (Pfade redaktiert, Log nur als Zusammenfassung)"
+fi
 echo "========================================="
+
+}
+
+if [ "$INCLUDE_RAW_LOGS" -eq 1 ]; then
+    run_diagnostics
+else
+    run_diagnostics | redact_output
+fi
