@@ -39,11 +39,12 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
   （es/fr/uk/zh）尚未作为 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加，并用 parity/smoke tests 保护。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-09）
+## 开放的 GitHub Issues — 优先级评估（2026-06-10）
 
-现有 **九** 个开放 issue。**#199/#200/#201/#202 已完成**（死代码删除见 PR #215，构建后端在 PR #209 中固定，
-pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#206）仍在分诊中；
-#195 已关闭并验证。
+现有 **四** 个开放 issue。**#166/#178/#185 已完成**（docstring 清理见 PR #219，
+诊断脱敏见 PR #220，测试解耦见 PR #221），**#205/#206 已关闭**（固定由 PR #222
+的测试加固）；#199/#200/#201/#202 此前已完成（PR #215/#209/#211）。`pip-audit`
+安全批次（2026-06-07，#200–#206）仅剩观察项 #203/#204 开放；#195 已关闭并验证。
 
 针对项目实际状态（`requirements/constraints.txt` + `pyproject.toml`）对安全批次
 进行分诊：
@@ -56,20 +57,16 @@ pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#2
   dev 安装文档中强制 `pip>=26.1.2`；一个与 CVE 绑定的回归测试加以保护。
 - **#203（cryptography）/#204（pyjwt）** **不是**项目依赖（纯传递/系统层）→
   仅作参考，无需改动 `constraints.txt`。
-- **#205（urllib3）/#206（idna）** 在项目中**已干净固定**（`urllib3==2.7.0`、
-  `idna==3.15`）；仅系统层发现 → 可关闭。
+- **#205（urllib3）/#206（idna）已完成（PR #222）** — 项目固定了已修补的版本
+  （`urllib3==2.7.0`、`idna==3.15`）；与 CVE 绑定的回归测试将其冻结，
+  SessionStart 钩子现在使用 constraints 安装。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
 | [#176](https://github.com/NikolayDA/picture_helper/issues/176) | 代码审查后续（Low）：E741、check_untyped_defs、cancel_ai 体验、shutdown_all | 🟡 中 | 🟢 低 | 可提 PR（来自 #167）；`E741`/`check_untyped_defs` 在 `pyproject.toml` 中仍未改 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
-| [#185](https://github.com/NikolayDA/picture_helper/issues/185) | 安全：macOS 诊断泄露本地路径 + 原始日志尾部（隐私） | 🟢 低 | 🟡 中 | 可提 PR；脱敏 `$HOME`/路径 + `--include-raw-logs` 标志 + shell 测试 |
-| [#178](https://github.com/NikolayDA/picture_helper/issues/178) | 测试审计后续（Low）：与私有内部解耦 + 去重 | 🟢 低 | 🟡 中 | 可提 PR（来自 #168） |
-| [#166](https://github.com/NikolayDA/picture_helper/issues/166) | 注释审计：语言不一致与小措辞不准确 | 🟢 低 | 🟢 低 | 可提 PR；`right_panel.py`/`main_window.py` 中存在英文 docstring |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM：6 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖（传递/系统）→ 仅作参考，无需改动 `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM：5 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖 → 仅作参考，无需项目操作 |
-| [#205](https://github.com/NikolayDA/picture_helper/issues/205) | urllib3 2.6.3 — MEDIUM：2 个 CVE | 🟢 低 | 🟢 低 | 无需操作；项目已固定 `urllib3==2.7.0`（干净）→ 可关闭 |
-| [#206](https://github.com/NikolayDA/picture_helper/issues/206) | idna 3.11 — MEDIUM：经 `idna.encode()` 的 DoS | 🟢 低 | 🟢 低 | 无需操作；项目已固定 `idna==3.15`（干净）→ 可关闭 |
 
 ### 推荐 PR 顺序
 
@@ -78,10 +75,10 @@ pip 在 PR #211 中固定）。`pip-audit` 安全批次（2026-06-07，#200–#2
 3. **#202 已完成（PR #211）** — 已在 CI setup 步骤、SessionStart 钩子 + dev 安装文档中强制 `pip>=26.1.2`；CVE 批次（路径遍历/符号链接/模块劫持）已关闭。
 4. **#176** — 来自 #167 的代码质量批次：收窄 `E741`、逐步启用 `check_untyped_defs`、cancel_ai 体验、清空 `shutdown_all` 的线程引用。
 5. **#199 已完成（PR #215）** — 已从 `canvas_history.py` 删除只写的 `_redo_max`；回归测试 `test_redo_stack_capped_by_maxlen`，`make check` 通过。
-6. **#166** — docstring 语言清理，作为小型维护 PR。
-7. **#185** — 脱敏 macOS 诊断（`$HOME`/路径）+ `--include-raw-logs` 标志 + shell 测试。
-8. **#178** — 让测试与私有内部解耦 + 减少重复测试（来自 #168）。
-9. **#205/#206 可关闭** — 项目固定已正确（`urllib3==2.7.0`、`idna==3.15`）；仅系统层发现。
+6. **#166 已完成（PR #219）** — 包内英文 docstring/注释已全部德语化；"无自有副本"注释已修正。
+7. **#185 已完成（PR #220）** — 诊断脚本脱敏 `$HOME`/路径并只输出过滤后的日志摘要；`--include-raw-logs` 标志 + shell 测试。
+8. **#178 已完成（PR #221）** — 测试改用公共访问器，AST 检查替换为行为测试，重复测试已删除（来自 #168）。
+9. **#205/#206 已完成（PR #222）** — 干净固定由 CVE 回归测试冻结，SessionStart 钩子使用 constraints 安装；issue 已关闭。
 10. **#203/#204 作为观察项** — 非项目依赖；仅当未来功能直接引入时再固定。
 11. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
 
