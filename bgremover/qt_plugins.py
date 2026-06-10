@@ -154,7 +154,7 @@ def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
 def ensure_qt_plugin_path() -> None:
     """Macht PyQt6-Platform-Plugins vor ``QApplication`` auffindbar."""
     try:
-        import PyQt6  # noqa: F401 -- only used for package location
+        import PyQt6  # noqa: F401 -- nur für den Paketpfad benötigt
     except ImportError:
         return
 

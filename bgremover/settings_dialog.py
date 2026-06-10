@@ -39,8 +39,8 @@ from bgremover.theme import SETTINGS_TITLE_STYLE
 class SettingsDialog(QDialog):
     """Dialog zum Bearbeiten persistenter Nutzereinstellungen."""
 
-    # Auswahlliste aus der zentralen Format-Quelle (siehe image_ops) –
-    # keine eigene Kopie, damit Dialog und Speichern-Logik nicht driften.
+    # Aus der zentralen Format-Quelle (image_ops) abgeleitet –
+    # damit Dialog und Speichern-Logik nicht driften.
     FORMATS = list(SAVE_FORMATS)
 
     def __init__(self, settings: QSettings, parent=None) -> None:
