@@ -38,6 +38,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   CVE de path traversal, lien symbolique et détournement de module ; pip est
   l'outil d'installation lui-même et ne peut donc pas être épinglé via
   `constraints.txt` (#202).
+- **Le diagnostic macOS caviarde les chemins sensibles.** `diagnose_mac.sh`
+  remplace désormais `$HOME` par `~` par défaut, raccourcit les autres chemins
+  `/Users/<name>` et affiche un résumé filtré des erreurs avec chemins
+  caviardés au lieu des 40 dernières lignes brutes du log — la sortie peut
+  être jointe sans risque aux rapports de bug. Le nouveau drapeau
+  `--include-raw-logs` fournit le diagnostic complet (log brut inclus) ; un
+  test shell (`tests/test_diagnose_mac.py`) garantit que le répertoire home et
+  les chemins d'images n'atteignent jamais la sortie par défaut (#185).
 
 ### Corrigé
 
