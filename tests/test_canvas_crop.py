@@ -89,7 +89,14 @@ def test_press_on_corner_starts_resizing(qapp):
     assert consumed is True
     assert c._crop.is_resizing is True
     assert c._crop.is_dragging is False
-    assert c._crop._resize_corner == 0
+    # Verhaltens-Check statt internem Ecken-Sentinel: Der Resize ist an der
+    # gedrückten Ecke (oben links) verankert – ein Move ändert die Größe UND
+    # verschiebt die linke obere Ecke mit (Drag würde nur verschieben,
+    # Resize an einer anderen Ecke ließe top_left unangetastet).
+    size_before, tl_before = ov.size, ov.top_left
+    c._crop.handle_move(QPointF(tl.x() + 40, tl.y() + 40))
+    assert ov.size != size_before
+    assert ov.top_left != tl_before
 
 
 def test_press_inside_starts_dragging(qapp):
@@ -197,7 +204,12 @@ def test_release_after_resize_clears_flag(qapp):
     c._crop.handle_press(Qt.MouseButton.LeftButton, QPointF(tl.x(), tl.y()))
     assert c._crop.handle_release() is True
     assert c._crop.is_resizing is False
-    assert c._crop._resize_corner == -1
+    # Verhaltens-Check statt internem Sentinel-Reset: Nach dem Release ist
+    # die Geste vollständig beendet – ein weiterer Move ist nur noch Hover
+    # und ändert die Rahmengröße nicht mehr.
+    size_before = ov.size
+    c._crop.handle_move(QPointF(tl.x() + 40, tl.y() + 40))
+    assert ov.size == size_before
 
 
 def test_release_after_drag_clears_flag(qapp):

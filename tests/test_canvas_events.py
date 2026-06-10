@@ -182,11 +182,11 @@ def test_apply_ai_result_replaces_image(qapp):
 def test_apply_wand_result_applies_when_revision_matches(qapp):
     c = _canvas()
     c._handle_tool_press(5, 5, NO_MOD)  # setzt _wand_busy + Revision
-    assert c._wand_busy
+    assert c.wand_busy
     mask = np.zeros((20, 20), dtype=bool)
     mask[1:3, 1:3] = True
     c.apply_wand_result(mask)
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert c._mask[1, 1]
 
 
@@ -198,14 +198,14 @@ def test_apply_wand_result_discarded_when_stale(qapp):
     msgs: list[str] = []
     c.statusMsg.connect(msgs.append)
     c.apply_wand_result(np.ones((20, 20), dtype=bool))
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert SM.WAND_VERWORFEN in msgs
 
 
 def test_apply_wand_result_ignored_when_not_busy(qapp):
     c = _canvas()
     c.apply_wand_result(np.ones((20, 20), dtype=bool))  # nie gestartet
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert not c._mask.any()
 
 
@@ -215,7 +215,7 @@ def test_cancel_pending_wand_when_busy(qapp):
     msgs: list[str] = []
     c.statusMsg.connect(msgs.append)
     c.cancel_pending_wand("Worker kaputt")
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert any("Worker kaputt" in m for m in msgs)
 
 
@@ -224,7 +224,7 @@ def test_cancel_pending_wand_when_idle_is_noop(qapp):
     msgs: list[str] = []
     c.statusMsg.connect(msgs.append)
     c.cancel_pending_wand("ignoriert")
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert msgs == []
 
 
@@ -238,14 +238,14 @@ def test_reset_pending_wand_clears_gate_silently(qapp):
     msgs: list[str] = []
     c.statusMsg.connect(msgs.append)
     c.reset_pending_wand()
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     assert msgs == []
 
 
 def test_reset_pending_wand_when_idle_is_noop(qapp):
     c = _canvas()
     c.reset_pending_wand()
-    assert c._wand_busy is False
+    assert c.wand_busy is False
 
 
 def test_apply_loaded_image_resets_pending_wand(qapp):
@@ -256,9 +256,9 @@ def test_apply_loaded_image_resets_pending_wand(qapp):
     """
     c = _canvas()
     c._handle_tool_press(5, 5, NO_MOD)   # setzt _wand_busy
-    assert c._wand_busy
+    assert c.wand_busy
     c.apply_loaded_image(Image.new("RGBA", (20, 20), (9, 9, 9, 255)), "neu.png")
-    assert c._wand_busy is False
+    assert c.wand_busy is False
     # Verspätetes Ergebnis des alten Workers: dank _wand_busy-Guard ignoriert.
     c.apply_wand_result(np.ones((20, 20), dtype=bool))
     assert not c._mask.any()
@@ -270,9 +270,9 @@ def test_restore_original_resets_pending_wand(qapp):
     c = _canvas()
     c.apply_edit(Image.new("RGBA", (20, 20), (5, 5, 5, 255)), desc="edit")
     c._handle_tool_press(5, 5, NO_MOD)
-    assert c._wand_busy
+    assert c.wand_busy
     c.restore_original()
-    assert c._wand_busy is False
+    assert c.wand_busy is False
 
 
 # ── _handle_tool_press ─────────────────────────────────────────────────
@@ -282,7 +282,7 @@ def test_handle_tool_press_wand_in_bounds_starts_request(qapp):
     requests: list[tuple] = []
     c.wandRequested.connect(lambda *a: requests.append(a))
     c._handle_tool_press(5, 5, NO_MOD)
-    assert c._wand_busy is True
+    assert c.wand_busy is True
     assert len(requests) == 1
 
 
@@ -298,7 +298,7 @@ def test_handle_tool_press_wand_busy_reports_status(qapp):
 def test_handle_tool_press_wand_out_of_bounds_does_nothing(qapp):
     c = _canvas()
     c._handle_tool_press(999, 999, NO_MOD)
-    assert c._wand_busy is False
+    assert c.wand_busy is False
 
 
 def test_handle_tool_press_lasso_adds_point(qapp):
