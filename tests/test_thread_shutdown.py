@@ -14,6 +14,7 @@ from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from bgremover import MainWindow
+from bgremover.worker_controller import WorkerController
 
 
 class _BlockingWorker(QObject):
@@ -128,10 +129,12 @@ def test_close_event_noop_without_threads(qapp, monkeypatch):
     win.close()                            # keine Threads -> kein Fehler
 
 
-def test_cancelled_ai_shutdown_skips_result_decode(qapp, monkeypatch):
-    monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
-    win = MainWindow()
-    win._worker_controller._shutdown_ms = 1000
+def test_cancelled_ai_shutdown_skips_result_decode(qapp):
+    # Direkt am WorkerController: das kurze Shutdown-Timeout kommt über den
+    # öffentlichen Konstruktor-Parameter statt durch Schreiben des privaten
+    # ``_shutdown_ms`` auf dem Controller eines MainWindow.
+    parent = QObject()
+    controller = WorkerController(parent, shutdown_ms=1000)
     rembg_started = threading.Event()
     rembg_can_return = threading.Event()
 
@@ -149,7 +152,7 @@ def test_cancelled_ai_shutdown_skips_result_decode(qapp, monkeypatch):
             patch("bgremover.workers.rembg_remove", side_effect=_fake_rembg, create=True),
             patch("bgremover.workers.Image.open", side_effect=_slow_open),
         ):
-            started = win._worker_controller.start_ai(
+            started = controller.start_ai(
                 Image.new("RGBA", (2, 2), (1, 2, 3, 255)),
                 on_done=lambda _img: None,
                 on_error=lambda _msg: None,
@@ -163,13 +166,13 @@ def test_cancelled_ai_shutdown_skips_result_decode(qapp, monkeypatch):
                 time.sleep(0.01)
             assert rembg_started.is_set()
 
-            win._worker_controller.cancel_ai()
+            controller.cancel_ai()
             rembg_can_return.set()
             started_at = time.monotonic()
-            win._worker_controller.shutdown_all()
+            controller.shutdown_all()
             elapsed = time.monotonic() - started_at
 
         assert elapsed < 0.5
     finally:
         rembg_can_return.set()
-        win.close()
+        controller.shutdown_all()

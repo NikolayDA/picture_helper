@@ -61,12 +61,9 @@ def _solid_block(w=10, h=10, color=(50, 100, 150)):
     return arr
 
 
-def test_flood_fill_uniform_image_selects_everything():
-    arr = _solid_block(8, 8)
-    mask = flood_fill(arr, 0, 0, tolerance=0)
-    assert mask.shape == (8, 8)
-    assert mask.all()
-
+# Hinweis: Der frühere Uniform-Bild-Test ist als Duplikat entfernt –
+# test_flood_fill.py::test_uniform_area_selects_everything deckt denselben
+# Fall in der dedizierten Flood-Fill-Suite ab.
 
 def test_flood_fill_two_regions_with_tolerance_zero():
     arr = _solid_block(10, 10, color=(0, 0, 0))

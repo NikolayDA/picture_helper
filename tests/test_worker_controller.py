@@ -11,7 +11,8 @@ import time
 import numpy as np
 import pytest
 from PIL import Image
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6 import sip
+from PyQt6.QtCore import QCoreApplication, QEvent, QObject, pyqtSignal
 
 from bgremover.worker_controller import WorkerController
 
@@ -54,6 +55,25 @@ def test_launch_worker_registers_and_releases_worker(qapp, controller):
         lambda: thread.isFinished() and controller._workers == [],
     )
     assert controller._workers == []
+
+
+def test_finished_worker_and_thread_are_qt_deleted(qapp, controller):
+    """Verhaltens-Ersatz für den früheren AST-Check auf ``deleteLater``:
+    Nach Threadende und Zustellung der DeferredDelete-Events sind die
+    C++-Objekte von Worker UND Thread tatsächlich freigegeben – ohne die
+    ``deleteLater``-Verdrahtung in ``_build_thread`` sammelten sich pro
+    Klick Qt-Objekte an.
+    """
+    worker = _ImmediateWorker()
+    thread = controller.launch_worker(worker, quit_on=(worker.finished,))
+
+    def _both_deleted() -> bool:
+        # Ohne laufenden Event-Loop werden DeferredDelete-Events nicht von
+        # processEvents() zugestellt – explizit ausliefern.
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        return sip.isdeleted(worker) and sip.isdeleted(thread)
+
+    _drain(qapp, _both_deleted)
 
 
 def test_image_load_releases_worker_on_completion(qapp, controller, tmp_path):
