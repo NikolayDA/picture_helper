@@ -47,12 +47,14 @@ siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-10)
 
-Ahora **cuatro** issues abiertos. **#166/#178/#185 están resueltos** (docstrings
-vía PR #219, redacción del diagnóstico vía PR #220, desacople de tests vía
-PR #221), **#205/#206 están cerrados** (fijados protegidos por tests vía
-PR #222); #199/#200/#201/#202 se resolvieron antes (PRs #215/#209/#211). Del
-lote de `pip-audit` del 2026-06-07 (#200–#206) solo quedan abiertos los puntos
-de observación #203/#204; #195 sigue cerrado y verificado.
+Ahora **tres** issues abiertos. **#176 está resuelto** (calidad de código vía
+PR #198, tests de `app.py`/`main_window.py` vía PR #214), **#166/#178/#185**
+también (docstrings vía PR #219, redacción del diagnóstico vía PR #220,
+desacople de tests vía PR #221), **#205/#206 están cerrados** (fijados
+protegidos por tests vía PR #222); #199/#200/#201/#202 se resolvieron antes
+(PRs #215/#209/#211). Del lote de `pip-audit` del 2026-06-07 (#200–#206) solo
+quedan abiertos los puntos de observación #203/#204; #195 sigue cerrado y
+verificado.
 
 Triaje del lote de seguridad frente al estado real del proyecto
 (`requirements/constraints.txt` + `pyproject.toml`):
@@ -74,7 +76,6 @@ Triaje del lote de seguridad frente al estado real del proyecto
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#176](https://github.com/NikolayDA/picture_helper/issues/176) | Seguimiento de revisión de código (Low): E741, check_untyped_defs, UX de cancel_ai, shutdown_all | 🟡 Media | 🟢 Baja | Listo para PR (de #167); `E741`/`check_untyped_defs` en `pyproject.toml` aún sin cambios |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Bloqueado: jerga "Runde 5" eliminada; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo) |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Baja | 🟢 Baja | No es dependencia del proyecto (transitiva/sistema) → informativo, sin cambio en `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Baja | 🟢 Baja | No es dependencia del proyecto → informativo, sin acción del proyecto |
@@ -84,7 +85,7 @@ Triaje del lote de seguridad frente al estado real del proyecto
 1. **#200 hecho (PR #209)** — `setuptools>=78.1.1` fijado en `pyproject.toml` (`[build-system]`) **y** `constraints.txt`; RCE CRITICAL cerrado.
 2. **#201 hecho (PR #209)** — `wheel==0.46.2` fijado en `constraints.txt`; agrupado con #200 como un único PR de fijado de cadena de suministro.
 3. **#202 hecho (PR #211)** — `pip>=26.1.2` exigido en los pasos de setup de CI, el hook SessionStart + docs de instalación dev; lote de CVE (path traversal/symlink/secuestro de módulos) cerrado.
-4. **#176** — Lote de calidad de código de #167: acotar `E741`, `check_untyped_defs` de forma incremental, UX de cancel_ai, anular referencias de hilos en `shutdown_all`.
+4. **#176 hecho (PRs #198/#214)** — `E741` acotado, `check_untyped_defs` activado de forma incremental, mensaje de estado de cancel_ai, `shutdown_all` anula las referencias de hilos; tests dedicados para `app.py`/`main_window.py`.
 5. **#199 hecho (PR #215)** — eliminado `_redo_max` (solo de escritura) de `canvas_history.py`; test de regresión `test_redo_stack_capped_by_maxlen`, `make check` en verde.
 6. **#166 hecho (PR #219)** — docstrings/comentarios en inglés traducidos al alemán en todo el paquete; comentario "sin copia propia" precisado.
 7. **#185 hecho (PR #220)** — el diagnóstico redacta `$HOME`/rutas y solo imprime un resumen filtrado del log; flag `--include-raw-logs` + test de shell.
