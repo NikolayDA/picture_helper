@@ -52,7 +52,10 @@ fi
 python3 -m pip install -q --upgrade "pip>=26.1.2"
 
 # Projekt inkl. Test-/Lint-Werkzeuge (pytest, pytest-qt, ruff, mypy).
-# Idempotent; -e nutzt den Container-Cache bei Folge-Sessions.
-python3 -m pip install -q -e ".[test]"
+# Idempotent; -e nutzt den Container-Cache bei Folge-Sessions. Mit dem
+# Constraints-Pinning des Projekts wie in Makefile/CI (#205/#206: haelt
+# u. a. urllib3/idna auf den gepatchten Releases) – sonst loest pip im
+# Web-Container frei auf und kann verwundbare Versionen einspielen.
+python3 -m pip install -q --constraint requirements/constraints.txt -e ".[test]"
 
 echo "SessionStart-Hook: Umgebung bereit (ruff/mypy/pytest lauffähig)."
