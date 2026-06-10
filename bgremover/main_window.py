@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
         return panel.frame
 
     def _set_tool(self, tool: str) -> None:
-        """Selects a canvas tool and mirrors the choice in the toolbar."""
+        """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""
         self._canvas.set_tool(tool)
         buttons = {
             TOOL_WAND: self._toolbar.btn_wand,

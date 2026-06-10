@@ -1,4 +1,4 @@
-"""History popup construction and state handling for the main window."""
+"""Aufbau und Zustandsverwaltung des History-Popups für das Hauptfenster."""
 from __future__ import annotations
 
 from collections.abc import Callable
