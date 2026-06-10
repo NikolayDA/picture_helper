@@ -33,6 +33,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   （`README.md`/`INSTALL_MAC.md`/`INSTALL_LINUX.md`）同样如此。修复了
   `pip-audit` 报告的路径遍历、符号链接和模块劫持 CVE 批次；pip 本身就是安装
   工具，因此无法通过 `constraints.txt` 固定（#202）。
+- **macOS 诊断脚本默认遮蔽敏感路径。** `diagnose_mac.sh` 现在默认将 `$HOME`
+  替换为 `~`，缩短其余 `/Users/<name>` 路径，并以路径经过遮蔽的错误摘要取代
+  原先输出的日志原文最后 40 行——因此输出可以放心附加到错误报告中。新的
+  `--include-raw-logs` 选项提供完整诊断（含原始日志）；新增的 shell 测试
+  （`tests/test_diagnose_mac.py`）确保主目录和图片路径不会出现在默认输出
+  中（#185）。
 
 ### 修复
 
