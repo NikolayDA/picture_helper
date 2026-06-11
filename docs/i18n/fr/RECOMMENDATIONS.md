@@ -47,9 +47,11 @@ la baseline avant de nouveaux PRs.
   clé par clé dans `bgremover.i18n` et les protéger par des tests de
   parité/smoke.
 
-## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-10)
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-11)
 
-Maintenant **trois** issues ouvertes. **#176 est résolue** (lot qualité de
+Maintenant **cinq** issues ouvertes : les points de veille #203/#204, la #161
+reportée, plus les constats documentaires #218 (lacunes du CHANGELOG) et #226
+(revue INSTALL). **#176 est résolue** (lot qualité de
 code via les PRs #198/#214, issue close) ; auparavant #166/#178/#185
 (PRs #219–#221), #205/#206 (PR #222) et #199/#200/#201/#202
 (PRs #215/#209/#211). Du lot `pip-audit` du 2026-06-07 (#200–#206) ne
@@ -79,6 +81,8 @@ Triage du lot de sécurité face à l'état réel du projet
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Bloqué : jargon « Runde 5 » retiré ; seule l'URL de clonage reste (décision de l'owner sur la visibilité du dépôt) |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM : 6 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet (transitive/système) → informatif, aucun changement de `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM : 5 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet → informatif, aucune action projet |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG : plusieurs entrées `[Unreleased]` manquent (PRs #174, #190–#215) | 🟡 Moyenne | 🟢 Basse | Ajouter les sept entrées manquantes via un PR docs dans le style existant |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | Revue INSTALL : la section artefacts de release pointe vers des releases vides + deux détails | 🟡 Moyenne | 🟢 Basse | Ajouter une note « artefacts à partir de v2.3.0 » (ou taguer v2.3.0, décision de l'owner) ; « Bookworm ou plus récent » + renvoi à `diagnose_mac.sh` via PR docs |
 
 ### Ordre de PR Recommandé
 
@@ -93,6 +97,8 @@ Triage du lot de sécurité face à l'état réel du projet
 9. **#205/#206 faites (PR #222)** — épinglages propres gelés par tests de régression liés aux CVE, le hook SessionStart installe avec les constraints ; issues closes.
 10. **#203/#204 comme points de veille** — pas des dépendances du projet ; épingler seulement si une future fonctionnalité les introduit directement.
 11. **#161 reporté** — « Runde 5 » fait ; il ne reste que l'URL de clonage (décision de l'owner sur la visibilité du dépôt).
+12. **#218 comme prochain PR docs** — ajouter les sept entrées `[Unreleased]` manquantes au CHANGELOG.
+13. **#226 ensuite** — mettre à jour les guides INSTALL ; la note sur les artefacts de release dépend de la décision de l'owner sur le tag.
 
 ## Séries Précédentes
 
