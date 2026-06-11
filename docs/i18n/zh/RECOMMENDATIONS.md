@@ -39,9 +39,10 @@ ruff、mypy 和本地 suite 仍是新 PR 前的 baseline。
   （es/fr/uk/zh）尚未作为 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加，并用 parity/smoke tests 保护。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-10）
+## 开放的 GitHub Issues — 优先级评估（2026-06-11）
 
-现有 **三** 个开放 issue。**#176 已完成**（代码质量批次见 PR #198/#214，
+现有 **五** 个开放 issue：观察项 #203/#204、暂缓的 #161，以及文档审计发现
+#218（CHANGELOG 缺漏）和 #226（INSTALL 审查）。**#176 已完成**（代码质量批次见 PR #198/#214，
 issue 已关闭）；此前 #166/#178/#185（PR #219–#221）、#205/#206（PR #222）与
 #199/#200/#201/#202（PR #215/#209/#211）已完成。`pip-audit`
 安全批次（2026-06-07，#200–#206）仅剩观察项 #203/#204 开放；#195 已关闭并验证。
@@ -66,6 +67,8 @@ issue 已关闭）；此前 #166/#178/#185（PR #219–#221）、#205/#206（PR 
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README 审计：一个外部链接失效，一处内部术语 | 🟡 中 | 🟢 低 | 受阻："Runde 5" 术语已移除；仅剩 clone URL（需所有者就仓库可见性决定） |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM：6 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖（传递/系统）→ 仅作参考，无需改动 `constraints.txt` |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM：5 个 CVE | 🟢 低 | 🟢 低 | 非项目依赖 → 仅作参考，无需项目操作 |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG：`[Unreleased]` 缺少多条条目（PR #174、#190–#215） | 🟡 中 | 🟢 低 | 通过文档 PR 按现有风格补充七条缺失条目 |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL 审查：Release 工件章节指向空的 Releases + 两处小问题 | 🟡 中 | 🟢 低 | 补充"工件自 v2.3.0 起提供"提示（或打 v2.3.0 标签，由所有者决定）；"Bookworm 或更新" + 链接 `diagnose_mac.sh`，经文档 PR 落实 |
 
 ### 推荐 PR 顺序
 
@@ -80,6 +83,8 @@ issue 已关闭）；此前 #166/#178/#185（PR #219–#221）、#205/#206（PR 
 9. **#205/#206 已完成（PR #222）** — 干净固定由 CVE 回归测试冻结，SessionStart 钩子使用 constraints 安装；issue 已关闭。
 10. **#203/#204 作为观察项** — 非项目依赖；仅当未来功能直接引入时再固定。
 11. **#161 暂缓** — "Runde 5" 已完成；仅剩 clone URL（需所有者就仓库可见性决定）。
+12. **#218 作为下一个文档 PR** — 在 CHANGELOG 中补充七条缺失的 `[Unreleased]` 条目。
+13. **#226 随后** — 更新 INSTALL 指南；Release 工件提示取决于所有者的打标签决定。
 
 ## 先前轮次
 
