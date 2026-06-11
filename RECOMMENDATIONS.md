@@ -45,9 +45,11 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Runtime-Locales umgesetzt; bei Bedarf key-für-key in `bgremover.i18n`
   ergänzen und mit Paritäts-/Smoke-Tests absichern.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-10)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-11)
 
-Jetzt **drei** offene Issues. **#176 ist erledigt** (Code-Quality-Sammlung via
+Jetzt **fünf** offene Issues: die Beobachtungsposten #203/#204, das
+zurückgestellte #161 sowie die Doku-Befunde #218 (CHANGELOG-Lücken) und
+#226 (INSTALL-Review). **#176 ist erledigt** (Code-Quality-Sammlung via
 PRs #198/#214, Issue geschlossen); zuvor #166/#178/#185 (PRs #219–#221),
 #205/#206 (PR #222) und #199/#200/#201/#202 (PRs #215/#209/#211). Vom
 `pip-audit`-Batch vom 2026-06-07 (#200–#206) bleiben nur die
@@ -74,6 +76,8 @@ Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README-Audit: ein fehlerhafter Link, eine interne Begrifflichkeit | 🟡 Mittel | 🟢 Niedrig | Blockiert: „Runde 5" entfernt; nur Clone-URL offen (Owner-Entscheidung zur Repo-Sichtbarkeit) |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Niedrig | 🟢 Niedrig | Keine Projekt-Abhängigkeit (transitiv/systemseitig) → informativ, keine `constraints.txt`-Änderung |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Niedrig | 🟢 Niedrig | Keine Projekt-Abhängigkeit → informativ, keine Projekt-Aktion |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: mehrere `[Unreleased]`-Einträge fehlen (PRs #174, #190–#215) | 🟡 Mittel | 🟢 Niedrig | Sieben fehlende Einträge per Doku-PR im bestehenden Stil nachtragen |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL-Review: Release-Artefakte-Abschnitt verweist auf leere Releases + zwei Kleinigkeiten | 🟡 Mittel | 🟢 Niedrig | Hinweis „Artefakte ab v2.3.0" ergänzen (oder v2.3.0 taggen, Owner-Entscheidung); „Bookworm oder neuer" + `diagnose_mac.sh`-Verweis per Doku-PR |
 
 ### Empfohlene PR-Reihenfolge
 
@@ -88,6 +92,8 @@ Einordnung des Security-Batches gegen den tatsächlichen Projektstand
 9. **#205/#206 erledigt (PR #222)** — saubere Pins per CVE-Regressionstest eingefroren, SessionStart-Hook installiert mit Constraints; Issues geschlossen.
 10. **#203/#204 als Beobachtungsposten** — keine Projekt-Abhängigkeiten; erst pinnen, falls ein künftiges Feature sie direkt einzieht.
 11. **#161 zurückgestellt** — „Runde 5" erledigt; offen bleibt nur die Klon-URL (Owner-Entscheidung zur Repo-Sichtbarkeit).
+12. **#218 als nächster Doku-PR** — die sieben fehlenden `[Unreleased]`-Einträge im CHANGELOG nachtragen.
+13. **#226 danach** — INSTALL-Guides aktualisieren; der Release-Artefakte-Hinweis hängt an der Tagging-Entscheidung des Owners.
 
 ## Vorige Runden
 
