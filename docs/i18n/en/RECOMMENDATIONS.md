@@ -45,9 +45,11 @@ baseline before new PRs.
   runtime locales; add them key-for-key in `bgremover.i18n` if needed and
   protect them with parity/smoke tests.
 
-## Open GitHub Issues — Priority Assessment (2026-06-10)
+## Open GitHub Issues — Priority Assessment (2026-06-11)
 
-Now **three** open issues. **#176 is resolved** (code-quality batch via
+Now **five** open issues: the watch items #203/#204, the deferred #161, plus
+the documentation findings #218 (CHANGELOG gaps) and #226 (INSTALL review).
+**#176 is resolved** (code-quality batch via
 PRs #198/#214, issue closed); previously #166/#178/#185 (PRs #219–#221),
 #205/#206 (PR #222) and #199/#200/#201/#202 (PRs #215/#209/#211). Of the
 `pip-audit` batch from 2026-06-07 (#200–#206) only the watch items #203/#204
@@ -74,6 +76,8 @@ Triage of the security batch against the project's actual state
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Blocked: "Runde 5" jargon removed; only clone URL remains (owner decision on repo visibility) |
 | [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Low | 🟢 Low | Not a project dependency (transitive/system) → informational, no `constraints.txt` change |
 | [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Low | 🟢 Low | Not a project dependency → informational, no project action |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: several `[Unreleased]` entries missing (PRs #174, #190–#215) | 🟡 Medium | 🟢 Low | Add the seven missing entries via a docs PR in the existing style |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL review: release-artifacts section points to empty releases + two minor items | 🟡 Medium | 🟢 Low | Add an "artifacts from v2.3.0" note (or tag v2.3.0, owner decision); "Bookworm or newer" + `diagnose_mac.sh` reference via docs PR |
 
 ### Recommended PR Order
 
@@ -88,6 +92,8 @@ Triage of the security batch against the project's actual state
 9. **#205/#206 done (PR #222)** — clean pins frozen by CVE-tied regression tests, SessionStart hook installs with constraints; issues closed.
 10. **#203/#204 as watch items** — not project dependencies; pin only if a future feature pulls them in directly.
 11. **#161 deferred** — "Runde 5" done; only the clone URL remains (owner decision on repo visibility).
+12. **#218 as the next docs PR** — add the seven missing `[Unreleased]` entries to the CHANGELOG.
+13. **#226 after that** — update the INSTALL guides; the release-artifacts note depends on the owner's tagging decision.
 
 ## Previous Rounds
 
