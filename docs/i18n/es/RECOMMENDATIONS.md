@@ -37,6 +37,9 @@ siguen siendo la baseline antes de nuevos PRs.
   tardías), **#182** (`PIP_CONSTRAINT` integrado en el build de AppImage),
   **#183** (license-check en solo-lectura + job de comentario aislado), **#177**
   (assertions de comportamiento + nuevo `tests/test_history_popup.py`).
+- **Lote de seguridad del 2026-06-07 completado** (#200/#201/#202/#205/#206
+  vía PRs #209/#211/#222): setuptools/wheel/pip/urllib3/idna fijados o
+  exigidos, cada uno protegido por un test de regresión ligado a CVE.
 
 ### Aún Abierto
 
@@ -45,57 +48,43 @@ siguen siendo la baseline antes de nuevos PRs.
   son runtime locales; si hace falta, añadirlos clave por clave en
   `bgremover.i18n` y protegerlos con tests de paridad/smoke.
 
-## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-11)
+## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-12)
 
-Ahora **cinco** issues abiertos: los puntos de observación #203/#204, el
-aplazado #161, más los hallazgos de documentación #218 (huecos del CHANGELOG)
-y #226 (revisión de INSTALL). **#176 está resuelto** (lote de calidad de
-código vía PRs #198/#214, issue cerrado); antes #166/#178/#185 (PRs #219–#221),
-#205/#206 (PR #222) y #199/#200/#201/#202 (PRs #215/#209/#211). Del lote de
-`pip-audit` del 2026-06-07 (#200–#206) solo quedan abiertos los puntos de
-observación #203/#204; #195 sigue cerrado y verificado.
-
-Triaje del lote de seguridad frente al estado real del proyecto
-(`requirements/constraints.txt` + `pyproject.toml`):
-
-- **#200/#201 están hechos (PR #209)** — `setuptools` ahora está fijado a
-  `>=78.1.1` en `pyproject.toml` (`[build-system]`) y `constraints.txt`, y
-  `wheel` a `==0.46.2`; tests de regresión ligados a CVE lo protegen.
-- **#202 (pip) está hecho (PR #211)** — se exige `pip>=26.1.2` en los pasos de
-  setup de CI (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
-  `license-check.yml`), el hook SessionStart web y los docs de instalación dev;
-  un test de regresión ligado a CVE lo protege.
-- **#203 (cryptography)/#204 (pyjwt)** **no** son dependencias del proyecto
-  (puramente transitivas/del sistema) → informativo, sin cambio en
-  `constraints.txt`.
-- **#205 (urllib3)/#206 (idna) están hechos (PR #222)** — el proyecto fija las
-  versiones parcheadas (`urllib3==2.7.0`, `idna==3.15`); tests de regresión
-  ligados a CVE lo congelan y el hook SessionStart ahora instala con
-  constraints.
+Ahora **14** issues abiertos: los puntos de observación #203/#204, el aplazado
+#161, los hallazgos de docs/auditoría #218/#226/#227/#236, más el lote de
+calidad de código #229–#235 de la auditoría del 2026-06-11. #203/#204 no son
+dependencias del proyecto (puramente transitivas/del sistema) → informativo,
+sin cambio en `constraints.txt`.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: un enlace roto y una referencia interna | 🟡 Media | 🟢 Baja | Bloqueado: jerga "Runde 5" eliminada; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo) |
-| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Baja | 🟢 Baja | No es dependencia del proyecto (transitiva/sistema) → informativo, sin cambio en `constraints.txt` |
-| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Baja | 🟢 Baja | No es dependencia del proyecto → informativo, sin acción del proyecto |
-| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: faltan varias entradas en `[Unreleased]` (PRs #174, #190–#215) | 🟡 Media | 🟢 Baja | Añadir las siete entradas que faltan vía un PR de docs en el estilo existente |
-| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | Revisión de INSTALL: la sección de artefactos de release apunta a releases vacíos + dos detalles | 🟡 Media | 🟢 Baja | Añadir nota "artefactos desde v2.3.0" (o etiquetar v2.3.0, decisión del owner); "Bookworm o más nuevo" + referencia a `diagnose_mac.sh` vía PR de docs |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Auditoría del README: la URL de clonación no lleva a ninguna parte | 🟡 Media | 🟢 Baja | Bloqueado (decisión del owner sobre visibilidad del repo) |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — 6 CVEs | 🟢 Baja | 🟢 Baja | Punto de observación, sin acción del proyecto |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — 5 CVEs | 🟢 Baja | 🟢 Baja | Punto de observación, sin acción del proyecto |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: faltan entradas en `[Unreleased]` | 🟡 Media | 🟢 Baja | Listo para PR (añadir las siete entradas en el estilo existente) |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | Revisión de INSTALL: apunta a releases vacíos + dos detalles | 🟡 Media | 🟢 Baja | Listo para PR (fixes de docs); la nota de artefactos depende de la decisión de etiquetado |
+| [#227](https://github.com/NikolayDA/picture_helper/issues/227) | Auditoría de RECOMMENDATIONS: resumen de issues desactualizado | 🟡 Media | 🟢 Baja | Resuelto por esta actualización → cerrar el issue |
+| [#229](https://github.com/NikolayDA/picture_helper/issues/229) | El warmup de rembg no crea una sesión de inferencia reutilizable | 🟠 Alta | 🟡 Media | Listo para PR (cachear una sesión vía `new_session`) |
+| [#230](https://github.com/NikolayDA/picture_helper/issues/230) | El archivo se lee entero en memoria antes del check de tamaño | 🟠 Alta | 🟢 Baja | Listo para PR (límite de bytes antes del `read()`) |
+| [#231](https://github.com/NikolayDA/picture_helper/issues/231) | `QThread.terminate()` puede abortar workers de forma insegura | 🟡 Media | 🟠 Alta | Necesita refinamiento (decidir opción A/B/C; a corto plazo opción C) |
+| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` carga toda la GUI PyQt6 | 🟡 Media | 🟡 Media | Listo para PR (exports perezosos vía PEP 562) |
+| [#233](https://github.com/NikolayDA/picture_helper/issues/233) | Settings de recent_files corruptos rompen el menú | 🟡 Media | 🟢 Baja | Listo para PR (`paths()` defensivo + tests parametrizados) |
+| [#234](https://github.com/NikolayDA/picture_helper/issues/234) | Una migración faltante sube igualmente `schema_version` | 🟢 Baja | 🟢 Baja | Listo para PR (antes de la primera migración real) |
+| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | El límite de undo ignora redo/imagen original | 🟢 Baja | 🟡 Media | Necesita refinamiento (decidir solo-docs vs. presupuesto compartido) |
+| [#236](https://github.com/NikolayDA/picture_helper/issues/236) | Comentario de session-start.sh: falta `benchmark.yml` | 🟢 Baja | 🟢 Baja | Listo para PR (fix de comentario de una línea) |
 
 ### Orden de PRs Recomendado
 
-1. **#200 hecho (PR #209)** — `setuptools>=78.1.1` fijado en `pyproject.toml` (`[build-system]`) **y** `constraints.txt`; RCE CRITICAL cerrado.
-2. **#201 hecho (PR #209)** — `wheel==0.46.2` fijado en `constraints.txt`; agrupado con #200 como un único PR de fijado de cadena de suministro.
-3. **#202 hecho (PR #211)** — `pip>=26.1.2` exigido en los pasos de setup de CI, el hook SessionStart + docs de instalación dev; lote de CVE (path traversal/symlink/secuestro de módulos) cerrado.
-4. **#176 hecho (PRs #198/#214)** — eliminado el ignore global de `E741`, `check_untyped_defs` activo para `canvas`/`main_window`/`worker_controller`, la espera de cancel_ai es visible vía mensaje de estado, `shutdown_all` anula referencias de hilos; tests dedicados para `app.py`/`main_window.py`. Verificado contra `main` el 2026-06-10 (`make check` en verde).
-5. **#199 hecho (PR #215)** — eliminado `_redo_max` (solo de escritura) de `canvas_history.py`; test de regresión `test_redo_stack_capped_by_maxlen`, `make check` en verde.
-6. **#166 hecho (PR #219)** — docstrings/comentarios en inglés traducidos al alemán en todo el paquete; comentario "sin copia propia" precisado.
-7. **#185 hecho (PR #220)** — el diagnóstico redacta `$HOME`/rutas y solo imprime un resumen filtrado del log; flag `--include-raw-logs` + test de shell.
-8. **#178 hecho (PR #221)** — tests pasados a accessors públicos, checks AST sustituidos por tests de comportamiento, tests duplicados eliminados (de #168).
-9. **#205/#206 hechos (PR #222)** — fijados limpios congelados con tests de regresión ligados a CVE, el hook SessionStart instala con constraints; issues cerrados.
-10. **#203/#204 como puntos de observación** — no son dependencias del proyecto; fijar solo si un futuro feature las incorpora directamente.
-11. **#161 aplazado** — "Runde 5" hecho; solo queda la URL de clonación (decisión del owner sobre visibilidad del repo).
-12. **#218 como siguiente PR de docs** — añadir las siete entradas de `[Unreleased]` que faltan en el CHANGELOG.
-13. **#226 después** — actualizar las guías INSTALL; la nota de artefactos de release depende de la decisión del owner sobre el etiquetado.
+1. **#230** — máxima relevancia con baja complejidad: límite de tamaño de archivo antes de leer, cubre los caminos sync y async de forma central.
+2. **#229** — reutilizar la sesión del warmup; la mayor ganancia para el pipeline de IA, y de paso se corrige el comentario incorrecto.
+3. **#233** — `paths()` defensivo con tests parametrizados; encaja con el objetivo de robustez del esquema de settings.
+4. **#236 + #218** — fixes pequeños de comentario/docs, idealmente agrupados; **#227** queda resuelto por esta actualización y puede cerrarse.
+5. **#232** — exports perezosos vía PEP 562; alcance medio por la migración de tests/imports.
+6. **#234** — fix pequeño; planificarlo como muy tarde antes de la primera migración real del esquema.
+7. **#226** — fixes de docs ahora; la nota de artefactos de release depende de la decisión de etiquetado del owner.
+8. **#235** — decidir primero la semántica (solo docs vs. presupuesto compartido), luego implementar.
+9. **#231** — a corto plazo opción C (esperas acotadas + logging), evaluar a largo plazo la opción B (subproceso).
+10. **#203/#204** siguen como puntos de observación; **#161** sigue bloqueado (decisión del owner).
 
 ## Rondas Anteriores
 
