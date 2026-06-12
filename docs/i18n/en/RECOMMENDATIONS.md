@@ -37,6 +37,9 @@ baseline before new PRs.
   (`PIP_CONSTRAINT` wired into the AppImage build), **#183** (license-check
   read-only + isolated comment job), **#177** (behavioral assertions + new
   `tests/test_history_popup.py`).
+- **Security batch from 2026-06-07 completed** (#200/#201/#202/#205/#206 via
+  PRs #209/#211/#222): setuptools/wheel/pip/urllib3/idna pinned or enforced,
+  each guarded by a CVE-tied regression test.
 
 ### Still Open
 
@@ -45,55 +48,42 @@ baseline before new PRs.
   runtime locales; add them key-for-key in `bgremover.i18n` if needed and
   protect them with parity/smoke tests.
 
-## Open GitHub Issues — Priority Assessment (2026-06-11)
+## Open GitHub Issues — Priority Assessment (2026-06-12)
 
-Now **five** open issues: the watch items #203/#204, the deferred #161, plus
-the documentation findings #218 (CHANGELOG gaps) and #226 (INSTALL review).
-**#176 is resolved** (code-quality batch via
-PRs #198/#214, issue closed); previously #166/#178/#185 (PRs #219–#221),
-#205/#206 (PR #222) and #199/#200/#201/#202 (PRs #215/#209/#211). Of the
-`pip-audit` batch from 2026-06-07 (#200–#206) only the watch items #203/#204
-remain open; #195 stays closed and verified.
-
-Triage of the security batch against the project's actual state
-(`requirements/constraints.txt` + `pyproject.toml`):
-
-- **#200/#201 are done (PR #209)** — `setuptools` is now pinned to `>=78.1.1` in
-  `pyproject.toml` (`[build-system]`) and `constraints.txt`, and `wheel` to
-  `==0.46.2`; CVE-tied regression tests guard against regressions.
-- **#202 (pip) is done (PR #211)** — `pip>=26.1.2` is enforced in the CI setup
-  steps (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
-  `license-check.yml`), the web SessionStart hook and the dev install docs; a
-  CVE-tied regression test guards it.
-- **#203 (cryptography)/#204 (pyjwt)** are **not** project dependencies (purely
-  transitive/system) → informational, no `constraints.txt` change.
-- **#205 (urllib3)/#206 (idna) are done (PR #222)** — the project pins the
-  patched releases (`urllib3==2.7.0`, `idna==3.15`); CVE-tied regression tests
-  freeze them and the SessionStart hook now installs with constraints.
+Now **14** open issues: the watch items #203/#204, the deferred #161, the
+docs/audit findings #218/#226/#227/#236, plus the code-quality batch
+#229–#235 from the 2026-06-11 audit. #203/#204 are not project dependencies
+(purely transitive/system) → informational, no `constraints.txt` change.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: one broken external link, one internal-jargon note | 🟡 Medium | 🟢 Low | Blocked: "Runde 5" jargon removed; only clone URL remains (owner decision on repo visibility) |
-| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM: 6 CVEs | 🟢 Low | 🟢 Low | Not a project dependency (transitive/system) → informational, no `constraints.txt` change |
-| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM: 5 CVEs | 🟢 Low | 🟢 Low | Not a project dependency → informational, no project action |
-| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: several `[Unreleased]` entries missing (PRs #174, #190–#215) | 🟡 Medium | 🟢 Low | Add the seven missing entries via a docs PR in the existing style |
-| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL review: release-artifacts section points to empty releases + two minor items | 🟡 Medium | 🟢 Low | Add an "artifacts from v2.3.0" note (or tag v2.3.0, owner decision); "Bookworm or newer" + `diagnose_mac.sh` reference via docs PR |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README audit: clone URL leads nowhere | 🟡 Medium | 🟢 Low | Blocked (owner decision on repo visibility) |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — 6 CVEs | 🟢 Low | 🟢 Low | Watch item, no project action |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — 5 CVEs | 🟢 Low | 🟢 Low | Watch item, no project action |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG: `[Unreleased]` entries missing | 🟡 Medium | 🟢 Low | Ready for PR (add the seven entries in the existing style) |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL review: points to empty releases + two minor items | 🟡 Medium | 🟢 Low | Ready for PR (doc fixes); release-artifacts note depends on the tagging decision |
+| [#227](https://github.com/NikolayDA/picture_helper/issues/227) | RECOMMENDATIONS audit: issue overview stale | 🟡 Medium | 🟢 Low | Resolved by this update → close the issue |
+| [#229](https://github.com/NikolayDA/picture_helper/issues/229) | rembg warmup creates no reusable inference session | 🟠 High | 🟡 Medium | Ready for PR (cache a session via `new_session`) |
+| [#230](https://github.com/NikolayDA/picture_helper/issues/230) | File fully read into memory before size check | 🟠 High | 🟢 Low | Ready for PR (byte limit before the `read()`) |
+| [#231](https://github.com/NikolayDA/picture_helper/issues/231) | `QThread.terminate()` can abort workers unsafely | 🟡 Medium | 🟠 High | Needs refinement (decide option A/B/C; short-term option C) |
+| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` loads the full PyQt6 GUI | 🟡 Medium | 🟡 Medium | Ready for PR (lazy exports via PEP 562) |
+| [#233](https://github.com/NikolayDA/picture_helper/issues/233) | Corrupt recent_files settings break menu build | 🟡 Medium | 🟢 Low | Ready for PR (defensive `paths()` + parameterized tests) |
+| [#234](https://github.com/NikolayDA/picture_helper/issues/234) | Missing migration still bumps `schema_version` | 🟢 Low | 🟢 Low | Ready for PR (before the first real migration) |
+| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo limit ignores redo/original image | 🟢 Low | 🟡 Medium | Needs refinement (decide docs-only vs. shared budget) |
+| [#236](https://github.com/NikolayDA/picture_helper/issues/236) | session-start.sh comment: `benchmark.yml` missing | 🟢 Low | 🟢 Low | Ready for PR (one-line comment fix) |
 
 ### Recommended PR Order
 
-1. **#200 done (PR #209)** — pinned `setuptools>=78.1.1` in `pyproject.toml` (`[build-system]`) **and** `constraints.txt`; CRITICAL RCE closed.
-2. **#201 done (PR #209)** — pinned `wheel==0.46.2` in `constraints.txt`; bundled with #200 as a single supply-chain pinning PR.
-3. **#202 done (PR #211)** — `pip>=26.1.2` enforced in the CI setup steps, the SessionStart hook + dev install docs; CVE batch (path traversal/symlink/module hijacking) closed.
-4. **#176 done (PRs #198/#214)** — blanket `E741` ignore removed, `check_untyped_defs` active for `canvas`/`main_window`/`worker_controller`, cancel_ai wait made visible via status message, `shutdown_all` nulls thread references; dedicated tests for `app.py`/`main_window.py`. Verified against `main` on 2026-06-10 (`make check` green).
-5. **#199 done (PR #215)** — removed the write-only `_redo_max` from `canvas_history.py`; regression test `test_redo_stack_capped_by_maxlen`, `make check` green.
-6. **#166 done (PR #219)** — English docstrings/comments translated to German package-wide; "no own copy" comment made precise.
-7. **#185 done (PR #220)** — diagnostics redact `$HOME`/paths and print a filtered log summary only; `--include-raw-logs` flag + shell test.
-8. **#178 done (PR #221)** — tests moved to public accessors, AST checks replaced by behavioral tests, duplicate tests removed (from #168).
-9. **#205/#206 done (PR #222)** — clean pins frozen by CVE-tied regression tests, SessionStart hook installs with constraints; issues closed.
-10. **#203/#204 as watch items** — not project dependencies; pin only if a future feature pulls them in directly.
-11. **#161 deferred** — "Runde 5" done; only the clone URL remains (owner decision on repo visibility).
-12. **#218 as the next docs PR** — add the seven missing `[Unreleased]` entries to the CHANGELOG.
-13. **#226 after that** — update the INSTALL guides; the release-artifacts note depends on the owner's tagging decision.
+1. **#230** — highest relevance at low complexity: file-size limit before reading, covers the sync and async paths centrally.
+2. **#229** — reuse the warmup session; biggest win for the AI pipeline, and the incorrect comment gets fixed along the way.
+3. **#233** — defensive `paths()` with parameterized tests; matches the robustness goal of the settings schema.
+4. **#236 + #218** — small comment/docs fixes, ideally bundled; **#227** is resolved by this update and can be closed.
+5. **#232** — lazy exports via PEP 562; medium scope due to test/import migration.
+6. **#234** — small fix; schedule it before the first real schema migration at the latest.
+7. **#226** — doc fixes now; the release-artifacts note depends on the owner's tagging decision.
+8. **#235** — decide the semantics first (docs-only vs. shared budget), then implement.
+9. **#231** — short term option C (bounded waits + logging), evaluate option B (subprocess) long term.
+10. **#203/#204** remain watch items; **#161** remains blocked (owner decision).
 
 ## Previous Rounds
 

@@ -38,6 +38,9 @@ la baseline avant de nouveaux PRs.
   AppImage), **#183** (license-check en lecture seule + job de commentaire
   isolé), **#177** (assertions comportementales + nouveau
   `tests/test_history_popup.py`).
+- **Lot de sécurité du 2026-06-07 terminé** (#200/#201/#202/#205/#206 via les
+  PRs #209/#211/#222) : setuptools/wheel/pip/urllib3/idna épinglés ou exigés,
+  chacun protégé par un test de régression lié aux CVE.
 
 ### Encore Ouvert
 
@@ -47,58 +50,43 @@ la baseline avant de nouveaux PRs.
   clé par clé dans `bgremover.i18n` et les protéger par des tests de
   parité/smoke.
 
-## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-11)
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-12)
 
-Maintenant **cinq** issues ouvertes : les points de veille #203/#204, la #161
-reportée, plus les constats documentaires #218 (lacunes du CHANGELOG) et #226
-(revue INSTALL). **#176 est résolue** (lot qualité de
-code via les PRs #198/#214, issue close) ; auparavant #166/#178/#185
-(PRs #219–#221), #205/#206 (PR #222) et #199/#200/#201/#202
-(PRs #215/#209/#211). Du lot `pip-audit` du 2026-06-07 (#200–#206) ne
-restent ouverts que les points de veille #203/#204 ; #195 reste clos et
-vérifié.
-
-Triage du lot de sécurité face à l'état réel du projet
-(`requirements/constraints.txt` + `pyproject.toml`) :
-
-- **#200/#201 sont faites (PR #209)** — `setuptools` est désormais épinglé à
-  `>=78.1.1` dans `pyproject.toml` (`[build-system]`) et `constraints.txt`, et
-  `wheel` à `==0.46.2` ; des tests de régression liés aux CVE les protègent.
-- **#202 (pip) est faite (PR #211)** — `pip>=26.1.2` est exigé dans les étapes
-  de setup CI (`ci.yml`/`pr-ci.yml`/`ui-nightly.yml`/`benchmark.yml`/
-  `license-check.yml`), le hook SessionStart web et les docs d'installation dev ;
-  un test de régression lié aux CVE le protège.
-- **#203 (cryptography)/#204 (pyjwt)** **ne sont pas** des dépendances du projet
-  (purement transitives/système) → informatif, aucun changement de
-  `constraints.txt`.
-- **#205 (urllib3)/#206 (idna) sont faites (PR #222)** — le projet épingle les
-  versions corrigées (`urllib3==2.7.0`, `idna==3.15`) ; des tests de régression
-  liés aux CVE les gèlent et le hook SessionStart installe désormais avec les
-  constraints.
+Maintenant **14** issues ouvertes : les points de veille #203/#204, la #161
+reportée, les constats docs/audit #218/#226/#227/#236, plus le lot qualité de
+code #229–#235 issu de l'audit du 2026-06-11. #203/#204 ne sont pas des
+dépendances du projet (purement transitives/système) → informatif, aucun
+changement de `constraints.txt`.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : un lien externe brisé, une référence interne | 🟡 Moyenne | 🟢 Basse | Bloqué : jargon « Runde 5 » retiré ; seule l'URL de clonage reste (décision de l'owner sur la visibilité du dépôt) |
-| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — HIGH/MEDIUM : 6 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet (transitive/système) → informatif, aucun changement de `constraints.txt` |
-| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — HIGH/MEDIUM : 5 CVEs | 🟢 Basse | 🟢 Basse | Pas une dépendance du projet → informatif, aucune action projet |
-| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG : plusieurs entrées `[Unreleased]` manquent (PRs #174, #190–#215) | 🟡 Moyenne | 🟢 Basse | Ajouter les sept entrées manquantes via un PR docs dans le style existant |
-| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | Revue INSTALL : la section artefacts de release pointe vers des releases vides + deux détails | 🟡 Moyenne | 🟢 Basse | Ajouter une note « artefacts à partir de v2.3.0 » (ou taguer v2.3.0, décision de l'owner) ; « Bookworm ou plus récent » + renvoi à `diagnose_mac.sh` via PR docs |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | Audit README : l'URL de clonage ne mène nulle part | 🟡 Moyenne | 🟢 Basse | Bloqué (décision de l'owner sur la visibilité du dépôt) |
+| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — 6 CVEs | 🟢 Basse | 🟢 Basse | Point de veille, aucune action projet |
+| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | pyjwt 2.7.0 — 5 CVEs | 🟢 Basse | 🟢 Basse | Point de veille, aucune action projet |
+| [#218](https://github.com/NikolayDA/picture_helper/issues/218) | CHANGELOG : entrées `[Unreleased]` manquantes | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (ajouter les sept entrées dans le style existant) |
+| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | Revue INSTALL : pointe vers des releases vides + deux détails | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (fixes docs) ; la note sur les artefacts dépend de la décision de tag |
+| [#227](https://github.com/NikolayDA/picture_helper/issues/227) | Audit RECOMMENDATIONS : aperçu des issues obsolète | 🟡 Moyenne | 🟢 Basse | Résolu par cette mise à jour → fermer l'issue |
+| [#229](https://github.com/NikolayDA/picture_helper/issues/229) | Le warmup rembg ne crée pas de session d'inférence réutilisable | 🟠 Haute | 🟡 Moyenne | Prêt pour PR (mettre en cache une session via `new_session`) |
+| [#230](https://github.com/NikolayDA/picture_helper/issues/230) | Le fichier est lu entièrement en mémoire avant le contrôle de taille | 🟠 Haute | 🟢 Basse | Prêt pour PR (limite d'octets avant le `read()`) |
+| [#231](https://github.com/NikolayDA/picture_helper/issues/231) | `QThread.terminate()` peut interrompre les workers de façon non sûre | 🟡 Moyenne | 🟠 Haute | À affiner (choisir l'option A/B/C ; à court terme l'option C) |
+| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` charge toute la GUI PyQt6 | 🟡 Moyenne | 🟡 Moyenne | Prêt pour PR (exports paresseux via PEP 562) |
+| [#233](https://github.com/NikolayDA/picture_helper/issues/233) | Des settings recent_files corrompus cassent le menu | 🟡 Moyenne | 🟢 Basse | Prêt pour PR (`paths()` défensif + tests paramétrés) |
+| [#234](https://github.com/NikolayDA/picture_helper/issues/234) | Une migration manquante incrémente quand même `schema_version` | 🟢 Basse | 🟢 Basse | Prêt pour PR (avant la première vraie migration) |
+| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | La limite d'undo ignore redo/image d'origine | 🟢 Basse | 🟡 Moyenne | À affiner (décider docs seules vs. budget partagé) |
+| [#236](https://github.com/NikolayDA/picture_helper/issues/236) | Commentaire de session-start.sh : `benchmark.yml` manque | 🟢 Basse | 🟢 Basse | Prêt pour PR (fix de commentaire d'une ligne) |
 
 ### Ordre de PR Recommandé
 
-1. **#200 faite (PR #209)** — `setuptools>=78.1.1` épinglé dans `pyproject.toml` (`[build-system]`) **et** `constraints.txt` ; RCE CRITICAL fermée.
-2. **#201 faite (PR #209)** — `wheel==0.46.2` épinglé dans `constraints.txt` ; regroupé avec #200 en un seul PR d'épinglage de chaîne d'approvisionnement.
-3. **#202 faite (PR #211)** — `pip>=26.1.2` exigé dans les étapes de setup CI, le hook SessionStart + docs d'installation dev ; lot de CVE (path traversal/lien symbolique/détournement de module) fermé.
-4. **#176 faite (PRs #198/#214)** — ignore global `E741` retiré, `check_untyped_defs` actif pour `canvas`/`main_window`/`worker_controller`, l'attente de cancel_ai est visible via un message de statut, `shutdown_all` annule les références de threads ; tests dédiés pour `app.py`/`main_window.py`. Vérifié contre `main` le 2026-06-10 (`make check` au vert).
-5. **#199 faite (PR #215)** — `_redo_max` (écriture seule) supprimé de `canvas_history.py` ; test de régression `test_redo_stack_capped_by_maxlen`, `make check` au vert.
-6. **#166 faite (PR #219)** — docstrings/commentaires anglais germanisés dans tout le paquet ; commentaire « pas de copie propre » précisé.
-7. **#185 faite (PR #220)** — le diagnostic caviarde `$HOME`/chemins et n'affiche plus qu'un résumé filtré du log ; flag `--include-raw-logs` + test shell.
-8. **#178 faite (PR #221)** — tests passés aux accesseurs publics, checks AST remplacés par des tests comportementaux, tests en double supprimés (de #168).
-9. **#205/#206 faites (PR #222)** — épinglages propres gelés par tests de régression liés aux CVE, le hook SessionStart installe avec les constraints ; issues closes.
-10. **#203/#204 comme points de veille** — pas des dépendances du projet ; épingler seulement si une future fonctionnalité les introduit directement.
-11. **#161 reporté** — « Runde 5 » fait ; il ne reste que l'URL de clonage (décision de l'owner sur la visibilité du dépôt).
-12. **#218 comme prochain PR docs** — ajouter les sept entrées `[Unreleased]` manquantes au CHANGELOG.
-13. **#226 ensuite** — mettre à jour les guides INSTALL ; la note sur les artefacts de release dépend de la décision de l'owner sur le tag.
+1. **#230** — pertinence maximale pour une faible complexité : limite de taille de fichier avant la lecture, couvre les chemins sync et async de façon centrale.
+2. **#229** — réutiliser la session du warmup ; le plus gros gain pour le pipeline IA, et le commentaire erroné est corrigé au passage.
+3. **#233** — `paths()` défensif avec tests paramétrés ; cohérent avec l'objectif de robustesse du schéma de settings.
+4. **#236 + #218** — petits fixes commentaire/docs, idéalement regroupés ; **#227** est résolu par cette mise à jour et peut être fermé.
+5. **#232** — exports paresseux via PEP 562 ; ampleur moyenne à cause de la migration des tests/imports.
+6. **#234** — petit fix ; à planifier au plus tard avant la première vraie migration du schéma.
+7. **#226** — fixes docs maintenant ; la note sur les artefacts de release dépend de la décision de tag de l'owner.
+8. **#235** — décider d'abord la sémantique (docs seules vs. budget partagé), puis implémenter.
+9. **#231** — à court terme l'option C (attentes bornées + logging), évaluer à long terme l'option B (sous-processus).
+10. **#203/#204** restent des points de veille ; **#161** reste bloqué (décision de l'owner).
 
 ## Séries Précédentes
 
