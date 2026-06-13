@@ -13,6 +13,8 @@ from PyQt6.QtCore import QObject, QSettings
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMenu
 
+from bgremover.constants import logger
+
 RECENT_MAX = 10
 SETTINGS_RECENT_KEY = "recent_files"
 
@@ -39,15 +41,49 @@ class RecentFiles:
         return self._key
 
     def paths(self) -> list[str]:
+        """Liefert die bereinigte Liste gültiger Pfade.
+
+        Defensiv gegen beschädigte, alte oder fremde QSettings-Werte
+        (Befund #233) – das Settings-Schema verfolgt ausdrücklich das Ziel,
+        unerwartete gespeicherte Werte nicht zum Absturz führen zu lassen:
+
+        - Ein einzelner String wird als Ein-Element-Liste behandelt. QSettings
+          serialisiert eine Liste mit genau einem Eintrag als rohen String
+          zurück; sonst zerlegte ``list(raw)`` den Pfad zeichenweise.
+        - Listen/Tupel werden elementweise gefiltert – nur nicht-leere Strings
+          bleiben übrig, Nicht-String- und Leer-Einträge werden ignoriert.
+        - Jeder andere Typ (z. B. Ganzzahl, ``None``) ergibt eine leere Liste
+          statt eines ``TypeError`` aus ``list(raw)``, der sonst den
+          Menü-/Anwendungsaufbau abbrechen könnte.
+        """
         raw = self._settings.value(self._key, [])
-        # QSettings serialisiert eine Liste mit genau einem Eintrag als
-        # rohen String zurück (statt als ``[str]``). Den Sonderfall hier
-        # zurueck in eine Liste heben, sonst zerlegt ``list(raw)`` den
-        # Pfad zeichenweise – Auswirkung wäre eine kaputte Recent-Liste
-        # nach dem ersten Öffnen.
         if isinstance(raw, str):
-            return [raw]
-        return list(raw) if raw else []
+            candidates: list[object] = [raw]
+        elif isinstance(raw, (list, tuple)):
+            candidates = list(raw)
+        else:
+            candidates = []
+        return [value for value in candidates if isinstance(value, str) and value]
+
+    def sanitize(self) -> list[str]:
+        """Bereinigt den persistierten Wert und schreibt ihn bei Bedarf zurück.
+
+        Optionaler Aufruf (z. B. beim Start): hebt einen beschädigten oder
+        veralteten gespeicherten Wert dauerhaft auf eine gültige Liste, sodass
+        nachfolgende Lesezugriffe mit sauberem Zustand starten. Geschrieben
+        (und einmalig als Warnung geloggt) wird nur, wenn der Rohwert wirklich
+        bereinigt werden musste – der harmlose QSettings-Ein-Element-String und
+        eine bereits saubere Liste lösen weder Schreibzugriff noch Warnung aus.
+        """
+        cleaned = self.paths()
+        raw = self._settings.value(self._key, [])
+        if not (raw == cleaned or (isinstance(raw, str) and cleaned == [raw])):
+            logger.warning(
+                "QSettings: ungültige %r-Einträge bereinigt (%r -> %r).",
+                self._key, raw, cleaned,
+            )
+            self._settings.setValue(self._key, cleaned)
+        return cleaned
 
     def add(self, path: str) -> list[str]:
         canonical = str(Path(path).resolve())
