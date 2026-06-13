@@ -58,6 +58,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   distingue la taille de fichier (Mo) de la limite de mégapixels (MP). Les
   chemins de chargement synchrone et asynchrone partagent le même contrôle ; la
   limite de mégapixels existante et la protection TOCTOU sont préservées (#230).
+- **La session d'inférence rembg est réutilisée.** Le warmup crée désormais
+  exactement une session rembg/ONNX via `new_session()` et la stocke au niveau
+  du module ; chaque `AIWorker` ultérieur la passe à `remove(..., session=...)`
+  au lieu de réinitialiser le modèle. La création est thread-safe via un
+  double-checked locking et s'exécute au plus une fois sur plusieurs appels IA ;
+  un init échoué signale toujours l'erreur du worker et ne laisse aucun état
+  faussement « prêt ». Le commentaire trompeur (un `remove()` factice mettrait
+  la session en cache) est corrigé au passage (#229).
 
 ### Supprimé
 
