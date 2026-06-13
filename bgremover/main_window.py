@@ -51,6 +51,7 @@ from bgremover.right_panel import (
     build_right_panel,
 )
 from bgremover.settings_dialog import SettingsDialog
+from bgremover.settings_schema import is_future_schema
 from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.status_messages import StatusMessages as SM
 from bgremover.theme import (
@@ -96,8 +97,12 @@ class MainWindow(QMainWindow):
             self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
         # Beschädigte/alte recent_files-Werte einmalig beim Start bereinigen,
         # damit ein unerwarteter gespeicherter Typ den Menü-/App-Aufbau nicht
-        # abbrechen kann (Befund #233).
-        self._recent_files.sanitize()
+        # abbrechen kann (Befund #233). Bei einem ZUKUENFTIGEN Schema NICHT
+        # umschreiben: ein neueres recent_files-Layout (z. B. ein Mapping) wuerde
+        # sonst faelschlich als beschaedigt mit [] ueberschrieben – Downgrade-
+        # Datenverlust, den migrate() bewusst vermeidet (Befund #240).
+        if not is_future_schema(self._settings):
+            self._recent_files.sanitize()
         # Submenü-Adapter wird in _build_menu gesetzt
         self._recent_menu: RecentFilesMenu | None = None
         self._worker_controller = WorkerController(

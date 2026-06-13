@@ -172,3 +172,19 @@ def test_main_window_runs_migration_on_construction(qapp, isolated_settings):
     w = MainWindow()
     w._settings.sync()
     assert int(_settings().value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
+
+
+def test_is_future_schema_detects_newer_version(isolated_settings):
+    """``is_future_schema`` erkennt eine gespeicherte Version, die neuer ist als
+    die vom Code unterstuetzte – Grundlage dafuer, Zukunfts-Settings (z. B.
+    ``recent_files``) nicht zu ueberschreiben (#240)."""
+    from bgremover.settings_schema import is_future_schema
+
+    settings = _settings()
+    assert is_future_schema(settings) is False        # nicht gesetzt -> keine Zukunft
+    settings.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
+    assert is_future_schema(settings) is False        # aktuelle Version
+    settings.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION + 1)
+    assert is_future_schema(settings) is True         # Zukunft
+    settings.setValue(SCHEMA_VERSION_KEY, "kaputt")
+    assert is_future_schema(settings) is False        # unleserlich -> wie nicht gesetzt
