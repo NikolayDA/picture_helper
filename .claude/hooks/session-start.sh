@@ -28,7 +28,7 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
 fi
 
 # Qt-Systembibliotheken – dieselbe Qt-Lib-Liste wie in den CI-Workflows
-# (.github/workflows/ci.yml, pr-ci.yml, ui-nightly.yml), dort auf
+# (.github/workflows/ci.yml, pr-ci.yml, ui-nightly.yml, benchmark.yml), dort auf
 # ubuntu-latest erprobt. Ein Drift-Test (tests/test_ci_qt_packages.py)
 # haelt diese Listen konsistent – fehlt z. B. libgl1 irgendwo, schlaegt
 # beim Import von PyQt6 sonst nur „libGL.so.1: cannot open shared object".
