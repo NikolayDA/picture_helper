@@ -17,6 +17,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   and optionally reported as GitHub issues (`make bench` / `make bench-compare`).
   A weekly CI workflow (`.github/workflows/benchmark.yml`) runs and compares on
   consistent hardware and commits the result back as the next baseline.
+- **Behavioral tests hardened.** Behavioral test coverage for previously patchy
+  paths was expanded (#177, #192).
+- **Dedicated unit tests for `app.py` and `main_window.py`.** Coverage of
+  `app.py` 0% → 100% and `main_window.py` 68% → 100%; overall coverage rose to
+  94% (#214).
 
 ### Changed
 
@@ -41,6 +46,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `--include-raw-logs` flag provides the full diagnostics (including the raw
   log); a shell test (`tests/test_diagnose_mac.py`) ensures the home directory
   and image paths never reach the default output (#185).
+- **AppImage release dependencies pinned.** A `requirements/constraints.txt`
+  snapshot fixes the versions for the AppImage build workflow (#182, #191).
+- **License workflow permissions hardened.** The workflow now runs with minimal
+  permissions (#183, #193).
+- **`CanvasHistory._redo_max` removed.** The write-only attribute was never read;
+  the redo limit is enforced solely via `deque(maxlen=…)` (#199, #215).
 
 ### Fixed
 
@@ -67,6 +78,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   at startup in cleaned form (with a log warning); the harmless QSettings
   single-element string is left untouched. A hand-edited or outdated
   `recent_files` value therefore no longer aborts the menu or app build (#233).
+- **Double-checked lock for the rembg lazy import and TOCTOU protection in
+  `open_validated_image`.** Two threads could enter the import simultaneously
+  (race), and the file was opened twice (TOCTOU window); both are covered by
+  regression tests (#174).
+- **Stale asynchronous image-load results are discarded.** A monotonic
+  `_load_generation` counter in `MainWindow` prevents a late load callback from
+  overwriting a newer image (analogous to the AI stale check) (#190).
+- **Canvas selection mask typing fixed.** An incorrect type caused a mypy error
+  in the full CI run (#196, #197).
+- **CI workflow YAML repaired.** The unquoted name of the pip upgrade step broke
+  workflow parsing (#213).
 
 ### Removed
 

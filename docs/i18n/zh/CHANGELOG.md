@@ -17,6 +17,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   并可选地作为 GitHub issue 上报（`make bench` / `make bench-compare`）。
   每周一次的 CI 工作流（`.github/workflows/benchmark.yml`）在固定硬件上运行并比较，
   并将结果提交回仓库作为下一次的基线。
+- **强化行为测试。** 扩展了此前覆盖不全路径的行为测试覆盖率（#177、#192）。
+- **为 `app.py` 和 `main_window.py` 新增专门的单元测试。** `app.py` 覆盖率
+  0% → 100%，`main_window.py` 68% → 100%；整体覆盖率提升至 94%（#214）。
 
 ### 变更
 
@@ -39,6 +42,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `--include-raw-logs` 选项提供完整诊断（含原始日志）；新增的 shell 测试
   （`tests/test_diagnose_mac.py`）确保主目录和图片路径不会出现在默认输出
   中（#185）。
+- **固定 AppImage 发布依赖。** 一份 `requirements/constraints.txt` 快照为
+  AppImage 构建工作流固定了版本（#182、#191）。
+- **强化 license 工作流权限。** 该工作流现在以最小权限运行（#183、#193）。
+- **移除 `CanvasHistory._redo_max`。** 该只写属性从未被读取；redo 上限仅通过
+  `deque(maxlen=…)` 实施（#199、#215）。
 
 ### 修复
 
@@ -60,6 +68,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `sanitize()` 在启动时将真正损坏的值清理后回写一次（并记录一条警告）；QSettings
   无害的单元素字符串保持不变。因此手动编辑或过时的 `recent_files` 值不再中断菜单
   或应用构建（#233）。
+- **rembg 惰性导入的双重检查锁，以及 `open_validated_image` 中的 TOCTOU 防护。**
+  两个线程可能同时进入导入（竞态），且文件被打开两次（TOCTOU 窗口）；两者均有
+  回归测试覆盖（#174）。
+- **丢弃过时的异步图像加载结果。** `MainWindow` 中的单调 `_load_generation`
+  计数器可防止迟到的加载回调覆盖更新的图像（类似 AI 过时检查）（#190）。
+- **修正 canvas 选区掩码类型标注。** 错误的类型在完整 CI 运行中导致 mypy
+  错误（#196、#197）。
+- **修复 CI 工作流 YAML。** pip 升级步骤的名称未加引号，导致工作流解析失败
+  （#213）。
 
 ### 移除
 
