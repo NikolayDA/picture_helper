@@ -19,6 +19,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   opcionalmente como incidencias de GitHub (`make bench` / `make bench-compare`).
   Un flujo de CI semanal (`.github/workflows/benchmark.yml`) ejecuta y compara en
   hardware constante y vuelve a registrar el resultado como próxima referencia.
+- **Tests de comportamiento reforzados.** Se amplió la cobertura de tests de
+  comportamiento para rutas hasta ahora incompletas (#177, #192).
+- **Tests unitarios dedicados para `app.py` y `main_window.py`.** Cobertura de
+  `app.py` 0 % → 100 % y `main_window.py` 68 % → 100 %; la cobertura total subió
+  al 94 % (#214).
 
 ### Cambiado
 
@@ -47,6 +52,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   una prueba de shell (`tests/test_diagnose_mac.py`) garantiza que el
   directorio home y las rutas de imágenes no lleguen a la salida
   predeterminada (#185).
+- **Dependencias del release AppImage fijadas.** Un snapshot de
+  `requirements/constraints.txt` fija las versiones para el workflow de
+  compilación AppImage (#182, #191).
+- **Permisos del workflow de licencias reforzados.** El workflow se ejecuta
+  ahora con permisos mínimos (#183, #193).
+- **`CanvasHistory._redo_max` eliminado.** El atributo de solo escritura nunca
+  se leía; el límite de rehacer se aplica únicamente vía `deque(maxlen=…)`
+  (#199, #215).
 
 ### Corregido
 
@@ -76,6 +89,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   ya limpio (con aviso de log); el inofensivo string de un elemento de QSettings
   se deja intacto. Así, un valor `recent_files` editado a mano o desactualizado
   ya no aborta el menú ni el arranque de la app (#233).
+- **Double-checked lock para el import perezoso de rembg y protección TOCTOU en
+  `open_validated_image`.** Dos hilos podían entrar al import a la vez (race) y
+  el archivo se abría dos veces (ventana TOCTOU); ambos están cubiertos por
+  tests de regresión (#174).
+- **Los resultados obsoletos de carga asíncrona de imágenes se descartan.** Un
+  contador monótono `_load_generation` en `MainWindow` evita que un callback de
+  carga tardío sobrescriba una imagen más nueva (análogo al stale-check de IA)
+  (#190).
+- **Tipado de la máscara de selección del canvas corregido.** Un tipo incorrecto
+  provocaba un error de mypy en la ejecución de CI completa (#196, #197).
+- **YAML del workflow de CI reparado.** El nombre sin comillas del paso de
+  actualización de pip rompía el parseo del workflow (#213).
 
 ### Eliminado
 
