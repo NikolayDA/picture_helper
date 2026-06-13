@@ -66,6 +66,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   un init échoué signale toujours l'erreur du worker et ne laisse aucun état
   faussement « prêt ». Le commentaire trompeur (un `remove()` factice mettrait
   la session en cache) est corrigé au passage (#229).
+- **`recent_files` est robuste face à des réglages corrompus.**
+  `RecentFiles.paths()` traite désormais chaque type brut stocké de façon
+  défensive : une simple chaîne reste une entrée, les listes/tuples sont filtrés
+  élément par élément vers des chaînes non vides, et toute autre valeur (p. ex.
+  entier, `None`) donne une liste vide au lieu d'un `TypeError`. Le nouveau
+  `sanitize()` réécrit une fois au démarrage une valeur réellement corrompue
+  sous forme nettoyée (avec avertissement de log) ; l'inoffensive chaîne
+  mono-élément de QSettings reste intacte. Une valeur `recent_files` éditée à la
+  main ou obsolète n'interrompt donc plus le menu ni le démarrage de l'app (#233).
 
 ### Supprimé
 
