@@ -58,6 +58,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Megapixel-Grenze (MP). Synchroner und asynchroner Ladepfad nutzen dieselbe
   Prüfung; das bestehende Megapixel-Limit und der TOCTOU-Schutz bleiben
   erhalten (#230).
+- **rembg-Inferenz-Session wird wiederverwendet.** Der Warmup erzeugt jetzt
+  über `new_session()` genau eine rembg-/ONNX-Session und legt sie modulweit
+  ab; jeder spätere `AIWorker` übergibt sie an `remove(..., session=...)`, statt
+  das Modell erneut zu initialisieren. Die Erzeugung ist per
+  Double-Checked-Locking threadsicher und läuft über mehrere KI-Aufrufe hinweg
+  höchstens einmal; ein fehlgeschlagener Init meldet weiterhin den Worker-Fehler
+  und hinterlässt keinen fälschlich „bereiten" Zustand. Der irreführende
+  Kommentar (ein Dummy-`remove()` cache die Session) ist mit korrigiert (#229).
 
 ### Entfernt
 

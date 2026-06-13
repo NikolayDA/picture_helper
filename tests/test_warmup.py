@@ -32,7 +32,7 @@ def test_start_warmup_propagates_error_to_callback(qapp, monkeypatch):
     einen fehlgeschlagenen Warmup von einem erfolgreichen unterscheiden."""
     import bgremover.workers as _wm
 
-    def _raise(_b):
+    def _raise(_b, session=None):
         raise RuntimeError("mock warmup failure")
 
     monkeypatch.setattr(_wm, "rembg_remove", _raise, raising=False)

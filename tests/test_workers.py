@@ -465,7 +465,7 @@ def test_warmup_worker_emits_finished_on_success(qapp, _mock_rembg) -> None:
 
     calls: list[bytes] = []
 
-    def fake_remove(payload: bytes) -> bytes:
+    def fake_remove(payload: bytes, session: object = None) -> bytes:
         calls.append(payload)
         return b""
 
@@ -491,6 +491,133 @@ def test_warmup_worker_emits_finished_on_error(qapp, _mock_rembg) -> None:
         worker.run()
 
     assert finished == [True]
+
+
+# ─────────────────────────────────────────────────────────────
+# #229 – rembg-Session: einmalig erzeugen und wiederverwenden
+# ─────────────────────────────────────────────────────────────
+
+def test_rembg_session_created_once_and_reused_across_workers(qapp, _mock_rembg) -> None:
+    """Der Warmup erzeugt genau EINE Session, ``new_session()`` läuft über
+    mehrere aufeinanderfolgende KI-Aufrufe höchstens einmal, und jeder
+    ``remove()``-Aufruf (Warmup + AIWorker) bekommt dieselbe Session-Instanz
+    übergeben – Kern von Issue #229 (teure Inferenz-Session wiederverwenden)."""
+    from bgremover.workers import RembgWarmupWorker
+
+    sentinel_session = object()
+    new_session_calls: list = []
+
+    def fake_new_session(*args, **kwargs):
+        new_session_calls.append((args, kwargs))
+        return sentinel_session
+
+    result_buf = io.BytesIO()
+    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
+    result_png = result_buf.getvalue()
+
+    seen_sessions: list = []
+
+    def fake_remove(_payload, session=None):
+        seen_sessions.append(session)
+        return result_png
+
+    with patch("bgremover.workers.rembg_new_session", side_effect=fake_new_session), \
+         patch("bgremover.workers.rembg_remove", side_effect=fake_remove):
+        RembgWarmupWorker().run()
+        AIWorker(Image.new("RGBA", (4, 4), (10, 20, 30, 255))).run()
+        AIWorker(Image.new("RGBA", (4, 4), (40, 50, 60, 255))).run()
+
+    # new_session() genau einmal: die Session wird wiederverwendet, nicht je
+    # KI-Aufruf neu initialisiert.
+    assert len(new_session_calls) == 1
+    # Warmup + zwei KI-Läufe rufen remove() – jeder mit DERSELBEN Session.
+    assert len(seen_sessions) == 3
+    assert all(s is sentinel_session for s in seen_sessions)
+
+
+def test_ensure_rembg_session_reports_init_error(qapp, _mock_rembg, monkeypatch) -> None:
+    """Schlägt ``new_session()`` fehl, propagiert der Fehler über das
+    Worker-``error``-Signal und ``_rembg_session`` bleibt ``None`` – es bleibt
+    kein fälschlich „bereiter" Zustand zurück (Akzeptanzkriterium #229)."""
+    import bgremover.workers as _m
+    from bgremover.workers import RembgWarmupWorker
+
+    def boom(*_a, **_k):
+        raise RuntimeError("session init failed")
+
+    worker = RembgWarmupWorker()
+    errors: list[str] = []
+    finished: list = []
+    worker.error.connect(errors.append)
+    worker.finished.connect(lambda: finished.append(True))
+
+    with patch("bgremover.workers.rembg_remove", side_effect=lambda *a, **k: b""), \
+         patch("bgremover.workers.rembg_new_session", side_effect=boom):
+        worker.run()
+
+    assert finished == [True]                 # Lifecycle-Abschluss feuert immer
+    assert len(errors) == 1
+    assert "session init failed" in errors[0]
+    assert _m._rembg_session is None          # kein false-ready-Zustand
+
+
+def test_ensure_rembg_session_creates_once_under_concurrency() -> None:
+    """Double-Checked Locking für die Session: Sehen mehrere Threads gleichzeitig
+    ``_rembg_session is None``, darf trotzdem nur EIN Thread ``new_session()``
+    ausführen – sonst würde das teure ONNX-Modell mehrfach geladen
+    (Akzeptanzkriterium #229: threadsichere Session-Initialisierung)."""
+    import time
+    import types
+
+    import bgremover.workers as _m
+
+    saved_new_session = _m.rembg_new_session
+    saved_session = _m._rembg_session
+    _m.rembg_new_session = None
+    _m._rembg_session = None
+
+    creating_threads: set[int] = set()
+    sessions: list = []
+    fake = types.ModuleType("rembg")
+
+    def _module_getattr(name: str):
+        # ``from rembg import new_session`` loest dies aus. Die zurueckgegebene
+        # Funktion haelt das Race-Fenster offen (sleep) und vermerkt, welcher
+        # Thread tatsaechlich eine Session erzeugt.
+        if name == "new_session":
+            def _new_session(*_a, **_k):
+                creating_threads.add(threading.get_ident())
+                time.sleep(0.05)
+                session = object()
+                sessions.append(session)
+                return session
+            return _new_session
+        raise AttributeError(name)
+
+    fake.__getattr__ = _module_getattr
+
+    results: list = []
+    start = threading.Barrier(8)
+
+    def call() -> None:
+        start.wait(timeout=5)
+        results.append(_m._ensure_rembg_session())
+
+    threads = [threading.Thread(target=call) for _ in range(8)]
+    try:
+        with patch.dict(sys.modules, {"rembg": fake}):
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=5)
+
+        assert len(creating_threads) == 1, creating_threads
+        assert len(sessions) == 1                       # new_session genau einmal
+        assert len(results) == 8
+        assert all(r is results[0] for r in results)    # alle teilen die Session
+    finally:
+        _m.rembg_new_session = saved_new_session
+        _m._rembg_session = saved_session
 
 
 # ─────────────────────────────────────────────────────────────

@@ -59,6 +59,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   archivo (MB) del límite de megapíxeles (MP). Las rutas de carga síncrona y
   asíncrona comparten la misma comprobación; se conservan el límite de
   megapíxeles existente y la protección TOCTOU (#230).
+- **La sesión de inferencia de rembg se reutiliza.** El warmup ahora crea
+  exactamente una sesión rembg/ONNX mediante `new_session()` y la guarda a nivel
+  de módulo; cada `AIWorker` posterior la pasa a `remove(..., session=...)` en
+  lugar de reinicializar el modelo. La creación es thread-safe mediante
+  double-checked locking y se ejecuta como mucho una vez a lo largo de varias
+  llamadas de IA; un init fallido sigue informando el error del worker y no deja
+  un estado falsamente «listo». El comentario engañoso (que un `remove()` dummy
+  cachea la sesión) queda corregido (#229).
 
 ### Eliminado
 

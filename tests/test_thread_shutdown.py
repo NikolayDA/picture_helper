@@ -138,7 +138,7 @@ def test_cancelled_ai_shutdown_skips_result_decode(qapp):
     rembg_started = threading.Event()
     rembg_can_return = threading.Event()
 
-    def _fake_rembg(_data):
+    def _fake_rembg(_data, session=None):
         rembg_started.set()
         assert rembg_can_return.wait(2.0)
         return b"result png"

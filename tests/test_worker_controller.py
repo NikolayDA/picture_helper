@@ -148,12 +148,13 @@ def test_ai_releases_worker_on_completion(qapp, controller, monkeypatch):
     import bgremover.workers as _wm
     # rembg muss patchbar sein, falls onnxruntime nicht installiert ist.
     if not hasattr(_wm, "rembg_remove"):
-        monkeypatch.setattr(_wm, "rembg_remove", lambda _b: b"", raising=False)
+        monkeypatch.setattr(_wm, "rembg_remove", lambda _b, session=None: b"", raising=False)
 
     import io as _io
     result_buf = _io.BytesIO()
     Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
-    monkeypatch.setattr(_wm, "rembg_remove", lambda _b: result_buf.getvalue())
+    monkeypatch.setattr(
+        _wm, "rembg_remove", lambda _b, session=None: result_buf.getvalue())
 
     started = controller.start_ai(
         Image.new("RGBA", (4, 4), (10, 20, 30, 255)),
@@ -200,7 +201,7 @@ def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatc
     result_buf = _io.BytesIO()
     Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
 
-    def slow_rembg(_b):
+    def slow_rembg(_b, session=None):
         # Blockiert, bis der Test abgebrochen und das Tor geoeffnet hat – so
         # ist der Worker beim cancel_ai() garantiert noch aktiv.
         gate.wait(timeout=5.0)
@@ -254,7 +255,7 @@ def test_ai_and_flood_fill_use_independent_slots(
     result_buf = io.BytesIO()
     Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
 
-    def slow_rembg(_data):
+    def slow_rembg(_data, session=None):
         ai_started.set()
         release.wait(timeout=5.0)
         return result_buf.getvalue()
@@ -325,7 +326,7 @@ def test_ai_and_flood_fill_use_independent_slots(
 
 def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
     import bgremover.workers as _wm
-    monkeypatch.setattr(_wm, "rembg_remove", lambda _b: b"", raising=False)
+    monkeypatch.setattr(_wm, "rembg_remove", lambda _b, session=None: b"", raising=False)
 
     done: list[bool] = []
     started = controller.start_warmup(on_finished=lambda: done.append(True))
@@ -354,7 +355,7 @@ def test_warmup_releases_worker_when_rembg_raises(qapp, controller, monkeypatch)
     kann (z. B. offline)."""
     import bgremover.workers as _wm
 
-    def _raise(_b):
+    def _raise(_b, session=None):
         raise RuntimeError("mock warmup failure")
 
     monkeypatch.setattr(_wm, "rembg_remove", _raise, raising=False)
