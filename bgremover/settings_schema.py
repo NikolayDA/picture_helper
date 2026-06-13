@@ -92,3 +92,17 @@ def migrate(settings: QSettings) -> None:
         current += 1
 
     settings.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
+
+
+def is_future_schema(settings: QSettings) -> bool:
+    """True, wenn die gespeicherte ``schema_version`` neuer ist als die vom Code
+    unterstuetzte.
+
+    In diesem Fall duerfen Settings NICHT umgeschrieben werden – analog zu
+    ``migrate``, das Zukunfts-Versionen bewusst unangetastet laesst. Ein
+    aelteres Binary wuerde sonst Daten eines neueren Schemas (z. B. ein
+    veraendertes ``recent_files``-Layout) ueberschreiben und so beim Downgrade
+    still Daten verlieren. Ein nicht gesetzter oder unleserlicher Wert gilt
+    NICHT als Zukunft (``_read_version`` liefert dort ``None``)."""
+    current = _read_version(settings)
+    return current is not None and current > SCHEMA_VERSION

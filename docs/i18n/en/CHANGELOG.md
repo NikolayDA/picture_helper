@@ -77,7 +77,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `TypeError`. The new `sanitize()` writes a genuinely corrupt value back once
   at startup in cleaned form (with a log warning); the harmless QSettings
   single-element string is left untouched. A hand-edited or outdated
-  `recent_files` value therefore no longer aborts the menu or app build (#233).
+  `recent_files` value therefore no longer aborts the menu or app build; a newer (future) schema is also left
+  untouched to avoid downgrade data loss (#233, #240).
 - **Double-checked lock for the rembg lazy import and TOCTOU protection in
   `open_validated_image`.** Two threads could enter the import simultaneously
   (race), and the file was opened twice (TOCTOU window); both are covered by
