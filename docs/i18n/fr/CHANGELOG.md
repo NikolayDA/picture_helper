@@ -87,7 +87,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `sanitize()` réécrit une fois au démarrage une valeur réellement corrompue
   sous forme nettoyée (avec avertissement de log) ; l'inoffensive chaîne
   mono-élément de QSettings reste intacte. Une valeur `recent_files` éditée à la
-  main ou obsolète n'interrompt donc plus le menu ni le démarrage de l'app (#233).
+  main ou obsolète n'interrompt donc plus le menu ni le démarrage de l'app ; un
+  schéma plus récent (futur) est lui aussi laissé intact pour éviter une perte de
+  données lors d'un downgrade (#233, #240).
 - **Double-checked lock pour l'import paresseux de rembg et protection TOCTOU
   dans `open_validated_image`.** Deux threads pouvaient entrer dans l'import en
   même temps (race) et le fichier était ouvert deux fois (fenêtre TOCTOU) ; les

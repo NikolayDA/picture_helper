@@ -276,3 +276,30 @@ def test_load_clears_save_path(qapp, isolated_settings, tmp_path):
     Image.new("RGB", (8, 8), (1, 2, 3)).save(img_path)
     w._canvas.load_image(str(img_path))
     assert w._save_path is None
+
+
+def test_mainwindow_skips_sanitize_on_future_schema(qapp, isolated_settings, monkeypatch):
+    """Bei einem ZUKUENFTIGEN Schema darf der Start recent_files NICHT
+    umschreiben – sonst ueberschriebe ein aelteres Binary das (evtl. neue)
+    Layout eines neueren Schemas mit [] (Downgrade-Datenverlust). Bei
+    kompatiblem Schema laeuft sanitize() wie gewohnt (#240)."""
+    from bgremover import MainWindow
+    from bgremover.settings_schema import SCHEMA_VERSION, SCHEMA_VERSION_KEY
+
+    calls: list[int] = []
+    monkeypatch.setattr(
+        RecentFiles, "sanitize", lambda self: calls.append(1) or [])
+
+    # Zukuenftiges Schema -> sanitize() wird uebersprungen.
+    future = _settings()
+    future.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION + 1)
+    future.sync()
+    MainWindow().close()
+    assert calls == []
+
+    # Kompatibles Schema -> sanitize() laeuft.
+    compatible = _settings()
+    compatible.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
+    compatible.sync()
+    MainWindow().close()
+    assert calls == [1]

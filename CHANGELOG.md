@@ -87,7 +87,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   einen tatsächlich beschädigten Wert beim Start einmalig bereinigt zurück (mit
   Logwarnung); der harmlose QSettings-Ein-Element-String bleibt unangetastet. So
   bricht ein manuell bearbeiteter oder veralteter `recent_files`-Wert weder den
-  Menü- noch den Anwendungsaufbau ab (#233).
+  Menü- noch den Anwendungsaufbau ab; ein neueres (zukünftiges) Schema bleibt
+  dabei unangetastet, um Downgrade-Datenverlust zu vermeiden (#233, #240).
 - **Double-Checked Lock für den rembg-Lazy-Import und TOCTOU-Schutz in
   `open_validated_image`.** Zwei Threads konnten gleichzeitig den Import betreten
   (Race), und die Datei wurde doppelt geöffnet (TOCTOU-Fenster); beides ist mit

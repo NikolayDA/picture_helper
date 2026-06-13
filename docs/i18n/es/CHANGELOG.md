@@ -88,7 +88,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   El nuevo `sanitize()` reescribe una vez al inicio un valor realmente corrupto
   ya limpio (con aviso de log); el inofensivo string de un elemento de QSettings
   se deja intacto. Así, un valor `recent_files` editado a mano o desactualizado
-  ya no aborta el menú ni el arranque de la app (#233).
+  ya no aborta el menú ni el arranque de la app; un esquema más nuevo (futuro)
+  también se deja intacto para evitar pérdida de datos en un downgrade (#233, #240).
 - **Double-checked lock para el import perezoso de rembg y protección TOCTOU en
   `open_validated_image`.** Dos hilos podían entrar al import a la vez (race) y
   el archivo se abría dos veces (ventana TOCTOU); ambos están cubiertos por
