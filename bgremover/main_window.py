@@ -94,6 +94,10 @@ class MainWindow(QMainWindow):
             self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
             self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
+        # Beschädigte/alte recent_files-Werte einmalig beim Start bereinigen,
+        # damit ein unerwarteter gespeicherter Typ den Menü-/App-Aufbau nicht
+        # abbrechen kann (Befund #233).
+        self._recent_files.sanitize()
         # Submenü-Adapter wird in _build_menu gesetzt
         self._recent_menu: RecentFilesMenu | None = None
         self._worker_controller = WorkerController(

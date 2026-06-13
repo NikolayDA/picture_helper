@@ -67,6 +67,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   llamadas de IA; un init fallido sigue informando el error del worker y no deja
   un estado falsamente «listo». El comentario engañoso (que un `remove()` dummy
   cachea la sesión) queda corregido (#229).
+- **`recent_files` es robusto frente a ajustes corruptos.**
+  `RecentFiles.paths()` ahora maneja cada tipo bruto almacenado de forma
+  defensiva: un solo string sigue siendo una entrada, las listas/tuplas se
+  filtran elemento a elemento a strings no vacíos, y cualquier otro valor
+  (p. ej. entero, `None`) produce una lista vacía en lugar de un `TypeError`.
+  El nuevo `sanitize()` reescribe una vez al inicio un valor realmente corrupto
+  ya limpio (con aviso de log); el inofensivo string de un elemento de QSettings
+  se deja intacto. Así, un valor `recent_files` editado a mano o desactualizado
+  ya no aborta el menú ni el arranque de la app (#233).
 
 ### Eliminado
 

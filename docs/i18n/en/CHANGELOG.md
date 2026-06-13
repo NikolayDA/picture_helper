@@ -59,6 +59,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   once across multiple AI calls; a failed init still reports the worker error and
   leaves no falsely "ready" state behind. The misleading comment (claiming a
   dummy `remove()` caches the session) is corrected too (#229).
+- **`recent_files` is robust against corrupt settings.** `RecentFiles.paths()`
+  now handles every stored raw type defensively: a single string stays one
+  entry, lists/tuples are filtered element-wise to non-empty strings, and any
+  other value (e.g. integer, `None`) yields an empty list instead of a
+  `TypeError`. The new `sanitize()` writes a genuinely corrupt value back once
+  at startup in cleaned form (with a log warning); the harmless QSettings
+  single-element string is left untouched. A hand-edited or outdated
+  `recent_files` value therefore no longer aborts the menu or app build (#233).
 
 ### Removed
 
