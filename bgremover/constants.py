@@ -24,6 +24,12 @@ LOG_FILENAME = "bgremover.log"
 _MAX_MEGAPIXELS = 40
 # Decompression-Bomb-Schutz von Pillow am eigenen Limit ausrichten.
 _MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
+# Maximale Größe der *Eingabedatei* (Bytes), bevor ihr Inhalt überhaupt in den
+# Arbeitsspeicher gelesen wird. Schützt – unabhängig vom Megapixel-Limit, das
+# erst nach dem Dekodieren greift – vor extrem großen (auch falsch benannten
+# oder beschädigten) Dateien, die sonst einen ebenso großen bytes-Puffer
+# erzeugen würden (Befund #230).
+_MAX_INPUT_FILE_BYTES = 512 * 1024 * 1024  # 512 MB
 # Explizit unterstützte Eingabeformate für den asynchronen Ladepfad.
 _ALLOWED_IMAGE_FORMATS = frozenset({
     "PNG", "JPEG", "WEBP", "TIFF", "BMP", "GIF"

@@ -49,6 +49,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Limite de taille du fichier d'entrée avant la lecture.**
+  `open_validated_image` contrôle désormais le fichier d'entrée via `os.fstat()`
+  par rapport à une limite d'octets documentée (`_MAX_INPUT_FILE_BYTES`,
+  512 Mo) **avant** que son contenu ne soit entièrement lu en mémoire ; un
+  `read()` borné supplémentaire protège contre les objets fichier inhabituels et
+  un changement de taille entre `fstat()` et `read()` (TOCTOU). Le message
+  distingue la taille de fichier (Mo) de la limite de mégapixels (MP). Les
+  chemins de chargement synchrone et asynchrone partagent le même contrôle ; la
+  limite de mégapixels existante et la protection TOCTOU sont préservées (#230).
+
 ### Supprimé
 
 ## [2.3.0] – 2026-06-04

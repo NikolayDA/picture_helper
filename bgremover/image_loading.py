@@ -9,10 +9,15 @@ identisch.
 from __future__ import annotations
 
 import io
+import os
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from bgremover.constants import _ALLOWED_IMAGE_FORMATS, _MAX_MEGAPIXELS
+from bgremover.constants import (
+    _ALLOWED_IMAGE_FORMATS,
+    _MAX_INPUT_FILE_BYTES,
+    _MAX_MEGAPIXELS,
+)
 
 
 def _too_large_message(mp: float | None = None) -> str:
@@ -20,6 +25,19 @@ def _too_large_message(mp: float | None = None) -> str:
     if mp is None:
         return f"Bild zu groß – Maximum: {_MAX_MEGAPIXELS} MP"
     return f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP"
+
+
+def _file_too_large_message(size_bytes: int) -> str:
+    """Meldung für zu große *Eingabedateien*.
+
+    Bewusst getrennt von ``_too_large_message``: Hier geht es um die
+    Dateigröße in MB (vor dem Einlesen), nicht um die Megapixel-Zahl des
+    dekodierten Bildes. Die unterschiedlichen Einheiten (MB vs. MP) und
+    Worte (Datei vs. Bild) machen für Nutzer klar, welche Grenze griff.
+    """
+    size_mb = size_bytes / (1024 * 1024)
+    limit_mb = _MAX_INPUT_FILE_BYTES / (1024 * 1024)
+    return f"Datei zu groß ({size_mb:.0f} MB) – Maximum: {limit_mb:.0f} MB"
 
 
 def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
@@ -37,9 +55,23 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     # Fenster; der Megapixel-/Bomb-Schutz bleibt unten vor dem load() erhalten.
     try:
         with open(path, "rb") as fh:
-            data = fh.read()
+            # Größe per fstat() VOR dem Einlesen prüfen: eine mehrere Gigabyte
+            # große (auch falsch benannte/beschädigte) Datei darf keinen ebenso
+            # großen bytes-Puffer erzeugen. Das Megapixel-Limit greift erst nach
+            # dem Dekodieren und schützt davor gerade nicht (Befund #230).
+            size = os.fstat(fh.fileno()).st_size
+            if size > _MAX_INPUT_FILE_BYTES:
+                return None, _file_too_large_message(size)
+            # Begrenzt lesen statt fh.read(): fängt ungewöhnliche Fileobjekte
+            # (Pipes/Sockets ohne verlässliches st_size) und eine Größenänderung
+            # zwischen fstat() und read() ab. +1 Byte, um „über dem Limit"
+            # eindeutig erkennen zu können.
+            data = fh.read(_MAX_INPUT_FILE_BYTES + 1)
     except OSError as e:
         return None, f"{type(e).__name__}: {e}"
+
+    if len(data) > _MAX_INPUT_FILE_BYTES:
+        return None, _file_too_large_message(len(data))
 
     # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
     # dekodieren – manipulierte oder abgeschnittene Dateien werden so
