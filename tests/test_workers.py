@@ -120,6 +120,83 @@ def test_open_validated_image_reads_path_only_once(tmp_path) -> None:
     assert path_opens == [str(p)]  # ein Disk-Open statt getrenntem verify+decode
 
 
+def test_open_validated_image_enforces_input_file_size_limit(tmp_path, monkeypatch) -> None:
+    """Dateigrößen-Gate vor dem Einlesen: Grenzwert wird akzeptiert, knapp
+    darunter akzeptiert, knapp darüber abgelehnt. Variiert wird das Limit
+    relativ zur realen Dateigröße – äquivalent zu variabler Dateigröße bei
+    festem Limit, aber ohne riesige Dateien schreiben zu müssen."""
+    import bgremover.image_loading as il
+
+    p = tmp_path / "ok.png"
+    Image.new("RGB", (16, 16), (10, 20, 30)).save(p)
+    size = p.stat().st_size
+    assert size > 1  # Plausibilität
+
+    # Grenzwert: Datei == Limit → akzeptiert (Bedingung lehnt nur „> Limit" ab).
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", size)
+    img, err = open_validated_image(str(p))
+    assert err is None and img is not None
+
+    # Knapp darunter: Datei < Limit → akzeptiert.
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", size + 1)
+    img, err = open_validated_image(str(p))
+    assert err is None and img is not None
+
+    # Knapp darüber: Datei > Limit → abgelehnt; Meldung nennt MB, nicht MP.
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", size - 1)
+    img, err = open_validated_image(str(p))
+    assert img is None
+    assert err is not None
+    assert "Datei zu groß" in err and "MB" in err
+    assert "MP" not in err  # klar von der Megapixel-Meldung abgegrenzt
+
+
+def test_open_validated_image_rejects_oversized_file_without_unbounded_read() -> None:
+    """Akzeptanzkriterium: Bei übergroßen Dateien wird ``read()`` NICHT
+    unbeschränkt aufgerufen. Die fstat()-Größe liegt über dem Limit, daher
+    bricht die Funktion ab, bevor sie den (riesigen) Inhalt einliest."""
+    import bgremover.image_loading as il
+
+    class _FakeStat:
+        st_size = il._MAX_INPUT_FILE_BYTES + 1
+
+    with patch("bgremover.image_loading.os.fstat", return_value=_FakeStat()), \
+         patch("bgremover.image_loading.open") as mock_open:
+        mock_fh = mock_open.return_value.__enter__.return_value
+        mock_fh.fileno.return_value = 0
+        img, err = open_validated_image("/some/huge.png")
+
+    assert img is None
+    assert err is not None and "Datei zu groß" in err
+    mock_fh.read.assert_not_called()  # kein Lesezugriff auf die Riesendatei
+
+
+def test_open_validated_image_bounded_read_catches_size_growth(monkeypatch) -> None:
+    """Sicherheitsnetz gegen TOCTOU / ungewöhnliche Fileobjekte: meldet fstat()
+    eine kleine Größe, liefert read() aber mehr als das Limit, greift die
+    len()-Prüfung nach dem *begrenzten* read(). read() wird mit Obergrenze
+    (Limit + 1) statt unbeschränkt aufgerufen."""
+    import bgremover.image_loading as il
+
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", 100)
+
+    class _FakeStat:
+        st_size = 0  # täuscht eine winzige Datei vor
+
+    oversized = b"x" * (il._MAX_INPUT_FILE_BYTES + 1)  # 101 Bytes > Limit
+
+    with patch("bgremover.image_loading.os.fstat", return_value=_FakeStat()), \
+         patch("bgremover.image_loading.open") as mock_open:
+        mock_fh = mock_open.return_value.__enter__.return_value
+        mock_fh.fileno.return_value = 0
+        mock_fh.read.return_value = oversized
+        img, err = open_validated_image("/some/file.png")
+
+    assert img is None
+    assert err is not None and "Datei zu groß" in err
+    assert mock_fh.read.call_args.args == (il._MAX_INPUT_FILE_BYTES + 1,)
+
+
 def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
     p = tmp_path / "icon.xyz"
     p.write_bytes(b"fake image")

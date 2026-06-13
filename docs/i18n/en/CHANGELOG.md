@@ -44,6 +44,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Input file-size limit before reading.** `open_validated_image` now checks
+  the input file via `os.fstat()` against a documented byte limit
+  (`_MAX_INPUT_FILE_BYTES`, 512 MB) **before** its contents are fully read into
+  memory; an additional bounded `read()` guards against unusual file objects and
+  a size change between `fstat()` and `read()` (TOCTOU). The message
+  distinguishes file size (MB) from the megapixel limit (MP). The synchronous
+  and asynchronous load paths share the same check; the existing megapixel limit
+  and TOCTOU protection are preserved (#230).
+
 ### Removed
 
 ## [2.3.0] – 2026-06-04
