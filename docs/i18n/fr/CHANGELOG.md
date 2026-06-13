@@ -19,6 +19,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   tickets GitHub (`make bench` / `make bench-compare`). Un workflow CI
   hebdomadaire (`.github/workflows/benchmark.yml`) exécute et compare sur un
   matériel constant et réenregistre le résultat comme prochaine référence.
+- **Tests comportementaux renforcés.** La couverture des tests comportementaux
+  pour des chemins jusqu'ici lacunaires a été étendue (#177, #192).
+- **Tests unitaires dédiés pour `app.py` et `main_window.py`.** Couverture de
+  `app.py` 0 % → 100 % et `main_window.py` 68 % → 100 % ; la couverture globale
+  est passée à 94 % (#214).
 
 ### Modifié
 
@@ -46,6 +51,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `--include-raw-logs` fournit le diagnostic complet (log brut inclus) ; un
   test shell (`tests/test_diagnose_mac.py`) garantit que le répertoire home et
   les chemins d'images n'atteignent jamais la sortie par défaut (#185).
+- **Dépendances de release AppImage épinglées.** Un snapshot
+  `requirements/constraints.txt` fixe les versions pour le workflow de build
+  AppImage (#182, #191).
+- **Permissions du workflow de licences renforcées.** Le workflow s'exécute
+  désormais avec des permissions minimales (#183, #193).
+- **`CanvasHistory._redo_max` supprimé.** L'attribut en écriture seule n'était
+  jamais lu ; la limite de redo est appliquée uniquement via `deque(maxlen=…)`
+  (#199, #215).
 
 ### Corrigé
 
@@ -75,6 +88,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   sous forme nettoyée (avec avertissement de log) ; l'inoffensive chaîne
   mono-élément de QSettings reste intacte. Une valeur `recent_files` éditée à la
   main ou obsolète n'interrompt donc plus le menu ni le démarrage de l'app (#233).
+- **Double-checked lock pour l'import paresseux de rembg et protection TOCTOU
+  dans `open_validated_image`.** Deux threads pouvaient entrer dans l'import en
+  même temps (race) et le fichier était ouvert deux fois (fenêtre TOCTOU) ; les
+  deux sont couverts par des tests de régression (#174).
+- **Les résultats de chargement d'image asynchrones obsolètes sont rejetés.** Un
+  compteur monotone `_load_generation` dans `MainWindow` empêche un callback de
+  chargement tardif d'écraser une image plus récente (analogue au stale-check
+  IA) (#190).
+- **Typage du masque de sélection du canevas corrigé.** Un type incorrect
+  provoquait une erreur mypy dans l'exécution CI complète (#196, #197).
+- **YAML du workflow CI réparé.** Le nom non quoté de l'étape de mise à jour de
+  pip cassait l'analyse du workflow (#213).
 
 ### Supprimé
 

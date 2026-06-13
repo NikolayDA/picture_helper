@@ -19,6 +19,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `make bench-compare`). Ein wöchentlicher CI-Workflow
   (`.github/workflows/benchmark.yml`) führt Lauf und Vergleich auf konstanter
   Hardware aus und schreibt das Ergebnis als Baseline zurück.
+- **Verhaltensbasierte Tests gehärtet.** Die Behavioral-Test-Coverage für
+  bislang lückenhafte Pfade wurde ausgebaut (#177, #192).
+- **Dedizierte Unit-Tests für `app.py` und `main_window.py`.** Coverage von
+  `app.py` 0 % → 100 % und `main_window.py` 68 % → 100 %; die Gesamt-Coverage
+  stieg auf 94 % (#214).
 
 ### Geändert
 
@@ -46,6 +51,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Roh-Log) liefert das neue Flag `--include-raw-logs`; ein Shell-Test
   (`tests/test_diagnose_mac.py`) stellt sicher, dass Home-Verzeichnis und
   Bildpfade die Standard-Ausgabe nicht erreichen (#185).
+- **AppImage-Release-Dependencies eingepinnt.** Ein
+  `requirements/constraints.txt`-Snapshot fixiert die Versionen für den
+  AppImage-Build-Workflow (#182, #191).
+- **License-Workflow-Permissions gehärtet.** Der Workflow läuft jetzt mit
+  minimalen Rechten (#183, #193).
+- **`CanvasHistory._redo_max` entfernt.** Das write-only-Attribut wurde nirgends
+  gelesen; die Redo-Begrenzung erfolgt ausschließlich über `deque(maxlen=…)`
+  (#199, #215).
 
 ### Behoben
 
@@ -75,6 +88,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Logwarnung); der harmlose QSettings-Ein-Element-String bleibt unangetastet. So
   bricht ein manuell bearbeiteter oder veralteter `recent_files`-Wert weder den
   Menü- noch den Anwendungsaufbau ab (#233).
+- **Double-Checked Lock für den rembg-Lazy-Import und TOCTOU-Schutz in
+  `open_validated_image`.** Zwei Threads konnten gleichzeitig den Import betreten
+  (Race), und die Datei wurde doppelt geöffnet (TOCTOU-Fenster); beides ist mit
+  Regressionstests abgesichert (#174).
+- **Veraltete asynchrone Bildlade-Ergebnisse werden verworfen.** Ein monotoner
+  `_load_generation`-Zähler in `MainWindow` verhindert, dass ein verspäteter
+  Load-Callback ein neueres Bild überschreibt (analog zum AI-Stale-Check) (#190).
+- **Canvas-Selection-Mask-Typing korrigiert.** Ein falscher Typ löste einen
+  mypy-Fehler im Full-CI-Lauf aus (#196, #197).
+- **CI-Workflow-YAML repariert.** Der nicht gequotete Name des pip-Upgrade-Steps
+  brach das Parsen des Workflows (#213).
 
 ### Entfernt
 
