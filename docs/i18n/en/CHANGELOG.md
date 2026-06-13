@@ -52,6 +52,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   distinguishes file size (MB) from the megapixel limit (MP). The synchronous
   and asynchronous load paths share the same check; the existing megapixel limit
   and TOCTOU protection are preserved (#230).
+- **rembg inference session is reused.** The warmup now creates exactly one
+  rembg/ONNX session via `new_session()` and stores it module-wide; every later
+  `AIWorker` passes it to `remove(..., session=...)` instead of re-initializing
+  the model. Creation is thread-safe via double-checked locking and runs at most
+  once across multiple AI calls; a failed init still reports the worker error and
+  leaves no falsely "ready" state behind. The misleading comment (claiming a
+  dummy `remove()` caches the session) is corrected too (#229).
 
 ### Removed
 

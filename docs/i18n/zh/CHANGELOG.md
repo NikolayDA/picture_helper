@@ -48,6 +48,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   异常的文件对象，以及 `fstat()` 与 `read()` 之间的大小变化（TOCTOU）。提示信息
   会区分文件大小（MB）与百万像素上限（MP）。同步和异步加载路径共用同一检查；
   原有的百万像素上限与 TOCTOU 保护均保持不变（#230）。
+- **复用 rembg 推理 session。** warmup 现在通过 `new_session()` 恰好创建一个
+  rembg/ONNX session 并在模块级缓存；之后每次 `AIWorker` 都将其传给
+  `remove(..., session=...)`，而不是重新初始化模型。该创建通过 double-checked
+  locking 保证线程安全，并在多次 AI 调用中最多执行一次；初始化失败仍会通过
+  worker 错误信号上报，且不会留下被误判为「就绪」的状态。误导性的注释（声称
+  dummy `remove()` 会缓存 session）也一并修正（#229）。
 
 ### 移除
 
