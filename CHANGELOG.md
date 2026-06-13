@@ -66,6 +66,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   höchstens einmal; ein fehlgeschlagener Init meldet weiterhin den Worker-Fehler
   und hinterlässt keinen fälschlich „bereiten" Zustand. Der irreführende
   Kommentar (ein Dummy-`remove()` cache die Session) ist mit korrigiert (#229).
+- **`recent_files` ist robust gegen beschädigte Einstellungen.**
+  `RecentFiles.paths()` behandelt jetzt jeden gespeicherten Roh-Typ defensiv:
+  ein einzelner String bleibt ein Eintrag, Listen/Tupel werden elementweise auf
+  nicht-leere Strings gefiltert, und jeder andere Wert (z. B. Ganzzahl, `None`)
+  ergibt eine leere Liste statt eines `TypeError`. Das neue `sanitize()` schreibt
+  einen tatsächlich beschädigten Wert beim Start einmalig bereinigt zurück (mit
+  Logwarnung); der harmlose QSettings-Ein-Element-String bleibt unangetastet. So
+  bricht ein manuell bearbeiteter oder veralteter `recent_files`-Wert weder den
+  Menü- noch den Anwendungsaufbau ab (#233).
 
 ### Entfernt
 

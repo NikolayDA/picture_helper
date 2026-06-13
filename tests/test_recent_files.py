@@ -161,6 +161,101 @@ def test_recent_persists_after_image_load(qapp, isolated_settings, tmp_path):
     assert Path(paths[0]).resolve() == img_path.resolve()
 
 
+# ── #233: paths() ist defensiv gegen beschädigte QSettings-Werte ─────────
+
+class _FakeSettings:
+    """Minimaler QSettings-Ersatz, der Rohwerte unverändert zurückgibt.
+
+    QSettings im INI-Format serialisiert alles zu Strings (eine gespeicherte
+    Ganzzahl käme als ``"42"`` zurück) – über echtes QSettings ließen sich die
+    geforderten Roh-Typen (int, None, tuple, dict) gar nicht prüfen. Dieser
+    Fake liefert exakt den hinterlegten Python-Wert und zählt Schreibzugriffe.
+    """
+
+    def __init__(self, raw: object) -> None:
+        self._raw = raw
+        self.writes = 0
+
+    def value(self, _key: str, default: object = None) -> object:
+        return self._raw
+
+    def setValue(self, _key: str, value: object) -> None:
+        self._raw = value
+        self.writes += 1
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("single.png", ["single.png"]),                          # QSettings-Ein-Element-String
+    (["a.png", "b.png"], ["a.png", "b.png"]),                # Liste gültiger Strings
+    (("a.png", "b.png"), ["a.png", "b.png"]),                # Tupel gültiger Strings
+    (42, []),                                                # nicht iterierbarer Wert (Integer)
+    (None, []),                                              # None
+    (["a.png", 5, "", None, "b.png"], ["a.png", "b.png"]),  # gemischte Liste
+    ([], []),                                                # leere Liste
+    ("", []),                                                # leerer String
+    ([""], []),                                              # Liste nur mit leerem String
+    ({"a": 1}, []),                                          # dict – ebenfalls kein TypeError
+])
+def test_paths_sanitizes_raw_settings_values(raw, expected):
+    """paths() ist robust gegen jeden Roh-Typ: gültige, nicht-leere Strings
+    bleiben erhalten, alles Übrige wird ignoriert – ohne Exception
+    (Akzeptanzkriterien #233)."""
+    recent = RecentFiles(_FakeSettings(raw))
+    assert recent.paths() == expected
+
+
+def test_sanitize_persists_cleaned_value_and_warns(caplog):
+    """sanitize() schreibt die bereinigte Liste zurück und loggt einmalig eine
+    Warnung, wenn der Rohwert wirklich beschädigt war."""
+    fake = _FakeSettings(["a.png", 5, "", "b.png"])
+    recent = RecentFiles(fake)
+
+    with caplog.at_level("WARNING"):
+        cleaned = recent.sanitize()
+
+    assert cleaned == ["a.png", "b.png"]
+    assert fake._raw == ["a.png", "b.png"]   # zurückpersistiert
+    assert fake.writes == 1
+    assert any("bereinigt" in r.message for r in caplog.records)
+
+
+def test_sanitize_leaves_valid_list_untouched(caplog):
+    """Eine bereits saubere Liste löst weder Schreibzugriff noch Warnung aus."""
+    fake = _FakeSettings(["a.png", "b.png"])
+    recent = RecentFiles(fake)
+
+    with caplog.at_level("WARNING"):
+        cleaned = recent.sanitize()
+
+    assert cleaned == ["a.png", "b.png"]
+    assert fake.writes == 0
+    assert caplog.records == []
+
+
+def test_sanitize_keeps_single_string_quirk_silent(caplog):
+    """Der harmlose QSettings-Ein-Element-String gilt nicht als Beschädigung:
+    keine Warnung, kein Schreibzugriff."""
+    fake = _FakeSettings("only.png")
+    recent = RecentFiles(fake)
+
+    with caplog.at_level("WARNING"):
+        cleaned = recent.sanitize()
+
+    assert cleaned == ["only.png"]
+    assert fake.writes == 0
+    assert caplog.records == []
+
+
+def test_rebuild_survives_corrupt_settings(qapp):
+    """Ein beschädigter Wert (hier: Integer) darf den Menüaufbau nicht
+    abbrechen – das Menü zeigt einfach „(keine)" (Akzeptanzkriterium #233)."""
+    recent = RecentFiles(_FakeSettings(42))
+    menu = QMenu()
+    # Darf NICHT werfen (rebuild() läuft im Konstruktor):
+    RecentFilesMenu(menu, menu, recent, lambda _p: None)
+    assert [action.text() for action in menu.actions()] == ["(keine)"]
+
+
 # ── A5: Quick-Save ──────────────────────────────────────────────────────
 
 def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
