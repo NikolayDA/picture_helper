@@ -90,6 +90,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   in the full CI run (#196, #197).
 - **CI workflow YAML repaired.** The unquoted name of the pip upgrade step broke
   workflow parsing (#213).
+- **Active crop no longer survives an image-state change.** Every visible image
+  change (rotate, flip, AI result, undo/redo, restore-original, crop confirm) now
+  discards an active crop overlay and a pending lasso centrally in
+  `_set_image_state` and emits `cropModeChanged(False)` exactly once. A stale crop
+  rectangle can therefore no longer be applied to the new image and can no longer
+  produce transparent padding pixels (#247).
 
 ### Removed
 

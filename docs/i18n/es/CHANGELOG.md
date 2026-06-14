@@ -102,6 +102,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   provocaba un error de mypy en la ejecución de CI completa (#196, #197).
 - **YAML del workflow de CI reparado.** El nombre sin comillas del paso de
   actualización de pip rompía el parseo del workflow (#213).
+- **Un recorte activo ya no sobrevive a un cambio de estado de imagen.** Cada
+  cambio visible de imagen (rotar, voltear, resultado de IA, deshacer/rehacer,
+  restaurar original, confirmar recorte) ahora descarta de forma central en
+  `_set_image_state` un overlay de recorte activo y un lazo en curso, y emite
+  `cropModeChanged(False)` exactamente una vez. Así, un rectángulo de recorte
+  obsoleto ya no puede aplicarse a la nueva imagen ni generar píxeles de relleno
+  transparentes (#247).
 
 ### Eliminado
 
