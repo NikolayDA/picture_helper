@@ -118,6 +118,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `gh release create` ne sont plus masquées par `|| true` (une release existante
   est réutilisée explicitement). Ainsi, aucun artefact issu d'un commit aux tests
   rouges ou à version divergente n'atterrit plus dans une release (#250).
+- **Une sélection vide libère immédiatement le pixmap de l'overlay.**
+  `_refresh_overlay` vérifie désormais l'état vide du masque **avant** le chemin
+  incrémental (dirty). Lorsque la gomme retire le dernier pixel sélectionné,
+  `_overlay_pixmap` et le `QGraphicsPixmapItem` sont vidés aussitôt au lieu de
+  conserver une QPixmap transparente de la taille de l'image (~160 Mio à 40 MP)
+  jusqu'à la prochaine reconstruction complète. L'effacement partiel ne met
+  toujours à jour que le rectangle modifié (#251).
 
 ### Supprimé
 
