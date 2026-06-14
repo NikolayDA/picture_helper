@@ -19,6 +19,7 @@ Headless-Strategie (Begruendung):
 - Assertions pruefen den Modellzustand (``_mask``/``image``/``_crop_overlay``),
   nicht View-Pixel.
 """
+import numpy as np
 import pytest
 from PIL import Image
 from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
@@ -140,7 +141,7 @@ def test_toolbar_selects_tools(main_window, qtbot):
 def test_brush_paints_and_eraser_clears(loaded_window):
     c = loaded_window._canvas
     c.set_tool(TOOL_BRUSH)
-    c._mask[:] = False
+    c._mask = np.zeros((30, 40), dtype=bool)
     c._paint_brush(20, 15, additive=True)
     assert c._mask.any()
     assert c._mask[15, 20]
@@ -152,7 +153,7 @@ def test_brush_paints_and_eraser_clears(loaded_window):
 def test_magic_wand_selects_region(loaded_window, qtbot):
     c = loaded_window._canvas
     c.set_tool(TOOL_WAND)
-    c._mask[:] = False
+    c._mask = np.zeros((30, 40), dtype=bool)
     # Deterministisches View→Scene-Mapping: Widget-Groesse setzen + einpassen,
     # dann die Viewport-Position aus dem Scene-Punkt zurueckrechnen.
     c.resize(300, 300)
@@ -211,10 +212,12 @@ def test_rotate_flip_actions(loaded_window):
 def test_selection_actions(loaded_window):
     w = loaded_window
     c = w._canvas
-    c._mask[:] = True
+    c._mask = np.ones((30, 40), dtype=bool)
     _action(w, "Auswahl invertieren").trigger()
     assert not c._mask.any()
-    c._mask[5, 5] = True
+    mask = np.zeros((30, 40), dtype=bool)
+    mask[5, 5] = True
+    c._mask = mask
     _action(w, "Auswahl aufheben").trigger()
     assert not c._mask.any()
 
@@ -226,8 +229,9 @@ def test_escape_prioritizes_crop_then_lasso_then_selection(loaded_window):
     """
     w = loaded_window
     c = w._canvas
-    c._mask[:] = False
-    c._mask[5, 5] = True
+    mask = np.zeros((30, 40), dtype=bool)
+    mask[5, 5] = True
+    c._mask = mask
     c._refresh_overlay()
     c.set_tool(TOOL_LASSO)
     c._lasso.add_point(3, 3)
