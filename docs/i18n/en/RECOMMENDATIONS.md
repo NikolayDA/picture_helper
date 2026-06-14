@@ -26,6 +26,8 @@ remain the baseline before new PRs.
   regression tests or CI checks.
 - PRs **#263–#269** closed **#257, #258, #234 + #259, #248 + #260, #231** and
   **#249**; **#261** was resolved via PR #268 and closed.
+- PR **#274** closed **#232**: `import bgremover` no longer loads the Qt stack
+  thanks to PEP 562 lazy exports; a subprocess regression test covers it.
 
 ### Still Open
 
@@ -39,24 +41,26 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-14, closing triage)
 
-After PRs **#263–#269** merged and **#261** was closed (resolved by PR #268),
-**5** issues remain open. Nine previously open issues — **#231, #234, #248,
-#249, #257, #258, #259, #260** and **#261** — were closed via the merged PRs.
+After PR **#274** merged (closing **#232**), **5** issues remain open. Ten
+previously open issues — **#231, #232, #234, #248, #249, #257, #258, #259,
+#260** and **#261** — were closed via the merged PRs **#263–#269** and **#274**
+and re-verified against the current code together with their regression tests.
 The deferred architecture follow-up from #231 (rembg/ONNX subprocess, roadmap
-**O7**) was filed as **#270**. All open issues were re-verified against the
-current code.
+**O7**) was filed as **#270**; a follow-up finding from #258 was filed as
+**#275** (non-localized megapixel message). All open issues were re-verified
+against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
 | [#270](https://github.com/NikolayDA/picture_helper/issues/270) | Move rembg/ONNX inference into a subprocess (follow-up from #231) | 🟠 High | 🟡 Medium | Dedicated architecture PR: PR #267 only bounded the shutdown. Move rembg/ONNX into a subprocess so `terminate()` is no longer the AI emergency exit; tests for close/cancel/blocked call |
-| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` loads the full PyQt6 GUI | 🟡 Medium | 🟡 Medium | Ready for PR: preserve the public API with PEP 562 lazy exports, add an import regression test. Code unchanged: `__init__.py:15-43` still re-exports the GUI |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | Fix quota account-side; repo scope is clearer failure handling plus an optional Node 24 bump, not a forced `setup-node` fix |
+| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | Megapixel "image too large" message is not localized | 🟢 Low | 🟢 Low | Like #258: route `_too_large_message` through `tr("status.image_too_large", …)` (de/en) and add a test. Code: `image_loading.py:33-37` German literal |
 | [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo memory limit excludes the redo stack | 🟢 Low | 🟡 Medium | Shared undo/redo budget; only measure original/Qt memory. Code unchanged: `canvas_history.py` counts only `_undo_bytes`, redo bounded by `maxlen` only |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: clone URL returns 404 for anonymous users | 🟢 Low | 🟢 Low | “Round 5” is fixed; decide public vs. private/invite-only first, then update clone guidance or close |
 
 ### Recommended PR Order
 
-1. **#232** — make package imports lightweight with PEP 562 lazy exports.
+1. **#275** — localize the megapixel message (small follow-up PR from #258).
 2. **#245** — restore quota externally; keep optional workflow hardening (Node 24) separate.
 3. **#235** — implement a shared undo/redo history budget.
 4. **#161** — decide the publication model, then update docs or close.
