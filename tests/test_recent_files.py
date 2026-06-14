@@ -256,6 +256,48 @@ def test_rebuild_survives_corrupt_settings(qapp):
     assert [action.text() for action in menu.actions()] == ["(keine)"]
 
 
+def test_read_only_recent_files_never_persist_mutations(tmp_path):
+    """Future-Schemas schützen alle mutierenden Recent-Files-Pfade."""
+    existing = tmp_path / "existing.png"
+    existing.write_text("x", encoding="utf-8")
+    original = ["missing.png", str(existing)]
+    fake = _FakeSettings(original.copy())
+    recent = RecentFiles(fake, read_only=True)
+
+    assert recent.sanitize() == original
+    recent.add("new.png")
+    recent.remove("missing.png")
+    recent.clear()
+
+    assert fake._raw == original
+    assert fake.writes == 0
+
+
+def test_future_schema_menu_build_is_read_only(qapp, tmp_path, monkeypatch):
+    """Der Menüaufbau filtert nur die Anzeige und löst keinerlei Cleanup aus."""
+    existing = tmp_path / "existing.png"
+    existing.write_text("x", encoding="utf-8")
+    stale = str(tmp_path / "missing.png")
+    raw = [stale, str(existing)]
+    fake = _FakeSettings(raw.copy())
+    recent = RecentFiles(fake, read_only=True)
+    remove_calls: list[str] = []
+    sanitize_calls: list[bool] = []
+    monkeypatch.setattr(
+        recent, "remove", lambda path: remove_calls.append(path) or [])
+    monkeypatch.setattr(
+        recent, "sanitize", lambda: sanitize_calls.append(True) or [])
+
+    menu = QMenu()
+    RecentFilesMenu(menu, menu, recent, lambda _path: None)
+
+    assert [action.text() for action in menu.actions()] == [existing.name]
+    assert sanitize_calls == []
+    assert remove_calls == []
+    assert fake._raw == raw
+    assert fake.writes == 0
+
+
 # ── A5: Quick-Save ──────────────────────────────────────────────────────
 
 def test_quick_save_writes_to_known_path(qapp, isolated_settings, tmp_path):
@@ -278,28 +320,66 @@ def test_load_clears_save_path(qapp, isolated_settings, tmp_path):
     assert w._save_path is None
 
 
-def test_mainwindow_skips_sanitize_on_future_schema(qapp, isolated_settings, monkeypatch):
+def test_mainwindow_keeps_future_recent_files_byte_identical(
+    qapp, isolated_settings, monkeypatch,
+):
     """Bei einem ZUKUENFTIGEN Schema darf der Start recent_files NICHT
-    umschreiben – sonst ueberschriebe ein aelteres Binary das (evtl. neue)
-    Layout eines neueren Schemas mit [] (Downgrade-Datenverlust). Bei
-    kompatiblem Schema laeuft sanitize() wie gewohnt (#240)."""
+    umschreiben – auch nicht indirekt beim Aufbau des Menüs (#259)."""
     from bgremover import MainWindow
     from bgremover.settings_schema import SCHEMA_VERSION, SCHEMA_VERSION_KEY
 
-    calls: list[int] = []
+    sanitize_calls: list[int] = []
+    remove_calls: list[str] = []
     monkeypatch.setattr(
-        RecentFiles, "sanitize", lambda self: calls.append(1) or [])
+        RecentFiles, "sanitize", lambda self: sanitize_calls.append(1) or [])
+    original_remove = RecentFiles.remove
 
-    # Zukuenftiges Schema -> sanitize() wird uebersprungen.
+    def record_remove(self, path):
+        remove_calls.append(path)
+        return original_remove(self, path)
+
+    monkeypatch.setattr(RecentFiles, "remove", record_remove)
     future = _settings()
+    stale_paths = ["/future/missing-a.png", "/future/missing-b.png"]
     future.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION + 1)
+    future.setValue(SETTINGS_RECENT_KEY, stale_paths)
     future.sync()
-    MainWindow().close()
-    assert calls == []
+    settings_file = Path(future.fileName())
+    before = settings_file.read_bytes()
 
-    # Kompatibles Schema -> sanitize() laeuft.
+    window = MainWindow()
+    window._settings.sync()
+    window.close()
+
+    assert sanitize_calls == []
+    assert remove_calls == []
+    assert _settings().value(SETTINGS_RECENT_KEY) == stale_paths
+    assert settings_file.read_bytes() == before
+
+
+def test_mainwindow_keeps_normal_recent_cleanup(
+    qapp, isolated_settings, monkeypatch,
+):
+    """Für kompatible Schemas bleiben Sanitize und Stale-Path-Cleanup aktiv."""
+    from bgremover import MainWindow
+    from bgremover.settings_schema import SCHEMA_VERSION, SCHEMA_VERSION_KEY
+
+    sanitize_calls: list[int] = []
+    original_sanitize = RecentFiles.sanitize
+
+    def record_sanitize(self):
+        sanitize_calls.append(1)
+        return original_sanitize(self)
+
+    monkeypatch.setattr(RecentFiles, "sanitize", record_sanitize)
     compatible = _settings()
     compatible.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
+    compatible.setValue(SETTINGS_RECENT_KEY, ["/missing.png"])
     compatible.sync()
-    MainWindow().close()
-    assert calls == [1]
+
+    window = MainWindow()
+    window._settings.sync()
+    window.close()
+
+    assert sanitize_calls == [1]
+    assert _settings().value(SETTINGS_RECENT_KEY) == []
