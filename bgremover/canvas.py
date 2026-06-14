@@ -758,9 +758,6 @@ class ImageCanvas(QGraphicsView):
     ZOOM_MIN = CanvasViewport.ZOOM_MIN
     ZOOM_MAX = CanvasViewport.ZOOM_MAX
 
-    def _zoom(self, factor: float) -> None:
-        self._viewport.zoom(factor)
-
     def wheelEvent(self, event) -> None:
         self._viewport.handle_wheel(event.angleDelta().y())
 
