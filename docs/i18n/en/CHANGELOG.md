@@ -119,6 +119,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   "Re-run failed jobs" no longer loses artifacts from an earlier attempt.
   README/RESOURCES (incl. translations) no longer describe the removed
   `release: published` trigger (#257).
+- **Image-load limit without 512 MiB pre-allocation and localized.**
+  `open_validated_image` now reads the file content in 8 MiB chunks (instead of
+  `read(limit + 1)`, which on CPython's buffered reader immediately reserves
+  ~512 MiB and can make a small file fail with `MemoryError` under tight memory);
+  growth between `fstat()` and reading is still detected via `limit + 1`. The
+  size message goes through the `status.file_too_large` translation key (fully
+  localized de/en instead of a mixed message) and rounds the actual value up and
+  the limit down, so it is visibly larger at "limit + 1 byte" (e.g. "513 MB" at a
+  maximum of "512 MB", instead of both showing "512 MB" with `.0f`) (#258).
 
 ### Removed
 

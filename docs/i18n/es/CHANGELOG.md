@@ -133,6 +133,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `actions: read`) de todo el run, así «Re-run failed jobs» ya no pierde
   artefactos de un intento anterior. README/RESOURCES (incl. traducciones) ya no
   describen el trigger eliminado `release: published` (#257).
+- **Límite de carga de imagen sin preasignación de 512 MiB y localizado.**
+  `open_validated_image` ahora lee el contenido en bloques de 8 MiB (en lugar de
+  `read(limit + 1)`, que en el lector con búfer de CPython reserva de inmediato
+  ~512 MiB y puede hacer que un archivo pequeño falle con `MemoryError` con poca
+  memoria); el crecimiento entre `fstat()` y la lectura se sigue detectando con
+  `limit + 1`. El mensaje de tamaño pasa por la clave de traducción
+  `status.file_too_large` (totalmente localizado de/en en lugar de un mensaje
+  mezclado) y redondea hacia arriba el valor real y hacia abajo el límite, de
+  modo que es visiblemente mayor en «límite + 1 byte» (p. ej. «513 MB» con un
+  máximo de «512 MB», en vez de mostrar ambos como «512 MB» con `.0f`) (#258).
 
 ### Eliminado
 
