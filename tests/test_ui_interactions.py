@@ -22,7 +22,7 @@ Headless-Strategie (Begruendung):
 import pytest
 from PIL import Image
 from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
-from PyQt6.QtGui import QAction, QMouseEvent
+from PyQt6.QtGui import QAction, QKeySequence, QMouseEvent
 from PyQt6.QtWidgets import QToolButton
 
 import bgremover
@@ -36,6 +36,7 @@ from bgremover import (
     MainWindow,
     SettingsDialog,
 )
+from bgremover.i18n import tr
 
 # Alle Tests dieser Datei sind lokale UI-Tests (siehe Modul-Docstring).
 pytestmark = pytest.mark.ui
@@ -216,6 +217,46 @@ def test_selection_actions(loaded_window):
     c._mask[5, 5] = True
     _action(w, "Auswahl aufheben").trigger()
     assert not c._mask.any()
+
+
+@pytest.mark.ui_smoke
+def test_escape_prioritizes_crop_then_lasso_then_selection(loaded_window):
+    """Regression #248: der echte Window-Shortcut darf nicht sofort die
+    Auswahl löschen, solange eine höher priorisierte Interaktion aktiv ist.
+    """
+    w = loaded_window
+    c = w._canvas
+    c._mask[:] = False
+    c._mask[5, 5] = True
+    c._refresh_overlay()
+    c.set_tool(TOOL_LASSO)
+    c._lasso.add_point(3, 3)
+    c._lasso.update_preview_line(10, 10)
+    c.start_crop_ratio(1, 1)
+    assert w._escape_action.shortcut() == QKeySequence("Escape")
+    assert (
+        w._escape_action.shortcutContext()
+        == Qt.ShortcutContext.WindowShortcut
+    )
+
+    w._escape_action.trigger()
+    assert c._crop.active is False
+    assert c._lasso.points == [(3, 3)]
+    assert c._lasso._path_item is not None
+    assert c._lasso._line_item is not None
+    assert c._mask.any()
+    assert w.statusBar().currentMessage() == tr("canvas.crop_cancelled")
+
+    w._escape_action.trigger()
+    assert c._lasso.points == []
+    assert c._lasso._path_item is None
+    assert c._lasso._line_item is None
+    assert c._mask.any()
+    assert w.statusBar().currentMessage() == tr("canvas.lasso_cancelled")
+
+    w._escape_action.trigger()
+    assert not c._mask.any()
+    assert w.statusBar().currentMessage() == tr("canvas.selection_cleared")
 
 
 def test_fit_to_view_action(loaded_window, monkeypatch):

@@ -280,8 +280,9 @@ aufgelistet.
 
 ### Auswahl-Aktionen
 
-- **Auswahl aufheben** – hebt die aktuelle Auswahl auf (auch mit der
-  **Esc**-Taste).
+- **Auswahl aufheben** – hebt die aktuelle Auswahl auf. **Esc** bricht zuerst
+  einen aktiven Zuschnitt oder ein begonnenes Polygon-Lasso ab und hebt die
+  Auswahl nur auf, wenn keine solche Interaktion aktiv ist.
 - **Auswahl invertieren** (⌘⇧I) – tauscht ausgewählte und nicht
   ausgewählte Bereiche. Praktisch: erst das *Objekt* auswählen, dann
   invertieren, um den *Hintergrund* zu bearbeiten.
@@ -441,7 +442,7 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
 | Wiederherstellen | ⇧⌘Z |
 | 90° links drehen | ⌘← |
 | 90° rechts drehen | ⌘→ |
-| Auswahl aufheben | Esc |
+| Auswahl aufheben (wenn kein Crop/Lasso aktiv ist) | Esc |
 | Auswahl invertieren | ⌘⇧I |
 | An Fenster anpassen (Fit to View) | ⌘0 |
 | Einstellungen öffnen | ⌘, |

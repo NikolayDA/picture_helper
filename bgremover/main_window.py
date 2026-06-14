@@ -6,7 +6,7 @@ from typing import cast
 
 from PIL import Image
 from PyQt6.QtCore import QSettings, Qt
-from PyQt6.QtGui import QColor, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QColorDialog,
     QFileDialog,
@@ -222,6 +222,11 @@ class MainWindow(QMainWindow):
         if tool in buttons:
             buttons[tool].setChecked(True)
 
+    def _cancel_or_clear(self) -> None:
+        """Bricht aktive Interaktionen ab oder hebt sonst die Auswahl auf."""
+        if not self._canvas.cancel_active_interaction():
+            self._canvas.clear_selection()
+
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
         assert menu_bar is not None
@@ -258,6 +263,12 @@ class MainWindow(QMainWindow):
             shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
             shortcut.activated.connect(lambda t=tool: self._set_tool(t))
             self._tool_shortcuts.append(shortcut)
+        self._escape_action = QAction(self)
+        self._escape_action.setShortcut(QKeySequence("Escape"))
+        self._escape_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        self._escape_action.triggered.connect(
+            lambda _checked=False: self._cancel_or_clear())
+        self.addAction(self._escape_action)
 
     # ── Sauberes Thread-Shutdown beim Schliessen ──────────────
 

@@ -282,8 +282,9 @@ Ctrl/Cmd = soustraire).
 
 ### Actions de sélection
 
-- **Désélectionner** – efface la sélection actuelle (aussi avec la touche
-  **Échap**).
+- **Désélectionner** – efface la sélection actuelle. **Échap** annule d'abord
+  un recadrage actif ou un lasso polygonal commencé, puis efface la sélection
+  uniquement si aucune de ces interactions n'est active.
 - **Inverser la sélection** (⌘⇧I) – échange les zones sélectionnées et non
   sélectionnées. Utile : sélectionnez d'abord l'*objet*, puis inversez pour
   modifier l'*arrière-plan*.
@@ -444,7 +445,7 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 | Rétablir | ⇧⌘Z |
 | Rotation 90° gauche | ⌘← |
 | Rotation 90° droite | ⌘→ |
-| Désélectionner | Échap |
+| Désélectionner (sans recadrage/lasso actif) | Échap |
 | Inverser la sélection | ⌘⇧I |
 | Ajuster à la vue | ⌘0 |
 | Ouvrir les paramètres | ⌘, |

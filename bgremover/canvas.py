@@ -357,10 +357,7 @@ class ImageCanvas(QGraphicsView):
         (über ``_reset_transient_state``) und in ``_set_image_state`` doppelt
         gefahrlos.
         """
-        was_cropping = self._crop.active
-        self._crop.cancel_overlay_only()
-        if was_cropping:
-            self.cropModeChanged.emit(False)
+        self._crop.discard()
         self._lasso.cancel()
 
     def _reset_transient_state(self) -> None:
@@ -447,6 +444,22 @@ class ImageCanvas(QGraphicsView):
         self._set_image_state(restored)
         self._emit_history()
         self.statusMsg.emit(tr("canvas.original_restored"))
+
+    def cancel_active_interaction(self) -> bool:
+        """Bricht die höchstpriorisierte aktive Canvas-Interaktion ab.
+
+        Crop hat Vorrang vor einem begonnenen Polygon-Lasso. ``False`` zeigt
+        dem Aufrufer, dass keine Interaktion aktiv war und Escape stattdessen
+        die Auswahl aufheben darf.
+        """
+        if self._crop.active:
+            self._crop.cancel()
+            return True
+        if self._lasso.has_points:
+            self._lasso_cancel()
+            self.statusMsg.emit(tr("canvas.lasso_cancelled"))
+            return True
+        return False
 
     @_requires_image
     def clear_selection(self) -> None:
@@ -726,9 +739,10 @@ class ImageCanvas(QGraphicsView):
         super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key.Key_Escape and self._lasso.has_points:
-            self._lasso_cancel()
-            self.statusMsg.emit(tr("canvas.lasso_cancelled"))
+        if (
+            event.key() == Qt.Key.Key_Escape
+            and self.cancel_active_interaction()
+        ):
             return
         super().keyPressEvent(event)
 
