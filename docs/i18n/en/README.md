@@ -79,7 +79,8 @@ without the AI feature, `python3 -m pip install -c requirements/constraints.txt 
 a portable **AppImage** and an installable **`.deb`** (both for x86_64 and
 aarch64/Raspberry Pi OS). See **[INSTALL_LINUX.md](INSTALL_LINUX.md)** for
 installation details and **[packaging/linux/README.md](../../../packaging/linux/README.md)**
-for build/packaging details.
+for build/packaging details. Such artifacts are available from **v2.3.0**
+onwards — until then, use the venv path below.
 
 Starting directly from a venv remains the best path for development,
 branch testing, and local changes:

@@ -15,6 +15,11 @@
 对于普通 Linux 安装，release 构件是最方便的方式——**无需 venv、无需 pip、也无需
 Git checkout**：
 
+> **关于可用性的说明：** 现成的 AppImage/`.deb` 构件自
+> **v2.3.0** 起提供。较旧的 release（例如 v2.2.0）尚未包含此类
+> 资源——只要 Releases 页面上没有可供下载的内容，就请使用
+> 下文的 venv/Git 方式。
+
 - **AppImage：** 便携式单文件；赋予执行权限后即可启动。
 - **`.deb`：** 面向 Debian/Ubuntu/Raspberry Pi OS 的可安装软件包，带菜单项，
   可通过 apt/dpkg 干净移除。
@@ -87,8 +92,8 @@ sudo pacman -S --needed python python-pip git \
 
 ## Raspberry Pi OS（桌面版）— 简单方式
 
-在 **Raspberry Pi OS “Bookworm” 桌面版**（Debian 12，推荐
-64 位）上，安装要简单得多：PyQt6、Pillow 和
+在 **Raspberry Pi OS “Bookworm” 桌面版**（Debian 12）或更新版本
+（例如 “Trixie”/Debian 13，推荐 64 位）上，安装要简单得多：PyQt6、Pillow 和
 numpy 都有现成的系统软件包，可通过 `apt` 获取。**无需
 venv、无需 `pip`、也无需 editable 安装**——BgRemover 可
 直接从克隆的目录运行。软件包 `python3-pyqt6` 会

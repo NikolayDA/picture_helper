@@ -80,7 +80,8 @@ python3 -m bgremover
 портативний **AppImage** та встановлюваний **`.deb`** (обидва для x86_64 і
 aarch64/Raspberry Pi OS). Деталі встановлення див. у
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**, а деталі build/пакування — у
-**[packaging/linux/README.md](../../../packaging/linux/README.md)**.
+**[packaging/linux/README.md](../../../packaging/linux/README.md)**. Такі артефакти
+доступні починаючи з **v2.3.0** — доти користуйтеся способом через venv нижче.
 
 Прямий запуск із venv залишається найкращим шляхом для розробки,
 тестування гілок і локальних змін:

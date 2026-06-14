@@ -149,6 +149,10 @@ Editable-встановлення (`pip install -e`) **не** потрібно
   ~/Applications/BgRemover.app/Contents/MacOS/BgRemover
   ```
   Очікувано за відсутніх пакетів: `ModuleNotFoundError: No module named 'PyQt6'`.
+  Ще зручніше: `bash diagnose_mac.sh` у теці проєкту автоматично збирає цю
+  стартову діагностику (зокрема `pip show bgremover` venv застосунку); вивід
+  за замовчуванням відредаговано (приховано приватні шляхи) і його можна
+  додати до звіту про помилку.
 - **«python3: command not found»** → `brew install python`
 - **Помилка pip під час встановлення** → спершу оновіть pip:
   ```bash
