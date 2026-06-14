@@ -25,43 +25,42 @@ restent la baseline avant de nouveaux PRs.
 - Les constats **#163–#206** ont été clos dans les PRs documentés et protégés
   par des tests de régression ou des contrôles CI.
 - Les PRs **#263–#269** ont clos **#257, #258, #234 + #259, #248 + #260, #231**
-  et **#249** ; **#261** a été résolu via la PR #268.
+  et **#249** ; **#261** a été résolu via la PR #268 et clos.
 
 ### Encore Ouvert
 
 - **O1 🟠 — Langues runtime supplémentaires.** L'allemand et l'anglais sont
   sélectionnables dans l'app. Les langues documentaires es/fr/uk/zh ne sont pas
   des locales runtime ; les ajouter clé par clé dans `bgremover.i18n` et tester.
-- **O7 🟠 — Sous-processus pour rembg/ONNX (suite de #231).** La PR #267 a borné
-  le fallback d'arrêt, mais le travail IA non interruptible tourne encore dans
-  le thread avec `terminate()` en sortie d'urgence. La solution complète déplace
-  rembg/ONNX dans un sous-processus — une PR d'architecture dédiée, sans issue.
+- **O7 🟠 — Sous-processus pour rembg/ONNX (suite de #231, suivi dans #270).**
+  La PR #267 a borné le fallback d'arrêt, mais le travail IA non interruptible
+  tourne encore dans le thread avec `terminate()` en sortie d'urgence. La
+  solution complète déplace rembg/ONNX dans un sous-processus.
 
 ## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-14, triage de clôture)
 
-Après la fusion des PRs **#263–#269**, seules **5** issues restent ouvertes.
-Huit issues précédemment listées (**#231, #234, #248, #249, #257, #258, #259,
-#260**) ont été fusionnées et closes automatiquement. **#261** a été corrigée
-par la PR **#268** mais est restée ouverte administrativement faute de mot-clé
-`Closes` et devrait être close. Quatre issues actionnables restent ; toutes ont
-été revérifiées sur le code actuel.
+Après la fusion des PRs **#263–#269** et la clôture de **#261** (résolue par la
+PR #268), **5** issues restent ouvertes. Neuf issues précédemment ouvertes —
+**#231, #234, #248, #249, #257, #258, #259, #260** et **#261** — ont été closes
+via les PRs fusionnées. Le suivi d'architecture reporté de #231 (sous-processus
+rembg/ONNX, feuille de route **O7**) a été ouvert comme **#270**. Toutes les
+issues ouvertes ont été revérifiées sur le code actuel.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
+| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | Déplacer l'inférence rembg/ONNX dans un sous-processus (suite de #231) | 🟠 Haute | 🟡 Moyenne | PR d'architecture dédiée : la PR #267 n'a que borné l'arrêt. Déplacer rembg/ONNX dans un sous-processus pour que `terminate()` ne soit plus la sortie d'urgence IA ; tests fermeture/annulation/appel bloqué |
 | [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` charge toute la GUI PyQt6 | 🟡 Moyenne | 🟡 Moyenne | Prêt pour PR : préserver l'API publique avec des exports paresseux PEP 562, ajouter un test de régression d'import. Code inchangé : `__init__.py:15-43` ré-exporte toujours la GUI |
-| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | La limite mémoire d'undo exclut la pile redo | 🟢 Basse | 🟡 Moyenne | Budget undo/redo partagé ; seulement mesurer l'original/la mémoire Qt. Code inchangé : `canvas_history.py` ne compte que `_undo_bytes`, redo borné uniquement par `maxlen` |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | Corriger le quota côté compte ; dans le dépôt, clarifier l'échec plus un bump optionnel vers Node 24, sans changement forcé `setup-node` |
+| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | La limite mémoire d'undo exclut la pile redo | 🟢 Basse | 🟡 Moyenne | Budget undo/redo partagé ; seulement mesurer l'original/la mémoire Qt. Code inchangé : `canvas_history.py` ne compte que `_undo_bytes`, redo borné uniquement par `maxlen` |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README : l'URL de clonage renvoie 404 aux utilisateurs anonymes | 🟢 Basse | 🟢 Basse | « Runde 5 » est corrigé ; décider public vs. privé/sur invitation d'abord, puis mettre à jour la doc ou clore |
-| [#261](https://github.com/NikolayDA/picture_helper/issues/261) | L'overlay du pinceau scanne tout le masque à chaque mouvement | ✅ Fait | — | Résolu par la PR **#268** (fusionnée) ; l'issue est restée ouverte sans mot-clé `Closes` — la clore administrativement |
 
 ### Ordre de PR Recommandé
 
 1. **#232** — imports légers via des exports paresseux PEP 562.
-2. **#235** — implémenter un budget historique undo/redo partagé.
-3. **#245** — restaurer le quota à l'extérieur ; durcissement optionnel du workflow (Node 24, gestion d'erreurs) séparé.
+2. **#245** — restaurer le quota à l'extérieur ; durcissement optionnel du workflow (Node 24) séparé.
+3. **#235** — implémenter un budget historique undo/redo partagé.
 4. **#161** — décider le modèle de publication, puis modifier la doc ou clore.
-5. **O7** — planifier le sous-processus rembg/ONNX comme PR d'architecture dédiée (suite de #231).
-6. **Admin** — clore **#261** (fait via la PR #268).
+5. **#270** — planifier le sous-processus rembg/ONNX comme PR d'architecture dédiée (suite de #231).
 
 ## Séries Précédentes
 
