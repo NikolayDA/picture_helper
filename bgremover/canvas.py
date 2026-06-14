@@ -315,7 +315,16 @@ class ImageCanvas(QGraphicsView):
 
         Kapselt den Anzeigezustand und die Content-Revision. Die
         Undo-/Redo-Stapelpflege liegt in ``CanvasHistory``.
+
+        Verwirft vor dem Wechsel geometrieabhängige Overlays (Crop/Lasso):
+        Jeder sichtbare Bildzustandswechsel – Transformation, KI-Ergebnis,
+        Undo/Redo/Undo-to, Original-Wiederherstellung, Crop-Bestätigung und
+        Laden – ändert die Bildgeometrie. Ein altes Crop-Rechteck würde sonst
+        beim nächsten ``confirm_crop()`` auf das neue Bild angewendet und – wenn
+        es über die neuen Grenzen hinausragt – transparente Padding-Pixel
+        erzeugen (#247).
         """
+        self._discard_overlay_interactions()
         self._pil  = img
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
         # lesen nur und kopieren bei Bedarf selbst. Spart eine grosse
@@ -326,28 +335,47 @@ class ImageCanvas(QGraphicsView):
         self._refresh_image()
         self._refresh_overlay()
 
-    def _reset_transient_state(self) -> None:
-        """Verwirft schwebende Werkzeug-Interaktionen vor einem Inhaltswechsel.
+    def _discard_overlay_interactions(self) -> None:
+        """Verwirft geometrieabhängige Overlays (Crop, Lasso) vor einem
+        sichtbaren Bildzustandswechsel.
 
-        Entfernt ein Crop-Overlay und meldet das Modus-Ende nur, wenn ein
-        Overlay aktiv war – sonst bliebe ein ``cropModeChanged(True)`` ohne
-        passendes ``False`` hängen und die Crop-Leiste verschwände nicht.
-        Bricht außerdem ein begonnenes Polygon-Lasso ab, damit alte Punkte
-        und Vorschaulinien nicht auf das neue Bild übertragen werden.
+        Entfernt ein Crop-Overlay und meldet das Modus-Ende **genau einmal**,
+        wenn ein Overlay aktiv war – sonst bliebe ein ``cropModeChanged(True)``
+        ohne passendes ``False`` hängen und die Crop-Leiste verschwände nicht.
+        Bricht außerdem ein begonnenes Polygon-Lasso ab, damit alte Punkte und
+        Vorschaulinien nicht auf die neue Bildgeometrie übertragen werden.
 
-        Setzt schließlich das ``_wand_busy``-Gate zurück: läuft beim
-        Bildwechsel/Restore noch eine Zauberstab-Berechnung, bliebe das Gate
-        sonst gesetzt und blockierte den Zauberstab auf dem neuen Bild, bis
-        der alte Worker fertig ist. ``apply_wand_result`` ignoriert ein
-        verspätetes Ergebnis dank des ``if not self._wand_busy``-Guards
-        sauber; den alten Worker bricht ``MainWindow._load_image_async``
-        zusätzlich ab, damit er keine CPU mehr verbrennt.
+        Idempotent: Ist kein Overlay aktiv, passiert nichts und es wird kein
+        ``cropModeChanged`` gefeuert. Läuft daher auf den Lade-/Restore-Pfaden
+        (über ``_reset_transient_state``) und in ``_set_image_state`` doppelt
+        gefahrlos.
         """
         was_cropping = self._crop.active
         self._crop.cancel_overlay_only()
         if was_cropping:
             self.cropModeChanged.emit(False)
         self._lasso.cancel()
+
+    def _reset_transient_state(self) -> None:
+        """Verwirft schwebende Werkzeug-Interaktionen vor einem Inhaltswechsel.
+
+        Räumt zunächst die geometrieabhängigen Overlays
+        (``_discard_overlay_interactions``: Crop + Lasso) ab und setzt
+        zusätzlich das ``_wand_busy``-Gate zurück: läuft beim Bildwechsel/
+        Restore noch eine Zauberstab-Berechnung, bliebe das Gate sonst gesetzt
+        und blockierte den Zauberstab auf dem neuen Bild, bis der alte Worker
+        fertig ist. ``apply_wand_result`` ignoriert ein verspätetes Ergebnis
+        dank des ``if not self._wand_busy``-Guards sauber; den alten Worker
+        bricht ``MainWindow._load_image_async`` zusätzlich ab, damit er keine
+        CPU mehr verbrennt.
+
+        Wird beim Laden eines neuen Bildes und beim Wiederherstellen des
+        Originals genutzt. Die reine Overlay-Bereinigung läuft inzwischen bei
+        **jedem** Bildzustandswechsel über ``_set_image_state``; hier kommt nur
+        der Wand-Gate-Reset hinzu, den ein bloßer ``_set_image_state``-Aufruf
+        (Edit/Transform) bewusst nicht auslöst.
+        """
+        self._discard_overlay_interactions()
         self._wand_busy = False
 
     def _emit_history(self) -> None:

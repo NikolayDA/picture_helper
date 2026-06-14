@@ -7,6 +7,7 @@ ausschließlich Modellzustände inspiziert, keine View-Pixel.
 """
 from __future__ import annotations
 
+import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QPointF, Qt
 
@@ -280,3 +281,127 @@ def test_loading_image_without_crop_emits_no_mode_signal(qapp):
     c.cropModeChanged.connect(modes.append)
     c.apply_loaded_image(Image.new("RGBA", (40, 40), (5, 6, 7, 255)), "next.png")
     assert modes == []
+
+
+# ── Bildzustandswechsel verwirft veraltetes Crop-Overlay (#247) ─────────
+
+def _alpha_min(img: Image.Image) -> int:
+    """Kleinster Alpha-Wert – < 255 verrät transparente Padding-Pixel."""
+    return int(np.array(img.convert("RGBA"))[:, :, 3].min())
+
+
+def test_rotate_during_active_crop_discards_stale_overlay(qapp):
+    """Regression #247: 400×200, aktiver 16:9-Crop, 90°-Drehung.
+
+    Das alte Rechteck ``≈(22, 0, 355, 200)`` darf das gedrehte 200×400-Bild
+    nicht mehr zuschneiden – sonst ergänzt Pillow transparente Padding-Pixel.
+    Nach der Drehung ist kein Crop mehr aktiv, ``cropModeChanged`` feuert genau
+    einmal ``False`` und ein anschließendes ``confirm_crop()`` ist wirkungslos.
+    """
+    c = ImageCanvas()
+    c.apply_loaded_image(Image.new("RGBA", (400, 200), (10, 20, 30, 255)), "seed.png")
+    c.start_crop_ratio(16, 9)
+    ov = c._crop_overlay
+    assert ov is not None
+    # Vorbedingung: Das initiale Rechteck ragt nach einer 90°-Drehung
+    # (Bild dann 200 breit) über die rechte Kante hinaus.
+    assert ov.crop_rect().width() > 200
+
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+
+    c.apply_rotate(90)
+
+    # Overlay verworfen, Modus genau einmal beendet.
+    assert c._crop_overlay is None
+    assert c._crop.active is False
+    assert modes == [False]
+    # Reines 90°-Drehergebnis, kein altes Crop-Rechteck angewendet.
+    assert c.image is not None
+    assert c.image.size == (200, 400)
+    assert _alpha_min(c.image) == 255
+
+    # Ein nachgelagertes confirm_crop kann kein veraltetes Rechteck anwenden.
+    rotated = c.image
+    c.confirm_crop()
+    assert c.image is rotated
+    assert c.image.size == (200, 400)
+    assert _alpha_min(c.image) == 255
+
+
+def test_crop_mode_signal_sequence_start_then_transform(qapp):
+    """Die Signalfolge ist genau ``[True, False]`` – der Crop-Start meldet
+    ``True``, die Transformation beendet den Modus mit ``False`` (die UI bleibt
+    nicht dauerhaft im Crop-Modus)."""
+    c = _canvas(size=(400, 200))
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    c.start_crop_ratio(16, 9)
+    c.apply_flip(horizontal=True)
+    assert modes == [True, False]
+    assert c._crop_overlay is None
+
+
+def test_ai_result_during_active_crop_discards_overlay(qapp):
+    """Ein KI-Ergebnis wechselt den Bildzustand und muss den Crop verwerfen."""
+    c = _canvas(size=(400, 200))
+    c.start_crop_ratio(16, 9)
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    c.apply_ai_result(Image.new("RGBA", (123, 77), (9, 9, 9, 255)))
+    assert c._crop_overlay is None
+    assert modes == [False]
+    assert c.image is not None and c.image.size == (123, 77)
+
+
+def test_apply_edit_during_active_crop_discards_overlay(qapp):
+    """Auch ein generischer ``apply_edit`` (Undo-fähiger Schritt) räumt das
+    Crop-Overlay ab und meldet das Modus-Ende einmal."""
+    c = _canvas(size=(400, 200))
+    c.start_crop_ratio(16, 9)
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    c.apply_edit(Image.new("RGBA", (50, 50), (1, 1, 1, 255)), desc="x")
+    assert c._crop_overlay is None
+    assert modes == [False]
+
+
+def test_restore_original_during_active_crop_discards_overlay(qapp):
+    """``restore_original`` ist ein geometrieinkompatibler Wechsel und darf
+    kein veraltetes Crop-Overlay zurücklassen."""
+    c = _canvas(size=(400, 200))
+    c.apply_edit(Image.new("RGBA", (100, 100), (1, 1, 1, 255)), desc="edit")
+    c.start_crop_ratio(16, 9)
+    assert c._crop_overlay is not None
+    modes: list[bool] = []
+    c.cropModeChanged.connect(modes.append)
+    c.restore_original()
+    assert c._crop_overlay is None
+    assert modes == [False]
+    assert c.image is not None and c.image.size == (400, 200)
+
+
+def test_image_state_change_discards_pending_lasso(qapp):
+    """Ein begonnenes Polygon-Lasso wird bei einem inkompatiblen
+    Bildzustandswechsel (hier eine Transformation) ebenfalls verworfen."""
+    c = _canvas(size=(400, 200))
+    c.set_tool(TOOL_LASSO)
+    c._handle_tool_press(10, 10, Qt.KeyboardModifier.NoModifier)
+    c._handle_tool_press(20, 20, Qt.KeyboardModifier.NoModifier)
+    assert c._lasso.has_points
+    c.apply_rotate(90)
+    assert not c._lasso.has_points
+
+
+def test_confirm_crop_remains_single_undo_step(qapp):
+    """Crop-Bestätigung bleibt ein einzelner Undo-fähiger Schritt: ein Undo
+    stellt exakt das Bild vor dem Zuschnitt wieder her."""
+    c = _canvas(size=(400, 200))
+    before = c.image
+    assert before is not None
+    before_size = before.size
+    c.start_crop_ratio(1, 1)
+    c.confirm_crop()
+    assert c.image is not None and c.image.size != before_size
+    c.undo()
+    assert c.image is not None and c.image.size == before_size
