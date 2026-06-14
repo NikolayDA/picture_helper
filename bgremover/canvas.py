@@ -214,7 +214,7 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def _mask(self) -> np.ndarray | None:
-        """Test-/Debug-Accessor für die aktuelle Auswahlmaske."""
+        """Read-only-Test-/Debug-Accessor für die aktuelle Auswahlmaske."""
         if self._pil is None:
             return None
         return self._selection.mask
@@ -225,8 +225,7 @@ class ImageCanvas(QGraphicsView):
             if self._pil is not None:
                 self._selection.reset(self._pil.width, self._pil.height)
             return
-        self._selection.reset(mask.shape[1], mask.shape[0])
-        self._selection.mask[:] = mask
+        self._selection.set_mask(mask)
 
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
@@ -292,13 +291,9 @@ class ImageCanvas(QGraphicsView):
         if self._pil is None:
             return
         mask = self._selection.mask
-        # Leerzustand zuerst prüfen – auch vor dem inkrementellen dirty-Pfad:
-        # Radiert der Eraser den letzten Auswahlpixel weg, ist die Maske leer
-        # und es darf keine transparente Vollbild-QPixmap (bei 40 MP ~160 MiB)
-        # in _overlay_pixmap bzw. im Item hängen bleiben (#251). Der additive
-        # Pinsel kann die Auswahl nie leeren, dort bleibt der Kurz-Check
-        # folgenlos; die O(N)-``any()``-Prüfung ist günstig genug, ein
-        # Auswahlpixel-Zähler wäre erst nach gemessenem Bedarf gerechtfertigt.
+        # Der O(1)-Zähler im Selection-Modell erkennt auch im Dirty-Pfad sofort,
+        # wenn der Eraser das letzte Pixel entfernt hat, ohne bei jeder
+        # Mausbewegung die vollständige Maske zu scannen (#251, #261).
         if not self._selection.has_selection:
             self._overlay_pixmap = None
             self._overlay_item.setPixmap(QPixmap())
