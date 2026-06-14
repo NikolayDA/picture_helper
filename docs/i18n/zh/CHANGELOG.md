@@ -97,6 +97,13 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `download-artifact` 通过 `run-id`/`github-token`（配合 `actions: read`）从整个
   run 拉取产物，使「Re-run failed jobs」不再丢失先前尝试的产物。README/RESOURCES
   （含翻译）不再描述已移除的 `release: published` 触发器（#257）。
+- **图像加载限制不再预分配 512 MiB，且已本地化。** `open_validated_image` 现在按
+  8 MiB 分块读取文件内容（而非 `read(limit + 1)`——在 CPython 的带缓冲读取器上会
+  立即预留约 512 MiB，可能使小文件在内存紧张时以 `MemoryError` 失败）；`fstat()`
+  与读取之间的增长仍通过 `limit + 1` 检测。大小提示改用翻译键
+  `status.file_too_large`（de/en 完整本地化，而非中英/德英混合提示），并将实际值
+  向上取整、限值向下取整，使其在「限值 + 1 字节」时明显大于限值（例如「513 MB」
+  而最大为「512 MB」，而不是用 `.0f` 把两者都显示为「512 MB」）（#258）。
 
 ### 移除
 

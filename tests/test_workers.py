@@ -174,8 +174,8 @@ def test_open_validated_image_rejects_oversized_file_without_unbounded_read() ->
 def test_open_validated_image_bounded_read_catches_size_growth(monkeypatch) -> None:
     """Sicherheitsnetz gegen TOCTOU / ungewöhnliche Fileobjekte: meldet fstat()
     eine kleine Größe, liefert read() aber mehr als das Limit, greift die
-    len()-Prüfung nach dem *begrenzten* read(). read() wird mit Obergrenze
-    (Limit + 1) statt unbeschränkt aufgerufen."""
+    Chunk-Leseschleife und meldet „zu groß". Jeder read() bleibt begrenzt
+    (höchstens Limit + 1) statt unbeschränkt."""
     import bgremover.image_loading as il
 
     monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", 100)
@@ -194,7 +194,104 @@ def test_open_validated_image_bounded_read_catches_size_growth(monkeypatch) -> N
 
     assert img is None
     assert err is not None and "Datei zu groß" in err
-    assert mock_fh.read.call_args.args == (il._MAX_INPUT_FILE_BYTES + 1,)
+    # Kein unbeschränktes read(): jede angeforderte Lesegröße ist begrenzt.
+    assert mock_fh.read.call_args_list  # es wurde überhaupt gelesen
+    for call in mock_fh.read.call_args_list:
+        (requested,) = call.args
+        assert requested is not None and requested <= il._MAX_INPUT_FILE_BYTES + 1
+
+
+def test_open_validated_image_reads_in_bounded_chunks(monkeypatch, tmp_path) -> None:
+    """#258: Der Inhalt wird in kleinen Chunks gelesen – nie ein einzelner
+    read() in Limitgröße. Sonst reserviert CPythons BufferedReader sofort einen
+    Puffer in Limitgröße (~512 MiB) und selbst eine kleine valide Datei kann
+    unter knappem Adressraum mit MemoryError scheitern."""
+    import bgremover.image_loading as il
+
+    p = tmp_path / "ok.png"
+    Image.new("RGB", (16, 16), (10, 20, 30)).save(p)
+    raw = p.read_bytes()
+    assert len(raw) > 8  # mehrere Chunks bei winziger Chunkgröße
+
+    monkeypatch.setattr(il, "_READ_CHUNK_BYTES", 8)
+
+    read_sizes: list[int] = []
+
+    class _SpyFile:
+        def __init__(self, data: bytes) -> None:
+            self._buf = io.BytesIO(data)
+
+        def fileno(self) -> int:
+            return -1  # os.fstat ist gepatcht; Wert irrelevant
+
+        def read(self, n: int = -1) -> bytes:
+            read_sizes.append(n)
+            return self._buf.read(n)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc) -> None:
+            self._buf.close()
+
+    class _FakeStat:
+        st_size = len(raw)  # <= reales Limit (512 MiB) → kein fstat-Abbruch
+
+    with patch("bgremover.image_loading.open", return_value=_SpyFile(raw)), \
+         patch("bgremover.image_loading.os.fstat", return_value=_FakeStat()):
+        img, err = open_validated_image(str(p))
+
+    assert err is None and img is not None
+    # Mehrere Chunk-Reads, jeder höchstens chunkgroß – nie ein read() in
+    # Limitgröße (das wäre ~512 MiB).
+    assert len(read_sizes) >= 2
+    assert max(read_sizes) <= il._READ_CHUNK_BYTES
+
+
+def test_file_too_large_message_is_localized(monkeypatch) -> None:
+    """#258: Die Größenmeldung wird über einen Translation-Key vollständig
+    lokalisiert – keine gemischte (deutsch-in-englisch) Meldung."""
+    import bgremover.image_loading as il
+    from bgremover.i18n import configure_locale
+
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", 100)
+
+    class _FakeStat:
+        st_size = il._MAX_INPUT_FILE_BYTES + 1  # über dem Limit
+
+    try:
+        configure_locale("en")
+        with patch("bgremover.image_loading.os.fstat", return_value=_FakeStat()), \
+             patch("bgremover.image_loading.open") as mock_open:
+            mock_open.return_value.__enter__.return_value.fileno.return_value = 0
+            img, err = open_validated_image("/some/huge.png")
+    finally:
+        configure_locale("de")
+
+    assert img is None and err is not None
+    assert "File too large" in err   # englischer Wortlaut
+    assert "Datei" not in err        # kein deutscher Literaltext
+
+
+def test_file_too_large_message_rounds_actual_up_above_limit(monkeypatch) -> None:
+    """#258: Bei „Limit + 1 Byte" ist der angezeigte Ist-Wert sichtbar größer
+    als der Grenzwert (Aufrunden statt .0f-Abrunden auf denselben Wert)."""
+    import bgremover.image_loading as il
+
+    one_mib = 1024 * 1024
+    monkeypatch.setattr(il, "_MAX_INPUT_FILE_BYTES", 512 * one_mib)
+
+    class _FakeStat:
+        st_size = 512 * one_mib + 1  # exakt ein Byte über dem Limit
+
+    with patch("bgremover.image_loading.os.fstat", return_value=_FakeStat()), \
+         patch("bgremover.image_loading.open") as mock_open:
+        mock_open.return_value.__enter__.return_value.fileno.return_value = 0
+        img, err = open_validated_image("/some/big.png")
+
+    assert img is None and err is not None
+    assert "513 MB" in err   # Ist-Wert aufgerundet
+    assert "512 MB" in err   # Grenzwert abgerundet → sichtbar kleiner
 
 
 def test_image_load_worker_rejects_unknown_format(qapp, tmp_path) -> None:
