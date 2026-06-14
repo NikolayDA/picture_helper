@@ -100,8 +100,9 @@ Definiert in `.github/workflows/pr-ci.yml`,
 `.github/workflows/ci.yml`, `.github/workflows/ui-nightly.yml` und
 `.github/workflows/license-check.yml`.
 Pull Requests laufen leichtgewichtig auf Ubuntu/Python 3.12; die volle
-Matrix läuft auf Ubuntu + macOS mit Python 3.10–3.13 bei einem
-Versions-Tag (Release-Kandidat), beim Release oder manuell;
+Matrix läuft auf Ubuntu + macOS mit Python 3.10–3.13 als Release-Gate
+(der Release-Workflow ruft sie bei einem Versions-Tag vor dem
+Veröffentlichen auf), wöchentlich per Cron oder manuell;
 `ui-nightly.yml` führt die UI-Interaktionstests nächtlich aus; der
 Lizenz-Workflow erzeugt den Dependency-/Lizenzreport.
 

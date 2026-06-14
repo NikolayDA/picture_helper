@@ -125,6 +125,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   conserver une QPixmap transparente de la taille de l'image (~160 Mio à 40 MP)
   jusqu'à la prochaine reconstruction complète. L'effacement partiel ne met
   toujours à jour que le rectangle modifié (#251).
+- **Suivis du workflow de release durcis.** Le job de publication définit
+  désormais `GH_REPO` pour que `gh release` cible le bon dépôt sans checkout ; le
+  job de test réutilisable dépend de `verify-tag`, si bien qu'un tag invalide ou
+  ne correspondant pas à la version ne démarre plus la matrice ; et
+  `download-artifact` récupère les artefacts via `run-id`/`github-token` (avec
+  `actions: read`) sur l'ensemble du run, de sorte que « Re-run failed jobs » ne
+  perd plus les artefacts d'une tentative précédente. README/RESOURCES (y compris
+  les traductions) ne décrivent plus le trigger supprimé `release: published`
+  (#257).
 
 ### Supprimé
 

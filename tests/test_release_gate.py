@@ -107,6 +107,37 @@ def test_publish_job_is_gated_on_a_tag_ref() -> None:
     )
 
 
+# ── Release-Follow-ups (#257) ──────────────────────────────────────────
+
+def test_test_job_requires_verify_tag() -> None:
+    """Der wiederverwendbare Test-Job wartet auf verify-tag – ein ungültiger
+    oder zur Paketversion unpassender Tag startet die teure Matrix nicht."""
+    assert re.search(r"(?m)^\s*needs:\s*verify-tag\b", _release_text()), (
+        "test (uses: ci.yml) muss per needs auf verify-tag warten (#257)."
+    )
+
+
+def test_publish_provides_repo_context_for_gh() -> None:
+    assert "GH_REPO: ${{ github.repository }}" in _release_text(), (
+        "Die gh-release-Schritte brauchen GH_REPO (kein Checkout), damit der "
+        "Repo-Kontext auf einem frischen Runner sicher ist (#257)."
+    )
+
+
+def test_publish_artifact_download_is_rerun_resilient() -> None:
+    text = _release_text()
+    assert "run-id: ${{ github.run_id }}" in text, (
+        "download-artifact muss run-id setzen, damit ein Re-run die Artefakte "
+        "des Original-Runs findet (#257)."
+    )
+    assert "github-token: ${{ github.token }}" in text, (
+        "download-artifact per run-id braucht ein github-token."
+    )
+    assert re.search(r"(?m)^\s*actions:\s*read\b", text), (
+        "Der Publish-Job braucht actions: read für den API-Download per run-id."
+    )
+
+
 # ── Struktur des Job-Graphen (geparstes YAML, übersprungen ohne PyYAML) ─
 
 def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
@@ -114,6 +145,10 @@ def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
 
     # Die Full-CI-Matrix wird als wiederverwendbarer Workflow aufgerufen.
     assert jobs["test"].get("uses") == "./.github/workflows/ci.yml"
+
+    # #257: der Test-Job selbst wartet auf verify-tag – ein ungültiger Tag
+    # startet die teure Matrix gar nicht erst.
+    assert "verify-tag" in _needs_list(jobs["test"]), jobs["test"].get("needs")
 
     # build hängt sowohl an der Matrix als auch am Tag/Version-Abgleich.
     build_needs = _needs_list(jobs["build"])
@@ -124,6 +159,22 @@ def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
     publish = jobs["publish"]
     assert "build" in _needs_list(publish), publish.get("needs")
     assert "refs/tags/" in publish.get("if", "")
+
+    # #257: Publish braucht Schreibrecht aufs Release UND Leserecht auf die
+    # Actions-API (Re-run-resilienter Download per run-id).
+    perms = publish.get("permissions", {})
+    assert perms.get("contents") == "write", perms
+    assert perms.get("actions") == "read", perms
+    # #257: Repo-Kontext für gh ohne Checkout.
+    assert publish.get("env", {}).get("GH_REPO") == "${{ github.repository }}"
+    # #257: Re-run-resilienter Artefakt-Download (run-id + Token).
+    dl_step = next(
+        s for s in publish["steps"]
+        if "download-artifact" in str(s.get("uses", ""))
+    )
+    dl = dl_step.get("with", {})
+    assert dl.get("run-id") == "${{ github.run_id }}", dl
+    assert dl.get("github-token") == "${{ github.token }}", dl
 
 
 def test_full_ci_is_reusable_and_not_independently_tag_triggered() -> None:
