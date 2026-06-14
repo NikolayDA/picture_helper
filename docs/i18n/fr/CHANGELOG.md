@@ -70,6 +70,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 - **`CanvasHistory._redo_max` supprimé.** L'attribut en écriture seule n'était
   jamais lu ; la limite de redo est appliquée uniquement via `deque(maxlen=…)`
   (#199, #215).
+- **`import bgremover` ne charge plus le stack Qt.** Le point d'entrée du paquet
+  (`bgremover/__init__.py`) n'exporte plus directement que des métadonnées légères
+  (`__version__`, `get_version`) ; les ré-exports GUI/Qt établis (`ImageCanvas`,
+  `MainWindow`, workers …) restent compatibles mais sont chargés paresseusement
+  via un `__getattr__` PEP 562 au premier accès d'attribut. Les requêtes de version
+  et de métadonnées fonctionnent désormais headless sans PyQt6 ; un test de
+  régression en sous-processus garantit qu'un import léger n'amène ni
+  `bgremover.canvas`/`main_window` ni PyQt6 dans `sys.modules` (#232).
 
 ### Corrigé
 
@@ -156,6 +164,28 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   qu'elle est visiblement plus grande à « limite + 1 octet » (p. ex. « 513 MB »
   pour un maximum de « 512 MB », au lieu d'afficher les deux comme « 512 MB »
   avec `.0f`) (#258).
+- **La migration de schéma QSettings est sûre au downgrade.** Une migration
+  manquante ne pousse plus `schema_version` à la valeur courante sans
+  vérification, et un schéma futur plus élevé n'est plus réécrit lors de la
+  construction du menu des fichiers récents — un downgrade accidentel ne perd
+  ainsi aucun réglage (#234, #259).
+- **Échap annule d'abord le lasso en cours ; curseur d'outil restauré après le
+  recadrage.** Un lasso polygonal en cours est désormais annulé par Échap avant
+  l'effacement de la sélection (ordre recadrage > lasso > sélection). Quand un
+  recadrage actif est abandonné automatiquement, `_finish_mode` restaure le
+  curseur de l'outil actif au lieu de conserver le curseur de recadrage
+  (#248, #260).
+- **L'arrêt des workers est borné dans le temps.** À la fermeture de l'app, le
+  `WorkerController` n'attend plus que brièvement sur `quit()`/`wait()` avant de
+  recourir à `terminate()` avec un autre `wait()` borné ; un worker qui ne répond
+  pas ne bloque plus la fermeture indéfiniment, et le chemin d'erreur est journalisé.
+  Le vrai risque de `terminate()` pour le travail ONNX natif reste ouvert comme
+  suivi d'architecture (#270) (#231).
+- **L'overlay du pinceau évite un scan complet du masque par mouvement.**
+  `canvas_selection` tient le compteur de sélection de manière incrémentale et
+  utilise la bounding box du changement au lieu de scanner tout le masque à
+  chaque mouvement de pinceau/gomme ; `has_selection` est ainsi en O(1). Cela
+  garde les grandes images fluides lors d'un dessin rapide (#261).
 
 ### Supprimé
 

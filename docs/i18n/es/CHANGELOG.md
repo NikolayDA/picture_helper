@@ -71,6 +71,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 - **`CanvasHistory._redo_max` eliminado.** El atributo de solo escritura nunca
   se leía; el límite de rehacer se aplica únicamente vía `deque(maxlen=…)`
   (#199, #215).
+- **`import bgremover` ya no carga el stack Qt.** El punto de entrada del paquete
+  (`bgremover/__init__.py`) ahora exporta directamente solo metadatos ligeros
+  (`__version__`, `get_version`); los re-exports GUI/Qt establecidos
+  (`ImageCanvas`, `MainWindow`, workers …) siguen siendo compatibles pero se
+  cargan de forma perezosa vía `__getattr__` PEP 562 al primer acceso. Las
+  consultas de versión y metadatos funcionan headless sin PyQt6; un test de
+  regresión en subproceso garantiza que un import ligero no arrastra
+  `bgremover.canvas`/`main_window` ni PyQt6 a `sys.modules` (#232).
 
 ### Corregido
 
@@ -154,6 +162,26 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   mezclado) y redondea hacia arriba el valor real y hacia abajo el límite, de
   modo que es visiblemente mayor en «límite + 1 byte» (p. ej. «513 MB» con un
   máximo de «512 MB», en vez de mostrar ambos como «512 MB» con `.0f`) (#258).
+- **La migración de esquema de QSettings es segura ante downgrade.** Una migración
+  ausente ya no sube `schema_version` al valor actual sin comprobación, y un
+  esquema futuro superior ya no se reescribe al construir el menú de archivos
+  recientes — un downgrade accidental no pierde así ningún ajuste (#234, #259).
+- **Escape cancela primero el lazo en curso; cursor de herramienta restaurado tras
+  el recorte.** Un lazo poligonal en curso ahora se cancela con Escape antes de
+  borrar la selección (orden recorte > lazo > selección). Cuando un recorte activo
+  se descarta automáticamente, `_finish_mode` restaura el cursor de la herramienta
+  activa en vez de mantener el cursor de recorte (#248, #260).
+- **El apagado de workers está acotado en el tiempo.** Al cerrar la app, el
+  `WorkerController` ahora espera solo brevemente en `quit()`/`wait()` antes de
+  recurrir a `terminate()` con otro `wait()` acotado; un worker que no responde ya
+  no bloquea el cierre indefinidamente, y la ruta de error se registra. El riesgo
+  real de `terminate()` con trabajo ONNX nativo queda abierto como follow-up de
+  arquitectura (#270) (#231).
+- **El overlay del pincel evita un escaneo completo de la máscara por movimiento.**
+  `canvas_selection` mantiene el contador de selección de forma incremental y usa
+  el bounding box del cambio en vez de escanear toda la máscara en cada
+  movimiento de pincel/goma; `has_selection` es así O(1). Esto mantiene fluidas las
+  imágenes grandes al dibujar rápido (#261).
 
 ### Eliminado
 
