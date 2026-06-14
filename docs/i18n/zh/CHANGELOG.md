@@ -91,6 +91,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   为空，再走增量 dirty 路径。当橡皮擦抹除最后一个选中像素时，`_overlay_pixmap` 与
   `QGraphicsPixmapItem` 会立刻清空，而不是把一张整图大小的透明 QPixmap（40 MP 时约
   160 MiB）一直保留到下一次完整重建。部分擦除仍只更新脏矩形（#251）。
+- **强化 release 工作流的后续修复。** publish 作业现在设置 `GH_REPO`，使 `gh
+  release` 无需 checkout 即可定位到正确的仓库；可复用的 test 作业依赖
+  `verify-tag`，因此无效或与版本不匹配的标签不会再启动整个矩阵；并且
+  `download-artifact` 通过 `run-id`/`github-token`（配合 `actions: read`）从整个
+  run 拉取产物，使「Re-run failed jobs」不再丢失先前尝试的产物。README/RESOURCES
+  （含翻译）不再描述已移除的 `release: published` 触发器（#257）。
 
 ### 移除
 

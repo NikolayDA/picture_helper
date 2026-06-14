@@ -124,6 +124,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   transparente Vollbild-QPixmap (bei 40 MP rund 160 MiB) bis zum nächsten
   Vollaufbau zu halten. Teilweises Radieren aktualisiert weiterhin nur das
   Dirty-Rechteck (#251).
+- **Release-Workflow-Follow-ups gehärtet.** Der Publish-Job setzt jetzt
+  `GH_REPO`, damit `gh release` ohne Checkout das richtige Repository anspricht;
+  der wiederverwendbare Test-Job hängt an `verify-tag`, sodass ein ungültiger
+  oder zur Paketversion unpassender Tag die Matrix gar nicht erst startet; und
+  `download-artifact` lädt die Artefakte per `run-id`/`github-token` (mit
+  `actions: read`) aus dem gesamten Run, sodass „Re-run failed jobs“ keine
+  Artefakte eines früheren Attempts verliert. README/RESOURCES (inkl.
+  Übersetzungen) beschreiben den entfernten `release: published`-Trigger nicht
+  mehr (#257).
 
 ### Entfernt
 
