@@ -72,10 +72,22 @@ def test_close_event_shuts_down_all_threads(functions):
 
 
 def test_shutdown_helper_uses_wait_and_terminate(functions):
-    body = ast.unparse(functions["shutdown_thread"])
+    function = functions["shutdown_thread"]
+    body = ast.unparse(function)
+    wait_calls = [
+        node for node in ast.walk(function)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "wait"
+        )
+    ]
     assert "isRunning" in body
     assert ".quit()" in body
-    assert ".wait(" in body
+    assert len(wait_calls) == 2
+    assert all(call.args for call in wait_calls), (
+        "Jeder QThread.wait()-Aufruf braucht ein festes Timeout."
+    )
     assert ".terminate()" in body, (
         "Notbremse terminate() nötig, weil rembg-run() blockierende "
         "C-Aufrufe macht und auf quit() nicht reagiert."

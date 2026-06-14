@@ -38,10 +38,11 @@ _ALLOWED_IMAGE_FORMATS = frozenset({
 _UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
 # Maximale Anzahl Redo-Einträge.
 _REDO_MAX_ENTRIES = 20
-# Maximale Wartezeit (ms) auf einen Hintergrund-Thread beim Schliessen,
-# bevor er hart terminiert wird. Der rembg-Warmup darf einige Sekunden
-# brauchen; danach ist hartes Beenden besser als ein Hänger oder Crash.
+# Maximale Wartezeiten (ms) auf einen Hintergrund-Thread beim Schliessen.
+# Nach dem kooperativen Timeout bleibt terminate() nur als begrenzte
+# Notbremse; reagiert der Thread auch darauf nicht, bleibt das Fenster offen.
 _THREAD_SHUTDOWN_MS = 5000
+_THREAD_TERMINATE_WAIT_MS = 1000
 
 # Plattform-Erkennung für tastaturabhängige Hinweistexte (macOS = Cmd).
 _IS_MACOS = sys.platform == "darwin"

@@ -89,6 +89,10 @@ class _StatusMessages:
     def BEENDE(self) -> str:
         return tr("status.quitting")
 
+    @property
+    def BEENDEN_FEHLGESCHLAGEN(self) -> str:
+        return tr("status.shutdown_failed")
+
     # ── Dynamisch (mit eingesetzten Werten) ──────────────────
     def LAEDT(self, name: str) -> str:
         return tr("status.loading", name=name)

@@ -42,11 +42,12 @@ class _RecordingWorker(QObject):
         self.finished.emit()
 
 
-class _FakeStuckThread:
-    def __init__(self) -> None:
+class _FakeThread:
+    def __init__(self, wait_results: list[bool]) -> None:
         self.quit_called = False
         self.terminate_called = False
-        self.wait_calls = 0
+        self.wait_results = wait_results
+        self.wait_timeouts: list[int] = []
 
     def isRunning(self) -> bool:
         return True
@@ -54,9 +55,9 @@ class _FakeStuckThread:
     def quit(self) -> None:
         self.quit_called = True
 
-    def wait(self, _ms=None) -> bool:
-        self.wait_calls += 1
-        return self.terminate_called
+    def wait(self, ms: int) -> bool:
+        self.wait_timeouts.append(ms)
+        return self.wait_results.pop(0)
 
     def terminate(self) -> None:
         self.terminate_called = True
@@ -112,17 +113,56 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
     assert not thread.isRunning()          # Thread sauber beendet
 
 
-def test_shutdown_thread_terminates_after_timeout(qapp, monkeypatch):
-    monkeypatch.setattr(MainWindow, "_start_rembg_warmup", lambda self: None)
-    win = MainWindow()
-    fake_thread = _FakeStuckThread()
+def test_shutdown_thread_finishes_cooperatively_within_timeout(qapp):
+    controller = WorkerController(
+        QObject(), shutdown_ms=17, terminate_wait_ms=23)
+    fake_thread = _FakeThread([True])
 
-    win._worker_controller.shutdown_thread(fake_thread, "KI")
+    assert controller.shutdown_thread(fake_thread, "Bildladen") is True
+
+    assert fake_thread.quit_called
+    assert not fake_thread.terminate_called
+    assert fake_thread.wait_timeouts == [17]
+
+
+def test_shutdown_thread_uses_bounded_fallback_after_timeout(qapp):
+    controller = WorkerController(
+        QObject(), shutdown_ms=17, terminate_wait_ms=23)
+    fake_thread = _FakeThread([False, True])
+
+    assert controller.shutdown_thread(fake_thread, "KI") is True
 
     assert fake_thread.quit_called
     assert fake_thread.terminate_called
-    assert fake_thread.wait_calls == 2
-    win.close()
+    assert fake_thread.wait_timeouts == [17, 23]
+
+
+def test_shutdown_thread_reports_thread_that_survives_fallback(qapp, caplog):
+    controller = WorkerController(
+        QObject(), shutdown_ms=17, terminate_wait_ms=23)
+    fake_thread = _FakeThread([False, False])
+
+    assert controller.shutdown_thread(fake_thread, "rembg-Warmup") is False
+
+    assert fake_thread.quit_called
+    assert fake_thread.terminate_called
+    assert fake_thread.wait_timeouts == [17, 23]
+    assert "Fenster bleibt geöffnet" in caplog.text
+
+
+def test_guarded_ui_callback_ignores_signal_during_shutdown(qapp):
+    class _Emitter(QObject):
+        finished = pyqtSignal(object)
+
+    controller = WorkerController(QObject())
+    received: list[object] = []
+    emitter = _Emitter()
+    emitter.finished.connect(controller._guard_ui_callback(received.append))
+
+    controller._shutting_down = True
+    emitter.finished.emit("late result")
+
+    assert received == []
 
 
 def test_close_event_noop_without_threads(qapp, monkeypatch):
