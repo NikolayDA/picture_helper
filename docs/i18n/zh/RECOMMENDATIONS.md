@@ -31,44 +31,40 @@
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-14）
 
-目前有 **15** 个开放 issue。对描述、代码、测试和文档的复核表明：**九个**
-问题范围清晰、可直接提 PR；两个（#231/#235）需先做架构或范围决策；#245 是
-基础设施/计费问题（并非代码缺陷）；另三个（#161/#203/#204）在没有更多证据时
-不能构成本仓库的任务。
+Triage 后仍有 **13** 个开放 issue。**#203/#204** 因并非项目依赖而以
+`not planned` 关闭；**#226/#244** 已由 PR #246 和 #256 完成。11 个 issue
+具有可执行的仓库范围。#161 需要先决定发布模式，#245 主要需要账户侧修复
+quota/billing。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | HTTPS URL 本身正确；仓库保持私有时以 `not planned` 关闭，否则明确发布方式 |
-| [#203](https://github.com/NikolayDA/picture_helper/issues/203) | cryptography 41.0.7 — CVE 集合 | 🟢 低 | 🟢 低 | 不在项目 snapshot 中；没有可复现依赖路径时以 `not planned` 关闭，且不要保留错误的严重性数据 |
-| [#204](https://github.com/NikolayDA/picture_helper/issues/204) | PyJWT 2.7.0 — CVE 集合 | 🟢 低 | 🟢 低 | 不在项目 snapshot 中；没有可复现路径时以 `not planned` 关闭，并修正严重性和失效的 GHSA 链接 |
-| [#226](https://github.com/NikolayDA/picture_helper/issues/226) | INSTALL 审查：releases、Raspberry Pi 和 macOS 诊断 | 🟡 中 | 🟢 低 | 可提 PR：三项发现仍有效；同时更新根文档和五份翻译，并如实说明 release 工件的可用性 |
-| [#231](https://github.com/NikolayDA/picture_helper/issues/231) | `QThread.terminate()` 可能不安全地终止 worker | 🟡 中 | 🟠 高 | 需细化：阻塞的 native 调用需要架构决策（子进程）；当前测试保留了缺陷行为 |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | “Runde 5” 已修复；先决定公开或私有/邀请制，再修改 clone 指引 |
+| [#231](https://github.com/NikolayDA/picture_helper/issues/231) | `QThread.terminate()` 可能不安全地终止 worker | 🟠 高 | 🟡 中 | 首个 PR：限制第二次 wait，记录并测试失败；子进程架构另行处理 |
 | [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` 加载完整 PyQt6 GUI | 🟡 中 | 🟡 中 | 可提 PR：使用 PEP 562 惰性导出保持公共 API，并增加 import 回归测试 |
-| [#234](https://github.com/NikolayDA/picture_helper/issues/234) | 缺失迁移仍会提升 `schema_version` | 🟡 中 | 🟢 低 | 可提 PR：阻止版本提升、反转测试，并明确版本 0 的语义 |
-| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo 内存限制未包含 redo 栈 | 🟢 低 | 🟡 中 | 需细化：将范围缩小为共享 undo/redo 预算；原始图像和 Qt 分配仅在测量后纳入 |
-| [#244](https://github.com/NikolayDA/picture_helper/issues/244) | 死代码：`ImageCanvas._zoom` 与未用的 `launch_worker` wrapper | 🟢 低 | 🟢 低 | 可提 PR：删除 `_zoom`，对 `launch_worker` 在删除与文档化 API 间抉择；小型清理 PR |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 基础设施/计费：在账户侧恢复 OpenAI 配额；让 workflow 对配额耗尽更健壮，并将 `setup-node` 升到 Node 24 |
-| [#247](https://github.com/NikolayDA/picture_helper/issues/247) | 活动 crop 在图像变换后残留并产生错误像素 | 🟠 高 | 🟡 中 | 可提 PR（首选）：每次图像变更都重置瞬态状态；issue 中已给出回归测试（400×200 + 旋转 90°） |
-| [#248](https://github.com/NikolayDA/picture_helper/issues/248) | Escape 清除选区而非取消多边形套索 | 🟡 中 | 🟡 中 | 可提 PR：Escape 优先级 crop → 套索 → 取消选区；与 #247 共享瞬态状态契约 |
+| [#234](https://github.com/NikolayDA/picture_helper/issues/234) | 缺失迁移仍会提升 `schema_version` | 🟡 中 | 🟢 低 | 与 #259 合并：缺失迁移不得标记或修改 settings |
+| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo 内存限制未包含 redo 栈 | 🟢 低 | 🟡 中 | 共享 undo/redo 预算；原图与 Qt 内存仅测量和记录 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 账户侧恢复 quota；仓库只改进错误处理，不改 `setup-node` |
+| [#248](https://github.com/NikolayDA/picture_helper/issues/248) | Escape 清除选区而非取消多边形套索 | 🟡 中 | 🟡 中 | 与 #260 合并：集中实现 crop → 套索 → 取消选区 |
 | [#249](https://github.com/NikolayDA/picture_helper/issues/249) | 文件关联传入图像路径但应用不打开 | 🟡 中 | 🟡 中 | 可提 PR：将启动路径和 macOS `QFileOpenEvent` 通过已校验的加载路径打开 |
-| [#250](https://github.com/NikolayDA/picture_helper/issues/250) | Release workflow 在没有完整 CI gate 时即发布工件 | 🟠 高 | 🟡 中 | 可提 PR（下个 tag 前）：用 `needs` 强制完整 CI、校验 tag/`project.version`、移除 `\|\| true` |
-| [#251](https://github.com/NikolayDA/picture_helper/issues/251) | 空选区在擦除后仍保留 overlay-QPixmap | 🟡 中 | 🟢 低 | 可提 PR（快速）：掩码为空时释放 overlay pixmap；issue 中已给出精确补丁 |
+| [#257](https://github.com/NikolayDA/picture_helper/issues/257) | Release follow-up：publish 上下文、tag gate 与重跑工件 | 🟠 高 | 🟡 中 | 下个 tag 前的独立首要 PR；workflow、文档和测试一起改 |
+| [#258](https://github.com/NikolayDA/picture_helper/issues/258) | 图像加载限制可能预分配 512 MiB | 🟠 高 | 🟡 中 | 独立 PR：分块读取、本地化错误和精确边界显示 |
+| [#259](https://github.com/NikolayDA/picture_helper/issues/259) | Recent Files 会修改未来 schema | 🟠 高 | 🟡 中 | 与 #234 合并：未来 schema 全程只读 |
+| [#260](https://github.com/NikolayDA/picture_helper/issues/260) | 自动丢弃 crop 后工具光标错误 | 🟡 中 | 🟢 低 | 与 #248 合并并测试集中取消和光标恢复 |
+| [#261](https://github.com/NikolayDA/picture_helper/issues/261) | 画笔 overlay 每次移动都扫描完整掩码 | 🟡 中 | 🟡 中 | 独立性能 PR，加入选中像素计数器和 spy test |
 
 ### 推荐 PR 顺序
 
-1. **#247** — 高：正确性/数据缺陷（过期的 crop 矩形产生透明填充像素）；范围完整并含回归测试。
-2. **#250** — 下个 release tag 前的高优先项：用 `needs` 强制完整 CI gate、对齐 tag/版本、移除 `|| true`。
-3. **#251** — 快速内存修复：空掩码释放 overlay pixmap；精确补丁已在 issue 中。
-4. **#244** — 死代码清理（删除 `_zoom`，决定 `launch_worker`）；小型低风险清理 PR。
-5. **#234** — 缺少迁移时不得提升版本，并修正当前期待相反行为的测试。
-6. **#248** — Escape 优先级 crop → 套索 → 取消选区；与 #247 共享瞬态状态契约，可一并处理。
-7. **#232** — PEP 562 惰性导出并增加 import 回归测试。
-8. **#249** — 将启动路径和 macOS `QFileOpenEvent` 通过已校验的加载路径打开。
-9. **#226** — 六种语言的文档修复；如实记录 release 可用性。
-10. **#245** — 在账户侧恢复 OpenAI 计费；让 scan workflow 对配额耗尽更健壮，并将 `setup-node` 升到 Node 24。
-11. **#231** — 先确定取消模型（对永久阻塞的 native 调用用子进程），再实现。
-12. **#235** — 明确范围后再实现共享 undo/redo 内存预算。
-13. **#161/#203/#204** — 除非补充具体发布或依赖路径，否则以 `not planned` 关闭。
+1. **#257** — 在下个 tag 前让 release workflow 可靠。
+2. **#258** — 移除预分配并修正大小错误。
+3. **#234 + #259** — QSettings 迁移与未来 schema 保护。
+4. **#248 + #260** — 集中 Escape/crop 取消与正确光标。
+5. **#231** — 先交付有界 shutdown fallback；子进程另做。
+6. **#261** — 从常用画笔路径移除 O(图像大小) 扫描。
+7. **#249** — 实际处理文件关联和 macOS open events。
+8. **#232** — 使用 PEP 562 惰性导出实现轻量导入。
+9. **#235** — 实现共享 undo/redo 历史预算。
+10. **#245** — 外部恢复 quota；workflow 加固单独处理。
+11. **#161** — 决定发布模式，再更新文档或关闭。
 
 ## 先前轮次
 
