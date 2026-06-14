@@ -9,6 +9,7 @@ identisch.
 from __future__ import annotations
 
 import io
+import math
 import os
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -18,6 +19,15 @@ from bgremover.constants import (
     _MAX_INPUT_FILE_BYTES,
     _MAX_MEGAPIXELS,
 )
+from bgremover.i18n import tr
+
+# Chunkgröße für das begrenzte Einlesen. Bewusst klein gegenüber dem
+# Dateigrößen-Limit (512 MiB): ``fh.read(limit + 1)`` würde bei CPythons
+# gepuffertem Reader sofort einen Puffer in Limitgröße reservieren und damit
+# selbst eine kleine valide Datei unter knappem Adressraum mit ``MemoryError``
+# scheitern lassen (#258). 8 MiB hält die Vorallokation klein und die Anzahl
+# der Lese-Iterationen für reale Bilddateien gering.
+_READ_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def _too_large_message(mp: float | None = None) -> str:
@@ -34,10 +44,42 @@ def _file_too_large_message(size_bytes: int) -> str:
     Dateigröße in MB (vor dem Einlesen), nicht um die Megapixel-Zahl des
     dekodierten Bildes. Die unterschiedlichen Einheiten (MB vs. MP) und
     Worte (Datei vs. Bild) machen für Nutzer klar, welche Grenze griff.
+
+    Die Meldung läuft über einen Übersetzungs-Key (``status.file_too_large``)
+    statt über einen deutschen Literaltext, sonst erschiene sie in anderen
+    Sprachen gemischt – ``status.load_error`` übersetzt nur den Rahmen (#258).
+
+    Der Ist-Wert wird **auf**-, der Grenzwert **ab**gerundet. So ist die
+    angezeigte Dateigröße bei einer Überschreitung garantiert sichtbar größer
+    als das Limit – auch bei „Limit + 1 Byte", das mit ``.0f`` sonst als
+    „512 MB bei Maximum 512 MB" erschiene (#258).
     """
-    size_mb = size_bytes / (1024 * 1024)
-    limit_mb = _MAX_INPUT_FILE_BYTES / (1024 * 1024)
-    return f"Datei zu groß ({size_mb:.0f} MB) – Maximum: {limit_mb:.0f} MB"
+    size_mb = math.ceil(size_bytes / (1024 * 1024))
+    limit_mb = _MAX_INPUT_FILE_BYTES // (1024 * 1024)
+    return tr("status.file_too_large", size=size_mb, limit=limit_mb)
+
+
+def _read_capped(fh: io.BufferedReader, limit: int) -> bytes | None:
+    """Liest höchstens ``limit + 1`` Bytes in Chunks – ohne Vorallokation.
+
+    Gibt die gelesenen Bytes zurück (höchstens ``limit`` lang) oder ``None``,
+    sobald der Inhalt das Limit übersteigt. Anders als ``fh.read(limit + 1)``
+    reserviert das nie einen Puffer in Limitgröße; eine kleine Datei belegt nur
+    ihre eigene Größe. Im Überschreitungsfall werden die Daten verworfen, statt
+    sie zu materialisieren – das Wachstum zwischen ``fstat()`` und Lesen (TOCTOU
+    bzw. Pipes/Sockets ohne verlässliches ``st_size``) wird dennoch erkannt.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while total <= limit:
+        chunk = fh.read(min(_READ_CHUNK_BYTES, limit + 1 - total))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
@@ -62,16 +104,21 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
             size = os.fstat(fh.fileno()).st_size
             if size > _MAX_INPUT_FILE_BYTES:
                 return None, _file_too_large_message(size)
-            # Begrenzt lesen statt fh.read(): fängt ungewöhnliche Fileobjekte
-            # (Pipes/Sockets ohne verlässliches st_size) und eine Größenänderung
-            # zwischen fstat() und read() ab. +1 Byte, um „über dem Limit"
-            # eindeutig erkennen zu können.
-            data = fh.read(_MAX_INPUT_FILE_BYTES + 1)
+            # Begrenzt und in Chunks lesen (kein read() in Limitgröße, das sonst
+            # einen 512-MiB-Puffer vorallokiert und kleine Dateien unter knappem
+            # Speicher killt). Fängt ungewöhnliche Fileobjekte (Pipes/Sockets
+            # ohne verlässliches st_size) und eine Größenänderung zwischen
+            # fstat() und Lesen ab – ``None`` signalisiert „über dem Limit".
+            data = _read_capped(fh, _MAX_INPUT_FILE_BYTES)
     except OSError as e:
         return None, f"{type(e).__name__}: {e}"
 
-    if len(data) > _MAX_INPUT_FILE_BYTES:
-        return None, _file_too_large_message(len(data))
+    if data is None:
+        # Inhalt wuchs zwischen fstat() und Lesen über das Limit (TOCTOU) oder
+        # das Fileobjekt liefert keine verlässliche Größe. Den genauen Ist-Wert
+        # kennen wir hier nicht; „Limit + 1 Byte" zeigt eindeutig die
+        # Überschreitung an.
+        return None, _file_too_large_message(_MAX_INPUT_FILE_BYTES + 1)
 
     # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
     # dekodieren – manipulierte oder abgeschnittene Dateien werden so
