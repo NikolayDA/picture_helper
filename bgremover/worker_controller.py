@@ -8,7 +8,11 @@ import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
-from bgremover.constants import _THREAD_SHUTDOWN_MS, logger
+from bgremover.constants import (
+    _THREAD_SHUTDOWN_MS,
+    _THREAD_TERMINATE_WAIT_MS,
+    logger,
+)
 from bgremover.workers import (
     AIWorker,
     FloodFillWorker,
@@ -23,9 +27,16 @@ QuitSignals = tuple[pyqtBoundSignal, ...]
 class WorkerController:
     """Besitzt und verwaltet Hintergrund-Worker-Threads und ihre Shutdown-Semantik."""
 
-    def __init__(self, parent: QObject, shutdown_ms: int = _THREAD_SHUTDOWN_MS) -> None:
+    def __init__(
+        self,
+        parent: QObject,
+        shutdown_ms: int = _THREAD_SHUTDOWN_MS,
+        terminate_wait_ms: int = _THREAD_TERMINATE_WAIT_MS,
+    ) -> None:
         self._parent = parent
         self._shutdown_ms = shutdown_ms
+        self._terminate_wait_ms = terminate_wait_ms
+        self._shutting_down = False
         self.load_thread: QThread | None = None
         self.ai_thread: QThread | None = None
         self.ai_worker: AIWorker | None = None
@@ -40,6 +51,16 @@ class WorkerController:
         # am QThread – das war ein versteckter Vertrag; die explizite Liste
         # macht Eigentumsverhaeltnisse und Cleanup sichtbar.
         self._workers: list[QObject] = []
+
+    def _guard_ui_callback(
+        self, callback: Callable[..., None],
+    ) -> Callable[..., None]:
+        """Unterdrückt verspätete Worker-Callbacks während des Fensterabbaus."""
+        def guarded(*args: object) -> None:
+            if not self._shutting_down:
+                callback(*args)
+
+        return guarded
 
     @property
     def is_loading(self) -> bool:
@@ -90,8 +111,8 @@ class WorkerController:
         if self.is_loading:
             return False
         worker = ImageLoadWorker(path)
-        worker.finished.connect(on_loaded)
-        worker.error.connect(on_error)
+        worker.finished.connect(self._guard_ui_callback(on_loaded))
+        worker.error.connect(self._guard_ui_callback(on_error))
         thread = self._build_thread(
             worker,
             quit_on=(worker.finished, worker.error),
@@ -117,11 +138,12 @@ class WorkerController:
             # ``error`` feuert nur im Fehlerfall (vor dem finished/Lifecycle).
             # So kann der Aufrufer einen fehlgeschlagenen Warmup von einem
             # erfolgreichen unterscheiden, statt blind „KI bereit" zu melden.
-            worker.error.connect(on_error)
+            worker.error.connect(self._guard_ui_callback(on_error))
+        guarded_on_finished = self._guard_ui_callback(on_finished)
         thread = self._build_thread(
             worker,
             quit_on=(worker.finished,),
-            on_finished=lambda: self._finish_warmup_thread(on_finished),
+            on_finished=lambda: self._finish_warmup_thread(guarded_on_finished),
         )
         self.warmup_thread = thread
         thread.start()
@@ -143,8 +165,9 @@ class WorkerController:
         if self.is_ai_running:
             return False
         worker = AIWorker(image.copy())
-        worker.finished.connect(on_done)
-        worker.error.connect(on_error)
+        worker.finished.connect(self._guard_ui_callback(on_done))
+        worker.error.connect(self._guard_ui_callback(on_error))
+        guarded_on_finished = self._guard_ui_callback(on_finished)
         self.ai_worker = worker
         thread = self._build_thread(
             worker,
@@ -152,7 +175,7 @@ class WorkerController:
             # Abbruch). Nur deshalb quittet der Thread auch nach cancel_ai(),
             # bei dem weder ``finished`` noch ``error`` emittiert wird.
             quit_on=(worker.done,),
-            on_finished=lambda: self._finish_ai_thread(on_finished),
+            on_finished=lambda: self._finish_ai_thread(guarded_on_finished),
         )
         self.ai_thread = thread
         thread.start()
@@ -185,8 +208,8 @@ class WorkerController:
         if self.is_flood_fill_running:
             return False
         worker = FloodFillWorker(arr, x, y, tolerance)
-        worker.finished.connect(on_done)
-        worker.error.connect(on_error)
+        worker.finished.connect(self._guard_ui_callback(on_done))
+        worker.error.connect(self._guard_ui_callback(on_error))
         self.flood_fill_worker = worker
         thread = self._build_thread(
             worker,
@@ -212,28 +235,66 @@ class WorkerController:
         self.flood_fill_thread = None
         self.flood_fill_worker = None
 
-    def shutdown_all(self) -> None:
+    def shutdown_all(self) -> bool:
+        """Stoppt alle Worker; False hält das besitzende Fenster am Leben."""
+        self._shutting_down = True
         self.cancel_ai()
         self.cancel_flood_fill()
-        self.shutdown_thread(self.ai_thread, "KI")
-        self.shutdown_thread(self.load_thread, "Bildladen")
-        self.shutdown_thread(self.warmup_thread, "rembg-Warmup")
-        self.shutdown_thread(self.flood_fill_thread, "Flood-Fill")
+        shutdowns = (
+            ("ai_thread", self.shutdown_thread(self.ai_thread, "KI")),
+            ("load_thread", self.shutdown_thread(self.load_thread, "Bildladen")),
+            (
+                "warmup_thread",
+                self.shutdown_thread(self.warmup_thread, "rembg-Warmup"),
+            ),
+            (
+                "flood_fill_thread",
+                self.shutdown_thread(self.flood_fill_thread, "Flood-Fill"),
+            ),
+        )
         # ``thread.finished``-Slots werden beim blockierenden wait() nicht
         # zwingend sofort im Besitzer-Thread zugestellt. Nach dem synchronen
-        # Shutdown dürfen deshalb keine stale QThread-Referenzen verbleiben.
-        self.ai_thread = None
-        self.load_thread = None
-        self.warmup_thread = None
-        self.flood_fill_thread = None
+        # Shutdown dürfen deshalb für beendete Threads keine stale
+        # QThread-Referenzen verbleiben. Nicht beendete Threads müssen dagegen
+        # referenziert bleiben, solange das Fenster weiterlebt.
+        for attr_name, stopped in shutdowns:
+            if stopped:
+                setattr(self, attr_name, None)
+        if shutdowns[0][1]:
+            self.ai_worker = None
+        if shutdowns[3][1]:
+            self.flood_fill_worker = None
 
-    def shutdown_thread(self, thread: QThread | None, name: str) -> None:
-        """Beendet *thread* sauber, bevor das besitzende Fenster zerstört wird."""
+        all_stopped = all(stopped for _, stopped in shutdowns)
+        if not all_stopped:
+            # Das Fenster bleibt offen; reguläre Worker-Callbacks dürfen
+            # deshalb bei einem späteren Abschluss wieder die lebende UI
+            # erreichen.
+            self._shutting_down = False
+        return all_stopped
+
+    def shutdown_thread(self, thread: QThread | None, name: str) -> bool:
+        """Beendet *thread* innerhalb zweier fester Zeitgrenzen."""
         if thread is None or not thread.isRunning():
-            return
+            return True
         thread.quit()
-        if not thread.wait(self._shutdown_ms):
-            logger.warning(
-                "Thread '%s' reagierte nicht – wird hart beendet", name)
-            thread.terminate()
-            thread.wait()
+        if thread.wait(self._shutdown_ms):
+            return True
+
+        logger.warning(
+            "Thread '%s' reagierte nach %d ms nicht; begrenzter "
+            "Notfallabbruch per QThread.terminate()",
+            name,
+            self._shutdown_ms,
+        )
+        thread.terminate()
+        if thread.wait(self._terminate_wait_ms):
+            return True
+
+        logger.critical(
+            "Thread '%s' läuft trotz terminate() nach weiteren %d ms; "
+            "das Fenster bleibt geöffnet",
+            name,
+            self._terminate_wait_ms,
+        )
+        return False

@@ -12,6 +12,7 @@ from PIL import Image
 from PyQt6.QtGui import QCloseEvent
 
 from bgremover import MainWindow
+from bgremover.status_messages import StatusMessages as SM
 
 
 def _load(win: MainWindow, color=(10, 20, 30, 255)) -> None:
@@ -63,7 +64,7 @@ def test_close_event_aborts_when_discard_declined(qapp, monkeypatch) -> None:
         shutdown: list[bool] = []
         monkeypatch.setattr(
             win._worker_controller, "shutdown_all",
-            lambda: shutdown.append(True))
+            lambda: shutdown.append(True) or True)
         evt = QCloseEvent()
         win.closeEvent(evt)
         assert evt.isAccepted() is False  # Fenster bleibt offen
@@ -82,12 +83,32 @@ def test_close_event_proceeds_when_allowed(qapp, monkeypatch) -> None:
         shutdown: list[bool] = []
         monkeypatch.setattr(
             win._worker_controller, "shutdown_all",
-            lambda: shutdown.append(True))
+            lambda: shutdown.append(True) or True)
         evt = QCloseEvent()
         win.closeEvent(evt)
         assert evt.isAccepted() is True
         assert shutdown == [True]
     finally:
+        win.close()
+
+
+def test_close_event_stays_open_when_thread_shutdown_fails(
+    qapp, monkeypatch,
+) -> None:
+    win = MainWindow()
+    try:
+        monkeypatch.setattr(win, "_confirm_discard_changes", lambda: True)
+        monkeypatch.setattr(
+            win._worker_controller, "shutdown_all", lambda: False)
+        evt = QCloseEvent()
+
+        win.closeEvent(evt)
+
+        assert evt.isAccepted() is False
+        assert win._sb.currentMessage() == SM.BEENDEN_FEHLGESCHLAGEN
+    finally:
+        monkeypatch.setattr(
+            win._worker_controller, "shutdown_all", lambda: True)
         win.close()
 
 
