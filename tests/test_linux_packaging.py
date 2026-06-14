@@ -84,6 +84,28 @@ def test_desktop_mimetypes_match_supported_formats(desktop_entry) -> None:
         assert expected in mimes
 
 
+# Format → MIME-Typ; muss jeden Eintrag aus ``_ALLOWED_IMAGE_FORMATS`` abdecken,
+# sonst schlägt der Test mit KeyError fehl und erzwingt die Pflege beim Hinzufügen
+# eines neuen Formats.
+_FORMAT_TO_MIME = {
+    "PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp",
+    "TIFF": "image/tiff", "BMP": "image/bmp", "GIF": "image/gif",
+}
+
+
+def test_desktop_mimetypes_exactly_cover_supported_formats(desktop_entry) -> None:
+    """Die deklarierten MIME-Typen entsprechen GENAU den tatsächlich
+    unterstützten Formaten (Befund #249, AC #10): keine Format-Lücke und kein
+    Versprechen für ein nicht ladbares Format. So bleibt die Dateizuordnung mit
+    dem validierten Ladepfad konsistent.
+    """
+    from bgremover.constants import _ALLOWED_IMAGE_FORMATS
+
+    declared = {m for m in desktop_entry["MimeType"].split(";") if m}
+    expected = {_FORMAT_TO_MIME[fmt] for fmt in _ALLOWED_IMAGE_FORMATS}
+    assert declared == expected
+
+
 # ── AppStream metainfo ─────────────────────────────────────────────────
 
 @pytest.fixture

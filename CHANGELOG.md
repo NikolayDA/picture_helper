@@ -11,6 +11,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Bilder über Dateizuordnung und Kommandozeile öffnen.** `bgremover bild.png`
+  bzw. `python -m bgremover bild.png` öffnet den Pfad nach dem Fensteraufbau über
+  denselben validierten, asynchronen Ladepfad wie Datei-Dialog, Recent Files und
+  Drag & Drop; der Linux-Desktop-Eintrag (`%F`) und macOS-`QFileOpenEvent`s
+  (Finder „Öffnen mit", Doppelklick) werden ebenso verarbeitet. Mehrere Pfade:
+  der erste wird geöffnet, die übrigen mit Anzahl in der Statusleiste ignoriert;
+  fehlende, nicht unterstützte oder nicht lokale Pfade werden kontrolliert
+  abgewiesen statt den Start abzubrechen, und vor dem Verwerfen eines
+  bearbeiteten Bildes greift die Nachfrage zu ungespeicherten Änderungen. Beim
+  App-Quit werden laufende Worker-Threads zusätzlich sauber beendet (#249).
 - **Performance-Benchmark der Bild-Pipeline.** `scripts/benchmark.py` misst die
   Verarbeitungszeit pro Ausgabeformat (PNG/JPEG/WebP/TIFF) über die echten
   `image_ops`-Pfade, legt datierte Ergebnisse unter `benchmarks/results/` ab und
