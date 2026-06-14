@@ -20,17 +20,23 @@ SETTINGS_RECENT_KEY = "recent_files"
 
 
 class RecentFiles:
-    """Kleine Wrapper-Klasse um die persistierte Liste zuletzt geöffneter Dateien."""
+    """Wrapper um die persistierte Liste zuletzt geöffneter Dateien.
+
+    ``read_only`` schützt unbekannte zukünftige Settings-Schemas vor allen
+    automatischen und nutzergetriebenen Schreibzugriffen.
+    """
 
     def __init__(
         self,
         settings: QSettings,
         key: str = SETTINGS_RECENT_KEY,
         limit: int = RECENT_MAX,
+        read_only: bool = False,
     ) -> None:
         self._settings = settings
         self._key = key
         self._limit = limit
+        self._read_only = read_only
 
     @property
     def limit(self) -> int:
@@ -39,6 +45,10 @@ class RecentFiles:
     @property
     def key(self) -> str:
         return self._key
+
+    @property
+    def read_only(self) -> bool:
+        return self._read_only
 
     def paths(self) -> list[str]:
         """Liefert die bereinigte Liste gültiger Pfade.
@@ -77,7 +87,10 @@ class RecentFiles:
         """
         cleaned = self.paths()
         raw = self._settings.value(self._key, [])
-        if not (raw == cleaned or (isinstance(raw, str) and cleaned == [raw])):
+        if (
+            not self._read_only
+            and not (raw == cleaned or (isinstance(raw, str) and cleaned == [raw]))
+        ):
             logger.warning(
                 "QSettings: ungültige %r-Einträge bereinigt (%r -> %r).",
                 self._key, raw, cleaned,
@@ -90,16 +103,19 @@ class RecentFiles:
         items = [p for p in self.paths() if p != canonical]
         items.insert(0, canonical)
         items = items[:self._limit]
-        self._settings.setValue(self._key, items)
+        if not self._read_only:
+            self._settings.setValue(self._key, items)
         return items
 
     def remove(self, path: str) -> list[str]:
         items = [p for p in self.paths() if p != path]
-        self._settings.setValue(self._key, items)
+        if not self._read_only:
+            self._settings.setValue(self._key, items)
         return items
 
     def clear(self) -> None:
-        self._settings.setValue(self._key, [])
+        if not self._read_only:
+            self._settings.setValue(self._key, [])
 
 
 class RecentFilesMenu:
@@ -135,7 +151,7 @@ class RecentFilesMenu:
         # persistierten Zustand mit dem Dateisystem abgleichen.
         items = self._recent_files.paths()
         existing = [p for p in items if Path(p).exists()]
-        if existing != items:
+        if existing != items and not self._recent_files.read_only:
             for stale in items:
                 if stale not in existing:
                     self._recent_files.remove(stale)
@@ -152,7 +168,8 @@ class RecentFilesMenu:
 
     def open(self, path: str) -> None:
         if not Path(path).exists():
-            self._recent_files.remove(path)
+            if not self._recent_files.read_only:
+                self._recent_files.remove(path)
             if self._missing_path is not None:
                 self._missing_path(path)
             self.rebuild()
