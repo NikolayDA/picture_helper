@@ -152,7 +152,7 @@ En macOS la tecla modificadora es **⌘ (Cmd)**; en Linux, **Ctrl**.
 | Rehacer | ⇧⌘Z |
 | Rotar 90° a la izquierda | ⌘← |
 | Rotar 90° a la derecha | ⌘→ |
-| Anular selección | Esc |
+| Anular selección (si no hay recorte/lazo activo) | Esc |
 | Invertir selección | ⌘⇧I |
 | Fit to View | ⌘0 |
 | Abrir ajustes | ⌘, |

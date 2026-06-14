@@ -102,26 +102,34 @@ class CanvasCrop:
             desc = tr("history.desc.crop_circle")
         else:
             desc = tr("history.desc.crop_ratio", w=cw, h=ch)
-        self.cancel_overlay_only()
-        self._on_mode_changed(False)
+        self._finish_mode()
         self._canvas.apply_edit(result, desc=desc)
         self._canvas.statusMsg.emit(tr(
             "canvas.cropped", w=result.width, h=result.height))
 
     def cancel(self) -> None:
         """Bricht den Zuschnitt ohne Änderung ab."""
+        if self._finish_mode():
+            self._canvas.statusMsg.emit(tr("canvas.crop_cancelled"))
+
+    def discard(self) -> bool:
+        """Verwirft einen aktiven Crop still und stellt den Tool-Cursor wieder her."""
+        return self._finish_mode()
+
+    def _finish_mode(self) -> bool:
+        """Beendet den Crop-Modus vollständig; ``False`` wenn keiner aktiv war."""
+        if self.overlay is None:
+            return False
         self.cancel_overlay_only()
         self._on_mode_changed(False)
-        # Tool-Cursor wiederherstellen
         self._canvas.set_tool(self._canvas.current_tool)
-        self._canvas.statusMsg.emit(tr("canvas.crop_cancelled"))
+        return True
 
     def cancel_overlay_only(self) -> None:
         """Entfernt das Overlay-Item, ohne ``cropModeChanged`` zu feuern.
 
-        Wird beim Laden eines neuen Bildes verwendet, wenn das Overlay
-        bislang gar nicht aktiv war und die Mode-Signale nicht doppelt
-        durchgereicht werden sollen.
+        Interne Primitive für das Ersetzen oder vollständige Beenden eines
+        Overlays; Signal und Cursor stellt ``_finish_mode`` zentral wieder her.
         """
         if self.overlay is not None:
             self._scene.removeItem(self.overlay)
