@@ -100,6 +100,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   mypy-Fehler im Full-CI-Lauf aus (#196, #197).
 - **CI-Workflow-YAML repariert.** Der nicht gequotete Name des pip-Upgrade-Steps
   brach das Parsen des Workflows (#213).
+- **Aktiver Crop übersteht keinen Bildzustandswechsel mehr.** Jeder sichtbare
+  Bildwechsel (Drehen, Spiegeln, KI-Ergebnis, Undo/Redo, Original-
+  Wiederherstellung, Crop-Bestätigung) verwirft jetzt zentral in
+  `_set_image_state` ein aktives Crop-Overlay sowie ein begonnenes Lasso und
+  meldet `cropModeChanged(False)` genau einmal. So lässt sich ein veraltetes
+  Crop-Rechteck nicht mehr auf das neue Bild anwenden und kann keine
+  transparenten Padding-Pixel mehr erzeugen (#247).
 
 ### Entfernt
 

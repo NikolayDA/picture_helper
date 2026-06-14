@@ -102,6 +102,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   provoquait une erreur mypy dans l'exécution CI complète (#196, #197).
 - **YAML du workflow CI réparé.** Le nom non quoté de l'étape de mise à jour de
   pip cassait l'analyse du workflow (#213).
+- **Un recadrage actif ne survit plus à un changement d'état de l'image.** Chaque
+  changement visible d'image (rotation, miroir, résultat IA, annuler/refaire,
+  restauration de l'original, confirmation du recadrage) abandonne désormais de
+  façon centralisée dans `_set_image_state` un overlay de recadrage actif et un
+  lasso en cours, et émet `cropModeChanged(False)` exactement une fois. Un
+  rectangle de recadrage obsolète ne peut donc plus être appliqué à la nouvelle
+  image ni produire de pixels de remplissage transparents (#247).
 
 ### Supprimé
 
