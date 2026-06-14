@@ -54,6 +54,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **强化 license 工作流权限。** 该工作流现在以最小权限运行（#183、#193）。
 - **移除 `CanvasHistory._redo_max`。** 该只写属性从未被读取；redo 上限仅通过
   `deque(maxlen=…)` 实施（#199、#215）。
+- **`import bgremover` 不再加载 Qt 栈。** 包入口（`bgremover/__init__.py`）现在
+  仅直接导出轻量元数据（`__version__`、`get_version`）；既有的 GUI/Qt
+  re-export（`ImageCanvas`、`MainWindow`、workers …）保持兼容，但通过 PEP 562
+  的 `__getattr__` 在首次属性访问时才惰性加载。版本与元数据查询现可在无
+  PyQt6 的 headless 环境下工作；一个子进程回归测试确保轻量导入不会把
+  `bgremover.canvas`/`main_window` 或 PyQt6 拉入 `sys.modules`（#232）。
 
 ### 修复
 
@@ -111,6 +117,20 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `status.file_too_large`（de/en 完整本地化，而非中英/德英混合提示），并将实际值
   向上取整、限值向下取整，使其在「限值 + 1 字节」时明显大于限值（例如「513 MB」
   而最大为「512 MB」，而不是用 `.0f` 把两者都显示为「512 MB」）（#258）。
+- **QSettings 模式迁移对降级安全。** 缺失的迁移不再未经检查就把
+  `schema_version` 提升到当前值，构建最近文件菜单时也不再回写更高的未来模式
+  ——意外降级因此不会丢失任何设置（#234、#259）。
+- **Escape 先取消进行中的套索；裁剪后恢复工具光标。** 进行中的多边形套索现在
+  会被 Escape 先取消，然后才清除选区（顺序为 裁剪 > 套索 > 选区）。当活动裁剪
+  被自动放弃时，`_finish_mode` 会恢复活动工具的光标，而不是保留裁剪光标
+  （#248、#260）。
+- **Worker 关闭有时间上限。** 应用关闭时，`WorkerController` 现在只在
+  `quit()`/`wait()` 上短暂等待，然后回退到 `terminate()` 并再次进行有上限的
+  `wait()`；无响应的 worker 不再无限期阻塞关闭，错误路径也会记录日志。原生
+  ONNX 工作中 `terminate()` 的实际风险仍作为架构后续（#270）保留（#231）。
+- **画笔 overlay 避免每次鼠标移动全量扫描掩码。** `canvas_selection` 增量维护
+  选区计数，并使用变更的 bounding box，而不是在每次画笔/橡皮移动时扫描整张
+  掩码；`has_selection` 因此为 O(1)。这让大图在快速绘制时保持流畅（#261）。
 
 ### 移除
 
