@@ -125,6 +125,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   retener una QPixmap transparente del tamaño completo de la imagen (~160 MiB a
   40 MP) hasta la siguiente reconstrucción completa. El borrado parcial sigue
   actualizando solo el rectángulo sucio (#251).
+- **Seguimientos del workflow de release reforzados.** El job de publish ahora
+  define `GH_REPO` para que `gh release` apunte al repositorio correcto sin
+  checkout; el job de test reutilizable depende de `verify-tag`, de modo que un
+  tag inválido o con versión discrepante ya no inicia la matriz; y
+  `download-artifact` obtiene los artefactos vía `run-id`/`github-token` (con
+  `actions: read`) de todo el run, así «Re-run failed jobs» ya no pierde
+  artefactos de un intento anterior. README/RESOURCES (incl. traducciones) ya no
+  describen el trigger eliminado `release: published` (#257).
 
 ### Eliminado
 

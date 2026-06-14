@@ -100,8 +100,9 @@ del proyecto).
 Definida en `.github/workflows/pr-ci.yml`, `.github/workflows/ci.yml`,
 `.github/workflows/ui-nightly.yml` y `.github/workflows/license-check.yml`.
 Los pull requests ejecutan un job ligero en Ubuntu/Python 3.12; la matriz
-completa corre en Ubuntu + macOS con Python 3.10–3.13 en un tag de versión
-(candidato a release), en release o en ejecuciones manuales; `ui-nightly.yml`
+completa corre en Ubuntu + macOS con Python 3.10–3.13 como gate de release
+(el workflow de release la invoca en un tag de versión antes de publicar),
+semanalmente vía cron o manualmente; `ui-nightly.yml`
 ejecuta las pruebas de interacción de UI cada noche; el workflow de licencias
 genera el informe de dependencias/licencias.
 

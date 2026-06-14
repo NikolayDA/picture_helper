@@ -92,7 +92,7 @@ Arial/Courier New；请用 `brew install pango` 安装 Pango。
 
 在 `.github/workflows/pr-ci.yml`、`.github/workflows/ci.yml`、
 `.github/workflows/ui-nightly.yml` 和 `.github/workflows/license-check.yml` 中定义。Pull request 运行轻量级
-Ubuntu/Python 3.12 job；完整矩阵在版本标签（发布候选）、release 或手动触发时运行
+Ubuntu/Python 3.12 job；完整矩阵作为 release 门禁运行（release 工作流在版本标签上于发布前调用它），每周经 cron 或手动触发，运行于
 Ubuntu + macOS、Python 3.10–3.13；`ui-nightly.yml` 每晚运行 UI 交互测试；license workflow 生成依赖/license
 报告。
 

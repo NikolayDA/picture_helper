@@ -175,9 +175,10 @@ make pr-check
 La suite de tests s'exécute en mode headless (plateforme Qt `offscreen`) et vérifie les
 opérations sur l'image, la géométrie de recadrage et la logique d'enregistrement. Les pull
 requests lancent une CI GitHub légère (Ubuntu, Python 3.12, `make pr-check`).
-La matrice complète Linux/macOS sous Python 3.10, 3.11, 3.12 et 3.13 s'exécute lors
-du push d'un tag de version (candidat à la release), de la publication d'une
-release ou manuellement. Toutes les installations
+La matrice complète Linux/macOS sous Python 3.10, 3.11, 3.12 et 3.13 s'exécute comme gate de
+release : lors du push d'un tag de version, le workflow de release l'appelle
+avant la publication ; elle s'exécute aussi chaque semaine (le dimanche) et
+manuellement. Toutes les installations
 de test locales/CI utilisent `requirements/constraints.txt` ; on peut le
 remplacer si nécessaire via `PIP_CONSTRAINT=... make pr-check`. Voir
 [TESTING.md](../../../TESTING.md) pour le flux complet de tests.
