@@ -96,6 +96,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `_set_image_state` and emits `cropModeChanged(False)` exactly once. A stale crop
   rectangle can therefore no longer be applied to the new image and can no longer
   produce transparent padding pixels (#247).
+- **Release workflow only publishes after a green Full-CI gate.**
+  `release-linux.yml` now calls the authoritative Full-CI matrix (`ci.yml`) as a
+  reusable workflow and binds build and publish to it via `needs`; a separate
+  `verify-tag` job fails when the tag does not match `vX.Y.Z` or diverges from
+  `project.version`. AppImage/`.deb` are checked for name, architecture,
+  executability and Debian metadata before upload, and `gh release create` errors
+  are no longer swallowed with `|| true` (an existing release is reused
+  explicitly). No artifacts from a commit with red tests or a mismatched version
+  reach a release anymore (#250).
 
 ### Removed
 

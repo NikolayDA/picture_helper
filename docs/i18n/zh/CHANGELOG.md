@@ -81,6 +81,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   AI 结果、撤销/重做、恢复原图、确认裁剪）都会在 `_set_image_state` 中集中丢弃激活
   的裁剪叠加层与进行中的套索，并恰好发出一次 `cropModeChanged(False)`。因此过时的
   裁剪矩形不再会被应用到新图像，也不会再产生透明的填充像素（#247）。
+- **发布工作流仅在 Full CI 门禁通过后才发布。** `release-linux.yml` 现在将权威的
+  Full CI 矩阵（`ci.yml`）作为可复用工作流调用，并通过 `needs` 将构建与发布绑定其
+  上；独立的 `verify-tag` 作业会在标签不符合 `vX.Y.Z` 或与 `project.version` 不一致
+  时失败。AppImage/`.deb` 在上传前会校验文件名、架构、可执行性与 Debian 元数据，且
+  `gh release create` 的错误不再被 `|| true` 吞掉（已存在的 release 会被显式复用）。
+  这样，来自测试失败或版本不匹配提交的产物不再会进入 release（#250）。
 
 ### 移除
 
