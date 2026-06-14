@@ -128,6 +128,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Supprimé
 
+- **Code mort supprimé (#244).** La méthode jamais appelée `ImageCanvas._zoom`
+  et le wrapper `WorkerController.launch_worker` inutilisé en production ont été
+  supprimés ; les tests de cycle de vie des threads passent désormais par le
+  chemin réellement utilisé `_build_thread`.
+
 ## [2.3.0] – 2026-06-04
 
 

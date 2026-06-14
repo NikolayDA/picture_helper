@@ -114,6 +114,10 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Removed
 
+- **Dead code removed (#244).** The never-called `ImageCanvas._zoom` method and
+  the production-unused `WorkerController.launch_worker` wrapper were removed;
+  the thread-lifecycle tests now exercise the actually-used `_build_thread` path.
+
 ## [2.3.0] – 2026-06-04
 
 

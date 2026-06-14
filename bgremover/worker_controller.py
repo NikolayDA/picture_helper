@@ -54,17 +54,6 @@ class WorkerController:
         return (self.flood_fill_thread is not None
                 and self.flood_fill_thread.isRunning())
 
-    def launch_worker(
-        self,
-        worker: _Worker,
-        quit_on: QuitSignals,
-        on_finished: Callable[[], None] | None = None,
-    ) -> QThread:
-        """Startet *worker* in einem neuen QThread und gibt den Thread zurück."""
-        thread = self._build_thread(worker, quit_on, on_finished)
-        thread.start()
-        return thread
-
     def _build_thread(
         self,
         worker: _Worker,

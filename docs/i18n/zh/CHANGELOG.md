@@ -94,6 +94,10 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 移除
 
+- **移除死代码（#244）。** 删除了从未被调用的 `ImageCanvas._zoom` 方法以及生产中
+  未使用的 `WorkerController.launch_worker` 包装器；线程生命周期测试现在走真正使用
+  的 `_build_thread` 路径。
+
 ## [2.3.0] – 2026-06-04
 
 

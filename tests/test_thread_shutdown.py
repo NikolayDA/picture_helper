@@ -1,9 +1,9 @@
 """Test für sauberes Thread-Shutdown beim Schliessen des Fensters.
 
 Headless (offscreen): startet einen künstlich blockierenden Worker über
-den echten ``WorkerController.launch_worker``-Pfad, schliesst das Fenster und prüft, dass
-``closeEvent`` den Thread sauber stoppt, statt zu crashen (Regression
-gegen „QThread: Destroyed while thread is still running“).
+den echten ``WorkerController._build_thread``-Pfad, schliesst das Fenster und
+prüft, dass ``closeEvent`` den Thread sauber stoppt, statt zu crashen
+(Regression gegen „QThread: Destroyed while thread is still running“).
 """
 import gc
 import threading
@@ -62,9 +62,9 @@ class _FakeStuckThread:
         self.terminate_called = True
 
 
-def test_launch_worker_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
-    """Regression: ``WorkerController.launch_worker`` muss eine starke Referenz auf den
-    Worker halten. Sonst sammelt CPython ihn ein, sobald der Aufrufer
+def test_build_thread_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
+    """Regression: ``WorkerController._build_thread`` muss eine starke Referenz
+    auf den Worker halten. Sonst sammelt CPython ihn ein, sobald der Aufrufer
     keine Referenz mehr hält (PyQt verbindet Slots gebundener Methoden
     nur schwach) – ``run()`` liefe nie, das Bild würde lautlos nicht
     geladen (Datei-öffnen-Bug über Button UND Drag & Drop).
@@ -77,7 +77,9 @@ def test_launch_worker_keeps_worker_alive_without_caller_ref(qapp, monkeypatch):
         # Der Worker existiert NUR in dieser Funktion und verlässt sie
         # nicht – exakt die Situation in _load_image_async / _run_ai.
         w = _RecordingWorker(ran)
-        return win._worker_controller.launch_worker(w, quit_on=(w.finished,))
+        thread = win._worker_controller._build_thread(w, quit_on=(w.finished,))
+        thread.start()
+        return thread
 
     thread = _start_without_keeping_worker_ref()
     win._worker_controller.ai_thread = thread
@@ -100,7 +102,8 @@ def test_close_event_stops_running_thread(qapp, monkeypatch):
 
     win = MainWindow()
     worker = _BlockingWorker(0.05)
-    thread = win._worker_controller.launch_worker(worker, quit_on=(worker.finished,))
+    thread = win._worker_controller._build_thread(worker, quit_on=(worker.finished,))
+    thread.start()
     win._worker_controller.ai_thread = thread
     assert thread.isRunning()
 

@@ -45,9 +45,10 @@ def test_workers_list_starts_empty(controller):
     assert controller._workers == []
 
 
-def test_launch_worker_registers_and_releases_worker(qapp, controller):
+def test_build_thread_registers_and_releases_worker(qapp, controller):
     worker = _ImmediateWorker()
-    thread = controller.launch_worker(worker, quit_on=(worker.finished,))
+    thread = controller._build_thread(worker, quit_on=(worker.finished,))
+    thread.start()
     assert worker in controller._workers
 
     _drain(
@@ -65,7 +66,8 @@ def test_finished_worker_and_thread_are_qt_deleted(qapp, controller):
     Klick Qt-Objekte an.
     """
     worker = _ImmediateWorker()
-    thread = controller.launch_worker(worker, quit_on=(worker.finished,))
+    thread = controller._build_thread(worker, quit_on=(worker.finished,))
+    thread.start()
 
     def _both_deleted() -> bool:
         # Ohne laufenden Event-Loop werden DeferredDelete-Events nicht von

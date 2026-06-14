@@ -128,6 +128,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Eliminado
 
+- **Código muerto eliminado (#244).** Se eliminaron el método nunca llamado
+  `ImageCanvas._zoom` y el wrapper `WorkerController.launch_worker` sin uso en
+  producción; los tests de ciclo de vida de hilos ahora ejercitan la ruta real
+  `_build_thread`.
+
 ## [2.3.0] – 2026-06-04
 
 
