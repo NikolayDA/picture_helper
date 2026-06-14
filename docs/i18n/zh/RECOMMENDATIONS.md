@@ -24,6 +24,8 @@
 - **#163–#206** 已在记录的 PR 中关闭，并由回归测试或 CI 检查保护。
 - PR **#263–#269** 关闭了 **#257、#258、#234 + #259、#248 + #260、#231**
   和 **#249**；**#261** 已通过 PR #268 解决并关闭。
+- PR **#274** 关闭了 **#232**：借助 PEP 562 惰性导出，`import bgremover`
+  不再加载 Qt 栈；一个子进程回归测试对此进行了覆盖。
 
 ### 仍然开放
 
@@ -36,23 +38,24 @@
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-14，收尾 triage）
 
-PR **#263–#269** 合并并关闭 **#261**（由 PR #268 解决）后，仍有 **5** 个
-开放 issue。先前开放的九个 issue——**#231、#234、#248、#249、#257、#258、
-#259、#260** 和 **#261**——已通过合并的 PR 关闭。从 #231 推迟的架构后续
-（rembg/ONNX 子进程，路线图 **O7**）已登记为 **#270**。所有开放 issue
-均已对照当前代码重新核实。
+PR **#274**（关闭 **#232**）合并后，仍有 **5** 个开放 issue。先前开放的十个
+issue——**#231、#232、#234、#248、#249、#257、#258、#259、#260** 和
+**#261**——已通过合并的 PR **#263–#269** 与 **#274** 关闭，并连同其回归测试
+对照当前代码重新核实。从 #231 推迟的架构后续（rembg/ONNX 子进程，路线图
+**O7**）已登记为 **#270**；作为 #258 的衍生发现，已新建 **#275**（未本地化的
+百万像素提示）。所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
 | [#270](https://github.com/NikolayDA/picture_helper/issues/270) | 将 rembg/ONNX 推理移入子进程（#231 的后续） | 🟠 高 | 🟡 中 | 独立架构 PR：PR #267 仅限制了关闭。将 rembg/ONNX 移入子进程，使 `terminate()` 不再是 AI 应急出口；为关闭/取消/阻塞调用编写测试 |
-| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` 加载完整 PyQt6 GUI | 🟡 中 | 🟡 中 | 可提 PR：用 PEP 562 惰性导出保持公共 API，并增加 import 回归测试。代码未变：`__init__.py:15-43` 仍在 re-export GUI |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 账户侧恢复 quota；仓库只改进错误处理并可选升级到 Node 24，不强制改 `setup-node` |
+| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | 百万像素“图像过大”提示未本地化 | 🟢 低 | 🟢 低 | 类似 #258：让 `_too_large_message` 走 `tr("status.image_too_large", …)`（de/en）并补测试。代码：`image_loading.py:33-37` 德语字面量 |
 | [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo 内存限制未包含 redo 栈 | 🟢 低 | 🟡 中 | 共享 undo/redo 预算；原图/Qt 内存仅测量。代码未变：`canvas_history.py` 仅计 `_undo_bytes`，redo 仅由 `maxlen` 限制 |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | “Runde 5” 已修复；先决定公开或私有/邀请制，再更新 clone 指引或关闭 |
 
 ### 推荐 PR 顺序
 
-1. **#232** — 使用 PEP 562 惰性导出实现轻量导入。
+1. **#275** — 本地化百万像素提示（源自 #258 的小型 PR）。
 2. **#245** — 在外部恢复 quota；可选的 workflow 加固（Node 24）单独处理。
 3. **#235** — 实现共享 undo/redo 历史预算。
 4. **#161** — 决定发布模式，再更新文档或关闭。

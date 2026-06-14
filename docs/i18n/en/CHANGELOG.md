@@ -62,6 +62,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   permissions (#183, #193).
 - **`CanvasHistory._redo_max` removed.** The write-only attribute was never read;
   the redo limit is enforced solely via `deque(maxlen=…)` (#199, #215).
+- **`import bgremover` no longer loads the Qt stack.** The package entry point
+  (`bgremover/__init__.py`) now exports only lightweight metadata (`__version__`,
+  `get_version`) directly; the established GUI/Qt re-exports (`ImageCanvas`,
+  `MainWindow`, workers …) stay compatible but are loaded lazily via a PEP 562
+  `__getattr__` on first attribute access. Version and metadata lookups now work
+  headless without PyQt6; a subprocess regression test ensures a lightweight
+  import pulls neither `bgremover.canvas`/`main_window` nor PyQt6 into
+  `sys.modules` (#232).
 
 ### Fixed
 
@@ -138,6 +146,25 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   localized de/en instead of a mixed message) and rounds the actual value up and
   the limit down, so it is visibly larger at "limit + 1 byte" (e.g. "513 MB" at a
   maximum of "512 MB", instead of both showing "512 MB" with `.0f`) (#258).
+- **QSettings schema migration is downgrade-safe.** A missing migration no longer
+  bumps `schema_version` to the current value unchecked, and a future, higher
+  schema is no longer written back while building the recent-files menu — an
+  accidental downgrade therefore loses no settings (#234, #259).
+- **Escape cancels an in-progress lasso first; tool cursor restored after crop.**
+  An in-progress polygon lasso is now cancelled by Escape before the selection is
+  cleared (order crop > lasso > selection). When an active crop is auto-discarded,
+  `_finish_mode` restores the active tool's cursor instead of keeping the crop
+  cursor (#248, #260).
+- **Worker shutdown is time-bounded.** On app close the `WorkerController` now
+  waits only briefly on `quit()`/`wait()` before falling back to `terminate()`
+  with another bounded `wait()`; an unresponsive worker no longer blocks the close
+  indefinitely, and the error path is logged. The actual `terminate()` risk for
+  native ONNX work remains open as an architecture follow-up (#270) (#231).
+- **Brush overlay avoids a full mask scan per mouse move.** `canvas_selection`
+  keeps the selection counter incrementally and uses the bounding box of the
+  change instead of scanning the whole mask on every brush/eraser move;
+  `has_selection` is therefore O(1). This keeps large images smooth while drawing
+  quickly (#261).
 
 ### Removed
 

@@ -26,6 +26,8 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   protegidos por tests de regresión o comprobaciones de CI.
 - Los PR **#263–#269** cerraron **#257, #258, #234 + #259, #248 + #260, #231**
   y **#249**; **#261** se resolvió con el PR #268 y se cerró.
+- El PR **#274** cerró **#232**: `import bgremover` ya no carga el stack Qt
+  gracias a exports perezosos PEP 562; un test de regresión en subproceso lo cubre.
 
 ### Aún Abierto
 
@@ -39,24 +41,26 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-14, triage de cierre)
 
-Tras fusionarse los PR **#263–#269** y cerrarse **#261** (resuelto por el PR
-#268), quedan **5** issues abiertos. Nueve issues antes abiertos — **#231, #234,
-#248, #249, #257, #258, #259, #260** y **#261** — se cerraron vía los PRs
-fusionados. El follow-up de arquitectura aplazado de #231 (subproceso
-rembg/ONNX, hoja de ruta **O7**) se registró como **#270**. Todos los issues
-abiertos se reverificaron contra el código actual.
+Tras fusionarse el PR **#274** (cierra **#232**), quedan **5** issues abiertos.
+Diez issues antes abiertos — **#231, #232, #234, #248, #249, #257, #258, #259,
+#260** y **#261** — se cerraron vía los PRs fusionados **#263–#269** y **#274** y
+se reverificaron contra el código actual con sus tests de regresión. El follow-up
+de arquitectura aplazado de #231 (subproceso rembg/ONNX, hoja de ruta **O7**) se
+registró como **#270**; como hallazgo derivado de #258 se creó **#275** (mensaje
+de megapíxeles no localizado). Todos los issues abiertos se reverificaron contra
+el código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
 | [#270](https://github.com/NikolayDA/picture_helper/issues/270) | Mover la inferencia rembg/ONNX a un subproceso (derivado de #231) | 🟠 Alta | 🟡 Media | PR de arquitectura propio: el PR #267 solo limitó el cierre. Mover rembg/ONNX a un subproceso para que `terminate()` deje de ser la salida de emergencia de IA; tests de cierre/cancelación/llamada bloqueada |
-| [#232](https://github.com/NikolayDA/picture_helper/issues/232) | `import bgremover` carga toda la GUI PyQt6 | 🟡 Media | 🟡 Media | Listo para PR: conservar la API pública con exports perezosos PEP 562 y añadir un test de regresión de imports. Código sin cambios: `__init__.py:15-43` sigue re-exportando la GUI |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Corregir cuota en la cuenta; en el repo solo mejorar el error y un bump opcional a Node 24, no un cambio forzado de `setup-node` |
+| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | El mensaje de megapíxeles «imagen demasiado grande» no está localizado | 🟢 Baja | 🟢 Baja | Como #258: pasar `_too_large_message` por `tr("status.image_too_large", …)` (de/en) y añadir test. Código: `image_loading.py:33-37` literal alemán |
 | [#235](https://github.com/NikolayDA/picture_helper/issues/235) | El límite de memoria de undo excluye el stack de redo | 🟢 Baja | 🟡 Media | Presupuesto compartido undo/redo; solo medir original/memoria Qt. Código sin cambios: `canvas_history.py` solo cuenta `_undo_bytes`, redo limitado solo por `maxlen` |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: la URL de clonación devuelve 404 a usuarios anónimos | 🟢 Baja | 🟢 Baja | «Ronda 5» ya está corregido; decidir público vs. privado/invitación primero, luego actualizar la guía o cerrar |
 
 ### Orden de PRs Recomendado
 
-1. **#232** — imports ligeros mediante lazy exports PEP 562.
+1. **#275** — localizar el mensaje de megapíxeles (pequeño PR derivado de #258).
 2. **#245** — restaurar cuota externamente; endurecimiento opcional del workflow (Node 24) aparte.
 3. **#235** — implementar presupuesto compartido undo/redo.
 4. **#161** — decidir el modelo de publicación, luego actualizar docs o cerrar.
