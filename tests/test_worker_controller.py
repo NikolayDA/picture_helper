@@ -417,10 +417,10 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
     monkeypatch.setattr(
         controller,
         "shutdown_thread",
-        lambda thread, name: shutdowns.append((thread, name)),
+        lambda thread, name: shutdowns.append((thread, name)) or True,
     )
 
-    controller.shutdown_all()
+    assert controller.shutdown_all() is True
 
     assert ai_worker.cancelled
     assert flood_worker.cancelled
@@ -434,6 +434,26 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
     assert controller.load_thread is None
     assert controller.warmup_thread is None
     assert controller.flood_fill_thread is None
+
+
+def test_shutdown_all_keeps_unstopped_thread_referenced(
+    controller, monkeypatch,
+):
+    ai_thread = object()
+    controller.ai_thread = ai_thread
+    monkeypatch.setattr(
+        controller,
+        "shutdown_thread",
+        lambda thread, _name: thread is not ai_thread,
+    )
+
+    assert controller.shutdown_all() is False
+
+    assert controller.ai_thread is ai_thread
+    assert controller.load_thread is None
+    assert controller.warmup_thread is None
+    assert controller.flood_fill_thread is None
+    assert controller._shutting_down is False
 
 
 def test_flood_fill_releases_worker_on_completion(qapp, controller):
