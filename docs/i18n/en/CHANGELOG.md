@@ -105,6 +105,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   are no longer swallowed with `|| true` (an existing release is reused
   explicitly). No artifacts from a commit with red tests or a mismatched version
   reach a release anymore (#250).
+- **Empty selection frees the overlay pixmap immediately.** `_refresh_overlay`
+  now checks the mask's empty state **before** the incremental dirty path. When
+  the eraser removes the last selected pixel, `_overlay_pixmap` and the
+  `QGraphicsPixmapItem` are cleared right away instead of holding a transparent
+  full-image QPixmap (~160 MiB at 40 MP) until the next full rebuild. Partial
+  erasing still updates only the dirty rectangle (#251).
 
 ### Removed
 

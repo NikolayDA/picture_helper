@@ -292,6 +292,17 @@ class ImageCanvas(QGraphicsView):
         if self._pil is None:
             return
         mask = self._selection.mask
+        # Leerzustand zuerst prüfen – auch vor dem inkrementellen dirty-Pfad:
+        # Radiert der Eraser den letzten Auswahlpixel weg, ist die Maske leer
+        # und es darf keine transparente Vollbild-QPixmap (bei 40 MP ~160 MiB)
+        # in _overlay_pixmap bzw. im Item hängen bleiben (#251). Der additive
+        # Pinsel kann die Auswahl nie leeren, dort bleibt der Kurz-Check
+        # folgenlos; die O(N)-``any()``-Prüfung ist günstig genug, ein
+        # Auswahlpixel-Zähler wäre erst nach gemessenem Bedarf gerechtfertigt.
+        if not self._selection.has_selection:
+            self._overlay_pixmap = None
+            self._overlay_item.setPixmap(QPixmap())
+            return
         if dirty is not None and self._overlay_pixmap is not None:
             x0, y0, x1, y1 = dirty
             patch = mask_to_overlay(mask[y0:y1, x0:x1], x1 - x0, y1 - y0)
@@ -301,10 +312,6 @@ class ImageCanvas(QGraphicsView):
             painter.drawPixmap(x0, y0, patch)
             painter.end()
             self._overlay_item.setPixmap(self._overlay_pixmap)
-            return
-        if not self._selection.has_selection:
-            self._overlay_pixmap = None
-            self._overlay_item.setPixmap(QPixmap())
             return
         h, w = mask.shape
         self._overlay_pixmap = mask_to_overlay(mask, w, h)

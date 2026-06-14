@@ -117,6 +117,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   verschluckt (ein bestehendes Release wird explizit wiederverwendet). So
   gelangen keine Artefakte aus einem Commit mit roten Tests oder abweichender
   Version mehr in ein Release (#250).
+- **Leere Auswahl gibt das Overlay-Pixmap sofort frei.** `_refresh_overlay`
+  prüft den Leerzustand der Maske jetzt **vor** dem inkrementellen Dirty-Pfad.
+  Radiert der Radiergummi den letzten Auswahlpixel weg, werden
+  `_overlay_pixmap` und das `QGraphicsPixmapItem` umgehend geleert, statt eine
+  transparente Vollbild-QPixmap (bei 40 MP rund 160 MiB) bis zum nächsten
+  Vollaufbau zu halten. Teilweises Radieren aktualisiert weiterhin nur das
+  Dirty-Rechteck (#251).
 
 ### Entfernt
 
