@@ -151,6 +151,10 @@ automáticamente la copia del paquete en el venv dedicado de la app.
   ~/Applications/BgRemover.app/Contents/MacOS/BgRemover
   ```
   Esperable ante paquetes faltantes: `ModuleNotFoundError: No module named 'PyQt6'`.
+  Aún más cómodo: `bash diagnose_mac.sh` en la carpeta del proyecto recopila
+  automáticamente este diagnóstico de inicio (incl. `pip show bgremover` del
+  venv de la app); la salida está redactada por defecto y puede adjuntarse a un
+  informe de error.
 - **«python3: command not found»** → `brew install python`
 - **Error de pip al instalar** → actualiza primero pip:
   ```bash

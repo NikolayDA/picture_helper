@@ -16,6 +16,11 @@ un pull request abierto antes del merge).
 Para una instalación normal en Linux, los artefactos de release son la vía más
 cómoda — **sin venv, sin pip y sin checkout de Git**:
 
+> **Nota sobre la disponibilidad:** Los artefactos AppImage/`.deb` listos
+> existen a partir de **v2.3.0**. Las releases anteriores (p. ej. v2.2.0) aún
+> no incluyen tales assets — mientras no haya nada que descargar en la página
+> de releases, usa la vía venv/Git más abajo.
+
 - **AppImage:** archivo único portable; hazlo ejecutable y ejecútalo.
 - **`.deb`:** paquete instalable para Debian/Ubuntu/Raspberry Pi OS con entrada
   de menú y desinstalación limpia vía apt/dpkg.
@@ -89,8 +94,9 @@ sudo pacman -S --needed python python-pip git \
 
 ## Raspberry Pi OS (Desktop) – la forma sencilla
 
-En **Raspberry Pi OS «Bookworm» Desktop** (Debian 12, se recomienda
-64 bits) la instalación es claramente más sencilla: PyQt6, Pillow y
+En **Raspberry Pi OS «Bookworm» Desktop** (Debian 12) o más reciente
+(p. ej. «Trixie»/Debian 13, se recomienda 64 bits) la instalación es
+claramente más sencilla: PyQt6, Pillow y
 numpy están disponibles como paquetes de sistema listos vía `apt`. **No
 se necesita ningún venv, ningún `pip` ni ninguna instalación editable** —
 BgRemover se ejecuta directamente desde el clon. El paquete

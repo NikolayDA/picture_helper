@@ -146,6 +146,9 @@ git checkout <branch> && git pull      # 更新某个特定分支
   ~/Applications/BgRemover.app/Contents/MacOS/BgRemover
   ```
   缺少软件包时可预期出现：`ModuleNotFoundError: No module named 'PyQt6'`。
+  更方便的方式：在项目目录中运行 `bash diagnose_mac.sh` 会自动收集这份启动
+  诊断信息（包括应用 venv 的 `pip show bgremover`）；输出默认已脱敏，可附加到
+  错误报告中。
 - **“python3: command not found”** → `brew install python`
 - **安装时出现 pip 错误** → 先升级 pip：
   ```bash

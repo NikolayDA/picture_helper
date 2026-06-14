@@ -80,7 +80,8 @@ mit; ohne KI-Funktion reicht `python3 -m pip install -c requirements/constraints
 empfohlen: ein portables **AppImage** und ein installierbares **`.deb`**
 (jeweils für x86_64 und aarch64/Raspberry Pi OS). Details stehen in
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**; die Build-/Paketierungsdetails in
-**[packaging/linux/README.md](packaging/linux/README.md)**.
+**[packaging/linux/README.md](packaging/linux/README.md)**. Solche Artefakte
+gibt es ab **v2.3.0** — bis dahin den venv-Weg unten nutzen.
 
 Der direkte Start aus einer venv bleibt der beste Weg für Entwicklung,
 Branch-Tests und lokale Änderungen:
