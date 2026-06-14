@@ -60,6 +60,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Lädt: {name}…",
         "status.load_error": "Ladefehler: {msg}",
+        "status.file_too_large": "Datei zu groß ({size} MB) – Maximum: {limit} MB",
         "status.file_missing": "Datei nicht mehr vorhanden: {name}",
         "status.ai_error": "KI-Fehler: {msg}",
         # Main menu
@@ -386,6 +387,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Loading: {name}…",
         "status.load_error": "Load error: {msg}",
+        "status.file_too_large": "File too large ({size} MB) – maximum: {limit} MB",
         "status.file_missing": "File no longer exists: {name}",
         "status.ai_error": "AI error: {msg}",
         # Main menu

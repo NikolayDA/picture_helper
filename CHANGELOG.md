@@ -133,6 +133,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Artefakte eines früheren Attempts verliert. README/RESOURCES (inkl.
   Übersetzungen) beschreiben den entfernten `release: published`-Trigger nicht
   mehr (#257).
+- **Bildlade-Limit ohne 512-MiB-Voraballokation und lokalisiert.**
+  `open_validated_image` liest den Dateiinhalt jetzt in 8-MiB-Chunks (statt
+  `read(limit + 1)`, das bei CPythons gepuffertem Reader sofort ~512 MiB
+  reserviert und kleine Dateien unter knappem Speicher mit `MemoryError`
+  scheitern lässt); Wachstum zwischen `fstat()` und Lesen wird weiterhin mit
+  `limit + 1` erkannt. Die Größenmeldung läuft über den Translation-Key
+  `status.file_too_large` (de/en vollständig lokalisiert statt gemischter
+  Meldung) und rundet den Ist-Wert auf sowie den Grenzwert ab, sodass er bei
+  „Limit + 1 Byte“ sichtbar größer ist (z. B. „513 MB“ bei Maximum „512 MB“,
+  statt mit `.0f` beide als „512 MB“) (#258).
 
 ### Entfernt
 
