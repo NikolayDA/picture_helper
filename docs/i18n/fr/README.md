@@ -83,7 +83,8 @@ recommandés : une **AppImage** portable et un **`.deb`** installable (tous deux
 pour x86_64 et aarch64/Raspberry Pi OS). Consultez
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)** pour l'installation et
 **[packaging/linux/README.md](../../../packaging/linux/README.md)** pour les
-détails de build/paquetage.
+détails de build/paquetage. De tels artefacts sont disponibles à partir de
+**v2.3.0** — d'ici là, utilisez la voie venv ci-dessous.
 
 Le lancement direct depuis un venv reste la meilleure voie pour le
 développement, les tests de branches et les changements locaux :

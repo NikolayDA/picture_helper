@@ -76,7 +76,8 @@ python3 -m bgremover
 **Linux：** 对最终用户，推荐使用 release 构件：便携式 **AppImage** 和可安装的
 **`.deb`**（均提供 x86_64 与 aarch64/Raspberry Pi OS 版本）。安装详情见
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**；构建/打包详情见
-**[packaging/linux/README.md](../../../packaging/linux/README.md)**。
+**[packaging/linux/README.md](../../../packaging/linux/README.md)**。此类构件自
+**v2.3.0** 起提供——在此之前请使用下文的 venv 方式。
 
 直接从 venv 启动仍然最适合开发、分支测试和本地修改：
 
