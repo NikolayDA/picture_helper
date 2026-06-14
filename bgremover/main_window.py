@@ -1,6 +1,7 @@
 """MainWindow – die Top-Level-Fensterklasse."""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
@@ -382,6 +383,53 @@ class MainWindow(QMainWindow):
         )
         if not started:
             self._load_generation = previous_generation
+
+    def open_paths(self, paths: Sequence[str]) -> None:
+        """Öffentliche, schmale Fassade zum Öffnen übergebener Bildpfade.
+
+        Quelle sind Startargumente (CLI / Linux-Desktop ``%F``) und macOS-
+        ``QFileOpenEvent``s. Semantik bei mehreren Pfaden: den ersten öffnen,
+        die übrigen ignorieren und ihre Anzahl in der Statusleiste melden – die
+        App bearbeitet bewusst nur ein Bild gleichzeitig (Befund #249).
+
+        Geladen wird über denselben validierten, asynchronen Pfad wie Datei-
+        Dialog, Recent Files und Drag & Drop (``_load_image_async`` →
+        ``open_validated_image``): fehlende oder nicht unterstützte Dateien
+        enden dort als Statusmeldung statt als Startabbruch, und vor dem
+        Verwerfen eines bearbeiteten Bildes greift die Nachfrage zu
+        ungespeicherten Änderungen.
+        """
+        candidates = [p for p in paths if p]
+        if not candidates:
+            return
+        first, *rest = candidates
+        self._load_image_async(first)
+        if rest:
+            self._sb.showMessage(tr(
+                "canvas.opened_extra", name=Path(first).name, extra=len(rest)))
+
+    def report_unopenable_remote(self) -> None:
+        """Meldet ein Betriebssystem-Open-Event ohne lokale Datei.
+
+        macOS kann eine nicht-lokale URL (z. B. Remote) als ``QFileOpenEvent``
+        liefern; ``QFileOpenEvent.file()`` ist dann leer. Statt still nichts zu
+        tun, wird dies kontrolliert in der Statusleiste gemeldet (Befund #249).
+        """
+        self._sb.showMessage(SM.OEFFNEN_NICHT_LOKAL)
+
+    def shutdown_workers(self) -> None:
+        """Beendet alle Hintergrund-Worker beim App-Quit.
+
+        Wird in ``app.main`` an ``QApplication.aboutToQuit`` gehängt. Anders als
+        ``closeEvent`` (Fenster schließen) greift das AUCH, wenn die App über
+        ``QApplication.quit()`` endet, ohne dass das Fenster geschlossen wird –
+        etwa direkt nach einem Start-Open. Ohne diesen Haken würde ein noch
+        laufender Lade-/KI-Thread beim C++-Teardown abgeräumt und könnte den
+        Prozess mit einem Crash beenden (Befund #249). ``shutdown_all`` ist
+        idempotent; ein bereits über ``closeEvent`` beendeter Stand ist ein
+        No-op.
+        """
+        self._worker_controller.shutdown_all()
 
     def _on_image_load_done(
         self,

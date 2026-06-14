@@ -65,6 +65,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.load_error": "Ladefehler: {msg}",
         "status.file_too_large": "Datei zu groß ({size} MB) – Maximum: {limit} MB",
         "status.file_missing": "Datei nicht mehr vorhanden: {name}",
+        "status.open_not_local": "Nur lokale Dateien können geöffnet werden.",
         "status.ai_error": "KI-Fehler: {msg}",
         # Main menu
         "menu.file": "Datei",
@@ -395,6 +396,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.load_error": "Load error: {msg}",
         "status.file_too_large": "File too large ({size} MB) – maximum: {limit} MB",
         "status.file_missing": "File no longer exists: {name}",
+        "status.open_not_local": "Only local files can be opened.",
         "status.ai_error": "AI error: {msg}",
         # Main menu
         "menu.file": "File",

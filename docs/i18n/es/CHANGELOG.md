@@ -11,6 +11,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Abrir imágenes por asociación de archivos y línea de comandos.**
+  `bgremover imagen.png` y `python -m bgremover imagen.png` abren la ruta tras
+  construir la ventana, por la misma ruta de carga validada y asíncrona que el
+  diálogo de archivos, Recientes y arrastrar y soltar; también se procesan la
+  entrada de escritorio de Linux (`%F`) y los `QFileOpenEvent` de macOS (Finder
+  «Abrir con», doble clic). Varias rutas: se abre la primera y el resto se ignora
+  indicando su número en la barra de estado; las rutas ausentes, no soportadas o
+  no locales se rechazan de forma controlada en lugar de abortar el arranque, y
+  antes de reemplazar una imagen editada se aplica la pregunta de cambios sin
+  guardar. Además, al salir de la app los hilos de trabajo en curso se detienen
+  limpiamente (#249).
 - **Benchmark de rendimiento de la canalización de imágenes.**
   `scripts/benchmark.py` mide el tiempo de procesamiento por formato de salida
   (PNG/JPEG/WebP/TIFF) a través de las rutas reales de `image_ops`, guarda
