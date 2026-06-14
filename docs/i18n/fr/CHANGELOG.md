@@ -109,6 +109,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   lasso en cours, et émet `cropModeChanged(False)` exactement une fois. Un
   rectangle de recadrage obsolète ne peut donc plus être appliqué à la nouvelle
   image ni produire de pixels de remplissage transparents (#247).
+- **Le workflow de release ne publie qu'après un gate Full CI au vert.**
+  `release-linux.yml` appelle désormais la matrice Full CI de référence
+  (`ci.yml`) comme workflow réutilisable et y lie build et publish via `needs` ;
+  un job `verify-tag` séparé échoue si le tag ne respecte pas `vX.Y.Z` ou diffère
+  de `project.version`. AppImage/`.deb` sont vérifiés (nom, architecture,
+  exécutabilité, métadonnées Debian) avant l'envoi, et les erreurs de
+  `gh release create` ne sont plus masquées par `|| true` (une release existante
+  est réutilisée explicitement). Ainsi, aucun artefact issu d'un commit aux tests
+  rouges ou à version divergente n'atterrit plus dans une release (#250).
 
 ### Supprimé
 

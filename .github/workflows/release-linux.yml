@@ -4,9 +4,22 @@ name: Release Linux artifacts
 # (Raspberry Pi OS / arm64) and attaches them to the GitHub Release on a
 # version tag (v*). Also runnable on demand via workflow_dispatch.
 #
-# This workflow only bundles the bgremover wheel + dependencies into an
-# AppImage; it never imports PyQt6 at build time, so it needs no Qt system
-# libraries (unlike ci.yml / pr-ci.yml).
+# Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
+# GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
+# erzwungen:
+#   1. ``verify-tag`` – der Tag entspricht dem Format ``vX.Y.Z`` und seine
+#      Version stimmt mit ``project.version`` aus pyproject.toml ueberein.
+#   2. ``test`` – die massgebliche Full-CI-Matrix (ci.yml, als
+#      wiederverwendbarer Workflow aufgerufen) ist fuer EXAKT diesen Commit
+#      gruen (Linux/macOS x Python 3.10-3.13).
+# ``build`` haengt an beiden, ``publish`` haengt an ``build`` und legt das
+# Release erst danach an. Schlaegt ein Test oder ein Arch-Build fehl, wird kein
+# Release erstellt oder veraendert und keine unvollstaendige Artefaktmenge
+# veroeffentlicht.
+#
+# Der Build buendelt nur das bgremover-Wheel + Abhaengigkeiten ins AppImage; er
+# importiert PyQt6 nicht zur Build-Zeit und braucht daher keine Qt-System-
+# Bibliotheken (anders als ci.yml / pr-ci.yml).
 on:
   push:
     tags:
@@ -19,11 +32,48 @@ on:
         default: false
 
 permissions:
-  contents: write  # create/upload GitHub Release assets
+  contents: read
 
 jobs:
+  # Gate 1: Tag-Format und Tag/Version-Abgleich. Nur bei Tag-Pushes wirksam
+  # (bei workflow_dispatch existiert kein Release-Tag); der Job selbst bleibt
+  # gruen, damit der Build-Pfad fuer manuelle Builds nicht per needs-Skip
+  # entfaellt.
+  verify-tag:
+    name: Verify tag matches project version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Tag format and version match
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          tag_name="${GITHUB_REF_NAME}"
+          if [[ ! "$tag_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Tag '$tag_name' entspricht nicht dem Format vX.Y.Z"
+            exit 1
+          fi
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          tag_version="${tag_name#v}"
+          if [[ "$project_version" != "$tag_version" ]]; then
+            echo "::error::Tag-Version '$tag_version' weicht von project.version '$project_version' ab"
+            exit 1
+          fi
+          echo "Tag $tag_name passt zu project.version $project_version."
+
+  # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
+  # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt.
+  test:
+    uses: ./.github/workflows/ci.yml
+
   build:
     name: Linux ${{ matrix.arch }}
+    needs: [verify-tag, test]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -31,16 +81,18 @@ jobs:
         include:
           - runner: ubuntu-24.04
             arch: x86_64
+            deb_arch: amd64
           - runner: ubuntu-24.04-arm   # native arm64 runner → Raspberry Pi OS
             arch: aarch64
+            deb_arch: arm64
     env:
       # appimagetool needs FUSE to run; extract-and-run avoids requiring it
       # (and the FUSE2 package) on the CI runner.
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -57,6 +109,33 @@ jobs:
           cp build/deb/*.deb dist/
           ls -lh dist/
 
+      - name: Verify built artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          appimages=(dist/*.AppImage)
+          debs=(dist/*.deb)
+          test "${#appimages[@]}" -eq 1 || { echo "::error::erwarte genau ein AppImage, habe ${#appimages[@]}"; exit 1; }
+          test "${#debs[@]}" -eq 1 || { echo "::error::erwarte genau ein .deb, habe ${#debs[@]}"; exit 1; }
+          appimage="${appimages[0]}"
+          deb="${debs[0]}"
+          # Dateiname traegt Version und Zielarchitektur.
+          expected_appimage="BgRemover-${project_version}-${{ matrix.arch }}.AppImage"
+          test "$(basename "$appimage")" = "$expected_appimage" \
+            || { echo "::error::AppImage-Name '$(basename "$appimage")' != '$expected_appimage'"; exit 1; }
+          expected_deb="BgRemover-${project_version}-${{ matrix.deb_arch }}.deb"
+          test "$(basename "$deb")" = "$expected_deb" \
+            || { echo "::error::.deb-Name '$(basename "$deb")' != '$expected_deb'"; exit 1; }
+          # AppImage ist ausfuehrbar.
+          test -x "$appimage" || { echo "::error::AppImage ist nicht ausfuehrbar"; exit 1; }
+          # Debian-Metadaten lesbar und plausibel.
+          dpkg-deb --info "$deb" >/dev/null
+          test "$(dpkg-deb --field "$deb" Package)" = "bgremover"
+          test "$(dpkg-deb --field "$deb" Version)" = "$project_version"
+          test "$(dpkg-deb --field "$deb" Architecture)" = "${{ matrix.deb_arch }}"
+          echo "Artefakte verifiziert: $(basename "$appimage"), $(basename "$deb")"
+
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -64,11 +143,54 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+  # Publish nur fuer Tag-Pushes und erst nachdem ALLE build-Matrixlegs gruen
+  # sind (needs: build). Damit kann keine unvollstaendige Artefaktmenge in ein
+  # Release gelangen.
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create/upload GitHub Release assets
+    steps:
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bgremover-linux-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify complete artifact set
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          appimages=(dist/*.AppImage)
+          debs=(dist/*.deb)
+          test "${#appimages[@]}" -eq 2 \
+            || { echo "::error::erwarte 2 AppImages (x86_64+aarch64), habe ${#appimages[@]}"; exit 1; }
+          test "${#debs[@]}" -eq 2 \
+            || { echo "::error::erwarte 2 .deb-Pakete (amd64+arm64), habe ${#debs[@]}"; exit 1; }
+          ls -lh dist/
+
+      - name: Create or reuse the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
-            --notes "Automated Linux build (AppImage + .deb)." --verify-tag || true
+          set -euo pipefail
+          # Fehler von ``gh release create`` werden NICHT pauschal verschluckt:
+          # ein bereits existierendes Release wird explizit erkannt und
+          # wiederverwendet, jeder andere Fehler bricht den Job ab.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME existiert bereits – Assets werden aktualisiert."
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
+              --notes "Automated Linux build (AppImage + .deb)." --verify-tag
+          fi
+
+      - name: Upload artifacts to the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
