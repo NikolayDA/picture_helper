@@ -277,7 +277,9 @@ Ctrl/Cmd = sustraer).
 
 ### Acciones de selección
 
-- **Deseleccionar** – borra la selección actual (también con la tecla **Esc**).
+- **Deseleccionar** – borra la selección actual. **Esc** cancela primero un
+  recorte activo o un lazo poligonal iniciado y solo borra la selección si
+  ninguno está activo.
 - **Invertir selección** (⌘⇧I) – intercambia áreas seleccionadas y no
   seleccionadas. Útil: primero selecciona el *objeto*, luego invierte para
   editar el *fondo*.
@@ -434,7 +436,7 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 | Rehacer | ⇧⌘Z |
 | Rotar 90° izquierda | ⌘← |
 | Rotar 90° derecha | ⌘→ |
-| Deseleccionar | Esc |
+| Deseleccionar (si no hay recorte/lazo activo) | Esc |
 | Invertir selección | ⌘⇧I |
 | Ajustar a la vista | ⌘0 |
 | Abrir configuración | ⌘, |

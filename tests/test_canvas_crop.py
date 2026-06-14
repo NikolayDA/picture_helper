@@ -329,6 +329,27 @@ def test_rotate_during_active_crop_discards_stale_overlay(qapp):
     assert _alpha_min(c.image) == 255
 
 
+def test_image_state_change_restores_tool_cursor_after_crop(qapp):
+    """Regression #260: automatisches Crop-Verwerfen stellt den Cursor des
+    aktiven Werkzeugs wieder her, statt einen Crop-Hover-Cursor zu behalten.
+    """
+    c = _canvas(size=(400, 200))
+    c.set_tool(TOOL_LASSO)
+    c.start_crop_ratio(16, 9)
+    ov = c._crop_overlay
+    assert ov is not None
+    c._crop.handle_move(QPointF(
+        ov._cx + ov._cw / 2,
+        ov._cy + ov._ch / 2,
+    ))
+    assert c.cursor().shape() == Qt.CursorShape.OpenHandCursor
+
+    c.apply_rotate(90)
+
+    assert c._crop_overlay is None
+    assert c.cursor().shape() == Qt.CursorShape.CrossCursor
+
+
 def test_crop_mode_signal_sequence_start_then_transform(qapp):
     """Die Signalfolge ist genau ``[True, False]`` – der Crop-Start meldet
     ``True``, die Transformation beendet den Modus mit ``False`` (die UI bleibt

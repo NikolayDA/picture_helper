@@ -263,7 +263,9 @@ the modifier keys (Shift = add, Ctrl/Cmd = subtract).
 
 ### Selection actions
 
-- **Deselect** – clears the current selection (also with the **Esc** key).
+- **Deselect** – clears the current selection. **Esc** first cancels an active
+  crop or pending polygon lasso and only clears the selection when neither is
+  active.
 - **Invert selection** (⌘⇧I) – swaps selected and unselected areas. Useful:
   first select the *object*, then invert to edit the *background*.
 - **Expand / Shrink** – grows or shrinks the selection by the adjacent radius
@@ -412,7 +414,7 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 | Redo | ⇧⌘Z |
 | Rotate 90° left | ⌘← |
 | Rotate 90° right | ⌘→ |
-| Deselect | Esc |
+| Deselect (when no crop/lasso is active) | Esc |
 | Invert selection | ⌘⇧I |
 | Fit to view | ⌘0 |
 | Open settings | ⌘, |

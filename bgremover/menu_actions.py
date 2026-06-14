@@ -75,7 +75,7 @@ def build_main_menu(
     _add_action(edit_menu, parent, tr("action.flip_horizontal"), lambda: callbacks.flip(True))
     _add_action(edit_menu, parent, tr("action.flip_vertical"), lambda: callbacks.flip(False))
     edit_menu.addSeparator()
-    _add_action(edit_menu, parent, tr("action.clear_selection"), callbacks.clear_selection, "Escape")
+    _add_action(edit_menu, parent, tr("action.clear_selection"), callbacks.clear_selection)
     _add_action(edit_menu, parent, tr("action.invert_selection"), callbacks.invert_selection, "Ctrl+Shift+I")
     _add_action(edit_menu, parent, tr("action.restore_original"), callbacks.restore_original)
 

@@ -153,7 +153,7 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)** ; sur Linux, **Ctrl**.
 | Rétablir | ⇧⌘Z |
 | Pivoter de 90° à gauche | ⌘← |
 | Pivoter de 90° à droite | ⌘→ |
-| Désélectionner | Esc |
+| Désélectionner (sans recadrage/lasso actif) | Esc |
 | Inverser la sélection | ⌘⇧I |
 | Fit to View | ⌘0 |
 | Ouvrir les paramètres | ⌘, |
