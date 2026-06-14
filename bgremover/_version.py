@@ -1,9 +1,4 @@
-"""Versionsermittlung für ``bgremover.__version__``.
-
-In ein eigenes Modul ausgelagert, damit ``bgremover/__init__.py`` die
-Version ermitteln und anschließend seine öffentlichen Symbole re-exportieren
-kann, ohne ruff E402 zu verletzen.
-"""
+"""Qt-unabhängige Versionsermittlung für ``bgremover.__version__``."""
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError
