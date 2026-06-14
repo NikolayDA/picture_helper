@@ -111,6 +111,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `QGraphicsPixmapItem` are cleared right away instead of holding a transparent
   full-image QPixmap (~160 MiB at 40 MP) until the next full rebuild. Partial
   erasing still updates only the dirty rectangle (#251).
+- **Release-workflow follow-ups hardened.** The publish job now sets `GH_REPO`
+  so `gh release` targets the right repository without a checkout; the reusable
+  test job depends on `verify-tag`, so an invalid or version-mismatched tag no
+  longer starts the matrix at all; and `download-artifact` fetches the artifacts
+  via `run-id`/`github-token` (with `actions: read`) from the whole run, so
+  "Re-run failed jobs" no longer loses artifacts from an earlier attempt.
+  README/RESOURCES (incl. translations) no longer describe the removed
+  `release: published` trigger (#257).
 
 ### Removed
 

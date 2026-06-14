@@ -67,8 +67,11 @@ jobs:
           echo "Tag $tag_name passt zu project.version $project_version."
 
   # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
-  # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt.
+  # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt. Haengt an
+  # verify-tag: ein ungueltiger oder zur Paketversion unpassender Tag startet
+  # die teure Matrix gar nicht erst (#257).
   test:
+    needs: verify-tag
     uses: ./.github/workflows/ci.yml
 
   build:
@@ -153,6 +156,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # create/upload GitHub Release assets
+      actions: read    # download-artifact per run-id über die Actions-API
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # Der Job hat keinen Checkout; ``gh`` wuerde den Repo-Kontext sonst aus
+      # einem (fehlenden) lokalen Git-Remote raten. GH_REPO setzt ihn explizit,
+      # damit ``gh release view/create/upload`` auf einem frischen Runner
+      # zuverlaessig das richtige Repository ansprechen (#257).
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Download built artifacts
         uses: actions/download-artifact@v4
@@ -160,6 +171,13 @@ jobs:
           pattern: bgremover-linux-*
           path: dist
           merge-multiple: true
+          # run-id + github-token laden die Artefakte des GESAMTEN Runs ueber
+          # die API – also auch die eines vorherigen, bereits erfolgreichen
+          # Attempts nach „Re-run failed jobs“. Ohne dies sieht download-artifact
+          # nur den aktuellen Attempt und faende die im ersten Lauf gebauten
+          # Artefakte nicht mehr (#257).
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Verify complete artifact set
         run: |
@@ -174,8 +192,6 @@ jobs:
           ls -lh dist/
 
       - name: Create or reuse the GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           # Fehler von ``gh release create`` werden NICHT pauschal verschluckt:
@@ -189,8 +205,6 @@ jobs:
           fi
 
       - name: Upload artifacts to the Release
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
