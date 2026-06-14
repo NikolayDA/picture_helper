@@ -278,14 +278,19 @@ class MainWindow(QMainWindow):
         QThread-C++-Objekte) zerstört wird – sonst stürzt Python beim
         Schliessen ab, solange z. B. der KI-Warmup noch läuft.
 
-        Bricht der Nutzer in der Speichern-Nachfrage ab, wird das
+        Bricht der Nutzer in der Speichern-Nachfrage ab oder kann ein Thread
+        nicht innerhalb der festen Fristen beendet werden, wird das
         Close-Event verworfen und das Fenster bleibt offen.
         """
         if not self._confirm_discard_changes():
             event.ignore()
             return
         self._sb.showMessage(SM.BEENDE)
-        self._worker_controller.shutdown_all()
+        self._sb.repaint()
+        if not self._worker_controller.shutdown_all():
+            self._sb.showMessage(SM.BEENDEN_FEHLGESCHLAGEN)
+            event.ignore()
+            return
         super().closeEvent(event)
 
     # ── Ungespeicherte Änderungen ─────────────────────────────

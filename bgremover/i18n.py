@@ -57,6 +57,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Bild öffnen: Datei → Öffnen  oder  per Drag & Drop auf die Arbeitsfläche"
         ),
         "status.quitting": "Beende…",
+        "status.shutdown_failed": (
+            "Beenden fehlgeschlagen – ein Hintergrundprozess läuft noch"
+        ),
         # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Lädt: {name}…",
         "status.load_error": "Ladefehler: {msg}",
@@ -384,6 +387,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Open an image: File → Open  or  drag & drop onto the canvas"
         ),
         "status.quitting": "Quitting…",
+        "status.shutdown_failed": (
+            "Could not quit – a background process is still running"
+        ),
         # Statusleisten-Meldungen mit interpolierten Werten
         "status.loading": "⏳ Loading: {name}…",
         "status.load_error": "Load error: {msg}",
