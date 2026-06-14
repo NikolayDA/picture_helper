@@ -10,6 +10,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Open images via file association and the command line.** `bgremover image.png`
+  and `python -m bgremover image.png` open the path after the window is built,
+  through the same validated, asynchronous load path as the file dialog, Recent
+  Files and drag & drop; the Linux desktop entry (`%F`) and macOS
+  `QFileOpenEvent`s (Finder “Open With”, double-click) are handled too. Multiple
+  paths: the first is opened, the rest ignored with their count in the status
+  bar; missing, unsupported or non-local paths are rejected in a controlled way
+  instead of aborting startup, and the unsaved-changes prompt applies before
+  replacing an edited image. Running worker threads are also shut down cleanly on
+  app quit (#249).
 - **Image-pipeline performance benchmark.** `scripts/benchmark.py` measures
   processing time per output format (PNG/JPEG/WebP/TIFF) through the real
   `image_ops` paths, stores dated results under `benchmarks/results/` and

@@ -11,6 +11,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Ouvrir des images via l'association de fichiers et la ligne de commande.**
+  `bgremover image.png` et `python -m bgremover image.png` ouvrent le chemin
+  après la construction de la fenêtre, par le même chemin de chargement validé et
+  asynchrone que la boîte de dialogue, les fichiers récents et le glisser-déposer ;
+  l'entrée de bureau Linux (`%F`) et les `QFileOpenEvent` macOS (Finder « Ouvrir
+  avec », double-clic) sont aussi traités. Plusieurs chemins : le premier est
+  ouvert, les autres ignorés avec leur nombre dans la barre d'état ; les chemins
+  manquants, non pris en charge ou non locaux sont rejetés de façon contrôlée au
+  lieu d'interrompre le démarrage, et la confirmation des modifications non
+  enregistrées s'applique avant de remplacer une image éditée. Les threads de
+  travail en cours sont en outre arrêtés proprement à la fermeture (#249).
 - **Benchmark de performance du pipeline d'images.** `scripts/benchmark.py`
   mesure le temps de traitement par format de sortie (PNG/JPEG/WebP/TIFF) via les
   vrais chemins `image_ops`, enregistre des résultats datés sous
