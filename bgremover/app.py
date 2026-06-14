@@ -7,17 +7,60 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import cast
 
 from bgremover.qt_plugins import ensure_qt_plugin_path
 
 ensure_qt_plugin_path()
 
-from PyQt6.QtGui import QColor, QPalette  # noqa: E402
+from PyQt6.QtCore import QEvent, QObject  # noqa: E402
+from PyQt6.QtGui import QColor, QFileOpenEvent, QPalette  # noqa: E402
 from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from bgremover.constants import init_runtime  # noqa: E402
 from bgremover.logging_config import _setup_logging  # noqa: E402
 from bgremover.main_window import MainWindow  # noqa: E402
+
+
+def _startup_image_paths(args: list[str]) -> list[str]:
+    """Bildpfad-Kandidaten aus den (Qt-bereinigten) Startargumenten.
+
+    ``QApplication`` entfernt erkannte Qt-Optionen aus ``arguments()``; hier
+    werden zusätzlich leere Einträge und verbleibende ``-``/``--``-Optionen
+    herausgefiltert. Übrig bleiben die vom Aufrufer bzw. Betriebssystem
+    übergebenen Pfade (Linux-Desktop ``%F``, ``bgremover bild.png``). Existenz
+    und Format prüft später der validierte Ladepfad – Dateierweiterungen allein
+    wird hier bewusst nicht vertraut (Befund #249).
+    """
+    return [a for a in args if a and not a.startswith("-")]
+
+
+class _FileOpenFilter(QObject):
+    """Leitet macOS-``QFileOpenEvent``s an das Hauptfenster weiter.
+
+    Finder-Öffnungen (Doppelklick, „Öffnen mit", Dateizuordnung) erreichen die
+    App auf macOS NICHT über ``argv``, sondern als ``QFileOpenEvent`` an die
+    ``QApplication`` – sowohl beim Start als auch während die App bereits läuft.
+    Ein anwendungsweiter Event-Filter fängt beide Fälle ab (Befund #249).
+    """
+
+    def __init__(self, window: MainWindow) -> None:
+        # Bewusst ohne Qt-Parent: der Filter wird in ``main`` an die
+        # QApplication gehängt und lebt damit, solange die App läuft.
+        super().__init__()
+        self._window = window
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        if event is not None and event.type() == QEvent.Type.FileOpen:
+            local = cast(QFileOpenEvent, event).file()
+            if local:
+                self._window.open_paths([local])
+            else:
+                # Nicht-lokale URL (z. B. Remote): ``file()`` ist leer.
+                # Kontrolliert melden statt still ignorieren.
+                self._window.report_unopenable_remote()
+            return True
+        return False
 
 
 def main() -> int:
@@ -51,6 +94,32 @@ def main() -> int:
 
     win = MainWindow()
     win.show()
+
+    # macOS: Finder-Öffnungen kommen als QFileOpenEvent an die QApplication
+    # (nicht über argv). Ein anwendungsweiter Event-Filter reicht sie an das
+    # Fenster weiter – beim Start wie auch während die App schon läuft.
+    file_open_filter = _FileOpenFilter(win)
+    app.installEventFilter(file_open_filter)
+    # Filter VOR dem Teardown wieder abhängen: ein beim QApplication-Abbau noch
+    # installierter, von Python gehaltener Filter kann sonst beim Zustellen von
+    # Teardown-Events auf ein bereits abgeräumtes Wrapper-Objekt treffen und den
+    # Prozess crashen lassen (#249).
+    app.aboutToQuit.connect(lambda: app.removeEventFilter(file_open_filter))
+
+    # Beim App-Quit laufende Worker-Threads sauber beenden – greift AUCH bei
+    # app.quit() ohne Fensterschließen (z. B. unmittelbar nach einem
+    # Start-Open). Sonst kann ein noch laufender Lade-Thread beim C++-Teardown
+    # zum Crash führen (Befund #249).
+    app.aboutToQuit.connect(win.shutdown_workers)
+
+    # Start-Bildpfade (CLI / Linux-Desktop %F) erst nach vollständigem
+    # Fensteraufbau laden: QTimer.singleShot(0, …) verschiebt das Öffnen auf den
+    # ersten Event-Loop-Durchlauf, sodass der validierte Ladepfad auf eine
+    # fertige UI trifft (Befund #249).
+    startup_paths = _startup_image_paths(app.arguments()[1:])
+    if startup_paths:
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: win.open_paths(startup_paths))
 
     # Selbsttest-Hook für CI/Smoke-Tests: ist BGREMOVER_SMOKE_TEST
     # gesetzt, beendet die App sich nach dem ersten Event-Loop-Durchlauf

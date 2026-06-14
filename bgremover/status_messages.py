@@ -103,6 +103,10 @@ class _StatusMessages:
     def DATEI_NICHT_VORHANDEN(self, name: str) -> str:
         return tr("status.file_missing", name=name)
 
+    @property
+    def OEFFNEN_NICHT_LOKAL(self) -> str:
+        return tr("status.open_not_local")
+
     def KI_FEHLER(self, msg: str) -> str:
         return tr("status.ai_error", msg=msg)
 

@@ -71,6 +71,45 @@ def test_app_starts_via_console_script(tmp_path):
     )
 
 
+def test_app_opens_startup_image_path(tmp_path):
+    """Echter App-Start mit einem realen temporären Bildpfad öffnet das Bild (#249).
+
+    Vollständiger Subprozess (eigene QApplication + MainWindow): öffnet den Pfad
+    über die öffentliche Fassade ``open_paths`` (denselben validierten,
+    asynchronen Ladepfad wie Datei-Dialog/Drag & Drop), wartet bis das Bild im
+    Canvas liegt und schließt dann sauber. Verifiziert den Start-Open-Pfad
+    end-to-end, ohne den Testprozess zu blockieren.
+    """
+    from PIL import Image
+
+    img = tmp_path / "startup.png"
+    Image.new("RGB", (8, 8), (10, 20, 30)).save(img)
+
+    driver = (
+        "import sys, time\n"
+        "from PyQt6.QtWidgets import QApplication\n"
+        "from bgremover.main_window import MainWindow\n"
+        "app = QApplication(sys.argv)\n"
+        "win = MainWindow(); win.show()\n"
+        "win.open_paths([sys.argv[1]])\n"
+        "deadline = time.monotonic() + 30\n"
+        "while time.monotonic() < deadline and not win._canvas.has_image:\n"
+        "    app.processEvents(); time.sleep(0.02)\n"
+        "ok = win._canvas.has_image\n"
+        "win.close()\n"
+        "print('STARTUP_OPEN_OK' if ok else 'STARTUP_OPEN_FAIL')\n"
+    )
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+    r = subprocess.run(
+        [sys.executable, "-c", driver, str(img)],
+        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=120,
+    )
+    assert r.returncode == 0 and "STARTUP_OPEN_OK" in r.stdout, (
+        f"Start-Open endete mit {r.returncode}\n"
+        f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
+    )
+
+
 def test_qt_plugin_path_configured():
     """``qt_plugins.ensure_qt_plugin_path()`` setzt einen existierenden Plugin-Pfad.
 
@@ -178,6 +217,30 @@ def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
     assert 'Aktualisiere App-venv aus aktuellem Checkout' in ready_branch
     assert 'install_app_project "App-venv aktualisiert"' in ready_branch
     assert 'PYTHON_READY' not in text
+
+
+def test_mac_bundle_document_types_cover_supported_formats():
+    """Die macOS-``CFBundleTypeExtensions`` entsprechen genau den tatsächlich
+    unterstützten Formaten (Befund #249, AC #10) – die Finder-Dateizuordnung
+    bleibt damit mit dem validierten Ladepfad konsistent.
+    """
+    import re
+
+    from bgremover.constants import _ALLOWED_IMAGE_FORMATS
+
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+    block = re.search(
+        r"CFBundleTypeExtensions</key>\s*<array>(.*?)</array>", text, re.S)
+    assert block, "CFBundleTypeExtensions-Block nicht gefunden"
+    declared = set(re.findall(r"<string>([^<]+)</string>", block.group(1)))
+
+    # Format → Dateiendung(en); deckt jeden Eintrag aus _ALLOWED_IMAGE_FORMATS ab.
+    fmt_to_exts = {
+        "PNG": {"png"}, "JPEG": {"jpg", "jpeg"}, "WEBP": {"webp"},
+        "TIFF": {"tiff"}, "BMP": {"bmp"}, "GIF": {"gif"},
+    }
+    expected = set().union(*(fmt_to_exts[fmt] for fmt in _ALLOWED_IMAGE_FORMATS))
+    assert declared == expected
 
 
 def test_disabled_ai_tooltip_uses_existing_install_command():
