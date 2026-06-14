@@ -38,8 +38,9 @@ def _canvas(size=(20, 20), color=(10, 20, 30, 255)) -> ImageCanvas:
 
 def _canvas_with_mask() -> ImageCanvas:
     c = _canvas()
-    c._mask = np.zeros((20, 20), dtype=bool)
-    c._mask[8:12, 8:12] = True
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[8:12, 8:12] = True
+    c._mask = mask
     return c
 
 

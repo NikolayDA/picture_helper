@@ -11,10 +11,21 @@ Alle Tests fordern die ``qapp``-Fixture an: schon das Konstruieren eines
 """
 from __future__ import annotations
 
+import numpy as np
 from PIL import Image
 
 from bgremover import TOOL_BRUSH, ImageCanvas
 from bgremover.canvas_selection import CanvasSelection
+
+
+class _NoFullScanMask(np.ndarray):
+    """Testarray, das globale ``any``-/``sum``-Scans sichtbar scheitern laesst."""
+
+    def any(self, *args, **kwargs):
+        raise AssertionError("dirty overlay path scanned the full mask with any()")
+
+    def sum(self, *args, **kwargs):
+        raise AssertionError("dirty overlay path scanned the full mask with sum()")
 
 
 def _canvas() -> ImageCanvas:
@@ -67,6 +78,34 @@ def test_incremental_stroke_reuses_overlay_pixmap(qapp) -> None:
     assert first is not None
     c._paint_brush(30, 30, additive=True)
     assert c.overlay_pixmap is first  # gleiches Objekt → inkrementell
+
+
+def test_dirty_brush_paths_never_count_the_full_mask(qapp, monkeypatch) -> None:
+    """Additiver Pinsel und partieller Eraser zaehlen nur ihre Dirty-Region."""
+    c = _canvas()
+    c._brush_r = 3
+    c._paint_brush(8, 8, additive=True)
+    c._paint_brush(30, 30, additive=True)
+    pixmap = c.overlay_pixmap
+    assert pixmap is not None
+    mask = c.selection_mask
+    assert mask is not None
+    full_size = mask.size
+    c._selection._mask = c._selection._mask.view(_NoFullScanMask)
+    counted_sizes: list[int] = []
+    original_count_nonzero = np.count_nonzero
+
+    def count_nonzero_spy(values: np.ndarray) -> int:
+        counted_sizes.append(values.size)
+        return int(original_count_nonzero(values))
+
+    monkeypatch.setattr(np, "count_nonzero", count_nonzero_spy)
+    c._paint_brush(20, 20, additive=True)
+    c._paint_brush(8, 8, additive=False)
+
+    assert counted_sizes
+    assert all(size < full_size for size in counted_sizes)
+    assert c.overlay_pixmap is pixmap
 
 
 def test_clearing_selection_drops_overlay_pixmap(qapp) -> None:

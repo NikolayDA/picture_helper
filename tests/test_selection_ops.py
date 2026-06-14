@@ -16,8 +16,9 @@ def _canvas_with_mask():
     """Canvas mit 20×20-Bild und 4×4-Auswahl in der Mitte."""
     c = ImageCanvas()
     c.apply_loaded_image(Image.new("RGBA", (20, 20), (0, 0, 0, 255)), "seed.png")
-    c._mask = np.zeros((20, 20), dtype=bool)
-    c._mask[8:12, 8:12] = True
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[8:12, 8:12] = True
+    c._mask = mask
     return c
 
 
@@ -131,7 +132,7 @@ def test_brush_preview_hidden_without_image(qapp):
 
 def test_paint_brush_marks_circle(qapp):
     c = _canvas_with_mask()
-    c._mask[:] = False
+    c._mask = np.zeros((20, 20), dtype=bool)
     c.set_tool(TOOL_BRUSH)
     c._brush_r = 3
     c._paint_brush(10, 10, additive=True)
@@ -141,7 +142,7 @@ def test_paint_brush_marks_circle(qapp):
 
 def test_eraser_clears_circle(qapp):
     c = _canvas_with_mask()
-    c._mask[:] = True
+    c._mask = np.ones((20, 20), dtype=bool)
     c.set_tool(TOOL_ERASER)
     c._brush_r = 3
     c._paint_brush(10, 10, additive=False)
@@ -153,7 +154,7 @@ def test_eraser_clears_circle(qapp):
 
 def test_lasso_close_builds_mask_from_polygon(qapp):
     c = _canvas_with_mask()
-    c._mask[:] = False
+    c._mask = np.zeros((20, 20), dtype=bool)
     c._lasso.points = [(2, 2), (10, 2), (10, 10), (2, 10)]
     c._lasso.modifiers = Qt.KeyboardModifier.NoModifier
     c._lasso_close()
@@ -195,8 +196,9 @@ def test_apply_remove_makes_selection_transparent(qapp):
     c = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
     c.apply_loaded_image(img, "seed.png")
-    c._mask = np.zeros((10, 10), dtype=bool)
-    c._mask[2:5, 2:5] = True
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[2:5, 2:5] = True
+    c._mask = mask
     c.apply_remove()
     arr = np.array(_canvas_image(c))
     assert (arr[2:5, 2:5, 3] == 0).all()    # Auswahl → transparent
@@ -207,8 +209,9 @@ def test_apply_replace_fills_selection_with_color(qapp):
     c = ImageCanvas()
     img = Image.new("RGBA", (10, 10), (10, 20, 30, 255))
     c.apply_loaded_image(img, "seed.png")
-    c._mask = np.zeros((10, 10), dtype=bool)
-    c._mask[0:4, 0:4] = True
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[0:4, 0:4] = True
+    c._mask = mask
     c.apply_replace(QColor(255, 0, 0))
     arr = np.array(_canvas_image(c))
     assert arr[0, 0].tolist() == [255, 0, 0, 255]
