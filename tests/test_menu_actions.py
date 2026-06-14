@@ -67,6 +67,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert _portable_shortcut(actions["Öffnen…"]) == "Ctrl+O"
     assert _portable_shortcut(actions["Speichern unter…"]) == "Ctrl+Shift+S"
     assert _portable_shortcut(actions["Fit to View"]) == "Ctrl+0"
+    assert _portable_shortcut(actions["Auswahl aufheben"]) == ""
 
     actions["Öffnen…"].trigger()
     actions["Speichern"].trigger()

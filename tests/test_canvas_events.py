@@ -423,6 +423,28 @@ def test_escape_cancels_active_lasso(qapp):
     assert any("abgebrochen" in m for m in msgs)
 
 
+def test_cancel_active_interaction_prioritizes_crop_then_lasso(qapp):
+    c = _canvas_with_mask()
+    c.set_tool(TOOL_LASSO)
+    c._lasso.add_point(3, 3)
+    c.start_crop_ratio(1, 1)
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+
+    assert c.cancel_active_interaction() is True
+    assert c._crop.active is False
+    assert c._lasso.points == [(3, 3)]
+    assert c._mask.any()
+    assert msgs[-1] == tr("canvas.crop_cancelled")
+
+    assert c.cancel_active_interaction() is True
+    assert c._lasso.points == []
+    assert c._mask.any()
+    assert msgs[-1] == tr("canvas.lasso_cancelled")
+
+    assert c.cancel_active_interaction() is False
+
+
 def test_leave_event_hides_brush_preview(qapp):
     c = _canvas()
     c.set_tool(TOOL_BRUSH)

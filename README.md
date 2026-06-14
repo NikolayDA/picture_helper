@@ -156,7 +156,7 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux **Ctrl**.
 | Wiederherstellen | ⇧⌘Z |
 | 90° links drehen | ⌘← |
 | 90° rechts drehen | ⌘→ |
-| Auswahl aufheben | Esc |
+| Auswahl aufheben (wenn kein Crop/Lasso aktiv ist) | Esc |
 | Auswahl invertieren | ⌘⇧I |
 | Fit to View | ⌘0 |
 | Einstellungen öffnen | ⌘, |

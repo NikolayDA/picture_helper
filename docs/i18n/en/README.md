@@ -147,7 +147,7 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux **Ctrl**.
 | Redo | ⇧⌘Z |
 | Rotate 90° left | ⌘← |
 | Rotate 90° right | ⌘→ |
-| Clear selection | Esc |
+| Clear selection (when no crop/lasso is active) | Esc |
 | Invert selection | ⌘⇧I |
 | Fit to View | ⌘0 |
 | Open settings | ⌘, |
