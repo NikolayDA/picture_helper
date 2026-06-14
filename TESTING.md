@@ -14,7 +14,7 @@ zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 | Wo                 | Wann                                                                 |
 |--------------------|----------------------------------------------------------------------|
 | **GitHub PR CI**   | bei jedem Pull Request auf `main`/`master` (Ubuntu + Python 3.12)     |
-| **GitHub Full CI** | beim Push eines Versions-Tags (Release-Kandidat), beim **Veröffentlichen eines Releases**, wöchentlich sonntags 06:00 UTC oder **manuell** |
+| **GitHub Full CI** | als **Release-Gate** beim Push eines Versions-Tags (vom Release-Workflow als wiederverwendbarer Workflow aufgerufen, **vor** dem Veröffentlichen), wöchentlich sonntags 06:00 UTC oder **manuell** |
 | **GitHub UI Nightly** | jede Nacht und manuell (Ubuntu + Python 3.12, UI-Interaktionstests) |
 | **Lokal/Mac**      | jederzeit per `make` – dieselben Prüfungen wie die PR-CI plus UI bei Bedarf |
 
@@ -165,13 +165,18 @@ Ubuntu/Python 3.12 und führt `make pr-check` aus.
 Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 `workflow_dispatch`.)
 
-**Automatisch:** Bereits beim Push eines Versions-Tags (Release-Kandidat)
-startet die volle Matrix; beim **Veröffentlichen eines Releases** (GitHub →
-Releases → *Publish release*) läuft sie erneut. Zusätzlich läuft die volle
-Matrix wöchentlich sonntags um 06:00 UTC per Schedule. Ein bloßer
-Branch-Push löst die Test-Matrix **nicht** aus; Pull Requests bekommen
-stattdessen die leichte **PR CI**. Der Workflow **UI Nightly** führt die
-UI-Interaktionstests jede Nacht und bei manueller Auslösung separat aus.
+**Automatisch (Release-Gate):** Beim Push eines Versions-Tags (`v*`) startet
+der Workflow **Release Linux artifacts**. Er ruft die volle Matrix als
+wiederverwendbaren Workflow (`Full CI`) auf und prüft Tag-Format sowie die
+Übereinstimmung von Tag und `project.version`. Build und Veröffentlichung
+hängen per `needs` an diesem Ergebnis: **Erst wenn die volle Matrix für genau
+diesen Commit grün ist**, werden AppImage/`.deb` gebaut und an das GitHub
+Release angehängt – ein fehlgeschlagener Test veröffentlicht nichts.
+Zusätzlich läuft die volle Matrix wöchentlich sonntags um 06:00 UTC per
+Schedule. Ein bloßer Branch-Push löst die Test-Matrix **nicht** aus; Pull
+Requests bekommen stattdessen die leichte **PR CI**. Der Workflow
+**UI Nightly** führt die UI-Interaktionstests jede Nacht und bei manueller
+Auslösung separat aus.
 
 ## Fehlerbehebung
 

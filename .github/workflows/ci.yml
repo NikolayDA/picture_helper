@@ -1,18 +1,19 @@
 name: Full CI
 
+# Massgebliche Vollmatrix: Linux + macOS x Python 3.10-3.13.
+#
+# Release-Gate (#250): Diese Matrix ist als wiederverwendbarer Workflow
+# (``workflow_call``) angelegt. Der Release-Workflow (release-linux.yml) ruft sie
+# beim Push eines Versions-Tags auf und haengt Build/Publish per ``needs`` daran –
+# so werden Linux-Artefakte erst veroeffentlicht, wenn die volle Matrix fuer
+# EXAKT denselben Commit gruen ist. Ein eigenstaendiger Tag-/Release-Trigger
+# entfaellt hier bewusst, damit die Matrix nicht doppelt (und ungegated) laeuft.
+#
+# O3: Zusaetzlich laeuft die Matrix woechentlich (So 06:00 UTC) als
+# Drift-Fruehwarnung gegen Regressionen unter macOS oder Python 3.10/3.13 und
+# auf Abruf (``workflow_dispatch``). Pull Requests deckt der separate pr-ci.yml ab.
 on:
-  # Release-Gate: Die Vollmatrix laeuft bereits beim Pushen eines
-  # Versions-Tags (Release-Kandidat) – also VOR dem Veroeffentlichen des
-  # Releases. So ist sie ein echtes Gate und nicht erst nach Publikation.
-  push:
-    tags:
-      - 'v*'
-  release:
-    types: [published]
-  # O3: Woechentliche Vollmatrix (So 06:00 UTC) faengt Regressionen unter macOS
-  # oder Python 3.10/3.13 frueh ab – nicht erst beim Release-Tag. Cron statt
-  # Push-auf-main gewaehlt: deckt dieselbe Drift ab, ohne jeden Merge die volle
-  # 8er-Matrix auszuloesen.
+  workflow_call:
   schedule:
     - cron: '0 6 * * 0'
   workflow_dispatch:

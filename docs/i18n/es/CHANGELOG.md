@@ -109,6 +109,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `cropModeChanged(False)` exactamente una vez. Así, un rectángulo de recorte
   obsoleto ya no puede aplicarse a la nueva imagen ni generar píxeles de relleno
   transparentes (#247).
+- **El workflow de release solo publica tras un gate de Full CI en verde.**
+  `release-linux.yml` ahora invoca la matriz Full CI de referencia (`ci.yml`)
+  como workflow reutilizable y ata build y publish a ella mediante `needs`; un
+  job `verify-tag` aparte falla si el tag no cumple `vX.Y.Z` o difiere de
+  `project.version`. AppImage/`.deb` se comprueban en nombre, arquitectura,
+  ejecutabilidad y metadatos Debian antes de subirlos, y los errores de
+  `gh release create` ya no se ocultan con `|| true` (un release existente se
+  reutiliza explícitamente). Así, ningún artefacto de un commit con tests en rojo
+  o versión discrepante llega ya a un release (#250).
 
 ### Eliminado
 
