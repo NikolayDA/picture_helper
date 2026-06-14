@@ -87,6 +87,10 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   时失败。AppImage/`.deb` 在上传前会校验文件名、架构、可执行性与 Debian 元数据，且
   `gh release create` 的错误不再被 `|| true` 吞掉（已存在的 release 会被显式复用）。
   这样，来自测试失败或版本不匹配提交的产物不再会进入 release（#250）。
+- **空选区会立即释放叠加层 pixmap。** `_refresh_overlay` 现在会**先**检查掩码是否
+  为空，再走增量 dirty 路径。当橡皮擦抹除最后一个选中像素时，`_overlay_pixmap` 与
+  `QGraphicsPixmapItem` 会立刻清空，而不是把一张整图大小的透明 QPixmap（40 MP 时约
+  160 MiB）一直保留到下一次完整重建。部分擦除仍只更新脏矩形（#251）。
 
 ### 移除
 
