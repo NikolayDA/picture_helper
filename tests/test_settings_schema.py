@@ -1,8 +1,7 @@
 """Tests fuer die QSettings-Schema-Versionierung.
 
-Die Migration ist heute nur ein Grundstein – sie hebt die Version, fuehrt
-aber noch keine echten Datenumbauten durch. Die Tests sichern die drei
-relevanten Pfade fuer kuenftige Migrationen ab:
+Die Migration ist heute nur ein Grundstein – Version 0→1 ist ein expliziter
+No-op. Die Tests sichern die relevanten Pfade fuer kuenftige Migrationen ab:
 
 - Frische QSettings bekommen ``SCHEMA_VERSION``.
 - Pre-Schema-Stand (Settings ohne ``schema_version``) wird geupgradet,
@@ -120,26 +119,26 @@ def test_migrate_with_corrupt_version_recovers(isolated_settings, caplog):
 
 
 def test_migrate_from_older_version_without_registered_step(
-    isolated_settings, caplog,
+    isolated_settings, caplog, monkeypatch,
 ):
-    """Eine bestehende, aber ältere Version (0) durchläuft die
-    Migrationsschleife. Da für 0→1 (noch) kein Schritt registriert ist,
-    wird gewarnt und die Version direkt auf ``SCHEMA_VERSION`` gehoben –
-    ohne Datenverlust und ohne Crash.
-    """
+    """Fehlt der unmittelbar nächste Schritt, bleibt die Version unverändert."""
+    monkeypatch.delitem(_ss._MIGRATIONS, 0)
     settings = _settings()
     settings.setValue("recent_files", ["/tmp/x.png"])
     settings.setValue(SCHEMA_VERSION_KEY, 0)
     settings.sync()
 
-    with caplog.at_level(logging.WARNING, logger="BgRemover"):
+    with caplog.at_level(logging.ERROR, logger="BgRemover"):
         migrate(settings)
 
     settings.sync()
     after = _settings()
-    assert int(after.value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
+    assert int(after.value(SCHEMA_VERSION_KEY)) == 0
     assert after.value("recent_files") == ["/tmp/x.png"]
-    assert any("keine Migration" in record.message for record in caplog.records)
+    assert any(
+        "Version 0 -> 1" in record.message and "schema_version=0" in record.message
+        for record in caplog.records
+    )
 
 
 def test_migrate_runs_registered_step(isolated_settings, monkeypatch):
@@ -160,6 +159,57 @@ def test_migrate_runs_registered_step(isolated_settings, monkeypatch):
 
     assert calls == [True]
     assert int(_settings().value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
+
+
+def test_migrate_runs_complete_chain_step_by_step(isolated_settings, monkeypatch):
+    """Eine vollständige Kette persistiert jeden erfolgreich erreichten Stand."""
+    calls: list[tuple[int, int]] = []
+
+    def step(version: int):
+        def run(settings: QSettings) -> None:
+            calls.append((version, int(settings.value(SCHEMA_VERSION_KEY))))
+
+        return run
+
+    monkeypatch.setattr(_ss, "SCHEMA_VERSION", 3)
+    monkeypatch.setattr(_ss, "_MIGRATIONS", {
+        0: step(0),
+        1: step(1),
+        2: step(2),
+    })
+    settings = _settings()
+    settings.setValue(SCHEMA_VERSION_KEY, 0)
+
+    migrate(settings)
+
+    assert calls == [(0, 0), (1, 1), (2, 2)]
+    assert int(settings.value(SCHEMA_VERSION_KEY)) == 3
+
+
+def test_migrate_does_not_start_interrupted_chain(
+    isolated_settings, caplog, monkeypatch,
+):
+    """Eine Lücke verhindert die gesamte Kette und alle Teilmigrationen."""
+    calls: list[int] = []
+    monkeypatch.setattr(_ss, "SCHEMA_VERSION", 3)
+    monkeypatch.setattr(_ss, "_MIGRATIONS", {
+        0: lambda _settings: calls.append(0),
+        2: lambda _settings: calls.append(2),
+    })
+    settings = _settings()
+    settings.setValue(SCHEMA_VERSION_KEY, 0)
+
+    with caplog.at_level(logging.ERROR, logger="BgRemover"):
+        migrate(settings)
+
+    assert calls == []
+    assert int(settings.value(SCHEMA_VERSION_KEY)) == 0
+    assert any("Version 1 -> 2" in record.message for record in caplog.records)
+
+
+def test_every_supported_previous_version_has_a_registered_step():
+    """Die CI muss eine versehentlich lückenhafte Registry sofort erkennen."""
+    assert set(range(SCHEMA_VERSION)).issubset(_ss._MIGRATIONS)
 
 
 def test_main_window_runs_migration_on_construction(qapp, isolated_settings):

@@ -91,17 +91,24 @@ class MainWindow(QMainWindow):
         # Wechsel an einem zentralen Punkt greifen koennen.
         self._settings = QSettings("BgRemover", "BgRemover")
         migrate_settings(self._settings)
+        future_schema = is_future_schema(self._settings)
         init_locale_from_settings(
             self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
-            self._settings, SETTINGS_RECENT_KEY, RECENT_MAX)
+            self._settings,
+            SETTINGS_RECENT_KEY,
+            RECENT_MAX,
+            read_only=future_schema,
+        )
         # Beschädigte/alte recent_files-Werte einmalig beim Start bereinigen,
         # damit ein unerwarteter gespeicherter Typ den Menü-/App-Aufbau nicht
         # abbrechen kann (Befund #233). Bei einem ZUKUENFTIGEN Schema NICHT
         # umschreiben: ein neueres recent_files-Layout (z. B. ein Mapping) wuerde
         # sonst faelschlich als beschaedigt mit [] ueberschrieben – Downgrade-
-        # Datenverlust, den migrate() bewusst vermeidet (Befund #240).
-        if not is_future_schema(self._settings):
+        # Datenverlust, den migrate() bewusst vermeidet (Befund #240). Der
+        # Read-only-Modus schützt zusätzlich indirekte Writes beim Menüaufbau
+        # und bei späteren Recent-Files-Aktionen (Befund #259).
+        if not future_schema:
             self._recent_files.sanitize()
         # Submenü-Adapter wird in _build_menu gesetzt
         self._recent_menu: RecentFilesMenu | None = None

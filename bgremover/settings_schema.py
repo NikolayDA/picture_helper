@@ -43,11 +43,16 @@ def _read_version(settings: QSettings) -> int | None:
         return None
 
 
-# Migrationen von Version N nach N+1. Aktuell leer – der Eintrag fuer
-# Schritt 0->1 ist ein No-op (Default-Werte sind bereits graceful), wird
-# aber explizit aufgelistet, damit das Muster fuer kuenftige Schritte
-# steht.
-_MIGRATIONS: dict[int, Callable[[QSettings], None]] = {}
+def _migrate_0_to_1(_settings: QSettings) -> None:
+    """No-op fuer die erste explizit versionierte Settings-Generation."""
+
+
+# Migrationen von Version N nach N+1. Auch No-op-Schritte werden explizit
+# registriert, damit jede unterstuetzte Vorversion einen eindeutigen Weg zur
+# aktuellen Version besitzt.
+_MIGRATIONS: dict[int, Callable[[QSettings], None]] = {
+    0: _migrate_0_to_1,
+}
 
 
 def migrate(settings: QSettings) -> None:
@@ -79,19 +84,20 @@ def migrate(settings: QSettings) -> None:
         )
         return
 
-    while current < SCHEMA_VERSION:
-        step = _MIGRATIONS.get(current)
-        if step is None:
-            logger.warning(
+    for version in range(current, SCHEMA_VERSION):
+        if version not in _MIGRATIONS:
+            logger.error(
                 "QSettings: keine Migration fuer Version %d -> %d "
-                "registriert. Setze schema_version direkt auf %d.",
-                current, current + 1, SCHEMA_VERSION,
+                "registriert. Breche bei schema_version=%d ab.",
+                version, version + 1, current,
             )
-            break
+            return
+
+    while current < SCHEMA_VERSION:
+        step = _MIGRATIONS[current]
         step(settings)
         current += 1
-
-    settings.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
+        settings.setValue(SCHEMA_VERSION_KEY, current)
 
 
 def is_future_schema(settings: QSettings) -> bool:
