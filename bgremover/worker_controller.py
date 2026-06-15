@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
+from bgremover.ai_process import InferenceProcess
 from bgremover.constants import (
     _THREAD_SHUTDOWN_MS,
     _THREAD_TERMINATE_WAIT_MS,
@@ -32,11 +33,16 @@ class WorkerController:
         parent: QObject,
         shutdown_ms: int = _THREAD_SHUTDOWN_MS,
         terminate_wait_ms: int = _THREAD_TERMINATE_WAIT_MS,
+        inference: InferenceProcess | None = None,
     ) -> None:
         self._parent = parent
         self._shutdown_ms = shutdown_ms
         self._terminate_wait_ms = terminate_wait_ms
         self._shutting_down = False
+        # Inferenz-Kindprozess (rembg/ONNX), gemeinsam von Warmup und KI-Worker
+        # genutzt. Die Konstruktion startet noch keinen Prozess – das passiert
+        # erst beim ersten Warmup/KI-Aufruf. Injizierbar für Tests.
+        self._inference = inference or InferenceProcess()
         self.load_thread: QThread | None = None
         self.ai_thread: QThread | None = None
         self.ai_worker: AIWorker | None = None
@@ -133,7 +139,7 @@ class WorkerController:
         """Startet den rembg-Warmup; gibt False zurück, wenn der Warmup bereits läuft."""
         if self.warmup_thread is not None and self.warmup_thread.isRunning():
             return False
-        worker = RembgWarmupWorker()
+        worker = RembgWarmupWorker(self._inference)
         if on_error is not None:
             # ``error`` feuert nur im Fehlerfall (vor dem finished/Lifecycle).
             # So kann der Aufrufer einen fehlgeschlagenen Warmup von einem
@@ -164,7 +170,7 @@ class WorkerController:
         """Startet die KI-Hintergrundentfernung; gibt False zurück, wenn die KI bereits läuft."""
         if self.is_ai_running:
             return False
-        worker = AIWorker(image.copy())
+        worker = AIWorker(image.copy(), self._inference)
         worker.finished.connect(self._guard_ui_callback(on_done))
         worker.error.connect(self._guard_ui_callback(on_error))
         guarded_on_finished = self._guard_ui_callback(on_finished)
@@ -189,8 +195,9 @@ class WorkerController:
     def cancel_ai(self) -> None:
         """Markiert den laufenden AI-Worker als abgebrochen.
 
-        Der Thread läuft die aktuelle rembg-Berechnung noch zu Ende, aber
-        das Ergebnis wird nicht emittiert.
+        Der pollende Worker-Thread bemerkt das Flag, beendet den
+        Inferenz-Kindprozess (stoppt die laufende ONNX-Berechnung und gibt deren
+        Ressourcen frei) und kehrt zurück, ohne ein Ergebnis zu emittieren.
         """
         if self.ai_worker is not None:
             self.ai_worker.cancel()
@@ -240,6 +247,12 @@ class WorkerController:
         self._shutting_down = True
         self.cancel_ai()
         self.cancel_flood_fill()
+        # Laufende, nicht unterbrechbare Inferenz sofort entwerten: killt den
+        # Inferenz-Kindprozess, sodass der pollende KI-Thread seinen Loop
+        # verlässt und kooperativ endet – ohne QThread.terminate() für die KI.
+        # Aus dem UI-Thread sicher: ändert nur den Prozess, nicht die
+        # Python-Handles (die räumt der KI-Thread bzw. shutdown() unten ab).
+        self._inference.request_stop()
         shutdowns = (
             ("ai_thread", self.shutdown_thread(self.ai_thread, "KI")),
             ("load_thread", self.shutdown_thread(self.load_thread, "Bildladen")),
@@ -252,6 +265,10 @@ class WorkerController:
                 self.shutdown_thread(self.flood_fill_thread, "Flood-Fill"),
             ),
         )
+        # Inferenz-Kindprozess endgültig beenden und einsammeln. Die
+        # KI-/Warmup-Threads sind oben bereits beendet (oder abgebrochen), der
+        # Aufruf konkurriert daher nicht mehr mit einem pollenden Worker.
+        self._inference.shutdown()
         # ``thread.finished``-Slots werden beim blockierenden wait() nicht
         # zwingend sofort im Besitzer-Thread zugestellt. Nach dem synchronen
         # Shutdown dürfen deshalb für beendete Threads keine stale
@@ -274,7 +291,17 @@ class WorkerController:
         return all_stopped
 
     def shutdown_thread(self, thread: QThread | None, name: str) -> bool:
-        """Beendet *thread* innerhalb zweier fester Zeitgrenzen."""
+        """Beendet *thread* innerhalb zweier fester Zeitgrenzen.
+
+        Alle Worker sind kooperativ stoppbar: Bildladen ist begrenzte I/O,
+        Flood-Fill prüft ein Abbruch-Flag, und die KI pollt nur auf den
+        Inferenz-Kindprozess (die nicht unterbrechbare ONNX-Inferenz lebt seit
+        #270 nicht mehr im Thread). Der kooperative ``quit()``/``wait()`` greift
+        daher; ``terminate()`` bleibt nur ein begrenzter Notfall für einen
+        wider Erwarten hängenden Thread. Anders als früher kann ``terminate()``
+        hier keinen nativen ONNX-Zustand mehr zerreißen – der liegt im
+        Kindprozess, der separat hart beendet wird.
+        """
         if thread is None or not thread.isRunning():
             return True
         thread.quit()

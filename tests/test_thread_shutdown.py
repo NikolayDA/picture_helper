@@ -8,7 +8,6 @@ prüft, dass ``closeEvent`` den Thread sauber stoppt, statt zu crashen
 import gc
 import threading
 import time
-from unittest.mock import patch
 
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -173,49 +172,96 @@ def test_close_event_noop_without_threads(qapp, monkeypatch):
 
 
 def test_cancelled_ai_shutdown_skips_result_decode(qapp):
-    # Direkt am WorkerController: das kurze Shutdown-Timeout kommt über den
-    # öffentlichen Konstruktor-Parameter statt durch Schreiben des privaten
-    # ``_shutdown_ms`` auf dem Controller eines MainWindow.
+    """Abbruch + Schließen während laufender KI: kein Ergebnis wird angewandt und
+    der Shutdown ist schnell (der pollende KI-Thread bricht kooperativ ab)."""
+    from tests._fakes import FakeInference
+
     parent = QObject()
-    controller = WorkerController(parent, shutdown_ms=1000)
-    rembg_started = threading.Event()
-    rembg_can_return = threading.Event()
+    # Tor zu: die (gefälschte) Inferenz blockiert pollend, bis abgebrochen wird.
+    fake = FakeInference(gate=threading.Event())
+    controller = WorkerController(parent, shutdown_ms=1000, inference=fake)
 
-    def _fake_rembg(_data, session=None):
-        rembg_started.set()
-        assert rembg_can_return.wait(2.0)
-        return b"result png"
+    applied: list = []
+    try:
+        started = controller.start_ai(
+            Image.new("RGBA", (2, 2), (1, 2, 3, 255)),
+            on_done=applied.append,
+            on_error=lambda _msg: None,
+            on_finished=lambda: None,
+        )
+        assert started
 
-    def _slow_open(_data):
-        time.sleep(1.5)
-        return Image.new("RGBA", (2, 2), (0, 0, 0, 0))
+        # Warten, bis der KI-Thread tatsächlich in der Inferenz pollt.
+        deadline = time.monotonic() + 2.0
+        while fake.infer_calls == 0 and time.monotonic() < deadline:
+            qapp.processEvents()
+            time.sleep(0.01)
+        assert fake.infer_calls == 1
+
+        controller.cancel_ai()
+        started_at = time.monotonic()
+        all_stopped = controller.shutdown_all()
+        elapsed = time.monotonic() - started_at
+
+        assert all_stopped
+        assert elapsed < 0.5
+        assert applied == []   # abgebrochenes Ergebnis wird nicht angewandt
+    finally:
+        controller.shutdown_all()
+
+
+def test_ai_thread_shuts_down_cooperatively_without_terminate(qapp):
+    """Kern von #270: Auch wenn die native Inferenz hängt, endet der KI-Thread
+    beim Schließen KOOPERATIV – der Inferenz-Kindprozess wird gekillt, der
+    pollende Thread löst sich auf. ``QThread.terminate()`` wird nie erreicht.
+
+    Hier mit einem echten ``InferenceProcess`` über einen blockierenden
+    Server-Stub (statt rembg): genau der „nicht reagierende/blockierte native
+    Aufruf" aus den Akzeptanzkriterien.
+    """
+    from bgremover.ai_process import InferenceProcess
+    from tests.test_ai_process import _blocking_server
+
+    parent = QObject()
+    inference = InferenceProcess(target=_blocking_server)
+    controller = WorkerController(parent, shutdown_ms=2000, inference=inference)
 
     try:
-        with (
-            patch("bgremover.workers.rembg_remove", side_effect=_fake_rembg, create=True),
-            patch("bgremover.workers.Image.open", side_effect=_slow_open),
-        ):
-            started = controller.start_ai(
-                Image.new("RGBA", (2, 2), (1, 2, 3, 255)),
-                on_done=lambda _img: None,
-                on_error=lambda _msg: None,
-                on_finished=lambda: None,
-            )
-            assert started
+        started = controller.start_ai(
+            Image.new("RGBA", (2, 2), (1, 2, 3, 255)),
+            on_done=lambda _img: None,
+            on_error=lambda _msg: None,
+            on_finished=lambda: None,
+        )
+        assert started
+        ai_thread = controller.ai_thread
+        assert ai_thread is not None
 
-            deadline = time.monotonic() + 2.0
-            while not rembg_started.is_set() and time.monotonic() < deadline:
-                qapp.processEvents()
-                time.sleep(0.01)
-            assert rembg_started.is_set()
+        # terminate() am konkreten Thread instrumentieren: Wird es erreicht,
+        # schlägt der Test fehl – der Thread muss rein kooperativ enden.
+        terminate_calls: list[bool] = []
+        original_terminate = ai_thread.terminate
+        ai_thread.terminate = lambda: (  # type: ignore[method-assign]
+            terminate_calls.append(True) or original_terminate()
+        )
 
-            controller.cancel_ai()
-            rembg_can_return.set()
-            started_at = time.monotonic()
-            controller.shutdown_all()
-            elapsed = time.monotonic() - started_at
+        # Warten, bis der Inferenz-Kindprozess wirklich läuft und der Thread
+        # in der Inferenz pollt.
+        deadline = time.monotonic() + 5.0
+        while not inference.is_alive and time.monotonic() < deadline:
+            qapp.processEvents()
+            time.sleep(0.01)
+        assert inference.is_alive
 
-        assert elapsed < 0.5
+        started_at = time.monotonic()
+        all_stopped = controller.shutdown_all()
+        elapsed = time.monotonic() - started_at
+
+        assert all_stopped
+        assert ai_thread.isFinished()
+        assert terminate_calls == []          # terminate() nie erreicht
+        assert not inference.is_alive          # Kindprozess hart beendet
+        assert elapsed < 2.0                   # kooperativ, lange vor 2000 ms
     finally:
-        rembg_can_return.set()
+        inference.shutdown()
         controller.shutdown_all()

@@ -3,11 +3,9 @@ import io
 import os
 import subprocess
 import sys
-import threading
 from unittest.mock import patch
 
 import numpy as np
-import pytest
 from PIL import Image
 
 from bgremover import (
@@ -17,9 +15,11 @@ from bgremover import (
     ImageLoadWorker,
     MainWindow,
 )
+from bgremover.ai_process import InferenceError
 from bgremover.constants import _MAX_MEGAPIXELS
 from bgremover.image_loading import open_validated_image
 from bgremover.status_messages import StatusMessages as SM
+from tests._fakes import FakeInference
 
 # ─────────────────────────────────────────────────────────────
 # ImageLoadWorker – Fehlerpfade
@@ -444,69 +444,48 @@ def test_canvas_load_image_rejects_unknown_format(qapp, tmp_path) -> None:
 # AIWorker – Fehlerpfade
 # ─────────────────────────────────────────────────────────────
 
-@pytest.fixture()
-def _mock_rembg():
-    """Stellt sicher, dass rembg_remove im Modul mockbar ist (auch wenn nicht installiert)."""
-    import bgremover.workers as _m
-    had = hasattr(_m, "rembg_remove")
-    if not had:
-        _m.rembg_remove = None  # Platzhalter damit patch() greift
-    yield
-    if not had:
-        delattr(_m, "rembg_remove")
-
-
-def test_ai_worker_error_signal_on_bad_input(qapp, _mock_rembg) -> None:
-    """AIWorker soll error emittieren wenn rembg_remove fehlschlägt."""
-    img = Image.new("RGBA", (4, 4), (0, 0, 0, 255))
-    worker = AIWorker(img)
+def test_ai_worker_error_signal_on_inference_failure(qapp) -> None:
+    """AIWorker meldet ``error``, wenn die Inferenz im Kindprozess fehlschlägt."""
+    worker = AIWorker(
+        Image.new("RGBA", (4, 4), (0, 0, 0, 255)),
+        FakeInference(infer_error=InferenceError("mock inference failure")),
+    )
     errors: list[str] = []
     finished: list = []
     worker.error.connect(errors.append)
     worker.finished.connect(finished.append)
 
-    with patch("bgremover.workers.rembg_remove", side_effect=RuntimeError("mock rembg failure")):
-        worker.run()
+    worker.run()
 
     assert len(errors) == 1
-    assert "RuntimeError" in errors[0] or "mock rembg failure" in errors[0]
+    assert "mock inference failure" in errors[0]
     assert len(finished) == 0
 
 
-def test_ai_worker_finished_signal_on_success(qapp, _mock_rembg) -> None:
-    img = Image.new("RGBA", (4, 4), (0, 0, 0, 255))
-    worker = AIWorker(img)
+def test_ai_worker_finished_signal_on_success(qapp) -> None:
+    worker = AIWorker(Image.new("RGBA", (4, 4), (0, 0, 0, 255)), FakeInference())
     finished: list = []
     errors: list[str] = []
     worker.finished.connect(finished.append)
     worker.error.connect(errors.append)
 
-    result_img = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
-    result_buf = io.BytesIO()
-    result_img.save(result_buf, format="PNG")
-
-    with patch("bgremover.workers.rembg_remove", return_value=result_buf.getvalue()):
-        worker.run()
+    worker.run()
 
     assert len(finished) == 1
     assert len(errors) == 0
 
 
-def test_ai_worker_cancel_skips_finished_signal(qapp, _mock_rembg) -> None:
-    img = Image.new("RGBA", (4, 4), (0, 0, 0, 255))
-    worker = AIWorker(img)
+def test_ai_worker_cancel_skips_finished_signal(qapp) -> None:
+    """Abbruch (``InferenceCancelled``) liefert kein ``finished`` und kein
+    ``error`` – nur das ``done``-Abschlusssignal (hier nicht beobachtet)."""
+    worker = AIWorker(Image.new("RGBA", (4, 4), (0, 0, 0, 255)), FakeInference())
     finished: list = []
     errors: list[str] = []
     worker.finished.connect(finished.append)
     worker.error.connect(errors.append)
     worker.cancel()
 
-    result_img = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
-    result_buf = io.BytesIO()
-    result_img.save(result_buf, format="PNG")
-
-    with patch("bgremover.workers.rembg_remove", return_value=result_buf.getvalue()):
-        worker.run()
+    worker.run()
 
     assert len(finished) == 0
     assert len(errors) == 0
@@ -575,184 +554,50 @@ def test_flood_fill_worker_error_signal_on_bad_array(qapp) -> None:
 # RembgWarmupWorker – Always-emit-finished-Vertrag
 # ─────────────────────────────────────────────────────────────
 
-def test_warmup_worker_emits_finished_on_success(qapp, _mock_rembg) -> None:
-    """Erfolgsfall: ``finished`` muss genau einmal feuern, ``rembg_remove``
-    bekommt das Dummy-Bild zu sehen."""
+def test_warmup_worker_emits_finished_on_success(qapp) -> None:
+    """Erfolgsfall: ``finished`` muss genau einmal feuern und der Warmup den
+    Inferenzprozess genau einmal anstoßen."""
     from bgremover.workers import RembgWarmupWorker
 
-    worker = RembgWarmupWorker()
+    fake = FakeInference()
+    worker = RembgWarmupWorker(fake)
     finished: list = []
     worker.finished.connect(lambda: finished.append(True))
 
-    calls: list[bytes] = []
-
-    def fake_remove(payload: bytes, session: object = None) -> bytes:
-        calls.append(payload)
-        return b""
-
-    with patch("bgremover.workers.rembg_remove", side_effect=fake_remove):
-        worker.run()
+    worker.run()
 
     assert finished == [True]
-    assert len(calls) == 1
-    assert calls[0]  # Nicht-leeres Dummy-PNG
+    assert fake.warmup_calls == 1
 
 
-def test_warmup_worker_emits_finished_on_error(qapp, _mock_rembg) -> None:
+def test_warmup_worker_emits_finished_on_error(qapp) -> None:
     """Fehlerfall: ``finished`` muss trotzdem feuern – sonst hängt der
     WorkerController-Thread-Lifecycle (``warmup_done`` würde nie gesetzt)."""
     from bgremover.workers import RembgWarmupWorker
 
-    worker = RembgWarmupWorker()
+    worker = RembgWarmupWorker(FakeInference(warmup_error=InferenceError("boom")))
     finished: list = []
+    errors: list[str] = []
     worker.finished.connect(lambda: finished.append(True))
+    worker.error.connect(errors.append)
 
-    with patch("bgremover.workers.rembg_remove",
-               side_effect=RuntimeError("mock warmup failure")):
-        worker.run()
+    worker.run()
 
     assert finished == [True]
-
-
-# ─────────────────────────────────────────────────────────────
-# #229 – rembg-Session: einmalig erzeugen und wiederverwenden
-# ─────────────────────────────────────────────────────────────
-
-def test_rembg_session_created_once_and_reused_across_workers(qapp, _mock_rembg) -> None:
-    """Der Warmup erzeugt genau EINE Session, ``new_session()`` läuft über
-    mehrere aufeinanderfolgende KI-Aufrufe höchstens einmal, und jeder
-    ``remove()``-Aufruf (Warmup + AIWorker) bekommt dieselbe Session-Instanz
-    übergeben – Kern von Issue #229 (teure Inferenz-Session wiederverwenden)."""
-    from bgremover.workers import RembgWarmupWorker
-
-    sentinel_session = object()
-    new_session_calls: list = []
-
-    def fake_new_session(*args, **kwargs):
-        new_session_calls.append((args, kwargs))
-        return sentinel_session
-
-    result_buf = io.BytesIO()
-    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
-    result_png = result_buf.getvalue()
-
-    seen_sessions: list = []
-
-    def fake_remove(_payload, session=None):
-        seen_sessions.append(session)
-        return result_png
-
-    with patch("bgremover.workers.rembg_new_session", side_effect=fake_new_session), \
-         patch("bgremover.workers.rembg_remove", side_effect=fake_remove):
-        RembgWarmupWorker().run()
-        AIWorker(Image.new("RGBA", (4, 4), (10, 20, 30, 255))).run()
-        AIWorker(Image.new("RGBA", (4, 4), (40, 50, 60, 255))).run()
-
-    # new_session() genau einmal: die Session wird wiederverwendet, nicht je
-    # KI-Aufruf neu initialisiert.
-    assert len(new_session_calls) == 1
-    # Warmup + zwei KI-Läufe rufen remove() – jeder mit DERSELBEN Session.
-    assert len(seen_sessions) == 3
-    assert all(s is sentinel_session for s in seen_sessions)
-
-
-def test_ensure_rembg_session_reports_init_error(qapp, _mock_rembg, monkeypatch) -> None:
-    """Schlägt ``new_session()`` fehl, propagiert der Fehler über das
-    Worker-``error``-Signal und ``_rembg_session`` bleibt ``None`` – es bleibt
-    kein fälschlich „bereiter" Zustand zurück (Akzeptanzkriterium #229)."""
-    import bgremover.workers as _m
-    from bgremover.workers import RembgWarmupWorker
-
-    def boom(*_a, **_k):
-        raise RuntimeError("session init failed")
-
-    worker = RembgWarmupWorker()
-    errors: list[str] = []
-    finished: list = []
-    worker.error.connect(errors.append)
-    worker.finished.connect(lambda: finished.append(True))
-
-    with patch("bgremover.workers.rembg_remove", side_effect=lambda *a, **k: b""), \
-         patch("bgremover.workers.rembg_new_session", side_effect=boom):
-        worker.run()
-
-    assert finished == [True]                 # Lifecycle-Abschluss feuert immer
     assert len(errors) == 1
-    assert "session init failed" in errors[0]
-    assert _m._rembg_session is None          # kein false-ready-Zustand
-
-
-def test_ensure_rembg_session_creates_once_under_concurrency() -> None:
-    """Double-Checked Locking für die Session: Sehen mehrere Threads gleichzeitig
-    ``_rembg_session is None``, darf trotzdem nur EIN Thread ``new_session()``
-    ausführen – sonst würde das teure ONNX-Modell mehrfach geladen
-    (Akzeptanzkriterium #229: threadsichere Session-Initialisierung)."""
-    import time
-    import types
-
-    import bgremover.workers as _m
-
-    saved_new_session = _m.rembg_new_session
-    saved_session = _m._rembg_session
-    _m.rembg_new_session = None
-    _m._rembg_session = None
-
-    creating_threads: set[int] = set()
-    sessions: list = []
-    fake = types.ModuleType("rembg")
-
-    def _module_getattr(name: str):
-        # ``from rembg import new_session`` loest dies aus. Die zurueckgegebene
-        # Funktion haelt das Race-Fenster offen (sleep) und vermerkt, welcher
-        # Thread tatsaechlich eine Session erzeugt.
-        if name == "new_session":
-            def _new_session(*_a, **_k):
-                creating_threads.add(threading.get_ident())
-                time.sleep(0.05)
-                session = object()
-                sessions.append(session)
-                return session
-            return _new_session
-        raise AttributeError(name)
-
-    fake.__getattr__ = _module_getattr
-
-    results: list = []
-    start = threading.Barrier(8)
-
-    def call() -> None:
-        start.wait(timeout=5)
-        results.append(_m._ensure_rembg_session())
-
-    threads = [threading.Thread(target=call) for _ in range(8)]
-    try:
-        with patch.dict(sys.modules, {"rembg": fake}):
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join(timeout=5)
-
-        assert len(creating_threads) == 1, creating_threads
-        assert len(sessions) == 1                       # new_session genau einmal
-        assert len(results) == 8
-        assert all(r is results[0] for r in results)    # alle teilen die Session
-    finally:
-        _m.rembg_new_session = saved_new_session
-        _m._rembg_session = saved_session
 
 
 # ─────────────────────────────────────────────────────────────
 # N7 – rembg wird lazy importiert (App-Start-Latenz)
 # ─────────────────────────────────────────────────────────────
 
-def test_rembg_available_is_bool_and_lazy_loader_present() -> None:
+def test_rembg_available_is_bool() -> None:
     """``REMBG_AVAILABLE`` stammt aus ``find_spec`` (kein teurer Import beim
-    Modul-Load); der lazy Loader ``_ensure_rembg_remove`` zieht rembg erst im
-    Worker-Thread und ist bis dahin ungebunden."""
+    Modul-Load). Der eigentliche rembg-Import lebt seit #270 im Inferenz-
+    Kindprozess (``ai_process``), nicht mehr im Worker-Modul."""
     from bgremover import workers
 
     assert isinstance(workers.REMBG_AVAILABLE, bool)
-    assert callable(workers._ensure_rembg_remove)
 
 
 def test_importing_workers_does_not_eager_import_rembg() -> None:
@@ -773,56 +618,6 @@ def test_importing_workers_does_not_eager_import_rembg() -> None:
     assert r.returncode == 0 and "OK" in r.stdout, (
         f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
     )
-
-
-def test_ensure_rembg_remove_imports_once_under_concurrency() -> None:
-    """Double-Checked Locking: Sehen mehrere Threads gleichzeitig
-    ``rembg_remove is None``, darf trotzdem nur EIN Thread den Lazy-Import
-    betreten. Ohne Lock waere das ein latenter Race um den teuren Import."""
-    import time
-    import types
-
-    import bgremover.workers as _m
-
-    saved = _m.rembg_remove
-    _m.rembg_remove = None
-
-    importing_threads: set[int] = set()
-    fake = types.ModuleType("rembg")
-
-    def _module_getattr(name: str):
-        # ``from rembg import remove`` loest dies aus (``remove`` ist kein
-        # echtes Attribut). Haelt das Race-Fenster offen und vermerkt, welcher
-        # Thread den Import-Block betritt – robust gegen die mehrfachen
-        # getattr-Aufrufe eines einzelnen ``from``-Imports.
-        if name == "remove":
-            importing_threads.add(threading.get_ident())
-            time.sleep(0.05)
-            return lambda data: data
-        raise AttributeError(name)
-
-    fake.__getattr__ = _module_getattr
-
-    results: list = []
-    start = threading.Barrier(8)
-
-    def call() -> None:
-        start.wait(timeout=5)
-        results.append(_m._ensure_rembg_remove())
-
-    threads = [threading.Thread(target=call) for _ in range(8)]
-    try:
-        with patch.dict(sys.modules, {"rembg": fake}):
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join(timeout=5)
-
-        assert len(importing_threads) == 1, importing_threads
-        assert len(results) == 8
-        assert all(r is results[0] for r in results)
-    finally:
-        _m.rembg_remove = saved
 
 
 # ─────────────────────────────────────────────────────────────
@@ -911,11 +706,12 @@ def test_load_image_async_cancels_running_flood_fill(qapp, monkeypatch) -> None:
 
 
 def test_load_image_async_reports_pending_ai_cancellation(qapp, monkeypatch) -> None:
-    """Bildwechsel während rembg läuft erklärt die unvermeidbare Wartezeit.
+    """Bildwechsel während die KI läuft zeigt die kurze Abbruch-Wartezeit an.
 
-    ``AIWorker.cancel`` kann den blockierenden rembg-Aufruf nicht abbrechen;
-    bis zu dessen Rückkehr bleibt der KI-Button deaktiviert. Die Statusleiste
-    muss diesen Zustand anzeigen und nach Threadende sauber abschließen.
+    ``cancel_ai`` beendet die laufende Inferenz seit #270 per Kill des
+    Inferenz-Kindprozesses (schnell); bis der KI-Thread danach kooperativ
+    endet, bleibt der KI-Button kurz deaktiviert. Die Statusleiste muss diesen
+    Übergangszustand anzeigen und nach Threadende sauber abschließen.
     """
     win = MainWindow()
     try:

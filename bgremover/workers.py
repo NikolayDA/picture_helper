@@ -1,19 +1,22 @@
-"""Hintergrund-Worker (eigene QThreads) und der optionale rembg-Import.
+"""Hintergrund-Worker (eigene QThreads).
 
-Der optionale ``rembg``-Import liegt hier, weil ausschließlich dieses
-Modul ``rembg_remove`` aufruft; Tests patchen entsprechend
-``bgremover.workers.rembg_remove`` bzw. ``bgremover.workers.Image.open``.
+Die KI-/rembg-Inferenz läuft NICHT mehr im Worker-Thread, sondern in einem
+eigenen Prozess (``bgremover.ai_process``): Eine nicht unterbrechbare native
+ONNX-Inferenz darf den GUI-Prozess beim Schließen nicht per
+``QThread.terminate()`` gefährden (Befund #270). ``AIWorker`` und
+``RembgWarmupWorker`` sprechen nur den ``InferenceProcess`` an und pollen auf
+das Ergebnis – ein kooperativ unterbrechbarer Loop.
 """
 from __future__ import annotations
 
 import importlib.util
 import io
-import threading
 
 import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from bgremover.ai_process import InferenceCancelled, InferenceProcess
 from bgremover.constants import logger
 from bgremover.image_loading import open_validated_image
 from bgremover.image_utils import flood_fill
@@ -22,87 +25,13 @@ from bgremover.image_utils import flood_fill
 # Import kostet beim Start mehrere Sekunden, und ``main_window`` lädt ``workers``
 # für ``REMBG_AVAILABLE`` schon vor dem ersten Fensterzeichnen. ``find_spec``
 # prüft nur die *Installation* (ohne den teuren Import); der echte Import läuft
-# lazy im Hintergrund-Thread (Warmup / erster KI-Klick), wo ein defektes
+# lazy im Inferenz-Kindprozess (``ai_process``), wo ein defektes
 # onnxruntime-Backend als normaler Worker-Fehler gemeldet wird statt den Start
 # zu verzögern.
 try:
     REMBG_AVAILABLE = importlib.util.find_spec("rembg") is not None
 except (ImportError, ValueError):
     REMBG_AVAILABLE = False
-
-# Lazy-Handles auf ``rembg.remove`` und ``rembg.new_session`` (befüllt beim
-# ersten echten Bedarf im Worker-Thread). Modulebene, damit Tests
-# ``bgremover.workers.rembg_remove`` bzw. ``rembg_new_session`` direkt patchen
-# können.
-rembg_remove = None
-rembg_new_session = None
-
-# Modulweit gecachte, wiederverwendbare rembg-/ONNX-Inferenz-Session. Wird
-# einmalig beim Warmup erzeugt; jeder spätere KI-Aufruf übergibt sie an
-# ``remove(..., session=...)``, statt das Modell erneut zu initialisieren.
-_rembg_session = None
-
-# Serialisiert die Lazy-Importe und die Session-Erzeugung unten gegen
-# konkurrierende Threads. Der ``WorkerController`` reiht Warmup/KI zwar ohnehin
-# sequenziell ein – der Lock macht ``_ensure_rembg_remove`` und
-# ``_ensure_rembg_session`` aber unabhängig davon thread-sicher.
-_rembg_lock = threading.Lock()
-
-
-def _ensure_rembg_remove():
-    """Importiert ``rembg.remove`` beim ersten Aufruf und cached es modulweit.
-
-    Hält den teuren ``onnxruntime``-Import aus dem App-Start heraus – er läuft
-    erst hier, im Warmup- bzw. KI-Worker-Thread. Schlägt der Import fehl (z. B.
-    defektes Backend), propagiert die Exception in ``_Worker.run`` und wird wie
-    ein fehlgeschlagener ``remove()``-Aufruf als ``error`` gemeldet. Ist
-    ``rembg_remove`` bereits gesetzt (echter Import *oder* Test-Patch), wird es
-    unverändert zurückgegeben.
-
-    Der Lazy-Import ist per Double-Checked-Locking thread-sicher: ohne Lock
-    könnten zwei Threads gleichzeitig ``rembg_remove is None`` sehen und beide
-    den Import-Pfad betreten.
-    """
-    global rembg_remove
-    if rembg_remove is None:
-        with _rembg_lock:
-            # Zweite Prüfung im Lock: ein konkurrierender Thread kann
-            # ``rembg_remove`` während des Wartens bereits gesetzt haben.
-            if rembg_remove is None:
-                from rembg import remove
-                rembg_remove = remove
-    return rembg_remove
-
-
-def _ensure_rembg_session():
-    """Erzeugt beim ersten Aufruf genau eine rembg-Session und cached sie modulweit.
-
-    ``new_session()`` lädt das ONNX-Modell und legt die teuren Runtime-
-    Ressourcen an – das ist der eigentlich langsame Schritt. Die Session wird
-    hier einmalig erstellt und von allen späteren ``remove(..., session=...)``-
-    Aufrufen wiederverwendet, sodass ``new_session()`` über mehrere KI-Aufrufe
-    hinweg höchstens einmal läuft.
-
-    Thread-sicher per Double-Checked-Locking (wie ``_ensure_rembg_remove``):
-    Auch wenn mehrere Threads gleichzeitig ``_rembg_session is None`` sehen,
-    betritt nur einer den Erzeugungs-Pfad. Schlägt der Import oder
-    ``new_session()`` fehl, bleibt ``_rembg_session`` ``None`` – die Exception
-    propagiert in ``_Worker.run`` und wird als ``error`` gemeldet, ohne einen
-    fälschlich „bereiten" Zustand zu hinterlassen; ein Folgeversuch beginnt
-    sauber neu. Ist ``rembg_new_session`` bereits gesetzt (echter Import *oder*
-    Test-Patch), wird es unverändert genutzt.
-    """
-    global rembg_new_session, _rembg_session
-    if _rembg_session is None:
-        with _rembg_lock:
-            # Zweite Prüfung im Lock: ein konkurrierender Thread kann die
-            # Session während des Wartens bereits erzeugt haben.
-            if _rembg_session is None:
-                if rembg_new_session is None:
-                    from rembg import new_session
-                    rembg_new_session = new_session
-                _rembg_session = rembg_new_session()
-    return _rembg_session
 
 
 class _Worker(QObject):
@@ -136,7 +65,13 @@ class _Worker(QObject):
 
 
 class AIWorker(_Worker):
-    """Entfernt den Hintergrund per rembg im Hintergrund-Thread.
+    """Entfernt den Hintergrund per rembg über den Inferenz-Kindprozess.
+
+    Der Worker selbst rechnet nicht: Er reicht das Bild als PNG an den
+    ``InferenceProcess`` weiter und pollt auf das Ergebnis. Die nicht
+    unterbrechbare ONNX-Inferenz läuft im Kindprozess, sodass ``cancel()``
+    bzw. das Schließen sie per Prozess-Kill stoppen können – ohne
+    ``QThread.terminate()`` und ohne den GUI-Prozess zu gefährden (#270).
 
     ``finished`` trägt das Ergebnisbild und feuert nur im Erfolgsfall.
     ``done`` ist parameterlos und feuert über ``_always_finished``
@@ -151,20 +86,26 @@ class AIWorker(_Worker):
     done = pyqtSignal()             # immer – Thread-Abschluss (auch Abbruch/Fehler)
     _error_context = "rembg-Fehler"
 
-    def __init__(self, pil_image: Image.Image) -> None:
+    def __init__(self, pil_image: Image.Image, inference: InferenceProcess) -> None:
         super().__init__()
         self._img = pil_image
+        self._inference = inference
         self._cancelled = False
 
     def cancel(self) -> None:
         self._cancelled = True
 
     def _work(self) -> None:
-        remove = _ensure_rembg_remove()
-        session = _ensure_rembg_session()
         buf = io.BytesIO()
         self._img.save(buf, format="PNG")
-        result_bytes = remove(buf.getvalue(), session=session)
+        try:
+            result_bytes = self._inference.infer(
+                buf.getvalue(), should_cancel=lambda: self._cancelled,
+            )
+        except InferenceCancelled:
+            # Regulärer Abbruch: kein ``finished``/``error``; ``done`` feuert
+            # über ``_always_finished`` und schließt den Lifecycle ab.
+            return
         if self._cancelled:
             return
         result = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
@@ -175,30 +116,29 @@ class AIWorker(_Worker):
 
 
 class RembgWarmupWorker(_Worker):
-    """Initialisiert die rembg-Inferenz-Session einmalig im Hintergrund.
+    """Initialisiert den Inferenz-Kindprozess samt rembg-Session einmalig.
 
     Ohne diesen Warmup blockt der erste KI-Klick rund zehn Sekunden, weil
-    rembg sein ONNX-Modell sonst erst dann lädt. Der Warmup erzeugt über
-    ``_ensure_rembg_session`` genau eine wiederverwendbare Session (der teure
-    Schritt) und führt mit ihr eine kleine Probe-Inferenz aus; jeder spätere
-    ``AIWorker`` übernimmt dieselbe Session per ``remove(..., session=...)``,
-    statt erneut zu initialisieren.
+    rembg sein ONNX-Modell sonst erst dann lädt. Der Warmup startet den
+    ``InferenceProcess`` und lässt ihn die Session genau einmal erzeugen (der
+    teure Schritt) und eine kleine Probe-Inferenz ausführen; jeder spätere
+    ``AIWorker`` nutzt dieselbe Session im selben Prozess wieder (#229).
 
     ``finished`` ist parameterlos (anders als bei den Daten-Workern) und wird
     bewusst auch im Fehlerfall gefeuert – der WorkerController nutzt es als
     Abschluss-Signal für den Thread-Lifecycle. Ein fehlgeschlagener Warmup
-    meldet zusätzlich ``error`` (Import-/Init-Fehler aus ``_ensure_rembg_*``),
+    meldet zusätzlich ``error`` (Import-/Init-Fehler aus dem Kindprozess),
     damit die UI nicht fälschlich „KI bereit" anzeigt.
     """
     finished = pyqtSignal()
     _error_context = "rembg-Warmup"
 
+    def __init__(self, inference: InferenceProcess) -> None:
+        super().__init__()
+        self._inference = inference
+
     def _work(self) -> None:
-        remove = _ensure_rembg_remove()
-        session = _ensure_rembg_session()
-        buf = io.BytesIO()
-        Image.new("RGBA", (16, 16), (0, 0, 0, 255)).save(buf, format="PNG")
-        remove(buf.getvalue(), session=session)
+        self._inference.warmup()
         logger.info("rembg-Warmup abgeschlossen")
 
     def _always_finished(self) -> None:
