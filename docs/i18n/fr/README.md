@@ -228,9 +228,10 @@ BgRemover est un paquet installable (`bgremover/`, lancé via
 - Un **compteur de version** monotone dans le canevas rejette les résultats
   d'IA et de flood-fill obsolètes si une autre image a été chargée ou si
   l'état de l'image a changé entre-temps.
-- La pile d'annulation n'est pas limitée par `maxlen`, mais par une
-  **limite de mémoire** (`_UNDO_MEMORY_LIMIT`) ; une somme courante
-  d'octets évince les entrées les plus anciennes.
+- Annulation et rétablissement partagent une **limite de mémoire**
+  (`_HISTORY_MEMORY_LIMIT`) ; les sommes courantes d'octets évincent les
+  entrées d'historique les plus anciennes. L'image d'origine et l'état actuel
+  du canevas restent volontairement hors de ce budget.
 
 ## Limitations connues
 

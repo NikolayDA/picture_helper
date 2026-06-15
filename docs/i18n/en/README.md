@@ -220,8 +220,9 @@ BgRemover is an installable package (`bgremover/`, launched via
 - A monotonic **version counter** in the canvas discards stale AI and
   flood-fill results if another image was loaded or the image state
   changed in the meantime.
-- The undo stack is limited not by `maxlen` but by a **memory limit**
-  (`_UNDO_MEMORY_LIMIT`); a running byte sum evicts the oldest entries.
+- Undo and redo share a **memory limit** (`_HISTORY_MEMORY_LIMIT`); running
+  byte totals evict the oldest history entries. The original image and current
+  canvas state intentionally remain outside this budget.
 
 ## Known limitations
 

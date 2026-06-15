@@ -34,8 +34,10 @@ _MAX_INPUT_FILE_BYTES = 512 * 1024 * 1024  # 512 MB
 _ALLOWED_IMAGE_FORMATS = frozenset({
     "PNG", "JPEG", "WEBP", "TIFF", "BMP", "GIF"
 })
-# Speicherlimit des Undo-Stacks (RGBA-Rohdaten, geschätzt in Bytes).
-_UNDO_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MB
+# Gemeinsames Speicherlimit des Undo-/Redo-Verlaufs (RGBA-Rohdaten,
+# geschätzt in Bytes). Originalbild und aktueller Canvas-Zustand liegen
+# bewusst außerhalb dieses History-Budgets.
+_HISTORY_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MiB
 # Maximale Anzahl Redo-Einträge.
 _REDO_MAX_ENTRIES = 20
 # Maximale Wartezeiten (ms) auf einen Hintergrund-Thread beim Schliessen.
