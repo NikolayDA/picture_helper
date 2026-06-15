@@ -297,8 +297,14 @@ def test_ai_and_flood_fill_use_independent_slots(
         ),
     )
 
-    assert ai_thread.isFinished()
-    assert flood_thread.isFinished()
+    # Nach dem Teardown kann Qt die QThread-C++-Objekte bereits via deleteLater
+    # geloescht haben (auf macOS wegen Event-Loop-Timing eher als unter Linux).
+    # Ein geloeschter Thread ist zwangslaeufig beendet – deleteLater wird erst
+    # nach dem finished-Signal zugestellt. Daher deletion-sicher pruefen, statt
+    # blind .isFinished() auf einem evtl. zerstoerten Wrapper aufzurufen (sonst
+    # RuntimeError: wrapped C/C++ object of type QThread has been deleted).
+    assert sip.isdeleted(ai_thread) or ai_thread.isFinished()
+    assert sip.isdeleted(flood_thread) or flood_thread.isFinished()
     assert controller.ai_thread is None
     assert controller.flood_fill_thread is None
     assert controller._workers == []
