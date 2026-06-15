@@ -80,6 +80,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **rembg-Subprozess gehärtet (Robustheit & Speicher).** Vier Folge-Befunde aus
+  dem Codex-Review von #283 in `bgremover/ai_process.py`: Die rembg-Session wird
+  nach einem transienten `new_session()`-Fehler beim nächsten Request neu und
+  genau einmal aufgebaut, statt fortan `remove(..., session=None)` zu rufen und
+  das Modell pro Aufruf neu zu laden (die #229-Garantie bleibt erhalten); der
+  leerlaufende Kindprozess gibt das letzte Eingabe-PNG sofort frei, statt es
+  dauerhaft zu halten; Eingabe- und Ergebnis-PNG reisen als rohe Byte-Frames
+  (`send_bytes`/`recv_bytes`) statt durch die Pipe gepickelt, was die
+  Speicherspitzen und das OOM-Risiko bei großen Bildern (bis 40 MP) beseitigt;
+  und ein `request_stop()` genau während des Prozessstarts wird über ein
+  `_proc_lock`/`_stop_pending`-Paar auf den frischen Prozess nachgezogen.
+  Regressionstests decken alle vier Pfade ab (#285).
 - **Dateigrößen-Limit vor dem Einlesen.** `open_validated_image` prüft die
   Eingabedatei jetzt per `os.fstat()` gegen ein dokumentiertes Byte-Limit
   (`_MAX_INPUT_FILE_BYTES`, 512 MB), **bevor** ihr Inhalt vollständig in den
