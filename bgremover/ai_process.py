@@ -71,10 +71,15 @@ def _serve(conn: Connection) -> None:
 
     Läuft, bis die Verbindung schließt (``EOFError``) oder ein Sentinel
     (``None``) kommt. Lädt rembg + Session **lazy beim ersten Bedarf** und
-    verwendet die Session über alle Anfragen hinweg wieder (#229). Anfragen
-    sind ``("warmup",)`` und ``("infer", png_bytes)``; geantwortet wird mit
-    ``("ok", payload)`` oder ``("error", message)``. Backend-Fehler werden an
-    den Elternprozess gemeldet, ohne den Prozess zu beenden – so kann ein
+    verwendet die Session über alle Anfragen hinweg wieder (#229).
+
+    Protokoll (Befund #285/3 – große PNGs nicht picklen): Ein kleiner
+    Steuer-Frame über ``send``/``recv`` (gepickelt), das große PNG getrennt als
+    roher Byte-Frame über ``send_bytes``/``recv_bytes``. Anfragen sind
+    ``("warmup",)`` bzw. ``("infer",)`` gefolgt vom Eingabe-PNG als Byte-Frame.
+    Antworten sind ``("ok",)`` (Warmup), ``("ok",)`` gefolgt vom Ergebnis-PNG
+    als Byte-Frame (Inferenz) oder ``("error", message)``. Backend-Fehler werden
+    an den Elternprozess gemeldet, ohne den Prozess zu beenden – so kann ein
     Folgeversuch sauber neu beginnen.
 
     Top-Level-Funktion, damit ``spawn`` sie über das Modul picklen/importieren
@@ -90,23 +95,46 @@ def _serve(conn: Connection) -> None:
                 return  # Elternprozess hat die Verbindung geschlossen
             if message is None:
                 return  # Sentinel: sauberes Beenden
+            operation = message[0]
+            # Das große Eingabe-PNG kommt als roher Byte-Frame nach (kein
+            # Pickle-Vollkopie, Befund #285/3) und wird sofort wieder
+            # freigegeben, sobald es nicht mehr gebraucht wird (Befund #285/2).
+            payload: bytes | None = None
+            if operation == "infer":
+                try:
+                    payload = conn.recv_bytes()
+                except (EOFError, OSError):
+                    return
             try:
                 if remove is None:
-                    # Erst hier den teuren Import ausführen (Befund N7).
+                    # Erst hier den teuren Import ausführen (Befund N7). Die
+                    # Session ZUERST aufbauen und ``remove`` erst danach setzen:
+                    # scheitert ``new_session`` transient (Speicherdruck,
+                    # Modell-Download), bleibt ``remove`` None und der nächste
+                    # Request baut die Session erneut – genau einmal – auf, statt
+                    # pro Aufruf mit ``session=None`` neu zu laden (Befund #285/1).
                     from rembg import new_session
                     from rembg import remove as rembg_remove
-                    remove = rembg_remove
                     session = new_session()
-                operation = message[0]
+                    remove = rembg_remove
                 if operation == "warmup":
                     remove(_warmup_png(), session=session)
-                    conn.send(("ok", None))
+                    conn.send(("ok",))
                 elif operation == "infer":
-                    conn.send(("ok", remove(message[1], session=session)))
+                    result = remove(payload, session=session)
+                    payload = None            # Eingabe-PNG sofort freigeben (#285/2)
+                    conn.send(("ok",))
+                    conn.send_bytes(result)   # Ergebnis als roher Byte-Frame (#285/3)
+                    del result
                 else:
                     conn.send(("error", f"Unbekannte Operation: {operation!r}"))
             except Exception as exc:  # noqa: BLE001 – an Eltern melden, Prozess weiterlaufen lassen
                 conn.send(("error", f"{type(exc).__name__}: {exc}"))
+            finally:
+                # Vor dem nächsten, blockierenden ``recv()`` alle Puffer der
+                # Anfrage freigeben, damit der leerlaufende Kindprozess das
+                # letzte PNG nicht dauerhaft hält (Befund #285/2).
+                del message, payload
     finally:
         conn.close()
 
@@ -138,6 +166,15 @@ class InferenceProcess:
         # Serialisiert ``_request`` (send→poll→recv) und das Aufräumen der
         # Python-Handles. ``request_stop`` umgeht den Lock bewusst (nur SIGKILL).
         self._lock = threading.Lock()
+        # Schützt NUR die Veröffentlichung/Übernahme von ``_proc``/``_conn``
+        # gegen ``request_stop``. Bewusst getrennt vom großen ``_lock``: so muss
+        # ``request_stop`` nie auf einen pollenden Worker warten. Stets innerste
+        # Sperre und nie über das langsame ``kill()``/``join()`` gehalten.
+        self._proc_lock = threading.Lock()
+        # Ein ``request_stop``, das eintrifft, BEVOR der frisch gestartete
+        # Prozess veröffentlicht ist, wird hier vermerkt und vom Start auf genau
+        # diesen Prozess nachgezogen (Befund #285/4).
+        self._stop_pending = False
 
     @property
     def is_alive(self) -> bool:
@@ -151,7 +188,7 @@ class InferenceProcess:
         nutzen sie wieder. Fehler (z. B. rembg nicht installierbar) propagieren
         als ``InferenceError``.
         """
-        self._request(("warmup",), should_cancel)
+        self._request("warmup", None, should_cancel, expects_result=False)
 
     def infer(
         self, png_bytes: bytes, should_cancel: Callable[[], bool] | None = None,
@@ -162,7 +199,7 @@ class InferenceProcess:
         durch ``True``, wird der Kindprozess beendet und ``InferenceCancelled``
         geworfen. Stirbt der Prozess unerwartet, kommt ``InferenceError``.
         """
-        result = self._request(("infer", png_bytes), should_cancel)
+        result = self._request("infer", png_bytes, should_cancel, expects_result=True)
         if not isinstance(result, bytes):
             raise InferenceError(
                 f"Unerwartete Antwort des Inferenzprozesses: {type(result).__name__}"
@@ -171,16 +208,24 @@ class InferenceProcess:
 
     def _request(
         self,
-        message: tuple[object, ...],
+        op: str,
+        payload: bytes | None,
         should_cancel: Callable[[], bool] | None,
-    ) -> object:
+        *,
+        expects_result: bool,
+    ) -> bytes | None:
         cancelled = should_cancel or (lambda: False)
         with self._lock:
             self._ensure_started()
             conn = self._conn
             assert conn is not None  # _ensure_started garantiert die Verbindung
             try:
-                conn.send(message)
+                # Kleiner Steuer-Frame gepickelt; das große PNG getrennt als
+                # roher Byte-Frame, der nicht durch Pickle vollkopiert wird
+                # (Befund #285/3).
+                conn.send((op,))
+                if payload is not None:
+                    conn.send_bytes(payload)
             except (OSError, ValueError) as exc:
                 self._cleanup()
                 raise InferenceError(f"Inferenzprozess nicht erreichbar: {exc}") from exc
@@ -206,7 +251,11 @@ class InferenceProcess:
                 if not ready:
                     continue
                 try:
-                    status, payload = conn.recv()
+                    response = conn.recv()
+                    status = response[0]
+                    # Das Ergebnis-PNG folgt nur bei Erfolg einer Inferenz und
+                    # wird als roher Byte-Frame eingelesen (Befund #285/3).
+                    result = conn.recv_bytes() if status == "ok" and expects_result else None
                 except (EOFError, OSError) as exc:
                     # EOFError: Gegenseite sauber geschlossen. OSError (z. B.
                     # ConnectionResetError): Prozess starb mitten in der Antwort.
@@ -215,8 +264,8 @@ class InferenceProcess:
                         f"Inferenzprozess hat die Verbindung geschlossen: {exc}"
                     ) from exc
                 if status == "ok":
-                    return payload
-                raise InferenceError(str(payload))
+                    return result
+                raise InferenceError(str(response[1]))
 
     def _ensure_started(self) -> None:
         """Startet den Kindprozess, falls (noch) keiner lebt."""
@@ -229,8 +278,16 @@ class InferenceProcess:
         # Das Kind-Ende gehört dem Kindprozess; im Eltern schließen, damit ein
         # Prozesstod hier als EOF/poll-Ende sichtbar wird.
         child_conn.close()
-        self._proc = proc
-        self._conn = parent_conn
+        with self._proc_lock:
+            self._proc = proc
+            self._conn = parent_conn
+            # Einen genau während ``proc.start()`` eingetroffenen Stop auf den
+            # frischen Prozess nachziehen (Befund #285/4): ``request_stop`` sah
+            # ``_proc`` evtl. noch als None und hätte ihn sonst verfehlt.
+            stop_pending, self._stop_pending = self._stop_pending, False
+        if stop_pending:
+            with contextlib.suppress(Exception):
+                proc.kill()
 
     def request_stop(self) -> None:
         """Beendet den Kindprozess sofort per ``SIGKILL`` (aus jedem Thread sicher).
@@ -240,8 +297,15 @@ class InferenceProcess:
         Python-Handles NICHT – das Aufräumen übernimmt der Anfrage-Thread (unter
         ``_lock``) bzw. ``shutdown``. Damit gibt es keinen Daten-Race auf
         ``_proc``/``_conn`` zwischen UI- und Worker-Thread.
+
+        Trifft der Stop GENAU während ``proc.start()`` ein (``_proc`` noch nicht
+        veröffentlicht), greift er den Prozess nicht direkt; das Setzen von
+        ``_stop_pending`` unter ``_proc_lock`` sorgt dafür, dass der Start ihn
+        nachzieht und den frischen Prozess killt (Befund #285/4).
         """
-        proc = self._proc
+        with self._proc_lock:
+            self._stop_pending = True
+            proc = self._proc
         if proc is not None:
             with contextlib.suppress(Exception):
                 proc.kill()
@@ -253,12 +317,21 @@ class InferenceProcess:
         (der WorkerController joined die Worker-Threads vor diesem Aufruf), und
         umgeht daher den ``_lock``, um nie auf einen pollenden Worker zu warten.
         """
+        # Einen evtl. noch ausstehenden Stop zurücksetzen: der Prozess wird hier
+        # ohnehin beendet, und ein späterer Neustart (Wiederverwendung) darf den
+        # frischen Prozess nicht fälschlich sofort killen (Befund #285/4).
+        with self._proc_lock:
+            self._stop_pending = False
         self._cleanup()
 
     def _cleanup(self) -> None:
         """Schließt die Verbindung und beendet/erntet den Kindprozess (idempotent)."""
-        conn, proc = self._conn, self._proc
-        self._conn, self._proc = None, None
+        # Handles unter ``_proc_lock`` atomar entnehmen (gegen ``request_stop``),
+        # das langsame ``kill()``/``join()`` aber außerhalb der Sperre fahren,
+        # damit ``request_stop`` nie darauf wartet.
+        with self._proc_lock:
+            conn, proc = self._conn, self._proc
+            self._conn, self._proc = None, None
         if conn is not None:
             with contextlib.suppress(OSError):
                 conn.close()
