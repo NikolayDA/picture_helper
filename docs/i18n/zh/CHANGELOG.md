@@ -63,6 +63,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 修复
 
+- **加固 rembg 子进程（健壮性与内存）。** 来自 #283 的 Codex 复审在
+  `bgremover/ai_process.py` 中遗留的四项后续问题：在 `new_session()` 发生瞬时
+  失败后，rembg 会话会在下一次请求时重新且仅重建一次，而不再退回到
+  `remove(..., session=None)` 并在每次调用时重新加载模型（#229 的保证得以保留）；
+  空闲的子进程会立即释放最后一个输入 PNG，而不再长期持有；输入和结果 PNG 以原始
+  字节帧（`send_bytes`/`recv_bytes`）传输，而非通过管道经 pickle 序列化，从而消除
+  大图（最高 40 MP）时的内存峰值与 OOM 风险；并且恰好在进程启动期间到达的
+  `request_stop()` 会通过 `_proc_lock`/`_stop_pending` 这一对机制转交给新进程。
+  回归测试覆盖了全部四条路径（#285）。
 - **读入前限制输入文件大小。** `open_validated_image` 现在在将文件内容完整读入
   内存**之前**，先通过 `os.fstat()` 对照一个有文档说明的字节上限
   （`_MAX_INPUT_FILE_BYTES`，512 MB）检查输入文件；额外的有界 `read()` 可防范
