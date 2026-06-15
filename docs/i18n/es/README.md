@@ -94,7 +94,8 @@ un **AppImage** portable y un **`.deb`** instalable (ambos para x86_64 y
 aarch64/Raspberry Pi OS). Consulta **[INSTALL_LINUX.md](INSTALL_LINUX.md)**
 para la instalación y **[packaging/linux/README.md](../../../packaging/linux/README.md)**
 para detalles de build/paquetización. Tales artefactos existen a partir de
-**v2.3.0** — hasta entonces usa la vía venv de abajo.
+**v2.4.0**; para **macOS** se añade un **`.dmg`** (Apple Silicon/arm64): consulta
+**[INSTALL_MAC.md](INSTALL_MAC.md)**.
 
 El inicio directo desde un venv sigue siendo la mejor vía para desarrollo,
 pruebas de ramas y cambios locales:

@@ -91,7 +91,8 @@ python3 -m bgremover
 aarch64/Raspberry Pi OS). Деталі встановлення див. у
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)**, а деталі build/пакування — у
 **[packaging/linux/README.md](../../../packaging/linux/README.md)**. Такі артефакти
-доступні починаючи з **v2.3.0** — доти користуйтеся способом через venv нижче.
+доступні починаючи з **v2.4.0**; для **macOS** додається **`.dmg`** (Apple Silicon/arm64) — див.
+**[INSTALL_MAC.md](INSTALL_MAC.md)**.
 
 Прямий запуск із venv залишається найкращим шляхом для розробки,
 тестування гілок і локальних змін:

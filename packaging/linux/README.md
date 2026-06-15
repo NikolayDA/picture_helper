@@ -10,6 +10,8 @@ analogous to the macOS `.app` bundle:
 
 A GitHub Actions **release workflow** builds both for **x86_64 and aarch64**
 (Raspberry Pi OS / arm64) on every `v*` tag and attaches them to the release.
+The same workflow also builds the macOS `.dmg` (Apple Silicon/arm64) — see
+[`../mac/README.md`](../mac/README.md).
 
 > **Status:** AppImage, `.deb`, aarch64/Pi builds and release publishing are
 > implemented and covered by smoke tests.

@@ -6,6 +6,27 @@ Guía breve para instalar e iniciar BgRemover desde GitHub — tanto desde
 la rama `main` como desde una rama de funcionalidad (p. ej. para probar
 un pull request abierto antes del merge).
 
+## Descargar la app precompilada (`.dmg`)
+
+La forma más sencilla — **sin Python, git ni terminal**: descarga el paquete de
+la app desde las [releases de GitHub](https://github.com/NikolayDA/picture_helper/releases).
+Para Apple Silicon (arm64) está `BgRemover-<version>-arm64.dmg`; el borrado de
+fondo por IA ya viene incluido.
+
+1. Abre el `.dmg` y arrastra `BgRemover.app` a **Aplicaciones**.
+2. En el **primer** arranque confírmalo con **clic derecho → «Abrir»**: el
+   paquete aún no está firmado/notarizado por Apple, así que Gatekeeper avisaría
+   de un «desarrollador no identificado».
+
+Como alternativa, quita la cuarentena de antemano en un terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/BgRemover.app
+```
+
+Si prefieres compilar desde el código fuente (p. ej. para Macs Intel o tus
+propios cambios), sigue las secciones de abajo.
+
 ## Requisitos
 
 - **macOS**
