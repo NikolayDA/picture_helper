@@ -273,6 +273,30 @@ def test_file_too_large_message_is_localized(monkeypatch) -> None:
     assert "Datei" not in err        # kein deutscher Literaltext
 
 
+def test_image_too_large_message_is_localized() -> None:
+    """#275: Die Megapixel-„Bild zu groß"-Meldung wird – analog zu #258 für die
+    Dateigröße – vollständig über Translation-Keys lokalisiert (keine gemischte
+    deutsch-in-englisch Meldung). Beide Varianten (mit/ohne Megapixel-Zahl)."""
+    import bgremover.image_loading as il
+    from bgremover.i18n import configure_locale
+
+    try:
+        configure_locale("en")
+        with_mp = il._too_large_message(123.4)
+        without_mp = il._too_large_message()
+    finally:
+        configure_locale("de")
+
+    # Variante mit bekannter Megapixel-Zahl
+    assert "Image too large" in with_mp   # englischer Wortlaut
+    assert "123 MP" in with_mp            # gerundete Megapixel-Angabe
+    assert "Bild" not in with_mp          # kein deutscher Literaltext
+
+    # Variante ohne Megapixel-Zahl (z. B. DecompressionBomb-Schutz)
+    assert "Image too large" in without_mp
+    assert "Bild" not in without_mp
+
+
 def test_file_too_large_message_rounds_actual_up_above_limit(monkeypatch) -> None:
     """#258: Bei „Limit + 1 Byte" ist der angezeigte Ist-Wert sichtbar größer
     als der Grenzwert (Aufrunden statt .0f-Abrunden auf denselben Wert)."""

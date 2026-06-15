@@ -31,10 +31,17 @@ _READ_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def _too_large_message(mp: float | None = None) -> str:
-    """Einheitliche „Bild zu groß"-Meldung – mit Megapixel-Angabe, wenn bekannt."""
+    """Einheitliche „Bild zu groß"-Meldung – mit Megapixel-Angabe, wenn bekannt.
+
+    Läuft – analog zu ``_file_too_large_message`` (#258) – über Übersetzungs-Keys
+    statt über einen deutschen Literaltext, sonst erschiene die Meldung im
+    englischen UI gemischtsprachig (#275). Zwei Varianten: mit bekannter
+    Megapixel-Zahl (``status.image_too_large_mp``) und ohne
+    (``status.image_too_large``, z. B. beim DecompressionBomb-Schutz).
+    """
     if mp is None:
-        return f"Bild zu groß – Maximum: {_MAX_MEGAPIXELS} MP"
-    return f"Bild zu groß ({mp:.0f} MP) – Maximum: {_MAX_MEGAPIXELS} MP"
+        return tr("status.image_too_large", limit=_MAX_MEGAPIXELS)
+    return tr("status.image_too_large_mp", mp=mp, limit=_MAX_MEGAPIXELS)
 
 
 def _file_too_large_message(size_bytes: int) -> str:
