@@ -32,8 +32,10 @@ remain the baseline before new PRs.
   findings — **#235** (shared undo/redo budget, PR #281), **#275** (localized
   megapixel message, PR #282), and **#270** (rembg/ONNX subprocess via
   `ai_process.py`, PR #283) — and refreshed the roadmap (PR #284). **#235, #270,
-  and #275 are now closed.** The post-merge Codex review of #283 and #264
-  produced two follow-up issues: **#285** and **#286**.
+  and #275 are now closed.**
+- The two post-merge Codex follow-up findings from #283 and #264 are likewise
+  fixed **and closed**: **#285** (robustness/memory of the rembg subprocess,
+  PR #289) and **#286** (memory peaks in the capped file read, PR #290).
 
 ### Still Open
 
@@ -43,24 +45,22 @@ remain the baseline before new PRs.
 - **O7 ✅ — Subprocess for rembg/ONNX done (PR #283, issue #270 closed).** The
   non-interruptible AI inference now runs in a `spawn`-started process
   (`ai_process.py`); `QThread.terminate()` as the AI emergency exit is gone.
-  Robustness/memory follow-up findings are tracked in **#285**.
+  The robustness/memory follow-up findings are fixed and closed in **#285**
+  (PR #289).
 
 ## Open GitHub Issues — Priority Assessment (2026-06-15)
 
-After the PR wave **#280–#284**, **7** issues are open. **#235** (PR #281),
-**#270** (PR #283), and **#275** (PR #282) are implemented **and closed**. The
-post-merge Codex review of two PRs produced two follow-up issues: **#285**
-(robustness/memory of the rembg subprocess, follow-up from #283) and **#286**
-(memory peaks in the capped file read, follow-up from #264). Plus three
-performance findings — **#277/#278/#279** — from the weekly benchmark run
-(#280); per the owner's triage **not yet** confirmed as code regressions,
-because the 2026-06-08 baseline carries no environment fingerprint. All open
-issues were re-verified against the current code.
+After PRs **#280–#290**, **5** issues are open. The most recent follow-up
+issues **#285** (PR #289) and **#286** (PR #290) are implemented **and closed**
+— as are **#235** (PR #281), **#270** (PR #283), and **#275** (PR #282). Still
+open are three performance findings — **#277/#278/#279** — from the weekly
+benchmark run (#280); per the owner's triage **not yet** confirmed as code
+regressions, because the 2026-06-08 baseline carries no environment fingerprint.
+Plus **#245** (CI quota, externally blocked) and **#161** (README clone URL,
+owner decision). All open issues were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#285](https://github.com/NikolayDA/picture_helper/issues/285) | Robustness & memory of the rembg subprocess (`ai_process.py`, follow-up from #283) | 🟠 High | 🟡 Medium | Four post-merge Codex findings: session re-init after a transient failure, payload release while idle, PNG pickle overhead through the pipe (OOM risk for large images), stop race during process start. Bundle and cover with tests |
-| [#286](https://github.com/NikolayDA/picture_helper/issues/286) | Memory peaks in the capped file read (`image_loading._read_capped`, follow-up from #264) | 🟡 Medium | 🟢 Low | Two Codex findings: `b"".join(chunks)` doubles the buffer (~1 GiB, P1), the first read ignores the `fstat()` size (8 MiB, P2). `bytearray.extend` + a size-bounded first read |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance regression: JPEG (+38.4%) | 🟡 Medium | 🟡 Medium | Refinement: not yet confirmed as a code regression. Extend the benchmark with an environment fingerprint + confirmation runs (median), then compare only against a compatible baseline. Bundle with #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance regression: TIFF (+21.8%) | 🟡 Medium | 🟡 Medium | Like #277: shared benchmark hardening; investigate the encode path (`save_image_file`) only after a compatible confirmation run |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance regression: WebP (+13.7%) | 🟡 Medium | 🟡 Medium | Like #277/#278: one shared PR for fingerprint + median confirmation; report only confirmed regressions |
@@ -69,11 +69,9 @@ issues were re-verified against the current code.
 
 ### Recommended PR Order
 
-1. **#285** — bundle the four Codex follow-up findings on the rembg subprocess (memory/OOM risk for large images first), with regression tests.
-2. **#286** — defuse the capped file read (`bytearray` instead of `b"".join`, size-bounded first read). Small and well-scoped.
-3. **#277/#278/#279** — one shared PR: extend the benchmark with an environment fingerprint and confirmation runs (median); report a regression only against a compatible baseline.
-4. **#245** — restore quota externally; optional workflow hardening (graceful skip + Node 24) as a small separate PR.
-5. **#161** — decide the publication model, then update docs or close.
+1. **#277/#278/#279** — one shared PR: extend the benchmark with an environment fingerprint and confirmation runs (median); report a regression only against a compatible baseline.
+2. **#245** — restore quota externally; optional workflow hardening (graceful skip + Node 24) as a small separate PR.
+3. **#161** — decide the publication model, then update docs or close.
 
 ## Previous Rounds
 
