@@ -2,6 +2,16 @@
 
 # BgRemover
 
+[![CI](https://github.com/NikolayDA/picture_helper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NikolayDA/picture_helper/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/NikolayDA/picture_helper/branch/main/graph/badge.svg)](https://codecov.io/gh/NikolayDA/picture_helper)
+[![License Check](https://github.com/NikolayDA/picture_helper/actions/workflows/license-check.yml/badge.svg?branch=main)](https://github.com/NikolayDA/picture_helper/actions/workflows/license-check.yml)
+[![Latest release](https://img.shields.io/github/v/release/NikolayDA/picture_helper)](https://github.com/NikolayDA/picture_helper/releases/latest)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
+[![License: GPL v3](https://img.shields.io/github/license/NikolayDA/picture_helper)](https://github.com/NikolayDA/picture_helper/blob/main/LICENSE)
+[![Platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](https://github.com/NikolayDA/picture_helper)
+[![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+
 Una herramienta de edición de imágenes para macOS y Linux para **eliminar, reemplazar y editar fondos**: con recorte automático basado en IA, selección con varita mágica, pincel/borrador, lazo poligonal, recorte en distintos formatos, rotación, reflejo y redondeo de esquinas.
 
 ## Funciones

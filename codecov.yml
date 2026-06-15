@@ -1,0 +1,15 @@
+# Codecov-Konfiguration. Coverage wird ausschliesslich in der Full-CI-Matrix
+# (Ubuntu, Python 3.12) erhoben und hochgeladen; Pull Requests laufen bewusst
+# ueber die leichte PR-CI ohne Coverage. Damit Codecov auf PRs ohne eigenen
+# Report keine blockierenden Status-Checks postet, sind die Checks rein
+# informativ und der PR-Kommentar ist deaktiviert – Ziel ist allein das Badge.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment: false
