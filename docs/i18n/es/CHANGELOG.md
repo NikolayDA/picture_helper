@@ -95,6 +95,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   llega justo durante el arranque del proceso se traslada al proceso nuevo
   mediante el par `_proc_lock`/`_stop_pending`. Hay pruebas de regresión para las
   cuatro rutas (#285).
+- **Picos de memoria en la lectura de archivo limitada mitigados.** Dos hallazgos
+  de seguimiento de la revisión de Codex de #264 en
+  `bgremover/image_loading._read_capped`: en lugar de `b"".join(chunks)` (que
+  mantenía los chunks **y** el resultado a la vez, ~1 GiB cerca del límite de
+  512 MiB), el contenido se ensambla en un único `bytearray` predimensionado y se
+  reenvía directamente — sin el pico de ~2×. Además, la primera lectura queda
+  limitada por el tamaño conocido vía `os.fstat()`, de modo que un archivo
+  pequeño ya no solicita ~8 MiB de margen; una pequeña lectura de seguimiento
+  sigue detectando crecimiento entre `fstat()` y la lectura (TOCTOU) o un
+  `st_size` poco fiable (pipes/sockets). La detección de límite/exceso (`None`) no
+  cambia; hay pruebas de regresión para ambas rutas (#286).
 - **Límite de tamaño de archivo de entrada antes de leer.**
   `open_validated_image` ahora comprueba el archivo de entrada con `os.fstat()`
   frente a un límite de bytes documentado (`_MAX_INPUT_FILE_BYTES`, 512 MB)

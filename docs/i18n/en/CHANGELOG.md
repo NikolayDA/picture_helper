@@ -85,6 +85,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   process startup is carried onto the fresh process via a
   `_proc_lock`/`_stop_pending` pair. Regression tests cover all four paths
   (#285).
+- **Memory peaks in the capped file read mitigated.** Two follow-up findings from
+  the Codex review of #264 in `bgremover/image_loading._read_capped`: instead of
+  `b"".join(chunks)` (which held the chunks **and** the result at once, ~1 GiB
+  near the 512 MiB limit), the content is assembled into a single pre-sized
+  `bytearray` and passed through directly — no more ~2× peak. The first read is
+  also bounded by the size known from `fstat()`, so a small file no longer
+  requests ~8 MiB of headroom; a small follow-up read still detects growth
+  between `fstat()` and reading (TOCTOU) or an unreliable `st_size`
+  (pipes/sockets). The limit/overflow detection (`None`) is unchanged; regression
+  tests cover both paths (#286).
 - **Input file-size limit before reading.** `open_validated_image` now checks
   the input file via `os.fstat()` against a documented byte limit
   (`_MAX_INPUT_FILE_BYTES`, 512 MB) **before** its contents are fully read into
