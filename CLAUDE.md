@@ -31,8 +31,11 @@ Ein Paket, `bgremover/`:
 - **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
   Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
   `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker.
-- **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py` (rembg läuft
-  im Thread; `rembg` ist optionales `ai`-Extra und wird lazy importiert).
+- **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
+  unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
+  gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
+  und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
+  optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `settings_dialog.py`,
   `menu_actions.py`, `crop_bar.py`, `history_popup.py`, `widgets.py`, `theme.py`,
   `icons*.py`.

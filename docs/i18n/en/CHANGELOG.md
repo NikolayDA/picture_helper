@@ -159,7 +159,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   waits only briefly on `quit()`/`wait()` before falling back to `terminate()`
   with another bounded `wait()`; an unresponsive worker no longer blocks the close
   indefinitely, and the error path is logged. The actual `terminate()` risk for
-  native ONNX work remains open as an architecture follow-up (#270) (#231).
+  native ONNX work was then resolved by moving the rembg/ONNX inference into its
+  own `spawn`-started process (`ai_process`): the AI worker only polls for the
+  result and is cooperatively stoppable, cancel and app close terminate the
+  inference process hard, and `terminate()` is no longer the emergency exit for
+  AI work (#270, follow-up from #231).
 - **Brush overlay avoids a full mask scan per mouse move.** `canvas_selection`
   keeps the selection counter incrementally and uses the bounding box of the
   change instead of scanning the whole mask on every brush/eraser move;
