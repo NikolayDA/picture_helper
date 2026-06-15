@@ -205,7 +205,8 @@ def test_open_validated_image_reads_in_bounded_chunks(monkeypatch, tmp_path) -> 
     """#258: Der Inhalt wird in kleinen Chunks gelesen – nie ein einzelner
     read() in Limitgröße. Sonst reserviert CPythons BufferedReader sofort einen
     Puffer in Limitgröße (~512 MiB) und selbst eine kleine valide Datei kann
-    unter knappem Adressraum mit MemoryError scheitern."""
+    unter knappem Adressraum mit MemoryError scheitern. Auch der
+    Wachstums-Probe-Read (#286) bleibt klein."""
     import bgremover.image_loading as il
 
     p = tmp_path / "ok.png"
@@ -214,6 +215,9 @@ def test_open_validated_image_reads_in_bounded_chunks(monkeypatch, tmp_path) -> 
     assert len(raw) > 8  # mehrere Chunks bei winziger Chunkgröße
 
     monkeypatch.setattr(il, "_READ_CHUNK_BYTES", 8)
+    # Auch den Wachstums-Probe-Read klein halten, damit „kein Read > Chunkgröße"
+    # den Phase-2-Folge-Read miterfasst (#286).
+    monkeypatch.setattr(il, "_GROWTH_PROBE_BYTES", 8)
 
     read_sizes: list[int] = []
 
@@ -246,6 +250,89 @@ def test_open_validated_image_reads_in_bounded_chunks(monkeypatch, tmp_path) -> 
     # Limitgröße (das wäre ~512 MiB).
     assert len(read_sizes) >= 2
     assert max(read_sizes) <= il._READ_CHUNK_BYTES
+
+
+class _SpyReader:
+    """Minimaler Fileobjekt-Spion: liefert *data* in Chunks und protokolliert
+    jede angeforderte Read-Größe."""
+
+    def __init__(self, data: bytes) -> None:
+        self._buf = io.BytesIO(data)
+        self.read_sizes: list[int] = []
+
+    def read(self, n: int = -1) -> bytes:
+        self.read_sizes.append(n)
+        return self._buf.read(n)
+
+
+def test_read_capped_returns_bytearray_without_join_doubling(monkeypatch) -> None:
+    """Befund #286/1: ``_read_capped`` setzt den Inhalt in einem einzigen,
+    vorab dimensionierten ``bytearray`` zusammen und reicht es direkt weiter –
+    kein ``b"".join(chunks)``, das Chunks und Ergebnis gleichzeitig (~2×) hält,
+    und kein abschließendes ``bytes(...)``, das nochmals voll kopierte."""
+    import bgremover.image_loading as il
+
+    monkeypatch.setattr(il, "_READ_CHUNK_BYTES", 4)
+    data = b"abcdefghijklmnop"          # 16 Bytes → mehrere Chunks bei Chunk=4
+    result = il._read_capped(io.BytesIO(data), limit=1000, size_hint=len(data))
+
+    assert isinstance(result, bytearray)   # kein bytes via join()/bytes()
+    assert bytes(result) == data
+
+
+def test_read_capped_first_read_bounded_by_known_size() -> None:
+    """Befund #286/2: Der erste Read überschreitet die per ``fstat`` bekannte
+    Größe nicht – eine kleine Datei fordert nicht den vollen Chunk (8 MiB) an;
+    auch der Wachstums-Probe-Read bleibt klein (kein 8-MiB-Headroom nur zum
+    EOF-Erkennen)."""
+    import bgremover.image_loading as il
+
+    data = b"x" * 100
+    spy = _SpyReader(data)
+    result = il._read_capped(spy, limit=10_000_000, size_hint=len(data))
+
+    assert result is not None and bytes(result) == data
+    assert spy.read_sizes[0] <= len(data)                 # erster Read ≤ bekannte Größe
+    assert spy.read_sizes[0] < il._READ_CHUNK_BYTES       # nicht der volle 8-MiB-Chunk
+    # Kein einziger Read fordert den vollen Chunk an – auch der EOF-/Probe-Read
+    # bleibt klein (höchstens die bekannte Größe bzw. die Probe-Größe).
+    assert max(spy.read_sizes) <= max(len(data), il._GROWTH_PROBE_BYTES)
+    assert max(spy.read_sizes) < il._READ_CHUNK_BYTES
+
+
+def test_read_capped_detects_growth_beyond_size_hint_over_limit() -> None:
+    """TOCTOU / unzuverlässiges ``st_size``: liefert ``read()`` mehr als
+    ``size_hint`` und übersteigt das Limit, kommt ``None`` (Überschreitung wird
+    trotz zu kleinem Hinweis erkannt)."""
+    import bgremover.image_loading as il
+
+    data = b"y" * 200
+    result = il._read_capped(io.BytesIO(data), limit=100, size_hint=10)
+
+    assert result is None
+
+
+def test_read_capped_reads_growth_within_limit() -> None:
+    """Wächst die Datei über ``size_hint``, bleibt aber ``<= Limit``, wird sie
+    vollständig gelesen – ``size_hint`` ist nur ein Hinweis, kein hartes Ende."""
+    import bgremover.image_loading as il
+
+    data = b"z" * 50
+    result = il._read_capped(io.BytesIO(data), limit=1000, size_hint=10)
+
+    assert result is not None and bytes(result) == data
+
+
+def test_read_capped_truncates_when_file_shorter_than_fstat() -> None:
+    """Schrumpft die Datei zwischen ``fstat`` und Lesen, wird der vorab
+    dimensionierte Puffer auf die tatsächlich gelesene Größe gekürzt (keine
+    angehängten Null-Bytes aus der Vorallokation)."""
+    import bgremover.image_loading as il
+
+    data = b"abc"
+    result = il._read_capped(io.BytesIO(data), limit=1000, size_hint=64)
+
+    assert result is not None and bytes(result) == data    # exakt 3 Bytes, kein Padding
 
 
 def test_file_too_large_message_is_localized(monkeypatch) -> None:
