@@ -9,8 +9,24 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.0] – 2026-06-15
+
 ### Ajouté
 
+- **App macOS en téléchargement (`.dmg`).** Un bundle `BgRemover.app` autonome
+  (PyInstaller, Apple Silicon/arm64) est généré en `.dmg` et joint à la release
+  GitHub — comme l'AppImage Linux et sans installation locale de Python. Le
+  bundle est **non signé** pour l'instant : au premier lancement, ouvrez-le une
+  fois via clic droit → « Ouvrir ». Compilation via
+  `packaging/mac/build_macos.sh`.
+- **Les artefacts de téléchargement incluent désormais la suppression
+  d'arrière-plan par IA.** L'AppImage Linux et le `.dmg` macOS embarquent
+  `rembg`/`onnxruntime`, si bien que l'IA en un clic fonctionne sans
+  installation supplémentaire (artefacts d'autant plus volumineux).
+- **Le workflow de release compile en multiplateforme.** `release-linux.yml`
+  produit désormais, en plus de l'AppImage et du `.deb` Linux (x86_64 +
+  aarch64/Raspberry Pi OS), un `.dmg` macOS arm64 pour le tag `vX.Y.Z` et
+  publie tous les artefacts ensemble.
 - **Ouvrir des images via l'association de fichiers et la ligne de commande.**
   `bgremover image.png` et `python -m bgremover image.png` ouvrent le chemin
   après la construction de la fenêtre, par le même chemin de chargement validé et
@@ -582,7 +598,8 @@ historique `v2.0.0`.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/da7186869e63cf9612897b31d80a84c1cc409062...5fa8025dbabd997484e4739b1f547e9c59aed319
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66...da7186869e63cf9612897b31d80a84c1cc409062
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66

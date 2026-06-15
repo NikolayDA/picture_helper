@@ -9,8 +9,22 @@
 
 ## [Unreleased]
 
+## [2.4.0] – 2026-06-15
+
 ### Додано
 
+- **Застосунок macOS для завантаження (`.dmg`).** Самодостатній пакунок
+  `BgRemover.app` (PyInstaller, Apple Silicon/arm64) збирається як `.dmg` і
+  додається до релізу GitHub — аналогічно до Linux-AppImage та без локального
+  встановлення Python. Пакунок наразі **без підпису**: під час першого запуску
+  відкрийте його через правий клік → «Відкрити». Збірка через
+  `packaging/mac/build_macos.sh`.
+- **Артефакти завантаження тепер містять ШІ-вилучення тла.** Linux-AppImage і
+  macOS-`.dmg` містять `rembg`/`onnxruntime`, тож ШІ в один клік працює без
+  додаткового встановлення (артефакти відповідно більші).
+- **Робочий процес релізу збирає кросплатформно.** `release-linux.yml` тепер,
+  окрім Linux-AppImage та `.deb` (x86_64 + aarch64/Raspberry Pi OS), створює ще
+  й macOS-arm64-`.dmg` для тега `vX.Y.Z` і публікує всі артефакти разом.
 - **Відкриття зображень через асоціації файлів і командний рядок.**
   `bgremover image.png` та `python -m bgremover image.png` відкривають шлях після
   побудови вікна тим самим валідованим асинхронним шляхом завантаження, що й
@@ -551,7 +565,8 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/NikolayDA/picture_helper/compare/5fa8025dbabd997484e4739b1f547e9c59aed319...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/da7186869e63cf9612897b31d80a84c1cc409062...5fa8025dbabd997484e4739b1f547e9c59aed319
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66...da7186869e63cf9612897b31d80a84c1cc409062
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/3eeb11c5783d5fc7ff4f6f945d2a407f8bb318b1...4f4bfc2a3adf154d86d4aa2f46b0149bb863bc66

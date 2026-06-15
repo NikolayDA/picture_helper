@@ -6,6 +6,27 @@ A quick guide to installing and starting BgRemover from GitHub —
 both from the `main` branch and from a feature branch (e.g.
 to test an open pull request before merging).
 
+## Download the prebuilt app (`.dmg`)
+
+The easiest way — **no Python, git or terminal**: grab the prebuilt app bundle
+from the [GitHub releases](https://github.com/NikolayDA/picture_helper/releases).
+For Apple Silicon (arm64) there is `BgRemover-<version>-arm64.dmg`; AI background
+removal is already included.
+
+1. Open the `.dmg` and drag `BgRemover.app` into **Applications**.
+2. On the **first** launch confirm via **right-click → “Open”** — the bundle is
+   not yet Apple-signed/notarized, so Gatekeeper would otherwise warn about an
+   “unidentified developer”.
+
+Alternatively, clear the quarantine up front in a terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/BgRemover.app
+```
+
+If you prefer building from source (e.g. for Intel Macs or your own changes),
+follow the sections below.
+
 ## Requirements
 
 - **macOS**
