@@ -32,8 +32,11 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   hallazgos — **#235** (presupuesto compartido undo/redo, PR #281), **#275**
   (mensaje de megapíxeles localizado, PR #282) y **#270** (subproceso rembg/ONNX
   vía `ai_process.py`, PR #283) — y actualizó la hoja de ruta (PR #284). **#235,
-  #270 y #275 ya están cerrados.** El review de Codex posterior al merge de #283
-  y #264 produjo dos issues de seguimiento: **#285** y **#286**.
+  #270 y #275 ya están cerrados.**
+- Los dos hallazgos de seguimiento de Codex posteriores al merge de #283 y #264
+  también están corregidos **y cerrados**: **#285** (robustez/memoria del
+  subproceso rembg, PR #289) y **#286** (picos de memoria en la lectura de
+  archivo limitada, PR #290).
 
 ### Aún Abierto
 
@@ -43,24 +46,23 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 - **O7 ✅ — Subproceso para rembg/ONNX hecho (PR #283, issue #270 cerrado).** La
   inferencia de IA no interrumpible ahora corre en un proceso iniciado con
   `spawn` (`ai_process.py`); `QThread.terminate()` como salida de emergencia de
-  IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están en **#285**.
+  IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
+  corregidos y cerrados en **#285** (PR #289).
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-15)
 
-Tras la oleada de PR **#280–#284**, quedan **7** issues abiertos. **#235**
-(PR #281), **#270** (PR #283) y **#275** (PR #282) están implementados **y
-cerrados**. El review de Codex posterior al merge de dos PR produjo dos issues
-de seguimiento: **#285** (robustez/memoria del subproceso rembg, derivado de
-#283) y **#286** (picos de memoria en la lectura de archivo limitada, derivado
-de #264). Además, tres hallazgos de rendimiento — **#277/#278/#279** — del run de
-benchmark semanal (#280); según el triage del owner **aún no** confirmados como
-regresión de código, porque la baseline del 2026-06-08 no lleva fingerprint de
-entorno. Todos los issues abiertos se reverificaron contra el código actual.
+Tras los PR **#280–#290**, quedan **5** issues abiertos. Los últimos issues de
+seguimiento **#285** (PR #289) y **#286** (PR #290) están implementados **y
+cerrados** — al igual que **#235** (PR #281), **#270** (PR #283) y **#275**
+(PR #282). Siguen abiertos tres hallazgos de rendimiento — **#277/#278/#279** —
+del run de benchmark semanal (#280); según el triage del owner **aún no**
+confirmados como regresión de código, porque la baseline del 2026-06-08 no lleva
+fingerprint de entorno. Además, **#245** (cuota de CI, bloqueado externamente) y
+**#161** (URL de clonado del README, decisión del owner). Todos los issues
+abiertos se reverificaron contra el código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#285](https://github.com/NikolayDA/picture_helper/issues/285) | Robustez y memoria del subproceso rembg (`ai_process.py`, derivado de #283) | 🟠 Alta | 🟡 Media | Cuatro hallazgos de Codex tras el merge: reinicio de sesión tras un fallo transitorio, liberación del payload en reposo, sobrecoste de pickle de PNG por la pipe (riesgo de OOM con imágenes grandes), carrera de stop durante el arranque del proceso. Agrupar y cubrir con tests |
-| [#286](https://github.com/NikolayDA/picture_helper/issues/286) | Picos de memoria en la lectura de archivo limitada (`image_loading._read_capped`, derivado de #264) | 🟡 Media | 🟢 Baja | Dos hallazgos de Codex: `b"".join(chunks)` duplica el búfer (~1 GiB, P1), la primera lectura ignora el tamaño de `fstat()` (8 MiB, P2). `bytearray.extend` + primera lectura acotada por tamaño |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Refinamiento: aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana), y solo entonces comparar contra una baseline compatible. Agrupar con #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Regresión de rendimiento: TIFF (+21.8%) | 🟡 Media | 🟡 Media | Como #277: endurecimiento compartido del benchmark; investigar la ruta de encode (`save_image_file`) solo tras un run de confirmación compatible |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Regresión de rendimiento: WebP (+13.7%) | 🟡 Media | 🟡 Media | Como #277/#278: un PR compartido para fingerprint + confirmación por mediana; reportar solo regresiones confirmadas |
@@ -69,11 +71,9 @@ entorno. Todos los issues abiertos se reverificaron contra el código actual.
 
 ### Orden de PRs Recomendado
 
-1. **#285** — agrupar los cuatro hallazgos de seguimiento de Codex sobre el subproceso rembg (riesgo de memoria/OOM con imágenes grandes primero), con tests de regresión.
-2. **#286** — mitigar la lectura de archivo limitada (`bytearray` en vez de `b"".join`, primera lectura acotada por tamaño). Pequeño y bien acotado.
-3. **#277/#278/#279** — un PR compartido: ampliar el benchmark con fingerprint de entorno y runs de confirmación (mediana); reportar una regresión solo contra una baseline compatible.
-4. **#245** — restaurar la cuota externamente; endurecimiento opcional del workflow (skip elegante + Node 24) como PR pequeño aparte.
-5. **#161** — decidir el modelo de publicación, luego actualizar docs o cerrar.
+1. **#277/#278/#279** — un PR compartido: ampliar el benchmark con fingerprint de entorno y runs de confirmación (mediana); reportar una regresión solo contra una baseline compatible.
+2. **#245** — restaurar la cuota externamente; endurecimiento opcional del workflow (skip elegante + Node 24) como PR pequeño aparte.
+3. **#161** — decidir el modelo de publicación, luego actualizar docs o cerrar.
 
 ## Rondas Anteriores
 
