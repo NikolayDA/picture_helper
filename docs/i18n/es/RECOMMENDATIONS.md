@@ -28,43 +28,48 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   y **#249**; **#261** se resolvió con el PR #268 y se cerró.
 - El PR **#274** cerró **#232**: `import bgremover` ya no carga el stack Qt
   gracias a exports perezosos PEP 562; un test de regresión en subproceso lo cubre.
+- La oleada de PR **#280–#283** integró el benchmark semanal e implementó tres
+  hallazgos: **#235** (presupuesto compartido undo/redo, PR #281, cerrado),
+  **#275** (mensaje de megapíxeles localizado, PR #282) y **#270** (subproceso
+  rembg/ONNX vía `ai_process.py`, PR #283). #275 y #270 están hechos en el
+  código y solo falta cerrar sus issues.
 
 ### Aún Abierto
 
 - **O1 🟠 — Idiomas runtime adicionales.** Alemán e inglés son seleccionables
   en la app. Los idiomas de documentación es/fr/uk/zh aún no son runtime
   locales; añadirlos clave por clave en `bgremover.i18n` y cubrirlos con tests.
-- **O7 🟠 — Subproceso para rembg/ONNX (derivado de #231, seguido en #270).**
-  El PR #267 limitó el fallback de cierre, pero el trabajo de IA no
-  interrumpible sigue en el hilo con `terminate()` como salida de emergencia.
-  La solución completa mueve rembg/ONNX a un subproceso.
+- **O7 ✅ — Subproceso para rembg/ONNX hecho (PR #283, issue #270).** La
+  inferencia de IA no interrumpible ahora corre en un proceso iniciado con
+  `spawn` (`ai_process.py`); `QThread.terminate()` como salida de emergencia de
+  IA ha desaparecido. El issue #270 solo falta cerrarlo.
 
-## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-14, triage de cierre)
+## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-15)
 
-Tras fusionarse el PR **#274** (cierra **#232**), quedan **5** issues abiertos.
-Diez issues antes abiertos — **#231, #232, #234, #248, #249, #257, #258, #259,
-#260** y **#261** — se cerraron vía los PRs fusionados **#263–#269** y **#274** y
-se reverificaron contra el código actual con sus tests de regresión. El follow-up
-de arquitectura aplazado de #231 (subproceso rembg/ONNX, hoja de ruta **O7**) se
-registró como **#270**; como hallazgo derivado de #258 se creó **#275** (mensaje
-de megapíxeles no localizado). Todos los issues abiertos se reverificaron contra
-el código actual.
+Tras la oleada de PR **#280–#283**, quedan **7** issues abiertos. **#235** se
+cerró vía el PR #281. **#270** (PR #283) y **#275** (PR #282) ya están
+implementados en el código y solo falta cerrar sus issues. Nuevos son tres
+hallazgos de rendimiento — **#277/#278/#279** — del run de benchmark semanal
+(#280); según el triage del owner **aún no** están confirmados como regresión
+de código, porque la baseline del 2026-06-08 no lleva fingerprint de entorno.
+Todos los issues abiertos se reverificaron contra el código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | Mover la inferencia rembg/ONNX a un subproceso (derivado de #231) | 🟠 Alta | 🟡 Media | PR de arquitectura propio: el PR #267 solo limitó el cierre. Mover rembg/ONNX a un subproceso para que `terminate()` deje de ser la salida de emergencia de IA; tests de cierre/cancelación/llamada bloqueada |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Corregir cuota en la cuenta; en el repo solo mejorar el error y un bump opcional a Node 24, no un cambio forzado de `setup-node` |
-| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | El mensaje de megapíxeles «imagen demasiado grande» no está localizado | 🟢 Baja | 🟢 Baja | Como #258: pasar `_too_large_message` por `tr("status.image_too_large", …)` (de/en) y añadir test. Código: `image_loading.py:33-37` literal alemán |
-| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | El límite de memoria de undo excluye el stack de redo | 🟢 Baja | 🟡 Media | Presupuesto compartido undo/redo; solo medir original/memoria Qt. Código sin cambios: `canvas_history.py` solo cuenta `_undo_bytes`, redo limitado solo por `maxlen` |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: la URL de clonación devuelve 404 a usuarios anónimos | 🟢 Baja | 🟢 Baja | «Ronda 5» ya está corregido; decidir público vs. privado/invitación primero, luego actualizar la guía o cerrar |
+| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | Mover la inferencia rembg/ONNX a un subproceso (derivado de #231) | 🟠 Alta | 🟡 Media | **Hecho en el código (PR #283, `ai_process.py`).** Verificar y cerrar el issue; hoja de ruta O7 completada |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Refinamiento: aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana), y solo entonces comparar contra una baseline compatible. Agrupar con #278/#279 |
+| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Regresión de rendimiento: TIFF (+21.8%) | 🟡 Media | 🟡 Media | Como #277: endurecimiento compartido del benchmark; investigar la ruta de encode (`save_image_file`) solo tras un run de confirmación compatible |
+| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Regresión de rendimiento: WebP (+13.7%) | 🟡 Media | 🟡 Media | Como #277/#278: un PR compartido para fingerprint + confirmación por mediana; reportar solo regresiones confirmadas |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Bloqueado (externo): restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) + un bump opcional a Node 24, no un cambio forzado de `setup-node` |
+| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | El mensaje de megapíxeles «imagen demasiado grande» no está localizado | 🟢 Baja | 🟢 Baja | **Hecho en el código (PR #282).** `_too_large_message` ahora pasa por `tr("status.image_too_large[_mp]", …)` (de/en); verificar y cerrar el issue |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: la URL de clonación devuelve 404 a usuarios anónimos | 🟢 Baja | 🟢 Baja | Decisión necesaria: público vs. privado/invitación, luego actualizar la guía de clonado o cerrar («Ronda 5» ya está corregido) |
 
 ### Orden de PRs Recomendado
 
-1. **#275** — localizar el mensaje de megapíxeles (pequeño PR derivado de #258).
-2. **#245** — restaurar cuota externamente; endurecimiento opcional del workflow (Node 24) aparte.
-3. **#235** — implementar presupuesto compartido undo/redo.
+1. **#270 + #275** — ambos están hechos en el código (PR #283 / #282): verificar y cerrar los issues.
+2. **#277/#278/#279** — un PR compartido: ampliar el benchmark con fingerprint de entorno y runs de confirmación (mediana); reportar una regresión solo contra una baseline compatible. Bien acotado, listo para PR.
+3. **#245** — restaurar la cuota externamente; endurecimiento opcional del workflow (skip elegante + Node 24) como PR pequeño aparte.
 4. **#161** — decidir el modelo de publicación, luego actualizar docs o cerrar.
-5. **#270** — planificar el subproceso rembg/ONNX como PR de arquitectura propio (derivado de #231).
 
 ## Rondas Anteriores
 
