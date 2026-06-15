@@ -26,44 +26,48 @@
   和 **#249**；**#261** 已通过 PR #268 解决并关闭。
 - PR **#274** 关闭了 **#232**：借助 PEP 562 惰性导出，`import bgremover`
   不再加载 Qt 栈；一个子进程回归测试对此进行了覆盖。
-- PR 浪潮 **#280–#283** 落地了每周 benchmark 并实现了三项发现：**#235**
-  （共享 undo/redo 预算，PR #281，已关闭）、**#275**（已本地化的百万像素提示，
-  PR #282）和 **#270**（经 `ai_process.py` 的 rembg/ONNX 子进程，PR #283）。
-  #275 与 #270 已在代码中完成，仅需关闭其 issue。
+- PR 浪潮 **#280–#284** 落地了每周 benchmark，实现了三项发现——**#235**
+  （共享 undo/redo 预算，PR #281）、**#275**（已本地化的百万像素提示，PR #282）
+  和 **#270**（经 `ai_process.py` 的 rembg/ONNX 子进程，PR #283）——并刷新了
+  路线图（PR #284）。**#235、#270 和 #275 现已关闭。** 对 #283 与 #264 的
+  合并后 Codex review 产生了两个后续 issue：**#285** 和 **#286**。
 
 ### 仍然开放
 
 - **O1 🟠 — 更多 runtime 语言。** 应用内可切换德语和英语。现有文档语言
   es/fr/uk/zh 尚不是 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加并用测试保护。
-- **O7 ✅ — rembg/ONNX 子进程已完成（PR #283，issue #270）。** 不可中断的
+- **O7 ✅ — rembg/ONNX 子进程已完成（PR #283，issue #270 已关闭）。** 不可中断的
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
-  出口的 `QThread.terminate()` 已移除。issue #270 仅需关闭。
+  出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现记录在 **#285**。
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-15）
 
-PR 浪潮 **#280–#283** 之后，仍有 **7** 个开放 issue。**#235** 已通过 PR #281
-关闭。**#270**（PR #283）和 **#275**（PR #282）已在代码中实现，仅需关闭其
-issue。新增三项性能发现——**#277/#278/#279**——来自每周 benchmark 运行
-（#280）；按 owner 的 triage，它们**尚未**被确认为代码回归，因为 2026-06-08
-的基线没有环境指纹。所有开放 issue 均已对照当前代码重新核实。
+PR 浪潮 **#280–#284** 之后，仍有 **7** 个开放 issue。**#235**（PR #281）、
+**#270**（PR #283）和 **#275**（PR #282）已实现**并关闭**。对两个 PR 的
+合并后 Codex review 产生了两个后续 issue：**#285**（rembg 子进程的健壮性/内存，
+#283 的后续）和 **#286**（受限文件读取中的内存峰值，#264 的后续）。此外还有
+三项性能发现——**#277/#278/#279**——来自每周 benchmark 运行（#280）；按 owner
+的 triage，**尚未**被确认为代码回归，因为 2026-06-08 的基线没有环境指纹。
+所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | 将 rembg/ONNX 推理移入子进程（#231 的后续） | 🟠 高 | 🟡 中 | **代码已完成（PR #283，`ai_process.py`）。** 核实并关闭 issue；路线图 O7 已完成 |
+| [#285](https://github.com/NikolayDA/picture_helper/issues/285) | rembg 子进程的健壮性与内存（`ai_process.py`，#283 的后续） | 🟠 高 | 🟡 中 | 四项合并后 Codex 发现：瞬时失败后会话重新初始化、空闲时释放 payload、PNG 经管道 pickle 的开销（大图有 OOM 风险）、进程启动期间的 stop 竞争。打包并以测试覆盖 |
+| [#286](https://github.com/NikolayDA/picture_helper/issues/286) | 受限文件读取中的内存峰值（`image_loading._read_capped`，#264 的后续） | 🟡 中 | 🟢 低 | 两项 Codex 发现：`b"".join(chunks)` 使缓冲翻倍（约 1 GiB，P1），首次读取忽略 `fstat()` 大小（8 MiB，P2）。改用 `bytearray.extend` + 按大小限定的首次读取 |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 待细化：尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数），然后才与兼容基线比较。与 #278/#279 合并处理 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | 性能回归：TIFF（+21.8%） | 🟡 中 | 🟡 中 | 同 #277：共享的 benchmark 加固；只有在兼容的确认运行之后才调查 encode 路径（`save_image_file`） |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | 性能回归：WebP（+13.7%） | 🟡 中 | 🟡 中 | 同 #277/#278：一个共享 PR 处理指纹 + 中位数确认；只报告已确认的回归 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 受阻（外部）：在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过）+ 可选升级到 Node 24，不强制改 `setup-node` |
-| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | 百万像素“图像过大”提示未本地化 | 🟢 低 | 🟢 低 | **代码已完成（PR #282）。** `_too_large_message` 现走 `tr("status.image_too_large[_mp]", …)`（de/en）；核实并关闭 issue |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | 需要决策：公开或私有/邀请制，再更新 clone 指引或关闭（“Runde 5” 已修复） |
 
 ### 推荐 PR 顺序
 
-1. **#270 + #275** — 二者均已在代码中完成（PR #283 / #282）：核实并关闭 issue。
-2. **#277/#278/#279** — 一个共享 PR：为 benchmark 增加环境指纹与确认运行（中位数）；仅在兼容基线下报告回归。范围清晰，可直接做 PR。
-3. **#245** — 在外部恢复 quota；可选的 workflow 加固（优雅跳过 + Node 24）作为单独的小型 PR。
-4. **#161** — 决定发布模式，再更新文档或关闭。
+1. **#285** — 打包 rembg 子进程的四项 Codex 后续发现（优先处理大图的内存/OOM 风险），并加回归测试。
+2. **#286** — 缓解受限文件读取（用 `bytearray` 取代 `b"".join`，首次读取按大小限定）。小而范围清晰。
+3. **#277/#278/#279** — 一个共享 PR：为 benchmark 增加环境指纹与确认运行（中位数）；仅在兼容基线下报告回归。
+4. **#245** — 在外部恢复 quota；可选的 workflow 加固（优雅跳过 + Node 24）作为单独的小型 PR。
+5. **#161** — 决定发布模式，再更新文档或关闭。
 
 ## 先前轮次
 
