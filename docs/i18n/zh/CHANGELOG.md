@@ -127,7 +127,10 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **Worker 关闭有时间上限。** 应用关闭时，`WorkerController` 现在只在
   `quit()`/`wait()` 上短暂等待，然后回退到 `terminate()` 并再次进行有上限的
   `wait()`；无响应的 worker 不再无限期阻塞关闭，错误路径也会记录日志。原生
-  ONNX 工作中 `terminate()` 的实际风险仍作为架构后续（#270）保留（#231）。
+  ONNX 工作中 `terminate()` 的实际风险随后已解决：将 rembg/ONNX 推理移入通过
+  `spawn` 启动的独立进程（`ai_process`）——AI worker 仅轮询结果且可协作式停止，
+  取消和关闭会强制终止推理进程，`terminate()` 不再是 AI 工作的紧急出口（#270，
+  #231 的后续）。
 - **画笔 overlay 避免每次鼠标移动全量扫描掩码。** `canvas_selection` 增量维护
   选区计数，并使用变更的 bounding box，而不是在每次画笔/橡皮移动时扫描整张
   掩码；`has_selection` 因此为 O(1)。这让大图在快速绘制时保持流畅（#261）。

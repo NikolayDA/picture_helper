@@ -89,8 +89,11 @@ def test_shutdown_helper_uses_wait_and_terminate(functions):
         "Jeder QThread.wait()-Aufruf braucht ein festes Timeout."
     )
     assert ".terminate()" in body, (
-        "Notbremse terminate() nötig, weil rembg-run() blockierende "
-        "C-Aufrufe macht und auf quit() nicht reagiert."
+        "terminate() bleibt als begrenzte Notbremse für einen wider Erwarten "
+        "hängenden Thread erhalten. Seit #270 läuft die nicht unterbrechbare "
+        "ONNX-Inferenz im Inferenz-Kindprozess (nicht im Thread), sodass die "
+        "KI kooperativ stoppt; terminate() kann hier keinen nativen Zustand "
+        "mehr zerreißen."
     )
 
 

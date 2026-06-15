@@ -41,8 +41,12 @@ _HISTORY_MEMORY_LIMIT = 256 * 1024 * 1024  # 256 MiB
 # Maximale Anzahl Redo-Einträge.
 _REDO_MAX_ENTRIES = 20
 # Maximale Wartezeiten (ms) auf einen Hintergrund-Thread beim Schliessen.
-# Nach dem kooperativen Timeout bleibt terminate() nur als begrenzte
-# Notbremse; reagiert der Thread auch darauf nicht, bleibt das Fenster offen.
+# Alle Worker sind kooperativ stoppbar (die nicht unterbrechbare ONNX-Inferenz
+# läuft seit #270 im Inferenz-Kindprozess, nicht im Thread), daher greift der
+# kooperative quit()/wait() innerhalb dieser Frist. terminate() bleibt nur eine
+# begrenzte Notbremse für einen wider Erwarten hängenden Thread; reagiert er
+# auch darauf nicht, bleibt das Fenster offen. terminate() kann hier keinen
+# nativen ONNX-Zustand mehr zerreißen – der liegt im separat beendeten Prozess.
 _THREAD_SHUTDOWN_MS = 5000
 _THREAD_TERMINATE_WAIT_MS = 1000
 

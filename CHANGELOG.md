@@ -177,7 +177,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Notfall `terminate()` mit erneut begrenztem `wait()` aufruft; ein nicht
   reagierender Worker blockiert das Beenden nicht mehr unbegrenzt, und der
   Fehlerpfad wird geloggt. Das eigentliche `terminate()`-Risiko bei nativer
-  ONNX-Arbeit bleibt als Architektur-Follow-up (#270) offen (#231).
+  ONNX-Arbeit wurde anschließend behoben, indem die rembg/ONNX-Inferenz in einen
+  eigenen, per `spawn` gestarteten Prozess (`ai_process`) ausgelagert wurde: Der
+  KI-Worker pollt nur noch auf das Ergebnis und ist kooperativ stoppbar, Abbruch
+  und App-Schließen beenden den Inferenz-Prozess hart, und `terminate()` ist für
+  die KI-Arbeit nicht mehr der Notausgang (#270, Folge aus #231).
 - **Pinsel-Overlay vermeidet den Vollscan der Maske pro Mausbewegung.**
   `canvas_selection` führt den Auswahlzähler inkrementell und nutzt die
   Bounding-Box der Änderung, statt bei jeder Pinsel-/Radierbewegung die gesamte

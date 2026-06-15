@@ -14,7 +14,9 @@ from PIL import Image
 from PyQt6 import sip
 from PyQt6.QtCore import QCoreApplication, QEvent, QObject, pyqtSignal
 
+from bgremover.ai_process import InferenceError
 from bgremover.worker_controller import WorkerController
+from tests._fakes import FakeInference
 
 
 class _ImmediateWorker(QObject):
@@ -146,21 +148,14 @@ def test_image_load_concurrent_call_returns_false(
     assert controller._workers == []
 
 
-def test_ai_releases_worker_on_completion(qapp, controller, monkeypatch):
-    import bgremover.workers as _wm
-    # rembg muss patchbar sein, falls onnxruntime nicht installiert ist.
-    if not hasattr(_wm, "rembg_remove"):
-        monkeypatch.setattr(_wm, "rembg_remove", lambda _b, session=None: b"", raising=False)
+def test_ai_releases_worker_on_completion(qapp):
+    fake = FakeInference()
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
 
-    import io as _io
-    result_buf = _io.BytesIO()
-    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
-    monkeypatch.setattr(
-        _wm, "rembg_remove", lambda _b, session=None: result_buf.getvalue())
-
+    results: list = []
     started = controller.start_ai(
         Image.new("RGBA", (4, 4), (10, 20, 30, 255)),
-        on_done=lambda _img: None,
+        on_done=results.append,
         on_error=lambda _msg: None,
         on_finished=lambda: None,
     )
@@ -182,9 +177,11 @@ def test_ai_releases_worker_on_completion(qapp, controller, monkeypatch):
     assert controller.ai_thread is None
     assert controller.ai_worker is None
     assert controller._workers == []
+    assert fake.infer_calls == 1
+    assert len(results) == 1   # dekodiertes Ergebnisbild zugestellt
 
 
-def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatch):
+def test_ai_cancel_still_completes_thread_lifecycle(qapp):
     """Abbruch mitten im KI-Lauf muss den Thread-Lifecycle dennoch voll
     abschliessen.
 
@@ -194,22 +191,12 @@ def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatc
     ``ai_thread``/``ai_worker`` gesetzt, ``on_finished`` laeuft nie und der
     KI-Button bliebe die restliche Session deaktiviert.
     """
-    import io as _io
     import threading
 
-    import bgremover.workers as _wm
-
-    gate = threading.Event()
-    result_buf = _io.BytesIO()
-    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
-
-    def slow_rembg(_b, session=None):
-        # Blockiert, bis der Test abgebrochen und das Tor geoeffnet hat – so
-        # ist der Worker beim cancel_ai() garantiert noch aktiv.
-        gate.wait(timeout=5.0)
-        return result_buf.getvalue()
-
-    monkeypatch.setattr(_wm, "rembg_remove", slow_rembg, raising=False)
+    # Tor zu lassen: ``infer`` blockiert pollend, bis der Abbruch greift – so
+    # ist der Worker beim cancel_ai() garantiert noch aktiv.
+    fake = FakeInference(gate=threading.Event())
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
 
     applied: list = []
     finished: list[bool] = []
@@ -224,7 +211,6 @@ def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatc
     assert thread is not None
 
     controller.cancel_ai()
-    gate.set()
 
     _drain(
         qapp,
@@ -244,30 +230,25 @@ def test_ai_cancel_still_completes_thread_lifecycle(qapp, controller, monkeypatc
 
 
 def test_ai_and_flood_fill_use_independent_slots(
-    qapp, controller, monkeypatch,
+    qapp, monkeypatch,
 ):
-    import io
     import threading
 
     import bgremover.workers as _wm
 
-    ai_started = threading.Event()
     flood_started = threading.Event()
     release = threading.Event()
-    result_buf = io.BytesIO()
-    Image.new("RGBA", (4, 4), (0, 0, 0, 0)).save(result_buf, format="PNG")
 
-    def slow_rembg(_data, session=None):
-        ai_started.set()
-        release.wait(timeout=5.0)
-        return result_buf.getvalue()
+    # KI-Inferenz blockiert pollend, bis ``release`` gesetzt ist – so laufen
+    # KI- und Flood-Fill-Worker garantiert gleichzeitig.
+    fake = FakeInference(gate=release)
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
 
     def slow_flood_fill(arr, _x, _y, _tol, should_cancel=None):
         flood_started.set()
         release.wait(timeout=5.0)
         return np.ones(arr.shape[:2], dtype=bool)
 
-    monkeypatch.setattr(_wm, "rembg_remove", slow_rembg, raising=False)
     monkeypatch.setattr(_wm, "flood_fill", slow_flood_fill)
 
     image = Image.new("RGBA", (4, 4), (10, 20, 30, 255))
@@ -282,7 +263,7 @@ def test_ai_and_flood_fill_use_independent_slots(
         on_error=lambda _msg: None,
         on_finished=lambda: ai_finished.append(True),
     )
-    assert ai_started.wait(timeout=2.0)
+    _drain(qapp, lambda: fake.infer_calls == 1)
     ai_thread = controller.ai_thread
     assert ai_thread is not None
 
@@ -326,9 +307,9 @@ def test_ai_and_flood_fill_use_independent_slots(
     assert ai_finished == [True]
 
 
-def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
-    import bgremover.workers as _wm
-    monkeypatch.setattr(_wm, "rembg_remove", lambda _b, session=None: b"", raising=False)
+def test_warmup_releases_worker_on_completion(qapp):
+    fake = FakeInference()
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
 
     done: list[bool] = []
     started = controller.start_warmup(on_finished=lambda: done.append(True))
@@ -347,20 +328,16 @@ def test_warmup_releases_worker_on_completion(qapp, controller, monkeypatch):
     assert controller.warmup_done
     assert done == [True]
     assert controller._workers == []
+    assert fake.warmup_calls == 1
 
 
-def test_warmup_releases_worker_when_rembg_raises(qapp, controller, monkeypatch):
-    """Wirft ``rembg_remove`` waehrend des Warmups, muss der Controller den
-    Thread-Lifecycle trotzdem komplett abschliessen (Worker freigegeben,
-    ``warmup_done`` gesetzt, ``on_finished`` aufgerufen). Sonst haengt das
-    Bootstrap, falls das Modell beim ersten Start nicht geladen werden
-    kann (z. B. offline)."""
-    import bgremover.workers as _wm
-
-    def _raise(_b, session=None):
-        raise RuntimeError("mock warmup failure")
-
-    monkeypatch.setattr(_wm, "rembg_remove", _raise, raising=False)
+def test_warmup_releases_worker_when_inference_raises(qapp):
+    """Wirft der Warmup im Inferenzprozess (z. B. rembg offline nicht ladbar),
+    muss der Controller den Thread-Lifecycle trotzdem komplett abschliessen
+    (Worker freigegeben, ``warmup_done`` gesetzt, ``on_finished`` aufgerufen).
+    Sonst haengt das Bootstrap."""
+    fake = FakeInference(warmup_error=InferenceError("mock warmup failure"))
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
 
     done: list[bool] = []
     started = controller.start_warmup(on_finished=lambda: done.append(True))
