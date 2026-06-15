@@ -32,8 +32,11 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   umgesetzt — **#235** (gemeinsames Undo/Redo-Budget, PR #281), **#275**
   (lokalisierte Megapixel-Meldung, PR #282) und **#270** (rembg/ONNX-Subprozess
   via `ai_process.py`, PR #283) — und die Roadmap nachgezogen (PR #284).
-  **#235, #270 und #275 sind inzwischen geschlossen.** Der Post-Merge-Codex-Review
-  von #283 und #264 hat zwei Folge-Issues ergeben: **#285** und **#286**.
+  **#235, #270 und #275 sind inzwischen geschlossen.**
+- Die zwei Post-Merge-Codex-Folgebefunde aus #283 und #264 sind ebenfalls
+  behoben **und geschlossen**: **#285** (Robustheit/Speicher des
+  rembg-Subprozesses, PR #289) und **#286** (Speicherspitzen im gekappten
+  Datei-Read, PR #290).
 
 ### Noch offen
 
@@ -43,24 +46,23 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 - **O7 ✅ — Subprozess für rembg/ONNX erledigt (PR #283, Issue #270 geschlossen).**
   Die nicht unterbrechbare KI-Inferenz läuft jetzt in einem per `spawn`
   gestarteten Prozess (`ai_process.py`); `QThread.terminate()` als KI-Notausgang
-  ist entfallen. Robustheits-/Speicher-Folgebefunde sind in **#285** erfasst.
+  ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
+  (PR #289) behoben und geschlossen.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-15)
 
-Nach der PR-Welle **#280–#284** sind **7** Issues offen. **#235** (PR #281),
-**#270** (PR #283) und **#275** (PR #282) sind umgesetzt **und geschlossen**.
-Aus dem Post-Merge-Codex-Review zweier PRs entstanden zwei Folge-Issues:
-**#285** (Robustheit/Speicher des rembg-Subprozesses, Folge aus #283) und
-**#286** (Speicherspitzen im gekappten Datei-Read, Folge aus #264). Hinzu kommen
-drei Performance-Befunde — **#277/#278/#279** — aus dem Wochen-Benchmark-Lauf
-(#280); laut Owner-Triage **noch nicht** als Code-Regression bestätigt, weil die
-Baseline vom 2026-06-08 keinen Umgebungs-Fingerprint trägt. Alle offenen Issues
-wurden gegen den aktuellen Code verifiziert.
+Nach den PRs **#280–#290** sind **5** Issues offen. Die zuletzt gemeldeten
+Folge-Issues **#285** (PR #289) und **#286** (PR #290) sind umgesetzt **und
+geschlossen** — wie zuvor **#235** (PR #281), **#270** (PR #283) und **#275**
+(PR #282). Offen bleiben drei Performance-Befunde — **#277/#278/#279** — aus dem
+Wochen-Benchmark-Lauf (#280); laut Owner-Triage **noch nicht** als
+Code-Regression bestätigt, weil die Baseline vom 2026-06-08 keinen
+Umgebungs-Fingerprint trägt. Dazu kommen **#245** (CI-Quota, extern blockiert)
+und **#161** (README-Clone-URL, Owner-Entscheidung). Alle offenen Issues wurden
+gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#285](https://github.com/NikolayDA/picture_helper/issues/285) | Robustheit & Speicher des rembg-Subprozesses (`ai_process.py`, Folge aus #283) | 🟠 Hoch | 🟡 Mittel | Vier Post-Merge-Codex-Befunde: Session-Reinit nach transientem Fehler, Payload-Freigabe im Leerlauf, PNG-Pickle-Overhead durch die Pipe (OOM-Risiko bei großen Bildern), Stop-Race beim Prozessstart. Bündeln und mit Tests absichern |
-| [#286](https://github.com/NikolayDA/picture_helper/issues/286) | Speicherspitzen im gekappten Datei-Read (`image_loading._read_capped`, Folge aus #264) | 🟡 Mittel | 🟢 Niedrig | Zwei Codex-Befunde: `b"".join(chunks)` verdoppelt den Puffer (~1 GiB, P1), erster Read ignoriert die `fstat()`-Größe (8 MiB, P2). `bytearray.extend` + größenbegrenzter erster Read |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance-Regression: JPEG (+38.4%) | 🟡 Mittel | 🟡 Mittel | Refinement: noch nicht als Code-Regression bestätigt. Benchmark um Umgebungs-Fingerprint + Bestätigungsläufe (Median) erweitern, dann erst gegen kompatible Baseline vergleichen. Mit #278/#279 bündeln |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance-Regression: TIFF (+21.8%) | 🟡 Mittel | 🟡 Mittel | Wie #277: gemeinsame Benchmark-Härtung; den Encode-Pfad (`save_image_file`) erst nach einem kompatiblen Bestätigungslauf untersuchen |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance-Regression: WebP (+13.7%) | 🟡 Mittel | 🟡 Mittel | Wie #277/#278: ein gemeinsamer PR für Fingerprint + Median-Bestätigung; nur bestätigte Regressionen melden |
@@ -69,11 +71,9 @@ wurden gegen den aktuellen Code verifiziert.
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#285** — die vier Codex-Folgebefunde am rembg-Subprozess bündeln (Speicher/OOM-Risiko bei großen Bildern zuerst), mit Regressionstests.
-2. **#286** — den gekappten Datei-Read entschärfen (`bytearray` statt `b"".join`, größenbegrenzter erster Read). Klein und gut abgegrenzt.
-3. **#277/#278/#279** — ein gemeinsamer PR: Benchmark um Umgebungs-Fingerprint und Bestätigungsläufe (Median) erweitern; Regression nur bei kompatibler Baseline melden.
-4. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24) als kleiner separater PR.
-5. **#161** — Veröffentlichungsmodell entscheiden, dann Doku ändern oder schließen.
+1. **#277/#278/#279** — ein gemeinsamer PR: Benchmark um Umgebungs-Fingerprint und Bestätigungsläufe (Median) erweitern; Regression nur bei kompatibler Baseline melden.
+2. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24) als kleiner separater PR.
+3. **#161** — Veröffentlichungsmodell entscheiden, dann Doku ändern oder schließen.
 
 ## Vorige Runden
 
