@@ -28,48 +28,52 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   und **#249** geschlossen; **#261** wurde über PR #268 erledigt und geschlossen.
 - PR **#274** hat **#232** geschlossen: `import bgremover` lädt über PEP-562-
   Lazy-Exports keinen Qt-Stack mehr; ein Subprozess-Regressionstest sichert das ab.
-- Die PR-Welle **#280–#283** hat den Wochen-Benchmark abgelegt und drei Befunde
-  umgesetzt: **#235** (gemeinsames Undo/Redo-Budget, PR #281, geschlossen),
-  **#275** (lokalisierte Megapixel-Meldung, PR #282) und **#270**
-  (rembg/ONNX-Subprozess via `ai_process.py`, PR #283). #275 und #270 sind im
-  Code erledigt und müssen nur noch als Issue geschlossen werden.
+- Die PR-Welle **#280–#284** hat den Wochen-Benchmark abgelegt, drei Befunde
+  umgesetzt — **#235** (gemeinsames Undo/Redo-Budget, PR #281), **#275**
+  (lokalisierte Megapixel-Meldung, PR #282) und **#270** (rembg/ONNX-Subprozess
+  via `ai_process.py`, PR #283) — und die Roadmap nachgezogen (PR #284).
+  **#235, #270 und #275 sind inzwischen geschlossen.** Der Post-Merge-Codex-Review
+  von #283 und #264 hat zwei Folge-Issues ergeben: **#285** und **#286**.
 
 ### Noch offen
 
 - **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind in der App
   umschaltbar. Die Dokusprachen es/fr/uk/zh sind noch keine Runtime-Locales;
   bei Bedarf key-für-key in `bgremover.i18n` ergänzen und mit Tests absichern.
-- **O7 ✅ — Subprozess für rembg/ONNX erledigt (PR #283, Issue #270).** Die
-  nicht unterbrechbare KI-Inferenz läuft jetzt in einem per `spawn` gestarteten
-  Prozess (`ai_process.py`); `QThread.terminate()` als KI-Notausgang ist
-  entfallen. Issue #270 ist nur noch zu schließen.
+- **O7 ✅ — Subprozess für rembg/ONNX erledigt (PR #283, Issue #270 geschlossen).**
+  Die nicht unterbrechbare KI-Inferenz läuft jetzt in einem per `spawn`
+  gestarteten Prozess (`ai_process.py`); `QThread.terminate()` als KI-Notausgang
+  ist entfallen. Robustheits-/Speicher-Folgebefunde sind in **#285** erfasst.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-15)
 
-Nach der PR-Welle **#280–#283** sind **7** Issues offen. **#235** wurde über
-PR #281 geschlossen. **#270** (PR #283) und **#275** (PR #282) sind im Code
-bereits umgesetzt und müssen nur noch als Issue geschlossen werden. Neu sind
+Nach der PR-Welle **#280–#284** sind **7** Issues offen. **#235** (PR #281),
+**#270** (PR #283) und **#275** (PR #282) sind umgesetzt **und geschlossen**.
+Aus dem Post-Merge-Codex-Review zweier PRs entstanden zwei Folge-Issues:
+**#285** (Robustheit/Speicher des rembg-Subprozesses, Folge aus #283) und
+**#286** (Speicherspitzen im gekappten Datei-Read, Folge aus #264). Hinzu kommen
 drei Performance-Befunde — **#277/#278/#279** — aus dem Wochen-Benchmark-Lauf
-(#280); laut Owner-Triage sind sie **noch nicht** als Code-Regression
-bestätigt, weil die Baseline vom 2026-06-08 keinen Umgebungs-Fingerprint trägt.
-Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
+(#280); laut Owner-Triage **noch nicht** als Code-Regression bestätigt, weil die
+Baseline vom 2026-06-08 keinen Umgebungs-Fingerprint trägt. Alle offenen Issues
+wurden gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | rembg/ONNX-Inferenz in einen Subprozess auslagern (Folge aus #231) | 🟠 Hoch | 🟡 Mittel | **Erledigt im Code (PR #283, `ai_process.py`).** Verifizieren und Issue schließen; Roadmap O7 abgeschlossen |
+| [#285](https://github.com/NikolayDA/picture_helper/issues/285) | Robustheit & Speicher des rembg-Subprozesses (`ai_process.py`, Folge aus #283) | 🟠 Hoch | 🟡 Mittel | Vier Post-Merge-Codex-Befunde: Session-Reinit nach transientem Fehler, Payload-Freigabe im Leerlauf, PNG-Pickle-Overhead durch die Pipe (OOM-Risiko bei großen Bildern), Stop-Race beim Prozessstart. Bündeln und mit Tests absichern |
+| [#286](https://github.com/NikolayDA/picture_helper/issues/286) | Speicherspitzen im gekappten Datei-Read (`image_loading._read_capped`, Folge aus #264) | 🟡 Mittel | 🟢 Niedrig | Zwei Codex-Befunde: `b"".join(chunks)` verdoppelt den Puffer (~1 GiB, P1), erster Read ignoriert die `fstat()`-Größe (8 MiB, P2). `bytearray.extend` + größenbegrenzter erster Read |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance-Regression: JPEG (+38.4%) | 🟡 Mittel | 🟡 Mittel | Refinement: noch nicht als Code-Regression bestätigt. Benchmark um Umgebungs-Fingerprint + Bestätigungsläufe (Median) erweitern, dann erst gegen kompatible Baseline vergleichen. Mit #278/#279 bündeln |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance-Regression: TIFF (+21.8%) | 🟡 Mittel | 🟡 Mittel | Wie #277: gemeinsame Benchmark-Härtung; den Encode-Pfad (`save_image_file`) erst nach einem kompatiblen Bestätigungslauf untersuchen |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance-Regression: WebP (+13.7%) | 🟡 Mittel | 🟡 Mittel | Wie #277/#278: ein gemeinsamer PR für Fingerprint + Median-Bestätigung; nur bestätigte Regressionen melden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | Blockiert (extern): Quota account-seitig wiederherstellen. Repo-seitig nur klare Fehlerbehandlung (graceful skip) + optionaler Node-24-Bump, kein erzwungener `setup-node`-Fix |
-| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | Megapixel-„Bild zu groß“-Meldung ist nicht lokalisiert | 🟢 Niedrig | 🟢 Niedrig | **Erledigt im Code (PR #282).** `_too_large_message` läuft über `tr("status.image_too_large[_mp]", …)` (de/en); verifizieren und Issue schließen |
 | [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: Clone-URL führt für anonyme Nutzer zu 404 | 🟢 Niedrig | 🟢 Niedrig | Entscheidung nötig: öffentlich vs. privat/invite-only, dann Clone-Doku ändern oder schließen („Runde 5“ ist bereits erledigt) |
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#270 + #275** — beide sind im Code erledigt (PR #283 / #282): verifizieren und die Issues schließen.
-2. **#277/#278/#279** — ein gemeinsamer PR: Benchmark um Umgebungs-Fingerprint und Bestätigungsläufe (Median) erweitern; Regression nur bei kompatibler Baseline melden. Gut abgegrenzt, PR-bereit.
-3. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24) als kleiner separater PR.
-4. **#161** — Veröffentlichungsmodell entscheiden, dann Doku ändern oder schließen.
+1. **#285** — die vier Codex-Folgebefunde am rembg-Subprozess bündeln (Speicher/OOM-Risiko bei großen Bildern zuerst), mit Regressionstests.
+2. **#286** — den gekappten Datei-Read entschärfen (`bytearray` statt `b"".join`, größenbegrenzter erster Read). Klein und gut abgegrenzt.
+3. **#277/#278/#279** — ein gemeinsamer PR: Benchmark um Umgebungs-Fingerprint und Bestätigungsläufe (Median) erweitern; Regression nur bei kompatibler Baseline melden.
+4. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24) als kleiner separater PR.
+5. **#161** — Veröffentlichungsmodell entscheiden, dann Doku ändern oder schließen.
 
 ## Vorige Runden
 
