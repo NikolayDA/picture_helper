@@ -47,10 +47,13 @@ type:
 test:
 	$(QT_ENV) "$(PYTHON)" -m pytest
 
+# 'coverage xml' erzeugt zusaetzlich coverage.xml fuer den Codecov-Upload in
+# der Full CI; HTML bleibt fuer die lokale Durchsicht.
 coverage:
 	$(QT_ENV) "$(PYTHON)" -m coverage run -m pytest
 	$(RUN_ENV) "$(PYTHON)" -m coverage report
 	$(RUN_ENV) "$(PYTHON)" -m coverage html
+	$(RUN_ENV) "$(PYTHON)" -m coverage xml
 
 # Volle UI-Interaktionssuite (nightly). Explizites -m ui ueberschreibt das
 # '-m not ui or ui_smoke' aus pyproject [tool.pytest.ini_options].addopts und
