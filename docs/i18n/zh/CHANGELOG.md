@@ -72,6 +72,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   大图（最高 40 MP）时的内存峰值与 OOM 风险；并且恰好在进程启动期间到达的
   `request_stop()` 会通过 `_proc_lock`/`_stop_pending` 这一对机制转交给新进程。
   回归测试覆盖了全部四条路径（#285）。
+- **缓解受限文件读取中的内存峰值。** 来自 #264 的 Codex 复审在
+  `bgremover/image_loading._read_capped` 中遗留的两项后续问题：内容不再用
+  `b"".join(chunks)`（它会同时持有各 chunk **和**结果，在接近 512 MiB 上限时约
+  1 GiB）拼接，而是组装进一个一次性预分配大小的 `bytearray` 并直接传出——不再有约
+  2× 的峰值。此外，第一次 read 受 `os.fstat()` 已知大小的限制，因此小文件不再申请
+  约 8 MiB 的余量；一个小的后续 read 仍能检测 `fstat()` 与读取之间的增长（TOCTOU）
+  或不可靠的 `st_size`（管道/套接字）。上限/超限检测（`None`）保持不变；回归测试
+  覆盖了两条路径（#286）。
 - **读入前限制输入文件大小。** `open_validated_image` 现在在将文件内容完整读入
   内存**之前**，先通过 `os.fstat()` 对照一个有文档说明的字节上限
   （`_MAX_INPUT_FILE_BYTES`，512 MB）检查输入文件；额外的有界 `read()` 可防范

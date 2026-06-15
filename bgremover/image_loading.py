@@ -28,6 +28,14 @@ from bgremover.i18n import tr
 # scheitern lassen (#258). 8 MiB hält die Vorallokation klein und die Anzahl
 # der Lese-Iterationen für reale Bilddateien gering.
 _READ_CHUNK_BYTES = 8 * 1024 * 1024
+# Kleiner Probe-Read für die Wachstumserkennung NACH der per ``fstat`` bekannten
+# Größe. Eine Datei exakt in fstat-Größe ist danach am EOF; ein voller
+# ``_READ_CHUNK_BYTES``-Read nur zum EOF-Erkennen würde erneut ~8 MiB Headroom
+# anfordern (CPythons gepufferter Reader allokiert anhand der angeforderten
+# Menge, bevor er EOF erkennt – Befund #286). 64 KiB reichen, um Wachstum
+# (TOCTOU bzw. Pipe/Socket ohne verlässliches ``st_size``) zu erkennen; danach
+# wird wieder in ``_READ_CHUNK_BYTES``-Schritten gelesen.
+_GROWTH_PROBE_BYTES = 64 * 1024
 
 
 def _too_large_message(mp: float | None = None) -> str:
@@ -66,27 +74,59 @@ def _file_too_large_message(size_bytes: int) -> str:
     return tr("status.file_too_large", size=size_mb, limit=limit_mb)
 
 
-def _read_capped(fh: io.BufferedReader, limit: int) -> bytes | None:
-    """Liest höchstens ``limit + 1`` Bytes in Chunks – ohne Vorallokation.
+def _read_capped(
+    fh: io.BufferedReader, limit: int, size_hint: int,
+) -> bytearray | None:
+    """Liest höchstens ``limit + 1`` Bytes – ohne 2×-Spitze, ohne Vorallokation
+    in Limitgröße.
 
-    Gibt die gelesenen Bytes zurück (höchstens ``limit`` lang) oder ``None``,
-    sobald der Inhalt das Limit übersteigt. Anders als ``fh.read(limit + 1)``
-    reserviert das nie einen Puffer in Limitgröße; eine kleine Datei belegt nur
-    ihre eigene Größe. Im Überschreitungsfall werden die Daten verworfen, statt
-    sie zu materialisieren – das Wachstum zwischen ``fstat()`` und Lesen (TOCTOU
-    bzw. Pipes/Sockets ohne verlässliches ``st_size``) wird dennoch erkannt.
+    Gibt die gelesenen Bytes (höchstens ``limit`` lang) als ``bytearray`` zurück
+    oder ``None``, sobald der Inhalt das Limit übersteigt.
+
+    *size_hint* ist die per ``fstat`` bekannte Größe. Der Puffer wird EINMAL in
+    dieser Größe angelegt und per Slice gefüllt – kein wachsender Puffer und kein
+    ``b"".join(chunks)``, das Chunks und Ergebnis gleichzeitig (~2×, bis ~1 GiB
+    nahe dem Limit) hielte (Befund #286/1). Das ``bytearray`` wird direkt
+    weitergereicht (kein abschließendes ``bytes(...)``, das nochmals vollständig
+    kopierte).
+
+    Die Reads bleiben durch ``size_hint`` begrenzt, sodass eine kleine Datei nie
+    einen vollen ``_READ_CHUNK_BYTES``-Puffer (8 MiB) anfordert (Befund #286/2).
+    Nach Erreichen der bekannten Größe folgt ein kleiner Probe-Read, der Wachstum
+    (TOCTOU bzw. Pipe/Socket ohne verlässliches ``st_size``) erkennt; wächst der
+    Inhalt über das Limit, kommt ``None``.
     """
-    chunks: list[bytes] = []
+    # fstat-Größe defensiv klemmen: ``size`` ist oben bereits als ``<= limit``
+    # geprüft; das ``min(..., limit + 1)`` hält ``_read_capped`` auch bei direktem
+    # Aufruf mit unplausiblem Hinweis sicher, ``max(0, ...)`` fängt negative ab.
+    target = max(0, min(size_hint, limit + 1))
+    buf = bytearray(target)
     total = 0
+    # Phase 1: die bekannte Größe gechunkt einlesen. Jeder Read ist durch die
+    # (Rest-)Größe begrenzt; per Slice-Zuweisung wächst ``buf`` nicht (#286/2).
+    while total < target:
+        chunk = fh.read(min(_READ_CHUNK_BYTES, target - total))
+        if not chunk:
+            del buf[total:]            # Datei kürzer als fstat → auf Ist-Größe kürzen
+            return buf
+        n = len(chunk)
+        buf[total:total + n] = chunk
+        total += n
+    # Phase 2: Wachstumserkennung jenseits der bekannten Größe. Ein normaler File
+    # ist hier am EOF; der erste Folge-Read bleibt klein (Probe), damit eine
+    # Datei exakt in fstat-Größe nicht erneut 8 MiB nur zum EOF-Erkennen
+    # anfordert. Nach bestätigtem Wachstum wird in vollen Chunks weitergelesen.
+    read_size = _GROWTH_PROBE_BYTES
     while total <= limit:
-        chunk = fh.read(min(_READ_CHUNK_BYTES, limit + 1 - total))
+        chunk = fh.read(min(read_size, limit + 1 - total))
         if not chunk:
             break
+        buf.extend(chunk)
         total += len(chunk)
-        if total > limit:
-            return None
-        chunks.append(chunk)
-    return b"".join(chunks)
+        read_size = _READ_CHUNK_BYTES
+    if total > limit:
+        return None
+    return buf
 
 
 def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
@@ -113,10 +153,12 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
                 return None, _file_too_large_message(size)
             # Begrenzt und in Chunks lesen (kein read() in Limitgröße, das sonst
             # einen 512-MiB-Puffer vorallokiert und kleine Dateien unter knappem
-            # Speicher killt). Fängt ungewöhnliche Fileobjekte (Pipes/Sockets
-            # ohne verlässliches st_size) und eine Größenänderung zwischen
-            # fstat() und Lesen ab – ``None`` signalisiert „über dem Limit".
-            data = _read_capped(fh, _MAX_INPUT_FILE_BYTES)
+            # Speicher killt). Die fstat-Größe begrenzt den ersten Read, und der
+            # Puffer wird ohne 2×-Spitze zusammengesetzt (Befund #286). Fängt
+            # ungewöhnliche Fileobjekte (Pipes/Sockets ohne verlässliches
+            # st_size) und eine Größenänderung zwischen fstat() und Lesen ab –
+            # ``None`` signalisiert „über dem Limit".
+            data = _read_capped(fh, _MAX_INPUT_FILE_BYTES, size)
     except OSError as e:
         return None, f"{type(e).__name__}: {e}"
 
