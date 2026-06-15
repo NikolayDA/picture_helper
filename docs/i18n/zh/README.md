@@ -210,9 +210,8 @@ BgRemover 是一个可安装的包（`bgremover/`，通过 `python -m bgremover`
   `deleteLater` 和 shutdown。
 - 画布中的单调**版本计数器**会丢弃过时的 AI 和 flood-fill 结果，
   以防期间加载了另一张图像或图像状态发生变化。
-- 撤销栈不是通过 `maxlen`，而是通过
-  **内存上限**（`_UNDO_MEMORY_LIMIT`）来限制；持续累加的
-  字节总和会清除最旧的条目。
+- 撤销和重做共享一个**内存上限**（`_HISTORY_MEMORY_LIMIT`）；持续累加的
+  字节总和会清除最旧的历史记录。原始图像和当前画布状态有意不计入此预算。
 
 ## 已知限制
 

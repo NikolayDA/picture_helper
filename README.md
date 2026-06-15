@@ -233,9 +233,10 @@ BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
 - Ein monotoner **Versionszähler** im Canvas verwirft veraltete KI- und
   Flood-Fill-Ergebnisse, falls zwischenzeitlich ein anderes Bild geladen
   oder der Bildzustand geändert wurde.
-- Der Undo-Stapel ist nicht über `maxlen`, sondern über ein
-  **Speicherlimit** (`_UNDO_MEMORY_LIMIT`) begrenzt; eine laufende
-  Byte-Summe evakuiert die ältesten Einträge.
+- Undo und Redo teilen sich ein **Speicherlimit**
+  (`_HISTORY_MEMORY_LIMIT`); laufende Byte-Summen evakuieren die ältesten
+  History-Einträge. Originalbild und aktueller Canvas-Zustand liegen bewusst
+  außerhalb dieses Budgets.
 
 ## Bekannte Einschränkungen
 
