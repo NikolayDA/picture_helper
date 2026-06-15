@@ -26,40 +26,44 @@
   和 **#249**；**#261** 已通过 PR #268 解决并关闭。
 - PR **#274** 关闭了 **#232**：借助 PEP 562 惰性导出，`import bgremover`
   不再加载 Qt 栈；一个子进程回归测试对此进行了覆盖。
+- PR 浪潮 **#280–#283** 落地了每周 benchmark 并实现了三项发现：**#235**
+  （共享 undo/redo 预算，PR #281，已关闭）、**#275**（已本地化的百万像素提示，
+  PR #282）和 **#270**（经 `ai_process.py` 的 rembg/ONNX 子进程，PR #283）。
+  #275 与 #270 已在代码中完成，仅需关闭其 issue。
 
 ### 仍然开放
 
 - **O1 🟠 — 更多 runtime 语言。** 应用内可切换德语和英语。现有文档语言
   es/fr/uk/zh 尚不是 runtime locales；如需要，请在 `bgremover.i18n`
   中逐 key 添加并用测试保护。
-- **O7 🟠 — rembg/ONNX 子进程（#231 的后续，跟踪于 #270）。** PR #267
-  限制了关闭回退，但不可中断的 AI 工作仍在线程中运行，以 `terminate()`
-  作为应急出口。完整方案将 rembg/ONNX 移入子进程。
+- **O7 ✅ — rembg/ONNX 子进程已完成（PR #283，issue #270）。** 不可中断的
+  AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
+  出口的 `QThread.terminate()` 已移除。issue #270 仅需关闭。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-14，收尾 triage）
+## 开放的 GitHub Issues — 优先级评估（2026-06-15）
 
-PR **#274**（关闭 **#232**）合并后，仍有 **5** 个开放 issue。先前开放的十个
-issue——**#231、#232、#234、#248、#249、#257、#258、#259、#260** 和
-**#261**——已通过合并的 PR **#263–#269** 与 **#274** 关闭，并连同其回归测试
-对照当前代码重新核实。从 #231 推迟的架构后续（rembg/ONNX 子进程，路线图
-**O7**）已登记为 **#270**；作为 #258 的衍生发现，已新建 **#275**（未本地化的
-百万像素提示）。所有开放 issue 均已对照当前代码重新核实。
+PR 浪潮 **#280–#283** 之后，仍有 **7** 个开放 issue。**#235** 已通过 PR #281
+关闭。**#270**（PR #283）和 **#275**（PR #282）已在代码中实现，仅需关闭其
+issue。新增三项性能发现——**#277/#278/#279**——来自每周 benchmark 运行
+（#280）；按 owner 的 triage，它们**尚未**被确认为代码回归，因为 2026-06-08
+的基线没有环境指纹。所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | 将 rembg/ONNX 推理移入子进程（#231 的后续） | 🟠 高 | 🟡 中 | 独立架构 PR：PR #267 仅限制了关闭。将 rembg/ONNX 移入子进程，使 `terminate()` 不再是 AI 应急出口；为关闭/取消/阻塞调用编写测试 |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 账户侧恢复 quota；仓库只改进错误处理并可选升级到 Node 24，不强制改 `setup-node` |
-| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | 百万像素“图像过大”提示未本地化 | 🟢 低 | 🟢 低 | 类似 #258：让 `_too_large_message` 走 `tr("status.image_too_large", …)`（de/en）并补测试。代码：`image_loading.py:33-37` 德语字面量 |
-| [#235](https://github.com/NikolayDA/picture_helper/issues/235) | Undo 内存限制未包含 redo 栈 | 🟢 低 | 🟡 中 | 共享 undo/redo 预算；原图/Qt 内存仅测量。代码未变：`canvas_history.py` 仅计 `_undo_bytes`，redo 仅由 `maxlen` 限制 |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | “Runde 5” 已修复；先决定公开或私有/邀请制，再更新 clone 指引或关闭 |
+| [#270](https://github.com/NikolayDA/picture_helper/issues/270) | 将 rembg/ONNX 推理移入子进程（#231 的后续） | 🟠 高 | 🟡 中 | **代码已完成（PR #283，`ai_process.py`）。** 核实并关闭 issue；路线图 O7 已完成 |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 待细化：尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数），然后才与兼容基线比较。与 #278/#279 合并处理 |
+| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | 性能回归：TIFF（+21.8%） | 🟡 中 | 🟡 中 | 同 #277：共享的 benchmark 加固；只有在兼容的确认运行之后才调查 encode 路径（`save_image_file`） |
+| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | 性能回归：WebP（+13.7%） | 🟡 中 | 🟡 中 | 同 #277/#278：一个共享 PR 处理指纹 + 中位数确认；只报告已确认的回归 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 受阻（外部）：在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过）+ 可选升级到 Node 24，不强制改 `setup-node` |
+| [#275](https://github.com/NikolayDA/picture_helper/issues/275) | 百万像素“图像过大”提示未本地化 | 🟢 低 | 🟢 低 | **代码已完成（PR #282）。** `_too_large_message` 现走 `tr("status.image_too_large[_mp]", …)`（de/en）；核实并关闭 issue |
+| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | 需要决策：公开或私有/邀请制，再更新 clone 指引或关闭（“Runde 5” 已修复） |
 
 ### 推荐 PR 顺序
 
-1. **#275** — 本地化百万像素提示（源自 #258 的小型 PR）。
-2. **#245** — 在外部恢复 quota；可选的 workflow 加固（Node 24）单独处理。
-3. **#235** — 实现共享 undo/redo 历史预算。
+1. **#270 + #275** — 二者均已在代码中完成（PR #283 / #282）：核实并关闭 issue。
+2. **#277/#278/#279** — 一个共享 PR：为 benchmark 增加环境指纹与确认运行（中位数）；仅在兼容基线下报告回归。范围清晰，可直接做 PR。
+3. **#245** — 在外部恢复 quota；可选的 workflow 加固（优雅跳过 + Node 24）作为单独的小型 PR。
 4. **#161** — 决定发布模式，再更新文档或关闭。
-5. **#270** — 将 rembg/ONNX 子进程规划为独立架构 PR（#231 的后续）。
 
 ## 先前轮次
 
