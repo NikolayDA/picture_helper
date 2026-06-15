@@ -228,9 +228,10 @@ BgRemover es un paquete instalable (`bgremover/`, iniciado vía
 - Un **contador de versión** monótono en el lienzo descarta resultados
   obsoletos de IA y flood-fill si entretanto se cargó otra imagen o cambió
   el estado de la imagen.
-- La pila de Deshacer no está limitada por `maxlen`, sino por un
-  **límite de memoria** (`_UNDO_MEMORY_LIMIT`); una suma de bytes en
-  curso evacúa las entradas más antiguas.
+- Deshacer y Rehacer comparten un **límite de memoria**
+  (`_HISTORY_MEMORY_LIMIT`); las sumas de bytes en curso expulsan las entradas
+  más antiguas del historial. La imagen original y el estado actual del lienzo
+  quedan fuera de este presupuesto de forma intencionada.
 
 ## Limitaciones conocidas
 
