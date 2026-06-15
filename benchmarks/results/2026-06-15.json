@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "timestamp": "2026-06-15T03:06:21+00:00",
+  "git_commit": "af6d38c",
+  "iterations": 7,
+  "image": {
+    "width": 1920,
+    "height": 1080
+  },
+  "formats": {
+    "PNG": {
+      "encode_ms": 1057.7925,
+      "decode_ms": 44.2692,
+      "process_ms": 675.4199,
+      "encoded_bytes": 2639455.0
+    },
+    "JPEG": {
+      "encode_ms": 27.3102,
+      "decode_ms": 12.4547,
+      "process_ms": 65.2754,
+      "encoded_bytes": 596535.0
+    },
+    "WebP": {
+      "encode_ms": 371.1507,
+      "decode_ms": 66.7325,
+      "process_ms": 342.1068,
+      "encoded_bytes": 588020.0
+    },
+    "TIFF": {
+      "encode_ms": 145.1457,
+      "decode_ms": 63.3774,
+      "process_ms": 174.4256,
+      "encoded_bytes": 6696130.0
+    }
+  }
+}
