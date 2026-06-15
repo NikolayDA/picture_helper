@@ -179,8 +179,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `WorkerController` n'attend plus que brièvement sur `quit()`/`wait()` avant de
   recourir à `terminate()` avec un autre `wait()` borné ; un worker qui ne répond
   pas ne bloque plus la fermeture indéfiniment, et le chemin d'erreur est journalisé.
-  Le vrai risque de `terminate()` pour le travail ONNX natif reste ouvert comme
-  suivi d'architecture (#270) (#231).
+  Le vrai risque de `terminate()` pour le travail ONNX natif a ensuite été résolu
+  en déplaçant l'inférence rembg/ONNX dans son propre processus démarré via
+  `spawn` (`ai_process`) : le worker IA ne fait que sonder le résultat et peut
+  être arrêté de façon coopérative, l'annulation et la fermeture terminent
+  brutalement le processus d'inférence, et `terminate()` n'est plus la sortie
+  d'urgence pour le travail IA (#270, suite de #231).
 - **L'overlay du pinceau évite un scan complet du masque par mouvement.**
   `canvas_selection` tient le compteur de sélection de manière incrémentale et
   utilise la bounding box du changement au lieu de scanner tout le masque à

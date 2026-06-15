@@ -27,17 +27,14 @@ def main_window(qtbot):
     return w
 
 
-def test_start_warmup_propagates_error_to_callback(qapp, monkeypatch):
-    """start_warmup meldet rembg-Fehler an on_error – nur so kann die UI
+def test_start_warmup_propagates_error_to_callback(qapp):
+    """start_warmup meldet Inferenz-Fehler an on_error – nur so kann die UI
     einen fehlgeschlagenen Warmup von einem erfolgreichen unterscheiden."""
-    import bgremover.workers as _wm
+    from bgremover.ai_process import InferenceError
+    from tests._fakes import FakeInference
 
-    def _raise(_b, session=None):
-        raise RuntimeError("mock warmup failure")
-
-    monkeypatch.setattr(_wm, "rembg_remove", _raise, raising=False)
-
-    controller = WorkerController(QObject(), shutdown_ms=2000)
+    fake = FakeInference(warmup_error=InferenceError("mock warmup failure"))
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
     errors: list[str] = []
     done: list[bool] = []
     started = controller.start_warmup(

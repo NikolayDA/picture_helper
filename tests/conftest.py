@@ -117,28 +117,6 @@ def _no_rembg_warmup(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _stub_rembg_session(monkeypatch):
-    """Stellt eine triviale, wiederverwendbare rembg-Session bereit, ohne das
-    echte (mehrere hundert MB große) ONNX-Modell zu laden.
-
-    ``AIWorker``/``RembgWarmupWorker`` erzeugen über ``_ensure_rembg_session``
-    eine Session und übergeben sie an ``remove(..., session=...)``. Ohne diesen
-    Stub würde ``new_session()`` ``rembg`` importieren (im Testlauf unerwünscht
-    bzw. nicht installiert) und der Worker mit einem Import-Fehler abbrechen.
-    Hier wird ``new_session`` durch einen leichten Platzhalter ersetzt und die
-    modulweit gecachte Session zurückgesetzt, damit jeder Test hermetisch und
-    ohne Zustandsleck startet. Tests, die das Session-Verhalten gezielt prüfen,
-    überschreiben ``rembg_new_session`` lokal per ``patch``. ``raising=False``:
-    greift auch, falls die Symbole mal umbenannt werden, ohne still zu brechen.
-    """
-    import bgremover.workers as _wm
-
-    monkeypatch.setattr(
-        _wm, "rembg_new_session", lambda *a, **k: object(), raising=False)
-    monkeypatch.setattr(_wm, "_rembg_session", None, raising=False)
-
-
-@pytest.fixture(autouse=True)
 def _auto_confirm_discard(monkeypatch):
     """Neutralisiert die „Ungespeicherte Änderungen"-Nachfrage in allen Tests.
 
