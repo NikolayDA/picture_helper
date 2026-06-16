@@ -6,8 +6,8 @@ Sicherheitsupdates werden ausschließlich für die jeweils aktuelle Release-Vers
 
 | Version | Unterstützt |
 |---------|-------------|
-| 2.3.x   | ✓           |
-| < 2.3   | ✗           |
+| 2.4.x   | ✓           |
+| < 2.4   | ✗           |
 
 ## Sicherheitslücken melden
 
