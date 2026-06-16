@@ -6,17 +6,16 @@ Sicherheitsupdates werden ausschließlich für die jeweils aktuelle Release-Vers
 
 | Version | Unterstützt |
 |---------|-------------|
-| 2.3.x   | ✓           |
-| < 2.3   | ✗           |
+| 2.4.x   | ✓           |
+| < 2.4   | ✗           |
 
 ## Sicherheitslücken melden
 
 **Bitte keine Sicherheitslücken als öffentliches GitHub-Issue melden.**
 
-Schwachstellen werden vertraulich über eine der folgenden Wege gemeldet:
+Schwachstellen werden vertraulich über **GitHub Private Vulnerability Reporting** gemeldet:
 
-- **GitHub Private Vulnerability Reporting:** Über die Schaltfläche „Report a vulnerability" im Tab *Security* dieses Repositories.
-- **E-Mail:** ***
+- Über die Schaltfläche **„Report a vulnerability"** im Tab *Security* dieses Repositories — die Meldung ist privat und nur für die Maintainer sichtbar. Voraussetzung: *Private vulnerability reporting* ist unter *Settings → Security → Reporting* aktiviert.
 
 ### Was in der Meldung angeben?
 
