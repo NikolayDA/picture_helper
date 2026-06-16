@@ -1,7 +1,7 @@
 # BgRemover Screenshots
 
 Erstellt: 2026-05-28 21:40:22
-Quelle: /Users/nikolay/Documents/GitHub/picture_helper
+Quelle: ~/Documents/GitHub/picture_helper
 
 | Datei | Inhalt | Pixel |
 |---|---|---:|
