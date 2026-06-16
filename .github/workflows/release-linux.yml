@@ -1,8 +1,11 @@
-name: Release Linux artifacts
+name: Release artifacts (Linux + macOS)
 
-# Builds portable Linux artifacts (AppImage + .deb) for x86_64 and aarch64
-# (Raspberry Pi OS / arm64) and attaches them to the GitHub Release on a
-# version tag (v*). Also runnable on demand via workflow_dispatch.
+# Builds portable, self-contained artifacts and attaches them to the GitHub
+# Release on a version tag (v*):
+#   - Linux AppImage + .deb for x86_64 and aarch64 (Raspberry Pi OS / arm64)
+#   - macOS .dmg (BgRemover.app) for Apple Silicon (arm64)
+# Also runnable on demand via workflow_dispatch. The downloadable artifacts
+# bundle the rembg/onnxruntime AI background removal by default.
 #
 # Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
 # GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
@@ -17,9 +20,10 @@ name: Release Linux artifacts
 # Release erstellt oder veraendert und keine unvollstaendige Artefaktmenge
 # veroeffentlicht.
 #
-# Der Build buendelt nur das bgremover-Wheel + Abhaengigkeiten ins AppImage; er
-# importiert PyQt6 nicht zur Build-Zeit und braucht daher keine Qt-System-
-# Bibliotheken (anders als ci.yml / pr-ci.yml).
+# Der Linux-Build buendelt nur das bgremover-Wheel + Abhaengigkeiten ins
+# AppImage; der macOS-Build packt sie via PyInstaller ins .app-Bundle. Beide
+# laufen in einem isolierten venv und installieren das Projekt nicht in den
+# Runner (kein pip-Pin noetig, vgl. tests/test_ci_pip_pin.py).
 on:
   push:
     tags:
@@ -27,9 +31,9 @@ on:
   workflow_dispatch:
     inputs:
       with_ai:
-        description: 'Bundle rembg (AI background removal) into the AppImage'
+        description: 'Bundle rembg (AI background removal) into the artifacts'
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -74,23 +78,31 @@ jobs:
     needs: verify-tag
     uses: ./.github/workflows/ci.yml
 
+  # Ein Build-Job mit plattformuebergreifender Matrix: zwei Linux-Arches
+  # (AppImage + .deb) und ein macOS-arm64-Leg (.dmg). Bewusst EIN Job, damit
+  # ``publish`` per ``needs: build`` auf alle Legs wartet (Release-Gate #250).
   build:
-    name: Linux ${{ matrix.arch }}
+    name: ${{ matrix.os }} ${{ matrix.arch }}
     needs: [verify-tag, test]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-24.04
+          - os: linux
+            runner: ubuntu-24.04
             arch: x86_64
             deb_arch: amd64
-          - runner: ubuntu-24.04-arm   # native arm64 runner → Raspberry Pi OS
+          - os: linux
+            runner: ubuntu-24.04-arm   # native arm64 runner → Raspberry Pi OS
             arch: aarch64
             deb_arch: arm64
+          - os: macos
+            runner: macos-latest        # native Apple Silicon (arm64)
+            arch: arm64
     env:
       # appimagetool needs FUSE to run; extract-and-run avoids requiring it
-      # (and the FUSE2 package) on the CI runner.
+      # (and the FUSE2 package) on the CI runner. Harmlos/ungenutzt auf macOS.
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
       - uses: actions/checkout@v5
@@ -99,20 +111,25 @@ jobs:
         with:
           python-version: '3.12'
 
+      # ── Linux: AppImage + .deb ──────────────────────────────────────────
       - name: Build AppImage
-        run: ./packaging/linux/build_appimage.sh ${{ (github.event_name == 'workflow_dispatch' && inputs.with_ai) && '--ai' || '' }}
+        if: matrix.os == 'linux'
+        run: ./packaging/linux/build_appimage.sh ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '--ai' || '' }}
 
       - name: Build .deb (wraps the AppImage)
+        if: matrix.os == 'linux'
         run: ./packaging/linux/build_deb.sh
 
-      - name: Collect artifacts
+      - name: Collect Linux artifacts
+        if: matrix.os == 'linux'
         run: |
           mkdir -p dist
           cp build/appimage/*.AppImage dist/
           cp build/deb/*.deb dist/
           ls -lh dist/
 
-      - name: Verify built artifacts
+      - name: Verify built Linux artifacts
+        if: matrix.os == 'linux'
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -139,10 +156,37 @@ jobs:
           test "$(dpkg-deb --field "$deb" Architecture)" = "${{ matrix.deb_arch }}"
           echo "Artefakte verifiziert: $(basename "$appimage"), $(basename "$deb")"
 
+      # ── macOS: .app + .dmg ──────────────────────────────────────────────
+      - name: Build macOS app + .dmg (PyInstaller)
+        if: matrix.os == 'macos'
+        run: ./packaging/mac/build_macos.sh ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '--ai' || '' }}
+
+      - name: Collect macOS artifact
+        if: matrix.os == 'macos'
+        run: |
+          mkdir -p dist
+          cp build/macos/*.dmg dist/
+          ls -lh dist/
+
+      - name: Verify built macOS artifact
+        if: matrix.os == 'macos'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          dmgs=(dist/*.dmg)
+          test "${#dmgs[@]}" -eq 1 || { echo "::error::erwarte genau ein .dmg, habe ${#dmgs[@]}"; exit 1; }
+          dmg="${dmgs[0]}"
+          expected_dmg="BgRemover-${project_version}-${{ matrix.arch }}.dmg"
+          test "$(basename "$dmg")" = "$expected_dmg" \
+            || { echo "::error::DMG-Name '$(basename "$dmg")' != '$expected_dmg'"; exit 1; }
+          hdiutil imageinfo "$dmg" >/dev/null
+          echo "macOS-Artefakt verifiziert: $(basename "$dmg")"
+
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bgremover-linux-${{ matrix.arch }}
+          name: bgremover-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
@@ -168,7 +212,7 @@ jobs:
       - name: Download built artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: bgremover-linux-*
+          pattern: bgremover-*
           path: dist
           merge-multiple: true
           # run-id + github-token laden die Artefakte des GESAMTEN Runs ueber
@@ -185,10 +229,13 @@ jobs:
           shopt -s nullglob
           appimages=(dist/*.AppImage)
           debs=(dist/*.deb)
+          dmgs=(dist/*.dmg)
           test "${#appimages[@]}" -eq 2 \
             || { echo "::error::erwarte 2 AppImages (x86_64+aarch64), habe ${#appimages[@]}"; exit 1; }
           test "${#debs[@]}" -eq 2 \
             || { echo "::error::erwarte 2 .deb-Pakete (amd64+arm64), habe ${#debs[@]}"; exit 1; }
+          test "${#dmgs[@]}" -eq 1 \
+            || { echo "::error::erwarte 1 .dmg (macOS arm64), habe ${#dmgs[@]}"; exit 1; }
           ls -lh dist/
 
       - name: Create or reuse the GitHub Release
@@ -201,7 +248,7 @@ jobs:
             echo "Release $GITHUB_REF_NAME existiert bereits – Assets werden aktualisiert."
           else
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
-              --notes "Automated Linux build (AppImage + .deb)." --verify-tag
+              --notes "Automated build: Linux AppImage + .deb (x86_64, aarch64) and macOS .dmg (arm64)." --verify-tag
           fi
 
       - name: Upload artifacts to the Release

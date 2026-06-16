@@ -94,7 +94,8 @@ pour x86_64 et aarch64/Raspberry Pi OS). Consultez
 **[INSTALL_LINUX.md](INSTALL_LINUX.md)** pour l'installation et
 **[packaging/linux/README.md](../../../packaging/linux/README.md)** pour les
 détails de build/paquetage. De tels artefacts sont disponibles à partir de
-**v2.3.0** — d'ici là, utilisez la voie venv ci-dessous.
+**v2.4.0** ; pour **macOS** s'ajoute un **`.dmg`** (Apple Silicon/arm64) — voir
+**[INSTALL_MAC.md](INSTALL_MAC.md)**.
 
 Le lancement direct depuis un venv reste la meilleure voie pour le
 développement, les tests de branches et les changements locaux :

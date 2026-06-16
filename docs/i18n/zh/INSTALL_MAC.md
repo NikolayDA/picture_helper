@@ -6,6 +6,25 @@
 既可以从 `main` 分支，也可以从某个功能分支（例如
 为了在合并前测试一个开放的 Pull Request）。
 
+## 下载预构建应用（`.dmg`）
+
+最简单的方式——**无需 Python、git 或终端**：从
+[GitHub releases](https://github.com/NikolayDA/picture_helper/releases)
+下载预构建的应用程序包。Apple Silicon（arm64）对应
+`BgRemover-<version>-arm64.dmg`，且已内置 AI 抠图。
+
+1. 打开 `.dmg`，将 `BgRemover.app` 拖入**应用程序**文件夹。
+2. **首次**启动时通过**右键点击 →“打开”**确认——该程序包尚未经过 Apple
+   签名/公证，否则 Gatekeeper 会警告“来自身份不明的开发者”。
+
+也可以预先在终端中移除隔离属性：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/BgRemover.app
+```
+
+若你更愿意从源码构建（例如 Intel Mac 或自定义修改），请参考下方章节。
+
 ## 前提条件
 
 - **macOS**
