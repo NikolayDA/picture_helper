@@ -49,7 +49,20 @@ Python 3.10.
 
 ## Installation
 
-**Empfohlen (macOS): App-Bundle bauen.** Das Skript legt automatisch
+**Am schnellsten – fertige Downloads:** Auf der
+[Releases-Seite](https://github.com/NikolayDA/picture_helper/releases/latest)
+liegen startfertige Artefakte mit **bereits eingebauter KI** – ohne lokale
+Python-Installation:
+
+- **macOS** (Apple Silicon/arm64): `.dmg` laden und `BgRemover.app` nach
+  *Programme* ziehen. Das Bundle ist vorerst **unsigniert** – beim ersten Start
+  per **Rechtsklick → „Öffnen"** bestätigen ([INSTALL_MAC.md](INSTALL_MAC.md)).
+- **Linux / Raspberry Pi OS** (x86_64 und aarch64): portables **AppImage** oder
+  installierbares **`.deb`** ([INSTALL_LINUX.md](INSTALL_LINUX.md)).
+
+Zum Bauen aus dem Quellcode oder für die Entwicklung geht es darunter weiter.
+
+**Aus dem Quellcode (macOS): App-Bundle bauen.** Das Skript legt automatisch
 eine isolierte App-venv an, versucht die KI-Abhängigkeiten inklusive
 `onnxruntime` zu installieren, behandelt Apple Silicon korrekt und erzeugt
 einen `BgRemover.app`-Launcher:

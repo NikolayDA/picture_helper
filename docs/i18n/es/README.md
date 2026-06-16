@@ -49,7 +49,20 @@ Python 3.10.
 
 ## Instalación
 
-**Recomendado (macOS): compilar el paquete de aplicación.** El script crea
+**La vía más rápida: descargas listas para usar.** La
+[página de Releases](https://github.com/NikolayDA/picture_helper/releases/latest)
+ofrece artefactos listos para ejecutar con **IA ya incluida**, sin necesidad de
+instalar Python localmente:
+
+- **macOS** (Apple Silicon/arm64): descarga el `.dmg` y arrastra `BgRemover.app`
+  a *Aplicaciones*. El paquete está de momento **sin firmar**: en el primer
+  inicio, confírmalo con **clic derecho → «Abrir»** ([INSTALL_MAC.md](INSTALL_MAC.md)).
+- **Linux / Raspberry Pi OS** (x86_64 y aarch64): un **AppImage** portable o un
+  **`.deb`** instalable ([INSTALL_LINUX.md](INSTALL_LINUX.md)).
+
+Para compilar desde el código fuente o para desarrollo, continúa más abajo.
+
+**Desde el código fuente (macOS): compilar el paquete de aplicación.** El script crea
 automáticamente un venv aislado para la app, intenta instalar las
 dependencias de IA incluido `onnxruntime`, maneja correctamente Apple
 Silicon y genera un lanzador `BgRemover.app`:
