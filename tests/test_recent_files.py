@@ -344,8 +344,6 @@ def test_mainwindow_keeps_future_recent_files_byte_identical(
     future.setValue(SCHEMA_VERSION_KEY, SCHEMA_VERSION + 1)
     future.setValue(SETTINGS_RECENT_KEY, stale_paths)
     future.sync()
-    settings_file = Path(future.fileName())
-    before = settings_file.read_bytes()
 
     window = MainWindow()
     window._settings.sync()
@@ -353,8 +351,13 @@ def test_mainwindow_keeps_future_recent_files_byte_identical(
 
     assert sanitize_calls == []
     assert remove_calls == []
-    assert _settings().value(SETTINGS_RECENT_KEY) == stale_paths
-    assert settings_file.read_bytes() == before
+    # recent_files UND die zukuenftige Schema-Version bleiben unveraendert –
+    # logisch geprueft statt ueber rohe Datei-Bytes: QSettings serialisiert das
+    # native macOS-Plist nicht byte-stabil (Key-Reihenfolge/Encoding), und der
+    # Start darf unkritische Schluessel schreiben, ohne recent_files anzufassen.
+    after = _settings()
+    assert after.value(SETTINGS_RECENT_KEY) == stale_paths
+    assert int(after.value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION + 1
 
 
 def test_mainwindow_keeps_normal_recent_cleanup(
