@@ -48,7 +48,20 @@ under Python 3.10. The base app without AI continues to support Python 3.10.
 
 ## Installation
 
-**Recommended (macOS): build the app bundle.** The script automatically
+**Fastest way – ready-made downloads:** The
+[Releases page](https://github.com/NikolayDA/picture_helper/releases/latest)
+offers ready-to-run artifacts with **AI already bundled** – no local Python
+installation required:
+
+- **macOS** (Apple Silicon/arm64): download the `.dmg` and drag `BgRemover.app`
+  into *Applications*. The bundle is currently **unsigned** – on first launch,
+  confirm via **right-click → “Open”** ([INSTALL_MAC.md](INSTALL_MAC.md)).
+- **Linux / Raspberry Pi OS** (x86_64 and aarch64): a portable **AppImage** or
+  an installable **`.deb`** ([INSTALL_LINUX.md](INSTALL_LINUX.md)).
+
+To build from source or for development, continue below.
+
+**From source (macOS): build the app bundle.** The script automatically
 creates an isolated app venv, attempts to install the AI dependencies
 including `onnxruntime`, handles Apple Silicon correctly, and produces a
 `BgRemover.app` launcher:

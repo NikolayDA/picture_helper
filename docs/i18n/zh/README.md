@@ -48,7 +48,19 @@
 
 ## 安装
 
-**推荐（macOS）：构建应用程序包。** 该脚本会自动创建隔离的
+**最快的方式——开箱即用的下载。** 在
+[Releases 页面](https://github.com/NikolayDA/picture_helper/releases/latest)
+提供了**已内置 AI** 的即用型构件，无需在本地安装 Python：
+
+- **macOS**（Apple Silicon/arm64）：下载 `.dmg` 并将 `BgRemover.app` 拖入
+  *应用程序*。该程序包目前**未签名**——首次启动时通过**右键 →「打开」**确认
+  （[INSTALL_MAC.md](INSTALL_MAC.md)）。
+- **Linux / Raspberry Pi OS**（x86_64 与 aarch64）：便携式 **AppImage** 或可安装的
+  **`.deb`**（[INSTALL_LINUX.md](INSTALL_LINUX.md)）。
+
+如需从源代码构建或用于开发，请继续阅读下文。
+
+**从源代码（macOS）：构建应用程序包。** 该脚本会自动创建隔离的
 app venv，尝试安装 AI 依赖项（包括 `onnxruntime`），正确处理
 Apple Silicon，并生成一个 `BgRemover.app` 启动器：
 
