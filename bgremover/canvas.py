@@ -745,7 +745,12 @@ class ImageCanvas(QGraphicsView):
         if self._pil is None:
             return
         mode = _selection_mode_from_modifiers(self._lasso.modifiers)
-        new_mask = self._lasso.close_to_selection_mask(self._selection.mask.shape)
+        # mask.shape ist typseitig tuple[int, ...]; die 2D-Selektionsmaske
+        # liefert immer (H, W). Explizit als tuple[int, int] uebergeben, damit
+        # close_to_selection_mask(tuple[int, int]) unter strengeren numpy-Stubs
+        # (z. B. numpy 2.2.x) typkorrekt bleibt.
+        h, w = self._selection.mask.shape
+        new_mask = self._lasso.close_to_selection_mask((h, w))
         pixels = self._selection.set_polygon_result(new_mask, mode)
         self._refresh_overlay()
         self.statusMsg.emit(tr("canvas.lasso_selected", pixels=pixels))
