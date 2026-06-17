@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### Виправлено
 
 - **Завантажуваний застосунок для macOS (`.dmg`) не запускався.** Заморожений
@@ -575,7 +577,8 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/NikolayDA/picture_helper/compare/64c1f4c87af2a41e82122b361855f0021ec62cf3...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...64c1f4c87af2a41e82122b361855f0021ec62cf3
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/666d4a3932f70eabaafde8de4bfc2a0574be5d16...79f61c5514f283fae31ce9d21f31786a3acfbe16

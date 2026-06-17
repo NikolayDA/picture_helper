@@ -9,6 +9,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### 修复
 
 - **macOS 下载版应用（`.dmg`）无法启动。** 冻结后的程序包在 `import bgremover`
@@ -471,7 +473,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/NikolayDA/picture_helper/compare/64c1f4c87af2a41e82122b361855f0021ec62cf3...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...64c1f4c87af2a41e82122b361855f0021ec62cf3
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/666d4a3932f70eabaafde8de4bfc2a0574be5d16...79f61c5514f283fae31ce9d21f31786a3acfbe16
