@@ -144,7 +144,7 @@ sich also **kein Fenster**.
 
 ```bash
 # Eine einzelne Testdatei
-python -m pytest tests/test_zoom.py
+python -m pytest tests/test_viewport.py
 
 # Ein einzelner Test, ausführlich
 python -m pytest tests/test_ui_interactions.py::test_crop_cancel -v
@@ -166,11 +166,12 @@ Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 `workflow_dispatch`.)
 
 **Automatisch (Release-Gate):** Beim Push eines Versions-Tags (`v*`) startet
-der Workflow **Release Linux artifacts**. Er ruft die volle Matrix als
+der Workflow **Release artifacts (Linux + macOS)**. Er ruft die volle Matrix als
 wiederverwendbaren Workflow (`Full CI`) auf und prüft Tag-Format sowie die
 Übereinstimmung von Tag und `project.version`. Build und Veröffentlichung
 hängen per `needs` an diesem Ergebnis: **Erst wenn die volle Matrix für genau
-diesen Commit grün ist**, werden AppImage/`.deb` gebaut und an das GitHub
+diesen Commit grün ist**, werden AppImage und `.deb` (x86_64 + aarch64/Raspberry
+Pi OS) sowie ein macOS-`.dmg` (Apple Silicon/arm64) gebaut und an das GitHub
 Release angehängt – ein fehlgeschlagener Test veröffentlicht nichts.
 Zusätzlich läuft die volle Matrix wöchentlich sonntags um 06:00 UTC per
 Schedule. Ein bloßer Branch-Push löst die Test-Matrix **nicht** aus; Pull
