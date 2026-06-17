@@ -9,6 +9,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corregido
+
+- **La app de descarga para macOS (`.dmg`) no arrancaba.** El paquete
+  congelado abortaba en `import bgremover` con `PackageNotFoundError` y a
+  continuación `FileNotFoundError`, porque PyInstaller no incluía los
+  metadatos del paquete y el paquete no tiene un `pyproject.toml` de
+  reserva: el icono solo parpadeaba un instante y luego no ocurría nada. La
+  spec de PyInstaller ahora incluye los metadatos `*.dist-info`
+  (`copy_metadata`), y la obtención de la versión ya no puede abortar el
+  arranque (reserva defensiva en lugar de una excepción no controlada).
+
 ## [2.4.0] – 2026-06-15
 
 ### Añadido

@@ -9,6 +9,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 修复
+
+- **macOS 下载版应用（`.dmg`）无法启动。** 冻结后的程序包在 `import bgremover`
+  阶段即以 `PackageNotFoundError` 以及随后的 `FileNotFoundError` 中止，因为
+  PyInstaller 未打包该软件包的元数据，而程序包内也没有可作后备的
+  `pyproject.toml`——图标只是短暂闪烁，随后便毫无反应。PyInstaller spec 现在会
+  打包 `*.dist-info` 元数据（`copy_metadata`），并且版本探测不再可能中断启动
+  （以防御性后备取代未处理的异常）。
+
 ## [2.4.0] – 2026-06-15
 
 ### 新增

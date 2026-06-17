@@ -9,6 +9,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- **macOS-Download-App (`.dmg`) startete nicht.** Das eingefrorene Bundle
+  brach bereits beim `import bgremover` mit `PackageNotFoundError` und
+  anschließendem `FileNotFoundError` ab, weil PyInstaller die
+  Paket-Metadaten nicht mitnahm und im Bundle keine `pyproject.toml` als
+  Fallback liegt – das Icon blinkte nur kurz, dann passierte nichts. Die
+  PyInstaller-Spec backt die `*.dist-info`-Metadaten jetzt ein
+  (`copy_metadata`), und die Versionsermittlung lässt den Start nie mehr
+  scheitern (defensiver Fallback statt unbehandelter Ausnahme).
+
 ## [2.4.0] – 2026-06-15
 
 ### Hinzugefügt

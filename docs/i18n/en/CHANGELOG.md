@@ -8,6 +8,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **macOS download app (`.dmg`) failed to launch.** The frozen bundle aborted
+  right at `import bgremover` with `PackageNotFoundError` followed by
+  `FileNotFoundError`, because PyInstaller did not include the package metadata
+  and the bundle has no `pyproject.toml` fallback — the icon only flashed
+  briefly, then nothing happened. The PyInstaller spec now bundles the
+  `*.dist-info` metadata (`copy_metadata`), and version lookup can no longer
+  abort startup (defensive fallback instead of an unhandled exception).
+
 ## [2.4.0] – 2026-06-15
 
 ### Added
