@@ -13,6 +13,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **La app de descarga para macOS (`.dmg`) abría ventanas nuevas sin fin tras
+  el arranque.** En el paquete congelado, la inferencia de IA inicia su proceso
+  hijo mediante multiprocessing «spawn», que relanza el propio binario de la
+  app; sin `multiprocessing.freeze_support()` en el punto de entrada del
+  paquete, cada hijo ejecutaba de nuevo la GUI → una «fork bomb» de más de 100
+  ventanas que solo se detenía reiniciando. El punto de entrada de PyInstaller
+  ahora llama primero a `freeze_support()`, de modo que el proceso hijo de
+  inferencia arranca correctamente en lugar de abrir la GUI.
+
 - **La app de descarga para macOS (`.dmg`) no arrancaba.** El paquete
   congelado abortaba en `import bgremover` con `PackageNotFoundError` y a
   continuación `FileNotFoundError`, porque PyInstaller no incluía los

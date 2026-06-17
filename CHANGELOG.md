@@ -13,6 +13,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **macOS-Download-App (`.dmg`) öffnete nach dem Start endlos neue Fenster.**
+  Im eingefrorenen Bundle startet die KI-Inferenz ihren Kindprozess per
+  multiprocessing-„spawn", was dieselbe App-Binärdatei neu startet; ohne
+  `multiprocessing.freeze_support()` im Bundle-Einstieg führte jeder
+  Kindprozess erneut die GUI aus → Fork-Bomb mit 100+ Fenstern, die nur ein
+  Neustart stoppte. Der PyInstaller-Einstieg ruft jetzt zuerst
+  `freeze_support()` auf, sodass der Inferenz-Kindprozess korrekt startet statt
+  die GUI zu öffnen.
+
 - **macOS-Download-App (`.dmg`) startete nicht.** Das eingefrorene Bundle
   brach bereits beim `import bgremover` mit `PackageNotFoundError` und
   anschließendem `FileNotFoundError` ab, weil PyInstaller die
