@@ -76,6 +76,15 @@ jobs:
   # die teure Matrix gar nicht erst (#257).
   test:
     needs: verify-tag
+    # ci.yml fordert ``id-token: write`` (tokenloser Codecov-OIDC-Upload, #303).
+    # Ein per ``uses`` aufgerufener Workflow darf NICHT mehr Rechte verlangen als
+    # der Aufrufer gewaehrt – sonst lehnt GitHub den GESAMTEN Run bereits beim
+    # Start ab (startup_failure, keine Jobs). Das Recht hier explizit
+    # durchreichen, damit das Release-Gate ueberhaupt anlaeuft (und der
+    # OIDC-Upload auch im Release-Kontext funktioniert).
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/ci.yml
 
   # Ein Build-Job mit plattformuebergreifender Matrix: zwei Linux-Arches

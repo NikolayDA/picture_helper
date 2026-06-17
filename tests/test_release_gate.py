@@ -124,6 +124,18 @@ def test_publish_provides_repo_context_for_gh() -> None:
     )
 
 
+def test_release_passes_id_token_through_to_reusable_ci() -> None:
+    """Textbasiert (ohne PyYAML): release-linux.yml muss ``id-token: write``
+    gewaehren, weil das aufgerufene ci.yml es fuer den Codecov-OIDC-Upload
+    (#303) verlangt. Ein per ``uses`` aufgerufener Workflow darf nicht mehr
+    Rechte verlangen als der Aufrufer – fehlt das Recht, lehnt GitHub den
+    gesamten Run beim Start ab (startup_failure)."""
+    assert re.search(r"(?m)^\s*id-token:\s*write\b", _release_text()), (
+        "release-linux.yml muss id-token: write an die aufgerufene Full-CI-"
+        "Matrix durchreichen, sonst scheitert der Release-Run beim Start."
+    )
+
+
 def test_publish_artifact_download_is_rerun_resilient() -> None:
     text = _release_text()
     assert "run-id: ${{ github.run_id }}" in text, (
@@ -149,6 +161,14 @@ def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
     # #257: der Test-Job selbst wartet auf verify-tag – ein ungültiger Tag
     # startet die teure Matrix gar nicht erst.
     assert "verify-tag" in _needs_list(jobs["test"]), jobs["test"].get("needs")
+
+    # #303: ci.yml fordert id-token: write (Codecov-OIDC). Der aufrufende
+    # test-Job muss dieses Recht durchreichen, sonst lehnt GitHub den Run beim
+    # Start ab (ein aufgerufener Workflow darf nicht mehr Rechte verlangen als
+    # der Aufrufer).
+    assert jobs["test"].get("permissions", {}).get("id-token") == "write", (
+        jobs["test"].get("permissions")
+    )
 
     # build hängt sowohl an der Matrix als auch am Tag/Version-Abgleich.
     build_needs = _needs_list(jobs["build"])

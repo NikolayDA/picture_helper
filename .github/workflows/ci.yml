@@ -21,9 +21,11 @@ on:
 permissions:
   contents: read
   # OIDC-Token fuer den tokenlosen Codecov-Upload (use_oidc: true). Wird der
-  # Workflow per workflow_call aus release-linux.yml gefahren, gewaehrt der
-  # Aufrufer kein id-token – dann faellt nur der Upload aus (fail_ci_if_error:
-  # false), das Release-Gate bleibt gruen.
+  # Workflow per workflow_call aus release-linux.yml gefahren, MUSS der Aufrufer
+  # (Job ``test``) dieses Recht ebenfalls gewaehren: ein aufgerufener Workflow
+  # darf nicht mehr Rechte verlangen als der Aufrufer, sonst scheitert der Run
+  # beim Start (startup_failure). Faellt der Upload doch aus, bleibt das Gate
+  # dank fail_ci_if_error: false gruen.
   id-token: write
 
 jobs:
