@@ -21,11 +21,14 @@ _ROOT = Path(__file__).resolve().parent.parent
 # Dateien, die Qt-Systembibliotheken per apt installieren. ``license-check.yml``
 # fehlt bewusst – es baut nur Python-Tooling und braucht kein Qt. ``benchmark.yml``
 # importiert ueber bgremover.image_ops transitiv PyQt6 und braucht die Libs daher.
+# ``coverage.yml`` (#293) fuehrt ``make coverage`` (= die Test-Suite) aus und
+# braucht die Libs ebenfalls.
 _PACKAGE_SOURCES = (
     ".github/workflows/ci.yml",
     ".github/workflows/pr-ci.yml",
     ".github/workflows/ui-nightly.yml",
     ".github/workflows/benchmark.yml",
+    ".github/workflows/coverage.yml",
     ".claude/hooks/session-start.sh",
 )
 

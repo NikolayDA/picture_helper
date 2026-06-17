@@ -64,11 +64,12 @@ Ein Paket, `bgremover/`:
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 
-Die Qt-apt-Paketliste muss in **fünf** Dateien identisch bleiben:
-`.github/workflows/ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml` und
-`.claude/hooks/session-start.sh`. `tests/test_ci_qt_packages.py` erzwingt das —
-beim Ändern einer Liste alle fünf anpassen, sonst schlägt der Test fehl (und
-`import PyQt6` bricht andernorts mit `libGL.so.1: cannot open shared object file`).
+Die Qt-apt-Paketliste muss in **sechs** Dateien identisch bleiben:
+`.github/workflows/ci.yml`, `pr-ci.yml`, `ui-nightly.yml`, `benchmark.yml`,
+`coverage.yml` und `.claude/hooks/session-start.sh`.
+`tests/test_ci_qt_packages.py` erzwingt das — beim Ändern einer Liste alle sechs
+anpassen, sonst schlägt der Test fehl (und `import PyQt6` bricht andernorts mit
+`libGL.so.1: cannot open shared object file`).
 
 ## Web-/Remote-Umgebung
 
