@@ -16,10 +16,11 @@ um einen offenen Pull Request vor dem Merge zu testen).
 Für normale Installation unter Linux sind die Release-Artefakte der bequemste
 Weg — **ohne venv, ohne pip und ohne Git-Checkout**:
 
-> **Hinweis zur Verfügbarkeit:** Fertige AppImage-/`.deb`-Artefakte gibt es ab
-> **v2.3.0**. Ältere Releases (z. B. v2.2.0) enthalten noch keine solchen
-> Assets — solange auf der Releases-Seite nichts zum Herunterladen liegt, den
-> venv-/Git-Weg weiter unten nutzen.
+> **Hinweis zur Verfügbarkeit:** Fertige AppImage-/`.deb`-Artefakte – **mit
+> bereits eingebauter KI** – gibt es ab **v2.4.0**. Ältere Releases
+> (v2.1.0/v2.2.0) enthalten noch keine solchen Assets — solange auf der
+> Releases-Seite nichts zum Herunterladen liegt, den venv-/Git-Weg weiter
+> unten nutzen.
 
 - **AppImage:** portable Einzeldatei; ausführbar machen und starten.
 - **`.deb`:** installierbares Paket für Debian/Ubuntu/Raspberry Pi OS mit
