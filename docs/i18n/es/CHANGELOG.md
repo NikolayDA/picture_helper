@@ -9,6 +9,19 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
+### Corregido
+
+- **La app de descarga para macOS (`.dmg`) no arrancaba.** El paquete
+  congelado abortaba en `import bgremover` con `PackageNotFoundError` y a
+  continuación `FileNotFoundError`, porque PyInstaller no incluía los
+  metadatos del paquete y el paquete no tiene un `pyproject.toml` de
+  reserva: el icono solo parpadeaba un instante y luego no ocurría nada. La
+  spec de PyInstaller ahora incluye los metadatos `*.dist-info`
+  (`copy_metadata`), y la obtención de la versión ya no puede abortar el
+  arranque (reserva defensiva en lugar de una excepción no controlada).
+
 ## [2.4.0] – 2026-06-15
 
 ### Añadido
@@ -598,7 +611,8 @@ tag Git histórico `v2.0.0`.
 - README con arquitectura, limitaciones conocidas e instrucciones de
   instalación; `INSTALL_MAC.md` detallado.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/NikolayDA/picture_helper/compare/64c1f4c87af2a41e82122b361855f0021ec62cf3...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...64c1f4c87af2a41e82122b361855f0021ec62cf3
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/666d4a3932f70eabaafde8de4bfc2a0574be5d16...79f61c5514f283fae31ce9d21f31786a3acfbe16

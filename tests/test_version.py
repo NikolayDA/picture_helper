@@ -6,9 +6,11 @@ direkt – ein hardgecodetes Fallback-Literal entfällt, damit ein
 Versionsbump nicht versehentlich nur eine der beiden Stellen anfasst.
 """
 import re
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 
 import bgremover
+from bgremover import _version
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION_MODULE = "bgremover/_version.py"
@@ -43,3 +45,23 @@ def test_exported_version_matches_pyproject() -> None:
     """``bgremover.__version__`` muss zur in pyproject.toml deklarierten
     Version passen – egal ob via Paket-Metadaten oder Source-Fallback."""
     assert bgremover.__version__ == _pyproject_version()
+
+
+def test_version_lookup_never_crashes_without_metadata_or_pyproject(monkeypatch) -> None:
+    """Fehlen Paket-Metadaten UND pyproject.toml (eingefrorenes Bundle ohne
+    eingebackene Metadaten), darf die Versionsermittlung den Import von
+    ``bgremover`` nicht abbrechen – sonst startet die macOS-.dmg-App nicht.
+    Erwartet wird ein nicht-leerer ``unbekannt``-Sentinel statt einer Exception.
+    """
+    def _no_metadata(_name: str) -> str:
+        raise PackageNotFoundError("bgremover")
+
+    def _no_pyproject() -> str:
+        raise FileNotFoundError("keine pyproject.toml im Bundle")
+
+    monkeypatch.setattr(_version, "_pkg_version", _no_metadata)
+    monkeypatch.setattr(_version, "_read_pyproject_version", _no_pyproject)
+
+    result = _version.get_version()
+    assert isinstance(result, str)
+    assert result

@@ -81,6 +81,20 @@ def test_spec_collects_package_data_and_version() -> None:
     assert "BGREMOVER_VERSION" in txt
 
 
+def test_spec_bundles_package_metadata_for_version_lookup() -> None:
+    """Das Bundle muss die ``*.dist-info``-Metadaten mitnehmen.
+
+    ``import bgremover`` liest ``__version__`` über
+    ``importlib.metadata.version("bgremover")``. Ohne eingebackene Metadaten
+    scheitert das im eingefrorenen Bundle mit ``PackageNotFoundError`` – und
+    da dort keine ``pyproject.toml`` als Fallback liegt, brach früher der
+    komplette Start der macOS-.dmg-App ab.
+    """
+    txt = SPEC.read_text(encoding="utf-8")
+    assert "copy_metadata" in txt
+    assert 'copy_metadata("bgremover")' in txt
+
+
 def test_spec_bundles_ai_backend() -> None:
     txt = SPEC.read_text(encoding="utf-8")
     assert "collect_all" in txt

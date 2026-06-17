@@ -12,6 +12,7 @@ from PyInstaller.utils.hooks import (
     collect_all,
     collect_data_files,
     collect_submodules,
+    copy_metadata,
 )
 
 _VERSION = os.environ.get("BGREMOVER_VERSION", "0.0.0")
@@ -25,6 +26,13 @@ _HERE = os.path.dirname(os.path.abspath(SPEC))  # noqa: F821 (PyInstaller-Global
 # lädt Icons über importlib.resources und nutzt vereinzelt dynamische Importe,
 # die die statische Analyse sonst übersehen würde.
 datas = collect_data_files("bgremover")
+# Paket-Metadaten (*.dist-info) mitnehmen: ``import bgremover`` ermittelt
+# ``__version__`` über ``importlib.metadata.version("bgremover")``. PyInstaller
+# sammelt dist-info NICHT automatisch; ohne diese Zeile scheitert die Abfrage im
+# eingefrorenen Bundle mit ``PackageNotFoundError`` und – da im Bundle auch keine
+# ``pyproject.toml`` als Fallback liegt – bricht bereits der Import (und damit der
+# gesamte Start der .app) ab.
+datas += copy_metadata("bgremover")
 binaries = []
 hiddenimports = collect_submodules("bgremover")
 

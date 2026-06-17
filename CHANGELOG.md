@@ -9,6 +9,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
+### Behoben
+
+- **macOS-Download-App (`.dmg`) startete nicht.** Das eingefrorene Bundle
+  brach bereits beim `import bgremover` mit `PackageNotFoundError` und
+  anschließendem `FileNotFoundError` ab, weil PyInstaller die
+  Paket-Metadaten nicht mitnahm und im Bundle keine `pyproject.toml` als
+  Fallback liegt – das Icon blinkte nur kurz, dann passierte nichts. Die
+  PyInstaller-Spec backt die `*.dist-info`-Metadaten jetzt ein
+  (`copy_metadata`), und die Versionsermittlung lässt den Start nie mehr
+  scheitern (defensiver Fallback statt unbehandelter Ausnahme).
+
 ## [2.4.0] – 2026-06-15
 
 ### Hinzugefügt
@@ -711,7 +724,8 @@ Erster dokumentierter 2.0.0-Release-Stand. Ein historischer
 - README mit Architektur, bekannten Einschränkungen und Installations-
   anleitung; ausführliche `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/NikolayDA/picture_helper/compare/64c1f4c87af2a41e82122b361855f0021ec62cf3...v2.4.0
 [2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...64c1f4c87af2a41e82122b361855f0021ec62cf3
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/666d4a3932f70eabaafde8de4bfc2a0574be5d16...79f61c5514f283fae31ce9d21f31786a3acfbe16

@@ -32,8 +32,23 @@ def _read_pyproject_version() -> str:
 
 
 def get_version() -> str:
-    """Liefert ``__version__`` – Paket-Metadaten mit pyproject-Fallback."""
+    """Liefert ``__version__`` – Paket-Metadaten mit pyproject-Fallback.
+
+    Die Versionsermittlung darf den Import von ``bgremover`` NIE scheitern
+    lassen: Sie läuft als Allererstes (vor dem Qt-Stack), und ``__version__``
+    ist rein informativ. Im eingefrorenen Bundle (PyInstaller) ohne
+    eingebackene Metadaten UND ohne ``pyproject.toml`` würde der direkte
+    Datei-Fallback sonst mit ``FileNotFoundError`` den gesamten Start
+    abbrechen – genau dieser Fehler legte die macOS-.dmg-App lautlos lahm.
+    """
     try:
         return _pkg_version("bgremover")
     except PackageNotFoundError:
+        pass
+    try:
         return _read_pyproject_version()
+    except (OSError, KeyError, ValueError):
+        # Weder installierte Metadaten noch lesbare pyproject.toml – die Version
+        # ist unbekannt. Kein gepflegtes Versions-Literal, sondern ein reiner
+        # „unbekannt"-Sentinel: der Import bleibt erfolgreich, der Start geht vor.
+        return "0.0.0"
