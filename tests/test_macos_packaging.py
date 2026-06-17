@@ -103,6 +103,20 @@ def test_spec_bundles_ai_backend() -> None:
     assert "onnxruntime" in txt
 
 
+def test_spec_bundles_ai_dependency_metadata() -> None:
+    """Die Metadaten der gesamten rembg-Kette müssen ins Bundle.
+
+    ``collect_all`` nimmt nur Code/Binärdateien mit, nicht die
+    ``*.dist-info``-Metadaten. Mehrere rembg-Transitiv-Deps lesen ihre Version
+    über ``importlib.metadata`` (insbesondere ``pymatting`` beim Import); ohne
+    deren Metadaten stirbt der Inferenz-Kindprozess beim ``rembg``-Import mit
+    ``PackageNotFoundError`` und die KI-Hintergrundentfernung lädt nicht.
+    ``recursive=True`` deckt die komplette Abhängigkeitskette ab.
+    """
+    txt = SPEC.read_text(encoding="utf-8")
+    assert 'copy_metadata("rembg", recursive=True)' in txt
+
+
 def test_spec_document_types_cover_supported_formats() -> None:
     """Die macOS-``CFBundleTypeExtensions`` des Bundles entsprechen genau den
     tatsächlich unterstützten Formaten – konsistent zum Ladepfad und zum
