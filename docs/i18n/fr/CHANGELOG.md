@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### Corrigé
 
 - **L'app de téléchargement macOS (`.dmg`) ouvrait des fenêtres sans fin après
@@ -19,10 +21,6 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   fenêtres que seul un redémarrage arrêtait. Le point d'entrée PyInstaller
   appelle désormais `freeze_support()` en premier, afin que le processus enfant
   d'inférence démarre correctement au lieu d'ouvrir la GUI.
-
-## [2.4.1] – 2026-06-17
-
-### Corrigé
 
 - **L'app de téléchargement macOS (`.dmg`) ne démarrait pas.** Le bundle figé
   s'interrompait dès `import bgremover` avec `PackageNotFoundError` puis

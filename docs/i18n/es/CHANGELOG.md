@@ -9,6 +9,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### Corregido
 
 - **La app de descarga para macOS (`.dmg`) abría ventanas nuevas sin fin tras
@@ -19,10 +21,6 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   ventanas que solo se detenía reiniciando. El punto de entrada de PyInstaller
   ahora llama primero a `freeze_support()`, de modo que el proceso hijo de
   inferencia arranca correctamente en lugar de abrir la GUI.
-
-## [2.4.1] – 2026-06-17
-
-### Corregido
 
 - **La app de descarga para macOS (`.dmg`) no arrancaba.** El paquete
   congelado abortaba en `import bgremover` con `PackageNotFoundError` y a

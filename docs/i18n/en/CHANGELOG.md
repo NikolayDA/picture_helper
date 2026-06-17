@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### Fixed
 
 - **macOS download app (`.dmg`) opened endless new windows after launch.**
@@ -17,10 +19,6 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the GUI again → a fork bomb of 100+ windows that only a reboot stopped. The
   PyInstaller entry point now calls `freeze_support()` first, so the inference
   child boots correctly instead of opening the GUI.
-
-## [2.4.1] – 2026-06-17
-
-### Fixed
 
 - **macOS download app (`.dmg`) failed to launch.** The frozen bundle aborted
   right at `import bgremover` with `PackageNotFoundError` followed by

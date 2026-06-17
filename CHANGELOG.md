@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### Behoben
 
 - **macOS-Download-App (`.dmg`) öffnete nach dem Start endlos neue Fenster.**
@@ -19,10 +21,6 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Neustart stoppte. Der PyInstaller-Einstieg ruft jetzt zuerst
   `freeze_support()` auf, sodass der Inferenz-Kindprozess korrekt startet statt
   die GUI zu öffnen.
-
-## [2.4.1] – 2026-06-17
-
-### Behoben
 
 - **macOS-Download-App (`.dmg`) startete nicht.** Das eingefrorene Bundle
   brach bereits beim `import bgremover` mit `PackageNotFoundError` und

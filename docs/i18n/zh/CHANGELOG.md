@@ -9,6 +9,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-06-17
+
 ### 修复
 
 - **macOS 下载版应用（`.dmg`）启动后不断打开新窗口。** 在冻结的程序包中，AI
@@ -16,10 +18,6 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   文件；由于程序包入口未调用 `multiprocessing.freeze_support()`，每个子进程都会
   再次运行 GUI——形成 100 多个窗口的“fork 炸弹”，只能重启才能停止。PyInstaller
   入口现在会首先调用 `freeze_support()`，使推理子进程正确启动，而不是打开 GUI。
-
-## [2.4.1] – 2026-06-17
-
-### 修复
 
 - **macOS 下载版应用（`.dmg`）无法启动。** 冻结后的程序包在 `import bgremover`
   阶段即以 `PackageNotFoundError` 以及随后的 `FileNotFoundError` 中止，因为
