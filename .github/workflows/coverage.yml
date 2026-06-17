@@ -50,6 +50,9 @@ jobs:
             libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
             zsh shellcheck
 
+      - name: Install package and test extra
+        run: make install-test
+
       - name: Coverage
         run: make coverage
 
