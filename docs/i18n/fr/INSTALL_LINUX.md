@@ -16,8 +16,9 @@ pour tester une pull request ouverte avant la fusion).
 Pour une installation Linux normale, les artefacts de release sont la voie la
 plus simple — **sans venv, sans pip et sans checkout Git** :
 
-> **Note de disponibilité :** Les artefacts AppImage/`.deb` préconstruits sont
-> disponibles à partir de **v2.3.0**. Les versions antérieures (par ex. v2.2.0)
+> **Note de disponibilité :** Les artefacts AppImage/`.deb` préconstruits —
+> **avec l'IA déjà intégrée** — sont disponibles à partir de **v2.4.0**. Les
+> versions antérieures (v2.1.0/v2.2.0)
 > ne contiennent pas encore de tels assets — tant qu'il n'y a rien à télécharger
 > sur la page des releases, utilisez la voie venv/Git ci-dessous.
 

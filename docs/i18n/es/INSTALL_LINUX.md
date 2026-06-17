@@ -17,9 +17,9 @@ Para una instalación normal en Linux, los artefactos de release son la vía má
 cómoda — **sin venv, sin pip y sin checkout de Git**:
 
 > **Nota sobre la disponibilidad:** Los artefactos AppImage/`.deb` listos
-> existen a partir de **v2.3.0**. Las releases anteriores (p. ej. v2.2.0) aún
-> no incluyen tales assets — mientras no haya nada que descargar en la página
-> de releases, usa la vía venv/Git más abajo.
+> —**con la IA ya incluida**— existen a partir de **v2.4.0**. Las releases
+> anteriores (v2.1.0/v2.2.0) aún no incluyen tales assets — mientras no haya
+> nada que descargar en la página de releases, usa la vía venv/Git más abajo.
 
 - **AppImage:** archivo único portable; hazlo ejecutable y ejecútalo.
 - **`.deb`:** paquete instalable para Debian/Ubuntu/Raspberry Pi OS con entrada

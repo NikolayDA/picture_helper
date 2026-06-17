@@ -16,10 +16,11 @@ to test an open pull request before merging).
 For normal Linux installation, the release artifacts are the easiest path —
 **no venv, no pip, and no Git checkout**:
 
-> **Availability note:** Prebuilt AppImage/`.deb` artifacts are available
-> from **v2.3.0** onwards. Older releases (e.g. v2.2.0) do not yet include
-> such assets — as long as there is nothing to download on the Releases
-> page, use the venv/Git path further below.
+> **Availability note:** Prebuilt AppImage/`.deb` artifacts – **with AI
+> already bundled** – are available from **v2.4.0** onwards. Older releases
+> (v2.1.0/v2.2.0) do not yet include such assets — as long as there is
+> nothing to download on the Releases page, use the venv/Git path further
+> below.
 
 - **AppImage:** portable single file; make it executable and start it.
 - **`.deb`:** installable package for Debian/Ubuntu/Raspberry Pi OS with a
