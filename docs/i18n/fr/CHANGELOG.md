@@ -31,6 +31,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   (`copy_metadata`), et la détection de version ne peut plus interrompre le
   démarrage (repli défensif au lieu d'une exception non gérée).
 
+- **La suppression d'arrière-plan par IA dans le `.dmg` ne se chargeait pas.**
+  Le processus enfant d'inférence mourait à l'`import rembg` avec
+  `PackageNotFoundError` (« No package metadata was found for pymatting ») :
+  PyInstaller embarque le code des dépendances de rembg mais pas leurs
+  métadonnées `*.dist-info`, alors que `pymatting` lit sa propre version à
+  l'import. La spec embarque désormais les métadonnées de toute la chaîne de
+  dépendances de rembg (`copy_metadata(…, recursive=True)`).
+
 ## [2.4.0] – 2026-06-15
 
 ### Ajouté

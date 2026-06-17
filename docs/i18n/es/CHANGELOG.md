@@ -31,6 +31,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   (`copy_metadata`), y la obtención de la versión ya no puede abortar el
   arranque (reserva defensiva en lugar de una excepción no controlada).
 
+- **La eliminación de fondo por IA en el `.dmg` no se cargaba.** El proceso
+  hijo de inferencia moría al importar `rembg` con `PackageNotFoundError` («No
+  package metadata was found for pymatting»): PyInstaller empaqueta el código de
+  las dependencias de rembg, pero no sus metadatos `*.dist-info`, y `pymatting`
+  lee su propia versión al importarse. La spec ahora incluye los metadatos de
+  toda la cadena de dependencias de rembg (`copy_metadata(…, recursive=True)`).
+
 ## [2.4.0] – 2026-06-15
 
 ### Añadido

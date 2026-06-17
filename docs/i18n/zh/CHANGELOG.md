@@ -26,6 +26,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   打包 `*.dist-info` 元数据（`copy_metadata`），并且版本探测不再可能中断启动
   （以防御性后备取代未处理的异常）。
 
+- **`.dmg` 中的 AI 抠图无法加载。** 推理子进程在 `import rembg` 时以
+  `PackageNotFoundError`（“No package metadata was found for pymatting”）退出：
+  PyInstaller 打包了 rembg 各依赖的代码，却未打包它们的 `*.dist-info` 元数据，而
+  `pymatting` 在导入时会读取自身版本。spec 现在会打包整条 rembg 依赖链的元数据
+  （`copy_metadata(…, recursive=True)`）。
+
 ## [2.4.0] – 2026-06-15
 
 ### 新增

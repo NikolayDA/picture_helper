@@ -28,6 +28,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `*.dist-info` metadata (`copy_metadata`), and version lookup can no longer
   abort startup (defensive fallback instead of an unhandled exception).
 
+- **AI background removal in the `.dmg` failed to load.** The inference child
+  process died on `import rembg` with `PackageNotFoundError` ("No package
+  metadata was found for pymatting"): PyInstaller bundles the rembg
+  dependencies' code but not their `*.dist-info` metadata, yet `pymatting` reads
+  its own version at import. The spec now bundles the metadata of the whole
+  rembg dependency chain (`copy_metadata(…, recursive=True)`).
+
 ## [2.4.0] – 2026-06-15
 
 ### Added

@@ -31,6 +31,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   (`copy_metadata`), und die Versionsermittlung lässt den Start nie mehr
   scheitern (defensiver Fallback statt unbehandelter Ausnahme).
 
+- **KI-Hintergrundentfernung im `.dmg` ließ sich nicht laden.** Der
+  Inferenz-Kindprozess starb beim `rembg`-Import mit `PackageNotFoundError`
+  („No package metadata was found for pymatting"): PyInstaller bündelt zwar den
+  Code der rembg-Abhängigkeiten, nicht aber ihre `*.dist-info`-Metadaten –
+  `pymatting` liest beim Import jedoch seine eigene Version. Die Spec backt nun
+  die Metadaten der gesamten rembg-Kette ein (`copy_metadata(…, recursive=True)`).
+
 ## [2.4.0] – 2026-06-15
 
 ### Hinzugefügt

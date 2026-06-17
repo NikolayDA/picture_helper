@@ -45,6 +45,17 @@ if _WITH_AI:
         datas += _d
         binaries += _b
         hiddenimports += _h
+    # *.dist-info-Metadaten der gesamten KI-Abhängigkeitskette einbacken:
+    # ``collect_all`` nimmt zwar Code/Binärdateien mit, aber NICHT die
+    # Paket-Metadaten. Mehrere rembg-Transitiv-Deps lesen jedoch ihre eigene
+    # Version über ``importlib.metadata`` – insbesondere ``pymatting`` beim
+    # Import. Ohne deren Metadaten stirbt der Inferenz-Kindprozess beim
+    # ``rembg``-Import mit ``PackageNotFoundError`` ("No package metadata was
+    # found for pymatting"), und die KI lädt nicht. ``recursive=True`` zieht
+    # rembgs komplette Kette mit; onnxruntime (über das ``[cpu]``-Extra)
+    # zusätzlich explizit, falls die rekursive Auflösung Extras auslässt.
+    datas += copy_metadata("rembg", recursive=True)
+    datas += copy_metadata("onnxruntime")
 
 block_cipher = None
 
