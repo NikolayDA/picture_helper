@@ -9,6 +9,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corrigé
+
+- **L'app de téléchargement macOS (`.dmg`) ouvrait des fenêtres sans fin après
+  le démarrage.** Dans le bundle figé, l'inférence IA démarre son processus
+  enfant via multiprocessing « spawn », qui relance le binaire de l'app
+  lui-même ; sans `multiprocessing.freeze_support()` dans le point d'entrée du
+  bundle, chaque enfant relançait la GUI → une « fork bomb » de plus de 100
+  fenêtres que seul un redémarrage arrêtait. Le point d'entrée PyInstaller
+  appelle désormais `freeze_support()` en premier, afin que le processus enfant
+  d'inférence démarre correctement au lieu d'ouvrir la GUI.
+
 ## [2.4.1] – 2026-06-17
 
 ### Corrigé

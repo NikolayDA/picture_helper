@@ -8,6 +8,7 @@ they run in the normal PR CI. Everything stays in sync with ``pyproject.toml``
 """
 from __future__ import annotations
 
+import ast
 import os
 import re
 from pathlib import Path
@@ -128,6 +129,70 @@ def test_launcher_calls_app_main() -> None:
     txt = LAUNCHER.read_text(encoding="utf-8")
     assert "from bgremover.app import main" in txt
     assert "main()" in txt
+
+
+def test_launcher_calls_freeze_support_first_before_gui() -> None:
+    """``multiprocessing.freeze_support()`` muss die ERSTE Anweisung im
+    ``__main__``-Block sein – vor dem GUI-Import und ``main()``.
+
+    Die KI-Inferenz startet ihren Kindprozess per multiprocessing-``spawn``.
+    Im eingefrorenen Bundle relauncht ``spawn`` dieselbe App-Binärdatei; ohne
+    ``freeze_support()`` würde der Kindprozess erneut die GUI ausführen statt
+    der Inferenz-Bootstrap → endlose neue Fenster (Fork-Bomb). Der GUI-Import
+    erst NACH ``freeze_support()`` hält den Qt-Stack aus dem Kindprozess heraus.
+    """
+    txt = LAUNCHER.read_text(encoding="utf-8")
+    assert "import multiprocessing" in txt
+    assert "multiprocessing.freeze_support()" in txt
+
+    main_guard = next(
+        (node for node in ast.parse(txt).body
+         if isinstance(node, ast.If)
+         and isinstance(node.test, ast.Compare)
+         and isinstance(node.test.left, ast.Name)
+         and node.test.left.id == "__name__"),
+        None,
+    )
+    assert main_guard is not None, "kein `if __name__ == '__main__'`-Block"
+
+    def _index(predicate) -> int | None:
+        for i, stmt in enumerate(main_guard.body):
+            if predicate(stmt):
+                return i
+        return None
+
+    def _is_freeze_support(stmt: ast.stmt) -> bool:
+        return (
+            isinstance(stmt, ast.Expr)
+            and isinstance(stmt.value, ast.Call)
+            and isinstance(stmt.value.func, ast.Attribute)
+            and stmt.value.func.attr == "freeze_support"
+            and isinstance(stmt.value.func.value, ast.Name)
+            and stmt.value.func.value.id == "multiprocessing"
+        )
+
+    def _is_app_import(stmt: ast.stmt) -> bool:
+        return isinstance(stmt, ast.ImportFrom) and stmt.module == "bgremover.app"
+
+    def _is_main_call(stmt: ast.stmt) -> bool:
+        return (
+            isinstance(stmt, ast.Expr)
+            and isinstance(stmt.value, ast.Call)
+            and isinstance(stmt.value.func, ast.Name)
+            and stmt.value.func.id == "main"
+        )
+
+    freeze_idx = _index(_is_freeze_support)
+    import_idx = _index(_is_app_import)
+    main_idx = _index(_is_main_call)
+
+    assert freeze_idx == 0, "freeze_support() muss die erste __main__-Anweisung sein"
+    assert import_idx is not None and freeze_idx < import_idx, (
+        "der GUI-Import muss NACH freeze_support() stehen"
+    )
+    assert main_idx is not None and freeze_idx < main_idx, (
+        "main() muss NACH freeze_support() aufgerufen werden"
+    )
 
 
 # ── Release workflow (macOS leg) ───────────────────────────────────────

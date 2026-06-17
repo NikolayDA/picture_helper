@@ -9,6 +9,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- **macOS-Download-App (`.dmg`) öffnete nach dem Start endlos neue Fenster.**
+  Im eingefrorenen Bundle startet die KI-Inferenz ihren Kindprozess per
+  multiprocessing-„spawn", was dieselbe App-Binärdatei neu startet; ohne
+  `multiprocessing.freeze_support()` im Bundle-Einstieg führte jeder
+  Kindprozess erneut die GUI aus → Fork-Bomb mit 100+ Fenstern, die nur ein
+  Neustart stoppte. Der PyInstaller-Einstieg ruft jetzt zuerst
+  `freeze_support()` auf, sodass der Inferenz-Kindprozess korrekt startet statt
+  die GUI zu öffnen.
+
 ## [2.4.1] – 2026-06-17
 
 ### Behoben
