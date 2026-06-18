@@ -51,18 +51,18 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-18)
 
-Au 2026-06-18, **12** issues sont ouvertes. Depuis la dernière évaluation
-(2026-06-15), **#161** (URL de clonage du README) a été **close** le 2026-06-17 ;
-en même temps, le cycle de release v2.4.x a apporté une vague d'issues de
-durcissement des tests/release (**#299, #307–#312**) ; **#313** suit le snapshot
-des recommendations lui-même. Restent ouverts les trois constats de performance
-**#277/#278/#279** (benchmark hebdomadaire #280, selon le triage du propriétaire
-**pas encore** confirmés comme régression de code) et **#245** (quota CI, bloqué
-en externe). Toutes les issues ouvertes ont été revérifiées sur le code actuel.
+Au 2026-06-18, **11** issues sont ouvertes. Cette mise à jour ferme aussi la
+meta-issue du snapshot **#313**, qui se comptait auparavant elle-même comme 12e
+issue ouverte. Depuis l'évaluation du 2026-06-15, **#161** (URL de clonage du
+README) a été **close** le 2026-06-17 ; le cycle de release v2.4.x a apporté une
+vague d'issues de durcissement des tests/release (**#299, #307–#312**). Restent
+ouverts les trois constats de performance **#277/#278/#279** (benchmark
+hebdomadaire #280, selon le triage du propriétaire **pas encore** confirmés
+comme régression de code) et **#245** (quota CI, bloqué en externe). Toutes les
+issues ouvertes ont été revérifiées sur le code actuel.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
-| [#313](https://github.com/NikolayDA/picture_helper/issues/313) | Docs : mettre à jour le snapshot d'issues de RECOMMENDATIONS | 🟡 Moyenne | 🟢 Basse | Meta-issue du snapshot : l'aligner avec cette mise à jour puis la fermer ; sinon elle se compte elle-même comme 12e issue ouverte |
 | [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI : passer les actions node20 à Node 24 | 🟠 Haute | 🟢 Basse | GitHub force déjà Node 24 avec un avertissement ; passer les actions concernées (`github-script`, `upload/download-artifact`) aux majors node24 de façon uniforme, test garde optionnel |
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release : remplir le corps de la release depuis le CHANGELOG | 🟡 Moyenne | 🟡 Moyenne | Compléter le corps de v2.4.1 à la main ; faire dériver les notes de `## [X.Y.Z]` par `release-linux.yml` au lieu d'un texte fixe — aussi lors du réemploi |
 | [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test : version de LICENSES.md == pyproject | 🟡 Moyenne | 🟢 Basse | Pytest rapide comparant la version du titre à `[project].version` — détecte le drift de bump avant le lourd License Check |
@@ -85,14 +85,13 @@ en externe). Toutes les issues ouvertes ont été revérifiées sur le code actu
 
 ### Ordre de PR Recommandé
 
-1. **#313** — mettre à jour ce snapshot et fermer la meta-issue pour que le comptage ne reste pas autoréférentiel.
-2. **#307/#308** — smoke-test en headless des bundles de release (GUI + `--ai`) ; évite de republier des crashs au démarrage/fork bombs.
-3. **#312** — passer les actions node20 à Node 24 avant que GitHub ne retire le fallback.
-4. **#309/#310** — permissions génériques de workflows et version de LICENSES dans une PR rapide de durcissement de tests.
-5. **#311** — dériver le corps de release depuis CHANGELOG et compléter les notes v2.4.1.
-6. **#277/#278/#279** — empreinte benchmark + confirmation par médiane partagées ; ne signaler une régression que face à une baseline compatible.
-7. **#245** — restaurer le quota à l'extérieur ; côté dépôt, seulement clarifier la gestion d'échec.
-8. **#299** — hygiène des tests au besoin.
+1. **#307/#308** — smoke-test en headless des bundles de release (GUI + `--ai`) ; évite de republier des crashs au démarrage/fork bombs.
+2. **#312** — passer les actions node20 à Node 24 avant que GitHub ne retire le fallback.
+3. **#309/#310** — permissions génériques de workflows et version de LICENSES dans une PR rapide de durcissement de tests.
+4. **#311** — dériver le corps de release depuis CHANGELOG et compléter les notes v2.4.1.
+5. **#277/#278/#279** — empreinte benchmark + confirmation par médiane partagées ; ne signaler une régression que face à une baseline compatible.
+6. **#245** — restaurer le quota à l'extérieur ; côté dépôt, seulement clarifier la gestion d'échec.
+7. **#299** — hygiène des tests au besoin.
 
 ## Séries Précédentes
 
