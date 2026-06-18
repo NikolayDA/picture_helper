@@ -207,3 +207,105 @@ def test_full_ci_is_reusable_and_not_independently_tag_triggered() -> None:
     # Matrix-Lauf parallel zum Release-Workflow (#250).
     assert "push" not in on, "ci.yml soll nicht mehr unabhängig auf Tags laufen."
     assert "release" not in on, "ci.yml soll nicht mehr auf release:published laufen."
+
+
+# ── #309: generischer Reusable-Workflow-Permission-Guard ────────────────
+#
+# Ein per ``uses: ./.github/workflows/X.yml`` aufgerufener Workflow darf NICHT
+# mehr GITHUB_TOKEN-Rechte verlangen als der aufrufende Job gewährt – sonst
+# bricht GitHub den GESAMTEN Run beim Start ab (startup_failure, 0 Jobs). Der
+# OIDC-Spezialfall (ci.yml verlangt ``id-token: write``) ist oben bereits
+# textbasiert und im Jobgraphen geprüft; der folgende Test verallgemeinert das
+# für JEDEN lokalen Reusable-Caller und JEDE deklarierte Permission.
+
+_PERMISSION_LEVELS = {"none": 0, "read": 1, "write": 2}
+_LEVEL_NAMES = {1: "read", 2: "write"}
+
+
+def _permission_dict(perms: object) -> dict[str, str]:
+    """Normalisiert einen ``permissions``-Block zu ``{scope: level}``.
+
+    Unterstützt das im Repo genutzte Dict sowie die Kurzformen ``read-all`` /
+    ``write-all``; alles andere (None, leer) ergibt ein leeres Dict.
+    """
+    if isinstance(perms, dict):
+        return {str(scope): str(level) for scope, level in perms.items()}
+    if perms == "read-all":
+        return {"__all__": "read"}
+    if perms == "write-all":
+        return {"__all__": "write"}
+    return {}
+
+
+def _max_required_permissions(doc: dict) -> dict[str, int]:
+    """Höchstes Permission-Level je Scope, das *doc* verlangt (Top-Level + Jobs)."""
+    required: dict[str, int] = {}
+    blocks = [doc.get("permissions")]
+    for job in (doc.get("jobs") or {}).values():
+        if isinstance(job, dict):
+            blocks.append(job.get("permissions"))
+    for block in blocks:
+        for scope, level in _permission_dict(block).items():
+            lvl = _PERMISSION_LEVELS.get(level, 0)
+            if lvl > required.get(scope, 0):
+                required[scope] = lvl
+    return {scope: lvl for scope, lvl in required.items() if lvl > 0}
+
+
+def _granted_permissions(caller_job: dict, caller_doc: dict) -> dict[str, int]:
+    """Permissions, die der Caller-Job gewährt (Job-Level, sonst Workflow-Default)."""
+    block = caller_job.get("permissions")
+    if block is None:
+        block = caller_doc.get("permissions")
+    return {
+        scope: _PERMISSION_LEVELS.get(level, 0)
+        for scope, level in _permission_dict(block).items()
+    }
+
+
+def test_reusable_workflow_callers_grant_all_required_permissions() -> None:
+    """Jeder lokale Reusable-Workflow-Caller gewährt JEDE vom aufgerufenen
+    Workflow deklarierte Permission mindestens gleichwertig (#309).
+
+    Deckt den OIDC-Fall ab (ci.yml ``id-token: write`` ⇒ Release-``test``-Job
+    muss es gewähren) und ist selbst-validierend: entfernt man ``id-token`` aus
+    dem Release-``test``-Job, wird dieser Test rot.
+    """
+    yaml = pytest.importorskip("yaml")
+    workflow_dir = _ROOT / ".github" / "workflows"
+    checked = 0
+    for caller_path in sorted(workflow_dir.glob("*.yml")):
+        caller_doc = yaml.safe_load(caller_path.read_text(encoding="utf-8"))
+        if not isinstance(caller_doc, dict):
+            continue
+        for job_name, job in (caller_doc.get("jobs") or {}).items():
+            if not isinstance(job, dict):
+                continue
+            uses = job.get("uses")
+            if not (isinstance(uses, str) and uses.startswith("./.github/workflows/")):
+                continue
+            called_path = _ROOT / uses.removeprefix("./")
+            assert called_path.is_file(), (
+                f"{caller_path.name}: Job '{job_name}' ruft fehlenden Workflow "
+                f"{uses} auf."
+            )
+            called_doc = yaml.safe_load(called_path.read_text(encoding="utf-8"))
+            required = _max_required_permissions(called_doc)
+            granted = _granted_permissions(job, caller_doc)
+            missing = {
+                scope: _LEVEL_NAMES[lvl]
+                for scope, lvl in required.items()
+                if granted.get(scope, 0) < lvl
+            }
+            assert not missing, (
+                f"{caller_path.name}: Job '{job_name}' (uses: {called_path.name}) "
+                f"gewährt nicht alle vom aufgerufenen Workflow verlangten "
+                f"Permissions. Fehlend (scope→min): {missing}. Ein aufgerufener "
+                f"Workflow darf nicht mehr Rechte verlangen als der Aufrufer, sonst "
+                f"startet der Run gar nicht (startup_failure, #309)."
+            )
+            checked += 1
+    assert checked, (
+        "kein lokaler Reusable-Workflow-Caller gefunden – Guard wirkungslos? "
+        "(erwartet mind. release-linux.yml → ci.yml)"
+    )
