@@ -51,16 +51,18 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-18)
 
-Stand 2026-06-18 sind **11** Issues offen. Seit der letzten Bewertung
+Stand 2026-06-18 sind **12** Issues offen. Seit der letzten Bewertung
 (2026-06-15) wurde **#161** (README-Clone-URL) am 2026-06-17 **geschlossen**;
 zugleich kam mit dem v2.4.x-Release-Zyklus eine Welle von Test-/Release-
-Härtungs-Issues hinzu (**#299, #307–#312**). Weiterhin offen sind die drei
-Performance-Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut Owner-Triage
-**noch nicht** als Code-Regression bestätigt) und **#245** (CI-Quota, extern
-blockiert). Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
+Härtungs-Issues hinzu (**#299, #307–#312**); **#313** trackt den
+Recommendations-Snapshot selbst. Weiterhin offen sind die drei Performance-
+Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut Owner-Triage **noch
+nicht** als Code-Regression bestätigt) und **#245** (CI-Quota, extern blockiert).
+Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
+| [#313](https://github.com/NikolayDA/picture_helper/issues/313) | Docs: RECOMMENDATIONS-Issue-Snapshot aktualisieren | 🟡 Mittel | 🟢 Niedrig | Meta-Issue zum Snapshot: mit diesem Update abgleichen und danach schließen; sonst zählt es sich selbst als 12. offenes Issue mit |
 | [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: node20-Actions auf Node 24 anheben | 🟠 Hoch | 🟢 Niedrig | GitHub erzwingt Node 24 bereits per Warnung; betroffene Actions (`github-script`, `upload/download-artifact`) einheitlich auf node24-Majors heben, optional Guard-Test |
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text – auch beim Reuse |
 | [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md-Version == pyproject | 🟡 Mittel | 🟢 Niedrig | Schneller Pytest, der die Titelversion gegen `[project].version` prüft – fängt Bump-Drift vor dem schweren License-Check |
@@ -73,14 +75,24 @@ blockiert). Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance-Regression: WebP (+13.7%) | 🟡 Mittel | 🟡 Mittel | Wie #277/#278: ein gemeinsamer PR für Fingerprint + Median-Bestätigung; nur bestätigte Regressionen melden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | Blockiert (extern): Quota account-seitig wiederherstellen. Repo-seitig nur klare Fehlerbehandlung (graceful skip) + optionaler Node-24-Bump |
 
+### Bündelbare Issues
+
+- **#307/#308** gehören zusammen: ein Release-Artifact-Verification-PR kann GUI- und `--ai`-Bundles headless starten und den KI-Spawn-Selfcheck ergänzen.
+- **#309/#310** sind kleine Guard-Tests und können in einem Test-Härtungs-PR landen; **#311** bleibt besser separat, weil es Release-Workflow, CHANGELOG-Extraktion und bestehende Release-Notes berührt.
+- **#277/#278/#279** sollten gemeinsam als Benchmark-Zuverlässigkeits-PR umgesetzt werden; erst danach lohnt die Format-spezifische Encode-Analyse.
+- **#312** ist ein eigener CI-Modernisierungs-PR über alle Workflows; der Node-24-Anteil aus **#245** kann dort mitlaufen, die OpenAI-Quota selbst bleibt extern.
+- **#299** ist opportunistische Test-Hygiene und sollte nur mitlaufen, wenn ein ohnehin berührter Test betroffen ist.
+
 ### Empfohlene PR-Reihenfolge
 
-1. **#307/#308** — Release-Bundles headless smoke-testen (GUI + `--ai`); verhindert erneut ausgelieferte Start-Crashes/Fork-Bombs.
-2. **#312** — node20-Actions auf Node 24 heben, bevor GitHub den Fallback entfernt.
-3. **#309/#310/#311** — Release-/CI-Guards: WF-Permissions, LICENSES-Version, CHANGELOG-Release-Body (kleine separate PRs).
-4. **#277/#278/#279** — ein gemeinsamer PR: Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
-5. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24).
-6. **#299** — Test-Hygiene nach Bedarf.
+1. **#313** — diesen Snapshot aktualisieren und das Meta-Issue schließen, damit die Zählung nicht dauerhaft selbstreferenziell bleibt.
+2. **#307/#308** — Release-Bundles headless smoke-testen (GUI + `--ai`); verhindert erneut ausgelieferte Start-Crashes/Fork-Bombs.
+3. **#312** — node20-Actions auf Node 24 heben, bevor GitHub den Fallback entfernt.
+4. **#309/#310** — generische Workflow-Permissions und LICENSES-Version als schneller Test-Härtungs-PR.
+5. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen.
+6. **#277/#278/#279** — gemeinsamer Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
+7. **#245** — Quota extern wiederherstellen; repo-seitig danach nur klare Fehlerbehandlung.
+8. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 
