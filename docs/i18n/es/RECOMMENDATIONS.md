@@ -49,31 +49,39 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-15)
+## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-18)
 
-Tras los PR **#280–#290**, quedan **5** issues abiertos. Los últimos issues de
-seguimiento **#285** (PR #289) y **#286** (PR #290) están implementados **y
-cerrados** — al igual que **#235** (PR #281), **#270** (PR #283) y **#275**
-(PR #282). Siguen abiertos tres hallazgos de rendimiento — **#277/#278/#279** —
-del run de benchmark semanal (#280); según el triage del owner **aún no**
-confirmados como regresión de código, porque la baseline del 2026-06-08 no lleva
-fingerprint de entorno. Además, **#245** (cuota de CI, bloqueado externamente) y
-**#161** (URL de clonado del README, decisión del owner). Todos los issues
-abiertos se reverificaron contra el código actual.
+A fecha de 2026-06-18 quedan **11** issues abiertos. Desde la última evaluación
+(2026-06-15), **#161** (URL de clonado del README) se **cerró** el 2026-06-17; a
+la vez, el ciclo de release v2.4.x trajo una oleada de issues de endurecimiento
+de tests/release (**#299, #307–#312**). Siguen abiertos los tres hallazgos de
+rendimiento **#277/#278/#279** (benchmark semanal #280, según el triage del
+owner **aún no** confirmados como regresión de código) y **#245** (cuota de CI,
+bloqueado externamente). Todos los issues abiertos se reverificaron contra el
+código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Refinamiento: aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana), y solo entonces comparar contra una baseline compatible. Agrupar con #278/#279 |
+| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: subir actions node20 a Node 24 | 🟠 Alta | 🟢 Baja | GitHub ya fuerza Node 24 con un aviso; subir las actions afectadas (`github-script`, `upload/download-artifact`) a majors node24 de forma uniforme, test guardián opcional |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | Rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo — también al reusar |
+| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: versión de LICENSES.md == pyproject | 🟡 Media | 🟢 Baja | Pytest rápido que compara la versión del título contra `[project].version` — detecta drift de bump antes del pesado License Check |
+| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test: el caller cubre los permisos del WF reutilizable | 🟡 Media | 🟢 Baja | Generalizar `test_release_gate.py`: el job caller debe conceder cada permiso que declare el workflow llamado (OIDC `id-token: write`) |
+| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test: cadena de IA importable en el artefacto `--ai` | 🟠 Alta | 🟡 Media | Autotest por spawn sin red en el build `--ai` que cargue los metadatos de `rembg`+`pymatting` (regresión #306) |
+| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test: lanzar el artefacto construido en headless | 🟠 Alta | 🟡 Media | Lanzar el bundle en headless en el job build (capturar crash de arranque #304 / fork bomb #305); `publish` sigue gateado por `needs: build` |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana); agrupar con #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Regresión de rendimiento: TIFF (+21.8%) | 🟡 Media | 🟡 Media | Como #277: endurecimiento compartido del benchmark; investigar la ruta de encode (`save_image_file`) solo tras un run de confirmación compatible |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Regresión de rendimiento: WebP (+13.7%) | 🟡 Media | 🟡 Media | Como #277/#278: un PR compartido para fingerprint + confirmación por mediana; reportar solo regresiones confirmadas |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Bloqueado (externo): restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) + un bump opcional a Node 24, no un cambio forzado de `setup-node` |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: la URL de clonación devuelve 404 a usuarios anónimos | 🟢 Baja | 🟢 Baja | Decisión necesaria: público vs. privado/invitación, luego actualizar la guía de clonado o cerrar («Ronda 5» ya está corregido) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Bloqueado (externo): restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) + un bump opcional a Node 24 |
 
 ### Orden de PRs Recomendado
 
-1. **#277/#278/#279** — un PR compartido: ampliar el benchmark con fingerprint de entorno y runs de confirmación (mediana); reportar una regresión solo contra una baseline compatible.
-2. **#245** — restaurar la cuota externamente; endurecimiento opcional del workflow (skip elegante + Node 24) como PR pequeño aparte.
-3. **#161** — decidir el modelo de publicación, luego actualizar docs o cerrar.
+1. **#307/#308** — smoke-test en headless de los bundles de release (GUI + `--ai`); evita volver a publicar crashes de arranque/fork bombs.
+2. **#312** — subir las actions node20 a Node 24 antes de que GitHub retire el fallback.
+3. **#309/#310/#311** — guardianes de release/CI: permisos de WF, versión de LICENSES, cuerpo del release desde el CHANGELOG (PRs pequeños aparte).
+4. **#277/#278/#279** — un PR compartido: fingerprint del benchmark + confirmación por mediana; reportar una regresión solo contra una baseline compatible.
+5. **#245** — restaurar la cuota externamente; endurecimiento opcional del workflow (skip elegante + Node 24).
+6. **#299** — higiene de tests según haga falta.
 
 ## Rondas Anteriores
 

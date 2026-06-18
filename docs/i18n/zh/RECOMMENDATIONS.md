@@ -43,29 +43,37 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-15）
+## 开放的 GitHub Issues — 优先级评估（2026-06-18）
 
-PR **#280–#290** 之后，仍有 **5** 个开放 issue。最近的后续 issue **#285**
-（PR #289）和 **#286**（PR #290）已实现**并关闭**——**#235**（PR #281）、
-**#270**（PR #283）和 **#275**（PR #282）亦然。仍开放的是三项性能发现——
-**#277/#278/#279**——来自每周 benchmark 运行（#280）；按 owner 的 triage，
-**尚未**被确认为代码回归，因为 2026-06-08 的基线没有环境指纹。此外还有
-**#245**（CI quota，外部受阻）和 **#161**（README 的 clone URL，需 owner 决策）。
-所有开放 issue 均已对照当前代码重新核实。
+截至 2026-06-18，共有 **11** 个开放 issue。自上次评估（2026-06-15）以来，
+**#161**（README 的 clone URL）已于 2026-06-17 **关闭**；与此同时，v2.4.x 发布
+周期带来了一批测试/发布加固类 issue（**#299、#307–#312**）。仍开放的是三项性能
+发现 **#277/#278/#279**（每周 benchmark #280，按 owner 的 triage **尚未**确认为
+代码回归）以及 **#245**（CI quota，外部受阻）。所有开放 issue 均已对照当前代码
+重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 待细化：尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数），然后才与兼容基线比较。与 #278/#279 合并处理 |
+| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI：将 node20 actions 升级到 Node 24 | 🟠 高 | 🟢 低 | GitHub 已带警告强制使用 Node 24；将受影响的 actions（`github-script`、`upload/download-artifact`）统一升级到 node24 大版本，可选 guard 测试 |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | 发布：从 CHANGELOG 填充 release 正文 | 🟡 中 | 🟡 中 | 手动补全 v2.4.1 正文；让 `release-linux.yml` 从 `## [X.Y.Z]` 推导 notes 而非硬编码文本——复用时亦然 |
+| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | 测试：LICENSES.md 版本 == pyproject | 🟡 中 | 🟢 低 | 快速 pytest，将标题版本与 `[project].version` 比较——在繁重的 License Check 之前捕获 bump 漂移 |
+| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | 测试：caller 覆盖可复用 WF 的权限 | 🟡 中 | 🟢 低 | 推广 `test_release_gate.py`：caller job 必须授予被调用 workflow 声明的每项权限（OIDC `id-token: write`） |
+| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | 测试：`--ai` 制品中 AI 链可导入 | 🟠 高 | 🟡 中 | 在 `--ai` 构建中做无网络的 spawn 自检，加载 `rembg`+`pymatting` 元数据（回归 #306） |
+| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | 测试：以 headless 启动已构建制品 | 🟠 高 | 🟡 中 | 在 build job 中 headless 启动 bundle（捕获启动崩溃 #304 / fork bomb #305）；`publish` 仍由 `needs: build` 把关 |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | 测试卫生：弱断言/冗余 | 🟢 低 | 🟢 低 | 非正确性缺陷；先做最有价值的（endpoint 移动、合并 `set_brush_size`），其余按需 |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数）；与 #278/#279 合并处理 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | 性能回归：TIFF（+21.8%） | 🟡 中 | 🟡 中 | 同 #277：共享的 benchmark 加固；只有在兼容的确认运行之后才调查 encode 路径（`save_image_file`） |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | 性能回归：WebP（+13.7%） | 🟡 中 | 🟡 中 | 同 #277/#278：一个共享 PR 处理指纹 + 中位数确认；只报告已确认的回归 |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 受阻（外部）：在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过）+ 可选升级到 Node 24，不强制改 `setup-node` |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README：匿名用户访问 clone URL 返回 404 | 🟢 低 | 🟢 低 | 需要决策：公开或私有/邀请制，再更新 clone 指引或关闭（“Runde 5” 已修复） |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 受阻（外部）：在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过）+ 可选升级到 Node 24 |
 
 ### 推荐 PR 顺序
 
-1. **#277/#278/#279** — 一个共享 PR：为 benchmark 增加环境指纹与确认运行（中位数）；仅在兼容基线下报告回归。
-2. **#245** — 在外部恢复 quota；可选的 workflow 加固（优雅跳过 + Node 24）作为单独的小型 PR。
-3. **#161** — 决定发布模式，再更新文档或关闭。
+1. **#307/#308** — 对 release bundle 做 headless 冒烟测试（GUI + `--ai`）；避免再次发布启动崩溃/fork bomb。
+2. **#312** — 在 GitHub 移除 fallback 之前，将 node20 actions 升级到 Node 24。
+3. **#309/#310/#311** — release/CI 守卫：WF 权限、LICENSES 版本、从 CHANGELOG 取 release 正文（各自小型 PR）。
+4. **#277/#278/#279** — 一个共享 PR：benchmark 指纹 + 中位数确认；仅在兼容基线下报告回归。
+5. **#245** — 在外部恢复 quota；可选的 workflow 加固（优雅跳过 + Node 24）。
+6. **#299** — 测试卫生按需处理。
 
 ## 先前轮次
 
