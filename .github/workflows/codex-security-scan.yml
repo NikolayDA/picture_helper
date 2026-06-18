@@ -110,7 +110,7 @@ jobs:
           PY
 
       - name: Upload scan JSON
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-security-findings
           path: codex-security-findings.json
@@ -130,7 +130,7 @@ jobs:
           persist-credentials: false
 
       - name: Download scan JSON
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: codex-security-findings
 
@@ -144,7 +144,7 @@ jobs:
             --results security-issue-results.json
 
       - name: Upload issue sync results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-security-issue-results
           path: security-issue-results.json

@@ -258,7 +258,7 @@ jobs:
             -- "$app_bin"
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bgremover-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
@@ -284,7 +284,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: bgremover-*
           path: dist
