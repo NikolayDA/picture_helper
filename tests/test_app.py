@@ -107,6 +107,7 @@ def patched_app(monkeypatch):
     monkeypatch.setattr(app_module, "init_runtime",
                         lambda: created.__setitem__("runtime", True))
     monkeypatch.delenv("BGREMOVER_SMOKE_TEST", raising=False)
+    monkeypatch.delenv("BGREMOVER_AI_SELFCHECK", raising=False)
     return created
 
 

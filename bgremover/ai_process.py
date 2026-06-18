@@ -340,3 +340,76 @@ class InferenceProcess:
                 if proc.is_alive():
                     proc.kill()
                 proc.join(self._kill_join_timeout)
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# KI-Selbsttest für gebaute --ai-Artefakte (Befund #308)
+# ─────────────────────────────────────────────────────────────────────────
+
+def _ai_selfcheck_child(conn: Connection) -> None:
+    """Kindprozess des KI-Selbsttests: importiert die komplette rembg-Kette.
+
+    Der Import löst u. a. den ``pymatting``-Metadaten-Read aus – genau der Pfad,
+    der im gebauten ``--ai``-``.dmg`` mit ``PackageNotFoundError: No package
+    metadata was found for pymatting`` starb (#306), weil ``collect_all`` Code,
+    aber nicht die ``*.dist-info``-Metadaten der Transitiv-Deps mitnimmt. Bewusst
+    KEIN ``new_session()``-Aufruf: der lüde ein Modell aus dem Netz; hier zählt
+    nur Import + Metadaten-Auflösung, damit der Test ohne Netz CI-stabil bleibt.
+
+    Top-Level-Funktion, damit ``spawn`` sie über das Modul picklen/importieren
+    kann (wie ``_serve``).
+    """
+    try:
+        from rembg import new_session  # noqa: F401 – Import löst die Metadaten-Auflösung aus
+        conn.send(("ok",))
+    except BaseException as exc:  # noqa: BLE001 – jeder Import-/Metadatenfehler ist ein Fail
+        conn.send(("error", f"{type(exc).__name__}: {exc}"))
+    finally:
+        conn.close()
+
+
+def run_ai_selfcheck(
+    *,
+    target: Callable[[Connection], None] = _ai_selfcheck_child,
+    timeout: float = 120.0,
+) -> tuple[bool, str]:
+    """Prüft headless, dass die rembg-Kette im Spawn-Kindprozess importierbar ist.
+
+    Startet – wie die echte Inferenz – einen per ``spawn`` erzeugten Kindprozess
+    (im eingefrorenen Bundle relauncht das dieselbe Binärdatei) und lässt ihn die
+    rembg-Kette importieren. So wird der TATSÄCHLICH gescheiterte Pfad aus #306
+    über den Spawn-Kindprozess geübt, nicht nur ein In-Process-Import. Kein
+    Netz/Modell-Download. *target* ist für Tests injizierbar.
+
+    Gibt ``(ok, meldung)`` zurück.
+    """
+    ctx = multiprocessing.get_context("spawn")
+    parent_conn, child_conn = ctx.Pipe()
+    proc = ctx.Process(target=target, args=(child_conn,), daemon=True)
+    proc.start()
+    # Das Kind-Ende gehört dem Kindprozess; im Eltern schließen, damit ein
+    # Prozesstod hier als EOF sichtbar wird.
+    child_conn.close()
+    response: tuple[object, ...] | None = None
+    try:
+        if parent_conn.poll(timeout):
+            received = parent_conn.recv()
+            response = received if isinstance(received, tuple) else (received,)
+    except (EOFError, OSError) as exc:
+        return False, f"KI-Selbsttest: Kindprozess ohne Antwort beendet ({exc})"
+    finally:
+        with contextlib.suppress(OSError):
+            parent_conn.close()
+        with contextlib.suppress(Exception):
+            if proc.is_alive():
+                proc.kill()
+            proc.join(_KILL_JOIN_TIMEOUT_S)
+    if response is None:
+        return False, (
+            f"KI-Selbsttest: Zeitüberschreitung nach {timeout:.0f}s "
+            "(kein Import-Ergebnis)"
+        )
+    if response and response[0] == "ok":
+        return True, "KI-Selbsttest: rembg-Kette inkl. Metadaten importierbar"
+    message = response[1] if len(response) > 1 else "unbekannter Fehler"
+    return False, f"KI-Selbsttest fehlgeschlagen: {message}"

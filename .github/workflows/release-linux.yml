@@ -113,6 +113,10 @@ jobs:
       # appimagetool needs FUSE to run; extract-and-run avoids requiring it
       # (and the FUSE2 package) on the CI runner. Harmlos/ungenutzt auf macOS.
       APPIMAGE_EXTRACT_AND_RUN: '1'
+      # #307/#308: ob die Artefakte rembg/onnxruntime bündeln. Dieselbe
+      # Bedingung wie der ``--ai``-Schalter der Build-Schritte – steuert den
+      # KI-Selbsttest und die erlaubte Instanzzahl des Fork-Bomb-Wächters.
+      WITH_AI: ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '1' || '0' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -165,6 +169,43 @@ jobs:
           test "$(dpkg-deb --field "$deb" Architecture)" = "${{ matrix.deb_arch }}"
           echo "Artefakte verifiziert: $(basename "$appimage"), $(basename "$deb")"
 
+      # Qt-Laufzeitbibliotheken für den offscreen-Smoke-Launch des AppImage.
+      # Das python-appimage bündelt CPython + PyQt6, aber das offscreen-Plugin
+      # linkt System-libGL/-libEGL/Fontconfig/xkbcommon/D-Bus; ohne sie scheitert
+      # der Start mit ``libGL.so.1: cannot open shared object file``. Bewusst nur
+      # die offscreen-relevante Teilmenge der Qt-Lib-Liste (keine xcb-Familie –
+      # die braucht nur die xcb-Plattform), daher kein N6-Drift-Bezug.
+      - name: Install Qt runtime libs for the offscreen smoke launch
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 libgl1 libfontconfig1 libxkbcommon0 libdbus-1-3
+
+      # #307: das frisch gebaute AppImage headless starten (offscreen +
+      # BGREMOVER_SMOKE_TEST) und über den Watchdog auf Start-Crash (#304),
+      # Fork-Bomb (#305) und Nicht-Terminieren prüfen. #308: im --ai-Build
+      # zusätzlich den KI-Selbsttest über den Spawn-Kindprozess fahren (rembg-
+      # Kette inkl. pymatting-Metadaten importierbar). Schlägt einer fehl, fällt
+      # der build-Job und ``publish`` (needs: build) veröffentlicht nichts.
+      - name: Smoke-launch built AppImage (headless, fork-bomb guard)
+        if: matrix.os == 'linux'
+        run: |
+          set -euo pipefail
+          appimage="$(ls -1 dist/*.AppImage | head -1)"
+          max_instances=1
+          if [ "$WITH_AI" = "1" ]; then
+            max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
+            echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
+            QT_QPA_PLATFORM=offscreen BGREMOVER_AI_SELFCHECK=1 \
+              "$appimage" --appimage-extract-and-run
+          fi
+          python3 scripts/smoke_launch.py \
+            --match "$(basename "$appimage")" \
+            --max-instances "$max_instances" \
+            --timeout 120 \
+            -- "$appimage" --appimage-extract-and-run
+
       # ── macOS: .app + .dmg ──────────────────────────────────────────────
       - name: Build macOS app + .dmg (PyInstaller)
         if: matrix.os == 'macos'
@@ -191,6 +232,30 @@ jobs:
             || { echo "::error::DMG-Name '$(basename "$dmg")' != '$expected_dmg'"; exit 1; }
           hdiutil imageinfo "$dmg" >/dev/null
           echo "macOS-Artefakt verifiziert: $(basename "$dmg")"
+
+      # #307: das gebaute BgRemover.app headless starten (offscreen +
+      # BGREMOVER_SMOKE_TEST) und über den Watchdog auf Start-Crash (#304) und
+      # Fork-Bomb (#305) prüfen. Die macOS-.dmg war der ursprüngliche Fork-Bomb-
+      # Vektor (fehlendes freeze_support → spawn relauncht die GUI). #308: im
+      # --ai-Build zusätzlich den KI-Selbsttest fahren. Fällt einer durch, fällt
+      # der build-Job → ``publish`` (needs: build) veröffentlicht nichts.
+      - name: Smoke-launch built macOS app (headless, fork-bomb guard)
+        if: matrix.os == 'macos'
+        run: |
+          set -euo pipefail
+          app_bin="build/macos/dist/BgRemover.app/Contents/MacOS/BgRemover"
+          test -x "$app_bin" || { echo "::error::App-Binary fehlt: $app_bin"; exit 1; }
+          max_instances=1
+          if [ "$WITH_AI" = "1" ]; then
+            max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
+            echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
+            QT_QPA_PLATFORM=offscreen BGREMOVER_AI_SELFCHECK=1 "$app_bin"
+          fi
+          python3 scripts/smoke_launch.py \
+            --match "Contents/MacOS/BgRemover" \
+            --max-instances "$max_instances" \
+            --timeout 120 \
+            -- "$app_bin"
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4

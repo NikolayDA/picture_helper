@@ -65,9 +65,36 @@ machine. This packaging instead produces a **downloadable, self-contained**
 `.dmg` (bundled Python) that needs nothing pre-installed — the same philosophy as
 the Linux AppImage.
 
+## Release verification (headless smoke launch)
+
+Building a bundle is not enough — `tests/test_app_smoke.py` only launches the
+**source** app (`python -m bgremover`) and cannot see *frozen-only* failures:
+missing `*.dist-info` metadata (start crash #304), a missing `freeze_support()`
+(fork bomb #305) or a broken bundled AI chain (#306). The release workflow
+therefore **launches the freshly built `BgRemover.app` headlessly** in the
+`build` job, gated before `publish` (`needs: build`), so a bad bundle is never
+released:
+
+- **Start + fork-bomb guard (#307):** `scripts/smoke_launch.py` starts the app
+  with `QT_QPA_PLATFORM=offscreen` + `BGREMOVER_SMOKE_TEST=1` (the app self-quits
+  after the first event-loop tick) and fails on a non-zero exit (start crash), on
+  a process-count explosion of the bundle binary (fork bomb — the macOS `.dmg`
+  was the original vector) or on a timeout (the "endless windows" symptom).
+- **AI self-check (#308):** for `--ai` builds the workflow runs the app once with
+  `BGREMOVER_AI_SELFCHECK=1`. That spawns the real inference child process via
+  `spawn` and imports the full `rembg` chain (resolving the `pymatting`
+  `*.dist-info` metadata that #306 was missing) — **no** model download, **no**
+  network. Exit 0 on success, non-zero with the error otherwise.
+
+The `--ai` smoke launch deliberately allows a few concurrent bundle instances
+(the legitimate AI warmup child plus the multiprocessing resource tracker); a
+real fork bomb grows explosively past that and is caught immediately.
+
 ## Validation
 
 `tests/test_macos_packaging.py` runs in normal PR CI **without external tools**:
 it keeps the spec, the build script and the release workflow self-consistent and
 in sync with the project (app id, version source, the arm64 target, AI bundling
-and the `.dmg` artifact name).
+and the `.dmg` artifact name). `tests/test_smoke_launch.py`,
+`tests/test_ai_selfcheck.py` and `tests/test_release_smoke.py` cover the
+watchdog launcher, the AI self-check and the workflow wiring.
