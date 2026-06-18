@@ -51,8 +51,8 @@ def test_comment_job_is_minimal_and_owns_the_only_pr_write_permission() -> None:
     assert "needs: license-check" in comment_job
     assert "github.event_name == 'pull_request'" in comment_job
     assert "pull-requests: write" in comment_job
-    assert "actions/download-artifact@v4" in comment_job
-    assert "actions/github-script@v7" in comment_job
+    assert "actions/download-artifact@v8" in comment_job
+    assert "actions/github-script@v9" in comment_job
     assert "actions/checkout@" not in comment_job
     assert sum("uses:" in line for line in comment_job.splitlines()) == 2
     assert all(

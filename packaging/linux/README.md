@@ -70,6 +70,28 @@ chmod +x BgRemover-*-x86_64.AppImage
 sudo apt install ./BgRemover-*-amd64.deb
 ```
 
+## Release verification (headless smoke launch)
+
+Building the AppImage is not enough — `tests/test_app_smoke.py` only launches the
+**source** app (`python -m bgremover`) and cannot see *frozen-only* failures
+(missing metadata → start crash #304, missing `freeze_support()` → fork bomb
+#305, a broken bundled AI chain → #306). The release workflow therefore
+**launches the freshly built AppImage headlessly** in the `build` job, gated
+before `publish` (`needs: build`):
+
+- **Start + fork-bomb guard (#307):** `scripts/smoke_launch.py` runs
+  `BgRemover-*.AppImage --appimage-extract-and-run` with
+  `QT_QPA_PLATFORM=offscreen` + `BGREMOVER_SMOKE_TEST=1` (the app self-quits after
+  the first event-loop tick) and fails on a non-zero exit (start crash) or a
+  timeout (a non-terminating launch). The job first installs the Qt runtime libs
+  the `offscreen` plugin links (`libegl1 libgl1 libfontconfig1 libxkbcommon0
+  libdbus-1-3`) — without them the bundled Qt aborts with `libGL.so.1: cannot
+  open shared object file`.
+- **AI self-check (#308):** for `--ai` builds the workflow runs the AppImage once
+  with `BGREMOVER_AI_SELFCHECK=1`. That spawns the real inference child via
+  `spawn` and imports the full `rembg` chain (resolving the `pymatting` metadata
+  from #306) — **no** model download, **no** network. Exit 0/non-zero.
+
 ## Validation
 
 `tests/test_linux_packaging.py` runs in normal PR CI **without external tools**:

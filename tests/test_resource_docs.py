@@ -41,14 +41,21 @@ def test_root_resource_doc_tracks_current_ci_workflows() -> None:
         ".github/workflows/license-check.yml",
         "actions/checkout@v5",
         "actions/setup-python@v6",
-        "actions/upload-artifact@v4",
-        "actions/download-artifact@v4",
-        "actions/github-script@v7",
+        "actions/upload-artifact@v7",
+        "actions/download-artifact@v8",
+        "actions/github-script@v9",
     }
     missing = {token for token in expected if token not in text}
     assert not missing
 
-    stale = {"actions/checkout@v4", "actions/setup-python@v5"}
+    # node20-deprecierte Vorgänger dürfen in der Doku nicht zurückkehren (#312).
+    stale = {
+        "actions/checkout@v4",
+        "actions/setup-python@v5",
+        "actions/upload-artifact@v4",
+        "actions/download-artifact@v4",
+        "actions/github-script@v7",
+    }
     assert all(token not in text for token in stale)
 
 

@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Upload license report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: license-report
           path: |
@@ -109,13 +109,13 @@ jobs:
       pull-requests: write
     steps:
       - name: Download license summary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: license-report
 
       - name: Comment summary on pull request
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');

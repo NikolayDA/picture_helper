@@ -50,18 +50,17 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-18)
 
-As of 2026-06-18, **12** issues are open. Since the last assessment
-(2026-06-15), **#161** (README clone URL) was **closed** on 2026-06-17; at the
-same time the v2.4.x release cycle brought a wave of test/release hardening
-issues (**#299, #307–#312**); **#313** tracks the recommendations snapshot
-itself. Still open are the three performance findings **#277/#278/#279**
-(weekly benchmark #280, per the owner's triage **not yet** confirmed as code
-regressions) and **#245** (CI quota, externally blocked). All open issues were
-re-verified against the current code.
+As of 2026-06-18, **11** issues are open. This update also closes the snapshot
+meta issue **#313**, which previously counted itself as the 12th open issue.
+Since the 2026-06-15 assessment, **#161** (README clone URL) was **closed** on
+2026-06-17; the v2.4.x release cycle brought a wave of test/release hardening
+issues (**#299, #307–#312**). Still open are the three performance findings
+**#277/#278/#279** (weekly benchmark #280, per the owner's triage **not yet**
+confirmed as code regressions) and **#245** (CI quota, externally blocked). All
+open issues were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#313](https://github.com/NikolayDA/picture_helper/issues/313) | Docs: update RECOMMENDATIONS issue snapshot | 🟡 Medium | 🟢 Low | Meta issue for the snapshot: align it with this update and then close it; otherwise it counts itself as the 12th open issue |
 | [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: bump node20 actions to Node 24 | 🟠 High | 🟢 Low | GitHub already forces Node 24 with a warning; bump the affected actions (`github-script`, `upload/download-artifact`) to node24 majors uniformly, optional guard test |
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | Backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string — also on reuse |
 | [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md version == pyproject | 🟡 Medium | 🟢 Low | Fast pytest comparing the title version against `[project].version` — catches bump drift before the heavy License Check |
@@ -84,14 +83,13 @@ re-verified against the current code.
 
 ### Recommended PR Order
 
-1. **#313** — update this snapshot and close the meta issue so the count does not stay self-referential.
-2. **#307/#308** — headless smoke-test the release bundles (GUI + `--ai`); prevents shipping start crashes/fork bombs again.
-3. **#312** — bump node20 actions to Node 24 before GitHub removes the fallback.
-4. **#309/#310** — generic workflow permissions and LICENSES version as a quick test-hardening PR.
-5. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes.
-6. **#277/#278/#279** — shared benchmark fingerprint + median confirmation; report a regression only against a compatible baseline.
-7. **#245** — restore quota externally; repo-side work afterwards is only clearer failure handling.
-8. **#299** — test hygiene as needed.
+1. **#307/#308** — headless smoke-test the release bundles (GUI + `--ai`); prevents shipping start crashes/fork bombs again.
+2. **#312** — bump node20 actions to Node 24 before GitHub removes the fallback.
+3. **#309/#310** — generic workflow permissions and LICENSES version as a quick test-hardening PR.
+4. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes.
+5. **#277/#278/#279** — shared benchmark fingerprint + median confirmation; report a regression only against a compatible baseline.
+6. **#245** — restore quota externally; repo-side work afterwards is only clearer failure handling.
+7. **#299** — test hygiene as needed.
 
 ## Previous Rounds
 

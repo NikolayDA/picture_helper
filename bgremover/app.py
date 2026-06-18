@@ -64,6 +64,18 @@ class _FileOpenFilter(QObject):
 
 
 def main() -> int:
+    # KI-Selbsttest-Hook (#308): ist BGREMOVER_AI_SELFCHECK gesetzt, prüft die
+    # App headless, dass im (eingefrorenen) --ai-Bundle die komplette rembg-Kette
+    # im Spawn-Kindprozess importierbar ist – inkl. der pymatting-*.dist-info-
+    # Metadaten, deren Fehlen die KI im .dmg lahmlegte (#306). Rein Import +
+    # Metadaten-Auflösung: kein Qt, kein Modell-Download. Beendet den Prozess mit
+    # 0 (ok) bzw. 1 (Fehler), ohne die GUI hochzufahren.
+    if os.environ.get("BGREMOVER_AI_SELFCHECK"):
+        from bgremover.ai_process import run_ai_selfcheck
+        ok, message = run_ai_selfcheck()
+        print(message)
+        return 0 if ok else 1
+
     init_runtime()
     app = QApplication(sys.argv)
     app.setApplicationName("BgRemover")

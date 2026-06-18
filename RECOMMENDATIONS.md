@@ -51,18 +51,18 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-18)
 
-Stand 2026-06-18 sind **12** Issues offen. Seit der letzten Bewertung
-(2026-06-15) wurde **#161** (README-Clone-URL) am 2026-06-17 **geschlossen**;
-zugleich kam mit dem v2.4.x-Release-Zyklus eine Welle von Test-/Release-
-Härtungs-Issues hinzu (**#299, #307–#312**); **#313** trackt den
-Recommendations-Snapshot selbst. Weiterhin offen sind die drei Performance-
-Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut Owner-Triage **noch
-nicht** als Code-Regression bestätigt) und **#245** (CI-Quota, extern blockiert).
-Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
+Stand 2026-06-18 sind **11** Issues offen. Dieses Update schließt zugleich das
+Snapshot-Meta-Issue **#313**, das sich zuvor selbst als zwölftes offenes Issue
+mitzählte. Seit der Bewertung vom 2026-06-15 wurde **#161** (README-Clone-URL)
+am 2026-06-17 **geschlossen**; mit dem v2.4.x-Release-Zyklus kam eine Welle von
+Test-/Release-Härtungs-Issues hinzu (**#299, #307–#312**). Weiterhin offen sind
+die drei Performance-Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut
+Owner-Triage **noch nicht** als Code-Regression bestätigt) und **#245**
+(CI-Quota, extern blockiert). Alle offenen Issues wurden gegen den aktuellen
+Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#313](https://github.com/NikolayDA/picture_helper/issues/313) | Docs: RECOMMENDATIONS-Issue-Snapshot aktualisieren | 🟡 Mittel | 🟢 Niedrig | Meta-Issue zum Snapshot: mit diesem Update abgleichen und danach schließen; sonst zählt es sich selbst als 12. offenes Issue mit |
 | [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: node20-Actions auf Node 24 anheben | 🟠 Hoch | 🟢 Niedrig | GitHub erzwingt Node 24 bereits per Warnung; betroffene Actions (`github-script`, `upload/download-artifact`) einheitlich auf node24-Majors heben, optional Guard-Test |
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text – auch beim Reuse |
 | [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md-Version == pyproject | 🟡 Mittel | 🟢 Niedrig | Schneller Pytest, der die Titelversion gegen `[project].version` prüft – fängt Bump-Drift vor dem schweren License-Check |
@@ -85,14 +85,13 @@ Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#313** — diesen Snapshot aktualisieren und das Meta-Issue schließen, damit die Zählung nicht dauerhaft selbstreferenziell bleibt.
-2. **#307/#308** — Release-Bundles headless smoke-testen (GUI + `--ai`); verhindert erneut ausgelieferte Start-Crashes/Fork-Bombs.
-3. **#312** — node20-Actions auf Node 24 heben, bevor GitHub den Fallback entfernt.
-4. **#309/#310** — generische Workflow-Permissions und LICENSES-Version als schneller Test-Härtungs-PR.
-5. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen.
-6. **#277/#278/#279** — gemeinsamer Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
-7. **#245** — Quota extern wiederherstellen; repo-seitig danach nur klare Fehlerbehandlung.
-8. **#299** — Test-Hygiene nach Bedarf.
+1. **#307/#308** — Release-Bundles headless smoke-testen (GUI + `--ai`); verhindert erneut ausgelieferte Start-Crashes/Fork-Bombs.
+2. **#312** — node20-Actions auf Node 24 heben, bevor GitHub den Fallback entfernt.
+3. **#309/#310** — generische Workflow-Permissions und LICENSES-Version als schneller Test-Härtungs-PR.
+4. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen.
+5. **#277/#278/#279** — gemeinsamer Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
+6. **#245** — Quota extern wiederherstellen; repo-seitig danach nur klare Fehlerbehandlung.
+7. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 
