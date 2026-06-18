@@ -49,31 +49,38 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-15)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-18)
 
-Nach den PRs **#280–#290** sind **5** Issues offen. Die zuletzt gemeldeten
-Folge-Issues **#285** (PR #289) und **#286** (PR #290) sind umgesetzt **und
-geschlossen** — wie zuvor **#235** (PR #281), **#270** (PR #283) und **#275**
-(PR #282). Offen bleiben drei Performance-Befunde — **#277/#278/#279** — aus dem
-Wochen-Benchmark-Lauf (#280); laut Owner-Triage **noch nicht** als
-Code-Regression bestätigt, weil die Baseline vom 2026-06-08 keinen
-Umgebungs-Fingerprint trägt. Dazu kommen **#245** (CI-Quota, extern blockiert)
-und **#161** (README-Clone-URL, Owner-Entscheidung). Alle offenen Issues wurden
-gegen den aktuellen Code verifiziert.
+Stand 2026-06-18 sind **11** Issues offen. Seit der letzten Bewertung
+(2026-06-15) wurde **#161** (README-Clone-URL) am 2026-06-17 **geschlossen**;
+zugleich kam mit dem v2.4.x-Release-Zyklus eine Welle von Test-/Release-
+Härtungs-Issues hinzu (**#299, #307–#312**). Weiterhin offen sind die drei
+Performance-Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut Owner-Triage
+**noch nicht** als Code-Regression bestätigt) und **#245** (CI-Quota, extern
+blockiert). Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance-Regression: JPEG (+38.4%) | 🟡 Mittel | 🟡 Mittel | Refinement: noch nicht als Code-Regression bestätigt. Benchmark um Umgebungs-Fingerprint + Bestätigungsläufe (Median) erweitern, dann erst gegen kompatible Baseline vergleichen. Mit #278/#279 bündeln |
+| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: node20-Actions auf Node 24 anheben | 🟠 Hoch | 🟢 Niedrig | GitHub erzwingt Node 24 bereits per Warnung; betroffene Actions (`github-script`, `upload/download-artifact`) einheitlich auf node24-Majors heben, optional Guard-Test |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text – auch beim Reuse |
+| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md-Version == pyproject | 🟡 Mittel | 🟢 Niedrig | Schneller Pytest, der die Titelversion gegen `[project].version` prüft – fängt Bump-Drift vor dem schweren License-Check |
+| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test: Reusable-WF-Permissions abdecken | 🟡 Mittel | 🟢 Niedrig | `test_release_gate.py` verallgemeinern: Caller-Job muss jede Permission des aufgerufenen Workflows gewähren (OIDC `id-token: write`) |
+| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test: KI-Kette im `--ai`-Artefakt importierbar | 🟠 Hoch | 🟡 Mittel | Netzfreier Spawn-Selbsttest im `--ai`-Build, der `rembg`+`pymatting`-Metadaten lädt (Regression #306) |
+| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test: gebautes Artefakt headless starten | 🟠 Hoch | 🟡 Mittel | Bundle im build-Job headless starten (Start-Crash #304 / Fork-Bomb #305 fangen); `publish` bleibt per `needs: build` gegated |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | Kein Korrektheitsfehler; höchster Nutzen zuerst (Endpunkt-Move, `set_brush_size` konsolidieren), Rest nach Bedarf |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance-Regression: JPEG (+38.4%) | 🟡 Mittel | 🟡 Mittel | Noch nicht als Code-Regression bestätigt. Benchmark um Umgebungs-Fingerprint + Bestätigungsläufe (Median) erweitern; mit #278/#279 bündeln |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance-Regression: TIFF (+21.8%) | 🟡 Mittel | 🟡 Mittel | Wie #277: gemeinsame Benchmark-Härtung; den Encode-Pfad (`save_image_file`) erst nach einem kompatiblen Bestätigungslauf untersuchen |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance-Regression: WebP (+13.7%) | 🟡 Mittel | 🟡 Mittel | Wie #277/#278: ein gemeinsamer PR für Fingerprint + Median-Bestätigung; nur bestätigte Regressionen melden |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | Blockiert (extern): Quota account-seitig wiederherstellen. Repo-seitig nur klare Fehlerbehandlung (graceful skip) + optionaler Node-24-Bump, kein erzwungener `setup-node`-Fix |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: Clone-URL führt für anonyme Nutzer zu 404 | 🟢 Niedrig | 🟢 Niedrig | Entscheidung nötig: öffentlich vs. privat/invite-only, dann Clone-Doku ändern oder schließen („Runde 5“ ist bereits erledigt) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | Blockiert (extern): Quota account-seitig wiederherstellen. Repo-seitig nur klare Fehlerbehandlung (graceful skip) + optionaler Node-24-Bump |
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#277/#278/#279** — ein gemeinsamer PR: Benchmark um Umgebungs-Fingerprint und Bestätigungsläufe (Median) erweitern; Regression nur bei kompatibler Baseline melden.
-2. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24) als kleiner separater PR.
-3. **#161** — Veröffentlichungsmodell entscheiden, dann Doku ändern oder schließen.
+1. **#307/#308** — Release-Bundles headless smoke-testen (GUI + `--ai`); verhindert erneut ausgelieferte Start-Crashes/Fork-Bombs.
+2. **#312** — node20-Actions auf Node 24 heben, bevor GitHub den Fallback entfernt.
+3. **#309/#310/#311** — Release-/CI-Guards: WF-Permissions, LICENSES-Version, CHANGELOG-Release-Body (kleine separate PRs).
+4. **#277/#278/#279** — ein gemeinsamer PR: Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
+5. **#245** — Quota extern wiederherstellen; optionale Workflow-Härtung (graceful skip + Node 24).
+6. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 

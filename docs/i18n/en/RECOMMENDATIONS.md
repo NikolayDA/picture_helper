@@ -48,30 +48,38 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Priority Assessment (2026-06-15)
+## Open GitHub Issues — Priority Assessment (2026-06-18)
 
-After PRs **#280–#290**, **5** issues are open. The most recent follow-up
-issues **#285** (PR #289) and **#286** (PR #290) are implemented **and closed**
-— as are **#235** (PR #281), **#270** (PR #283), and **#275** (PR #282). Still
-open are three performance findings — **#277/#278/#279** — from the weekly
-benchmark run (#280); per the owner's triage **not yet** confirmed as code
-regressions, because the 2026-06-08 baseline carries no environment fingerprint.
-Plus **#245** (CI quota, externally blocked) and **#161** (README clone URL,
-owner decision). All open issues were re-verified against the current code.
+As of 2026-06-18, **11** issues are open. Since the last assessment
+(2026-06-15), **#161** (README clone URL) was **closed** on 2026-06-17; at the
+same time the v2.4.x release cycle brought a wave of test/release hardening
+issues (**#299, #307–#312**). Still open are the three performance findings
+**#277/#278/#279** (weekly benchmark #280, per the owner's triage **not yet**
+confirmed as code regressions) and **#245** (CI quota, externally blocked). All
+open issues were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance regression: JPEG (+38.4%) | 🟡 Medium | 🟡 Medium | Refinement: not yet confirmed as a code regression. Extend the benchmark with an environment fingerprint + confirmation runs (median), then compare only against a compatible baseline. Bundle with #278/#279 |
+| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: bump node20 actions to Node 24 | 🟠 High | 🟢 Low | GitHub already forces Node 24 with a warning; bump the affected actions (`github-script`, `upload/download-artifact`) to node24 majors uniformly, optional guard test |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | Backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string — also on reuse |
+| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md version == pyproject | 🟡 Medium | 🟢 Low | Fast pytest comparing the title version against `[project].version` — catches bump drift before the heavy License Check |
+| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test: caller covers reusable-WF permissions | 🟡 Medium | 🟢 Low | Generalize `test_release_gate.py`: the caller job must grant every permission the called workflow declares (OIDC `id-token: write`) |
+| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test: AI chain importable in `--ai` artifact | 🟠 High | 🟡 Medium | Network-free spawn self-test in the `--ai` build that loads `rembg`+`pymatting` metadata (regression #306) |
+| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test: launch built artifact headless | 🟠 High | 🟡 Medium | Launch the bundle headless in the build job (catch start crash #304 / fork bomb #305); `publish` stays gated via `needs: build` |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
+| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance regression: JPEG (+38.4%) | 🟡 Medium | 🟡 Medium | Not yet confirmed as a code regression. Extend the benchmark with an environment fingerprint + confirmation runs (median); bundle with #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance regression: TIFF (+21.8%) | 🟡 Medium | 🟡 Medium | Like #277: shared benchmark hardening; investigate the encode path (`save_image_file`) only after a compatible confirmation run |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance regression: WebP (+13.7%) | 🟡 Medium | 🟡 Medium | Like #277/#278: one shared PR for fingerprint + median confirmation; report only confirmed regressions |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | Blocked (external): restore quota account-side. Repo scope is only clearer failure handling (graceful skip) + an optional Node 24 bump, not a forced `setup-node` fix |
-| [#161](https://github.com/NikolayDA/picture_helper/issues/161) | README: clone URL returns 404 for anonymous users | 🟢 Low | 🟢 Low | Decision needed: public vs. private/invite-only, then update the clone guidance or close ("Round 5" is already fixed) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | Blocked (external): restore quota account-side. Repo scope is only clearer failure handling (graceful skip) + an optional Node 24 bump |
 
 ### Recommended PR Order
 
-1. **#277/#278/#279** — one shared PR: extend the benchmark with an environment fingerprint and confirmation runs (median); report a regression only against a compatible baseline.
-2. **#245** — restore quota externally; optional workflow hardening (graceful skip + Node 24) as a small separate PR.
-3. **#161** — decide the publication model, then update docs or close.
+1. **#307/#308** — headless smoke-test the release bundles (GUI + `--ai`); prevents shipping start crashes/fork bombs again.
+2. **#312** — bump node20 actions to Node 24 before GitHub removes the fallback.
+3. **#309/#310/#311** — release/CI guards: WF permissions, LICENSES version, CHANGELOG release body (small separate PRs).
+4. **#277/#278/#279** — one shared PR: benchmark fingerprint + median confirmation; report a regression only against a compatible baseline.
+5. **#245** — restore quota externally; optional workflow hardening (graceful skip + Node 24).
+6. **#299** — test hygiene as needed.
 
 ## Previous Rounds
 
