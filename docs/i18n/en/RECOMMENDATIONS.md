@@ -59,14 +59,17 @@ confirmation; report only against comparable baselines). PR **#317** (which
 closed #309/#310) spawned a new follow-up **#318** from its Codex review
 (job-level permission overrides in the reusable-workflow guard). Still open are
 **#311** (release body), **#318** (permission-guard follow-up), **#245** (CI
-quota, externally blocked), and the low-priority test hygiene item **#299**. All
-open issues were re-verified against the current code.
+quota, externally blocked), and the low-priority test hygiene item **#299**. The triage of **#245** also spawned three
+bundled, repo-side hardening follow-ups — **#322** (maintenance/skip path),
+**#323** (security-issue-sync tests), and **#324** (prompt-scope governance) —
+that hang off #245 until the quota is restored account-side. All open issues
+were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | **Ready for PR** — well-scoped: backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string (also on reuse), with a regression test in `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first confirm GitHub's startup-validation semantics (top-level vs. effective-per-job); currently a purely theoretical false positive (no job-level overrides in `ci.yml`), and the OIDC guard #303 must not get weaker |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external):** restore quota account-side. Repo scope is only clearer failure handling (graceful skip) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external):** restore quota account-side. Repo-side hardening is now tracked in **#322–#324** (maintenance/skip path, sync tests, prompt governance); the graceful skip is #322 variant B |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
 
 ### Bundleable Issues
@@ -79,7 +82,7 @@ open issues were re-verified against the current code.
 
 1. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes; well-scoped and user-visible (shipped fixes are otherwise invisible on the release page).
 2. **#318** — refine the permission guard once GitHub's semantics are documented, without weakening the OIDC regression case.
-3. **#245** — restore quota externally; repo-side work afterwards is only clearer failure handling.
+3. **#245** — restore quota externally; repo-side hardening tracked in **#322–#324** (maintenance/skip path, sync tests, prompt governance).
 4. **#299** — test hygiene as needed.
 
 ## Previous Rounds

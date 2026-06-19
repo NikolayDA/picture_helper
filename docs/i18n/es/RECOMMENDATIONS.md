@@ -62,14 +62,18 @@ cerró #309/#310) generó un nuevo seguimiento **#318** a partir de su revisión
 Codex (overrides de permisos a nivel de job en el guard del workflow
 reutilizable). Siguen abiertos **#311** (cuerpo del release), **#318** (guard de
 permisos), **#245** (cuota de CI, bloqueado externamente) y el ítem de higiene de
-tests de baja prioridad **#299**. Todos los issues abiertos se reverificaron
-contra el código actual.
+tests de baja prioridad **#299**. El triaje de **#245** generó además tres
+seguimientos de endurecimiento del lado del repo, agrupados — **#322** (ruta de
+mantenimiento/skip), **#323** (tests del sync de issues de seguridad) y **#324**
+(gobernanza del alcance del prompt) —, que cuelgan de #245 hasta restaurar la
+cuota en la cuenta. Todos los issues abiertos se reverificaron contra el código
+actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | **Listo para PR** — bien acotado: rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo (también al reusar), con un test de regresión en `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respetar overrides de permisos a nivel de job en el WF reutilizable | 🟡 Media | 🟡 Media | **Necesita refinamiento** — primero confirmar la semántica de validación de arranque de GitHub (top-level vs. efectivo-por-job); actualmente es un falso positivo puramente teórico (no hay overrides a nivel de job en `ci.yml`), y el guard OIDC #303 no debe debilitarse |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. El endurecimiento del lado del repo se sigue ahora en **#322–#324** (ruta de mantenimiento/skip, tests del sync, gobernanza del prompt); el skip elegante es la variante B de #322 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
 
 ### Issues Agrupables
@@ -82,7 +86,7 @@ contra el código actual.
 
 1. **#311** — derivar los cuerpos de release desde el CHANGELOG y completar las notas de v2.4.1; bien acotado y visible para el usuario (los fixes ya lanzados son de otro modo invisibles en la página del release).
 2. **#318** — refinar el guard de permisos una vez documentada la semántica de GitHub, sin debilitar el caso de regresión OIDC.
-3. **#245** — restaurar la cuota externamente; el trabajo en el repo después es solo una gestión de error más clara.
+3. **#245** — restaurar la cuota externamente; el endurecimiento del lado del repo se sigue en **#322–#324** (ruta de mantenimiento/skip, tests del sync, gobernanza del prompt).
 4. **#299** — higiene de tests según haga falta.
 
 ## Rondas Anteriores

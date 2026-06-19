@@ -52,13 +52,13 @@
 而 **关闭**。PR **#317**（关闭了 #309/#310）从其 Codex review 中衍生出一个新的后续
 **#318**（可复用 workflow guard 中的 job 级权限覆盖）。仍开放的是 **#311**
 （release 正文）、**#318**（权限 guard）、**#245**（CI quota，外部受阻）以及低
-优先级测试卫生项 **#299**。所有开放 issue 均已对照当前代码重新核实。
+优先级测试卫生项 **#299**。**#245** 的分诊还衍生出三个归并的仓库侧加固后续——**#322**（维护/跳过路径）、**#323**（安全 issue 同步测试）与 **#324**（prompt 范围治理）——它们挂在 #245 下，直到在账户侧恢复 quota。所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | 发布：从 CHANGELOG 填充 release 正文 | 🟡 中 | 🟡 中 | **可做 PR** — 范围明确：手动补全 v2.4.1 正文；让 `release-linux.yml` 从 `## [X.Y.Z]` 推导 notes 而非硬编码文本（复用时亦然），并在 `test_release_gate.py` 中加回归测试 |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | 测试：尊重可复用 WF 中的 job 级权限覆盖 | 🟡 中 | 🟡 中 | **需打磨** — 先确认 GitHub 的 startup-validation 语义（top-level 与 effective-per-job）；目前是纯理论上的误报（`ci.yml` 中没有 job 级覆盖），且 OIDC guard #303 不得被削弱 |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | **受阻（外部）：** 在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过） |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | **受阻（外部）：** 在账户侧恢复 quota。仓库侧加固现于 **#322–#324** 跟踪（维护/跳过路径、同步测试、prompt 治理）；优雅跳过对应 #322 的变体 B |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | 测试卫生：弱断言/冗余 | 🟢 低 | 🟢 低 | 非正确性缺陷；先做最有价值的（endpoint 移动、合并 `set_brush_size`），其余按需 |
 
 ### 可合并 Issues
@@ -71,7 +71,7 @@
 
 1. **#311** — 从 CHANGELOG 推导 release 正文并补回 v2.4.1 notes；范围明确且用户可见（否则已发布的修复在 release 页面上不可见）。
 2. **#318** — 在 GitHub 语义有文档依据后打磨权限 guard，且不削弱 OIDC 回归用例。
-3. **#245** — 在外部恢复 quota；仓库侧之后只需更清晰的失败处理。
+3. **#245** — 在外部恢复 quota；仓库侧加固在 **#322–#324** 跟踪（维护/跳过路径、同步测试、prompt 治理）。
 4. **#299** — 测试卫生按需处理。
 
 ## 先前轮次

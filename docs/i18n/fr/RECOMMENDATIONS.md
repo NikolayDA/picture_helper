@@ -62,14 +62,18 @@ par médiane ; ne signaler que face à des baselines comparables). La PR **#317*
 Codex (surcharges de permissions au niveau job dans le garde du workflow
 réutilisable). Restent ouverts **#311** (corps de release), **#318** (garde de
 permissions), **#245** (quota CI, bloqué en externe) et l'élément d'hygiène de
-tests de basse priorité **#299**. Toutes les issues ouvertes ont été revérifiées
-sur le code actuel.
+tests de basse priorité **#299**. Le tri de **#245** a en outre fait naître
+trois suivis de durcissement côté dépôt, regroupés — **#322** (chemin de
+maintenance/skip), **#323** (tests du sync des issues de sécurité) et **#324**
+(gouvernance du périmètre du prompt) —, rattachés à #245 jusqu'à la restauration
+du quota côté compte. Toutes les issues ouvertes ont été revérifiées sur le code
+actuel.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release : remplir le corps de la release depuis le CHANGELOG | 🟡 Moyenne | 🟡 Moyenne | **Prêt pour PR** — bien cadré : compléter le corps de v2.4.1 à la main ; faire dériver les notes de `## [X.Y.Z]` par `release-linux.yml` au lieu d'un texte fixe (aussi lors du réemploi), avec un test de régression dans `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les surcharges de permissions au niveau job dans le WF réutilisable | 🟡 Moyenne | 🟡 Moyenne | **À affiner** — confirmer d'abord la sémantique de validation au démarrage de GitHub (niveau top vs. effectif par job) ; actuellement un faux positif purement théorique (aucune surcharge au niveau job dans `ci.yml`), et le garde OIDC #303 ne doit pas s'affaiblir |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | **Bloqué (externe) :** restaurer le quota côté compte. Le périmètre du dépôt n'est qu'une gestion d'échec plus claire (skip propre) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | **Bloqué (externe) :** restaurer le quota côté compte. Le durcissement côté dépôt est désormais suivi dans **#322–#324** (chemin de maintenance/skip, tests du sync, gouvernance du prompt) ; le skip propre est la variante B de #322 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | Pas de bug de correction ; le plus utile d'abord (déplacement d'endpoint, consolider `set_brush_size`), le reste au besoin |
 
 ### Issues Regroupables
@@ -82,7 +86,7 @@ sur le code actuel.
 
 1. **#311** — dériver le corps des releases depuis le CHANGELOG et compléter les notes v2.4.1 ; bien cadré et visible par l'utilisateur (les correctifs livrés sont sinon invisibles sur la page de release).
 2. **#318** — affiner le garde de permissions une fois la sémantique de GitHub documentée, sans affaiblir le cas de régression OIDC.
-3. **#245** — restaurer le quota à l'extérieur ; le travail côté dépôt n'est ensuite qu'une gestion d'échec plus claire.
+3. **#245** — restaurer le quota à l'extérieur ; durcissement côté dépôt suivi dans **#322–#324** (chemin de maintenance/skip, tests du sync, gouvernance du prompt).
 4. **#299** — hygiène des tests au besoin.
 
 ## Séries Précédentes
