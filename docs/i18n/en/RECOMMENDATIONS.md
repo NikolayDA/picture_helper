@@ -50,7 +50,7 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Priority Assessment (2026-06-19)
 
-As of 2026-06-19, **4** issues are open. Since the 2026-06-18 assessment, the
+As of 2026-06-19, **7** issues are open. Since the 2026-06-18 assessment, the
 test/release hardening wave was largely merged: **#307, #308, #309, #310**, and
 **#312** are now **closed** (as is the snapshot meta issue **#313**). The three
 performance findings **#277/#278/#279** (weekly benchmark #280) are now
@@ -59,10 +59,10 @@ confirmation; report only against comparable baselines). PR **#317** (which
 closed #309/#310) spawned a new follow-up **#318** from its Codex review
 (job-level permission overrides in the reusable-workflow guard). Still open are
 **#311** (release body), **#318** (permission-guard follow-up), **#245** (CI
-quota, externally blocked), and the low-priority test hygiene item **#299**. The triage of **#245** also spawned three
-bundled, repo-side hardening follow-ups — **#322** (maintenance/skip path),
-**#323** (security-issue-sync tests), and **#324** (prompt-scope governance) —
-that hang off #245 until the quota is restored account-side. All open issues
+quota, externally blocked), and the low-priority test hygiene item **#299**, plus three repo-side hardening follow-ups from the
+**#245** triage — **#322** (maintenance/skip path), **#323** (security-issue-sync
+tests), and **#324** (prompt-scope governance), of which #323/#324 are
+network-free and doable right away. All open issues
 were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
@@ -70,6 +70,9 @@ were re-verified against the current code.
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | **Ready for PR** — well-scoped: backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string (also on reuse), with a regression test in `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first confirm GitHub's startup-validation semantics (top-level vs. effective-per-job); currently a purely theoretical false positive (no job-level overrides in `ci.yml`), and the OIDC guard #303 must not get weaker |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external):** restore quota account-side. Repo-side hardening is now tracked in **#322–#324** (maintenance/skip path, sync tests, prompt governance); the graceful skip is #322 variant B |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **#245 follow-up** — scope decision manual switch vs. visible auto-graceful-skip (vs. both); gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege (no `issues: write` in the scan job), static test |
+| [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: cover the security-issue sync for severity filter and empty findings | 🟢 Low | 🟢 Low | **#245 follow-up, doable now** — regression tests for `reportable: false`, the severity threshold, and "No reportable findings"; network-free via `--dry-run`/direct calls |
+| [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: doc-governance test for the Codex scan prompt vs. repo scope | 🟢 Low | 🟢 Low | **#245 follow-up, doable now** — static test that the prompt still names the current top-level security surfaces; complements the existing prompt assertions |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
 
 ### Bundleable Issues
@@ -82,8 +85,10 @@ were re-verified against the current code.
 
 1. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes; well-scoped and user-visible (shipped fixes are otherwise invisible on the release page).
 2. **#318** — refine the permission guard once GitHub's semantics are documented, without weakening the OIDC regression case.
-3. **#245** — restore quota externally; repo-side hardening tracked in **#322–#324** (maintenance/skip path, sync tests, prompt governance).
-4. **#299** — test hygiene as needed.
+3. **#245** — restore quota account-side (externally blocked).
+4. **#322** — maintenance/skip path after a deliberate auto/manual decision (#245 follow-up).
+5. **#323 / #324** — network-free sync-test and prompt-governance hardening, doable anytime.
+6. **#299** — test hygiene as needed.
 
 ## Previous Rounds
 

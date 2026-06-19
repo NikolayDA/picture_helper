@@ -51,7 +51,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-19)
 
-Stand 2026-06-19 sind **4** Issues offen. Seit der Bewertung vom 2026-06-18
+Stand 2026-06-19 sind **7** Issues offen. Seit der Bewertung vom 2026-06-18
 wurde die Test-/Release-Härtungs-Welle größtenteils gemerged: **#307, #308,
 #309, #310** und **#312** sind **geschlossen** (ebenso das Snapshot-Meta-Issue
 **#313**). Die drei Performance-Befunde **#277/#278/#279** (Wochen-Benchmark
@@ -61,10 +61,10 @@ Codex-Review zu PR **#317** (der #309/#310 schloss) entstand ein neuer
 Folgebefund **#318** (Job-Level-Permission-Overrides im Reusable-Workflow-Guard).
 Weiterhin offen sind **#311** (Release-Body), **#318** (Permission-Guard),
 **#245** (CI-Quota, extern blockiert) und die niedrigpriore Test-Hygiene
-**#299**. Aus der Triage von **#245** sind drei gebündelte repo-seitige
-Härtungs-Folgeissues hervorgegangen — **#322** (Wartungs-/Skip-Pfad), **#323**
-(Security-Issue-Sync-Tests) und **#324** (Prompt-Scope-Governance) —, die an
-#245 hängen, bis die Quota account-seitig wiederhergestellt ist. Alle offenen
+**#299** sowie drei aus der **#245**-Triage entstandene repo-seitige
+Härtungs-Folgeissues — **#322** (Wartungs-/Skip-Pfad), **#323**
+(Security-Issue-Sync-Tests) und **#324** (Prompt-Scope-Governance) —, von denen
+#323/#324 netzunabhängig sofort umsetzbar sind. Alle offenen
 Issues wurden gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
@@ -72,6 +72,9 @@ Issues wurden gegen den aktuellen Code verifiziert.
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | **Ready for PR** – gut umrissen: v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text (auch beim Reuse), Regressionstest in `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟡 Mittel | 🟡 Mittel | **Needs refinement** – zuerst GitHubs Startup-Validierungssemantik (Top-Level vs. effektiv-per-Job) belegen; aktuell rein theoretischer False-Positive (keine Job-Level-Overrides in `ci.yml`), OIDC-Guard #303 darf nicht schwächer werden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern):** Quota account-seitig wiederherstellen. Repo-seitige Härtung jetzt in **#322–#324** verfolgt (Wartungs-/Skip-Pfad, Sync-Tests, Prompt-Governance); der graceful skip entspricht #322 Variante B |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: Wartungs-/Skip-Pfad für geplanten Codex Security Scan | 🟡 Mittel | 🟡 Mittel | **#245-Folge** – Scope-Entscheidung manueller Schalter vs. sichtbarer Auto-Graceful-Skip (vs. beides); Gate im `cadence`-Job, „disabled → skipped, nicht failed", Least-Privilege wahren (kein `issues: write` im Scan-Job), statischer Test |
+| [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: Security-Issue-Sync für Severity-Filter und leere Findings absichern | 🟢 Niedrig | 🟢 Niedrig | **#245-Folge, sofort umsetzbar** – Regressionstests für `reportable: false`, Severity-Schwelle und „No reportable findings"; netzunabhängig via `--dry-run`/Direktaufruf |
+| [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: Doc-Governance-Test für Codex-Scan-Prompt gegen Repo-Scope | 🟢 Niedrig | 🟢 Niedrig | **#245-Folge, sofort umsetzbar** – statischer Test, dass der Prompt die aktuellen Top-Level-Security-Flächen nennt; ergänzt die bestehenden Prompt-Assertions |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | Kein Korrektheitsfehler; höchster Nutzen zuerst (Endpunkt-Move, `set_brush_size` konsolidieren), Rest nach Bedarf |
 
 ### Bündelbare Issues
@@ -84,8 +87,10 @@ Issues wurden gegen den aktuellen Code verifiziert.
 
 1. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen; gut umrissen und nutzersichtbar (ausgelieferte Fixes sind sonst auf der Release-Seite unsichtbar).
 2. **#318** — nach belegter GitHub-Semantik den Permission-Guard verfeinern, ohne den OIDC-Regressionsfall zu schwächen.
-3. **#245** — Quota extern wiederherstellen; repo-seitige Härtung in **#322–#324** (Wartungs-/Skip-Pfad, Sync-Tests, Prompt-Governance) verfolgt.
-4. **#299** — Test-Hygiene nach Bedarf.
+3. **#245** — Quota account-seitig wiederherstellen (extern blockiert).
+4. **#322** — Wartungs-/Skip-Pfad nach bewusster auto/manuell-Entscheidung (#245-Folge).
+5. **#323 / #324** — netzunabhängige Sync-Test- und Prompt-Governance-Härtung, jederzeit umsetzbar.
+6. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 
