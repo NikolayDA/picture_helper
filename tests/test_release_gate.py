@@ -15,6 +15,7 @@ PyYAML vorhanden ist (sonst übersprungen – analog zu
 """
 from __future__ import annotations
 
+import importlib.util
 import re
 from pathlib import Path
 
@@ -148,6 +149,66 @@ def test_publish_artifact_download_is_rerun_resilient() -> None:
     assert re.search(r"(?m)^\s*actions:\s*read\b", text), (
         "Der Publish-Job braucht actions: read für den API-Download per run-id."
     )
+
+
+# ── #311: Release-Body aus dem CHANGELOG ───────────────────────────────
+#
+# Der Release-Body wurde frueher mit einem fest verdrahteten „Automated build…"-
+# Satz gefuellt; die echten, nutzersichtbaren Notizen standen nur im CHANGELOG
+# und mussten von Hand nachgetragen werden (fuer v2.4.1 vergessen). Der publish-
+# Job leitet die Notes jetzt aus dem ``## [X.Y.Z]``-Abschnitt ab.
+
+_EXTRACT_SCRIPT = _ROOT / "scripts" / "extract_release_notes.py"
+
+
+def _load_extract_module() -> object:
+    spec = importlib.util.spec_from_file_location("extract_release_notes", _EXTRACT_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_release_notes_are_derived_from_changelog_not_static_text() -> None:
+    text = _release_text()
+    assert "Automated build: Linux AppImage" not in text, (
+        "Der hardcodierte 'Automated build…'-Notiztext muss entfallen – der "
+        "Release-Body wird aus dem CHANGELOG abgeleitet (#311)."
+    )
+    assert "extract_release_notes.py" in text, (
+        "Der publish-Job muss die Notes ueber scripts/extract_release_notes.py "
+        "aus dem CHANGELOG ableiten (#311)."
+    )
+    assert "--notes-file" in text, "Die Notes werden via --notes-file uebergeben (#311)."
+    # Kein statischer --notes-String mehr (--notes-file enthaelt kein '--notes ').
+    assert "--notes " not in text, "Kein statischer --notes-String mehr (#311)."
+
+
+def test_release_sets_body_on_reuse_too() -> None:
+    text = _release_text()
+    assert re.search(r"gh release edit\s+\"\$GITHUB_REF_NAME\"\s+--notes-file", text), (
+        "Beim Reuse eines existierenden Releases muss der Body via "
+        "'gh release edit --notes-file' aktualisiert werden, nicht nur bei der "
+        "Erstanlage (#311)."
+    )
+
+
+def test_extract_release_notes_reads_changelog_section() -> None:
+    module = _load_extract_module()
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    notes = module.extract_release_notes(changelog, "2.4.1")  # type: ignore[attr-defined]
+    # Einer der drei 2.4.1-Fixes ist enthalten …
+    assert "freeze_support" in notes
+    # … aber nur der Abschnitt selbst, keine Folge-Ueberschrift.
+    assert "## [" not in notes
+
+
+def test_extract_release_notes_fails_loudly_on_missing_version() -> None:
+    """Fehlt der ``## [X.Y.Z]``-Abschnitt, gibt es keinen stillen Fallback (#311)."""
+    module = _load_extract_module()
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    with pytest.raises(KeyError):
+        module.extract_release_notes(changelog, "9.9.9")  # type: ignore[attr-defined]
 
 
 # ── Struktur des Job-Graphen (geparstes YAML, übersprungen ohne PyYAML) ─

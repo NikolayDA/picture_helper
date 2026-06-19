@@ -9,6 +9,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **GitHub-Release-Notizen stammen jetzt aus dem CHANGELOG.** Der
+  Release-Workflow (`release-linux.yml`) leitet den Release-Body zum Tag
+  `vX.Y.Z` aus dem `## [X.Y.Z]`-Abschnitt der `CHANGELOG.md` ab und übergibt ihn
+  via `--notes-file` an `gh release` – auch beim Wiederverwenden eines
+  bestehenden Releases (`gh release edit`), nicht nur bei der Erstanlage. Der
+  fest verdrahtete „Automated build…"-Text entfällt; fehlt der passende
+  Abschnitt, schlägt der Publish-Job klar fehl (kein stiller Fallback) (#311).
+
 ## [2.4.1] – 2026-06-17
 
 ### Behoben

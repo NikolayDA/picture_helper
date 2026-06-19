@@ -92,6 +92,28 @@ before `publish` (`needs: build`):
   `spawn` and imports the full `rembg` chain (resolving the `pymatting` metadata
   from #306) — **no** model download, **no** network. Exit 0/non-zero.
 
+## Release notes (from the CHANGELOG)
+
+The GitHub Release **body** is derived from the matching `CHANGELOG.md` section,
+not from a hardcoded string (#311). On a `vX.Y.Z` tag the `publish` job runs
+`scripts/extract_release_notes.py X.Y.Z`, which extracts everything between the
+`## [X.Y.Z]` heading and the next `## [` heading and passes it via `--notes-file`
+to `gh release create` (new release) **or** `gh release edit` (reuse of an
+existing release — e.g. on a re-run, so a corrected body actually lands).
+
+If no `## [X.Y.Z]` section exists for the tag, the script exits non-zero and the
+`publish` job fails loudly — there is **no** silent generic fallback. So before
+tagging a release, add its dated `## [X.Y.Z] – YYYY-MM-DD` section to
+`CHANGELOG.md` (and mirror it in `docs/i18n/*/CHANGELOG.md`).
+
+To backfill the body of an already-published release by hand, run the same
+extraction locally and feed it to `gh`:
+
+```bash
+python3 scripts/extract_release_notes.py 2.4.1 > /tmp/notes.md
+gh release edit v2.4.1 --notes-file /tmp/notes.md
+```
+
 ## Validation
 
 `tests/test_linux_packaging.py` runs in normal PR CI **without external tools**:

@@ -277,12 +277,16 @@ jobs:
       actions: read    # download-artifact per run-id über die Actions-API
     env:
       GH_TOKEN: ${{ github.token }}
-      # Der Job hat keinen Checkout; ``gh`` wuerde den Repo-Kontext sonst aus
-      # einem (fehlenden) lokalen Git-Remote raten. GH_REPO setzt ihn explizit,
-      # damit ``gh release view/create/upload`` auf einem frischen Runner
-      # zuverlaessig das richtige Repository ansprechen (#257).
+      # GH_REPO setzt den Repo-Kontext explizit, damit ``gh release
+      # view/create/edit/upload`` auf einem frischen Runner zuverlaessig das
+      # richtige Repository ansprechen (#257) – unabhaengig vom Checkout-Remote.
       GH_REPO: ${{ github.repository }}
     steps:
+      # Checkout nur fuer CHANGELOG.md + scripts/: der Release-Body wird aus dem
+      # passenden ``## [X.Y.Z]``-Abschnitt abgeleitet (#311), nicht mehr aus
+      # einem hardcodierten Text.
+      - uses: actions/checkout@v5
+
       - name: Download built artifacts
         uses: actions/download-artifact@v8
         with:
@@ -312,17 +316,31 @@ jobs:
             || { echo "::error::erwarte 1 .dmg (macOS arm64), habe ${#dmgs[@]}"; exit 1; }
           ls -lh dist/
 
+      # #311: Release-Body aus dem CHANGELOG-Abschnitt der Tag-Version ableiten.
+      # Fehlt ``## [X.Y.Z]``, bricht das Skript hart ab (Exit 2) – kein stiller
+      # generischer Fallback, der Publish-Job faellt klar.
+      - name: Derive release notes from CHANGELOG
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          python3 scripts/extract_release_notes.py "$version" > release-notes.md
+          echo ">> Release-Notes fuer $version aus CHANGELOG.md abgeleitet:"
+          cat release-notes.md
+
       - name: Create or reuse the GitHub Release
         run: |
           set -euo pipefail
-          # Fehler von ``gh release create`` werden NICHT pauschal verschluckt:
-          # ein bereits existierendes Release wird explizit erkannt und
-          # wiederverwendet, jeder andere Fehler bricht den Job ab.
+          # Der Body wird IMMER aus dem CHANGELOG gesetzt – auch beim Reuse eines
+          # bereits existierenden Releases (#311). Fehler von ``gh release`` werden
+          # NICHT pauschal verschluckt: ein existierendes Release wird explizit
+          # erkannt und sein Body via ``gh release edit`` aktualisiert, jeder
+          # andere Fehler bricht den Job ab.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME existiert bereits – Assets werden aktualisiert."
+            echo "Release $GITHUB_REF_NAME existiert bereits – Body + Assets werden aktualisiert."
+            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
           else
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
-              --notes "Automated build: Linux AppImage + .deb (x86_64, aarch64) and macOS .dmg (arm64)." --verify-tag
+              --notes-file release-notes.md --verify-tag
           fi
 
       - name: Upload artifacts to the Release
