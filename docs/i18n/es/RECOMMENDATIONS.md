@@ -51,7 +51,7 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-19)
 
-A fecha de 2026-06-19 quedan **4** issues abiertos. Desde la evaluación del
+A fecha de 2026-06-19 quedan **7** issues abiertos. Desde la evaluación del
 2026-06-18, la oleada de endurecimiento de tests/release se integró en gran
 parte: **#307, #308, #309, #310** y **#312** ya están **cerrados** (igual que el
 meta-issue del snapshot **#313**). Los tres hallazgos de rendimiento
@@ -62,14 +62,21 @@ cerró #309/#310) generó un nuevo seguimiento **#318** a partir de su revisión
 Codex (overrides de permisos a nivel de job en el guard del workflow
 reutilizable). Siguen abiertos **#311** (cuerpo del release), **#318** (guard de
 permisos), **#245** (cuota de CI, bloqueado externamente) y el ítem de higiene de
-tests de baja prioridad **#299**. Todos los issues abiertos se reverificaron
-contra el código actual.
+tests de baja prioridad **#299**, más tres seguimientos de endurecimiento del
+lado del repo surgidos del triaje de **#245** — **#322** (ruta de
+mantenimiento/skip), **#323** (tests del sync de issues de seguridad) y **#324**
+(gobernanza del alcance del prompt), de los cuales #323/#324 no requieren red y
+son realizables de inmediato. Todos los issues abiertos se reverificaron contra el código
+actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | **Listo para PR** — bien acotado: rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo (también al reusar), con un test de regresión en `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respetar overrides de permisos a nivel de job en el WF reutilizable | 🟡 Media | 🟡 Media | **Necesita refinamiento** — primero confirmar la semántica de validación de arranque de GitHub (top-level vs. efectivo-por-job); actualmente es un falso positivo puramente teórico (no hay overrides a nivel de job en `ci.yml`), y el guard OIDC #303 no debe debilitarse |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. El endurecimiento del lado del repo se sigue ahora en **#322–#324** (ruta de mantenimiento/skip, tests del sync, gobernanza del prompt); el skip elegante es la variante B de #322 |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: añadir una ruta de mantenimiento/skip para el Codex Security Scan programado | 🟡 Media | 🟡 Media | **Seguimiento de #245** — decisión de alcance interruptor manual vs. auto-skip elegante visible (vs. ambos); gate en el job `cadence`, "disabled → skipped, no failed", mantener mínimo privilegio (sin `issues: write` en el job de scan), test estático |
+| [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: cubrir el sync de issues de seguridad para el filtro de severidad y findings vacíos | 🟢 Baja | 🟢 Baja | **Seguimiento de #245, realizable ya** — tests de regresión para `reportable: false`, el umbral de severidad y "No reportable findings"; sin red vía `--dry-run`/llamadas directas |
+| [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: test de gobernanza de docs para el prompt del Codex scan vs. alcance del repo | 🟢 Baja | 🟢 Baja | **Seguimiento de #245, realizable ya** — test estático de que el prompt sigue nombrando las superficies de seguridad de alto nivel actuales; complementa las assertions de prompt existentes |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
 
 ### Issues Agrupables
@@ -82,8 +89,10 @@ contra el código actual.
 
 1. **#311** — derivar los cuerpos de release desde el CHANGELOG y completar las notas de v2.4.1; bien acotado y visible para el usuario (los fixes ya lanzados son de otro modo invisibles en la página del release).
 2. **#318** — refinar el guard de permisos una vez documentada la semántica de GitHub, sin debilitar el caso de regresión OIDC.
-3. **#245** — restaurar la cuota externamente; el trabajo en el repo después es solo una gestión de error más clara.
-4. **#299** — higiene de tests según haga falta.
+3. **#245** — restaurar la cuota en la cuenta (bloqueado externamente).
+4. **#322** — ruta de mantenimiento/skip tras una decisión deliberada auto/manual (seguimiento de #245).
+5. **#323 / #324** — endurecimiento sin red de tests del sync y gobernanza del prompt, realizable en cualquier momento.
+6. **#299** — higiene de tests según haga falta.
 
 ## Rondas Anteriores
 
