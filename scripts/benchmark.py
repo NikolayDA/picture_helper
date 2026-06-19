@@ -650,12 +650,21 @@ def _cmd_run(args: argparse.Namespace) -> int:
         return 0
 
     # Bestätigungslauf: mehrere vollständige Wiederholungen, Median vergleichen.
+    # Der zuerst gespeicherte Lauf fließt mit in den Median ein – so beruht die
+    # Bestätigung auf allen Messungen, nicht nur auf den Nachläufen.
     repeats = max(1, args.confirm_runs)
     print(f"\n🔁 {len(comp.flagged)} Format(e) auffällig – Bestätigung mit "
           f"{repeats} Wiederholung(en) …\n")
     confirmed = aggregate_results(
-        [run_benchmark(args.iterations, args.width, args.height) for _ in range(repeats)]
+        [result, *(run_benchmark(args.iterations, args.width, args.height)
+                   for _ in range(repeats))]
     )
+    # Persistierte Baseline durch den robusten Median ersetzen. Sonst committet
+    # der CI-Workflow den (womöglich Ausreißer-)Erstlauf, und der nächste
+    # Wochenlauf vergliche gegen eine bekannte Fehlmessung.
+    path.write_text(json.dumps(confirmed, indent=2) + "\n", encoding="utf-8")
+    print(f"Baseline mit bestätigtem Median ({confirmed['repeats']} Läufe) "
+          f"überschrieben: {_rel(path)}\n")
     confirmed_comp = compare(base_data, confirmed, args.metric, args.threshold)
     print("Bestätigungslauf (Median):")
     print(format_report(confirmed_comp))
@@ -708,6 +717,13 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     # wird hier deshalb ebenfalls nichts gemeldet.
     if not compat.comparable:
         print("\nℹ️  Baseline nicht vergleichbar – keine Regression gemeldet.")
+        return 0
+    # Reine Hardware-Abweichung verlangt einen Bestätigungslauf – den kann der
+    # statische ``compare`` nicht leisten. Sonst entstünden genau die
+    # Hardware-Artefakt-Fehlalarme, die der Gate verhindern soll (#277/#278/#279).
+    if compat.requires_confirmation:
+        print("\nℹ️  Hardware weicht ab – „compare“ kann nicht nachmessen; "
+              "keine Regression gemeldet (für den Bestätigungslauf „run“ nutzen).")
         return 0
     if comp.flagged and (args.post_issues or args.dry_run_issues):
         context = IssueContext(

@@ -292,3 +292,49 @@ def test_run_clears_flag_when_confirmation_shows_no_regression(
     assert rc == 0
     assert posted == []
     assert "Bestätigungslauf zeigt keine Regression" in capsys.readouterr().out
+
+    # Die committete Baseline muss der bestätigte Median sein (200/101/100 → 101),
+    # nicht der gespeicherte Erstlauf-Ausreißer (200).
+    saved_path = next(p for p in tmp_path.glob("*.json") if p.name != "2000-01-01.json")
+    saved = json.loads(saved_path.read_text(encoding="utf-8"))
+    assert saved["repeats"] == 3
+    assert saved["formats"]["PNG"]["process_ms"] == 101.0
+
+
+def test_compare_blocks_report_for_hardware_mismatch(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    # Reine Hardware-Abweichung: ``compare`` kann nicht nachmessen → kein Issue.
+    base = tmp_path / "base.json"
+    cur = tmp_path / "cur.json"
+    base.write_text(json.dumps(_run(_env(cpu_count=2), PNG=100.0)), encoding="utf-8")
+    cur.write_text(json.dumps(_run(_env(cpu_count=8), PNG=200.0)), encoding="utf-8")
+    posted: list = []
+    monkeypatch.setattr(bench, "post_issues", lambda *a, **k: posted.append(a) or [])
+
+    rc = bench.main([
+        "compare", "--baseline", str(base), "--current", str(cur),
+        "--dry-run-issues", "--fail-on-regression",
+    ])
+    assert rc == 0
+    assert posted == []
+    assert "Hardware weicht ab" in capsys.readouterr().out
+
+
+def test_compare_reports_for_fully_comparable_baseline(
+    tmp_path: Path, monkeypatch
+) -> None:
+    # Gegenprobe: vollständig vergleichbare Baseline meldet eine Regression.
+    base = tmp_path / "base.json"
+    cur = tmp_path / "cur.json"
+    base.write_text(json.dumps(_run(_env(), PNG=100.0)), encoding="utf-8")
+    cur.write_text(json.dumps(_run(_env(), PNG=200.0)), encoding="utf-8")
+    posted: list = []
+    monkeypatch.setattr(bench, "post_issues", lambda *a, **k: posted.append(a) or [])
+
+    rc = bench.main([
+        "compare", "--baseline", str(base), "--current", str(cur),
+        "--dry-run-issues", "--fail-on-regression",
+    ])
+    assert rc == 1
+    assert len(posted) == 1
