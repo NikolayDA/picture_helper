@@ -18,6 +18,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   bestehenden Releases (`gh release edit`), nicht nur bei der Erstanlage. Der
   fest verdrahtete „Automated build…"-Text entfällt; fehlt der passende
   Abschnitt, schlägt der Publish-Job klar fehl (kein stiller Fallback) (#311).
+- **Wochen-Benchmark meldet keine Umgebungs-Artefakte mehr als Regression.**
+  Jedes Ergebnis (`benchmarks/results/`) trägt jetzt einen Umgebungs-Fingerprint
+  (Python-/Pillow-/NumPy-Version, Architektur, CPU-Anzahl, Runner); der Vergleich
+  überspringt nicht vergleichbare Baselines (fehlender Fingerprint, abweichende
+  Versionen oder Benchmark-Parameter) und bestätigt eine Auffälligkeit im selben
+  Lauf über mehrere Wiederholungen (Median), bevor ein Issue entsteht
+  (#277, #278, #279).
 
 ## [2.4.1] – 2026-06-17
 

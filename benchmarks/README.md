@@ -46,13 +46,39 @@ Der Vergleich rechnet die prozentuale Änderung je Format aus; ein Format gilt a
 verschlechtert hat. Sind alle Formate innerhalb der Schwelle, meldet der Report
 kurz „Benchmarks stabil".
 
+## Vergleichbarkeit & Bestätigung (Schema 2)
+
+Damit kein Mess- oder Umgebungsartefakt fälschlich als Regression gemeldet wird
+(#277/#278/#279), trägt jedes Ergebnis seit Schema 2 einen **Umgebungs-
+Fingerprint** (`environment`): Python-, Pillow- und NumPy-Version, Betriebssystem,
+Architektur, logische CPU-Anzahl und der GitHub-Runner. Zusammen mit den
+Benchmark-Parametern (Iterationszahl, Bildabmessungen) entscheidet er, ob zwei
+Läufe überhaupt vergleichbar sind:
+
+- **Nicht vergleichbar** (nur Anzeige, *keine* Regressionsmeldung): die Baseline
+  hat keinen Fingerprint, oder Python-Minor-/Pillow-/NumPy-Version bzw.
+  Iterationszahl/Bildabmessungen weichen ab.
+- **Bedingt vergleichbar** (Bestätigungslauf nötig): nur die Hardware
+  (Architektur/CPU-Anzahl) weicht ab.
+- **Vergleichbar**: alles passt.
+
+Wird gegen eine vergleichbare Baseline eine Auffälligkeit über der Schwelle
+gemessen, läuft der Benchmark im selben Durchgang `--confirm-runs` Mal komplett
+nach (Default **3**); verglichen wird der **Median**. Nur eine im
+Bestätigungslauf weiterhin überschrittene Schwelle gilt als echte Regression.
+
 ## CI / Issues
 
-- `--fail-on-regression` setzt Exit-Code 1, sobald ein Format degradiert ist –
-  gedacht für einen geplanten CI-Job.
-- `--post-issues` legt für jedes geflaggte Format ein GitHub-Issue an
+- `--fail-on-regression` setzt Exit-Code 1, sobald eine **bestätigte** Regression
+  gegen eine vergleichbare Baseline vorliegt – gedacht für den geplanten CI-Job.
+- `--post-issues` legt für jedes bestätigte Format ein GitHub-Issue an
   (idempotent über einen Dedupe-Marker; braucht `GITHUB_TOKEN` und
-  `GITHUB_REPOSITORY`). `--dry-run-issues` simuliert das nur.
+  `GITHUB_REPOSITORY`). Der Issue-Text nennt Baseline, Commit, Umgebungs-
+  Fingerprint und die Zahl der Bestätigungsläufe. `--dry-run-issues` simuliert
+  das nur.
+- Der CI-Job pinnt Python (3.12) sowie Pillow/NumPy, damit aufeinanderfolgende
+  Wochenläufe vergleichbar bleiben; ein bewusster Versionssprung setzt die
+  Baseline ohne Fehlalarm zurück.
 
 > Hinweis: Absolute Zeiten hängen stark von der Maschine ab. Aussagekräftig ist
 > die **relative** Veränderung zwischen Läufen auf vergleichbarer Hardware, nicht

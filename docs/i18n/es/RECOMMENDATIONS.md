@@ -51,31 +51,29 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-19)
 
-A fecha de 2026-06-19 quedan **7** issues abiertos. Desde la evaluación del
+A fecha de 2026-06-19 quedan **4** issues abiertos. Desde la evaluación del
 2026-06-18, la oleada de endurecimiento de tests/release se integró en gran
 parte: **#307, #308, #309, #310** y **#312** ya están **cerrados** (igual que el
-meta-issue del snapshot **#313**). El PR **#317** (que cerró #309/#310) generó un
-nuevo seguimiento **#318** a partir de su revisión de Codex (overrides de
-permisos a nivel de job en el guard del workflow reutilizable). Siguen abiertos
-**#311** (cuerpo del release), los tres hallazgos de rendimiento
-**#277/#278/#279** (benchmark semanal #280, según el triage del owner **aún no**
-confirmados como regresión de código), **#245** (cuota de CI, bloqueado
-externamente) y el ítem de higiene de tests de baja prioridad **#299**. Todos los
-issues abiertos se reverificaron contra el código actual.
+meta-issue del snapshot **#313**). Los tres hallazgos de rendimiento
+**#277/#278/#279** (benchmark semanal #280) quedan **cerrados** mediante el
+endurecimiento del benchmark de este PR (fingerprint de entorno + confirmación
+por mediana; reportar solo contra baselines comparables). El PR **#317** (que
+cerró #309/#310) generó un nuevo seguimiento **#318** a partir de su revisión de
+Codex (overrides de permisos a nivel de job en el guard del workflow
+reutilizable). Siguen abiertos **#311** (cuerpo del release), **#318** (guard de
+permisos), **#245** (cuota de CI, bloqueado externamente) y el ítem de higiene de
+tests de baja prioridad **#299**. Todos los issues abiertos se reverificaron
+contra el código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | **Listo para PR** — bien acotado: rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo (también al reusar), con un test de regresión en `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respetar overrides de permisos a nivel de job en el WF reutilizable | 🟡 Media | 🟡 Media | **Necesita refinamiento** — primero confirmar la semántica de validación de arranque de GitHub (top-level vs. efectivo-por-job); actualmente es un falso positivo puramente teórico (no hay overrides a nivel de job en `ci.yml`), y el guard OIDC #303 no debe debilitarse |
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana); agrupar con #278/#279 |
-| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Regresión de rendimiento: TIFF (+21.8%) | 🟡 Media | 🟡 Media | Como #277: endurecimiento compartido del benchmark; investigar la ruta de encode (`save_image_file`) solo tras un run de confirmación compatible |
-| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Regresión de rendimiento: WebP (+13.7%) | 🟡 Media | 🟡 Media | Como #277/#278: un PR compartido para fingerprint + confirmación por mediana; reportar solo regresiones confirmadas |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
 
 ### Issues Agrupables
 
-- **#277/#278/#279** deberían ir juntos como PR de fiabilidad del benchmark; el análisis de encode por formato solo merece la pena después.
 - **#318** es el seguimiento del guard de permisos ya integrado (#309/#310) y se queda separado — primero necesita la semántica de GitHub documentada antes de tocar `_required_permissions`.
 - **#311** se queda autónomo porque toca el workflow de release, la extracción del CHANGELOG y las notas de release existentes.
 - **#299** es higiene de tests oportunista y solo debería acompañar si ya se toca ese test.
@@ -83,10 +81,9 @@ issues abiertos se reverificaron contra el código actual.
 ### Orden de PRs Recomendado
 
 1. **#311** — derivar los cuerpos de release desde el CHANGELOG y completar las notas de v2.4.1; bien acotado y visible para el usuario (los fixes ya lanzados son de otro modo invisibles en la página del release).
-2. **#277/#278/#279** — fingerprint de benchmark + confirmación por mediana compartidos; reportar una regresión solo contra una baseline compatible.
-3. **#318** — refinar el guard de permisos una vez documentada la semántica de GitHub, sin debilitar el caso de regresión OIDC.
-4. **#245** — restaurar la cuota externamente; el trabajo en el repo después es solo una gestión de error más clara.
-5. **#299** — higiene de tests según haga falta.
+2. **#318** — refinar el guard de permisos una vez documentada la semántica de GitHub, sin debilitar el caso de regresión OIDC.
+3. **#245** — restaurar la cuota externamente; el trabajo en el repo después es solo una gestión de error más clara.
+4. **#299** — higiene de tests según haga falta.
 
 ## Rondas Anteriores
 

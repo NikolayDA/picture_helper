@@ -17,6 +17,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   not just on first creation. The hardcoded “Automated build…” text is gone; if
   the matching section is missing, the publish job fails loudly (no silent
   fallback) (#311).
+- **The weekly benchmark no longer reports environment artifacts as
+  regressions.** Every result (`benchmarks/results/`) now carries an environment
+  fingerprint (Python/Pillow/NumPy version, architecture, CPU count, runner); the
+  comparison skips baselines that are not comparable (missing fingerprint,
+  differing versions or benchmark parameters) and confirms a suspicious value in
+  the same run across several repetitions (median) before opening an issue
+  (#277, #278, #279).
 
 ## [2.4.1] – 2026-06-17
 

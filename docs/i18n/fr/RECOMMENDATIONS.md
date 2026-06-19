@@ -51,31 +51,29 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-19)
 
-Au 2026-06-19, **7** issues sont ouvertes. Depuis l'évaluation du 2026-06-18, la
+Au 2026-06-19, **4** issues sont ouvertes. Depuis l'évaluation du 2026-06-18, la
 vague de durcissement des tests/release a été en grande partie intégrée :
 **#307, #308, #309, #310** et **#312** sont désormais **closes** (tout comme la
-meta-issue du snapshot **#313**). La PR **#317** (qui a clos #309/#310) a fait
-naître un nouveau suivi **#318** issu de sa revue Codex (surcharges de
-permissions au niveau job dans le garde du workflow réutilisable). Restent
-ouverts **#311** (corps de release), les trois constats de performance
-**#277/#278/#279** (benchmark hebdomadaire #280, selon le triage du propriétaire
-**pas encore** confirmés comme régression de code), **#245** (quota CI, bloqué en
-externe) et l'élément d'hygiène de tests de basse priorité **#299**. Toutes les
-issues ouvertes ont été revérifiées sur le code actuel.
+meta-issue du snapshot **#313**). Les trois constats de performance
+**#277/#278/#279** (benchmark hebdomadaire #280) sont désormais **clos** grâce au
+durcissement du benchmark de cette PR (empreinte d'environnement + confirmation
+par médiane ; ne signaler que face à des baselines comparables). La PR **#317**
+(qui a clos #309/#310) a fait naître un nouveau suivi **#318** issu de sa revue
+Codex (surcharges de permissions au niveau job dans le garde du workflow
+réutilisable). Restent ouverts **#311** (corps de release), **#318** (garde de
+permissions), **#245** (quota CI, bloqué en externe) et l'élément d'hygiène de
+tests de basse priorité **#299**. Toutes les issues ouvertes ont été revérifiées
+sur le code actuel.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release : remplir le corps de la release depuis le CHANGELOG | 🟡 Moyenne | 🟡 Moyenne | **Prêt pour PR** — bien cadré : compléter le corps de v2.4.1 à la main ; faire dériver les notes de `## [X.Y.Z]` par `release-linux.yml` au lieu d'un texte fixe (aussi lors du réemploi), avec un test de régression dans `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les surcharges de permissions au niveau job dans le WF réutilisable | 🟡 Moyenne | 🟡 Moyenne | **À affiner** — confirmer d'abord la sémantique de validation au démarrage de GitHub (niveau top vs. effectif par job) ; actuellement un faux positif purement théorique (aucune surcharge au niveau job dans `ci.yml`), et le garde OIDC #303 ne doit pas s'affaiblir |
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Régression de performance : JPEG (+38.4%) | 🟡 Moyenne | 🟡 Moyenne | Pas encore confirmé comme régression de code. Étendre le benchmark avec une empreinte d'environnement + runs de confirmation (médiane) ; regrouper avec #278/#279 |
-| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Régression de performance : TIFF (+21.8%) | 🟡 Moyenne | 🟡 Moyenne | Comme #277 : durcissement partagé du benchmark ; enquêter sur le chemin d'encode (`save_image_file`) seulement après un run de confirmation compatible |
-| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Régression de performance : WebP (+13.7%) | 🟡 Moyenne | 🟡 Moyenne | Comme #277/#278 : une PR partagée pour empreinte + confirmation par médiane ; ne signaler que les régressions confirmées |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | **Bloqué (externe) :** restaurer le quota côté compte. Le périmètre du dépôt n'est qu'une gestion d'échec plus claire (skip propre) |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | Pas de bug de correction ; le plus utile d'abord (déplacement d'endpoint, consolider `set_brush_size`), le reste au besoin |
 
 ### Issues Regroupables
 
-- **#277/#278/#279** doivent être traitées ensemble comme PR de fiabilisation du benchmark ; l'analyse d'encode par format ne vaut le coup qu'après.
 - **#318** est le suivi du garde de permissions déjà intégré (#309/#310) et reste séparée — elle nécessite d'abord une sémantique GitHub documentée avant de toucher à `_required_permissions`.
 - **#311** reste autonome car elle touche le workflow de release, l'extraction du CHANGELOG et les notes de release existantes.
 - **#299** est de l'hygiène de tests opportuniste et ne devrait accompagner que si un test déjà touché est concerné.
@@ -83,10 +81,9 @@ issues ouvertes ont été revérifiées sur le code actuel.
 ### Ordre de PR Recommandé
 
 1. **#311** — dériver le corps des releases depuis le CHANGELOG et compléter les notes v2.4.1 ; bien cadré et visible par l'utilisateur (les correctifs livrés sont sinon invisibles sur la page de release).
-2. **#277/#278/#279** — empreinte benchmark + confirmation par médiane partagées ; ne signaler une régression que face à une baseline compatible.
-3. **#318** — affiner le garde de permissions une fois la sémantique de GitHub documentée, sans affaiblir le cas de régression OIDC.
-4. **#245** — restaurer le quota à l'extérieur ; le travail côté dépôt n'est ensuite qu'une gestion d'échec plus claire.
-5. **#299** — hygiène des tests au besoin.
+2. **#318** — affiner le garde de permissions une fois la sémantique de GitHub documentée, sans affaiblir le cas de régression OIDC.
+3. **#245** — restaurer le quota à l'extérieur ; le travail côté dépôt n'est ensuite qu'une gestion d'échec plus claire.
+4. **#299** — hygiène des tests au besoin.
 
 ## Séries Précédentes
 

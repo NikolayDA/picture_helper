@@ -19,6 +19,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   première création. Le texte figé « Automated build… » disparaît ; si la
   section correspondante manque, le job de publication échoue clairement (pas
   de repli silencieux) (#311).
+- **Le benchmark hebdomadaire ne signale plus les artefacts d'environnement
+  comme des régressions.** Chaque résultat (`benchmarks/results/`) porte
+  désormais une empreinte d'environnement (version de Python/Pillow/NumPy,
+  architecture, nombre de CPU, runner) ; la comparaison ignore les références non
+  comparables (empreinte manquante, versions ou paramètres de benchmark
+  différents) et confirme une valeur suspecte dans la même exécution via
+  plusieurs répétitions (médiane) avant d'ouvrir un ticket (#277, #278, #279).
 
 ## [2.4.1] – 2026-06-17
 

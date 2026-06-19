@@ -57,6 +57,18 @@ jobs:
       - name: Install package and test extra
         run: make install-test
 
+      # Reproduzierbare Messumgebung (#277/#278/#279): Pillow/NumPy pinnen, damit
+      # aufeinanderfolgende Wochenlaeufe vergleichbar bleiben. Der Fingerprint im
+      # Ergebnis-JSON haelt die exakten Versionen fest; ein bewusster Sprung setzt
+      # die Baseline lediglich zurueck (der Kompatibilitaetscheck meldet dann
+      # keine Regression, sondern erfasst eine neue Baseline). Python ist oben auf
+      # 3.12 fixiert. Siehe benchmarks/README.md.
+      - name: Pin benchmark dependencies (reproducible environment)
+        run: python -m pip install "Pillow==12.2.0" "numpy==2.4.6"
+
+      # Eine Auffaelligkeit wird im selben Lauf durch zusaetzliche
+      # Wiederholungen bestaetigt (--confirm-runs); gemeldet wird nur, was der
+      # Median bestaetigt und was gegen eine *vergleichbare* Baseline laeuft.
       - name: Run benchmark, compare and report regressions
         id: bench
         continue-on-error: true
@@ -67,6 +79,7 @@ jobs:
         run: |
           python scripts/benchmark.py run \
             --threshold "${{ inputs.threshold || '10' }}" \
+            --confirm-runs 3 \
             --fail-on-regression \
             --post-issues
 

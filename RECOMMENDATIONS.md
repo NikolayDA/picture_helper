@@ -51,30 +51,27 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Prioritätsbewertung (2026-06-19)
 
-Stand 2026-06-19 sind **7** Issues offen. Seit der Bewertung vom 2026-06-18
+Stand 2026-06-19 sind **4** Issues offen. Seit der Bewertung vom 2026-06-18
 wurde die Test-/Release-Härtungs-Welle größtenteils gemerged: **#307, #308,
 #309, #310** und **#312** sind **geschlossen** (ebenso das Snapshot-Meta-Issue
-**#313**). Aus dem Codex-Review zu PR **#317** (der #309/#310 schloss) entstand
-ein neuer Folgebefund **#318** (Job-Level-Permission-Overrides im
-Reusable-Workflow-Guard). Weiterhin offen sind **#311** (Release-Body),
-die drei Performance-Befunde **#277/#278/#279** (Wochen-Benchmark #280, laut
-Owner-Triage **noch nicht** als Code-Regression bestätigt), **#245** (CI-Quota,
-extern blockiert) und die niedrigpriore Test-Hygiene **#299**. Alle offenen
-Issues wurden gegen den aktuellen Code verifiziert.
+**#313**). Die drei Performance-Befunde **#277/#278/#279** (Wochen-Benchmark
+#280) sind über die Benchmark-Härtung dieses PRs (Umgebungs-Fingerprint +
+Median-Bestätigung; nur vergleichbare Baselines melden) **geschlossen**. Aus dem
+Codex-Review zu PR **#317** (der #309/#310 schloss) entstand ein neuer
+Folgebefund **#318** (Job-Level-Permission-Overrides im Reusable-Workflow-Guard).
+Weiterhin offen sind **#311** (Release-Body), **#318** (Permission-Guard),
+**#245** (CI-Quota, extern blockiert) und die niedrigpriore Test-Hygiene
+**#299**. Alle offenen Issues wurden gegen den aktuellen Code verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | **Ready for PR** – gut umrissen: v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text (auch beim Reuse), Regressionstest in `test_release_gate.py` |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟡 Mittel | 🟡 Mittel | **Needs refinement** – zuerst GitHubs Startup-Validierungssemantik (Top-Level vs. effektiv-per-Job) belegen; aktuell rein theoretischer False-Positive (keine Job-Level-Overrides in `ci.yml`), OIDC-Guard #303 darf nicht schwächer werden |
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance-Regression: JPEG (+38.4%) | 🟡 Mittel | 🟡 Mittel | Noch nicht als Code-Regression bestätigt. Benchmark um Umgebungs-Fingerprint + Bestätigungsläufe (Median) erweitern; mit #278/#279 bündeln |
-| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance-Regression: TIFF (+21.8%) | 🟡 Mittel | 🟡 Mittel | Wie #277: gemeinsame Benchmark-Härtung; den Encode-Pfad (`save_image_file`) erst nach einem kompatiblen Bestätigungslauf untersuchen |
-| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance-Regression: WebP (+13.7%) | 🟡 Mittel | 🟡 Mittel | Wie #277/#278: ein gemeinsamer PR für Fingerprint + Median-Bestätigung; nur bestätigte Regressionen melden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern):** Quota account-seitig wiederherstellen. Repo-seitig nur klare Fehlerbehandlung (graceful skip) möglich |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | Kein Korrektheitsfehler; höchster Nutzen zuerst (Endpunkt-Move, `set_brush_size` konsolidieren), Rest nach Bedarf |
 
 ### Bündelbare Issues
 
-- **#277/#278/#279** sollten gemeinsam als Benchmark-Zuverlässigkeits-PR umgesetzt werden; erst danach lohnt die Format-spezifische Encode-Analyse.
 - **#318** ist der Folgebefund zum bereits gemergten Permission-Guard (#309/#310) und bleibt separat – er braucht zuerst eine belegte GitHub-Semantik, bevor `_required_permissions` angefasst wird.
 - **#311** bleibt eigenständig, weil es Release-Workflow, CHANGELOG-Extraktion und bestehende Release-Notes berührt.
 - **#299** ist opportunistische Test-Hygiene und sollte nur mitlaufen, wenn ein ohnehin berührter Test betroffen ist.
@@ -82,10 +79,9 @@ Issues wurden gegen den aktuellen Code verifiziert.
 ### Empfohlene PR-Reihenfolge
 
 1. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen; gut umrissen und nutzersichtbar (ausgelieferte Fixes sind sonst auf der Release-Seite unsichtbar).
-2. **#277/#278/#279** — gemeinsamer Benchmark-Fingerprint + Median-Bestätigung; Regression nur bei kompatibler Baseline melden.
-3. **#318** — nach belegter GitHub-Semantik den Permission-Guard verfeinern, ohne den OIDC-Regressionsfall zu schwächen.
-4. **#245** — Quota extern wiederherstellen; repo-seitig danach nur klare Fehlerbehandlung.
-5. **#299** — Test-Hygiene nach Bedarf.
+2. **#318** — nach belegter GitHub-Semantik den Permission-Guard verfeinern, ohne den OIDC-Regressionsfall zu schwächen.
+3. **#245** — Quota extern wiederherstellen; repo-seitig danach nur klare Fehlerbehandlung.
+4. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 
