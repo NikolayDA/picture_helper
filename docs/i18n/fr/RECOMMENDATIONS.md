@@ -49,49 +49,44 @@ restent la baseline avant de nouveaux PRs.
   disparu. Les constats de suivi robustesse/mémoire sont corrigés et clos dans
   **#285** (PR #289).
 
-## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-18)
+## Issues GitHub Ouvertes — Évaluation des Priorités (2026-06-19)
 
-Au 2026-06-18, **11** issues sont ouvertes. Cette mise à jour ferme aussi la
-meta-issue du snapshot **#313**, qui se comptait auparavant elle-même comme 12e
-issue ouverte. Depuis l'évaluation du 2026-06-15, **#161** (URL de clonage du
-README) a été **close** le 2026-06-17 ; le cycle de release v2.4.x a apporté une
-vague d'issues de durcissement des tests/release (**#299, #307–#312**). Restent
-ouverts les trois constats de performance **#277/#278/#279** (benchmark
-hebdomadaire #280, selon le triage du propriétaire **pas encore** confirmés
-comme régression de code) et **#245** (quota CI, bloqué en externe). Toutes les
+Au 2026-06-19, **7** issues sont ouvertes. Depuis l'évaluation du 2026-06-18, la
+vague de durcissement des tests/release a été en grande partie intégrée :
+**#307, #308, #309, #310** et **#312** sont désormais **closes** (tout comme la
+meta-issue du snapshot **#313**). La PR **#317** (qui a clos #309/#310) a fait
+naître un nouveau suivi **#318** issu de sa revue Codex (surcharges de
+permissions au niveau job dans le garde du workflow réutilisable). Restent
+ouverts **#311** (corps de release), les trois constats de performance
+**#277/#278/#279** (benchmark hebdomadaire #280, selon le triage du propriétaire
+**pas encore** confirmés comme régression de code), **#245** (quota CI, bloqué en
+externe) et l'élément d'hygiène de tests de basse priorité **#299**. Toutes les
 issues ouvertes ont été revérifiées sur le code actuel.
 
 | # | Titre | Pertinence | Complexité | Recommandation |
 |---|-------|------------|------------|----------------|
-| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI : passer les actions node20 à Node 24 | 🟠 Haute | 🟢 Basse | GitHub force déjà Node 24 avec un avertissement ; passer les actions concernées (`github-script`, `upload/download-artifact`) aux majors node24 de façon uniforme, test garde optionnel |
-| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release : remplir le corps de la release depuis le CHANGELOG | 🟡 Moyenne | 🟡 Moyenne | Compléter le corps de v2.4.1 à la main ; faire dériver les notes de `## [X.Y.Z]` par `release-linux.yml` au lieu d'un texte fixe — aussi lors du réemploi |
-| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test : version de LICENSES.md == pyproject | 🟡 Moyenne | 🟢 Basse | Pytest rapide comparant la version du titre à `[project].version` — détecte le drift de bump avant le lourd License Check |
-| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test : le caller couvre les permissions du WF réutilisable | 🟡 Moyenne | 🟢 Basse | Généraliser `test_release_gate.py` : le job caller doit accorder chaque permission déclarée par le workflow appelé (OIDC `id-token: write`) |
-| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test : chaîne IA importable dans l'artefact `--ai` | 🟠 Haute | 🟡 Moyenne | Autotest par spawn sans réseau dans le build `--ai` chargeant les métadonnées de `rembg`+`pymatting` (régression #306) |
-| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test : lancer l'artefact construit en headless | 🟠 Haute | 🟡 Moyenne | Lancer le bundle en headless dans le job build (attraper crash au démarrage #304 / fork bomb #305) ; `publish` reste gardé par `needs: build` |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | Pas de bug de correction ; le plus utile d'abord (déplacement d'endpoint, consolider `set_brush_size`), le reste au besoin |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release : remplir le corps de la release depuis le CHANGELOG | 🟡 Moyenne | 🟡 Moyenne | **Prêt pour PR** — bien cadré : compléter le corps de v2.4.1 à la main ; faire dériver les notes de `## [X.Y.Z]` par `release-linux.yml` au lieu d'un texte fixe (aussi lors du réemploi), avec un test de régression dans `test_release_gate.py` |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les surcharges de permissions au niveau job dans le WF réutilisable | 🟡 Moyenne | 🟡 Moyenne | **À affiner** — confirmer d'abord la sémantique de validation au démarrage de GitHub (niveau top vs. effectif par job) ; actuellement un faux positif purement théorique (aucune surcharge au niveau job dans `ci.yml`), et le garde OIDC #303 ne doit pas s'affaiblir |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Régression de performance : JPEG (+38.4%) | 🟡 Moyenne | 🟡 Moyenne | Pas encore confirmé comme régression de code. Étendre le benchmark avec une empreinte d'environnement + runs de confirmation (médiane) ; regrouper avec #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Régression de performance : TIFF (+21.8%) | 🟡 Moyenne | 🟡 Moyenne | Comme #277 : durcissement partagé du benchmark ; enquêter sur le chemin d'encode (`save_image_file`) seulement après un run de confirmation compatible |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Régression de performance : WebP (+13.7%) | 🟡 Moyenne | 🟡 Moyenne | Comme #277/#278 : une PR partagée pour empreinte + confirmation par médiane ; ne signaler que les régressions confirmées |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | Bloqué (externe) : restaurer le quota côté compte. Dans le dépôt, seulement une gestion d'échec plus claire (skip propre) + un bump optionnel vers Node 24 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec « Quota exceeded » | 🟡 Moyenne | 🟢 Basse | **Bloqué (externe) :** restaurer le quota côté compte. Le périmètre du dépôt n'est qu'une gestion d'échec plus claire (skip propre) |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | Pas de bug de correction ; le plus utile d'abord (déplacement d'endpoint, consolider `set_brush_size`), le reste au besoin |
 
 ### Issues Regroupables
 
-- **#307/#308** vont ensemble : une PR de vérification des artefacts de release peut lancer les bundles GUI et `--ai` en headless et ajouter le self-check spawn IA.
-- **#309/#310** sont de petits tests garde et peuvent partager une PR de durcissement de tests ; **#311** reste mieux séparée car elle touche le workflow de release, l'extraction du CHANGELOG et les notes existantes.
 - **#277/#278/#279** doivent être traitées ensemble comme PR de fiabilisation du benchmark ; l'analyse d'encode par format ne vaut le coup qu'après.
-- **#312** est une PR dédiée de modernisation CI sur tous les workflows ; la partie Node 24 de **#245** peut y passer, mais le quota OpenAI reste externe.
+- **#318** est le suivi du garde de permissions déjà intégré (#309/#310) et reste séparée — elle nécessite d'abord une sémantique GitHub documentée avant de toucher à `_required_permissions`.
+- **#311** reste autonome car elle touche le workflow de release, l'extraction du CHANGELOG et les notes de release existantes.
 - **#299** est de l'hygiène de tests opportuniste et ne devrait accompagner que si un test déjà touché est concerné.
 
 ### Ordre de PR Recommandé
 
-1. **#307/#308** — smoke-test en headless des bundles de release (GUI + `--ai`) ; évite de republier des crashs au démarrage/fork bombs.
-2. **#312** — passer les actions node20 à Node 24 avant que GitHub ne retire le fallback.
-3. **#309/#310** — permissions génériques de workflows et version de LICENSES dans une PR rapide de durcissement de tests.
-4. **#311** — dériver le corps de release depuis CHANGELOG et compléter les notes v2.4.1.
-5. **#277/#278/#279** — empreinte benchmark + confirmation par médiane partagées ; ne signaler une régression que face à une baseline compatible.
-6. **#245** — restaurer le quota à l'extérieur ; côté dépôt, seulement clarifier la gestion d'échec.
-7. **#299** — hygiène des tests au besoin.
+1. **#311** — dériver le corps des releases depuis le CHANGELOG et compléter les notes v2.4.1 ; bien cadré et visible par l'utilisateur (les correctifs livrés sont sinon invisibles sur la page de release).
+2. **#277/#278/#279** — empreinte benchmark + confirmation par médiane partagées ; ne signaler une régression que face à une baseline compatible.
+3. **#318** — affiner le garde de permissions une fois la sémantique de GitHub documentée, sans affaiblir le cas de régression OIDC.
+4. **#245** — restaurer le quota à l'extérieur ; le travail côté dépôt n'est ensuite qu'une gestion d'échec plus claire.
+5. **#299** — hygiène des tests au besoin.
 
 ## Séries Précédentes
 

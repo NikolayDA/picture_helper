@@ -48,48 +48,42 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Priority Assessment (2026-06-18)
+## Open GitHub Issues — Priority Assessment (2026-06-19)
 
-As of 2026-06-18, **11** issues are open. This update also closes the snapshot
-meta issue **#313**, which previously counted itself as the 12th open issue.
-Since the 2026-06-15 assessment, **#161** (README clone URL) was **closed** on
-2026-06-17; the v2.4.x release cycle brought a wave of test/release hardening
-issues (**#299, #307–#312**). Still open are the three performance findings
-**#277/#278/#279** (weekly benchmark #280, per the owner's triage **not yet**
-confirmed as code regressions) and **#245** (CI quota, externally blocked). All
-open issues were re-verified against the current code.
+As of 2026-06-19, **7** issues are open. Since the 2026-06-18 assessment, the
+test/release hardening wave was largely merged: **#307, #308, #309, #310**, and
+**#312** are now **closed** (as is the snapshot meta issue **#313**). PR **#317**
+(which closed #309/#310) spawned a new follow-up **#318** from its Codex review
+(job-level permission overrides in the reusable-workflow guard). Still open are
+**#311** (release body), the three performance findings **#277/#278/#279**
+(weekly benchmark #280, per the owner's triage **not yet** confirmed as code
+regressions), **#245** (CI quota, externally blocked), and the low-priority test
+hygiene item **#299**. All open issues were re-verified against the current code.
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: bump node20 actions to Node 24 | 🟠 High | 🟢 Low | GitHub already forces Node 24 with a warning; bump the affected actions (`github-script`, `upload/download-artifact`) to node24 majors uniformly, optional guard test |
-| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | Backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string — also on reuse |
-| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: LICENSES.md version == pyproject | 🟡 Medium | 🟢 Low | Fast pytest comparing the title version against `[project].version` — catches bump drift before the heavy License Check |
-| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test: caller covers reusable-WF permissions | 🟡 Medium | 🟢 Low | Generalize `test_release_gate.py`: the caller job must grant every permission the called workflow declares (OIDC `id-token: write`) |
-| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test: AI chain importable in `--ai` artifact | 🟠 High | 🟡 Medium | Network-free spawn self-test in the `--ai` build that loads `rembg`+`pymatting` metadata (regression #306) |
-| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test: launch built artifact headless | 🟠 High | 🟡 Medium | Launch the bundle headless in the build job (catch start crash #304 / fork bomb #305); `publish` stays gated via `needs: build` |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: fill release body from CHANGELOG | 🟡 Medium | 🟡 Medium | **Ready for PR** — well-scoped: backfill the v2.4.1 body manually; have `release-linux.yml` derive notes from `## [X.Y.Z]` instead of a hardcoded string (also on reuse), with a regression test in `test_release_gate.py` |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first confirm GitHub's startup-validation semantics (top-level vs. effective-per-job); currently a purely theoretical false positive (no job-level overrides in `ci.yml`), and the OIDC guard #303 must not get weaker |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Performance regression: JPEG (+38.4%) | 🟡 Medium | 🟡 Medium | Not yet confirmed as a code regression. Extend the benchmark with an environment fingerprint + confirmation runs (median); bundle with #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Performance regression: TIFF (+21.8%) | 🟡 Medium | 🟡 Medium | Like #277: shared benchmark hardening; investigate the encode path (`save_image_file`) only after a compatible confirmation run |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Performance regression: WebP (+13.7%) | 🟡 Medium | 🟡 Medium | Like #277/#278: one shared PR for fingerprint + median confirmation; report only confirmed regressions |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | Blocked (external): restore quota account-side. Repo scope is only clearer failure handling (graceful skip) + an optional Node 24 bump |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external):** restore quota account-side. Repo scope is only clearer failure handling (graceful skip) |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
 
 ### Bundleable Issues
 
-- **#307/#308** belong together: one release-artifact verification PR can launch GUI and `--ai` bundles headlessly and add the AI spawn self-check.
-- **#309/#310** are small guard tests and can share one test-hardening PR; **#311** is better kept separate because it touches the release workflow, CHANGELOG extraction, and existing release notes.
 - **#277/#278/#279** should be handled together as a benchmark reliability PR; format-specific encode analysis only pays off after that.
-- **#312** is its own CI modernization PR across all workflows; the Node 24 part of **#245** can ride there, while OpenAI quota remains external.
+- **#318** is the follow-up to the already-merged permission guard (#309/#310) and stays separate — it first needs documented GitHub semantics before `_required_permissions` is touched.
+- **#311** stays standalone because it touches the release workflow, CHANGELOG extraction, and existing release notes.
 - **#299** is opportunistic test hygiene and should only ride along when an already-touched test is affected.
 
 ### Recommended PR Order
 
-1. **#307/#308** — headless smoke-test the release bundles (GUI + `--ai`); prevents shipping start crashes/fork bombs again.
-2. **#312** — bump node20 actions to Node 24 before GitHub removes the fallback.
-3. **#309/#310** — generic workflow permissions and LICENSES version as a quick test-hardening PR.
-4. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes.
-5. **#277/#278/#279** — shared benchmark fingerprint + median confirmation; report a regression only against a compatible baseline.
-6. **#245** — restore quota externally; repo-side work afterwards is only clearer failure handling.
-7. **#299** — test hygiene as needed.
+1. **#311** — derive release bodies from CHANGELOG and backfill the v2.4.1 notes; well-scoped and user-visible (shipped fixes are otherwise invisible on the release page).
+2. **#277/#278/#279** — shared benchmark fingerprint + median confirmation; report a regression only against a compatible baseline.
+3. **#318** — refine the permission guard once GitHub's semantics are documented, without weakening the OIDC regression case.
+4. **#245** — restore quota externally; repo-side work afterwards is only clearer failure handling.
+5. **#299** — test hygiene as needed.
 
 ## Previous Rounds
 

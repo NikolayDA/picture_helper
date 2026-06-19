@@ -43,47 +43,40 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-18）
+## 开放的 GitHub Issues — 优先级评估（2026-06-19）
 
-截至 2026-06-18，共有 **11** 个开放 issue。本次更新同时关闭 snapshot 的 meta
-issue **#313**，它此前把自己算作第 12 个开放 issue。自 2026-06-15 的评估以来，
-**#161**（README 的 clone URL）已于 2026-06-17 **关闭**；v2.4.x 发布周期带来了
-一批测试/发布加固类 issue（**#299、#307–#312**）。仍开放的是三项性能发现
-**#277/#278/#279**（每周 benchmark #280，按 owner 的 triage **尚未**确认为代码
-回归）以及 **#245**（CI quota，外部受阻）。所有开放 issue 均已对照当前代码重新
-核实。
+截至 2026-06-19，共有 **7** 个开放 issue。自 2026-06-18 的评估以来，测试/发布
+加固浪潮大体已合并：**#307、#308、#309、#310** 和 **#312** 现已 **关闭**（snapshot
+的 meta issue **#313** 亦然）。PR **#317**（关闭了 #309/#310）从其 Codex review
+中衍生出一个新的后续 **#318**（可复用 workflow guard 中的 job 级权限覆盖）。仍开放
+的是 **#311**（release 正文）、三项性能发现 **#277/#278/#279**（每周 benchmark
+#280，按 owner 的 triage **尚未**确认为代码回归）、**#245**（CI quota，外部受阻）
+以及低优先级测试卫生项 **#299**。所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
-| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI：将 node20 actions 升级到 Node 24 | 🟠 高 | 🟢 低 | GitHub 已带警告强制使用 Node 24；将受影响的 actions（`github-script`、`upload/download-artifact`）统一升级到 node24 大版本，可选 guard 测试 |
-| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | 发布：从 CHANGELOG 填充 release 正文 | 🟡 中 | 🟡 中 | 手动补全 v2.4.1 正文；让 `release-linux.yml` 从 `## [X.Y.Z]` 推导 notes 而非硬编码文本——复用时亦然 |
-| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | 测试：LICENSES.md 版本 == pyproject | 🟡 中 | 🟢 低 | 快速 pytest，将标题版本与 `[project].version` 比较——在繁重的 License Check 之前捕获 bump 漂移 |
-| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | 测试：caller 覆盖可复用 WF 的权限 | 🟡 中 | 🟢 低 | 推广 `test_release_gate.py`：caller job 必须授予被调用 workflow 声明的每项权限（OIDC `id-token: write`） |
-| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | 测试：`--ai` 制品中 AI 链可导入 | 🟠 高 | 🟡 中 | 在 `--ai` 构建中做无网络的 spawn 自检，加载 `rembg`+`pymatting` 元数据（回归 #306） |
-| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | 测试：以 headless 启动已构建制品 | 🟠 高 | 🟡 中 | 在 build job 中 headless 启动 bundle（捕获启动崩溃 #304 / fork bomb #305）；`publish` 仍由 `needs: build` 把关 |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | 测试卫生：弱断言/冗余 | 🟢 低 | 🟢 低 | 非正确性缺陷；先做最有价值的（endpoint 移动、合并 `set_brush_size`），其余按需 |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | 发布：从 CHANGELOG 填充 release 正文 | 🟡 中 | 🟡 中 | **可做 PR** — 范围明确：手动补全 v2.4.1 正文；让 `release-linux.yml` 从 `## [X.Y.Z]` 推导 notes 而非硬编码文本（复用时亦然），并在 `test_release_gate.py` 中加回归测试 |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | 测试：尊重可复用 WF 中的 job 级权限覆盖 | 🟡 中 | 🟡 中 | **需打磨** — 先确认 GitHub 的 startup-validation 语义（top-level 与 effective-per-job）；目前是纯理论上的误报（`ci.yml` 中没有 job 级覆盖），且 OIDC guard #303 不得被削弱 |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数）；与 #278/#279 合并处理 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | 性能回归：TIFF（+21.8%） | 🟡 中 | 🟡 中 | 同 #277：共享的 benchmark 加固；只有在兼容的确认运行之后才调查 encode 路径（`save_image_file`） |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | 性能回归：WebP（+13.7%） | 🟡 中 | 🟡 中 | 同 #277/#278：一个共享 PR 处理指纹 + 中位数确认；只报告已确认的回归 |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | 受阻（外部）：在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过）+ 可选升级到 Node 24 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | **受阻（外部）：** 在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过） |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | 测试卫生：弱断言/冗余 | 🟢 低 | 🟢 低 | 非正确性缺陷；先做最有价值的（endpoint 移动、合并 `set_brush_size`），其余按需 |
 
 ### 可合并 Issues
 
-- **#307/#308** 应放在一起：一个 release artifact verification PR 可 headless 启动 GUI 和 `--ai` bundle，并加入 AI spawn self-check。
-- **#309/#310** 都是小型 guard tests，可合并为一个测试加固 PR；**#311** 最好单独做，因为它涉及 release workflow、CHANGELOG 提取和现有 release notes。
 - **#277/#278/#279** 应作为 benchmark 可靠性 PR 一起处理；之后再做按格式的 encode 分析才有意义。
-- **#312** 是跨所有 workflows 的独立 CI 现代化 PR；**#245** 的 Node 24 部分可以放进去，但 OpenAI quota 仍是外部事项。
+- **#318** 是对已合并的权限 guard（#309/#310）的后续，应保持独立——在触及 `_required_permissions` 之前，需先有 GitHub 语义的文档依据。
+- **#311** 保持独立，因为它涉及 release workflow、CHANGELOG 提取和现有 release notes。
 - **#299** 是机会型测试卫生，只应在本来就触及相关测试时顺手处理。
 
 ### 推荐 PR 顺序
 
-1. **#307/#308** — 对 release bundle 做 headless 冒烟测试（GUI + `--ai`）；避免再次发布启动崩溃/fork bomb。
-2. **#312** — 在 GitHub 移除 fallback 之前，将 node20 actions 升级到 Node 24。
-3. **#309/#310** — 通用 workflow permissions 和 LICENSES 版本，作为快速测试加固 PR。
-4. **#311** — 从 CHANGELOG 生成 release body，并补回 v2.4.1 notes。
-5. **#277/#278/#279** — 共享 benchmark 指纹 + 中位数确认；仅在兼容基线下报告回归。
-6. **#245** — 在外部恢复 quota；仓库侧之后只需更清晰的失败处理。
-7. **#299** — 测试卫生按需处理。
+1. **#311** — 从 CHANGELOG 推导 release 正文并补回 v2.4.1 notes；范围明确且用户可见（否则已发布的修复在 release 页面上不可见）。
+2. **#277/#278/#279** — 共享 benchmark 指纹 + 中位数确认；仅在兼容基线下报告回归。
+3. **#318** — 在 GitHub 语义有文档依据后打磨权限 guard，且不削弱 OIDC 回归用例。
+4. **#245** — 在外部恢复 quota；仓库侧之后只需更清晰的失败处理。
+5. **#299** — 测试卫生按需处理。
 
 ## 先前轮次
 

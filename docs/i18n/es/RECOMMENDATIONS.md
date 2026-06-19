@@ -49,49 +49,44 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-18)
+## Issues de GitHub Abiertos — Evaluación de Prioridad (2026-06-19)
 
-A fecha de 2026-06-18 quedan **11** issues abiertos. Esta actualización cierra
-además el meta-issue del snapshot **#313**, que antes se contaba a sí mismo como
-el issue abierto número 12. Desde la evaluación del 2026-06-15, **#161** (URL de
-clonado del README) se **cerró** el 2026-06-17; el ciclo de release v2.4.x trajo
-una oleada de issues de endurecimiento de tests/release (**#299, #307–#312**).
-Siguen abiertos los tres hallazgos de rendimiento **#277/#278/#279** (benchmark
-semanal #280, según el triage del owner **aún no** confirmados como regresión de
-código) y **#245** (cuota de CI, bloqueado externamente). Todos los issues
-abiertos se reverificaron contra el código actual.
+A fecha de 2026-06-19 quedan **7** issues abiertos. Desde la evaluación del
+2026-06-18, la oleada de endurecimiento de tests/release se integró en gran
+parte: **#307, #308, #309, #310** y **#312** ya están **cerrados** (igual que el
+meta-issue del snapshot **#313**). El PR **#317** (que cerró #309/#310) generó un
+nuevo seguimiento **#318** a partir de su revisión de Codex (overrides de
+permisos a nivel de job en el guard del workflow reutilizable). Siguen abiertos
+**#311** (cuerpo del release), los tres hallazgos de rendimiento
+**#277/#278/#279** (benchmark semanal #280, según el triage del owner **aún no**
+confirmados como regresión de código), **#245** (cuota de CI, bloqueado
+externamente) y el ítem de higiene de tests de baja prioridad **#299**. Todos los
+issues abiertos se reverificaron contra el código actual.
 
 | # | Título | Relevancia | Complejidad | Recomendación |
 |---|--------|------------|-------------|---------------|
-| [#312](https://github.com/NikolayDA/picture_helper/issues/312) | CI: subir actions node20 a Node 24 | 🟠 Alta | 🟢 Baja | GitHub ya fuerza Node 24 con un aviso; subir las actions afectadas (`github-script`, `upload/download-artifact`) a majors node24 de forma uniforme, test guardián opcional |
-| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | Rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo — también al reusar |
-| [#310](https://github.com/NikolayDA/picture_helper/issues/310) | Test: versión de LICENSES.md == pyproject | 🟡 Media | 🟢 Baja | Pytest rápido que compara la versión del título contra `[project].version` — detecta drift de bump antes del pesado License Check |
-| [#309](https://github.com/NikolayDA/picture_helper/issues/309) | Test: el caller cubre los permisos del WF reutilizable | 🟡 Media | 🟢 Baja | Generalizar `test_release_gate.py`: el job caller debe conceder cada permiso que declare el workflow llamado (OIDC `id-token: write`) |
-| [#308](https://github.com/NikolayDA/picture_helper/issues/308) | Test: cadena de IA importable en el artefacto `--ai` | 🟠 Alta | 🟡 Media | Autotest por spawn sin red en el build `--ai` que cargue los metadatos de `rembg`+`pymatting` (regresión #306) |
-| [#307](https://github.com/NikolayDA/picture_helper/issues/307) | Test: lanzar el artefacto construido en headless | 🟠 Alta | 🟡 Media | Lanzar el bundle en headless en el job build (capturar crash de arranque #304 / fork bomb #305); `publish` sigue gateado por `needs: build` |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
+| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: rellenar el cuerpo del release desde el CHANGELOG | 🟡 Media | 🟡 Media | **Listo para PR** — bien acotado: rellenar el cuerpo de v2.4.1 a mano; que `release-linux.yml` derive las notas de `## [X.Y.Z]` en vez de un string fijo (también al reusar), con un test de regresión en `test_release_gate.py` |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respetar overrides de permisos a nivel de job en el WF reutilizable | 🟡 Media | 🟡 Media | **Necesita refinamiento** — primero confirmar la semántica de validación de arranque de GitHub (top-level vs. efectivo-por-job); actualmente es un falso positivo puramente teórico (no hay overrides a nivel de job en `ci.yml`), y el guard OIDC #303 no debe debilitarse |
 | [#277](https://github.com/NikolayDA/picture_helper/issues/277) | Regresión de rendimiento: JPEG (+38.4%) | 🟡 Media | 🟡 Media | Aún no confirmado como regresión de código. Ampliar el benchmark con fingerprint de entorno + runs de confirmación (mediana); agrupar con #278/#279 |
 | [#278](https://github.com/NikolayDA/picture_helper/issues/278) | Regresión de rendimiento: TIFF (+21.8%) | 🟡 Media | 🟡 Media | Como #277: endurecimiento compartido del benchmark; investigar la ruta de encode (`save_image_file`) solo tras un run de confirmación compatible |
 | [#279](https://github.com/NikolayDA/picture_helper/issues/279) | Regresión de rendimiento: WebP (+13.7%) | 🟡 Media | 🟡 Media | Como #277/#278: un PR compartido para fingerprint + confirmación por mediana; reportar solo regresiones confirmadas |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | Bloqueado (externo): restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) + un bump opcional a Node 24 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Bloqueado (externo):** restaurar la cuota en la cuenta. En el repo solo cabe un manejo más claro del error (skip elegante) |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: asserts débiles/redundancias | 🟢 Baja | 🟢 Baja | Sin bug de corrección; lo de mayor valor primero (mover endpoint, consolidar `set_brush_size`), el resto según haga falta |
 
 ### Issues Agrupables
 
-- **#307/#308** van juntos: un PR de verificación de artefactos de release puede arrancar los bundles GUI y `--ai` en headless y añadir el self-check de spawn de IA.
-- **#309/#310** son guard-tests pequeños y pueden compartir un PR de endurecimiento de tests; **#311** conviene separado porque toca el workflow de release, la extracción del CHANGELOG y las notas existentes.
 - **#277/#278/#279** deberían ir juntos como PR de fiabilidad del benchmark; el análisis de encode por formato solo merece la pena después.
-- **#312** es un PR propio de modernización de CI en todos los workflows; la parte Node 24 de **#245** puede entrar ahí, pero la cuota de OpenAI sigue siendo externa.
+- **#318** es el seguimiento del guard de permisos ya integrado (#309/#310) y se queda separado — primero necesita la semántica de GitHub documentada antes de tocar `_required_permissions`.
+- **#311** se queda autónomo porque toca el workflow de release, la extracción del CHANGELOG y las notas de release existentes.
 - **#299** es higiene de tests oportunista y solo debería acompañar si ya se toca ese test.
 
 ### Orden de PRs Recomendado
 
-1. **#307/#308** — smoke-test en headless de los bundles de release (GUI + `--ai`); evita volver a publicar crashes de arranque/fork bombs.
-2. **#312** — subir las actions node20 a Node 24 antes de que GitHub retire el fallback.
-3. **#309/#310** — permisos genéricos de workflows y versión de LICENSES como PR rápido de endurecimiento de tests.
-4. **#311** — derivar el cuerpo del release desde CHANGELOG y completar las notas de v2.4.1.
-5. **#277/#278/#279** — fingerprint de benchmark + confirmación por mediana compartidos; reportar regresiones solo contra una baseline compatible.
-6. **#245** — restaurar la cuota externamente; en el repo queda solo una gestión de error más clara.
-7. **#299** — higiene de tests según haga falta.
+1. **#311** — derivar los cuerpos de release desde el CHANGELOG y completar las notas de v2.4.1; bien acotado y visible para el usuario (los fixes ya lanzados son de otro modo invisibles en la página del release).
+2. **#277/#278/#279** — fingerprint de benchmark + confirmación por mediana compartidos; reportar una regresión solo contra una baseline compatible.
+3. **#318** — refinar el guard de permisos una vez documentada la semántica de GitHub, sin debilitar el caso de regresión OIDC.
+4. **#245** — restaurar la cuota externamente; el trabajo en el repo después es solo una gestión de error más clara.
+5. **#299** — higiene de tests según haga falta.
 
 ## Rondas Anteriores
 
