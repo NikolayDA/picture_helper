@@ -207,3 +207,171 @@ def test_full_ci_is_reusable_and_not_independently_tag_triggered() -> None:
     # Matrix-Lauf parallel zum Release-Workflow (#250).
     assert "push" not in on, "ci.yml soll nicht mehr unabhängig auf Tags laufen."
     assert "release" not in on, "ci.yml soll nicht mehr auf release:published laufen."
+
+
+# ── #309: generischer Reusable-Workflow-Permission-Guard ────────────────
+#
+# Ein per ``uses: ./.github/workflows/X.yml`` aufgerufener Workflow darf NICHT
+# mehr GITHUB_TOKEN-Rechte verlangen als der aufrufende Job gewährt – sonst
+# bricht GitHub den GESAMTEN Run beim Start ab (startup_failure, 0 Jobs). Der
+# OIDC-Spezialfall (ci.yml verlangt ``id-token: write``) ist oben bereits
+# textbasiert und im Jobgraphen geprüft; der folgende Test verallgemeinert das
+# für JEDEN lokalen Reusable-Caller und JEDE deklarierte Permission.
+
+_PERMISSION_LEVELS = {"none": 0, "read": 1, "write": 2}
+_LEVEL_NAMES = {1: "read", 2: "write"}
+# Sentinel-Scope für die Kurzformen ``permissions: read-all`` / ``write-all``.
+_ALL_SCOPES = "__all__"
+
+
+def _permission_dict(perms: object) -> dict[str, str]:
+    """Normalisiert einen ``permissions``-Block zu ``{scope: level}``.
+
+    Unterstützt das im Repo genutzte Dict sowie die Kurzformen ``read-all`` /
+    ``write-all`` (als Sentinel-Scope ``__all__``); alles andere ergibt {}.
+    """
+    if isinstance(perms, dict):
+        return {str(scope): str(level) for scope, level in perms.items()}
+    if perms == "read-all":
+        return {_ALL_SCOPES: "read"}
+    if perms == "write-all":
+        return {_ALL_SCOPES: "write"}
+    return {}
+
+
+def _required_permissions(doc: dict) -> dict[str, int]:
+    """Höchstes Permission-Level je Scope, das *doc* verlangt.
+
+    Bewusst die Vereinigung aus Top-Level- UND Job-Level-``permissions``: für
+    einen Guard gegen ``startup_failure`` ist Über-Anfordern (eine ungenutzte
+    Permission am Caller einfordern) harmlos, Unter-Anfordern dagegen lässt
+    genau den Startabbruch durch, den der Test verhindern soll. Eine vom
+    aufgerufenen Workflow überhaupt deklarierte Permission wird daher
+    konservativ als „verlangt" gewertet.
+    """
+    required: dict[str, int] = {}
+    blocks = [doc.get("permissions")]
+    for job in (doc.get("jobs") or {}).values():
+        if isinstance(job, dict):
+            blocks.append(job.get("permissions"))
+    for block in blocks:
+        for scope, level in _permission_dict(block).items():
+            lvl = _PERMISSION_LEVELS.get(level, 0)
+            required[scope] = max(required.get(scope, 0), lvl)
+    return {scope: lvl for scope, lvl in required.items() if lvl > 0}
+
+
+def _granted_permissions(caller_job: dict, caller_doc: dict) -> dict[str, int]:
+    """Permissions, die der Caller-Job gewährt (Job-Level, sonst Workflow-Default)."""
+    block = caller_job.get("permissions")
+    if block is None:
+        block = caller_doc.get("permissions")
+    return {
+        scope: _PERMISSION_LEVELS.get(level, 0)
+        for scope, level in _permission_dict(block).items()
+    }
+
+
+def _missing_grants(required: dict[str, int], granted: dict[str, int]) -> dict[str, int]:
+    """Scopes (→ gefordertes Level), in denen *granted* zu wenig gewährt.
+
+    Berücksichtigt die ``__all__``-Kurzform: ein ``read-all``/``write-all``-Grant
+    deckt jeden konkreten Scope bis zu seinem Level ab.
+    """
+    all_granted = granted.get(_ALL_SCOPES, 0)
+    missing: dict[str, int] = {}
+    for scope, needed in required.items():
+        have = all_granted if scope == _ALL_SCOPES else max(
+            granted.get(scope, 0), all_granted
+        )
+        if have < needed:
+            missing[scope] = needed
+    return missing
+
+
+def _declares_workflow_call(doc: dict) -> bool:
+    """Ob *doc* als wiederverwendbarer Workflow aufrufbar ist (``on.workflow_call``).
+
+    PyYAML (YAML 1.1) liest den ``on``-Key als Boolean ``True`` – beide Lesarten
+    werden abgedeckt, ebenso die String-/Listen-Kurzformen von ``on``.
+    """
+    on = doc.get(True, doc.get("on"))
+    if isinstance(on, dict):
+        return "workflow_call" in on
+    if isinstance(on, list):
+        return "workflow_call" in on
+    return on == "workflow_call"
+
+
+def _workflow_files() -> list[Path]:
+    """Alle Workflow-Dateien – GitHub akzeptiert ``.yml`` UND ``.yaml``."""
+    workflow_dir = _ROOT / ".github" / "workflows"
+    return sorted([*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")])
+
+
+def test_reusable_workflow_callers_grant_all_required_permissions() -> None:
+    """Jeder lokale Reusable-Workflow-Caller gewährt JEDE vom aufgerufenen
+    Workflow deklarierte Permission mindestens gleichwertig (#309).
+
+    Deckt den OIDC-Fall ab (ci.yml ``id-token: write`` ⇒ Release-``test``-Job
+    muss es gewähren) und ist selbst-validierend: entfernt man ``id-token`` aus
+    dem Release-``test``-Job, wird dieser Test rot. Prüft zusätzlich, dass der
+    aufgerufene Workflow überhaupt ``workflow_call`` deklariert – fehlt das,
+    lehnt GitHub den Run ebenfalls beim Start ab.
+    """
+    yaml = pytest.importorskip("yaml")
+    checked = 0
+    for caller_path in _workflow_files():
+        caller_doc = yaml.safe_load(caller_path.read_text(encoding="utf-8"))
+        if not isinstance(caller_doc, dict):
+            continue
+        for job_name, job in (caller_doc.get("jobs") or {}).items():
+            if not isinstance(job, dict):
+                continue
+            uses = job.get("uses")
+            if not (isinstance(uses, str) and uses.startswith("./.github/workflows/")):
+                continue
+            called_path = _ROOT / uses.removeprefix("./")
+            assert called_path.is_file(), (
+                f"{caller_path.name}: Job '{job_name}' ruft fehlenden Workflow "
+                f"{uses} auf."
+            )
+            called_doc = yaml.safe_load(called_path.read_text(encoding="utf-8"))
+            assert _declares_workflow_call(called_doc), (
+                f"{caller_path.name}: Job '{job_name}' ruft {called_path.name} auf, "
+                f"das kein 'on: workflow_call' deklariert – GitHub bricht den Run "
+                f"beim Start ab (startup_failure, #309)."
+            )
+            missing = _missing_grants(
+                _required_permissions(called_doc),
+                _granted_permissions(job, caller_doc),
+            )
+            pretty = {scope: _LEVEL_NAMES[lvl] for scope, lvl in missing.items()}
+            assert not missing, (
+                f"{caller_path.name}: Job '{job_name}' (uses: {called_path.name}) "
+                f"gewährt nicht alle vom aufgerufenen Workflow verlangten "
+                f"Permissions. Fehlend (scope→min): {pretty}. Ein aufgerufener "
+                f"Workflow darf nicht mehr Rechte verlangen als der Aufrufer, sonst "
+                f"startet der Run gar nicht (startup_failure, #309)."
+            )
+            checked += 1
+    assert checked, (
+        "kein lokaler Reusable-Workflow-Caller gefunden – Guard wirkungslos? "
+        "(erwartet mind. release-linux.yml → ci.yml)"
+    )
+
+
+def test_permission_helpers_honor_all_shorthands_and_workflow_call() -> None:
+    """Schützt die Sonderfälle des Guards: ``read-all``/``write-all`` und die
+    ``workflow_call``-Erkennung in den üblichen ``on``-Schreibweisen."""
+    # read-all deckt geforderte read-Scopes, aber kein write.
+    read_all = _granted_permissions({"permissions": "read-all"}, {})
+    assert _missing_grants({"contents": 1, "id-token": 2}, read_all) == {"id-token": 2}
+    # write-all deckt alles.
+    write_all = _granted_permissions({"permissions": "write-all"}, {})
+    assert _missing_grants({"contents": 2}, write_all) == {}
+    # workflow_call-Erkennung (PyYAML-True-Key, Listen-, String- und Dict-on).
+    assert _declares_workflow_call({True: {"workflow_call": None}})
+    assert _declares_workflow_call({"on": ["workflow_call"]})
+    assert _declares_workflow_call({"on": "workflow_call"})
+    assert not _declares_workflow_call({"on": {"push": None}})
