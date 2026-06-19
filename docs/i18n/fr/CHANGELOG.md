@@ -9,6 +9,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Modifié
+
+- **Les notes de version GitHub proviennent désormais du CHANGELOG.** Le flux
+  de publication (`release-linux.yml`) dérive le corps de la version pour une
+  étiquette `vX.Y.Z` de la section `## [X.Y.Z]` de `CHANGELOG.md` et le
+  transmet via `--notes-file` à `gh release` — y compris lors de la
+  réutilisation d'une version existante (`gh release edit`), pas seulement à la
+  première création. Le texte figé « Automated build… » disparaît ; si la
+  section correspondante manque, le job de publication échoue clairement (pas
+  de repli silencieux) (#311).
+
 ## [2.4.1] – 2026-06-17
 
 ### Corrigé

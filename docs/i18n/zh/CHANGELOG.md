@@ -9,6 +9,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 变更
+
+- **GitHub 发布说明现在来自 CHANGELOG。** 发布工作流（`release-linux.yml`）会
+  从 `CHANGELOG.md` 的 `## [X.Y.Z]` 小节中提取 `vX.Y.Z` 标签的发布正文，并通过
+  `--notes-file` 传给 `gh release`——包括复用已存在的发布时（`gh release edit`），
+  而不仅是首次创建。写死的“Automated build…”文本被移除；若缺少对应小节，
+  publish 作业会明确失败（不再静默回退）（#311）。
+
 ## [2.4.1] – 2026-06-17
 
 ### 修复
