@@ -67,8 +67,11 @@ DEFAULT_WIDTH = 1920
 DEFAULT_HEIGHT = 1080
 DEFAULT_THRESHOLD = 10.0  # Prozent; darüber gilt ein Format als degradiert.
 DEFAULT_METRIC = "process_ms"
+DEFAULT_CONFIRM_RUNS = 3  # Wiederholungen, um eine Auffälligkeit zu bestätigen.
 RESULTS_DIR = ROOT / "benchmarks" / "results"
-SCHEMA_VERSION = 1
+# Schema 2 ergänzt den Umgebungs-Fingerprint (``environment``); ältere Läufe ohne
+# diesen Block gelten nicht als automatische Baseline (#277/#278/#279).
+SCHEMA_VERSION = 2
 DEFAULT_API_URL = "https://api.github.com"
 
 
@@ -165,6 +168,44 @@ def git_commit() -> str | None:
     return out.stdout.strip() or None if out.returncode == 0 else None
 
 
+def collect_environment() -> dict[str, Any]:
+    """Umgebungs-Fingerprint des aktuellen Laufs.
+
+    Hält fest, *worauf* gemessen wurde, damit der Vergleich später entscheiden
+    kann, ob zwei Läufe überhaupt vergleichbar sind (#277/#278/#279): Software-
+    versionen (Python/Pillow/NumPy) als harte Bedingung, Hardware (Architektur/
+    CPU-Anzahl) als weiche. ``runner`` dokumentiert den GitHub-Runner, ``system``/
+    ``release``/``processor`` sind rein informativ (gehen nicht in den Vergleich
+    ein, da sie zwischen sonst gleichen Runnern schwanken können).
+    """
+    import platform
+
+    try:
+        from PIL import __version__ as pillow_version
+    except Exception:  # pragma: no cover - Pillow ist Pflicht, defensiv dennoch
+        pillow_version = None
+    try:
+        import numpy
+
+        numpy_version: str | None = numpy.__version__
+    except Exception:  # pragma: no cover - NumPy ist Pflicht, defensiv dennoch
+        numpy_version = None
+
+    return {
+        "python": platform.python_version(),
+        "pillow": pillow_version,
+        "numpy": numpy_version,
+        "system": platform.system(),
+        "release": platform.release(),
+        "machine": platform.machine(),
+        "processor": platform.processor() or None,
+        "cpu_count": os.cpu_count(),
+        "runner": os.environ.get("RUNNER_NAME")
+        or os.environ.get("RUNNER_OS")
+        or "local",
+    }
+
+
 def run_benchmark(iterations: int, width: int, height: int) -> dict[str, Any]:
     """Führt den Benchmark für alle Formate aus und liefert das Ergebnis-Dict."""
     img = make_sample_image(width, height)
@@ -179,8 +220,42 @@ def run_benchmark(iterations: int, width: int, height: int) -> dict[str, Any]:
         "git_commit": git_commit(),
         "iterations": iterations,
         "image": {"width": width, "height": height},
+        "environment": collect_environment(),
         "formats": formats,
     }
+
+
+def aggregate_results(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Fasst mehrere vollständige Läufe zum Median je Format/Metrik zusammen.
+
+    Grundlage des Bestätigungslaufs (#277/#278/#279): erst der Median über
+    mehrere komplette Wiederholungen entscheidet, ob eine Auffälligkeit echt ist
+    oder ein einzelner Mess-Ausreißer war. Metadaten (Commit, Umgebung,
+    Iterationen, Bildmaße) werden vom letzten Lauf übernommen; ``repeats`` hält
+    die Anzahl der Wiederholungen fest.
+    """
+    if not runs:
+        raise ValueError("aggregate_results braucht mindestens einen Lauf")
+    all_formats = sorted({fmt for r in runs for fmt in r.get("formats", {})})
+    merged_formats: dict[str, dict[str, float]] = {}
+    for fmt in all_formats:
+        metric_names = sorted(
+            {m for r in runs for m in r.get("formats", {}).get(fmt, {})}
+        )
+        merged_formats[fmt] = {}
+        for metric in metric_names:
+            values = [
+                float(r["formats"][fmt][metric])
+                for r in runs
+                if metric in r.get("formats", {}).get(fmt, {})
+            ]
+            merged_formats[fmt][metric] = (
+                round(statistics.median(values), 4) if values else float("nan")
+            )
+    merged = dict(runs[-1])
+    merged["formats"] = merged_formats
+    merged["repeats"] = len(runs)
+    return merged
 
 
 # ── Persistenz ───────────────────────────────────────────────────────────
@@ -195,6 +270,14 @@ def save_result(result: dict[str, Any], results_dir: Path) -> Path:
         path = results_dir / f"{stamp}.json"
     path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def _rel(path: Path) -> str:
+    """Pfad relativ zum Repo-Root, sonst der Pfad selbst (z. B. Temp-Dir im Test)."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def _result_files(results_dir: Path) -> list[Path]:
@@ -315,6 +398,107 @@ def format_report(comp: Comparison) -> str:
     return "\n".join(lines)
 
 
+# ── Kompatibilität von Baseline & aktuellem Lauf ─────────────────────────
+
+# Softwareversionen: Abweichung macht den Vergleich *hart* unmöglich (andere
+# Encoder-/Laufzeit-Implementierung). Python wird nur auf Minor verglichen, damit
+# ein reiner Patch-Bump die Baseline nicht unnötig verwirft.
+_VERSION_KEYS = (("pillow", "Pillow"), ("numpy", "NumPy"))
+# Hardware: Abweichung macht den Vergleich *weich* – Messung bleibt möglich,
+# verlangt aber einen Bestätigungslauf.
+_HARDWARE_KEYS = (("machine", "Architektur"), ("cpu_count", "CPU-Anzahl"))
+
+
+@dataclass
+class Compatibility:
+    """Ob Baseline und aktueller Lauf automatisch vergleichbar sind.
+
+    ``comparable`` = False bedeutet „nur Anzeige, keine automatische Regressions-
+    meldung". ``requires_confirmation`` = True heißt „vergleichbar, aber die
+    Hardware weicht ab – erst ein Bestätigungslauf darf melden". ``reasons``
+    erklärt die Entscheidung menschenlesbar (für Report und Issue-Text).
+    """
+
+    comparable: bool
+    requires_confirmation: bool
+    reasons: list[str] = field(default_factory=list)
+
+
+def _python_minor(version: str | None) -> str | None:
+    """``"3.12.4"`` → ``"3.12"``; gibt sonst die Eingabe unverändert zurück."""
+    if not version:
+        return None
+    parts = version.split(".")
+    return ".".join(parts[:2]) if len(parts) >= 2 else version
+
+
+def check_compatibility(baseline: dict[str, Any], current: dict[str, Any]) -> Compatibility:
+    """Prüft, ob ``baseline`` und ``current`` automatisch vergleichbar sind.
+
+    Harte Inkompatibilität (``comparable=False``): fehlender Umgebungs-Fingerprint
+    in der Baseline, abweichende Python-Minor-/Pillow-/NumPy-Version oder
+    abweichende Benchmark-Parameter (Iterationszahl, Bildabmessungen). Weiche
+    Inkompatibilität (``requires_confirmation=True``): nur Hardware (Architektur/
+    CPU-Anzahl) weicht ab.
+    """
+    base_env = baseline.get("environment") or {}
+    cur_env = current.get("environment") or {}
+    if not base_env:
+        return Compatibility(False, False, [
+            "Baseline ohne Umgebungs-Fingerprint – nur Anzeige, keine "
+            "automatische Regressionserkennung.",
+        ])
+
+    hard: list[str] = []
+    if baseline.get("iterations") != current.get("iterations"):
+        hard.append(
+            f"Iterationszahl unterschiedlich ({baseline.get('iterations')} vs. "
+            f"{current.get('iterations')})."
+        )
+    if baseline.get("image") != current.get("image"):
+        hard.append(
+            f"Bildabmessungen unterschiedlich ({baseline.get('image')} vs. "
+            f"{current.get('image')})."
+        )
+    if _python_minor(base_env.get("python")) != _python_minor(cur_env.get("python")):
+        hard.append(
+            f"Python-Version unterschiedlich ({base_env.get('python')} vs. "
+            f"{cur_env.get('python')})."
+        )
+    for key, label in _VERSION_KEYS:
+        if base_env.get(key) != cur_env.get(key):
+            hard.append(
+                f"{label}-Version unterschiedlich ({base_env.get(key)} vs. "
+                f"{cur_env.get(key)})."
+            )
+    if hard:
+        return Compatibility(False, False, hard)
+
+    soft: list[str] = []
+    for key, label in _HARDWARE_KEYS:
+        if base_env.get(key) != cur_env.get(key):
+            soft.append(
+                f"{label} unterschiedlich ({base_env.get(key)} vs. {cur_env.get(key)})."
+            )
+    if soft:
+        soft.append("Hardware weicht ab – Bestätigungslauf erforderlich.")
+        return Compatibility(True, True, soft)
+    return Compatibility(True, False, [])
+
+
+def format_compatibility(compat: Compatibility, base_label: str) -> str:
+    """Kurzer Status-Block zur Vergleichbarkeit (vor dem eigentlichen Report)."""
+    if not compat.comparable:
+        status = "NICHT VERGLEICHBAR – keine automatische Regressionsmeldung."
+    elif compat.requires_confirmation:
+        status = "bedingt vergleichbar – Bestätigungslauf erforderlich."
+    else:
+        status = "vergleichbar."
+    lines = [f"Baseline: {base_label}", f"Vergleichbarkeit: {status}"]
+    lines.extend(f"  • {reason}" for reason in compat.reasons)
+    return "\n".join(lines)
+
+
 # ── GitHub-Issues für geflaggte Formate ──────────────────────────────────
 
 def _issue_marker(fmt: str, metric: str) -> str:
@@ -322,7 +506,38 @@ def _issue_marker(fmt: str, metric: str) -> str:
     return f"bgremover-benchmark-regression:{metric}:{fmt}"
 
 
-def _issue_body(d: FormatDelta, comp: Comparison) -> str:
+@dataclass
+class IssueContext:
+    """Bestätigungs- und Umgebungsdaten für den Issue-Text (#277/#278/#279)."""
+
+    baseline_label: str
+    current_commit: str | None
+    environment: dict[str, Any]
+    confirm_runs: int
+    requires_confirmation: bool
+
+
+def _format_env(env: dict[str, Any]) -> str:
+    """Kompakte, einzeilige Darstellung des Umgebungs-Fingerprints."""
+    if not env:
+        return "—"
+    keys = ("python", "pillow", "numpy", "system", "machine", "cpu_count", "runner")
+    parts = [f"{k}={env.get(k)}" for k in keys if env.get(k) is not None]
+    return ", ".join(parts) if parts else "—"
+
+
+def _issue_body(d: FormatDelta, comp: Comparison, context: IssueContext | None = None) -> str:
+    extra = ""
+    if context is not None:
+        extra = f"""
+### Bestätigung & Umgebung
+
+- Baseline: {context.baseline_label}
+- Aktueller Commit: {context.current_commit or "unbekannt"}
+- Umgebungs-Fingerprint: {_format_env(context.environment)}
+- Bestätigungsläufe: {context.confirm_runs} (gemeldet wird der Median)
+- Hardware weicht von der Baseline ab: {"ja" if context.requires_confirmation else "nein"}
+"""
     return f"""<!-- {_issue_marker(d.fmt, comp.metric)} -->
 ## Performance-Regression: {d.fmt}
 
@@ -334,7 +549,7 @@ vorigen Benchmark-Lauf um mehr als {comp.threshold:.0f}% verschlechtert.
 | Vorwoche | {d.baseline_ms:.2f} ms |
 | Diese Woche | {d.current_ms:.2f} ms |
 | Änderung | +{d.pct_change:.1f}% |
-
+{extra}
 Erzeugt von `scripts/benchmark.py`.
 """
 
@@ -367,12 +582,15 @@ def _issue_exists(repo: str, marker: str, token: str, api_url: str) -> str | Non
     return str(items[0].get("html_url") or "") if items else None
 
 
-def post_issues(comp: Comparison, *, dry_run: bool) -> list[dict[str, str]]:
+def post_issues(
+    comp: Comparison, *, dry_run: bool, context: IssueContext | None = None,
+) -> list[dict[str, str]]:
     """Legt für jedes geflaggte Format ein GitHub-Issue an (idempotent).
 
     Ohne ``GITHUB_TOKEN``/``GITHUB_REPOSITORY`` (oder mit ``--dry-run``) wird nur
     gedruckt, was passieren würde – derselbe Schutz wie in
-    ``create_security_scan_issues.py``.
+    ``create_security_scan_issues.py``. ``context`` ergänzt im Issue-Text
+    Baseline, Commit, Umgebungs-Fingerprint und das Bestätigungsergebnis.
     """
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     token = os.environ.get("GITHUB_TOKEN", "")
@@ -391,7 +609,7 @@ def post_issues(comp: Comparison, *, dry_run: bool) -> list[dict[str, str]]:
             print(f"Bestehendes Issue für {d.fmt}: {existing}")
             results.append({"format": d.fmt, "status": "existing", "url": existing})
             continue
-        payload = {"title": title, "body": _issue_body(d, comp)}
+        payload = {"title": title, "body": _issue_body(d, comp, context)}
         created = _github_request(
             "POST", f"/repos/{repo}/issues", token, api_url=api_url, payload=payload,
         )
@@ -406,7 +624,7 @@ def post_issues(comp: Comparison, *, dry_run: bool) -> list[dict[str, str]]:
 def _cmd_run(args: argparse.Namespace) -> int:
     result = run_benchmark(args.iterations, args.width, args.height)
     path = save_result(result, args.results_dir)
-    print(f"Ergebnis gespeichert: {path.relative_to(ROOT)}")
+    print(f"Ergebnis gespeichert: {_rel(path)}")
 
     if args.no_compare:
         return 0
@@ -415,19 +633,60 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print("Kein früherer Lauf gefunden – dieser Lauf ist die neue Baseline.")
         return 0
     base_path, base_data = baseline
-    print(f"Vergleiche gegen Vorwoche: {base_path.relative_to(ROOT)}\n")
+    base_label = base_path.name
+    print(f"Vergleiche gegen Vorwoche: {_rel(base_path)}\n")
+
+    compat = check_compatibility(base_data, result)
+    print(format_compatibility(compat, base_label))
+    print()
     comp = compare(base_data, result, args.metric, args.threshold)
     print(format_report(comp))
-    if comp.flagged and (args.post_issues or args.dry_run_issues):
+
+    # Inkompatible Baseline: nur anzeigen, niemals melden (#277/#278/#279).
+    if not compat.comparable:
+        print("\nℹ️  Baseline nicht vergleichbar – keine Regression gemeldet.")
+        return 0
+    if not comp.flagged:
+        return 0
+
+    # Bestätigungslauf: mehrere vollständige Wiederholungen, Median vergleichen.
+    repeats = max(1, args.confirm_runs)
+    print(f"\n🔁 {len(comp.flagged)} Format(e) auffällig – Bestätigung mit "
+          f"{repeats} Wiederholung(en) …\n")
+    confirmed = aggregate_results(
+        [run_benchmark(args.iterations, args.width, args.height) for _ in range(repeats)]
+    )
+    confirmed_comp = compare(base_data, confirmed, args.metric, args.threshold)
+    print("Bestätigungslauf (Median):")
+    print(format_report(confirmed_comp))
+
+    if not confirmed_comp.flagged:
+        print("\n✅ Bestätigungslauf zeigt keine Regression – Auffälligkeit war ein "
+              "Mess-Ausreißer; kein Issue.")
+        return 0
+
+    context = IssueContext(
+        baseline_label=base_label,
+        current_commit=result.get("git_commit"),
+        environment=result.get("environment", {}),
+        confirm_runs=repeats,
+        requires_confirmation=compat.requires_confirmation,
+    )
+    if args.post_issues or args.dry_run_issues:
         print()
-        post_issues(comp, dry_run=args.dry_run_issues or not args.post_issues)
-    return 1 if (comp.flagged and args.fail_on_regression) else 0
+        post_issues(
+            confirmed_comp,
+            dry_run=args.dry_run_issues or not args.post_issues,
+            context=context,
+        )
+    return 1 if args.fail_on_regression else 0
 
 
 def _cmd_compare(args: argparse.Namespace) -> int:
     if args.baseline and args.current:
         base_data = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
         cur_data = json.loads(Path(args.current).read_text(encoding="utf-8"))
+        base_label = Path(args.baseline).name
     else:
         files = _result_files(args.results_dir)
         if len(files) < 2:
@@ -435,13 +694,33 @@ def _cmd_compare(args: argparse.Namespace) -> int:
             return 2
         base_data = json.loads(files[-2].read_text(encoding="utf-8"))
         cur_data = json.loads(files[-1].read_text(encoding="utf-8"))
+        base_label = files[-2].name
         print(f"Vergleiche {files[-2].name} → {files[-1].name}\n")
 
+    compat = check_compatibility(base_data, cur_data)
+    print(format_compatibility(compat, base_label))
+    print()
     comp = compare(base_data, cur_data, args.metric, args.threshold)
     print(format_report(comp))
+
+    # ``compare`` vergleicht statische Dateien und kann nicht nachmessen; eine
+    # bestätigte Meldung entsteht nur über ``run``. Bei inkompatibler Baseline
+    # wird hier deshalb ebenfalls nichts gemeldet.
+    if not compat.comparable:
+        print("\nℹ️  Baseline nicht vergleichbar – keine Regression gemeldet.")
+        return 0
     if comp.flagged and (args.post_issues or args.dry_run_issues):
+        context = IssueContext(
+            baseline_label=base_label,
+            current_commit=cur_data.get("git_commit"),
+            environment=cur_data.get("environment", {}),
+            confirm_runs=cur_data.get("repeats", 0),
+            requires_confirmation=compat.requires_confirmation,
+        )
         print()
-        post_issues(comp, dry_run=args.dry_run_issues or not args.post_issues)
+        post_issues(
+            comp, dry_run=args.dry_run_issues or not args.post_issues, context=context,
+        )
     return 1 if (comp.flagged and args.fail_on_regression) else 0
 
 
@@ -469,6 +748,9 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--height", type=int, default=DEFAULT_HEIGHT)
     run_p.add_argument("--no-compare", action="store_true",
                        help="Nur messen und speichern, nicht vergleichen.")
+    run_p.add_argument("--confirm-runs", type=int, default=DEFAULT_CONFIRM_RUNS,
+                       help="Wiederholungen zur Bestätigung einer Auffälligkeit "
+                            "(Median; Default 3).")
     _add_common(run_p)
     run_p.set_defaults(func=_cmd_run)
 

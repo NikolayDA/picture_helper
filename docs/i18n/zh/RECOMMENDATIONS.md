@@ -45,27 +45,24 @@
 
 ## 开放的 GitHub Issues — 优先级评估（2026-06-19）
 
-截至 2026-06-19，共有 **7** 个开放 issue。自 2026-06-18 的评估以来，测试/发布
+截至 2026-06-19，共有 **4** 个开放 issue。自 2026-06-18 的评估以来，测试/发布
 加固浪潮大体已合并：**#307、#308、#309、#310** 和 **#312** 现已 **关闭**（snapshot
-的 meta issue **#313** 亦然）。PR **#317**（关闭了 #309/#310）从其 Codex review
-中衍生出一个新的后续 **#318**（可复用 workflow guard 中的 job 级权限覆盖）。仍开放
-的是 **#311**（release 正文）、三项性能发现 **#277/#278/#279**（每周 benchmark
-#280，按 owner 的 triage **尚未**确认为代码回归）、**#245**（CI quota，外部受阻）
-以及低优先级测试卫生项 **#299**。所有开放 issue 均已对照当前代码重新核实。
+的 meta issue **#313** 亦然）。三项性能发现 **#277/#278/#279**（每周 benchmark
+#280）已通过本 PR 的 benchmark 加固（环境指纹 + 中位数确认；仅对可比较基线报告）
+而 **关闭**。PR **#317**（关闭了 #309/#310）从其 Codex review 中衍生出一个新的后续
+**#318**（可复用 workflow guard 中的 job 级权限覆盖）。仍开放的是 **#311**
+（release 正文）、**#318**（权限 guard）、**#245**（CI quota，外部受阻）以及低
+优先级测试卫生项 **#299**。所有开放 issue 均已对照当前代码重新核实。
 
 | # | 标题 | 相关性 | 复杂度 | 建议 |
 |---|------|--------|--------|------|
 | [#311](https://github.com/NikolayDA/picture_helper/issues/311) | 发布：从 CHANGELOG 填充 release 正文 | 🟡 中 | 🟡 中 | **可做 PR** — 范围明确：手动补全 v2.4.1 正文；让 `release-linux.yml` 从 `## [X.Y.Z]` 推导 notes 而非硬编码文本（复用时亦然），并在 `test_release_gate.py` 中加回归测试 |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | 测试：尊重可复用 WF 中的 job 级权限覆盖 | 🟡 中 | 🟡 中 | **需打磨** — 先确认 GitHub 的 startup-validation 语义（top-level 与 effective-per-job）；目前是纯理论上的误报（`ci.yml` 中没有 job 级覆盖），且 OIDC guard #303 不得被削弱 |
-| [#277](https://github.com/NikolayDA/picture_helper/issues/277) | 性能回归：JPEG（+38.4%） | 🟡 中 | 🟡 中 | 尚未确认为代码回归。为 benchmark 增加环境指纹 + 确认运行（中位数）；与 #278/#279 合并处理 |
-| [#278](https://github.com/NikolayDA/picture_helper/issues/278) | 性能回归：TIFF（+21.8%） | 🟡 中 | 🟡 中 | 同 #277：共享的 benchmark 加固；只有在兼容的确认运行之后才调查 encode 路径（`save_image_file`） |
-| [#279](https://github.com/NikolayDA/picture_helper/issues/279) | 性能回归：WebP（+13.7%） | 🟡 中 | 🟡 中 | 同 #277/#278：一个共享 PR 处理指纹 + 中位数确认；只报告已确认的回归 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI：Codex Security Scan 因 “Quota exceeded” 失败 | 🟡 中 | 🟢 低 | **受阻（外部）：** 在账户侧恢复 quota。仓库内只能做更清晰的失败处理（优雅跳过） |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | 测试卫生：弱断言/冗余 | 🟢 低 | 🟢 低 | 非正确性缺陷；先做最有价值的（endpoint 移动、合并 `set_brush_size`），其余按需 |
 
 ### 可合并 Issues
 
-- **#277/#278/#279** 应作为 benchmark 可靠性 PR 一起处理；之后再做按格式的 encode 分析才有意义。
 - **#318** 是对已合并的权限 guard（#309/#310）的后续，应保持独立——在触及 `_required_permissions` 之前，需先有 GitHub 语义的文档依据。
 - **#311** 保持独立，因为它涉及 release workflow、CHANGELOG 提取和现有 release notes。
 - **#299** 是机会型测试卫生，只应在本来就触及相关测试时顺手处理。
@@ -73,10 +70,9 @@
 ### 推荐 PR 顺序
 
 1. **#311** — 从 CHANGELOG 推导 release 正文并补回 v2.4.1 notes；范围明确且用户可见（否则已发布的修复在 release 页面上不可见）。
-2. **#277/#278/#279** — 共享 benchmark 指纹 + 中位数确认；仅在兼容基线下报告回归。
-3. **#318** — 在 GitHub 语义有文档依据后打磨权限 guard，且不削弱 OIDC 回归用例。
-4. **#245** — 在外部恢复 quota；仓库侧之后只需更清晰的失败处理。
-5. **#299** — 测试卫生按需处理。
+2. **#318** — 在 GitHub 语义有文档依据后打磨权限 guard，且不削弱 OIDC 回归用例。
+3. **#245** — 在外部恢复 quota；仓库侧之后只需更清晰的失败处理。
+4. **#299** — 测试卫生按需处理。
 
 ## 先前轮次
 
