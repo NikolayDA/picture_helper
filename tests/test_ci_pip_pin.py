@@ -4,7 +4,7 @@
 Installationswerkzeug selbst – es lässt sich daher nicht über
 ``requirements/constraints.txt`` anheben. Stattdessen wird die gepatchte
 Mindestversion an jeder Stelle erzwungen, die mit pip installiert: in den
-fünf pip-installierenden CI-Workflows und im Web-SessionStart-Hook.
+sechs pip-installierenden CI-Workflows und im Web-SessionStart-Hook.
 
 Hintergrund: pip 24.0 trägt fünf bekannte CVEs (Path-Traversal in der
 Wheel-Extraktion, Symlink-Angriff, Modul-Hijacking beim Self-Update,
@@ -24,7 +24,7 @@ from packaging.version import Version
 
 _ROOT = Path(__file__).resolve().parent.parent
 
-# Stellen, die pip vor dem Installieren des Pakets anheben müssen. Die fünf
+# Stellen, die pip vor dem Installieren anheben müssen. Die sechs
 # pip-installierenden CI-Workflows plus der Web-SessionStart-Hook.
 # ``release-linux.yml`` fehlt bewusst – es baut nur AppImages über ein
 # isoliertes Tooling-venv und installiert das Projekt nicht in den Runner.
@@ -34,6 +34,7 @@ _PIP_PIN_SOURCES = (
     ".github/workflows/ui-nightly.yml",
     ".github/workflows/benchmark.yml",
     ".github/workflows/license-check.yml",
+    ".github/workflows/dependency-audit.yml",
     ".claude/hooks/session-start.sh",
 )
 
