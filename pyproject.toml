@@ -123,6 +123,7 @@ module = [
     "bgremover.image_ops",
     "bgremover.image_utils",
     "bgremover.crop",
+    "bgremover.project_model",
     "bgremover.recent_files",
     "bgremover.canvas_history",
     "bgremover.canvas_selection",

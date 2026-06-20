@@ -9,6 +9,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
+  `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
+  Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des
+  Ebenen-Epics: geordnete Ebenen, genau eine aktive Ebene, reine Operationen
+  (Hinzufügen/Entfernen/Umsortieren/Duplizieren/Umbenennen,
+  Sichtbarkeit/Opazität/Sperre/Rollen) und ein Alpha-Komposit der sichtbaren
+  Farb-Ebenen – ohne Qt-, Render-, Persistenz- oder History-Anbindung
+  (#330, #329).
+
 ### Geändert
 
 - **GitHub-Release-Notizen stammen jetzt aus dem CHANGELOG.** Der

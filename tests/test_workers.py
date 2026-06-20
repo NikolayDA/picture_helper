@@ -458,6 +458,29 @@ def test_image_load_worker_accepts_normal_size(qapp, tmp_path) -> None:
     assert len(errors) == 0
 
 
+def test_image_load_worker_accepts_gif_input(qapp, tmp_path) -> None:
+    """GIF ist als *Eingabe*-Format deklariert (``_ALLOWED_IMAGE_FORMATS``); ein
+    echtes Laden über den async Pfad sichert den Format-Gate-Vertrag ab.
+
+    Self-validating: Wird ``"GIF"`` aus der erlaubten Liste entfernt, scheitert
+    der Worker mit ``error`` ("Format nicht unterstützt: GIF") und genau dieser
+    Test wird rot. GIF ist bewusst nur Eingabe, kein Speicherformat
+    (``image_ops.SAVE_FORMATS`` lehnt ``.gif`` ab) – daher kein Save-Roundtrip.
+    """
+    p = tmp_path / "input.gif"
+    # GIF nutzt den Palettenmodus ("P"); der echte Decode prüft den Lade-Vertrag.
+    Image.new("P", (32, 24)).save(p, format="GIF")
+    worker = ImageLoadWorker(str(p))
+    finished: list = []
+    errors: list[str] = []
+    worker.finished.connect(lambda img, path: finished.append(img))
+    worker.error.connect(errors.append)
+    worker.run()
+    assert len(errors) == 0
+    assert len(finished) == 1
+    assert finished[0].size == (32, 24)
+
+
 def test_image_load_worker_verify_rejects_truncated_png(qapp, tmp_path) -> None:
     """verify() muss strukturell kaputte PNGs (z. B. abgeschnittener IDAT)
     abweisen, bevor der eigentliche Decode laeuft."""
