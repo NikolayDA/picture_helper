@@ -49,48 +49,56 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-19)
+## Offene GitHub-Issues – Prioritätsbewertung (2026-06-20)
 
-Stand 2026-06-19 sind **7** Issues offen. Seit der Bewertung vom 2026-06-18
-wurde die Test-/Release-Härtungs-Welle größtenteils gemerged: **#307, #308,
-#309, #310** und **#312** sind **geschlossen** (ebenso das Snapshot-Meta-Issue
-**#313**). Die drei Performance-Befunde **#277/#278/#279** (Wochen-Benchmark
-#280) sind über die Benchmark-Härtung dieses PRs (Umgebungs-Fingerprint +
-Median-Bestätigung; nur vergleichbare Baselines melden) **geschlossen**. Aus dem
-Codex-Review zu PR **#317** (der #309/#310 schloss) entstand ein neuer
-Folgebefund **#318** (Job-Level-Permission-Overrides im Reusable-Workflow-Guard).
-Weiterhin offen sind **#311** (Release-Body), **#318** (Permission-Guard),
-**#245** (CI-Quota, extern blockiert) und die niedrigpriore Test-Hygiene
-**#299** sowie drei aus der **#245**-Triage entstandene repo-seitige
-Härtungs-Folgeissues — **#322** (Wartungs-/Skip-Pfad), **#323**
-(Security-Issue-Sync-Tests) und **#324** (Prompt-Scope-Governance) —, von denen
-#323/#324 netzunabhängig sofort umsetzbar sind. Alle offenen
-Issues wurden gegen den aktuellen Code verifiziert.
+Stand 2026-06-20 sind **14** Issues offen. Seit der Bewertung vom 2026-06-19
+wurde **#311** (Release-Body) geschlossen. Neu hinzugekommen ist das Epic
+**#329** (Projekt-/Ebenen-Datenmodell – Fundament für Height Map, Gloss &
+EufyMake-Export) mit seinen sechs Sub-Issues **#330–#335**, sowie der
+Test-Coverage-Befund **#326** (GIF-Eingabeformat deklariert, aber ungetestet).
+Das Ebenen-Epic ist der priorisierte Roadmap-Rang #1: **#330** (Qt-freies
+Domänenmodell) ist die abhängigkeitsfreie Keystone und sofort umsetzbar, die
+übrigen Sub-Issues sind über die Abhängigkeitskette
+(#330 → #331 → #332/#333 → #334 → #335) blockiert. Weiterhin offen aus der
+vorigen Runde: **#318** (Permission-Guard), **#245** (CI-Quota, extern
+blockiert), die drei **#245**-Härtungsfolgen **#322–#324** und die niedrigpriore
+Test-Hygiene **#299**. Alle offenen Issues wurden gegen den aktuellen Code
+verifiziert.
 
 | # | Titel | Relevanz | Komplexität | Empfehlung |
 |---|-------|----------|-------------|------------|
-| [#311](https://github.com/NikolayDA/picture_helper/issues/311) | Release: Release-Body aus CHANGELOG füllen | 🟡 Mittel | 🟡 Mittel | **Ready for PR** – gut umrissen: v2.4.1-Body manuell nachtragen; `release-linux.yml` Notes aus `## [X.Y.Z]` ableiten statt hardcodiertem Text (auch beim Reuse), Regressionstest in `test_release_gate.py` |
+| [#329](https://github.com/NikolayDA/picture_helper/issues/329) | [Epic] Projekt-/Ebenen-Datenmodell (Fundament Height Map/Gloss/EufyMake) | 🟠 Hoch | 🟠 Hoch | **Epic / Tracking** – Roadmap-Rang #1; über die sechs Sub-Issues abarbeiten, kein eigener PR |
+| [#330](https://github.com/NikolayDA/picture_helper/issues/330) | Domänenmodell `Project` + `Layer` (Qt-frei) | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – abhängigkeitsfreie Keystone; Qt-frei, strikt getypt, Komposit/Rollen, `tests/test_project_model.py`. Startpunkt des Epics |
+| [#331](https://github.com/NikolayDA/picture_helper/issues/331) | Undo/Redo projektweit (ebenenbewusste Historie) | 🟠 Hoch | 🟠 Hoch | **Blockiert von #330** – ebenenbewusste Historie, isoliert testbar vor der Canvas-Verdrahtung |
+| [#332](https://github.com/NikolayDA/picture_helper/issues/332) | Canvas: Komposit-Rendering + aktive Ebene | 🟠 Hoch | 🟠 Hoch | **Blockiert von #330/#331** – größter Brocken; Verhaltenswechsel auf ebenenbasiert, Einzel-Ebenen-Parität |
+| [#333](https://github.com/NikolayDA/picture_helper/issues/333) | Projektdatei-Format: Speichern/Laden (versioniert, atomar, validiert) | 🟠 Hoch | 🟠 Hoch | **Blockiert von #330** (parallel zu #332) – `.bgrproj` ZIP-Container, atomar/validiert/versioniert |
+| [#334](https://github.com/NikolayDA/picture_helper/issues/334) | UI: Ebenen-Panel + Projekt-Menü + i18n | 🟠 Hoch | 🟠 Hoch | **Blockiert von #330/#332/#333** – Panel + Menüaktionen, i18n de/en in Parität |
+| [#335](https://github.com/NikolayDA/picture_helper/issues/335) | Migration & Integration (Bild→Projekt, Recent, Settings, Export) | 🟠 Hoch | 🟡 Mittel | **Blockiert von #330/#332/#333/#334** – Abschluss-Issue des Epics; Regressionsfreiheit der bestehenden Flüsse |
+| [#326](https://github.com/NikolayDA/picture_helper/issues/326) | Tests: GIF-Eingabeformat ist deklariert, aber ungetestet | 🟡 Mittel | 🟢 Niedrig | **Ready for PR, sofort umsetzbar** – ein Lade-Test via `ImageLoadWorker` sichert das `_ALLOWED_IMAGE_FORMATS`-Gate für GIF; kein Save/Export |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟡 Mittel | 🟡 Mittel | **Needs refinement** – zuerst GitHubs Startup-Validierungssemantik (Top-Level vs. effektiv-per-Job) belegen; aktuell rein theoretischer False-Positive (keine Job-Level-Overrides in `ci.yml`), OIDC-Guard #303 darf nicht schwächer werden |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern):** Quota account-seitig wiederherstellen. Repo-seitige Härtung jetzt in **#322–#324** verfolgt (Wartungs-/Skip-Pfad, Sync-Tests, Prompt-Governance); der graceful skip entspricht #322 Variante B |
 | [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: Wartungs-/Skip-Pfad für geplanten Codex Security Scan | 🟡 Mittel | 🟡 Mittel | **#245-Folge** – Scope-Entscheidung manueller Schalter vs. sichtbarer Auto-Graceful-Skip (vs. beides); Gate im `cadence`-Job, „disabled → skipped, nicht failed", Least-Privilege wahren (kein `issues: write` im Scan-Job), statischer Test |
 | [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: Security-Issue-Sync für Severity-Filter und leere Findings absichern | 🟢 Niedrig | 🟢 Niedrig | **#245-Folge, sofort umsetzbar** – Regressionstests für `reportable: false`, Severity-Schwelle und „No reportable findings"; netzunabhängig via `--dry-run`/Direktaufruf |
 | [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: Doc-Governance-Test für Codex-Scan-Prompt gegen Repo-Scope | 🟢 Niedrig | 🟢 Niedrig | **#245-Folge, sofort umsetzbar** – statischer Test, dass der Prompt die aktuellen Top-Level-Security-Flächen nennt; ergänzt die bestehenden Prompt-Assertions |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | Kein Korrektheitsfehler; höchster Nutzen zuerst (Endpunkt-Move, `set_brush_size` konsolidieren), Rest nach Bedarf |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern):** Quota account-seitig wiederherstellen. Repo-seitige Härtung in **#322–#324** verfolgt; der graceful skip entspricht #322 Variante B |
 
 ### Bündelbare Issues
 
-- **#318** ist der Folgebefund zum bereits gemergten Permission-Guard (#309/#310) und bleibt separat – er braucht zuerst eine belegte GitHub-Semantik, bevor `_required_permissions` angefasst wird.
-- **#311** bleibt eigenständig, weil es Release-Workflow, CHANGELOG-Extraktion und bestehende Release-Notes berührt.
+- Das Ebenen-Epic **#329** wird über seine Sub-Issues in der vorgegebenen Reihenfolge abgearbeitet; **#332** und **#333** sind nach #330 parallelisierbar.
+- **#323/#324** (beide #245-Folgen, netzunabhängige statische Security-Scan-Tests) lassen sich in einem PR bündeln.
+- **#318** bleibt separat – es braucht zuerst eine belegte GitHub-Semantik, bevor `_required_permissions` angefasst wird.
 - **#299** ist opportunistische Test-Hygiene und sollte nur mitlaufen, wenn ein ohnehin berührter Test betroffen ist.
 
 ### Empfohlene PR-Reihenfolge
 
-1. **#311** — Release-Body aus CHANGELOG ableiten und v2.4.1-Notes nachziehen; gut umrissen und nutzersichtbar (ausgelieferte Fixes sind sonst auf der Release-Seite unsichtbar).
-2. **#318** — nach belegter GitHub-Semantik den Permission-Guard verfeinern, ohne den OIDC-Regressionsfall zu schwächen.
-3. **#245** — Quota account-seitig wiederherstellen (extern blockiert).
-4. **#322** — Wartungs-/Skip-Pfad nach bewusster auto/manuell-Entscheidung (#245-Folge).
-5. **#323 / #324** — netzunabhängige Sync-Test- und Prompt-Governance-Härtung, jederzeit umsetzbar.
-6. **#299** — Test-Hygiene nach Bedarf.
+1. **#330** — abhängigkeitsfreie Keystone des Ebenen-Epics; schaltet #331/#332/#333 frei.
+2. **#326** — schneller, gut umrissener Quick-Win (GIF-Lade-Test), schließt eine Coverage-Lücke.
+3. **#323 / #324** — netzunabhängige Security-Scan-Härtung, jederzeit umsetzbar.
+4. **#331 → #332 / #333 → #334 → #335** — Ebenen-Epic entlang der Abhängigkeitskette.
+5. **#322** — Wartungs-/Skip-Pfad nach bewusster auto/manuell-Entscheidung (#245-Folge).
+6. **#318** — Permission-Guard nach belegter GitHub-Semantik verfeinern, ohne den OIDC-Regressionsfall zu schwächen.
+7. **#245** — Quota account-seitig wiederherstellen (extern blockiert).
+8. **#299** — Test-Hygiene nach Bedarf.
 
 ## Vorige Runden
 
