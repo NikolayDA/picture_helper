@@ -9,6 +9,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
+  `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
+  (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)
+  como base del epic de capas: capas ordenadas, exactamente una capa activa,
+  operaciones puras (añadir/eliminar/reordenar/duplicar/renombrar,
+  visibilidad/opacidad/bloqueo/roles) y un composite alfa de las capas de color
+  visibles, sin ninguna conexión con Qt, renderizado, persistencia o historial
+  (#330, #329).
+
 ### Cambiado
 
 - **Las notas de la versión en GitHub ahora provienen del CHANGELOG.** El

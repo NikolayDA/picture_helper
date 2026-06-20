@@ -8,6 +8,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Qt-free project/layer data model.** New, strictly typed
+  `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
+  color/height/gloss/generic, project-wide unique roles) as the foundation of
+  the layer epic: ordered layers, exactly one active layer, pure operations
+  (add/remove/reorder/duplicate/rename, visibility/opacity/lock/roles) and an
+  alpha composite of the visible color layers — without any Qt, render,
+  persistence or history wiring (#330, #329).
+
 ### Changed
 
 - **GitHub release notes now come from the CHANGELOG.** The release workflow

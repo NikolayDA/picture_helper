@@ -31,6 +31,10 @@ Ein Paket, `bgremover/`:
 - **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
   Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
   `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker.
+- **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
+  Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
+  inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
+  Persistenz-/History-Anbindung.
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
@@ -54,8 +58,9 @@ Ein Paket, `bgremover/`:
   py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
   `tests/conftest.py` `E402`.
 - **mypy:** Qt-arme Logikmodule (`image_ops`, `image_utils`, `crop`,
-  `recent_files`, `canvas_history/_selection/_lasso/_transform/_viewport`) sind
-  streng getypt (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
+  `project_model`, `recent_files`,
+  `canvas_history/_selection/_lasso/_transform/_viewport`) sind streng getypt
+  (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit).
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.

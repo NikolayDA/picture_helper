@@ -9,6 +9,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Modèle de données projet/calques sans Qt.** Nouveau module
+  `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
+  (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du
+  projet) comme fondation de l'epic des calques : calques ordonnés, exactement
+  un calque actif, opérations pures (ajout/suppression/réordonnancement/
+  duplication/renommage, visibilité/opacité/verrouillage/rôles) et un composite
+  alpha des calques de couleur visibles — sans aucun couplage Qt, rendu,
+  persistance ou historique (#330, #329).
+
 ### Modifié
 
 - **Les notes de version GitHub proviennent désormais du CHANGELOG.** Le flux
