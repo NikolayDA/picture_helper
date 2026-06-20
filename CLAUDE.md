@@ -53,9 +53,9 @@ Ein Paket, `bgremover/`:
 - **ruff:** line-length 100, Regeln `E,F,W,I,B,UP,SIM`, `E501` ignoriert, Ziel
   py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
   `tests/conftest.py` `E402`.
-- **mypy:** Qt-arme Logikmodule (`image_ops`, `image_utils`, `crop`,
-  `recent_files`, `canvas_history/_selection/_lasso/_transform/_viewport`) sind
-  streng getypt (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
+- **mypy:** Qt-arme Logikmodule (`ai_process`, `image_ops`, `image_utils`,
+  `crop`, `recent_files`, `canvas_history/_selection/_lasso/_transform/_viewport`)
+  sind streng getypt (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit).
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.
