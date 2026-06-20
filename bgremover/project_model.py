@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
@@ -72,17 +71,22 @@ class LayerNotFoundError(ProjectModelError):
 
 
 def _ensure_rgba(image: Image.Image | np.ndarray) -> Image.Image:
-    """Normalisiert Eingabe-Pixeldaten auf ein eigenständiges RGBA-``Image``.
+    """Normalisiert Eingabe-Pixeldaten auf eine **eigenständige** RGBA-``Image``.
 
-    Akzeptiert ein Pillow-Bild oder ein RGBA-numpy-Array; bei abweichendem Modus
-    wird konvertiert. So hält jede Ebene garantiert RGBA-Daten – das macht das
-    Komposit (``Image.alpha_composite``) ohne Sonderfälle korrekt.
+    Akzeptiert ein Pillow-Bild (beliebiger Modus) oder ein RGBA-numpy-Array. Das
+    Ergebnis ist immer eine eigene Kopie in RGBA: ``Image.fromarray`` (via
+    ``astype``) und ``convert`` liefern bereits neue Objekte, der bereits-RGBA-
+    Fall kopiert explizit. So besitzt jede Ebene ihre Pixeldaten allein –
+    spätere In-place-Änderungen am übergebenen Bild (``putpixel``/``paste``/
+    ``resize`` …) erreichen weder Projekt noch Komposit und können die
+    Canvas-Größen-Invariante nicht nachträglich verletzen. Garantierte RGBA-Daten
+    machen das Komposit (``Image.alpha_composite``) zudem ohne Sonderfälle korrekt.
     """
     if isinstance(image, np.ndarray):
         return Image.fromarray(image.astype(np.uint8), "RGBA")
     if image.mode != "RGBA":
         return image.convert("RGBA")
-    return image
+    return image.copy()
 
 
 def _validate_opacity(opacity: float) -> float:
@@ -99,29 +103,37 @@ def _scale_alpha(image: Image.Image, opacity: float) -> Image.Image:
     return Image.fromarray(arr, "RGBA")
 
 
-@dataclass(eq=False)
 class Layer:
     """Eine einzelne Bild-Ebene mit stabiler ID und RGBA-Pixeldaten.
 
-    ``image`` wird stets als RGBA gehalten (ein abweichender Modus oder ein
-    RGBA-numpy-Array wird in ``__post_init__`` konvertiert). ``opacity`` liegt in
-    ``[0.0, 1.0]``. Eine optionale ``role`` ist projektweit eindeutig (siehe
-    :class:`Project`). Vergleich erfolgt per Identität (``eq=False``), nicht über
-    die – teuren und mehrdeutigen – Pixelinhalte.
+    ``image`` akzeptiert ein Pillow-Bild *oder* ein RGBA-numpy-Array und wird
+    stets als **eigenständige** RGBA-Kopie gehalten (siehe :func:`_ensure_rgba`);
+    so können typisierte Bildverarbeitungsmodule numpy-Puffer ohne
+    ``# type: ignore`` übergeben. ``opacity`` liegt in ``[0.0, 1.0]``. Eine
+    optionale ``role`` ist projektweit eindeutig (siehe :class:`Project`). ``id``
+    bleibt stabil; ohne Angabe wird eine UUID erzeugt. Ebenen werden per Identität
+    verglichen, nicht über die – teuren und mehrdeutigen – Pixelinhalte.
     """
 
-    name: str
-    kind: LayerKind
-    image: Image.Image
-    id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    visible: bool = True
-    opacity: float = 1.0
-    locked: bool = False
-    role: LayerRole | None = None
-
-    def __post_init__(self) -> None:
-        self.image = _ensure_rgba(self.image)
-        _validate_opacity(self.opacity)
+    def __init__(
+        self,
+        name: str,
+        kind: LayerKind,
+        image: Image.Image | np.ndarray,
+        id: str | None = None,
+        visible: bool = True,
+        opacity: float = 1.0,
+        locked: bool = False,
+        role: LayerRole | None = None,
+    ) -> None:
+        self.name = name
+        self.kind = kind
+        self.image = _ensure_rgba(image)
+        self.id = id if id is not None else uuid.uuid4().hex
+        self.visible = visible
+        self.opacity = _validate_opacity(opacity)
+        self.locked = locked
+        self.role = role
 
     @property
     def size(self) -> tuple[int, int]:
@@ -309,15 +321,16 @@ class Project:
         """Dupliziert eine Ebene (tiefe Bildkopie) direkt darüber.
 
         Die Kopie erhält eine neue ID, einen abgeleiteten Namen und **keine**
-        Rolle (Rollen sind eindeutig). Die Bilddaten werden kopiert, sodass
-        Bearbeitungen der einen Ebene die andere nicht beeinflussen.
+        Rolle (Rollen sind eindeutig). ``Layer`` kopiert die Bilddaten beim
+        Anlegen ohnehin, sodass Bearbeitungen der einen Ebene die andere nicht
+        beeinflussen.
         """
         src = self.layer_by_id(layer_id)
         idx = self.index_of(layer_id)
         clone = Layer(
             name=f"{src.name} Kopie",
             kind=src.kind,
-            image=src.image.copy(),
+            image=src.image,
             visible=src.visible,
             opacity=src.opacity,
             locked=src.locked,

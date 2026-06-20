@@ -40,10 +40,19 @@ def test_layer_accepts_numpy_rgba_array() -> None:
     arr = np.zeros((4, 5, 4), dtype=np.uint8)
     arr[..., 0] = 200
     arr[..., 3] = 255
-    layer = Layer(name="np", kind=LayerKind.COLOR, image=arr)  # type: ignore[arg-type]
+    layer = Layer(name="np", kind=LayerKind.COLOR, image=arr)
     assert layer.image.mode == "RGBA"
     assert layer.size == (5, 4)
     assert layer.image.getpixel((0, 0)) == (200, 0, 0, 255)
+
+
+def test_layer_copies_rgba_input_so_external_mutation_is_isolated() -> None:
+    # Bereits-RGBA-Eingaben müssen kopiert werden: eine spätere In-place-Änderung
+    # am übergebenen Bild darf die Ebene (und damit das Komposit) nicht erreichen.
+    src = Image.new("RGBA", (2, 2), (10, 20, 30, 255))
+    layer = Layer(name="x", kind=LayerKind.COLOR, image=src)
+    src.putpixel((0, 0), (1, 1, 1, 1))
+    assert layer.image.getpixel((0, 0)) == (10, 20, 30, 255)
 
 
 def test_layer_rejects_out_of_range_opacity() -> None:
