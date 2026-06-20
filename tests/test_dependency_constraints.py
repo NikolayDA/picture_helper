@@ -52,6 +52,56 @@ def _build_system_setuptools() -> Requirement:
     raise AssertionError("setuptools not listed in [build-system].requires")
 
 
+# Extras, deren Abhaengigkeiten bewusst NICHT im reproduzierbaren
+# constraints.txt-Snapshot landen und daher auch nicht vom Dependency-Audit
+# erfasst werden: ``docs`` erzeugt nur lokal/manuell ANLEITUNG.pdf
+# (``pip install -e ".[docs]"``), wird in keinem CI-/Release-Pfad installiert
+# und gehoert nicht zum getesteten Build-Set. Analog zur bewussten Ausnahme von
+# release-linux.yml in test_ci_pip_pin.
+_UNAUDITED_EXTRAS = {"docs"}
+
+
+def _project_dependency_names() -> set[str]:
+    """Direkte Requirement-Namen aus pyproject.toml: Laufzeit-``dependencies``
+    plus alle optional-dependencies-Extras ausser ``_UNAUDITED_EXTRAS``.
+
+    Bewusst per Regex statt tomllib geparst, damit die Pruefung auch auf
+    Python 3.10 (ohne tomllib) Teil der Matrix bleibt. Requirement-Strings
+    werden Anfuehrungszeichen-genau gelesen, damit Extra-Marker wie
+    ``rembg[cpu]`` die eckigen Klammern nicht zerschiessen."""
+    text = PYPROJECT.read_text(encoding="utf-8")
+    names: set[str] = set()
+
+    runtime = re.search(r"^dependencies\s*=\s*\[(.*?)\]", text, re.M | re.S)
+    assert runtime is not None, "pyproject.toml [project] braucht dependencies = [...]"
+    for spec in re.findall(r'"([^"]+)"', runtime.group(1)):
+        names.add(canonicalize_name(Requirement(spec).name))
+
+    optional = re.search(r"^\[project\.optional-dependencies\](.*?)^\[", text, re.M | re.S)
+    assert optional is not None, "pyproject.toml braucht [project.optional-dependencies]"
+    current: str | None = None
+    for raw in optional.group(1).splitlines():
+        header = re.match(r"\s*([A-Za-z][\w.-]*)\s*=", raw)
+        if header:
+            current = header.group(1)
+        if current in _UNAUDITED_EXTRAS:
+            continue
+        for spec in re.findall(r'"([^"]+)"', raw):
+            names.add(canonicalize_name(Requirement(spec).name))
+    return names
+
+
+def test_constraints_cover_all_audited_pyproject_dependencies() -> None:
+    """Drift-Guard (#327-Review): Jede in pyproject.toml deklarierte direkte
+    Abhaengigkeit – Laufzeit plus die in CI/Release installierten Extras
+    (ai, test) – muss in requirements/constraints.txt gepinnt sein. Andernfalls
+    koennte eine nur in pyproject.toml ergaenzte Dependency vom Dependency-Audit
+    (das genau diesen Snapshot prueft) unbemerkt durchrutschen. ``docs`` ist
+    bewusst ausgenommen (_UNAUDITED_EXTRAS)."""
+    missing = _project_dependency_names() - _constraint_names()
+    assert not missing, f"pyproject-Dependencies ohne Pin in constraints.txt: {sorted(missing)}"
+
+
 def test_constraints_cover_runtime_test_and_ai_direct_dependencies() -> None:
     names = _constraint_names()
     expected = {
