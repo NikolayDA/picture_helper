@@ -1,0 +1,73 @@
+name: Dependency Audit
+
+# Deterministischer CVE-Abgleich des getesteten Abhaengigkeits-Snapshots gegen
+# die OSV-/PyPA-Advisory-Datenbank (pip-audit). Ergaenzt die uebrigen Ebenen:
+# - constraints.txt + test_dependency_constraints.py frieren bekannte Pins ein,
+# - license-check.yml erzwingt Inventar-/Lizenz-Drift,
+# - codex-security-scan.yml findet Logik-/Trust-Boundary-Befunde.
+# Keine dieser Ebenen meldet jedoch eine NEU veroeffentlichte CVE gegen eine
+# bereits gepinnte Version – genau diese Luecke schliesst dieser Job.
+on:
+  # PR-Gate: schlaegt an, sobald eine Aenderung die gepinnten Abhaengigkeiten
+  # (oder diesen Workflow) beruehrt – verhindert das Einschleusen einer
+  # verwundbaren Version ueber eine constraints-Bearbeitung.
+  pull_request:
+    paths:
+      - 'requirements/constraints.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/dependency-audit.yml'
+  # Frische-Gate: Eine CVE kann ohne jede Dateiaenderung auftauchen. Der
+  # woechentliche Lauf (Mo 05:00 UTC) prueft den unveraenderten Snapshot daher
+  # eigenstaendig. Bewusst versetzt zu ci.yml (So 06:00) und Codex (Mo 04:23).
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: pip-audit (OSV/PyPA advisory DB)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Zwei Interpreter decken alle marker-bedingten Pins ab: 3.10 zieht
+      # numpy==2.2.6 (ohne AI-Stack), 3.12 zieht numpy==2.4.5 plus den vollen
+      # AI-Stack (rembg/onnxruntime/scipy/scikit-image) und tifffile. Erst
+      # zusammen ist jede Zeile aus constraints.txt tatsaechlich auditiert.
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: "Upgrade pip to a patched release (security: pip>=26.1.2)"
+        run: python -m pip install --upgrade "pip>=26.1.2"
+
+      - name: Install pip-audit
+        run: python -m pip install pip-audit
+
+      - name: Audit pinned dependency snapshot
+        # --no-deps + --disable-pip: constraints.txt ist bereits der vollstaendige
+        # transitive Snapshot. Beide Flags zusammen verbieten pip-audit jede eigene
+        # Aufloesung – genau dieser eingefrorene Satz wird auditiert, niemals ein
+        # aus PyPI nachgezogener Ersatz fuer Luecken/Staleness.
+        # -s osv: explizit die OSV-Advisory-DB abfragen (Default waere pypi) – haelt
+        # den Job deckungsgleich mit seinem Namen/seiner Doku.
+        # --desc: lesbare Beschreibung je Befund im Log. Findet pip-audit eine
+        # bekannte CVE, endet der Lauf mit Exit != 0 und der Job wird rot.
+        run: |
+          python -m pip_audit --no-deps --disable-pip --desc \
+            --vulnerability-service osv \
+            -r requirements/constraints.txt
