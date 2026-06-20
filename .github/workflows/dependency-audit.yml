@@ -59,10 +59,15 @@ jobs:
         run: python -m pip install pip-audit
 
       - name: Audit pinned dependency snapshot
-        # --no-deps: constraints.txt ist bereits der vollstaendige transitive
-        # Snapshot, daher wird genau dieser Satz auditiert statt frei aufgeloest.
+        # --no-deps + --disable-pip: constraints.txt ist bereits der vollstaendige
+        # transitive Snapshot. Beide Flags zusammen verbieten pip-audit jede eigene
+        # Aufloesung – genau dieser eingefrorene Satz wird auditiert, niemals ein
+        # aus PyPI nachgezogener Ersatz fuer Luecken/Staleness.
+        # -s osv: explizit die OSV-Advisory-DB abfragen (Default waere pypi) – haelt
+        # den Job deckungsgleich mit seinem Namen/seiner Doku.
         # --desc: lesbare Beschreibung je Befund im Log. Findet pip-audit eine
         # bekannte CVE, endet der Lauf mit Exit != 0 und der Job wird rot.
         run: |
-          python -m pip_audit --no-deps --desc \
+          python -m pip_audit --no-deps --disable-pip --desc \
+            --vulnerability-service osv \
             -r requirements/constraints.txt
