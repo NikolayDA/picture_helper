@@ -530,6 +530,32 @@ def test_module_is_qt_free() -> None:
     assert not any(name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported)
 
 
+def test_nested_metadata_is_isolated_across_capture_and_restore() -> None:
+    """Verschachtelte, veränderliche Metadaten bleiben exakt erhalten."""
+    history = ProjectHistory()
+    project = Project(8, 8, metadata={"export": {"dpi": 300}})
+    project.create_layer(_solid(8, 8, (1, 1, 1, 255)), name="L")
+    history.set_original(project)
+    history.push(project, "edit")
+
+    # Verschachtelten Wert erst NACH dem Erfassen in-place ändern.
+    project.metadata["export"]["dpi"] = 600
+
+    undone = history.undo(project)
+    assert undone is not None
+    assert undone[0].metadata == {"export": {"dpi": 300}}
+
+    restored = history.restore(project, "restore")
+    assert restored is not None
+    assert restored.metadata == {"export": {"dpi": 300}}
+
+    # Mutation des zurückgegebenen Projekts darf den Snapshot nicht verändern.
+    restored.metadata["export"]["dpi"] = 999
+    again = history.restore(project, "restore-again")
+    assert again is not None
+    assert again.metadata == {"export": {"dpi": 300}}
+
+
 def test_kind_is_preserved_for_data_layers() -> None:
     """Auch Nicht-COLOR-Ebenen (HEIGHT/GLOSS) werden korrekt rekonstruiert."""
     history = ProjectHistory()

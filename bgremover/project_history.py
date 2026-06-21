@@ -50,6 +50,7 @@ vorherigen Zustands.
 from __future__ import annotations
 
 from collections import deque
+from copy import deepcopy
 from typing import Any, NamedTuple
 
 from PIL import Image
@@ -96,8 +97,12 @@ class _PoolEntry:
 def _capture_state(project: Project, desc: str) -> _ProjectState:
     """Erfasst den aktuellen Projektzustand als leichten, geteilten Snapshot.
 
-    Metadaten werden als Werte kopiert; Pixeldaten nur **referenziert** (siehe
-    Modul-Doku zur Speicherstrategie und zum Unveränderlichkeits-Vertrag).
+    Pixeldaten werden nur **referenziert** (siehe Modul-Doku zur Speicher-
+    strategie und zum Unveränderlichkeits-Vertrag); ``metadata`` wird dagegen
+    **tief** kopiert, damit auch verschachtelte, veränderliche Werte vom späteren
+    Projektzustand entkoppelt sind und ``undo``/``restore`` exakt den erfassten
+    Zustand liefern. Das Dict bleibt klein (reservierte Felder für Bittiefe und
+    physische Zielgröße), die Kopie ist also vernachlässigbar.
     """
     layers = tuple(
         _LayerState(
@@ -116,7 +121,7 @@ def _capture_state(project: Project, desc: str) -> _ProjectState:
         project.width,
         project.height,
         project.version,
-        dict(project.metadata),
+        deepcopy(project.metadata),
         layers,
         project.active_layer_id,
         desc,
@@ -133,7 +138,7 @@ def _build_project(state: _ProjectState) -> Project:
         state.width,
         state.height,
         version=state.version,
-        metadata=dict(state.metadata),
+        metadata=deepcopy(state.metadata),
     )
     for ls in state.layers:
         project.add_layer(
