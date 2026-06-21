@@ -54,41 +54,35 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Prioritätsbewertung (2026-06-21)
+## Offene GitHub-Issues – Triage-Stand (2026-06-21)
 
-Stand 2026-06-21 sind nach Prüfung der PRs von gestern und heute nur noch **4**
-Roadmap-/Follow-up-Issues offen. Die Merge-Commits **#337**, **#338** und
-**#340** schließen die gestern noch offenen Punkte **#326**, **#329–#335**,
-**#323** und **#324** sauber ab: Der GIF-Ladepfad ist regressionsgetestet, das
-Projekt-/Ebenen-Epic ist durchgängig von Domänenmodell bis UI/Integration
-umgesetzt, und die Security-Scan-Tests decken Severity-Filter, Leerbefunde
-sowie Prompt-Scope ab. Offene Restpunkte sind damit nur noch **#322**
-(Wartungs-/Skip-Pfad für den geplanten Codex Security Scan), **#318**
-(Permission-Guard-Semantik), **#245** (extern blockierte Quota) und **#299**
-(Test-Hygiene).
+Stand 2026-06-21 zeigt GitHub noch **5** offene Issues: **#245**, **#299**,
+**#318**, **#322** und **#339**. Die zuvor noch gelisteten
+Projekt-/Ebenen- und Security-Test-Issues **#323**, **#324**, **#326** und
+**#329–#335** sind in den Merge-Commits **#337**, **#338** und **#340**
+inhaltlich erledigt und nicht mehr offen. Für **#322** existiert inzwischen
+zusätzlich **#342**; der Issue sollte nach Merge-Verifikation kommentiert und
+geschlossen werden.
 
-| # | Titel | Relevanz | Komplexität | Empfehlung |
-|---|-------|----------|-------------|------------|
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: Wartungs-/Skip-Pfad für geplanten Codex Security Scan | 🟡 Mittel | 🟡 Mittel | **Nächster repo-seitiger Schritt zu #245** – bewusst entscheiden, ob manueller Schalter, sichtbarer Auto-Graceful-Skip oder beides; Gate im `cadence`-Job, „disabled → skipped, nicht failed“, Least-Privilege wahren und statisch testen |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟡 Mittel | 🟡 Mittel | **Needs refinement** – zuerst GitHubs Startup-Validierungssemantik (Top-Level vs. effektiv-per-Job) belegen; aktuell kein beobachteter Repo-Fehler, OIDC-Guard #303 darf nicht geschwächt werden |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Extern blockiert** – Quota account-seitig wiederherstellen; repo-seitig sind #323/#324 erledigt, #322 bleibt als Wartungs-/Skip-Härtung offen |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | Kein Korrektheitsfehler; opportunistisch verbessern, wenn ohnehin Tests berührt werden (höchster Nutzen: Endpunkt-Move, `set_brush_size` konsolidieren) |
+| # | Titel | Labels/Status-Empfehlung | Kommentar-/Status-Vorschlag |
+|---|-------|--------------------------|------------------------------|
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | `security`; **offen lassen / blocked external** | Kommentar ergänzen: Repo-seitige Härtungen sind mit #323/#324 und #322/#342 abgedeckt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix einmal den geplanten Scan manuell anstoßen und dann schließen. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | `quality`, `testing`; **offen / low priority** | Kommentar ergänzen: Kein Produkt-/CI-Blocker; als opportunistischer Cleanup bündeln, sobald betroffene Tests ohnehin geändert werden. Keine Statusänderung nötig. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | `enhancement`, `testing`; **needs refinement** | Kommentar ergänzen: Vor einer Codeänderung GitHub-Semantik für Top-Level- vs. Job-Level-Permissions im aufgerufenen Workflow belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: Wartungs-/Skip-Pfad für geplanten Codex Security Scan | `security`; **nach #342 schließen** | Kommentar ergänzen: #342 implementiert den konservativen manuellen Wartungsschalter (`CODEX_SECURITY_SCAN_ENABLED=false`) inklusive Skip-Output und Regressionstests; nach verifiziertem Merge als erledigt schließen. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | **Labels ergänzen:** `enhancement`, `documentation` (oder `question`, falls vorhanden); **needs decision** | Kommentar ergänzen: Produktentscheidung treffen – entweder HEIC bewusst nicht unterstützen und README/ANLEITUNG klarstellen, oder optionales `pillow-heif`/`HEIF`-Allowlist + Lade-Test planen. Bis zur Entscheidung offen lassen. |
 
-### Bündelbare Issues
+### Empfohlene Issue-Aktionen
 
-- **#322** kann als alleinstehender CI-Härtungs-PR umgesetzt werden und ergänzt
-  die bereits erledigten #323/#324.
-- **#318** bleibt separat, weil vor einer Codeänderung die GitHub-Semantik
-  dokumentiert werden muss.
-- **#299** sollte nur mitlaufen, wenn ein betroffener Test ohnehin angefasst wird.
-
-### Empfohlene PR-Reihenfolge
-
-1. **#322** — letzter repo-seitiger #245-Follow-up mit direktem Betriebsnutzen.
-2. **#318** — Permission-Guard nach belegter Semantik verfeinern, ohne den
-   OIDC-Regressionsfall zu schwächen.
-3. **#245** — Quota account-seitig wiederherstellen (extern blockiert).
-4. **#299** — Test-Hygiene nach Bedarf.
+1. **#322** kommentieren und schließen, sobald der Merge von #342 auf `main`
+   verifiziert ist.
+2. **#339** labeln und mit einer expliziten Produktentscheidung versehen
+   (Doku-Klarstellung vs. HEIC-Feature).
+3. **#245** weiter offen halten, aber als extern blockiert markieren; #322/#342
+   dort als abgeschlossenen Repo-Teil verlinken.
+4. **#318** nicht sofort umsetzen, sondern zunächst die GitHub-Permissions-
+   Semantik dokumentieren.
+5. **#299** als niedrig priorisierten Test-Cleanup offen lassen.
 
 ## Vorige Runden
 
