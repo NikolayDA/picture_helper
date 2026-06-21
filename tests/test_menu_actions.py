@@ -37,6 +37,10 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             recent_path_missing=missing_recent.append,
             save=lambda: calls.append("save"),
             save_as=lambda: calls.append("save_as"),
+            new_project=lambda: calls.append("new_project"),
+            open_project=lambda: calls.append("open_project"),
+            save_project=lambda: calls.append("save_project"),
+            save_project_as=lambda: calls.append("save_project_as"),
             undo=lambda: calls.append("undo"),
             redo=lambda: calls.append("redo"),
             rotate=rotations.append,
@@ -51,12 +55,14 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
 
     assert isinstance(recent_menu, RecentFilesMenu)
     assert [action.text() for action in window.menuBar().actions()] == [
-        "Datei", "Bearbeiten", "Ansicht", "Extras",
+        "Datei", "Projekt", "Bearbeiten", "Ansicht", "Extras",
     ]
 
     actions = _actions(window)
     expected = {
         "Öffnen…", "Speichern", "Speichern unter…",
+        "Neues Projekt", "Projekt öffnen…", "Projekt speichern",
+        "Projekt speichern unter…",
         "Rückgängig", "Wiederherstellen",
         "90° links drehen", "90° rechts drehen", "180° drehen",
         "Horizontal spiegeln", "Vertikal spiegeln",
@@ -68,6 +74,11 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert _portable_shortcut(actions["Speichern unter…"]) == "Ctrl+Shift+S"
     assert _portable_shortcut(actions["Fit to View"]) == "Ctrl+0"
     assert _portable_shortcut(actions["Auswahl aufheben"]) == ""
+    # Projekt-Aktionen mit eigenen, dokumentierten Kürzeln.
+    assert _portable_shortcut(actions["Neues Projekt"]) == "Ctrl+N"
+    assert _portable_shortcut(actions["Projekt öffnen…"]) == "Ctrl+Shift+O"
+    assert _portable_shortcut(actions["Projekt speichern"]) == "Ctrl+Alt+S"
+    assert _portable_shortcut(actions["Projekt speichern unter…"]) == "Ctrl+Alt+Shift+S"
 
     actions["Öffnen…"].trigger()
     actions["Speichern"].trigger()
@@ -80,6 +91,11 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["Fit to View"].trigger()
     actions["Einstellungen…"].trigger()
 
+    actions["Neues Projekt"].trigger()
+    actions["Projekt öffnen…"].trigger()
+    actions["Projekt speichern"].trigger()
+    actions["Projekt speichern unter…"].trigger()
+
     actions["90° links drehen"].trigger()
     actions["90° rechts drehen"].trigger()
     actions["180° drehen"].trigger()
@@ -89,6 +105,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert calls == [
         "open", "save", "save_as", "undo", "redo",
         "clear", "invert", "restore", "fit", "settings",
+        "new_project", "open_project", "save_project", "save_project_as",
     ]
     assert rotations == [90, -90, 180]
     assert flips == [True, False]

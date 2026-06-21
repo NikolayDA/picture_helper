@@ -468,3 +468,74 @@ def test_init_starts_warmup_when_rembg_available(qapp, monkeypatch):
         assert called.get("warmup") is True
     finally:
         w.close()
+
+
+# ── Projekt-Menü (.bgrproj) (#334) ───────────────────────────
+
+def test_new_project_creates_blank_active_layer(win):
+    from bgremover.i18n import tr
+
+    win._new_project()
+    project = win._canvas.project
+    assert project is not None
+    assert len(project.layers) == 1
+    assert project.active_layer() is project.layers[0]
+    assert win._project_path is None
+    assert win.statusBar().currentMessage() == tr("project.new")
+
+
+def test_save_and_open_project_round_trip(win, tmp_path, monkeypatch):
+    from bgremover.i18n import tr
+
+    _load_dummy_image(win, tmp_path, color=(200, 10, 10, 255))
+    win._canvas.add_layer()                              # zweite (transparente) Ebene
+    assert len(win._canvas.project.layers) == 2
+
+    target = str(tmp_path / "projekt")                   # ohne Endung → wird ergänzt
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        lambda *a, **k: (target, ""))
+    win._save_project_as()
+    assert win._project_path == target + ".bgrproj"
+    assert win.statusBar().currentMessage() == tr(
+        "project.saved", name="projekt.bgrproj")
+
+    saved_path = target + ".bgrproj"
+
+    # Dokument wechseln und Projekt zurückladen.
+    win._new_project()
+    assert len(win._canvas.project.layers) == 1
+
+    monkeypatch.setattr(QFileDialog, "getOpenFileName",
+                        lambda *a, **k: (saved_path, ""))
+    win._open_project()
+
+    project = win._canvas.project
+    assert project is not None
+    assert len(project.layers) == 2                      # verlustfrei zurückgeladen
+    assert project.size == (4, 4)
+    assert win._project_path == saved_path
+
+
+def test_open_project_error_shows_translated_message(win, tmp_path, monkeypatch):
+    from bgremover.i18n import tr
+
+    broken = tmp_path / "broken.bgrproj"
+    broken.write_bytes(b"not a zip")
+    monkeypatch.setattr(QFileDialog, "getOpenFileName",
+                        lambda *a, **k: (str(broken), ""))
+    warned: dict = {}
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        lambda *a, **k: warned.__setitem__("msg", a[2]) or QMessageBox.StandardButton.Ok)
+
+    win._open_project()
+
+    assert warned.get("msg") == tr("project.error.corrupt")
+    assert win.statusBar().currentMessage() == tr("project.error.corrupt")
+
+
+def test_save_project_without_project_reports_status(win):
+    from bgremover.i18n import tr
+
+    win._save_project_as()
+    assert win.statusBar().currentMessage() == tr("project.no_project")

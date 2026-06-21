@@ -42,6 +42,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   migration : les anciennes versions migrent, les plus récentes restent intactes
   (avertissement seulement). Pas encore relié aux menus/dialogues
   (#333, #329 ; suite dans #334/#335).
+- **Panneau de calques et menu projet.** Le panneau de droite gagne un nouvel
+  onglet « Calques » : créer des calques, sélectionner (le calque d'édition
+  actif), afficher/masquer, changer l'opacité, réordonner haut/bas, dupliquer,
+  supprimer, renommer et attribuer un rôle (motif couleur/carte de hauteur/gloss) ;
+  toutes les modifications agissent sur le composite du canevas (#332) et sont
+  annulables/rétablissables (#331). Un nouveau menu « Projet » ajoute « Nouveau
+  projet » (`Ctrl+N`), « Ouvrir un projet… » (`Ctrl+Shift+O`), « Enregistrer le
+  projet » (`Ctrl+Alt+S`) et « Enregistrer le projet sous… » (`Ctrl+Alt+Shift+S`),
+  relié au format `.bgrproj` (#333) ; `Ctrl+O`/`Ctrl+S` restent réservés aux flux
+  d'images. Les erreurs de chargement/enregistrement s'affichent sous forme de
+  messages clairs et traduits. Toutes les nouvelles chaînes passent par `i18n.py`
+  (de/en en parité) (#334, #329 ; la migration image→projet suit dans #335).
 
 ### Modifié
 

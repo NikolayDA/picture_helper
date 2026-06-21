@@ -38,6 +38,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Fehlermeldungen). Das Schema ist versioniert mit Migrationshaken: ältere
   Versionen migrieren, neuere bleiben unangetastet (nur Warnung). Noch ohne
   Menü-/Dialog-Anbindung (#333, #329; folgt #334/#335).
+- **Ebenen-Panel und Projekt-Menü.** Das rechte Panel hat einen neuen Tab
+  „Ebenen": Ebenen anlegen, auswählen (aktive Editier-Ebene), ein-/ausblenden,
+  Opazität ändern, hoch/runter sortieren, duplizieren, löschen, umbenennen sowie
+  eine Rolle (Farbmotiv/Height Map/Gloss) zuweisen – alle Änderungen wirken im
+  Canvas-Komposit (#332) und sind undo-/redobar (#331). Neues „Projekt"-Menü mit
+  „Neues Projekt" (`Ctrl+N`), „Projekt öffnen…" (`Ctrl+Shift+O`), „Projekt
+  speichern" (`Ctrl+Alt+S`) und „Projekt speichern unter…" (`Ctrl+Alt+Shift+S`),
+  verdrahtet an das `.bgrproj`-Format (#333); `Ctrl+O`/`Ctrl+S` bleiben den
+  Bild-Workflows vorbehalten. Lade-/Speicherfehler erscheinen als verständliche,
+  übersetzte Meldungen. Alle neuen Strings über `i18n.py` (de/en in Parität)
+  (#334, #329; Bild→Projekt-Migration folgt #335).
 
 ### Geändert
 

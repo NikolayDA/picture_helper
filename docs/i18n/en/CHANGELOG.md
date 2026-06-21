@@ -35,6 +35,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   clear translated error messages). The schema is versioned with migration hooks:
   older versions migrate, newer ones are left untouched (warning only). Not yet
   wired into menus/dialogs (#333, #329; follows in #334/#335).
+- **Layer panel and project menu.** The right-hand panel gains a new “Layers”
+  tab: create layers, select (the active edit layer), toggle visibility, change
+  opacity, reorder up/down, duplicate, delete, rename, and assign a role
+  (color motif/height map/gloss) — all changes apply to the canvas composite
+  (#332) and are undoable/redoable (#331). A new “Project” menu adds “New project”
+  (`Ctrl+N`), “Open project…” (`Ctrl+Shift+O`), “Save project” (`Ctrl+Alt+S`) and
+  “Save project as…” (`Ctrl+Alt+Shift+S`), wired to the `.bgrproj` format (#333);
+  `Ctrl+O`/`Ctrl+S` stay reserved for the image workflows. Load/save errors are
+  shown as clear, translated messages. All new strings go through `i18n.py`
+  (de/en in parity) (#334, #329; image→project migration follows in #335).
 
 ### Changed
 

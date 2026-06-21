@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -56,12 +57,25 @@ from bgremover.image_utils import (
     pil_to_numpy_readonly,
 )
 from bgremover.project_history import ProjectHistory
-from bgremover.project_model import LayerKind, Project
+from bgremover.project_model import LayerKind, LayerRole, Project
 from bgremover.status_messages import StatusMessages as SM
 
-# Standardname der einzigen Ebene eines aus einem Einzelbild erzeugten Projekts.
-# Bis zum Ebenen-Panel (#334) nicht in der UI sichtbar.
-_DEFAULT_LAYER_NAME = "Ebene 1"
+
+@dataclass(frozen=True)
+class LayerInfo:
+    """Schlanke, Qt-freie Sicht auf eine Ebene für das Ebenen-Panel (#334).
+
+    Reine Anzeigedaten (keine Pixel) – Nutzlast des ``layersChanged``-Signals.
+    """
+
+    id: str
+    name: str
+    kind: LayerKind
+    visible: bool
+    opacity: float
+    locked: bool
+    role: LayerRole | None
+    active: bool
 
 
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
@@ -91,6 +105,7 @@ def _selection_mode_from_modifiers(
 class ImageCanvas(QGraphicsView):
     statusMsg      = pyqtSignal(str)
     historyChanged = pyqtSignal(list)   # list[str] – Beschreibungen, neueste zuerst
+    layersChanged  = pyqtSignal(list)   # list[LayerInfo] – oberste Ebene zuerst
     cropModeChanged = pyqtSignal(bool)  # True = Crop-Overlay aktiv
     imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
     loadRequested  = pyqtSignal(str)    # Drop/Recent → MainWindow lädt asynchron
@@ -280,7 +295,7 @@ class ImageCanvas(QGraphicsView):
         """
         project = Project(img.width, img.height)
         layer = project.create_layer(
-            img, name=_DEFAULT_LAYER_NAME, kind=LayerKind.COLOR)
+            img, name=tr("layers.new_name", n=1), kind=LayerKind.COLOR)
         # Objekt-Identität wie bisher bewahren (Parität: ``canvas.image is img``
         # ohne zusätzlichen Kopiersprung; die Async-Lade-Generationslogik prüft
         # darüber, welches Ladeergebnis gewann). ``img`` ist auf den Lade-Pfaden
@@ -296,6 +311,7 @@ class ImageCanvas(QGraphicsView):
         self._history.set_original(self._project)
         self._reset_transient_state()
         self._set_image_state()
+        self._emit_layers()
         self._viewport.fit_to_view()
         self.statusMsg.emit(tr(
             "canvas.opened", name=Path(path).name, w=img.width, h=img.height))
@@ -315,6 +331,7 @@ class ImageCanvas(QGraphicsView):
         self._history.set_original(project)
         self._reset_transient_state()
         self._set_image_state()
+        self._emit_layers()
         self._viewport.fit_to_view()
 
     def apply_edit(self, img: Image.Image, desc: str | None = None) -> None:
@@ -506,10 +523,173 @@ class ImageCanvas(QGraphicsView):
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
         self.historyChanged.emit(self._history.descriptions())
 
+    def _layer_infos(self) -> list[LayerInfo]:
+        """Aktuelle Ebenen als Anzeigedaten – **oberste zuerst** (Panel-Reihenfolge)."""
+        if self._project is None:
+            return []
+        active = self._project.active_layer_id
+        return [
+            LayerInfo(
+                id=layer.id,
+                name=layer.name,
+                kind=layer.kind,
+                visible=layer.visible,
+                opacity=layer.opacity,
+                locked=layer.locked,
+                role=layer.role,
+                active=(layer.id == active),
+            )
+            for layer in reversed(self._project.layers)
+        ]
+
+    def _emit_layers(self) -> None:
+        """Sendet die aktuelle Ebenenliste an das Ebenen-Panel."""
+        self.layersChanged.emit(self._layer_infos())
+
+    # ── Ebenen-Operationen (Panel-getrieben, undo-fähig) ─────────────────
+    def _push_layers(self, desc: str) -> None:
+        """Erfasst den Projektzustand vor einer Ebenen-Operation für Undo."""
+        assert self._project is not None
+        self._history.push(self._project, desc)
+
+    def _commit_active_change(self) -> None:
+        """Abschluss einer Operation, die die **aktive Ebene wechselt**.
+
+        Resynchronisiert Caches/Auswahl auf die neue aktive Ebene
+        (``_set_image_state`` setzt die Auswahl zurück – passend bei
+        Ebenenwechsel) und benachrichtigt Verlauf + Panel.
+        """
+        self._set_image_state()
+        self._emit_history()
+        self._emit_layers()
+
+    def _commit_state_change(self) -> None:
+        """Abschluss einer Operation, die nur Komposit/Metadaten ändert.
+
+        Die aktive Ebene (und damit ``_pil``/``_arr``/Auswahl) bleibt erhalten;
+        nur das Komposit wird neu gerendert. Verlauf + Panel werden aktualisiert.
+        """
+        self._content_revision += 1
+        self._refresh_image()
+        self._emit_history()
+        self._emit_layers()
+
+    @_requires_image
+    def add_layer(self) -> None:
+        """Legt eine neue, transparente COLOR-Ebene oben an und aktiviert sie."""
+        assert self._project is not None
+        self._push_layers(tr("history.desc.layer_added"))
+        blank = Image.new("RGBA", self._project.size, (0, 0, 0, 0))
+        self._project.create_layer(
+            blank, name=tr("layers.new_name", n=len(self._project) + 1),
+            kind=LayerKind.COLOR)
+        self._commit_active_change()
+        self.statusMsg.emit(tr("canvas.layer_added"))
+
+    @_requires_image
+    def delete_active_layer(self) -> None:
+        """Löscht die aktive Ebene; die letzte Ebene bleibt erhalten."""
+        assert self._project is not None
+        active = self._project.active_layer_id
+        if active is None:
+            return
+        if len(self._project) <= 1:
+            self.statusMsg.emit(tr("canvas.cannot_delete_last"))
+            return
+        self._push_layers(tr("history.desc.layer_removed"))
+        self._project.remove_layer(active)
+        self._commit_active_change()
+        self.statusMsg.emit(tr("canvas.layer_removed"))
+
+    @_requires_image
+    def duplicate_active_layer(self) -> None:
+        """Dupliziert die aktive Ebene (Kopie darüber, wird aktiv)."""
+        assert self._project is not None
+        active = self._project.active_layer_id
+        if active is None:
+            return
+        self._push_layers(tr("history.desc.layer_duplicated"))
+        self._project.duplicate_layer(active)
+        self._commit_active_change()
+        self.statusMsg.emit(tr("canvas.layer_duplicated"))
+
+    @_requires_image
+    def move_active_layer(self, *, up: bool) -> None:
+        """Verschiebt die aktive Ebene im Stapel (``up`` = nach oben)."""
+        assert self._project is not None
+        active = self._project.active_layer_id
+        if active is None:
+            return
+        idx = self._project.index_of(active)
+        new_idx = idx + 1 if up else idx - 1
+        if not 0 <= new_idx < len(self._project):
+            return
+        self._push_layers(tr("history.desc.layer_reordered"))
+        self._project.move_layer(active, new_idx)
+        self._commit_state_change()
+
+    @_requires_image
+    def rename_active_layer(self, name: str) -> None:
+        """Benennt die aktive Ebene um (leerer Name wird ignoriert)."""
+        assert self._project is not None
+        active = self._project.active_layer_id
+        if active is None or not name.strip():
+            return
+        self._push_layers(tr("history.desc.layer_renamed"))
+        self._project.rename_layer(active, name.strip())
+        self._commit_state_change()
+
+    @_requires_image
+    def set_active_layer(self, layer_id: str) -> None:
+        """Setzt die aktive (Editier-)Ebene."""
+        assert self._project is not None
+        if self._project.active_layer_id == layer_id:
+            return
+        self._push_layers(tr("history.desc.layer_active"))
+        self._project.set_active(layer_id)
+        self._commit_active_change()
+
+    @_requires_image
+    def set_layer_visible(self, layer_id: str, visible: bool) -> None:
+        """Schaltet die Sichtbarkeit einer Ebene um."""
+        assert self._project is not None
+        if self._project.layer_by_id(layer_id).visible == visible:
+            return
+        self._push_layers(tr("history.desc.layer_visibility"))
+        self._project.set_visible(layer_id, visible)
+        self._commit_state_change()
+
+    @_requires_image
+    def set_layer_opacity(self, layer_id: str, opacity: float) -> None:
+        """Setzt die Opazität einer Ebene (0.0–1.0)."""
+        assert self._project is not None
+        if self._project.layer_by_id(layer_id).opacity == opacity:
+            return
+        self._push_layers(tr("history.desc.layer_opacity"))
+        self._project.set_opacity(layer_id, opacity)
+        self._commit_state_change()
+
+    @_requires_image
+    def set_active_layer_role(self, role: LayerRole | None) -> None:
+        """Weist der aktiven Ebene eine Rolle zu bzw. entfernt sie."""
+        assert self._project is not None
+        active = self._project.active_layer_id
+        if active is None:
+            return
+        if self._project.layer_by_id(active).role == role:
+            return
+        self._push_layers(tr("history.desc.layer_role"))
+        if role is None:
+            self._project.clear_role(active)
+        else:
+            self._project.assign_role(active, role)
+        self._commit_state_change()
+
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""
         self._project = project
         self._set_image_state()
+        self._emit_layers()
 
     def _apply_history_step(
         self,

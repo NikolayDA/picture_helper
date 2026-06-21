@@ -40,6 +40,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   con ganchos de migración: las versiones antiguas migran, las nuevas quedan
   intactas (solo aviso). Aún sin conexión con menús/diálogos
   (#333, #329; continúa en #334/#335).
+- **Panel de capas y menú de proyecto.** El panel derecho incorpora una nueva
+  pestaña «Capas»: crear capas, seleccionar (la capa de edición activa), mostrar/
+  ocultar, cambiar la opacidad, reordenar arriba/abajo, duplicar, eliminar,
+  renombrar y asignar un rol (motivo de color/mapa de altura/gloss); todos los
+  cambios actúan sobre la composición del lienzo (#332) y se pueden deshacer/
+  rehacer (#331). Un nuevo menú «Proyecto» añade «Nuevo proyecto» (`Ctrl+N`),
+  «Abrir proyecto…» (`Ctrl+Shift+O`), «Guardar proyecto» (`Ctrl+Alt+S`) y «Guardar
+  proyecto como…» (`Ctrl+Alt+Shift+S`), conectado al formato `.bgrproj` (#333);
+  `Ctrl+O`/`Ctrl+S` siguen reservados para los flujos de imagen. Los errores de
+  carga/guardado se muestran como mensajes claros y traducidos. Todas las cadenas
+  nuevas pasan por `i18n.py` (de/en en paridad)
+  (#334, #329; la migración imagen→proyecto continúa en #335).
 
 ### Cambiado
 

@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from bgremover.constants import _RIGHT_PANEL_WIDTH, _TAB_ICON_PX
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
+from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.right_panel_tabs import (
     BackgroundTab,
     SelectionTab,
@@ -80,21 +81,28 @@ class RightPanel:
     rotation_spin: QSpinBox
     corner_label: QLabel
     corner_slider: QSlider
+    layer_panel: LayerPanel
 
 
 class _TabBuilder(Protocol):
     def build(self) -> tuple[QWidget, dict[str, QWidget]]: ...
 
 
-def build_right_panel(actions: RightPanelActions) -> RightPanel:
-    return _RightPanelBuilder(actions).build()
+def build_right_panel(
+    actions: RightPanelActions,
+    layer_actions: LayerPanelActions,
+) -> RightPanel:
+    return _RightPanelBuilder(actions, layer_actions).build()
 
 
 class _RightPanelBuilder:
-    """Orchestriert die vier Tab-Klassen und befüllt das ``RightPanel``-DTO."""
+    """Orchestriert die Tab-Klassen und befüllt das ``RightPanel``-DTO."""
 
-    def __init__(self, actions: RightPanelActions) -> None:
+    def __init__(
+        self, actions: RightPanelActions, layer_actions: LayerPanelActions,
+    ) -> None:
         self._actions = actions
+        self._layer_panel = LayerPanel(layer_actions)
 
     def build(self) -> RightPanel:
         frame = QFrame()
@@ -116,6 +124,7 @@ class _RightPanelBuilder:
             BackgroundTab(self._actions),
             TransformTab(self._actions),
             ShapeTab(self._actions),
+            self._layer_panel,
         ]
         tab_specs = [
             (
@@ -138,6 +147,11 @@ class _RightPanelBuilder:
                 "form",
                 tr("right_panel.tab.shape.tooltip"),
             ),
+            (
+                tr("right_panel.tab.layers"),
+                "form",
+                tr("right_panel.tab.layers.tooltip"),
+            ),
         ]
         refs: dict[str, QWidget] = {}
         for builder, (name, icon, tip) in zip(builders, tab_specs, strict=True):
@@ -159,4 +173,5 @@ class _RightPanelBuilder:
             rotation_spin=cast(QSpinBox, refs["rotation_spin"]),
             corner_label=cast(QLabel, refs["corner_label"]),
             corner_slider=cast(QSlider, refs["corner_slider"]),
+            layer_panel=self._layer_panel,
         )

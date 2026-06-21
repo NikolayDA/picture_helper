@@ -54,9 +54,11 @@ Ein Paket, `bgremover/`:
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
-- **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `settings_dialog.py`,
-  `menu_actions.py`, `crop_bar.py`, `history_popup.py`, `widgets.py`, `theme.py`,
-  `icons*.py`.
+- **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `layer_panel.py`
+  (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal, #334),
+  `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
+  Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
+  `theme.py`, `icons*.py`.
 - **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
   `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`

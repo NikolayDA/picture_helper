@@ -9,11 +9,12 @@ einheitlich auf alle Ebenen.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from PIL import Image
 from PyQt6.QtGui import QColor
 
 from bgremover import ImageCanvas
-from bgremover.project_model import LayerKind, Project
+from bgremover.project_model import LayerKind, LayerRole, Project
 
 
 def _solid(w: int, h: int, color: tuple[int, int, int, int]) -> Image.Image:
@@ -149,6 +150,106 @@ def test_apply_edit_with_resized_image_resizes_single_layer_canvas(qapp) -> None
     assert canvas.project.size == (4, 6)
     assert canvas.image is not None and canvas.image.size == (4, 6)
     assert canvas.project.layers[0].size == (4, 6)
+
+
+# ── Ebenen-Verwaltung über den Canvas (#334) ─────────────────────────────
+
+
+def test_add_layer_is_active_transparent_and_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (200, 0, 0, 255)), "x.png")
+    assert len(canvas.project.layers) == 1
+
+    canvas.add_layer()
+    assert len(canvas.project.layers) == 2
+    active = canvas.project.active_layer()
+    assert active is canvas.project.layers[-1]                 # neue Ebene oben & aktiv
+    assert int(np.array(active.image)[:, :, 3].max()) == 0     # transparent
+    # Komposit zeigt weiterhin das rote Motiv (transparente Ebene darüber).
+    assert tuple(np.array(canvas._render_image())[0, 0]) == (200, 0, 0, 255)
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+
+
+def test_delete_active_layer_and_keep_last(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_two_layer_project())
+    canvas.delete_active_layer()
+    assert len(canvas.project.layers) == 1
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.delete_active_layer()                                # letzte bleibt
+    assert len(canvas.project.layers) == 1
+    assert any("letzte" in m.lower() for m in msgs)
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 2
+
+
+def test_duplicate_visible_opacity_rename_role_are_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_two_layer_project())
+    top_id = canvas.project.active_layer_id
+
+    canvas.duplicate_active_layer()
+    assert len(canvas.project.layers) == 3
+    canvas.undo()
+    assert len(canvas.project.layers) == 2
+
+    canvas.set_layer_visible(top_id, False)
+    assert canvas.project.layer_by_id(top_id).visible is False
+    canvas.undo()
+    assert canvas.project.layer_by_id(top_id).visible is True
+
+    canvas.set_layer_opacity(top_id, 0.3)
+    assert canvas.project.layer_by_id(top_id).opacity == pytest.approx(0.3)
+    canvas.undo()
+    assert canvas.project.layer_by_id(top_id).opacity == pytest.approx(1.0)
+
+    canvas.rename_active_layer("Motiv")
+    assert canvas.project.active_layer().name == "Motiv"
+    canvas.undo()
+    assert canvas.project.active_layer().name != "Motiv"
+
+    canvas.set_active_layer_role(LayerRole.HEIGHT_MAP)
+    assert canvas.project.active_layer().role is LayerRole.HEIGHT_MAP
+    canvas.undo()
+    assert canvas.project.active_layer().role is None
+
+
+def test_move_and_set_active_layer(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _two_layer_project()
+    canvas.set_project(project)
+    bottom_id = project.layers[0].id
+    active = canvas.project.active_layer_id          # obere Ebene (Index 1)
+
+    canvas.move_active_layer(up=False)
+    assert canvas.project.index_of(active) == 0      # nach unten verschoben
+    canvas.undo()
+    assert canvas.project.index_of(active) == 1
+
+    canvas.set_active_layer(bottom_id)
+    assert canvas.project.active_layer_id == bottom_id
+    canvas.undo()
+    assert canvas.project.active_layer_id == active
+
+
+def test_layers_changed_signal_reports_top_first_with_active(qapp) -> None:
+    canvas = ImageCanvas()
+    received: list = []
+    canvas.layersChanged.connect(received.append)
+
+    canvas.apply_loaded_image(_solid(8, 8, (1, 2, 3, 255)), "x.png")
+    assert received and len(received[-1]) == 1
+    assert received[-1][0].active is True
+
+    canvas.add_layer()
+    infos = received[-1]
+    assert len(infos) == 2
+    assert infos[0].active is True                   # oberste (neue) Ebene zuerst & aktiv
 
 
 def test_single_color_layer_matches_plain_image(qapp) -> None:
