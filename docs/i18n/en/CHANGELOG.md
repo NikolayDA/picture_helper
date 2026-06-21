@@ -44,6 +44,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   (`preview_height_op`/`cancel_height_preview`, transient without model changes)
   and an undo-/redoable commit (`apply_height_op`) on the active HEIGHT layer
   (#348, #344).
+- **Height-map workspace usable (UI) – epic completed.** New “Height” tab in the
+  right-hand panel (`height_map_panel.py`): **generate** a height map from the
+  image or **import** a grayscale, **edit** it with lighten/darken/set/invert, and
+  **optimize** it via levels/gamma/smoothing (Gaussian, median)/threshold/steps/
+  range with a live preview. Edit and optimize are **mode-contextual** – only
+  active when the active layer is a HEIGHT layer or carries the `HEIGHT_MAP` role;
+  color editing stays unchanged. The whole flow (generate → paint → optimize →
+  invert → save/reload losslessly in `.bgrproj`) is now usable from the UI. All
+  new strings via `i18n.py` (de/en parity); completes the height-map epic
+  (#349, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

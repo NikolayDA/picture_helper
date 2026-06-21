@@ -79,6 +79,9 @@ Ein Paket, `bgremover/`:
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `layer_panel.py`
   (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal, #334),
+  `height_map_panel.py` (Höhen-Tab #349: Beschaffen/Bearbeiten/Optimieren,
+  ebenfalls `layersChanged`-getrieben; Bearbeiten/Optimieren nur im HEIGHT-Kontext
+  aktiv, Optimierung mit Live-Vorschau über `preview_height_op`/`apply_height_op`),
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
   Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
   `theme.py`, `icons*.py`.

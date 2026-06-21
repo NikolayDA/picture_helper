@@ -42,6 +42,13 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Domänenmodell (#330), ebenenbewusste Historie (#331), Komposit-Canvas (#332),
   `.bgrproj`-Format (#333), Ebenen-Panel/Projekt-Menü (#334) und Migration/
   Integration (#335) – Einzelbild-Parität gewahrt, `make check`/`make ui` grün.
+- **N10 ✅ — Height-Map-Arbeitsbereich (Epic #344) umgesetzt.** Qt-freie
+  Höhen-Repräsentation + 2D-Visualisierung (#345), algorithmische Erzeugung aus
+  Bild + Graustufen-Import (#346), Höhen-Editor Aufhellen/Abdunkeln/Setzen/
+  Invertieren (#347), Optimierung `height_ops` mit Live-Vorschau (#348) und der
+  bedienbare, moduskontextuelle Height-Map-Tab (#349). Kompletter Ablauf
+  erzeugen → malen → optimieren → invertieren → verlustfrei im `.bgrproj`;
+  COLOR-Editing ohne Regression, i18n de/en in Parität, `make check`/`make ui` grün.
 
 ### Noch offen
 

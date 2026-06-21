@@ -601,3 +601,37 @@ def test_height_op_requires_height_layer(qapp) -> None:
     assert canvas._height_preview is None
     assert np.array_equal(np.array(canvas.image), before)
     assert any("höhenebene" in m.lower() for m in msgs)
+
+
+def test_height_workflow_end_to_end_bgrproj_roundtrip(qapp, tmp_path) -> None:
+    """Kompletter Ablauf (#349): erzeugen → malen → optimieren → invertieren →
+    in ``.bgrproj`` speichern/wieder laden – verlustfrei."""
+    from bgremover import height_ops
+    from bgremover.project_io import load_project, save_project
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (180, 90, 40, 255)), "x.png")
+
+    canvas.generate_height_map()                       # erzeugen
+    assert canvas.project.active_layer().kind is LayerKind.HEIGHT
+    canvas.lighten_active_height(20)                   # malen (global)
+    canvas.apply_height_op(lambda f: height_ops.quantize(f, 4))   # optimieren
+    canvas.invert_active_height()                      # invertieren
+    expected = np.array(canvas.project.active_layer().image)
+
+    path = tmp_path / "relief.bgrproj"
+    save_project(canvas.project, str(path))            # speichern
+    reloaded = load_project(str(path))                 # wieder laden
+
+    layer = reloaded.layer_by_role(LayerRole.HEIGHT_MAP)
+    assert layer is not None
+    assert layer.kind is LayerKind.HEIGHT
+    assert np.array_equal(np.array(layer.image), expected)   # verlustfrei
+
+    # Wiederhergestellte HEIGHT-Ebene zeigt sich graustufig (via #345).
+    canvas2 = ImageCanvas()
+    canvas2.set_project(reloaded)
+    canvas2.set_active_layer(layer.id)
+    rendered = np.array(canvas2._render_image())
+    assert np.array_equal(rendered[:, :, 0], rendered[:, :, 1])
+    assert np.array_equal(rendered[:, :, 1], rendered[:, :, 2])

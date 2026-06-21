@@ -45,6 +45,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Vorschau** (`preview_height_op`/`cancel_height_preview`, transient ohne
   Modelländerung) und einen undo-/redobaren Commit (`apply_height_op`) auf der
   aktiven HEIGHT-Ebene (#348, #344).
+- **Height-Map-Arbeitsbereich nutzbar (UI) – Epic abgeschlossen.** Neuer
+  „Höhe"-Tab im rechten Panel (`height_map_panel.py`): Höhenkarte aus dem Bild
+  **erzeugen** oder eine Graustufe **importieren**, mit **Aufhellen/Abdunkeln/
+  Setzen/Invertieren** bearbeiten und über **Tonwert/Gamma/Glättung (Gauß,
+  Median)/Schwelle/Stufen/Bereich** mit Live-Vorschau **optimieren**. Bearbeiten
+  und Optimieren sind **moduskontextuell** – nur aktiv, wenn die aktive Ebene
+  eine HEIGHT-Ebene ist bzw. die Rolle `HEIGHT_MAP` trägt; das COLOR-Editing
+  bleibt unverändert. Damit ist der komplette Ablauf (erzeugen → malen →
+  optimieren → invertieren → verlustfrei im `.bgrproj` speichern/laden) per UI
+  bedienbar. Alle neuen Strings über `i18n.py` (de/en in Parität); schließt das
+  Height-Map-Epic ab (#349, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des

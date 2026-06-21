@@ -49,6 +49,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   générique (`preview_height_op`/`cancel_height_preview`, transitoire sans
   modifier le modèle) et un commit annulable/rétablissable (`apply_height_op`)
   sur le calque HEIGHT actif (#348, #344).
+- **Espace de travail carte de hauteur utilisable (UI) – epic terminé.** Nouvel
+  onglet « Hauteur » dans le panneau de droite (`height_map_panel.py`) :
+  **générer** une carte de hauteur depuis l'image ou **importer** un niveau de
+  gris, l'**éditer** avec éclaircir/assombrir/définir/inverser et l'**optimiser**
+  via niveaux/gamma/lissage (gaussien, médian)/seuil/paliers/plage avec un aperçu
+  en direct. Éditer et optimiser sont **contextuels au mode** – actifs uniquement
+  quand le calque actif est un calque HEIGHT ou porte le rôle `HEIGHT_MAP` ;
+  l'édition couleur reste inchangée. Tout le flux (générer → peindre → optimiser →
+  inverser → enregistrer/recharger sans perte dans `.bgrproj`) est désormais
+  utilisable depuis l'UI. Toutes les nouvelles chaînes via `i18n.py` (parité
+  de/en) ; termine l'epic carte de hauteur (#349, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

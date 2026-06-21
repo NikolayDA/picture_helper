@@ -34,6 +34,7 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop_bar import CropBar
+from bgremover.height_map_panel import HeightMapActions
 from bgremover.history_popup import HistoryPopup
 from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
 from bgremover.image_ops import (
@@ -233,12 +234,35 @@ class MainWindow(QMainWindow):
                 set_opacity=self._canvas.set_layer_opacity,
                 set_active_role=self._canvas.set_active_layer_role,
             ),
+            HeightMapActions(
+                generate=self._canvas.generate_height_map,
+                import_file=self._import_height_map,
+                lighten=self._canvas.lighten_active_height,
+                darken=self._canvas.darken_active_height,
+                set_height=self._canvas.set_active_height,
+                invert=self._canvas.invert_active_height,
+                preview_op=self._canvas.preview_height_op,
+                apply_op=self._canvas.apply_height_op,
+                cancel_preview=self._canvas.cancel_height_preview,
+            ),
         )
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
+        self._height_panel = panel.height_panel
         self._canvas.layersChanged.connect(self._layer_panel.refresh)
+        self._canvas.layersChanged.connect(self._height_panel.refresh)
         self._update_color_btn()
         return panel.frame
+
+    def _import_height_map(self) -> None:
+        """Öffnet eine Graustufendatei und importiert sie als HEIGHT-Ebene (#346)."""
+        start_dir = self._settings.value("open_dir", "")
+        path, _ = QFileDialog.getOpenFileName(
+            self, tr("dialog.import_height.title"), start_dir,
+            tr("dialog.open.filter"),
+        )
+        if path:
+            self._canvas.import_height_map(path)
 
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""

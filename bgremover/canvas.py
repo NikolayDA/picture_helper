@@ -52,6 +52,7 @@ from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
     LUMA_WEIGHTS_REC601,
     HeightField,
+    HeightMapError,
     adjust_height,
     generate_from_image,
     height_to_layer,
@@ -875,7 +876,14 @@ class ImageCanvas(QGraphicsView):
         if ctx is None:
             return
         field, _mask = ctx
-        self._height_preview = height_to_layer(op(field))
+        try:
+            result = op(field)
+        except HeightMapError:
+            # Ungültige Parameter (z. B. black >= white) während des Reglerns:
+            # Vorschau still überspringen statt den Nutzer mit Meldungen zu
+            # fluten; der Commit (apply_height_op) meldet den Fehler dagegen.
+            return
+        self._height_preview = height_to_layer(result)
         self._refresh_image()
 
     def cancel_height_preview(self) -> None:
@@ -904,9 +912,16 @@ class ImageCanvas(QGraphicsView):
         if ctx is None:
             return
         field, _mask = ctx
+        try:
+            result = op(field)
+        except HeightMapError as e:
+            self._height_preview = None
+            self._refresh_image()
+            self.statusMsg.emit(tr("canvas.height_op_error", error=e))
+            return
         self._height_preview = None
         self._run_height_edit(
-            op(field),
+            result,
             desc if desc is not None else tr("history.desc.height_optimized"),
             status if status is not None else tr("canvas.height_optimized"))
 

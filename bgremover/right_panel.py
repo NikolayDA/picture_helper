@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.constants import _RIGHT_PANEL_WIDTH, _TAB_ICON_PX
+from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
@@ -82,6 +83,7 @@ class RightPanel:
     corner_label: QLabel
     corner_slider: QSlider
     layer_panel: LayerPanel
+    height_panel: HeightMapPanel
 
 
 class _TabBuilder(Protocol):
@@ -91,18 +93,23 @@ class _TabBuilder(Protocol):
 def build_right_panel(
     actions: RightPanelActions,
     layer_actions: LayerPanelActions,
+    height_actions: HeightMapActions,
 ) -> RightPanel:
-    return _RightPanelBuilder(actions, layer_actions).build()
+    return _RightPanelBuilder(actions, layer_actions, height_actions).build()
 
 
 class _RightPanelBuilder:
     """Orchestriert die Tab-Klassen und befüllt das ``RightPanel``-DTO."""
 
     def __init__(
-        self, actions: RightPanelActions, layer_actions: LayerPanelActions,
+        self,
+        actions: RightPanelActions,
+        layer_actions: LayerPanelActions,
+        height_actions: HeightMapActions,
     ) -> None:
         self._actions = actions
         self._layer_panel = LayerPanel(layer_actions)
+        self._height_panel = HeightMapPanel(height_actions)
 
     def build(self) -> RightPanel:
         frame = QFrame()
@@ -125,6 +132,7 @@ class _RightPanelBuilder:
             TransformTab(self._actions),
             ShapeTab(self._actions),
             self._layer_panel,
+            self._height_panel,
         ]
         tab_specs = [
             (
@@ -152,6 +160,11 @@ class _RightPanelBuilder:
                 "form",
                 tr("right_panel.tab.layers.tooltip"),
             ),
+            (
+                tr("right_panel.tab.height"),
+                "form",
+                tr("right_panel.tab.height.tooltip"),
+            ),
         ]
         refs: dict[str, QWidget] = {}
         for builder, (name, icon, tip) in zip(builders, tab_specs, strict=True):
@@ -174,4 +187,5 @@ class _RightPanelBuilder:
             corner_label=cast(QLabel, refs["corner_label"]),
             corner_slider=cast(QSlider, refs["corner_slider"]),
             layer_panel=self._layer_panel,
+            height_panel=self._height_panel,
         )

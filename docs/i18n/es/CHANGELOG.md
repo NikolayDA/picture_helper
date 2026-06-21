@@ -50,6 +50,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   (`preview_height_op`/`cancel_height_preview`, transitoria sin cambiar el
   modelo) y un commit con deshacer/rehacer (`apply_height_op`) sobre la capa
   HEIGHT activa (#348, #344).
+- **Espacio de trabajo de mapa de altura usable (UI) – epic completado.** Nueva
+  pestaña «Altura» en el panel derecho (`height_map_panel.py`): **generar** un
+  mapa de altura a partir de la imagen o **importar** una escala de grises,
+  **editar** con aclarar/oscurecer/fijar/invertir y **optimizar** mediante
+  niveles/gamma/suavizado (gaussiano, mediana)/umbral/niveles/rango con vista
+  previa en vivo. Editar y optimizar son **contextuales al modo**: solo activos
+  cuando la capa activa es una capa HEIGHT o tiene el rol `HEIGHT_MAP`; la edición
+  de color no cambia. Así, todo el flujo (generar → pintar → optimizar → invertir
+  → guardar/recargar sin pérdidas en `.bgrproj`) es usable desde la UI. Todas las
+  cadenas nuevas vía `i18n.py` (paridad de/en); completa el epic del mapa de
+  altura (#349, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)
