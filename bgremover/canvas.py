@@ -39,6 +39,7 @@ from bgremover.canvas_transform import CanvasTransform
 from bgremover.canvas_viewport import CanvasViewport
 from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
+    _DEFAULT_HEIGHT_STEP,
     _DEFAULT_TOLERANCE,
     TOOL_BRUSH,
     TOOL_ERASER,
@@ -47,6 +48,19 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
+from bgremover.height_map import (
+    HEIGHT_MAX_8BIT,
+    LUMA_WEIGHTS_REC601,
+    HeightField,
+    HeightMapError,
+    adjust_height,
+    generate_from_image,
+    height_to_layer,
+    invert_height,
+    layer_to_gray_image,
+    layer_to_height,
+    set_height,
+)
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
@@ -145,6 +159,11 @@ class ImageCanvas(QGraphicsView):
         self._project: Project | None = None
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
+        # Transiente Höhen-Optimierungs-Vorschau (#348): wenn gesetzt, zeigt der
+        # Canvas dieses Bild statt des Modellzustands an, ohne die Ebene zu
+        # ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`) verwirft
+        # die Vorschau; Commit/Abbruch räumen sie explizit ab.
+        self._height_preview: Image.Image | None = None
         self._selection = CanvasSelection(0, 0)
         # _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
         # Externe Worker nutzen diese Revision als Stale-Check statt
@@ -394,6 +413,13 @@ class ImageCanvas(QGraphicsView):
     def _render_image(self) -> Image.Image | None:
         """Das anzuzeigende/zu speichernde Bild: Komposit der sichtbaren Ebenen.
 
+        Höhen-Sicht (#345): Ist die **aktive** Ebene eine HEIGHT-Ebene, wird sie
+        graustufig dargestellt (``layer_to_gray_image``) statt des COLOR-Komposits
+        – die Höhenkarte ist sonst unsichtbar, weil ``composite_color`` nur
+        COLOR-Ebenen rendert. Da stets genau eine Ebene aktiv ist, wechselt die
+        Anzeige nur in die Höhensicht, wenn der Nutzer eine HEIGHT-Ebene auswählt;
+        bei aktiver COLOR-Ebene bleibt das Komposit unverändert (Parität).
+
         Schnellpfad für die Single-Layer-Welt: genau eine sichtbare, voll
         deckende COLOR-Ebene wird **direkt** (ohne Alpha-Komposit) zurückgegeben.
         So bleiben RGB-Werte unter transparenten Pixeln erhalten – ``alpha_composite``
@@ -401,6 +427,9 @@ class ImageCanvas(QGraphicsView):
         """
         if self._project is None:
             return None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.HEIGHT:
+            return layer_to_gray_image(active.image)
         layers = self._project.layers
         if (
             len(layers) == 1
@@ -412,6 +441,11 @@ class ImageCanvas(QGraphicsView):
         return self._project.composite_color()
 
     def _refresh_image(self) -> None:
+        # Eine aktive Höhen-Vorschau (#348) hat Vorrang vor dem Modell-Render;
+        # sie ist rein transient (kein Modell-/Speicherzustand).
+        if self._height_preview is not None:
+            self._viewport.refresh_image(self._height_preview)
+            return
         self._viewport.refresh_image(self._render_image())
 
     def _refresh_overlay(self, dirty: tuple[int, int, int, int] | None = None) -> None:
@@ -464,6 +498,10 @@ class ImageCanvas(QGraphicsView):
         erzeugen (#247).
         """
         self._discard_overlay_interactions()
+        # Eine transiente Höhen-Vorschau (#348) gilt nur für den vorherigen
+        # Zustand; jeder Bildzustandswechsel (Edit/Commit/Undo/Laden/Ebenenwechsel)
+        # verwirft sie, bevor neu gerendert wird.
+        self._height_preview = None
         active = self._project.active_layer() if self._project is not None else None
         self._pil = active.image if active is not None else None
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
@@ -684,6 +722,208 @@ class ImageCanvas(QGraphicsView):
         else:
             self._project.assign_role(active, role)
         self._commit_state_change()
+
+    # ── Höhenkarten: Erzeugung & Import (#346) ──────────────────────────
+    def _add_height_layer(self, image: Image.Image, desc: str) -> None:
+        """Fügt *image* als neue, aktive HEIGHT-Ebene mit Rolle HEIGHT_MAP ein.
+
+        Erfasst den Projektzustand für Undo, legt die Ebene über das Modell an
+        (``create_layer`` → oben, aktiv) und weist die projektweit eindeutige
+        Rolle via ``assign_role`` zu – diese wird damit von einer etwaigen
+        bestehenden Höhenkarte übertragen, statt an der Eindeutigkeit zu
+        scheitern. Anzeige wechselt durch die neue aktive HEIGHT-Ebene in die
+        Höhensicht (#345); ``_commit_active_change`` resynchronisiert Caches,
+        Verlauf und Panel.
+        """
+        assert self._project is not None
+        self._push_layers(desc)
+        layer = self._project.create_layer(
+            image, name=tr("layers.height_name"), kind=LayerKind.HEIGHT)
+        self._project.assign_role(layer.id, LayerRole.HEIGHT_MAP)
+        self._commit_active_change()
+
+    @_requires_image
+    def generate_height_map(
+        self,
+        *,
+        weights: tuple[float, float, float] = LUMA_WEIGHTS_REC601,
+        black: int = 0,
+        white: int = HEIGHT_MAX_8BIT,
+        gamma: float = 1.0,
+        invert: bool = False,
+    ) -> None:
+        """Erzeugt algorithmisch eine HEIGHT-Ebene aus dem Farbbild (#346).
+
+        Quelle ist die **aktive** Ebene, sofern sie COLOR ist, sonst das
+        Farb-Komposit (``composite_color``). Kanalgewichtung, Tonwert-Kennlinie
+        (``black``/``white``), Gamma und Invertieren laufen in
+        ``height_map.generate_from_image``. Die neue Ebene wird aktiv (Höhensicht
+        via #345) und ist undo-/redobar.
+        """
+        assert self._project is not None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.COLOR:
+            source = active.image
+        else:
+            source = self._project.composite_color()
+        field = generate_from_image(
+            source, weights=weights, black=black, white=white,
+            gamma=gamma, invert=invert)
+        self._add_height_layer(
+            height_to_layer(field), tr("history.desc.height_generated"))
+        self.statusMsg.emit(tr("canvas.height_generated"))
+
+    @_requires_image
+    def import_height_map(self, path: str) -> None:
+        """Importiert eine Graustufendatei als HEIGHT-Ebene (#346).
+
+        Validiertes Laden über ``open_validated_image`` (Format-Whitelist,
+        Dateigrößen- und Megapixel-Schutz); Fehler erscheinen als übersetzte
+        Statusmeldung, ohne eine Ebene anzulegen. Eine von der Canvas-Größe
+        abweichende Datei wird auf die Canvas-Größe skaliert (Modell-Invariante),
+        ihre Luminanz als Höhe übernommen. Undo-/redobar.
+        """
+        assert self._project is not None
+        img, err = open_validated_image(path)
+        if err is not None:
+            self.statusMsg.emit(err)
+            return
+        assert img is not None
+        if img.size != self._project.size:
+            img = img.resize(self._project.size, Image.Resampling.LANCZOS)
+        field = generate_from_image(img)
+        self._add_height_layer(
+            height_to_layer(field), tr("history.desc.height_imported"))
+        self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
+
+    # ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ─────
+    def _height_edit_context(self) -> tuple[HeightField, np.ndarray | None] | None:
+        """Liefert (Höhenfeld der aktiven HEIGHT-Ebene, Auswahlmaske|None).
+
+        Gibt ``None`` zurück und meldet, wenn die aktive Ebene keine HEIGHT-Ebene
+        ist – so wirken die Höhenwerkzeuge ausschließlich auf Höhenebenen und das
+        COLOR-Editing bleibt unangetastet. Die Maske ist die **vorhandene**
+        Auswahl (begrenzt die Wirkung), sonst ``None`` (global).
+        """
+        assert self._project is not None
+        active = self._project.active_layer()
+        if active is None or active.kind is not LayerKind.HEIGHT:
+            self.statusMsg.emit(tr("canvas.not_height_layer"))
+            return None
+        mask = self._selection.mask if self._selection.has_selection else None
+        return layer_to_height(active.image), mask
+
+    def _run_height_edit(self, new_field: HeightField, desc: str, status: str) -> None:
+        """Schreibt ein bearbeitetes Höhenfeld undo-fähig in die aktive Ebene."""
+        self._apply_pil(height_to_layer(new_field), desc=desc)
+        self.statusMsg.emit(status)
+
+    @_requires_image
+    def lighten_active_height(self, amount: int = _DEFAULT_HEIGHT_STEP) -> None:
+        """Hellt die aktive HEIGHT-Ebene auf (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            adjust_height(field, amount, mask=mask),
+            tr("history.desc.height_lighten"), tr("canvas.height_lightened"))
+
+    @_requires_image
+    def darken_active_height(self, amount: int = _DEFAULT_HEIGHT_STEP) -> None:
+        """Dunkelt die aktive HEIGHT-Ebene ab (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            adjust_height(field, -amount, mask=mask),
+            tr("history.desc.height_darken"), tr("canvas.height_darkened"))
+
+    @_requires_image
+    def set_active_height(self, value: int) -> None:
+        """Setzt die aktive HEIGHT-Ebene auf einen Festwert (Auswahl bzw. global)."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            set_height(field, value, mask=mask),
+            tr("history.desc.height_set"), tr("canvas.height_set"))
+
+    @_requires_image
+    def invert_active_height(self) -> None:
+        """Invertiert die aktive HEIGHT-Ebene (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            invert_height(field, mask=mask),
+            tr("history.desc.height_invert"), tr("canvas.height_inverted"))
+
+    # ── Höhen-Optimierung mit Live-Vorschau (#348) ──────────────────────
+    @_requires_image
+    def preview_height_op(self, op: Callable[[HeightField], HeightField]) -> None:
+        """Zeigt das Ergebnis von *op* auf der aktiven HEIGHT-Ebene als Vorschau.
+
+        ``op`` ist eine reine ``HeightField → HeightField``-Funktion (z. B. eine
+        an ihre Parameter gebundene ``height_ops``-Operation). Die Ebene bleibt
+        **unverändert** – nur die Anzeige zeigt das Resultat. Wiederholtes Aufrufen
+        aktualisiert die Vorschau live (Reglerbewegung in der späteren UI #349).
+        """
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, _mask = ctx
+        try:
+            result = op(field)
+        except HeightMapError:
+            # Ungültige Parameter (z. B. black >= white) während des Reglerns:
+            # Vorschau still überspringen statt den Nutzer mit Meldungen zu
+            # fluten; der Commit (apply_height_op) meldet den Fehler dagegen.
+            return
+        self._height_preview = height_to_layer(result)
+        self._refresh_image()
+
+    def cancel_height_preview(self) -> None:
+        """Verwirft eine aktive Höhen-Vorschau und zeigt wieder den Modellzustand."""
+        if self._height_preview is None:
+            return
+        self._height_preview = None
+        self._refresh_image()
+
+    @_requires_image
+    def apply_height_op(
+        self,
+        op: Callable[[HeightField], HeightField],
+        *,
+        desc: str | None = None,
+        status: str | None = None,
+    ) -> None:
+        """Wendet *op* undo-fähig auf die aktive HEIGHT-Ebene an (Commit der Vorschau).
+
+        Berechnet das Ergebnis aus dem **aktuellen** Ebenenzustand (deterministisch
+        identisch zur Vorschau) und schreibt es wie eine normale Bearbeitung
+        zurück. ``desc``/``status`` erlauben der UI (#349) operationsspezifische
+        Texte; ohne Angabe greifen generische Höhen-Optimierungs-Meldungen.
+        """
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, _mask = ctx
+        try:
+            result = op(field)
+        except HeightMapError as e:
+            self._height_preview = None
+            self._refresh_image()
+            self.statusMsg.emit(tr("canvas.height_op_error", error=e))
+            return
+        self._height_preview = None
+        self._run_height_edit(
+            result,
+            desc if desc is not None else tr("history.desc.height_optimized"),
+            status if status is not None else tr("canvas.height_optimized"))
 
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""

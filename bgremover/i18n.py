@@ -100,6 +100,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "layers.role.color_motif": "Farbmotiv",
         "layers.role.height_map": "Height Map",
         "layers.role.gloss": "Gloss",
+        "layers.height_name": "Höhenkarte",
         "history.desc.layer_added": "Ebene hinzugefügt",
         "history.desc.layer_removed": "Ebene gelöscht",
         "history.desc.layer_duplicated": "Ebene dupliziert",
@@ -109,12 +110,75 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.layer_visibility": "Sichtbarkeit geändert",
         "history.desc.layer_opacity": "Opazität geändert",
         "history.desc.layer_role": "Rolle geändert",
+        "history.desc.height_generated": "Höhenkarte erzeugt",
+        "history.desc.height_imported": "Höhenkarte importiert",
+        "history.desc.height_lighten": "Höhe aufgehellt",
+        "history.desc.height_darken": "Höhe abgedunkelt",
+        "history.desc.height_set": "Höhe gesetzt",
+        "history.desc.height_invert": "Höhe invertiert",
+        "history.desc.height_optimized": "Höhe optimiert",
         "canvas.layer_added": "Neue Ebene hinzugefügt",
+        "canvas.height_generated": "Höhenkarte aus Bild erzeugt",
+        "canvas.height_imported": "Höhenkarte importiert: {name}",
+        "canvas.height_lightened": "Höhe aufgehellt",
+        "canvas.height_darkened": "Höhe abgedunkelt",
+        "canvas.height_set": "Höhe gesetzt",
+        "canvas.height_inverted": "Höhe invertiert",
+        "canvas.height_optimized": "Höhe optimiert",
+        "canvas.height_op_error": "Höhen-Operation fehlgeschlagen: {error}",
+        "canvas.not_height_layer": "Keine Höhenebene aktiv",
         "canvas.layer_removed": "Ebene gelöscht",
         "canvas.layer_duplicated": "Ebene dupliziert",
         "canvas.cannot_delete_last": "Die letzte Ebene kann nicht gelöscht werden",
         "right_panel.tab.layers": "Ebenen",
         "right_panel.tab.layers.tooltip": "Ebenen verwalten",
+        "right_panel.tab.height": "Höhe",
+        "right_panel.tab.height.tooltip": "Höhenkarte (Relief)",
+        "right_panel.height.section.acquire": "Beschaffen",
+        "right_panel.height.section.edit": "Bearbeiten",
+        "right_panel.height.section.optimize": "Optimieren",
+        "right_panel.height.generate": "Aus Bild erzeugen",
+        "right_panel.height.generate.tooltip": (
+            "Höhenkarte aus dem aktuellen Bild erzeugen"
+        ),
+        "right_panel.height.import": "Graustufe importieren…",
+        "right_panel.height.import.tooltip": (
+            "Graustufenbild als Höhenkarte importieren"
+        ),
+        "right_panel.height.hint": (
+            "Höhenwerkzeuge wirken auf die aktive Höhenebene."
+        ),
+        "right_panel.height.strength": "Stärke",
+        "right_panel.height.lighten": "Aufhellen",
+        "right_panel.height.lighten.tooltip": (
+            "Höhe in der Auswahl (sonst global) anheben"
+        ),
+        "right_panel.height.darken": "Abdunkeln",
+        "right_panel.height.darken.tooltip": (
+            "Höhe in der Auswahl (sonst global) senken"
+        ),
+        "right_panel.height.set_value": "Wert",
+        "right_panel.height.set": "Höhe setzen",
+        "right_panel.height.set.tooltip": (
+            "Höhe auf den Wert setzen (Auswahl bzw. global)"
+        ),
+        "right_panel.height.invert": "Invertieren",
+        "right_panel.height.invert.tooltip": (
+            "Höhe invertieren (Auswahl bzw. global)"
+        ),
+        "right_panel.height.levels": "Tonwert (Schwarz/Weiß)",
+        "right_panel.height.gamma": "Gamma",
+        "right_panel.height.gaussian": "Gauß-Glättung (Radius)",
+        "right_panel.height.median": "Median-Glättung (Radius)",
+        "right_panel.height.threshold": "Schwelle",
+        "right_panel.height.steps": "Stufen",
+        "right_panel.height.range": "Bereich (Min/Max)",
+        "right_panel.height.apply": "Anwenden",
+        "right_panel.height.apply.tooltip": "Vorschau auf die Höhenebene anwenden",
+        "right_panel.height.discard_preview": "Vorschau verwerfen",
+        "right_panel.height.discard_preview.tooltip": (
+            "Vorschau verwerfen, ohne anzuwenden"
+        ),
         "right_panel.layers.section": "Ebenen",
         "right_panel.layers.add.tooltip": "Neue Ebene",
         "right_panel.layers.duplicate.tooltip": "Aktive Ebene duplizieren",
@@ -142,6 +206,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "dialog.save_project.title": "Projekt speichern",
         "dialog.rename.title": "Ebene umbenennen",
         "dialog.rename.label": "Neuer Name:",
+        "dialog.import_height.title": "Höhenkarte importieren",
         "dialog.project_error.title": "Projektfehler",
         "project.new": "Neues Projekt erstellt",
         "project.saved": "Projekt gespeichert: {name}",
@@ -512,6 +577,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "layers.role.color_motif": "Color motif",
         "layers.role.height_map": "Height map",
         "layers.role.gloss": "Gloss",
+        "layers.height_name": "Height map",
         "history.desc.layer_added": "Layer added",
         "history.desc.layer_removed": "Layer deleted",
         "history.desc.layer_duplicated": "Layer duplicated",
@@ -521,12 +587,75 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.layer_visibility": "Visibility changed",
         "history.desc.layer_opacity": "Opacity changed",
         "history.desc.layer_role": "Role changed",
+        "history.desc.height_generated": "Height map generated",
+        "history.desc.height_imported": "Height map imported",
+        "history.desc.height_lighten": "Height lightened",
+        "history.desc.height_darken": "Height darkened",
+        "history.desc.height_set": "Height set",
+        "history.desc.height_invert": "Height inverted",
+        "history.desc.height_optimized": "Height optimized",
         "canvas.layer_added": "New layer added",
+        "canvas.height_generated": "Height map generated from image",
+        "canvas.height_imported": "Height map imported: {name}",
+        "canvas.height_lightened": "Height lightened",
+        "canvas.height_darkened": "Height darkened",
+        "canvas.height_set": "Height set",
+        "canvas.height_inverted": "Height inverted",
+        "canvas.height_optimized": "Height optimized",
+        "canvas.height_op_error": "Height operation failed: {error}",
+        "canvas.not_height_layer": "No height layer active",
         "canvas.layer_removed": "Layer deleted",
         "canvas.layer_duplicated": "Layer duplicated",
         "canvas.cannot_delete_last": "The last layer cannot be deleted",
         "right_panel.tab.layers": "Layers",
         "right_panel.tab.layers.tooltip": "Manage layers",
+        "right_panel.tab.height": "Height",
+        "right_panel.tab.height.tooltip": "Height map (relief)",
+        "right_panel.height.section.acquire": "Acquire",
+        "right_panel.height.section.edit": "Edit",
+        "right_panel.height.section.optimize": "Optimize",
+        "right_panel.height.generate": "Generate from image",
+        "right_panel.height.generate.tooltip": (
+            "Generate a height map from the current image"
+        ),
+        "right_panel.height.import": "Import grayscale…",
+        "right_panel.height.import.tooltip": (
+            "Import a grayscale image as a height map"
+        ),
+        "right_panel.height.hint": (
+            "Height tools act on the active height layer."
+        ),
+        "right_panel.height.strength": "Strength",
+        "right_panel.height.lighten": "Lighten",
+        "right_panel.height.lighten.tooltip": (
+            "Raise height within the selection (otherwise global)"
+        ),
+        "right_panel.height.darken": "Darken",
+        "right_panel.height.darken.tooltip": (
+            "Lower height within the selection (otherwise global)"
+        ),
+        "right_panel.height.set_value": "Value",
+        "right_panel.height.set": "Set height",
+        "right_panel.height.set.tooltip": (
+            "Set height to the value (selection or global)"
+        ),
+        "right_panel.height.invert": "Invert",
+        "right_panel.height.invert.tooltip": (
+            "Invert height (selection or global)"
+        ),
+        "right_panel.height.levels": "Levels (black/white)",
+        "right_panel.height.gamma": "Gamma",
+        "right_panel.height.gaussian": "Gaussian blur (radius)",
+        "right_panel.height.median": "Median blur (radius)",
+        "right_panel.height.threshold": "Threshold",
+        "right_panel.height.steps": "Steps",
+        "right_panel.height.range": "Range (min/max)",
+        "right_panel.height.apply": "Apply",
+        "right_panel.height.apply.tooltip": "Apply the preview to the height layer",
+        "right_panel.height.discard_preview": "Discard preview",
+        "right_panel.height.discard_preview.tooltip": (
+            "Discard the preview without applying"
+        ),
         "right_panel.layers.section": "Layers",
         "right_panel.layers.add.tooltip": "New layer",
         "right_panel.layers.duplicate.tooltip": "Duplicate active layer",
@@ -554,6 +683,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "dialog.save_project.title": "Save project",
         "dialog.rename.title": "Rename layer",
         "dialog.rename.label": "New name:",
+        "dialog.import_height.title": "Import height map",
         "dialog.project_error.title": "Project error",
         "project.new": "New project created",
         "project.saved": "Project saved: {name}",

@@ -11,6 +11,51 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Höhen-Repräsentation & 2D-Visualisierung (Fundament Height-Map).** Neues
+  Qt-freies, strikt getyptes Modul `bgremover/height_map.py`: verlustfreie
+  Konvertierung Höhe ↔ Graustufen-Array (`HeightField`, Konvention
+  `R==G==B==Höhe`, `A==Deckung`), Normalisierung beliebiger Werte auf den
+  Höhenbereich sowie Canvas-Größen-Validierung – intern als `uint16` geführt und
+  damit 16-Bit-erweiterbar (`max_value`). Der Canvas zeigt eine **aktive
+  HEIGHT-Ebene** jetzt graustufig an; das COLOR-Komposit bleibt unverändert
+  (Parität) (#345, #344).
+- **Höhenkarte erzeugen & importieren (ohne KI).** `bgremover/height_map.py`
+  bekommt `generate_from_image`: erzeugt **deterministisch** eine Höhenkarte aus
+  einem Farbbild (Kanalgewichtung/Luminanz → Tonwert-Kennlinie → Gamma →
+  Invertieren). Der Canvas verdrahtet das undo-/redobar als neue, aktive
+  HEIGHT-Ebene mit Rolle `HEIGHT_MAP`: `generate_height_map` aus der aktiven
+  COLOR-Ebene bzw. dem Komposit und `import_height_map` lädt eine Graustufendatei
+  validiert über `open_validated_image` (Format-/Datei-/Megapixel-Schutz, klare
+  übersetzte Fehlermeldung) und skaliert sie auf die Canvas-Größe (#346, #344).
+- **Height-Map-Editor (Aufhellen/Abdunkeln/Setzen/Invertieren).**
+  `bgremover/height_map.py` bekommt auswahlbewusste, verlustfreie Höhen-
+  Operationen (`adjust_height`, `set_height`, `invert_height`; geklemmt, Eingabe
+  unverändert). Der Canvas verdrahtet sie an der **aktiven HEIGHT-Ebene**
+  (`lighten_/darken_/set_/invert_active_height`): sie respektieren eine
+  vorhandene Auswahl (sonst global), sind undo-/redobar und wirken auf
+  COLOR-Ebenen bewusst nicht (keine Regression im Farb-Editing). Maximale
+  Wiederverwendung der vorhandenen Pinsel-/Auswahl-/History-Pfade (#347, #344).
+- **Height-Map-Optimierung (`height_ops`).** Neues Qt-freies, strikt getyptes,
+  16-Bit-taugliches Modul `bgremover/height_ops.py` mit reinen, deterministischen
+  Operationen auf Höhenfeldern: Tonwert (`levels`/`gamma`), Glättung
+  (`gaussian_blur` separabel, `median_blur` kantenerhaltend – rein in numpy ohne
+  neue Abhängigkeit), `threshold`, Stufenreduzierung (`quantize`) und
+  Höhenbereich-Clamp (`clamp_range`) – dieselben Tonwert-/Graustufen-Primitive,
+  die spätere Ränge teilen. Der Canvas bietet dafür eine generische **Live-
+  Vorschau** (`preview_height_op`/`cancel_height_preview`, transient ohne
+  Modelländerung) und einen undo-/redobaren Commit (`apply_height_op`) auf der
+  aktiven HEIGHT-Ebene (#348, #344).
+- **Height-Map-Arbeitsbereich nutzbar (UI) – Epic abgeschlossen.** Neuer
+  „Höhe"-Tab im rechten Panel (`height_map_panel.py`): Höhenkarte aus dem Bild
+  **erzeugen** oder eine Graustufe **importieren**, mit **Aufhellen/Abdunkeln/
+  Setzen/Invertieren** bearbeiten und über **Tonwert/Gamma/Glättung (Gauß,
+  Median)/Schwelle/Stufen/Bereich** mit Live-Vorschau **optimieren**. Bearbeiten
+  und Optimieren sind **moduskontextuell** – nur aktiv, wenn die aktive Ebene
+  eine HEIGHT-Ebene ist bzw. die Rolle `HEIGHT_MAP` trägt; das COLOR-Editing
+  bleibt unverändert. Damit ist der komplette Ablauf (erzeugen → malen →
+  optimieren → invertieren → verlustfrei im `.bgrproj` speichern/laden) per UI
+  bedienbar. Alle neuen Strings über `i18n.py` (de/en in Parität); schließt das
+  Height-Map-Epic ab (#349, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des

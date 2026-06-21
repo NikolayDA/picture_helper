@@ -10,6 +10,50 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Height representation & 2D visualization (height-map foundation).** New
+  Qt-free, strictly typed `bgremover/height_map.py` module: lossless conversion
+  height ↔ grayscale array (`HeightField`, convention `R==G==B==height`,
+  `A==coverage`), normalization of arbitrary values onto the height range and
+  canvas-size validation – stored internally as `uint16` and thus
+  16-bit-extensible (`max_value`). The canvas now displays an **active HEIGHT
+  layer** in grayscale; the color composite stays unchanged (parity)
+  (#345, #344).
+- **Generate & import a height map (no AI).** `bgremover/height_map.py` gains
+  `generate_from_image`: it **deterministically** builds a height map from a
+  color image (channel weighting/luminance → tone curve → gamma → invert). The
+  canvas wires this up undo-/redoable as a new active HEIGHT layer with role
+  `HEIGHT_MAP`: `generate_height_map` from the active COLOR layer or the
+  composite, and `import_height_map` loads a grayscale file validated through
+  `open_validated_image` (format/file-size/megapixel guard, clear translated
+  error message) and scales it to the canvas size (#346, #344).
+- **Height-map editor (lighten/darken/set/invert).**
+  `bgremover/height_map.py` gains selection-aware, lossless height operations
+  (`adjust_height`, `set_height`, `invert_height`; clamped, input left
+  untouched). The canvas wires them to the **active HEIGHT layer**
+  (`lighten_/darken_/set_/invert_active_height`): they respect an existing
+  selection (otherwise global), are undo-/redoable and deliberately do nothing
+  on COLOR layers (no regression in color editing). Maximal reuse of the
+  existing brush/selection/history paths (#347, #344).
+- **Height-map optimization (`height_ops`).** New Qt-free, strictly typed,
+  16-bit-capable `bgremover/height_ops.py` module with pure, deterministic
+  operations on height fields: tone (`levels`/`gamma`), smoothing
+  (`gaussian_blur` separable, `median_blur` edge-preserving – pure numpy, no new
+  dependency), `threshold`, step reduction (`quantize`) and height-range clamp
+  (`clamp_range`) – the same tone/grayscale primitives that later ranks share.
+  The canvas adds a generic **live preview** for them
+  (`preview_height_op`/`cancel_height_preview`, transient without model changes)
+  and an undo-/redoable commit (`apply_height_op`) on the active HEIGHT layer
+  (#348, #344).
+- **Height-map workspace usable (UI) – epic completed.** New “Height” tab in the
+  right-hand panel (`height_map_panel.py`): **generate** a height map from the
+  image or **import** a grayscale, **edit** it with lighten/darken/set/invert, and
+  **optimize** it via levels/gamma/smoothing (Gaussian, median)/threshold/steps/
+  range with a live preview. Edit and optimize are **mode-contextual** – only
+  active when the active layer is a HEIGHT layer or carries the `HEIGHT_MAP` role;
+  color editing stays unchanged. The whole flow (generate → paint → optimize →
+  invert → save/reload losslessly in `.bgrproj`) is now usable from the UI. All
+  new strings via `i18n.py` (de/en parity); completes the height-map epic
+  (#349, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

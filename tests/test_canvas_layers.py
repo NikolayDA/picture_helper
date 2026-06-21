@@ -302,3 +302,336 @@ def test_single_color_layer_matches_plain_image(qapp) -> None:
     rendered = canvas._render_image()
     assert rendered is not None
     assert np.array_equal(np.array(rendered), arr)   # bitgenau, inkl. RGB unter Alpha
+
+
+# ── HEIGHT-Ebene: graustufige 2D-Visualisierung (#345) ───────────────────
+
+
+def _height_layer_arr(height: int) -> np.ndarray:
+    """RGBA-Array einer HEIGHT-Ebene: Höhe nur im Rotkanal (G/B bewusst 0)."""
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, 0] = height          # Höhe = Rotkanal
+    arr[:, :, 3] = 255
+    return arr
+
+
+def test_active_height_layer_renders_as_grayscale(qapp) -> None:
+    """Eine aktive HEIGHT-Ebene wird graustufig dargestellt (R==G==B==Höhe)."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    project.create_layer(_solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
+    project.create_layer(
+        Image.fromarray(_height_layer_arr(120), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT)
+    canvas.set_project(project)        # HEIGHT zuletzt erzeugt ⇒ aktiv
+
+    rendered = np.array(canvas._render_image())
+    assert np.all(rendered[:, :, 0] == 120)
+    assert np.all(rendered[:, :, 1] == 120)   # grau: G == Höhe
+    assert np.all(rendered[:, :, 2] == 120)   # grau: B == Höhe
+    assert np.all(rendered[:, :, 3] == 255)
+
+
+def test_color_composite_unchanged_when_color_layer_active(qapp) -> None:
+    """Mit aktiver COLOR-Ebene bleibt das Komposit unberührt – HEIGHT leckt nicht."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    color_id = project.create_layer(
+        _solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR).id
+    project.create_layer(
+        Image.fromarray(_height_layer_arr(120), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT)
+    project.set_active(color_id)
+    canvas.set_project(project)
+
+    arr = np.array(canvas._render_image())
+    assert tuple(arr[0, 0]) == (200, 0, 0, 255)   # nur COLOR sichtbar
+
+
+def test_switching_active_layer_toggles_height_view(qapp) -> None:
+    """Auswahl einer HEIGHT-Ebene schaltet in die Höhensicht und zurück."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    color_id = project.create_layer(
+        _solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR).id
+    height_id = project.create_layer(
+        Image.fromarray(_height_layer_arr(90), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT).id
+    canvas.set_project(project)
+
+    canvas.set_active_layer(height_id)
+    assert np.all(np.array(canvas._render_image())[:, :, :3] == 90)   # Höhensicht
+
+    canvas.set_active_layer(color_id)
+    assert tuple(np.array(canvas._render_image())[0, 0]) == (200, 0, 0, 255)
+
+
+# ── Höhenkarte: Erzeugung & Import (#346) ─────────────────────────────────
+
+
+def test_generate_height_map_creates_role_layer_and_is_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (200, 50, 10, 255)), "x.png")
+
+    canvas.generate_height_map(weights=(1, 0, 0))   # Höhe = Rotkanal
+    assert len(canvas.project.layers) == 2
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.role is LayerRole.HEIGHT_MAP
+    arr = np.array(active.image)
+    assert np.all(arr[:, :, :3] == 200)            # grau = R
+    assert np.all(arr[:, :, 3] == 255)
+    # Anzeige wechselt in die Höhensicht (#345).
+    assert np.all(np.array(canvas._render_image())[:, :, :3] == 200)
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+    assert canvas.project.active_layer().kind is LayerKind.COLOR
+
+
+def test_generate_height_map_invert_through_canvas(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (51, 0, 0, 255)), "x.png")
+    canvas.generate_height_map(weights=(1, 0, 0), invert=True)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 204)
+
+
+def test_generate_height_map_transfers_existing_role(qapp) -> None:
+    """Rolle HEIGHT_MAP ist eindeutig: eine zweite Erzeugung übernimmt sie."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (120, 120, 120, 255)), "x.png")
+    canvas.generate_height_map()
+    first_height_id = canvas.project.active_layer_id
+
+    canvas.set_active_layer(canvas.project.layers[0].id)   # zurück auf COLOR
+    canvas.generate_height_map()
+    holders = [
+        layer for layer in canvas.project.layers
+        if layer.role is LayerRole.HEIGHT_MAP
+    ]
+    assert len(holders) == 1                               # weiterhin eindeutig
+    assert holders[0].id != first_height_id                # neue Ebene trägt sie
+
+
+def test_import_height_map_creates_layer(qapp, tmp_path) -> None:
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+
+    ramp = np.arange(64, dtype=np.uint8).reshape(8, 8)     # 0..63 Graustufen
+    path = tmp_path / "height.png"
+    PILImage.fromarray(ramp, "L").save(path)
+
+    canvas.import_height_map(str(path))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.role is LayerRole.HEIGHT_MAP
+    assert np.array_equal(np.array(active.image)[:, :, 0], ramp)   # Luminanz = Höhe
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+
+
+def test_import_height_map_resizes_to_canvas(qapp, tmp_path) -> None:
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    PILImage.new("L", (16, 16), 100).save(tmp_path / "big.png")
+
+    canvas.import_height_map(str(tmp_path / "big.png"))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.size == (8, 8)                           # auf Canvas skaliert
+
+
+def test_import_height_map_rejects_invalid_file(qapp, tmp_path) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    bad = tmp_path / "bad.png"
+    bad.write_bytes(b"not an image")
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(bad))
+    assert len(canvas.project.layers) == 1                 # keine Ebene angelegt
+    assert msgs                                            # Fehlermeldung emittiert
+
+
+# ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ───────────
+
+
+def _color_plus_height(height_value: int = 100, w: int = 8, h: int = 8) -> Project:
+    """COLOR-Basis + aktive HEIGHT-Ebene mit konstanter Höhe (Höhe = Rotkanal)."""
+    project = Project(w, h)
+    project.create_layer(_solid(w, h, (200, 0, 0, 255)), name="C", kind=LayerKind.COLOR)
+    harr = np.zeros((h, w, 4), dtype=np.uint8)
+    harr[:, :, 0] = height_value
+    harr[:, :, 3] = 255
+    project.create_layer(Image.fromarray(harr, "RGBA"), name="H", kind=LayerKind.HEIGHT)
+    return project
+
+
+def test_height_lighten_only_active_and_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+    color_before = np.array(canvas.project.layers[0].image).copy()
+
+    canvas.lighten_active_height(50)
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert np.all(np.array(active.image)[:, :, :3] == 150)        # grau aufgehellt
+    assert np.array_equal(np.array(canvas.project.layers[0].image), color_before)  # COLOR unberührt
+
+    canvas.undo()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_darken_and_set(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.darken_active_height(40)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 60)
+
+    canvas.set_active_height(0)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 0)
+
+
+def test_height_invert_global(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(0))
+    canvas.invert_active_height()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 255)
+
+
+def test_height_edit_respects_selection(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(0))
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[:, :4] = True                          # linke Hälfte auswählen
+    canvas._mask = mask
+
+    canvas.invert_active_height()
+    arr = np.array(canvas.project.active_layer().image)
+    assert np.all(arr[:, :4, 0] == 255)         # Auswahl invertiert
+    assert np.all(arr[:, 4:, 0] == 0)           # außerhalb unverändert
+
+
+def test_height_tools_ignore_color_layer(qapp) -> None:
+    """Höhenwerkzeuge wirken nicht auf COLOR-Ebenen (keine Regression)."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (10, 20, 30, 255)), "x.png")
+    before = np.array(canvas.image).copy()
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.lighten_active_height(50)
+    canvas.invert_active_height()
+    canvas.set_active_height(0)
+
+    assert np.array_equal(np.array(canvas.image), before)        # COLOR unverändert
+    assert len(canvas.project.layers) == 1
+    assert any("höhenebene" in m.lower() for m in msgs)
+
+
+# ── Höhen-Optimierung mit Live-Vorschau (#348) ────────────────────────────
+
+
+def _levels_op(field):
+    from bgremover.height_ops import levels
+    return levels(field, 0, 200)            # Höhe 100 → 0.5*255 → 128
+
+
+def test_height_op_preview_is_nondestructive(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    assert canvas._height_preview is not None
+    assert np.all(np.array(canvas._height_preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)  # Modell unberührt
+
+
+def test_height_op_commit_is_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    canvas.apply_height_op(_levels_op)
+    assert canvas._height_preview is None
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 128)
+
+    canvas.undo()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_op_cancel_restores_model(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    canvas.cancel_height_preview()
+    assert canvas._height_preview is None
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_preview_cleared_on_layer_switch(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _color_plus_height(100)
+    canvas.set_project(project)
+    color_id = project.layers[0].id
+
+    canvas.preview_height_op(_levels_op)
+    assert canvas._height_preview is not None
+    canvas.set_active_layer(color_id)               # Zustandswechsel verwirft Vorschau
+    assert canvas._height_preview is None
+
+
+def test_height_op_requires_height_layer(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (10, 20, 30, 255)), "x.png")
+    before = np.array(canvas.image).copy()
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.preview_height_op(_levels_op)
+    canvas.apply_height_op(_levels_op)
+    assert canvas._height_preview is None
+    assert np.array_equal(np.array(canvas.image), before)
+    assert any("höhenebene" in m.lower() for m in msgs)
+
+
+def test_height_workflow_end_to_end_bgrproj_roundtrip(qapp, tmp_path) -> None:
+    """Kompletter Ablauf (#349): erzeugen → malen → optimieren → invertieren →
+    in ``.bgrproj`` speichern/wieder laden – verlustfrei."""
+    from bgremover import height_ops
+    from bgremover.project_io import load_project, save_project
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (180, 90, 40, 255)), "x.png")
+
+    canvas.generate_height_map()                       # erzeugen
+    assert canvas.project.active_layer().kind is LayerKind.HEIGHT
+    canvas.lighten_active_height(20)                   # malen (global)
+    canvas.apply_height_op(lambda f: height_ops.quantize(f, 4))   # optimieren
+    canvas.invert_active_height()                      # invertieren
+    expected = np.array(canvas.project.active_layer().image)
+
+    path = tmp_path / "relief.bgrproj"
+    save_project(canvas.project, str(path))            # speichern
+    reloaded = load_project(str(path))                 # wieder laden
+
+    layer = reloaded.layer_by_role(LayerRole.HEIGHT_MAP)
+    assert layer is not None
+    assert layer.kind is LayerKind.HEIGHT
+    assert np.array_equal(np.array(layer.image), expected)   # verlustfrei
+
+    # Wiederhergestellte HEIGHT-Ebene zeigt sich graustufig (via #345).
+    canvas2 = ImageCanvas()
+    canvas2.set_project(reloaded)
+    canvas2.set_active_layer(layer.id)
+    rendered = np.array(canvas2._render_image())
+    assert np.array_equal(rendered[:, :, 0], rendered[:, :, 1])
+    assert np.array_equal(rendered[:, :, 1], rendered[:, :, 2])

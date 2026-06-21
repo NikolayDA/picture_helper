@@ -35,7 +35,30 @@ Ein Paket, `bgremover/`:
   Werkzeuge wirken auf die **aktive Ebene** (`self._pil`/`_arr` sind deren Cache),
   größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
   Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
-  zum bisherigen Einzelbild-Editor (#332).
+  zum bisherigen Einzelbild-Editor (#332). Ist die **aktive** Ebene eine
+  HEIGHT-Ebene, zeigt der Canvas sie graustufig über `height_map.layer_to_gray_image`
+  statt des COLOR-Komposits (#345).
+- **Höhenkarten:** `height_map.py` — Qt-freie, strikt getypte Höhen-Repräsentation
+  (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
+  Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
+  Normalisierung beliebiger Werte auf den Höhenbereich und Canvas-Größen-Validierung;
+  als `uint16` geführt und damit 16-Bit-erweiterbar (`max_value`). `generate_from_image`
+  erzeugt deterministisch eine Höhenkarte (Kanalgewichtung/Luminanz → Tonwert-Kennlinie
+  → Gamma → Invertieren) (#346). Der Canvas verdrahtet das (`generate_height_map` aus
+  aktiver COLOR-Ebene/Komposit, `import_height_map` via `open_validated_image` mit
+  Skalierung auf Canvas-Größe) als neue, aktive HEIGHT-Ebene mit Rolle `HEIGHT_MAP`,
+  undo-/redobar. Höhen-Editor (#347): `adjust_height`/`set_height`/`invert_height`
+  (auswahlbewusst, geklemmt, verlustfrei) – im Canvas als `lighten_/darken_/set_/
+  invert_active_height` an der aktiven HEIGHT-Ebene verdrahtet (Auswahl bzw. global,
+  undo-/redobar; auf COLOR-Ebenen wirkungslos).
+- **Höhen-Optimierung:** `height_ops.py` — Qt-freie, strikt getypte, 16-Bit-taugliche
+  Operationen auf `HeightField` (#348): `levels`/`gamma` (Tonwert), `gaussian_blur`/
+  `median_blur` (Glättung, separabel bzw. kantenerhaltend, rein in numpy), `threshold`,
+  `quantize` (Stufen), `clamp_range`. Geteilte Tonwert-/Graustufen-Primitive (Synergie
+  mit der späteren geteilten Engine). Im Canvas als generische Live-Vorschau verdrahtet:
+  `preview_height_op`/`cancel_height_preview` (transient, ohne Modelländerung) und
+  `apply_height_op` (Commit, undo-/redobar); die Vorschau hat in `_refresh_image` Vorrang
+  und wird bei jedem Zustandswechsel verworfen.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
@@ -56,6 +79,9 @@ Ein Paket, `bgremover/`:
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `layer_panel.py`
   (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal, #334),
+  `height_map_panel.py` (Höhen-Tab #349: Beschaffen/Bearbeiten/Optimieren,
+  ebenfalls `layersChanged`-getrieben; Bearbeiten/Optimieren nur im HEIGHT-Kontext
+  aktiv, Optimierung mit Live-Vorschau über `preview_height_op`/`apply_height_op`),
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
   Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
   `theme.py`, `icons*.py`.

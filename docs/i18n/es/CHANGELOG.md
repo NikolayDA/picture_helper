@@ -11,6 +11,56 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Representación de altura y visualización 2D (base del mapa de altura).**
+  Nuevo módulo sin Qt y con tipado estricto `bgremover/height_map.py`:
+  conversión sin pérdidas altura ↔ array en escala de grises (`HeightField`,
+  convención `R==G==B==altura`, `A==cobertura`), normalización de valores
+  arbitrarios al rango de altura y validación del tamaño del lienzo,
+  almacenado internamente como `uint16` y por tanto ampliable a 16 bits
+  (`max_value`). El lienzo ahora muestra una **capa HEIGHT activa** en escala
+  de grises; el composite de color permanece sin cambios (paridad)
+  (#345, #344).
+- **Generar e importar un mapa de altura (sin IA).** `bgremover/height_map.py`
+  incorpora `generate_from_image`: crea de forma **determinista** un mapa de
+  altura a partir de una imagen de color (ponderación de canales/luminancia →
+  curva de tonos → gamma → invertir). El lienzo lo conecta con
+  deshacer/rehacer como una nueva capa HEIGHT activa con rol `HEIGHT_MAP`:
+  `generate_height_map` desde la capa COLOR activa o el composite, e
+  `import_height_map` carga un archivo en escala de grises validado mediante
+  `open_validated_image` (protección de formato/tamaño de archivo/megapíxeles,
+  mensaje de error claro y traducido) y lo escala al tamaño del lienzo
+  (#346, #344).
+- **Editor de mapa de altura (aclarar/oscurecer/fijar/invertir).**
+  `bgremover/height_map.py` incorpora operaciones de altura sin pérdidas y
+  conscientes de la selección (`adjust_height`, `set_height`, `invert_height`;
+  con recorte, sin tocar la entrada). El lienzo las conecta a la **capa HEIGHT
+  activa** (`lighten_/darken_/set_/invert_active_height`): respetan una
+  selección existente (si no, globales), permiten deshacer/rehacer y no hacen
+  nada en capas COLOR a propósito (sin regresión en la edición de color).
+  Máxima reutilización de las rutas de pincel/selección/historial existentes
+  (#347, #344).
+- **Optimización de mapa de altura (`height_ops`).** Nuevo módulo sin Qt, con
+  tipado estricto y apto para 16 bits `bgremover/height_ops.py` con operaciones
+  puras y deterministas sobre campos de altura: tono (`levels`/`gamma`),
+  suavizado (`gaussian_blur` separable, `median_blur` que preserva bordes –
+  numpy puro, sin nueva dependencia), `threshold`, reducción de niveles
+  (`quantize`) y recorte de rango de altura (`clamp_range`): las mismas
+  primitivas de tono/escala de grises que comparten rangos posteriores. El
+  lienzo añade una **vista previa en vivo** genérica
+  (`preview_height_op`/`cancel_height_preview`, transitoria sin cambiar el
+  modelo) y un commit con deshacer/rehacer (`apply_height_op`) sobre la capa
+  HEIGHT activa (#348, #344).
+- **Espacio de trabajo de mapa de altura usable (UI) – epic completado.** Nueva
+  pestaña «Altura» en el panel derecho (`height_map_panel.py`): **generar** un
+  mapa de altura a partir de la imagen o **importar** una escala de grises,
+  **editar** con aclarar/oscurecer/fijar/invertir y **optimizar** mediante
+  niveles/gamma/suavizado (gaussiano, mediana)/umbral/niveles/rango con vista
+  previa en vivo. Editar y optimizar son **contextuales al modo**: solo activos
+  cuando la capa activa es una capa HEIGHT o tiene el rol `HEIGHT_MAP`; la edición
+  de color no cambia. Así, todo el flujo (generar → pintar → optimizar → invertir
+  → guardar/recargar sin pérdidas en `.bgrproj`) es usable desde la UI. Todas las
+  cadenas nuevas vía `i18n.py` (paridad de/en); completa el epic del mapa de
+  altura (#349, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)

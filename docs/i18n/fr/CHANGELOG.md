@@ -11,6 +11,55 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Représentation de hauteur et visualisation 2D (fondation height-map).**
+  Nouveau module sans Qt et strictement typé `bgremover/height_map.py` :
+  conversion sans perte hauteur ↔ tableau en niveaux de gris (`HeightField`,
+  convention `R==G==B==hauteur`, `A==couverture`), normalisation de valeurs
+  arbitraires sur la plage de hauteur et validation de la taille du canevas,
+  stocké en interne en `uint16` et donc extensible à 16 bits (`max_value`). Le
+  canevas affiche désormais un **calque HEIGHT actif** en niveaux de gris ; le
+  composite couleur reste inchangé (parité) (#345, #344).
+- **Générer et importer une carte de hauteur (sans IA).**
+  `bgremover/height_map.py` gagne `generate_from_image` : construit de manière
+  **déterministe** une carte de hauteur à partir d'une image couleur
+  (pondération des canaux/luminance → courbe tonale → gamma → inversion). Le
+  canevas le câble, avec annuler/rétablir, en tant que nouveau calque HEIGHT
+  actif avec le rôle `HEIGHT_MAP` : `generate_height_map` depuis le calque
+  COLOR actif ou le composite, et `import_height_map` charge un fichier en
+  niveaux de gris validé via `open_validated_image` (protection
+  format/taille de fichier/mégapixels, message d'erreur clair et traduit) et
+  le met à l'échelle de la taille du canevas (#346, #344).
+- **Éditeur de carte de hauteur (éclaircir/assombrir/définir/inverser).**
+  `bgremover/height_map.py` gagne des opérations de hauteur sans perte et
+  conscientes de la sélection (`adjust_height`, `set_height`, `invert_height` ;
+  bornées, entrée préservée). Le canevas les câble au **calque HEIGHT actif**
+  (`lighten_/darken_/set_/invert_active_height`) : elles respectent une
+  sélection existante (sinon globales), sont annulables/rétablissables et ne
+  font délibérément rien sur les calques COLOR (aucune régression dans
+  l'édition couleur). Réutilisation maximale des chemins
+  pinceau/sélection/historique existants (#347, #344).
+- **Optimisation de carte de hauteur (`height_ops`).** Nouveau module sans Qt,
+  strictement typé et compatible 16 bits `bgremover/height_ops.py` avec des
+  opérations pures et déterministes sur les champs de hauteur : tonalité
+  (`levels`/`gamma`), lissage (`gaussian_blur` séparable, `median_blur`
+  préservant les contours – numpy pur, sans nouvelle dépendance), `threshold`,
+  réduction de niveaux (`quantize`) et bornage de plage de hauteur
+  (`clamp_range`) – les mêmes primitives de tonalité/niveaux de gris que
+  partagent les rangs ultérieurs. Le canevas ajoute un **aperçu en direct**
+  générique (`preview_height_op`/`cancel_height_preview`, transitoire sans
+  modifier le modèle) et un commit annulable/rétablissable (`apply_height_op`)
+  sur le calque HEIGHT actif (#348, #344).
+- **Espace de travail carte de hauteur utilisable (UI) – epic terminé.** Nouvel
+  onglet « Hauteur » dans le panneau de droite (`height_map_panel.py`) :
+  **générer** une carte de hauteur depuis l'image ou **importer** un niveau de
+  gris, l'**éditer** avec éclaircir/assombrir/définir/inverser et l'**optimiser**
+  via niveaux/gamma/lissage (gaussien, médian)/seuil/paliers/plage avec un aperçu
+  en direct. Éditer et optimiser sont **contextuels au mode** – actifs uniquement
+  quand le calque actif est un calque HEIGHT ou porte le rôle `HEIGHT_MAP` ;
+  l'édition couleur reste inchangée. Tout le flux (générer → peindre → optimiser →
+  inverser → enregistrer/recharger sans perte dans `.bgrproj`) est désormais
+  utilisable depuis l'UI. Toutes les nouvelles chaînes via `i18n.py` (parité
+  de/en) ; termine l'epic carte de hauteur (#349, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

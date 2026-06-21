@@ -73,6 +73,8 @@ _WINDOW_MIN_H       = 720
 _DEFAULT_TOLERANCE    = 30
 _DEFAULT_BRUSH_RADIUS = 15
 _ZOOM_FACTOR          = 1.15
+# Standard-Stärke (0–255) für Höhen-Aufhellen/-Abdunkeln (#347).
+_DEFAULT_HEIGHT_STEP  = 32
 
 # ── Auswahloverlay-Farbe (RGBA) ──────────────────────────────
 _OVERLAY_COLOR = (220, 60, 60, 130)

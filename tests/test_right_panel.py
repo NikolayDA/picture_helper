@@ -1,10 +1,14 @@
 """Tests for the right-side panel builder without constructing MainWindow."""
 from __future__ import annotations
 
+import numpy as np
 import pytest
-from PyQt6.QtWidgets import QComboBox, QPushButton, QSlider, QWidget
+from PyQt6.QtWidgets import QComboBox, QPushButton, QSlider, QSpinBox, QWidget
 
+from bgremover import height_ops
 from bgremover.canvas import LayerInfo
+from bgremover.height_map import HeightField
+from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
@@ -16,6 +20,20 @@ def _button(panel_frame, text: str) -> QPushButton:
         if button.text() == text:
             return button
     raise AssertionError(f"QPushButton {text!r} nicht gefunden")
+
+
+def _noop_height_actions() -> HeightMapActions:
+    return HeightMapActions(
+        generate=lambda: None,
+        import_file=lambda: None,
+        lighten=lambda _a: None,
+        darken=lambda _a: None,
+        set_height=lambda _v: None,
+        invert=lambda: None,
+        preview_op=lambda _op: None,
+        apply_op=lambda _op: None,
+        cancel_preview=lambda: None,
+    )
 
 
 def _noop_layer_actions() -> LayerPanelActions:
@@ -53,19 +71,19 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
 
 
 def test_right_panel_builder_creates_expected_tabs(qapp):
-    panel = build_right_panel(_actions([]), _noop_layer_actions())
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
 
     tabs = panel.frame.findChild(TopIconTabWidget)
     assert tabs is not None
-    assert tabs.count() == 5
+    assert tabs.count() == 6
     assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Auswahl", "Hintergrund", "Drehen/Spiegeln", "Form", "Ebenen",
+        "Auswahl", "Hintergrund", "Drehen/Spiegeln", "Form", "Ebenen", "Höhe",
     ]
 
 
 def test_right_panel_controls_delegate_to_callbacks(qapp):
     calls: list[tuple] = []
-    panel = build_right_panel(_actions(calls), _noop_layer_actions())
+    panel = build_right_panel(_actions(calls), _noop_layer_actions(), _noop_height_actions())
 
     panel.tolerance_slider.setValue(42)
     panel.brush_slider.setValue(55)
@@ -220,3 +238,143 @@ def test_layer_panel_empty_state_disables_actions(qapp):
 
     add = _button(widget, "＋")
     assert not add.isEnabled()
+
+
+# ── Height-Map-Panel (#349) ──────────────────────────────────────────────
+
+
+def _recording_height_actions(calls: list[tuple]) -> HeightMapActions:
+    return HeightMapActions(
+        generate=lambda: calls.append(("generate",)),
+        import_file=lambda: calls.append(("import",)),
+        lighten=lambda a: calls.append(("lighten", a)),
+        darken=lambda a: calls.append(("darken", a)),
+        set_height=lambda v: calls.append(("set", v)),
+        invert=lambda: calls.append(("invert",)),
+        preview_op=lambda op: calls.append(("preview", op)),
+        apply_op=lambda op: calls.append(("apply", op)),
+        cancel_preview=lambda: calls.append(("cancel",)),
+    )
+
+
+def _height_layers(*, active_kind: LayerKind = LayerKind.HEIGHT) -> list[LayerInfo]:
+    return [
+        LayerInfo(id="h", name="Höhenkarte", kind=active_kind, visible=True,
+                  opacity=1.0, locked=False, role=LayerRole.HEIGHT_MAP, active=True),
+    ]
+
+
+@pytest.mark.ui_smoke
+def test_height_panel_acquire_and_edit_delegate(qapp):
+    calls: list[tuple] = []
+    panel = HeightMapPanel(_recording_height_actions(calls))
+    widget, _refs = panel.build()
+    panel.refresh(_height_layers())
+
+    _button(widget, "Aus Bild erzeugen").click()
+    _button(widget, "Graustufe importieren…").click()
+    _button(widget, "Aufhellen").click()
+    _button(widget, "Abdunkeln").click()
+    _button(widget, "Höhe setzen").click()
+    _button(widget, "Invertieren").click()
+
+    assert calls == [
+        ("generate",), ("import",),
+        ("lighten", 32), ("darken", 32),   # Standard-Stärke aus dem Spin
+        ("set", 128), ("invert",),
+    ]
+
+
+@pytest.mark.ui_smoke
+def test_height_panel_optimize_preview_and_apply(qapp):
+    calls: list[tuple] = []
+    panel = HeightMapPanel(_recording_height_actions(calls))
+    _widget, refs = panel.build()
+    panel.refresh(_height_layers())
+
+    # Reglerbewegung erzeugt eine Live-Vorschau …
+    gamma = refs["height_gamma"]
+    assert isinstance(gamma, QSpinBox)
+    gamma.setValue(200)
+    assert calls[-1][0] == "preview"
+
+    # … und „Anwenden" committet dieselbe Operation. Die übergebene Closure
+    # wendet height_ops.gamma(·, 2.0) an – an einem Probefeld verifiziert.
+    refs["height_apply_gamma"].click()
+    assert calls[-1][0] == "apply"
+    op = calls[-1][1]
+    field = HeightField(
+        np.array([[0, 51, 255]], dtype=np.uint16),
+        np.full((1, 3), 255, dtype=np.uint8))
+    assert list(op(field).values[0]) == [0, 10, 255]   # (51/255)^2*255 → 10
+
+
+@pytest.mark.ui_smoke
+def test_height_panel_optimize_ops_wire_correct_functions(qapp):
+    """Jede „Anwenden"-Schaltfläche reicht die passende height_ops-Operation
+    mit den aktuellen Reglerwerten durch (am Probefeld gegen die Direktaufrufe
+    verifiziert)."""
+    calls: list[tuple] = []
+    panel = HeightMapPanel(_recording_height_actions(calls))
+    _widget, refs = panel.build()
+    panel.refresh(_height_layers())
+    field = HeightField(
+        np.array([[0, 64, 130, 200, 255]], dtype=np.uint16),
+        np.full((1, 5), 255, dtype=np.uint8))
+
+    def captured(key: str):
+        refs[f"height_apply_{key}"].click()
+        assert calls[-1][0] == "apply"
+        return calls[-1][1]
+
+    refs["height_levels_black"].setValue(32)
+    refs["height_levels_white"].setValue(200)
+    assert np.array_equal(captured("levels")(field).values,
+                          height_ops.levels(field, 32, 200).values)
+    refs["height_gamma"].setValue(180)
+    assert np.array_equal(captured("gamma")(field).values,
+                          height_ops.gamma(field, 1.8).values)
+    refs["height_gauss"].setValue(3)
+    assert np.array_equal(captured("gauss")(field).values,
+                          height_ops.gaussian_blur(field, 3.0).values)
+    refs["height_median"].setValue(2)
+    assert np.array_equal(captured("median")(field).values,
+                          height_ops.median_blur(field, 2).values)
+    refs["height_threshold"].setValue(100)
+    assert np.array_equal(captured("threshold")(field).values,
+                          height_ops.threshold(field, 100).values)
+    refs["height_steps"].setValue(5)
+    assert np.array_equal(captured("steps")(field).values,
+                          height_ops.quantize(field, 5).values)
+    refs["height_range_lo"].setValue(50)
+    refs["height_range_hi"].setValue(180)
+    assert np.array_equal(captured("range")(field).values,
+                          height_ops.clamp_range(field, 50, 180).values)
+
+
+@pytest.mark.ui_smoke
+def test_height_panel_is_mode_contextual(qapp):
+    panel = HeightMapPanel(_noop_height_actions())
+    widget, _refs = panel.build()
+
+    # COLOR aktiv: Beschaffen aktiv, Bearbeiten/Optimieren gesperrt.
+    color = [LayerInfo(id="c", name="Farbe", kind=LayerKind.COLOR, visible=True,
+                       opacity=1.0, locked=False, role=None, active=True)]
+    panel.refresh(color)
+    assert _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert not _button(widget, "Aufhellen").isEnabled()
+    assert not _button(widget, "Invertieren").isEnabled()
+
+    # HEIGHT aktiv: Höhenwerkzeuge frei.
+    panel.refresh(_height_layers())
+    assert _button(widget, "Aufhellen").isEnabled()
+    assert _button(widget, "Invertieren").isEnabled()
+
+    # Rolle HEIGHT_MAP auf einer COLOR-Ebene zählt ebenfalls als Höhenkontext.
+    panel.refresh(_height_layers(active_kind=LayerKind.COLOR))
+    assert _button(widget, "Aufhellen").isEnabled()
+
+    # Kein Projekt: alles gesperrt.
+    panel.refresh([])
+    assert not _button(widget, "Aus Bild erzeugen").isEnabled()
+    assert not _button(widget, "Aufhellen").isEnabled()

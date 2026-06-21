@@ -11,6 +11,37 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **高度表示与 2D 可视化（高度图基础）。** 新增无 Qt、严格类型化模块
+  `bgremover/height_map.py`：高度 ↔ 灰度数组的无损转换（`HeightField`，约定
+  `R==G==B==高度`、`A==覆盖`）、将任意值归一化到高度范围以及画布尺寸校验；内部
+  以 `uint16` 存储，因而可扩展到 16 位（`max_value`）。画布现在以灰度显示**活动的
+  HEIGHT 图层**；颜色合成保持不变（一致性）（#345、#344）。
+- **生成与导入高度图（无 AI）。** `bgremover/height_map.py` 新增
+  `generate_from_image`：从彩色图像**确定性地**构建高度图（通道加权/亮度 →
+  色阶曲线 → 伽马 → 反相）。画布将其接入为可撤销/重做的新活动 HEIGHT 图层并赋予
+  `HEIGHT_MAP` 角色：`generate_height_map` 取自活动 COLOR 图层或合成，
+  `import_height_map` 通过 `open_validated_image` 校验加载灰度文件（格式/文件
+  大小/百万像素防护，清晰的本地化错误消息）并缩放到画布尺寸（#346、#344）。
+- **高度图编辑器（提亮/压暗/设定/反相）。** `bgremover/height_map.py` 新增
+  感知选区、无损的高度操作（`adjust_height`、`set_height`、`invert_height`；
+  带钳制，输入不变）。画布将其接入**活动 HEIGHT 图层**
+  （`lighten_/darken_/set_/invert_active_height`）：它们尊重已有选区（否则全局），
+  可撤销/重做，并对 COLOR 图层刻意不起作用（颜色编辑无回归）。最大程度复用现有的
+  画笔/选区/历史路径（#347、#344）。
+- **高度图优化（`height_ops`）。** 新增无 Qt、严格类型化、兼容 16 位的模块
+  `bgremover/height_ops.py`，提供对高度场的纯粹、确定性操作：色调
+  （`levels`/`gamma`）、平滑（`gaussian_blur` 可分离、`median_blur` 保边——纯
+  numpy，无新依赖）、`threshold`、级数缩减（`quantize`）与高度范围钳制
+  （`clamp_range`）——与后续等级共享的同一套色调/灰度原语。画布为此提供通用的
+  **实时预览**（`preview_height_op`/`cancel_height_preview`，瞬态、不改动模型）
+  以及可撤销/重做的提交（`apply_height_op`），作用于活动 HEIGHT 图层（#348、#344）。
+- **高度图工作区可用（UI）——史诗完成。** 右侧面板新增“高度”标签页
+  （`height_map_panel.py`）：从图像**生成**高度图或**导入**灰度图，使用
+  提亮/压暗/设定/反相进行**编辑**，并通过色阶/伽马/平滑（高斯、中值）/阈值/级数/
+  范围配合实时预览进行**优化**。编辑与优化是**模式上下文相关**的——仅当活动图层为
+  HEIGHT 图层或带有 `HEIGHT_MAP` 角色时才启用；颜色编辑保持不变。于是完整流程
+  （生成 → 绘制 → 优化 → 反相 → 在 `.bgrproj` 中无损保存/重载）现可通过 UI 操作。
+  所有新字符串通过 `i18n.py`（de/en 一致）；完成高度图史诗（#349、#344）。
 - **无 Qt 的项目/图层数据模型。** 新增严格类型化模块
   `bgremover/project_model.py`，包含 `Project` 与 `Layer`（`LayerKind`
   颜色/高度/光泽/通用，角色在整个项目内唯一），作为图层史诗的基础：有序图层、
