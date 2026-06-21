@@ -34,6 +34,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   selection (otherwise global), are undo-/redoable and deliberately do nothing
   on COLOR layers (no regression in color editing). Maximal reuse of the
   existing brush/selection/history paths (#347, #344).
+- **Height-map optimization (`height_ops`).** New Qt-free, strictly typed,
+  16-bit-capable `bgremover/height_ops.py` module with pure, deterministic
+  operations on height fields: tone (`levels`/`gamma`), smoothing
+  (`gaussian_blur` separable, `median_blur` edge-preserving – pure numpy, no new
+  dependency), `threshold`, step reduction (`quantize`) and height-range clamp
+  (`clamp_range`) – the same tone/grayscale primitives that later ranks share.
+  The canvas adds a generic **live preview** for them
+  (`preview_height_op`/`cancel_height_preview`, transient without model changes)
+  and an undo-/redoable commit (`apply_height_op`) on the active HEIGHT layer
+  (#348, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

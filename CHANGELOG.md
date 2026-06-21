@@ -35,6 +35,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   vorhandene Auswahl (sonst global), sind undo-/redobar und wirken auf
   COLOR-Ebenen bewusst nicht (keine Regression im Farb-Editing). Maximale
   Wiederverwendung der vorhandenen Pinsel-/Auswahl-/History-Pfade (#347, #344).
+- **Height-Map-Optimierung (`height_ops`).** Neues Qt-freies, strikt getyptes,
+  16-Bit-taugliches Modul `bgremover/height_ops.py` mit reinen, deterministischen
+  Operationen auf Höhenfeldern: Tonwert (`levels`/`gamma`), Glättung
+  (`gaussian_blur` separabel, `median_blur` kantenerhaltend – rein in numpy ohne
+  neue Abhängigkeit), `threshold`, Stufenreduzierung (`quantize`) und
+  Höhenbereich-Clamp (`clamp_range`) – dieselben Tonwert-/Graustufen-Primitive,
+  die spätere Ränge teilen. Der Canvas bietet dafür eine generische **Live-
+  Vorschau** (`preview_height_op`/`cancel_height_preview`, transient ohne
+  Modelländerung) und einen undo-/redobaren Commit (`apply_height_op`) auf der
+  aktiven HEIGHT-Ebene (#348, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des

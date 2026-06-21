@@ -534,3 +534,70 @@ def test_height_tools_ignore_color_layer(qapp) -> None:
     assert np.array_equal(np.array(canvas.image), before)        # COLOR unverändert
     assert len(canvas.project.layers) == 1
     assert any("höhenebene" in m.lower() for m in msgs)
+
+
+# ── Höhen-Optimierung mit Live-Vorschau (#348) ────────────────────────────
+
+
+def _levels_op(field):
+    from bgremover.height_ops import levels
+    return levels(field, 0, 200)            # Höhe 100 → 0.5*255 → 128
+
+
+def test_height_op_preview_is_nondestructive(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    assert canvas._height_preview is not None
+    assert np.all(np.array(canvas._height_preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)  # Modell unberührt
+
+
+def test_height_op_commit_is_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    canvas.apply_height_op(_levels_op)
+    assert canvas._height_preview is None
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 128)
+
+    canvas.undo()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_op_cancel_restores_model(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.preview_height_op(_levels_op)
+    canvas.cancel_height_preview()
+    assert canvas._height_preview is None
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_preview_cleared_on_layer_switch(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _color_plus_height(100)
+    canvas.set_project(project)
+    color_id = project.layers[0].id
+
+    canvas.preview_height_op(_levels_op)
+    assert canvas._height_preview is not None
+    canvas.set_active_layer(color_id)               # Zustandswechsel verwirft Vorschau
+    assert canvas._height_preview is None
+
+
+def test_height_op_requires_height_layer(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (10, 20, 30, 255)), "x.png")
+    before = np.array(canvas.image).copy()
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.preview_height_op(_levels_op)
+    canvas.apply_height_op(_levels_op)
+    assert canvas._height_preview is None
+    assert np.array_equal(np.array(canvas.image), before)
+    assert any("höhenebene" in m.lower() for m in msgs)

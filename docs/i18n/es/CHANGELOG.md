@@ -39,6 +39,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   nada en capas COLOR a propósito (sin regresión en la edición de color).
   Máxima reutilización de las rutas de pincel/selección/historial existentes
   (#347, #344).
+- **Optimización de mapa de altura (`height_ops`).** Nuevo módulo sin Qt, con
+  tipado estricto y apto para 16 bits `bgremover/height_ops.py` con operaciones
+  puras y deterministas sobre campos de altura: tono (`levels`/`gamma`),
+  suavizado (`gaussian_blur` separable, `median_blur` que preserva bordes –
+  numpy puro, sin nueva dependencia), `threshold`, reducción de niveles
+  (`quantize`) y recorte de rango de altura (`clamp_range`): las mismas
+  primitivas de tono/escala de grises que comparten rangos posteriores. El
+  lienzo añade una **vista previa en vivo** genérica
+  (`preview_height_op`/`cancel_height_preview`, transitoria sin cambiar el
+  modelo) y un commit con deshacer/rehacer (`apply_height_op`) sobre la capa
+  HEIGHT activa (#348, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)

@@ -28,6 +28,13 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   （`lighten_/darken_/set_/invert_active_height`）：它们尊重已有选区（否则全局），
   可撤销/重做，并对 COLOR 图层刻意不起作用（颜色编辑无回归）。最大程度复用现有的
   画笔/选区/历史路径（#347、#344）。
+- **高度图优化（`height_ops`）。** 新增无 Qt、严格类型化、兼容 16 位的模块
+  `bgremover/height_ops.py`，提供对高度场的纯粹、确定性操作：色调
+  （`levels`/`gamma`）、平滑（`gaussian_blur` 可分离、`median_blur` 保边——纯
+  numpy，无新依赖）、`threshold`、级数缩减（`quantize`）与高度范围钳制
+  （`clamp_range`）——与后续等级共享的同一套色调/灰度原语。画布为此提供通用的
+  **实时预览**（`preview_height_op`/`cancel_height_preview`，瞬态、不改动模型）
+  以及可撤销/重做的提交（`apply_height_op`），作用于活动 HEIGHT 图层（#348、#344）。
 - **无 Qt 的项目/图层数据模型。** 新增严格类型化模块
   `bgremover/project_model.py`，包含 `Project` 与 `Layer`（`LayerKind`
   颜色/高度/光泽/通用，角色在整个项目内唯一），作为图层史诗的基础：有序图层、

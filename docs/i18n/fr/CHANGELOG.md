@@ -38,6 +38,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   font délibérément rien sur les calques COLOR (aucune régression dans
   l'édition couleur). Réutilisation maximale des chemins
   pinceau/sélection/historique existants (#347, #344).
+- **Optimisation de carte de hauteur (`height_ops`).** Nouveau module sans Qt,
+  strictement typé et compatible 16 bits `bgremover/height_ops.py` avec des
+  opérations pures et déterministes sur les champs de hauteur : tonalité
+  (`levels`/`gamma`), lissage (`gaussian_blur` séparable, `median_blur`
+  préservant les contours – numpy pur, sans nouvelle dépendance), `threshold`,
+  réduction de niveaux (`quantize`) et bornage de plage de hauteur
+  (`clamp_range`) – les mêmes primitives de tonalité/niveaux de gris que
+  partagent les rangs ultérieurs. Le canevas ajoute un **aperçu en direct**
+  générique (`preview_height_op`/`cancel_height_preview`, transitoire sans
+  modifier le modèle) et un commit annulable/rétablissable (`apply_height_op`)
+  sur le calque HEIGHT actif (#348, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

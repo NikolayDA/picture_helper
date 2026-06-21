@@ -158,6 +158,11 @@ class ImageCanvas(QGraphicsView):
         self._project: Project | None = None
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
+        # Transiente Höhen-Optimierungs-Vorschau (#348): wenn gesetzt, zeigt der
+        # Canvas dieses Bild statt des Modellzustands an, ohne die Ebene zu
+        # ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`) verwirft
+        # die Vorschau; Commit/Abbruch räumen sie explizit ab.
+        self._height_preview: Image.Image | None = None
         self._selection = CanvasSelection(0, 0)
         # _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
         # Externe Worker nutzen diese Revision als Stale-Check statt
@@ -435,6 +440,11 @@ class ImageCanvas(QGraphicsView):
         return self._project.composite_color()
 
     def _refresh_image(self) -> None:
+        # Eine aktive Höhen-Vorschau (#348) hat Vorrang vor dem Modell-Render;
+        # sie ist rein transient (kein Modell-/Speicherzustand).
+        if self._height_preview is not None:
+            self._viewport.refresh_image(self._height_preview)
+            return
         self._viewport.refresh_image(self._render_image())
 
     def _refresh_overlay(self, dirty: tuple[int, int, int, int] | None = None) -> None:
@@ -487,6 +497,10 @@ class ImageCanvas(QGraphicsView):
         erzeugen (#247).
         """
         self._discard_overlay_interactions()
+        # Eine transiente Höhen-Vorschau (#348) gilt nur für den vorherigen
+        # Zustand; jeder Bildzustandswechsel (Edit/Commit/Undo/Laden/Ebenenwechsel)
+        # verwirft sie, bevor neu gerendert wird.
+        self._height_preview = None
         active = self._project.active_layer() if self._project is not None else None
         self._pil = active.image if active is not None else None
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
@@ -846,6 +860,55 @@ class ImageCanvas(QGraphicsView):
         self._run_height_edit(
             invert_height(field, mask=mask),
             tr("history.desc.height_invert"), tr("canvas.height_inverted"))
+
+    # ── Höhen-Optimierung mit Live-Vorschau (#348) ──────────────────────
+    @_requires_image
+    def preview_height_op(self, op: Callable[[HeightField], HeightField]) -> None:
+        """Zeigt das Ergebnis von *op* auf der aktiven HEIGHT-Ebene als Vorschau.
+
+        ``op`` ist eine reine ``HeightField → HeightField``-Funktion (z. B. eine
+        an ihre Parameter gebundene ``height_ops``-Operation). Die Ebene bleibt
+        **unverändert** – nur die Anzeige zeigt das Resultat. Wiederholtes Aufrufen
+        aktualisiert die Vorschau live (Reglerbewegung in der späteren UI #349).
+        """
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, _mask = ctx
+        self._height_preview = height_to_layer(op(field))
+        self._refresh_image()
+
+    def cancel_height_preview(self) -> None:
+        """Verwirft eine aktive Höhen-Vorschau und zeigt wieder den Modellzustand."""
+        if self._height_preview is None:
+            return
+        self._height_preview = None
+        self._refresh_image()
+
+    @_requires_image
+    def apply_height_op(
+        self,
+        op: Callable[[HeightField], HeightField],
+        *,
+        desc: str | None = None,
+        status: str | None = None,
+    ) -> None:
+        """Wendet *op* undo-fähig auf die aktive HEIGHT-Ebene an (Commit der Vorschau).
+
+        Berechnet das Ergebnis aus dem **aktuellen** Ebenenzustand (deterministisch
+        identisch zur Vorschau) und schreibt es wie eine normale Bearbeitung
+        zurück. ``desc``/``status`` erlauben der UI (#349) operationsspezifische
+        Texte; ohne Angabe greifen generische Höhen-Optimierungs-Meldungen.
+        """
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, _mask = ctx
+        self._height_preview = None
+        self._run_height_edit(
+            op(field),
+            desc if desc is not None else tr("history.desc.height_optimized"),
+            status if status is not None else tr("canvas.height_optimized"))
 
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""
