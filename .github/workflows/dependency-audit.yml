@@ -8,14 +8,10 @@ name: Dependency Audit
 # Keine dieser Ebenen meldet jedoch eine NEU veroeffentlichte CVE gegen eine
 # bereits gepinnte Version – genau diese Luecke schliesst dieser Job.
 on:
-  # PR-Gate: schlaegt an, sobald eine Aenderung die gepinnten Abhaengigkeiten
-  # (oder diesen Workflow) beruehrt – verhindert das Einschleusen einer
-  # verwundbaren Version ueber eine constraints-Bearbeitung.
-  pull_request:
-    paths:
-      - 'requirements/constraints.txt'
-      - 'pyproject.toml'
-      - '.github/workflows/dependency-audit.yml'
+  # PR-Gate: laeuft fuer jeden Pull Request. Branch Protection erwartet diesen
+  # Check auch bei Docs-only-Aenderungen; ein paths-Filter wuerde den Workflow
+  # dann gar nicht starten und den PR dauerhaft auf "Expected" lassen.
+  pull_request: {}
   # Frische-Gate: Eine CVE kann ohne jede Dateiaenderung auftauchen. Der
   # woechentliche Lauf (Mo 05:00 UTC) prueft den unveraenderten Snapshot daher
   # eigenstaendig. Bewusst versetzt zu ci.yml (So 06:00) und Codex (Mo 04:23).

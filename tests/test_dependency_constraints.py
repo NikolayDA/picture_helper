@@ -191,3 +191,22 @@ def test_constraints_pin_patched_idna() -> None:
     spec = reqs["idna"].specifier
     assert Version("3.15") in spec
     assert Version("3.11") not in spec  # die im System vorgefundene Altversion
+
+
+def test_dependency_audit_pr_trigger_is_not_path_filtered() -> None:
+    """Required PR check must start even for docs-only changes.
+
+    GitHub leaves required checks in an "Expected" state when a workflow is
+    skipped by a pull_request paths filter, so the dependency audit deliberately
+    runs for every PR.
+    """
+    workflow = (ROOT / ".github/workflows/dependency-audit.yml").read_text(
+        encoding="utf-8"
+    )
+    trigger_block = workflow.split("on:", 1)[1].split("permissions:", 1)[0]
+    pull_request_block = trigger_block.split("pull_request:", 1)[1].split(
+        "schedule:", 1
+    )[0]
+
+    assert "paths:" not in pull_request_block
+    assert "paths-ignore:" not in pull_request_block

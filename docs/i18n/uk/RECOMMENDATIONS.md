@@ -54,41 +54,32 @@
   Наслідкові знахідки щодо надійності/пам'яті виправлено й закрито в **#285**
   (PR #289).
 
-## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-21)
+## Відкриті GitHub-Issues — Стан Triage (2026-06-21)
 
-As of 2026-06-21, only **4** roadmap/follow-up issues remain open after
-reviewing yesterday's and today's PRs. Merge commits **#337**, **#338**, and
-**#340** cleanly complete the items that were still open yesterday: **#326**,
-**#329–#335**, **#323**, and **#324**. The GIF load path is regression-tested,
-the project/layer epic is implemented end-to-end from the domain model through
-UI/integration, and the security-scan tests cover severity filtering, empty
-findings, and prompt scope. The remaining open items are **#322**
-(maintenance/skip path for the scheduled Codex Security Scan), **#318**
-(permission-guard semantics), **#245** (externally blocked quota), and **#299**
-(test hygiene).
+Станом на 2026-06-21 GitHub ще показує **5** відкритих issues: **#245**,
+**#299**, **#318**, **#322** і **#339**. Раніше перелічені issues щодо
+проєкту/шарів і security-тестів, **#323**, **#324**, **#326** та **#329–#335**,
+завершені в merge commits **#337**, **#338** і **#340**. Для **#322** тепер також
+є **#342**; issue слід прокоментувати й закрити після перевірки merge.
 
-| # | Title | Relevance | Complexity | Recommendation |
-|---|-------|-----------|------------|----------------|
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **Next repo-side step for #245** — choose manual switch, visible auto graceful-skip, or both; gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege and add a static test |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first document GitHub's startup-validation semantics (top-level vs. effective-per-job); no observed repo failure right now, and OIDC guard #303 must not be weakened |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Externally blocked** — restore quota account-side; #323/#324 are complete repo-side, #322 remains open as maintenance/skip hardening |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; improve opportunistically when related tests are touched (highest value: endpoint move, consolidate `set_brush_size`) |
+| # | Назва | Рекомендація labels/status | Пропозиція коментаря/status |
+|---|-------|----------------------------|-----------------------------|
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з "Quota exceeded" | `security`; **залишити відкритим / blocked external** | Додати коментар, що repo-side hardening покрито #323/#324 і #322/#342; залишився блокер OpenAI/billing quota. Після відновлення quota один раз вручну запустити scheduled scan і закрити. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: слабкі assertions/надлишковість | `quality`, `testing`; **open / low priority** | Додати коментар, що це не product/CI blocker; виконувати як opportunistic cleanup, коли зачіпаються відповідні tests. Status не змінювати. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: врахувати job-level permission overrides у reusable WF | `enhancement`, `testing`; **needs refinement** | Додати коментар, що перед змінами треба задокументувати GitHub semantics для top-level vs. job-level permissions у called workflow; не послаблювати OIDC guard #303. |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: maintenance/skip path для scheduled Codex Security Scan | `security`; **закрити після #342** | Додати коментар, що #342 реалізує conservative manual switch (`CODEX_SECURITY_SCAN_ENABLED=false`) зі skip output і regression tests; закрити після verified merge. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF не підтримується як input format | **Додати labels:** `enhancement`, `documentation` (або `question`, якщо є); **needs decision** | Додати коментар про потребу product decision: явно задокументувати, що HEIC не підтримується, або спланувати optional `pillow-heif`/`HEIF` allowlist і load test. Тримати відкритим до рішення. |
 
-### Issues, які можна обʼєднати
+### Рекомендовані дії для issues
 
-- **#322** can be implemented as a standalone CI-hardening PR and complements
-  the already completed #323/#324.
-- **#318** stays separate because GitHub's semantics must be documented before
-  changing code.
-- **#299** should only ride along when an affected test is already being edited.
-
-### Рекомендований порядок PR
-
-1. **#322** — final repo-side #245 follow-up with direct operational value.
-2. **#318** — refine the permission guard once semantics are documented, without
-   weakening the OIDC regression case.
-3. **#245** — restore quota account-side (externally blocked).
-4. **#299** — test hygiene as needed.
+1. Прокоментувати й закрити **#322**, коли merge #342 у `main` буде перевірено.
+2. Додати labels до **#339** і ухвалити явне product decision (documentation
+   clarification vs. HEIC feature).
+3. Залишити **#245** відкритим, але позначити як externally blocked; додати
+   посилання на #322/#342 як завершену repo-side частину.
+4. Не реалізовувати **#318** одразу; спершу задокументувати GitHub permission
+   semantics.
+5. Залишити **#299** як low-priority test cleanup.
 
 ## Попередні Раунди
 
