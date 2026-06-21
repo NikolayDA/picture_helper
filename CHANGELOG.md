@@ -11,6 +11,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Höhen-Repräsentation & 2D-Visualisierung (Fundament Height-Map).** Neues
+  Qt-freies, strikt getyptes Modul `bgremover/height_map.py`: verlustfreie
+  Konvertierung Höhe ↔ Graustufen-Array (`HeightField`, Konvention
+  `R==G==B==Höhe`, `A==Deckung`), Normalisierung beliebiger Werte auf den
+  Höhenbereich sowie Canvas-Größen-Validierung – intern als `uint16` geführt und
+  damit 16-Bit-erweiterbar (`max_value`). Der Canvas zeigt eine **aktive
+  HEIGHT-Ebene** jetzt graustufig an; das COLOR-Komposit bleibt unverändert
+  (Parität) (#345, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des

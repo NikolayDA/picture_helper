@@ -11,6 +11,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Représentation de hauteur et visualisation 2D (fondation height-map).**
+  Nouveau module sans Qt et strictement typé `bgremover/height_map.py` :
+  conversion sans perte hauteur ↔ tableau en niveaux de gris (`HeightField`,
+  convention `R==G==B==hauteur`, `A==couverture`), normalisation de valeurs
+  arbitraires sur la plage de hauteur et validation de la taille du canevas,
+  stocké en interne en `uint16` et donc extensible à 16 bits (`max_value`). Le
+  canevas affiche désormais un **calque HEIGHT actif** en niveaux de gris ; le
+  composite couleur reste inchangé (parité) (#345, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

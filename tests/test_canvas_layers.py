@@ -302,3 +302,65 @@ def test_single_color_layer_matches_plain_image(qapp) -> None:
     rendered = canvas._render_image()
     assert rendered is not None
     assert np.array_equal(np.array(rendered), arr)   # bitgenau, inkl. RGB unter Alpha
+
+
+# ── HEIGHT-Ebene: graustufige 2D-Visualisierung (#345) ───────────────────
+
+
+def _height_layer_arr(height: int) -> np.ndarray:
+    """RGBA-Array einer HEIGHT-Ebene: Höhe nur im Rotkanal (G/B bewusst 0)."""
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, 0] = height          # Höhe = Rotkanal
+    arr[:, :, 3] = 255
+    return arr
+
+
+def test_active_height_layer_renders_as_grayscale(qapp) -> None:
+    """Eine aktive HEIGHT-Ebene wird graustufig dargestellt (R==G==B==Höhe)."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    project.create_layer(_solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
+    project.create_layer(
+        Image.fromarray(_height_layer_arr(120), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT)
+    canvas.set_project(project)        # HEIGHT zuletzt erzeugt ⇒ aktiv
+
+    rendered = np.array(canvas._render_image())
+    assert np.all(rendered[:, :, 0] == 120)
+    assert np.all(rendered[:, :, 1] == 120)   # grau: G == Höhe
+    assert np.all(rendered[:, :, 2] == 120)   # grau: B == Höhe
+    assert np.all(rendered[:, :, 3] == 255)
+
+
+def test_color_composite_unchanged_when_color_layer_active(qapp) -> None:
+    """Mit aktiver COLOR-Ebene bleibt das Komposit unberührt – HEIGHT leckt nicht."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    color_id = project.create_layer(
+        _solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR).id
+    project.create_layer(
+        Image.fromarray(_height_layer_arr(120), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT)
+    project.set_active(color_id)
+    canvas.set_project(project)
+
+    arr = np.array(canvas._render_image())
+    assert tuple(arr[0, 0]) == (200, 0, 0, 255)   # nur COLOR sichtbar
+
+
+def test_switching_active_layer_toggles_height_view(qapp) -> None:
+    """Auswahl einer HEIGHT-Ebene schaltet in die Höhensicht und zurück."""
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    color_id = project.create_layer(
+        _solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR).id
+    height_id = project.create_layer(
+        Image.fromarray(_height_layer_arr(90), "RGBA"),
+        name="H", kind=LayerKind.HEIGHT).id
+    canvas.set_project(project)
+
+    canvas.set_active_layer(height_id)
+    assert np.all(np.array(canvas._render_image())[:, :, :3] == 90)   # Höhensicht
+
+    canvas.set_active_layer(color_id)
+    assert tuple(np.array(canvas._render_image())[0, 0]) == (200, 0, 0, 255)

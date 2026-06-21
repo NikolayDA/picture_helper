@@ -10,6 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Height representation & 2D visualization (height-map foundation).** New
+  Qt-free, strictly typed `bgremover/height_map.py` module: lossless conversion
+  height ↔ grayscale array (`HeightField`, convention `R==G==B==height`,
+  `A==coverage`), normalization of arbitrary values onto the height range and
+  canvas-size validation – stored internally as `uint16` and thus
+  16-bit-extensible (`max_value`). The canvas now displays an **active HEIGHT
+  layer** in grayscale; the color composite stays unchanged (parity)
+  (#345, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

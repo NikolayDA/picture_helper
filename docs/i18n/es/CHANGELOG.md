@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Representación de altura y visualización 2D (base del mapa de altura).**
+  Nuevo módulo sin Qt y con tipado estricto `bgremover/height_map.py`:
+  conversión sin pérdidas altura ↔ array en escala de grises (`HeightField`,
+  convención `R==G==B==altura`, `A==cobertura`), normalización de valores
+  arbitrarios al rango de altura y validación del tamaño del lienzo,
+  almacenado internamente como `uint16` y por tanto ampliable a 16 bits
+  (`max_value`). El lienzo ahora muestra una **capa HEIGHT activa** en escala
+  de grises; el composite de color permanece sin cambios (paridad)
+  (#345, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)

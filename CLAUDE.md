@@ -35,7 +35,14 @@ Ein Paket, `bgremover/`:
   Werkzeuge wirken auf die **aktive Ebene** (`self._pil`/`_arr` sind deren Cache),
   größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
   Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
-  zum bisherigen Einzelbild-Editor (#332).
+  zum bisherigen Einzelbild-Editor (#332). Ist die **aktive** Ebene eine
+  HEIGHT-Ebene, zeigt der Canvas sie graustufig über `height_map.layer_to_gray_image`
+  statt des COLOR-Komposits (#345).
+- **Höhenkarten:** `height_map.py` — Qt-freie, strikt getypte Höhen-Repräsentation
+  (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
+  Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
+  Normalisierung beliebiger Werte auf den Höhenbereich und Canvas-Größen-Validierung;
+  als `uint16` geführt und damit 16-Bit-erweiterbar (`max_value`).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

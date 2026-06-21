@@ -47,6 +47,7 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
+from bgremover.height_map import layer_to_gray_image
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
@@ -394,6 +395,13 @@ class ImageCanvas(QGraphicsView):
     def _render_image(self) -> Image.Image | None:
         """Das anzuzeigende/zu speichernde Bild: Komposit der sichtbaren Ebenen.
 
+        Höhen-Sicht (#345): Ist die **aktive** Ebene eine HEIGHT-Ebene, wird sie
+        graustufig dargestellt (``layer_to_gray_image``) statt des COLOR-Komposits
+        – die Höhenkarte ist sonst unsichtbar, weil ``composite_color`` nur
+        COLOR-Ebenen rendert. Da stets genau eine Ebene aktiv ist, wechselt die
+        Anzeige nur in die Höhensicht, wenn der Nutzer eine HEIGHT-Ebene auswählt;
+        bei aktiver COLOR-Ebene bleibt das Komposit unverändert (Parität).
+
         Schnellpfad für die Single-Layer-Welt: genau eine sichtbare, voll
         deckende COLOR-Ebene wird **direkt** (ohne Alpha-Komposit) zurückgegeben.
         So bleiben RGB-Werte unter transparenten Pixeln erhalten – ``alpha_composite``
@@ -401,6 +409,9 @@ class ImageCanvas(QGraphicsView):
         """
         if self._project is None:
             return None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.HEIGHT:
+            return layer_to_gray_image(active.image)
         layers = self._project.layers
         if (
             len(layers) == 1
