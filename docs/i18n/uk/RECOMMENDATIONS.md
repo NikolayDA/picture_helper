@@ -54,55 +54,41 @@
   Наслідкові знахідки щодо надійності/пам'яті виправлено й закрито в **#285**
   (PR #289).
 
-## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-20)
+## Відкриті GitHub-Issues — Оцінка Пріоритетів (2026-06-21)
 
-Станом на 2026-06-20 відкритими лишаються **14** issues. Від оцінки 2026-06-19
-**#311** (тіло релізу) закрито. Нові надходження — епік **#329** (модель даних
-проєкту/шарів — фундамент для height map, gloss і експорту EufyMake) з його
-шістьма під-issues **#330–#335**, плюс знахідка тестового покриття **#326** (GIF
-оголошено вхідним форматом, але не протестовано). Епік шарів — пріоритет №1 у
-дорожній карті: **#330** (Qt-вільна доменна модель) — наріжний камінь без
-залежностей, здійсненний одразу, тоді як решта під-issues заблоковані вздовж
-ланцюга залежностей (#330 → #331 → #332/#333 → #334 → #335). Ще відкриті з
-попереднього раунду: **#318** (permission-guard), **#245** (CI-quota,
-заблоковано зовні), три наслідки зміцнення **#245** — **#322–#324** — і
-низькопріоритетна гігієна тестів **#299**. Усі відкриті issues перевірено
-повторно проти поточного коду.
+As of 2026-06-21, only **4** roadmap/follow-up issues remain open after
+reviewing yesterday's and today's PRs. Merge commits **#337**, **#338**, and
+**#340** cleanly complete the items that were still open yesterday: **#326**,
+**#329–#335**, **#323**, and **#324**. The GIF load path is regression-tested,
+the project/layer epic is implemented end-to-end from the domain model through
+UI/integration, and the security-scan tests cover severity filtering, empty
+findings, and prompt scope. The remaining open items are **#322**
+(maintenance/skip path for the scheduled Codex Security Scan), **#318**
+(permission-guard semantics), **#245** (externally blocked quota), and **#299**
+(test hygiene).
 
-| # | Назва | Релевантність | Складність | Рекомендація |
-|---|-------|---------------|------------|--------------|
-| [#329](https://github.com/NikolayDA/picture_helper/issues/329) | [Епік] Модель даних проєкту/шарів (фундамент для height map/gloss/EufyMake) | 🟠 Висока | 🟠 Висока | **Епік / трекінг** — пріоритет №1 у дорожній карті; працювати через шість під-issues, без власного PR |
-| [#330](https://github.com/NikolayDA/picture_helper/issues/330) | Доменна модель `Project` + `Layer` (Qt-вільна) | 🟠 Висока | 🟡 Середня | **Готово до PR** — наріжний камінь без залежностей; Qt-вільна, строго типізована, compositing/ролі, `tests/test_project_model.py`. Стартова точка епіку |
-| [#331](https://github.com/NikolayDA/picture_helper/issues/331) | Загальнопроєктний undo/redo (історія з урахуванням шарів) | 🟠 Висока | 🟠 Висока | **Заблоковано #330** — історія з урахуванням шарів, тестована ізольовано до прив'язки до canvas |
-| [#332](https://github.com/NikolayDA/picture_helper/issues/332) | Canvas: композитний рендеринг + активний шар | 🟠 Висока | 🟠 Висока | **Заблоковано #330/#331** — найбільший шматок; перемикання поведінки на основу шарів, паритет одного шару |
-| [#333](https://github.com/NikolayDA/picture_helper/issues/333) | Формат файлу проєкту: збереження/завантаження (версійований, атомарний, валідований) | 🟠 Висока | 🟠 Висока | **Заблоковано #330** (паралельно до #332) — ZIP-контейнер `.bgrproj`, атомарний/валідований/версійований |
-| [#334](https://github.com/NikolayDA/picture_helper/issues/334) | UI: панель шарів + меню проєкту + i18n | 🟠 Висока | 🟠 Висока | **Заблоковано #330/#332/#333** — панель + дії меню, паритет i18n de/en |
-| [#335](https://github.com/NikolayDA/picture_helper/issues/335) | Міграція та інтеграція (image→project, recent, settings, export) | 🟠 Висока | 🟡 Середня | **Заблоковано #330/#332/#333/#334** — завершальний issue епіку; без регресій у наявних потоках |
-| [#326](https://github.com/NikolayDA/picture_helper/issues/326) | Tests: вхідний формат GIF оголошено, але не протестовано | 🟡 Середня | 🟢 Низька | **Готово до PR, здійсненно одразу** — тест завантаження через `ImageLoadWorker` покриває gate `_ALLOWED_IMAGE_FORMATS` для GIF; без save/export |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: враховувати перевизначення дозволів на рівні job у reusable-WF | 🟡 Середня | 🟡 Середня | **Потребує доопрацювання** — спершу підтвердити семантику startup-валідації GitHub (top-level проти effective-per-job); наразі суто теоретичне хибне спрацювання (жодних перевизначень на рівні job у `ci.yml`), і OIDC-guard #303 не повинен послабшати |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: додати шлях обслуговування/skip для запланованого Codex Security Scan | 🟡 Середня | 🟡 Середня | **Наслідок #245** — рішення про обсяг: ручний перемикач проти видимого auto-graceful-skip (проти обох); gate у job `cadence`, «disabled → skipped, не failed», зберегти least privilege (без `issues: write` у job скану), статичний тест |
-| [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: покрити security-issue-sync для фільтра severity і порожніх findings | 🟢 Низька | 🟢 Низька | **Наслідок #245, здійсненно одразу** — регресійні тести для `reportable: false`, порогу severity і «No reportable findings»; без мережі через `--dry-run`/прямі виклики |
-| [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: doc-governance тест для prompt Codex-скану проти обсягу repo | 🟢 Низька | 🟢 Низька | **Наслідок #245, здійсненно одразу** — статичний тест, що prompt досі називає поточні top-level security-поверхні; доповнює наявні prompt-assertions |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Гігієна тестів: слабкі assert-и/надмірності | 🟢 Низька | 🟢 Низька | Не помилка коректності; найкорисніше спершу (зсув endpoint, консолідація `set_brush_size`), решта за потреби |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з «Quota exceeded» | 🟡 Середня | 🟢 Низька | **Заблоковано (зовнішнє):** відновити quota на боці акаунта. Зміцнення на боці repo відстежують у **#322–#324**; graceful skip — це варіант B із #322 |
+| # | Title | Relevance | Complexity | Recommendation |
+|---|-------|-----------|------------|----------------|
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **Next repo-side step for #245** — choose manual switch, visible auto graceful-skip, or both; gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege and add a static test |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first document GitHub's startup-validation semantics (top-level vs. effective-per-job); no observed repo failure right now, and OIDC guard #303 must not be weakened |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Externally blocked** — restore quota account-side; #323/#324 are complete repo-side, #322 remains open as maintenance/skip hardening |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; improve opportunistically when related tests are touched (highest value: endpoint move, consolidate `set_brush_size`) |
 
-### Issues, які Можна Об'єднати
+### Issues, які можна обʼєднати
 
-- Епік шарів **#329** проходять через його під-issues у приписаному порядку; **#332** і **#333** можна паралелізувати після #330.
-- **#323/#324** (обидва наслідки #245, статичні тести security-скану без мережі) можна об'єднати в один PR.
-- **#318** лишається окремо — спершу потрібна задокументована семантика GitHub, перш ніж торкатися `_required_permissions`.
-- **#299** — опортуністична гігієна тестів і має йти разом лише тоді, коли вже зачеплено відповідний тест.
+- **#322** can be implemented as a standalone CI-hardening PR and complements
+  the already completed #323/#324.
+- **#318** stays separate because GitHub's semantics must be documented before
+  changing code.
+- **#299** should only ride along when an affected test is already being edited.
 
-### Рекомендований Порядок PR
+### Рекомендований порядок PR
 
-1. **#330** — наріжний камінь епіку шарів без залежностей; розблоковує #331/#332/#333.
-2. **#326** — швидкий, добре окреслений виграш (тест завантаження GIF), що закриває прогалину покриття.
-3. **#323 / #324** — зміцнення security-скану без мережі, здійсненно будь-коли.
-4. **#331 → #332 / #333 → #334 → #335** — епік шарів уздовж його ланцюга залежностей.
-5. **#322** — шлях обслуговування/skip після свідомого рішення auto/manual (наслідок #245).
-6. **#318** — доопрацювати permission-guard, щойно семантику GitHub буде задокументовано, не послаблюючи OIDC-регресійний кейс.
-7. **#245** — відновити quota на боці акаунта (заблоковано зовні).
-8. **#299** — гігієна тестів за потреби.
+1. **#322** — final repo-side #245 follow-up with direct operational value.
+2. **#318** — refine the permission guard once semantics are documented, without
+   weakening the OIDC regression case.
+3. **#245** — restore quota account-side (externally blocked).
+4. **#299** — test hygiene as needed.
 
 ## Попередні Раунди
 

@@ -53,55 +53,41 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Priority Assessment (2026-06-20)
+## Open GitHub Issues — Priority Assessment (2026-06-21)
 
-As of 2026-06-20, **14** issues are open. Since the 2026-06-19 assessment,
-**#311** (release body) was closed. New arrivals are the epic **#329**
-(project/layer data model — foundation for height map, gloss & EufyMake export)
-with its six sub-issues **#330–#335**, plus the test-coverage finding **#326**
-(GIF declared as an input format but untested). The layers epic is the
-prioritized roadmap rank #1: **#330** (Qt-free domain model) is the
-dependency-free keystone and doable right away, while the remaining sub-issues
-are blocked along the dependency chain
-(#330 → #331 → #332/#333 → #334 → #335). Still open from the previous round:
-**#318** (permission guard), **#245** (CI quota, externally blocked), the three
-**#245** hardening follow-ups **#322–#324**, and the low-priority test hygiene
-item **#299**. All open issues were re-verified against the current code.
+As of 2026-06-21, only **4** roadmap/follow-up issues remain open after
+reviewing yesterday's and today's PRs. Merge commits **#337**, **#338**, and
+**#340** cleanly complete the items that were still open yesterday: **#326**,
+**#329–#335**, **#323**, and **#324**. The GIF load path is regression-tested,
+the project/layer epic is implemented end-to-end from the domain model through
+UI/integration, and the security-scan tests cover severity filtering, empty
+findings, and prompt scope. The remaining open items are **#322**
+(maintenance/skip path for the scheduled Codex Security Scan), **#318**
+(permission-guard semantics), **#245** (externally blocked quota), and **#299**
+(test hygiene).
 
 | # | Title | Relevance | Complexity | Recommendation |
 |---|-------|-----------|------------|----------------|
-| [#329](https://github.com/NikolayDA/picture_helper/issues/329) | [Epic] Project/layer data model (foundation for height map/gloss/EufyMake) | 🟠 High | 🟠 High | **Epic / tracking** — roadmap rank #1; work through the six sub-issues, not its own PR |
-| [#330](https://github.com/NikolayDA/picture_helper/issues/330) | Domain model `Project` + `Layer` (Qt-free) | 🟠 High | 🟡 Medium | **Ready for PR** — dependency-free keystone; Qt-free, strictly typed, compositing/roles, `tests/test_project_model.py`. Starting point of the epic |
-| [#331](https://github.com/NikolayDA/picture_helper/issues/331) | Project-wide undo/redo (layer-aware history) | 🟠 High | 🟠 High | **Blocked by #330** — layer-aware history, testable in isolation before canvas wiring |
-| [#332](https://github.com/NikolayDA/picture_helper/issues/332) | Canvas: composite rendering + active layer | 🟠 High | 🟠 High | **Blocked by #330/#331** — largest chunk; behavior switch to layer-based, single-layer parity |
-| [#333](https://github.com/NikolayDA/picture_helper/issues/333) | Project file format: save/load (versioned, atomic, validated) | 🟠 High | 🟠 High | **Blocked by #330** (parallel to #332) — `.bgrproj` ZIP container, atomic/validated/versioned |
-| [#334](https://github.com/NikolayDA/picture_helper/issues/334) | UI: layers panel + project menu + i18n | 🟠 High | 🟠 High | **Blocked by #330/#332/#333** — panel + menu actions, i18n de/en parity |
-| [#335](https://github.com/NikolayDA/picture_helper/issues/335) | Migration & integration (image→project, recent, settings, export) | 🟠 High | 🟡 Medium | **Blocked by #330/#332/#333/#334** — closing issue of the epic; no regressions in existing flows |
-| [#326](https://github.com/NikolayDA/picture_helper/issues/326) | Tests: GIF input format is declared but untested | 🟡 Medium | 🟢 Low | **Ready for PR, doable now** — a load test via `ImageLoadWorker` covers the `_ALLOWED_IMAGE_FORMATS` gate for GIF; no save/export |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first confirm GitHub's startup-validation semantics (top-level vs. effective-per-job); currently a purely theoretical false positive (no job-level overrides in `ci.yml`), and the OIDC guard #303 must not get weaker |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **#245 follow-up** — scope decision manual switch vs. visible auto-graceful-skip (vs. both); gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege (no `issues: write` in the scan job), static test |
-| [#323](https://github.com/NikolayDA/picture_helper/issues/323) | Tests: cover the security-issue sync for severity filter and empty findings | 🟢 Low | 🟢 Low | **#245 follow-up, doable now** — regression tests for `reportable: false`, the severity threshold, and "No reportable findings"; network-free via `--dry-run`/direct calls |
-| [#324](https://github.com/NikolayDA/picture_helper/issues/324) | Security: doc-governance test for the Codex scan prompt vs. repo scope | 🟢 Low | 🟢 Low | **#245 follow-up, doable now** — static test that the prompt still names the current top-level security surfaces; complements the existing prompt assertions |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; highest value first (endpoint move, consolidate `set_brush_size`), the rest as needed |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external):** restore quota account-side. Repo-side hardening is tracked in **#322–#324**; the graceful skip is #322 variant B |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **Next repo-side step for #245** — choose manual switch, visible auto graceful-skip, or both; gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege and add a static test |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first document GitHub's startup-validation semantics (top-level vs. effective-per-job); no observed repo failure right now, and OIDC guard #303 must not be weakened |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Externally blocked** — restore quota account-side; #323/#324 are complete repo-side, #322 remains open as maintenance/skip hardening |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; improve opportunistically when related tests are touched (highest value: endpoint move, consolidate `set_brush_size`) |
 
 ### Bundleable Issues
 
-- The layers epic **#329** is worked through via its sub-issues in the prescribed order; **#332** and **#333** can be parallelized after #330.
-- **#323/#324** (both #245 follow-ups, network-free static security-scan tests) can be bundled into one PR.
-- **#318** stays separate — it first needs documented GitHub semantics before `_required_permissions` is touched.
-- **#299** is opportunistic test hygiene and should only ride along when an already-touched test is affected.
+- **#322** can be implemented as a standalone CI-hardening PR and complements
+  the already completed #323/#324.
+- **#318** stays separate because GitHub's semantics must be documented before
+  changing code.
+- **#299** should only ride along when an affected test is already being edited.
 
 ### Recommended PR Order
 
-1. **#330** — the dependency-free keystone of the layers epic; unblocks #331/#332/#333.
-2. **#326** — quick, well-scoped win (GIF load test) that closes a coverage gap.
-3. **#323 / #324** — network-free security-scan hardening, doable anytime.
-4. **#331 → #332 / #333 → #334 → #335** — the layers epic along its dependency chain.
-5. **#322** — maintenance/skip path after a deliberate auto/manual decision (#245 follow-up).
-6. **#318** — refine the permission guard once GitHub's semantics are documented, without weakening the OIDC regression case.
-7. **#245** — restore quota account-side (externally blocked).
-8. **#299** — test hygiene as needed.
+1. **#322** — final repo-side #245 follow-up with direct operational value.
+2. **#318** — refine the permission guard once semantics are documented, without
+   weakening the OIDC regression case.
+3. **#245** — restore quota account-side (externally blocked).
+4. **#299** — test hygiene as needed.
 
 ## Previous Rounds
 
