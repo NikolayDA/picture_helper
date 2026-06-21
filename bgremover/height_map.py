@@ -228,6 +228,79 @@ def normalize_to_height(
     return np.rint(scaled).astype(np.uint16)
 
 
+# ── Editier-Operationen auf Höhenfeldern (#347) ──────────────────────────
+# Reine, auswahlbewusste Höhenbearbeitung: alle Operationen geben ein **neues**
+# Höhenfeld zurück (Eingabe bleibt unangetastet), klemmen auf ``0..max_value``
+# und lassen die Deckung unverändert. Eine optionale boolesche ``mask`` (Form
+# wie das Höhenfeld) begrenzt die Wirkung auf ihre True-Pixel; ``None`` wirkt
+# global. So lassen sich die vorhandene Auswahl und ``project_history`` aus dem
+# Canvas direkt wiederverwenden.
+
+
+def _validate_mask(mask: np.ndarray, field: HeightField) -> None:
+    """Stellt sicher, dass ``mask`` boolesch ist und zur Höhenfeld-Form passt."""
+    if mask.shape != field.values.shape:
+        raise HeightMapError(
+            f"Maskenform {mask.shape} passt nicht zum Höhenfeld {field.values.shape}"
+        )
+    if mask.dtype != np.bool_:
+        raise HeightMapError(f"Maske muss boolesch sein, war {mask.dtype}")
+
+
+def adjust_height(
+    field: HeightField, delta: int, *, mask: np.ndarray | None = None
+) -> HeightField:
+    """Hellt auf (``delta > 0``) oder dunkelt ab (``delta < 0``), geklemmt.
+
+    Addiert ``delta`` auf die Höhe und klemmt auf ``0..max_value``; außerhalb der
+    Maske bleiben die Werte unverändert. Die Rechnung läuft über ``int32``, damit
+    Über-/Unterlauf vor dem Klemmen nicht den ``uint16``-Bereich umschlägt.
+    """
+    base = field.values.astype(np.int32)
+    adjusted = np.clip(base + delta, 0, field.max_value)
+    if mask is None:
+        result = adjusted
+    else:
+        _validate_mask(mask, field)
+        result = np.where(mask, adjusted, base)
+    return HeightField(result.astype(np.uint16), field.coverage.copy(), field.max_value)
+
+
+def set_height(
+    field: HeightField, value: int, *, mask: np.ndarray | None = None
+) -> HeightField:
+    """Setzt die Höhe (innerhalb der Maske bzw. global) auf einen Festwert.
+
+    ``value`` muss in ``0..max_value`` liegen, sonst :class:`HeightMapError`.
+    """
+    if not 0 <= value <= field.max_value:
+        raise HeightMapError(f"Höhe {value} außerhalb 0..{field.max_value}")
+    values = field.values.copy()
+    if mask is None:
+        values[...] = value
+    else:
+        _validate_mask(mask, field)
+        values[mask] = value
+    return HeightField(values, field.coverage.copy(), field.max_value)
+
+
+def invert_height(
+    field: HeightField, *, mask: np.ndarray | None = None
+) -> HeightField:
+    """Invertiert die Höhe (``max_value - Höhe``), global oder auf die Maske.
+
+    Verlustfrei: zweimaliges Invertieren desselben Bereichs liefert exakt das
+    Ausgangsfeld zurück.
+    """
+    inverted = (field.max_value - field.values.astype(np.int32)).astype(np.uint16)
+    if mask is None:
+        values = inverted
+    else:
+        _validate_mask(mask, field)
+        values = np.where(mask, inverted, field.values).astype(np.uint16)
+    return HeightField(values, field.coverage.copy(), field.max_value)
+
+
 def validate_canvas_size(field: HeightField, size: tuple[int, int]) -> None:
     """Prüft die Canvas-Größen-Invariante einer HEIGHT-Ebene.
 

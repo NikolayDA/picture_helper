@@ -29,6 +29,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   niveaux de gris validé via `open_validated_image` (protection
   format/taille de fichier/mégapixels, message d'erreur clair et traduit) et
   le met à l'échelle de la taille du canevas (#346, #344).
+- **Éditeur de carte de hauteur (éclaircir/assombrir/définir/inverser).**
+  `bgremover/height_map.py` gagne des opérations de hauteur sans perte et
+  conscientes de la sélection (`adjust_height`, `set_height`, `invert_height` ;
+  bornées, entrée préservée). Le canevas les câble au **calque HEIGHT actif**
+  (`lighten_/darken_/set_/invert_active_height`) : elles respectent une
+  sélection existante (sinon globales), sont annulables/rétablissables et ne
+  font délibérément rien sur les calques COLOR (aucune régression dans
+  l'édition couleur). Réutilisation maximale des chemins
+  pinceau/sélection/historique existants (#347, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

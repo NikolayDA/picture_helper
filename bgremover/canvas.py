@@ -39,6 +39,7 @@ from bgremover.canvas_transform import CanvasTransform
 from bgremover.canvas_viewport import CanvasViewport
 from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
+    _DEFAULT_HEIGHT_STEP,
     _DEFAULT_TOLERANCE,
     TOOL_BRUSH,
     TOOL_ERASER,
@@ -50,9 +51,14 @@ from bgremover.crop import CropOverlayItem
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
     LUMA_WEIGHTS_REC601,
+    HeightField,
+    adjust_height,
     generate_from_image,
     height_to_layer,
+    invert_height,
     layer_to_gray_image,
+    layer_to_height,
+    set_height,
 )
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
@@ -774,6 +780,72 @@ class ImageCanvas(QGraphicsView):
         self._add_height_layer(
             height_to_layer(field), tr("history.desc.height_imported"))
         self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
+
+    # ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ─────
+    def _height_edit_context(self) -> tuple[HeightField, np.ndarray | None] | None:
+        """Liefert (Höhenfeld der aktiven HEIGHT-Ebene, Auswahlmaske|None).
+
+        Gibt ``None`` zurück und meldet, wenn die aktive Ebene keine HEIGHT-Ebene
+        ist – so wirken die Höhenwerkzeuge ausschließlich auf Höhenebenen und das
+        COLOR-Editing bleibt unangetastet. Die Maske ist die **vorhandene**
+        Auswahl (begrenzt die Wirkung), sonst ``None`` (global).
+        """
+        assert self._project is not None
+        active = self._project.active_layer()
+        if active is None or active.kind is not LayerKind.HEIGHT:
+            self.statusMsg.emit(tr("canvas.not_height_layer"))
+            return None
+        mask = self._selection.mask if self._selection.has_selection else None
+        return layer_to_height(active.image), mask
+
+    def _run_height_edit(self, new_field: HeightField, desc: str, status: str) -> None:
+        """Schreibt ein bearbeitetes Höhenfeld undo-fähig in die aktive Ebene."""
+        self._apply_pil(height_to_layer(new_field), desc=desc)
+        self.statusMsg.emit(status)
+
+    @_requires_image
+    def lighten_active_height(self, amount: int = _DEFAULT_HEIGHT_STEP) -> None:
+        """Hellt die aktive HEIGHT-Ebene auf (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            adjust_height(field, amount, mask=mask),
+            tr("history.desc.height_lighten"), tr("canvas.height_lightened"))
+
+    @_requires_image
+    def darken_active_height(self, amount: int = _DEFAULT_HEIGHT_STEP) -> None:
+        """Dunkelt die aktive HEIGHT-Ebene ab (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            adjust_height(field, -amount, mask=mask),
+            tr("history.desc.height_darken"), tr("canvas.height_darkened"))
+
+    @_requires_image
+    def set_active_height(self, value: int) -> None:
+        """Setzt die aktive HEIGHT-Ebene auf einen Festwert (Auswahl bzw. global)."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            set_height(field, value, mask=mask),
+            tr("history.desc.height_set"), tr("canvas.height_set"))
+
+    @_requires_image
+    def invert_active_height(self) -> None:
+        """Invertiert die aktive HEIGHT-Ebene (Auswahl bzw. global), undo-fähig."""
+        ctx = self._height_edit_context()
+        if ctx is None:
+            return
+        field, mask = ctx
+        self._run_height_edit(
+            invert_height(field, mask=mask),
+            tr("history.desc.height_invert"), tr("canvas.height_inverted"))
 
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""

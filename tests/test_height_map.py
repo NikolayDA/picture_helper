@@ -16,11 +16,14 @@ from bgremover.height_map import (
     LUMA_WEIGHTS_REC601,
     HeightField,
     HeightMapError,
+    adjust_height,
     generate_from_image,
     height_to_layer,
+    invert_height,
     layer_to_gray_image,
     layer_to_height,
     normalize_to_height,
+    set_height,
     validate_canvas_size,
 )
 
@@ -246,6 +249,76 @@ def test_generate_rejects_invalid_params() -> None:
 def test_generate_default_weights_constant_is_rec601() -> None:
     assert LUMA_WEIGHTS_REC601 == (0.299, 0.587, 0.114)
     assert sum(LUMA_WEIGHTS_REC601) == pytest.approx(1.0)
+
+
+# ── Editier-Operationen: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ────
+
+
+def _field(values: list[list[int]], coverage: int = 255) -> HeightField:
+    arr = np.array(values, dtype=np.uint16)
+    cov = np.full(arr.shape, coverage, dtype=np.uint8)
+    return HeightField(arr, cov)
+
+
+def test_adjust_height_lighten_and_clamp() -> None:
+    field = _field([[100, 200]])
+    out = adjust_height(field, 100)
+    assert list(out.values[0]) == [200, 255]   # 300 → geklemmt auf 255
+    assert np.array_equal(out.coverage, field.coverage)
+
+
+def test_adjust_height_darken_and_clamp() -> None:
+    out = adjust_height(_field([[100, 40]]), -80)
+    assert list(out.values[0]) == [20, 0]       # -40 → geklemmt auf 0
+
+
+def test_adjust_height_respects_mask() -> None:
+    field = _field([[100, 100]])
+    mask = np.array([[True, False]])
+    out = adjust_height(field, 50, mask=mask)
+    assert list(out.values[0]) == [150, 100]    # nur maskiertes Pixel verändert
+
+
+def test_set_height_global_and_masked() -> None:
+    assert np.all(set_height(_field([[10, 20]]), 200).values == 200)
+    out = set_height(_field([[10, 20]]), 200, mask=np.array([[False, True]]))
+    assert list(out.values[0]) == [10, 200]
+
+
+def test_set_height_rejects_out_of_range() -> None:
+    with pytest.raises(HeightMapError):
+        set_height(_field([[0]]), 300)
+    with pytest.raises(HeightMapError):
+        set_height(_field([[0]]), -1)
+
+
+def test_invert_height_is_lossless() -> None:
+    field = _field([[0, 64, 200, 255]])
+    once = invert_height(field)
+    assert list(once.values[0]) == [255, 191, 55, 0]
+    twice = invert_height(once)
+    assert np.array_equal(twice.values, field.values)   # verlustfrei
+
+
+def test_invert_height_masked() -> None:
+    out = invert_height(_field([[0, 0]]), mask=np.array([[True, False]]))
+    assert list(out.values[0]) == [255, 0]
+
+
+def test_height_edit_does_not_mutate_input() -> None:
+    field = _field([[100, 100]])
+    adjust_height(field, 50)
+    set_height(field, 0)
+    invert_height(field)
+    assert list(field.values[0]) == [100, 100]   # Eingabe unverändert
+
+
+def test_height_edit_validates_mask_shape_and_dtype() -> None:
+    field = _field([[10, 20]])
+    with pytest.raises(HeightMapError):
+        adjust_height(field, 10, mask=np.array([[True]]))            # Form
+    with pytest.raises(HeightMapError):
+        invert_height(field, mask=np.array([[1, 0]], dtype=np.uint8))  # dtype
 
 
 # ── Canvas-Größen-Validierung ────────────────────────────────────────────

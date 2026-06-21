@@ -22,6 +22,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   `HEIGHT_MAP` 角色：`generate_height_map` 取自活动 COLOR 图层或合成，
   `import_height_map` 通过 `open_validated_image` 校验加载灰度文件（格式/文件
   大小/百万像素防护，清晰的本地化错误消息）并缩放到画布尺寸（#346、#344）。
+- **高度图编辑器（提亮/压暗/设定/反相）。** `bgremover/height_map.py` 新增
+  感知选区、无损的高度操作（`adjust_height`、`set_height`、`invert_height`；
+  带钳制，输入不变）。画布将其接入**活动 HEIGHT 图层**
+  （`lighten_/darken_/set_/invert_active_height`）：它们尊重已有选区（否则全局），
+  可撤销/重做，并对 COLOR 图层刻意不起作用（颜色编辑无回归）。最大程度复用现有的
+  画笔/选区/历史路径（#347、#344）。
 - **无 Qt 的项目/图层数据模型。** 新增严格类型化模块
   `bgremover/project_model.py`，包含 `Project` 与 `Layer`（`LayerKind`
   颜色/高度/光泽/通用，角色在整个项目内唯一），作为图层史诗的基础：有序图层、

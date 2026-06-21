@@ -457,3 +457,80 @@ def test_import_height_map_rejects_invalid_file(qapp, tmp_path) -> None:
     canvas.import_height_map(str(bad))
     assert len(canvas.project.layers) == 1                 # keine Ebene angelegt
     assert msgs                                            # Fehlermeldung emittiert
+
+
+# ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ───────────
+
+
+def _color_plus_height(height_value: int = 100, w: int = 8, h: int = 8) -> Project:
+    """COLOR-Basis + aktive HEIGHT-Ebene mit konstanter Höhe (Höhe = Rotkanal)."""
+    project = Project(w, h)
+    project.create_layer(_solid(w, h, (200, 0, 0, 255)), name="C", kind=LayerKind.COLOR)
+    harr = np.zeros((h, w, 4), dtype=np.uint8)
+    harr[:, :, 0] = height_value
+    harr[:, :, 3] = 255
+    project.create_layer(Image.fromarray(harr, "RGBA"), name="H", kind=LayerKind.HEIGHT)
+    return project
+
+
+def test_height_lighten_only_active_and_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+    color_before = np.array(canvas.project.layers[0].image).copy()
+
+    canvas.lighten_active_height(50)
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert np.all(np.array(active.image)[:, :, :3] == 150)        # grau aufgehellt
+    assert np.array_equal(np.array(canvas.project.layers[0].image), color_before)  # COLOR unberührt
+
+    canvas.undo()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
+
+
+def test_height_darken_and_set(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))
+
+    canvas.darken_active_height(40)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 60)
+
+    canvas.set_active_height(0)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 0)
+
+
+def test_height_invert_global(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(0))
+    canvas.invert_active_height()
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 255)
+
+
+def test_height_edit_respects_selection(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(0))
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[:, :4] = True                          # linke Hälfte auswählen
+    canvas._mask = mask
+
+    canvas.invert_active_height()
+    arr = np.array(canvas.project.active_layer().image)
+    assert np.all(arr[:, :4, 0] == 255)         # Auswahl invertiert
+    assert np.all(arr[:, 4:, 0] == 0)           # außerhalb unverändert
+
+
+def test_height_tools_ignore_color_layer(qapp) -> None:
+    """Höhenwerkzeuge wirken nicht auf COLOR-Ebenen (keine Regression)."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (10, 20, 30, 255)), "x.png")
+    before = np.array(canvas.image).copy()
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.lighten_active_height(50)
+    canvas.invert_active_height()
+    canvas.set_active_height(0)
+
+    assert np.array_equal(np.array(canvas.image), before)        # COLOR unverändert
+    assert len(canvas.project.layers) == 1
+    assert any("höhenebene" in m.lower() for m in msgs)

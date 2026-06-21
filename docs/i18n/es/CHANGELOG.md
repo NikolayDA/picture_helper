@@ -30,6 +30,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `open_validated_image` (protección de formato/tamaño de archivo/megapíxeles,
   mensaje de error claro y traducido) y lo escala al tamaño del lienzo
   (#346, #344).
+- **Editor de mapa de altura (aclarar/oscurecer/fijar/invertir).**
+  `bgremover/height_map.py` incorpora operaciones de altura sin pérdidas y
+  conscientes de la selección (`adjust_height`, `set_height`, `invert_height`;
+  con recorte, sin tocar la entrada). El lienzo las conecta a la **capa HEIGHT
+  activa** (`lighten_/darken_/set_/invert_active_height`): respetan una
+  selección existente (si no, globales), permiten deshacer/rehacer y no hacen
+  nada en capas COLOR a propósito (sin regresión en la edición de color).
+  Máxima reutilización de las rutas de pincel/selección/historial existentes
+  (#347, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)

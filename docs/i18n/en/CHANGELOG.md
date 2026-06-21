@@ -26,6 +26,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   composite, and `import_height_map` loads a grayscale file validated through
   `open_validated_image` (format/file-size/megapixel guard, clear translated
   error message) and scales it to the canvas size (#346, #344).
+- **Height-map editor (lighten/darken/set/invert).**
+  `bgremover/height_map.py` gains selection-aware, lossless height operations
+  (`adjust_height`, `set_height`, `invert_height`; clamped, input left
+  untouched). The canvas wires them to the **active HEIGHT layer**
+  (`lighten_/darken_/set_/invert_active_height`): they respect an existing
+  selection (otherwise global), are undo-/redoable and deliberately do nothing
+  on COLOR layers (no regression in color editing). Maximal reuse of the
+  existing brush/selection/history paths (#347, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

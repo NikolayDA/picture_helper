@@ -47,7 +47,10 @@ Ein Paket, `bgremover/`:
   → Gamma → Invertieren) (#346). Der Canvas verdrahtet das (`generate_height_map` aus
   aktiver COLOR-Ebene/Komposit, `import_height_map` via `open_validated_image` mit
   Skalierung auf Canvas-Größe) als neue, aktive HEIGHT-Ebene mit Rolle `HEIGHT_MAP`,
-  undo-/redobar.
+  undo-/redobar. Höhen-Editor (#347): `adjust_height`/`set_height`/`invert_height`
+  (auswahlbewusst, geklemmt, verlustfrei) – im Canvas als `lighten_/darken_/set_/
+  invert_active_height` an der aktiven HEIGHT-Ebene verdrahtet (Auswahl bzw. global,
+  undo-/redobar; auf COLOR-Ebenen wirkungslos).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

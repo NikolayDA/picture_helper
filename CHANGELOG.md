@@ -27,6 +27,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   COLOR-Ebene bzw. dem Komposit und `import_height_map` lädt eine Graustufendatei
   validiert über `open_validated_image` (Format-/Datei-/Megapixel-Schutz, klare
   übersetzte Fehlermeldung) und skaliert sie auf die Canvas-Größe (#346, #344).
+- **Height-Map-Editor (Aufhellen/Abdunkeln/Setzen/Invertieren).**
+  `bgremover/height_map.py` bekommt auswahlbewusste, verlustfreie Höhen-
+  Operationen (`adjust_height`, `set_height`, `invert_height`; geklemmt, Eingabe
+  unverändert). Der Canvas verdrahtet sie an der **aktiven HEIGHT-Ebene**
+  (`lighten_/darken_/set_/invert_active_height`): sie respektieren eine
+  vorhandene Auswahl (sonst global), sind undo-/redobar und wirken auf
+  COLOR-Ebenen bewusst nicht (keine Regression im Farb-Editing). Maximale
+  Wiederverwendung der vorhandenen Pinsel-/Auswahl-/History-Pfade (#347, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des
