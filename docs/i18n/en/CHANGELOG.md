@@ -17,6 +17,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   (add/remove/reorder/duplicate/rename, visibility/opacity/lock/roles) and an
   alpha composite of the visible color layers — without any Qt, render,
   persistence or history wiring (#330, #329).
+- **Layer-aware, Qt-free undo/redo history.** New, strictly typed
+  `bgremover/project_history.py` module (`ProjectHistory`) lifts undo/redo from a
+  single image to the project model: it covers structural changes (add/remove/
+  reorder/duplicate a layer, active layer, visibility/opacity/lock/role) and
+  per-layer pixel changes. Memory strategy: lightweight structural snapshots plus
+  a deduplicating pixel pool that counts unchanged layers only once across the
+  shared undo/redo budget (the original and current state stay outside the
+  budget); `descriptions()`/`undo_to()`/“restore original” are preserved. Not yet
+  wired into the canvas (#331, #329; follows in #332).
 
 ### Changed
 

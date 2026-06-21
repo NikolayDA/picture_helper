@@ -19,6 +19,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   visibilidad/opacidad/bloqueo/roles) y un composite alfa de las capas de color
   visibles, sin ninguna conexión con Qt, renderizado, persistencia o historial
   (#330, #329).
+- **Historial de deshacer/rehacer con reconocimiento de capas y sin Qt.** Nuevo
+  módulo con tipado estricto `bgremover/project_history.py` (`ProjectHistory`)
+  eleva deshacer/rehacer de una sola imagen al modelo de proyecto: cubre cambios
+  estructurales (añadir/eliminar/reordenar/duplicar una capa, capa activa,
+  visibilidad/opacidad/bloqueo/rol) y cambios de píxeles por capa. Estrategia de
+  memoria: instantáneas estructurales ligeras más un pool de píxeles con
+  deduplicación que cuenta las capas sin cambios una sola vez en el presupuesto
+  compartido de deshacer/rehacer (el original y el estado actual quedan fuera del
+  presupuesto); se conservan `descriptions()`/`undo_to()`/«restaurar original».
+  Aún sin conexión con el lienzo (#331, #329; continúa en #332).
 
 ### Cambiado
 

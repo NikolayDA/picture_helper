@@ -34,7 +34,10 @@ Ein Paket, `bgremover/`:
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
-  Persistenz-/History-Anbindung.
+  Persistenz-/History-Anbindung. `project_history.py` (`ProjectHistory`) ist die
+  ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
+  + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
+  zählen nur einmal) – noch nicht im Canvas verdrahtet (#331, folgt #332).
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch

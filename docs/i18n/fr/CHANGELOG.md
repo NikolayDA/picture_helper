@@ -19,6 +19,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   duplication/renommage, visibilité/opacité/verrouillage/rôles) et un composite
   alpha des calques de couleur visibles — sans aucun couplage Qt, rendu,
   persistance ou historique (#330, #329).
+- **Historique annuler/rétablir conscient des calques et sans Qt.** Nouveau
+  module strictement typé `bgremover/project_history.py` (`ProjectHistory`) fait
+  passer annuler/rétablir d'une image unique au modèle de projet : il couvre les
+  changements structurels (ajout/suppression/réordonnancement/duplication d'un
+  calque, calque actif, visibilité/opacité/verrouillage/rôle) et les
+  modifications de pixels par calque. Stratégie mémoire : des instantanés
+  structurels légers plus un pool de pixels avec déduplication qui ne compte
+  qu'une fois les calques inchangés dans le budget annuler/rétablir partagé
+  (l'original et l'état courant restent hors budget) ;
+  `descriptions()`/`undo_to()`/« restaurer l'original » sont conservés. Pas
+  encore relié au canevas (#331, #329 ; suite dans #332).
 
 ### Modifié
 

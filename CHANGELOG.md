@@ -19,6 +19,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Sichtbarkeit/Opazität/Sperre/Rollen) und ein Alpha-Komposit der sichtbaren
   Farb-Ebenen – ohne Qt-, Render-, Persistenz- oder History-Anbindung
   (#330, #329).
+- **Ebenenbewusste, Qt-freie Undo/Redo-Historie.** Neues, strikt getyptes Modul
+  `bgremover/project_history.py` (`ProjectHistory`) hebt Undo/Redo vom Einzelbild
+  auf das Projektmodell: abgedeckt werden strukturelle Änderungen (Ebene anlegen/
+  löschen/umsortieren/duplizieren, aktive Ebene, Sichtbarkeit/Opazität/Sperre/
+  Rolle) und Pixeländerungen je Ebene. Speicherstrategie: leichte Struktur-
+  Snapshots plus ein deduplizierender Pixelpool, der unveränderte Ebenen über das
+  geteilte Undo-/Redo-Budget nur einmal zählt (Original und aktueller Zustand
+  außerhalb des Budgets); `descriptions()`/`undo_to()`/„Original wiederherstellen"
+  bleiben erhalten. Noch ohne Canvas-Verdrahtung (#331, #329; folgt #332).
 
 ### Geändert
 
