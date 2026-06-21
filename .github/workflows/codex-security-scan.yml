@@ -13,6 +13,11 @@ on:
         type: choice
         options: [low, medium, high, critical]
         default: low
+      run_scan:
+        description: 'Run the scan (set to false for maintenance-only dry skip)'
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
 
 permissions:
   contents: read
@@ -23,6 +28,7 @@ concurrency:
 
 env:
   SCAN_ANCHOR_DATE: '2026-06-08'
+  SECURITY_SCAN_ENABLED: "${{ vars.CODEX_SECURITY_SCAN_ENABLED || 'true' }}"
 
 jobs:
   cadence:
@@ -30,19 +36,36 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.cadence.outputs.should_run }}
+      skip_reason: ${{ steps.cadence.outputs.skip_reason }}
       min_severity: ${{ steps.config.outputs.min_severity }}
     steps:
       - name: Resolve configuration
         id: config
         env:
           INPUT_MIN_SEVERITY: ${{ inputs.min_severity || 'low' }}
-        run: echo "min_severity=${INPUT_MIN_SEVERITY}" >> "$GITHUB_OUTPUT"
+          INPUT_RUN_SCAN: ${{ inputs.run_scan || 'true' }}
+        run: |
+          echo "min_severity=${INPUT_MIN_SEVERITY}" >> "$GITHUB_OUTPUT"
+          echo "run_scan=${INPUT_RUN_SCAN}" >> "$GITHUB_OUTPUT"
 
       - name: Decide whether the scheduled scan should run
         id: cadence
         env:
           EVENT_NAME: ${{ github.event_name }}
+          RUN_SCAN: ${{ steps.config.outputs.run_scan }}
         run: |
+          if [ "$SECURITY_SCAN_ENABLED" != "true" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=Codex Security Scan disabled by CODEX_SECURITY_SCAN_ENABLED repository variable." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$RUN_SCAN" != "true" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=Codex Security Scan disabled by workflow_dispatch run_scan input." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [ "$EVENT_NAME" != "schedule" ]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -53,6 +76,7 @@ jobs:
           days_since_anchor="$(( (now_seconds - anchor_seconds) / 86400 ))"
           if [ "$days_since_anchor" -lt 0 ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=Scheduled scan is before the configured anchor date." >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -60,7 +84,19 @@ jobs:
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=Scheduled scan is outside the 14-day cadence window." >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Summarize skipped scan
+        if: steps.cadence.outputs.should_run != 'true'
+        env:
+          SKIP_REASON: ${{ steps.cadence.outputs.skip_reason }}
+        run: |
+          {
+            echo "## Codex Security Scan skipped"
+            echo
+            echo "$SKIP_REASON"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   scan:
     name: Run Codex scan
