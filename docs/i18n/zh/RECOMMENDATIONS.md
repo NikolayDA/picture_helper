@@ -47,41 +47,30 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 开放的 GitHub Issues — 优先级评估（2026-06-21）
+## 打开的 GitHub Issues — Triage 状态 (2026-06-21)
 
-As of 2026-06-21, only **4** roadmap/follow-up issues remain open after
-reviewing yesterday's and today's PRs. Merge commits **#337**, **#338**, and
-**#340** cleanly complete the items that were still open yesterday: **#326**,
-**#329–#335**, **#323**, and **#324**. The GIF load path is regression-tested,
-the project/layer epic is implemented end-to-end from the domain model through
-UI/integration, and the security-scan tests cover severity filtering, empty
-findings, and prompt scope. The remaining open items are **#322**
-(maintenance/skip path for the scheduled Codex Security Scan), **#318**
-(permission-guard semantics), **#245** (externally blocked quota), and **#299**
-(test hygiene).
+截至 2026-06-21，GitHub 仍显示 **5** 个打开的 issues：**#245**、**#299**、
+**#318**、**#322** 和 **#339**。此前列出的项目/图层与安全测试 issues
+**#323**、**#324**、**#326** 和 **#329–#335** 已在 merge commits **#337**、
+**#338** 与 **#340** 中完成。**#322** 现在也有 **#342**，应在验证 merge 后
+补充评论并关闭。
 
-| # | Title | Relevance | Complexity | Recommendation |
-|---|-------|-----------|------------|----------------|
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | 🟡 Medium | 🟡 Medium | **Next repo-side step for #245** — choose manual switch, visible auto graceful-skip, or both; gate in the `cadence` job, "disabled → skipped, not failed", keep least privilege and add a static test |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟡 Medium | 🟡 Medium | **Needs refinement** — first document GitHub's startup-validation semantics (top-level vs. effective-per-job); no observed repo failure right now, and OIDC guard #303 must not be weakened |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Externally blocked** — restore quota account-side; #323/#324 are complete repo-side, #322 remains open as maintenance/skip hardening |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | No correctness bug; improve opportunistically when related tests are touched (highest value: endpoint move, consolidate `set_brush_size`) |
+| # | 标题 | Label/status 建议 | 评论/status 建议 |
+|---|------|-------------------|------------------|
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | `security`; **保持打开 / blocked external** | 评论说明 repo 侧加固已由 #323/#324 和 #322/#342 覆盖；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | `quality`, `testing`; **open / low priority** | 评论说明它不是产品或 CI blocker；等相关 tests 被修改时作为 opportunistic cleanup 合并处理。无需更改 status。 |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | `enhancement`, `testing`; **needs refinement** | 评论说明改代码前需记录 called workflow 中 top-level vs. job-level permissions 的 GitHub semantics；不得削弱 #303 OIDC guard。 |
+| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: scheduled Codex Security Scan 的 maintenance/skip path | `security`; **#342 后关闭** | 评论说明 #342 实现了保守的手动维护开关 (`CODEX_SECURITY_SCAN_ENABLED=false`)，包含 skip output 和 regression tests；验证 merge 后关闭。 |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | **添加 labels:** `enhancement`, `documentation`（或可用时 `question`）；**needs decision** | 评论要求产品决策：明确文档说明 HEIC 不支持，或规划 optional `pillow-heif`/`HEIF` allowlist 加 load test。决策前保持打开。 |
 
-### 可合并处理的 Issues
+### 推荐 Issue 操作
 
-- **#322** can be implemented as a standalone CI-hardening PR and complements
-  the already completed #323/#324.
-- **#318** stays separate because GitHub's semantics must be documented before
-  changing code.
-- **#299** should only ride along when an affected test is already being edited.
-
-### 推荐 PR 顺序
-
-1. **#322** — final repo-side #245 follow-up with direct operational value.
-2. **#318** — refine the permission guard once semantics are documented, without
-   weakening the OIDC regression case.
-3. **#245** — restore quota account-side (externally blocked).
-4. **#299** — test hygiene as needed.
+1. 在确认 #342 merge 到 `main` 后评论并关闭 **#322**。
+2. 为 **#339** 添加 label 并作出明确产品决策（文档澄清 vs. HEIC feature）。
+3. 保持 **#245** 打开但标记为 externally blocked；链接 #322/#342 作为已完成
+   的 repo-side 部分。
+4. 不立即实现 **#318**；先记录 GitHub permission semantics。
+5. 保持 **#299** 为低优先级 test cleanup。
 
 ## 先前轮次
 
