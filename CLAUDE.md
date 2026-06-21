@@ -42,7 +42,12 @@ Ein Paket, `bgremover/`:
   (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
   Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
   Normalisierung beliebiger Werte auf den Höhenbereich und Canvas-Größen-Validierung;
-  als `uint16` geführt und damit 16-Bit-erweiterbar (`max_value`).
+  als `uint16` geführt und damit 16-Bit-erweiterbar (`max_value`). `generate_from_image`
+  erzeugt deterministisch eine Höhenkarte (Kanalgewichtung/Luminanz → Tonwert-Kennlinie
+  → Gamma → Invertieren) (#346). Der Canvas verdrahtet das (`generate_height_map` aus
+  aktiver COLOR-Ebene/Komposit, `import_height_map` via `open_validated_image` mit
+  Skalierung auf Canvas-Größe) als neue, aktive HEIGHT-Ebene mit Rolle `HEIGHT_MAP`,
+  undo-/redobar.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

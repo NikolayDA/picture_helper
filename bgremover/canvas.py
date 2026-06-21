@@ -47,7 +47,13 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
-from bgremover.height_map import layer_to_gray_image
+from bgremover.height_map import (
+    HEIGHT_MAX_8BIT,
+    LUMA_WEIGHTS_REC601,
+    generate_from_image,
+    height_to_layer,
+    layer_to_gray_image,
+)
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
@@ -695,6 +701,79 @@ class ImageCanvas(QGraphicsView):
         else:
             self._project.assign_role(active, role)
         self._commit_state_change()
+
+    # ── Höhenkarten: Erzeugung & Import (#346) ──────────────────────────
+    def _add_height_layer(self, image: Image.Image, desc: str) -> None:
+        """Fügt *image* als neue, aktive HEIGHT-Ebene mit Rolle HEIGHT_MAP ein.
+
+        Erfasst den Projektzustand für Undo, legt die Ebene über das Modell an
+        (``create_layer`` → oben, aktiv) und weist die projektweit eindeutige
+        Rolle via ``assign_role`` zu – diese wird damit von einer etwaigen
+        bestehenden Höhenkarte übertragen, statt an der Eindeutigkeit zu
+        scheitern. Anzeige wechselt durch die neue aktive HEIGHT-Ebene in die
+        Höhensicht (#345); ``_commit_active_change`` resynchronisiert Caches,
+        Verlauf und Panel.
+        """
+        assert self._project is not None
+        self._push_layers(desc)
+        layer = self._project.create_layer(
+            image, name=tr("layers.height_name"), kind=LayerKind.HEIGHT)
+        self._project.assign_role(layer.id, LayerRole.HEIGHT_MAP)
+        self._commit_active_change()
+
+    @_requires_image
+    def generate_height_map(
+        self,
+        *,
+        weights: tuple[float, float, float] = LUMA_WEIGHTS_REC601,
+        black: int = 0,
+        white: int = HEIGHT_MAX_8BIT,
+        gamma: float = 1.0,
+        invert: bool = False,
+    ) -> None:
+        """Erzeugt algorithmisch eine HEIGHT-Ebene aus dem Farbbild (#346).
+
+        Quelle ist die **aktive** Ebene, sofern sie COLOR ist, sonst das
+        Farb-Komposit (``composite_color``). Kanalgewichtung, Tonwert-Kennlinie
+        (``black``/``white``), Gamma und Invertieren laufen in
+        ``height_map.generate_from_image``. Die neue Ebene wird aktiv (Höhensicht
+        via #345) und ist undo-/redobar.
+        """
+        assert self._project is not None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.COLOR:
+            source = active.image
+        else:
+            source = self._project.composite_color()
+        field = generate_from_image(
+            source, weights=weights, black=black, white=white,
+            gamma=gamma, invert=invert)
+        self._add_height_layer(
+            height_to_layer(field), tr("history.desc.height_generated"))
+        self.statusMsg.emit(tr("canvas.height_generated"))
+
+    @_requires_image
+    def import_height_map(self, path: str) -> None:
+        """Importiert eine Graustufendatei als HEIGHT-Ebene (#346).
+
+        Validiertes Laden über ``open_validated_image`` (Format-Whitelist,
+        Dateigrößen- und Megapixel-Schutz); Fehler erscheinen als übersetzte
+        Statusmeldung, ohne eine Ebene anzulegen. Eine von der Canvas-Größe
+        abweichende Datei wird auf die Canvas-Größe skaliert (Modell-Invariante),
+        ihre Luminanz als Höhe übernommen. Undo-/redobar.
+        """
+        assert self._project is not None
+        img, err = open_validated_image(path)
+        if err is not None:
+            self.statusMsg.emit(err)
+            return
+        assert img is not None
+        if img.size != self._project.size:
+            img = img.resize(self._project.size, Image.Resampling.LANCZOS)
+        field = generate_from_image(img)
+        self._add_height_layer(
+            height_to_layer(field), tr("history.desc.height_imported"))
+        self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
 
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""

@@ -20,6 +20,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   (`max_value`). El lienzo ahora muestra una **capa HEIGHT activa** en escala
   de grises; el composite de color permanece sin cambios (paridad)
   (#345, #344).
+- **Generar e importar un mapa de altura (sin IA).** `bgremover/height_map.py`
+  incorpora `generate_from_image`: crea de forma **determinista** un mapa de
+  altura a partir de una imagen de color (ponderación de canales/luminancia →
+  curva de tonos → gamma → invertir). El lienzo lo conecta con
+  deshacer/rehacer como una nueva capa HEIGHT activa con rol `HEIGHT_MAP`:
+  `generate_height_map` desde la capa COLOR activa o el composite, e
+  `import_height_map` carga un archivo en escala de grises validado mediante
+  `open_validated_image` (protección de formato/tamaño de archivo/megapíxeles,
+  mensaje de error claro y traducido) y lo escala al tamaño del lienzo
+  (#346, #344).
 - **Modelo de datos de proyecto/capas sin Qt.** Nuevo módulo
   `bgremover/project_model.py`, con tipado estricto, con `Project` y `Layer`
   (`LayerKind` color/altura/gloss/genérico, roles únicos en todo el proyecto)

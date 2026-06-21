@@ -19,6 +19,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   stocké en interne en `uint16` et donc extensible à 16 bits (`max_value`). Le
   canevas affiche désormais un **calque HEIGHT actif** en niveaux de gris ; le
   composite couleur reste inchangé (parité) (#345, #344).
+- **Générer et importer une carte de hauteur (sans IA).**
+  `bgremover/height_map.py` gagne `generate_from_image` : construit de manière
+  **déterministe** une carte de hauteur à partir d'une image couleur
+  (pondération des canaux/luminance → courbe tonale → gamma → inversion). Le
+  canevas le câble, avec annuler/rétablir, en tant que nouveau calque HEIGHT
+  actif avec le rôle `HEIGHT_MAP` : `generate_height_map` depuis le calque
+  COLOR actif ou le composite, et `import_height_map` charge un fichier en
+  niveaux de gris validé via `open_validated_image` (protection
+  format/taille de fichier/mégapixels, message d'erreur clair et traduit) et
+  le met à l'échelle de la taille du canevas (#346, #344).
 - **Modèle de données projet/calques sans Qt.** Nouveau module
   `bgremover/project_model.py`, strictement typé, avec `Project` et `Layer`
   (`LayerKind` couleur/hauteur/gloss/générique, rôles uniques à l'échelle du

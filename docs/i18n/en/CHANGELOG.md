@@ -18,6 +18,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   16-bit-extensible (`max_value`). The canvas now displays an **active HEIGHT
   layer** in grayscale; the color composite stays unchanged (parity)
   (#345, #344).
+- **Generate & import a height map (no AI).** `bgremover/height_map.py` gains
+  `generate_from_image`: it **deterministically** builds a height map from a
+  color image (channel weighting/luminance → tone curve → gamma → invert). The
+  canvas wires this up undo-/redoable as a new active HEIGHT layer with role
+  `HEIGHT_MAP`: `generate_height_map` from the active COLOR layer or the
+  composite, and `import_height_map` loads a grayscale file validated through
+  `open_validated_image` (format/file-size/megapixel guard, clear translated
+  error message) and scales it to the canvas size (#346, #344).
 - **Qt-free project/layer data model.** New, strictly typed
   `bgremover/project_model.py` module with `Project` and `Layer` (`LayerKind`
   color/height/gloss/generic, project-wide unique roles) as the foundation of

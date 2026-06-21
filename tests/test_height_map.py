@@ -13,14 +13,21 @@ from PIL import Image
 
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
+    LUMA_WEIGHTS_REC601,
     HeightField,
     HeightMapError,
+    generate_from_image,
     height_to_layer,
     layer_to_gray_image,
     layer_to_height,
     normalize_to_height,
     validate_canvas_size,
 )
+
+
+def _rgba(pixel: tuple[int, int, int, int], size: tuple[int, int] = (2, 2)) -> Image.Image:
+    """Einfarbiges RGBA-Bild für deterministische Erzeugungs-Asserts."""
+    return Image.new("RGBA", size, pixel)
 
 
 def _gray_layer(values: np.ndarray, alpha: np.ndarray) -> Image.Image:
@@ -172,6 +179,73 @@ def test_normalize_to_height_rejects_empty_and_non_finite() -> None:
         normalize_to_height(np.array([1.0, np.inf]))
     with pytest.raises(HeightMapError):
         normalize_to_height(np.array([1.0, 2.0]), max_value=0)
+
+
+# ── Erzeugung aus Bild (#346) ────────────────────────────────────────────
+
+
+def test_generate_channel_weighting_is_deterministic() -> None:
+    """Reine Kanalgewichtung: (1,0,0)→R, (0,1,0)→G, (0,0,1)→B."""
+    px = _rgba((200, 50, 10, 255))
+    assert np.all(generate_from_image(px, weights=(1, 0, 0)).values == 200)
+    assert np.all(generate_from_image(px, weights=(0, 1, 0)).values == 50)
+    assert np.all(generate_from_image(px, weights=(0, 0, 1)).values == 10)
+
+
+def test_generate_default_luma_rec601() -> None:
+    """Standardgewichte sind Rec.-601-Luma (Summe 1.0)."""
+    field = generate_from_image(_rgba((100, 150, 200, 255)))
+    assert field.max_value == HEIGHT_MAX_8BIT
+    assert np.all(field.values == 141)   # rint(100*.299 + 150*.587 + 200*.114)
+    # Reine Graustufe (R==G==B) ergibt exakt ihren Grauwert (Import-Pfad).
+    assert np.all(generate_from_image(_rgba((90, 90, 90, 255))).values == 90)
+
+
+def test_generate_tone_curve_levels() -> None:
+    """Schwarz-/Weißpunkt remappt linear: black→0, white→255, Mitte→128."""
+    w = (1, 0, 0)
+    assert np.all(generate_from_image(_rgba((64, 0, 0, 255)), weights=w, black=64, white=192).values == 0)
+    assert np.all(generate_from_image(_rgba((192, 0, 0, 255)), weights=w, black=64, white=192).values == 255)
+    assert np.all(generate_from_image(_rgba((128, 0, 0, 255)), weights=w, black=64, white=192).values == 128)
+
+
+def test_generate_gamma() -> None:
+    """Gamma wirkt auf den normierten Wert: 0.2 ** 2 * 255 = 10.2 → 10."""
+    field = generate_from_image(_rgba((51, 0, 0, 255)), weights=(1, 0, 0), gamma=2.0)
+    assert np.all(field.values == 10)
+
+
+def test_generate_invert() -> None:
+    """Invertieren spiegelt die Höhe (0.2 → 0.8 → 204)."""
+    field = generate_from_image(_rgba((51, 0, 0, 255)), weights=(1, 0, 0), invert=True)
+    assert np.all(field.values == 204)
+
+
+def test_generate_preserves_alpha_as_coverage() -> None:
+    field = generate_from_image(_rgba((255, 255, 255, 128)))
+    assert np.all(field.coverage == 128)
+    assert np.all(field.values == 255)
+
+
+def test_generate_rejects_invalid_params() -> None:
+    px = _rgba((10, 20, 30, 255))
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, weights=(0, 0, 0))         # Summe 0
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, weights=(-1, 1, 1))        # negativ
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, weights=(1, 1))            # nicht drei Werte
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, black=200, white=100)      # black >= white
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, gamma=0.0)                 # gamma <= 0
+    with pytest.raises(HeightMapError):
+        generate_from_image(px, max_value=0)               # max_value <= 0
+
+
+def test_generate_default_weights_constant_is_rec601() -> None:
+    assert LUMA_WEIGHTS_REC601 == (0.299, 0.587, 0.114)
+    assert sum(LUMA_WEIGHTS_REC601) == pytest.approx(1.0)
 
 
 # ── Canvas-Größen-Validierung ────────────────────────────────────────────

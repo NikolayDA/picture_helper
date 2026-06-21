@@ -364,3 +364,96 @@ def test_switching_active_layer_toggles_height_view(qapp) -> None:
 
     canvas.set_active_layer(color_id)
     assert tuple(np.array(canvas._render_image())[0, 0]) == (200, 0, 0, 255)
+
+
+# ── Höhenkarte: Erzeugung & Import (#346) ─────────────────────────────────
+
+
+def test_generate_height_map_creates_role_layer_and_is_undoable(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (200, 50, 10, 255)), "x.png")
+
+    canvas.generate_height_map(weights=(1, 0, 0))   # Höhe = Rotkanal
+    assert len(canvas.project.layers) == 2
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.role is LayerRole.HEIGHT_MAP
+    arr = np.array(active.image)
+    assert np.all(arr[:, :, :3] == 200)            # grau = R
+    assert np.all(arr[:, :, 3] == 255)
+    # Anzeige wechselt in die Höhensicht (#345).
+    assert np.all(np.array(canvas._render_image())[:, :, :3] == 200)
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+    assert canvas.project.active_layer().kind is LayerKind.COLOR
+
+
+def test_generate_height_map_invert_through_canvas(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (51, 0, 0, 255)), "x.png")
+    canvas.generate_height_map(weights=(1, 0, 0), invert=True)
+    assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 204)
+
+
+def test_generate_height_map_transfers_existing_role(qapp) -> None:
+    """Rolle HEIGHT_MAP ist eindeutig: eine zweite Erzeugung übernimmt sie."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (120, 120, 120, 255)), "x.png")
+    canvas.generate_height_map()
+    first_height_id = canvas.project.active_layer_id
+
+    canvas.set_active_layer(canvas.project.layers[0].id)   # zurück auf COLOR
+    canvas.generate_height_map()
+    holders = [
+        layer for layer in canvas.project.layers
+        if layer.role is LayerRole.HEIGHT_MAP
+    ]
+    assert len(holders) == 1                               # weiterhin eindeutig
+    assert holders[0].id != first_height_id                # neue Ebene trägt sie
+
+
+def test_import_height_map_creates_layer(qapp, tmp_path) -> None:
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+
+    ramp = np.arange(64, dtype=np.uint8).reshape(8, 8)     # 0..63 Graustufen
+    path = tmp_path / "height.png"
+    PILImage.fromarray(ramp, "L").save(path)
+
+    canvas.import_height_map(str(path))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.role is LayerRole.HEIGHT_MAP
+    assert np.array_equal(np.array(active.image)[:, :, 0], ramp)   # Luminanz = Höhe
+
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+
+
+def test_import_height_map_resizes_to_canvas(qapp, tmp_path) -> None:
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    PILImage.new("L", (16, 16), 100).save(tmp_path / "big.png")
+
+    canvas.import_height_map(str(tmp_path / "big.png"))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    assert active.size == (8, 8)                           # auf Canvas skaliert
+
+
+def test_import_height_map_rejects_invalid_file(qapp, tmp_path) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    bad = tmp_path / "bad.png"
+    bad.write_bytes(b"not an image")
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(bad))
+    assert len(canvas.project.layers) == 1                 # keine Ebene angelegt
+    assert msgs                                            # Fehlermeldung emittiert

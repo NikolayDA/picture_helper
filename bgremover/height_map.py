@@ -27,6 +27,10 @@ from PIL import Image
 # bitgenaue Parität zu den RGBA-Layerdaten.
 HEIGHT_MAX_8BIT = 255
 
+# Standard-Kanalgewichtung (Rec. 601 Luma): wahrnehmungsnahe Graustufe aus R/G/B.
+# Die Summe ist 1.0, sodass die gewichtete Luminanz im Bereich 0..255 bleibt.
+LUMA_WEIGHTS_REC601 = (0.299, 0.587, 0.114)
+
 
 class HeightMapError(ValueError):
     """Fehler bei Höhen-Konvertierung, Normalisierung oder Größen-Validierung."""
@@ -135,6 +139,67 @@ def layer_to_gray_image(image: Image.Image) -> Image.Image:
     HEIGHT-Ebene konsistent grau an, während das COLOR-Komposit unberührt bleibt.
     """
     return height_to_layer(layer_to_height(image))
+
+
+def generate_from_image(
+    image: Image.Image,
+    *,
+    weights: tuple[float, float, float] = LUMA_WEIGHTS_REC601,
+    black: int = 0,
+    white: int = HEIGHT_MAX_8BIT,
+    gamma: float = 1.0,
+    invert: bool = False,
+    max_value: int = HEIGHT_MAX_8BIT,
+) -> HeightField:
+    """Erzeugt **deterministisch** ein Höhenfeld aus einem Farbbild (#346).
+
+    Reine, reproduzierbare Pipeline (kein Zufall, keine globalen Statistiken):
+
+    1. **Kanalgewichtung/Luminanz:** gewichteter Mittelwert von R/G/B mit
+       ``weights`` (intern auf ihre Summe normiert; Standard Rec. 601). Ergebnis
+       liegt in ``0..255``.
+    2. **Tonwert-Kennlinie:** linearer Schwarz-/Weißpunkt – ``black`` wird ``0``,
+       ``white`` wird ``1``; dazwischen linear, außerhalb geklemmt.
+    3. **Gamma:** ``wert ** gamma`` auf dem normierten ``0..1``-Wert (``gamma > 1``
+       senkt die Mitten ab, ``< 1`` hebt sie an).
+    4. **Invertieren:** optional ``1 - wert`` (Vertiefungen ↔ Erhebungen tauschen).
+
+    Die normierte Höhe wird auf ``0..max_value`` skaliert (``uint16``); die
+    **Deckung** übernimmt den Alphakanal des Bildes, sodass transparente Bereiche
+    höhenlos bleiben. Quelle ist die aktive COLOR-Ebene bzw. das Farb-Komposit;
+    importierte Graustufen (``R==G==B``) ergeben mit den Standardgewichten genau
+    ihren Grauwert als Höhe. Fehlerhafte Parameter werfen :class:`HeightMapError`.
+    """
+    if max_value <= 0:
+        raise HeightMapError(f"max_value muss positiv sein, war {max_value}")
+    if len(weights) != 3:
+        raise HeightMapError("weights braucht genau drei Werte (R, G, B)")
+    if any(w < 0 for w in weights):
+        raise HeightMapError("weights müssen nicht-negativ sein")
+    wsum = float(sum(weights))
+    if wsum <= 0.0:
+        raise HeightMapError("Summe der weights muss > 0 sein")
+    if not 0 <= black < white <= HEIGHT_MAX_8BIT:
+        raise HeightMapError(
+            f"Tonwert verlangt 0 <= black < white <= {HEIGHT_MAX_8BIT}, "
+            f"war black={black}, white={white}"
+        )
+    if gamma <= 0.0:
+        raise HeightMapError(f"gamma muss positiv sein, war {gamma}")
+
+    rgba = image if image.mode == "RGBA" else image.convert("RGBA")
+    src = np.asarray(rgba)
+    rgb = src[:, :, :3].astype(np.float64)
+    wr, wg, wb = weights[0] / wsum, weights[1] / wsum, weights[2] / wsum
+    luma = rgb[:, :, 0] * wr + rgb[:, :, 1] * wg + rgb[:, :, 2] * wb
+    norm = np.clip((luma - black) / (white - black), 0.0, 1.0)
+    if gamma != 1.0:
+        norm = norm ** gamma
+    if invert:
+        norm = 1.0 - norm
+    values = np.rint(norm * max_value).astype(np.uint16)
+    coverage = src[:, :, 3].astype(np.uint8)
+    return HeightField(values=values, coverage=coverage, max_value=max_value)
 
 
 def normalize_to_height(

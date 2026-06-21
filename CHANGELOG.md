@@ -19,6 +19,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   damit 16-Bit-erweiterbar (`max_value`). Der Canvas zeigt eine **aktive
   HEIGHT-Ebene** jetzt graustufig an; das COLOR-Komposit bleibt unverändert
   (Parität) (#345, #344).
+- **Höhenkarte erzeugen & importieren (ohne KI).** `bgremover/height_map.py`
+  bekommt `generate_from_image`: erzeugt **deterministisch** eine Höhenkarte aus
+  einem Farbbild (Kanalgewichtung/Luminanz → Tonwert-Kennlinie → Gamma →
+  Invertieren). Der Canvas verdrahtet das undo-/redobar als neue, aktive
+  HEIGHT-Ebene mit Rolle `HEIGHT_MAP`: `generate_height_map` aus der aktiven
+  COLOR-Ebene bzw. dem Komposit und `import_height_map` lädt eine Graustufendatei
+  validiert über `open_validated_image` (Format-/Datei-/Megapixel-Schutz, klare
+  übersetzte Fehlermeldung) und skaliert sie auf die Canvas-Größe (#346, #344).
 - **Qt-freies Projekt-/Ebenen-Datenmodell.** Neues, strikt getyptes Modul
   `bgremover/project_model.py` mit `Project` und `Layer` (`LayerKind`
   Farbe/Höhe/Gloss/Generisch, projektweit eindeutige Rollen) als Fundament des
