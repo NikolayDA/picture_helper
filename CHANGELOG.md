@@ -19,9 +19,60 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Sichtbarkeit/Opazität/Sperre/Rollen) und ein Alpha-Komposit der sichtbaren
   Farb-Ebenen – ohne Qt-, Render-, Persistenz- oder History-Anbindung
   (#330, #329).
+- **Ebenenbewusste, Qt-freie Undo/Redo-Historie.** Neues, strikt getyptes Modul
+  `bgremover/project_history.py` (`ProjectHistory`) hebt Undo/Redo vom Einzelbild
+  auf das Projektmodell: abgedeckt werden strukturelle Änderungen (Ebene anlegen/
+  löschen/umsortieren/duplizieren, aktive Ebene, Sichtbarkeit/Opazität/Sperre/
+  Rolle) und Pixeländerungen je Ebene. Speicherstrategie: leichte Struktur-
+  Snapshots plus ein deduplizierender Pixelpool, der unveränderte Ebenen über das
+  geteilte Undo-/Redo-Budget nur einmal zählt (Original und aktueller Zustand
+  außerhalb des Budgets); `descriptions()`/`undo_to()`/„Original wiederherstellen"
+  bleiben erhalten. Noch ohne Canvas-Verdrahtung (#331, #329; folgt #332).
+- **Projektdatei-Format `.bgrproj` (verlustfreies Speichern/Laden).** Neue
+  Qt-freie Module `bgremover/project_io.py` und `bgremover/project_schema.py`
+  schreiben/lesen ein komplettes Mehr-Ebenen-Projekt als ZIP-Container
+  (`manifest.json` mit Formatversion, Canvas-Größe, geordneter Ebenenliste inkl.
+  Rollen/Metadaten + eine RGBA-PNG je Ebene). Speichern ist atomar
+  (`mkstemp`+`os.replace`), Laden validiert defensiv (Dateigrößen-Limit, Megapixel
+  je Ebene, Abwehr von Zip-Slip/unerwarteten Einträgen, klare übersetzte
+  Fehlermeldungen). Das Schema ist versioniert mit Migrationshaken: ältere
+  Versionen migrieren, neuere bleiben unangetastet (nur Warnung). Noch ohne
+  Menü-/Dialog-Anbindung (#333, #329; folgt #334/#335).
+- **Ebenen-Panel und Projekt-Menü.** Das rechte Panel hat einen neuen Tab
+  „Ebenen": Ebenen anlegen, auswählen (aktive Editier-Ebene), ein-/ausblenden,
+  Opazität ändern, hoch/runter sortieren, duplizieren, löschen, umbenennen sowie
+  eine Rolle (Farbmotiv/Height Map/Gloss) zuweisen – alle Änderungen wirken im
+  Canvas-Komposit (#332) und sind undo-/redobar (#331). Neues „Projekt"-Menü mit
+  „Neues Projekt" (`Ctrl+N`), „Projekt öffnen…" (`Ctrl+Shift+O`), „Projekt
+  speichern" (`Ctrl+Alt+S`) und „Projekt speichern unter…" (`Ctrl+Alt+Shift+S`),
+  verdrahtet an das `.bgrproj`-Format (#333); `Ctrl+O`/`Ctrl+S` bleiben den
+  Bild-Workflows vorbehalten. Lade-/Speicherfehler erscheinen als verständliche,
+  übersetzte Meldungen. Alle neuen Strings über `i18n.py` (de/en in Parität)
+  (#334, #329; Bild→Projekt-Migration folgt #335).
 
 ### Geändert
 
+- **Bild→Projekt-Integration und „Zuletzt geöffnet" für Projekte.** „Bild
+  öffnen" und Drag & Drop erzeugen jetzt ein Ein-Ebenen-Projekt (validiertes
+  Laden via `image_loading` unverändert); „Zuletzt geöffnet" führt Bilder **und**
+  `.bgrproj`-Projekte und öffnet jeden Typ korrekt (Unterscheidung nach Endung).
+  Das zuletzt genutzte Projektverzeichnis wird gemerkt (additiver
+  Settings-Schlüssel; keine Schema-Migration nötig, der Zukunfts-Version-Schutz
+  ist bereits getestet). Der Einzelbild-Export schreibt weiterhin das Komposit
+  (Ein-Ebenen-Projekt bitgenau wie bisher), „Original wiederherstellen" liefert
+  das Dokument im Ladezustand. Schließt das Ebenen-Epic ab (#335, #329).
+- **Editor arbeitet jetzt ebenenbasiert (Komposit-Rendering + aktive Ebene).**
+  Der Canvas hält statt eines Einzelbilds ein `Project` (#330) und zeigt/speichert
+  das **Komposit** der sichtbaren Ebenen (Reihenfolge/Sichtbarkeit/Opazität); alle
+  Werkzeuge (Zauberstab/Auswahl, Pinsel/Radierer, Lasso, KI-Freistellung,
+  Hintergrund ersetzen, Spiegeln, Eckenrundung) wirken auf die **aktive Ebene**,
+  die Auswahlmaske bezieht sich auf sie. Größenändernde Geometrie (Drehen,
+  Zuschnitt) wirkt invariantenwahrend einheitlich auf alle Ebenen. Undo/Redo und
+  „Original wiederherstellen" laufen über die ebenenbewusste `ProjectHistory`
+  (#331). Ein Projekt mit genau einer COLOR-Ebene verhält sich bitgenau wie bisher
+  (Parität, inkl. erhaltener RGB-Werte unter transparenten Pixeln beim Speichern);
+  der KI-Abbruch bleibt ohne `QThread.terminate()`-Regression (#332, #329; UI-
+  Ebenen-Panel folgt #334).
 - **GitHub-Release-Notizen stammen jetzt aus dem CHANGELOG.** Der
   Release-Workflow (`release-linux.yml`) leitet den Release-Body zum Tag
   `vX.Y.Z` aus dem `## [X.Y.Z]`-Abschnitt der `CHANGELOG.md` ab und übergibt ihn

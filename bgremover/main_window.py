@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QMainWindow,
     QMessageBox,
     QStatusBar,
@@ -30,6 +31,7 @@ from bgremover.constants import (
     TOOL_ERASER,
     TOOL_LASSO,
     TOOL_WAND,
+    logger,
 )
 from bgremover.crop_bar import CropBar
 from bgremover.history_popup import HistoryPopup
@@ -39,8 +41,16 @@ from bgremover.image_ops import (
     ensure_save_extension,
     save_dialog_filter,
 )
+from bgremover.layer_panel import LayerPanelActions
 from bgremover.main_toolbar import Toolbar, ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
+from bgremover.project_io import (
+    PROJECT_SUFFIX,
+    ProjectFileError,
+    load_project,
+    save_project,
+)
+from bgremover.project_model import LayerKind, Project
 from bgremover.recent_files import (
     RECENT_MAX,
     SETTINGS_RECENT_KEY,
@@ -61,6 +71,9 @@ from bgremover.theme import (
 )
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import REMBG_AVAILABLE
+
+# Standard-Canvas-Größe eines per „Neues Projekt" erzeugten leeren Projekts.
+_NEW_PROJECT_SIZE = (1024, 1024)
 
 
 class MainWindow(QMainWindow):
@@ -83,6 +96,8 @@ class MainWindow(QMainWindow):
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
+        # Speicher-Pfad des aktuellen Projekts (.bgrproj) für „Projekt speichern".
+        self._project_path: str | None = None
         # Canvas-Revision zum Zeitpunkt des letzten Speicherns/Ladens.
         # „Ungespeicherte Änderungen" = aktuelle Revision weicht davon ab.
         # Schützt vor stillem Arbeitsverlust beim Schließen/Bildwechsel.
@@ -205,9 +220,23 @@ class MainWindow(QMainWindow):
                 round_corners=self._canvas.apply_round_corners,
                 start_crop_circle=self._canvas.start_crop_circle,
                 start_crop_ratio=self._canvas.start_crop_ratio,
-            )
+            ),
+            LayerPanelActions(
+                add_layer=self._canvas.add_layer,
+                delete_active=self._canvas.delete_active_layer,
+                duplicate_active=self._canvas.duplicate_active_layer,
+                move_active_up=lambda: self._canvas.move_active_layer(up=True),
+                move_active_down=lambda: self._canvas.move_active_layer(up=False),
+                rename_active=self._rename_active_layer,
+                set_active=self._canvas.set_active_layer,
+                set_visible=self._canvas.set_layer_visible,
+                set_opacity=self._canvas.set_layer_opacity,
+                set_active_role=self._canvas.set_active_layer_role,
+            ),
         )
         self._color_btn = panel.color_button
+        self._layer_panel = panel.layer_panel
+        self._canvas.layersChanged.connect(self._layer_panel.refresh)
         self._update_color_btn()
         return panel.frame
 
@@ -237,10 +266,14 @@ class MainWindow(QMainWindow):
             self._recent_files,
             MainMenuCallbacks(
                 open_image=self._open_image,
-                open_recent_path=self._load_image_async,
+                open_recent_path=self._open_recent_path,
                 recent_path_missing=self._on_recent_missing,
                 save=self._save,
                 save_as=self._save_as,
+                new_project=self._new_project,
+                open_project=self._open_project,
+                save_project=self._save_project,
+                save_project_as=self._save_project_as,
                 undo=self._canvas.undo,
                 redo=self._canvas.redo,
                 rotate=self._canvas.apply_rotate,
@@ -545,7 +578,145 @@ class MainWindow(QMainWindow):
             self._save_path = path
             self._mark_saved()
 
+    # ── Ebenen-Panel ────────────────────────────────────────────
+
+    def _rename_active_layer(self) -> None:
+        """Fragt einen neuen Namen für die aktive Ebene ab und wendet ihn an."""
+        project = self._canvas.project
+        if project is None:
+            return
+        active = project.active_layer()
+        if active is None:
+            return
+        name, ok = QInputDialog.getText(
+            self, tr("dialog.rename.title"), tr("dialog.rename.label"),
+            text=active.name)
+        if ok and name.strip():
+            self._canvas.rename_active_layer(name)
+
+    # ── Projekt-Dateien (.bgrproj) ──────────────────────────────
+
+    def _adopt_new_document(self) -> None:
+        """Setzt die Speicher-/Sauber-Marker nach Neu/Öffnen eines Projekts."""
+        self._save_path = None
+        self._mark_saved()
+
+    def _new_project(self) -> None:
+        """Erzeugt ein leeres Projekt mit einer transparenten COLOR-Ebene."""
+        if not self._confirm_discard_changes():
+            return
+        width, height = _NEW_PROJECT_SIZE
+        project = Project(width, height)
+        project.create_layer(
+            Image.new("RGBA", (width, height), (0, 0, 0, 0)),
+            name=tr("layers.new_name", n=1), kind=LayerKind.COLOR)
+        self._canvas.set_project(project)
+        self._project_path = None
+        self._adopt_new_document()
+        self._sb.showMessage(tr("project.new"))
+
+    def _open_project(self) -> None:
+        """Öffnet eine ``.bgrproj``-Datei über einen Datei-Dialog."""
+        if not self._confirm_discard_changes():
+            return
+        start_dir = self._settings.value("project_dir", "")
+        path, _ = QFileDialog.getOpenFileName(
+            self, tr("dialog.open_project.title"), start_dir,
+            tr("dialog.open_project.filter"))
+        if path:
+            self._load_project_into_canvas(path)
+
+    def _open_project_path(self, path: str) -> None:
+        """Öffnet ein Projekt aus „Zuletzt geöffnet" (mit Verwerfen-Nachfrage)."""
+        if not self._confirm_discard_changes():
+            return
+        self._load_project_into_canvas(path)
+
+    def _load_project_into_canvas(self, path: str) -> None:
+        """Lädt ``path`` als Projekt in den Canvas; meldet Fehler verständlich.
+
+        Gemeinsamer Pfad für Datei-Dialog und „Zuletzt geöffnet". Die Nachfrage
+        zu ungespeicherten Änderungen liegt bei den Aufrufern, damit sie vor dem
+        Datei-Dialog greifen kann.
+        """
+        try:
+            project = load_project(path)
+        except ProjectFileError as exc:
+            self._report_project_error(str(exc))
+            return
+        self._canvas.set_project(project)
+        self._project_path = path
+        self._adopt_new_document()
+        self._remember_project(path)
+        self._sb.showMessage(tr("project.opened", name=Path(path).name))
+
+    def _save_project(self) -> None:
+        """Quick-Save des Projekts in den bekannten Pfad, sonst „Speichern unter…"."""
+        if self._project_path is None:
+            self._save_project_as()
+            return
+        self._write_project(self._project_path)
+
+    def _save_project_as(self) -> None:
+        """Speichert das Projekt unter einem im Dialog gewählten Pfad."""
+        if self._canvas.project is None:
+            self._sb.showMessage(tr("project.no_project"))
+            return
+        if self._project_path:
+            suggest = self._project_path
+        else:
+            project_dir = self._settings.value("project_dir", "")
+            suggest = str(Path(project_dir) / "projekt") if project_dir else "projekt"
+        path, _ = QFileDialog.getSaveFileName(
+            self, tr("dialog.save_project.title"), suggest,
+            tr("dialog.open_project.filter"))
+        if not path:
+            return
+        if not path.lower().endswith(PROJECT_SUFFIX):
+            path += PROJECT_SUFFIX
+        if self._write_project(path):
+            self._project_path = path
+
+    def _write_project(self, path: str) -> bool:
+        """Schreibt das aktuelle Projekt atomar; meldet Fehler verständlich."""
+        project = self._canvas.project
+        if project is None:
+            self._sb.showMessage(tr("project.no_project"))
+            return False
+        try:
+            save_project(project, path)
+        except OSError as exc:
+            logger.exception("Projekt speichern fehlgeschlagen: %s", path)
+            self._sb.showMessage(tr("project.save_failed", error=exc))
+            return False
+        self._mark_saved()
+        self._remember_project(path)
+        self._sb.showMessage(tr("project.saved", name=Path(path).name))
+        return True
+
+    def _remember_project(self, path: str) -> None:
+        """Merkt ein Projekt in „Zuletzt geöffnet" und sein Verzeichnis."""
+        self._add_recent(path)
+        self._settings.setValue("project_dir", str(Path(path).resolve().parent))
+
+    def _report_project_error(self, message: str) -> None:
+        """Zeigt einen Projekt-Lade-/Speicherfehler in Statusleiste + Dialog."""
+        self._sb.showMessage(message)
+        QMessageBox.warning(self, tr("dialog.project_error.title"), message)
+
     # ── Recent-Files ────────────────────────────────────────────
+
+    def _open_recent_path(self, path: str) -> None:
+        """Öffnet einen „Zuletzt geöffnet"-Eintrag – Projekt (.bgrproj) oder Bild.
+
+        Projekte laufen über den Projekt-Lader (#333), Bilder über den
+        validierten, asynchronen Bildladepfad. So listet „Zuletzt geöffnet"
+        beide Typen und öffnet jeden korrekt (#335).
+        """
+        if path.lower().endswith(PROJECT_SUFFIX):
+            self._open_project_path(path)
+        else:
+            self._load_image_async(path)
 
     def _add_recent(self, path: str) -> None:
         if self._recent_menu is None:

@@ -69,6 +69,85 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.file_missing": "Datei nicht mehr vorhanden: {name}",
         "status.open_not_local": "Nur lokale Dateien können geöffnet werden.",
         "status.ai_error": "KI-Fehler: {msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "Projektdatei beschädigt oder kein gültiges Projekt",
+        "project.error.too_large": (
+            "Projektdatei zu groß ({size} MB) – Maximum: {limit} MB"
+        ),
+        "project.error.manifest_missing": "Projektdatei unvollständig: manifest.json fehlt",
+        "project.error.manifest_invalid": "Projektdatei beschädigt: ungültiges Manifest",
+        "project.error.unsupported_version": (
+            "Projektformat-Version {version} wird nicht unterstützt"
+        ),
+        "project.error.unexpected_entry": (
+            "Projektdatei abgewiesen: unerwarteter Eintrag „{name}“"
+        ),
+        "project.error.entry_too_large": (
+            "Projektdatei abgewiesen: Eintrag „{name}“ ist zu groß (entpackt)"
+        ),
+        "project.error.layer_file_missing": (
+            "Projektdatei unvollständig: Ebenen-Bild „{file}“ fehlt"
+        ),
+        "project.error.layer_too_large": (
+            "Ebene zu groß ({mp:.0f} MP) – Maximum: {limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "Ebenengröße {actual} passt nicht zur Canvas-Größe {expected}"
+        ),
+        # Ebenen-Panel & Projekt-Aktionen (#334)
+        "layers.new_name": "Ebene {n}",
+        "layers.role.none": "Keine",
+        "layers.role.color_motif": "Farbmotiv",
+        "layers.role.height_map": "Height Map",
+        "layers.role.gloss": "Gloss",
+        "history.desc.layer_added": "Ebene hinzugefügt",
+        "history.desc.layer_removed": "Ebene gelöscht",
+        "history.desc.layer_duplicated": "Ebene dupliziert",
+        "history.desc.layer_reordered": "Ebene verschoben",
+        "history.desc.layer_renamed": "Ebene umbenannt",
+        "history.desc.layer_active": "Aktive Ebene gewechselt",
+        "history.desc.layer_visibility": "Sichtbarkeit geändert",
+        "history.desc.layer_opacity": "Opazität geändert",
+        "history.desc.layer_role": "Rolle geändert",
+        "canvas.layer_added": "Neue Ebene hinzugefügt",
+        "canvas.layer_removed": "Ebene gelöscht",
+        "canvas.layer_duplicated": "Ebene dupliziert",
+        "canvas.cannot_delete_last": "Die letzte Ebene kann nicht gelöscht werden",
+        "right_panel.tab.layers": "Ebenen",
+        "right_panel.tab.layers.tooltip": "Ebenen verwalten",
+        "right_panel.layers.section": "Ebenen",
+        "right_panel.layers.add.tooltip": "Neue Ebene",
+        "right_panel.layers.duplicate.tooltip": "Aktive Ebene duplizieren",
+        "right_panel.layers.delete.tooltip": "Aktive Ebene löschen",
+        "right_panel.layers.move_up.tooltip": "Ebene nach oben",
+        "right_panel.layers.move_down.tooltip": "Ebene nach unten",
+        "right_panel.layers.rename.tooltip": "Aktive Ebene umbenennen",
+        "right_panel.layers.role_label": "Rolle:",
+        "right_panel.layers.role.tooltip": (
+            "Rolle der aktiven Ebene (für spätere UV-Druck-Werkzeuge)"
+        ),
+        "right_panel.layers.visible.tooltip": "Sichtbarkeit umschalten",
+        "right_panel.layers.select.tooltip": "Als aktive Ebene wählen",
+        "right_panel.layers.opacity.tooltip": "Opazität (beim Loslassen übernommen)",
+        "right_panel.layers.empty": (
+            "Kein Projekt geladen – Bild öffnen oder „Neues Projekt“."
+        ),
+        "menu.project": "Projekt",
+        "action.new_project": "Neues Projekt",
+        "action.open_project": "Projekt öffnen…",
+        "action.save_project": "Projekt speichern",
+        "action.save_project_as": "Projekt speichern unter…",
+        "dialog.open_project.title": "Projekt öffnen",
+        "dialog.open_project.filter": "BgRemover-Projekt (*.bgrproj)",
+        "dialog.save_project.title": "Projekt speichern",
+        "dialog.rename.title": "Ebene umbenennen",
+        "dialog.rename.label": "Neuer Name:",
+        "dialog.project_error.title": "Projektfehler",
+        "project.new": "Neues Projekt erstellt",
+        "project.saved": "Projekt gespeichert: {name}",
+        "project.opened": "Projekt geöffnet: {name}",
+        "project.no_project": "Kein Projekt zum Speichern",
+        "project.save_failed": "Projekt speichern fehlgeschlagen: {error}",
         # Main menu
         "menu.file": "Datei",
         "menu.recent_files": "Zuletzt geöffnet",
@@ -402,6 +481,85 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.file_missing": "File no longer exists: {name}",
         "status.open_not_local": "Only local files can be opened.",
         "status.ai_error": "AI error: {msg}",
+        # Project file (.bgrproj) – load/save errors
+        "project.error.corrupt": "Project file is corrupt or not a valid project",
+        "project.error.too_large": (
+            "Project file too large ({size} MB) – maximum: {limit} MB"
+        ),
+        "project.error.manifest_missing": "Project file incomplete: manifest.json is missing",
+        "project.error.manifest_invalid": "Project file corrupt: invalid manifest",
+        "project.error.unsupported_version": (
+            "Project format version {version} is not supported"
+        ),
+        "project.error.unexpected_entry": (
+            "Project file rejected: unexpected entry “{name}”"
+        ),
+        "project.error.entry_too_large": (
+            "Project file rejected: entry “{name}” is too large (uncompressed)"
+        ),
+        "project.error.layer_file_missing": (
+            "Project file incomplete: layer image “{file}” is missing"
+        ),
+        "project.error.layer_too_large": (
+            "Layer too large ({mp:.0f} MP) – maximum: {limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "Layer size {actual} does not match the canvas size {expected}"
+        ),
+        # Layer panel & project actions (#334)
+        "layers.new_name": "Layer {n}",
+        "layers.role.none": "None",
+        "layers.role.color_motif": "Color motif",
+        "layers.role.height_map": "Height map",
+        "layers.role.gloss": "Gloss",
+        "history.desc.layer_added": "Layer added",
+        "history.desc.layer_removed": "Layer deleted",
+        "history.desc.layer_duplicated": "Layer duplicated",
+        "history.desc.layer_reordered": "Layer reordered",
+        "history.desc.layer_renamed": "Layer renamed",
+        "history.desc.layer_active": "Active layer changed",
+        "history.desc.layer_visibility": "Visibility changed",
+        "history.desc.layer_opacity": "Opacity changed",
+        "history.desc.layer_role": "Role changed",
+        "canvas.layer_added": "New layer added",
+        "canvas.layer_removed": "Layer deleted",
+        "canvas.layer_duplicated": "Layer duplicated",
+        "canvas.cannot_delete_last": "The last layer cannot be deleted",
+        "right_panel.tab.layers": "Layers",
+        "right_panel.tab.layers.tooltip": "Manage layers",
+        "right_panel.layers.section": "Layers",
+        "right_panel.layers.add.tooltip": "New layer",
+        "right_panel.layers.duplicate.tooltip": "Duplicate active layer",
+        "right_panel.layers.delete.tooltip": "Delete active layer",
+        "right_panel.layers.move_up.tooltip": "Move layer up",
+        "right_panel.layers.move_down.tooltip": "Move layer down",
+        "right_panel.layers.rename.tooltip": "Rename active layer",
+        "right_panel.layers.role_label": "Role:",
+        "right_panel.layers.role.tooltip": (
+            "Role of the active layer (for later UV-print tools)"
+        ),
+        "right_panel.layers.visible.tooltip": "Toggle visibility",
+        "right_panel.layers.select.tooltip": "Select as active layer",
+        "right_panel.layers.opacity.tooltip": "Opacity (applied on release)",
+        "right_panel.layers.empty": (
+            "No project loaded – open an image or “New project”."
+        ),
+        "menu.project": "Project",
+        "action.new_project": "New project",
+        "action.open_project": "Open project…",
+        "action.save_project": "Save project",
+        "action.save_project_as": "Save project as…",
+        "dialog.open_project.title": "Open project",
+        "dialog.open_project.filter": "BgRemover project (*.bgrproj)",
+        "dialog.save_project.title": "Save project",
+        "dialog.rename.title": "Rename layer",
+        "dialog.rename.label": "New name:",
+        "dialog.project_error.title": "Project error",
+        "project.new": "New project created",
+        "project.saved": "Project saved: {name}",
+        "project.opened": "Project opened: {name}",
+        "project.no_project": "No project to save",
+        "project.save_failed": "Saving project failed: {error}",
         # Main menu
         "menu.file": "File",
         "menu.recent_files": "Recently opened",

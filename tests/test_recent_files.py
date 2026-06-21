@@ -90,6 +90,43 @@ def test_recent_files_menu_opens_existing_and_removes_missing(qapp, isolated_set
     assert [action.text() for action in menu.actions()] == [existing.name]
 
 
+def test_recent_files_menu_lists_images_and_projects(qapp, isolated_settings):
+    """„Zuletzt geöffnet" verwaltet Bilder UND Projekte (#335).
+
+    Die Listensemantik ist pfadagnostisch; ein ``.bgrproj`` wird wie jeder
+    andere Pfad geführt, angezeigt und beim Klick an den (im MainWindow nach
+    Endung dispatchenden) ``open_path``-Callback gereicht. Ein fehlendes Projekt
+    wird – wie ein fehlendes Bild – sauber behandelt.
+    """
+    recent = RecentFiles(_settings(), limit=5)
+    recent.clear()
+    menu = QMenu()
+    opened: list[str] = []
+    missing: list[str] = []
+    adapter = RecentFilesMenu(menu, menu, recent, opened.append, missing.append)
+
+    image = isolated_settings / "foto.png"
+    image.write_text("x", encoding="utf-8")
+    project = isolated_settings / "motiv.bgrproj"
+    project.write_bytes(b"PK\x03\x04stub")
+    absent_project = str((isolated_settings / "weg.bgrproj").resolve())
+    adapter.add(str(image))
+    adapter.add(str(project))
+    adapter.add(absent_project)
+
+    # Beide Typen sind gelistet (Projekt zuletzt hinzugefügt → vorne).
+    assert [action.text() for action in menu.actions()] == [
+        project.name, image.name]
+
+    adapter.open(str(project.resolve()))
+    adapter.open(str(image.resolve()))
+    adapter.open(absent_project)
+
+    assert opened == [str(project.resolve()), str(image.resolve())]
+    assert missing == [absent_project]
+    assert adapter.paths() == [str(project.resolve()), str(image.resolve())]
+
+
 def test_recent_files_menu_silently_filters_missing_on_rebuild(qapp, isolated_settings):
     """rebuild() entfernt nicht-existente Pfade stumm aus der Liste und dem Menue."""
     recent = RecentFiles(_settings(), limit=5)

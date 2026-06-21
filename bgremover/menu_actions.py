@@ -28,6 +28,10 @@ class MainMenuCallbacks:
     recent_path_missing: Callable[[str], None]
     save: Callable[[], None]
     save_as: Callable[[], None]
+    new_project: Callable[[], None]
+    open_project: Callable[[], None]
+    save_project: Callable[[], None]
+    save_project_as: Callable[[], None]
     undo: Callable[[], None]
     redo: Callable[[], None]
     rotate: Callable[[int], None]
@@ -64,6 +68,23 @@ def build_main_menu(
     file_menu.addSeparator()
     _add_action(file_menu, parent, tr("action.save"), callbacks.save, "Ctrl+S")
     _add_action(file_menu, parent, tr("action.save_as"), callbacks.save_as, "Ctrl+Shift+S")
+
+    # Projekt-Menü: eigene, dokumentierte Kürzel; Ctrl+O/Ctrl+S bleiben den
+    # Bild-Workflows vorbehalten (#334).
+    project_menu = _add_menu(menu_bar, tr("menu.project"))
+    _add_action(
+        project_menu, parent, tr("action.new_project"),
+        callbacks.new_project, "Ctrl+N")
+    _add_action(
+        project_menu, parent, tr("action.open_project"),
+        callbacks.open_project, "Ctrl+Shift+O")
+    project_menu.addSeparator()
+    _add_action(
+        project_menu, parent, tr("action.save_project"),
+        callbacks.save_project, "Ctrl+Alt+S")
+    _add_action(
+        project_menu, parent, tr("action.save_project_as"),
+        callbacks.save_project_as, "Ctrl+Alt+Shift+S")
 
     edit_menu = _add_menu(menu_bar, tr("menu.edit"))
     _add_action(edit_menu, parent, tr("action.undo"), callbacks.undo, "Ctrl+Z")

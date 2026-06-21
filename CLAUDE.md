@@ -30,23 +30,40 @@ Ein Paket, `bgremover/`:
   `main_window.py` verdrahtet die UI.
 - **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
   Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
-  `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker.
+  `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker. Der
+  Canvas hält ein `Project` (#330) und rendert/speichert das **Komposit**;
+  Werkzeuge wirken auf die **aktive Ebene** (`self._pil`/`_arr` sind deren Cache),
+  größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
+  Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
+  zum bisherigen Einzelbild-Editor (#332).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
-  Persistenz-/History-Anbindung.
+  Persistenz-/History-Anbindung. `project_history.py` (`ProjectHistory`) ist die
+  ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
+  + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
+  zählen nur einmal) – noch nicht im Canvas verdrahtet (#331, folgt #332).
+- **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
+  `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
+  geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
+  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
+  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333). Noch ohne
+  Menü-/Dialog-Anbindung (folgt #334/#335).
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
-- **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `settings_dialog.py`,
-  `menu_actions.py`, `crop_bar.py`, `history_popup.py`, `widgets.py`, `theme.py`,
-  `icons*.py`.
+- **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `layer_panel.py`
+  (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal, #334),
+  `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
+  Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
+  `theme.py`, `icons*.py`.
 - **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
   `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
-  („Zuletzt geöffnet"-Persistenz).
+  („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
+  Dispatch nach Endung im MainWindow, #335).
 - **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
   unter `docs/i18n/`.
 

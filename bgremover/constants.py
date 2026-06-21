@@ -30,6 +30,11 @@ _MAX_IMAGE_PIXELS = _MAX_MEGAPIXELS * 1_000_000
 # oder beschädigten) Dateien, die sonst einen ebenso großen bytes-Puffer
 # erzeugen würden (Befund #230).
 _MAX_INPUT_FILE_BYTES = 512 * 1024 * 1024  # 512 MB
+# Maximale Größe einer ``.bgrproj``-Projektdatei (Bytes) vor dem Einlesen.
+# Großzügiger als ein Einzelbild, da ein Projekt mehrere Ebenen bündelt; schützt
+# dennoch vor absurd großen oder beschädigten Containern. Zusätzlich begrenzt der
+# Projekt-Lader die *entpackte* Größe je Ebene separat (Zip-Bomb-Schutz).
+_MAX_PROJECT_FILE_BYTES = 1024 * 1024 * 1024  # 1 GiB
 # Explizit unterstützte Eingabeformate für den asynchronen Ladepfad.
 _ALLOWED_IMAGE_FORMATS = frozenset({
     "PNG", "JPEG", "WEBP", "TIFF", "BMP", "GIF"

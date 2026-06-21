@@ -97,13 +97,19 @@ class CanvasCrop:
         r = self.overlay.crop_rect()
         cx, cy, cw, ch = r.x(), r.y(), r.width(), r.height()
         is_circle = self.overlay.is_circle
-        result = crop_image(img, (cx, cy, cw, ch), is_circle=is_circle)
         if is_circle:
             desc = tr("history.desc.crop_circle")
         else:
             desc = tr("history.desc.crop_ratio", w=cw, h=ch)
         self._finish_mode()
-        self._canvas.apply_edit(result, desc=desc)
+        # Zuschnitt ändert die Canvas-Größe → über apply_geometry auf alle Ebenen
+        # einheitlich (Canvas-Zuschnitt; bei genau einer Ebene wie bisher).
+        self._canvas.apply_geometry(
+            lambda im: crop_image(im, (cx, cy, cw, ch), is_circle=is_circle),
+            desc=desc,
+        )
+        result = self._canvas.image
+        assert result is not None
         self._canvas.statusMsg.emit(tr(
             "canvas.cropped", w=result.width, h=result.height))
 

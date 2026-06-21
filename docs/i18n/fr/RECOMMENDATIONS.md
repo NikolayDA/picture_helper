@@ -38,6 +38,12 @@ restent la baseline avant de nouveaux PRs.
   rembg, PR #289) et **#286** (pics de mémoire dans la lecture de fichier
   plafonnée, PR #290).
 
+- **N9 ✅ — Modèle de données projet/calques (epic #329) livré.** Modèle de
+  domaine sans Qt (#330), historique conscient des calques (#331), canevas de
+  composite (#332), format `.bgrproj` (#333), panneau de calques/menu projet
+  (#334) et migration/intégration (#335) — parité image unique préservée,
+  `make check`/`make ui` au vert.
+
 ### Encore Ouvert
 
 - **O1 🟠 — Langues runtime supplémentaires.** L'allemand et l'anglais sont

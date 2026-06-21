@@ -19,9 +19,67 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   duplication/renommage, visibilité/opacité/verrouillage/rôles) et un composite
   alpha des calques de couleur visibles — sans aucun couplage Qt, rendu,
   persistance ou historique (#330, #329).
+- **Historique annuler/rétablir conscient des calques et sans Qt.** Nouveau
+  module strictement typé `bgremover/project_history.py` (`ProjectHistory`) fait
+  passer annuler/rétablir d'une image unique au modèle de projet : il couvre les
+  changements structurels (ajout/suppression/réordonnancement/duplication d'un
+  calque, calque actif, visibilité/opacité/verrouillage/rôle) et les
+  modifications de pixels par calque. Stratégie mémoire : des instantanés
+  structurels légers plus un pool de pixels avec déduplication qui ne compte
+  qu'une fois les calques inchangés dans le budget annuler/rétablir partagé
+  (l'original et l'état courant restent hors budget) ;
+  `descriptions()`/`undo_to()`/« restaurer l'original » sont conservés. Pas
+  encore relié au canevas (#331, #329 ; suite dans #332).
+- **Format de fichier projet `.bgrproj` (enregistrement/chargement sans perte).**
+  De nouveaux modules sans Qt `bgremover/project_io.py` et
+  `bgremover/project_schema.py` écrivent/lisent un projet multicalque complet sous
+  forme de conteneur ZIP (`manifest.json` avec version de format, taille du
+  canevas, liste ordonnée des calques incl. rôles/métadonnées + un PNG RGBA par
+  calque). L'enregistrement est atomique (`mkstemp`+`os.replace`) ; le chargement
+  valide de façon défensive (limite de taille de fichier, plafond de mégapixels
+  par calque, défense contre le zip-slip/les entrées inattendues, messages
+  d'erreur clairs et traduits). Le schéma est versionné avec des points de
+  migration : les anciennes versions migrent, les plus récentes restent intactes
+  (avertissement seulement). Pas encore relié aux menus/dialogues
+  (#333, #329 ; suite dans #334/#335).
+- **Panneau de calques et menu projet.** Le panneau de droite gagne un nouvel
+  onglet « Calques » : créer des calques, sélectionner (le calque d'édition
+  actif), afficher/masquer, changer l'opacité, réordonner haut/bas, dupliquer,
+  supprimer, renommer et attribuer un rôle (motif couleur/carte de hauteur/gloss) ;
+  toutes les modifications agissent sur le composite du canevas (#332) et sont
+  annulables/rétablissables (#331). Un nouveau menu « Projet » ajoute « Nouveau
+  projet » (`Ctrl+N`), « Ouvrir un projet… » (`Ctrl+Shift+O`), « Enregistrer le
+  projet » (`Ctrl+Alt+S`) et « Enregistrer le projet sous… » (`Ctrl+Alt+Shift+S`),
+  relié au format `.bgrproj` (#333) ; `Ctrl+O`/`Ctrl+S` restent réservés aux flux
+  d'images. Les erreurs de chargement/enregistrement s'affichent sous forme de
+  messages clairs et traduits. Toutes les nouvelles chaînes passent par `i18n.py`
+  (de/en en parité) (#334, #329 ; la migration image→projet suit dans #335).
 
 ### Modifié
 
+- **Intégration image→projet et « Récemment ouverts » pour les projets.**
+  « Ouvrir une image » et le glisser-déposer créent désormais un projet à un seul
+  calque (le chargement validé via `image_loading` est inchangé) ; « Récemment
+  ouverts » liste les images **et** les projets `.bgrproj` et ouvre chaque type
+  correctement (selon l'extension). Le dernier répertoire de projet utilisé est
+  mémorisé (clé de paramètres additive ; pas de migration de schéma nécessaire —
+  la protection de version future est déjà testée). L'export d'image unique écrit
+  toujours le composite (projet à un calque au bit près), et « restaurer
+  l'original » renvoie le document dans son état chargé. Clôt l'epic des calques
+  (#335, #329).
+- **L'éditeur fonctionne désormais par calques (rendu du composite + calque
+  actif).** Le canevas contient un `Project` (#330) au lieu d'une seule image et
+  affiche/enregistre le **composite** des calques visibles
+  (ordre/visibilité/opacité) ; tous les outils (baguette/sélection, pinceau/gomme,
+  lasso, détourage IA, remplacer l'arrière-plan, miroir, coins arrondis) agissent
+  sur le **calque actif**, et le masque de sélection s'y rapporte. La géométrie qui
+  change la taille (rotation, recadrage) s'applique uniformément à tous les calques
+  pour préserver l'invariant du modèle. Annuler/rétablir et « restaurer l'original »
+  passent par l'historique conscient des calques `ProjectHistory` (#331). Un projet
+  avec exactement un calque COLOR se comporte au bit près comme avant (parité, y
+  compris les valeurs RGB conservées sous les pixels transparents à
+  l'enregistrement) ; l'annulation de l'IA reste sans régression
+  `QThread.terminate()` (#332, #329 ; le panneau de calques de l'UI suit dans #334).
 - **Les notes de version GitHub proviennent désormais du CHANGELOG.** Le flux
   de publication (`release-linux.yml`) dérive le corps de la version pour une
   étiquette `vX.Y.Z` de la section `## [X.Y.Z]` de `CHANGELOG.md` et le

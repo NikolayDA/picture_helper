@@ -17,9 +17,57 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   (add/remove/reorder/duplicate/rename, visibility/opacity/lock/roles) and an
   alpha composite of the visible color layers — without any Qt, render,
   persistence or history wiring (#330, #329).
+- **Layer-aware, Qt-free undo/redo history.** New, strictly typed
+  `bgremover/project_history.py` module (`ProjectHistory`) lifts undo/redo from a
+  single image to the project model: it covers structural changes (add/remove/
+  reorder/duplicate a layer, active layer, visibility/opacity/lock/role) and
+  per-layer pixel changes. Memory strategy: lightweight structural snapshots plus
+  a deduplicating pixel pool that counts unchanged layers only once across the
+  shared undo/redo budget (the original and current state stay outside the
+  budget); `descriptions()`/`undo_to()`/“restore original” are preserved. Not yet
+  wired into the canvas (#331, #329; follows in #332).
+- **`.bgrproj` project file format (lossless save/load).** New Qt-free modules
+  `bgremover/project_io.py` and `bgremover/project_schema.py` write/read a complete
+  multi-layer project as a ZIP container (`manifest.json` with format version,
+  canvas size, ordered layer list incl. roles/metadata + one RGBA PNG per layer).
+  Saving is atomic (`mkstemp`+`os.replace`), loading validates defensively (file
+  size limit, per-layer megapixel cap, defense against zip-slip/unexpected entries,
+  clear translated error messages). The schema is versioned with migration hooks:
+  older versions migrate, newer ones are left untouched (warning only). Not yet
+  wired into menus/dialogs (#333, #329; follows in #334/#335).
+- **Layer panel and project menu.** The right-hand panel gains a new “Layers”
+  tab: create layers, select (the active edit layer), toggle visibility, change
+  opacity, reorder up/down, duplicate, delete, rename, and assign a role
+  (color motif/height map/gloss) — all changes apply to the canvas composite
+  (#332) and are undoable/redoable (#331). A new “Project” menu adds “New project”
+  (`Ctrl+N`), “Open project…” (`Ctrl+Shift+O`), “Save project” (`Ctrl+Alt+S`) and
+  “Save project as…” (`Ctrl+Alt+Shift+S`), wired to the `.bgrproj` format (#333);
+  `Ctrl+O`/`Ctrl+S` stay reserved for the image workflows. Load/save errors are
+  shown as clear, translated messages. All new strings go through `i18n.py`
+  (de/en in parity) (#334, #329; image→project migration follows in #335).
 
 ### Changed
 
+- **Image→project integration and “Recently opened” for projects.** “Open image”
+  and drag & drop now create a single-layer project (validated loading via
+  `image_loading` unchanged); “Recently opened” lists images **and** `.bgrproj`
+  projects and opens each type correctly (dispatch by extension). The last-used
+  project directory is remembered (additive settings key; no schema migration
+  needed — the future-version protection is already tested). The single-image
+  export still writes the composite (single-layer project bit-for-bit as before),
+  and “restore original” returns the document in its loaded state. Closes the
+  layer epic (#335, #329).
+- **The editor is now layer-based (composite rendering + active layer).** The
+  canvas holds a `Project` (#330) instead of a single image and displays/saves the
+  **composite** of the visible layers (order/visibility/opacity); all tools (magic
+  wand/selection, brush/eraser, lasso, AI cutout, replace background, flip, round
+  corners) act on the **active layer**, and the selection mask refers to it.
+  Size-changing geometry (rotate, crop) is applied uniformly to all layers to keep
+  the model invariant. Undo/redo and “restore original” run through the
+  layer-aware `ProjectHistory` (#331). A project with exactly one COLOR layer
+  behaves bit-for-bit as before (parity, including RGB values preserved under
+  transparent pixels on save); the AI cancel path stays free of
+  `QThread.terminate()` regressions (#332, #329; the layer panel UI follows in #334).
 - **GitHub release notes now come from the CHANGELOG.** The release workflow
   (`release-linux.yml`) derives the release body for a `vX.Y.Z` tag from the
   `## [X.Y.Z]` section of `CHANGELOG.md` and passes it via `--notes-file` to

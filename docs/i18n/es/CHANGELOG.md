@@ -19,9 +19,64 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   visibilidad/opacidad/bloqueo/roles) y un composite alfa de las capas de color
   visibles, sin ninguna conexión con Qt, renderizado, persistencia o historial
   (#330, #329).
+- **Historial de deshacer/rehacer con reconocimiento de capas y sin Qt.** Nuevo
+  módulo con tipado estricto `bgremover/project_history.py` (`ProjectHistory`)
+  eleva deshacer/rehacer de una sola imagen al modelo de proyecto: cubre cambios
+  estructurales (añadir/eliminar/reordenar/duplicar una capa, capa activa,
+  visibilidad/opacidad/bloqueo/rol) y cambios de píxeles por capa. Estrategia de
+  memoria: instantáneas estructurales ligeras más un pool de píxeles con
+  deduplicación que cuenta las capas sin cambios una sola vez en el presupuesto
+  compartido de deshacer/rehacer (el original y el estado actual quedan fuera del
+  presupuesto); se conservan `descriptions()`/`undo_to()`/«restaurar original».
+  Aún sin conexión con el lienzo (#331, #329; continúa en #332).
+- **Formato de archivo de proyecto `.bgrproj` (guardado/carga sin pérdidas).**
+  Nuevos módulos sin Qt `bgremover/project_io.py` y `bgremover/project_schema.py`
+  escriben/leen un proyecto multicapa completo como contenedor ZIP
+  (`manifest.json` con versión de formato, tamaño del lienzo, lista ordenada de
+  capas incl. roles/metadatos + un PNG RGBA por capa). El guardado es atómico
+  (`mkstemp`+`os.replace`); la carga valida de forma defensiva (límite de tamaño
+  de archivo, tope de megapíxeles por capa, defensa frente a zip-slip/entradas
+  inesperadas, mensajes de error claros y traducidos). El esquema está versionado
+  con ganchos de migración: las versiones antiguas migran, las nuevas quedan
+  intactas (solo aviso). Aún sin conexión con menús/diálogos
+  (#333, #329; continúa en #334/#335).
+- **Panel de capas y menú de proyecto.** El panel derecho incorpora una nueva
+  pestaña «Capas»: crear capas, seleccionar (la capa de edición activa), mostrar/
+  ocultar, cambiar la opacidad, reordenar arriba/abajo, duplicar, eliminar,
+  renombrar y asignar un rol (motivo de color/mapa de altura/gloss); todos los
+  cambios actúan sobre la composición del lienzo (#332) y se pueden deshacer/
+  rehacer (#331). Un nuevo menú «Proyecto» añade «Nuevo proyecto» (`Ctrl+N`),
+  «Abrir proyecto…» (`Ctrl+Shift+O`), «Guardar proyecto» (`Ctrl+Alt+S`) y «Guardar
+  proyecto como…» (`Ctrl+Alt+Shift+S`), conectado al formato `.bgrproj` (#333);
+  `Ctrl+O`/`Ctrl+S` siguen reservados para los flujos de imagen. Los errores de
+  carga/guardado se muestran como mensajes claros y traducidos. Todas las cadenas
+  nuevas pasan por `i18n.py` (de/en en paridad)
+  (#334, #329; la migración imagen→proyecto continúa en #335).
 
 ### Cambiado
 
+- **Integración imagen→proyecto y «Recientes» para proyectos.** «Abrir imagen» y
+  arrastrar y soltar ahora crean un proyecto de una sola capa (la carga validada
+  vía `image_loading` no cambia); «Recientes» lista imágenes **y** proyectos
+  `.bgrproj` y abre cada tipo correctamente (según la extensión). Se recuerda el
+  último directorio de proyecto usado (clave de settings aditiva; sin migración
+  de esquema necesaria: la protección de versión futura ya está probada). La
+  exportación de imagen única sigue escribiendo la composición (proyecto de una
+  capa idéntico bit a bit), y «restaurar original» devuelve el documento en su
+  estado cargado. Cierra el epic de capas (#335, #329).
+- **El editor ahora trabaja por capas (composición + capa activa).** El lienzo
+  contiene un `Project` (#330) en lugar de una sola imagen y muestra/guarda la
+  **composición** de las capas visibles (orden/visibilidad/opacidad); todas las
+  herramientas (varita/selección, pincel/borrador, lazo, recorte por IA,
+  reemplazar fondo, voltear, redondear esquinas) actúan sobre la **capa activa**, y
+  la máscara de selección se refiere a ella. La geometría que cambia el tamaño
+  (rotar, recortar) se aplica de forma uniforme a todas las capas para mantener la
+  invariante del modelo. Deshacer/rehacer y «restaurar original» pasan por el
+  historial con reconocimiento de capas `ProjectHistory` (#331). Un proyecto con
+  exactamente una capa COLOR se comporta exactamente igual que antes (paridad,
+  incluidos los valores RGB conservados bajo píxeles transparentes al guardar); la
+  cancelación de IA sigue sin regresiones de `QThread.terminate()`
+  (#332, #329; el panel de capas de la interfaz continúa en #334).
 - **Las notas de la versión en GitHub ahora provienen del CHANGELOG.** El
   flujo de trabajo de publicación (`release-linux.yml`) deriva el cuerpo de la
   versión para una etiqueta `vX.Y.Z` de la sección `## [X.Y.Z]` de
