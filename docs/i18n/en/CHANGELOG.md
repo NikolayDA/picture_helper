@@ -26,6 +26,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   shared undo/redo budget (the original and current state stay outside the
   budget); `descriptions()`/`undo_to()`/“restore original” are preserved. Not yet
   wired into the canvas (#331, #329; follows in #332).
+- **`.bgrproj` project file format (lossless save/load).** New Qt-free modules
+  `bgremover/project_io.py` and `bgremover/project_schema.py` write/read a complete
+  multi-layer project as a ZIP container (`manifest.json` with format version,
+  canvas size, ordered layer list incl. roles/metadata + one RGBA PNG per layer).
+  Saving is atomic (`mkstemp`+`os.replace`), loading validates defensively (file
+  size limit, per-layer megapixel cap, defense against zip-slip/unexpected entries,
+  clear translated error messages). The schema is versioned with migration hooks:
+  older versions migrate, newer ones are left untouched (warning only). Not yet
+  wired into menus/dialogs (#333, #329; follows in #334/#335).
 
 ### Changed
 

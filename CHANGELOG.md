@@ -28,6 +28,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   geteilte Undo-/Redo-Budget nur einmal zählt (Original und aktueller Zustand
   außerhalb des Budgets); `descriptions()`/`undo_to()`/„Original wiederherstellen"
   bleiben erhalten. Noch ohne Canvas-Verdrahtung (#331, #329; folgt #332).
+- **Projektdatei-Format `.bgrproj` (verlustfreies Speichern/Laden).** Neue
+  Qt-freie Module `bgremover/project_io.py` und `bgremover/project_schema.py`
+  schreiben/lesen ein komplettes Mehr-Ebenen-Projekt als ZIP-Container
+  (`manifest.json` mit Formatversion, Canvas-Größe, geordneter Ebenenliste inkl.
+  Rollen/Metadaten + eine RGBA-PNG je Ebene). Speichern ist atomar
+  (`mkstemp`+`os.replace`), Laden validiert defensiv (Dateigrößen-Limit, Megapixel
+  je Ebene, Abwehr von Zip-Slip/unerwarteten Einträgen, klare übersetzte
+  Fehlermeldungen). Das Schema ist versioniert mit Migrationshaken: ältere
+  Versionen migrieren, neuere bleiben unangetastet (nur Warnung). Noch ohne
+  Menü-/Dialog-Anbindung (#333, #329; folgt #334/#335).
 
 ### Geändert
 

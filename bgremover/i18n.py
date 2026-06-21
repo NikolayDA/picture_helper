@@ -69,6 +69,31 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.file_missing": "Datei nicht mehr vorhanden: {name}",
         "status.open_not_local": "Nur lokale Dateien können geöffnet werden.",
         "status.ai_error": "KI-Fehler: {msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "Projektdatei beschädigt oder kein gültiges Projekt",
+        "project.error.too_large": (
+            "Projektdatei zu groß ({size} MB) – Maximum: {limit} MB"
+        ),
+        "project.error.manifest_missing": "Projektdatei unvollständig: manifest.json fehlt",
+        "project.error.manifest_invalid": "Projektdatei beschädigt: ungültiges Manifest",
+        "project.error.unsupported_version": (
+            "Projektformat-Version {version} wird nicht unterstützt"
+        ),
+        "project.error.unexpected_entry": (
+            "Projektdatei abgewiesen: unerwarteter Eintrag „{name}“"
+        ),
+        "project.error.entry_too_large": (
+            "Projektdatei abgewiesen: Eintrag „{name}“ ist zu groß (entpackt)"
+        ),
+        "project.error.layer_file_missing": (
+            "Projektdatei unvollständig: Ebenen-Bild „{file}“ fehlt"
+        ),
+        "project.error.layer_too_large": (
+            "Ebene zu groß ({mp:.0f} MP) – Maximum: {limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "Ebenengröße {actual} passt nicht zur Canvas-Größe {expected}"
+        ),
         # Main menu
         "menu.file": "Datei",
         "menu.recent_files": "Zuletzt geöffnet",
@@ -402,6 +427,31 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.file_missing": "File no longer exists: {name}",
         "status.open_not_local": "Only local files can be opened.",
         "status.ai_error": "AI error: {msg}",
+        # Project file (.bgrproj) – load/save errors
+        "project.error.corrupt": "Project file is corrupt or not a valid project",
+        "project.error.too_large": (
+            "Project file too large ({size} MB) – maximum: {limit} MB"
+        ),
+        "project.error.manifest_missing": "Project file incomplete: manifest.json is missing",
+        "project.error.manifest_invalid": "Project file corrupt: invalid manifest",
+        "project.error.unsupported_version": (
+            "Project format version {version} is not supported"
+        ),
+        "project.error.unexpected_entry": (
+            "Project file rejected: unexpected entry “{name}”"
+        ),
+        "project.error.entry_too_large": (
+            "Project file rejected: entry “{name}” is too large (uncompressed)"
+        ),
+        "project.error.layer_file_missing": (
+            "Project file incomplete: layer image “{file}” is missing"
+        ),
+        "project.error.layer_too_large": (
+            "Layer too large ({mp:.0f} MP) – maximum: {limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "Layer size {actual} does not match the canvas size {expected}"
+        ),
         # Main menu
         "menu.file": "File",
         "menu.recent_files": "Recently opened",

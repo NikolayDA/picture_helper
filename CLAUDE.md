@@ -38,6 +38,12 @@ Ein Paket, `bgremover/`:
   ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
   + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
   zählen nur einmal) – noch nicht im Canvas verdrahtet (#331, folgt #332).
+- **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
+  `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
+  geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
+  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
+  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333). Noch ohne
+  Menü-/Dialog-Anbindung (folgt #334/#335).
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch

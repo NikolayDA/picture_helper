@@ -29,6 +29,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   compartido de deshacer/rehacer (el original y el estado actual quedan fuera del
   presupuesto); se conservan `descriptions()`/`undo_to()`/«restaurar original».
   Aún sin conexión con el lienzo (#331, #329; continúa en #332).
+- **Formato de archivo de proyecto `.bgrproj` (guardado/carga sin pérdidas).**
+  Nuevos módulos sin Qt `bgremover/project_io.py` y `bgremover/project_schema.py`
+  escriben/leen un proyecto multicapa completo como contenedor ZIP
+  (`manifest.json` con versión de formato, tamaño del lienzo, lista ordenada de
+  capas incl. roles/metadatos + un PNG RGBA por capa). El guardado es atómico
+  (`mkstemp`+`os.replace`); la carga valida de forma defensiva (límite de tamaño
+  de archivo, tope de megapíxeles por capa, defensa frente a zip-slip/entradas
+  inesperadas, mensajes de error claros y traducidos). El esquema está versionado
+  con ganchos de migración: las versiones antiguas migran, las nuevas quedan
+  intactas (solo aviso). Aún sin conexión con menús/diálogos
+  (#333, #329; continúa en #334/#335).
 
 ### Cambiado
 

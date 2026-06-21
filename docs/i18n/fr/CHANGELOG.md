@@ -30,6 +30,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   (l'original et l'état courant restent hors budget) ;
   `descriptions()`/`undo_to()`/« restaurer l'original » sont conservés. Pas
   encore relié au canevas (#331, #329 ; suite dans #332).
+- **Format de fichier projet `.bgrproj` (enregistrement/chargement sans perte).**
+  De nouveaux modules sans Qt `bgremover/project_io.py` et
+  `bgremover/project_schema.py` écrivent/lisent un projet multicalque complet sous
+  forme de conteneur ZIP (`manifest.json` avec version de format, taille du
+  canevas, liste ordonnée des calques incl. rôles/métadonnées + un PNG RGBA par
+  calque). L'enregistrement est atomique (`mkstemp`+`os.replace`) ; le chargement
+  valide de façon défensive (limite de taille de fichier, plafond de mégapixels
+  par calque, défense contre le zip-slip/les entrées inattendues, messages
+  d'erreur clairs et traduits). Le schéma est versionné avec des points de
+  migration : les anciennes versions migrent, les plus récentes restent intactes
+  (avertissement seulement). Pas encore relié aux menus/dialogues
+  (#333, #329 ; suite dans #334/#335).
 
 ### Modifié
 
