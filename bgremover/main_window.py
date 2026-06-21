@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
             self._recent_files,
             MainMenuCallbacks(
                 open_image=self._open_image,
-                open_recent_path=self._load_image_async,
+                open_recent_path=self._open_recent_path,
                 recent_path_missing=self._on_recent_missing,
                 save=self._save,
                 save_as=self._save_as,
@@ -619,12 +619,26 @@ class MainWindow(QMainWindow):
         """Öffnet eine ``.bgrproj``-Datei über einen Datei-Dialog."""
         if not self._confirm_discard_changes():
             return
-        start_dir = self._settings.value("open_dir", "")
+        start_dir = self._settings.value("project_dir", "")
         path, _ = QFileDialog.getOpenFileName(
             self, tr("dialog.open_project.title"), start_dir,
             tr("dialog.open_project.filter"))
-        if not path:
+        if path:
+            self._load_project_into_canvas(path)
+
+    def _open_project_path(self, path: str) -> None:
+        """Öffnet ein Projekt aus „Zuletzt geöffnet" (mit Verwerfen-Nachfrage)."""
+        if not self._confirm_discard_changes():
             return
+        self._load_project_into_canvas(path)
+
+    def _load_project_into_canvas(self, path: str) -> None:
+        """Lädt ``path`` als Projekt in den Canvas; meldet Fehler verständlich.
+
+        Gemeinsamer Pfad für Datei-Dialog und „Zuletzt geöffnet". Die Nachfrage
+        zu ungespeicherten Änderungen liegt bei den Aufrufern, damit sie vor dem
+        Datei-Dialog greifen kann.
+        """
         try:
             project = load_project(path)
         except ProjectFileError as exc:
@@ -633,6 +647,7 @@ class MainWindow(QMainWindow):
         self._canvas.set_project(project)
         self._project_path = path
         self._adopt_new_document()
+        self._remember_project(path)
         self._sb.showMessage(tr("project.opened", name=Path(path).name))
 
     def _save_project(self) -> None:
@@ -647,7 +662,11 @@ class MainWindow(QMainWindow):
         if self._canvas.project is None:
             self._sb.showMessage(tr("project.no_project"))
             return
-        suggest = self._project_path or "projekt"
+        if self._project_path:
+            suggest = self._project_path
+        else:
+            project_dir = self._settings.value("project_dir", "")
+            suggest = str(Path(project_dir) / "projekt") if project_dir else "projekt"
         path, _ = QFileDialog.getSaveFileName(
             self, tr("dialog.save_project.title"), suggest,
             tr("dialog.open_project.filter"))
@@ -671,8 +690,14 @@ class MainWindow(QMainWindow):
             self._sb.showMessage(tr("project.save_failed", error=exc))
             return False
         self._mark_saved()
+        self._remember_project(path)
         self._sb.showMessage(tr("project.saved", name=Path(path).name))
         return True
+
+    def _remember_project(self, path: str) -> None:
+        """Merkt ein Projekt in „Zuletzt geöffnet" und sein Verzeichnis."""
+        self._add_recent(path)
+        self._settings.setValue("project_dir", str(Path(path).resolve().parent))
 
     def _report_project_error(self, message: str) -> None:
         """Zeigt einen Projekt-Lade-/Speicherfehler in Statusleiste + Dialog."""
@@ -680,6 +705,18 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, tr("dialog.project_error.title"), message)
 
     # ── Recent-Files ────────────────────────────────────────────
+
+    def _open_recent_path(self, path: str) -> None:
+        """Öffnet einen „Zuletzt geöffnet"-Eintrag – Projekt (.bgrproj) oder Bild.
+
+        Projekte laufen über den Projekt-Lader (#333), Bilder über den
+        validierten, asynchronen Bildladepfad. So listet „Zuletzt geöffnet"
+        beide Typen und öffnet jeden korrekt (#335).
+        """
+        if path.lower().endswith(PROJECT_SUFFIX):
+            self._open_project_path(path)
+        else:
+            self._load_image_async(path)
 
     def _add_recent(self, path: str) -> None:
         if self._recent_menu is None:

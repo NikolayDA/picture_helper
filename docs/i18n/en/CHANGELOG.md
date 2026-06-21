@@ -48,6 +48,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Image→project integration and “Recently opened” for projects.** “Open image”
+  and drag & drop now create a single-layer project (validated loading via
+  `image_loading` unchanged); “Recently opened” lists images **and** `.bgrproj`
+  projects and opens each type correctly (dispatch by extension). The last-used
+  project directory is remembered (additive settings key; no schema migration
+  needed — the future-version protection is already tested). The single-image
+  export still writes the composite (single-layer project bit-for-bit as before),
+  and “restore original” returns the document in its loaded state. Closes the
+  layer epic (#335, #329).
 - **The editor is now layer-based (composite rendering + active layer).** The
   canvas holds a `Project` (#330) instead of a single image and displays/saves the
   **composite** of the visible layers (order/visibility/opacity); all tools (magic

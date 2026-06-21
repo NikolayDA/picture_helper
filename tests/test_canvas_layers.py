@@ -252,6 +252,42 @@ def test_layers_changed_signal_reports_top_first_with_active(qapp) -> None:
     assert infos[0].active is True                   # oberste (neue) Ebene zuerst & aktiv
 
 
+def test_save_image_exports_composite_of_layers(qapp, tmp_path) -> None:
+    """Einzelbild-Export schreibt das Komposit der Ebenen (#335)."""
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    project.create_layer(_solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
+    top = np.zeros((8, 8, 4), dtype=np.uint8)
+    top[:, :4] = (0, 200, 0, 255)                 # linke Hälfte opak grün
+    project.create_layer(PILImage.fromarray(top, "RGBA"), name="B", kind=LayerKind.COLOR)
+    canvas.set_project(project)
+
+    out = tmp_path / "export.png"
+    assert canvas.save_image(str(out)) is True
+    reloaded = np.array(PILImage.open(out).convert("RGBA"))
+    assert tuple(reloaded[0, 0]) == (0, 200, 0, 255)     # oben (grün)
+    assert tuple(reloaded[0, 7]) == (200, 0, 0, 255)     # unten scheint durch (rot)
+
+
+def test_restore_original_returns_loaded_document_after_layer_edits(qapp) -> None:
+    """„Original wiederherstellen" liefert das Dokument, wie es geladen wurde –
+    auch nach strukturellen Ebenen-Operationen (#335)."""
+    canvas = ImageCanvas()
+    canvas.set_project(_two_layer_project())
+    assert len(canvas.project.layers) == 2
+
+    canvas.add_layer()
+    canvas.delete_active_layer()
+    canvas.set_layer_opacity(canvas.project.layers[0].id, 0.2)
+
+    canvas.restore_original()
+    project = canvas.project
+    assert len(project.layers) == 2                       # Ausgangsstruktur
+    assert all(layer.opacity == pytest.approx(1.0) for layer in project.layers)
+
+
 def test_single_color_layer_matches_plain_image(qapp) -> None:
     """Parität: ein einzelnes COLOR-Ebenen-Projekt rendert identisch zum Bild."""
     canvas = ImageCanvas()

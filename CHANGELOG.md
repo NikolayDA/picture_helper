@@ -52,6 +52,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Bild→Projekt-Integration und „Zuletzt geöffnet" für Projekte.** „Bild
+  öffnen" und Drag & Drop erzeugen jetzt ein Ein-Ebenen-Projekt (validiertes
+  Laden via `image_loading` unverändert); „Zuletzt geöffnet" führt Bilder **und**
+  `.bgrproj`-Projekte und öffnet jeden Typ korrekt (Unterscheidung nach Endung).
+  Das zuletzt genutzte Projektverzeichnis wird gemerkt (additiver
+  Settings-Schlüssel; keine Schema-Migration nötig, der Zukunfts-Version-Schutz
+  ist bereits getestet). Der Einzelbild-Export schreibt weiterhin das Komposit
+  (Ein-Ebenen-Projekt bitgenau wie bisher), „Original wiederherstellen" liefert
+  das Dokument im Ladezustand. Schließt das Ebenen-Epic ab (#335, #329).
 - **Editor arbeitet jetzt ebenenbasiert (Komposit-Rendering + aktive Ebene).**
   Der Canvas hält statt eines Einzelbilds ein `Project` (#330) und zeigt/speichert
   das **Komposit** der sichtbaren Ebenen (Reihenfolge/Sichtbarkeit/Opazität); alle

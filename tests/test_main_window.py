@@ -9,8 +9,11 @@ gezielt gepatcht, statt eine echte Event-Loop zu starten.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from PIL import Image
+from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QMessageBox
 
@@ -539,3 +542,72 @@ def test_save_project_without_project_reports_status(win):
 
     win._save_project_as()
     assert win.statusBar().currentMessage() == tr("project.no_project")
+
+
+# ── #335: Recent Files (Bilder + Projekte), Verzeichnis, Export ──
+
+def test_open_recent_path_dispatches_image_vs_project(win, monkeypatch):
+    """„Zuletzt geöffnet" öffnet ein Projekt über den Projekt-Lader, ein Bild
+    über den Bildladepfad – Unterscheidung an der Endung (#335)."""
+    calls: list[tuple] = []
+    monkeypatch.setattr(win, "_load_project_into_canvas",
+                        lambda p: calls.append(("project", p)))
+    monkeypatch.setattr(win, "_load_image_async",
+                        lambda p: calls.append(("image", p)))
+
+    win._open_recent_path("/x/foto.png")
+    win._open_recent_path("/x/motiv.bgrproj")
+    win._open_recent_path("/x/GROSS.BGRPROJ")     # Endung case-insensitiv
+
+    assert calls == [
+        ("image", "/x/foto.png"),
+        ("project", "/x/motiv.bgrproj"),
+        ("project", "/x/GROSS.BGRPROJ"),
+    ]
+
+
+def _isolated_window(tmp_path):
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
+                      str(tmp_path / "settings"))
+    win = MainWindow()
+    win._recent_files.clear()
+    return win
+
+
+def test_save_project_remembers_recent_and_directory(tmp_path, qapp, monkeypatch):
+    win = _isolated_window(tmp_path)
+    try:
+        _load_dummy_image(win, tmp_path)
+        target = str(tmp_path / "p")            # ohne Endung → wird ergänzt
+        monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                            lambda *a, **k: (target, ""))
+        win._save_project_as()
+
+        saved = str(Path(target + ".bgrproj").resolve())
+        assert saved in win._recent_files.paths()
+        assert win._settings.value("project_dir") == str(Path(saved).parent)
+    finally:
+        win.close()
+
+
+def test_open_project_from_recent_round_trips(tmp_path, qapp, monkeypatch):
+    win = _isolated_window(tmp_path)
+    try:
+        _load_dummy_image(win, tmp_path, color=(7, 8, 9, 255))
+        win._canvas.add_layer()
+        saved = str(tmp_path / "doc.bgrproj")
+        monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                            lambda *a, **k: (saved, ""))
+        win._save_project_as()
+        assert str(Path(saved).resolve()) in win._recent_files.paths()
+
+        win._new_project()
+        assert len(win._canvas.project.layers) == 1
+
+        # Über „Zuletzt geöffnet" zurückladen (Dispatch an der Endung).
+        win._open_recent_path(str(Path(saved).resolve()))
+        assert len(win._canvas.project.layers) == 2
+        assert win._project_path == str(Path(saved).resolve())
+    finally:
+        win.close()

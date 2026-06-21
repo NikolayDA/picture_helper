@@ -57,6 +57,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Intégration image→projet et « Récemment ouverts » pour les projets.**
+  « Ouvrir une image » et le glisser-déposer créent désormais un projet à un seul
+  calque (le chargement validé via `image_loading` est inchangé) ; « Récemment
+  ouverts » liste les images **et** les projets `.bgrproj` et ouvre chaque type
+  correctement (selon l'extension). Le dernier répertoire de projet utilisé est
+  mémorisé (clé de paramètres additive ; pas de migration de schéma nécessaire —
+  la protection de version future est déjà testée). L'export d'image unique écrit
+  toujours le composite (projet à un calque au bit près), et « restaurer
+  l'original » renvoie le document dans son état chargé. Clôt l'epic des calques
+  (#335, #329).
 - **L'éditeur fonctionne désormais par calques (rendu du composite + calque
   actif).** Le canevas contient un `Project` (#330) au lieu d'une seule image et
   affiche/enregistre le **composite** des calques visibles

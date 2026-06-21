@@ -37,6 +37,11 @@ remain the baseline before new PRs.
   fixed **and closed**: **#285** (robustness/memory of the rembg subprocess,
   PR #289) and **#286** (memory peaks in the capped file read, PR #290).
 
+- **N9 ✅ — Project/layer data model (epic #329) delivered.** Qt-free domain
+  model (#330), layer-aware history (#331), composite canvas (#332), `.bgrproj`
+  format (#333), layer panel/project menu (#334) and migration/integration
+  (#335) — single-image parity preserved, `make check`/`make ui` green.
+
 ### Still Open
 
 - **O1 🟠 — Additional runtime languages.** German and English are switchable

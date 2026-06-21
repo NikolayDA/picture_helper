@@ -55,6 +55,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Integración imagen→proyecto y «Recientes» para proyectos.** «Abrir imagen» y
+  arrastrar y soltar ahora crean un proyecto de una sola capa (la carga validada
+  vía `image_loading` no cambia); «Recientes» lista imágenes **y** proyectos
+  `.bgrproj` y abre cada tipo correctamente (según la extensión). Se recuerda el
+  último directorio de proyecto usado (clave de settings aditiva; sin migración
+  de esquema necesaria: la protección de versión futura ya está probada). La
+  exportación de imagen única sigue escribiendo la composición (proyecto de una
+  capa idéntico bit a bit), y «restaurar original» devuelve el documento en su
+  estado cargado. Cierra el epic de capas (#335, #329).
 - **El editor ahora trabaja por capas (composición + capa activa).** El lienzo
   contiene un `Project` (#330) en lugar de una sola imagen y muestra/guarda la
   **composición** de las capas visibles (orden/visibilidad/opacidad); todas las

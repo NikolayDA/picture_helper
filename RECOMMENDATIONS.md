@@ -38,6 +38,11 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   rembg-Subprozesses, PR #289) und **#286** (Speicherspitzen im gekappten
   Datei-Read, PR #290).
 
+- **N9 ✅ — Projekt-/Ebenen-Datenmodell (Epic #329) umgesetzt.** Qt-freies
+  Domänenmodell (#330), ebenenbewusste Historie (#331), Komposit-Canvas (#332),
+  `.bgrproj`-Format (#333), Ebenen-Panel/Projekt-Menü (#334) und Migration/
+  Integration (#335) – Einzelbild-Parität gewahrt, `make check`/`make ui` grün.
+
 ### Noch offen
 
 - **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind in der App

@@ -38,6 +38,12 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   subproceso rembg, PR #289) y **#286** (picos de memoria en la lectura de
   archivo limitada, PR #290).
 
+- **N9 ✅ — Modelo de datos de proyecto/capas (epic #329) entregado.** Modelo de
+  dominio sin Qt (#330), historial con reconocimiento de capas (#331), lienzo de
+  composición (#332), formato `.bgrproj` (#333), panel de capas/menú de proyecto
+  (#334) y migración/integración (#335) — paridad de imagen única conservada,
+  `make check`/`make ui` en verde.
+
 ### Aún Abierto
 
 - **O1 🟠 — Idiomas runtime adicionales.** Alemán e inglés son seleccionables

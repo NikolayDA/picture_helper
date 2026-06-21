@@ -62,7 +62,8 @@ Ein Paket, `bgremover/`:
 - **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
   `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
-  („Zuletzt geöffnet"-Persistenz).
+  („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
+  Dispatch nach Endung im MainWindow, #335).
 - **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
   unter `docs/i18n/`.
 
