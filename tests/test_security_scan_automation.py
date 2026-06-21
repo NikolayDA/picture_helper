@@ -45,6 +45,13 @@ def test_security_scan_workflow_is_scheduled_and_isolates_issue_token() -> None:
 
     assert "cron: '23 4 * * 1'" in workflow
     assert "SCAN_ANCHOR_DATE: '2026-06-08'" in workflow
+    assert 'SECURITY_SCAN_ENABLED: "${{ vars.CODEX_SECURITY_SCAN_ENABLED || \'true\' }}"' in workflow
+    assert "run_scan:" in workflow
+    assert "should_run: ${{ steps.cadence.outputs.should_run }}" in workflow
+    assert "skip_reason: ${{ steps.cadence.outputs.skip_reason }}" in workflow
+    assert "Codex Security Scan disabled by CODEX_SECURITY_SCAN_ENABLED" in workflow
+    assert "Codex Security Scan disabled by workflow_dispatch run_scan input" in workflow
+    assert "## Codex Security Scan skipped" in workflow
     assert "openai/codex-action@v1" in workflow
     assert "output-schema-file: .github/codex/security-findings.schema.json" in workflow
     assert "sandbox: read-only" in workflow
