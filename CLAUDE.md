@@ -30,7 +30,12 @@ Ein Paket, `bgremover/`:
   `main_window.py` verdrahtet die UI.
 - **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
   Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
-  `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker.
+  `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker. Der
+  Canvas hält ein `Project` (#330) und rendert/speichert das **Komposit**;
+  Werkzeuge wirken auf die **aktive Ebene** (`self._pil`/`_arr` sind deren Cache),
+  größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
+  Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
+  zum bisherigen Einzelbild-Editor (#332).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

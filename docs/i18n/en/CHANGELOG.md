@@ -38,6 +38,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **The editor is now layer-based (composite rendering + active layer).** The
+  canvas holds a `Project` (#330) instead of a single image and displays/saves the
+  **composite** of the visible layers (order/visibility/opacity); all tools (magic
+  wand/selection, brush/eraser, lasso, AI cutout, replace background, flip, round
+  corners) act on the **active layer**, and the selection mask refers to it.
+  Size-changing geometry (rotate, crop) is applied uniformly to all layers to keep
+  the model invariant. Undo/redo and “restore original” run through the
+  layer-aware `ProjectHistory` (#331). A project with exactly one COLOR layer
+  behaves bit-for-bit as before (parity, including RGB values preserved under
+  transparent pixels on save); the AI cancel path stays free of
+  `QThread.terminate()` regressions (#332, #329; the layer panel UI follows in #334).
 - **GitHub release notes now come from the CHANGELOG.** The release workflow
   (`release-linux.yml`) derives the release body for a `vX.Y.Z` tag from the
   `## [X.Y.Z]` section of `CHANGELOG.md` and passes it via `--notes-file` to

@@ -58,10 +58,15 @@ class CanvasTransform:
                 maximum=_MAX_MEGAPIXELS,
             ))
             return
-        result = rotate_image(img, degrees)
         direction = "↺" if degrees > 0 else "↻"
-        self._canvas.apply_edit(result, desc=tr(
-            "history.desc.rotated", direction=direction, degrees=abs(degrees)))
+        # Drehen ändert die Canvas-Größe → über apply_geometry auf alle Ebenen
+        # einheitlich (Canvas-Drehung; bei genau einer Ebene wie bisher).
+        self._canvas.apply_geometry(
+            lambda im: rotate_image(im, degrees),
+            desc=tr("history.desc.rotated", direction=direction, degrees=abs(degrees)),
+        )
+        result = self._canvas.image
+        assert result is not None
         self._canvas.statusMsg.emit(tr(
             "canvas.rotated", direction=direction, degrees=abs(degrees),
             w=result.width, h=result.height))

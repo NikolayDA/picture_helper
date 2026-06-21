@@ -41,6 +41,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Editor arbeitet jetzt ebenenbasiert (Komposit-Rendering + aktive Ebene).**
+  Der Canvas hält statt eines Einzelbilds ein `Project` (#330) und zeigt/speichert
+  das **Komposit** der sichtbaren Ebenen (Reihenfolge/Sichtbarkeit/Opazität); alle
+  Werkzeuge (Zauberstab/Auswahl, Pinsel/Radierer, Lasso, KI-Freistellung,
+  Hintergrund ersetzen, Spiegeln, Eckenrundung) wirken auf die **aktive Ebene**,
+  die Auswahlmaske bezieht sich auf sie. Größenändernde Geometrie (Drehen,
+  Zuschnitt) wirkt invariantenwahrend einheitlich auf alle Ebenen. Undo/Redo und
+  „Original wiederherstellen" laufen über die ebenenbewusste `ProjectHistory`
+  (#331). Ein Projekt mit genau einer COLOR-Ebene verhält sich bitgenau wie bisher
+  (Parität, inkl. erhaltener RGB-Werte unter transparenten Pixeln beim Speichern);
+  der KI-Abbruch bleibt ohne `QThread.terminate()`-Regression (#332, #329; UI-
+  Ebenen-Panel folgt #334).
 - **GitHub-Release-Notizen stammen jetzt aus dem CHANGELOG.** Der
   Release-Workflow (`release-linux.yml`) leitet den Release-Body zum Tag
   `vX.Y.Z` aus dem `## [X.Y.Z]`-Abschnitt der `CHANGELOG.md` ab und übergibt ihn

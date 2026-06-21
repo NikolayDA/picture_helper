@@ -45,6 +45,19 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **L'éditeur fonctionne désormais par calques (rendu du composite + calque
+  actif).** Le canevas contient un `Project` (#330) au lieu d'une seule image et
+  affiche/enregistre le **composite** des calques visibles
+  (ordre/visibilité/opacité) ; tous les outils (baguette/sélection, pinceau/gomme,
+  lasso, détourage IA, remplacer l'arrière-plan, miroir, coins arrondis) agissent
+  sur le **calque actif**, et le masque de sélection s'y rapporte. La géométrie qui
+  change la taille (rotation, recadrage) s'applique uniformément à tous les calques
+  pour préserver l'invariant du modèle. Annuler/rétablir et « restaurer l'original »
+  passent par l'historique conscient des calques `ProjectHistory` (#331). Un projet
+  avec exactement un calque COLOR se comporte au bit près comme avant (parité, y
+  compris les valeurs RGB conservées sous les pixels transparents à
+  l'enregistrement) ; l'annulation de l'IA reste sans régression
+  `QThread.terminate()` (#332, #329 ; le panneau de calques de l'UI suit dans #334).
 - **Les notes de version GitHub proviennent désormais du CHANGELOG.** Le flux
   de publication (`release-linux.yml`) dérive le corps de la version pour une
   étiquette `vX.Y.Z` de la section `## [X.Y.Z]` de `CHANGELOG.md` et le

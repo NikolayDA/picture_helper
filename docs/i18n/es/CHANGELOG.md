@@ -43,6 +43,19 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **El editor ahora trabaja por capas (composición + capa activa).** El lienzo
+  contiene un `Project` (#330) en lugar de una sola imagen y muestra/guarda la
+  **composición** de las capas visibles (orden/visibilidad/opacidad); todas las
+  herramientas (varita/selección, pincel/borrador, lazo, recorte por IA,
+  reemplazar fondo, voltear, redondear esquinas) actúan sobre la **capa activa**, y
+  la máscara de selección se refiere a ella. La geometría que cambia el tamaño
+  (rotar, recortar) se aplica de forma uniforme a todas las capas para mantener la
+  invariante del modelo. Deshacer/rehacer y «restaurar original» pasan por el
+  historial con reconocimiento de capas `ProjectHistory` (#331). Un proyecto con
+  exactamente una capa COLOR se comporta exactamente igual que antes (paridad,
+  incluidos los valores RGB conservados bajo píxeles transparentes al guardar); la
+  cancelación de IA sigue sin regresiones de `QThread.terminate()`
+  (#332, #329; el panel de capas de la interfaz continúa en #334).
 - **Las notas de la versión en GitHub ahora provienen del CHANGELOG.** El
   flujo de trabajo de publicación (`release-linux.yml`) deriva el cuerpo de la
   versión para una etiqueta `vX.Y.Z` de la sección `## [X.Y.Z]` de

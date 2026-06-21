@@ -32,7 +32,6 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.canvas_crop import CanvasCrop
-from bgremover.canvas_history import CanvasHistory
 from bgremover.canvas_lasso import CanvasLasso
 from bgremover.canvas_selection import CanvasSelection
 from bgremover.canvas_transform import CanvasTransform
@@ -56,7 +55,13 @@ from bgremover.image_utils import (
     mask_to_overlay,
     pil_to_numpy_readonly,
 )
+from bgremover.project_history import ProjectHistory
+from bgremover.project_model import LayerKind, Project
 from bgremover.status_messages import StatusMessages as SM
+
+# Standardname der einzigen Ebene eines aus einem Einzelbild erzeugten Projekts.
+# Bis zum Ebenen-Panel (#334) nicht in der UI sichtbar.
+_DEFAULT_LAYER_NAME = "Ebene 1"
 
 
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
@@ -118,6 +123,11 @@ class ImageCanvas(QGraphicsView):
         # None = kein Overlay aktiv (leere Auswahl).
         self._overlay_pixmap: QPixmap | None = None
 
+        # Projektmodell ist die Quelle der Wahrheit (#332). ``self._pil``/
+        # ``self._arr`` sind nur Caches des Bildes der **aktiven** Ebene – das
+        # Editierziel aller Werkzeuge; angezeigt/gespeichert wird das Komposit
+        # (mit Einzel-Ebenen-Schnellpfad für exakte Parität).
+        self._project: Project | None = None
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
         self._selection = CanvasSelection(0, 0)
@@ -125,7 +135,7 @@ class ImageCanvas(QGraphicsView):
         # Externe Worker nutzen diese Revision als Stale-Check statt
         # Objektidentität.
         self._content_revision: int = 0
-        self._history = CanvasHistory()
+        self._history = ProjectHistory()
 
         self._tool      = TOOL_WAND
         self._tolerance = _DEFAULT_TOLERANCE
@@ -169,12 +179,22 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def image(self) -> Image.Image | None:
-        """Aktuell angezeigtes PIL-Bild (oder ``None``)."""
+        """Bild der **aktiven Ebene** – das Editierziel (oder ``None``).
+
+        Bewusst die aktive Ebene und nicht das Komposit: Werkzeuge und Tests
+        arbeiten auf dem Editierziel. Das angezeigte/gespeicherte Komposit liefert
+        ``_render_image``. Bei genau einer Ebene sind beide identisch (Parität).
+        """
         return self._pil
 
     @property
+    def project(self) -> Project | None:
+        """Aktuelles Projektmodell (oder ``None``); nur lesen."""
+        return self._project
+
+    @property
     def has_image(self) -> bool:
-        """True, sobald ein Bild geladen ist."""
+        """True, sobald ein Bild/Projekt geladen ist."""
         return self._pil is not None
 
     @property
@@ -250,19 +270,57 @@ class ImageCanvas(QGraphicsView):
         assert img is not None
         self.apply_loaded_image(img, path)
 
+    @staticmethod
+    def _single_layer_project(img: Image.Image) -> Project:
+        """Baut ein Projekt mit genau einer COLOR-Ebene aus einem Einzelbild.
+
+        Garantiert die heutige Single-Layer-Welt: solange es nur diese eine,
+        sichtbare, voll deckende COLOR-Ebene gibt, ist das Komposit identisch zu
+        ihrem Bild (Parität).
+        """
+        project = Project(img.width, img.height)
+        layer = project.create_layer(
+            img, name=_DEFAULT_LAYER_NAME, kind=LayerKind.COLOR)
+        # Objekt-Identität wie bisher bewahren (Parität: ``canvas.image is img``
+        # ohne zusätzlichen Kopiersprung; die Async-Lade-Generationslogik prüft
+        # darüber, welches Ladeergebnis gewann). ``img`` ist auf den Lade-Pfaden
+        # bereits RGBA (open_validated_image); sonst bleibt die RGBA-Kopie der Ebene.
+        if img.mode == "RGBA":
+            layer.image = img
+        return project
+
     def apply_loaded_image(self, img: Image.Image, path: str) -> None:
-        """Übernimmt ein bereits geladenes (PIL-)Bild als neuen Canvas-State."""
+        """Übernimmt ein bereits geladenes (PIL-)Bild als neues Projekt."""
         self._history.clear()
-        self._history.set_original(img)
+        self._project = self._single_layer_project(img)
+        self._history.set_original(self._project)
         self._reset_transient_state()
-        self._apply_pil(img, push=False)
+        self._set_image_state()
         self._viewport.fit_to_view()
         self.statusMsg.emit(tr(
             "canvas.opened", name=Path(path).name, w=img.width, h=img.height))
         self.imageLoaded.emit(str(Path(path).resolve()))
 
+    def set_project(self, project: Project) -> None:
+        """Übernimmt ein komplettes Projekt als neues Dokument.
+
+        Projektbasierter, öffentlicher Gegenpart zu :meth:`apply_loaded_image`:
+        setzt Historie/Original zurück, rendert das Komposit und passt die Ansicht
+        ein. Genutzt vom Mehr-Ebenen-Pfad (Projekt öffnen/anlegen, #334/#335) und
+        von Tests. Das Projekt wird **übernommen** (nicht kopiert); der Aufrufer
+        gibt es danach aus der Hand.
+        """
+        self._history.clear()
+        self._project = project
+        self._history.set_original(project)
+        self._reset_transient_state()
+        self._set_image_state()
+        self._viewport.fit_to_view()
+
     def apply_edit(self, img: Image.Image, desc: str | None = None) -> None:
-        """Wendet einen neuen Bildzustand als Undo-fähige Bearbeitung an."""
+        """Wendet einen neuen Bildzustand der **aktiven Ebene** als Undo-fähige
+        Bearbeitung an (gleiche Geometrie; größenändernde Geometrie läuft über
+        :meth:`apply_geometry`)."""
         self._apply_pil(img, push=True, desc=desc)
 
     def _apply_pil(
@@ -271,13 +329,73 @@ class ImageCanvas(QGraphicsView):
         push: bool = True,
         desc: str | None = None,
     ) -> None:
-        if push and self._pil is not None:
-            self._history.push(self._pil, desc or tr("history.desc.generic"))
+        """Ersetzt das Bild der aktiven Ebene (Editierziel) durch *img*.
+
+        Für eine Einzel-Ebene entspricht das exakt dem bisherigen Verhalten. Bei
+        mehreren Ebenen bleibt nur die aktive Ebene betroffen. *img* hat in der
+        Regel Canvas-Größe (Pixel-/Alpha-Edits, Spiegeln, Eckenrundung); eine
+        abweichende Größe (nur einlagig zu erwarten) passt die Canvas-Größe an.
+        """
+        if self._project is None:
+            return
+        if push:
+            self._history.push(self._project, desc or tr("history.desc.generic"))
             self._emit_history()
-        self._set_image_state(img)
+        active = self._project.active_layer()
+        assert active is not None
+        rgba = img if img.mode == "RGBA" else img.convert("RGBA")
+        if rgba.size != self._project.size:
+            self._project.width, self._project.height = rgba.size
+        active.image = rgba
+        self._set_image_state()
+
+    def apply_geometry(
+        self,
+        transform: Callable[[Image.Image], Image.Image],
+        desc: str,
+    ) -> None:
+        """Wendet eine **größenändernde** Geometrie auf das **ganze** Projekt an.
+
+        Drehen und Zuschnitt ändern die Canvas-Größe; um die Modell-Invariante
+        (alle Ebenen in Canvas-Größe) zu wahren, wird *transform* einheitlich auf
+        **jede** Ebene angewandt (Canvas-Drehung/-Zuschnitt). Für ein Projekt mit
+        genau einer Ebene ist das exakt das bisherige Verhalten. Ein einziger
+        Undo-Schritt erfasst den Gesamtzustand vor der Operation.
+        """
+        if self._project is None:
+            return
+        self._history.push(self._project, desc)
+        self._emit_history()
+        for layer in self._project.layers:
+            result = transform(layer.image)
+            layer.image = result if result.mode == "RGBA" else result.convert("RGBA")
+        active = self._project.active_layer()
+        assert active is not None
+        self._project.width, self._project.height = active.image.size
+        self._set_image_state()
+
+    def _render_image(self) -> Image.Image | None:
+        """Das anzuzeigende/zu speichernde Bild: Komposit der sichtbaren Ebenen.
+
+        Schnellpfad für die Single-Layer-Welt: genau eine sichtbare, voll
+        deckende COLOR-Ebene wird **direkt** (ohne Alpha-Komposit) zurückgegeben.
+        So bleiben RGB-Werte unter transparenten Pixeln erhalten – ``alpha_composite``
+        würde sie auf 0 setzen – und Anzeige wie Speichern sind bitgenau wie bisher.
+        """
+        if self._project is None:
+            return None
+        layers = self._project.layers
+        if (
+            len(layers) == 1
+            and layers[0].kind is LayerKind.COLOR
+            and layers[0].visible
+            and layers[0].opacity >= 1.0
+        ):
+            return layers[0].image
+        return self._project.composite_color()
 
     def _refresh_image(self) -> None:
-        self._viewport.refresh_image(self._pil)
+        self._viewport.refresh_image(self._render_image())
 
     def _refresh_overlay(self, dirty: tuple[int, int, int, int] | None = None) -> None:
         """Aktualisiert das rote Auswahl-Overlay.
@@ -312,27 +430,34 @@ class ImageCanvas(QGraphicsView):
         self._overlay_pixmap = mask_to_overlay(mask, w, h)
         self._overlay_item.setPixmap(self._overlay_pixmap)
 
-    def _set_image_state(self, img: Image.Image) -> None:
-        """Übernimmt *img* als aktuellen Bildzustand (Pixmap + leere Maske).
+    def _set_image_state(self) -> None:
+        """Synchronisiert Caches/Anzeige mit der **aktiven Ebene** des Projekts.
 
-        Kapselt den Anzeigezustand und die Content-Revision. Die
-        Undo-/Redo-Stapelpflege liegt in ``CanvasHistory``.
+        ``self._pil``/``self._arr`` spiegeln das Bild der aktiven Ebene (das
+        Editierziel), angezeigt wird das Komposit. Kapselt den Anzeigezustand und
+        die Content-Revision; die Undo-/Redo-Stapelpflege liegt in
+        ``ProjectHistory``.
 
         Verwirft vor dem Wechsel geometrieabhängige Overlays (Crop/Lasso):
         Jeder sichtbare Bildzustandswechsel – Transformation, KI-Ergebnis,
         Undo/Redo/Undo-to, Original-Wiederherstellung, Crop-Bestätigung und
-        Laden – ändert die Bildgeometrie. Ein altes Crop-Rechteck würde sonst
+        Laden – kann die Bildgeometrie ändern. Ein altes Crop-Rechteck würde sonst
         beim nächsten ``confirm_crop()`` auf das neue Bild angewendet und – wenn
         es über die neuen Grenzen hinausragt – transparente Padding-Pixel
         erzeugen (#247).
         """
         self._discard_overlay_interactions()
-        self._pil  = img
+        active = self._project.active_layer() if self._project is not None else None
+        self._pil = active.image if active is not None else None
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
         # lesen nur und kopieren bei Bedarf selbst. Spart eine grosse
         # Heap-Allokation pro Bildwechsel.
-        self._arr  = pil_to_numpy_readonly(img)
-        self._selection.reset(img.width, img.height)
+        if self._pil is not None:
+            self._arr = pil_to_numpy_readonly(self._pil)
+            self._selection.reset(self._pil.width, self._pil.height)
+        else:
+            self._arr = None
+            self._selection.reset(0, 0)
         self._content_revision += 1
         self._refresh_image()
         self._refresh_overlay()
@@ -381,17 +506,22 @@ class ImageCanvas(QGraphicsView):
         """Sendet die aktuelle Verlaufsliste (neueste zuerst)."""
         self.historyChanged.emit(self._history.descriptions())
 
+    def _adopt_project(self, project: Project) -> None:
+        """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""
+        self._project = project
+        self._set_image_state()
+
     def _apply_history_step(
         self,
-        result: tuple[Image.Image, str] | None,
+        result: tuple[Project, str] | None,
         empty_message: str,
         status_template: str,
     ) -> None:
         if result is None:
             self.statusMsg.emit(empty_message)
             return
-        img, desc = result
-        self._set_image_state(img)
+        project, desc = result
+        self._adopt_project(project)
         self._emit_history()
         self.statusMsg.emit(status_template.format(desc=desc))
 
@@ -402,7 +532,7 @@ class ImageCanvas(QGraphicsView):
             self.cancel_crop()
             return
         self._apply_history_step(
-            self._history.undo(self._pil),
+            self._history.undo(self._project),
             tr("canvas.undo_none"),
             tr("canvas.undo_done"),
         )
@@ -411,7 +541,7 @@ class ImageCanvas(QGraphicsView):
         if self._crop.active:
             return
         self._apply_history_step(
-            self._history.redo(self._pil),
+            self._history.redo(self._project),
             tr("canvas.redo_none"),
             tr("canvas.redo_done"),
         )
@@ -420,23 +550,23 @@ class ImageCanvas(QGraphicsView):
         if self._crop.active:
             self.cancel_crop()
             return
-        result = self._history.undo_to(self._pil, steps)
+        result = self._history.undo_to(self._project, steps)
         if result is None:
             return
-        img, desc, actual = result
-        self._set_image_state(img)
+        project, desc, actual = result
+        self._adopt_project(project)
         self._emit_history()
         self.statusMsg.emit(tr("canvas.undo_to", steps=actual, desc=desc))
 
     def restore_original(self) -> None:
         restored = self._history.restore(
-            self._pil,
+            self._project,
             tr("history.desc.original_restored"),
         )
         if restored is None:
             return
         self._reset_transient_state()
-        self._set_image_state(restored)
+        self._adopt_project(restored)
         self._emit_history()
         self.statusMsg.emit(tr("canvas.original_restored"))
 
@@ -604,20 +734,22 @@ class ImageCanvas(QGraphicsView):
         self._wand_busy = False
 
     def save_image(self, path: str) -> bool:
-        """Speichert das aktuelle Bild; gibt ``True`` bei Erfolg zurück.
+        """Speichert das aktuelle Komposit; gibt ``True`` bei Erfolg zurück.
 
-        E/A-Fehler (nicht beschreibbarer Pfad, voller Datenträger,
-        unbekanntes Format …) werden protokolliert und als Statusmeldung
-        gemeldet, statt unbehandelt zu propagieren – konsistent zu
+        Gespeichert wird das gerenderte Komposit (``_render_image``) – bei genau
+        einer Ebene bitgenau wie bisher. E/A-Fehler (nicht beschreibbarer Pfad,
+        voller Datenträger, unbekanntes Format …) werden protokolliert und als
+        Statusmeldung gemeldet, statt unbehandelt zu propagieren – konsistent zu
         ``apply_remove``/``apply_replace``. Der Rückgabewert erlaubt dem
         Aufrufer, einen fehlgeschlagenen Pfad nicht als Quick-Save-Ziel
         zu merken.
         """
-        if self._pil is None:
+        export = self._render_image()
+        if export is None:
             self.statusMsg.emit(SM.KEIN_BILD_ZUM_SPEICHERN)
             return False
         try:
-            save_image_file(self._pil, path)
+            save_image_file(export, path)
         except Exception as e:
             logger.exception("Speichern fehlgeschlagen: %s", path)
             self.statusMsg.emit(tr("canvas.save_failed", error=e))
