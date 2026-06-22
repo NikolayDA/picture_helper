@@ -29,7 +29,11 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+# ``image_ops`` ist seit dem #359-Review import-zeitlich Qt-frei (lazy ``numpy_to_pil``),
+# daher kann das Domänenmodell die reine ``resize_image``-Primitive direkt nutzen,
+# ohne PyQt6 einzuziehen – ``Project.resize`` bleibt headless aufrufbar.
 from bgremover.height_map import layer_to_gray_image
+from bgremover.image_ops import resize_image
 
 # Aktuelle Modellversion. Eigener Schlüssel mit Migrationshaken folgt mit dem
 # Dateiformat (#333), Muster wie ``settings_schema``.
@@ -396,12 +400,6 @@ class Project:
             raise ValueError(f"Canvas-Größe muss positiv sein, war {width}x{height}")
         if (width, height) == self.size:
             return
-        # Lazy-Import: ``image_ops`` zieht über ``image_utils`` PyQt6; der
-        # Modulkopf bleibt so import-zeitlich Qt-frei (das Domänenmodell wird
-        # auch ohne GUI importiert), während der Resize-Pfad nur im GUI-Kontext
-        # zur Laufzeit greift.
-        from bgremover.image_ops import resize_image
-
         for layer in self._layers:
             resized = resize_image(layer.image, width, height, resample=resample)
             if layer.kind is LayerKind.HEIGHT:

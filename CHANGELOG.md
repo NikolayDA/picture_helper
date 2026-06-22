@@ -11,6 +11,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Farbkorrektur der aktiven Farbebene (Helligkeit/Kontrast/Sättigung).** Neues
+  Qt-freies, strikt getyptes Modul `bgremover/color_ops.py` mit `adjust_color`
+  (Pillow `ImageEnhance`, **Alphakanal exakt erhalten**, Neutralwerte =
+  bitidentisches No-op) – als wiederverwendbare Tonwert-Primitive für die spätere
+  geteilte Engine (Rang #6). Der Canvas bietet dafür eine generische
+  **Live-Vorschau** (`preview_color_op`/`cancel_color_preview`, transient ohne
+  Modelländerung; die Vorschau hat in `_refresh_image` Vorrang) und einen
+  undo-/redobaren Commit (`apply_color_op`) auf der aktiven **COLOR**-Ebene (auf
+  Nicht-COLOR-Ebenen wirkungslos). Neuer „Anpassen"-Tab im rechten Panel mit
+  Reglern Helligkeit/Kontrast/Sättigung samt **Zurücksetzen** und **Anwenden**.
+  Alle neuen Strings de/en in Parität (#360).
 - **Größe ändern / auf Zielgröße skalieren (Resampling).** Neue Qt-freie, strikt
   getypte Bildoperationen `resize_image`/`resized_size` in `image_ops.py` (No-op
   bei gleicher Größe; Seitenverhältnis-/Megapixel-Gate-Helfer) sowie

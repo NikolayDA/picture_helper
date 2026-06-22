@@ -11,6 +11,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Corrección de color de la capa de color activa (brillo/contraste/saturación).**
+  Nuevo módulo sin Qt y con tipado estricto `bgremover/color_ops.py` con
+  `adjust_color` (Pillow `ImageEnhance`, **canal alfa exactamente preservado**,
+  valores neutros = no-op idéntico bit a bit), como primitiva de tono reutilizable
+  para el motor compartido posterior (rango #6). El lienzo ofrece una
+  **vista previa en vivo** genérica (`preview_color_op`/`cancel_color_preview`,
+  transitoria sin cambios en el modelo; la vista previa tiene prioridad en
+  `_refresh_image`) y una confirmación con deshacer/rehacer (`apply_color_op`)
+  sobre la capa **COLOR** activa (sin efecto en capas no COLOR). Nueva pestaña
+  «Ajustar» en el panel derecho con deslizadores de brillo/contraste/saturación
+  con **Restablecer** y **Aplicar**. Todas las cadenas nuevas con paridad de/en
+  (#360).
 - **Cambiar tamaño / escalar a un tamaño objetivo (remuestreo).** Nuevas
   operaciones de imagen sin Qt y con tipado estricto `resize_image`/`resized_size`
   en `image_ops.py` (sin efecto si el tamaño coincide; ayudante de relación de

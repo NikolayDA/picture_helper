@@ -11,6 +11,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Correction des couleurs du calque couleur actif (luminosité/contraste/saturation).**
+  Nouveau module sans Qt et strictement typé `bgremover/color_ops.py` avec
+  `adjust_color` (Pillow `ImageEnhance`, **canal alpha exactement préservé**,
+  valeurs neutres = no-op identique au bit près), une primitive de tonalité
+  réutilisable pour le moteur partagé ultérieur (rang #6). Le canevas fournit un
+  **aperçu en direct** générique (`preview_color_op`/`cancel_color_preview`,
+  transitoire sans modifier le modèle ; l’aperçu est prioritaire dans
+  `_refresh_image`) et une validation annulable/rétablissable (`apply_color_op`)
+  sur le calque **COLOR** actif (sans effet sur les calques non COLOR). Un nouvel
+  onglet « Ajuster » dans le panneau de droite propose des curseurs
+  luminosité/contraste/saturation avec **Réinitialiser** et **Appliquer**. Toutes
+  les nouvelles chaînes en parité de/en (#360).
 - **Redimensionner / mettre à l’échelle vers une taille cible (rééchantillonnage).**
   Nouvelles opérations d’image sans Qt et strictement typées
   `resize_image`/`resized_size` dans `image_ops.py` (sans effet si la taille est

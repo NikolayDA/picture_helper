@@ -122,6 +122,7 @@ module = [
     "bgremover.ai_process",
     "bgremover.image_ops",
     "bgremover.image_utils",
+    "bgremover.color_ops",
     "bgremover.height_map",
     "bgremover.height_ops",
     "bgremover.crop",

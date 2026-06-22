@@ -15,11 +15,15 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-from bgremover.image_utils import numpy_to_pil
+# ``numpy_to_pil`` wird bewusst **lazy** (in den Funktionen) importiert: ``image_utils``
+# zieht PyQt6, ein Modul-Import würde ``image_ops`` import-zeitlich an Qt koppeln.
+# So bleibt dieses Modul (und damit reine Aufrufer wie ``project_model.resize``)
+# auch in Qt-losen/Headless-Kontexten importierbar (#359/#360-Review).
 
 
 def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
     """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel transparent sind."""
+    from bgremover.image_utils import numpy_to_pil
     result = arr.copy()
     result[mask, 3] = 0
     return numpy_to_pil(result)
@@ -28,6 +32,7 @@ def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
 def replace_selection(arr: np.ndarray, mask: np.ndarray,
                       color: tuple[int, int, int]) -> Image.Image:
     """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel durch ``color`` ersetzt sind."""
+    from bgremover.image_utils import numpy_to_pil
     result = arr.copy()
     result[mask] = [color[0], color[1], color[2], 255]
     return numpy_to_pil(result)

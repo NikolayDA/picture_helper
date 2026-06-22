@@ -223,6 +223,9 @@ class MainWindow(QMainWindow):
                 round_corners=self._canvas.apply_round_corners,
                 start_crop_circle=self._canvas.start_crop_circle,
                 start_crop_ratio=self._canvas.start_crop_ratio,
+                preview_color=self._canvas.preview_color_op,
+                apply_color=self._canvas.apply_color_op,
+                cancel_color_preview=self._canvas.cancel_color_preview,
             ),
             LayerPanelActions(
                 add_layer=self._canvas.add_layer,

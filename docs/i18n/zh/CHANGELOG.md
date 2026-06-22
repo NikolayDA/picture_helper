@@ -11,6 +11,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **活动颜色图层的色彩校正（亮度/对比度/饱和度）。** 新增无 Qt、严格类型化模块
+  `bgremover/color_ops.py`，提供 `adjust_color`（Pillow `ImageEnhance`，**精确保留
+  Alpha 通道**，中性值为逐位一致的空操作）——作为可复用的色调原语，供后续共享引擎
+  （第 #6 级）使用。画布为此提供通用的**实时预览**
+  （`preview_color_op`/`cancel_color_preview`，瞬态、不改动模型；预览在
+  `_refresh_image` 中优先），以及对活动 **COLOR** 图层可撤销/重做的提交
+  （`apply_color_op`，对非 COLOR 图层无效）。右侧面板新增“调整”选项卡，含
+  亮度/对比度/饱和度滑块以及**重置**与**应用**。所有新增字符串 de/en 对齐（#360）。
 - **调整尺寸 / 缩放到目标尺寸（重采样）。** 在 `image_ops.py` 中新增无 Qt、
   严格类型化的图像操作 `resize_image`/`resized_size`（尺寸相同时为空操作；
   纵横比/百万像素门限辅助函数），并在 `project_model.py` 中新增 `Project.resize`，

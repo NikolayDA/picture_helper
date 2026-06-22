@@ -68,6 +68,9 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         round_corners=lambda value: calls.append(("round", value)),
         start_crop_circle=lambda: calls.append(("crop_circle",)),
         start_crop_ratio=lambda w, h: calls.append(("crop_ratio", w, h)),
+        preview_color=lambda op: calls.append(("preview_color",)),
+        apply_color=lambda op: calls.append(("apply_color",)),
+        cancel_color_preview=lambda: calls.append(("cancel_color",)),
     )
 
 
@@ -76,9 +79,10 @@ def test_right_panel_builder_creates_expected_tabs(qapp):
 
     tabs = panel.frame.findChild(TopIconTabWidget)
     assert tabs is not None
-    assert tabs.count() == 6
+    assert tabs.count() == 7
     assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Auswahl", "Hintergrund", "Drehen/Spiegeln", "Form", "Ebenen", "Höhe",
+        "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln", "Form",
+        "Ebenen", "Höhe",
     ]
 
 
@@ -134,6 +138,34 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("crop_ratio", 16, 9),
         ("crop_ratio", 9, 16),
     ]
+
+
+# ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_adjust_tab_sliders_drive_preview_apply_reset(qapp):
+    from bgremover.right_panel_tabs import AdjustTab
+
+    calls: list[tuple] = []
+    _widget, refs = AdjustTab(_actions(calls)).build()
+
+    # Reglerbewegung → Live-Vorschau
+    refs["adjust_brightness"].setValue(150)
+    refs["adjust_contrast"].setValue(120)
+    refs["adjust_saturation"].setValue(0)
+    assert calls.count(("preview_color",)) == 3
+
+    refs["adjust_apply"].click()
+    assert ("apply_color",) in calls
+
+    # Zurücksetzen: Regler auf 100 % + Vorschau verwerfen (ohne neue Preview-Spam).
+    calls.clear()
+    refs["adjust_reset"].click()
+    assert refs["adjust_brightness"].value() == 100
+    assert refs["adjust_contrast"].value() == 100
+    assert refs["adjust_saturation"].value() == 100
+    assert calls == [("cancel_color",)]
 
 
 # ── Ebenen-Panel (#334) ──────────────────────────────────────────────────

@@ -16,12 +16,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from bgremover.color_ops import ColorOp
 from bgremover.constants import _RIGHT_PANEL_WIDTH, _TAB_ICON_PX
 from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.right_panel_tabs import (
+    AdjustTab,
     BackgroundTab,
     SelectionTab,
     ShapeTab,
@@ -66,6 +68,9 @@ class RightPanelActions:
     round_corners: Callable[[int], None]
     start_crop_circle: Callable[[], None]
     start_crop_ratio: Callable[[int, int], None]
+    preview_color: Callable[[ColorOp], None]
+    apply_color: Callable[[ColorOp], None]
+    cancel_color_preview: Callable[[], None]
 
 
 @dataclass(frozen=True)
@@ -130,6 +135,7 @@ class _RightPanelBuilder:
         builders: list[_TabBuilder] = [
             SelectionTab(self._actions),
             BackgroundTab(self._actions),
+            AdjustTab(self._actions),
             TransformTab(self._actions),
             ShapeTab(self._actions),
             self._layer_panel,
@@ -145,6 +151,11 @@ class _RightPanelBuilder:
                 tr("right_panel.tab.background"),
                 "bg",
                 tr("right_panel.tab.background.tooltip"),
+            ),
+            (
+                tr("right_panel.tab.adjust"),
+                "transparency",
+                tr("right_panel.tab.adjust.tooltip"),
             ),
             (
                 tr("right_panel.tab.transform"),

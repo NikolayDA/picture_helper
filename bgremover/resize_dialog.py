@@ -26,9 +26,12 @@ from bgremover.constants import _MAX_MEGAPIXELS
 from bgremover.i18n import tr
 from bgremover.image_ops import resized_size
 
-# Großzügiger UI-Anschlag je Achse; das verbindliche Megapixel-Gate greift im
-# Canvas, nicht hier.
-_MAX_EDGE = 100_000
+# Obergrenze je Achse: am Megapixel-Gate ausgerichtet, damit eine gültige
+# Ausgangsgröße beim Vorbelegen **nie** stillschweigend geklemmt wird (eine
+# einzelne Kante kann bei der anderen ≥ 1 px höchstens ``_MAX_MEGAPIXELS`` · 1e6
+# groß sein und das Bild bleibt dennoch unter dem Limit). Das verbindliche Gate
+# greift weiterhin im Canvas (#359-Review).
+_MAX_EDGE = _MAX_MEGAPIXELS * 1_000_000
 
 
 class ResizeDialog(QDialog):
@@ -54,14 +57,16 @@ class ResizeDialog(QDialog):
 
         grid.addWidget(QLabel(tr("resize.width")), 0, 0)
         self._w_spin = QSpinBox()
-        self._w_spin.setRange(1, _MAX_EDGE)
+        # ``max(..., width)`` ist ein zusätzliches Sicherheitsnetz: selbst eine
+        # untypisch große Ausgangsbreite wird beim Vorbelegen nicht geklemmt.
+        self._w_spin.setRange(1, max(_MAX_EDGE, width))
         self._w_spin.setValue(width)
         self._w_spin.setSuffix(" px")
         grid.addWidget(self._w_spin, 0, 1)
 
         grid.addWidget(QLabel(tr("resize.height")), 1, 0)
         self._h_spin = QSpinBox()
-        self._h_spin.setRange(1, _MAX_EDGE)
+        self._h_spin.setRange(1, max(_MAX_EDGE, height))
         self._h_spin.setValue(height)
         self._h_spin.setSuffix(" px")
         grid.addWidget(self._h_spin, 1, 1)

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PIL import Image
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
     QFrame,
@@ -21,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from bgremover.color_ops import adjust_color
 from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
@@ -368,6 +370,94 @@ class ShapeTab:
         return outer, {
             "corner_label": corner_label,
             "corner_slider": corner_slider,
+        }
+
+
+# ── Tab 5 – Anpassen (Farbkorrektur) ─────────────────────────────
+
+
+class AdjustTab:
+    """Farbkorrektur der aktiven COLOR-Ebene (#360): Helligkeit/Kontrast/Sättigung.
+
+    Drei Regler (0–200 %, neutral 100 %) steuern eine an ihre Werte gebundene
+    ``color_ops.adjust_color``-Closure. Jede Reglerbewegung aktualisiert die
+    Live-Vorschau (``preview_color``); „Anwenden" committet undo-fähig
+    (``apply_color``), „Zurücksetzen" stellt die Neutralwerte her und verwirft die
+    Vorschau (``cancel_color_preview``). Wirkt nur auf COLOR-Ebenen – der Canvas
+    überspringt Nicht-COLOR-Ebenen.
+    """
+
+    def __init__(self, actions: RightPanelActions) -> None:
+        self._actions = actions
+
+    def build(self) -> tuple[QWidget, dict[str, QWidget]]:
+        outer, layout = _make_scroll_tab()
+        g_adj, ga = _make_section(tr("right_panel.adjust.section"), "#d07ac0")
+        ga.addWidget(_make_label(tr("right_panel.adjust.hint"), "#777", 11))
+
+        bright_lbl = _make_label(tr("right_panel.adjust.brightness", value=100), "#aaa")
+        bright = _make_slider(0, 200, 100, tr("right_panel.adjust.brightness.tooltip"))
+        contrast_lbl = _make_label(tr("right_panel.adjust.contrast", value=100), "#aaa")
+        contrast = _make_slider(0, 200, 100, tr("right_panel.adjust.contrast.tooltip"))
+        sat_lbl = _make_label(tr("right_panel.adjust.saturation", value=100), "#aaa")
+        sat = _make_slider(0, 200, 100, tr("right_panel.adjust.saturation.tooltip"))
+
+        def color_op(img: Image.Image) -> Image.Image:
+            # Closure liest die Reglerwerte erst beim Aufruf → stets aktuell.
+            return adjust_color(
+                img,
+                brightness=bright.value() / 100.0,
+                contrast=contrast.value() / 100.0,
+                saturation=sat.value() / 100.0,
+            )
+
+        for slider, label, key in (
+            (bright, bright_lbl, "right_panel.adjust.brightness"),
+            (contrast, contrast_lbl, "right_panel.adjust.contrast"),
+            (sat, sat_lbl, "right_panel.adjust.saturation"),
+        ):
+            slider.valueChanged.connect(
+                lambda v, lbl=label, k=key: lbl.setText(tr(k, value=v)))
+            slider.valueChanged.connect(
+                lambda _v=0: self._actions.preview_color(color_op))
+            ga.addWidget(label)
+            ga.addWidget(slider)
+
+        ga.addWidget(_make_hdivider())
+        row = QHBoxLayout(); row.setSpacing(6)
+        btn_reset = _make_panel_btn(
+            tr("right_panel.adjust.reset"), "#2a2a2a", "#c0c0c0", "#363636",
+            tr("right_panel.adjust.reset.tooltip"))
+        btn_apply = _make_panel_btn(
+            tr("right_panel.adjust.apply"), "#2a1e38", "#c8a8ee", "#3a2a50",
+            tr("right_panel.adjust.apply.tooltip"))
+
+        def on_reset(_checked: bool = False) -> None:
+            for slider, label, key in (
+                (bright, bright_lbl, "right_panel.adjust.brightness"),
+                (contrast, contrast_lbl, "right_panel.adjust.contrast"),
+                (sat, sat_lbl, "right_panel.adjust.saturation"),
+            ):
+                slider.blockSignals(True)
+                slider.setValue(100)
+                slider.blockSignals(False)
+                label.setText(tr(key, value=100))
+            self._actions.cancel_color_preview()
+
+        btn_reset.clicked.connect(on_reset)
+        btn_apply.clicked.connect(lambda _=False: self._actions.apply_color(color_op))
+        row.addWidget(btn_reset, 1)
+        row.addWidget(btn_apply, 1)
+        ga.addLayout(row)
+
+        layout.addWidget(g_adj)
+        layout.addStretch()
+        return outer, {
+            "adjust_brightness": bright,
+            "adjust_contrast": contrast,
+            "adjust_saturation": sat,
+            "adjust_reset": btn_reset,
+            "adjust_apply": btn_apply,
         }
 
 

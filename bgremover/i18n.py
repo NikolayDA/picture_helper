@@ -280,6 +280,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.background.tooltip": (
             "Hintergrund – Entfernen, Farbe ersetzen"
         ),
+        "right_panel.tab.adjust": "Anpassen",
+        "right_panel.tab.adjust.tooltip": (
+            "Farbkorrektur – Helligkeit, Kontrast, Sättigung"
+        ),
         "right_panel.tab.transform": "Drehen/Spiegeln",
         "right_panel.tab.transform.tooltip": "Transform – Drehen, Spiegeln",
         "right_panel.tab.shape": "Form",
@@ -391,6 +395,29 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "resize.megapixels": "{mp:.1f} MP (Maximum: {maximum} MP)",
         "resize.ok": "Anwenden",
         "resize.cancel": "Abbrechen",
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Farbkorrektur",
+        "right_panel.adjust.hint": "Wirkt auf die aktive Farbebene.",
+        "right_panel.adjust.brightness": "Helligkeit:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Helligkeit der aktiven Farbebene (100 % = unverändert)"
+        ),
+        "right_panel.adjust.contrast": "Kontrast:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Kontrast der aktiven Farbebene (100 % = unverändert)"
+        ),
+        "right_panel.adjust.saturation": "Sättigung:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Sättigung der aktiven Farbebene (0 % = Graustufe, 100 % = unverändert)"
+        ),
+        "right_panel.adjust.reset": "Zurücksetzen",
+        "right_panel.adjust.reset.tooltip": (
+            "Regler auf 100 % zurücksetzen und Vorschau verwerfen"
+        ),
+        "right_panel.adjust.apply": "Anwenden",
+        "right_panel.adjust.apply.tooltip": (
+            "Farbkorrektur auf die aktive Farbebene anwenden"
+        ),
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Ecken abrunden",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -503,6 +530,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.resize_too_large": (
             "Zielgröße {w} × {h} px zu groß ({mp:.0f} MP) – Maximum: {maximum} MP"
         ),
+        "canvas.color_adjusted": "🎨 Farbkorrektur angewendet",
+        "canvas.not_color_layer": "Keine Farbebene aktiv",
         "canvas.flipped_h": "↔ Horizontal gespiegelt",
         "canvas.flipped_v": "↕ Vertikal gespiegelt",
         "canvas.crop_cancelled": "Zuschnitt abgebrochen",
@@ -525,6 +554,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.round_corners": "Ecken abgerundet ({r} px)",
         "history.desc.rotated": "{direction} Gedreht {degrees}°",
         "history.desc.resized": "Größe geändert ({w}×{h} px)",
+        "history.desc.color_adjusted": "Farbkorrektur",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
@@ -781,6 +811,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.background.tooltip": (
             "Background – remove, replace color"
         ),
+        "right_panel.tab.adjust": "Adjust",
+        "right_panel.tab.adjust.tooltip": (
+            "Color correction – brightness, contrast, saturation"
+        ),
         "right_panel.tab.transform": "Rotate/Flip",
         "right_panel.tab.transform.tooltip": "Transform – rotate, flip",
         "right_panel.tab.shape": "Shape",
@@ -892,6 +926,29 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "resize.megapixels": "{mp:.1f} MP (maximum: {maximum} MP)",
         "resize.ok": "Apply",
         "resize.cancel": "Cancel",
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Color correction",
+        "right_panel.adjust.hint": "Acts on the active color layer.",
+        "right_panel.adjust.brightness": "Brightness:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Brightness of the active color layer (100% = unchanged)"
+        ),
+        "right_panel.adjust.contrast": "Contrast:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Contrast of the active color layer (100% = unchanged)"
+        ),
+        "right_panel.adjust.saturation": "Saturation:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Saturation of the active color layer (0% = grayscale, 100% = unchanged)"
+        ),
+        "right_panel.adjust.reset": "Reset",
+        "right_panel.adjust.reset.tooltip": (
+            "Reset the sliders to 100% and discard the preview"
+        ),
+        "right_panel.adjust.apply": "Apply",
+        "right_panel.adjust.apply.tooltip": (
+            "Apply the color correction to the active color layer"
+        ),
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Round corners",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -1003,6 +1060,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.resize_too_large": (
             "Target size {w} × {h} px too large ({mp:.0f} MP) – maximum: {maximum} MP"
         ),
+        "canvas.color_adjusted": "🎨 Color correction applied",
+        "canvas.not_color_layer": "No color layer active",
         "canvas.flipped_h": "↔ Flipped horizontally",
         "canvas.flipped_v": "↕ Flipped vertically",
         "canvas.crop_cancelled": "Crop cancelled",
@@ -1025,6 +1084,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.round_corners": "Corners rounded ({r} px)",
         "history.desc.rotated": "{direction} Rotated {degrees}°",
         "history.desc.resized": "Resized ({w}×{h} px)",
+        "history.desc.color_adjusted": "Color correction",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
