@@ -1383,6 +1383,44 @@ class ImageCanvas(QGraphicsView):
         """Spiegelt das Bild horizontal oder vertikal."""
         self._transform.apply_flip(horizontal)
 
+    @_requires_image
+    def apply_resize(
+        self,
+        width: int,
+        height: int,
+        *,
+        resample: Image.Resampling = Image.Resampling.LANCZOS,
+    ) -> None:
+        """Skaliert das gesamte Projekt auf eine Zielgröße in Pixeln (#359).
+
+        Gateprüfung (Megapixel-Limit), No-op-Erkennung und Statusmeldung liegen in
+        :meth:`CanvasTransform.apply_resize`; die eigentliche, undo-fähige
+        Anwendung in :meth:`resize_project`.
+        """
+        self._transform.apply_resize(width, height, resample)
+
+    def resize_project(
+        self,
+        width: int,
+        height: int,
+        resample: Image.Resampling,
+        desc: str,
+    ) -> None:
+        """Wendet eine **größenändernde** Skalierung auf das **ganze** Projekt an.
+
+        Größenändernde Operation analog :meth:`apply_geometry`, jedoch über die
+        height-bewusste Modelloperation :meth:`Project.resize` (COLOR/Daten via
+        Resampling, HEIGHT verlustfrei über die Höhen-Repräsentation). Ein
+        einziger Undo-Schritt erfasst den Gesamtzustand vor der Skalierung; das
+        Gate hat der Aufrufer (``CanvasTransform``) bereits gesetzt.
+        """
+        if self._project is None:
+            return
+        self._history.push(self._project, desc)
+        self._emit_history()
+        self._project.resize(width, height, resample=resample)
+        self._set_image_state()
+
     # ── Ausgabeformat – Crop-Overlay (Delegatoren) ───────────
 
     def start_crop_circle(self) -> None:

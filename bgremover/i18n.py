@@ -229,6 +229,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.rotate_180": "180° drehen",
         "action.flip_horizontal": "Horizontal spiegeln",
         "action.flip_vertical": "Vertikal spiegeln",
+        "action.resize": "Größe ändern…",
         "action.clear_selection": "Auswahl aufheben",
         "action.invert_selection": "Auswahl invertieren",
         "action.restore_original": "Original wiederherstellen",
@@ -372,6 +373,24 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Bild horizontal spiegeln (links ↔ rechts)",
         "right_panel.transform.flip_v": "Vertikal",
         "right_panel.transform.flip_v.tooltip": "Bild vertikal spiegeln (oben ↕ unten)",
+        "right_panel.transform.section.resize": "Größe ändern",
+        "right_panel.transform.resize": "Größe ändern…",
+        "right_panel.transform.resize.tooltip": (
+            "Bild/Projekt auf eine Zielgröße in Pixeln skalieren (Resampling)"
+        ),
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "Größe ändern",
+        "resize.width": "Breite",
+        "resize.height": "Höhe",
+        "resize.link_aspect": "Seitenverhältnis koppeln",
+        "resize.resample.label": "Verfahren:",
+        "resize.resample.lanczos": "Lanczos (beste Qualität)",
+        "resize.resample.bicubic": "Bikubisch",
+        "resize.resample.bilinear": "Bilinear",
+        "resize.resample.nearest": "Nächster Nachbar",
+        "resize.megapixels": "{mp:.1f} MP (Maximum: {maximum} MP)",
+        "resize.ok": "Anwenden",
+        "resize.cancel": "Abbrechen",
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Ecken abrunden",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -480,6 +499,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "({mp:.0f} MP) – Maximum: {maximum} MP"
         ),
         "canvas.rotated": "{direction} Gedreht: {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Größe geändert: {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Zielgröße {w} × {h} px zu groß ({mp:.0f} MP) – Maximum: {maximum} MP"
+        ),
         "canvas.flipped_h": "↔ Horizontal gespiegelt",
         "canvas.flipped_v": "↕ Vertikal gespiegelt",
         "canvas.crop_cancelled": "Zuschnitt abgebrochen",
@@ -501,6 +524,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.ai_bg": "KI-Hintergrundentfernung",
         "history.desc.round_corners": "Ecken abgerundet ({r} px)",
         "history.desc.rotated": "{direction} Gedreht {degrees}°",
+        "history.desc.resized": "Größe geändert ({w}×{h} px)",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
@@ -706,6 +730,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.rotate_180": "Rotate 180°",
         "action.flip_horizontal": "Flip horizontally",
         "action.flip_vertical": "Flip vertically",
+        "action.resize": "Resize…",
         "action.clear_selection": "Clear selection",
         "action.invert_selection": "Invert selection",
         "action.restore_original": "Restore original",
@@ -849,6 +874,24 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Flip the image horizontally (left ↔ right)",
         "right_panel.transform.flip_v": "Vertical",
         "right_panel.transform.flip_v.tooltip": "Flip the image vertically (top ↕ bottom)",
+        "right_panel.transform.section.resize": "Resize",
+        "right_panel.transform.resize": "Resize…",
+        "right_panel.transform.resize.tooltip": (
+            "Scale the image/project to a target size in pixels (resampling)"
+        ),
+        # Resize dialog (#359)
+        "resize.title": "Resize",
+        "resize.width": "Width",
+        "resize.height": "Height",
+        "resize.link_aspect": "Link aspect ratio",
+        "resize.resample.label": "Method:",
+        "resize.resample.lanczos": "Lanczos (best quality)",
+        "resize.resample.bicubic": "Bicubic",
+        "resize.resample.bilinear": "Bilinear",
+        "resize.resample.nearest": "Nearest neighbor",
+        "resize.megapixels": "{mp:.1f} MP (maximum: {maximum} MP)",
+        "resize.ok": "Apply",
+        "resize.cancel": "Cancel",
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Round corners",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -956,6 +999,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "({mp:.0f} MP) – maximum: {maximum} MP"
         ),
         "canvas.rotated": "{direction} Rotated: {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Resized: {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Target size {w} × {h} px too large ({mp:.0f} MP) – maximum: {maximum} MP"
+        ),
         "canvas.flipped_h": "↔ Flipped horizontally",
         "canvas.flipped_v": "↕ Flipped vertically",
         "canvas.crop_cancelled": "Crop cancelled",
@@ -977,6 +1024,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.ai_bg": "AI background removal",
         "history.desc.round_corners": "Corners rounded ({r} px)",
         "history.desc.rotated": "{direction} Rotated {degrees}°",
+        "history.desc.resized": "Resized ({w}×{h} px)",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },

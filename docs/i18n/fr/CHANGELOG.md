@@ -11,6 +11,20 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Redimensionner / mettre à l’échelle vers une taille cible (rééchantillonnage).**
+  Nouvelles opérations d’image sans Qt et strictement typées
+  `resize_image`/`resized_size` dans `image_ops.py` (sans effet si la taille est
+  identique ; assistant de rapport d’aspect/garde mégapixels) et `Project.resize`
+  dans `project_model.py`, qui rééchantillonne **toutes les couches** et la taille
+  du canevas de façon cohérente (COLOR selon la méthode choisie, HEIGHT sans perte
+  via la représentation de hauteur ; le composite couleur reste aligné). Le
+  canevas l’intègre avec annuler/rétablir et une garde mégapixels (refus clair et
+  traduit en cas de dépassement, sans allouer le tampon surdimensionné) ; une
+  nouvelle boîte de dialogue « Redimensionner… » (largeur/hauteur en px,
+  **lier le rapport d’aspect**, méthode de rééchantillonnage) est accessible via le
+  menu « Édition » (Ctrl+R) et l’onglet Transformation. La taille physique
+  réservée (`META_PHYSICAL_SIZE_MM`) reste intacte (mm/PPP est réservé aux rangs
+  ultérieurs). Toutes les nouvelles chaînes en parité de/en (#359).
 - **Représentation de hauteur et visualisation 2D (fondation height-map).**
   Nouveau module sans Qt et strictement typé `bgremover/height_map.py` :
   conversion sans perte hauteur ↔ tableau en niveaux de gris (`HeightField`,

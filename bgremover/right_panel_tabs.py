@@ -266,6 +266,15 @@ class TransformTab:
         row_flip.addWidget(btn_fv)
         gf.addLayout(row_flip)
         layout.addWidget(g_flip)
+
+        g_size, gsz = _make_section(tr("right_panel.transform.section.resize"), "#9060d0")
+        btn_resize = _make_panel_btn(
+            tr("right_panel.transform.resize"), "#1e1428", "#c0a0f0", "#2e1e44",
+            tr("right_panel.transform.resize.tooltip"),
+            height=38, icon_name="form")
+        btn_resize.clicked.connect(lambda _=False: self._actions.resize())
+        gsz.addWidget(btn_resize)
+        layout.addWidget(g_size)
         layout.addStretch()
 
         return outer, {

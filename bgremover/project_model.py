@@ -29,6 +29,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+from bgremover.height_map import layer_to_gray_image
+
 # Aktuelle Modellversion. Eigener Schlüssel mit Migrationshaken folgt mit dem
 # Dateiformat (#333), Muster wie ``settings_schema``.
 PROJECT_VERSION = 1
@@ -368,6 +370,45 @@ class Project:
 
     def clear_role(self, layer_id: str) -> None:
         self.layer_by_id(layer_id).role = None
+
+    # ── Geometrie ───────────────────────────────────────────────────────
+    def resize(
+        self,
+        width: int,
+        height: int,
+        *,
+        resample: Image.Resampling = Image.Resampling.LANCZOS,
+    ) -> None:
+        """Resampelt **alle** Ebenen und die Canvas-Größe auf ``(width, height)``.
+
+        Hält die Invariante „jede Ebene in Canvas-Größe": jede Ebene wird mit
+        demselben *resample*-Verfahren skaliert, sodass das Farb-Komposit
+        deckungsgleich bleibt. ``COLOR``-/Daten-Ebenen laufen direkt über das
+        Resampling; eine ``HEIGHT``-Ebene wird zusätzlich über die
+        Höhen-Repräsentation normalisiert (``R==G==B==Höhe`` bleibt erhalten –
+        verlustfrei für 8 Bit, robust für die spätere 16-Bit-Erweiterung).
+
+        Gleiche Zielgröße ist ein **No-op**. Die reservierte physische Zielgröße
+        (``META_PHYSICAL_SIZE_MM``) bleibt bewusst unangetastet: dies ist ein
+        reines Pixel-Resampling; mm/DPI-Editing ist späteren Rängen vorbehalten.
+        """
+        if width <= 0 or height <= 0:
+            raise ValueError(f"Canvas-Größe muss positiv sein, war {width}x{height}")
+        if (width, height) == self.size:
+            return
+        # Lazy-Import: ``image_ops`` zieht über ``image_utils`` PyQt6; der
+        # Modulkopf bleibt so import-zeitlich Qt-frei (das Domänenmodell wird
+        # auch ohne GUI importiert), während der Resize-Pfad nur im GUI-Kontext
+        # zur Laufzeit greift.
+        from bgremover.image_ops import resize_image
+
+        for layer in self._layers:
+            resized = resize_image(layer.image, width, height, resample=resample)
+            if layer.kind is LayerKind.HEIGHT:
+                resized = layer_to_gray_image(resized)
+            layer.image = resized
+        self.width = width
+        self.height = height
 
     # ── Komposit ────────────────────────────────────────────────────────
     def composite_color(self) -> Image.Image:

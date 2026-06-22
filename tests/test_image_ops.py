@@ -15,6 +15,8 @@ from bgremover.image_ops import (
     normalize_save_format,
     remove_selection,
     replace_selection,
+    resize_image,
+    resized_size,
     rotate_image,
     rotated_size,
     round_corners,
@@ -179,6 +181,52 @@ def test_rotated_size_tracks_pillow_within_one_pixel(size, deg) -> None:
     gw, gh = rotated_size(w, h, deg)
     assert 0 <= ew - gw <= 2
     assert 0 <= eh - gh <= 2
+
+
+# ── Resize/Resample (#359) ─────────────────────────────────────────────
+
+def test_resize_image_changes_size_and_keeps_mode() -> None:
+    img = Image.new("RGBA", (8, 4), (10, 20, 30, 255))
+    result = resize_image(img, 16, 8)
+    assert result.size == (16, 8)
+    assert result.mode == "RGBA"
+    assert result is not img
+
+
+def test_resize_image_is_noop_on_same_size() -> None:
+    # Akzeptanzkriterium: (w,h) == aktuelle Größe ⇒ unverändert (dasselbe Objekt).
+    img = Image.new("RGBA", (12, 9), (1, 2, 3, 255))
+    assert resize_image(img, 12, 9) is img
+
+
+def test_resize_image_rejects_nonpositive() -> None:
+    img = Image.new("RGBA", (4, 4))
+    with pytest.raises(ValueError):
+        resize_image(img, 0, 4)
+    with pytest.raises(ValueError):
+        resize_image(img, 4, -1)
+
+
+def test_resized_size_free_when_both_edges_given() -> None:
+    assert resized_size(100, 50, 200, 33) == (200, 33)
+    # Geklemmt auf mindestens 1 px je Achse.
+    assert resized_size(100, 50, 0, 0) == (1, 1)
+
+
+def test_resized_size_locks_aspect_from_single_edge() -> None:
+    # Seitenverhältnis-Sperre: die zweite Kante folgt proportional der ersten.
+    assert resized_size(100, 50, target_w=200) == (200, 100)
+    assert resized_size(100, 50, target_h=25) == (50, 25)
+    # Rundung der abgeleiteten Kante, nie unter 1 px.
+    assert resized_size(100, 50, target_w=3) == (3, 2)
+    assert resized_size(100, 50, target_w=1) == (1, 1)
+
+
+def test_resized_size_requires_a_target_and_positive_source() -> None:
+    with pytest.raises(ValueError):
+        resized_size(100, 50)
+    with pytest.raises(ValueError):
+        resized_size(0, 50, target_w=10)
 
 
 def test_crop_size_for_ratio_uses_largest_centered_crop() -> None:

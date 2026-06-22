@@ -107,6 +107,22 @@ def test_round_trip_preserves_pixels_and_metadata(tmp_path) -> None:
     _assert_projects_equal(loaded, project)
 
 
+def test_round_trip_after_resize_preserves_resampled_project(tmp_path) -> None:
+    """Nach ``Project.resize`` lässt sich das Projekt identisch sichern/laden (#359)."""
+    project = _sample_project()
+    project.resize(12, 8)
+    assert project.size == (12, 8)
+    path = tmp_path / f"resized{PROJECT_SUFFIX}"
+
+    save_project(project, path)
+    loaded = load_project(path)
+
+    assert loaded.size == (12, 8)
+    for layer in loaded.layers:
+        assert layer.size == (12, 8)
+    _assert_projects_equal(loaded, project)
+
+
 def test_round_trip_empty_metadata_and_single_layer(tmp_path) -> None:
     project = Project(3, 3)
     project.create_layer(_solid(3, 3, (1, 2, 3, 200)), name="Solo")

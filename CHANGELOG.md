@@ -11,6 +11,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Größe ändern / auf Zielgröße skalieren (Resampling).** Neue Qt-freie, strikt
+  getypte Bildoperationen `resize_image`/`resized_size` in `image_ops.py` (No-op
+  bei gleicher Größe; Seitenverhältnis-/Megapixel-Gate-Helfer) sowie
+  `Project.resize` in `project_model.py`, die **alle Ebenen** und die
+  Canvas-Größe konsistent resampelt (COLOR über das gewählte Verfahren, HEIGHT
+  verlustfrei über die Höhen-Repräsentation; das Farb-Komposit bleibt
+  deckungsgleich). Der Canvas verdrahtet das undo-/redobar mit Megapixel-Gate
+  (klare, übersetzte Ablehnung bei Übergröße, ohne Allokation der Übergröße); ein
+  neuer Dialog „Größe ändern…" (Breite/Höhe in px, **Seitenverhältnis koppeln**,
+  Resample-Verfahren) ist über das Menü „Bearbeiten" (Strg+R) und den
+  Transform-Tab erreichbar. Die reservierte physische Zielgröße
+  (`META_PHYSICAL_SIZE_MM`) bleibt unangetastet (mm/DPI ist späteren Rängen
+  vorbehalten). Alle neuen Strings de/en in Parität (#359).
 - **Höhen-Repräsentation & 2D-Visualisierung (Fundament Height-Map).** Neues
   Qt-freies, strikt getyptes Modul `bgremover/height_map.py`: verlustfreie
   Konvertierung Höhe ↔ Graustufen-Array (`HeightField`, Konvention

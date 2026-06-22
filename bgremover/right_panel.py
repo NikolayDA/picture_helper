@@ -62,6 +62,7 @@ class RightPanelActions:
     replace_background: Callable[[], None]
     rotate: Callable[[int], None]
     flip: Callable[[bool], None]
+    resize: Callable[[], None]
     round_corners: Callable[[int], None]
     start_crop_circle: Callable[[], None]
     start_crop_ratio: Callable[[int, int], None]

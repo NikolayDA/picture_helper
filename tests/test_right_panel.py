@@ -64,6 +64,7 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         replace_background=lambda: calls.append(("replace",)),
         rotate=lambda value: calls.append(("rotate", value)),
         flip=lambda horizontal: calls.append(("flip", horizontal)),
+        resize=lambda: calls.append(("resize",)),
         round_corners=lambda value: calls.append(("round", value)),
         start_crop_circle=lambda: calls.append(("crop_circle",)),
         start_crop_ratio=lambda w, h: calls.append(("crop_ratio", w, h)),
@@ -102,6 +103,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
+    _button(panel.frame, "Größe ändern…").click()
 
     panel.corner_slider.setValue(12)
     _button(panel.frame, "Ecken abrunden").click()
@@ -125,6 +127,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("rotate", 33),
         ("flip", True),
         ("flip", False),
+        ("resize",),
         ("round", 12),
         ("crop_circle",),
         ("crop_ratio", 1, 1),

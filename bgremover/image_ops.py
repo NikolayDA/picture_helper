@@ -194,6 +194,61 @@ def rotate_image(img: Image.Image, degrees: int) -> Image.Image:
     return rgba.rotate(degrees, expand=True, resample=Image.Resampling.BICUBIC)
 
 
+def resized_size(
+    width: int,
+    height: int,
+    target_w: int | None = None,
+    target_h: int | None = None,
+) -> tuple[int, int]:
+    """Berechnet die Zielgröße eines Resamplings – ohne Allokation.
+
+    Analog zu :func:`rotated_size` liefert der Helfer das Ergebnis-Maß, bevor
+    Pillow den Zielpuffer anlegt, sodass der Aufrufer ein Megapixel-Gate setzen
+    kann. Zugleich kapselt er die **Seitenverhältnis-Kopplung** der UI:
+
+    - **Beide** Zielkanten gesetzt → freie (nicht proportionale) Zielgröße.
+    - **Genau eine** gesetzt → die fehlende folgt seitenverhältniswahrend aus
+      ``(width, height)`` (gerundet).
+    - **Keine** gesetzt → :class:`ValueError`.
+
+    Jede Ergebnis-Kante ist mindestens ``1`` px. ``width``/``height`` (die
+    Ausgangsgröße) müssen positiv sein.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Ausgangsgröße muss positiv sein, war {width}x{height}")
+    if target_w is None and target_h is None:
+        raise ValueError("Mindestens eine Zielkante (target_w/target_h) muss gesetzt sein")
+    if target_w is not None and target_h is not None:
+        return (max(1, target_w), max(1, target_h))
+    if target_w is not None:
+        new_w = max(1, target_w)
+        return (new_w, max(1, round(height * new_w / width)))
+    assert target_h is not None  # durch die None-Prüfung oben garantiert
+    new_h = max(1, target_h)
+    return (max(1, round(width * new_h / height)), new_h)
+
+
+def resize_image(
+    img: Image.Image,
+    width: int,
+    height: int,
+    resample: Image.Resampling = Image.Resampling.LANCZOS,
+) -> Image.Image:
+    """Resampelt ``img`` auf ``(width, height)`` px.
+
+    Stimmt die Zielgröße mit der aktuellen überein, wird ``img`` **unverändert**
+    (dasselbe Objekt) zurückgegeben – ein echtes No-op ohne Kopie. Der Modus
+    bleibt erhalten (die Aufrufer übergeben RGBA-Ebenendaten). ``width``/
+    ``height`` müssen positiv sein; das Megapixel-Gate setzt der Aufrufer über
+    :func:`resized_size`.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Zielgröße muss positiv sein, war {width}x{height}")
+    if (img.width, img.height) == (width, height):
+        return img
+    return img.resize((width, height), resample)
+
+
 def flip_image(img: Image.Image, horizontal: bool) -> Image.Image:
     """Spiegelt ``img`` horizontal oder vertikal."""
     rgba = img.convert("RGBA")

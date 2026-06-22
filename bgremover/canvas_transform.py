@@ -12,9 +12,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PIL import Image
+
 from bgremover.constants import _MAX_MEGAPIXELS
 from bgremover.i18n import tr
-from bgremover.image_ops import flip_image, rotate_image, rotated_size, round_corners
+from bgremover.image_ops import (
+    flip_image,
+    resized_size,
+    rotate_image,
+    rotated_size,
+    round_corners,
+)
 
 if TYPE_CHECKING:
     from bgremover.canvas import ImageCanvas
@@ -79,3 +87,34 @@ class CanvasTransform:
         msg = tr("canvas.flipped_h") if horizontal else tr("canvas.flipped_v")
         self._canvas.apply_edit(result, desc=msg)
         self._canvas.statusMsg.emit(msg)
+
+    def apply_resize(
+        self, width: int, height: int, resample: Image.Resampling
+    ) -> None:
+        """Skaliert das gesamte Projekt (alle Ebenen) auf ``(width, height)`` px.
+
+        Das Megapixel-Gate prüft die Zielgröße über :func:`resized_size` **vor**
+        jeder Allokation und lehnt eine Überschreitung von ``_MAX_MEGAPIXELS`` mit
+        übersetzter Statusmeldung ab – analog zum Rotations-Gate, das so die
+        ungebremste Speicherspitze vermeidet. Eine Zielgröße gleich der aktuellen
+        ist ein No-op (kein Verlaufseintrag). Sonst läuft die Größenänderung über
+        den undo-/redobaren, height-bewussten ``resize_project``-Pfad.
+        """
+        img = self._canvas.image
+        assert img is not None  # ImageCanvas-Fassade garantiert das via Guard
+        new_w, new_h = resized_size(img.width, img.height, width, height)
+        if new_w * new_h / 1_000_000 > _MAX_MEGAPIXELS:
+            self._canvas.statusMsg.emit(tr(
+                "canvas.resize_too_large",
+                w=new_w, h=new_h,
+                mp=new_w * new_h / 1_000_000,
+                maximum=_MAX_MEGAPIXELS,
+            ))
+            return
+        if (new_w, new_h) == img.size:
+            self._canvas.statusMsg.emit(tr("canvas.resized", w=new_w, h=new_h))
+            return
+        self._canvas.resize_project(
+            new_w, new_h, resample,
+            tr("history.desc.resized", w=new_w, h=new_h))
+        self._canvas.statusMsg.emit(tr("canvas.resized", w=new_w, h=new_h))

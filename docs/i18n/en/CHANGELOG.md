@@ -10,6 +10,18 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Resize / scale to a target size (resampling).** New Qt-free, strictly typed
+  image operations `resize_image`/`resized_size` in `image_ops.py` (no-op on
+  equal size; aspect-ratio/megapixel-gate helper) plus `Project.resize` in
+  `project_model.py`, which resamples **all layers** and the canvas size
+  consistently (COLOR via the chosen method, HEIGHT losslessly via the height
+  representation; the color composite stays aligned). The canvas wires this up
+  undo-/redoable with a megapixel gate (clear, translated rejection on
+  oversize, without allocating the oversized buffer); a new “Resize…” dialog
+  (width/height in px, **link aspect ratio**, resampling method) is reachable via
+  the “Edit” menu (Ctrl+R) and the Transform tab. The reserved physical size
+  (`META_PHYSICAL_SIZE_MM`) stays untouched (mm/DPI is left to later ranks). All
+  new strings in de/en parity (#359).
 - **Height representation & 2D visualization (height-map foundation).** New
   Qt-free, strictly typed `bgremover/height_map.py` module: lossless conversion
   height ↔ grayscale array (`HeightField`, convention `R==G==B==height`,

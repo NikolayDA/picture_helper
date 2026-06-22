@@ -11,6 +11,20 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Cambiar tamaño / escalar a un tamaño objetivo (remuestreo).** Nuevas
+  operaciones de imagen sin Qt y con tipado estricto `resize_image`/`resized_size`
+  en `image_ops.py` (sin efecto si el tamaño coincide; ayudante de relación de
+  aspecto/límite de megapíxeles) y `Project.resize` en `project_model.py`, que
+  remuestrea **todas las capas** y el tamaño del lienzo de forma coherente (COLOR
+  con el método elegido, HEIGHT sin pérdidas mediante la representación de altura;
+  el compuesto de color permanece alineado). El lienzo lo integra con
+  deshacer/rehacer y un límite de megapíxeles (rechazo claro y traducido en caso
+  de exceso, sin reservar el búfer sobredimensionado); un nuevo diálogo
+  «Cambiar tamaño…» (ancho/alto en px, **vincular relación de aspecto**, método de
+  remuestreo) es accesible desde el menú «Editar» (Ctrl+R) y la pestaña de
+  transformación. El tamaño físico reservado (`META_PHYSICAL_SIZE_MM`) permanece
+  intacto (mm/DPP queda para rangos posteriores). Todas las cadenas nuevas con
+  paridad de/en (#359).
 - **Representación de altura y visualización 2D (base del mapa de altura).**
   Nuevo módulo sin Qt y con tipado estricto `bgremover/height_map.py`:
   conversión sin pérdidas altura ↔ array en escala de grises (`HeightField`,

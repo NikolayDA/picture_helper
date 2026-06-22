@@ -298,3 +298,45 @@ def test_history_descriptions_track_push_undo_and_redo():
     redone = history.redo(undone[0])
     assert redone is not None
     assert history.descriptions() == ["b", "a"]
+
+
+# ── Größe ändern / Resample (#359) ──────────────────────────────────────
+
+def test_apply_resize_scales_project_and_is_undoable(qapp):
+    c = _seed_canvas((10, 20, 30, 255))
+    c.apply_resize(16, 24)
+    assert c.project.size == (16, 24)
+    assert c.image is not None and c.image.size == (16, 24)
+    for layer in c.project.layers:
+        assert layer.size == (16, 24)
+
+    c.undo()
+    assert c.project.size == (8, 8)
+    assert c.image.size == (8, 8)
+    c.redo()
+    assert c.project.size == (16, 24)
+
+
+def test_apply_resize_links_nothing_but_uses_explicit_size(qapp):
+    c = _seed_canvas((0, 0, 0, 255))
+    c.apply_resize(20, 5)
+    assert c.project.size == (20, 5)
+
+
+def test_apply_resize_rejects_oversize_via_megapixel_gate(qapp):
+    from bgremover.constants import _MAX_MEGAPIXELS
+
+    c = _seed_canvas((1, 2, 3, 255))
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+    # 8000×8000 = 64 MP > 40 MP-Limit ⇒ Ablehnung, keine Allokation/Änderung.
+    edge = int((_MAX_MEGAPIXELS * 1_000_000) ** 0.5) + 2000
+    c.apply_resize(edge, edge)
+    assert c.project.size == (8, 8)               # unverändert
+    assert any("MP" in m for m in msgs)           # übersetzte Gate-Meldung
+
+
+def test_apply_resize_without_image_is_noop(qapp):
+    c = ImageCanvas()
+    c.apply_resize(10, 10)                          # darf nicht crashen
+    assert c.project is None
