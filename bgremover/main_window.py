@@ -58,6 +58,7 @@ from bgremover.recent_files import (
     RecentFiles,
     RecentFilesMenu,
 )
+from bgremover.resize_dialog import ResizeDialog
 from bgremover.right_panel import (
     RightPanelActions,
     build_right_panel,
@@ -216,11 +217,16 @@ class MainWindow(QMainWindow):
                 remove_background=self._canvas.apply_remove,
                 pick_color=self._pick_color,
                 replace_background=lambda: self._canvas.apply_replace(self._bg_color),
+                feather=self._canvas.feather_active_edges,
                 rotate=self._canvas.apply_rotate,
                 flip=self._canvas.apply_flip,
+                resize=self._resize_image,
                 round_corners=self._canvas.apply_round_corners,
                 start_crop_circle=self._canvas.start_crop_circle,
                 start_crop_ratio=self._canvas.start_crop_ratio,
+                preview_color=self._canvas.preview_color_op,
+                apply_color=self._canvas.apply_color_op,
+                cancel_color_preview=self._canvas.cancel_color_preview,
             ),
             LayerPanelActions(
                 add_layer=self._canvas.add_layer,
@@ -264,6 +270,18 @@ class MainWindow(QMainWindow):
         if path:
             self._canvas.import_height_map(path)
 
+    def _resize_image(self) -> None:
+        """Öffnet „Größe ändern…" und skaliert das Projekt auf die Zielgröße (#359)."""
+        project = self._canvas.project
+        if project is None:
+            self._sb.showMessage(SM.KEIN_BILD_GELADEN)
+            return
+        dlg = ResizeDialog(project.width, project.height, self)
+        if dlg.exec():
+            width, height = dlg.selected_size()
+            self._canvas.apply_resize(
+                width, height, resample=dlg.selected_resample())
+
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""
         self._canvas.set_tool(tool)
@@ -302,6 +320,7 @@ class MainWindow(QMainWindow):
                 redo=self._canvas.redo,
                 rotate=self._canvas.apply_rotate,
                 flip=self._canvas.apply_flip,
+                resize=self._resize_image,
                 clear_selection=self._canvas.clear_selection,
                 invert_selection=self._canvas.invert_selection,
                 restore_original=self._canvas.restore_original,

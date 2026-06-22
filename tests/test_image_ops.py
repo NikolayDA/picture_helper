@@ -11,10 +11,13 @@ from bgremover.image_ops import (
     crop_image,
     crop_size_for_ratio,
     ensure_save_extension,
+    feather_alpha,
     flip_image,
     normalize_save_format,
     remove_selection,
     replace_selection,
+    resize_image,
+    resized_size,
     rotate_image,
     rotated_size,
     round_corners,
@@ -179,6 +182,95 @@ def test_rotated_size_tracks_pillow_within_one_pixel(size, deg) -> None:
     gw, gh = rotated_size(w, h, deg)
     assert 0 <= ew - gw <= 2
     assert 0 <= eh - gh <= 2
+
+
+# ── Kantenglättung / Feather (#361) ────────────────────────────────────
+
+def _hard_edge_rgba() -> tuple[Image.Image, np.ndarray]:
+    """RGBA mit konstantem RGB und harter Alphakante (links opak, rechts leer)."""
+    arr = np.zeros((10, 10, 4), dtype=np.uint8)
+    arr[:, :, 0] = 120
+    arr[:, :, 1] = 130
+    arr[:, :, 2] = 140
+    arr[:, :5, 3] = 255
+    return Image.fromarray(arr, "RGBA"), arr
+
+
+def test_feather_alpha_radius_zero_is_noop() -> None:
+    img, _ = _hard_edge_rgba()
+    assert feather_alpha(img, 0) is img            # bitidentisches No-op
+    assert feather_alpha(img, -1) is img
+
+
+def test_feather_alpha_keeps_rgb_and_softens_edge() -> None:
+    img, arr = _hard_edge_rgba()
+    out = np.asarray(feather_alpha(img, 2.0))
+    assert np.array_equal(out[:, :, :3], arr[:, :, :3])   # RGB exakt erhalten
+    alpha = out[:, :, 3]
+    assert ((alpha > 0) & (alpha < 255)).any()            # weicher Verlauf entstanden
+
+
+def test_feather_alpha_opaque_layer_stays_opaque() -> None:
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, :3] = 100
+    arr[:, :, 3] = 255
+    out = np.asarray(feather_alpha(Image.fromarray(arr, "RGBA"), 3.0))
+    assert np.all(out[:, :, 3] == 255)                    # keine Randartefakte
+
+
+def test_feather_alpha_mask_bounds_the_effect() -> None:
+    img, arr = _hard_edge_rgba()
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[:, :5] = True
+    out = np.asarray(feather_alpha(img, 3.0, mask=mask))
+    assert np.array_equal(out[:, 5:, 3], arr[:, 5:, 3])   # außerhalb unverändert
+    assert not np.array_equal(out[:, :5, 3], arr[:, :5, 3])  # innerhalb geglättet
+
+
+# ── Resize/Resample (#359) ─────────────────────────────────────────────
+
+def test_resize_image_changes_size_and_keeps_mode() -> None:
+    img = Image.new("RGBA", (8, 4), (10, 20, 30, 255))
+    result = resize_image(img, 16, 8)
+    assert result.size == (16, 8)
+    assert result.mode == "RGBA"
+    assert result is not img
+
+
+def test_resize_image_is_noop_on_same_size() -> None:
+    # Akzeptanzkriterium: (w,h) == aktuelle Größe ⇒ unverändert (dasselbe Objekt).
+    img = Image.new("RGBA", (12, 9), (1, 2, 3, 255))
+    assert resize_image(img, 12, 9) is img
+
+
+def test_resize_image_rejects_nonpositive() -> None:
+    img = Image.new("RGBA", (4, 4))
+    with pytest.raises(ValueError):
+        resize_image(img, 0, 4)
+    with pytest.raises(ValueError):
+        resize_image(img, 4, -1)
+
+
+def test_resized_size_free_when_both_edges_given() -> None:
+    assert resized_size(100, 50, 200, 33) == (200, 33)
+    # Geklemmt auf mindestens 1 px je Achse.
+    assert resized_size(100, 50, 0, 0) == (1, 1)
+
+
+def test_resized_size_locks_aspect_from_single_edge() -> None:
+    # Seitenverhältnis-Sperre: die zweite Kante folgt proportional der ersten.
+    assert resized_size(100, 50, target_w=200) == (200, 100)
+    assert resized_size(100, 50, target_h=25) == (50, 25)
+    # Rundung der abgeleiteten Kante, nie unter 1 px.
+    assert resized_size(100, 50, target_w=3) == (3, 2)
+    assert resized_size(100, 50, target_w=1) == (1, 1)
+
+
+def test_resized_size_requires_a_target_and_positive_source() -> None:
+    with pytest.raises(ValueError):
+        resized_size(100, 50)
+    with pytest.raises(ValueError):
+        resized_size(0, 50, target_w=10)
 
 
 def test_crop_size_for_ratio_uses_largest_centered_crop() -> None:

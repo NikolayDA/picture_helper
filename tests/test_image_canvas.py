@@ -298,3 +298,92 @@ def test_history_descriptions_track_push_undo_and_redo():
     redone = history.redo(undone[0])
     assert redone is not None
     assert history.descriptions() == ["b", "a"]
+
+
+# ── Größe ändern / Resample (#359) ──────────────────────────────────────
+
+def test_apply_resize_scales_project_and_is_undoable(qapp):
+    c = _seed_canvas((10, 20, 30, 255))
+    c.apply_resize(16, 24)
+    assert c.project.size == (16, 24)
+    assert c.image is not None and c.image.size == (16, 24)
+    for layer in c.project.layers:
+        assert layer.size == (16, 24)
+
+    c.undo()
+    assert c.project.size == (8, 8)
+    assert c.image.size == (8, 8)
+    c.redo()
+    assert c.project.size == (16, 24)
+
+
+def test_apply_resize_links_nothing_but_uses_explicit_size(qapp):
+    c = _seed_canvas((0, 0, 0, 255))
+    c.apply_resize(20, 5)
+    assert c.project.size == (20, 5)
+
+
+def test_apply_resize_rejects_oversize_via_megapixel_gate(qapp):
+    from bgremover.constants import _MAX_MEGAPIXELS
+
+    c = _seed_canvas((1, 2, 3, 255))
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+    # 8000×8000 = 64 MP > 40 MP-Limit ⇒ Ablehnung, keine Allokation/Änderung.
+    edge = int((_MAX_MEGAPIXELS * 1_000_000) ** 0.5) + 2000
+    c.apply_resize(edge, edge)
+    assert c.project.size == (8, 8)               # unverändert
+    assert any("MP" in m for m in msgs)           # übersetzte Gate-Meldung
+
+
+def test_apply_resize_without_image_is_noop(qapp):
+    c = ImageCanvas()
+    c.apply_resize(10, 10)                          # darf nicht crashen
+    assert c.project is None
+
+
+# ── Kantenglättung / Feather (#361) ─────────────────────────────────────
+
+def _hard_edge_canvas(qapp):
+    arr = np.zeros((10, 10, 4), dtype=np.uint8)
+    arr[:, :, 0] = 120
+    arr[:, :, 1] = 130
+    arr[:, :, 2] = 140
+    arr[:, :5, 3] = 255          # linke Hälfte opak, rechte transparent
+    c = ImageCanvas()
+    c.apply_loaded_image(Image.fromarray(arr, "RGBA"), "edge.png")
+    return c, arr
+
+
+def test_feather_active_edges_softens_and_is_undoable(qapp):
+    c, arr = _hard_edge_canvas(qapp)
+    rgb_before = np.array(c.image)[:, :, :3].copy()
+
+    c.feather_active_edges(2)
+    out = np.array(c.image)
+    assert np.array_equal(out[:, :, :3], rgb_before)            # RGB unverändert
+    assert ((out[:, :, 3] > 0) & (out[:, :, 3] < 255)).any()    # Kante geglättet
+
+    c.undo()
+    assert np.array_equal(np.array(c.image)[:, :, 3], arr[:, :, 3])  # Alpha verlustfrei zurück
+    c.redo()
+    assert ((np.array(c.image)[:, :, 3] > 0) & (np.array(c.image)[:, :, 3] < 255)).any()
+
+
+def test_feather_radius_zero_is_noop_with_hint(qapp):
+    c, arr = _hard_edge_canvas(qapp)
+    msgs: list[str] = []
+    c.statusMsg.connect(msgs.append)
+    c.feather_active_edges(0)
+    assert np.array_equal(np.array(c.image), arr)              # unverändert
+    assert any("Radius" in m for m in msgs)
+
+
+def test_feather_active_edges_respects_selection(qapp):
+    c, arr = _hard_edge_canvas(qapp)
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[:, :5] = True                                         # nur linke Hälfte
+    c._mask = mask
+    c.feather_active_edges(3)
+    out = np.array(c.image)
+    assert np.array_equal(out[:, 5:, 3], arr[:, 5:, 3])        # außerhalb unverändert

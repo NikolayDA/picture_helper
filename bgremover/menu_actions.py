@@ -36,6 +36,7 @@ class MainMenuCallbacks:
     redo: Callable[[], None]
     rotate: Callable[[int], None]
     flip: Callable[[bool], None]
+    resize: Callable[[], None]
     clear_selection: Callable[[], None]
     invert_selection: Callable[[], None]
     restore_original: Callable[[], None]
@@ -95,6 +96,7 @@ def build_main_menu(
     _add_action(edit_menu, parent, tr("action.rotate_180"), lambda: callbacks.rotate(180))
     _add_action(edit_menu, parent, tr("action.flip_horizontal"), lambda: callbacks.flip(True))
     _add_action(edit_menu, parent, tr("action.flip_vertical"), lambda: callbacks.flip(False))
+    _add_action(edit_menu, parent, tr("action.resize"), callbacks.resize, "Ctrl+R")
     edit_menu.addSeparator()
     _add_action(edit_menu, parent, tr("action.clear_selection"), callbacks.clear_selection)
     _add_action(edit_menu, parent, tr("action.invert_selection"), callbacks.invert_selection, "Ctrl+Shift+I")

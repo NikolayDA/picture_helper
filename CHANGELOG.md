@@ -11,6 +11,38 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Feinschliff Freistellung: Kantenglättung/Feather.** Neue Qt-freie, strikt
+  getypte `feather_alpha(img, radius, *, mask=None)` in `image_ops.py`: gaußsche
+  Weichzeichnung **nur des Alphakanals** (RGB bitgenau erhalten; `radius = 0` =
+  No-op; vollflächig deckende Ebenen bleiben randartefaktfrei). Der Canvas
+  verdrahtet sie als `feather_active_edges(radius)` auf der aktiven Ebene –
+  **auswahlbegrenzt** (vorhandene Auswahl) und über den bestehenden Apply-Pfad
+  **undo-/redobar**. UI: Radius-Regler + Button „Kante glätten" im Hintergrund-Tab
+  (nahe der Freistellung). Alle neuen Strings de/en in Parität (#361).
+- **Farbkorrektur der aktiven Farbebene (Helligkeit/Kontrast/Sättigung).** Neues
+  Qt-freies, strikt getyptes Modul `bgremover/color_ops.py` mit `adjust_color`
+  (Pillow `ImageEnhance`, **Alphakanal exakt erhalten**, Neutralwerte =
+  bitidentisches No-op) – als wiederverwendbare Tonwert-Primitive für die spätere
+  geteilte Engine (Rang #6). Der Canvas bietet dafür eine generische
+  **Live-Vorschau** (`preview_color_op`/`cancel_color_preview`, transient ohne
+  Modelländerung; die Vorschau hat in `_refresh_image` Vorrang) und einen
+  undo-/redobaren Commit (`apply_color_op`) auf der aktiven **COLOR**-Ebene (auf
+  Nicht-COLOR-Ebenen wirkungslos). Neuer „Anpassen"-Tab im rechten Panel mit
+  Reglern Helligkeit/Kontrast/Sättigung samt **Zurücksetzen** und **Anwenden**.
+  Alle neuen Strings de/en in Parität (#360).
+- **Größe ändern / auf Zielgröße skalieren (Resampling).** Neue Qt-freie, strikt
+  getypte Bildoperationen `resize_image`/`resized_size` in `image_ops.py` (No-op
+  bei gleicher Größe; Seitenverhältnis-/Megapixel-Gate-Helfer) sowie
+  `Project.resize` in `project_model.py`, die **alle Ebenen** und die
+  Canvas-Größe konsistent resampelt (COLOR über das gewählte Verfahren, HEIGHT
+  verlustfrei über die Höhen-Repräsentation; das Farb-Komposit bleibt
+  deckungsgleich). Der Canvas verdrahtet das undo-/redobar mit Megapixel-Gate
+  (klare, übersetzte Ablehnung bei Übergröße, ohne Allokation der Übergröße); ein
+  neuer Dialog „Größe ändern…" (Breite/Höhe in px, **Seitenverhältnis koppeln**,
+  Resample-Verfahren) ist über das Menü „Bearbeiten" (Strg+R) und den
+  Transform-Tab erreichbar. Die reservierte physische Zielgröße
+  (`META_PHYSICAL_SIZE_MM`) bleibt unangetastet (mm/DPI ist späteren Rängen
+  vorbehalten). Alle neuen Strings de/en in Parität (#359).
 - **Höhen-Repräsentation & 2D-Visualisierung (Fundament Height-Map).** Neues
   Qt-freies, strikt getyptes Modul `bgremover/height_map.py`: verlustfreie
   Konvertierung Höhe ↔ Graustufen-Array (`HeightField`, Konvention

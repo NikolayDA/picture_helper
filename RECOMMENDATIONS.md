@@ -49,6 +49,14 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   bedienbare, moduskontextuelle Height-Map-Tab (#349). Kompletter Ablauf
   erzeugen → malen → optimieren → invertieren → verlustfrei im `.bgrproj`;
   COLOR-Editing ohne Regression, i18n de/en in Parität, `make check`/`make ui` grün.
+- **N11 ✅ — Phase-0-Politur (Epic #358) umgesetzt.** Die drei Restarbeiten der
+  Grundbildbearbeitung: Skalieren auf Zielgröße (`image_ops.resize_image`/
+  `resized_size`, `Project.resize`, Dialog + Megapixel-Gate, #359), Farbkorrektur
+  Helligkeit/Kontrast/Sättigung (Qt-frei `color_ops.adjust_color`, Live-Vorschau,
+  alpha-erhaltend, #360) und Kantenglättung/Feather der Alphakante
+  (`image_ops.feather_alpha`, auswahlbegrenzt, #361). Alle undo-/redobar und
+  verlustfrei im `.bgrproj`; neue Qt-freie Module in der mypy-Strict-Liste, i18n
+  de/en in Parität, `make check`/`make ui` grün (PR #362).
 
 ### Noch offen
 

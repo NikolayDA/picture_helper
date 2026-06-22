@@ -62,11 +62,16 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         remove_background=lambda: calls.append(("remove",)),
         pick_color=lambda: calls.append(("pick_color",)),
         replace_background=lambda: calls.append(("replace",)),
+        feather=lambda value: calls.append(("feather", value)),
         rotate=lambda value: calls.append(("rotate", value)),
         flip=lambda horizontal: calls.append(("flip", horizontal)),
+        resize=lambda: calls.append(("resize",)),
         round_corners=lambda value: calls.append(("round", value)),
         start_crop_circle=lambda: calls.append(("crop_circle",)),
         start_crop_ratio=lambda w, h: calls.append(("crop_ratio", w, h)),
+        preview_color=lambda op: calls.append(("preview_color",)),
+        apply_color=lambda op: calls.append(("apply_color",)),
+        cancel_color_preview=lambda: calls.append(("cancel_color",)),
     )
 
 
@@ -75,9 +80,10 @@ def test_right_panel_builder_creates_expected_tabs(qapp):
 
     tabs = panel.frame.findChild(TopIconTabWidget)
     assert tabs is not None
-    assert tabs.count() == 6
+    assert tabs.count() == 7
     assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Auswahl", "Hintergrund", "Drehen/Spiegeln", "Form", "Ebenen", "Höhe",
+        "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln", "Form",
+        "Ebenen", "Höhe",
     ]
 
 
@@ -95,6 +101,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Entfernen (transparent)").click()
     panel.color_button.click()
     _button(panel.frame, "Farbe ersetzen").click()
+    _button(panel.frame, "Kante glätten").click()
 
     _button(panel.frame, "↺ 90° links").click()
     _button(panel.frame, "↻ 90° rechts").click()
@@ -102,6 +109,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
+    _button(panel.frame, "Größe ändern…").click()
 
     panel.corner_slider.setValue(12)
     _button(panel.frame, "Ecken abrunden").click()
@@ -120,17 +128,63 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("remove",),
         ("pick_color",),
         ("replace",),
+        ("feather", 2),
         ("rotate", 90),
         ("rotate", -90),
         ("rotate", 33),
         ("flip", True),
         ("flip", False),
+        ("resize",),
         ("round", 12),
         ("crop_circle",),
         ("crop_ratio", 1, 1),
         ("crop_ratio", 16, 9),
         ("crop_ratio", 9, 16),
     ]
+
+
+# ── Kantenglättung / Feather (#361) ───────────────────────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_background_tab_feather_button_delegates_radius(qapp):
+    from bgremover.right_panel_tabs import BackgroundTab
+
+    calls: list[tuple] = []
+    _widget, refs = BackgroundTab(_actions(calls)).build()
+
+    refs["feather_slider"].setValue(5)
+    assert "5 px" in refs["feather_label"].text()
+    refs["feather_button"].click()
+    assert calls == [("feather", 5)]
+
+
+# ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_adjust_tab_sliders_drive_preview_apply_reset(qapp):
+    from bgremover.right_panel_tabs import AdjustTab
+
+    calls: list[tuple] = []
+    _widget, refs = AdjustTab(_actions(calls)).build()
+
+    # Reglerbewegung → Live-Vorschau
+    refs["adjust_brightness"].setValue(150)
+    refs["adjust_contrast"].setValue(120)
+    refs["adjust_saturation"].setValue(0)
+    assert calls.count(("preview_color",)) == 3
+
+    refs["adjust_apply"].click()
+    assert ("apply_color",) in calls
+
+    # Zurücksetzen: Regler auf 100 % + Vorschau verwerfen (ohne neue Preview-Spam).
+    calls.clear()
+    refs["adjust_reset"].click()
+    assert refs["adjust_brightness"].value() == 100
+    assert refs["adjust_contrast"].value() == 100
+    assert refs["adjust_saturation"].value() == 100
+    assert calls == [("cancel_color",)]
 
 
 # ── Ebenen-Panel (#334) ──────────────────────────────────────────────────

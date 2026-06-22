@@ -549,8 +549,8 @@ def test_height_op_preview_is_nondestructive(qapp) -> None:
     canvas.set_project(_color_plus_height(100))
 
     canvas.preview_height_op(_levels_op)
-    assert canvas._height_preview is not None
-    assert np.all(np.array(canvas._height_preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
+    assert canvas._preview is not None
+    assert np.all(np.array(canvas._preview)[:, :, 0] == 128)   # Vorschau zeigt Ergebnis
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)  # Modell unberührt
 
 
@@ -560,7 +560,7 @@ def test_height_op_commit_is_undoable(qapp) -> None:
 
     canvas.preview_height_op(_levels_op)
     canvas.apply_height_op(_levels_op)
-    assert canvas._height_preview is None
+    assert canvas._preview is None
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 128)
 
     canvas.undo()
@@ -573,7 +573,7 @@ def test_height_op_cancel_restores_model(qapp) -> None:
 
     canvas.preview_height_op(_levels_op)
     canvas.cancel_height_preview()
-    assert canvas._height_preview is None
+    assert canvas._preview is None
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
 
 
@@ -584,9 +584,9 @@ def test_height_preview_cleared_on_layer_switch(qapp) -> None:
     color_id = project.layers[0].id
 
     canvas.preview_height_op(_levels_op)
-    assert canvas._height_preview is not None
+    assert canvas._preview is not None
     canvas.set_active_layer(color_id)               # Zustandswechsel verwirft Vorschau
-    assert canvas._height_preview is None
+    assert canvas._preview is None
 
 
 def test_height_op_requires_height_layer(qapp) -> None:
@@ -598,7 +598,7 @@ def test_height_op_requires_height_layer(qapp) -> None:
     canvas.statusMsg.connect(msgs.append)
     canvas.preview_height_op(_levels_op)
     canvas.apply_height_op(_levels_op)
-    assert canvas._height_preview is None
+    assert canvas._preview is None
     assert np.array_equal(np.array(canvas.image), before)
     assert any("höhenebene" in m.lower() for m in msgs)
 
@@ -635,3 +635,76 @@ def test_height_workflow_end_to_end_bgrproj_roundtrip(qapp, tmp_path) -> None:
     rendered = np.array(canvas2._render_image())
     assert np.array_equal(rendered[:, :, 0], rendered[:, :, 1])
     assert np.array_equal(rendered[:, :, 1], rendered[:, :, 2])
+
+
+# ── Farbkorrektur mit Live-Vorschau (#360) ────────────────────────────────
+
+
+def _brighten_op(img):
+    from bgremover.color_ops import adjust_color
+    return adjust_color(img, brightness=1.5)
+
+
+def test_color_preview_is_nondestructive(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (100, 100, 100, 255)), "seed.png")
+    before = np.array(canvas.image).copy()
+
+    canvas.preview_color_op(_brighten_op)
+    assert canvas._preview is not None
+    assert np.all(np.array(canvas._preview)[:, :, 0] == 150)        # Vorschau zeigt Ergebnis
+    assert np.array_equal(np.array(canvas.image), before)           # Modell unberührt
+
+
+def test_color_commit_is_single_undoable_step(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (100, 100, 100, 255)), "seed.png")
+    before = np.array(canvas.image).copy()
+
+    canvas.preview_color_op(_brighten_op)
+    canvas.apply_color_op(_brighten_op)
+    assert canvas._preview is None
+    assert np.all(np.array(canvas.image)[:, :, 0] == 150)
+    assert canvas._history.descriptions() == ["Farbkorrektur"]      # genau ein Schritt
+
+    canvas.undo()
+    assert np.array_equal(np.array(canvas.image), before)
+    canvas.redo()
+    assert np.all(np.array(canvas.image)[:, :, 0] == 150)
+
+
+def test_color_cancel_restores_model(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (100, 100, 100, 255)), "seed.png")
+    before = np.array(canvas.image).copy()
+
+    canvas.preview_color_op(_brighten_op)
+    canvas.cancel_color_preview()
+    assert canvas._preview is None
+    assert np.array_equal(np.array(canvas.image), before)
+
+
+def test_color_preview_cleared_on_layer_switch(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _color_plus_height(100)        # COLOR unten (Index 0), HEIGHT aktiv oben
+    canvas.set_project(project)
+    canvas.set_active_layer(project.layers[0].id)   # COLOR aktiv
+    canvas.preview_color_op(_brighten_op)
+    assert canvas._preview is not None
+    canvas.set_active_layer(project.layers[1].id)   # Zustandswechsel verwirft Vorschau
+    assert canvas._preview is None
+
+
+def test_color_tools_ignore_non_color_layer(qapp) -> None:
+    """Farbkorrektur wirkt nicht auf HEIGHT-Ebenen (keine Regression)."""
+    canvas = ImageCanvas()
+    canvas.set_project(_color_plus_height(100))      # HEIGHT-Ebene ist aktiv
+    before = np.array(canvas.project.active_layer().image).copy()
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.preview_color_op(_brighten_op)
+    assert canvas._preview is None                   # Vorschau still übersprungen
+    canvas.apply_color_op(_brighten_op)
+    assert np.array_equal(np.array(canvas.project.active_layer().image), before)
+    assert any("farbebene" in m.lower() for m in msgs)

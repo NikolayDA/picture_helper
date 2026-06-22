@@ -13,13 +13,17 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
-from bgremover.image_utils import numpy_to_pil
+# ``numpy_to_pil`` wird bewusst **lazy** (in den Funktionen) importiert: ``image_utils``
+# zieht PyQt6, ein Modul-Import würde ``image_ops`` import-zeitlich an Qt koppeln.
+# So bleibt dieses Modul (und damit reine Aufrufer wie ``project_model.resize``)
+# auch in Qt-losen/Headless-Kontexten importierbar (#359/#360-Review).
 
 
 def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
     """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel transparent sind."""
+    from bgremover.image_utils import numpy_to_pil
     result = arr.copy()
     result[mask, 3] = 0
     return numpy_to_pil(result)
@@ -28,6 +32,7 @@ def remove_selection(arr: np.ndarray, mask: np.ndarray) -> Image.Image:
 def replace_selection(arr: np.ndarray, mask: np.ndarray,
                       color: tuple[int, int, int]) -> Image.Image:
     """Gibt eine Kopie von ``arr`` zurück, bei der die ausgewählten Pixel durch ``color`` ersetzt sind."""
+    from bgremover.image_utils import numpy_to_pil
     result = arr.copy()
     result[mask] = [color[0], color[1], color[2], 255]
     return numpy_to_pil(result)
@@ -140,6 +145,42 @@ def save_image_file(img: Image.Image, path: str | Path) -> None:
         raise
 
 
+def feather_alpha(
+    img: Image.Image,
+    radius: float,
+    *,
+    mask: np.ndarray | None = None,
+) -> Image.Image:
+    """Weichzeichnet **nur den Alphakanal** (Gaußsch); RGB bleibt unverändert.
+
+    Glättet harte Freistellungskanten zu einem weichen Verlauf des gegebenen
+    *radius* (Pillow-Gaußfilter auf dem Alphakanal) – der Feinschliff nach KI-
+    oder manueller Freistellung. Die RGB-Pixel bleiben **bitgenau** erhalten;
+    ``radius <= 0`` ist ein **No-op** und gibt dasselbe Objekt zurück.
+
+    Eine optionale boolesche ``mask`` (Form ``(H, W)``) begrenzt die Wirkung auf
+    ihre True-Pixel; außerhalb bleibt das Alpha unverändert – so lässt sich der
+    Feinschliff auf eine vorhandene Auswahl beschränken. Pillows Gaußfilter führt
+    Randpixel per Kantenfortsetzung fort, sodass eine vollflächig deckende Ebene
+    (Alpha überall 255) keine Randartefakte erhält.
+    """
+    if radius <= 0:
+        return img
+    rgba = img if img.mode == "RGBA" else img.convert("RGBA")
+    arr = np.array(rgba)
+    # Kontiguierte Kopie des Alphakanals: dient ``Image.fromarray`` als Quelle und
+    # zugleich als „Original" für den maskierten Pfad (der Rückschreib-Write unten
+    # verändert ``arr`` in-place).
+    alpha = np.ascontiguousarray(arr[:, :, 3])
+    blurred = np.asarray(
+        Image.fromarray(alpha, "L").filter(ImageFilter.GaussianBlur(radius)))
+    if mask is None:
+        arr[:, :, 3] = blurred
+    else:
+        arr[:, :, 3] = np.where(mask, blurred, alpha)
+    return Image.fromarray(arr, "RGBA")
+
+
 def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:
     """Gibt ``img`` mit abgerundeten Alpha-Ecken zurück sowie den tatsächlich verwendeten Radius."""
     rgba = img.convert("RGBA")
@@ -192,6 +233,61 @@ def rotate_image(img: Image.Image, degrees: int) -> Image.Image:
     if degrees % 90 == 0:
         return rgba.rotate(degrees, expand=True)
     return rgba.rotate(degrees, expand=True, resample=Image.Resampling.BICUBIC)
+
+
+def resized_size(
+    width: int,
+    height: int,
+    target_w: int | None = None,
+    target_h: int | None = None,
+) -> tuple[int, int]:
+    """Berechnet die Zielgröße eines Resamplings – ohne Allokation.
+
+    Analog zu :func:`rotated_size` liefert der Helfer das Ergebnis-Maß, bevor
+    Pillow den Zielpuffer anlegt, sodass der Aufrufer ein Megapixel-Gate setzen
+    kann. Zugleich kapselt er die **Seitenverhältnis-Kopplung** der UI:
+
+    - **Beide** Zielkanten gesetzt → freie (nicht proportionale) Zielgröße.
+    - **Genau eine** gesetzt → die fehlende folgt seitenverhältniswahrend aus
+      ``(width, height)`` (gerundet).
+    - **Keine** gesetzt → :class:`ValueError`.
+
+    Jede Ergebnis-Kante ist mindestens ``1`` px. ``width``/``height`` (die
+    Ausgangsgröße) müssen positiv sein.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Ausgangsgröße muss positiv sein, war {width}x{height}")
+    if target_w is None and target_h is None:
+        raise ValueError("Mindestens eine Zielkante (target_w/target_h) muss gesetzt sein")
+    if target_w is not None and target_h is not None:
+        return (max(1, target_w), max(1, target_h))
+    if target_w is not None:
+        new_w = max(1, target_w)
+        return (new_w, max(1, round(height * new_w / width)))
+    assert target_h is not None  # durch die None-Prüfung oben garantiert
+    new_h = max(1, target_h)
+    return (max(1, round(width * new_h / height)), new_h)
+
+
+def resize_image(
+    img: Image.Image,
+    width: int,
+    height: int,
+    resample: Image.Resampling = Image.Resampling.LANCZOS,
+) -> Image.Image:
+    """Resampelt ``img`` auf ``(width, height)`` px.
+
+    Stimmt die Zielgröße mit der aktuellen überein, wird ``img`` **unverändert**
+    (dasselbe Objekt) zurückgegeben – ein echtes No-op ohne Kopie. Der Modus
+    bleibt erhalten (die Aufrufer übergeben RGBA-Ebenendaten). ``width``/
+    ``height`` müssen positiv sein; das Megapixel-Gate setzt der Aufrufer über
+    :func:`resized_size`.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Zielgröße muss positiv sein, war {width}x{height}")
+    if (img.width, img.height) == (width, height):
+        return img
+    return img.resize((width, height), resample)
 
 
 def flip_image(img: Image.Image, horizontal: bool) -> Image.Image:

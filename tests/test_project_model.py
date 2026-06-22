@@ -397,3 +397,56 @@ def test_composite_respects_layer_order_after_reorder() -> None:
     assert np.array(proj.composite_color())[0, 0].tolist() == [0, 0, 255, 255]
     proj.reorder([blue.id, red.id])  # rot nach oben
     assert np.array(proj.composite_color())[0, 0].tolist() == [255, 0, 0, 255]
+
+
+# ── Größe ändern / Resample (#359) ──────────────────────────────────────
+
+def test_resize_scales_all_layers_and_canvas_keeping_composite_aligned() -> None:
+    proj = Project(8, 4)
+    proj.create_layer(_solid((8, 4), (200, 0, 0, 255)), name="C", kind=LayerKind.COLOR)
+    harr = np.zeros((4, 8, 4), dtype=np.uint8)
+    harr[:, :, 0] = 100
+    harr[:, :, 3] = 255
+    proj.create_layer(Image.fromarray(harr, "RGBA"), name="H", kind=LayerKind.HEIGHT)
+
+    proj.resize(16, 8)
+
+    assert proj.size == (16, 8)
+    for layer in proj.layers:
+        assert layer.size == (16, 8)
+    # Farb-Komposit bleibt deckungsgleich (neue Größe, Vollton erhalten).
+    composite = np.array(proj.composite_color())
+    assert composite.shape == (8, 16, 4)
+    assert composite[0, 0].tolist() == [200, 0, 0, 255]
+
+
+def test_resize_keeps_height_layer_grayscale() -> None:
+    proj = Project(4, 4)
+    harr = np.zeros((4, 4, 4), dtype=np.uint8)
+    harr[:, :2, 0] = 200   # links hoch, rechts 0 → Resampling erzeugt Verläufe
+    harr[:, :, 3] = 255
+    proj.create_layer(Image.fromarray(harr, "RGBA"), name="H", kind=LayerKind.HEIGHT)
+
+    proj.resize(16, 16)
+
+    arr = np.array(proj.active_layer().image)
+    assert np.array_equal(arr[:, :, 0], arr[:, :, 1])   # R==G==B==Höhe bleibt
+    assert np.array_equal(arr[:, :, 1], arr[:, :, 2])
+
+
+def test_resize_same_size_is_noop_and_keeps_objects() -> None:
+    proj = Project(10, 10)
+    proj.create_layer(_solid((10, 10), (1, 2, 3, 255)), name="C")
+    before = proj.layers[0].image
+    proj.resize(10, 10)
+    assert proj.size == (10, 10)
+    assert proj.layers[0].image is before   # echtes No-op ohne Resampling
+
+
+def test_resize_rejects_nonpositive() -> None:
+    proj = Project(4, 4)
+    proj.create_layer(_solid((4, 4), (0, 0, 0, 255)), name="C")
+    with pytest.raises(ValueError):
+        proj.resize(0, 4)
+    with pytest.raises(ValueError):
+        proj.resize(4, -2)

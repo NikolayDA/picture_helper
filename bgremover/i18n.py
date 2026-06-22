@@ -229,6 +229,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.rotate_180": "180° drehen",
         "action.flip_horizontal": "Horizontal spiegeln",
         "action.flip_vertical": "Vertikal spiegeln",
+        "action.resize": "Größe ändern…",
         "action.clear_selection": "Auswahl aufheben",
         "action.invert_selection": "Auswahl invertieren",
         "action.restore_original": "Original wiederherstellen",
@@ -278,6 +279,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.background": "Hintergrund",
         "right_panel.tab.background.tooltip": (
             "Hintergrund – Entfernen, Farbe ersetzen"
+        ),
+        "right_panel.tab.adjust": "Anpassen",
+        "right_panel.tab.adjust.tooltip": (
+            "Farbkorrektur – Helligkeit, Kontrast, Sättigung"
         ),
         "right_panel.tab.transform": "Drehen/Spiegeln",
         "right_panel.tab.transform.tooltip": "Transform – Drehen, Spiegeln",
@@ -348,6 +353,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.background.replace.tooltip": (
             "Füllt den ausgewählten Bereich mit der gewählten Farbe"
         ),
+        "right_panel.background.section.feather": "Kante glätten",
+        "right_panel.background.feather_hint": (
+            "Weichzeichnet die Freistellungskante (nur Alpha)."
+        ),
+        "right_panel.background.feather_radius": "Radius:  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Radius der Kantenglättung in Pixeln (0 = aus)"
+        ),
+        "right_panel.background.feather": "Kante glätten",
+        "right_panel.background.feather.tooltip": (
+            "Alphakante der aktiven Ebene weichzeichnen (Auswahl bzw. global)"
+        ),
         # Right panel — Transform tab contents
         "right_panel.transform.section.rotate": "Drehen",
         "right_panel.transform.quick_label": "Schnell-Drehung:",
@@ -372,6 +389,47 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Bild horizontal spiegeln (links ↔ rechts)",
         "right_panel.transform.flip_v": "Vertikal",
         "right_panel.transform.flip_v.tooltip": "Bild vertikal spiegeln (oben ↕ unten)",
+        "right_panel.transform.section.resize": "Größe ändern",
+        "right_panel.transform.resize": "Größe ändern…",
+        "right_panel.transform.resize.tooltip": (
+            "Bild/Projekt auf eine Zielgröße in Pixeln skalieren (Resampling)"
+        ),
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "Größe ändern",
+        "resize.width": "Breite",
+        "resize.height": "Höhe",
+        "resize.link_aspect": "Seitenverhältnis koppeln",
+        "resize.resample.label": "Verfahren:",
+        "resize.resample.lanczos": "Lanczos (beste Qualität)",
+        "resize.resample.bicubic": "Bikubisch",
+        "resize.resample.bilinear": "Bilinear",
+        "resize.resample.nearest": "Nächster Nachbar",
+        "resize.megapixels": "{mp:.1f} MP (Maximum: {maximum} MP)",
+        "resize.ok": "Anwenden",
+        "resize.cancel": "Abbrechen",
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Farbkorrektur",
+        "right_panel.adjust.hint": "Wirkt auf die aktive Farbebene.",
+        "right_panel.adjust.brightness": "Helligkeit:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Helligkeit der aktiven Farbebene (100 % = unverändert)"
+        ),
+        "right_panel.adjust.contrast": "Kontrast:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Kontrast der aktiven Farbebene (100 % = unverändert)"
+        ),
+        "right_panel.adjust.saturation": "Sättigung:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Sättigung der aktiven Farbebene (0 % = Graustufe, 100 % = unverändert)"
+        ),
+        "right_panel.adjust.reset": "Zurücksetzen",
+        "right_panel.adjust.reset.tooltip": (
+            "Regler auf 100 % zurücksetzen und Vorschau verwerfen"
+        ),
+        "right_panel.adjust.apply": "Anwenden",
+        "right_panel.adjust.apply.tooltip": (
+            "Farbkorrektur auf die aktive Farbebene anwenden"
+        ),
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Ecken abrunden",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -480,6 +538,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "({mp:.0f} MP) – Maximum: {maximum} MP"
         ),
         "canvas.rotated": "{direction} Gedreht: {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Größe geändert: {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Zielgröße {w} × {h} px zu groß ({mp:.0f} MP) – Maximum: {maximum} MP"
+        ),
+        "canvas.color_adjusted": "🎨 Farbkorrektur angewendet",
+        "canvas.not_color_layer": "Keine Farbebene aktiv",
+        "canvas.feathered": "🪶 Kante geglättet: {radius} px",
         "canvas.flipped_h": "↔ Horizontal gespiegelt",
         "canvas.flipped_v": "↕ Vertikal gespiegelt",
         "canvas.crop_cancelled": "Zuschnitt abgebrochen",
@@ -501,6 +566,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.ai_bg": "KI-Hintergrundentfernung",
         "history.desc.round_corners": "Ecken abgerundet ({r} px)",
         "history.desc.rotated": "{direction} Gedreht {degrees}°",
+        "history.desc.resized": "Größe geändert ({w}×{h} px)",
+        "history.desc.color_adjusted": "Farbkorrektur",
+        "history.desc.feathered": "Kante geglättet ({radius} px)",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
@@ -706,6 +774,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.rotate_180": "Rotate 180°",
         "action.flip_horizontal": "Flip horizontally",
         "action.flip_vertical": "Flip vertically",
+        "action.resize": "Resize…",
         "action.clear_selection": "Clear selection",
         "action.invert_selection": "Invert selection",
         "action.restore_original": "Restore original",
@@ -755,6 +824,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.background": "Background",
         "right_panel.tab.background.tooltip": (
             "Background – remove, replace color"
+        ),
+        "right_panel.tab.adjust": "Adjust",
+        "right_panel.tab.adjust.tooltip": (
+            "Color correction – brightness, contrast, saturation"
         ),
         "right_panel.tab.transform": "Rotate/Flip",
         "right_panel.tab.transform.tooltip": "Transform – rotate, flip",
@@ -825,6 +898,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.background.replace.tooltip": (
             "Fills the selected area with the chosen color"
         ),
+        "right_panel.background.section.feather": "Smooth edge",
+        "right_panel.background.feather_hint": (
+            "Softens the cut-out edge (alpha only)."
+        ),
+        "right_panel.background.feather_radius": "Radius:  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Edge-smoothing radius in pixels (0 = off)"
+        ),
+        "right_panel.background.feather": "Smooth edge",
+        "right_panel.background.feather.tooltip": (
+            "Soften the alpha edge of the active layer (selection or global)"
+        ),
         # Right panel — Transform tab contents
         "right_panel.transform.section.rotate": "Rotate",
         "right_panel.transform.quick_label": "Quick rotate:",
@@ -849,6 +934,47 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Flip the image horizontally (left ↔ right)",
         "right_panel.transform.flip_v": "Vertical",
         "right_panel.transform.flip_v.tooltip": "Flip the image vertically (top ↕ bottom)",
+        "right_panel.transform.section.resize": "Resize",
+        "right_panel.transform.resize": "Resize…",
+        "right_panel.transform.resize.tooltip": (
+            "Scale the image/project to a target size in pixels (resampling)"
+        ),
+        # Resize dialog (#359)
+        "resize.title": "Resize",
+        "resize.width": "Width",
+        "resize.height": "Height",
+        "resize.link_aspect": "Link aspect ratio",
+        "resize.resample.label": "Method:",
+        "resize.resample.lanczos": "Lanczos (best quality)",
+        "resize.resample.bicubic": "Bicubic",
+        "resize.resample.bilinear": "Bilinear",
+        "resize.resample.nearest": "Nearest neighbor",
+        "resize.megapixels": "{mp:.1f} MP (maximum: {maximum} MP)",
+        "resize.ok": "Apply",
+        "resize.cancel": "Cancel",
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Color correction",
+        "right_panel.adjust.hint": "Acts on the active color layer.",
+        "right_panel.adjust.brightness": "Brightness:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Brightness of the active color layer (100% = unchanged)"
+        ),
+        "right_panel.adjust.contrast": "Contrast:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Contrast of the active color layer (100% = unchanged)"
+        ),
+        "right_panel.adjust.saturation": "Saturation:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Saturation of the active color layer (0% = grayscale, 100% = unchanged)"
+        ),
+        "right_panel.adjust.reset": "Reset",
+        "right_panel.adjust.reset.tooltip": (
+            "Reset the sliders to 100% and discard the preview"
+        ),
+        "right_panel.adjust.apply": "Apply",
+        "right_panel.adjust.apply.tooltip": (
+            "Apply the color correction to the active color layer"
+        ),
         # Right panel — Shape tab contents
         "right_panel.shape.section.corner": "Round corners",
         "right_panel.shape.radius": "Radius:  {value} px",
@@ -956,6 +1082,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "({mp:.0f} MP) – maximum: {maximum} MP"
         ),
         "canvas.rotated": "{direction} Rotated: {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Resized: {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Target size {w} × {h} px too large ({mp:.0f} MP) – maximum: {maximum} MP"
+        ),
+        "canvas.color_adjusted": "🎨 Color correction applied",
+        "canvas.not_color_layer": "No color layer active",
+        "canvas.feathered": "🪶 Edge smoothed: {radius} px",
         "canvas.flipped_h": "↔ Flipped horizontally",
         "canvas.flipped_v": "↕ Flipped vertically",
         "canvas.crop_cancelled": "Crop cancelled",
@@ -977,6 +1110,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.ai_bg": "AI background removal",
         "history.desc.round_corners": "Corners rounded ({r} px)",
         "history.desc.rotated": "{direction} Rotated {degrees}°",
+        "history.desc.resized": "Resized ({w}×{h} px)",
+        "history.desc.color_adjusted": "Color correction",
+        "history.desc.feathered": "Edge smoothed ({radius} px)",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },

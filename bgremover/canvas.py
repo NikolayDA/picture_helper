@@ -64,14 +64,14 @@ from bgremover.height_map import (
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
-from bgremover.image_ops import save_image_file
+from bgremover.image_ops import feather_alpha, save_image_file
 from bgremover.image_utils import (
     make_checker_brush,
     mask_to_overlay,
     pil_to_numpy_readonly,
 )
 from bgremover.project_history import ProjectHistory
-from bgremover.project_model import LayerKind, LayerRole, Project
+from bgremover.project_model import Layer, LayerKind, LayerRole, Project
 from bgremover.status_messages import StatusMessages as SM
 
 
@@ -159,11 +159,11 @@ class ImageCanvas(QGraphicsView):
         self._project: Project | None = None
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
-        # Transiente Höhen-Optimierungs-Vorschau (#348): wenn gesetzt, zeigt der
-        # Canvas dieses Bild statt des Modellzustands an, ohne die Ebene zu
-        # ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`) verwirft
-        # die Vorschau; Commit/Abbruch räumen sie explizit ab.
-        self._height_preview: Image.Image | None = None
+        # Transiente Vorschau (#348 Höhen-Optimierung, #360 Farbkorrektur): wenn
+        # gesetzt, zeigt der Canvas dieses Bild statt des Modellzustands an, ohne
+        # die Ebene zu ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`)
+        # verwirft die Vorschau; Commit/Abbruch räumen sie explizit ab.
+        self._preview: Image.Image | None = None
         self._selection = CanvasSelection(0, 0)
         # _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
         # Externe Worker nutzen diese Revision als Stale-Check statt
@@ -441,10 +441,10 @@ class ImageCanvas(QGraphicsView):
         return self._project.composite_color()
 
     def _refresh_image(self) -> None:
-        # Eine aktive Höhen-Vorschau (#348) hat Vorrang vor dem Modell-Render;
-        # sie ist rein transient (kein Modell-/Speicherzustand).
-        if self._height_preview is not None:
-            self._viewport.refresh_image(self._height_preview)
+        # Eine aktive transiente Vorschau (#348 Höhe / #360 Farbe) hat Vorrang vor
+        # dem Modell-Render; sie ist rein transient (kein Modell-/Speicherzustand).
+        if self._preview is not None:
+            self._viewport.refresh_image(self._preview)
             return
         self._viewport.refresh_image(self._render_image())
 
@@ -501,7 +501,7 @@ class ImageCanvas(QGraphicsView):
         # Eine transiente Höhen-Vorschau (#348) gilt nur für den vorherigen
         # Zustand; jeder Bildzustandswechsel (Edit/Commit/Undo/Laden/Ebenenwechsel)
         # verwirft sie, bevor neu gerendert wird.
-        self._height_preview = None
+        self._preview = None
         active = self._project.active_layer() if self._project is not None else None
         self._pil = active.image if active is not None else None
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
@@ -883,14 +883,14 @@ class ImageCanvas(QGraphicsView):
             # Vorschau still überspringen statt den Nutzer mit Meldungen zu
             # fluten; der Commit (apply_height_op) meldet den Fehler dagegen.
             return
-        self._height_preview = height_to_layer(result)
+        self._preview = height_to_layer(result)
         self._refresh_image()
 
     def cancel_height_preview(self) -> None:
         """Verwirft eine aktive Höhen-Vorschau und zeigt wieder den Modellzustand."""
-        if self._height_preview is None:
+        if self._preview is None:
             return
-        self._height_preview = None
+        self._preview = None
         self._refresh_image()
 
     @_requires_image
@@ -915,15 +915,91 @@ class ImageCanvas(QGraphicsView):
         try:
             result = op(field)
         except HeightMapError as e:
-            self._height_preview = None
+            self._preview = None
             self._refresh_image()
             self.statusMsg.emit(tr("canvas.height_op_error", error=e))
             return
-        self._height_preview = None
+        self._preview = None
         self._run_height_edit(
             result,
             desc if desc is not None else tr("history.desc.height_optimized"),
             status if status is not None else tr("canvas.height_optimized"))
+
+    # ── Farbkorrektur mit Live-Vorschau (#360) ──────────────────────────
+    def _active_color_layer(self) -> Layer | None:
+        """Aktive Ebene, sofern sie eine COLOR-Ebene ist – sonst ``None``.
+
+        Farbkorrektur wirkt ausschließlich auf COLOR-Ebenen; auf Daten-Ebenen
+        (HEIGHT/GLOSS/GENERIC) liefert der Helfer ``None``, ohne zu melden – der
+        Aufrufer entscheidet, ob das stille Überspringen (Vorschau) oder eine
+        Statusmeldung (Commit) angebracht ist.
+        """
+        if self._project is None:
+            return None
+        active = self._project.active_layer()
+        if active is None or active.kind is not LayerKind.COLOR:
+            return None
+        return active
+
+    @_requires_image
+    def preview_color_op(self, op: Callable[[Image.Image], Image.Image]) -> None:
+        """Zeigt *op* auf der aktiven COLOR-Ebene als transiente Vorschau.
+
+        ``op`` ist eine reine ``Image → Image``-Funktion (z. B. eine an ihre
+        Reglerwerte gebundene ``color_ops.adjust_color``-Closure). Die Ebene bleibt
+        **unverändert**; gerendert wird das Komposit, als hätte die aktive Ebene
+        bereits das Ergebnis – so stimmt die Vorschau auch bei mehreren Ebenen mit
+        dem späteren Commit überein. Ohne aktive COLOR-Ebene passiert nichts
+        (stilles Überspringen, kein Meldungs-Spam beim Reglern).
+        """
+        active = self._active_color_layer()
+        if active is None:
+            return
+        original = active.image
+        try:
+            active.image = op(original)
+            render = self._render_image()
+        finally:
+            # Modell unangetastet lassen – nur die Anzeige zeigt das Ergebnis.
+            active.image = original
+        self._preview = render
+        self._refresh_image()
+
+    def cancel_color_preview(self) -> None:
+        """Verwirft eine aktive Farb-Vorschau und zeigt wieder den Modellzustand."""
+        if self._preview is None:
+            return
+        self._preview = None
+        self._refresh_image()
+
+    @_requires_image
+    def apply_color_op(
+        self,
+        op: Callable[[Image.Image], Image.Image],
+        *,
+        desc: str | None = None,
+        status: str | None = None,
+    ) -> None:
+        """Wendet *op* undo-fähig auf die aktive COLOR-Ebene an (Commit der Vorschau).
+
+        Berechnet das Ergebnis aus dem **aktuellen** Ebenenzustand (deterministisch
+        identisch zur Vorschau) und schreibt es wie eine normale Bearbeitung
+        zurück (genau **ein** Undo-Schritt über ``_apply_pil``). Ohne aktive
+        COLOR-Ebene wird gemeldet statt still nichts zu tun.
+        """
+        active = self._active_color_layer()
+        if active is None:
+            self._preview = None
+            self._refresh_image()
+            self.statusMsg.emit(tr("canvas.not_color_layer"))
+            return
+        result = op(active.image)
+        self._preview = None
+        self._apply_pil(
+            result,
+            desc=desc if desc is not None else tr("history.desc.color_adjusted"))
+        self.statusMsg.emit(
+            status if status is not None else tr("canvas.color_adjusted"))
 
     def _adopt_project(self, project: Project) -> None:
         """Übernimmt einen aus der Historie rekonstruierten Projektzustand."""
@@ -1037,6 +1113,25 @@ class ImageCanvas(QGraphicsView):
     @_requires_image
     def shrink_selection(self, radius: int) -> None:
         self._morphology(radius, "shrink")
+
+    @_requires_image
+    def feather_active_edges(self, radius: int) -> None:
+        """Glättet die Alphakante der aktiven Ebene (Feinschliff, #361).
+
+        Weichzeichnet **nur den Alphakanal** der aktiven Ebene gaußsch (RGB bleibt
+        erhalten) – der Politurschritt nach KI- oder manueller Freistellung. Eine
+        vorhandene Auswahl begrenzt die Wirkung (sonst global); der Schritt ist
+        über ``_apply_pil`` undo-/redobar. ``radius <= 0`` ist ein No-op mit
+        Hinweis.
+        """
+        if radius <= 0:
+            self.statusMsg.emit(tr("canvas.radius_positive"))
+            return
+        assert self._pil is not None  # @_requires_image garantiert das
+        mask = self._selection.mask if self._selection.has_selection else None
+        result = feather_alpha(self._pil, radius, mask=mask)
+        self._apply_pil(result, desc=tr("history.desc.feathered", radius=radius))
+        self.statusMsg.emit(tr("canvas.feathered", radius=radius))
 
     # ── Tool-Einstellungen ───────────────────────────────────
 
@@ -1382,6 +1477,44 @@ class ImageCanvas(QGraphicsView):
     def apply_flip(self, horizontal: bool) -> None:
         """Spiegelt das Bild horizontal oder vertikal."""
         self._transform.apply_flip(horizontal)
+
+    @_requires_image
+    def apply_resize(
+        self,
+        width: int,
+        height: int,
+        *,
+        resample: Image.Resampling = Image.Resampling.LANCZOS,
+    ) -> None:
+        """Skaliert das gesamte Projekt auf eine Zielgröße in Pixeln (#359).
+
+        Gateprüfung (Megapixel-Limit), No-op-Erkennung und Statusmeldung liegen in
+        :meth:`CanvasTransform.apply_resize`; die eigentliche, undo-fähige
+        Anwendung in :meth:`resize_project`.
+        """
+        self._transform.apply_resize(width, height, resample)
+
+    def resize_project(
+        self,
+        width: int,
+        height: int,
+        resample: Image.Resampling,
+        desc: str,
+    ) -> None:
+        """Wendet eine **größenändernde** Skalierung auf das **ganze** Projekt an.
+
+        Größenändernde Operation analog :meth:`apply_geometry`, jedoch über die
+        height-bewusste Modelloperation :meth:`Project.resize` (COLOR/Daten via
+        Resampling, HEIGHT verlustfrei über die Höhen-Repräsentation). Ein
+        einziger Undo-Schritt erfasst den Gesamtzustand vor der Skalierung; das
+        Gate hat der Aufrufer (``CanvasTransform``) bereits gesetzt.
+        """
+        if self._project is None:
+            return
+        self._history.push(self._project, desc)
+        self._emit_history()
+        self._project.resize(width, height, resample=resample)
+        self._set_image_state()
 
     # ── Ausgabeformat – Crop-Overlay (Delegatoren) ───────────
 

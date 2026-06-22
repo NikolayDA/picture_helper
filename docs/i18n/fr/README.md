@@ -24,6 +24,9 @@ Un outil de retouche d'image pour macOS et Linux permettant de **supprimer, remp
 - **✂ Recadrage** avec grille des tiers : cercle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotation** par pas de 90° ou selon un angle quelconque ; **↔ Miroir** horizontal/vertical.
 - **⬤ Arrondir les coins** avec un rayon réglable.
+- **📐 Redimensionner** – mettre l'image/le projet à l'échelle d'une résolution cible en pixels (lier le rapport d'aspect, méthode de rééchantillonnage au choix).
+- **🎚 Correction des couleurs** – luminosité, contraste et saturation du calque actif avec aperçu en direct (préserve l'alpha).
+- **🪶 Lisser le bord** – bord de détourage doux (fondu alpha), limité à la sélection, après détourage par IA ou manuel.
 - **↩ Historique** avec annulation et retour à n'importe quelle étape antérieure.
 - **📥 Glisser-déposer** des images directement sur la fenêtre.
 - Enregistrement en **PNG** (avec transparence), **JPEG** (sur fond blanc), **WebP** ou **TIFF**.

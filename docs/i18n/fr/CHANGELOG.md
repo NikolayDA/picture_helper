@@ -11,6 +11,41 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Finition du détourage : lissage des bords / fondu.** Nouvelle fonction sans Qt
+  et strictement typée `feather_alpha(img, radius, *, mask=None)` dans
+  `image_ops.py` : flou gaussien **du seul canal alpha** (RVB préservé bit à bit ;
+  `radius = 0` = no-op ; les calques entièrement opaques restent sans artefact au
+  bord). Le canevas l’intègre comme `feather_active_edges(radius)` sur le calque
+  actif, **limitée à la sélection** (si présente) et **annulable/rétablissable**
+  via le chemin d’application existant. IU : curseur de rayon + bouton « Lisser le
+  bord » dans l’onglet Arrière-plan (à côté du détourage). Toutes les nouvelles
+  chaînes en parité de/en (#361).
+- **Correction des couleurs du calque couleur actif (luminosité/contraste/saturation).**
+  Nouveau module sans Qt et strictement typé `bgremover/color_ops.py` avec
+  `adjust_color` (Pillow `ImageEnhance`, **canal alpha exactement préservé**,
+  valeurs neutres = no-op identique au bit près), une primitive de tonalité
+  réutilisable pour le moteur partagé ultérieur (rang #6). Le canevas fournit un
+  **aperçu en direct** générique (`preview_color_op`/`cancel_color_preview`,
+  transitoire sans modifier le modèle ; l’aperçu est prioritaire dans
+  `_refresh_image`) et une validation annulable/rétablissable (`apply_color_op`)
+  sur le calque **COLOR** actif (sans effet sur les calques non COLOR). Un nouvel
+  onglet « Ajuster » dans le panneau de droite propose des curseurs
+  luminosité/contraste/saturation avec **Réinitialiser** et **Appliquer**. Toutes
+  les nouvelles chaînes en parité de/en (#360).
+- **Redimensionner / mettre à l’échelle vers une taille cible (rééchantillonnage).**
+  Nouvelles opérations d’image sans Qt et strictement typées
+  `resize_image`/`resized_size` dans `image_ops.py` (sans effet si la taille est
+  identique ; assistant de rapport d’aspect/garde mégapixels) et `Project.resize`
+  dans `project_model.py`, qui rééchantillonne **toutes les couches** et la taille
+  du canevas de façon cohérente (COLOR selon la méthode choisie, HEIGHT sans perte
+  via la représentation de hauteur ; le composite couleur reste aligné). Le
+  canevas l’intègre avec annuler/rétablir et une garde mégapixels (refus clair et
+  traduit en cas de dépassement, sans allouer le tampon surdimensionné) ; une
+  nouvelle boîte de dialogue « Redimensionner… » (largeur/hauteur en px,
+  **lier le rapport d’aspect**, méthode de rééchantillonnage) est accessible via le
+  menu « Édition » (Ctrl+R) et l’onglet Transformation. La taille physique
+  réservée (`META_PHYSICAL_SIZE_MM`) reste intacte (mm/PPP est réservé aux rangs
+  ultérieurs). Toutes les nouvelles chaînes en parité de/en (#359).
 - **Représentation de hauteur et visualisation 2D (fondation height-map).**
   Nouveau module sans Qt et strictement typé `bgremover/height_map.py` :
   conversion sans perte hauteur ↔ tableau en niveaux de gris (`HeightField`,

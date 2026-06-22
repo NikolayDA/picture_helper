@@ -11,6 +11,41 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Retoque del recorte: suavizado de bordes / desvanecido.** Nueva función sin Qt
+  y con tipado estricto `feather_alpha(img, radius, *, mask=None)` en
+  `image_ops.py`: desenfoque gaussiano **solo del canal alfa** (RGB preservado bit
+  a bit; `radius = 0` = no-op; las capas totalmente opacas quedan sin artefactos en
+  el borde). El lienzo la integra como `feather_active_edges(radius)` sobre la capa
+  activa, **limitada por la selección** (si existe) y con **deshacer/rehacer** a
+  través de la ruta de aplicación existente. IU: deslizador de radio + botón
+  «Suavizar borde» en la pestaña Fondo (junto al recorte). Todas las cadenas nuevas
+  con paridad de/en (#361).
+- **Corrección de color de la capa de color activa (brillo/contraste/saturación).**
+  Nuevo módulo sin Qt y con tipado estricto `bgremover/color_ops.py` con
+  `adjust_color` (Pillow `ImageEnhance`, **canal alfa exactamente preservado**,
+  valores neutros = no-op idéntico bit a bit), como primitiva de tono reutilizable
+  para el motor compartido posterior (rango #6). El lienzo ofrece una
+  **vista previa en vivo** genérica (`preview_color_op`/`cancel_color_preview`,
+  transitoria sin cambios en el modelo; la vista previa tiene prioridad en
+  `_refresh_image`) y una confirmación con deshacer/rehacer (`apply_color_op`)
+  sobre la capa **COLOR** activa (sin efecto en capas no COLOR). Nueva pestaña
+  «Ajustar» en el panel derecho con deslizadores de brillo/contraste/saturación
+  con **Restablecer** y **Aplicar**. Todas las cadenas nuevas con paridad de/en
+  (#360).
+- **Cambiar tamaño / escalar a un tamaño objetivo (remuestreo).** Nuevas
+  operaciones de imagen sin Qt y con tipado estricto `resize_image`/`resized_size`
+  en `image_ops.py` (sin efecto si el tamaño coincide; ayudante de relación de
+  aspecto/límite de megapíxeles) y `Project.resize` en `project_model.py`, que
+  remuestrea **todas las capas** y el tamaño del lienzo de forma coherente (COLOR
+  con el método elegido, HEIGHT sin pérdidas mediante la representación de altura;
+  el compuesto de color permanece alineado). El lienzo lo integra con
+  deshacer/rehacer y un límite de megapíxeles (rechazo claro y traducido en caso
+  de exceso, sin reservar el búfer sobredimensionado); un nuevo diálogo
+  «Cambiar tamaño…» (ancho/alto en px, **vincular relación de aspecto**, método de
+  remuestreo) es accesible desde el menú «Editar» (Ctrl+R) y la pestaña de
+  transformación. El tamaño físico reservado (`META_PHYSICAL_SIZE_MM`) permanece
+  intacto (mm/DPP queda para rangos posteriores). Todas las cadenas nuevas con
+  paridad de/en (#359).
 - **Representación de altura y visualización 2D (base del mapa de altura).**
   Nuevo módulo sin Qt y con tipado estricto `bgremover/height_map.py`:
   conversión sin pérdidas altura ↔ array en escala de grises (`HeightField`,

@@ -45,6 +45,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             redo=lambda: calls.append("redo"),
             rotate=rotations.append,
             flip=flips.append,
+            resize=lambda: calls.append("resize"),
             clear_selection=lambda: calls.append("clear"),
             invert_selection=lambda: calls.append("invert"),
             restore_original=lambda: calls.append("restore"),
@@ -65,12 +66,13 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
         "Projekt speichern unter…",
         "Rückgängig", "Wiederherstellen",
         "90° links drehen", "90° rechts drehen", "180° drehen",
-        "Horizontal spiegeln", "Vertikal spiegeln",
+        "Horizontal spiegeln", "Vertikal spiegeln", "Größe ändern…",
         "Auswahl aufheben", "Auswahl invertieren",
         "Original wiederherstellen", "Fit to View", "Einstellungen…",
     }
     assert expected <= set(actions)
     assert _portable_shortcut(actions["Öffnen…"]) == "Ctrl+O"
+    assert _portable_shortcut(actions["Größe ändern…"]) == "Ctrl+R"
     assert _portable_shortcut(actions["Speichern unter…"]) == "Ctrl+Shift+S"
     assert _portable_shortcut(actions["Fit to View"]) == "Ctrl+0"
     assert _portable_shortcut(actions["Auswahl aufheben"]) == ""
@@ -101,11 +103,13 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["180° drehen"].trigger()
     actions["Horizontal spiegeln"].trigger()
     actions["Vertikal spiegeln"].trigger()
+    actions["Größe ändern…"].trigger()
 
     assert calls == [
         "open", "save", "save_as", "undo", "redo",
         "clear", "invert", "restore", "fit", "settings",
         "new_project", "open_project", "save_project", "save_project_as",
+        "resize",
     ]
     assert rotations == [90, -90, 180]
     assert flips == [True, False]
