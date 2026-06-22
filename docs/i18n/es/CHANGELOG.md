@@ -11,6 +11,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **ADR del paquete de exportación EufyMake.** Una nueva decisión de arquitectura
+  documenta la convención de paquete orientada a la importación para #352/#351:
+  motivo de color como PNG RGBA, mapa de altura como PNG en escala de grises con
+  claro = alto, máscara de brillo opcional y cuestiones abiertas sobre 16 bits,
+  la semántica del brillo y el formato nativo `.empf`.
 - **Retoque del recorte: suavizado de bordes / desvanecido.** Nueva función sin Qt
   y con tipado estricto `feather_alpha(img, radius, *, mask=None)` en
   `image_ops.py`: desenfoque gaussiano **solo del canal alfa** (RGB preservado bit
