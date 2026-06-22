@@ -11,6 +11,21 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Exportation EufyMake : modèle de données et planification (sans Qt).** Nouveau
+  module strictement typé `bgremover/eufymake_export.py` :
+  `build_export_plan(project)` associe de façon déterministe les rôles de calque à
+  un `ExportPlan` d’`ExportAsset` — le motif couleur en PNG RGBA est **obligatoire**
+  (rôle `COLOR_MOTIF` explicite ou composite COLOR), tandis que la carte de hauteur
+  et le masque de brillance sont des PNG niveaux de gris **facultatifs** (brillance
+  expérimentale). Les noms de fichier, la version de profil et les valeurs par
+  défaut sont des **conventions BgRemover** documentées (et non une spécification
+  officielle EufyMake) ; la sémantique de hauteur **clair = haut** est fixée dans le
+  contrat de types, tandis que les questions ouvertes de profondeur de bits/brillance
+  et l’absence délibérée d’un `.empf` natif restent explicitement signalées. La
+  taille physique, les DPI et la profondeur de bits sont dérivés de façon
+  reproductible des métadonnées du projet ou des valeurs par défaut ; les valeurs
+  invalides produisent des erreurs structurées. Un modèle de données pur, sans
+  rendu/écriture/IU (suite dans #353–#355) (#352).
 - **ADR du paquet d’exportation EufyMake.** Une nouvelle décision d’architecture
   documente la convention de paquet orientée import pour #352/#351 : motif
   couleur en PNG RGBA, carte de hauteur en PNG niveaux de gris avec clair = haut,

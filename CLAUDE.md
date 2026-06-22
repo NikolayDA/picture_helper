@@ -98,6 +98,22 @@ Ein Paket, `bgremover/`:
   `load_project(..., warnings=...)` reicht eine übersetzte Warnung an die UI
   (Statusleiste) durch (#364). Noch ohne
   Menü-/Dialog-Anbindung (folgt #334/#335).
+- **EufyMake-Export (Plan, Epic #351):** `eufymake_export.py` — Qt-freies, strikt
+  getyptes Export-**Datenmodell** (#352): `build_export_plan(project)` bildet die
+  Ebenenrollen deterministisch auf `ExportAsset`s in einem `ExportPlan` ab –
+  `COLOR_MOTIF` ergibt das **erforderliche** RGBA-Farbmotiv (explizite Rolle oder
+  COLOR-Komposit-Fallback, sonst `MissingColorMotifError`), `HEIGHT_MAP`/`GLOSS_MASK`
+  je ein **optionales** Graustufen-Asset (Gloss `experimental`). Dateinamen
+  (`color_motif.png`/`height_map.png`/`gloss_mask.png`), Profilkennung
+  (`EXPORT_PROFILE`/`EXPORT_PROFILE_VERSION`) und Defaults sind **BgRemover-
+  Konventionen**, keine offizielle EufyMake-Spezifikation. Höhensemantik
+  **hell = hoch** ist im Typvertrag (`HeightSemantics`) fixiert; offene Bittiefen-/
+  Gloss-Fragen und der Verzicht auf natives `.empf` sind über `OpenQuestion`
+  explizit markiert. Ziel-Bittiefe/physische Größe/DPI werden reproduzierbar aus
+  `META_BIT_DEPTH`/`META_PHYSICAL_SIZE_MM` plus Defaults abgeleitet; ungültige
+  Werte werfen strukturierte `EufyMakeExportError`-Subtypen. Rendert nichts und
+  schreibt nichts (folgt #353–#355). Entscheidung/Quellenlage: ADR
+  [`docs/history/ADR-2026-eufymake-exportpaket.md`](docs/history/ADR-2026-eufymake-exportpaket.md).
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
