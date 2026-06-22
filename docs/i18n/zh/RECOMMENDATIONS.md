@@ -43,6 +43,9 @@
 - **N11 ✅ — 阶段 0 打磨（史诗 #358）已交付。** 项目目标尺寸缩放（#359）、
   保留 alpha 的亮度/对比度/饱和度调整（#360）与选区限定的 alpha 边缘羽化
   （#361），均支持 undo/redo 并无损保存在 `.bgrproj` 中。
+- **#363 ✅ — 导出回归已修复（PR #367）。** 无论激活哪个图层，保存图像
+  都会再次写入 COLOR 合成；显示渲染与导出渲染已分离，并由一个像素回归
+  测试覆盖。
 
 ### 仍然开放
 
@@ -53,19 +56,23 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 打开的 GitHub Issues — Triage 状态 (2026-06-22)
+## 打开的 GitHub Issues — Triage 状态 (2026-06-22，已更新)
 
-截至 2026-06-22，GitHub 显示 **13** 个打开的 issues。除 **EufyMake 导出
-epic #351** 与 #352–#355 外，还有 docs 缺口 **#357** 和三项 Height Map
-合并后发现：**#363**（HEIGHT 激活时导出错误）、**#364**（kind/role 上下文
-冲突）及 **#365**（中值滤波内存无上限）。**#322** 已通过 **#342** 交付并关闭。
+截至 2026-06-22，GitHub 显示 **12** 个打开的 issues。严重的导出回归
+**#363** 已通过 **PR #367** 修复并关闭。剩余的是 **EufyMake 导出
+epic #351** 与子 issue **#352–#355**（roadmap 排名 #3）、docs 缺口
+**#357** 和 **#339**、两项 Height Map 后续 **#364**（kind/role 上下文）
+与 **#365**（中值滤波内存），以及 test/CI 发现 **#318**、**#299** 和
+**#245**。维护/skip 路径 **#322** 已通过 **#342** 交付并关闭。关于
+**#364**，契约决策现已做出（issue 评论 2026-06-22）：以
+`LayerKind.HEIGHT` 为准，且 `HEIGHT_MAP` 只能位于 HEIGHT 图层上——
+因此该 issue 已可实现。
 
 评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#363](https://github.com/NikolayDA/picture_helper/issues/363) | 回归：保存图像导出活动 HEIGHT 视图而非 COLOR 合成 | 🔴 严重 | 🟢 低 | **Ready for PR — 首先修复。** 分离显示与导出渲染；普通图像导出必须始终写入 COLOR 合成。 |
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height Map 上下文：UI 与 canvas 对 `HEIGHT_MAP` 角色的判断不一致 | 🟠 高 | 🟡 中 | **Needs decision，再 PR。** 决定以 `LayerKind.HEIGHT` 为准还是角色即可，并在 #352 前统一模型、加载、面板与 canvas。 |
+| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height Map 上下文：UI 与 canvas 对 `HEIGHT_MAP` 角色的判断不一致 | 🟠 高 | 🟡 中 | **Ready for PR — 决策已定。** 契约已确定：以 `LayerKind.HEIGHT` 为准，`HEIGHT_MAP` 仅位于 HEIGHT 图层上。按此单一契约统一模型、反序列化（遗留归一化）、图层/高度面板与 canvas。在 #352 之前完成，因为 EufyMake 使用相同的角色映射。 |
 | [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Height Map 中值滤波可耗尽大型项目内存 | 🟠 高 | 🟡 中 | **Ready for PR。** 采用有界分块计算，避免完整 `(2r+1)² × H × W` stack；验证中值与高斯的 40 MP/半径契约。 |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] 一致的 EufyMake 导出包 | 🟠 高 | 🔴 高（epic） | **Needs refinement** – 据 deep research（issue 评论），将 scope 收窄为「面向 EufyMake Studio 的稳健 import-assets」；原生 `.empf` 生成**不**作为默认目标。经 #352–#355 推进。 |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | 导出数据模型与包定义（无 Qt）+ ADR | 🟠 高 | 🟡 中 | **Ready for PR — ADR 先行** – deep research 已完成（issue 评论），但 convention/ADR 决策**尚未在 repo 中记录**，须作为本 PR 的第一步写下来（这是 #352 的验收标准）。无 Qt 的 `eufymake_export.py`，含 `ExportPlan`/`ExportAsset`（彩色图案 PNG+alpha、高度灰度图亮=高、gloss mask）；scope = 面向 EufyMake Studio 的 import-assets；将 16-bit/gloss 语义/原生 `.empf` 标记为「未定」。基础 — 解锁 #353–#355。 |
@@ -80,14 +87,14 @@ epic #351** 与 #352–#355 外，还有 docs 缺口 **#357** 和三项 Height M
 
 ### 推荐下一步（PR 顺序）
 
-1. 首先修复 **#363**，恢复 COLOR 导出契约。
-2. 在 EufyMake 角色映射前决定并实现 **#364**。
-3. 并行加固 **#365**，再让大型 Height Map 使用中值预览。
-4. 然后实现 **#352**，ADR 先行；解锁 #353/#354。
-5. 并行实现 **#353** 与 **#354**，随后完成 **#355**。
-6. 将 **#357**、**#339** 和 **#299** 作为较低优先级填充。
-7. 暂缓 **#318**，直至 GitHub permission semantics 记录完成。
-8. 保持 **#245** externally blocked。
+1. 首先实现 **#364** — 在 EufyMake 角色映射前统一现已决定的 kind/role
+   不变式（以 `LayerKind.HEIGHT` 为准）。
+2. 并行加固 **#365**，再让大型 Height Map 使用中值预览。
+3. 然后实现 **#352**，ADR 先行；解锁 #353/#354。
+4. 并行实现 **#353** 与 **#354**，随后完成 **#355**。
+5. 将 **#357**、**#339** 和 **#299** 作为较低优先级填充。
+6. 暂缓 **#318**，直至 GitHub permission semantics 记录完成。
+7. 保持 **#245** externally blocked（没有 repo 补丁能恢复 quota）。
 
 ## 先前轮次
 

@@ -43,20 +43,17 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   `.bgrproj`-Format (#333), Ebenen-Panel/Projekt-Menü (#334) und Migration/
   Integration (#335) – Einzelbild-Parität gewahrt, `make check`/`make ui` grün.
 - **N10 ✅ — Height-Map-Arbeitsbereich (Epic #344) umgesetzt.** Qt-freie
-  Höhen-Repräsentation + 2D-Visualisierung (#345), algorithmische Erzeugung aus
-  Bild + Graustufen-Import (#346), Höhen-Editor Aufhellen/Abdunkeln/Setzen/
-  Invertieren (#347), Optimierung `height_ops` mit Live-Vorschau (#348) und der
-  bedienbare, moduskontextuelle Height-Map-Tab (#349). Kompletter Ablauf
-  erzeugen → malen → optimieren → invertieren → verlustfrei im `.bgrproj`;
-  COLOR-Editing ohne Regression, i18n de/en in Parität, `make check`/`make ui` grün.
-- **N11 ✅ — Phase-0-Politur (Epic #358) umgesetzt.** Die drei Restarbeiten der
-  Grundbildbearbeitung: Skalieren auf Zielgröße (`image_ops.resize_image`/
-  `resized_size`, `Project.resize`, Dialog + Megapixel-Gate, #359), Farbkorrektur
-  Helligkeit/Kontrast/Sättigung (Qt-frei `color_ops.adjust_color`, Live-Vorschau,
-  alpha-erhaltend, #360) und Kantenglättung/Feather der Alphakante
-  (`image_ops.feather_alpha`, auswahlbegrenzt, #361). Alle undo-/redobar und
-  verlustfrei im `.bgrproj`; neue Qt-freie Module in der mypy-Strict-Liste, i18n
-  de/en in Parität, `make check`/`make ui` grün (PR #362).
+  Höhen-Repräsentation + 2D-Visualisierung (#345), Erzeugung/Graustufen-Import
+  (#346), Höhen-Editor (#347), `height_ops` mit Live-Vorschau (#348) und
+  moduskontextueller Height-Map-Tab (#349); COLOR-Editing ohne Regression.
+- **N11 ✅ — Phase-0-Politur (Epic #358) umgesetzt.** Skalieren auf Zielgröße
+  (#359), Farbkorrektur Helligkeit/Kontrast/Sättigung (Qt-frei
+  `color_ops.adjust_color`, alpha-erhaltend, #360) und Kantenglättung/Feather der
+  Alphakante (`image_ops.feather_alpha`, #361) – alle undo-/redobar und
+  verlustfrei im `.bgrproj` (PR #362).
+- **#363 ✅ — Export-Regression behoben (PR #367).** „Bild speichern“ schreibt
+  wieder unabhängig von der aktiven Ebene das COLOR-Komposit; Anzeige- und
+  Export-Rendering sind getrennt, mit Pixel-Regressionstest abgesichert.
 
 ### Noch offen
 
@@ -69,21 +66,25 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Triage-Stand (2026-06-22)
+## Offene GitHub-Issues – Triage-Stand (2026-06-22, aktualisiert)
 
-Stand 2026-06-22 zeigt GitHub **13** offene Issues. Neben dem EufyMake-Epic
-**#351/#352–#355** sind die Doku-Lücke **#357** und drei Post-Merge-Folgebefunde
-aus dem Height-Map-Review offen: **#363** (falscher Export bei aktiver HEIGHT-
-Ebene), **#364** (Kind/Rollen-Kontext) und **#365** (Medianfilter-Speicher).
-Der Wartungs-/Skip-Pfad **#322** ist über **#342** erledigt und geschlossen.
+Stand 2026-06-22 zeigt GitHub **12** offene Issues. Der kritische
+Export-Regressionsbefund **#363** ist über **PR #367** behoben und geschlossen.
+Verbleibend sind das EufyMake-Epic **#351/#352–#355**, die Doku-Lücken **#357**
+und **#339**, die beiden Height-Map-Folgebefunde **#364** (Kind/Rollen-Kontext)
+und **#365** (Medianfilter-Speicher) sowie die Test-/CI-Befunde **#318**,
+**#299** und **#245**. Der Wartungs-/Skip-Pfad **#322** ist über **#342**
+erledigt und geschlossen. Für **#364** ist die Vertragsentscheidung inzwischen
+gefallen (Issue-Kommentar 2026-06-22): `LayerKind.HEIGHT` ist verbindlich,
+`HEIGHT_MAP` darf nur auf HEIGHT-Ebenen liegen – damit ist das Issue
+umsetzungsreif.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#363](https://github.com/NikolayDA/picture_helper/issues/363) | Regression: „Bild speichern“ exportiert aktive HEIGHT-Ansicht statt COLOR-Komposit | 🔴 Kritisch | 🟢 Niedrig | **Ready for PR – zuerst beheben.** Anzeige- und Export-Rendering trennen; normaler Bildexport muss unabhängig von der aktiven Ebene das COLOR-Komposit schreiben. Stiller Falschexport mit Pixel-Repro. |
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height-Map-Kontext: UI und Canvas widersprechen sich bei `HEIGHT_MAP`-Rolle | 🟠 Hoch | 🟡 Mittel | **Needs decision, dann PR.** Festlegen, ob `LayerKind.HEIGHT` verbindlich ist oder die Rolle genügt; Modell, Deserialisierung, Layer-/Height-Panel und Canvas anschließend auf einen Vertrag bringen. Vor #352 klären, weil der EufyMake-Export dieselbe Rollenabbildung nutzt. |
+| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height-Map-Kontext: UI und Canvas widersprechen sich bei `HEIGHT_MAP`-Rolle | 🟠 Hoch | 🟡 Mittel | **Ready for PR – Entscheidung gefallen.** Vertrag steht: `LayerKind.HEIGHT` ist verbindlich, `HEIGHT_MAP` nur auf HEIGHT-Ebenen. Modell, Deserialisierung (Legacy-Normalisierung), Layer-/Height-Panel und Canvas auf diesen einen Vertrag bringen. Vor #352 umsetzen, weil der EufyMake-Export dieselbe Rollenabbildung nutzt. |
 | [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Height-Map-Medianfilter kann bei großen Projekten den Speicher erschöpfen | 🟠 Hoch | 🟡 Mittel | **Ready for PR.** Median block-/kachelweise statt über einen vollständigen `(2r+1)² × H × W`-Stack berechnen; 40-MP-/Radius-Vertrag für Median und Gauß mit Speicherbenchmark absichern. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Konsistentes EufyMake-Exportpaket | 🟠 Hoch | 🔴 Hoch (Epic) | **Needs refinement** – Scope laut Deep-Research (Issue-Kommentar) auf „robuste Import-Assets für EufyMake Studio“ schärfen; native `.empf`-Erzeugung **nicht** als Default-Ziel. Wird über #352–#355 abgewickelt. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export-Datenmodell & Paketdefinition (Qt-frei) + ADR | 🟠 Hoch | 🟡 Mittel | **Ready for PR – ADR zuerst** – Deep-Research erledigt (Issue-Kommentare), aber die Konventions-/ADR-Entscheidung ist **noch nicht im Repo dokumentiert** und muss als erster Schritt dieses PR schriftlich festgehalten werden (Akzeptanzkriterium von #352). Qt-freies `eufymake_export.py` mit `ExportPlan`/`ExportAsset` (Farbmotiv-PNG+Alpha, Höhe-Graustufe hell=hoch, Gloss-Maske); Scope = Import-Assets für EufyMake Studio; 16-Bit/Gloss-Semantik/natives `.empf` als „offen“ markieren. Fundament – entsperrt #353–#355. |
@@ -98,19 +99,17 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#363** zuerst – stillen Falschexport beheben und den COLOR-Exportvertrag
-   wiederherstellen.
-2. **#364** entscheiden und umsetzen – Kind/Rollen-Invariante vor dem
-   EufyMake-Export vereinheitlichen.
-3. **#365** parallel zur weiteren Planung härten, bevor große Height-Maps den
-   Median-/Vorschaupfad nutzen.
-4. **#352** danach – Fundament des EufyMake-Epics, ADR zuerst; entsperrt
+1. **#364** zuerst umsetzen – die nun beschlossene Kind/Rollen-Invariante
+   (`LayerKind.HEIGHT` verbindlich) vor dem EufyMake-Export vereinheitlichen.
+2. **#365** parallel härten, bevor große Height-Maps den Median-/Vorschaupfad
+   nutzen.
+3. **#352** danach – Fundament des EufyMake-Epics, ADR zuerst; entsperrt
    #353/#354.
-5. **#353** und **#354** parallel, sobald #352 steht; danach **#355**.
-6. **#357**, **#339** (kleine Doku-PRs) und **#299** (Test-Cleanup) als niedrig
+4. **#353** und **#354** parallel, sobald #352 steht; danach **#355**.
+5. **#357**, **#339** (kleine Doku-PRs) und **#299** (Test-Cleanup) als niedrig
    priorisierte Lückenfüller dazwischen.
-7. **#318** zurückstellen, bis die GitHub-Permissions-Semantik belegt ist.
-8. **#245** extern blockiert lassen (kein Repo-Patch bringt die Quota zurück).
+6. **#318** zurückstellen, bis die GitHub-Permissions-Semantik belegt ist.
+7. **#245** extern blockiert lassen (kein Repo-Patch bringt die Quota zurück).
 
 ## Vorige Runden
 

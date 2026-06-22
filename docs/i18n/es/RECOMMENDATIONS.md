@@ -50,6 +50,10 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 - **N11 ✅ — Pulido de fase 0 (epic #358) entregado.** Redimensionado del proyecto
   (#359), brillo/contraste/saturación conservando alfa (#360) y feather del borde
   alfa limitado por selección (#361), con undo/redo y persistencia `.bgrproj`.
+- **#363 ✅ — Regresión de exportación corregida (PR #367).** Guardar imagen
+  vuelve a escribir el compuesto COLOR sin importar la capa activa; el renderizado
+  de pantalla y el de exportación están separados, cubiertos por un test de
+  regresión de píxeles.
 
 ### Aún Abierto
 
@@ -62,21 +66,24 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Estado de Triage (2026-06-22)
+## Issues de GitHub Abiertos — Estado de Triage (2026-06-22, actualizado)
 
-A 2026-06-22, GitHub muestra **13** issues abiertos. Además del **épic de
-exportación EufyMake #351** y #352–#355, están abiertos la brecha de docs **#357**
-y tres hallazgos post-merge de Height Map: **#363** (exportación incorrecta con
-HEIGHT activa), **#364** (contrato kind/role contradictorio) y **#365** (memoria
-sin límite del filtro mediano). **#322** se entregó vía **#342** y está cerrado.
+A 2026-06-22, GitHub muestra **12** issues abiertos. La regresión crítica de
+exportación **#363** se ha corregido vía **PR #367** y se cerró. Quedan el **épic
+de exportación EufyMake #351** y #352–#355 (rango #3 del roadmap), las brechas de
+docs **#357** y **#339**, los dos seguimientos de Height Map **#364** (contexto
+kind/role) y **#365** (memoria del filtro mediano), y los hallazgos de test/CI
+**#318**, **#299** y **#245**. **#322** se entregó vía **#342** y está cerrado.
+Para **#364** ya se ha tomado la decisión de contrato (comentario del issue
+2026-06-22): `LayerKind.HEIGHT` es autoritativo y `HEIGHT_MAP` solo puede estar en
+capas HEIGHT — así que el issue está listo para implementar.
 
 Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 **Complejidad** = esfuerzo estimado de implementación.
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#363](https://github.com/NikolayDA/picture_helper/issues/363) | Regresión: Guardar imagen exporta la vista HEIGHT activa en vez del compuesto COLOR | 🔴 Crítica | 🟢 Baja | **Ready for PR — corregir primero.** Separar renderizado de pantalla y exportación; la exportación normal siempre debe escribir el compuesto COLOR. |
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Contexto Height Map: UI y canvas discrepan sobre el rol `HEIGHT_MAP` | 🟠 Alta | 🟡 Media | **Needs decision, luego PR.** Elegir si manda `LayerKind.HEIGHT` o basta el rol y alinear modelo, carga, paneles y canvas antes de #352. |
+| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Contexto Height Map: UI y canvas discrepan sobre el rol `HEIGHT_MAP` | 🟠 Alta | 🟡 Media | **Ready for PR — decisión tomada.** Contrato fijado: `LayerKind.HEIGHT` es autoritativo, `HEIGHT_MAP` solo en capas HEIGHT. Alinear modelo, deserialización (normalización de legado), paneles de capas/altura y canvas con este único contrato. Hacer antes de #352 porque EufyMake usa el mismo mapeo de roles. |
 | [#365](https://github.com/NikolayDA/picture_helper/issues/365) | El filtro mediano de Height Map puede agotar memoria | 🟠 Alta | 🟡 Media | **Ready for PR.** Calcular por bloques acotados en vez de un stack completo `(2r+1)² × H × W`; validar contrato de 40 MP/radio para mediano y Gauss. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquete de exportación EufyMake consistente | 🟠 Alta | 🔴 Alta (épic) | **Needs refinement** – según la deep research (comentario del issue), afinar el alcance a "assets de importación robustos para EufyMake Studio"; la generación nativa de `.empf` **no** es el objetivo por defecto. Se aborda vía #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modelo de datos de exportación y definición de paquete (sin Qt) + ADR | 🟠 Alta | 🟡 Media | **Ready for PR — ADR primero** – deep research hecha (comentarios del issue), pero la decisión de convención/ADR **aún no está documentada en el repo** y debe escribirse como primer paso de esta PR (es criterio de aceptación de #352). `eufymake_export.py` sin Qt con `ExportPlan`/`ExportAsset` (motivo de color PNG+alfa, altura en grises claro=alto, máscara de gloss); alcance = assets de importación para EufyMake Studio; marcar 16 bits/semántica de gloss/`.empf` nativo como "abierto". Base — desbloquea #353–#355. |
@@ -91,14 +98,14 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 ### Próximo recomendado (orden de PR)
 
-1. Corregir **#363** primero para restaurar el contrato de exportación COLOR.
-2. Decidir e implementar **#364** antes del mapeo de roles EufyMake.
-3. Endurecer **#365** en paralelo antes de usar medianas en Height Maps grandes.
-4. Después implementar **#352**, ADR primero; desbloquea #353/#354.
-5. Implementar **#353** y **#354** en paralelo, seguido de **#355**.
-6. Usar **#357**, **#339** y **#299** como rellenos de menor prioridad.
-7. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
-8. Mantener **#245** bloqueado externamente.
+1. Implementar **#364** primero — unificar el invariante kind/role ya decidido
+   (`LayerKind.HEIGHT` autoritativo) antes del mapeo de roles EufyMake.
+2. Endurecer **#365** en paralelo antes de usar medianas en Height Maps grandes.
+3. Después implementar **#352**, ADR primero; desbloquea #353/#354.
+4. Implementar **#353** y **#354** en paralelo, seguido de **#355**.
+5. Usar **#357**, **#339** y **#299** como rellenos de menor prioridad.
+6. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
+7. Mantener **#245** bloqueado externamente (ningún parche del repo restaura la cuota).
 
 ## Rondas Anteriores
 
