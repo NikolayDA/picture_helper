@@ -410,26 +410,22 @@ class ImageCanvas(QGraphicsView):
         self._project.width, self._project.height = active.image.size
         self._set_image_state()
 
-    def _render_image(self) -> Image.Image | None:
-        """Das anzuzeigende/zu speichernde Bild: Komposit der sichtbaren Ebenen.
+    def _render_export_image(self) -> Image.Image | None:
+        """Das als normales Bild zu speichernde COLOR-Komposit (#363).
 
-        Höhen-Sicht (#345): Ist die **aktive** Ebene eine HEIGHT-Ebene, wird sie
-        graustufig dargestellt (``layer_to_gray_image``) statt des COLOR-Komposits
-        – die Höhenkarte ist sonst unsichtbar, weil ``composite_color`` nur
-        COLOR-Ebenen rendert. Da stets genau eine Ebene aktiv ist, wechselt die
-        Anzeige nur in die Höhensicht, wenn der Nutzer eine HEIGHT-Ebene auswählt;
-        bei aktiver COLOR-Ebene bleibt das Komposit unverändert (Parität).
+        Der Export ist bewusst unabhängig von der **aktiven** Ebene: HEIGHT-,
+        GLOSS- und GENERIC-Ebenen sind Bearbeitungs-/Datenschichten und werden
+        über ``.bgrproj`` beziehungsweise eigene Exportpfade persistiert. Der
+        normale Bildexport schreibt ausschließlich das definierte
+        :meth:`Project.composite_color`.
 
         Schnellpfad für die Single-Layer-Welt: genau eine sichtbare, voll
         deckende COLOR-Ebene wird **direkt** (ohne Alpha-Komposit) zurückgegeben.
-        So bleiben RGB-Werte unter transparenten Pixeln erhalten – ``alpha_composite``
-        würde sie auf 0 setzen – und Anzeige wie Speichern sind bitgenau wie bisher.
+        So bleiben RGB-Werte unter transparenten Pixeln erhalten;
+        ``alpha_composite`` würde sie auf 0 setzen.
         """
         if self._project is None:
             return None
-        active = self._project.active_layer()
-        if active is not None and active.kind is LayerKind.HEIGHT:
-            return layer_to_gray_image(active.image)
         layers = self._project.layers
         if (
             len(layers) == 1
@@ -439,6 +435,24 @@ class ImageCanvas(QGraphicsView):
         ):
             return layers[0].image
         return self._project.composite_color()
+
+    def _render_image(self) -> Image.Image | None:
+        """Das auf dem Canvas anzuzeigende Bild.
+
+        Höhen-Sicht (#345): Ist die **aktive** Ebene eine HEIGHT-Ebene, wird sie
+        graustufig dargestellt (``layer_to_gray_image``) statt des COLOR-Komposits
+        – die Höhenkarte ist sonst unsichtbar, weil ``composite_color`` nur
+        COLOR-Ebenen rendert. Andere Ebenentypen zeigen das normale COLOR-Komposit.
+
+        Der Bildexport nutzt getrennt :meth:`_render_export_image`, damit der
+        aktive Bearbeitungskontext niemals den gespeicherten Inhalt verändert.
+        """
+        if self._project is None:
+            return None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.HEIGHT:
+            return layer_to_gray_image(active.image)
+        return self._render_export_image()
 
     def _refresh_image(self) -> None:
         # Eine aktive transiente Vorschau (#348 Höhe / #360 Farbe) hat Vorrang vor
@@ -1251,15 +1265,15 @@ class ImageCanvas(QGraphicsView):
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Komposit; gibt ``True`` bei Erfolg zurück.
 
-        Gespeichert wird das gerenderte Komposit (``_render_image``) – bei genau
-        einer Ebene bitgenau wie bisher. E/A-Fehler (nicht beschreibbarer Pfad,
+        Gespeichert wird unabhängig von der aktiven Bearbeitungsebene das
+        COLOR-Komposit (``_render_export_image``); bei genau einer Ebene bleibt
+        der Export bitgenau wie bisher. E/A-Fehler (nicht beschreibbarer Pfad,
         voller Datenträger, unbekanntes Format …) werden protokolliert und als
         Statusmeldung gemeldet, statt unbehandelt zu propagieren – konsistent zu
-        ``apply_remove``/``apply_replace``. Der Rückgabewert erlaubt dem
-        Aufrufer, einen fehlgeschlagenen Pfad nicht als Quick-Save-Ziel
-        zu merken.
+        ``apply_remove``/``apply_replace``. Der Rückgabewert erlaubt dem Aufrufer,
+        einen fehlgeschlagenen Pfad nicht als Quick-Save-Ziel zu merken.
         """
-        export = self._render_image()
+        export = self._render_export_image()
         if export is None:
             self.statusMsg.emit(SM.KEIN_BILD_ZUM_SPEICHERN)
             return False
