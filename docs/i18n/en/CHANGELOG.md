@@ -158,6 +158,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the same run across several repetitions (median) before opening an issue
   (#277, #278, #279).
 
+### Fixed
+
+- **Image export with an active height layer.** “Save Image” once again writes
+  the COLOR composite regardless of the active editing layer. The grayscale
+  HEIGHT view remains canvas-only and can no longer be silently exported as a
+  normal image; bit-exact single-COLOR export, including RGB below transparent
+  pixels, remains intact (#363).
+
 ## [2.4.1] – 2026-06-17
 
 ### Fixed
