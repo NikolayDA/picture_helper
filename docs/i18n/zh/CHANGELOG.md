@@ -11,6 +11,16 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **EufyMake 导出：渲染、原子写入与一致性检查（无 Qt）。** 两个新的严格类型化模块
+  基于 #352 的计划构建：`bgremover/eufymake_validate.py`（`validate_export`）以确定性
+  顺序收集结构化检查结果（稳定代码、`error`/`warning`、角色、i18n 键）；硬错误（缺少
+  彩色图案、缺少所选角色、尺寸不匹配、目标参数无效）会阻止导出，而警告（高度/光泽数据
+  为空或恒定、16 位未确认、光泽仅为墨水模式辅助资源、物理尺寸无厂商约定）仅在确认后才
+  允许导出，所有消息均为 de/en（#354）。`bgremover/eufymake_writer.py`
+  （`render_export`/`write_export`）将彩色图案（= 合成，RGBA 保留 Alpha）、高度图
+  （灰度浅色 = 高位，8/16 位）和可选光泽蒙版按目标尺寸渲染，并附带 `manifest.json`，
+  以**原子方式**写入（渲染到临时目录，通过单个 `os.replace` 步骤发布；失败时保留现有
+  目标，清理临时数据；通过 `overwrite` 控制冲突行为）。不生成原生 `.empf`（#353）。
 - **EufyMake 导出：数据模型与规划（无 Qt）。** 新增严格类型化模块
   `bgremover/eufymake_export.py`：`build_export_plan(project)` 将图层角色确定性地
   映射为由 `ExportAsset` 组成的 `ExportPlan`——彩色图案（RGBA PNG）为**必需**

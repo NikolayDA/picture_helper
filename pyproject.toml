@@ -124,6 +124,8 @@ module = [
     "bgremover.image_utils",
     "bgremover.color_ops",
     "bgremover.eufymake_export",
+    "bgremover.eufymake_validate",
+    "bgremover.eufymake_writer",
     "bgremover.height_map",
     "bgremover.height_ops",
     "bgremover.crop",

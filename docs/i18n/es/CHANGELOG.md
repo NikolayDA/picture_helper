@@ -11,6 +11,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Exportación EufyMake: renderizado, escritura atómica y verificación de
+  consistencia (sin Qt).** Dos nuevos módulos con tipado estricto se apoyan en el
+  plan de #352: `bgremover/eufymake_validate.py` (`validate_export`) recopila
+  hallazgos estructurados ordenados de forma determinista (código estable,
+  `error`/`warning`, rol, clave i18n); los errores duros (motivo de color ausente,
+  rol seleccionado ausente, discrepancia de tamaño, parámetros de destino no
+  válidos) bloquean, mientras que las advertencias (datos de altura/brillo
+  vacíos/constantes, 16 bits no confirmado, brillo como activo auxiliar de modo de
+  tinta, tamaño físico sin contrato del fabricante) permiten la exportación solo
+  tras confirmación, con todos los mensajes en de/en (#354).
+  `bgremover/eufymake_writer.py` (`render_export`/`write_export`) renderiza el
+  motivo de color (= composite, RGBA preservando alfa), el mapa de altura (escala
+  de grises claro = alto, 8/16 bits) y la máscara de brillo opcional al tamaño de
+  destino junto con `manifest.json`, y los escribe de forma **atómica**
+  (renderizado en un directorio temporal, publicación en un solo paso `os.replace`;
+  un fallo conserva un destino existente, los datos temporales se limpian;
+  comportamiento de colisión mediante `overwrite`). Sin `.empf` nativo (#353).
 - **Exportación EufyMake: modelo de datos y planificación (sin Qt).** Nuevo
   módulo con tipado estricto `bgremover/eufymake_export.py`:
   `build_export_plan(project)` asigna de forma determinista los roles de capa a un

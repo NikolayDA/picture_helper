@@ -87,6 +87,30 @@ def test_missing_color_motif_raises_structured_error() -> None:
         build_export_plan(project)
 
 
+def test_composite_fallback_requires_contributing_color_layer() -> None:
+    # Nur versteckte bzw. voll transparente COLOR-Ebenen tragen nichts zum
+    # Komposit bei → das Farbmotiv wäre leer, also MissingColorMotifError.
+    project = Project(8, 4)
+    hidden = project.create_layer(_solid((8, 4), (10, 20, 30, 255)), name="Versteckt")
+    project.set_visible(hidden.id, False)
+    project.create_layer(_solid((8, 4), (40, 50, 60, 255)), name="Transparent", opacity=0.0)
+
+    with pytest.raises(MissingColorMotifError):
+        build_export_plan(project)
+
+
+def test_explicit_color_motif_role_wins_even_if_hidden() -> None:
+    # Eine bewusst zugewiesene COLOR_MOTIF-Rolle zählt auch auf versteckter Ebene.
+    project = Project(8, 4)
+    layer = project.create_layer(_solid((8, 4), (10, 20, 30, 255)), name="Motiv")
+    project.set_visible(layer.id, False)
+    project.assign_role(layer.id, LayerRole.COLOR_MOTIF)
+
+    motif = build_export_plan(project).color_motif
+    assert motif.source_layer_id == layer.id
+    assert motif.from_color_composite is False
+
+
 def test_empty_project_has_no_color_motif() -> None:
     with pytest.raises(MissingColorMotifError):
         build_export_plan(Project(8, 4))
@@ -241,12 +265,21 @@ def test_physical_size_accepts_list_metadata() -> None:
 
 # ── Ungültige Werte → strukturierte Fehler ───────────────────────────────
 
-@pytest.mark.parametrize("bad", [0, 7, 24, -8, "8", 8.0, True])
+@pytest.mark.parametrize("bad", [0, 7, 24, -8, "8", 8.0, True, None])
 def test_invalid_bit_depth_raises(bad: object) -> None:
+    # ``None`` steht für ein explizites ``"bit_depth": null`` – ein vorhandener,
+    # ungültiger Wert, der nicht still auf 8 Bit zurückfallen darf.
     project = _color_project()
     project.metadata[META_BIT_DEPTH] = bad
     with pytest.raises(InvalidBitDepthError):
         build_export_plan(project)
+
+
+def test_absent_bit_depth_uses_default_not_error() -> None:
+    # Abgrenzung zu None: ein *fehlender* Schlüssel ergibt weiterhin den Default.
+    project = _color_project()
+    assert META_BIT_DEPTH not in project.metadata
+    assert build_export_plan(project).target.bit_depth == DEFAULT_BIT_DEPTH
 
 
 @pytest.mark.parametrize(

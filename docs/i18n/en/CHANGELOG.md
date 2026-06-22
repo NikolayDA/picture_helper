@@ -10,6 +10,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **EufyMake export: rendering, atomic writing & consistency check (Qt-free).**
+  Two new strictly typed modules build on the plan from #352:
+  `bgremover/eufymake_validate.py` (`validate_export`) collects deterministically
+  sorted, structured findings (stable code, `error`/`warning`, role, i18n key);
+  hard errors (missing color motif, missing selected role, size mismatch, invalid
+  target parameters) block, while warnings (empty/constant height/gloss data,
+  unconfirmed 16-bit, gloss as an ink-mode helper asset, physical size without a
+  vendor contract) allow the export only after confirmation – all messages in
+  de/en (#354). `bgremover/eufymake_writer.py` (`render_export`/`write_export`)
+  renders the color motif (= composite, RGBA alpha-preserving), the height map
+  (grayscale light = high, 8/16-bit) and the optional gloss mask at target size
+  together with `manifest.json`, and writes them **atomically** (render into a temp
+  directory, publish in one `os.replace` step; a failure preserves an existing
+  target, temp data is cleaned up; collision behavior via `overwrite`). No native
+  `.empf` (#353).
 - **EufyMake export: data model & planning (Qt-free).** New strictly typed
   module `bgremover/eufymake_export.py`: `build_export_plan(project)` maps the
   layer roles deterministically onto an `ExportPlan` of `ExportAsset`s – the color

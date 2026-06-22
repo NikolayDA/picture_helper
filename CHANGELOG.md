@@ -11,6 +11,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **EufyMake-Export: Rendern, atomares Schreiben & Konsistenzprüfung (Qt-frei).**
+  Zwei neue strikt getypte Module bauen auf dem Plan aus #352 auf:
+  `bgremover/eufymake_validate.py` (`validate_export`) sammelt deterministisch
+  sortierte, strukturierte Befunde (stabiler Code, `error`/`warning`, Rolle,
+  i18n-Key); harte Fehler (fehlendes Farbmotiv, fehlende ausgewählte Rolle,
+  Größen-Mismatch, ungültige Zielparameter) blockieren, Warnungen (leere/konstante
+  Height-/Gloss-Daten, 16 Bit unbestätigt, Gloss als Ink-Mode-Hilfsasset, physische
+  Größe ohne Herstellervertrag) erlauben den Export erst nach Bestätigung – alle
+  Meldungen de/en (#354). `bgremover/eufymake_writer.py`
+  (`render_export`/`write_export`) rendert Farbmotiv (= Komposit, RGBA
+  alpha-erhaltend), Höhenkarte (graustufig hell=hoch, 8/16 Bit) und optionale
+  Gloss-Maske in Zielgröße samt `manifest.json` und schreibt sie **atomar** (Render
+  in ein Temp-Verzeichnis, Veröffentlichung in einem `os.replace`-Schritt; ein
+  Fehler bewahrt ein vorhandenes Ziel, Temp wird aufgeräumt; Kollisionsverhalten via
+  `overwrite`). Kein natives `.empf` (#353).
 - **EufyMake-Export: Datenmodell & Planung (Qt-frei).** Neues strikt getyptes
   Modul `bgremover/eufymake_export.py`: `build_export_plan(project)` bildet die
   Ebenenrollen deterministisch auf einen `ExportPlan` aus `ExportAsset`s ab –

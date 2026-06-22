@@ -11,6 +11,23 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Exportation EufyMake : rendu, écriture atomique et contrôle de cohérence
+  (sans Qt).** Deux nouveaux modules strictement typés s’appuient sur le plan de
+  #352 : `bgremover/eufymake_validate.py` (`validate_export`) collecte des constats
+  structurés triés de façon déterministe (code stable, `error`/`warning`, rôle, clé
+  i18n) ; les erreurs dures (motif couleur manquant, rôle sélectionné manquant,
+  taille incohérente, paramètres cibles invalides) bloquent, tandis que les
+  avertissements (données de hauteur/brillance vides/constantes, 16 bits non
+  confirmé, brillance en tant qu’asset auxiliaire de mode d’encre, taille physique
+  sans contrat fabricant) n’autorisent l’export qu’après confirmation, tous les
+  messages en de/en (#354). `bgremover/eufymake_writer.py`
+  (`render_export`/`write_export`) rend le motif couleur (= composite, RGBA
+  préservant l’alpha), la carte de hauteur (niveaux de gris clair = haut, 8/16 bits)
+  et le masque de brillance facultatif à la taille cible avec `manifest.json`, et
+  les écrit de manière **atomique** (rendu dans un répertoire temporaire,
+  publication en une seule étape `os.replace` ; un échec préserve une cible
+  existante, les données temporaires sont nettoyées ; comportement de collision via
+  `overwrite`). Pas de `.empf` natif (#353).
 - **Exportation EufyMake : modèle de données et planification (sans Qt).** Nouveau
   module strictement typé `bgremover/eufymake_export.py` :
   `build_export_plan(project)` associe de façon déterministe les rôles de calque à

@@ -193,14 +193,16 @@ class ExportPlan:
 def _derive_bit_depth(metadata: dict[str, object]) -> int:
     """Liest ``META_BIT_DEPTH`` strukturiert aus oder fällt auf den Default zurück.
 
-    Fehlt der Schlüssel, gilt :data:`DEFAULT_BIT_DEPTH`. Ein vorhandener Wert muss
-    ein Integer aus :data:`_SUPPORTED_BIT_DEPTHS` sein (``bool`` ist als
-    Integer-Subtyp ausgeschlossen); sonst :class:`InvalidBitDepthError` – keine
-    stille Korrektur.
+    **Nur ein fehlender Schlüssel** ergibt :data:`DEFAULT_BIT_DEPTH`. Ein
+    *vorhandener* Wert muss ein Integer aus :data:`_SUPPORTED_BIT_DEPTHS` sein
+    (``bool`` ist als Integer-Subtyp ausgeschlossen); ein explizites ``None``
+    (z. B. ``"bit_depth": null`` aus einem Manifest) zählt als vorhandener,
+    ungültiger Wert und löst :class:`InvalidBitDepthError` aus – keine stille
+    Korrektur, die korrupte Metadaten als 8 Bit kaschiert.
     """
-    raw = metadata.get(META_BIT_DEPTH)
-    if raw is None:
+    if META_BIT_DEPTH not in metadata:
         return DEFAULT_BIT_DEPTH
+    raw = metadata[META_BIT_DEPTH]
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise InvalidBitDepthError(f"{META_BIT_DEPTH} muss ein Integer sein, war {raw!r}")
     if raw not in _SUPPORTED_BIT_DEPTHS:
@@ -267,23 +269,53 @@ def _derive_target(project: Project) -> ExportTarget:
     )
 
 
+def _has_contributing_color(project: Project) -> bool:
+    """True, wenn mindestens eine COLOR-Ebene zum Komposit beiträgt.
+
+    Beitragend = ``kind is COLOR`` **und** sichtbar **und** Opazität > 0 – exakt
+    die Regel aus :meth:`Project.composite_color`. So ist das geplante Komposit
+    nie vollständig transparent.
+    """
+    return any(
+        layer.kind is LayerKind.COLOR and layer.visible and layer.opacity > 0.0
+        for layer in project.layers
+    )
+
+
+def can_render_color_motif(project: Project) -> bool:
+    """True, wenn aus ``project`` ein Farbmotiv ableitbar ist.
+
+    Entweder trägt eine Ebene die Rolle ``COLOR_MOTIF`` (explizite Quelle, auch
+    unsichtbar zulässig) **oder** es gibt eine zum Komposit beitragende
+    COLOR-Ebene. Geteilte Quelle der Wahrheit für :func:`build_export_plan` und
+    die Konsistenzprüfung (#354), damit beide nicht auseinanderlaufen.
+    """
+    if project.layer_by_role(LayerRole.COLOR_MOTIF) is not None:
+        return True
+    return _has_contributing_color(project)
+
+
 def _plan_color_motif(project: Project) -> ExportAsset:
     """Plant das **erforderliche** Farbmotiv aus Rolle oder COLOR-Komposit.
 
-    Trägt eine Ebene die Rolle ``COLOR_MOTIF``, ist sie die explizite Quelle.
-    Sonst dient das Komposit aller COLOR-Ebenen als Quelle (``source_layer_id``
-    ``None``). Gibt es weder eine ``COLOR_MOTIF``-Rolle noch irgendeine
-    COLOR-Ebene, lässt sich kein Farbmotiv ableiten → :class:`MissingColorMotifError`.
-    Das Farbmotiv bleibt konservativ 8-Bit-RGBA, unabhängig von ``META_BIT_DEPTH``.
+    Trägt eine Ebene die Rolle ``COLOR_MOTIF``, ist sie die explizite Quelle
+    (auch wenn sie unsichtbar ist – eine bewusste Nutzerzuweisung zählt). Sonst
+    dient das **Komposit der COLOR-Ebenen** als Quelle (``source_layer_id``
+    ``None``); das setzt voraus, dass mindestens eine COLOR-Ebene tatsächlich zum
+    Komposit beiträgt (sichtbar und Opazität > 0 – dieselbe Regel wie
+    :meth:`Project.composite_color`). Andernfalls wäre das Komposit vollständig
+    transparent und kein echtes Farbmotiv → :class:`MissingColorMotifError`. Das
+    Farbmotiv bleibt konservativ 8-Bit-RGBA, unabhängig von ``META_BIT_DEPTH``.
     """
     role_layer = project.layer_by_role(LayerRole.COLOR_MOTIF)
     if role_layer is not None:
         source_id: str | None = role_layer.id
-    elif any(layer.kind is LayerKind.COLOR for layer in project.layers):
+    elif _has_contributing_color(project):
         source_id = None
     else:
         raise MissingColorMotifError(
-            "Kein Farbmotiv: weder eine COLOR_MOTIF-Rolle noch eine COLOR-Ebene vorhanden"
+            "Kein Farbmotiv: weder eine COLOR_MOTIF-Rolle noch eine zum Komposit "
+            "beitragende (sichtbare, opake) COLOR-Ebene vorhanden"
         )
     return ExportAsset(
         role=LayerRole.COLOR_MOTIF,

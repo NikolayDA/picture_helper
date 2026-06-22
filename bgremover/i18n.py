@@ -97,6 +97,35 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.warning.role_normalized": (
             "Inkompatible Height-Map-Rolle entfernt: „{name}“ ist keine Höhenebene"
         ),
+        # EufyMake-Export – Konsistenzbefunde (#354)
+        "eufymake.export.color_motif_missing": (
+            "Farbmotiv fehlt: keine COLOR_MOTIF-Rolle und keine zum Komposit "
+            "beitragende Farbebene."
+        ),
+        "eufymake.export.optional_role_missing": (
+            "Ausgewählte optionale Rolle „{role_name}“ hat keine Ebene."
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "Assetgröße {actual} passt nicht zur Zielgröße {expected}."
+        ),
+        "eufymake.export.invalid_target_params": "Ungültige Zielparameter: {detail}",
+        "eufymake.export.height_map_empty": (
+            "Höhenkarte ist leer oder konstant und liefert möglicherweise kein Relief."
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "Gloss-Maske ist leer oder konstant und ist möglicherweise nutzlos."
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "{bits}-Bit-Höhenkarte ist für EufyMake Studio nicht offiziell bestätigt."
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "Gloss ist nur ein Import-/Hilfsasset – Ink-Mode und Layerzuweisung "
+            "erfolgen in EufyMake Studio."
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber kein "
+            "bestätigter Herstellervertrag."
+        ),
         # Ebenen-Panel & Projekt-Aktionen (#334)
         "layers.new_name": "Ebene {n}",
         "layers.role.none": "Keine",
@@ -647,6 +676,35 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "project.warning.role_normalized": (
             "Removed incompatible height-map role: “{name}” is not a height layer"
+        ),
+        # EufyMake export – consistency findings (#354)
+        "eufymake.export.color_motif_missing": (
+            "Color motif missing: no COLOR_MOTIF role and no color layer "
+            "contributing to the composite."
+        ),
+        "eufymake.export.optional_role_missing": (
+            "Selected optional role “{role_name}” has no layer."
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "Asset size {actual} does not match the target size {expected}."
+        ),
+        "eufymake.export.invalid_target_params": "Invalid target parameters: {detail}",
+        "eufymake.export.height_map_empty": (
+            "The height map is empty or constant and may not produce any relief."
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "The gloss mask is empty or constant and may be useless."
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "A {bits}-bit height map is not officially confirmed for EufyMake Studio."
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "Gloss is only an import/helper asset – ink mode and layer assignment "
+            "happen in EufyMake Studio."
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "Physical size and the pixel↔mm/DPI assumption are plausible but not a "
+            "confirmed vendor contract."
         ),
         # Layer panel & project actions (#334)
         "layers.new_name": "Layer {n}",
