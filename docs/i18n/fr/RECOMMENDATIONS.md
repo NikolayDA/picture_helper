@@ -91,6 +91,13 @@ maintenance/skip **#322** a été livré via **#342** et est clos.
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs : ouverture par chemin initial/Finder absente d'ANLEITUNG §4 | 🟢 Basse | 🟢 Basse | **Ready for PR (docs).** Mettre à jour le guide principal et les cinq copies i18n ; préciser que Récents inclut images et projets `.bgrproj`. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Ready for PR (opportuniste)** – pas un bloqueur produit ou CI ; le plus utile d'abord (asserter l'extrémité du lasso, la ligne de `test_helpers`, consolider les tests `set_brush_size`). |
 
+### Revue des PRs/issues fermés le 2026-06-22
+
+Les PRs fermées **#356**, **#362**, **#366–#369** et les issues **#358–#361**, **#363–#365** ont été revues.
+Les sujets sont couverts : polissage de phase 0 via #362, régression d'export #363 via #367 et les deux suivis Height Map via #369.
+Aucune nouvelle issue ni commentaire n'est nécessaire.
+La prochaine recommandation reste **#352**, base ADR et modèle de données de l'epic EufyMake.
+
 ### Prochaines étapes recommandées (ordre des PR)
 
 1. Implémenter **#352** comme fondation de l'épic EufyMake, ADR d'abord ; il

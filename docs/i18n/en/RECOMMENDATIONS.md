@@ -91,6 +91,13 @@ estimated implementation effort.
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Ready for PR (docs).** Update the canonical guide and all five i18n copies; clarify that Recent Files includes images and `.bgrproj` projects. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **Ready for PR (opportunistic)** – not a product or CI blocker; highest value first (assert the lasso endpoint, the `test_helpers` line, consolidate the `set_brush_size` tests). |
 
+### Review of PRs/Issues closed on 2026-06-22
+
+Reviewed the closed PRs **#356**, **#362**, **#366–#369** and issues **#358–#361**, **#363–#365**.
+The topics are fully covered: Phase-0 polishing via #362, export regression #363 via #367, and both height-map follow-ups via #369.
+No additional follow-up issue or comment is required.
+The next concrete recommendation remains **#352** as the EufyMake epic's ADR and data-model foundation.
+
 ### Recommended Next (PR order)
 
 1. Implement **#352** as the EufyMake epic's foundation, ADR first; it unblocks

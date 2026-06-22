@@ -82,6 +82,13 @@ test/CI 发现 **#318**、**#299** 和 **#245**。维护/skip 路径 **#322**
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）。** 同步主指南和五份 i18n；明确最近文件包含图像与 `.bgrproj` 项目。 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **Ready for PR（opportunistic）** – 非产品或 CI blocker；优先做最有价值的（断言 lasso endpoint、`test_helpers` 行、合并 `set_brush_size` 测试）。 |
 
+### 2026-06-22 已关闭 PR/Issues 复核
+
+已复核关闭的 PR **#356**、**#362**、**#366–#369** 以及 issues **#358–#361**、**#363–#365**。
+相关主题已覆盖：Phase-0 打磨由 #362 完成，导出回归 #363 由 #367 修复，两项 Height Map 后续问题由 #369 关闭。
+无需新建 issue 或评论。
+下一项具体建议仍是 **#352**，作为 EufyMake epic 的 ADR 与数据模型基础。
+
 ### 推荐下一步（PR 顺序）
 
 1. 实现 **#352** 作为 EufyMake epic 的基础，ADR 先行；解锁 #353/#354

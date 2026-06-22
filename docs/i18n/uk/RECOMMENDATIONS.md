@@ -90,6 +90,13 @@ Map **#364** (центральний контракт `HEIGHT_MAP`↔`HEIGHT` і
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: відкриття через startup-path/Finder відсутнє в ANLEITUNG §4 | 🟢 Низька | 🟢 Низька | **Ready for PR (docs).** Оновити основний guide і п'ять i18n-копій; уточнити, що Recent містить images і `.bgrproj`-проєкти. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: слабкі assertions/надлишковість | 🟢 Низька | 🟢 Низька | **Ready for PR (opportunistic)** – не product/CI blocker; спершу найкорисніше (assert endpoint лассо, рядок `test_helpers`, консолідувати тести `set_brush_size`). |
 
+### Перевірка PR/issues, закритих 2026-06-22
+
+Перевірено закриті PR **#356**, **#362**, **#366–#369** та issues **#358–#361**, **#363–#365**.
+Теми закрито: Phase-0 polishing через #362, регресію експорту #363 через #367, обидва Height Map follow-ups через #369.
+Новий issue або коментар не потрібні.
+Наступна рекомендація лишається **#352** як ADR і data-model основа EufyMake epic.
+
 ### Рекомендовано далі (порядок PR)
 
 1. Реалізувати **#352** як фундамент EufyMake-епіку, спершу ADR; це розблокує
