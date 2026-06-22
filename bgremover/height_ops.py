@@ -14,6 +14,12 @@ am Ende auf ``uint16`` geklemmt) und hängen nicht an 8-Bit-Annahmen.
 Jede Operation gibt ein **neues** Höhenfeld zurück (Eingabe unverändert) und lässt
 die Deckung unberührt; fehlerhafte Parameter werfen
 :class:`~bgremover.height_map.HeightMapError`.
+
+**Speicherbudget (#365):** Die Glättungsfilter sind auf die zulässige 40-MP-/
+Radius-Hülle ausgelegt. Der Medianfilter rechnet zeilenbandweise und begrenzt
+seinen Fensterstapel hart über :data:`_MEDIAN_MAX_TEMP_BYTES` (statt eines
+``O(H × W × (2r+1)²)``-Vollstapels); die Gauß-Glättung ist separabel und damit
+ohnehin ``O(H × W)`` und radiusunabhängig. Details in den jeweiligen Docstrings.
 """
 from __future__ import annotations
 
@@ -89,6 +95,16 @@ def gaussian_blur(field: HeightField, sigma: float) -> HeightField:
 
     Eine konstante Höhe bleibt durch den auf 1 normierten Kernel und den
     Reflexions-Rand exakt erhalten.
+
+    **Speicherbewertung (#365):** Anders als der Medianfilter ist die separable
+    Faltung von vornherein speicherbeschränkt: die Arbeitspuffer (gepuffertes
+    Bild, ``out`` und je Kernel-Schritt eine Zwischensumme) sind ``O(H × W)``
+    float64 und damit **radiusunabhängig** – die Schleife läuft über
+    ``2*radius+1`` Schritte je Achse, ohne einen Stapel zu materialisieren. Für
+    die unterstützte 40-MP-Hülle (``sigma``-Obergrenze in der UI) bleibt der
+    Bedarf damit im selben Rahmen wie jede andere bildweite Operation; ein
+    zusätzliches, radiusabhängiges Limit ist nicht erforderlich. Die maßgebliche
+    Grenze bleibt der projektweite 40-MP-Deckel (Laden/Import).
     """
     if sigma <= 0.0:
         raise HeightMapError(f"sigma muss positiv sein, war {sigma}")
@@ -98,23 +114,77 @@ def gaussian_blur(field: HeightField, sigma: float) -> HeightField:
     return _with_values(field, blurred)
 
 
-def median_blur(field: HeightField, radius: int) -> HeightField:
+# Hartes Speicherbudget für die größte temporäre Median-Allokation (#365). Der
+# Medianfilter verarbeitet das Bild in horizontalen Zeilenbändern und
+# materialisiert pro Band nur einen ``(2r+1)² × band_rows × W``-Fensterstapel
+# (uint16). Das Budget kappt diesen Stapel und macht den Zusatzspeicher damit
+# **vom Bildmaß unabhängig** – statt des bisherigen ``O(H × W × (2r+1)²)``-
+# Vollstapels, der bei 40 MP/Radius 10 ~33 GiB belegt hätte. Faustregel zum
+# Spitzenbedarf: ~2× Budget (Stapel + np.partition-Arbeitskopie) zzgl. des
+# gepufferten Eingabebildes (``O(H × W)``).
+_MEDIAN_MAX_TEMP_BYTES = 64 * 1024 * 1024  # 64 MiB
+
+
+def _median_band_rows(width: int, radius: int, max_temp_bytes: int) -> int:
+    """Anzahl Ausgabezeilen je Median-Band, sodass der Fensterstapel im Budget bleibt.
+
+    Der Stapel eines Bandes belegt ``(2r+1)² × band_rows × width`` uint16-Werte
+    (2 Byte je Wert). ``band_rows`` ist die größte Zahl, für die das Budget
+    eingehalten wird, mindestens jedoch ``1`` – so macht der Filter auch bei
+    extrem breiten Bildern Fortschritt (für die unterstützte 40-MP-Hülle bleibt
+    eine Einzelzeile stets unter dem Budget).
+    """
+    bytes_per_row = (2 * radius + 1) ** 2 * width * 2  # uint16 = 2 Byte
+    if bytes_per_row <= 0:
+        return 1
+    return max(1, max_temp_bytes // bytes_per_row)
+
+
+def median_blur(
+    field: HeightField,
+    radius: int,
+    *,
+    max_temp_bytes: int = _MEDIAN_MAX_TEMP_BYTES,
+) -> HeightField:
     """Median-Glättung (kantenerhaltend) über ein ``(2*radius+1)²``-Fenster.
 
     Reflexions-Rand; die ungerade Fenstergröße liefert einen exakten Median-Wert
     (keine Mittelung, daher kantenerhaltend und ausreißerrobust). ``radius >= 1``.
+
+    **Speicherbeschränkt (#365):** Das Bild wird in horizontalen Zeilenbändern
+    verarbeitet; je Band entsteht nur ein ``(2r+1)² × band_rows × W``-Stapel, der
+    durch ``max_temp_bytes`` (Standard :data:`_MEDIAN_MAX_TEMP_BYTES`) hart
+    begrenzt ist. Der Zusatzspeicher ist damit vom Bildmaß unabhängig und
+    skaliert **nicht** mehr mit ``(2r+1)²``. Das Ergebnis ist **bitgenau
+    identisch** zur früheren Vollstapel-Variante: je Ausgabepixel wird der Median
+    über exakt dieselbe Fenstermenge gebildet (ordnungsunabhängig). ``max_temp_bytes``
+    ist nur für Tests gedacht (kleinere Bänder erzwingen).
     """
     if radius < 1:
         raise HeightMapError(f"radius muss >= 1 sein, war {radius}")
     vals = field.values
-    padded = np.pad(vals, radius, mode="reflect")
     h, w = vals.shape[:2]
-    windows: list[np.ndarray] = []
-    for dy in range(2 * radius + 1):
-        for dx in range(2 * radius + 1):
-            windows.append(padded[dy:dy + h, dx:dx + w])
-    median = np.median(np.stack(windows, axis=0), axis=0)
-    return _with_values(field, median)
+    window = 2 * radius + 1
+    window_area = window * window
+    middle = window_area // 2  # exakter Median: ungerade Fensterzahl
+    padded = np.pad(vals, radius, mode="reflect")
+    band_rows = _median_band_rows(w, radius, max_temp_bytes)
+    out = np.empty((h, w), dtype=vals.dtype)
+    for y0 in range(0, h, band_rows):
+        bh = min(band_rows, h - y0)
+        # Fensterstapel nur für dieses Band: (window², bh, w). Die Reihenfolge der
+        # Fenster ist für den Median unerheblich – bitgenau wie der Vollstapel.
+        stack = np.empty((window_area, bh, w), dtype=vals.dtype)
+        k = 0
+        for dy in range(window):
+            for dx in range(window):
+                stack[k] = padded[y0 + dy:y0 + dy + bh, dx:dx + w]
+                k += 1
+        # Nur das mittlere Element partitionieren (kein voller Sort/keine
+        # Mittelung): bei ungerader Fensterzahl der exakte Median, schneller als
+        # ``np.median`` und ohne float-Zwischenwerte.
+        out[y0:y0 + bh] = np.partition(stack, middle, axis=0)[middle]
+    return _with_values(field, out)
 
 
 # ── Begrenzung / Stufen ──────────────────────────────────────────────────

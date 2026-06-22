@@ -164,7 +164,7 @@ def _load_layer_image(zf: zipfile.ZipFile, file_name: str) -> Image.Image:
         raise ProjectFileError(tr("project.error.manifest_invalid")) from exc
 
 
-def load_project(path: str | Path) -> Project:
+def load_project(path: str | Path, *, warnings: list[str] | None = None) -> Project:
     """Lädt und validiert eine ``.bgrproj``-Datei und gibt das Projekt zurück.
 
     Wirft :class:`ProjectFileError` mit klarer, übersetzter Meldung bei
@@ -172,6 +172,10 @@ def load_project(path: str | Path) -> Project:
     abweichend dimensionierten Ebenen und Zip-Slip-/unerwarteten Einträgen –
     ohne Crash. Eine **neuere** Formatversion wird best-effort geladen (Warnung,
     Datei bleibt unangetastet; siehe :func:`project_schema.migrate_manifest`).
+
+    Wird ``warnings`` übergeben, sammelt der Loader dort nutzerverständliche,
+    bereits übersetzte Hinweise zu verlustfrei geheilten Altzuständen (etwa eine
+    entfernte inkompatible ``HEIGHT_MAP``-Rolle, #364), die die UI anzeigen kann.
     """
     p = Path(path)
     try:
@@ -194,7 +198,7 @@ def load_project(path: str | Path) -> Project:
             expected = layer_files(manifest)
             _validate_members(zf, expected)
             images = {name: _load_layer_image(zf, name) for name in expected}
-            return project_from_manifest(manifest, images)
+            return project_from_manifest(manifest, images, warnings=warnings)
     except zipfile.BadZipFile as exc:
         raise ProjectFileError(tr("project.error.corrupt")) from exc
     except OSError as exc:

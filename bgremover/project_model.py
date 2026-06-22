@@ -76,6 +76,38 @@ class LayerNotFoundError(ProjectModelError):
     """Eine Ebenen-ID ist im Projekt unbekannt."""
 
 
+class IncompatibleRoleError(ProjectModelError):
+    """Eine Rolle ist mit dem Ebenen-Typ unvereinbar (siehe :func:`role_allowed_for_kind`)."""
+
+
+# Zentrale, Qt-freie Kompatibilitätsregel zwischen Ebenen-Typ und -Rolle (#364):
+# verbindlicher Vertrag des Höhen-Kontexts. Eine Ebene ist *genau dann*
+# höhenfähig, wenn ``kind is LayerKind.HEIGHT``; ``LayerRole.HEIGHT_MAP`` darf
+# daher ausschließlich auf einer HEIGHT-Ebene liegen und markiert dort die
+# projektweit relevante Height Map (z. B. für Export und automatische Auswahl).
+# Diese eine Regel verhindert Drift zwischen Modell, Persistenz, UI und Canvas;
+# bewusst wird nur der HEIGHT_MAP↔HEIGHT-Vertrag erzwungen – übrige Rollen
+# bleiben (noch) typunabhängig (Scope #364).
+_ROLE_REQUIRED_KIND: dict[LayerRole, LayerKind] = {
+    LayerRole.HEIGHT_MAP: LayerKind.HEIGHT,
+}
+
+
+def role_allowed_for_kind(role: LayerRole | None, kind: LayerKind) -> bool:
+    """True, wenn ``role`` auf einer Ebene vom Typ ``kind`` liegen darf.
+
+    ``None`` (keine Rolle) ist immer zulässig. Sonst greift die zentrale Tabelle
+    ``_ROLE_REQUIRED_KIND``: eine eingeschränkte Rolle ist nur auf dem
+    geforderten Typ erlaubt, alle übrigen Rollen sind typunabhängig. Modell, UI
+    und Canvas konsultieren ausschließlich diese Funktion, damit der Vertrag an
+    einer einzigen Stelle definiert bleibt.
+    """
+    if role is None:
+        return True
+    required = _ROLE_REQUIRED_KIND.get(role)
+    return required is None or required is kind
+
+
 def _ensure_rgba(image: Image.Image | np.ndarray) -> Image.Image:
     """Normalisiert Eingabe-Pixeldaten auf eine **eigenständige** RGBA-``Image``.
 
@@ -132,6 +164,10 @@ class Layer:
         locked: bool = False,
         role: LayerRole | None = None,
     ) -> None:
+        if not role_allowed_for_kind(role, kind):
+            raise IncompatibleRoleError(
+                f"Rolle {role} ist mit Ebenen-Typ {kind} unvereinbar"
+            )
         self.name = name
         self.kind = kind
         self.image = _ensure_rgba(image)
@@ -364,9 +400,16 @@ class Project:
         """Weist ``role`` zu und entzieht sie ggf. der bisherigen Trägerin.
 
         Da eine Rolle projektweit eindeutig ist, wird sie effektiv *übertragen*:
-        hielt eine andere Ebene die Rolle, verliert sie diese.
+        hielt eine andere Ebene die Rolle, verliert sie diese. Ist ``role`` mit
+        dem Typ der Zielebene unvereinbar (siehe :func:`role_allowed_for_kind`),
+        wird sie mit :class:`IncompatibleRoleError` abgelehnt – ohne das Projekt
+        zu verändern.
         """
         layer = self.layer_by_id(layer_id)
+        if not role_allowed_for_kind(role, layer.kind):
+            raise IncompatibleRoleError(
+                f"Rolle {role} ist mit Ebenen-Typ {layer.kind} unvereinbar"
+            )
         holder = self.layer_by_role(role)
         if holder is not None and holder.id != layer.id:
             holder.role = None

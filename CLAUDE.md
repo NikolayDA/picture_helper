@@ -64,7 +64,11 @@ Ein Paket, `bgremover/`:
 - **Höhen-Optimierung:** `height_ops.py` — Qt-freie, strikt getypte, 16-Bit-taugliche
   Operationen auf `HeightField` (#348): `levels`/`gamma` (Tonwert), `gaussian_blur`/
   `median_blur` (Glättung, separabel bzw. kantenerhaltend, rein in numpy), `threshold`,
-  `quantize` (Stufen), `clamp_range`. Geteilte Tonwert-/Graustufen-Primitive (Synergie
+  `quantize` (Stufen), `clamp_range`. `median_blur` rechnet **zeilenbandweise** und
+  begrenzt seinen Fensterstapel hart über `_MEDIAN_MAX_TEMP_BYTES` – der Zusatzspeicher
+  ist vom Bildmaß unabhängig (kein `O(H × W × (2r+1)²)`-Vollstapel mehr), bitgenau zur
+  alten Variante; `gaussian_blur` ist separabel und damit `O(H × W)`/radiusunabhängig
+  (#365). Geteilte Tonwert-/Graustufen-Primitive (Synergie
   mit der späteren geteilten Engine). Im Canvas als generische Live-Vorschau verdrahtet:
   `preview_height_op`/`cancel_height_preview` (transient, ohne Modelländerung) und
   `apply_height_op` (Commit, undo-/redobar); die Vorschau hat in `_refresh_image` Vorrang
@@ -72,7 +76,14 @@ Ein Paket, `bgremover/`:
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
-  Persistenz-/History-Anbindung. `project_history.py` (`ProjectHistory`) ist die
+  Persistenz-/History-Anbindung. **Kind↔Rollen-Vertrag (#364):** Eine Ebene ist
+  *genau dann* höhenfähig, wenn `kind is LayerKind.HEIGHT`; `LayerRole.HEIGHT_MAP`
+  darf nur auf einer HEIGHT-Ebene liegen. Die zentrale Qt-freie Regel
+  `role_allowed_for_kind(role, kind)` ist die *einzige* Quelle der Wahrheit –
+  `Layer.__init__` und `assign_role` lehnen inkompatible Kombinationen mit
+  `IncompatibleRoleError` ab; Modell, Persistenz, Layer-/Height-Panel und Canvas
+  konsultieren ausschließlich diese Funktion (kein Drift). Das Laden
+  inkompatibler Altzustände normalisiert verlustfrei (siehe Persistenz). `project_history.py` (`ProjectHistory`) ist die
   ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
   + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
   zählen nur einmal) – noch nicht im Canvas verdrahtet (#331, folgt #332).
@@ -80,7 +91,12 @@ Ein Paket, `bgremover/`:
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
   Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
-  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333). Noch ohne
+  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333). Beim Laden wird
+  ein historisch inkompatibler Rollen-Zustand (z. B. `HEIGHT_MAP` auf einer
+  COLOR-Ebene) deterministisch normalisiert: nur die unzulässige Rolle wird
+  entfernt (Kind/Name/Pixel/Reihenfolge/Metadaten bleiben wertgleich), und
+  `load_project(..., warnings=...)` reicht eine übersetzte Warnung an die UI
+  (Statusleiste) durch (#364). Noch ohne
   Menü-/Dialog-Anbindung (folgt #334/#335).
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`

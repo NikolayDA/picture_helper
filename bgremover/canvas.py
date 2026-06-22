@@ -71,7 +71,13 @@ from bgremover.image_utils import (
     pil_to_numpy_readonly,
 )
 from bgremover.project_history import ProjectHistory
-from bgremover.project_model import Layer, LayerKind, LayerRole, Project
+from bgremover.project_model import (
+    Layer,
+    LayerKind,
+    LayerRole,
+    Project,
+    role_allowed_for_kind,
+)
 from bgremover.status_messages import StatusMessages as SM
 
 
@@ -723,12 +729,22 @@ class ImageCanvas(QGraphicsView):
 
     @_requires_image
     def set_active_layer_role(self, role: LayerRole | None) -> None:
-        """Weist der aktiven Ebene eine Rolle zu bzw. entfernt sie."""
+        """Weist der aktiven Ebene eine Rolle zu bzw. entfernt sie.
+
+        Eine mit dem Ebenen-Typ unverträgliche Rolle (etwa ``HEIGHT_MAP`` auf
+        einer COLOR-Ebene, #364) wird *vor* jeder Zustandsänderung mit einer
+        Statusmeldung abgewiesen – der Verlauf bleibt unangetastet. Die UI
+        verhindert das bereits, der Guard sichert den Vertrag zusätzlich ab.
+        """
         assert self._project is not None
         active = self._project.active_layer_id
         if active is None:
             return
-        if self._project.layer_by_id(active).role == role:
+        layer = self._project.layer_by_id(active)
+        if layer.role == role:
+            return
+        if role is not None and not role_allowed_for_kind(role, layer.kind):
+            self.statusMsg.emit(tr("canvas.role_incompatible"))
             return
         self._push_layers(tr("history.desc.layer_role"))
         if role is None:

@@ -6,10 +6,12 @@ zustandsbehaftete Klasse mit ``build()`` (Tab-Aufbau) und ``refresh(layers)``
 (moduskontextuelle Anzeige). Alle Interaktionen laufen über die Callbacks in
 :class:`HeightMapActions`; das Panel kennt weder Canvas noch MainWindow.
 
-Moduskontext: Die **Bearbeiten**- und **Optimieren**-Steuerungen sind nur aktiv,
-wenn die aktive Ebene eine HEIGHT-Ebene ist (oder die Rolle ``HEIGHT_MAP``
-trägt). Die **Beschaffen**-Aktionen (erzeugen/importieren) sind aktiv, sobald ein
-Projekt geladen ist.
+Moduskontext: Die **Bearbeiten**- und **Optimieren**-Steuerungen sind genau dann
+aktiv, wenn die aktive Ebene ``LayerKind.HEIGHT`` besitzt – unabhängig davon, ob
+sie bereits die Rolle ``HEIGHT_MAP`` trägt. Damit folgt der Tab demselben
+Kind-Vertrag wie der Canvas (#364), sodass die UI keine Operation anbietet, die
+der Canvas anschließend ablehnt. Die **Beschaffen**-Aktionen (erzeugen/
+importieren) sind aktiv, sobald ein Projekt geladen ist.
 
 Optimierungs-Operationen werden als reine ``HeightField → HeightField``-Closures
 (``height_ops``, die ihre Reglerwerte beim Aufruf lesen) an ``preview_op``/
@@ -31,7 +33,7 @@ from bgremover import height_ops
 from bgremover.canvas import LayerInfo
 from bgremover.height_map import HeightField
 from bgremover.i18n import tr
-from bgremover.project_model import LayerKind, LayerRole
+from bgremover.project_model import LayerKind
 from bgremover.right_panel_tabs import (
     _SPIN_STYLE,
     _make_hdivider,
@@ -260,11 +262,14 @@ class HeightMapPanel:
 
     # ── Moduskontext ─────────────────────────────────────────────────────
     def refresh(self, layers: list[LayerInfo]) -> None:
-        """Schaltet Beschaffen (Projekt vorhanden) bzw. Höhenwerkzeuge (HEIGHT aktiv)."""
+        """Schaltet Beschaffen (Projekt vorhanden) bzw. Höhenwerkzeuge (HEIGHT aktiv).
+
+        Höhenwerkzeuge sind ausschließlich an ``LayerKind.HEIGHT`` gebunden – die
+        Rolle ``HEIGHT_MAP`` allein genügt nicht (Vertrag #364).
+        """
         active = next((info for info in layers if info.active), None)
         has_project = bool(layers)
-        is_height = active is not None and (
-            active.kind is LayerKind.HEIGHT or active.role is LayerRole.HEIGHT_MAP)
+        is_height = active is not None and active.kind is LayerKind.HEIGHT
         for widget in self._acquire_widgets:
             widget.setEnabled(has_project)
         for widget in self._height_widgets:

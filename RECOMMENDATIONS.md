@@ -68,24 +68,21 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-06-22, aktualisiert)
 
-Stand 2026-06-22 zeigt GitHub **12** offene Issues. Der kritische
-Export-Regressionsbefund **#363** ist über **PR #367** behoben und geschlossen.
-Verbleibend sind das EufyMake-Epic **#351/#352–#355**, die Doku-Lücken **#357**
-und **#339**, die beiden Height-Map-Folgebefunde **#364** (Kind/Rollen-Kontext)
-und **#365** (Medianfilter-Speicher) sowie die Test-/CI-Befunde **#318**,
-**#299** und **#245**. Der Wartungs-/Skip-Pfad **#322** ist über **#342**
-erledigt und geschlossen. Für **#364** ist die Vertragsentscheidung inzwischen
-gefallen (Issue-Kommentar 2026-06-22): `LayerKind.HEIGHT` ist verbindlich,
-`HEIGHT_MAP` darf nur auf HEIGHT-Ebenen liegen – damit ist das Issue
-umsetzungsreif.
+Stand 2026-06-22 zeigt GitHub noch **10** offene Issues. Der kritische
+Export-Regressionsbefund **#363** ist über **PR #367** behoben und geschlossen;
+die beiden Height-Map-Folgebefunde **#364** (zentraler `HEIGHT_MAP`↔`HEIGHT`-
+Vertrag mit verlustfreier Legacy-Normalisierung) und **#365** (speicher-
+beschränkter, zeilenbandweiser Medianfilter) sind mit diesem PR umgesetzt und
+geschlossen. Verbleibend sind das EufyMake-Epic **#351/#352–#355**, die
+Doku-Lücken **#357** und **#339** sowie die Test-/CI-Befunde **#318**, **#299**
+und **#245**. Der Wartungs-/Skip-Pfad **#322** ist über **#342** erledigt und
+geschlossen.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height-Map-Kontext: UI und Canvas widersprechen sich bei `HEIGHT_MAP`-Rolle | 🟠 Hoch | 🟡 Mittel | **Ready for PR – Entscheidung gefallen.** Vertrag steht: `LayerKind.HEIGHT` ist verbindlich, `HEIGHT_MAP` nur auf HEIGHT-Ebenen. Modell, Deserialisierung (Legacy-Normalisierung), Layer-/Height-Panel und Canvas auf diesen einen Vertrag bringen. Vor #352 umsetzen, weil der EufyMake-Export dieselbe Rollenabbildung nutzt. |
-| [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Height-Map-Medianfilter kann bei großen Projekten den Speicher erschöpfen | 🟠 Hoch | 🟡 Mittel | **Ready for PR.** Median block-/kachelweise statt über einen vollständigen `(2r+1)² × H × W`-Stack berechnen; 40-MP-/Radius-Vertrag für Median und Gauß mit Speicherbenchmark absichern. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Konsistentes EufyMake-Exportpaket | 🟠 Hoch | 🔴 Hoch (Epic) | **Needs refinement** – Scope laut Deep-Research (Issue-Kommentar) auf „robuste Import-Assets für EufyMake Studio“ schärfen; native `.empf`-Erzeugung **nicht** als Default-Ziel. Wird über #352–#355 abgewickelt. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export-Datenmodell & Paketdefinition (Qt-frei) + ADR | 🟠 Hoch | 🟡 Mittel | **Ready for PR – ADR zuerst** – Deep-Research erledigt (Issue-Kommentare), aber die Konventions-/ADR-Entscheidung ist **noch nicht im Repo dokumentiert** und muss als erster Schritt dieses PR schriftlich festgehalten werden (Akzeptanzkriterium von #352). Qt-freies `eufymake_export.py` mit `ExportPlan`/`ExportAsset` (Farbmotiv-PNG+Alpha, Höhe-Graustufe hell=hoch, Gloss-Maske); Scope = Import-Assets für EufyMake Studio; 16-Bit/Gloss-Semantik/natives `.empf` als „offen“ markieren. Fundament – entsperrt #353–#355. |
 | [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset-Rendering & atomares Paket-Schreiben | 🟠 Hoch | 🟡 Mittel | **Blocked** – benötigt #352; danach sauber geschnitten (Rendering + atomares Schreiben). |
@@ -99,17 +96,13 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#364** zuerst umsetzen – die nun beschlossene Kind/Rollen-Invariante
-   (`LayerKind.HEIGHT` verbindlich) vor dem EufyMake-Export vereinheitlichen.
-2. **#365** parallel härten, bevor große Height-Maps den Median-/Vorschaupfad
-   nutzen.
-3. **#352** danach – Fundament des EufyMake-Epics, ADR zuerst; entsperrt
-   #353/#354.
-4. **#353** und **#354** parallel, sobald #352 steht; danach **#355**.
-5. **#357**, **#339** (kleine Doku-PRs) und **#299** (Test-Cleanup) als niedrig
+1. **#352** als Fundament des EufyMake-Epics, ADR zuerst; entsperrt #353/#354
+   (die Height-Map-Folgebefunde **#364**/**#365** sind mit diesem PR erledigt).
+2. **#353** und **#354** parallel, sobald #352 steht; danach **#355**.
+3. **#357**, **#339** (kleine Doku-PRs) und **#299** (Test-Cleanup) als niedrig
    priorisierte Lückenfüller dazwischen.
-6. **#318** zurückstellen, bis die GitHub-Permissions-Semantik belegt ist.
-7. **#245** extern blockiert lassen (kein Repo-Patch bringt die Quota zurück).
+4. **#318** zurückstellen, bis die GitHub-Permissions-Semantik belegt ist.
+5. **#245** extern blockiert lassen (kein Repo-Patch bringt die Quota zurück).
 
 ## Vorige Runden
 

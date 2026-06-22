@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QStandardItemModel
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -26,7 +27,7 @@ from PyQt6.QtWidgets import (
 
 from bgremover.canvas import LayerInfo
 from bgremover.i18n import tr
-from bgremover.project_model import LayerRole
+from bgremover.project_model import LayerRole, role_allowed_for_kind
 from bgremover.theme import SLD_STYLE, _Theme
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
@@ -192,12 +193,36 @@ class LayerPanel:
             return
         active = next((info for info in layers if info.active), None)
         combo.setEnabled(active is not None)
+        self._sync_role_options(active)
         target = active.role if active is not None else None
         index = next(
             (i for i, role in enumerate(_ROLE_ORDER) if role == target), 0)
         combo.blockSignals(True)
         combo.setCurrentIndex(index)
         combo.blockSignals(False)
+
+    def _sync_role_options(self, active: LayerInfo | None) -> None:
+        """Deaktiviert typunverträgliche Rollen-Optionen (Vertrag #364).
+
+        ``HEIGHT_MAP`` ist nur für eine aktive ``LayerKind.HEIGHT``-Ebene
+        wählbar; so kann das Panel keinen inkompatiblen Zustand erzeugen. Die
+        Option „Keine“ bleibt stets verfügbar.
+        """
+        combo = self._role_combo
+        if combo is None:
+            return
+        model = combo.model()
+        if not isinstance(model, QStandardItemModel):
+            return
+        for index, role in enumerate(_ROLE_ORDER):
+            item = model.item(index)
+            if item is None:
+                continue
+            if active is None or role is None:
+                enabled = True
+            else:
+                enabled = role_allowed_for_kind(role, active.kind)
+            item.setEnabled(enabled)
 
     def _build_row(self, info: LayerInfo) -> QWidget:
         row = QWidget()

@@ -66,23 +66,20 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Triage Status (2026-06-22, updated)
 
-As of 2026-06-22, GitHub shows **12** open issues. The critical export
-regression **#363** has been fixed via **PR #367** and closed. Remaining are the
-**EufyMake export epic #351** and sub-issues **#352–#355** (roadmap rank #3),
-the docs gaps **#357** and **#339**, the two height-map follow-ups **#364**
-(kind/role context) and **#365** (median-filter memory), and the test/CI
-findings **#318**, **#299**, and **#245**. The maintenance/skip path **#322**
-was delivered via **#342** and is closed. For **#364** the contract decision has
-now been made (issue comment 2026-06-22): `LayerKind.HEIGHT` is authoritative and
-`HEIGHT_MAP` may only sit on HEIGHT layers — so the issue is ready to implement.
+As of 2026-06-22, GitHub shows **10** open issues. The critical export
+regression **#363** has been fixed via **PR #367** and closed; both height-map
+follow-ups **#364** (central `HEIGHT_MAP`↔`HEIGHT` contract with lossless legacy
+normalization) and **#365** (memory-bounded, row-band median filter) are
+implemented and closed with this PR. Remaining are the **EufyMake export epic
+#351** and sub-issues **#352–#355** (roadmap rank #3), the docs gaps **#357** and
+**#339**, and the test/CI findings **#318**, **#299**, and **#245**. The
+maintenance/skip path **#322** was delivered via **#342** and is closed.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height-map context: UI and canvas disagree on the `HEIGHT_MAP` role | 🟠 High | 🟡 Medium | **Ready for PR — decision made.** Contract settled: `LayerKind.HEIGHT` is authoritative, `HEIGHT_MAP` only on HEIGHT layers. Align model, deserialization (legacy normalization), layer/height panels, and canvas on this single contract. Do before #352 because EufyMake uses the same role mapping. |
-| [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Height-map median filter can exhaust memory on large projects | 🟠 High | 🟡 Medium | **Ready for PR.** Compute median in bounded blocks instead of a full `(2r+1)² × H × W` stack; validate the 40-MP/radius contract for median and Gaussian with a memory benchmark. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Consistent EufyMake export package | 🟠 High | 🔴 High (epic) | **Needs refinement** – per the deep research (issue comment), sharpen scope to "robust import assets for EufyMake Studio"; native `.empf` generation is **not** the default goal. Driven via #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export data model & package definition (Qt-free) + ADR | 🟠 High | 🟡 Medium | **Ready for PR — ADR first** – deep research done (issue comments), but the convention/ADR decision is **not yet recorded in-repo** and must be written down as the first step of this PR (it is an acceptance criterion of #352). Qt-free `eufymake_export.py` with `ExportPlan`/`ExportAsset` (color motif PNG+alpha, height grayscale bright=high, gloss mask); scope = import assets for EufyMake Studio; mark 16-bit/gloss semantics/native `.empf` as "open". Foundation — unblocks #353–#355. |
 | [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset rendering & atomic package write | 🟠 High | 🟡 Medium | **Blocked** – needs #352; cleanly scoped afterwards (rendering + atomic write). |
@@ -96,14 +93,12 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. Implement **#364** first — unify the now-decided kind/role invariant
-   (`LayerKind.HEIGHT` authoritative) before EufyMake role mapping.
-2. Harden **#365** in parallel before large height maps use median preview.
-3. Then implement **#352**, ADR first; it unblocks #353/#354.
-4. Implement **#353** and **#354** in parallel, followed by **#355**.
-5. Use **#357**, **#339**, and **#299** as lower-priority fillers.
-6. Defer **#318** until GitHub permission semantics are documented.
-7. Keep **#245** externally blocked (no repo patch restores the quota).
+1. Implement **#352** as the EufyMake epic's foundation, ADR first; it unblocks
+   #353/#354 (the height-map follow-ups **#364**/**#365** are done with this PR).
+2. Implement **#353** and **#354** in parallel, followed by **#355**.
+3. Use **#357**, **#339**, and **#299** as lower-priority fillers.
+4. Defer **#318** until GitHub permission semantics are documented.
+5. Keep **#245** externally blocked (no repo patch restores the quota).
 
 ## Previous Rounds
 

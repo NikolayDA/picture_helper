@@ -94,6 +94,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.layer_size_mismatch": (
             "Ebenengröße {actual} passt nicht zur Canvas-Größe {expected}"
         ),
+        "project.warning.role_normalized": (
+            "Inkompatible Height-Map-Rolle entfernt: „{name}“ ist keine Höhenebene"
+        ),
         # Ebenen-Panel & Projekt-Aktionen (#334)
         "layers.new_name": "Ebene {n}",
         "layers.role.none": "Keine",
@@ -127,6 +130,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.height_optimized": "Höhe optimiert",
         "canvas.height_op_error": "Höhen-Operation fehlgeschlagen: {error}",
         "canvas.not_height_layer": "Keine Höhenebene aktiv",
+        "canvas.role_incompatible": (
+            "Rolle „Height Map“ ist nur für Höhenebenen verfügbar"
+        ),
         "canvas.layer_removed": "Ebene gelöscht",
         "canvas.layer_duplicated": "Ebene dupliziert",
         "canvas.cannot_delete_last": "Die letzte Ebene kann nicht gelöscht werden",
@@ -639,6 +645,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.layer_size_mismatch": (
             "Layer size {actual} does not match the canvas size {expected}"
         ),
+        "project.warning.role_normalized": (
+            "Removed incompatible height-map role: “{name}” is not a height layer"
+        ),
         # Layer panel & project actions (#334)
         "layers.new_name": "Layer {n}",
         "layers.role.none": "None",
@@ -672,6 +681,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.height_optimized": "Height optimized",
         "canvas.height_op_error": "Height operation failed: {error}",
         "canvas.not_height_layer": "No height layer active",
+        "canvas.role_incompatible": (
+            "The “Height map” role is only available for height layers"
+        ),
         "canvas.layer_removed": "Layer deleted",
         "canvas.layer_duplicated": "Layer duplicated",
         "canvas.cannot_delete_last": "The last layer cannot be deleted",

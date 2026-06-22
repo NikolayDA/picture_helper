@@ -165,6 +165,27 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   HEIGHT view remains canvas-only and can no longer be silently exported as a
   normal image; bit-exact single-COLOR export, including RGB below transparent
   pixels, remains intact (#363).
+- **Height-map median filter is memory-bounded.** `height_ops.median_blur` no
+  longer materializes a full `(2r+1)² × H × W` window stack (which would have been
+  ~33 GiB at 40 MP/radius 10); it now processes the image in **row bands** with a
+  per-band stack hard-capped via `_MEDIAN_MAX_TEMP_BYTES`. The extra memory is
+  therefore independent of the image size and no longer scales with the radius,
+  while the result stays **bit-exact** (same edge handling, `coverage`,
+  `max_value`, 16-bit). `gaussian_blur`, as a separable convolution, is already
+  `O(H × W)` and radius-independent — evaluated in its docstring. Regression
+  tests cover full-stack equivalence across all UI radii and the memory budget
+  for the 40-MP case (#365).
+- **Height context: model, UI and canvas follow one contract.** A layer is now
+  height-capable *exactly when* `kind == LayerKind.HEIGHT`; the `HEIGHT_MAP` role
+  may only sit on a HEIGHT layer. A new central, Qt-free rule
+  (`role_allowed_for_kind`) is the single source of truth: model APIs (`Layer`,
+  `assign_role`) reject `HEIGHT_MAP` on COLOR/GLOSS/GENERIC with
+  `IncompatibleRoleError`, the layer panel offers the role only for HEIGHT
+  layers, and the height-map tab enables its tools only for an active HEIGHT
+  layer — so the UI no longer promises an operation the canvas then refuses.
+  Loading a historically incompatible project losslessly drops only the invalid
+  role (kind, name, pixels, order and metadata stay equal) and shows a
+  translated warning (#364).
 
 ## [2.4.1] – 2026-06-17
 
