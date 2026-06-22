@@ -178,6 +178,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   en la misma ejecución mediante varias repeticiones (mediana) antes de abrir un
   issue (#277, #278, #279).
 
+### Corregido
+
+- **Exportación de imagen con una capa de altura activa.** «Guardar imagen»
+  vuelve a escribir el compuesto COLOR independientemente de la capa de edición
+  activa. La vista HEIGHT en escala de grises queda limitada al lienzo y ya no
+  puede exportarse silenciosamente como imagen normal; se conserva la exportación
+  bit a bit de una sola capa COLOR, incluido el RGB bajo píxeles transparentes (#363).
+
 ## [2.4.1] – 2026-06-17
 
 ### Corregido
