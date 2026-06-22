@@ -11,6 +11,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **EufyMake-Exportpaket-ADR.** Neue Architekturentscheidung dokumentiert die
+  importorientierte Paketkonvention für #352/#351: Farbmotiv als RGBA-PNG,
+  Höhenkarte als Graustufen-PNG mit hell=hoch, optionale Gloss-Maske sowie
+  offene Punkte zu 16 Bit, Gloss-Semantik und nativem `.empf`-Format.
 - **Feinschliff Freistellung: Kantenglättung/Feather.** Neue Qt-freie, strikt
   getypte `feather_alpha(img, radius, *, mask=None)` in `image_ops.py`: gaußsche
   Weichzeichnung **nur des Alphakanals** (RGB bitgenau erhalten; `radius = 0` =

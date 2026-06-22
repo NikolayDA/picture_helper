@@ -11,6 +11,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **ADR du paquet d’exportation EufyMake.** Une nouvelle décision d’architecture
+  documente la convention de paquet orientée import pour #352/#351 : motif
+  couleur en PNG RGBA, carte de hauteur en PNG niveaux de gris avec clair = haut,
+  masque de brillance facultatif et questions ouvertes sur le 16 bits, la
+  sémantique de la brillance et le format natif `.empf`.
 - **Finition du détourage : lissage des bords / fondu.** Nouvelle fonction sans Qt
   et strictement typée `feather_alpha(img, radius, *, mask=None)` dans
   `image_ops.py` : flou gaussien **du seul canal alpha** (RVB préservé bit à bit ;

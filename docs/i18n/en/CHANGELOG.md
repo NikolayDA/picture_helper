@@ -10,6 +10,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **EufyMake export package ADR.** A new architecture decision documents the
+  import-oriented package convention for #352/#351: the color motif as an RGBA
+  PNG, the height map as a grayscale PNG with light = high, an optional gloss
+  mask, and open questions around 16-bit data, gloss semantics, and the native
+  `.empf` format.
 - **Cut-out polish: edge smoothing / feather.** New Qt-free, strictly typed
   `feather_alpha(img, radius, *, mask=None)` in `image_ops.py`: a Gaussian blur of
   **the alpha channel only** (RGB preserved bit-for-bit; `radius = 0` = no-op;
