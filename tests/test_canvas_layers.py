@@ -271,6 +271,52 @@ def test_save_image_exports_composite_of_layers(qapp, tmp_path) -> None:
     assert tuple(reloaded[0, 7]) == (200, 0, 0, 255)     # unten scheint durch (rot)
 
 
+@pytest.mark.parametrize("active_kind", list(LayerKind))
+def test_save_image_exports_color_composite_for_every_active_layer_kind(
+    qapp, tmp_path, active_kind: LayerKind,
+) -> None:
+    """Der Bildexport ist vom aktiven Bearbeitungskontext unabhängig (#363)."""
+    from PIL import Image as PILImage
+
+    canvas = ImageCanvas()
+    project = Project(4, 4)
+    color = project.create_layer(
+        _solid(4, 4, (200, 10, 20, 255)), name="Motiv", kind=LayerKind.COLOR)
+    active_id = color.id
+    if active_kind is not LayerKind.COLOR:
+        active_id = project.create_layer(
+            _solid(4, 4, (90, 90, 90, 255)),
+            name=active_kind.value,
+            kind=active_kind,
+        ).id
+    project.set_active(active_id)
+    canvas.set_project(project)
+    expected = np.array(project.composite_color())
+
+    out = tmp_path / f"export-{active_kind.value}.png"
+    assert canvas.save_image(str(out)) is True
+    reloaded = np.array(PILImage.open(out).convert("RGBA"))
+
+    assert np.array_equal(reloaded, expected)
+
+
+def test_save_single_color_layer_preserves_rgb_below_transparency(qapp, tmp_path) -> None:
+    """Der bitgenaue Single-Layer-Schnellpfad bleibt beim PNG-Export erhalten."""
+    from PIL import Image as PILImage
+
+    arr = np.zeros((4, 4, 4), dtype=np.uint8)
+    arr[:] = (123, 45, 67, 0)
+    arr[0, 0] = (10, 20, 30, 255)
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(PILImage.fromarray(arr, "RGBA"), "x.png")
+
+    out = tmp_path / "single-color.png"
+    assert canvas.save_image(str(out)) is True
+    reloaded = np.array(PILImage.open(out).convert("RGBA"))
+
+    assert np.array_equal(reloaded, arr)
+
+
 def test_restore_original_returns_loaded_document_after_layer_edits(qapp) -> None:
     """„Original wiederherstellen" liefert das Dokument, wie es geladen wurde –
     auch nach strukturellen Ebenen-Operationen (#335)."""

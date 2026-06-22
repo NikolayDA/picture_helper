@@ -165,6 +165,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Lauf über mehrere Wiederholungen (Median), bevor ein Issue entsteht
   (#277, #278, #279).
 
+### Behoben
+
+- **Bildexport bei aktiver Höhenebene.** „Bild speichern" schreibt wieder
+  unabhängig von der aktiven Bearbeitungsebene das COLOR-Komposit. Die
+  graustufige HEIGHT-Ansicht bleibt eine reine Canvas-Darstellung und kann nicht
+  mehr still als normales Bild exportiert werden; der bitgenaue Single-COLOR-
+  Export einschließlich RGB unter transparenten Pixeln bleibt erhalten (#363).
+
 ## [2.4.1] – 2026-06-17
 
 ### Behoben
