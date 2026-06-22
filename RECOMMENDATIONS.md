@@ -94,6 +94,13 @@ geschätzter Umsetzungsaufwand.
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Doku: Start-mit-Pfad/Finder-Öffnen fehlt in ANLEITUNG §4 | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – Hauptdatei und alle fünf i18n-Fassungen synchron ergänzen; „Zuletzt geöffnet“ dabei auf Bilder und `.bgrproj`-Projekte präzisieren. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (opportunistisch)** – kein Produkt-/CI-Blocker; höchster Nutzen zuerst (Lasso-Endpunkt asserten, `test_helpers`-Zeile, `set_brush_size`-Tests konsolidieren). |
 
+### Review der am 2026-06-22 geschlossenen PRs/Issues
+
+Geprüft wurden die geschlossenen PRs **#356**, **#362**, **#366–#369** sowie die Issues **#358–#361** und **#363–#365**.
+Die Themen sind vollständig abgearbeitet: Phase-0-Politur via #362, Export-Regression #363 via #367 und beide Height-Map-Folgebefunde via #369.
+Zusätzliche Folge-Befunde, neue Issues oder Kommentare sind nicht erforderlich.
+Die nächste konkrete Empfehlung bleibt **#352** als ADR- und Datenmodell-Fundament des EufyMake-Epics.
+
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
 1. **#352** als Fundament des EufyMake-Epics, ADR zuerst; entsperrt #353/#354

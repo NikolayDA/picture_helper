@@ -93,6 +93,13 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: falta apertura por ruta inicial/Finder en ANLEITUNG §4 | 🟢 Baja | 🟢 Baja | **Ready for PR (docs).** Actualizar la guía principal y las cinco copias i18n; precisar que Recientes incluye imágenes y proyectos `.bgrproj`. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Ready for PR (oportunista)** – no bloquea producto ni CI; lo de mayor valor primero (asertar el endpoint del lazo, la línea de `test_helpers`, consolidar los tests de `set_brush_size`). |
 
+### Revisión de PRs/issues cerrados el 2026-06-22
+
+Se revisaron los PRs cerrados **#356**, **#362**, **#366–#369** y los issues **#358–#361**, **#363–#365**.
+Los temas están cubiertos: pulido de fase 0 vía #362, regresión de exportación #363 vía #367 y ambos seguimientos de Height Map vía #369.
+No hace falta abrir ningún issue ni comentario adicional.
+La siguiente recomendación concreta sigue siendo **#352** como base ADR y modelo de datos del epic EufyMake.
+
 ### Próximo recomendado (orden de PR)
 
 1. Implementar **#352** como base del épic EufyMake, ADR primero; desbloquea
