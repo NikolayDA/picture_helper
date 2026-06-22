@@ -24,6 +24,9 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Entfernen, Ersetzen und Bea
 - **✂ Zuschnitt** mit Rule-of-Thirds-Raster: Kreis, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Drehen** in 90°-Schritten oder beliebigem Winkel; **↔ Spiegeln** horizontal/vertikal.
 - **⬤ Ecken abrunden** mit einstellbarem Radius.
+- **📐 Größe ändern** – Bild/Projekt auf eine Zielauflösung in Pixeln skalieren (Seitenverhältnis koppeln, wählbares Resample-Verfahren).
+- **🎚 Farbkorrektur** – Helligkeit, Kontrast und Sättigung der aktiven Ebene mit Live-Vorschau (alpha-erhaltend).
+- **🪶 Kante glätten** – weiche Freistellungskante (Alpha-Feather), auswahlbegrenzt, nach KI- oder manueller Freistellung.
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
 - Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.

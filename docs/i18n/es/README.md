@@ -24,6 +24,9 @@ Una herramienta de edición de imágenes para macOS y Linux para **eliminar, ree
 - **✂ Recorte** con rejilla de la regla de los tercios: círculo, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotar** en pasos de 90° o en cualquier ángulo; **↔ Reflejar** horizontal/vertical.
 - **⬤ Redondear esquinas** con radio ajustable.
+- **📐 Cambiar tamaño** – escala la imagen/proyecto a una resolución objetivo en píxeles (vincular relación de aspecto, método de remuestreo seleccionable).
+- **🎚 Corrección de color** – brillo, contraste y saturación de la capa activa con vista previa en vivo (preserva el alfa).
+- **🪶 Suavizar borde** – borde de recorte suave (desvanecido del alfa), limitado por la selección, tras el recorte por IA o manual.
 - **↩ Historial** con Deshacer y salto a cualquier paso anterior.
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
 - Guardar como **PNG** (con transparencia), **JPEG** (sobre fondo blanco), **WebP** o **TIFF**.

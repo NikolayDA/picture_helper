@@ -24,6 +24,9 @@ An image-editing tool for macOS and Linux for **removing, replacing, and editing
 - **✂ Crop** with a rule-of-thirds grid: circle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotate** in 90° steps or by any angle; **↔ flip** horizontally/vertically.
 - **⬤ Round corners** with an adjustable radius.
+- **📐 Resize** – scale the image/project to a target resolution in pixels (link aspect ratio, selectable resampling method).
+- **🎚 Color correction** – brightness, contrast and saturation of the active layer with a live preview (alpha-preserving).
+- **🪶 Smooth edge** – soft cut-out edge (alpha feather), selection-bounded, after AI or manual cut-out.
 - **↩ History** with undo and jumping to any earlier step.
 - **📥 Drag & drop** for images directly onto the window.
 - Save as **PNG** (with transparency), **JPEG** (on a white background), **WebP**, or **TIFF**.

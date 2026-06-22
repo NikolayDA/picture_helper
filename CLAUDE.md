@@ -38,6 +38,16 @@ Ein Paket, `bgremover/`:
   zum bisherigen Einzelbild-Editor (#332). Ist die **aktive** Ebene eine
   HEIGHT-Ebene, zeigt der Canvas sie graustufig über `height_map.layer_to_gray_image`
   statt des COLOR-Komposits (#345).
+- **Grundbildbearbeitung (Phase 0, Epic #358):** **Skalieren** auf Zielgröße
+  (`image_ops.resize_image`/`resized_size`, `Project.resize` skaliert alle Ebenen +
+  Canvas-Größe mit Megapixel-Gate, Dialog `resize_dialog.py`, #359);
+  **Farbkorrektur** Helligkeit/Kontrast/Sättigung in `color_ops.py` (Qt-frei,
+  `adjust_color`, alpha-erhaltend) mit generischer Canvas-Live-Vorschau
+  (`preview_color_op`/`cancel_color_preview`/`apply_color_op`, transientes
+  `_preview` hat in `_refresh_image` Vorrang – wie #348) auf der aktiven
+  COLOR-Ebene (#360); **Kantenglättung/Feather** der Alphakante
+  (`image_ops.feather_alpha`, nur Alpha, auswahlbegrenzt, `feather_active_edges`,
+  #361). Alles undo-/redobar über die bestehenden Apply-Pfade.
 - **Höhenkarten:** `height_map.py` — Qt-freie, strikt getypte Höhen-Repräsentation
   (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
   Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
