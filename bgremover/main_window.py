@@ -217,6 +217,7 @@ class MainWindow(QMainWindow):
                 remove_background=self._canvas.apply_remove,
                 pick_color=self._pick_color,
                 replace_background=lambda: self._canvas.apply_replace(self._bg_color),
+                feather=self._canvas.feather_active_edges,
                 rotate=self._canvas.apply_rotate,
                 flip=self._canvas.apply_flip,
                 resize=self._resize_image,

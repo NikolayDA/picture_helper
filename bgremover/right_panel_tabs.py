@@ -181,9 +181,34 @@ class BackgroundTab:
         gb.addLayout(color_row)
         layout.addWidget(g_bg)
 
+        g_edge, ge = _make_section(tr("right_panel.background.section.feather"), "#30a0a0")
+        ge.addWidget(_make_label(tr("right_panel.background.feather_hint"), "#888", 11))
+        feather_label = _make_label(
+            tr("right_panel.background.feather_radius", value=2), "#aaa")
+        feather_slider = _make_slider(
+            0, 20, 2, tr("right_panel.background.feather_radius.tooltip"))
+        feather_slider.valueChanged.connect(
+            lambda v: feather_label.setText(
+                tr("right_panel.background.feather_radius", value=v)))
+        ge.addWidget(feather_label)
+        ge.addWidget(feather_slider)
+        btn_feather = _make_panel_btn(
+            tr("right_panel.background.feather"), "#0e2a2a", "#7adada", "#1a4040",
+            tr("right_panel.background.feather.tooltip"),
+            height=38, icon_name="transparency")
+        btn_feather.clicked.connect(
+            lambda _=False: self._actions.feather(feather_slider.value()))
+        ge.addWidget(btn_feather)
+        layout.addWidget(g_edge)
+
         layout.addStretch()
 
-        return outer, {"color_button": color_button}
+        return outer, {
+            "color_button": color_button,
+            "feather_slider": feather_slider,
+            "feather_label": feather_label,
+            "feather_button": btn_feather,
+        }
 
 
 # ── Tab 3 – Transform ────────────────────────────────────────────

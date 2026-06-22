@@ -11,6 +11,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Feinschliff Freistellung: Kantenglättung/Feather.** Neue Qt-freie, strikt
+  getypte `feather_alpha(img, radius, *, mask=None)` in `image_ops.py`: gaußsche
+  Weichzeichnung **nur des Alphakanals** (RGB bitgenau erhalten; `radius = 0` =
+  No-op; vollflächig deckende Ebenen bleiben randartefaktfrei). Der Canvas
+  verdrahtet sie als `feather_active_edges(radius)` auf der aktiven Ebene –
+  **auswahlbegrenzt** (vorhandene Auswahl) und über den bestehenden Apply-Pfad
+  **undo-/redobar**. UI: Radius-Regler + Button „Kante glätten" im Hintergrund-Tab
+  (nahe der Freistellung). Alle neuen Strings de/en in Parität (#361).
 - **Farbkorrektur der aktiven Farbebene (Helligkeit/Kontrast/Sättigung).** Neues
   Qt-freies, strikt getyptes Modul `bgremover/color_ops.py` mit `adjust_color`
   (Pillow `ImageEnhance`, **Alphakanal exakt erhalten**, Neutralwerte =

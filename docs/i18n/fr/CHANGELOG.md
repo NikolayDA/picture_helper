@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Finition du détourage : lissage des bords / fondu.** Nouvelle fonction sans Qt
+  et strictement typée `feather_alpha(img, radius, *, mask=None)` dans
+  `image_ops.py` : flou gaussien **du seul canal alpha** (RVB préservé bit à bit ;
+  `radius = 0` = no-op ; les calques entièrement opaques restent sans artefact au
+  bord). Le canevas l’intègre comme `feather_active_edges(radius)` sur le calque
+  actif, **limitée à la sélection** (si présente) et **annulable/rétablissable**
+  via le chemin d’application existant. IU : curseur de rayon + bouton « Lisser le
+  bord » dans l’onglet Arrière-plan (à côté du détourage). Toutes les nouvelles
+  chaînes en parité de/en (#361).
 - **Correction des couleurs du calque couleur actif (luminosité/contraste/saturation).**
   Nouveau module sans Qt et strictement typé `bgremover/color_ops.py` avec
   `adjust_color` (Pillow `ImageEnhance`, **canal alpha exactement préservé**,

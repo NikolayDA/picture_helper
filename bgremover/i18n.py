@@ -353,6 +353,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.background.replace.tooltip": (
             "Füllt den ausgewählten Bereich mit der gewählten Farbe"
         ),
+        "right_panel.background.section.feather": "Kante glätten",
+        "right_panel.background.feather_hint": (
+            "Weichzeichnet die Freistellungskante (nur Alpha)."
+        ),
+        "right_panel.background.feather_radius": "Radius:  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Radius der Kantenglättung in Pixeln (0 = aus)"
+        ),
+        "right_panel.background.feather": "Kante glätten",
+        "right_panel.background.feather.tooltip": (
+            "Alphakante der aktiven Ebene weichzeichnen (Auswahl bzw. global)"
+        ),
         # Right panel — Transform tab contents
         "right_panel.transform.section.rotate": "Drehen",
         "right_panel.transform.quick_label": "Schnell-Drehung:",
@@ -532,6 +544,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "canvas.color_adjusted": "🎨 Farbkorrektur angewendet",
         "canvas.not_color_layer": "Keine Farbebene aktiv",
+        "canvas.feathered": "🪶 Kante geglättet: {radius} px",
         "canvas.flipped_h": "↔ Horizontal gespiegelt",
         "canvas.flipped_v": "↕ Vertikal gespiegelt",
         "canvas.crop_cancelled": "Zuschnitt abgebrochen",
@@ -555,6 +568,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.rotated": "{direction} Gedreht {degrees}°",
         "history.desc.resized": "Größe geändert ({w}×{h} px)",
         "history.desc.color_adjusted": "Farbkorrektur",
+        "history.desc.feathered": "Kante geglättet ({radius} px)",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },
@@ -884,6 +898,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.background.replace.tooltip": (
             "Fills the selected area with the chosen color"
         ),
+        "right_panel.background.section.feather": "Smooth edge",
+        "right_panel.background.feather_hint": (
+            "Softens the cut-out edge (alpha only)."
+        ),
+        "right_panel.background.feather_radius": "Radius:  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Edge-smoothing radius in pixels (0 = off)"
+        ),
+        "right_panel.background.feather": "Smooth edge",
+        "right_panel.background.feather.tooltip": (
+            "Soften the alpha edge of the active layer (selection or global)"
+        ),
         # Right panel — Transform tab contents
         "right_panel.transform.section.rotate": "Rotate",
         "right_panel.transform.quick_label": "Quick rotate:",
@@ -1062,6 +1088,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "canvas.color_adjusted": "🎨 Color correction applied",
         "canvas.not_color_layer": "No color layer active",
+        "canvas.feathered": "🪶 Edge smoothed: {radius} px",
         "canvas.flipped_h": "↔ Flipped horizontally",
         "canvas.flipped_v": "↕ Flipped vertically",
         "canvas.crop_cancelled": "Crop cancelled",
@@ -1085,6 +1112,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.rotated": "{direction} Rotated {degrees}°",
         "history.desc.resized": "Resized ({w}×{h} px)",
         "history.desc.color_adjusted": "Color correction",
+        "history.desc.feathered": "Edge smoothed ({radius} px)",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
     },

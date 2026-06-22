@@ -11,6 +11,7 @@ from bgremover.image_ops import (
     crop_image,
     crop_size_for_ratio,
     ensure_save_extension,
+    feather_alpha,
     flip_image,
     normalize_save_format,
     remove_selection,
@@ -181,6 +182,49 @@ def test_rotated_size_tracks_pillow_within_one_pixel(size, deg) -> None:
     gw, gh = rotated_size(w, h, deg)
     assert 0 <= ew - gw <= 2
     assert 0 <= eh - gh <= 2
+
+
+# ── Kantenglättung / Feather (#361) ────────────────────────────────────
+
+def _hard_edge_rgba() -> tuple[Image.Image, np.ndarray]:
+    """RGBA mit konstantem RGB und harter Alphakante (links opak, rechts leer)."""
+    arr = np.zeros((10, 10, 4), dtype=np.uint8)
+    arr[:, :, 0] = 120
+    arr[:, :, 1] = 130
+    arr[:, :, 2] = 140
+    arr[:, :5, 3] = 255
+    return Image.fromarray(arr, "RGBA"), arr
+
+
+def test_feather_alpha_radius_zero_is_noop() -> None:
+    img, _ = _hard_edge_rgba()
+    assert feather_alpha(img, 0) is img            # bitidentisches No-op
+    assert feather_alpha(img, -1) is img
+
+
+def test_feather_alpha_keeps_rgb_and_softens_edge() -> None:
+    img, arr = _hard_edge_rgba()
+    out = np.asarray(feather_alpha(img, 2.0))
+    assert np.array_equal(out[:, :, :3], arr[:, :, :3])   # RGB exakt erhalten
+    alpha = out[:, :, 3]
+    assert ((alpha > 0) & (alpha < 255)).any()            # weicher Verlauf entstanden
+
+
+def test_feather_alpha_opaque_layer_stays_opaque() -> None:
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, :3] = 100
+    arr[:, :, 3] = 255
+    out = np.asarray(feather_alpha(Image.fromarray(arr, "RGBA"), 3.0))
+    assert np.all(out[:, :, 3] == 255)                    # keine Randartefakte
+
+
+def test_feather_alpha_mask_bounds_the_effect() -> None:
+    img, arr = _hard_edge_rgba()
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[:, :5] = True
+    out = np.asarray(feather_alpha(img, 3.0, mask=mask))
+    assert np.array_equal(out[:, 5:, 3], arr[:, 5:, 3])   # außerhalb unverändert
+    assert not np.array_equal(out[:, :5, 3], arr[:, :5, 3])  # innerhalb geglättet
 
 
 # ── Resize/Resample (#359) ─────────────────────────────────────────────

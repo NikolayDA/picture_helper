@@ -62,6 +62,7 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         remove_background=lambda: calls.append(("remove",)),
         pick_color=lambda: calls.append(("pick_color",)),
         replace_background=lambda: calls.append(("replace",)),
+        feather=lambda value: calls.append(("feather", value)),
         rotate=lambda value: calls.append(("rotate", value)),
         flip=lambda horizontal: calls.append(("flip", horizontal)),
         resize=lambda: calls.append(("resize",)),
@@ -100,6 +101,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Entfernen (transparent)").click()
     panel.color_button.click()
     _button(panel.frame, "Farbe ersetzen").click()
+    _button(panel.frame, "Kante glätten").click()
 
     _button(panel.frame, "↺ 90° links").click()
     _button(panel.frame, "↻ 90° rechts").click()
@@ -126,6 +128,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("remove",),
         ("pick_color",),
         ("replace",),
+        ("feather", 2),
         ("rotate", 90),
         ("rotate", -90),
         ("rotate", 33),
@@ -138,6 +141,22 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("crop_ratio", 16, 9),
         ("crop_ratio", 9, 16),
     ]
+
+
+# ── Kantenglättung / Feather (#361) ───────────────────────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_background_tab_feather_button_delegates_radius(qapp):
+    from bgremover.right_panel_tabs import BackgroundTab
+
+    calls: list[tuple] = []
+    _widget, refs = BackgroundTab(_actions(calls)).build()
+
+    refs["feather_slider"].setValue(5)
+    assert "5 px" in refs["feather_label"].text()
+    refs["feather_button"].click()
+    assert calls == [("feather", 5)]
 
 
 # ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────

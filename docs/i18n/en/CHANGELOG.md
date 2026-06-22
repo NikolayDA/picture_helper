@@ -10,6 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Cut-out polish: edge smoothing / feather.** New Qt-free, strictly typed
+  `feather_alpha(img, radius, *, mask=None)` in `image_ops.py`: a Gaussian blur of
+  **the alpha channel only** (RGB preserved bit-for-bit; `radius = 0` = no-op;
+  fully opaque layers stay artifact-free at the border). The canvas wires it up as
+  `feather_active_edges(radius)` on the active layer – **selection-bounded** (an
+  existing selection) and **undo-/redoable** via the existing apply path. UI: a
+  radius slider + “Smooth edge” button in the Background tab (next to the cut-out).
+  All new strings in de/en parity (#361).
 - **Color correction of the active color layer (brightness/contrast/saturation).**
   New Qt-free, strictly typed `bgremover/color_ops.py` module with `adjust_color`
   (Pillow `ImageEnhance`, **alpha channel exactly preserved**, neutral values =

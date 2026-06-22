@@ -62,6 +62,7 @@ class RightPanelActions:
     remove_background: Callable[[], None]
     pick_color: Callable[[], None]
     replace_background: Callable[[], None]
+    feather: Callable[[int], None]
     rotate: Callable[[int], None]
     flip: Callable[[bool], None]
     resize: Callable[[], None]

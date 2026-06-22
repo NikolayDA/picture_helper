@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Retoque del recorte: suavizado de bordes / desvanecido.** Nueva función sin Qt
+  y con tipado estricto `feather_alpha(img, radius, *, mask=None)` en
+  `image_ops.py`: desenfoque gaussiano **solo del canal alfa** (RGB preservado bit
+  a bit; `radius = 0` = no-op; las capas totalmente opacas quedan sin artefactos en
+  el borde). El lienzo la integra como `feather_active_edges(radius)` sobre la capa
+  activa, **limitada por la selección** (si existe) y con **deshacer/rehacer** a
+  través de la ruta de aplicación existente. IU: deslizador de radio + botón
+  «Suavizar borde» en la pestaña Fondo (junto al recorte). Todas las cadenas nuevas
+  con paridad de/en (#361).
 - **Corrección de color de la capa de color activa (brillo/contraste/saturación).**
   Nuevo módulo sin Qt y con tipado estricto `bgremover/color_ops.py` con
   `adjust_color` (Pillow `ImageEnhance`, **canal alfa exactamente preservado**,

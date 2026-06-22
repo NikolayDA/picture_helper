@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 # ``numpy_to_pil`` wird bewusst **lazy** (in den Funktionen) importiert: ``image_utils``
 # zieht PyQt6, ein Modul-Import würde ``image_ops`` import-zeitlich an Qt koppeln.
@@ -143,6 +143,42 @@ def save_image_file(img: Image.Image, path: str | Path) -> None:
         with contextlib.suppress(OSError):
             tmp.unlink()
         raise
+
+
+def feather_alpha(
+    img: Image.Image,
+    radius: float,
+    *,
+    mask: np.ndarray | None = None,
+) -> Image.Image:
+    """Weichzeichnet **nur den Alphakanal** (Gaußsch); RGB bleibt unverändert.
+
+    Glättet harte Freistellungskanten zu einem weichen Verlauf des gegebenen
+    *radius* (Pillow-Gaußfilter auf dem Alphakanal) – der Feinschliff nach KI-
+    oder manueller Freistellung. Die RGB-Pixel bleiben **bitgenau** erhalten;
+    ``radius <= 0`` ist ein **No-op** und gibt dasselbe Objekt zurück.
+
+    Eine optionale boolesche ``mask`` (Form ``(H, W)``) begrenzt die Wirkung auf
+    ihre True-Pixel; außerhalb bleibt das Alpha unverändert – so lässt sich der
+    Feinschliff auf eine vorhandene Auswahl beschränken. Pillows Gaußfilter führt
+    Randpixel per Kantenfortsetzung fort, sodass eine vollflächig deckende Ebene
+    (Alpha überall 255) keine Randartefakte erhält.
+    """
+    if radius <= 0:
+        return img
+    rgba = img if img.mode == "RGBA" else img.convert("RGBA")
+    arr = np.array(rgba)
+    # Kontiguierte Kopie des Alphakanals: dient ``Image.fromarray`` als Quelle und
+    # zugleich als „Original" für den maskierten Pfad (der Rückschreib-Write unten
+    # verändert ``arr`` in-place).
+    alpha = np.ascontiguousarray(arr[:, :, 3])
+    blurred = np.asarray(
+        Image.fromarray(alpha, "L").filter(ImageFilter.GaussianBlur(radius)))
+    if mask is None:
+        arr[:, :, 3] = blurred
+    else:
+        arr[:, :, 3] = np.where(mask, blurred, alpha)
+    return Image.fromarray(arr, "RGBA")
 
 
 def round_corners(img: Image.Image, radius: int) -> tuple[Image.Image, int]:

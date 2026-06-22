@@ -64,7 +64,7 @@ from bgremover.height_map import (
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
 from bgremover.image_loading import open_validated_image
-from bgremover.image_ops import save_image_file
+from bgremover.image_ops import feather_alpha, save_image_file
 from bgremover.image_utils import (
     make_checker_brush,
     mask_to_overlay,
@@ -1113,6 +1113,25 @@ class ImageCanvas(QGraphicsView):
     @_requires_image
     def shrink_selection(self, radius: int) -> None:
         self._morphology(radius, "shrink")
+
+    @_requires_image
+    def feather_active_edges(self, radius: int) -> None:
+        """Glättet die Alphakante der aktiven Ebene (Feinschliff, #361).
+
+        Weichzeichnet **nur den Alphakanal** der aktiven Ebene gaußsch (RGB bleibt
+        erhalten) – der Politurschritt nach KI- oder manueller Freistellung. Eine
+        vorhandene Auswahl begrenzt die Wirkung (sonst global); der Schritt ist
+        über ``_apply_pil`` undo-/redobar. ``radius <= 0`` ist ein No-op mit
+        Hinweis.
+        """
+        if radius <= 0:
+            self.statusMsg.emit(tr("canvas.radius_positive"))
+            return
+        assert self._pil is not None  # @_requires_image garantiert das
+        mask = self._selection.mask if self._selection.has_selection else None
+        result = feather_alpha(self._pil, radius, mask=mask)
+        self._apply_pil(result, desc=tr("history.desc.feathered", radius=radius))
+        self.statusMsg.emit(tr("canvas.feathered", radius=radius))
 
     # ── Tool-Einstellungen ───────────────────────────────────
 
