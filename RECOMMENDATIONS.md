@@ -61,35 +61,39 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Triage-Stand (2026-06-21)
+## Offene GitHub-Issues – Triage-Stand (2026-06-22)
 
-Stand 2026-06-21 zeigt GitHub noch **5** offene Issues: **#245**, **#299**,
-**#318**, **#322** und **#339**. Die zuvor noch gelisteten
-Projekt-/Ebenen- und Security-Test-Issues **#323**, **#324**, **#326** und
-**#329–#335** sind in den Merge-Commits **#337**, **#338** und **#340**
-inhaltlich erledigt und nicht mehr offen. Für **#322** existiert inzwischen
-zusätzlich **#342**; der Issue sollte nach Merge-Verifikation kommentiert und
-geschlossen werden.
+Stand 2026-06-22 zeigt GitHub **9** offene Issues. Neu hinzugekommen ist das
+**EufyMake-Export-Epic #351** mit den Sub-Issues **#352–#355** (Roadmap-Rang #3).
+Der zuvor gelistete Wartungs-/Skip-Pfad **#322** ist über **#342** erledigt und
+inzwischen **geschlossen**; die Projekt-/Ebenen- und Security-Test-Issues
+**#323/#324/#326** und **#329–#335** bleiben in **#337/#338/#340** abgeschlossen.
 
-| # | Titel | Labels/Status-Empfehlung | Kommentar-/Status-Vorschlag |
-|---|-------|--------------------------|------------------------------|
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | `security`; **offen lassen / blocked external** | Kommentar ergänzen: Repo-seitige Härtungen sind mit #323/#324 und #322/#342 abgedeckt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix einmal den geplanten Scan manuell anstoßen und dann schließen. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | `quality`, `testing`; **offen / low priority** | Kommentar ergänzen: Kein Produkt-/CI-Blocker; als opportunistischer Cleanup bündeln, sobald betroffene Tests ohnehin geändert werden. Keine Statusänderung nötig. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | `enhancement`, `testing`; **needs refinement** | Kommentar ergänzen: Vor einer Codeänderung GitHub-Semantik für Top-Level- vs. Job-Level-Permissions im aufgerufenen Workflow belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: Wartungs-/Skip-Pfad für geplanten Codex Security Scan | `security`; **nach #342 schließen** | Kommentar ergänzen: #342 implementiert den konservativen manuellen Wartungsschalter (`CODEX_SECURITY_SCAN_ENABLED=false`) inklusive Skip-Output und Regressionstests; nach verifiziertem Merge als erledigt schließen. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | **Labels ergänzen:** `enhancement`, `documentation` (oder `question`, falls vorhanden); **needs decision** | Kommentar ergänzen: Produktentscheidung treffen – entweder HEIC bewusst nicht unterstützen und README/ANLEITUNG klarstellen, oder optionales `pillow-heif`/`HEIF`-Allowlist + Lade-Test planen. Bis zur Entscheidung offen lassen. |
+Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
+geschätzter Umsetzungsaufwand.
 
-### Empfohlene Issue-Aktionen
+| # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
+|---|-------|----------|-------------|------------------------------|
+| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Konsistentes EufyMake-Exportpaket | 🟠 Hoch | 🔴 Hoch (Epic) | **Needs refinement** – Scope laut Deep-Research (Issue-Kommentar) auf „robuste Import-Assets für EufyMake Studio“ schärfen; native `.empf`-Erzeugung **nicht** als Default-Ziel. Wird über #352–#355 abgewickelt. |
+| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export-Datenmodell & Paketdefinition (Qt-frei) + ADR | 🟠 Hoch | 🟡 Mittel | **Ready for PR – ADR zuerst** – Deep-Research erledigt (Issue-Kommentare), aber die Konventions-/ADR-Entscheidung ist **noch nicht im Repo dokumentiert** und muss als erster Schritt dieses PR schriftlich festgehalten werden (Akzeptanzkriterium von #352). Qt-freies `eufymake_export.py` mit `ExportPlan`/`ExportAsset` (Farbmotiv-PNG+Alpha, Höhe-Graustufe hell=hoch, Gloss-Maske); Scope = Import-Assets für EufyMake Studio; 16-Bit/Gloss-Semantik/natives `.empf` als „offen“ markieren. Fundament – entsperrt #353–#355. |
+| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset-Rendering & atomares Paket-Schreiben | 🟠 Hoch | 🟡 Mittel | **Blocked** – benötigt #352; danach sauber geschnitten (Rendering + atomares Schreiben). |
+| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Pre-Export-Konsistenzprüfung | 🟠 Hoch | 🟡 Mittel | **Blocked** – benötigt #352. Prüf-Bausteine wiederverwendbar halten (Synergie mit der allgemeinen Fehlerprüfung vor Export). |
+| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: EufyMake-Export-Dialog + Menü + i18n + Settings | 🟠 Hoch | 🟡 Mittel | **Blocked** – benötigt #352–#354. UI-Text laut Deep-Research: „Assets für EufyMake Studio vorbereiten“, nicht „fertiges Projekt erzeugen“. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – erst die GitHub-Semantik (Top-Level vs. effektiv-per-Job) belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – Maintainer hat HEIC **bewusst ausgeschlossen** (Kommentar 2026-06-21). Nur noch README/ANLEITUNG klarstellen, dann schließen. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (opportunistisch)** – kein Produkt-/CI-Blocker; höchster Nutzen zuerst (Lasso-Endpunkt asserten, `test_helpers`-Zeile, `set_brush_size`-Tests konsolidieren). |
 
-1. **#322** kommentieren und schließen, sobald der Merge von #342 auf `main`
-   verifiziert ist.
-2. **#339** labeln und mit einer expliziten Produktentscheidung versehen
-   (Doku-Klarstellung vs. HEIC-Feature).
-3. **#245** weiter offen halten, aber als extern blockiert markieren; #322/#342
-   dort als abgeschlossenen Repo-Teil verlinken.
-4. **#318** nicht sofort umsetzen, sondern zunächst die GitHub-Permissions-
-   Semantik dokumentieren.
-5. **#299** als niedrig priorisierten Test-Cleanup offen lassen.
+### Als Nächstes empfohlen (PR-Reihenfolge)
+
+1. **#352** zuerst – Fundament des Epics, nach dem ADR-Refinement well-scoped;
+   entsperrt #353/#354.
+2. **#353** und **#354** parallel, sobald #352 steht.
+3. **#355** als Abschluss des Epics.
+4. **#339** (kleine Doku-PR) und **#299** (Test-Cleanup) als niedrig
+   priorisierte Lückenfüller dazwischen.
+5. **#318** zurückstellen, bis die GitHub-Permissions-Semantik belegt ist.
+6. **#245** extern blockiert lassen (kein Repo-Patch bringt die Quota zurück).
 
 ## Vorige Runden
 

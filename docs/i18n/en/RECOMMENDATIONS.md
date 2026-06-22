@@ -53,32 +53,39 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Triage Status (2026-06-21)
+## Open GitHub Issues — Triage Status (2026-06-22)
 
-As of 2026-06-21, GitHub still shows **5** open issues: **#245**, **#299**,
-**#318**, **#322**, and **#339**. The previously listed project/layer and
-security-test issues **#323**, **#324**, **#326**, and **#329–#335** are
-complete in merge commits **#337**, **#338**, and **#340**. **#322** also now
-has **#342** and should be commented on and closed after merge verification.
+As of 2026-06-22, GitHub shows **9** open issues. New is the **EufyMake export
+epic #351** with sub-issues **#352–#355** (roadmap rank #3). The previously
+listed maintenance/skip path **#322** was delivered via **#342** and is now
+**closed**; the project/layer and security-test issues **#323/#324/#326** and
+**#329–#335** remain complete in **#337/#338/#340**.
 
-| # | Title | Label/status recommendation | Comment/status proposal |
-|---|-------|-----------------------------|-------------------------|
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | `security`; **keep open / blocked external** | Add a comment that repo-side hardening is covered by #323/#324 and #322/#342; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually and then close. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | `quality`, `testing`; **open / low priority** | Add a comment that this is not a product or CI blocker; bundle as opportunistic cleanup when related tests are touched. No status change needed. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | `enhancement`, `testing`; **needs refinement** | Add a comment that GitHub semantics for top-level vs. job-level permissions in the called workflow must be documented before any code change; the #303 OIDC guard must not be weakened. |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: add a maintenance/skip path for the scheduled Codex Security Scan | `security`; **close after #342** | Add a comment that #342 implements the conservative manual maintenance switch (`CODEX_SECURITY_SCAN_ENABLED=false`) with skip output and regression tests; close as done after verified merge. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | **Add labels:** `enhancement`, `documentation` (or `question`, if available); **needs decision** | Add a comment requesting a product decision: either explicitly document that HEIC is unsupported, or plan optional `pillow-heif`/`HEIF` allowlisting plus a load test. Keep open until decided. |
+Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
+estimated implementation effort.
 
-### Recommended Issue Actions
+| # | Title | Relevance | Complexity | Recommended next step |
+|---|-------|-----------|------------|-----------------------|
+| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Consistent EufyMake export package | 🟠 High | 🔴 High (epic) | **Needs refinement** – per the deep research (issue comment), sharpen scope to "robust import assets for EufyMake Studio"; native `.empf` generation is **not** the default goal. Driven via #352–#355. |
+| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export data model & package definition (Qt-free) + ADR | 🟠 High | 🟡 Medium | **Ready for PR — ADR first** – deep research done (issue comments), but the convention/ADR decision is **not yet recorded in-repo** and must be written down as the first step of this PR (it is an acceptance criterion of #352). Qt-free `eufymake_export.py` with `ExportPlan`/`ExportAsset` (color motif PNG+alpha, height grayscale bright=high, gloss mask); scope = import assets for EufyMake Studio; mark 16-bit/gloss semantics/native `.empf` as "open". Foundation — unblocks #353–#355. |
+| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset rendering & atomic package write | 🟠 High | 🟡 Medium | **Blocked** – needs #352; cleanly scoped afterwards (rendering + atomic write). |
+| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Pre-export consistency check | 🟠 High | 🟡 Medium | **Blocked** – needs #352. Keep the check building blocks reusable (synergy with the general pre-export error check). |
+| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: EufyMake export dialog + menu + i18n + settings | 🟠 High | 🟡 Medium | **Blocked** – needs #352–#354. UI wording per deep research: "prepare assets for EufyMake Studio", not "produce a finished project". |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – first document the GitHub semantics (top-level vs. effective-per-job); the #303 OIDC guard must not be weakened. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – the maintainer **deliberately excluded** HEIC (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **Ready for PR (opportunistic)** – not a product or CI blocker; highest value first (assert the lasso endpoint, the `test_helpers` line, consolidate the `set_brush_size` tests). |
 
-1. Comment on and close **#322** once the merge of #342 to `main` is verified.
-2. Label **#339** and make an explicit product decision (documentation
-   clarification vs. HEIC feature).
-3. Keep **#245** open but mark it externally blocked; link #322/#342 as the
-   completed repo-side part.
-4. Do not implement **#318** immediately; first document GitHub permission
-   semantics.
-5. Keep **#299** open as low-priority test cleanup.
+### Recommended Next (PR order)
+
+1. **#352** first — foundation of the epic, well-scoped after the ADR
+   refinement; unblocks #353/#354.
+2. **#353** and **#354** in parallel once #352 lands.
+3. **#355** to close out the epic.
+4. **#339** (small docs PR) and **#299** (test cleanup) as low-priority
+   fillers in between.
+5. Defer **#318** until the GitHub permission semantics are documented.
+6. Keep **#245** externally blocked (no repo patch restores the quota).
 
 ## Previous Rounds
 
