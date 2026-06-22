@@ -187,6 +187,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   La vue HEIGHT en niveaux de gris reste limitée au canevas et ne peut plus être
   exportée silencieusement comme image normale ; l'export bit à bit d'un unique
   calque COLOR, y compris le RGB sous les pixels transparents, est préservé (#363).
+- **Contexte de hauteur : modèle, interface et canevas suivent un contrat.** Un
+  calque est compatible hauteur *exactement quand* `kind == LayerKind.HEIGHT` ;
+  le rôle `HEIGHT_MAP` ne peut être que sur un calque HEIGHT. Une nouvelle règle
+  centrale, sans Qt (`role_allowed_for_kind`), est la seule source de vérité :
+  les API du modèle (`Layer`, `assign_role`) refusent `HEIGHT_MAP` sur COLOR/
+  GLOSS/GENERIC avec `IncompatibleRoleError`, le panneau des calques ne propose
+  le rôle que pour les calques HEIGHT, et l'onglet carte de hauteur n'active ses
+  outils que pour un calque HEIGHT actif — l'interface ne promet donc plus une
+  opération que le canevas refuse ensuite. Le chargement d'un projet
+  historiquement incompatible supprime sans perte uniquement le rôle invalide
+  (type, nom, pixels, ordre et métadonnées restent identiques) et affiche un
+  avertissement traduit (#364).
 
 ## [2.4.1] – 2026-06-17
 

@@ -403,6 +403,74 @@ def test_project_from_manifest_rejects_duplicate_roles() -> None:
         project_from_manifest(manifest, images)
 
 
+def test_project_from_manifest_normalizes_legacy_incompatible_role() -> None:
+    """Altzustand COLOR+HEIGHT_MAP (vor #364): nur die Rolle wird verlustfrei
+    entfernt, alles andere bleibt wertgleich; eine Warnung wird gesammelt."""
+    from bgremover.project_schema import project_from_manifest
+
+    project = Project(2, 2)
+    project.create_layer(_solid(2, 2, (7, 8, 9, 255)), name="Legacy", kind=LayerKind.COLOR)
+    manifest = build_manifest(project)
+    manifest["layers"][0]["role"] = LayerRole.HEIGHT_MAP.value   # historisch inkompatibel
+    images = {"layer_0000.png": _solid(2, 2, (7, 8, 9, 255))}
+
+    warnings: list[str] = []
+    restored = project_from_manifest(manifest, images, warnings=warnings)
+
+    rebuilt = restored.layers[0]
+    assert rebuilt.kind is LayerKind.COLOR          # Kind unverändert
+    assert rebuilt.role is None                     # nur die Rolle wurde entfernt
+    assert rebuilt.name == "Legacy"
+    assert np.array_equal(
+        np.asarray(rebuilt.image), np.asarray(_solid(2, 2, (7, 8, 9, 255))))
+    assert len(warnings) == 1 and "Legacy" in warnings[0]
+
+
+def test_load_project_normalizes_legacy_incompatible_role(tmp_path) -> None:
+    """Voller Ladepfad: inkompatible Rolle wird normalisiert, Reihenfolge,
+    Pixel und Metadaten bleiben erhalten, die Warnung erreicht den Sink (#364)."""
+    project = Project(3, 3, metadata={"note": "keep"})
+    project.create_layer(_solid(3, 3, (10, 20, 30, 255)), name="Farbe", kind=LayerKind.COLOR)
+    project.create_layer(_solid(3, 3, (40, 50, 60, 255)), name="Höhe", kind=LayerKind.HEIGHT)
+    manifest = build_manifest(project)
+    manifest["layers"][0]["role"] = LayerRole.HEIGHT_MAP.value   # COLOR trägt HEIGHT_MAP
+    path = tmp_path / ("legacy" + PROJECT_SUFFIX)
+    _write_zip(path, {
+        MANIFEST_NAME: json.dumps(manifest).encode("utf-8"),
+        "layer_0000.png": _png_bytes(_solid(3, 3, (10, 20, 30, 255))),
+        "layer_0001.png": _png_bytes(_solid(3, 3, (40, 50, 60, 255))),
+    })
+
+    warnings: list[str] = []
+    loaded = load_project(path, warnings=warnings)
+
+    assert [lyr.name for lyr in loaded.layers] == ["Farbe", "Höhe"]   # Reihenfolge
+    assert loaded.layers[0].role is None                             # Rolle entfernt
+    assert loaded.layers[0].kind is LayerKind.COLOR                  # Kind erhalten
+    assert loaded.metadata == {"note": "keep"}
+    assert np.array_equal(
+        np.asarray(loaded.layers[0].image),
+        np.asarray(_solid(3, 3, (10, 20, 30, 255))))
+    assert warnings and "Farbe" in warnings[0]
+
+
+def test_load_project_keeps_valid_height_map_role(tmp_path) -> None:
+    """Eine gültige HEIGHT+HEIGHT_MAP-Kombination bleibt unverändert/warnungsfrei."""
+    project = Project(2, 2)
+    project.create_layer(_solid(2, 2, (1, 1, 1, 255)), name="C", kind=LayerKind.COLOR)
+    project.create_layer(
+        _solid(2, 2, (5, 5, 5, 255)), name="H", kind=LayerKind.HEIGHT,
+        role=LayerRole.HEIGHT_MAP)
+    path = tmp_path / ("valid" + PROJECT_SUFFIX)
+    save_project(project, path)
+
+    warnings: list[str] = []
+    loaded = load_project(path, warnings=warnings)
+
+    assert loaded.layer_by_role(LayerRole.HEIGHT_MAP) is not None
+    assert not warnings
+
+
 @pytest.mark.parametrize(
     "broken",
     [

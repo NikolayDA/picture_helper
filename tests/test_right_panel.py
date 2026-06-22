@@ -280,8 +280,36 @@ def test_layer_panel_role_combo_reflects_active_and_delegates(qapp):
     # Aktive Ebene „Oben" hat keine Rolle → Index 0 (Keine).
     assert combo.currentData() is None
 
-    combo.setCurrentIndex(2)   # Height Map
-    assert ("role", LayerRole.HEIGHT_MAP) in calls
+    # Typverträgliche Rolle (COLOR_MOTIF, Index 1) wird delegiert.
+    combo.setCurrentIndex(1)
+    assert ("role", LayerRole.COLOR_MOTIF) in calls
+
+
+def _role_item_enabled(combo: QComboBox, index: int) -> bool:
+    model = combo.model()
+    item = model.item(index)            # QStandardItemModel der QComboBox
+    return item is not None and item.isEnabled()
+
+
+@pytest.mark.ui_smoke
+def test_layer_panel_role_combo_restricts_height_map_to_height(qapp):
+    """HEIGHT_MAP (Index 2) ist nur für eine aktive HEIGHT-Ebene wählbar (#364)."""
+    panel = LayerPanel(_noop_layer_actions())
+    _widget, refs = panel.build()
+    combo = refs["layer_role_combo"]
+    assert isinstance(combo, QComboBox)
+
+    # Aktive COLOR-Ebene: HEIGHT_MAP gesperrt, übrige Optionen offen.
+    panel.refresh(_infos())
+    assert not _role_item_enabled(combo, 2)         # Height Map
+    assert _role_item_enabled(combo, 0)             # Keine
+    assert _role_item_enabled(combo, 1)             # Farbmotiv
+
+    # Aktive HEIGHT-Ebene: HEIGHT_MAP wählbar.
+    height = [LayerInfo(id="h", name="Höhe", kind=LayerKind.HEIGHT, visible=True,
+                        opacity=1.0, locked=False, role=None, active=True)]
+    panel.refresh(height)
+    assert _role_item_enabled(combo, 2)
 
 
 @pytest.mark.ui_smoke
@@ -424,9 +452,11 @@ def test_height_panel_is_mode_contextual(qapp):
     assert _button(widget, "Aufhellen").isEnabled()
     assert _button(widget, "Invertieren").isEnabled()
 
-    # Rolle HEIGHT_MAP auf einer COLOR-Ebene zählt ebenfalls als Höhenkontext.
+    # Rolle HEIGHT_MAP allein genügt NICHT mehr: eine COLOR-Ebene mit der Rolle
+    # bleibt für Höhenwerkzeuge gesperrt (Vertrag #364 – nur Kind entscheidet).
     panel.refresh(_height_layers(active_kind=LayerKind.COLOR))
-    assert _button(widget, "Aufhellen").isEnabled()
+    assert not _button(widget, "Aufhellen").isEnabled()
+    assert not _button(widget, "Invertieren").isEnabled()
 
     # Kein Projekt: alles gesperrt.
     panel.refresh([])

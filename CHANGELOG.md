@@ -172,6 +172,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   graustufige HEIGHT-Ansicht bleibt eine reine Canvas-Darstellung und kann nicht
   mehr still als normales Bild exportiert werden; der bitgenaue Single-COLOR-
   Export einschließlich RGB unter transparenten Pixeln bleibt erhalten (#363).
+- **Höhen-Kontext: Modell, UI und Canvas folgen einem Vertrag.** Eine Ebene ist
+  jetzt *genau dann* höhenfähig, wenn `kind == LayerKind.HEIGHT`; die Rolle
+  `HEIGHT_MAP` darf nur auf einer HEIGHT-Ebene liegen. Eine neue zentrale,
+  Qt-freie Regel (`role_allowed_for_kind`) ist die einzige Quelle der Wahrheit:
+  Modell-APIs (`Layer`, `assign_role`) lehnen `HEIGHT_MAP` auf COLOR/GLOSS/
+  GENERIC mit `IncompatibleRoleError` ab, das Ebenen-Panel bietet die Rolle nur
+  für HEIGHT-Ebenen an, und der Height-Map-Tab aktiviert seine Werkzeuge nur bei
+  aktiver HEIGHT-Ebene – die UI verspricht damit keine Operation mehr, die der
+  Canvas anschließend ablehnt. Beim Laden eines historisch inkompatiblen
+  Projekts wird nur die unzulässige Rolle verlustfrei entfernt (Kind, Name,
+  Pixel, Reihenfolge und Metadaten bleiben erhalten) und eine übersetzte Warnung
+  angezeigt (#364).
 
 ## [2.4.1] – 2026-06-17
 

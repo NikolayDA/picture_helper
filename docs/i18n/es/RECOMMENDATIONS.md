@@ -68,22 +68,21 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Estado de Triage (2026-06-22, actualizado)
 
-A 2026-06-22, GitHub muestra **12** issues abiertos. La regresión crítica de
-exportación **#363** se ha corregido vía **PR #367** y se cerró. Quedan el **épic
-de exportación EufyMake #351** y #352–#355 (rango #3 del roadmap), las brechas de
-docs **#357** y **#339**, los dos seguimientos de Height Map **#364** (contexto
-kind/role) y **#365** (memoria del filtro mediano), y los hallazgos de test/CI
-**#318**, **#299** y **#245**. **#322** se entregó vía **#342** y está cerrado.
-Para **#364** ya se ha tomado la decisión de contrato (comentario del issue
-2026-06-22): `LayerKind.HEIGHT` es autoritativo y `HEIGHT_MAP` solo puede estar en
-capas HEIGHT — así que el issue está listo para implementar.
+A 2026-06-22, GitHub muestra **11** issues abiertos. La regresión crítica de
+exportación **#363** se ha corregido vía **PR #367** y se cerró; el hallazgo
+kind/role de Height Map **#364** se implementa y cierra con este PR (un contrato
+central `HEIGHT_MAP`↔`HEIGHT` en modelo, persistencia, UI y canvas, con
+normalización de legado sin pérdidas). Quedan el **épic de exportación EufyMake
+#351** y #352–#355 (rango #3 del roadmap), las brechas de docs **#357** y
+**#339**, el seguimiento de Height Map **#365** (memoria del filtro mediano), y
+los hallazgos de test/CI **#318**, **#299** y **#245**. **#322** se entregó vía
+**#342** y está cerrado.
 
 Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 **Complejidad** = esfuerzo estimado de implementación.
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Contexto Height Map: UI y canvas discrepan sobre el rol `HEIGHT_MAP` | 🟠 Alta | 🟡 Media | **Ready for PR — decisión tomada.** Contrato fijado: `LayerKind.HEIGHT` es autoritativo, `HEIGHT_MAP` solo en capas HEIGHT. Alinear modelo, deserialización (normalización de legado), paneles de capas/altura y canvas con este único contrato. Hacer antes de #352 porque EufyMake usa el mismo mapeo de roles. |
 | [#365](https://github.com/NikolayDA/picture_helper/issues/365) | El filtro mediano de Height Map puede agotar memoria | 🟠 Alta | 🟡 Media | **Ready for PR.** Calcular por bloques acotados en vez de un stack completo `(2r+1)² × H × W`; validar contrato de 40 MP/radio para mediano y Gauss. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquete de exportación EufyMake consistente | 🟠 Alta | 🔴 Alta (épic) | **Needs refinement** – según la deep research (comentario del issue), afinar el alcance a "assets de importación robustos para EufyMake Studio"; la generación nativa de `.empf` **no** es el objetivo por defecto. Se aborda vía #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modelo de datos de exportación y definición de paquete (sin Qt) + ADR | 🟠 Alta | 🟡 Media | **Ready for PR — ADR primero** – deep research hecha (comentarios del issue), pero la decisión de convención/ADR **aún no está documentada en el repo** y debe escribirse como primer paso de esta PR (es criterio de aceptación de #352). `eufymake_export.py` sin Qt con `ExportPlan`/`ExportAsset` (motivo de color PNG+alfa, altura en grises claro=alto, máscara de gloss); alcance = assets de importación para EufyMake Studio; marcar 16 bits/semántica de gloss/`.empf` nativo como "abierto". Base — desbloquea #353–#355. |
@@ -98,14 +97,13 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 ### Próximo recomendado (orden de PR)
 
-1. Implementar **#364** primero — unificar el invariante kind/role ya decidido
-   (`LayerKind.HEIGHT` autoritativo) antes del mapeo de roles EufyMake.
-2. Endurecer **#365** en paralelo antes de usar medianas en Height Maps grandes.
-3. Después implementar **#352**, ADR primero; desbloquea #353/#354.
-4. Implementar **#353** y **#354** en paralelo, seguido de **#355**.
-5. Usar **#357**, **#339** y **#299** como rellenos de menor prioridad.
-6. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
-7. Mantener **#245** bloqueado externamente (ningún parche del repo restaura la cuota).
+1. Endurecer **#365** antes de usar medianas en Height Maps grandes (el contrato
+   kind/role de **#364** queda unificado con este PR).
+2. Después implementar **#352**, ADR primero; desbloquea #353/#354.
+3. Implementar **#353** y **#354** en paralelo, seguido de **#355**.
+4. Usar **#357**, **#339** y **#299** como rellenos de menor prioridad.
+5. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
+6. Mantener **#245** bloqueado externamente (ningún parche del repo restaura la cuota).
 
 ## Rondas Anteriores
 

@@ -165,6 +165,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   HEIGHT view remains canvas-only and can no longer be silently exported as a
   normal image; bit-exact single-COLOR export, including RGB below transparent
   pixels, remains intact (#363).
+- **Height context: model, UI and canvas follow one contract.** A layer is now
+  height-capable *exactly when* `kind == LayerKind.HEIGHT`; the `HEIGHT_MAP` role
+  may only sit on a HEIGHT layer. A new central, Qt-free rule
+  (`role_allowed_for_kind`) is the single source of truth: model APIs (`Layer`,
+  `assign_role`) reject `HEIGHT_MAP` on COLOR/GLOSS/GENERIC with
+  `IncompatibleRoleError`, the layer panel offers the role only for HEIGHT
+  layers, and the height-map tab enables its tools only for an active HEIGHT
+  layer — so the UI no longer promises an operation the canvas then refuses.
+  Loading a historically incompatible project losslessly drops only the invalid
+  role (kind, name, pixels, order and metadata stay equal) and shows a
+  translated warning (#364).
 
 ## [2.4.1] – 2026-06-17
 

@@ -185,6 +185,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   activa. La vista HEIGHT en escala de grises queda limitada al lienzo y ya no
   puede exportarse silenciosamente como imagen normal; se conserva la exportación
   bit a bit de una sola capa COLOR, incluido el RGB bajo píxeles transparentes (#363).
+- **Contexto de altura: modelo, interfaz y lienzo siguen un contrato.** Una capa
+  admite altura *exactamente cuando* `kind == LayerKind.HEIGHT`; el rol
+  `HEIGHT_MAP` solo puede estar en una capa HEIGHT. Una nueva regla central, sin
+  Qt (`role_allowed_for_kind`), es la única fuente de verdad: las API del modelo
+  (`Layer`, `assign_role`) rechazan `HEIGHT_MAP` en COLOR/GLOSS/GENERIC con
+  `IncompatibleRoleError`, el panel de capas ofrece el rol solo para capas HEIGHT
+  y la pestaña de mapa de altura activa sus herramientas solo con una capa HEIGHT
+  activa, de modo que la interfaz ya no promete una operación que el lienzo luego
+  rechaza. Al cargar un proyecto históricamente incompatible se elimina sin
+  pérdidas solo el rol no válido (tipo, nombre, píxeles, orden y metadatos se
+  conservan) y se muestra una advertencia traducida (#364).
 
 ## [2.4.1] – 2026-06-17
 

@@ -6,12 +6,14 @@ from PIL import Image
 
 from bgremover.project_model import (
     PROJECT_VERSION,
+    IncompatibleRoleError,
     Layer,
     LayerKind,
     LayerNotFoundError,
     LayerRole,
     Project,
     ProjectModelError,
+    role_allowed_for_kind,
 )
 
 
@@ -288,8 +290,10 @@ def test_set_opacity_validates_range() -> None:
 
 def test_assign_role_is_unique_and_transfers() -> None:
     proj = Project(2, 2)
-    a = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="a")
-    b = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="b")
+    a = proj.create_layer(
+        _solid((2, 2), (0, 0, 0, 0)), name="a", kind=LayerKind.HEIGHT)
+    b = proj.create_layer(
+        _solid((2, 2), (0, 0, 0, 0)), name="b", kind=LayerKind.HEIGHT)
     proj.assign_role(a.id, LayerRole.HEIGHT_MAP)
     assert proj.layer_by_role(LayerRole.HEIGHT_MAP) is a
 
@@ -297,6 +301,46 @@ def test_assign_role_is_unique_and_transfers() -> None:
     # Rolle ist eindeutig → von a auf b übertragen.
     assert a.role is None
     assert proj.layer_by_role(LayerRole.HEIGHT_MAP) is b
+
+
+# ── HEIGHT_MAP↔HEIGHT-Vertrag (#364) ────────────────────────────────────
+
+def test_role_allowed_for_kind_contract() -> None:
+    # HEIGHT_MAP nur auf HEIGHT; keine Rolle ist immer erlaubt.
+    assert role_allowed_for_kind(LayerRole.HEIGHT_MAP, LayerKind.HEIGHT)
+    assert role_allowed_for_kind(None, LayerKind.COLOR)
+    for kind in (LayerKind.COLOR, LayerKind.GLOSS, LayerKind.GENERIC):
+        assert not role_allowed_for_kind(LayerRole.HEIGHT_MAP, kind)
+    # Übrige Rollen bleiben typunabhängig (Scope #364).
+    assert role_allowed_for_kind(LayerRole.COLOR_MOTIF, LayerKind.COLOR)
+    assert role_allowed_for_kind(LayerRole.GLOSS_MASK, LayerKind.GENERIC)
+
+
+@pytest.mark.parametrize("kind", [LayerKind.COLOR, LayerKind.GLOSS, LayerKind.GENERIC])
+def test_layer_rejects_height_map_on_non_height(kind: LayerKind) -> None:
+    with pytest.raises(IncompatibleRoleError):
+        Layer(name="x", kind=kind, image=_solid((2, 2), (0, 0, 0, 0)),
+              role=LayerRole.HEIGHT_MAP)
+
+
+@pytest.mark.parametrize("kind", [LayerKind.COLOR, LayerKind.GLOSS, LayerKind.GENERIC])
+def test_assign_role_rejects_height_map_on_non_height(kind: LayerKind) -> None:
+    proj = Project(2, 2)
+    layer = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="x", kind=kind)
+    with pytest.raises(IncompatibleRoleError):
+        proj.assign_role(layer.id, LayerRole.HEIGHT_MAP)
+    # Fehlgeschlagene Zuweisung lässt das Projekt unverändert.
+    assert layer.role is None
+    assert proj.layer_by_role(LayerRole.HEIGHT_MAP) is None
+
+
+def test_height_map_allowed_on_height_layer() -> None:
+    proj = Project(2, 2)
+    layer = proj.create_layer(
+        _solid((2, 2), (0, 0, 0, 0)), name="h", kind=LayerKind.HEIGHT,
+        role=LayerRole.HEIGHT_MAP)
+    assert layer.role is LayerRole.HEIGHT_MAP
+    assert proj.layer_by_role(LayerRole.HEIGHT_MAP) is layer
 
 
 def test_clear_role() -> None:

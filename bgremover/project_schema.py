@@ -31,6 +31,7 @@ from bgremover.project_model import (
     LayerRole,
     Project,
     ProjectModelError,
+    role_allowed_for_kind,
 )
 
 # Formatversion des ``.bgrproj``-Manifests (unabhängig von ``Project.version``,
@@ -174,6 +175,8 @@ def _enum_from_value(enum_cls: type, value: Any) -> Any:
 def project_from_manifest(
     manifest: Mapping[str, Any],
     images: Mapping[str, Image.Image],
+    *,
+    warnings: list[str] | None = None,
 ) -> Project:
     """Rekonstruiert ein :class:`Project` aus Manifest + dekodierten Ebenenbildern.
 
@@ -182,6 +185,13 @@ def project_from_manifest(
     in :mod:`project_io`). Strukturelle Verstöße (fehlende Felder, unbekannte
     Kind/Rolle, doppelte Rollen/IDs, Größenabweichung, unbekannte aktive ID)
     werden als :class:`ProjectFileError` mit klarer Meldung abgewiesen.
+
+    **Legacy-Normalisierung (#364):** Ein von älteren Versionen geschriebener,
+    inkompatibler Zustand – etwa ``HEIGHT_MAP`` auf einer Nicht-HEIGHT-Ebene –
+    wird deterministisch geheilt: nur die unzulässige Rolle wird entfernt; Kind,
+    Name, Pixel, Reihenfolge und übrige Metadaten bleiben wertgleich. Jede
+    Korrektur wird protokolliert und – falls ``warnings`` übergeben ist – als
+    bereits übersetzte, nutzerverständliche Warnung dort angehängt.
     """
     width = _require(manifest, "width", int)
     height = _require(manifest, "height", int)
@@ -213,6 +223,17 @@ def project_from_manifest(
         locked = _require(entry, "locked", bool)
         raw_role = entry.get("role")
         role = None if raw_role is None else _enum_from_value(LayerRole, raw_role)
+        if role is not None and not role_allowed_for_kind(role, kind):
+            # Historisch inkompatibler Zustand (z. B. HEIGHT_MAP auf COLOR vor
+            # #364): nur die unzulässige Rolle entfernen – alles andere bleibt
+            # wertgleich. So lädt das Projekt verlustfrei statt hart zu scheitern.
+            logger.warning(
+                "Inkompatible Rolle %s auf Ebene %r (Typ %s) beim Laden entfernt.",
+                role, name, kind,
+            )
+            if warnings is not None:
+                warnings.append(tr("project.warning.role_normalized", name=name))
+            role = None
         file_name = _require(entry, "file", str)
 
         image = images.get(file_name)

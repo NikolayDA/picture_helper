@@ -213,13 +213,28 @@ def test_duplicate_visible_opacity_rename_role_are_undoable(qapp) -> None:
     canvas.undo()
     assert canvas.project.active_layer().name != "Motiv"
 
-    canvas.set_active_layer_role(LayerRole.HEIGHT_MAP)
-    assert canvas.project.active_layer().role is LayerRole.HEIGHT_MAP
+    # Aktive Ebene ist COLOR: eine typverträgliche Rolle (COLOR_MOTIF) ist
+    # zuweisbar und undo-fähig.
+    canvas.set_active_layer_role(LayerRole.COLOR_MOTIF)
+    assert canvas.project.active_layer().role is LayerRole.COLOR_MOTIF
     canvas.undo()
     assert canvas.project.active_layer().role is None
 
 
-def test_move_and_set_active_layer(qapp) -> None:
+def test_set_active_layer_role_rejects_incompatible_height_map(qapp) -> None:
+    """HEIGHT_MAP auf einer COLOR-Ebene wird abgewiesen – ohne Modell-/Verlaufs-
+    änderung, mit verständlicher Meldung (Vertrag #364)."""
+    canvas = ImageCanvas()
+    canvas.set_project(_two_layer_project())          # aktive Ebene ist COLOR
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    history_before = canvas._history.descriptions()
+
+    canvas.set_active_layer_role(LayerRole.HEIGHT_MAP)
+
+    assert canvas.project.active_layer().role is None
+    assert canvas._history.descriptions() == history_before   # kein Undo-Eintrag
+    assert any("höhenebene" in m.lower() for m in msgs)
     canvas = ImageCanvas()
     project = _two_layer_project()
     canvas.set_project(project)

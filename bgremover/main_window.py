@@ -682,8 +682,9 @@ class MainWindow(QMainWindow):
         zu ungespeicherten Änderungen liegt bei den Aufrufern, damit sie vor dem
         Datei-Dialog greifen kann.
         """
+        load_warnings: list[str] = []
         try:
-            project = load_project(path)
+            project = load_project(path, warnings=load_warnings)
         except ProjectFileError as exc:
             self._report_project_error(str(exc))
             return
@@ -691,7 +692,12 @@ class MainWindow(QMainWindow):
         self._project_path = path
         self._adopt_new_document()
         self._remember_project(path)
-        self._sb.showMessage(tr("project.opened", name=Path(path).name))
+        # Verlustfrei geheilte Altzustände (z. B. entfernte inkompatible Rolle,
+        # #364) als Warnung statt der neutralen „geöffnet"-Meldung zeigen.
+        if load_warnings:
+            self._sb.showMessage(" · ".join(load_warnings))
+        else:
+            self._sb.showMessage(tr("project.opened", name=Path(path).name))
 
     def _save_project(self) -> None:
         """Quick-Save des Projekts in den bekannten Pfad, sonst „Speichern unter…"."""
