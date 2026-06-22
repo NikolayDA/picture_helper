@@ -180,6 +180,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   différents) et confirme une valeur suspecte dans la même exécution via
   plusieurs répétitions (médiane) avant d'ouvrir un ticket (#277, #278, #279).
 
+### Corrigé
+
+- **Export d'image avec un calque de hauteur actif.** « Enregistrer l'image »
+  écrit de nouveau le composite COLOR indépendamment du calque d'édition actif.
+  La vue HEIGHT en niveaux de gris reste limitée au canevas et ne peut plus être
+  exportée silencieusement comme image normale ; l'export bit à bit d'un unique
+  calque COLOR, y compris le RGB sous les pixels transparents, est préservé (#363).
+
 ## [2.4.1] – 2026-06-17
 
 ### Corrigé
