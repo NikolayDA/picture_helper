@@ -43,6 +43,12 @@ restent la baseline avant de nouveaux PRs.
   composite (#332), format `.bgrproj` (#333), panneau de calques/menu projet
   (#334) et migration/intégration (#335) — parité image unique préservée,
   `make check`/`make ui` au vert.
+- **N10 ✅ — Espace de travail Height Map (epic #344) livré.** Représentation de
+  hauteur et vue 2D sans Qt (#345), génération/import (#346), édition (#347),
+  optimisation `height_ops` avec aperçu (#348) et onglet Hauteur contextuel (#349).
+- **N11 ✅ — Polissage phase 0 (epic #358) livré.** Redimensionnement du projet
+  (#359), luminosité/contraste/saturation préservant l'alpha (#360) et feather
+  du bord alpha limité à la sélection (#361), annulables et persistés en `.bgrproj`.
 
 ### Encore Ouvert
 
@@ -57,18 +63,20 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — État du Triage (2026-06-22)
 
-Au 2026-06-22, GitHub affiche **9** issues ouvertes. Nouveauté : l'**épic
-d'export EufyMake #351** avec les sous-issues **#352–#355** (rang #3 de la
-roadmap). Le chemin maintenance/skip précédemment listé, **#322**, a été livré
-via **#342** et est désormais **clos** ; les issues projet/couches et tests
-sécurité **#323/#324/#326** et **#329–#335** restent terminées dans
-**#337/#338/#340**.
+Au 2026-06-22, GitHub affiche **13** issues ouvertes. Outre l'**épic d'export
+EufyMake #351** et #352–#355, restent la lacune docs **#357** et trois constats
+post-merge Height Map : **#363** (mauvais export si HEIGHT est actif), **#364**
+(contrat kind/rôle contradictoire) et **#365** (mémoire non bornée du filtre
+médian). **#322** a été livré via **#342** et est clos.
 
 Évaluation : **Pertinence** = importance pour la roadmap/les utilisateurs,
 **Complexité** = effort d'implémentation estimé.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
+| [#363](https://github.com/NikolayDA/picture_helper/issues/363) | Régression : Enregistrer l'image exporte la vue HEIGHT active au lieu du composite COLOR | 🔴 Critique | 🟢 Basse | **Ready for PR — corriger d'abord.** Séparer rendu d'affichage et d'export ; l'export image normal doit toujours écrire le composite COLOR. |
+| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Contexte Height Map : UI et canevas divergent sur le rôle `HEIGHT_MAP` | 🟠 Haute | 🟡 Moyenne | **Needs decision, puis PR.** Choisir si `LayerKind.HEIGHT` fait autorité ou si le rôle suffit, puis aligner modèle, chargement, panneaux et canevas avant #352. |
+| [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Le filtre médian Height Map peut épuiser la mémoire | 🟠 Haute | 🟡 Moyenne | **Ready for PR.** Calculer par blocs bornés plutôt qu'un stack complet `(2r+1)² × H × W` ; valider le contrat 40 MP/rayon pour médian et Gauss. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquet d'export EufyMake cohérent | 🟠 Haute | 🔴 Haute (épic) | **Needs refinement** – selon la deep research (commentaire de l'issue), recentrer le scope sur « assets d'import robustes pour EufyMake Studio » ; la génération native de `.empf` **n'est pas** l'objectif par défaut. Traité via #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modèle de données d'export et définition du paquet (sans Qt) + ADR | 🟠 Haute | 🟡 Moyenne | **Ready for PR — ADR d'abord** – deep research faite (commentaires de l'issue), mais la décision de convention/ADR **n'est pas encore documentée dans le repo** et doit être écrite comme première étape de cette PR (c'est un critère d'acceptation de #352). `eufymake_export.py` sans Qt avec `ExportPlan`/`ExportAsset` (motif couleur PNG+alpha, hauteur en gris clair=haut, masque gloss) ; scope = assets d'import pour EufyMake Studio ; marquer 16 bits/sémantique gloss/`.empf` natif comme « ouvert ». Fondation — débloque #353–#355. |
 | [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Rendu des assets et écriture atomique du paquet | 🟠 Haute | 🟡 Moyenne | **Blocked** – nécessite #352 ; bien cadré ensuite (rendu + écriture atomique). |
@@ -77,19 +85,19 @@ sécurité **#323/#324/#326** et **#329–#335** restent terminées dans
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec "Quota exceeded" | 🟡 Moyenne | 🟢 Basse | **Blocked (externe)** – le durcissement côté repo via #322/#342 (clos) est fait ; le blocage restant est la quota OpenAI/billing. Après restauration, lancer une fois le scan programmé manuellement puis clore. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **Needs refinement** – d'abord documenter la sémantique GitHub (top-level vs. effectif-par-job) ; ne pas affaiblir le guard OIDC #303. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF n'est pas supporté comme format d'entrée | 🟢 Basse | 🟢 Basse | **Ready for PR (docs)** – le mainteneur a **exclu HEIC délibérément** (commentaire 2026-06-21). Clarifier seulement README/ANLEITUNG, puis clore. |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs : ouverture par chemin initial/Finder absente d'ANLEITUNG §4 | 🟢 Basse | 🟢 Basse | **Ready for PR (docs).** Mettre à jour le guide principal et les cinq copies i18n ; préciser que Récents inclut images et projets `.bgrproj`. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Ready for PR (opportuniste)** – pas un bloqueur produit ou CI ; le plus utile d'abord (asserter l'extrémité du lasso, la ligne de `test_helpers`, consolider les tests `set_brush_size`). |
 
 ### Prochaines étapes recommandées (ordre des PR)
 
-1. **#352** d'abord — fondation de l'épic, bien cadré après le refinement de
-   l'ADR ; débloque #353/#354.
-2. **#353** et **#354** en parallèle une fois #352 mergée.
-3. **#355** pour clore l'épic.
-4. **#339** (petite PR docs) et **#299** (cleanup de tests) comme bouche-trous
-   basse priorité entre-temps.
-5. Reporter **#318** jusqu'à ce que la sémantique des permissions GitHub soit
-   documentée.
-6. Garder **#245** bloqué externe (aucun patch repo ne restaure la quota).
+1. Corriger **#363** d'abord pour restaurer le contrat d'export COLOR.
+2. Décider et implémenter **#364** avant le mapping de rôles EufyMake.
+3. Durcir **#365** en parallèle avant les grandes Height Maps.
+4. Puis implémenter **#352**, ADR d'abord ; il débloque #353/#354.
+5. Implémenter **#353** et **#354** en parallèle, puis **#355**.
+6. Utiliser **#357**, **#339** et **#299** comme travaux de moindre priorité.
+7. Reporter **#318** jusqu'à documentation de la sémantique des permissions.
+8. Garder **#245** bloqué externe.
 
 ## Séries Précédentes
 
