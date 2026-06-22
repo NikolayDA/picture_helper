@@ -187,6 +187,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   La vue HEIGHT en niveaux de gris reste limitée au canevas et ne peut plus être
   exportée silencieusement comme image normale ; l'export bit à bit d'un unique
   calque COLOR, y compris le RGB sous les pixels transparents, est préservé (#363).
+- **Le filtre médian Height Map est borné en mémoire.**
+  `height_ops.median_blur` ne matérialise plus une pile de fenêtres complète
+  `(2r+1)² × H × W` (qui aurait atteint ~33 Gio à 40 MP/rayon 10) ; il traite
+  désormais l'image en **bandes de lignes** avec une pile par bande strictement
+  plafonnée via `_MEDIAN_MAX_TEMP_BYTES`. La mémoire supplémentaire est donc
+  indépendante de la taille de l'image et ne croît plus avec le rayon, tandis que
+  le résultat reste **bit à bit** identique (même bord, `coverage`, `max_value`,
+  16 bits). `gaussian_blur`, convolution séparable, est déjà `O(H × W)` et
+  indépendant du rayon — évalué dans son docstring. Des tests de régression
+  couvrent l'équivalence avec la pile complète pour tous les rayons de l'UI et le
+  budget mémoire pour le cas 40 MP (#365).
 - **Contexte de hauteur : modèle, interface et canevas suivent un contrat.** Un
   calque est compatible hauteur *exactement quand* `kind == LayerKind.HEIGHT` ;
   le rôle `HEIGHT_MAP` ne peut être que sur un calque HEIGHT. Une nouvelle règle

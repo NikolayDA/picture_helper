@@ -66,22 +66,20 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — État du Triage (2026-06-22, mis à jour)
 
-Au 2026-06-22, GitHub affiche **11** issues ouvertes. La régression d'export
-critique **#363** a été corrigée via **PR #367** et close ; le constat kind/rôle
-Height Map **#364** est implémenté et clos avec ce PR (un contrat central
-`HEIGHT_MAP`↔`HEIGHT` dans le modèle, la persistance, l'UI et le canevas, avec
-normalisation héritée sans perte). Restent l'**épic d'export EufyMake #351** et
+Au 2026-06-22, GitHub affiche **10** issues ouvertes. La régression d'export
+critique **#363** a été corrigée via **PR #367** et close ; les deux suivis
+Height Map **#364** (contrat central `HEIGHT_MAP`↔`HEIGHT` avec normalisation
+héritée sans perte) et **#365** (filtre médian par bandes, borné en mémoire)
+sont implémentés et clos avec ce PR. Restent l'**épic d'export EufyMake #351** et
 les sous-issues **#352–#355** (rang roadmap #3), les lacunes docs **#357** et
-**#339**, le suivi Height Map **#365** (mémoire du filtre médian), et les
-constats test/CI **#318**, **#299** et **#245**. Le chemin maintenance/skip
-**#322** a été livré via **#342** et est clos.
+**#339**, et les constats test/CI **#318**, **#299** et **#245**. Le chemin
+maintenance/skip **#322** a été livré via **#342** et est clos.
 
 Évaluation : **Pertinence** = importance pour la roadmap/les utilisateurs,
 **Complexité** = effort d'implémentation estimé.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Le filtre médian Height Map peut épuiser la mémoire | 🟠 Haute | 🟡 Moyenne | **Ready for PR.** Calculer par blocs bornés plutôt qu'un stack complet `(2r+1)² × H × W` ; valider le contrat 40 MP/rayon pour médian et Gauss. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquet d'export EufyMake cohérent | 🟠 Haute | 🔴 Haute (épic) | **Needs refinement** – selon la deep research (commentaire de l'issue), recentrer le scope sur « assets d'import robustes pour EufyMake Studio » ; la génération native de `.empf` **n'est pas** l'objectif par défaut. Traité via #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modèle de données d'export et définition du paquet (sans Qt) + ADR | 🟠 Haute | 🟡 Moyenne | **Ready for PR — ADR d'abord** – deep research faite (commentaires de l'issue), mais la décision de convention/ADR **n'est pas encore documentée dans le repo** et doit être écrite comme première étape de cette PR (c'est un critère d'acceptation de #352). `eufymake_export.py` sans Qt avec `ExportPlan`/`ExportAsset` (motif couleur PNG+alpha, hauteur en gris clair=haut, masque gloss) ; scope = assets d'import pour EufyMake Studio ; marquer 16 bits/sémantique gloss/`.empf` natif comme « ouvert ». Fondation — débloque #353–#355. |
 | [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Rendu des assets et écriture atomique du paquet | 🟠 Haute | 🟡 Moyenne | **Blocked** – nécessite #352 ; bien cadré ensuite (rendu + écriture atomique). |
@@ -95,13 +93,12 @@ constats test/CI **#318**, **#299** et **#245**. Le chemin maintenance/skip
 
 ### Prochaines étapes recommandées (ordre des PR)
 
-1. Durcir **#365** avant que les grandes Height Maps utilisent l'aperçu médian
-   (le contrat kind/rôle de **#364** est unifié avec ce PR).
-2. Puis implémenter **#352**, ADR d'abord ; il débloque #353/#354.
-3. Implémenter **#353** et **#354** en parallèle, puis **#355**.
-4. Utiliser **#357**, **#339** et **#299** comme travaux de moindre priorité.
-5. Reporter **#318** jusqu'à documentation de la sémantique des permissions GitHub.
-6. Garder **#245** bloqué en externe (aucun patch repo ne restaure la quota).
+1. Implémenter **#352** comme fondation de l'épic EufyMake, ADR d'abord ; il
+   débloque #353/#354 (les suivis **#364**/**#365** sont faits avec ce PR).
+2. Implémenter **#353** et **#354** en parallèle, puis **#355**.
+3. Utiliser **#357**, **#339** et **#299** comme travaux de moindre priorité.
+4. Reporter **#318** jusqu'à documentation de la sémantique des permissions GitHub.
+5. Garder **#245** bloqué en externe (aucun patch repo ne restaure la quota).
 
 ## Séries Précédentes
 

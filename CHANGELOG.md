@@ -172,6 +172,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   graustufige HEIGHT-Ansicht bleibt eine reine Canvas-Darstellung und kann nicht
   mehr still als normales Bild exportiert werden; der bitgenaue Single-COLOR-
   Export einschließlich RGB unter transparenten Pixeln bleibt erhalten (#363).
+- **Height-Map-Medianfilter ist speicherbeschränkt.** `height_ops.median_blur`
+  materialisiert keinen vollständigen `(2r+1)² × H × W`-Fensterstapel mehr (bei
+  40 MP/Radius 10 wären das ~33 GiB gewesen), sondern verarbeitet das Bild
+  **zeilenbandweise** mit einem hart über `_MEDIAN_MAX_TEMP_BYTES` begrenzten
+  Stapel je Band. Der Zusatzspeicher ist damit vom Bildmaß unabhängig und
+  skaliert nicht mehr mit dem Radius; das Ergebnis bleibt **bitgenau** identisch
+  (gleiche Randbehandlung, `coverage`, `max_value`, 16-Bit). `gaussian_blur` ist
+  als separable Faltung ohnehin `O(H × W)` und radiusunabhängig – Bewertung im
+  Docstring. Regressionstests sichern Vollstapel-Äquivalenz über alle UI-Radien
+  und das Speicherbudget für den 40-MP-Fall (#365).
 - **Höhen-Kontext: Modell, UI und Canvas folgen einem Vertrag.** Eine Ebene ist
   jetzt *genau dann* höhenfähig, wenn `kind == LayerKind.HEIGHT`; die Rolle
   `HEIGHT_MAP` darf nur auf einer HEIGHT-Ebene liegen. Eine neue zentrale,

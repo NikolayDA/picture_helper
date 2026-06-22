@@ -11,6 +11,8 @@ import pytest
 
 from bgremover.height_map import HeightField, HeightMapError
 from bgremover.height_ops import (
+    _MEDIAN_MAX_TEMP_BYTES,
+    _median_band_rows,
     clamp_range,
     gamma,
     gaussian_blur,
@@ -19,6 +21,18 @@ from bgremover.height_ops import (
     quantize,
     threshold,
 )
+
+
+def _median_reference(arr: np.ndarray, radius: int) -> np.ndarray:
+    """Frühere Vollstapel-Median-Implementierung – Referenz für die Äquivalenz."""
+    padded = np.pad(arr, radius, mode="reflect")
+    h, w = arr.shape[:2]
+    windows = [
+        padded[dy:dy + h, dx:dx + w]
+        for dy in range(2 * radius + 1)
+        for dx in range(2 * radius + 1)
+    ]
+    return np.median(np.stack(windows, axis=0), axis=0)
 
 
 def _field(values: list[list[int]], *, max_value: int = 255, coverage: int = 200) -> HeightField:
@@ -93,6 +107,61 @@ def test_median_removes_outlier_and_preserves_constant() -> None:
 def test_median_rejects_radius_below_one() -> None:
     with pytest.raises(HeightMapError):
         median_blur(_field([[0]]), 0)
+
+
+# ── Speicherbeschränkter Median (#365) ────────────────────────────────────
+
+
+@pytest.mark.parametrize("radius", [1, 2, 3, 5, 8, 10])
+def test_median_matches_full_stack_reference_all_radii(radius: int) -> None:
+    """Bitgenaue Gleichheit zur früheren Vollstapel-Variante über alle UI-Radien."""
+    rng = np.random.default_rng(radius)
+    arr = rng.integers(0, 256, size=(17, 23), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 200, np.uint8))
+    expected = _median_reference(arr, radius)
+    out = median_blur(field, radius).values
+    assert np.array_equal(out, np.clip(np.rint(expected), 0, 255).astype(np.uint16))
+
+
+def test_median_band_split_is_independent_of_band_size() -> None:
+    """Sehr kleines Budget erzwingt viele Bänder – Ergebnis bleibt identisch,
+    auch über die Bandgrenzen hinweg (Höhe kein Vielfaches der Bandbreite)."""
+    rng = np.random.default_rng(7)
+    arr = rng.integers(0, 4096, size=(31, 19), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 255, np.uint8), max_value=4095)
+    full = median_blur(field, radius=3)                       # Standardbudget
+    tiny = median_blur(field, radius=3, max_temp_bytes=1)     # erzwingt band_rows=1
+    assert np.array_equal(full.values, tiny.values)
+    # Referenz bestätigt zusätzlich die Korrektheit beider Wege.
+    expected = np.clip(np.rint(_median_reference(arr, 3)), 0, 4095).astype(np.uint16)
+    assert np.array_equal(tiny.values, expected)
+
+
+def test_median_band_rows_stays_within_budget_at_40mp_radius10() -> None:
+    """Worst Case der 40-MP-Hülle: der Fensterstapel je Band bleibt im Budget."""
+    width = height = 6325                                      # ~40,0 MP, quadratisch
+    radius = 10                                                # UI-Maximum
+    band_rows = _median_band_rows(width, radius, _MEDIAN_MAX_TEMP_BYTES)
+    assert band_rows >= 1
+    stack_bytes = (2 * radius + 1) ** 2 * band_rows * width * 2
+    assert stack_bytes <= _MEDIAN_MAX_TEMP_BYTES
+    # Die alte Vollstapel-Variante hätte hier zweistellige GiB belegt.
+    full_stack_bytes = (2 * radius + 1) ** 2 * height * width * 2
+    assert full_stack_bytes > 30 * 1024**3
+
+
+def test_median_handles_multi_band_large_input_bounded() -> None:
+    """Mehr-Band-Lauf auf größerem Bild mit UI-Maximalradius bleibt korrekt.
+
+    Kleines Budget erzwingt viele Bänder; bei Erfolg ist die Operation
+    speicherbeschränkt durchgelaufen (der Vollstapel wäre ~0,8 GiB groß)."""
+    rng = np.random.default_rng(123)
+    arr = rng.integers(0, 256, size=(200, 150), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 255, np.uint8))
+    out = median_blur(field, radius=10, max_temp_bytes=256 * 1024)
+    assert out.values.shape == (200, 150)
+    expected = np.clip(np.rint(_median_reference(arr, 10)), 0, 255).astype(np.uint16)
+    assert np.array_equal(out.values, expected)
 
 
 # ── Begrenzung / Stufen ──────────────────────────────────────────────────

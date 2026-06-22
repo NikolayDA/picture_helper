@@ -185,6 +185,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   activa. La vista HEIGHT en escala de grises queda limitada al lienzo y ya no
   puede exportarse silenciosamente como imagen normal; se conserva la exportación
   bit a bit de una sola capa COLOR, incluido el RGB bajo píxeles transparentes (#363).
+- **El filtro mediano de Height Map está limitado en memoria.**
+  `height_ops.median_blur` ya no materializa una pila de ventanas completa
+  `(2r+1)² × H × W` (que habría sido ~33 GiB a 40 MP/radio 10); ahora procesa la
+  imagen en **bandas de filas** con una pila por banda acotada de forma estricta
+  mediante `_MEDIAN_MAX_TEMP_BYTES`. La memoria adicional es así independiente del
+  tamaño de la imagen y ya no escala con el radio, mientras el resultado sigue
+  siendo **bit a bit** idéntico (mismo borde, `coverage`, `max_value`, 16 bits).
+  `gaussian_blur`, como convolución separable, ya es `O(H × W)` e independiente
+  del radio — evaluado en su docstring. Tests de regresión cubren la equivalencia
+  con la pila completa para todos los radios de la UI y el presupuesto de memoria
+  para el caso de 40 MP (#365).
 - **Contexto de altura: modelo, interfaz y lienzo siguen un contrato.** Una capa
   admite altura *exactamente cuando* `kind == LayerKind.HEIGHT`; el rol
   `HEIGHT_MAP` solo puede estar en una capa HEIGHT. Una nueva regla central, sin

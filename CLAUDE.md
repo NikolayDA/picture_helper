@@ -64,7 +64,11 @@ Ein Paket, `bgremover/`:
 - **Höhen-Optimierung:** `height_ops.py` — Qt-freie, strikt getypte, 16-Bit-taugliche
   Operationen auf `HeightField` (#348): `levels`/`gamma` (Tonwert), `gaussian_blur`/
   `median_blur` (Glättung, separabel bzw. kantenerhaltend, rein in numpy), `threshold`,
-  `quantize` (Stufen), `clamp_range`. Geteilte Tonwert-/Graustufen-Primitive (Synergie
+  `quantize` (Stufen), `clamp_range`. `median_blur` rechnet **zeilenbandweise** und
+  begrenzt seinen Fensterstapel hart über `_MEDIAN_MAX_TEMP_BYTES` – der Zusatzspeicher
+  ist vom Bildmaß unabhängig (kein `O(H × W × (2r+1)²)`-Vollstapel mehr), bitgenau zur
+  alten Variante; `gaussian_blur` ist separabel und damit `O(H × W)`/radiusunabhängig
+  (#365). Geteilte Tonwert-/Graustufen-Primitive (Synergie
   mit der späteren geteilten Engine). Im Canvas als generische Live-Vorschau verdrahtet:
   `preview_height_op`/`cancel_height_preview` (transient, ohne Modelländerung) und
   `apply_height_op` (Commit, undo-/redobar); die Vorschau hat in `_refresh_image` Vorrang

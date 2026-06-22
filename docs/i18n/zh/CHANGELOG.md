@@ -125,6 +125,13 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - **活动高度图层下的图像导出。** “保存图像”现在会再次忽略当前编辑图层并写入
   COLOR 合成。灰度 HEIGHT 视图仅保留为画布显示，不再会被静默导出为普通图像；
   单一 COLOR 图层的逐位导出仍保持不变，包括透明像素下的 RGB 值（#363）。
+- **Height Map 中值滤波受内存限制。** `height_ops.median_blur` 不再materialize
+  完整的 `(2r+1)² × H × W` 窗口栈（在 40 MP/半径 10 时约为 33 GiB），而是按
+  **行带**处理图像，每个带的栈通过 `_MEDIAN_MAX_TEMP_BYTES` 硬性上限。因此额外内存
+  与图像尺寸无关，也不再随半径增长，而结果保持**逐位**一致（相同的边缘处理、
+  `coverage`、`max_value`、16 位）。`gaussian_blur` 作为可分离卷积本就是
+  `O(H × W)` 且与半径无关——已在 docstring 中评估。回归测试覆盖所有 UI 半径下与
+  完整栈的等价性以及 40 MP 情况的内存预算（#365）。
 - **高度上下文：模型、界面与画布遵循同一约定。** 现在，当且仅当
   `kind == LayerKind.HEIGHT` 时图层才支持高度；`HEIGHT_MAP` 角色只能位于 HEIGHT
   图层上。新的中心化、无 Qt 规则（`role_allowed_for_kind`）是唯一的事实来源：
