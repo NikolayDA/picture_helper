@@ -47,30 +47,36 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 打开的 GitHub Issues — Triage 状态 (2026-06-21)
+## 打开的 GitHub Issues — Triage 状态 (2026-06-22)
 
-截至 2026-06-21，GitHub 仍显示 **5** 个打开的 issues：**#245**、**#299**、
-**#318**、**#322** 和 **#339**。此前列出的项目/图层与安全测试 issues
-**#323**、**#324**、**#326** 和 **#329–#335** 已在 merge commits **#337**、
-**#338** 与 **#340** 中完成。**#322** 现在也有 **#342**，应在验证 merge 后
-补充评论并关闭。
+截至 2026-06-22，GitHub 显示 **9** 个打开的 issues。新增的是 **EufyMake 导出
+epic #351** 及其 sub-issues **#352–#355**（roadmap 第 #3 位）。此前列出的
+maintenance/skip path **#322** 已通过 **#342** 交付并已**关闭**；项目/图层与
+安全测试 issues **#323/#324/#326** 和 **#329–#335** 仍在 **#337/#338/#340** 中
+完成。
 
-| # | 标题 | Label/status 建议 | 评论/status 建议 |
-|---|------|-------------------|------------------|
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | `security`; **保持打开 / blocked external** | 评论说明 repo 侧加固已由 #323/#324 和 #322/#342 覆盖；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | `quality`, `testing`; **open / low priority** | 评论说明它不是产品或 CI blocker；等相关 tests 被修改时作为 opportunistic cleanup 合并处理。无需更改 status。 |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | `enhancement`, `testing`; **needs refinement** | 评论说明改代码前需记录 called workflow 中 top-level vs. job-level permissions 的 GitHub semantics；不得削弱 #303 OIDC guard。 |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: scheduled Codex Security Scan 的 maintenance/skip path | `security`; **#342 后关闭** | 评论说明 #342 实现了保守的手动维护开关 (`CODEX_SECURITY_SCAN_ENABLED=false`)，包含 skip output 和 regression tests；验证 merge 后关闭。 |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | **添加 labels:** `enhancement`, `documentation`（或可用时 `question`）；**needs decision** | 评论要求产品决策：明确文档说明 HEIC 不支持，或规划 optional `pillow-heif`/`HEIF` allowlist 加 load test。决策前保持打开。 |
+评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
-### 推荐 Issue 操作
+| # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
+|---|------|--------|--------|------------|
+| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] 一致的 EufyMake 导出包 | 🟠 高 | 🔴 高（epic） | **Needs refinement** – 据 deep research（issue 评论），将 scope 收窄为「面向 EufyMake Studio 的稳健 import-assets」；原生 `.empf` 生成**不**作为默认目标。经 #352–#355 推进。 |
+| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | 导出数据模型与包定义（无 Qt）+ ADR | 🟠 高 | 🟡 中 | **Ready for PR** – 调研任务已完成，ADR 决策记录在评论中。无 Qt 的 `eufymake_export.py`，含 `ExportPlan`/`ExportAsset`（彩色图案 PNG+alpha、高度灰度图亮=高、gloss mask）；将 16-bit/gloss 语义/原生 `.empf` 标记为「未定」。基础 — 解锁 #353–#355。 |
+| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset 渲染与原子写包 | 🟠 高 | 🟡 中 | **Blocked** – 需 #352；之后范围清晰（渲染 + 原子写）。 |
+| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | 导出前一致性检查 | 🟠 高 | 🟡 中 | **Blocked** – 需 #352。保持检查模块可复用（与通用导出前错误检查协同）。 |
+| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI：EufyMake 导出对话框 + 菜单 + i18n + settings | 🟠 高 | 🟡 中 | **Blocked** – 需 #352–#354。据 deep research，UI 文案应为「为 EufyMake Studio 准备 assets」，而非「生成成品项目」。 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **Needs refinement** – 先记录 GitHub semantics（top-level vs. 有效的 per-job）；不得削弱 #303 OIDC guard。 |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）** – maintainer 已**有意排除 HEIC**（评论 2026-06-21）。仅需澄清 README/ANLEITUNG，然后关闭。 |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **Ready for PR（opportunistic）** – 非产品或 CI blocker；优先做最有价值的（断言 lasso endpoint、`test_helpers` 行、合并 `set_brush_size` 测试）。 |
 
-1. 在确认 #342 merge 到 `main` 后评论并关闭 **#322**。
-2. 为 **#339** 添加 label 并作出明确产品决策（文档澄清 vs. HEIC feature）。
-3. 保持 **#245** 打开但标记为 externally blocked；链接 #322/#342 作为已完成
-   的 repo-side 部分。
-4. 不立即实现 **#318**；先记录 GitHub permission semantics。
-5. 保持 **#299** 为低优先级 test cleanup。
+### 推荐下一步（PR 顺序）
+
+1. 先做 **#352** — epic 的基础，ADR refinement 后 well-scoped；解锁 #353/#354。
+2. #352 合入后并行做 **#353** 与 **#354**。
+3. **#355** 收尾该 epic。
+4. **#339**（小 docs PR）与 **#299**（test cleanup）作为期间的低优先级填充。
+5. 暂缓 **#318**，直至 GitHub permission semantics 记录完成。
+6. 保持 **#245** externally blocked（无 repo patch 能恢复 quota）。
 
 ## 先前轮次
 

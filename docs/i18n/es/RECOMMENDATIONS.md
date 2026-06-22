@@ -55,32 +55,41 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Estado de Triage (2026-06-21)
+## Issues de GitHub Abiertos — Estado de Triage (2026-06-22)
 
-A 2026-06-21, GitHub aún muestra **5** issues abiertos: **#245**, **#299**,
-**#318**, **#322** y **#339**. Los issues de proyecto/capas y pruebas de
-seguridad listados antes, **#323**, **#324**, **#326** y **#329–#335**, están
-completados en los merge commits **#337**, **#338** y **#340**. **#322** ahora
-también tiene **#342** y debería comentarse y cerrarse tras verificar el merge.
+A 2026-06-22, GitHub muestra **9** issues abiertos. Nuevo es el **épic de
+exportación EufyMake #351** con los sub-issues **#352–#355** (rango #3 del
+roadmap). La ruta de mantenimiento/skip antes listada, **#322**, se entregó vía
+**#342** y ahora está **cerrada**; los issues de proyecto/capas y pruebas de
+seguridad **#323/#324/#326** y **#329–#335** siguen completados en
+**#337/#338/#340**.
 
-| # | Título | Recomendación de labels/estado | Propuesta de comentario/estado |
-|---|--------|--------------------------------|--------------------------------|
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | `security`; **mantener abierto / bloqueado externamente** | Comentar que el endurecimiento del repo queda cubierto por #323/#324 y #322/#342; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | `quality`, `testing`; **abierto / baja prioridad** | Comentar que no bloquea producto ni CI; agruparlo como limpieza oportunista cuando se toquen esos tests. Sin cambio de estado. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | `enhancement`, `testing`; **needs refinement** | Comentar que antes de cambiar código hay que documentar la semántica de GitHub para permisos top-level vs. job-level en el workflow llamado; no debilitar el guard OIDC #303. |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: ruta de mantenimiento/skip para el Codex Security Scan programado | `security`; **cerrar después de #342** | Comentar que #342 implementa el interruptor manual conservador (`CODEX_SECURITY_SCAN_ENABLED=false`) con salida de skip y tests de regresión; cerrar tras verificar el merge. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF no está soportado como formato de entrada | **Añadir labels:** `enhancement`, `documentation` (o `question` si existe); **needs decision** | Comentar que se necesita una decisión de producto: documentar explícitamente que HEIC no está soportado, o planear `pillow-heif`/allowlist `HEIF` opcional con test de carga. Mantener abierto hasta decidir. |
+Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
+**Complejidad** = esfuerzo estimado de implementación.
 
-### Acciones recomendadas para issues
+| # | Título | Relevancia | Complejidad | Próximo paso recomendado |
+|---|--------|------------|-------------|--------------------------|
+| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquete de exportación EufyMake consistente | 🟠 Alta | 🔴 Alta (épic) | **Needs refinement** – según la deep research (comentario del issue), afinar el alcance a "assets de importación robustos para EufyMake Studio"; la generación nativa de `.empf` **no** es el objetivo por defecto. Se aborda vía #352–#355. |
+| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modelo de datos de exportación y definición de paquete (sin Qt) + ADR | 🟠 Alta | 🟡 Media | **Ready for PR** – tarea de investigación hecha, la decisión del ADR está en los comentarios. `eufymake_export.py` sin Qt con `ExportPlan`/`ExportAsset` (motivo de color PNG+alfa, altura en grises claro=alto, máscara de gloss); marcar 16 bits/semántica de gloss/`.empf` nativo como "abierto". Base — desbloquea #353–#355. |
+| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Renderizado de assets y escritura atómica del paquete | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352; bien acotado después (renderizado + escritura atómica). |
+| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Comprobación de consistencia previa a la exportación | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352. Mantener reutilizables los bloques de comprobación (sinergia con la comprobación general de errores previa a la exportación). |
+| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: diálogo de exportación EufyMake + menú + i18n + ajustes | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352–#354. Texto de UI según la deep research: "preparar assets para EufyMake Studio", no "producir un proyecto terminado". |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Blocked (externo)** – el endurecimiento del repo vía #322/#342 (cerrado) está hecho; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | 🟢 Baja | 🟡 Media | **Needs refinement** – primero documentar la semántica de GitHub (top-level vs. efectivo-por-job); no debilitar el guard OIDC #303. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF no está soportado como formato de entrada | 🟢 Baja | 🟢 Baja | **Ready for PR (docs)** – el maintainer **excluyó HEIC deliberadamente** (comentario 2026-06-21). Solo aclarar README/ANLEITUNG, luego cerrar. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Ready for PR (oportunista)** – no bloquea producto ni CI; lo de mayor valor primero (asertar el endpoint del lazo, la línea de `test_helpers`, consolidar los tests de `set_brush_size`). |
 
-1. Comentar y cerrar **#322** cuando se verifique el merge de #342 a `main`.
-2. Etiquetar **#339** y tomar una decisión de producto explícita (aclaración de
-   documentación vs. feature HEIC).
-3. Mantener **#245** abierto pero marcado como bloqueado externamente; enlazar
-   #322/#342 como parte de repo completada.
-4. No implementar **#318** todavía; primero documentar la semántica de permisos
-   de GitHub.
-5. Mantener **#299** como cleanup de tests de baja prioridad.
+### Próximo recomendado (orden de PR)
+
+1. **#352** primero — base del épic, bien acotado tras el refinamiento del ADR;
+   desbloquea #353/#354.
+2. **#353** y **#354** en paralelo una vez que entre #352.
+3. **#355** para cerrar el épic.
+4. **#339** (PR pequeña de docs) y **#299** (cleanup de tests) como rellenos de
+   baja prioridad en el ínterin.
+5. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
+6. Mantener **#245** bloqueado externamente (ningún patch del repo restaura la
+   cuota).
 
 ## Rondas Anteriores
 

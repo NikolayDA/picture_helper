@@ -54,32 +54,39 @@
   Наслідкові знахідки щодо надійності/пам'яті виправлено й закрито в **#285**
   (PR #289).
 
-## Відкриті GitHub-Issues — Стан Triage (2026-06-21)
+## Відкриті GitHub-Issues — Стан Triage (2026-06-22)
 
-Станом на 2026-06-21 GitHub ще показує **5** відкритих issues: **#245**,
-**#299**, **#318**, **#322** і **#339**. Раніше перелічені issues щодо
-проєкту/шарів і security-тестів, **#323**, **#324**, **#326** та **#329–#335**,
-завершені в merge commits **#337**, **#338** і **#340**. Для **#322** тепер також
-є **#342**; issue слід прокоментувати й закрити після перевірки merge.
+Станом на 2026-06-22 GitHub показує **9** відкритих issues. Новина — **епік
+експорту EufyMake #351** із sub-issues **#352–#355** (ранг #3 у roadmap). Раніше
+перелічений maintenance/skip path **#322** реалізовано через **#342** і тепер
+**закрито**; issues щодо проєкту/шарів і security-тестів **#323/#324/#326** та
+**#329–#335** лишаються завершеними в **#337/#338/#340**.
 
-| # | Назва | Рекомендація labels/status | Пропозиція коментаря/status |
-|---|-------|----------------------------|-----------------------------|
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з "Quota exceeded" | `security`; **залишити відкритим / blocked external** | Додати коментар, що repo-side hardening покрито #323/#324 і #322/#342; залишився блокер OpenAI/billing quota. Після відновлення quota один раз вручну запустити scheduled scan і закрити. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: слабкі assertions/надлишковість | `quality`, `testing`; **open / low priority** | Додати коментар, що це не product/CI blocker; виконувати як opportunistic cleanup, коли зачіпаються відповідні tests. Status не змінювати. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: врахувати job-level permission overrides у reusable WF | `enhancement`, `testing`; **needs refinement** | Додати коментар, що перед змінами треба задокументувати GitHub semantics для top-level vs. job-level permissions у called workflow; не послаблювати OIDC guard #303. |
-| [#322](https://github.com/NikolayDA/picture_helper/issues/322) | CI: maintenance/skip path для scheduled Codex Security Scan | `security`; **закрити після #342** | Додати коментар, що #342 реалізує conservative manual switch (`CODEX_SECURITY_SCAN_ENABLED=false`) зі skip output і regression tests; закрити після verified merge. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF не підтримується як input format | **Додати labels:** `enhancement`, `documentation` (або `question`, якщо є); **needs decision** | Додати коментар про потребу product decision: явно задокументувати, що HEIC не підтримується, або спланувати optional `pillow-heif`/`HEIF` allowlist і load test. Тримати відкритим до рішення. |
+Оцінка: **Релевантність** = важливість для roadmap/користувачів,
+**Складність** = орієнтовний обсяг реалізації.
 
-### Рекомендовані дії для issues
+| # | Назва | Релевантність | Складність | Рекомендований наступний крок |
+|---|-------|---------------|------------|-------------------------------|
+| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Епік] Узгоджений пакет експорту EufyMake | 🟠 Висока | 🔴 Висока (епік) | **Needs refinement** – за deep research (коментар issue) звузити scope до «надійні import-assets для EufyMake Studio»; нативна генерація `.empf` **не** є метою за замовчуванням. Опрацьовується через #352–#355. |
+| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Модель даних експорту та визначення пакета (без Qt) + ADR | 🟠 Висока | 🟡 Середня | **Ready for PR** – дослідницьке завдання виконано, рішення ADR зафіксовано в коментарях. `eufymake_export.py` без Qt з `ExportPlan`/`ExportAsset` (кольоровий мотив PNG+alpha, висота у відтінках сірого світле=високе, gloss-маска); позначити 16-bit/семантику gloss/нативний `.empf` як «відкрите». Фундамент — розблоковує #353–#355. |
+| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Рендеринг assets і атомарний запис пакета | 🟠 Висока | 🟡 Середня | **Blocked** – потребує #352; після цього чітко окреслено (рендеринг + атомарний запис). |
+| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Перевірка узгодженості перед експортом | 🟠 Висока | 🟡 Середня | **Blocked** – потребує #352. Тримати блоки перевірки придатними до повторного використання (синергія із загальною перевіркою помилок перед експортом). |
+| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: діалог експорту EufyMake + меню + i18n + settings | 🟠 Висока | 🟡 Середня | **Blocked** – потребує #352–#354. Текст UI за deep research: «підготувати assets для EufyMake Studio», а не «створити готовий проєкт». |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з "Quota exceeded" | 🟡 Середня | 🟢 Низька | **Blocked (зовн.)** – repo-side hardening через #322/#342 (закрито) виконано; лишається блокер OpenAI/billing quota. Після відновлення quota один раз вручну запустити scheduled scan, тоді закрити. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: врахувати job-level permission overrides у reusable WF | 🟢 Низька | 🟡 Середня | **Needs refinement** – спершу задокументувати GitHub semantics (top-level vs. ефективні-per-job); не послаблювати OIDC guard #303. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF не підтримується як input format | 🟢 Низька | 🟢 Низька | **Ready for PR (docs)** – maintainer **свідомо виключив HEIC** (коментар 2026-06-21). Лише уточнити README/ANLEITUNG, тоді закрити. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: слабкі assertions/надлишковість | 🟢 Низька | 🟢 Низька | **Ready for PR (opportunistic)** – не product/CI blocker; спершу найкорисніше (assert endpoint лассо, рядок `test_helpers`, консолідувати тести `set_brush_size`). |
 
-1. Прокоментувати й закрити **#322**, коли merge #342 у `main` буде перевірено.
-2. Додати labels до **#339** і ухвалити явне product decision (documentation
-   clarification vs. HEIC feature).
-3. Залишити **#245** відкритим, але позначити як externally blocked; додати
-   посилання на #322/#342 як завершену repo-side частину.
-4. Не реалізовувати **#318** одразу; спершу задокументувати GitHub permission
-   semantics.
-5. Залишити **#299** як low-priority test cleanup.
+### Рекомендовано далі (порядок PR)
+
+1. **#352** спершу — фундамент епіка, well-scoped після refinement ADR;
+   розблоковує #353/#354.
+2. **#353** і **#354** паралельно, щойно увійде #352.
+3. **#355** для завершення епіка.
+4. **#339** (мала docs-PR) і **#299** (test cleanup) як low-priority заповнювачі
+   між іншим.
+5. Відкласти **#318**, доки GitHub permission semantics не задокументовано.
+6. Лишити **#245** externally blocked (жоден repo-patch не повертає quota).
 
 ## Попередні Раунди
 
