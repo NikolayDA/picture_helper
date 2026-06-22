@@ -42,6 +42,12 @@
   (#332), формат `.bgrproj` (#333), панель шарів/меню проєкту (#334) та міграція/
   інтеграція (#335) — паритет одного зображення збережено, `make check`/`make ui`
   зелені.
+- **N10 ✅ — Робочий простір Height Map (епік #344) реалізовано.** Qt-незалежне
+  представлення висоти й 2D-вигляд (#345), генерація/імпорт (#346), редагування
+  (#347), оптимізація `height_ops` з preview (#348) та контекстна вкладка висоти (#349).
+- **N11 ✅ — Полірування фази 0 (епік #358) реалізовано.** Зміна розміру проєкту
+  (#359), корекція кольору зі збереженням alpha (#360) і feather alpha-краю в
+  межах виділення (#361), з undo/redo та збереженням у `.bgrproj`.
 
 ### Ще Відкрито
 
@@ -56,17 +62,20 @@
 
 ## Відкриті GitHub-Issues — Стан Triage (2026-06-22)
 
-Станом на 2026-06-22 GitHub показує **9** відкритих issues. Новина — **епік
-експорту EufyMake #351** із sub-issues **#352–#355** (ранг #3 у roadmap). Раніше
-перелічений maintenance/skip path **#322** реалізовано через **#342** і тепер
-**закрито**; issues щодо проєкту/шарів і security-тестів **#323/#324/#326** та
-**#329–#335** лишаються завершеними в **#337/#338/#340**.
+Станом на 2026-06-22 GitHub показує **13** відкритих issues. Окрім **епіка
+експорту EufyMake #351** і #352–#355, відкриті docs-прогалина **#357** та три
+post-merge знахідки Height Map: **#363** (хибний export з активним HEIGHT),
+**#364** (суперечливий kind/role-контекст) і **#365** (необмежена пам'ять
+median-фільтра). **#322** реалізовано через **#342** і закрито.
 
 Оцінка: **Релевантність** = важливість для roadmap/користувачів,
 **Складність** = орієнтовний обсяг реалізації.
 
 | # | Назва | Релевантність | Складність | Рекомендований наступний крок |
 |---|-------|---------------|------------|-------------------------------|
+| [#363](https://github.com/NikolayDA/picture_helper/issues/363) | Регресія: збереження зображення експортує активний HEIGHT-вигляд замість COLOR-композита | 🔴 Критична | 🟢 Низька | **Ready for PR — виправити першою.** Розділити display- та export-rendering; звичайний export завжди має писати COLOR-композит. |
+| [#364](https://github.com/NikolayDA/picture_helper/issues/364) | Height Map-контекст: UI і canvas не узгоджені щодо ролі `HEIGHT_MAP` | 🟠 Висока | 🟡 Середня | **Needs decision, потім PR.** Визначити, чи головний `LayerKind.HEIGHT`, чи достатньо ролі; узгодити модель, load, panels і canvas до #352. |
+| [#365](https://github.com/NikolayDA/picture_helper/issues/365) | Median-фільтр Height Map може вичерпати пам'ять | 🟠 Висока | 🟡 Середня | **Ready for PR.** Обчислювати обмеженими блоками замість повного stack `(2r+1)² × H × W`; перевірити 40-MP/radius-контракт median і Gaussian. |
 | [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Епік] Узгоджений пакет експорту EufyMake | 🟠 Висока | 🔴 Висока (епік) | **Needs refinement** – за deep research (коментар issue) звузити scope до «надійні import-assets для EufyMake Studio»; нативна генерація `.empf` **не** є метою за замовчуванням. Опрацьовується через #352–#355. |
 | [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Модель даних експорту та визначення пакета (без Qt) + ADR | 🟠 Висока | 🟡 Середня | **Ready for PR — ADR спершу** – deep research виконано (коментарі issue), але рішення щодо конвенції/ADR **ще не задокументоване в репо** і має бути записане як перший крок цього PR (це критерій приймання #352). `eufymake_export.py` без Qt з `ExportPlan`/`ExportAsset` (кольоровий мотив PNG+alpha, висота у відтінках сірого світле=високе, gloss-маска); scope = import-assets для EufyMake Studio; позначити 16-bit/семантику gloss/нативний `.empf` як «відкрите». Фундамент — розблоковує #353–#355. |
 | [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Рендеринг assets і атомарний запис пакета | 🟠 Висока | 🟡 Середня | **Blocked** – потребує #352; після цього чітко окреслено (рендеринг + атомарний запис). |
@@ -75,18 +84,19 @@
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з "Quota exceeded" | 🟡 Середня | 🟢 Низька | **Blocked (зовн.)** – repo-side hardening через #322/#342 (закрито) виконано; лишається блокер OpenAI/billing quota. Після відновлення quota один раз вручну запустити scheduled scan, тоді закрити. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: врахувати job-level permission overrides у reusable WF | 🟢 Низька | 🟡 Середня | **Needs refinement** – спершу задокументувати GitHub semantics (top-level vs. ефективні-per-job); не послаблювати OIDC guard #303. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF не підтримується як input format | 🟢 Низька | 🟢 Низька | **Ready for PR (docs)** – maintainer **свідомо виключив HEIC** (коментар 2026-06-21). Лише уточнити README/ANLEITUNG, тоді закрити. |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: відкриття через startup-path/Finder відсутнє в ANLEITUNG §4 | 🟢 Низька | 🟢 Низька | **Ready for PR (docs).** Оновити основний guide і п'ять i18n-копій; уточнити, що Recent містить images і `.bgrproj`-проєкти. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: слабкі assertions/надлишковість | 🟢 Низька | 🟢 Низька | **Ready for PR (opportunistic)** – не product/CI blocker; спершу найкорисніше (assert endpoint лассо, рядок `test_helpers`, консолідувати тести `set_brush_size`). |
 
 ### Рекомендовано далі (порядок PR)
 
-1. **#352** спершу — фундамент епіка, well-scoped після refinement ADR;
-   розблоковує #353/#354.
-2. **#353** і **#354** паралельно, щойно увійде #352.
-3. **#355** для завершення епіка.
-4. **#339** (мала docs-PR) і **#299** (test cleanup) як low-priority заповнювачі
-   між іншим.
-5. Відкласти **#318**, доки GitHub permission semantics не задокументовано.
-6. Лишити **#245** externally blocked (жоден repo-patch не повертає quota).
+1. Спочатку виправити **#363**, відновивши COLOR-export contract.
+2. Вирішити й реалізувати **#364** до EufyMake role mapping.
+3. Паралельно посилити **#365** до роботи з великими Height Maps.
+4. Потім реалізувати **#352**, спершу ADR; це розблокує #353/#354.
+5. Реалізувати **#353** і **#354** паралельно, потім **#355**.
+6. Використати **#357**, **#339** і **#299** як нижчі пріоритети.
+7. Відкласти **#318** до документації GitHub permission semantics.
+8. Лишити **#245** externally blocked.
 
 ## Попередні Раунди
 
