@@ -56,47 +56,38 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 打开的 GitHub Issues — Triage 状态 (2026-06-22，已更新)
+## 打开的 GitHub Issues — Triage 状态 (2026-06-23，已更新)
 
-截至 2026-06-22，GitHub 显示 **10** 个打开的 issues。严重的导出回归
-**#363** 已通过 **PR #367** 修复并关闭；两项 Height Map 后续 **#364**
-（在模型、持久化、UI 与 canvas 中建立统一的 `HEIGHT_MAP`↔`HEIGHT` 契约，
-并对遗留状态进行无损归一化）与 **#365**（按行带、受内存限制的中值滤波）
-均已随本 PR 实现并关闭。剩余的是 **EufyMake 导出 epic #351** 与子 issue
-**#352–#355**（roadmap 排名 #3）、docs 缺口 **#357** 和 **#339**，以及
-test/CI 发现 **#318**、**#299** 和 **#245**。维护/skip 路径 **#322**
-已通过 **#342** 交付并关闭。
+截至 2026-06-23，GitHub 显示 **11** 个打开的 issues。EufyMake epic
+**#351** 已在 PR **#372–#374** 后关闭：#352–#355 覆盖 ADR/模型、渲染与
+原子 writer、验证以及 UI/settings。#374 还修复了 `optional_roles` 生成器
+耗尽，并阻止目录替换已有文件。新的 roadmap epic **#375** 与 #376–#380
+现涵盖精确 mm/DPI 输出和通用导出检查。**#357**、**#339**、**#318**、
+**#299** 与 **#245** 仍待处理；EufyMake 复核本身无需新增后续 issue。
 
 评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] 一致的 EufyMake 导出包 | 🟠 高 | 🔴 高（epic） | **Needs refinement** – 据 deep research（issue 评论），将 scope 收窄为「面向 EufyMake Studio 的稳健 import-assets」；原生 `.empf` 生成**不**作为默认目标。经 #352–#355 推进。 |
-| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | 导出数据模型与包定义（无 Qt）+ ADR | 🟠 高 | 🟡 中 | **Ready for PR — ADR 先行** – deep research 已完成（issue 评论），但 convention/ADR 决策**尚未在 repo 中记录**，须作为本 PR 的第一步写下来（这是 #352 的验收标准）。无 Qt 的 `eufymake_export.py`，含 `ExportPlan`/`ExportAsset`（彩色图案 PNG+alpha、高度灰度图亮=高、gloss mask）；scope = 面向 EufyMake Studio 的 import-assets；将 16-bit/gloss 语义/原生 `.empf` 标记为「未定」。基础 — 解锁 #353–#355。 |
-| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset 渲染与原子写包 | 🟠 高 | 🟡 中 | **Blocked** – 需 #352；之后范围清晰（渲染 + 原子写）。 |
-| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | 导出前一致性检查 | 🟠 高 | 🟡 中 | **Blocked** – 需 #352。保持检查模块可复用（与通用导出前错误检查协同）。 |
-| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI：EufyMake 导出对话框 + 菜单 + i18n + settings | 🟠 高 | 🟡 中 | **Blocked** – 需 #352–#354。据 deep research，UI 文案应为「为 EufyMake Studio 准备 assets」，而非「生成成品项目」。 |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] 精确输出（mm/DPI）+ 通用导出检查 | 🟠 高 | 🔴 高（epic） | **Ready for PR — 基础优先：** #376（无 Qt 几何 + 项目元数据），随后 #377/#378/#379 可并行；#380 完成 UI 与 epic。 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **Needs refinement** – 先记录 GitHub semantics（top-level vs. 有效的 per-job）；不得削弱 #303 OIDC guard。 |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）** – maintainer 已**有意排除 HEIC**（评论 2026-06-21）。仅需澄清 README/ANLEITUNG，然后关闭。 |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）。** 同步主指南和五份 i18n；明确最近文件包含图像与 `.bgrproj` 项目。 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **Ready for PR（opportunistic）** – 非产品或 CI blocker；优先做最有价值的（断言 lasso endpoint、`test_helpers` 行、合并 `set_brush_size` 测试）。 |
 
-### 2026-06-22 已关闭 PR/Issues 复核
+### 2026-06-23 已关闭 PR/Issues 复核
 
-已复核关闭的 PR **#356**、**#362**、**#366–#369** 以及 issues **#358–#361**、**#363–#365**。
-相关主题已覆盖：Phase-0 打磨由 #362 完成，导出回归 #363 由 #367 修复，两项 Height Map 后续问题由 #369 关闭。
-无需新建 issue 或评论。
-下一项具体建议仍是 **#352**，作为 EufyMake epic 的 ADR 与数据模型基础。
+已复核今日关闭的 PR **#372–#374** 与 issues **#351–#355**。ADR、无 Qt
+模块、UI、持久化及 #373 后续修复均已存在并有测试覆盖。没有需要新建 issue
+或评论的未解决发现。
 
 ### 推荐下一步（PR 顺序）
 
-1. 实现 **#352** 作为 EufyMake epic 的基础，ADR 先行；解锁 #353/#354
-   （Height Map 后续 **#364**/**#365** 已随本 PR 完成）。
-2. 并行实现 **#353** 与 **#354**，随后完成 **#355**。
-3. 将 **#357**、**#339** 和 **#299** 作为较低优先级填充。
-4. 暂缓 **#318**，直至 GitHub permission semantics 记录完成。
-5. 保持 **#245** externally blocked（没有 repo 补丁能恢复 quota）。
+1. 先实现基础 **#376**；随后并行 **#377**、**#378**、**#379**，最后
+   完成 **#380**。
+2. 将 **#357** 与 **#339** 作为独立的小型 docs PR 穿插处理。
+3. 适时清理 **#299**；暂缓 **#318**，并保持 **#245** externally blocked。
 
 ## 先前轮次
 

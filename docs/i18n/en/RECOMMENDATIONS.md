@@ -64,48 +64,47 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Triage Status (2026-06-22, updated)
+## Open GitHub Issues — Triage Status (2026-06-23, updated)
 
-As of 2026-06-22, GitHub shows **10** open issues. The critical export
-regression **#363** has been fixed via **PR #367** and closed; both height-map
-follow-ups **#364** (central `HEIGHT_MAP`↔`HEIGHT` contract with lossless legacy
-normalization) and **#365** (memory-bounded, row-band median filter) are
-implemented and closed with this PR. Remaining are the **EufyMake export epic
-#351** and sub-issues **#352–#355** (roadmap rank #3), the docs gaps **#357** and
-**#339**, and the test/CI findings **#318**, **#299**, and **#245**. The
-maintenance/skip path **#322** was delivered via **#342** and is closed.
+As of 2026-06-23, GitHub shows **11** open issues. The EufyMake epic **#351**
+is closed after today's merged PRs **#372–#374**: **#352** (ADR/data model),
+**#353** (rendering/atomic writer), **#354** (consistency check) and **#355**
+(dialog/menu/settings) are fully represented in the repo and covered by focused
+tests. The follow-up review fix in **#374** also fixes `optional_roles` generator
+exhaustion and prevents an export folder from replacing an existing file target.
+Today's new roadmap-rank-#4 epic **#375** and sub-issues **#376–#380** now cover
+physical mm/DPI output and a general export check. The docs gaps **#357** and
+**#339** plus the test/CI findings **#318**, **#299** and **#245** also remain;
+the EufyMake review itself did not require new follow-up issues.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Epic] Consistent EufyMake export package | 🟠 High | 🔴 High (epic) | **Needs refinement** – per the deep research (issue comment), sharpen scope to "robust import assets for EufyMake Studio"; native `.empf` generation is **not** the default goal. Driven via #352–#355. |
-| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Export data model & package definition (Qt-free) + ADR | 🟠 High | 🟡 Medium | **Ready for PR — ADR first** – deep research done (issue comments), but the convention/ADR decision is **not yet recorded in-repo** and must be written down as the first step of this PR (it is an acceptance criterion of #352). Qt-free `eufymake_export.py` with `ExportPlan`/`ExportAsset` (color motif PNG+alpha, height grayscale bright=high, gloss mask); scope = import assets for EufyMake Studio; mark 16-bit/gloss semantics/native `.empf` as "open". Foundation — unblocks #353–#355. |
-| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Asset rendering & atomic package write | 🟠 High | 🟡 Medium | **Blocked** – needs #352; cleanly scoped afterwards (rendering + atomic write). |
-| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Pre-export consistency check | 🟠 High | 🟡 Medium | **Blocked** – needs #352. Keep the check building blocks reusable (synergy with the general pre-export error check). |
-| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: EufyMake export dialog + menu + i18n + settings | 🟠 High | 🟡 Medium | **Blocked** – needs #352–#354. UI wording per deep research: "prepare assets for EufyMake Studio", not "produce a finished project". |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Physical-size output (mm/DPI) + general export validation | 🟠 High | 🔴 High (epic) | **Ready for PR — foundation first:** #376 (Qt-free geometry + project metadata), then #377/#378/#379 in parallel; #380 completes the UI integration and epic. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – first document the GitHub semantics (top-level vs. effective-per-job); the #303 OIDC guard must not be weakened. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – the maintainer **deliberately excluded** HEIC (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – the maintainer deliberately excluded HEIC (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Ready for PR (docs).** Update the canonical guide and all five i18n copies; clarify that Recent Files includes images and `.bgrproj` projects. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **Ready for PR (opportunistic)** – not a product or CI blocker; highest value first (assert the lasso endpoint, the `test_helpers` line, consolidate the `set_brush_size` tests). |
 
-### Review of PRs/Issues closed on 2026-06-22
+### Review of PRs/issues closed on 2026-06-23
 
-Reviewed the closed PRs **#356**, **#362**, **#366–#369** and issues **#358–#361**, **#363–#365**.
-The topics are fully covered: Phase-0 polishing via #362, export regression #363 via #367, and both height-map follow-ups via #369.
-No additional follow-up issue or comment is required.
-The next concrete recommendation remains **#352** as the EufyMake epic's ADR and data-model foundation.
+Reviewed today's closed PRs **#372**, **#373** and **#374**, plus issues **#351**
+and **#355** (also the sub-issues **#352–#354** closed by #372, based on the
+merge content). The EufyMake work is cleanly complete: ADR, Qt-free plan/check/
+writer modules, UI integration, settings persistence and the follow-up #373
+review fix are present. The local review of the affected modules and tests found
+no open follow-up; comments or new issues are therefore not required.
 
 ### Recommended Next (PR order)
 
-1. Implement **#352** as the EufyMake epic's foundation, ADR first; it unblocks
-   #353/#354 (the height-map follow-ups **#364**/**#365** are done with this PR).
-2. Implement **#353** and **#354** in parallel, followed by **#355**.
-3. Use **#357**, **#339**, and **#299** as lower-priority fillers.
-4. Defer **#318** until GitHub permission semantics are documented.
-5. Keep **#245** externally blocked (no repo patch restores the quota).
+1. Implement **#376** as the roadmap-rank-#4 foundation; then **#377**, **#378**
+   and **#379** can proceed in parallel, followed by **#380**.
+2. Fit **#357** and **#339** in as small, independent docs PRs.
+3. Clean up **#299** opportunistically; defer **#318** until the semantics are
+   evidenced and keep **#245** externally blocked.
 
 ## Previous Rounds
 
