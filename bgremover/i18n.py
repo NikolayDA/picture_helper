@@ -534,6 +534,20 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "resize.megapixels": "{mp:.1f} MP (Maximum: {maximum} MP)",
         "resize.ok": "Anwenden",
         "resize.cancel": "Abbrechen",
+        # mm/DPI-Modus + Druckflächenprüfung (#377)
+        "resize.mode.label": "Maßeinheit:",
+        "resize.mode.pixel": "Pixel",
+        "resize.mode.mm": "Millimeter (mm + DPI)",
+        "resize.width_mm": "Breite",
+        "resize.height_mm": "Höhe",
+        "resize.dpi": "Auflösung",
+        "resize.medium.label": "Zielmedium:",
+        "resize.pixels_result": "Ergebnis: {width}×{height} px ({mp} MP)",
+        "resize.print_area_ok": "Passt auf {medium} ({medium_w}×{medium_h} mm).",
+        "resize.print_area_exceeded": (
+            "⚠ Motiv {width}×{height} mm überschreitet {medium} "
+            "({medium_w}×{medium_h} mm)."
+        ),
         # Right panel — Adjust tab contents (#360)
         "right_panel.adjust.section": "Farbkorrektur",
         "right_panel.adjust.hint": "Wirkt auf die aktive Farbebene.",
@@ -1205,6 +1219,20 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "resize.megapixels": "{mp:.1f} MP (maximum: {maximum} MP)",
         "resize.ok": "Apply",
         "resize.cancel": "Cancel",
+        # mm/DPI mode + print-area check (#377)
+        "resize.mode.label": "Unit:",
+        "resize.mode.pixel": "Pixels",
+        "resize.mode.mm": "Millimeters (mm + DPI)",
+        "resize.width_mm": "Width",
+        "resize.height_mm": "Height",
+        "resize.dpi": "Resolution",
+        "resize.medium.label": "Target medium:",
+        "resize.pixels_result": "Result: {width}×{height} px ({mp} MP)",
+        "resize.print_area_ok": "Fits on {medium} ({medium_w}×{medium_h} mm).",
+        "resize.print_area_exceeded": (
+            "⚠ Motif {width}×{height} mm exceeds {medium} "
+            "({medium_w}×{medium_h} mm)."
+        ),
         # Right panel — Adjust tab contents (#360)
         "right_panel.adjust.section": "Color correction",
         "right_panel.adjust.hint": "Acts on the active color layer.",

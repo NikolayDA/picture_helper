@@ -86,6 +86,7 @@ from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     STATUS_BAR_STYLE,
 )
+from bgremover.units import UnitsError
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import REMBG_AVAILABLE
 
@@ -291,11 +292,24 @@ class MainWindow(QMainWindow):
         if project is None:
             self._sb.showMessage(SM.KEIN_BILD_GELADEN)
             return
-        dlg = ResizeDialog(project.width, project.height, self)
+        try:
+            pre_mm, pre_dpi = project.physical_size_mm, project.dpi
+        except UnitsError:
+            pre_mm, pre_dpi = None, None
+        dlg = ResizeDialog(
+            project.width, project.height, self,
+            physical_size_mm=pre_mm, dpi=pre_dpi,
+        )
         if dlg.exec():
             width, height = dlg.selected_size()
             self._canvas.apply_resize(
                 width, height, resample=dlg.selected_resample())
+            # Im mm-Modus die physische Zielgröße (mm) als kanonische Quelle (#376)
+            # im Projekt verankern – die DPI ergibt sich daraus und der neuen
+            # Pixelgröße. Reine Pixel-Resizes lassen die physische Größe unberührt.
+            mm = dlg.selected_physical_size_mm()
+            if mm is not None:
+                project.set_physical_size_mm(*mm)
 
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""

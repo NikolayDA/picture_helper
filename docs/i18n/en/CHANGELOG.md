@@ -10,6 +10,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **mm/DPI mode in the “Resize…” dialog + print-area check.** The resize dialog now
+  offers two units: pixels (as before) and **millimeters + DPI**. In mm mode you enter
+  width/height in mm and the DPI, the resulting **pixel size** is shown live via the
+  shared geometry (#376), and the aspect ratio can optionally be locked. A
+  **print-area check** compares the motif against a selectable target medium
+  (A3/A4/A5/Letter) and warns clearly when it is exceeded. On apply, the physical
+  target size (mm) is anchored in the project via the `project_model` setters
+  (canonical; DPI follows from mm + pixel size) and survives the `.bgrproj` round-trip;
+  the resampling itself stays purely pixel-based (`Project.resize`). All strings de/en
+  (#377).
 - **General, Qt-free pre-export checks (shared framework).** A new, strictly typed
   module `bgremover/export_checks.py` lifts the finding framework from
   `eufymake_validate` (#354) onto a shared base: a generic `Finding`/`CheckCode`/

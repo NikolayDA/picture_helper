@@ -11,6 +11,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Modo mm/PPP en el diálogo «Redimensionar…» + comprobación de área de impresión.**
+  El diálogo de redimensionado ofrece ahora dos unidades: píxeles (como antes) y
+  **milímetros + PPP**. En el modo mm se introducen ancho/alto en mm y los PPP, el
+  **tamaño en píxeles** resultante se muestra en vivo mediante la geometría compartida
+  (#376) y la relación de aspecto puede bloquearse opcionalmente. Una **comprobación de
+  área de impresión** compara el motivo con un medio de destino seleccionable
+  (A3/A4/A5/Letter) y avisa con claridad cuando se supera. Al aplicar, el tamaño físico
+  de destino (mm) se fija en el proyecto mediante los setters de `project_model`
+  (canónico; los PPP se derivan de mm + tamaño en píxeles) y sobrevive al ciclo de
+  `.bgrproj`; el remuestreo sigue siendo puramente en píxeles (`Project.resize`). Todos
+  los textos en de/en (#377).
 - **Comprobación previa a la exportación, general y sin Qt (marco compartido).** Un
   nuevo módulo con tipado estricto `bgremover/export_checks.py` eleva el marco de
   hallazgos de `eufymake_validate` (#354) a una base compartida: un contrato genérico

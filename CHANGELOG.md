@@ -11,6 +11,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **mm/DPI-Modus im „Größe ändern…"-Dialog + Druckflächenprüfung.** Der
+  Resize-Dialog kennt jetzt zwei Maßeinheiten: Pixel (wie bisher) und
+  **Millimeter + DPI**. Im mm-Modus werden Breite/Höhe in mm und die DPI bedient,
+  die resultierende **Pixelgröße** live über die geteilte Geometrie (#376) angezeigt
+  und das Seitenverhältnis optional gekoppelt. Eine **Druckflächenprüfung** vergleicht
+  das Motiv gegen ein wählbares Zielmedium (A3/A4/A5/Letter) und warnt verständlich bei
+  Überschreitung. Beim Anwenden wird die physische Zielgröße (mm) über die
+  `project_model`-Setter im Projekt verankert (kanonisch; die DPI folgt aus mm +
+  Pixelgröße) und übersteht den `.bgrproj`-Round-Trip; das Resampling bleibt rein
+  pixelbasiert (`Project.resize`). Alle Strings de/en (#377).
 - **Allgemeine, Qt-freie Pre-Export-Prüfung (geteiltes Framework).** Neues, strikt
   getyptes Modul `bgremover/export_checks.py` hebt das Befund-Framework aus
   `eufymake_validate` (#354) auf eine geteilte Basis: ein generischer

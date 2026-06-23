@@ -11,6 +11,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Mode mm/PPP dans le dialogue « Redimensionner… » + contrôle de surface
+  d'impression.** Le dialogue de redimensionnement propose désormais deux unités :
+  pixels (comme avant) et **millimètres + PPP**. En mode mm, on saisit largeur/hauteur
+  en mm et le PPP, la **taille en pixels** résultante s'affiche en direct via la
+  géométrie partagée (#376) et le rapport d'aspect peut être verrouillé. Un **contrôle
+  de surface d'impression** compare le motif à un support cible sélectionnable
+  (A3/A4/A5/Letter) et avertit clairement en cas de dépassement. À l'application, la
+  taille physique cible (mm) est ancrée dans le projet via les setters de
+  `project_model` (canonique ; le PPP découle de mm + taille en pixels) et survit au
+  cycle `.bgrproj` ; le rééchantillonnage reste purement en pixels (`Project.resize`).
+  Tous les textes en de/en (#377).
 - **Contrôle pré-export général et sans Qt (cadre partagé).** Un nouveau module
   strictement typé `bgremover/export_checks.py` hisse le cadre de constats de
   `eufymake_validate` (#354) sur une base partagée : un contrat générique
