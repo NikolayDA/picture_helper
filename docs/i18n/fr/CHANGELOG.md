@@ -11,6 +11,38 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Exportation EufyMake : rendu, écriture atomique et contrôle de cohérence
+  (sans Qt).** Deux nouveaux modules strictement typés s’appuient sur le plan de
+  #352 : `bgremover/eufymake_validate.py` (`validate_export`) collecte des constats
+  structurés triés de façon déterministe (code stable, `error`/`warning`, rôle, clé
+  i18n) ; les erreurs dures (motif couleur manquant, rôle sélectionné manquant,
+  taille incohérente, paramètres cibles invalides) bloquent, tandis que les
+  avertissements (données de hauteur/brillance vides/constantes, 16 bits non
+  confirmé, brillance en tant qu’asset auxiliaire de mode d’encre, taille physique
+  sans contrat fabricant) n’autorisent l’export qu’après confirmation, tous les
+  messages en de/en (#354). `bgremover/eufymake_writer.py`
+  (`render_export`/`write_export`) rend le motif couleur (= composite, RGBA
+  préservant l’alpha), la carte de hauteur (niveaux de gris clair = haut, 8/16 bits)
+  et le masque de brillance facultatif à la taille cible avec `manifest.json`, et
+  les écrit de manière **atomique** (rendu dans un répertoire temporaire,
+  publication en une seule étape `os.replace` ; un échec préserve une cible
+  existante, les données temporaires sont nettoyées ; comportement de collision via
+  `overwrite`). Pas de `.empf` natif (#353).
+- **Exportation EufyMake : modèle de données et planification (sans Qt).** Nouveau
+  module strictement typé `bgremover/eufymake_export.py` :
+  `build_export_plan(project)` associe de façon déterministe les rôles de calque à
+  un `ExportPlan` d’`ExportAsset` — le motif couleur en PNG RGBA est **obligatoire**
+  (rôle `COLOR_MOTIF` explicite ou composite COLOR), tandis que la carte de hauteur
+  et le masque de brillance sont des PNG niveaux de gris **facultatifs** (brillance
+  expérimentale). Les noms de fichier, la version de profil et les valeurs par
+  défaut sont des **conventions BgRemover** documentées (et non une spécification
+  officielle EufyMake) ; la sémantique de hauteur **clair = haut** est fixée dans le
+  contrat de types, tandis que les questions ouvertes de profondeur de bits/brillance
+  et l’absence délibérée d’un `.empf` natif restent explicitement signalées. La
+  taille physique, les DPI et la profondeur de bits sont dérivés de façon
+  reproductible des métadonnées du projet ou des valeurs par défaut ; les valeurs
+  invalides produisent des erreurs structurées. Un modèle de données pur, sans
+  rendu/écriture/IU (suite dans #353–#355) (#352).
 - **ADR du paquet d’exportation EufyMake.** Une nouvelle décision d’architecture
   documente la convention de paquet orientée import pour #352/#351 : motif
   couleur en PNG RGBA, carte de hauteur en PNG niveaux de gris avec clair = haut,

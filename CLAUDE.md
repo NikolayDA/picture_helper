@@ -98,6 +98,38 @@ Ein Paket, `bgremover/`:
   `load_project(..., warnings=...)` reicht eine übersetzte Warnung an die UI
   (Statusleiste) durch (#364). Noch ohne
   Menü-/Dialog-Anbindung (folgt #334/#335).
+- **EufyMake-Export (Plan, Epic #351):** `eufymake_export.py` — Qt-freies, strikt
+  getyptes Export-**Datenmodell** (#352): `build_export_plan(project)` bildet die
+  Ebenenrollen deterministisch auf `ExportAsset`s in einem `ExportPlan` ab –
+  `COLOR_MOTIF` ergibt das **erforderliche** RGBA-Farbmotiv (explizite Rolle oder
+  COLOR-Komposit-Fallback, sonst `MissingColorMotifError`), `HEIGHT_MAP`/`GLOSS_MASK`
+  je ein **optionales** Graustufen-Asset (Gloss `experimental`). Dateinamen
+  (`color_motif.png`/`height_map.png`/`gloss_mask.png`), Profilkennung
+  (`EXPORT_PROFILE`/`EXPORT_PROFILE_VERSION`) und Defaults sind **BgRemover-
+  Konventionen**, keine offizielle EufyMake-Spezifikation. Höhensemantik
+  **hell = hoch** ist im Typvertrag (`HeightSemantics`) fixiert; offene Bittiefen-/
+  Gloss-Fragen und der Verzicht auf natives `.empf` sind über `OpenQuestion`
+  explizit markiert. Ziel-Bittiefe/physische Größe/DPI werden reproduzierbar aus
+  `META_BIT_DEPTH`/`META_PHYSICAL_SIZE_MM` plus Defaults abgeleitet; ungültige
+  Werte werfen strukturierte `EufyMakeExportError`-Subtypen. `can_render_color_motif`
+  ist die geteilte Farbmotiv-Regel für Plan und Prüfung. Entscheidung/Quellenlage:
+  ADR [`docs/history/ADR-2026-eufymake-exportpaket.md`](docs/history/ADR-2026-eufymake-exportpaket.md).
+  `eufymake_validate.py` — Qt-freie **Konsistenzprüfung** (#354):
+  `validate_export(project, ...)` sammelt **alle** strukturierten Befunde
+  (`ExportFinding`: stabiler `ExportCheckCode`, `error`/`warning`, Rolle, i18n-Key,
+  Platzhalter) deterministisch sortiert. Harte Fehler (fehlendes Farbmotiv, fehlende
+  ausgewählte Rolle, Größen-Mismatch, ungültige Zielparameter) blockieren;
+  Warnungen (leere/konstante Height-/Gloss-Daten, 16-Bit unbestätigt, Gloss=Ink-Mode-
+  Hilfsasset, physische Größe ohne Herstellervertrag) erlauben den Export erst nach
+  Bestätigung. `format_finding` liefert die de/en-Meldung (literale `tr`-Keys
+  `eufymake.export.*`). `eufymake_writer.py` — Qt-freies **Rendern + atomares
+  Schreiben** (#353): `render_export` erzeugt die Pixel (Farbmotiv = Komposit/RGBA
+  alpha-erhaltend, Height graustufig hell=hoch als `L`/`I;16`, Gloss graustufig) in
+  Zielgröße plus `manifest.json`; `write_export` validiert (Fehler→`ExportValidationError`,
+  Warnungen→`ExportConfirmationRequired` ohne `confirm_warnings`), rendert in ein
+  Temp-Verzeichnis und veröffentlicht via **einem** `os.replace` (vorhandenes Ziel
+  bleibt bei Fehlern unversehrt, Temp wird aufgeräumt; `overwrite` steuert
+  Kollisionen). Kein natives `.empf`. UI/Settings folgen in #355.
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch

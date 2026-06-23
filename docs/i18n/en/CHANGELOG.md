@@ -10,6 +10,33 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **EufyMake export: rendering, atomic writing & consistency check (Qt-free).**
+  Two new strictly typed modules build on the plan from #352:
+  `bgremover/eufymake_validate.py` (`validate_export`) collects deterministically
+  sorted, structured findings (stable code, `error`/`warning`, role, i18n key);
+  hard errors (missing color motif, missing selected role, size mismatch, invalid
+  target parameters) block, while warnings (empty/constant height/gloss data,
+  unconfirmed 16-bit, gloss as an ink-mode helper asset, physical size without a
+  vendor contract) allow the export only after confirmation – all messages in
+  de/en (#354). `bgremover/eufymake_writer.py` (`render_export`/`write_export`)
+  renders the color motif (= composite, RGBA alpha-preserving), the height map
+  (grayscale light = high, 8/16-bit) and the optional gloss mask at target size
+  together with `manifest.json`, and writes them **atomically** (render into a temp
+  directory, publish in one `os.replace` step; a failure preserves an existing
+  target, temp data is cleaned up; collision behavior via `overwrite`). No native
+  `.empf` (#353).
+- **EufyMake export: data model & planning (Qt-free).** New strictly typed
+  module `bgremover/eufymake_export.py`: `build_export_plan(project)` maps the
+  layer roles deterministically onto an `ExportPlan` of `ExportAsset`s – the color
+  motif as an RGBA PNG is **required** (explicit `COLOR_MOTIF` role or the COLOR
+  composite), the height map and gloss mask are **optional** grayscale PNGs (gloss
+  experimental). File names, profile version, and defaults are documented
+  **BgRemover conventions** (not an official EufyMake specification); the height
+  semantics **light = high** are fixed in the type contract, while open bit-depth/
+  gloss questions and the deliberate absence of a native `.empf` stay explicitly
+  marked. Physical size, DPI, and bit depth are derived reproducibly from project
+  metadata or defaults; invalid values yield structured errors. A pure data model
+  with no rendering/writing/UI (follows in #353–#355) (#352).
 - **EufyMake export package ADR.** A new architecture decision documents the
   import-oriented package convention for #352/#351: the color motif as an RGBA
   PNG, the height map as a grayscale PNG with light = high, an optional gloss
