@@ -68,6 +68,13 @@ def test_px_rounds_half_up_and_keeps_minimum_one() -> None:
     assert px_from_mm_dpi(0.001, 1) == 1
 
 
+def test_px_rounds_exact_half_pixel_despite_float_error() -> None:
+    # 2,667 mm bei 300 dpi sind exakt 31,5 px; die Rohrechnung ergibt jedoch
+    # 31.499999999999996. Halb-auf muss trotzdem auf 32 runden, nicht auf 31.
+    assert px_from_mm_dpi(2.667, 300) == 32
+    assert pixel_size_for_size_mm((2.667, 2.667), (300, 300)) == (32, 32)
+
+
 # ── Zweidimensionale Helfer ────────────────────────────────────────────────
 
 def test_dpi_for_size_per_axis() -> None:

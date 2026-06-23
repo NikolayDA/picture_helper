@@ -425,17 +425,19 @@ class Project:
     # ── Physische Zielgröße / Auflösung (mm/DPI) ────────────────────────
     @property
     def physical_size_mm(self) -> tuple[float, float] | None:
-        """Physische Zielgröße ``(Breite, Höhe)`` in mm oder ``None`` (nicht gesetzt).
+        """Physische Zielgröße ``(Breite, Höhe)`` in mm oder ``None`` (Schlüssel fehlt).
 
-        Liest ``META_PHYSICAL_SIZE_MM`` und normalisiert es zu einem positiven
-        ``float``-Paar (akzeptiert auch eine aus JSON geladene Liste). Ein
-        gespeicherter *ungültiger* Wert wirft :class:`bgremover.units.InvalidLengthError`
-        statt still zu korrigieren.
+        **Nur ein fehlender Schlüssel** bedeutet „nicht gesetzt". Ein *vorhandener*
+        Wert – auch ein explizites ``None`` aus einem korrupten Manifest – wird über
+        :func:`bgremover.units.parse_size_mm` validiert (akzeptiert auch eine aus
+        JSON geladene Liste) und löst bei Ungültigkeit
+        :class:`bgremover.units.InvalidLengthError` aus, statt still als „nicht
+        gesetzt" durchzurutschen. :meth:`clear_physical_size` entfernt den Schlüssel
+        ganz.
         """
-        raw = self.metadata.get(META_PHYSICAL_SIZE_MM)
-        if raw is None:
+        if META_PHYSICAL_SIZE_MM not in self.metadata:
             return None
-        return parse_size_mm(raw)
+        return parse_size_mm(self.metadata[META_PHYSICAL_SIZE_MM])
 
     def set_physical_size_mm(self, width_mm: float, height_mm: float) -> None:
         """Setzt die physische Zielgröße (mm) validiert in ``META_PHYSICAL_SIZE_MM``.

@@ -564,3 +564,14 @@ def test_corrupt_stored_physical_size_raises_on_read() -> None:
     proj = Project(10, 10, metadata={"physical_size_mm": (0.0, 10.0)})
     with pytest.raises(InvalidLengthError):
         _ = proj.physical_size_mm
+
+
+def test_present_null_physical_size_is_rejected_not_treated_as_unset() -> None:
+    # Ein *vorhandener* Schlüssel mit explizitem None (z. B. aus einem korrupten
+    # Manifest) darf nicht als „nicht gesetzt" durchrutschen, sondern muss als
+    # ungültiger gespeicherter Wert abgewiesen werden.
+    proj = Project(10, 10, metadata={"physical_size_mm": None})
+    with pytest.raises(InvalidLengthError):
+        _ = proj.physical_size_mm
+    with pytest.raises(InvalidLengthError):
+        _ = proj.dpi

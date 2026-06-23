@@ -84,10 +84,16 @@ def px_from_mm_dpi(length_mm: object, dpi: object) -> int:
     nie kleiner als ``1`` – eine Bildachse hat mindestens ein Pixel. Das ist eine
     Begrenzung des *Ergebnisses* einer gültigen Rechnung, keine stille Korrektur
     ungültiger Eingaben (die weiterhin strukturierte Fehler auslösen).
+
+    Der Quotient wird vor der Rundung auf 9 Nachkommastellen normalisiert, damit
+    Float-Repräsentationsfehler exakte Halb-Pixel-Grenzen nicht fälschlich
+    abrunden (z. B. 2,667 mm bei 300 dpi = 31,5 px → 32, obwohl die Rohrechnung
+    ``31.499999999999996`` ergibt).
     """
     mm = _validate_positive_number(length_mm, error=InvalidLengthError, what="Länge (mm)")
     res = _validate_positive_number(dpi, error=InvalidResolutionError, what="Auflösung (DPI)")
-    return max(1, math.floor(mm * res / MM_PER_INCH + 0.5))
+    quotient = round(mm * res / MM_PER_INCH, 9)
+    return max(1, math.floor(quotient + 0.5))
 
 
 # ── Zweidimensionale Helfer (Breite, Höhe) ─────────────────────────────────
