@@ -19,8 +19,7 @@ markiert, statt sie stillschweigend als Herstellervertrag zu behandeln.
 """
 from __future__ import annotations
 
-import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -31,6 +30,8 @@ from bgremover.project_model import (
     LayerRole,
     Project,
 )
+from bgremover.units import MM_PER_INCH as MM_PER_INCH  # Re-Export (Rückwärtskompat.)
+from bgremover.units import UnitsError, dpi_for_size, parse_size_mm
 
 # Profil-/Versionskennung des Pakets. **BgRemover-Konvention**, keine offizielle
 # EufyMake-Kennung: trennt spätere Konventionsänderungen sauber vom Projektmodell
@@ -51,8 +52,9 @@ _ASSET_FILENAMES: dict[LayerRole, str] = {
 DEFAULT_BIT_DEPTH = 8
 _SUPPORTED_BIT_DEPTHS = (8, 16)
 
-# Reine Geometriekonstante für die DPI-Ableitung aus Pixel- und mm-Größe.
-MM_PER_INCH = 25.4
+# Die px↔mm↔DPI-Geometrie (``MM_PER_INCH``, Ableitungen) lebt seit #376 zentral in
+# :mod:`bgremover.units`; ``MM_PER_INCH`` wird oben re-exportiert, damit bisherige
+# Importeure (Tests/Module) unverändert weiterfunktionieren.
 
 
 class AssetPixelFormat(Enum):
@@ -217,28 +219,17 @@ def _derive_physical_size(metadata: dict[str, object]) -> tuple[float, float] | 
 
     Fehlt der Schlüssel, bleibt die physische Größe unbekannt (``None``). Ein
     vorhandener Wert muss eine Zweier-Sequenz endlicher, positiver Zahlen sein
-    (``bool`` ausgeschlossen); sonst :class:`InvalidPhysicalSizeError`.
+    (``bool`` ausgeschlossen); andernfalls wird der geteilte
+    :func:`bgremover.units.parse_size_mm`-Befund als :class:`InvalidPhysicalSizeError`
+    weitergereicht. So bleibt die Validierung deckungsgleich mit dem Projektmodell.
     """
     raw = metadata.get(META_PHYSICAL_SIZE_MM)
     if raw is None:
         return None
-    if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence) or len(raw) != 2:
-        raise InvalidPhysicalSizeError(
-            f"{META_PHYSICAL_SIZE_MM} muss (Breite, Höhe) in mm sein, war {raw!r}"
-        )
-    dims: list[float] = []
-    for value in raw:
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise InvalidPhysicalSizeError(
-                f"{META_PHYSICAL_SIZE_MM} braucht Zahlen, war {raw!r}"
-            )
-        number = float(value)
-        if not math.isfinite(number) or number <= 0.0:
-            raise InvalidPhysicalSizeError(
-                f"{META_PHYSICAL_SIZE_MM} muss endlich und positiv sein, war {raw!r}"
-            )
-        dims.append(number)
-    return (dims[0], dims[1])
+    try:
+        return parse_size_mm(raw)
+    except UnitsError as exc:
+        raise InvalidPhysicalSizeError(f"{META_PHYSICAL_SIZE_MM}: {exc}") from exc
 
 
 def _derive_dpi(
@@ -247,13 +238,12 @@ def _derive_dpi(
     """Leitet die Auflösung (DPI) aus Pixel- und physischer mm-Größe ab.
 
     Nur wenn beide Angaben vorliegen, sonst ``None`` (keine erfundene Auflösung).
-    ``dpi = px / (mm / 25.4)`` je Achse.
+    ``dpi = px / (mm / 25.4)`` je Achse – die Rechnung selbst liegt geteilt in
+    :func:`bgremover.units.dpi_for_size`.
     """
     if physical_size_mm is None:
         return None
-    px_w, px_h = pixel_size
-    mm_w, mm_h = physical_size_mm
-    return (px_w * MM_PER_INCH / mm_w, px_h * MM_PER_INCH / mm_h)
+    return dpi_for_size(pixel_size, physical_size_mm)
 
 
 def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:

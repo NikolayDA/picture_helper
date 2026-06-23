@@ -34,13 +34,17 @@ from PIL import Image
 # ohne PyQt6 einzuziehen – ``Project.resize`` bleibt headless aufrufbar.
 from bgremover.height_map import layer_to_gray_image
 from bgremover.image_ops import resize_image
+from bgremover.units import dpi_for_size, parse_size_mm, size_mm_for_dpi
 
 # Aktuelle Modellversion. Eigener Schlüssel mit Migrationshaken folgt mit dem
 # Dateiformat (#333), Muster wie ``settings_schema``.
 PROJECT_VERSION = 1
 
-# Reservierte Schlüssel in ``Project.metadata`` für spätere UV-Druck-Features
-# (#329): physische Zielgröße bzw. Bittiefe. Hier nur reserviert/dokumentiert –
+# Schlüssel in ``Project.metadata`` für die maßgenaue Ausgabe (#329/#376):
+# ``META_PHYSICAL_SIZE_MM`` hält die validierte physische Zielgröße ``(w, h)`` in
+# mm (siehe :attr:`Project.physical_size_mm`/:meth:`Project.set_physical_size_mm`);
+# die DPI ergeben sich daraus zusammen mit der Pixelgröße und werden nicht separat
+# gespeichert (kein Drift). ``META_BIT_DEPTH`` bleibt für die Bittiefe reserviert –
 # das Modell wertet sie selbst nicht aus.
 META_BIT_DEPTH = "bit_depth"
 META_PHYSICAL_SIZE_MM = "physical_size_mm"
@@ -417,6 +421,61 @@ class Project:
 
     def clear_role(self, layer_id: str) -> None:
         self.layer_by_id(layer_id).role = None
+
+    # ── Physische Zielgröße / Auflösung (mm/DPI) ────────────────────────
+    @property
+    def physical_size_mm(self) -> tuple[float, float] | None:
+        """Physische Zielgröße ``(Breite, Höhe)`` in mm oder ``None`` (nicht gesetzt).
+
+        Liest ``META_PHYSICAL_SIZE_MM`` und normalisiert es zu einem positiven
+        ``float``-Paar (akzeptiert auch eine aus JSON geladene Liste). Ein
+        gespeicherter *ungültiger* Wert wirft :class:`bgremover.units.InvalidLengthError`
+        statt still zu korrigieren.
+        """
+        raw = self.metadata.get(META_PHYSICAL_SIZE_MM)
+        if raw is None:
+            return None
+        return parse_size_mm(raw)
+
+    def set_physical_size_mm(self, width_mm: float, height_mm: float) -> None:
+        """Setzt die physische Zielgröße (mm) validiert in ``META_PHYSICAL_SIZE_MM``.
+
+        ``width_mm``/``height_mm`` müssen endlich und positiv sein; sonst
+        :class:`bgremover.units.InvalidLengthError` (keine stille Korrektur). Die
+        DPI ergeben sich daraus zusammen mit der Pixelgröße (siehe :attr:`dpi`).
+        """
+        self.metadata[META_PHYSICAL_SIZE_MM] = parse_size_mm((width_mm, height_mm))
+
+    def clear_physical_size(self) -> None:
+        """Entfernt physische Zielgröße und damit die abgeleitete DPI."""
+        self.metadata.pop(META_PHYSICAL_SIZE_MM, None)
+
+    @property
+    def dpi(self) -> tuple[float, float] | None:
+        """Auflösung ``(x, y)`` in DPI, abgeleitet aus Pixel- und physischer Größe.
+
+        ``None``, solange keine physische Größe gesetzt ist (keine erfundene
+        Auflösung). Single Source of Truth bleibt die physische Größe (mm); die
+        DPI ist nur die abgeleitete Sicht über die aktuelle Pixelgröße und kann so
+        nicht von der Canvas-Größe driften.
+        """
+        physical = self.physical_size_mm
+        if physical is None:
+            return None
+        return dpi_for_size(self.size, physical)
+
+    def set_dpi(self, dpi_x: float, dpi_y: float | None = None) -> None:
+        """Setzt die Zielauflösung (DPI) und legt die implizierte physische Größe ab.
+
+        ``dpi_y`` ist standardmäßig ``dpi_x`` (uniforme Auflösung). Die Werte
+        müssen endlich und positiv sein; sonst
+        :class:`bgremover.units.InvalidResolutionError`. Da die physische Größe
+        (mm) die kanonische Größe ist, wird sie aus Pixelgröße und DPI berechnet
+        und in ``META_PHYSICAL_SIZE_MM`` gespeichert; :attr:`dpi` liest sie
+        anschließend deterministisch zurück.
+        """
+        resolution = (dpi_x, dpi_x if dpi_y is None else dpi_y)
+        self.metadata[META_PHYSICAL_SIZE_MM] = size_mm_for_dpi(self.size, resolution)
 
     # ── Geometrie ───────────────────────────────────────────────────────
     def resize(

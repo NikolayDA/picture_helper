@@ -11,6 +11,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **mm/PPP como propiedad del proyecto + geometría compartida sin Qt.** Un nuevo
+  módulo con tipado estricto `bgremover/units.py` reúne toda la matemática px↔mm↔PPP
+  en un único lugar: a partir de dos magnitudes conocidas deriva la tercera de forma
+  determinista (`MM_PER_INCH = 25,4`), valida las entradas y notifica los valores
+  inválidos (≤ 0, no numéricos, forma incorrecta) como errores estructurados `UnitsError`
+  en lugar de corregirlos en silencio. `Project` incorpora setters/getters validados para
+  el tamaño físico de destino (mm) y la resolución (PPP): el tamaño físico es la fuente
+  canónica, los PPP se derivan de él y del tamaño en píxeles (sin desajustes) y sobreviven
+  al ciclo de guardado/carga de `.bgrproj` con el mismo valor. La exportación a EufyMake
+  usa ahora la misma geometría (`_derive_physical_size`/`_derive_dpi`/`MM_PER_INCH`) sin
+  cambios de comportamiento (#376).
 - **Importación a EufyMake Studio: menú, diálogo, panel de comprobación y
   ajustes.** Una nueva acción de menú «Exportar activos para EufyMake Studio…»
   (menú Proyecto, Ctrl+Alt+E) abre un diálogo de Qt (`eufymake_export_dialog.py`):

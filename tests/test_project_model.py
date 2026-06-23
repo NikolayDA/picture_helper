@@ -1,5 +1,7 @@
 """Pure-Domänenmodell-Tests (Qt-frei) für ``bgremover.project_model``."""
 
+import math
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -15,6 +17,7 @@ from bgremover.project_model import (
     ProjectModelError,
     role_allowed_for_kind,
 )
+from bgremover.units import InvalidLengthError, InvalidResolutionError
 
 
 def _solid(size: tuple[int, int], color: tuple[int, int, int, int]) -> Image.Image:
@@ -494,3 +497,70 @@ def test_resize_rejects_nonpositive() -> None:
         proj.resize(0, 4)
     with pytest.raises(ValueError):
         proj.resize(4, -2)
+
+
+# ── Physische Zielgröße / DPI (mm/DPI, #376) ────────────────────────────
+
+def test_physical_size_unset_by_default() -> None:
+    proj = Project(100, 50)
+    assert proj.physical_size_mm is None
+    assert proj.dpi is None
+
+
+def test_set_and_get_physical_size_mm() -> None:
+    proj = Project(254, 127)
+    proj.set_physical_size_mm(50.8, 25.4)
+    assert proj.physical_size_mm == (50.8, 25.4)
+    # DPI wird aus Pixel- und physischer Größe abgeleitet (kein separater Speicher).
+    assert proj.dpi is not None
+    dpi_x, dpi_y = proj.dpi
+    assert math.isclose(dpi_x, 127.0) and math.isclose(dpi_y, 127.0)
+
+
+def test_set_dpi_stores_implied_physical_size_and_reads_back() -> None:
+    proj = Project(300, 600)
+    proj.set_dpi(300)  # uniform
+    mm_w, mm_h = proj.physical_size_mm  # type: ignore[misc]
+    assert math.isclose(mm_w, 25.4) and math.isclose(mm_h, 50.8)
+    dpi_x, dpi_y = proj.dpi  # type: ignore[misc]
+    assert math.isclose(dpi_x, 300.0) and math.isclose(dpi_y, 300.0)
+
+
+def test_set_dpi_supports_anisotropic_axes() -> None:
+    proj = Project(300, 300)
+    proj.set_dpi(300, 150)
+    dpi_x, dpi_y = proj.dpi  # type: ignore[misc]
+    assert math.isclose(dpi_x, 300.0) and math.isclose(dpi_y, 150.0)
+
+
+def test_clear_physical_size_drops_size_and_dpi() -> None:
+    proj = Project(100, 100)
+    proj.set_physical_size_mm(10.0, 10.0)
+    proj.clear_physical_size()
+    assert proj.physical_size_mm is None
+    assert proj.dpi is None
+
+
+@pytest.mark.parametrize("bad", [(0.0, 10.0), (10.0, -1.0), (float("nan"), 10.0)])
+def test_set_physical_size_rejects_invalid(bad: tuple[float, float]) -> None:
+    proj = Project(10, 10)
+    with pytest.raises(InvalidLengthError):
+        proj.set_physical_size_mm(*bad)
+    # Ungültige Eingabe verändert das Projekt nicht.
+    assert proj.physical_size_mm is None
+
+
+@pytest.mark.parametrize("bad", [0, -5, float("inf")])
+def test_set_dpi_rejects_invalid(bad: float) -> None:
+    proj = Project(10, 10)
+    with pytest.raises(InvalidResolutionError):
+        proj.set_dpi(bad)
+    assert proj.physical_size_mm is None
+
+
+def test_corrupt_stored_physical_size_raises_on_read() -> None:
+    # Ein direkt manipulierter Metadatenwert wird beim Lesen strukturiert
+    # abgewiesen statt still korrigiert.
+    proj = Project(10, 10, metadata={"physical_size_mm": (0.0, 10.0)})
+    with pytest.raises(InvalidLengthError):
+        _ = proj.physical_size_mm

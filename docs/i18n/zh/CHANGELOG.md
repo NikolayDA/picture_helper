@@ -11,6 +11,13 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **毫米/DPI 作为项目属性 + 共享的无 Qt 几何运算。** 新增严格类型化模块
+  `bgremover/units.py`，将全部 px↔毫米↔DPI 运算集中到一处：从任意两个已知量确定性地推导
+  第三个量（`MM_PER_INCH = 25.4`），校验输入，并将无效值（≤ 0、非数值、形状错误）报告为
+  结构化的 `UnitsError` 错误，而非静默修正。`Project` 新增针对物理目标尺寸（毫米）与分辨率
+  （DPI）的受校验 setter/getter：物理尺寸为权威来源，DPI 由它与像素尺寸推导得出（不会漂移），
+  并在 `.bgrproj` 往返保存/加载后保持数值相等。EufyMake 导出现在使用同一套几何运算
+  （`_derive_physical_size`/`_derive_dpi`/`MM_PER_INCH`），行为保持不变（#376）。
 - **EufyMake Studio 导入：菜单、对话框、检查显示与设置。** 新增菜单操作
   “导出 EufyMake Studio 资源…”（项目菜单，Ctrl+Alt+E）打开一个 Qt 对话框
   （`eufymake_export_dialog.py`）：彩色图案为必选，高度图/光泽蒙版仅在项目支持时可选

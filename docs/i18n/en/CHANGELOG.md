@@ -10,6 +10,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **mm/DPI as a project property + shared Qt-free geometry.** A new, strictly
+  typed module `bgremover/units.py` bundles all px↔mm↔DPI math in one place: from any
+  two known quantities it derives the third deterministically (`MM_PER_INCH = 25.4`),
+  validates inputs and reports invalid values (≤ 0, non-numeric, wrong shape) as
+  structured `UnitsError` errors instead of silently correcting them. `Project` gains
+  validated setters/getters for the physical target size (mm) and the resolution (DPI) –
+  the physical size is the canonical source, the DPI is derived from it and the pixel
+  size (no drift) and survives the `.bgrproj` round-trip value-equal. The EufyMake export
+  now uses the same geometry (`_derive_physical_size`/`_derive_dpi`/`MM_PER_INCH`) with
+  no behavioral change (#376).
 - **EufyMake Studio import: menu, dialog, check display & settings.** A new menu
   action “Export assets for EufyMake Studio…” (Project menu, Ctrl+Alt+E) opens a Qt
   dialog (`eufymake_export_dialog.py`): the color motif is mandatory, the height
