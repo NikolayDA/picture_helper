@@ -28,9 +28,9 @@ from PIL import Image
 from bgremover.eufymake_export import (
     InvalidBitDepthError,
     InvalidPhysicalSizeError,
-    _derive_bit_depth,
     _derive_physical_size,
     can_render_color_motif,
+    coerce_bit_depth,
 )
 from bgremover.height_map import layer_to_height
 from bgremover.i18n import tr
@@ -145,15 +145,17 @@ def validate_export(
     *,
     requested_optional_roles: Iterable[LayerRole] | None = None,
     target_size: tuple[int, int] | None = None,
+    bit_depth: int | None = None,
 ) -> tuple[ExportFinding, ...]:
     """Prüft ``project`` auf konsistente, exportierbare Import-Assets.
 
     ``requested_optional_roles`` benennt die optionalen Rollen, die der Aufrufer
     exportieren möchte; ``None`` bedeutet „alle aktuell im Projekt vergebenen
     optionalen Rollen". ``target_size`` ist die gemeinsame Zielgröße ``(w, h)``;
-    ``None`` nutzt die Canvas-Größe. Es werden **alle** zutreffenden Befunde
-    gesammelt (nicht nur der erste) und deterministisch sortiert zurückgegeben –
-    Fehler vor Warnungen.
+    ``None`` nutzt die Canvas-Größe. ``bit_depth`` überschreibt die aus den
+    Metadaten abgeleitete Tiefe (UI-Wahl 8/16). Es werden **alle** zutreffenden
+    Befunde gesammelt (nicht nur der erste) und deterministisch sortiert
+    zurückgegeben – Fehler vor Warnungen.
     """
     target = target_size if target_size is not None else project.size
     if requested_optional_roles is None:
@@ -165,9 +167,9 @@ def validate_export(
     findings: list[ExportFinding] = []
 
     # ── Zielparameter (Bittiefe / physische Größe) ──────────────────────
-    bit_depth: int | None = None
+    effective_bit_depth: int | None = None
     try:
-        bit_depth = _derive_bit_depth(project.metadata)
+        effective_bit_depth = coerce_bit_depth(project.metadata, bit_depth)
     except InvalidBitDepthError as exc:
         findings.append(_finding(ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
     physical_size: tuple[float, float] | None = None
@@ -220,9 +222,11 @@ def validate_export(
             field_ = layer_to_height(layer.image)
             if int(field_.coverage.max(initial=0)) == 0 or _is_constant(field_.values):
                 findings.append(_finding(ExportCheckCode.HEIGHT_MAP_EMPTY, role=role))
-            if bit_depth == 16:
+            if effective_bit_depth == 16:
                 findings.append(
-                    _finding(ExportCheckCode.BIT_DEPTH_UNCONFIRMED, role=role, bits=bit_depth)
+                    _finding(
+                        ExportCheckCode.BIT_DEPTH_UNCONFIRMED, role=role, bits=effective_bit_depth
+                    )
                 )
         elif role is LayerRole.GLOSS_MASK:
             if _is_constant(_gray_array(layer.image)):

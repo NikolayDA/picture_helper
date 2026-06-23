@@ -10,6 +10,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **EufyMake Studio import: menu, dialog, check display & settings.** A new menu
+  action “Export assets for EufyMake Studio…” (Project menu, Ctrl+Alt+E) opens a Qt
+  dialog (`eufymake_export_dialog.py`): the color motif is mandatory, the height
+  map/gloss mask are selectable only when the project supports them (gloss visibly
+  marked experimental), bit depth 8/16 (16 marked unconfirmed), derived target/
+  physical size, and a **live findings display** from the check (#354): errors
+  block, warnings require explicit confirmation. Writing is atomic via
+  `write_export`; cancel/errors change neither the project nor the target, and an
+  overwrite prompt protects existing folders. The success dialog shows the target
+  path and the next Studio steps (import, positioning, ink-mode/layer assignment,
+  saving as `.empf`). The export folder and general options are remembered in the
+  versioned QSettings (schema v2, additive keys with migration).
+  `build_export_plan`/`write_export` gained `optional_roles`/`bit_depth` for the UI
+  selection. All strings in de/en; the UI consistently talks about import assets,
+  never a finished `.empf` project (#355).
 - **EufyMake export: rendering, atomic writing & consistency check (Qt-free).**
   Two new strictly typed modules build on the plan from #352:
   `bgremover/eufymake_validate.py` (`validate_export`) collects deterministically

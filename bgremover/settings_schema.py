@@ -18,8 +18,17 @@ from PyQt6.QtCore import QSettings
 
 from bgremover.constants import logger
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SCHEMA_VERSION_KEY = "schema_version"
+
+# QSettings-Schluessel des EufyMake-Studio-Imports (#355). Bewusst nicht
+# projektspezifisch: gemerkt werden nur das letzte Exportziel und die zuletzt
+# freigegebenen, allgemeinen Optionen. Eingefuehrt mit Schema-Version 2; fehlen
+# sie (aeltere Settings), greifen beim Lesen schlicht die Defaults.
+EXPORT_DIR_KEY = "eufymake_export_dir"
+EXPORT_INCLUDE_HEIGHT_KEY = "eufymake_include_height"
+EXPORT_INCLUDE_GLOSS_KEY = "eufymake_include_gloss"
+EXPORT_BIT_DEPTH_KEY = "eufymake_bit_depth"
 
 
 def _read_version(settings: QSettings) -> int | None:
@@ -47,11 +56,22 @@ def _migrate_0_to_1(_settings: QSettings) -> None:
     """No-op fuer die erste explizit versionierte Settings-Generation."""
 
 
+def _migrate_1_to_2(_settings: QSettings) -> None:
+    """No-op: Version 2 fuegt nur additive EufyMake-Export-Schluessel hinzu.
+
+    Die neuen Schluessel (``EXPORT_*``) defaulten beim Lesen, wenn sie fehlen –
+    es muss nichts umgeschrieben werden. Der Schritt ist dennoch explizit
+    registriert, damit jede Vorversion einen lueckenlosen Weg zur aktuellen
+    Version hat (siehe ``test_every_supported_previous_version_has_a_registered_step``).
+    """
+
+
 # Migrationen von Version N nach N+1. Auch No-op-Schritte werden explizit
 # registriert, damit jede unterstuetzte Vorversion einen eindeutigen Weg zur
 # aktuellen Version besitzt.
 _MIGRATIONS: dict[int, Callable[[QSettings], None]] = {
     0: _migrate_0_to_1,
+    1: _migrate_1_to_2,
 }
 
 

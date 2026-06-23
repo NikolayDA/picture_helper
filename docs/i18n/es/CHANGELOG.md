@@ -11,6 +11,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Importación a EufyMake Studio: menú, diálogo, panel de comprobación y
+  ajustes.** Una nueva acción de menú «Exportar activos para EufyMake Studio…»
+  (menú Proyecto, Ctrl+Alt+E) abre un diálogo de Qt (`eufymake_export_dialog.py`):
+  el motivo de color es obligatorio, el mapa de altura/la máscara de brillo solo
+  son seleccionables cuando el proyecto lo permite (el brillo marcado como
+  experimental), profundidad de bits 8/16 (16 marcado como no confirmado), tamaño
+  objetivo/físico derivado y una **lista de hallazgos en vivo** de la comprobación
+  (#354): los errores bloquean y las advertencias exigen confirmación explícita.
+  La escritura es atómica mediante `write_export`; cancelar/los errores no cambian
+  ni el proyecto ni el destino, y una confirmación de sobrescritura protege las
+  carpetas existentes. El diálogo de éxito muestra la ruta y los siguientes pasos
+  en Studio (importar, posicionar, asignar modo de tinta/capa, guardar como
+  `.empf`). La carpeta de exportación y las opciones generales se recuerdan en los
+  QSettings versionados (esquema v2, claves aditivas con migración).
+  `build_export_plan`/`write_export` ganaron `optional_roles`/`bit_depth` para la
+  selección de la IU. Todas las cadenas en de/en; la IU habla siempre de activos de
+  importación, nunca de un proyecto `.empf` terminado (#355).
 - **Exportación EufyMake: renderizado, escritura atómica y verificación de
   consistencia (sin Qt).** Dos nuevos módulos con tipado estricto se apoyan en el
   plan de #352: `bgremover/eufymake_validate.py` (`validate_export`) recopila

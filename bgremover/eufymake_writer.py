@@ -31,7 +31,7 @@ import os
 import shutil
 import tempfile
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -284,13 +284,17 @@ def write_export(
     project: Project,
     dest: str | os.PathLike[str],
     *,
+    optional_roles: Iterable[LayerRole] | None = None,
+    bit_depth: int | None = None,
     overwrite: bool = False,
     confirm_warnings: bool = False,
     validate: bool = True,
 ) -> Path:
     """Validiert, rendert und schreibt das EufyMake-Importpaket atomar nach ``dest``.
 
-    ``dest`` ist der Zielordner. Mit ``validate=True`` (Standard) läuft zuerst die
+    ``dest`` ist der Zielordner. ``optional_roles`` wählt die einzubeziehenden
+    optionalen Assets (``None`` = alle vorhandenen) und wird konsistent an Prüfung
+    und Plan durchgereicht. Mit ``validate=True`` (Standard) läuft zuerst die
     Konsistenzprüfung (#354): **Fehler** lösen :class:`ExportValidationError` aus
     und verhindern jeden Schreibzugriff; liegen nur **Warnungen** vor, ist
     ``confirm_warnings=True`` nötig, sonst :class:`ExportConfirmationRequired`.
@@ -300,11 +304,15 @@ def write_export(
     """
     target_dir = Path(dest)
     if validate:
-        errors, warnings = split_findings(validate_export(project))
+        errors, warnings = split_findings(
+            validate_export(
+                project, requested_optional_roles=optional_roles, bit_depth=bit_depth
+            )
+        )
         if errors:
             raise ExportValidationError(errors)
         if warnings and not confirm_warnings:
             raise ExportConfirmationRequired(warnings)
-    plan = build_export_plan(project)
+    plan = build_export_plan(project, optional_roles=optional_roles, bit_depth=bit_depth)
     rendered = render_export(project, plan)
     return _atomic_publish(rendered, target_dir, overwrite=overwrite)

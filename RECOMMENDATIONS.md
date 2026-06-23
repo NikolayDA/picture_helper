@@ -22,6 +22,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Dateiendungen, atomisches Speichern, CI-Qt-Pakete, Lazy-Import und Docstring.
 - **O2/O3/O4/O5/O6** sind umgesetzt: Linux-Pakete, Release-Workflow,
   Vollmatrix, `ui_smoke` und plattformgerechte Werkzeug-Shortcuts.
+- Das Epic **#351 (EufyMake-Importpaket)** ist mit **#352–#355** abgeschlossen (Datenmodell+ADR, Rendern/atomares Schreiben, Konsistenzprüfung, UI/Dialog/Settings); Import-Assets statt nativem `.empf`, durch Unit-/`ui_smoke`-Tests abgesichert.
 - Die Befunde **#163–#206** wurden in den dokumentierten PRs geschlossen und
   mit Regressionstests beziehungsweise CI-Prüfungen abgesichert.
 - Die PRs **#263–#269** haben **#257, #258, #234 + #259, #248 + #260, #231**

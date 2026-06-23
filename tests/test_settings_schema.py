@@ -18,6 +18,7 @@ from PyQt6.QtCore import QSettings
 
 import bgremover.settings_schema as _ss
 from bgremover.settings_schema import (
+    EXPORT_DIR_KEY,
     SCHEMA_VERSION,
     SCHEMA_VERSION_KEY,
     migrate,
@@ -67,6 +68,26 @@ def test_migrate_upgrades_pre_schema_settings_without_data_loss(isolated_setting
     assert int(after.value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
     assert after.value("recent_files") == ["/tmp/a.png", "/tmp/b.png"]
     assert after.value("open_dir") == "/home/u/Bilder"
+
+
+def test_migrate_v1_to_current_keeps_keys_and_defaults_new(isolated_settings):
+    """Bestehende v1-Settings werden lückenlos auf die aktuelle Version gehoben,
+    ohne vorhandene Schlüssel zu verlieren; die additiven EufyMake-Export-Keys
+    (#355) fehlen weiterhin und defaulten beim Lesen.
+    """
+    pre = _settings()
+    pre.setValue("save_dir", "/home/u/Export")
+    pre.setValue(SCHEMA_VERSION_KEY, 1)
+    pre.sync()
+
+    migrate(pre)
+    pre.sync()
+
+    after = _settings()
+    assert int(after.value(SCHEMA_VERSION_KEY)) == SCHEMA_VERSION
+    assert after.value("save_dir") == "/home/u/Export"
+    # Additive Keys werden nicht erzwungen – sie defaulten erst beim Lesen.
+    assert after.value(EXPORT_DIR_KEY, "FALLBACK") == "FALLBACK"
 
 
 def test_migrate_is_idempotent(isolated_settings):

@@ -129,7 +129,15 @@ Ein Paket, `bgremover/`:
   Warnungen→`ExportConfirmationRequired` ohne `confirm_warnings`), rendert in ein
   Temp-Verzeichnis und veröffentlicht via **einem** `os.replace` (vorhandenes Ziel
   bleibt bei Fehlern unversehrt, Temp wird aufgeräumt; `overwrite` steuert
-  Kollisionen). Kein natives `.empf`. UI/Settings folgen in #355.
+  Kollisionen). Kein natives `.empf`. UI/Settings (#355): `eufymake_export_dialog.py`
+  (`EufyMakeExportDialog`) bietet Options-Gating (Height/Gloss nur bei kompatibler
+  Projektlage, Bittiefe 8/16), abgeleitete Zielinfos und eine **Live-Befundanzeige**
+  (Fehler sperren, Warnungen brauchen Bestätigung); das MainWindow verdrahtet die
+  Menüaktion „Assets für EufyMake Studio exportieren…" (`Strg+Alt+E`), atomares
+  Schreiben mit Überschreib-Nachfrage, Erfolgsdialog mit nächsten Studio-Schritten
+  und merkt Zielordner/Optionen in den QSettings (Schema v2). `build_export_plan`/
+  `write_export`/`validate_export` nehmen `optional_roles`/`bit_depth` als UI-Auswahl
+  ohne Projekt-Mutation entgegen.
 - **Hintergrund-Entfernung:** `workers.py` / `worker_controller.py`; die nicht
   unterbrechbare rembg/ONNX-Inferenz läuft in einem eigenen, per `spawn`
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch

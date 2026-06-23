@@ -401,6 +401,22 @@ Choisissez le **format de fichier** souhaité dans la boîte de dialogue :
 > Pour conserver le détourage, **choisissez toujours PNG, WebP ou TIFF** —
 > JPEG remplit les zones transparentes de blanc.
 
+### Exporter pour EufyMake Studio
+
+Via `Projet → Exporter des assets pour EufyMake Studio…` (Ctrl+Alt+E), BgRemover
+écrit des **assets d’import** pour EufyMake Studio – **pas** un fichier `.empf`
+fini :
+
+- **Motif couleur** (obligatoire) en PNG RGBA issu du composite couleur.
+- **Carte de hauteur** (facultative, seulement si un calque de hauteur existe) en
+  niveaux de gris avec **clair = haut, sombre = bas**.
+- **Masque de brillance** (facultatif, expérimental) comme asset auxiliaire.
+
+Le dialogue contrôle le projet **avant** l’écriture : les erreurs bloquent
+l’export, les avertissements doivent être confirmés délibérément. Ensuite, vous
+importez et positionnez les assets dans EufyMake Studio, y attribuez les modes
+d’encre/calques et enregistrez le projet Studio lui-même en `.empf`.
+
 ---
 
 ## 12. Paramètres

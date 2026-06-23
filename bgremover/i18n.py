@@ -126,6 +126,64 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber kein "
             "bestätigter Herstellervertrag."
         ),
+        # EufyMake-Export – Menü, Dialog & Meldungen (#355)
+        "action.export_eufymake": "Assets für EufyMake Studio exportieren…",
+        "eufymake.dialog.title": "Assets für EufyMake Studio exportieren",
+        "eufymake.dialog.intro": (
+            "BgRemover schreibt Import-Assets für EufyMake Studio – kein fertiges "
+            "„.empf“-Projekt. Importiere und positioniere sie anschließend in "
+            "Studio, weise dort Ink-Modi/Layer zu und speichere das Projekt selbst "
+            "als „.empf“."
+        ),
+        "eufymake.dialog.section.assets": "Assets",
+        "eufymake.dialog.color_motif": "Farbmotiv (erforderlich)",
+        "eufymake.dialog.color_motif.hint": (
+            "RGBA-PNG aus dem Farbkomposit; Transparenz bleibt erhalten."
+        ),
+        "eufymake.dialog.height": "Höhenkarte einbeziehen",
+        "eufymake.dialog.height.hint": "Graustufen-PNG: hell = hoch, dunkel = niedrig.",
+        "eufymake.dialog.height.unavailable": "Keine Höhenebene im Projekt.",
+        "eufymake.dialog.gloss": "Gloss-Maske einbeziehen (experimentell)",
+        "eufymake.dialog.gloss.hint": (
+            "Optionales Hilfsasset. Ink-Mode und Layerzuweisung erfolgen in "
+            "EufyMake Studio."
+        ),
+        "eufymake.dialog.gloss.unavailable": "Keine Gloss-Ebene im Projekt.",
+        "eufymake.dialog.section.target": "Zielparameter",
+        "eufymake.dialog.bit_depth": "Bittiefe der Höhenkarte:",
+        "eufymake.dialog.bit_depth.8": "8 Bit (Standard)",
+        "eufymake.dialog.bit_depth.16": "16 Bit (experimentell, nicht bestätigt)",
+        "eufymake.dialog.size": "Zielgröße: {w} × {h} px",
+        "eufymake.dialog.physical": "Physische Größe: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical.unset": "Physische Größe: nicht gesetzt",
+        "eufymake.dialog.section.dest": "Ziel",
+        "eufymake.dialog.dest.label": "Exportordner:",
+        "eufymake.dialog.dest.placeholder": "Noch kein Ordner gewählt",
+        "eufymake.dialog.dest.browse": "Durchsuchen…",
+        "eufymake.dialog.dest.dialog_title": "Exportordner wählen",
+        "eufymake.dialog.section.findings": "Prüfung",
+        "eufymake.dialog.findings.ok": "Keine Beanstandungen.",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "Warnungen verstanden – trotzdem exportieren",
+        "eufymake.dialog.cancel": "Abbrechen",
+        "eufymake.dialog.export": "Exportieren",
+        "eufymake.status.no_project": "Kein Projekt zum Exportieren",
+        "eufymake.status.cancelled": "Export abgebrochen",
+        "eufymake.status.exported": "✅ Assets für EufyMake Studio exportiert: {path}",
+        "eufymake.error.title": "Export fehlgeschlagen",
+        "eufymake.error.write": "Export fehlgeschlagen: {error}",
+        "eufymake.error.blocked": "Export blockiert – bitte zuerst beheben:\n{details}",
+        "eufymake.overwrite.title": "Ordner überschreiben?",
+        "eufymake.overwrite.body": "„{path}“ existiert bereits. Inhalt ersetzen?",
+        "eufymake.success.title": "Export abgeschlossen",
+        "eufymake.success.body": (
+            "Import-Assets geschrieben nach:\n{path}\n\n"
+            "Nächste Schritte in EufyMake Studio:\n"
+            "1. Assets importieren und positionieren.\n"
+            "2. Ink-Modi/Layer zuweisen (z. B. Gloss/Varnish).\n"
+            "3. Projekt in Studio als „.empf“ speichern."
+        ),
         # Ebenen-Panel & Projekt-Aktionen (#334)
         "layers.new_name": "Ebene {n}",
         "layers.role.none": "Keine",
@@ -705,6 +763,63 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "Physical size and the pixel↔mm/DPI assumption are plausible but not a "
             "confirmed vendor contract."
+        ),
+        # EufyMake export – menu, dialog & messages (#355)
+        "action.export_eufymake": "Export assets for EufyMake Studio…",
+        "eufymake.dialog.title": "Export assets for EufyMake Studio",
+        "eufymake.dialog.intro": (
+            "BgRemover writes import assets for EufyMake Studio – not a finished "
+            "“.empf” project. Import and position them in Studio afterwards, assign "
+            "ink modes/layers there, and save the project yourself as “.empf”."
+        ),
+        "eufymake.dialog.section.assets": "Assets",
+        "eufymake.dialog.color_motif": "Color motif (required)",
+        "eufymake.dialog.color_motif.hint": (
+            "RGBA PNG from the color composite; transparency is preserved."
+        ),
+        "eufymake.dialog.height": "Include height map",
+        "eufymake.dialog.height.hint": "Grayscale PNG: light = high, dark = low.",
+        "eufymake.dialog.height.unavailable": "No height layer in the project.",
+        "eufymake.dialog.gloss": "Include gloss mask (experimental)",
+        "eufymake.dialog.gloss.hint": (
+            "Optional helper asset. Ink mode and layer assignment happen in "
+            "EufyMake Studio."
+        ),
+        "eufymake.dialog.gloss.unavailable": "No gloss layer in the project.",
+        "eufymake.dialog.section.target": "Target parameters",
+        "eufymake.dialog.bit_depth": "Height-map bit depth:",
+        "eufymake.dialog.bit_depth.8": "8-bit (default)",
+        "eufymake.dialog.bit_depth.16": "16-bit (experimental, unconfirmed)",
+        "eufymake.dialog.size": "Target size: {w} × {h} px",
+        "eufymake.dialog.physical": "Physical size: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical.unset": "Physical size: not set",
+        "eufymake.dialog.section.dest": "Destination",
+        "eufymake.dialog.dest.label": "Export folder:",
+        "eufymake.dialog.dest.placeholder": "No folder selected yet",
+        "eufymake.dialog.dest.browse": "Browse…",
+        "eufymake.dialog.dest.dialog_title": "Choose export folder",
+        "eufymake.dialog.section.findings": "Check",
+        "eufymake.dialog.findings.ok": "No issues found.",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "I understand the warnings – export anyway",
+        "eufymake.dialog.cancel": "Cancel",
+        "eufymake.dialog.export": "Export",
+        "eufymake.status.no_project": "No project to export",
+        "eufymake.status.cancelled": "Export cancelled",
+        "eufymake.status.exported": "✅ Assets exported for EufyMake Studio: {path}",
+        "eufymake.error.title": "Export failed",
+        "eufymake.error.write": "Export failed: {error}",
+        "eufymake.error.blocked": "Export blocked – please fix these first:\n{details}",
+        "eufymake.overwrite.title": "Overwrite folder?",
+        "eufymake.overwrite.body": "“{path}” already exists. Replace its contents?",
+        "eufymake.success.title": "Export complete",
+        "eufymake.success.body": (
+            "Import assets written to:\n{path}\n\n"
+            "Next steps in EufyMake Studio:\n"
+            "1. Import and position the assets.\n"
+            "2. Assign ink modes/layers (e.g. gloss/varnish).\n"
+            "3. Save the project in Studio as “.empf”."
         ),
         # Layer panel & project actions (#334)
         "layers.new_name": "Layer {n}",

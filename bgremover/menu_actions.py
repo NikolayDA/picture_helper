@@ -32,6 +32,7 @@ class MainMenuCallbacks:
     open_project: Callable[[], None]
     save_project: Callable[[], None]
     save_project_as: Callable[[], None]
+    export_eufymake: Callable[[], None]
     undo: Callable[[], None]
     redo: Callable[[], None]
     rotate: Callable[[int], None]
@@ -86,6 +87,10 @@ def build_main_menu(
     _add_action(
         project_menu, parent, tr("action.save_project_as"),
         callbacks.save_project_as, "Ctrl+Alt+Shift+S")
+    project_menu.addSeparator()
+    _add_action(
+        project_menu, parent, tr("action.export_eufymake"),
+        callbacks.export_eufymake, "Ctrl+Alt+E")
 
     edit_menu = _add_menu(menu_bar, tr("menu.edit"))
     _add_action(edit_menu, parent, tr("action.undo"), callbacks.undo, "Ctrl+Z")

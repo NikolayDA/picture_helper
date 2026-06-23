@@ -34,6 +34,14 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop_bar import CropBar
+from bgremover.eufymake_export_dialog import EufyMakeExportDialog
+from bgremover.eufymake_validate import format_finding
+from bgremover.eufymake_writer import (
+    EufyMakeWriteError,
+    ExportTargetExistsError,
+    ExportValidationError,
+    write_export,
+)
 from bgremover.height_map_panel import HeightMapActions
 from bgremover.history_popup import HistoryPopup
 from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
@@ -51,7 +59,7 @@ from bgremover.project_io import (
     load_project,
     save_project,
 )
-from bgremover.project_model import LayerKind, Project
+from bgremover.project_model import LayerKind, LayerRole, Project
 from bgremover.recent_files import (
     RECENT_MAX,
     SETTINGS_RECENT_KEY,
@@ -64,7 +72,13 @@ from bgremover.right_panel import (
     build_right_panel,
 )
 from bgremover.settings_dialog import SettingsDialog
-from bgremover.settings_schema import is_future_schema
+from bgremover.settings_schema import (
+    EXPORT_BIT_DEPTH_KEY,
+    EXPORT_DIR_KEY,
+    EXPORT_INCLUDE_GLOSS_KEY,
+    EXPORT_INCLUDE_HEIGHT_KEY,
+    is_future_schema,
+)
 from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.status_messages import StatusMessages as SM
 from bgremover.theme import (
@@ -316,6 +330,7 @@ class MainWindow(QMainWindow):
                 open_project=self._open_project,
                 save_project=self._save_project,
                 save_project_as=self._save_project_as,
+                export_eufymake=self._export_eufymake,
                 undo=self._canvas.undo,
                 redo=self._canvas.redo,
                 rotate=self._canvas.apply_rotate,
@@ -752,6 +767,88 @@ class MainWindow(QMainWindow):
         """Zeigt einen Projekt-Lade-/Speicherfehler in Statusleiste + Dialog."""
         self._sb.showMessage(message)
         QMessageBox.warning(self, tr("dialog.project_error.title"), message)
+
+    # ── EufyMake-Studio-Import-Export (#355) ────────────────────
+
+    def _export_eufymake(self) -> None:
+        """Exportiert Import-Assets für EufyMake Studio: Dialog → Prüfung → Schreiben.
+
+        Der Dialog blockt schon bei Fehlern und verlangt für Warnungen eine
+        bewusste Bestätigung (#354). Abbruch bleibt seiteneffektfrei; geschrieben
+        wird atomar über ``write_export``.
+        """
+        project = self._canvas.project
+        if project is None:
+            self._sb.showMessage(tr("eufymake.status.no_project"))
+            return
+        dlg = EufyMakeExportDialog(
+            project,
+            include_height=self._settings.value(EXPORT_INCLUDE_HEIGHT_KEY, True, type=bool),
+            include_gloss=self._settings.value(EXPORT_INCLUDE_GLOSS_KEY, True, type=bool),
+            bit_depth=self._settings.value(EXPORT_BIT_DEPTH_KEY, 8, type=int),
+            dest_dir=self._settings.value(EXPORT_DIR_KEY, "", type=str),
+            parent=self,
+        )
+        if not dlg.exec():
+            self._sb.showMessage(tr("eufymake.status.cancelled"))
+            return
+        roles = dlg.selected_optional_roles()
+        bits = dlg.selected_bit_depth()
+        dest = dlg.selected_destination()
+        self._remember_export_options(dest, roles, bits)
+        self._write_eufymake(project, dest, roles, bits, dlg.warnings_confirmed())
+
+    def _write_eufymake(
+        self,
+        project: Project,
+        dest: str,
+        roles: list[LayerRole],
+        bits: int,
+        confirm: bool,
+        *,
+        overwrite: bool = False,
+    ) -> None:
+        """Schreibt das Importpaket atomar und meldet Erfolg/Fehler verständlich."""
+        try:
+            written = write_export(
+                project, dest,
+                optional_roles=roles, bit_depth=bits,
+                confirm_warnings=confirm, overwrite=overwrite,
+            )
+        except ExportTargetExistsError:
+            if self._confirm_overwrite(dest):
+                self._write_eufymake(project, dest, roles, bits, confirm, overwrite=True)
+            else:
+                self._sb.showMessage(tr("eufymake.status.cancelled"))
+            return
+        except ExportValidationError as exc:
+            details = "\n".join(format_finding(finding) for finding in exc.findings)
+            QMessageBox.critical(
+                self, tr("eufymake.error.title"), tr("eufymake.error.blocked", details=details))
+            return
+        except (EufyMakeWriteError, OSError) as exc:
+            logger.exception("EufyMake-Export fehlgeschlagen: %s", dest)
+            QMessageBox.critical(
+                self, tr("eufymake.error.title"), tr("eufymake.error.write", error=str(exc)))
+            return
+        self._sb.showMessage(tr("eufymake.status.exported", path=str(written)))
+        QMessageBox.information(
+            self, tr("eufymake.success.title"), tr("eufymake.success.body", path=str(written)))
+
+    def _confirm_overwrite(self, dest: str) -> bool:
+        """Fragt nach, ob ein bereits vorhandener Exportordner ersetzt werden darf."""
+        reply = QMessageBox.question(
+            self, tr("eufymake.overwrite.title"), tr("eufymake.overwrite.body", path=dest))
+        return reply == QMessageBox.StandardButton.Yes
+
+    def _remember_export_options(
+        self, dest: str, roles: list[LayerRole], bits: int,
+    ) -> None:
+        """Persistiert Zielordner und allgemeine (nicht projektspezifische) Optionen."""
+        self._settings.setValue(EXPORT_DIR_KEY, dest)
+        self._settings.setValue(EXPORT_INCLUDE_HEIGHT_KEY, LayerRole.HEIGHT_MAP in roles)
+        self._settings.setValue(EXPORT_INCLUDE_GLOSS_KEY, LayerRole.GLOSS_MASK in roles)
+        self._settings.setValue(EXPORT_BIT_DEPTH_KEY, bits)
 
     # ── Recent-Files ────────────────────────────────────────────
 
