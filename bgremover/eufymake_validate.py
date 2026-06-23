@@ -27,8 +27,6 @@ from PIL import Image
 
 from bgremover.eufymake_export import (
     InvalidBitDepthError,
-    InvalidPhysicalSizeError,
-    _derive_physical_size,
     can_render_color_motif,
     coerce_bit_depth,
 )
@@ -43,6 +41,7 @@ from bgremover.export_checks import split_findings as split_findings
 from bgremover.height_map import layer_to_height
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, Project
+from bgremover.units import UnitsError
 
 # Optionale Rollen, die der Aufrufer für den Export auswählen kann. Das Farbmotiv
 # (``COLOR_MOTIF``) ist immer erforderlich und daher hier nicht enthalten.
@@ -174,8 +173,13 @@ def validate_export(
         findings.append(_finding(ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
     physical_size: tuple[float, float] | None = None
     try:
-        physical_size = _derive_physical_size(project.metadata)
-    except InvalidPhysicalSizeError as exc:
+        # Über den strikten Projektmodell-Getter (#376), damit die Prüfung
+        # deckungsgleich mit dem Render-/Schreibpfad (``_derive_target``) bleibt:
+        # auch ein vorhandener ungültiger Wert (z. B. ``physical_size_mm: null``)
+        # wird hier als blockierender Befund gemeldet, statt erst im Writer mit
+        # einer nicht abgefangenen Ausnahme aufzuschlagen.
+        physical_size = project.physical_size_mm
+    except UnitsError as exc:
         findings.append(_finding(ExportCheckCode.INVALID_TARGET_PARAMS, detail=str(exc)))
     if target[0] <= 0 or target[1] <= 0:
         findings.append(

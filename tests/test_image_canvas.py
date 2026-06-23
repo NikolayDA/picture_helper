@@ -203,6 +203,29 @@ def test_save_image_without_image_reports_and_returns_false(qapp, tmp_path):
     assert any("kein bild" in m.lower() for m in msgs), msgs
 
 
+# ── Physische Größe / DPI-Einbettung (#377/#378) ───────────────────────
+
+def test_set_physical_size_mm_records_unsaved_change(qapp):
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(Image.new("RGBA", (300, 600), (1, 2, 3, 255)), "seed.png")
+    before = canvas.content_revision
+    canvas.set_physical_size_mm(25.4, 50.8)
+    assert canvas.project is not None
+    assert canvas.project.physical_size_mm == (25.4, 50.8)
+    # Reine mm-/DPI-Änderung muss als ungespeicherte Änderung zählen.
+    assert canvas.content_revision != before
+
+
+def test_save_embeds_project_dpi(qapp, tmp_path):
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(Image.new("RGBA", (300, 300), (1, 2, 3, 255)), "seed.png")
+    canvas.set_physical_size_mm(25.4, 25.4)  # 300 px / 25,4 mm = 300 DPI
+    out = tmp_path / "dpi.png"
+    assert canvas.save_image(str(out)) is True
+    dpi = Image.open(out).info.get("dpi")
+    assert dpi is not None and round(dpi[0]) == 300
+
+
 # ── Redo-Stack ─────────────────────────────────────────────────────────
 
 def _seed_canvas(color):

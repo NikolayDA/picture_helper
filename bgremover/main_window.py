@@ -293,23 +293,24 @@ class MainWindow(QMainWindow):
             self._sb.showMessage(SM.KEIN_BILD_GELADEN)
             return
         try:
-            pre_mm, pre_dpi = project.physical_size_mm, project.dpi
+            pre_dpi = project.dpi
         except UnitsError:
-            pre_mm, pre_dpi = None, None
-        dlg = ResizeDialog(
-            project.width, project.height, self,
-            physical_size_mm=pre_mm, dpi=pre_dpi,
-        )
+            pre_dpi = None
+        dlg = ResizeDialog(project.width, project.height, self, dpi=pre_dpi)
         if dlg.exec():
             width, height = dlg.selected_size()
             self._canvas.apply_resize(
                 width, height, resample=dlg.selected_resample())
             # Im mm-Modus die physische Zielgröße (mm) als kanonische Quelle (#376)
-            # im Projekt verankern – die DPI ergibt sich daraus und der neuen
-            # Pixelgröße. Reine Pixel-Resizes lassen die physische Größe unberührt.
+            # im Projekt verankern – nur **wenn** das Resampling die Zielgröße auch
+            # erreicht hat (No-op eingeschlossen). Wurde es am Megapixel-Gate
+            # abgelehnt, bleibt die alte Pixelgröße bestehen und dürfte nicht mit
+            # einer neuen mm-Größe gepaart werden. Das Setzen läuft über den Canvas,
+            # der die content_revision anhebt (sonst ginge eine reine mm-Änderung im
+            # No-op-Fall am „ungespeicherte Änderungen"-Schutz vorbei).
             mm = dlg.selected_physical_size_mm()
-            if mm is not None:
-                project.set_physical_size_mm(*mm)
+            if mm is not None and project.size == (width, height):
+                self._canvas.set_physical_size_mm(*mm)
 
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""

@@ -238,6 +238,49 @@ def test_save_as_without_image_reports_status(win):
     assert win.statusBar().currentMessage() == SM.KEIN_BILD_ZUM_SPEICHERN
 
 
+# ── Resize mm-Modus: physische Größe nur bei erreichter Zielgröße (#377) ──
+
+def _fake_resize_dialog(size, mm):
+    """Fabrik für einen gepatchten ResizeDialog mit festen Rückgaben."""
+    class _Dialog:
+        def __init__(self, *a, **k):
+            pass
+
+        def exec(self):
+            return True
+
+        def selected_size(self):
+            return size
+
+        def selected_resample(self):
+            return Image.Resampling.LANCZOS
+
+        def selected_physical_size_mm(self):
+            return mm
+
+    return _Dialog
+
+
+def test_resize_mm_rejected_target_does_not_set_physical_size(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)  # 4×4
+    # Zielgröße über dem Megapixel-Gate → apply_resize lehnt ab, Pixelgröße bleibt.
+    monkeypatch.setattr(mw, "ResizeDialog", _fake_resize_dialog((50000, 50000), (500.0, 500.0)))
+    win._resize_image()
+    assert win._canvas.project.size == (4, 4)
+    assert win._canvas.project.physical_size_mm is None
+
+
+def test_resize_mm_noop_sets_physical_size_and_marks_unsaved(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)  # 4×4 (als gespeichert markiert)
+    before = win._canvas.content_revision
+    # Zielgröße == aktuelle Größe → apply_resize ist ein No-op, die mm-Größe muss
+    # dennoch verankert und als ungespeicherte Änderung markiert werden.
+    monkeypatch.setattr(mw, "ResizeDialog", _fake_resize_dialog((4, 4), (50.0, 25.0)))
+    win._resize_image()
+    assert win._canvas.project.physical_size_mm == (50.0, 25.0)
+    assert win._canvas.content_revision != before
+
+
 def test_save_as_cancelled_dialog_does_not_save(win, tmp_path, monkeypatch):
     _load_dummy_image(win, tmp_path)
     monkeypatch.setattr(QFileDialog, "getSaveFileName",

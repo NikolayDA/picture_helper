@@ -1540,6 +1540,20 @@ class ImageCanvas(QGraphicsView):
         """
         self._transform.apply_resize(width, height, resample)
 
+    def set_physical_size_mm(self, width_mm: float, height_mm: float) -> None:
+        """Verankert die physische Zielgröße (mm) im Projekt und markiert Änderung (#377).
+
+        Schreibt die kanonische physische Größe über den Projektmodell-Setter (#376)
+        und hebt die ``content_revision`` an, damit der „ungespeicherte Änderungen"-
+        Schutz auch dann greift, wenn die Größenänderung selbst ein No-op war (reine
+        DPI-/mm-Metadaten-Änderung) – sonst ginge sie beim Schließen/Bildwechsel
+        unbemerkt verloren. Ohne Projekt ein No-op.
+        """
+        if self._project is None:
+            return
+        self._project.set_physical_size_mm(width_mm, height_mm)
+        self._content_revision += 1
+
     def resize_project(
         self,
         width: int,

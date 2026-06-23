@@ -68,22 +68,22 @@ class ResizeDialog(QDialog):
         height: int,
         parent: QWidget | None = None,
         *,
-        physical_size_mm: tuple[float, float] | None = None,
         dpi: tuple[float, float] | None = None,
     ) -> None:
         super().__init__(parent)
         self._orig_w = width
         self._orig_h = height
-        # mm-/DPI-Vorbelegung: vorhandene Projektwerte (#376) bevorzugt, sonst aus
-        # der Pixelgröße bei Standard-DPI abgeleitet.
+        # mm-/DPI-Vorbelegung: das DPI-Feld ist **uniform** (eine Auflösung für
+        # beide Achsen). Damit ein Öffnen-und-Bestätigen ohne Änderung die
+        # Pixelgröße exakt erhält (kein überraschendes Resampling), werden die
+        # mm-Felder aus der **aktuellen Pixelgröße bei dieser DPI** abgeleitet –
+        # auch für Projekte mit (seltener) achsenungleicher DPI. Für die übliche
+        # uniforme DPI deckt sich das exakt mit der gespeicherten physischen Größe.
         self._init_dpi = dpi[0] if dpi is not None else _DEFAULT_DPI
-        if physical_size_mm is not None:
-            self._init_mm = physical_size_mm
-        else:
-            self._init_mm = (
-                mm_from_px_dpi(width, self._init_dpi),
-                mm_from_px_dpi(height, self._init_dpi),
-            )
+        self._init_mm = (
+            mm_from_px_dpi(width, self._init_dpi),
+            mm_from_px_dpi(height, self._init_dpi),
+        )
         self.setWindowTitle(tr("resize.title"))
         self.setMinimumWidth(380)
         self._build_ui(width, height)

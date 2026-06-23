@@ -85,6 +85,19 @@ def test_mm_mode_derives_pixel_size_from_mm_and_dpi(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
+def test_mm_mode_seed_preserves_pixels_for_non_uniform_dpi(qapp) -> None:
+    # 300×600 px mit achsenungleicher DPI (300, 600): Öffnen im mm-Modus und
+    # Bestätigen ohne Änderung darf die Pixelgröße nicht verändern (kein
+    # überraschendes Resampling, weil eine Achse verworfen würde).
+    dlg = ResizeDialog(300, 600, dpi=(300.0, 600.0))
+    try:
+        dlg._mode.setCurrentIndex(1)  # mm
+        assert dlg.selected_size() == (300, 600)
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
 def test_mm_mode_dpi_change_updates_pixel_size(qapp) -> None:
     dlg = ResizeDialog(300, 300)
     try:
