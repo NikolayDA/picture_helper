@@ -153,6 +153,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Motiv überschreitet die Druckfläche: "
             "{width}×{height} mm > {medium_w}×{medium_h} mm."
         ),
+        # Pre-Export-Prüfung beim normalen Speichern (#380)
+        "export.check.error.title": "Speichern nicht möglich",
+        "export.check.blocked": (
+            "Das Speichern wurde wegen folgender Probleme abgebrochen:\n\n{details}"
+        ),
+        "export.check.warning.title": "Warnungen vor dem Speichern",
+        "export.check.confirm": (
+            "Es liegen Warnungen vor:\n\n{details}\n\nTrotzdem speichern?"
+        ),
         # EufyMake-Export – Menü, Dialog & Meldungen (#355)
         "action.export_eufymake": "Assets für EufyMake Studio exportieren…",
         "eufymake.dialog.title": "Assets für EufyMake Studio exportieren",
@@ -838,6 +847,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "export.checks.print_area_exceeded": (
             "Motif exceeds the print area: "
             "{width}×{height} mm > {medium_w}×{medium_h} mm."
+        ),
+        # Pre-export checks on a normal save (#380)
+        "export.check.error.title": "Cannot save",
+        "export.check.blocked": (
+            "Saving was aborted due to the following problems:\n\n{details}"
+        ),
+        "export.check.warning.title": "Warnings before saving",
+        "export.check.confirm": (
+            "There are warnings:\n\n{details}\n\nSave anyway?"
         ),
         # EufyMake export – menu, dialog & messages (#355)
         "action.export_eufymake": "Export assets for EufyMake Studio…",

@@ -11,6 +11,16 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Comprobación previa a la exportación al guardar normalmente.** «Guardar»/«Guardar
+  como…» ejecuta ahora la comprobación general (#379) sobre el proyecto antes de
+  escribir y muestra los hallazgos igual que el flujo de EufyMake: los **errores
+  bloquean** el guardado con un mensaje claro (sin llamada de escritura), las
+  **advertencias** requieren una confirmación consciente. Cancelar no tiene efectos
+  secundarios (sin escritura, sin archivos temporales). La transparencia parcial no se
+  señala a propósito: es el resultado normal de una herramienta de recorte de fondo.
+  Todos los textos en de/en; la presentación de hallazgos reutiliza la misma lógica de
+  `format_finding` que la vista de EufyMake (#380). Con esto se completa el epic #375
+  (salida con medidas exactas + comprobaciones de exportación).
 - **Modo mm/PPP en el diálogo «Redimensionar…» + comprobación de área de impresión.**
   El diálogo de redimensionado ofrece ahora dos unidades: píxeles (como antes) y
   **milímetros + PPP**. En el modo mm se introducen ancho/alto en mm y los PPP, el

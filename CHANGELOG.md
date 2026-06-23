@@ -11,6 +11,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Pre-Export-Prüfung beim normalen Speichern.** „Speichern"/„Speichern unter…"
+  führt jetzt vor dem Schreiben die allgemeine Prüfung (#379) auf dem Projekt aus
+  und zeigt die Befunde analog zum EufyMake-Flow: **Fehler blockieren** das
+  Speichern mit klarer Meldung (kein Schreibaufruf), **Warnungen** erfordern eine
+  bewusste Bestätigung. Ein Abbruch ist seiteneffektfrei (kein Schreiben, keine
+  Temporärdateien). Teiltransparenz wird bewusst **nicht** beanstandet – sie ist
+  das normale Ergebnis eines Freistellungswerkzeugs. Alle Strings de/en; die
+  Befund-Darstellung nutzt dieselbe `format_finding`-Render-Logik wie die
+  EufyMake-Anzeige (#380). Damit ist Epic #375 (maßgenaue Ausgabe + Exportprüfung)
+  abgeschlossen.
 - **mm/DPI-Modus im „Größe ändern…"-Dialog + Druckflächenprüfung.** Der
   Resize-Dialog kennt jetzt zwei Maßeinheiten: Pixel (wie bisher) und
   **Millimeter + DPI**. Im mm-Modus werden Breite/Höhe in mm und die DPI bedient,

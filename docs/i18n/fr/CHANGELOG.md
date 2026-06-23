@@ -11,6 +11,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Contrôle pré-export lors d'un enregistrement normal.** « Enregistrer »/
+  « Enregistrer sous… » exécute désormais le contrôle général (#379) sur le projet
+  avant l'écriture et affiche les constats comme le flux EufyMake : les **erreurs
+  bloquent** l'enregistrement avec un message clair (aucun appel d'écriture), les
+  **avertissements** exigent une confirmation délibérée. L'annulation est sans effet
+  de bord (pas d'écriture, pas de fichiers temporaires). La transparence partielle
+  n'est volontairement **pas** signalée : c'est le résultat normal d'un outil de
+  détourage. Tous les textes en de/en ; l'affichage des constats réutilise la même
+  logique `format_finding` que l'affichage EufyMake (#380). Cela achève l'epic #375
+  (sortie aux dimensions exactes + contrôles d'export).
 - **Mode mm/PPP dans le dialogue « Redimensionner… » + contrôle de surface
   d'impression.** Le dialogue de redimensionnement propose désormais deux unités :
   pixels (comme avant) et **millimètres + PPP**. En mode mm, on saisit largeur/hauteur

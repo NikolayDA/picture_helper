@@ -10,6 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Pre-export checks on a normal save.** “Save”/“Save as…” now runs the general
+  check (#379) on the project before writing and shows the findings just like the
+  EufyMake flow: **errors block** saving with a clear message (no write call),
+  **warnings** require a deliberate confirmation. Cancelling is side-effect-free (no
+  write, no temporary files). Partial transparency is deliberately **not** flagged –
+  it is the normal output of a background-removal tool. All strings de/en; the finding
+  display reuses the same `format_finding` render logic as the EufyMake display (#380).
+  This completes epic #375 (dimension-accurate output + export checks).
 - **mm/DPI mode in the “Resize…” dialog + print-area check.** The resize dialog now
   offers two units: pixels (as before) and **millimeters + DPI**. In mm mode you enter
   width/height in mm and the DPI, the resulting **pixel size** is shown live via the

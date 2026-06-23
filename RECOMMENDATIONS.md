@@ -87,7 +87,7 @@ geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Maßgenaue Ausgabe (mm/DPI) + allgemeine Exportprüfung | 🟠 Hoch | 🔴 Hoch (Epic) | **Ready for PR – Fundament zuerst:** #376 (Qt-freie Geometrie + Projekt-Metadaten), danach #377/#378/#379 parallelisierbar; #380 schließt die UI-Integration und das Epic ab. |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Maßgenaue Ausgabe (mm/DPI) + allgemeine Exportprüfung | 🟠 Hoch | 🔴 Hoch (Epic) | **✅ Abgeschlossen (PR #382/#383):** #376 (Qt-freie mm/DPI-Geometrie + Projekt-Setter), #377 (mm/DPI-UI + Druckflächenprüfung), #378 (DPI-Einbettung), #379 (geteilte Pre-Export-Prüfung), #380 (UI-Integration beim Speichern). |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – erst die GitHub-Semantik (Top-Level vs. effektiv-per-Job) belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – Maintainer hat HEIC bewusst ausgeschlossen (Kommentar 2026-06-21). Nur noch README/ANLEITUNG klarstellen, dann schließen. |
@@ -106,8 +106,8 @@ Folgebefund; Kommentare oder neue Issues sind daher nicht erforderlich.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#376** als Fundament des Roadmap-Rang-#4-Epics; danach **#377**, **#378**
-   und **#379** parallelisierbar, abschließend **#380**.
+1. **#375** (mm/DPI + allgemeine Exportprüfung) ist über **#376–#380**
+   abgeschlossen (PR #382/#383); keine offenen Sub-Issues mehr.
 2. **#357** und **#339** als kleine, unabhängige Doku-PRs einstreuen.
 3. **#299** opportunistisch bereinigen; **#318** bis zum Semantik-Beleg
    zurückstellen und **#245** extern blockiert lassen.

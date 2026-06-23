@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import QColorDialog, QFileDialog, QMessageBox
 from bgremover import MainWindow
 from bgremover import main_window as mw
 from bgremover.constants import TOOL_BRUSH, TOOL_WAND
+from bgremover.export_checks import CheckCode, Finding, Severity
 from bgremover.status_messages import StatusMessages as SM
 
 # Die echte ``_confirm_discard_changes`` zum Importzeitpunkt sichern: die
@@ -279,6 +280,91 @@ def test_resize_mm_noop_sets_physical_size_and_marks_unsaved(win, tmp_path, monk
     win._resize_image()
     assert win._canvas.project.physical_size_mm == (50.0, 25.0)
     assert win._canvas.content_revision != before
+
+
+# ── Pre-Export-Prüfung beim Speichern (#380) ─────────────────────────────
+
+def _record_save(win, monkeypatch):
+    calls: list[str] = []
+
+    def _save_ok(path):
+        calls.append(path)
+        return True
+
+    monkeypatch.setattr(win._canvas, "save_image", _save_ok)
+    return calls
+
+
+def test_save_blocked_by_error_finding_skips_write(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)
+    win._save_path = str(tmp_path / "out.png")
+    monkeypatch.setattr(
+        mw, "check_export",
+        lambda *a, **k: (Finding(CheckCode.OUTPUT_EMPTY, Severity.ERROR),))
+    crit: list = []
+    monkeypatch.setattr(
+        QMessageBox, "critical",
+        lambda *a, **k: crit.append(a) or QMessageBox.StandardButton.Ok)
+    calls = _record_save(win, monkeypatch)
+    win._save()
+    assert calls == []   # blockierender Befund verhindert den Schreibaufruf
+    assert crit          # Fehlerdialog wurde gezeigt
+
+
+def test_save_warning_confirmed_writes(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)
+    win._save_path = str(tmp_path / "out.png")
+    monkeypatch.setattr(
+        mw, "check_export",
+        lambda *a, **k: (Finding(CheckCode.FULLY_TRANSPARENT, Severity.WARNING),))
+    monkeypatch.setattr(QMessageBox, "question",
+                        lambda *a, **k: QMessageBox.StandardButton.Yes)
+    calls = _record_save(win, monkeypatch)
+    win._save()
+    assert calls == [str(tmp_path / "out.png")]
+
+
+def test_save_warning_declined_skips_write(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)
+    win._save_path = str(tmp_path / "out.png")
+    monkeypatch.setattr(
+        mw, "check_export",
+        lambda *a, **k: (Finding(CheckCode.FULLY_TRANSPARENT, Severity.WARNING),))
+    monkeypatch.setattr(QMessageBox, "question",
+                        lambda *a, **k: QMessageBox.StandardButton.No)
+    calls = _record_save(win, monkeypatch)
+    win._save()
+    assert calls == []   # Abbruch: kein Schreibaufruf
+
+
+def test_save_clean_project_writes_without_dialog(win, tmp_path, monkeypatch):
+    _load_dummy_image(win, tmp_path)  # opakes 4×4 → keine Befunde
+    win._save_path = str(tmp_path / "out.png")
+    q: list = []
+    crit: list = []
+    monkeypatch.setattr(QMessageBox, "question",
+                        lambda *a, **k: q.append(a) or QMessageBox.StandardButton.Yes)
+    monkeypatch.setattr(QMessageBox, "critical",
+                        lambda *a, **k: crit.append(a) or QMessageBox.StandardButton.Ok)
+    calls = _record_save(win, monkeypatch)
+    win._save()
+    assert calls == [str(tmp_path / "out.png")]
+    assert q == [] and crit == []   # saubere Ausgabe: keine Nachfrage
+
+
+def test_save_partial_alpha_does_not_warn(win, tmp_path, monkeypatch):
+    # Teiltransparenz ist das normale Freistellungsergebnis und darf das
+    # Speichern weder blockieren noch eine Warnung auslösen (#380).
+    img = Image.new("RGBA", (4, 4), (10, 20, 30, 128))
+    win._canvas.apply_loaded_image(img, str(tmp_path / "src.png"))
+    win._save_path = str(tmp_path / "out.png")
+    q: list = []
+    monkeypatch.setattr(QMessageBox, "question",
+                        lambda *a, **k: q.append(a) or QMessageBox.StandardButton.Yes)
+    calls = _record_save(win, monkeypatch)
+    win._save()
+    assert calls == [str(tmp_path / "out.png")]
+    assert q == []
 
 
 def test_save_as_cancelled_dialog_does_not_save(win, tmp_path, monkeypatch):

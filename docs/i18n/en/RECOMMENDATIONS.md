@@ -82,7 +82,7 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Physical-size output (mm/DPI) + general export validation | 🟠 High | 🔴 High (epic) | **Ready for PR — foundation first:** #376 (Qt-free geometry + project metadata), then #377/#378/#379 in parallel; #380 completes the UI integration and epic. |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Physical-size output (mm/DPI) + general export validation | 🟠 High | 🔴 High (epic) | **✅ Done (PR #382/#383):** #376 (Qt-free mm/DPI geometry + project setters), #377 (mm/DPI UI + print-area check), #378 (DPI embedding), #379 (shared pre-export checks), #380 (UI integration on save). |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – first document the GitHub semantics (top-level vs. effective-per-job); the #303 OIDC guard must not be weakened. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – the maintainer deliberately excluded HEIC (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
