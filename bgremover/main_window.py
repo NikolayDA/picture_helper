@@ -39,6 +39,7 @@ from bgremover.eufymake_validate import format_finding
 from bgremover.eufymake_writer import (
     EufyMakeWriteError,
     ExportTargetExistsError,
+    ExportTargetNotDirectoryError,
     ExportValidationError,
     write_export,
 )
@@ -820,6 +821,11 @@ class MainWindow(QMainWindow):
                 self._write_eufymake(project, dest, roles, bits, confirm, overwrite=True)
             else:
                 self._sb.showMessage(tr("eufymake.status.cancelled"))
+            return
+        except ExportTargetNotDirectoryError:
+            # Vorhandene Datei als Ziel: niemals überschreiben anbieten.
+            QMessageBox.critical(
+                self, tr("eufymake.error.title"), tr("eufymake.error.not_directory", path=dest))
             return
         except ExportValidationError as exc:
             details = "\n".join(format_finding(finding) for finding in exc.findings)

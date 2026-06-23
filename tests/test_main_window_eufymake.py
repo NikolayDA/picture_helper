@@ -182,6 +182,25 @@ def test_export_overwrite_prompt_no_aborts(export_win, monkeypatch, tmp_path):
     assert (dest / "color_motif.png").read_bytes() == before
 
 
+def test_export_to_existing_file_reports_error_keeps_file(export_win, monkeypatch, tmp_path):
+    # Vorhandene Datei als Ziel: Fehlerdialog statt Überschreib-Nachfrage; Datei bleibt.
+    target = tmp_path / "afile"
+    target.write_bytes(b"data")
+    monkeypatch.setattr(
+        mw, "EufyMakeExportDialog", _fake_dialog_cls(accept=True, dest=str(target)))
+    crit: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        QMessageBox, "critical",
+        lambda parent, title, text, *a, **k: crit.append((title, text)))
+    questions: list[int] = []
+    monkeypatch.setattr(
+        QMessageBox, "question",
+        lambda *a, **k: questions.append(1) or QMessageBox.StandardButton.No)
+    export_win._export_eufymake()
+    assert crit and not questions          # Fehler gezeigt, keine Überschreib-Nachfrage
+    assert target.read_bytes() == b"data"  # Originaldatei unversehrt
+
+
 def test_write_eufymake_blocked_shows_error(export_win, monkeypatch, tmp_path):
     # Projekt ohne ableitbares Farbmotiv → ExportValidationError im Writer.
     from bgremover.project_model import Project

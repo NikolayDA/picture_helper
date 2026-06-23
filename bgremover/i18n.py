@@ -159,6 +159,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.section.dest": "Ziel",
         "eufymake.dialog.dest.label": "Exportordner:",
         "eufymake.dialog.dest.placeholder": "Noch kein Ordner gewählt",
+        "eufymake.dialog.dest.is_file": (
+            "Das Ziel ist eine vorhandene Datei – bitte einen Ordner wählen."
+        ),
         "eufymake.dialog.dest.browse": "Durchsuchen…",
         "eufymake.dialog.dest.dialog_title": "Exportordner wählen",
         "eufymake.dialog.section.findings": "Prüfung",
@@ -173,6 +176,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.status.exported": "✅ Assets für EufyMake Studio exportiert: {path}",
         "eufymake.error.title": "Export fehlgeschlagen",
         "eufymake.error.write": "Export fehlgeschlagen: {error}",
+        "eufymake.error.not_directory": (
+            "Das Ziel „{path}“ ist eine vorhandene Datei. Bitte einen Ordner als "
+            "Exportziel wählen."
+        ),
         "eufymake.error.blocked": "Export blockiert – bitte zuerst beheben:\n{details}",
         "eufymake.overwrite.title": "Ordner überschreiben?",
         "eufymake.overwrite.body": "„{path}“ existiert bereits. Inhalt ersetzen?",
@@ -796,6 +803,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.dialog.section.dest": "Destination",
         "eufymake.dialog.dest.label": "Export folder:",
         "eufymake.dialog.dest.placeholder": "No folder selected yet",
+        "eufymake.dialog.dest.is_file": (
+            "The destination is an existing file – please choose a folder."
+        ),
         "eufymake.dialog.dest.browse": "Browse…",
         "eufymake.dialog.dest.dialog_title": "Choose export folder",
         "eufymake.dialog.section.findings": "Check",
@@ -810,6 +820,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.status.exported": "✅ Assets exported for EufyMake Studio: {path}",
         "eufymake.error.title": "Export failed",
         "eufymake.error.write": "Export failed: {error}",
+        "eufymake.error.not_directory": (
+            "The target “{path}” is an existing file. Please choose a folder as the "
+            "export destination."
+        ),
         "eufymake.error.blocked": "Export blocked – please fix these first:\n{details}",
         "eufymake.overwrite.title": "Overwrite folder?",
         "eufymake.overwrite.body": "“{path}” already exists. Replace its contents?",

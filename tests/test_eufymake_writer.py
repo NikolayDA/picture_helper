@@ -21,6 +21,7 @@ from bgremover.eufymake_writer import (
     MANIFEST_FILENAME,
     ExportConfirmationRequired,
     ExportTargetExistsError,
+    ExportTargetNotDirectoryError,
     ExportValidationError,
     render_export,
     write_export,
@@ -322,6 +323,29 @@ def test_optional_roles_limit_written_assets(tmp_path: Path) -> None:
     write_export(project, dest, optional_roles=[], confirm_warnings=True)
     names = sorted(p.name for p in dest.iterdir())
     assert names == ["color_motif.png", MANIFEST_FILENAME]
+
+
+def test_optional_roles_generator_is_not_exhausted(tmp_path: Path) -> None:
+    # Ein Einmal-Iterable (Generator) darf nicht von der Prüfung verbraucht werden,
+    # sodass der Plan die gewählte Rolle nicht mehr sieht (Codex-Befund #373).
+    project = _color_project()
+    _add_height(project)
+    dest = tmp_path / "export"
+    roles = (r for r in (LayerRole.HEIGHT_MAP,))  # Generator, nur einmal iterierbar
+    write_export(project, dest, optional_roles=roles, confirm_warnings=True)
+    assert (dest / "height_map.png").is_file()
+
+
+def test_existing_file_target_is_rejected_even_with_overwrite(tmp_path: Path) -> None:
+    # Eine vorhandene Datei als Ziel darf NIE durch den Exportordner ersetzt werden.
+    dest = tmp_path / "target"
+    dest.write_text("wichtige Datei", encoding="utf-8")
+    project = _color_project()
+    with pytest.raises(ExportTargetNotDirectoryError):
+        write_export(project, dest, overwrite=True)
+    # Die Originaldatei bleibt unversehrt, kein Temp-Rest.
+    assert dest.is_file() and dest.read_text(encoding="utf-8") == "wichtige Datei"
+    assert not _temp_leftovers(tmp_path, dest)
 
 
 def test_bit_depth_override_writes_16bit_height(tmp_path: Path) -> None:

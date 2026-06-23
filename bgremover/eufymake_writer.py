@@ -71,6 +71,15 @@ class ExportTargetExistsError(EufyMakeWriteError):
     """Das Ziel existiert bereits und ``overwrite`` ist nicht gesetzt."""
 
 
+class ExportTargetNotDirectoryError(EufyMakeWriteError):
+    """Das Ziel existiert bereits, ist aber **kein Verzeichnis**.
+
+    Wird **unabhängig** von ``overwrite`` ausgelöst: ein Exportordner darf niemals
+    eine vorhandene Datei ersetzen (sonst ginge sie beim atomaren Veröffentlichen
+    verloren). Der Aufrufer muss ein Verzeichnis-Ziel wählen.
+    """
+
+
 class ExportValidationError(EufyMakeWriteError):
     """Die Konsistenzprüfung (#354) meldete blockierende Fehler.
 
@@ -268,6 +277,10 @@ def _atomic_publish(rendered: RenderedExport, dest: Path, *, overwrite: bool) ->
     parent = dest.parent
     if not parent.is_dir():
         raise EufyMakeWriteError(f"Zielverzeichnis existiert nicht: {parent}")
+    if dest.exists() and not dest.is_dir():
+        # Eine vorhandene Datei (o. Ä.) niemals durch den Exportordner ersetzen –
+        # auch nicht mit ``overwrite`` (sonst Datenverlust).
+        raise ExportTargetNotDirectoryError(str(dest))
     if dest.exists() and not overwrite:
         raise ExportTargetExistsError(str(dest))
     tmp = Path(tempfile.mkdtemp(prefix=f".{dest.name}.tmp-", dir=parent))
@@ -303,16 +316,17 @@ def write_export(
     verlustsicher ersetzt. Gibt den geschriebenen Zielpfad zurück.
     """
     target_dir = Path(dest)
+    # Einmalig materialisieren: ein Einmal-Iterable (z. B. Generator) würde sonst
+    # von der Prüfung verbraucht und der Plan sähe keine optionalen Rollen mehr.
+    roles = None if optional_roles is None else tuple(optional_roles)
     if validate:
         errors, warnings = split_findings(
-            validate_export(
-                project, requested_optional_roles=optional_roles, bit_depth=bit_depth
-            )
+            validate_export(project, requested_optional_roles=roles, bit_depth=bit_depth)
         )
         if errors:
             raise ExportValidationError(errors)
         if warnings and not confirm_warnings:
             raise ExportConfirmationRequired(warnings)
-    plan = build_export_plan(project, optional_roles=optional_roles, bit_depth=bit_depth)
+    plan = build_export_plan(project, optional_roles=roles, bit_depth=bit_depth)
     rendered = render_export(project, plan)
     return _atomic_publish(rendered, target_dir, overwrite=overwrite)
