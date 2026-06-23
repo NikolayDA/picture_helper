@@ -11,6 +11,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **在输出中锚定 DPI/分辨率。** 保存栅格图像时，`image_ops.save_image_file`
+  现在可选地将项目 DPI（#376）作为纯元数据嵌入——PNG（`pHYs`）、JPEG（JFIF 密度）
+  与 TIFF（`Resolution`/`ResolutionUnit`）；WebP 不携带 DPI。画布保存路径会传入
+  由物理尺寸 + 像素尺寸推导出的分辨率；未设置项目 DPI 时行为保持不变，且像素/透明度
+  绝不会被改动（保留逐位精确的单 COLOR 图层导出）。EufyMake 导出现在从模型的
+  毫米/DPI getter 提供其 `ExportTarget`，而非导出本地的推导（#378）。
 - **毫米/DPI 作为项目属性 + 共享的无 Qt 几何运算。** 新增严格类型化模块
   `bgremover/units.py`，将全部 px↔毫米↔DPI 运算集中到一处：从任意两个已知量确定性地推导
   第三个量（`MM_PER_INCH = 25.4`），校验输入，并将无效值（≤ 0、非数值、形状错误）报告为

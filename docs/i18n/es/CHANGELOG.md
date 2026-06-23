@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Fijar PPP/resolución en las salidas.** Al guardar imágenes ráster,
+  `image_ops.save_image_file` incrusta ahora opcionalmente los PPP del proyecto
+  (#376) como metadatos puros: PNG (`pHYs`), JPEG (densidad JFIF) y TIFF
+  (`Resolution`/`ResolutionUnit`); WebP no lleva PPP. La ruta de guardado del lienzo
+  transmite la resolución derivada del tamaño físico + el tamaño en píxeles; sin PPP
+  de proyecto el comportamiento no cambia y los píxeles/alfa nunca se tocan (se
+  conserva la exportación bit a bit de una sola capa COLOR). La exportación a EufyMake
+  alimenta ahora su `ExportTarget` desde los getters de mm/PPP del modelo en lugar de
+  una derivación local de exportación (#378).
 - **mm/PPP como propiedad del proyecto + geometría compartida sin Qt.** Un nuevo
   módulo con tipado estricto `bgremover/units.py` reúne toda la matemática px↔mm↔PPP
   en un único lugar: a partir de dos magnitudes conocidas deriva la tercera de forma

@@ -11,6 +11,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **DPI/Auflösung in Ausgaben verankern.** Beim Raster-Speichern bettet
+  `image_ops.save_image_file` jetzt optional die Projekt-DPI (#376) als reine
+  Metadaten ein – PNG (`pHYs`), JPEG (JFIF-Dichte) und TIFF
+  (`Resolution`/`ResolutionUnit`); WebP trägt keine DPI. Der Canvas-Speicherpfad
+  reicht die aus physischer Größe + Pixelgröße abgeleitete Auflösung durch; ohne
+  gesetzte Projekt-DPI bleibt das Verhalten unverändert und die Pixel/Alpha werden
+  in keinem Fall berührt (bitgenauer Single-COLOR-Export bleibt erhalten). Der
+  EufyMake-Export speist seinen `ExportTarget` nun aus den Modell-mm/DPI-Gettern
+  statt aus einer export-lokalen Ableitung (#378).
 - **mm/DPI als Projekt-Eigenschaft + geteilte Qt-freie Geometrie.** Neues,
   strikt getyptes Modul `bgremover/units.py` bündelt die gesamte px↔mm↔DPI-Mathematik
   an einer Stelle: aus je zwei bekannten Größen leitet es die dritte deterministisch

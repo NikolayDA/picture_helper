@@ -82,7 +82,9 @@ def ensure_save_extension(
     return path + SAVE_FORMATS[normalize_save_format(preferred)][1]
 
 
-def save_image_file(img: Image.Image, path: str | Path) -> None:
+def save_image_file(
+    img: Image.Image, path: str | Path, *, dpi: tuple[float, float] | None = None
+) -> None:
     """Speichert ``img`` *atomar* unter ``path`` mit den App-Format-Vorgaben.
 
     Geschrieben wird zuerst in eine eindeutige temporäre Datei im
@@ -97,6 +99,12 @@ def save_image_file(img: Image.Image, path: str | Path) -> None:
     statt still PNG-Bytes unter einem falschen Namen abzulegen (die App kennt
     genau die Formate aus ``SAVE_FORMATS``). Eine fehlende Endung bleibt als
     PNG-Default erhalten – das ist das Sicherheitsnetz für direkte Aufrufer.
+
+    Ist ``dpi`` gesetzt (Projekt-Auflösung ``(x, y)`` aus #376), wird die
+    physische Auflösung als **reine Metadaten** in die Ausgabe eingebettet – PNG
+    (``pHYs``), JPEG (JFIF-Dichte) und TIFF (``Resolution``/``ResolutionUnit``).
+    WebP trägt keine DPI. Ohne ``dpi`` bleibt das Schreibverhalten unverändert;
+    die Pixeldaten werden in **keinem** Fall berührt.
     """
     out = Path(path)
     ext = out.suffix.lower()
@@ -120,6 +128,12 @@ def save_image_file(img: Image.Image, path: str | Path) -> None:
             f"Nicht unterstütztes Speicherformat: '{ext}'. "
             "Unterstützt werden .png, .jpg, .webp und .tif."
         )
+
+    # DPI/Auflösung als Metadaten einbetten – nur für Formate, die es tragen
+    # (PNG/JPEG/TIFF). Pillow schreibt daraus pHYs bzw. JFIF-Dichte bzw. die
+    # TIFF-Resolution-Tags; WebP unterstützt keine DPI und bleibt unangetastet.
+    if dpi is not None and fmt in ("PNG", "JPEG", "TIFF"):
+        params["dpi"] = dpi
 
     # Explizites ``fmt`` ist Pflicht, weil das temporäre Ziel die Endung nicht
     # trägt – PIL könnte das Format sonst nicht aus dem Namen ableiten.

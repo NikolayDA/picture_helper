@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Ancrer le PPP/la résolution dans les sorties.** Lors de l'enregistrement
+  d'images matricielles, `image_ops.save_image_file` intègre désormais en option le
+  PPP du projet (#376) sous forme de métadonnées pures : PNG (`pHYs`), JPEG (densité
+  JFIF) et TIFF (`Resolution`/`ResolutionUnit`) ; le WebP ne porte pas de PPP. Le
+  chemin d'enregistrement du canevas transmet la résolution déduite de la taille
+  physique + la taille en pixels ; sans PPP de projet, le comportement est inchangé et
+  les pixels/alpha ne sont jamais modifiés (l'export bit à bit d'une seule couche
+  COLOR est préservé). L'export EufyMake alimente désormais son `ExportTarget` à partir
+  des getters mm/PPP du modèle plutôt que d'une dérivation locale (#378).
 - **mm/PPP comme propriété du projet + géométrie partagée sans Qt.** Un nouveau
   module strictement typé `bgremover/units.py` regroupe en un seul endroit toute la
   mathématique px↔mm↔PPP : à partir de deux grandeurs connues, il déduit la troisième de

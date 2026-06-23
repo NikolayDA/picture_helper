@@ -79,6 +79,7 @@ from bgremover.project_model import (
     role_allowed_for_kind,
 )
 from bgremover.status_messages import StatusMessages as SM
+from bgremover.units import UnitsError
 
 
 @dataclass(frozen=True)
@@ -1278,6 +1279,21 @@ class ImageCanvas(QGraphicsView):
         """
         self._wand_busy = False
 
+    def _export_dpi(self) -> tuple[float, float] | None:
+        """Projekt-DPI für die Metadaten-Einbettung beim Speichern (#378).
+
+        Liefert die aus physischer Größe + Pixelgröße abgeleitete Auflösung des
+        Projekts oder ``None``, wenn keine physische Größe gesetzt ist. Ein
+        (defensiv) korrupter Metadatenwert blockiert das Speichern nicht – die
+        Datei wird dann ohne DPI geschrieben (bisheriges Verhalten).
+        """
+        if self._project is None:
+            return None
+        try:
+            return self._project.dpi
+        except UnitsError:
+            return None
+
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Komposit; gibt ``True`` bei Erfolg zurück.
 
@@ -1294,7 +1310,7 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit(SM.KEIN_BILD_ZUM_SPEICHERN)
             return False
         try:
-            save_image_file(export, path)
+            save_image_file(export, path, dpi=self._export_dpi())
         except Exception as e:
             logger.exception("Speichern fehlgeschlagen: %s", path)
             self.statusMsg.emit(tr("canvas.save_failed", error=e))
