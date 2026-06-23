@@ -11,6 +11,23 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Import EufyMake Studio : menu, dialogue, affichage des constats et réglages.**
+  Une nouvelle action de menu « Exporter des assets pour EufyMake Studio… » (menu
+  Projet, Ctrl+Alt+E) ouvre un dialogue Qt (`eufymake_export_dialog.py`) : le motif
+  couleur est obligatoire, la carte de hauteur/le masque de brillance ne sont
+  sélectionnables que si le projet le permet (brillance marquée expérimentale),
+  profondeur de bits 8/16 (16 marquée non confirmée), taille cible/physique dérivée
+  et un **affichage des constats en direct** issu du contrôle (#354) : les erreurs
+  bloquent, les avertissements exigent une confirmation explicite. L’écriture est
+  atomique via `write_export` ; l’annulation/les erreurs ne modifient ni le projet
+  ni la cible, et une confirmation d’écrasement protège les dossiers existants. Le
+  dialogue de succès indique le chemin et les étapes suivantes dans Studio
+  (importer, positionner, attribuer mode d’encre/calque, enregistrer en `.empf`).
+  Le dossier d’export et les options générales sont mémorisés dans les QSettings
+  versionnés (schéma v2, clés additives avec migration).
+  `build_export_plan`/`write_export` ont reçu `optional_roles`/`bit_depth` pour la
+  sélection de l’IU. Toutes les chaînes en de/en ; l’IU parle toujours d’assets
+  d’import, jamais d’un projet `.empf` fini (#355).
 - **Exportation EufyMake : rendu, écriture atomique et contrôle de cohérence
   (sans Qt).** Deux nouveaux modules strictement typés s’appuient sur le plan de
   #352 : `bgremover/eufymake_validate.py` (`validate_export`) collecte des constats

@@ -11,6 +11,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **EufyMake-Studio-Import: Menü, Dialog, Prüfungsanzeige & Settings.** Neue
+  Menüaktion „Assets für EufyMake Studio exportieren…" (Projekt-Menü, Strg+Alt+E)
+  öffnet einen Qt-Dialog (`eufymake_export_dialog.py`): Farbmotiv ist Pflicht,
+  Höhenkarte/Gloss-Maske nur bei kompatibler Projektlage auswählbar (Gloss sichtbar
+  als experimentell), Bittiefe 8/16 (16 als unbestätigt markiert), abgeleitete
+  Ziel-/physische Größe sowie eine **Live-Befundanzeige** aus der Prüfung (#354):
+  Fehler blockieren, Warnungen erfordern eine bewusste Bestätigung. Geschrieben wird
+  atomar über `write_export`; Abbruch/Fehler verändern weder Projekt noch Ziel, die
+  Überschreib-Nachfrage schützt vorhandene Ordner. Der Erfolgsdialog nennt Zielpfad
+  und nächste Studio-Schritte (Import, Positionierung, Ink-Mode/Layerzuweisung,
+  Speichern als `.empf`). Zielordner und allgemeine Optionen werden in den
+  versionierten QSettings gemerkt (Schema v2, additive Keys mit Migration).
+  `build_export_plan`/`write_export` erhielten `optional_roles`/`bit_depth` für die
+  UI-Auswahl. Alle Strings de/en; die UI spricht konsequent von Import-Assets, nie
+  von einem fertigen `.empf`-Projekt (#355).
 - **EufyMake-Export: Rendern, atomares Schreiben & Konsistenzprüfung (Qt-frei).**
   Zwei neue strikt getypte Module bauen auf dem Plan aus #352 auf:
   `bgremover/eufymake_validate.py` (`validate_export`) sammelt deterministisch

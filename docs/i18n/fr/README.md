@@ -31,6 +31,7 @@ Un outil de retouche d'image pour macOS et Linux permettant de **supprimer, remp
 - **📥 Glisser-déposer** des images directement sur la fenêtre.
 - Enregistrement en **PNG** (avec transparence), **JPEG** (sur fond blanc), **WebP** ou **TIFF**.
 - **⚙ Paramètres persistants** – les répertoires par défaut et le format de fichier préféré restent enregistrés ; le fichier journal peut être localisé depuis les paramètres et son dossier peut être ouvert.
+- **🖨 Export pour EufyMake Studio** – écrit des assets d’import (motif couleur en PNG RGBA, carte de hauteur facultative avec clair = haut, masque de brillance facultatif) avec un contrôle préalable et les étapes suivantes dans Studio. BgRemover ne crée **pas** de fichier `.empf` natif : l’import, le positionnement et l’attribution du mode d’encre se font dans EufyMake Studio.
 
 ## Captures d'écran
 

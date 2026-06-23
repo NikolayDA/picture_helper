@@ -393,6 +393,22 @@ Elige el **formato de archivo** deseado en el diálogo:
 > Para conservar el recorte, **elige siempre PNG, WebP o TIFF** — JPEG rellena
 > las áreas transparentes de blanco.
 
+### Exportar para EufyMake Studio
+
+Desde `Proyecto → Exportar activos para EufyMake Studio…` (Ctrl+Alt+E), BgRemover
+escribe **activos de importación** para EufyMake Studio, **no** un archivo `.empf`
+terminado:
+
+- **Motivo de color** (obligatorio) como PNG RGBA del composite de color.
+- **Mapa de altura** (opcional, solo si existe una capa de altura) en escala de
+  grises con **claro = alto, oscuro = bajo**.
+- **Máscara de brillo** (opcional, experimental) como activo auxiliar.
+
+El diálogo comprueba el proyecto **antes** de escribir: los errores bloquean la
+exportación y las advertencias deben confirmarse de forma deliberada. Después,
+importa y posiciona los activos en EufyMake Studio, asigna allí los modos de
+tinta/capas y guarda el proyecto de Studio como `.empf`.
+
 ---
 
 ## 12. Configuración

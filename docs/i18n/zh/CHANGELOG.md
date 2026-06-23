@@ -11,6 +11,16 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **EufyMake Studio 导入：菜单、对话框、检查显示与设置。** 新增菜单操作
+  “导出 EufyMake Studio 资源…”（项目菜单，Ctrl+Alt+E）打开一个 Qt 对话框
+  （`eufymake_export_dialog.py`）：彩色图案为必选，高度图/光泽蒙版仅在项目支持时可选
+  （光泽明确标注为实验性），位深 8/16（16 标注为未确认），推导出的目标/物理尺寸，以及
+  来自检查（#354）的**实时检查结果显示**：错误会阻止导出，警告需要明确确认。写入通过
+  `write_export` 原子完成；取消/出错既不改动项目也不改动目标，覆盖确认可保护已有文件夹。
+  成功对话框显示目标路径及 Studio 后续步骤（导入、定位、分配墨水模式/图层、另存为
+  `.empf`）。导出文件夹与通用选项保存在带版本的 QSettings 中（架构 v2，附加键带迁移）。
+  `build_export_plan`/`write_export` 新增 `optional_roles`/`bit_depth` 供界面选择。
+  所有字符串均为 de/en；界面始终称其为导入资源，绝不声称生成完整的 `.empf` 项目（#355）。
 - **EufyMake 导出：渲染、原子写入与一致性检查（无 Qt）。** 两个新的严格类型化模块
   基于 #352 的计划构建：`bgremover/eufymake_validate.py`（`validate_export`）以确定性
   顺序收集结构化检查结果（稳定代码、`error`/`warning`、角色、i18n 键）；硬错误（缺少

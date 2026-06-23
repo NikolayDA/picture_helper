@@ -31,6 +31,7 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Entfernen, Ersetzen und Bea
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
 - Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.
 - **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert; die Log-Datei lässt sich direkt aus den Einstellungen auffinden und ihr Ordner öffnen.
+- **🖨 Export für EufyMake Studio** – schreibt Import-Assets (Farbmotiv als RGBA-PNG, optionale Höhenkarte mit hell = hoch, optionale Gloss-Maske) mit Vorab-Prüfung und nächsten Studio-Schritten. BgRemover erzeugt **keine** native `.empf`-Datei – Import, Positionierung und Ink-Mode-Zuweisung erfolgen in EufyMake Studio.
 
 ## Screenshots
 

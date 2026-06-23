@@ -20,7 +20,7 @@ markiert, statt sie stillschweigend als Herstellervertrag zu behandeln.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -256,17 +256,47 @@ def _derive_dpi(
     return (px_w * MM_PER_INCH / mm_w, px_h * MM_PER_INCH / mm_h)
 
 
-def _derive_target(project: Project) -> ExportTarget:
-    """Baut die :class:`ExportTarget`-Parameter reproduzierbar aus dem Projekt."""
-    bit_depth = _derive_bit_depth(project.metadata)
+def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
+    """Effektive Bittiefe: ``override`` (validiert) hat Vorrang, sonst Metadaten.
+
+    Geteilte Regel für Plan und Prüfung (#355): Eine explizite UI-Wahl (8/16) wird
+    direkt übernommen (außerhalb von :data:`_SUPPORTED_BIT_DEPTHS` →
+    :class:`InvalidBitDepthError`); ohne Override greift die Metadaten-Ableitung.
+    """
+    if override is None:
+        return _derive_bit_depth(metadata)
+    if override not in _SUPPORTED_BIT_DEPTHS:
+        raise InvalidBitDepthError(
+            f"Bittiefe muss in {_SUPPORTED_BIT_DEPTHS} liegen, war {override!r}"
+        )
+    return override
+
+
+def _derive_target(project: Project, *, bit_depth: int | None = None) -> ExportTarget:
+    """Baut die :class:`ExportTarget`-Parameter reproduzierbar aus dem Projekt.
+
+    ``bit_depth`` überschreibt die aus den Metadaten abgeleitete Tiefe (UI-Wahl).
+    """
+    depth = coerce_bit_depth(project.metadata, bit_depth)
     physical_size = _derive_physical_size(project.metadata)
     dpi = _derive_dpi(project.size, physical_size)
     return ExportTarget(
         pixel_size=project.size,
-        bit_depth=bit_depth,
+        bit_depth=depth,
         physical_size_mm=physical_size,
         dpi=dpi,
     )
+
+
+def derive_export_target(project: Project, *, bit_depth: int | None = None) -> ExportTarget:
+    """Öffentliche Ableitung der Zielparameter – auch ohne vorhandenes Farbmotiv.
+
+    Liefert Pixelgröße, physische Größe, DPI und (effektive) Bittiefe unabhängig
+    davon, ob der Plan später am fehlenden Farbmotiv blockiert. Für die UI (#355),
+    die Zielinfos schon zeigen will, während die Prüfung noch Fehler meldet.
+    Ungültige Metadaten werfen weiterhin strukturierte Fehler.
+    """
+    return _derive_target(project, bit_depth=bit_depth)
 
 
 def _has_contributing_color(project: Project) -> bool:
@@ -327,26 +357,46 @@ def _plan_color_motif(project: Project) -> ExportAsset:
     )
 
 
-def build_export_plan(project: Project) -> ExportPlan:
+# Optionale Rollen, die der Plan auswählbar führt; das Farbmotiv ist immer Pflicht.
+_PLAN_OPTIONAL_ROLES: tuple[LayerRole, ...] = (LayerRole.HEIGHT_MAP, LayerRole.GLOSS_MASK)
+
+
+def _resolve_optional_roles(optional_roles: Iterable[LayerRole] | None) -> frozenset[LayerRole]:
+    """Welche optionalen Rollen ins Paket dürfen: ``None`` = alle, sonst die Auswahl."""
+    if optional_roles is None:
+        return frozenset(_PLAN_OPTIONAL_ROLES)
+    return frozenset(optional_roles) & frozenset(_PLAN_OPTIONAL_ROLES)
+
+
+def build_export_plan(
+    project: Project,
+    *,
+    optional_roles: Iterable[LayerRole] | None = None,
+    bit_depth: int | None = None,
+) -> ExportPlan:
     """Bildet ein :class:`Project` deterministisch auf einen :class:`ExportPlan` ab.
 
     Rollen→Assets: ``COLOR_MOTIF`` ergibt das **erforderliche** Farbmotiv (RGBA,
     8 Bit), ``HEIGHT_MAP`` und ``GLOSS_MASK`` jeweils ein **optionales**
     Graustufen-Asset – Letzteres ``experimental`` wegen offener Gloss-Semantik.
-    Die Höhenkarte erbt die geplante Bittiefe aus ``META_BIT_DEPTH`` (8/16), die
-    Gloss-Maske bleibt konservativ 8-Bit. Zielparameter (Pixelgröße, physische
-    Größe, DPI, Bittiefe) werden reproduzierbar aus den Projektmetadaten bzw.
-    dokumentierten Defaults abgeleitet; ungültige Metadaten werfen strukturierte
-    Fehler (:class:`EufyMakeExportError`-Subtypen). Es wird **kein** natives
-    ``.empf`` geplant.
+    ``optional_roles`` wählt, welche optionalen Rollen einbezogen werden:
+    ``None`` (Standard) nimmt **alle** vorhandenen, eine Auswahl beschränkt das
+    Paket darauf (für die UI-Abwahl, #355). Die Höhenkarte erbt die geplante
+    Bittiefe aus ``META_BIT_DEPTH`` (8/16), die Gloss-Maske bleibt konservativ
+    8-Bit. Zielparameter (Pixelgröße, physische Größe, DPI, Bittiefe) werden
+    reproduzierbar aus den Projektmetadaten bzw. dokumentierten Defaults
+    abgeleitet; ungültige Metadaten werfen strukturierte Fehler
+    (:class:`EufyMakeExportError`-Subtypen). Es wird **kein** natives ``.empf``
+    geplant.
     """
-    target = _derive_target(project)
+    target = _derive_target(project, bit_depth=bit_depth)
+    included = _resolve_optional_roles(optional_roles)
 
     assets: list[ExportAsset] = [_plan_color_motif(project)]
     open_questions: list[OpenQuestion] = [OpenQuestion.NATIVE_EMPF_PROJECT]
 
     height_layer = project.layer_by_role(LayerRole.HEIGHT_MAP)
-    if height_layer is not None:
+    if height_layer is not None and LayerRole.HEIGHT_MAP in included:
         assets.append(
             ExportAsset(
                 role=LayerRole.HEIGHT_MAP,
@@ -360,7 +410,7 @@ def build_export_plan(project: Project) -> ExportPlan:
         open_questions.append(OpenQuestion.HEIGHT_MAP_BIT_DEPTH)
 
     gloss_layer = project.layer_by_role(LayerRole.GLOSS_MASK)
-    if gloss_layer is not None:
+    if gloss_layer is not None and LayerRole.GLOSS_MASK in included:
         assets.append(
             ExportAsset(
                 role=LayerRole.GLOSS_MASK,

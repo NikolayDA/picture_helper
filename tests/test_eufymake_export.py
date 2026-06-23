@@ -188,6 +188,50 @@ def test_filenames_stable_across_repeated_builds() -> None:
     assert build_export_plan(project).filenames == build_export_plan(project).filenames
 
 
+# ── optional_roles-Auswahl (#355) ────────────────────────────────────────
+
+def _full_project() -> Project:
+    project = _color_project()
+    height = project.create_layer(
+        _gray_layer_image((8, 4), 100), name="Höhe", kind=LayerKind.HEIGHT)
+    project.assign_role(height.id, LayerRole.HEIGHT_MAP)
+    gloss = project.create_layer(
+        _solid((8, 4), (255, 255, 255, 255)), name="Gloss", kind=LayerKind.GLOSS)
+    project.assign_role(gloss.id, LayerRole.GLOSS_MASK)
+    return project
+
+
+def test_optional_roles_none_includes_all_present() -> None:
+    assert build_export_plan(_full_project()).filenames == (
+        "color_motif.png", "height_map.png", "gloss_mask.png")
+
+
+def test_optional_roles_empty_excludes_optionals() -> None:
+    plan = build_export_plan(_full_project(), optional_roles=[])
+    assert plan.filenames == ("color_motif.png",)
+    assert plan.optional_assets == ()
+
+
+def test_optional_roles_subset_selects_only_requested() -> None:
+    plan = build_export_plan(_full_project(), optional_roles=[LayerRole.HEIGHT_MAP])
+    assert plan.filenames == ("color_motif.png", "height_map.png")
+
+
+# ── bit_depth-Override (#355) ────────────────────────────────────────────
+
+def test_bit_depth_override_beats_metadata() -> None:
+    project = _full_project()
+    project.metadata[META_BIT_DEPTH] = 8
+    plan = build_export_plan(project, bit_depth=16)
+    assert plan.target.bit_depth == 16
+    assert plan.asset_for(LayerRole.HEIGHT_MAP).bit_depth == 16  # type: ignore[union-attr]
+
+
+def test_bit_depth_override_invalid_raises() -> None:
+    with pytest.raises(InvalidBitDepthError):
+        build_export_plan(_color_project(), bit_depth=7)
+
+
 # ── Profil- & Höhenvertrag ───────────────────────────────────────────────
 
 def test_plan_carries_profile_and_version() -> None:

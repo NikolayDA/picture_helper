@@ -195,6 +195,18 @@ def test_8bit_height_has_no_bitdepth_warning() -> None:
     assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in _codes(validate_export(project))
 
 
+def test_bit_depth_override_triggers_warning() -> None:
+    # Override 16 ohne Metadaten → Bittiefen-Warnung (UI-Wahl, #355).
+    project = _with_height(_color_project())
+    findings = validate_export(project, bit_depth=16)
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in _codes(findings)
+
+
+def test_invalid_bit_depth_override_is_error() -> None:
+    findings = validate_export(_color_project(), bit_depth=7)
+    assert ExportCheckCode.INVALID_TARGET_PARAMS in _codes(findings)
+
+
 def test_physical_size_is_warning() -> None:
     project = _color_project()
     project.metadata[META_PHYSICAL_SIZE_MM] = (50.0, 25.0)

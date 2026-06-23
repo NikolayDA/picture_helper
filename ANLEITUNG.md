@@ -398,6 +398,21 @@ Wählen Sie im Dialog das gewünschte **Dateiformat**:
 > Soll die Freistellung erhalten bleiben, **immer PNG, WebP oder TIFF**
 > wählen – JPEG füllt transparente Stellen weiß.
 
+### Export für EufyMake Studio
+
+Über `Projekt → Assets für EufyMake Studio exportieren…` (Strg+Alt+E) schreibt
+BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige `.empf`-Datei:
+
+- **Farbmotiv** (Pflicht) als RGBA-PNG aus dem Farbkomposit.
+- **Höhenkarte** (optional, nur bei vorhandener Höhenebene) als Graustufe mit
+  **hell = hoch, dunkel = niedrig**.
+- **Gloss-Maske** (optional, experimentell) als Hilfsasset.
+
+Der Dialog prüft das Projekt **vor** dem Schreiben: Fehler blockieren den Export,
+Warnungen müssen bewusst bestätigt werden. Danach importieren und positionieren
+Sie die Assets in EufyMake Studio, weisen dort Ink-Modi/Layer zu und speichern das
+Studio-Projekt selbst als `.empf`.
+
 ---
 
 ## 12. Einstellungen

@@ -314,6 +314,30 @@ def test_warnings_require_confirmation(tmp_path: Path) -> None:
     assert dest.is_dir()
 
 
+def test_optional_roles_limit_written_assets(tmp_path: Path) -> None:
+    project = _color_project()
+    _add_height(project)
+    _add_gloss(project)
+    dest = tmp_path / "export"
+    write_export(project, dest, optional_roles=[], confirm_warnings=True)
+    names = sorted(p.name for p in dest.iterdir())
+    assert names == ["color_motif.png", MANIFEST_FILENAME]
+
+
+def test_bit_depth_override_writes_16bit_height(tmp_path: Path) -> None:
+    project = _color_project((2, 1))
+    arr = np.zeros((1, 2, 4), dtype=np.uint8)
+    arr[0, 1, :3] = 255
+    arr[:, :, 3] = 255
+    _add_height(project, Image.fromarray(arr, "RGBA"))
+    dest = tmp_path / "export"
+    write_export(
+        project, dest, optional_roles=[LayerRole.HEIGHT_MAP],
+        bit_depth=16, confirm_warnings=True)
+    with Image.open(dest / "height_map.png") as img:
+        assert img.mode in ("I;16", "I")
+
+
 def test_validate_false_bypasses_checks(tmp_path: Path) -> None:
     project = _color_project()
     _add_gloss(project)  # hätte eine Warnung – wird mit validate=False übersprungen

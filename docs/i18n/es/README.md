@@ -31,6 +31,7 @@ Una herramienta de edición de imágenes para macOS y Linux para **eliminar, ree
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
 - Guardar como **PNG** (con transparencia), **JPEG** (sobre fondo blanco), **WebP** o **TIFF**.
 - **⚙ Ajustes persistentes**: los directorios predeterminados y el formato de archivo preferido se mantienen guardados; desde los ajustes se puede localizar el archivo de registro y abrir su carpeta.
+- **🖨 Exportación para EufyMake Studio**: escribe activos de importación (motivo de color como PNG RGBA, mapa de altura opcional con claro = alto, máscara de brillo opcional) con una comprobación previa y los siguientes pasos en Studio. BgRemover **no** crea un archivo `.empf` nativo: la importación, el posicionamiento y la asignación del modo de tinta se hacen en EufyMake Studio.
 
 ## Capturas de pantalla
 

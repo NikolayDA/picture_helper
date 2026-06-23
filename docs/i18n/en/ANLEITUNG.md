@@ -373,6 +373,21 @@ Choose the desired **file format** in the dialog:
 > To preserve the cut-out, **always choose PNG, WebP, or TIFF** — JPEG fills
 > transparent areas with white.
 
+### Export for EufyMake Studio
+
+Via `Project → Export assets for EufyMake Studio…` (Ctrl+Alt+E), BgRemover writes
+**import assets** for EufyMake Studio – **not** a finished `.empf` file:
+
+- **Color motif** (required) as an RGBA PNG from the color composite.
+- **Height map** (optional, only if a height layer exists) as grayscale with
+  **light = high, dark = low**.
+- **Gloss mask** (optional, experimental) as a helper asset.
+
+The dialog checks the project **before** writing: errors block the export, warnings
+must be confirmed deliberately. Afterwards you import and position the assets in
+EufyMake Studio, assign ink modes/layers there, and save the Studio project itself
+as `.empf`.
+
 ---
 
 ## 12. Settings
