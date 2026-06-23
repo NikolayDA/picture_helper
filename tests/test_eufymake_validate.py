@@ -152,6 +152,16 @@ def test_nonpositive_target_size_is_error() -> None:
     assert ExportCheckCode.INVALID_TARGET_PARAMS in _codes(findings)
 
 
+def test_present_null_physical_size_is_invalid_target_param() -> None:
+    # Ein vorhandener, ungültiger Wert (``physical_size_mm: null``) muss als
+    # blockierender Befund auftauchen – deckungsgleich mit dem Render-/Schreibpfad,
+    # sonst schlüge der Writer mit einer nicht abgefangenen Ausnahme auf.
+    project = _color_project()
+    project.metadata[META_PHYSICAL_SIZE_MM] = None
+    findings = validate_export(project)
+    assert ExportCheckCode.INVALID_TARGET_PARAMS in _codes(findings)
+
+
 # ── Warnungen ────────────────────────────────────────────────────────────
 
 def test_constant_height_is_warning() -> None:

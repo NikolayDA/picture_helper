@@ -78,7 +78,7 @@
 
 | # | Назва | Релевантність | Складність | Рекомендований наступний крок |
 |---|-------|---------------|------------|-------------------------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Епік] Точний вивід (mm/DPI) + загальна перевірка експорту | 🟠 Висока | 🔴 Висока (епік) | **Ready for PR — спершу фундамент:** #376 (геометрія без Qt + метадані), потім #377/#378/#379 паралельно; #380 завершує UI та епік. |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Епік] Точний вивід (mm/DPI) + загальна перевірка експорту | 🟠 Висока | 🔴 Висока (епік) | **✅ Завершено (PR #382/#383):** #376 (геометрія mm/DPI без Qt + сетери), #377 (UI mm/DPI + площа друку), #378 (вбудовування DPI), #379 (спільні перевірки), #380 (інтеграція UI при збереженні). |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan падає з "Quota exceeded" | 🟡 Середня | 🟢 Низька | **Blocked (зовн.)** – repo-side hardening через #322/#342 (закрито) виконано; лишається блокер OpenAI/billing quota. Після відновлення quota один раз вручну запустити scheduled scan, тоді закрити. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: врахувати job-level permission overrides у reusable WF | 🟢 Низька | 🟡 Середня | **Needs refinement** – спершу задокументувати GitHub semantics (top-level vs. ефективні-per-job); не послаблювати OIDC guard #303. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF не підтримується як input format | 🟢 Низька | 🟢 Низька | **Ready for PR (docs)** – maintainer **свідомо виключив HEIC** (коментар 2026-06-21). Лише уточнити README/ANLEITUNG, тоді закрити. |

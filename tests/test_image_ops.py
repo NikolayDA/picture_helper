@@ -126,6 +126,65 @@ def test_save_image_file_rejects_unknown_extension(tmp_path) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
+# ── DPI-/Auflösungs-Einbettung (#378) ────────────────────────────────────
+
+def test_save_image_file_embeds_dpi_png(tmp_path) -> None:
+    out = tmp_path / "dpi.png"
+    save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out, dpi=(300.0, 300.0))
+    with Image.open(out) as saved:
+        dpi = saved.info.get("dpi")
+    assert dpi is not None
+    # PNG speichert pHYs als Pixel/Meter (Integer) → Read-back leicht gerundet.
+    assert dpi[0] == pytest.approx(300.0, abs=0.5)
+    assert dpi[1] == pytest.approx(300.0, abs=0.5)
+
+
+def test_save_image_file_embeds_dpi_jpeg(tmp_path) -> None:
+    out = tmp_path / "dpi.jpg"
+    save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out, dpi=(300.0, 300.0))
+    with Image.open(out) as saved:
+        dpi = saved.info.get("dpi")
+    assert dpi is not None
+    assert (round(dpi[0]), round(dpi[1])) == (300, 300)
+
+
+def test_save_image_file_embeds_dpi_tiff(tmp_path) -> None:
+    out = tmp_path / "dpi.tif"
+    save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out, dpi=(150.0, 150.0))
+    with Image.open(out) as saved:
+        dpi = saved.info.get("dpi")
+    assert dpi is not None
+    assert dpi[0] == pytest.approx(150.0, abs=0.5)
+    assert dpi[1] == pytest.approx(150.0, abs=0.5)
+
+
+def test_save_image_file_without_dpi_keeps_previous_behavior(tmp_path) -> None:
+    out = tmp_path / "no_dpi.png"
+    save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out)
+    with Image.open(out) as saved:
+        # Ohne gesetzte DPI trägt die PNG kein pHYs/dpi (unverändertes Verhalten).
+        assert "dpi" not in saved.info
+
+
+def test_save_image_file_dpi_does_not_alter_pixels(tmp_path) -> None:
+    src = Image.new("RGBA", (8, 8), (12, 34, 56, 200))
+    no_dpi = tmp_path / "plain.png"
+    with_dpi = tmp_path / "tagged.png"
+    save_image_file(src, no_dpi)
+    save_image_file(src, with_dpi, dpi=(300.0, 300.0))
+    a = np.array(Image.open(no_dpi).convert("RGBA"))
+    b = np.array(Image.open(with_dpi).convert("RGBA"))
+    # DPI ist reine Metadaten-Einbettung – die Pixel/Alpha bleiben bitgenau gleich.
+    assert np.array_equal(a, b)
+
+
+def test_save_image_file_webp_ignores_dpi(tmp_path) -> None:
+    out = tmp_path / "pic.webp"
+    # WebP trägt keine DPI – das Argument darf dennoch fehlerfrei durchlaufen.
+    save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out, dpi=(300.0, 300.0))
+    assert out.exists()
+
+
 def test_save_image_file_empty_extension_defaults_to_png(tmp_path) -> None:
     out = tmp_path / "noext"
     save_image_file(Image.new("RGBA", (4, 4), (1, 2, 3, 255)), out)

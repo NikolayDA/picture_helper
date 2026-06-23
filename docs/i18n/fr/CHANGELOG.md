@@ -11,6 +11,48 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Contrôle pré-export lors d'un enregistrement normal.** « Enregistrer »/
+  « Enregistrer sous… » exécute désormais le contrôle général (#379) sur le projet
+  avant l'écriture et affiche les constats comme le flux EufyMake : les **erreurs
+  bloquent** l'enregistrement avec un message clair (aucun appel d'écriture), les
+  **avertissements** exigent une confirmation délibérée. L'annulation est sans effet
+  de bord (pas d'écriture, pas de fichiers temporaires). La transparence partielle
+  n'est volontairement **pas** signalée : c'est le résultat normal d'un outil de
+  détourage. Tous les textes en de/en ; l'affichage des constats réutilise la même
+  logique `format_finding` que l'affichage EufyMake (#380). Cela achève l'epic #375
+  (sortie aux dimensions exactes + contrôles d'export).
+- **Mode mm/PPP dans le dialogue « Redimensionner… » + contrôle de surface
+  d'impression.** Le dialogue de redimensionnement propose désormais deux unités :
+  pixels (comme avant) et **millimètres + PPP**. En mode mm, on saisit largeur/hauteur
+  en mm et le PPP, la **taille en pixels** résultante s'affiche en direct via la
+  géométrie partagée (#376) et le rapport d'aspect peut être verrouillé. Un **contrôle
+  de surface d'impression** compare le motif à un support cible sélectionnable
+  (A3/A4/A5/Letter) et avertit clairement en cas de dépassement. À l'application, la
+  taille physique cible (mm) est ancrée dans le projet via les setters de
+  `project_model` (canonique ; le PPP découle de mm + taille en pixels) et survit au
+  cycle `.bgrproj` ; le rééchantillonnage reste purement en pixels (`Project.resize`).
+  Tous les textes en de/en (#377).
+- **Contrôle pré-export général et sans Qt (cadre partagé).** Un nouveau module
+  strictement typé `bgremover/export_checks.py` hisse le cadre de constats de
+  `eufymake_validate` (#354) sur une base partagée : un contrat générique
+  `Finding`/`CheckCode`/`Severity` avec des codes stables, des clés i18n
+  (`export.checks.*`, de/en) et un tri déterministe. Il implémente des contrôles
+  indépendants du format pour les dimensions (px > 0, limite de mégapixels), la
+  plausibilité de la résolution (PPP de #376), l'espace colorimétrique (RGBA attendu),
+  la transparence (entièrement transparent / alpha partiel inattendu), la sortie vide
+  et le contrôle de surface d'impression/marge (taille physique vs support cible).
+  `eufymake_validate` s'appuie désormais sur cette base partagée (réexporte `Severity`/
+  `has_blocking_errors`/`split_findings`) ; les codes spécifiques à EufyMake y restent
+  et tous les tests EufyMake antérieurs restent verts sans modification (#379).
+- **Ancrer le PPP/la résolution dans les sorties.** Lors de l'enregistrement
+  d'images matricielles, `image_ops.save_image_file` intègre désormais en option le
+  PPP du projet (#376) sous forme de métadonnées pures : PNG (`pHYs`), JPEG (densité
+  JFIF) et TIFF (`Resolution`/`ResolutionUnit`) ; le WebP ne porte pas de PPP. Le
+  chemin d'enregistrement du canevas transmet la résolution déduite de la taille
+  physique + la taille en pixels ; sans PPP de projet, le comportement est inchangé et
+  les pixels/alpha ne sont jamais modifiés (l'export bit à bit d'une seule couche
+  COLOR est préservé). L'export EufyMake alimente désormais son `ExportTarget` à partir
+  des getters mm/PPP du modèle plutôt que d'une dérivation locale (#378).
 - **mm/PPP comme propriété du projet + géométrie partagée sans Qt.** Un nouveau
   module strictement typé `bgremover/units.py` regroupe en un seul endroit toute la
   mathématique px↔mm↔PPP : à partir de deux grandeurs connues, il déduit la troisième de

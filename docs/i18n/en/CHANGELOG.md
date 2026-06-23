@@ -10,6 +10,43 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Pre-export checks on a normal save.** “Save”/“Save as…” now runs the general
+  check (#379) on the project before writing and shows the findings just like the
+  EufyMake flow: **errors block** saving with a clear message (no write call),
+  **warnings** require a deliberate confirmation. Cancelling is side-effect-free (no
+  write, no temporary files). Partial transparency is deliberately **not** flagged –
+  it is the normal output of a background-removal tool. All strings de/en; the finding
+  display reuses the same `format_finding` render logic as the EufyMake display (#380).
+  This completes epic #375 (dimension-accurate output + export checks).
+- **mm/DPI mode in the “Resize…” dialog + print-area check.** The resize dialog now
+  offers two units: pixels (as before) and **millimeters + DPI**. In mm mode you enter
+  width/height in mm and the DPI, the resulting **pixel size** is shown live via the
+  shared geometry (#376), and the aspect ratio can optionally be locked. A
+  **print-area check** compares the motif against a selectable target medium
+  (A3/A4/A5/Letter) and warns clearly when it is exceeded. On apply, the physical
+  target size (mm) is anchored in the project via the `project_model` setters
+  (canonical; DPI follows from mm + pixel size) and survives the `.bgrproj` round-trip;
+  the resampling itself stays purely pixel-based (`Project.resize`). All strings de/en
+  (#377).
+- **General, Qt-free pre-export checks (shared framework).** A new, strictly typed
+  module `bgremover/export_checks.py` lifts the finding framework from
+  `eufymake_validate` (#354) onto a shared base: a generic `Finding`/`CheckCode`/
+  `Severity` contract with stable codes, i18n keys (`export.checks.*`, de/en) and
+  deterministic ordering. It implements format-independent checks for dimensions
+  (px > 0, megapixel limit), resolution plausibility (DPI from #376), color space
+  (expected RGBA), transparency (fully transparent / unexpected partial alpha), empty
+  output and the print-area/margin check (physical size against the target medium).
+  `eufymake_validate` now builds on the shared base (re-exporting `Severity`/
+  `has_blocking_errors`/`split_findings`); EufyMake-specific codes stay there and all
+  prior EufyMake tests stay unchanged green (#379).
+- **Anchor DPI/resolution in outputs.** When saving raster images,
+  `image_ops.save_image_file` now optionally embeds the project DPI (#376) as pure
+  metadata – PNG (`pHYs`), JPEG (JFIF density) and TIFF
+  (`Resolution`/`ResolutionUnit`); WebP carries no DPI. The canvas save path passes
+  the resolution derived from physical size + pixel size; without a project DPI the
+  behavior is unchanged and the pixels/alpha are never touched (the bit-exact
+  single-COLOR export is preserved). The EufyMake export now feeds its `ExportTarget`
+  from the model mm/DPI getters instead of an export-local derivation (#378).
 - **mm/DPI as a project property + shared Qt-free geometry.** A new, strictly
   typed module `bgremover/units.py` bundles all px↔mm↔DPI math in one place: from any
   two known quantities it derives the third deterministically (`MM_PER_INCH = 25.4`),

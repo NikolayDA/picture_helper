@@ -31,7 +31,7 @@ from bgremover.project_model import (
     Project,
 )
 from bgremover.units import MM_PER_INCH as MM_PER_INCH  # Re-Export (Rückwärtskompat.)
-from bgremover.units import UnitsError, dpi_for_size, parse_size_mm
+from bgremover.units import UnitsError, parse_size_mm
 
 # Profil-/Versionskennung des Pakets. **BgRemover-Konvention**, keine offizielle
 # EufyMake-Kennung: trennt spätere Konventionsänderungen sauber vom Projektmodell
@@ -232,20 +232,6 @@ def _derive_physical_size(metadata: dict[str, object]) -> tuple[float, float] | 
         raise InvalidPhysicalSizeError(f"{META_PHYSICAL_SIZE_MM}: {exc}") from exc
 
 
-def _derive_dpi(
-    pixel_size: tuple[int, int], physical_size_mm: tuple[float, float] | None
-) -> tuple[float, float] | None:
-    """Leitet die Auflösung (DPI) aus Pixel- und physischer mm-Größe ab.
-
-    Nur wenn beide Angaben vorliegen, sonst ``None`` (keine erfundene Auflösung).
-    ``dpi = px / (mm / 25.4)`` je Achse – die Rechnung selbst liegt geteilt in
-    :func:`bgremover.units.dpi_for_size`.
-    """
-    if physical_size_mm is None:
-        return None
-    return dpi_for_size(pixel_size, physical_size_mm)
-
-
 def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
     """Effektive Bittiefe: ``override`` (validiert) hat Vorrang, sonst Metadaten.
 
@@ -265,11 +251,19 @@ def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
 def _derive_target(project: Project, *, bit_depth: int | None = None) -> ExportTarget:
     """Baut die :class:`ExportTarget`-Parameter reproduzierbar aus dem Projekt.
 
-    ``bit_depth`` überschreibt die aus den Metadaten abgeleitete Tiefe (UI-Wahl).
+    Physische Größe und DPI stammen aus den **Projektmodell-Gettern** (#376/#378):
+    ``META_PHYSICAL_SIZE_MM`` ist die kanonische Quelle, die DPI leitet das Modell
+    daraus plus Pixelgröße ab (geteilte Geometrie, kein export-lokaler Zweitweg).
+    Ein gespeicherter ungültiger Wert wird – deckungsgleich zur bisherigen Prüfung
+    – als :class:`InvalidPhysicalSizeError` gemeldet. ``bit_depth`` überschreibt
+    die aus den Metadaten abgeleitete Tiefe (UI-Wahl).
     """
     depth = coerce_bit_depth(project.metadata, bit_depth)
-    physical_size = _derive_physical_size(project.metadata)
-    dpi = _derive_dpi(project.size, physical_size)
+    try:
+        physical_size = project.physical_size_mm
+        dpi = project.dpi
+    except UnitsError as exc:
+        raise InvalidPhysicalSizeError(f"{META_PHYSICAL_SIZE_MM}: {exc}") from exc
     return ExportTarget(
         pixel_size=project.size,
         bit_depth=depth,

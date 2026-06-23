@@ -69,7 +69,7 @@
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] 精确输出（mm/DPI）+ 通用导出检查 | 🟠 高 | 🔴 高（epic） | **Ready for PR — 基础优先：** #376（无 Qt 几何 + 项目元数据），随后 #377/#378/#379 可并行；#380 完成 UI 与 epic。 |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] 精确输出（mm/DPI）+ 通用导出检查 | 🟠 高 | 🔴 高（epic） | **✅ 已完成（PR #382/#383）：** #376（无 Qt 的 mm/DPI 几何 + 项目 setter）、#377（mm/DPI UI + 打印区域检查）、#378（DPI 嵌入）、#379（共享导出前检查）、#380（保存时的 UI 集成）。 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **Needs refinement** – 先记录 GitHub semantics（top-level vs. 有效的 per-job）；不得削弱 #303 OIDC guard。 |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）** – maintainer 已**有意排除 HEIC**（评论 2026-06-21）。仅需澄清 README/ANLEITUNG，然后关闭。 |

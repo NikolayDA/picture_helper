@@ -11,6 +11,47 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Pre-Export-Prüfung beim normalen Speichern.** „Speichern"/„Speichern unter…"
+  führt jetzt vor dem Schreiben die allgemeine Prüfung (#379) auf dem Projekt aus
+  und zeigt die Befunde analog zum EufyMake-Flow: **Fehler blockieren** das
+  Speichern mit klarer Meldung (kein Schreibaufruf), **Warnungen** erfordern eine
+  bewusste Bestätigung. Ein Abbruch ist seiteneffektfrei (kein Schreiben, keine
+  Temporärdateien). Teiltransparenz wird bewusst **nicht** beanstandet – sie ist
+  das normale Ergebnis eines Freistellungswerkzeugs. Alle Strings de/en; die
+  Befund-Darstellung nutzt dieselbe `format_finding`-Render-Logik wie die
+  EufyMake-Anzeige (#380). Damit ist Epic #375 (maßgenaue Ausgabe + Exportprüfung)
+  abgeschlossen.
+- **mm/DPI-Modus im „Größe ändern…"-Dialog + Druckflächenprüfung.** Der
+  Resize-Dialog kennt jetzt zwei Maßeinheiten: Pixel (wie bisher) und
+  **Millimeter + DPI**. Im mm-Modus werden Breite/Höhe in mm und die DPI bedient,
+  die resultierende **Pixelgröße** live über die geteilte Geometrie (#376) angezeigt
+  und das Seitenverhältnis optional gekoppelt. Eine **Druckflächenprüfung** vergleicht
+  das Motiv gegen ein wählbares Zielmedium (A3/A4/A5/Letter) und warnt verständlich bei
+  Überschreitung. Beim Anwenden wird die physische Zielgröße (mm) über die
+  `project_model`-Setter im Projekt verankert (kanonisch; die DPI folgt aus mm +
+  Pixelgröße) und übersteht den `.bgrproj`-Round-Trip; das Resampling bleibt rein
+  pixelbasiert (`Project.resize`). Alle Strings de/en (#377).
+- **Allgemeine, Qt-freie Pre-Export-Prüfung (geteiltes Framework).** Neues, strikt
+  getyptes Modul `bgremover/export_checks.py` hebt das Befund-Framework aus
+  `eufymake_validate` (#354) auf eine geteilte Basis: ein generischer
+  `Finding`/`CheckCode`/`Severity`-Vertrag mit stabilen Codes, i18n-Keys
+  (`export.checks.*`, de/en) und deterministischer Sortierung. Implementiert sind
+  formatunabhängige Prüfungen für Abmessungen (px > 0, Megapixel-Limit),
+  Auflösungs-Plausibilität (DPI aus #376), Farbraum (erwartet RGBA), Transparenz
+  (vollständig transparent / unerwartetes Teil-Alpha), leere Ausgabe und die
+  Druckflächen-/Randprüfung (physische Größe gegen Zielmedium). `eufymake_validate`
+  baut nun auf der geteilten Basis auf (re-exportiert `Severity`/`has_blocking_errors`/
+  `split_findings`); EufyMake-spezifische Codes bleiben dort und alle bisherigen
+  EufyMake-Tests laufen unverändert grün (#379).
+- **DPI/Auflösung in Ausgaben verankern.** Beim Raster-Speichern bettet
+  `image_ops.save_image_file` jetzt optional die Projekt-DPI (#376) als reine
+  Metadaten ein – PNG (`pHYs`), JPEG (JFIF-Dichte) und TIFF
+  (`Resolution`/`ResolutionUnit`); WebP trägt keine DPI. Der Canvas-Speicherpfad
+  reicht die aus physischer Größe + Pixelgröße abgeleitete Auflösung durch; ohne
+  gesetzte Projekt-DPI bleibt das Verhalten unverändert und die Pixel/Alpha werden
+  in keinem Fall berührt (bitgenauer Single-COLOR-Export bleibt erhalten). Der
+  EufyMake-Export speist seinen `ExportTarget` nun aus den Modell-mm/DPI-Gettern
+  statt aus einer export-lokalen Ableitung (#378).
 - **mm/DPI als Projekt-Eigenschaft + geteilte Qt-freie Geometrie.** Neues,
   strikt getyptes Modul `bgremover/units.py` bündelt die gesamte px↔mm↔DPI-Mathematik
   an einer Stelle: aus je zwei bekannten Größen leitet es die dritte deterministisch

@@ -43,6 +43,8 @@ from bgremover.eufymake_writer import (
     ExportValidationError,
     write_export,
 )
+from bgremover.export_checks import CheckCode, check_export, split_findings
+from bgremover.export_checks import format_finding as format_check_finding
 from bgremover.height_map_panel import HeightMapActions
 from bgremover.history_popup import HistoryPopup
 from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
@@ -86,11 +88,18 @@ from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     STATUS_BAR_STYLE,
 )
+from bgremover.units import UnitsError
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import REMBG_AVAILABLE
 
 # Standard-Canvas-Größe eines per „Neues Projekt" erzeugten leeren Projekts.
 _NEW_PROJECT_SIZE = (1024, 1024)
+
+# Befunde, die vor einem **normalen** Raster-Speichern (#380) bewusst NICHT
+# angezeigt werden: BgRemover ist ein Freistellungswerkzeug, Teiltransparenz ist
+# das erwartete Ergebnis und keine warnwürdige Auffälligkeit. Alle übrigen Befunde
+# der allgemeinen Prüfung (#379) – Fehler wie Warnungen – werden gezeigt.
+_SAVE_CHECK_SKIP_CODES = frozenset({CheckCode.UNEXPECTED_ALPHA})
 
 
 class MainWindow(QMainWindow):
@@ -291,11 +300,25 @@ class MainWindow(QMainWindow):
         if project is None:
             self._sb.showMessage(SM.KEIN_BILD_GELADEN)
             return
-        dlg = ResizeDialog(project.width, project.height, self)
+        try:
+            pre_dpi = project.dpi
+        except UnitsError:
+            pre_dpi = None
+        dlg = ResizeDialog(project.width, project.height, self, dpi=pre_dpi)
         if dlg.exec():
             width, height = dlg.selected_size()
             self._canvas.apply_resize(
                 width, height, resample=dlg.selected_resample())
+            # Im mm-Modus die physische Zielgröße (mm) als kanonische Quelle (#376)
+            # im Projekt verankern – nur **wenn** das Resampling die Zielgröße auch
+            # erreicht hat (No-op eingeschlossen). Wurde es am Megapixel-Gate
+            # abgelehnt, bleibt die alte Pixelgröße bestehen und dürfte nicht mit
+            # einer neuen mm-Größe gepaart werden. Das Setzen läuft über den Canvas,
+            # der die content_revision anhebt (sonst ginge eine reine mm-Änderung im
+            # No-op-Fall am „ungespeicherte Änderungen"-Schutz vorbei).
+            mm = dlg.selected_physical_size_mm()
+            if mm is not None and project.size == (width, height):
+                self._canvas.set_physical_size_mm(*mm)
 
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""
@@ -598,6 +621,39 @@ class MainWindow(QMainWindow):
         self._warmup_failed = True
         self._sb.showMessage(SM.KI_FEHLER_WARMUP)
 
+    def _confirm_pre_save_checks(self) -> bool:
+        """Allgemeine Pre-Export-Prüfung (#379) vor dem Speichern (#380).
+
+        Führt :func:`export_checks.check_export` auf dem aktuellen Projekt aus und
+        zeigt die Befunde analog zum EufyMake-Flow: **Fehler blockieren** das
+        Speichern (kein Schreibaufruf), **Warnungen** erfordern eine bewusste
+        Bestätigung. Gibt ``True`` zurück, wenn geschrieben werden darf. Die Prüfung
+        läuft **vor** dem eigentlichen Schreiben, sodass ein Abbruch weder das
+        Projekt noch ein bestehendes Ziel verändert und keine Temporärdateien
+        hinterlässt. ``UNEXPECTED_ALPHA`` wird hier bewusst unterdrückt
+        (Teiltransparenz ist das normale Ergebnis eines Freistellungswerkzeugs).
+        """
+        project = self._canvas.project
+        if project is None:
+            return True
+        findings = tuple(
+            f for f in check_export(project) if f.code not in _SAVE_CHECK_SKIP_CODES
+        )
+        errors, warnings = split_findings(findings)
+        if errors:
+            details = "\n".join(format_check_finding(f) for f in errors)
+            QMessageBox.critical(
+                self, tr("export.check.error.title"),
+                tr("export.check.blocked", details=details))
+            return False
+        if warnings:
+            details = "\n".join(format_check_finding(f) for f in warnings)
+            reply = QMessageBox.question(
+                self, tr("export.check.warning.title"),
+                tr("export.check.confirm", details=details))
+            return reply == QMessageBox.StandardButton.Yes
+        return True
+
     def _save(self) -> None:
         """Quick-Save: speichert in den bekannten Pfad, sonst „Speichern unter…"."""
         if self._save_path is None:
@@ -606,6 +662,8 @@ class MainWindow(QMainWindow):
         if not self._canvas.has_image:
             self._sb.showMessage(SM.KEIN_BILD_ZUM_SPEICHERN)
             return
+        if not self._confirm_pre_save_checks():
+            return
         if self._canvas.save_image(self._save_path):
             self._mark_saved()
 
@@ -613,6 +671,10 @@ class MainWindow(QMainWindow):
         """Speichern unter…: öffnet immer den Datei-Dialog."""
         if not self._canvas.has_image:
             self._sb.showMessage(SM.KEIN_BILD_ZUM_SPEICHERN)
+            return
+        # Pre-Export-Prüfung (#380) vor dem Datei-Dialog: blockierende Befunde
+        # verhindern das Schreiben, ohne den Nutzer erst einen Pfad wählen zu lassen.
+        if not self._confirm_pre_save_checks():
             return
         save_dir = self._settings.value("save_dir", "")
         if self._save_path:

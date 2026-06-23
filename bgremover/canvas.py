@@ -79,6 +79,7 @@ from bgremover.project_model import (
     role_allowed_for_kind,
 )
 from bgremover.status_messages import StatusMessages as SM
+from bgremover.units import UnitsError
 
 
 @dataclass(frozen=True)
@@ -1278,6 +1279,21 @@ class ImageCanvas(QGraphicsView):
         """
         self._wand_busy = False
 
+    def _export_dpi(self) -> tuple[float, float] | None:
+        """Projekt-DPI für die Metadaten-Einbettung beim Speichern (#378).
+
+        Liefert die aus physischer Größe + Pixelgröße abgeleitete Auflösung des
+        Projekts oder ``None``, wenn keine physische Größe gesetzt ist. Ein
+        (defensiv) korrupter Metadatenwert blockiert das Speichern nicht – die
+        Datei wird dann ohne DPI geschrieben (bisheriges Verhalten).
+        """
+        if self._project is None:
+            return None
+        try:
+            return self._project.dpi
+        except UnitsError:
+            return None
+
     def save_image(self, path: str) -> bool:
         """Speichert das aktuelle Komposit; gibt ``True`` bei Erfolg zurück.
 
@@ -1294,7 +1310,7 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit(SM.KEIN_BILD_ZUM_SPEICHERN)
             return False
         try:
-            save_image_file(export, path)
+            save_image_file(export, path, dpi=self._export_dpi())
         except Exception as e:
             logger.exception("Speichern fehlgeschlagen: %s", path)
             self.statusMsg.emit(tr("canvas.save_failed", error=e))
@@ -1523,6 +1539,20 @@ class ImageCanvas(QGraphicsView):
         Anwendung in :meth:`resize_project`.
         """
         self._transform.apply_resize(width, height, resample)
+
+    def set_physical_size_mm(self, width_mm: float, height_mm: float) -> None:
+        """Verankert die physische Zielgröße (mm) im Projekt und markiert Änderung (#377).
+
+        Schreibt die kanonische physische Größe über den Projektmodell-Setter (#376)
+        und hebt die ``content_revision`` an, damit der „ungespeicherte Änderungen"-
+        Schutz auch dann greift, wenn die Größenänderung selbst ein No-op war (reine
+        DPI-/mm-Metadaten-Änderung) – sonst ginge sie beim Schließen/Bildwechsel
+        unbemerkt verloren. Ohne Projekt ein No-op.
+        """
+        if self._project is None:
+            return
+        self._project.set_physical_size_mm(width_mm, height_mm)
+        self._content_revision += 1
 
     def resize_project(
         self,

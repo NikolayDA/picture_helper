@@ -122,7 +122,18 @@ Ein Paket, `bgremover/`:
   Warnungen (leere/konstante Height-/Gloss-Daten, 16-Bit unbestätigt, Gloss=Ink-Mode-
   Hilfsasset, physische Größe ohne Herstellervertrag) erlauben den Export erst nach
   Bestätigung. `format_finding` liefert die de/en-Meldung (literale `tr`-Keys
-  `eufymake.export.*`). `eufymake_writer.py` — Qt-freies **Rendern + atomares
+  `eufymake.export.*`). Das Befund-Fundament (`Severity`, `severity_rank`,
+  `has_blocking_errors`, `split_findings`) liegt seit #379 geteilt in
+  `export_checks.py` und wird hier re-exportiert (Rückwärtskompatibilität).
+- **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
+  geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
+  deterministischer Sortierung und `format_finding` (literale `tr`-Keys
+  `export.checks.*`). Einzeln testbare, formatunabhängige Prüfungen `check_dimensions`
+  (px>0, Megapixel-Limit), `check_resolution` (DPI-Plausibilität aus #376),
+  `check_color_space` (erwartet RGBA), `check_transparency` (vollständig transparent /
+  unerwartetes Teil-Alpha), `check_print_area` (Motiv > Zielmedium) plus der
+  Orchestrator `check_export(project, ...)` (inkl. `OUTPUT_EMPTY` für leere Projekte).
+  `eufymake_validate` baut darauf auf, ohne seine produktspezifischen Codes zu ändern. `eufymake_writer.py` — Qt-freies **Rendern + atomares
   Schreiben** (#353): `render_export` erzeugt die Pixel (Farbmotiv = Komposit/RGBA
   alpha-erhaltend, Height graustufig hell=hoch als `L`/`I;16`, Gloss graustufig) in
   Zielgröße plus `manifest.json`; `write_export` validiert (Fehler→`ExportValidationError`,
