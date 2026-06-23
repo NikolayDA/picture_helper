@@ -11,6 +11,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 新增
 
+- **通用的、无 Qt 的导出前检查（共享框架）。** 新增严格类型化模块
+  `bgremover/export_checks.py`，将 `eufymake_validate`（#354）的结论框架提升为共享基础：
+  通用的 `Finding`/`CheckCode`/`Severity` 契约，具备稳定代码、i18n 键
+  （`export.checks.*`，de/en）与确定性排序。实现了与格式无关的检查：尺寸（px > 0、
+  百万像素上限）、分辨率合理性（DPI 来自 #376）、色彩空间（期望 RGBA）、透明度
+  （完全透明／意外的部分 alpha）、空输出，以及打印区域/边距检查（物理尺寸对比目标介质）。
+  `eufymake_validate` 现在基于该共享基础（重新导出 `Severity`/`has_blocking_errors`/
+  `split_findings`）；EufyMake 专有代码仍保留在其中，且所有既有 EufyMake 测试保持不变并通过
+  （#379）。
 - **在输出中锚定 DPI/分辨率。** 保存栅格图像时，`image_ops.save_image_file`
   现在可选地将项目 DPI（#376）作为纯元数据嵌入——PNG（`pHYs`）、JPEG（JFIF 密度）
   与 TIFF（`Resolution`/`ResolutionUnit`）；WebP 不携带 DPI。画布保存路径会传入

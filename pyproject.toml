@@ -126,6 +126,7 @@ module = [
     "bgremover.eufymake_export",
     "bgremover.eufymake_validate",
     "bgremover.eufymake_writer",
+    "bgremover.export_checks",
     "bgremover.height_map",
     "bgremover.height_ops",
     "bgremover.crop",

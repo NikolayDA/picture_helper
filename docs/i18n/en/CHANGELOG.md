@@ -10,6 +10,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **General, Qt-free pre-export checks (shared framework).** A new, strictly typed
+  module `bgremover/export_checks.py` lifts the finding framework from
+  `eufymake_validate` (#354) onto a shared base: a generic `Finding`/`CheckCode`/
+  `Severity` contract with stable codes, i18n keys (`export.checks.*`, de/en) and
+  deterministic ordering. It implements format-independent checks for dimensions
+  (px > 0, megapixel limit), resolution plausibility (DPI from #376), color space
+  (expected RGBA), transparency (fully transparent / unexpected partial alpha), empty
+  output and the print-area/margin check (physical size against the target medium).
+  `eufymake_validate` now builds on the shared base (re-exporting `Severity`/
+  `has_blocking_errors`/`split_findings`); EufyMake-specific codes stay there and all
+  prior EufyMake tests stay unchanged green (#379).
 - **Anchor DPI/resolution in outputs.** When saving raster images,
   `image_ops.save_image_file` now optionally embeds the project DPI (#376) as pure
   metadata – PNG (`pHYs`), JPEG (JFIF density) and TIFF

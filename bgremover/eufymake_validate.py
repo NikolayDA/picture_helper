@@ -32,6 +32,14 @@ from bgremover.eufymake_export import (
     can_render_color_motif,
     coerce_bit_depth,
 )
+
+# Geteiltes Befund-Framework (#379): Schweregrad und die Aufteilungs-/Blockier-
+# Helfer liegen zentral in ``export_checks``; hier re-exportiert, damit die
+# bisherigen Importeure (``Severity``/``has_blocking_errors``/``split_findings``
+# aus diesem Modul) unverändert weiterfunktionieren.
+from bgremover.export_checks import Severity, severity_rank
+from bgremover.export_checks import has_blocking_errors as has_blocking_errors
+from bgremover.export_checks import split_findings as split_findings
 from bgremover.height_map import layer_to_height
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, Project
@@ -44,13 +52,6 @@ _OPTIONAL_ROLES: tuple[LayerRole, ...] = (LayerRole.HEIGHT_MAP, LayerRole.GLOSS_
 # ``f"{_I18N_PREFIX}{code.value}"`` (siehe ``ExportFinding.i18n_key``); die
 # de/en-Übersetzungen liegen zentral in :mod:`bgremover.i18n`.
 _I18N_PREFIX = "eufymake.export."
-
-
-class Severity(Enum):
-    """Schweregrad eines Befunds."""
-
-    ERROR = "error"  # blockiert den Export
-    WARNING = "warning"  # erlaubt den Export erst nach bewusster Bestätigung
 
 
 class ExportCheckCode(Enum):
@@ -125,9 +126,8 @@ def _finding(code: ExportCheckCode, role: LayerRole | None = None, **params: obj
 
 def _sort_key(finding: ExportFinding) -> tuple[int, int, str]:
     """Deterministische Sortierung: Fehler vor Warnungen, dann Code, dann Rolle."""
-    severity_rank = 0 if finding.severity is Severity.ERROR else 1
     role_rank = finding.role.value if finding.role is not None else ""
-    return (severity_rank, _CODE_ORDER[finding.code], role_rank)
+    return (severity_rank(finding.severity), _CODE_ORDER[finding.code], role_rank)
 
 
 def _gray_array(image: Image.Image) -> np.ndarray:
@@ -244,21 +244,6 @@ def validate_export(
 def _fmt_size(size: tuple[int, int]) -> str:
     """Formatiert eine Größe ``(w, h)`` als ``"w×h"`` für Meldungen."""
     return f"{size[0]}×{size[1]}"
-
-
-def has_blocking_errors(findings: Iterable[ExportFinding]) -> bool:
-    """True, wenn mindestens ein blockierender Fehler vorliegt."""
-    return any(finding.is_error for finding in findings)
-
-
-def split_findings(
-    findings: Iterable[ExportFinding],
-) -> tuple[tuple[ExportFinding, ...], tuple[ExportFinding, ...]]:
-    """Teilt Befunde in ``(errors, warnings)`` – stabile Reihenfolge bleibt erhalten."""
-    items = tuple(findings)
-    errors = tuple(f for f in items if f.is_error)
-    warnings = tuple(f for f in items if not f.is_error)
-    return errors, warnings
 
 
 def format_finding(finding: ExportFinding) -> str:

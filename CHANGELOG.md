@@ -11,6 +11,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Allgemeine, Qt-freie Pre-Export-Prüfung (geteiltes Framework).** Neues, strikt
+  getyptes Modul `bgremover/export_checks.py` hebt das Befund-Framework aus
+  `eufymake_validate` (#354) auf eine geteilte Basis: ein generischer
+  `Finding`/`CheckCode`/`Severity`-Vertrag mit stabilen Codes, i18n-Keys
+  (`export.checks.*`, de/en) und deterministischer Sortierung. Implementiert sind
+  formatunabhängige Prüfungen für Abmessungen (px > 0, Megapixel-Limit),
+  Auflösungs-Plausibilität (DPI aus #376), Farbraum (erwartet RGBA), Transparenz
+  (vollständig transparent / unerwartetes Teil-Alpha), leere Ausgabe und die
+  Druckflächen-/Randprüfung (physische Größe gegen Zielmedium). `eufymake_validate`
+  baut nun auf der geteilten Basis auf (re-exportiert `Severity`/`has_blocking_errors`/
+  `split_findings`); EufyMake-spezifische Codes bleiben dort und alle bisherigen
+  EufyMake-Tests laufen unverändert grün (#379).
 - **DPI/Auflösung in Ausgaben verankern.** Beim Raster-Speichern bettet
   `image_ops.save_image_file` jetzt optional die Projekt-DPI (#376) als reine
   Metadaten ein – PNG (`pHYs`), JPEG (JFIF-Dichte) und TIFF

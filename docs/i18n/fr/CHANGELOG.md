@@ -11,6 +11,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Contrôle pré-export général et sans Qt (cadre partagé).** Un nouveau module
+  strictement typé `bgremover/export_checks.py` hisse le cadre de constats de
+  `eufymake_validate` (#354) sur une base partagée : un contrat générique
+  `Finding`/`CheckCode`/`Severity` avec des codes stables, des clés i18n
+  (`export.checks.*`, de/en) et un tri déterministe. Il implémente des contrôles
+  indépendants du format pour les dimensions (px > 0, limite de mégapixels), la
+  plausibilité de la résolution (PPP de #376), l'espace colorimétrique (RGBA attendu),
+  la transparence (entièrement transparent / alpha partiel inattendu), la sortie vide
+  et le contrôle de surface d'impression/marge (taille physique vs support cible).
+  `eufymake_validate` s'appuie désormais sur cette base partagée (réexporte `Severity`/
+  `has_blocking_errors`/`split_findings`) ; les codes spécifiques à EufyMake y restent
+  et tous les tests EufyMake antérieurs restent verts sans modification (#379).
 - **Ancrer le PPP/la résolution dans les sorties.** Lors de l'enregistrement
   d'images matricielles, `image_ops.save_image_file` intègre désormais en option le
   PPP du projet (#376) sous forme de métadonnées pures : PNG (`pHYs`), JPEG (densité

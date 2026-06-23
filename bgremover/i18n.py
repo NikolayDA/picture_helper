@@ -126,6 +126,33 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber kein "
             "bestätigter Herstellervertrag."
         ),
+        # Allgemeine Pre-Export-Prüfung (#379)
+        "export.checks.dimensions_invalid": (
+            "Ungültige Abmessungen: {width}×{height} px – Breite und Höhe müssen positiv sein."
+        ),
+        "export.checks.dimensions_too_large": (
+            "Ausgabe zu groß: {mp} MP überschreiten das Limit von {limit} MP."
+        ),
+        "export.checks.color_space_unexpected": (
+            "Unerwarteter Farbraum: {actual} (erwartet: {expected})."
+        ),
+        "export.checks.output_empty": "Leere Ausgabe: Das Projekt enthält keine Ebenen.",
+        "export.checks.resolution_too_low": (
+            "Auflösung niedrig: {dpi} DPI (empfohlenes Minimum: {minimum} DPI)."
+        ),
+        "export.checks.resolution_too_high": (
+            "Auflösung sehr hoch: {dpi} DPI (empfohlenes Maximum: {maximum} DPI)."
+        ),
+        "export.checks.fully_transparent": (
+            "Vollständig transparent: Die Ausgabe enthält keine sichtbaren Pixel."
+        ),
+        "export.checks.unexpected_alpha": (
+            "Teiltransparenz: {percent}% der Pixel sind teildurchsichtig."
+        ),
+        "export.checks.print_area_exceeded": (
+            "Motiv überschreitet die Druckfläche: "
+            "{width}×{height} mm > {medium_w}×{medium_h} mm."
+        ),
         # EufyMake-Export – Menü, Dialog & Meldungen (#355)
         "action.export_eufymake": "Assets für EufyMake Studio exportieren…",
         "eufymake.dialog.title": "Assets für EufyMake Studio exportieren",
@@ -770,6 +797,33 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "Physical size and the pixel↔mm/DPI assumption are plausible but not a "
             "confirmed vendor contract."
+        ),
+        # General pre-export checks (#379)
+        "export.checks.dimensions_invalid": (
+            "Invalid dimensions: {width}×{height} px – width and height must be positive."
+        ),
+        "export.checks.dimensions_too_large": (
+            "Output too large: {mp} MP exceed the limit of {limit} MP."
+        ),
+        "export.checks.color_space_unexpected": (
+            "Unexpected color space: {actual} (expected: {expected})."
+        ),
+        "export.checks.output_empty": "Empty output: the project contains no layers.",
+        "export.checks.resolution_too_low": (
+            "Resolution low: {dpi} DPI (recommended minimum: {minimum} DPI)."
+        ),
+        "export.checks.resolution_too_high": (
+            "Resolution very high: {dpi} DPI (recommended maximum: {maximum} DPI)."
+        ),
+        "export.checks.fully_transparent": (
+            "Fully transparent: the output has no visible pixels."
+        ),
+        "export.checks.unexpected_alpha": (
+            "Partial transparency: {percent}% of pixels are semi-transparent."
+        ),
+        "export.checks.print_area_exceeded": (
+            "Motif exceeds the print area: "
+            "{width}×{height} mm > {medium_w}×{medium_h} mm."
         ),
         # EufyMake export – menu, dialog & messages (#355)
         "action.export_eufymake": "Export assets for EufyMake Studio…",
