@@ -66,48 +66,42 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Estado de Triage (2026-06-22, actualizado)
+## Issues de GitHub Abiertos — Estado de Triage (2026-06-23, actualizado)
 
-A 2026-06-22, GitHub muestra **10** issues abiertos. La regresión crítica de
-exportación **#363** se ha corregido vía **PR #367** y se cerró; los dos
-seguimientos de Height Map **#364** (contrato central `HEIGHT_MAP`↔`HEIGHT` con
-normalización de legado sin pérdidas) y **#365** (filtro mediano por bandas,
-limitado en memoria) se implementan y cierran con este PR. Quedan el **épic de
-exportación EufyMake #351** y #352–#355 (rango #3 del roadmap), las brechas de
-docs **#357** y **#339**, y los hallazgos de test/CI **#318**, **#299** y
-**#245**. **#322** se entregó vía **#342** y está cerrado.
+A 2026-06-23, GitHub muestra **11** issues abiertos. El epic EufyMake **#351**
+está cerrado tras los PRs **#372–#374**: #352–#355 cubren ADR/modelo, render y
+writer atómico, validación y UI/settings. #374 corrige además el agotamiento de
+generadores en `optional_roles` e impide sustituir un archivo por un directorio.
+El nuevo epic de roadmap **#375** y #376–#380 cubre ahora salida física mm/DPI y
+validación general de exportación. También quedan **#357**, **#339**, **#318**,
+**#299** y **#245**; la revisión EufyMake no requiere issues de seguimiento.
 
 Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 **Complejidad** = esfuerzo estimado de implementación.
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#351](https://github.com/NikolayDA/picture_helper/issues/351) | [Épic] Paquete de exportación EufyMake consistente | 🟠 Alta | 🔴 Alta (épic) | **Needs refinement** – según la deep research (comentario del issue), afinar el alcance a "assets de importación robustos para EufyMake Studio"; la generación nativa de `.empf` **no** es el objetivo por defecto. Se aborda vía #352–#355. |
-| [#352](https://github.com/NikolayDA/picture_helper/issues/352) | Modelo de datos de exportación y definición de paquete (sin Qt) + ADR | 🟠 Alta | 🟡 Media | **Ready for PR — ADR primero** – deep research hecha (comentarios del issue), pero la decisión de convención/ADR **aún no está documentada en el repo** y debe escribirse como primer paso de esta PR (es criterio de aceptación de #352). `eufymake_export.py` sin Qt con `ExportPlan`/`ExportAsset` (motivo de color PNG+alfa, altura en grises claro=alto, máscara de gloss); alcance = assets de importación para EufyMake Studio; marcar 16 bits/semántica de gloss/`.empf` nativo como "abierto". Base — desbloquea #353–#355. |
-| [#353](https://github.com/NikolayDA/picture_helper/issues/353) | Renderizado de assets y escritura atómica del paquete | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352; bien acotado después (renderizado + escritura atómica). |
-| [#354](https://github.com/NikolayDA/picture_helper/issues/354) | Comprobación de consistencia previa a la exportación | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352. Mantener reutilizables los bloques de comprobación (sinergia con la comprobación general de errores previa a la exportación). |
-| [#355](https://github.com/NikolayDA/picture_helper/issues/355) | UI: diálogo de exportación EufyMake + menú + i18n + ajustes | 🟠 Alta | 🟡 Media | **Blocked** – necesita #352–#354. Texto de UI según la deep research: "preparar assets para EufyMake Studio", no "producir un proyecto terminado". |
+| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Salida a medida (mm/DPI) + validación general de exportación | 🟠 Alta | 🔴 Alta (epic) | **Ready for PR — base primero:** #376 (geometría sin Qt + metadatos), luego #377/#378/#379 en paralelo; #380 completa UI y epic. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Blocked (externo)** – el endurecimiento del repo vía #322/#342 (cerrado) está hecho; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | 🟢 Baja | 🟡 Media | **Needs refinement** – primero documentar la semántica de GitHub (top-level vs. efectivo-por-job); no debilitar el guard OIDC #303. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF no está soportado como formato de entrada | 🟢 Baja | 🟢 Baja | **Ready for PR (docs)** – el maintainer **excluyó HEIC deliberadamente** (comentario 2026-06-21). Solo aclarar README/ANLEITUNG, luego cerrar. |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: falta apertura por ruta inicial/Finder en ANLEITUNG §4 | 🟢 Baja | 🟢 Baja | **Ready for PR (docs).** Actualizar la guía principal y las cinco copias i18n; precisar que Recientes incluye imágenes y proyectos `.bgrproj`. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Ready for PR (oportunista)** – no bloquea producto ni CI; lo de mayor valor primero (asertar el endpoint del lazo, la línea de `test_helpers`, consolidar los tests de `set_brush_size`). |
 
-### Revisión de PRs/issues cerrados el 2026-06-22
+### Revisión de PRs/issues cerrados el 2026-06-23
 
-Se revisaron los PRs cerrados **#356**, **#362**, **#366–#369** y los issues **#358–#361**, **#363–#365**.
-Los temas están cubiertos: pulido de fase 0 vía #362, regresión de exportación #363 vía #367 y ambos seguimientos de Height Map vía #369.
-No hace falta abrir ningún issue ni comentario adicional.
-La siguiente recomendación concreta sigue siendo **#352** como base ADR y modelo de datos del epic EufyMake.
+Se revisaron los PRs **#372–#374** y los issues **#351–#355** cerrados hoy.
+ADR, módulos sin Qt, UI, persistencia y la corrección posterior a #373 están
+presentes y cubiertos por pruebas. No queda ningún hallazgo que requiera issue o
+comentario adicional.
 
 ### Próximo recomendado (orden de PR)
 
-1. Implementar **#352** como base del épic EufyMake, ADR primero; desbloquea
-   #353/#354 (los seguimientos **#364**/**#365** quedan hechos con este PR).
-2. Implementar **#353** y **#354** en paralelo, seguido de **#355**.
-3. Usar **#357**, **#339** y **#299** como rellenos de menor prioridad.
-4. Posponer **#318** hasta documentar la semántica de permisos de GitHub.
-5. Mantener **#245** bloqueado externamente (ningún parche del repo restaura la cuota).
+1. Implementar **#376** como base; después **#377**, **#378** y **#379** en
+   paralelo, y finalmente **#380**.
+2. Intercalar **#357** y **#339** como pequeños PRs independientes de docs.
+3. Abordar **#299** oportunísticamente; aplazar **#318** y mantener **#245**
+   bloqueado externamente.
 
 ## Rondas Anteriores
 
