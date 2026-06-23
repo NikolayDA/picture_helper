@@ -173,6 +173,10 @@ class EufyMakeExportDialog(QDialog):
         browse.clicked.connect(self._pick_dest)
         row.addWidget(browse)
         box.addLayout(row)
+        self._dest_hint = _hint(tr("eufymake.dialog.dest.is_file"))
+        self._dest_hint.setStyleSheet("color: #d66; font-size: 11px;")
+        self._dest_hint.setVisible(False)
+        box.addWidget(self._dest_hint)
         return grp
 
     # ── Live-Prüfung ────────────────────────────────────────────────────
@@ -215,9 +219,13 @@ class EufyMakeExportDialog(QDialog):
         self._update_buttons()
 
     def _update_buttons(self) -> None:
+        dest = self._dest_edit.text().strip()
+        dest_is_file = bool(dest) and Path(dest).exists() and not Path(dest).is_dir()
+        self._dest_hint.setVisible(dest_is_file)
         ready = (
             not self._errors
-            and bool(self._dest_edit.text().strip())
+            and bool(dest)
+            and not dest_is_file
             and (not self._warnings or self._confirm.isChecked())
         )
         self._export_btn.setEnabled(ready)

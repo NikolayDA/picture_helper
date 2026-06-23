@@ -113,6 +113,25 @@ def test_export_button_needs_destination(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
+def test_existing_file_destination_blocks_export(qapp, tmp_path) -> None:
+    dlg = EufyMakeExportDialog(_color_project())
+    try:
+        target_file = tmp_path / "file.txt"
+        target_file.write_text("x", encoding="utf-8")
+        dlg._dest_edit.setText(str(target_file))
+        assert not dlg._dest_hint.isHidden()
+        assert not dlg._export_btn.isEnabled()
+        # Ein Verzeichnis-Ziel ist dagegen erlaubt.
+        target_dir = tmp_path / "dir"
+        target_dir.mkdir()
+        dlg._dest_edit.setText(str(target_dir))
+        assert dlg._dest_hint.isHidden()
+        assert dlg._export_btn.isEnabled()
+    finally:
+        dlg.close()
+
+
+@pytest.mark.ui_smoke
 def test_warning_requires_explicit_confirmation(qapp) -> None:
     project = _with_gloss(_color_project())  # Gloss → Ink-Mode-Warnung
     dlg = EufyMakeExportDialog(project)
