@@ -123,6 +123,38 @@ def test_round_trip_after_resize_preserves_resampled_project(tmp_path) -> None:
     _assert_projects_equal(loaded, project)
 
 
+def test_round_trip_preserves_physical_size_and_dpi(tmp_path) -> None:
+    """Physische Größe (mm) und abgeleitete DPI überstehen Save/Load wertgleich (#376)."""
+    project = Project(254, 127)
+    project.create_layer(_solid(254, 127, (10, 20, 30, 255)), name="Motiv")
+    project.set_physical_size_mm(50.8, 25.4)  # 2 in × 1 in → 127 dpi
+    path = tmp_path / f"masse{PROJECT_SUFFIX}"
+
+    save_project(project, path)
+    loaded = load_project(path)
+
+    # Über die normalisierenden Getter (JSON macht aus dem Tupel eine Liste).
+    assert loaded.physical_size_mm == project.physical_size_mm == (50.8, 25.4)
+    assert loaded.dpi == project.dpi
+    assert loaded.dpi is not None
+    assert loaded.dpi == pytest.approx((127.0, 127.0))
+
+
+def test_round_trip_preserves_dpi_set_via_set_dpi(tmp_path) -> None:
+    """Auch eine über ``set_dpi`` gesetzte Auflösung bleibt nach Save/Load erhalten (#376)."""
+    project = Project(300, 600)
+    project.create_layer(_solid(300, 600, (1, 2, 3, 255)), name="Motiv")
+    project.set_dpi(300)
+    path = tmp_path / f"dpi{PROJECT_SUFFIX}"
+
+    save_project(project, path)
+    loaded = load_project(path)
+
+    assert loaded.physical_size_mm == project.physical_size_mm
+    assert loaded.dpi == project.dpi
+    assert loaded.dpi == pytest.approx((300.0, 300.0))
+
+
 def test_round_trip_empty_metadata_and_single_layer(tmp_path) -> None:
     project = Project(3, 3)
     project.create_layer(_solid(3, 3, (1, 2, 3, 200)), name="Solo")

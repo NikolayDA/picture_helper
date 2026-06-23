@@ -151,6 +151,14 @@ Ein Paket, `bgremover/`:
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
   Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
   `theme.py`, `icons*.py`.
+- **Maßeinheiten/Geometrie:** `units.py` — Qt-freie, strikt getypte px↔mm↔DPI-Mathematik
+  (#376): leitet aus je zwei bekannten Größen die dritte deterministisch ab
+  (`MM_PER_INCH = 25.4`), validiert Eingaben und meldet ungültige Werte als strukturierte
+  `UnitsError`-Subtypen statt stiller Korrektur. Einzige Quelle der Geometrie für
+  `eufymake_export` (`_derive_physical_size`/`_derive_dpi`/`MM_PER_INCH` konsumieren sie)
+  und für die validierten mm/DPI-Setter/Getter in `Project` (physische Größe ist kanonisch
+  in `META_PHYSICAL_SIZE_MM`, DPI daraus + Pixelgröße abgeleitet – kein Drift, round-trippt
+  im `.bgrproj`).
 - **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
   `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
