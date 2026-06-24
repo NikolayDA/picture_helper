@@ -56,15 +56,15 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Estado de Triage (2026-06-24, actualizado)
 
-A 2026-06-24, GitHub muestra **14** issues abiertos. El epic **#375** (salida
+A 2026-06-24, tras completar #385/#386 GitHub muestra **12** issues abiertos. El epic **#375** (salida
 física mm/DPI + validación general de exportación) está completo vía **#376–#380**
 (PR #382/#383) y cerrado. Desde el último triage se han añadido **dos nuevos epics**
 que estructuran el cierre de la fase 0/1:
 
-- **#384 – Vista previa 2D combinada** (núcleo de relieve MVP, el último punto
-  funcional abierto de la fase 1, actualmente ~55%) con sub-issues **#385**
-  (renderizador de sombreado de relieve, sin Qt), **#386** (visualización de gloss,
-  sin Qt), **#387** (modos de vista previa del lienzo + pipeline de composición) y **#388** (toggles de UI + i18n).
+- **#384 – Vista previa 2D combinada** (núcleo de relieve MVP, último punto
+  funcional abierto de la fase 1): los renderizadores sin Qt **#385/#386** están
+  implementados; quedan **#387** (modos de vista previa del lienzo + pipeline de
+  composición) y **#388** (toggles de UI + i18n).
 - **#389 – Actualizar la documentación de usuario y lanzar la release v2.5.0** con
   sub-issues **#390** (la guía de usuario ANLEITUNG, 6 idiomas — también cierra
   **#357**), **#391** (README + capturas + i18n) y **#392** (release v2.5.0).
@@ -84,10 +84,8 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Vista previa 2D combinada (color/transparencia/relieve/gloss) | 🟠 Alta | 🔴 Alta (epic) | **En progreso (epic)** – el último punto funcional de la fase 1. Orden: #385/#386 en paralelo → #387 → #388. |
-| [#385](https://github.com/NikolayDA/picture_helper/issues/385) | Renderizador de sombreado de relieve (sin Qt) | 🟠 Alta | 🟡 Media | **✅ Ready for PR** – limpiamente acotado, sin dependencias, sin Qt + estrictamente tipado. El PR siguiente más fuerte; desbloquea #387. |
-| [#386](https://github.com/NikolayDA/picture_helper/issues/386) | Renderizador de visualización de gloss (sin Qt) | 🟡 Media | 🟢 Baja–Media | **✅ Ready for PR** – en paralelo a #385, sin dependencias; lógica de imagen pura sin Qt. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Lienzo: modos de vista previa + pipeline de composición | 🟠 Alta | 🟠 Media–Alta | **Blocked** – necesita #385 + #386; preservar el contrato de exportación de #363 con un test de regresión. |
+| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Vista previa 2D combinada (color/transparencia/relieve/gloss) | 🟠 Alta | 🔴 Alta (epic) | **En progreso (epic)** – renderizadores #385/#386 listos; sigue #387 → #388. |
+| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Lienzo: modos de vista previa + pipeline de composición | 🟠 Alta | 🟠 Media–Alta | **Ready for PR** – dependencias #385/#386 cumplidas; preservar el contrato de exportación de #363 con un test de regresión. |
 | [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: selector de modo de vista previa + toggles de relieve/gloss + i18n | 🟡 Media | 🟡 Media | **Blocked** – necesita #387; cierra el epic #384. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟡 Media (epic) | **En progreso (epic)** – #390/#391 en paralelo ahora → (merge del epic #384) → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Actualizar la guía de usuario ANLEITUNG (+ 5 i18n) para las nuevas funciones | 🟠 Alta | 🔴 Alta (L, 6 idiomas) | **Ready for PR** – bien acotado pero grande; también cierra **#357**. |
@@ -101,15 +99,12 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 ### Próximo recomendado (orden de PR)
 
-1. Implementar **#385** y **#386** (renderizadores de relieve/gloss sin Qt) como
-   PRs pequeños y paralelizables — los mejores candidatos «listos y bien acotados»;
-   desbloquean #387.
-2. Continuar con **#387** → **#388** para completar el epic **#384** (vista previa
+1. Continuar con **#387** → **#388** para completar el epic **#384** (vista previa
    2D combinada); preservar el contrato de exportación de #363 con una regresión.
-3. Integrar **#390** y **#391** en paralelo como PRs de docs (también cierra
+2. Integrar **#390** y **#391** en paralelo como PRs de docs (también cierra
    **#357**); encajar **#339** como un pequeño PR independiente.
-4. Lanzar **#392** (release v2.5.0) solo tras #390/#391 e idealmente tras #384.
-5. Limpiar **#299** oportunísticamente; aplazar **#318** hasta evidenciar la
+3. Lanzar **#392** (release v2.5.0) solo tras #390/#391 e idealmente tras #384.
+4. Limpiar **#299** oportunísticamente; aplazar **#318** hasta evidenciar la
    semántica y mantener **#245** bloqueado externamente.
 
 ## Rondas Anteriores

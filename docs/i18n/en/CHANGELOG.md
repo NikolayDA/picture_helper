@@ -10,6 +10,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Qt-free relief and gloss renderers for the combined 2D preview.** The new,
+  strictly typed `bgremover/relief_preview.py` and `bgremover/gloss_preview.py`
+  modules produce deterministic directional hillshade from `HeightField`
+  (equivalent for 8-/16-bit data) and a visible gloss sheen. Both compose their
+  effect over an RGBA color motif with size validation, preserve its alpha channel
+  bit-for-bit, and provide true neutral no-ops; pure pixel/boundary tests cover light
+  direction, coverage, strength, and alpha (#385, #386).
 - **Pre-export checks on a normal save.** “Save”/“Save as…” now runs the general
   check (#379) on the project before writing and shows the findings just like the
   EufyMake flow: **errors block** saving with a clear message (no write call),

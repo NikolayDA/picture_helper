@@ -11,6 +11,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Moteurs de relief et de gloss sans Qt pour l'aperçu 2D combiné.** Les nouveaux
+  modules strictement typés `bgremover/relief_preview.py` et
+  `bgremover/gloss_preview.py` produisent un hillshade directionnel déterministe à
+  partir de `HeightField` (équivalent en 8/16 bits) et un reflet de gloss visible.
+  Tous deux composent leur effet sur un motif couleur RGBA après validation de la
+  taille, conservent son canal alpha bit pour bit et offrent de vrais no-op neutres ;
+  des tests purs de pixels/limites couvrent direction, couverture, intensité et alpha
+  (#385, #386).
 - **Contrôle pré-export lors d'un enregistrement normal.** « Enregistrer »/
   « Enregistrer sous… » exécute désormais le contrôle général (#379) sur le projet
   avant l'écriture et affiche les constats comme le flux EufyMake : les **erreurs

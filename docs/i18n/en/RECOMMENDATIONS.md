@@ -53,15 +53,15 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Triage Status (2026-06-24, updated)
 
-As of 2026-06-24, GitHub shows **14** open issues. The epic **#375** (physical
+As of 2026-06-24, after completing #385/#386 GitHub shows **12** open issues. The epic **#375** (physical
 mm/DPI output + general export validation) is complete via **#376–#380**
 (PR #382/#383) and closed. Since the last triage, **two new epics** have been
 added that structure the close-out of phase 0/1:
 
 - **#384 – Combined 2D preview** (relief-core MVP, the last open functional
-  point of phase 1, currently ~55%) with sub-issues **#385** (relief-shading
-  renderer, Qt-free), **#386** (gloss visualization, Qt-free), **#387** (canvas
-  preview modes + composite pipeline) and **#388** (UI toggles + i18n).
+  point of phase 1): the Qt-free renderers **#385/#386** are implemented; **#387**
+  (canvas preview modes + composite pipeline) and **#388** (UI toggles + i18n)
+  remain.
 - **#389 – Update user docs & cut release v2.5.0** with sub-issues **#390** (the
   ANLEITUNG user guide, 6 languages — also closes **#357**), **#391** (README +
   screenshots + i18n) and **#392** (release v2.5.0).
@@ -80,10 +80,8 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Combined 2D preview (color/transparency/relief/gloss) | 🟠 High | 🔴 High (epic) | **In progress (epic)** – the last functional point of phase 1. Order: #385/#386 in parallel → #387 → #388. |
-| [#385](https://github.com/NikolayDA/picture_helper/issues/385) | Relief-shading renderer (Qt-free) | 🟠 High | 🟡 Medium | **✅ Ready for PR** – cleanly scoped, no dependencies, Qt-free + strictly typed. Strongest next PR; unblocks #387. |
-| [#386](https://github.com/NikolayDA/picture_helper/issues/386) | Gloss-visualization renderer (Qt-free) | 🟡 Medium | 🟢 Low–Medium | **✅ Ready for PR** – parallel to #385, no dependencies; Qt-free pure image logic. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: preview modes + composite pipeline | 🟠 High | 🟠 Medium–High | **Blocked** – needs #385 + #386; preserve the #363 export contract with a regression test. |
+| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Combined 2D preview (color/transparency/relief/gloss) | 🟠 High | 🔴 High (epic) | **In progress (epic)** – renderers #385/#386 done; next #387 → #388. |
+| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: preview modes + composite pipeline | 🟠 High | 🟠 Medium–High | **Ready for PR** – renderer dependencies #385/#386 fulfilled; preserve the #363 export contract with a regression test. |
 | [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: preview-mode picker + relief/gloss toggles + i18n | 🟡 Medium | 🟡 Medium | **Blocked** – needs #387; closes epic #384. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟡 Medium (epic) | **In progress (epic)** – #390/#391 in parallel now → (merge epic #384) → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Update ANLEITUNG user guide (+ 5 i18n) for the new features | 🟠 High | 🔴 High (L, 6 languages) | **Ready for PR** – well scoped but large; also closes **#357**. |
@@ -97,15 +95,12 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. Implement **#385** and **#386** (Qt-free relief/gloss renderers) as small,
-   parallelizable PRs — the best "ready & well-scoped" candidates; they unblock
-   #387.
-2. Follow with **#387** → **#388** to complete epic **#384** (combined 2D
+1. Follow with **#387** → **#388** to complete epic **#384** (combined 2D
    preview); preserve the #363 export contract with a regression test.
-3. Land **#390** and **#391** in parallel as docs PRs (also closes **#357**);
+2. Land **#390** and **#391** in parallel as docs PRs (also closes **#357**);
    fit **#339** in as a small standalone PR.
-4. Cut **#392** (release v2.5.0) only after #390/#391 and ideally after #384.
-5. Clean up **#299** opportunistically; defer **#318** until the semantics are
+3. Cut **#392** (release v2.5.0) only after #390/#391 and ideally after #384.
+4. Clean up **#299** opportunistically; defer **#318** until the semantics are
    evidenced and keep **#245** externally blocked.
 
 ## Previous Rounds
