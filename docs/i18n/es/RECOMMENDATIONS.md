@@ -22,9 +22,9 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   extensiones, guardado atómico, paquetes Qt de CI, import perezoso y docstring.
 - **O2/O3/O4/O5/O6** están implementados: paquetes Linux, workflow de release,
   matriz completa, `ui_smoke` y atajos correctos por plataforma.
-- Los hallazgos cerrados anteriores (**#163–#290**, incl. el epic EufyMake
-  **#351**/**#352–#355** y el subproceso rembg/ONNX **#270**/**#285**/**#286**)
-  están hechos en los PRs documentados, cubiertos por tests/CI y archivados.
+- Los hallazgos cerrados anteriores (incl. el epic EufyMake **#351**/**#352–#355**
+  y el subproceso rembg/ONNX **#270**/**#285**/**#286**) están hechos en los PRs
+  documentados, cubiertos por tests/CI y archivados.
 
 - **N9 ✅ — Modelo de datos de proyecto/capas (epic #329) entregado.** Modelo de
   dominio sin Qt (#330), historial con reconocimiento de capas (#331), lienzo de
