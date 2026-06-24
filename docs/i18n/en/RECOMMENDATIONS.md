@@ -22,20 +22,7 @@ remain the baseline before new PRs.
   extensions, atomic save, CI Qt packages, lazy import, and docstring.
 - **O2/O3/O4/O5/O6** are implemented: Linux packages, release workflow,
   full matrix, `ui_smoke`, and platform-correct tool shortcuts.
-- Findings **#163–#206** were closed in the documented PRs and protected by
-  regression tests or CI checks.
-- PRs **#263–#269** closed **#257, #258, #234 + #259, #248 + #260, #231** and
-  **#249**; **#261** was resolved via PR #268 and closed.
-- PR **#274** closed **#232**: `import bgremover` no longer loads the Qt stack
-  thanks to PEP 562 lazy exports; a subprocess regression test covers it.
-- The PR wave **#280–#284** landed the weekly benchmark, implemented three
-  findings — **#235** (shared undo/redo budget, PR #281), **#275** (localized
-  megapixel message, PR #282), and **#270** (rembg/ONNX subprocess via
-  `ai_process.py`, PR #283) — and refreshed the roadmap (PR #284). **#235, #270,
-  and #275 are now closed.**
-- The two post-merge Codex follow-up findings from #283 and #264 are likewise
-  fixed **and closed**: **#285** (robustness/memory of the rembg subprocess,
-  PR #289) and **#286** (memory peaks in the capped file read, PR #290).
+- Older closed findings (**#163–#290**, incl. EufyMake epic **#351/#352–#355** and the rembg/ONNX subprocess **#270/#285/#286**) are done in the documented PRs, covered by tests/CI, and archived.
 
 - **N9 ✅ — Project/layer data model (epic #329) delivered.** Qt-free domain
   model (#330), layer-aware history (#331), composite canvas (#332), `.bgrproj`
@@ -64,46 +51,61 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Triage Status (2026-06-23, updated)
+## Open GitHub Issues — Triage Status (2026-06-24, updated)
 
-As of 2026-06-23, GitHub shows **11** open issues. The EufyMake epic **#351**
-is closed after today's merged PRs **#372–#374**: **#352** (ADR/data model),
-**#353** (rendering/atomic writer), **#354** (consistency check) and **#355**
-(dialog/menu/settings) are fully represented in the repo and covered by focused
-tests. The follow-up review fix in **#374** also fixes `optional_roles` generator
-exhaustion and prevents an export folder from replacing an existing file target.
-Today's new roadmap-rank-#4 epic **#375** and sub-issues **#376–#380** now cover
-physical mm/DPI output and a general export check. The docs gaps **#357** and
-**#339** plus the test/CI findings **#318**, **#299** and **#245** also remain;
-the EufyMake review itself did not require new follow-up issues.
+As of 2026-06-24, GitHub shows **14** open issues. The epic **#375** (physical
+mm/DPI output + general export validation) is complete via **#376–#380**
+(PR #382/#383) and closed. Since the last triage, **two new epics** have been
+added that structure the close-out of phase 0/1:
+
+- **#384 – Combined 2D preview** (relief-core MVP, the last open functional
+  point of phase 1, currently ~55%) with sub-issues **#385** (relief-shading
+  renderer, Qt-free), **#386** (gloss visualization, Qt-free), **#387** (canvas
+  preview modes + composite pipeline) and **#388** (UI toggles + i18n).
+- **#389 – Update user docs & cut release v2.5.0** with sub-issues **#390** (the
+  ANLEITUNG user guide, 6 languages — also closes **#357**), **#391** (README +
+  screenshots + i18n) and **#392** (release v2.5.0).
+
+The docs gaps **#357** (now covered by #390) and **#339** plus the test/CI
+findings **#318**, **#299** and **#245** also remain.
+
+**Comment review (2026-06-24):** The comments on **#245**, **#299** and **#339**
+all come from the maintainer (triage) and confirm the documented status: #245
+stays externally blocked on quota/billing, #299 stays low-priority test hygiene,
+and #339 is confirmed as a deliberate HEIC exclusion. No comment requires a
+substantive issue update; no new follow-up issues are needed.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Physical-size output (mm/DPI) + general export validation | 🟠 High | 🔴 High (epic) | **✅ Done (PR #382/#383):** #376 (Qt-free mm/DPI geometry + project setters), #377 (mm/DPI UI + print-area check), #378 (DPI embedding), #379 (shared pre-export checks), #380 (UI integration on save). |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – first document the GitHub semantics (top-level vs. effective-per-job); the #303 OIDC guard must not be weakened. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – the maintainer deliberately excluded HEIC (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Ready for PR (docs).** Update the canonical guide and all five i18n copies; clarify that Recent Files includes images and `.bgrproj` projects. |
+| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Combined 2D preview (color/transparency/relief/gloss) | 🟠 High | 🔴 High (epic) | **In progress (epic)** – the last functional point of phase 1. Order: #385/#386 in parallel → #387 → #388. |
+| [#385](https://github.com/NikolayDA/picture_helper/issues/385) | Relief-shading renderer (Qt-free) | 🟠 High | 🟡 Medium | **✅ Ready for PR** – cleanly scoped, no dependencies, Qt-free + strictly typed. Strongest next PR; unblocks #387. |
+| [#386](https://github.com/NikolayDA/picture_helper/issues/386) | Gloss-visualization renderer (Qt-free) | 🟡 Medium | 🟢 Low–Medium | **✅ Ready for PR** – parallel to #385, no dependencies; Qt-free pure image logic. |
+| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: preview modes + composite pipeline | 🟠 High | 🟠 Medium–High | **Blocked** – needs #385 + #386; preserve the #363 export contract with a regression test. |
+| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: preview-mode picker + relief/gloss toggles + i18n | 🟡 Medium | 🟡 Medium | **Blocked** – needs #387; closes epic #384. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟡 Medium (epic) | **In progress (epic)** – #390/#391 in parallel now → (merge epic #384) → #392. |
+| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Update ANLEITUNG user guide (+ 5 i18n) for the new features | 🟠 High | 🔴 High (L, 6 languages) | **Ready for PR** – well scoped but large; also closes **#357**. |
+| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Update README + screenshots + i18n | 🟡 Medium–High | 🟡 Medium | **Ready for PR (with caveat)** – the text part is immediately doable; screenshots need a current app run. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Blocked** – needs #390 + #391, ideally after #384. |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Merged into #390** – still possible as a small standalone PR, but will normally be closed together with #390. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – HEIC deliberately excluded (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **Ready for PR (opportunistic)** – not a product or CI blocker; highest value first (assert the lasso endpoint, the `test_helpers` line, consolidate the `set_brush_size` tests). |
-
-### Review of PRs/issues closed on 2026-06-23
-
-Reviewed today's closed PRs **#372**, **#373** and **#374**, plus issues **#351**
-and **#355** (also the sub-issues **#352–#354** closed by #372, based on the
-merge content). The EufyMake work is cleanly complete: ADR, Qt-free plan/check/
-writer modules, UI integration, settings persistence and the follow-up #373
-review fix are present. The local review of the affected modules and tests found
-no open follow-up; comments or new issues are therefore not required.
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – first document the GitHub semantics (top-level vs. effective-per-job); the #303 OIDC guard must not be weakened. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
 
 ### Recommended Next (PR order)
 
-1. Implement **#376** as the roadmap-rank-#4 foundation; then **#377**, **#378**
-   and **#379** can proceed in parallel, followed by **#380**.
-2. Fit **#357** and **#339** in as small, independent docs PRs.
-3. Clean up **#299** opportunistically; defer **#318** until the semantics are
+1. Implement **#385** and **#386** (Qt-free relief/gloss renderers) as small,
+   parallelizable PRs — the best "ready & well-scoped" candidates; they unblock
+   #387.
+2. Follow with **#387** → **#388** to complete epic **#384** (combined 2D
+   preview); preserve the #363 export contract with a regression test.
+3. Land **#390** and **#391** in parallel as docs PRs (also closes **#357**);
+   fit **#339** in as a small standalone PR.
+4. Cut **#392** (release v2.5.0) only after #390/#391 and ideally after #384.
+5. Clean up **#299** opportunistically; defer **#318** until the semantics are
    evidenced and keep **#245** externally blocked.
 
 ## Previous Rounds

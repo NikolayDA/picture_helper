@@ -22,22 +22,7 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   Dateiendungen, atomisches Speichern, CI-Qt-Pakete, Lazy-Import und Docstring.
 - **O2/O3/O4/O5/O6** sind umgesetzt: Linux-Pakete, Release-Workflow,
   Vollmatrix, `ui_smoke` und plattformgerechte Werkzeug-Shortcuts.
-- Das Epic **#351 (EufyMake-Importpaket)** ist mit **#352–#355** abgeschlossen (Datenmodell+ADR, Rendern/atomares Schreiben, Konsistenzprüfung, UI/Dialog/Settings); Import-Assets statt nativem `.empf`, durch Unit-/`ui_smoke`-Tests abgesichert.
-- Die Befunde **#163–#206** wurden in den dokumentierten PRs geschlossen und
-  mit Regressionstests beziehungsweise CI-Prüfungen abgesichert.
-- Die PRs **#263–#269** haben **#257, #258, #234 + #259, #248 + #260, #231**
-  und **#249** geschlossen; **#261** wurde über PR #268 erledigt und geschlossen.
-- PR **#274** hat **#232** geschlossen: `import bgremover` lädt über PEP-562-
-  Lazy-Exports keinen Qt-Stack mehr; ein Subprozess-Regressionstest sichert das ab.
-- Die PR-Welle **#280–#284** hat den Wochen-Benchmark abgelegt, drei Befunde
-  umgesetzt — **#235** (gemeinsames Undo/Redo-Budget, PR #281), **#275**
-  (lokalisierte Megapixel-Meldung, PR #282) und **#270** (rembg/ONNX-Subprozess
-  via `ai_process.py`, PR #283) — und die Roadmap nachgezogen (PR #284).
-  **#235, #270 und #275 sind inzwischen geschlossen.**
-- Die zwei Post-Merge-Codex-Folgebefunde aus #283 und #264 sind ebenfalls
-  behoben **und geschlossen**: **#285** (Robustheit/Speicher des
-  rembg-Subprozesses, PR #289) und **#286** (Speicherspitzen im gekappten
-  Datei-Read, PR #290).
+- Ältere geschlossene Befunde (**#163–#290**, u. a. EufyMake-Epic **#351/#352–#355**, rembg/ONNX-Subprozess **#270/#285/#286**) sind in den dokumentierten PRs erledigt, durch Tests/CI abgesichert und archiviert.
 
 - **N9 ✅ — Projekt-/Ebenen-Datenmodell (Epic #329) umgesetzt.** Qt-freies
   Domänenmodell (#330), ebenenbewusste Historie (#331), Komposit-Canvas (#332),
@@ -67,49 +52,63 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Triage-Stand (2026-06-23, aktualisiert)
+## Offene GitHub-Issues – Triage-Stand (2026-06-24, aktualisiert)
 
-Stand 2026-06-23 zeigt GitHub noch **11** offene Issues. Das EufyMake-Epic
-**#351** ist nach den heutigen Merge-PRs **#372–#374** geschlossen: **#352**
-(ADR/Datenmodell), **#353** (Rendering/atomarer Writer), **#354**
-(Konsistenzprüfung) und **#355** (Dialog/Menü/Settings) sind vollständig im Repo
-verankert und durch gezielte Tests abgesichert. Die Review-Korrektur aus
-**#374** behebt zusätzlich die Generator-Erschöpfung bei `optional_roles` und
-verhindert, dass ein Exportordner versehentlich eine vorhandene Datei ersetzt.
-Als nächster Roadmap-Block ist heute das Epic **#375** mit den Sub-Issues
-**#376–#380** für maßgenaue mm/DPI-Ausgaben und eine allgemeine Exportprüfung
-hinzugekommen. Daneben verbleiben die Doku-Lücken **#357** und **#339** sowie
-die Test-/CI-Befunde **#318**, **#299** und **#245**; neue Folge-Issues aus dem
-EufyMake-Review selbst sind nicht nötig.
+Stand 2026-06-24 zeigt GitHub **14** offene Issues. Das Epic **#375** (maßgenaue
+mm/DPI-Ausgabe + allgemeine Exportprüfung) ist über **#376–#380** abgeschlossen
+(PR #382/#383) und geschlossen. Seit der letzten Triage sind **zwei neue Epics**
+hinzugekommen, die den Abschluss von Phase 0/1 strukturieren:
+
+- **#384 – Kombinierte 2D-Vorschau** (Reliefkern-MVP, letzter offener
+  Funktionspunkt von Phase 1, heute ~55 %) mit den Sub-Issues **#385**
+  (Relief-Shading-Renderer, Qt-frei), **#386** (Gloss-Visualisierung, Qt-frei),
+  **#387** (Canvas-Vorschaumodi + Komposit-Pipeline) und **#388** (UI-Toggles +
+  i18n).
+- **#389 – Nutzer-Doku aktualisieren & Release v2.5.0 schneiden** mit den
+  Sub-Issues **#390** (Nutzerhandbuch ANLEITUNG, 6 Sprachen – schließt **#357**
+  mit ab), **#391** (README + Screenshots + i18n) und **#392** (Release v2.5.0).
+
+Daneben verbleiben die Doku-Lücken **#357** (jetzt von #390 abgedeckt) und
+**#339** sowie die Test-/CI-Befunde **#318**, **#299** und **#245**.
+
+**Kommentar-Durchsicht (2026-06-24):** Die Kommentare zu **#245**, **#299** und
+**#339** stammen ausschließlich vom Maintainer (Triage) und bestätigen den
+dokumentierten Stand: #245 bleibt extern über Quota/Billing blockiert, #299
+bleibt niedrig priorisierte Test-Hygiene, #339 ist als bewusster HEIC-Ausschluss
+bestätigt. Kein Kommentar erfordert eine inhaltliche Issue-Aktualisierung; neue
+Folge-Issues sind nicht nötig.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#375](https://github.com/NikolayDA/picture_helper/issues/375) | [Epic] Maßgenaue Ausgabe (mm/DPI) + allgemeine Exportprüfung | 🟠 Hoch | 🔴 Hoch (Epic) | **✅ Abgeschlossen (PR #382/#383):** #376 (Qt-freie mm/DPI-Geometrie + Projekt-Setter), #377 (mm/DPI-UI + Druckflächenprüfung), #378 (DPI-Einbettung), #379 (geteilte Pre-Export-Prüfung), #380 (UI-Integration beim Speichern). |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – erst die GitHub-Semantik (Top-Level vs. effektiv-per-Job) belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – Maintainer hat HEIC bewusst ausgeschlossen (Kommentar 2026-06-21). Nur noch README/ANLEITUNG klarstellen, dann schließen. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Doku: Start-mit-Pfad/Finder-Öffnen fehlt in ANLEITUNG §4 | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – Hauptdatei und alle fünf i18n-Fassungen synchron ergänzen; „Zuletzt geöffnet“ dabei auf Bilder und `.bgrproj`-Projekte präzisieren. |
+| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Kombinierte 2D-Vorschau (Farbe/Transparenz/Relief/Gloss) | 🟠 Hoch | 🔴 Hoch (Epic) | **In Arbeit (Epic)** – letzter Funktionspunkt von Phase 1. Reihenfolge: #385/#386 parallel → #387 → #388. |
+| [#385](https://github.com/NikolayDA/picture_helper/issues/385) | Relief-Shading-Renderer (Qt-frei) | 🟠 Hoch | 🟡 Mittel | **✅ Ready for PR** – sauber abgegrenzt, keine Abhängigkeiten, Qt-frei + strikt getypt. Stärkster nächster PR; entsperrt #387. |
+| [#386](https://github.com/NikolayDA/picture_helper/issues/386) | Gloss-Visualisierungs-Renderer (Qt-frei) | 🟡 Mittel | 🟢 Niedrig–Mittel | **✅ Ready for PR** – parallel zu #385, keine Abhängigkeiten; Qt-freie reine Bildlogik. |
+| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: Vorschaumodi + Komposit-Pipeline | 🟠 Hoch | 🟠 Mittel–Hoch | **Blocked** – braucht #385 + #386; #363-Export-Vertrag per Regressionstest wahren. |
+| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: Vorschaumodus-Auswahl + Relief-/Gloss-Toggles + i18n | 🟡 Mittel | 🟡 Mittel | **Blocked** – braucht #387; schließt Epic #384 ab. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟡 Mittel (Epic) | **In Arbeit (Epic)** – #390/#391 parallel jetzt → (Epic #384 mergen) → #392. |
+| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Nutzerhandbuch ANLEITUNG (+ 5 i18n) auf neue Features | 🟠 Hoch | 🔴 Hoch (L, 6 Sprachen) | **Ready for PR** – gut abgegrenzt, aber umfangreich; schließt **#357** mit ab. |
+| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | README + Screenshots + i18n aktualisieren | 🟡 Mittel–Hoch | 🟡 Mittel | **Ready for PR (mit Vorbehalt)** – Textanteil sofort umsetzbar; Screenshots brauchen einen aktuellen App-Lauf. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Blocked** – braucht #390 + #391, idealerweise nach #384. |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Doku: Start-mit-Pfad/Finder-Öffnen fehlt in ANLEITUNG §4 | 🟢 Niedrig | 🟢 Niedrig | **In #390 zusammengeführt** – als kleine Einzel-PR weiterhin möglich, wird aber regulär mit #390 geschlossen. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – HEIC bewusst ausgeschlossen (Kommentar 2026-06-21). Nur noch README/ANLEITUNG klarstellen, dann schließen. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (opportunistisch)** – kein Produkt-/CI-Blocker; höchster Nutzen zuerst (Lasso-Endpunkt asserten, `test_helpers`-Zeile, `set_brush_size`-Tests konsolidieren). |
-
-### Review der am 2026-06-23 geschlossenen PRs/Issues
-
-Geprüft wurden die heute geschlossenen PRs **#372**, **#373** und **#374** sowie
-die Issues **#351** und **#355** (zusätzlich die in #372 geschlossenen
-Teil-Issues **#352–#354** anhand der Merge-Inhalte). Die EufyMake-Themen sind
-sauber abgeschlossen: ADR, Qt-freie Plan-/Prüf-/Writer-Module, UI-Anbindung,
-Settings-Persistenz und die nachgelagerte #373-Review-Korrektur sind vorhanden.
-Die lokale Prüfung der betroffenen Module und Tests ergab keinen offenen
-Folgebefund; Kommentare oder neue Issues sind daher nicht erforderlich.
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – erst die GitHub-Semantik (Top-Level vs. effektiv-per-Job) belegen; OIDC-Guard aus #303 darf nicht aufgeweicht werden. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#375** (mm/DPI + allgemeine Exportprüfung) ist über **#376–#380**
-   abgeschlossen (PR #382/#383); keine offenen Sub-Issues mehr.
-2. **#357** und **#339** als kleine, unabhängige Doku-PRs einstreuen.
-3. **#299** opportunistisch bereinigen; **#318** bis zum Semantik-Beleg
+1. **#385** und **#386** (Qt-freie Relief-/Gloss-Renderer) als kleine,
+   parallelisierbare PRs umsetzen – die besten „ready & well-scoped“-Kandidaten;
+   sie entsperren #387.
+2. **#387** → **#388** anschließen und damit Epic **#384** (kombinierte
+   2D-Vorschau) abschließen; den #363-Export-Vertrag per Regressionstest wahren.
+3. **#390** und **#391** parallel als Doku-PRs (schließt **#357** mit ab);
+   **#339** als kleine Einzel-PR einstreuen.
+4. **#392** (Release v2.5.0) erst nach #390/#391 und idealerweise nach #384.
+5. **#299** opportunistisch bereinigen; **#318** bis zum Semantik-Beleg
    zurückstellen und **#245** extern blockiert lassen.
 
 ## Vorige Runden
