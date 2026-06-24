@@ -11,7 +11,7 @@
 | 🟡 | 中 | 有助于质量、可读性或可测试性的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-06-24）
+## 当前状态（2026-06-25）
 
 当前代码分析清单为空。Ruff、mypy 和本地测试套件仍是新 PR 前的基线。
 
@@ -51,51 +51,38 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 打开的 GitHub Issues — Triage 状态 (2026-06-24，已更新)
+## 打开的 GitHub Issues — Triage 状态 (2026-06-25，已更新)
 
-截至 2026-06-24，在 **#384/#387/#388** 与 P2 后续 **#397**（PR #398）完成后，
-GitHub 显示 **9** 个打开的 issues。史诗 **#375**（精确 mm/DPI 输出 + 导出验证）
-与 **#384**（组合式 2D 预览）均已完成并关闭。剩余的 roadmap 史诗是：
+截至 2026-06-25，在 PR **#400** 合并后，GitHub 显示 **5** 个打开的 issues：
+**#245**、**#299**、**#318**、**#389** 与 **#392**。文档包 **#390/#391**、
+打开方式说明 **#357** 以及已记录的 HEIC 排除项 **#339** 都已完成并关闭。
+roadmap 史诗 **#389** 只剩 release 步骤 **#392**。
 
-- **#389 – 更新用户文档并发布 v2.5.0**，其子 issue 包括 **#390**（ANLEITUNG
-  用户指南，6 种语言——同时关闭 **#357**）、**#391**（README + 截图 + i18n）
-  与 **#392**（发布 v2.5.0）。
-
-文档缺口 **#357**（现由 #390 覆盖）和 **#339**，以及测试/CI 发现 **#318**、
-**#299** 与 **#245** 同样仍待处理。
-
-**评论复核（2026-06-24）：** **#245**、**#299** 与 **#339** 上的评论均来自
-maintainer（triage），并确认了已记录的状态：#245 仍因配额/计费在外部受阻，
-#299 仍是低优先级的测试卫生，而 #339 确认为有意排除 HEIC。没有评论需要实质性的
-issue 更新；#397 已由 PR #398 关闭。
+**复核（6 月 24/25 日）：** #393 的 P2 已由 #394 修正。#396 的三个 P2
+记录在 #397 中，并由 PR #398 通过回归测试修复。#400 中发现的基于角色的
+EufyMake 描述在合并前已修正到六份指南。#399 的 snapshot thread 已被后续 issue
+关闭所取代；当前有效的是 5 个 issue 的 live 状态。无需新建后续 issue。
 
 ### 建议分组
 
-- **指南包：** **#390 + #357**，以及 **#339** 的 ANLEITUNG 部分。
-- **README 包：** **#391**、**#339** 的 README 部分及最新截图。
-- **发布包：** **#392** 保持独立，仅在两个文档 PR 后开始。
+- **发布包：** **#392** 现已可开始；验证 tag、release body 与 macOS/Linux
+  产物后关闭史诗 **#389**。
 - 不把 **#299/#318/#245** 混入发布路径；它们分别属于质量、研究和外部阻塞工作。
 
 评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟡 中（epic） | **可开始** – 两个并行文档包，然后 #392。 |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | 为新功能更新 ANLEITUNG 用户指南（+ 5 份 i18n） | 🟠 高 | 🔴 高（L，6 种语言） | **包 A** – 包含 **#357** 与 **#339** 的 ANLEITUNG 部分。 |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | 更新 README + 截图 + i18n | 🟡 中–高 | 🟡 中 | **包 B** – 包含 **#339** 的 README 部分并制作最新截图。 |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **Blocked** – 需要 #390 + #391。 |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **包 A 的一部分** – 不单独处理；随 #390 关闭。 |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **拆分到 A/B** – ANLEITUNG 放入 #390，README 放入 #391；两者完成后关闭。 |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟢 低（剩余） | **接近完成** – 只剩 #392。 |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **可开始** – #390、#391 与 #384 已关闭。 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **v2.5.0 后** – 优先 lasso、可写 NumPy、完整 wand mask 与 brush 参数化。 |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **并行研究** – 先证明语义；仅为已证实的误报改代码并保留 #303。 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
 
 ### 推荐下一步（PR 顺序）
 
-1. 并行完成 **包 A（#390 + #357 + #339 的 ANLEITUNG 部分）** 与
-   **包 B（#391 + #339 的 README 部分）**；两者完成后关闭 #339。
-2. 随后执行 **#392**；验证 tag、release body 与两个产物后关闭史诗 **#389**。
-3. v2.5.0 后处理 **#299**；并行研究 **#318** 但无证据前不改代码；保持
+1. 现在执行 **#392**；验证 tag、release body 与两个产物后关闭史诗 **#389**。
+2. v2.5.0 后处理 **#299**；并行研究 **#318** 但无证据前不改代码；保持
    **#245** 阻塞直到外部 quota 恢复。
 
 ## 先前轮次

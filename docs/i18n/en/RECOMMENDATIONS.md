@@ -11,7 +11,7 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-06-24)
+## Current Status (2026-06-25)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
 remain the baseline before new PRs.
@@ -58,31 +58,25 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Triage Status (2026-06-24, updated)
+## Open GitHub Issues — Triage Status (2026-06-25, updated)
 
-As of 2026-06-24, after #384/#387/#388 and P2 review follow-up **#397**
-(PR #398), GitHub shows **9** open issues. Epics **#375** (physical mm/DPI
-output + export validation) and **#384** (combined 2D preview) are complete and
-closed. The remaining roadmap epic is:
+As of 2026-06-25, after PR **#400** merged, GitHub shows **5** open issues:
+**#245**, **#299**, **#318**, **#389**, and **#392**. Documentation bundles
+**#390/#391**, startup-path note **#357**, and the documented HEIC exclusion
+**#339** are fully delivered and closed. Only release step **#392** remains in
+roadmap epic **#389**.
 
-- **#389 – Update user docs & cut release v2.5.0** with sub-issues **#390** (the
-  ANLEITUNG user guide, 6 languages — also closes **#357**), **#391** (README +
-  screenshots + i18n) and **#392** (release v2.5.0).
-
-The docs gaps **#357** (now covered by #390) and **#339** plus the test/CI
-findings **#318**, **#299** and **#245** also remain.
-
-**Comment review (2026-06-24):** The comments on **#245**, **#299** and **#339**
-all come from the maintainer (triage) and confirm the documented status: #245
-stays externally blocked on quota/billing, #299 stays low-priority test hygiene,
-and #339 is confirmed as a deliberate HEIC exclusion. No comment requires a
-substantive issue update; #397 is already closed by PR #398.
+**Review pass (June 24/25):** PR #393's P2 was corrected by #394. The three
+P2 findings from #396 were tracked in #397 and fixed by PR #398 with regression
+tests. The role-based EufyMake wording found in #400 was corrected in all six
+guides before merge. The open snapshot thread on #399 was superseded by the
+subsequent issue closures; the live total of five is authoritative. No new
+follow-up issue is needed.
 
 ### Sensible Bundles
 
-- **Guide bundle:** **#390 + #357** plus the ANLEITUNG part of **#339**.
-- **README bundle:** **#391** plus the README part of **#339** and current screenshots.
-- **Release bundle:** keep **#392** separate and start it only after both docs PRs.
+- **Release bundle:** **#392** is ready now; close epic **#389** after the tag,
+  release body, and macOS/Linux artifacts are verified.
 - Do not mix **#299/#318/#245** into the release path; they are independent
   quality, research, and externally blocked operational work.
 
@@ -91,23 +85,17 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟡 Medium (epic) | **Ready to start (epic)** – two parallel docs bundles, then #392. |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Update ANLEITUNG user guide (+ 5 i18n) for the new features | 🟠 High | 🔴 High (L, 6 languages) | **Bundle A** – include **#357** and the ANLEITUNG part of **#339**. |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Update README + screenshots + i18n | 🟡 Medium–High | 🟡 Medium | **Bundle B** – include the README part of **#339** and capture current screenshots. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Blocked** – needs #390 + #391. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Part of bundle A** – do not handle separately; close with #390. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Split across A/B** – ANLEITUNG in #390, README in #391; close only after both. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟢 Low (remaining) | **Nearly complete** – only #392 remains open. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Ready** – #390, #391, and #384 are closed. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After v2.5.0** – highest impact first (lasso endpoint, writable NumPy result, full wand mask, brush parametrization). |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Parallel research** – prove GitHub semantics first; change code only for a demonstrated false positive and preserve #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
 
 ### Recommended Next (PR order)
 
-1. Deliver **bundle A (#390 + #357 + ANLEITUNG part of #339)** and **bundle B
-   (#391 + README part of #339)** in parallel; close #339 only after both.
-2. Run **#392** after both docs bundles, then close epic **#389** once the tag,
+1. Run **#392** now, then close epic **#389** once the tag,
    release body, and both artifacts are verified.
-3. Tackle **#299** after v2.5.0; research **#318** in parallel without coding
+2. Tackle **#299** after v2.5.0; research **#318** in parallel without coding
    before evidence, and keep **#245** blocked until the external quota returns.
 
 ## Previous Rounds

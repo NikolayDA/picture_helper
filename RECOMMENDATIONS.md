@@ -11,7 +11,7 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-06-24)
+## Aktueller Stand (2026-06-25)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs.
@@ -59,32 +59,26 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
   (PR #289) behoben und geschlossen.
 
-## Offene GitHub-Issues – Triage-Stand (2026-06-24, aktualisiert)
+## Offene GitHub-Issues – Triage-Stand (2026-06-25, aktualisiert)
 
-Stand 2026-06-24 zeigt GitHub nach Abschluss von #384/#387/#388 und dem
-P2-Review-Follow-up **#397** (PR #398) **9** offene Issues. Die Epics **#375**
-(maßgenaue mm/DPI-Ausgabe + Exportprüfung) und **#384** (kombinierte
-2D-Vorschau) sind abgeschlossen und geschlossen. Als Roadmap-Epic verbleibt:
+Stand 2026-06-25 zeigt GitHub nach Merge von PR **#400** **5** offene Issues:
+**#245**, **#299**, **#318**, **#389** und **#392**. Die Doku-Pakete **#390**
+und **#391**, der Öffnen-Hinweis **#357** sowie der dokumentierte HEIC-Ausschluss
+**#339** sind vollständig umgesetzt und geschlossen. Im Roadmap-Epic **#389**
+verbleibt damit nur noch der Release-Schritt **#392**.
 
-- **#389 – Nutzer-Doku aktualisieren & Release v2.5.0 schneiden** mit den
-  Sub-Issues **#390** (Nutzerhandbuch ANLEITUNG, 6 Sprachen – schließt **#357**
-  mit ab), **#391** (README + Screenshots + i18n) und **#392** (Release v2.5.0).
-
-Daneben verbleiben die Doku-Lücken **#357** (jetzt von #390 abgedeckt) und
-**#339** sowie die Test-/CI-Befunde **#318**, **#299** und **#245**.
-
-**Kommentar-Durchsicht (2026-06-24):** Die Kommentare zu **#245**, **#299** und
-**#339** stammen ausschließlich vom Maintainer (Triage) und bestätigen den
-dokumentierten Stand: #245 bleibt extern über Quota/Billing blockiert, #299
-bleibt niedrig priorisierte Test-Hygiene, #339 ist als bewusster HEIC-Ausschluss
-bestätigt. Kein Kommentar erfordert eine inhaltliche Issue-Aktualisierung; neue
-offene Folge-Issues sind nicht nötig – #397 ist bereits über PR #398 geschlossen.
+**Review-Durchsicht (24./25.06.):** Der P2-Befund aus PR #393 wurde durch #394
+korrigiert. Die drei P2-Befunde aus #396 sind als #397 dokumentiert und durch
+PR #398 samt Regressionstests behoben. Der rollenbasierte EufyMake-Hinweis aus
+#400 wurde vor dem Merge in allen sechs Anleitungen korrigiert. Der offene
+Snapshot-Thread aus #399 ist durch die nachfolgenden Issue-Schließungen überholt;
+der Live-Stand von fünf Issues ist hier maßgeblich. Neue Folge-Issues sind nicht
+nötig.
 
 ### Sinnvolle Bündelung
 
-- **Handbuch-Paket:** **#390 + #357** sowie der ANLEITUNG-Anteil von **#339**.
-- **README-Paket:** **#391** samt README-Anteil von **#339** und aktuellen Screenshots.
-- **Release-Paket:** **#392** bleibt separat und startet erst nach beiden Doku-PRs.
+- **Release-Paket:** **#392** ist jetzt startbereit; nach Tag, Release-Body und
+  verifizierten macOS-/Linux-Artefakten kann Epic **#389** schließen.
 - **#299/#318/#245** nicht mit dem Release-Pfad mischen; sie sind unabhängige
   Qualitäts-, Forschungs- beziehungsweise externe Betriebsarbeit.
 
@@ -93,23 +87,17 @@ geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟡 Mittel (Epic) | **Startbereit (Epic)** – zwei parallele Doku-Pakete, danach #392. |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Nutzerhandbuch ANLEITUNG (+ 5 i18n) auf neue Features | 🟠 Hoch | 🔴 Hoch (L, 6 Sprachen) | **Paket A** – mit **#357** und dem ANLEITUNG-Anteil von **#339** umsetzen. |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | README + Screenshots + i18n aktualisieren | 🟡 Mittel–Hoch | 🟡 Mittel | **Paket B** – README-Anteil von **#339** integrieren und Screenshots im aktuellen App-Stand aufnehmen. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Blocked** – braucht #390 + #391. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Doku: Start-mit-Pfad/Finder-Öffnen fehlt in ANLEITUNG §4 | 🟢 Niedrig | 🟢 Niedrig | **Teil von Paket A** – nicht separat bearbeiten; mit #390 schließen. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Auf Paket A/B aufteilen** – ANLEITUNG in #390, README in #391; erst nach beiden schließen. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟢 Niedrig (Rest) | **Fast abgeschlossen** – nur #392 ist noch offen. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Startbereit** – #390, #391 und #384 sind geschlossen. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Nach v2.5.0** – dann höchste Wirkung zuerst (Lasso-Endpunkt, schreibbares NumPy-Ergebnis, Magic-Wand-Vollmaske, Brush-Parametrisierung). |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Parallele Recherche** – GitHub-Semantik erst belegen; Code nur bei nachgewiesenem False Positive, OIDC-Guard #303 bewahren. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **Paket A (#390 + #357 + ANLEITUNG-Anteil #339)** und **Paket B (#391 +
-   README-Anteil #339)** parallel umsetzen; #339 erst nach beiden schließen.
-2. **#392** nach beiden Doku-Paketen ausführen und anschließend Epic **#389**
+1. **#392** jetzt ausführen und anschließend Epic **#389**
    schließen, sobald Tag, Release-Body und beide Artefakte verifiziert sind.
-3. **#299** nach v2.5.0 angehen; **#318** parallel nur erforschen und **#245**
+2. **#299** nach v2.5.0 angehen; **#318** parallel nur erforschen und **#245**
    bis zur externen Quota-Wiederherstellung blockiert lassen.
 
 ## Vorige Runden

@@ -11,7 +11,7 @@
 | 🟡 | Media | Mejora útil para calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado Actual (2026-06-24)
+## Estado Actual (2026-06-25)
 
 La lista activa de análisis de código está vacía. Ruff, mypy y la suite local
 de tests siguen siendo la baseline antes de nuevos PRs.
@@ -61,30 +61,25 @@ de tests siguen siendo la baseline antes de nuevos PRs.
   IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
   corregidos y cerrados en **#285** (PR #289).
 
-## Issues de GitHub Abiertos — Estado de Triage (2026-06-24, actualizado)
+## Issues de GitHub Abiertos — Estado de Triage (2026-06-25, actualizado)
 
-A 2026-06-24, tras #384/#387/#388 y el seguimiento P2 **#397** (PR #398),
-GitHub muestra **9** issues abiertos. Los epics **#375** (salida física mm/DPI +
-validación de exportación) y **#384** (vista previa 2D combinada) están completos
-y cerrados. El epic de roadmap restante es:
+A 2026-06-25, tras el merge de PR **#400**, GitHub muestra **5** issues abiertos:
+**#245**, **#299**, **#318**, **#389** y **#392**. Los paquetes de documentación
+**#390/#391**, el aviso de apertura **#357** y la exclusión HEIC documentada
+**#339** están completos y cerrados. En el epic **#389** solo queda el paso de
+release **#392**.
 
-- **#389 – Actualizar la documentación de usuario y lanzar la release v2.5.0** con
-  sub-issues **#390** (la guía de usuario ANLEITUNG, 6 idiomas — también cierra
-  **#357**), **#391** (README + capturas + i18n) y **#392** (release v2.5.0).
-
-Los huecos de documentación **#357** (ahora cubierto por #390) y **#339** más los
-hallazgos de test/CI **#318**, **#299** y **#245** siguen abiertos.
-
-**Revisión de comentarios (2026-06-24):** El maintainer confirma que #245 sigue
-bloqueado por cuota/billing, #299 es higiene de tests de baja prioridad y #339
-es una exclusión HEIC deliberada. No hace falta actualizar esos issues; #397 ya
-está cerrado por PR #398.
+**Revisión (24/25 de junio):** El P2 de #393 fue corregido por #394. Los tres P2
+de #396 se documentaron en #397 y PR #398 los corrigió con tests de regresión.
+El texto de EufyMake basado en roles detectado en #400 se corrigió en las seis
+guías antes del merge. El thread de snapshot en #399 quedó superado por los
+cierres posteriores; el total live de cinco es el dato vigente. No hace falta
+un nuevo issue de seguimiento.
 
 ### Agrupaciones Recomendadas
 
-- **Paquete de guía:** **#390 + #357** y la parte ANLEITUNG de **#339**.
-- **Paquete README:** **#391**, la parte README de **#339** y capturas actuales.
-- **Paquete release:** mantener **#392** separado y empezarlo tras ambos PRs de docs.
+- **Paquete release:** **#392** ya está listo; cerrar el epic **#389** tras
+  verificar tag, release body y artefactos de macOS/Linux.
 - No mezclar **#299/#318/#245** con la ruta de release: son trabajo de calidad,
   investigación y operación bloqueada externamente.
 
@@ -93,23 +88,17 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟡 Media (epic) | **Listo para empezar** – dos paquetes de docs en paralelo, luego #392. |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Actualizar la guía de usuario ANLEITUNG (+ 5 i18n) para las nuevas funciones | 🟠 Alta | 🔴 Alta (L, 6 idiomas) | **Paquete A** – incluir **#357** y la parte ANLEITUNG de **#339**. |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Actualizar README + capturas + i18n | 🟡 Media–Alta | 🟡 Media | **Paquete B** – incluir la parte README de **#339** y capturas actuales. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Lanzar release v2.5.0 (CHANGELOG/versión/tag/artefactos) | 🟠 Alta | 🟡 Media | **Blocked** – necesita #390 + #391. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: falta apertura por ruta inicial/Finder en ANLEITUNG §4 | 🟢 Baja | 🟢 Baja | **Parte del paquete A** – no tratar por separado; cerrar con #390. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF no está soportado como formato de entrada | 🟢 Baja | 🟢 Baja | **Dividir entre A/B** – ANLEITUNG en #390 y README en #391; cerrar tras ambos. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟢 Baja (restante) | **Casi completo** – solo queda #392. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Lanzar release v2.5.0 (CHANGELOG/versión/tag/artefactos) | 🟠 Alta | 🟡 Media | **Listo** – #390, #391 y #384 están cerrados. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Tras v2.5.0** – primero lazo, resultado NumPy escribible, máscara wand completa y parametrización brush. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | 🟢 Baja | 🟡 Media | **Investigación paralela** – probar primero la semántica; cambiar código solo ante un falso positivo demostrado y conservar #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Blocked (externo)** – el endurecimiento del repo vía #322/#342 (cerrado) está hecho; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
 
 ### Próximo recomendado (orden de PR)
 
-1. Entregar en paralelo el **paquete A (#390 + #357 + parte ANLEITUNG de #339)**
-   y el **paquete B (#391 + parte README de #339)**; cerrar #339 tras ambos.
-2. Ejecutar **#392** después y cerrar el epic **#389** cuando tag, release body y
+1. Ejecutar **#392** ahora y cerrar el epic **#389** cuando tag, release body y
    ambos artefactos estén verificados.
-3. Abordar **#299** tras v2.5.0; investigar **#318** en paralelo sin codificar sin
+2. Abordar **#299** tras v2.5.0; investigar **#318** en paralelo sin codificar sin
    evidencia y mantener **#245** bloqueado hasta recuperar la cuota externa.
 
 ## Rondas Anteriores

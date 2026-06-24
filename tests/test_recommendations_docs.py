@@ -75,7 +75,7 @@ RATING_SYMBOLS = ("🔴", "🟠", "🟡", "🟢")
 # Pflicht-Tokens des aktuellen Kurzstatus. Sprachneutral gewählt, damit sie
 # unverändert in allen sechs Sprachdateien vorkommen.
 CURRENT_STATUS_TOKENS = (
-    "2026-06-24",
+    "2026-06-25",
     "N1/N2/N4/N5/N6/N7/N8",
     "O1",
 )
