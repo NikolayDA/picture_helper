@@ -26,23 +26,30 @@ experiencia previa en edición de imágenes.
 6. [Hacer una selección](#6-hacer-una-selección)
 7. [Pestaña "Selección"](#7-pestaña-selección)
 8. [Pestaña "Fondo"](#8-pestaña-fondo)
-9. [Pestaña "Rotar/Voltear"](#9-pestaña-rotarvoltear)
-10. [Pestaña "Forma" – Esquinas y recorte](#10-pestaña-forma--esquinas-y-recorte)
-11. [Guardar una imagen](#11-guardar-una-imagen)
-12. [Configuración](#12-configuración)
-13. [Atajos de teclado](#13-atajos-de-teclado)
-14. [Flujos de trabajo típicos](#14-flujos-de-trabajo-típicos)
-15. [Consejos y trucos](#15-consejos-y-trucos)
-16. [Limitaciones conocidas](#16-limitaciones-conocidas)
-17. [Solución de problemas y archivo de registro](#17-solución-de-problemas-y-archivo-de-registro)
-18. [Licencia](#18-licencia)
+9. [Pestaña "Ajustar" – Corrección de color](#9-pestaña-ajustar--corrección-de-color)
+10. [Pestaña "Rotar/Voltear"](#10-pestaña-rotarvoltear)
+11. [Pestaña "Forma" – Esquinas y recorte](#11-pestaña-forma--esquinas-y-recorte)
+12. [Redimensionar y dimensiones físicas](#12-redimensionar-y-dimensiones-físicas)
+13. [Capas y proyectos](#13-capas-y-proyectos)
+14. [Espacio de trabajo de mapa de altura](#14-espacio-de-trabajo-de-mapa-de-altura)
+15. [Vista previa 2D (color, relieve, altura, brillo)](#15-vista-previa-2d-color-relieve-altura-brillo)
+16. [Guardar y exportar](#16-guardar-y-exportar)
+17. [Configuración](#17-configuración)
+18. [Atajos de teclado](#18-atajos-de-teclado)
+19. [Flujos de trabajo típicos](#19-flujos-de-trabajo-típicos)
+20. [Consejos y trucos](#20-consejos-y-trucos)
+21. [Limitaciones conocidas](#21-limitaciones-conocidas)
+22. [Solución de problemas y archivo de registro](#22-solución-de-problemas-y-archivo-de-registro)
+23. [Licencia](#23-licencia)
 
 ---
 
 ## 1. ¿Qué puede hacer BgRemover?
 
 BgRemover es una herramienta de edición de imágenes para **eliminar, reemplazar
-y editar fondos**. Las funciones principales:
+y editar fondos** — con funciones adicionales para optimización sencilla de
+imágenes, capas/proyectos y la preparación de activos para impresión UV. Las
+funciones principales:
 
 - **Eliminación de fondo con IA** – elimina el fondo automáticamente con un
   solo clic.
@@ -52,6 +59,17 @@ y editar fondos**. Las funciones principales:
 - **Transformar** – rotar (en pasos de 90° o ángulo libre) y voltear.
 - **Forma y recorte** – redondear esquinas, recortar en círculo o relación de
   aspecto fija.
+- **Optimización de imagen** – ajustar brillo, contraste y saturación, y
+  suavizar el borde alfa (feather).
+- **Tamaño y dimensiones físicas** – cambiar el tamaño en píxeles o definir un
+  tamaño de impresión mediante milímetros y DPI (con aviso de área de impresión).
+- **Capas y proyectos** – gestionar varias capas (color/altura/brillo/genérica)
+  y guardar y abrir todo como un proyecto `.bgrproj`.
+- **Mapas de altura** – generar un mapa de altura a partir de una imagen, luego
+  editarlo y optimizarlo.
+- **Vista previa 2D** – comprobar color, relieve, altura y brillo en pantalla.
+- **Exportación a EufyMake Studio** – generar activos de importación para
+  impresión UV.
 - **Historial** con deshacer/rehacer y salto a cualquier paso anterior.
 - **Guardar** como PNG, JPEG, WebP o TIFF.
 
@@ -83,21 +101,26 @@ La ventana está dividida en cuatro áreas:
 
 | Área | Función |
 |---|---|
-| **Barra de menú** (arriba) | Archivo, Editar, Ver, Extras |
+| **Barra de menú** (arriba) | Archivo, Proyecto, Editar, Ver, Extras |
 | **Barra de herramientas** (izquierda) | Herramientas de selección, IA, historial, abrir/guardar |
 | **Lienzo** (centro) | Muestra la imagen y la selección actual |
-| **Panel de pestañas** (derecha) | Cuatro pestañas: Selección, Fondo, Rotar/Voltear, Forma |
+| **Panel de pestañas** (derecha) | Ocho pestañas: Vista previa, Selección, Fondo, Ajustar, Rotar/Voltear, Forma, Capas, Altura |
 | **Barra de estado** (abajo) | Sugerencias y respuestas de la aplicación |
 
-### Menús "Editar" y "Ver"
+### Menús "Editar", "Ver" y "Proyecto"
 
 Muchas acciones también están disponibles desde la barra de menú:
 
 - **Editar** – deshacer/rehacer, rotar (90° izquierda/derecha), voltear
-  horizontal/verticalmente, así como deseleccionar/invertir selección y
-  *Restaurar original*. Útil si prefieres el menú a la barra de herramientas
-  o a una pestaña.
-- **Ver** – *Ajustar a la vista* (⌘0); consulta "Zoom y vista" abajo.
+  horizontal/verticalmente, *Redimensionar…*, así como deseleccionar/invertir
+  selección y *Restaurar original*. Útil si prefieres el menú a la barra de
+  herramientas o a una pestaña.
+- **Ver** – *Ajustar a la vista* (⌘0) y el submenú *Modo de vista previa* (consulta
+  la [sección 15](#15-vista-previa-2d-color-relieve-altura-brillo)); consulta
+  también "Zoom y vista" abajo.
+- **Proyecto** – *Nuevo proyecto*, *Abrir proyecto…*, *Guardar proyecto* /
+  *…como…* (`.bgrproj`) y *Exportar activos para EufyMake Studio…* (consulta la
+  [sección 13](#13-capas-y-proyectos) y la [sección 16](#16-guardar-y-exportar)).
 
 ![El menú "Editar"](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
 
@@ -143,23 +166,39 @@ Las siguientes secciones explican cada paso en detalle.
 
 ## 4. Abrir una imagen
 
-Hay tres formas de cargar una imagen:
+Hay varias formas de cargar una imagen:
 
 - **Menú:** `Archivo → Abrir…` (⌘O / Ctrl+O).
 - **Arrastrar y soltar:** arrastra un archivo de imagen desde el gestor de
   archivos directamente al lienzo. Si arrastras varios archivos, solo se
   carga la primera imagen.
 - **Archivos recientes:** `Archivo → Archivos recientes` lista las últimas
-  10 imágenes abiertas.
+  10 entradas abiertas. Son tanto imágenes como **proyectos** `.bgrproj`
+  (consulta la [sección 13](#13-capas-y-proyectos)); al hacer clic, la
+  aplicación detecta el tipo y lo abre en consecuencia.
+- **Iniciar con una ruta de imagen:** cuando el programa se inicia con una ruta
+  de imagen — mediante la **línea de comandos** (`bgremover imagen.png`) o un
+  **lanzador de escritorio de Linux** (asociación de archivos) — carga esa
+  imagen directamente al arrancar.
+- **Abrir desde el Finder de macOS:** en macOS también puedes entregar una
+  imagen a BgRemover mediante **doble clic**, "Abrir con…" o una **asociación de
+  archivos** en el Finder.
+
+Todas estas vías utilizan la misma **ruta de carga validada y asíncrona**: se
+aplican las mismas comprobaciones de formato y tamaño, y las imágenes grandes se
+cargan en segundo plano — la barra de estado muestra el progreso.
 
 ![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
 
 *El menú "Archivo" agrupa Abrir (⌘O), "Archivos recientes", Guardar (⌘S) y
 Guardar como… (⇧⌘S).*
 
-Al abrir se admiten formatos comunes como PNG, JPEG, WebP, TIFF, BMP y GIF;
-el guardado es en PNG, JPEG, WebP o TIFF. Las imágenes
-grandes se cargan en segundo plano — la barra de estado muestra el progreso.
+**Los formatos de entrada admitidos** son, de forma vinculante, **PNG, JPEG,
+WebP, TIFF, BMP y GIF**. Esta lista es el contrato de entrada actual, no un
+ejemplo: otros formatos se rechazan de forma controlada. En particular,
+**HEIC/HEIF no es compatible actualmente por diseño** — un archivo HEIC/HEIF se
+rechaza como formato no admitido. El guardado es en PNG, JPEG, WebP o TIFF
+(consulta la [sección 16](#16-guardar-y-exportar)).
 
 > **Tamaño máximo de imagen: 40 megapíxeles.** Las imágenes más grandes se
 > rechazan con un mensaje en la barra de estado.
@@ -258,7 +297,7 @@ resalta en color sobre el lienzo.*
 
 ## 7. Pestaña "Selección"
 
-La primera pestaña del panel derecho controla el comportamiento de la
+La primera pestaña de edición del panel derecho controla el comportamiento de la
 selección; ya aparece en la vista general de arriba ([sección 2](#2-la-ventana-de-la-aplicación-de-un-vistazo)) y en la figura
 de la [sección 6](#6-hacer-una-selección).
 
@@ -314,9 +353,40 @@ cuadro y se aplica a la selección con "Reemplazar color".*
 *Reemplazar color* para un fondo sólido (p. ej. blanco para fotos de
 identidad).
 
+### Suavizar borde (feather)
+
+En la sección *Suavizar borde* de la misma pestaña puedes suavizar el **borde
+alfa** — útil contra bordes duros con aspecto "recortado" tras una eliminación.
+
+- **Radio:** 0 – 20 px (predeterminado: 2 px) define el ancho de la transición
+  suave.
+- **Suavizar borde** aplica el suavizado. Afecta solo al **canal de
+  transparencia** (los colores no cambian) y — cuando hay una selección activa —
+  solo dentro de la selección.
+
 ---
 
-## 9. Pestaña "Rotar/Voltear"
+## 9. Pestaña "Ajustar" – Corrección de color
+
+La pestaña *Ajustar* contiene una sencilla **corrección de color**. Actúa sobre
+la **capa de color activa** (consulta la [sección 13](#13-capas-y-proyectos)) y
+deja la transparencia sin cambios.
+
+| Control deslizante | Rango | Efecto |
+|---|---|---|
+| **Brillo** | 0 – 200 % (predeterminado: 100 %) | Aclarar u oscurecer la imagen. |
+| **Contraste** | 0 – 200 % (predeterminado: 100 %) | Diferencia entre áreas claras y oscuras. |
+| **Saturación** | 0 – 200 % (predeterminado: 100 %) | Intensidad del color; 0 % da escala de grises. |
+
+- Mientras arrastras los controles, el lienzo muestra una **vista previa en
+  vivo**.
+- **Aplicar** confirma la corrección (con deshacer/rehacer en el historial).
+- **Restablecer** devuelve los tres controles a 100 % y descarta la vista
+  previa.
+
+---
+
+## 10. Pestaña "Rotar/Voltear"
 
 ![La pestaña "Rotar/Voltear"](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
 
@@ -337,11 +407,12 @@ los botones para voltear horizontal y verticalmente.*
 - **Vertical** – voltear arriba ↕ abajo.
 
 > La rotación rápida también está disponible mediante teclado: ⌘← (90°
-> izquierda) y ⌘→ (90° derecha).
+> izquierda) y ⌘→ (90° derecha). Al final de la pestaña, **Redimensionar…**
+> lleva al diálogo de la [sección 12](#12-redimensionar-y-dimensiones-físicas).
 
 ---
 
-## 10. Pestaña "Forma" – Esquinas y recorte
+## 11. Pestaña "Forma" – Esquinas y recorte
 
 ![La pestaña "Forma"](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
 
@@ -376,12 +447,164 @@ El resultado se guarda con esquinas transparentes — mejor como PNG.
 
 ---
 
-## 11. Guardar una imagen
+## 12. Redimensionar y dimensiones físicas
+
+Mediante `Editar → Redimensionar…` (Ctrl+R) o el botón **Redimensionar…** de la
+pestaña *Rotar/Voltear*, escalas la imagen a un nuevo tamaño objetivo. El
+diálogo admite dos unidades:
+
+### Redimensionar en píxeles
+
+En el modo **Píxeles** introduces **Anchura** y **Altura** directamente en
+píxeles. Con **Vincular relación de aspecto** se conserva la proporción. El
+método de remuestreo determina la calidad:
+
+| Método | Idoneidad |
+|---|---|
+| **Lanczos** | Mejor calidad (predeterminado), ideal para reducir. |
+| **Bicúbico** | Resultados suaves, buen todoterreno. |
+| **Bilineal** | Más rápido, algo más suave. |
+| **Vecino más cercano** | Mantiene bordes/píxeles duros, sin suavizado. |
+
+El diálogo muestra el recuento de megapíxeles resultante y respeta el límite de
+**40 megapíxeles**.
+
+### Dimensiones físicas (mm/DPI) y área de impresión
+
+En el modo **Milímetros (mm + DPI)** defines **anchura/altura en milímetros** y
+una **resolución (DPI)**; de ahí resulta el tamaño en píxeles. Este tamaño
+físico es el tamaño de impresión de referencia y se guarda en el proyecto
+`.bgrproj`.
+
+Mediante **Medio objetivo** eliges un medio de impresión común (p. ej. A4 o A3).
+Si el motivo cabe, el diálogo lo confirma; si es mayor que el medio, un aviso
+señala que se supera el área de impresión.
+
+---
+
+## 13. Capas y proyectos
+
+BgRemover puede gestionar varias **capas** en un **proyecto** y guardar todo
+como un archivo `.bgrproj`. Para la edición de fondo clásica no necesitas
+ocuparte de esto — una sola imagen se comporta como una única capa de color.
+
+### Tipos y roles de capa
+
+Cada capa tiene un **tipo** y, opcionalmente, un **rol**. Solo las **capas de
+color** alimentan la imagen de color visible; los demás tipos son capas de datos
+para la preparación de impresión.
+
+| Tipo / rol | Significado |
+|---|---|
+| **Color** (motivo de color) | La imagen visible. Varias capas de color forman juntas el composite, que también se exporta. |
+| **Altura** (mapa de altura) | Un mapa de altura en escala de grises para relieve/impresión UV (consulta la [sección 14](#14-espacio-de-trabajo-de-mapa-de-altura)). |
+| **Brillo** (máscara de brillo) | Una máscara para efectos de brillo (experimental). |
+| **Genérica** | Una capa de datos neutra sin rol fijo. |
+
+### La pestaña "Capas"
+
+En la pestaña *Capas* gestionas la lista de capas:
+
+| Acción | Descripción |
+|---|---|
+| **Nueva capa / Duplicar / Eliminar** | Añadir una capa, copiar la capa activa o eliminarla. |
+| **Subir / Bajar** | Cambiar el orden de apilamiento de las capas. |
+| **Renombrar** | Renombrar la capa activa. |
+| **Rol** | Asignar un rol a la capa activa (solo se permiten combinaciones compatibles). |
+| **Visibilidad** | Mostrar u ocultar una capa. |
+| **Seleccionar** | Elegir una capa como capa **activa** – las herramientas actúan sobre ella. |
+| **Opacidad** | Opacidad de la capa (se aplica al soltar). |
+
+### Archivos de proyecto (.bgrproj)
+
+A través del menú **Proyecto** trabajas con archivos de proyecto:
+
+- **Nuevo proyecto** (Ctrl+N), **Abrir proyecto…** (Ctrl+Mayús+O).
+- **Guardar proyecto** (Ctrl+Alt+S) y **Guardar proyecto como…**
+  (Ctrl+Alt+Mayús+S).
+
+Un archivo `.bgrproj` es un archivo comprimido con un **manifiesto** (orden,
+tipos, roles, nombres, dimensiones físicas) y **un PNG por capa**. Así se
+conservan todas las capas sin pérdidas, incluida la transparencia. Los proyectos
+también aparecen en "Archivos recientes" (consulta la [sección 4](#4-abrir-una-imagen)).
+
+---
+
+## 14. Espacio de trabajo de mapa de altura
+
+Un **mapa de altura** es una capa en escala de grises en la que el brillo
+representa una altura: **claro = alto, oscuro = bajo**. Es la base del relieve y
+la impresión UV. La pestaña *Altura* se divide en tres secciones y trabaja sobre
+la **capa de altura** activa; las funciones de edición y optimización solo están
+activas cuando hay una capa de altura activa.
+
+### Adquirir
+
+- **Generar desde imagen** – convierte de forma determinista la imagen de color
+  actual en un mapa de altura y lo crea como una nueva capa de altura.
+- **Importar escala de grises…** – carga una imagen en escala de grises como
+  mapa de altura y la escala al tamaño del proyecto.
+
+### Editar
+
+- **Aclarar / Oscurecer** – sube o baja la altura; la **Intensidad** controla
+  cuánto.
+- **Establecer altura** – fija la altura a un **valor** fijo.
+- **Invertir** – intercambia alto y bajo.
+
+Cuando hay una selección activa, estas acciones afectan solo dentro de la
+selección; de lo contrario, a toda la capa.
+
+### Optimizar
+
+Las operaciones de optimización muestran una **vista previa en vivo**;
+**Aplicar** la confirma (con deshacer/rehacer) y **Descartar vista previa** la
+descarta.
+
+| Operación | Efecto |
+|---|---|
+| **Niveles (negro/blanco)** | Establecer el punto negro y blanco de la altura. |
+| **Gamma** | Llevar las alturas medias hacia más claro/oscuro. |
+| **Desenfoque gaussiano (radio)** | Suavizado suave y uniforme. |
+| **Desenfoque de mediana (radio)** | Suaviza preservando los bordes. |
+| **Umbral** | Dividir la altura en dos niveles. |
+| **Pasos** | Cuantizar la altura a un número de niveles. |
+| **Rango (mín/máx)** | Limitar la altura a un rango de valores. |
+
+---
+
+## 15. Vista previa 2D (color, relieve, altura, brillo)
+
+La **vista previa 2D** muestra distintas vistas del mismo motivo directamente
+en el lienzo. Es una **visualización en pantalla pura** y no cambia ni la imagen
+ni la exportación. Elige el modo en la pestaña *Vista previa* o mediante
+`Ver → Modo de vista previa`.
+
+| Modo | Visualización |
+|---|---|
+| **Color** | La imagen de color normal. |
+| **Relieve sobre color** | Un relieve sombreado a partir del mapa de altura, multiplicado sobre la imagen de color. |
+| **Altura (escala de grises)** | El mapa de altura como imagen en escala de grises. |
+| **Brillo** | La máscara de brillo como un brillo satinado. |
+| **Combinado** | Color, relieve y brillo juntos. |
+
+- Con **Intensidad del relieve** ajustas la intensidad del relieve; a 0 % se
+  omite el relieve.
+- **Mostrar brillo** activa o desactiva la capa de brillo.
+
+La pestaña de vista previa y el submenú Ver se mantienen sincronizados. Las
+capas de datos ocultas se ignoran en la vista previa.
+
+---
+
+## 16. Guardar y exportar
 
 - **Guardar:** `Archivo → Guardar` (⌘S / Ctrl+S)
 - **Guardar como…:** `Archivo → Guardar como…` (⇧⌘S)
 
-Elige el **formato de archivo** deseado en el diálogo:
+Al guardar siempre se escribe el **composite de color** (independientemente de
+qué capa esté activa o qué modo de vista previa esté establecido). Elige el
+**formato de archivo** deseado en el diálogo:
 
 | Formato | Propiedades | Recomendación |
 |---|---|---|
@@ -404,14 +627,22 @@ terminado:
   grises con **claro = alto, oscuro = bajo**.
 - **Máscara de brillo** (opcional, experimental) como activo auxiliar.
 
-El diálogo comprueba el proyecto **antes** de escribir: los errores bloquean la
-exportación y las advertencias deben confirmarse de forma deliberada. Después,
-importa y posiciona los activos en EufyMake Studio, asigna allí los modos de
-tinta/capas y guarda el proyecto de Studio como `.empf`.
+En el diálogo eliges la carpeta de exportación, los activos opcionales y la
+**profundidad de bits** del mapa de altura (8 bits predeterminado, 16 bits
+experimental). Una **comprobación previa a la exportación** se ejecuta de forma
+continua e informa de los hallazgos por gravedad:
+
+- **Errores** (⛔) bloquean la exportación hasta que se corrigen – p. ej. un
+  motivo de color ausente o tamaños que no coinciden.
+- **Advertencias** (⚠️) deben confirmarse de forma deliberada – p. ej. datos de
+  altura/brillo vacíos o la salida de 16 bits sin confirmar.
+
+Después, importa y posiciona los activos en EufyMake Studio, asigna allí los
+modos de tinta/capas y guarda el proyecto de Studio como `.empf`.
 
 ---
 
-## 12. Configuración
+## 17. Configuración
 
 A través de `Extras → Configuración…` (⌘, / Ctrl+,) puedes gestionar los
 siguientes ajustes:
@@ -435,7 +666,7 @@ de la aplicación.
 
 ---
 
-## 13. Atajos de teclado
+## 18. Atajos de teclado
 
 En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 
@@ -448,8 +679,14 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 | Abrir imagen | ⌘O |
 | Guardar imagen | ⌘S |
 | Guardar imagen como… | ⇧⌘S |
+| Nuevo proyecto | ⌘N |
+| Abrir proyecto… | ⇧⌘O |
+| Guardar proyecto | ⌥⌘S |
+| Guardar proyecto como… | ⇧⌥⌘S |
+| Exportar activos para EufyMake Studio… | ⌥⌘E |
 | Deshacer | ⌘Z |
 | Rehacer | ⇧⌘Z |
+| Redimensionar… | ⌘R |
 | Rotar 90° izquierda | ⌘← |
 | Rotar 90° derecha | ⌘→ |
 | Deseleccionar (si no hay recorte/lazo activo) | Esc |
@@ -459,7 +696,7 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 
 ---
 
-## 14. Flujos de trabajo típicos
+## 19. Flujos de trabajo típicos
 
 ### A) Recortar foto de producto (fondo transparente)
 
@@ -495,9 +732,20 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 3. Pestaña *Fondo* → elige un color → **Reemplazar color**.
 4. Guarda.
 
+### E) Activo de relieve de altura para EufyMake Studio
+
+1. Abre y recorta la imagen.
+2. Pestaña *Altura* → **Generar desde imagen**.
+3. Afina la altura en la sección *Optimizar* (p. ej. *Niveles*, *Desenfoque*) y
+   pulsa **Aplicar**.
+4. En la *vista previa 2D*, elige el modo **Relieve sobre color** o
+   **Combinado** para comprobar.
+5. `Proyecto → Exportar activos para EufyMake Studio…`, revisa los hallazgos y
+   exporta.
+
 ---
 
-## 15. Consejos y trucos
+## 20. Consejos y trucos
 
 - **Primero grueso, luego fino:** recorta groseramente con IA o varita mágica,
   luego corrige con pincel/goma.
@@ -505,6 +753,8 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
   Si se selecciona muy poco → aumenta la tolerancia o usa Shift+clic.
 - **Eliminar borde de color:** tras el recorte, aplica "Contraer" 1–2 px en la
   pestaña *Selección* antes de eliminar el fondo.
+- **Bordes suaves:** con *Suavizar borde* (pestaña *Fondo*), los bordes
+  recortados se ven menos duros.
 - **Retroceder:** cada paso queda registrado en el historial — haz doble clic
   en cualquier entrada del **Historial de ediciones** (🕘) para volver a ese
   estado.
@@ -513,19 +763,25 @@ En macOS la tecla modificadora es **⌘ (Cmd)**, en Linux/Windows **Ctrl**.
 
 ---
 
-## 16. Limitaciones conocidas
+## 21. Limitaciones conocidas
 
 - **Tamaño máximo de imagen: 40 megapíxeles.** Las imágenes más grandes se
   rechazan.
+- **Formatos de entrada:** se admiten PNG, JPEG, WebP, TIFF, BMP y GIF.
+  **HEIC/HEIF no es compatible actualmente** y se rechaza de forma controlada.
 - La **función IA** requiere el componente opcional `rembg`. Sin él, el botón
   de IA está desactivado; todas las herramientas manuales siguen funcionando.
+- La **vista previa 2D** es una visualización en pantalla pura; la exportación
+  de imagen escribe sin cambios el composite de color.
+- La **exportación a EufyMake** solo produce activos de importación, **no** un
+  archivo `.empf` nativo; la salida de altura de 16 bits es experimental.
 - El **paquete de aplicación** (`BgRemover.app`) es específico de macOS; en
   Linux la aplicación se inicia directamente. Windows no forma parte
   actualmente de la matriz probada oficialmente.
 
 ---
 
-## 17. Solución de problemas y archivo de registro
+## 22. Solución de problemas y archivo de registro
 
 Si surgen problemas, consulta el **archivo de registro** interno
 `bgremover.log`. Se guarda en el directorio de datos determinado por Qt y se
@@ -551,13 +807,14 @@ correo de soporte.
 | Problema | Posible solución |
 |---|---|
 | Botón de IA desactivado | `rembg` no está instalado – consulta la guía de instalación |
-| La imagen no se puede abrir | ¿Más de 40 megapíxeles? ¿Formato compatible? Lee la barra de estado |
+| La imagen no se puede abrir | ¿Más de 40 megapíxeles? ¿Formato compatible (sin HEIC/HEIF)? Lee la barra de estado |
 | La IA tarda mucho | La primera llamada carga el modelo – solo una vez, más rápido después |
 | Transparencia perdida tras guardar | Guardado como JPEG → elige PNG/WebP/TIFF en su lugar |
+| El proyecto no se puede abrir | ¿Archivo `.bgrproj` dañado/incompleto? Lee la barra de estado |
 
 ---
 
-## 18. Licencia
+## 23. Licencia
 
 BgRemover se distribuye bajo la **Licencia Pública General GNU v3.0 o
 posterior** (`GPL-3.0-or-later`) – consulta [LICENSE](../../../LICENSE). Una

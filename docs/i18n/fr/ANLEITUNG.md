@@ -26,23 +26,30 @@ s'adresse aux utilisateurs sans expérience préalable en retouche d'image.
 6. [Faire une sélection](#6-faire-une-sélection)
 7. [Onglet « Sélection »](#7-onglet--sélection-)
 8. [Onglet « Arrière-plan »](#8-onglet--arrière-plan-)
-9. [Onglet « Rotation/Miroir »](#9-onglet--rotationmiroir-)
-10. [Onglet « Forme » – Coins et recadrage](#10-onglet--forme---coins-et-recadrage)
-11. [Enregistrer une image](#11-enregistrer-une-image)
-12. [Paramètres](#12-paramètres)
-13. [Raccourcis clavier](#13-raccourcis-clavier)
-14. [Flux de travail typiques](#14-flux-de-travail-typiques)
-15. [Conseils et astuces](#15-conseils-et-astuces)
-16. [Limitations connues](#16-limitations-connues)
-17. [Résolution de problèmes et fichier journal](#17-résolution-de-problèmes-et-fichier-journal)
-18. [Licence](#18-licence)
+9. [Onglet « Ajuster » – Correction des couleurs](#9-onglet--ajuster---correction-des-couleurs)
+10. [Onglet « Rotation/Miroir »](#10-onglet--rotationmiroir-)
+11. [Onglet « Forme » – Coins et recadrage](#11-onglet--forme---coins-et-recadrage)
+12. [Redimensionner et dimensions physiques](#12-redimensionner-et-dimensions-physiques)
+13. [Calques et projets](#13-calques-et-projets)
+14. [Espace de travail des cartes de hauteur](#14-espace-de-travail-des-cartes-de-hauteur)
+15. [Aperçu 2D (couleur, relief, hauteur, brillance)](#15-aperçu-2d-couleur-relief-hauteur-brillance)
+16. [Enregistrer et exporter](#16-enregistrer-et-exporter)
+17. [Paramètres](#17-paramètres)
+18. [Raccourcis clavier](#18-raccourcis-clavier)
+19. [Flux de travail typiques](#19-flux-de-travail-typiques)
+20. [Conseils et astuces](#20-conseils-et-astuces)
+21. [Limitations connues](#21-limitations-connues)
+22. [Résolution de problèmes et fichier journal](#22-résolution-de-problèmes-et-fichier-journal)
+23. [Licence](#23-licence)
 
 ---
 
 ## 1. Que peut faire BgRemover ?
 
 BgRemover est un outil de retouche d'image pour **supprimer, remplacer et
-modifier les arrière-plans**. Les fonctionnalités principales :
+modifier les arrière-plans** — avec des fonctionnalités supplémentaires pour
+l'optimisation d'image simple, les calques/projets et la préparation d'assets
+d'impression UV. Les fonctionnalités principales :
 
 - **Suppression d'arrière-plan par IA** – supprimez l'arrière-plan
   automatiquement en un seul clic.
@@ -54,6 +61,18 @@ modifier les arrière-plans**. Les fonctionnalités principales :
   retourner.
 - **Forme et recadrage** – arrondir les coins, recadrer en cercle ou selon
   un rapport d'aspect fixe.
+- **Optimisation d'image** – ajuster la luminosité, le contraste et la
+  saturation, et adoucir le bord alpha (feather).
+- **Taille et dimensions physiques** – modifier la taille en pixels ou définir
+  une taille d'impression via les millimètres et les DPI (avec indication de la
+  zone d'impression).
+- **Calques et projets** – gérer plusieurs calques (couleur/hauteur/brillance/
+  générique) et enregistrer et ouvrir l'ensemble en tant que projet `.bgrproj`.
+- **Cartes de hauteur** – générer une carte de hauteur à partir d'une image,
+  puis la modifier et l'optimiser.
+- **Aperçu 2D** – vérifier la couleur, le relief, la hauteur et la brillance à
+  l'écran.
+- **Export EufyMake Studio** – générer des assets d'import pour l'impression UV.
 - **Historique** avec annuler/rétablir et saut vers n'importe quelle étape
   précédente.
 - **Enregistrer** en PNG, JPEG, WebP ou TIFF.
@@ -86,22 +105,26 @@ La fenêtre est divisée en quatre zones :
 
 | Zone | Rôle |
 |---|---|
-| **Barre de menus** (haut) | Fichier, Édition, Affichage, Extras |
+| **Barre de menus** (haut) | Fichier, Projet, Édition, Affichage, Extras |
 | **Barre d'outils** (gauche) | Outils de sélection, IA, historique, ouvrir/enregistrer |
 | **Canevas** (centre) | Affiche l'image et la sélection actuelle |
-| **Panneau d'onglets** (droite) | Quatre onglets : Sélection, Arrière-plan, Rotation/Miroir, Forme |
+| **Panneau d'onglets** (droite) | Huit onglets : Aperçu, Sélection, Arrière-plan, Ajuster, Rotation/Miroir, Forme, Calques, Hauteur |
 | **Barre d'état** (bas) | Conseils et retours de l'application |
 
-### Menus « Édition » et « Affichage »
+### Menus « Édition », « Affichage » et « Projet »
 
 De nombreuses actions sont aussi accessibles depuis la barre de menus :
 
 - **Édition** – annuler/rétablir, rotation (90° gauche/droite), retournement
-  horizontal/vertical, ainsi que désélectionner/inverser la sélection et
-  *Restaurer l'original*. Pratique si vous préférez le menu à la barre
-  d'outils ou à un onglet.
-- **Affichage** – *Ajuster à la vue* (⌘0) ; voir « Zoom et affichage »
-  ci-dessous.
+  horizontal/vertical, *Redimensionner…*, ainsi que désélectionner/inverser la
+  sélection et *Restaurer l'original*. Pratique si vous préférez le menu à la
+  barre d'outils ou à un onglet.
+- **Affichage** – *Ajuster à la vue* (⌘0) et le sous-menu *Mode d'aperçu* (voir
+  la [section 15](#15-aperçu-2d-couleur-relief-hauteur-brillance)) ; voir aussi
+  « Zoom et affichage » ci-dessous.
+- **Projet** – *Nouveau projet*, *Ouvrir un projet…*, *Enregistrer le projet* /
+  *…sous…* (`.bgrproj`) et *Exporter des assets pour EufyMake Studio…* (voir la
+  [section 13](#13-calques-et-projets) et la [section 16](#16-enregistrer-et-exporter)).
 
 ![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
 
@@ -147,24 +170,39 @@ Les sections suivantes expliquent chaque étape en détail.
 
 ## 4. Ouvrir une image
 
-Il existe trois façons de charger une image :
+Il existe plusieurs façons de charger une image :
 
 - **Menu :** `Fichier → Ouvrir…` (⌘O / Ctrl+O).
 - **Glisser-déposer :** faites glisser un fichier image depuis le gestionnaire
   de fichiers directement sur le canevas. Si vous glissez plusieurs fichiers,
   seule la première image est chargée.
 - **Fichiers récents :** `Fichier → Fichiers récents` liste les 10 dernières
-  images ouvertes.
+  entrées ouvertes. Il s'agit aussi bien d'images que de **projets** `.bgrproj`
+  (voir la [section 13](#13-calques-et-projets)) ; au clic, l'application
+  détecte le type et l'ouvre en conséquence.
+- **Démarrer avec un chemin d'image :** lorsque le programme est démarré avec un
+  chemin d'image — via la **ligne de commande** (`bgremover image.png`) ou un
+  **lanceur de bureau Linux** (association de fichiers) — il charge cette image
+  directement au démarrage.
+- **Ouverture via le Finder macOS :** sur macOS, une image peut aussi être
+  transmise à BgRemover par **double-clic**, via « Ouvrir avec… » ou par une
+  **association de fichiers** dans le Finder.
+
+Toutes ces voies utilisent le même **chemin de chargement validé et asynchrone** :
+les mêmes contrôles de format et de taille s'appliquent, et les grandes images
+sont chargées en arrière-plan — la barre d'état affiche la progression.
 
 ![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
 
 *Le menu « Fichier » regroupe Ouvrir (⌘O), « Fichiers récents »,
 Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
 
-À l'ouverture, les formats courants tels que PNG, JPEG, WebP, TIFF, BMP et
-GIF sont pris en charge ; l'enregistrement se fait en PNG, JPEG, WebP ou
-TIFF. Les grandes images sont chargées en arrière-plan — la barre d'état
-affiche la progression.
+**Les formats d'entrée pris en charge** sont, de manière contraignante, **PNG,
+JPEG, WebP, TIFF, BMP et GIF**. Cette liste est le contrat d'entrée actuel, pas
+un exemple : les autres formats sont rejetés de façon contrôlée. En particulier,
+**HEIC/HEIF n'est actuellement pas pris en charge à dessein** — un fichier
+HEIC/HEIF est rejeté comme format non pris en charge. L'enregistrement se fait
+en PNG, JPEG, WebP ou TIFF (voir la [section 16](#16-enregistrer-et-exporter)).
 
 > **Taille maximale de l'image : 40 mégapixels.** Les images plus grandes sont
 > rejetées avec un message dans la barre d'état.
@@ -263,8 +301,8 @@ sélectionnée est mise en surbrillance en couleur sur le canevas.*
 
 ## 7. Onglet « Sélection »
 
-Le premier onglet du panneau droit contrôle le comportement de la sélection ;
-il apparaît déjà dans la vue d'ensemble ci-dessus ([section 2](#2-la-fenêtre-de-lapplication-en-un-coup-dœil)) et dans la figure
+Le premier onglet d'édition du panneau droit contrôle le comportement de la
+sélection ; il apparaît déjà dans la vue d'ensemble ci-dessus ([section 2](#2-la-fenêtre-de-lapplication-en-un-coup-dœil)) et dans la figure
 de la [section 6](#6-faire-une-sélection).
 
 ### Indications sur les outils
@@ -321,9 +359,41 @@ magique/l'IA → *Supprimer (transparent)* pour un PNG détouré, **ou** choisir
 une couleur et *Remplacer la couleur* pour un arrière-plan uni (p. ex. blanc
 pour des photos d'identité).
 
+### Adoucir le bord (feather)
+
+Dans la section *Adoucir le bord* du même onglet, vous pouvez adoucir le **bord
+alpha** — utile contre les bordures dures à l'aspect « découpé » après une
+suppression.
+
+- **Rayon :** 0 – 20 px (par défaut : 2 px) règle la largeur de la transition
+  douce.
+- **Adoucir le bord** applique le lissage. Il n'affecte que le **canal de
+  transparence** (les couleurs restent inchangées) et — lorsqu'une sélection est
+  active — uniquement à l'intérieur de la sélection.
+
 ---
 
-## 9. Onglet « Rotation/Miroir »
+## 9. Onglet « Ajuster » – Correction des couleurs
+
+L'onglet *Ajuster* contient une **correction des couleurs** simple. Elle agit
+sur le **calque couleur actif** (voir la [section 13](#13-calques-et-projets))
+et laisse la transparence inchangée.
+
+| Curseur | Plage | Effet |
+|---|---|---|
+| **Luminosité** | 0 – 200 % (par défaut : 100 %) | Éclaircir ou assombrir l'image. |
+| **Contraste** | 0 – 200 % (par défaut : 100 %) | Différence entre les zones claires et sombres. |
+| **Saturation** | 0 – 200 % (par défaut : 100 %) | Intensité des couleurs ; 0 % donne des niveaux de gris. |
+
+- Pendant que vous déplacez les curseurs, le canevas affiche un **aperçu en
+  direct**.
+- **Appliquer** valide la correction (annulable/rétablissable dans
+  l'historique).
+- **Réinitialiser** ramène les trois curseurs à 100 % et abandonne l'aperçu.
+
+---
+
+## 10. Onglet « Rotation/Miroir »
 
 ![L'onglet « Rotation/Miroir »](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
 
@@ -344,11 +414,12 @@ libre et les boutons pour retourner horizontalement et verticalement.*
 - **Vertical** – retourner haut ↕ bas.
 
 > La rotation rapide est également disponible via le clavier : ⌘← (90°
-> gauche) et ⌘→ (90° droite).
+> gauche) et ⌘→ (90° droite). Tout en bas de l'onglet, **Redimensionner…**
+> mène à la boîte de dialogue de la [section 12](#12-redimensionner-et-dimensions-physiques).
 
 ---
 
-## 10. Onglet « Forme » – Coins et recadrage
+## 11. Onglet « Forme » – Coins et recadrage
 
 ![L'onglet « Forme »](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
 
@@ -384,12 +455,165 @@ le cadre.*
 
 ---
 
-## 11. Enregistrer une image
+## 12. Redimensionner et dimensions physiques
+
+Via `Édition → Redimensionner…` (Ctrl+R) ou le bouton **Redimensionner…** de
+l'onglet *Rotation/Miroir*, vous mettez l'image à l'échelle d'une nouvelle
+taille cible. La boîte de dialogue propose deux unités :
+
+### Redimensionner en pixels
+
+En mode **Pixels**, vous saisissez la **Largeur** et la **Hauteur** directement
+en pixels. Avec **Lier le rapport d'aspect**, le rapport est préservé. La
+méthode de rééchantillonnage détermine la qualité :
+
+| Méthode | Adaptée à |
+|---|---|
+| **Lanczos** | Meilleure qualité (par défaut), idéale pour réduire. |
+| **Bicubique** | Résultats lisses, bon polyvalent. |
+| **Bilinéaire** | Plus rapide, un peu plus doux. |
+| **Plus proche voisin** | Conserve les bords/pixels nets, sans lissage. |
+
+La boîte de dialogue affiche le nombre de mégapixels obtenu et respecte la
+limite de **40 mégapixels**.
+
+### Dimensions physiques (mm/DPI) et zone d'impression
+
+En mode **Millimètres (mm + DPI)**, vous définissez la **largeur/hauteur en
+millimètres** et une **résolution (DPI)** ; la taille en pixels en découle.
+Cette taille physique est la taille d'impression de référence et est enregistrée
+dans le projet `.bgrproj`.
+
+Via **Support cible**, vous choisissez un support d'impression courant (p. ex.
+A4 ou A3). Si le motif y tient, la boîte de dialogue le confirme ; s'il est plus
+grand que le support, une indication signale que la zone d'impression est
+dépassée.
+
+---
+
+## 13. Calques et projets
+
+BgRemover peut gérer plusieurs **calques** dans un **projet** et enregistrer
+l'ensemble en tant que fichier `.bgrproj`. Pour l'édition d'arrière-plan
+classique, vous n'avez pas à vous en soucier — une seule image se comporte comme
+un unique calque couleur.
+
+### Types et rôles de calque
+
+Chaque calque a un **type** et, éventuellement, un **rôle**. Seuls les **calques
+couleur** alimentent l'image couleur visible ; les autres types sont des calques
+de données pour la préparation de l'impression.
+
+| Type / rôle | Signification |
+|---|---|
+| **Couleur** (motif couleur) | L'image visible. Plusieurs calques couleur forment ensemble le composite, qui est aussi exporté. |
+| **Hauteur** (carte de hauteur) | Une carte de hauteur en niveaux de gris pour le relief/l'impression UV (voir la [section 14](#14-espace-de-travail-des-cartes-de-hauteur)). |
+| **Brillance** (masque de brillance) | Un masque pour les effets de brillance (expérimental). |
+| **Générique** | Un calque de données neutre sans rôle fixe. |
+
+### L'onglet « Calques »
+
+Dans l'onglet *Calques*, vous gérez la liste des calques :
+
+| Action | Description |
+|---|---|
+| **Nouveau calque / Dupliquer / Supprimer** | Ajouter un calque, copier le calque actif ou le supprimer. |
+| **Monter / Descendre** | Modifier l'ordre d'empilement des calques. |
+| **Renommer** | Renommer le calque actif. |
+| **Rôle** | Attribuer un rôle au calque actif (seules les combinaisons compatibles sont autorisées). |
+| **Visibilité** | Afficher ou masquer un calque. |
+| **Sélectionner** | Choisir un calque comme calque **actif** – les outils agissent dessus. |
+| **Opacité** | Opacité du calque (appliquée au relâchement). |
+
+### Fichiers de projet (.bgrproj)
+
+Via le menu **Projet**, vous travaillez avec des fichiers de projet :
+
+- **Nouveau projet** (Ctrl+N), **Ouvrir un projet…** (Ctrl+Maj+O).
+- **Enregistrer le projet** (Ctrl+Alt+S) et **Enregistrer le projet sous…**
+  (Ctrl+Alt+Maj+S).
+
+Un fichier `.bgrproj` est une archive comprenant un **manifeste** (ordre, types,
+rôles, noms, dimensions physiques) et **un PNG par calque**. Ainsi, tous les
+calques sont conservés sans perte, transparence comprise. Les projets
+apparaissent aussi sous « Fichiers récents » (voir la [section 4](#4-ouvrir-une-image)).
+
+---
+
+## 14. Espace de travail des cartes de hauteur
+
+Une **carte de hauteur** est un calque en niveaux de gris où la luminosité
+représente une hauteur : **clair = haut, sombre = bas**. Elle est la base du
+relief et de l'impression UV. L'onglet *Hauteur* est divisé en trois sections et
+travaille sur le **calque de hauteur** actif ; les fonctions d'édition et
+d'optimisation ne sont actives que lorsqu'un calque de hauteur est actif.
+
+### Obtenir
+
+- **Générer depuis l'image** – convertit de façon déterministe l'image couleur
+  actuelle en carte de hauteur et la crée comme nouveau calque de hauteur.
+- **Importer des niveaux de gris…** – charge une image en niveaux de gris comme
+  carte de hauteur et la met à l'échelle de la taille du projet.
+
+### Modifier
+
+- **Éclaircir / Assombrir** – augmente ou diminue la hauteur ; l'**Intensité**
+  contrôle l'ampleur.
+- **Définir la hauteur** – fixe la hauteur à une **valeur** déterminée.
+- **Inverser** – échange haut et bas.
+
+Lorsqu'une sélection est active, ces actions n'agissent qu'à l'intérieur de la
+sélection, sinon sur tout le calque.
+
+### Optimiser
+
+Les opérations d'optimisation affichent un **aperçu en direct** ; **Appliquer**
+valide (annulable/rétablissable), **Abandonner l'aperçu** l'abandonne.
+
+| Opération | Effet |
+|---|---|
+| **Niveaux (noir/blanc)** | Définir le point noir et blanc de la hauteur. |
+| **Gamma** | Tirer les hauteurs moyennes vers le clair/sombre. |
+| **Flou gaussien (rayon)** | Lissage doux et uniforme. |
+| **Flou médian (rayon)** | Lisse tout en préservant les bords. |
+| **Seuil** | Diviser la hauteur en deux niveaux. |
+| **Paliers** | Quantifier la hauteur en un nombre de niveaux. |
+| **Plage (min/max)** | Limiter la hauteur à une plage de valeurs. |
+
+---
+
+## 15. Aperçu 2D (couleur, relief, hauteur, brillance)
+
+L'**aperçu 2D** montre différentes vues du même motif directement sur le
+canevas. C'est un **affichage à l'écran pur** qui ne modifie ni l'image ni
+l'export. Choisissez le mode dans l'onglet *Aperçu* ou via
+`Affichage → Mode d'aperçu`.
+
+| Mode | Affichage |
+|---|---|
+| **Couleur** | L'image couleur normale. |
+| **Relief sur couleur** | Un relief ombré issu de la carte de hauteur, multiplié par-dessus l'image couleur. |
+| **Hauteur (niveaux de gris)** | La carte de hauteur en image en niveaux de gris. |
+| **Brillance** | Le masque de brillance sous forme de reflet satiné. |
+| **Combiné** | Couleur, relief et brillance ensemble. |
+
+- Avec **Intensité du relief**, vous réglez l'intensité du relief ; à 0 %, le
+  relief est ignoré.
+- **Afficher la brillance** active ou désactive le calque de brillance.
+
+L'onglet d'aperçu et le sous-menu Affichage restent synchronisés. Les calques de
+données masqués sont ignorés dans l'aperçu.
+
+---
+
+## 16. Enregistrer et exporter
 
 - **Enregistrer :** `Fichier → Enregistrer` (⌘S / Ctrl+S)
 - **Enregistrer sous… :** `Fichier → Enregistrer sous…` (⇧⌘S)
 
-Choisissez le **format de fichier** souhaité dans la boîte de dialogue :
+À l'enregistrement, c'est toujours le **composite couleur** qui est écrit (quel
+que soit le calque actif ou le mode d'aperçu défini). Choisissez le **format de
+fichier** souhaité dans la boîte de dialogue :
 
 | Format | Propriétés | Recommandation |
 |---|---|---|
@@ -404,7 +628,7 @@ Choisissez le **format de fichier** souhaité dans la boîte de dialogue :
 ### Exporter pour EufyMake Studio
 
 Via `Projet → Exporter des assets pour EufyMake Studio…` (Ctrl+Alt+E), BgRemover
-écrit des **assets d’import** pour EufyMake Studio – **pas** un fichier `.empf`
+écrit des **assets d'import** pour EufyMake Studio – **pas** un fichier `.empf`
 fini :
 
 - **Motif couleur** (obligatoire) en PNG RGBA issu du composite couleur.
@@ -412,14 +636,23 @@ fini :
   niveaux de gris avec **clair = haut, sombre = bas**.
 - **Masque de brillance** (facultatif, expérimental) comme asset auxiliaire.
 
-Le dialogue contrôle le projet **avant** l’écriture : les erreurs bloquent
-l’export, les avertissements doivent être confirmés délibérément. Ensuite, vous
-importez et positionnez les assets dans EufyMake Studio, y attribuez les modes
-d’encre/calques et enregistrez le projet Studio lui-même en `.empf`.
+Dans la boîte de dialogue, vous choisissez le dossier d'export, les assets
+facultatifs et la **profondeur de bits** de la carte de hauteur (8 bits par
+défaut, 16 bits expérimental). Une **vérification de pré-export** s'exécute en
+continu et signale les constats par gravité :
+
+- **Erreurs** (⛔) bloquent l'export jusqu'à correction – p. ex. un motif couleur
+  manquant ou des tailles non concordantes.
+- **Avertissements** (⚠️) doivent être confirmés délibérément – p. ex. des
+  données de hauteur/brillance vides ou la sortie 16 bits non confirmée.
+
+Ensuite, vous importez et positionnez les assets dans EufyMake Studio, y
+attribuez les modes d'encre/calques et enregistrez le projet Studio lui-même en
+`.empf`.
 
 ---
 
-## 12. Paramètres
+## 17. Paramètres
 
 Via `Extras → Paramètres…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
@@ -443,7 +676,7 @@ redémarrages de l'application.
 
 ---
 
-## 13. Raccourcis clavier
+## 18. Raccourcis clavier
 
 Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 **Ctrl**.
@@ -457,8 +690,14 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 | Ouvrir une image | ⌘O |
 | Enregistrer l'image | ⌘S |
 | Enregistrer l'image sous… | ⇧⌘S |
+| Nouveau projet | ⌘N |
+| Ouvrir un projet… | ⇧⌘O |
+| Enregistrer le projet | ⌥⌘S |
+| Enregistrer le projet sous… | ⇧⌥⌘S |
+| Exporter des assets pour EufyMake Studio… | ⌥⌘E |
 | Annuler | ⌘Z |
 | Rétablir | ⇧⌘Z |
+| Redimensionner… | ⌘R |
 | Rotation 90° gauche | ⌘← |
 | Rotation 90° droite | ⌘→ |
 | Désélectionner (sans recadrage/lasso actif) | Échap |
@@ -468,7 +707,7 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 
 ---
 
-## 14. Flux de travail typiques
+## 19. Flux de travail typiques
 
 ### A) Détourer une photo de produit (arrière-plan transparent)
 
@@ -507,9 +746,20 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 3. Onglet *Arrière-plan* → choisissez une couleur → **Remplacer la couleur**.
 4. Enregistrez.
 
+### E) Asset de relief de hauteur pour EufyMake Studio
+
+1. Ouvrez et détourez l'image.
+2. Onglet *Hauteur* → **Générer depuis l'image**.
+3. Affinez la hauteur dans la section *Optimiser* (p. ex. *Niveaux*, *Flou*) et
+   cliquez sur **Appliquer**.
+4. Dans l'*aperçu 2D*, choisissez le mode **Relief sur couleur** ou **Combiné**
+   pour vérifier.
+5. `Projet → Exporter des assets pour EufyMake Studio…`, vérifiez les constats
+   et exportez.
+
 ---
 
-## 15. Conseils et astuces
+## 20. Conseils et astuces
 
 - **D'abord grossier, puis fin :** détourez grossièrement avec l'IA ou la
   baguette magique, puis corrigez avec le pinceau/la gomme.
@@ -517,6 +767,8 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
   Si trop peu → augmentez la tolérance ou utilisez Shift+clic.
 - **Supprimer le liseré :** après le détourage, appliquez « Réduire » de
   1–2 px dans l'onglet *Sélection* avant de supprimer l'arrière-plan.
+- **Bords doux :** avec *Adoucir le bord* (onglet *Arrière-plan*), les bordures
+  détourées paraissent moins dures.
 - **Reculer :** chaque étape est enregistrée dans l'historique — double-cliquez
   sur n'importe quelle entrée de l'**Historique des modifications** (🕘) pour
   revenir à cet état.
@@ -525,20 +777,27 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)**, sur Linux/Windows
 
 ---
 
-## 16. Limitations connues
+## 21. Limitations connues
 
 - **Taille maximale de l'image : 40 mégapixels.** Les images plus grandes sont
   rejetées.
+- **Formats d'entrée :** PNG, JPEG, WebP, TIFF, BMP et GIF sont pris en charge.
+  **HEIC/HEIF n'est actuellement pas pris en charge** et est rejeté de façon
+  contrôlée.
 - La **fonctionnalité IA** nécessite le composant facultatif `rembg`. Sans lui,
   le bouton IA est désactivé ; tous les outils manuels continuent de
   fonctionner.
+- L'**aperçu 2D** est un affichage à l'écran pur ; l'export d'image écrit sans
+  changement le composite couleur.
+- L'**export EufyMake** ne produit que des assets d'import, **pas** un fichier
+  `.empf` natif ; la sortie de hauteur 16 bits est expérimentale.
 - Le **bundle d'application** (`BgRemover.app`) est spécifique à macOS ; sous
   Linux, l'application est lancée directement. Windows ne fait actuellement
   pas partie de la matrice officiellement testée.
 
 ---
 
-## 17. Résolution de problèmes et fichier journal
+## 22. Résolution de problèmes et fichier journal
 
 En cas de problème, consultez le **fichier journal** interne
 `bgremover.log`. Il est stocké dans le répertoire de données déterminé par Qt
@@ -565,13 +824,14 @@ d'assistance.
 | Problème | Solution possible |
 |---|---|
 | Bouton IA grisé | `rembg` n'est pas installé – consultez le guide d'installation |
-| L'image ne peut pas être ouverte | Plus de 40 mégapixels ? Format pris en charge ? Lisez la barre d'état |
+| L'image ne peut pas être ouverte | Plus de 40 mégapixels ? Format pris en charge (pas de HEIC/HEIF) ? Lisez la barre d'état |
 | L'IA prend très longtemps | Le premier appel charge le modèle – une seule fois, plus rapide ensuite |
 | Transparence perdue après enregistrement | Enregistré en JPEG → choisissez PNG/WebP/TIFF à la place |
+| Le projet ne peut pas être ouvert | Fichier `.bgrproj` endommagé/incomplet ? Lisez la barre d'état |
 
 ---
 
-## 18. Licence
+## 23. Licence
 
 BgRemover est distribué sous la **Licence Publique Générale GNU v3.0 ou
 ultérieure** (`GPL-3.0-or-later`) – consultez [LICENSE](../../../LICENSE). Une
