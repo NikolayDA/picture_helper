@@ -73,6 +73,13 @@ Ein Paket, `bgremover/`:
   `preview_height_op`/`cancel_height_preview` (transient, ohne Modelländerung) und
   `apply_height_op` (Commit, undo-/redobar); die Vorschau hat in `_refresh_image` Vorrang
   und wird bei jedem Zustandswechsel verworfen.
+- **2D-Relief-/Gloss-Vorschau:** `relief_preview.py` (#385) berechnet aus einem
+  `HeightField` ein neutrales, richtungsabhängiges Hillshade (Azimut/Elevation,
+  8-/16-Bit-äquivalent, `coverage`-bewusst) und komponiert es multiplikativ über
+  RGBA. `gloss_preview.py` (#386) rendert eine Gloss-Maske als kühlen Sheen und
+  mischt ihn über RGBA. Beide Module sind Qt-frei, strikt getypt, größenvalidiert
+  und erhalten den Alpha-Kanal des Farbmotivs bitgenau; Canvas-/UI-Anbindung folgt
+  in #387/#388.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

@@ -11,6 +11,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Renderizadores de relieve y gloss sin Qt para la vista previa 2D combinada.**
+  Los nuevos módulos con tipado estricto `bgremover/relief_preview.py` y
+  `bgremover/gloss_preview.py` generan un hillshade direccional determinista desde
+  `HeightField` (equivalente con datos de 8/16 bits) y un brillo gloss visible.
+  Ambos componen su efecto sobre un motivo RGBA validando el tamaño, conservan su
+  canal alfa bit a bit y ofrecen no-ops neutros reales; pruebas puras de píxeles y
+  límites cubren dirección, cobertura, intensidad y alfa (#385, #386).
 - **Comprobación previa a la exportación al guardar normalmente.** «Guardar»/«Guardar
   como…» ejecuta ahora la comprobación general (#379) sobre el proyecto antes de
   escribir y muestra los hallazgos igual que el flujo de EufyMake: los **errores

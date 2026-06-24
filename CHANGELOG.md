@@ -11,6 +11,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Qt-freie Relief- und Gloss-Renderer für die kombinierte 2D-Vorschau.** Die
+  neuen, strikt getypten Module `bgremover/relief_preview.py` und
+  `bgremover/gloss_preview.py` erzeugen deterministisches, richtungsabhängiges
+  Hillshade aus `HeightField` (8-/16-Bit-äquivalent) sowie einen sichtbaren
+  Gloss-Sheen. Beide legen ihren Effekt größenvalidiert über ein RGBA-Farbmotiv,
+  erhalten dessen Alphakanal bitgenau und bieten echte neutrale No-ops; reine
+  Pixel-/Grenzfalltests sichern Lichtrichtung, Deckung, Stärke und Alpha (#385,
+  #386).
 - **Pre-Export-Prüfung beim normalen Speichern.** „Speichern"/„Speichern unter…"
   führt jetzt vor dem Schreiben die allgemeine Prüfung (#379) auf dem Projekt aus
   und zeigt die Befunde analog zum EufyMake-Flow: **Fehler blockieren** das

@@ -54,15 +54,14 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — État du Triage (2026-06-24, mis à jour)
 
-Au 2026-06-24, GitHub affiche **14** issues ouvertes. L'epic **#375** (sortie
+Au 2026-06-24, après #385/#386 GitHub affiche **12** issues ouvertes. L'epic **#375** (sortie
 physique mm/DPI + validation générale d'export) est terminé via **#376–#380**
 (PR #382/#383) et clos. Depuis le dernier triage, **deux nouveaux epics** ont
 été ajoutés qui structurent la clôture des phases 0/1 :
 
-- **#384 – Aperçu 2D combiné** (MVP du cœur relief, le dernier point fonctionnel
-  ouvert de la phase 1, actuellement ~55 %) avec les sous-issues **#385** (rendu
-  de relief-shading, sans Qt), **#386** (visualisation du gloss, sans Qt),
-  **#387** (modes d'aperçu du canevas + pipeline de composite) et **#388**
+- **#384 – Aperçu 2D combiné** (MVP du cœur relief, dernier point fonctionnel
+  ouvert de la phase 1) : les moteurs sans Qt **#385/#386** sont implémentés ;
+  restent **#387** (modes d'aperçu du canevas + pipeline de composite) et **#388**
   (bascules UI + i18n).
 - **#389 – Mettre à jour la doc utilisateur & publier la release v2.5.0** avec
   les sous-issues **#390** (le guide utilisateur ANLEITUNG, 6 langues — clôt
@@ -83,10 +82,8 @@ substantielle des issues ; aucune nouvelle issue de suivi n'est requise.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Aperçu 2D combiné (couleur/transparence/relief/gloss) | 🟠 Haute | 🔴 Haute (epic) | **En cours (epic)** – le dernier point fonctionnel de la phase 1. Ordre : #385/#386 en parallèle → #387 → #388. |
-| [#385](https://github.com/NikolayDA/picture_helper/issues/385) | Rendu de relief-shading (sans Qt) | 🟠 Haute | 🟡 Moyenne | **✅ Ready for PR** – proprement délimité, sans dépendances, sans Qt + strictement typé. Le PR suivant le plus solide ; débloque #387. |
-| [#386](https://github.com/NikolayDA/picture_helper/issues/386) | Rendu de visualisation du gloss (sans Qt) | 🟡 Moyenne | 🟢 Basse–Moyenne | **✅ Ready for PR** – en parallèle de #385, sans dépendances ; logique d'image pure sans Qt. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canevas : modes d'aperçu + pipeline de composite | 🟠 Haute | 🟠 Moyenne–Haute | **Blocked** – nécessite #385 + #386 ; préserver le contrat d'export #363 avec un test de régression. |
+| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Aperçu 2D combiné (couleur/transparence/relief/gloss) | 🟠 Haute | 🔴 Haute (epic) | **En cours (epic)** – moteurs #385/#386 terminés ; ensuite #387 → #388. |
+| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canevas : modes d'aperçu + pipeline de composite | 🟠 Haute | 🟠 Moyenne–Haute | **Ready for PR** – dépendances #385/#386 remplies ; préserver le contrat d'export #363 avec un test de régression. |
 | [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI : sélecteur de mode d'aperçu + bascules relief/gloss + i18n | 🟡 Moyenne | 🟡 Moyenne | **Blocked** – nécessite #387 ; clôt l'epic #384. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟡 Moyenne (epic) | **En cours (epic)** – #390/#391 en parallèle maintenant → (merge epic #384) → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Mettre à jour le guide utilisateur ANLEITUNG (+ 5 i18n) pour les nouvelles fonctionnalités | 🟠 Haute | 🔴 Haute (L, 6 langues) | **Ready for PR** – bien délimité mais volumineux ; clôt aussi **#357**. |
@@ -100,16 +97,13 @@ substantielle des issues ; aucune nouvelle issue de suivi n'est requise.
 
 ### Prochaines étapes recommandées (ordre des PR)
 
-1. Implémenter **#385** et **#386** (rendus relief/gloss sans Qt) comme petits PR
-   parallélisables — les meilleurs candidats « prêts & bien délimités » ; ils
-   débloquent #387.
-2. Enchaîner avec **#387** → **#388** pour terminer l'epic **#384** (aperçu 2D
+1. Enchaîner avec **#387** → **#388** pour terminer l'epic **#384** (aperçu 2D
    combiné) ; préserver le contrat d'export #363 avec un test de régression.
-3. Intégrer **#390** et **#391** en parallèle comme PR docs (clôt aussi **#357**) ;
+2. Intégrer **#390** et **#391** en parallèle comme PR docs (clôt aussi **#357**) ;
    caser **#339** comme petit PR indépendant.
-4. Publier **#392** (release v2.5.0) seulement après #390/#391 et idéalement
+3. Publier **#392** (release v2.5.0) seulement après #390/#391 et idéalement
    après #384.
-5. Traiter **#299** opportunément ; reporter **#318** jusqu'à ce que la sémantique
+4. Traiter **#299** opportunément ; reporter **#318** jusqu'à ce que la sémantique
    soit établie et garder **#245** bloqué en externe.
 
 ## Séries Précédentes
