@@ -12,7 +12,7 @@
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
-An image-editing tool for macOS and Linux for **removing, replacing, and editing backgrounds** — with AI-based automatic cutout, magic-wand selection, brush/eraser, polygon lasso, cropping in various formats, rotating, flipping, and corner rounding.
+An image-editing tool for macOS and Linux for **cutting out, editing, and print-preparing motifs** — from AI background removal through layers, projects, and height maps to **asset export for UV printing (EufyMake Studio)**. With magic wand, brush/eraser, polygon lasso, cropping in various formats, rotating, flipping, corner rounding, and color correction.
 
 ## Features
 
@@ -24,18 +24,40 @@ An image-editing tool for macOS and Linux for **removing, replacing, and editing
 - **✂ Crop** with a rule-of-thirds grid: circle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotate** in 90° steps or by any angle; **↔ flip** horizontally/vertically.
 - **⬤ Round corners** with an adjustable radius.
-- **📐 Resize** – scale the image/project to a target resolution in pixels (link aspect ratio, selectable resampling method).
+- **📐 Resize & physical dimensions** – scale to a target resolution in pixels **or** via millimeters and DPI (link aspect ratio, selectable resampling method); including a print-area check against a target medium (e.g. A4/A3).
 - **🎚 Color correction** – brightness, contrast and saturation of the active layer with a live preview (alpha-preserving).
 - **🪶 Smooth edge** – soft cut-out edge (alpha feather), selection-bounded, after AI or manual cut-out.
+- **🗂 Layers & projects** – manage several layers (color, height, gloss, generic) with roles and save and open the whole thing losslessly as a `.bgrproj` project.
+- **🏔 Height maps** – generate, edit, and optimize a grayscale height map from an image (light = high) – the basis for relief and UV printing.
+- **👁 2D preview** – check color, relief over color, height, and gloss on screen; display only, the image export stays the color motif.
 - **↩ History** with undo and jumping to any earlier step.
 - **📥 Drag & drop** for images directly onto the window.
+- **📂 Input formats** – opens **PNG, JPEG, WebP, TIFF, BMP, and GIF**. **HEIC/HEIF is currently not supported.**
 - Save as **PNG** (with transparency), **JPEG** (on a white background), **WebP**, or **TIFF**.
 - **⚙ Persistent settings** – default directories and preferred file format are remembered; the log file can be located directly from the settings and its folder can be opened.
 - **🖨 Export for EufyMake Studio** – writes import assets (color motif as an RGBA PNG, optional height map with light = high, optional gloss mask) with a pre-flight check and next Studio steps. BgRemover does **not** create a native `.empf` file – import, positioning and ink-mode assignment happen in EufyMake Studio.
 
 ## Screenshots
 
-![BgRemover – main window](../../screenshot.png)
+![BgRemover – main window with the layers panel](../../screenshot.png)
+
+*Main window with the layers panel (right): a project made of a color-motif and
+a height layer, including role assignment.*
+
+![Height-map workspace](../../screenshot_height.png)
+
+*The Height tab: acquire, edit, and optimize a height map – the grayscale view
+shows light = high.*
+
+![2D preview: relief and gloss over color](../../screenshot_preview.png)
+
+*The combined 2D preview lays relief and gloss over the color motif – display
+only, the export stays unchanged.*
+
+![Export dialog for EufyMake Studio](../../screenshot_export.png)
+
+*The export dialog produces import assets (color motif, optional height map and
+gloss mask) with a pre-flight check – **not** a native `.empf` file.*
 
 ## Requirements
 
@@ -134,14 +156,15 @@ system packages via `apt`); see **[INSTALL_LINUX.md](INSTALL_LINUX.md)** as well
 
 ## Usage
 
-1. **Open an image** via `File → Open` (⌘O) or by dragging and dropping it onto the window.
-2. **Make a selection** with the magic wand, brush, eraser, or polygon lasso (tab *🎯 Selection*).
+1. **Open an image** via `File → Open` (⌘O), by dragging and dropping it onto the window, or with a startup path (CLI / Finder).
+2. **Make a selection** with the magic wand, brush, eraser, or polygon lasso (tab *Selection*).
    - `Shift+Click` adds to the selection; `⌘+Click` (macOS) or `Ctrl+Click` (Linux) subtracts.
    - Switch tools from the keyboard: `W` magic wand, `B` brush, `E` eraser, `L` lasso.
-3. **Edit the background** (tab *🖼 Backgr.*): make it transparent or replace the color — or use **AI** directly in the toolbar.
-4. **Transform the image** (tab *⟲ Trans.*): rotate, flip.
-5. **Shape & crop** (tab *⬤ Shape*): round corners or crop to a format — move/resize the frame, then ✓ Apply.
-6. **Save** via `File → Save` (⌘S) as PNG, JPEG, WebP, or TIFF.
+3. **Edit the background** (tab *Background*): make it transparent, replace the color, or smooth the edge — or use **AI** directly in the toolbar.
+4. **Optimize & transform** (tabs *Adjust* and *Rotate/Flip*): adjust brightness/contrast/saturation, rotate, flip, resize.
+5. **Shape & crop** (tab *Shape*): round corners or crop to a format — move/resize the frame, then ✓ Apply.
+6. **Layers, height & preview** (tabs *Layers*, *Height*, *Preview*): manage project layers, generate/edit a height map, and check the result as relief/gloss.
+7. **Save** via `File → Save` (⌘S) as PNG, JPEG, WebP, or TIFF — or `Project → Export assets for EufyMake Studio…` for UV printing.
 
 ### Settings
 
@@ -171,6 +194,11 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux **Ctrl**.
 | Open image | ⌘O |
 | Save image | ⌘S |
 | Save image as… | ⇧⌘S |
+| New project | ⌘N |
+| Open project… | ⇧⌘O |
+| Save project | ⌥⌘S |
+| Resize… | ⌘R |
+| Export assets for EufyMake Studio… | ⌥⌘E |
 | Undo | ⌘Z |
 | Redo | ⇧⌘Z |
 | Rotate 90° left | ⌘← |
@@ -235,8 +263,9 @@ BgRemover is an installable package (`bgremover/`, launched via
   undo/redo stacks, and the tools (magic wand, brush, lasso, crop).
 - **`MainWindow`** builds the toolbar, status/crop bar, and connects the canvas,
   menus, right panel, and workers.
-- **`right_panel`** builds the four right-hand tabs for selection, background,
-  rotate/flip, and shape/crop from a callback set.
+- **`right_panel`** builds the eight right-hand tabs (Preview, Selection,
+  Background, Adjust, Rotate/Flip, Shape, Layers, Height) from a callback set;
+  `project_model`/`height_map` provide the Qt-free layer and height model.
 - **`menu_actions`** builds the menu bar, actions, and shortcuts; `MainWindow`
   only supplies callbacks for it.
 - **`RecentFiles`** encapsulates persistence, de-duplication, and the menu
@@ -254,6 +283,9 @@ BgRemover is an installable package (`bgremover/`, launched via
 
 ## Known limitations
 
+- **Input formats:** **PNG, JPEG, WebP, TIFF, BMP, and GIF** are supported.
+  **HEIC/HEIF is currently not supported** (no `pillow-heif`); such files are
+  rejected in a controlled way as an unsupported format.
 - **Maximum image size: 40 megapixels.** Larger images are rejected with a
   status message to limit memory use and processing time. The magic-wand
   selection (flood fill) runs asynchronously in its own `QThread`, keeping

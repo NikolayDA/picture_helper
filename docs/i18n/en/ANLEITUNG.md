@@ -26,23 +26,29 @@ with no prior image-editing experience.
 6. [Making a selection](#6-making-a-selection)
 7. [Tab "Selection"](#7-tab-selection)
 8. [Tab "Background"](#8-tab-background)
-9. [Tab "Rotate/Flip"](#9-tab-rotateflip)
-10. [Tab "Shape" – Corners & Crop](#10-tab-shape--corners--crop)
-11. [Saving an image](#11-saving-an-image)
-12. [Settings](#12-settings)
-13. [Keyboard shortcuts](#13-keyboard-shortcuts)
-14. [Typical workflows](#14-typical-workflows)
-15. [Tips & tricks](#15-tips--tricks)
-16. [Known limitations](#16-known-limitations)
-17. [Troubleshooting & log file](#17-troubleshooting--log-file)
-18. [License](#18-license)
+9. [Tab "Adjust" – Colour correction](#9-tab-adjust--colour-correction)
+10. [Tab "Rotate/Flip"](#10-tab-rotateflip)
+11. [Tab "Shape" – Corners & Crop](#11-tab-shape--corners--crop)
+12. [Resize & physical dimensions](#12-resize--physical-dimensions)
+13. [Layers & projects](#13-layers--projects)
+14. [Height-map workspace](#14-height-map-workspace)
+15. [2D preview (colour, relief, height, gloss)](#15-2d-preview-colour-relief-height-gloss)
+16. [Saving & exporting](#16-saving--exporting)
+17. [Settings](#17-settings)
+18. [Keyboard shortcuts](#18-keyboard-shortcuts)
+19. [Typical workflows](#19-typical-workflows)
+20. [Tips & tricks](#20-tips--tricks)
+21. [Known limitations](#21-known-limitations)
+22. [Troubleshooting & log file](#22-troubleshooting--log-file)
+23. [License](#23-license)
 
 ---
 
 ## 1. What can BgRemover do?
 
 BgRemover is an image-editing tool for **removing, replacing, and editing
-backgrounds**. The key features:
+backgrounds** — with additional features for simple image optimisation,
+layers/projects, and preparing UV-print assets. The key features:
 
 - **AI background removal** – remove the background automatically with a
   single click.
@@ -51,6 +57,16 @@ backgrounds**. The key features:
   colour.
 - **Transform** – rotate (in 90° steps or a free angle) and flip.
 - **Shape & crop** – round corners, crop to circle or a fixed aspect ratio.
+- **Image optimisation** – adjust brightness, contrast, and saturation, and
+  soften the alpha edge (feather).
+- **Size & physical dimensions** – change the pixel size or set a print size
+  via millimetres and DPI (with a print-area hint).
+- **Layers & projects** – manage several layers (colour/height/gloss/generic)
+  and save and open the whole thing as a `.bgrproj` project.
+- **Height maps** – generate a height map from an image, then edit and
+  optimise it.
+- **2D preview** – check colour, relief, height, and gloss on screen.
+- **EufyMake Studio export** – generate import assets for UV printing.
 - **History** with undo/redo and jump to any earlier editing step.
 - **Save** as PNG, JPEG, WebP, or TIFF.
 
@@ -81,20 +97,25 @@ The window is divided into four areas:
 
 | Area | Purpose |
 |---|---|
-| **Menu bar** (top) | File, Edit, View, Extras |
+| **Menu bar** (top) | File, Project, Edit, View, Extras |
 | **Toolbar** (left) | Selection tools, AI, history, open/save |
 | **Canvas** (centre) | Displays the image and the current selection |
-| **Tab panel** (right) | Four tabs: Selection, Background, Rotate/Flip, Shape |
+| **Tab panel** (right) | Eight tabs: Preview, Selection, Background, Adjust, Rotate/Flip, Shape, Layers, Height |
 | **Status bar** (bottom) | Hints and feedback from the application |
 
-### Menus "Edit" & "View"
+### Menus "Edit", "View" & "Project"
 
 Many actions are also available from the menu bar:
 
 - **Edit** – undo/redo, rotate (90° left/right), flip horizontally/vertically,
-  as well as deselect/invert selection and *Restore original*. Handy when you
-  prefer the menu over the toolbar or a tab.
-- **View** – *Fit to view* (⌘0); see "Zooming & view" below.
+  *Resize…*, as well as deselect/invert selection and *Restore original*. Handy
+  when you prefer the menu over the toolbar or a tab.
+- **View** – *Fit to view* (⌘0) and the *Preview mode* submenu (see
+  [section 15](#15-2d-preview-colour-relief-height-gloss)); see also
+  "Zooming & view" below.
+- **Project** – *New project*, *Open project…*, *Save project* / *…as…*
+  (`.bgrproj`), and *Export assets for EufyMake Studio…* (see
+  [section 13](#13-layers--projects) and [section 16](#16-saving--exporting)).
 
 ![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
 
@@ -136,21 +157,37 @@ The following sections explain each step in detail.
 
 ## 4. Opening an image
 
-There are three ways to load an image:
+There are several ways to load an image:
 
 - **Menu:** `File → Open…` (⌘O / Ctrl+O).
 - **Drag & Drop:** drag an image file from the file manager directly onto the
   canvas. If you drag several files, only the first image is loaded.
-- **Recent files:** `File → Recent files` lists the last 10 opened images.
+- **Recent files:** `File → Recent files` lists the last 10 opened entries.
+  These are both images and `.bgrproj` **projects** (see
+  [section 13](#13-layers--projects)); on click, the application detects the
+  type and opens it accordingly.
+- **Start with an image path:** when the program is started with an image path
+  — via the **command line** (`bgremover image.png`) or a **Linux desktop
+  launcher** (file association) — it loads that image directly on startup.
+- **macOS Finder open:** on macOS an image can also be handed to BgRemover by
+  **double-click**, via "Open with…", or through a **file association** in the
+  Finder.
+
+All of these paths use the same **validated, asynchronous load path**: the same
+format and size checks apply, and large images are loaded in the background —
+the status bar shows progress.
 
 ![The "File" menu](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
 
 *The "File" menu groups Open (⌘O), "Recent files", Save (⌘S), and
 Save as… (⇧⌘S).*
 
-When opening, common formats such as PNG, JPEG, WebP, TIFF, BMP, and GIF
-are supported; saving is to PNG, JPEG, WebP, or TIFF. Large
-images are loaded in the background — the status bar shows progress.
+**Supported input formats** are, bindingly, **PNG, JPEG, WebP, TIFF, BMP, and
+GIF**. This list is the current input contract, not an example: other formats
+are rejected in a controlled way. In particular, **HEIC/HEIF is currently not
+supported by design** — a HEIC/HEIF file is rejected as an unsupported format.
+Saving is to PNG, JPEG, WebP, or TIFF (see
+[section 16](#16-saving--exporting)).
 
 > **Maximum image size: 40 megapixels.** Larger images are rejected with a
 > message in the status bar.
@@ -246,8 +283,8 @@ highlighted in colour on the canvas.*
 
 ## 7. Tab "Selection"
 
-The first tab in the right panel controls selection behaviour – it can already
-be seen in the overview above ([section 2](#2-the-application-window-at-a-glance)) and in the figure in [section 6](#6-making-a-selection).
+The first editing tab in the right panel controls selection behaviour – it can
+already be seen in the overview above ([section 2](#2-the-application-window-at-a-glance)) and in the figure in [section 6](#6-making-a-selection).
 
 ### Tool hints
 
@@ -297,9 +334,37 @@ and is applied to the selection with "Replace colour".*
 *Remove (transparent)* for a cut-out PNG, **or** pick a colour and
 *Replace colour* for a solid background (e.g. white for ID photos).
 
+### Soften edge (feather)
+
+In the *Soften edge* section of the same tab you can soften the **alpha edge** —
+useful against hard, "cut-out"-looking borders after a removal.
+
+- **Radius:** 0 – 20 px (default: 2 px) sets the width of the soft transition.
+- **Soften edge** applies the smoothing. It affects only the **transparency
+  channel** (colours stay unchanged) and — when a selection is active — only
+  within the selection.
+
 ---
 
-## 9. Tab "Rotate/Flip"
+## 9. Tab "Adjust" – Colour correction
+
+The *Adjust* tab contains a simple **colour correction**. It acts on the
+**active colour layer** (see [section 13](#13-layers--projects)) and leaves
+transparency unchanged.
+
+| Slider | Range | Effect |
+|---|---|---|
+| **Brightness** | 0 – 200 % (default: 100 %) | Brighten or darken the image. |
+| **Contrast** | 0 – 200 % (default: 100 %) | Difference between light and dark areas. |
+| **Saturation** | 0 – 200 % (default: 100 %) | Colour intensity; 0 % gives grayscale. |
+
+- While you drag the sliders, the canvas shows a **live preview**.
+- **Apply** commits the correction (undoable/redoable in the history).
+- **Reset** returns all three sliders to 100 % and discards the preview.
+
+---
+
+## 10. Tab "Rotate/Flip"
 
 ![The "Rotate/Flip" tab](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
 
@@ -318,11 +383,12 @@ the buttons for horizontal and vertical flipping.*
 - **Vertical** – flip top ↕ bottom.
 
 > Quick rotation is also available via keyboard: ⌘← (90° left) and
-> ⌘→ (90° right).
+> ⌘→ (90° right). At the bottom of the tab, **Resize…** leads to the dialog
+> in [section 12](#12-resize--physical-dimensions).
 
 ---
 
-## 10. Tab "Shape" – Corners & Crop
+## 11. Tab "Shape" – Corners & Crop
 
 ![The "Shape" tab](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
 
@@ -356,12 +422,160 @@ The result is saved with transparent corners — best as PNG.
 
 ---
 
-## 11. Saving an image
+## 12. Resize & physical dimensions
+
+Via `Edit → Resize…` (Ctrl+R) or the **Resize…** button in the *Rotate/Flip*
+tab, you scale the image to a new target size. The dialog supports two units:
+
+### Resize in pixels
+
+In **Pixel** mode you enter **Width** and **Height** directly in pixels. With
+**Link aspect ratio** the ratio is preserved. The resampling method determines
+the quality:
+
+| Method | Suitability |
+|---|---|
+| **Lanczos** | Best quality (default), ideal for downscaling. |
+| **Bicubic** | Smooth results, a good all-rounder. |
+| **Bilinear** | Faster, slightly softer. |
+| **Nearest neighbor** | Keeps hard edges/pixels, no smoothing. |
+
+The dialog shows the resulting megapixel count and respects the limit of
+**40 megapixels**.
+
+### Physical dimensions (mm/DPI) & print area
+
+In **Millimeters (mm + DPI)** mode you set **width/height in millimetres** and
+a **resolution (DPI)**; the pixel size follows from these. This physical size
+is the authoritative print size and is stored in the `.bgrproj` project.
+
+Via **Target medium** you choose a common print medium (e.g. A4 or A3). If the
+motif fits, the dialog confirms this; if it is larger than the medium, a hint
+points out that the print area is exceeded.
+
+---
+
+## 13. Layers & projects
+
+BgRemover can manage several **layers** in a **project** and save the whole
+thing as a `.bgrproj` file. For classic background editing you do not need to
+deal with this — a single image behaves like a single colour layer.
+
+### Layer kinds and roles
+
+Each layer has a **kind** and optionally a **role**. Only **colour layers** feed
+into the visible colour image; the other kinds are data layers for print
+preparation.
+
+| Kind / role | Meaning |
+|---|---|
+| **Colour** (colour motif) | The visible image. Several colour layers together form the composite, which is also exported. |
+| **Height** (height map) | A grayscale height map for relief/UV printing (see [section 14](#14-height-map-workspace)). |
+| **Gloss** (gloss mask) | A mask for gloss effects (experimental). |
+| **Generic** | A neutral data layer without a fixed role. |
+
+### The "Layers" tab
+
+In the *Layers* tab you manage the layer list:
+
+| Action | Description |
+|---|---|
+| **New layer / Duplicate / Delete** | Add a layer, copy the active layer, or remove it. |
+| **Move up / down** | Change the stacking order of the layers. |
+| **Rename** | Rename the active layer. |
+| **Role** | Assign a role to the active layer (only matching combinations are allowed). |
+| **Visibility** | Show or hide a layer. |
+| **Select** | Choose a layer as the **active** layer – tools act on it. |
+| **Opacity** | Layer opacity (applied on release). |
+
+### Project files (.bgrproj)
+
+Via the **Project** menu you work with project files:
+
+- **New project** (Ctrl+N), **Open project…** (Ctrl+Shift+O).
+- **Save project** (Ctrl+Alt+S) and **Save project as…**
+  (Ctrl+Alt+Shift+S).
+
+A `.bgrproj` file is an archive of a **manifest** (order, kinds, roles, names,
+physical dimensions) and **one PNG per layer**. This preserves all layers
+losslessly, including transparency. Projects also appear under "Recent files"
+(see [section 4](#4-opening-an-image)).
+
+---
+
+## 14. Height-map workspace
+
+A **height map** is a grayscale layer in which brightness represents a height:
+**light = high, dark = low**. It is the basis for relief and UV printing. The
+*Height* tab is divided into three sections and works on the active **height
+layer**; the editing and optimisation functions are only active when a height
+layer is active.
+
+### Acquire
+
+- **Generate from image** – deterministically converts the current colour image
+  into a height map and creates it as a new height layer.
+- **Import grayscale…** – loads a grayscale image as a height map and scales it
+  to the project size.
+
+### Edit
+
+- **Lighten / Darken** – raises or lowers the height; the **Strength** controls
+  how strong.
+- **Set height** – sets the height to a fixed **value**.
+- **Invert** – swaps high and low.
+
+When a selection is active, these actions affect only within the selection,
+otherwise the whole layer.
+
+### Optimise
+
+The optimise operations show a **live preview**; **Apply** commits it
+(undoable/redoable), **Discard preview** discards it.
+
+| Operation | Effect |
+|---|---|
+| **Levels (black/white)** | Set the black and white point of the height. |
+| **Gamma** | Pull mid heights brighter/darker. |
+| **Gaussian blur (radius)** | Soft, uniform smoothing. |
+| **Median blur (radius)** | Smooths while preserving edges. |
+| **Threshold** | Split the height into two levels. |
+| **Steps** | Quantise the height to a number of levels. |
+| **Range (min/max)** | Clamp the height to a value range. |
+
+---
+
+## 15. 2D preview (colour, relief, height, gloss)
+
+The **2D preview** shows different views of the same motif directly on the
+canvas. It is a **pure on-screen display** and changes neither the image nor the
+export. Choose the mode in the *Preview* tab or via `View → Preview mode`.
+
+| Mode | Display |
+|---|---|
+| **Colour** | The normal colour image. |
+| **Relief over colour** | A hillshade relief from the height map, multiplied over the colour image. |
+| **Height (grayscale)** | The height map as a grayscale image. |
+| **Gloss** | The gloss mask as a glossy sheen. |
+| **Combined** | Colour, relief, and gloss together. |
+
+- With **Relief strength** you set the intensity of the relief; at 0 % the
+  relief is skipped.
+- **Show gloss** toggles the gloss layer on or off.
+
+The preview tab and the View submenu stay in sync. Hidden data layers are
+ignored in the preview.
+
+---
+
+## 16. Saving & exporting
 
 - **Save:** `File → Save` (⌘S / Ctrl+S)
 - **Save as…:** `File → Save as…` (⇧⌘S)
 
-Choose the desired **file format** in the dialog:
+On save, the **colour composite** is always written (regardless of which layer
+is currently active or which preview mode is set). Choose the desired **file
+format** in the dialog:
 
 | Format | Properties | Recommendation |
 |---|---|---|
@@ -378,19 +592,30 @@ Choose the desired **file format** in the dialog:
 Via `Project → Export assets for EufyMake Studio…` (Ctrl+Alt+E), BgRemover writes
 **import assets** for EufyMake Studio – **not** a finished `.empf` file:
 
-- **Color motif** (required) as an RGBA PNG from the color composite.
-- **Height map** (optional, only if a height layer exists) as grayscale with
-  **light = high, dark = low**.
-- **Gloss mask** (optional, experimental) as a helper asset.
+- **Color motif** (required) as an RGBA PNG – from a layer with the *Color motif*
+  role, or from the color composite if none exists.
+- **Height map** (optional) as grayscale with **light = high, dark = low** –
+  available only when a layer carries the *Height map* role (e.g. a height layer
+  created via "Generate from image"; a plain height layer without this role is
+  not exported).
+- **Gloss mask** (optional, experimental) as a helper asset – available only when
+  a layer carries the *Gloss* role.
 
-The dialog checks the project **before** writing: errors block the export, warnings
-must be confirmed deliberately. Afterwards you import and position the assets in
-EufyMake Studio, assign ink modes/layers there, and save the Studio project itself
-as `.empf`.
+In the dialog you choose the export folder, the optional assets, and the **bit
+depth** of the height map (8-bit default, 16-bit experimental). A **pre-export
+check** runs continuously and reports findings by severity:
+
+- **Errors** (⛔) block the export until they are fixed – e.g. a missing colour
+  motif or mismatching sizes.
+- **Warnings** (⚠️) must be confirmed deliberately – e.g. empty height/gloss
+  data or the unconfirmed 16-bit output.
+
+Afterwards you import and position the assets in EufyMake Studio, assign ink
+modes/layers there, and save the Studio project itself as `.empf`.
 
 ---
 
-## 12. Settings
+## 17. Settings
 
 Via `Extras → Settings…` (⌘, / Ctrl+,) you can manage the following settings:
 
@@ -412,7 +637,7 @@ application restarts.
 
 ---
 
-## 13. Keyboard shortcuts
+## 18. Keyboard shortcuts
 
 On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 
@@ -425,8 +650,14 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 | Open image | ⌘O |
 | Save image | ⌘S |
 | Save image as… | ⇧⌘S |
+| New project | ⌘N |
+| Open project… | ⇧⌘O |
+| Save project | ⌥⌘S |
+| Save project as… | ⇧⌥⌘S |
+| Export assets for EufyMake Studio… | ⌥⌘E |
 | Undo | ⌘Z |
 | Redo | ⇧⌘Z |
+| Resize… | ⌘R |
 | Rotate 90° left | ⌘← |
 | Rotate 90° right | ⌘→ |
 | Deselect (when no crop/lasso is active) | Esc |
@@ -436,7 +667,7 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 
 ---
 
-## 14. Typical workflows
+## 19. Typical workflows
 
 ### A) Cut out a product photo (transparent background)
 
@@ -472,9 +703,19 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
 3. *Background* tab → pick a colour → **Replace colour**.
 4. Save.
 
+### E) Height-relief asset for EufyMake Studio
+
+1. Open and cut out the image.
+2. *Height* tab → **Generate from image**.
+3. Refine the height in the *Optimise* section (e.g. *Levels*, *Blur*) and
+   **Apply**.
+4. In the *2D preview*, choose **Relief over colour** or **Combined** to check.
+5. `Project → Export assets for EufyMake Studio…`, review the findings, and
+   export.
+
 ---
 
-## 15. Tips & tricks
+## 20. Tips & tricks
 
 - **Rough first, then fine:** cut out roughly with AI or magic wand, then
   correct with brush/eraser.
@@ -482,24 +723,32 @@ On macOS the modifier key is **⌘ (Cmd)**, on Linux/Windows **Ctrl**.
   little → raise tolerance or use Shift+click.
 - **Remove colour fringe:** after cutting out, apply "Shrink" by 1–2 px in
   the *Selection* tab before removing the background.
+- **Soft edges:** with *Soften edge* (tab *Background*), cut-out borders look
+  less harsh.
 - **Step back:** every step is recorded in the history — double-click any
   entry in the **Edit history** (🕘) to jump back to that state.
 - **Stuck?** **Restore original** resets the image to its loaded state.
 
 ---
 
-## 16. Known limitations
+## 21. Known limitations
 
 - **Maximum image size: 40 megapixels.** Larger images are rejected.
+- **Input formats:** PNG, JPEG, WebP, TIFF, BMP, and GIF are supported.
+  **HEIC/HEIF is currently not supported** and is rejected in a controlled way.
 - The **AI feature** requires the optional component `rembg`. Without it the
   AI button is disabled; all manual tools continue to work.
+- The **2D preview** is a pure on-screen display; the image export
+  unchangedly writes the colour composite.
+- The **EufyMake export** only produces import assets, **not** a native
+  `.empf` file; the 16-bit height output is experimental.
 - The **app bundle** (`BgRemover.app`) is macOS-specific; on Linux the
   application is launched directly. Windows is currently not part of
   the officially tested matrix.
 
 ---
 
-## 17. Troubleshooting & log file
+## 22. Troubleshooting & log file
 
 If problems arise, check the internal **log file** `bgremover.log`. It is
 stored in the app data directory determined by Qt and is created with the
@@ -523,13 +772,14 @@ to a support email.
 | Problem | Possible solution |
 |---|---|
 | AI button greyed out | `rembg` is not installed – see installation guide |
-| Image cannot be opened | Over 40 megapixels? Format supported? Read the status bar |
+| Image cannot be opened | Over 40 megapixels? Format supported (no HEIC/HEIF)? Read the status bar |
 | AI takes very long | First call loads the model – one-time only, faster afterwards |
 | Transparency gone after saving | Saved as JPEG → choose PNG/WebP/TIFF instead |
+| Project cannot be opened | Corrupt/incomplete `.bgrproj` file? Read the status bar |
 
 ---
 
-## 18. License
+## 23. License
 
 BgRemover is released under the **GNU General Public License v3.0 or later**
 (`GPL-3.0-or-later`) – see [LICENSE](../../../LICENSE). A complete list of

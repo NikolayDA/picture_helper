@@ -12,7 +12,7 @@
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
-Una herramienta de edición de imágenes para macOS y Linux para **eliminar, reemplazar y editar fondos**: con recorte automático basado en IA, selección con varita mágica, pincel/borrador, lazo poligonal, recorte en distintos formatos, rotación, reflejo y redondeo de esquinas.
+Una herramienta de edición de imágenes para macOS y Linux para **recortar, editar y preparar motivos para impresión**: desde la eliminación de fondo con IA pasando por capas, proyectos y mapas de altura hasta la **exportación de activos para impresión UV (EufyMake Studio)**. Con varita mágica, pincel/borrador, lazo poligonal, recorte en distintos formatos, rotación, reflejo, redondeo de esquinas y corrección de color.
 
 ## Funciones
 
@@ -24,18 +24,41 @@ Una herramienta de edición de imágenes para macOS y Linux para **eliminar, ree
 - **✂ Recorte** con rejilla de la regla de los tercios: círculo, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotar** en pasos de 90° o en cualquier ángulo; **↔ Reflejar** horizontal/vertical.
 - **⬤ Redondear esquinas** con radio ajustable.
-- **📐 Cambiar tamaño** – escala la imagen/proyecto a una resolución objetivo en píxeles (vincular relación de aspecto, método de remuestreo seleccionable).
+- **📐 Tamaño y dimensiones físicas** – escala a una resolución objetivo en píxeles **o** mediante milímetros y DPI (vincular relación de aspecto, método de remuestreo seleccionable); con comprobación del área de impresión frente a un medio objetivo (p. ej. A4/A3).
 - **🎚 Corrección de color** – brillo, contraste y saturación de la capa activa con vista previa en vivo (preserva el alfa).
 - **🪶 Suavizar borde** – borde de recorte suave (desvanecido del alfa), limitado por la selección, tras el recorte por IA o manual.
+- **🗂 Capas y proyectos** – gestiona varias capas (color, altura, brillo, genérica) con roles y guarda y abre todo sin pérdidas como un proyecto `.bgrproj`.
+- **🏔 Mapas de altura** – genera, edita y optimiza un mapa de altura en escala de grises a partir de una imagen (claro = alto): la base para el relieve y la impresión UV.
+- **👁 Vista previa 2D** – comprueba color, relieve sobre color, altura y brillo en pantalla; solo visualización, la exportación de imagen sigue siendo el motivo de color.
 - **↩ Historial** con Deshacer y salto a cualquier paso anterior.
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
+- **📂 Formatos de entrada** – abre **PNG, JPEG, WebP, TIFF, BMP y GIF**. **HEIC/HEIF no es compatible actualmente.**
 - Guardar como **PNG** (con transparencia), **JPEG** (sobre fondo blanco), **WebP** o **TIFF**.
 - **⚙ Ajustes persistentes**: los directorios predeterminados y el formato de archivo preferido se mantienen guardados; desde los ajustes se puede localizar el archivo de registro y abrir su carpeta.
 - **🖨 Exportación para EufyMake Studio**: escribe activos de importación (motivo de color como PNG RGBA, mapa de altura opcional con claro = alto, máscara de brillo opcional) con una comprobación previa y los siguientes pasos en Studio. BgRemover **no** crea un archivo `.empf` nativo: la importación, el posicionamiento y la asignación del modo de tinta se hacen en EufyMake Studio.
 
 ## Capturas de pantalla
 
-![BgRemover – Ventana principal](../../screenshot.png)
+![BgRemover – Ventana principal con el panel de capas](../../screenshot.png)
+
+*Ventana principal con el panel de capas (derecha): un proyecto formado por una
+capa de motivo de color y una capa de altura, con asignación de roles.*
+
+![Espacio de trabajo de mapa de altura](../../screenshot_height.png)
+
+*La pestaña Altura: adquirir, editar y optimizar un mapa de altura – la vista en
+escala de grises muestra claro = alto.*
+
+![Vista previa 2D: relieve y brillo sobre color](../../screenshot_preview.png)
+
+*La vista previa 2D combinada superpone relieve y brillo sobre el motivo de color
+– solo visualización, la exportación no cambia.*
+
+![Diálogo de exportación para EufyMake Studio](../../screenshot_export.png)
+
+*El diálogo de exportación produce activos de importación (motivo de color, mapa
+de altura y máscara de brillo opcionales) con una comprobación previa – **no** un
+archivo `.empf` nativo.*
 
 ## Requisitos
 
@@ -138,14 +161,15 @@ de sistema vía `apt`); consulta igualmente **[INSTALL_LINUX.md](INSTALL_LINUX.m
 
 ## Uso
 
-1. **Abre una imagen** mediante `Archivo → Abrir` (⌘O) o arrastrando y soltando en la ventana.
-2. **Realiza una selección** con la varita mágica, el pincel, el borrador o el lazo poligonal (pestaña *🎯 Selección*).
+1. **Abre una imagen** mediante `Archivo → Abrir` (⌘O), arrastrando y soltando en la ventana o con una ruta de inicio (CLI / Finder).
+2. **Realiza una selección** con la varita mágica, el pincel, el borrador o el lazo poligonal (pestaña *Selección*).
    - `Shift+clic` añade a la selección; `⌘+clic` (macOS) o `Ctrl+clic` (Linux) resta.
    - Cambia de herramienta con el teclado: `W` varita, `B` pincel, `E` borrador, `L` lazo.
-3. **Edita el fondo** (pestaña *🖼 Fondo*): hazlo transparente o reemplaza el color — o directamente con **IA** en la barra de herramientas.
-4. **Transforma la imagen** (pestaña *⟲ Trans.*): rota, refleja.
-5. **Forma y recorte** (pestaña *⬤ Forma*): redondea esquinas o recorta a un formato — mueve/escala el marco, luego ✓ Aplicar.
-6. **Guarda** mediante `Archivo → Guardar` (⌘S) como PNG, JPEG, WebP o TIFF.
+3. **Edita el fondo** (pestaña *Fondo*): hazlo transparente, reemplaza el color o suaviza el borde — o directamente con **IA** en la barra de herramientas.
+4. **Optimiza y transforma** (pestañas *Ajustar* y *Rotar/Voltear*): ajusta brillo/contraste/saturación, rota, refleja, cambia el tamaño.
+5. **Forma y recorte** (pestaña *Forma*): redondea esquinas o recorta a un formato — mueve/escala el marco, luego ✓ Aplicar.
+6. **Capas, altura y vista previa** (pestañas *Capas*, *Altura*, *Vista previa*): gestiona las capas del proyecto, genera/edita un mapa de altura y comprueba el resultado como relieve/brillo.
+7. **Guarda** mediante `Archivo → Guardar` (⌘S) como PNG, JPEG, WebP o TIFF — o `Proyecto → Exportar activos para EufyMake Studio…` para la impresión UV.
 
 ### Ajustes
 
@@ -176,6 +200,11 @@ En macOS la tecla modificadora es **⌘ (Cmd)**; en Linux, **Ctrl**.
 | Abrir imagen | ⌘O |
 | Guardar imagen | ⌘S |
 | Guardar imagen como… | ⇧⌘S |
+| Nuevo proyecto | ⌘N |
+| Abrir proyecto… | ⇧⌘O |
+| Guardar proyecto | ⌥⌘S |
+| Cambiar tamaño… | ⌘R |
+| Exportar activos para EufyMake Studio… | ⌥⌘E |
 | Deshacer | ⌘Z |
 | Rehacer | ⇧⌘Z |
 | Rotar 90° a la izquierda | ⌘← |
@@ -242,8 +271,10 @@ BgRemover es un paquete instalable (`bgremover/`, iniciado vía
   (varita mágica, pincel, lazo, recorte).
 - **`MainWindow`** construye la barra de herramientas, la barra de estado/
   recorte y conecta el lienzo, menús, panel derecho y workers.
-- **`right_panel`** construye las cuatro pestañas derechas de selección,
-  fondo, giro/espejo y forma/recorte a partir de un conjunto de callbacks.
+- **`right_panel`** construye las ocho pestañas derechas (Vista previa,
+  Selección, Fondo, Ajustar, Rotar/Voltear, Forma, Capas, Altura) a partir de un
+  conjunto de callbacks; `project_model`/`height_map` aportan el modelo de capas
+  y altura sin Qt.
 - **`menu_actions`** construye la barra de menú, acciones y atajos;
   `MainWindow` solo aporta callbacks.
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador
@@ -263,6 +294,9 @@ BgRemover es un paquete instalable (`bgremover/`, iniciado vía
 
 ## Limitaciones conocidas
 
+- **Formatos de entrada:** se admiten **PNG, JPEG, WebP, TIFF, BMP y GIF**.
+  **HEIC/HEIF no es compatible actualmente** (sin `pillow-heif`); esos archivos
+  se rechazan de forma controlada como formato no admitido.
 - **Tamaño máximo de imagen: 40 megapíxeles.** Las imágenes más grandes
   se rechazan con un mensaje de estado para limitar el uso de memoria y el
   tiempo de procesamiento. La selección con varita mágica (flood-fill) se

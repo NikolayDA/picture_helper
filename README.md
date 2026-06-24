@@ -12,7 +12,7 @@
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
-Ein Bildbearbeitungs-Tool für macOS und Linux zum **Entfernen, Ersetzen und Bearbeiten von Hintergründen** — mit KI-basierter automatischer Freistellung, Zauberstab-Auswahl, Pinsel/Radierer, Polygon-Lasso, Zuschnitt in verschiedenen Formaten, Drehen, Spiegeln und Eckenrundung.
+Ein Bildbearbeitungs-Tool für macOS und Linux zum **Freistellen, Bearbeiten und Druckfertig-Machen von Motiven** — von der KI-Hintergrundentfernung über Ebenen, Projekte und Höhenkarten bis zum **Asset-Export für den UV-Druck (EufyMake Studio)**. Mit Zauberstab, Pinsel/Radierer, Polygon-Lasso, Zuschnitt in verschiedenen Formaten, Drehen, Spiegeln, Eckenrundung und Farbkorrektur.
 
 ## Funktionen
 
@@ -24,18 +24,40 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Entfernen, Ersetzen und Bea
 - **✂ Zuschnitt** mit Rule-of-Thirds-Raster: Kreis, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Drehen** in 90°-Schritten oder beliebigem Winkel; **↔ Spiegeln** horizontal/vertikal.
 - **⬤ Ecken abrunden** mit einstellbarem Radius.
-- **📐 Größe ändern** – Bild/Projekt auf eine Zielauflösung in Pixeln skalieren (Seitenverhältnis koppeln, wählbares Resample-Verfahren).
+- **📐 Größe & physische Maße** – auf eine Zielauflösung in Pixeln **oder** über Millimeter und DPI skalieren (Seitenverhältnis koppeln, wählbares Resample-Verfahren); inklusive Druckflächenprüfung gegen ein Zielmedium (z. B. A4/A3).
 - **🎚 Farbkorrektur** – Helligkeit, Kontrast und Sättigung der aktiven Ebene mit Live-Vorschau (alpha-erhaltend).
 - **🪶 Kante glätten** – weiche Freistellungskante (Alpha-Feather), auswahlbegrenzt, nach KI- oder manueller Freistellung.
+- **🗂 Ebenen & Projekte** – mehrere Ebenen (Farbe, Höhe, Gloss, generisch) mit Rollen verwalten und das Ganze verlustfrei als `.bgrproj`-Projekt speichern und öffnen.
+- **🏔 Höhenkarten** – aus einem Bild eine Graustufen-Höhenkarte erzeugen, bearbeiten und optimieren (hell = hoch) – die Grundlage für Relief und UV-Druck.
+- **👁 2D-Vorschau** – Farbe, Relief über Farbe, Höhe und Gloss am Bildschirm prüfen; reine Anzeige, der Bildexport bleibt das Farbmotiv.
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
+- **📂 Eingabeformate** – öffnet **PNG, JPEG, WebP, TIFF, BMP und GIF**. **HEIC/HEIF wird derzeit nicht unterstützt.**
 - Speichern als **PNG** (mit Transparenz), **JPEG** (auf weißem Hintergrund), **WebP** oder **TIFF**.
 - **⚙ Persistente Einstellungen** – Standard-Verzeichnisse und bevorzugtes Dateiformat bleiben gespeichert; die Log-Datei lässt sich direkt aus den Einstellungen auffinden und ihr Ordner öffnen.
 - **🖨 Export für EufyMake Studio** – schreibt Import-Assets (Farbmotiv als RGBA-PNG, optionale Höhenkarte mit hell = hoch, optionale Gloss-Maske) mit Vorab-Prüfung und nächsten Studio-Schritten. BgRemover erzeugt **keine** native `.empf`-Datei – Import, Positionierung und Ink-Mode-Zuweisung erfolgen in EufyMake Studio.
 
 ## Screenshots
 
-![BgRemover – Hauptfenster](docs/screenshot.png)
+![BgRemover – Hauptfenster mit Ebenen-Panel](docs/screenshot.png)
+
+*Hauptfenster mit dem Ebenen-Panel (rechts): ein Projekt aus Farbmotiv- und
+Höhen-Ebene samt Rollen-Zuweisung.*
+
+![Höhenkarten-Arbeitsbereich](docs/screenshot_height.png)
+
+*Der Höhe-Tab: Höhenkarte beschaffen, bearbeiten und optimieren – die Graustufen-
+Ansicht zeigt hell = hoch.*
+
+![2D-Vorschau: Relief und Gloss über Farbe](docs/screenshot_preview.png)
+
+*Die kombinierte 2D-Vorschau legt Relief und Gloss über das Farbmotiv – reine
+Anzeige, der Export bleibt unverändert.*
+
+![Export-Dialog für EufyMake Studio](docs/screenshot_export.png)
+
+*Der Export-Dialog erzeugt Import-Assets (Farbmotiv, optionale Höhenkarte und
+Gloss-Maske) mit Vorab-Prüfung – **keine** native `.empf`-Datei.*
 
 ## Voraussetzungen
 
@@ -142,14 +164,15 @@ Systempakete via `apt`); siehe ebenfalls **[INSTALL_LINUX.md](INSTALL_LINUX.md)*
 
 Kurzüberblick:
 
-1. **Bild öffnen** über `Datei → Öffnen` (⌘O) oder per Drag & Drop ins Fenster.
-2. **Auswahl treffen** mit Zauberstab, Pinsel, Radiergummi oder Polygon-Lasso (Tab *🎯 Auswahl*).
+1. **Bild öffnen** über `Datei → Öffnen` (⌘O), per Drag & Drop ins Fenster oder mit einem Startpfad (CLI / Finder).
+2. **Auswahl treffen** mit Zauberstab, Pinsel, Radiergummi oder Polygon-Lasso (Tab *Auswahl*).
    - `Shift+Klick` addiert zur Auswahl, `⌘+Klick` (macOS) bzw. `Ctrl+Klick` (Linux) zieht ab.
    - Werkzeuge wechseln per Tastatur: `W` Zauberstab, `B` Pinsel, `E` Radiergummi, `L` Lasso.
-3. **Hintergrund bearbeiten** (Tab *🖼 Hintergr.*): transparent machen oder Farbe ersetzen — oder direkt **KI** in der Werkzeugleiste.
-4. **Bild transformieren** (Tab *⟲ Trans.*): drehen, spiegeln.
-5. **Form & Zuschnitt** (Tab *⬤ Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
-6. **Speichern** über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF.
+3. **Hintergrund bearbeiten** (Tab *Hintergrund*): transparent machen, Farbe ersetzen oder Kante glätten — oder direkt **KI** in der Werkzeugleiste.
+4. **Optimieren & transformieren** (Tabs *Anpassen* und *Drehen/Spiegeln*): Helligkeit/Kontrast/Sättigung anpassen, drehen, spiegeln, Größe ändern.
+5. **Form & Zuschnitt** (Tab *Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
+6. **Ebenen, Höhe & Vorschau** (Tabs *Ebenen*, *Höhe*, *Vorschau*): Projekt-Ebenen verwalten, eine Höhenkarte erzeugen/bearbeiten und das Ergebnis als Relief/Gloss prüfen.
+7. **Speichern** über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF — oder `Projekt → Assets für EufyMake Studio exportieren…` für den UV-Druck.
 
 ### Einstellungen
 
@@ -180,6 +203,11 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux **Ctrl**.
 | Bild öffnen | ⌘O |
 | Bild speichern | ⌘S |
 | Bild speichern unter… | ⇧⌘S |
+| Neues Projekt | ⌘N |
+| Projekt öffnen… | ⇧⌘O |
+| Projekt speichern | ⌥⌘S |
+| Größe ändern… | ⌘R |
+| Assets für EufyMake Studio exportieren… | ⌥⌘E |
 | Rückgängig | ⌘Z |
 | Wiederherstellen | ⇧⌘Z |
 | 90° links drehen | ⌘← |
@@ -248,8 +276,9 @@ BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
   Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).
 - **`MainWindow`** baut Toolbar, Status-/Crop-Leiste und verbindet Canvas,
   Menüs, rechtes Panel und Worker.
-- **`right_panel`** baut die vier rechten Tabs für Auswahl, Hintergrund,
-  Drehen/Spiegeln und Form/Zuschnitt aus einem Callback-Satz.
+- **`right_panel`** baut die acht rechten Tabs (Vorschau, Auswahl, Hintergrund,
+  Anpassen, Drehen/Spiegeln, Form, Ebenen, Höhe) aus einem Callback-Satz;
+  `project_model`/`height_map` liefern das Qt-freie Ebenen- und Höhenmodell.
 - **`menu_actions`** baut Menüleiste, Actions und Shortcuts; `MainWindow`
   liefert dafür nur noch Callbacks.
 - **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für
@@ -268,6 +297,9 @@ BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
 
 ## Bekannte Einschränkungen
 
+- **Eingabeformate:** Unterstützt werden **PNG, JPEG, WebP, TIFF, BMP und GIF**.
+  **HEIC/HEIF wird derzeit nicht unterstützt** (kein `pillow-heif`); solche
+  Dateien werden kontrolliert als nicht unterstütztes Format abgelehnt.
 - **Maximale Bildgröße: 40 Megapixel.** Größere Bilder werden mit einer
   Statusmeldung abgelehnt, um Speicherbedarf und Verarbeitungszeit zu
   begrenzen. Die Zauberstab-Auswahl (Flood-Fill) läuft asynchron in einem
