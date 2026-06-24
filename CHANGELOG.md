@@ -280,6 +280,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Konsistente Canvas-Vorschau nach dem Phase-1-Abschluss.** Farb- und Höhen-
+  Live-Vorschauen laufen jetzt als temporäre Layer-Inhalte durch die gewählte
+  Modus-Pipeline, sodass Modus, Relief-Stärke und Gloss-Schalter sofort wirken,
+  ohne Modell oder Export zu verändern. Ausgeblendete Height-/Gloss-Rollen werden
+  nicht mehr gerendert; Relief-Stärke 0 überspringt das teure Hillshade vollständig
+  (#397, Follow-up zu #396).
 - **Bildexport bei aktiver Höhenebene.** „Bild speichern" schreibt wieder
   unabhängig von der aktiven Bearbeitungsebene das COLOR-Komposit. Die
   graustufige HEIGHT-Ansicht bleibt eine reine Canvas-Darstellung und kann nicht

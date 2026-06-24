@@ -303,6 +303,12 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **Vista previa coherente del lienzo tras completar la fase 1.** Las vistas
+  previas en vivo de color y altura pasan ahora por el modo seleccionado como
+  contenido temporal de capa; el modo, la intensidad del relieve y el interruptor
+  de brillo actúan de inmediato sin cambiar el modelo ni la exportación. Las capas
+  de rol Height/Gloss ocultas ya no se renderizan y relieve 0 omite por completo el
+  costoso hillshade (#397, seguimiento de #396).
 - **Exportación de imagen con una capa de altura activa.** «Guardar imagen»
   vuelve a escribir el compuesto COLOR independientemente de la capa de edición
   activa. La vista HEIGHT en escala de grises queda limitada al lienzo y ya no
