@@ -627,10 +627,14 @@ ist). Wählen Sie im Dialog das gewünschte **Dateiformat**:
 Über `Projekt → Assets für EufyMake Studio exportieren…` (Strg+Alt+E) schreibt
 BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige `.empf`-Datei:
 
-- **Farbmotiv** (Pflicht) als RGBA-PNG aus dem Farbkomposit.
-- **Höhenkarte** (optional, nur bei vorhandener Höhenebene) als Graustufe mit
-  **hell = hoch, dunkel = niedrig**.
-- **Gloss-Maske** (optional, experimentell) als Hilfsasset.
+- **Farbmotiv** (Pflicht) als RGBA-PNG – aus einer Ebene mit Rolle *Farbmotiv*
+  oder, falls keine vorhanden ist, aus dem Farbkomposit.
+- **Höhenkarte** (optional) als Graustufe mit **hell = hoch, dunkel = niedrig** –
+  nur verfügbar, wenn eine Ebene die Rolle *Height Map* trägt (z. B. eine über
+  „Aus Bild erzeugen" angelegte Höhenebene; eine bloße Höhen-Ebene ohne diese
+  Rolle wird nicht exportiert).
+- **Gloss-Maske** (optional, experimentell) als Hilfsasset – nur verfügbar, wenn
+  eine Ebene die Rolle *Gloss* trägt.
 
 Im Dialog wählen Sie den Exportordner, die optionalen Assets und die
 **Bittiefe** der Höhenkarte (8 Bit Standard, 16 Bit experimentell). Eine

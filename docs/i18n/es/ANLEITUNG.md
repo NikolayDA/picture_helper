@@ -622,10 +622,14 @@ Desde `Proyecto → Exportar activos para EufyMake Studio…` (Ctrl+Alt+E), BgRe
 escribe **activos de importación** para EufyMake Studio, **no** un archivo `.empf`
 terminado:
 
-- **Motivo de color** (obligatorio) como PNG RGBA del composite de color.
-- **Mapa de altura** (opcional, solo si existe una capa de altura) en escala de
-  grises con **claro = alto, oscuro = bajo**.
-- **Máscara de brillo** (opcional, experimental) como activo auxiliar.
+- **Motivo de color** (obligatorio) como PNG RGBA – de una capa con el rol
+  *Motivo de color* o, si no hay ninguna, del composite de color.
+- **Mapa de altura** (opcional) en escala de grises con **claro = alto,
+  oscuro = bajo** – disponible solo cuando una capa tiene el rol *Mapa de altura*
+  (p. ej. una capa de altura creada con "Generar desde imagen"; una mera capa de
+  altura sin ese rol no se exporta).
+- **Máscara de brillo** (opcional, experimental) como activo auxiliar – disponible
+  solo cuando una capa tiene el rol *Brillo*.
 
 En el diálogo eliges la carpeta de exportación, los activos opcionales y la
 **profundidad de bits** del mapa de altura (8 bits predeterminado, 16 bits

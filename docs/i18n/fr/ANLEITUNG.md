@@ -631,10 +631,14 @@ Via `Projet → Exporter des assets pour EufyMake Studio…` (Ctrl+Alt+E), BgRem
 écrit des **assets d'import** pour EufyMake Studio – **pas** un fichier `.empf`
 fini :
 
-- **Motif couleur** (obligatoire) en PNG RGBA issu du composite couleur.
-- **Carte de hauteur** (facultative, seulement si un calque de hauteur existe) en
-  niveaux de gris avec **clair = haut, sombre = bas**.
-- **Masque de brillance** (facultatif, expérimental) comme asset auxiliaire.
+- **Motif couleur** (obligatoire) en PNG RGBA – à partir d'un calque ayant le rôle
+  *Motif couleur*, ou du composite couleur si aucun n'existe.
+- **Carte de hauteur** (facultative) en niveaux de gris avec **clair = haut,
+  sombre = bas** – disponible uniquement lorsqu'un calque porte le rôle *Carte de
+  hauteur* (p. ex. un calque de hauteur créé via « Générer depuis l'image » ; un
+  simple calque de hauteur sans ce rôle n'est pas exporté).
+- **Masque de brillance** (facultatif, expérimental) comme asset auxiliaire –
+  disponible uniquement lorsqu'un calque porte le rôle *Brillance*.
 
 Dans la boîte de dialogue, vous choisissez le dossier d'export, les assets
 facultatifs et la **profondeur de bits** de la carte de hauteur (8 bits par

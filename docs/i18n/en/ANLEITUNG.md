@@ -592,10 +592,14 @@ format** in the dialog:
 Via `Project → Export assets for EufyMake Studio…` (Ctrl+Alt+E), BgRemover writes
 **import assets** for EufyMake Studio – **not** a finished `.empf` file:
 
-- **Color motif** (required) as an RGBA PNG from the color composite.
-- **Height map** (optional, only if a height layer exists) as grayscale with
-  **light = high, dark = low**.
-- **Gloss mask** (optional, experimental) as a helper asset.
+- **Color motif** (required) as an RGBA PNG – from a layer with the *Color motif*
+  role, or from the color composite if none exists.
+- **Height map** (optional) as grayscale with **light = high, dark = low** –
+  available only when a layer carries the *Height map* role (e.g. a height layer
+  created via "Generate from image"; a plain height layer without this role is
+  not exported).
+- **Gloss mask** (optional, experimental) as a helper asset – available only when
+  a layer carries the *Gloss* role.
 
 In the dialog you choose the export folder, the optional assets, and the **bit
 depth** of the height map (8-bit default, 16-bit experimental). A **pre-export
