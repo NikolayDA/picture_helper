@@ -56,6 +56,7 @@ from bgremover.image_ops import (
 from bgremover.layer_panel import LayerPanelActions
 from bgremover.main_toolbar import Toolbar, ToolbarActions, build_toolbar
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
+from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import (
     PROJECT_SUFFIX,
     ProjectFileError,
@@ -251,6 +252,9 @@ class MainWindow(QMainWindow):
                 preview_color=self._canvas.preview_color_op,
                 apply_color=self._canvas.apply_color_op,
                 cancel_color_preview=self._canvas.cancel_color_preview,
+                set_preview_mode=self._canvas.set_preview_mode,
+                set_relief_strength=self._canvas.set_relief_strength,
+                set_gloss_visible=self._canvas.set_gloss_visible,
             ),
             LayerPanelActions(
                 add_layer=self._canvas.add_layer,
@@ -279,10 +283,43 @@ class MainWindow(QMainWindow):
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
+        self._preview_mode_combo = panel.preview_mode_combo
+        self._preview_relief_label = panel.preview_relief_label
+        self._preview_relief_slider = panel.preview_relief_slider
+        self._preview_gloss_visible = panel.preview_gloss_visible
         self._canvas.layersChanged.connect(self._layer_panel.refresh)
         self._canvas.layersChanged.connect(self._height_panel.refresh)
+        self._canvas.previewSettingsChanged.connect(self._sync_preview_controls)
         self._update_color_btn()
         return panel.frame
+
+    def _sync_preview_controls(
+        self, mode: PreviewMode, relief_strength: int, gloss_visible: bool
+    ) -> None:
+        """Spiegelt Canvas-Anzeigezustand in Panel und Ansicht-Menü (#388)."""
+        combo = self._preview_mode_combo
+        combo.blockSignals(True)
+        index = combo.findData(mode)
+        if index >= 0:
+            combo.setCurrentIndex(index)
+        combo.blockSignals(False)
+
+        slider = self._preview_relief_slider
+        slider.blockSignals(True)
+        slider.setValue(relief_strength)
+        slider.blockSignals(False)
+        self._preview_relief_label.setText(
+            tr("right_panel.preview.relief_strength", value=relief_strength)
+        )
+
+        checkbox = self._preview_gloss_visible
+        checkbox.blockSignals(True)
+        checkbox.setChecked(gloss_visible)
+        checkbox.blockSignals(False)
+
+        for action in self.findChildren(QAction):
+            if action.objectName().startswith("preview_mode_"):
+                action.setChecked(action.data() is mode)
 
     def _import_height_map(self) -> None:
         """Öffnet eine Graustufendatei und importiert sie als HEIGHT-Ebene (#346)."""
@@ -364,6 +401,7 @@ class MainWindow(QMainWindow):
                 invert_selection=self._canvas.invert_selection,
                 restore_original=self._canvas.restore_original,
                 fit_to_view=self._canvas.fit_to_view,
+                set_preview_mode=self._canvas.set_preview_mode,
                 open_settings=self._open_settings,
             ),
         )

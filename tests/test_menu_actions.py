@@ -6,6 +6,7 @@ from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QMainWindow
 
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
+from bgremover.preview_mode import PreviewMode
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
 
 
@@ -26,6 +27,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     flips: list[bool] = []
     opened_recent: list[str] = []
     missing_recent: list[str] = []
+    preview_modes: list[PreviewMode] = []
 
     recent_menu = build_main_menu(
         window,
@@ -51,6 +53,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             invert_selection=lambda: calls.append("invert"),
             restore_original=lambda: calls.append("restore"),
             fit_to_view=lambda: calls.append("fit"),
+            set_preview_mode=preview_modes.append,
             open_settings=lambda: calls.append("settings"),
         ),
     )
@@ -70,6 +73,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
         "Horizontal spiegeln", "Vertikal spiegeln", "Größe ändern…",
         "Auswahl aufheben", "Auswahl invertieren",
         "Original wiederherstellen", "Fit to View", "Einstellungen…",
+        "Farbe", "Relief über Farbe", "Höhe (Graustufe)", "Gloss", "Kombiniert",
     }
     assert expected <= set(actions)
     assert _portable_shortcut(actions["Öffnen…"]) == "Ctrl+O"
@@ -95,6 +99,8 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["Original wiederherstellen"].trigger()
     actions["Fit to View"].trigger()
     actions["Einstellungen…"].trigger()
+    actions["Relief über Farbe"].trigger()
+    actions["Kombiniert"].trigger()
 
     actions["Neues Projekt"].trigger()
     actions["Projekt öffnen…"].trigger()
@@ -118,5 +124,8 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     ]
     assert rotations == [90, -90, 180]
     assert flips == [True, False]
+    assert preview_modes == [PreviewMode.RELIEF, PreviewMode.COMBINED]
+    assert actions["Kombiniert"].isChecked()
+    assert not actions["Relief über Farbe"].isChecked()
     assert opened_recent == []
     assert missing_recent == []

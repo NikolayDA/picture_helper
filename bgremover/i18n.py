@@ -270,6 +270,26 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.layers.tooltip": "Ebenen verwalten",
         "right_panel.tab.height": "Höhe",
         "right_panel.tab.height.tooltip": "Höhenkarte (Relief)",
+        "right_panel.tab.preview": "Vorschau",
+        "right_panel.tab.preview.tooltip": "2D-Anzeige für Farbe, Relief und Gloss",
+        "right_panel.preview.section": "2D-Vorschaumodus",
+        "right_panel.preview.hint": (
+            "Die Vorschau ist unabhängig von der aktiven Ebene."
+        ),
+        "right_panel.preview.mode": "Anzeige:",
+        "right_panel.preview.mode.tooltip": "Inhalt der Canvas-Anzeige wählen",
+        "right_panel.preview.relief_strength": "Relief-Stärke:  {value} %",
+        "right_panel.preview.relief_strength.tooltip": (
+            "Stärke des Hillshades in Relief- und Kombiniert-Modus"
+        ),
+        "right_panel.preview.gloss_visible": "Gloss anzeigen",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "Gloss-Sheen in Gloss- und Kombiniert-Modus ein-/ausblenden"
+        ),
+        "right_panel.preview.export_hint": (
+            "Nur Anzeige – „Bild speichern“ exportiert weiterhin ausschließlich "
+            "das Farbmotiv."
+        ),
         "right_panel.height.section.acquire": "Beschaffen",
         "right_panel.height.section.edit": "Bearbeiten",
         "right_panel.height.section.optimize": "Optimieren",
@@ -354,6 +374,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "menu.recent_files": "Zuletzt geöffnet",
         "menu.edit": "Bearbeiten",
         "menu.view": "Ansicht",
+        "menu.preview_mode": "Vorschaumodus",
         "menu.extras": "Extras",
         "action.open": "Öffnen…",
         "action.save": "Speichern",
@@ -370,6 +391,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.invert_selection": "Auswahl invertieren",
         "action.restore_original": "Original wiederherstellen",
         "action.fit_to_view": "Fit to View",
+        "preview.mode.color": "Farbe",
+        "preview.mode.relief": "Relief über Farbe",
+        "preview.mode.height": "Höhe (Graustufe)",
+        "preview.mode.gloss": "Gloss",
+        "preview.mode.combined": "Kombiniert",
         "action.settings": "Einstellungen…",
         # Left toolbar
         "toolbar.wand.tooltip": (
@@ -964,6 +990,25 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.tab.layers.tooltip": "Manage layers",
         "right_panel.tab.height": "Height",
         "right_panel.tab.height.tooltip": "Height map (relief)",
+        "right_panel.tab.preview": "Preview",
+        "right_panel.tab.preview.tooltip": "2D display for color, relief, and gloss",
+        "right_panel.preview.section": "2D preview mode",
+        "right_panel.preview.hint": (
+            "The preview is independent of the active layer."
+        ),
+        "right_panel.preview.mode": "Display:",
+        "right_panel.preview.mode.tooltip": "Choose the canvas display content",
+        "right_panel.preview.relief_strength": "Relief strength:  {value}%",
+        "right_panel.preview.relief_strength.tooltip": (
+            "Hillshade strength in Relief and Combined modes"
+        ),
+        "right_panel.preview.gloss_visible": "Show gloss",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "Show or hide the gloss sheen in Gloss and Combined modes"
+        ),
+        "right_panel.preview.export_hint": (
+            "Display only — “Save image” still exports the color motif only."
+        ),
         "right_panel.height.section.acquire": "Acquire",
         "right_panel.height.section.edit": "Edit",
         "right_panel.height.section.optimize": "Optimize",
@@ -1048,6 +1093,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "menu.recent_files": "Recently opened",
         "menu.edit": "Edit",
         "menu.view": "View",
+        "menu.preview_mode": "Preview mode",
         "menu.extras": "Extras",
         "action.open": "Open…",
         "action.save": "Save",
@@ -1064,6 +1110,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.invert_selection": "Invert selection",
         "action.restore_original": "Restore original",
         "action.fit_to_view": "Fit to View",
+        "preview.mode.color": "Color",
+        "preview.mode.relief": "Relief over color",
+        "preview.mode.height": "Height (grayscale)",
+        "preview.mode.gloss": "Gloss",
+        "preview.mode.combined": "Combined",
         "action.settings": "Settings…",
         # Left toolbar
         "toolbar.wand.tooltip": (

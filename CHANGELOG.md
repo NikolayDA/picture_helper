@@ -11,6 +11,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Nutzerwählbare kombinierte 2D-Vorschau (Phase-1-Abschluss).** Der Canvas bietet
+  jetzt explizite, von der aktiven Ebene unabhängige Modi für Farbe, Relief über
+  Farbe, Höhe (Graustufe), Gloss und die kombinierte Ansicht. Ein auf genau ein Bild
+  begrenzter Cache invalidiert über Content-Revision, Modus und Anzeigeparameter;
+  Ansicht-Menü und neuer Vorschau-Tab bleiben synchron, Relief-Stärke und Gloss-
+  Sichtbarkeit wirken live. Ein klarer Hinweis und eine Modus×Layer-Testmatrix
+  sichern den #363-Vertrag: „Bild speichern“ exportiert weiterhin ausschließlich
+  das COLOR-Komposit (#387, #388; schließt Epic #384).
 - **Qt-freie Relief- und Gloss-Renderer für die kombinierte 2D-Vorschau.** Die
   neuen, strikt getypten Module `bgremover/relief_preview.py` und
   `bgremover/gloss_preview.py` erzeugen deterministisches, richtungsabhängiges

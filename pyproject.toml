@@ -130,6 +130,7 @@ module = [
     "bgremover.gloss_preview",
     "bgremover.height_map",
     "bgremover.height_ops",
+    "bgremover.preview_mode",
     "bgremover.relief_preview",
     "bgremover.crop",
     "bgremover.project_model",

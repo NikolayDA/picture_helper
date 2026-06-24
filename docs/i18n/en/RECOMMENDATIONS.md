@@ -36,6 +36,11 @@ remain the baseline before new PRs.
   (#359), alpha-preserving brightness/contrast/saturation with live preview
   (#360), and selection-bounded alpha-edge feathering (#361), all undoable and
   persisted losslessly in `.bgrproj` (PR #362).
+- **N12 ✅ — Combined 2D preview (epic #384) delivered.** Qt-free relief/gloss
+  renderers (#385/#386), explicit active-layer-independent canvas modes with a
+  bounded cache (#387), and a synchronized View menu/Preview panel with live
+  strength and gloss toggle (#388); the full mode×layer matrix keeps the #363
+  export contract bit-exact.
 - **#363 ✅ — Export regression fixed (PR #367).** Save Image once again writes
   the COLOR composite regardless of the active layer; display and export
   rendering are separated, covered by a pixel regression test.
@@ -53,15 +58,10 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Triage Status (2026-06-24, updated)
 
-As of 2026-06-24, after completing #385/#386 GitHub shows **12** open issues. The epic **#375** (physical
-mm/DPI output + general export validation) is complete via **#376–#380**
-(PR #382/#383) and closed. Since the last triage, **two new epics** have been
-added that structure the close-out of phase 0/1:
+As of 2026-06-24, after completing #384/#387/#388, GitHub shows **9** open
+issues. Epics **#375** (physical mm/DPI output + export validation) and **#384**
+(combined 2D preview) are complete and closed. The remaining roadmap epic is:
 
-- **#384 – Combined 2D preview** (relief-core MVP, the last open functional
-  point of phase 1): the Qt-free renderers **#385/#386** are implemented; **#387**
-  (canvas preview modes + composite pipeline) and **#388** (UI toggles + i18n)
-  remain.
 - **#389 – Update user docs & cut release v2.5.0** with sub-issues **#390** (the
   ANLEITUNG user guide, 6 languages — also closes **#357**), **#391** (README +
   screenshots + i18n) and **#392** (release v2.5.0).
@@ -80,13 +80,10 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Combined 2D preview (color/transparency/relief/gloss) | 🟠 High | 🔴 High (epic) | **In progress (epic)** – renderers #385/#386 done; next #387 → #388. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: preview modes + composite pipeline | 🟠 High | 🟠 Medium–High | **Ready for PR** – renderer dependencies #385/#386 fulfilled; preserve the #363 export contract with a regression test. |
-| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: preview-mode picker + relief/gloss toggles + i18n | 🟡 Medium | 🟡 Medium | **Blocked** – needs #387; closes epic #384. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟡 Medium (epic) | **In progress (epic)** – #390/#391 in parallel now → (merge epic #384) → #392. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟡 Medium (epic) | **In progress (epic)** – #390/#391 in parallel → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Update ANLEITUNG user guide (+ 5 i18n) for the new features | 🟠 High | 🔴 High (L, 6 languages) | **Ready for PR** – well scoped but large; also closes **#357**. |
 | [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Update README + screenshots + i18n | 🟡 Medium–High | 🟡 Medium | **Ready for PR (with caveat)** – the text part is immediately doable; screenshots need a current app run. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Blocked** – needs #390 + #391, ideally after #384. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Blocked** – needs #390 + #391. |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: startup-path/Finder opening is missing from ANLEITUNG §4 | 🟢 Low | 🟢 Low | **Merged into #390** – still possible as a small standalone PR, but will normally be closed together with #390. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF is not supported as an input format | 🟢 Low | 🟢 Low | **Ready for PR (docs)** – HEIC deliberately excluded (comment 2026-06-21). Only clarify README/ANLEITUNG, then close. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **Ready for PR (opportunistic)** – not a product or CI blocker; highest value first (assert the lasso endpoint, the `test_helpers` line, consolidate the `set_brush_size` tests). |
@@ -95,12 +92,10 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. Follow with **#387** → **#388** to complete epic **#384** (combined 2D
-   preview); preserve the #363 export contract with a regression test.
-2. Land **#390** and **#391** in parallel as docs PRs (also closes **#357**);
+1. Land **#390** and **#391** in parallel as docs PRs (also closes **#357**);
    fit **#339** in as a small standalone PR.
-3. Cut **#392** (release v2.5.0) only after #390/#391 and ideally after #384.
-4. Clean up **#299** opportunistically; defer **#318** until the semantics are
+2. Cut **#392** (release v2.5.0) only after #390/#391.
+3. Clean up **#299** opportunistically; defer **#318** until the semantics are
    evidenced and keep **#245** externally blocked.
 
 ## Previous Rounds

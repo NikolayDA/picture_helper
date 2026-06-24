@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
 from PyQt6.QtWidgets import QMenu, QMenuBar
 
 from bgremover.i18n import tr
+from bgremover.preview_mode import PreviewMode
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
 
 MENU_STYLE = """
@@ -42,6 +44,7 @@ class MainMenuCallbacks:
     invert_selection: Callable[[], None]
     restore_original: Callable[[], None]
     fit_to_view: Callable[[], None]
+    set_preview_mode: Callable[[PreviewMode], None]
     open_settings: Callable[[], None]
 
 
@@ -109,6 +112,27 @@ def build_main_menu(
 
     view_menu = _add_menu(menu_bar, tr("menu.view"))
     _add_action(view_menu, parent, tr("action.fit_to_view"), callbacks.fit_to_view, "Ctrl+0")
+    preview_menu = _add_submenu(view_menu, tr("menu.preview_mode"))
+    preview_group = QActionGroup(parent)
+    preview_group.setExclusive(True)
+    for mode, label in (
+        (PreviewMode.COLOR, tr("preview.mode.color")),
+        (PreviewMode.RELIEF, tr("preview.mode.relief")),
+        (PreviewMode.HEIGHT, tr("preview.mode.height")),
+        (PreviewMode.GLOSS, tr("preview.mode.gloss")),
+        (PreviewMode.COMBINED, tr("preview.mode.combined")),
+    ):
+        action = _add_action(
+            preview_menu,
+            parent,
+            label,
+            partial(callbacks.set_preview_mode, mode),
+        )
+        action.setCheckable(True)
+        action.setChecked(mode is PreviewMode.COLOR)
+        action.setData(mode)
+        action.setObjectName(f"preview_mode_{mode.value}")
+        preview_group.addAction(action)
 
     extras_menu = _add_menu(menu_bar, tr("menu.extras"))
     _add_action(extras_menu, parent, tr("action.settings"), callbacks.open_settings, "Ctrl+,")

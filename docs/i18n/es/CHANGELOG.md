@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Vista previa 2D combinada seleccionable por el usuario (fin de fase 1).** El
+  lienzo ofrece ahora modos explícitos de Color, Relieve sobre color, Altura
+  (escala de grises), Gloss y vista Combinada, independientes de la capa activa.
+  Una caché limitada a una imagen se invalida por revisión de contenido, modo y
+  ajustes de visualización; el menú Ver y la nueva pestaña Vista previa permanecen
+  sincronizados, mientras la intensidad del relieve y la visibilidad de gloss
+  actúan en vivo. Un aviso claro y una matriz de tests modo×capa preservan el
+  contrato #363: «Guardar imagen» sigue exportando solo el compuesto COLOR (#387,
+  #388; completa el epic #384).
 - **Renderizadores de relieve y gloss sin Qt para la vista previa 2D combinada.**
   Los nuevos módulos con tipado estricto `bgremover/relief_preview.py` y
   `bgremover/gloss_preview.py` generan un hillshade direccional determinista desde

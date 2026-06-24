@@ -1,6 +1,6 @@
 """Tab-Builder für ``RightPanel``.
 
-Jede der vier Tab-Klassen baut genau einen Tab des rechten Panels.
+Jede Tab-Klasse baut genau einen Tab des rechten Panels.
 ``build()`` liefert ein ``(Widget, dict[str, QWidget])``-Paar, das der
 zentrale Builder in das ``RightPanel``-DTO weiterreicht.
 """
@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -26,13 +28,94 @@ from bgremover.color_ops import adjust_color
 from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
+from bgremover.preview_mode import PreviewMode
 from bgremover.theme import SLD_STYLE, _Theme
 
 if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
 
 
-# ── Tab 1 – Auswahl ──────────────────────────────────────────────
+# ── Tab 1 – Vorschau ─────────────────────────────────────────────
+
+
+class PreviewTab:
+    """Expliziter 2D-Anzeigemodus samt live wirksamen Relief-/Gloss-Optionen."""
+
+    def __init__(self, actions: RightPanelActions) -> None:
+        self._actions = actions
+
+    def build(self) -> tuple[QWidget, dict[str, QWidget]]:
+        outer, layout = _make_scroll_tab()
+        group, body = _make_section(tr("right_panel.preview.section"), "#65a9e8")
+        body.addWidget(_make_label(tr("right_panel.preview.hint"), "#8aaed0", 11))
+
+        body.addWidget(_make_label(tr("right_panel.preview.mode"), "#aaa"))
+        mode_combo = QComboBox()
+        mode_combo.setToolTip(tr("right_panel.preview.mode.tooltip"))
+        mode_combo.setStyleSheet(
+            "QComboBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
+            " border-radius:6px; padding:6px 8px; }"
+            "QComboBox QAbstractItemView { background:#252525; color:#ddd; }"
+        )
+        for label, mode in (
+            (tr("preview.mode.color"), PreviewMode.COLOR),
+            (tr("preview.mode.relief"), PreviewMode.RELIEF),
+            (tr("preview.mode.height"), PreviewMode.HEIGHT),
+            (tr("preview.mode.gloss"), PreviewMode.GLOSS),
+            (tr("preview.mode.combined"), PreviewMode.COMBINED),
+        ):
+            mode_combo.addItem(label, mode)
+
+        def on_mode_changed(index: int) -> None:
+            mode = mode_combo.itemData(index)
+            if isinstance(mode, PreviewMode):
+                self._actions.set_preview_mode(mode)
+
+        mode_combo.currentIndexChanged.connect(on_mode_changed)
+        body.addWidget(mode_combo)
+        body.addWidget(_make_hdivider())
+
+        relief_label = _make_label(
+            tr("right_panel.preview.relief_strength", value=70), "#aaa"
+        )
+        relief_slider = _make_slider(
+            0, 100, 70, tr("right_panel.preview.relief_strength.tooltip")
+        )
+
+        def on_relief(value: int) -> None:
+            relief_label.setText(
+                tr("right_panel.preview.relief_strength", value=value)
+            )
+            self._actions.set_relief_strength(value)
+
+        relief_slider.valueChanged.connect(on_relief)
+        body.addWidget(relief_label)
+        body.addWidget(relief_slider)
+
+        gloss_visible = QCheckBox(tr("right_panel.preview.gloss_visible"))
+        gloss_visible.setChecked(True)
+        gloss_visible.setToolTip(tr("right_panel.preview.gloss_visible.tooltip"))
+        gloss_visible.setStyleSheet(
+            "QCheckBox { color:#bbb; background:transparent; spacing:8px; }"
+        )
+        gloss_visible.toggled.connect(self._actions.set_gloss_visible)
+        body.addWidget(gloss_visible)
+
+        info = _make_label(tr("right_panel.preview.export_hint"), "#d6a85f", 11)
+        body.addWidget(_make_hdivider())
+        body.addWidget(info)
+        layout.addWidget(group)
+        layout.addStretch()
+        return outer, {
+            "preview_mode_combo": mode_combo,
+            "preview_relief_label": relief_label,
+            "preview_relief_slider": relief_slider,
+            "preview_gloss_visible": gloss_visible,
+            "preview_export_hint": info,
+        }
+
+
+# ── Tab 2 – Auswahl ──────────────────────────────────────────────
 
 
 class SelectionTab:

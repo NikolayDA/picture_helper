@@ -38,6 +38,11 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 - **N11 ✅ — Pulido de fase 0 (epic #358) entregado.** Redimensionado del proyecto
   (#359), brillo/contraste/saturación conservando alfa (#360) y feather del borde
   alfa limitado por selección (#361), con undo/redo y persistencia `.bgrproj`.
+- **N12 ✅ — Vista previa 2D combinada (epic #384) entregada.** Renderizadores de
+  relieve/gloss sin Qt (#385/#386), modos explícitos e independientes de la capa
+  activa con caché acotada (#387), y menú Ver/panel Vista previa sincronizados con
+  intensidad en vivo y toggle de gloss (#388); la matriz modo×capa conserva bit a
+  bit el contrato de exportación #363.
 - **#363 ✅ — Regresión de exportación corregida (PR #367).** Guardar imagen
   vuelve a escribir el compuesto COLOR sin importar la capa activa; el renderizado
   de pantalla y el de exportación están separados, cubiertos por un test de
@@ -56,15 +61,11 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Estado de Triage (2026-06-24, actualizado)
 
-A 2026-06-24, tras completar #385/#386 GitHub muestra **12** issues abiertos. El epic **#375** (salida
-física mm/DPI + validación general de exportación) está completo vía **#376–#380**
-(PR #382/#383) y cerrado. Desde el último triage se han añadido **dos nuevos epics**
-que estructuran el cierre de la fase 0/1:
+A 2026-06-24, tras completar #384/#387/#388, GitHub muestra **9** issues
+abiertos. Los epics **#375** (salida física mm/DPI + validación de exportación) y
+**#384** (vista previa 2D combinada) están completos y cerrados. El epic de roadmap
+restante es:
 
-- **#384 – Vista previa 2D combinada** (núcleo de relieve MVP, último punto
-  funcional abierto de la fase 1): los renderizadores sin Qt **#385/#386** están
-  implementados; quedan **#387** (modos de vista previa del lienzo + pipeline de
-  composición) y **#388** (toggles de UI + i18n).
 - **#389 – Actualizar la documentación de usuario y lanzar la release v2.5.0** con
   sub-issues **#390** (la guía de usuario ANLEITUNG, 6 idiomas — también cierra
   **#357**), **#391** (README + capturas + i18n) y **#392** (release v2.5.0).
@@ -84,13 +85,10 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Vista previa 2D combinada (color/transparencia/relieve/gloss) | 🟠 Alta | 🔴 Alta (epic) | **En progreso (epic)** – renderizadores #385/#386 listos; sigue #387 → #388. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Lienzo: modos de vista previa + pipeline de composición | 🟠 Alta | 🟠 Media–Alta | **Ready for PR** – dependencias #385/#386 cumplidas; preservar el contrato de exportación de #363 con un test de regresión. |
-| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: selector de modo de vista previa + toggles de relieve/gloss + i18n | 🟡 Media | 🟡 Media | **Blocked** – necesita #387; cierra el epic #384. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟡 Media (epic) | **En progreso (epic)** – #390/#391 en paralelo ahora → (merge del epic #384) → #392. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟡 Media (epic) | **En progreso (epic)** – #390/#391 en paralelo → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Actualizar la guía de usuario ANLEITUNG (+ 5 i18n) para las nuevas funciones | 🟠 Alta | 🔴 Alta (L, 6 idiomas) | **Ready for PR** – bien acotado pero grande; también cierra **#357**. |
 | [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Actualizar README + capturas + i18n | 🟡 Media–Alta | 🟡 Media | **Ready for PR (con salvedad)** – la parte de texto es inmediatamente abordable; las capturas necesitan una ejecución actual de la app. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Lanzar release v2.5.0 (CHANGELOG/versión/tag/artefactos) | 🟠 Alta | 🟡 Media | **Blocked** – necesita #390 + #391, idealmente tras #384. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Lanzar release v2.5.0 (CHANGELOG/versión/tag/artefactos) | 🟠 Alta | 🟡 Media | **Blocked** – necesita #390 + #391. |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs: falta apertura por ruta inicial/Finder en ANLEITUNG §4 | 🟢 Baja | 🟢 Baja | **Fusionado en #390** – aún posible como pequeño PR independiente, pero normalmente se cerrará junto con #390. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF no está soportado como formato de entrada | 🟢 Baja | 🟢 Baja | **Ready for PR (docs)** – HEIC excluido deliberadamente (comentario 2026-06-21). Solo aclarar README/ANLEITUNG, luego cerrar. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Ready for PR (oportunista)** – no bloquea producto ni CI; lo de mayor valor primero (asertar el endpoint del lazo, la línea de `test_helpers`, consolidar los tests de `set_brush_size`). |
@@ -99,12 +97,10 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 
 ### Próximo recomendado (orden de PR)
 
-1. Continuar con **#387** → **#388** para completar el epic **#384** (vista previa
-   2D combinada); preservar el contrato de exportación de #363 con una regresión.
-2. Integrar **#390** y **#391** en paralelo como PRs de docs (también cierra
+1. Integrar **#390** y **#391** en paralelo como PRs de docs (también cierra
    **#357**); encajar **#339** como un pequeño PR independiente.
-3. Lanzar **#392** (release v2.5.0) solo tras #390/#391 e idealmente tras #384.
-4. Limpiar **#299** oportunísticamente; aplazar **#318** hasta evidenciar la
+2. Lanzar **#392** (release v2.5.0) solo tras #390/#391.
+3. Limpiar **#299** oportunísticamente; aplazar **#318** hasta evidenciar la
    semántica y mantener **#245** bloqueado externamente.
 
 ## Rondas Anteriores

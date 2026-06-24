@@ -33,6 +33,10 @@
 - **N11 ✅ — 阶段 0 打磨（史诗 #358）已交付。** 项目目标尺寸缩放（#359）、
   保留 alpha 的亮度/对比度/饱和度调整（#360）与选区限定的 alpha 边缘羽化
   （#361），均支持 undo/redo 并无损保存在 `.bgrproj` 中。
+- **N12 ✅ — 组合式 2D 预览（史诗 #384）已交付。** 无 Qt 浮雕/光泽渲染器
+  （#385/#386）、不依赖激活图层且带有限缓存的明确模式（#387），以及同步的
+  “视图”菜单/“预览”面板与实时强度和光泽开关（#388）；“模式×图层”矩阵逐位守住
+  #363 导出契约。
 - **#363 ✅ — 导出回归已修复（PR #367）。** 无论激活哪个图层，保存图像
   都会再次写入 COLOR 合成；显示渲染与导出渲染已分离，并由一个像素回归
   测试覆盖。
@@ -48,13 +52,10 @@
 
 ## 打开的 GitHub Issues — Triage 状态 (2026-06-24，已更新)
 
-截至 2026-06-24，在完成 #385/#386 后，GitHub 显示 **12** 个打开的 issues。史诗 **#375**
-（精确 mm/DPI 输出 + 通用导出验证）已经过 **#376–#380**（PR #382/#383）
-完成并关闭。自上次 triage 以来，**新增了两个史诗**，用于规划阶段 0/1 的收尾：
+截至 2026-06-24，在完成 **#384/#387/#388** 后，GitHub 显示 **9** 个打开的 issues。
+史诗 **#375**（精确 mm/DPI 输出 + 导出验证）与 **#384**（组合式 2D 预览）均已完成
+并关闭。剩余的 roadmap 史诗是：
 
-- **#384 – 组合式 2D 预览**（relief-core MVP，阶段 1 最后一个待办功能点）：
-  无 Qt 渲染器 **#385/#386** 已实现；仍待完成 **#387**（画布预览模式 + 合成管线）
-  与 **#388**（UI 开关 + i18n）。
 - **#389 – 更新用户文档并发布 v2.5.0**，其子 issue 包括 **#390**（ANLEITUNG
   用户指南，6 种语言——同时关闭 **#357**）、**#391**（README + 截图 + i18n）
   与 **#392**（发布 v2.5.0）。
@@ -71,13 +72,10 @@ issue 更新；也无需新建后续 issue。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] 组合式 2D 预览（颜色/透明度/relief/gloss） | 🟠 高 | 🔴 高（epic） | **进行中（epic）** – 渲染器 #385/#386 已完成；接下来 #387 → #388。 |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | 画布：预览模式 + 合成管线 | 🟠 高 | 🟠 中–高 | **Ready for PR** – #385/#386 依赖已满足；用回归测试保留 #363 的导出契约。 |
-| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI：预览模式选择器 + relief/gloss 开关 + i18n | 🟡 中 | 🟡 中 | **Blocked** – 需要 #387；关闭史诗 #384。 |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟡 中（epic） | **进行中（epic）** – 现在并行 #390/#391 →（合并史诗 #384）→ #392。 |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟡 中（epic） | **进行中（epic）** – 并行 #390/#391 → #392。 |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | 为新功能更新 ANLEITUNG 用户指南（+ 5 份 i18n） | 🟠 高 | 🔴 高（L，6 种语言） | **Ready for PR** – 范围明确但工作量大；同时关闭 **#357**。 |
 | [#391](https://github.com/NikolayDA/picture_helper/issues/391) | 更新 README + 截图 + i18n | 🟡 中–高 | 🟡 中 | **Ready for PR（有保留）** – 文本部分可立即着手；截图需要一次当前版本的应用运行。 |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **Blocked** – 需要 #390 + #391，最好在 #384 之后。 |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **Blocked** – 需要 #390 + #391。 |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **已并入 #390** – 仍可作为独立小 PR 处理，但通常会与 #390 一起关闭。 |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）** – 已**有意排除 HEIC**（评论 2026-06-21）。仅需澄清 README/ANLEITUNG，然后关闭。 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **Ready for PR（opportunistic）** – 非产品或 CI blocker；优先做最有价值的（断言 lasso endpoint、`test_helpers` 行、合并 `set_brush_size` 测试）。 |
@@ -86,12 +84,10 @@ issue 更新；也无需新建后续 issue。
 
 ### 推荐下一步（PR 顺序）
 
-1. 接着完成 **#387** → **#388** 以收尾史诗 **#384**（组合式 2D 预览）；
-   用回归测试保留 #363 的导出契约。
-2. 并行落地 **#390** 与 **#391** 作为 docs PR（同时关闭 **#357**）；
+1. 并行落地 **#390** 与 **#391** 作为 docs PR（同时关闭 **#357**）；
    将 **#339** 作为独立小 PR 穿插处理。
-3. 仅在 #390/#391 之后、且最好在 #384 之后再发布 **#392**（release v2.5.0）。
-4. 适时清理 **#299**；在语义有据可依前暂缓 **#318**，并保持 **#245**
+2. 仅在 #390/#391 之后再发布 **#392**（release v2.5.0）。
+3. 适时清理 **#299**；在语义有据可依前暂缓 **#318**，并保持 **#245**
    externally blocked。
 
 ## 先前轮次

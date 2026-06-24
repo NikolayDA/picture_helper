@@ -14,6 +14,7 @@ from PIL import Image
 from PyQt6.QtGui import QColor
 
 from bgremover import ImageCanvas
+from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole, Project
 
 
@@ -26,6 +27,37 @@ def _two_layer_project(w: int = 8, h: int = 8) -> Project:
     project = Project(w, h)
     project.create_layer(_solid(w, h, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
     project.create_layer(_solid(w, h, (0, 200, 0, 255)), name="B", kind=LayerKind.COLOR)
+    return project
+
+
+def _preview_project(w: int = 8, h: int = 8) -> Project:
+    """Farbe + gerichtete Höhe + halbflächiges Gloss + Generic, alle Rollen gesetzt."""
+    project = Project(w, h)
+    project.create_layer(
+        _solid(w, h, (100, 80, 60, 200)), name="Motiv", kind=LayerKind.COLOR
+    )
+    heights = np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+    height_rgba = np.zeros((h, w, 4), dtype=np.uint8)
+    height_rgba[:, :, 0] = heights
+    height_rgba[:, :, 3] = 255
+    project.create_layer(
+        Image.fromarray(height_rgba, "RGBA"),
+        name="Height",
+        kind=LayerKind.HEIGHT,
+        role=LayerRole.HEIGHT_MAP,
+    )
+    gloss_rgba = np.zeros((h, w, 4), dtype=np.uint8)
+    gloss_rgba[:, w // 2:, :3] = 255
+    gloss_rgba[:, :, 3] = 255
+    project.create_layer(
+        Image.fromarray(gloss_rgba, "RGBA"),
+        name="Gloss",
+        kind=LayerKind.GLOSS,
+        role=LayerRole.GLOSS_MASK,
+    )
+    project.create_layer(
+        _solid(w, h, (1, 2, 3, 255)), name="Data", kind=LayerKind.GENERIC
+    )
     return project
 
 
@@ -286,36 +318,33 @@ def test_save_image_exports_composite_of_layers(qapp, tmp_path) -> None:
     assert tuple(reloaded[0, 7]) == (200, 0, 0, 255)     # unten scheint durch (rot)
 
 
+@pytest.mark.parametrize("preview_mode", list(PreviewMode))
 @pytest.mark.parametrize("active_kind", list(LayerKind))
 def test_save_image_exports_color_composite_for_every_active_layer_kind(
-    qapp, tmp_path, active_kind: LayerKind,
+    qapp, tmp_path, active_kind: LayerKind, preview_mode: PreviewMode,
 ) -> None:
-    """Der Bildexport ist vom aktiven Bearbeitungskontext unabhängig (#363)."""
+    """Export bleibt in jedem Modus/Layer ausschließlich COLOR (#363/#387)."""
     from PIL import Image as PILImage
 
     canvas = ImageCanvas()
-    project = Project(4, 4)
-    color = project.create_layer(
-        _solid(4, 4, (200, 10, 20, 255)), name="Motiv", kind=LayerKind.COLOR)
-    active_id = color.id
-    if active_kind is not LayerKind.COLOR:
-        active_id = project.create_layer(
-            _solid(4, 4, (90, 90, 90, 255)),
-            name=active_kind.value,
-            kind=active_kind,
-        ).id
+    project = _preview_project(4, 4)
+    active_id = next(layer.id for layer in project.layers if layer.kind is active_kind)
     project.set_active(active_id)
     canvas.set_project(project)
+    canvas.set_preview_mode(preview_mode)
     expected = np.array(project.composite_color())
 
-    out = tmp_path / f"export-{active_kind.value}.png"
+    out = tmp_path / f"export-{active_kind.value}-{preview_mode.value}.png"
     assert canvas.save_image(str(out)) is True
     reloaded = np.array(PILImage.open(out).convert("RGBA"))
 
     assert np.array_equal(reloaded, expected)
 
 
-def test_save_single_color_layer_preserves_rgb_below_transparency(qapp, tmp_path) -> None:
+@pytest.mark.parametrize("preview_mode", list(PreviewMode))
+def test_save_single_color_layer_preserves_rgb_below_transparency(
+    qapp, tmp_path, preview_mode: PreviewMode
+) -> None:
     """Der bitgenaue Single-Layer-Schnellpfad bleibt beim PNG-Export erhalten."""
     from PIL import Image as PILImage
 
@@ -324,8 +353,9 @@ def test_save_single_color_layer_preserves_rgb_below_transparency(qapp, tmp_path
     arr[0, 0] = (10, 20, 30, 255)
     canvas = ImageCanvas()
     canvas.apply_loaded_image(PILImage.fromarray(arr, "RGBA"), "x.png")
+    canvas.set_preview_mode(preview_mode)
 
-    out = tmp_path / "single-color.png"
+    out = tmp_path / f"single-color-{preview_mode.value}.png"
     assert canvas.save_image(str(out)) is True
     reloaded = np.array(PILImage.open(out).convert("RGBA"))
 
@@ -377,14 +407,15 @@ def _height_layer_arr(height: int) -> np.ndarray:
 
 
 def test_active_height_layer_renders_as_grayscale(qapp) -> None:
-    """Eine aktive HEIGHT-Ebene wird graustufig dargestellt (R==G==B==Höhe)."""
+    """Der explizite HEIGHT-Modus zeigt die Rollen-Ebene grau."""
     canvas = ImageCanvas()
     project = Project(8, 8)
     project.create_layer(_solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
     project.create_layer(
         Image.fromarray(_height_layer_arr(120), "RGBA"),
-        name="H", kind=LayerKind.HEIGHT)
+        name="H", kind=LayerKind.HEIGHT, role=LayerRole.HEIGHT_MAP)
     canvas.set_project(project)        # HEIGHT zuletzt erzeugt ⇒ aktiv
+    canvas.set_preview_mode(PreviewMode.HEIGHT)
 
     rendered = np.array(canvas._render_image())
     assert np.all(rendered[:, :, 0] == 120)
@@ -409,22 +440,130 @@ def test_color_composite_unchanged_when_color_layer_active(qapp) -> None:
     assert tuple(arr[0, 0]) == (200, 0, 0, 255)   # nur COLOR sichtbar
 
 
-def test_switching_active_layer_toggles_height_view(qapp) -> None:
-    """Auswahl einer HEIGHT-Ebene schaltet in die Höhensicht und zurück."""
+@pytest.mark.parametrize("mode", list(PreviewMode))
+def test_preview_mode_is_independent_of_active_layer(
+    qapp, mode: PreviewMode
+) -> None:
+    """Aktive Editierebene beeinflusst keinen expliziten Vorschaumodus (#387)."""
     canvas = ImageCanvas()
-    project = Project(8, 8)
-    color_id = project.create_layer(
-        _solid(8, 8, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR).id
-    height_id = project.create_layer(
-        Image.fromarray(_height_layer_arr(90), "RGBA"),
-        name="H", kind=LayerKind.HEIGHT).id
+    project = _preview_project()
     canvas.set_project(project)
+    canvas.set_preview_mode(mode)
+    expected = np.array(canvas._render_image())
 
-    canvas.set_active_layer(height_id)
-    assert np.all(np.array(canvas._render_image())[:, :, :3] == 90)   # Höhensicht
+    for layer in project.layers:
+        canvas.set_active_layer(layer.id)
+        assert np.array_equal(np.array(canvas._render_image()), expected)
 
-    canvas.set_active_layer(color_id)
-    assert tuple(np.array(canvas._render_image())[0, 0]) == (200, 0, 0, 255)
+
+def test_all_preview_modes_render_distinct_expected_content(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _preview_project()
+    canvas.set_project(project)
+    outputs: dict[PreviewMode, np.ndarray] = {}
+    for mode in PreviewMode:
+        canvas.set_preview_mode(mode)
+        outputs[mode] = np.array(canvas._render_image())
+
+    color = outputs[PreviewMode.COLOR]
+    assert tuple(color[0, 0]) == (100, 80, 60, 200)
+    height = outputs[PreviewMode.HEIGHT]
+    assert np.all(height[:, 0, :3] == 0)
+    assert np.all(height[:, -1, :3] == 255)
+    gloss = outputs[PreviewMode.GLOSS]
+    assert np.all(gloss[:, :4, 3] == 0)
+    assert np.all(gloss[:, 4:, 3] == 192)
+    relief = outputs[PreviewMode.RELIEF]
+    combined = outputs[PreviewMode.COMBINED]
+    assert not np.array_equal(relief[:, :, :3], color[:, :, :3])
+    assert not np.array_equal(combined[:, :, :3], relief[:, :, :3])
+    assert np.array_equal(relief[:, :, 3], color[:, :, 3])
+    assert np.array_equal(combined[:, :, 3], color[:, :, 3])
+
+
+def test_preview_controls_are_live_but_do_not_dirty_document(qapp) -> None:
+    canvas = ImageCanvas()
+    canvas.set_project(_preview_project())
+    revision = canvas.content_revision
+    received: list[tuple[PreviewMode, int, bool]] = []
+    canvas.previewSettingsChanged.connect(
+        lambda mode, strength, gloss: received.append((mode, strength, gloss))
+    )
+
+    canvas.set_preview_mode(PreviewMode.RELIEF)
+    canvas.set_relief_strength(0)
+    assert np.array_equal(
+        np.array(canvas._render_image()), np.array(canvas.project.composite_color())
+    )
+    canvas.set_preview_mode(PreviewMode.COMBINED)
+    with_gloss = np.array(canvas._render_image())
+    canvas.set_gloss_visible(False)
+    without_gloss = np.array(canvas._render_image())
+
+    assert not np.array_equal(with_gloss, without_gloss)
+    assert canvas.content_revision == revision
+    assert received == [
+        (PreviewMode.RELIEF, 70, True),
+        (PreviewMode.RELIEF, 0, True),
+        (PreviewMode.COMBINED, 0, True),
+        (PreviewMode.COMBINED, 0, False),
+    ]
+
+
+def test_preview_cache_reuses_and_invalidates_one_render(
+    qapp, monkeypatch
+) -> None:
+    import bgremover.canvas as canvas_module
+
+    relief_calls = 0
+    gloss_calls = 0
+    real_relief = canvas_module.relief_shading
+    real_gloss = canvas_module.gloss_overlay
+
+    def count_relief(*args, **kwargs):
+        nonlocal relief_calls
+        relief_calls += 1
+        return real_relief(*args, **kwargs)
+
+    def count_gloss(*args, **kwargs):
+        nonlocal gloss_calls
+        gloss_calls += 1
+        return real_gloss(*args, **kwargs)
+
+    canvas = ImageCanvas()
+    project = _preview_project()
+    canvas.set_project(project)
+    monkeypatch.setattr(canvas_module, "relief_shading", count_relief)
+    monkeypatch.setattr(canvas_module, "gloss_overlay", count_gloss)
+
+    canvas.set_preview_mode(PreviewMode.COMBINED)  # rendert beim Live-Wechsel
+    first = canvas._render_image()
+    second = canvas._render_image()
+    assert first is second
+    assert (relief_calls, gloss_calls) == (1, 1)
+
+    color = next(layer for layer in project.layers if layer.kind is LayerKind.COLOR)
+    canvas.set_layer_visible(color.id, False)       # Content-Revision invalidiert
+    assert (relief_calls, gloss_calls) == (2, 2)
+
+
+def test_preview_parameter_validation(qapp) -> None:
+    canvas = ImageCanvas()
+    with pytest.raises(TypeError):
+        canvas.set_preview_mode("color")  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        canvas.set_relief_strength(-1)
+    with pytest.raises(ValueError):
+        canvas.set_relief_strength(101)
+
+
+def test_modes_without_height_or_gloss_fall_back_to_color(qapp) -> None:
+    canvas = ImageCanvas()
+    source = _solid(4, 3, (11, 22, 33, 44))
+    canvas.apply_loaded_image(source, "color-only.png")
+    for mode in PreviewMode:
+        canvas.set_preview_mode(mode)
+        assert np.array_equal(np.array(canvas._render_image()), np.array(source))
 
 
 # ── Höhenkarte: Erzeugung & Import (#346) ─────────────────────────────────
@@ -442,7 +581,8 @@ def test_generate_height_map_creates_role_layer_and_is_undoable(qapp) -> None:
     arr = np.array(active.image)
     assert np.all(arr[:, :, :3] == 200)            # grau = R
     assert np.all(arr[:, :, 3] == 255)
-    # Anzeige wechselt in die Höhensicht (#345).
+    # Expliziter Modus statt implizitem Wechsel über die aktive Ebene (#387).
+    canvas.set_preview_mode(PreviewMode.HEIGHT)
     assert np.all(np.array(canvas._render_image())[:, :, :3] == 200)
 
     canvas.undo()
@@ -693,6 +833,7 @@ def test_height_workflow_end_to_end_bgrproj_roundtrip(qapp, tmp_path) -> None:
     canvas2 = ImageCanvas()
     canvas2.set_project(reloaded)
     canvas2.set_active_layer(layer.id)
+    canvas2.set_preview_mode(PreviewMode.HEIGHT)
     rendered = np.array(canvas2._render_image())
     assert np.array_equal(rendered[:, :, 0], rendered[:, :, 1])
     assert np.array_equal(rendered[:, :, 1], rendered[:, :, 2])

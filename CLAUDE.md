@@ -35,9 +35,9 @@ Ein Paket, `bgremover/`:
   Werkzeuge wirken auf die **aktive Ebene** (`self._pil`/`_arr` sind deren Cache),
   größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
   Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
-  zum bisherigen Einzelbild-Editor (#332). Ist die **aktive** Ebene eine
-  HEIGHT-Ebene, zeigt der Canvas sie graustufig über `height_map.layer_to_gray_image`
-  statt des COLOR-Komposits (#345).
+  zum bisherigen Einzelbild-Editor (#332). Die Anzeige ist seit #387 explizit über
+  `PreviewMode` gesteuert und unabhängig von der aktiven Editierebene; der getrennte
+  Exportpfad schreibt weiterhin ausschließlich das COLOR-Komposit (#363).
 - **Grundbildbearbeitung (Phase 0, Epic #358):** **Skalieren** auf Zielgröße
   (`image_ops.resize_image`/`resized_size`, `Project.resize` skaliert alle Ebenen +
   Canvas-Größe mit Megapixel-Gate, Dialog `resize_dialog.py`, #359);
@@ -78,8 +78,12 @@ Ein Paket, `bgremover/`:
   8-/16-Bit-äquivalent, `coverage`-bewusst) und komponiert es multiplikativ über
   RGBA. `gloss_preview.py` (#386) rendert eine Gloss-Maske als kühlen Sheen und
   mischt ihn über RGBA. Beide Module sind Qt-frei, strikt getypt, größenvalidiert
-  und erhalten den Alpha-Kanal des Farbmotivs bitgenau; Canvas-/UI-Anbindung folgt
-  in #387/#388.
+  und erhalten den Alpha-Kanal des Farbmotivs bitgenau. Die Canvas-Pipeline (#387)
+  bietet `COLOR`/`RELIEF`/`HEIGHT`/`GLOSS`/`COMBINED`, gecacht auf genau ein Bild
+  je Content-Revision + Anzeigeparameter. Modus, Relief-Stärke und Gloss-Sichtbarkeit
+  sind reiner UI-Zustand (keine History-/Dirty-Revision). Ein Vorschau-Tab und das
+  exklusive Ansicht-Untermenü halten sich signalbasiert synchron; der UI-Hinweis
+  macht den unveränderten Bildexport ausdrücklich sichtbar (#388).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

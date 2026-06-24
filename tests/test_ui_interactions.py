@@ -24,7 +24,7 @@ import pytest
 from PIL import Image
 from PyQt6.QtCore import QEvent, QPointF, QSettings, Qt
 from PyQt6.QtGui import QAction, QKeySequence, QMouseEvent
-from PyQt6.QtWidgets import QToolButton
+from PyQt6.QtWidgets import QLabel, QToolButton
 
 import bgremover
 from bgremover import (
@@ -38,6 +38,8 @@ from bgremover import (
     SettingsDialog,
 )
 from bgremover.i18n import tr
+from bgremover.preview_mode import PreviewMode
+from bgremover.project_model import LayerKind, LayerRole, Project
 
 # Alle Tests dieser Datei sind lokale UI-Tests (siehe Modul-Docstring).
 pytestmark = pytest.mark.ui
@@ -180,8 +182,72 @@ def test_menu_actions_present(main_window):
         "Horizontal spiegeln", "Vertikal spiegeln",
         "Auswahl aufheben", "Auswahl invertieren",
         "Original wiederherstellen", "Fit to View", "Einstellungen…",
+        "Farbe", "Relief über Farbe", "Höhe (Graustufe)", "Gloss", "Kombiniert",
     }
     assert expected <= texts
+
+
+@pytest.mark.ui_smoke
+def test_preview_menu_and_panel_drive_live_canvas_without_dirtying(main_window):
+    w = main_window
+    project = Project(4, 4)
+    project.create_layer(
+        Image.new("RGBA", (4, 4), (100, 80, 60, 200)),
+        name="Motiv",
+        kind=LayerKind.COLOR,
+    )
+    height = np.zeros((4, 4, 4), dtype=np.uint8)
+    height[:, :, 0] = np.array([0, 85, 170, 255], dtype=np.uint8)
+    height[:, :, 3] = 255
+    project.create_layer(
+        Image.fromarray(height, "RGBA"),
+        name="Height",
+        kind=LayerKind.HEIGHT,
+        role=LayerRole.HEIGHT_MAP,
+    )
+    gloss = np.zeros((4, 4, 4), dtype=np.uint8)
+    gloss[:, 2:, :3] = 255
+    gloss[:, :, 3] = 255
+    project.create_layer(
+        Image.fromarray(gloss, "RGBA"),
+        name="Gloss",
+        kind=LayerKind.GLOSS,
+        role=LayerRole.GLOSS_MASK,
+    )
+    w._canvas.set_project(project)
+    revision = w._canvas.content_revision
+
+    # Ansicht-Menü → Canvas + Panel synchron.
+    _action(w, "Relief über Farbe").trigger()
+    assert w._canvas.preview_mode is PreviewMode.RELIEF
+    assert w._preview_mode_combo.currentData() is PreviewMode.RELIEF
+    assert not np.array_equal(
+        np.array(w._canvas._render_image()), np.array(project.composite_color())
+    )
+
+    # Regler wirkt live; Stärke 0 ist Farb-No-op.
+    w._preview_relief_slider.setValue(0)
+    assert w._canvas.relief_strength == 0
+    assert np.array_equal(
+        np.array(w._canvas._render_image()), np.array(project.composite_color())
+    )
+
+    # Panel → Canvas + Ansicht-Menü synchron; Gloss-Toggle wirkt live.
+    combined_index = w._preview_mode_combo.findData(PreviewMode.COMBINED)
+    w._preview_mode_combo.setCurrentIndex(combined_index)
+    with_gloss = np.array(w._canvas._render_image())
+    assert _action(w, "Kombiniert").isChecked()
+    w._preview_gloss_visible.setChecked(False)
+    without_gloss = np.array(w._canvas._render_image())
+    assert not np.array_equal(with_gloss, without_gloss)
+    assert w._canvas.content_revision == revision
+
+    w._canvas.set_relief_strength(25)
+    assert w._preview_relief_slider.value() == 25
+    assert "25 %" in w._preview_relief_label.text()
+
+    hints = [label.text() for label in w.findChildren(QLabel)]
+    assert any("Nur Anzeige" in text and "Bild speichern" in text for text in hints)
 
 
 def test_undo_redo_actions(loaded_window):
