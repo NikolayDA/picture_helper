@@ -11,7 +11,7 @@
 | 🟡 | 中 | 有助于质量、可读性或可测试性的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-06-04）
+## 当前状态（2026-06-24）
 
 当前代码分析清单为空。Ruff、mypy 和本地测试套件仍是新 PR 前的基线。
 
@@ -36,7 +36,8 @@
 - **N12 ✅ — 组合式 2D 预览（史诗 #384）已交付。** 无 Qt 浮雕/光泽渲染器
   （#385/#386）、不依赖激活图层且带有限缓存的明确模式（#387），以及同步的
   “视图”菜单/“预览”面板与实时强度和光泽开关（#388）；“模式×图层”矩阵逐位守住
-  #363 导出契约。
+  #363 导出契约。后续 #397（PR #398）让临时颜色/高度预览通过同一管线，遵守隐藏
+  数据图层，并高效跳过强度为 0 的浮雕。
 - **#363 ✅ — 导出回归已修复（PR #367）。** 无论激活哪个图层，保存图像
   都会再次写入 COLOR 合成；显示渲染与导出渲染已分离，并由一个像素回归
   测试覆盖。
@@ -52,9 +53,9 @@
 
 ## 打开的 GitHub Issues — Triage 状态 (2026-06-24，已更新)
 
-截至 2026-06-24，在完成 **#384/#387/#388** 后，GitHub 显示 **9** 个打开的 issues。
-史诗 **#375**（精确 mm/DPI 输出 + 导出验证）与 **#384**（组合式 2D 预览）均已完成
-并关闭。剩余的 roadmap 史诗是：
+截至 2026-06-24，在 **#384/#387/#388** 与 P2 后续 **#397**（PR #398）完成后，
+GitHub 显示 **9** 个打开的 issues。史诗 **#375**（精确 mm/DPI 输出 + 导出验证）
+与 **#384**（组合式 2D 预览）均已完成并关闭。剩余的 roadmap 史诗是：
 
 - **#389 – 更新用户文档并发布 v2.5.0**，其子 issue 包括 **#390**（ANLEITUNG
   用户指南，6 种语言——同时关闭 **#357**）、**#391**（README + 截图 + i18n）
@@ -66,29 +67,36 @@
 **评论复核（2026-06-24）：** **#245**、**#299** 与 **#339** 上的评论均来自
 maintainer（triage），并确认了已记录的状态：#245 仍因配额/计费在外部受阻，
 #299 仍是低优先级的测试卫生，而 #339 确认为有意排除 HEIC。没有评论需要实质性的
-issue 更新；也无需新建后续 issue。
+issue 更新；#397 已由 PR #398 关闭。
+
+### 建议分组
+
+- **指南包：** **#390 + #357**，以及 **#339** 的 ANLEITUNG 部分。
+- **README 包：** **#391**、**#339** 的 README 部分及最新截图。
+- **发布包：** **#392** 保持独立，仅在两个文档 PR 后开始。
+- 不把 **#299/#318/#245** 混入发布路径；它们分别属于质量、研究和外部阻塞工作。
 
 评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟡 中（epic） | **进行中（epic）** – 并行 #390/#391 → #392。 |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | 为新功能更新 ANLEITUNG 用户指南（+ 5 份 i18n） | 🟠 高 | 🔴 高（L，6 种语言） | **Ready for PR** – 范围明确但工作量大；同时关闭 **#357**。 |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | 更新 README + 截图 + i18n | 🟡 中–高 | 🟡 中 | **Ready for PR（有保留）** – 文本部分可立即着手；截图需要一次当前版本的应用运行。 |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟡 中（epic） | **可开始** – 两个并行文档包，然后 #392。 |
+| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | 为新功能更新 ANLEITUNG 用户指南（+ 5 份 i18n） | 🟠 高 | 🔴 高（L，6 种语言） | **包 A** – 包含 **#357** 与 **#339** 的 ANLEITUNG 部分。 |
+| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | 更新 README + 截图 + i18n | 🟡 中–高 | 🟡 中 | **包 B** – 包含 **#339** 的 README 部分并制作最新截图。 |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **Blocked** – 需要 #390 + #391。 |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **已并入 #390** – 仍可作为独立小 PR 处理，但通常会与 #390 一起关闭。 |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **Ready for PR（docs）** – 已**有意排除 HEIC**（评论 2026-06-21）。仅需澄清 README/ANLEITUNG，然后关闭。 |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **Ready for PR（opportunistic）** – 非产品或 CI blocker；优先做最有价值的（断言 lasso endpoint、`test_helpers` 行、合并 `set_brush_size` 测试）。 |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **Needs refinement** – 先记录 GitHub semantics（top-level vs. 有效的 per-job）；不得削弱 #303 OIDC guard。 |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs：ANLEITUNG §4 缺少启动路径/Finder 打开方式 | 🟢 低 | 🟢 低 | **包 A 的一部分** – 不单独处理；随 #390 关闭。 |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF 不支持作为输入格式 | 🟢 低 | 🟢 低 | **拆分到 A/B** – ANLEITUNG 放入 #390，README 放入 #391；两者完成后关闭。 |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **v2.5.0 后** – 优先 lasso、可写 NumPy、完整 wand mask 与 brush 参数化。 |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **并行研究** – 先证明语义；仅为已证实的误报改代码并保留 #303。 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
 
 ### 推荐下一步（PR 顺序）
 
-1. 并行落地 **#390** 与 **#391** 作为 docs PR（同时关闭 **#357**）；
-   将 **#339** 作为独立小 PR 穿插处理。
-2. 仅在 #390/#391 之后再发布 **#392**（release v2.5.0）。
-3. 适时清理 **#299**；在语义有据可依前暂缓 **#318**，并保持 **#245**
-   externally blocked。
+1. 并行完成 **包 A（#390 + #357 + #339 的 ANLEITUNG 部分）** 与
+   **包 B（#391 + #339 的 README 部分）**；两者完成后关闭 #339。
+2. 随后执行 **#392**；验证 tag、release body 与两个产物后关闭史诗 **#389**。
+3. v2.5.0 后处理 **#299**；并行研究 **#318** 但无证据前不改代码；保持
+   **#245** 阻塞直到外部 quota 恢复。
 
 ## 先前轮次
 

@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile pour la qualité, la lisibilité ou les tests |
 | 🟢 | Basse | Polissage optionnel ou amélioration de processus |
 
-## État Actuel (2026-06-04)
+## État Actuel (2026-06-24)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite locale
 restent la baseline avant de nouveaux PRs.
@@ -41,7 +41,9 @@ restent la baseline avant de nouveaux PRs.
   (#385/#386), modes explicites indépendants du calque actif avec cache borné
   (#387), et menu Affichage/panneau Aperçu synchronisés avec intensité en direct
   et bascule gloss (#388) ; la matrice mode×calque préserve bit pour bit le contrat
-  d'export #363.
+  d'export #363. Le suivi #397 (PR #398) fait passer les aperçus transitoires par
+  la même pipeline, respecte les calques de données masqués et évite efficacement
+  le relief d'intensité 0.
 - **#363 ✅ — Régression d'export corrigée (PR #367).** Enregistrer l'image écrit
   de nouveau le composite COLOR quel que soit le calque actif ; les rendus
   d'affichage et d'export sont séparés, couverts par un test de régression au pixel.
@@ -59,9 +61,10 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — État du Triage (2026-06-24, mis à jour)
 
-Au 2026-06-24, après #384/#387/#388, GitHub affiche **9** issues ouvertes.
-Les epics **#375** (sortie physique mm/DPI + validation d'export) et **#384**
-(aperçu 2D combiné) sont terminés et clos. L'epic roadmap restant est :
+Au 2026-06-24, après #384/#387/#388 et le suivi P2 **#397** (PR #398), GitHub
+affiche **9** issues ouvertes. Les epics **#375** (sortie physique mm/DPI +
+validation d'export) et **#384** (aperçu 2D combiné) sont terminés et clos.
+L'epic roadmap restant est :
 
 - **#389 – Mettre à jour la doc utilisateur & publier la release v2.5.0** avec
   les sous-issues **#390** (le guide utilisateur ANLEITUNG, 6 langues — clôt
@@ -75,30 +78,39 @@ plus les constats test/CI **#318**, **#299** et **#245** restent également.
 proviennent tous du mainteneur (triage) et confirment l'état documenté : #245 reste bloqué en
 externe sur quota/billing, #299 reste de l'hygiène de tests à basse priorité, et #339 est
 confirmée comme une exclusion HEIC délibérée. Aucun commentaire ne nécessite de mise à jour
-substantielle des issues ; aucune nouvelle issue de suivi n'est requise.
+substantielle des issues ; #397 est déjà close par la PR #398.
+
+### Regroupements Recommandés
+
+- **Lot guide :** **#390 + #357** et la partie ANLEITUNG de **#339**.
+- **Lot README :** **#391**, la partie README de **#339** et des captures à jour.
+- **Lot release :** garder **#392** séparé et ne le lancer qu'après les deux PR docs.
+- Ne pas mêler **#299/#318/#245** au chemin de release : qualité, recherche et
+  exploitation bloquée en externe sont indépendantes.
 
 Évaluation : **Pertinence** = importance pour la roadmap/les utilisateurs,
 **Complexité** = effort d'implémentation estimé.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟡 Moyenne (epic) | **En cours (epic)** – #390/#391 en parallèle → #392. |
-| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Mettre à jour le guide utilisateur ANLEITUNG (+ 5 i18n) pour les nouvelles fonctionnalités | 🟠 Haute | 🔴 Haute (L, 6 langues) | **Ready for PR** – bien délimité mais volumineux ; clôt aussi **#357**. |
-| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Mettre à jour le README + captures d'écran + i18n | 🟡 Moyenne–Haute | 🟡 Moyenne | **Ready for PR (avec réserve)** – la partie texte est immédiatement faisable ; les captures nécessitent un lancement à jour de l'app. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟡 Moyenne (epic) | **Prêt à démarrer** – deux lots docs en parallèle, puis #392. |
+| [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Mettre à jour le guide utilisateur ANLEITUNG (+ 5 i18n) pour les nouvelles fonctionnalités | 🟠 Haute | 🔴 Haute (L, 6 langues) | **Lot A** – inclure **#357** et la partie ANLEITUNG de **#339**. |
+| [#391](https://github.com/NikolayDA/picture_helper/issues/391) | Mettre à jour le README + captures d'écran + i18n | 🟡 Moyenne–Haute | 🟡 Moyenne | **Lot B** – inclure la partie README de **#339** et des captures actuelles. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publier la release v2.5.0 (CHANGELOG/version/tag/artefacts) | 🟠 Haute | 🟡 Moyenne | **Blocked** – nécessite #390 + #391. |
-| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs : ouverture par chemin initial/Finder absente d'ANLEITUNG §4 | 🟢 Basse | 🟢 Basse | **Fusionnée dans #390** – encore possible comme petit PR indépendant, mais sera normalement close avec #390. |
-| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF n'est pas supporté comme format d'entrée | 🟢 Basse | 🟢 Basse | **Ready for PR (docs)** – HEIC exclu délibérément (commentaire 2026-06-21). Clarifier seulement README/ANLEITUNG, puis clore. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Ready for PR (opportuniste)** – pas un bloqueur produit ou CI ; le plus utile d'abord (asserter l'extrémité du lasso, la ligne de `test_helpers`, consolider les tests `set_brush_size`). |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **Needs refinement** – d'abord documenter la sémantique GitHub (top-level vs. effectif-par-job) ; ne pas affaiblir le guard OIDC #303. |
+| [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Docs : ouverture par chemin initial/Finder absente d'ANLEITUNG §4 | 🟢 Basse | 🟢 Basse | **Dans le lot A** – ne pas traiter séparément ; clore avec #390. |
+| [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF n'est pas supporté comme format d'entrée | 🟢 Basse | 🟢 Basse | **Répartir entre A/B** – ANLEITUNG dans #390, README dans #391 ; clore après les deux. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Après v2.5.0** – lasso, résultat NumPy modifiable, masque wand complet et paramétrage brush d'abord. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **Recherche parallèle** – prouver la sémantique ; coder seulement pour un faux positif démontré et préserver #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec "Quota exceeded" | 🟡 Moyenne | 🟢 Basse | **Blocked (externe)** – le durcissement côté repo via #322/#342 (clos) est fait ; le blocage restant est la quota OpenAI/billing. Après restauration, lancer une fois le scan programmé manuellement puis clore. |
 
 ### Prochaines étapes recommandées (ordre des PR)
 
-1. Intégrer **#390** et **#391** en parallèle comme PR docs (clôt aussi **#357**) ;
-   caser **#339** comme petit PR indépendant.
-2. Publier **#392** (release v2.5.0) seulement après #390/#391.
-3. Traiter **#299** opportunément ; reporter **#318** jusqu'à ce que la sémantique
-   soit établie et garder **#245** bloqué en externe.
+1. Livrer en parallèle le **lot A (#390 + #357 + partie ANLEITUNG de #339)** et
+   le **lot B (#391 + partie README de #339)** ; clore #339 après les deux.
+2. Exécuter **#392** ensuite et clore l'epic **#389** après vérification du tag,
+   du release body et des deux artefacts.
+3. Traiter **#299** après v2.5.0 ; rechercher **#318** en parallèle sans coder sans
+   preuve et garder **#245** bloqué jusqu'au retour de la quota externe.
 
 ## Séries Précédentes
 
