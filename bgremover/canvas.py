@@ -172,11 +172,12 @@ class ImageCanvas(QGraphicsView):
         self._project: Project | None = None
         self._pil:  Image.Image | None = None
         self._arr:  np.ndarray  | None = None
-        # Transiente Vorschau (#348 Höhen-Optimierung, #360 Farbkorrektur): wenn
-        # gesetzt, zeigt der Canvas dieses Bild statt des Modellzustands an, ohne
-        # die Ebene zu ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`)
-        # verwirft die Vorschau; Commit/Abbruch räumen sie explizit ab.
+        # Transiente Vorschau (#348 Höhen-Optimierung, #360 Farbkorrektur): Der
+        # Layer-Override wird nur für das Rendern eingesetzt; ``_preview`` hält
+        # das daraus erzeugte Anzeigebild. So bleiben Modus/Relief/Gloss auch
+        # während einer Live-Bearbeitung wirksam, ohne das Modell zu verändern.
         self._preview: Image.Image | None = None
+        self._preview_layer_override: tuple[str, Image.Image] | None = None
         # Explizite 2D-Anzeige (#387), unabhängig von aktiver Ebene und Export.
         # Der Cache hält absichtlich nur das zuletzt gerenderte Bild: selbst bei
         # 40 MP wächst der Speicher damit nicht pro Modus/Reglerstellung weiter.
@@ -520,6 +521,19 @@ class ImageCanvas(QGraphicsView):
         assert base is not None
         height = self._project.layer_by_role(LayerRole.HEIGHT_MAP)
         gloss = self._project.layer_by_role(LayerRole.GLOSS_MASK)
+        # Eine transiente Bearbeitung einer HEIGHT-Ebene soll genau deren
+        # temporäre Pixel zeigen, auch wenn die Ebene (noch) keine Rolle trägt.
+        # Das betrifft nur den synchronen Override-Render und ändert keine Rolle.
+        if self._preview_layer_override is not None:
+            override = self._project.layer_by_id(self._preview_layer_override[0])
+            if override.kind is LayerKind.HEIGHT:
+                height = override
+        # Der Augen-Schalter gilt auch für Datenebenen. Unsichtbare Rollen
+        # verhalten sich wie fehlende Rollen und degradieren auf das Farbmotiv.
+        if height is not None and not height.visible:
+            height = None
+        if gloss is not None and not gloss.visible:
+            gloss = None
 
         if self._preview_mode is PreviewMode.COLOR:
             return base
@@ -531,7 +545,7 @@ class ImageCanvas(QGraphicsView):
             return gloss_overlay(gloss.image, intensity=1.0)
 
         rendered = base
-        if height is not None:
+        if height is not None and self._relief_strength > 0:
             shading = relief_shading(
                 layer_to_height(height.image),
                 azimuth=315.0,
@@ -576,10 +590,39 @@ class ImageCanvas(QGraphicsView):
             self._preview_render_cache = (key, rendered)
         return rendered
 
+    def _clear_transient_preview(self) -> None:
+        """Entfernt Quell-Override und gerendertes Bild einer Live-Vorschau."""
+        self._preview_layer_override = None
+        self._preview = None
+
+    def _render_transient_preview(self) -> Image.Image | None:
+        """Rendert einen temporären Layer-Inhalt durch die aktuelle Pipeline.
+
+        Das Projekt wird nur für die Dauer dieses synchronen Renderaufrufs
+        substituiert. Revision, History, Dirty-State und Export sehen weiterhin
+        ausschließlich das unveränderte Modell. Der normale Ein-Bild-Cache wird
+        beidseitig verworfen, damit weder Modell- noch Vorschaupixel darin hängen
+        bleiben.
+        """
+        if self._project is None or self._preview_layer_override is None:
+            return None
+        layer_id, preview_image = self._preview_layer_override
+        layer = self._project.layer_by_id(layer_id)
+        original = layer.image
+        self._preview_render_cache = None
+        try:
+            layer.image = preview_image
+            return self._render_image()
+        finally:
+            layer.image = original
+            self._preview_render_cache = None
+
     def _refresh_image(self) -> None:
-        # Eine aktive transiente Vorschau (#348 Höhe / #360 Farbe) hat Vorrang vor
-        # dem Modell-Render; sie ist rein transient (kein Modell-/Speicherzustand).
-        if self._preview is not None:
+        # Live-Bearbeitungen liefern temporäre Layerpixel in dieselbe explizite
+        # Vorschau-Pipeline. Anzeigeparameter können sie dadurch sofort neu
+        # rendern, ohne Projekt- oder Exportzustand zu mutieren (#397).
+        if self._preview_layer_override is not None:
+            self._preview = self._render_transient_preview()
             self._viewport.refresh_image(self._preview)
             return
         self._viewport.refresh_image(self._render_image())
@@ -637,7 +680,7 @@ class ImageCanvas(QGraphicsView):
         # Eine transiente Höhen-Vorschau (#348) gilt nur für den vorherigen
         # Zustand; jeder Bildzustandswechsel (Edit/Commit/Undo/Laden/Ebenenwechsel)
         # verwirft sie, bevor neu gerendert wird.
-        self._preview = None
+        self._clear_transient_preview()
         active = self._project.active_layer() if self._project is not None else None
         self._pil = active.image if active is not None else None
         # Read-only-Sicht reicht: flood_fill/remove_selection/replace_selection
@@ -1029,14 +1072,17 @@ class ImageCanvas(QGraphicsView):
             # Vorschau still überspringen statt den Nutzer mit Meldungen zu
             # fluten; der Commit (apply_height_op) meldet den Fehler dagegen.
             return
-        self._preview = height_to_layer(result)
+        assert self._project is not None
+        active = self._project.active_layer()
+        assert active is not None
+        self._preview_layer_override = (active.id, height_to_layer(result))
         self._refresh_image()
 
     def cancel_height_preview(self) -> None:
         """Verwirft eine aktive Höhen-Vorschau und zeigt wieder den Modellzustand."""
-        if self._preview is None:
+        if self._preview_layer_override is None:
             return
-        self._preview = None
+        self._clear_transient_preview()
         self._refresh_image()
 
     @_requires_image
@@ -1061,11 +1107,11 @@ class ImageCanvas(QGraphicsView):
         try:
             result = op(field)
         except HeightMapError as e:
-            self._preview = None
+            self._clear_transient_preview()
             self._refresh_image()
             self.statusMsg.emit(tr("canvas.height_op_error", error=e))
             return
-        self._preview = None
+        self._clear_transient_preview()
         self._run_height_edit(
             result,
             desc if desc is not None else tr("history.desc.height_optimized"),
@@ -1101,27 +1147,14 @@ class ImageCanvas(QGraphicsView):
         active = self._active_color_layer()
         if active is None:
             return
-        original = active.image
-        # Die transiente Modellsubstitution teilt absichtlich keine
-        # Content-Revision mit echten Edits. Daher den Modus-Cache vor und nach
-        # dem temporären Render explizit verwerfen, sonst könnte er das alte
-        # beziehungsweise nur vorgeschobene Layerbild wiederverwenden.
-        self._preview_render_cache = None
-        try:
-            active.image = op(original)
-            render = self._render_image()
-        finally:
-            # Modell unangetastet lassen – nur die Anzeige zeigt das Ergebnis.
-            active.image = original
-            self._preview_render_cache = None
-        self._preview = render
+        self._preview_layer_override = (active.id, op(active.image))
         self._refresh_image()
 
     def cancel_color_preview(self) -> None:
         """Verwirft eine aktive Farb-Vorschau und zeigt wieder den Modellzustand."""
-        if self._preview is None:
+        if self._preview_layer_override is None:
             return
-        self._preview = None
+        self._clear_transient_preview()
         self._refresh_image()
 
     @_requires_image
@@ -1141,12 +1174,12 @@ class ImageCanvas(QGraphicsView):
         """
         active = self._active_color_layer()
         if active is None:
-            self._preview = None
+            self._clear_transient_preview()
             self._refresh_image()
             self.statusMsg.emit(tr("canvas.not_color_layer"))
             return
         result = op(active.image)
-        self._preview = None
+        self._clear_transient_preview()
         self._apply_pil(
             result,
             desc=desc if desc is not None else tr("history.desc.color_adjusted"))

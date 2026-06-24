@@ -306,6 +306,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Aperçu du canevas cohérent après la fin de la phase 1.** Les aperçus en direct
+  de couleur et de hauteur passent désormais par le mode choisi comme contenu de
+  calque temporaire ; le mode, l'intensité du relief et le commutateur de brillance
+  agissent immédiatement sans modifier le modèle ni l'export. Les calques de rôle
+  Height/Gloss masqués ne sont plus rendus et un relief à 0 évite entièrement le
+  hillshade coûteux (#397, suivi de #396).
 - **Export d'image avec un calque de hauteur actif.** « Enregistrer l'image »
   écrit de nouveau le composite COLOR indépendamment du calque d'édition actif.
   La vue HEIGHT en niveaux de gris reste limitée au canevas et ne peut plus être

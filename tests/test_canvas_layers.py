@@ -510,6 +510,112 @@ def test_preview_controls_are_live_but_do_not_dirty_document(qapp) -> None:
     ]
 
 
+def test_transient_color_preview_rerenders_for_display_settings(qapp) -> None:
+    """Modus/Relief/Gloss bleiben während einer Farb-Live-Vorschau wirksam."""
+    canvas = ImageCanvas()
+    project = _preview_project()
+    color = next(layer for layer in project.layers if layer.kind is LayerKind.COLOR)
+    project.set_active(color.id)
+    canvas.set_project(project)
+    model_before = np.array(color.image).copy()
+    export_before = np.array(project.composite_color())
+    revision = canvas.content_revision
+
+    canvas.preview_color_op(lambda image: _solid(*image.size, (180, 120, 90, 200)))
+    color_preview = np.array(canvas._preview)
+    canvas.set_preview_mode(PreviewMode.COMBINED)
+    combined = np.array(canvas._preview)
+    canvas.set_relief_strength(0)
+    without_relief = np.array(canvas._preview)
+    canvas.set_gloss_visible(False)
+    without_gloss = np.array(canvas._preview)
+
+    assert not np.array_equal(combined, color_preview)
+    assert not np.array_equal(without_relief, combined)
+    assert not np.array_equal(without_gloss, without_relief)
+    assert canvas._preview_layer_override is not None
+    assert np.array_equal(np.array(color.image), model_before)
+    assert np.array_equal(np.array(project.composite_color()), export_before)
+    assert canvas.content_revision == revision
+
+
+def test_transient_height_preview_rerenders_for_display_settings(qapp) -> None:
+    """HEIGHT-Live-Pixel laufen als temporärer Layer durch die Modus-Pipeline."""
+    canvas = ImageCanvas()
+    project = _color_plus_height(100)
+    canvas.set_project(project)
+    model_before = np.array(project.active_layer().image).copy()
+    canvas.set_preview_mode(PreviewMode.HEIGHT)
+
+    canvas.preview_height_op(_levels_op)
+    height_preview = np.array(canvas._preview)
+    canvas.set_preview_mode(PreviewMode.RELIEF)
+    relief_preview = np.array(canvas._preview)
+    canvas.set_relief_strength(0)
+    no_relief = np.array(canvas._preview)
+
+    assert np.all(height_preview[:, :, :3] == 128)
+    assert not np.array_equal(relief_preview, height_preview)
+    assert np.array_equal(no_relief, np.array(project.composite_color()))
+    assert canvas._preview_layer_override is not None
+    assert np.array_equal(np.array(project.active_layer().image), model_before)
+
+
+def test_hidden_data_layers_are_excluded_from_all_preview_modes(qapp) -> None:
+    canvas = ImageCanvas()
+    project = _preview_project()
+    canvas.set_project(project)
+    color = np.array(project.composite_color())
+    height = project.layer_by_role(LayerRole.HEIGHT_MAP)
+    gloss = project.layer_by_role(LayerRole.GLOSS_MASK)
+    assert height is not None and gloss is not None
+
+    canvas.set_layer_visible(height.id, False)
+    canvas.set_layer_visible(gloss.id, False)
+    for mode in (
+        PreviewMode.HEIGHT,
+        PreviewMode.RELIEF,
+        PreviewMode.GLOSS,
+        PreviewMode.COMBINED,
+    ):
+        canvas.set_preview_mode(mode)
+        assert np.array_equal(np.array(canvas._render_image()), color)
+
+    canvas.set_layer_visible(height.id, True)
+    canvas.set_preview_mode(PreviewMode.RELIEF)
+    assert not np.array_equal(np.array(canvas._render_image()), color)
+    canvas.set_layer_visible(gloss.id, True)
+    canvas.set_preview_mode(PreviewMode.GLOSS)
+    assert not np.array_equal(np.array(canvas._render_image()), color)
+
+
+def test_zero_relief_strength_skips_hillshade(qapp, monkeypatch) -> None:
+    import bgremover.canvas as canvas_module
+
+    calls = 0
+    real_relief = canvas_module.relief_shading
+
+    def count_relief(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_relief(*args, **kwargs)
+
+    canvas = ImageCanvas()
+    project = _preview_project()
+    canvas.set_project(project)
+    monkeypatch.setattr(canvas_module, "relief_shading", count_relief)
+    canvas.set_relief_strength(0)
+    canvas.set_preview_mode(PreviewMode.RELIEF)
+
+    assert calls == 0
+    assert np.array_equal(
+        np.array(canvas._render_image()), np.array(project.composite_color())
+    )
+
+    canvas.set_relief_strength(1)
+    assert calls == 1
+
+
 def test_preview_cache_reuses_and_invalidates_one_render(
     qapp, monkeypatch
 ) -> None:
@@ -748,6 +854,7 @@ def _levels_op(field):
 def test_height_op_preview_is_nondestructive(qapp) -> None:
     canvas = ImageCanvas()
     canvas.set_project(_color_plus_height(100))
+    canvas.set_preview_mode(PreviewMode.HEIGHT)
 
     canvas.preview_height_op(_levels_op)
     assert canvas._preview is not None
@@ -762,6 +869,7 @@ def test_height_op_commit_is_undoable(qapp) -> None:
     canvas.preview_height_op(_levels_op)
     canvas.apply_height_op(_levels_op)
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 128)
 
     canvas.undo()
@@ -775,6 +883,7 @@ def test_height_op_cancel_restores_model(qapp) -> None:
     canvas.preview_height_op(_levels_op)
     canvas.cancel_height_preview()
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
     assert np.all(np.array(canvas.project.active_layer().image)[:, :, 0] == 100)
 
 
@@ -788,6 +897,7 @@ def test_height_preview_cleared_on_layer_switch(qapp) -> None:
     assert canvas._preview is not None
     canvas.set_active_layer(color_id)               # Zustandswechsel verwirft Vorschau
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
 
 
 def test_height_op_requires_height_layer(qapp) -> None:
@@ -866,6 +976,7 @@ def test_color_commit_is_single_undoable_step(qapp) -> None:
     canvas.preview_color_op(_brighten_op)
     canvas.apply_color_op(_brighten_op)
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
     assert np.all(np.array(canvas.image)[:, :, 0] == 150)
     assert canvas._history.descriptions() == ["Farbkorrektur"]      # genau ein Schritt
 
@@ -883,6 +994,7 @@ def test_color_cancel_restores_model(qapp) -> None:
     canvas.preview_color_op(_brighten_op)
     canvas.cancel_color_preview()
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
     assert np.array_equal(np.array(canvas.image), before)
 
 
@@ -895,6 +1007,7 @@ def test_color_preview_cleared_on_layer_switch(qapp) -> None:
     assert canvas._preview is not None
     canvas.set_active_layer(project.layers[1].id)   # Zustandswechsel verwirft Vorschau
     assert canvas._preview is None
+    assert canvas._preview_layer_override is None
 
 
 def test_color_tools_ignore_non_color_layer(qapp) -> None:

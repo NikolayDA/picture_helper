@@ -269,6 +269,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Consistent canvas preview after the phase-1 completion.** Color and height
+  live previews now pass through the selected mode pipeline as temporary layer
+  contents, so mode, relief strength, and the gloss toggle update immediately
+  without changing the model or export. Hidden height/gloss role layers are no
+  longer rendered, and relief strength 0 skips the expensive hillshade entirely
+  (#397, follow-up to #396).
 - **Image export with an active height layer.** “Save Image” once again writes
   the COLOR composite regardless of the active editing layer. The grayscale
   HEIGHT view remains canvas-only and can no longer be silently exported as a

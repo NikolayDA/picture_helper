@@ -71,8 +71,9 @@ Ein Paket, `bgremover/`:
   (#365). Geteilte Tonwert-/Graustufen-Primitive (Synergie
   mit der späteren geteilten Engine). Im Canvas als generische Live-Vorschau verdrahtet:
   `preview_height_op`/`cancel_height_preview` (transient, ohne Modelländerung) und
-  `apply_height_op` (Commit, undo-/redobar); die Vorschau hat in `_refresh_image` Vorrang
-  und wird bei jedem Zustandswechsel verworfen.
+  `apply_height_op` (Commit, undo-/redobar); transiente Farb-/Höhenpixel werden als
+  temporärer Layer-Override durch die explizite Vorschau-Pipeline gerendert und bei
+  jedem Zustandswechsel verworfen (#397).
 - **2D-Relief-/Gloss-Vorschau:** `relief_preview.py` (#385) berechnet aus einem
   `HeightField` ein neutrales, richtungsabhängiges Hillshade (Azimut/Elevation,
   8-/16-Bit-äquivalent, `coverage`-bewusst) und komponiert es multiplikativ über
@@ -81,9 +82,11 @@ Ein Paket, `bgremover/`:
   und erhalten den Alpha-Kanal des Farbmotivs bitgenau. Die Canvas-Pipeline (#387)
   bietet `COLOR`/`RELIEF`/`HEIGHT`/`GLOSS`/`COMBINED`, gecacht auf genau ein Bild
   je Content-Revision + Anzeigeparameter. Modus, Relief-Stärke und Gloss-Sichtbarkeit
-  sind reiner UI-Zustand (keine History-/Dirty-Revision). Ein Vorschau-Tab und das
-  exklusive Ansicht-Untermenü halten sich signalbasiert synchron; der UI-Hinweis
-  macht den unveränderten Bildexport ausdrücklich sichtbar (#388).
+  sind reiner UI-Zustand (keine History-/Dirty-Revision); unsichtbare Datenrollen
+  werden ignoriert und Relief-Stärke 0 überspringt das Hillshade vollständig (#397).
+  Ein Vorschau-Tab und das exklusive Ansicht-Untermenü halten sich signalbasiert
+  synchron; der UI-Hinweis macht den unveränderten Bildexport ausdrücklich sichtbar
+  (#388).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
