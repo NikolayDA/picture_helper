@@ -10,6 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **User-selectable combined 2D preview (phase-1 completion).** The canvas now
+  offers explicit modes for Color, Relief over color, Height (grayscale), Gloss,
+  and the Combined view, independent of the active layer. A one-image cache is
+  invalidated by content revision, mode, and display settings; the View menu and
+  new Preview tab stay synchronized, while relief strength and gloss visibility
+  update live. A clear notice and a mode×layer test matrix preserve the #363
+  contract: “Save image” still exports the COLOR composite only (#387, #388;
+  completes epic #384).
 - **Qt-free relief and gloss renderers for the combined 2D preview.** The new,
   strictly typed `bgremover/relief_preview.py` and `bgremover/gloss_preview.py`
   modules produce deterministic directional hillshade from `HeightField`

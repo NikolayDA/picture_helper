@@ -10,6 +10,7 @@ from bgremover.canvas import LayerInfo
 from bgremover.height_map import HeightField
 from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
+from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
 from bgremover.widgets import TopIconTabWidget
@@ -72,6 +73,9 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         preview_color=lambda op: calls.append(("preview_color",)),
         apply_color=lambda op: calls.append(("apply_color",)),
         cancel_color_preview=lambda: calls.append(("cancel_color",)),
+        set_preview_mode=lambda mode: calls.append(("preview_mode", mode)),
+        set_relief_strength=lambda value: calls.append(("relief_strength", value)),
+        set_gloss_visible=lambda visible: calls.append(("gloss_visible", visible)),
     )
 
 
@@ -80,10 +84,10 @@ def test_right_panel_builder_creates_expected_tabs(qapp):
 
     tabs = panel.frame.findChild(TopIconTabWidget)
     assert tabs is not None
-    assert tabs.count() == 7
+    assert tabs.count() == 8
     assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln", "Form",
-        "Ebenen", "Höhe",
+        "Vorschau", "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln",
+        "Form", "Ebenen", "Höhe",
     ]
 
 
@@ -91,6 +95,11 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     calls: list[tuple] = []
     panel = build_right_panel(_actions(calls), _noop_layer_actions(), _noop_height_actions())
 
+    panel.preview_mode_combo.setCurrentIndex(
+        panel.preview_mode_combo.findData(PreviewMode.RELIEF)
+    )
+    panel.preview_relief_slider.setValue(35)
+    panel.preview_gloss_visible.setChecked(False)
     panel.tolerance_slider.setValue(42)
     panel.brush_slider.setValue(55)
     panel.morph_spin.setValue(5)
@@ -119,6 +128,9 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "▮  9 : 16").click()
 
     assert calls == [
+        ("preview_mode", PreviewMode.RELIEF),
+        ("relief_strength", 35),
+        ("gloss_visible", False),
         ("tolerance", 42),
         ("brush", 55),
         ("clear",),
@@ -141,6 +153,28 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("crop_ratio", 16, 9),
         ("crop_ratio", 9, 16),
     ]
+
+
+@pytest.mark.ui_smoke
+def test_preview_tab_controls_and_export_hint(qapp) -> None:
+    from bgremover.right_panel_tabs import PreviewTab
+
+    calls: list[tuple] = []
+    _widget, refs = PreviewTab(_actions(calls)).build()
+    combo = refs["preview_mode_combo"]
+    slider = refs["preview_relief_slider"]
+    gloss = refs["preview_gloss_visible"]
+
+    combo.setCurrentIndex(combo.findData(PreviewMode.COMBINED))
+    slider.setValue(15)
+    gloss.setChecked(False)
+
+    assert calls == [
+        ("preview_mode", PreviewMode.COMBINED),
+        ("relief_strength", 15),
+        ("gloss_visible", False),
+    ]
+    assert "Bild speichern" in refs["preview_export_hint"].text()
 
 
 # ── Kantenglättung / Feather (#361) ───────────────────────────────────────

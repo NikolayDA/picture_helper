@@ -117,6 +117,12 @@ def test_english_locale_wires_through_to_ui(qapp, tmp_path) -> None:
         assert status_bar.currentMessage() == (
             "Open an image: File → Open  or  drag & drop onto the canvas"
         )
+        assert [
+            window._preview_mode_combo.itemText(i)
+            for i in range(window._preview_mode_combo.count())
+        ] == [
+            "Color", "Relief over color", "Height (grayscale)", "Gloss", "Combined"
+        ]
     finally:
         window.close()
 

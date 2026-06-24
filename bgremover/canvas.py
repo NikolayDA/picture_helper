@@ -48,6 +48,8 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
+from bgremover.gloss_preview import compose_over as compose_gloss
+from bgremover.gloss_preview import gloss_overlay
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
     LUMA_WEIGHTS_REC601,
@@ -70,6 +72,7 @@ from bgremover.image_utils import (
     mask_to_overlay,
     pil_to_numpy_readonly,
 )
+from bgremover.preview_mode import PreviewMode
 from bgremover.project_history import ProjectHistory
 from bgremover.project_model import (
     Layer,
@@ -78,6 +81,8 @@ from bgremover.project_model import (
     Project,
     role_allowed_for_kind,
 )
+from bgremover.relief_preview import compose_over as compose_relief
+from bgremover.relief_preview import relief_shading
 from bgremover.status_messages import StatusMessages as SM
 from bgremover.units import UnitsError
 
@@ -131,6 +136,7 @@ class ImageCanvas(QGraphicsView):
     imageLoaded    = pyqtSignal(str)    # absoluter Pfad eines frisch geladenen Bildes
     loadRequested  = pyqtSignal(str)    # Drop/Recent → MainWindow lädt asynchron
     wandRequested  = pyqtSignal(object, int, int, int)  # arr, x, y, tolerance
+    previewSettingsChanged = pyqtSignal(object, int, bool)  # mode, Relief-%, Gloss
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -171,6 +177,15 @@ class ImageCanvas(QGraphicsView):
         # die Ebene zu ändern. Jeder sichtbare Zustandswechsel (`_set_image_state`)
         # verwirft die Vorschau; Commit/Abbruch räumen sie explizit ab.
         self._preview: Image.Image | None = None
+        # Explizite 2D-Anzeige (#387), unabhängig von aktiver Ebene und Export.
+        # Der Cache hält absichtlich nur das zuletzt gerenderte Bild: selbst bei
+        # 40 MP wächst der Speicher damit nicht pro Modus/Reglerstellung weiter.
+        self._preview_mode = PreviewMode.COLOR
+        self._relief_strength = 70
+        self._gloss_visible = True
+        self._preview_render_cache: tuple[
+            tuple[int, PreviewMode, int, bool], Image.Image
+        ] | None = None
         self._selection = CanvasSelection(0, 0)
         # _content_revision ändert sich bei jeder sichtbaren Bildzustandsänderung.
         # Externe Worker nutzen diese Revision als Stale-Check statt
@@ -242,6 +257,54 @@ class ImageCanvas(QGraphicsView):
     def current_tool(self) -> str:
         """Aktuell aktives Werkzeug-Token (TOOL_WAND/BRUSH/ERASER/LASSO)."""
         return self._tool
+
+    @property
+    def preview_mode(self) -> PreviewMode:
+        """Aktueller expliziter Vorschaumodus (reiner Anzeigezustand)."""
+        return self._preview_mode
+
+    @property
+    def relief_strength(self) -> int:
+        """Relief-Stärke als UI-Prozentwert ``0..100``."""
+        return self._relief_strength
+
+    @property
+    def gloss_visible(self) -> bool:
+        """Ob Gloss in Gloss-/Kombiniert-Modi sichtbar ist."""
+        return self._gloss_visible
+
+    def set_preview_mode(self, mode: PreviewMode) -> None:
+        """Wechselt den Vorschaumodus ohne Modell-, History- oder Exportänderung."""
+        if not isinstance(mode, PreviewMode):
+            raise TypeError(f"mode muss PreviewMode sein, war {type(mode).__name__}")
+        if mode is self._preview_mode:
+            return
+        self._preview_mode = mode
+        self._preview_settings_updated()
+
+    def set_relief_strength(self, value: int) -> None:
+        """Setzt die live wirksame Relief-Stärke in Prozent (``0..100``)."""
+        if not 0 <= value <= 100:
+            raise ValueError(f"Relief-Stärke muss in 0..100 liegen, war {value}")
+        if value == self._relief_strength:
+            return
+        self._relief_strength = value
+        self._preview_settings_updated()
+
+    def set_gloss_visible(self, visible: bool) -> None:
+        """Schaltet Gloss live ein/aus, ohne das Projekt zu mutieren."""
+        if visible == self._gloss_visible:
+            return
+        self._gloss_visible = visible
+        self._preview_settings_updated()
+
+    def _preview_settings_updated(self) -> None:
+        """Invalidiert den Ein-Bild-Cache und synchronisiert Canvas sowie UI."""
+        self._preview_render_cache = None
+        self._refresh_image()
+        self.previewSettingsChanged.emit(
+            self._preview_mode, self._relief_strength, self._gloss_visible
+        )
 
     @property
     def version(self) -> int:
@@ -443,23 +506,75 @@ class ImageCanvas(QGraphicsView):
             return layers[0].image
         return self._project.composite_color()
 
-    def _render_image(self) -> Image.Image | None:
-        """Das auf dem Canvas anzuzeigende Bild.
+    def _render_preview_uncached(self) -> Image.Image | None:
+        """Rendert die modusgesteuerte Vorschau einmalig aus dem Projektzustand.
 
-        Höhen-Sicht (#345): Ist die **aktive** Ebene eine HEIGHT-Ebene, wird sie
-        graustufig dargestellt (``layer_to_gray_image``) statt des COLOR-Komposits
-        – die Höhenkarte ist sonst unsichtbar, weil ``composite_color`` nur
-        COLOR-Ebenen rendert. Andere Ebenentypen zeigen das normale COLOR-Komposit.
-
-        Der Bildexport nutzt getrennt :meth:`_render_export_image`, damit der
-        aktive Bearbeitungskontext niemals den gespeicherten Inhalt verändert.
+        Fehlende Height-/Gloss-Rollen degradieren bewusst auf das COLOR-Komposit,
+        statt eine leere oder veraltete Ansicht zu zeigen. Der Gloss-Modus zeigt
+        bei vorhandener Maske deren getönten Overlay allein; „kombiniert" legt
+        Relief und optional Gloss in dieser Reihenfolge über das Farbmotiv.
         """
         if self._project is None:
             return None
-        active = self._project.active_layer()
-        if active is not None and active.kind is LayerKind.HEIGHT:
-            return layer_to_gray_image(active.image)
-        return self._render_export_image()
+        base = self._render_export_image()
+        assert base is not None
+        height = self._project.layer_by_role(LayerRole.HEIGHT_MAP)
+        gloss = self._project.layer_by_role(LayerRole.GLOSS_MASK)
+
+        if self._preview_mode is PreviewMode.COLOR:
+            return base
+        if self._preview_mode is PreviewMode.HEIGHT:
+            return layer_to_gray_image(height.image) if height is not None else base
+        if self._preview_mode is PreviewMode.GLOSS:
+            if gloss is None or not self._gloss_visible:
+                return base
+            return gloss_overlay(gloss.image, intensity=1.0)
+
+        rendered = base
+        if height is not None:
+            shading = relief_shading(
+                layer_to_height(height.image),
+                azimuth=315.0,
+                elevation=45.0,
+                strength=1.0,
+            )
+            rendered = compose_relief(
+                rendered, shading, strength=self._relief_strength / 100.0
+            )
+        if (
+            self._preview_mode is PreviewMode.COMBINED
+            and gloss is not None
+            and self._gloss_visible
+        ):
+            overlay = gloss_overlay(gloss.image, intensity=1.0)
+            rendered = compose_gloss(rendered, overlay, intensity=1.0)
+        return rendered
+
+    def _render_image(self) -> Image.Image | None:
+        """Gibt die gecachte, explizite 2D-Vorschau zurück (#387).
+
+        Der Schlüssel koppelt genau ein Cache-Bild an Content-Revision, Modus und
+        beide Anzeigeparameter. Aktive Ebene, Undo/Redo und Pixel-/Layeränderungen
+        laufen durch die bestehenden Revisionserhöhungen und invalidieren damit
+        automatisch. Der getrennte Export nutzt weiterhin ausschließlich
+        :meth:`_render_export_image` (#363-Vertrag).
+        """
+        if self._project is None:
+            return None
+        key = (
+            self._content_revision,
+            self._preview_mode,
+            self._relief_strength,
+            self._gloss_visible,
+        )
+        if self._preview_render_cache is not None:
+            cached_key, cached_image = self._preview_render_cache
+            if cached_key == key:
+                return cached_image
+        rendered = self._render_preview_uncached()
+        if rendered is not None:
+            self._preview_render_cache = (key, rendered)
+        return rendered
 
     def _refresh_image(self) -> None:
         # Eine aktive transiente Vorschau (#348 Höhe / #360 Farbe) hat Vorrang vor
@@ -987,12 +1102,18 @@ class ImageCanvas(QGraphicsView):
         if active is None:
             return
         original = active.image
+        # Die transiente Modellsubstitution teilt absichtlich keine
+        # Content-Revision mit echten Edits. Daher den Modus-Cache vor und nach
+        # dem temporären Render explizit verwerfen, sonst könnte er das alte
+        # beziehungsweise nur vorgeschobene Layerbild wiederverwenden.
+        self._preview_render_cache = None
         try:
             active.image = op(original)
             render = self._render_image()
         finally:
             # Modell unangetastet lassen – nur die Anzeige zeigt das Ergebnis.
             active.image = original
+            self._preview_render_cache = None
         self._preview = render
         self._refresh_image()
 

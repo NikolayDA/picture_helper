@@ -37,6 +37,11 @@ bleiben die maßgebliche Baseline vor neuen PRs.
   `color_ops.adjust_color`, alpha-erhaltend, #360) und Kantenglättung/Feather der
   Alphakante (`image_ops.feather_alpha`, #361) – alle undo-/redobar und
   verlustfrei im `.bgrproj` (PR #362).
+- **N12 ✅ — Kombinierte 2D-Vorschau (Epic #384) umgesetzt.** Qt-freie Relief-/
+  Gloss-Renderer (#385/#386), explizite und aktive-Ebene-unabhängige Canvas-Modi
+  mit begrenztem Cache (#387) sowie synchrones Ansicht-Menü/Vorschau-Panel mit
+  Live-Stärke und Gloss-Schalter (#388); der #363-Exportvertrag bleibt durch die
+  vollständige Modus×Layer-Testmatrix bitgenau geschützt.
 - **#363 ✅ — Export-Regression behoben (PR #367).** „Bild speichern“ schreibt
   wieder unabhängig von der aktiven Ebene das COLOR-Komposit; Anzeige- und
   Export-Rendering sind getrennt, mit Pixel-Regressionstest abgesichert.
@@ -54,15 +59,11 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-06-24, aktualisiert)
 
-Stand 2026-06-24 zeigt GitHub nach Abschluss von #385/#386 **12** offene Issues. Das Epic **#375** (maßgenaue
-mm/DPI-Ausgabe + allgemeine Exportprüfung) ist über **#376–#380** abgeschlossen
-(PR #382/#383) und geschlossen. Seit der letzten Triage sind **zwei neue Epics**
-hinzugekommen, die den Abschluss von Phase 0/1 strukturieren:
+Stand 2026-06-24 zeigt GitHub nach Abschluss von #384/#387/#388 **9** offene
+Issues. Die Epics **#375** (maßgenaue mm/DPI-Ausgabe + Exportprüfung) und **#384**
+(kombinierte 2D-Vorschau) sind abgeschlossen und geschlossen. Als Roadmap-Epic
+verbleibt:
 
-- **#384 – Kombinierte 2D-Vorschau** (Reliefkern-MVP, letzter offener
-  Funktionspunkt von Phase 1): Die Qt-freien Renderer **#385/#386** sind umgesetzt;
-  offen bleiben **#387** (Canvas-Vorschaumodi + Komposit-Pipeline) und **#388**
-  (UI-Toggles + i18n).
 - **#389 – Nutzer-Doku aktualisieren & Release v2.5.0 schneiden** mit den
   Sub-Issues **#390** (Nutzerhandbuch ANLEITUNG, 6 Sprachen – schließt **#357**
   mit ab), **#391** (README + Screenshots + i18n) und **#392** (Release v2.5.0).
@@ -82,13 +83,10 @@ geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#384](https://github.com/NikolayDA/picture_helper/issues/384) | [Epic] Kombinierte 2D-Vorschau (Farbe/Transparenz/Relief/Gloss) | 🟠 Hoch | 🔴 Hoch (Epic) | **In Arbeit (Epic)** – Renderer #385/#386 erledigt; als Nächstes #387 → #388. |
-| [#387](https://github.com/NikolayDA/picture_helper/issues/387) | Canvas: Vorschaumodi + Komposit-Pipeline | 🟠 Hoch | 🟠 Mittel–Hoch | **Ready for PR** – Renderer-Abhängigkeiten #385/#386 erfüllt; #363-Export-Vertrag per Regressionstest wahren. |
-| [#388](https://github.com/NikolayDA/picture_helper/issues/388) | UI: Vorschaumodus-Auswahl + Relief-/Gloss-Toggles + i18n | 🟡 Mittel | 🟡 Mittel | **Blocked** – braucht #387; schließt Epic #384 ab. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟡 Mittel (Epic) | **In Arbeit (Epic)** – #390/#391 parallel jetzt → (Epic #384 mergen) → #392. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟡 Mittel (Epic) | **In Arbeit (Epic)** – #390/#391 parallel → #392. |
 | [#390](https://github.com/NikolayDA/picture_helper/issues/390) | Nutzerhandbuch ANLEITUNG (+ 5 i18n) auf neue Features | 🟠 Hoch | 🔴 Hoch (L, 6 Sprachen) | **Ready for PR** – gut abgegrenzt, aber umfangreich; schließt **#357** mit ab. |
 | [#391](https://github.com/NikolayDA/picture_helper/issues/391) | README + Screenshots + i18n aktualisieren | 🟡 Mittel–Hoch | 🟡 Mittel | **Ready for PR (mit Vorbehalt)** – Textanteil sofort umsetzbar; Screenshots brauchen einen aktuellen App-Lauf. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Blocked** – braucht #390 + #391, idealerweise nach #384. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Blocked** – braucht #390 + #391. |
 | [#357](https://github.com/NikolayDA/picture_helper/issues/357) | Doku: Start-mit-Pfad/Finder-Öffnen fehlt in ANLEITUNG §4 | 🟢 Niedrig | 🟢 Niedrig | **In #390 zusammengeführt** – als kleine Einzel-PR weiterhin möglich, wird aber regulär mit #390 geschlossen. |
 | [#339](https://github.com/NikolayDA/picture_helper/issues/339) | HEIC/HEIF nicht als Eingabeformat unterstützt | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (Doku)** – HEIC bewusst ausgeschlossen (Kommentar 2026-06-21). Nur noch README/ANLEITUNG klarstellen, dann schließen. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR (opportunistisch)** – kein Produkt-/CI-Blocker; höchster Nutzen zuerst (Lasso-Endpunkt asserten, `test_helpers`-Zeile, `set_brush_size`-Tests konsolidieren). |
@@ -97,12 +95,10 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#387** → **#388** anschließen und damit Epic **#384** (kombinierte
-   2D-Vorschau) abschließen; den #363-Export-Vertrag per Regressionstest wahren.
-2. **#390** und **#391** parallel als Doku-PRs (schließt **#357** mit ab);
+1. **#390** und **#391** parallel als Doku-PRs (schließt **#357** mit ab);
    **#339** als kleine Einzel-PR einstreuen.
-3. **#392** (Release v2.5.0) erst nach #390/#391 und idealerweise nach #384.
-4. **#299** opportunistisch bereinigen; **#318** bis zum Semantik-Beleg
+2. **#392** (Release v2.5.0) erst nach #390/#391.
+3. **#299** opportunistisch bereinigen; **#318** bis zum Semantik-Beleg
    zurückstellen und **#245** extern blockiert lassen.
 
 ## Vorige Runden

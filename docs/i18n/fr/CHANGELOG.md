@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Aperçu 2D combiné sélectionnable par l'utilisateur (fin de phase 1).** Le
+  canevas propose désormais les modes explicites Couleur, Relief sur couleur,
+  Hauteur (niveaux de gris), Gloss et Combiné, indépendants du calque actif. Un
+  cache limité à une image est invalidé par révision du contenu, mode et réglages
+  d'affichage ; le menu Affichage et le nouvel onglet Aperçu restent synchronisés,
+  tandis que l'intensité du relief et la visibilité du gloss agissent en direct.
+  Un avis clair et une matrice de tests mode×calque préservent le contrat #363 :
+  « Enregistrer l'image » exporte toujours uniquement le composite COLOR (#387,
+  #388 ; achève l'epic #384).
 - **Moteurs de relief et de gloss sans Qt pour l'aperçu 2D combiné.** Les nouveaux
   modules strictement typés `bgremover/relief_preview.py` et
   `bgremover/gloss_preview.py` produisent un hillshade directionnel déterministe à

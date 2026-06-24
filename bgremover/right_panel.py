@@ -7,6 +7,8 @@ from typing import Protocol, cast
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QFrame,
     QLabel,
     QPushButton,
@@ -22,9 +24,11 @@ from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
+from bgremover.preview_mode import PreviewMode
 from bgremover.right_panel_tabs import (
     AdjustTab,
     BackgroundTab,
+    PreviewTab,
     SelectionTab,
     ShapeTab,
     TransformTab,
@@ -72,6 +76,9 @@ class RightPanelActions:
     preview_color: Callable[[ColorOp], None]
     apply_color: Callable[[ColorOp], None]
     cancel_color_preview: Callable[[], None]
+    set_preview_mode: Callable[[PreviewMode], None]
+    set_relief_strength: Callable[[int], None]
+    set_gloss_visible: Callable[[bool], None]
 
 
 @dataclass(frozen=True)
@@ -89,6 +96,10 @@ class RightPanel:
     rotation_spin: QSpinBox
     corner_label: QLabel
     corner_slider: QSlider
+    preview_mode_combo: QComboBox
+    preview_relief_label: QLabel
+    preview_relief_slider: QSlider
+    preview_gloss_visible: QCheckBox
     layer_panel: LayerPanel
     height_panel: HeightMapPanel
 
@@ -134,6 +145,7 @@ class _RightPanelBuilder:
         outer.addWidget(tabs)
 
         builders: list[_TabBuilder] = [
+            PreviewTab(self._actions),
             SelectionTab(self._actions),
             BackgroundTab(self._actions),
             AdjustTab(self._actions),
@@ -143,6 +155,11 @@ class _RightPanelBuilder:
             self._height_panel,
         ]
         tab_specs = [
+            (
+                tr("right_panel.tab.preview"),
+                "transparency",
+                tr("right_panel.tab.preview.tooltip"),
+            ),
             (
                 tr("right_panel.tab.selection"),
                 "clear_sel",
@@ -199,6 +216,10 @@ class _RightPanelBuilder:
             rotation_spin=cast(QSpinBox, refs["rotation_spin"]),
             corner_label=cast(QLabel, refs["corner_label"]),
             corner_slider=cast(QSlider, refs["corner_slider"]),
+            preview_mode_combo=cast(QComboBox, refs["preview_mode_combo"]),
+            preview_relief_label=cast(QLabel, refs["preview_relief_label"]),
+            preview_relief_slider=cast(QSlider, refs["preview_relief_slider"]),
+            preview_gloss_visible=cast(QCheckBox, refs["preview_gloss_visible"]),
             layer_panel=self._layer_panel,
             height_panel=self._height_panel,
         )
