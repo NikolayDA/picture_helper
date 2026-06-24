@@ -12,7 +12,7 @@
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
-Un outil de retouche d'image pour macOS et Linux permettant de **supprimer, remplacer et modifier les arrière-plans** — avec détourage automatique basé sur l'IA, sélection à la baguette magique, pinceau/gomme, lasso polygonal, recadrage dans différents formats, rotation, miroir et arrondi des coins.
+Un outil de retouche d'image pour macOS et Linux permettant de **détourer, modifier et préparer des motifs pour l'impression** — de la suppression d'arrière-plan par IA, en passant par les calques, les projets et les cartes de hauteur, jusqu'à l'**export d'assets pour l'impression UV (EufyMake Studio)**. Avec baguette magique, pinceau/gomme, lasso polygonal, recadrage dans différents formats, rotation, miroir, arrondi des coins et correction des couleurs.
 
 ## Fonctionnalités
 
@@ -24,18 +24,42 @@ Un outil de retouche d'image pour macOS et Linux permettant de **supprimer, remp
 - **✂ Recadrage** avec grille des tiers : cercle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
 - **⟲ Rotation** par pas de 90° ou selon un angle quelconque ; **↔ Miroir** horizontal/vertical.
 - **⬤ Arrondir les coins** avec un rayon réglable.
-- **📐 Redimensionner** – mettre l'image/le projet à l'échelle d'une résolution cible en pixels (lier le rapport d'aspect, méthode de rééchantillonnage au choix).
+- **📐 Taille et dimensions physiques** – mettre à l'échelle vers une résolution cible en pixels **ou** via les millimètres et les DPI (lier le rapport d'aspect, méthode de rééchantillonnage au choix) ; avec contrôle de la zone d'impression face à un support cible (p. ex. A4/A3).
 - **🎚 Correction des couleurs** – luminosité, contraste et saturation du calque actif avec aperçu en direct (préserve l'alpha).
 - **🪶 Lisser le bord** – bord de détourage doux (fondu alpha), limité à la sélection, après détourage par IA ou manuel.
+- **🗂 Calques et projets** – gérer plusieurs calques (couleur, hauteur, brillance, générique) avec des rôles et enregistrer et ouvrir l'ensemble sans perte en tant que projet `.bgrproj`.
+- **🏔 Cartes de hauteur** – générer, modifier et optimiser une carte de hauteur en niveaux de gris à partir d'une image (clair = haut) : la base du relief et de l'impression UV.
+- **👁 Aperçu 2D** – vérifier la couleur, le relief sur couleur, la hauteur et la brillance à l'écran ; affichage seul, l'export d'image reste le motif couleur.
 - **↩ Historique** avec annulation et retour à n'importe quelle étape antérieure.
 - **📥 Glisser-déposer** des images directement sur la fenêtre.
+- **📂 Formats d'entrée** – ouvre **PNG, JPEG, WebP, TIFF, BMP et GIF**. **HEIC/HEIF n'est actuellement pas pris en charge.**
 - Enregistrement en **PNG** (avec transparence), **JPEG** (sur fond blanc), **WebP** ou **TIFF**.
 - **⚙ Paramètres persistants** – les répertoires par défaut et le format de fichier préféré restent enregistrés ; le fichier journal peut être localisé depuis les paramètres et son dossier peut être ouvert.
 - **🖨 Export pour EufyMake Studio** – écrit des assets d’import (motif couleur en PNG RGBA, carte de hauteur facultative avec clair = haut, masque de brillance facultatif) avec un contrôle préalable et les étapes suivantes dans Studio. BgRemover ne crée **pas** de fichier `.empf` natif : l’import, le positionnement et l’attribution du mode d’encre se font dans EufyMake Studio.
 
 ## Captures d'écran
 
-![BgRemover – fenêtre principale](../../screenshot.png)
+![BgRemover – fenêtre principale avec le panneau des calques](../../screenshot.png)
+
+*Fenêtre principale avec le panneau des calques (à droite) : un projet composé
+d'un calque de motif couleur et d'un calque de hauteur, avec attribution des
+rôles.*
+
+![Espace de travail des cartes de hauteur](../../screenshot_height.png)
+
+*L'onglet Hauteur : obtenir, modifier et optimiser une carte de hauteur – la vue
+en niveaux de gris montre clair = haut.*
+
+![Aperçu 2D : relief et brillance sur la couleur](../../screenshot_preview.png)
+
+*L'aperçu 2D combiné superpose relief et brillance au motif couleur – affichage
+seul, l'export ne change pas.*
+
+![Boîte de dialogue d'export pour EufyMake Studio](../../screenshot_export.png)
+
+*La boîte de dialogue d'export produit des assets d'import (motif couleur, carte
+de hauteur et masque de brillance facultatifs) avec un contrôle préalable –
+**pas** un fichier `.empf` natif.*
 
 ## Prérequis
 
@@ -140,14 +164,15 @@ Pillow, numpy en paquets système via `apt`) ; voir également
 
 ## Utilisation
 
-1. **Ouvrir une image** via `Fichier → Ouvrir` (⌘O) ou par glisser-déposer dans la fenêtre.
-2. **Effectuer une sélection** avec la baguette magique, le pinceau, la gomme ou le lasso polygonal (onglet *🎯 Sélection*).
+1. **Ouvrir une image** via `Fichier → Ouvrir` (⌘O), par glisser-déposer dans la fenêtre ou avec un chemin de démarrage (CLI / Finder).
+2. **Effectuer une sélection** avec la baguette magique, le pinceau, la gomme ou le lasso polygonal (onglet *Sélection*).
    - `Maj+Clic` ajoute à la sélection ; `⌘+Clic` (macOS) ou `Ctrl+Clic` (Linux) retire.
    - Changer d'outil au clavier : `W` baguette, `B` pinceau, `E` gomme, `L` lasso.
-3. **Modifier l'arrière-plan** (onglet *🖼 Arr.-plan*) : le rendre transparent ou remplacer la couleur — ou directement l'**IA** dans la barre d'outils.
-4. **Transformer l'image** (onglet *⟲ Trans.*) : pivoter, mettre en miroir.
-5. **Forme et recadrage** (onglet *⬤ Forme*) : arrondir les coins ou recadrer au format — déplacer/redimensionner le cadre, puis ✓ Appliquer.
-6. **Enregistrer** via `Fichier → Enregistrer` (⌘S) en PNG, JPEG, WebP ou TIFF.
+3. **Modifier l'arrière-plan** (onglet *Arrière-plan*) : le rendre transparent, remplacer la couleur ou lisser le bord — ou directement l'**IA** dans la barre d'outils.
+4. **Optimiser et transformer** (onglets *Ajuster* et *Rotation/Miroir*) : ajuster luminosité/contraste/saturation, pivoter, mettre en miroir, redimensionner.
+5. **Forme et recadrage** (onglet *Forme*) : arrondir les coins ou recadrer au format — déplacer/redimensionner le cadre, puis ✓ Appliquer.
+6. **Calques, hauteur et aperçu** (onglets *Calques*, *Hauteur*, *Aperçu*) : gérer les calques du projet, générer/modifier une carte de hauteur et vérifier le résultat en relief/brillance.
+7. **Enregistrer** via `Fichier → Enregistrer` (⌘S) en PNG, JPEG, WebP ou TIFF — ou `Projet → Exporter des assets pour EufyMake Studio…` pour l'impression UV.
 
 ### Paramètres
 
@@ -178,6 +203,11 @@ Sur macOS, la touche modificatrice est **⌘ (Cmd)** ; sur Linux, **Ctrl**.
 | Ouvrir une image | ⌘O |
 | Enregistrer l'image | ⌘S |
 | Enregistrer l'image sous… | ⇧⌘S |
+| Nouveau projet | ⌘N |
+| Ouvrir un projet… | ⇧⌘O |
+| Enregistrer le projet | ⌥⌘S |
+| Redimensionner… | ⌘R |
+| Exporter des assets pour EufyMake Studio… | ⌥⌘E |
 | Annuler | ⌘Z |
 | Rétablir | ⇧⌘Z |
 | Pivoter de 90° à gauche | ⌘← |
@@ -242,9 +272,10 @@ BgRemover est un paquet installable (`bgremover/`, lancé via
   les piles d'annulation/rétablissement et les outils (baguette magique, pinceau, lasso, recadrage).
 - **`MainWindow`** construit la barre d'outils, la barre d'état/recadrage,
   et relie le canevas, les menus, le panneau droit et les workers.
-- **`right_panel`** construit les quatre onglets droits pour la sélection,
-  l'arrière-plan, la rotation/miroir et la forme/recadrage à partir d'un
-  jeu de callbacks.
+- **`right_panel`** construit les huit onglets droits (Aperçu, Sélection,
+  Arrière-plan, Ajuster, Rotation/Miroir, Forme, Calques, Hauteur) à partir d'un
+  jeu de callbacks ; `project_model`/`height_map` fournissent le modèle de
+  calques et de hauteur sans Qt.
 - **`menu_actions`** construit la barre de menus, les actions et les
   raccourcis ; `MainWindow` ne fournit plus que les callbacks.
 - **`RecentFiles`** encapsule la persistance, la déduplication et
@@ -264,6 +295,9 @@ BgRemover est un paquet installable (`bgremover/`, lancé via
 
 ## Limitations connues
 
+- **Formats d'entrée :** **PNG, JPEG, WebP, TIFF, BMP et GIF** sont pris en charge.
+  **HEIC/HEIF n'est actuellement pas pris en charge** (pas de `pillow-heif`) ; ces
+  fichiers sont refusés de façon contrôlée comme format non pris en charge.
 - **Taille d'image maximale : 40 mégapixels.** Les images plus grandes sont refusées avec un
   message d'état afin de limiter l'utilisation de la mémoire et le temps
   de traitement. La sélection à la baguette magique (flood-fill) s'exécute
