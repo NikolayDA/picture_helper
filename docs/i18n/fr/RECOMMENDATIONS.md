@@ -22,8 +22,8 @@ restent la baseline avant de nouveaux PRs.
   extensions, sauvegarde atomique, paquets Qt CI, import paresseux et docstring.
 - **O2/O3/O4/O5/O6** sont implémentés : paquets Linux, workflow de release,
   matrice complète, `ui_smoke` et raccourcis adaptés aux plateformes.
-- Les anciens constats clos (**#163–#290**, dont l'epic EufyMake **#351**/**#352–#355**
-  et le sous-processus rembg/ONNX **#270**/**#285**/**#286**) sont terminés dans les
+- Les anciens constats clos (dont l'epic EufyMake **#351**/**#352–#355** et le
+  sous-processus rembg/ONNX **#270**/**#285**/**#286**) sont terminés dans les
   PRs documentés, couverts par des tests/CI et archivés.
 
 - **N9 ✅ — Modèle de données projet/calques (epic #329) livré.** Modèle de

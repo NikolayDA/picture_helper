@@ -22,7 +22,7 @@ remain the baseline before new PRs.
   extensions, atomic save, CI Qt packages, lazy import, and docstring.
 - **O2/O3/O4/O5/O6** are implemented: Linux packages, release workflow,
   full matrix, `ui_smoke`, and platform-correct tool shortcuts.
-- Older closed findings (**#163–#290**, incl. EufyMake epic **#351/#352–#355** and the rembg/ONNX subprocess **#270/#285/#286**) are done in the documented PRs, covered by tests/CI, and archived.
+- Older closed findings (incl. EufyMake epic **#351/#352–#355** and the rembg/ONNX subprocess **#270/#285/#286**) are done in the documented PRs, covered by tests/CI, and archived.
 
 - **N9 ✅ — Project/layer data model (epic #329) delivered.** Qt-free domain
   model (#330), layer-aware history (#331), composite canvas (#332), `.bgrproj`
