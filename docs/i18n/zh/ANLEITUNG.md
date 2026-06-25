@@ -68,7 +68,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 
 ## 2. 程序界面概览
 
-![BgRemover 启动后的主窗口](../../../app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+![BgRemover 启动后的主窗口](../../../app_screenshots/bgremover_complete_20260625_123039/01_main_empty.png)
 
 *启动后的主窗口：左侧为工具栏，中间为带透明棋盘格的画布，右侧为选项卡面板
 （此处为"选区"选项卡），底部为状态栏。屏幕截图显示的是德语界面；标签与本指南
@@ -108,7 +108,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
   以及*导出 EufyMake Studio 资源…*（参见 [第 13 节](#13-图层与项目)和
   [第 16 节](#16-保存与导出)）。
 
-![编辑菜单](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+![编辑菜单](../../../app_screenshots/bgremover_complete_20260625_123039/23_menu_edit.png)
 
 *"编辑"菜单汇集了撤销/重做、旋转、翻转和选区操作。*
 
@@ -131,7 +131,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 4. **检查** —— 如有需要，按**撤销**（⌘Z）后退一步。
 5. **保存** —— `文件 → 保存`（⌘S），选择 **PNG** 格式（保留透明度）。
 
-![AI 背景移除的结果](../../../app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+![AI 背景移除的结果](../../../app_screenshots/bgremover_complete_20260625_123039/55_function_ai_result.png)
 
 *点击 AI 图标后，背景会自动抠除；状态栏确认 AI 背景移除已完成，棋盘格图案标
 示出透明区域。*
@@ -158,7 +158,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 所有这些方式都使用同一个**经过验证的异步加载路径**：应用相同的格式和尺寸检查，
 大型图片在后台加载 —— 状态栏显示进度。
 
-![文件菜单](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+![文件菜单](../../../app_screenshots/bgremover_complete_20260625_123039/20_menu_file.png)
 
 *"文件"菜单汇集了打开（⌘O）、"最近文件"、保存（⌘S）和另存为…（⇧⌘S）。*
 
@@ -211,7 +211,7 @@ WebP 或 TIFF（参见 [第 16 节](#16-保存与导出)）。
 | ⟲ | **还原原图** —— 丢弃所有编辑 |
 | 🕘 | **编辑历史** —— 所有步骤的列表；**双击**某条记录可跳转到该状态 |
 
-![编辑历史弹出窗口](../../../app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+![编辑历史弹出窗口](../../../app_screenshots/bgremover_complete_20260625_123039/44_popup_history.png)
 
 *编辑历史列出每一个编辑步骤；双击某条记录即可精确跳回该状态。*
 
@@ -231,7 +231,7 @@ WebP 或 TIFF（参见 [第 16 节](#16-保存与导出)）。
 几乎所有编辑操作（设为透明、替换颜色）都作用于**当前选区**。选区在图片
 上以颜色高亮显示。
 
-![已加载图片并带有活动选区](../../../app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+![已加载图片并带有活动选区](../../../app_screenshots/bgremover_complete_20260625_123039/02_main_loaded_selection.png)
 
 *已加载图片并带有活动选区：选中的背景区域在画布上以颜色高亮显示。*
 
@@ -288,7 +288,7 @@ Ctrl/Cmd = 减去）。
 
 在此处对当前选区进行实际修改。
 
-![背景选项卡](../../../app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+![背景选项卡](../../../app_screenshots/bgremover_complete_20260625_123039/12_tab_background.png)
 
 *"背景"选项卡："移除（透明）"使选区变为透明；颜色色块和"替换颜色"用某种颜色填
 充选区。*
@@ -299,7 +299,7 @@ Ctrl/Cmd = 减去）。
 | **选择颜色** | 打开颜色选择器。小的彩色按钮显示当前选定的替换颜色。 |
 | **替换颜色** | 用选定颜色填充选区。 |
 
-![颜色选择器对话框](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+![颜色选择器对话框](../../../app_screenshots/bgremover_complete_20260625_123039/31_dialog_color_picker.png)
 
 *"选择颜色"会打开颜色选择器；所选颜色显示在色块中，并通过"替换颜色"应用到选区。*
 
@@ -336,7 +336,7 @@ Ctrl/Cmd = 减去）。
 
 ## 10. "旋转/翻转"选项卡
 
-![旋转/翻转选项卡](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+![旋转/翻转选项卡](../../../app_screenshots/bgremover_complete_20260625_123039/14_tab_transform.png)
 
 *"旋转/翻转"选项卡，包含快速旋转（90°/180°/270°）、自由角度以及水平和垂直翻转
 按钮。*
@@ -359,7 +359,7 @@ Ctrl/Cmd = 减去）。
 
 ## 11. "形状"选项卡 – 圆角与裁剪
 
-![形状选项卡](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+![形状选项卡](../../../app_screenshots/bgremover_complete_20260625_123039/15_tab_shape_crop.png)
 
 *"形状"选项卡：顶部为带半径滑块的"圆角"，下方为裁剪格式（特殊、横向和纵向）。*
 
@@ -382,7 +382,7 @@ Ctrl/Cmd = 减去）。
    - **✓ 应用裁剪** —— 裁剪图片。
    - **✗ 取消** —— 丢弃框架。
 
-![活动的圆形裁剪与确认栏](../../../app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+![活动的圆形裁剪与确认栏](../../../app_screenshots/bgremover_complete_20260625_123039/63_crop_circle_overlay.png)
 
 *"圆形"示例：裁剪框带控制手柄叠加在图片上。"✓ 应用裁剪"裁剪图片，"✗ 取消"丢弃
 该框架。*
@@ -563,7 +563,7 @@ Studio 项目另存为 `.empf`。
 
 通过 `扩展 → 设置…`（⌘, / Ctrl+,）可管理以下设置：
 
-![设置对话框](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+![设置对话框](../../../app_screenshots/bgremover_complete_20260625_123039/30_dialog_settings.png)
 
 *设置对话框：语言、默认的打开/保存目录、首选图片格式，以及带"打开文件夹"按钮的
 日志文件路径。*
