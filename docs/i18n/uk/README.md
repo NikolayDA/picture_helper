@@ -241,6 +241,21 @@ make lint
 make type
 ```
 
+### Повторно згенерувати UI-скриншоти
+
+Повний набір скриншотів для review і документації можна відтворити headless:
+
+```bash
+make screenshots
+```
+
+Генератор пише в `app_screenshots/bgremover_complete_<timestamp>/`,
+використовує Qt `offscreen`, замінює QSettings in-memory сховищем і
+симулює вигляд результату AI без реального запуску моделі `rembg`.
+Тимчасові підкаталоги `_runtime/` і `_exports/` залишаються локальними
+через `.gitignore`; пронумеровані PNG-файли та `manifest.md` є артефактами,
+які можна комітити.
+
 ### Повторно згенерувати PDF-інструкцію
 
 `ANLEITUNG.pdf` генерується з `ANLEITUNG.md` (Markdown → HTML → PDF

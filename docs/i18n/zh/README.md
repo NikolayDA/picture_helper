@@ -229,6 +229,20 @@ make lint
 make type
 ```
 
+### 重新生成 UI 截图
+
+用于 review 和文档的完整截图集可以以 headless 方式复现：
+
+```bash
+make screenshots
+```
+
+生成器会写入 `app_screenshots/bgremover_complete_<timestamp>/`，
+使用 Qt `offscreen`，用内存存储替代 QSettings，并模拟 AI 结果视图，
+不会真正运行 `rembg` 模型。临时子目录 `_runtime/` 和 `_exports/`
+会通过 `.gitignore` 保持为本地文件；可提交的产物是编号 PNG 文件和
+`manifest.md`。
+
 ### 重新生成指南 PDF
 
 `ANLEITUNG.pdf` 由 `ANLEITUNG.md` 生成（Markdown → HTML → PDF，

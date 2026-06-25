@@ -240,6 +240,20 @@ make lint
 make type
 ```
 
+### Regenerating UI screenshots
+
+The full screenshot set for review and docs can be reproduced headlessly:
+
+```bash
+make screenshots
+```
+
+The generator writes to `app_screenshots/bgremover_complete_<timestamp>/`,
+uses Qt `offscreen`, replaces QSettings with in-memory storage, and
+simulates the AI result view without a real `rembg` model run. The transient
+`_runtime/` and `_exports/` subdirectories stay local via `.gitignore`; the
+numbered PNG files and `manifest.md` are the committable artifacts.
+
 ### Regenerating the guide PDF
 
 `ANLEITUNG.pdf` is generated from `ANLEITUNG.md` (Markdown to HTML to
