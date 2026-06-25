@@ -9,9 +9,14 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def _parse_args() -> argparse.Namespace:
@@ -68,11 +73,10 @@ def main() -> int:
     args = _parse_args()
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-    root = Path.cwd()
     if args.output_dir:
         out = Path(args.output_dir).expanduser()
     else:
-        out = root / args.output_root / f"bgremover_complete_{datetime.now():%Y%m%d_%H%M%S}"
+        out = REPO_ROOT / args.output_root / f"bgremover_complete_{datetime.now():%Y%m%d_%H%M%S}"
     out = out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     (out / "_runtime").mkdir(exist_ok=True)
@@ -449,7 +453,7 @@ def main() -> int:
 
     _write_contact_sheet(out, records, Image, ImageDraw, ImageFont)
     records.insert(0, _image_record(out / "00_contact_sheet.png", "Uebersicht aller erstellten Screenshots", Image))
-    _write_manifest(out, root, records)
+    _write_manifest(out, records)
 
     window._saved_revision = window._canvas.content_revision
     window.close()
@@ -481,6 +485,13 @@ def _install_dark_palette(app: object, QColor: Any, QPalette: Any) -> None:
     app.setPalette(palette)
 
 
+def _load_bundled_font(ImageFont: Any, size: int) -> object:
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
 def _make_sample_image(path: Path, Image: Any, ImageDraw: Any, ImageFont: Any) -> object:
     width, height = 900, 600
     img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -497,12 +508,8 @@ def _make_sample_image(path: Path, Image: Any, ImageDraw: Any, ImageFont: Any) -
     draw.rounded_rectangle((560, 165, 770, 360), radius=28, fill=(44, 104, 219, 235), outline=(19, 62, 150, 255), width=6)
     draw.arc((260, 170, 620, 500), start=205, end=330, fill=(255, 238, 128, 255), width=22)
     draw.line((135, 120, 780, 470), fill=(33, 43, 54, 80), width=18)
-    try:
-        font_big = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 80)
-        font_small = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 34)
-    except OSError:
-        font_big = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+    font_big = _load_bundled_font(ImageFont, 80)
+    font_small = _load_bundled_font(ImageFont, 34)
     draw.text((330, 245), "BG", fill=(255, 255, 255, 245), font=font_big, anchor="mm")
     draw.text((610, 405), "Sample", fill=(36, 47, 58, 230), font=font_small, anchor="mm")
     img.save(path)
@@ -533,12 +540,8 @@ def _write_contact_sheet(out: Path, records: list[tuple[str, str, int, int]], Im
         img = Image.open(out / filename).convert("RGB")
         img.thumbnail((360, 220), Image.Resampling.LANCZOS)
         thumbs.append((filename, label, img.copy()))
-    try:
-        font_label = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 16)
-        font_title = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 22)
-    except OSError:
-        font_label = ImageFont.load_default()
-        font_title = ImageFont.load_default()
+    font_label = _load_bundled_font(ImageFont, 16)
+    font_title = _load_bundled_font(ImageFont, 22)
     cols = 3
     cell_w, cell_h = 400, 285
     rows = (len(thumbs) + cols - 1) // cols
@@ -566,12 +569,11 @@ def _image_record(path: Path, label: str, Image: Any) -> tuple[str, str, int, in
     return path.name, label, img.width, img.height
 
 
-def _write_manifest(out: Path, root: Path, records: list[tuple[str, str, int, int]]) -> None:
+def _write_manifest(out: Path, records: list[tuple[str, str, int, int]]) -> None:
     lines = [
         "# BgRemover Screenshots",
         "",
-        f"Erstellt: {datetime.now():%Y-%m-%d %H:%M:%S}",
-        f"Quelle: {root}",
+        "Quelle: Repository-Root",
         "",
         "| Datei | Inhalt | Pixel |",
         "|---|---|---:|",
