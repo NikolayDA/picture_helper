@@ -249,6 +249,22 @@ make lint
 make type
 ```
 
+### Regenerer les captures UI
+
+L'ensemble complet des captures pour la revue et la documentation peut etre
+reproduit en mode headless :
+
+```bash
+make screenshots
+```
+
+Le generateur ecrit dans `app_screenshots/bgremover_complete_<timestamp>/`,
+utilise Qt `offscreen`, remplace QSettings par un stockage en memoire et
+simule la vue de resultat IA sans vrai lancement du modele `rembg`. Les
+sous-dossiers transitoires `_runtime/` et `_exports/` restent locaux via
+`.gitignore` ; les PNG numerotes et `manifest.md` sont les artefacts a
+committer.
+
 ### Régénérer le PDF du guide
 
 `ANLEITUNG.pdf` est généré depuis `ANLEITUNG.md` (Markdown vers HTML

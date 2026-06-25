@@ -250,6 +250,21 @@ make lint
 make type
 ```
 
+### UI-Screenshots neu erzeugen
+
+Der vollständige Screenshot-Satz für Review und Doku lässt sich headless
+reproduzieren:
+
+```bash
+make screenshots
+```
+
+Der Generator schreibt nach `app_screenshots/bgremover_complete_<timestamp>/`,
+nutzt Qt `offscreen`, ersetzt QSettings durch einen In-Memory-Speicher und
+simuliert die KI-Ergebnisansicht ohne echten `rembg`-Modellaufruf. Die
+transienten Unterordner `_runtime/` und `_exports/` bleiben per `.gitignore`
+lokal; die nummerierten PNGs und `manifest.md` sind die committbaren Artefakte.
+
 ### Anleitung-PDF neu erzeugen
 
 `ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert (Markdown → HTML →
