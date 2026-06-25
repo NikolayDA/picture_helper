@@ -81,7 +81,7 @@ d'impression UV. Les fonctionnalités principales :
 
 ## 2. La fenêtre de l'application en un coup d'œil
 
-![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260625_123039/01_main_empty.png)
 
 *La fenêtre principale juste après le lancement : la barre d'outils à gauche, le
 canevas avec le damier de transparence au centre, le panneau d'onglets à droite
@@ -126,7 +126,7 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
   *…sous…* (`.bgrproj`) et *Exporter des assets pour EufyMake Studio…* (voir la
   [section 13](#13-calques-et-projets) et la [section 16](#16-enregistrer-et-exporter)).
 
-![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260625_123039/23_menu_edit.png)
 
 *Le menu « Édition » regroupe annuler/rétablir, rotation, retournement et les
 actions de sélection.*
@@ -158,7 +158,7 @@ Supprimez un arrière-plan en moins d'une minute :
 5. **Enregistrer** – `Fichier → Enregistrer` (⌘S), choisissez le format **PNG**
    (conserve la transparence).
 
-![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260625_123039/55_function_ai_result.png)
 
 *Après un clic sur l'icône IA, l'arrière-plan est détouré automatiquement ; la
 barre d'état confirme que la suppression d'arrière-plan par IA est terminée, et
@@ -192,7 +192,7 @@ Toutes ces voies utilisent le même **chemin de chargement validé et asynchrone
 les mêmes contrôles de format et de taille s'appliquent, et les grandes images
 sont chargées en arrière-plan — la barre d'état affiche la progression.
 
-![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260625_123039/20_menu_file.png)
 
 *Le menu « Fichier » regroupe Ouvrir (⌘O), « Fichiers récents »,
 Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
@@ -248,7 +248,7 @@ Pour tous les outils de sélection :
 | ⟲ | **Restaurer l'original** – abandonner toutes les modifications |
 | 🕘 | **Historique des modifications** – liste de toutes les étapes ; **double-clic** sur une entrée pour revenir à cet état |
 
-![Fenêtre « Historique des modifications »](../../../app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+![Fenêtre « Historique des modifications »](../../../app_screenshots/bgremover_complete_20260625_123039/44_popup_history.png)
 
 *L'historique des modifications liste chaque étape ; un double-clic sur une
 entrée revient exactement à cet état.*
@@ -270,7 +270,7 @@ Presque toutes les modifications (rendre transparent, remplacer la couleur)
 s'appliquent à la **zone actuellement sélectionnée**. La sélection est mise en
 surbrillance en couleur sur l'image.
 
-![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260625_123039/02_main_loaded_selection.png)
 
 *Une image chargée avec une sélection active : la zone d'arrière-plan
 sélectionnée est mise en surbrillance en couleur sur le canevas.*
@@ -336,7 +336,7 @@ Ctrl/Cmd = soustraire).
 
 C'est ici que la sélection actuelle est réellement modifiée.
 
-![L'onglet « Arrière-plan »](../../../app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+![L'onglet « Arrière-plan »](../../../app_screenshots/bgremover_complete_20260625_123039/12_tab_background.png)
 
 *L'onglet « Arrière-plan » : « Supprimer (transparent) » rend la sélection
 transparente ; le carré de couleur et « Remplacer la couleur » la remplissent
@@ -348,7 +348,7 @@ d'une couleur.*
 | **Choisir une couleur** | Ouvre un sélecteur de couleur. Le petit bouton coloré affiche la couleur de remplacement actuellement choisie. |
 | **Remplacer la couleur** | Remplit la zone sélectionnée avec la couleur choisie. |
 
-![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260625_123039/31_dialog_color_picker.png)
 
 *« Choisir une couleur » ouvre le sélecteur de couleur ; la couleur choisie
 apparaît dans le carré et s'applique à la sélection avec « Remplacer la
@@ -395,7 +395,7 @@ et laisse la transparence inchangée.
 
 ## 10. Onglet « Rotation/Miroir »
 
-![L'onglet « Rotation/Miroir »](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+![L'onglet « Rotation/Miroir »](../../../app_screenshots/bgremover_complete_20260625_123039/14_tab_transform.png)
 
 *L'onglet « Rotation/Miroir » avec la rotation rapide (90°/180°/270°), l'angle
 libre et les boutons pour retourner horizontalement et verticalement.*
@@ -421,7 +421,7 @@ libre et les boutons pour retourner horizontalement et verticalement.*
 
 ## 11. Onglet « Forme » – Coins et recadrage
 
-![L'onglet « Forme »](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+![L'onglet « Forme »](../../../app_screenshots/bgremover_complete_20260625_123039/15_tab_shape_crop.png)
 
 *L'onglet « Forme » : en haut « Arrondir les coins » avec le curseur de rayon ;
 en dessous, les formats de recadrage (spéciaux, paysage et portrait).*
@@ -447,7 +447,7 @@ Le résultat est enregistré avec des coins transparents — de préférence en 
    - **✓ Appliquer le recadrage** – recadre l'image.
    - **✗ Annuler** – abandonne le cadre.
 
-![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260625_123039/63_crop_circle_overlay.png)
 
 *Exemple « Cercle » : le cadre de recadrage se place sur l'image avec des
 poignées. « ✓ Appliquer le recadrage » recadre l'image, « ✗ Annuler » abandonne
@@ -661,7 +661,7 @@ attribuez les modes d'encre/calques et enregistrez le projet Studio lui-même en
 Via `Extras → Paramètres…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
 
-![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260625_123039/30_dialog_settings.png)
 
 *La boîte de dialogue des paramètres : langue, répertoires d'ouverture et
 d'enregistrement par défaut, format d'image préféré et chemin du fichier journal

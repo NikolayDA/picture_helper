@@ -74,7 +74,7 @@ layers/projects, and preparing UV-print assets. The key features:
 
 ## 2. The application window at a glance
 
-![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260528_214013/01_main_empty.png)
+![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260625_123039/01_main_empty.png)
 
 *The main window right after launch: the toolbar on the left, the canvas with
 the transparency checkerboard in the centre, the tab panel on the right (here
@@ -117,7 +117,7 @@ Many actions are also available from the menu bar:
   (`.bgrproj`), and *Export assets for EufyMake Studio…* (see
   [section 13](#13-layers--projects) and [section 16](#16-saving--exporting)).
 
-![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260528_214013/22_menu_edit.png)
+![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260625_123039/23_menu_edit.png)
 
 *The "Edit" menu groups undo/redo, rotate, flip, and the selection actions.*
 
@@ -145,7 +145,7 @@ Remove a background in under a minute:
 5. **Save** – `File → Save` (⌘S), choose **PNG** format (preserves
    transparency).
 
-![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260528_214013/54_function_ai_result.png)
+![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260625_123039/55_function_ai_result.png)
 
 *After one click on the AI icon the background is cut out automatically; the
 status bar confirms the AI background removal is complete, and the checkerboard
@@ -177,7 +177,7 @@ All of these paths use the same **validated, asynchronous load path**: the same
 format and size checks apply, and large images are loaded in the background —
 the status bar shows progress.
 
-![The "File" menu](../../../app_screenshots/bgremover_complete_20260528_214013/20_menu_file.png)
+![The "File" menu](../../../app_screenshots/bgremover_complete_20260625_123039/20_menu_file.png)
 
 *The "File" menu groups Open (⌘O), "Recent files", Save (⌘S), and
 Save as… (⇧⌘S).*
@@ -233,7 +233,7 @@ For all selection tools:
 | ⟲ | **Restore original** – discard all edits |
 | 🕘 | **Edit history** – list of all steps; **double-click** an entry to jump to that state |
 
-![The "Edit history" popup](../../../app_screenshots/bgremover_complete_20260528_214013/40_popup_history.png)
+![The "Edit history" popup](../../../app_screenshots/bgremover_complete_20260625_123039/44_popup_history.png)
 
 *The edit history lists every editing step; double-clicking an entry jumps back
 to exactly that state.*
@@ -254,7 +254,7 @@ to exactly that state.*
 Almost all edits (make transparent, replace colour) act on the **currently
 selected area**. The selection is highlighted on the image in colour.
 
-![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260528_214013/02_main_loaded_selection.png)
+![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260625_123039/02_main_loaded_selection.png)
 
 *A loaded image with an active selection: the selected background area is
 highlighted in colour on the canvas.*
@@ -314,7 +314,7 @@ the modifier keys (Shift = add, Ctrl/Cmd = subtract).
 
 Here the current selection is actually changed.
 
-![The "Background" tab](../../../app_screenshots/bgremover_complete_20260528_214013/11_tab_background.png)
+![The "Background" tab](../../../app_screenshots/bgremover_complete_20260625_123039/12_tab_background.png)
 
 *The "Background" tab: "Remove (transparent)" makes the selection see-through;
 the colour swatch and "Replace colour" fill it with a colour.*
@@ -325,7 +325,7 @@ the colour swatch and "Replace colour" fill it with a colour.*
 | **Pick colour** | Opens a colour picker. The small coloured button shows the currently chosen replacement colour. |
 | **Replace colour** | Fills the selected area with the chosen colour. |
 
-![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260528_214013/31_dialog_color_picker.png)
+![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260625_123039/31_dialog_color_picker.png)
 
 *"Pick colour" opens the colour picker; the chosen colour appears in the swatch
 and is applied to the selection with "Replace colour".*
@@ -366,7 +366,7 @@ transparency unchanged.
 
 ## 10. Tab "Rotate/Flip"
 
-![The "Rotate/Flip" tab](../../../app_screenshots/bgremover_complete_20260528_214013/12_tab_transform.png)
+![The "Rotate/Flip" tab](../../../app_screenshots/bgremover_complete_20260625_123039/14_tab_transform.png)
 
 *The "Rotate/Flip" tab with quick rotation (90°/180°/270°), a free angle, and
 the buttons for horizontal and vertical flipping.*
@@ -390,7 +390,7 @@ the buttons for horizontal and vertical flipping.*
 
 ## 11. Tab "Shape" – Corners & Crop
 
-![The "Shape" tab](../../../app_screenshots/bgremover_complete_20260528_214013/13_tab_shape_crop.png)
+![The "Shape" tab](../../../app_screenshots/bgremover_complete_20260625_123039/15_tab_shape_crop.png)
 
 *The "Shape" tab: "Round corners" with a radius slider at the top, the crop
 formats (special, landscape, and portrait) below.*
@@ -415,7 +415,7 @@ The result is saved with transparent corners — best as PNG.
    - **✓ Apply crop** – crops the image.
    - **✗ Cancel** – discards the frame.
 
-![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260528_214013/61_crop_circle_overlay.png)
+![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260625_123039/63_crop_circle_overlay.png)
 
 *"Circle" example: the crop frame sits over the image with drag handles.
 "✓ Apply crop" crops the image, "✗ Cancel" discards the frame.*
@@ -619,7 +619,7 @@ modes/layers there, and save the Studio project itself as `.empf`.
 
 Via `Extras → Settings…` (⌘, / Ctrl+,) you can manage the following settings:
 
-![The settings dialog](../../../app_screenshots/bgremover_complete_20260528_214013/30_dialog_settings.png)
+![The settings dialog](../../../app_screenshots/bgremover_complete_20260625_123039/30_dialog_settings.png)
 
 *The settings dialog: language, default open/save directories, preferred image
 format, and the path to the log file with the "Open folder" button.*
