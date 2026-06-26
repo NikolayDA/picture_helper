@@ -224,7 +224,7 @@ class SelectionTab:
         }
 
 
-# ── Tab 2 – Hintergrund ──────────────────────────────────────────
+# ── Tab 3 – Hintergrund ──────────────────────────────────────────
 
 
 class BackgroundTab:
@@ -294,7 +294,7 @@ class BackgroundTab:
         }
 
 
-# ── Tab 3 – Transform ────────────────────────────────────────────
+# ── Tab 5 – Transform ────────────────────────────────────────────
 
 
 class TransformTab:
@@ -393,7 +393,7 @@ class TransformTab:
         }
 
 
-# ── Tab 4 – Form & Zuschnitt ─────────────────────────────────────
+# ── Tab 6 – Form & Zuschnitt ─────────────────────────────────────
 
 
 class ShapeTab:
@@ -481,7 +481,7 @@ class ShapeTab:
         }
 
 
-# ── Tab 5 – Anpassen (Farbkorrektur) ─────────────────────────────
+# ── Tab 4 – Anpassen (Farbkorrektur) ─────────────────────────────
 
 
 class AdjustTab:

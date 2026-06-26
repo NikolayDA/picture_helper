@@ -1,6 +1,6 @@
 """Ebenen-Panel (#334): Liste + Aktionen für das Mehr-Ebenen-Projektmodell.
 
-Wird als fünfter Tab in das rechte Panel (``right_panel.py``) eingehängt. Das
+Wird als siebter Tab in das rechte Panel (``right_panel.py``) eingehängt. Das
 Panel ist zustandslos gegenüber dem Modell: ``MainWindow`` verbindet das
 ``ImageCanvas.layersChanged``-Signal mit :meth:`LayerPanel.refresh`, das die
 Liste aus den übergebenen :class:`~bgremover.canvas.LayerInfo` neu aufbaut. Alle
