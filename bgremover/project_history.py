@@ -5,8 +5,8 @@ RGBA-**Einzelbild**-Snapshots) auf das **Projektmodell** (#331): Undo/Redo deckt
 sowohl **strukturelle** Änderungen (Ebene anlegen/löschen/umsortieren/duplizieren,
 aktive Ebene, Sichtbarkeit/Opazität/Sperre/Rolle) als auch **Pixel**-Änderungen
 je Ebene (Freistellung, Pinsel/Radierer, Transform, Crop) ab. Sie bleibt – wie
-``canvas_history`` – ganz ohne Qt isoliert testbar; die Verdrahtung im Canvas
-folgt in #332.
+``canvas_history`` – ganz ohne Qt isoliert testbar; der Canvas verdrahtet sie
+seit #332 (``ImageCanvas._history``).
 
 Speicherstrategie (Kernpunkt des Issues)
 ----------------------------------------
