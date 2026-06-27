@@ -36,8 +36,9 @@ Ein Paket, `bgremover/`:
   größenändernde Geometrie (Drehen/Zuschnitt via `apply_geometry`) auf alle Ebenen;
   Undo/Redo läuft über `ProjectHistory`. Einzel-COLOR-Ebene = bitgenaue Parität
   zum bisherigen Einzelbild-Editor (#332). Die Anzeige ist seit #387 explizit über
-  `PreviewMode` gesteuert und unabhängig von der aktiven Editierebene; der getrennte
-  Exportpfad schreibt weiterhin ausschließlich das COLOR-Komposit (#363).
+  `PreviewMode` gesteuert (Enum in `preview_mode.py`) und unabhängig von der aktiven
+  Editierebene; der getrennte Exportpfad schreibt weiterhin ausschließlich das
+  COLOR-Komposit (#363).
 - **Grundbildbearbeitung (Phase 0, Epic #358):** **Skalieren** auf Zielgröße
   (`image_ops.resize_image`/`resized_size`, `Project.resize` skaliert alle Ebenen +
   Canvas-Größe mit Megapixel-Gate, Dialog `resize_dialog.py`, #359);
@@ -199,10 +200,15 @@ Ein Paket, `bgremover/`:
 - **ruff:** line-length 100, Regeln `E,F,W,I,B,UP,SIM`, `E501` ignoriert, Ziel
   py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
   `tests/conftest.py` `E402`.
-- **mypy:** Qt-arme Logikmodule (`image_ops`, `image_utils`, `crop`,
-  `project_model`, `recent_files`,
-  `canvas_history/_selection/_lasso/_transform/_viewport`) sind streng getypt
-  (`disallow_untyped_defs`); Qt-lastige Module bewusst laxer.
+- **mypy:** Die Qt-armen Logikmodule sind streng getypt (`disallow_untyped_defs`
+  + `check_untyped_defs`): `ai_process`, `image_ops`, `image_utils`, `color_ops`,
+  `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
+  `relief_preview`, `height_map`, `height_ops`, `preview_mode`, `crop`,
+  `project_model/_history/_schema/_io`, `recent_files`, `units` und
+  `canvas_history/_selection/_lasso/_transform/_viewport`. Die zustandsbehafteten
+  Qt-Module `canvas`, `main_window`, `worker_controller` laufen mit
+  `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
+  Annotationszwang); die übrigen UI-Module bleiben bewusst laxer.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit).
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.
