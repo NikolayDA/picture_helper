@@ -60,22 +60,23 @@ remain the baseline before new PRs.
 
 ## Open GitHub Issues — Triage Status (2026-06-29, updated)
 
-As of 2026-06-29, GitHub shows **7** open issues: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404**, and **#406**. Two new, tightly scoped quality/
-robustness issues have appeared since the last review (2026-06-25): the
-dead-code audit **#406** and the preview degrade gap **#404**. Documentation
-bundles **#390/#391**, startup-path note **#357**, and the documented HEIC
-exclusion **#339** remain closed; only release step **#392** is left in roadmap
-epic **#389**.
+As of 2026-06-29, GitHub shows **8** open issues: **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404**, **#406**, and **#408**. New on the same day is the
+doc/code audit **#408** (API/CLI docs against the current signatures — no drift);
+the quality/robustness issues **#406** and **#404** (new since the 2026-06-25
+review) remain open. Documentation
+bundles **#390/#391**, startup-path note **#357**, and the HEIC exclusion
+**#339** remain closed; only release step **#392** is left in epic **#389**.
 
-**Comment pass:** No new external comments. The existing comments on
-#392/#299/#245 are owner triage notes consistent with the current state — no
-issue update needed.
+**Comment pass:** No new external comments; the existing ones on #392/#299/#245
+are owner triage notes consistent with the current state, and #408 is new with no
+comments — no issue update needed.
 
 **New findings verified against the code:** #406 — `_derive_physical_size`
 (`eufymake_export.py:217`) has no caller (`parse_size_mm` imported only there,
 still used in `project_model.py`). #404 — `compose_relief`/`compose_gloss`
 (`canvas.py:555/564`) raise instead of degrading to COLOR in the render path.
+#408 — audit with no findings: the signatures in `CLAUDE.md`/`README.md` and the `bgremover image.png` CLI path match the code.
 
 ### Sensible Bundles
 
@@ -96,6 +97,7 @@ estimated implementation effort.
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟢 Low (remaining) | **Nearly complete** – only #392 remains open. |
 | [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Preview render: size mismatch does not degrade to COLOR | 🟡 Medium | 🟢 Low | **Ready for PR** – wrap `compose_relief`/`compose_gloss` defensively and fall back to `base` on a size mismatch, with a render/pixel regression test. Latent but clearly scoped. |
 | [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Dead code: unused `_derive_physical_size` in `eufymake_export.py` | 🟢 Low | 🟢 Low | **Ready for PR** – remove the function, clean up the `parse_size_mm` import, and update the CLAUDE.md geometry sentence to the `_derive_target`/project-model path. Trivial, with full acceptance criteria. |
+| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Doc/code audit: API/CLI docs match the function signatures (no drift) | 🟢 Low | 🟢 Low | **Informational / closeable** – audit with no findings, no code/doc fix needed. Optional follow-up: a real `docs/api.md` via autodoc so future drift is caught automatically. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After v2.5.0** – highest impact first (lasso endpoint, writable NumPy result, full wand mask, brush parametrization). |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – prove GitHub semantics first; change code only for a demonstrated false positive and preserve #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
@@ -106,8 +108,8 @@ estimated implementation effort.
    self-contained, and ready for PR (different modules, low risk).
 2. Run **#392** next, then close epic **#389** once the tag, release body, and
    both artifacts are verified.
-3. Tackle **#299** after v2.5.0; research **#318** only (needs refinement), and
-   keep **#245** blocked until the external quota returns.
+3. Tackle **#299** after v2.5.0; research **#318** only (needs refinement), close
+   **#408** as an informational audit with no action, and keep **#245** blocked.
 
 ## Previous Rounds
 

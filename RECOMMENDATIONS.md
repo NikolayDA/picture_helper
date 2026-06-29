@@ -61,22 +61,22 @@ bleiben die maßgebliche Baseline vor neuen PRs.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-06-29, aktualisiert)
 
-Stand 2026-06-29 zeigt GitHub **7** offene Issues: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404** und **#406**. Seit dem letzten Review (2026-06-25)
-sind zwei neue, eng abgegrenzte Qualitäts-/Robustheits-Issues hinzugekommen: das
-Dead-Code-Audit **#406** und die Preview-Degrade-Lücke **#404**. Die Doku-Pakete
-**#390/#391**, der Öffnen-Hinweis **#357** sowie der dokumentierte HEIC-Ausschluss
-**#339** bleiben geschlossen; im Roadmap-Epic **#389** verbleibt nur noch der
-Release-Schritt **#392**.
+Stand 2026-06-29 zeigt GitHub **8** offene Issues: **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404**, **#406** und **#408**. Neu am selben Tag ist das
+Doku-/Code-Audit **#408** (API-/CLI-Doku gegen die aktuellen Signaturen – ohne
+Drift); die Qualitäts-/Robustheits-Issues **#406** und **#404** (neu seit dem
+Review 2026-06-25) bleiben offen. Doku-Pakete **#390/#391**, Öffnen-Hinweis
+**#357** und HEIC-Ausschluss **#339** bleiben geschlossen; im Epic **#389**
+verbleibt nur der Release-Schritt **#392**.
 
-**Kommentar-Durchsicht:** Keine neuen externen Kommentare. Die vorhandenen
-Kommentare auf #392/#299/#245 sind Owner-Triage-Notizen, die mit dem aktuellen
-Stand übereinstimmen – keine Issue-Aktualisierung nötig.
+**Kommentar-Durchsicht:** Keine neuen externen Kommentare; die auf #392/#299/#245
+sind Owner-Triage-Notizen passend zum aktuellen Stand, #408 ist neu und ohne Kommentare – keine Issue-Aktualisierung nötig.
 
 **Neue Befunde gegen den Code verifiziert:** #406 – `_derive_physical_size`
 (`eufymake_export.py:217`) hat keinen Aufrufer (`parse_size_mm` nur dort, sonst
 in `project_model.py` genutzt). #404 – `compose_relief`/`compose_gloss`
 (`canvas.py:555/564`) werfen im Renderpfad, statt auf COLOR zu degradieren.
+#408 – Audit ohne Befund: Signaturen aus `CLAUDE.md`/`README.md` und der CLI-Pfad `bgremover bild.png` decken sich mit dem Code.
 
 ### Sinnvolle Bündelung
 
@@ -97,6 +97,7 @@ geschätzter Umsetzungsaufwand.
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟢 Niedrig (Rest) | **Fast abgeschlossen** – nur #392 ist noch offen. |
 | [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Vorschau-Render: Größen-Mismatch degradiert nicht auf COLOR | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – `compose_relief`/`compose_gloss` defensiv kapseln und bei Größen-Mismatch auf `base` zurückfallen, mit Render-/Pixel-Regressionstest. Latent, aber klar abgegrenzt. |
 | [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Dead-Code: ungenutzte `_derive_physical_size` in `eufymake_export.py` | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR** – Funktion entfernen, `parse_size_mm`-Import bereinigen, CLAUDE.md-Geometriesatz auf den `_derive_target`/Projektmodell-Pfad anpassen. Trivial, vollständige Akzeptanzkriterien. |
+| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Doku-/Code-Audit: API-/CLI-Doku deckt sich mit den Funktionssignaturen (keine Drift) | 🟢 Niedrig | 🟢 Niedrig | **Informativ / schließbar** – Audit ohne Befund, kein Code-/Doku-Fix nötig. Optionaler Folgeschritt: echte `docs/api.md` per Autodoc, damit künftige Drift automatisch auffällt. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Nach v2.5.0** – dann höchste Wirkung zuerst (Lasso-Endpunkt, schreibbares NumPy-Ergebnis, Magic-Wand-Vollmaske, Brush-Parametrisierung). |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – GitHub-Semantik erst belegen; Code nur bei nachgewiesenem False Positive, OIDC-Guard #303 bewahren. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
@@ -108,8 +109,8 @@ geschätzter Umsetzungsaufwand.
    Risiko).
 2. **#392** ausführen und Epic **#389** schließen, sobald Tag, Release-Body und
    beide Artefakte verifiziert sind.
-3. **#299** nach v2.5.0 angehen; **#318** nur erforschen (Needs refinement) und
-   **#245** bis zur externen Quota-Wiederherstellung blockiert lassen.
+3. **#299** nach v2.5.0 angehen; **#318** nur erforschen (Needs refinement),
+   **#408** als informatives Audit ohne Aktion schließen, **#245** extern blockiert lassen.
 
 ## Vorige Runden
 

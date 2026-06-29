@@ -61,22 +61,22 @@ restent la baseline avant de nouveaux PRs.
 
 ## Issues GitHub Ouvertes — État du Triage (2026-06-29, mis à jour)
 
-Au 2026-06-29, GitHub affiche **7** issues ouvertes : **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404** et **#406**. Depuis la dernière revue (2026-06-25),
-deux nouvelles issues qualité/robustesse bien cadrées sont apparues : l'audit de
-code mort **#406** et la faille de dégradation de l'aperçu **#404**. Les lots
-docs **#390/#391**, la note d'ouverture **#357** et l'exclusion HEIC documentée
-**#339** restent closes ; seule l'étape de release **#392** reste dans l'epic
-**#389**.
+Au 2026-06-29, GitHub affiche **8** issues ouvertes : **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404**, **#406** et **#408**. Nouvelle le même jour :
+l'audit doc/code **#408** (docs API/CLI face aux signatures actuelles — sans
+drift) ; les issues qualité/robustesse **#406** et **#404** (nouvelles depuis la
+revue 2026-06-25) restent ouvertes. Les
+lots docs **#390/#391**, la note d'ouverture **#357** et l'exclusion HEIC
+**#339** restent closes ; seule l'étape de release **#392** reste dans **#389**.
 
-**Revue des commentaires :** Aucun nouveau commentaire externe. Les commentaires
-existants sur #392/#299/#245 sont des notes de triage de l'owner cohérentes avec
-l'état actuel — aucune mise à jour d'issue nécessaire.
+**Revue des commentaires :** Aucun nouveau commentaire externe ; ceux sur
+#392/#299/#245 sont des notes de triage de l'owner cohérentes avec l'état actuel, et #408 est nouvelle et sans commentaire — aucune mise à jour nécessaire.
 
 **Nouveaux constats vérifiés dans le code :** #406 — `_derive_physical_size`
 (`eufymake_export.py:217`) n'a aucun appelant (`parse_size_mm` seulement là, par
 ailleurs dans `project_model.py`). #404 — `compose_relief`/`compose_gloss`
 (`canvas.py:555/564`) lèvent au lieu de dégrader vers COLOR dans le rendu.
+#408 — audit sans constat : les signatures de `CLAUDE.md`/`README.md` et le chemin CLI `bgremover image.png` correspondent au code.
 
 ### Regroupements Recommandés
 
@@ -97,6 +97,7 @@ ailleurs dans `project_model.py`). #404 — `compose_relief`/`compose_gloss`
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟢 Basse (reste) | **Presque terminé** – seule #392 reste ouverte. |
 | [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Aperçu : un écart de taille ne dégrade pas vers COLOR | 🟡 Moyenne | 🟢 Basse | **Prêt pour PR** – encapsuler `compose_relief`/`compose_gloss` de façon défensive et revenir à `base` en cas d'écart de taille, avec un test de régression de rendu/pixel. Latent mais bien cadré. |
 | [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Code mort : `_derive_physical_size` inutilisé dans `eufymake_export.py` | 🟢 Basse | 🟢 Basse | **Prêt pour PR** – supprimer la fonction, nettoyer l'import `parse_size_mm` et mettre à jour la phrase de géométrie de CLAUDE.md vers le chemin `_derive_target`/modèle de projet. Trivial, critères d'acceptation complets. |
+| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Audit doc/code : les docs API/CLI correspondent aux signatures (sans drift) | 🟢 Basse | 🟢 Basse | **Informatif / clôturable** – audit sans constat, aucun correctif code/doc requis. Suivi optionnel : un vrai `docs/api.md` via autodoc pour détecter automatiquement un drift futur. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Après v2.5.0** – lasso, résultat NumPy modifiable, masque wand complet et paramétrage brush d'abord. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **À affiner** – prouver la sémantique ; coder seulement pour un faux positif démontré et préserver #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec "Quota exceeded" | 🟡 Moyenne | 🟢 Basse | **Blocked (externe)** – le durcissement côté repo via #322/#342 (clos) est fait ; le blocage restant est la quota OpenAI/billing. Après restauration, lancer une fois le scan programmé manuellement puis clore. |
@@ -107,8 +108,9 @@ ailleurs dans `project_model.py`). #404 — `compose_relief`/`compose_gloss`
    vérifiées, autonomes et prêtes pour PR (modules différents, faible risque).
 2. Exécuter **#392** ensuite et clore l'epic **#389** après vérification du tag,
    du release body et des deux artefacts.
-3. Traiter **#299** après v2.5.0 ; rechercher **#318** seulement (à affiner) et
-   garder **#245** bloqué jusqu'au retour de la quota externe.
+3. Traiter **#299** après v2.5.0 ; rechercher **#318** seulement (à affiner),
+   clore **#408** comme audit informatif sans action et garder **#245** bloqué
+   jusqu'au retour de la quota externe.
 
 ## Séries Précédentes
 
