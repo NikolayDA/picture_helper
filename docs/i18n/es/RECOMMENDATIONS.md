@@ -63,21 +63,21 @@ de tests siguen siendo la baseline antes de nuevos PRs.
 
 ## Issues de GitHub Abiertos — Estado de Triage (2026-06-29, actualizado)
 
-A 2026-06-29, GitHub muestra **7** issues abiertos: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404** y **#406**. Desde la última revisión (2026-06-25)
-aparecieron dos nuevos issues de calidad/robustez bien acotados: la auditoría de
-código muerto **#406** y la brecha de degradación de la vista previa **#404**.
-Los paquetes de documentación **#390/#391**, el aviso de apertura **#357** y la
-exclusión HEIC documentada **#339** siguen cerrados; en el epic **#389** solo
-queda el paso de release **#392**.
+A 2026-06-29, GitHub muestra **8** issues abiertos: **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404**, **#406** y **#408**. Nuevo el mismo día es la
+auditoría doc/código **#408** (docs de API/CLI frente a las firmas actuales — sin
+drift); los issues de calidad/robustez **#406** y **#404** (nuevos desde la
+revisión 2026-06-25) siguen abiertos. Los
+paquetes de documentación **#390/#391**, el aviso de apertura **#357** y la
+exclusión HEIC **#339** siguen cerrados; en el epic **#389** solo queda **#392**.
 
-**Revisión de comentarios:** Sin comentarios externos nuevos; los de
-#392/#299/#245 son notas de triage del owner coherentes con el estado actual.
+**Revisión de comentarios:** Sin comentarios externos nuevos; los de #392/#299/#245 son notas de triage del owner coherentes con el estado actual, y #408 es nuevo y sin comentarios.
 
 **Hallazgos nuevos verificados contra el código:** #406 — `_derive_physical_size`
 (`eufymake_export.py:217`) no tiene llamadas (`parse_size_mm` solo allí, además
 en `project_model.py`). #404 — `compose_relief`/`compose_gloss`
 (`canvas.py:555/564`) lanzan en vez de degradar a COLOR en la ruta de render.
+#408 — auditoría sin hallazgos: las firmas de `CLAUDE.md`/`README.md` y la ruta CLI `bgremover imagen.png` coinciden con el código.
 
 ### Agrupaciones Recomendadas
 
@@ -98,6 +98,7 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟢 Baja (restante) | **Casi completo** – solo queda #392. |
 | [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Vista previa: el desajuste de tamaño no degrada a COLOR | 🟡 Media | 🟢 Baja | **Listo para PR** – encapsular `compose_relief`/`compose_gloss` de forma defensiva y volver a `base` ante un desajuste de tamaño, con test de regresión de render/píxel. Latente pero bien acotado. |
 | [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Código muerto: `_derive_physical_size` sin uso en `eufymake_export.py` | 🟢 Baja | 🟢 Baja | **Listo para PR** – eliminar la función, limpiar el import de `parse_size_mm` y actualizar la frase de geometría en CLAUDE.md a la ruta `_derive_target`/modelo de proyecto. Trivial, con criterios de aceptación completos. |
+| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Auditoría doc/código: las docs de API/CLI coinciden con las firmas (sin drift) | 🟢 Baja | 🟢 Baja | **Informativo / cerrable** – auditoría sin hallazgos, sin fix de código/doc necesario. Seguimiento opcional: un `docs/api.md` real vía autodoc para detectar drift futuro automáticamente. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Tras v2.5.0** – primero lazo, resultado NumPy escribible, máscara wand completa y parametrización brush. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | 🟢 Baja | 🟡 Media | **Necesita refinamiento** – probar primero la semántica; cambiar código solo ante un falso positivo demostrado y conservar #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Blocked (externo)** – el endurecimiento del repo vía #322/#342 (cerrado) está hecho; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
@@ -108,8 +109,8 @@ Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
    autónomos y listos para PR (módulos distintos, bajo riesgo).
 2. Ejecutar **#392** después y cerrar el epic **#389** cuando tag, release body y
    ambos artefactos estén verificados.
-3. Abordar **#299** tras v2.5.0; investigar **#318** solo (necesita refinamiento)
-   y mantener **#245** bloqueado hasta recuperar la cuota externa.
+3. Abordar **#299** tras v2.5.0; investigar **#318** solo (necesita refinamiento),
+   cerrar **#408** como auditoría informativa sin acción y mantener **#245** bloqueado.
 
 ## Rondas Anteriores
 
