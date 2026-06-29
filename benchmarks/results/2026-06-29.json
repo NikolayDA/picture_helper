@@ -1,0 +1,47 @@
+{
+  "schema": 2,
+  "timestamp": "2026-06-29T01:07:10+00:00",
+  "git_commit": "73351db",
+  "iterations": 7,
+  "image": {
+    "width": 1920,
+    "height": 1080
+  },
+  "environment": {
+    "python": "3.11.15",
+    "pillow": "12.2.0",
+    "numpy": "2.4.6",
+    "system": "Linux",
+    "release": "6.18.5",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "cpu_count": 4,
+    "runner": "local"
+  },
+  "formats": {
+    "PNG": {
+      "encode_ms": 897.6759,
+      "decode_ms": 39.4391,
+      "process_ms": 564.6697,
+      "encoded_bytes": 2639455.0
+    },
+    "JPEG": {
+      "encode_ms": 21.3884,
+      "decode_ms": 11.2864,
+      "process_ms": 53.3875,
+      "encoded_bytes": 596535.0
+    },
+    "WebP": {
+      "encode_ms": 330.7597,
+      "decode_ms": 51.0811,
+      "process_ms": 291.8814,
+      "encoded_bytes": 588020.0
+    },
+    "TIFF": {
+      "encode_ms": 139.3153,
+      "decode_ms": 61.0192,
+      "process_ms": 161.405,
+      "encoded_bytes": 6696130.0
+    }
+  }
+}
