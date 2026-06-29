@@ -269,6 +269,19 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Live preview degrades to COLOR for size-mismatched data layers.** When a
+  HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
+  matches the base, `_render_preview_uncached` now falls back per affected overlay
+  to the COLOR composite instead of aborting the render path with an exception —
+  mirroring the existing "missing/invisible role = degrade" rule. A render/pixel
+  regression test pushes a size-mismatched HEIGHT/GLOSS layer through
+  `RELIEF`/`COMBINED` and asserts the COLOR result instead of an exception (#404).
+- **Removed a dead geometry path in the EufyMake export.** The private
+  `_derive_physical_size` helper — orphaned since the switch to the project-model
+  getters (#377/#378) — and its sole-use `parse_size_mm` import are gone;
+  `_derive_target` still derives physical size and DPI from
+  `project.physical_size_mm`/`project.dpi`. No behavior change; the CLAUDE.md
+  geometry description now points at the path actually used (#406).
 - **Consistent canvas preview after the phase-1 completion.** Color and height
   live previews now pass through the selected mode pipeline as temporary layer
   contents, so mode, relief strength, and the gloss toggle update immediately

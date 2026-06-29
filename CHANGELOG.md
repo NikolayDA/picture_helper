@@ -280,6 +280,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
+  Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
+  zur Basis, fällt `_render_preview_uncached` jetzt je betroffenes Overlay auf das
+  COLOR-Komposit zurück, statt den Renderpfad mit einer Ausnahme abzubrechen –
+  analog zur bestehenden „fehlende/unsichtbare Rolle = degradieren"-Regel. Ein
+  Render-/Pixel-Regressionstest schickt eine größenabweichende HEIGHT/GLOSS-Ebene
+  durch `RELIEF`/`COMBINED` und belegt das COLOR-Ergebnis statt einer Ausnahme (#404).
+- **Toten Geometrie-Pfad im EufyMake-Export entfernt.** Die seit der Umstellung auf
+  die Projektmodell-Getter (#377/#378) verwaiste private Funktion
+  `_derive_physical_size` und der nur dort genutzte `parse_size_mm`-Import sind
+  ersatzlos entfernt; `_derive_target` zieht physische Größe und DPI unverändert aus
+  `project.physical_size_mm`/`project.dpi`. Kein Verhaltenswechsel; die
+  CLAUDE.md-Geometriebeschreibung zeigt jetzt auf den real genutzten Pfad (#406).
 - **Konsistente Canvas-Vorschau nach dem Phase-1-Abschluss.** Farb- und Höhen-
   Live-Vorschauen laufen jetzt als temporäre Layer-Inhalte durch die gewählte
   Modus-Pipeline, sodass Modus, Relief-Stärke und Gloss-Schalter sofort wirken,

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -48,8 +49,8 @@ from bgremover.constants import (
     logger,
 )
 from bgremover.crop import CropOverlayItem
+from bgremover.gloss_preview import GlossPreviewError, gloss_overlay
 from bgremover.gloss_preview import compose_over as compose_gloss
-from bgremover.gloss_preview import gloss_overlay
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
     LUMA_WEIGHTS_REC601,
@@ -81,8 +82,8 @@ from bgremover.project_model import (
     Project,
     role_allowed_for_kind,
 )
+from bgremover.relief_preview import ReliefPreviewError, relief_shading
 from bgremover.relief_preview import compose_over as compose_relief
-from bgremover.relief_preview import relief_shading
 from bgremover.status_messages import StatusMessages as SM
 from bgremover.units import UnitsError
 
@@ -511,8 +512,11 @@ class ImageCanvas(QGraphicsView):
         """Rendert die modusgesteuerte Vorschau einmalig aus dem Projektzustand.
 
         Fehlende Height-/Gloss-Rollen degradieren bewusst auf das COLOR-Komposit,
-        statt eine leere oder veraltete Ansicht zu zeigen. Der Gloss-Modus zeigt
-        bei vorhandener Maske deren getönten Overlay allein; „kombiniert" legt
+        statt eine leere oder veraltete Ansicht zu zeigen. Ein größeninkompatibler
+        Daten-Layer (anomaler/fremder Projektzustand) degradiert genauso: die
+        ``compose_*``-Aufrufe fallen bei einem Größen-Mismatch auf ``base`` zurück,
+        statt den Renderpfad mit einer Ausnahme abzubrechen (#404). Der Gloss-Modus
+        zeigt bei vorhandener Maske deren getönten Overlay allein; „kombiniert" legt
         Relief und optional Gloss in dieser Reihenfolge über das Farbmotiv.
         """
         if self._project is None:
@@ -552,16 +556,24 @@ class ImageCanvas(QGraphicsView):
                 elevation=45.0,
                 strength=1.0,
             )
-            rendered = compose_relief(
-                rendered, shading, strength=self._relief_strength / 100.0
-            )
+            try:
+                rendered = compose_relief(
+                    rendered, shading, strength=self._relief_strength / 100.0
+                )
+            except ReliefPreviewError:
+                # Größen-Mismatch einer anomalen HEIGHT-Ebene: auf das
+                # COLOR-Komposit degradieren statt den Renderpfad abzubrechen (#404).
+                rendered = base
         if (
             self._preview_mode is PreviewMode.COMBINED
             and gloss is not None
             and self._gloss_visible
         ):
             overlay = gloss_overlay(gloss.image, intensity=1.0)
-            rendered = compose_gloss(rendered, overlay, intensity=1.0)
+            # Größen-Mismatch einer anomalen GLOSS-Ebene: den Gloss-Schritt
+            # überspringen; ein bereits gemischtes Relief bleibt erhalten (#404).
+            with suppress(GlossPreviewError):
+                rendered = compose_gloss(rendered, overlay, intensity=1.0)
         return rendered
 
     def _render_image(self) -> Image.Image | None:
