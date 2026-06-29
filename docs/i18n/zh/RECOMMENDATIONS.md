@@ -11,7 +11,7 @@
 | 🟡 | 中 | 有助于质量、可读性或可测试性的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-06-25）
+## 当前状态（2026-06-29）
 
 当前代码分析清单为空。Ruff、mypy 和本地测试套件仍是新 PR 前的基线。
 
@@ -51,39 +51,50 @@
   AI 推理现已在经 `spawn` 启动的进程（`ai_process.py`）中运行；作为 AI 应急
   出口的 `QThread.terminate()` 已移除。健壮性/内存方面的后续发现已在 **#285**（PR #289）修复并关闭。
 
-## 打开的 GitHub Issues — Triage 状态 (2026-06-25，已更新)
+## 打开的 GitHub Issues — Triage 状态 (2026-06-29，已更新)
 
-截至 2026-06-25，在 PR **#400** 合并后，GitHub 显示 **5** 个打开的 issues：
-**#245**、**#299**、**#318**、**#389** 与 **#392**。文档包 **#390/#391**、
-打开方式说明 **#357** 以及已记录的 HEIC 排除项 **#339** 都已完成并关闭。
-roadmap 史诗 **#389** 只剩 release 步骤 **#392**。
+截至 2026-06-29，GitHub 显示 **7** 个打开的 issues：**#245**、**#299**、
+**#318**、**#389**、**#392**、**#404** 与 **#406**。自上次复核（2026-06-25）
+以来，新增两个范围清晰的质量/健壮性 issue：死代码审计 **#406** 与预览降级缺口
+**#404**。文档包 **#390/#391**、打开方式说明 **#357** 以及已记录的 HEIC 排除项
+**#339** 仍为关闭；roadmap 史诗 **#389** 只剩 release 步骤 **#392**。
 
-**复核（6 月 24/25 日）：** #393 的 P2 已由 #394 修正。#396 的三个 P2
-记录在 #397 中，并由 PR #398 通过回归测试修复。#400 中发现的基于角色的
-EufyMake 描述在合并前已修正到六份指南。#399 的 snapshot thread 已被后续 issue
-关闭所取代；当前有效的是 5 个 issue 的 live 状态。无需新建后续 issue。
+**评论复核：** 无新的外部评论。#392/#299/#245 上的现有评论是 owner 的 triage
+记录，与当前状态一致 — 无需更新 issue。
+
+**新发现已对照代码核实：** #406 已确认 —`_derive_physical_size`
+（`eufymake_export.py:217`）无任何调用者，且 `parse_size_mm` 仅为该死函数在此
+导入（`project_model.py` 仍在使用，故符号保留）。#404 已确认 —
+`compose_relief`/`compose_gloss`（`canvas.py:555/564`）在渲染路径中未被捕获，
+尽管 docstring（第 513 行）承诺降级到 COLOR 合成。
 
 ### 建议分组
 
 - **发布包：** **#392** 现已可开始；验证 tag、release body 与 macOS/Linux
   产物后关闭史诗 **#389**。
+- **质量速赢：** **#406** 与 **#404** 体量小、自包含且 ready-for-PR — 适合作为
+  发布路径之外的短小质量 PR，但与发布路径分开（不同模块，无共享 diff）。
 - 不把 **#299/#318/#245** 混入发布路径；它们分别属于质量、研究和外部阻塞工作。
 
 评估：**相关性** = 对 roadmap/用户的重要性，**复杂度** = 预计实现工作量。
 
 | # | 标题 | 相关性 | 复杂度 | 推荐下一步 |
 |---|------|--------|--------|------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟢 低（剩余） | **接近完成** – 只剩 #392。 |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | 发布 v2.5.0（CHANGELOG/版本号/tag/产物） | 🟠 高 | 🟡 中 | **可开始** – #390、#391 与 #384 已关闭。 |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] 更新用户文档并发布 release | 🟠 高 | 🟢 低（剩余） | **接近完成** – 只剩 #392。 |
+| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | 预览渲染：尺寸不匹配未降级到 COLOR | 🟡 中 | 🟢 低 | **Ready for PR** – 防御性包裹 `compose_relief`/`compose_gloss`，尺寸不匹配时回退到 `base`，并加 render/pixel 回归测试。潜在但范围清晰。 |
+| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | 死代码：`eufymake_export.py` 中未使用的 `_derive_physical_size` | 🟢 低 | 🟢 低 | **Ready for PR** – 删除该函数、清理 `parse_size_mm` 导入，并把 CLAUDE.md 的几何说明更新为 `_derive_target`/项目模型路径。简单，验收标准完整。 |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 低 | 🟢 低 | **v2.5.0 后** – 优先 lasso、可写 NumPy、完整 wand mask 与 brush 参数化。 |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **并行研究** – 先证明语义；仅为已证实的误报改代码并保留 #303。 |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 低 | 🟡 中 | **需细化** – 先证明语义；仅为已证实的误报改代码并保留 #303。 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan 因 "Quota exceeded" 失败 | 🟡 中 | 🟢 低 | **Blocked（外部）** – repo 侧加固经 #322/#342（已关闭）完成；剩余 blocker 是 OpenAI/billing quota。恢复 quota 后手动触发一次 scheduled scan，然后关闭。 |
 
 ### 推荐下一步（PR 顺序）
 
-1. 现在执行 **#392**；验证 tag、release body 与两个产物后关闭史诗 **#389**。
-2. v2.5.0 后处理 **#299**；并行研究 **#318** 但无证据前不改代码；保持
-   **#245** 阻塞直到外部 quota 恢复。
+1. 把 **#406** 与 **#404** 作为短小质量 PR 提前处理 — 两者均已核实、自包含且
+   ready-for-PR（不同模块，低风险）。
+2. 随后执行 **#392**；验证 tag、release body 与两个产物后关闭史诗 **#389**。
+3. v2.5.0 后处理 **#299**；**#318** 仅作研究（需细化）；保持 **#245** 阻塞直到
+   外部 quota 恢复。
 
 ## 先前轮次
 
