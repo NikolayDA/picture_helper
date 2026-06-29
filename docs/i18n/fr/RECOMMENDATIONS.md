@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile pour la qualité, la lisibilité ou les tests |
 | 🟢 | Basse | Polissage optionnel ou amélioration de processus |
 
-## État Actuel (2026-06-25)
+## État Actuel (2026-06-29)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite locale
 restent la baseline avant de nouveaux PRs.
@@ -59,25 +59,32 @@ restent la baseline avant de nouveaux PRs.
   disparu. Les constats de suivi robustesse/mémoire sont corrigés et clos dans
   **#285** (PR #289).
 
-## Issues GitHub Ouvertes — État du Triage (2026-06-25, mis à jour)
+## Issues GitHub Ouvertes — État du Triage (2026-06-29, mis à jour)
 
-Au 2026-06-25, après le merge de la PR **#400**, GitHub affiche **5** issues
-ouvertes : **#245**, **#299**, **#318**, **#389** et **#392**. Les lots docs
-**#390/#391**, la note d'ouverture **#357** et l'exclusion HEIC documentée
-**#339** sont terminés et clos. Seule l'étape de release **#392** reste dans
-l'epic **#389**.
+Au 2026-06-29, GitHub affiche **7** issues ouvertes : **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404** et **#406**. Depuis la dernière revue (2026-06-25),
+deux nouvelles issues qualité/robustesse bien cadrées sont apparues : l'audit de
+code mort **#406** et la faille de dégradation de l'aperçu **#404**. Les lots
+docs **#390/#391**, la note d'ouverture **#357** et l'exclusion HEIC documentée
+**#339** restent closes ; seule l'étape de release **#392** reste dans l'epic
+**#389**.
 
-**Revue (24/25 juin) :** Le P2 de #393 a été corrigé par #394. Les trois P2 de
-#396 ont été suivis dans #397 puis corrigés par la PR #398 avec des tests de
-régression. Le texte EufyMake basé sur les rôles trouvé dans #400 a été corrigé
-dans les six guides avant merge. Le thread snapshot de #399 a été dépassé par
-les clôtures suivantes ; le total live de cinq fait foi. Aucune nouvelle issue
-de suivi n'est nécessaire.
+**Revue des commentaires :** Aucun nouveau commentaire externe. Les commentaires
+existants sur #392/#299/#245 sont des notes de triage de l'owner cohérentes avec
+l'état actuel — aucune mise à jour d'issue nécessaire.
+
+**Nouveaux constats vérifiés dans le code :** #406 — `_derive_physical_size`
+(`eufymake_export.py:217`) n'a aucun appelant (`parse_size_mm` seulement là, par
+ailleurs dans `project_model.py`). #404 — `compose_relief`/`compose_gloss`
+(`canvas.py:555/564`) lèvent au lieu de dégrader vers COLOR dans le rendu.
 
 ### Regroupements Recommandés
 
 - **Lot release :** **#392** est prêt ; clore l'epic **#389** après vérification
   du tag, du release body et des artefacts macOS/Linux.
+- **Gains rapides qualité :** **#406** et **#404** sont petits, autonomes et
+  prêts pour PR — idéaux comme PRs qualité courtes à côté du chemin de release,
+  mais séparées de lui (modules différents, pas de diff commun).
 - Ne pas mêler **#299/#318/#245** au chemin de release : qualité, recherche et
   exploitation bloquée en externe sont indépendantes.
 
@@ -86,18 +93,22 @@ de suivi n'est nécessaire.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟢 Basse (reste) | **Presque terminé** – seule #392 reste ouverte. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publier la release v2.5.0 (CHANGELOG/version/tag/artefacts) | 🟠 Haute | 🟡 Moyenne | **Prêt** – #390, #391 et #384 sont closes. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Mettre à jour la doc utilisateur & publier la release | 🟠 Haute | 🟢 Basse (reste) | **Presque terminé** – seule #392 reste ouverte. |
+| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Aperçu : un écart de taille ne dégrade pas vers COLOR | 🟡 Moyenne | 🟢 Basse | **Prêt pour PR** – encapsuler `compose_relief`/`compose_gloss` de façon défensive et revenir à `base` en cas d'écart de taille, avec un test de régression de rendu/pixel. Latent mais bien cadré. |
+| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Code mort : `_derive_physical_size` inutilisé dans `eufymake_export.py` | 🟢 Basse | 🟢 Basse | **Prêt pour PR** – supprimer la fonction, nettoyer l'import `parse_size_mm` et mettre à jour la phrase de géométrie de CLAUDE.md vers le chemin `_derive_target`/modèle de projet. Trivial, critères d'acceptation complets. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Basse | 🟢 Basse | **Après v2.5.0** – lasso, résultat NumPy modifiable, masque wand complet et paramétrage brush d'abord. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **Recherche parallèle** – prouver la sémantique ; coder seulement pour un faux positif démontré et préserver #303. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test : respecter les overrides de permissions job-level dans le reusable WF | 🟢 Basse | 🟡 Moyenne | **À affiner** – prouver la sémantique ; coder seulement pour un faux positif démontré et préserver #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI : Codex Security Scan échoue avec "Quota exceeded" | 🟡 Moyenne | 🟢 Basse | **Blocked (externe)** – le durcissement côté repo via #322/#342 (clos) est fait ; le blocage restant est la quota OpenAI/billing. Après restauration, lancer une fois le scan programmé manuellement puis clore. |
 
 ### Prochaines étapes recommandées (ordre des PR)
 
-1. Exécuter **#392** maintenant et clore l'epic **#389** après vérification du tag,
+1. Avancer **#406** et **#404** comme PRs qualité courtes — toutes deux
+   vérifiées, autonomes et prêtes pour PR (modules différents, faible risque).
+2. Exécuter **#392** ensuite et clore l'epic **#389** après vérification du tag,
    du release body et des deux artefacts.
-2. Traiter **#299** après v2.5.0 ; rechercher **#318** en parallèle sans coder sans
-   preuve et garder **#245** bloqué jusqu'au retour de la quota externe.
+3. Traiter **#299** après v2.5.0 ; rechercher **#318** seulement (à affiner) et
+   garder **#245** bloqué jusqu'au retour de la quota externe.
 
 ## Séries Précédentes
 
