@@ -605,19 +605,47 @@ def _shrink_layer_image(project: Project, role: LayerRole, size: tuple[int, int]
     layer.image = Image.fromarray(arr, "RGBA")
 
 
-def test_relief_degrades_to_color_on_height_size_mismatch(qapp) -> None:
-    """Eine größenfremde HEIGHT-Ebene degradiert im RELIEF-Modus auf COLOR (#404).
+@pytest.mark.parametrize("mode", [PreviewMode.HEIGHT, PreviewMode.RELIEF])
+def test_height_modes_degrade_to_color_on_height_size_mismatch(
+    qapp, mode: PreviewMode
+) -> None:
+    """HEIGHT- und RELIEF-Modus degradieren bei größenfremder HEIGHT-Ebene (#404).
 
-    Der Mismatch wird vor :meth:`set_project` erzwungen, damit kein Render je den
+    Der eigenständige HEIGHT-Modus rendert sonst eine layer-große Graustufe statt
+    einer canvas-großen Ansicht; RELIEF würde im `compose`-Schritt werfen. Der
+    Mismatch wird vor :meth:`set_project` erzwungen, damit kein Render je den
     gültigen Zustand cacht – getestet wird ausschließlich der Degrade-Pfad.
     """
     canvas = ImageCanvas()
     project = _preview_project()
     _shrink_layer_image(project, LayerRole.HEIGHT_MAP, (4, 4))
     canvas.set_project(project)
-    canvas.set_preview_mode(PreviewMode.RELIEF)
+    canvas.set_preview_mode(mode)
 
-    rendered = canvas._render_image()  # darf nicht werfen
+    rendered = canvas._render_image()  # darf weder werfen noch falsch dimensionieren
+    assert np.array_equal(np.array(rendered), np.array(project.composite_color()))
+
+
+@pytest.mark.parametrize("mode", [PreviewMode.GLOSS, PreviewMode.COMBINED])
+def test_gloss_modes_degrade_to_color_on_gloss_size_mismatch(
+    qapp, mode: PreviewMode
+) -> None:
+    """GLOSS- und COMBINED-Modus degradieren bei größenfremder GLOSS-Ebene (#404).
+
+    Im eigenständigen GLOSS-Modus liefert `gloss_overlay` sonst ein layer-großes
+    Overlay statt des canvas-großen Komposits. Im COMBINED-Modus wird zusätzlich
+    die HEIGHT-Ebene größenfremd gemacht, sodass auch der Relief-Anteil entfällt
+    und das reine COLOR-Komposit übrig bleibt.
+    """
+    canvas = ImageCanvas()
+    project = _preview_project()
+    _shrink_layer_image(project, LayerRole.GLOSS_MASK, (4, 4))
+    if mode is PreviewMode.COMBINED:
+        _shrink_layer_image(project, LayerRole.HEIGHT_MAP, (4, 4))
+    canvas.set_project(project)
+    canvas.set_preview_mode(mode)
+
+    rendered = canvas._render_image()  # darf weder werfen noch falsch dimensionieren
     assert np.array_equal(np.array(rendered), np.array(project.composite_color()))
 
 

@@ -199,10 +199,11 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 ### 修复
 
 - **数据图层尺寸不匹配时实时预览降级为 COLOR。** 当 HEIGHT/GLOSS 图层的像素尺寸
-  （异常或外来项目状态）不再与基底一致时，`_render_preview_uncached` 现在会按受影响
-  的每个叠加层回退到 COLOR 合成，而不是用异常中断渲染路径——与既有的“角色缺失/不可见
-  = 降级”规则一致。一个渲染/像素回归测试将尺寸不一致的 HEIGHT/GLOSS 图层送入
-  `RELIEF`/`COMBINED`，并验证得到 COLOR 结果而非异常（#404）。
+  （异常或外来项目状态）不再与基底一致时，`_render_preview_uncached` 现在会在**每一种**
+  预览模式下把该图层视为缺失角色并回退到 COLOR 合成，而不是显示尺寸错误的视图或用异常
+  中断渲染路径——与既有的“角色缺失/不可见 = 降级”规则一致。渲染/像素回归测试将尺寸
+  不一致的 HEIGHT/GLOSS 图层送入 `HEIGHT`/`RELIEF`/`GLOSS`/`COMBINED`，并验证得到
+  COLOR 结果（#404）。
 - **移除 EufyMake 导出中的死几何路径。** 自切换到项目模型 getter（#377/#378）后已成
   孤儿的私有函数 `_derive_physical_size`，以及仅在此处使用的 `parse_size_mm` 导入已
   一并删除；`_derive_target` 仍从 `project.physical_size_mm`/`project.dpi` 推导物理

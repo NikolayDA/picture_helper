@@ -306,11 +306,12 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`
-  recurre ahora, por cada superposición afectada, al compuesto COLOR en lugar de
+  trata ahora esa capa como un rol ausente en **todos** los modos de vista previa y
+  recurre al compuesto COLOR en lugar de mostrar una vista de tamaño incorrecto o
   abortar la ruta de renderizado con una excepción, igual que la regla existente
-  «rol ausente/invisible = degradar». Una prueba de regresión de render/píxeles
-  envía una capa HEIGHT/GLOSS de tamaño divergente por `RELIEF`/`COMBINED` y
-  verifica el resultado COLOR en vez de una excepción (#404).
+  «rol ausente/invisible = degradar». Pruebas de regresión de render/píxeles envían
+  una capa HEIGHT/GLOSS de tamaño divergente por `HEIGHT`/`RELIEF`/`GLOSS`/`COMBINED`
+  y verifican el resultado COLOR (#404).
 - **Eliminada una ruta de geometría muerta en la exportación a EufyMake.** La
   función privada `_derive_physical_size` —huérfana desde el cambio a los getters
   del modelo de proyecto (#377/#378)— y el import de `parse_size_mm` usado solo

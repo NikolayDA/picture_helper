@@ -309,11 +309,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`
-  se rabat désormais, pour chaque superposition concernée, sur le composite COLOR
-  au lieu d'interrompre le rendu par une exception — à l'image de la règle existante
-  « rôle manquant/invisible = dégrader ». Un test de régression rendu/pixels envoie
-  un calque HEIGHT/GLOSS de taille divergente dans `RELIEF`/`COMBINED` et vérifie le
-  résultat COLOR plutôt qu'une exception (#404).
+  traite désormais ce calque comme un rôle manquant dans **chaque** mode d'aperçu et
+  se rabat sur le composite COLOR au lieu d'afficher une vue de taille incorrecte ou
+  d'interrompre le rendu par une exception — à l'image de la règle existante
+  « rôle manquant/invisible = dégrader ». Des tests de régression rendu/pixels
+  envoient un calque HEIGHT/GLOSS de taille divergente dans
+  `HEIGHT`/`RELIEF`/`GLOSS`/`COMBINED` et vérifient le résultat COLOR (#404).
 - **Suppression d'un chemin de géométrie mort dans l'export EufyMake.** La fonction
   privée `_derive_physical_size` — orpheline depuis le passage aux getters du modèle
   de projet (#377/#378) — et l'import `parse_size_mm` utilisé uniquement là ont
