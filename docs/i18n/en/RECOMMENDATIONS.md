@@ -11,7 +11,7 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-06-25)
+## Current Status (2026-06-29)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
 remain the baseline before new PRs.
@@ -58,25 +58,32 @@ remain the baseline before new PRs.
   The robustness/memory follow-up findings are fixed and closed in **#285**
   (PR #289).
 
-## Open GitHub Issues — Triage Status (2026-06-25, updated)
+## Open GitHub Issues — Triage Status (2026-06-29, updated)
 
-As of 2026-06-25, after PR **#400** merged, GitHub shows **5** open issues:
-**#245**, **#299**, **#318**, **#389**, and **#392**. Documentation bundles
-**#390/#391**, startup-path note **#357**, and the documented HEIC exclusion
-**#339** are fully delivered and closed. Only release step **#392** remains in
-roadmap epic **#389**.
+As of 2026-06-29, GitHub shows **7** open issues: **#245**, **#299**, **#318**,
+**#389**, **#392**, **#404**, and **#406**. Two new, tightly scoped quality/
+robustness issues have appeared since the last review (2026-06-25): the
+dead-code audit **#406** and the preview degrade gap **#404**. Documentation
+bundles **#390/#391**, startup-path note **#357**, and the documented HEIC
+exclusion **#339** remain closed; only release step **#392** is left in roadmap
+epic **#389**.
 
-**Review pass (June 24/25):** PR #393's P2 was corrected by #394. The three
-P2 findings from #396 were tracked in #397 and fixed by PR #398 with regression
-tests. The role-based EufyMake wording found in #400 was corrected in all six
-guides before merge. The open snapshot thread on #399 was superseded by the
-subsequent issue closures; the live total of five is authoritative. No new
-follow-up issue is needed.
+**Comment pass:** No new external comments. The existing comments on
+#392/#299/#245 are owner triage notes consistent with the current state — no
+issue update needed.
+
+**New findings verified against the code:** #406 — `_derive_physical_size`
+(`eufymake_export.py:217`) has no caller (`parse_size_mm` imported only there,
+still used in `project_model.py`). #404 — `compose_relief`/`compose_gloss`
+(`canvas.py:555/564`) raise instead of degrading to COLOR in the render path.
 
 ### Sensible Bundles
 
 - **Release bundle:** **#392** is ready now; close epic **#389** after the tag,
   release body, and macOS/Linux artifacts are verified.
+- **Quality quick wins:** **#406** and **#404** are small, self-contained, and
+  ready for PR — ideal as short quality PRs alongside the release path, but kept
+  separate from it (different modules, no shared diff).
 - Do not mix **#299/#318/#245** into the release path; they are independent
   quality, research, and externally blocked operational work.
 
@@ -85,18 +92,22 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟢 Low (remaining) | **Nearly complete** – only #392 remains open. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Ready** – #390, #391, and #384 are closed. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟢 Low (remaining) | **Nearly complete** – only #392 remains open. |
+| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Preview render: size mismatch does not degrade to COLOR | 🟡 Medium | 🟢 Low | **Ready for PR** – wrap `compose_relief`/`compose_gloss` defensively and fall back to `base` on a size mismatch, with a render/pixel regression test. Latent but clearly scoped. |
+| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Dead code: unused `_derive_physical_size` in `eufymake_export.py` | 🟢 Low | 🟢 Low | **Ready for PR** – remove the function, clean up the `parse_size_mm` import, and update the CLAUDE.md geometry sentence to the `_derive_target`/project-model path. Trivial, with full acceptance criteria. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After v2.5.0** – highest impact first (lasso endpoint, writable NumPy result, full wand mask, brush parametrization). |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Parallel research** – prove GitHub semantics first; change code only for a demonstrated false positive and preserve #303. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – prove GitHub semantics first; change code only for a demonstrated false positive and preserve #303. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
 
 ### Recommended Next (PR order)
 
-1. Run **#392** now, then close epic **#389** once the tag,
-   release body, and both artifacts are verified.
-2. Tackle **#299** after v2.5.0; research **#318** in parallel without coding
-   before evidence, and keep **#245** blocked until the external quota returns.
+1. Pull **#406** and **#404** forward as short quality PRs — both are verified,
+   self-contained, and ready for PR (different modules, low risk).
+2. Run **#392** next, then close epic **#389** once the tag, release body, and
+   both artifacts are verified.
+3. Tackle **#299** after v2.5.0; research **#318** only (needs refinement), and
+   keep **#245** blocked until the external quota returns.
 
 ## Previous Rounds
 
