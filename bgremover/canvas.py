@@ -510,10 +510,15 @@ class ImageCanvas(QGraphicsView):
     def _render_preview_uncached(self) -> Image.Image | None:
         """Rendert die modusgesteuerte Vorschau einmalig aus dem Projektzustand.
 
-        Fehlende Height-/Gloss-Rollen degradieren bewusst auf das COLOR-Komposit,
-        statt eine leere oder veraltete Ansicht zu zeigen. Der Gloss-Modus zeigt
-        bei vorhandener Maske deren getönten Overlay allein; „kombiniert" legt
-        Relief und optional Gloss in dieser Reihenfolge über das Farbmotiv.
+        Fehlende, unsichtbare oder größenfremde Height-/Gloss-Rollen degradieren
+        bewusst auf das COLOR-Komposit, statt eine leere, veraltete oder falsch
+        dimensionierte Ansicht zu zeigen bzw. den Renderpfad mit einer Ausnahme
+        abzubrechen (#404). Ein Daten-Layer mit canvas-fremder Pixelgröße tritt nur
+        in anomalen/fremden Projektzuständen auf und wird – wie eine fehlende Rolle –
+        in *jedem* Modus (auch im eigenständigen HEIGHT-/GLOSS-Modus) auf ``base``
+        zurückgeführt. Der Gloss-Modus zeigt bei vorhandener Maske deren getönten
+        Overlay allein; „kombiniert" legt Relief und optional Gloss in dieser
+        Reihenfolge über das Farbmotiv.
         """
         if self._project is None:
             return None
@@ -533,6 +538,14 @@ class ImageCanvas(QGraphicsView):
         if height is not None and not height.visible:
             height = None
         if gloss is not None and not gloss.visible:
+            gloss = None
+        # Größeninkompatible Datenebenen (anomaler/fremder Projektzustand) ebenso:
+        # in jedem Modus wie eine fehlende Rolle behandeln, damit weder eine falsch
+        # dimensionierte Ansicht (eigenständiger HEIGHT-/GLOSS-Modus) entsteht noch
+        # ein compose_* mit Größen-Mismatch wirft (#404).
+        if height is not None and height.image.size != base.size:
+            height = None
+        if gloss is not None and gloss.image.size != base.size:
             gloss = None
 
         if self._preview_mode is PreviewMode.COLOR:

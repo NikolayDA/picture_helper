@@ -589,6 +589,99 @@ def test_hidden_data_layers_are_excluded_from_all_preview_modes(qapp) -> None:
     assert not np.array_equal(np.array(canvas._render_image()), color)
 
 
+def _shrink_layer_image(project: Project, role: LayerRole, size: tuple[int, int]) -> None:
+    """Setzt die Pixel einer Datenebene auf eine canvas-fremde Größe (anomaler Zustand).
+
+    Simuliert den von #404 adressierten Robustheitsfall: ein Daten-Layer, dessen
+    Größe nicht zur Canvas-/Basisgröße passt. Das Modell verhindert das beim
+    regulären Einfügen; hier wird es bewusst nach dem Aufbau erzwungen.
+    """
+    layer = project.layer_by_role(role)
+    assert layer is not None
+    w, h = size
+    arr = np.zeros((h, w, 4), dtype=np.uint8)
+    arr[:, :, 0] = np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+    arr[:, :, 3] = 255
+    layer.image = Image.fromarray(arr, "RGBA")
+
+
+@pytest.mark.parametrize("mode", [PreviewMode.HEIGHT, PreviewMode.RELIEF])
+def test_height_modes_degrade_to_color_on_height_size_mismatch(
+    qapp, mode: PreviewMode
+) -> None:
+    """HEIGHT- und RELIEF-Modus degradieren bei größenfremder HEIGHT-Ebene (#404).
+
+    Der eigenständige HEIGHT-Modus rendert sonst eine layer-große Graustufe statt
+    einer canvas-großen Ansicht; RELIEF würde im `compose`-Schritt werfen. Der
+    Mismatch wird vor :meth:`set_project` erzwungen, damit kein Render je den
+    gültigen Zustand cacht – getestet wird ausschließlich der Degrade-Pfad.
+    """
+    canvas = ImageCanvas()
+    project = _preview_project()
+    _shrink_layer_image(project, LayerRole.HEIGHT_MAP, (4, 4))
+    canvas.set_project(project)
+    canvas.set_preview_mode(mode)
+
+    rendered = canvas._render_image()  # darf weder werfen noch falsch dimensionieren
+    assert np.array_equal(np.array(rendered), np.array(project.composite_color()))
+
+
+@pytest.mark.parametrize("mode", [PreviewMode.GLOSS, PreviewMode.COMBINED])
+def test_gloss_modes_degrade_to_color_on_gloss_size_mismatch(
+    qapp, mode: PreviewMode
+) -> None:
+    """GLOSS- und COMBINED-Modus degradieren bei größenfremder GLOSS-Ebene (#404).
+
+    Im eigenständigen GLOSS-Modus liefert `gloss_overlay` sonst ein layer-großes
+    Overlay statt des canvas-großen Komposits. Im COMBINED-Modus wird zusätzlich
+    die HEIGHT-Ebene größenfremd gemacht, sodass auch der Relief-Anteil entfällt
+    und das reine COLOR-Komposit übrig bleibt.
+    """
+    canvas = ImageCanvas()
+    project = _preview_project()
+    _shrink_layer_image(project, LayerRole.GLOSS_MASK, (4, 4))
+    if mode is PreviewMode.COMBINED:
+        _shrink_layer_image(project, LayerRole.HEIGHT_MAP, (4, 4))
+    canvas.set_project(project)
+    canvas.set_preview_mode(mode)
+
+    rendered = canvas._render_image()  # darf weder werfen noch falsch dimensionieren
+    assert np.array_equal(np.array(rendered), np.array(project.composite_color()))
+
+
+def test_combined_degrades_per_overlay_on_size_mismatch(qapp) -> None:
+    """COMBINED degradiert je betroffenes Overlay einzeln statt zu werfen (#404)."""
+    color = np.array(_preview_project().composite_color())
+
+    # Referenz: reines RELIEF eines vollständig gültigen Projekts.
+    ref_canvas = ImageCanvas()
+    ref_canvas.set_project(_preview_project())
+    ref_canvas.set_preview_mode(PreviewMode.RELIEF)
+    relief_only = np.array(ref_canvas._render_image())
+
+    # Nur das Gloss ist größenfremd: das gültige Relief bleibt erhalten, der
+    # Gloss-Schritt wird übersprungen – Ergebnis identisch zum reinen RELIEF.
+    gloss_bad = _preview_project()
+    _shrink_layer_image(gloss_bad, LayerRole.GLOSS_MASK, (4, 4))
+    gloss_canvas = ImageCanvas()
+    gloss_canvas.set_project(gloss_bad)
+    gloss_canvas.set_preview_mode(PreviewMode.COMBINED)
+    combined = np.array(gloss_canvas._render_image())  # darf nicht werfen
+    assert np.array_equal(combined, relief_only)
+    assert not np.array_equal(combined, color)
+
+    # Sind beide Daten-Layer größenfremd, fällt COMBINED ganz auf COLOR zurück.
+    both = _preview_project()
+    _shrink_layer_image(both, LayerRole.HEIGHT_MAP, (4, 4))
+    _shrink_layer_image(both, LayerRole.GLOSS_MASK, (4, 4))
+    both_canvas = ImageCanvas()
+    both_canvas.set_project(both)
+    both_canvas.set_preview_mode(PreviewMode.COMBINED)
+    assert np.array_equal(
+        np.array(both_canvas._render_image()), np.array(both.composite_color())
+    )
+
+
 def test_zero_relief_strength_skips_hillshade(qapp, monkeypatch) -> None:
     import bgremover.canvas as canvas_module
 

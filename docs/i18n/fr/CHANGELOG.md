@@ -306,6 +306,22 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
+  incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
+  projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`
+  traite désormais ce calque comme un rôle manquant dans **chaque** mode d'aperçu et
+  se rabat sur le composite COLOR au lieu d'afficher une vue de taille incorrecte ou
+  d'interrompre le rendu par une exception — à l'image de la règle existante
+  « rôle manquant/invisible = dégrader ». Des tests de régression rendu/pixels
+  envoient un calque HEIGHT/GLOSS de taille divergente dans
+  `HEIGHT`/`RELIEF`/`GLOSS`/`COMBINED` et vérifient le résultat COLOR (#404).
+- **Suppression d'un chemin de géométrie mort dans l'export EufyMake.** La fonction
+  privée `_derive_physical_size` — orpheline depuis le passage aux getters du modèle
+  de projet (#377/#378) — et l'import `parse_size_mm` utilisé uniquement là ont
+  disparu ; `_derive_target` dérive toujours la taille physique et les DPI de
+  `project.physical_size_mm`/`project.dpi`. Aucun changement de comportement ; la
+  description de géométrie de CLAUDE.md pointe désormais vers le chemin réellement
+  utilisé (#406).
 - **Aperçu du canevas cohérent après la fin de la phase 1.** Les aperçus en direct
   de couleur et de hauteur passent désormais par le mode choisi comme contenu de
   calque temporaire ; le mode, l'intensité du relief et le commutateur de brillance

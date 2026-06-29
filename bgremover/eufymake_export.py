@@ -31,7 +31,7 @@ from bgremover.project_model import (
     Project,
 )
 from bgremover.units import MM_PER_INCH as MM_PER_INCH  # Re-Export (Rückwärtskompat.)
-from bgremover.units import UnitsError, parse_size_mm
+from bgremover.units import UnitsError
 
 # Profil-/Versionskennung des Pakets. **BgRemover-Konvention**, keine offizielle
 # EufyMake-Kennung: trennt spätere Konventionsänderungen sauber vom Projektmodell
@@ -212,24 +212,6 @@ def _derive_bit_depth(metadata: dict[str, object]) -> int:
             f"{META_BIT_DEPTH} muss in {_SUPPORTED_BIT_DEPTHS} liegen, war {raw}"
         )
     return raw
-
-
-def _derive_physical_size(metadata: dict[str, object]) -> tuple[float, float] | None:
-    """Liest ``META_PHYSICAL_SIZE_MM`` strukturiert als positive ``(w, h)`` in mm.
-
-    Fehlt der Schlüssel, bleibt die physische Größe unbekannt (``None``). Ein
-    vorhandener Wert muss eine Zweier-Sequenz endlicher, positiver Zahlen sein
-    (``bool`` ausgeschlossen); andernfalls wird der geteilte
-    :func:`bgremover.units.parse_size_mm`-Befund als :class:`InvalidPhysicalSizeError`
-    weitergereicht. So bleibt die Validierung deckungsgleich mit dem Projektmodell.
-    """
-    raw = metadata.get(META_PHYSICAL_SIZE_MM)
-    if raw is None:
-        return None
-    try:
-        return parse_size_mm(raw)
-    except UnitsError as exc:
-        raise InvalidPhysicalSizeError(f"{META_PHYSICAL_SIZE_MM}: {exc}") from exc
 
 
 def coerce_bit_depth(metadata: dict[str, object], override: int | None) -> int:
