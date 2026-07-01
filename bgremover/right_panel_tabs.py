@@ -178,27 +178,9 @@ class SelectionTab:
         btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
         layout.addWidget(btn_ai)
 
-        g_tool, gt = _make_section(tr("right_panel.selection.section.tool"))
-        hint_box = QWidget()
-        hint_box.setStyleSheet("background:#1e2a38; border-radius:7px;")
-        hint_lay = QVBoxLayout(hint_box)
-        hint_lay.setContentsMargins(10, 8, 10, 8)
-        hint_lay.setSpacing(3)
-        for icon_name, txt in [
-            ("wand", tr("right_panel.selection.hint.wand")),
-            ("brush", tr("right_panel.selection.hint.brush")),
-            ("eraser", tr("right_panel.selection.hint.eraser")),
-            ("lasso", tr("right_panel.selection.hint.lasso")),
-        ]:
-            hint_lay.addWidget(_make_icon_row(icon_name, txt, "#7aacdd", 11))
-        hint_lay.addWidget(_make_hdivider())
         sub_mod = "Cmd" if _IS_MACOS else "Ctrl"
-        hint_lay.addWidget(_make_label(tr("right_panel.selection.hint.add"), "#888", 11))
-        hint_lay.addWidget(_make_label(
-            tr("right_panel.selection.hint.subtract", modifier=sub_mod), "#888", 11))
-        gt.addWidget(hint_box)
-        layout.addWidget(g_tool)
 
+        # Karte „Werkzeug-Einstellungen" – Toleranz + Pinselgröße (§9 Schritt 2)
         g_sel, gs = _make_section(tr("right_panel.selection.section.settings"))
         tolerance_label = _make_label(
             tr("right_panel.selection.tolerance", value=30), "#aaa")
@@ -228,19 +210,20 @@ class SelectionTab:
         gs.addWidget(brush_slider)
         layout.addWidget(g_sel)
 
-        btn_clr = _make_panel_btn(
-            tr("right_panel.selection.clear"), "#2a2a2a", "#c0c0c0", "#363636",
-            tr("right_panel.selection.clear.tooltip"),
-            icon_name="clear_sel")
-        btn_clr.clicked.connect(lambda _=False: self._actions.clear_selection())
-        layout.addWidget(btn_clr)
-
+        # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen (§9)
+        g_select, gsel = _make_section(tr("right_panel.selection.section.select"))
+        row_ci = QHBoxLayout(); row_ci.setSpacing(6)
         btn_inv = _make_panel_btn(
             tr("right_panel.selection.invert"), "#2a2a2a", "#c0c0c0", "#363636",
-            tr("right_panel.selection.invert.tooltip", modifier=sub_mod),
-            icon_name="clear_sel")
+            tr("right_panel.selection.invert.tooltip", modifier=sub_mod))
         btn_inv.clicked.connect(lambda _=False: self._actions.invert_selection())
-        layout.addWidget(btn_inv)
+        btn_clr = _make_panel_btn(
+            tr("right_panel.selection.clear"), "#2a2a2a", "#c0c0c0", "#363636",
+            tr("right_panel.selection.clear.tooltip"))
+        btn_clr.clicked.connect(lambda _=False: self._actions.clear_selection())
+        row_ci.addWidget(btn_inv)
+        row_ci.addWidget(btn_clr)
+        gsel.addLayout(row_ci)
 
         morph_row = QHBoxLayout(); morph_row.setSpacing(6)
         morph_spin = QSpinBox()
@@ -262,7 +245,8 @@ class SelectionTab:
         morph_row.addWidget(morph_spin)
         morph_row.addWidget(btn_expand, 1)
         morph_row.addWidget(btn_shrink, 1)
-        layout.addLayout(morph_row)
+        gsel.addLayout(morph_row)
+        layout.addWidget(g_select)
 
         layout.addStretch()
 
@@ -633,28 +617,6 @@ def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:
         f"color: {color}; font-size: {size}px; background: transparent;")
     lbl.setWordWrap(True)
     return lbl
-
-
-def _make_icon_row(icon_name: str, text: str, color: str = "#888",
-                   size: int = 12, icon_px: int = 18) -> QWidget:
-    """Info-Zeile: Werkzeug-Icon (wie in der Toolbar) + Text, klein."""
-    row = QWidget()
-    row.setStyleSheet("background: transparent;")
-    h = QHBoxLayout(row)
-    h.setContentsMargins(0, 0, 0, 0)
-    h.setSpacing(8)
-    ic = QLabel()
-    ic.setPixmap(make_tool_icon(icon_name, icon_px)
-                 .pixmap(QSize(icon_px, icon_px)))
-    ic.setFixedSize(icon_px, icon_px)
-    ic.setStyleSheet("background: transparent;")
-    txt = QLabel(text)
-    txt.setStyleSheet(
-        f"color: {color}; font-size: {size}px; background: transparent;")
-    txt.setWordWrap(True)
-    h.addWidget(ic, 0, Qt.AlignmentFlag.AlignVCenter)
-    h.addWidget(txt, 1)
-    return row
 
 
 def _make_hdivider() -> QWidget:

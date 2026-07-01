@@ -464,16 +464,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "crop_bar.confirm": "✓  Zuschnitt anwenden",
         "crop_bar.cancel": "✗  Abbrechen",
         # Right panel — Selection tab contents
-        "right_panel.selection.section.tool": "Werkzeug",
-        "right_panel.selection.hint.wand": "Zauberstab (W) — Farbfläche auswählen",
-        "right_panel.selection.hint.brush": "Pinsel (B) — Auswahl aufmalen",
-        "right_panel.selection.hint.eraser": "Radiergummi (E) — Auswahl entfernen",
-        "right_panel.selection.hint.lasso": (
-            "Polygon-Lasso (L) — Punkte klicken, Doppelklick abschließen"
-        ),
-        "right_panel.selection.hint.add": "Shift+Klick  →  Auswahl addieren",
-        "right_panel.selection.hint.subtract": "{modifier}+Klick   →  Auswahl subtrahieren",
-        "right_panel.selection.section.settings": "Einstellungen",
+        "right_panel.selection.section.settings": "Werkzeug-Einstellungen",
+        "right_panel.selection.section.select": "Auswahl",
         "right_panel.selection.tolerance": "Toleranz (Zauberstab):  {value}",
         "right_panel.selection.tolerance.tooltip": (
             "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
@@ -1207,16 +1199,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "crop_bar.confirm": "✓  Apply crop",
         "crop_bar.cancel": "✗  Cancel",
         # Right panel — Selection tab contents
-        "right_panel.selection.section.tool": "Tool",
-        "right_panel.selection.hint.wand": "Magic wand (W) — select a color area",
-        "right_panel.selection.hint.brush": "Brush (B) — paint a selection",
-        "right_panel.selection.hint.eraser": "Eraser (E) — remove selection",
-        "right_panel.selection.hint.lasso": (
-            "Polygon lasso (L) — click points, double-click to finish"
-        ),
-        "right_panel.selection.hint.add": "Shift+click  →  add to selection",
-        "right_panel.selection.hint.subtract": "{modifier}+click   →  subtract from selection",
-        "right_panel.selection.section.settings": "Settings",
+        "right_panel.selection.section.settings": "Tool settings",
+        "right_panel.selection.section.select": "Selection",
         "right_panel.selection.tolerance": "Tolerance (magic wand):  {value}",
         "right_panel.selection.tolerance.tooltip": (
             "Controls how similar colors must be to get selected.\n"
