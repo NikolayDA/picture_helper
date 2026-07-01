@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QSlider,
     QSpinBox,
     QVBoxLayout,
@@ -680,30 +679,17 @@ def _make_hdivider() -> QWidget:
 
 
 def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
-    """Gibt (outer_widget, inner_layout) mit ScrollArea zurück."""
-    outer_w = QWidget()
-    outer_w.setStyleSheet(f"background: {_Theme.BG_PANEL};")
-    outer_lay = QVBoxLayout(outer_w)
-    outer_lay.setContentsMargins(0, 0, 0, 0)
-    outer_lay.setSpacing(0)
-    scroll = QScrollArea()
-    scroll.setWidgetResizable(True)
-    scroll.setFrameShape(QFrame.Shape.NoFrame)
-    scroll.setStyleSheet("""
-        QScrollArea { background: #1a1a1a; border: none; }
-        QScrollBar:vertical { background: #1a1a1a; width: 6px; margin: 0; }
-        QScrollBar::handle:vertical {
-            background: #3a3a3a; border-radius: 3px; min-height: 20px; }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-    """)
-    inner_w = QWidget()
-    inner_w.setStyleSheet(f"background: {_Theme.BG_PANEL};")
-    inner_lay = QVBoxLayout(inner_w)
-    inner_lay.setContentsMargins(16, 16, 16, 16)
-    inner_lay.setSpacing(14)
-    scroll.setWidget(inner_w)
-    outer_lay.addWidget(scroll)
-    return outer_w, inner_lay
+    """Nicht-scrollender Inhalts-Container (Karten-Stapel) eines Schritts.
+
+    Das Scrollen übernimmt seit #440 die Schritt-Seite (`_content_page`), sodass
+    jeder Schritt genau **einen** Scrollbereich hat (kein Doppel-Scroll mehr).
+    """
+    content = QWidget()
+    content.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+    lay = QVBoxLayout(content)
+    lay.setContentsMargins(16, 14, 16, 14)
+    lay.setSpacing(14)
+    return content, lay
 
 
 def _make_panel_btn(label: str, bg: str, fg: str, hover: str,

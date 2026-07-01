@@ -117,6 +117,25 @@ def test_right_panel_builder_creates_stepped_pages(qapp):
     assert panel.nav_next.text() == "Exportieren ✓"
 
 
+def test_step_pages_single_scroll(qapp):
+    """Kein Doppel-Scroll: Tab-Inhalte scrollen nicht selbst; eine Ein-Tab-Seite
+    hat genau einen Scrollbereich (#440)."""
+    from unittest.mock import MagicMock
+
+    from PyQt6.QtWidgets import QScrollArea
+
+    from bgremover.right_panel_tabs import SelectionTab, ShapeTab
+
+    for tab_cls in (SelectionTab, ShapeTab):
+        widget, _refs = tab_cls(MagicMock()).build()
+        assert widget.findChildren(QScrollArea) == []
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    adjust_page = panel.stack.widget(int(WorkflowStep.ADJUST) - 1)
+    assert len(adjust_page.findChildren(QScrollArea)) == 1
+
+
 def test_step2_ai_and_step6_save_export_delegate(qapp):
     """KI-Button (S2) und Speichern/Format/EufyMake (S6) rufen ihre Callbacks (§9)."""
     calls: list[tuple] = []

@@ -93,6 +93,9 @@ class LayerPanel:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        # Mindesthöhe, damit die Ebenenliste im Einzel-Scroll-Schritt (#440)
+        # nicht auf ihre winzige sizeHint zusammenfällt.
+        scroll.setMinimumHeight(150)
         scroll.setStyleSheet("QScrollArea { background: #1a1a1a; border: none; }")
         list_host = QWidget()
         list_host.setStyleSheet("background: transparent;")

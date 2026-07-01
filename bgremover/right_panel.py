@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSlider,
     QSpinBox,
     QStackedWidget,
@@ -69,6 +70,15 @@ TAB_STYLE = f"""
 """
 
 _PANEL_STYLE = f"QFrame {{ background: {_Theme.BG_PANEL}; border-left: 1px solid {_Theme.BORDER}; }}"
+
+# Dünner Scrollbalken je Schritt-Seite (ein Scrollbereich pro Schritt, #440).
+_SCROLL_STYLE = f"""
+    QScrollArea {{ background: {_Theme.BG_PANEL}; border: none; }}
+    QScrollBar:vertical {{ background: {_Theme.BG_PANEL}; width: 6px; margin: 0; }}
+    QScrollBar::handle:vertical {{
+        background: {_Theme.BORDER}; border-radius: 3px; min-height: 20px; }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+"""
 
 
 # Literale ``tr``-Keys je Schritt (Konvention wie ``layer_panel._role_label``:
@@ -480,11 +490,23 @@ class _RightPanelBuilder:
         """
         page = QWidget()
         page.setStyleSheet(f"background: {_Theme.BG_PANEL};")
-        lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(0)
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet(_SCROLL_STYLE)
+        container = QWidget()
+        container.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+        clay = QVBoxLayout(container)
+        clay.setContentsMargins(0, 0, 0, 0)
+        clay.setSpacing(0)
         for name, tooltip, widget in items:
             widget.setAccessibleName(name)
             widget.setToolTip(tooltip)
-            lay.addWidget(widget, 1)
+            clay.addWidget(widget)
+        clay.addStretch()
+        scroll.setWidget(container)
+        outer.addWidget(scroll)
         return page
