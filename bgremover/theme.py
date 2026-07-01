@@ -71,7 +71,7 @@ NAV_BACK_STYLE = f"""
     QPushButton {{
         background: transparent; color: {_Theme.TEXT_BRIGHT};
         border: 1px solid {_Theme.BORDER}; border-radius: 9px;
-        font-size: 13px; padding: 0 14px; min-height: 36px;
+        font-size: 13px; padding: 0 12px; min-height: 36px;
     }}
     QPushButton:hover {{ border-color: {_Theme.ACCENT}; }}
     QPushButton:disabled {{ color: {_Theme.MUTED}; border-color: {_Theme.DIVIDER}; }}

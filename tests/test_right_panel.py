@@ -141,6 +141,37 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     assert cards, "keine Karten-Sektionen gefunden"
 
 
+@pytest.mark.ui_smoke
+def test_panel_buttons_not_clipped_at_min_width(qapp):
+    """Kein Button schneidet seinen Text bei Mindestfensterbreite ab (#417)."""
+    from PyQt6.QtGui import QFontMetrics
+    from PyQt6.QtWidgets import QMainWindow, QPushButton
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    win = QMainWindow()
+    win.setCentralWidget(panel.frame)
+    win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+    win.show()
+    qapp.processEvents()
+    try:
+        for step in WorkflowStep:
+            panel.set_step(step)
+            qapp.processEvents()
+            for button in panel.frame.findChildren(QPushButton):
+                if not button.isVisible() or not button.text().strip():
+                    continue
+                needed = QFontMetrics(button.font()).horizontalAdvance(button.text())
+                # Der reine Text muss in die Button-Box passen (echte Clipping-
+                # Bedingung; Innenabstand zentriert lediglich).
+                assert needed <= button.width(), (
+                    step.name, button.text(), needed, button.width())
+    finally:
+        win.hide()
+
+
 def test_open_step_drop_frame_forwards_image_path(qapp, tmp_path):
     """Das Ablagefeld in Schritt 1 leitet abgelegte Bildpfade weiter (PR #423)."""
     from PyQt6.QtCore import QMimeData, QUrl
