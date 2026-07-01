@@ -11,6 +11,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Helles Design & Design-Tokens (UI-Redesign, Epic #424).** Ein zentrales,
+  token-basiertes Theming (`Palette` mit hellem und dunklem Schema) färbt die
+  gesamte Oberfläche über eine `QPalette` und ein anwendungsweites Stylesheet.
+  Über „Ansicht → Helles Design“ lässt sich zur Laufzeit zwischen Hell und Dunkel
+  umschalten; die Wahl wird in den Einstellungen gemerkt und beim Start angewendet.
+  Ein Tastatur-Fokusring und getönte Tooltips verbessern die Barrierefreiheit
+  (#427–#429).
 - **Geführter Workflow mit Karten-Inspector (UI-Redesign, Epics #413/#418).** Die
   rechte Spalte führt jetzt in sechs klaren Schritten durch die Bearbeitung
   (Öffnen · Freistellen · Anpassen · Form & Maße · Relief & Ebenen · Export): eine

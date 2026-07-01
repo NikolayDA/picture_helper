@@ -30,11 +30,13 @@ from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.preview_mode import PreviewMode
 from bgremover.theme import (
-    CARD_STYLE,
-    PRIMARY_BTN_STYLE,
-    SECTION_HEADER_STYLE,
-    SLD_STYLE,
-    _Theme,
+    active_palette,
+    card_style,
+    num_style,
+    panel_btn_style,
+    primary_btn_style,
+    section_header_style,
+    slider_style,
 )
 
 if TYPE_CHECKING:
@@ -61,9 +63,10 @@ class _ModeSegments(QWidget):
         self._buttons: dict[PreviewMode, QPushButton] = {}
         self._current = PreviewMode.COLOR
         self.setObjectName("modeSegments")
+        p = active_palette()
         self.setStyleSheet(
-            f"QWidget#modeSegments {{ background:{_Theme.BG_TABBAR};"
-            f" border:1px solid {_Theme.BORDER}; border-radius:9px; }}")
+            f"QWidget#modeSegments {{ background:{p.tabbar};"
+            f" border:1px solid {p.border}; border-radius:9px; }}")
         lay = QHBoxLayout(self)
         lay.setContentsMargins(3, 3, 3, 3)
         lay.setSpacing(3)
@@ -84,13 +87,14 @@ class _ModeSegments(QWidget):
 
     @staticmethod
     def _seg_style(active: bool) -> str:
+        p = active_palette()
         if active:
-            return (f"QPushButton {{ background:{_Theme.ACCENT}; color:#fff;"
+            return (f"QPushButton {{ background:{p.accent}; color:{p.on_accent};"
                     " border:none; border-radius:6px; font-size:12px;"
                     " font-weight:500; padding:7px 4px; }")
-        return (f"QPushButton {{ background:transparent; color:{_Theme.TEXT_3};"
+        return (f"QPushButton {{ background:transparent; color:{p.text3};"
                 " border:none; border-radius:6px; font-size:12px; padding:7px 4px; }"
-                f"QPushButton:hover {{ color:{_Theme.TEXT_BRIGHT}; }}")
+                f"QPushButton:hover {{ color:{p.text}; }}")
 
     def set_mode(self, mode: PreviewMode) -> None:
         """Spiegelt den aktiven Modus (rein visuell, ohne ``on_select``)."""
@@ -176,7 +180,7 @@ class PreviewTab:
                 _set_button_selected(btn, name == fmt)
 
         for i, fmt in enumerate(("PNG", "JPEG", "WebP", "TIFF")):
-            btn = _make_panel_btn(fmt, "#2a2a2a", "#c0c0c0", "#363636")
+            btn = _make_neutral_btn(fmt)
             btn.clicked.connect(lambda _=False, f=fmt: select_format(f))
             fmt_buttons[fmt] = btn
             fmt_grid.addWidget(btn, i // 2, i % 2)
@@ -264,12 +268,12 @@ class SelectionTab:
         # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen (§9)
         g_select, gsel = _make_section(tr("right_panel.selection.section.select"))
         row_ci = QHBoxLayout(); row_ci.setSpacing(6)
-        btn_inv = _make_panel_btn(
-            tr("right_panel.selection.invert"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_inv = _make_neutral_btn(
+            tr("right_panel.selection.invert"),
             tr("right_panel.selection.invert.tooltip", modifier=sub_mod))
         btn_inv.clicked.connect(lambda _=False: self._actions.invert_selection())
-        btn_clr = _make_panel_btn(
-            tr("right_panel.selection.clear"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_clr = _make_neutral_btn(
+            tr("right_panel.selection.clear"),
             tr("right_panel.selection.clear.tooltip"))
         btn_clr.clicked.connect(lambda _=False: self._actions.clear_selection())
         row_ci.addWidget(btn_inv)
@@ -282,7 +286,7 @@ class SelectionTab:
         morph_spin.setSuffix(" px")
         morph_spin.setFixedWidth(72)
         morph_spin.setToolTip(tr("right_panel.selection.morph.tooltip"))
-        morph_spin.setStyleSheet(_SPIN_STYLE)
+        morph_spin.setStyleSheet(_spin_style())
         btn_expand = _make_panel_btn(
             tr("right_panel.selection.expand"), "#1a3a1a", "#a0d0a0", "#2a5a2a",
             tr("right_panel.selection.expand.tooltip"))
@@ -339,7 +343,7 @@ class BackgroundTab:
         color_button.setToolTip(tr("right_panel.background.color.tooltip"))
         color_button.setStyleSheet(
             "QPushButton { border-radius:6px; border:2px solid #555; }"
-            "QPushButton:hover { border-color: #4a90d9; }")
+            f"QPushButton:hover {{ border-color: {active_palette().accent}; }}")
         color_button.clicked.connect(lambda _=False: self._actions.pick_color())
         color_row.addWidget(color_button)
         btn_repl = _make_panel_btn(
@@ -426,14 +430,14 @@ class TransformTab:
         row_free = QHBoxLayout(); row_free.setSpacing(6)
         rotation_slider = QSlider(Qt.Orientation.Horizontal)
         rotation_slider.setRange(-180, 180); rotation_slider.setValue(0)
-        rotation_slider.setStyleSheet(SLD_STYLE)
+        rotation_slider.setStyleSheet(slider_style(active_palette()))
         rotation_slider.setToolTip(tr("right_panel.transform.angle_slider.tooltip"))
         rotation_spin = QSpinBox()
         rotation_spin.setRange(-180, 180); rotation_spin.setValue(0)
         rotation_spin.setSuffix("°")
         rotation_spin.setFixedWidth(66)
         rotation_spin.setToolTip(tr("right_panel.transform.angle_spin.tooltip"))
-        rotation_spin.setStyleSheet(_SPIN_STYLE)
+        rotation_spin.setStyleSheet(_spin_style())
         rotation_slider.valueChanged.connect(lambda v: rotation_spin.setValue(v))
         rotation_spin.valueChanged.connect(lambda v: rotation_slider.setValue(v))
         row_free.addWidget(rotation_slider, 1)
@@ -504,17 +508,17 @@ class ShapeTab:
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
         size_row = QHBoxLayout(); size_row.setSpacing(6)
         resize_w = QSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
-        resize_w.setFixedWidth(76); resize_w.setStyleSheet(_SPIN_STYLE)
+        resize_w.setFixedWidth(76); resize_w.setStyleSheet(_spin_style())
         resize_h = QSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
-        resize_h.setFixedWidth(76); resize_h.setStyleSheet(_SPIN_STYLE)
+        resize_h.setFixedWidth(76); resize_h.setStyleSheet(_spin_style())
         size_row.addWidget(resize_w)
         size_row.addWidget(_make_label("×", "#888"))
         size_row.addWidget(resize_h)
         size_row.addWidget(_make_label("px", "#888"))
         size_row.addStretch()
         gsz.addLayout(size_row)
-        btn_resize = _make_panel_btn(
-            tr("right_panel.shape.resize_apply"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_resize = _make_neutral_btn(
+            tr("right_panel.shape.resize_apply"),
             tr("right_panel.shape.resize_apply.tooltip"))
         btn_resize.clicked.connect(
             lambda _=False: self._actions.apply_resize(resize_w.value(), resize_h.value()))
@@ -524,15 +528,15 @@ class ShapeTab:
         # Karte „Zuschnitt-Format" – 3×2-Raster mit genau sechs Formaten (§9)
         g_fmt, gfm = _make_section(tr("right_panel.shape.section.format"))
         grid = QGridLayout(); grid.setSpacing(8)
-        btn_circle = _make_panel_btn(
-            tr("right_panel.shape.circle"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_circle = _make_neutral_btn(
+            tr("right_panel.shape.circle"),
             tr("right_panel.shape.circle.tooltip"))
         btn_circle.clicked.connect(lambda _=False: self._actions.start_crop_circle())
         grid.addWidget(btn_circle, 0, 0)
         ratios = [("1:1", 1, 1), ("16:9", 16, 9), ("4:3", 4, 3),
                   ("9:16", 9, 16), ("3:4", 3, 4)]
         for idx, (label, rw, rh) in enumerate(ratios, start=1):
-            b = _make_panel_btn(label, "#2a2a2a", "#c0c0c0", "#363636")
+            b = _make_neutral_btn(label)
             b.clicked.connect(
                 lambda _=False, w=rw, h=rh: self._actions.start_crop_ratio(w, h))
             grid.addWidget(b, idx // 3, idx % 3)
@@ -600,8 +604,8 @@ class AdjustTab:
 
         ga.addWidget(_make_hdivider())
         row = QHBoxLayout(); row.setSpacing(6)
-        btn_reset = _make_panel_btn(
-            tr("right_panel.adjust.reset"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_reset = _make_neutral_btn(
+            tr("right_panel.adjust.reset"),
             tr("right_panel.adjust.reset.tooltip"))
         btn_apply = _make_panel_btn(
             tr("right_panel.adjust.apply"), "#2a1e38", "#c8a8ee", "#3a2a50",
@@ -639,24 +643,45 @@ class AdjustTab:
 # ── Gemeinsame Widget-Helper ─────────────────────────────────────
 
 
-def _make_section(title: str, accent: str = _Theme.ACCENT) -> tuple[QWidget, QVBoxLayout]:
+# Zuordnung der historisch dunkel gewählten Label-Grautöne auf Paletten-Rollen,
+# damit Info-Labels im hellen Schema lesbar bleiben (#428). Im dunklen Schema
+# bleiben die Originalfarben unverändert (bitgenaue Rückwärtskompatibilität).
+_LABEL_LIGHT_MAP = {
+    "#aaa": "text2", "#bbb": "text2", "#ccc": "text2",
+    "#888": "text3", "#999": "text3", "#777": "muted", "#666": "muted",
+    "#8aaed0": "accent_text", "#8aaedd": "accent_text",
+}
+
+
+def _label_color(color: str) -> str:
+    """Passt eine dunkel gedachte Label-Farbe an das aktive Schema an (#428)."""
+    p = active_palette()
+    if p.is_dark:
+        return color
+    role = _LABEL_LIGHT_MAP.get(color.lower())
+    return getattr(p, role) if role else p.text2
+
+
+def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBoxLayout]:
     """Sektion als **Karte** mit einheitlichem blauem Akzentkopf (Epic #413).
 
     Kapselt jede Sektion in eine Karte (Hintergrund, dünner Rahmen, Radius) mit
     Kopfzeile aus blauem Akzentstrich + Titel. Der ``accent``-Parameter bleibt aus
     Kompatibilität mit den Aufrufstellen erhalten, wird aber **bewusst ignoriert**:
-    alle Sektionsköpfe nutzen dasselbe Blau (``_Theme.ACCENT``) – keine
-    Amber-/Coral-Sonderfarben mehr (Issue #416).
+    alle Sektionsköpfe nutzen denselben Palette-Akzent – keine Amber-/Coral-
+    Sonderfarben mehr (Issue #416). Karte und Kopf lesen die **aktive Palette**,
+    sodass ein Neuaufbau beim Theme-Wechsel (#428) automatisch umfärbt.
     """
+    p = active_palette()
     card = QFrame()
     card.setObjectName("sectionCard")
     # Objektname-Selektor, damit der Karten-Stil NICHT auf Kindwidgets kaskadiert.
-    card.setStyleSheet(f"QFrame#sectionCard {{ {CARD_STYLE} }}")
+    card.setStyleSheet(f"QFrame#sectionCard {{ {card_style(p)} }}")
     v = QVBoxLayout(card)
     v.setSpacing(10)
     v.setContentsMargins(14, 13, 14, 13)
     title_lbl = QLabel(title)
-    title_lbl.setStyleSheet(SECTION_HEADER_STYLE)
+    title_lbl.setStyleSheet(section_header_style(p))
     v.addWidget(title_lbl)
     return card, v
 
@@ -665,7 +690,7 @@ def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:
     """Einfaches Info-Label mit anpassbarer Farbe und Schriftgrösse."""
     lbl = QLabel(text)
     lbl.setStyleSheet(
-        f"color: {color}; font-size: {size}px; background: transparent;")
+        f"color: {_label_color(color)}; font-size: {size}px; background: transparent;")
     lbl.setWordWrap(True)
     return lbl
 
@@ -674,7 +699,7 @@ def _make_hdivider() -> QWidget:
     """Dünne horizontale Trennlinie für das rechte Panel."""
     f = QWidget()
     f.setFixedHeight(1)
-    f.setStyleSheet(f"background: {_Theme.DIVIDER};")
+    f.setStyleSheet(f"background: {active_palette().divider};")
     return f
 
 
@@ -685,7 +710,7 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     jeder Schritt genau **einen** Scrollbereich hat (kein Doppel-Scroll mehr).
     """
     content = QWidget()
-    content.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+    content.setStyleSheet(f"background: {active_palette().inspector};")
     lay = QVBoxLayout(content)
     lay.setContentsMargins(16, 14, 16, 14)
     lay.setSpacing(14)
@@ -695,7 +720,8 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
 def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
                     tooltip: str = "", height: int = 36,
                     icon_name: str = "") -> QPushButton:
-    """Stilisierter Aktions-Button für das rechte Panel."""
+    """Stilisierter Aktions-Button für das rechte Panel (semantische Füllfarbe)."""
+    p = active_palette()
     b = QPushButton(label)
     b.setStyleSheet(f"""
         QPushButton {{
@@ -706,8 +732,29 @@ def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
         }}
         QPushButton:hover {{ background: {hover}; }}
         QPushButton:pressed {{ background: {bg}; }}
-        QPushButton:disabled {{ background: #252525; color: #555; }}
+        QPushButton:disabled {{ background: {p.divider}; color: {p.muted}; }}
     """)
+    if icon_name:
+        b.setIcon(make_tool_icon(icon_name, 22))
+        b.setIconSize(QSize(22, 22))
+    if tooltip:
+        b.setToolTip(tooltip)
+    return b
+
+
+def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
+                      icon_name: str = "") -> QPushButton:
+    """Neutraler Sekundärbutton (§5.3) – Fläche/Text aus der **aktiven Palette**.
+
+    Ersetzt die früher fest dunkelgrau eingefärbten Aufrufe von ``_make_panel_btn``
+    (``#2a2a2a``/``#c0c0c0``/``#363636``), damit diese Buttons im hellen Schema (#428)
+    lesbar bleiben.
+    """
+    b = QPushButton(label)
+    style = panel_btn_style(active_palette())
+    if height != 36:
+        style += f"\nQPushButton {{ min-height: {height}px; }}"
+    b.setStyleSheet(style)
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22))
         b.setIconSize(QSize(22, 22))
@@ -718,22 +765,20 @@ def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
 
 def _set_button_selected(btn: QPushButton, selected: bool) -> None:
     """Schaltet einen Sekundärbutton zwischen normal und ausgewählt (`.sel`, §5.3)."""
+    p = active_palette()
     if selected:
         btn.setStyleSheet(
-            f"QPushButton {{ background:{_Theme.ACCENT_SOFT}; color:{_Theme.ACCENT_TEXT};"
-            f" border:1px solid {_Theme.ACCENT}; border-radius:8px; padding:0 14px;"
+            f"QPushButton {{ background:{p.accent_soft}; color:{p.accent_text};"
+            f" border:1px solid {p.accent}; border-radius:8px; padding:0 14px;"
             " font-size:12px; font-weight:600; min-height:36px; }")
     else:
-        btn.setStyleSheet(
-            "QPushButton { background:#2a2a2a; color:#c0c0c0; border:none;"
-            " border-radius:8px; padding:0 14px; font-size:12px; min-height:36px; }"
-            "QPushButton:hover { background:#363636; }")
+        btn.setStyleSheet(panel_btn_style(p))
 
 
 def _make_primary_btn(label: str, tooltip: str = "") -> QPushButton:
     """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector."""
     b = QPushButton(label)
-    b.setStyleSheet(PRIMARY_BTN_STYLE)
+    b.setStyleSheet(primary_btn_style(active_palette()))
     if tooltip:
         b.setToolTip(tooltip)
     return b
@@ -744,14 +789,12 @@ def _make_slider(lo: int, hi: int, val: int, tip: str = "") -> QSlider:
     s = QSlider(Qt.Orientation.Horizontal)
     s.setRange(lo, hi)
     s.setValue(val)
-    s.setStyleSheet(SLD_STYLE)
+    s.setStyleSheet(slider_style(active_palette()))
     if tip:
         s.setToolTip(tip)
     return s
 
 
-_SPIN_STYLE = (
-    "QSpinBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
-    " border-radius:6px; padding:3px 5px; font-size:12px; }"
-    "QSpinBox::up-button, QSpinBox::down-button { width:18px; }"
-)
+def _spin_style() -> str:
+    """Spinbox-/Combo-Stil aus der aktiven Palette (#428)."""
+    return num_style(active_palette())

@@ -9,6 +9,7 @@ from PIL import Image
 from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
+    QApplication,
     QColorDialog,
     QFileDialog,
     QFrame,
@@ -81,6 +82,7 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    THEME_KEY,
     is_future_schema,
 )
 from bgremover.settings_schema import migrate as migrate_settings
@@ -88,7 +90,13 @@ from bgremover.status_messages import StatusMessages as SM
 from bgremover.stepper import Stepper, WorkflowStep
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
-    STATUS_BAR_STYLE,
+    active_palette,
+    build_app_stylesheet,
+    build_qpalette,
+    menu_style,
+    palette_for,
+    set_active_palette,
+    status_bar_style,
 )
 from bgremover.units import UnitsError
 from bgremover.worker_controller import WorkerController
@@ -136,6 +144,11 @@ class MainWindow(QMainWindow):
         self._settings = QSettings("BgRemover", "BgRemover")
         migrate_settings(self._settings)
         future_schema = is_future_schema(self._settings)
+        # UI-Schema (hell/dunkel, #428). Die aktive Palette wird bereits in
+        # ``app.main`` gesetzt; hier wird nur der Zustand für Menü + Umschalter
+        # gespiegelt.
+        self._light_mode = str(
+            self._settings.value(THEME_KEY, "dark")).lower() == "light"
         init_locale_from_settings(
             self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
@@ -172,7 +185,7 @@ class MainWindow(QMainWindow):
         # damit `self._sb.showMessage(...)` ohne None-Narrowing auskommt
         # (QMainWindow.statusBar() liefert `QStatusBar | None`).
         self._sb = QStatusBar()
-        self._sb.setStyleSheet(STATUS_BAR_STYLE)
+        self._sb.setStyleSheet(status_bar_style(active_palette()))
         self.setStatusBar(self._sb)
 
         root_w = QWidget()
@@ -218,7 +231,12 @@ class MainWindow(QMainWindow):
         cv_lay.addWidget(self._canvas, 1)
 
         body.addWidget(canvas_container, 1)
-        body.addWidget(self._build_right_panel())
+        # Body-Layout und rechten Rahmen merken, damit das Panel beim
+        # Theme-Wechsel (#428) ausgetauscht werden kann.
+        self._body_layout = body
+        self._right_frame = self._build_right_panel()
+        body.addWidget(self._right_frame)
+        self._wire_canvas_panel_signals()
         root.addWidget(body_w, 1)
 
         # Startzustand: Schritt 1, Schritte 2–6 gesperrt bis ein Bild geladen ist.
@@ -316,11 +334,24 @@ class MainWindow(QMainWindow):
         self._preview_relief_label = panel.preview_relief_label
         self._preview_relief_slider = panel.preview_relief_slider
         self._preview_gloss_visible = panel.preview_gloss_visible
-        self._canvas.layersChanged.connect(self._layer_panel.refresh)
-        self._canvas.layersChanged.connect(self._height_panel.refresh)
-        self._canvas.previewSettingsChanged.connect(self._sync_preview_controls)
         self._update_color_btn()
         return panel.frame
+
+    def _wire_canvas_panel_signals(self) -> None:
+        """Verbindet Canvas-Signale **einmalig** mit stabilen MainWindow-Slots.
+
+        Die Slots lesen ``self._layer_panel``/``self._height_panel`` bzw. die
+        Vorschau-Widgets dynamisch, sodass ein Panel-Neuaufbau beim Theme-Wechsel
+        (#428) keine Signale neu verdrahten muss (kein Doppel-Connect auf tote
+        Panels).
+        """
+        self._canvas.layersChanged.connect(self._on_layers_changed)
+        self._canvas.previewSettingsChanged.connect(self._sync_preview_controls)
+
+    def _on_layers_changed(self, layers: list) -> None:
+        """Reicht die Ebenenliste an die aktuellen Panels (Ebenen + Höhe) weiter."""
+        self._layer_panel.refresh(layers)
+        self._height_panel.refresh(layers)
 
     def _sync_preview_controls(
         self, mode: PreviewMode, relief_strength: int, gloss_visible: bool
@@ -458,6 +489,57 @@ class MainWindow(QMainWindow):
         self._toolbar.sel_separator.setVisible(sel_visible)
         self._canvas.set_tools_enabled(sel_visible)
 
+    # ── Theming (Epic #424, Issue #428) ──────────────────────────────────
+
+    def _toggle_light_mode(self, light: bool) -> None:
+        """Umschalt-Callback des Ansicht-Menüs: wendet das Schema an und merkt es."""
+        if light == self._light_mode:
+            return
+        self._light_mode = light
+        mode = "light" if light else "dark"
+        self._settings.setValue(THEME_KEY, mode)
+        self._apply_theme(mode)
+        self._sb.showMessage(
+            tr("theme.switched.light") if light else tr("theme.switched.dark"))
+
+    def _apply_theme(self, mode: str) -> None:
+        """Wendet ein Farbschema live an (QPalette + App-QSS + Chrome, #428).
+
+        Standard-Widgets/Dialoge folgen der ``QPalette``; die Redesign-Chrome
+        (Schrittleiste, Werkzeugleiste, Statusleiste, Menü) wird gezielt umgefärbt,
+        das rechte Panel neu aufgebaut (färbt die verschachtelten Karten um).
+        """
+        pal = palette_for(mode)
+        set_active_palette(pal)
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            app.setPalette(build_qpalette(pal))
+            app.setStyleSheet(build_app_stylesheet(pal))
+        self._stepper.apply_palette(pal)
+        self._toolbar.apply_palette(pal)
+        self._sb.setStyleSheet(status_bar_style(pal))
+        menu_bar = self.menuBar()
+        if menu_bar is not None:
+            menu_bar.setStyleSheet(menu_style(pal))
+        self._rebuild_right_panel()
+
+    def _rebuild_right_panel(self) -> None:
+        """Baut das rechte Panel neu auf und stellt seinen Zustand wieder her.
+
+        Der Neuaufbau liest die aktive Palette und färbt so die verschachtelten
+        Karten/Buttons um. Canvas-Signale bleiben über die stabilen Slots
+        (:meth:`_wire_canvas_panel_signals`) verbunden – es wird nichts neu
+        verdrahtet. Anschließend werden Schritt-Inspektor und Panelinhalte über
+        :meth:`ImageCanvas.resync_panels` wiederhergestellt.
+        """
+        old = self._right_frame
+        self._body_layout.removeWidget(old)
+        old.deleteLater()
+        self._right_frame = self._build_right_panel()
+        self._body_layout.addWidget(self._right_frame)
+        self._right_panel.set_step(self._step)
+        self._canvas.resync_panels()
+
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
         assert menu_bar is not None
@@ -486,8 +568,10 @@ class MainWindow(QMainWindow):
                 restore_original=self._canvas.restore_original,
                 fit_to_view=self._canvas.fit_to_view,
                 set_preview_mode=self._canvas.set_preview_mode,
+                toggle_light_mode=self._toggle_light_mode,
                 open_settings=self._open_settings,
             ),
+            light_mode=self._light_mode,
         )
 
     def _build_tool_shortcuts(self) -> None:

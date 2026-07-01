@@ -54,6 +54,83 @@ def test_shared_templates_use_palette():
     assert "}}" not in TAB_STYLE
 
 
+def test_palette_for_selects_scheme_case_insensitively():
+    from bgremover.theme import DARK, LIGHT, palette_for
+
+    assert palette_for("light") is LIGHT
+    assert palette_for("LIGHT") is LIGHT
+    assert palette_for("dark") is DARK
+    assert palette_for("anything-else") is DARK
+    assert LIGHT.is_dark is False
+    assert DARK.is_dark is True
+
+
+def test_active_palette_round_trips():
+    from bgremover.theme import DARK, LIGHT, active_palette, set_active_palette
+
+    assert active_palette() is DARK  # Prozess-Default dunkel
+    try:
+        set_active_palette(LIGHT)
+        assert active_palette() is LIGHT
+    finally:
+        set_active_palette(DARK)
+    assert active_palette() is DARK
+
+
+def test_style_builders_track_their_palette():
+    from bgremover.theme import (
+        DARK,
+        LIGHT,
+        card_style,
+        menu_style,
+        section_header_style,
+        slider_style,
+    )
+
+    # Jeder Builder zieht seine Farben aus der übergebenen Palette (kein Drift).
+    assert LIGHT.card_bg in card_style(LIGHT)
+    assert DARK.card_bg in card_style(DARK)
+    assert LIGHT.accent in section_header_style(LIGHT)
+    assert LIGHT.border in slider_style(LIGHT)
+    assert LIGHT.accent in menu_style(LIGHT)
+    # Aufgelöste f-Strings enthalten keine doppelten Klammern mehr.
+    assert "{{" not in card_style(LIGHT)
+
+
+def test_build_qpalette_uses_scheme_colors(qapp):
+    from PyQt6.QtGui import QColor, QPalette
+
+    from bgremover.theme import LIGHT, build_qpalette
+
+    pal = build_qpalette(LIGHT)
+    assert pal.color(QPalette.ColorRole.Window) == QColor(LIGHT.bg)
+    assert pal.color(QPalette.ColorRole.Highlight) == QColor(LIGHT.accent)
+
+
+def test_build_app_stylesheet_has_focus_ring_and_tooltip():
+    """A11y (#429): der App-QSS trägt Fokusring und getönten Tooltip."""
+    from bgremover.theme import LIGHT, build_app_stylesheet
+
+    sheet = build_app_stylesheet(LIGHT)
+    assert ":focus" in sheet
+    assert LIGHT.accent in sheet
+    assert "QToolTip" in sheet
+
+
+def test_stepper_apply_palette_restyles(qapp):
+    from bgremover.stepper import Stepper
+    from bgremover.theme import DARK, LIGHT
+
+    stepper = Stepper()
+    try:
+        stepper.apply_palette(LIGHT)
+        assert LIGHT.stepper in stepper.styleSheet()
+        stepper.apply_palette(DARK)
+        assert DARK.stepper in stepper.styleSheet()
+    finally:
+        stepper.deleteLater()
+
+
 def test_dead_style_constants_not_reintroduced():
     # BTN_STYLE/GRP_STYLE waren toter Code (nirgends referenziert) und
     # wurden entfernt – nicht erneut anlegen.

@@ -740,3 +740,58 @@ def test_open_project_from_recent_round_trips(tmp_path, qapp, monkeypatch):
         assert win._project_path == str(Path(saved).resolve())
     finally:
         win.close()
+
+
+# ── Theme-Umschaltung (Epic #424, Issue #428) ────────────────
+
+def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path, qapp):
+    """Hell schalten wechselt die Palette, baut das Panel neu auf, merkt den Modus."""
+    from PyQt6.QtWidgets import QApplication
+
+    from bgremover.settings_schema import THEME_KEY
+    from bgremover.theme import DARK, active_palette, build_app_stylesheet, set_active_palette
+
+    app = QApplication.instance()
+    original_sheet = app.styleSheet() if app is not None else ""
+    win = _isolated_window(tmp_path)
+    try:
+        assert active_palette().is_dark
+        old_frame = win._right_frame
+
+        win._toggle_light_mode(True)
+        light = active_palette()
+        assert not light.is_dark
+        # Rechtes Panel wurde neu aufgebaut und folgt der hellen Palette.
+        assert win._right_frame is not old_frame
+        assert win._right_panel.frame is win._right_frame
+        assert light.inspector in win._right_frame.styleSheet()
+        # Schrittleiste und Werkzeugleiste sind mitgefärbt.
+        assert light.stepper in win._stepper.styleSheet()
+        assert light.toolbar in win._toolbar.frame.styleSheet()
+        assert win._settings.value(THEME_KEY) == "light"
+
+        # Zurückschalten stellt Dunkel wieder her.
+        win._toggle_light_mode(False)
+        assert active_palette().is_dark
+        assert win._settings.value(THEME_KEY) == "dark"
+    finally:
+        # Prozessglobale Palette + App-QSS deterministisch zurücksetzen, damit
+        # nachfolgende Tests wieder das dunkle Schema sehen.
+        set_active_palette(DARK)
+        if app is not None:
+            app.setStyleSheet(original_sheet or build_app_stylesheet(DARK))
+        win.close()
+
+
+def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
+    """Ein Umschalten auf den bereits aktiven Modus baut nichts neu auf."""
+    from bgremover.theme import DARK, set_active_palette
+
+    win = _isolated_window(tmp_path)
+    try:
+        frame = win._right_frame
+        win._toggle_light_mode(False)  # bereits dunkel
+        assert win._right_frame is frame
+    finally:
+        set_active_palette(DARK)
+        win.close()

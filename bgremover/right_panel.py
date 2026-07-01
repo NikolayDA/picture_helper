@@ -52,13 +52,16 @@ from bgremover.right_panel_tabs import (
 )
 from bgremover.stepper import WorkflowStep
 from bgremover.theme import (
-    CARD_STYLE,
-    NAV_BACK_STYLE,
-    NAV_BAR_STYLE,
-    NAV_NEXT_STYLE,
-    PRIMARY_BTN_STYLE,
-    SECTION_HEADER_STYLE,
     _Theme,
+    active_palette,
+    card_style,
+    nav_back_style,
+    nav_bar_style,
+    nav_next_style,
+    panel_frame_style,
+    primary_btn_style,
+    scroll_style,
+    section_header_style,
 )
 
 # Wird von ``tests/test_theme.py`` referenziert und hält den Akzent-Token für
@@ -67,17 +70,6 @@ from bgremover.theme import (
 TAB_STYLE = f"""
     QTabWidget::pane {{ border: none; background: {_Theme.BG_PANEL}; }}
     QTabBar::tab:selected {{ border-bottom: 3px solid {_Theme.ACCENT}; }}
-"""
-
-_PANEL_STYLE = f"QFrame {{ background: {_Theme.BG_PANEL}; border-left: 1px solid {_Theme.BORDER}; }}"
-
-# Dünner Scrollbalken je Schritt-Seite (ein Scrollbereich pro Schritt, #440).
-_SCROLL_STYLE = f"""
-    QScrollArea {{ background: {_Theme.BG_PANEL}; border: none; }}
-    QScrollBar:vertical {{ background: {_Theme.BG_PANEL}; width: 6px; margin: 0; }}
-    QScrollBar::handle:vertical {{
-        background: {_Theme.BORDER}; border-radius: 3px; min-height: 20px; }}
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
 """
 
 
@@ -371,25 +363,28 @@ class _RightPanelBuilder:
         self, stack: QStackedWidget,
     ) -> tuple[QFrame, QLabel, QLabel, QPushButton, QPushButton]:
         """Baut Rahmen mit Kopf, Schritt-Stack und Navigations-Fußzeile."""
+        p = active_palette()
         frame = QFrame()
+        frame.setObjectName("inspectorPanel")
         frame.setFixedWidth(_RIGHT_PANEL_WIDTH)
-        frame.setStyleSheet(_PANEL_STYLE)
+        frame.setStyleSheet(panel_frame_style(p))
         outer = QVBoxLayout(frame)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
         header = QWidget()
+        header.setObjectName("inspectorHeader")
         head_lay = QVBoxLayout(header)
         head_lay.setContentsMargins(18, 16, 18, 8)
         head_lay.setSpacing(4)
         title = QLabel()
         title.setStyleSheet(
-            f"color: {_Theme.TEXT_BRIGHT}; font-size: 16px; font-weight: 700;"
+            f"color: {p.text}; font-size: 16px; font-weight: 700;"
             " background: transparent;")
         desc = QLabel()
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"color: {_Theme.TEXT_3}; font-size: 12px; background: transparent;")
+            f"color: {p.text3}; font-size: 12px; background: transparent;")
         head_lay.addWidget(title)
         head_lay.addWidget(desc)
         outer.addWidget(header)
@@ -397,14 +392,14 @@ class _RightPanelBuilder:
 
         nav = QFrame()
         nav.setFixedHeight(62)
-        nav.setStyleSheet(NAV_BAR_STYLE)
+        nav.setStyleSheet(nav_bar_style(p))
         nav_lay = QHBoxLayout(nav)
         nav_lay.setContentsMargins(18, 0, 18, 0)
         nav_lay.setSpacing(10)
         nav_prev = QPushButton(tr("workflow.back"))
-        nav_prev.setStyleSheet(NAV_BACK_STYLE)
+        nav_prev.setStyleSheet(nav_back_style(p))
         nav_next = QPushButton()
-        nav_next.setStyleSheet(NAV_NEXT_STYLE)
+        nav_next.setStyleSheet(nav_next_style(p))
         nav_lay.addWidget(nav_prev)
         nav_lay.addWidget(nav_next, 1)
         outer.addWidget(nav)
@@ -412,15 +407,17 @@ class _RightPanelBuilder:
 
     def _build_open_page(self) -> tuple[QWidget, QPushButton]:
         """Schritt 1: Ablagefeld + „Datei öffnen…" (Spec §9)."""
+        p = active_palette()
         page = QWidget()
-        page.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+        page.setObjectName("stepPage")
+        page.setStyleSheet(f"background: {p.inspector};")
         lay = QVBoxLayout(page)
         lay.setContentsMargins(16, 16, 16, 16)
         lay.setSpacing(12)
 
         drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
-            f"QFrame {{ border: 2px dashed {_Theme.BORDER}; border-radius: 12px;"
+            f"QFrame {{ border: 2px dashed {p.border}; border-radius: 12px;"
             f" background: transparent; }}")
         drop_lay = QVBoxLayout(drop)
         drop_lay.setContentsMargins(18, 30, 18, 30)
@@ -428,19 +425,19 @@ class _RightPanelBuilder:
         drop_title = QLabel(tr("workflow.open.drop"))
         drop_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         drop_title.setStyleSheet(
-            f"color: {_Theme.TEXT_BRIGHT}; font-size: 13px; font-weight: 600;"
+            f"color: {p.text}; font-size: 13px; font-weight: 600;"
             " background: transparent; border: none;")
         drop_fmt = QLabel(tr("workflow.open.formats"))
         drop_fmt.setAlignment(Qt.AlignmentFlag.AlignCenter)
         drop_fmt.setStyleSheet(
-            f"color: {_Theme.TEXT_3}; font-size: 12px; background: transparent;"
+            f"color: {p.text3}; font-size: 12px; background: transparent;"
             " border: none;")
         drop_lay.addWidget(drop_title)
         drop_lay.addWidget(drop_fmt)
         lay.addWidget(drop)
 
         open_btn = QPushButton(tr("workflow.open.button"))
-        open_btn.setStyleSheet(PRIMARY_BTN_STYLE)
+        open_btn.setStyleSheet(primary_btn_style(p))
         on_open = self._on_open
         if on_open is not None:
             open_btn.clicked.connect(lambda _=False: on_open())
@@ -459,23 +456,24 @@ class _RightPanelBuilder:
         if not entries or self._on_open_path is None:
             return None
         on_open_path = self._on_open_path
+        pal = active_palette()
         card = QFrame()
         card.setObjectName("recentCard")
-        card.setStyleSheet(f"QFrame#recentCard {{ {CARD_STYLE} }}")
+        card.setStyleSheet(f"QFrame#recentCard {{ {card_style(pal)} }}")
         v = QVBoxLayout(card)
         v.setContentsMargins(14, 13, 14, 13)
         v.setSpacing(6)
         title = QLabel(tr("workflow.open.recent"))
-        title.setStyleSheet(SECTION_HEADER_STYLE)
+        title.setStyleSheet(section_header_style(pal))
         v.addWidget(title)
         for path in entries:
             row = QPushButton(Path(path).name)
             row.setToolTip(path)
             row.setStyleSheet(
                 "QPushButton { background:transparent; border:none; text-align:left;"
-                f" color:{_Theme.TEXT_BRIGHT}; font-size:12px;"
+                f" color:{pal.text}; font-size:12px;"
                 " padding:7px 8px; border-radius:8px; }"
-                "QPushButton:hover { background:rgba(255,255,255,.05); }")
+                f"QPushButton:hover {{ background:{pal.hover}; }}")
             row.clicked.connect(lambda _=False, p=path: on_open_path(p))
             v.addWidget(row)
         return card
@@ -488,17 +486,19 @@ class _RightPanelBuilder:
         gesetzt (nutzt die bestehenden ``right_panel.tab.*``-Übersetzungen) –
         ohne zusätzliche sichtbare Überschrift.
         """
+        p = active_palette()
         page = QWidget()
-        page.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+        page.setObjectName("stepPage")
+        page.setStyleSheet(f"background: {p.inspector};")
         outer = QVBoxLayout(page)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet(_SCROLL_STYLE)
+        scroll.setStyleSheet(scroll_style(p))
         container = QWidget()
-        container.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+        container.setStyleSheet(f"background: {p.inspector};")
         clay = QVBoxLayout(container)
         clay.setContentsMargins(0, 0, 0, 0)
         clay.setSpacing(0)

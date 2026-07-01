@@ -17,7 +17,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 
 from bgremover.i18n import tr
-from bgremover.theme import STEPPER_STYLE, _Theme
+from bgremover.theme import Palette, active_palette, stepper_style
 
 
 class WorkflowStep(IntEnum):
@@ -71,33 +71,34 @@ class _StepCell(QWidget):
         super().mousePressEvent(event)
 
     def apply_state(self, *, done: bool, active: bool, enabled: bool) -> None:
-        """Setzt Kreis- und Label-Stil für den Zustand des Schritts."""
+        """Setzt Kreis- und Label-Stil für den Zustand des Schritts (aktive Palette)."""
         self.setEnabled(enabled)
+        p = active_palette()
         num = int(self._step)
         if active:
             self._circle.setText(str(num))
             self._circle.setStyleSheet(
-                f"background: {_Theme.ACCENT}; color: #fff; border-radius: 14px;"
+                f"background: {p.accent}; color: {p.on_accent}; border-radius: 14px;"
                 " font-size: 12px; font-weight: 600;")
             self._label.setStyleSheet(
-                f"color: {_Theme.TEXT_BRIGHT}; font-size: 13px; font-weight: 700;"
+                f"color: {p.text}; font-size: 13px; font-weight: 700;"
                 " background: transparent;")
         elif done:
             self._circle.setText("✓")
             self._circle.setStyleSheet(
-                f"background: {_Theme.ACCENT_SOFT}; color: {_Theme.ACCENT_TEXT};"
-                f" border: 1px solid {_Theme.ACCENT_LINE}; border-radius: 14px;"
+                f"background: {p.accent_soft}; color: {p.accent_text};"
+                f" border: 1px solid {p.accent_line}; border-radius: 14px;"
                 " font-size: 12px; font-weight: 600;")
             self._label.setStyleSheet(
-                f"color: {_Theme.TEXT_3}; font-size: 13px; background: transparent;")
+                f"color: {p.text3}; font-size: 13px; background: transparent;")
         else:
             self._circle.setText(str(num))
-            color = _Theme.MUTED if enabled else _Theme.DIVIDER
+            color = p.muted if enabled else p.divider
             self._circle.setStyleSheet(
-                f"color: {color}; border: 1px solid {_Theme.BORDER};"
+                f"color: {color}; border: 1px solid {p.border};"
                 " border-radius: 14px; font-size: 12px;")
             self._label.setStyleSheet(
-                f"color: {_Theme.MUTED}; font-size: 13px; background: transparent;")
+                f"color: {p.muted}; font-size: 13px; background: transparent;")
 
 
 class Stepper(QWidget):
@@ -112,7 +113,7 @@ class Stepper(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setFixedHeight(64)
-        self.setStyleSheet(STEPPER_STYLE)
+        self.setStyleSheet(stepper_style(active_palette()))
         self._current = WorkflowStep.OPEN
         self._locked = False
         self._cells: dict[WorkflowStep, _StepCell] = {}
@@ -145,7 +146,13 @@ class Stepper(QWidget):
         self._locked = locked
         self._refresh()
 
+    def apply_palette(self, pal: Palette) -> None:
+        """Restylt die Schrittleiste für ein Schema-Umschalten (#428)."""
+        self.setStyleSheet(stepper_style(pal))
+        self._refresh()
+
     def _refresh(self) -> None:
+        p = active_palette()
         for step, cell in self._cells.items():
             enabled = (not self._locked) or step is WorkflowStep.OPEN
             cell.apply_state(
@@ -157,5 +164,5 @@ class Stepper(QWidget):
         for i, conn in enumerate(self._connectors):
             # Verbinder i liegt zwischen Schritt (i+1) und (i+2).
             filled = (i + 2) <= int(self._current)
-            color = _Theme.ACCENT_LINE if filled else _Theme.DIVIDER
+            color = p.accent_line if filled else p.divider
             conn.setStyleSheet(f"background: {color}; border: none;")

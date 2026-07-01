@@ -781,6 +781,13 @@ class ImageCanvas(QGraphicsView):
         """Sendet die aktuelle Ebenenliste an das Ebenen-Panel."""
         self.layersChanged.emit(self._layer_infos())
 
+    def resync_panels(self) -> None:
+        """Re-emittiert Ebenen- und Vorschauzustand (z. B. nach Panel-Neuaufbau, #428)."""
+        self._emit_layers()
+        self.previewSettingsChanged.emit(
+            self._preview_mode, self._relief_strength, self._gloss_visible
+        )
+
     # ── Ebenen-Operationen (Panel-getrieben, undo-fähig) ─────────────────
     def _push_layers(self, desc: str) -> None:
         """Erfasst den Projektzustand vor einer Ebenen-Operation für Undo."""

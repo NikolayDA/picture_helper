@@ -400,6 +400,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relief",
         "preview.seg.height": "Höhe",
         "preview.seg.gloss": "Gloss",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "Helles Design",
+        "theme.switched.light": "Helles Design aktiviert.",
+        "theme.switched.dark": "Dunkles Design aktiviert.",
         "action.settings": "Einstellungen…",
         # Left toolbar
         "toolbar.wand.tooltip": (
@@ -1139,6 +1143,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relief",
         "preview.seg.height": "Height",
         "preview.seg.gloss": "Gloss",
+        # Design toggle (Epic #424, Issue #428)
+        "action.light_mode": "Light theme",
+        "theme.switched.light": "Light theme enabled.",
+        "theme.switched.dark": "Dark theme enabled.",
         "action.settings": "Settings…",
         # Left toolbar
         "toolbar.wand.tooltip": (

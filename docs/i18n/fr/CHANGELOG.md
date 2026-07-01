@@ -11,6 +11,13 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Thème clair et jetons de design (refonte de l'interface, épopée #424).** Un
+  système de thèmes centralisé et basé sur des jetons (une `Palette` avec un
+  schéma clair et un schéma sombre) colore toute l'interface via une `QPalette` et
+  une feuille de style à l'échelle de l'application. « Affichage → Thème clair »
+  permet de basculer entre clair et sombre à l'exécution ; le choix est mémorisé
+  dans les réglages et appliqué au démarrage. Un anneau de focus au clavier et des
+  infobulles teintées améliorent l'accessibilité (#427–#429).
 - **Flux guidé avec inspecteur en cartes (refonte de l'interface, épopées #413/#418).**
   La colonne de droite guide désormais l'édition en six étapes claires (Ouvrir ·
   Détourer · Ajuster · Forme et dimensions · Relief et calques · Exporter) : une barre

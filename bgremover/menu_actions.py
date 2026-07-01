@@ -12,13 +12,11 @@ from PyQt6.QtWidgets import QMenu, QMenuBar
 from bgremover.i18n import tr
 from bgremover.preview_mode import PreviewMode
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
+from bgremover.theme import active_palette, menu_style
 
-MENU_STYLE = """
-    QMenuBar { background: #1a1a1a; color: #ccc; }
-    QMenuBar::item:selected { background: #333; }
-    QMenu { background: #252525; color: #ccc; border: 1px solid #3a3a3a; }
-    QMenu::item:selected { background: #4a90d9; }
-"""
+# Rückwärtskompatibler Alias (dunkel gebaut); die laufende Umschaltung (#428)
+# setzt die Menüleiste über ``menu_style(active_palette())`` neu.
+MENU_STYLE = menu_style(active_palette())
 
 
 @dataclass(frozen=True)
@@ -45,6 +43,7 @@ class MainMenuCallbacks:
     restore_original: Callable[[], None]
     fit_to_view: Callable[[], None]
     set_preview_mode: Callable[[PreviewMode], None]
+    toggle_light_mode: Callable[[bool], None]
     open_settings: Callable[[], None]
 
 
@@ -53,10 +52,12 @@ def build_main_menu(
     menu_bar: QMenuBar,
     recent_files: RecentFiles,
     callbacks: MainMenuCallbacks,
+    *,
+    light_mode: bool = False,
 ) -> RecentFilesMenu:
     """Baut die Menüleiste und gibt den Recent-Files-Adapter zurück."""
 
-    menu_bar.setStyleSheet(MENU_STYLE)
+    menu_bar.setStyleSheet(menu_style(active_palette()))
 
     file_menu = _add_menu(menu_bar, tr("menu.file"))
     _add_action(file_menu, parent, tr("action.open"), callbacks.open_image, "Ctrl+O")
@@ -133,6 +134,15 @@ def build_main_menu(
         action.setData(mode)
         action.setObjectName(f"preview_mode_{mode.value}")
         preview_group.addAction(action)
+
+    view_menu.addSeparator()
+    # Helles Design umschalten (#428) – reiner UI-Zustand, in QSettings gemerkt.
+    theme_action = QAction(tr("action.light_mode"), parent)
+    theme_action.setObjectName("theme_toggle")
+    theme_action.setCheckable(True)
+    theme_action.setChecked(light_mode)
+    theme_action.toggled.connect(lambda checked: callbacks.toggle_light_mode(checked))
+    view_menu.addAction(theme_action)
 
     extras_menu = _add_menu(menu_bar, tr("menu.extras"))
     _add_action(extras_menu, parent, tr("action.settings"), callbacks.open_settings, "Ctrl+,")

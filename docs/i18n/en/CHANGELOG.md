@@ -10,6 +10,12 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Light theme & design tokens (UI redesign, epic #424).** A central,
+  token-based theming system (a `Palette` with a light and a dark scheme) colors
+  the entire interface through a `QPalette` and an application-wide stylesheet.
+  “View → Light theme” switches between light and dark at runtime; the choice is
+  remembered in the settings and applied at startup. A keyboard focus ring and
+  tinted tooltips improve accessibility (#427–#429).
 - **Guided workflow with card inspector (UI redesign, epics #413/#418).** The right
   column now guides editing in six clear steps (Open · Cut out · Adjust · Shape &
   Size · Relief & Layers · Export): a step bar on top, an inspector with a step
