@@ -51,10 +51,12 @@ from bgremover.right_panel_tabs import (
 )
 from bgremover.stepper import WorkflowStep
 from bgremover.theme import (
+    CARD_STYLE,
     NAV_BACK_STYLE,
     NAV_BAR_STYLE,
     NAV_NEXT_STYLE,
     PRIMARY_BTN_STYLE,
+    SECTION_HEADER_STYLE,
     _Theme,
 )
 
@@ -196,6 +198,13 @@ class RightPanelActions:
     set_preview_mode: Callable[[PreviewMode], None]
     set_relief_strength: Callable[[int], None]
     set_gloss_visible: Callable[[bool], None]
+    # §9-Angleich (#436–#440): Aktionen, die vorher nur über Toolbar/Menü
+    # erreichbar waren, sind jetzt direkt im Schritt-Inspector verdrahtet.
+    run_ai: Callable[[], None]
+    apply_resize: Callable[[int, int], None]
+    save: Callable[[], None]
+    export_eufymake: Callable[[], None]
+    set_save_format: Callable[[str], None]
 
 
 @dataclass(frozen=True)
@@ -245,9 +254,10 @@ def build_right_panel(
     *,
     on_open: Callable[[], None] | None = None,
     on_open_path: Callable[[str], None] | None = None,
+    recent: list[str] | None = None,
 ) -> RightPanel:
     return _RightPanelBuilder(
-        actions, layer_actions, height_actions, on_open, on_open_path).build()
+        actions, layer_actions, height_actions, on_open, on_open_path, recent).build()
 
 
 class _RightPanelBuilder:
@@ -260,10 +270,12 @@ class _RightPanelBuilder:
         height_actions: HeightMapActions,
         on_open: Callable[[], None] | None,
         on_open_path: Callable[[str], None] | None,
+        recent: list[str] | None,
     ) -> None:
         self._actions = actions
         self._on_open = on_open
         self._on_open_path = on_open_path
+        self._recent = recent or []
         self._layer_panel = LayerPanel(layer_actions)
         self._height_panel = HeightMapPanel(height_actions)
 
@@ -423,8 +435,40 @@ class _RightPanelBuilder:
         if on_open is not None:
             open_btn.clicked.connect(lambda _=False: on_open())
         lay.addWidget(open_btn)
+
+        recent_card = self._build_recent_card()
+        if recent_card is not None:
+            lay.addWidget(recent_card)
+
         lay.addStretch()
         return page, open_btn
+
+    def _build_recent_card(self) -> QWidget | None:
+        """Karte „Zuletzt geöffnet" mit bis zu drei Einträgen (§9 Schritt 1, #436)."""
+        entries = self._recent[:3]
+        if not entries or self._on_open_path is None:
+            return None
+        on_open_path = self._on_open_path
+        card = QFrame()
+        card.setObjectName("recentCard")
+        card.setStyleSheet(f"QFrame#recentCard {{ {CARD_STYLE} }}")
+        v = QVBoxLayout(card)
+        v.setContentsMargins(14, 13, 14, 13)
+        v.setSpacing(6)
+        title = QLabel(tr("workflow.open.recent"))
+        title.setStyleSheet(SECTION_HEADER_STYLE)
+        v.addWidget(title)
+        for path in entries:
+            row = QPushButton(Path(path).name)
+            row.setToolTip(path)
+            row.setStyleSheet(
+                "QPushButton { background:transparent; border:none; text-align:left;"
+                f" color:{_Theme.TEXT_BRIGHT}; font-size:12px;"
+                " padding:7px 8px; border-radius:8px; }"
+                "QPushButton:hover { background:rgba(255,255,255,.05); }")
+            row.clicked.connect(lambda _=False, p=path: on_open_path(p))
+            v.addWidget(row)
+        return card
 
     @staticmethod
     def _content_page(items: list[tuple[str, str, QWidget]]) -> QWidget:

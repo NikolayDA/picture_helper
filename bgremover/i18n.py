@@ -747,6 +747,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.feathered": "Kante geglättet ({radius} px)",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        "right_panel.ai.remove": "Hintergrund automatisch entfernen (KI)",
+        "right_panel.ai.remove.tooltip": "Motiv per KI vom Hintergrund trennen",
+        "right_panel.export.section.save": "Speichern",
+        "right_panel.export.format_label": "Dateiformat",
+        "right_panel.export.save": "Bild speichern",
+        "right_panel.export.save.tooltip": "Das Farbmotiv als Bild speichern",
+        "right_panel.export.section.uvprint": "UV-Druck",
+        "right_panel.export.eufymake": "Assets für EufyMake Studio exportieren…",
+        "right_panel.export.eufymake.tooltip": (
+            "Farbe, Höhe und Gloss für EufyMake Studio exportieren"),
+        "workflow.open.recent": "Zuletzt geöffnet",
         # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
         "workflow.step.open": "Öffnen",
         "workflow.step.cutout": "Freistellen",
@@ -1495,6 +1507,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.feathered": "Edge smoothed ({radius} px)",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
+        # §9 alignment of the right column – AI/export/save (#436–#440)
+        "right_panel.ai.remove": "Remove background automatically (AI)",
+        "right_panel.ai.remove.tooltip": "Separate the subject from the background with AI",
+        "right_panel.export.section.save": "Save",
+        "right_panel.export.format_label": "File format",
+        "right_panel.export.save": "Save image",
+        "right_panel.export.save.tooltip": "Save the color motif as an image",
+        "right_panel.export.section.uvprint": "UV printing",
+        "right_panel.export.eufymake": "Export assets for EufyMake Studio…",
+        "right_panel.export.eufymake.tooltip": (
+            "Export color, height, and gloss for EufyMake Studio"),
+        "workflow.open.recent": "Recently opened",
         # Guided workflow – step bar, inspector header, navigation (Epic #418)
         "workflow.step.open": "Open",
         "workflow.step.cutout": "Cut out",

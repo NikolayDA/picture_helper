@@ -273,6 +273,11 @@ class MainWindow(QMainWindow):
                 set_preview_mode=self._canvas.set_preview_mode,
                 set_relief_strength=self._canvas.set_relief_strength,
                 set_gloss_visible=self._canvas.set_gloss_visible,
+                run_ai=self._run_ai,
+                apply_resize=lambda w, h: self._canvas.apply_resize(w, h),
+                save=self._save,
+                export_eufymake=self._export_eufymake,
+                set_save_format=self._set_preferred_format,
             ),
             LayerPanelActions(
                 add_layer=self._canvas.add_layer,
@@ -298,7 +303,8 @@ class MainWindow(QMainWindow):
                 cancel_preview=self._canvas.cancel_height_preview,
             ),
             on_open=self._open_image,
-            on_open_path=self._load_image_async,
+            on_open_path=self._open_recent_path,
+            recent=self._recent_files.paths()[:3],
         )
         self._right_panel = panel
         panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
@@ -1077,6 +1083,10 @@ class MainWindow(QMainWindow):
         # fortgeschrittenen Schritt ersetzt (Spec §13, PR #423-Review).
         self._sync_workflow_availability()
         self._go_to_step(WorkflowStep.CUTOUT)
+
+    def _set_preferred_format(self, fmt: str) -> None:
+        """Merkt das im Export-Schritt gewählte Speicherformat (§9, #439)."""
+        self._settings.setValue("preferred_format", fmt)
 
     def _pick_color(self) -> None:
         c = QColorDialog.getColor(self._bg_color, self, tr("dialog.color.title"))

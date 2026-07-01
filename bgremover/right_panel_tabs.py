@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -29,7 +30,13 @@ from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.preview_mode import PreviewMode
-from bgremover.theme import CARD_STYLE, SECTION_HEADER_STYLE, SLD_STYLE, _Theme
+from bgremover.theme import (
+    CARD_STYLE,
+    PRIMARY_BTN_STYLE,
+    SECTION_HEADER_STYLE,
+    SLD_STYLE,
+    _Theme,
+)
 
 if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
@@ -101,10 +108,44 @@ class PreviewTab:
         gloss_visible.toggled.connect(self._actions.set_gloss_visible)
         body.addWidget(gloss_visible)
 
-        info = _make_label(tr("right_panel.preview.export_hint"), "#d6a85f", 11)
+        info = _make_label(tr("right_panel.preview.export_hint"), "#8aaed0", 11)
         body.addWidget(_make_hdivider())
         body.addWidget(info)
         layout.addWidget(group)
+
+        # ── Karte „Speichern" (§9 Schritt 6, #439) ──
+        g_save, gsv = _make_section(tr("right_panel.export.section.save"))
+        gsv.addWidget(_make_label(tr("right_panel.export.format_label"), "#aaa"))
+        fmt_grid = QGridLayout(); fmt_grid.setSpacing(8)
+        fmt_buttons: dict[str, QPushButton] = {}
+
+        def select_format(fmt: str) -> None:
+            self._actions.set_save_format(fmt)
+            for name, btn in fmt_buttons.items():
+                _set_button_selected(btn, name == fmt)
+
+        for i, fmt in enumerate(("PNG", "JPEG", "WebP", "TIFF")):
+            btn = _make_panel_btn(fmt, "#2a2a2a", "#c0c0c0", "#363636")
+            btn.clicked.connect(lambda _=False, f=fmt: select_format(f))
+            fmt_buttons[fmt] = btn
+            fmt_grid.addWidget(btn, i // 2, i % 2)
+        _set_button_selected(fmt_buttons["PNG"], True)
+        gsv.addLayout(fmt_grid)
+        btn_save = _make_primary_btn(
+            tr("right_panel.export.save"), tr("right_panel.export.save.tooltip"))
+        btn_save.clicked.connect(lambda _=False: self._actions.save())
+        gsv.addWidget(btn_save)
+        layout.addWidget(g_save)
+
+        # ── Karte „UV-Druck" (§9 Schritt 6, #439) ──
+        g_uv, guv = _make_section(tr("right_panel.export.section.uvprint"))
+        btn_eufy = _make_panel_btn(
+            tr("right_panel.export.eufymake"), "#141e38", "#8aaedd", "#1e2e52",
+            tr("right_panel.export.eufymake.tooltip"), height=44)
+        btn_eufy.clicked.connect(lambda _=False: self._actions.export_eufymake())
+        guv.addWidget(btn_eufy)
+        layout.addWidget(g_uv)
+
         layout.addStretch()
         return outer, {
             "preview_mode_combo": mode_combo,
@@ -112,6 +153,10 @@ class PreviewTab:
             "preview_relief_slider": relief_slider,
             "preview_gloss_visible": gloss_visible,
             "preview_export_hint": info,
+            "export_save": btn_save,
+            "export_eufymake": btn_eufy,
+            "export_format_png": fmt_buttons["PNG"],
+            "export_format_jpeg": fmt_buttons["JPEG"],
         }
 
 
@@ -126,6 +171,12 @@ class SelectionTab:
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
+
+        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437).
+        btn_ai = _make_primary_btn(
+            tr("right_panel.ai.remove"), tr("right_panel.ai.remove.tooltip"))
+        btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
+        layout.addWidget(btn_ai)
 
         g_tool, gt = _make_section(tr("right_panel.selection.section.tool"))
         hint_box = QWidget()
@@ -216,6 +267,7 @@ class SelectionTab:
         layout.addStretch()
 
         return outer, {
+            "ai_remove": btn_ai,
             "tolerance_label": tolerance_label,
             "tolerance_slider": tolerance_slider,
             "brush_label": brush_label,
@@ -679,6 +731,29 @@ def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22))
         b.setIconSize(QSize(22, 22))
+    if tooltip:
+        b.setToolTip(tooltip)
+    return b
+
+
+def _set_button_selected(btn: QPushButton, selected: bool) -> None:
+    """Schaltet einen Sekundärbutton zwischen normal und ausgewählt (`.sel`, §5.3)."""
+    if selected:
+        btn.setStyleSheet(
+            f"QPushButton {{ background:{_Theme.ACCENT_SOFT}; color:{_Theme.ACCENT_TEXT};"
+            f" border:1px solid {_Theme.ACCENT}; border-radius:8px; padding:0 14px;"
+            " font-size:12px; font-weight:600; min-height:36px; }")
+    else:
+        btn.setStyleSheet(
+            "QPushButton { background:#2a2a2a; color:#c0c0c0; border:none;"
+            " border-radius:8px; padding:0 14px; font-size:12px; min-height:36px; }"
+            "QPushButton:hover { background:#363636; }")
+
+
+def _make_primary_btn(label: str, tooltip: str = "") -> QPushButton:
+    """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector."""
+    b = QPushButton(label)
+    b.setStyleSheet(PRIMARY_BTN_STYLE)
     if tooltip:
         b.setToolTip(tooltip)
     return b

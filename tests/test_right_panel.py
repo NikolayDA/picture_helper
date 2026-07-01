@@ -84,6 +84,11 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         set_preview_mode=lambda mode: calls.append(("preview_mode", mode)),
         set_relief_strength=lambda value: calls.append(("relief_strength", value)),
         set_gloss_visible=lambda visible: calls.append(("gloss_visible", visible)),
+        run_ai=lambda: calls.append(("run_ai",)),
+        apply_resize=lambda w, h: calls.append(("apply_resize", w, h)),
+        save=lambda: calls.append(("save",)),
+        export_eufymake=lambda: calls.append(("export_eufymake",)),
+        set_save_format=lambda fmt: calls.append(("save_format", fmt)),
     )
 
 
@@ -110,6 +115,35 @@ def test_right_panel_builder_creates_stepped_pages(qapp):
 
     panel.set_step(WorkflowStep.EXPORT)
     assert panel.nav_next.text() == "Exportieren ✓"
+
+
+def test_step2_ai_and_step6_save_export_delegate(qapp):
+    """KI-Button (S2) und Speichern/Format/EufyMake (S6) rufen ihre Callbacks (§9)."""
+    calls: list[tuple] = []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions())
+
+    _button(panel.frame, "Hintergrund automatisch entfernen (KI)").click()
+    _button(panel.frame, "JPEG").click()
+    _button(panel.frame, "Bild speichern").click()
+    _button(panel.frame, "Assets für EufyMake Studio exportieren…").click()
+
+    assert ("run_ai",) in calls
+    assert ("save_format", "JPEG") in calls
+    assert ("save",) in calls
+    assert ("export_eufymake",) in calls
+
+
+def test_open_step_recent_card_delegates(qapp, tmp_path):
+    """Die Karte „Zuletzt geöffnet" öffnet den geklickten Eintrag (§9 Schritt 1)."""
+    opened: list[str] = []
+    a, b = str(tmp_path / "a.png"), str(tmp_path / "b.jpg")
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        recent=[a, b], on_open_path=lambda p: opened.append(p))
+
+    _button(panel.frame, "a.png").click()
+    assert opened == [a]
 
 
 def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
