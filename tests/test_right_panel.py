@@ -3,7 +3,15 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from PyQt6.QtWidgets import QComboBox, QPushButton, QSlider, QSpinBox, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QSpinBox,
+    QWidget,
+)
 
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
@@ -102,6 +110,35 @@ def test_right_panel_builder_creates_stepped_pages(qapp):
 
     panel.set_step(WorkflowStep.EXPORT)
     assert panel.nav_next.text() == "Exportieren ✓"
+
+
+def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
+    """Alle Sektionsköpfe nutzen dasselbe Blau; jede Sektion ist eine Karte (#415/#416)."""
+    from bgremover.theme import _Theme
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    headers = [
+        lbl for lbl in panel.frame.findChildren(QLabel)
+        if "border-left" in lbl.styleSheet()
+    ]
+    assert headers, "keine Sektionsköpfe gefunden"
+    removed = (
+        "#e05555", "#e09a30", "#9060d0", "#c08adf",
+        "#65a9e8", "#d07ac0", "#30c060", "#30a0a0",
+    )
+    for lbl in headers:
+        style = lbl.styleSheet()
+        assert _Theme.ACCENT in style, style
+        for old in removed:
+            assert old not in style, f"Alt-Akzent {old} noch vorhanden"
+
+    cards = [
+        f for f in panel.frame.findChildren(QFrame)
+        if f.objectName() == "sectionCard"
+    ]
+    assert cards, "keine Karten-Sektionen gefunden"
 
 
 def test_open_step_drop_frame_forwards_image_path(qapp, tmp_path):

@@ -97,7 +97,7 @@ class HeightMapPanel:
         return outer, self._refs
 
     def _build_acquire(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.acquire"), "#c08adf")
+        section, body = _make_section(tr("right_panel.height.section.acquire"))
         btn_gen = _make_panel_btn(
             tr("right_panel.height.generate"), "#2a1e38", "#c8a8ee", "#3a2a50",
             tr("right_panel.height.generate.tooltip"), icon_name="form")
@@ -113,7 +113,7 @@ class HeightMapPanel:
         return section
 
     def _build_edit(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.edit"), "#30c060")
+        section, body = _make_section(tr("right_panel.height.section.edit"))
 
         strength = _spin(1, 255, 32)
         row_s = QHBoxLayout(); row_s.setSpacing(6)
@@ -159,7 +159,7 @@ class HeightMapPanel:
         return section
 
     def _build_optimize(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.optimize"), "#e09a30")
+        section, body = _make_section(tr("right_panel.height.section.optimize"))
 
         # Tonwert (Schwarz-/Weißpunkt)
         black = _spin(0, 254, 0)

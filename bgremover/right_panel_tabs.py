@@ -29,7 +29,7 @@ from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.preview_mode import PreviewMode
-from bgremover.theme import SLD_STYLE, _Theme
+from bgremover.theme import CARD_STYLE, SECTION_HEADER_STYLE, SLD_STYLE, _Theme
 
 if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
@@ -46,7 +46,7 @@ class PreviewTab:
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
-        group, body = _make_section(tr("right_panel.preview.section"), "#65a9e8")
+        group, body = _make_section(tr("right_panel.preview.section"))
         body.addWidget(_make_label(tr("right_panel.preview.hint"), "#8aaed0", 11))
 
         body.addWidget(_make_label(tr("right_panel.preview.mode"), "#aaa"))
@@ -127,7 +127,7 @@ class SelectionTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        g_tool, gt = _make_section(tr("right_panel.selection.section.tool"), "#4a90d9")
+        g_tool, gt = _make_section(tr("right_panel.selection.section.tool"))
         hint_box = QWidget()
         hint_box.setStyleSheet("background:#1e2a38; border-radius:7px;")
         hint_lay = QVBoxLayout(hint_box)
@@ -148,7 +148,7 @@ class SelectionTab:
         gt.addWidget(hint_box)
         layout.addWidget(g_tool)
 
-        g_sel, gs = _make_section(tr("right_panel.selection.section.settings"), "#4a90d9")
+        g_sel, gs = _make_section(tr("right_panel.selection.section.settings"))
         tolerance_label = _make_label(
             tr("right_panel.selection.tolerance", value=30), "#aaa")
         tolerance_slider = _make_slider(0, 255, 30,
@@ -236,7 +236,7 @@ class BackgroundTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        g_bg, gb = _make_section(tr("right_panel.background.section"), "#e05555")
+        g_bg, gb = _make_section(tr("right_panel.background.section"))
         btn_rem = _make_panel_btn(
             tr("right_panel.background.remove"), "#6a1a1a", "white", "#882020",
             tr("right_panel.background.remove.tooltip"),
@@ -264,7 +264,7 @@ class BackgroundTab:
         gb.addLayout(color_row)
         layout.addWidget(g_bg)
 
-        g_edge, ge = _make_section(tr("right_panel.background.section.feather"), "#30a0a0")
+        g_edge, ge = _make_section(tr("right_panel.background.section.feather"))
         ge.addWidget(_make_label(tr("right_panel.background.feather_hint"), "#888", 11))
         feather_label = _make_label(
             tr("right_panel.background.feather_radius", value=2), "#aaa")
@@ -306,7 +306,7 @@ class TransformTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        g_rot, gr2 = _make_section(tr("right_panel.transform.section.rotate"), "#e09a30")
+        g_rot, gr2 = _make_section(tr("right_panel.transform.section.rotate"))
         rot_bg = "#2e2510"; rot_fg = "#f0c060"; rot_hv = "#4a3a18"
 
         gr2.addWidget(_make_label(tr("right_panel.transform.quick_label"), "#888"))
@@ -362,7 +362,7 @@ class TransformTab:
         gr2.addWidget(btn_rot_free)
         layout.addWidget(g_rot)
 
-        g_flip, gf = _make_section(tr("right_panel.transform.section.flip"), "#30a0a0")
+        g_flip, gf = _make_section(tr("right_panel.transform.section.flip"))
         row_flip = QHBoxLayout(); row_flip.setSpacing(6)
         btn_fh = _make_panel_btn(
             tr("right_panel.transform.flip_h"), "#0e2a2a", "#7adada", "#1a4040",
@@ -377,7 +377,7 @@ class TransformTab:
         gf.addLayout(row_flip)
         layout.addWidget(g_flip)
 
-        g_size, gsz = _make_section(tr("right_panel.transform.section.resize"), "#9060d0")
+        g_size, gsz = _make_section(tr("right_panel.transform.section.resize"))
         btn_resize = _make_panel_btn(
             tr("right_panel.transform.resize"), "#1e1428", "#c0a0f0", "#2e1e44",
             tr("right_panel.transform.resize.tooltip"),
@@ -405,7 +405,7 @@ class ShapeTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        g_corner, gc = _make_section(tr("right_panel.shape.section.corner"), "#30c060")
+        g_corner, gc = _make_section(tr("right_panel.shape.section.corner"))
         corner_label = _make_label(tr("right_panel.shape.radius", value=0), "#aaa")
         corner_slider = _make_slider(0, 500, 0,
             tr("right_panel.shape.radius.tooltip"))
@@ -422,7 +422,7 @@ class ShapeTab:
         gc.addWidget(btn_corner)
         layout.addWidget(g_corner)
 
-        g_fmt, gfm = _make_section(tr("right_panel.shape.section.format"), "#9060d0")
+        g_fmt, gfm = _make_section(tr("right_panel.shape.section.format"))
 
         info_box = QWidget()
         info_box.setStyleSheet("background:#1e1628; border-radius:7px;")
@@ -500,7 +500,7 @@ class AdjustTab:
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
-        g_adj, ga = _make_section(tr("right_panel.adjust.section"), "#d07ac0")
+        g_adj, ga = _make_section(tr("right_panel.adjust.section"))
         ga.addWidget(_make_label(tr("right_panel.adjust.hint"), "#777", 11))
 
         bright_lbl = _make_label(tr("right_panel.adjust.brightness", value=100), "#aaa")
@@ -572,24 +572,26 @@ class AdjustTab:
 # ── Gemeinsame Widget-Helper ─────────────────────────────────────
 
 
-def _make_section(title: str, accent: str = "#4a90d9") -> tuple[QWidget, QVBoxLayout]:
-    """Sektion ohne QGroupBox – farbiger Titel + dünne Trennlinie."""
-    container = QWidget()
-    container.setStyleSheet("background: transparent;")
-    v = QVBoxLayout(container)
+def _make_section(title: str, accent: str = _Theme.ACCENT) -> tuple[QWidget, QVBoxLayout]:
+    """Sektion als **Karte** mit einheitlichem blauem Akzentkopf (Epic #413).
+
+    Kapselt jede Sektion in eine Karte (Hintergrund, dünner Rahmen, Radius) mit
+    Kopfzeile aus blauem Akzentstrich + Titel. Der ``accent``-Parameter bleibt aus
+    Kompatibilität mit den Aufrufstellen erhalten, wird aber **bewusst ignoriert**:
+    alle Sektionsköpfe nutzen dasselbe Blau (``_Theme.ACCENT``) – keine
+    Amber-/Coral-Sonderfarben mehr (Issue #416).
+    """
+    card = QFrame()
+    card.setObjectName("sectionCard")
+    # Objektname-Selektor, damit der Karten-Stil NICHT auf Kindwidgets kaskadiert.
+    card.setStyleSheet(f"QFrame#sectionCard {{ {CARD_STYLE} }}")
+    v = QVBoxLayout(card)
     v.setSpacing(10)
-    v.setContentsMargins(0, 14, 0, 10)
+    v.setContentsMargins(14, 13, 14, 13)
     title_lbl = QLabel(title)
-    title_lbl.setStyleSheet(f"""
-        color: {accent};
-        font-size: 13px;
-        font-weight: bold;
-        background: transparent;
-        padding: 2px 0 4px 8px;
-        border-left: 3px solid {accent};
-    """)
+    title_lbl.setStyleSheet(SECTION_HEADER_STYLE)
     v.addWidget(title_lbl)
-    return container, v
+    return card, v
 
 
 def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:

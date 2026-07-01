@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import (
 from bgremover.canvas import LayerInfo
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, role_allowed_for_kind
-from bgremover.theme import SLD_STYLE, _Theme
+from bgremover.theme import SECTION_HEADER_STYLE, SLD_STYLE, _Theme
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
 _ROLE_ORDER: list[LayerRole | None] = [
@@ -84,10 +84,8 @@ class LayerPanel:
         layout.setSpacing(10)
 
         title = QLabel(tr("right_panel.layers.section"))
-        title.setStyleSheet(
-            "color: #c08adf; font-size: 13px; font-weight: bold;"
-            " background: transparent; padding: 2px 0 4px 8px;"
-            " border-left: 3px solid #9060d0;")
+        # Einheitlicher blauer Akzentkopf (Issue #416) – kein Sonder-Violett mehr.
+        title.setStyleSheet(SECTION_HEADER_STYLE)
         layout.addWidget(title)
 
         layout.addLayout(self._build_action_bar())
