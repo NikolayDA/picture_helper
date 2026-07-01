@@ -23,7 +23,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -48,6 +47,7 @@ from bgremover.right_panel_tabs import (
     SelectionTab,
     ShapeTab,
     TransformTab,
+    _ModeSegments,
 )
 from bgremover.stepper import WorkflowStep
 from bgremover.theme import (
@@ -230,7 +230,7 @@ class RightPanel:
     rotation_spin: QSpinBox
     corner_label: QLabel
     corner_slider: QSlider
-    preview_mode_combo: QComboBox
+    preview_mode_segments: _ModeSegments
     preview_relief_label: QLabel
     preview_relief_slider: QSlider
     preview_gloss_visible: QCheckBox
@@ -347,7 +347,7 @@ class _RightPanelBuilder:
             rotation_spin=cast(QSpinBox, refs["rotation_spin"]),
             corner_label=cast(QLabel, refs["corner_label"]),
             corner_slider=cast(QSlider, refs["corner_slider"]),
-            preview_mode_combo=cast(QComboBox, refs["preview_mode_combo"]),
+            preview_mode_segments=cast(_ModeSegments, refs["preview_mode_segments"]),
             preview_relief_label=cast(QLabel, refs["preview_relief_label"]),
             preview_relief_slider=cast(QSlider, refs["preview_relief_slider"]),
             preview_gloss_visible=cast(QCheckBox, refs["preview_gloss_visible"]),

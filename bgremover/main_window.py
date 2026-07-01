@@ -312,7 +312,7 @@ class MainWindow(QMainWindow):
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
-        self._preview_mode_combo = panel.preview_mode_combo
+        self._preview_mode_segments = panel.preview_mode_segments
         self._preview_relief_label = panel.preview_relief_label
         self._preview_relief_slider = panel.preview_relief_slider
         self._preview_gloss_visible = panel.preview_gloss_visible
@@ -326,12 +326,9 @@ class MainWindow(QMainWindow):
         self, mode: PreviewMode, relief_strength: int, gloss_visible: bool
     ) -> None:
         """Spiegelt Canvas-Anzeigezustand in Panel und Ansicht-Menü (#388)."""
-        combo = self._preview_mode_combo
-        combo.blockSignals(True)
-        index = combo.findData(mode)
-        if index >= 0:
-            combo.setCurrentIndex(index)
-        combo.blockSignals(False)
+        # Segmented-Control spiegelt den Modus rein visuell (kombinierter Modus
+        # hebt alle Segmente auf; er ist über das Ansicht-Menü erreichbar).
+        self._preview_mode_segments.set_mode(mode)
 
         slider = self._preview_relief_slider
         slider.blockSignals(True)

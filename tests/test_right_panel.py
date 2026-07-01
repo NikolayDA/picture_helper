@@ -242,9 +242,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     calls: list[tuple] = []
     panel = build_right_panel(_actions(calls), _noop_layer_actions(), _noop_height_actions())
 
-    panel.preview_mode_combo.setCurrentIndex(
-        panel.preview_mode_combo.findData(PreviewMode.RELIEF)
-    )
+    _button(panel.frame, "Relief").click()
     panel.preview_relief_slider.setValue(35)
     panel.preview_gloss_visible.setChecked(False)
     panel.tolerance_slider.setValue(42)
@@ -308,19 +306,20 @@ def test_preview_tab_controls_and_export_hint(qapp) -> None:
 
     calls: list[tuple] = []
     _widget, refs = PreviewTab(_actions(calls)).build()
-    combo = refs["preview_mode_combo"]
+    segments = refs["preview_mode_segments"]
     slider = refs["preview_relief_slider"]
     gloss = refs["preview_gloss_visible"]
 
-    combo.setCurrentIndex(combo.findData(PreviewMode.COMBINED))
+    _button(_widget, "Relief").click()
     slider.setValue(15)
     gloss.setChecked(False)
 
     assert calls == [
-        ("preview_mode", PreviewMode.COMBINED),
+        ("preview_mode", PreviewMode.RELIEF),
         ("relief_strength", 15),
         ("gloss_visible", False),
     ]
+    assert segments.current_mode() is PreviewMode.RELIEF
     assert "Bild speichern" in refs["preview_export_hint"].text()
 
 

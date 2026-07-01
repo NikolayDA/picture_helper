@@ -6,13 +6,13 @@ zentrale Builder in das ``RightPanel``-DTO weiterreicht.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -42,6 +42,76 @@ if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
 
 
+# ── Segmented-Control für den Vorschaumodus (§5.7) ───────────────
+
+
+class _ModeSegments(QWidget):
+    """Segmented-Control für den 2D-Vorschaumodus (Farbe/Relief/Höhe/Gloss).
+
+    Ein Klick meldet den Modus über ``on_select``; ``set_mode`` spiegelt einen
+    von außen gesetzten Modus, ohne erneut zu melden (kein Feedback-Loop mit dem
+    ``previewSettingsChanged``-Sync). Der kombinierte Modus bleibt bewusst außen
+    vor (über das Ansicht-Menü erreichbar, §9 Schritt 6).
+    """
+
+    def __init__(
+        self, on_select: Callable[[PreviewMode], None], parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._on_select = on_select
+        self._buttons: dict[PreviewMode, QPushButton] = {}
+        self._current = PreviewMode.COLOR
+        self.setObjectName("modeSegments")
+        self.setStyleSheet(
+            f"QWidget#modeSegments {{ background:{_Theme.BG_TABBAR};"
+            f" border:1px solid {_Theme.BORDER}; border-radius:9px; }}")
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(3, 3, 3, 3)
+        lay.setSpacing(3)
+        # Literale ``tr``-Kurzlabels (i18n-Coverage zählt nur Literal-Aufrufe).
+        modes: list[tuple[str, PreviewMode]] = [
+            (tr("preview.seg.color"), PreviewMode.COLOR),
+            (tr("preview.seg.relief"), PreviewMode.RELIEF),
+            (tr("preview.seg.height"), PreviewMode.HEIGHT),
+            (tr("preview.seg.gloss"), PreviewMode.GLOSS),
+        ]
+        for label, mode in modes:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.clicked.connect(lambda _=False, m=mode: self._select(m))
+            self._buttons[mode] = btn
+            lay.addWidget(btn, 1)
+        self.set_mode(PreviewMode.COLOR)
+
+    @staticmethod
+    def _seg_style(active: bool) -> str:
+        if active:
+            return (f"QPushButton {{ background:{_Theme.ACCENT}; color:#fff;"
+                    " border:none; border-radius:6px; font-size:12px;"
+                    " font-weight:500; padding:7px 4px; }")
+        return (f"QPushButton {{ background:transparent; color:{_Theme.TEXT_3};"
+                " border:none; border-radius:6px; font-size:12px; padding:7px 4px; }"
+                f"QPushButton:hover {{ color:{_Theme.TEXT_BRIGHT}; }}")
+
+    def set_mode(self, mode: PreviewMode) -> None:
+        """Spiegelt den aktiven Modus (rein visuell, ohne ``on_select``)."""
+        self._current = mode
+        for m, btn in self._buttons.items():
+            active = m is mode
+            btn.setChecked(active)
+            btn.setStyleSheet(self._seg_style(active))
+
+    def _select(self, mode: PreviewMode) -> None:
+        self.set_mode(mode)
+        self._on_select(mode)
+
+    def current_mode(self) -> PreviewMode:
+        return self._current
+
+    def mode_labels(self) -> list[str]:
+        return [btn.text() for btn in self._buttons.values()]
+
+
 # ── Tab 1 – Vorschau ─────────────────────────────────────────────
 
 
@@ -57,29 +127,10 @@ class PreviewTab:
         body.addWidget(_make_label(tr("right_panel.preview.hint"), "#8aaed0", 11))
 
         body.addWidget(_make_label(tr("right_panel.preview.mode"), "#aaa"))
-        mode_combo = QComboBox()
-        mode_combo.setToolTip(tr("right_panel.preview.mode.tooltip"))
-        mode_combo.setStyleSheet(
-            "QComboBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
-            " border-radius:6px; padding:6px 8px; }"
-            "QComboBox QAbstractItemView { background:#252525; color:#ddd; }"
-        )
-        for label, mode in (
-            (tr("preview.mode.color"), PreviewMode.COLOR),
-            (tr("preview.mode.relief"), PreviewMode.RELIEF),
-            (tr("preview.mode.height"), PreviewMode.HEIGHT),
-            (tr("preview.mode.gloss"), PreviewMode.GLOSS),
-            (tr("preview.mode.combined"), PreviewMode.COMBINED),
-        ):
-            mode_combo.addItem(label, mode)
-
-        def on_mode_changed(index: int) -> None:
-            mode = mode_combo.itemData(index)
-            if isinstance(mode, PreviewMode):
-                self._actions.set_preview_mode(mode)
-
-        mode_combo.currentIndexChanged.connect(on_mode_changed)
-        body.addWidget(mode_combo)
+        # Segmented-Control statt Combobox (§5.7, §9 Schritt 6, #439). Der
+        # kombinierte Modus bleibt über das Ansicht-Menü erreichbar.
+        mode_segments = _ModeSegments(self._actions.set_preview_mode)
+        body.addWidget(mode_segments)
         body.addWidget(_make_hdivider())
 
         relief_label = _make_label(
@@ -112,6 +163,7 @@ class PreviewTab:
         body.addWidget(_make_hdivider())
         body.addWidget(info)
         layout.addWidget(group)
+        refs_extra = {"preview_mode_segments": mode_segments}
 
         # ── Karte „Speichern" (§9 Schritt 6, #439) ──
         g_save, gsv = _make_section(tr("right_panel.export.section.save"))
@@ -148,7 +200,7 @@ class PreviewTab:
 
         layout.addStretch()
         return outer, {
-            "preview_mode_combo": mode_combo,
+            **refs_extra,
             "preview_relief_label": relief_label,
             "preview_relief_slider": relief_slider,
             "preview_gloss_visible": gloss_visible,

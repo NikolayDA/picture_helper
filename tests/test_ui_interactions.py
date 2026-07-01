@@ -224,7 +224,7 @@ def test_preview_menu_and_panel_drive_live_canvas_without_dirtying(main_window):
     # Ansicht-Menü → Canvas + Panel synchron.
     _action(w, "Relief über Farbe").trigger()
     assert w._canvas.preview_mode is PreviewMode.RELIEF
-    assert w._preview_mode_combo.currentData() is PreviewMode.RELIEF
+    assert w._preview_mode_segments.current_mode() is PreviewMode.RELIEF
     assert not np.array_equal(
         np.array(w._canvas._render_image()), np.array(project.composite_color())
     )
@@ -236,9 +236,10 @@ def test_preview_menu_and_panel_drive_live_canvas_without_dirtying(main_window):
         np.array(w._canvas._render_image()), np.array(project.composite_color())
     )
 
-    # Panel → Canvas + Ansicht-Menü synchron; Gloss-Toggle wirkt live.
-    combined_index = w._preview_mode_combo.findData(PreviewMode.COMBINED)
-    w._preview_mode_combo.setCurrentIndex(combined_index)
+    # Ansicht-Menü → Canvas + Panel synchron; Gloss-Toggle wirkt live. Der
+    # kombinierte Modus ist bewusst nur über das Menü erreichbar (Segmented
+    # zeigt Farbe/Relief/Höhe/Gloss).
+    _action(w, "Kombiniert").trigger()
     with_gloss = np.array(w._canvas._render_image())
     assert _action(w, "Kombiniert").isChecked()
     w._preview_gloss_visible.setChecked(False)

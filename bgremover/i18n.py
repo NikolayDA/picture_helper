@@ -277,7 +277,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Die Vorschau ist unabhängig von der aktiven Ebene."
         ),
         "right_panel.preview.mode": "Anzeige:",
-        "right_panel.preview.mode.tooltip": "Inhalt der Canvas-Anzeige wählen",
         "right_panel.preview.relief_strength": "Relief-Stärke:  {value} %",
         "right_panel.preview.relief_strength.tooltip": (
             "Stärke des Hillshades in Relief- und Kombiniert-Modus"
@@ -396,6 +395,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.mode.height": "Höhe (Graustufe)",
         "preview.mode.gloss": "Gloss",
         "preview.mode.combined": "Kombiniert",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "Farbe",
+        "preview.seg.relief": "Relief",
+        "preview.seg.height": "Höhe",
+        "preview.seg.gloss": "Gloss",
         "action.settings": "Einstellungen…",
         # Left toolbar
         "toolbar.wand.tooltip": (
@@ -1013,7 +1017,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "The preview is independent of the active layer."
         ),
         "right_panel.preview.mode": "Display:",
-        "right_panel.preview.mode.tooltip": "Choose the canvas display content",
         "right_panel.preview.relief_strength": "Relief strength:  {value}%",
         "right_panel.preview.relief_strength.tooltip": (
             "Hillshade strength in Relief and Combined modes"
@@ -1131,6 +1134,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.mode.height": "Height (grayscale)",
         "preview.mode.gloss": "Gloss",
         "preview.mode.combined": "Combined",
+        # Short labels for the 2D-preview segmented control (§9 step 6)
+        "preview.seg.color": "Color",
+        "preview.seg.relief": "Relief",
+        "preview.seg.height": "Height",
+        "preview.seg.gloss": "Gloss",
         "action.settings": "Settings…",
         # Left toolbar
         "toolbar.wand.tooltip": (
