@@ -277,7 +277,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Die Vorschau ist unabhängig von der aktiven Ebene."
         ),
         "right_panel.preview.mode": "Anzeige:",
-        "right_panel.preview.mode.tooltip": "Inhalt der Canvas-Anzeige wählen",
         "right_panel.preview.relief_strength": "Relief-Stärke:  {value} %",
         "right_panel.preview.relief_strength.tooltip": (
             "Stärke des Hillshades in Relief- und Kombiniert-Modus"
@@ -396,6 +395,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.mode.height": "Höhe (Graustufe)",
         "preview.mode.gloss": "Gloss",
         "preview.mode.combined": "Kombiniert",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "Farbe",
+        "preview.seg.relief": "Relief",
+        "preview.seg.height": "Höhe",
+        "preview.seg.gloss": "Gloss",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "Helles Design",
+        "theme.switched.light": "Helles Design aktiviert.",
+        "theme.switched.dark": "Dunkles Design aktiviert.",
         "action.settings": "Einstellungen…",
         # Left toolbar
         "toolbar.wand.tooltip": (
@@ -464,16 +472,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "crop_bar.confirm": "✓  Zuschnitt anwenden",
         "crop_bar.cancel": "✗  Abbrechen",
         # Right panel — Selection tab contents
-        "right_panel.selection.section.tool": "Werkzeug",
-        "right_panel.selection.hint.wand": "Zauberstab (W) — Farbfläche auswählen",
-        "right_panel.selection.hint.brush": "Pinsel (B) — Auswahl aufmalen",
-        "right_panel.selection.hint.eraser": "Radiergummi (E) — Auswahl entfernen",
-        "right_panel.selection.hint.lasso": (
-            "Polygon-Lasso (L) — Punkte klicken, Doppelklick abschließen"
-        ),
-        "right_panel.selection.hint.add": "Shift+Klick  →  Auswahl addieren",
-        "right_panel.selection.hint.subtract": "{modifier}+Klick   →  Auswahl subtrahieren",
-        "right_panel.selection.section.settings": "Einstellungen",
+        "right_panel.selection.section.settings": "Werkzeug-Einstellungen",
+        "right_panel.selection.section.select": "Auswahl",
         "right_panel.selection.tolerance": "Toleranz (Zauberstab):  {value}",
         "right_panel.selection.tolerance.tooltip": (
             "Steuert wie ähnlich Farben sein müssen um ausgewählt zu werden.\n"
@@ -551,11 +551,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Bild horizontal spiegeln (links ↔ rechts)",
         "right_panel.transform.flip_v": "Vertikal",
         "right_panel.transform.flip_v.tooltip": "Bild vertikal spiegeln (oben ↕ unten)",
-        "right_panel.transform.section.resize": "Größe ändern",
-        "right_panel.transform.resize": "Größe ändern…",
-        "right_panel.transform.resize.tooltip": (
-            "Bild/Projekt auf eine Zielgröße in Pixeln skalieren (Resampling)"
-        ),
         # Größe-ändern-Dialog (#359)
         "resize.title": "Größe ändern",
         "resize.width": "Breite",
@@ -618,25 +613,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Wendet die Eckenrundung an.\n"
             "Das Ergebnis wird als PNG mit transparenten Ecken gespeichert."
         ),
-        "right_panel.shape.section.format": "Ausgabe-Format & Zuschnitt",
-        "right_panel.shape.format_info": (
-            "⇲ Format wählen → Rahmen erscheint auf dem Bild\n"
-            "• Rahmen verschieben: Mitte ziehen\n"
-            "• Größe ändern: Ecken ziehen (Proportionen bleiben)"
-        ),
-        "right_panel.shape.special_label": "Sonderformate:",
+        "right_panel.shape.section.resize": "Größe ändern",
+        "right_panel.shape.resize_apply": "Größe anwenden",
+        "right_panel.shape.resize_apply.tooltip": "Auf die eingegebene Größe skalieren",
+        "right_panel.shape.section.format": "Zuschnitt-Format",
         "right_panel.shape.circle": "⬤  Kreis",
         "right_panel.shape.circle.tooltip": "Runden Ausschnitt positionieren und zuschneiden",
-        "right_panel.shape.square": "■  1 : 1",
-        "right_panel.shape.square.tooltip": "Quadratischen Ausschnitt positionieren",
-        "right_panel.shape.landscape_label": "Querformat:",
-        "right_panel.shape.landscape.tooltip": (
-            "Querformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
-        ),
-        "right_panel.shape.portrait_label": "Hochformat:",
-        "right_panel.shape.portrait.tooltip": (
-            "Hochformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
-        ),
         # Settings dialog
         "settings.title": "Einstellungen",
         "settings.open_dir.label": "Standard-Verzeichnis zum Öffnen",
@@ -747,6 +729,48 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.feathered": "Kante geglättet ({radius} px)",
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        "right_panel.ai.remove": "Hintergrund automatisch entfernen (KI)",
+        "right_panel.ai.remove.tooltip": "Motiv per KI vom Hintergrund trennen",
+        "right_panel.export.section.save": "Speichern",
+        "right_panel.export.format_label": "Dateiformat",
+        "right_panel.export.save": "Bild speichern",
+        "right_panel.export.save.tooltip": "Das Farbmotiv als Bild speichern",
+        "right_panel.export.section.uvprint": "UV-Druck",
+        "right_panel.export.eufymake": "Assets für EufyMake Studio exportieren…",
+        "right_panel.export.eufymake.tooltip": (
+            "Farbe, Höhe und Gloss für EufyMake Studio exportieren"),
+        "workflow.open.recent": "Zuletzt geöffnet",
+        # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
+        "workflow.step.open": "Öffnen",
+        "workflow.step.cutout": "Freistellen",
+        "workflow.step.adjust": "Anpassen",
+        "workflow.step.shape": "Form & Maße",
+        "workflow.step.relief": "Relief & Ebenen",
+        "workflow.step.export": "Export",
+        "workflow.title.open": "Schritt 1 · Öffnen",
+        "workflow.title.cutout": "Schritt 2 · Freistellen",
+        "workflow.title.adjust": "Schritt 3 · Anpassen",
+        "workflow.title.shape": "Schritt 4 · Form & Maße",
+        "workflow.title.relief": "Schritt 5 · Relief & Ebenen",
+        "workflow.title.export": "Schritt 6 · Export",
+        "workflow.desc.open": "Bild laden — per Drag & Drop, Dialog oder zuletzt geöffnet.",
+        "workflow.desc.cutout": "Motiv vom Hintergrund trennen — automatisch oder von Hand.",
+        "workflow.desc.adjust": "Helligkeit, Kontrast und Sättigung mit Live-Vorschau.",
+        "workflow.desc.shape": "Drehen, spiegeln, abrunden, zuschneiden und skalieren.",
+        "workflow.desc.relief": "Ebenen verwalten und die Höhenkarte für den Reliefdruck.",
+        "workflow.desc.export": "Ergebnis prüfen, speichern oder für EufyMake exportieren.",
+        "workflow.next.open": "Weiter: Freistellen →",
+        "workflow.next.cutout": "Weiter: Anpassen →",
+        "workflow.next.adjust": "Weiter: Form & Maße →",
+        "workflow.next.shape": "Weiter: Relief & Ebenen →",
+        "workflow.next.relief": "Weiter: Export →",
+        "workflow.next.export": "Exportieren ✓",
+        "workflow.back": "← Zurück",
+        "workflow.open.drop": "Bild hierher ziehen",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "Datei öffnen…",
+        "workflow.locked": "Erst ein Bild öffnen (Schritt 1)",
     },
     "en": {
         # Status bar messages
@@ -997,7 +1021,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "The preview is independent of the active layer."
         ),
         "right_panel.preview.mode": "Display:",
-        "right_panel.preview.mode.tooltip": "Choose the canvas display content",
         "right_panel.preview.relief_strength": "Relief strength:  {value}%",
         "right_panel.preview.relief_strength.tooltip": (
             "Hillshade strength in Relief and Combined modes"
@@ -1115,6 +1138,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.mode.height": "Height (grayscale)",
         "preview.mode.gloss": "Gloss",
         "preview.mode.combined": "Combined",
+        # Short labels for the 2D-preview segmented control (§9 step 6)
+        "preview.seg.color": "Color",
+        "preview.seg.relief": "Relief",
+        "preview.seg.height": "Height",
+        "preview.seg.gloss": "Gloss",
+        # Design toggle (Epic #424, Issue #428)
+        "action.light_mode": "Light theme",
+        "theme.switched.light": "Light theme enabled.",
+        "theme.switched.dark": "Dark theme enabled.",
         "action.settings": "Settings…",
         # Left toolbar
         "toolbar.wand.tooltip": (
@@ -1183,16 +1215,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "crop_bar.confirm": "✓  Apply crop",
         "crop_bar.cancel": "✗  Cancel",
         # Right panel — Selection tab contents
-        "right_panel.selection.section.tool": "Tool",
-        "right_panel.selection.hint.wand": "Magic wand (W) — select a color area",
-        "right_panel.selection.hint.brush": "Brush (B) — paint a selection",
-        "right_panel.selection.hint.eraser": "Eraser (E) — remove selection",
-        "right_panel.selection.hint.lasso": (
-            "Polygon lasso (L) — click points, double-click to finish"
-        ),
-        "right_panel.selection.hint.add": "Shift+click  →  add to selection",
-        "right_panel.selection.hint.subtract": "{modifier}+click   →  subtract from selection",
-        "right_panel.selection.section.settings": "Settings",
+        "right_panel.selection.section.settings": "Tool settings",
+        "right_panel.selection.section.select": "Selection",
         "right_panel.selection.tolerance": "Tolerance (magic wand):  {value}",
         "right_panel.selection.tolerance.tooltip": (
             "Controls how similar colors must be to get selected.\n"
@@ -1270,11 +1294,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Flip the image horizontally (left ↔ right)",
         "right_panel.transform.flip_v": "Vertical",
         "right_panel.transform.flip_v.tooltip": "Flip the image vertically (top ↕ bottom)",
-        "right_panel.transform.section.resize": "Resize",
-        "right_panel.transform.resize": "Resize…",
-        "right_panel.transform.resize.tooltip": (
-            "Scale the image/project to a target size in pixels (resampling)"
-        ),
         # Resize dialog (#359)
         "resize.title": "Resize",
         "resize.width": "Width",
@@ -1337,25 +1356,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Applies the corner rounding.\n"
             "The result is saved as PNG with transparent corners."
         ),
-        "right_panel.shape.section.format": "Output format & crop",
-        "right_panel.shape.format_info": (
-            "⇲ Choose a format → a frame appears on the image\n"
-            "• Move the frame: drag the center\n"
-            "• Resize: drag the corners (aspect ratio kept)"
-        ),
-        "right_panel.shape.special_label": "Special formats:",
+        "right_panel.shape.section.resize": "Resize",
+        "right_panel.shape.resize_apply": "Apply size",
+        "right_panel.shape.resize_apply.tooltip": "Scale to the entered size",
+        "right_panel.shape.section.format": "Crop format",
         "right_panel.shape.circle": "⬤  Circle",
         "right_panel.shape.circle.tooltip": "Position a circular crop and apply it",
-        "right_panel.shape.square": "■  1 : 1",
-        "right_panel.shape.square.tooltip": "Position a square crop",
-        "right_panel.shape.landscape_label": "Landscape:",
-        "right_panel.shape.landscape.tooltip": (
-            "Landscape {label} — drag corners to resize, center to move"
-        ),
-        "right_panel.shape.portrait_label": "Portrait:",
-        "right_panel.shape.portrait.tooltip": (
-            "Portrait {label} — drag corners to resize, center to move"
-        ),
         # Settings dialog
         "settings.title": "Settings",
         "settings.open_dir.label": "Default directory for opening",
@@ -1465,6 +1471,48 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.feathered": "Edge smoothed ({radius} px)",
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
+        # §9 alignment of the right column – AI/export/save (#436–#440)
+        "right_panel.ai.remove": "Remove background automatically (AI)",
+        "right_panel.ai.remove.tooltip": "Separate the subject from the background with AI",
+        "right_panel.export.section.save": "Save",
+        "right_panel.export.format_label": "File format",
+        "right_panel.export.save": "Save image",
+        "right_panel.export.save.tooltip": "Save the color motif as an image",
+        "right_panel.export.section.uvprint": "UV printing",
+        "right_panel.export.eufymake": "Export assets for EufyMake Studio…",
+        "right_panel.export.eufymake.tooltip": (
+            "Export color, height, and gloss for EufyMake Studio"),
+        "workflow.open.recent": "Recently opened",
+        # Guided workflow – step bar, inspector header, navigation (Epic #418)
+        "workflow.step.open": "Open",
+        "workflow.step.cutout": "Cut out",
+        "workflow.step.adjust": "Adjust",
+        "workflow.step.shape": "Shape & Size",
+        "workflow.step.relief": "Relief & Layers",
+        "workflow.step.export": "Export",
+        "workflow.title.open": "Step 1 · Open",
+        "workflow.title.cutout": "Step 2 · Cut out",
+        "workflow.title.adjust": "Step 3 · Adjust",
+        "workflow.title.shape": "Step 4 · Shape & Size",
+        "workflow.title.relief": "Step 5 · Relief & Layers",
+        "workflow.title.export": "Step 6 · Export",
+        "workflow.desc.open": "Load an image — via drag & drop, dialog, or recently opened.",
+        "workflow.desc.cutout": "Separate the subject from the background — automatically or by hand.",
+        "workflow.desc.adjust": "Brightness, contrast, and saturation with live preview.",
+        "workflow.desc.shape": "Rotate, flip, round corners, crop, and scale.",
+        "workflow.desc.relief": "Manage layers and the height map for relief printing.",
+        "workflow.desc.export": "Review the result, save, or export for EufyMake.",
+        "workflow.next.open": "Next: Cut out →",
+        "workflow.next.cutout": "Next: Adjust →",
+        "workflow.next.adjust": "Next: Shape & Size →",
+        "workflow.next.shape": "Next: Relief & Layers →",
+        "workflow.next.relief": "Next: Export →",
+        "workflow.next.export": "Export ✓",
+        "workflow.back": "← Back",
+        "workflow.open.drop": "Drag an image here",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "Open file…",
+        "workflow.locked": "Open an image first (Step 1)",
     },
 }
 

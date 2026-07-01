@@ -30,6 +30,10 @@ EXPORT_INCLUDE_HEIGHT_KEY = "eufymake_include_height"
 EXPORT_INCLUDE_GLOSS_KEY = "eufymake_include_gloss"
 EXPORT_BIT_DEPTH_KEY = "eufymake_bit_depth"
 
+# UI-Schema hell/dunkel (#428). Additiver Schluessel: fehlt er, greift beim Lesen
+# der Default ``"dark"`` – deshalb ohne Schema-Migration.
+THEME_KEY = "theme_mode"
+
 
 def _read_version(settings: QSettings) -> int | None:
     """Liest die persistierte Schema-Version.

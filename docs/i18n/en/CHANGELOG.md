@@ -10,6 +10,24 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Light theme & design tokens (UI redesign, epic #424).** A central,
+  token-based theming system (a `Palette` with a light and a dark scheme) colors
+  the entire interface through a `QPalette` and an application-wide stylesheet.
+  “View → Light theme” switches between light and dark at runtime; the choice is
+  remembered in the settings and applied at startup. Accessibility: every
+  interactive element shows a visible focus ring (also after switching themes),
+  the step bar is keyboard-operable (Tab + Enter/Space), all controls meet
+  minimum hit-target sizes, and a WCAG AA contrast matrix permanently guards
+  both color schemes (#427–#429, #441).
+- **Guided workflow with card inspector (UI redesign, epics #413/#418).** The right
+  column now guides editing in six clear steps (Open · Cut out · Adjust · Shape &
+  Size · Relief & Layers · Export): a step bar on top, an inspector with a step
+  header and a fixed Back/Next navigation, plus a contextual tool rail (selection
+  tools only in the cut-out step). Steps 2–6 stay locked until an image is loaded;
+  loading advances to the cut-out step automatically. The existing action wiring
+  (`RightPanelActions`/`LayerPanelActions`/`HeightMapActions`) is unchanged
+  (#419–#422, #415–#417).
+
 - **User-selectable combined 2D preview (phase-1 completion).** The canvas now
   offers explicit modes for Color, Relief over color, Height (grayscale), Gloss,
   and the Combined view, independent of the active layer. A one-image cache is

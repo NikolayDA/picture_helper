@@ -35,12 +35,13 @@ from bgremover.height_map import HeightField
 from bgremover.i18n import tr
 from bgremover.project_model import LayerKind
 from bgremover.right_panel_tabs import (
-    _SPIN_STYLE,
     _make_hdivider,
     _make_label,
+    _make_neutral_btn,
     _make_panel_btn,
     _make_scroll_tab,
     _make_section,
+    _spin_style,
 )
 
 # Reine Höhen-Operation; die Closures lesen ihre Reglerwerte beim Aufruf.
@@ -70,7 +71,7 @@ def _spin(lo: int, hi: int, value: int, *, suffix: str = "", width: int = 72) ->
     if suffix:
         box.setSuffix(suffix)
     box.setFixedWidth(width)
-    box.setStyleSheet(_SPIN_STYLE)
+    box.setStyleSheet(_spin_style())
     return box
 
 
@@ -97,7 +98,7 @@ class HeightMapPanel:
         return outer, self._refs
 
     def _build_acquire(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.acquire"), "#c08adf")
+        section, body = _make_section(tr("right_panel.height.section.acquire"))
         btn_gen = _make_panel_btn(
             tr("right_panel.height.generate"), "#2a1e38", "#c8a8ee", "#3a2a50",
             tr("right_panel.height.generate.tooltip"), icon_name="form")
@@ -113,7 +114,7 @@ class HeightMapPanel:
         return section
 
     def _build_edit(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.edit"), "#30c060")
+        section, body = _make_section(tr("right_panel.height.section.edit"))
 
         strength = _spin(1, 255, 32)
         row_s = QHBoxLayout(); row_s.setSpacing(6)
@@ -159,7 +160,7 @@ class HeightMapPanel:
         return section
 
     def _build_optimize(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.optimize"), "#e09a30")
+        section, body = _make_section(tr("right_panel.height.section.optimize"))
 
         # Tonwert (Schwarz-/Weißpunkt)
         black = _spin(0, 254, 0)
@@ -228,8 +229,8 @@ class HeightMapPanel:
         self._refs.update(height_range_lo=rng_lo, height_range_hi=rng_hi)
 
         body.addWidget(_make_hdivider())
-        btn_cancel = _make_panel_btn(
-            tr("right_panel.height.discard_preview"), "#2a2a2a", "#c0c0c0", "#363636",
+        btn_cancel = _make_neutral_btn(
+            tr("right_panel.height.discard_preview"),
             tr("right_panel.height.discard_preview.tooltip"))
         btn_cancel.clicked.connect(lambda _=False: self._actions.cancel_preview())
         body.addWidget(btn_cancel)

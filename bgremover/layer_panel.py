@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import (
 from bgremover.canvas import LayerInfo
 from bgremover.i18n import tr
 from bgremover.project_model import LayerRole, role_allowed_for_kind
-from bgremover.theme import SLD_STYLE, _Theme
+from bgremover.theme import active_palette, num_style, section_header_style, slider_style
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
 _ROLE_ORDER: list[LayerRole | None] = [
@@ -77,17 +77,16 @@ class LayerPanel:
 
     # ── Aufbau ───────────────────────────────────────────────────────────
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
+        p = active_palette()
         outer = QWidget()
-        outer.setStyleSheet(f"background: {_Theme.BG_PANEL};")
+        outer.setStyleSheet(f"background: {p.inspector};")
         layout = QVBoxLayout(outer)
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
 
         title = QLabel(tr("right_panel.layers.section"))
-        title.setStyleSheet(
-            "color: #c08adf; font-size: 13px; font-weight: bold;"
-            " background: transparent; padding: 2px 0 4px 8px;"
-            " border-left: 3px solid #9060d0;")
+        # Einheitlicher blauer Akzentkopf (Issue #416) – kein Sonder-Violett mehr.
+        title.setStyleSheet(section_header_style(p))
         layout.addWidget(title)
 
         layout.addLayout(self._build_action_bar())
@@ -95,7 +94,10 @@ class LayerPanel:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background: #1a1a1a; border: none; }")
+        # Mindesthöhe, damit die Ebenenliste im Einzel-Scroll-Schritt (#440)
+        # nicht auf ihre winzige sizeHint zusammenfällt.
+        scroll.setMinimumHeight(150)
+        scroll.setStyleSheet(f"QScrollArea {{ background: {p.inspector}; border: none; }}")
         list_host = QWidget()
         list_host.setStyleSheet("background: transparent;")
         self._list_layout = QVBoxLayout(list_host)
@@ -111,14 +113,16 @@ class LayerPanel:
         return outer, {"layer_role_combo": self._role_combo or QComboBox()}
 
     def _action_button(self, text: str, tip: str, slot: Callable[[], None]) -> QPushButton:
+        p = active_palette()
         btn = QPushButton(text)
         btn.setToolTip(tip)
         btn.setFixedHeight(30)
         btn.setStyleSheet(
-            "QPushButton { background:#2a2a2a; color:#d0d0d0; border:none;"
+            f"QPushButton {{ background:{p.surface}; color:{p.text2}; border:none;"
             " border-radius:6px; font-size:14px; }"
-            "QPushButton:hover { background:#363636; }"
-            "QPushButton:disabled { background:#222; color:#555; }")
+            f"QPushButton:hover {{ background:{p.surface_hover}; }}"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}"
+            f"QPushButton:disabled {{ background:{p.divider}; color:{p.muted}; }}")
         btn.clicked.connect(lambda _=False: slot())
         self._action_buttons.append(btn)
         return btn
@@ -141,15 +145,14 @@ class LayerPanel:
         return row
 
     def _build_role_row(self) -> QHBoxLayout:
+        p = active_palette()
         row = QHBoxLayout()
         row.setSpacing(6)
         label = QLabel(tr("right_panel.layers.role_label"))
-        label.setStyleSheet("color:#888; font-size:12px; background:transparent;")
+        label.setStyleSheet(f"color:{p.text3}; font-size:12px; background:transparent;")
         combo = QComboBox()
         combo.setToolTip(tr("right_panel.layers.role.tooltip"))
-        combo.setStyleSheet(
-            "QComboBox { background:#222; color:#ddd; border:1px solid #3a3a3a;"
-            " border-radius:6px; padding:3px 6px; font-size:12px; }")
+        combo.setStyleSheet(num_style(p))
         for role in _ROLE_ORDER:
             combo.addItem(_role_label(role), role)
         combo.currentIndexChanged.connect(self._on_role_changed)
@@ -184,7 +187,9 @@ class LayerPanel:
         if not has_layers:
             hint = QLabel(tr("right_panel.layers.empty"))
             hint.setWordWrap(True)
-            hint.setStyleSheet("color:#666; font-size:11px; background:transparent;")
+            # Aktiver Hinweistext: text3 statt muted (Kontrastvertrag #441).
+            hint.setStyleSheet(
+                f"color:{active_palette().text3}; font-size:11px; background:transparent;")
             layout.insertWidget(0, hint)
 
     def _sync_role_combo(self, layers: list[LayerInfo]) -> None:
@@ -225,10 +230,11 @@ class LayerPanel:
             item.setEnabled(enabled)
 
     def _build_row(self, info: LayerInfo) -> QWidget:
+        p = active_palette()
         row = QWidget()
         row.setStyleSheet(
-            "background:#222a36; border-radius:6px;" if info.active
-            else "background:#1e1e1e; border-radius:6px;")
+            f"background:{p.accent_soft}; border-radius:6px;" if info.active
+            else f"background:{p.surface}; border-radius:6px;")
         h = QHBoxLayout(row)
         h.setContentsMargins(6, 4, 6, 4)
         h.setSpacing(6)
@@ -237,19 +243,25 @@ class LayerPanel:
         vis.setCheckable(True)
         vis.setChecked(info.visible)
         vis.setFixedWidth(30)
+        vis.setMinimumHeight(24)
         vis.setToolTip(tr("right_panel.layers.visible.tooltip"))
         vis.setStyleSheet(
-            "QPushButton { background:transparent; border:none; font-size:14px; }")
+            "QPushButton { background:transparent; border:none; font-size:14px; }"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent};"
+            " border-radius:4px; }")
         vis.toggled.connect(
             lambda checked, lid=info.id: self._actions.set_visible(lid, checked))
         h.addWidget(vis)
 
         name = QPushButton(info.name)
+        name.setMinimumHeight(24)
         name.setToolTip(tr("right_panel.layers.select.tooltip"))
         name.setStyleSheet(
             "QPushButton { background:transparent; border:none; text-align:left;"
-            f" color:{'#fff' if info.active else '#bbb'}; font-size:12px;"
-            f" font-weight:{'bold' if info.active else 'normal'}; }}")
+            f" color:{p.text if info.active else p.text3}; font-size:12px;"
+            f" font-weight:{'bold' if info.active else 'normal'}; }}"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent};"
+            " border-radius:4px; }")
         name.clicked.connect(lambda _=False, lid=info.id: self._actions.set_active(lid))
         h.addWidget(name, 1)
 
@@ -257,7 +269,7 @@ class LayerPanel:
         opacity.setRange(0, 100)
         opacity.setValue(int(round(info.opacity * 100)))
         opacity.setFixedWidth(90)
-        opacity.setStyleSheet(SLD_STYLE)
+        opacity.setStyleSheet(slider_style(p))
         opacity.setToolTip(tr("right_panel.layers.opacity.tooltip"))
         opacity.sliderReleased.connect(
             lambda lid=info.id, s=opacity: self._actions.set_opacity(lid, s.value() / 100))

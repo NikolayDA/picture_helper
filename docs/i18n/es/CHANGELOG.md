@@ -11,6 +11,25 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Tema claro y tokens de diseño (rediseño de la interfaz, épica #424).** Un
+  sistema central de temas basado en tokens (una `Palette` con un esquema claro y
+  uno oscuro) colorea toda la interfaz mediante una `QPalette` y una hoja de
+  estilos de toda la aplicación. «Ver → Tema claro» permite alternar entre claro y
+  oscuro en tiempo de ejecución; la elección se recuerda en los ajustes y se
+  aplica al iniciar. Accesibilidad: cada elemento interactivo muestra un anillo
+  de foco visible (también tras cambiar de tema), la barra de pasos se maneja con
+  el teclado (Tab + Intro/Espacio), todos los controles cumplen tamaños mínimos
+  de pulsación y una matriz de contraste WCAG AA protege permanentemente ambos
+  esquemas de color (#427–#429, #441).
+- **Flujo guiado con inspector de tarjetas (rediseño de la interfaz, épicas #413/#418).**
+  La columna derecha ahora guía la edición en seis pasos claros (Abrir · Recortar ·
+  Ajustar · Forma y tamaño · Relieve y capas · Exportar): una barra de pasos arriba,
+  un inspector con encabezado de paso y navegación fija Atrás/Siguiente, y una barra
+  de herramientas contextual (herramientas de selección solo en el paso de recorte).
+  Los pasos 2–6 permanecen bloqueados hasta cargar una imagen; al cargarla se avanza
+  automáticamente al paso de recorte. El cableado de acciones existente no cambia
+  (#419–#422, #415–#417).
+
 - **Vista previa 2D combinada seleccionable por el usuario (fin de fase 1).** El
   lienzo ofrece ahora modos explícitos de Color, Relieve sobre color, Altura
   (escala de grises), Gloss y vista Combinada, independientes de la capa activa.

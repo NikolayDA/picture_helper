@@ -54,6 +54,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             restore_original=lambda: calls.append("restore"),
             fit_to_view=lambda: calls.append("fit"),
             set_preview_mode=preview_modes.append,
+            toggle_light_mode=lambda light: calls.append(f"theme:{light}"),
             open_settings=lambda: calls.append("settings"),
         ),
     )

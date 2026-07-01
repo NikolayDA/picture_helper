@@ -195,6 +195,11 @@ class ImageCanvas(QGraphicsView):
         self._history = ProjectHistory()
 
         self._tool      = TOOL_WAND
+        # Werkzeug-Interaktion (Klick/Zeichnen) global freigeben. Im geführten
+        # Workflow schaltet das MainWindow dies außerhalb des Freistellen-Schritts
+        # ab, damit ausgeblendete Auswahlwerkzeuge das Bild nicht unsichtbar
+        # weiterbearbeiten (PR #423-Review). Pan/Zoom bleiben unberührt.
+        self._tools_enabled = True
         self._tolerance = _DEFAULT_TOLERANCE
         self._brush_r   = _DEFAULT_BRUSH_RADIUS
         self._drawing   = False
@@ -775,6 +780,13 @@ class ImageCanvas(QGraphicsView):
     def _emit_layers(self) -> None:
         """Sendet die aktuelle Ebenenliste an das Ebenen-Panel."""
         self.layersChanged.emit(self._layer_infos())
+
+    def resync_panels(self) -> None:
+        """Re-emittiert Ebenen- und Vorschauzustand (z. B. nach Panel-Neuaufbau, #428)."""
+        self._emit_layers()
+        self.previewSettingsChanged.emit(
+            self._preview_mode, self._relief_strength, self._gloss_visible
+        )
 
     # ── Ebenen-Operationen (Panel-getrieben, undo-fähig) ─────────────────
     def _push_layers(self, desc: str) -> None:
@@ -1496,6 +1508,18 @@ class ImageCanvas(QGraphicsView):
 
     # ── Maus-Events ──────────────────────────────────────────
 
+    def set_tools_enabled(self, enabled: bool) -> None:
+        """Schaltet die Werkzeug-Interaktion (Klick/Zeichnen) frei oder ab.
+
+        Beim Abschalten wird eine begonnene Interaktion (Crop/Lasso) verworfen,
+        damit kein halbfertiger Zustand hängen bleibt. Pan/Zoom sind nicht
+        betroffen. Wird vom MainWindow schrittabhängig gesetzt (PR #423-Review).
+        """
+        self._tools_enabled = enabled
+        if not enabled:
+            self._drawing = False
+            self.cancel_active_interaction()
+
     def _handle_tool_press(
         self,
         x: int,
@@ -1503,6 +1527,8 @@ class ImageCanvas(QGraphicsView):
         mods: Qt.KeyboardModifier,
     ) -> None:
         """Werkzeug-spezifische Reaktion auf linken Maus-Press."""
+        if not self._tools_enabled:
+            return
         if self._tool == TOOL_WAND:
             assert self._pil is not None and self._arr is not None
             if self._wand_busy:

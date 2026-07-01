@@ -9,6 +9,7 @@ from PIL import Image
 from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
+    QApplication,
     QColorDialog,
     QFileDialog,
     QFrame,
@@ -81,13 +82,21 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    THEME_KEY,
     is_future_schema,
 )
 from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.status_messages import StatusMessages as SM
+from bgremover.stepper import Stepper, WorkflowStep
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
-    STATUS_BAR_STYLE,
+    active_palette,
+    build_app_stylesheet,
+    build_qpalette,
+    menu_style,
+    palette_for,
+    set_active_palette,
+    status_bar_style,
 )
 from bgremover.units import UnitsError
 from bgremover.worker_controller import WorkerController
@@ -135,6 +144,11 @@ class MainWindow(QMainWindow):
         self._settings = QSettings("BgRemover", "BgRemover")
         migrate_settings(self._settings)
         future_schema = is_future_schema(self._settings)
+        # UI-Schema (hell/dunkel, #428). Die aktive Palette wird bereits in
+        # ``app.main`` gesetzt; hier wird nur der Zustand für Menü + Umschalter
+        # gespiegelt.
+        self._light_mode = str(
+            self._settings.value(THEME_KEY, "dark")).lower() == "light"
         init_locale_from_settings(
             self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
@@ -171,16 +185,28 @@ class MainWindow(QMainWindow):
         # damit `self._sb.showMessage(...)` ohne None-Narrowing auskommt
         # (QMainWindow.statusBar() liefert `QStatusBar | None`).
         self._sb = QStatusBar()
-        self._sb.setStyleSheet(STATUS_BAR_STYLE)
+        self._sb.setStyleSheet(status_bar_style(active_palette()))
         self.setStatusBar(self._sb)
 
         root_w = QWidget()
         self.setCentralWidget(root_w)
-        root = QHBoxLayout(root_w)
+        # Vertikaler Stapel: Schrittleiste (oben, volle Breite) über dem
+        # dreispaltigen Body (Werkzeugleiste | Leinwand | Inspector) – der
+        # geführte Workflow (Epic #418).
+        root = QVBoxLayout(root_w)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        root.addWidget(self._build_toolbar())
+        self._stepper = Stepper()
+        self._stepper.stepSelected.connect(self._on_step_selected)
+        root.addWidget(self._stepper)
+
+        body_w = QWidget()
+        body = QHBoxLayout(body_w)
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+
+        body.addWidget(self._build_toolbar())
 
         # Canvas + Crop-Bestätigungsleiste in vertikalem Container
         canvas_container = QWidget()
@@ -204,9 +230,19 @@ class MainWindow(QMainWindow):
 
         cv_lay.addWidget(self._canvas, 1)
 
-        root.addWidget(canvas_container, 1)
-        root.addWidget(self._build_right_panel())
+        body.addWidget(canvas_container, 1)
+        # Body-Layout und rechten Rahmen merken, damit das Panel beim
+        # Theme-Wechsel (#428) ausgetauscht werden kann.
+        self._body_layout = body
+        self._right_frame = self._build_right_panel()
+        body.addWidget(self._right_frame)
+        self._wire_canvas_panel_signals()
+        root.addWidget(body_w, 1)
 
+        # Startzustand: Schritt 1, Schritte 2–6 gesperrt bis ein Bild geladen ist.
+        self._step = WorkflowStep.OPEN
+        self._apply_toolbar_for_step(WorkflowStep.OPEN)
+        self._sync_workflow_availability()
         self._sb.showMessage(SM.START_HINWEIS)
 
     def _build_toolbar(self) -> QFrame:
@@ -255,6 +291,11 @@ class MainWindow(QMainWindow):
                 set_preview_mode=self._canvas.set_preview_mode,
                 set_relief_strength=self._canvas.set_relief_strength,
                 set_gloss_visible=self._canvas.set_gloss_visible,
+                run_ai=self._run_ai,
+                apply_resize=lambda w, h: self._canvas.apply_resize(w, h),
+                save=self._save,
+                export_eufymake=self._export_eufymake,
+                set_save_format=self._set_preferred_format,
             ),
             LayerPanelActions(
                 add_layer=self._canvas.add_layer,
@@ -279,30 +320,46 @@ class MainWindow(QMainWindow):
                 apply_op=self._canvas.apply_height_op,
                 cancel_preview=self._canvas.cancel_height_preview,
             ),
+            on_open=self._open_image,
+            on_open_path=self._open_recent_path,
+            recent=self._recent_files.paths()[:3],
         )
+        self._right_panel = panel
+        panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
+        panel.nav_next.clicked.connect(lambda _=False: self._next_step())
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
-        self._preview_mode_combo = panel.preview_mode_combo
+        self._preview_mode_segments = panel.preview_mode_segments
         self._preview_relief_label = panel.preview_relief_label
         self._preview_relief_slider = panel.preview_relief_slider
         self._preview_gloss_visible = panel.preview_gloss_visible
-        self._canvas.layersChanged.connect(self._layer_panel.refresh)
-        self._canvas.layersChanged.connect(self._height_panel.refresh)
-        self._canvas.previewSettingsChanged.connect(self._sync_preview_controls)
         self._update_color_btn()
         return panel.frame
+
+    def _wire_canvas_panel_signals(self) -> None:
+        """Verbindet Canvas-Signale **einmalig** mit stabilen MainWindow-Slots.
+
+        Die Slots lesen ``self._layer_panel``/``self._height_panel`` bzw. die
+        Vorschau-Widgets dynamisch, sodass ein Panel-Neuaufbau beim Theme-Wechsel
+        (#428) keine Signale neu verdrahten muss (kein Doppel-Connect auf tote
+        Panels).
+        """
+        self._canvas.layersChanged.connect(self._on_layers_changed)
+        self._canvas.previewSettingsChanged.connect(self._sync_preview_controls)
+
+    def _on_layers_changed(self, layers: list) -> None:
+        """Reicht die Ebenenliste an die aktuellen Panels (Ebenen + Höhe) weiter."""
+        self._layer_panel.refresh(layers)
+        self._height_panel.refresh(layers)
 
     def _sync_preview_controls(
         self, mode: PreviewMode, relief_strength: int, gloss_visible: bool
     ) -> None:
         """Spiegelt Canvas-Anzeigezustand in Panel und Ansicht-Menü (#388)."""
-        combo = self._preview_mode_combo
-        combo.blockSignals(True)
-        index = combo.findData(mode)
-        if index >= 0:
-            combo.setCurrentIndex(index)
-        combo.blockSignals(False)
+        # Segmented-Control spiegelt den Modus rein visuell (kombinierter Modus
+        # hebt alle Segmente auf; er ist über das Ansicht-Menü erreichbar).
+        self._preview_mode_segments.set_mode(mode)
 
         slider = self._preview_relief_slider
         slider.blockSignals(True)
@@ -374,6 +431,115 @@ class MainWindow(QMainWindow):
         if not self._canvas.cancel_active_interaction():
             self._canvas.clear_selection()
 
+    # ── Geführter Workflow (Epic #418) ───────────────────────────────────
+
+    def _sync_workflow_availability(self) -> None:
+        """Sperrt die Schritte 2–6, solange kein Bild geladen ist (Spec §13)."""
+        self._stepper.set_locked(not self._canvas.has_image)
+
+    def _on_step_selected(self, step_value: int) -> None:
+        """Klick auf einen Schritt in der Schrittleiste (mit Gating)."""
+        step = WorkflowStep(step_value)
+        if not self._canvas.has_image and step is not WorkflowStep.OPEN:
+            # Gesperrt: aktiven Schritt beibehalten, Hinweis zeigen.
+            self._stepper.set_current(int(self._step))
+            self._sb.showMessage(tr("workflow.locked"))
+            return
+        self._go_to_step(step)
+
+    def _go_to_step(self, step: WorkflowStep) -> None:
+        """Wechselt den aktiven Schritt und aktualisiert die gesamte UI."""
+        self._step = step
+        self._stepper.set_current(int(step))
+        self._right_panel.set_step(step)
+        self._apply_toolbar_for_step(step)
+
+    def _next_step(self) -> None:
+        """„Weiter": in Schritt 1 ohne Bild öffnen, sonst zum nächsten Schritt."""
+        if self._step is WorkflowStep.OPEN and not self._canvas.has_image:
+            self._open_image()
+            return
+        if self._step is WorkflowStep.EXPORT:
+            # Letzter Schritt: „Exportieren ✓" löst das Speichern aus
+            # (statt wirkungslos zu sein, PR #423-Review).
+            self._save()
+            return
+        self._go_to_step(WorkflowStep(int(self._step) + 1))
+
+    def _prev_step(self) -> None:
+        """„Zurück": einen Schritt zurück (in Schritt 1 wirkungslos)."""
+        if self._step is WorkflowStep.OPEN:
+            return
+        self._go_to_step(WorkflowStep(int(self._step) - 1))
+
+    def _apply_toolbar_for_step(self, step: WorkflowStep) -> None:
+        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen.
+
+        Außerhalb von Freistellen werden die Auswahlwerkzeuge nicht nur
+        ausgeblendet, sondern die Canvas-Werkzeug-Interaktion abgeschaltet –
+        sonst würde ein noch aktives Pinsel-/Radier-/Lasso-Werkzeug das Bild
+        unsichtbar weiterbearbeiten (PR #423-Review).
+        """
+        sel_visible = step is WorkflowStep.CUTOUT
+        for button in (
+            self._toolbar.btn_wand, self._toolbar.btn_brush,
+            self._toolbar.btn_eraser, self._toolbar.btn_lasso,
+        ):
+            button.setVisible(sel_visible)
+        self._toolbar.sel_separator.setVisible(sel_visible)
+        self._canvas.set_tools_enabled(sel_visible)
+
+    # ── Theming (Epic #424, Issue #428) ──────────────────────────────────
+
+    def _toggle_light_mode(self, light: bool) -> None:
+        """Umschalt-Callback des Ansicht-Menüs: wendet das Schema an und merkt es."""
+        if light == self._light_mode:
+            return
+        self._light_mode = light
+        mode = "light" if light else "dark"
+        self._settings.setValue(THEME_KEY, mode)
+        self._apply_theme(mode)
+        self._sb.showMessage(
+            tr("theme.switched.light") if light else tr("theme.switched.dark"))
+
+    def _apply_theme(self, mode: str) -> None:
+        """Wendet ein Farbschema live an (QPalette + App-QSS + Chrome, #428).
+
+        Standard-Widgets/Dialoge folgen der ``QPalette``; die Redesign-Chrome
+        (Schrittleiste, Werkzeugleiste, Statusleiste, Menü) wird gezielt umgefärbt,
+        das rechte Panel neu aufgebaut (färbt die verschachtelten Karten um).
+        """
+        pal = palette_for(mode)
+        set_active_palette(pal)
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            app.setPalette(build_qpalette(pal))
+            app.setStyleSheet(build_app_stylesheet(pal))
+        self._stepper.apply_palette(pal)
+        self._toolbar.apply_palette(pal)
+        self._sb.setStyleSheet(status_bar_style(pal))
+        menu_bar = self.menuBar()
+        if menu_bar is not None:
+            menu_bar.setStyleSheet(menu_style(pal))
+        self._rebuild_right_panel()
+
+    def _rebuild_right_panel(self) -> None:
+        """Baut das rechte Panel neu auf und stellt seinen Zustand wieder her.
+
+        Der Neuaufbau liest die aktive Palette und färbt so die verschachtelten
+        Karten/Buttons um. Canvas-Signale bleiben über die stabilen Slots
+        (:meth:`_wire_canvas_panel_signals`) verbunden – es wird nichts neu
+        verdrahtet. Anschließend werden Schritt-Inspektor und Panelinhalte über
+        :meth:`ImageCanvas.resync_panels` wiederhergestellt.
+        """
+        old = self._right_frame
+        self._body_layout.removeWidget(old)
+        old.deleteLater()
+        self._right_frame = self._build_right_panel()
+        self._body_layout.addWidget(self._right_frame)
+        self._right_panel.set_step(self._step)
+        self._canvas.resync_panels()
+
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
         assert menu_bar is not None
@@ -402,8 +568,10 @@ class MainWindow(QMainWindow):
                 restore_original=self._canvas.restore_original,
                 fit_to_view=self._canvas.fit_to_view,
                 set_preview_mode=self._canvas.set_preview_mode,
+                toggle_light_mode=self._toggle_light_mode,
                 open_settings=self._open_settings,
             ),
+            light_mode=self._light_mode,
         )
 
     def _build_tool_shortcuts(self) -> None:
@@ -759,6 +927,11 @@ class MainWindow(QMainWindow):
         """Setzt die Speicher-/Sauber-Marker nach Neu/Öffnen eines Projekts."""
         self._save_path = None
         self._mark_saved()
+        # Geführter Workflow: Ein geladenes Projekt gibt die Schritte frei und
+        # steigt beim Freistellen neu ein (Spec §13, PR #423-Review).
+        self._sync_workflow_availability()
+        if self._canvas.has_image:
+            self._go_to_step(WorkflowStep.CUTOUT)
 
     def _new_project(self) -> None:
         """Erzeugt ein leeres Projekt mit einer transparenten COLOR-Ebene."""
@@ -986,6 +1159,15 @@ class MainWindow(QMainWindow):
         # Änderungen), bis der Nutzer es bearbeitet.
         self._mark_saved()
         self._add_recent(path)
+        # Geführter Workflow: Schritte freigeben und immer beim Freistellen
+        # neu einsteigen – auch wenn ein späteres Bild einen bereits
+        # fortgeschrittenen Schritt ersetzt (Spec §13, PR #423-Review).
+        self._sync_workflow_availability()
+        self._go_to_step(WorkflowStep.CUTOUT)
+
+    def _set_preferred_format(self, fmt: str) -> None:
+        """Merkt das im Export-Schritt gewählte Speicherformat (§9, #439)."""
+        self._settings.setValue("preferred_format", fmt)
 
     def _pick_color(self) -> None:
         c = QColorDialog.getColor(self._bg_color, self, tr("dialog.color.title"))
