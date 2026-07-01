@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Flux guidé avec inspecteur en cartes (refonte de l'interface, épopées #413/#418).**
+  La colonne de droite guide désormais l'édition en six étapes claires (Ouvrir ·
+  Détourer · Ajuster · Forme et dimensions · Relief et calques · Exporter) : une barre
+  d'étapes en haut, un inspecteur avec en-tête d'étape et une navigation fixe
+  Précédent/Suivant, ainsi qu'une barre d'outils contextuelle (outils de sélection
+  uniquement à l'étape de détourage). Les étapes 2 à 6 restent verrouillées tant
+  qu'aucune image n'est chargée ; le chargement passe automatiquement à l'étape de
+  détourage. Le câblage des actions existant est inchangé (#419–#422, #415–#417).
+
 - **Aperçu 2D combiné sélectionnable par l'utilisateur (fin de phase 1).** Le
   canevas propose désormais les modes explicites Couleur, Relief sur couleur,
   Hauteur (niveaux de gris), Gloss et Combiné, indépendants du calque actif. Un

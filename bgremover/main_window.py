@@ -85,6 +85,7 @@ from bgremover.settings_schema import (
 )
 from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.status_messages import StatusMessages as SM
+from bgremover.stepper import Stepper, WorkflowStep
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     STATUS_BAR_STYLE,
@@ -176,11 +177,23 @@ class MainWindow(QMainWindow):
 
         root_w = QWidget()
         self.setCentralWidget(root_w)
-        root = QHBoxLayout(root_w)
+        # Vertikaler Stapel: Schrittleiste (oben, volle Breite) über dem
+        # dreispaltigen Body (Werkzeugleiste | Leinwand | Inspector) – der
+        # geführte Workflow (Epic #418).
+        root = QVBoxLayout(root_w)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        root.addWidget(self._build_toolbar())
+        self._stepper = Stepper()
+        self._stepper.stepSelected.connect(self._on_step_selected)
+        root.addWidget(self._stepper)
+
+        body_w = QWidget()
+        body = QHBoxLayout(body_w)
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+
+        body.addWidget(self._build_toolbar())
 
         # Canvas + Crop-Bestätigungsleiste in vertikalem Container
         canvas_container = QWidget()
@@ -204,9 +217,14 @@ class MainWindow(QMainWindow):
 
         cv_lay.addWidget(self._canvas, 1)
 
-        root.addWidget(canvas_container, 1)
-        root.addWidget(self._build_right_panel())
+        body.addWidget(canvas_container, 1)
+        body.addWidget(self._build_right_panel())
+        root.addWidget(body_w, 1)
 
+        # Startzustand: Schritt 1, Schritte 2–6 gesperrt bis ein Bild geladen ist.
+        self._step = WorkflowStep.OPEN
+        self._apply_toolbar_for_step(WorkflowStep.OPEN)
+        self._sync_workflow_availability()
         self._sb.showMessage(SM.START_HINWEIS)
 
     def _build_toolbar(self) -> QFrame:
@@ -279,7 +297,11 @@ class MainWindow(QMainWindow):
                 apply_op=self._canvas.apply_height_op,
                 cancel_preview=self._canvas.cancel_height_preview,
             ),
+            on_open=self._open_image,
         )
+        self._right_panel = panel
+        panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
+        panel.nav_next.clicked.connect(lambda _=False: self._next_step())
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
@@ -373,6 +395,54 @@ class MainWindow(QMainWindow):
         """Bricht aktive Interaktionen ab oder hebt sonst die Auswahl auf."""
         if not self._canvas.cancel_active_interaction():
             self._canvas.clear_selection()
+
+    # ── Geführter Workflow (Epic #418) ───────────────────────────────────
+
+    def _sync_workflow_availability(self) -> None:
+        """Sperrt die Schritte 2–6, solange kein Bild geladen ist (Spec §13)."""
+        self._stepper.set_locked(not self._canvas.has_image)
+
+    def _on_step_selected(self, step_value: int) -> None:
+        """Klick auf einen Schritt in der Schrittleiste (mit Gating)."""
+        step = WorkflowStep(step_value)
+        if not self._canvas.has_image and step is not WorkflowStep.OPEN:
+            # Gesperrt: aktiven Schritt beibehalten, Hinweis zeigen.
+            self._stepper.set_current(int(self._step))
+            self._sb.showMessage(tr("workflow.locked"))
+            return
+        self._go_to_step(step)
+
+    def _go_to_step(self, step: WorkflowStep) -> None:
+        """Wechselt den aktiven Schritt und aktualisiert die gesamte UI."""
+        self._step = step
+        self._stepper.set_current(int(step))
+        self._right_panel.set_step(step)
+        self._apply_toolbar_for_step(step)
+
+    def _next_step(self) -> None:
+        """„Weiter": in Schritt 1 ohne Bild öffnen, sonst zum nächsten Schritt."""
+        if self._step is WorkflowStep.OPEN and not self._canvas.has_image:
+            self._open_image()
+            return
+        if self._step is WorkflowStep.EXPORT:
+            return
+        self._go_to_step(WorkflowStep(int(self._step) + 1))
+
+    def _prev_step(self) -> None:
+        """„Zurück": einen Schritt zurück (in Schritt 1 wirkungslos)."""
+        if self._step is WorkflowStep.OPEN:
+            return
+        self._go_to_step(WorkflowStep(int(self._step) - 1))
+
+    def _apply_toolbar_for_step(self, step: WorkflowStep) -> None:
+        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen."""
+        sel_visible = step is WorkflowStep.CUTOUT
+        for button in (
+            self._toolbar.btn_wand, self._toolbar.btn_brush,
+            self._toolbar.btn_eraser, self._toolbar.btn_lasso,
+        ):
+            button.setVisible(sel_visible)
+        self._toolbar.sel_separator.setVisible(sel_visible)
 
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
@@ -759,6 +829,11 @@ class MainWindow(QMainWindow):
         """Setzt die Speicher-/Sauber-Marker nach Neu/Öffnen eines Projekts."""
         self._save_path = None
         self._mark_saved()
+        # Geführter Workflow: Ein geladenes Projekt gibt die Schritte frei; vom
+        # Öffnen-Schritt automatisch weiter zum Freistellen (Spec §13).
+        self._sync_workflow_availability()
+        if self._canvas.has_image and self._step is WorkflowStep.OPEN:
+            self._go_to_step(WorkflowStep.CUTOUT)
 
     def _new_project(self) -> None:
         """Erzeugt ein leeres Projekt mit einer transparenten COLOR-Ebene."""
@@ -986,6 +1061,11 @@ class MainWindow(QMainWindow):
         # Änderungen), bis der Nutzer es bearbeitet.
         self._mark_saved()
         self._add_recent(path)
+        # Geführter Workflow: Schritte freigeben und – wie im Prototyp – vom
+        # Öffnen-Schritt automatisch zum Freistellen weiterschalten (Spec §13).
+        self._sync_workflow_availability()
+        if self._step is WorkflowStep.OPEN:
+            self._go_to_step(WorkflowStep.CUTOUT)
 
     def _pick_color(self) -> None:
         c = QColorDialog.getColor(self._bg_color, self, tr("dialog.color.title"))

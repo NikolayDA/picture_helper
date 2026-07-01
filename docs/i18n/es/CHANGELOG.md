@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Flujo guiado con inspector de tarjetas (rediseño de la interfaz, épicas #413/#418).**
+  La columna derecha ahora guía la edición en seis pasos claros (Abrir · Recortar ·
+  Ajustar · Forma y tamaño · Relieve y capas · Exportar): una barra de pasos arriba,
+  un inspector con encabezado de paso y navegación fija Atrás/Siguiente, y una barra
+  de herramientas contextual (herramientas de selección solo en el paso de recorte).
+  Los pasos 2–6 permanecen bloqueados hasta cargar una imagen; al cargarla se avanza
+  automáticamente al paso de recorte. El cableado de acciones existente no cambia
+  (#419–#422, #415–#417).
+
 - **Vista previa 2D combinada seleccionable por el usuario (fin de fase 1).** El
   lienzo ofrece ahora modos explícitos de Color, Relieve sobre color, Altura
   (escala de grises), Gloss y vista Combinada, independientes de la capa activa.

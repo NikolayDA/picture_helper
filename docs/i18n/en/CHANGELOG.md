@@ -10,6 +10,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Guided workflow with card inspector (UI redesign, epics #413/#418).** The right
+  column now guides editing in six clear steps (Open · Cut out · Adjust · Shape &
+  Size · Relief & Layers · Export): a step bar on top, an inspector with a step
+  header and a fixed Back/Next navigation, plus a contextual tool rail (selection
+  tools only in the cut-out step). Steps 2–6 stay locked until an image is loaded;
+  loading advances to the cut-out step automatically. The existing action wiring
+  (`RightPanelActions`/`LayerPanelActions`/`HeightMapActions`) is unchanged
+  (#419–#422, #415–#417).
+
 - **User-selectable combined 2D preview (phase-1 completion).** The canvas now
   offers explicit modes for Color, Relief over color, Height (grayscale), Gloss,
   and the Combined view, independent of the active layer. A one-image cache is

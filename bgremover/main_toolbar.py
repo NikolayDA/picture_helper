@@ -57,6 +57,9 @@ class Toolbar:
     btn_lasso: QToolButton
     btn_ai: QToolButton
     btn_history: QToolButton
+    # Trenner nach den Auswahlwerkzeugen – zusammen mit btn_wand/brush/eraser/
+    # lasso schrittabhängig ein-/ausgeblendet (kontextuelle Werkzeugleiste #422).
+    sel_separator: QFrame
 
 
 def build_toolbar(actions: ToolbarActions, *, rembg_available: bool) -> Toolbar:
@@ -110,7 +113,7 @@ class _ToolbarBuilder:
         )
         btn_wand.setChecked(True)
 
-        self._add_separator(lay)
+        sel_separator = self._add_separator(lay)
 
         btn_ai = QToolButton()
         btn_ai.setIcon(make_tool_icon("ai", 38))
@@ -171,6 +174,7 @@ class _ToolbarBuilder:
             btn_lasso=btn_lasso,
             btn_ai=btn_ai,
             btn_history=btn_history,
+            sel_separator=sel_separator,
         )
 
     def _tool_button(
@@ -228,10 +232,11 @@ class _ToolbarBuilder:
         return b
 
     @staticmethod
-    def _add_separator(lay: QVBoxLayout) -> None:
+    def _add_separator(lay: QVBoxLayout) -> QFrame:
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet(f"color:{_Theme.BORDER}")
         lay.addSpacing(4)
         lay.addWidget(sep)
         lay.addSpacing(4)
+        return sep

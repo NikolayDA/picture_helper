@@ -13,7 +13,7 @@ from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
-from bgremover.widgets import TopIconTabWidget
+from bgremover.stepper import WorkflowStep
 
 
 def _button(panel_frame, text: str) -> QPushButton:
@@ -79,16 +79,29 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
     )
 
 
-def test_right_panel_builder_creates_expected_tabs(qapp):
+def test_right_panel_builder_creates_stepped_pages(qapp):
+    """Der Inspector ist ein 6-Schritte-Stack mit Kopf + Navigation (Epic #418)."""
+    from PyQt6.QtWidgets import QStackedWidget
+
     panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
 
-    tabs = panel.frame.findChild(TopIconTabWidget)
-    assert tabs is not None
-    assert tabs.count() == 8
-    assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Vorschau", "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln",
-        "Form", "Ebenen", "Höhe",
-    ]
+    assert isinstance(panel.stack, QStackedWidget)
+    assert panel.stack.count() == 6
+
+    # Start: Schritt 1 (Öffnen) – Zurück deaktiviert, Weiter nennt das nächste Ziel.
+    assert panel.stack.currentIndex() == 0
+    assert not panel.nav_prev.isEnabled()
+    assert panel.nav_next.text() == "Weiter: Freistellen →"
+
+    # Schritt wechseln: Stack, Kopf und Weiter-Beschriftung folgen.
+    panel.set_step(WorkflowStep.CUTOUT)
+    assert panel.stack.currentIndex() == 1
+    assert panel.step_title.text() == "Schritt 2 · Freistellen"
+    assert panel.nav_next.text() == "Weiter: Anpassen →"
+    assert panel.nav_prev.isEnabled()
+
+    panel.set_step(WorkflowStep.EXPORT)
+    assert panel.nav_next.text() == "Exportieren ✓"
 
 
 def test_right_panel_controls_delegate_to_callbacks(qapp):

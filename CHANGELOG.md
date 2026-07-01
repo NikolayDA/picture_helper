@@ -11,6 +11,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Geführter Workflow mit Karten-Inspector (UI-Redesign, Epics #413/#418).** Die
+  rechte Spalte führt jetzt in sechs klaren Schritten durch die Bearbeitung
+  (Öffnen · Freistellen · Anpassen · Form & Maße · Relief & Ebenen · Export): eine
+  Schrittleiste oben, ein Inspector mit Schritt-Kopf und fixer Zurück/Weiter-
+  Navigation sowie eine kontextuelle Werkzeugleiste (Auswahlwerkzeuge nur im
+  Freistellen-Schritt). Die Schritte 2–6 sind gesperrt, bis ein Bild geladen ist;
+  danach wird automatisch zum Freistellen gewechselt. Die bestehende Aktions-
+  Verdrahtung (`RightPanelActions`/`LayerPanelActions`/`HeightMapActions`) bleibt
+  unverändert (#419–#422, #415–#417).
+
 - **Nutzerwählbare kombinierte 2D-Vorschau (Phase-1-Abschluss).** Der Canvas bietet
   jetzt explizite, von der aktiven Ebene unabhängige Modi für Farbe, Relief über
   Farbe, Höhe (Graustufe), Gloss und die kombinierte Ansicht. Ein auf genau ein Bild

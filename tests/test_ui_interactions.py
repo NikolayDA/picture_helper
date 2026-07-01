@@ -130,6 +130,10 @@ def test_imagecanvas_builds(qtbot):
 def test_toolbar_selects_tools(main_window, qtbot):
     w = main_window
     c = w._canvas
+    # Auswahlwerkzeuge sind kontextuell nur im Schritt „Freistellen" sichtbar
+    # (kontextuelle Werkzeugleiste #422) – dorthin wechseln, dann klicken.
+    from bgremover.stepper import WorkflowStep
+    w._go_to_step(WorkflowStep.CUTOUT)
     qtbot.mouseClick(w.toolbar.btn_brush, Qt.MouseButton.LeftButton)
     assert c.current_tool == TOOL_BRUSH
     qtbot.mouseClick(w.toolbar.btn_eraser, Qt.MouseButton.LeftButton)

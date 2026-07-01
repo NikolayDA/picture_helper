@@ -20,6 +20,70 @@ class _Theme:
     DIVIDER     = "#2a2a2a"   # dünne Trennflächen
     TEXT_BRIGHT = "#e0e0e0"   # heller Text (aktiver Tab)
 
+    # ── Redesign „Geführter Workflow" (Epic #413/#418) ──────────────────
+    # Vom Akzent abgeleitete Zustandsfarben; ein einziges Blau für alle
+    # Sektionsköpfe, Schrittleiste und Primär-Buttons (Befund: kein Amber/Coral).
+    ACCENT_SOFT   = "rgba(74,144,217,.16)"   # aktiver Hintergrund (Karte/Schritt)
+    ACCENT_LINE   = "rgba(74,144,217,.42)"   # aktiver Rahmen / Verbinder
+    ACCENT_TEXT   = "#9fc0ff"                # Text auf accent-soft
+    ACCENT_2      = "#3f7fce"                # Verlauf-Endpunkt Primärbutton
+    ACCENT_SHADOW = "rgba(74,144,217,.35)"   # Button-Schatten/Glow
+    CARD_BG       = "#22262d"                # Karten-Hintergrund
+    CARD_BORDER   = "rgba(255,255,255,.07)"  # Karten-Rahmen
+    STEPPER_BG    = "#161a20"                # Schrittleiste
+    NAV_BG        = "#20252e"                # Navigations-Fußzeile
+    MUTED         = "#727b89"                # inaktiv / ausstehender Schritt
+    TEXT_3        = "#8b94a2"                # Tertiärtext / Hinweise
+
+
+# Karten-Container (Epic #413, Issue #415): jede Sektion sitzt in einer Karte
+# mit dünnem Rahmen und abgerundeten Ecken. Ein einziger Radius/Innenabstand.
+CARD_STYLE = (
+    f"background: {_Theme.CARD_BG}; border: 1px solid {_Theme.CARD_BORDER};"
+    " border-radius: 12px;"
+)
+
+# Sektionskopf (Issue #416): blauer Akzentstrich + Versalien-Titel. Immer Blau.
+SECTION_HEADER_STYLE = (
+    f"color: {_Theme.TEXT_BRIGHT}; font-size: 12px; font-weight: bold;"
+    " letter-spacing: .04em; background: transparent;"
+    f" padding: 2px 0 4px 8px; border-left: 3px solid {_Theme.ACCENT};"
+)
+
+# Primärbutton (Issue #415/#421): blauer Verlauf, weißer Text.
+PRIMARY_BTN_STYLE = f"""
+    QPushButton {{
+        background: qlineargradient(x1:0 y1:0 x2:0 y2:1,
+            stop:0 {_Theme.ACCENT}, stop:1 {_Theme.ACCENT_2});
+        color: #fff; border: none; border-radius: 9px;
+        font-size: 13px; font-weight: 600; min-height: 40px; padding: 0 12px;
+    }}
+    QPushButton:hover {{ background: {_Theme.ACCENT}; }}
+    QPushButton:disabled {{ background: #2b2f36; color: #6b7079; }}
+"""
+
+# Schrittleiste (Epic #418, Issue #419): Container-Hintergrund.
+STEPPER_STYLE = f"background: {_Theme.STEPPER_BG}; border-bottom: 1px solid {_Theme.BORDER};"
+
+# Navigations-Fußzeile im Inspector (Issue #421).
+NAV_BAR_STYLE = f"background: {_Theme.NAV_BG}; border-top: 1px solid {_Theme.BORDER};"
+NAV_BACK_STYLE = f"""
+    QPushButton {{
+        background: transparent; color: {_Theme.TEXT_BRIGHT};
+        border: 1px solid {_Theme.BORDER}; border-radius: 9px;
+        font-size: 13px; padding: 0 14px; min-height: 36px;
+    }}
+    QPushButton:hover {{ border-color: {_Theme.ACCENT}; }}
+    QPushButton:disabled {{ color: {_Theme.MUTED}; border-color: {_Theme.DIVIDER}; }}
+"""
+NAV_NEXT_STYLE = f"""
+    QPushButton {{
+        background: {_Theme.ACCENT}; color: #fff; border: none;
+        border-radius: 9px; font-size: 13px; font-weight: 600; min-height: 36px;
+    }}
+    QPushButton:hover {{ background: {_Theme.ACCENT_2}; }}
+"""
+
 
 TOOL_STYLE = f"""
     QToolButton {{
