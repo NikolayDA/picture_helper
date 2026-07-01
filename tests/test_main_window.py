@@ -749,13 +749,17 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
     from PyQt6.QtWidgets import QApplication
 
     from bgremover.settings_schema import THEME_KEY
-    from bgremover.theme import DARK, active_palette, build_app_stylesheet, set_active_palette
+    from bgremover.theme import DARK, active_palette, set_active_palette
 
+    # Die aktive Palette ist prozessglobal; deshalb dunklen Ausgangszustand
+    # explizit erzwingen und App-Palette/QSS am Ende exakt zurücksetzen, damit
+    # der Test unabhängig von der Ausführungsreihenfolge ist und nichts leakt.
     app = QApplication.instance()
     original_sheet = app.styleSheet() if app is not None else ""
+    original_palette = app.palette() if app is not None else None
+    set_active_palette(DARK)
     win = _isolated_window(tmp_path)
     try:
-        assert active_palette().is_dark
         old_frame = win._right_frame
 
         win._toggle_light_mode(True)
@@ -775,11 +779,11 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
         assert active_palette().is_dark
         assert win._settings.value(THEME_KEY) == "dark"
     finally:
-        # Prozessglobale Palette + App-QSS deterministisch zurücksetzen, damit
-        # nachfolgende Tests wieder das dunkle Schema sehen.
         set_active_palette(DARK)
         if app is not None:
-            app.setStyleSheet(original_sheet or build_app_stylesheet(DARK))
+            app.setStyleSheet(original_sheet)
+            if original_palette is not None:
+                app.setPalette(original_palette)
         win.close()
 
 
@@ -787,6 +791,7 @@ def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
     """Ein Umschalten auf den bereits aktiven Modus baut nichts neu auf."""
     from bgremover.theme import DARK, set_active_palette
 
+    set_active_palette(DARK)
     win = _isolated_window(tmp_path)
     try:
         frame = win._right_frame

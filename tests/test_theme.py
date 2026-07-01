@@ -117,6 +117,36 @@ def test_build_app_stylesheet_has_focus_ring_and_tooltip():
     assert "QToolTip" in sheet
 
 
+def _relative_luminance(hex_color: str) -> float:
+    """WCAG-Relativluminanz einer ``#rrggbb``-Farbe."""
+    h = hex_color.lstrip("#")
+    channels = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+              for c in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast(fg: str, bg: str) -> float:
+    hi, lo = sorted((_relative_luminance(fg), _relative_luminance(bg)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def test_palettes_meet_wcag_contrast():
+    """A11y (#429): Text- und Button-Kontraste erfüllen die WCAG-AA-Schwellen."""
+    from bgremover.theme import DARK, LIGHT
+
+    for p in (DARK, LIGHT):
+        # Fließtext auf allen Flächen ≥ 4.5:1 (AA für normalen Text).
+        for bg in (p.bg, p.inspector, p.card_bg):
+            assert _contrast(p.text, bg) >= 4.5
+        # Sekundär-/gedämpfter Text auf Karten ≥ 4.5:1.
+        assert _contrast(p.text2, p.card_bg) >= 4.5
+        assert _contrast(p.text3, p.card_bg) >= 4.5
+        assert _contrast(p.text3, p.inspector) >= 4.5
+        # Button-Beschriftung auf Akzent ≥ 3.0:1 (AA für UI-Komponenten/fett).
+        assert _contrast(p.on_accent, p.accent) >= 3.0
+
+
 def test_stepper_apply_palette_restyles(qapp):
     from bgremover.stepper import Stepper
     from bgremover.theme import DARK, LIGHT
