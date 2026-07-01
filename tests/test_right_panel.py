@@ -661,3 +661,102 @@ def test_height_panel_is_mode_contextual(qapp):
     panel.refresh([])
     assert not _button(widget, "Aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+# ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
+
+
+def _full_panel(calls: list[tuple], opened: list[bool] | None = None):
+    """Panel mit Öffnen-Seite (Ablagefeld + Recent-Karte) und Ebenen-Zeile."""
+    open_log = opened if opened is not None else []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions(),
+        on_open=lambda: open_log.append(True),
+        on_open_path=lambda _p: None,
+        recent=["/tmp/a.png"],
+    )
+    # Eine Ebenen-Zeile einblenden, damit auch die Zeilen-Buttons geprüft werden.
+    panel.layer_panel.refresh([
+        LayerInfo(id="c", name="Farbe", kind=LayerKind.COLOR, visible=True,
+                  opacity=1.0, locked=False, role=None, active=True),
+    ])
+    return panel
+
+
+def test_buttons_with_custom_border_define_their_own_focus_state(qapp):
+    """#441: Wer im Inline-Stylesheet ``border`` anfasst, muss ``:focus`` liefern.
+
+    Widget-Stylesheets haben bei ``border``-Konflikten Vorrang vor der
+    App-QSS-Fokusregel; ohne eigenen ``:focus``-Block bliebe der Fokus dort
+    unsichtbar. Geprüft über alle Buttons aller sechs Schritt-Seiten.
+    """
+    from PyQt6.QtWidgets import QToolButton
+
+    panel = _full_panel([])
+    offenders = [
+        f"{type(w).__name__}({w.text()!r} / {w.objectName()!r})"
+        for cls in (QPushButton, QToolButton)
+        for w in panel.frame.findChildren(cls)
+        if "border" in w.styleSheet() and ":focus" not in w.styleSheet()
+    ]
+    assert not offenders, f"Buttons ohne sichtbaren Fokuszustand: {offenders}"
+
+
+def test_drop_frame_opens_via_keyboard(qapp):
+    """#441: Enter/Leertaste auf dem Ablagefeld öffnen den Datei-Dialog."""
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
+
+    from bgremover.right_panel import _DropFrame
+
+    opened: list[bool] = []
+    panel = _full_panel([], opened)
+    drop = panel.frame.findChild(_DropFrame)
+    assert drop is not None
+    assert drop.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    QTest.keyClick(drop, Qt.Key.Key_Return)
+    QTest.keyClick(drop, Qt.Key.Key_Space)
+    assert opened == [True, True]
+
+
+@pytest.mark.ui_smoke
+def test_interactive_targets_meet_minimum_hit_size(qapp):
+    """#441: Sichtbare interaktive Ziele sind ≥ 24 px hoch, primäre ≥ 32 px.
+
+    Dokumentierte Ausnahmen: **Slider** (Klickziel ist der gesamte Groove, der
+    14-px-Griff allein zählt nicht) und das **Ablagefeld** (Maus-Komfort;
+    der Tastatur-/Primärpfad ist der „Datei öffnen…"-Button, plus Enter/Space
+    direkt auf dem Feld).
+    """
+    from PyQt6.QtWidgets import QCheckBox, QMainWindow, QToolButton
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+
+    panel = _full_panel([])
+    win = QMainWindow()
+    win.setCentralWidget(panel.frame)
+    win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+    win.show()
+    qapp.processEvents()
+    try:
+        for step in WorkflowStep:
+            panel.set_step(step)
+            qapp.processEvents()
+            targets = [
+                w
+                for cls in (QPushButton, QToolButton, QSpinBox, QComboBox, QCheckBox)
+                for w in panel.frame.findChildren(cls)
+                if w.isVisible()
+            ]
+            assert targets, f"Schritt {step.name}: keine sichtbaren Ziele"
+            for w in targets:
+                label = f"{step.name}: {type(w).__name__}({w.text() if hasattr(w, 'text') else ''!r})"
+                assert w.height() >= 24, f"{label} nur {w.height()} px hoch"
+                assert w.width() >= 24, f"{label} nur {w.width()} px breit"
+        # Primäre Workflow-Controls: bevorzugt ≥ 32 px (Spec #441).
+        panel.set_step(WorkflowStep.OPEN)
+        qapp.processEvents()
+        assert panel.open_button.height() >= 32
+        assert panel.nav_next.height() >= 32
+    finally:
+        win.close()

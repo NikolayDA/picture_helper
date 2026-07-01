@@ -773,6 +773,11 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
         assert light.stepper in win._stepper.styleSheet()
         assert light.toolbar in win._toolbar.frame.styleSheet()
         assert win._settings.value(THEME_KEY) == "light"
+        # Fokuszustände überleben den Schema-Wechsel (#441): die neu gebauten
+        # Chrome-Buttons tragen ihre :focus-Regel weiterhin im eigenen Stylesheet.
+        assert ":focus" in win._right_panel.nav_next.styleSheet()
+        assert ":focus" in win._right_panel.open_button.styleSheet()
+        assert ":focus" in win._toolbar.btn_ai.styleSheet()
 
         # Zurückschalten stellt Dunkel wieder her.
         win._toggle_light_mode(False)

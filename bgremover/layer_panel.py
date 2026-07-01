@@ -121,6 +121,7 @@ class LayerPanel:
             f"QPushButton {{ background:{p.surface}; color:{p.text2}; border:none;"
             " border-radius:6px; font-size:14px; }"
             f"QPushButton:hover {{ background:{p.surface_hover}; }}"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}"
             f"QPushButton:disabled {{ background:{p.divider}; color:{p.muted}; }}")
         btn.clicked.connect(lambda _=False: slot())
         self._action_buttons.append(btn)
@@ -186,8 +187,9 @@ class LayerPanel:
         if not has_layers:
             hint = QLabel(tr("right_panel.layers.empty"))
             hint.setWordWrap(True)
+            # Aktiver Hinweistext: text3 statt muted (Kontrastvertrag #441).
             hint.setStyleSheet(
-                f"color:{active_palette().muted}; font-size:11px; background:transparent;")
+                f"color:{active_palette().text3}; font-size:11px; background:transparent;")
             layout.insertWidget(0, hint)
 
     def _sync_role_combo(self, layers: list[LayerInfo]) -> None:
@@ -241,19 +243,25 @@ class LayerPanel:
         vis.setCheckable(True)
         vis.setChecked(info.visible)
         vis.setFixedWidth(30)
+        vis.setMinimumHeight(24)
         vis.setToolTip(tr("right_panel.layers.visible.tooltip"))
         vis.setStyleSheet(
-            "QPushButton { background:transparent; border:none; font-size:14px; }")
+            "QPushButton { background:transparent; border:none; font-size:14px; }"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent};"
+            " border-radius:4px; }")
         vis.toggled.connect(
             lambda checked, lid=info.id: self._actions.set_visible(lid, checked))
         h.addWidget(vis)
 
         name = QPushButton(info.name)
+        name.setMinimumHeight(24)
         name.setToolTip(tr("right_panel.layers.select.tooltip"))
         name.setStyleSheet(
             "QPushButton { background:transparent; border:none; text-align:left;"
             f" color:{p.text if info.active else p.text3}; font-size:12px;"
-            f" font-weight:{'bold' if info.active else 'normal'}; }}")
+            f" font-weight:{'bold' if info.active else 'normal'}; }}"
+            f"QPushButton:focus {{ outline:none; border:1px solid {p.accent};"
+            " border-radius:4px; }")
         name.clicked.connect(lambda _=False, lid=info.id: self._actions.set_active(lid))
         h.addWidget(name, 1)
 

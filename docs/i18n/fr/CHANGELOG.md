@@ -16,8 +16,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   schéma clair et un schéma sombre) colore toute l'interface via une `QPalette` et
   une feuille de style à l'échelle de l'application. « Affichage → Thème clair »
   permet de basculer entre clair et sombre à l'exécution ; le choix est mémorisé
-  dans les réglages et appliqué au démarrage. Un anneau de focus au clavier et des
-  infobulles teintées améliorent l'accessibilité (#427–#429).
+  dans les réglages et appliqué au démarrage. Accessibilité : chaque élément
+  interactif affiche un anneau de focus visible (y compris après un changement de
+  thème), la barre d'étapes se pilote au clavier (Tab + Entrée/Espace), toutes les
+  commandes respectent des tailles de cible minimales et une matrice de contraste
+  WCAG AA protège durablement les deux schémas de couleurs (#427–#429, #441).
 - **Flux guidé avec inspecteur en cartes (refonte de l'interface, épopées #413/#418).**
   La colonne de droite guide désormais l'édition en six étapes claires (Ouvrir ·
   Détourer · Ajuster · Forme et dimensions · Relief et calques · Exporter) : une barre

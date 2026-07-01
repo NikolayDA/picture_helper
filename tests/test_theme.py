@@ -117,34 +117,112 @@ def test_build_app_stylesheet_has_focus_ring_and_tooltip():
     assert "QToolTip" in sheet
 
 
-def _relative_luminance(hex_color: str) -> float:
-    """WCAG-Relativluminanz einer ``#rrggbb``-Farbe."""
-    h = hex_color.lstrip("#")
-    channels = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-              for c in channels]
+def _parse_color(spec: str) -> tuple[float, float, float, float]:
+    """``#rrggbb``/``#rgb``/``rgba(r,g,b,a)`` → (r, g, b, a) in 0..1."""
+    spec = spec.strip()
+    if spec.startswith("rgba"):
+        parts = spec[spec.index("(") + 1:spec.rindex(")")].split(",")
+        r, g, b = (float(v) / 255 for v in parts[:3])
+        return r, g, b, float(parts[3])
+    h = spec.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)) + (1.0,)  # type: ignore[return-value]
+
+
+def _composite(fg_spec: str, bg_spec: str) -> tuple[float, float, float]:
+    """Legt eine (ggf. teiltransparente) Farbe über einen opaken Hintergrund."""
+    fr, fg_, fb, fa = _parse_color(fg_spec)
+    br, bg_, bb, _ = _parse_color(bg_spec)
+    return (
+        fa * fr + (1 - fa) * br,
+        fa * fg_ + (1 - fa) * bg_,
+        fa * fb + (1 - fa) * bb,
+    )
+
+
+def _luminance(rgb: tuple[float, float, float]) -> float:
+    """WCAG-Relativluminanz eines linearen sRGB-Tripels (0..1 je Kanal)."""
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
-def _contrast(fg: str, bg: str) -> float:
-    hi, lo = sorted((_relative_luminance(fg), _relative_luminance(bg)), reverse=True)
+def _contrast(fg: str, bg: str, *, under: str | None = None) -> float:
+    """WCAG-Kontrast; ``under`` komponiert einen rgba-Hintergrund über eine Fläche."""
+    bg_rgb = _composite(bg, under) if under is not None else _composite(bg, bg)
+    fg_rgb = _composite(fg, "#000000") if not fg.startswith("rgba") else _composite(fg, bg)
+    hi, lo = sorted((_luminance(fg_rgb), _luminance(bg_rgb)), reverse=True)
     return (hi + 0.05) / (lo + 0.05)
 
 
-def test_palettes_meet_wcag_contrast():
-    """A11y (#429): Text- und Button-Kontraste erfüllen die WCAG-AA-Schwellen."""
+def test_palettes_meet_wcag_contrast_matrix():
+    """A11y-Kontrastmatrix (#429/#441): alle zentralen Farbpaare beider Schemata.
+
+    Schwellen: normaler Text ≥ 4.5:1 (WCAG AA), UI-Komponenten/Fokus-/
+    Akzentzustände ≥ 3.0:1 (WCAG 1.4.11). **Disabled**-Zustände sind nach
+    WCAG 1.4.3 ausgenommen; ein dokumentierter Boden von ≥ 2.0:1 bewacht sie
+    trotzdem gegen unlesbare Regressionen. ``muted`` ist vertraglich nur für
+    Disabled/Placeholder zulässig (siehe ``Palette``-Docstring) – aktiver
+    Hinweistext nutzt ``text3``.
+    """
     from bgremover.theme import DARK, LIGHT
 
     for p in (DARK, LIGHT):
-        # Fließtext auf allen Flächen ≥ 4.5:1 (AA für normalen Text).
-        for bg in (p.bg, p.inspector, p.card_bg):
-            assert _contrast(p.text, bg) >= 4.5
-        # Sekundär-/gedämpfter Text auf Karten ≥ 4.5:1.
-        assert _contrast(p.text2, p.card_bg) >= 4.5
-        assert _contrast(p.text3, p.card_bg) >= 4.5
-        assert _contrast(p.text3, p.inspector) >= 4.5
-        # Button-Beschriftung auf Akzent ≥ 3.0:1 (AA für UI-Komponenten/fett).
-        assert _contrast(p.on_accent, p.accent) >= 3.0
+        # ── Normaler Text ≥ 4.5:1 auf jeder Fläche, auf der er vorkommt ──
+        text_pairs = [
+            (p.text, p.bg), (p.text, p.inspector), (p.text, p.card_bg),
+            (p.text, p.surface), (p.text, p.stepper), (p.text, p.nav),
+            (p.text2, p.card_bg), (p.text2, p.surface), (p.text2, p.toolbar),
+            (p.text2, p.nav), (p.text2, p.surface_hover),
+            (p.text3, p.card_bg), (p.text3, p.inspector), (p.text3, p.stepper),
+            (p.text3, p.status), (p.text3, p.toolbar),
+        ]
+        for fg, bg in text_pairs:
+            ratio = _contrast(fg, bg)
+            assert ratio >= 4.5, f"Text {fg} auf {bg}: {ratio:.2f} < 4.5"
+        # Akzenttext auf weicher Akzentfläche (ausgewählte Buttons, ✓-Kreis).
+        soft = _contrast(p.accent_text, p.accent_soft, under=p.card_bg)
+        assert soft >= 4.5, f"accent_text auf accent_soft: {soft:.2f} < 4.5"
+        # Tooltip (QToolTip: text auf surface) ist über text/surface abgedeckt.
+
+        # ── UI-Komponenten / Fokus / Akzent ≥ 3.0:1 ──
+        ui_pairs = [
+            (p.on_accent, p.accent), (p.on_accent, p.accent2),
+            # Fokusring (accent-Rahmen) gegen die Flächen, auf denen er liegt.
+            (p.accent, p.card_bg), (p.accent, p.inspector),
+            (p.accent, p.surface), (p.accent, p.bg), (p.accent, p.stepper),
+        ]
+        for fg, bg in ui_pairs:
+            ratio = _contrast(fg, bg)
+            assert ratio >= 3.0, f"UI {fg} auf {bg}: {ratio:.2f} < 3.0"
+
+        # ── Disabled (WCAG-exempt, dokumentierter Regressions-Boden) ──
+        disabled_pairs = [(p.muted, p.divider), (p.muted, p.surface)]
+        for fg, bg in disabled_pairs:
+            ratio = _contrast(fg, bg)
+            assert ratio >= 2.0, f"Disabled {fg} auf {bg}: {ratio:.2f} < 2.0"
+
+
+def test_interactive_style_builders_carry_focus_state():
+    """A11y (#441): Jeder interaktive Stil-Baustein trägt seinen Fokuszustand selbst.
+
+    Widget-Stylesheets überstimmen die App-QSS-``:focus``-Regel bei
+    ``border``-Konflikten – die globale Fallback-Regel genügt daher nicht.
+    Der Vertrag gilt in beiden Schemata.
+    """
+    from bgremover import theme
+
+    builders = (
+        theme.panel_btn_style, theme.primary_btn_style, theme.nav_back_style,
+        theme.nav_next_style, theme.tool_style, theme.history_button_style,
+        theme.num_style, theme.slider_style,
+    )
+    for build in builders:
+        for p in (theme.DARK, theme.LIGHT):
+            assert ":focus" in build(p), build.__name__
+    # Statische Crop-Leisten-Stile (border:none) ebenso.
+    assert ":focus" in theme.CROP_CONFIRM_STYLE
+    assert ":focus" in theme.CROP_CANCEL_STYLE
 
 
 def test_stepper_apply_palette_restyles(qapp):

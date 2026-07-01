@@ -129,7 +129,8 @@ _DROP_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif")
 class _DropFrame(QFrame):
     """Ablagefeld in Schritt 1: nimmt Bild-Dateien per Drag & Drop entgegen und
     leitet den Pfad an den validierten Ladepfad weiter; ein Klick öffnet den
-    Datei-Dialog (PR #423-Review)."""
+    Datei-Dialog (PR #423-Review). Tastatur (#441): fokussierbar, Enter/Leertaste
+    öffnen ebenfalls den Dialog – redundant zum „Datei öffnen…"-Button darunter."""
 
     def __init__(
         self,
@@ -143,6 +144,15 @@ class _DropFrame(QFrame):
         self.setAcceptDrops(on_open_path is not None)
         if on_open is not None:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        if (event is not None
+                and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space)
+                and self._on_open is not None):
+            self._on_open()
+            return
+        super().keyPressEvent(event)
 
     @staticmethod
     def _image_paths(event: QDragEnterEvent | QDropEvent) -> list[str]:
@@ -418,7 +428,8 @@ class _RightPanelBuilder:
         drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
             f"QFrame {{ border: 2px dashed {p.border}; border-radius: 12px;"
-            f" background: transparent; }}")
+            f" background: transparent; }}"
+            f"QFrame:focus {{ border: 2px dashed {p.accent}; }}")
         drop_lay = QVBoxLayout(drop)
         drop_lay.setContentsMargins(18, 30, 18, 30)
         drop_lay.setSpacing(6)
@@ -473,7 +484,8 @@ class _RightPanelBuilder:
                 "QPushButton { background:transparent; border:none; text-align:left;"
                 f" color:{pal.text}; font-size:12px;"
                 " padding:7px 8px; border-radius:8px; }"
-                f"QPushButton:hover {{ background:{pal.hover}; }}")
+                f"QPushButton:hover {{ background:{pal.hover}; }}"
+                f"QPushButton:focus {{ outline:none; border:1px solid {pal.accent}; }}")
             row.clicked.connect(lambda _=False, p=path: on_open_path(p))
             v.addWidget(row)
         return card

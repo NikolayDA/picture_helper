@@ -139,3 +139,69 @@ def test_selection_tools_visible_only_in_cutout(window):
     w._go_to_step(WorkflowStep.ADJUST)
     assert w.toolbar.btn_brush.isHidden()
     assert w.toolbar.sel_separator.isHidden()
+
+
+# ── A11y: Tastaturbedienung der Schrittleiste (#441) ──────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_stepper_cells_keyboard_activation(qapp, qtbot):
+    """Enter/Leertaste aktivieren einen fokussierbaren Schritt wie ein Klick."""
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
+
+    stepper = Stepper()
+    qtbot.addWidget(stepper)
+    received: list[int] = []
+    stepper.stepSelected.connect(received.append)
+
+    cell = stepper._cells[WorkflowStep.ADJUST]
+    assert cell.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    QTest.keyClick(cell, Qt.Key.Key_Space)
+    QTest.keyClick(cell, Qt.Key.Key_Return)
+    assert received == [int(WorkflowStep.ADJUST)] * 2
+
+
+@pytest.mark.ui_smoke
+def test_stepper_locked_cells_are_not_focusable(qapp):
+    """Gesperrte Schritte sind deaktiviert und fallen aus der Tab-Reihenfolge."""
+    stepper = Stepper()
+    stepper.set_locked(True)
+    assert stepper._cells[WorkflowStep.OPEN].isEnabled()
+    for step in (WorkflowStep.CUTOUT, WorkflowStep.ADJUST, WorkflowStep.SHAPE,
+                 WorkflowStep.RELIEF, WorkflowStep.EXPORT):
+        # Deaktivierte Widgets erhalten in Qt keinen Tastaturfokus.
+        assert not stepper._cells[step].isEnabled()
+    stepper.set_locked(False)
+    assert all(cell.isEnabled() for cell in stepper._cells.values())
+
+
+@pytest.mark.ui_smoke
+def test_stepper_focus_visual_uses_accent(qapp):
+    """Der Tastaturfokus ist als akzentgetönte Fläche sichtbar – je Schema."""
+    from PyQt6.QtCore import QEvent
+    from PyQt6.QtGui import QFocusEvent
+
+    from bgremover.theme import DARK, LIGHT, active_palette, set_active_palette
+
+    try:
+        for palette in (DARK, LIGHT):
+            set_active_palette(palette)
+            stepper = Stepper()
+            cell = stepper._cells[WorkflowStep.OPEN]
+            cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
+            assert active_palette().accent_soft in cell.styleSheet()
+            cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
+            assert "transparent" in cell.styleSheet()
+            stepper.deleteLater()
+    finally:
+        set_active_palette(DARK)
+
+
+@pytest.mark.ui_smoke
+def test_stepper_cells_meet_minimum_hit_size(qapp):
+    """Schritt-Zellen (≥ 32 px) und Kreis (28 px) erfüllen die Trefferflächen (#441)."""
+    stepper = Stepper()
+    for cell in stepper._cells.values():
+        assert cell.minimumHeight() >= 32
+        assert cell._circle.width() == cell._circle.height() == 28

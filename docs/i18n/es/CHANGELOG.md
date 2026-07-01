@@ -16,8 +16,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   uno oscuro) colorea toda la interfaz mediante una `QPalette` y una hoja de
   estilos de toda la aplicación. «Ver → Tema claro» permite alternar entre claro y
   oscuro en tiempo de ejecución; la elección se recuerda en los ajustes y se
-  aplica al iniciar. Un anillo de foco por teclado y tooltips tintados mejoran la
-  accesibilidad (#427–#429).
+  aplica al iniciar. Accesibilidad: cada elemento interactivo muestra un anillo
+  de foco visible (también tras cambiar de tema), la barra de pasos se maneja con
+  el teclado (Tab + Intro/Espacio), todos los controles cumplen tamaños mínimos
+  de pulsación y una matriz de contraste WCAG AA protege permanentemente ambos
+  esquemas de color (#427–#429, #441).
 - **Flujo guiado con inspector de tarjetas (rediseño de la interfaz, épicas #413/#418).**
   La columna derecha ahora guía la edición en seis pasos claros (Abrir · Recortar ·
   Ajustar · Forma y tamaño · Relieve y capas · Exportar): una barra de pasos arriba,

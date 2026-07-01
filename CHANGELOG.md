@@ -16,8 +16,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   gesamte Oberfläche über eine `QPalette` und ein anwendungsweites Stylesheet.
   Über „Ansicht → Helles Design“ lässt sich zur Laufzeit zwischen Hell und Dunkel
   umschalten; die Wahl wird in den Einstellungen gemerkt und beim Start angewendet.
-  Ein Tastatur-Fokusring und getönte Tooltips verbessern die Barrierefreiheit
-  (#427–#429).
+  Barrierefreiheit: Jedes interaktive Element zeigt einen sichtbaren Fokusring
+  (auch nach dem Theme-Wechsel), die Schrittleiste ist per Tastatur bedienbar
+  (Tab + Enter/Leertaste), alle Bedienziele halten Mindest-Trefferflächen ein,
+  und eine WCAG-AA-Kontrastmatrix sichert beide Farbschemata dauerhaft ab
+  (#427–#429, #441).
 - **Geführter Workflow mit Karten-Inspector (UI-Redesign, Epics #413/#418).** Die
   rechte Spalte führt jetzt in sechs klaren Schritten durch die Bearbeitung
   (Öffnen · Freistellen · Anpassen · Form & Maße · Relief & Ebenen · Export): eine

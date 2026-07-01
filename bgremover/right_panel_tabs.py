@@ -91,10 +91,12 @@ class _ModeSegments(QWidget):
         if active:
             return (f"QPushButton {{ background:{p.accent}; color:{p.on_accent};"
                     " border:none; border-radius:6px; font-size:12px;"
-                    " font-weight:500; padding:7px 4px; }")
+                    " font-weight:500; padding:7px 4px; }"
+                    f"QPushButton:focus {{ outline:none; border:2px solid {p.on_accent}; }}")
         return (f"QPushButton {{ background:transparent; color:{p.text3};"
                 " border:none; border-radius:6px; font-size:12px; padding:7px 4px; }"
-                f"QPushButton:hover {{ color:{p.text}; }}")
+                f"QPushButton:hover {{ color:{p.text}; }}"
+                f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}")
 
     def set_mode(self, mode: PreviewMode) -> None:
         """Spiegelt den aktiven Modus (rein visuell, ohne ``on_select``)."""
@@ -156,8 +158,10 @@ class PreviewTab:
         gloss_visible = QCheckBox(tr("right_panel.preview.gloss_visible"))
         gloss_visible.setChecked(True)
         gloss_visible.setToolTip(tr("right_panel.preview.gloss_visible.tooltip"))
+        # min-height sichert die 24-px-Trefferfläche (#441); Textfarbe über Token.
         gloss_visible.setStyleSheet(
-            "QCheckBox { color:#bbb; background:transparent; spacing:8px; }"
+            f"QCheckBox {{ color:{_label_color('#bbb')}; background:transparent;"
+            " spacing:8px; min-height:24px; }"
         )
         gloss_visible.toggled.connect(self._actions.set_gloss_visible)
         body.addWidget(gloss_visible)
@@ -343,7 +347,8 @@ class BackgroundTab:
         color_button.setToolTip(tr("right_panel.background.color.tooltip"))
         color_button.setStyleSheet(
             "QPushButton { border-radius:6px; border:2px solid #555; }"
-            f"QPushButton:hover {{ border-color: {active_palette().accent}; }}")
+            f"QPushButton:hover {{ border-color: {active_palette().accent}; }}"
+            f"QPushButton:focus {{ outline:none; border-color: {active_palette().accent}; }}")
         color_button.clicked.connect(lambda _=False: self._actions.pick_color())
         color_row.addWidget(color_button)
         btn_repl = _make_panel_btn(
@@ -643,23 +648,25 @@ class AdjustTab:
 # ── Gemeinsame Widget-Helper ─────────────────────────────────────
 
 
-# Zuordnung der historisch dunkel gewählten Label-Grautöne auf Paletten-Rollen,
-# damit Info-Labels im hellen Schema lesbar bleiben (#428). Im dunklen Schema
-# bleiben die Originalfarben unverändert (bitgenaue Rückwärtskompatibilität).
-_LABEL_LIGHT_MAP = {
+# Zuordnung der historisch fest gewählten Label-Grautöne auf Paletten-Rollen.
+# Gilt seit #441 in **beiden** Schemata: die alten Dunkel-Grautöne #666–#888
+# verfehlten auf den Karten die WCAG-AA-Schwelle (z. B. #777 ≈ 3.4:1) – über die
+# Token bleiben Hinweistexte in Hell wie Dunkel ≥ 4.5:1 (Kontrastmatrix-Test).
+_LABEL_ROLE_MAP = {
     "#aaa": "text2", "#bbb": "text2", "#ccc": "text2",
-    "#888": "text3", "#999": "text3", "#777": "muted", "#666": "muted",
+    "#888": "text3", "#999": "text3", "#777": "text3", "#666": "text3",
     "#8aaed0": "accent_text", "#8aaedd": "accent_text",
 }
 
 
 def _label_color(color: str) -> str:
-    """Passt eine dunkel gedachte Label-Farbe an das aktive Schema an (#428)."""
+    """Bildet eine Label-Farbe auf die passende Rolle der aktiven Palette ab (#441)."""
     p = active_palette()
-    if p.is_dark:
-        return color
-    role = _LABEL_LIGHT_MAP.get(color.lower())
-    return getattr(p, role) if role else p.text2
+    role = _LABEL_ROLE_MAP.get(color.lower())
+    if role is not None:
+        return getattr(p, role)
+    # Unbekannte (semantische) Farben: dunkel unverändert, hell auf text2 heben.
+    return color if p.is_dark else p.text2
 
 
 def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBoxLayout]:
@@ -732,6 +739,7 @@ def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
         }}
         QPushButton:hover {{ background: {hover}; }}
         QPushButton:pressed {{ background: {bg}; }}
+        QPushButton:focus {{ outline: none; border: 1px solid {p.accent}; }}
         QPushButton:disabled {{ background: {p.divider}; color: {p.muted}; }}
     """)
     if icon_name:
@@ -770,7 +778,8 @@ def _set_button_selected(btn: QPushButton, selected: bool) -> None:
         btn.setStyleSheet(
             f"QPushButton {{ background:{p.accent_soft}; color:{p.accent_text};"
             f" border:1px solid {p.accent}; border-radius:8px; padding:0 14px;"
-            " font-size:12px; font-weight:600; min-height:36px; }")
+            " font-size:12px; font-weight:600; min-height:36px; }"
+            f"QPushButton:focus {{ outline:none; border:2px solid {p.accent}; }}")
     else:
         btn.setStyleSheet(panel_btn_style(p))
 

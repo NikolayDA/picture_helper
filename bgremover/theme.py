@@ -38,7 +38,9 @@ class Palette:
     hover: str
     card_bg: str
     card_border: str
-    # Text
+    # Text. Vertrag (#441): ``text``/``text2``/``text3`` sind für **aktiven** Text
+    # gedacht und halten ≥ 4.5:1 auf ihren Flächen; ``muted`` ist ausschließlich
+    # für Disabled-/Placeholder-Zustände reserviert (WCAG-1.4.3-Ausnahme).
     text: str
     text2: str
     text3: str
@@ -81,7 +83,9 @@ LIGHT = Palette(
     border="#c9d2df", divider="#dbe1ea", hairline="#d4dae4",
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
-    text="#1b2230", text2="#3a4351", text3="#69727f", muted="#8b95a3",
+    # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
+    # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).
+    text="#1b2230", text2="#3a4351", text3="#59626f", muted="#8b95a3",
     accent="#3a6fd0", accent2="#2f5fcf", accent_soft="rgba(58,111,208,.14)",
     accent_line="rgba(58,111,208,.34)", accent_text="#2f5fcf",
     accent_shadow="rgba(58,111,208,.26)", on_accent="#ffffff",
@@ -132,6 +136,7 @@ def primary_btn_style(p: Palette) -> str:
         font-size: 13px; font-weight: 600; min-height: 40px; padding: 0 12px;
     }}
     QPushButton:hover {{ background: {p.accent}; }}
+    QPushButton:focus {{ outline: none; border: 2px solid {p.on_accent}; }}
     QPushButton:disabled {{ background: {p.surface}; color: {p.muted}; }}
 """
 
@@ -152,6 +157,7 @@ def nav_back_style(p: Palette) -> str:
         font-size: 13px; padding: 0 12px; min-height: 36px;
     }}
     QPushButton:hover {{ border-color: {p.accent}; }}
+    QPushButton:focus {{ outline: none; border: 2px solid {p.accent}; }}
     QPushButton:disabled {{ color: {p.muted}; border-color: {p.divider}; }}
 """
 
@@ -163,6 +169,7 @@ def nav_next_style(p: Palette) -> str:
         border-radius: 9px; font-size: 13px; font-weight: 600; min-height: 36px;
     }}
     QPushButton:hover {{ background: {p.accent2}; }}
+    QPushButton:focus {{ outline: none; border: 2px solid {p.on_accent}; }}
 """
 
 
@@ -188,27 +195,31 @@ def panel_btn_style(p: Palette) -> str:
         border-radius: 8px; padding: 0 12px; font-size: 12px; min-height: 34px;
     }}
     QPushButton:hover {{ background: {p.surface_hover}; }}
+    QPushButton:focus {{ outline: none; border: 1px solid {p.accent}; }}
     QPushButton:disabled {{ background: {p.divider}; color: {p.muted}; }}
 """
 
 
 def num_style(p: Palette) -> str:
-    """Zahlenfelder/Combos in den Inspector-Karten."""
+    """Zahlenfelder/Combos in den Inspector-Karten (Trefferfläche ≥ 24 px, #441)."""
     return (
         f"QSpinBox, QComboBox {{ background:{p.surface}; color:{p.text};"
         f" border:1px solid {p.border}; border-radius:6px; padding:3px 6px;"
-        " font-size:12px; }"
+        " font-size:12px; min-height:24px; }"
+        f" QSpinBox:focus, QComboBox:focus {{ border:1px solid {p.accent}; }}"
         f" QComboBox QAbstractItemView {{ background:{p.surface}; color:{p.text}; }}"
     )
 
 
 def slider_style(p: Palette) -> str:
+    """Slider: Klickziel ist der gesamte Groove; der Fokus markiert den Griff (#441)."""
     return f"""
     QSlider::groove:horizontal {{ height: 4px; background: {p.border}; border-radius: 2px; }}
     QSlider::handle:horizontal {{
         background: {p.accent}; width: 14px; height: 14px;
         margin: -5px 0; border-radius: 7px;
     }}
+    QSlider::handle:horizontal:focus {{ border: 2px solid {p.text}; }}
 """
 
 
@@ -221,6 +232,8 @@ def tool_style(p: Palette) -> str:
     QToolButton:checked        {{ background: {p.accent}; color: {p.on_accent}; }}
     QToolButton:hover          {{ background: {p.surface_hover}; }}
     QToolButton:checked:hover  {{ background: {p.accent}; color: {p.on_accent}; }}
+    QToolButton:focus          {{ outline: none; border: 1px solid {p.accent}; }}
+    QToolButton:checked:focus  {{ border: 2px solid {p.on_accent}; }}
     QToolButton:disabled       {{ color: {p.muted}; background: {p.divider}; }}
 """
 
@@ -251,6 +264,7 @@ def history_button_style(p: Palette) -> str:
     }}
     QToolButton:hover    {{ background: {p.surface_hover}; }}
     QToolButton:pressed  {{ background: {p.divider}; }}
+    QToolButton:focus    {{ outline: none; border: 1px solid {p.accent}; }}
     QToolButton:disabled {{ color: {p.muted}; background: {p.divider}; }}
 """
 
@@ -361,10 +375,12 @@ CROP_CONFIRM_STYLE = (
     "QPushButton { background:#2a6a2a; color:white; border:none;"
     " border-radius:5px; padding:7px 16px; font-size:12px; font-weight:bold; }"
     "QPushButton:hover { background:#3a8a3a; }"
+    "QPushButton:focus { outline:none; border:2px solid #ffffff; }"
 )
 CROP_CANCEL_STYLE = (
     "QPushButton { background:#5a2525; color:white; border:none;"
     " border-radius:5px; padding:7px 14px; font-size:12px; }"
     "QPushButton:hover { background:#7a3535; }"
+    "QPushButton:focus { outline:none; border:2px solid #ffffff; }"
 )
 SETTINGS_TITLE_STYLE = "font-size: 15px; font-weight: bold;"

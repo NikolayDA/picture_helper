@@ -47,7 +47,13 @@ def step_label(step: WorkflowStep) -> str:
 
 
 class _StepCell(QWidget):
-    """Ein anklickbarer Schritt: Kreis (Ziffer/✓) + Textlabel."""
+    """Ein anklickbarer Schritt: Kreis (Ziffer/✓) + Textlabel.
+
+    Tastaturbedienbar (#441): Die Zelle ist fokussierbar (Tab-Reihenfolge),
+    Enter/Leertaste aktivieren sie wie ein Klick, und der Fokus wird als
+    akzentgetönte Fläche sichtbar gemacht. Gesperrte Zellen sind deaktiviert
+    und fallen damit aus der Tab-Reihenfolge heraus.
+    """
 
     clicked = pyqtSignal(int)
 
@@ -55,8 +61,14 @@ class _StepCell(QWidget):
         super().__init__(parent)
         self._step = step
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        # Nötig, damit ein Stylesheet-Hintergrund auf einem nackten QWidget
+        # tatsächlich gezeichnet wird (Fokus-Visualisierung).
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setMinimumHeight(32)
+        self.setAccessibleName(step_label(step))
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setContentsMargins(6, 2, 6, 2)
         lay.setSpacing(9)
         self._circle = QLabel()
         self._circle.setFixedSize(28, 28)
@@ -69,6 +81,25 @@ class _StepCell(QWidget):
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(int(self._step))
         super().mousePressEvent(event)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        if event is not None and event.key() in (
+            Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space,
+        ):
+            self.clicked.emit(int(self._step))
+            return
+        super().keyPressEvent(event)
+
+    def focusInEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        p = active_palette()
+        self.setStyleSheet(
+            f"background: {p.accent_soft}; border: 1px solid {p.accent_line};"
+            " border-radius: 8px;")
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        self.setStyleSheet("background: transparent; border: none;")
+        super().focusOutEvent(event)
 
     def apply_state(self, *, done: bool, active: bool, enabled: bool) -> None:
         """Setzt Kreis- und Label-Stil für den Zustand des Schritts (aktive Palette)."""
@@ -93,12 +124,15 @@ class _StepCell(QWidget):
                 f"color: {p.text3}; font-size: 13px; background: transparent;")
         else:
             self._circle.setText(str(num))
-            color = p.muted if enabled else p.divider
+            # Aktive (klickbare) ausstehende Schritte nutzen ``text3`` (≥ 4.5:1);
+            # ``muted``/``divider`` bleiben den gesperrten Zellen vorbehalten (#441).
+            color = p.text3 if enabled else p.divider
             self._circle.setStyleSheet(
                 f"color: {color}; border: 1px solid {p.border};"
                 " border-radius: 14px; font-size: 12px;")
             self._label.setStyleSheet(
-                f"color: {p.muted}; font-size: 13px; background: transparent;")
+                f"color: {p.text3 if enabled else p.muted}; font-size: 13px;"
+                " background: transparent;")
 
 
 class Stepper(QWidget):
