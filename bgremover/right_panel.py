@@ -16,9 +16,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -114,6 +116,60 @@ def _step_next(step: WorkflowStep) -> str:
     return tr("workflow.next.export")
 
 
+# Vom Ablagefeld (Schritt 1) akzeptierte Bild-Endungen – deckungsgleich mit dem
+# Canvas-Drop (``ImageCanvas.dropEvent``); die eigentliche Validierung erledigt
+# der gemeinsame asynchrone Ladepfad.
+_DROP_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif")
+
+
+class _DropFrame(QFrame):
+    """Ablagefeld in Schritt 1: nimmt Bild-Dateien per Drag & Drop entgegen und
+    leitet den Pfad an den validierten Ladepfad weiter; ein Klick öffnet den
+    Datei-Dialog (PR #423-Review)."""
+
+    def __init__(
+        self,
+        on_open: Callable[[], None] | None,
+        on_open_path: Callable[[str], None] | None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._on_open = on_open
+        self._on_open_path = on_open_path
+        self.setAcceptDrops(on_open_path is not None)
+        if on_open is not None:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    @staticmethod
+    def _image_paths(event: QDragEnterEvent | QDropEvent) -> list[str]:
+        mime = event.mimeData()
+        if mime is None:
+            return []
+        return [
+            url.toLocalFile() for url in mime.urls()
+            if Path(url.toLocalFile()).suffix.lower() in _DROP_EXTS
+        ]
+
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:  # noqa: N802
+        if event is not None and self._image_paths(event):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent | None) -> None:  # noqa: N802
+        if event is None:
+            return
+        paths = self._image_paths(event)
+        if paths and self._on_open_path is not None:
+            event.acceptProposedAction()
+            self._on_open_path(paths[0])
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+        if (event is not None
+                and event.button() == Qt.MouseButton.LeftButton
+                and self._on_open is not None):
+            self._on_open()
+        super().mousePressEvent(event)
+
+
 @dataclass(frozen=True)
 class RightPanelActions:
     """Callbacks des rechten Panels – ohne Abhängigkeit vom MainWindow."""
@@ -188,8 +244,10 @@ def build_right_panel(
     height_actions: HeightMapActions,
     *,
     on_open: Callable[[], None] | None = None,
+    on_open_path: Callable[[str], None] | None = None,
 ) -> RightPanel:
-    return _RightPanelBuilder(actions, layer_actions, height_actions, on_open).build()
+    return _RightPanelBuilder(
+        actions, layer_actions, height_actions, on_open, on_open_path).build()
 
 
 class _RightPanelBuilder:
@@ -201,9 +259,11 @@ class _RightPanelBuilder:
         layer_actions: LayerPanelActions,
         height_actions: HeightMapActions,
         on_open: Callable[[], None] | None,
+        on_open_path: Callable[[str], None] | None,
     ) -> None:
         self._actions = actions
         self._on_open = on_open
+        self._on_open_path = on_open_path
         self._layer_panel = LayerPanel(layer_actions)
         self._height_panel = HeightMapPanel(height_actions)
 
@@ -336,7 +396,7 @@ class _RightPanelBuilder:
         lay.setContentsMargins(16, 16, 16, 16)
         lay.setSpacing(12)
 
-        drop = QFrame()
+        drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
             f"QFrame {{ border: 2px dashed {_Theme.BORDER}; border-radius: 12px;"
             f" background: transparent; }}")

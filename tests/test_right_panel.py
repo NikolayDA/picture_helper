@@ -104,6 +104,38 @@ def test_right_panel_builder_creates_stepped_pages(qapp):
     assert panel.nav_next.text() == "Exportieren ✓"
 
 
+def test_open_step_drop_frame_forwards_image_path(qapp, tmp_path):
+    """Das Ablagefeld in Schritt 1 leitet abgelegte Bildpfade weiter (PR #423)."""
+    from PyQt6.QtCore import QMimeData, QUrl
+
+    from bgremover.right_panel import _DropFrame
+
+    dropped: list[str] = []
+    frame = _DropFrame(on_open=None, on_open_path=lambda p: dropped.append(p))
+    assert frame.acceptDrops() is True
+
+    class _Evt:
+        def __init__(self, mime: QMimeData) -> None:
+            self._mime = mime
+
+        def mimeData(self) -> QMimeData:
+            return self._mime
+
+        def acceptProposedAction(self) -> None:
+            pass
+
+    png = QMimeData()
+    png.setUrls([QUrl.fromLocalFile(str(tmp_path / "motiv.png"))])
+    frame.dropEvent(_Evt(png))  # type: ignore[arg-type]
+    assert dropped == [str(tmp_path / "motiv.png")]
+
+    # Nicht-Bild-Ablage wird ignoriert.
+    txt = QMimeData()
+    txt.setUrls([QUrl.fromLocalFile(str(tmp_path / "notiz.txt"))])
+    frame.dropEvent(_Evt(txt))  # type: ignore[arg-type]
+    assert dropped == [str(tmp_path / "motiv.png")]
+
+
 def test_right_panel_controls_delegate_to_callbacks(qapp):
     calls: list[tuple] = []
     panel = build_right_panel(_actions(calls), _noop_layer_actions(), _noop_height_actions())

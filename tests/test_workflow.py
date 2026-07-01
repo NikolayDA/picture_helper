@@ -90,13 +90,40 @@ def test_nav_next_and_prev(window):
 
 
 @pytest.mark.ui_smoke
-def test_export_step_is_terminal(window):
+def test_export_button_triggers_save_and_stays(window, monkeypatch):
     w = window
     _load_image(w)
     w._go_to_step(WorkflowStep.EXPORT)
-    w._next_step()  # bleibt im Export-Schritt
+    saved: list[bool] = []
+    monkeypatch.setattr(w, "_save", lambda: saved.append(True))
+    w._next_step()  # „Exportieren ✓" löst das Speichern aus, bleibt im Schritt
+    assert saved == [True]
     assert w._step is WorkflowStep.EXPORT
     assert w._right_panel.nav_next.text() == "Exportieren ✓"
+
+
+@pytest.mark.ui_smoke
+def test_loading_image_resets_from_later_step(window):
+    """Ein neues Bild steigt immer beim Freistellen neu ein (PR #423-Review)."""
+    w = window
+    _load_image(w)
+    w._go_to_step(WorkflowStep.EXPORT)
+    _load_image(w)  # zweites Bild, während Schritt „Export" aktiv war
+    assert w._step is WorkflowStep.CUTOUT
+
+
+# ── Kontextuelle Werkzeugleiste + Canvas-Gate (Issue #422, PR #423-Review) ──
+
+
+@pytest.mark.ui_smoke
+def test_canvas_tools_gated_outside_cutout(window):
+    w = window
+    _load_image(w)  # Schritt 2 = Freistellen → Werkzeuge aktiv
+    assert w._canvas._tools_enabled is True
+    w._go_to_step(WorkflowStep.ADJUST)
+    assert w._canvas._tools_enabled is False
+    w._go_to_step(WorkflowStep.CUTOUT)
+    assert w._canvas._tools_enabled is True
 
 
 # ── Kontextuelle Werkzeugleiste (Issue #422) ──────────────────────────────

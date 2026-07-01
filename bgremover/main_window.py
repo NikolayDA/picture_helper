@@ -298,6 +298,7 @@ class MainWindow(QMainWindow):
                 cancel_preview=self._canvas.cancel_height_preview,
             ),
             on_open=self._open_image,
+            on_open_path=self._load_image_async,
         )
         self._right_panel = panel
         panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
@@ -425,6 +426,9 @@ class MainWindow(QMainWindow):
             self._open_image()
             return
         if self._step is WorkflowStep.EXPORT:
+            # Letzter Schritt: „Exportieren ✓" löst das Speichern aus
+            # (statt wirkungslos zu sein, PR #423-Review).
+            self._save()
             return
         self._go_to_step(WorkflowStep(int(self._step) + 1))
 
@@ -435,7 +439,13 @@ class MainWindow(QMainWindow):
         self._go_to_step(WorkflowStep(int(self._step) - 1))
 
     def _apply_toolbar_for_step(self, step: WorkflowStep) -> None:
-        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen."""
+        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen.
+
+        Außerhalb von Freistellen werden die Auswahlwerkzeuge nicht nur
+        ausgeblendet, sondern die Canvas-Werkzeug-Interaktion abgeschaltet –
+        sonst würde ein noch aktives Pinsel-/Radier-/Lasso-Werkzeug das Bild
+        unsichtbar weiterbearbeiten (PR #423-Review).
+        """
         sel_visible = step is WorkflowStep.CUTOUT
         for button in (
             self._toolbar.btn_wand, self._toolbar.btn_brush,
@@ -443,6 +453,7 @@ class MainWindow(QMainWindow):
         ):
             button.setVisible(sel_visible)
         self._toolbar.sel_separator.setVisible(sel_visible)
+        self._canvas.set_tools_enabled(sel_visible)
 
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
@@ -829,10 +840,10 @@ class MainWindow(QMainWindow):
         """Setzt die Speicher-/Sauber-Marker nach Neu/Öffnen eines Projekts."""
         self._save_path = None
         self._mark_saved()
-        # Geführter Workflow: Ein geladenes Projekt gibt die Schritte frei; vom
-        # Öffnen-Schritt automatisch weiter zum Freistellen (Spec §13).
+        # Geführter Workflow: Ein geladenes Projekt gibt die Schritte frei und
+        # steigt beim Freistellen neu ein (Spec §13, PR #423-Review).
         self._sync_workflow_availability()
-        if self._canvas.has_image and self._step is WorkflowStep.OPEN:
+        if self._canvas.has_image:
             self._go_to_step(WorkflowStep.CUTOUT)
 
     def _new_project(self) -> None:
@@ -1061,11 +1072,11 @@ class MainWindow(QMainWindow):
         # Änderungen), bis der Nutzer es bearbeitet.
         self._mark_saved()
         self._add_recent(path)
-        # Geführter Workflow: Schritte freigeben und – wie im Prototyp – vom
-        # Öffnen-Schritt automatisch zum Freistellen weiterschalten (Spec §13).
+        # Geführter Workflow: Schritte freigeben und immer beim Freistellen
+        # neu einsteigen – auch wenn ein späteres Bild einen bereits
+        # fortgeschrittenen Schritt ersetzt (Spec §13, PR #423-Review).
         self._sync_workflow_availability()
-        if self._step is WorkflowStep.OPEN:
-            self._go_to_step(WorkflowStep.CUTOUT)
+        self._go_to_step(WorkflowStep.CUTOUT)
 
     def _pick_color(self) -> None:
         c = QColorDialog.getColor(self._bg_color, self, tr("dialog.color.title"))
