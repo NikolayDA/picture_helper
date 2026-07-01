@@ -551,11 +551,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Bild horizontal spiegeln (links ↔ rechts)",
         "right_panel.transform.flip_v": "Vertikal",
         "right_panel.transform.flip_v.tooltip": "Bild vertikal spiegeln (oben ↕ unten)",
-        "right_panel.transform.section.resize": "Größe ändern",
-        "right_panel.transform.resize": "Größe ändern…",
-        "right_panel.transform.resize.tooltip": (
-            "Bild/Projekt auf eine Zielgröße in Pixeln skalieren (Resampling)"
-        ),
         # Größe-ändern-Dialog (#359)
         "resize.title": "Größe ändern",
         "resize.width": "Breite",
@@ -618,25 +613,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Wendet die Eckenrundung an.\n"
             "Das Ergebnis wird als PNG mit transparenten Ecken gespeichert."
         ),
-        "right_panel.shape.section.format": "Ausgabe-Format & Zuschnitt",
-        "right_panel.shape.format_info": (
-            "⇲ Format wählen → Rahmen erscheint auf dem Bild\n"
-            "• Rahmen verschieben: Mitte ziehen\n"
-            "• Größe ändern: Ecken ziehen (Proportionen bleiben)"
-        ),
-        "right_panel.shape.special_label": "Sonderformate:",
+        "right_panel.shape.section.resize": "Größe ändern",
+        "right_panel.shape.resize_apply": "Größe anwenden",
+        "right_panel.shape.resize_apply.tooltip": "Auf die eingegebene Größe skalieren",
+        "right_panel.shape.section.format": "Zuschnitt-Format",
         "right_panel.shape.circle": "⬤  Kreis",
         "right_panel.shape.circle.tooltip": "Runden Ausschnitt positionieren und zuschneiden",
-        "right_panel.shape.square": "■  1 : 1",
-        "right_panel.shape.square.tooltip": "Quadratischen Ausschnitt positionieren",
-        "right_panel.shape.landscape_label": "Querformat:",
-        "right_panel.shape.landscape.tooltip": (
-            "Querformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
-        ),
-        "right_panel.shape.portrait_label": "Hochformat:",
-        "right_panel.shape.portrait.tooltip": (
-            "Hochformat {label} — Ecken ziehen für Größe, Mitte zum Verschieben"
-        ),
         # Settings dialog
         "settings.title": "Einstellungen",
         "settings.open_dir.label": "Standard-Verzeichnis zum Öffnen",
@@ -1312,11 +1294,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.transform.flip_h.tooltip": "Flip the image horizontally (left ↔ right)",
         "right_panel.transform.flip_v": "Vertical",
         "right_panel.transform.flip_v.tooltip": "Flip the image vertically (top ↕ bottom)",
-        "right_panel.transform.section.resize": "Resize",
-        "right_panel.transform.resize": "Resize…",
-        "right_panel.transform.resize.tooltip": (
-            "Scale the image/project to a target size in pixels (resampling)"
-        ),
         # Resize dialog (#359)
         "resize.title": "Resize",
         "resize.width": "Width",
@@ -1379,25 +1356,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Applies the corner rounding.\n"
             "The result is saved as PNG with transparent corners."
         ),
-        "right_panel.shape.section.format": "Output format & crop",
-        "right_panel.shape.format_info": (
-            "⇲ Choose a format → a frame appears on the image\n"
-            "• Move the frame: drag the center\n"
-            "• Resize: drag the corners (aspect ratio kept)"
-        ),
-        "right_panel.shape.special_label": "Special formats:",
+        "right_panel.shape.section.resize": "Resize",
+        "right_panel.shape.resize_apply": "Apply size",
+        "right_panel.shape.resize_apply.tooltip": "Scale to the entered size",
+        "right_panel.shape.section.format": "Crop format",
         "right_panel.shape.circle": "⬤  Circle",
         "right_panel.shape.circle.tooltip": "Position a circular crop and apply it",
-        "right_panel.shape.square": "■  1 : 1",
-        "right_panel.shape.square.tooltip": "Position a square crop",
-        "right_panel.shape.landscape_label": "Landscape:",
-        "right_panel.shape.landscape.tooltip": (
-            "Landscape {label} — drag corners to resize, center to move"
-        ),
-        "right_panel.shape.portrait_label": "Portrait:",
-        "right_panel.shape.portrait.tooltip": (
-            "Portrait {label} — drag corners to resize, center to move"
-        ),
         # Settings dialog
         "settings.title": "Settings",
         "settings.open_dir.label": "Default directory for opening",

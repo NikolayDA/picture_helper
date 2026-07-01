@@ -428,15 +428,6 @@ class TransformTab:
         row_flip.addWidget(btn_fv)
         gf.addLayout(row_flip)
         layout.addWidget(g_flip)
-
-        g_size, gsz = _make_section(tr("right_panel.transform.section.resize"))
-        btn_resize = _make_panel_btn(
-            tr("right_panel.transform.resize"), "#1e1428", "#c0a0f0", "#2e1e44",
-            tr("right_panel.transform.resize.tooltip"),
-            height=38, icon_name="form")
-        btn_resize.clicked.connect(lambda _=False: self._actions.resize())
-        gsz.addWidget(btn_resize)
-        layout.addWidget(g_size)
         layout.addStretch()
 
         return outer, {
@@ -474,62 +465,51 @@ class ShapeTab:
         gc.addWidget(btn_corner)
         layout.addWidget(g_corner)
 
+        # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438)
+        g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
+        size_row = QHBoxLayout(); size_row.setSpacing(6)
+        resize_w = QSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
+        resize_w.setFixedWidth(76); resize_w.setStyleSheet(_SPIN_STYLE)
+        resize_h = QSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
+        resize_h.setFixedWidth(76); resize_h.setStyleSheet(_SPIN_STYLE)
+        size_row.addWidget(resize_w)
+        size_row.addWidget(_make_label("×", "#888"))
+        size_row.addWidget(resize_h)
+        size_row.addWidget(_make_label("px", "#888"))
+        size_row.addStretch()
+        gsz.addLayout(size_row)
+        btn_resize = _make_panel_btn(
+            tr("right_panel.shape.resize_apply"), "#2a2a2a", "#c0c0c0", "#363636",
+            tr("right_panel.shape.resize_apply.tooltip"))
+        btn_resize.clicked.connect(
+            lambda _=False: self._actions.apply_resize(resize_w.value(), resize_h.value()))
+        gsz.addWidget(btn_resize)
+        layout.addWidget(g_size)
+
+        # Karte „Zuschnitt-Format" – 3×2-Raster mit genau sechs Formaten (§9)
         g_fmt, gfm = _make_section(tr("right_panel.shape.section.format"))
-
-        info_box = QWidget()
-        info_box.setStyleSheet("background:#1e1628; border-radius:7px;")
-        info_b = QVBoxLayout(info_box)
-        info_b.setContentsMargins(10, 8, 10, 8)
-        info_b.addWidget(_make_label(tr("right_panel.shape.format_info"), "#8a7aaa", 10))
-        gfm.addWidget(info_box)
-
-        gfm.addWidget(_make_label(tr("right_panel.shape.special_label"), "#777", 10))
-        r_special = QHBoxLayout(); r_special.setSpacing(6)
-        for label, tip, slot in [
-            (tr("right_panel.shape.circle"), tr("right_panel.shape.circle.tooltip"),
-             self._actions.start_crop_circle),
-            (tr("right_panel.shape.square"), tr("right_panel.shape.square.tooltip"),
-             lambda: self._actions.start_crop_ratio(1, 1)),
-        ]:
-            b = _make_panel_btn(label, "#141e38", "#8aaedd", "#1e2e52", tip)
-            b.clicked.connect(lambda _=False, fn=slot: fn())
-            r_special.addWidget(b)
-        gfm.addLayout(r_special)
-
-        gfm.addWidget(_make_hdivider())
-        gfm.addWidget(_make_label(tr("right_panel.shape.landscape_label"), "#777", 10))
-        land_formats = [
-            ("16 : 9", 16, 9), ("4 : 3",  4, 3),
-            ("3 : 2",  3, 2),  ("2 : 1",  2, 1),
-            ("7 : 4.5", 14, 9),
-        ]
-        for i in range(0, len(land_formats), 2):
-            row_fmt = QHBoxLayout(); row_fmt.setSpacing(6)
-            for label, rw, rh in land_formats[i:i+2]:
-                b = _make_panel_btn(f"▬  {label}", "#1e1428", "#c0a0f0", "#2e1e44",
-                        tr("right_panel.shape.landscape.tooltip", label=label))
-                b.clicked.connect(
-                    lambda _=False, w=rw, h=rh: self._actions.start_crop_ratio(w, h))
-                row_fmt.addWidget(b)
-            gfm.addLayout(row_fmt)
-
-        gfm.addWidget(_make_hdivider())
-        gfm.addWidget(_make_label(tr("right_panel.shape.portrait_label"), "#777", 10))
-        port_formats = [("9 : 16", 9, 16), ("3 : 4", 3, 4)]
-        row_port = QHBoxLayout(); row_port.setSpacing(6)
-        for label, rw, rh in port_formats:
-            b = _make_panel_btn(f"▮  {label}", "#141e28", "#90c8cc", "#1e2e38",
-                    tr("right_panel.shape.portrait.tooltip", label=label))
+        grid = QGridLayout(); grid.setSpacing(8)
+        btn_circle = _make_panel_btn(
+            tr("right_panel.shape.circle"), "#2a2a2a", "#c0c0c0", "#363636",
+            tr("right_panel.shape.circle.tooltip"))
+        btn_circle.clicked.connect(lambda _=False: self._actions.start_crop_circle())
+        grid.addWidget(btn_circle, 0, 0)
+        ratios = [("1:1", 1, 1), ("16:9", 16, 9), ("4:3", 4, 3),
+                  ("9:16", 9, 16), ("3:4", 3, 4)]
+        for idx, (label, rw, rh) in enumerate(ratios, start=1):
+            b = _make_panel_btn(label, "#2a2a2a", "#c0c0c0", "#363636")
             b.clicked.connect(
                 lambda _=False, w=rw, h=rh: self._actions.start_crop_ratio(w, h))
-            row_port.addWidget(b)
-        gfm.addLayout(row_port)
+            grid.addWidget(b, idx // 3, idx % 3)
+        gfm.addLayout(grid)
         layout.addWidget(g_fmt)
         layout.addStretch()
 
         return outer, {
             "corner_label": corner_label,
             "corner_slider": corner_slider,
+            "resize_w": resize_w,
+            "resize_h": resize_h,
         }
 
 

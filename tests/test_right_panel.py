@@ -265,14 +265,14 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
-    _button(panel.frame, "Größe ändern…").click()
+    _button(panel.frame, "Größe anwenden").click()
 
     panel.corner_slider.setValue(12)
     _button(panel.frame, "Ecken abrunden").click()
     _button(panel.frame, "⬤  Kreis").click()
-    _button(panel.frame, "■  1 : 1").click()
-    _button(panel.frame, "▬  16 : 9").click()
-    _button(panel.frame, "▮  9 : 16").click()
+    _button(panel.frame, "1:1").click()
+    _button(panel.frame, "16:9").click()
+    _button(panel.frame, "9:16").click()
 
     assert calls == [
         ("preview_mode", PreviewMode.RELIEF),
@@ -293,7 +293,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("rotate", 33),
         ("flip", True),
         ("flip", False),
-        ("resize",),
+        ("apply_resize", 1200, 900),
         ("round", 12),
         ("crop_circle",),
         ("crop_ratio", 1, 1),
