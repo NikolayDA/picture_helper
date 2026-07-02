@@ -6,12 +6,15 @@ Code-Kommentaren und Tests (z. B. „Spec §6", „§5.3") zeigen auf die
 Abschnitte dieser Datei.
 
 > **Herkunft.** Die Werte stammen 1:1 aus dem abgenommenen Browser-Prototyp
-> „Prototyp A – Geführter Workflow". Die HTML-Datei selbst wurde nie ins
-> Repository übernommen; diese Spezifikation wurde im Epic-Review zu #418
-> aus der Referenz-Implementierung rekonstruiert und ist seitdem die
-> **einzige** kanonische Quelle. Weicht der Code ab, gilt: Code-Änderung nur
-> mit gleichzeitiger Anpassung dieser Datei (Drift-Disziplin wie bei der
-> Qt-apt-Paketliste).
+> „Prototyp A – Geführter Workflow", der als Standalone-Bundle unter
+> `design/Prototyp A - Geführter Workflow.dc.html` im Repository liegt.
+> Diese Spezifikation wurde im Epic-Review zu #418 aus der Referenz-
+> Implementierung rekonstruiert und beim Einchecken des Prototyps gegen
+> dessen Kernwerte geprüft (Layout-Maße, Stepper-Kreise, Radien,
+> Schritt-Labels – deckungsgleich). Kanonische Wertquelle bleibt **diese
+> Datei**; der Prototyp ist das Referenz-Artefakt. Weicht der Code ab,
+> gilt: Code-Änderung nur mit gleichzeitiger Anpassung dieser Datei
+> (Drift-Disziplin wie bei der Qt-apt-Paketliste).
 
 ## §1 Layout & Raster
 
