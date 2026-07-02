@@ -1,120 +1,109 @@
 [Deutsch](../../../RECOMMENDATIONS.md) · [English](../en/RECOMMENDATIONS.md) · **Español** · [Français](../fr/RECOMMENDATIONS.md) · [Українська](../uk/RECOMMENDATIONS.md) · [简体中文](../zh/RECOMMENDATIONS.md)
 
-# Análisis de Código y Recomendaciones Priorizadas: BgRemover
+# Análisis de código y recomendaciones priorizadas: BgRemover
 
-## Escala de Prioridad
+## Escala de valoración
 
 | Símbolo | Prioridad | Significado |
 |---------|-----------|-------------|
 | 🔴 | Crítica | Errores, cierres inesperados o pérdida de datos |
-| 🟠 | Alta | Impacto claro en fiabilidad o mantenibilidad |
-| 🟡 | Media | Mejora útil para calidad, legibilidad o testabilidad |
+| 🟠 | Alta | Impacto claro en la fiabilidad o el mantenimiento |
+| 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado Actual (2026-06-29)
+## Estado actual (2026-07-02)
 
-La lista activa de análisis de código está vacía. Ruff, mypy y la suite local
-de tests siguen siendo la baseline antes de nuevos PRs.
+La lista activa de análisis de código está vacía. Ruff, mypy y la suite de
+pruebas local siguen siendo la base antes de nuevos PR. Novedad de esta ronda:
+la clasificación de incidencias abiertas se ha puesto al día (18 abiertas).
 
-### Completado Desde La Última Revisión
+### Completado desde la última revisión
 
-- **N1/N2/N4/N5/N6/N7/N8** están hechos: rutas de error, límite de tamaño,
-  extensiones, guardado atómico, paquetes Qt de CI, import perezoso y docstring.
-- **O2/O3/O4/O5/O6** están implementados: paquetes Linux, workflow de release,
-  matriz completa, `ui_smoke` y atajos correctos por plataforma.
-- Los hallazgos cerrados anteriores (incl. el epic EufyMake **#351**/**#352–#355**
-  y el subproceso rembg/ONNX **#270**/**#285**/**#286**) están hechos en los PRs
-  documentados, cubiertos por tests/CI y archivados.
+- **Base antigua estable:** **N1/N2/N4/N5/N6/N7/N8** y **O2–O7** siguen hechos;
+  los epics **#329/#344/#358/#384** (N9–N12) más la corrección de exportación
+  **#363** están fusionados, cubiertos por pruebas/CI y archivados.
+- **Cerrados desde la revisión del 2026-06-25:** **#404**, **#406** y **#408**
+  (PR #412) — los hallazgos de vista previa/código muerto/auditoría ya están
+  hechos; `_derive_physical_size` ya no existe y la ruta de render degrada a
+  COLOR ante un desajuste de tamaño.
+- **Núcleo del rediseño entregado:** la barra de pasos/`stepper.py`, el inspector
+  de tarjetas, la navegación guiada, las herramientas contextuales y los tokens
+  de diseño (`ACCENT`/`CARD_STYLE`) llegaron con PR #412/#423 (cadenas DE/EN,
+  `tests/test_workflow.py`); solo queda el pulido (véase la clasificación).
 
-- **N9 ✅ — Modelo de datos de proyecto/capas (epic #329) entregado.** Modelo de
-  dominio sin Qt (#330), historial con reconocimiento de capas (#331), lienzo de
-  composición (#332), formato `.bgrproj` (#333), panel de capas/menú de proyecto
-  (#334) y migración/integración (#335) — paridad de imagen única conservada,
-  `make check`/`make ui` en verde.
-- **N10 ✅ — Espacio de trabajo Height Map (epic #344) entregado.** Representación
-  de altura y vista 2D sin Qt (#345), generación/importación (#346), edición
-  (#347), optimización `height_ops` con vista previa (#348) y pestaña contextual
-  de altura (#349).
-- **N11 ✅ — Pulido de fase 0 (epic #358) entregado.** Redimensionado del proyecto
-  (#359), brillo/contraste/saturación conservando alfa (#360) y feather del borde
-  alfa limitado por selección (#361), con undo/redo y persistencia `.bgrproj`.
-- **N12 ✅ — Vista previa 2D combinada (epic #384) entregada.** Renderizadores de
-  relieve/gloss sin Qt (#385/#386), modos explícitos e independientes de la capa
-  activa con caché acotada (#387), y menú Ver/panel Vista previa sincronizados con
-  intensidad en vivo y toggle de gloss (#388); la matriz modo×capa conserva bit a
-  bit el contrato de exportación #363. El seguimiento #397 (PR #398) hace pasar
-  las vistas previas transitorias por la misma pipeline, respeta capas de datos
-  ocultas y omite eficientemente el relieve con intensidad 0.
-- **#363 ✅ — Regresión de exportación corregida (PR #367).** Guardar imagen
-  vuelve a escribir el compuesto COLOR sin importar la capa activa; el renderizado
-  de pantalla y el de exportación están separados, cubiertos por un test de
-  regresión de píxeles.
+### Aún abierto
 
-### Aún Abierto
+- **O1 🟠 — Más idiomas en tiempo de ejecución.** Alemán e inglés son
+  conmutables; es/fr/uk/zh aún no son locales de ejecución. Coincide con la
+  incidencia de rediseño **#430** — añadirlos clave por clave en `bgremover.i18n`
+  y cubrirlos con pruebas.
 
-- **O1 🟠 — Idiomas runtime adicionales.** Alemán e inglés son seleccionables
-  en la app. Los idiomas de documentación es/fr/uk/zh aún no son runtime
-  locales; añadirlos clave por clave en `bgremover.i18n` y cubrirlos con tests.
-- **O7 ✅ — Subproceso para rembg/ONNX hecho (PR #283, issue #270 cerrado).** La
-  inferencia de IA no interrumpible ahora corre en un proceso iniciado con
-  `spawn` (`ai_process.py`); `QThread.terminate()` como salida de emergencia de
-  IA ha desaparecido. Los hallazgos de seguimiento de robustez/memoria están
-  corregidos y cerrados en **#285** (PR #289).
+## Incidencias abiertas de GitHub — Clasificación (2026-07-02)
 
-## Issues de GitHub Abiertos — Estado de Triage (2026-06-29, actualizado)
+A fecha del 2026-07-02, GitHub muestra **18** incidencias abiertas. La instantánea
+del 2026-06-29 está obsoleta: #404/#406/#408 están cerradas (PR #412) y la **ola
+de rediseño (flujo guiado)** es la hoja de ruta activa. Su núcleo ya se entregó;
+queda el pulido (**#414**), i18n/docs (epic **#425**: #430/#431/#432), QA/despliegue
+(epic **#426**: #433/#434/#435), la publicación pendiente **#392** y los puntos
+independientes **#299/#318/#245**. **#442** rastrea exactamente esta actualización
+de documentación.
 
-A 2026-06-29, GitHub muestra **8** issues abiertos: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404**, **#406** y **#408**. Nuevo el mismo día es la
-auditoría doc/código **#408** (docs de API/CLI frente a las firmas actuales — sin
-drift); los issues de calidad/robustez **#406** y **#404** (nuevos desde la
-revisión 2026-06-25) siguen abiertos. Los
-paquetes de documentación **#390/#391**, el aviso de apertura **#357** y la
-exclusión HEIC **#339** siguen cerrados; en el epic **#389** solo queda **#392**.
+**Repaso de comentarios:** Sin comentarios externos nuevos. Las notas del
+propietario en #245/#299/#392 coinciden con el estado actual; #442 (2026-07-02)
+recoge esta auditoría — no se necesita actualizar incidencias.
 
-**Revisión de comentarios:** Sin comentarios externos nuevos; los de #392/#299/#245 son notas de triage del owner coherentes con el estado actual, y #408 es nuevo y sin comentarios.
+### Agrupaciones sensatas
 
-**Hallazgos nuevos verificados contra el código:** #406 — `_derive_physical_size`
-(`eufymake_export.py:217`) no tiene llamadas (`parse_size_mm` solo allí, además
-en `project_model.py`). #404 — `compose_relief`/`compose_gloss`
-(`canvas.py:555/564`) lanzan en vez de degradar a COLOR en la ruta de render.
-#408 — auditoría sin hallazgos: las firmas de `CLAUDE.md`/`README.md` y la ruta CLI `bgremover imagen.png` coinciden con el código.
+- **Epics casi terminados:** #418 y #424 tienen **todas** las sub-incidencias
+  cerradas → verificar y cerrar. #413 solo tiene #414 abierto; sus tokens ya
+  están en `theme.py` — añadir el estilo de tarjeta claro y luego cerrarlo.
+- **i18n/docs (#425):** #430 (ES/FR/UK/ZH) desbloquea las pruebas de paridad; #431
+  (docs) y #432 (capturas) siguen cuando la UI sea visualmente definitiva.
+- **QA/despliegue (#426):** #433 está muy cubierto por PR #423 (revisar el hueco,
+  cerrar); #434 está listo para PR; alinear #435 (CHANGELOG/versión) con #392.
+- **Publicación:** decidir si el rediseño sale en **v2.5.0** (#392/#435 juntos)
+  o en un incremento posterior.
 
-### Agrupaciones Recomendadas
-
-- **Paquete release:** **#392** ya está listo; cerrar el epic **#389** tras
-  verificar tag, release body y artefactos de macOS/Linux.
-- **Victorias rápidas de calidad:** **#406** y **#404** son pequeños, autónomos
-  y listos para PR — ideales como PRs de calidad cortos junto a la ruta de
-  release, pero separados de ella (módulos distintos, sin diff compartido).
-- No mezclar **#299/#318/#245** con la ruta de release: son trabajo de calidad,
-  investigación y operación bloqueada externamente.
-
-Evaluación: **Relevancia** = importancia para el roadmap/usuarios,
-**Complejidad** = esfuerzo estimado de implementación.
+Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
+**Complejidad** = esfuerzo de implementación estimado.
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Lanzar release v2.5.0 (CHANGELOG/versión/tag/artefactos) | 🟠 Alta | 🟡 Media | **Listo** – #390, #391 y #384 están cerrados. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Actualizar la documentación de usuario y lanzar release | 🟠 Alta | 🟢 Baja (restante) | **Casi completo** – solo queda #392. |
-| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Vista previa: el desajuste de tamaño no degrada a COLOR | 🟡 Media | 🟢 Baja | **Listo para PR** – encapsular `compose_relief`/`compose_gloss` de forma defensiva y volver a `base` ante un desajuste de tamaño, con test de regresión de render/píxel. Latente pero bien acotado. |
-| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Código muerto: `_derive_physical_size` sin uso en `eufymake_export.py` | 🟢 Baja | 🟢 Baja | **Listo para PR** – eliminar la función, limpiar el import de `parse_size_mm` y actualizar la frase de geometría en CLAUDE.md a la ruta `_derive_target`/modelo de proyecto. Trivial, con criterios de aceptación completos. |
-| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Auditoría doc/código: las docs de API/CLI coinciden con las firmas (sin drift) | 🟢 Baja | 🟢 Baja | **Informativo / cerrable** – auditoría sin hallazgos, sin fix de código/doc necesario. Seguimiento opcional: un `docs/api.md` real vía autodoc para detectar drift futuro automáticamente. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de tests: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Tras v2.5.0** – primero lazo, resultado NumPy escribible, máscara wand completa y parametrización brush. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: considerar overrides de permisos a nivel de job en el reusable WF | 🟢 Baja | 🟡 Media | **Necesita refinamiento** – probar primero la semántica; cambiar código solo ante un falso positivo demostrado y conservar #303. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan falla con "Quota exceeded" | 🟡 Media | 🟢 Baja | **Blocked (externo)** – el endurecimiento del repo vía #322/#342 (cerrado) está hecho; el bloqueo restante es la cuota de OpenAI/billing. Tras restaurarla, lanzar el scan programado manualmente una vez y cerrar. |
+| [#418](https://github.com/NikolayDA/picture_helper/issues/418) | EPIC: Flujo guiado – barra de pasos y navegación | 🟠 Alta | 🟢 Baja | **Verificar y cerrar** – sub-incidencias cerradas (PR #423). |
+| [#413](https://github.com/NikolayDA/picture_helper/issues/413) | EPIC: Inspector de tarjetas – columna derecha | 🟠 Alta | 🟢 Baja | **Casi hecho** – solo #414 abierto. |
+| [#414](https://github.com/NikolayDA/picture_helper/issues/414) | Centralizar contenedor de tarjeta y tokens de acento | 🟡 Media | 🟢 Baja | **Listo para PR** – tokens ya existen; falta estilo claro. |
+| [#424](https://github.com/NikolayDA/picture_helper/issues/424) | EPIC: Sistema de diseño unificado y theming | 🟠 Alta | 🟢 Baja | **Verificar y cerrar** – sub-incidencias cerradas. |
+| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internacionalización y documentación | 🟠 Alta | 🟡 Media | **En curso** – #430/#431/#432 abiertos. |
+| [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nuevas cadenas de UI (pasos/tarjetas/navegación) | 🟠 Alta | 🟡 Media | **Listo para PR** – ES/FR/UK/ZH; DE/EN vía PR #423. |
+| [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Actualizar ANLEITUNG y README al flujo guiado | 🟡 Media | 🟡 Media | **Tras congelar la UI** – espejo en 6 idiomas. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Rehacer capturas de la app para el rediseño | 🟢 Baja | 🟢 Baja | **Bloqueado** – solo con la UI visualmente final. |
+| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA y despliegue del rediseño | 🟠 Alta | 🟢 Baja | **En curso** – #433/#434/#435 abiertos. |
+| [#433](https://github.com/NikolayDA/picture_helper/issues/433) | Pruebas de humo pasos/tarjetas/navegación | 🟡 Media | 🟢 Baja | **Revisar el hueco** – muy cubierto por PR #423. |
+| [#434](https://github.com/NikolayDA/picture_helper/issues/434) | Regresión de visibilidad y cableado de acciones | 🟡 Media | 🟢 Baja | **Listo para PR** – callbacks de acción por paso. |
+| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG y subida de versión del rediseño | 🟡 Media | 🟢 Baja | **Alinear con #392** – definir la secuencia. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publicar la versión v2.5.0 | 🟠 Alta | 🟡 Media | **Lista** – decidir la secuencia con el rediseño. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Actualizar docs de usuario y publicar | 🟠 Alta | 🟢 Baja | **Cerrar tras #392** – solo queda publicar. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de pruebas: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Tras la publicación** – mayor impacto primero. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Overrides de permisos por job en WF reutilizable | 🟢 Baja | 🟡 Media | **Necesita refinamiento** – probar semántica GitHub. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan «Quota exceeded» | 🟡 Media | 🟢 Baja | **Bloqueado (externo)** – facturación/cuota OpenAI. |
+| [#442](https://github.com/NikolayDA/picture_helper/issues/442) | RECOMMENDATIONS.md está desactualizado | 🟡 Media | 🟢 Baja | **Resuelto con esta actualización** – cerrable. |
 
-### Próximo recomendado (orden de PR)
+### Recomendado a continuación (orden de PR)
 
-1. Adelantar **#406** y **#404** como PRs de calidad cortos — ambos verificados,
-   autónomos y listos para PR (módulos distintos, bajo riesgo).
-2. Ejecutar **#392** después y cerrar el epic **#389** cuando tag, release body y
-   ambos artefactos estén verificados.
-3. Abordar **#299** tras v2.5.0; investigar **#318** solo (necesita refinamiento),
-   cerrar **#408** como auditoría informativa sin acción y mantener **#245** bloqueado.
+1. **Mantenimiento:** verificar las sub-incidencias y cerrar los epics casi
+   terminados **#418** y **#424**; terminar **#414** (estilo claro) y cerrar **#413**.
+2. Adelantar **#430** (cadenas ES/FR/UK/ZH) — desbloquea la paridad i18n; luego
+   **#431**/**#432** cuando la UI sea definitiva.
+3. Implementar **#434** (regresión); confirmar la cobertura de **#433** de PR #423
+   y cerrarla.
+4. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego cerrar
+   los epics **#426** y **#389**.
+5. **#299** tras la publicación; investigar solo **#318** (necesita refinamiento);
+   mantener **#245** bloqueado; cerrar **#442** cuando aterrice esta actualización.
 
-## Rondas Anteriores
+## Rondas anteriores
 
-- **2026-06-01, "modest-shannon" (A–E)** — 5 hallazgos, todos hechos.
-- **v2.2, "admiring-mayer" (#1–#15)** — lista externa, completada o descartada donde fue un falso positivo.
+- **Clasificación 2026-06-29** — #404/#406/#408 completados (PR #412), ola de rediseño abierta.
+- **v2.2, «admiring-mayer» (#1–#15)** — lista externa, completada o descartada donde era un falso positivo.
 
-Hallazgos históricos y registros de trabajo completos (rondas 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md).
+Hallazgos históricos y registros de trabajo (rondas 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.es.md).

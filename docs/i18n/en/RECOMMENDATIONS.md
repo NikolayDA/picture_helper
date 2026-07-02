@@ -11,109 +11,97 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-06-29)
+## Current Status (2026-07-02)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs.
+remain the baseline before new PRs. New this round: the open-issue triage is
+brought up to the real state (18 open issues).
 
 ### Completed Since The Last Review
 
-- **N1/N2/N4/N5/N6/N7/N8** are done: error paths, size limit, file
-  extensions, atomic save, CI Qt packages, lazy import, and docstring.
-- **O2/O3/O4/O5/O6** are implemented: Linux packages, release workflow,
-  full matrix, `ui_smoke`, and platform-correct tool shortcuts.
-- Older closed findings (incl. EufyMake epic **#351/#352–#355** and the rembg/ONNX subprocess **#270/#285/#286**) are done in the documented PRs, covered by tests/CI, and archived.
-
-- **N9 ✅ — Project/layer data model (epic #329) delivered.** Qt-free domain
-  model (#330), layer-aware history (#331), composite canvas (#332), `.bgrproj`
-  format (#333), layer panel/project menu (#334) and migration/integration
-  (#335) — single-image parity preserved, `make check`/`make ui` green.
-- **N10 ✅ — Height-map workspace (epic #344) delivered.** Qt-free height
-  representation and 2D visualization (#345), algorithmic generation and
-  grayscale import (#346), height editing (#347), `height_ops` optimization
-  with live preview (#348), and the mode-aware Height tab (#349).
-- **N11 ✅ — Phase-0 polish (epic #358) delivered.** Target-size project resize
-  (#359), alpha-preserving brightness/contrast/saturation with live preview
-  (#360), and selection-bounded alpha-edge feathering (#361), all undoable and
-  persisted losslessly in `.bgrproj` (PR #362).
-- **N12 ✅ — Combined 2D preview (epic #384) delivered.** Qt-free relief/gloss
-  renderers (#385/#386), explicit active-layer-independent canvas modes with a
-  bounded cache (#387), and a synchronized View menu/Preview panel with live
-  strength and gloss toggle (#388); the full mode×layer matrix keeps the #363
-  export contract bit-exact. Review follow-up #397 (PR #398) routes transient
-  color/height previews through the same pipeline, honors hidden data roles, and
-  efficiently skips zero-strength relief.
-- **#363 ✅ — Export regression fixed (PR #367).** Save Image once again writes
-  the COLOR composite regardless of the active layer; display and export
-  rendering are separated, covered by a pixel regression test.
+- **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8** and **O2–O7** remain done;
+  epics **#329/#344/#358/#384** (N9–N12) plus export fix **#363** are merged,
+  covered by tests/CI, and archived.
+- **Closed since the 2026-06-25 review:** **#404**, **#406**, and **#408**
+  (PR #412) — the previously listed preview/dead-code/audit findings are done;
+  `_derive_physical_size` no longer exists, and the render path degrades to
+  COLOR on a size mismatch.
+- **Redesign core shipped:** the stepper/`stepper.py`, card inspector, guided
+  navigation, contextual tools, and the design tokens (`ACCENT`/`CARD_STYLE`)
+  landed via PR #412/#423 (DE/EN strings, `tests/test_workflow.py`); only the
+  polish remains (see triage).
 
 ### Still Open
 
-- **O1 🟠 — Additional runtime languages.** German and English are switchable
-  in the app. The documentation languages es/fr/uk/zh are not runtime locales;
-  add them key-for-key in `bgremover.i18n` if needed and cover them with tests.
-- **O7 ✅ — Subprocess for rembg/ONNX done (PR #283, issue #270 closed).** The
-  non-interruptible AI inference now runs in a `spawn`-started process
-  (`ai_process.py`); `QThread.terminate()` as the AI emergency exit is gone.
-  The robustness/memory follow-up findings are fixed and closed in **#285**
-  (PR #289).
+- **O1 🟠 — Additional runtime languages.** German and English are switchable;
+  es/fr/uk/zh are not runtime locales yet. This matches redesign issue **#430** —
+  add them key-for-key in `bgremover.i18n` and cover them with tests.
 
-## Open GitHub Issues — Triage Status (2026-06-29, updated)
+## Open GitHub Issues — Triage Status (2026-07-02)
 
-As of 2026-06-29, GitHub shows **8** open issues: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404**, **#406**, and **#408**. New on the same day is the
-doc/code audit **#408** (API/CLI docs against the current signatures — no drift);
-the quality/robustness issues **#406** and **#404** (new since the 2026-06-25
-review) remain open. Documentation
-bundles **#390/#391**, startup-path note **#357**, and the HEIC exclusion
-**#339** remain closed; only release step **#392** is left in epic **#389**.
+As of 2026-07-02, GitHub shows **18** open issues. The 2026-06-29 snapshot is
+stale: #404/#406/#408 are closed (PR #412), and the **redesign wave (guided
+workflow)** is the active roadmap. Its core already shipped; what remains is
+polish (**#414**), i18n/docs (epic **#425**: #430/#431/#432), QA/rollout (epic
+**#426**: #433/#434/#435), the standing release **#392**, and the independent
+items **#299/#318/#245**. **#442** tracks exactly this doc refresh.
 
-**Comment pass:** No new external comments; the existing ones on #392/#299/#245
-are owner triage notes consistent with the current state, and #408 is new with no
-comments — no issue update needed.
-
-**New findings verified against the code:** #406 — `_derive_physical_size`
-(`eufymake_export.py:217`) has no caller (`parse_size_mm` imported only there,
-still used in `project_model.py`). #404 — `compose_relief`/`compose_gloss`
-(`canvas.py:555/564`) raise instead of degrading to COLOR in the render path.
-#408 — audit with no findings: the signatures in `CLAUDE.md`/`README.md` and the `bgremover image.png` CLI path match the code.
+**Comment pass:** No new external comments. The owner notes on #245/#299/#392
+match the current state; #442 (2026-07-02) records this audit — no issue update
+needed.
 
 ### Sensible Bundles
 
-- **Release bundle:** **#392** is ready now; close epic **#389** after the tag,
-  release body, and macOS/Linux artifacts are verified.
-- **Quality quick wins:** **#406** and **#404** are small, self-contained, and
-  ready for PR — ideal as short quality PRs alongside the release path, but kept
-  separate from it (different modules, no shared diff).
-- Do not mix **#299/#318/#245** into the release path; they are independent
-  quality, research, and externally blocked operational work.
+- **Nearly finished epics:** #418 and #424 have **all** sub-issues closed →
+  verify and close. #413 has only #414 left; its tokens already live in
+  `theme.py` — add the light-scheme card style, then close it.
+- **i18n/docs (#425):** #430 (ES/FR/UK/ZH) unblocks the parity tests; #431 (docs)
+  and #432 (screenshots) follow once the UI is visually final.
+- **QA/rollout (#426):** #433 is largely covered by PR #423 (check the gap, close
+  it); #434 is ready for PR; align #435 (CHANGELOG/version) with #392.
+- **Release:** decide whether the redesign ships in **v2.5.0** (#392/#435
+  together) or in a later bump.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 (CHANGELOG/version/tag/artifacts) | 🟠 High | 🟡 Medium | **Ready** – #390, #391, and #384 are closed. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Update user docs & cut release | 🟠 High | 🟢 Low (remaining) | **Nearly complete** – only #392 remains open. |
-| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Preview render: size mismatch does not degrade to COLOR | 🟡 Medium | 🟢 Low | **Ready for PR** – wrap `compose_relief`/`compose_gloss` defensively and fall back to `base` on a size mismatch, with a render/pixel regression test. Latent but clearly scoped. |
-| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Dead code: unused `_derive_physical_size` in `eufymake_export.py` | 🟢 Low | 🟢 Low | **Ready for PR** – remove the function, clean up the `parse_size_mm` import, and update the CLAUDE.md geometry sentence to the `_derive_target`/project-model path. Trivial, with full acceptance criteria. |
-| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Doc/code audit: API/CLI docs match the function signatures (no drift) | 🟢 Low | 🟢 Low | **Informational / closeable** – audit with no findings, no code/doc fix needed. Optional follow-up: a real `docs/api.md` via autodoc so future drift is caught automatically. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After v2.5.0** – highest impact first (lasso endpoint, writable NumPy result, full wand mask, brush parametrization). |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: respect job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – prove GitHub semantics first; change code only for a demonstrated false positive and preserve #303. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan fails with "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – repo-side hardening via #322/#342 (closed) is done; the remaining blocker is OpenAI/billing quota. After the quota is restored, trigger the scheduled scan once manually, then close. |
+| [#418](https://github.com/NikolayDA/picture_helper/issues/418) | EPIC: Guided workflow – stepper & navigation | 🟠 High | 🟢 Low | **Verify & close** – all sub-issues closed (PR #423). |
+| [#413](https://github.com/NikolayDA/picture_helper/issues/413) | EPIC: Card inspector – right column as cards | 🟠 High | 🟢 Low | **Nearly done** – only #414 open. |
+| [#414](https://github.com/NikolayDA/picture_helper/issues/414) | Centralize card container & accent tokens | 🟡 Medium | 🟢 Low | **Ready for PR** – tokens exist; add the light card style. |
+| [#424](https://github.com/NikolayDA/picture_helper/issues/424) | EPIC: Unified design system & theming | 🟠 High | 🟢 Low | **Verify & close** – all sub-issues closed. |
+| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟡 Medium | **In progress** – #430/#431/#432 open. |
+| [#430](https://github.com/NikolayDA/picture_helper/issues/430) | New UI strings (steps/cards/navigation) | 🟠 High | 🟡 Medium | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423. |
+| [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | **After UI freeze** – 6-language mirror, link tests. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Recreate app screenshots for the redesign | 🟢 Low | 🟢 Low | **Blocked** – only once the UI is visually final. |
+| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | **In progress** – #433/#434/#435 open. |
+| [#433](https://github.com/NikolayDA/picture_helper/issues/433) | Smoke tests stepper/cards/navigation | 🟡 Medium | 🟢 Low | **Check the gap** – largely covered by PR #423. |
+| [#434](https://github.com/NikolayDA/picture_helper/issues/434) | Regression for visibility & action wiring | 🟡 Medium | 🟢 Low | **Ready for PR** – action callbacks per step. |
+| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | **Align with #392** – settle the release sequence. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | **Ready** – decide the sequence with the redesign. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Update user docs & cut release | 🟠 High | 🟢 Low | **Close after #392** – only the release remains. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After the release** – highest impact first. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – prove GitHub semantics. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – OpenAI billing/quota. |
+| [#442](https://github.com/NikolayDA/picture_helper/issues/442) | RECOMMENDATIONS.md is outdated | 🟡 Medium | 🟢 Low | **Resolved by this update** – closeable. |
 
 ### Recommended Next (PR order)
 
-1. Pull **#406** and **#404** forward as short quality PRs — both are verified,
-   self-contained, and ready for PR (different modules, low risk).
-2. Run **#392** next, then close epic **#389** once the tag, release body, and
-   both artifacts are verified.
-3. Tackle **#299** after v2.5.0; research **#318** only (needs refinement), close
-   **#408** as an informational audit with no action, and keep **#245** blocked.
+1. **Housekeeping:** verify the sub-issues and close the nearly finished epics
+   **#418** and **#424**; finish **#414** (light card style), then close **#413**.
+2. Pull **#430** forward (UI strings ES/FR/UK/ZH) — it unblocks i18n parity; then
+   **#431**/**#432** once the UI is final.
+3. Implement **#434** (regression); confirm **#433** coverage from PR #423 and
+   close it.
+4. **Release:** run **#435** + **#392** in a coordinated way, then close epics
+   **#426** and **#389**.
+5. **#299** after the release; research **#318** only (needs refinement); keep
+   **#245** externally blocked; close **#442** once this refresh lands.
 
 ## Previous Rounds
 
-- **2026-06-01, "modest-shannon" (A–E)** — 5 findings, all done.
+- **2026-06-29 triage** — #404/#406/#408 completed (PR #412), redesign wave opened.
 - **v2.2, "admiring-mayer" (#1–#15)** — external list, completed or discarded where it was a false positive.
 
 Full historical findings and work logs (rounds 1–5): [../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.en.md).
