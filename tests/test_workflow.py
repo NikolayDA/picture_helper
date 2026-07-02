@@ -177,9 +177,14 @@ def test_stepper_locked_cells_are_not_focusable(qapp):
 
 
 @pytest.mark.ui_smoke
-def test_stepper_focus_visual_uses_accent(qapp):
-    """Der Tastaturfokus ist als akzentgetönte Fläche sichtbar – je Schema."""
-    from PyQt6.QtCore import QEvent
+def test_stepper_focus_visible_only_for_keyboard(qapp):
+    """Fokus-Markierung mit ``:focus-visible``-Semantik: Maus-Fokus lässt das
+    Zell-Stylesheet unverändert (Layout exakt wie im Prototyp, Spec §6),
+    Tab-Fokus zeigt die akzentgetönte Fläche – rahmenlos, denn ein ``border``
+    in der selektorlosen Zell-Regel erschien früher als Doppelrahmen um den
+    aktiven Schritt (Zelle + Label).
+    """
+    from PyQt6.QtCore import QEvent, Qt
     from PyQt6.QtGui import QFocusEvent
 
     from bgremover.theme import DARK, LIGHT, active_palette, set_active_palette
@@ -189,10 +194,23 @@ def test_stepper_focus_visual_uses_accent(qapp):
             set_active_palette(palette)
             stepper = Stepper()
             cell = stepper._cells[WorkflowStep.OPEN]
-            cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
-            assert active_palette().accent_soft in cell.styleSheet()
+            resting = cell.styleSheet()
+            # Die Ruhe-Regel schirmt Kreis/Label gegen das ``border-bottom``
+            # des Steppers ab und hält die Zelle transparent.
+            assert "transparent" in resting
+            assert "border: none" in resting
+            # Maus-Klick: keine sichtbare Fokus-Änderung.
+            cell.focusInEvent(
+                QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.MouseFocusReason))
+            assert cell.styleSheet() == resting
+            # Tastatur (Tab): getönte, rahmenlose Fläche.
+            cell.focusInEvent(
+                QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+            sheet = cell.styleSheet()
+            assert active_palette().accent_soft in sheet
+            assert "solid" not in sheet
             cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
-            assert "transparent" in cell.styleSheet()
+            assert cell.styleSheet() == resting
             stepper.deleteLater()
     finally:
         set_active_palette(DARK)
