@@ -483,22 +483,22 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.selection.brush_size.tooltip": (
             "Größe des Pinsel-/Radiergummi-Werkzeugs in Pixeln"
         ),
-        "right_panel.selection.clear": "Auswahl aufheben",
+        "right_panel.selection.clear": "Aufheben",
         "right_panel.selection.clear.tooltip": (
             "Hebt die aktuelle Auswahl auf (auch: Esc-Taste)"
         ),
-        "right_panel.selection.invert": "Auswahl invertieren",
+        "right_panel.selection.invert": "Invertieren",
         "right_panel.selection.invert.tooltip": (
             "Tauscht aus- und nicht-ausgewählte Bereiche  ({modifier}+Shift+I)"
         ),
         "right_panel.selection.morph.tooltip": (
             "Radius in Pixeln für Erweitern/Schrumpfen der Auswahl"
         ),
-        "right_panel.selection.expand": "➕ Erweitern",
+        "right_panel.selection.expand": "+ Erweitern",
         "right_panel.selection.expand.tooltip": (
             "Erweitert die Auswahl um den eingestellten Radius"
         ),
-        "right_panel.selection.shrink": "➖ Schrumpfen",
+        "right_panel.selection.shrink": "− Schrumpfen",
         "right_panel.selection.shrink.tooltip": (
             "Schrumpft die Auswahl um den eingestellten Radius"
         ),
@@ -1237,11 +1237,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.selection.morph.tooltip": (
             "Radius in pixels for growing/shrinking the selection"
         ),
-        "right_panel.selection.expand": "➕ Grow",
+        "right_panel.selection.expand": "+ Grow",
         "right_panel.selection.expand.tooltip": (
             "Grows the selection by the set radius"
         ),
-        "right_panel.selection.shrink": "➖ Shrink",
+        "right_panel.selection.shrink": "− Shrink",
         "right_panel.selection.shrink.tooltip": (
             "Shrinks the selection by the set radius"
         ),

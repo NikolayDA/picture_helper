@@ -26,7 +26,9 @@ from bgremover.stepper import WorkflowStep
 
 def _button(panel_frame, text: str) -> QPushButton:
     for button in panel_frame.findChildren(QPushButton):
-        if button.text() == text:
+        # Manche Primär-/EufyMake-Buttons brechen bei 332 px Panelbreite
+        # fontmetrisch um (§5.3-Ausnahme); der Vergleich ist umbruch-tolerant.
+        if button.text().replace("\n", " ") == text:
             return button
     raise AssertionError(f"QPushButton {text!r} nicht gefunden")
 
@@ -216,7 +218,13 @@ def test_panel_buttons_not_clipped_at_min_width(qapp):
             for button in panel.frame.findChildren(QPushButton):
                 if not button.isVisible() or not button.text().strip():
                     continue
-                needed = QFontMetrics(button.font()).horizontalAdvance(button.text())
+                fm = QFontMetrics(button.font())
+                # Mnemonic-Escaping ("&&" -> gerendertes "&", §11-Labels wie
+                # „Relief & Ebenen") und bewusst umgebrochene Buttons (§5.3-
+                # Ausnahme, z. B. der KI-/EufyMake-Button) sind kein Clipping:
+                # jede *gerenderte* Zeile muss passen, nicht der Rohtext am Stück.
+                lines = button.text().replace("&&", "&").split("\n")
+                needed = max(fm.horizontalAdvance(line) for line in lines)
                 # Der reine Text muss in die Button-Box passen (echte Clipping-
                 # Bedingung; Innenabstand zentriert lediglich).
                 assert needed <= button.width(), (
@@ -267,10 +275,14 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     panel.tolerance_slider.setValue(42)
     panel.brush_slider.setValue(55)
     panel.morph_spin.setValue(5)
-    _button(panel.frame, "Auswahl aufheben").click()
-    _button(panel.frame, "Auswahl invertieren").click()
-    _button(panel.frame, "➕ Erweitern").click()
-    _button(panel.frame, "➖ Schrumpfen").click()
+    # "Invertieren" existiert wortgleich auch in der Höhenkarten-Karte (§9 Schritt
+    # 5) - Suche hier gezielt in der Freistellen-Seite (Schritt 2), um die
+    # Selektions- statt der Höhen-Variante zu treffen.
+    cutout_page = panel.stack.widget(int(WorkflowStep.CUTOUT) - 1)
+    _button(cutout_page, "Aufheben").click()
+    _button(cutout_page, "Invertieren").click()
+    _button(cutout_page, "+ Erweitern").click()
+    _button(cutout_page, "− Schrumpfen").click()
     _button(panel.frame, "Entfernen (transparent)").click()
     panel.color_button.click()
     _button(panel.frame, "Farbe ersetzen").click()

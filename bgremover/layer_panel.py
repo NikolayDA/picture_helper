@@ -84,7 +84,7 @@ class LayerPanel:
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
 
-        title = QLabel(tr("right_panel.layers.section"))
+        title = QLabel(tr("right_panel.layers.section").upper())  # §5.2: VERSALIEN
         # Einheitlicher blauer Akzentkopf (Issue #416) – kein Sonder-Violett mehr.
         title.setStyleSheet(section_header_style(p))
         layout.addWidget(title)

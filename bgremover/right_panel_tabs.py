@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QFont, QFontMetrics
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -25,7 +26,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover.color_ops import adjust_color
-from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS
+from bgremover.constants import _COLOR_BTN_SIZE, _IS_MACOS, _RIGHT_PANEL_WIDTH
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.preview_mode import PreviewMode
@@ -41,6 +42,34 @@ from bgremover.theme import (
 
 if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
+
+# Nutzbare Textbreite innerhalb einer Inspector-Karte (§1: Scrollbereich
+# 20/18/18 + §5.1: Kartenpolster 13/14) – als Wortumbruch-Obergrenze für lange,
+# nicht kürzbare Button-Beschriftungen (z. B. Übersetzungen), damit sie die
+# feste Panelbreite nie sprengen (#423-Review, Spec §5.3 „Umbruch … EufyMake").
+_CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * 18 - 2 * 14
+
+
+def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
+    """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
+
+    Reine Fontmetrik-Messung (keine hartkodierten Sprach-Umbrüche) – funktioniert
+    unverändert für alle sechs i18n-Sprachen.
+    """
+    fm = QFontMetrics(font)
+    words = text.split(" ")
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        trial = f"{current} {word}".strip()
+        if not current or fm.horizontalAdvance(trial) <= max_width:
+            current = trial
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return "\n".join(lines)
 
 
 # ── Segmented-Control für den Vorschaumodus (§5.7) ───────────────
@@ -198,9 +227,9 @@ class PreviewTab:
 
         # ── Karte „UV-Druck" (§9 Schritt 6, #439) ──
         g_uv, guv = _make_section(tr("right_panel.export.section.uvprint"))
-        btn_eufy = _make_panel_btn(
-            tr("right_panel.export.eufymake"), "#141e38", "#8aaedd", "#1e2e52",
-            tr("right_panel.export.eufymake.tooltip"), height=44)
+        btn_eufy = _make_neutral_btn(
+            tr("right_panel.export.eufymake"),
+            tr("right_panel.export.eufymake.tooltip"), height=40, wrap=True)
         btn_eufy.clicked.connect(lambda _=False: self._actions.export_eufymake())
         guv.addWidget(btn_eufy)
         layout.addWidget(g_uv)
@@ -231,9 +260,11 @@ class SelectionTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437).
+        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Umbruch, da die
+        # DE-Beschriftung bei 332 px Panelbreite die Button-Fläche sprengt.
         btn_ai = _make_primary_btn(
-            tr("right_panel.ai.remove"), tr("right_panel.ai.remove.tooltip"))
+            tr("right_panel.ai.remove"), tr("right_panel.ai.remove.tooltip"),
+            icon_name="ai", wrap=True)
         btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
         layout.addWidget(btn_ai)
 
@@ -280,25 +311,27 @@ class SelectionTab:
             tr("right_panel.selection.clear"),
             tr("right_panel.selection.clear.tooltip"))
         btn_clr.clicked.connect(lambda _=False: self._actions.clear_selection())
-        row_ci.addWidget(btn_inv)
-        row_ci.addWidget(btn_clr)
+        row_ci.addWidget(btn_inv, 1)
+        row_ci.addWidget(btn_clr, 1)
         gsel.addLayout(row_ci)
 
-        morph_row = QHBoxLayout(); morph_row.setSpacing(6)
+        morph_row = QHBoxLayout(); morph_row.setSpacing(4)
         morph_spin = QSpinBox()
         morph_spin.setRange(1, 20); morph_spin.setValue(2)
         morph_spin.setSuffix(" px")
-        morph_spin.setFixedWidth(72)
+        # Schmaler als die 72 px anderer Zahlenfelder: nur zweistellige Werte
+        # (1-20), muss neben zwei Buttons in der 332-px-Karte Platz finden.
+        morph_spin.setFixedWidth(54)
         morph_spin.setToolTip(tr("right_panel.selection.morph.tooltip"))
         morph_spin.setStyleSheet(_spin_style())
-        btn_expand = _make_panel_btn(
-            tr("right_panel.selection.expand"), "#1a3a1a", "#a0d0a0", "#2a5a2a",
-            tr("right_panel.selection.expand.tooltip"))
+        btn_expand = _make_semantic_btn(
+            tr("right_panel.selection.expand"), good=True,
+            tooltip=tr("right_panel.selection.expand.tooltip"))
         btn_expand.clicked.connect(
             lambda _=False: self._actions.expand_selection(morph_spin.value()))
-        btn_shrink = _make_panel_btn(
-            tr("right_panel.selection.shrink"), "#3a1a1a", "#d0a0a0", "#5a2a2a",
-            tr("right_panel.selection.shrink.tooltip"))
+        btn_shrink = _make_semantic_btn(
+            tr("right_panel.selection.shrink"), good=False,
+            tooltip=tr("right_panel.selection.shrink.tooltip"))
         btn_shrink.clicked.connect(
             lambda _=False: self._actions.shrink_selection(morph_spin.value()))
         morph_row.addWidget(morph_spin)
@@ -332,8 +365,8 @@ class BackgroundTab:
         outer, layout = _make_scroll_tab()
 
         g_bg, gb = _make_section(tr("right_panel.background.section"))
-        btn_rem = _make_panel_btn(
-            tr("right_panel.background.remove"), "#6a1a1a", "white", "#882020",
+        btn_rem = _make_neutral_btn(
+            tr("right_panel.background.remove"),
             tr("right_panel.background.remove.tooltip"),
             height=38, icon_name="transparency")
         btn_rem.clicked.connect(lambda _=False: self._actions.remove_background())
@@ -351,8 +384,8 @@ class BackgroundTab:
             f"QPushButton:focus {{ outline:none; border-color: {active_palette().accent}; }}")
         color_button.clicked.connect(lambda _=False: self._actions.pick_color())
         color_row.addWidget(color_button)
-        btn_repl = _make_panel_btn(
-            tr("right_panel.background.replace"), "#143a5a", "white", "#1e5080",
+        btn_repl = _make_neutral_btn(
+            tr("right_panel.background.replace"),
             tr("right_panel.background.replace.tooltip"),
             icon_name="bg")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
@@ -371,8 +404,8 @@ class BackgroundTab:
                 tr("right_panel.background.feather_radius", value=v)))
         ge.addWidget(feather_label)
         ge.addWidget(feather_slider)
-        btn_feather = _make_panel_btn(
-            tr("right_panel.background.feather"), "#0e2a2a", "#7adada", "#1a4040",
+        btn_feather = _make_neutral_btn(
+            tr("right_panel.background.feather"),
             tr("right_panel.background.feather.tooltip"),
             height=38, icon_name="transparency")
         btn_feather.clicked.connect(
@@ -403,7 +436,6 @@ class TransformTab:
         outer, layout = _make_scroll_tab()
 
         g_rot, gr2 = _make_section(tr("right_panel.transform.section.rotate"))
-        rot_bg = "#2e2510"; rot_fg = "#f0c060"; rot_hv = "#4a3a18"
 
         gr2.addWidget(_make_label(tr("right_panel.transform.quick_label"), "#888"))
         row_q1 = QHBoxLayout(); row_q1.setSpacing(6)
@@ -413,9 +445,9 @@ class TransformTab:
             (tr("right_panel.transform.rotate_right_90"), -90,
              tr("right_panel.transform.rotate_right_90.tooltip")),
         ]:
-            b = _make_panel_btn(label, rot_bg, rot_fg, rot_hv, tip)
+            b = _make_neutral_btn(label, tip)
             b.clicked.connect(lambda _=False, d=deg: self._actions.rotate(d))
-            row_q1.addWidget(b)
+            row_q1.addWidget(b, 1)
         gr2.addLayout(row_q1)
 
         row_q2 = QHBoxLayout(); row_q2.setSpacing(6)
@@ -425,9 +457,9 @@ class TransformTab:
             (tr("right_panel.transform.rotate_270"), 270,
              tr("right_panel.transform.rotate_270.tooltip")),
         ]:
-            b = _make_panel_btn(label, rot_bg, rot_fg, rot_hv, tip)
+            b = _make_neutral_btn(label, tip)
             b.clicked.connect(lambda _=False, d=deg: self._actions.rotate(d))
-            row_q2.addWidget(b)
+            row_q2.addWidget(b, 1)
         gr2.addLayout(row_q2)
 
         gr2.addWidget(_make_hdivider())
@@ -449,8 +481,8 @@ class TransformTab:
         row_free.addWidget(rotation_spin)
         gr2.addLayout(row_free)
 
-        btn_rot_free = _make_panel_btn(
-            tr("right_panel.transform.apply_angle"), rot_bg, rot_fg, rot_hv,
+        btn_rot_free = _make_neutral_btn(
+            tr("right_panel.transform.apply_angle"),
             tr("right_panel.transform.apply_angle.tooltip"),
             icon_name="undo")
         btn_rot_free.clicked.connect(
@@ -460,16 +492,16 @@ class TransformTab:
 
         g_flip, gf = _make_section(tr("right_panel.transform.section.flip"))
         row_flip = QHBoxLayout(); row_flip.setSpacing(6)
-        btn_fh = _make_panel_btn(
-            tr("right_panel.transform.flip_h"), "#0e2a2a", "#7adada", "#1a4040",
+        btn_fh = _make_neutral_btn(
+            tr("right_panel.transform.flip_h"),
             tr("right_panel.transform.flip_h.tooltip"))
         btn_fh.clicked.connect(lambda _=False: self._actions.flip(True))
-        row_flip.addWidget(btn_fh)
-        btn_fv = _make_panel_btn(
-            tr("right_panel.transform.flip_v"), "#0e2a2a", "#7adada", "#1a4040",
+        row_flip.addWidget(btn_fh, 1)
+        btn_fv = _make_neutral_btn(
+            tr("right_panel.transform.flip_v"),
             tr("right_panel.transform.flip_v.tooltip"))
         btn_fv.clicked.connect(lambda _=False: self._actions.flip(False))
-        row_flip.addWidget(btn_fv)
+        row_flip.addWidget(btn_fv, 1)
         gf.addLayout(row_flip)
         layout.addWidget(g_flip)
         layout.addStretch()
@@ -500,8 +532,8 @@ class ShapeTab:
             lambda v: corner_label.setText(tr("right_panel.shape.radius", value=v)))
         gc.addWidget(corner_label)
         gc.addWidget(corner_slider)
-        btn_corner = _make_panel_btn(
-            tr("right_panel.shape.round"), "#0e2a14", "#7add9a", "#1a4520",
+        btn_corner = _make_neutral_btn(
+            tr("right_panel.shape.round"),
             tr("right_panel.shape.round.tooltip"),
             height=38, icon_name="form")
         btn_corner.clicked.connect(
@@ -612,9 +644,11 @@ class AdjustTab:
         btn_reset = _make_neutral_btn(
             tr("right_panel.adjust.reset"),
             tr("right_panel.adjust.reset.tooltip"))
-        btn_apply = _make_panel_btn(
-            tr("right_panel.adjust.apply"), "#2a1e38", "#c8a8ee", "#3a2a50",
+        # „Anwenden" nutzt den akzent-getönten .sel-Look, nicht Amber/Lila (§5.3/§9).
+        btn_apply = _make_neutral_btn(
+            tr("right_panel.adjust.apply"),
             tr("right_panel.adjust.apply.tooltip"))
+        _set_button_selected(btn_apply, True)
 
         def on_reset(_checked: bool = False) -> None:
             for slider, label, key in (
@@ -687,7 +721,7 @@ def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBox
     v = QVBoxLayout(card)
     v.setSpacing(10)
     v.setContentsMargins(14, 13, 14, 13)
-    title_lbl = QLabel(title)
+    title_lbl = QLabel(title.upper())  # Kartentitel laufen VERSALIEN (§5.2)
     title_lbl.setStyleSheet(section_header_style(p))
     v.addWidget(title_lbl)
     return card, v
@@ -719,8 +753,9 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     content = QWidget()
     content.setStyleSheet(f"background: {active_palette().inspector};")
     lay = QVBoxLayout(content)
-    lay.setContentsMargins(16, 14, 16, 14)
-    lay.setSpacing(14)
+    # Scrollbereich-Innenabstand + Kartenabstand 1:1 aus dem Prototyp (§1, §5.1).
+    lay.setContentsMargins(18, 20, 18, 18)
+    lay.setSpacing(11)
     return content, lay
 
 
@@ -751,12 +786,13 @@ def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
 
 
 def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
-                      icon_name: str = "") -> QPushButton:
+                      icon_name: str = "", wrap: bool = False) -> QPushButton:
     """Neutraler Sekundärbutton (§5.3) – Fläche/Text aus der **aktiven Palette**.
 
     Ersetzt die früher fest dunkelgrau eingefärbten Aufrufe von ``_make_panel_btn``
     (``#2a2a2a``/``#c0c0c0``/``#363636``), damit diese Buttons im hellen Schema (#428)
-    lesbar bleiben.
+    lesbar bleiben. ``wrap=True`` ist die explizit erlaubte Ausnahme vom „kein
+    Umbruch"-Grundsatz (§5.3-Hinweis: „außer explizit erlaubt (EufyMake-Button)").
     """
     b = QPushButton(label)
     style = panel_btn_style(active_palette())
@@ -766,6 +802,31 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22))
         b.setIconSize(QSize(22, 22))
+    if wrap:
+        font = QFont(); font.setPixelSize(13); font.setWeight(QFont.Weight.Medium)
+        b.setText(_wrap_to_width(label, font, _CARD_TEXT_WIDTH - 24))
+    if tooltip:
+        b.setToolTip(tooltip)
+    return b
+
+
+def _make_semantic_btn(label: str, *, good: bool, tooltip: str = "") -> QPushButton:
+    """Erweitern/Schrumpfen-Buttons (§9 Schritt 2): einzige `.bs`-Ausnahme, die
+    die semantischen ``good``/``bad``-Töne statt der neutralen Fläche trägt.
+    """
+    p = active_palette()
+    color, soft = (p.good, p.good_soft) if good else (p.bad, p.bad_soft)
+    b = QPushButton(label)
+    b.setStyleSheet(f"""
+        QPushButton {{
+            background: {soft}; color: {color}; border: 1px solid {color};
+            border-radius: 8px; padding: 0 8px; font-size: 12px; font-weight: 500;
+            min-height: 34px;
+        }}
+        QPushButton:hover {{ background: {soft}; }}
+        QPushButton:focus {{ outline: none; border: 2px solid {color}; }}
+        QPushButton:disabled {{ background: {p.divider}; color: {p.muted}; border-color: transparent; }}
+    """)
     if tooltip:
         b.setToolTip(tooltip)
     return b
@@ -784,10 +845,23 @@ def _set_button_selected(btn: QPushButton, selected: bool) -> None:
         btn.setStyleSheet(panel_btn_style(p))
 
 
-def _make_primary_btn(label: str, tooltip: str = "") -> QPushButton:
-    """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector."""
+def _make_primary_btn(
+    label: str, tooltip: str = "", icon_name: str = "", wrap: bool = False,
+) -> QPushButton:
+    """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector.
+
+    ``wrap=True`` bricht die Beschriftung fontmetrisch um, statt die feste
+    Panelbreite (332 px, §1) durch überlange Übersetzungen zu sprengen.
+    """
     b = QPushButton(label)
     b.setStyleSheet(primary_btn_style(active_palette()))
+    if icon_name:
+        b.setIcon(make_tool_icon(icon_name, 22))
+        b.setIconSize(QSize(22, 22))
+    if wrap:
+        font = QFont(); font.setPixelSize(14); font.setWeight(QFont.Weight.DemiBold)
+        icon_allowance = 24 if icon_name else 0
+        b.setText(_wrap_to_width(label, font, _CARD_TEXT_WIDTH - 24 - icon_allowance))
     if tooltip:
         b.setToolTip(tooltip)
     return b

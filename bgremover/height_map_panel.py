@@ -38,7 +38,7 @@ from bgremover.right_panel_tabs import (
     _make_hdivider,
     _make_label,
     _make_neutral_btn,
-    _make_panel_btn,
+    _make_primary_btn,
     _make_scroll_tab,
     _make_section,
     _spin_style,
@@ -99,12 +99,14 @@ class HeightMapPanel:
 
     def _build_acquire(self) -> QWidget:
         section, body = _make_section(tr("right_panel.height.section.acquire"))
-        btn_gen = _make_panel_btn(
-            tr("right_panel.height.generate"), "#2a1e38", "#c8a8ee", "#3a2a50",
+        # Primärbutton wie im Prototyp/Spec §9 Schritt 5 (Issue #416: derselbe
+        # blaue Verlauf wie die übrigen Primärbuttons, kein Lila-Sonderton mehr).
+        btn_gen = _make_primary_btn(
+            tr("right_panel.height.generate"),
             tr("right_panel.height.generate.tooltip"), icon_name="form")
         btn_gen.clicked.connect(lambda _=False: self._actions.generate())
-        btn_imp = _make_panel_btn(
-            tr("right_panel.height.import"), "#1e2838", "#9ec0e8", "#2a3a52",
+        btn_imp = _make_neutral_btn(
+            tr("right_panel.height.import"),
             tr("right_panel.height.import.tooltip"), icon_name="open")
         btn_imp.clicked.connect(lambda _=False: self._actions.import_file())
         body.addWidget(btn_gen)
@@ -123,12 +125,12 @@ class HeightMapPanel:
         body.addLayout(row_s)
 
         row_ld = QHBoxLayout(); row_ld.setSpacing(6)
-        btn_light = _make_panel_btn(
-            tr("right_panel.height.lighten"), "#0e2a14", "#7add9a", "#1a4520",
+        btn_light = _make_neutral_btn(
+            tr("right_panel.height.lighten"),
             tr("right_panel.height.lighten.tooltip"))
         btn_light.clicked.connect(lambda _=False: self._actions.lighten(strength.value()))
-        btn_dark = _make_panel_btn(
-            tr("right_panel.height.darken"), "#2a1010", "#dd9a9a", "#451a1a",
+        btn_dark = _make_neutral_btn(
+            tr("right_panel.height.darken"),
             tr("right_panel.height.darken.tooltip"))
         btn_dark.clicked.connect(lambda _=False: self._actions.darken(strength.value()))
         row_ld.addWidget(btn_light, 1)
@@ -141,14 +143,14 @@ class HeightMapPanel:
         row_set.addWidget(_make_label(tr("right_panel.height.set_value"), "#aaa"), 1)
         row_set.addWidget(set_value)
         body.addLayout(row_set)
-        btn_set = _make_panel_btn(
-            tr("right_panel.height.set"), "#1a2838", "#9ec0e8", "#243a52",
+        btn_set = _make_neutral_btn(
+            tr("right_panel.height.set"),
             tr("right_panel.height.set.tooltip"))
         btn_set.clicked.connect(lambda _=False: self._actions.set_height(set_value.value()))
         body.addWidget(btn_set)
 
-        btn_inv = _make_panel_btn(
-            tr("right_panel.height.invert"), "#26203a", "#b8a8e0", "#352c52",
+        btn_inv = _make_neutral_btn(
+            tr("right_panel.height.invert"),
             tr("right_panel.height.invert.tooltip"))
         btn_inv.clicked.connect(lambda _=False: self._actions.invert())
         body.addWidget(btn_inv)
@@ -248,8 +250,8 @@ class HeightMapPanel:
         Button committet die Operation undo-fähig (``apply_op``). Die ``op``-Closure
         liest ihre Werte erst beim Aufruf, also stets aktuell.
         """
-        btn = _make_panel_btn(
-            tr("right_panel.height.apply"), "#2e2510", "#f0c060", "#4a3a18",
+        btn = _make_neutral_btn(
+            tr("right_panel.height.apply"),
             tr("right_panel.height.apply.tooltip"))
         btn.clicked.connect(lambda _=False: self._actions.apply_op(op))
         row = QHBoxLayout(); row.setSpacing(6)

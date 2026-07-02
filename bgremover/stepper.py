@@ -65,13 +65,18 @@ class _StepCell(QWidget):
         # Nötig, damit ein Stylesheet-Hintergrund auf einem nackten QWidget
         # tatsächlich gezeichnet wird (Fokus-Visualisierung).
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        # Ohne explizite Basis-Regel malt Qt hier sonst die native Fensterfarbe
+        # (helles Grau) statt der Stepper-Fläche durch – sichtbar als Flecken
+        # hinter jedem Schritt-Label. ``focusOutEvent`` setzt dieselbe Regel
+        # erneut, ändert also nichts am Ruhezustand.
+        self.setStyleSheet("background: transparent; border: none;")
         self.setMinimumHeight(32)
         self.setAccessibleName(step_label(step))
         lay = QHBoxLayout(self)
         lay.setContentsMargins(6, 2, 6, 2)
         lay.setSpacing(9)
         self._circle = QLabel()
-        self._circle.setFixedSize(28, 28)
+        self._circle.setFixedSize(26, 26)
         self._circle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._label = QLabel(step_label(step))
         lay.addWidget(self._circle)
@@ -106,7 +111,11 @@ class _StepCell(QWidget):
         self.setEnabled(enabled)
         p = active_palette()
         num = int(self._step)
+        # Der aktive Kreis ist 2 px größer als ausstehend/erledigt (28 vs. 26 px,
+        # Spec §6) – das gibt ihm ohne echtes ``box-shadow`` (von Qt-QSS nicht
+        # unterstützt) etwas von der Fokusring-Präsenz des Prototyps.
         if active:
+            self._circle.setFixedSize(28, 28)
             self._circle.setText(str(num))
             self._circle.setStyleSheet(
                 f"background: {p.accent}; color: {p.on_accent}; border-radius: 14px;"
@@ -115,21 +124,23 @@ class _StepCell(QWidget):
                 f"color: {p.text}; font-size: 13px; font-weight: 700;"
                 " background: transparent;")
         elif done:
+            self._circle.setFixedSize(26, 26)
             self._circle.setText("✓")
             self._circle.setStyleSheet(
                 f"background: {p.accent_soft}; color: {p.accent_text};"
-                f" border: 1px solid {p.accent_line}; border-radius: 14px;"
+                f" border: 1px solid {p.accent_line}; border-radius: 13px;"
                 " font-size: 12px; font-weight: 600;")
             self._label.setStyleSheet(
                 f"color: {p.text3}; font-size: 13px; background: transparent;")
         else:
+            self._circle.setFixedSize(26, 26)
             self._circle.setText(str(num))
             # Aktive (klickbare) ausstehende Schritte nutzen ``text3`` (≥ 4.5:1);
             # ``muted``/``divider`` bleiben den gesperrten Zellen vorbehalten (#441).
             color = p.text3 if enabled else p.divider
             self._circle.setStyleSheet(
-                f"color: {color}; border: 1px solid {p.border};"
-                " border-radius: 14px; font-size: 12px;")
+                f"background: transparent; color: {color};"
+                f" border: 1px solid {p.border}; border-radius: 13px; font-size: 12px;")
             self._label.setStyleSheet(
                 f"color: {p.text3 if enabled else p.muted}; font-size: 13px;"
                 " background: transparent;")
@@ -146,7 +157,7 @@ class Stepper(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setFixedHeight(64)
+        self.setFixedHeight(72)
         self.setStyleSheet(stepper_style(active_palette()))
         self._current = WorkflowStep.OPEN
         self._locked = False
@@ -194,9 +205,10 @@ class Stepper(QWidget):
                 active=step == self._current,
                 enabled=enabled,
             )
-        # Verbinder bis zum aktuellen Schritt einfärben.
+        # Verbinder bis zum aktuellen Schritt einfärben (Spec §6: unfilled
+        # nutzt die Haarlinie, nicht den dunkleren Divider-Ton).
         for i, conn in enumerate(self._connectors):
             # Verbinder i liegt zwischen Schritt (i+1) und (i+2).
             filled = (i + 2) <= int(self._current)
-            color = p.accent_line if filled else p.divider
+            color = p.accent_line if filled else p.hairline
             conn.setStyleSheet(f"background: {color}; border: none;")

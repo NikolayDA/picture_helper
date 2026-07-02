@@ -255,7 +255,9 @@ class RightPanel:
         self.stack.setCurrentIndex(int(step) - 1)
         self.step_title.setText(_step_title(step))
         self.step_desc.setText(_step_desc(step))
-        self.nav_next.setText(_step_next(step))
+        # QPushButton behandelt „&" sonst als Mnemonic-Marker und verschluckt es
+        # (z. B. „Relief & Ebenen" → „Relief _benen"); Labels sind reiner Text.
+        self.nav_next.setText(_step_next(step).replace("&", "&&"))
         self.nav_prev.setEnabled(step is not WorkflowStep.OPEN)
 
 
@@ -422,8 +424,9 @@ class _RightPanelBuilder:
         page.setObjectName("stepPage")
         page.setStyleSheet(f"background: {p.inspector};")
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(16, 16, 16, 16)
-        lay.setSpacing(12)
+        # Scrollbereich-Innenabstand 1:1 aus dem Prototyp (§1).
+        lay.setContentsMargins(18, 20, 18, 18)
+        lay.setSpacing(11)
 
         drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
@@ -474,7 +477,7 @@ class _RightPanelBuilder:
         v = QVBoxLayout(card)
         v.setContentsMargins(14, 13, 14, 13)
         v.setSpacing(6)
-        title = QLabel(tr("workflow.open.recent"))
+        title = QLabel(tr("workflow.open.recent").upper())
         title.setStyleSheet(section_header_style(pal))
         v.addWidget(title)
         for path in entries:
