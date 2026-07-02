@@ -13,13 +13,20 @@ from bgremover.qt_plugins import ensure_qt_plugin_path
 
 ensure_qt_plugin_path()
 
-from PyQt6.QtCore import QEvent, QObject  # noqa: E402
-from PyQt6.QtGui import QColor, QFileOpenEvent, QPalette  # noqa: E402
+from PyQt6.QtCore import QEvent, QObject, QSettings  # noqa: E402
+from PyQt6.QtGui import QFileOpenEvent  # noqa: E402
 from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from bgremover.constants import init_runtime  # noqa: E402
 from bgremover.logging_config import _setup_logging  # noqa: E402
 from bgremover.main_window import MainWindow  # noqa: E402
+from bgremover.settings_schema import THEME_KEY  # noqa: E402
+from bgremover.theme import (  # noqa: E402
+    build_app_stylesheet,
+    build_qpalette,
+    palette_for,
+    set_active_palette,
+)
 
 
 def _startup_image_paths(args: list[str]) -> list[str]:
@@ -88,21 +95,16 @@ def main() -> int:
     _setup_logging()
     app.setStyle("Fusion")
 
-    # Dunkles Farbschema
-    pal = QPalette()
-    dark = QColor(30, 30, 30)
-    pal.setColor(QPalette.ColorRole.Window,          QColor(37, 37, 37))
-    pal.setColor(QPalette.ColorRole.WindowText,      QColor(220, 220, 220))
-    pal.setColor(QPalette.ColorRole.Base,            dark)
-    pal.setColor(QPalette.ColorRole.AlternateBase,   QColor(53, 53, 53))
-    pal.setColor(QPalette.ColorRole.Text,            QColor(220, 220, 220))
-    pal.setColor(QPalette.ColorRole.Button,          QColor(53, 53, 53))
-    pal.setColor(QPalette.ColorRole.ButtonText,      QColor(220, 220, 220))
-    pal.setColor(QPalette.ColorRole.Highlight,       QColor(74, 144, 217))
-    pal.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-    pal.setColor(QPalette.ColorRole.ToolTipBase,     QColor(50, 50, 50))
-    pal.setColor(QPalette.ColorRole.ToolTipText,     QColor(220, 220, 220))
-    app.setPalette(pal)
+    # Farbschema (hell/dunkel, #428) aus den QSettings anwenden, BEVOR das Fenster
+    # gebaut wird – so lesen alle Widget-Builder die aktive Palette. Der Schlüssel
+    # ist additiv und defaultet auf „dark"; die Umschaltung zur Laufzeit läuft über
+    # MainWindow (Ansicht-Menü).
+    settings = QSettings("BgRemover", "BgRemover")
+    mode = str(settings.value(THEME_KEY, "dark"))
+    palette = palette_for(mode)
+    set_active_palette(palette)
+    app.setPalette(build_qpalette(palette))
+    app.setStyleSheet(build_app_stylesheet(palette))
 
     win = MainWindow()
     win.show()

@@ -11,6 +11,26 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Helles Design & Design-Tokens (UI-Redesign, Epic #424).** Ein zentrales,
+  token-basiertes Theming (`Palette` mit hellem und dunklem Schema) färbt die
+  gesamte Oberfläche über eine `QPalette` und ein anwendungsweites Stylesheet.
+  Über „Ansicht → Helles Design“ lässt sich zur Laufzeit zwischen Hell und Dunkel
+  umschalten; die Wahl wird in den Einstellungen gemerkt und beim Start angewendet.
+  Barrierefreiheit: Jedes interaktive Element zeigt einen sichtbaren Fokusring
+  (auch nach dem Theme-Wechsel), die Schrittleiste ist per Tastatur bedienbar
+  (Tab + Enter/Leertaste), alle Bedienziele halten Mindest-Trefferflächen ein,
+  und eine WCAG-AA-Kontrastmatrix sichert beide Farbschemata dauerhaft ab
+  (#427–#429, #441).
+- **Geführter Workflow mit Karten-Inspector (UI-Redesign, Epics #413/#418).** Die
+  rechte Spalte führt jetzt in sechs klaren Schritten durch die Bearbeitung
+  (Öffnen · Freistellen · Anpassen · Form & Maße · Relief & Ebenen · Export): eine
+  Schrittleiste oben, ein Inspector mit Schritt-Kopf und fixer Zurück/Weiter-
+  Navigation sowie eine kontextuelle Werkzeugleiste (Auswahlwerkzeuge nur im
+  Freistellen-Schritt). Die Schritte 2–6 sind gesperrt, bis ein Bild geladen ist;
+  danach wird automatisch zum Freistellen gewechselt. Die bestehende Aktions-
+  Verdrahtung (`RightPanelActions`/`LayerPanelActions`/`HeightMapActions`) bleibt
+  unverändert (#419–#422, #415–#417).
+
 - **Nutzerwählbare kombinierte 2D-Vorschau (Phase-1-Abschluss).** Der Canvas bietet
   jetzt explizite, von der aktiven Ebene unabhängige Modi für Farbe, Relief über
   Farbe, Höhe (Graustufe), Gloss und die kombinierte Ansicht. Ein auf genau ein Bild

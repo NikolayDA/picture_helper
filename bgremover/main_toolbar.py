@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QButtonGroup, QFrame, QToolButton, QVBoxLayout
@@ -20,10 +20,11 @@ from bgremover.constants import (
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.theme import (
-    HISTORY_BUTTON_STYLE,
-    TOOL_STYLE,
-    TOOLBAR_FRAME_STYLE,
-    _Theme,
+    Palette,
+    active_palette,
+    history_button_style,
+    tool_style,
+    toolbar_frame_style,
 )
 
 
@@ -57,6 +58,26 @@ class Toolbar:
     btn_lasso: QToolButton
     btn_ai: QToolButton
     btn_history: QToolButton
+    # Trenner nach den Auswahlwerkzeugen – zusammen mit btn_wand/brush/eraser/
+    # lasso schrittabhängig ein-/ausgeblendet (kontextuelle Werkzeugleiste #422).
+    sel_separator: QFrame
+    # Nach Stil gruppierte Widgetlisten für das Live-Umfärben beim Theme-Wechsel
+    # (#428): Werkzeug-/Mini-Buttons (tool_style), History-Buttons und Trenner.
+    tool_buttons: list[QToolButton] = field(default_factory=list)
+    history_buttons: list[QToolButton] = field(default_factory=list)
+    separators: list[QFrame] = field(default_factory=list)
+
+    def apply_palette(self, p: Palette) -> None:
+        """Restylt Rahmen, Buttons und Trenner für ein Schema-Umschalten (#428)."""
+        self.frame.setStyleSheet(toolbar_frame_style(p))
+        tool = tool_style(p)
+        for btn in self.tool_buttons:
+            btn.setStyleSheet(tool)
+        hist = history_button_style(p)
+        for btn in self.history_buttons:
+            btn.setStyleSheet(hist)
+        for sep in self.separators:
+            sep.setStyleSheet(f"color:{p.border}")
 
 
 def build_toolbar(actions: ToolbarActions, *, rembg_available: bool) -> Toolbar:
@@ -68,11 +89,16 @@ class _ToolbarBuilder:
     def __init__(self, actions: ToolbarActions, *, rembg_available: bool) -> None:
         self._actions = actions
         self._rembg_available = rembg_available
+        self._pal = active_palette()
+        # Nach Stil gruppierte Widgetlisten für das spätere Live-Umfärben (#428).
+        self._tool_buttons: list[QToolButton] = []
+        self._history_buttons: list[QToolButton] = []
+        self._separators: list[QFrame] = []
 
     def build(self) -> Toolbar:
         frame = QFrame()
         frame.setFixedWidth(_TOOLBAR_WIDTH)
-        frame.setStyleSheet(TOOLBAR_FRAME_STYLE)
+        frame.setStyleSheet(toolbar_frame_style(self._pal))
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(9, 16, 9, 16)
         lay.setSpacing(8)
@@ -110,7 +136,7 @@ class _ToolbarBuilder:
         )
         btn_wand.setChecked(True)
 
-        self._add_separator(lay)
+        sel_separator = self._add_separator(lay)
 
         btn_ai = QToolButton()
         btn_ai.setIcon(make_tool_icon("ai", 38))
@@ -121,9 +147,10 @@ class _ToolbarBuilder:
             tr("toolbar.ai.missing.tooltip")
         )
         btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        btn_ai.setStyleSheet(TOOL_STYLE)
+        btn_ai.setStyleSheet(tool_style(self._pal))
         btn_ai.setEnabled(self._rembg_available)
         btn_ai.clicked.connect(self._actions.run_ai)
+        self._tool_buttons.append(btn_ai)
         lay.addWidget(btn_ai, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self._add_separator(lay)
@@ -171,6 +198,10 @@ class _ToolbarBuilder:
             btn_lasso=btn_lasso,
             btn_ai=btn_ai,
             btn_history=btn_history,
+            sel_separator=sel_separator,
+            tool_buttons=self._tool_buttons,
+            history_buttons=self._history_buttons,
+            separators=self._separators,
         )
 
     def _tool_button(
@@ -187,9 +218,10 @@ class _ToolbarBuilder:
         b.setToolTip(tip)
         b.setCheckable(True)
         b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        b.setStyleSheet(TOOL_STYLE)
+        b.setStyleSheet(tool_style(self._pal))
         b.clicked.connect(lambda checked=False, t=tool: self._actions.set_tool(t))
         button_group.addButton(b)
+        self._tool_buttons.append(b)
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
@@ -205,8 +237,9 @@ class _ToolbarBuilder:
         b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
         b.setToolTip(tip)
         b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        b.setStyleSheet(HISTORY_BUTTON_STYLE)
+        b.setStyleSheet(history_button_style(self._pal))
         b.clicked.connect(slot)
+        self._history_buttons.append(b)
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
@@ -222,16 +255,18 @@ class _ToolbarBuilder:
         b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
         b.setToolTip(tip)
         b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        b.setStyleSheet(TOOL_STYLE)
+        b.setStyleSheet(tool_style(self._pal))
         b.clicked.connect(slot)
+        self._tool_buttons.append(b)
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
-    @staticmethod
-    def _add_separator(lay: QVBoxLayout) -> None:
+    def _add_separator(self, lay: QVBoxLayout) -> QFrame:
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet(f"color:{_Theme.BORDER}")
+        sep.setStyleSheet(f"color:{self._pal.border}")
         lay.addSpacing(4)
         lay.addWidget(sep)
         lay.addSpacing(4)
+        self._separators.append(sep)
+        return sep

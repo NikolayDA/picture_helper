@@ -57,6 +57,9 @@ class _FakeApp:
     def setPalette(self, palette) -> None:
         self.calls["palette"] = palette
 
+    def setStyleSheet(self, sheet) -> None:
+        self.calls["stylesheet"] = sheet
+
     def quit(self) -> None:
         self.calls["quit"] = True
 

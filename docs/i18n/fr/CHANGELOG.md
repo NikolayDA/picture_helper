@@ -11,6 +11,25 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Thème clair et jetons de design (refonte de l'interface, épopée #424).** Un
+  système de thèmes centralisé et basé sur des jetons (une `Palette` avec un
+  schéma clair et un schéma sombre) colore toute l'interface via une `QPalette` et
+  une feuille de style à l'échelle de l'application. « Affichage → Thème clair »
+  permet de basculer entre clair et sombre à l'exécution ; le choix est mémorisé
+  dans les réglages et appliqué au démarrage. Accessibilité : chaque élément
+  interactif affiche un anneau de focus visible (y compris après un changement de
+  thème), la barre d'étapes se pilote au clavier (Tab + Entrée/Espace), toutes les
+  commandes respectent des tailles de cible minimales et une matrice de contraste
+  WCAG AA protège durablement les deux schémas de couleurs (#427–#429, #441).
+- **Flux guidé avec inspecteur en cartes (refonte de l'interface, épopées #413/#418).**
+  La colonne de droite guide désormais l'édition en six étapes claires (Ouvrir ·
+  Détourer · Ajuster · Forme et dimensions · Relief et calques · Exporter) : une barre
+  d'étapes en haut, un inspecteur avec en-tête d'étape et une navigation fixe
+  Précédent/Suivant, ainsi qu'une barre d'outils contextuelle (outils de sélection
+  uniquement à l'étape de détourage). Les étapes 2 à 6 restent verrouillées tant
+  qu'aucune image n'est chargée ; le chargement passe automatiquement à l'étape de
+  détourage. Le câblage des actions existant est inchangé (#419–#422, #415–#417).
+
 - **Aperçu 2D combiné sélectionnable par l'utilisateur (fin de phase 1).** Le
   canevas propose désormais les modes explicites Couleur, Relief sur couleur,
   Hauteur (niveaux de gris), Gloss et Combiné, indépendants du calque actif. Un

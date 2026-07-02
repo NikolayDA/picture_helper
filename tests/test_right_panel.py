@@ -3,7 +3,15 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from PyQt6.QtWidgets import QComboBox, QPushButton, QSlider, QSpinBox, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QSpinBox,
+    QWidget,
+)
 
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
@@ -13,7 +21,7 @@ from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
-from bgremover.widgets import TopIconTabWidget
+from bgremover.stepper import WorkflowStep
 
 
 def _button(panel_frame, text: str) -> QPushButton:
@@ -76,28 +84,184 @@ def _actions(calls: list[tuple]) -> RightPanelActions:
         set_preview_mode=lambda mode: calls.append(("preview_mode", mode)),
         set_relief_strength=lambda value: calls.append(("relief_strength", value)),
         set_gloss_visible=lambda visible: calls.append(("gloss_visible", visible)),
+        run_ai=lambda: calls.append(("run_ai",)),
+        apply_resize=lambda w, h: calls.append(("apply_resize", w, h)),
+        save=lambda: calls.append(("save",)),
+        export_eufymake=lambda: calls.append(("export_eufymake",)),
+        set_save_format=lambda fmt: calls.append(("save_format", fmt)),
     )
 
 
-def test_right_panel_builder_creates_expected_tabs(qapp):
+def test_right_panel_builder_creates_stepped_pages(qapp):
+    """Der Inspector ist ein 6-Schritte-Stack mit Kopf + Navigation (Epic #418)."""
+    from PyQt6.QtWidgets import QStackedWidget
+
     panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
 
-    tabs = panel.frame.findChild(TopIconTabWidget)
-    assert tabs is not None
-    assert tabs.count() == 8
-    assert [tabs.tabText(i) for i in range(tabs.count())] == [
-        "Vorschau", "Auswahl", "Hintergrund", "Anpassen", "Drehen/Spiegeln",
-        "Form", "Ebenen", "Höhe",
+    assert isinstance(panel.stack, QStackedWidget)
+    assert panel.stack.count() == 6
+
+    # Start: Schritt 1 (Öffnen) – Zurück deaktiviert, Weiter nennt das nächste Ziel.
+    assert panel.stack.currentIndex() == 0
+    assert not panel.nav_prev.isEnabled()
+    assert panel.nav_next.text() == "Weiter: Freistellen →"
+
+    # Schritt wechseln: Stack, Kopf und Weiter-Beschriftung folgen.
+    panel.set_step(WorkflowStep.CUTOUT)
+    assert panel.stack.currentIndex() == 1
+    assert panel.step_title.text() == "Schritt 2 · Freistellen"
+    assert panel.nav_next.text() == "Weiter: Anpassen →"
+    assert panel.nav_prev.isEnabled()
+
+    panel.set_step(WorkflowStep.EXPORT)
+    assert panel.nav_next.text() == "Exportieren ✓"
+
+
+def test_step_pages_single_scroll(qapp):
+    """Kein Doppel-Scroll: Tab-Inhalte scrollen nicht selbst; eine Ein-Tab-Seite
+    hat genau einen Scrollbereich (#440)."""
+    from unittest.mock import MagicMock
+
+    from PyQt6.QtWidgets import QScrollArea
+
+    from bgremover.right_panel_tabs import SelectionTab, ShapeTab
+
+    for tab_cls in (SelectionTab, ShapeTab):
+        widget, _refs = tab_cls(MagicMock()).build()
+        assert widget.findChildren(QScrollArea) == []
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    adjust_page = panel.stack.widget(int(WorkflowStep.ADJUST) - 1)
+    assert len(adjust_page.findChildren(QScrollArea)) == 1
+
+
+def test_step2_ai_and_step6_save_export_delegate(qapp):
+    """KI-Button (S2) und Speichern/Format/EufyMake (S6) rufen ihre Callbacks (§9)."""
+    calls: list[tuple] = []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions())
+
+    _button(panel.frame, "Hintergrund automatisch entfernen (KI)").click()
+    _button(panel.frame, "JPEG").click()
+    _button(panel.frame, "Bild speichern").click()
+    _button(panel.frame, "Assets für EufyMake Studio exportieren…").click()
+
+    assert ("run_ai",) in calls
+    assert ("save_format", "JPEG") in calls
+    assert ("save",) in calls
+    assert ("export_eufymake",) in calls
+
+
+def test_open_step_recent_card_delegates(qapp, tmp_path):
+    """Die Karte „Zuletzt geöffnet" öffnet den geklickten Eintrag (§9 Schritt 1)."""
+    opened: list[str] = []
+    a, b = str(tmp_path / "a.png"), str(tmp_path / "b.jpg")
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        recent=[a, b], on_open_path=lambda p: opened.append(p))
+
+    _button(panel.frame, "a.png").click()
+    assert opened == [a]
+
+
+def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
+    """Alle Sektionsköpfe nutzen dasselbe Blau; jede Sektion ist eine Karte (#415/#416)."""
+    from bgremover.theme import _Theme
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    headers = [
+        lbl for lbl in panel.frame.findChildren(QLabel)
+        if "border-left" in lbl.styleSheet()
     ]
+    assert headers, "keine Sektionsköpfe gefunden"
+    removed = (
+        "#e05555", "#e09a30", "#9060d0", "#c08adf",
+        "#65a9e8", "#d07ac0", "#30c060", "#30a0a0",
+    )
+    for lbl in headers:
+        style = lbl.styleSheet()
+        assert _Theme.ACCENT in style, style
+        for old in removed:
+            assert old not in style, f"Alt-Akzent {old} noch vorhanden"
+
+    cards = [
+        f for f in panel.frame.findChildren(QFrame)
+        if f.objectName() == "sectionCard"
+    ]
+    assert cards, "keine Karten-Sektionen gefunden"
+
+
+@pytest.mark.ui_smoke
+def test_panel_buttons_not_clipped_at_min_width(qapp):
+    """Kein Button schneidet seinen Text bei Mindestfensterbreite ab (#417)."""
+    from PyQt6.QtGui import QFontMetrics
+    from PyQt6.QtWidgets import QMainWindow, QPushButton
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    win = QMainWindow()
+    win.setCentralWidget(panel.frame)
+    win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+    win.show()
+    qapp.processEvents()
+    try:
+        for step in WorkflowStep:
+            panel.set_step(step)
+            qapp.processEvents()
+            for button in panel.frame.findChildren(QPushButton):
+                if not button.isVisible() or not button.text().strip():
+                    continue
+                needed = QFontMetrics(button.font()).horizontalAdvance(button.text())
+                # Der reine Text muss in die Button-Box passen (echte Clipping-
+                # Bedingung; Innenabstand zentriert lediglich).
+                assert needed <= button.width(), (
+                    step.name, button.text(), needed, button.width())
+    finally:
+        win.hide()
+
+
+def test_open_step_drop_frame_forwards_image_path(qapp, tmp_path):
+    """Das Ablagefeld in Schritt 1 leitet abgelegte Bildpfade weiter (PR #423)."""
+    from PyQt6.QtCore import QMimeData, QUrl
+
+    from bgremover.right_panel import _DropFrame
+
+    dropped: list[str] = []
+    frame = _DropFrame(on_open=None, on_open_path=lambda p: dropped.append(p))
+    assert frame.acceptDrops() is True
+
+    class _Evt:
+        def __init__(self, mime: QMimeData) -> None:
+            self._mime = mime
+
+        def mimeData(self) -> QMimeData:
+            return self._mime
+
+        def acceptProposedAction(self) -> None:
+            pass
+
+    png = QMimeData()
+    png.setUrls([QUrl.fromLocalFile(str(tmp_path / "motiv.png"))])
+    frame.dropEvent(_Evt(png))  # type: ignore[arg-type]
+    assert dropped == [str(tmp_path / "motiv.png")]
+
+    # Nicht-Bild-Ablage wird ignoriert.
+    txt = QMimeData()
+    txt.setUrls([QUrl.fromLocalFile(str(tmp_path / "notiz.txt"))])
+    frame.dropEvent(_Evt(txt))  # type: ignore[arg-type]
+    assert dropped == [str(tmp_path / "motiv.png")]
 
 
 def test_right_panel_controls_delegate_to_callbacks(qapp):
     calls: list[tuple] = []
     panel = build_right_panel(_actions(calls), _noop_layer_actions(), _noop_height_actions())
 
-    panel.preview_mode_combo.setCurrentIndex(
-        panel.preview_mode_combo.findData(PreviewMode.RELIEF)
-    )
+    _button(panel.frame, "Relief").click()
     panel.preview_relief_slider.setValue(35)
     panel.preview_gloss_visible.setChecked(False)
     panel.tolerance_slider.setValue(42)
@@ -118,14 +282,14 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
-    _button(panel.frame, "Größe ändern…").click()
+    _button(panel.frame, "Größe anwenden").click()
 
     panel.corner_slider.setValue(12)
     _button(panel.frame, "Ecken abrunden").click()
     _button(panel.frame, "⬤  Kreis").click()
-    _button(panel.frame, "■  1 : 1").click()
-    _button(panel.frame, "▬  16 : 9").click()
-    _button(panel.frame, "▮  9 : 16").click()
+    _button(panel.frame, "1:1").click()
+    _button(panel.frame, "16:9").click()
+    _button(panel.frame, "9:16").click()
 
     assert calls == [
         ("preview_mode", PreviewMode.RELIEF),
@@ -146,7 +310,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
         ("rotate", 33),
         ("flip", True),
         ("flip", False),
-        ("resize",),
+        ("apply_resize", 1200, 900),
         ("round", 12),
         ("crop_circle",),
         ("crop_ratio", 1, 1),
@@ -161,19 +325,20 @@ def test_preview_tab_controls_and_export_hint(qapp) -> None:
 
     calls: list[tuple] = []
     _widget, refs = PreviewTab(_actions(calls)).build()
-    combo = refs["preview_mode_combo"]
+    segments = refs["preview_mode_segments"]
     slider = refs["preview_relief_slider"]
     gloss = refs["preview_gloss_visible"]
 
-    combo.setCurrentIndex(combo.findData(PreviewMode.COMBINED))
+    _button(_widget, "Relief").click()
     slider.setValue(15)
     gloss.setChecked(False)
 
     assert calls == [
-        ("preview_mode", PreviewMode.COMBINED),
+        ("preview_mode", PreviewMode.RELIEF),
         ("relief_strength", 15),
         ("gloss_visible", False),
     ]
+    assert segments.current_mode() is PreviewMode.RELIEF
     assert "Bild speichern" in refs["preview_export_hint"].text()
 
 
@@ -496,3 +661,125 @@ def test_height_panel_is_mode_contextual(qapp):
     panel.refresh([])
     assert not _button(widget, "Aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+# ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
+
+
+def _full_panel(calls: list[tuple], opened: list[bool] | None = None):
+    """Panel mit Öffnen-Seite (Ablagefeld + Recent-Karte) und Ebenen-Zeile."""
+    open_log = opened if opened is not None else []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions(),
+        on_open=lambda: open_log.append(True),
+        on_open_path=lambda _p: None,
+        recent=["/tmp/a.png"],
+    )
+    # Eine Ebenen-Zeile einblenden, damit auch die Zeilen-Buttons geprüft werden.
+    panel.layer_panel.refresh([
+        LayerInfo(id="c", name="Farbe", kind=LayerKind.COLOR, visible=True,
+                  opacity=1.0, locked=False, role=None, active=True),
+    ])
+    return panel
+
+
+def test_buttons_with_custom_border_define_their_own_focus_state(qapp):
+    """#441: Wer im Inline-Stylesheet ``border`` anfasst, muss ``:focus`` liefern.
+
+    Widget-Stylesheets haben bei ``border``-Konflikten Vorrang vor der
+    App-QSS-Fokusregel; ohne eigenen ``:focus``-Block bliebe der Fokus dort
+    unsichtbar. Geprüft über alle Buttons aller sechs Schritt-Seiten.
+    """
+    from PyQt6.QtWidgets import QToolButton
+
+    panel = _full_panel([])
+    offenders = [
+        f"{type(w).__name__}({w.text()!r} / {w.objectName()!r})"
+        for cls in (QPushButton, QToolButton)
+        for w in panel.frame.findChildren(cls)
+        if "border" in w.styleSheet() and ":focus" not in w.styleSheet()
+    ]
+    assert not offenders, f"Buttons ohne sichtbaren Fokuszustand: {offenders}"
+
+
+def test_drop_frame_opens_via_keyboard(qapp):
+    """#441: Enter/Leertaste auf dem Ablagefeld öffnen den Datei-Dialog."""
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
+
+    from bgremover.right_panel import _DropFrame
+
+    opened: list[bool] = []
+    panel = _full_panel([], opened)
+    drop = panel.frame.findChild(_DropFrame)
+    assert drop is not None
+    assert drop.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    QTest.keyClick(drop, Qt.Key.Key_Return)
+    QTest.keyClick(drop, Qt.Key.Key_Space)
+    assert opened == [True, True]
+
+
+@pytest.mark.ui_smoke
+def test_interactive_targets_meet_minimum_hit_size(qapp):
+    """#441: Sichtbare interaktive Ziele sind ≥ 24 px hoch, primäre ≥ 32 px.
+
+    Dokumentierte Ausnahmen: **Slider** (Klickziel ist der gesamte Groove, der
+    14-px-Griff allein zählt nicht) und das **Ablagefeld** (Maus-Komfort;
+    der Tastatur-/Primärpfad ist der „Datei öffnen…"-Button, plus Enter/Space
+    direkt auf dem Feld).
+    """
+    from PyQt6.QtWidgets import QCheckBox, QMainWindow, QToolButton
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+
+    panel = _full_panel([])
+    win = QMainWindow()
+    win.setCentralWidget(panel.frame)
+    win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+    win.show()
+    qapp.processEvents()
+    try:
+        for step in WorkflowStep:
+            panel.set_step(step)
+            qapp.processEvents()
+            targets = [
+                w
+                for cls in (QPushButton, QToolButton, QSpinBox, QComboBox, QCheckBox)
+                for w in panel.frame.findChildren(cls)
+                if w.isVisible()
+            ]
+            assert targets, f"Schritt {step.name}: keine sichtbaren Ziele"
+            for w in targets:
+                label = f"{step.name}: {type(w).__name__}({w.text() if hasattr(w, 'text') else ''!r})"
+                assert w.height() >= 24, f"{label} nur {w.height()} px hoch"
+                assert w.width() >= 24, f"{label} nur {w.width()} px breit"
+        # Primäre Workflow-Controls: bevorzugt ≥ 32 px (Spec #441).
+        panel.set_step(WorkflowStep.OPEN)
+        qapp.processEvents()
+        assert panel.open_button.height() >= 32
+        assert panel.nav_next.height() >= 32
+    finally:
+        win.close()
+
+
+@pytest.mark.ui_smoke
+def test_open_page_tab_order_is_visual_order(qapp):
+    """#441: Fokuskette der Öffnen-Seite: Ablagefeld → „Datei öffnen…" → Recent."""
+    from bgremover.right_panel import _DropFrame
+
+    panel = _full_panel([])
+    drop = panel.frame.findChild(_DropFrame)
+    recent_row = _button(panel.frame, "a.png")
+    assert drop is not None
+
+    order: list[str] = []
+    widget = drop
+    for _ in range(200):  # Kette ist zyklisch; harte Obergrenze
+        if widget is panel.open_button:
+            order.append("open")
+        elif widget is recent_row:
+            order.append("recent")
+        widget = widget.nextInFocusChain()
+        if widget is drop or widget is None:
+            break
+    assert order[:2] == ["open", "recent"]
