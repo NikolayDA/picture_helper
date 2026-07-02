@@ -760,3 +760,26 @@ def test_interactive_targets_meet_minimum_hit_size(qapp):
         assert panel.nav_next.height() >= 32
     finally:
         win.close()
+
+
+@pytest.mark.ui_smoke
+def test_open_page_tab_order_is_visual_order(qapp):
+    """#441: Fokuskette der Öffnen-Seite: Ablagefeld → „Datei öffnen…" → Recent."""
+    from bgremover.right_panel import _DropFrame
+
+    panel = _full_panel([])
+    drop = panel.frame.findChild(_DropFrame)
+    recent_row = _button(panel.frame, "a.png")
+    assert drop is not None
+
+    order: list[str] = []
+    widget = drop
+    for _ in range(200):  # Kette ist zyklisch; harte Obergrenze
+        if widget is panel.open_button:
+            order.append("open")
+        elif widget is recent_row:
+            order.append("recent")
+        widget = widget.nextInFocusChain()
+        if widget is drop or widget is None:
+            break
+    assert order[:2] == ["open", "recent"]

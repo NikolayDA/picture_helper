@@ -469,6 +469,8 @@ def test_pick_color_updates_background_when_valid(win, monkeypatch):
     win._pick_color()
     assert win._bg_color == QColor(10, 20, 30)
     assert "#0a141e" in win._color_btn.styleSheet()
+    # Das Neu-Setzen des Swatch-Stils darf den Fokuszustand nicht verlieren (#441).
+    assert ":focus" in win._color_btn.styleSheet()
 
 
 def test_pick_color_keeps_background_when_invalid(win, monkeypatch):

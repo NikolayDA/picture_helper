@@ -205,3 +205,30 @@ def test_stepper_cells_meet_minimum_hit_size(qapp):
     for cell in stepper._cells.values():
         assert cell.minimumHeight() >= 32
         assert cell._circle.width() == cell._circle.height() == 28
+
+
+@pytest.mark.ui_smoke
+def test_stepper_tab_order_follows_step_sequence(qapp):
+    """#441: Die Tab-Reihenfolge der Schrittleiste folgt der Schrittfolge 1→6."""
+    from bgremover.stepper import _StepCell
+
+    stepper = Stepper()
+    chain: list[int] = []
+    widget = stepper._cells[WorkflowStep.OPEN]
+    start = widget
+    while True:
+        if isinstance(widget, _StepCell):
+            chain.append(int(widget._step))
+        widget = widget.nextInFocusChain()
+        if widget is start or widget is None:
+            break
+    assert chain == [1, 2, 3, 4, 5, 6]
+
+
+@pytest.mark.ui_smoke
+def test_toolbar_buttons_meet_minimum_hit_size(window):
+    """#441: Werkzeugleisten-Buttons sind großzügige Ziele (54 px ≥ 32 px)."""
+    tb = window.toolbar
+    for btn in (tb.btn_wand, tb.btn_brush, tb.btn_eraser, tb.btn_lasso,
+                tb.btn_ai, tb.btn_history):
+        assert btn.width() >= 32 and btn.height() >= 32

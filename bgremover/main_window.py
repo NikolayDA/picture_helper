@@ -1176,8 +1176,17 @@ class MainWindow(QMainWindow):
             self._update_color_btn()
 
     def _update_color_btn(self) -> None:
+        """Färbt den Swatch – und erhält dabei Hover-/Fokus-Sichtbarkeit (#441).
+
+        Ein nacktes ``setStyleSheet`` würde die ``:focus``-Regel des Panel-Builders
+        überschreiben; deshalb werden die Zustandsregeln hier mitgesetzt.
+        """
+        accent = active_palette().accent
         self._color_btn.setStyleSheet(
-            f"background: {self._bg_color.name()}; border-radius: 5px; border: 2px solid #555;"
+            "QPushButton { background: " + self._bg_color.name() + ";"
+            " border-radius: 5px; border: 2px solid #555; }"
+            f"QPushButton:hover {{ border-color: {accent}; }}"
+            f"QPushButton:focus {{ outline: none; border-color: {accent}; }}"
         )
 
     def _run_ai(self) -> None:

@@ -60,3 +60,49 @@ def test_update_and_double_click_use_one_based_history_index(qapp, popup_fixture
     popup._history_list.itemDoubleClicked.emit(item)
 
     assert jumps == [2]
+
+
+def test_enter_jumps_to_selected_entry(qapp, popup_fixture):
+    """#441: Enter/Return springt zum gewählten Eintrag (Tastaturpfad).
+
+    Bewusst über Widget-Shortcuts statt ``itemActivated``: Letzteres feuert
+    plattformabhängig auch beim Doppelklick, und ``undo_to`` ist **relativ** –
+    ein Doppel-Sprung wäre ein Bug.
+    """
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
+
+    popup, _anchor, jumps = popup_fixture
+    popup.toggle()
+    popup.update_entries(["Current", "Previous", "Original"])
+
+    lst = popup._history_list
+    assert lst is not None
+    lst.setCurrentRow(2)
+    QTest.keyClick(lst, Qt.Key.Key_Return)
+    assert jumps == [3]
+    # Ohne Auswahl bleibt Enter wirkungslos (kein Sprung ins Leere).
+    lst.setCurrentRow(-1)
+    QTest.keyClick(lst, Qt.Key.Key_Return)
+    assert jumps == [3]
+
+
+def test_popup_follows_active_palette(qapp, popup_fixture):
+    """#428/#441: Das lazy gebaute Popup wird bei jedem Öffnen neu gestylt."""
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    popup, _anchor, _jumps = popup_fixture
+    try:
+        popup.toggle()  # dunkel gebaut
+        assert popup._history_list is not None
+        assert DARK.tabbar in popup._history_list.styleSheet()
+        assert ":focus" in popup._history_list.styleSheet()
+
+        popup.toggle()  # schließen
+        set_active_palette(LIGHT)
+        popup.toggle()  # erneut öffnen → helle Stile
+        assert LIGHT.tabbar in popup._history_list.styleSheet()
+        assert popup._popup is not None
+        assert LIGHT.inspector in popup._popup.styleSheet()
+    finally:
+        set_active_palette(DARK)
