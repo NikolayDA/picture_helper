@@ -279,6 +279,16 @@ class ImageCanvas(QGraphicsView):
         """Ob Gloss in Gloss-/Kombiniert-Modi sichtbar ist."""
         return self._gloss_visible
 
+    @property
+    def selection_tolerance(self) -> int:
+        """Aktuelle Zauberstab-Toleranz als UI-Wert."""
+        return self._tolerance
+
+    @property
+    def brush_size(self) -> int:
+        """Aktueller Pinsel-Durchmesser als UI-Wert."""
+        return self._brush_r * 2
+
     def set_preview_mode(self, mode: PreviewMode) -> None:
         """Wechselt den Vorschaumodus ohne Modell-, History- oder Exportänderung."""
         if not isinstance(mode, PreviewMode):

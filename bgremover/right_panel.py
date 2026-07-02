@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -231,12 +231,15 @@ class RightPanel:
     nav_prev: QPushButton
     nav_next: QPushButton
     open_button: QPushButton
+    ai_button: QPushButton
     # Von Tab-Bausteinen weitergereichte Widgets (unveränderte Verdrahtung)
     tolerance_label: QLabel
     tolerance_slider: QSlider
     brush_label: QLabel
     brush_slider: QSlider
     morph_spin: QSpinBox
+    resize_w: QSpinBox
+    resize_h: QSpinBox
     color_button: QPushButton
     rotation_slider: QSlider
     rotation_spin: QSpinBox
@@ -260,6 +263,20 @@ class RightPanel:
         self.nav_next.setText(_step_next(step).replace("&", "&&"))
         self.nav_prev.setEnabled(step is not WorkflowStep.OPEN)
 
+    def set_selection_values(self, *, tolerance: int, brush_size: int) -> None:
+        """Spiegelt Canvas-Auswahlwerte nach einem Panel-Neuaufbau ohne Feedback."""
+        _set_value_silently(self.tolerance_slider, tolerance)
+        self.tolerance_label.setText(
+            tr("right_panel.selection.tolerance", value=tolerance))
+        _set_value_silently(self.brush_slider, brush_size)
+        self.brush_label.setText(
+            tr("right_panel.selection.brush_size", value=brush_size))
+
+    def set_project_size(self, width: int, height: int) -> None:
+        """Spiegelt die aktuelle Projektgröße in die Inline-Resize-Felder."""
+        _set_value_silently(self.resize_w, width)
+        _set_value_silently(self.resize_h, height)
+
 
 def build_right_panel(
     actions: RightPanelActions,
@@ -269,9 +286,19 @@ def build_right_panel(
     on_open: Callable[[], None] | None = None,
     on_open_path: Callable[[str], None] | None = None,
     recent: list[str] | None = None,
+    rembg_available: bool = True,
 ) -> RightPanel:
     return _RightPanelBuilder(
-        actions, layer_actions, height_actions, on_open, on_open_path, recent).build()
+        actions, layer_actions, height_actions, on_open, on_open_path, recent,
+        rembg_available).build()
+
+
+def _set_value_silently(widget: QSlider | QSpinBox, value: int) -> None:
+    blocker = QSignalBlocker(widget)
+    try:
+        widget.setValue(value)
+    finally:
+        del blocker
 
 
 class _RightPanelBuilder:
@@ -285,11 +312,13 @@ class _RightPanelBuilder:
         on_open: Callable[[], None] | None,
         on_open_path: Callable[[str], None] | None,
         recent: list[str] | None,
+        rembg_available: bool,
     ) -> None:
         self._actions = actions
         self._on_open = on_open
         self._on_open_path = on_open_path
         self._recent = recent or []
+        self._rembg_available = rembg_available
         self._layer_panel = LayerPanel(layer_actions)
         self._height_panel = HeightMapPanel(height_actions)
 
@@ -298,7 +327,8 @@ class _RightPanelBuilder:
 
         # Tab-Bausteine bauen (Aktions-Verdrahtung unverändert).
         preview_w, preview_refs = PreviewTab(self._actions).build()
-        sel_w, sel_refs = SelectionTab(self._actions).build()
+        sel_w, sel_refs = SelectionTab(
+            self._actions, rembg_available=self._rembg_available).build()
         bg_w, bg_refs = BackgroundTab(self._actions).build()
         adjust_w, adjust_refs = AdjustTab(self._actions).build()
         transform_w, transform_refs = TransformTab(self._actions).build()
@@ -351,11 +381,14 @@ class _RightPanelBuilder:
             nav_prev=nav_prev,
             nav_next=nav_next,
             open_button=open_button,
+            ai_button=cast(QPushButton, refs["ai_remove"]),
             tolerance_label=cast(QLabel, refs["tolerance_label"]),
             tolerance_slider=cast(QSlider, refs["tolerance_slider"]),
             brush_label=cast(QLabel, refs["brush_label"]),
             brush_slider=cast(QSlider, refs["brush_slider"]),
             morph_spin=cast(QSpinBox, refs["morph_spin"]),
+            resize_w=cast(QSpinBox, refs["resize_w"]),
+            resize_h=cast(QSpinBox, refs["resize_h"]),
             color_button=cast(QPushButton, refs["color_button"]),
             rotation_slider=cast(QSlider, refs["rotation_slider"]),
             rotation_spin=cast(QSpinBox, refs["rotation_spin"]),

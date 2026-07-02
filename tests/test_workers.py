@@ -823,8 +823,12 @@ def test_load_image_async_reports_pending_ai_cancellation(qapp, monkeypatch) -> 
     endet, bleibt der KI-Button kurz deaktiviert. Die Statusleiste muss diesen
     Übergangszustand anzeigen und nach Threadende sauber abschließen.
     """
+    monkeypatch.setattr("bgremover.main_window.REMBG_AVAILABLE", True)
     win = MainWindow()
     try:
+        win._canvas.apply_loaded_image(
+            Image.new("RGBA", (4, 4), (10, 20, 30, 255)), "src.png")
+
         class RunningThread:
             @staticmethod
             def isRunning() -> bool:
@@ -850,10 +854,13 @@ def test_load_image_async_reports_pending_ai_cancellation(qapp, monkeypatch) -> 
         assert worker.cancelled
         assert win.statusBar().currentMessage() == SM.KI_ABBRUCH_WARTET
 
+        win._worker_controller.ai_thread = None
+        win._worker_controller.ai_worker = None
         win._on_ai_thread_finished()
 
         assert win.statusBar().currentMessage() == SM.KI_ABGEBROCHEN
         assert win._toolbar.btn_ai.isEnabled()
+        assert win._right_panel.ai_button.isEnabled()
     finally:
         win._worker_controller.ai_thread = None
         win._worker_controller.ai_worker = None

@@ -254,8 +254,11 @@ class PreviewTab:
 class SelectionTab:
     """Werkzeug-Hinweise, Toleranz/Pinsel, Morphologie."""
 
-    def __init__(self, actions: RightPanelActions) -> None:
+    def __init__(
+        self, actions: RightPanelActions, *, rembg_available: bool = True,
+    ) -> None:
         self._actions = actions
+        self._rembg_available = rembg_available
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
@@ -263,8 +266,11 @@ class SelectionTab:
         # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Umbruch, da die
         # DE-Beschriftung bei 332 px Panelbreite die Button-Fläche sprengt.
         btn_ai = _make_primary_btn(
-            tr("right_panel.ai.remove"), tr("right_panel.ai.remove.tooltip"),
+            tr("right_panel.ai.remove"),
+            (tr("right_panel.ai.remove.tooltip")
+             if self._rembg_available else tr("toolbar.ai.missing.tooltip")),
             icon_name="ai", wrap=True)
+        btn_ai.setEnabled(self._rembg_available)
         btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
         layout.addWidget(btn_ai)
 
