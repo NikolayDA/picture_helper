@@ -155,6 +155,18 @@ def test_step2_ai_and_step6_save_export_delegate(qapp):
     assert ("export_eufymake",) in calls
 
 
+def test_step2_ai_button_respects_rembg_availability(qapp):
+    """#446: Der Inspector-KI-Button ist ohne rembg wie die Toolbar gesperrt."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        rembg_available=False)
+
+    ai_button = _button(panel.frame, "Hintergrund automatisch entfernen (KI)")
+    assert ai_button is panel.ai_button
+    assert not ai_button.isEnabled()
+    assert "rembg" in ai_button.toolTip()
+
+
 def test_open_step_recent_card_delegates(qapp, tmp_path):
     """Die Karte „Zuletzt geöffnet" öffnet den geklickten Eintrag (§9 Schritt 1)."""
     opened: list[str] = []
