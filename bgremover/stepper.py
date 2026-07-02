@@ -51,8 +51,8 @@ class _StepCell(QWidget):
 
     Tastaturbedienbar (#441): Die Zelle ist fokussierbar (Tab-Reihenfolge),
     Enter/Leertaste aktivieren sie wie ein Klick, und der Fokus wird als
-    akzentgetönte Fläche sichtbar gemacht. Gesperrte Zellen sind deaktiviert
-    und fallen damit aus der Tab-Reihenfolge heraus.
+    akzentgetönte, rahmenlose Fläche sichtbar gemacht. Gesperrte Zellen sind
+    deaktiviert und fallen damit aus der Tab-Reihenfolge heraus.
     """
 
     clicked = pyqtSignal(int)
@@ -96,10 +96,14 @@ class _StepCell(QWidget):
         super().keyPressEvent(event)
 
     def focusInEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        # Bewusst nur getönte Fläche, kein Rahmen: die selektorlosen
+        # Zell-Regeln gelten in Qt auch für Kreis und Label – ein ``border``
+        # hier erschien deshalb doppelt (Zelle + Label) um den aktiven
+        # Schritt. ``border: none`` bleibt als Schild gegen das
+        # ``border-bottom`` der Stepper-Fläche stehen.
         p = active_palette()
         self.setStyleSheet(
-            f"background: {p.accent_soft}; border: 1px solid {p.accent_line};"
-            " border-radius: 8px;")
+            f"background: {p.accent_soft}; border: none; border-radius: 8px;")
         super().focusInEvent(event)
 
     def focusOutEvent(self, event) -> None:  # noqa: N802 (Qt-Override)

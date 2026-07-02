@@ -178,7 +178,7 @@ def test_stepper_locked_cells_are_not_focusable(qapp):
 
 @pytest.mark.ui_smoke
 def test_stepper_focus_visual_uses_accent(qapp):
-    """Der Tastaturfokus ist als akzentgetönte Fläche sichtbar – je Schema."""
+    """Der Tastaturfokus ist als akzentgetönte, rahmenlose Fläche sichtbar – je Schema."""
     from PyQt6.QtCore import QEvent
     from PyQt6.QtGui import QFocusEvent
 
@@ -190,7 +190,13 @@ def test_stepper_focus_visual_uses_accent(qapp):
             stepper = Stepper()
             cell = stepper._cells[WorkflowStep.OPEN]
             cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
-            assert active_palette().accent_soft in cell.styleSheet()
+            sheet = cell.styleSheet()
+            assert active_palette().accent_soft in sheet
+            # Kein Rahmen im Fokus-Stil: die selektorlose Zell-Regel gilt auch
+            # für Kreis/Label – ein ``border`` hier zeichnete zwei Rahmen um
+            # den aktiven Schritt (Zelle + Label).
+            assert "border: none" in sheet
+            assert "solid" not in sheet
             cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
             assert "transparent" in cell.styleSheet()
             stepper.deleteLater()
