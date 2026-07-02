@@ -771,6 +771,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
         "workflow.open.button": "Datei öffnen…",
         "workflow.locked": "Erst ein Bild öffnen (Schritt 1)",
+        "workflow.status.step": "Schritt {num}/{total}: {title}",
     },
     "en": {
         # Status bar messages
@@ -1513,6 +1514,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
         "workflow.open.button": "Open file…",
         "workflow.locked": "Open an image first (Step 1)",
+        "workflow.status.step": "Step {num}/{total}: {title}",
     },
 }
 

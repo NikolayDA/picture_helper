@@ -87,7 +87,7 @@ from bgremover.settings_schema import (
 )
 from bgremover.settings_schema import migrate as migrate_settings
 from bgremover.status_messages import StatusMessages as SM
-from bgremover.stepper import Stepper, WorkflowStep
+from bgremover.stepper import Stepper, WorkflowStep, step_label
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
     active_palette,
@@ -503,6 +503,10 @@ class MainWindow(QMainWindow):
         self._apply_toolbar_for_step(step)
         if step is WorkflowStep.SHAPE:
             self._sync_project_size_controls()
+        # Schrittwechsel in der Statuszeile spiegeln (#420, Spec §13).
+        self._sb.showMessage(tr(
+            "workflow.status.step",
+            num=int(step), total=len(WorkflowStep), title=step_label(step)))
 
     def _next_step(self) -> None:
         """„Weiter": in Schritt 1 ohne Bild öffnen, sonst zum nächsten Schritt."""
@@ -528,7 +532,10 @@ class MainWindow(QMainWindow):
         Außerhalb von Freistellen werden die Auswahlwerkzeuge nicht nur
         ausgeblendet, sondern die Canvas-Werkzeug-Interaktion abgeschaltet –
         sonst würde ein noch aktives Pinsel-/Radier-/Lasso-Werkzeug das Bild
-        unsichtbar weiterbearbeiten (PR #423-Review).
+        unsichtbar weiterbearbeiten (PR #423-Review). Die Werkzeug-Kürzel
+        W/B/E/L folgen der Sichtbarkeit: deaktivierte QShortcuts feuern nicht,
+        das Kürzel greift also nur, wenn das Werkzeug im Schritt verfügbar
+        ist (#422, Spec §8).
         """
         sel_visible = step is WorkflowStep.CUTOUT
         for button in (
@@ -538,6 +545,8 @@ class MainWindow(QMainWindow):
             button.setVisible(sel_visible)
         self._toolbar.sel_separator.setVisible(sel_visible)
         self._canvas.set_tools_enabled(sel_visible)
+        for shortcut in self._tool_shortcuts:
+            shortcut.setEnabled(sel_visible)
 
     # ── Theming (Epic #424, Issue #428) ──────────────────────────────────
 
@@ -636,6 +645,10 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence(key), self)
             shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
             shortcut.activated.connect(lambda t=tool: self._set_tool(t))
+            # Startzustand wie `_apply_toolbar_for_step`: Kürzel nur im
+            # Schritt Freistellen aktiv (#422); danach hält die
+            # Schrittumschaltung den Zustand aktuell.
+            shortcut.setEnabled(self._step is WorkflowStep.CUTOUT)
             self._tool_shortcuts.append(shortcut)
         self._escape_action = QAction(self)
         self._escape_action.setShortcut(QKeySequence("Escape"))
