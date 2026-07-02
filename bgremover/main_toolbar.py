@@ -77,7 +77,7 @@ class Toolbar:
         for btn in self.history_buttons:
             btn.setStyleSheet(hist)
         for sep in self.separators:
-            sep.setStyleSheet(f"color:{p.border}")
+            sep.setStyleSheet(f"background: {p.hairline}; border: none;")
 
 
 def build_toolbar(actions: ToolbarActions, *, rembg_available: bool) -> Toolbar:
@@ -100,7 +100,7 @@ class _ToolbarBuilder:
         frame.setFixedWidth(_TOOLBAR_WIDTH)
         frame.setStyleSheet(toolbar_frame_style(self._pal))
         lay = QVBoxLayout(frame)
-        lay.setContentsMargins(9, 16, 9, 16)
+        lay.setContentsMargins(0, 12, 0, 12)
         lay.setSpacing(8)
 
         button_group = QButtonGroup(frame)
@@ -262,11 +262,13 @@ class _ToolbarBuilder:
         return b
 
     def _add_separator(self, lay: QVBoxLayout) -> QFrame:
+        """Trenner zwischen Werkzeuggruppen: 30 × 1 px, zentriert (§5.9)."""
         sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet(f"color:{self._pal.border}")
-        lay.addSpacing(4)
-        lay.addWidget(sep)
-        lay.addSpacing(4)
+        sep.setFrameShape(QFrame.Shape.NoFrame)
+        sep.setFixedSize(30, 1)
+        sep.setStyleSheet(f"background: {self._pal.hairline}; border: none;")
+        lay.addSpacing(2)
+        lay.addWidget(sep, alignment=Qt.AlignmentFlag.AlignHCenter)
+        lay.addSpacing(2)
         self._separators.append(sep)
         return sep

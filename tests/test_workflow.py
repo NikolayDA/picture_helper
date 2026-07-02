@@ -200,11 +200,16 @@ def test_stepper_focus_visual_uses_accent(qapp):
 
 @pytest.mark.ui_smoke
 def test_stepper_cells_meet_minimum_hit_size(qapp):
-    """Schritt-Zellen (≥ 32 px) und Kreis (28 px) erfüllen die Trefferflächen (#441)."""
+    """Schritt-Zellen (≥ 32 px) erfüllen die Trefferfläche (#441); der Kreis ist
+    nur der visuelle Indikator und ist gemäß Spec §6 je Zustand 26 px
+    (ausstehend/erledigt) oder 28 px (aktiv) groß – die klickbare Fläche ist
+    die ganze Zelle (``mousePressEvent`` sitzt auf ``_StepCell``, nicht ``_circle``).
+    """
     stepper = Stepper()
-    for cell in stepper._cells.values():
+    for step, cell in stepper._cells.items():
         assert cell.minimumHeight() >= 32
-        assert cell._circle.width() == cell._circle.height() == 28
+        expected = 28 if step is WorkflowStep.OPEN else 26
+        assert cell._circle.width() == cell._circle.height() == expected
 
 
 @pytest.mark.ui_smoke

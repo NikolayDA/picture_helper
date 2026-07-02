@@ -59,10 +59,11 @@ _THREAD_TERMINATE_WAIT_MS = 1000
 _IS_MACOS = sys.platform == "darwin"
 
 # ── UI-Layoutkonstanten ──────────────────────────────────────
-_TOOLBAR_WIDTH      = 74
-_TOOLBAR_BTN_SIZE   = 54
-_TOOLBAR_ICON_SIZE  = 38
-_RIGHT_PANEL_WIDTH  = 384
+# Werte 1:1 aus dem abgenommenen Prototyp (docs/REDESIGN_SPEC.md §1/§5.9).
+_TOOLBAR_WIDTH      = 62
+_TOOLBAR_BTN_SIZE   = 44
+_TOOLBAR_ICON_SIZE  = 22
+_RIGHT_PANEL_WIDTH  = 332
 _CROP_BAR_HEIGHT    = 46
 _COLOR_BTN_SIZE     = 38
 _TAB_ICON_PX        = 30

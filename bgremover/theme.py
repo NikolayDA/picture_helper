@@ -122,8 +122,10 @@ def card_style(p: Palette) -> str:
 
 
 def section_header_style(p: Palette) -> str:
-    return (f"color: {p.text2}; font-size: 12px; font-weight: bold;"
-            " letter-spacing: .04em; background: transparent;"
+    """Kartenkopf-Titel (§5.2): 11 px/700, VERSALIEN (Aufrufer setzen ``.upper()``),
+    blauer Akzentstrich links – immer Akzentfarbe, nie Amber/Coral (Issue #416)."""
+    return (f"color: {p.text2}; font-size: 11px; font-weight: bold;"
+            " letter-spacing: .05em; background: transparent;"
             f" padding: 2px 0 4px 8px; border-left: 3px solid {p.accent};")
 
 
@@ -188,11 +190,11 @@ def scroll_style(p: Palette) -> str:
 
 
 def panel_btn_style(p: Palette) -> str:
-    """Sekundärbutton der Inspector-Karten (neutrale Fläche)."""
+    """Sekundärbutton der Inspector-Karten (neutrale Fläche, §5.3)."""
     return f"""
     QPushButton {{
         background: {p.surface}; color: {p.text2}; border: 1px solid {p.border};
-        border-radius: 8px; padding: 0 12px; font-size: 12px; min-height: 34px;
+        border-radius: 8px; padding: 0 10px; font-size: 12px; min-height: 34px;
     }}
     QPushButton:hover {{ background: {p.surface_hover}; }}
     QPushButton:focus {{ outline: none; border: 1px solid {p.accent}; }}
@@ -224,17 +226,20 @@ def slider_style(p: Palette) -> str:
 
 
 def tool_style(p: Palette) -> str:
+    """Werkzeug-Button der linken Leiste (§5.9): ruht transparent in der Leiste,
+    aktiv nur sanft akzent-getönt (kein voller Farbfüllton wie beim Primärbutton).
+    """
     return f"""
     QToolButton {{
-        color: {p.text2}; font-size: 24px; border: none;
-        border-radius: 9px; background: {p.surface};
+        color: {p.text3}; font-size: 20px; border: 1px solid transparent;
+        border-radius: 10px; background: transparent;
     }}
-    QToolButton:checked        {{ background: {p.accent}; color: {p.on_accent}; }}
-    QToolButton:hover          {{ background: {p.surface_hover}; }}
-    QToolButton:checked:hover  {{ background: {p.accent}; color: {p.on_accent}; }}
+    QToolButton:checked        {{ background: {p.accent_soft}; border-color: {p.accent_line}; color: {p.accent_text}; }}
+    QToolButton:hover          {{ background: {p.hover}; color: {p.text2}; }}
+    QToolButton:checked:hover  {{ background: {p.accent_soft}; border-color: {p.accent_line}; color: {p.accent_text}; }}
     QToolButton:focus          {{ outline: none; border: 1px solid {p.accent}; }}
-    QToolButton:checked:focus  {{ border: 2px solid {p.on_accent}; }}
-    QToolButton:disabled       {{ color: {p.muted}; background: {p.divider}; }}
+    QToolButton:checked:focus  {{ border: 2px solid {p.accent}; }}
+    QToolButton:disabled       {{ color: {p.muted}; background: transparent; }}
 """
 
 
@@ -282,8 +287,8 @@ def build_app_stylesheet(p: Palette) -> str:
         border-radius: 12px;
     }}
     QLabel#sectionHeader {{
-        color: {p.text2}; font-size: 12px; font-weight: bold;
-        background: transparent; padding: 2px 0 4px 8px;
+        color: {p.text2}; font-size: 11px; font-weight: bold;
+        letter-spacing: .05em; background: transparent; padding: 2px 0 4px 8px;
         border-left: 3px solid {p.accent};
     }}
     QFrame#inspectorPanel {{ background: {p.inspector}; border-left: 1px solid {p.border}; }}
