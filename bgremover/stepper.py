@@ -50,9 +50,11 @@ class _StepCell(QWidget):
     """Ein anklickbarer Schritt: Kreis (Ziffer/✓) + Textlabel.
 
     Tastaturbedienbar (#441): Die Zelle ist fokussierbar (Tab-Reihenfolge),
-    Enter/Leertaste aktivieren sie wie ein Klick, und der Fokus wird als
-    akzentgetönte, rahmenlose Fläche sichtbar gemacht. Gesperrte Zellen sind
-    deaktiviert und fallen damit aus der Tab-Reihenfolge heraus.
+    Enter/Leertaste aktivieren sie wie ein Klick. Der Fokus zeichnet bewusst
+    keine eigene Fläche oder Rahmen – das Layout entspricht exakt dem
+    abgenommenen Prototyp (Spec §6); dessen Fokusring-Präsenz trägt allein
+    der größere aktive Kreis. Gesperrte Zellen sind deaktiviert und fallen
+    damit aus der Tab-Reihenfolge heraus.
     """
 
     clicked = pyqtSignal(int)
@@ -62,13 +64,14 @@ class _StepCell(QWidget):
         self._step = step
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        # Nötig, damit ein Stylesheet-Hintergrund auf einem nackten QWidget
-        # tatsächlich gezeichnet wird (Fokus-Visualisierung).
+        # Nötig, damit die Stylesheet-Regel auf einem nackten QWidget
+        # tatsächlich greift (sonst Bleed der nativen Fensterfarbe, #444).
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        # Ohne explizite Basis-Regel malt Qt hier sonst die native Fensterfarbe
-        # (helles Grau) statt der Stepper-Fläche durch – sichtbar als Flecken
-        # hinter jedem Schritt-Label. ``focusOutEvent`` setzt dieselbe Regel
-        # erneut, ändert also nichts am Ruhezustand.
+        # Diese Regel bleibt dauerhaft stehen (kein Fokus-Restyling): Sie hält
+        # die Zelle transparent auf der Stepper-Fläche und schirmt als
+        # selektorlose Regel zugleich Kreis und Label gegen das
+        # ``border-bottom`` aus ``stepper_style`` ab – ohne sie bekämen beide
+        # eine durchgeschlagene Haarlinie.
         self.setStyleSheet("background: transparent; border: none;")
         self.setMinimumHeight(32)
         self.setAccessibleName(step_label(step))
@@ -94,21 +97,6 @@ class _StepCell(QWidget):
             self.clicked.emit(int(self._step))
             return
         super().keyPressEvent(event)
-
-    def focusInEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
-        # Bewusst nur getönte Fläche, kein Rahmen: die selektorlosen
-        # Zell-Regeln gelten in Qt auch für Kreis und Label – ein ``border``
-        # hier erschien deshalb doppelt (Zelle + Label) um den aktiven
-        # Schritt. ``border: none`` bleibt als Schild gegen das
-        # ``border-bottom`` der Stepper-Fläche stehen.
-        p = active_palette()
-        self.setStyleSheet(
-            f"background: {p.accent_soft}; border: none; border-radius: 8px;")
-        super().focusInEvent(event)
-
-    def focusOutEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
-        self.setStyleSheet("background: transparent; border: none;")
-        super().focusOutEvent(event)
 
     def apply_state(self, *, done: bool, active: bool, enabled: bool) -> None:
         """Setzt Kreis- und Label-Stil für den Zustand des Schritts (aktive Palette)."""

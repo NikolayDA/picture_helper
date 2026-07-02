@@ -177,31 +177,26 @@ def test_stepper_locked_cells_are_not_focusable(qapp):
 
 
 @pytest.mark.ui_smoke
-def test_stepper_focus_visual_uses_accent(qapp):
-    """Der Tastaturfokus ist als akzentgetönte, rahmenlose Fläche sichtbar – je Schema."""
+def test_stepper_focus_does_not_alter_layout(qapp):
+    """Fokus zeichnet keine eigene Fläche und keinen Rahmen (Layout exakt wie
+    im Prototyp, Spec §6): Das Zell-Stylesheet bleibt bei Fokus-Wechseln
+    unverändert – früher erschienen Fokusrahmen und -tönung als Doppelrahmen
+    um den aktiven Schritt (selektorlose Regeln gelten auch für Kreis/Label).
+    """
     from PyQt6.QtCore import QEvent
     from PyQt6.QtGui import QFocusEvent
 
-    from bgremover.theme import DARK, LIGHT, active_palette, set_active_palette
-
-    try:
-        for palette in (DARK, LIGHT):
-            set_active_palette(palette)
-            stepper = Stepper()
-            cell = stepper._cells[WorkflowStep.OPEN]
-            cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
-            sheet = cell.styleSheet()
-            assert active_palette().accent_soft in sheet
-            # Kein Rahmen im Fokus-Stil: die selektorlose Zell-Regel gilt auch
-            # für Kreis/Label – ein ``border`` hier zeichnete zwei Rahmen um
-            # den aktiven Schritt (Zelle + Label).
-            assert "border: none" in sheet
-            assert "solid" not in sheet
-            cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
-            assert "transparent" in cell.styleSheet()
-            stepper.deleteLater()
-    finally:
-        set_active_palette(DARK)
+    stepper = Stepper()
+    cell = stepper._cells[WorkflowStep.OPEN]
+    resting = cell.styleSheet()
+    # Die Basis-Regel schirmt Kreis/Label gegen das ``border-bottom`` des
+    # Steppers ab und hält die Zelle transparent.
+    assert "transparent" in resting
+    assert "border: none" in resting
+    cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
+    assert cell.styleSheet() == resting
+    cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
+    assert cell.styleSheet() == resting
 
 
 @pytest.mark.ui_smoke
