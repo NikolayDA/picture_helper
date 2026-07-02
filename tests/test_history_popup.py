@@ -93,6 +93,7 @@ def test_popup_follows_active_palette(qapp, popup_fixture):
 
     popup, _anchor, _jumps = popup_fixture
     try:
+        set_active_palette(DARK)
         popup.toggle()  # dunkel gebaut
         assert popup._history_list is not None
         assert DARK.tabbar in popup._history_list.styleSheet()

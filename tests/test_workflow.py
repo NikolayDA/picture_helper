@@ -29,6 +29,11 @@ def _load_image(win: MainWindow) -> None:
     win._canvas.apply_loaded_image(Image.new("RGBA", (16, 16), (10, 20, 30, 255)), "x.png")
 
 
+def _load_sized_image(win: MainWindow, width: int, height: int) -> None:
+    win._canvas.apply_loaded_image(
+        Image.new("RGBA", (width, height), (10, 20, 30, 255)), "sized.png")
+
+
 # ── Schrittleiste (Issue #419) ────────────────────────────────────────────
 
 
@@ -72,6 +77,42 @@ def test_loading_image_unlocks_and_advances(window):
     # Jetzt ist ein Sprung zu einem späteren Schritt erlaubt.
     w._stepper.stepSelected.emit(int(WorkflowStep.RELIEF))
     assert w._step is WorkflowStep.RELIEF
+
+
+@pytest.mark.ui_smoke
+def test_shape_resize_fields_follow_loaded_and_resized_project(window):
+    """#448: Inline-Größenfelder spiegeln Bild-/Projektgröße statt 1200x900."""
+    w = window
+    _load_sized_image(w, 32, 24)
+    w._go_to_step(WorkflowStep.SHAPE)
+
+    assert w._right_panel.resize_w.value() == 32
+    assert w._right_panel.resize_h.value() == 24
+
+    applied: list[tuple[int, int]] = []
+    original_apply_resize = w._canvas.apply_resize
+
+    def record_resize(width: int, height: int):
+        applied.append((width, height))
+        original_apply_resize(width, height)
+
+    w._canvas.apply_resize = record_resize
+    _button = next(
+        b for b in w._right_panel.frame.findChildren(type(w._right_panel.nav_next))
+        if b.text().replace("\n", " ") == "Größe anwenden")
+    _button.click()
+
+    assert applied == [(32, 24)]
+    assert w._right_panel.resize_w.value() == 32
+    assert w._right_panel.resize_h.value() == 24
+
+    w._right_panel.resize_w.setValue(20)
+    w._right_panel.resize_h.setValue(10)
+    _button.click()
+    assert w._canvas.project is not None
+    assert w._canvas.project.size == (20, 10)
+    assert w._right_panel.resize_w.value() == 20
+    assert w._right_panel.resize_h.value() == 10
 
 
 # ── Navigation (Issue #421) ───────────────────────────────────────────────

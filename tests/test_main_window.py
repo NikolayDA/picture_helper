@@ -486,9 +486,60 @@ def test_pick_color_keeps_background_when_invalid(win, monkeypatch):
 def test_run_ai_reports_when_no_image(win):
     win._run_ai()
     assert win.statusBar().currentMessage() == SM.KEIN_BILD_GELADEN
+    assert not win._toolbar.btn_ai.isEnabled()
+    assert not win._right_panel.ai_button.isEnabled()
 
 
-def test_run_ai_reports_when_already_running(win, tmp_path):
+def test_inspector_ai_button_disabled_when_rembg_missing(tmp_path, qapp, monkeypatch):
+    """#446: Toolbar und Inspector bleiben bei fehlendem rembg konsistent gesperrt."""
+    from bgremover.i18n import tr
+
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", False)
+    win = _isolated_window(tmp_path)
+    try:
+        _load_dummy_image(win, tmp_path)
+        assert not win._toolbar.btn_ai.isEnabled()
+        assert not win._right_panel.ai_button.isEnabled()
+        assert win._right_panel.ai_button.toolTip() == tr("toolbar.ai.missing.tooltip")
+
+        win._run_ai()
+        assert win.statusBar().currentMessage() == tr("toolbar.ai.missing.tooltip")
+    finally:
+        win.close()
+
+
+def test_ai_controls_stay_in_sync_for_warmup_and_running_ai(tmp_path, qapp, monkeypatch):
+    """#446: Warmup/AI-Lauf sperrt Toolbar- und Inspector-Button gemeinsam."""
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
+    win = _isolated_window(tmp_path)
+    try:
+        _load_dummy_image(win, tmp_path)
+        assert win._toolbar.btn_ai.isEnabled()
+        assert win._right_panel.ai_button.isEnabled()
+
+        win._worker_controller.warmup_thread = _RunningThread()
+        win._sync_ai_controls()
+        assert not win._toolbar.btn_ai.isEnabled()
+        assert not win._right_panel.ai_button.isEnabled()
+
+        win._worker_controller.warmup_thread = None
+        win._worker_controller.ai_thread = _RunningThread()
+        win._sync_ai_controls()
+        assert not win._toolbar.btn_ai.isEnabled()
+        assert not win._right_panel.ai_button.isEnabled()
+
+        win._worker_controller.ai_thread = None
+        win._sync_ai_controls()
+        assert win._toolbar.btn_ai.isEnabled()
+        assert win._right_panel.ai_button.isEnabled()
+    finally:
+        win._worker_controller.warmup_thread = None
+        win._worker_controller.ai_thread = None
+        win.close()
+
+
+def test_run_ai_reports_when_already_running(win, tmp_path, monkeypatch):
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     _load_dummy_image(win, tmp_path)
     win._worker_controller.ai_thread = _RunningThread()
     try:
@@ -499,6 +550,7 @@ def test_run_ai_reports_when_already_running(win, tmp_path):
 
 
 def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     _load_dummy_image(win, tmp_path)
     started: dict = {}
 
@@ -516,12 +568,16 @@ def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
 
 # ── KI-Abschluss / -Ergebnis / -Fehler ───────────────────────
 
-def test_on_ai_thread_finished_reenables_button(win):
+def test_on_ai_thread_finished_reenables_button(win, tmp_path, monkeypatch):
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
+    _load_dummy_image(win, tmp_path)
     win._toolbar.btn_ai.setEnabled(False)
+    win._right_panel.ai_button.setEnabled(False)
     win._ai_input_version = 5
     win._sb.showMessage("irgendwas")
     win._on_ai_thread_finished()
     assert win._toolbar.btn_ai.isEnabled()
+    assert win._right_panel.ai_button.isEnabled()
     assert win._ai_input_version == -1
     # Nur die Abbruch-Wartemeldung würde umgeschaltet – sonst bleibt sie stehen.
     assert win.statusBar().currentMessage() == "irgendwas"
@@ -744,6 +800,29 @@ def test_open_project_from_recent_round_trips(tmp_path, qapp, monkeypatch):
         win.close()
 
 
+def test_adopt_project_syncs_inline_resize_fields(tmp_path, qapp):
+    """#448: Projektpfade spiegeln ihre Größe ebenfalls in Schritt 4."""
+    from bgremover.project_model import LayerKind, Project
+    from bgremover.stepper import WorkflowStep
+
+    win = _isolated_window(tmp_path)
+    try:
+        project = Project(77, 66)
+        project.create_layer(
+            Image.new("RGBA", (77, 66), (1, 2, 3, 255)),
+            name="Ebene",
+            kind=LayerKind.COLOR,
+        )
+        win._canvas.set_project(project)
+        win._adopt_new_document()
+        win._go_to_step(WorkflowStep.SHAPE)
+
+        assert win._right_panel.resize_w.value() == 77
+        assert win._right_panel.resize_h.value() == 66
+    finally:
+        win.close()
+
+
 # ── Theme-Umschaltung (Epic #424, Issue #428) ────────────────
 
 def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path, qapp):
@@ -794,6 +873,39 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
         win.close()
 
 
+def test_theme_rebuild_restores_selection_controls(tmp_path, qapp):
+    """#449: Rechtes Panel zeigt nach Theme-Rebuild wieder die Canvas-Werte."""
+    from PyQt6.QtWidgets import QApplication
+
+    from bgremover.theme import DARK, active_palette, set_active_palette
+
+    app = QApplication.instance()
+    original_sheet = app.styleSheet() if app is not None else ""
+    original_palette = app.palette() if app is not None else None
+    set_active_palette(DARK)
+    win = _isolated_window(tmp_path)
+    try:
+        _load_dummy_image(win, tmp_path)
+        win._right_panel.tolerance_slider.setValue(42)
+        win._right_panel.brush_slider.setValue(56)
+        assert win._canvas.selection_tolerance == 42
+        assert win._canvas.brush_size == 56
+
+        win._toggle_light_mode(True)
+        assert not active_palette().is_dark
+        assert win._right_panel.tolerance_slider.value() == 42
+        assert win._right_panel.brush_slider.value() == 56
+        assert "42" in win._right_panel.tolerance_label.text()
+        assert "56" in win._right_panel.brush_label.text()
+    finally:
+        set_active_palette(DARK)
+        if app is not None:
+            app.setStyleSheet(original_sheet)
+            if original_palette is not None:
+                app.setPalette(original_palette)
+        win.close()
+
+
 def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
     """Ein Umschalten auf den bereits aktiven Modus baut nichts neu auf."""
     from bgremover.theme import DARK, set_active_palette
@@ -802,7 +914,7 @@ def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
     win = _isolated_window(tmp_path)
     try:
         frame = win._right_frame
-        win._toggle_light_mode(False)  # bereits dunkel
+        win._toggle_light_mode(win._light_mode)  # bereits aktiver Modus
         assert win._right_frame is frame
     finally:
         set_active_palette(DARK)

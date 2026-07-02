@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
                 pick_color=self._pick_color,
                 replace_background=lambda: self._canvas.apply_replace(self._bg_color),
                 feather=self._canvas.feather_active_edges,
-                rotate=self._canvas.apply_rotate,
+                rotate=self._apply_rotate_from_panel,
                 flip=self._canvas.apply_flip,
                 resize=self._resize_image,
                 round_corners=self._canvas.apply_round_corners,
@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
                 set_relief_strength=self._canvas.set_relief_strength,
                 set_gloss_visible=self._canvas.set_gloss_visible,
                 run_ai=self._run_ai,
-                apply_resize=lambda w, h: self._canvas.apply_resize(w, h),
+                apply_resize=self._apply_resize_from_panel,
                 save=self._save,
                 export_eufymake=self._export_eufymake,
                 set_save_format=self._set_preferred_format,
@@ -323,6 +323,7 @@ class MainWindow(QMainWindow):
             on_open=self._open_image,
             on_open_path=self._open_recent_path,
             recent=self._recent_files.paths()[:3],
+            rembg_available=REMBG_AVAILABLE,
         )
         self._right_panel = panel
         panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
@@ -334,6 +335,8 @@ class MainWindow(QMainWindow):
         self._preview_relief_label = panel.preview_relief_label
         self._preview_relief_slider = panel.preview_relief_slider
         self._preview_gloss_visible = panel.preview_gloss_visible
+        self._sync_panel_state()
+        self._sync_ai_controls()
         self._update_color_btn()
         return panel.frame
 
@@ -378,6 +381,42 @@ class MainWindow(QMainWindow):
             if action.objectName().startswith("preview_mode_"):
                 action.setChecked(action.data() is mode)
 
+    def _sync_panel_state(self) -> None:
+        self._sync_selection_controls()
+        self._sync_project_size_controls()
+
+    def _sync_selection_controls(self) -> None:
+        self._right_panel.set_selection_values(
+            tolerance=self._canvas.selection_tolerance,
+            brush_size=self._canvas.brush_size,
+        )
+
+    def _sync_project_size_controls(self) -> None:
+        project = self._canvas.project
+        if project is not None:
+            self._right_panel.set_project_size(project.width, project.height)
+
+    def _is_warmup_running(self) -> bool:
+        thread = self._worker_controller.warmup_thread
+        return thread is not None and thread.isRunning()
+
+    def _sync_ai_controls(self, enabled: bool | None = None) -> None:
+        can_enable = (
+            REMBG_AVAILABLE
+            and self._canvas.has_image
+            and not self._worker_controller.is_ai_running
+            and not self._is_warmup_running()
+        )
+        controls_enabled = can_enable if enabled is None else enabled and can_enable
+        self._toolbar.btn_ai.setEnabled(controls_enabled)
+        self._right_panel.ai_button.setEnabled(controls_enabled)
+        self._toolbar.btn_ai.setToolTip(
+            tr("toolbar.ai.available.tooltip")
+            if REMBG_AVAILABLE else tr("toolbar.ai.missing.tooltip"))
+        self._right_panel.ai_button.setToolTip(
+            tr("right_panel.ai.remove.tooltip")
+            if REMBG_AVAILABLE else tr("toolbar.ai.missing.tooltip"))
+
     def _import_height_map(self) -> None:
         """Öffnet eine Graustufendatei und importiert sie als HEIGHT-Ebene (#346)."""
         start_dir = self._settings.value("open_dir", "")
@@ -403,6 +442,7 @@ class MainWindow(QMainWindow):
             width, height = dlg.selected_size()
             self._canvas.apply_resize(
                 width, height, resample=dlg.selected_resample())
+            self._sync_project_size_controls()
             # Im mm-Modus die physische Zielgröße (mm) als kanonische Quelle (#376)
             # im Projekt verankern – nur **wenn** das Resampling die Zielgröße auch
             # erreicht hat (No-op eingeschlossen). Wurde es am Megapixel-Gate
@@ -413,6 +453,14 @@ class MainWindow(QMainWindow):
             mm = dlg.selected_physical_size_mm()
             if mm is not None and project.size == (width, height):
                 self._canvas.set_physical_size_mm(*mm)
+
+    def _apply_resize_from_panel(self, width: int, height: int) -> None:
+        self._canvas.apply_resize(width, height)
+        self._sync_project_size_controls()
+
+    def _apply_rotate_from_panel(self, degrees: int) -> None:
+        self._canvas.apply_rotate(degrees)
+        self._sync_project_size_controls()
 
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""
@@ -453,6 +501,8 @@ class MainWindow(QMainWindow):
         self._stepper.set_current(int(step))
         self._right_panel.set_step(step)
         self._apply_toolbar_for_step(step)
+        if step is WorkflowStep.SHAPE:
+            self._sync_project_size_controls()
 
     def _next_step(self) -> None:
         """„Weiter": in Schritt 1 ohne Bild öffnen, sonst zum nächsten Schritt."""
@@ -539,6 +589,8 @@ class MainWindow(QMainWindow):
         self._body_layout.addWidget(self._right_frame)
         self._right_panel.set_step(self._step)
         self._canvas.resync_panels()
+        self._sync_panel_state()
+        self._sync_ai_controls()
 
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
@@ -560,7 +612,7 @@ class MainWindow(QMainWindow):
                 export_eufymake=self._export_eufymake,
                 undo=self._canvas.undo,
                 redo=self._canvas.redo,
-                rotate=self._canvas.apply_rotate,
+                rotate=self._apply_rotate_from_panel,
                 flip=self._canvas.apply_flip,
                 resize=self._resize_image,
                 clear_selection=self._canvas.clear_selection,
@@ -798,9 +850,9 @@ class MainWindow(QMainWindow):
         nicht spürbar wartet."""
         self._warmup_failed = False
         self._sb.showMessage(SM.KI_MODELL_LADEN)
-        # KI-Button bis Warmup-Ende sperren: ein KI-Klick während des Warmups
+        # KI-Buttons bis Warmup-Ende sperren: ein KI-Klick während des Warmups
         # würde rembg parallel initialisieren (doppelter Modell-Load / Race).
-        self._toolbar.btn_ai.setEnabled(False)
+        self._sync_ai_controls(enabled=False)
         self._worker_controller.start_warmup(
             on_finished=self._on_warmup_done,
             on_error=self._on_warmup_error,
@@ -810,7 +862,7 @@ class MainWindow(QMainWindow):
         # Läuft als Thread-Abschluss IMMER (auch nach Fehler). Button wieder
         # freigeben; ein fehlgeschlagener Warmup darf dennoch nicht als
         # „KI bereit" gemeldet werden – on_error hat das Flag bereits gesetzt.
-        self._toolbar.btn_ai.setEnabled(True)
+        self._sync_ai_controls()
         if self._warmup_failed:
             return
         self._sb.showMessage(SM.KI_BEREIT)
@@ -930,6 +982,8 @@ class MainWindow(QMainWindow):
         # Geführter Workflow: Ein geladenes Projekt gibt die Schritte frei und
         # steigt beim Freistellen neu ein (Spec §13, PR #423-Review).
         self._sync_workflow_availability()
+        self._sync_panel_state()
+        self._sync_ai_controls()
         if self._canvas.has_image:
             self._go_to_step(WorkflowStep.CUTOUT)
 
@@ -1163,6 +1217,8 @@ class MainWindow(QMainWindow):
         # neu einsteigen – auch wenn ein späteres Bild einen bereits
         # fortgeschrittenen Schritt ersetzt (Spec §13, PR #423-Review).
         self._sync_workflow_availability()
+        self._sync_panel_state()
+        self._sync_ai_controls()
         self._go_to_step(WorkflowStep.CUTOUT)
 
     def _set_preferred_format(self, fmt: str) -> None:
@@ -1192,27 +1248,36 @@ class MainWindow(QMainWindow):
     def _run_ai(self) -> None:
         if not self._canvas.has_image:
             self._sb.showMessage(SM.KEIN_BILD_GELADEN)
+            self._sync_ai_controls()
+            return
+        if not REMBG_AVAILABLE:
+            self._sb.showMessage(tr("toolbar.ai.missing.tooltip"))
+            self._sync_ai_controls()
             return
         if self._worker_controller.is_ai_running:
             self._sb.showMessage(SM.KI_LAEUFT_BEREITS)
+            self._sync_ai_controls()
             return
         self._sb.showMessage(SM.KI_VERARBEITET)
-        self._toolbar.btn_ai.setEnabled(False)
+        self._sync_ai_controls(enabled=False)
 
         # Revision merken, damit verspätete KI-Ergebnisse verworfen werden.
         self._ai_input_version = self._canvas.version
 
         img = self._canvas.image
         assert img is not None  # has_image-Check oben garantiert das
-        self._worker_controller.start_ai(
+        started = self._worker_controller.start_ai(
             img,
             on_done=self._on_ai_done,
             on_error=self._on_ai_error,
             on_finished=self._on_ai_thread_finished,
         )
+        if not started:
+            self._sb.showMessage(SM.KI_LAEUFT_BEREITS)
+            self._sync_ai_controls()
 
     def _on_ai_thread_finished(self) -> None:
-        self._toolbar.btn_ai.setEnabled(True)
+        self._sync_ai_controls()
         self._ai_input_version = -1
         if self._sb.currentMessage() == SM.KI_ABBRUCH_WARTET:
             self._sb.showMessage(SM.KI_ABGEBROCHEN)
