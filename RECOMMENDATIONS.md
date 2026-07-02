@@ -11,110 +11,98 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-06-29)
+## Aktueller Stand (2026-07-02)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
-bleiben die maßgebliche Baseline vor neuen PRs.
+bleiben die maßgebliche Baseline vor neuen PRs. Neu in dieser Runde: die offene
+GitHub-Triage ist auf den tatsächlichen Ist-Stand gehoben (18 offene Issues).
 
 ### Erledigt seit dem letzten Review
 
-- **N1/N2/N4/N5/N6/N7/N8** sind erledigt: Fehlerpfade, Größenlimit,
-  Dateiendungen, atomisches Speichern, CI-Qt-Pakete, Lazy-Import und Docstring.
-- **O2/O3/O4/O5/O6** sind umgesetzt: Linux-Pakete, Release-Workflow,
-  Vollmatrix, `ui_smoke` und plattformgerechte Werkzeug-Shortcuts.
-- Ältere geschlossene Befunde (u. a. EufyMake-Epic **#351/#352–#355** und der rembg/ONNX-Subprozess **#270/#285/#286**) sind in den dokumentierten PRs erledigt, durch Tests/CI abgesichert und archiviert.
-
-- **N9 ✅ — Projekt-/Ebenen-Datenmodell (Epic #329) umgesetzt.** Qt-freies
-  Domänenmodell (#330), ebenenbewusste Historie (#331), Komposit-Canvas (#332),
-  `.bgrproj`-Format (#333), Ebenen-Panel/Projekt-Menü (#334) und Migration/
-  Integration (#335) – Einzelbild-Parität gewahrt, `make check`/`make ui` grün.
-- **N10 ✅ — Height-Map-Arbeitsbereich (Epic #344) umgesetzt.** Qt-freie
-  Höhen-Repräsentation + 2D-Visualisierung (#345), Erzeugung/Graustufen-Import
-  (#346), Höhen-Editor (#347), `height_ops` mit Live-Vorschau (#348) und
-  moduskontextueller Height-Map-Tab (#349); COLOR-Editing ohne Regression.
-- **N11 ✅ — Phase-0-Politur (Epic #358) umgesetzt.** Skalieren auf Zielgröße
-  (#359), Farbkorrektur Helligkeit/Kontrast/Sättigung (Qt-frei
-  `color_ops.adjust_color`, alpha-erhaltend, #360) und Kantenglättung/Feather der
-  Alphakante (`image_ops.feather_alpha`, #361) – alle undo-/redobar und
-  verlustfrei im `.bgrproj` (PR #362).
-- **N12 ✅ — Kombinierte 2D-Vorschau (Epic #384) umgesetzt.** Qt-freie Relief-/
-  Gloss-Renderer (#385/#386), explizite und aktive-Ebene-unabhängige Canvas-Modi
-  mit begrenztem Cache (#387) sowie synchrones Ansicht-Menü/Vorschau-Panel mit
-  Live-Stärke und Gloss-Schalter (#388); der #363-Exportvertrag bleibt durch die
-  vollständige Modus×Layer-Testmatrix bitgenau geschützt. Das Review-Follow-up
-  #397 (PR #398) führt transiente Farb-/Höhenvorschauen durch dieselbe Pipeline,
-  respektiert ausgeblendete Datenrollen und überspringt Relief-Stärke 0 effizient.
-- **#363 ✅ — Export-Regression behoben (PR #367).** „Bild speichern“ schreibt
-  wieder unabhängig von der aktiven Ebene das COLOR-Komposit; Anzeige- und
-  Export-Rendering sind getrennt, mit Pixel-Regressionstest abgesichert.
+- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** bleiben
+  erledigt; die Epics **#329/#344/#358/#384** (N9–N12) samt Export-Fix **#363**
+  sind gemergt, durch Tests/CI abgesichert und archiviert.
+- **Seit dem Review 2026-06-25 geschlossen:** **#404**, **#406** und **#408**
+  (PR #412) – die zuvor gelisteten Vorschau-/Dead-Code-/Audit-Befunde sind
+  erledigt; `_derive_physical_size` existiert nicht mehr, und der Renderpfad
+  degradiert bei Größen-Mismatch auf COLOR.
+- **Redesign-Kern ausgeliefert:** Schrittleiste/`stepper.py`, Karten-Inspector,
+  geführte Navigation, kontextuelle Werkzeuge und die Design-Tokens
+  (`ACCENT`/`CARD_STYLE`) sind über PR #412/#423 gelandet (DE/EN-Strings,
+  `tests/test_workflow.py`); offen ist nur noch die Politur (siehe Triage).
 
 ### Noch offen
 
-- **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind in der App
-  umschaltbar. Die Dokusprachen es/fr/uk/zh sind noch keine Runtime-Locales;
-  bei Bedarf key-für-key in `bgremover.i18n` ergänzen und mit Tests absichern.
-- **O7 ✅ — Subprozess für rembg/ONNX erledigt (PR #283, Issue #270 geschlossen).**
-  Die nicht unterbrechbare KI-Inferenz läuft jetzt in einem per `spawn`
-  gestarteten Prozess (`ai_process.py`); `QThread.terminate()` als KI-Notausgang
-  ist entfallen. Die Robustheits-/Speicher-Folgebefunde sind in **#285**
-  (PR #289) behoben und geschlossen.
+- **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind umschaltbar;
+  es/fr/uk/zh sind noch keine Runtime-Locales. Deckt sich mit dem Redesign-Issue
+  **#430** – dort key-für-key in `bgremover.i18n` ergänzen und mit Tests absichern.
 
-## Offene GitHub-Issues – Triage-Stand (2026-06-29, aktualisiert)
+## Offene GitHub-Issues – Triage-Stand (2026-07-02)
 
-Stand 2026-06-29 zeigt GitHub **8** offene Issues: **#245**, **#299**, **#318**,
-**#389**, **#392**, **#404**, **#406** und **#408**. Neu am selben Tag ist das
-Doku-/Code-Audit **#408** (API-/CLI-Doku gegen die aktuellen Signaturen – ohne
-Drift); die Qualitäts-/Robustheits-Issues **#406** und **#404** (neu seit dem
-Review 2026-06-25) bleiben offen. Doku-Pakete **#390/#391**, Öffnen-Hinweis
-**#357** und HEIC-Ausschluss **#339** bleiben geschlossen; im Epic **#389**
-verbleibt nur der Release-Schritt **#392**.
+Stand 2026-07-02 zeigt GitHub **18** offene Issues. Der 2026-06-29-Snapshot ist
+überholt: #404/#406/#408 sind geschlossen (PR #412), und die **Redesign-Welle
+(geführter Workflow)** ist die aktive Roadmap. Ihr Kern ist bereits ausgeliefert;
+offen sind Politur (**#414**), i18n/Doku (Epic **#425**: #430/#431/#432),
+Qualitätssicherung/Rollout (Epic **#426**: #433/#434/#435), die stehende Release
+**#392** und die unabhängigen Punkte **#299/#318/#245**. **#442** verfolgt genau
+diese Doku-Auffrischung.
 
-**Kommentar-Durchsicht:** Keine neuen externen Kommentare; die auf #392/#299/#245
-sind Owner-Triage-Notizen passend zum aktuellen Stand, #408 ist neu und ohne Kommentare – keine Issue-Aktualisierung nötig.
-
-**Neue Befunde gegen den Code verifiziert:** #406 – `_derive_physical_size`
-(`eufymake_export.py:217`) hat keinen Aufrufer (`parse_size_mm` nur dort, sonst
-in `project_model.py` genutzt). #404 – `compose_relief`/`compose_gloss`
-(`canvas.py:555/564`) werfen im Renderpfad, statt auf COLOR zu degradieren.
-#408 – Audit ohne Befund: Signaturen aus `CLAUDE.md`/`README.md` und der CLI-Pfad `bgremover bild.png` decken sich mit dem Code.
+**Kommentar-Durchsicht:** Keine neuen externen Kommentare. Die Owner-Notizen auf
+#245/#299/#392 decken sich mit dem Ist-Stand; #442 (2026-07-02) hält dieses Audit
+fest – keine Issue-Aktualisierung nötig.
 
 ### Sinnvolle Bündelung
 
-- **Release-Paket:** **#392** ist startbereit; nach Tag, Release-Body und
-  verifizierten macOS-/Linux-Artefakten kann Epic **#389** schließen.
-- **Qualitäts-Schnellschüsse:** **#406** und **#404** sind klein, eigenständig
-  und ready-for-PR – ideal als kurze Quality-PRs neben dem Release-Pfad, aber
-  getrennt davon (verschiedene Module, kein gemeinsamer Diff).
-- **#299/#318/#245** nicht mit dem Release-Pfad mischen; sie sind unabhängige
-  Qualitäts-, Forschungs- beziehungsweise externe Betriebsarbeit.
+- **Fast fertige Epics:** #418 und #424 haben **alle** Sub-Issues geschlossen →
+  verifizieren und schließen. #413 hat nur noch #414 offen; dessen Tokens liegen
+  schon in `theme.py` – Karten-Stil für das helle Schema ergänzen, dann schließen.
+- **i18n/Doku (#425):** #430 (ES/FR/UK/ZH) entsperrt die Paritätstests; #431 (Doku)
+  und #432 (Screenshots) folgen, sobald die UI optisch final ist.
+- **QA/Rollout (#426):** #433 ist über PR #423 weitgehend abgedeckt (Lücke prüfen,
+  schließen); #434 ist ready-for-PR; #435 (CHANGELOG/Version) mit #392 abstimmen.
+- **Release:** entscheiden, ob das Redesign in **v2.5.0** (#392/#435 zusammen)
+  oder in einem späteren Bump ausgeliefert wird.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden (CHANGELOG/Version/Tag/Artefakte) | 🟠 Hoch | 🟡 Mittel | **Startbereit** – #390, #391 und #384 sind geschlossen. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | [Epic] Nutzer-Doku aktualisieren & Release schneiden | 🟠 Hoch | 🟢 Niedrig (Rest) | **Fast abgeschlossen** – nur #392 ist noch offen. |
-| [#404](https://github.com/NikolayDA/picture_helper/issues/404) | Vorschau-Render: Größen-Mismatch degradiert nicht auf COLOR | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – `compose_relief`/`compose_gloss` defensiv kapseln und bei Größen-Mismatch auf `base` zurückfallen, mit Render-/Pixel-Regressionstest. Latent, aber klar abgegrenzt. |
-| [#406](https://github.com/NikolayDA/picture_helper/issues/406) | Dead-Code: ungenutzte `_derive_physical_size` in `eufymake_export.py` | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR** – Funktion entfernen, `parse_size_mm`-Import bereinigen, CLAUDE.md-Geometriesatz auf den `_derive_target`/Projektmodell-Pfad anpassen. Trivial, vollständige Akzeptanzkriterien. |
-| [#408](https://github.com/NikolayDA/picture_helper/issues/408) | Doku-/Code-Audit: API-/CLI-Doku deckt sich mit den Funktionssignaturen (keine Drift) | 🟢 Niedrig | 🟢 Niedrig | **Informativ / schließbar** – Audit ohne Befund, kein Code-/Doku-Fix nötig. Optionaler Folgeschritt: echte `docs/api.md` per Autodoc, damit künftige Drift automatisch auffällt. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Nach v2.5.0** – dann höchste Wirkung zuerst (Lasso-Endpunkt, schreibbares NumPy-Ergebnis, Magic-Wand-Vollmaske, Brush-Parametrisierung). |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Test: Job-Level-Permission-Overrides im Reusable-WF berücksichtigen | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – GitHub-Semantik erst belegen; Code nur bei nachgewiesenem False Positive, OIDC-Guard #303 bewahren. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | CI: Codex Security Scan scheitert an „Quota exceeded“ | 🟡 Mittel | 🟢 Niedrig | **Blocked (extern)** – Repo-Härtung über #322/#342 (geschlossen) erledigt; verbleibender Blocker ist die OpenAI-/Billing-Quota. Nach Quota-Fix den geplanten Scan einmal manuell anstoßen, dann schließen. |
+| [#418](https://github.com/NikolayDA/picture_helper/issues/418) | EPIC: Geführter Workflow – Schrittleiste & Navigation | 🟠 Hoch | 🟢 Niedrig | **Verifizieren & schließen** – alle Sub-Issues zu (PR #423). |
+| [#413](https://github.com/NikolayDA/picture_helper/issues/413) | EPIC: Karten-Inspector – rechte Spalte als Karten | 🟠 Hoch | 🟢 Niedrig | **Fast fertig** – nur #414 offen. |
+| [#414](https://github.com/NikolayDA/picture_helper/issues/414) | Karten-Container & Akzent-Tokens zentralisieren | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – Tokens da; hellen Karten-Stil ergänzen. |
+| [#424](https://github.com/NikolayDA/picture_helper/issues/424) | EPIC: Einheitliches Design-System & Theming | 🟠 Hoch | 🟢 Niedrig | **Verifizieren & schließen** – alle Sub-Issues zu. |
+| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalisierung & Dokumentation | 🟠 Hoch | 🟡 Mittel | **In Arbeit** – #430/#431/#432 offen. |
+| [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Neue UI-Strings (Schritte/Karten/Navigation) | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423 da. |
+| [#431](https://github.com/NikolayDA/picture_helper/issues/431) | ANLEITUNG & README auf geführten Workflow | 🟡 Mittel | 🟡 Mittel | **Nach UI-Freeze** – 6-Sprachen-Spiegel, Link-Tests. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | App-Screenshots des Redesigns neu erstellen | 🟢 Niedrig | 🟢 Niedrig | **Blockiert** – erst wenn die UI optisch final ist. |
+| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: Qualitätssicherung & Rollout | 🟠 Hoch | 🟢 Niedrig | **In Arbeit** – #433/#434/#435 offen. |
+| [#433](https://github.com/NikolayDA/picture_helper/issues/433) | Smoke-Tests Schrittleiste/Karten/Navigation | 🟡 Mittel | 🟢 Niedrig | **Lücke prüfen** – über PR #423 weitgehend abgedeckt. |
+| [#434](https://github.com/NikolayDA/picture_helper/issues/434) | Regression Sichtbarkeit & Aktions-Verdrahtung | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – Aktions-Callbacks je Schritt. |
+| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & Versionsanhebung für das Redesign | 🟡 Mittel | 🟢 Niedrig | **Mit #392 abstimmen** – Release-Sequenz klären. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden | 🟠 Hoch | 🟡 Mittel | **Startbereit** – Sequenz mit Redesign entscheiden. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Nutzer-Doku aktualisieren & Release | 🟠 Hoch | 🟢 Niedrig | **Nach #392 schließen** – nur Release offen. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Nach der Release** – höchste Wirkung zuerst. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-Level-Permission-Overrides im Reusable-WF | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – GitHub-Semantik belegen. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern)** – OpenAI-Billing/Quota. |
+| [#442](https://github.com/NikolayDA/picture_helper/issues/442) | RECOMMENDATIONS.md ist veraltet | 🟡 Mittel | 🟢 Niedrig | **Durch dieses Update erledigt** – schließbar. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#406** und **#404** als kurze Quality-PRs vorziehen – beide sind
-   verifiziert, eigenständig und ready-for-PR (verschiedene Module, geringes
-   Risiko).
-2. **#392** ausführen und Epic **#389** schließen, sobald Tag, Release-Body und
-   beide Artefakte verifiziert sind.
-3. **#299** nach v2.5.0 angehen; **#318** nur erforschen (Needs refinement),
-   **#408** als informatives Audit ohne Aktion schließen, **#245** extern blockiert lassen.
+1. **Housekeeping:** Sub-Issues verifizieren und die fast fertigen Epics **#418**
+   und **#424** schließen; **#414** (heller Karten-Stil) abschließen, dann **#413**.
+2. **#430** (UI-Strings ES/FR/UK/ZH) vorziehen – entsperrt die i18n-Parität;
+   danach **#431**/**#432**, sobald die UI final ist.
+3. **#434** (Regression) umsetzen; **#433**-Abdeckung aus PR #423 bestätigen und
+   schließen.
+4. **Release:** **#435** + **#392** koordiniert fahren, dann Epics **#426** und
+   **#389** schließen.
+5. **#299** nach der Release; **#318** nur erforschen (Needs refinement); **#245**
+   extern blockiert; **#442** nach dieser Auffrischung schließen.
 
 ## Vorige Runden
 
-- **2026-06-01, „modest-shannon“ (A–E)** — 5 Befunde, alle erledigt.
-- **v2.2, „admiring-mayer“ (#1–#15)** — externe Liste, erledigt oder bei Fehlalarm verworfen.
+- **2026-06-29-Triage** — #404/#406/#408 abgeschlossen (PR #412), Redesign-Welle eröffnet.
+- **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, erledigt oder bei Fehlalarm verworfen.
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
