@@ -82,7 +82,8 @@ def test_open_paths_opens_first_and_ignores_extras(qapp, win, tmp_path) -> None:
     b = _png(tmp_path / "b.png")
     win.open_paths([a, b])
     # Die Statusmeldung über ignorierte Extras wird synchron gesetzt – also
-    # bevor das asynchrone Laden zurückkehrt und „Geöffnet …" anzeigt.
+    # bevor das asynchrone Laden zurückkehrt und die Statuszeile mit der
+    # Schritt-Meldung des geführten Workflows (#420) weiterzieht.
     assert win._sb.currentMessage() == tr(
         "canvas.opened_extra", name=Path(a).name, extra=1)
     _drain(qapp, lambda: win._canvas.has_image)

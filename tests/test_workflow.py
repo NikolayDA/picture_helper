@@ -80,6 +80,18 @@ def test_loading_image_unlocks_and_advances(window):
 
 
 @pytest.mark.ui_smoke
+def test_step_change_updates_status_bar(window):
+    """#420: Jeder Schrittwechsel spiegelt sich in der Statuszeile."""
+    w = window
+    _load_image(w)  # Autosprung zu „Freistellen" meldet den Schritt
+    assert w._sb.currentMessage() == "Schritt 2/6: Freistellen"
+    w._go_to_step(WorkflowStep.ADJUST)
+    assert w._sb.currentMessage() == "Schritt 3/6: Anpassen"
+    w._prev_step()
+    assert w._sb.currentMessage() == "Schritt 2/6: Freistellen"
+
+
+@pytest.mark.ui_smoke
 def test_shape_resize_fields_follow_loaded_and_resized_project(window):
     """#448: Inline-Größenfelder spiegeln Bild-/Projektgröße statt 1200x900."""
     w = window
