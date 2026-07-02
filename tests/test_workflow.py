@@ -177,26 +177,43 @@ def test_stepper_locked_cells_are_not_focusable(qapp):
 
 
 @pytest.mark.ui_smoke
-def test_stepper_focus_does_not_alter_layout(qapp):
-    """Fokus zeichnet keine eigene Fläche und keinen Rahmen (Layout exakt wie
-    im Prototyp, Spec §6): Das Zell-Stylesheet bleibt bei Fokus-Wechseln
-    unverändert – früher erschienen Fokusrahmen und -tönung als Doppelrahmen
-    um den aktiven Schritt (selektorlose Regeln gelten auch für Kreis/Label).
+def test_stepper_focus_visible_only_for_keyboard(qapp):
+    """Fokus-Markierung mit ``:focus-visible``-Semantik: Maus-Fokus lässt das
+    Zell-Stylesheet unverändert (Layout exakt wie im Prototyp, Spec §6),
+    Tab-Fokus zeigt die akzentgetönte Fläche – rahmenlos, denn ein ``border``
+    in der selektorlosen Zell-Regel erschien früher als Doppelrahmen um den
+    aktiven Schritt (Zelle + Label).
     """
-    from PyQt6.QtCore import QEvent
+    from PyQt6.QtCore import QEvent, Qt
     from PyQt6.QtGui import QFocusEvent
 
-    stepper = Stepper()
-    cell = stepper._cells[WorkflowStep.OPEN]
-    resting = cell.styleSheet()
-    # Die Basis-Regel schirmt Kreis/Label gegen das ``border-bottom`` des
-    # Steppers ab und hält die Zelle transparent.
-    assert "transparent" in resting
-    assert "border: none" in resting
-    cell.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
-    assert cell.styleSheet() == resting
-    cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
-    assert cell.styleSheet() == resting
+    from bgremover.theme import DARK, LIGHT, active_palette, set_active_palette
+
+    try:
+        for palette in (DARK, LIGHT):
+            set_active_palette(palette)
+            stepper = Stepper()
+            cell = stepper._cells[WorkflowStep.OPEN]
+            resting = cell.styleSheet()
+            # Die Ruhe-Regel schirmt Kreis/Label gegen das ``border-bottom``
+            # des Steppers ab und hält die Zelle transparent.
+            assert "transparent" in resting
+            assert "border: none" in resting
+            # Maus-Klick: keine sichtbare Fokus-Änderung.
+            cell.focusInEvent(
+                QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.MouseFocusReason))
+            assert cell.styleSheet() == resting
+            # Tastatur (Tab): getönte, rahmenlose Fläche.
+            cell.focusInEvent(
+                QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+            sheet = cell.styleSheet()
+            assert active_palette().accent_soft in sheet
+            assert "solid" not in sheet
+            cell.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
+            assert cell.styleSheet() == resting
+            stepper.deleteLater()
+    finally:
+        set_active_palette(DARK)
 
 
 @pytest.mark.ui_smoke
