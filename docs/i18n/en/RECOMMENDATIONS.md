@@ -36,6 +36,12 @@ brought up to the real state (18 open issues).
 - **O1 🟠 — Additional runtime languages.** German and English are switchable;
   es/fr/uk/zh are not runtime locales yet. This matches redesign issue **#430** —
   add them key-for-key in `bgremover.i18n` and cover them with tests.
+- **O8 🟢 — Prototype inaccuracy: height tools stay locked after generation.**
+  In `design/Prototyp A - Geführter Workflow.dc.html`, "Generate height map
+  from image" only sets `heightGen` without switching the active layer to
+  role `Höhe` — `heightDisabled` stays tied to the previous role (review
+  finding on PR #460). Mockup-only; the real app already activates the new
+  HEIGHT layer automatically (#347).
 
 ## Open GitHub Issues — Triage Status (2026-07-02)
 
