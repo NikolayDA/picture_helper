@@ -37,6 +37,13 @@ des tickets ouverts est remis au niveau réel (18 tickets ouverts).
   commutables ; es/fr/uk/zh ne sont pas encore des locales d'exécution.
   Correspond au ticket de redesign **#430** — les ajouter clé par clé dans
   `bgremover.i18n` et les couvrir par des tests.
+- **O8 🟢 — Imprécision du prototype : les outils de hauteur restent
+  verrouillés après génération.** Dans `design/Prototyp A - Geführter
+  Workflow.dc.html`, « Générer la carte de hauteur à partir de l'image » ne
+  fait qu'activer `heightGen` sans basculer le calque actif sur le rôle
+  `Höhe` — `heightDisabled` reste lié à l'ancien rôle (constat de revue sur
+  la PR #460). N'affecte que la simulation de la maquette ; l'application
+  réelle active déjà automatiquement le nouveau calque HEIGHT (#347).
 
 ## Tickets GitHub ouverts — Triage (2026-07-02)
 

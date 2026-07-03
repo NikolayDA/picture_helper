@@ -37,6 +37,12 @@ la clasificación de incidencias abiertas se ha puesto al día (18 abiertas).
   conmutables; es/fr/uk/zh aún no son locales de ejecución. Coincide con la
   incidencia de rediseño **#430** — añadirlos clave por clave en `bgremover.i18n`
   y cubrirlos con pruebas.
+- **O8 🟢 — Imprecisión del prototipo: las herramientas de altura quedan
+  bloqueadas tras generarla.** En `design/Prototyp A - Geführter Workflow.dc.html`,
+  «Generar mapa de altura desde la imagen» solo activa `heightGen` sin cambiar
+  la capa activa al rol `Höhe` — `heightDisabled` sigue dependiendo del rol
+  anterior (hallazgo de revisión en el PR #460). Solo afecta a la simulación
+  del mockup; la app real ya activa automáticamente la nueva capa HEIGHT (#347).
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-07-02)
 

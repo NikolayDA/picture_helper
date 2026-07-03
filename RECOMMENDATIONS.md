@@ -36,6 +36,12 @@ GitHub-Triage ist auf den tatsächlichen Ist-Stand gehoben (18 offene Issues).
 - **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind umschaltbar;
   es/fr/uk/zh sind noch keine Runtime-Locales. Deckt sich mit dem Redesign-Issue
   **#430** – dort key-für-key in `bgremover.i18n` ergänzen und mit Tests absichern.
+- **O8 🟢 — Prototyp-Ungenauigkeit: Höhen-Werkzeuge nach Erzeugung gesperrt.**
+  In `design/Prototyp A - Geführter Workflow.dc.html` setzt „Höhenkarte aus
+  Bild erzeugen" nur `heightGen`, ohne die aktive Ebene auf Rolle `Höhe` zu
+  schalten – `heightDisabled` bleibt an der vorherigen Rolle hängen (Review-
+  Fund auf PR #460). Betrifft nur die Mockup-Simulation; die echte App
+  aktiviert die neue HEIGHT-Ebene bereits automatisch (#347).
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-02)
 
