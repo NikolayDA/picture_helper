@@ -6,6 +6,8 @@ import pytest
 from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
+    QGridLayout,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QSlider,
@@ -206,6 +208,23 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
         if f.objectName() == "sectionCard"
     ]
     assert cards, "keine Karten-Sektionen gefunden"
+
+
+def test_step2_and_step4_option_spacing_is_uniform(qapp):
+    """Optionszeilen in Schritt 2/4 nutzen denselben horizontalen Abstand."""
+    from bgremover.right_panel_tabs import _OPTION_SPACING
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    for name in ("selectionActionRow", "selectionMorphRow"):
+        row = panel.frame.findChild(QHBoxLayout, name)
+        assert row is not None
+        assert row.spacing() == _OPTION_SPACING
+
+    grid = panel.frame.findChild(QGridLayout, "shapeFormatGrid")
+    assert grid is not None
+    assert grid.horizontalSpacing() == _OPTION_SPACING
+    assert grid.verticalSpacing() == _OPTION_SPACING
 
 
 @pytest.mark.ui_smoke

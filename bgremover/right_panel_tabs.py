@@ -48,6 +48,7 @@ if TYPE_CHECKING:
 # nicht kürzbare Button-Beschriftungen (z. B. Übersetzungen), damit sie die
 # feste Panelbreite nie sprengen (#423-Review, Spec §5.3 „Umbruch … EufyMake").
 _CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * 18 - 2 * 14
+_OPTION_SPACING = 6
 
 
 def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
@@ -308,7 +309,8 @@ class SelectionTab:
 
         # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen (§9)
         g_select, gsel = _make_section(tr("right_panel.selection.section.select"))
-        row_ci = QHBoxLayout(); row_ci.setSpacing(6)
+        row_ci = QHBoxLayout(); row_ci.setObjectName("selectionActionRow")
+        row_ci.setSpacing(_OPTION_SPACING)
         btn_inv = _make_neutral_btn(
             tr("right_panel.selection.invert"),
             tr("right_panel.selection.invert.tooltip", modifier=sub_mod))
@@ -321,7 +323,8 @@ class SelectionTab:
         row_ci.addWidget(btn_clr, 1)
         gsel.addLayout(row_ci)
 
-        morph_row = QHBoxLayout(); morph_row.setSpacing(4)
+        morph_row = QHBoxLayout(); morph_row.setObjectName("selectionMorphRow")
+        morph_row.setSpacing(_OPTION_SPACING)
         morph_spin = QSpinBox()
         morph_spin.setRange(1, 20); morph_spin.setValue(2)
         morph_spin.setSuffix(" px")
@@ -444,7 +447,7 @@ class TransformTab:
         g_rot, gr2 = _make_section(tr("right_panel.transform.section.rotate"))
 
         gr2.addWidget(_make_label(tr("right_panel.transform.quick_label"), "#888"))
-        row_q1 = QHBoxLayout(); row_q1.setSpacing(6)
+        row_q1 = QHBoxLayout(); row_q1.setSpacing(_OPTION_SPACING)
         for label, deg, tip in [
             (tr("right_panel.transform.rotate_left_90"), 90,
              tr("right_panel.transform.rotate_left_90.tooltip")),
@@ -456,7 +459,7 @@ class TransformTab:
             row_q1.addWidget(b, 1)
         gr2.addLayout(row_q1)
 
-        row_q2 = QHBoxLayout(); row_q2.setSpacing(6)
+        row_q2 = QHBoxLayout(); row_q2.setSpacing(_OPTION_SPACING)
         for label, deg, tip in [
             (tr("right_panel.transform.rotate_180"), 180,
              tr("right_panel.transform.rotate_180.tooltip")),
@@ -470,7 +473,7 @@ class TransformTab:
 
         gr2.addWidget(_make_hdivider())
         gr2.addWidget(_make_label(tr("right_panel.transform.free_label"), "#888"))
-        row_free = QHBoxLayout(); row_free.setSpacing(6)
+        row_free = QHBoxLayout(); row_free.setSpacing(_OPTION_SPACING)
         rotation_slider = QSlider(Qt.Orientation.Horizontal)
         rotation_slider.setRange(-180, 180); rotation_slider.setValue(0)
         rotation_slider.setStyleSheet(slider_style(active_palette()))
@@ -497,7 +500,7 @@ class TransformTab:
         layout.addWidget(g_rot)
 
         g_flip, gf = _make_section(tr("right_panel.transform.section.flip"))
-        row_flip = QHBoxLayout(); row_flip.setSpacing(6)
+        row_flip = QHBoxLayout(); row_flip.setSpacing(_OPTION_SPACING)
         btn_fh = _make_neutral_btn(
             tr("right_panel.transform.flip_h"),
             tr("right_panel.transform.flip_h.tooltip"))
@@ -549,7 +552,7 @@ class ShapeTab:
 
         # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438)
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
-        size_row = QHBoxLayout(); size_row.setSpacing(6)
+        size_row = QHBoxLayout(); size_row.setSpacing(_OPTION_SPACING)
         resize_w = QSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
         resize_w.setFixedWidth(76); resize_w.setStyleSheet(_spin_style())
         resize_h = QSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
@@ -570,7 +573,8 @@ class ShapeTab:
 
         # Karte „Zuschnitt-Format" – 3×2-Raster mit genau sechs Formaten (§9)
         g_fmt, gfm = _make_section(tr("right_panel.shape.section.format"))
-        grid = QGridLayout(); grid.setSpacing(8)
+        grid = QGridLayout(); grid.setObjectName("shapeFormatGrid")
+        grid.setSpacing(_OPTION_SPACING)
         btn_circle = _make_neutral_btn(
             tr("right_panel.shape.circle"),
             tr("right_panel.shape.circle.tooltip"))
