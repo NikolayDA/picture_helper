@@ -81,6 +81,7 @@ class CanvasViewport:
     def _notify_zoom(self) -> None:
         """Meldet den aktuellen Zoomwert an die Anzeige (Zoom-Kontrolle, #464)."""
         self._canvas.zoomChanged.emit(self.zoom_percent)
+        self._canvas.zoom_control.reposition()
 
     def refresh_image(self, img: Image.Image | None) -> None:
         """Rendert das aktuelle PIL-Bild neu in den ``QGraphicsPixmapItem``."""
@@ -114,11 +115,19 @@ class CanvasViewport:
 
         ``zoomBy``-Logik des Prototyps: Zielwert = aktueller Prozentwert plus
         *delta_pct*, geklemmt auf ``[_ZOOM_CTRL_MIN_PCT, _ZOOM_CTRL_MAX_PCT]``.
-        Bei fixiertem Zoom ein No-op.
+        Liegt der aktuelle Zoom durch Fit-to-View oder Mausrad schon außerhalb
+        dieses Kontrollbereichs, bewegt der Button nur in Richtung des Bereichs,
+        nie weiter hinaus oder per Clamp in die Gegenrichtung. Bei fixiertem
+        Zoom ein No-op.
         """
         if self._zoom_locked:
             return
         current = self.zoom_percent
+        if (
+            delta_pct < 0 and current <= _ZOOM_CTRL_MIN_PCT
+            or delta_pct > 0 and current >= _ZOOM_CTRL_MAX_PCT
+        ):
+            return
         target = max(_ZOOM_CTRL_MIN_PCT, min(_ZOOM_CTRL_MAX_PCT, current + delta_pct))
         if target == current:
             return

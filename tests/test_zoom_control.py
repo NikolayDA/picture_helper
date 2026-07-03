@@ -84,6 +84,23 @@ def test_zoom_clamped_at_minimum(qapp):
     assert c.zoom_control.label.text() == "25%"
 
 
+def test_step_buttons_do_not_reverse_direction_outside_control_range(qapp):
+    c = _canvas()
+    c.resetTransform()
+    c.scale(0.20, 0.20)
+    c._viewport._notify_zoom()
+
+    c.zoom_control.btn_out.click()
+    assert c._viewport.zoom_percent == pytest.approx(20)
+
+    c.resetTransform()
+    c.scale(3.10, 3.10)
+    c._viewport._notify_zoom()
+
+    c.zoom_control.btn_in.click()
+    assert c._viewport.zoom_percent == pytest.approx(310)
+
+
 # ── Fixier-Lock ────────────────────────────────────────────────────────
 
 
@@ -145,17 +162,35 @@ def test_label_follows_wheel_and_fit(qapp):
 
 
 def test_overlay_repositions_bottom_right(qapp):
-    from PyQt6.QtCore import QSize
-    from PyQt6.QtGui import QResizeEvent
-
     c = _canvas()
     c.resize(400, 300)
-    # Offscreen stellt Qt Resize-Events verborgener Widgets erst beim Anzeigen
-    # zu – das Event daher direkt an den Override liefern.
-    c.resizeEvent(QResizeEvent(QSize(400, 300), QSize(0, 0)))
+    c.show()
+    qapp.processEvents()
     ctrl = c.zoom_control
-    assert ctrl.x() + ctrl.width() <= 400
-    assert ctrl.y() + ctrl.height() <= 300
-    # Verankerung an der rechten/unteren Kante (Prototyp: 14 px Abstand).
-    assert ctrl.x() + ctrl.width() == 400 - 14
-    assert ctrl.y() + ctrl.height() == 300 - 14
+    parent = ctrl.parentWidget()
+    assert parent is c.viewport()
+    ctrl.reposition()
+    assert ctrl.x() + ctrl.width() <= parent.width()
+    assert ctrl.y() + ctrl.height() <= parent.height()
+    # Verankerung an der rechten/unteren Viewport-Kante (Prototyp: 14 px Abstand).
+    assert ctrl.x() + ctrl.width() == parent.width() - 14
+    assert ctrl.y() + ctrl.height() == parent.height() - 14
+
+
+def test_overlay_repositions_inside_viewport_when_scrollbars_are_visible(qapp):
+    c = _canvas(size=(2000, 2000))
+    c.resize(400, 300)
+    c.show()
+    qapp.processEvents()
+    c.resetTransform()
+    c.scale(2.0, 2.0)
+    c._viewport._notify_zoom()
+    qapp.processEvents()
+
+    assert c.horizontalScrollBar().isVisible()
+    assert c.verticalScrollBar().isVisible()
+    ctrl = c.zoom_control
+    parent = c.viewport()
+    assert ctrl.parentWidget() is parent
+    assert ctrl.x() + ctrl.width() == parent.width() - 14
+    assert ctrl.y() + ctrl.height() == parent.height() - 14

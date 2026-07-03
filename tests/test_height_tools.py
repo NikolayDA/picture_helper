@@ -78,6 +78,29 @@ def test_stroke_adjusts_each_pixel_once(qapp):
     assert after[8, 8] == 100 + _DEFAULT_HEIGHT_STEP
 
 
+def test_live_preview_updates_only_dirty_height_region(qapp, monkeypatch):
+    """Während des Strichs wird nur das Pinsel-Rechteck als Layer gebaut."""
+    import bgremover.canvas as canvas_mod
+
+    c = _canvas_with_height_layer(gray=100, size=(64, 64))
+    c.set_tool(TOOL_HEIGHT_LIGHTEN)
+    c.set_brush_size(6)
+    calls: list[tuple[int, int]] = []
+    original = canvas_mod.height_to_layer
+
+    def _tracking_height_to_layer(field):
+        calls.append(field.values.shape)
+        return original(field)
+
+    monkeypatch.setattr(canvas_mod, "height_to_layer", _tracking_height_to_layer)
+    c._start_height_stroke(8, 8)
+    c._extend_height_stroke(10, 8)
+
+    assert calls
+    assert (64, 64) not in calls
+    assert all(h <= 7 and w <= 7 for h, w in calls)
+
+
 def test_stroke_is_single_undo_step(qapp):
     c = _canvas_with_height_layer(gray=100)
     c.set_tool(TOOL_HEIGHT_LIGHTEN)
