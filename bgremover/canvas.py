@@ -124,6 +124,7 @@ class _HeightStroke:
     coverage: np.ndarray
     max_value: int
     touched: np.ndarray
+    preview_image: Image.Image
     amount: int
 
 
@@ -254,8 +255,8 @@ class ImageCanvas(QGraphicsView):
             self, self._scene, self._img_item, self._vp)
 
         # Schwebende Zoom-Kontrolle (#464): sichtbar sobald ein Bild geladen
-        # ist, ansonsten ausgeblendet; folgt der Canvas-Größe (resizeEvent).
-        self._zoom_control = ZoomControl(self._viewport, self)
+        # ist, ansonsten ausgeblendet; folgt der Viewport-Größe (resizeEvent).
+        self._zoom_control = ZoomControl(self._viewport, self._vp)
         self._zoom_control.setVisible(False)
         self.zoomChanged.connect(self._zoom_control.set_percent)
 
@@ -1168,6 +1169,7 @@ class ImageCanvas(QGraphicsView):
             coverage=field.coverage,
             max_value=field.max_value,
             touched=np.zeros(field.values.shape, dtype=bool),
+            preview_image=active.image.copy(),
             amount=amount,
         )
         self._drawing = True
@@ -1201,8 +1203,11 @@ class ImageCanvas(QGraphicsView):
             region.astype(np.int32) + stroke.amount, 0, stroke.max_value)
         region[fresh] = adjusted[fresh].astype(np.uint16)
         touched_region |= circle
-        self._preview_layer_override = (
-            stroke.layer_id, height_to_layer(self._stroke_field(stroke)))
+        dirty = HeightField(
+            region.copy(), stroke.coverage[y0:y1, x0:x1].copy(),
+            stroke.max_value)
+        stroke.preview_image.paste(height_to_layer(dirty), (x0, y0))
+        self._preview_layer_override = (stroke.layer_id, stroke.preview_image)
         self._refresh_image()
 
     @staticmethod
