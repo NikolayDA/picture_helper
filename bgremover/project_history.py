@@ -101,8 +101,8 @@ def _capture_state(project: Project, desc: str) -> _ProjectState:
     strategie und zum Unveränderlichkeits-Vertrag); ``metadata`` wird dagegen
     **tief** kopiert, damit auch verschachtelte, veränderliche Werte vom späteren
     Projektzustand entkoppelt sind und ``undo``/``restore`` exakt den erfassten
-    Zustand liefern. Das Dict bleibt klein (reservierte Felder für Bittiefe und
-    physische Zielgröße), die Kopie ist also vernachlässigbar.
+    Zustand liefern. Das Dict bleibt klein (die physische Zielgröße plus das
+    noch reservierte Bittiefen-Feld), die Kopie ist also vernachlässigbar.
     """
     layers = tuple(
         _LayerState(

@@ -1,10 +1,10 @@
 """QSettings-Schema-Versionierung.
 
-Aktuell existiert nur Version 1 – das Modul legt lediglich den
-Grundstein, damit kuenftige Format-Wechsel (z. B. ein anderes Layout der
-``recent_files``-Liste) ihre Migration an einer einzigen Stelle
-einhaengen koennen, ohne dass alte gespeicherte Werte den Start crashen
-lassen.
+Aktuell ist ``SCHEMA_VERSION = 2`` (v1→v2 fuegt die EufyMake-Studio-
+Exportschluessel hinzu). Das Modul buendelt Format-Wechsel (z. B. ein
+anderes Layout der ``recent_files``-Liste) so, dass jede Migration an
+einer einzigen Stelle einhaengt, ohne dass alte gespeicherte Werte den
+Start crashen lassen.
 
 Der Schluessel ``schema_version`` ist absichtlich nur als Integer
 persistiert – QSettings serialisiert ihn auf macOS als plist-``int``,
@@ -85,7 +85,7 @@ def migrate(settings: QSettings) -> None:
     - Frische Settings ohne ``schema_version`` werden auf
       ``SCHEMA_VERSION`` gehoben.
     - Bestehende Settings mit aelterer Version durchlaufen die
-      entsprechenden ``_MIGRATIONS``-Schritte (aktuell keine).
+      entsprechenden ``_MIGRATIONS``-Schritte der Reihe nach.
     - Settings mit ZUKUENFTIGER Version (> ``SCHEMA_VERSION``) werden
       nicht angefasst; es wird lediglich gewarnt, damit ein Downgrade
       keine User-Daten verliert.

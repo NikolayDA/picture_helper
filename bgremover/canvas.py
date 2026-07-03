@@ -244,8 +244,9 @@ class ImageCanvas(QGraphicsView):
         """Bild der **aktiven Ebene** – das Editierziel (oder ``None``).
 
         Bewusst die aktive Ebene und nicht das Komposit: Werkzeuge und Tests
-        arbeiten auf dem Editierziel. Das angezeigte/gespeicherte Komposit liefert
-        ``_render_image``. Bei genau einer Ebene sind beide identisch (Parität).
+        arbeiten auf dem Editierziel. Das angezeigte Komposit liefert
+        ``_render_image``, das gespeicherte/exportierte ``_render_export_image``
+        (#363-Vertrag). Bei genau einer Ebene sind beide identisch (Parität).
         """
         return self._pil
 
