@@ -62,7 +62,8 @@ _IS_MACOS = sys.platform == "darwin"
 # Werte 1:1 aus dem abgenommenen Prototyp (docs/REDESIGN_SPEC.md §1/§5.9).
 _TOOLBAR_WIDTH      = 62
 _TOOLBAR_BTN_SIZE   = 44
-_TOOLBAR_ICON_SIZE  = 22
+# Seit Epic #455 an die Prototyp-Icongröße angeglichen (vorher 22 px).
+_TOOLBAR_ICON_SIZE  = 20
 _RIGHT_PANEL_WIDTH  = 332
 _CROP_BAR_HEIGHT    = 46
 _COLOR_BTN_SIZE     = 38
@@ -77,6 +78,14 @@ _ZOOM_FACTOR          = 1.15
 # Standard-Stärke (0–255) für Höhen-Aufhellen/-Abdunkeln (#347).
 _DEFAULT_HEIGHT_STEP  = 32
 
+# ── Zoom-Overlay (#464) ──────────────────────────────────────
+# Wertebereich und Schrittweite der Canvas-Zoom-Kontrolle, 1:1 aus der
+# ``zoomBy``-Logik des Prototyps. Die Mausrad-Grenzen (ZOOM_MIN/ZOOM_MAX in
+# ``canvas_viewport``) bleiben davon unberührt.
+_ZOOM_CTRL_MIN_PCT  = 25
+_ZOOM_CTRL_MAX_PCT  = 300
+_ZOOM_CTRL_STEP_PCT = 10
+
 # ── Auswahloverlay-Farbe (RGBA) ──────────────────────────────
 _OVERLAY_COLOR = (220, 60, 60, 130)
 
@@ -85,6 +94,11 @@ TOOL_WAND   = "wand"
 TOOL_BRUSH  = "brush"
 TOOL_ERASER = "eraser"
 TOOL_LASSO  = "lasso"
+# Verschieben/Zoom (#456): permanentes Rail-Werkzeug, pannt mit Linksklick.
+TOOL_MOVE   = "move"
+# Malende Höhen-Werkzeuge (#457): nur in Schritt 5, wirken auf HEIGHT-Ebenen.
+TOOL_HEIGHT_LIGHTEN = "height_lighten"
+TOOL_HEIGHT_DARKEN  = "height_darken"
 
 
 def init_runtime() -> None:

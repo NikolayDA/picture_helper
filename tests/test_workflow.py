@@ -305,6 +305,214 @@ def test_stepper_tab_order_follows_step_sequence(qapp):
 def test_toolbar_buttons_meet_minimum_hit_size(window):
     """#441: Werkzeugleisten-Buttons sind großzügige Ziele (54 px ≥ 32 px)."""
     tb = window.toolbar
-    for btn in (tb.btn_wand, tb.btn_brush, tb.btn_eraser, tb.btn_lasso,
-                tb.btn_ai, tb.btn_history):
+    for btn in (tb.btn_move, tb.btn_wand, tb.btn_brush, tb.btn_eraser,
+                tb.btn_lasso, tb.btn_height_lighten, tb.btn_height_darken,
+                tb.btn_undo, tb.btn_redo, tb.btn_theme):
         assert btn.width() >= 32 and btn.height() >= 32
+
+
+# ── Rail 1:1 zum Prototyp (Epic #455) ─────────────────────────────────────
+
+
+@pytest.mark.ui_smoke
+def test_move_tool_always_present_and_auto_activated(window):
+    """#456: „Verschieben / Zoom" ist oberster Rail-Button in allen Schritten;
+    Schritte ohne Auswahl-/Höhen-Werkzeuge aktivieren Move sichtbar."""
+    from bgremover.constants import TOOL_MOVE
+
+    w = window
+    _load_image(w)  # Schritt 2
+    assert not w.toolbar.btn_move.isHidden()
+    # In Schritt 2 ist das Auswahlwerkzeug aktiv, nicht Move.
+    assert w._canvas.current_tool != TOOL_MOVE
+    for step in (WorkflowStep.OPEN, WorkflowStep.ADJUST, WorkflowStep.SHAPE,
+                 WorkflowStep.RELIEF, WorkflowStep.EXPORT):
+        w._go_to_step(step)
+        assert not w.toolbar.btn_move.isHidden()
+        assert w._canvas.current_tool == TOOL_MOVE
+        assert w.toolbar.btn_move.isChecked()
+
+
+@pytest.mark.ui_smoke
+def test_returning_to_cutout_restores_last_selection_tool(window):
+    """#456: Zurück im Freistellen greift das zuletzt gewählte Auswahlwerkzeug."""
+    from bgremover.constants import TOOL_ERASER
+
+    w = window
+    _load_image(w)  # Schritt 2, Default Zauberstab
+    w._set_tool(TOOL_ERASER)
+    w._go_to_step(WorkflowStep.SHAPE)
+    w._go_to_step(WorkflowStep.CUTOUT)
+    assert w._canvas.current_tool == TOOL_ERASER
+    assert w.toolbar.btn_eraser.isChecked()
+
+
+@pytest.mark.ui_smoke
+def test_height_tools_visible_only_in_relief_step(window):
+    """#457: Aufhellen/Abdunkeln (nach Trenner) genau in Schritt 5."""
+    w = window
+    _load_image(w)
+    for step in (WorkflowStep.CUTOUT, WorkflowStep.ADJUST, WorkflowStep.SHAPE,
+                 WorkflowStep.EXPORT):
+        w._go_to_step(step)
+        assert w.toolbar.btn_height_lighten.isHidden()
+        assert w.toolbar.btn_height_darken.isHidden()
+        assert w.toolbar.height_separator.isHidden()
+    w._go_to_step(WorkflowStep.RELIEF)
+    assert not w.toolbar.btn_height_lighten.isHidden()
+    assert not w.toolbar.btn_height_darken.isHidden()
+    assert not w.toolbar.height_separator.isHidden()
+
+
+@pytest.mark.ui_smoke
+def test_height_tools_enabled_only_with_active_height_layer(window):
+    """#457: Ohne aktive HEIGHT-Ebene deaktiviert (Tooltip nennt den Grund);
+    eine erzeugte Höhenkarte gibt die Werkzeuge frei."""
+    from bgremover.constants import TOOL_HEIGHT_LIGHTEN, TOOL_MOVE
+    from bgremover.i18n import tr
+
+    w = window
+    _load_image(w)
+    w._go_to_step(WorkflowStep.RELIEF)
+    assert not w.toolbar.btn_height_lighten.isEnabled()
+    assert (w.toolbar.btn_height_lighten.toolTip()
+            == tr("toolbar.height_tools.disabled.tooltip"))
+
+    w._canvas.generate_height_map()  # neue HEIGHT-Ebene wird aktiv
+    assert w.toolbar.btn_height_lighten.isEnabled()
+    assert w.toolbar.btn_height_darken.isEnabled()
+    assert (w.toolbar.btn_height_lighten.toolTip()
+            == tr("toolbar.height_lighten.tooltip"))
+
+    # Wechsel auf eine Nicht-HEIGHT-Ebene sperrt wieder und fällt auf Move zurück.
+    w._set_tool(TOOL_HEIGHT_LIGHTEN)
+    color_layer = next(
+        layer for layer in w._canvas.project.layers
+        if layer.kind.name == "COLOR")
+    w._canvas.set_active_layer(color_layer.id)
+    assert not w.toolbar.btn_height_lighten.isEnabled()
+    assert w._canvas.current_tool == TOOL_MOVE
+
+
+@pytest.mark.ui_smoke
+def test_rail_foot_visible_in_all_steps(window):
+    """#458: Rail-Fuß (Trenner · Undo · Redo · Theme) ist schrittunabhängig."""
+    w = window
+    _load_image(w)
+    for step in WorkflowStep:
+        w._go_to_step(step)
+        assert not w.toolbar.btn_undo.isHidden()
+        assert not w.toolbar.btn_redo.isHidden()
+        assert not w.toolbar.btn_theme.isHidden()
+        assert not w.toolbar.foot_separator.isHidden()
+
+
+@pytest.mark.ui_smoke
+def test_removed_rail_functions_stay_reachable(window):
+    """#458: KI/Original/Verlauf/Öffnen/Speichern bleiben ohne Rail-Buttons
+    erreichbar (Inspector-Primärbutton bzw. Menü-Actions mit Kürzeln)."""
+    from PyQt6.QtGui import QKeySequence
+
+    w = window
+    # KI: Schritt-2-Primärbutton im Inspector (#437).
+    assert w._right_panel.ai_button is not None
+    actions = {a.text(): a for a in w.findChildren(type(w._escape_action))}
+    fmt = QKeySequence.SequenceFormat.PortableText
+    assert actions["Öffnen…"].shortcut().toString(fmt) == "Ctrl+O"
+    assert actions["Speichern"].shortcut().toString(fmt) == "Ctrl+S"
+    assert "Original wiederherstellen" in actions
+    # Verlauf: neuer Menü-Anker „Ansicht → Verlauf" öffnet das Popup.
+    assert w._history_popup._popup is None
+    actions["Verlauf"].trigger()
+    assert w._history_popup._popup is not None
+    assert w._history_popup._popup.isVisible()
+    actions["Verlauf"].trigger()
+    assert not w._history_popup._popup.isVisible()
+
+
+@pytest.mark.ui_smoke
+def test_rail_foot_undo_redo_respect_history_state(window):
+    """#458: Undo/Redo im Rail-Fuß folgen dem tatsächlichen History-Zustand."""
+    from PIL import Image as PILImage
+
+    w = window
+    _load_image(w)
+    assert not w.toolbar.btn_undo.isEnabled()
+    assert not w.toolbar.btn_redo.isEnabled()
+
+    w._canvas.apply_edit(
+        PILImage.new("RGBA", (16, 16), (1, 2, 3, 255)), "Testschritt")
+    assert w.toolbar.btn_undo.isEnabled()
+    assert not w.toolbar.btn_redo.isEnabled()
+
+    w.toolbar.btn_undo.click()
+    assert not w.toolbar.btn_undo.isEnabled()
+    assert w.toolbar.btn_redo.isEnabled()
+
+    w.toolbar.btn_redo.click()
+    assert w.toolbar.btn_undo.isEnabled()
+    assert not w.toolbar.btn_redo.isEnabled()
+
+
+@pytest.mark.ui_smoke
+def test_rail_foot_theme_button_syncs_with_menu(window):
+    """#458: Der Rail-Theme-Umschalter löst dieselbe Aktion wie das Menü aus
+    und hält dessen Häkchen synchron (kein widersprüchlicher Zustand)."""
+    from PyQt6.QtWidgets import QApplication
+
+    from bgremover.i18n import tr
+    from bgremover.theme import DARK, active_palette, set_active_palette
+
+    w = window
+    app = QApplication.instance()
+    original_sheet = app.styleSheet() if app is not None else ""
+    original_palette = app.palette() if app is not None else None
+    set_active_palette(DARK)
+    try:
+        action = w._theme_menu_action()
+        assert action is not None and not action.isChecked()
+
+        w.toolbar.btn_theme.click()
+        assert not active_palette().is_dark
+        assert action.isChecked()
+        assert w._light_mode is True
+        assert (w.toolbar.btn_theme.toolTip()
+                == tr("toolbar.theme.to_dark.tooltip"))
+
+        w.toolbar.btn_theme.click()
+        assert active_palette().is_dark
+        assert not action.isChecked()
+        assert (w.toolbar.btn_theme.toolTip()
+                == tr("toolbar.theme.to_light.tooltip"))
+    finally:
+        set_active_palette(DARK)
+        if app is not None:
+            app.setStyleSheet(original_sheet)
+            if original_palette is not None:
+                app.setPalette(original_palette)
+
+
+@pytest.mark.ui_smoke
+def test_move_tool_pans_with_left_drag(window):
+    """#456: Im Move-Modus startet Linksklick den Pan (mittlere Maustaste
+    bleibt in jedem Modus verfügbar, Zauberstab-Klick pannt nicht)."""
+    from PyQt6.QtCore import QPointF, Qt
+
+    from bgremover.constants import TOOL_MOVE, TOOL_WAND
+
+    w = window
+    _load_image(w)
+    w._go_to_step(WorkflowStep.ADJUST)  # aktiviert Move
+    assert w._canvas.current_tool == TOOL_MOVE
+
+    w._canvas._viewport.start_pan(QPointF(5.0, 5.0))
+    assert w._canvas._viewport.is_panning
+    w._canvas._viewport.stop_pan()
+
+    # Auswahlwerkzeug aktiv → Linksklick ohne Alt pannt weiterhin nicht.
+    w._go_to_step(WorkflowStep.CUTOUT)
+    assert w._canvas.current_tool == TOOL_WAND
+    consumed = w._canvas._viewport.start_pan_if_requested(
+        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+        QPointF(0.0, 0.0))
+    assert consumed is False

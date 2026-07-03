@@ -266,6 +266,16 @@ class ProjectHistory:
                 break
 
     # ── Öffentliche API ─────────────────────────────────────────────────
+    @property
+    def can_undo(self) -> bool:
+        """True, wenn mindestens ein Undo-Schritt vorliegt."""
+        return bool(self._undo)
+
+    @property
+    def can_redo(self) -> bool:
+        """True, wenn mindestens ein Redo-Schritt vorliegt."""
+        return bool(self._redo)
+
     def push(self, current: Project, desc: str) -> None:
         self._append_undo(_capture_state(current, desc))
         self._clear_redo()

@@ -112,8 +112,10 @@ def test_mainwindow_builds(main_window):
     w = main_window
     assert isinstance(w._canvas, ImageCanvas)
     assert w.menuBar() is not None
-    for btn in (w.toolbar.btn_wand, w.toolbar.btn_brush, w.toolbar.btn_eraser,
-                w.toolbar.btn_lasso, w.toolbar.btn_ai, w.toolbar.btn_history):
+    for btn in (w.toolbar.btn_move, w.toolbar.btn_wand, w.toolbar.btn_brush,
+                w.toolbar.btn_eraser, w.toolbar.btn_lasso,
+                w.toolbar.btn_height_lighten, w.toolbar.btn_height_darken,
+                w.toolbar.btn_undo, w.toolbar.btn_redo, w.toolbar.btn_theme):
         assert isinstance(btn, QToolButton)
 
 
@@ -365,14 +367,14 @@ def test_fit_to_view_action(loaded_window, monkeypatch):
 
 
 def test_open_button_invokes_dialog(main_window, qtbot, monkeypatch, tmp_path):
+    """Seit #458 gibt es keinen Rail-Öffnen-Button mehr; der Schritt-1-
+    Primärbutton des Inspectors bleibt der klickbare Öffnen-Einstieg."""
     w = main_window
     import bgremover.main_window as _mw
     monkeypatch.setattr(_mw, "QFileDialog", _FakeFileDialog)
 
-    btns = [b for b in w.findChildren(QToolButton)
-            if b.toolTip().startswith("Bild öffnen")]
-    assert btns, "Open-Mini-Button nicht gefunden"
-    btn = btns[0]
+    btn = w._right_panel.open_button
+    assert btn is not None, "Öffnen-Primärbutton nicht gefunden"
 
     # Abbruch (leerer Pfad) ⇒ kein Lade-Thread.
     _FakeFileDialog.open_ret = ("", "")

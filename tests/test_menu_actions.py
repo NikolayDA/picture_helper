@@ -53,6 +53,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             invert_selection=lambda: calls.append("invert"),
             restore_original=lambda: calls.append("restore"),
             fit_to_view=lambda: calls.append("fit"),
+            toggle_history=lambda: calls.append("history"),
             set_preview_mode=preview_modes.append,
             toggle_light_mode=lambda light: calls.append(f"theme:{light}"),
             open_settings=lambda: calls.append("settings"),
@@ -73,7 +74,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
         "90° links drehen", "90° rechts drehen", "180° drehen",
         "Horizontal spiegeln", "Vertikal spiegeln", "Größe ändern…",
         "Auswahl aufheben", "Auswahl invertieren",
-        "Original wiederherstellen", "Fit to View", "Einstellungen…",
+        "Original wiederherstellen", "Fit to View", "Verlauf", "Einstellungen…",
         "Farbe", "Relief über Farbe", "Höhe (Graustufe)", "Gloss", "Kombiniert",
     }
     assert expected <= set(actions)
@@ -99,6 +100,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["Auswahl invertieren"].trigger()
     actions["Original wiederherstellen"].trigger()
     actions["Fit to View"].trigger()
+    actions["Verlauf"].trigger()
     actions["Einstellungen…"].trigger()
     actions["Relief über Farbe"].trigger()
     actions["Kombiniert"].trigger()
@@ -118,7 +120,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
 
     assert calls == [
         "open", "save", "save_as", "undo", "redo",
-        "clear", "invert", "restore", "fit", "settings",
+        "clear", "invert", "restore", "fit", "history", "settings",
         "new_project", "open_project", "save_project", "save_project_as",
         "export_eufymake",
         "resize",

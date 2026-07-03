@@ -38,6 +38,8 @@ class Palette:
     hover: str
     card_bg: str
     card_border: str
+    # Halbtransparente „Glas"-Fläche für schwebende Canvas-Overlays (#464).
+    glass: str
     # Text. Vertrag (#441): ``text``/``text2``/``text3`` sind für **aktiven** Text
     # gedacht und halten ≥ 4.5:1 auf ihren Flächen; ``muted`` ist ausschließlich
     # für Disabled-/Placeholder-Zustände reserviert (WCAG-1.4.3-Ausnahme).
@@ -68,6 +70,7 @@ DARK = Palette(
     border="#3a3a3a", divider="#2a2a2a", hairline="#333333",
     surface="#2a2a2a", surface_hover="#363636", hover="rgba(255,255,255,.06)",
     card_bg="#22262d", card_border="rgba(255,255,255,.07)",
+    glass="rgba(26,30,37,.82)",
     text="#e0e0e0", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
     accent="#4a90d9", accent2="#3f7fce", accent_soft="rgba(74,144,217,.16)",
     accent_line="rgba(74,144,217,.42)", accent_text="#9fc0ff",
@@ -83,6 +86,7 @@ LIGHT = Palette(
     border="#c9d2df", divider="#dbe1ea", hairline="#d4dae4",
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
+    glass="rgba(255,255,255,.86)",
     # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
     # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).
     text="#1b2230", text2="#3a4351", text3="#59626f", muted="#8b95a3",
@@ -258,6 +262,33 @@ def menu_style(p: Palette) -> str:
     QMenuBar::item:selected {{ background: {p.surface_hover}; }}
     QMenu {{ background: {p.surface}; color: {p.text2}; border: 1px solid {p.border}; }}
     QMenu::item:selected {{ background: {p.accent}; color: {p.on_accent}; }}
+"""
+
+
+def zoom_pill_style(p: Palette) -> str:
+    """Schwebende Zoom-Kontrolle auf der Arbeitsfläche (#464, Glas-Pille).
+
+    Halbtransparente ``glass``-Fläche mit ``border``-Haarlinie; die
+    +/−-Buttons ruhen transparent, der Fixier-Button zeigt seinen aktiven
+    Zustand akzent-getönt wie die Rail-Werkzeuge (§5.9).
+    """
+    return f"""
+    QFrame#zoomPill {{
+        background: {p.glass}; border: 1px solid {p.card_border};
+        border-radius: 10px;
+    }}
+    QLabel#zoomLabel {{
+        color: {p.text2}; font-size: 12px; font-weight: 600;
+        background: transparent; border: none;
+    }}
+    QToolButton {{
+        color: {p.text2}; font-size: 14px; font-weight: 600;
+        border: 1px solid transparent; border-radius: 7px; background: transparent;
+    }}
+    QToolButton:hover    {{ background: {p.hover}; }}
+    QToolButton:checked  {{ background: {p.accent_soft}; border-color: {p.accent_line}; color: {p.accent_text}; }}
+    QToolButton:focus    {{ outline: none; border: 1px solid {p.accent}; }}
+    QToolButton:disabled {{ color: {p.muted}; background: transparent; }}
 """
 
 

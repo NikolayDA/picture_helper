@@ -244,10 +244,14 @@ def test_mac_bundle_document_types_cover_supported_formats():
 
 
 def test_disabled_ai_tooltip_uses_existing_install_command():
-    """Der deaktivierte KI-Button darf nicht auf ein nicht existentes Skript verweisen."""
-    toolbar_text = (ROOT / "bgremover" / "main_toolbar.py").read_text(encoding="utf-8")
+    """Der deaktivierte KI-Button darf nicht auf ein nicht existentes Skript verweisen.
+
+    Seit #458 lebt die KI-Aktion nicht mehr in der Rail; den Missing-Tooltip
+    setzt das MainWindow am Inspector-Primärbutton (#437).
+    """
+    window_text = (ROOT / "bgremover" / "main_window.py").read_text(encoding="utf-8")
     i18n_text = (ROOT / "bgremover" / "i18n.py").read_text(encoding="utf-8")
 
-    assert "setup_bgremover.sh" not in toolbar_text + i18n_text
-    assert "toolbar.ai.missing.tooltip" in toolbar_text
+    assert "setup_bgremover.sh" not in window_text + i18n_text
+    assert "toolbar.ai.missing.tooltip" in window_text
     assert 'python3 -m pip install -e ".[ai]"' in i18n_text

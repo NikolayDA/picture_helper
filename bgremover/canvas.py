@@ -43,7 +43,10 @@ from bgremover.constants import (
     _DEFAULT_TOLERANCE,
     TOOL_BRUSH,
     TOOL_ERASER,
+    TOOL_HEIGHT_DARKEN,
+    TOOL_HEIGHT_LIGHTEN,
     TOOL_LASSO,
+    TOOL_MOVE,
     TOOL_WAND,
     logger,
 )
@@ -85,6 +88,7 @@ from bgremover.relief_preview import compose_over as compose_relief
 from bgremover.relief_preview import relief_shading
 from bgremover.status_messages import StatusMessages as SM
 from bgremover.units import UnitsError
+from bgremover.zoom_control import ZoomControl
 
 
 @dataclass(frozen=True)
@@ -102,6 +106,25 @@ class LayerInfo:
     locked: bool
     role: LayerRole | None
     active: bool
+
+
+@dataclass
+class _HeightStroke:
+    """Arbeitszustand eines malenden Höhen-Strichs (#457).
+
+    Hält die ``uint16``-Arbeitskopie der Höhenwerte, die je Strich bereits
+    angepassten Pixel (``touched`` – jedes Pixel wird pro Strich genau einmal
+    um ``amount`` verschoben, geklemmt wie ``adjust_height``) und die signierte
+    Stärke. Das Modell bleibt während des Strichs unverändert; committet wird
+    beim Loslassen als **ein** Undo-Schritt.
+    """
+
+    layer_id: str
+    values: np.ndarray
+    coverage: np.ndarray
+    max_value: int
+    touched: np.ndarray
+    amount: int
 
 
 def _requires_image(method: Callable[..., None]) -> Callable[..., None]:
@@ -137,6 +160,7 @@ class ImageCanvas(QGraphicsView):
     loadRequested  = pyqtSignal(str)    # Drop/Recent → MainWindow lädt asynchron
     wandRequested  = pyqtSignal(object, int, int, int)  # arr, x, y, tolerance
     previewSettingsChanged = pyqtSignal(object, int, bool)  # mode, Relief-%, Gloss
+    zoomChanged    = pyqtSignal(float)  # Zoom in Prozent (Zoom-Kontrolle, #464)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -229,6 +253,15 @@ class ImageCanvas(QGraphicsView):
         self._viewport = CanvasViewport(
             self, self._scene, self._img_item, self._vp)
 
+        # Schwebende Zoom-Kontrolle (#464): sichtbar sobald ein Bild geladen
+        # ist, ansonsten ausgeblendet; folgt der Canvas-Größe (resizeEvent).
+        self._zoom_control = ZoomControl(self._viewport, self)
+        self._zoom_control.setVisible(False)
+        self.zoomChanged.connect(self._zoom_control.set_percent)
+
+        # Laufender Höhen-Malstrich (#457); None = kein Strich aktiv.
+        self._height_stroke: _HeightStroke | None = None
+
         # Pinsel-Vorschau-Kreis (sichtbar bei Tool=brush/eraser)
         self._brush_preview = QGraphicsEllipseItem()
         self._brush_preview.setPen(QPen(QColor(255, 255, 255, 200), 1.5))
@@ -262,8 +295,23 @@ class ImageCanvas(QGraphicsView):
 
     @property
     def current_tool(self) -> str:
-        """Aktuell aktives Werkzeug-Token (TOOL_WAND/BRUSH/ERASER/LASSO)."""
+        """Aktuell aktives Werkzeug-Token (TOOL_WAND/BRUSH/ERASER/LASSO/MOVE/HEIGHT_*)."""
         return self._tool
+
+    @property
+    def can_undo(self) -> bool:
+        """True, wenn mindestens ein Undo-Schritt vorliegt (Rail-Fuß, #458)."""
+        return self._history.can_undo
+
+    @property
+    def can_redo(self) -> bool:
+        """True, wenn mindestens ein Redo-Schritt vorliegt (Rail-Fuß, #458)."""
+        return self._history.can_redo
+
+    @property
+    def zoom_control(self) -> ZoomControl:
+        """Die schwebende Zoom-Kontrolle (#464); für Theme-Restyle und Tests."""
+        return self._zoom_control
 
     @property
     def preview_mode(self) -> PreviewMode:
@@ -417,6 +465,7 @@ class ImageCanvas(QGraphicsView):
         self._history.set_original(self._project)
         self._reset_transient_state()
         self._set_image_state()
+        self._emit_history()
         self._emit_layers()
         self._viewport.fit_to_view()
         self.statusMsg.emit(tr(
@@ -437,6 +486,7 @@ class ImageCanvas(QGraphicsView):
         self._history.set_original(project)
         self._reset_transient_state()
         self._set_image_state()
+        self._emit_history()
         self._emit_layers()
         self._viewport.fit_to_view()
 
@@ -708,7 +758,9 @@ class ImageCanvas(QGraphicsView):
         self._discard_overlay_interactions()
         # Eine transiente Höhen-Vorschau (#348) gilt nur für den vorherigen
         # Zustand; jeder Bildzustandswechsel (Edit/Commit/Undo/Laden/Ebenenwechsel)
-        # verwirft sie, bevor neu gerendert wird.
+        # verwirft sie, bevor neu gerendert wird. Ein laufender Höhen-Malstrich
+        # (#457) gehört ebenso zum vorherigen Zustand.
+        self._height_stroke = None
         self._clear_transient_preview()
         active = self._project.active_layer() if self._project is not None else None
         self._pil = active.image if active is not None else None
@@ -724,6 +776,11 @@ class ImageCanvas(QGraphicsView):
         self._content_revision += 1
         self._refresh_image()
         self._refresh_overlay()
+        # Zoom-Kontrolle folgt dem Geladen-Zustand (#464): sichtbar, sobald ein
+        # Bild da ist; ihre Position folgt der aktuellen Canvas-Größe.
+        self._zoom_control.setVisible(self._pil is not None)
+        if self._pil is not None:
+            self._zoom_control.reposition()
 
     def _discard_overlay_interactions(self) -> None:
         """Verwirft geometrieabhängige Overlays (Crop, Lasso) vor einem
@@ -1087,6 +1144,101 @@ class ImageCanvas(QGraphicsView):
             invert_height(field, mask=mask),
             tr("history.desc.height_invert"), tr("canvas.height_inverted"))
 
+    # ── Malende Höhen-Werkzeuge: Aufhellen/Abdunkeln je Strich (#457) ───
+    def _start_height_stroke(self, x: int, y: int) -> None:
+        """Beginnt einen Höhen-Malstrich auf der aktiven HEIGHT-Ebene.
+
+        Auf COLOR-/Daten-Ebenen wirkungslos (Meldung statt Pixeländerung –
+        der Kind↔Rollen-Vertrag #364 bleibt unangetastet); die Rail-Buttons
+        sind ohne aktive HEIGHT-Ebene ohnehin deaktiviert.
+        """
+        assert self._project is not None
+        active = self._project.active_layer()
+        if active is None or active.kind is not LayerKind.HEIGHT:
+            self.statusMsg.emit(tr("canvas.not_height_layer"))
+            return
+        field = layer_to_height(active.image)
+        amount = (
+            _DEFAULT_HEIGHT_STEP
+            if self._tool == TOOL_HEIGHT_LIGHTEN else -_DEFAULT_HEIGHT_STEP
+        )
+        self._height_stroke = _HeightStroke(
+            layer_id=active.id,
+            values=field.values.copy(),
+            coverage=field.coverage,
+            max_value=field.max_value,
+            touched=np.zeros(field.values.shape, dtype=bool),
+            amount=amount,
+        )
+        self._drawing = True
+        self._extend_height_stroke(x, y)
+
+    def _extend_height_stroke(self, cx: int, cy: int) -> None:
+        """Stempelt den Pinselkreis an (cx, cy) in den laufenden Strich.
+
+        Jedes Pixel wird pro Strich genau **einmal** um ``amount`` verschoben
+        (geklemmt auf ``0..max_value`` – ``adjust_height``-Semantik); die
+        Anzeige läuft transient über die explizite Vorschau-Pipeline (#397),
+        das Modell bleibt bis zum Loslassen unverändert.
+        """
+        stroke = self._height_stroke
+        if stroke is None:
+            return
+        h, w = stroke.values.shape
+        r = self._brush_r
+        y0, y1 = max(0, cy - r), min(h, cy + r + 1)
+        x0, x1 = max(0, cx - r), min(w, cx + r + 1)
+        if y0 >= y1 or x0 >= x1:
+            return
+        yy, xx = np.ogrid[y0:y1, x0:x1]
+        circle = (yy - cy) ** 2 + (xx - cx) ** 2 <= r ** 2
+        touched_region = stroke.touched[y0:y1, x0:x1]
+        fresh = circle & ~touched_region
+        if not fresh.any():
+            return
+        region = stroke.values[y0:y1, x0:x1]
+        adjusted = np.clip(
+            region.astype(np.int32) + stroke.amount, 0, stroke.max_value)
+        region[fresh] = adjusted[fresh].astype(np.uint16)
+        touched_region |= circle
+        self._preview_layer_override = (
+            stroke.layer_id, height_to_layer(self._stroke_field(stroke)))
+        self._refresh_image()
+
+    @staticmethod
+    def _stroke_field(stroke: _HeightStroke) -> HeightField:
+        """Baut ein eigenständiges Höhenfeld aus dem Strich-Arbeitszustand."""
+        return HeightField(
+            stroke.values.copy(), stroke.coverage.copy(), stroke.max_value)
+
+    def _finish_height_stroke(self) -> None:
+        """Committet den Strich als genau **einen** Undo-Schritt (#457)."""
+        stroke = self._height_stroke
+        if stroke is None:
+            return
+        self._height_stroke = None
+        self._clear_transient_preview()
+        if not stroke.touched.any():
+            self._refresh_image()
+            return
+        if stroke.amount > 0:
+            desc, status = (
+                tr("history.desc.height_lighten"), tr("canvas.height_lightened"))
+        else:
+            desc, status = (
+                tr("history.desc.height_darken"), tr("canvas.height_darkened"))
+        # Das Modell ist noch unverändert (Strich lief nur als Vorschau);
+        # _apply_pil pusht genau diesen Vorzustand → ein History-Eintrag.
+        self._run_height_edit(self._stroke_field(stroke), desc, status)
+
+    def _abort_height_stroke(self) -> None:
+        """Verwirft einen laufenden Strich ohne Commit (Werkzeug-Gate, #457)."""
+        if self._height_stroke is None:
+            return
+        self._height_stroke = None
+        self._clear_transient_preview()
+        self._refresh_image()
+
     # ── Höhen-Optimierung mit Live-Vorschau (#348) ──────────────────────
     @_requires_image
     def preview_height_op(self, op: Callable[[HeightField], HeightField]) -> None:
@@ -1370,6 +1522,14 @@ class ImageCanvas(QGraphicsView):
         elif tool == TOOL_LASSO:
             self.setCursor(QCursor(Qt.CursorShape.CrossCursor))
             self._brush_preview.setVisible(False)
+        elif tool == TOOL_MOVE:
+            # Verschieben/Zoom (#456): offene Hand als Ruhe-Cursor; während des
+            # Ziehens setzt der Pan-Helfer die geschlossene Hand.
+            self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
+            self._brush_preview.setVisible(False)
+        elif tool in (TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
+            # Malende Höhen-Werkzeuge (#457) nutzen den Pinselradius.
+            self.setCursor(make_brush_cursor(self._brush_r * 2))
         else:
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
             self._brush_preview.setVisible(False)
@@ -1380,14 +1540,16 @@ class ImageCanvas(QGraphicsView):
     def set_brush_size(self, v: int) -> None:
         self._brush_r = max(1, v // 2)
         # Cursor sofort aktualisieren
-        if self._tool == TOOL_BRUSH:
+        if self._tool in (TOOL_BRUSH, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
             self.setCursor(make_brush_cursor(v))
         elif self._tool == TOOL_ERASER:
             self.setCursor(make_eraser_cursor(v))
 
     def _update_brush_preview(self, sp: QPointF) -> None:
         """Aktualisiert Position/Sichtbarkeit des Pinsel-Vorschau-Kreises."""
-        if self._tool not in (TOOL_BRUSH, TOOL_ERASER) or self._pil is None:
+        if self._tool not in (
+            TOOL_BRUSH, TOOL_ERASER, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN,
+        ) or self._pil is None:
             self._brush_preview.setVisible(False)
             return
         r = self._brush_r
@@ -1529,6 +1691,7 @@ class ImageCanvas(QGraphicsView):
         self._tools_enabled = enabled
         if not enabled:
             self._drawing = False
+            self._abort_height_stroke()
             self.cancel_active_interaction()
 
     def _handle_tool_press(
@@ -1559,6 +1722,8 @@ class ImageCanvas(QGraphicsView):
             if 0 <= x < w and 0 <= y < h:
                 self._lasso.set_modifiers_if_first(mods)
                 self.statusMsg.emit(self._lasso.add_point(x, y))
+        elif self._tool in (TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
+            self._start_height_stroke(x, y)
         else:
             self._drawing = True
             self._paint_brush(x, y, additive=self._tool == TOOL_BRUSH)
@@ -1575,6 +1740,12 @@ class ImageCanvas(QGraphicsView):
             return
 
         if self._viewport.start_pan_if_requested(btn, mods, event.position()):
+            return
+
+        # Move-Werkzeug (#456): Linksklick-Ziehen pannt den Ausschnitt.
+        # Bewusst vor dem Werkzeug-Gate – Pan/Zoom bleiben in jedem Schritt frei.
+        if btn == Qt.MouseButton.LeftButton and self._tool == TOOL_MOVE:
+            self._viewport.start_pan(event.position())
             return
 
         if btn != Qt.MouseButton.LeftButton:
@@ -1601,10 +1772,13 @@ class ImageCanvas(QGraphicsView):
             self._viewport.update_pan(event.position())
             return
         if self._drawing and event.buttons() & Qt.MouseButton.LeftButton:
-            self._paint_brush(
-                int(sp.x()), int(sp.y()),
-                additive=self._tool == TOOL_BRUSH,
-            )
+            if self._height_stroke is not None:
+                self._extend_height_stroke(int(sp.x()), int(sp.y()))
+            else:
+                self._paint_brush(
+                    int(sp.x()), int(sp.y()),
+                    additive=self._tool == TOOL_BRUSH,
+                )
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
@@ -1615,6 +1789,9 @@ class ImageCanvas(QGraphicsView):
             self.set_tool(self._tool)
             return
         self._drawing = False
+        if self._height_stroke is not None:
+            self._finish_height_stroke()
+            return
         super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
@@ -1671,6 +1848,11 @@ class ImageCanvas(QGraphicsView):
 
     def wheelEvent(self, event) -> None:
         self._viewport.handle_wheel(event.angleDelta().y())
+
+    def resizeEvent(self, event) -> None:
+        # Zoom-Kontrolle bleibt unten rechts verankert (#464).
+        super().resizeEvent(event)
+        self._zoom_control.reposition()
 
     def leaveEvent(self, event) -> None:
         # Pinsel-Vorschau verstecken, sobald die Maus den View verlässt
