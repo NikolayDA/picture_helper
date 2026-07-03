@@ -1,4 +1,13 @@
-"""Aufbau der linken Werkzeugleiste für das Hauptfenster."""
+"""Aufbau der linken Werkzeugleiste für das Hauptfenster.
+
+Rail-Umfang 1:1 zum Prototyp (Epic #455): oben das permanente
+„Verschieben / Zoom"-Werkzeug (#456), darunter kontextuell die
+Auswahlwerkzeuge (nur Schritt 2) bzw. die malenden Höhen-Werkzeuge
+(nur Schritt 5, #457) – je mit eigenem Trenner. Unten der schritt-
+unabhängige **Rail-Fuß** (#458): Trenner, Rückgängig, Wiederholen,
+Theme-Umschalter. KI, Original, Verlauf sowie Öffnen/Speichern liegen
+nicht mehr in der Rail (Menü/Kürzel/Schritt-Inspector decken sie ab).
+"""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,7 +23,10 @@ from bgremover.constants import (
     _TOOLBAR_WIDTH,
     TOOL_BRUSH,
     TOOL_ERASER,
+    TOOL_HEIGHT_DARKEN,
+    TOOL_HEIGHT_LIGHTEN,
     TOOL_LASSO,
+    TOOL_MOVE,
     TOOL_WAND,
 )
 from bgremover.i18n import tr
@@ -22,10 +34,12 @@ from bgremover.icons import make_tool_icon
 from bgremover.theme import (
     Palette,
     active_palette,
-    history_button_style,
     tool_style,
     toolbar_frame_style,
 )
+
+# Icongröße der Rail-Fuß-Buttons (Prototyp: 18 px gegenüber 20 px der Werkzeuge).
+_FOOT_ICON_SIZE = 18
 
 
 def _shortcut_label(shortcut: str) -> str:
@@ -37,13 +51,9 @@ class ToolbarActions:
     """Callbacks der Toolbar – ohne Abhängigkeit vom MainWindow."""
 
     set_tool: Callable[[str], None]
-    run_ai: Callable[[], None]
     undo: Callable[[], None]
     redo: Callable[[], None]
-    restore_original: Callable[[], None]
-    toggle_history: Callable[[], None]
-    open_image: Callable[[], None]
-    save: Callable[[], None]
+    toggle_theme: Callable[[], None]
 
 
 @dataclass(frozen=True)
@@ -52,19 +62,25 @@ class Toolbar:
 
     frame: QFrame
     button_group: QButtonGroup
+    btn_move: QToolButton
     btn_wand: QToolButton
     btn_brush: QToolButton
     btn_eraser: QToolButton
     btn_lasso: QToolButton
-    btn_ai: QToolButton
-    btn_history: QToolButton
-    # Trenner nach den Auswahlwerkzeugen – zusammen mit btn_wand/brush/eraser/
-    # lasso schrittabhängig ein-/ausgeblendet (kontextuelle Werkzeugleiste #422).
+    btn_height_lighten: QToolButton
+    btn_height_darken: QToolButton
+    # Rail-Fuß (#458): in allen Schritten sichtbar, unten gepinnt.
+    btn_undo: QToolButton
+    btn_redo: QToolButton
+    btn_theme: QToolButton
+    # Trenner der kontextuellen Gruppen – zusammen mit ihren Werkzeugen
+    # schrittabhängig ein-/ausgeblendet (kontextuelle Werkzeugleiste #422/#455).
     sel_separator: QFrame
-    # Nach Stil gruppierte Widgetlisten für das Live-Umfärben beim Theme-Wechsel
-    # (#428): Werkzeug-/Mini-Buttons (tool_style), History-Buttons und Trenner.
+    height_separator: QFrame
+    foot_separator: QFrame
+    # Für das Live-Umfärben beim Theme-Wechsel (#428): alle Rail-Buttons teilen
+    # den Werkzeug-Look des Prototyps (`.tool`), dazu die Trenner.
     tool_buttons: list[QToolButton] = field(default_factory=list)
-    history_buttons: list[QToolButton] = field(default_factory=list)
     separators: list[QFrame] = field(default_factory=list)
 
     def apply_palette(self, p: Palette) -> None:
@@ -73,26 +89,30 @@ class Toolbar:
         tool = tool_style(p)
         for btn in self.tool_buttons:
             btn.setStyleSheet(tool)
-        hist = history_button_style(p)
-        for btn in self.history_buttons:
-            btn.setStyleSheet(hist)
         for sep in self.separators:
             sep.setStyleSheet(f"background: {p.hairline}; border: none;")
 
 
-def build_toolbar(actions: ToolbarActions, *, rembg_available: bool) -> Toolbar:
-    builder = _ToolbarBuilder(actions, rembg_available=rembg_available)
+def build_toolbar(actions: ToolbarActions, *, light_mode: bool = False) -> Toolbar:
+    builder = _ToolbarBuilder(actions, light_mode=light_mode)
     return builder.build()
 
 
+def theme_toggle_tooltip(light_mode: bool) -> str:
+    """Tooltip des Theme-Umschalters – nennt das Ziel-Schema (#458)."""
+    return (
+        tr("toolbar.theme.to_dark.tooltip")
+        if light_mode else tr("toolbar.theme.to_light.tooltip")
+    )
+
+
 class _ToolbarBuilder:
-    def __init__(self, actions: ToolbarActions, *, rembg_available: bool) -> None:
+    def __init__(self, actions: ToolbarActions, *, light_mode: bool) -> None:
         self._actions = actions
-        self._rembg_available = rembg_available
+        self._light_mode = light_mode
         self._pal = active_palette()
         # Nach Stil gruppierte Widgetlisten für das spätere Live-Umfärben (#428).
         self._tool_buttons: list[QToolButton] = []
-        self._history_buttons: list[QToolButton] = []
         self._separators: list[QFrame] = []
 
     def build(self) -> Toolbar:
@@ -105,6 +125,12 @@ class _ToolbarBuilder:
 
         button_group = QButtonGroup(frame)
         button_group.setExclusive(True)
+
+        # Oberster, in allen Schritten sichtbarer Button (#456).
+        btn_move = self._tool_button(
+            lay, button_group, "move", tr("toolbar.move.tooltip"), TOOL_MOVE)
+
+        sel_separator = self._add_separator(lay)
 
         btn_wand = self._tool_button(
             lay,
@@ -136,71 +162,71 @@ class _ToolbarBuilder:
         )
         btn_wand.setChecked(True)
 
-        sel_separator = self._add_separator(lay)
-
-        btn_ai = QToolButton()
-        btn_ai.setIcon(make_tool_icon("ai", 38))
-        btn_ai.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-        btn_ai.setToolTip(
-            tr("toolbar.ai.available.tooltip")
-            if self._rembg_available else
-            tr("toolbar.ai.missing.tooltip")
+        # Malende Höhen-Werkzeuge (#457): nur in Schritt 5 sichtbar; ohne
+        # aktive HEIGHT-Ebene deaktiviert (Tooltip nennt den Grund).
+        height_separator = self._add_separator(lay)
+        btn_height_lighten = self._tool_button(
+            lay,
+            button_group,
+            "height_lighten",
+            tr("toolbar.height_lighten.tooltip"),
+            TOOL_HEIGHT_LIGHTEN,
         )
-        btn_ai.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        btn_ai.setStyleSheet(tool_style(self._pal))
-        btn_ai.setEnabled(self._rembg_available)
-        btn_ai.clicked.connect(self._actions.run_ai)
-        self._tool_buttons.append(btn_ai)
-        lay.addWidget(btn_ai, alignment=Qt.AlignmentFlag.AlignHCenter)
+        btn_height_darken = self._tool_button(
+            lay,
+            button_group,
+            "height_darken",
+            tr("toolbar.height_darken.tooltip"),
+            TOOL_HEIGHT_DARKEN,
+        )
+        # Ohne aktive HEIGHT-Ebene deaktiviert; das MainWindow synchronisiert
+        # Zustand + Begründungs-Tooltip über ``layersChanged`` (#457).
+        btn_height_lighten.setEnabled(False)
+        btn_height_darken.setEnabled(False)
 
-        self._add_separator(lay)
+        lay.addStretch()
 
-        self._history_button(
+        # Rail-Fuß (#458): unten gepinnt, in allen Schritten identisch.
+        foot_separator = self._add_separator(lay)
+        btn_undo = self._foot_button(
             lay,
             "undo",
             tr("toolbar.undo.tooltip", shortcut=_shortcut_label("Ctrl+Z")),
             self._actions.undo,
         )
-        self._history_button(
+        btn_redo = self._foot_button(
             lay,
             "redo",
             tr("toolbar.redo.tooltip", shortcut=_shortcut_label("Ctrl+Shift+Z")),
             self._actions.redo,
         )
-        self._history_button(
+        btn_theme = self._foot_button(
             lay,
-            "restore",
-            tr("toolbar.restore.tooltip"),
-            self._actions.restore_original,
+            "theme",
+            theme_toggle_tooltip(self._light_mode),
+            self._actions.toggle_theme,
         )
-        btn_history = self._history_button(
-            lay,
-            "history",
-            tr("toolbar.history.tooltip"),
-            self._actions.toggle_history,
-        )
-
-        lay.addStretch()
-
-        self._mini_button(
-            lay, "open", tr("toolbar.open.tooltip", shortcut=_shortcut_label("Ctrl+O")),
-            self._actions.open_image)
-        self._mini_button(
-            lay, "save", tr("toolbar.save.tooltip", shortcut=_shortcut_label("Ctrl+S")),
-            self._actions.save)
+        # Ohne geladenes Bild gibt es nichts rückgängig zu machen.
+        btn_undo.setEnabled(False)
+        btn_redo.setEnabled(False)
 
         return Toolbar(
             frame=frame,
             button_group=button_group,
+            btn_move=btn_move,
             btn_wand=btn_wand,
             btn_brush=btn_brush,
             btn_eraser=btn_eraser,
             btn_lasso=btn_lasso,
-            btn_ai=btn_ai,
-            btn_history=btn_history,
+            btn_height_lighten=btn_height_lighten,
+            btn_height_darken=btn_height_darken,
+            btn_undo=btn_undo,
+            btn_redo=btn_redo,
+            btn_theme=btn_theme,
             sel_separator=sel_separator,
+            height_separator=height_separator,
+            foot_separator=foot_separator,
             tool_buttons=self._tool_buttons,
-            history_buttons=self._history_buttons,
             separators=self._separators,
         )
 
@@ -225,34 +251,17 @@ class _ToolbarBuilder:
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
-    def _history_button(
+    def _foot_button(
         self,
         lay: QVBoxLayout,
         icon_name: str,
         tip: str,
         slot: Callable[[], None],
     ) -> QToolButton:
+        """Nicht-checkbarer Aktions-Button des Rail-Fußes (Werkzeug-Look, #458)."""
         b = QToolButton()
         b.setIcon(make_tool_icon(icon_name, 38))
-        b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
-        b.setToolTip(tip)
-        b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
-        b.setStyleSheet(history_button_style(self._pal))
-        b.clicked.connect(slot)
-        self._history_buttons.append(b)
-        lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
-        return b
-
-    def _mini_button(
-        self,
-        lay: QVBoxLayout,
-        icon_name: str,
-        tip: str,
-        slot: Callable[[], None],
-    ) -> QToolButton:
-        b = QToolButton()
-        b.setIcon(make_tool_icon(icon_name, 38))
-        b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
+        b.setIconSize(QSize(_FOOT_ICON_SIZE, _FOOT_ICON_SIZE))
         b.setToolTip(tip)
         b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
         b.setStyleSheet(tool_style(self._pal))

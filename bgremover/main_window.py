@@ -30,7 +30,10 @@ from bgremover.constants import (
     _WINDOW_MIN_W,
     TOOL_BRUSH,
     TOOL_ERASER,
+    TOOL_HEIGHT_DARKEN,
+    TOOL_HEIGHT_LIGHTEN,
     TOOL_LASSO,
+    TOOL_MOVE,
     TOOL_WAND,
     logger,
 )
@@ -55,7 +58,12 @@ from bgremover.image_ops import (
     save_dialog_filter,
 )
 from bgremover.layer_panel import LayerPanelActions
-from bgremover.main_toolbar import Toolbar, ToolbarActions, build_toolbar
+from bgremover.main_toolbar import (
+    Toolbar,
+    ToolbarActions,
+    build_toolbar,
+    theme_toggle_tooltip,
+)
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import (
@@ -172,6 +180,9 @@ class MainWindow(QMainWindow):
         self._worker_controller = WorkerController(
             self, shutdown_ms=_THREAD_SHUTDOWN_MS)
         self._tool_shortcuts: list[QShortcut] = []
+        # Zuletzt gewähltes Auswahlwerkzeug (#456): wird beim Rückwechsel in den
+        # Schritt „Freistellen" reaktiviert (Default Zauberstab).
+        self._last_selection_tool: str = TOOL_WAND
         self._build_ui()
         self._build_menu()
         self._build_tool_shortcuts()
@@ -221,8 +232,10 @@ class MainWindow(QMainWindow):
         self._canvas.imageLoaded.connect(self._on_image_loaded)
         self._canvas.loadRequested.connect(self._load_image_async)
         self._canvas.wandRequested.connect(self._start_flood_fill_async)
+        # Verlauf-Popup (#458): neuer Anker ist die Werkzeug-Rail selbst –
+        # das Popup öffnet rechts daneben; ausgelöst über „Ansicht → Verlauf".
         self._history_popup = HistoryPopup(
-            self, self._toolbar.btn_history, on_jump=self._canvas.undo_to)
+            self, self._toolbar.frame, on_jump=self._canvas.undo_to)
 
         self._crop_bar = CropBar()
         self._crop_bar.bind(self._canvas)
@@ -249,15 +262,11 @@ class MainWindow(QMainWindow):
         self._toolbar = build_toolbar(
             ToolbarActions(
                 set_tool=self._set_tool,
-                run_ai=self._run_ai,
                 undo=lambda: self._canvas.undo(),
                 redo=lambda: self._canvas.redo(),
-                restore_original=lambda: self._canvas.restore_original(),
-                toggle_history=lambda: self._history_popup.toggle(),
-                open_image=self._open_image,
-                save=self._save,
+                toggle_theme=self._toggle_theme_from_rail,
             ),
-            rembg_available=REMBG_AVAILABLE,
+            light_mode=self._light_mode,
         )
         return self._toolbar.frame
 
@@ -355,6 +364,32 @@ class MainWindow(QMainWindow):
         """Reicht die Ebenenliste an die aktuellen Panels (Ebenen + Höhe) weiter."""
         self._layer_panel.refresh(layers)
         self._height_panel.refresh(layers)
+        self._sync_height_tools(layers)
+
+    def _sync_height_tools(self, layers: list) -> None:
+        """Gibt die Höhen-Malwerkzeuge nur mit aktiver HEIGHT-Ebene frei (#457).
+
+        Ohne aktive HEIGHT-Ebene sind die Rail-Buttons deaktiviert und der
+        Tooltip nennt den Grund; ist gerade ein Höhen-Werkzeug gewählt, fällt
+        die Wahl sichtbar auf „Verschieben / Zoom" zurück.
+        """
+        active_height = any(
+            info.active and info.kind is LayerKind.HEIGHT for info in layers)
+        tooltips = (
+            (tr("toolbar.height_lighten.tooltip"), tr("toolbar.height_darken.tooltip"))
+            if active_height else
+            (tr("toolbar.height_tools.disabled.tooltip"),) * 2
+        )
+        for button, tip in zip(
+            (self._toolbar.btn_height_lighten, self._toolbar.btn_height_darken),
+            tooltips, strict=True,
+        ):
+            button.setEnabled(active_height)
+            button.setToolTip(tip)
+        if not active_height and self._canvas.current_tool in (
+            TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN,
+        ):
+            self._set_tool(TOOL_MOVE)
 
     def _sync_preview_controls(
         self, mode: PreviewMode, relief_strength: int, gloss_visible: bool
@@ -401,6 +436,8 @@ class MainWindow(QMainWindow):
         return thread is not None and thread.isRunning()
 
     def _sync_ai_controls(self, enabled: bool | None = None) -> None:
+        # Seit #458 lebt die KI-Aktion ausschließlich als Schritt-2-Primärbutton
+        # im Inspector (#437); der frühere Rail-Button ist entfallen.
         can_enable = (
             REMBG_AVAILABLE
             and self._canvas.has_image
@@ -408,11 +445,7 @@ class MainWindow(QMainWindow):
             and not self._is_warmup_running()
         )
         controls_enabled = can_enable if enabled is None else enabled and can_enable
-        self._toolbar.btn_ai.setEnabled(controls_enabled)
         self._right_panel.ai_button.setEnabled(controls_enabled)
-        self._toolbar.btn_ai.setToolTip(
-            tr("toolbar.ai.available.tooltip")
-            if REMBG_AVAILABLE else tr("toolbar.ai.missing.tooltip"))
         self._right_panel.ai_button.setToolTip(
             tr("right_panel.ai.remove.tooltip")
             if REMBG_AVAILABLE else tr("toolbar.ai.missing.tooltip"))
@@ -465,11 +498,18 @@ class MainWindow(QMainWindow):
     def _set_tool(self, tool: str) -> None:
         """Wählt ein Canvas-Werkzeug und spiegelt die Wahl in der Toolbar."""
         self._canvas.set_tool(tool)
+        # Das zuletzt gewählte Auswahlwerkzeug merken (#456): Beim Rückwechsel
+        # in den Schritt „Freistellen" wird genau dieses reaktiviert.
+        if tool in (TOOL_WAND, TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO):
+            self._last_selection_tool = tool
         buttons = {
+            TOOL_MOVE: self._toolbar.btn_move,
             TOOL_WAND: self._toolbar.btn_wand,
             TOOL_BRUSH: self._toolbar.btn_brush,
             TOOL_ERASER: self._toolbar.btn_eraser,
             TOOL_LASSO: self._toolbar.btn_lasso,
+            TOOL_HEIGHT_LIGHTEN: self._toolbar.btn_height_lighten,
+            TOOL_HEIGHT_DARKEN: self._toolbar.btn_height_darken,
         }
         if tool in buttons:
             buttons[tool].setChecked(True)
@@ -527,26 +567,42 @@ class MainWindow(QMainWindow):
         self._go_to_step(WorkflowStep(int(self._step) - 1))
 
     def _apply_toolbar_for_step(self, step: WorkflowStep) -> None:
-        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen.
+        """Kontextuelle Werkzeugleiste: Auswahlwerkzeuge nur im Schritt Freistellen,
+        Höhen-Werkzeuge nur in „Relief & Ebenen" (#455/#457).
 
-        Außerhalb von Freistellen werden die Auswahlwerkzeuge nicht nur
-        ausgeblendet, sondern die Canvas-Werkzeug-Interaktion abgeschaltet –
-        sonst würde ein noch aktives Pinsel-/Radier-/Lasso-Werkzeug das Bild
-        unsichtbar weiterbearbeiten (PR #423-Review). Die Werkzeug-Kürzel
-        W/B/E/L folgen der Sichtbarkeit: deaktivierte QShortcuts feuern nicht,
-        das Kürzel greift also nur, wenn das Werkzeug im Schritt verfügbar
-        ist (#422, Spec §8).
+        Außerhalb dieser Schritte werden die Werkzeuge nicht nur ausgeblendet,
+        sondern die Canvas-Werkzeug-Interaktion abgeschaltet – sonst würde ein
+        noch aktives Pinsel-/Radier-/Lasso-Werkzeug das Bild unsichtbar
+        weiterbearbeiten (PR #423-Review). Die Werkzeug-Kürzel W/B/E/L folgen
+        der Sichtbarkeit: deaktivierte QShortcuts feuern nicht, das Kürzel
+        greift also nur, wenn das Werkzeug im Schritt verfügbar ist (#422,
+        Spec §8). Der Rail-Fuß (Undo/Redo/Theme) bleibt schrittunabhängig
+        sichtbar (#458). Die Werkzeugwahl folgt dem Schritt (#456): In
+        Schritten ohne Auswahl-/Höhen-Interaktion ist „Verschieben / Zoom"
+        sichtbar aktiv; zurück im Freistellen greift das zuletzt gewählte
+        Auswahlwerkzeug, im Relief-Schritt startet Move (Höhen-Malen ist
+        Opt-in per Klick).
         """
         sel_visible = step is WorkflowStep.CUTOUT
+        height_visible = step is WorkflowStep.RELIEF
         for button in (
             self._toolbar.btn_wand, self._toolbar.btn_brush,
             self._toolbar.btn_eraser, self._toolbar.btn_lasso,
         ):
             button.setVisible(sel_visible)
         self._toolbar.sel_separator.setVisible(sel_visible)
-        self._canvas.set_tools_enabled(sel_visible)
+        for button in (
+            self._toolbar.btn_height_lighten, self._toolbar.btn_height_darken,
+        ):
+            button.setVisible(height_visible)
+        self._toolbar.height_separator.setVisible(height_visible)
+        self._canvas.set_tools_enabled(sel_visible or height_visible)
         for shortcut in self._tool_shortcuts:
             shortcut.setEnabled(sel_visible)
+        if sel_visible:
+            self._set_tool(self._last_selection_tool)
+        else:
+            self._set_tool(TOOL_MOVE)
 
     # ── Theming (Epic #424, Issue #428) ──────────────────────────────────
 
@@ -558,8 +614,28 @@ class MainWindow(QMainWindow):
         mode = "light" if light else "dark"
         self._settings.setValue(THEME_KEY, mode)
         self._apply_theme(mode)
+        # Der Rail-Fuß-Umschalter (#458) nennt im Tooltip stets das Ziel-Schema.
+        self._toolbar.btn_theme.setToolTip(theme_toggle_tooltip(light))
         self._sb.showMessage(
             tr("theme.switched.light") if light else tr("theme.switched.dark"))
+
+    def _theme_menu_action(self) -> QAction | None:
+        """Die checkbare „Heller Modus"-Action des Ansicht-Menüs (oder None)."""
+        for action in self.findChildren(QAction):
+            if action.objectName() == "theme_toggle":
+                return action
+        return None
+
+    def _toggle_theme_from_rail(self) -> None:
+        """Theme-Umschalter im Rail-Fuß (#458): löst dieselbe Aktion wie der
+        Menü-Eintrag aus. Bewusst über die Menü-Action getoggelt, damit deren
+        Häkchen synchron bleibt (kein doppelter, widersprüchlicher Zustand)."""
+        action = self._theme_menu_action()
+        if action is not None:
+            action.toggle()
+        else:
+            # Fallback (Menü noch nicht gebaut): direkt umschalten.
+            self._toggle_light_mode(not self._light_mode)
 
     def _apply_theme(self, mode: str) -> None:
         """Wendet ein Farbschema live an (QPalette + App-QSS + Chrome, #428).
@@ -576,6 +652,7 @@ class MainWindow(QMainWindow):
             app.setStyleSheet(build_app_stylesheet(pal))
         self._stepper.apply_palette(pal)
         self._toolbar.apply_palette(pal)
+        self._canvas.zoom_control.apply_palette(pal)
         self._sb.setStyleSheet(status_bar_style(pal))
         menu_bar = self.menuBar()
         if menu_bar is not None:
@@ -628,6 +705,7 @@ class MainWindow(QMainWindow):
                 invert_selection=self._canvas.invert_selection,
                 restore_original=self._canvas.restore_original,
                 fit_to_view=self._canvas.fit_to_view,
+                toggle_history=lambda: self._history_popup.toggle(),
                 set_preview_mode=self._canvas.set_preview_mode,
                 toggle_light_mode=self._toggle_light_mode,
                 open_settings=self._open_settings,
@@ -1309,6 +1387,9 @@ class MainWindow(QMainWindow):
 
     def _on_history_changed(self, history: list[str]) -> None:
         self._history_popup.update_entries(history)
+        # Rail-Fuß (#458): Undo/Redo folgen dem tatsächlichen History-Zustand.
+        self._toolbar.btn_undo.setEnabled(self._canvas.can_undo)
+        self._toolbar.btn_redo.setEnabled(self._canvas.can_redo)
 
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)

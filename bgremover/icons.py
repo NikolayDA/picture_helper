@@ -256,6 +256,72 @@ def _draw_history_icon(p: QPainter, s: int) -> None:
     p.drawLine(QPointF(cx, cy - r), QPointF(cx + s*0.10, cy - r + s*0.15))
 
 
+def _draw_move_icon(p: QPainter, s: int) -> None:
+    """Verschieben/Zoom (#456): Pfeilkreuz wie im Prototyp."""
+    pen = QPen(QColor(200, 200, 200), max(2, int(s * 0.075)),
+               Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+               Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen); p.setBrush(Qt.BrushStyle.NoBrush)
+    c = s * 0.5
+    lo, hi = s * 0.16, s * 0.84
+    head = s * 0.14
+    p.drawLine(QPointF(c, lo), QPointF(c, hi))
+    p.drawLine(QPointF(lo, c), QPointF(hi, c))
+    for tip, d1, d2 in (
+        (QPointF(c, lo), QPointF(c - head, lo + head), QPointF(c + head, lo + head)),
+        (QPointF(c, hi), QPointF(c - head, hi - head), QPointF(c + head, hi - head)),
+        (QPointF(lo, c), QPointF(lo + head, c - head), QPointF(lo + head, c + head)),
+        (QPointF(hi, c), QPointF(hi - head, c - head), QPointF(hi - head, c + head)),
+    ):
+        p.drawLine(tip, d1)
+        p.drawLine(tip, d2)
+
+
+def _draw_height_lighten_icon(p: QPainter, s: int) -> None:
+    """Aufhellen (höher, #457): Kreis nur als Kontur – wie im Prototyp."""
+    p.setPen(QPen(QColor(220, 220, 220), max(2, int(s * 0.08))))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    r = s * 0.28
+    p.drawEllipse(QPointF(s * 0.5, s * 0.5), r, r)
+
+
+def _draw_height_darken_icon(p: QPainter, s: int) -> None:
+    """Abdunkeln (tiefer, #457): gefüllter Kreis – wie im Prototyp."""
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(QColor(220, 220, 220)))
+    r = s * 0.30
+    p.drawEllipse(QPointF(s * 0.5, s * 0.5), r, r)
+
+
+def _draw_lock_icon(p: QPainter, s: int) -> None:
+    """Fixier-Schloss der Zoom-Kontrolle (#464)."""
+    c = QColor(200, 200, 200)
+    pen = QPen(c, max(2, int(s * 0.08)),
+               Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+               Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(s * 0.24, s * 0.46, s * 0.52, s * 0.38),
+                      s * 0.08, s * 0.08)
+    p.drawArc(QRectF(s * 0.34, s * 0.14, s * 0.32, s * 0.42), 0, 180 * 16)
+
+
+def _draw_theme_icon(p: QPainter, s: int) -> None:
+    """Theme-Umschalter (#458): halb gefüllter Kreis wie im Prototyp."""
+    c = QColor(200, 200, 200)
+    p.setPen(QPen(c, max(2, int(s * 0.08))))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    r = s * 0.34
+    p.drawEllipse(QPointF(s * 0.5, s * 0.5), r, r)
+    path = QPainterPath()
+    path.moveTo(s * 0.5, s * 0.5 - r)
+    path.arcTo(QRectF(s * 0.5 - r, s * 0.5 - r, r * 2, r * 2), 90, -180)
+    path.closeSubpath()
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(c))
+    p.drawPath(path)
+
+
 def make_tool_icon(name: str, size: int = 28) -> QIcon:
     """Lädt PNG aus den Paket-Daten (``bgremover/icons/``) via Pillow,
     fällt auf gezeichnetes Vektor-Icon zurück."""
@@ -292,6 +358,11 @@ def make_tool_icon(name: str, size: int = 28) -> QIcon:
         "undo":    _draw_undo_icon,
         "restore": _draw_restore_icon,
         "history": _draw_history_icon,
+        "move":           _draw_move_icon,
+        "height_lighten": _draw_height_lighten_icon,
+        "height_darken":  _draw_height_darken_icon,
+        "theme":          _draw_theme_icon,
+        "lock":           _draw_lock_icon,
     }
     if name in _ICON_DRAW:
         _ICON_DRAW[name](p, s)

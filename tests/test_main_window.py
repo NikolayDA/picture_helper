@@ -486,19 +486,17 @@ def test_pick_color_keeps_background_when_invalid(win, monkeypatch):
 def test_run_ai_reports_when_no_image(win):
     win._run_ai()
     assert win.statusBar().currentMessage() == SM.KEIN_BILD_GELADEN
-    assert not win._toolbar.btn_ai.isEnabled()
     assert not win._right_panel.ai_button.isEnabled()
 
 
 def test_inspector_ai_button_disabled_when_rembg_missing(tmp_path, qapp, monkeypatch):
-    """#446: Toolbar und Inspector bleiben bei fehlendem rembg konsistent gesperrt."""
+    """#446/#458: Der Inspector-KI-Button bleibt bei fehlendem rembg gesperrt."""
     from bgremover.i18n import tr
 
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", False)
     win = _isolated_window(tmp_path)
     try:
         _load_dummy_image(win, tmp_path)
-        assert not win._toolbar.btn_ai.isEnabled()
         assert not win._right_panel.ai_button.isEnabled()
         assert win._right_panel.ai_button.toolTip() == tr("toolbar.ai.missing.tooltip")
 
@@ -509,28 +507,24 @@ def test_inspector_ai_button_disabled_when_rembg_missing(tmp_path, qapp, monkeyp
 
 
 def test_ai_controls_stay_in_sync_for_warmup_and_running_ai(tmp_path, qapp, monkeypatch):
-    """#446: Warmup/AI-Lauf sperrt Toolbar- und Inspector-Button gemeinsam."""
+    """#446/#458: Warmup/AI-Lauf sperrt den Inspector-KI-Button."""
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     win = _isolated_window(tmp_path)
     try:
         _load_dummy_image(win, tmp_path)
-        assert win._toolbar.btn_ai.isEnabled()
         assert win._right_panel.ai_button.isEnabled()
 
         win._worker_controller.warmup_thread = _RunningThread()
         win._sync_ai_controls()
-        assert not win._toolbar.btn_ai.isEnabled()
         assert not win._right_panel.ai_button.isEnabled()
 
         win._worker_controller.warmup_thread = None
         win._worker_controller.ai_thread = _RunningThread()
         win._sync_ai_controls()
-        assert not win._toolbar.btn_ai.isEnabled()
         assert not win._right_panel.ai_button.isEnabled()
 
         win._worker_controller.ai_thread = None
         win._sync_ai_controls()
-        assert win._toolbar.btn_ai.isEnabled()
         assert win._right_panel.ai_button.isEnabled()
     finally:
         win._worker_controller.warmup_thread = None
@@ -561,7 +555,7 @@ def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
     monkeypatch.setattr(win._worker_controller, "start_ai", _fake_start_ai)
     win._run_ai()
     assert win.statusBar().currentMessage() == SM.KI_VERARBEITET
-    assert not win._toolbar.btn_ai.isEnabled()
+    assert not win._right_panel.ai_button.isEnabled()
     assert win._ai_input_version == win._canvas.version
     assert "img" in started
 
@@ -571,12 +565,10 @@ def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
 def test_on_ai_thread_finished_reenables_button(win, tmp_path, monkeypatch):
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     _load_dummy_image(win, tmp_path)
-    win._toolbar.btn_ai.setEnabled(False)
     win._right_panel.ai_button.setEnabled(False)
     win._ai_input_version = 5
     win._sb.showMessage("irgendwas")
     win._on_ai_thread_finished()
-    assert win._toolbar.btn_ai.isEnabled()
     assert win._right_panel.ai_button.isEnabled()
     assert win._ai_input_version == -1
     # Nur die Abbruch-Wartemeldung würde umgeschaltet – sonst bleibt sie stehen.
@@ -858,7 +850,7 @@ def test_toggle_light_mode_switches_palette_rebuilds_panel_and_persists(tmp_path
         # Chrome-Buttons tragen ihre :focus-Regel weiterhin im eigenen Stylesheet.
         assert ":focus" in win._right_panel.nav_next.styleSheet()
         assert ":focus" in win._right_panel.open_button.styleSheet()
-        assert ":focus" in win._toolbar.btn_ai.styleSheet()
+        assert ":focus" in win._toolbar.btn_move.styleSheet()
 
         # Zurückschalten stellt Dunkel wieder her.
         win._toggle_light_mode(False)

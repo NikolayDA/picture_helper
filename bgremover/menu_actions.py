@@ -42,6 +42,8 @@ class MainMenuCallbacks:
     invert_selection: Callable[[], None]
     restore_original: Callable[[], None]
     fit_to_view: Callable[[], None]
+    # Verlauf-Popup (#458): neuer Menü-Anker, nachdem der Rail-Button entfiel.
+    toggle_history: Callable[[], None]
     set_preview_mode: Callable[[PreviewMode], None]
     toggle_light_mode: Callable[[bool], None]
     open_settings: Callable[[], None]
@@ -113,6 +115,7 @@ def build_main_menu(
 
     view_menu = _add_menu(menu_bar, tr("menu.view"))
     _add_action(view_menu, parent, tr("action.fit_to_view"), callbacks.fit_to_view, "Ctrl+0")
+    _add_action(view_menu, parent, tr("action.history"), callbacks.toggle_history)
     preview_menu = _add_submenu(view_menu, tr("menu.preview_mode"))
     preview_group = QActionGroup(parent)
     preview_group.setExclusive(True)

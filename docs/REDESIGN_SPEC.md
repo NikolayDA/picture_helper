@@ -28,7 +28,7 @@ Inspector.
 | Schrittleiste Höhe | 72 px | `Stepper.setFixedHeight` |
 | Werkzeugleiste Breite | 62 px | `_TOOLBAR_WIDTH` |
 | Werkzeug-Button | 44 × 44 px | `_TOOLBAR_BTN_SIZE` |
-| Werkzeug-Icon | 22 px | `_TOOLBAR_ICON_SIZE` |
+| Werkzeug-Icon | 20 px (Rail-Fuß 18 px) | `_TOOLBAR_ICON_SIZE` / `_FOOT_ICON_SIZE` |
 | Inspector Breite | 332 px | `_RIGHT_PANEL_WIDTH` |
 | Crop-Bestätigungsleiste | 46 px | `_CROP_BAR_HEIGHT` |
 | Navigations-Fußzeile | 62 px | `right_panel._assemble` |
@@ -55,6 +55,7 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `surface` / `surface_hover` | `#2a2a2a` / `#363636` | Bedienflächen |
 | `hover` | `rgba(255,255,255,.06)` | Hover-Schleier |
 | `card_bg` / `card_border` | `#22262d` / `rgba(255,255,255,.07)` | Karten |
+| `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
 | `text` / `text2` / `text3` | `#e0e0e0` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
 | `accent` / `accent2` | `#4a90d9` / `#3f7fce` | Blau (Aktion) |
@@ -72,7 +73,8 @@ reserviert (§12).
 Gleiches Token-Set, Ausprägung `theme.LIGHT` (Auszug; vollständig in
 `theme.py`): `bg #e9edf3`, `panel #f2f4f8`, `inspector #f5f7fb`,
 `stepper #eef1f6`, `nav #eaeef3`, `toolbar #e6eaf1`, `surface #ffffff`,
-`card_bg #ffffff`, `text #1b2230`, `text2 #3a4351`, `text3 #59626f`
+`card_bg #ffffff`, `glass rgba(255,255,255,.86)`,
+`text #1b2230`, `text2 #3a4351`, `text3 #59626f`
 (bewusst dunkel genug für ≥ 4.5:1 auf der Statusleiste), `muted #8b95a3`,
 `accent #3a6fd0`, `accent2 #2f5fcf`, `on_accent #ffffff`,
 `good #1f9d63`, `bad #d65060`. Umschaltung: §10.
@@ -140,13 +142,27 @@ transparent; Fokus färbt die Strichlinie `accent`. Listenzeilen („Zuletzt
 geöffnet", max. 3): transparent, Padding 7/8, Radius 8, Hover `hover`.
 
 ### §5.9 Werkzeugleiste
-Breite 62 px, Buttons 44 × 44 px (Icons 22 px), ruhen **transparent** in der
-Leiste; aktiv nur sanft akzent-getönt (`accent_soft`-Fläche,
-`accent_line`-Rand, `accent_text`) – kein voller Farbfüllton.
-History-Gruppe (Undo/Redo/Original/Verlauf) auf `surface`, Radius 9.
+Breite 62 px, Buttons 44 × 44 px (Icons 20 px, Rail-Fuß 18 px – seit
+Epic #455 an den Prototyp angeglichen, vorher 22 px), ruhen **transparent**
+in der Leiste; aktiv nur sanft akzent-getönt (`accent_soft`-Fläche,
+`accent_line`-Rand, `accent_text`) – kein voller Farbfüllton. Auch die
+Rail-Fuß-Aktionen nutzen diesen Werkzeug-Look (Prototyp-Klasse `.tool`);
+die frühere `surface`-History-Gruppe ist entfallen.
 Trenner zwischen Gruppen: **30 × 1 px**, zentriert, `hairline`.
-Reihenfolge von oben: W · B · E · L | Trenner | KI | Trenner |
-Undo · Redo · Original · Verlauf | (Dehner) | Öffnen · Speichern.
+
+Reihenfolge von oben (Epic #455): **Verschieben / Zoom** (permanent, #456)
+| Trenner + W · B · E · L (nur Schritt 2) | Trenner + Aufhellen · Abdunkeln
+(nur Schritt 5, #457) | (Dehner) | **Rail-Fuß** (#458): Trenner + Rückgängig ·
+Wiederholen · Theme-Umschalter – bedingungslos an den unteren Rand gepinnt
+und in **allen** Schritten sichtbar. KI, Original wiederherstellen, Verlauf
+sowie Öffnen/Speichern liegen **nicht** in der Rail: KI ist der
+Schritt-2-Primärbutton (#437), Original wiederherstellen liegt im Menü
+„Bearbeiten", der Verlauf öffnet über „Ansicht → Verlauf" (Popup ankert an
+der Rail), Öffnen/Speichern über Menü „Datei" (⌘O/⌘S) bzw. Schritt 1/6 des
+Inspectors. Rückgängig/Wiederholen sind deaktiviert, wenn nichts
+rückgängig-/wiederherstellbar ist; der Theme-Umschalter löst dieselbe
+Aktion wie „Ansicht → Helles Design" aus und bleibt mit dem Menü-Häkchen
+synchron.
 
 ## §6 Schrittleiste (Stepper)
 
@@ -193,26 +209,40 @@ Beide Buttons sind per Tab erreichbar; `&` in Beschriftungen wird als
 
 ## §8 Werkzeuge je Schritt
 
-Die linke Werkzeugleiste ist kontextuell:
+Die linke Werkzeugleiste ist kontextuell (Rail-Inhalt 1:1 zum Prototyp,
+Epic #455):
 
-| Werkzeuggruppe | sichtbar/aktiv |
-|---|---|
-| Auswahl: Zauberstab / Pinsel / Radierer / Lasso (+ Trenner) | **nur Schritt 2 (Freistellen)** |
-| KI-Freistellen, Undo/Redo/Original/Verlauf, Öffnen/Speichern | immer |
-| Verschieben / Zoom (Canvas-Gesten) | immer |
+| Schritt | Rail-Inhalt (von oben) | Rail-Fuß (unten, alle Schritte) |
+|---|---|---|
+| 1 · Öffnen | Verschieben/Zoom | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
+| 2 · Freistellen | Verschieben/Zoom · Trenner · Zauberstab, Pinsel, Radiergummi, Lasso | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
+| 3 · Anpassen | Verschieben/Zoom | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
+| 4 · Form & Maße | Verschieben/Zoom | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
+| 5 · Relief & Ebenen | Verschieben/Zoom · Trenner · Aufhellen (höher), Abdunkeln (tiefer) | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
+| 6 · Export | Verschieben/Zoom | Trenner · Rückgängig, Wiederholen, Theme-Umschalter |
 
 Regeln:
 
+- **Verschieben / Zoom** (#456) ist ein echtes, wählbares Werkzeug mit
+  `.on`-Zustand: aktiv pannt Linksklick-Ziehen den Ausschnitt, das Mausrad
+  zoomt; Auswahl-/Mal-Interaktion ist im Move-Modus nicht möglich. Die
+  mittlere Maustaste (bzw. Alt+Linksklick) pannt in **jedem** Modus.
 - Die Kürzel **W/B/E/L** greifen nur, wenn das Werkzeug im aktuellen
   Schritt verfügbar ist – außerhalb von Schritt 2 sind die QShortcuts
   deaktiviert (#422).
-- Außerhalb von Schritt 2 ist zusätzlich die Canvas-Werkzeug-Interaktion
-  abgeschaltet (`set_tools_enabled(False)`); eine begonnene Crop-/
-  Lasso-Interaktion wird dabei verworfen. Pan/Zoom bleiben frei.
-- Die Höhen-Werkzeuge (Aufhellen/Abdunkeln/Setzen/Invertieren) liegen
-  **nicht** in der linken Leiste, sondern gebündelt als Karten im
-  Höhen-Panel von Schritt 5 (bewusste Abweichung vom ursprünglichen
-  Issue-Entwurf zu #422: ein Ort für alle Höhen-Aktionen).
+- Außerhalb der Schritte 2 und 5 ist zusätzlich die Canvas-Werkzeug-
+  Interaktion abgeschaltet (`set_tools_enabled(False)`); eine begonnene
+  Crop-/Lasso-Interaktion (oder ein laufender Höhen-Malstrich) wird dabei
+  verworfen. Pan/Zoom bleiben frei.
+- **Aufhellen (höher) / Abdunkeln (tiefer)** (#457) sind malende
+  Rail-Werkzeuge auf der aktiven HEIGHT-Ebene: Strich mit Pinselradius
+  (geteilte Pinselgröße aus Schritt 2), Stärke `_DEFAULT_HEIGHT_STEP`,
+  Werte geklemmt/verlustfrei (`adjust_height`-Semantik, jedes Pixel genau
+  einmal pro Strich), genau **ein** Undo-Schritt je Strich. Ohne aktive
+  HEIGHT-Ebene sind die Buttons deaktiviert (Tooltip nennt den Grund); auf
+  COLOR-Ebenen bleiben sie wirkungslos (Kind↔Rollen-Vertrag #364). Die
+  gebündelten One-Shot-Aktionen im Höhen-Panel (Aufhellen/Abdunkeln/Setzen/
+  Invertieren, Auswahl bzw. global) bleiben unverändert zusätzlich bestehen.
 
 ## §9 Inspector — Inhalte je Schritt
 
@@ -288,9 +318,48 @@ Schrittleiste selbst ist zustandslos.
 - **Schrittwechsel** (Klick, Zurück/Weiter) aktualisiert atomar:
   Schrittleiste (erledigt/aktiv/ausstehend + Verbinder), Inspector
   (Seite, Kopf, Weiter-Label), Werkzeugleiste inkl. Kürzel (§8),
-  Canvas-Werkzeug-Gate und Statuszeile („Schritt *n*/6: *Name*").
+  Canvas-Werkzeug-Gate, Werkzeugwahl und Statuszeile
+  („Schritt *n*/6: *Name*").
+- **Werkzeugwahl je Schritt (#456):** Beim Wechsel in einen Schritt ohne
+  Auswahl-/Höhen-Werkzeuge (1/3/4/6) wird „Verschieben / Zoom" sichtbar
+  das aktive Werkzeug (`.on`). Zurück in „Freistellen" reaktiviert das
+  zuletzt gewählte Auswahlwerkzeug (Default Zauberstab). Der Eintritt in
+  „Relief & Ebenen" startet ebenfalls mit Move – die Höhen-Werkzeuge sind
+  bewusst Opt-in per Klick (kein versehentliches Malen). Verliert die
+  aktive Ebene den HEIGHT-Typ, während ein Höhen-Werkzeug gewählt ist,
+  fällt die Wahl sichtbar auf Move zurück.
 - **Schritt 6:** „Exportieren ✓" löst das Speichern aus und bleibt im
   Schritt.
 - **Vorschau-Zustand** (Modus/Relief-Stärke/Gloss, Schritt 6) ist reiner
   UI-Zustand: keine History-/Dirty-Revision, der Export schreibt weiterhin
-  ausschließlich das COLOR-Komposit (#387/#397).
+  ausschließlich das COLOR-Komposit (#387/#397). Gleiches gilt für den
+  Zoom-Zustand samt Fixier-Lock (§14).
+
+## §14 Arbeitsfläche: Zoom-Kontrolle
+
+Unten rechts auf der Arbeitsfläche schwebt – sobald ein Bild geladen ist –
+**immer** eine interaktive Zoom-Kontrolle (#464, 1:1 zum Prototyp): eine
+Glas-Pille (`glass`-Fläche, `card_border`-Haarlinie, Radius 10, Abstand
+14 px zur unteren/rechten Kante) mit „−" · Live-Prozentwert · „+" ·
+Fixier-Schloss.
+
+- **Wertebereich/Schrittweite:** „+"/„−" ändern den Zoom in
+  10-%-Schritten, geklemmt auf **25–300 %** (`zoomBy`-Logik des
+  Prototyps; Konstanten `_ZOOM_CTRL_*`). Der Mausrad-Zoom behält seine
+  weiteren technischen Grenzen (`ZOOM_MIN`/`ZOOM_MAX`); die Prozentanzeige
+  aktualisiert live für **jede** Zoom-Quelle (Buttons, Mausrad,
+  Fit-to-View).
+- **Fixier-Lock:** friert den aktuellen Zoomwert ein – Mausrad-Zoom und
+  „+"/„−" sind wirkungslos (Buttons deaktiviert, Schloss zeigt den
+  aktiven `.on`-Zustand), bis erneut geklickt wird.
+- **Zustandsmodell:** Zoomwert und Lock sind reiner UI-State – kein
+  Undo-/Redo-Eintrag, keine Dirty-Revision (§13).
+
+**Entscheidung zu #465 (zusätzliche Zoom-Platzierung):** Die
+Canvas-Kontrolle macht Zoom bereits jederzeit sichtbar und bedienbar;
+eine zusätzliche Spiegelung in einer dedizierten Toolbar-Zeile oder der
+Statusleiste wäre Redundanz ohne klaren Zusatznutzen. Es entsteht daher
+**keine** neue Chrome-Fläche: keine dedizierte Toolbar-Zeile zwischen
+Menü- und Schrittleiste, die Statusleiste bleibt reiner Text. Diese
+Entscheidung ist bewusst dokumentiert, damit die Frage nicht erneut
+aufkommt (#463/#465).

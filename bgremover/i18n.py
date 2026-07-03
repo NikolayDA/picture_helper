@@ -390,6 +390,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.invert_selection": "Auswahl invertieren",
         "action.restore_original": "Original wiederherstellen",
         "action.fit_to_view": "Fit to View",
+        # Verlauf-Popup: Menü-Anker seit #458 (Rail-Button entfallen)
+        "action.history": "Verlauf",
+        # Zoom-Kontrolle auf der Arbeitsfläche (#464)
+        "zoom.in.tooltip": "Vergrößern (+10 %)",
+        "zoom.out.tooltip": "Verkleinern (−10 %)",
+        "zoom.lock.tooltip": "Zoom fixieren (aktuellen Wert beibehalten)",
+        "zoom.unlock.tooltip": "Zoom-Fixierung aufheben",
         "preview.mode.color": "Farbe",
         "preview.mode.relief": "Relief über Farbe",
         "preview.mode.height": "Höhe (Graustufe)",
@@ -406,6 +413,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.dark": "Dunkles Design aktiviert.",
         "action.settings": "Einstellungen…",
         # Left toolbar
+        "toolbar.move.tooltip": (
+            "Verschieben / Zoom\n"
+            "Linksklick-Ziehen verschiebt den Ausschnitt · Mausrad zoomt"
+        ),
         "toolbar.wand.tooltip": (
             "Zauberstab  (W)\n"
             "Klick wählt Farbfläche (Flood Fill)\n"
@@ -418,9 +429,17 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Klicken setzt Punkte · Doppelklick schließt Polygon\n"
             "Shift = addieren  ·  {modifier} = subtrahieren  ·  Esc = abbrechen"
         ),
-        "toolbar.ai.available.tooltip": (
-            "KI-Hintergrundentfernung (rembg)\n"
-            "Entfernt den Hintergrund vollautomatisch"
+        "toolbar.height_lighten.tooltip": (
+            "Aufhellen (höher)\n"
+            "Malstrich hebt die Höhe der aktiven Höhen-Ebene an"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "Abdunkeln (tiefer)\n"
+            "Malstrich senkt die Höhe der aktiven Höhen-Ebene ab"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "Höhen-Werkzeug\n"
+            "Erst eine Höhen-Ebene aktivieren (Schritt 5: Höhenkarte erzeugen/importieren)"
         ),
         "toolbar.ai.missing.tooltip": (
             'rembg nicht installiert\n→ python3 -m pip install -e ".[ai]"'
@@ -433,14 +452,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Wiederherstellen  ({shortcut})\n"
             "Letzten rückgängig gemachten Schritt wiederherstellen"
         ),
-        "toolbar.restore.tooltip": "Original wiederherstellen\nAlle Bearbeitungen verwerfen",
-        "toolbar.history.tooltip": (
-            "Änderungshistorie\n"
-            "Zeigt alle bisherigen Bearbeitungsschritte.\n"
-            "Doppelklick auf Eintrag → zu diesem Schritt zurück"
-        ),
-        "toolbar.open.tooltip": "Bild öffnen  ({shortcut})",
-        "toolbar.save.tooltip": "Bild speichern  ({shortcut})",
+        "toolbar.theme.to_light.tooltip": "Zu hellem Design wechseln",
+        "toolbar.theme.to_dark.tooltip": "Zu dunklem Design wechseln",
         # Right panel tabs
         "right_panel.tab.selection": "Auswahl",
         "right_panel.tab.selection.tooltip": (
@@ -1134,6 +1147,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.invert_selection": "Invert selection",
         "action.restore_original": "Restore original",
         "action.fit_to_view": "Fit to View",
+        # History popup: menu anchor since #458 (rail button removed)
+        "action.history": "History",
+        # Canvas zoom control (#464)
+        "zoom.in.tooltip": "Zoom in (+10%)",
+        "zoom.out.tooltip": "Zoom out (−10%)",
+        "zoom.lock.tooltip": "Lock zoom (keep the current value)",
+        "zoom.unlock.tooltip": "Unlock zoom",
         "preview.mode.color": "Color",
         "preview.mode.relief": "Relief over color",
         "preview.mode.height": "Height (grayscale)",
@@ -1150,6 +1170,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.dark": "Dark theme enabled.",
         "action.settings": "Settings…",
         # Left toolbar
+        "toolbar.move.tooltip": (
+            "Move / Zoom\n"
+            "Left-click drag pans the view · mouse wheel zooms"
+        ),
         "toolbar.wand.tooltip": (
             "Magic wand  (W)\n"
             "Click selects a color area (flood fill)\n"
@@ -1162,9 +1186,17 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Click to place points · double-click closes the polygon\n"
             "Shift = add  ·  {modifier} = subtract  ·  Esc = cancel"
         ),
-        "toolbar.ai.available.tooltip": (
-            "AI background removal (rembg)\n"
-            "Removes the background fully automatically"
+        "toolbar.height_lighten.tooltip": (
+            "Lighten (raise)\n"
+            "Brush stroke raises the height of the active height layer"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "Darken (lower)\n"
+            "Brush stroke lowers the height of the active height layer"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "Height tool\n"
+            "Activate a height layer first (step 5: generate/import a height map)"
         ),
         "toolbar.ai.missing.tooltip": (
             'rembg not installed\n→ python3 -m pip install -e ".[ai]"'
@@ -1177,14 +1209,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Redo  ({shortcut})\n"
             "Redo the last undone step"
         ),
-        "toolbar.restore.tooltip": "Restore original\nDiscard all edits",
-        "toolbar.history.tooltip": (
-            "Change history\n"
-            "Shows all previous editing steps.\n"
-            "Double-click an entry → jump back to that step"
-        ),
-        "toolbar.open.tooltip": "Open image  ({shortcut})",
-        "toolbar.save.tooltip": "Save image  ({shortcut})",
+        "toolbar.theme.to_light.tooltip": "Switch to the light theme",
+        "toolbar.theme.to_dark.tooltip": "Switch to the dark theme",
         # Right panel tabs
         "right_panel.tab.selection": "Selection",
         "right_panel.tab.selection.tooltip": (
