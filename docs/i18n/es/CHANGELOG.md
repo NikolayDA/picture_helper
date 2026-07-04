@@ -350,6 +350,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `accent_text` ya coincidía exactamente con el valor del prototipo;
   `accent_shadow` sigue siendo un valor de color sin efecto de resplandor
   (Qt QSS no admite `box-shadow`, #477).
+- **El control segmentado de vista previa (paso 6) usa ahora la superficie
+  correcta del prototipo.** El contenedor de "Color/Relieve/Altura/Brillo"
+  (`_ModeSegments`) usaba incorrectamente el tono `tabbar`; al revisar las
+  reglas CSS reales del prototipo (no solo las variables `:root`) se
+  determinó que la superficie recesada `--inset` era el valor correcto —
+  añadida como nuevo token `inset` y conectada. Se añadieron a `Palette`,
+  por completitud y sin consumidor actual, otros dos tokens declarados pero
+  sin uso en el prototipo (`label`, `good_line`); no existe una contraparte
+  `bad_line` en el prototipo, por lo que no se inventó (#479).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

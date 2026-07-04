@@ -312,6 +312,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the active stepper circle, and the slider handle. `accent_text` already
   matched the prototype value exactly; `accent_shadow` remains a plain color
   value without a glow effect (Qt QSS has no `box-shadow`, #477).
+- **Preview segmented control (step 6) now uses the correct prototype
+  surface.** The "Color/Relief/Height/Gloss" container (`_ModeSegments`) was
+  incorrectly backed by the `tabbar` tone; checking the prototype's actual
+  CSS rules (not just the `:root` variables) showed the recessed `--inset`
+  surface was the correct value — added as a new `inset` token and wired up.
+  Two more tokens declared but unused in the prototype (`label`,
+  `good_line`) were added to `Palette` for completeness, without a current
+  consumer; a `bad_line` counterpart doesn't exist in the prototype and was
+  therefore not invented (#479).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

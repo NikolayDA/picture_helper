@@ -326,6 +326,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `accent_text` traf bereits 1:1 den Prototyp-Wert; `accent_shadow` bleibt
   ein reiner Farbwert ohne Glow-Effekt (Qt-QSS kennt kein `box-shadow`,
   #477).
+- **Vorschau-Segmented-Control (Schritt 6) nutzt jetzt die richtige
+  Prototyp-Fläche.** Der Container von „Farbe/Relief/Höhe/Gloss“
+  (`_ModeSegments`) war fälschlich mit dem `tabbar`-Ton hinterlegt; ein
+  Abgleich mit den tatsächlichen CSS-Regeln des Prototyps (nicht nur den
+  `:root`-Variablen) ergab die rezessierte `--inset`-Fläche als korrekten
+  Wert – neu als `inset`-Token ergänzt und verdrahtet. Zwei weitere im
+  Prototyp deklarierte, aber dort ungenutzte Token (`label`, `good_line`)
+  sind der Vollständigkeit halber in `Palette` übernommen, ohne aktuellen
+  Verbraucher; ein `bad_line`-Gegenstück existiert im Prototyp nicht und
+  wurde daher nicht erfunden (#479).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**

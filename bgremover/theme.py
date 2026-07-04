@@ -37,6 +37,10 @@ class Palette:
     surface: str
     surface_hover: str
     hover: str
+    # Rezessierte/eingelassene Fläche (Prototyp ``--inset``, z. B. Container
+    # des Vorschau-Segmented-Controls) – nicht zu verwechseln mit ``surface``
+    # (erhabene Bedienflächen wie Buttons/Inputs).
+    inset: str
     card_bg: str
     card_border: str
     # Halbtransparente „Glas"-Fläche für schwebende Canvas-Overlays (#464).
@@ -48,6 +52,11 @@ class Palette:
     text2: str
     text3: str
     muted: str
+    # Gedämpfte Feldbeschriftung (Prototyp ``--label``, heller als ``text3``,
+    # dunkler als ``text``). Im Prototyp selbst aktuell ungenutzt – die dortige
+    # ``.lab``-Feldbeschriftungsklasse greift auf ``text2``, nicht ``label``.
+    # Nur der Vollständigkeit halber übernommen (#479); kein App-Verbraucher.
+    label: str
     # Akzent
     accent: str
     accent2: str
@@ -59,6 +68,11 @@ class Palette:
     # Semantik
     good: str
     good_soft: str
+    # Rand-Ton zu good/good_soft (Prototyp ``--good-line``, analog zu
+    # accent_line). Im Prototyp nur am Canvas-Erfolgs-Badge nach der
+    # KI-Freistellung genutzt („✓ Hintergrund entfernt"), das es in der App
+    # noch nicht gibt – Token ohne Verbraucher übernommen (#479).
+    good_line: str
     bad: str
     bad_soft: str
     # Schema-Kennung
@@ -82,19 +96,21 @@ DARK = Palette(
     border="rgba(255,255,255,.06)", border_2="rgba(255,255,255,.12)",
     divider="#2a2a2a", hairline="rgba(255,255,255,.1)",
     surface="#30373f", surface_hover="#3a424c", hover="rgba(255,255,255,.05)",
+    inset="#1c2128",
     # card_bg bewusst dunkler als der Prototyp-Wert #2e353f: erst damit hält
     # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
     # ein – der Prototyp selbst ist kein kontrastgeprüftes Artefakt.
     card_bg="#262b33", card_border="rgba(255,255,255,.07)",
     glass="rgba(26,30,37,.82)",
     text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
+    label="#aeb6c2",
     # Akzent 1:1 aus dem Prototyp (#477): ein helleres, periwinkle-artiges
     # Blau statt des dumpferen früheren Tons – bildet Primärbutton-Verlauf,
     # aktive Werkzeuge/Stepper-Kreis, Slider-Griff und Fokusringe.
     accent="#5b8cff", accent2="#4f81f5", accent_soft="rgba(91,140,255,.16)",
     accent_line="rgba(91,140,255,.3)", accent_text="#9fc0ff",
     accent_shadow="rgba(79,129,245,.35)", on_accent="#ffffff",
-    good="#7fe0aa", good_soft="rgba(80,200,140,.16)",
+    good="#7fe0aa", good_soft="rgba(80,200,140,.16)", good_line="rgba(80,200,140,.4)",
     bad="#f29aa6", bad_soft="rgba(229,104,122,.16)",
     is_dark=True,
 )
@@ -107,15 +123,17 @@ LIGHT = Palette(
     border="#c9d2df", border_2="rgba(22,32,52,.16)",
     divider="#dbe1ea", hairline="#d4dae4",
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
+    inset="#e3e8ef",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
     glass="rgba(255,255,255,.86)",
     # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
     # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).
     text="#1b2230", text2="#3a4351", text3="#59626f", muted="#8b95a3",
+    label="#7b8492",
     accent="#3a6fd0", accent2="#2f5fcf", accent_soft="rgba(58,111,208,.14)",
     accent_line="rgba(58,111,208,.34)", accent_text="#2f5fcf",
     accent_shadow="rgba(58,111,208,.26)", on_accent="#ffffff",
-    good="#1f9d63", good_soft="rgba(31,157,99,.14)",
+    good="#1f9d63", good_soft="rgba(31,157,99,.14)", good_line="rgba(31,157,99,.4)",
     bad="#d65060", bad_soft="rgba(214,80,96,.13)",
     is_dark=False,
 )

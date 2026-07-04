@@ -106,8 +106,10 @@ class _ModeSegments(QWidget):
         self._current = PreviewMode.COLOR
         self.setObjectName("modeSegments")
         p = active_palette()
+        # inset statt tabbar (#479): der Prototyp hinterlegt den Container
+        # dieses Segmented-Controls mit der rezessierten --inset-Fläche.
         self.setStyleSheet(
-            f"QWidget#modeSegments {{ background:{p.tabbar};"
+            f"QWidget#modeSegments {{ background:{p.inset};"
             f" border:1px solid {p.border}; border-radius:9px; }}")
         lay = QHBoxLayout(self)
         lay.setContentsMargins(3, 3, 3, 3)

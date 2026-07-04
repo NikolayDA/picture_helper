@@ -55,15 +55,18 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `divider` / `hairline` | `#2a2a2a` / `rgba(255,255,255,.1)` | Trennlinien |
 | `surface` / `surface_hover` | `#30373f` / `#3a424c` | Bedienflächen |
 | `hover` | `rgba(255,255,255,.05)` | Hover-Schleier |
+| `inset` | `#1c2128` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
 | `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
 | `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
+| `label` | `#aeb6c2` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe unten) |
 | `accent` / `accent2` | `#5b8cff` / `#4f81f5` | Blau (Aktion) |
 | `accent_soft` / `accent_line` | `rgba(91,140,255,.16)` / `rgba(91,140,255,.3)` | Akzentflächen/-linien |
 | `accent_text` / `on_accent` | `#9fc0ff` / `#ffffff` | Text auf/zu Akzent |
 | `accent_shadow` | `rgba(79,129,245,.35)` | Glow-Farbwert (aktuell ungenutzt, §5.6-Prototyp-Effekt) |
 | `good` / `good_soft` | `#7fe0aa` / `rgba(80,200,140,.16)` | positiv |
+| `good_line` | `rgba(80,200,140,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe unten) |
 | `bad` / `bad_soft` | `#f29aa6` / `rgba(229,104,122,.16)` | negativ |
 
 **Token-Vertrag:** `text`/`text2`/`text3` halten auf ihren Flächen ≥ 4.5:1
@@ -104,6 +107,25 @@ dumpferen früheren Tons. `accent_shadow` wird aktuell an keiner Stelle als
 Schatten/Glow gerendert (Qt-QSS kennt kein `box-shadow`, siehe `stepper.py`
 zur Kompensation über die Kreisgröße, §6); nur der Farbwert ist korrigiert.
 `accent_text` traf bereits 1:1 den Prototyp-Wert.
+
+**Nachgetragene Token (#479).** Der Abgleich mit den tatsächlichen CSS-Regeln
+des Prototyp-Bundles (nicht nur dem `:root`-Variablenblock) ergab drei bis
+dahin in `Palette` fehlende Token:
+
+- **`inset`** hinterlegt im Prototyp den Container des Vorschau-Segmented-
+  Controls (Schritt 6, „Farbe/Relief/Höhe/Gloss“). `right_panel_tabs.py`
+  (`_ModeSegments`/`#modeSegments`) nutzte dafür bislang fälschlich `tabbar`
+  – jetzt auf `inset` korrigiert.
+- **`label`** ist im Prototyp-`:root` deklariert, wird dort aber von keiner
+  CSS-Regel konsumiert (die tatsächliche Feldbeschriftungsklasse `.lab`
+  greift auf `text2`). Der Token ist nur der Vollständigkeit halber
+  übernommen und hat aktuell keinen Verbraucher.
+- **`good_line`** ist im Prototyp ausschließlich der Rand-Ton eines
+  Canvas-Erfolgs-Badges nach der KI-Freistellung („✓ Hintergrund entfernt“),
+  das es als Komponente in der App noch nicht gibt. Der Token ist ohne
+  Verbraucher übernommen; ein `bad_line`-Gegenstück existiert im Prototyp
+  weder als deklarierte Variable noch als Nutzung und wurde daher **nicht**
+  hinzugefügt (kein spekulativer Wert ohne Beleg).
 
 ## §3 Farb-Tokens — helles Schema
 

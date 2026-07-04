@@ -354,6 +354,16 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   correspondait déjà exactement à la valeur du prototype ; `accent_shadow`
   reste une simple valeur de couleur sans effet de lueur (Qt QSS ne connaît
   pas `box-shadow`, #477).
+- **Le contrôle segmenté d'aperçu (étape 6) utilise désormais la bonne
+  surface du prototype.** Le conteneur « Couleur/Relief/Hauteur/Gloss »
+  (`_ModeSegments`) utilisait à tort la teinte `tabbar` ; en vérifiant les
+  règles CSS réelles du prototype (pas seulement les variables `:root`), la
+  surface en retrait `--inset` s'est révélée être la bonne valeur — ajoutée
+  comme nouveau token `inset` et connectée. Deux autres tokens déclarés mais
+  inutilisés dans le prototype (`label`, `good_line`) ont été ajoutés à
+  `Palette` par souci d'exhaustivité, sans consommateur actuel ; une
+  contrepartie `bad_line` n'existe pas dans le prototype et n'a donc pas été
+  inventée (#479).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`
