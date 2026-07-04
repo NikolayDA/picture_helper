@@ -11,13 +11,14 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-04)
+## Current Status (2026-07-05)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs. New this round: **#461**, **#414**, and
-epic **#413** are closed. PR #473 centralizes the card metrics and removes the
-last accent hex outside `theme.py`. The new open Dark Mode prototype-alignment
-cluster is **#474–#480**. GitHub now shows **18** open roadmap/backlog issues.
+remain the baseline before new PRs. Since the 2026-07-04 snapshot, the Dark Mode
+prototype-alignment cluster **#474–#480** (PR #482) and the rail-icon/state-color
+wave **#483–#488** (PR #489) are closed. Before this follow-up, GitHub shows
+**12** open issues including **#490**; after this snapshot fix is merged/closed,
+**11** roadmap/backlog issues remain.
 
 ### Completed Since The Last Review
 
@@ -32,15 +33,17 @@ cluster is **#474–#480**. GitHub now shows **18** open roadmap/backlog issues.
   navigation, contextual tools, and the design tokens (`ACCENT`/`CARD_STYLE`)
   landed via PR #412/#423 (DE/EN strings, `tests/test_workflow.py`).
 - **Rail/zoom wave completed:** **#455/#456/#457/#458/#463/#464** landed via
-  PR #466, and **#465** is intentionally `not_planned`. PR #467 closes the
-  three late #466 P2s (zoom direction, viewport anchor, height-dab preview) and
-  refreshed the triage snapshot.
-- **#461 closed (2026-07-04):** The snapshot refreshed by PR #467 matches the
-  live GitHub state; the issue itself stayed open after the merge and is closed
-  in this round.
+  PR #466, and **#465** is intentionally `not_planned`; PR #467 closed the
+  three #466 P2s and refreshed the triage snapshot.
 - **Card inspector completed:** **#414** landed via PR #473 (central `CARD_*`
   tokens, light/dark card style, accent-hex guard). That also completes epic
   **#413**.
+- **Dark Mode and rail icons completed:** PR #482 closed **#474–#480** (dark
+  surfaces, hairlines, accents, checkerboard, missing tokens, REDESIGN_SPEC
+  drift test); PR #489 closed **#483–#488** (vector icons, state/theme colors,
+  removed PNG fallbacks, docs/tests/review fix).
+- **#490 in progress:** This PR fixes the Recommendations snapshot drift after
+  PR #482/#489 and keeps all six language mirrors in sync.
 
 ### Still Open
 
@@ -54,18 +57,17 @@ cluster is **#474–#480**. GitHub now shows **18** open roadmap/backlog issues.
   finding on PR #460). Mockup-only; the real app already activates the new
   HEIGHT layer automatically (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-04)
+## Open GitHub Issues — Triage Status (2026-07-05)
 
-As of 2026-07-04, GitHub shows **18** open roadmap/backlog issues: Dark Mode
-prototype alignment (**#474/#475/#476/#477/#478/#479/#480**), i18n/docs
-(**#425/#430/#431/#432**), rollout/release (**#426/#435/#392/#389**), and the
-independent items **#299/#318/#245**. **#461** was the completed snapshot drift;
-**#414** and **#413** are also closed after PR #473.
+As of 2026-07-05, GitHub shows **12** open issues before this PR, including
+**#490**. After this follow-up is merged/closed, **11** roadmap/backlog issues
+remain: i18n/docs (**#425/#430/#431/#432**), rollout/release
+(**#426/#435/#392/#389**), and backlog/external items (**#299/#318/#245**).
 
 ### Sensible Bundles
 
-- **Dark Mode 1:1 (#474):** bundle #475/#476/#477/#479 as the token wave, #478
-  as the canvas-checker fix, and #480 as the final spec/drift-test pass.
+- **#490:** This PR closes the snapshot drift after PR #482/#489; no follow-up
+  implementation ticket remains from it.
 - **i18n/docs (#425):** #430 (ES/FR/UK/ZH) unblocks the parity tests; #431 (docs)
   and #432 (screenshots) follow once the UI is visually final.
 - **Rollout/release:** #426 remains open only through #435; coordinate #435 with
@@ -78,13 +80,7 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#474](https://github.com/NikolayDA/picture_helper/issues/474) | EPIC: Align Dark Mode 1:1 with Prototype A | 🟠 High | 🟡 Medium | **New** – bundle #475–#480. |
-| [#475](https://github.com/NikolayDA/picture_helper/issues/475) | Dark scheme: align background surfaces | 🟠 High | 🟢 Low | **Start here** – base surfaces first. |
-| [#476](https://github.com/NikolayDA/picture_helper/issues/476) | Dark scheme: transparent borders/hairlines | 🟡 Medium | 🟢 Low | **With #475** – fix border tokens. |
-| [#477](https://github.com/NikolayDA/picture_helper/issues/477) | Dark scheme: align accent/button colors | 🟠 High | 🟢 Low | **With #475** – interactive colors. |
-| [#478](https://github.com/NikolayDA/picture_helper/issues/478) | Canvas checker ignores current theme | 🟡 Medium | 🟡 Medium | **After tokens** – palette + theme switch. |
-| [#479](https://github.com/NikolayDA/picture_helper/issues/479) | Add missing color tokens from the prototype | 🟡 Medium | 🟡 Medium | **With spec pass** – only proven tokens. |
-| [#480](https://github.com/NikolayDA/picture_helper/issues/480) | REDESIGN_SPEC color tables + drift test | 🟡 Medium | 🟡 Medium | **Final pass** – after #475–#479. |
+| [#490](https://github.com/NikolayDA/picture_helper/issues/490) | Refresh triage snapshot after Dark Mode and rail-icon wave | 🟡 Medium | 🟢 Low | **This PR** – close after merge. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟡 Medium | **In progress** – #430/#431/#432 open. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | New UI strings (steps/cards/navigation) | 🟠 High | 🟡 Medium | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | **After UI freeze** – 6-language mirror, link tests. |
@@ -99,12 +95,11 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. Bundle **#474**: #475/#476/#477/#479 token wave, then #478 and #480.
-2. Pull **#430** forward (UI strings ES/FR/UK/ZH) — it unblocks i18n parity; then
+1. Pull **#430** forward (UI strings ES/FR/UK/ZH) — it unblocks i18n parity; then
    **#431**/**#432** once the UI is final.
-3. **Release:** run **#435** + **#392** in a coordinated way, then close epics
+2. **Release:** run **#435** + **#392** in a coordinated way, then close epics
    **#426** and **#389**.
-4. **#299** after the release; research **#318** only (needs refinement); keep
+3. **#299** after the release; research **#318** only (needs refinement); keep
    **#245** externally blocked.
 
 ## Previous Rounds
