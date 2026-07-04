@@ -410,3 +410,21 @@ def test_feather_active_edges_respects_selection(qapp):
     c.feather_active_edges(3)
     out = np.array(c.image)
     assert np.array_equal(out[:, 5:, 3], arr[:, 5:, 3])        # außerhalb unverändert
+
+
+def test_canvas_apply_palette_updates_checkerboard(qapp):
+    """Issue #478: ein Theme-Umschalten erneuert das Canvas-Schachbrett live,
+    ohne Neustart der App."""
+    from PyQt6.QtGui import QColor
+
+    from bgremover.theme import DARK, LIGHT
+
+    c = ImageCanvas()
+    c.apply_palette(LIGHT)
+    light_img = c.backgroundBrush().texture().toImage()
+    assert light_img.pixelColor(0, 0) == QColor(LIGHT.checker_b)
+
+    c.apply_palette(DARK)
+    dark_img = c.backgroundBrush().texture().toImage()
+    assert dark_img.pixelColor(0, 0) == QColor(DARK.checker_b)
+    assert dark_img.pixelColor(0, 0) != light_img.pixelColor(0, 0)

@@ -58,6 +58,7 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `inset` | `#1c2128` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
 | `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
+| `checker_a` / `checker_b` | `#2c313a` / `#353b45` | Canvas-Transparenz-Schachbrett |
 | `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
 | `label` | `#aeb6c2` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe unten) |
@@ -126,6 +127,15 @@ dahin in `Palette` fehlende Token:
   Verbraucher übernommen; ein `bad_line`-Gegenstück existiert im Prototyp
   weder als deklarierte Variable noch als Nutzung und wurde daher **nicht**
   hinzugefügt (kein spekulativer Wert ohne Beleg).
+
+**Canvas-Schachbrett folgt dem Schema (#478).** `checker_a`/`checker_b`
+lösen die zuvor fest kodierten `QColor(170,170,170)`/`QColor(210,210,210)`
+in `image_utils.make_checker_brush` ab, die im Dark Mode wie ein heller
+Fleck mitten in der Leinwand wirkten. `make_checker_brush(palette, size)`
+nimmt jetzt die aktive `Palette` entgegen; `ImageCanvas.apply_palette`
+erneuert `setBackgroundBrush` beim Theme-Umschalten live (verdrahtet in
+`MainWindow._apply_theme`, analog zu Schrittleiste/Werkzeugleiste/
+Zoom-Pille, #428), sodass kein Neustart nötig ist.
 
 ## §3 Farb-Tokens — helles Schema
 

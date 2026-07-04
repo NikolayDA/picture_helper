@@ -336,6 +336,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   sind der Vollständigkeit halber in `Palette` übernommen, ohne aktuellen
   Verbraucher; ein `bad_line`-Gegenstück existiert im Prototyp nicht und
   wurde daher nicht erfunden (#479).
+- **Canvas-Transparenz-Schachbrett folgt jetzt dem aktiven Theme.** Das
+  Schachbrettmuster hinter transparenten Bildbereichen war fest auf
+  Hellgrau kodiert (`QColor(170,170,170)`/`(210,210,210)`) und wirkte im
+  Dark Mode wie ein heller Fleck mitten in der Leinwand. `checker_a`/
+  `checker_b` lösen das über die Palette (dunkel: `#2c313a`/`#353b45`,
+  hell: `#dde2ea`/`#eef1f5`); `make_checker_brush` nimmt jetzt die aktive
+  Palette entgegen, und `ImageCanvas.apply_palette` erneuert das Muster
+  beim Theme-Umschalten live – ohne Neustart der App (#478).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**

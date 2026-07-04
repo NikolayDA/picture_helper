@@ -43,6 +43,11 @@ class Palette:
     inset: str
     card_bg: str
     card_border: str
+    # Canvas-Transparenz-Schachbrett (Prototyp ``--checker-a``/``--checker-b``,
+    # #478) – schemaeigen statt fest kodiertem Grau, damit es sich im Dark
+    # Mode nicht als heller Fleck von der restlichen UI absetzt.
+    checker_a: str
+    checker_b: str
     # Halbtransparente „Glas"-Fläche für schwebende Canvas-Overlays (#464).
     glass: str
     # Text. Vertrag (#441): ``text``/``text2``/``text3`` sind für **aktiven** Text
@@ -101,6 +106,7 @@ DARK = Palette(
     # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
     # ein – der Prototyp selbst ist kein kontrastgeprüftes Artefakt.
     card_bg="#262b33", card_border="rgba(255,255,255,.07)",
+    checker_a="#2c313a", checker_b="#353b45",
     glass="rgba(26,30,37,.82)",
     text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
     label="#aeb6c2",
@@ -125,6 +131,7 @@ LIGHT = Palette(
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
     inset="#e3e8ef",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
+    checker_a="#dde2ea", checker_b="#eef1f5",
     glass="rgba(255,255,255,.86)",
     # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
     # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).

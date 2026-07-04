@@ -234,6 +234,28 @@ def test_interactive_style_builders_carry_focus_state():
     assert ":focus" in theme.CROP_CANCEL_STYLE
 
 
+def test_make_checker_brush_uses_palette_checker_tokens(qapp):
+    """Issue #478: das Canvas-Schachbrett zieht seine Farben aus der Palette."""
+    from PyQt6.QtGui import QColor
+
+    from bgremover.image_utils import make_checker_brush
+    from bgremover.theme import DARK, LIGHT
+
+    for p in (DARK, LIGHT):
+        img = make_checker_brush(p, size=4).texture().toImage()
+        # Aufbau laut make_checker_brush: Basisfüllung checker_a, zwei
+        # gegenüberliegende size×size-Quadrate (oben-links/unten-rechts) in
+        # checker_b übermalt – ein klassisches 2×2-Schachbrettmuster.
+        assert img.pixelColor(0, 0) == QColor(p.checker_b)
+        assert img.pixelColor(6, 0) == QColor(p.checker_a)
+        assert img.pixelColor(0, 6) == QColor(p.checker_a)
+        assert img.pixelColor(6, 6) == QColor(p.checker_b)
+    # Dunkles und helles Schema unterscheiden sich sichtbar.
+    dark_img = make_checker_brush(DARK, size=4).texture().toImage()
+    light_img = make_checker_brush(LIGHT, size=4).texture().toImage()
+    assert dark_img.pixelColor(0, 0) != light_img.pixelColor(0, 0)
+
+
 def test_stepper_apply_palette_restyles(qapp):
     from bgremover.stepper import Stepper
     from bgremover.theme import DARK, LIGHT

@@ -359,6 +359,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   por completitud y sin consumidor actual, otros dos tokens declarados pero
   sin uso en el prototipo (`label`, `good_line`); no existe una contraparte
   `bad_line` en el prototipo, por lo que no se inventó (#479).
+- **El patrón de ajedrez de transparencia del lienzo ahora sigue el tema
+  activo.** El patrón de ajedrez tras las áreas transparentes de la imagen
+  estaba fijado en gris claro (`QColor(170,170,170)`/`(210,210,210)`) y
+  parecía una mancha brillante en medio del lienzo en el modo oscuro.
+  `checker_a`/`checker_b` lo corrigen mediante la paleta (oscuro:
+  `#2c313a`/`#353b45`, claro: `#dde2ea`/`#eef1f5`); `make_checker_brush`
+  ahora recibe la paleta activa, y `ImageCanvas.apply_palette` actualiza el
+  patrón en vivo al cambiar de tema, sin reiniciar la aplicación (#478).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

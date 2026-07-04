@@ -321,6 +321,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `good_line`) were added to `Palette` for completeness, without a current
   consumer; a `bad_line` counterpart doesn't exist in the prototype and was
   therefore not invented (#479).
+- **Canvas transparency checkerboard now follows the active theme.** The
+  checkerboard pattern behind transparent image areas was hardcoded to
+  light gray (`QColor(170,170,170)`/`(210,210,210)`) and looked like a
+  bright patch in the middle of the canvas in Dark Mode. `checker_a`/
+  `checker_b` fix this via the palette (dark: `#2c313a`/`#353b45`, light:
+  `#dde2ea`/`#eef1f5`); `make_checker_brush` now takes the active palette,
+  and `ImageCanvas.apply_palette` refreshes the pattern live when the theme
+  is switched — no app restart needed (#478).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

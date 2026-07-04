@@ -87,6 +87,7 @@ from bgremover.project_model import (
 from bgremover.relief_preview import compose_over as compose_relief
 from bgremover.relief_preview import relief_shading
 from bgremover.status_messages import StatusMessages as SM
+from bgremover.theme import Palette, active_palette
 from bgremover.units import UnitsError
 from bgremover.zoom_control import ZoomControl
 
@@ -171,7 +172,7 @@ class ImageCanvas(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
-        self.setBackgroundBrush(make_checker_brush())
+        self.setBackgroundBrush(make_checker_brush(active_palette()))
         self.setAcceptDrops(True)
         # viewport() liefert laut Stub Optional, ist hier nach Setup aber
         # garantiert vorhanden – einmalig narrowen und cachen, damit
@@ -420,6 +421,10 @@ class ImageCanvas(QGraphicsView):
     def fit_to_view(self) -> None:
         """Bild in die Ansicht einpassen (ohne internen Item-Zugriff von aussen)."""
         self._viewport.fit_to_view()
+
+    def apply_palette(self, p: Palette) -> None:
+        """Erneuert das Transparenz-Schachbrett für ein Schema-Umschalten (#478)."""
+        self.setBackgroundBrush(make_checker_brush(p))
 
     # ── Laden ────────────────────────────────────────────────
 

@@ -364,6 +364,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `Palette` par souci d'exhaustivité, sans consommateur actuel ; une
   contrepartie `bad_line` n'existe pas dans le prototype et n'a donc pas été
   inventée (#479).
+- **Le damier de transparence du canevas suit désormais le thème actif.** Le
+  motif en damier derrière les zones transparentes de l'image était fixé en
+  gris clair (`QColor(170,170,170)`/`(210,210,210)`) et ressemblait à une
+  tache lumineuse au milieu du canevas en mode sombre. `checker_a`/
+  `checker_b` corrigent cela via la palette (sombre : `#2c313a`/`#353b45`,
+  clair : `#dde2ea`/`#eef1f5`) ; `make_checker_brush` reçoit désormais la
+  palette active, et `ImageCanvas.apply_palette` actualise le motif en
+  direct lors du changement de thème, sans redémarrage de l'application
+  (#478).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`
