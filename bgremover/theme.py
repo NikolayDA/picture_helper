@@ -31,13 +31,23 @@ class Palette:
     toolbar: str
     # Linien / Flächen
     border: str
+    border_2: str
     divider: str
     hairline: str
     surface: str
     surface_hover: str
     hover: str
+    # Rezessierte/eingelassene Fläche (Prototyp ``--inset``, z. B. Container
+    # des Vorschau-Segmented-Controls) – nicht zu verwechseln mit ``surface``
+    # (erhabene Bedienflächen wie Buttons/Inputs).
+    inset: str
     card_bg: str
     card_border: str
+    # Canvas-Transparenz-Schachbrett (Prototyp ``--checker-a``/``--checker-b``,
+    # #478) – schemaeigen statt fest kodiertem Grau, damit es sich im Dark
+    # Mode nicht als heller Fleck von der restlichen UI absetzt.
+    checker_a: str
+    checker_b: str
     # Halbtransparente „Glas"-Fläche für schwebende Canvas-Overlays (#464).
     glass: str
     # Text. Vertrag (#441): ``text``/``text2``/``text3`` sind für **aktiven** Text
@@ -47,6 +57,11 @@ class Palette:
     text2: str
     text3: str
     muted: str
+    # Gedämpfte Feldbeschriftung (Prototyp ``--label``, heller als ``text3``,
+    # dunkler als ``text``). Im Prototyp selbst aktuell ungenutzt – die dortige
+    # ``.lab``-Feldbeschriftungsklasse greift auf ``text2``, nicht ``label``.
+    # Nur der Vollständigkeit halber übernommen (#479); kein App-Verbraucher.
+    label: str
     # Akzent
     accent: str
     accent2: str
@@ -58,6 +73,11 @@ class Palette:
     # Semantik
     good: str
     good_soft: str
+    # Rand-Ton zu good/good_soft (Prototyp ``--good-line``, analog zu
+    # accent_line). Im Prototyp nur am Canvas-Erfolgs-Badge nach der
+    # KI-Freistellung genutzt („✓ Hintergrund entfernt"), das es in der App
+    # noch nicht gibt – Token ohne Verbraucher übernommen (#479).
+    good_line: str
     bad: str
     bad_soft: str
     # Schema-Kennung
@@ -65,17 +85,38 @@ class Palette:
 
 
 DARK = Palette(
-    bg="#1f242b", panel="#1a1a1a", inspector="#1a1a1a", tabbar="#141414",
-    stepper="#161a20", nav="#20252e", status="#1a1a1a", toolbar="#242424",
-    border="#3a3a3a", divider="#2a2a2a", hairline="#333333",
-    surface="#2a2a2a", surface_hover="#363636", hover="rgba(255,255,255,.06)",
-    card_bg="#22262d", card_border="rgba(255,255,255,.07)",
+    # Hintergrundflächen 1:1 aus dem Prototyp (design/Prototyp A - Geführter
+    # Workflow.dc.html, dunkler :root-Block) übernommen (#475) – ein kühler
+    # Blaugrau-Ton statt des früheren neutralen Nah-Schwarz. ``status`` deckt
+    # bewusst nur die Statusleiste ab; die Menüleiste teilt sich stattdessen
+    # (wie im Prototyp: ``--menubar`` == ``--rail``) den ``toolbar``-Ton
+    # (``menu_style``). Eine reine Fenster-Titelleiste gibt es im Qt-Fenster
+    # (natives Chrome) nicht.
+    bg="#1f242b", panel="#272d36", inspector="#272d36", tabbar="#141414",
+    stepper="#1c2128", nav="#222831", status="#1a1e24", toolbar="#242a32",
+    # border/hairline als teiltransparente Weiß-Overlays statt opaker
+    # Grautöne (#476) – setzen sich je nach Untergrund unterschiedlich ab,
+    # wie im Prototyp. border_2 ist der sekundäre Rand-Ton (u. a. neutrale
+    # Sekundärbuttons, ``panel_btn_style`` – Prototyp-Klasse ``.bs``).
+    border="rgba(255,255,255,.06)", border_2="rgba(255,255,255,.12)",
+    divider="#2a2a2a", hairline="rgba(255,255,255,.1)",
+    surface="#30373f", surface_hover="#3a424c", hover="rgba(255,255,255,.05)",
+    inset="#1c2128",
+    # card_bg bewusst dunkler als der Prototyp-Wert #2e353f: erst damit hält
+    # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
+    # ein – der Prototyp selbst ist kein kontrastgeprüftes Artefakt.
+    card_bg="#262b33", card_border="rgba(255,255,255,.07)",
+    checker_a="#2c313a", checker_b="#353b45",
     glass="rgba(26,30,37,.82)",
-    text="#e0e0e0", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
-    accent="#4a90d9", accent2="#3f7fce", accent_soft="rgba(74,144,217,.16)",
-    accent_line="rgba(74,144,217,.42)", accent_text="#9fc0ff",
-    accent_shadow="rgba(74,144,217,.35)", on_accent="#ffffff",
-    good="#7fe0aa", good_soft="rgba(80,200,140,.16)",
+    text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
+    label="#aeb6c2",
+    # Akzent 1:1 aus dem Prototyp (#477): ein helleres, periwinkle-artiges
+    # Blau statt des dumpferen früheren Tons – bildet Primärbutton-Verlauf,
+    # aktive Werkzeuge/Stepper-Kreis, Slider-Griff und Fokusringe.
+    accent="#5b8cff", accent2="#4f81f5", accent_soft="rgba(91,140,255,.16)",
+    accent_line="rgba(91,140,255,.3)", accent_text="#9fc0ff",
+    accent_shadow="rgba(79,129,245,.35)", on_accent="#ffffff",
+    good="#7fe0aa", good_soft="rgba(80,200,140,.16)", good_line="rgba(80,200,140,.4)",
     bad="#f29aa6", bad_soft="rgba(229,104,122,.16)",
     is_dark=True,
 )
@@ -83,17 +124,23 @@ DARK = Palette(
 LIGHT = Palette(
     bg="#e9edf3", panel="#f2f4f8", inspector="#f5f7fb", tabbar="#e6eaf1",
     stepper="#eef1f6", nav="#eaeef3", status="#dee3eb", toolbar="#e6eaf1",
-    border="#c9d2df", divider="#dbe1ea", hairline="#d4dae4",
+    # border_2 (#476) ist bereits der Prototyp-Wert; border/hairline selbst
+    # bleiben im hellen Schema unverändert (Nicht-Ziel von #475/#476, siehe #480).
+    border="#c9d2df", border_2="rgba(22,32,52,.16)",
+    divider="#dbe1ea", hairline="#d4dae4",
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
+    inset="#e3e8ef",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
+    checker_a="#dde2ea", checker_b="#eef1f5",
     glass="rgba(255,255,255,.86)",
     # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
     # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).
     text="#1b2230", text2="#3a4351", text3="#59626f", muted="#8b95a3",
+    label="#7b8492",
     accent="#3a6fd0", accent2="#2f5fcf", accent_soft="rgba(58,111,208,.14)",
     accent_line="rgba(58,111,208,.34)", accent_text="#2f5fcf",
     accent_shadow="rgba(58,111,208,.26)", on_accent="#ffffff",
-    good="#1f9d63", good_soft="rgba(31,157,99,.14)",
+    good="#1f9d63", good_soft="rgba(31,157,99,.14)", good_line="rgba(31,157,99,.4)",
     bad="#d65060", bad_soft="rgba(214,80,96,.13)",
     is_dark=False,
 )
@@ -207,10 +254,10 @@ def scroll_style(p: Palette) -> str:
 
 
 def panel_btn_style(p: Palette) -> str:
-    """Sekundärbutton der Inspector-Karten (neutrale Fläche, §5.3)."""
+    """Sekundärbutton der Inspector-Karten (neutrale Fläche, §5.3/§5.6 – Prototyp-Klasse ``.bs``)."""
     return f"""
     QPushButton {{
-        background: {p.surface}; color: {p.text2}; border: 1px solid {p.border};
+        background: {p.surface}; color: {p.text2}; border: 1px solid {p.border_2};
         border-radius: 8px; padding: 0 10px; font-size: 12px; min-height: 34px;
     }}
     QPushButton:hover {{ background: {p.surface_hover}; }}
@@ -270,8 +317,12 @@ def toolbar_frame_style(p: Palette) -> str:
 
 
 def menu_style(p: Palette) -> str:
+    """``QMenuBar`` teilt sich den ``toolbar``-Ton mit der Werkzeugleiste
+    (Prototyp: ``--menubar`` == ``--rail`` in beiden Schemata) – nicht
+    ``status``, das der eigenständigen, dunkleren Statusleiste vorbehalten bleibt.
+    """
     return f"""
-    QMenuBar {{ background: {p.status}; color: {p.text2}; }}
+    QMenuBar {{ background: {p.toolbar}; color: {p.text2}; }}
     QMenuBar::item:selected {{ background: {p.surface_hover}; }}
     QMenu {{ background: {p.surface}; color: {p.text2}; border: 1px solid {p.border}; }}
     QMenu::item:selected {{ background: {p.accent}; color: {p.on_accent}; }}

@@ -287,6 +287,62 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Dark theme background colors aligned with the prototype.** Dark Mode
+  background surfaces (`theme.DARK`: inspector panel, stepper bar, toolbar,
+  navigation footer, status bar, controls and cards) now use the cool
+  blue-gray tone of the approved prototype
+  (`design/Prototyp A - Geführter Workflow.dc.html`) instead of a neutral
+  near-black. `card_bg` is deliberately kept one step darker than the
+  prototype value so `text3` on cards (and on inactive layer names in the
+  layer panel) still meets the WCAG AA contrast contract of ≥ 4.5:1 (#441);
+  `docs/REDESIGN_SPEC.md` §2 documents the new values and this one
+  intentional deviation (#475).
+- **Dark theme borders are soft overlays instead of hard gray tones.**
+  `border` and `hairline` are now translucent white overlays like in the
+  prototype (they settle differently depending on the surface underneath
+  instead of looking equally hard everywhere); a new `border_2` token covers
+  the secondary border tone of neutral secondary buttons (crop format, save
+  format, etc., `panel_btn_style`). The menu bar now shares the `toolbar`
+  tone with the toolbar instead of the status bar, matching the prototype
+  where the menu bar and toolbar carry the same color (#476).
+- **Dark theme accent blue aligned with the prototype.** `accent`/`accent2`
+  (and the derived `accent_soft`/`accent_line`/`accent_shadow` surfaces) are
+  now the prototype's brighter, periwinkle-ish blue instead of a duller tone
+  — visible in the primary button gradient, the "Next" button, active tools,
+  the active stepper circle, and the slider handle. `accent_text` already
+  matched the prototype value exactly; `accent_shadow` remains a plain color
+  value without a glow effect (Qt QSS has no `box-shadow`, #477).
+- **Preview segmented control (step 6) now uses the correct prototype
+  surface.** The "Color/Relief/Height/Gloss" container (`_ModeSegments`) was
+  incorrectly backed by the `tabbar` tone; checking the prototype's actual
+  CSS rules (not just the `:root` variables) showed the recessed `--inset`
+  surface was the correct value — added as a new `inset` token and wired up.
+  Two more tokens declared but unused in the prototype (`label`,
+  `good_line`) were added to `Palette` for completeness, without a current
+  consumer; a `bad_line` counterpart doesn't exist in the prototype and was
+  therefore not invented (#479).
+- **Canvas transparency checkerboard now follows the active theme.** The
+  checkerboard pattern behind transparent image areas was hardcoded to
+  light gray (`QColor(170,170,170)`/`(210,210,210)`) and looked like a
+  bright patch in the middle of the canvas in Dark Mode. `checker_a`/
+  `checker_b` fix this via the palette (dark: `#2c313a`/`#353b45`, light:
+  `#dde2ea`/`#eef1f5`); `make_checker_brush` now takes the active palette,
+  and `ImageCanvas.apply_palette` refreshes the pattern live when the theme
+  is switched — no app restart needed (#478).
+- **Fixed REDESIGN_SPEC.md color tables + added a drift regression test.**
+  The docs claimed to be copied 1:1 from the prototype, but by their own
+  provenance note had never actually been checked against the real color
+  values — a line-by-line comparison uncovered documentation drift of its
+  own, independent of `theme.py` (missing `checker_a`/`checker_b`, `inset`,
+  `label`, `good_line`, `border_2`; the light scheme was only a prose
+  excerpt instead of a table). §2/§3 are now complete tables that match
+  `theme.DARK`/`theme.LIGHT` exactly; remaining light-scheme drift from the
+  prototype that's deliberately out of scope for this epic is now spelled
+  out instead of silently omitted. Two new tests in `tests/test_theme.py`
+  guard this permanently: one compares the spec tables against the
+  palettes, a second additionally checks `theme.DARK` directly against the
+  CSS variables embedded in the prototype bundle — both fail the moment
+  code and documentation drift apart again (#480, closes epic #474).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

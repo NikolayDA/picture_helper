@@ -8,6 +8,7 @@ from PIL import Image
 from PyQt6.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
 
 from bgremover.constants import _OVERLAY_COLOR
+from bgremover.theme import Palette
 
 
 def pil_to_qpixmap(img: Image.Image) -> QPixmap:
@@ -127,12 +128,12 @@ def mask_to_overlay(mask: np.ndarray, w: int, h: int) -> QPixmap:
     return QPixmap.fromImage(qi.copy())
 
 
-def make_checker_brush(size: int = 14) -> QBrush:
-    """Schachbrettmuster für transparente Bereiche."""
+def make_checker_brush(palette: Palette, size: int = 14) -> QBrush:
+    """Schachbrettmuster für transparente Bereiche (#478: schematreu über ``checker_a``/``checker_b``)."""
     px = QPixmap(size * 2, size * 2)
-    px.fill(QColor(170, 170, 170))
+    px.fill(QColor(palette.checker_a))
     p = QPainter(px)
-    p.fillRect(0, 0, size, size, QColor(210, 210, 210))
-    p.fillRect(size, size, size, size, QColor(210, 210, 210))
+    p.fillRect(0, 0, size, size, QColor(palette.checker_b))
+    p.fillRect(size, size, size, size, QColor(palette.checker_b))
     p.end()
     return QBrush(px)

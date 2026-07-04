@@ -322,6 +322,68 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **Colores de fondo del modo oscuro alineados con el prototipo.** Las
+  superficies de fondo del modo oscuro (`theme.DARK`: panel inspector, barra
+  de pasos, barra de herramientas, pie de navegación, barra de estado,
+  controles y tarjetas) usan ahora el tono gris azulado frío del prototipo
+  aprobado (`design/Prototyp A - Geführter Workflow.dc.html`) en lugar de un
+  negro casi neutro. `card_bg` se mantiene deliberadamente un paso más oscuro
+  que el valor del prototipo para que `text3` en las tarjetas (y en los
+  nombres de capas inactivas del panel de capas) siga cumpliendo el contrato
+  de contraste WCAG AA de ≥ 4.5:1 (#441); `docs/REDESIGN_SPEC.md` §2 documenta
+  los nuevos valores y esta única desviación intencional (#475).
+- **Los bordes del modo oscuro son superposiciones suaves en lugar de tonos
+  grises duros.** `border` y `hairline` son ahora superposiciones blancas
+  translúcidas como en el prototipo (se asientan de forma distinta según la
+  superficie subyacente en lugar de verse igual de duras en todas partes); un
+  nuevo token `border_2` cubre el tono de borde secundario de los botones
+  secundarios neutros (formato de recorte, formato de guardado, etc.,
+  `panel_btn_style`). La barra de menú comparte ahora el tono `toolbar` con
+  la barra de herramientas en lugar de la barra de estado, tal como en el
+  prototipo, donde ambas comparten el mismo color (#476).
+- **Azul de acento del modo oscuro alineado con el prototipo.**
+  `accent`/`accent2` (y las superficies derivadas `accent_soft`/
+  `accent_line`/`accent_shadow`) son ahora el azul más claro y periwinkle
+  del prototipo en lugar de un tono más apagado — visible en el degradado
+  del botón primario, el botón "Siguiente", las herramientas activas, el
+  círculo activo del stepper y el mando del control deslizante.
+  `accent_text` ya coincidía exactamente con el valor del prototipo;
+  `accent_shadow` sigue siendo un valor de color sin efecto de resplandor
+  (Qt QSS no admite `box-shadow`, #477).
+- **El control segmentado de vista previa (paso 6) usa ahora la superficie
+  correcta del prototipo.** El contenedor de "Color/Relieve/Altura/Brillo"
+  (`_ModeSegments`) usaba incorrectamente el tono `tabbar`; al revisar las
+  reglas CSS reales del prototipo (no solo las variables `:root`) se
+  determinó que la superficie recesada `--inset` era el valor correcto —
+  añadida como nuevo token `inset` y conectada. Se añadieron a `Palette`,
+  por completitud y sin consumidor actual, otros dos tokens declarados pero
+  sin uso en el prototipo (`label`, `good_line`); no existe una contraparte
+  `bad_line` en el prototipo, por lo que no se inventó (#479).
+- **El patrón de ajedrez de transparencia del lienzo ahora sigue el tema
+  activo.** El patrón de ajedrez tras las áreas transparentes de la imagen
+  estaba fijado en gris claro (`QColor(170,170,170)`/`(210,210,210)`) y
+  parecía una mancha brillante en medio del lienzo en el modo oscuro.
+  `checker_a`/`checker_b` lo corrigen mediante la paleta (oscuro:
+  `#2c313a`/`#353b45`, claro: `#dde2ea`/`#eef1f5`); `make_checker_brush`
+  ahora recibe la paleta activa, y `ImageCanvas.apply_palette` actualiza el
+  patrón en vivo al cambiar de tema, sin reiniciar la aplicación (#478).
+- **Corregidas las tablas de color de REDESIGN_SPEC.md + prueba de
+  regresión de desviación.** La documentación afirmaba estar copiada 1:1
+  del prototipo, pero según su propia nota de procedencia nunca se había
+  verificado realmente contra los valores de color reales — una comparación
+  línea por línea reveló una desviación propia de la documentación,
+  independiente de `theme.py` (faltaban `checker_a`/`checker_b`, `inset`,
+  `label`, `good_line`, `border_2`; el esquema claro era solo un extracto en
+  prosa en lugar de una tabla). §2/§3 son ahora tablas completas que
+  coinciden exactamente con `theme.DARK`/`theme.LIGHT`; la desviación
+  restante del esquema claro respecto al prototipo, deliberadamente fuera
+  del alcance de este épico, ahora se documenta en lugar de omitirse en
+  silencio. Dos nuevas pruebas en `tests/test_theme.py` lo protegen de
+  forma permanente: una compara las tablas de la spec con las paletas, y
+  una segunda comprueba además `theme.DARK` directamente contra las
+  variables CSS incrustadas en el paquete del prototipo — ambas fallan en
+  cuanto código y documentación vuelven a divergir (#480, cierra el épico
+  #474).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

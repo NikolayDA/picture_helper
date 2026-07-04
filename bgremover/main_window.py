@@ -652,6 +652,7 @@ class MainWindow(QMainWindow):
             app.setStyleSheet(build_app_stylesheet(pal))
         self._stepper.apply_palette(pal)
         self._toolbar.apply_palette(pal)
+        self._canvas.apply_palette(pal)
         self._canvas.zoom_control.apply_palette(pal)
         self._sb.setStyleSheet(status_bar_style(pal))
         menu_bar = self.menuBar()

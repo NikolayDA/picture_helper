@@ -300,6 +300,65 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Dunkles Farbschema an den Prototyp angeglichen.** Die Hintergrundflächen
+  im Dark Mode (`theme.DARK`: Inspector-Panel, Schrittleiste, Werkzeugleiste,
+  Navigations-Fußzeile, Statusleiste, Bedienflächen und Karten) nutzen jetzt
+  den kühlen Blaugrau-Ton des abgenommenen Prototyps
+  (`design/Prototyp A - Geführter Workflow.dc.html`) statt eines neutralen
+  Nah-Schwarz. `card_bg` bleibt dabei bewusst einen Schritt dunkler als der
+  Prototyp-Wert, damit `text3` auf Karten (und auf inaktiven Ebenennamen im
+  Ebenen-Panel) weiterhin den WCAG-AA-Kontrastvertrag von ≥ 4.5:1 einhält
+  (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die neuen Werte und diese
+  eine bewusste Abweichung (#475).
+- **Ränder im Dark Mode als weiche Overlays statt harter Grautöne.** `border`
+  und `hairline` sind jetzt teiltransparente Weiß-Overlays wie im Prototyp
+  (setzen sich je nach Untergrund unterschiedlich ab, statt auf jeder Fläche
+  gleich hart zu wirken); ein neues `border_2`-Token deckt den sekundären
+  Rand-Ton neutraler Sekundärbuttons ab (Zuschnitt-Format, Speicherformat
+  u. a., `panel_btn_style`). Die Menüleiste teilt sich dabei den
+  `toolbar`-Ton mit der Werkzeugleiste statt der Statusleiste – wie im
+  Prototyp, wo Menü- und Werkzeugleiste denselben Farbwert tragen (#476).
+- **Akzentblau im Dark Mode an den Prototyp angeglichen.** `accent`/`accent2`
+  (und die abgeleiteten `accent_soft`/`accent_line`/`accent_shadow`-Flächen)
+  sind jetzt das hellere, periwinkle-artige Blau des Prototyps statt eines
+  dumpferen Tons – sichtbar am Primärbutton-Verlauf, dem „Weiter“-Button,
+  aktiven Werkzeugen, dem aktiven Stepper-Kreis und dem Slider-Griff.
+  `accent_text` traf bereits 1:1 den Prototyp-Wert; `accent_shadow` bleibt
+  ein reiner Farbwert ohne Glow-Effekt (Qt-QSS kennt kein `box-shadow`,
+  #477).
+- **Vorschau-Segmented-Control (Schritt 6) nutzt jetzt die richtige
+  Prototyp-Fläche.** Der Container von „Farbe/Relief/Höhe/Gloss“
+  (`_ModeSegments`) war fälschlich mit dem `tabbar`-Ton hinterlegt; ein
+  Abgleich mit den tatsächlichen CSS-Regeln des Prototyps (nicht nur den
+  `:root`-Variablen) ergab die rezessierte `--inset`-Fläche als korrekten
+  Wert – neu als `inset`-Token ergänzt und verdrahtet. Zwei weitere im
+  Prototyp deklarierte, aber dort ungenutzte Token (`label`, `good_line`)
+  sind der Vollständigkeit halber in `Palette` übernommen, ohne aktuellen
+  Verbraucher; ein `bad_line`-Gegenstück existiert im Prototyp nicht und
+  wurde daher nicht erfunden (#479).
+- **Canvas-Transparenz-Schachbrett folgt jetzt dem aktiven Theme.** Das
+  Schachbrettmuster hinter transparenten Bildbereichen war fest auf
+  Hellgrau kodiert (`QColor(170,170,170)`/`(210,210,210)`) und wirkte im
+  Dark Mode wie ein heller Fleck mitten in der Leinwand. `checker_a`/
+  `checker_b` lösen das über die Palette (dunkel: `#2c313a`/`#353b45`,
+  hell: `#dde2ea`/`#eef1f5`); `make_checker_brush` nimmt jetzt die aktive
+  Palette entgegen, und `ImageCanvas.apply_palette` erneuert das Muster
+  beim Theme-Umschalten live – ohne Neustart der App (#478).
+- **REDESIGN_SPEC.md-Farbtabellen korrigiert + Drift-Regressionstest.** Die
+  Dokumentation beanspruchte, 1:1 aus dem Prototyp übernommen zu sein, war
+  laut eigenem Herkunftshinweis aber nie gegen die tatsächlichen Farbwerte
+  geprüft worden – ein Zeile-für-Zeile-Abgleich deckte eigenen Doku-Drift
+  auf, unabhängig von `theme.py` (u. a. fehlende `checker_a`/`checker_b`,
+  `inset`, `label`, `good_line`, `border_2`; ein `helles Schema` nur als
+  Prosa-Auszug statt Tabelle). §2/§3 sind jetzt vollständige Tabellen, die
+  exakt `theme.DARK`/`theme.LIGHT` entsprechen; verbleibender, bewusst
+  außerhalb dieses Epics belassener Drift des hellen Schemas zum Prototyp
+  ist explizit dokumentiert statt stillschweigend verschwiegen. Zwei neue
+  Tests in `tests/test_theme.py` sichern das dauerhaft ab: einer vergleicht
+  die Spec-Tabellen gegen die Paletten, ein zweiter zusätzlich `theme.DARK`
+  direkt gegen die im Prototyp-Bundle eingebetteten CSS-Variablen – beide
+  schlagen fehl, sobald Code und Dokumentation wieder auseinanderlaufen
+  (#480, schließt Epic #474 ab).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**

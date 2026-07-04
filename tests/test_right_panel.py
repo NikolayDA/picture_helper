@@ -184,7 +184,10 @@ def test_open_step_recent_card_delegates(qapp, tmp_path):
 
 def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     """Alle Sektionsköpfe nutzen dasselbe Blau; jede Sektion ist eine Karte (#415/#416)."""
-    from bgremover.theme import _Theme
+    # Live-Vertrag gegen die aktuelle Palette prüfen, nicht gegen die
+    # eingefrorene ``_Theme.ACCENT``-Rückwärtskompat-Konstante (#477 hellt
+    # ``DARK.accent`` gegenüber dem alten Snapshot auf).
+    from bgremover.theme import DARK
 
     panel = build_right_panel(
         _actions([]), _noop_layer_actions(), _noop_height_actions())
@@ -200,7 +203,7 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     )
     for lbl in headers:
         style = lbl.styleSheet()
-        assert _Theme.ACCENT in style, style
+        assert DARK.accent in style, style
         for old in removed:
             assert old not in style, f"Alt-Akzent {old} noch vorhanden"
 

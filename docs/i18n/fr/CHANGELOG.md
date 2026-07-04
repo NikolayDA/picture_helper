@@ -325,6 +325,71 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Couleurs de fond du mode sombre alignées sur le prototype.** Les fonds du
+  mode sombre (`theme.DARK` : panneau inspecteur, barre d'étapes, barre
+  d'outils, pied de navigation, barre de statut, contrôles et cartes)
+  utilisent désormais la teinte bleu-gris froide du prototype validé
+  (`design/Prototyp A - Geführter Workflow.dc.html`) au lieu d'un noir quasi
+  neutre. `card_bg` reste volontairement un cran plus sombre que la valeur du
+  prototype afin que `text3` sur les cartes (et sur les noms de calques
+  inactifs du panneau des calques) respecte toujours le contrat de contraste
+  WCAG AA de ≥ 4,5:1 (#441) ; `docs/REDESIGN_SPEC.md` §2 documente les
+  nouvelles valeurs et cette unique déviation intentionnelle (#475).
+- **Les bordures du mode sombre sont des superpositions douces au lieu de
+  tons gris durs.** `border` et `hairline` sont désormais des superpositions
+  blanches translucides comme dans le prototype (elles se démarquent
+  différemment selon la surface sous-jacente au lieu de paraître uniformément
+  dures) ; un nouveau token `border_2` couvre la teinte de bordure secondaire
+  des boutons secondaires neutres (format de recadrage, format
+  d'enregistrement, etc., `panel_btn_style`). La barre de menu partage
+  désormais la teinte `toolbar` avec la barre d'outils au lieu de la barre de
+  statut, comme dans le prototype où les deux partagent la même couleur
+  (#476).
+- **Bleu d'accent du mode sombre aligné sur le prototype.**
+  `accent`/`accent2` (ainsi que les surfaces dérivées `accent_soft`/
+  `accent_line`/`accent_shadow`) sont désormais le bleu plus clair et
+  bleu-lavande du prototype au lieu d'une teinte plus terne — visible dans
+  le dégradé du bouton primaire, le bouton « Suivant », les outils actifs,
+  le cercle actif du stepper et le curseur du slider. `accent_text`
+  correspondait déjà exactement à la valeur du prototype ; `accent_shadow`
+  reste une simple valeur de couleur sans effet de lueur (Qt QSS ne connaît
+  pas `box-shadow`, #477).
+- **Le contrôle segmenté d'aperçu (étape 6) utilise désormais la bonne
+  surface du prototype.** Le conteneur « Couleur/Relief/Hauteur/Gloss »
+  (`_ModeSegments`) utilisait à tort la teinte `tabbar` ; en vérifiant les
+  règles CSS réelles du prototype (pas seulement les variables `:root`), la
+  surface en retrait `--inset` s'est révélée être la bonne valeur — ajoutée
+  comme nouveau token `inset` et connectée. Deux autres tokens déclarés mais
+  inutilisés dans le prototype (`label`, `good_line`) ont été ajoutés à
+  `Palette` par souci d'exhaustivité, sans consommateur actuel ; une
+  contrepartie `bad_line` n'existe pas dans le prototype et n'a donc pas été
+  inventée (#479).
+- **Le damier de transparence du canevas suit désormais le thème actif.** Le
+  motif en damier derrière les zones transparentes de l'image était fixé en
+  gris clair (`QColor(170,170,170)`/`(210,210,210)`) et ressemblait à une
+  tache lumineuse au milieu du canevas en mode sombre. `checker_a`/
+  `checker_b` corrigent cela via la palette (sombre : `#2c313a`/`#353b45`,
+  clair : `#dde2ea`/`#eef1f5`) ; `make_checker_brush` reçoit désormais la
+  palette active, et `ImageCanvas.apply_palette` actualise le motif en
+  direct lors du changement de thème, sans redémarrage de l'application
+  (#478).
+- **Correction des tableaux de couleurs de REDESIGN_SPEC.md + ajout d'un
+  test de régression de dérive.** La documentation prétendait être copiée
+  1:1 depuis le prototype, mais selon sa propre note de provenance, elle
+  n'avait jamais été réellement vérifiée par rapport aux valeurs de couleur
+  réelles — une comparaison ligne par ligne a révélé une dérive propre à la
+  documentation, indépendante de `theme.py` (`checker_a`/`checker_b`,
+  `inset`, `label`, `good_line`, `border_2` manquants ; le schéma clair
+  n'était qu'un extrait en prose au lieu d'un tableau). Les §2/§3 sont
+  désormais des tableaux complets qui correspondent exactement à
+  `theme.DARK`/`theme.LIGHT` ; la dérive restante du schéma clair par
+  rapport au prototype, délibérément hors périmètre de cet épique, est
+  maintenant explicitée au lieu d'être passée sous silence. Deux nouveaux
+  tests dans `tests/test_theme.py` protègent cela durablement : l'un compare
+  les tableaux de la spec aux palettes, un second vérifie en plus
+  `theme.DARK` directement par rapport aux variables CSS intégrées dans le
+  bundle du prototype — les deux échouent dès que le code et la
+  documentation redivergent (#480, clôture l'épique #474).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`

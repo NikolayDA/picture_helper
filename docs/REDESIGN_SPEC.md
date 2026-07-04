@@ -45,39 +45,165 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | Token | Wert | Rolle |
 |---|---|---|
 | `bg` | `#1f242b` | Leinwand-Umfeld |
-| `panel` / `inspector` | `#1a1a1a` | Panelflächen |
+| `panel` / `inspector` | `#272d36` | Panelflächen |
 | `tabbar` | `#141414` | (Alt-)Tab-Leiste |
-| `stepper` | `#161a20` | Schrittleiste |
-| `nav` | `#20252e` | Navigations-Fußzeile |
-| `status` | `#1a1a1a` | Status-/Menüleiste |
-| `toolbar` | `#242424` | Werkzeugleiste |
-| `border` / `divider` / `hairline` | `#3a3a3a` / `#2a2a2a` / `#333333` | Linien |
-| `surface` / `surface_hover` | `#2a2a2a` / `#363636` | Bedienflächen |
-| `hover` | `rgba(255,255,255,.06)` | Hover-Schleier |
-| `card_bg` / `card_border` | `#22262d` / `rgba(255,255,255,.07)` | Karten |
+| `stepper` | `#1c2128` | Schrittleiste |
+| `nav` | `#222831` | Navigations-Fußzeile |
+| `status` | `#1a1e24` | Statusleiste |
+| `toolbar` | `#242a32` | Werkzeugleiste |
+| `border` / `border_2` | `rgba(255,255,255,.06)` / `rgba(255,255,255,.12)` | Ränder (Standard/sekundär) |
+| `divider` / `hairline` | `#2a2a2a` / `rgba(255,255,255,.1)` | Trennlinien |
+| `surface` / `surface_hover` | `#30373f` / `#3a424c` | Bedienflächen |
+| `hover` | `rgba(255,255,255,.05)` | Hover-Schleier |
+| `inset` | `#1c2128` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
+| `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
-| `text` / `text2` / `text3` | `#e0e0e0` / `#cdd4de` / `#8b94a2` | aktiver Text |
+| `checker_a` / `checker_b` | `#2c313a` / `#353b45` | Canvas-Transparenz-Schachbrett |
+| `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
-| `accent` / `accent2` | `#4a90d9` / `#3f7fce` | Blau (Aktion) |
-| `accent_soft` / `accent_line` | `rgba(74,144,217,.16)` / `rgba(74,144,217,.42)` | Akzentflächen/-linien |
+| `label` | `#aeb6c2` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe unten) |
+| `accent` / `accent2` | `#5b8cff` / `#4f81f5` | Blau (Aktion) |
+| `accent_soft` / `accent_line` | `rgba(91,140,255,.16)` / `rgba(91,140,255,.3)` | Akzentflächen/-linien |
 | `accent_text` / `on_accent` | `#9fc0ff` / `#ffffff` | Text auf/zu Akzent |
+| `accent_shadow` | `rgba(79,129,245,.35)` | Glow-Farbwert (aktuell ungenutzt, §5.6-Prototyp-Effekt) |
 | `good` / `good_soft` | `#7fe0aa` / `rgba(80,200,140,.16)` | positiv |
+| `good_line` | `rgba(80,200,140,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe unten) |
 | `bad` / `bad_soft` | `#f29aa6` / `rgba(229,104,122,.16)` | negativ |
 
 **Token-Vertrag:** `text`/`text2`/`text3` halten auf ihren Flächen ≥ 4.5:1
 (WCAG AA); `muted` ist ausschließlich für Disabled-/Placeholder-Zustände
 reserviert (§12).
 
+**Herkunft der Werte (#475/#476/#477).** Die Hintergrund-/Flächen-, Rand- und
+Akzentwerte sind 1:1 aus den CSS-Variablen des dunklen `:root`-Blocks im
+Prototyp-Bundle
+(`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit zwei
+dokumentierten, bewussten Abweichungen:
+
+- **`status` deckt nur die Statusleiste ab.** Die Menüleiste teilt sich
+  stattdessen den `toolbar`-Ton (`menu_style`) – wie im Prototyp, wo
+  `--menubar` und `--rail` denselben Wert tragen. Eine reine
+  Fenster-Titelleiste (Prototyp: `--titlebar`) entfällt ohne Ersatz-Token, da
+  die App das native Fenster-Chrome von macOS/Linux nutzt.
+- **`card_bg` ist dunkler als der Prototyp-Wert `#2e353f`.** Bei der
+  Prototyp-Helligkeit unterschreitet `text3` (`#8b94a2`) auf Karten den
+  WCAG-AA-Kontraktrag von ≥ 4.5:1 (§12, `test_palettes_meet_wcag_contrast_matrix`).
+  `#262b33` ist der hellstmögliche Wert in Richtung des Prototyps, der den
+  Kontrakt noch einhält – der Prototyp selbst ist kein kontrastgeprüftes
+  Artefakt und geht in diesem einen Fall nicht vor Barrierefreiheit. Aus
+  demselben Grund bezieht `LayerPanel` inaktive Zeilennamen (`text3`) auf
+  `card_bg` statt auf das hellere `surface`.
+
+`border`/`hairline` sind bewusst teiltransparente Weiß-Overlays statt
+opaker Grautöne: Sie setzen sich je nach Untergrund (Karte, Panel,
+Glas-Pille …) unterschiedlich ab, statt auf jeder Fläche gleich hart zu
+wirken. `border_2` ist der sekundäre Rand-Ton für neutrale Sekundärbuttons
+(§5.3, Prototyp-Klasse `.bs`) und im hellen Schema bereits 1:1 der
+Prototyp-Wert (`rgba(22,32,52,.16)`); `border`/`hairline` selbst bleiben im
+hellen Schema vorerst unverändert (siehe #480).
+
+`accent`/`accent2`/`accent_soft`/`accent_line`/`accent_shadow` sind ebenfalls
+1:1 der Prototyp-Wert – ein helleres, periwinkle-artiges Blau statt des
+dumpferen früheren Tons. `accent_shadow` wird aktuell an keiner Stelle als
+Schatten/Glow gerendert (Qt-QSS kennt kein `box-shadow`, siehe `stepper.py`
+zur Kompensation über die Kreisgröße, §6); nur der Farbwert ist korrigiert.
+`accent_text` traf bereits 1:1 den Prototyp-Wert.
+
+**Nachgetragene Token (#479).** Der Abgleich mit den tatsächlichen CSS-Regeln
+des Prototyp-Bundles (nicht nur dem `:root`-Variablenblock) ergab drei bis
+dahin in `Palette` fehlende Token:
+
+- **`inset`** hinterlegt im Prototyp den Container des Vorschau-Segmented-
+  Controls (Schritt 6, „Farbe/Relief/Höhe/Gloss“). `right_panel_tabs.py`
+  (`_ModeSegments`/`#modeSegments`) nutzte dafür bislang fälschlich `tabbar`
+  – jetzt auf `inset` korrigiert.
+- **`label`** ist im Prototyp-`:root` deklariert, wird dort aber von keiner
+  CSS-Regel konsumiert (die tatsächliche Feldbeschriftungsklasse `.lab`
+  greift auf `text2`). Der Token ist nur der Vollständigkeit halber
+  übernommen und hat aktuell keinen Verbraucher.
+- **`good_line`** ist im Prototyp ausschließlich der Rand-Ton eines
+  Canvas-Erfolgs-Badges nach der KI-Freistellung („✓ Hintergrund entfernt“),
+  das es als Komponente in der App noch nicht gibt. Der Token ist ohne
+  Verbraucher übernommen; ein `bad_line`-Gegenstück existiert im Prototyp
+  weder als deklarierte Variable noch als Nutzung und wurde daher **nicht**
+  hinzugefügt (kein spekulativer Wert ohne Beleg).
+
+**Canvas-Schachbrett folgt dem Schema (#478).** `checker_a`/`checker_b`
+lösen die zuvor fest kodierten `QColor(170,170,170)`/`QColor(210,210,210)`
+in `image_utils.make_checker_brush` ab, die im Dark Mode wie ein heller
+Fleck mitten in der Leinwand wirkten. `make_checker_brush(palette, size)`
+nimmt jetzt die aktive `Palette` entgegen; `ImageCanvas.apply_palette`
+erneuert `setBackgroundBrush` beim Theme-Umschalten live (verdrahtet in
+`MainWindow._apply_theme`, analog zu Schrittleiste/Werkzeugleiste/
+Zoom-Pille, #428), sodass kein Neustart nötig ist.
+
+**Token ohne Prototyp-`--var`-Pendant (#480).** Vier Token entsprechen
+keiner eigenen CSS-Variable im Prototyp-Bundle: `panel` ist ein reines
+Alias auf `inspector` (im dunklen Schema wertgleich, siehe §3 für die
+helle Abweichung); `tabbar` bedient ausschließlich die (Alt-)Tab-Leiste aus
+der Vor-Redesign-Ära (`TAB_STYLE`/`_Theme`, kein Verbraucher im geführten
+Workflow); `divider` ist eine reine App-Erfindung für dünne Trennflächen
+ohne CSS-Gegenstück; `on_accent` trifft den im Prototyp hart kodierten
+Text-auf-Akzent-Wert (`.seg.on{ color:#fff }`), der dort nie über eine
+eigene `--var` läuft. Alle vier sind bewusste, dokumentierte Ausnahmen —
+kein übersehener Drift.
+
 ## §3 Farb-Tokens — helles Schema
 
-Gleiches Token-Set, Ausprägung `theme.LIGHT` (Auszug; vollständig in
-`theme.py`): `bg #e9edf3`, `panel #f2f4f8`, `inspector #f5f7fb`,
-`stepper #eef1f6`, `nav #eaeef3`, `toolbar #e6eaf1`, `surface #ffffff`,
-`card_bg #ffffff`, `glass rgba(255,255,255,.86)`,
-`text #1b2230`, `text2 #3a4351`, `text3 #59626f`
-(bewusst dunkel genug für ≥ 4.5:1 auf der Statusleiste), `muted #8b95a3`,
-`accent #3a6fd0`, `accent2 #2f5fcf`, `on_accent #ffffff`,
-`good #1f9d63`, `bad #d65060`. Umschaltung: §10.
+Gleiches Token-Set, Ausprägung `theme.LIGHT`:
+
+| Token | Wert | Rolle |
+|---|---|---|
+| `bg` | `#e9edf3` | Leinwand-Umfeld |
+| `panel` / `inspector` | `#f2f4f8` / `#f5f7fb` | Panelflächen |
+| `tabbar` | `#e6eaf1` | (Alt-)Tab-Leiste |
+| `stepper` | `#eef1f6` | Schrittleiste |
+| `nav` | `#eaeef3` | Navigations-Fußzeile |
+| `status` | `#dee3eb` | Statusleiste |
+| `toolbar` | `#e6eaf1` | Werkzeugleiste |
+| `border` / `border_2` | `#c9d2df` / `rgba(22,32,52,.16)` | Ränder (Standard/sekundär) |
+| `divider` / `hairline` | `#dbe1ea` / `#d4dae4` | Trennlinien |
+| `surface` / `surface_hover` | `#ffffff` / `#eef1f6` | Bedienflächen |
+| `hover` | `rgba(22,32,52,.06)` | Hover-Schleier |
+| `inset` | `#e3e8ef` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
+| `card_bg` / `card_border` | `#ffffff` / `rgba(22,32,52,.10)` | Karten |
+| `glass` | `rgba(255,255,255,.86)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
+| `checker_a` / `checker_b` | `#dde2ea` / `#eef1f5` | Canvas-Transparenz-Schachbrett |
+| `text` / `text2` / `text3` | `#1b2230` / `#3a4351` / `#59626f` | aktiver Text |
+| `muted` | `#8b95a3` | **nur** Disabled/Placeholder |
+| `label` | `#7b8492` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe §2) |
+| `accent` / `accent2` | `#3a6fd0` / `#2f5fcf` | Blau (Aktion) |
+| `accent_soft` / `accent_line` | `rgba(58,111,208,.14)` / `rgba(58,111,208,.34)` | Akzentflächen/-linien |
+| `accent_text` / `on_accent` | `#2f5fcf` / `#ffffff` | Text auf/zu Akzent |
+| `accent_shadow` | `rgba(58,111,208,.26)` | Glow-Farbwert (aktuell ungenutzt, siehe §2) |
+| `good` / `good_soft` | `#1f9d63` / `rgba(31,157,99,.14)` | positiv |
+| `good_line` | `rgba(31,157,99,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe §2) |
+| `bad` / `bad_soft` | `#d65060` / `rgba(214,80,96,.13)` | negativ |
+
+Umschaltung: §10.
+
+**Bekannte Restabweichung vom Prototyp (#480, bewusst nicht Teil von
+#474–#479).** Anders als das dunkle Schema wurde `theme.LIGHT` in diesem
+Epic nicht Zeile für Zeile auf die Prototyp-Werte gebracht — laut
+Epic-Beschreibung #474 ausdrücklich ein Nicht-Ziel, da das helle Schema
+schon vor #474 näher am Prototyp lag als das dunkle. Ein direkter Abgleich
+zeigt dennoch verbleibenden, hier bewusst dokumentierten Drift zur
+Prototyp-Quelle:
+
+| Token | Prototyp-Wert | `theme.LIGHT` aktuell |
+|---|---|---|
+| `stepper` | `#f1f4f8` | `#eef1f6` |
+| `border` | `rgba(22,32,52,.09)` | `#c9d2df` (opak) |
+| `hairline` | `rgba(22,32,52,.11)` | `#d4dae4` (opak) |
+| `hover` | `rgba(22,32,52,.05)` | `rgba(22,32,52,.06)` |
+| `card_border` | `rgba(22,32,52,.09)` | `rgba(22,32,52,.10)` |
+| `accent`/`accent2` | `#3f6fe0` / `#3464d6` | `#3a6fd0` / `#2f5fcf` |
+| `accent_soft`/`accent_line`/`accent_shadow` | Akzent-Farbfamilie des Prototyps | eigene, etwas dunklere Farbfamilie |
+| `text3` | `#69727f` | `#59626f` (**bewusst**, WCAG AA auf der Statusleiste, #441) |
+
+Mit Ausnahme von `text3` (explizit kontrastbegründet) sind das kleine,
+bisher nicht behobene Restabweichungen – Kandidat für ein künftiges,
+eigenes Issue analog zu #475–#479, aber außerhalb des Umfangs dieses Epics.
 
 ## §4 Typografie
 
@@ -107,7 +233,7 @@ links ein **3 px blauer Akzentstrich** (`accent`), Padding 2/0/4/8. Immer
 Akzentfarbe – keine Amber-/Coral-Sonderfarben (Issue #416).
 
 ### §5.3 Sekundärbuttons
-Neutrale Fläche `surface`, Text `text2`, 1 px `border`, Radius 8, 12 px,
+Neutrale Fläche `surface`, Text `text2`, 1 px `border_2`, Radius 8, 12 px,
 min-Höhe 34–36 px. **Kein Zeilenumbruch**, außer explizit erlaubt
 (EufyMake-Button, fontmetrischer Umbruch auf `_CARD_TEXT_WIDTH`).
 Ausgewählter Zustand `.sel`: Fläche `accent_soft`, Text `accent_text`,
