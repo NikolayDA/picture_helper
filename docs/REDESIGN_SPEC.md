@@ -290,6 +290,44 @@ rückgängig-/wiederherstellbar ist; der Theme-Umschalter löst dieselbe
 Aktion wie „Ansicht → Helles Design" aus und bleibt mit dem Menü-Häkchen
 synchron.
 
+**Icon-Geometrie (#474-Nachfolge-Epic, Issues #484/#485).** Die zehn
+Rail-Icons (sieben Werkzeuge + drei Rail-Fuß-Aktionen) sind 1:1 aus den
+SVG-Pfaden/-Radien des Prototyp-Bundles übernommen (`bgremover/icons.py`,
+`_draw_*_icon`), auf einem 20×20-Referenzraster wie im Prototyp-`viewBox`:
+
+| Icon | Prototyp-Form |
+|---|---|
+| Verschieben | Pfeilkreuz: Linien (10,3.5)↔(10,16.5) / (3.5,10)↔(16.5,10) + vier Pfeilspitzen |
+| Zauberstab | Diagonale (4,16)→(12,8) + ein 4-Zacken-Sparkle bei (14,3)…(13,5) |
+| Pinsel | Diagonale (16,5)→(9,12) + rotiertes Rundrechteck (45°, (3.5,11), 7×6, r 2.2) |
+| Radiergummi | rotierte Rechteck-Kontur (−32°, (3,8), 12×7, r 1.5) + Grundlinie |
+| Lasso | gestrichelte 5-Punkt-Kontur: (10,3) (16,8) (14,16) (6,16) (4,8), ohne Eckpunkt-Marker |
+| Aufhellen/Abdunkeln | Kreis r 5.5 bei (10,10), Kontur bzw. gefüllt |
+| Rückgängig/Wiederholen | Haken-Pfad `M7 8 H13 a4 4 0 0 1 0 8 H9` (Wiederholen horizontal gespiegelt) + Pfeilspitze |
+| Theme-Umschalter | Kreis r 7 bei (10,10) + Halbfläche `M10 3 a7 7 0 0 1 0 14 Z` |
+
+Zuvor luden fünf dieser Namen (`wand`, `brush`, `eraser`, `undo`, `redo`)
+stattdessen ein PNG-Asset mit abweichender, mehrfarbiger Glanz-Clipart-Optik;
+diese Assets sind entfernt (#487), damit der Vektor-Pfad immer greift.
+
+**Icon-Farbe (Issue #486).** Der Prototyp zeichnet jedes Icon mit dem
+Attribut `stroke=currentColor`/`fill=currentColor`, sodass die Linienfarbe
+dem `.tool`-Zustand folgt (§5.9 oben: Ruhe `text3` → aktiv/`.on`
+`accent_text`). Checkbare Werkzeug-Icons tragen dafür zwei Pixmap-Varianten
+im selben `QIcon` (`make_stateful_tool_icon`: `QIcon.State.Off` = `text3`,
+`QIcon.State.On` = `accent_text`) – Qt wählt beim Umschalten von
+`QToolButton.setChecked()` automatisch die passende Variante. Die drei
+nicht checkbaren Rail-Fuß-Icons bleiben einfarbig `text3`
+(`make_tool_icon(..., color=...)`). Ein Theme-Wechsel rendert alle
+Icon-Pixel über `Toolbar.apply_palette` neu. Hover-Einfärbung (`text3` →
+`text2`) ist bewusst nicht abgebildet: Qt kennt keinen automatischen
+Hover-Icon-Modus für `QToolButton` (nur `Normal`/`Disabled`/`Active`/
+`Selected` je `On`/`Off`, von der Style-Engine nicht zuverlässig für einen
+reinen Hover ohne Klick angesteuert). Icons außerhalb der Rail (KI, Öffnen,
+Speichern, Original wiederherstellen, Verlauf, Zoom-Fixier-Schloss) bleiben
+eigenständig mehrfarbig und ignorieren den Farbparameter – kein Verbraucher
+für Palette-Einfärbung.
+
 ## §6 Schrittleiste (Stepper)
 
 Sechs Schritte: **Öffnen · Freistellen · Anpassen · Form & Maße ·

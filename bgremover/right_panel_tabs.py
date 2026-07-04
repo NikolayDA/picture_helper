@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QFont, QFontMetrics
+from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -820,13 +820,14 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
     lesbar bleiben. ``wrap=True`` ist die explizit erlaubte Ausnahme vom „kein
     Umbruch"-Grundsatz (§5.3-Hinweis: „außer explizit erlaubt (EufyMake-Button)").
     """
+    p = active_palette()
     b = QPushButton(label)
-    style = panel_btn_style(active_palette())
+    style = panel_btn_style(p)
     if height != 36:
         style += f"\nQPushButton {{ min-height: {height}px; }}"
     b.setStyleSheet(style)
     if icon_name:
-        b.setIcon(make_tool_icon(icon_name, 22))
+        b.setIcon(make_tool_icon(icon_name, 22, QColor(p.text2)))
         b.setIconSize(QSize(22, 22))
     if wrap:
         font = QFont(); font.setPixelSize(13); font.setWeight(QFont.Weight.Medium)
