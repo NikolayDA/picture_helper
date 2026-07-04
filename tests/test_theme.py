@@ -239,6 +239,68 @@ def test_stepper_apply_palette_restyles(qapp):
         stepper.deleteLater()
 
 
+def test_card_metric_tokens_are_named_constants():
+    """Issue #414 (§5.1): Karten-Maße existieren zentral als benannte Tokens.
+
+    Radius, Innenpolster, Binnen- und Sektionsabstand liegen ausschließlich in
+    ``theme`` – die Panels lesen diese Tokens statt verstreuter Magic Numbers.
+    """
+    from bgremover import right_panel_tabs as rpt
+    from bgremover import theme
+
+    assert theme.CARD_RADIUS_PX == 12
+    assert theme.CARD_PADDING == (14, 13, 14, 13)   # Innenpolster 14/13 (§5.1)
+    assert theme.CARD_CONTENT_SPACING == 10          # Binnenabstand (§5.1)
+    assert theme.CARD_STACK_SPACING == 11            # Sektionsabstand im Stapel (§5.1)
+    # Der Radius-Token bestimmt den aufgelösten Karten-Stil (kein zweiter Wert).
+    assert f"{theme.CARD_RADIUS_PX}px" in theme.CARD_STYLE
+    # Die Panels ziehen exakt diese Tokens (kein Drift zur Spec).
+    assert rpt._CARD_STACK_SPACING == theme.CARD_STACK_SPACING
+    assert rpt._CARD_STACK_SIDE_MARGIN == theme.CARD_STACK_SIDE_MARGIN
+    assert rpt._CARD_STACK_TOP_MARGIN == theme.CARD_STACK_TOP_MARGIN
+    assert rpt._CARD_STACK_BOTTOM_MARGIN == theme.CARD_STACK_BOTTOM_MARGIN
+
+
+def test_card_style_defined_for_both_schemes():
+    """Issue #414: Der Karten-Stil ist im hellen UND dunklen Schema definiert."""
+    from bgremover.theme import CARD_RADIUS_PX, DARK, LIGHT, card_style
+
+    for p in (DARK, LIGHT):
+        style = card_style(p)
+        assert p.card_bg in style
+        assert p.card_border in style
+        assert f"{CARD_RADIUS_PX}px" in style
+    # Hell und dunkel unterscheiden sich sichtbar (verschiedener Kartengrund).
+    assert card_style(DARK) != card_style(LIGHT)
+
+
+def _accent_hexes() -> set[str]:
+    """Kanonische Akzent-Hexwerte beider Schemata (``accent`` + ``accent2``)."""
+    from bgremover.theme import DARK, LIGHT
+
+    values = {DARK.accent, DARK.accent2, LIGHT.accent, LIGHT.accent2}
+    return {v.lower() for v in values if v.startswith("#")}
+
+
+def test_no_hardcoded_accent_hex_outside_theme():
+    """Issue #414: Kein Modul außer ``theme`` bäckt einen Akzent-Hexwert ein.
+
+    Akzentfarben kommen ausschließlich aus der Palette; Widgets referenzieren
+    Tokens, nie den rohen Hexwert. Der Scan deckt das Paket (ohne ``theme.py``)
+    und ``scripts`` ab – die lint-relevanten Quellbäume.
+    """
+    accents = _accent_hexes()
+    assert accents, "Erwartet mindestens einen Akzent-Hexwert in der Palette."
+    scripts = Path(__file__).resolve().parent.parent / "scripts"
+    sources = [p for p in sorted(_PKG.glob("*.py")) if p.name != "theme.py"]
+    sources += sorted(scripts.glob("*.py"))
+    offenders: list[str] = []
+    for path in sources:
+        text = path.read_text(encoding="utf-8").lower()
+        offenders += [f"{path.name}: {hexval}" for hexval in accents if hexval in text]
+    assert not offenders, "Hartkodierte Akzent-Hexwerte: " + ", ".join(offenders)
+
+
 def test_dead_style_constants_not_reintroduced():
     # BTN_STYLE/GRP_STYLE waren toter Code (nirgends referenziert) und
     # wurden entfernt – nicht erneut anlegen.

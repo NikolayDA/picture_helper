@@ -31,6 +31,12 @@ from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.preview_mode import PreviewMode
 from bgremover.theme import (
+    CARD_CONTENT_SPACING,
+    CARD_PADDING,
+    CARD_STACK_BOTTOM_MARGIN,
+    CARD_STACK_SIDE_MARGIN,
+    CARD_STACK_SPACING,
+    CARD_STACK_TOP_MARGIN,
     active_palette,
     card_style,
     num_style,
@@ -43,16 +49,18 @@ from bgremover.theme import (
 if TYPE_CHECKING:
     from bgremover.right_panel import RightPanelActions
 
-# Nutzbare Textbreite innerhalb einer Inspector-Karte (§1: Scrollbereich
-# 20/18/18 + §5.1: Kartenpolster 13/14) – als Wortumbruch-Obergrenze für lange,
-# nicht kürzbare Button-Beschriftungen (z. B. Übersetzungen), damit sie die
-# feste Panelbreite nie sprengen (#423-Review, Spec §5.3 „Umbruch … EufyMake").
-_CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * 18 - 2 * 14
-_CARD_STACK_SIDE_MARGIN = 18
-_CARD_STACK_TOP_MARGIN = 20
-_CARD_STACK_BOTTOM_MARGIN = 18
-_CARD_STACK_SPACING = 11
+# Karten-Maße stammen zentral aus ``theme`` (#414). Die Unterstrich-Aliase
+# bleiben als stabile Importfläche für ``right_panel`` und die Tests erhalten.
+_CARD_STACK_SIDE_MARGIN = CARD_STACK_SIDE_MARGIN
+_CARD_STACK_TOP_MARGIN = CARD_STACK_TOP_MARGIN
+_CARD_STACK_BOTTOM_MARGIN = CARD_STACK_BOTTOM_MARGIN
+_CARD_STACK_SPACING = CARD_STACK_SPACING
 _OPTION_SPACING = 6
+# Nutzbare Textbreite innerhalb einer Inspector-Karte (§1: Scrollbereich-
+# Seitenrand + §5.1: horizontales Kartenpolster) – als Wortumbruch-Obergrenze
+# für lange, nicht kürzbare Button-Beschriftungen (z. B. Übersetzungen), damit
+# sie die feste Panelbreite nie sprengen (#423-Review, Spec §5.3).
+_CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * CARD_STACK_SIDE_MARGIN - 2 * CARD_PADDING[0]
 
 
 def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
@@ -733,8 +741,8 @@ def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBox
     # Objektname-Selektor, damit der Karten-Stil NICHT auf Kindwidgets kaskadiert.
     card.setStyleSheet(f"QFrame#sectionCard {{ {card_style(p)} }}")
     v = QVBoxLayout(card)
-    v.setSpacing(10)
-    v.setContentsMargins(14, 13, 14, 13)
+    v.setSpacing(CARD_CONTENT_SPACING)
+    v.setContentsMargins(*CARD_PADDING)
     title_lbl = QLabel(title.upper())  # Kartentitel laufen VERSALIEN (§5.2)
     title_lbl.setStyleSheet(section_header_style(p))
     v.addWidget(title_lbl)
