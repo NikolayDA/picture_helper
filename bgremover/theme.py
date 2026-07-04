@@ -65,13 +65,22 @@ class Palette:
 
 
 DARK = Palette(
-    bg="#1f242b", panel="#1a1a1a", inspector="#1a1a1a", tabbar="#141414",
-    stepper="#161a20", nav="#20252e", status="#1a1a1a", toolbar="#242424",
+    # Hintergrundflächen 1:1 aus dem Prototyp (design/Prototyp A - Geführter
+    # Workflow.dc.html, dunkler :root-Block) übernommen (#475) – ein kühler
+    # Blaugrau-Ton statt des früheren neutralen Nah-Schwarz. ``status`` deckt
+    # bewusst sowohl Menü- als auch Statusleiste ab (Spec §2); der Prototyp
+    # unterscheidet dort zusätzlich eine reine Fenster-Titelleiste, die es im
+    # Qt-Fenster (natives Chrome) nicht gibt.
+    bg="#1f242b", panel="#272d36", inspector="#272d36", tabbar="#141414",
+    stepper="#1c2128", nav="#222831", status="#1a1e24", toolbar="#242a32",
     border="#3a3a3a", divider="#2a2a2a", hairline="#333333",
-    surface="#2a2a2a", surface_hover="#363636", hover="rgba(255,255,255,.06)",
-    card_bg="#22262d", card_border="rgba(255,255,255,.07)",
+    surface="#30373f", surface_hover="#3a424c", hover="rgba(255,255,255,.05)",
+    # card_bg bewusst dunkler als der Prototyp-Wert #2e353f: erst damit hält
+    # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
+    # ein – der Prototyp selbst ist kein kontrastgeprüftes Artefakt.
+    card_bg="#262b33", card_border="rgba(255,255,255,.07)",
     glass="rgba(26,30,37,.82)",
-    text="#e0e0e0", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
+    text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
     accent="#4a90d9", accent2="#3f7fce", accent_soft="rgba(74,144,217,.16)",
     accent_line="rgba(74,144,217,.42)", accent_text="#9fc0ff",
     accent_shadow="rgba(74,144,217,.35)", on_accent="#ffffff",

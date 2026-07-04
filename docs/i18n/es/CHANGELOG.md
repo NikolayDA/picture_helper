@@ -322,6 +322,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corregido
 
+- **Colores de fondo del modo oscuro alineados con el prototipo.** Las
+  superficies de fondo del modo oscuro (`theme.DARK`: panel inspector, barra
+  de pasos, barra de herramientas, pie de navegación, barra de estado/menú,
+  controles y tarjetas) usan ahora el tono gris azulado frío del prototipo
+  aprobado (`design/Prototyp A - Geführter Workflow.dc.html`) en lugar de un
+  negro casi neutro. `card_bg` se mantiene deliberadamente un paso más oscuro
+  que el valor del prototipo para que `text3` en las tarjetas siga cumpliendo
+  el contrato de contraste WCAG AA de ≥ 4.5:1 (#441); `docs/REDESIGN_SPEC.md`
+  §2 documenta los nuevos valores y esta única desviación intencional (#475).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

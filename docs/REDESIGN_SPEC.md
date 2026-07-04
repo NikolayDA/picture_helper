@@ -45,18 +45,18 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | Token | Wert | Rolle |
 |---|---|---|
 | `bg` | `#1f242b` | Leinwand-Umfeld |
-| `panel` / `inspector` | `#1a1a1a` | Panelflächen |
+| `panel` / `inspector` | `#272d36` | Panelflächen |
 | `tabbar` | `#141414` | (Alt-)Tab-Leiste |
-| `stepper` | `#161a20` | Schrittleiste |
-| `nav` | `#20252e` | Navigations-Fußzeile |
-| `status` | `#1a1a1a` | Status-/Menüleiste |
-| `toolbar` | `#242424` | Werkzeugleiste |
+| `stepper` | `#1c2128` | Schrittleiste |
+| `nav` | `#222831` | Navigations-Fußzeile |
+| `status` | `#1a1e24` | Status-/Menüleiste |
+| `toolbar` | `#242a32` | Werkzeugleiste |
 | `border` / `divider` / `hairline` | `#3a3a3a` / `#2a2a2a` / `#333333` | Linien |
-| `surface` / `surface_hover` | `#2a2a2a` / `#363636` | Bedienflächen |
-| `hover` | `rgba(255,255,255,.06)` | Hover-Schleier |
-| `card_bg` / `card_border` | `#22262d` / `rgba(255,255,255,.07)` | Karten |
+| `surface` / `surface_hover` | `#30373f` / `#3a424c` | Bedienflächen |
+| `hover` | `rgba(255,255,255,.05)` | Hover-Schleier |
+| `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
-| `text` / `text2` / `text3` | `#e0e0e0` / `#cdd4de` / `#8b94a2` | aktiver Text |
+| `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
 | `accent` / `accent2` | `#4a90d9` / `#3f7fce` | Blau (Aktion) |
 | `accent_soft` / `accent_line` | `rgba(74,144,217,.16)` / `rgba(74,144,217,.42)` | Akzentflächen/-linien |
@@ -67,6 +67,22 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 **Token-Vertrag:** `text`/`text2`/`text3` halten auf ihren Flächen ≥ 4.5:1
 (WCAG AA); `muted` ist ausschließlich für Disabled-/Placeholder-Zustände
 reserviert (§12).
+
+**Herkunft der Werte (#475).** Die Hintergrund-/Flächenwerte sind 1:1 aus den
+CSS-Variablen des dunklen `:root`-Blocks im Prototyp-Bundle
+(`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit zwei
+dokumentierten, bewussten Abweichungen:
+
+- **`status` deckt Menü- **und** Statusleiste ab.** Der Prototyp unterscheidet
+  zusätzlich eine reine Fenster-Titelleiste (`--titlebar`); die App nutzt das
+  native Fenster-Chrome von macOS/Linux statt einer selbst gezeichneten
+  Titelleiste, daher entfällt dieser Wert ohne Ersatz-Token.
+- **`card_bg` ist dunkler als der Prototyp-Wert `#2e353f`.** Bei der
+  Prototyp-Helligkeit unterschreitet `text3` (`#8b94a2`) auf Karten den
+  WCAG-AA-Kontraktrag von ≥ 4.5:1 (§12, `test_palettes_meet_wcag_contrast_matrix`).
+  `#262b33` ist der hellstmögliche Wert in Richtung des Prototyps, der den
+  Kontrakt noch einhält – der Prototyp selbst ist kein kontrastgeprüftes
+  Artefakt und geht in diesem einen Fall nicht vor Barrierefreiheit.
 
 ## §3 Farb-Tokens — helles Schema
 

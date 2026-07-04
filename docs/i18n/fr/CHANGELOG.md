@@ -325,6 +325,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Corrigé
 
+- **Couleurs de fond du mode sombre alignées sur le prototype.** Les fonds du
+  mode sombre (`theme.DARK` : panneau inspecteur, barre d'étapes, barre
+  d'outils, pied de navigation, barre de statut/menu, contrôles et cartes)
+  utilisent désormais la teinte bleu-gris froide du prototype validé
+  (`design/Prototyp A - Geführter Workflow.dc.html`) au lieu d'un noir quasi
+  neutre. `card_bg` reste volontairement un cran plus sombre que la valeur du
+  prototype afin que `text3` sur les cartes respecte toujours le contrat de
+  contraste WCAG AA de ≥ 4,5:1 (#441) ; `docs/REDESIGN_SPEC.md` §2 documente
+  les nouvelles valeurs et cette unique déviation intentionnelle (#475).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`

@@ -287,6 +287,15 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Dark theme background colors aligned with the prototype.** Dark Mode
+  background surfaces (`theme.DARK`: inspector panel, stepper bar, toolbar,
+  navigation footer, status/menu bar, controls and cards) now use the cool
+  blue-gray tone of the approved prototype
+  (`design/Prototyp A - Geführter Workflow.dc.html`) instead of a neutral
+  near-black. `card_bg` is deliberately kept one step darker than the
+  prototype value so `text3` on cards still meets the WCAG AA contrast
+  contract of ≥ 4.5:1 (#441); `docs/REDESIGN_SPEC.md` §2 documents the new
+  values and this one intentional deviation (#475).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

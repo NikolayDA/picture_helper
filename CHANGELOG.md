@@ -300,6 +300,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Dunkles Farbschema an den Prototyp angeglichen.** Die Hintergrundflächen
+  im Dark Mode (`theme.DARK`: Inspector-Panel, Schrittleiste, Werkzeugleiste,
+  Navigations-Fußzeile, Status-/Menüleiste, Bedienflächen und Karten) nutzen
+  jetzt den kühlen Blaugrau-Ton des abgenommenen Prototyps
+  (`design/Prototyp A - Geführter Workflow.dc.html`) statt eines neutralen
+  Nah-Schwarz. `card_bg` bleibt dabei bewusst einen Schritt dunkler als der
+  Prototyp-Wert, damit `text3` auf Karten weiterhin den WCAG-AA-Kontrastvertrag
+  von ≥ 4.5:1 einhält (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die
+  neuen Werte und diese eine bewusste Abweichung (#475).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**
