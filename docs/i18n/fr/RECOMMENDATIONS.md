@@ -11,14 +11,15 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-04)
+## État actuel (2026-07-05)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
-locale restent la base avant tout nouveau PR. Nouveauté de ce tour : **#461**,
-**#414** et l'epic **#413** sont fermés. La PR #473 centralise les métriques de
-cartes et supprime le dernier hex d'accent hors de `theme.py`. Le nouveau groupe
-ouvert d'alignement Dark Mode/prototype est **#474–#480**. GitHub affiche
-désormais **18** tickets ouverts de roadmap/backlog.
+locale restent la base avant tout nouveau PR. Depuis l'instantané du
+2026-07-04, le groupe d'alignement Dark Mode/prototype **#474–#480** (PR #482)
+et la vague icônes du rail/couleurs d'état **#483–#488** (PR #489) sont fermés.
+Avant ce suivi, GitHub affiche **12** tickets ouverts dont **#490** ; après la
+fusion/clôture de ce correctif d'instantané, il restera **11** tickets de
+roadmap/backlog.
 
 ### Terminé depuis la dernière revue
 
@@ -34,15 +35,17 @@ désormais **18** tickets ouverts de roadmap/backlog.
   (`ACCENT`/`CARD_STYLE`) ont atterri via PR #412/#423 (chaînes DE/EN,
   `tests/test_workflow.py`).
 - **Vague rail/zoom terminée :** **#455/#456/#457/#458/#463/#464** ont atterri
-  via PR #466, et **#465** est volontairement `not_planned`. Le PR #467 ferme
-  les trois P2 tardifs de #466 (direction du zoom, ancrage au viewport, aperçu
-  des dabs de hauteur) et a actualisé l'instantané de triage.
-- **#461 fermé (2026-07-04) :** L'instantané actualisé par le PR #467
-  correspond à l'état réel de GitHub ; le ticket lui-même était resté ouvert
-  après la fusion et est fermé dans ce tour.
+  via PR #466, et **#465** est volontairement `not_planned` ; PR #467 a fermé
+  les trois P2 de #466 et actualisé l'instantané de triage.
 - **Inspecteur en cartes terminé :** **#414** a atterri via PR #473 (jetons
   `CARD_*` centraux, style de carte clair/sombre, garde anti-hex d'accent).
   Cela termine aussi l'epic **#413**.
+- **Dark Mode et icônes du rail terminés :** PR #482 ferme **#474–#480**
+  (surfaces dark, hairlines, accents, checkerboard, jetons manquants, test de
+  dérive REDESIGN_SPEC) ; PR #489 ferme **#483–#488** (icônes vectorielles,
+  couleurs d'état/thème, fallbacks PNG retirés, docs/tests/revue).
+- **#490 en cours :** Cette PR corrige la dérive de l'instantané Recommendations
+  après PR #482/#489 et garde synchronisés les six miroirs de langue.
 
 ### Encore ouvert
 
@@ -58,19 +61,17 @@ désormais **18** tickets ouverts de roadmap/backlog.
   la PR #460). N'affecte que la simulation de la maquette ; l'application
   réelle active déjà automatiquement le nouveau calque HEIGHT (#347).
 
-## Tickets GitHub ouverts — Triage (2026-07-04)
+## Tickets GitHub ouverts — Triage (2026-07-05)
 
-Au 2026-07-04, GitHub affiche **18** tickets ouverts de roadmap/backlog :
-alignement Dark Mode/prototype (**#474/#475/#476/#477/#478/#479/#480**),
-i18n/docs (**#425/#430/#431/#432**), rollout/publication
-(**#426/#435/#392/#389**) et les points indépendants **#299/#318/#245**.
-**#461** était la dérive d'instantané déjà résolue ; **#414** et **#413** sont
-aussi fermés après PR #473.
+Au 2026-07-05, GitHub affiche **12** tickets ouverts avant cette PR, dont
+**#490**. Après fusion/clôture de ce suivi, il restera **11** tickets de
+roadmap/backlog : i18n/docs (**#425/#430/#431/#432**), rollout/publication
+(**#426/#435/#392/#389**) et backlog/points externes (**#299/#318/#245**).
 
 ### Regroupements pertinents
 
-- **Dark Mode 1:1 (#474) :** regrouper #475/#476/#477/#479 comme vague de tokens,
-  #478 comme correctif du checker canvas et #480 comme passe finale spec/drift.
+- **#490 :** Cette PR clôt la dérive d'instantané après PR #482/#489 ; aucun
+  ticket d'implémentation de suivi n'en découle.
 - **i18n/docs (#425) :** #430 (ES/FR/UK/ZH) débloque les tests de parité ; #431
   (docs) et #432 (captures) suivent quand l'UI sera visuellement définitive.
 - **Rollout/publication :** #426 ne reste ouvert que via #435 ; coordonner #435
@@ -83,13 +84,7 @@ aussi fermés après PR #473.
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#474](https://github.com/NikolayDA/picture_helper/issues/474) | EPIC : Dark Mode 1:1 avec Prototype A | 🟠 Élevée | 🟡 Moyenne | **Nouveau** – grouper #475–#480. |
-| [#475](https://github.com/NikolayDA/picture_helper/issues/475) | Dark : aligner les surfaces de fond | 🟠 Élevée | 🟢 Faible | **Commencer ici** – bases d'abord. |
-| [#476](https://github.com/NikolayDA/picture_helper/issues/476) | Dark : bordures/hairlines transparentes | 🟡 Moyenne | 🟢 Faible | **Avec #475** – tokens de bord. |
-| [#477](https://github.com/NikolayDA/picture_helper/issues/477) | Dark : aligner accents/boutons | 🟠 Élevée | 🟢 Faible | **Avec #475** – couleurs interactives. |
-| [#478](https://github.com/NikolayDA/picture_helper/issues/478) | Checker canvas ignore le thème | 🟡 Moyenne | 🟡 Moyenne | **Après tokens** – palette + thème. |
-| [#479](https://github.com/NikolayDA/picture_helper/issues/479) | Ajouter les tokens couleur manquants | 🟡 Moyenne | 🟡 Moyenne | **Avec spec** – tokens prouvés. |
-| [#480](https://github.com/NikolayDA/picture_helper/issues/480) | Tables couleur REDESIGN_SPEC + test drift | 🟡 Moyenne | 🟡 Moyenne | **Passe finale** – après #475–#479. |
+| [#490](https://github.com/NikolayDA/picture_helper/issues/490) | Actualiser le snapshot de triage après Dark Mode et icônes rail | 🟡 Moyenne | 🟢 Faible | **Cette PR** – fermer après merge. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC : Internationalisation et documentation | 🟠 Élevée | 🟡 Moyenne | **En cours** – #430/#431/#432 ouverts. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nouvelles chaînes d'UI (étapes/cartes/navigation) | 🟠 Élevée | 🟡 Moyenne | **Prêt pour PR** – ES/FR/UK/ZH ; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Mettre ANLEITUNG et README au workflow guidé | 🟡 Moyenne | 🟡 Moyenne | **Après gel de l'UI** – miroir en 6 langues. |
@@ -104,12 +99,11 @@ aussi fermés après PR #473.
 
 ### Recommandé ensuite (ordre des PR)
 
-1. Grouper **#474** : vague de tokens #475/#476/#477/#479, puis #478 et #480.
-2. Avancer **#430** (chaînes ES/FR/UK/ZH) — débloque la parité i18n ; puis
+1. Avancer **#430** (chaînes ES/FR/UK/ZH) — débloque la parité i18n ; puis
    **#431**/**#432** quand l'UI est définitive.
-3. **Publication :** mener **#435** + **#392** de façon coordonnée, puis clore les
+2. **Publication :** mener **#435** + **#392** de façon coordonnée, puis clore les
    epics **#426** et **#389**.
-4. **#299** après la publication ; n'étudier que **#318** (à affiner) ; garder
+3. **#299** après la publication ; n'étudier que **#318** (à affiner) ; garder
    **#245** bloqué en externe.
 
 ## Tours précédents
