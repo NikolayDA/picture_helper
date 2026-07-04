@@ -48,6 +48,10 @@ if TYPE_CHECKING:
 # nicht kürzbare Button-Beschriftungen (z. B. Übersetzungen), damit sie die
 # feste Panelbreite nie sprengen (#423-Review, Spec §5.3 „Umbruch … EufyMake").
 _CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * 18 - 2 * 14
+_CARD_STACK_SIDE_MARGIN = 18
+_CARD_STACK_TOP_MARGIN = 20
+_CARD_STACK_BOTTOM_MARGIN = 18
+_CARD_STACK_SPACING = 11
 _OPTION_SPACING = 6
 
 
@@ -764,8 +768,10 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     content.setStyleSheet(f"background: {active_palette().inspector};")
     lay = QVBoxLayout(content)
     # Scrollbereich-Innenabstand + Kartenabstand 1:1 aus dem Prototyp (§1, §5.1).
-    lay.setContentsMargins(18, 20, 18, 18)
-    lay.setSpacing(11)
+    lay.setContentsMargins(
+        _CARD_STACK_SIDE_MARGIN, _CARD_STACK_TOP_MARGIN,
+        _CARD_STACK_SIDE_MARGIN, _CARD_STACK_BOTTOM_MARGIN)
+    lay.setSpacing(_CARD_STACK_SPACING)
     return content, lay
 
 

@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSlider,
     QSpinBox,
     QWidget,
@@ -225,6 +226,44 @@ def test_step2_and_step4_option_spacing_is_uniform(qapp):
     assert grid is not None
     assert grid.horizontalSpacing() == _OPTION_SPACING
     assert grid.verticalSpacing() == _OPTION_SPACING
+
+
+def test_step2_and_step4_card_spacing_is_uniform_across_blocks(qapp):
+    """Kombinierte Schrittinhalte stapeln keine Spacer/Außenabstände."""
+    from bgremover.right_panel_tabs import (
+        _CARD_STACK_BOTTOM_MARGIN,
+        _CARD_STACK_SPACING,
+        _CARD_STACK_TOP_MARGIN,
+    )
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    for step in (WorkflowStep.CUTOUT, WorkflowStep.SHAPE):
+        page = panel.stack.widget(int(step) - 1)
+        scroll = page.findChild(QScrollArea)
+        assert scroll is not None
+        container = scroll.widget()
+        assert container is not None
+        layout = container.layout()
+        assert layout is not None
+        blocks = [
+            item.widget()
+            for index in range(layout.count())
+            if (item := layout.itemAt(index)).widget() is not None
+        ]
+        assert len(blocks) == 2
+        first = blocks[0].layout()
+        second = blocks[1].layout()
+        assert first is not None
+        assert second is not None
+        first_margins = first.getContentsMargins()
+        second_margins = second.getContentsMargins()
+        assert first.itemAt(first.count() - 1).spacerItem() is None
+        assert second.itemAt(second.count() - 1).spacerItem() is None
+        assert first_margins[1] == _CARD_STACK_TOP_MARGIN
+        assert first_margins[3] == 0
+        assert second_margins[1] == _CARD_STACK_SPACING
+        assert second_margins[3] == _CARD_STACK_BOTTOM_MARGIN
 
 
 @pytest.mark.ui_smoke
