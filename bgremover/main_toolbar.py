@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QButtonGroup, QFrame, QToolButton, QVBoxLayout
 
 from bgremover.constants import (
@@ -30,7 +31,7 @@ from bgremover.constants import (
     TOOL_WAND,
 )
 from bgremover.i18n import tr
-from bgremover.icons import make_tool_icon
+from bgremover.icons import make_stateful_tool_icon, make_tool_icon
 from bgremover.theme import (
     Palette,
     active_palette,
@@ -40,6 +41,9 @@ from bgremover.theme import (
 
 # Icongröße der Rail-Fuß-Buttons (Prototyp: 18 px gegenüber 20 px der Werkzeuge).
 _FOOT_ICON_SIZE = 18
+# Rendergröße der Icon-Pixmaps: größer als die Anzeigegröße (20/18 px), damit
+# Qt beim Skalieren auf die tatsächliche Icon-Größe glatte Kanten liefert.
+_ICON_RENDER_PX = 38
 
 
 def _shortcut_label(shortcut: str) -> str:
@@ -82,15 +86,26 @@ class Toolbar:
     # den Werkzeug-Look des Prototyps (`.tool`), dazu die Trenner.
     tool_buttons: list[QToolButton] = field(default_factory=list)
     separators: list[QFrame] = field(default_factory=list)
+    # Icon-Namen je Button (#486), getrennt nach checkbar (braucht eine
+    # Aus-/An-Zustandsfarbe) und Rail-Fuß (nur ein statischer Ton) – zum
+    # Neu-Rendern der Icon-Pixel beim Theme-Wechsel.
+    checkable_icons: list[tuple[QToolButton, str]] = field(default_factory=list)
+    foot_icons: list[tuple[QToolButton, str]] = field(default_factory=list)
 
     def apply_palette(self, p: Palette) -> None:
-        """Restylt Rahmen, Buttons und Trenner für ein Schema-Umschalten (#428)."""
+        """Restylt Rahmen, Buttons, Trenner und Icon-Farben für ein
+        Schema-Umschalten (#428/#486)."""
         self.frame.setStyleSheet(toolbar_frame_style(p))
         tool = tool_style(p)
         for btn in self.tool_buttons:
             btn.setStyleSheet(tool)
         for sep in self.separators:
             sep.setStyleSheet(f"background: {p.hairline}; border: none;")
+        idle, active = QColor(p.text3), QColor(p.accent_text)
+        for btn, name in self.checkable_icons:
+            btn.setIcon(make_stateful_tool_icon(name, _ICON_RENDER_PX, idle, active))
+        for btn, name in self.foot_icons:
+            btn.setIcon(make_tool_icon(name, _ICON_RENDER_PX, idle))
 
 
 def build_toolbar(actions: ToolbarActions, *, light_mode: bool = False) -> Toolbar:
@@ -114,6 +129,9 @@ class _ToolbarBuilder:
         # Nach Stil gruppierte Widgetlisten für das spätere Live-Umfärben (#428).
         self._tool_buttons: list[QToolButton] = []
         self._separators: list[QFrame] = []
+        # Icon-Namen je Button für das Neu-Rendern der Icon-Farben (#486).
+        self._checkable_icons: list[tuple[QToolButton, str]] = []
+        self._foot_icons: list[tuple[QToolButton, str]] = []
 
     def build(self) -> Toolbar:
         frame = QFrame()
@@ -228,6 +246,8 @@ class _ToolbarBuilder:
             foot_separator=foot_separator,
             tool_buttons=self._tool_buttons,
             separators=self._separators,
+            checkable_icons=self._checkable_icons,
+            foot_icons=self._foot_icons,
         )
 
     def _tool_button(
@@ -239,7 +259,9 @@ class _ToolbarBuilder:
         tool: str,
     ) -> QToolButton:
         b = QToolButton()
-        b.setIcon(make_tool_icon(icon_name, 38))
+        b.setIcon(make_stateful_tool_icon(
+            icon_name, _ICON_RENDER_PX,
+            QColor(self._pal.text3), QColor(self._pal.accent_text)))
         b.setIconSize(QSize(_TOOLBAR_ICON_SIZE, _TOOLBAR_ICON_SIZE))
         b.setToolTip(tip)
         b.setCheckable(True)
@@ -248,6 +270,7 @@ class _ToolbarBuilder:
         b.clicked.connect(lambda checked=False, t=tool: self._actions.set_tool(t))
         button_group.addButton(b)
         self._tool_buttons.append(b)
+        self._checkable_icons.append((b, icon_name))
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
@@ -260,13 +283,14 @@ class _ToolbarBuilder:
     ) -> QToolButton:
         """Nicht-checkbarer Aktions-Button des Rail-Fußes (Werkzeug-Look, #458)."""
         b = QToolButton()
-        b.setIcon(make_tool_icon(icon_name, 38))
+        b.setIcon(make_tool_icon(icon_name, _ICON_RENDER_PX, QColor(self._pal.text3)))
         b.setIconSize(QSize(_FOOT_ICON_SIZE, _FOOT_ICON_SIZE))
         b.setToolTip(tip)
         b.setFixedSize(_TOOLBAR_BTN_SIZE, _TOOLBAR_BTN_SIZE)
         b.setStyleSheet(tool_style(self._pal))
         b.clicked.connect(slot)
         self._tool_buttons.append(b)
+        self._foot_icons.append((b, icon_name))
         lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignHCenter)
         return b
 
