@@ -11,13 +11,13 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-03)
+## Estado actual (2026-07-04)
 
 La lista activa de análisis de código está vacía. Ruff, mypy y la suite de
 pruebas local siguen siendo la base antes de nuevos PR. Novedad de esta ronda:
-la clasificación de incidencias abiertas se ha puesto al día tras los
-follow-ups de rail/zoom. Antes de este PR, GitHub muestra 14 incidencias
-abiertas; tras cerrar **#461**, quedan 13 incidencias de roadmap/backlog.
+**#461** queda cerrada – la deriva de instantánea subyacente ya se corrigió con
+el PR #467, pero la incidencia en sí quedó abierta tras la fusión. GitHub
+muestra ahora **13** incidencias abiertas de roadmap/backlog.
 
 ### Completado desde la última revisión
 
@@ -33,9 +33,12 @@ abiertas; tras cerrar **#461**, quedan 13 incidencias de roadmap/backlog.
   de diseño (`ACCENT`/`CARD_STYLE`) llegaron con PR #412/#423 (cadenas DE/EN,
   `tests/test_workflow.py`).
 - **Ola rail/zoom completada:** **#455/#456/#457/#458/#463/#464** llegaron con
-  PR #466, y **#465** está intencionadamente como `not_planned`. Este PR de
-  seguimiento cierra los tres P2 tardíos de #466 (dirección de zoom, anclaje al
-  viewport, vista previa de dabs de altura) y actualiza **#461**.
+  PR #466, y **#465** está intencionadamente como `not_planned`. El PR #467
+  cierra los tres P2 tardíos de #466 (dirección de zoom, anclaje al viewport,
+  vista previa de dabs de altura) y actualizó la instantánea de triage.
+- **#461 cerrada (2026-07-04):** La instantánea actualizada por el PR #467
+  coincide con el estado real de GitHub; la incidencia en sí quedó abierta tras
+  la fusión y se cierra en esta ronda.
 
 ### Aún abierto
 
@@ -50,14 +53,14 @@ abiertas; tras cerrar **#461**, quedan 13 incidencias de roadmap/backlog.
   anterior (hallazgo de revisión en el PR #460). Solo afecta a la simulación
   del mockup; la app real ya activa automáticamente la nueva capa HEIGHT (#347).
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-03)
+## Incidencias abiertas de GitHub — Clasificación (2026-07-04)
 
-A fecha del 2026-07-03, GitHub muestra **14** incidencias abiertas antes de que
-se fusione este seguimiento. **#461** es exactamente esta deriva de instantánea
-y queda cerrada por el PR. Para la planificación quedan después **13**
-incidencias de roadmap/backlog: pulido de la columna derecha (**#413/#414**),
-i18n/docs (**#425/#430/#431/#432**), rollout/publicación
-(**#426/#435/#392/#389**) y los puntos independientes **#299/#318/#245**.
+A fecha del 2026-07-04, GitHub muestra **13** incidencias abiertas de
+roadmap/backlog: pulido de la columna derecha (**#413/#414**), i18n/docs
+(**#425/#430/#431/#432**), rollout/publicación (**#426/#435/#392/#389**) y los
+puntos independientes **#299/#318/#245**. **#461** era exactamente esta deriva
+de instantánea y se ha cerrado en esta ronda (instantánea ya corregida por el
+PR #467).
 
 **Repaso de comentarios:** Los tres comentarios P2 tardíos en PR #466 se
 confirmaron como trabajo pendiente real y quedan abordados en este PR. El P2 de
@@ -93,7 +96,6 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de pruebas: aserciones débiles/redundancias | 🟢 Baja | 🟢 Baja | **Tras la publicación** – mayor impacto primero. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Overrides de permisos por job en WF reutilizable | 🟢 Baja | 🟡 Media | **Necesita refinamiento** – probar semántica GitHub. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan «Quota exceeded» | 🟡 Media | 🟢 Baja | **Bloqueado (externo)** – facturación/cuota OpenAI. |
-| [#461](https://github.com/NikolayDA/picture_helper/issues/461) | Actualizar snapshot de triage tras follow-ups de rail | 🟡 Media | 🟢 Baja | **Resuelto por este PR** – se cerrará. |
 
 ### Recomendado a continuación (orden de PR)
 
