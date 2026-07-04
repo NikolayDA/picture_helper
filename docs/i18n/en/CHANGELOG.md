@@ -289,13 +289,22 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Dark theme background colors aligned with the prototype.** Dark Mode
   background surfaces (`theme.DARK`: inspector panel, stepper bar, toolbar,
-  navigation footer, status/menu bar, controls and cards) now use the cool
+  navigation footer, status bar, controls and cards) now use the cool
   blue-gray tone of the approved prototype
   (`design/Prototyp A - Geführter Workflow.dc.html`) instead of a neutral
   near-black. `card_bg` is deliberately kept one step darker than the
-  prototype value so `text3` on cards still meets the WCAG AA contrast
-  contract of ≥ 4.5:1 (#441); `docs/REDESIGN_SPEC.md` §2 documents the new
-  values and this one intentional deviation (#475).
+  prototype value so `text3` on cards (and on inactive layer names in the
+  layer panel) still meets the WCAG AA contrast contract of ≥ 4.5:1 (#441);
+  `docs/REDESIGN_SPEC.md` §2 documents the new values and this one
+  intentional deviation (#475).
+- **Dark theme borders are soft overlays instead of hard gray tones.**
+  `border` and `hairline` are now translucent white overlays like in the
+  prototype (they settle differently depending on the surface underneath
+  instead of looking equally hard everywhere); a new `border_2` token covers
+  the secondary border tone of neutral secondary buttons (crop format, save
+  format, etc., `panel_btn_style`). The menu bar now shares the `toolbar`
+  tone with the toolbar instead of the status bar, matching the prototype
+  where the menu bar and toolbar carry the same color (#476).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

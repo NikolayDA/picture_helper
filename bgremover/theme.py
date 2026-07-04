@@ -31,6 +31,7 @@ class Palette:
     toolbar: str
     # Linien / Flächen
     border: str
+    border_2: str
     divider: str
     hairline: str
     surface: str
@@ -68,12 +69,18 @@ DARK = Palette(
     # Hintergrundflächen 1:1 aus dem Prototyp (design/Prototyp A - Geführter
     # Workflow.dc.html, dunkler :root-Block) übernommen (#475) – ein kühler
     # Blaugrau-Ton statt des früheren neutralen Nah-Schwarz. ``status`` deckt
-    # bewusst sowohl Menü- als auch Statusleiste ab (Spec §2); der Prototyp
-    # unterscheidet dort zusätzlich eine reine Fenster-Titelleiste, die es im
-    # Qt-Fenster (natives Chrome) nicht gibt.
+    # bewusst nur die Statusleiste ab; die Menüleiste teilt sich stattdessen
+    # (wie im Prototyp: ``--menubar`` == ``--rail``) den ``toolbar``-Ton
+    # (``menu_style``). Eine reine Fenster-Titelleiste gibt es im Qt-Fenster
+    # (natives Chrome) nicht.
     bg="#1f242b", panel="#272d36", inspector="#272d36", tabbar="#141414",
     stepper="#1c2128", nav="#222831", status="#1a1e24", toolbar="#242a32",
-    border="#3a3a3a", divider="#2a2a2a", hairline="#333333",
+    # border/hairline als teiltransparente Weiß-Overlays statt opaker
+    # Grautöne (#476) – setzen sich je nach Untergrund unterschiedlich ab,
+    # wie im Prototyp. border_2 ist der sekundäre Rand-Ton (u. a. neutrale
+    # Sekundärbuttons, ``panel_btn_style`` – Prototyp-Klasse ``.bs``).
+    border="rgba(255,255,255,.06)", border_2="rgba(255,255,255,.12)",
+    divider="#2a2a2a", hairline="rgba(255,255,255,.1)",
     surface="#30373f", surface_hover="#3a424c", hover="rgba(255,255,255,.05)",
     # card_bg bewusst dunkler als der Prototyp-Wert #2e353f: erst damit hält
     # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
@@ -92,7 +99,10 @@ DARK = Palette(
 LIGHT = Palette(
     bg="#e9edf3", panel="#f2f4f8", inspector="#f5f7fb", tabbar="#e6eaf1",
     stepper="#eef1f6", nav="#eaeef3", status="#dee3eb", toolbar="#e6eaf1",
-    border="#c9d2df", divider="#dbe1ea", hairline="#d4dae4",
+    # border_2 (#476) ist bereits der Prototyp-Wert; border/hairline selbst
+    # bleiben im hellen Schema unverändert (Nicht-Ziel von #475/#476, siehe #480).
+    border="#c9d2df", border_2="rgba(22,32,52,.16)",
+    divider="#dbe1ea", hairline="#d4dae4",
     surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
     card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
     glass="rgba(255,255,255,.86)",
@@ -216,10 +226,10 @@ def scroll_style(p: Palette) -> str:
 
 
 def panel_btn_style(p: Palette) -> str:
-    """Sekundärbutton der Inspector-Karten (neutrale Fläche, §5.3)."""
+    """Sekundärbutton der Inspector-Karten (neutrale Fläche, §5.3/§5.6 – Prototyp-Klasse ``.bs``)."""
     return f"""
     QPushButton {{
-        background: {p.surface}; color: {p.text2}; border: 1px solid {p.border};
+        background: {p.surface}; color: {p.text2}; border: 1px solid {p.border_2};
         border-radius: 8px; padding: 0 10px; font-size: 12px; min-height: 34px;
     }}
     QPushButton:hover {{ background: {p.surface_hover}; }}
@@ -279,8 +289,12 @@ def toolbar_frame_style(p: Palette) -> str:
 
 
 def menu_style(p: Palette) -> str:
+    """``QMenuBar`` teilt sich den ``toolbar``-Ton mit der Werkzeugleiste
+    (Prototyp: ``--menubar`` == ``--rail`` in beiden Schemata) – nicht
+    ``status``, das der eigenständigen, dunkleren Statusleiste vorbehalten bleibt.
+    """
     return f"""
-    QMenuBar {{ background: {p.status}; color: {p.text2}; }}
+    QMenuBar {{ background: {p.toolbar}; color: {p.text2}; }}
     QMenuBar::item:selected {{ background: {p.surface_hover}; }}
     QMenu {{ background: {p.surface}; color: {p.text2}; border: 1px solid {p.border}; }}
     QMenu::item:selected {{ background: {p.accent}; color: {p.on_accent}; }}

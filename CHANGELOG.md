@@ -302,13 +302,22 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 - **Dunkles Farbschema an den Prototyp angeglichen.** Die Hintergrundflächen
   im Dark Mode (`theme.DARK`: Inspector-Panel, Schrittleiste, Werkzeugleiste,
-  Navigations-Fußzeile, Status-/Menüleiste, Bedienflächen und Karten) nutzen
-  jetzt den kühlen Blaugrau-Ton des abgenommenen Prototyps
+  Navigations-Fußzeile, Statusleiste, Bedienflächen und Karten) nutzen jetzt
+  den kühlen Blaugrau-Ton des abgenommenen Prototyps
   (`design/Prototyp A - Geführter Workflow.dc.html`) statt eines neutralen
   Nah-Schwarz. `card_bg` bleibt dabei bewusst einen Schritt dunkler als der
-  Prototyp-Wert, damit `text3` auf Karten weiterhin den WCAG-AA-Kontrastvertrag
-  von ≥ 4.5:1 einhält (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die
-  neuen Werte und diese eine bewusste Abweichung (#475).
+  Prototyp-Wert, damit `text3` auf Karten (und auf inaktiven Ebenennamen im
+  Ebenen-Panel) weiterhin den WCAG-AA-Kontrastvertrag von ≥ 4.5:1 einhält
+  (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die neuen Werte und diese
+  eine bewusste Abweichung (#475).
+- **Ränder im Dark Mode als weiche Overlays statt harter Grautöne.** `border`
+  und `hairline` sind jetzt teiltransparente Weiß-Overlays wie im Prototyp
+  (setzen sich je nach Untergrund unterschiedlich ab, statt auf jeder Fläche
+  gleich hart zu wirken); ein neues `border_2`-Token deckt den sekundären
+  Rand-Ton neutraler Sekundärbuttons ab (Zuschnitt-Format, Speicherformat
+  u. a., `panel_btn_style`). Die Menüleiste teilt sich dabei den
+  `toolbar`-Ton mit der Werkzeugleiste statt der Statusleiste – wie im
+  Prototyp, wo Menü- und Werkzeugleiste denselben Farbwert tragen (#476).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**

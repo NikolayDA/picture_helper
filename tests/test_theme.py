@@ -43,10 +43,15 @@ def test_theme_has_canonical_values():
 
 
 def test_shared_templates_use_palette():
+    from bgremover.theme import DARK
+
     # Die wiederverwendeten Templates müssen die Palette referenzieren,
-    # nicht erneut hartkodierte Hex-Werte enthalten.
+    # nicht erneut hartkodierte Hex-Werte enthalten. ``_Theme.BORDER`` bleibt
+    # als Rückwärtskompatibilitäts-Snapshot beim alten Opak-Grauton (#476
+    # macht ``DARK.border`` zum teiltransparenten Overlay) – der Live-Vertrag
+    # prüft daher gegen ``DARK.border``, nicht gegen die eingefrorene Konstante.
     assert _Theme.ACCENT in bgremover.TOOL_STYLE
-    assert _Theme.BORDER in bgremover.SLD_STYLE
+    assert DARK.border in bgremover.SLD_STYLE
     assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).

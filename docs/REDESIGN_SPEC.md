@@ -51,7 +51,8 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `nav` | `#222831` | Navigations-Fußzeile |
 | `status` | `#1a1e24` | Status-/Menüleiste |
 | `toolbar` | `#242a32` | Werkzeugleiste |
-| `border` / `divider` / `hairline` | `#3a3a3a` / `#2a2a2a` / `#333333` | Linien |
+| `border` / `border_2` | `rgba(255,255,255,.06)` / `rgba(255,255,255,.12)` | Ränder (Standard/sekundär) |
+| `divider` / `hairline` | `#2a2a2a` / `rgba(255,255,255,.1)` | Trennlinien |
 | `surface` / `surface_hover` | `#30373f` / `#3a424c` | Bedienflächen |
 | `hover` | `rgba(255,255,255,.05)` | Hover-Schleier |
 | `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
@@ -68,21 +69,32 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 (WCAG AA); `muted` ist ausschließlich für Disabled-/Placeholder-Zustände
 reserviert (§12).
 
-**Herkunft der Werte (#475).** Die Hintergrund-/Flächenwerte sind 1:1 aus den
-CSS-Variablen des dunklen `:root`-Blocks im Prototyp-Bundle
+**Herkunft der Werte (#475/#476).** Die Hintergrund-/Flächen- und Randwerte
+sind 1:1 aus den CSS-Variablen des dunklen `:root`-Blocks im Prototyp-Bundle
 (`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit zwei
 dokumentierten, bewussten Abweichungen:
 
-- **`status` deckt Menü- **und** Statusleiste ab.** Der Prototyp unterscheidet
-  zusätzlich eine reine Fenster-Titelleiste (`--titlebar`); die App nutzt das
-  native Fenster-Chrome von macOS/Linux statt einer selbst gezeichneten
-  Titelleiste, daher entfällt dieser Wert ohne Ersatz-Token.
+- **`status` deckt nur die Statusleiste ab.** Die Menüleiste teilt sich
+  stattdessen den `toolbar`-Ton (`menu_style`) – wie im Prototyp, wo
+  `--menubar` und `--rail` denselben Wert tragen. Eine reine
+  Fenster-Titelleiste (Prototyp: `--titlebar`) entfällt ohne Ersatz-Token, da
+  die App das native Fenster-Chrome von macOS/Linux nutzt.
 - **`card_bg` ist dunkler als der Prototyp-Wert `#2e353f`.** Bei der
   Prototyp-Helligkeit unterschreitet `text3` (`#8b94a2`) auf Karten den
   WCAG-AA-Kontraktrag von ≥ 4.5:1 (§12, `test_palettes_meet_wcag_contrast_matrix`).
   `#262b33` ist der hellstmögliche Wert in Richtung des Prototyps, der den
   Kontrakt noch einhält – der Prototyp selbst ist kein kontrastgeprüftes
-  Artefakt und geht in diesem einen Fall nicht vor Barrierefreiheit.
+  Artefakt und geht in diesem einen Fall nicht vor Barrierefreiheit. Aus
+  demselben Grund bezieht `LayerPanel` inaktive Zeilennamen (`text3`) auf
+  `card_bg` statt auf das hellere `surface`.
+
+`border`/`hairline` sind bewusst teiltransparente Weiß-Overlays statt
+opaker Grautöne: Sie setzen sich je nach Untergrund (Karte, Panel,
+Glas-Pille …) unterschiedlich ab, statt auf jeder Fläche gleich hart zu
+wirken. `border_2` ist der sekundäre Rand-Ton für neutrale Sekundärbuttons
+(§5.3, Prototyp-Klasse `.bs`) und im hellen Schema bereits 1:1 der
+Prototyp-Wert (`rgba(22,32,52,.16)`); `border`/`hairline` selbst bleiben im
+hellen Schema vorerst unverändert (siehe #480).
 
 ## §3 Farb-Tokens — helles Schema
 
@@ -123,7 +135,7 @@ links ein **3 px blauer Akzentstrich** (`accent`), Padding 2/0/4/8. Immer
 Akzentfarbe – keine Amber-/Coral-Sonderfarben (Issue #416).
 
 ### §5.3 Sekundärbuttons
-Neutrale Fläche `surface`, Text `text2`, 1 px `border`, Radius 8, 12 px,
+Neutrale Fläche `surface`, Text `text2`, 1 px `border_2`, Radius 8, 12 px,
 min-Höhe 34–36 px. **Kein Zeilenumbruch**, außer explizit erlaubt
 (EufyMake-Button, fontmetrischer Umbruch auf `_CARD_TEXT_WIDTH`).
 Ausgewählter Zustand `.sel`: Fläche `accent_soft`, Text `accent_text`,
