@@ -42,7 +42,6 @@ from bgremover.i18n import tr
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.right_panel_tabs import (
-    _CARD_STACK_SPACING,
     AdjustTab,
     BackgroundTab,
     PreviewTab,
@@ -53,6 +52,11 @@ from bgremover.right_panel_tabs import (
 )
 from bgremover.stepper import WorkflowStep
 from bgremover.theme import (
+    CARD_PADDING,
+    CARD_STACK_BOTTOM_MARGIN,
+    CARD_STACK_SIDE_MARGIN,
+    CARD_STACK_SPACING,
+    CARD_STACK_TOP_MARGIN,
     _Theme,
     active_palette,
     card_style,
@@ -458,9 +462,12 @@ class _RightPanelBuilder:
         page.setObjectName("stepPage")
         page.setStyleSheet(f"background: {p.inspector};")
         lay = QVBoxLayout(page)
-        # Scrollbereich-Innenabstand 1:1 aus dem Prototyp (§1).
-        lay.setContentsMargins(18, 20, 18, 18)
-        lay.setSpacing(11)
+        # Scrollbereich-Innenabstand + Kartenabstand 1:1 aus dem Prototyp (§1),
+        # zentral über die Karten-Tokens (#414).
+        lay.setContentsMargins(
+            CARD_STACK_SIDE_MARGIN, CARD_STACK_TOP_MARGIN,
+            CARD_STACK_SIDE_MARGIN, CARD_STACK_BOTTOM_MARGIN)
+        lay.setSpacing(CARD_STACK_SPACING)
 
         drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
@@ -509,7 +516,7 @@ class _RightPanelBuilder:
         card.setObjectName("recentCard")
         card.setStyleSheet(f"QFrame#recentCard {{ {card_style(pal)} }}")
         v = QVBoxLayout(card)
-        v.setContentsMargins(14, 13, 14, 13)
+        v.setContentsMargins(*CARD_PADDING)
         v.setSpacing(6)
         title = QLabel(tr("workflow.open.recent").upper())
         title.setStyleSheet(section_header_style(pal))
@@ -547,7 +554,7 @@ class _RightPanelBuilder:
         left, top, right, bottom = layout.getContentsMargins()
         layout.setContentsMargins(
             left,
-            top if first else _CARD_STACK_SPACING,
+            top if first else CARD_STACK_SPACING,
             right,
             bottom if last else 0,
         )

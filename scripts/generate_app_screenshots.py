@@ -109,6 +109,7 @@ def main() -> int:
     from bgremover.preview_mode import PreviewMode
     from bgremover.resize_dialog import ResizeDialog
     from bgremover.settings_dialog import SettingsDialog
+    from bgremover.theme import _Theme
 
     app = QApplication.instance() or QApplication([])
     app.setApplicationName("BgRemover")
@@ -234,7 +235,7 @@ def main() -> int:
     settings_dlg.close()
     process(40)
 
-    color_dlg = QColorDialog(QColor("#4a90d9"), window)
+    color_dlg = QColorDialog(QColor(_Theme.ACCENT), window)
     color_dlg.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog, True)
     color_dlg.setWindowTitle("Hintergrundfarbe waehlen")
     color_dlg.resize(720, 520)

@@ -118,11 +118,24 @@ def palette_for(mode: str) -> Palette:
     return LIGHT if str(mode).lower() == "light" else DARK
 
 
+# ── Karten-Metriken (§5.1 der Spezifikation) ────────────────────────────────
+# Benannte Tokens für Radius, Innenpolster und Abstände der Inspector-Karten –
+# die **einzige** Quelle dieser Maße (#414). Die Panels lesen ausschließlich
+# diese Konstanten statt verstreuter Magic Numbers (kein Drift zur Spec).
+CARD_RADIUS_PX = 12              # Eckenradius der Karten
+CARD_PADDING = (14, 13, 14, 13)  # Innenpolster L/O/R/U (14 horizontal / 13 vertikal)
+CARD_CONTENT_SPACING = 10        # Binnenabstand der Elemente innerhalb einer Karte
+CARD_STACK_SPACING = 11          # Sektionsabstand zwischen Karten im Schritt-Stapel
+CARD_STACK_SIDE_MARGIN = 18      # seitlicher Innenabstand des Karten-Stapels (§1)
+CARD_STACK_TOP_MARGIN = 20       # oberer Innenabstand des Karten-Stapels (§1)
+CARD_STACK_BOTTOM_MARGIN = 18    # unterer Innenabstand des Karten-Stapels (§1)
+
+
 # ── Palette-parametrierte Stil-Bausteine (für die Redesign-Chrome) ──────────
 
 def card_style(p: Palette) -> str:
     return (f"background: {p.card_bg}; border: 1px solid {p.card_border};"
-            " border-radius: 12px;")
+            f" border-radius: {CARD_RADIUS_PX}px;")
 
 
 def section_header_style(p: Palette) -> str:
@@ -315,7 +328,7 @@ def build_app_stylesheet(p: Palette) -> str:
     return f"""
     QFrame#sectionCard, QFrame#recentCard {{
         background: {p.card_bg}; border: 1px solid {p.card_border};
-        border-radius: 12px;
+        border-radius: {CARD_RADIUS_PX}px;
     }}
     QLabel#sectionHeader {{
         color: {p.text2}; font-size: 11px; font-weight: bold;
