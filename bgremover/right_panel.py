@@ -537,6 +537,8 @@ class _RightPanelBuilder:
             return
         while layout.count():
             item = layout.itemAt(layout.count() - 1)
+            if item is None:
+                break
             if item.widget() is not None or item.layout() is not None:
                 break
             layout.takeAt(layout.count() - 1)
