@@ -305,6 +305,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   format, etc., `panel_btn_style`). The menu bar now shares the `toolbar`
   tone with the toolbar instead of the status bar, matching the prototype
   where the menu bar and toolbar carry the same color (#476).
+- **Dark theme accent blue aligned with the prototype.** `accent`/`accent2`
+  (and the derived `accent_soft`/`accent_line`/`accent_shadow` surfaces) are
+  now the prototype's brighter, periwinkle-ish blue instead of a duller tone
+  — visible in the primary button gradient, the "Next" button, active tools,
+  the active stepper circle, and the slider handle. `accent_text` already
+  matched the prototype value exactly; `accent_shadow` remains a plain color
+  value without a glow effect (Qt QSS has no `box-shadow`, #477).
 - **Live preview degrades to COLOR for size-mismatched data layers.** When a
   HEIGHT/GLOSS layer's pixel size (an anomalous or foreign project state) no longer
   matches the base, `_render_preview_uncached` now treats that layer like a missing

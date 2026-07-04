@@ -49,7 +49,7 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `tabbar` | `#141414` | (Alt-)Tab-Leiste |
 | `stepper` | `#1c2128` | Schrittleiste |
 | `nav` | `#222831` | Navigations-Fußzeile |
-| `status` | `#1a1e24` | Status-/Menüleiste |
+| `status` | `#1a1e24` | Statusleiste |
 | `toolbar` | `#242a32` | Werkzeugleiste |
 | `border` / `border_2` | `rgba(255,255,255,.06)` / `rgba(255,255,255,.12)` | Ränder (Standard/sekundär) |
 | `divider` / `hairline` | `#2a2a2a` / `rgba(255,255,255,.1)` | Trennlinien |
@@ -59,9 +59,10 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
 | `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
 | `muted` | `#727b89` | **nur** Disabled/Placeholder |
-| `accent` / `accent2` | `#4a90d9` / `#3f7fce` | Blau (Aktion) |
-| `accent_soft` / `accent_line` | `rgba(74,144,217,.16)` / `rgba(74,144,217,.42)` | Akzentflächen/-linien |
+| `accent` / `accent2` | `#5b8cff` / `#4f81f5` | Blau (Aktion) |
+| `accent_soft` / `accent_line` | `rgba(91,140,255,.16)` / `rgba(91,140,255,.3)` | Akzentflächen/-linien |
 | `accent_text` / `on_accent` | `#9fc0ff` / `#ffffff` | Text auf/zu Akzent |
+| `accent_shadow` | `rgba(79,129,245,.35)` | Glow-Farbwert (aktuell ungenutzt, §5.6-Prototyp-Effekt) |
 | `good` / `good_soft` | `#7fe0aa` / `rgba(80,200,140,.16)` | positiv |
 | `bad` / `bad_soft` | `#f29aa6` / `rgba(229,104,122,.16)` | negativ |
 
@@ -69,8 +70,9 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 (WCAG AA); `muted` ist ausschließlich für Disabled-/Placeholder-Zustände
 reserviert (§12).
 
-**Herkunft der Werte (#475/#476).** Die Hintergrund-/Flächen- und Randwerte
-sind 1:1 aus den CSS-Variablen des dunklen `:root`-Blocks im Prototyp-Bundle
+**Herkunft der Werte (#475/#476/#477).** Die Hintergrund-/Flächen-, Rand- und
+Akzentwerte sind 1:1 aus den CSS-Variablen des dunklen `:root`-Blocks im
+Prototyp-Bundle
 (`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit zwei
 dokumentierten, bewussten Abweichungen:
 
@@ -95,6 +97,13 @@ wirken. `border_2` ist der sekundäre Rand-Ton für neutrale Sekundärbuttons
 (§5.3, Prototyp-Klasse `.bs`) und im hellen Schema bereits 1:1 der
 Prototyp-Wert (`rgba(22,32,52,.16)`); `border`/`hairline` selbst bleiben im
 hellen Schema vorerst unverändert (siehe #480).
+
+`accent`/`accent2`/`accent_soft`/`accent_line`/`accent_shadow` sind ebenfalls
+1:1 der Prototyp-Wert – ein helleres, periwinkle-artiges Blau statt des
+dumpferen früheren Tons. `accent_shadow` wird aktuell an keiner Stelle als
+Schatten/Glow gerendert (Qt-QSS kennt kein `box-shadow`, siehe `stepper.py`
+zur Kompensation über die Kreisgröße, §6); nur der Farbwert ist korrigiert.
+`accent_text` traf bereits 1:1 den Prototyp-Wert.
 
 ## §3 Farb-Tokens — helles Schema
 

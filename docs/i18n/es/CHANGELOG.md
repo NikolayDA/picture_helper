@@ -341,6 +341,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `panel_btn_style`). La barra de menú comparte ahora el tono `toolbar` con
   la barra de herramientas en lugar de la barra de estado, tal como en el
   prototipo, donde ambas comparten el mismo color (#476).
+- **Azul de acento del modo oscuro alineado con el prototipo.**
+  `accent`/`accent2` (y las superficies derivadas `accent_soft`/
+  `accent_line`/`accent_shadow`) son ahora el azul más claro y periwinkle
+  del prototipo en lugar de un tono más apagado — visible en el degradado
+  del botón primario, el botón "Siguiente", las herramientas activas, el
+  círculo activo del stepper y el mando del control deslizante.
+  `accent_text` ya coincidía exactamente con el valor del prototipo;
+  `accent_shadow` sigue siendo un valor de color sin efecto de resplandor
+  (Qt QSS no admite `box-shadow`, #477).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

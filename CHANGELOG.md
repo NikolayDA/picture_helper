@@ -318,6 +318,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   u. a., `panel_btn_style`). Die Menüleiste teilt sich dabei den
   `toolbar`-Ton mit der Werkzeugleiste statt der Statusleiste – wie im
   Prototyp, wo Menü- und Werkzeugleiste denselben Farbwert tragen (#476).
+- **Akzentblau im Dark Mode an den Prototyp angeglichen.** `accent`/`accent2`
+  (und die abgeleiteten `accent_soft`/`accent_line`/`accent_shadow`-Flächen)
+  sind jetzt das hellere, periwinkle-artige Blau des Prototyps statt eines
+  dumpferen Tons – sichtbar am Primärbutton-Verlauf, dem „Weiter“-Button,
+  aktiven Werkzeugen, dem aktiven Stepper-Kreis und dem Slider-Griff.
+  `accent_text` traf bereits 1:1 den Prototyp-Wert; `accent_shadow` bleibt
+  ein reiner Farbwert ohne Glow-Effekt (Qt-QSS kennt kein `box-shadow`,
+  #477).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**

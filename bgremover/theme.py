@@ -88,9 +88,12 @@ DARK = Palette(
     card_bg="#262b33", card_border="rgba(255,255,255,.07)",
     glass="rgba(26,30,37,.82)",
     text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
-    accent="#4a90d9", accent2="#3f7fce", accent_soft="rgba(74,144,217,.16)",
-    accent_line="rgba(74,144,217,.42)", accent_text="#9fc0ff",
-    accent_shadow="rgba(74,144,217,.35)", on_accent="#ffffff",
+    # Akzent 1:1 aus dem Prototyp (#477): ein helleres, periwinkle-artiges
+    # Blau statt des dumpferen früheren Tons – bildet Primärbutton-Verlauf,
+    # aktive Werkzeuge/Stepper-Kreis, Slider-Griff und Fokusringe.
+    accent="#5b8cff", accent2="#4f81f5", accent_soft="rgba(91,140,255,.16)",
+    accent_line="rgba(91,140,255,.3)", accent_text="#9fc0ff",
+    accent_shadow="rgba(79,129,245,.35)", on_accent="#ffffff",
     good="#7fe0aa", good_soft="rgba(80,200,140,.16)",
     bad="#f29aa6", bad_soft="rgba(229,104,122,.16)",
     is_dark=True,

@@ -345,6 +345,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   désormais la teinte `toolbar` avec la barre d'outils au lieu de la barre de
   statut, comme dans le prototype où les deux partagent la même couleur
   (#476).
+- **Bleu d'accent du mode sombre aligné sur le prototype.**
+  `accent`/`accent2` (ainsi que les surfaces dérivées `accent_soft`/
+  `accent_line`/`accent_shadow`) sont désormais le bleu plus clair et
+  bleu-lavande du prototype au lieu d'une teinte plus terne — visible dans
+  le dégradé du bouton primaire, le bouton « Suivant », les outils actifs,
+  le cercle actif du stepper et le curseur du slider. `accent_text`
+  correspondait déjà exactement à la valeur du prototype ; `accent_shadow`
+  reste une simple valeur de couleur sans effet de lueur (Qt QSS ne connaît
+  pas `box-shadow`, #477).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`
