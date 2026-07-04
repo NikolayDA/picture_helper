@@ -169,14 +169,29 @@ Ein Paket, `bgremover/`:
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
-- **UI-Bausteine:** `main_toolbar.py`, `right_panel*.py`, `layer_panel.py`
-  (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal, #334),
-  `height_map_panel.py` (Höhen-Tab #349: Beschaffen/Bearbeiten/Optimieren,
+- **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
+  (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
+  `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,
+  #334), `height_map_panel.py` (Höhen-Tab #349: Beschaffen/Bearbeiten/Optimieren,
   ebenfalls `layersChanged`-getrieben; Bearbeiten/Optimieren nur im HEIGHT-Kontext
   aktiv, Optimierung mit Live-Vorschau über `preview_height_op`/`apply_height_op`),
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
   Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
   `theme.py`, `icons*.py`.
+- **Geführter Workflow & Redesign (Epics #413/#418/#424/#455/#463):** Das
+  MainWindow führt durch **sechs Schritte** (`WorkflowStep` in `stepper.py`:
+  OPEN/CUTOUT/ADJUST/SHAPE/RELIEF/EXPORT). `stepper.py` (`Stepper`) ist die
+  zustandslose Schrittleiste – Klick sendet `stepSelected`, das MainWindow
+  entscheidet über Navigation/Gating (`set_current`/`set_locked`, ohne Bild nur
+  Schritt 1); `_apply_toolbar_for_step` schaltet die kontextuellen Werkzeuge.
+  `zoom_control.py` (`ZoomControl`) ist die schwebende Glas-Zoom-Pille unten
+  rechts (−/Prozent/+/Lock, #464); die Zoom-Logik (Klemmen, Schrittweite, Lock)
+  liegt in `CanvasViewport` (`step_zoom`/`set_zoom_locked`, Grenzen
+  `_ZOOM_CTRL_MIN_PCT`/`_MAX_PCT` in `constants.py`) – reiner UI-State, keine
+  Undo-/Redo-Einträge. Das Design-System/Theming liegt in `theme.py`
+  (palettengetriebene `*_style`-Builder, u. a. `card_style`/`stepper_style`/
+  `zoom_pill_style`, Tokens `ACCENT`/`CARD_STYLE`, hell/dunkel). Referenz-Spec:
+  [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md), Prototyp unter `design/`.
 - **Maßeinheiten/Geometrie:** `units.py` — Qt-freie, strikt getypte px↔mm↔DPI-Mathematik
   (#376): leitet aus je zwei bekannten Größen die dritte deterministisch ab
   (`MM_PER_INCH = 25.4`), validiert Eingaben und meldet ungültige Werte als strukturierte
