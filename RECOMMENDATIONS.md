@@ -11,13 +11,13 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-03)
+## Aktueller Stand (2026-07-04)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
-bleiben die maßgebliche Baseline vor neuen PRs. Neu in dieser Runde: die offene
-GitHub-Triage ist nach den Rail-/Zoom-Follow-ups auf den aktuellen Stand
-gebracht. Vor diesem PR zeigt GitHub 14 offene Issues; nach Abschluss von
-**#461** bleiben 13 Roadmap-/Backlog-Issues.
+bleiben die maßgebliche Baseline vor neuen PRs. Neu in dieser Runde: **#461**
+ist geschlossen – der zugrunde liegende Snapshot-Drift wurde bereits mit
+PR #467 behoben, das Issue selbst blieb danach offen liegen. GitHub zeigt
+jetzt **13** offene Roadmap-/Backlog-Issues.
 
 ### Erledigt seit dem letzten Review
 
@@ -33,9 +33,12 @@ gebracht. Vor diesem PR zeigt GitHub 14 offene Issues; nach Abschluss von
   (`ACCENT`/`CARD_STYLE`) sind über PR #412/#423 gelandet (DE/EN-Strings,
   `tests/test_workflow.py`).
 - **Rail-/Zoom-Welle abgeschlossen:** **#455/#456/#457/#458/#463/#464** sind über
-  PR #466 gelandet, **#465** ist bewusst `not_planned`. Dieser Follow-up-PR
-  schließt die drei nachträglichen #466-P2s (Zoom-Richtung, Viewport-Anker,
-  Höhen-Dab-Preview) und aktualisiert **#461**.
+  PR #466 gelandet, **#465** ist bewusst `not_planned`. PR #467 schließt die drei
+  nachträglichen #466-P2s (Zoom-Richtung, Viewport-Anker, Höhen-Dab-Preview) und
+  aktualisiert den Triage-Snapshot.
+- **#461 geschlossen (2026-07-04):** Der mit PR #467 aktualisierte Snapshot deckt
+  sich mit dem Live-GitHub-Stand; das Issue selbst blieb nach dem Merge offen und
+  wird mit dieser Runde geschlossen.
 
 ### Noch offen
 
@@ -49,14 +52,13 @@ gebracht. Vor diesem PR zeigt GitHub 14 offene Issues; nach Abschluss von
   Fund auf PR #460). Betrifft nur die Mockup-Simulation; die echte App
   aktiviert die neue HEIGHT-Ebene bereits automatisch (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-03)
+## Offene GitHub-Issues – Triage-Stand (2026-07-04)
 
-Stand 2026-07-03 zeigt GitHub **14** offene Issues vor Merge dieses Follow-ups.
-**#461** ist genau dieser Snapshot-Drift und wird durch den PR geschlossen. Für
-die weitere Planung bleiben danach **13** offene Roadmap-/Backlog-Issues: die
+Stand 2026-07-04 zeigt GitHub **13** offene Roadmap-/Backlog-Issues: die
 rechte-Spalte-Politur (**#413/#414**), i18n/Doku (**#425/#430/#431/#432**),
 Rollout/Release (**#426/#435/#392/#389**) und die unabhängigen Punkte
-**#299/#318/#245**.
+**#299/#318/#245**. **#461** war genau dieser Snapshot-Drift und ist in dieser
+Runde geschlossen worden (Snapshot bereits mit PR #467 korrigiert).
 
 **Kommentar-Durchsicht:** Die drei nachträglichen P2-Kommentare auf PR #466 sind
 als echte Restarbeit bestätigt und in diesem PR adressiert. Der P2 auf PR #460
@@ -92,7 +94,6 @@ geschätzter Umsetzungsaufwand.
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟢 Niedrig | **Nach der Release** – höchste Wirkung zuerst. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-Level-Permission-Overrides im Reusable-WF | 🟢 Niedrig | 🟡 Mittel | **Needs refinement** – GitHub-Semantik belegen. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | **Blockiert (extern)** – OpenAI-Billing/Quota. |
-| [#461](https://github.com/NikolayDA/picture_helper/issues/461) | Triage-Snapshot nach Rail-Follow-ups aktualisieren | 🟡 Mittel | 🟢 Niedrig | **Durch diesen PR erledigt** – wird geschlossen. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 

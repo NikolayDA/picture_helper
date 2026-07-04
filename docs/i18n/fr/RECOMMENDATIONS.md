@@ -11,13 +11,13 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-03)
+## État actuel (2026-07-04)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
-locale restent la base avant tout nouveau PR. Nouveauté de ce tour : le triage
-des tickets ouverts est remis à jour après les follow-ups rail/zoom. Avant ce
-PR, GitHub affiche 14 tickets ouverts ; après fermeture de **#461**, il reste
-13 tickets de roadmap/backlog.
+locale restent la base avant tout nouveau PR. Nouveauté de ce tour : **#461**
+est fermé — la dérive d'instantané sous-jacente était déjà corrigée par le
+PR #467, mais le ticket lui-même était resté ouvert après la fusion. GitHub
+affiche désormais **13** tickets ouverts de roadmap/backlog.
 
 ### Terminé depuis la dernière revue
 
@@ -33,9 +33,12 @@ PR, GitHub affiche 14 tickets ouverts ; après fermeture de **#461**, il reste
   (`ACCENT`/`CARD_STYLE`) ont atterri via PR #412/#423 (chaînes DE/EN,
   `tests/test_workflow.py`).
 - **Vague rail/zoom terminée :** **#455/#456/#457/#458/#463/#464** ont atterri
-  via PR #466, et **#465** est volontairement `not_planned`. Ce PR de suivi
-  ferme les trois P2 tardifs de #466 (direction du zoom, ancrage au viewport,
-  aperçu des dabs de hauteur) et actualise **#461**.
+  via PR #466, et **#465** est volontairement `not_planned`. Le PR #467 ferme
+  les trois P2 tardifs de #466 (direction du zoom, ancrage au viewport, aperçu
+  des dabs de hauteur) et a actualisé l'instantané de triage.
+- **#461 fermé (2026-07-04) :** L'instantané actualisé par le PR #467
+  correspond à l'état réel de GitHub ; le ticket lui-même était resté ouvert
+  après la fusion et est fermé dans ce tour.
 
 ### Encore ouvert
 
@@ -51,14 +54,14 @@ PR, GitHub affiche 14 tickets ouverts ; après fermeture de **#461**, il reste
   la PR #460). N'affecte que la simulation de la maquette ; l'application
   réelle active déjà automatiquement le nouveau calque HEIGHT (#347).
 
-## Tickets GitHub ouverts — Triage (2026-07-03)
+## Tickets GitHub ouverts — Triage (2026-07-04)
 
-Au 2026-07-03, GitHub affiche **14** tickets ouverts avant fusion de ce suivi.
-**#461** est exactement cette dérive d'instantané et sera fermé par le PR. Pour
-la planification, il reste ensuite **13** tickets de roadmap/backlog : polissage
-de la colonne droite (**#413/#414**), i18n/docs (**#425/#430/#431/#432**),
-rollout/publication (**#426/#435/#392/#389**) et les points indépendants
-**#299/#318/#245**.
+Au 2026-07-04, GitHub affiche **13** tickets ouverts de roadmap/backlog :
+polissage de la colonne droite (**#413/#414**), i18n/docs
+(**#425/#430/#431/#432**), rollout/publication (**#426/#435/#392/#389**) et les
+points indépendants **#299/#318/#245**. **#461** était exactement cette dérive
+d'instantané et a été fermé dans ce tour (instantané déjà corrigé par le
+PR #467).
 
 **Revue des commentaires :** Les trois commentaires P2 tardifs sur PR #466 ont
 été confirmés comme vrai travail de suivi et sont traités dans ce PR. Le P2 de
@@ -94,7 +97,6 @@ active déjà automatiquement les calques HEIGHT.
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Faible | 🟢 Faible | **Après la publication** – plus fort impact d'abord. |
 | [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Overrides de permissions par job dans WF réutilisable | 🟢 Faible | 🟡 Moyenne | **À affiner** – prouver la sémantique GitHub. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan « Quota exceeded » | 🟡 Moyenne | 🟢 Faible | **Bloqué (externe)** – facturation/quota OpenAI. |
-| [#461](https://github.com/NikolayDA/picture_helper/issues/461) | Actualiser l'instantané de triage après les follow-ups rail | 🟡 Moyenne | 🟢 Faible | **Résolu par ce PR** – sera fermé. |
 
 ### Recommandé ensuite (ordre des PR)
 
