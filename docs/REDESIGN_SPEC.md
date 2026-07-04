@@ -137,16 +137,73 @@ erneuert `setBackgroundBrush` beim Theme-Umschalten live (verdrahtet in
 `MainWindow._apply_theme`, analog zu Schrittleiste/Werkzeugleiste/
 Zoom-Pille, #428), sodass kein Neustart nötig ist.
 
+**Token ohne Prototyp-`--var`-Pendant (#480).** Vier Token entsprechen
+keiner eigenen CSS-Variable im Prototyp-Bundle: `panel` ist ein reines
+Alias auf `inspector` (im dunklen Schema wertgleich, siehe §3 für die
+helle Abweichung); `tabbar` bedient ausschließlich die (Alt-)Tab-Leiste aus
+der Vor-Redesign-Ära (`TAB_STYLE`/`_Theme`, kein Verbraucher im geführten
+Workflow); `divider` ist eine reine App-Erfindung für dünne Trennflächen
+ohne CSS-Gegenstück; `on_accent` trifft den im Prototyp hart kodierten
+Text-auf-Akzent-Wert (`.seg.on{ color:#fff }`), der dort nie über eine
+eigene `--var` läuft. Alle vier sind bewusste, dokumentierte Ausnahmen —
+kein übersehener Drift.
+
 ## §3 Farb-Tokens — helles Schema
 
-Gleiches Token-Set, Ausprägung `theme.LIGHT` (Auszug; vollständig in
-`theme.py`): `bg #e9edf3`, `panel #f2f4f8`, `inspector #f5f7fb`,
-`stepper #eef1f6`, `nav #eaeef3`, `toolbar #e6eaf1`, `surface #ffffff`,
-`card_bg #ffffff`, `glass rgba(255,255,255,.86)`,
-`text #1b2230`, `text2 #3a4351`, `text3 #59626f`
-(bewusst dunkel genug für ≥ 4.5:1 auf der Statusleiste), `muted #8b95a3`,
-`accent #3a6fd0`, `accent2 #2f5fcf`, `on_accent #ffffff`,
-`good #1f9d63`, `bad #d65060`. Umschaltung: §10.
+Gleiches Token-Set, Ausprägung `theme.LIGHT`:
+
+| Token | Wert | Rolle |
+|---|---|---|
+| `bg` | `#e9edf3` | Leinwand-Umfeld |
+| `panel` / `inspector` | `#f2f4f8` / `#f5f7fb` | Panelflächen |
+| `tabbar` | `#e6eaf1` | (Alt-)Tab-Leiste |
+| `stepper` | `#eef1f6` | Schrittleiste |
+| `nav` | `#eaeef3` | Navigations-Fußzeile |
+| `status` | `#dee3eb` | Statusleiste |
+| `toolbar` | `#e6eaf1` | Werkzeugleiste |
+| `border` / `border_2` | `#c9d2df` / `rgba(22,32,52,.16)` | Ränder (Standard/sekundär) |
+| `divider` / `hairline` | `#dbe1ea` / `#d4dae4` | Trennlinien |
+| `surface` / `surface_hover` | `#ffffff` / `#eef1f6` | Bedienflächen |
+| `hover` | `rgba(22,32,52,.06)` | Hover-Schleier |
+| `inset` | `#e3e8ef` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
+| `card_bg` / `card_border` | `#ffffff` / `rgba(22,32,52,.10)` | Karten |
+| `glass` | `rgba(255,255,255,.86)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
+| `checker_a` / `checker_b` | `#dde2ea` / `#eef1f5` | Canvas-Transparenz-Schachbrett |
+| `text` / `text2` / `text3` | `#1b2230` / `#3a4351` / `#59626f` | aktiver Text |
+| `muted` | `#8b95a3` | **nur** Disabled/Placeholder |
+| `label` | `#7b8492` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe §2) |
+| `accent` / `accent2` | `#3a6fd0` / `#2f5fcf` | Blau (Aktion) |
+| `accent_soft` / `accent_line` | `rgba(58,111,208,.14)` / `rgba(58,111,208,.34)` | Akzentflächen/-linien |
+| `accent_text` / `on_accent` | `#2f5fcf` / `#ffffff` | Text auf/zu Akzent |
+| `accent_shadow` | `rgba(58,111,208,.26)` | Glow-Farbwert (aktuell ungenutzt, siehe §2) |
+| `good` / `good_soft` | `#1f9d63` / `rgba(31,157,99,.14)` | positiv |
+| `good_line` | `rgba(31,157,99,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe §2) |
+| `bad` / `bad_soft` | `#d65060` / `rgba(214,80,96,.13)` | negativ |
+
+Umschaltung: §10.
+
+**Bekannte Restabweichung vom Prototyp (#480, bewusst nicht Teil von
+#474–#479).** Anders als das dunkle Schema wurde `theme.LIGHT` in diesem
+Epic nicht Zeile für Zeile auf die Prototyp-Werte gebracht — laut
+Epic-Beschreibung #474 ausdrücklich ein Nicht-Ziel, da das helle Schema
+schon vor #474 näher am Prototyp lag als das dunkle. Ein direkter Abgleich
+zeigt dennoch verbleibenden, hier bewusst dokumentierten Drift zur
+Prototyp-Quelle:
+
+| Token | Prototyp-Wert | `theme.LIGHT` aktuell |
+|---|---|---|
+| `stepper` | `#f1f4f8` | `#eef1f6` |
+| `border` | `rgba(22,32,52,.09)` | `#c9d2df` (opak) |
+| `hairline` | `rgba(22,32,52,.11)` | `#d4dae4` (opak) |
+| `hover` | `rgba(22,32,52,.05)` | `rgba(22,32,52,.06)` |
+| `card_border` | `rgba(22,32,52,.09)` | `rgba(22,32,52,.10)` |
+| `accent`/`accent2` | `#3f6fe0` / `#3464d6` | `#3a6fd0` / `#2f5fcf` |
+| `accent_soft`/`accent_line`/`accent_shadow` | Akzent-Farbfamilie des Prototyps | eigene, etwas dunklere Farbfamilie |
+| `text3` | `#69727f` | `#59626f` (**bewusst**, WCAG AA auf der Statusleiste, #441) |
+
+Mit Ausnahme von `text3` (explizit kontrastbegründet) sind das kleine,
+bisher nicht behobene Restabweichungen – Kandidat für ein künftiges,
+eigenes Issue analog zu #475–#479, aber außerhalb des Umfangs dieses Epics.
 
 ## §4 Typografie
 

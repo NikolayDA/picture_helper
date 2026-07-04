@@ -4,6 +4,7 @@ Die Tests dokumentieren die kanonischen Werte und verteidigen die
 Entfernung der toten Konstanten gegen eine versehentliche Wiedereinführung.
 """
 import ast
+import re
 from pathlib import Path
 
 import bgremover
@@ -340,3 +341,167 @@ def test_dead_style_constants_not_reintroduced():
     assigned = _pkg_assigned_names()
     assert "BTN_STYLE" not in assigned
     assert "GRP_STYLE" not in assigned
+
+
+# ── Drift-Schutz: theme.py vs. docs/REDESIGN_SPEC.md (#480) ─────────────────
+#
+# REDESIGN_SPEC.md §2/§3 beansprucht, die maßgebliche Wertquelle zu sein –
+# das gilt nur, wenn Code und Doku garantiert nicht auseinanderlaufen können.
+# Analog zum bestehenden Drift-Test-Muster des Projekts
+# (``test_ci_qt_packages.py`` für die Qt-apt-Paketliste, CLAUDE.md „Wichtig:
+# Drift-Disziplin") parst dieser Test die kanonischen Farb-Tabellen aus der
+# Spec und vergleicht sie Feld für Feld gegen die echten ``DARK``/``LIGHT``-
+# Paletten. Nur Tabellen mit der exakten Kopfzeile ``| Token | Wert | Rolle |``
+# zählen als kanonisch – die separaten Vergleichstabellen (Epic-Übersicht,
+# dokumentierte Restabweichung des hellen Schemas) nutzen bewusst andere
+# Kopfzeilen und werden hier ignoriert.
+_SPEC_PATH = Path(__file__).resolve().parent.parent / "docs" / "REDESIGN_SPEC.md"
+_CANONICAL_HEADER = "| Token | Wert | Rolle |"
+
+
+def _parse_canonical_color_table(section_text: str) -> dict[str, str]:
+    """Extrahiert ``{token: wert}`` aus jeder kanonischen Tabelle im Abschnitt.
+
+    Eine Tabellenzeile darf mehrere Token in einer Zelle bündeln
+    (`` `panel` / `inspector` ``); teilen sie sich einen einzigen Wert (eine
+    Werte-Zelle, mehrere Token-Zellen), gilt dieser für alle. Ansonsten müssen
+    Token- und Wertanzahl je Zeile exakt übereinstimmen.
+    """
+    values: dict[str, str] = {}
+    lines = section_text.splitlines()
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() != _CANONICAL_HEADER:
+            i += 1
+            continue
+        i += 2  # Kopfzeile + Trennzeile (|---|---|---|) überspringen
+        while i < len(lines) and lines[i].strip().startswith("|"):
+            cols = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+            if len(cols) >= 2:
+                tokens = re.findall(r"`([^`]+)`", cols[0])
+                cell_values = re.findall(r"`([^`]+)`", cols[1])
+                if tokens and len(cell_values) == 1:
+                    cell_values = cell_values * len(tokens)
+                assert len(tokens) == len(cell_values), (
+                    f"Token-/Wert-Anzahl passt nicht zusammen: {lines[i]!r}")
+                values.update(zip(tokens, cell_values, strict=True))
+            i += 1
+    return values
+
+
+def _spec_sections() -> tuple[str, str]:
+    """Liefert die Rohtexte von §2 (dunkel) und §3 (hell) aus der Spec-Datei."""
+    text = _SPEC_PATH.read_text(encoding="utf-8")
+    start = text.index("## §2 Farb-Tokens")
+    mid = text.index("## §3 Farb-Tokens", start)
+    end = text.index("## §4 Typografie", mid)
+    return text[start:mid], text[mid:end]
+
+
+def test_redesign_spec_color_tables_match_theme_palettes():
+    """#480: REDESIGN_SPEC.md §2/§3 dürfen nie von ``theme.DARK``/``LIGHT``
+    abweichen – dieser Test schlägt fehl, sobald jemand nur die Palette oder
+    nur die Doku ändert, ohne die jeweils andere Seite nachzuziehen."""
+    from dataclasses import fields
+
+    from bgremover.theme import DARK, LIGHT
+
+    sec2, sec3 = _spec_sections()
+    dark_documented = _parse_canonical_color_table(sec2)
+    light_documented = _parse_canonical_color_table(sec3)
+
+    all_fields = {f.name for f in fields(DARK)} - {"is_dark"}
+    for name, documented, palette in (
+        ("DARK", dark_documented, DARK), ("LIGHT", light_documented, LIGHT),
+    ):
+        missing = all_fields - documented.keys()
+        assert not missing, f"§{'2' if name == 'DARK' else '3'}: undokumentierte Token {missing}"
+        extra = documented.keys() - all_fields
+        assert not extra, f"§{'2' if name == 'DARK' else '3'}: unbekannte Token {extra}"
+        mismatches = {
+            token: (documented[token], getattr(palette, token))
+            for token in documented
+            if documented[token] != getattr(palette, token)
+        }
+        assert not mismatches, (
+            f"theme.{name} weicht von REDESIGN_SPEC.md ab (Spec-Wert, Code-Wert): "
+            f"{mismatches}")
+
+
+# ── Drift-Schutz: theme.py vs. Prototyp-Bundle direkt (#480, optional) ──────
+#
+# Dritte Ecke des Dreiecks Prototyp ↔ Spec ↔ Code: die vorige Prüfung sichert
+# nur Spec↔Code ab. Dieser Test liest die tatsächlich eingebetteten
+# CSS-Variablen aus dem Prototyp-Bundle und vergleicht sie direkt gegen
+# ``theme.DARK`` – nur das dunkle Schema, denn das helle wurde in diesem Epic
+# bewusst nicht Zeile für Zeile angeglichen (Nicht-Ziel von #474/#480, siehe
+# die dokumentierte Restabweichung in REDESIGN_SPEC.md §3).
+_PROTOTYPE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "design" / "Prototyp A - Geführter Workflow.dc.html")
+
+# CSS-Custom-Property → Palette-Feld. Nur Variablen mit einem echten
+# Palette-Gegenstück; die übrigen (s. u.) sind dokumentierte Ausnahmen.
+_PROTOTYPE_VAR_TO_FIELD = {
+    "--bg": "bg", "--stepper": "stepper", "--nav": "nav", "--status": "status",
+    "--rail": "toolbar", "--inspector": "inspector",
+    "--border": "border", "--border-2": "border_2", "--hairline": "hairline",
+    "--text": "text", "--text-2": "text2", "--text-3": "text3", "--muted": "muted",
+    "--label": "label",
+    "--accent": "accent", "--accent-2": "accent2", "--accent-soft": "accent_soft",
+    "--accent-line": "accent_line", "--accent-text": "accent_text",
+    "--accent-shadow": "accent_shadow",
+    "--surface": "surface", "--surface-hover": "surface_hover", "--hover": "hover",
+    "--inset": "inset", "--card": "card_bg", "--card-border": "card_border",
+    "--checker-a": "checker_a", "--checker-b": "checker_b",
+    "--glass": "glass",
+    "--good": "good", "--good-soft": "good_soft", "--good-line": "good_line",
+    "--bad": "bad", "--bad-soft": "bad_soft",
+}
+# Prototyp-Variablen ohne Palette-Gegenstück – jeweils bewusst, nicht vergessen:
+# --titlebar/--menubar (App nutzt natives Fenster-Chrome bzw. den toolbar-Ton
+# für QMenuBar, §2), --amber/--amber-2/--amber-shadow/--coral (keine
+# Amber-/Coral-Sonderfarben, Issue #416).
+_PROTOTYPE_VARS_WITHOUT_FIELD = {
+    "--titlebar", "--menubar", "--amber", "--amber-2", "--amber-shadow", "--coral",
+}
+# Die einzige dokumentierte, WCAG-begründete Abweichung im dunklen Schema
+# (REDESIGN_SPEC.md §2, Kontrastvertrag für text3 auf Karten, #441).
+_DARK_ALLOWED_DRIFT = {"card_bg"}
+
+
+def _prototype_dark_root_vars() -> dict[str, str]:
+    """Liest die ``--*``-Variablen des **dunklen** ``:root``-Blocks aus dem
+    Prototyp-Bundle. Das Bundle enthält zwei Blöcke (dunkel, dann hell); ein
+    zweites Auftreten von ``--bg`` markiert den Beginn des hellen Blocks.
+    """
+    text = _PROTOTYPE_PATH.read_text(encoding="utf-8")
+    pairs = re.findall(r"(--[a-zA-Z0-9-]+):\s*([^;]+);", text)
+    bg_positions = [i for i, (k, _v) in enumerate(pairs) if k == "--bg"]
+    assert len(bg_positions) >= 2, "Erwarte zwei :root-Blöcke (dunkel, hell) im Bundle"
+    return dict(pairs[:bg_positions[1]])
+
+
+def test_dark_palette_matches_prototype_bundle_directly():
+    """#480 (optional): ``theme.DARK`` direkt gegen die im Prototyp-Bundle
+    eingebetteten CSS-Variablen geprüft – unabhängig von REDESIGN_SPEC.md.
+    Verhindert, dass Spec und Code gemeinsam vom Prototyp abdriften.
+    """
+    from bgremover.theme import DARK
+
+    prototype_vars = _prototype_dark_root_vars()
+    checked = _PROTOTYPE_VAR_TO_FIELD.keys() | _PROTOTYPE_VARS_WITHOUT_FIELD
+    unexpected = prototype_vars.keys() - checked
+    assert not unexpected, (
+        f"Neue Prototyp-Variablen ohne Zuordnung: {unexpected} – "
+        "in _PROTOTYPE_VAR_TO_FIELD aufnehmen oder als bewusste Ausnahme "
+        "in _PROTOTYPE_VARS_WITHOUT_FIELD dokumentieren.")
+
+    mismatches = {}
+    for css_var, field in _PROTOTYPE_VAR_TO_FIELD.items():
+        prototype_value = prototype_vars[css_var].replace(" ", "")
+        actual = getattr(DARK, field).replace(" ", "")
+        if prototype_value != actual and field not in _DARK_ALLOWED_DRIFT:
+            mismatches[css_var] = (prototype_value, actual)
+    assert not mismatches, (
+        f"theme.DARK weicht vom Prototyp ab (Prototyp-Wert, Code-Wert): {mismatches}")

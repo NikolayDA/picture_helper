@@ -373,6 +373,23 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   palette active, et `ImageCanvas.apply_palette` actualise le motif en
   direct lors du changement de thème, sans redémarrage de l'application
   (#478).
+- **Correction des tableaux de couleurs de REDESIGN_SPEC.md + ajout d'un
+  test de régression de dérive.** La documentation prétendait être copiée
+  1:1 depuis le prototype, mais selon sa propre note de provenance, elle
+  n'avait jamais été réellement vérifiée par rapport aux valeurs de couleur
+  réelles — une comparaison ligne par ligne a révélé une dérive propre à la
+  documentation, indépendante de `theme.py` (`checker_a`/`checker_b`,
+  `inset`, `label`, `good_line`, `border_2` manquants ; le schéma clair
+  n'était qu'un extrait en prose au lieu d'un tableau). Les §2/§3 sont
+  désormais des tableaux complets qui correspondent exactement à
+  `theme.DARK`/`theme.LIGHT` ; la dérive restante du schéma clair par
+  rapport au prototype, délibérément hors périmètre de cet épique, est
+  maintenant explicitée au lieu d'être passée sous silence. Deux nouveaux
+  tests dans `tests/test_theme.py` protègent cela durablement : l'un compare
+  les tableaux de la spec aux palettes, un second vérifie en plus
+  `theme.DARK` directement par rapport aux variables CSS intégrées dans le
+  bundle du prototype — les deux échouent dès que le code et la
+  documentation redivergent (#480, clôture l'épique #474).
 - **L'aperçu en direct se rabat sur COLOR pour les calques de données de taille
   incompatible.** Lorsque la taille en pixels d'un calque HEIGHT/GLOSS (état de
   projet anormal ou étranger) ne correspond plus à la base, `_render_preview_uncached`

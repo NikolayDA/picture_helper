@@ -367,6 +367,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `#2c313a`/`#353b45`, claro: `#dde2ea`/`#eef1f5`); `make_checker_brush`
   ahora recibe la paleta activa, y `ImageCanvas.apply_palette` actualiza el
   patrón en vivo al cambiar de tema, sin reiniciar la aplicación (#478).
+- **Corregidas las tablas de color de REDESIGN_SPEC.md + prueba de
+  regresión de desviación.** La documentación afirmaba estar copiada 1:1
+  del prototipo, pero según su propia nota de procedencia nunca se había
+  verificado realmente contra los valores de color reales — una comparación
+  línea por línea reveló una desviación propia de la documentación,
+  independiente de `theme.py` (faltaban `checker_a`/`checker_b`, `inset`,
+  `label`, `good_line`, `border_2`; el esquema claro era solo un extracto en
+  prosa en lugar de una tabla). §2/§3 son ahora tablas completas que
+  coinciden exactamente con `theme.DARK`/`theme.LIGHT`; la desviación
+  restante del esquema claro respecto al prototipo, deliberadamente fuera
+  del alcance de este épico, ahora se documenta en lugar de omitirse en
+  silencio. Dos nuevas pruebas en `tests/test_theme.py` lo protegen de
+  forma permanente: una compara las tablas de la spec con las paletas, y
+  una segunda comprueba además `theme.DARK` directamente contra las
+  variables CSS incrustadas en el paquete del prototipo — ambas fallan en
+  cuanto código y documentación vuelven a divergir (#480, cierra el épico
+  #474).
 - **La vista previa en vivo degrada a COLOR con capas de datos de tamaño
   incompatible.** Cuando el tamaño en píxeles de una capa HEIGHT/GLOSS (estado de
   proyecto anómalo o ajeno) ya no coincide con la base, `_render_preview_uncached`

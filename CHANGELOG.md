@@ -344,6 +344,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   hell: `#dde2ea`/`#eef1f5`); `make_checker_brush` nimmt jetzt die aktive
   Palette entgegen, und `ImageCanvas.apply_palette` erneuert das Muster
   beim Theme-Umschalten live – ohne Neustart der App (#478).
+- **REDESIGN_SPEC.md-Farbtabellen korrigiert + Drift-Regressionstest.** Die
+  Dokumentation beanspruchte, 1:1 aus dem Prototyp übernommen zu sein, war
+  laut eigenem Herkunftshinweis aber nie gegen die tatsächlichen Farbwerte
+  geprüft worden – ein Zeile-für-Zeile-Abgleich deckte eigenen Doku-Drift
+  auf, unabhängig von `theme.py` (u. a. fehlende `checker_a`/`checker_b`,
+  `inset`, `label`, `good_line`, `border_2`; ein `helles Schema` nur als
+  Prosa-Auszug statt Tabelle). §2/§3 sind jetzt vollständige Tabellen, die
+  exakt `theme.DARK`/`theme.LIGHT` entsprechen; verbleibender, bewusst
+  außerhalb dieses Epics belassener Drift des hellen Schemas zum Prototyp
+  ist explizit dokumentiert statt stillschweigend verschwiegen. Zwei neue
+  Tests in `tests/test_theme.py` sichern das dauerhaft ab: einer vergleicht
+  die Spec-Tabellen gegen die Paletten, ein zweiter zusätzlich `theme.DARK`
+  direkt gegen die im Prototyp-Bundle eingebetteten CSS-Variablen – beide
+  schlagen fehl, sobald Code und Dokumentation wieder auseinanderlaufen
+  (#480, schließt Epic #474 ab).
 - **Live-Vorschau degradiert bei größenfremden Daten-Ebenen auf COLOR.** Passt die
   Pixelgröße einer HEIGHT-/GLOSS-Ebene (anomaler oder fremder Projektzustand) nicht
   zur Basis, behandelt `_render_preview_uncached` die Ebene jetzt in **jedem**
