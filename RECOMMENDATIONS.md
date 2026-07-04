@@ -14,10 +14,11 @@
 ## Aktueller Stand (2026-07-04)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
-bleiben die maßgebliche Baseline vor neuen PRs. Neu in dieser Runde: **#461**
-ist geschlossen – der zugrunde liegende Snapshot-Drift wurde bereits mit
-PR #467 behoben, das Issue selbst blieb danach offen liegen. GitHub zeigt
-jetzt **13** offene Roadmap-/Backlog-Issues.
+bleiben die maßgebliche Baseline vor neuen PRs. Neu in dieser Runde: **#461**,
+**#414** und das Epic **#413** sind geschlossen. PR #473 zentralisiert die
+Karten-Metriken und entfernt den letzten Akzent-Hex außerhalb von `theme.py`.
+Neu offen ist die Dark-Mode-Prototyp-Angleichung **#474–#480**. GitHub zeigt
+jetzt **18** offene Roadmap-/Backlog-Issues.
 
 ### Erledigt seit dem letzten Review
 
@@ -39,6 +40,9 @@ jetzt **13** offene Roadmap-/Backlog-Issues.
 - **#461 geschlossen (2026-07-04):** Der mit PR #467 aktualisierte Snapshot deckt
   sich mit dem Live-GitHub-Stand; das Issue selbst blieb nach dem Merge offen und
   wird mit dieser Runde geschlossen.
+- **Karten-Inspector abgeschlossen:** **#414** ist über PR #473 erledigt
+  (zentrale `CARD_*`-Tokens, heller/dunkler Karten-Stil, Akzent-Hex-Guard).
+  Damit ist auch Epic **#413** abgeschlossen.
 
 ### Noch offen
 
@@ -54,21 +58,17 @@ jetzt **13** offene Roadmap-/Backlog-Issues.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-04)
 
-Stand 2026-07-04 zeigt GitHub **13** offene Roadmap-/Backlog-Issues: die
-rechte-Spalte-Politur (**#413/#414**), i18n/Doku (**#425/#430/#431/#432**),
-Rollout/Release (**#426/#435/#392/#389**) und die unabhängigen Punkte
-**#299/#318/#245**. **#461** war genau dieser Snapshot-Drift und ist in dieser
-Runde geschlossen worden (Snapshot bereits mit PR #467 korrigiert).
-
-**Kommentar-Durchsicht:** Die drei nachträglichen P2-Kommentare auf PR #466 sind
-als echte Restarbeit bestätigt und in diesem PR adressiert. Der P2 auf PR #460
-bleibt als Mockup-only-Fund **O8** dokumentiert; die echte App aktiviert
-HEIGHT-Ebenen bereits automatisch.
+Stand 2026-07-04 zeigt GitHub **18** offene Roadmap-/Backlog-Issues:
+Dark-Mode-Prototyp-Angleichung (**#474/#475/#476/#477/#478/#479/#480**),
+i18n/Doku (**#425/#430/#431/#432**), Rollout/Release
+(**#426/#435/#392/#389**) und die unabhängigen Punkte **#299/#318/#245**.
+**#461** war der erledigte Snapshot-Drift; **#414** und **#413** sind nach
+PR #473 ebenfalls geschlossen.
 
 ### Sinnvolle Bündelung
 
-- **Fast fertiges Epic:** #413 hat nur noch #414 offen; dessen Tokens liegen
-  schon in `theme.py` – Karten-Stil für das helle Schema ergänzen, dann schließen.
+- **Dark Mode 1:1 (#474):** #475/#476/#477/#479 als Token-Welle, #478 als Canvas-
+  Checker-Fix und #480 als Spec-/Drift-Test-Abschluss bündeln.
 - **i18n/Doku (#425):** #430 (ES/FR/UK/ZH) entsperrt die Paritätstests; #431 (Doku)
   und #432 (Screenshots) folgen, sobald die UI optisch final ist.
 - **Rollout/Release:** #426 bleibt nur noch über #435 offen; #435 mit #392
@@ -81,8 +81,13 @@ geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#413](https://github.com/NikolayDA/picture_helper/issues/413) | EPIC: Karten-Inspector – rechte Spalte als Karten | 🟠 Hoch | 🟢 Niedrig | **Fast fertig** – nur #414 offen. |
-| [#414](https://github.com/NikolayDA/picture_helper/issues/414) | Karten-Container & Akzent-Tokens zentralisieren | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – Tokens da; hellen Karten-Stil ergänzen. |
+| [#474](https://github.com/NikolayDA/picture_helper/issues/474) | EPIC: Dark Mode 1:1 an Prototyp A angleichen | 🟠 Hoch | 🟡 Mittel | **Neu** – #475–#480 bündeln. |
+| [#475](https://github.com/NikolayDA/picture_helper/issues/475) | Dark-Schema: Hintergrundflächen exakt angleichen | 🟠 Hoch | 🟢 Niedrig | **Start hier** – Basisflächen zuerst. |
+| [#476](https://github.com/NikolayDA/picture_helper/issues/476) | Dark-Schema: transparente Rahmen/Hairlines | 🟡 Mittel | 🟢 Niedrig | **Mit #475** – Rand-Tokens korrigieren. |
+| [#477](https://github.com/NikolayDA/picture_helper/issues/477) | Dark-Schema: Akzent-/Button-Farben angleichen | 🟠 Hoch | 🟢 Niedrig | **Mit #475** – interaktive Farben. |
+| [#478](https://github.com/NikolayDA/picture_helper/issues/478) | Canvas-Schachbrett ignoriert aktuelles Theme | 🟡 Mittel | 🟡 Mittel | **Nach Tokens** – Palette + Theme-Wechsel. |
+| [#479](https://github.com/NikolayDA/picture_helper/issues/479) | Fehlende Farb-Token aus dem Prototyp ergänzen | 🟡 Mittel | 🟡 Mittel | **Mit Spec-Abgleich** – nur belegte Tokens. |
+| [#480](https://github.com/NikolayDA/picture_helper/issues/480) | REDESIGN_SPEC-Farbtabellen + Drift-Test | 🟡 Mittel | 🟡 Mittel | **Finaler Abgleich** – nach #475–#479. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalisierung & Dokumentation | 🟠 Hoch | 🟡 Mittel | **In Arbeit** – #430/#431/#432 offen. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Neue UI-Strings (Schritte/Karten/Navigation) | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423 da. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | ANLEITUNG & README auf geführten Workflow | 🟡 Mittel | 🟡 Mittel | **Nach UI-Freeze** – 6-Sprachen-Spiegel, Link-Tests. |
@@ -97,7 +102,7 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#414** (heller Karten-Stil) abschließen und danach Epic **#413** schließen.
+1. **#474** bündeln: #475/#476/#477/#479 Token-Welle, danach #478 und #480.
 2. **#430** (UI-Strings ES/FR/UK/ZH) vorziehen – entsperrt die i18n-Parität;
    danach **#431**/**#432**, sobald die UI final ist.
 3. **Release:** **#435** + **#392** koordiniert fahren, dann Epics **#426** und

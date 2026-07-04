@@ -15,9 +15,10 @@
 
 La lista activa de análisis de código está vacía. Ruff, mypy y la suite de
 pruebas local siguen siendo la base antes de nuevos PR. Novedad de esta ronda:
-**#461** queda cerrada – la deriva de instantánea subyacente ya se corrigió con
-el PR #467, pero la incidencia en sí quedó abierta tras la fusión. GitHub
-muestra ahora **13** incidencias abiertas de roadmap/backlog.
+**#461**, **#414** y el epic **#413** quedan cerrados. El PR #473 centraliza las
+métricas de tarjeta y elimina el último hex de acento fuera de `theme.py`.
+El nuevo grupo abierto de alineación Dark Mode/prototipo es **#474–#480**.
+GitHub muestra ahora **18** incidencias abiertas de roadmap/backlog.
 
 ### Completado desde la última revisión
 
@@ -39,6 +40,9 @@ muestra ahora **13** incidencias abiertas de roadmap/backlog.
 - **#461 cerrada (2026-07-04):** La instantánea actualizada por el PR #467
   coincide con el estado real de GitHub; la incidencia en sí quedó abierta tras
   la fusión y se cierra en esta ronda.
+- **Inspector de tarjetas completado:** **#414** llegó con PR #473 (tokens
+  `CARD_*` centrales, estilo de tarjeta claro/oscuro, guard contra hex de
+  acento). Con ello también queda completado el epic **#413**.
 
 ### Aún abierto
 
@@ -55,22 +59,17 @@ muestra ahora **13** incidencias abiertas de roadmap/backlog.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-07-04)
 
-A fecha del 2026-07-04, GitHub muestra **13** incidencias abiertas de
-roadmap/backlog: pulido de la columna derecha (**#413/#414**), i18n/docs
-(**#425/#430/#431/#432**), rollout/publicación (**#426/#435/#392/#389**) y los
-puntos independientes **#299/#318/#245**. **#461** era exactamente esta deriva
-de instantánea y se ha cerrado en esta ronda (instantánea ya corregida por el
-PR #467).
-
-**Repaso de comentarios:** Los tres comentarios P2 tardíos en PR #466 se
-confirmaron como trabajo pendiente real y quedan abordados en este PR. El P2 de
-PR #460 sigue documentado como hallazgo solo de mockup **O8**; la app real ya
-activa automáticamente las capas HEIGHT.
+A fecha del 2026-07-04, GitHub muestra **18** incidencias abiertas de
+roadmap/backlog: alineación Dark Mode/prototipo
+(**#474/#475/#476/#477/#478/#479/#480**), i18n/docs (**#425/#430/#431/#432**),
+rollout/publicación (**#426/#435/#392/#389**) y los puntos independientes
+**#299/#318/#245**. **#461** era la deriva de instantánea ya resuelta; **#414**
+y **#413** también quedan cerrados tras PR #473.
 
 ### Agrupaciones sensatas
 
-- **Epic casi terminado:** #413 solo tiene #414 abierto; sus tokens ya están en
-  `theme.py` — añadir el estilo de tarjeta claro y luego cerrarlo.
+- **Dark Mode 1:1 (#474):** agrupar #475/#476/#477/#479 como ola de tokens, #478
+  como arreglo del checker de canvas y #480 como cierre spec/test de drift.
 - **i18n/docs (#425):** #430 (ES/FR/UK/ZH) desbloquea las pruebas de paridad; #431
   (docs) y #432 (capturas) siguen cuando la UI sea visualmente definitiva.
 - **Rollout/publicación:** #426 queda abierto solo por #435; coordinar #435 con
@@ -83,8 +82,13 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#413](https://github.com/NikolayDA/picture_helper/issues/413) | EPIC: Inspector de tarjetas – columna derecha | 🟠 Alta | 🟢 Baja | **Casi hecho** – solo #414 abierto. |
-| [#414](https://github.com/NikolayDA/picture_helper/issues/414) | Centralizar contenedor de tarjeta y tokens de acento | 🟡 Media | 🟢 Baja | **Listo para PR** – tokens ya existen; falta estilo claro. |
+| [#474](https://github.com/NikolayDA/picture_helper/issues/474) | EPIC: Dark Mode 1:1 con Prototipo A | 🟠 Alta | 🟡 Media | **Nuevo** – agrupar #475–#480. |
+| [#475](https://github.com/NikolayDA/picture_helper/issues/475) | Dark: alinear superficies de fondo | 🟠 Alta | 🟢 Baja | **Empezar aquí** – bases primero. |
+| [#476](https://github.com/NikolayDA/picture_helper/issues/476) | Dark: bordes/hairlines transparentes | 🟡 Media | 🟢 Baja | **Con #475** – tokens de borde. |
+| [#477](https://github.com/NikolayDA/picture_helper/issues/477) | Dark: alinear acentos/botones | 🟠 Alta | 🟢 Baja | **Con #475** – colores interactivos. |
+| [#478](https://github.com/NikolayDA/picture_helper/issues/478) | Checker del canvas ignora el tema | 🟡 Media | 🟡 Media | **Tras tokens** – paleta + cambio de tema. |
+| [#479](https://github.com/NikolayDA/picture_helper/issues/479) | Añadir tokens de color faltantes | 🟡 Media | 🟡 Media | **Con spec** – solo tokens probados. |
+| [#480](https://github.com/NikolayDA/picture_helper/issues/480) | Tablas de color REDESIGN_SPEC + test drift | 🟡 Media | 🟡 Media | **Cierre final** – tras #475–#479. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internacionalización y documentación | 🟠 Alta | 🟡 Media | **En curso** – #430/#431/#432 abiertos. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nuevas cadenas de UI (pasos/tarjetas/navegación) | 🟠 Alta | 🟡 Media | **Listo para PR** – ES/FR/UK/ZH; DE/EN vía PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Actualizar ANLEITUNG y README al flujo guiado | 🟡 Media | 🟡 Media | **Tras congelar la UI** – espejo en 6 idiomas. |
@@ -99,7 +103,7 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 
 ### Recomendado a continuación (orden de PR)
 
-1. Terminar **#414** (estilo claro) y después cerrar el epic **#413**.
+1. Agrupar **#474**: ola de tokens #475/#476/#477/#479, luego #478 y #480.
 2. Adelantar **#430** (cadenas ES/FR/UK/ZH) — desbloquea la paridad i18n; luego
    **#431**/**#432** cuando la UI sea definitiva.
 3. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego cerrar
