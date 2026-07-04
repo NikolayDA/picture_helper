@@ -42,6 +42,7 @@ from bgremover.i18n import tr
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.right_panel_tabs import (
+    _CARD_STACK_SPACING,
     AdjustTab,
     BackgroundTab,
     PreviewTab,
@@ -527,6 +528,31 @@ class _RightPanelBuilder:
         return card
 
     @staticmethod
+    def _normalize_content_block_margins(
+        widget: QWidget, *, first: bool, last: bool,
+    ) -> None:
+        """Verhindert doppelte Außenabstände zwischen kombinierten Schritt-Blöcken."""
+        layout = widget.layout()
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.itemAt(layout.count() - 1)
+            if item is None:
+                break
+            if item.widget() is not None or item.layout() is not None:
+                break
+            layout.takeAt(layout.count() - 1)
+        if first and last:
+            return
+        left, top, right, bottom = layout.getContentsMargins()
+        layout.setContentsMargins(
+            left,
+            top if first else _CARD_STACK_SPACING,
+            right,
+            bottom if last else 0,
+        )
+
+    @staticmethod
     def _content_page(items: list[tuple[str, str, QWidget]]) -> QWidget:
         """Baut eine Schritt-Seite aus (Name, Tooltip, Inhalt)-Tripeln.
 
@@ -550,9 +576,11 @@ class _RightPanelBuilder:
         clay = QVBoxLayout(container)
         clay.setContentsMargins(0, 0, 0, 0)
         clay.setSpacing(0)
-        for name, tooltip, widget in items:
+        for index, (name, tooltip, widget) in enumerate(items):
             widget.setAccessibleName(name)
             widget.setToolTip(tooltip)
+            _RightPanelBuilder._normalize_content_block_margins(
+                widget, first=index == 0, last=index == len(items) - 1)
             clay.addWidget(widget)
         clay.addStretch()
         scroll.setWidget(container)
