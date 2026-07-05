@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -180,6 +181,43 @@ def test_open_step_recent_card_delegates(qapp, tmp_path):
 
     _button(panel.frame, "a.png").click()
     assert opened == [a]
+
+
+def test_open_step_recent_rows_show_prototype_thumbnail_and_text(qapp, tmp_path):
+    """Step 1 übernimmt die Prototyp-Zeile mit 30px-Vorschau links."""
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    p = tmp_path / "motiv.png"
+    pix = QPixmap(8, 8)
+    pix.fill(QColor("#8ab4ff"))
+    assert pix.save(str(p))
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        recent=[str(p)], on_open_path=lambda _p: None)
+
+    row = _button(panel.frame, "motiv.png")
+    assert not row.icon().isNull()
+    assert row.iconSize().width() == 30
+    assert row.iconSize().height() == 30
+    assert DARK.text2 in row.styleSheet()
+    assert "padding:9px 8px" in row.styleSheet()
+
+
+def test_open_step_recent_card_uses_prototype_background(qapp, tmp_path):
+    """Die ganze „Zuletzt geöffnet"-Kachel nutzt den Prototyp-Kartenton."""
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    p = str(tmp_path / "a.png")
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        recent=[p], on_open_path=lambda _p: None)
+
+    card = panel.frame.findChild(QFrame, "recentCard")
+    assert card is not None
+    assert "#2e353f" in card.styleSheet()
 
 
 def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
