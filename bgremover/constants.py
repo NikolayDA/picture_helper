@@ -79,11 +79,11 @@ _ZOOM_FACTOR          = 1.15
 _DEFAULT_HEIGHT_STEP  = 32
 
 # ── Zoom-Overlay (#464) ──────────────────────────────────────
-# Wertebereich und Schrittweite der Canvas-Zoom-Kontrolle, 1:1 aus der
-# ``zoomBy``-Logik des Prototyps. Die Mausrad-Grenzen (ZOOM_MIN/ZOOM_MAX in
-# ``canvas_viewport``) bleiben davon unberührt.
+# Wertebereich und Schrittweite der Canvas-Zoom-Kontrolle. Die Obergrenze folgt
+# der technischen Viewport-Grenze (40x = 4000 %), damit +/−-Buttons und Mausrad
+# denselben maximalen Zoom erreichen.
 _ZOOM_CTRL_MIN_PCT  = 25
-_ZOOM_CTRL_MAX_PCT  = 300
+_ZOOM_CTRL_MAX_PCT  = 4000
 _ZOOM_CTRL_STEP_PCT = 10
 
 # ── Auswahloverlay-Farbe (RGBA) ──────────────────────────────

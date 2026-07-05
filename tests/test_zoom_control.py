@@ -41,7 +41,7 @@ def test_overlay_shown_once_image_loaded(qapp):
     assert not c.zoom_control.isHidden()
 
 
-# ── +/− in 10-%-Schritten, geklemmt auf 25–300 % ───────────────────────
+# ── +/− in 10-%-Schritten, geklemmt auf 25–4000 % ──────────────────────
 
 
 def test_plus_and_minus_step_by_ten_percent(qapp, qtbot):
@@ -61,14 +61,26 @@ def test_plus_and_minus_step_by_ten_percent(qapp, qtbot):
 def test_zoom_clamped_at_maximum(qapp):
     c = _canvas()
     c.resetTransform()
-    c.scale(2.95, 2.95)
+    c.scale(39.95, 39.95)
     c._viewport._notify_zoom()
 
     c.zoom_control.btn_in.click()
     assert c._viewport.zoom_percent == pytest.approx(_ZOOM_CTRL_MAX_PCT)
     c.zoom_control.btn_in.click()  # bereits am Maximum → No-op
     assert c._viewport.zoom_percent == pytest.approx(_ZOOM_CTRL_MAX_PCT)
-    assert c.zoom_control.label.text() == "300%"
+    assert c.zoom_control.label.text() == "4000%"
+
+
+def test_plus_button_continues_beyond_legacy_300_percent(qapp):
+    c = _canvas()
+    c.resetTransform()
+    c.scale(3.0, 3.0)
+    c._viewport._notify_zoom()
+
+    c.zoom_control.btn_in.click()
+
+    assert c._viewport.zoom_percent == pytest.approx(310)
+    assert c.zoom_control.label.text() == "310%"
 
 
 def test_zoom_clamped_at_minimum(qapp):
@@ -94,11 +106,11 @@ def test_step_buttons_do_not_reverse_direction_outside_control_range(qapp):
     assert c._viewport.zoom_percent == pytest.approx(20)
 
     c.resetTransform()
-    c.scale(3.10, 3.10)
+    c.scale(40.10, 40.10)
     c._viewport._notify_zoom()
 
     c.zoom_control.btn_in.click()
-    assert c._viewport.zoom_percent == pytest.approx(310)
+    assert c._viewport.zoom_percent == pytest.approx(4010)
 
 
 # ── Fixier-Lock ────────────────────────────────────────────────────────
