@@ -19,8 +19,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from PyQt6.QtCore import QSignalBlocker, Qt
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
+from PyQt6.QtCore import QSignalBlocker, QSize, Qt
+from PyQt6.QtGui import (
+    QColor,
+    QDragEnterEvent,
+    QDropEvent,
+    QIcon,
+    QLinearGradient,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPixmap,
+)
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -57,9 +67,9 @@ from bgremover.theme import (
     CARD_STACK_SIDE_MARGIN,
     CARD_STACK_SPACING,
     CARD_STACK_TOP_MARGIN,
+    Palette,
     _Theme,
     active_palette,
-    card_style,
     nav_back_style,
     nav_bar_style,
     nav_next_style,
@@ -129,6 +139,10 @@ def _step_next(step: WorkflowStep) -> str:
 # Canvas-Drop (``ImageCanvas.dropEvent``); die eigentliche Validierung erledigt
 # der gemeinsame asynchrone Ladepfad.
 _DROP_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif")
+_RECENT_THUMB_SIZE = 30
+_RECENT_CARD_BG_DARK = "#2e353f"
+_RECENT_CARD_BG_LIGHT = "#ffffff"
+_RECENT_CARD_BORDER_LIGHT = "rgba(22,32,52,.09)"
 
 
 class _DropFrame(QFrame):
@@ -304,6 +318,50 @@ def _set_value_silently(widget: QSlider | QSpinBox, value: int) -> None:
         widget.setValue(value)
     finally:
         del blocker
+
+
+def _recent_card_style(p: Palette) -> str:
+    """Prototyp-Hintergrund nur fuer die Step-1-Recent-Karte."""
+    bg = _RECENT_CARD_BG_DARK if p.is_dark else _RECENT_CARD_BG_LIGHT
+    border = p.card_border if p.is_dark else _RECENT_CARD_BORDER_LIGHT
+    return f"background: {bg}; border: 1px solid {border}; border-radius: 12px;"
+
+
+def _recent_thumbnail_icon(path: str) -> QIcon:
+    """Erzeugt ein 30x30-Preview-Icon aus Bilddateien, sonst einen ruhigen Swatch."""
+    size = _RECENT_THUMB_SIZE
+    source = QPixmap(path)
+    target = QPixmap(size, size)
+    target.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(target)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    clip = QPainterPath()
+    clip.addRoundedRect(0, 0, size, size, 6, 6)
+    painter.setClipPath(clip)
+
+    if source.isNull():
+        gradient = QLinearGradient(0, 0, size, size)
+        suffix = Path(path).suffix.lower()
+        if suffix == ".bgrproj":
+            gradient.setColorAt(0, QColor("#4a5b7a"))
+            gradient.setColorAt(1, QColor("#3a4a63"))
+        else:
+            gradient.setColorAt(0, QColor("#5b7a4a"))
+            gradient.setColorAt(1, QColor("#4a633a"))
+        painter.fillRect(0, 0, size, size, gradient)
+    else:
+        scaled = source.scaled(
+            size, size,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        x = (size - scaled.width()) // 2
+        y = (size - scaled.height()) // 2
+        painter.drawPixmap(x, y, scaled)
+
+    painter.end()
+    return QIcon(target)
 
 
 class _RightPanelBuilder:
@@ -514,7 +572,7 @@ class _RightPanelBuilder:
         pal = active_palette()
         card = QFrame()
         card.setObjectName("recentCard")
-        card.setStyleSheet(f"QFrame#recentCard {{ {card_style(pal)} }}")
+        card.setStyleSheet(f"QFrame#recentCard {{ {_recent_card_style(pal)} }}")
         v = QVBoxLayout(card)
         v.setContentsMargins(*CARD_PADDING)
         v.setSpacing(6)
@@ -523,11 +581,14 @@ class _RightPanelBuilder:
         v.addWidget(title)
         for path in entries:
             row = QPushButton(Path(path).name)
+            row.setObjectName("recentFileRow")
             row.setToolTip(path)
+            row.setIcon(_recent_thumbnail_icon(path))
+            row.setIconSize(QSize(_RECENT_THUMB_SIZE, _RECENT_THUMB_SIZE))
             row.setStyleSheet(
                 "QPushButton { background:transparent; border:none; text-align:left;"
-                f" color:{pal.text}; font-size:12px;"
-                " padding:7px 8px; border-radius:8px; }"
+                f" color:{pal.text2}; font-size:12px;"
+                " padding:9px 8px; border-radius:8px; }"
                 f"QPushButton:hover {{ background:{pal.hover}; }}"
                 f"QPushButton:focus {{ outline:none; border:1px solid {pal.accent}; }}")
             row.clicked.connect(lambda _=False, p=path: on_open_path(p))
