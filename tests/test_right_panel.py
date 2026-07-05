@@ -481,6 +481,27 @@ def test_background_tab_feather_button_delegates_radius(qapp):
     assert calls == [("feather", 5)]
 
 
+def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
+    """Die betroffenen Prototyp-Kacheln nutzen das neue Bild-SVG statt Alt-Icons."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    for text in (
+        "Entfernen (transparent)",
+        "Farbe ersetzen",
+        "Kante glätten",
+        "Ecken abrunden",
+        "Graustufe importieren…",
+    ):
+        button = _button(panel.frame, text)
+        assert button.property("prototypeIconName") == "prototype_image"
+        assert not button.icon().isNull()
+
+    generate = _button(panel.frame, "Aus Bild erzeugen")
+    assert generate.property("prototypeIconName") is None
+    assert generate.icon().isNull()
+
+
 # ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────
 
 
@@ -551,11 +572,18 @@ def test_layer_panel_action_bar_delegates(qapp):
     widget, _refs = panel.build()
     panel.refresh(_infos())
 
-    for symbol, expected in (
-        ("＋", "add"), ("⧉", "duplicate"), ("🗑", "delete"),
-        ("▲", "up"), ("▼", "down"), ("✎", "rename"),
+    for icon_name, expected in (
+        ("layer_add", "add"),
+        ("layer_duplicate", "duplicate"),
+        ("layer_delete", "delete"),
+        ("layer_move_up", "up"),
+        ("layer_move_down", "down"),
+        ("layer_rename", "rename"),
     ):
-        _button(widget, symbol).click()
+        button = next(
+            b for b in widget.findChildren(QPushButton)
+            if b.property("prototypeIconName") == icon_name)
+        button.click()
         assert calls[-1] == (expected,)
 
 
@@ -577,8 +605,9 @@ def test_layer_panel_rows_reflect_and_delegate(qapp):
 
     # Sichtbarkeit der unteren Ebene umschalten.
     bot_row = _row_for(widget, "Unten")
-    vis = next(b for b in bot_row.findChildren(QPushButton)
-               if b.text() in ("👁", "🚫"))
+    vis = next(
+        b for b in bot_row.findChildren(QPushButton)
+        if b.property("prototypeIconName") == "layer_visible")
     vis.setChecked(False)
     assert ("visible", "bot", False) in calls
 
@@ -640,8 +669,33 @@ def test_layer_panel_empty_state_disables_actions(qapp):
     widget, _refs = panel.build()
     panel.refresh([])
 
-    add = _button(widget, "＋")
+    add = next(
+        b for b in widget.findChildren(QPushButton)
+        if b.property("prototypeIconName") == "layer_add")
     assert not add.isEnabled()
+
+
+def test_layer_panel_action_bar_uses_prototype_icon_buttons(qapp):
+    panel = LayerPanel(_noop_layer_actions())
+    widget, _refs = panel.build()
+
+    buttons = [
+        b for b in widget.findChildren(QPushButton)
+        if b.objectName() == "layerActionButton"
+    ]
+    assert [b.property("prototypeIconName") for b in buttons] == [
+        "layer_add",
+        "layer_duplicate",
+        "layer_delete",
+        "layer_move_up",
+        "layer_move_down",
+        "layer_rename",
+    ]
+    for button in buttons:
+        assert button.text() == ""
+        assert not button.icon().isNull()
+        assert button.width() == 32
+        assert button.height() == 30
 
 
 # ── Height-Map-Panel (#349) ──────────────────────────────────────────────

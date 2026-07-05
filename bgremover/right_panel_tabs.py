@@ -391,7 +391,7 @@ class BackgroundTab:
         btn_rem = _make_neutral_btn(
             tr("right_panel.background.remove"),
             tr("right_panel.background.remove.tooltip"),
-            height=38, icon_name="transparency")
+            height=38, icon_name="prototype_image")
         btn_rem.clicked.connect(lambda _=False: self._actions.remove_background())
         gb.addWidget(btn_rem)
 
@@ -410,7 +410,7 @@ class BackgroundTab:
         btn_repl = _make_neutral_btn(
             tr("right_panel.background.replace"),
             tr("right_panel.background.replace.tooltip"),
-            icon_name="bg")
+            icon_name="prototype_image")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
         color_row.addWidget(btn_repl, 1)
         gb.addLayout(color_row)
@@ -430,7 +430,7 @@ class BackgroundTab:
         btn_feather = _make_neutral_btn(
             tr("right_panel.background.feather"),
             tr("right_panel.background.feather.tooltip"),
-            height=38, icon_name="transparency")
+            height=38, icon_name="prototype_image")
         btn_feather.clicked.connect(
             lambda _=False: self._actions.feather(feather_slider.value()))
         ge.addWidget(btn_feather)
@@ -558,7 +558,7 @@ class ShapeTab:
         btn_corner = _make_neutral_btn(
             tr("right_panel.shape.round"),
             tr("right_panel.shape.round.tooltip"),
-            height=38, icon_name="form")
+            height=38, icon_name="prototype_image")
         btn_corner.clicked.connect(
             lambda _=False: self._actions.round_corners(corner_slider.value()))
         gc.addWidget(btn_corner)
@@ -829,6 +829,7 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22, QColor(p.text2)))
         b.setIconSize(QSize(22, 22))
+        b.setProperty("prototypeIconName", icon_name)
     if wrap:
         font = QFont(); font.setPixelSize(13); font.setWeight(QFont.Weight.Medium)
         b.setText(_wrap_to_width(label, font, _CARD_TEXT_WIDTH - 24))

@@ -103,11 +103,11 @@ class HeightMapPanel:
         # blaue Verlauf wie die übrigen Primärbuttons, kein Lila-Sonderton mehr).
         btn_gen = _make_primary_btn(
             tr("right_panel.height.generate"),
-            tr("right_panel.height.generate.tooltip"), icon_name="form")
+            tr("right_panel.height.generate.tooltip"))
         btn_gen.clicked.connect(lambda _=False: self._actions.generate())
         btn_imp = _make_neutral_btn(
             tr("right_panel.height.import"),
-            tr("right_panel.height.import.tooltip"), icon_name="open")
+            tr("right_panel.height.import.tooltip"), icon_name="prototype_image")
         btn_imp.clicked.connect(lambda _=False: self._actions.import_file())
         body.addWidget(btn_gen)
         body.addWidget(btn_imp)

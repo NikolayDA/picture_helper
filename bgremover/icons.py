@@ -127,6 +127,14 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "lasso",
     "height_lighten",
     "height_darken",
+    "prototype_image",
+    "layer_add",
+    "layer_duplicate",
+    "layer_delete",
+    "layer_move_up",
+    "layer_move_down",
+    "layer_rename",
+    "layer_visible",
     "undo",
     "redo",
     "theme",
@@ -337,6 +345,138 @@ def _draw_height_darken_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawEllipse(QPointF(10 * k, 10 * k), 5.5 * k, 5.5 * k)
 
 
+def _draw_prototype_image_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Bild-Aktion im Inspector: Prototyp-SVG aus den Karten-Buttons."""
+    k = s / 20.0
+    pen = QPen(color, max(1.0, 1.6 * k), Qt.PenStyle.SolidLine,
+               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(2.5 * k, 4 * k, 15 * k, 12 * k), 2.2 * k, 2.2 * k)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawEllipse(QPointF(7.2 * k, 8.6 * k), 1.3 * k, 1.3 * k)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    path = QPainterPath()
+    path.moveTo(3.2 * k, 14.3 * k)
+    path.lineTo(7.8 * k, 10.2 * k)
+    path.lineTo(11.2 * k, 13 * k)
+    path.lineTo(14.3 * k, 9.8 * k)
+    path.lineTo(16.8 * k, 12.6 * k)
+    p.drawPath(path)
+
+
+def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Ebenen-Plus aus dem Prototyp (`M10 4 V16`, `M4 10 H16`)."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.8 * k), Qt.PenStyle.SolidLine,
+                  Qt.PenCapStyle.RoundCap))
+    p.drawLine(QPointF(10 * k, 4 * k), QPointF(10 * k, 16 * k))
+    p.drawLine(QPointF(4 * k, 10 * k), QPointF(16 * k, 10 * k))
+
+
+def _draw_layer_duplicate_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Ebenen-Duplizieren aus dem Prototyp: zwei versetzte Rundrechtecke."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.5 * k), Qt.PenStyle.SolidLine,
+                  Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(3 * k, 7 * k, 9.5 * k, 9.5 * k), 1.6 * k, 1.6 * k)
+    path = QPainterPath()
+    path.moveTo(6.7 * k, 7 * k)
+    path.lineTo(6.7 * k, 4.6 * k)
+    path.quadTo(6.7 * k, 3.4 * k, 7.9 * k, 3.4 * k)
+    path.lineTo(15.4 * k, 3.4 * k)
+    path.quadTo(16.6 * k, 3.4 * k, 16.6 * k, 4.6 * k)
+    path.lineTo(16.6 * k, 12.1 * k)
+    path.quadTo(16.6 * k, 13.3 * k, 15.4 * k, 13.3 * k)
+    path.lineTo(12.5 * k, 13.3 * k)
+    p.drawPath(path)
+
+
+def _draw_layer_delete_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Papierkorb-Kontur aus dem Ebenen-Prototyp."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.5 * k), Qt.PenStyle.SolidLine,
+                  Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    path = QPainterPath()
+    path.moveTo(4 * k, 6 * k); path.lineTo(16 * k, 6 * k)
+    path.moveTo(7 * k, 6 * k)
+    path.lineTo(7 * k, 4.6 * k)
+    path.quadTo(7 * k, 3.6 * k, 8 * k, 3.6 * k)
+    path.lineTo(12 * k, 3.6 * k)
+    path.quadTo(13 * k, 3.6 * k, 13 * k, 4.6 * k)
+    path.lineTo(13 * k, 6 * k)
+    path.moveTo(6.2 * k, 6 * k)
+    path.lineTo(6.9 * k, 16 * k)
+    path.quadTo(7.0 * k, 16.9 * k, 7.9 * k, 16.9 * k)
+    path.lineTo(12.1 * k, 16.9 * k)
+    path.quadTo(13.0 * k, 16.9 * k, 13.1 * k, 16 * k)
+    path.lineTo(13.8 * k, 6 * k)
+    p.drawPath(path)
+
+
+def _draw_layer_move_up_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Gefülltes Dreieck `M10 5 L16.5 15.5 H3.5 Z` aus dem Prototyp."""
+    k = s / 20.0
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([
+        QPointF(10 * k, 5 * k), QPointF(16.5 * k, 15.5 * k),
+        QPointF(3.5 * k, 15.5 * k),
+    ]))
+
+
+def _draw_layer_move_down_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Gefülltes Dreieck `M10 15 L3.5 4.5 H16.5 Z` aus dem Prototyp."""
+    k = s / 20.0
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([
+        QPointF(10 * k, 15 * k), QPointF(3.5 * k, 4.5 * k),
+        QPointF(16.5 * k, 4.5 * k),
+    ]))
+
+
+def _draw_layer_rename_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Stift-Icon aus dem Ebenen-Prototyp."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.5 * k), Qt.PenStyle.SolidLine,
+                  Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    path = QPainterPath()
+    path.moveTo(4.2 * k, 15.8 * k)
+    path.lineTo(4.9 * k, 12.7 * k)
+    path.lineTo(13.4 * k, 4.2 * k)
+    path.quadTo(14.4 * k, 3.2 * k, 15.4 * k, 4.2 * k)
+    path.lineTo(16.8 * k, 5.6 * k)
+    path.quadTo(17.8 * k, 6.6 * k, 16.8 * k, 7.6 * k)
+    path.lineTo(8.3 * k, 15.1 * k)
+    path.closeSubpath()
+    path.moveTo(12.1 * k, 5.9 * k)
+    path.lineTo(15.1 * k, 8.9 * k)
+    p.drawPath(path)
+
+
+def _draw_layer_visible_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Sichtbarkeits-Auge aus den Ebenenzeilen des Prototyps."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.5 * k), Qt.PenStyle.SolidLine,
+                  Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    path = QPainterPath()
+    path.moveTo(2 * k, 10 * k)
+    path.cubicTo(4.5 * k, 5.5 * k, 8 * k, 4 * k, 10 * k, 4 * k)
+    path.cubicTo(12 * k, 4 * k, 15.5 * k, 5.5 * k, 18 * k, 10 * k)
+    path.cubicTo(15.5 * k, 14.5 * k, 12 * k, 16 * k, 10 * k, 16 * k)
+    path.cubicTo(8 * k, 16 * k, 4.5 * k, 14.5 * k, 2 * k, 10 * k)
+    path.closeSubpath()
+    p.drawPath(path)
+    p.drawEllipse(QPointF(10 * k, 10 * k), 2.5 * k, 2.5 * k)
+
+
 def _draw_lock_icon(p: QPainter, s: int, _color: QColor) -> None:
     """Fixier-Schloss der Zoom-Kontrolle (#464)."""
     c = QColor(200, 200, 200)
@@ -387,6 +527,14 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "move":           _draw_move_icon,
     "height_lighten": _draw_height_lighten_icon,
     "height_darken":  _draw_height_darken_icon,
+    "prototype_image": _draw_prototype_image_icon,
+    "layer_add":       _draw_layer_add_icon,
+    "layer_duplicate": _draw_layer_duplicate_icon,
+    "layer_delete":    _draw_layer_delete_icon,
+    "layer_move_up":   _draw_layer_move_up_icon,
+    "layer_move_down": _draw_layer_move_down_icon,
+    "layer_rename":    _draw_layer_rename_icon,
+    "layer_visible":   _draw_layer_visible_icon,
     "theme":          _draw_theme_icon,
     "lock":           _draw_lock_icon,
 }
