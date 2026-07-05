@@ -273,6 +273,7 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
         assert f"background: {DARK.accent}" in style
         assert "QSlider::add-page:horizontal" in style
         assert "background: #e6e6e6" in style
+        assert "border: 1px solid #ffffff" in style
         assert f"background: {DARK.on_accent}" in style
         assert "width: 16px" in style
         assert "height: 16px" in style
@@ -666,6 +667,7 @@ def test_layer_panel_opacity_slider_uses_prototype_range_style(qapp):
     assert f"background: {DARK.accent}" in style
     assert "QSlider::add-page:horizontal" in style
     assert "background: #e6e6e6" in style
+    assert "border: 1px solid #ffffff" in style
     assert f"background: {DARK.on_accent}" in style
 
 

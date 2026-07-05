@@ -279,11 +279,12 @@ def num_style(p: Palette) -> str:
 def slider_style(p: Palette) -> str:
     """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496)."""
     rest = "#e6e6e6" if p.is_dark else "#d4d9e2"
+    track_border = p.on_accent if p.is_dark else p.border_2
     return f"""
     QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
     QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
-    QSlider::sub-page:horizontal {{ background: {p.accent}; border-radius: 4px; }}
-    QSlider::add-page:horizontal {{ background: {rest}; border-radius: 4px; }}
+    QSlider::sub-page:horizontal {{ background: {p.accent}; border: 1px solid {track_border}; border-radius: 4px; }}
+    QSlider::add-page:horizontal {{ background: {rest}; border: 1px solid {track_border}; border-radius: 4px; }}
     QSlider::handle:horizontal {{
         background: {p.on_accent}; border: none; width: 16px; height: 16px;
         margin: -4px 0; border-radius: 8px;

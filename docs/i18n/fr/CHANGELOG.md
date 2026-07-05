@@ -354,9 +354,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   pas `box-shadow`, #477).
 - **Les sliders de la colonne droite reproduisent le prototype.** Les sliders
   Qt suivent désormais le `input[type=range]` du prototype : pistes de 8 px,
-  segment rempli en `accent`, reste gris clair, poignée blanche de 16 px et
-  espacement vertical `9px 0 2px`, y compris le slider d'opacité du panneau
-  des calques (#496).
+  segment rempli en `accent`, reste gris clair, bord de piste blanc, poignée
+  blanche de 16 px et espacement vertical `9px 0 2px`, y compris le slider
+  d'opacité du panneau des calques (#496).
 - **Le contrôle segmenté d'aperçu (étape 6) utilise désormais la bonne
   surface du prototype.** Le conteneur « Couleur/Relief/Hauteur/Gloss »
   (`_ModeSegments`) utilisait à tort la teinte `tabbar` ; en vérifiant les

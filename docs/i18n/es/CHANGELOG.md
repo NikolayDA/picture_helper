@@ -351,8 +351,9 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 - **Los controles deslizantes de la columna derecha replican el prototipo.**
   Los sliders de Qt usan ahora, como `input[type=range]` en el prototipo,
   pistas de 8 px con tramo relleno en `accent`, tramo sin rellenar en
-  gris claro, mando blanco de 16 px y el espaciado vertical `9px 0 2px`; esto
-  incluye el slider de opacidad del panel de capas (#496).
+  gris claro, borde blanco de pista, mando blanco de 16 px y el espaciado
+  vertical `9px 0 2px`; esto incluye el slider de opacidad del panel de capas
+  (#496).
 - **El control segmentado de vista previa (paso 6) usa ahora la superficie
   correcta del prototipo.** El contenedor de "Color/Relieve/Altura/Brillo"
   (`_ModeSegments`) usaba incorrectamente el tono `tabbar`; al revisar las
