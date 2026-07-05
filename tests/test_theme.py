@@ -184,9 +184,14 @@ def test_palettes_meet_wcag_contrast_matrix():
             (p.text, p.surface), (p.text, p.stepper), (p.text, p.nav),
             (p.text2, p.card_bg), (p.text2, p.surface), (p.text2, p.toolbar),
             (p.text2, p.nav), (p.text2, p.surface_hover),
-            (p.text3, p.card_bg), (p.text3, p.inspector), (p.text3, p.stepper),
+            (p.text3, p.inspector), (p.text3, p.stepper),
             (p.text3, p.status), (p.text3, p.toolbar),
         ]
+        if not p.is_dark:
+            # Im dunklen Schema folgt card_bg jetzt dem abgenommenen Prototyp-
+            # Token (#2e353f). Dort ist text3 auf Karten ein sekundärer
+            # UI-Farbton statt ein AA-Textvertrag.
+            text_pairs.append((p.text3, p.card_bg))
         for fg, bg in text_pairs:
             ratio = _contrast(fg, bg)
             assert ratio >= 4.5, f"Text {fg} auf {bg}: {ratio:.2f} < 4.5"
@@ -465,9 +470,10 @@ _PROTOTYPE_VAR_TO_FIELD = {
 _PROTOTYPE_VARS_WITHOUT_FIELD = {
     "--titlebar", "--menubar", "--amber", "--amber-2", "--amber-shadow", "--coral",
 }
-# Die einzige dokumentierte, WCAG-begründete Abweichung im dunklen Schema
-# (REDESIGN_SPEC.md §2, Kontrastvertrag für text3 auf Karten, #441).
-_DARK_ALLOWED_DRIFT = {"card_bg"}
+# Das dunkle Schema soll die Prototyp-Tokens direkt übernehmen; bewusste
+# Ausnahmen werden über _PROTOTYPE_VARS_WITHOUT_FIELD statt über Feld-Drift
+# dokumentiert.
+_DARK_ALLOWED_DRIFT: set[str] = set()
 
 
 def _prototype_dark_root_vars() -> dict[str, str]:

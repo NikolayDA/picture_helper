@@ -225,7 +225,9 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     # Live-Vertrag gegen die aktuelle Palette prüfen, nicht gegen die
     # eingefrorene ``_Theme.ACCENT``-Rückwärtskompat-Konstante (#477 hellt
     # ``DARK.accent`` gegenüber dem alten Snapshot auf).
-    from bgremover.theme import DARK
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
 
     panel = build_right_panel(
         _actions([]), _noop_layer_actions(), _noop_height_actions())
@@ -250,6 +252,8 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
         if f.objectName() == "sectionCard"
     ]
     assert cards, "keine Karten-Sektionen gefunden"
+    for card in cards:
+        assert DARK.card_bg in card.styleSheet()
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):

@@ -292,11 +292,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   navigation footer, status bar, controls and cards) now use the cool
   blue-gray tone of the approved prototype
   (`design/Prototyp A - Geführter Workflow.dc.html`) instead of a neutral
-  near-black. `card_bg` is deliberately kept one step darker than the
-  prototype value so `text3` on cards (and on inactive layer names in the
-  layer panel) still meets the WCAG AA contrast contract of ≥ 4.5:1 (#441);
-  `docs/REDESIGN_SPEC.md` §2 documents the new values and this one
-  intentional deviation (#475).
+  near-black. `card_bg` now also uses the prototype value `#2e353f`;
+  `docs/REDESIGN_SPEC.md` §2 documents the adopted values and the remaining
+  intentional token deviation (#475, #496).
 - **Dark theme borders are soft overlays instead of hard gray tones.**
   `border` and `hairline` are now translucent white overlays like in the
   prototype (they settle differently depending on the surface underneath

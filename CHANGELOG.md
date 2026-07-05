@@ -305,11 +305,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Navigations-Fußzeile, Statusleiste, Bedienflächen und Karten) nutzen jetzt
   den kühlen Blaugrau-Ton des abgenommenen Prototyps
   (`design/Prototyp A - Geführter Workflow.dc.html`) statt eines neutralen
-  Nah-Schwarz. `card_bg` bleibt dabei bewusst einen Schritt dunkler als der
-  Prototyp-Wert, damit `text3` auf Karten (und auf inaktiven Ebenennamen im
-  Ebenen-Panel) weiterhin den WCAG-AA-Kontrastvertrag von ≥ 4.5:1 einhält
-  (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die neuen Werte und diese
-  eine bewusste Abweichung (#475).
+  Nah-Schwarz. `card_bg` übernimmt nun ebenfalls den Prototyp-Wert `#2e353f`;
+  `docs/REDESIGN_SPEC.md` §2 dokumentiert die übernommenen Werte und die
+  verbleibende bewusste Token-Abweichung (#475, #496).
 - **Ränder im Dark Mode als weiche Overlays statt harter Grautöne.** `border`
   und `hairline` sind jetzt teiltransparente Weiß-Overlays wie im Prototyp
   (setzen sich je nach Untergrund unterschiedlich ab, statt auf jeder Fläche

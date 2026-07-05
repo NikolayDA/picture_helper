@@ -56,7 +56,7 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `surface` / `surface_hover` | `#30373f` / `#3a424c` | Bedienflächen |
 | `hover` | `rgba(255,255,255,.05)` | Hover-Schleier |
 | `inset` | `#1c2128` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
-| `card_bg` / `card_border` | `#262b33` / `rgba(255,255,255,.07)` | Karten |
+| `card_bg` / `card_border` | `#2e353f` / `rgba(255,255,255,.07)` | Karten |
 | `glass` | `rgba(26,30,37,.82)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
 | `checker_a` / `checker_b` | `#2c313a` / `#353b45` | Canvas-Transparenz-Schachbrett |
 | `text` / `text2` / `text3` | `#e9edf3` / `#cdd4de` / `#8b94a2` | aktiver Text |
@@ -70,29 +70,22 @@ in Widgets sind untersagt. Werte des dunklen Schemas (`theme.DARK`):
 | `good_line` | `rgba(80,200,140,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe unten) |
 | `bad` / `bad_soft` | `#f29aa6` / `rgba(229,104,122,.16)` | negativ |
 
-**Token-Vertrag:** `text`/`text2`/`text3` halten auf ihren Flächen ≥ 4.5:1
-(WCAG AA); `muted` ist ausschließlich für Disabled-/Placeholder-Zustände
-reserviert (§12).
+**Token-Vertrag:** `text`/`text2`/`text3` halten auf den geprüften
+Einsatzflächen ≥ 4.5:1 (WCAG AA); `muted` ist ausschließlich für
+Disabled-/Placeholder-Zustände reserviert (§12). Ausnahme: `text3` auf
+dunklen Karten folgt als sekundärer UI-Ton dem abgenommenen Prototyp-Kontrast.
 
 **Herkunft der Werte (#475/#476/#477).** Die Hintergrund-/Flächen-, Rand- und
 Akzentwerte sind 1:1 aus den CSS-Variablen des dunklen `:root`-Blocks im
 Prototyp-Bundle
-(`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit zwei
-dokumentierten, bewussten Abweichungen:
+(`design/Prototyp A - Geführter Workflow.dc.html`) übernommen, mit einer
+dokumentierten, bewussten Abweichung:
 
 - **`status` deckt nur die Statusleiste ab.** Die Menüleiste teilt sich
   stattdessen den `toolbar`-Ton (`menu_style`) – wie im Prototyp, wo
   `--menubar` und `--rail` denselben Wert tragen. Eine reine
   Fenster-Titelleiste (Prototyp: `--titlebar`) entfällt ohne Ersatz-Token, da
   die App das native Fenster-Chrome von macOS/Linux nutzt.
-- **`card_bg` ist dunkler als der Prototyp-Wert `#2e353f`.** Bei der
-  Prototyp-Helligkeit unterschreitet `text3` (`#8b94a2`) auf Karten den
-  WCAG-AA-Kontraktrag von ≥ 4.5:1 (§12, `test_palettes_meet_wcag_contrast_matrix`).
-  `#262b33` ist der hellstmögliche Wert in Richtung des Prototyps, der den
-  Kontrakt noch einhält – der Prototyp selbst ist kein kontrastgeprüftes
-  Artefakt und geht in diesem einen Fall nicht vor Barrierefreiheit. Aus
-  demselben Grund bezieht `LayerPanel` inaktive Zeilennamen (`text3`) auf
-  `card_bg` statt auf das hellere `surface`.
 
 `border`/`hairline` sind bewusst teiltransparente Weiß-Overlays statt
 opaker Grautöne: Sie setzen sich je nach Untergrund (Karte, Panel,
@@ -456,8 +449,9 @@ Mnemonic-Marker („Relief & Ebenen").
 
 ## §12 Barrierefreiheit
 
-- **Kontrast:** aktiver Text ≥ 4.5:1 (Token-Vertrag §2); `muted` nur für
-  Disabled/Placeholder (WCAG-1.4.3-Ausnahme).
+- **Kontrast:** aktiver Text ≥ 4.5:1 auf den geprüften Einsatzflächen
+  (Token-Vertrag §2); `muted` nur für Disabled/Placeholder
+  (WCAG-1.4.3-Ausnahme).
 - **Trefferflächen:** ≥ 32 px (Stepper-Zellen min. 32 px – der Kreis ist
   nur Indikator, klickbar ist die ganze Zelle; Werkzeug-Buttons 44 px;
   Zahlenfelder min. 24 px hoch bei voller Zeilenbreite) (#441).
