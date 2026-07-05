@@ -114,13 +114,14 @@ Ubuntu + macOS、Python 3.10–3.13；`ui-nightly.yml` 每晚运行 UI 交互测
 
 - **源代码**：可安装软件包 `bgremover/`、`tests/` 下的测试套件以及
   `scripts/` 下的项目脚本。
-- **工具栏/标签页图标**：`bgremover/icons/*.png`（`ai`、`bg`、`brush`、
-  `clear_sel`、`close`、`eraser`、`form`、`open`、`redo`、`restore`、
-  `save`、`transparency`、`undo`、`wand`）。由 `make_tool_icon()`
-  通过 `importlib.resources` 作为 package data 加载。
-- **绘制的矢量图标**：当某个 PNG 缺失时，`make_tool_icon()` 用
-  `QPainter` 以编程方式绘制图标（`_draw_*_icon` 函数）—— 无外部
-  资源。
+- **PNG 工具栏/标签页图标**：`bgremover/icons/*.png`（`ai`、`bg`、
+  `clear_sel`、`close`、`form`、`open`、`restore`、`save`、
+  `transparency`）。由 `make_tool_icon()` 通过 `importlib.resources`
+  作为 package data 加载。
+- **绘制的矢量图标**：rail/主题图标（`move`、`wand`、`brush`、
+  `eraser`、`lasso`、`height_lighten`、`height_darken`、`undo`、`redo`、
+  `theme`）由 `QPainter` 以编程方式渲染；其他 `_draw_*_icon` 函数作为
+  fallback —— 无外部资源。
 - **应用图标**：`BgRemover_icon.png`（macOS `.icns` 的来源）。
 - **光标**：在运行时绘制（`make_wand_cursor`、`make_brush_cursor`、
   `make_eraser_cursor`）—— 无外部文件。

@@ -219,6 +219,26 @@ def test_mac_bundle_refreshes_existing_app_venv_from_checkout():
     assert 'PYTHON_READY' not in text
 
 
+def test_mac_bundle_cleans_build_artifacts_before_packaging():
+    """Stale ``build/lib``-Paketdaten dürfen nicht in die App-venv zurückwandern."""
+    text = (ROOT / "create_BgRemover_app.sh").read_text(encoding="utf-8")
+    install_fn = text[text.index("install_app_project()"):text.index(
+        "# Die venv liegt bewusst NICHT"
+    )]
+
+    assert 'rm -rf "$SCRIPT_DIR/build" "$SCRIPT_DIR/bgremover.egg-info"' in text
+    assert 'sysconfig.get_paths()["purelib"]' in text
+    assert 'rm -rf "$site_pkg/bgremover" "$site_pkg"/bgremover-*.dist-info' in text
+    assert '"$VENV_DIR"/*/site-packages|"$VENV_DIR"/Lib/site-packages' in text
+    assert install_fn.count("prepare_project_install") == 2
+    assert install_fn.index("prepare_project_install") < install_fn.index(
+        'pip_install_project "$VENV_PY" ".[ai]"'
+    )
+    assert install_fn.rindex("prepare_project_install") < install_fn.index(
+        'pip_install_project "$VENV_PY" "."'
+    )
+
+
 def test_mac_bundle_document_types_cover_supported_formats():
     """Die macOS-``CFBundleTypeExtensions`` entsprechen genau den tatsächlich
     unterstützten Formaten (Befund #249, AC #10) – die Finder-Dateizuordnung

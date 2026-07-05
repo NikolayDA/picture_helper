@@ -122,13 +122,14 @@ The project's own work, covered by the project license
 
 - **Source code**: the installable package `bgremover/`, the test suite
   under `tests/`, and project scripts under `scripts/`.
-- **Toolbar/tab icons**: `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
-  `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
-  `save`, `transparency`, `undo`, `wand`). Loaded by `make_tool_icon()`
-  via `importlib.resources` as package data.
-- **Drawn vector icons**: If a PNG is unavailable, `make_tool_icon()`
-  draws the icon programmatically with `QPainter`
-  (`_draw_*_icon` functions) — no external asset.
+- **Toolbar/tab icons as PNG**: `bgremover/icons/*.png` (`ai`, `bg`,
+  `clear_sel`, `close`, `form`, `open`, `restore`, `save`,
+  `transparency`). Loaded by `make_tool_icon()` via
+  `importlib.resources` as package data.
+- **Drawn vector icons**: Rail/theme icons (`move`, `wand`, `brush`,
+  `eraser`, `lasso`, `height_lighten`, `height_darken`, `undo`, `redo`,
+  `theme`) are rendered programmatically with `QPainter`; additional
+  `_draw_*_icon` functions serve as fallback — no external asset.
 - **App icon**: `BgRemover_icon.png` (source for the macOS `.icns`).
 - **Cursors**: drawn at runtime (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — no external files.

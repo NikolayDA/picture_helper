@@ -2,7 +2,8 @@
 
 Asset-Auflösung läuft über ``importlib.resources`` aus den Paket-Daten
 ``bgremover/icons/``. Kontrakt: PNG vorhanden ⇒ PNG-Icon, sonst das
-gezeichnete Vektor-Fallback.
+gezeichnete Vektor-Fallback. Farb-/Rail-gesteuerte Icons nutzen bewusst immer
+den Vektorpfad, damit stale Paketdaten-PNGs die Theme-Farbe nicht überdecken.
 """
 from __future__ import annotations
 
@@ -118,6 +119,18 @@ def make_eraser_cursor(diameter: int) -> QCursor:
 # der Rail läuft über ``make_stateful_tool_icon``/``make_tool_icon(color=...)``
 # (#486), gespeist aus ``Palette.text3``/``Palette.accent_text``.
 _RAIL_ICON_COLOR = QColor(200, 200, 200)
+_VECTOR_ONLY_ICON_NAMES = frozenset({
+    "move",
+    "wand",
+    "brush",
+    "eraser",
+    "lasso",
+    "height_lighten",
+    "height_darken",
+    "undo",
+    "redo",
+    "theme",
+})
 
 
 def _draw_wand_icon(p: QPainter, s: int, color: QColor) -> None:
@@ -394,9 +407,14 @@ def _render_icon_pixmap(
 
 def make_tool_icon(name: str, size: int = 28, color: QColor | None = None) -> QIcon:
     """Lädt PNG aus den Paket-Daten (``bgremover/icons/``) via Pillow,
-    fällt auf gezeichnetes Vektor-Icon zurück. ``color`` färbt nur den
-    Vektor-Pfad ein (PNGs sind bereits fertig eingefärbt); ohne Angabe
-    greift ein neutraler Platzhalterton (#486)."""
+    fällt auf gezeichnetes Vektor-Icon zurück. ``color`` färbt den
+    Vektor-Pfad ein; farb-/Rail-gesteuerte Icons ignorieren eventuell
+    vorhandene PNGs bewusst, weil Rastergrafiken nicht sauber umgefärbt
+    werden können. Ohne Angabe greift ein neutraler Platzhalterton (#486)."""
+    draw = _ICON_DRAW.get(name)
+    if draw is not None and (color is not None or name in _VECTOR_ONLY_ICON_NAMES):
+        return QIcon(_render_icon_pixmap(draw, size, color or _RAIL_ICON_COLOR))
+
     try:
         res = importlib.resources.files("bgremover") / "icons" / f"{name}.png"
         with importlib.resources.as_file(res) as png_path:
@@ -413,7 +431,6 @@ def make_tool_icon(name: str, size: int = 28, color: QColor | None = None) -> QI
         logger.debug("Icon-PNG konnte nicht geladen werden: %s",
                      name, exc_info=True)
     # ── Fallback: gezeichnetes Vektor-Icon ──────────────────────────────────
-    draw = _ICON_DRAW.get(name)
     if draw is None:
         return QIcon()
     return QIcon(_render_icon_pixmap(draw, size, color or _RAIL_ICON_COLOR))
