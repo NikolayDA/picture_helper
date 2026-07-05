@@ -52,11 +52,14 @@ def test_shared_templates_use_palette():
     # alten Opak-Grauton bzw. alten Akzentblau (#476 macht ``DARK.border``
     # zum teiltransparenten Overlay, #477 hellt ``DARK.accent`` auf) – der
     # Live-Vertrag von ``TOOL_STYLE``/``SLD_STYLE`` prüft daher gegen die
-    # aktuellen ``DARK``-Werte, nicht gegen die eingefrorenen Konstanten.
+    # aktuellen ``DARK``-Werte bzw. den nativen Prototyp-Range-Look, nicht
+    # gegen die eingefrorenen Konstanten.
     # ``TAB_STYLE`` wird dagegen direkt aus ``_Theme.ACCENT`` gebaut (siehe
     # right_panel.py) – dort bleibt der Vergleich gegen ``_Theme`` korrekt.
     assert DARK.accent in bgremover.TOOL_STYLE
-    assert DARK.border in bgremover.SLD_STYLE
+    assert DARK.accent in bgremover.SLD_STYLE
+    assert DARK.on_accent in bgremover.SLD_STYLE
+    assert "#d8d8d8" in bgremover.SLD_STYLE
     assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
@@ -101,8 +104,8 @@ def test_style_builders_track_their_palette():
     assert LIGHT.card_bg in card_style(LIGHT)
     assert DARK.card_bg in card_style(DARK)
     assert LIGHT.accent in section_header_style(LIGHT)
-    assert LIGHT.border in slider_style(LIGHT)
     assert LIGHT.accent in slider_style(LIGHT)
+    assert LIGHT.on_accent in slider_style(LIGHT)
     assert LIGHT.accent in menu_style(LIGHT)
     # Aufgelöste f-Strings enthalten keine doppelten Klammern mehr.
     assert "{{" not in card_style(LIGHT)
@@ -114,17 +117,18 @@ def test_slider_style_matches_prototype_range_control():
 
     for palette in (DARK, LIGHT):
         style = slider_style(palette)
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 18px; }" in style
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 24px; }" in style
         assert "QSlider::groove:horizontal" in style
-        assert "height: 4px" in style
+        assert "height: 5px" in style
         assert "background: transparent" in style
         assert "QSlider::sub-page:horizontal" in style
         assert f"background: {palette.accent}" in style
         assert "QSlider::add-page:horizontal" in style
-        assert f"background: {palette.border}" in style
-        assert "width: 14px" in style
-        assert "height: 14px" in style
-        assert "border-radius: 7px" in style
+        assert "background: #d8d8d8" in style or "background: #d4d9e2" in style
+        assert f"background: {palette.on_accent}" in style
+        assert "width: 22px" in style
+        assert "height: 22px" in style
+        assert "border-radius: 11px" in style
 
 
 def test_build_qpalette_uses_scheme_colors(qapp):
