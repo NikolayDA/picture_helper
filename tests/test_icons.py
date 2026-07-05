@@ -11,6 +11,7 @@ import importlib.resources
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor, QIcon
 
+import bgremover.icons as icons
 from bgremover.icons import _ICON_DRAW, make_stateful_tool_icon, make_tool_icon
 from bgremover.main_toolbar import ToolbarActions, build_toolbar
 
@@ -38,6 +39,23 @@ def test_rail_icon_names_have_vector_fallback(qapp):
     assert used_names == _RAIL_ICON_NAMES
     for name in used_names:
         assert name in _ICON_DRAW, f"Kein Vektor-Fallback für Rail-Icon {name!r}"
+
+
+def test_rail_icons_prefer_vector_paths_even_if_png_resource_exists(monkeypatch, qapp):
+    """Stale package-data PNGs aus alten macOS-App-venvs dürfen die Rail nicht
+    zurück auf alte Raster-Icons ziehen."""
+    assert _RAIL_ICON_NAMES <= icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError("Rail icons must render from vector paths before PNG lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("undo", 24)
+    blue = make_tool_icon("undo", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
 
 
 def test_make_tool_icon_color_changes_pixels():

@@ -85,16 +85,46 @@ pip_install_project() {
     fi
 }
 
+clean_project_build_artifacts() {
+    # setuptools kann ignorierte build/lib-Artefakte aus frueheren Builds
+    # wieder in ein neues Wheel aufnehmen. Das traf die geloeschten Rail-PNGs
+    # (undo/redo/...) und liess die macOS-App trotz aktuellem Code alte Icons
+    # laden.
+    rm -rf "$SCRIPT_DIR/build" "$SCRIPT_DIR/bgremover.egg-info"
+}
+
+clean_installed_bgremover_package() {
+    local site_pkg
+    site_pkg=$( ( cd "$HOME" && arch_run "$VENV_PY" -c \
+        'import sysconfig; print(sysconfig.get_paths()["purelib"])' ) 2>/dev/null || true)
+    [ -n "$site_pkg" ] || return 0
+    case "$site_pkg" in
+        "$VENV_DIR"/*/site-packages|"$VENV_DIR"/Lib/site-packages)
+            rm -rf "$site_pkg/bgremover" "$site_pkg"/bgremover-*.dist-info ;;
+        *)
+            echo -e "${RED}❌ Unerwarteter site-packages-Pfad:${NC} $site_pkg"
+            return 1 ;;
+    esac
+}
+
+prepare_project_install() {
+    clean_project_build_artifacts
+    clean_installed_bgremover_package
+}
+
 install_app_project() {
     local success_label="$1"
+    prepare_project_install
     if ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" ".[ai]" ); then
         PYTHON="$VENV_PY"
         echo -e "${GREEN}✅  $success_label (inkl. KI):${NC} $PYTHON"
-    elif ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
+    else
+        prepare_project_install
+        if ! ( cd "$SCRIPT_DIR" && pip_install_project "$VENV_PY" "." ); then
+            return 1
+        fi
         PYTHON="$VENV_PY"
         echo -e "${YELLOW}✅  $success_label (ohne KI – rembg-Install schlug fehl):${NC} $PYTHON"
-    else
-        return 1
     fi
 }
 

@@ -122,13 +122,15 @@ workflow de licences génère le rapport dépendances/licences.
 
 - **Code source** : le paquet installable `bgremover/`, la suite de
   tests sous `tests/` et les scripts du projet sous `scripts/`.
-- **Icônes de barre d'outils/d'onglets** : `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
-  `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
-  `save`, `transparency`, `undo`, `wand`). Chargées par `make_tool_icon()`
-  via `importlib.resources` comme données du paquet.
-- **Icônes vectorielles dessinées** : si un PNG manque, `make_tool_icon()`
-  dessine l'icône de façon programmatique avec `QPainter`
-  (fonctions `_draw_*_icon`) — aucun asset externe.
+- **Icônes de barre d'outils/d'onglets en PNG** :
+  `bgremover/icons/*.png` (`ai`, `bg`, `clear_sel`, `close`, `form`,
+  `open`, `restore`, `save`, `transparency`). Chargées par
+  `make_tool_icon()` via `importlib.resources` comme données du paquet.
+- **Icônes vectorielles dessinées** : les icônes de rail/thème (`move`,
+  `wand`, `brush`, `eraser`, `lasso`, `height_lighten`, `height_darken`,
+  `undo`, `redo`, `theme`) sont rendues de façon programmatique avec
+  `QPainter` ; d'autres fonctions `_draw_*_icon` servent de fallback —
+  aucun asset externe.
 - **Icône d'application** : `BgRemover_icon.png` (source du `.icns` macOS).
 - **Curseurs** : dessinés à l'exécution (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — aucun fichier externe.

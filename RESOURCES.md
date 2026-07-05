@@ -124,13 +124,14 @@ Eigenes Werk des Projekts, abgedeckt durch die Projektlizenz
 
 - **Quellcode**: das installierbare Paket `bgremover/`, die Test-Suite
   unter `tests/` sowie Projekt-Skripte unter `scripts/`.
-- **Toolbar-/Tab-Icons**: `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
-  `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
-  `save`, `transparency`, `undo`, `wand`). Werden von `make_tool_icon()`
-  über `importlib.resources` als Paketdaten geladen.
-- **Gezeichnete Vektor-Icons**: Fällt eine PNG aus, zeichnet
-  `make_tool_icon()` das Icon programmatisch mit `QPainter`
-  (`_draw_*_icon`-Funktionen) — kein externes Asset.
+- **Toolbar-/Tab-Icons als PNG**: `bgremover/icons/*.png` (`ai`, `bg`,
+  `clear_sel`, `close`, `form`, `open`, `restore`, `save`,
+  `transparency`). Werden von `make_tool_icon()` über
+  `importlib.resources` als Paketdaten geladen.
+- **Gezeichnete Vektor-Icons**: Rail-/Theme-Icons (`move`, `wand`,
+  `brush`, `eraser`, `lasso`, `height_lighten`, `height_darken`, `undo`,
+  `redo`, `theme`) werden programmatisch mit `QPainter` gerendert; weitere
+  `_draw_*_icon`-Funktionen dienen als Fallback — kein externes Asset.
 - **App-Icon**: `BgRemover_icon.png` (Quelle für das macOS-`.icns`).
 - **Cursor**: zur Laufzeit gezeichnet (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — keine externen Dateien.

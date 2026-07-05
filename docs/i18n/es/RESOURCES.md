@@ -124,13 +124,14 @@ Obra propia del proyecto, cubierta por la licencia del proyecto
 
 - **Código fuente**: el paquete instalable `bgremover/`, la suite de
   pruebas bajo `tests/` y los scripts del proyecto bajo `scripts/`.
-- **Iconos de barra de herramientas/pestañas**: `bgremover/icons/*.png` (`ai`, `bg`, `brush`,
-  `clear_sel`, `close`, `eraser`, `form`, `open`, `redo`, `restore`,
-  `save`, `transparency`, `undo`, `wand`). Los carga `make_tool_icon()`
-  mediante `importlib.resources` como datos del paquete.
-- **Iconos vectoriales dibujados**: Si falla un PNG, `make_tool_icon()`
-  dibuja el icono programáticamente con `QPainter`
-  (funciones `_draw_*_icon`) — sin recurso externo.
+- **Iconos de barra de herramientas/pestañas como PNG**:
+  `bgremover/icons/*.png` (`ai`, `bg`, `clear_sel`, `close`, `form`,
+  `open`, `restore`, `save`, `transparency`). Los carga
+  `make_tool_icon()` mediante `importlib.resources` como datos del paquete.
+- **Iconos vectoriales dibujados**: Los iconos de rail/tema (`move`,
+  `wand`, `brush`, `eraser`, `lasso`, `height_lighten`, `height_darken`,
+  `undo`, `redo`, `theme`) se renderizan programáticamente con `QPainter`;
+  otras funciones `_draw_*_icon` sirven como fallback — sin recurso externo.
 - **Icono de la app**: `BgRemover_icon.png` (fuente para el `.icns` de macOS).
 - **Cursores**: dibujados en tiempo de ejecución (`make_wand_cursor`,
   `make_brush_cursor`, `make_eraser_cursor`) — sin archivos externos.
