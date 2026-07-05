@@ -13,8 +13,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QStandardItemModel
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QColor, QStandardItemModel
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -28,8 +28,10 @@ from PyQt6.QtWidgets import (
 
 from bgremover.canvas import LayerInfo
 from bgremover.i18n import tr
+from bgremover.icons import make_tool_icon
 from bgremover.project_model import LayerRole, role_allowed_for_kind
-from bgremover.theme import active_palette, num_style, section_header_style, slider_style
+from bgremover.right_panel_tabs import _make_scroll_tab, _make_section
+from bgremover.theme import active_palette, num_style, slider_style
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
 _ROLE_ORDER: list[LayerRole | None] = [
@@ -78,20 +80,12 @@ class LayerPanel:
 
     # ── Aufbau ───────────────────────────────────────────────────────────
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
+        outer, layout = _make_scroll_tab()
+        section, body = _make_section(tr("right_panel.layers.section"))
+
+        body.addLayout(self._build_action_bar())
+
         p = active_palette()
-        outer = QWidget()
-        outer.setStyleSheet(f"background: {p.inspector};")
-        layout = QVBoxLayout(outer)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
-
-        title = QLabel(tr("right_panel.layers.section").upper())  # §5.2: VERSALIEN
-        # Einheitlicher blauer Akzentkopf (Issue #416) – kein Sonder-Violett mehr.
-        title.setStyleSheet(section_header_style(p))
-        layout.addWidget(title)
-
-        layout.addLayout(self._build_action_bar())
-
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -106,21 +100,29 @@ class LayerPanel:
         self._list_layout.setSpacing(4)
         self._list_layout.addStretch()
         scroll.setWidget(list_host)
-        layout.addWidget(scroll, 1)
+        body.addWidget(scroll, 1)
 
-        layout.addLayout(self._build_role_row())
+        body.addLayout(self._build_role_row())
+        layout.addWidget(section)
+        layout.addStretch()
 
         self.refresh([])
         return outer, {"layer_role_combo": self._role_combo or QComboBox()}
 
-    def _action_button(self, text: str, tip: str, slot: Callable[[], None]) -> QPushButton:
+    def _action_button(
+        self, icon_name: str, tip: str, slot: Callable[[], None],
+    ) -> QPushButton:
         p = active_palette()
-        btn = QPushButton(text)
+        btn = QPushButton()
+        btn.setObjectName("layerActionButton")
         btn.setToolTip(tip)
-        btn.setFixedHeight(30)
+        btn.setFixedSize(32, 30)
+        btn.setIcon(make_tool_icon(icon_name, 14, QColor(p.text2)))
+        btn.setIconSize(QSize(14, 14))
+        btn.setProperty("prototypeIconName", icon_name)
         btn.setStyleSheet(
-            f"QPushButton {{ background:{p.surface}; color:{p.text2}; border:none;"
-            " border-radius:6px; font-size:14px; }"
+            f"QPushButton {{ background:{p.surface}; color:{p.text2};"
+            f" border:1px solid {p.border_2}; border-radius:7px; }}"
             f"QPushButton:hover {{ background:{p.surface_hover}; }}"
             f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}"
             f"QPushButton:disabled {{ background:{p.divider}; color:{p.muted}; }}")
@@ -130,19 +132,22 @@ class LayerPanel:
 
     def _build_action_bar(self) -> QHBoxLayout:
         row = QHBoxLayout()
-        row.setSpacing(6)
-        for text, tip, slot in (
-            ("＋", tr("right_panel.layers.add.tooltip"), self._actions.add_layer),
-            ("⧉", tr("right_panel.layers.duplicate.tooltip"),
+        row.setSpacing(7)
+        for icon_name, tip, slot in (
+            ("layer_add", tr("right_panel.layers.add.tooltip"), self._actions.add_layer),
+            ("layer_duplicate", tr("right_panel.layers.duplicate.tooltip"),
              self._actions.duplicate_active),
-            ("🗑", tr("right_panel.layers.delete.tooltip"), self._actions.delete_active),
-            ("▲", tr("right_panel.layers.move_up.tooltip"),
+            ("layer_delete", tr("right_panel.layers.delete.tooltip"),
+             self._actions.delete_active),
+            ("layer_move_up", tr("right_panel.layers.move_up.tooltip"),
              self._actions.move_active_up),
-            ("▼", tr("right_panel.layers.move_down.tooltip"),
+            ("layer_move_down", tr("right_panel.layers.move_down.tooltip"),
              self._actions.move_active_down),
-            ("✎", tr("right_panel.layers.rename.tooltip"), self._actions.rename_active),
+            ("layer_rename", tr("right_panel.layers.rename.tooltip"),
+             self._actions.rename_active),
         ):
-            row.addWidget(self._action_button(text, tip, slot), 1)
+            row.addWidget(self._action_button(icon_name, tip, slot))
+        row.addStretch()
         return row
 
     def _build_role_row(self) -> QHBoxLayout:
@@ -243,11 +248,15 @@ class LayerPanel:
         h.setContentsMargins(6, 4, 6, 4)
         h.setSpacing(6)
 
-        vis = QPushButton("👁" if info.visible else "🚫")
+        vis = QPushButton()
         vis.setCheckable(True)
         vis.setChecked(info.visible)
         vis.setFixedWidth(30)
         vis.setMinimumHeight(24)
+        vis.setIcon(make_tool_icon(
+            "layer_visible", 15, QColor(p.text2 if info.visible else p.text3)))
+        vis.setIconSize(QSize(15, 15))
+        vis.setProperty("prototypeIconName", "layer_visible")
         vis.setToolTip(tr("right_panel.layers.visible.tooltip"))
         vis.setStyleSheet(
             "QPushButton { background:transparent; border:none; font-size:14px; }"
