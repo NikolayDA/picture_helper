@@ -59,7 +59,7 @@ def test_shared_templates_use_palette():
     assert DARK.accent in bgremover.TOOL_STYLE
     assert DARK.accent in bgremover.SLD_STYLE
     assert DARK.on_accent in bgremover.SLD_STYLE
-    assert "#d8d8d8" in bgremover.SLD_STYLE
+    assert "#e6e6e6" in bgremover.SLD_STYLE
     assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
@@ -117,18 +117,18 @@ def test_slider_style_matches_prototype_range_control():
 
     for palette in (DARK, LIGHT):
         style = slider_style(palette)
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 24px; }" in style
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
         assert "QSlider::groove:horizontal" in style
-        assert "height: 5px" in style
+        assert "height: 8px" in style
         assert "background: transparent" in style
         assert "QSlider::sub-page:horizontal" in style
         assert f"background: {palette.accent}" in style
         assert "QSlider::add-page:horizontal" in style
-        assert "background: #d8d8d8" in style or "background: #d4d9e2" in style
+        assert "background: #e6e6e6" in style or "background: #d4d9e2" in style
         assert f"background: {palette.on_accent}" in style
-        assert "width: 22px" in style
-        assert "height: 22px" in style
-        assert "border-radius: 11px" in style
+        assert "width: 16px" in style
+        assert "height: 16px" in style
+        assert "border-radius: 8px" in style
 
 
 def test_build_qpalette_uses_scheme_colors(qapp):

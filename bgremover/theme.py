@@ -278,20 +278,20 @@ def num_style(p: Palette) -> str:
 
 def slider_style(p: Palette) -> str:
     """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496)."""
-    rest = "#d8d8d8" if p.is_dark else "#d4d9e2"
+    rest = "#e6e6e6" if p.is_dark else "#d4d9e2"
     return f"""
-    QSlider {{ margin: 9px 0 2px 0; min-height: 24px; }}
-    QSlider::groove:horizontal {{ height: 5px; background: transparent; border-radius: 3px; }}
-    QSlider::sub-page:horizontal {{ background: {p.accent}; border-radius: 3px; }}
-    QSlider::add-page:horizontal {{ background: {rest}; border-radius: 3px; }}
+    QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
+    QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
+    QSlider::sub-page:horizontal {{ background: {p.accent}; border-radius: 4px; }}
+    QSlider::add-page:horizontal {{ background: {rest}; border-radius: 4px; }}
     QSlider::handle:horizontal {{
-        background: {p.on_accent}; border: none; width: 22px; height: 22px;
-        margin: -9px 0; border-radius: 11px;
+        background: {p.on_accent}; border: none; width: 16px; height: 16px;
+        margin: -4px 0; border-radius: 8px;
     }}
     QSlider::sub-page:horizontal:disabled {{ background: {p.muted}; }}
     QSlider::add-page:horizontal:disabled {{ background: {p.divider}; }}
     QSlider::handle:horizontal:disabled {{ background: {p.muted}; }}
-    QSlider::handle:horizontal:focus {{ border: 2px solid {p.accent}; }}
+    QSlider::handle:horizontal:focus {{ border: none; }}
 """
 
 

@@ -238,10 +238,10 @@ min-Höhe 40 px. Für die hervorgehobene Aktion eines Schritts (Datei
 öffnen, KI-Freistellen, Höhenkarte erzeugen).
 
 ### §5.5 Slider & Zahlenfelder
-Slider: Prototyp-Range-Control (`input[type=range]`) mit 5 px Groove, oben
+Slider: Prototyp-Range-Control (`input[type=range]`) mit 8 px Groove, oben
 9 px/unten 2 px Abstand, gefüllter Strecke in `accent`, heller grauer
-ungefüllter Strecke, weißem 22 px Griff (Radius 11), Fokus = 2 px
-Accent-Rand am Griff; Klickziel ist der gesamte Groove.
+ungefüllter Strecke (`#e6e6e6` im dunklen Schema), weißem 16 px Griff
+(Radius 8); Klickziel ist der gesamte Groove.
 QSpinBox/QComboBox: `surface`, 1 px `border`, Radius 6, 12 px,
 min-Höhe 24 px (#441).
 

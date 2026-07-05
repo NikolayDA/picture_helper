@@ -268,14 +268,14 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
     assert sliders, "keine Slider in der rechten Spalte gefunden"
     for slider in sliders:
         style = slider.styleSheet()
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 24px; }" in style
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
         assert "QSlider::sub-page:horizontal" in style
         assert f"background: {DARK.accent}" in style
         assert "QSlider::add-page:horizontal" in style
-        assert "background: #d8d8d8" in style
+        assert "background: #e6e6e6" in style
         assert f"background: {DARK.on_accent}" in style
-        assert "width: 22px" in style
-        assert "height: 22px" in style
+        assert "width: 16px" in style
+        assert "height: 16px" in style
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):
@@ -665,7 +665,7 @@ def test_layer_panel_opacity_slider_uses_prototype_range_style(qapp):
     assert "QSlider::sub-page:horizontal" in style
     assert f"background: {DARK.accent}" in style
     assert "QSlider::add-page:horizontal" in style
-    assert "background: #d8d8d8" in style
+    assert "background: #e6e6e6" in style
     assert f"background: {DARK.on_accent}" in style
 
 
