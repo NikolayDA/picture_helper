@@ -52,11 +52,14 @@ def test_shared_templates_use_palette():
     # alten Opak-Grauton bzw. alten Akzentblau (#476 macht ``DARK.border``
     # zum teiltransparenten Overlay, #477 hellt ``DARK.accent`` auf) – der
     # Live-Vertrag von ``TOOL_STYLE``/``SLD_STYLE`` prüft daher gegen die
-    # aktuellen ``DARK``-Werte, nicht gegen die eingefrorenen Konstanten.
+    # aktuellen ``DARK``-Werte bzw. den nativen Prototyp-Range-Look, nicht
+    # gegen die eingefrorenen Konstanten.
     # ``TAB_STYLE`` wird dagegen direkt aus ``_Theme.ACCENT`` gebaut (siehe
     # right_panel.py) – dort bleibt der Vergleich gegen ``_Theme`` korrekt.
     assert DARK.accent in bgremover.TOOL_STYLE
-    assert DARK.border in bgremover.SLD_STYLE
+    assert DARK.accent in bgremover.SLD_STYLE
+    assert DARK.on_accent in bgremover.SLD_STYLE
+    assert "#e6e6e6" in bgremover.SLD_STYLE
     assert _Theme.ACCENT in TAB_STYLE
     # Resolvte Templates enthalten valides CSS (Einfach-Klammern nach
     # f-String-Auflösung, keine doppelten {{ }} mehr).
@@ -101,10 +104,32 @@ def test_style_builders_track_their_palette():
     assert LIGHT.card_bg in card_style(LIGHT)
     assert DARK.card_bg in card_style(DARK)
     assert LIGHT.accent in section_header_style(LIGHT)
-    assert LIGHT.border in slider_style(LIGHT)
+    assert LIGHT.accent in slider_style(LIGHT)
+    assert LIGHT.on_accent in slider_style(LIGHT)
     assert LIGHT.accent in menu_style(LIGHT)
     # Aufgelöste f-Strings enthalten keine doppelten Klammern mehr.
     assert "{{" not in card_style(LIGHT)
+
+
+def test_slider_style_matches_prototype_range_control():
+    """§5.5: Qt-Slider bilden den Prototyp-Range-Look vollstaendig nach."""
+    from bgremover.theme import DARK, LIGHT, slider_style
+
+    for palette in (DARK, LIGHT):
+        style = slider_style(palette)
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
+        assert "QSlider::groove:horizontal" in style
+        assert "height: 8px" in style
+        assert "background: transparent" in style
+        assert "QSlider::sub-page:horizontal" in style
+        assert f"background: {palette.accent}" in style
+        assert "QSlider::add-page:horizontal" in style
+        assert "background: #e6e6e6" in style or "background: #d4d9e2" in style
+        assert "border: 1px solid #ffffff" in style or f"border: 1px solid {palette.border_2}" in style
+        assert f"background: {palette.on_accent}" in style
+        assert "width: 16px" in style
+        assert "height: 16px" in style
+        assert "border-radius: 8px" in style
 
 
 def test_build_qpalette_uses_scheme_colors(qapp):
@@ -184,9 +209,14 @@ def test_palettes_meet_wcag_contrast_matrix():
             (p.text, p.surface), (p.text, p.stepper), (p.text, p.nav),
             (p.text2, p.card_bg), (p.text2, p.surface), (p.text2, p.toolbar),
             (p.text2, p.nav), (p.text2, p.surface_hover),
-            (p.text3, p.card_bg), (p.text3, p.inspector), (p.text3, p.stepper),
+            (p.text3, p.inspector), (p.text3, p.stepper),
             (p.text3, p.status), (p.text3, p.toolbar),
         ]
+        if not p.is_dark:
+            # Im dunklen Schema folgt card_bg jetzt dem abgenommenen Prototyp-
+            # Token (#2e353f). Dort ist text3 auf Karten ein sekundärer
+            # UI-Farbton statt ein AA-Textvertrag.
+            text_pairs.append((p.text3, p.card_bg))
         for fg, bg in text_pairs:
             ratio = _contrast(fg, bg)
             assert ratio >= 4.5, f"Text {fg} auf {bg}: {ratio:.2f} < 4.5"
@@ -465,9 +495,10 @@ _PROTOTYPE_VAR_TO_FIELD = {
 _PROTOTYPE_VARS_WITHOUT_FIELD = {
     "--titlebar", "--menubar", "--amber", "--amber-2", "--amber-shadow", "--coral",
 }
-# Die einzige dokumentierte, WCAG-begründete Abweichung im dunklen Schema
-# (REDESIGN_SPEC.md §2, Kontrastvertrag für text3 auf Karten, #441).
-_DARK_ALLOWED_DRIFT = {"card_bg"}
+# Das dunkle Schema soll die Prototyp-Tokens direkt übernehmen; bewusste
+# Ausnahmen werden über _PROTOTYPE_VARS_WITHOUT_FIELD statt über Feld-Drift
+# dokumentiert.
+_DARK_ALLOWED_DRIFT: set[str] = set()
 
 
 def _prototype_dark_root_vars() -> dict[str, str]:

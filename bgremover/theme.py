@@ -50,9 +50,10 @@ class Palette:
     checker_b: str
     # Halbtransparente „Glas"-Fläche für schwebende Canvas-Overlays (#464).
     glass: str
-    # Text. Vertrag (#441): ``text``/``text2``/``text3`` sind für **aktiven** Text
-    # gedacht und halten ≥ 4.5:1 auf ihren Flächen; ``muted`` ist ausschließlich
-    # für Disabled-/Placeholder-Zustände reserviert (WCAG-1.4.3-Ausnahme).
+    # Text. Vertrag (#441/#496): ``text``/``text2``/``text3`` sind für aktiven
+    # Text gedacht und halten ≥ 4.5:1 auf den geprüften Einsatzflächen;
+    # ``muted`` ist ausschließlich für Disabled-/Placeholder-Zustände reserviert
+    # (WCAG-1.4.3-Ausnahme).
     text: str
     text2: str
     text3: str
@@ -102,10 +103,8 @@ DARK = Palette(
     divider="#2a2a2a", hairline="rgba(255,255,255,.1)",
     surface="#30373f", surface_hover="#3a424c", hover="rgba(255,255,255,.05)",
     inset="#1c2128",
-    # card_bg bewusst dunkler als der Prototyp-Wert #2e353f: erst damit hält
-    # text3 (#8b94a2) auf Karten den WCAG-AA-Kontraktrag von >= 4.5:1 (#441)
-    # ein – der Prototyp selbst ist kein kontrastgeprüftes Artefakt.
-    card_bg="#262b33", card_border="rgba(255,255,255,.07)",
+    # Karten übernehmen den Prototyp-Token ``--card`` direkt (#475/#496).
+    card_bg="#2e353f", card_border="rgba(255,255,255,.07)",
     checker_a="#2c313a", checker_b="#353b45",
     glass="rgba(26,30,37,.82)",
     text="#e9edf3", text2="#cdd4de", text3="#8b94a2", muted="#727b89",
@@ -278,14 +277,22 @@ def num_style(p: Palette) -> str:
 
 
 def slider_style(p: Palette) -> str:
-    """Slider: Klickziel ist der gesamte Groove; der Fokus markiert den Griff (#441)."""
+    """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496)."""
+    rest = "#e6e6e6" if p.is_dark else "#d4d9e2"
+    track_border = p.on_accent if p.is_dark else p.border_2
     return f"""
-    QSlider::groove:horizontal {{ height: 4px; background: {p.border}; border-radius: 2px; }}
+    QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
+    QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
+    QSlider::sub-page:horizontal {{ background: {p.accent}; border: 1px solid {track_border}; border-radius: 4px; }}
+    QSlider::add-page:horizontal {{ background: {rest}; border: 1px solid {track_border}; border-radius: 4px; }}
     QSlider::handle:horizontal {{
-        background: {p.accent}; width: 14px; height: 14px;
-        margin: -5px 0; border-radius: 7px;
+        background: {p.on_accent}; border: none; width: 16px; height: 16px;
+        margin: -4px 0; border-radius: 8px;
     }}
-    QSlider::handle:horizontal:focus {{ border: 2px solid {p.text}; }}
+    QSlider::sub-page:horizontal:disabled {{ background: {p.muted}; }}
+    QSlider::add-page:horizontal:disabled {{ background: {p.divider}; }}
+    QSlider::handle:horizontal:disabled {{ background: {p.muted}; }}
+    QSlider::handle:horizontal:focus {{ border: none; }}
 """
 
 

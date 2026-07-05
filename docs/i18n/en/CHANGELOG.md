@@ -292,11 +292,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   navigation footer, status bar, controls and cards) now use the cool
   blue-gray tone of the approved prototype
   (`design/Prototyp A - Geführter Workflow.dc.html`) instead of a neutral
-  near-black. `card_bg` is deliberately kept one step darker than the
-  prototype value so `text3` on cards (and on inactive layer names in the
-  layer panel) still meets the WCAG AA contrast contract of ≥ 4.5:1 (#441);
-  `docs/REDESIGN_SPEC.md` §2 documents the new values and this one
-  intentional deviation (#475).
+  near-black. `card_bg` now also uses the prototype value `#2e353f`;
+  `docs/REDESIGN_SPEC.md` §2 documents the adopted values and the remaining
+  intentional token deviation (#475, #496).
 - **Dark theme borders are soft overlays instead of hard gray tones.**
   `border` and `hairline` are now translucent white overlays like in the
   prototype (they settle differently depending on the surface underneath
@@ -312,6 +310,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the active stepper circle, and the slider handle. `accent_text` already
   matched the prototype value exactly; `accent_shadow` remains a plain color
   value without a glow effect (Qt QSS has no `box-shadow`, #477).
+- **Right-column sliders now reproduce the prototype.** The Qt sliders now
+  match the prototype's `input[type=range]`: 8 px tracks, an `accent` filled
+  segment, a light-gray remainder, a white track border, a white 16 px handle
+  and the vertical `9px 0 2px` spacing, including the opacity slider in the
+  layer panel (#496).
 - **Preview segmented control (step 6) now uses the correct prototype
   surface.** The "Color/Relief/Height/Gloss" container (`_ModeSegments`) was
   incorrectly backed by the `tabbar` tone; checking the prototype's actual

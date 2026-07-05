@@ -305,11 +305,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Navigations-Fußzeile, Statusleiste, Bedienflächen und Karten) nutzen jetzt
   den kühlen Blaugrau-Ton des abgenommenen Prototyps
   (`design/Prototyp A - Geführter Workflow.dc.html`) statt eines neutralen
-  Nah-Schwarz. `card_bg` bleibt dabei bewusst einen Schritt dunkler als der
-  Prototyp-Wert, damit `text3` auf Karten (und auf inaktiven Ebenennamen im
-  Ebenen-Panel) weiterhin den WCAG-AA-Kontrastvertrag von ≥ 4.5:1 einhält
-  (#441); `docs/REDESIGN_SPEC.md` §2 dokumentiert die neuen Werte und diese
-  eine bewusste Abweichung (#475).
+  Nah-Schwarz. `card_bg` übernimmt nun ebenfalls den Prototyp-Wert `#2e353f`;
+  `docs/REDESIGN_SPEC.md` §2 dokumentiert die übernommenen Werte und die
+  verbleibende bewusste Token-Abweichung (#475, #496).
 - **Ränder im Dark Mode als weiche Overlays statt harter Grautöne.** `border`
   und `hairline` sind jetzt teiltransparente Weiß-Overlays wie im Prototyp
   (setzen sich je nach Untergrund unterschiedlich ab, statt auf jeder Fläche
@@ -326,6 +324,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `accent_text` traf bereits 1:1 den Prototyp-Wert; `accent_shadow` bleibt
   ein reiner Farbwert ohne Glow-Effekt (Qt-QSS kennt kein `box-shadow`,
   #477).
+- **Slider der rechten Spalte bilden den Prototyp nach.** Die Qt-Slider nutzen
+  jetzt wie `input[type=range]` im Prototyp 8 px hohe Tracks mit `accent`
+  gefüllter Strecke, hellgrauer Reststrecke, weißem Track-Rahmen, weißem
+  16 px Griff und dem vertikalen Abstand `9px 0 2px`; das gilt auch für den
+  Opacity-Slider im Ebenen-Panel (#496).
 - **Vorschau-Segmented-Control (Schritt 6) nutzt jetzt die richtige
   Prototyp-Fläche.** Der Container von „Farbe/Relief/Höhe/Gloss“
   (`_ModeSegments`) war fälschlich mit dem `tabbar`-Ton hinterlegt; ein

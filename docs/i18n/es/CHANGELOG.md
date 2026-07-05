@@ -327,11 +327,9 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   de pasos, barra de herramientas, pie de navegación, barra de estado,
   controles y tarjetas) usan ahora el tono gris azulado frío del prototipo
   aprobado (`design/Prototyp A - Geführter Workflow.dc.html`) en lugar de un
-  negro casi neutro. `card_bg` se mantiene deliberadamente un paso más oscuro
-  que el valor del prototipo para que `text3` en las tarjetas (y en los
-  nombres de capas inactivas del panel de capas) siga cumpliendo el contrato
-  de contraste WCAG AA de ≥ 4.5:1 (#441); `docs/REDESIGN_SPEC.md` §2 documenta
-  los nuevos valores y esta única desviación intencional (#475).
+  negro casi neutro. `card_bg` usa ahora también el valor del prototipo
+  `#2e353f`; `docs/REDESIGN_SPEC.md` §2 documenta los valores adoptados y la
+  desviación intencional de token restante (#475, #496).
 - **Los bordes del modo oscuro son superposiciones suaves en lugar de tonos
   grises duros.** `border` y `hairline` son ahora superposiciones blancas
   translúcidas como en el prototipo (se asientan de forma distinta según la
@@ -350,6 +348,12 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `accent_text` ya coincidía exactamente con el valor del prototipo;
   `accent_shadow` sigue siendo un valor de color sin efecto de resplandor
   (Qt QSS no admite `box-shadow`, #477).
+- **Los controles deslizantes de la columna derecha replican el prototipo.**
+  Los sliders de Qt usan ahora, como `input[type=range]` en el prototipo,
+  pistas de 8 px con tramo relleno en `accent`, tramo sin rellenar en
+  gris claro, borde blanco de pista, mando blanco de 16 px y el espaciado
+  vertical `9px 0 2px`; esto incluye el slider de opacidad del panel de capas
+  (#496).
 - **El control segmentado de vista previa (paso 6) usa ahora la superficie
   correcta del prototipo.** El contenedor de "Color/Relieve/Altura/Brillo"
   (`_ModeSegments`) usaba incorrectamente el tono `tabbar`; al revisar las

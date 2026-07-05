@@ -330,11 +330,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   d'outils, pied de navigation, barre de statut, contrôles et cartes)
   utilisent désormais la teinte bleu-gris froide du prototype validé
   (`design/Prototyp A - Geführter Workflow.dc.html`) au lieu d'un noir quasi
-  neutre. `card_bg` reste volontairement un cran plus sombre que la valeur du
-  prototype afin que `text3` sur les cartes (et sur les noms de calques
-  inactifs du panneau des calques) respecte toujours le contrat de contraste
-  WCAG AA de ≥ 4,5:1 (#441) ; `docs/REDESIGN_SPEC.md` §2 documente les
-  nouvelles valeurs et cette unique déviation intentionnelle (#475).
+  neutre. `card_bg` utilise désormais lui aussi la valeur du prototype
+  `#2e353f` ; `docs/REDESIGN_SPEC.md` §2 documente les valeurs reprises et la
+  déviation intentionnelle de token restante (#475, #496).
 - **Les bordures du mode sombre sont des superpositions douces au lieu de
   tons gris durs.** `border` et `hairline` sont désormais des superpositions
   blanches translucides comme dans le prototype (elles se démarquent
@@ -354,6 +352,11 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   correspondait déjà exactement à la valeur du prototype ; `accent_shadow`
   reste une simple valeur de couleur sans effet de lueur (Qt QSS ne connaît
   pas `box-shadow`, #477).
+- **Les sliders de la colonne droite reproduisent le prototype.** Les sliders
+  Qt suivent désormais le `input[type=range]` du prototype : pistes de 8 px,
+  segment rempli en `accent`, reste gris clair, bord de piste blanc, poignée
+  blanche de 16 px et espacement vertical `9px 0 2px`, y compris le slider
+  d'opacité du panneau des calques (#496).
 - **Le contrôle segmenté d'aperçu (étape 6) utilise désormais la bonne
   surface du prototype.** Le conteneur « Couleur/Relief/Hauteur/Gloss »
   (`_ModeSegments`) utilisait à tort la teinte `tabbar` ; en vérifiant les

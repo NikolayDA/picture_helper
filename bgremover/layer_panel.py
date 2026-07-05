@@ -238,9 +238,9 @@ class LayerPanel:
     def _build_row(self, info: LayerInfo) -> QWidget:
         p = active_palette()
         row = QWidget()
-        # card_bg statt surface (#482-Review): auf dem helleren, an den
-        # Prototyp angeglichenen surface-Ton (#475) unterschreitet text3 bei
-        # inaktiven Zeilennamen sonst den WCAG-AA-Kontraktrag von >= 4.5:1.
+        # card_bg statt surface (#482-Review): inaktive Zeilen bleiben damit
+        # als Kartenbestandteil konsistent zum Prototyp und kontrastreicher
+        # als auf dem helleren surface-Ton (#475/#496).
         row.setStyleSheet(
             f"background:{p.accent_soft}; border-radius:6px;" if info.active
             else f"background:{p.card_bg}; border-radius:6px;")

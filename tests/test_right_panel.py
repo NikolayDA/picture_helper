@@ -225,7 +225,9 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     # Live-Vertrag gegen die aktuelle Palette prüfen, nicht gegen die
     # eingefrorene ``_Theme.ACCENT``-Rückwärtskompat-Konstante (#477 hellt
     # ``DARK.accent`` gegenüber dem alten Snapshot auf).
-    from bgremover.theme import DARK
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
 
     panel = build_right_panel(
         _actions([]), _noop_layer_actions(), _noop_height_actions())
@@ -250,6 +252,31 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
         if f.objectName() == "sectionCard"
     ]
     assert cards, "keine Karten-Sektionen gefunden"
+    for card in cards:
+        assert DARK.card_bg in card.styleSheet()
+
+
+def test_right_panel_sliders_use_prototype_range_style(qapp):
+    """Alle Slider der rechten Spalte nutzen den Prototyp-Range-Look (§5.5)."""
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    sliders = panel.frame.findChildren(QSlider)
+    assert sliders, "keine Slider in der rechten Spalte gefunden"
+    for slider in sliders:
+        style = slider.styleSheet()
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
+        assert "QSlider::sub-page:horizontal" in style
+        assert f"background: {DARK.accent}" in style
+        assert "QSlider::add-page:horizontal" in style
+        assert "background: #e6e6e6" in style
+        assert "border: 1px solid #ffffff" in style
+        assert f"background: {DARK.on_accent}" in style
+        assert "width: 16px" in style
+        assert "height: 16px" in style
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):
@@ -402,7 +429,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "↺ 90° links").click()
     _button(panel.frame, "↻ 90° rechts").click()
     panel.rotation_spin.setValue(33)
-    _button(panel.frame, "Winkel anwenden").click()
+    _button(panel.frame, "↺ Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
     _button(panel.frame, "Größe anwenden").click()
@@ -496,10 +523,16 @@ def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
         button = _button(panel.frame, text)
         assert button.property("prototypeIconName") == "prototype_image"
         assert not button.icon().isNull()
+        assert button.iconSize().width() == 14
+        assert button.iconSize().height() == 14
 
     generate = _button(panel.frame, "Aus Bild erzeugen")
     assert generate.property("prototypeIconName") is None
     assert generate.icon().isNull()
+
+    rotate_apply = _button(panel.frame, "↺ Winkel anwenden")
+    assert rotate_apply.property("prototypeIconName") is None
+    assert rotate_apply.icon().isNull()
 
 
 # ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────
@@ -617,6 +650,25 @@ def test_layer_panel_rows_reflect_and_delegate(qapp):
     slider.setValue(25)
     slider.sliderReleased.emit()
     assert ("opacity", "bot", pytest.approx(0.25)) in calls
+
+
+def test_layer_panel_opacity_slider_uses_prototype_range_style(qapp):
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    panel = LayerPanel(_recording_layer_actions([]))
+    widget, _refs = panel.build()
+    panel.refresh(_infos())
+
+    slider = widget.findChild(QSlider)
+    assert slider is not None
+    style = slider.styleSheet()
+    assert "QSlider::sub-page:horizontal" in style
+    assert f"background: {DARK.accent}" in style
+    assert "QSlider::add-page:horizontal" in style
+    assert "background: #e6e6e6" in style
+    assert "border: 1px solid #ffffff" in style
+    assert f"background: {DARK.on_accent}" in style
 
 
 @pytest.mark.ui_smoke
