@@ -402,7 +402,7 @@ def test_right_panel_controls_delegate_to_callbacks(qapp):
     _button(panel.frame, "↺ 90° links").click()
     _button(panel.frame, "↻ 90° rechts").click()
     panel.rotation_spin.setValue(33)
-    _button(panel.frame, "Winkel anwenden").click()
+    _button(panel.frame, "↺ Winkel anwenden").click()
     _button(panel.frame, "Horizontal").click()
     _button(panel.frame, "Vertikal").click()
     _button(panel.frame, "Größe anwenden").click()
@@ -496,10 +496,16 @@ def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
         button = _button(panel.frame, text)
         assert button.property("prototypeIconName") == "prototype_image"
         assert not button.icon().isNull()
+        assert button.iconSize().width() == 14
+        assert button.iconSize().height() == 14
 
     generate = _button(panel.frame, "Aus Bild erzeugen")
     assert generate.property("prototypeIconName") is None
     assert generate.icon().isNull()
+
+    rotate_apply = _button(panel.frame, "↺ Winkel anwenden")
+    assert rotate_apply.property("prototypeIconName") is None
+    assert rotate_apply.icon().isNull()
 
 
 # ── Anpassen-Tab / Farbkorrektur (#360) ───────────────────────────────────

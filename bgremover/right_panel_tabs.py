@@ -505,9 +505,8 @@ class TransformTab:
         gr2.addLayout(row_free)
 
         btn_rot_free = _make_neutral_btn(
-            tr("right_panel.transform.apply_angle"),
-            tr("right_panel.transform.apply_angle.tooltip"),
-            icon_name="undo")
+            "↺ " + tr("right_panel.transform.apply_angle"),
+            tr("right_panel.transform.apply_angle.tooltip"))
         btn_rot_free.clicked.connect(
             lambda _=False: self._actions.rotate(rotation_spin.value()))
         gr2.addWidget(btn_rot_free)
@@ -827,8 +826,9 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
         style += f"\nQPushButton {{ min-height: {height}px; }}"
     b.setStyleSheet(style)
     if icon_name:
-        b.setIcon(make_tool_icon(icon_name, 22, QColor(p.text2)))
-        b.setIconSize(QSize(22, 22))
+        icon_size = 14 if icon_name == "prototype_image" else 22
+        b.setIcon(make_tool_icon(icon_name, icon_size, QColor(p.text2)))
+        b.setIconSize(QSize(icon_size, icon_size))
         b.setProperty("prototypeIconName", icon_name)
     if wrap:
         font = QFont(); font.setPixelSize(13); font.setWeight(QFont.Weight.Medium)
