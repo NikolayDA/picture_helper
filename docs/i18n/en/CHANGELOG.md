@@ -310,6 +310,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the active stepper circle, and the slider handle. `accent_text` already
   matched the prototype value exactly; `accent_shadow` remains a plain color
   value without a glow effect (Qt QSS has no `box-shadow`, #477).
+- **Right-column sliders now reproduce the prototype.** The Qt sliders now
+  match the prototype's `input[type=range]`: 4 px tracks, an `accent` filled
+  segment, a `border` unfilled segment, a 14 px accent handle and the
+  vertical `9px 0 2px` spacing, including the opacity slider in the layer
+  panel (#496).
 - **Preview segmented control (step 6) now uses the correct prototype
   surface.** The "Color/Relief/Height/Gloss" container (`_ModeSegments`) was
   incorrectly backed by the `tabbar` tone; checking the prototype's actual

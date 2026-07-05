@@ -324,6 +324,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `accent_text` traf bereits 1:1 den Prototyp-Wert; `accent_shadow` bleibt
   ein reiner Farbwert ohne Glow-Effekt (Qt-QSS kennt kein `box-shadow`,
   #477).
+- **Slider der rechten Spalte bilden den Prototyp nach.** Die Qt-Slider nutzen
+  jetzt wie `input[type=range]` im Prototyp 4 px hohe Tracks mit `accent`
+  gefüllter Strecke, ungefüllter `border`-Strecke, 14 px Accent-Griff und dem
+  vertikalen Abstand `9px 0 2px`; das gilt auch für den Opacity-Slider im
+  Ebenen-Panel (#496).
 - **Vorschau-Segmented-Control (Schritt 6) nutzt jetzt die richtige
   Prototyp-Fläche.** Der Container von „Farbe/Relief/Höhe/Gloss“
   (`_ModeSegments`) war fälschlich mit dem `tabbar`-Ton hinterlegt; ein

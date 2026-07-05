@@ -256,6 +256,27 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
         assert DARK.card_bg in card.styleSheet()
 
 
+def test_right_panel_sliders_use_prototype_range_style(qapp):
+    """Alle Slider der rechten Spalte nutzen den Prototyp-Range-Look (§5.5)."""
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    sliders = panel.frame.findChildren(QSlider)
+    assert sliders, "keine Slider in der rechten Spalte gefunden"
+    for slider in sliders:
+        style = slider.styleSheet()
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 18px; }" in style
+        assert "QSlider::sub-page:horizontal" in style
+        assert f"background: {DARK.accent}" in style
+        assert "QSlider::add-page:horizontal" in style
+        assert f"background: {DARK.border}" in style
+        assert "width: 14px" in style
+        assert "height: 14px" in style
+
+
 def test_step2_and_step4_option_spacing_is_uniform(qapp):
     """Optionszeilen in Schritt 2/4 nutzen denselben horizontalen Abstand."""
     from bgremover.right_panel_tabs import _OPTION_SPACING
@@ -627,6 +648,23 @@ def test_layer_panel_rows_reflect_and_delegate(qapp):
     slider.setValue(25)
     slider.sliderReleased.emit()
     assert ("opacity", "bot", pytest.approx(0.25)) in calls
+
+
+def test_layer_panel_opacity_slider_uses_prototype_range_style(qapp):
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    panel = LayerPanel(_recording_layer_actions([]))
+    widget, _refs = panel.build()
+    panel.refresh(_infos())
+
+    slider = widget.findChild(QSlider)
+    assert slider is not None
+    style = slider.styleSheet()
+    assert "QSlider::sub-page:horizontal" in style
+    assert f"background: {DARK.accent}" in style
+    assert "QSlider::add-page:horizontal" in style
+    assert f"background: {DARK.border}" in style
 
 
 @pytest.mark.ui_smoke

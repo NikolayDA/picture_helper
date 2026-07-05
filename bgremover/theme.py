@@ -277,13 +277,19 @@ def num_style(p: Palette) -> str:
 
 
 def slider_style(p: Palette) -> str:
-    """Slider: Klickziel ist der gesamte Groove; der Fokus markiert den Griff (#441)."""
+    """Slider: Prototyp-Range-Control mit Accent-Fuellung und Griff-Fokus (#441)."""
     return f"""
-    QSlider::groove:horizontal {{ height: 4px; background: {p.border}; border-radius: 2px; }}
+    QSlider {{ margin: 9px 0 2px 0; min-height: 18px; }}
+    QSlider::groove:horizontal {{ height: 4px; background: transparent; border-radius: 2px; }}
+    QSlider::sub-page:horizontal {{ background: {p.accent}; border-radius: 2px; }}
+    QSlider::add-page:horizontal {{ background: {p.border}; border-radius: 2px; }}
     QSlider::handle:horizontal {{
-        background: {p.accent}; width: 14px; height: 14px;
+        background: {p.accent}; border: none; width: 14px; height: 14px;
         margin: -5px 0; border-radius: 7px;
     }}
+    QSlider::sub-page:horizontal:disabled {{ background: {p.muted}; }}
+    QSlider::add-page:horizontal:disabled {{ background: {p.divider}; }}
+    QSlider::handle:horizontal:disabled {{ background: {p.muted}; }}
     QSlider::handle:horizontal:focus {{ border: 2px solid {p.text}; }}
 """
 

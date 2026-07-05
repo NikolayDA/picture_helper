@@ -102,9 +102,29 @@ def test_style_builders_track_their_palette():
     assert DARK.card_bg in card_style(DARK)
     assert LIGHT.accent in section_header_style(LIGHT)
     assert LIGHT.border in slider_style(LIGHT)
+    assert LIGHT.accent in slider_style(LIGHT)
     assert LIGHT.accent in menu_style(LIGHT)
     # Aufgelöste f-Strings enthalten keine doppelten Klammern mehr.
     assert "{{" not in card_style(LIGHT)
+
+
+def test_slider_style_matches_prototype_range_control():
+    """§5.5: Qt-Slider bilden den Prototyp-Range-Look vollstaendig nach."""
+    from bgremover.theme import DARK, LIGHT, slider_style
+
+    for palette in (DARK, LIGHT):
+        style = slider_style(palette)
+        assert "QSlider { margin: 9px 0 2px 0; min-height: 18px; }" in style
+        assert "QSlider::groove:horizontal" in style
+        assert "height: 4px" in style
+        assert "background: transparent" in style
+        assert "QSlider::sub-page:horizontal" in style
+        assert f"background: {palette.accent}" in style
+        assert "QSlider::add-page:horizontal" in style
+        assert f"background: {palette.border}" in style
+        assert "width: 14px" in style
+        assert "height: 14px" in style
+        assert "border-radius: 7px" in style
 
 
 def test_build_qpalette_uses_scheme_colors(qapp):
