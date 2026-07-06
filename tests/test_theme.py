@@ -125,7 +125,7 @@ def test_slider_style_matches_prototype_range_control():
         assert f"background: {palette.accent}" in style
         assert "QSlider::add-page:horizontal" in style
         assert "background: #e6e6e6" in style or "background: #d4d9e2" in style
-        assert "border: 1px solid #ffffff" in style or f"border: 1px solid {palette.border_2}" in style
+        assert "border: none" in style
         assert f"background: {palette.on_accent}" in style
         assert "width: 16px" in style
         assert "height: 16px" in style

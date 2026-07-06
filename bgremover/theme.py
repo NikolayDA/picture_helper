@@ -189,7 +189,8 @@ def section_header_style(p: Palette) -> str:
     blauer Akzentstrich links – immer Akzentfarbe, nie Amber/Coral (Issue #416)."""
     return (f"color: {p.text2}; font-size: 11px; font-weight: bold;"
             " letter-spacing: .05em; background: transparent;"
-            f" padding: 2px 0 4px 8px; border-left: 3px solid {p.accent};")
+            f" padding: 0 0 0 8px; border-left: 3px solid {p.accent};"
+            " min-height: 13px; max-height: 13px;")
 
 
 def primary_btn_style(p: Palette) -> str:
@@ -276,15 +277,25 @@ def num_style(p: Palette) -> str:
     )
 
 
+def combo_style(p: Palette) -> str:
+    """ComboBox-Stil ohne SpinBox-Stepper-Pseudoelemente."""
+    return (
+        f"QComboBox {{ background:{p.surface}; color:{p.text};"
+        f" border:1px solid {p.border}; border-radius:6px; padding:3px 6px;"
+        " font-size:12px; min-height:24px; }"
+        f" QComboBox:focus {{ border:1px solid {p.accent}; }}"
+        f" QComboBox QAbstractItemView {{ background:{p.surface}; color:{p.text}; }}"
+    )
+
+
 def slider_style(p: Palette) -> str:
     """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496)."""
     rest = "#e6e6e6" if p.is_dark else "#d4d9e2"
-    track_border = p.on_accent if p.is_dark else p.border_2
     return f"""
     QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
     QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
-    QSlider::sub-page:horizontal {{ background: {p.accent}; border: 1px solid {track_border}; border-radius: 4px; }}
-    QSlider::add-page:horizontal {{ background: {rest}; border: 1px solid {track_border}; border-radius: 4px; }}
+    QSlider::sub-page:horizontal {{ background: {p.accent}; border: none; border-radius: 4px; }}
+    QSlider::add-page:horizontal {{ background: {rest}; border: none; border-radius: 4px; }}
     QSlider::handle:horizontal {{
         background: {p.on_accent}; border: none; width: 16px; height: 16px;
         margin: -4px 0; border-radius: 8px;

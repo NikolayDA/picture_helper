@@ -31,7 +31,7 @@ from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.project_model import LayerRole, role_allowed_for_kind
 from bgremover.right_panel_tabs import _make_scroll_tab, _make_section
-from bgremover.theme import active_palette, num_style, slider_style
+from bgremover.theme import active_palette, combo_style, slider_style
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
 _ROLE_ORDER: list[LayerRole | None] = [
@@ -158,7 +158,7 @@ class LayerPanel:
         label.setStyleSheet(f"color:{p.text3}; font-size:12px; background:transparent;")
         combo = QComboBox()
         combo.setToolTip(tr("right_panel.layers.role.tooltip"))
-        combo.setStyleSheet(num_style(p))
+        combo.setStyleSheet(combo_style(p))
         for role in _ROLE_ORDER:
             combo.addItem(_role_label(role), role)
         combo.currentIndexChanged.connect(self._on_role_changed)
