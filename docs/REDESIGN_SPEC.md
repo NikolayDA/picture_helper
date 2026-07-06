@@ -150,53 +150,42 @@ Gleiches Token-Set, Ausprägung `theme.LIGHT`:
 | `bg` | `#e9edf3` | Leinwand-Umfeld |
 | `panel` / `inspector` | `#f2f4f8` / `#f5f7fb` | Panelflächen |
 | `tabbar` | `#e6eaf1` | (Alt-)Tab-Leiste |
-| `stepper` | `#eef1f6` | Schrittleiste |
+| `stepper` | `#f1f4f8` | Schrittleiste |
 | `nav` | `#eaeef3` | Navigations-Fußzeile |
 | `status` | `#dee3eb` | Statusleiste |
 | `toolbar` | `#e6eaf1` | Werkzeugleiste |
-| `border` / `border_2` | `#c9d2df` / `rgba(22,32,52,.16)` | Ränder (Standard/sekundär) |
-| `divider` / `hairline` | `#dbe1ea` / `#d4dae4` | Trennlinien |
+| `border` / `border_2` | `rgba(22,32,52,.09)` / `rgba(22,32,52,.16)` | Ränder (Standard/sekundär) |
+| `divider` / `hairline` | `#dbe1ea` / `rgba(22,32,52,.11)` | Trennlinien |
 | `surface` / `surface_hover` | `#ffffff` / `#eef1f6` | Bedienflächen |
-| `hover` | `rgba(22,32,52,.06)` | Hover-Schleier |
+| `hover` | `rgba(22,32,52,.05)` | Hover-Schleier |
 | `inset` | `#e3e8ef` | rezessierte Fläche (Vorschau-Segmented-Control-Container) |
-| `card_bg` / `card_border` | `#ffffff` / `rgba(22,32,52,.10)` | Karten |
+| `card_bg` / `card_border` | `#ffffff` / `rgba(22,32,52,.09)` | Karten |
 | `glass` | `rgba(255,255,255,.86)` | schwebende Canvas-Overlays (Zoom-Pille §14) |
 | `checker_a` / `checker_b` | `#dde2ea` / `#eef1f5` | Canvas-Transparenz-Schachbrett |
 | `text` / `text2` / `text3` | `#1b2230` / `#3a4351` / `#59626f` | aktiver Text |
 | `muted` | `#8b95a3` | **nur** Disabled/Placeholder |
 | `label` | `#7b8492` | gedämpfte Feldbeschriftung (aktuell ungenutzt, siehe §2) |
-| `accent` / `accent2` | `#3a6fd0` / `#2f5fcf` | Blau (Aktion) |
-| `accent_soft` / `accent_line` | `rgba(58,111,208,.14)` / `rgba(58,111,208,.34)` | Akzentflächen/-linien |
+| `accent` / `accent2` | `#3f6fe0` / `#3464d6` | Blau (Aktion) |
+| `accent_soft` / `accent_line` | `rgba(63,111,224,.12)` / `rgba(63,111,224,.32)` | Akzentflächen/-linien |
 | `accent_text` / `on_accent` | `#2f5fcf` / `#ffffff` | Text auf/zu Akzent |
-| `accent_shadow` | `rgba(58,111,208,.26)` | Glow-Farbwert (aktuell ungenutzt, siehe §2) |
+| `accent_shadow` | `rgba(63,111,224,.28)` | Glow-Farbwert (aktuell ungenutzt, siehe §2) |
 | `good` / `good_soft` | `#1f9d63` / `rgba(31,157,99,.14)` | positiv |
 | `good_line` | `rgba(31,157,99,.4)` | Rand-Ton zu `good`/`good_soft` (aktuell ungenutzt, siehe §2) |
 | `bad` / `bad_soft` | `#d65060` / `rgba(214,80,96,.13)` | negativ |
 
 Umschaltung: §10.
 
-**Bekannte Restabweichung vom Prototyp (#480, bewusst nicht Teil von
-#474–#479).** Anders als das dunkle Schema wurde `theme.LIGHT` in diesem
-Epic nicht Zeile für Zeile auf die Prototyp-Werte gebracht — laut
-Epic-Beschreibung #474 ausdrücklich ein Nicht-Ziel, da das helle Schema
-schon vor #474 näher am Prototyp lag als das dunkle. Ein direkter Abgleich
-zeigt dennoch verbleibenden, hier bewusst dokumentierten Drift zur
-Prototyp-Quelle:
+**Bekannte Restabweichung vom Prototyp (#499).** Der in #480 dokumentierte
+Restdrift des hellen Schemas (Stepper-, Rand-, Haarlinien-, Hover-,
+Kartenrand- und Akzent-Token) wurde mit Issue #499 aufgelöst — `theme.LIGHT`
+übernimmt die Werte des hellen `:root`-Blocks im Prototyp-Bundle seither
+1:1; der Regressionstest
+`test_light_palette_matches_prototype_bundle_directly` (`tests/test_theme.py`)
+verhindert neuen Drift. Einzige bewusste Ausnahme bleibt:
 
 | Token | Prototyp-Wert | `theme.LIGHT` aktuell |
 |---|---|---|
-| `stepper` | `#f1f4f8` | `#eef1f6` |
-| `border` | `rgba(22,32,52,.09)` | `#c9d2df` (opak) |
-| `hairline` | `rgba(22,32,52,.11)` | `#d4dae4` (opak) |
-| `hover` | `rgba(22,32,52,.05)` | `rgba(22,32,52,.06)` |
-| `card_border` | `rgba(22,32,52,.09)` | `rgba(22,32,52,.10)` |
-| `accent`/`accent2` | `#3f6fe0` / `#3464d6` | `#3a6fd0` / `#2f5fcf` |
-| `accent_soft`/`accent_line`/`accent_shadow` | Akzent-Farbfamilie des Prototyps | eigene, etwas dunklere Farbfamilie |
 | `text3` | `#69727f` | `#59626f` (**bewusst**, WCAG AA auf der Statusleiste, #441) |
-
-Mit Ausnahme von `text3` (explizit kontrastbegründet) sind das kleine,
-bisher nicht behobene Restabweichungen – Kandidat für ein künftiges,
-eigenes Issue analog zu #475–#479, aber außerhalb des Umfangs dieses Epics.
 
 ## §4 Typografie
 

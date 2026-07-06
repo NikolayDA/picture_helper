@@ -458,14 +458,13 @@ def test_redesign_spec_color_tables_match_theme_palettes():
             f"{mismatches}")
 
 
-# ── Drift-Schutz: theme.py vs. Prototyp-Bundle direkt (#480, optional) ──────
+# ── Drift-Schutz: theme.py vs. Prototyp-Bundle direkt (#480/#499) ───────────
 #
 # Dritte Ecke des Dreiecks Prototyp ↔ Spec ↔ Code: die vorige Prüfung sichert
-# nur Spec↔Code ab. Dieser Test liest die tatsächlich eingebetteten
-# CSS-Variablen aus dem Prototyp-Bundle und vergleicht sie direkt gegen
-# ``theme.DARK`` – nur das dunkle Schema, denn das helle wurde in diesem Epic
-# bewusst nicht Zeile für Zeile angeglichen (Nicht-Ziel von #474/#480, siehe
-# die dokumentierte Restabweichung in REDESIGN_SPEC.md §3).
+# nur Spec↔Code ab. Diese Tests lesen die tatsächlich eingebetteten
+# CSS-Variablen aus dem Prototyp-Bundle und vergleichen sie direkt gegen
+# ``theme.DARK`` (#480) bzw. ``theme.LIGHT`` (#499, mit der dokumentierten
+# ``text3``-Ausnahme, siehe REDESIGN_SPEC.md §3).
 _PROTOTYPE_PATH = (
     Path(__file__).resolve().parent.parent
     / "design" / "Prototyp A - Geführter Workflow.dc.html")
@@ -499,28 +498,29 @@ _PROTOTYPE_VARS_WITHOUT_FIELD = {
 # Ausnahmen werden über _PROTOTYPE_VARS_WITHOUT_FIELD statt über Feld-Drift
 # dokumentiert.
 _DARK_ALLOWED_DRIFT: set[str] = set()
+# Das helle Schema ist seit #499 ebenfalls 1:1 am Prototyp. Einzige bewusste
+# Abweichung: ``text3`` bleibt dunkler als der Prototyp-Wert (#69727f), damit
+# Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 erreicht (WCAG AA, #441).
+_LIGHT_ALLOWED_DRIFT: set[str] = {"text3"}
 
 
-def _prototype_dark_root_vars() -> dict[str, str]:
-    """Liest die ``--*``-Variablen des **dunklen** ``:root``-Blocks aus dem
-    Prototyp-Bundle. Das Bundle enthält zwei Blöcke (dunkel, dann hell); ein
-    zweites Auftreten von ``--bg`` markiert den Beginn des hellen Blocks.
+def _prototype_root_vars() -> tuple[dict[str, str], dict[str, str]]:
+    """Liest die ``--*``-Variablen der beiden ``:root``-Blöcke aus dem
+    Prototyp-Bundle als ``(dunkel, hell)``. Das Bundle enthält genau zwei
+    Blöcke (dunkel, dann hell); das zweite Auftreten von ``--bg`` markiert
+    den Beginn des hellen Blocks.
     """
     text = _PROTOTYPE_PATH.read_text(encoding="utf-8")
     pairs = re.findall(r"(--[a-zA-Z0-9-]+):\s*([^;]+);", text)
     bg_positions = [i for i, (k, _v) in enumerate(pairs) if k == "--bg"]
-    assert len(bg_positions) >= 2, "Erwarte zwei :root-Blöcke (dunkel, hell) im Bundle"
-    return dict(pairs[:bg_positions[1]])
+    assert len(bg_positions) == 2, "Erwarte genau zwei :root-Blöcke (dunkel, hell) im Bundle"
+    return dict(pairs[:bg_positions[1]]), dict(pairs[bg_positions[1]:])
 
 
-def test_dark_palette_matches_prototype_bundle_directly():
-    """#480 (optional): ``theme.DARK`` direkt gegen die im Prototyp-Bundle
-    eingebetteten CSS-Variablen geprüft – unabhängig von REDESIGN_SPEC.md.
-    Verhindert, dass Spec und Code gemeinsam vom Prototyp abdriften.
-    """
-    from bgremover.theme import DARK
-
-    prototype_vars = _prototype_dark_root_vars()
+def _assert_palette_matches_prototype(
+    palette, prototype_vars: dict[str, str], allowed_drift: set[str], name: str,
+) -> None:
+    """Vergleicht eine Palette Feld für Feld mit einem Prototyp-``:root``-Block."""
     checked = _PROTOTYPE_VAR_TO_FIELD.keys() | _PROTOTYPE_VARS_WITHOUT_FIELD
     unexpected = prototype_vars.keys() - checked
     assert not unexpected, (
@@ -531,8 +531,34 @@ def test_dark_palette_matches_prototype_bundle_directly():
     mismatches = {}
     for css_var, field in _PROTOTYPE_VAR_TO_FIELD.items():
         prototype_value = prototype_vars[css_var].replace(" ", "")
-        actual = getattr(DARK, field).replace(" ", "")
-        if prototype_value != actual and field not in _DARK_ALLOWED_DRIFT:
+        actual = getattr(palette, field).replace(" ", "")
+        if prototype_value != actual and field not in allowed_drift:
             mismatches[css_var] = (prototype_value, actual)
     assert not mismatches, (
-        f"theme.DARK weicht vom Prototyp ab (Prototyp-Wert, Code-Wert): {mismatches}")
+        f"theme.{name} weicht vom Prototyp ab (Prototyp-Wert, Code-Wert): {mismatches}")
+
+
+def test_dark_palette_matches_prototype_bundle_directly():
+    """#480 (optional): ``theme.DARK`` direkt gegen die im Prototyp-Bundle
+    eingebetteten CSS-Variablen geprüft – unabhängig von REDESIGN_SPEC.md.
+    Verhindert, dass Spec und Code gemeinsam vom Prototyp abdriften.
+    """
+    from bgremover.theme import DARK
+
+    dark_vars, _light_vars = _prototype_root_vars()
+    _assert_palette_matches_prototype(DARK, dark_vars, _DARK_ALLOWED_DRIFT, "DARK")
+
+
+def test_light_palette_matches_prototype_bundle_directly():
+    """#499: ``theme.LIGHT`` direkt gegen den hellen ``:root``-Block des
+    Prototyp-Bundles geprüft – analog zum dunklen Schema (#480). Einzige
+    zugelassene Abweichung ist die dokumentierte ``text3``-Kontrastausnahme.
+    """
+    from bgremover.theme import LIGHT
+
+    _dark_vars, light_vars = _prototype_root_vars()
+    _assert_palette_matches_prototype(LIGHT, light_vars, _LIGHT_ALLOWED_DRIFT, "LIGHT")
+    # Die Ausnahme bleibt eine echte, bewusste Abweichung (WCAG AA, #441) –
+    # gliche text3 dem Prototyp irgendwann, gehört sie hier entfernt.
+    assert LIGHT.text3 == "#59626f"
+    assert light_vars["--text-3"] == "#69727f"
