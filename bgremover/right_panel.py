@@ -530,7 +530,8 @@ class _RightPanelBuilder:
         drop = _DropFrame(self._on_open, self._on_open_path)
         drop.setStyleSheet(
             f"QFrame {{ border: 2px dashed {p.border}; border-radius: 12px;"
-            f" background: transparent; }}"
+            f" background: {p.card_bg}; }}"
+            f"QFrame:hover {{ border-color: {p.accent}; background: {p.accent_soft}; }}"
             f"QFrame:focus {{ border: 2px dashed {p.accent}; }}")
         drop_lay = QVBoxLayout(drop)
         drop_lay.setContentsMargins(18, 30, 18, 30)

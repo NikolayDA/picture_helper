@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -220,6 +221,24 @@ def test_open_step_recent_card_uses_prototype_background(qapp, tmp_path):
     assert "#2e353f" in card.styleSheet()
 
 
+def test_open_step_drop_zone_uses_prototype_hover(qapp):
+    """Die Öffnen-Drop-Kachel wechselt beim Hover auf accent-soft wie im Prototyp."""
+    from bgremover.right_panel import _DropFrame
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    drop = panel.frame.findChild(_DropFrame)
+    assert drop is not None
+    style = drop.styleSheet()
+    assert f"background: {DARK.card_bg}" in style
+    assert "QFrame:hover" in style
+    assert f"border-color: {DARK.accent}" in style
+    assert f"background: {DARK.accent_soft}" in style
+
+
 def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     """Alle Sektionsköpfe nutzen dasselbe Blau; jede Sektion ist eine Karte (#415/#416)."""
     # Live-Vertrag gegen die aktuelle Palette prüfen, nicht gegen die
@@ -244,6 +263,9 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
     for lbl in headers:
         style = lbl.styleSheet()
         assert DARK.accent in style, style
+        assert "padding: 0 0 0 8px" in style
+        assert "min-height: 13px" in style
+        assert "max-height: 13px" in style
         for old in removed:
             assert old not in style, f"Alt-Akzent {old} noch vorhanden"
 
@@ -273,10 +295,29 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
         assert f"background: {DARK.accent}" in style
         assert "QSlider::add-page:horizontal" in style
         assert "background: #e6e6e6" in style
-        assert "border: 1px solid #ffffff" in style
+        assert "border: none" in style
         assert f"background: {DARK.on_accent}" in style
         assert "width: 16px" in style
         assert "height: 16px" in style
+
+
+def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
+    """SpinBox-Stepper erhalten gut erkennbare Plus/Minus-Buttons in Hell/Dunkel."""
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    for palette in (DARK, LIGHT):
+        set_active_palette(palette)
+        panel = build_right_panel(
+            _actions([]), _noop_layer_actions(), _noop_height_actions())
+
+        spins = panel.frame.findChildren(QSpinBox)
+        assert spins, "keine SpinBoxen in der rechten Spalte gefunden"
+        for spin in spins:
+            style = spin.styleSheet()
+            assert spin.buttonSymbols() == QAbstractSpinBox.ButtonSymbols.PlusMinus
+            assert f"background:{palette.surface}" in style
+            assert f"color:{palette.text}" in style
+            assert f"border:1px solid {palette.border}" in style
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):
@@ -667,7 +708,7 @@ def test_layer_panel_opacity_slider_uses_prototype_range_style(qapp):
     assert f"background: {DARK.accent}" in style
     assert "QSlider::add-page:horizontal" in style
     assert "background: #e6e6e6" in style
-    assert "border: 1px solid #ffffff" in style
+    assert "border: none" in style
     assert f"background: {DARK.on_accent}" in style
 
 

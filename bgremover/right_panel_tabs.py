@@ -13,6 +13,7 @@ from PIL import Image
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QFrame,
     QGridLayout,
@@ -346,7 +347,7 @@ class SelectionTab:
         # (1-20), muss neben zwei Buttons in der 332-px-Karte Platz finden.
         morph_spin.setFixedWidth(54)
         morph_spin.setToolTip(tr("right_panel.selection.morph.tooltip"))
-        morph_spin.setStyleSheet(_spin_style())
+        _style_spin_box(morph_spin)
         btn_expand = _make_semantic_btn(
             tr("right_panel.selection.expand"), good=True,
             tooltip=tr("right_panel.selection.expand.tooltip"))
@@ -497,7 +498,7 @@ class TransformTab:
         rotation_spin.setSuffix("°")
         rotation_spin.setFixedWidth(66)
         rotation_spin.setToolTip(tr("right_panel.transform.angle_spin.tooltip"))
-        rotation_spin.setStyleSheet(_spin_style())
+        _style_spin_box(rotation_spin)
         rotation_slider.valueChanged.connect(lambda v: rotation_spin.setValue(v))
         rotation_spin.valueChanged.connect(lambda v: rotation_slider.setValue(v))
         row_free.addWidget(rotation_slider, 1)
@@ -567,9 +568,9 @@ class ShapeTab:
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
         size_row = QHBoxLayout(); size_row.setSpacing(_OPTION_SPACING)
         resize_w = QSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
-        resize_w.setFixedWidth(76); resize_w.setStyleSheet(_spin_style())
+        resize_w.setFixedWidth(76); _style_spin_box(resize_w)
         resize_h = QSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
-        resize_h.setFixedWidth(76); resize_h.setStyleSheet(_spin_style())
+        resize_h.setFixedWidth(76); _style_spin_box(resize_h)
         size_row.addWidget(resize_w)
         size_row.addWidget(_make_label("×", "#888"))
         size_row.addWidget(resize_h)
@@ -909,3 +910,9 @@ def _make_slider(lo: int, hi: int, val: int, tip: str = "") -> QSlider:
 def _spin_style() -> str:
     """Spinbox-/Combo-Stil aus der aktiven Palette (#428)."""
     return num_style(active_palette())
+
+
+def _style_spin_box(box: QSpinBox) -> None:
+    """Apply the panel number style and clearer native stepper symbols."""
+    box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
+    box.setStyleSheet(_spin_style())

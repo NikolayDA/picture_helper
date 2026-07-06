@@ -41,7 +41,7 @@ from bgremover.right_panel_tabs import (
     _make_primary_btn,
     _make_scroll_tab,
     _make_section,
-    _spin_style,
+    _style_spin_box,
 )
 
 # Reine Höhen-Operation; die Closures lesen ihre Reglerwerte beim Aufruf.
@@ -71,7 +71,7 @@ def _spin(lo: int, hi: int, value: int, *, suffix: str = "", width: int = 72) ->
     if suffix:
         box.setSuffix(suffix)
     box.setFixedWidth(width)
-    box.setStyleSheet(_spin_style())
+    _style_spin_box(box)
     return box
 
 
