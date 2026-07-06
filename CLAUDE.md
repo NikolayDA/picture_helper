@@ -176,7 +176,7 @@ Ein Paket, `bgremover/`:
   ebenfalls `layersChanged`-getrieben; Bearbeiten/Optimieren nur im HEIGHT-Kontext
   aktiv, Optimierung mit Live-Vorschau über `preview_height_op`/`apply_height_op`),
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
-  Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`, `widgets.py`,
+  Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`,
   `theme.py`, `icons*.py`.
 - **Geführter Workflow & Redesign (Epics #413/#418/#424/#455/#463):** Das
   MainWindow führt durch **sechs Schritte** (`WorkflowStep` in `stepper.py`:

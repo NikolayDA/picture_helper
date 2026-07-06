@@ -32,8 +32,6 @@ _LAZY_EXPORTS: Final[dict[str, tuple[str, str]]] = {
     "ImageLoadWorker": ("bgremover.workers", "ImageLoadWorker"),
     "MainWindow": ("bgremover.main_window", "MainWindow"),
     "SettingsDialog": ("bgremover.settings_dialog", "SettingsDialog"),
-    "TopIconTabBar": ("bgremover.widgets", "TopIconTabBar"),
-    "TopIconTabWidget": ("bgremover.widgets", "TopIconTabWidget"),
     "current_log_file": ("bgremover.logging_config", "current_log_file"),
     "flood_fill": ("bgremover.image_utils", "flood_fill"),
     "logger": ("bgremover.constants", "logger"),
