@@ -11,14 +11,16 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-05)
+## Current Status (2026-07-06)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs. Since the 2026-07-04 snapshot, the Dark Mode
-prototype-alignment cluster **#474–#480** (PR #482) and the rail-icon/state-color
-wave **#483–#488** (PR #489) are closed. Before this follow-up, GitHub shows
-**12** open issues including **#490**; after this snapshot fix is merged/closed,
-**11** roadmap/backlog issues remain.
+remain the baseline before new PRs. Since the 2026-07-05 snapshot, the
+Recommendations snapshot fix **#490** is closed. Today's verification pass over
+the redesign epics (#413/#418/#424/#455/#463/#474/#483) turned up three new,
+well-scoped findings: **#499** (light theme not yet 1:1 with the prototype),
+**#500** (screenshot script broken after the redesign, blocking #432), and
+**#501** (dead pre-redesign widget `TopIconTab*`). GitHub currently shows
+**14** open issues.
 
 ### Completed Since The Last Review
 
@@ -42,8 +44,28 @@ wave **#483–#488** (PR #489) are closed. Before this follow-up, GitHub shows
   surfaces, hairlines, accents, checkerboard, missing tokens, REDESIGN_SPEC
   drift test); PR #489 closed **#483–#488** (vector icons, state/theme colors,
   removed PNG fallbacks, docs/tests/review fix).
-- **#490 in progress:** This PR fixes the Recommendations snapshot drift after
-  PR #482/#489 and keeps all six language mirrors in sync.
+- **#490 completed:** The Recommendations snapshot drift after PR #482/#489
+  is fixed; all six language mirrors were in sync.
+- **Smoke tests/regression completed:** **#433/#434** landed via PR #423
+  (stepper/card/navigation smoke tests, action wiring); epic **#426** now
+  hinges only on **#435**.
+
+### New Since The Last Review
+
+- **#499 🟡 Bug/design system:** `theme.LIGHT` diverges from the embedded CSS
+  in `design/Prototyp A - Geführter Workflow.dc.html` across several tokens
+  (`stepper`/`border`/`hairline`/`hover`/`card_border`/accent family) — the
+  same pattern as the already-completed Dark Mode alignment **#474–#480**,
+  with the same test scaffold (`tests/test_theme.py`) already in place.
+- **#500 🟠 Bug:** `scripts/generate_app_screenshots.py` looks up a right
+  column via `findChild(QTabWidget)` that no longer exists since PR #412/#423
+  (now a `Stepper` card sequence). Blocks **#432** (recreate screenshots) and
+  any automated visual check against the prototype; no test coverage so far,
+  cleanly reproducible.
+- **#501 🟢 Quality:** `TopIconTabBar`/`TopIconTabWidget` in `widgets.py` are
+  dead widgets since the stepper switch (only a lazy export in `__init__.py`
+  plus an import mention in `tests/test_package_imports.py` remain). Low-risk
+  cleanup, no functional change.
 
 ### Still Open
 
@@ -57,19 +79,21 @@ wave **#483–#488** (PR #489) are closed. Before this follow-up, GitHub shows
   finding on PR #460). Mockup-only; the real app already activates the new
   HEIGHT layer automatically (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-05)
+## Open GitHub Issues — Triage Status (2026-07-06)
 
-As of 2026-07-05, GitHub shows **12** open issues before this PR, including
-**#490**. After this follow-up is merged/closed, **11** roadmap/backlog issues
-remain: i18n/docs (**#425/#430/#431/#432**), rollout/release
-(**#426/#435/#392/#389**), and backlog/external items (**#299/#318/#245**).
+As of 2026-07-06, GitHub shows **14** open issues: three fresh redesign
+follow-ups (**#499/#500/#501**), i18n/docs (**#425/#430/#431/#432**),
+rollout/release (**#426/#435/#392/#389**), and backlog/external items
+(**#299/#318/#245**).
 
 ### Sensible Bundles
 
-- **#490:** This PR closes the snapshot drift after PR #482/#489; no follow-up
-  implementation ticket remains from it.
+- **Redesign follow-up (#499/#500/#501):** all three are independent,
+  low-risk, and fit a single cleanup PR; **#500** takes priority because it
+  unblocks **#432**.
 - **i18n/docs (#425):** #430 (ES/FR/UK/ZH) unblocks the parity tests; #431 (docs)
-  and #432 (screenshots) follow once the UI is visually final.
+  and #432 (screenshots) follow once the UI is visually final **and** #500
+  makes the screenshot script runnable again.
 - **Rollout/release:** #426 remains open only through #435; coordinate #435 with
   #392, then close #426/#389.
 - **Backlog:** handle #299 after the release; refine #318 first; #245 stays
@@ -80,11 +104,13 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#490](https://github.com/NikolayDA/picture_helper/issues/490) | Refresh triage snapshot after Dark Mode and rail-icon wave | 🟡 Medium | 🟢 Low | **This PR** – close after merge. |
+| [#500](https://github.com/NikolayDA/picture_helper/issues/500) | Screenshot script broken after redesign (blocks #432) | 🟠 High | 🟢 Low | **Ready for PR** – switch navigation to `Stepper`. |
+| [#499](https://github.com/NikolayDA/picture_helper/issues/499) | Align light theme 1:1 with Prototype A | 🟡 Medium | 🟢 Low | **Ready for PR** – same pattern as #474–#480. |
+| [#501](https://github.com/NikolayDA/picture_helper/issues/501) | Remove orphaned `TopIconTab*` widgets | 🟢 Low | 🟢 Low | **Ready for PR** – pure cleanup, 3 files. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟡 Medium | **In progress** – #430/#431/#432 open. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | New UI strings (steps/cards/navigation) | 🟠 High | 🟡 Medium | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | **After UI freeze** – 6-language mirror, link tests. |
-| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Recreate app screenshots for the redesign | 🟢 Low | 🟢 Low | **Blocked** – only once the UI is visually final. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Recreate app screenshots for the redesign | 🟢 Low | 🟢 Low | **Blocked** – needs UI freeze **and** #500. |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | **Nearly done** – only #435 remains open. |
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | **Align with #392** – settle the release sequence. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | **Ready** – decide the sequence with the redesign. |
@@ -95,15 +121,19 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. Pull **#430** forward (UI strings ES/FR/UK/ZH) — it unblocks i18n parity; then
+1. **#500** first (fix the screenshot script) — unblocks **#432**; **#499** and
+   **#501** can ride along in the same PR or a direct follow-up.
+2. Pull **#430** forward (UI strings ES/FR/UK/ZH) — it unblocks i18n parity; then
    **#431**/**#432** once the UI is final.
-2. **Release:** run **#435** + **#392** in a coordinated way, then close epics
+3. **Release:** run **#435** + **#392** in a coordinated way, then close epics
    **#426** and **#389**.
-3. **#299** after the release; research **#318** only (needs refinement); keep
+4. **#299** after the release; research **#318** only (needs refinement); keep
    **#245** externally blocked.
 
 ## Previous Rounds
 
+- **2026-07-05 triage** — #490 (snapshot drift) in progress, Dark Mode/rail-icon
+  wave (#474–#488) and card inspector (#413/#414) completed.
 - **2026-06-29 triage** — #404/#406/#408 completed (PR #412), redesign wave opened.
 - **v2.2, "admiring-mayer" (#1–#15)** — external list, completed or discarded where it was a false positive.
 

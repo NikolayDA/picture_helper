@@ -11,15 +11,17 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-05)
+## État actuel (2026-07-06)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
 locale restent la base avant tout nouveau PR. Depuis l'instantané du
-2026-07-04, le groupe d'alignement Dark Mode/prototype **#474–#480** (PR #482)
-et la vague icônes du rail/couleurs d'état **#483–#488** (PR #489) sont fermés.
-Avant ce suivi, GitHub affiche **12** tickets ouverts dont **#490** ; après la
-fusion/clôture de ce correctif d'instantané, il restera **11** tickets de
-roadmap/backlog.
+2026-07-05, le correctif d'instantané Recommendations **#490** est fermé. La
+vérification du jour sur les epics de redesign
+(#413/#418/#424/#455/#463/#474/#483) a révélé trois constats neufs et bien
+délimités : **#499** (thème clair pas encore 1:1 avec le prototype), **#500**
+(script de captures cassé après le redesign, bloque #432) et **#501** (widget
+mort d'avant redesign `TopIconTab*`). GitHub affiche actuellement **14**
+tickets ouverts.
 
 ### Terminé depuis la dernière revue
 
@@ -44,8 +46,29 @@ roadmap/backlog.
   (surfaces dark, hairlines, accents, checkerboard, jetons manquants, test de
   dérive REDESIGN_SPEC) ; PR #489 ferme **#483–#488** (icônes vectorielles,
   couleurs d'état/thème, fallbacks PNG retirés, docs/tests/revue).
-- **#490 en cours :** Cette PR corrige la dérive de l'instantané Recommendations
-  après PR #482/#489 et garde synchronisés les six miroirs de langue.
+- **#490 terminé :** La dérive de l'instantané Recommendations après
+  PR #482/#489 est corrigée ; les six miroirs de langue étaient synchronisés.
+- **Smoke tests/régression terminés :** **#433/#434** ont atterri via PR #423
+  (smoke tests barre d'étapes/cartes/navigation, câblage des actions) ; l'epic
+  **#426** ne dépend plus que de **#435**.
+
+### Nouveau depuis la dernière revue
+
+- **#499 🟡 Bug/design system :** `theme.LIGHT` diverge du CSS embarqué dans
+  `design/Prototyp A - Geführter Workflow.dc.html` sur plusieurs jetons
+  (`stepper`/`border`/`hairline`/`hover`/`card_border`/famille d'accent) — le
+  même schéma que l'alignement Dark Mode déjà terminé **#474–#480**, avec le
+  même harnais de tests (`tests/test_theme.py`) déjà en place.
+- **#500 🟠 Bug :** `scripts/generate_app_screenshots.py` cherche une colonne
+  de droite via `findChild(QTabWidget)` qui n'existe plus depuis PR #412/#423
+  (désormais une séquence de cartes `Stepper`). Bloque **#432** (refaire les
+  captures) et toute vérification visuelle automatisée face au prototype ;
+  aucune couverture de tests jusqu'ici, reproductible proprement.
+- **#501 🟢 Qualité :** `TopIconTabBar`/`TopIconTabWidget` dans `widgets.py`
+  sont des widgets morts depuis le passage au stepper (il ne reste qu'un
+  export paresseux dans `__init__.py` plus une mention d'import dans
+  `tests/test_package_imports.py`). Nettoyage à faible risque, sans
+  changement fonctionnel.
 
 ### Encore ouvert
 
@@ -61,19 +84,21 @@ roadmap/backlog.
   la PR #460). N'affecte que la simulation de la maquette ; l'application
   réelle active déjà automatiquement le nouveau calque HEIGHT (#347).
 
-## Tickets GitHub ouverts — Triage (2026-07-05)
+## Tickets GitHub ouverts — Triage (2026-07-06)
 
-Au 2026-07-05, GitHub affiche **12** tickets ouverts avant cette PR, dont
-**#490**. Après fusion/clôture de ce suivi, il restera **11** tickets de
-roadmap/backlog : i18n/docs (**#425/#430/#431/#432**), rollout/publication
-(**#426/#435/#392/#389**) et backlog/points externes (**#299/#318/#245**).
+Au 2026-07-06, GitHub affiche **14** tickets ouverts : trois suivis de
+redesign tout neufs (**#499/#500/#501**), i18n/docs
+(**#425/#430/#431/#432**), rollout/publication (**#426/#435/#392/#389**) et
+backlog/points externes (**#299/#318/#245**).
 
 ### Regroupements pertinents
 
-- **#490 :** Cette PR clôt la dérive d'instantané après PR #482/#489 ; aucun
-  ticket d'implémentation de suivi n'en découle.
+- **Suivi de redesign (#499/#500/#501) :** les trois sont indépendants, à
+  faible risque et tiennent dans un seul PR de nettoyage ; **#500** est
+  prioritaire car il débloque **#432**.
 - **i18n/docs (#425) :** #430 (ES/FR/UK/ZH) débloque les tests de parité ; #431
-  (docs) et #432 (captures) suivent quand l'UI sera visuellement définitive.
+  (docs) et #432 (captures) suivent quand l'UI sera visuellement définitive
+  **et** que #500 aura rendu le script de captures à nouveau fonctionnel.
 - **Rollout/publication :** #426 ne reste ouvert que via #435 ; coordonner #435
   avec #392, puis clore #426/#389.
 - **Backlog :** traiter #299 après la publication ; affiner #318 d'abord ; #245
@@ -84,11 +109,13 @@ roadmap/backlog : i18n/docs (**#425/#430/#431/#432**), rollout/publication
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#490](https://github.com/NikolayDA/picture_helper/issues/490) | Actualiser le snapshot de triage après Dark Mode et icônes rail | 🟡 Moyenne | 🟢 Faible | **Cette PR** – fermer après merge. |
+| [#500](https://github.com/NikolayDA/picture_helper/issues/500) | Script de captures cassé après le redesign (bloque #432) | 🟠 Élevée | 🟢 Faible | **Prêt pour PR** – faire basculer la navigation sur `Stepper`. |
+| [#499](https://github.com/NikolayDA/picture_helper/issues/499) | Aligner le thème clair 1:1 sur le Prototype A | 🟡 Moyenne | 🟢 Faible | **Prêt pour PR** – même schéma que #474–#480. |
+| [#501](https://github.com/NikolayDA/picture_helper/issues/501) | Retirer les widgets `TopIconTab*` orphelins | 🟢 Faible | 🟢 Faible | **Prêt pour PR** – nettoyage pur, 3 fichiers. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC : Internationalisation et documentation | 🟠 Élevée | 🟡 Moyenne | **En cours** – #430/#431/#432 ouverts. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nouvelles chaînes d'UI (étapes/cartes/navigation) | 🟠 Élevée | 🟡 Moyenne | **Prêt pour PR** – ES/FR/UK/ZH ; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Mettre ANLEITUNG et README au workflow guidé | 🟡 Moyenne | 🟡 Moyenne | **Après gel de l'UI** – miroir en 6 langues. |
-| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Refaire les captures de l'app pour le redesign | 🟢 Faible | 🟢 Faible | **Bloqué** – seulement quand l'UI est définitive. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Refaire les captures de l'app pour le redesign | 🟢 Faible | 🟢 Faible | **Bloqué** – nécessite le gel de l'UI **et** #500. |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC : QA et déploiement du redesign | 🟠 Élevée | 🟢 Faible | **Presque fini** – seul #435 reste ouvert. |
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG et bump de version du redesign | 🟡 Moyenne | 🟢 Faible | **Aligner sur #392** – définir la séquence. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publier la version v2.5.0 | 🟠 Élevée | 🟡 Moyenne | **Prête** – décider la séquence avec le redesign. |
@@ -99,15 +126,20 @@ roadmap/backlog : i18n/docs (**#425/#430/#431/#432**), rollout/publication
 
 ### Recommandé ensuite (ordre des PR)
 
-1. Avancer **#430** (chaînes ES/FR/UK/ZH) — débloque la parité i18n ; puis
+1. **#500** d'abord (réparer le script de captures) — débloque **#432** ;
+   **#499** et **#501** peuvent suivre dans le même PR ou un PR directement
+   suivant.
+2. Avancer **#430** (chaînes ES/FR/UK/ZH) — débloque la parité i18n ; puis
    **#431**/**#432** quand l'UI est définitive.
-2. **Publication :** mener **#435** + **#392** de façon coordonnée, puis clore les
+3. **Publication :** mener **#435** + **#392** de façon coordonnée, puis clore les
    epics **#426** et **#389**.
-3. **#299** après la publication ; n'étudier que **#318** (à affiner) ; garder
+4. **#299** après la publication ; n'étudier que **#318** (à affiner) ; garder
    **#245** bloqué en externe.
 
 ## Tours précédents
 
+- **Triage 2026-07-05** — #490 (dérive d'instantané) en cours, vague Dark
+  Mode/icônes rail (#474–#488) et inspecteur en cartes (#413/#414) achevés.
 - **Triage 2026-06-29** — #404/#406/#408 achevés (PR #412), vague de redesign ouverte.
 - **v2.2, « admiring-mayer » (#1–#15)** — liste externe, achevée ou écartée en cas de faux positif.
 
