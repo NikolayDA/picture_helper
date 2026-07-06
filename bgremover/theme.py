@@ -121,24 +121,26 @@ DARK = Palette(
 )
 
 LIGHT = Palette(
+    # Seit #499 1:1 am hellen :root-Block des Prototyps (Restdrift aus
+    # #474/#480 aufgelöst); einzige bewusste Ausnahme ist text3 (s. u.).
     bg="#e9edf3", panel="#f2f4f8", inspector="#f5f7fb", tabbar="#e6eaf1",
-    stepper="#eef1f6", nav="#eaeef3", status="#dee3eb", toolbar="#e6eaf1",
-    # border_2 (#476) ist bereits der Prototyp-Wert; border/hairline selbst
-    # bleiben im hellen Schema unverändert (Nicht-Ziel von #475/#476, siehe #480).
-    border="#c9d2df", border_2="rgba(22,32,52,.16)",
-    divider="#dbe1ea", hairline="#d4dae4",
-    surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.06)",
+    stepper="#f1f4f8", nav="#eaeef3", status="#dee3eb", toolbar="#e6eaf1",
+    # border/hairline wie im Prototyp als teiltransparente Blaugrau-Overlays
+    # statt opaker Grautöne (Gegenstück zu #476 im dunklen Schema).
+    border="rgba(22,32,52,.09)", border_2="rgba(22,32,52,.16)",
+    divider="#dbe1ea", hairline="rgba(22,32,52,.11)",
+    surface="#ffffff", surface_hover="#eef1f6", hover="rgba(22,32,52,.05)",
     inset="#e3e8ef",
-    card_bg="#ffffff", card_border="rgba(22,32,52,.10)",
+    card_bg="#ffffff", card_border="rgba(22,32,52,.09)",
     checker_a="#dde2ea", checker_b="#eef1f5",
     glass="rgba(255,255,255,.86)",
-    # text3 bewusst dunkler als die frühere Wahl (#69727f): erst damit erreicht
+    # text3 bewusst dunkler als der Prototyp-Wert (#69727f): erst damit erreicht
     # Hinweistext auch auf der hellen Statusleiste ≥ 4.5:1 (WCAG AA, #441).
     text="#1b2230", text2="#3a4351", text3="#59626f", muted="#8b95a3",
     label="#7b8492",
-    accent="#3a6fd0", accent2="#2f5fcf", accent_soft="rgba(58,111,208,.14)",
-    accent_line="rgba(58,111,208,.34)", accent_text="#2f5fcf",
-    accent_shadow="rgba(58,111,208,.26)", on_accent="#ffffff",
+    accent="#3f6fe0", accent2="#3464d6", accent_soft="rgba(63,111,224,.12)",
+    accent_line="rgba(63,111,224,.32)", accent_text="#2f5fcf",
+    accent_shadow="rgba(63,111,224,.28)", on_accent="#ffffff",
     good="#1f9d63", good_soft="rgba(31,157,99,.14)", good_line="rgba(31,157,99,.4)",
     bad="#d65060", bad_soft="rgba(214,80,96,.13)",
     is_dark=False,

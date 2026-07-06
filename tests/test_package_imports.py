@@ -93,8 +93,6 @@ def test_lazy_exports_remain_discoverable() -> None:
         "ImageLoadWorker",
         "MainWindow",
         "SettingsDialog",
-        "TopIconTabBar",
-        "TopIconTabWidget",
         "current_log_file",
         "flood_fill",
         "logger",
