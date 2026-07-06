@@ -11,82 +11,77 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-05)
+## Aktueller Stand (2026-07-06)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs. Seit dem Snapshot vom
-2026-07-04 sind die Dark-Mode-Prototyp-Angleichung **#474–#480** (PR #482)
-und die Rail-Icon-/State-Farb-Welle **#483–#488** (PR #489) geschlossen.
-GitHub zeigt vor diesem Follow-up **12** offene Issues inklusive **#490**;
-nach dem Merge/Close dieses Snapshot-Fixes bleiben **11** Roadmap-/Backlog-
+2026-07-05 ist der Recommendations-Snapshot-Fix **#490** geschlossen. Die
+heutige Verifikation der Redesign-Epics (#413/#418/#424/#455/#463/#474/#483)
+brachte drei neue, klar umrissene Befunde: **#499** (helles Schema noch nicht
+1:1 am Prototyp), **#500** (Screenshot-Skript kaputt, blockiert #432) und
+**#501** (totes Widget `TopIconTab*`). GitHub zeigt aktuell **14** offene
 Issues.
 
 ### Erledigt seit dem letzten Review
 
 - **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** bleiben
-  erledigt; die Epics **#329/#344/#358/#384** (N9–N12) samt Export-Fix **#363**
-  sind gemergt, durch Tests/CI abgesichert und archiviert.
-- **Seit dem Review 2026-06-25 geschlossen:** **#404**, **#406** und **#408**
-  (PR #412) – die zuvor gelisteten Vorschau-/Dead-Code-/Audit-Befunde sind
-  erledigt; `_derive_physical_size` existiert nicht mehr, und der Renderpfad
-  degradiert bei Größen-Mismatch auf COLOR.
-- **Redesign-Kern ausgeliefert:** Schrittleiste/`stepper.py`, Karten-Inspector,
-  geführte Navigation, kontextuelle Werkzeuge und die Design-Tokens
-  (`ACCENT`/`CARD_STYLE`) sind über PR #412/#423 gelandet (DE/EN-Strings,
-  `tests/test_workflow.py`).
-- **Rail-/Zoom-Welle abgeschlossen:** **#455/#456/#457/#458/#463/#464** sind über
-  PR #466 gelandet, **#465** ist bewusst `not_planned`; PR #467 schloss die drei
-  #466-P2s und aktualisierte den Triage-Snapshot.
-- **Karten-Inspector abgeschlossen:** **#414** ist über PR #473 erledigt
-  (zentrale `CARD_*`-Tokens, heller/dunkler Karten-Stil, Akzent-Hex-Guard).
-  Damit ist auch Epic **#413** abgeschlossen.
-- **Dark Mode und Rail Icons abgeschlossen:** PR #482 schloss **#474–#480**
-  (Dark-Flächen, Hairlines, Akzente, Checkerboard, fehlende Tokens,
-  REDESIGN_SPEC-Drift-Test); PR #489 schloss **#483–#488** (Vektor-Icons,
-  State-/Theme-Farben, entfernte PNG-Fallbacks, Doku/Tests/Review-Fix).
-- **#490 in Bearbeitung:** Dieser PR behebt den Recommendations-Snapshot-Drift
-  nach PR #482/#489 und hält alle sechs Sprachspiegel synchron.
+  erledigt; Epics **#329/#344/#358/#384** (N9–N12) samt Export-Fix **#363**
+  sind gemergt und archiviert.
+- **Seit 2026-06-25 geschlossen:** **#404/#406/#408** (PR #412) – Vorschau-/
+  Dead-Code-/Audit-Befunde erledigt.
+- **Redesign-Kern, Rail/Zoom, Karten-Inspector, Dark Mode:** **#413/#414/
+  #455–#464/#474–#489** sind über PR #412/#423/#466/#467/#473/#482/#489
+  abgeschlossen (Schrittleiste, Design-Tokens, Dark-Mode-Angleichung,
+  Vektor-Icons).
+- **#490 und #433/#434 abgeschlossen:** Snapshot-Drift behoben; Smoke-Tests/
+  Regression über PR #423 gelandet – Epic **#426** hängt nur noch an **#435**.
+
+### Neu seit dem letzten Review
+
+- **#499 🟡:** `theme.LIGHT` weicht in mehreren Tokens vom Prototyp ab
+  (Muster wie #474–#480, Test in `tests/test_theme.py` vorhanden).
+- **#500 🟠:** `scripts/generate_app_screenshots.py` sucht ein nicht mehr
+  existierendes `QTabWidget`; blockiert **#432**.
+- **#501 🟢:** `TopIconTabBar`/`TopIconTabWidget` in `widgets.py` sind seit
+  der Stepper-Umstellung tote Widgets.
 
 ### Noch offen
 
-- **O1 🟠 — Weitere Runtime-Sprachen.** Deutsch und Englisch sind umschaltbar;
-  es/fr/uk/zh sind noch keine Runtime-Locales. Deckt sich mit dem Redesign-Issue
-  **#430** – dort key-für-key in `bgremover.i18n` ergänzen und mit Tests absichern.
-- **O8 🟢 — Prototyp-Ungenauigkeit: Höhen-Werkzeuge nach Erzeugung gesperrt.**
-  In `design/Prototyp A - Geführter Workflow.dc.html` setzt „Höhenkarte aus
-  Bild erzeugen" nur `heightGen`, ohne die aktive Ebene auf Rolle `Höhe` zu
-  schalten – `heightDisabled` bleibt an der vorherigen Rolle hängen (Review-
-  Fund auf PR #460). Betrifft nur die Mockup-Simulation; die echte App
-  aktiviert die neue HEIGHT-Ebene bereits automatisch (#347).
+- **O1 🟠 — Weitere Runtime-Sprachen.** DE/EN sind umschaltbar; es/fr/uk/zh
+  fehlen noch als Runtime-Locales (deckt sich mit **#430**).
+- **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach
+  Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-05)
+## Offene GitHub-Issues – Triage-Stand (2026-07-06)
 
-Stand 2026-07-05 zeigt GitHub vor diesem PR **12** offene Issues inklusive
-**#490**. Nach Merge/Close dieses Follow-ups bleiben **11** Roadmap-/Backlog-
-Issues: i18n/Doku (**#425/#430/#431/#432**), Rollout/Release
-(**#426/#435/#392/#389**) und Backlog/Externe Punkte (**#299/#318/#245**).
+Stand 2026-07-06 zeigt GitHub **14** offene Issues: drei Redesign-
+Nacharbeiten (**#499/#500/#501**), i18n/Doku (**#425/#430/#431/#432**),
+Rollout/Release (**#426/#435/#392/#389**) und Backlog/Externe Punkte
+(**#299/#318/#245**).
 
 ### Sinnvolle Bündelung
 
-- **#490:** Dieser PR schließt den Snapshot-Drift nach PR #482/#489; kein
-  Folge-Implementierungsticket bleibt daraus offen.
-- **i18n/Doku (#425):** #430 (ES/FR/UK/ZH) entsperrt die Paritätstests; #431
-  (Doku) und #432 (Screenshots) folgen, sobald die UI optisch final ist.
-- **Rollout/Release:** #426 bleibt nur noch über #435 offen; #435 mit #392
-  koordinieren und danach #426/#389 schließen.
-- **Backlog:** #299 nach dem Release angehen; #318 erst semantisch schärfen;
-  #245 bleibt extern durch OpenAI-Billing/Quota blockiert.
+- **Redesign-Nacharbeit:** #499/#500/#501 sind unabhängig und risikoarm;
+  **#500** zuerst, weil es **#432** entsperrt.
+- **i18n/Doku:** #430 entsperrt die Paritätstests; #431/#432 folgen nach
+  UI-Freeze **und** #500.
+- **Rollout/Release:** #426 hängt nur an #435; mit #392 koordinieren, dann
+  #426/#389 schließen.
+- **Backlog:** #299 nach dem Release; #318 erst schärfen; #245 extern
+  blockiert.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#490](https://github.com/NikolayDA/picture_helper/issues/490) | Triage-Snapshot nach Dark-Mode- und Rail-Icon-Welle aktualisieren | 🟡 Mittel | 🟢 Niedrig | **Dieser PR** – nach Merge schließen. |
+| [#500](https://github.com/NikolayDA/picture_helper/issues/500) | Screenshot-Skript nach Redesign kaputt (blockiert #432) | 🟠 Hoch | 🟢 Niedrig | **Ready for PR** – Navigation auf `Stepper` umstellen. |
+| [#499](https://github.com/NikolayDA/picture_helper/issues/499) | Helles Schema 1:1 an Prototyp A angleichen | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – gleiches Muster wie #474–#480. |
+| [#501](https://github.com/NikolayDA/picture_helper/issues/501) | Verwaiste `TopIconTab*`-Widgets entfernen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR** – reines Aufräumen, 3 Dateien. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalisierung & Dokumentation | 🟠 Hoch | 🟡 Mittel | **In Arbeit** – #430/#431/#432 offen. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Neue UI-Strings (Schritte/Karten/Navigation) | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423 da. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | ANLEITUNG & README auf geführten Workflow | 🟡 Mittel | 🟡 Mittel | **Nach UI-Freeze** – 6-Sprachen-Spiegel, Link-Tests. |
-| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | App-Screenshots des Redesigns neu erstellen | 🟢 Niedrig | 🟢 Niedrig | **Blockiert** – erst wenn die UI optisch final ist. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | App-Screenshots des Redesigns neu erstellen | 🟢 Niedrig | 🟢 Niedrig | **Blockiert** – braucht UI-Freeze **und** #500. |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: Qualitätssicherung & Rollout | 🟠 Hoch | 🟢 Niedrig | **Fast fertig** – nur #435 bleibt offen. |
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & Versionsanhebung für das Redesign | 🟡 Mittel | 🟢 Niedrig | **Mit #392 abstimmen** – Release-Sequenz klären. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden | 🟠 Hoch | 🟡 Mittel | **Startbereit** – Sequenz mit Redesign entscheiden. |
@@ -97,16 +92,19 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#430** (UI-Strings ES/FR/UK/ZH) vorziehen – entsperrt die i18n-Parität;
-   danach **#431**/**#432**, sobald die UI final ist.
-2. **Release:** **#435** + **#392** koordiniert fahren, dann Epics **#426** und
-   **#389** schließen.
-3. **#299** nach der Release; **#318** nur erforschen (Needs refinement); **#245**
-   extern blockiert.
+1. **#500** zuerst – entsperrt **#432**; **#499**/**#501** im selben oder
+   einem direkt folgenden PR.
+2. **#430** vorziehen – entsperrt die i18n-Parität; danach **#431**/**#432**.
+3. **Release:** **#435** + **#392** koordiniert fahren, dann **#426**/**#389**
+   schließen.
+4. **#299** nach der Release; **#318** nur erforschen; **#245** extern
+   blockiert.
 
 ## Vorige Runden
 
-- **2026-06-29-Triage** — #404/#406/#408 abgeschlossen (PR #412), Redesign-Welle eröffnet.
+- **2026-07-05** — #490 (Snapshot-Drift) in Bearbeitung, Dark-Mode-/Rail-
+  Icon-Welle und Karten-Inspector (#413/#414) abgeschlossen.
+- **2026-06-29** — #404/#406/#408 abgeschlossen (PR #412), Redesign-Welle eröffnet.
 - **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, erledigt oder bei Fehlalarm verworfen.
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
