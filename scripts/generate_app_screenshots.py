@@ -96,7 +96,6 @@ def main() -> int:
         QColorDialog,
         QInputDialog,
         QMessageBox,
-        QTabWidget,
     )
 
     import bgremover.main_window as main_window_mod
@@ -109,6 +108,7 @@ def main() -> int:
     from bgremover.preview_mode import PreviewMode
     from bgremover.resize_dialog import ResizeDialog
     from bgremover.settings_dialog import SettingsDialog
+    from bgremover.stepper import WorkflowStep
     from bgremover.theme import _Theme
 
     app = QApplication.instance() or QApplication([])
@@ -149,15 +149,18 @@ def main() -> int:
     process(160)
     snap(window, "01_main_empty.png", "Hauptfenster ohne geladenes Bild")
 
-    def tabs() -> QTabWidget:
-        tab_widget = window.findChild(QTabWidget)
-        if tab_widget is None:
-            raise RuntimeError("Right panel tab widget not found")
-        return tab_widget
+    def set_step(step: WorkflowStep) -> None:
+        """Navigiert den geführten Workflow wie ein Klick auf die Schrittleiste.
 
-    def set_tab(index: int) -> None:
-        tabs().setCurrentIndex(index)
+        Läuft über den gegateten Navigationspfad des MainWindow (Stepper,
+        rechtes Panel, kontextuelle Werkzeugleiste werden gemeinsam
+        umgeschaltet). Bricht hart ab, statt still falsche Screenshots zu
+        erzeugen, falls der Schritt gesperrt bleibt (z. B. ohne Bild).
+        """
+        window._on_step_selected(int(step))
         process(60)
+        if window._step is not step:
+            raise RuntimeError(f"Workflow step not reachable: {step.name}")
 
     def load_sample(mask: np.ndarray | None = None, status: str | None = None) -> None:
         window._canvas.apply_loaded_image(sample_img.copy(), str(sample_path))
@@ -184,17 +187,15 @@ def main() -> int:
         window._sb.showMessage(label)
         snap(window, filename, label, wait_ms=60)
 
-    for index, filename, label in [
-        (0, "10_tab_preview.png", "Rechter Tab: Vorschau"),
-        (1, "11_tab_selection.png", "Rechter Tab: Auswahl"),
-        (2, "12_tab_background.png", "Rechter Tab: Hintergrund"),
-        (3, "13_tab_adjust.png", "Rechter Tab: Anpassen"),
-        (4, "14_tab_transform.png", "Rechter Tab: Drehen, Spiegeln, Groesse"),
-        (5, "15_tab_shape_crop.png", "Rechter Tab: Form und Zuschnitt"),
-        (6, "16_tab_layers.png", "Rechter Tab: Ebenen"),
-        (7, "17_tab_height_map.png", "Rechter Tab: Hoehenkarte"),
+    for step, filename, label in [
+        (WorkflowStep.OPEN, "10_step_1_open.png", "Workflow Schritt 1: Oeffnen"),
+        (WorkflowStep.CUTOUT, "11_step_2_cutout.png", "Workflow Schritt 2: Freistellen"),
+        (WorkflowStep.ADJUST, "12_step_3_adjust.png", "Workflow Schritt 3: Anpassen"),
+        (WorkflowStep.SHAPE, "13_step_4_shape.png", "Workflow Schritt 4: Form und Masse"),
+        (WorkflowStep.RELIEF, "14_step_5_relief.png", "Workflow Schritt 5: Relief und Ebenen"),
+        (WorkflowStep.EXPORT, "15_step_6_export.png", "Workflow Schritt 6: Export"),
     ]:
-        set_tab(index)
+        set_step(step)
         window._sb.showMessage(label)
         snap(window, filename, label)
 
@@ -294,7 +295,7 @@ def main() -> int:
 
     load_sample(None, "Hoehenkarte erzeugt")
     window._canvas.generate_height_map()
-    set_tab(7)
+    set_step(WorkflowStep.RELIEF)
     snap(window, "40_function_height_generated.png", "Funktion: Hoehenkarte erzeugen")
 
     project_for_export = window._canvas.project
@@ -319,7 +320,7 @@ def main() -> int:
         (PreviewMode.COMBINED, "43_preview_combined.png", "Vorschau: Kombiniert"),
     ]:
         window._canvas.set_preview_mode(mode)
-        set_tab(0)
+        set_step(WorkflowStep.EXPORT)
         window._sb.showMessage(label)
         snap(window, filename, label)
     window._canvas.set_preview_mode(PreviewMode.COLOR)
@@ -337,13 +338,13 @@ def main() -> int:
 
     load_sample(small_selection, "Auswahl vor Morphologie")
     window._canvas.expand_selection(35)
-    set_tab(1)
+    set_step(WorkflowStep.CUTOUT)
     snap(window, "50_function_selection_expand.png", "Funktion: Auswahl erweitern")
     window._canvas.shrink_selection(18)
     snap(window, "51_function_selection_shrink.png", "Funktion: Auswahl schrumpfen")
 
     load_sample(background_mask, "Hintergrundauswahl fuer Entfernen")
-    set_tab(2)
+    set_step(WorkflowStep.CUTOUT)
     window._canvas.apply_remove()
     window._canvas.fit_to_view()
     snap(window, "52_function_remove_background.png", "Funktion: Hintergrund transparent entfernen")
@@ -354,7 +355,7 @@ def main() -> int:
     load_sample(background_mask, "Hintergrundauswahl fuer Farbe ersetzen")
     window._bg_color = QColor("#f6c445")
     window._update_color_btn()
-    set_tab(2)
+    set_step(WorkflowStep.CUTOUT)
     window._canvas.apply_replace(window._bg_color)
     window._canvas.fit_to_view()
     snap(window, "54_function_replace_color.png", "Funktion: Hintergrundfarbe ersetzen")
@@ -366,7 +367,7 @@ def main() -> int:
     snap(window, "55_function_ai_result.png", "Funktion: KI-Hintergrundentfernung Ergebnis")
 
     load_sample(None, "Farbkorrektur Vorschau")
-    set_tab(3)
+    set_step(WorkflowStep.ADJUST)
 
     def color_op(img: object) -> object:
         return adjust_color(img, brightness=1.18, contrast=1.22, saturation=0.72)
@@ -379,38 +380,38 @@ def main() -> int:
     snap(window, "57_function_adjust_apply.png", "Funktion: Farbkorrektur anwenden")
 
     load_sample(None, "Freier Winkel angewendet")
-    set_tab(4)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.apply_rotate(27)
     window._canvas.fit_to_view()
     snap(window, "58_function_rotate_free_angle.png", "Funktion: Freier Drehwinkel")
 
     load_sample(None, "Horizontal gespiegelt")
-    set_tab(4)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.apply_flip(True)
     window._canvas.fit_to_view()
     snap(window, "59_function_flip_horizontal.png", "Funktion: Horizontal spiegeln")
 
     load_sample(None, "Groesse geaendert")
-    set_tab(4)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.apply_resize(640, 426)
     window._canvas.fit_to_view()
     snap(window, "60_function_resize.png", "Funktion: Groesse aendern")
 
     load_sample(None, "Ecken abgerundet")
-    set_tab(5)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.apply_round_corners(95)
     window._canvas.fit_to_view()
     snap(window, "61_function_round_corners.png", "Funktion: Ecken abrunden")
 
     load_sample(None, "Quadratischer Zuschnitt aktiv")
-    set_tab(5)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.start_crop_ratio(1, 1)
     window._canvas.fit_to_view()
     snap(window, "62_crop_ratio_overlay.png", "Zuschnitt: 1:1 Overlay mit Bestaetigungsleiste")
     window._canvas.cancel_crop()
 
     load_sample(None, "Kreis-Zuschnitt aktiv")
-    set_tab(5)
+    set_step(WorkflowStep.SHAPE)
     window._canvas.start_crop_circle()
     window._canvas.fit_to_view()
     snap(window, "63_crop_circle_overlay.png", "Zuschnitt: Kreis Overlay mit Bestaetigungsleiste")
@@ -424,15 +425,15 @@ def main() -> int:
     if active_id is not None:
         window._canvas.rename_active_layer("Motiv Kopie")
         window._canvas.set_layer_opacity(active_id, 0.55)
-    set_tab(6)
+    set_step(WorkflowStep.RELIEF)
     snap(window, "70_function_layers_duplicate_opacity.png", "Funktion: Ebene duplizieren und Opazitaet setzen")
     window._canvas.add_layer()
-    set_tab(6)
+    set_step(WorkflowStep.RELIEF)
     snap(window, "71_function_layers_add.png", "Funktion: Neue Ebene hinzufuegen")
 
     load_sample(None, "Hoehenkarte bearbeiten")
     window._canvas.generate_height_map()
-    set_tab(7)
+    set_step(WorkflowStep.RELIEF)
     window._canvas.lighten_active_height(32)
     window._canvas.fit_to_view()
     snap(window, "72_function_height_lighten.png", "Funktion: Hoehenkarte aufhellen")
