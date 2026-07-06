@@ -17,92 +17,61 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
 locale restent la base avant tout nouveau PR. Depuis l'instantané du
 2026-07-05, le correctif d'instantané Recommendations **#490** est fermé. La
 vérification du jour sur les epics de redesign
-(#413/#418/#424/#455/#463/#474/#483) a révélé trois constats neufs et bien
-délimités : **#499** (thème clair pas encore 1:1 avec le prototype), **#500**
-(script de captures cassé après le redesign, bloque #432) et **#501** (widget
-mort d'avant redesign `TopIconTab*`). GitHub affiche actuellement **14**
-tickets ouverts.
+(#413/#418/#424/#455/#463/#474/#483) a révélé trois constats neufs : **#499**
+(thème clair pas encore 1:1 avec le prototype), **#500** (script de captures
+cassé, bloque #432) et **#501** (widget mort `TopIconTab*`). GitHub affiche
+actuellement **14** tickets ouverts.
 
 ### Terminé depuis la dernière revue
 
-- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8** et **O2–O7** restent faits ;
-  les epics **#329/#344/#358/#384** (N9–N12) plus le correctif d'export **#363**
-  sont fusionnés, couverts par les tests/CI et archivés.
-- **Fermés depuis la revue du 2026-06-25 :** **#404**, **#406** et **#408**
-  (PR #412) — les constats aperçu/code mort/audit sont faits ;
-  `_derive_physical_size` n'existe plus et le chemin de rendu se rabat sur COLOR
-  en cas d'écart de taille.
-- **Cœur du redesign livré :** la barre d'étapes/`stepper.py`, l'inspecteur en
-  cartes, la navigation guidée, les outils contextuels et les jetons de design
-  (`ACCENT`/`CARD_STYLE`) ont atterri via PR #412/#423 (chaînes DE/EN,
-  `tests/test_workflow.py`).
-- **Vague rail/zoom terminée :** **#455/#456/#457/#458/#463/#464** ont atterri
-  via PR #466, et **#465** est volontairement `not_planned` ; PR #467 a fermé
-  les trois P2 de #466 et actualisé l'instantané de triage.
-- **Inspecteur en cartes terminé :** **#414** a atterri via PR #473 (jetons
-  `CARD_*` centraux, style de carte clair/sombre, garde anti-hex d'accent).
-  Cela termine aussi l'epic **#413**.
-- **Dark Mode et icônes du rail terminés :** PR #482 ferme **#474–#480**
-  (surfaces dark, hairlines, accents, checkerboard, jetons manquants, test de
-  dérive REDESIGN_SPEC) ; PR #489 ferme **#483–#488** (icônes vectorielles,
-  couleurs d'état/thème, fallbacks PNG retirés, docs/tests/revue).
-- **#490 terminé :** La dérive de l'instantané Recommendations après
-  PR #482/#489 est corrigée ; les six miroirs de langue étaient synchronisés.
-- **Smoke tests/régression terminés :** **#433/#434** ont atterri via PR #423
-  (smoke tests barre d'étapes/cartes/navigation, câblage des actions) ; l'epic
-  **#426** ne dépend plus que de **#435**.
+- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8** et **O2–O7** restent
+  faits ; les epics **#329/#344/#358/#384** (N9–N12) plus le correctif
+  d'export **#363** sont fusionnés et archivés.
+- **Fermés depuis la revue du 2026-06-25 :** **#404/#406/#408** (PR #412) —
+  constats aperçu/code mort/audit faits.
+- **Cœur du redesign, rail/zoom, inspecteur en cartes, Dark Mode :**
+  **#413/#414/#455–#464/#474–#489** ont atterri via PR
+  #412/#423/#466/#467/#473/#482/#489 (barre d'étapes, jetons de design,
+  alignement Dark Mode, icônes vectorielles).
+- **#490 et #433/#434 terminés :** dérive d'instantané corrigée ; smoke
+  tests/régression atterris via PR #423 — l'epic **#426** ne dépend plus que
+  de **#435**.
 
 ### Nouveau depuis la dernière revue
 
-- **#499 🟡 Bug/design system :** `theme.LIGHT` diverge du CSS embarqué dans
-  `design/Prototyp A - Geführter Workflow.dc.html` sur plusieurs jetons
-  (`stepper`/`border`/`hairline`/`hover`/`card_border`/famille d'accent) — le
-  même schéma que l'alignement Dark Mode déjà terminé **#474–#480**, avec le
-  même harnais de tests (`tests/test_theme.py`) déjà en place.
-- **#500 🟠 Bug :** `scripts/generate_app_screenshots.py` cherche une colonne
-  de droite via `findChild(QTabWidget)` qui n'existe plus depuis PR #412/#423
-  (désormais une séquence de cartes `Stepper`). Bloque **#432** (refaire les
-  captures) et toute vérification visuelle automatisée face au prototype ;
-  aucune couverture de tests jusqu'ici, reproductible proprement.
-- **#501 🟢 Qualité :** `TopIconTabBar`/`TopIconTabWidget` dans `widgets.py`
-  sont des widgets morts depuis le passage au stepper (il ne reste qu'un
-  export paresseux dans `__init__.py` plus une mention d'import dans
-  `tests/test_package_imports.py`). Nettoyage à faible risque, sans
-  changement fonctionnel.
+- **#499 🟡 :** `theme.LIGHT` diverge du prototype sur plusieurs jetons
+  (même schéma que #474–#480, test déjà dans `tests/test_theme.py`).
+- **#500 🟠 :** `scripts/generate_app_screenshots.py` cherche un
+  `QTabWidget` qui n'existe plus ; bloque **#432**.
+- **#501 🟢 :** `TopIconTabBar`/`TopIconTabWidget` dans `widgets.py` sont des
+  widgets morts depuis le passage au stepper.
 
 ### Encore ouvert
 
-- **O1 🟠 — Langues d'exécution supplémentaires.** L'allemand et l'anglais sont
-  commutables ; es/fr/uk/zh ne sont pas encore des locales d'exécution.
-  Correspond au ticket de redesign **#430** — les ajouter clé par clé dans
-  `bgremover.i18n` et les couvrir par des tests.
-- **O8 🟢 — Imprécision du prototype : les outils de hauteur restent
-  verrouillés après génération.** Dans `design/Prototyp A - Geführter
-  Workflow.dc.html`, « Générer la carte de hauteur à partir de l'image » ne
-  fait qu'activer `heightGen` sans basculer le calque actif sur le rôle
-  `Höhe` — `heightDisabled` reste lié à l'ancien rôle (constat de revue sur
-  la PR #460). N'affecte que la simulation de la maquette ; l'application
-  réelle active déjà automatiquement le nouveau calque HEIGHT (#347).
+- **O1 🟠 — Langues d'exécution supplémentaires.** DE/EN sont commutables ;
+  es/fr/uk/zh manquent encore comme locales d'exécution (correspond à
+  **#430**).
+- **O8 🟢 — Imprécision du prototype :** les outils de hauteur restent
+  verrouillés dans la maquette après génération ; n'affecte que la
+  simulation (#347).
 
 ## Tickets GitHub ouverts — Triage (2026-07-06)
 
 Au 2026-07-06, GitHub affiche **14** tickets ouverts : trois suivis de
-redesign tout neufs (**#499/#500/#501**), i18n/docs
-(**#425/#430/#431/#432**), rollout/publication (**#426/#435/#392/#389**) et
-backlog/points externes (**#299/#318/#245**).
+redesign (**#499/#500/#501**), i18n/docs (**#425/#430/#431/#432**),
+rollout/publication (**#426/#435/#392/#389**) et backlog/points externes
+(**#299/#318/#245**).
 
 ### Regroupements pertinents
 
-- **Suivi de redesign (#499/#500/#501) :** les trois sont indépendants, à
-  faible risque et tiennent dans un seul PR de nettoyage ; **#500** est
-  prioritaire car il débloque **#432**.
-- **i18n/docs (#425) :** #430 (ES/FR/UK/ZH) débloque les tests de parité ; #431
-  (docs) et #432 (captures) suivent quand l'UI sera visuellement définitive
-  **et** que #500 aura rendu le script de captures à nouveau fonctionnel.
-- **Rollout/publication :** #426 ne reste ouvert que via #435 ; coordonner #435
-  avec #392, puis clore #426/#389.
-- **Backlog :** traiter #299 après la publication ; affiner #318 d'abord ; #245
-  reste bloqué par la facturation/le quota OpenAI.
+- **Suivi de redesign :** #499/#500/#501 sont indépendants et à faible
+  risque ; **#500** d'abord car il débloque **#432**.
+- **i18n/docs :** #430 débloque les tests de parité ; #431/#432 suivent
+  après le gel de l'UI **et** #500.
+- **Rollout/publication :** #426 ne dépend que de #435 ; coordonner avec
+  #392, puis clore #426/#389.
+- **Backlog :** #299 après la publication ; affiner #318 d'abord ; #245
+  reste bloqué en externe.
 
 Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs,
 **Complexité** = effort de mise en œuvre estimé.
@@ -126,21 +95,19 @@ backlog/points externes (**#299/#318/#245**).
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **#500** d'abord (réparer le script de captures) — débloque **#432** ;
-   **#499** et **#501** peuvent suivre dans le même PR ou un PR directement
-   suivant.
-2. Avancer **#430** (chaînes ES/FR/UK/ZH) — débloque la parité i18n ; puis
-   **#431**/**#432** quand l'UI est définitive.
-3. **Publication :** mener **#435** + **#392** de façon coordonnée, puis clore les
-   epics **#426** et **#389**.
-4. **#299** après la publication ; n'étudier que **#318** (à affiner) ; garder
-   **#245** bloqué en externe.
+1. **#500** d'abord — débloque **#432** ; **#499**/**#501** dans le même PR
+   ou un PR directement suivant.
+2. Avancer **#430** — débloque la parité i18n ; puis **#431**/**#432**.
+3. **Publication :** mener **#435** + **#392** de façon coordonnée, puis
+   clore **#426**/**#389**.
+4. **#299** après la publication ; n'étudier que **#318** ; garder **#245**
+   bloqué en externe.
 
 ## Tours précédents
 
-- **Triage 2026-07-05** — #490 (dérive d'instantané) en cours, vague Dark
-  Mode/icônes rail (#474–#488) et inspecteur en cartes (#413/#414) achevés.
-- **Triage 2026-06-29** — #404/#406/#408 achevés (PR #412), vague de redesign ouverte.
+- **2026-07-05** — #490 (dérive d'instantané) en cours, vague Dark
+  Mode/icônes rail et inspecteur en cartes (#413/#414) achevés.
+- **2026-06-29** — #404/#406/#408 achevés (PR #412), vague de redesign ouverte.
 - **v2.2, « admiring-mayer » (#1–#15)** — liste externe, achevée ou écartée en cas de faux positif.
 
 Constats historiques et journaux de travail (tours 1–5) : [../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md](../../history/RECOMMENDATIONS-2026-pre-v2.2.fr.md).
