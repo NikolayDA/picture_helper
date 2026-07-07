@@ -1,8 +1,7 @@
 """Viewport-Operationen für ``ImageCanvas``.
 
 Kapselt Zoom, Pan, Fit-to-View und das Refreshen des Bild-Pixmaps –
-analog zu CanvasCrop / CanvasHistory / CanvasLasso / CanvasSelection /
-CanvasTransform.
+analog zu CanvasCrop / CanvasLasso / CanvasSelection / CanvasTransform.
 
 Das Mouse-Routing für Pan bleibt in ``ImageCanvas.mousePressEvent`` /
 ``mouseMoveEvent`` / ``mouseReleaseEvent``; diese Klasse stellt mit

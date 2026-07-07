@@ -1,12 +1,13 @@
 """Qt-freie, ebenenbewusste Undo/Redo-Historie für :class:`Project`.
 
-Diese Historie hebt das Modell von :mod:`bgremover.canvas_history` (vollständige
-RGBA-**Einzelbild**-Snapshots) auf das **Projektmodell** (#331): Undo/Redo deckt
+Diese Historie hebt das Modell der früheren Einzelbild-Historie
+(``CanvasHistory``: vollständige RGBA-**Einzelbild**-Snapshots; als toter Code
+mit #503 entfernt) auf das **Projektmodell** (#331): Undo/Redo deckt
 sowohl **strukturelle** Änderungen (Ebene anlegen/löschen/umsortieren/duplizieren,
 aktive Ebene, Sichtbarkeit/Opazität/Sperre/Rolle) als auch **Pixel**-Änderungen
-je Ebene (Freistellung, Pinsel/Radierer, Transform, Crop) ab. Sie bleibt – wie
-``canvas_history`` – ganz ohne Qt isoliert testbar; der Canvas verdrahtet sie
-seit #332 (``ImageCanvas._history``).
+je Ebene (Freistellung, Pinsel/Radierer, Transform, Crop) ab. Sie bleibt ganz
+ohne Qt isoliert testbar; der Canvas verdrahtet sie seit #332
+(``ImageCanvas._history``).
 
 Speicherstrategie (Kernpunkt des Issues)
 ----------------------------------------
@@ -36,8 +37,8 @@ auf einen falschen Puffer zeigen). Das Modell erfüllt diesen Vertrag bereits:
 :class:`~bgremover.project_model.Layer` kopiert Eingabe-Pixeldaten beim Anlegen
 und reine Operationen erzeugen neue Bildobjekte.
 
-Budget/Trim (analog ``canvas_history``)
----------------------------------------
+Budget/Trim (Strategie der früheren Einzelbild-Historie)
+---------------------------------------------------------
 
 Undo- und Redo-Stapel teilen sich ein Byte-Budget (``memory_limit``). Beim
 Überschreiten fallen zuerst die **ältesten** Undo-Zustände – jedoch nie der
@@ -162,9 +163,10 @@ def _build_project(state: _ProjectState) -> Project:
 class ProjectHistory:
     """Verwaltet ebenenbewusste Undo/Redo-Projektzustände ohne Qt.
 
-    Die öffentliche Schnittstelle spiegelt :class:`CanvasHistory`, arbeitet aber
-    auf :class:`Project` statt auf einem Einzelbild. Intern teilen sich die
-    Snapshots Pixelpuffer über einen deduplizierenden Pool (siehe Modul-Doku).
+    Die öffentliche Schnittstelle spiegelt die frühere Einzelbild-Historie
+    (``CanvasHistory``), arbeitet aber auf :class:`Project` statt auf einem
+    Einzelbild. Intern teilen sich die Snapshots Pixelpuffer über einen
+    deduplizierenden Pool (siehe Modul-Doku).
     """
 
     def __init__(
@@ -310,7 +312,7 @@ class ProjectHistory:
 
         # Der live übergebene Zustand wandert als erster auf den Redo-Stapel,
         # danach die übersprungenen Zwischenstände; die Beschreibungen wandern
-        # dabei – wie in ``canvas_history`` – um einen Schritt mit.
+        # dabei um einen Schritt mit.
         redo_state: _ProjectState | None = (
             _capture_state(current, "") if current is not None else None
         )

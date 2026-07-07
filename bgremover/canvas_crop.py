@@ -1,7 +1,7 @@
 """Crop-Overlay-Interaktion für ``ImageCanvas``.
 
 Kapselt Zustand und Mausgesten des Crop-Overlays, damit ``canvas.py``
-analog zu ``CanvasHistory`` / ``CanvasLasso`` / ``CanvasSelection`` weniger
+analog zu ``CanvasLasso`` / ``CanvasSelection`` weniger
 Zuständigkeiten trägt.
 """
 from __future__ import annotations

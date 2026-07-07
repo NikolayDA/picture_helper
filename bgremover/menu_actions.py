@@ -14,10 +14,6 @@ from bgremover.preview_mode import PreviewMode
 from bgremover.recent_files import RecentFiles, RecentFilesMenu
 from bgremover.theme import active_palette, menu_style
 
-# Rückwärtskompatibler Alias (dunkel gebaut); die laufende Umschaltung (#428)
-# setzt die Menüleiste über ``menu_style(active_palette())`` neu.
-MENU_STYLE = menu_style(active_palette())
-
 
 @dataclass(frozen=True)
 class MainMenuCallbacks:

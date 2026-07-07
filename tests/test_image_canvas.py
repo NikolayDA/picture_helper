@@ -17,7 +17,6 @@ import pytest
 from PIL import Image
 
 from bgremover import ImageCanvas
-from bgremover.canvas_history import CanvasHistory
 
 # ── Speichern ──────────────────────────────────────────────────────────
 
@@ -286,41 +285,6 @@ def test_load_image_clears_both_stacks(qapp, tmp_path):
     c.redo()
     assert c.image is not None
     assert np.array(c.image)[0, 0].tolist() == [200, 200, 200, 255]
-
-
-# ── Undo-Stack: Speicherlimit-Eviction ─────────────────────────────────
-
-def test_undo_stack_evicts_oldest_under_memory_limit():
-    """Überschreitet der Undo-Stack das Byte-Limit, fallen älteste
-    Einträge raus – aber nie der letzte (mind. 1 Schritt bleibt)."""
-    one_image = 8 * 8 * 4                       # RGBA-Rohdaten eines 8×8-Bilds
-    history = CanvasHistory(memory_limit=one_image)
-
-    current = Image.new("RGBA", (8, 8), (0, 0, 0, 255))
-    for i in range(6):
-        history.push(current, f"edit{i}")
-        current = Image.new("RGBA", (8, 8), (i, i, i, 255))
-
-    assert history.descriptions() == ["edit5"]  # nur 1 Eintrag passt rein
-    assert history.undo(current) is not None     # bleibt funktionsfähig
-    assert history.undo(current) is None
-
-
-def test_history_descriptions_track_push_undo_and_redo():
-    """Die öffentliche Verlaufsliste folgt Push/Undo/Redo-Bewegungen."""
-    history = CanvasHistory()
-    first = Image.new("RGBA", (8, 8), (1, 2, 3, 255))
-    second = Image.new("RGBA", (8, 8), (4, 5, 6, 255))
-    current = Image.new("RGBA", (8, 8), (7, 8, 9, 255))
-    history.push(first, "a")
-    history.push(second, "b")
-    assert history.descriptions() == ["b", "a"]
-    undone = history.undo(current)
-    assert undone is not None
-    assert history.descriptions() == ["a"]
-    redone = history.redo(undone[0])
-    assert redone is not None
-    assert history.descriptions() == ["b", "a"]
 
 
 # ── Größe ändern / Resample (#359) ──────────────────────────────────────
