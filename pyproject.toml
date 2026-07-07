@@ -139,7 +139,6 @@ module = [
     "bgremover.project_io",
     "bgremover.recent_files",
     "bgremover.units",
-    "bgremover.canvas_history",
     "bgremover.canvas_selection",
     "bgremover.canvas_lasso",
     "bgremover.canvas_transform",

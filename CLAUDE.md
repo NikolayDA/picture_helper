@@ -28,7 +28,7 @@ Ein Paket, `bgremover/`:
 
 - **Einstieg:** `app.py` (`main()`), `__main__.py` → `python -m bgremover`;
   `main_window.py` verdrahtet die UI.
-- **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (History, Selection, Lasso,
+- **Canvas/Bearbeitung:** `canvas.py` + `canvas_*.py` (Selection, Lasso,
   Transform, Viewport, Crop), `crop.py`, `image_ops.py`, `image_utils.py`;
   `image_loading.py` ist der gemeinsame Lade-Helfer für Canvas und Worker. Der
   Canvas hält ein `Project` (#330) und rendert/speichert das **Komposit**;
@@ -221,7 +221,7 @@ Ein Paket, `bgremover/`:
   `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
   `relief_preview`, `height_map`, `height_ops`, `preview_mode`, `crop`,
   `project_model/_history/_schema/_io`, `recent_files`, `units` und
-  `canvas_history/_selection/_lasso/_transform/_viewport`. Die zustandsbehafteten
+  `canvas_selection/_lasso/_transform/_viewport`. Die zustandsbehafteten
   Qt-Module `canvas`, `main_window`, `worker_controller` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer.

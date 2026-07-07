@@ -1,7 +1,7 @@
 """Geometrie-Transformationen für ``ImageCanvas``.
 
 Kapselt Drehen, Spiegeln und Ecken-Abrunden, damit ``canvas.py`` analog zu
-``CanvasCrop`` / ``CanvasHistory`` / ``CanvasLasso`` / ``CanvasSelection``
+``CanvasCrop`` / ``CanvasLasso`` / ``CanvasSelection``
 weniger Zuständigkeiten trägt.
 
 Die Methoden setzen voraus, dass auf dem Canvas ein Bild geladen ist;

@@ -785,38 +785,12 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     return content, lay
 
 
-def _make_panel_btn(label: str, bg: str, fg: str, hover: str,
-                    tooltip: str = "", height: int = 36,
-                    icon_name: str = "") -> QPushButton:
-    """Stilisierter Aktions-Button für das rechte Panel (semantische Füllfarbe)."""
-    p = active_palette()
-    b = QPushButton(label)
-    b.setStyleSheet(f"""
-        QPushButton {{
-            background: {bg}; color: {fg}; border: none;
-            border-radius: 8px; padding: 0 14px;
-            font-size: 12px; font-weight: 500;
-            min-height: {height}px; text-align: center;
-        }}
-        QPushButton:hover {{ background: {hover}; }}
-        QPushButton:pressed {{ background: {bg}; }}
-        QPushButton:focus {{ outline: none; border: 1px solid {p.accent}; }}
-        QPushButton:disabled {{ background: {p.divider}; color: {p.muted}; }}
-    """)
-    if icon_name:
-        b.setIcon(make_tool_icon(icon_name, 22))
-        b.setIconSize(QSize(22, 22))
-    if tooltip:
-        b.setToolTip(tooltip)
-    return b
-
-
 def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
                       icon_name: str = "", wrap: bool = False) -> QPushButton:
     """Neutraler Sekundärbutton (§5.3) – Fläche/Text aus der **aktiven Palette**.
 
-    Ersetzt die früher fest dunkelgrau eingefärbten Aufrufe von ``_make_panel_btn``
-    (``#2a2a2a``/``#c0c0c0``/``#363636``), damit diese Buttons im hellen Schema (#428)
+    Ersetzt die früher fest dunkelgrau eingefärbten Panel-Buttons
+    (``#2a2a2a``/``#c0c0c0``/``#363636``), damit sie im hellen Schema (#428)
     lesbar bleiben. ``wrap=True`` ist die explizit erlaubte Ausnahme vom „kein
     Umbruch"-Grundsatz (§5.3-Hinweis: „außer explizit erlaubt (EufyMake-Button)").
     """

@@ -363,14 +363,37 @@ def test_no_hardcoded_accent_hex_outside_theme():
     assert not offenders, "Hartkodierte Akzent-Hexwerte: " + ", ".join(offenders)
 
 
+# Ehemals tote Modul-/Klassenkonstanten (nirgends referenziert), entfernt und
+# gegen Wiedereinführung bewacht: BTN_STYLE/GRP_STYLE (früheres Aufräumen),
+# die referenzlosen *_STYLE-Aliase aus theme.py, MENU_STYLE aus
+# menu_actions.py sowie die aus DARK gespiegelten _Theme-Zusatzattribute (#503).
+_DEAD_MODULE_CONSTANTS = (
+    "BTN_STYLE", "GRP_STYLE",
+    "SECTION_HEADER_STYLE", "PRIMARY_BTN_STYLE", "STEPPER_STYLE",
+    "NAV_BAR_STYLE", "NAV_BACK_STYLE", "NAV_NEXT_STYLE",
+    "STATUS_BAR_STYLE", "TOOLBAR_FRAME_STYLE", "HISTORY_BUTTON_STYLE",
+    "MENU_STYLE",
+)
+_DEAD_THEME_CLASS_ATTRS = (
+    "ACCENT_SOFT", "ACCENT_LINE", "ACCENT_TEXT", "ACCENT_2", "ACCENT_SHADOW",
+    "CARD_BG", "CARD_BORDER", "STEPPER_BG", "NAV_BG", "MUTED", "TEXT_3",
+)
+
+
 def test_dead_style_constants_not_reintroduced():
-    # BTN_STYLE/GRP_STYLE waren toter Code (nirgends referenziert) und
-    # wurden entfernt – nicht erneut anlegen.
-    assert not hasattr(bgremover, "BTN_STYLE")
-    assert not hasattr(bgremover, "GRP_STYLE")
+    """Entfernte tote Konstanten bleiben entfernt (#503; Muster von BTN_STYLE).
+
+    ``_pkg_assigned_names`` deckt Modul- **und** Klassenkörper ab (ast.walk),
+    bewacht also beide Cluster paketweit; der ``hasattr``-Check hält zusätzlich
+    die Lazy-Export-Oberfläche bzw. ``_Theme`` selbst frei.
+    """
     assigned = _pkg_assigned_names()
-    assert "BTN_STYLE" not in assigned
-    assert "GRP_STYLE" not in assigned
+    for name in _DEAD_MODULE_CONSTANTS:
+        assert not hasattr(bgremover, name), name
+        assert name not in assigned, name
+    for name in _DEAD_THEME_CLASS_ATTRS:
+        assert not hasattr(_Theme, name), name
+        assert name not in assigned, name
 
 
 # ── Drift-Schutz: theme.py vs. docs/REDESIGN_SPEC.md (#480) ─────────────────

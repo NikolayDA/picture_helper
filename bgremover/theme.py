@@ -453,7 +453,9 @@ class _Theme:
 
     Bündelt die gemeinsam genutzten Farbwerte an einer Stelle; die kanonischen
     Werte sind vertraglich (siehe ``tests/test_theme.py``). Neues Theming läuft
-    über :class:`Palette`/:func:`active_palette`.
+    über :class:`Palette`/:func:`active_palette`. Die früheren, aus ``DARK``
+    gespiegelten Zusatzattribute (``ACCENT_SOFT`` … ``TEXT_3``) waren
+    referenzlos und sind entfernt (#503).
     """
     ACCENT      = "#4a90d9"   # Hervorhebung: aktiver Tab, Slider, Auswahl
     BG_PANEL    = "#1a1a1a"   # rechtes Panel / Tab-Pane / Statusleiste
@@ -462,33 +464,15 @@ class _Theme:
     DIVIDER     = "#2a2a2a"   # dünne Trennflächen
     TEXT_BRIGHT = "#e0e0e0"   # heller Text (aktiver Tab)
 
-    ACCENT_SOFT   = DARK.accent_soft
-    ACCENT_LINE   = DARK.accent_line
-    ACCENT_TEXT   = DARK.accent_text
-    ACCENT_2      = DARK.accent2
-    ACCENT_SHADOW = DARK.accent_shadow
-    CARD_BG       = DARK.card_bg
-    CARD_BORDER   = DARK.card_border
-    STEPPER_BG    = DARK.stepper
-    NAV_BG        = DARK.nav
-    MUTED         = DARK.muted
-    TEXT_3        = DARK.text3
-
 
 # ── Rückwärtskompatible, dunkel gebaute Konstanten (Tests/Alt-Imports) ──────
+# Nur die tatsächlich referenzierten Alt-Konstanten; die übrigen ``*_STYLE``-
+# Aliase waren toter Code und sind entfernt (#503) – die laufende UI baut
+# ihre Stile über die ``*_style``-Builder mit der aktiven Palette.
 CARD_STYLE = card_style(DARK)
-SECTION_HEADER_STYLE = section_header_style(DARK)
-PRIMARY_BTN_STYLE = primary_btn_style(DARK)
-STEPPER_STYLE = stepper_style(DARK)
-NAV_BAR_STYLE = nav_bar_style(DARK)
-NAV_BACK_STYLE = nav_back_style(DARK)
-NAV_NEXT_STYLE = nav_next_style(DARK)
 TOOL_STYLE = tool_style(DARK)
 SLD_STYLE = slider_style(DARK)
-STATUS_BAR_STYLE = status_bar_style(DARK)
 CANVAS_CONTAINER_STYLE = "background: transparent;"
-TOOLBAR_FRAME_STYLE = toolbar_frame_style(DARK)
-HISTORY_BUTTON_STYLE = history_button_style(DARK)
 CROP_BAR_STYLE = "QFrame { background: #1e3020; border-bottom: 1px solid #3a7a4a; }"
 CROP_LABEL_STYLE = "color: #8fdd9f; font-size: 12px; font-weight: bold; background: transparent;"
 CROP_CONFIRM_STYLE = (
