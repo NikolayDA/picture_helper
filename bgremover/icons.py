@@ -130,6 +130,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "height_darken",
     "prototype_image",
     "transparency",
+    "replace_color",
     "layer_add",
     "layer_duplicate",
     "layer_delete",
@@ -388,6 +389,31 @@ def _draw_transparency_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawRect(QRectF(3 * k, 10 * k, 7 * k, 7 * k))
 
 
+def _draw_replace_color_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Farbeimer „Variante A" für „Farbe ersetzen": Eimer-Kontur + Tropfen,
+    1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-f1``)."""
+    k = s / 20.0
+    pen = QPen(color, max(1.0, 1.4 * k), Qt.PenStyle.SolidLine,
+               Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    body = QPainterPath()
+    body.moveTo(4 * k, 9 * k)
+    body.lineTo(5.5 * k, 16.5 * k)
+    body.quadTo(10 * k, 18 * k, 14.5 * k, 16.5 * k)
+    body.lineTo(16 * k, 9 * k)
+    body.closeSubpath()
+    p.drawPath(body)
+    p.drawEllipse(QPointF(10 * k, 9 * k), 6 * k, 1.6 * k)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    drip = QPainterPath()
+    drip.moveTo(15.5 * k, 2.6 * k)
+    drip.cubicTo(15.5 * k, 2.6 * k, 17.6 * k, 5.6 * k, 15.5 * k, 7.3 * k)
+    drip.cubicTo(13.4 * k, 5.6 * k, 15.5 * k, 2.6 * k, 15.5 * k, 2.6 * k)
+    p.drawPath(drip)
+
+
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
     """Ebenen-Plus aus dem Prototyp (`M10 4 V16`, `M4 10 H16`)."""
     k = s / 20.0
@@ -550,6 +576,7 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "height_darken":  _draw_height_darken_icon,
     "prototype_image": _draw_prototype_image_icon,
     "transparency":    _draw_transparency_icon,
+    "replace_color":   _draw_replace_color_icon,
     "layer_add":       _draw_layer_add_icon,
     "layer_duplicate": _draw_layer_duplicate_icon,
     "layer_delete":    _draw_layer_delete_icon,

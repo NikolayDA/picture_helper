@@ -551,12 +551,11 @@ def test_background_tab_feather_button_delegates_radius(qapp):
 
 def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
     """Die betroffenen Prototyp-Kacheln nutzen das neue Bild-SVG statt Alt-Icons;
-    „Entfernen (transparent)" bekam mit Variante A sein eigenes Transparenz-Icon."""
+    einzelne Buttons bekamen mit Variante A ihr eigenes dediziertes Icon."""
     panel = build_right_panel(
         _actions([]), _noop_layer_actions(), _noop_height_actions())
 
     for text in (
-        "Farbe ersetzen",
         "Kante glätten",
         "Ecken abrunden",
         "Graustufe importieren…",
@@ -567,11 +566,15 @@ def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
         assert button.iconSize().width() == 14
         assert button.iconSize().height() == 14
 
-    remove_bg = _button(panel.frame, "Entfernen (transparent)")
-    assert remove_bg.property("prototypeIconName") == "transparency"
-    assert not remove_bg.icon().isNull()
-    assert remove_bg.iconSize().width() == 14
-    assert remove_bg.iconSize().height() == 14
+    for text, icon_name in (
+        ("Entfernen (transparent)", "transparency"),
+        ("Farbe ersetzen", "replace_color"),
+    ):
+        button = _button(panel.frame, text)
+        assert button.property("prototypeIconName") == icon_name
+        assert not button.icon().isNull()
+        assert button.iconSize().width() == 14
+        assert button.iconSize().height() == 14
 
     generate = _button(panel.frame, "Aus Bild erzeugen")
     assert generate.property("prototypeIconName") is None

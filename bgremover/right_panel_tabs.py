@@ -411,7 +411,7 @@ class BackgroundTab:
         btn_repl = _make_neutral_btn(
             tr("right_panel.background.replace"),
             tr("right_panel.background.replace.tooltip"),
-            icon_name="prototype_image")
+            icon_name="replace_color")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
         color_row.addWidget(btn_repl, 1)
         gb.addLayout(color_row)
@@ -785,6 +785,12 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     return content, lay
 
 
+# Eigene, dichtere Icons einzelner Karten-Buttons (statt des generischen
+# ``prototype_image``-Bilds) bleiben bei dessen kompakter 14-px-Größe – so
+# passen sie unverändert in dieselben Zeilen (§5.3).
+_COMPACT_CARD_ICON_NAMES = frozenset({"prototype_image", "transparency", "replace_color"})
+
+
 def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
                       icon_name: str = "", wrap: bool = False) -> QPushButton:
     """Neutraler Sekundärbutton (§5.3) – Fläche/Text aus der **aktiven Palette**.
@@ -801,7 +807,7 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
         style += f"\nQPushButton {{ min-height: {height}px; }}"
     b.setStyleSheet(style)
     if icon_name:
-        icon_size = 14 if icon_name in ("prototype_image", "transparency") else 22
+        icon_size = 14 if icon_name in _COMPACT_CARD_ICON_NAMES else 22
         b.setIcon(make_tool_icon(icon_name, icon_size, QColor(p.text2)))
         b.setIconSize(QSize(icon_size, icon_size))
         b.setProperty("prototypeIconName", icon_name)
