@@ -558,7 +558,7 @@ class ShapeTab:
         btn_corner = _make_neutral_btn(
             tr("right_panel.shape.round"),
             tr("right_panel.shape.round.tooltip"),
-            height=38, icon_name="prototype_image")
+            height=38, icon_name="round_corners")
         btn_corner.clicked.connect(
             lambda _=False: self._actions.round_corners(corner_slider.value()))
         gc.addWidget(btn_corner)
@@ -789,7 +789,7 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
 # ``prototype_image``-Bilds) bleiben bei dessen kompakter 14-px-Größe – so
 # passen sie unverändert in dieselben Zeilen (§5.3).
 _COMPACT_CARD_ICON_NAMES = frozenset({
-    "prototype_image", "transparency", "replace_color", "feather",
+    "prototype_image", "transparency", "replace_color", "feather", "round_corners",
 })
 
 

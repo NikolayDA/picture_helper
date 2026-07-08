@@ -132,6 +132,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "transparency",
     "replace_color",
     "feather",
+    "round_corners",
     "layer_add",
     "layer_duplicate",
     "layer_delete",
@@ -435,6 +436,15 @@ def _draw_feather_icon(p: QPainter, s: int, color: QColor) -> None:
         p.drawLine(QPointF(x * k, y1 * k), QPointF(x * k, y2 * k))
 
 
+def _draw_round_corners_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Rundrechteck „Variante A" für „Ecken abrunden", 1:1 zum Prototyp-SVG
+    (viewBox 20, Symbol ``ic-c2``)."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.6 * k)))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(3 * k, 3 * k, 14 * k, 14 * k), 5 * k, 5 * k)
+
+
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
     """Ebenen-Plus aus dem Prototyp (`M10 4 V16`, `M4 10 H16`)."""
     k = s / 20.0
@@ -599,6 +609,7 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "transparency":    _draw_transparency_icon,
     "replace_color":   _draw_replace_color_icon,
     "feather":         _draw_feather_icon,
+    "round_corners":   _draw_round_corners_icon,
     "layer_add":       _draw_layer_add_icon,
     "layer_duplicate": _draw_layer_duplicate_icon,
     "layer_delete":    _draw_layer_delete_icon,
