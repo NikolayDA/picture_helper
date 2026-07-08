@@ -297,8 +297,8 @@ en `pyproject.toml` o `requirements/constraints.txt`.
   ```
 - **El primer clic de IA tarda mucho** → La primerísima vez, `rembg`
   descarga su modelo (algunos cientos de MB, una sola vez, caché en
-  `~/.u2net`). La barra de estado muestra «🤖 Cargando modelo de IA…»
-  y luego «🤖 IA lista».
+  `~/.u2net`). La barra de estado muestra «Cargando modelo de IA…»
+  y luego «IA lista».
 - **La app se inicia sin IA / «No onnxruntime backend found»** → No se
   instaló el extra `ai`. Instálalo adicionalmente en el venv:
   ```bash

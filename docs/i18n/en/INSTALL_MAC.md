@@ -181,8 +181,8 @@ non-editable package copy in the app venv.
   then run the install command again.
 - **First AI click takes a long time** → On the very first time, `rembg`
   downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "🤖 Loading AI model…"
-  and then "🤖 AI ready".
+  `~/.u2net`). The status bar shows "Loading AI model…"
+  and then "AI ready".
 - **Gatekeeper: "unverified developer"** → Right-click on
   `BgRemover.app` → **Open**. The build script already removes the
   quarantine via `xattr`; a right-click open is enough in any

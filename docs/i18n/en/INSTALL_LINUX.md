@@ -295,8 +295,8 @@ again after `git pull` — unless the dependencies in
   ```
 - **First AI click takes a long time** → On the very first time, `rembg`
   downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "🤖 Loading AI model…"
-  and then "🤖 AI ready".
+  `~/.u2net`). The status bar shows "Loading AI model…"
+  and then "AI ready".
 - **App starts without AI / "No onnxruntime backend found"** → The
   `ai` extra was not installed. Install it afterwards in the venv:
   ```bash

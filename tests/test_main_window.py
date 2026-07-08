@@ -560,6 +560,26 @@ def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
     assert "img" in started
 
 
+def test_ai_status_icon_visible_only_for_ai_status_messages(win):
+    """Die KI-Hinweis-Grafik (Variante A, ersetzt das frühere 🤖-Emoji) folgt
+    sichtbar den drei KI-Statustexten und bleibt für alle anderen Meldungen
+    ausgeblendet. ``win`` ruft nie ``show()`` auf – daher ``isHidden()``
+    (explizites Flag) statt ``isVisible()`` (hängt zusätzlich vom Fenster ab)."""
+    assert win._ai_status_icon.isHidden()
+
+    for message in (SM.KI_MODELL_LADEN, SM.KI_BEREIT, SM.KI_VERARBEITET):
+        win._sb.showMessage(message)
+        assert not win._ai_status_icon.isHidden()
+
+    win._sb.showMessage(SM.KEIN_BILD_GELADEN)
+    assert win._ai_status_icon.isHidden()
+
+    win._sb.showMessage(SM.KI_BEREIT)
+    assert not win._ai_status_icon.isHidden()
+    win._sb.clearMessage()
+    assert win._ai_status_icon.isHidden()
+
+
 # ── KI-Abschluss / -Ergebnis / -Fehler ───────────────────────
 
 def test_on_ai_thread_finished_reenables_button(win, tmp_path, monkeypatch):
@@ -889,6 +909,42 @@ def test_theme_rebuild_restores_selection_controls(tmp_path, qapp):
         assert win._right_panel.brush_slider.value() == 56
         assert "42" in win._right_panel.tolerance_label.text()
         assert "56" in win._right_panel.brush_label.text()
+    finally:
+        set_active_palette(DARK)
+        if app is not None:
+            app.setStyleSheet(original_sheet)
+            if original_palette is not None:
+                app.setPalette(original_palette)
+        win.close()
+
+
+def test_ai_status_icon_recolors_on_theme_toggle(tmp_path, qapp):
+    """Die KI-Hinweis-Grafik der Statuszeile folgt der Palette (``text3``) beim
+    Theme-Wechsel, statt in der alten Schemafarbe hängen zu bleiben."""
+    from PyQt6.QtWidgets import QApplication
+
+    from bgremover.theme import DARK, active_palette, set_active_palette
+
+    app = QApplication.instance()
+    original_sheet = app.styleSheet() if app is not None else ""
+    original_palette = app.palette() if app is not None else None
+    set_active_palette(DARK)
+    win = _isolated_window(tmp_path)
+    try:
+        # ``_light_mode`` kommt aus QSettings und muss trotz isolierter
+        # Settings-Datei nicht zwingend Dunkel als Ausgangszustand haben –
+        # deshalb erzwingen statt annehmen (kein No-op-Risiko).
+        win._toggle_light_mode(False)
+        assert active_palette().is_dark
+        dark_image = win._ai_status_icon.pixmap().toImage()
+
+        win._toggle_light_mode(True)
+        assert not active_palette().is_dark
+        light_image = win._ai_status_icon.pixmap().toImage()
+        assert light_image != dark_image
+
+        win._toggle_light_mode(False)
+        assert win._ai_status_icon.pixmap().toImage() == dark_image
     finally:
         set_active_palette(DARK)
         if app is not None:

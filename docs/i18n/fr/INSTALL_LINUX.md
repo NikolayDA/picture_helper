@@ -296,8 +296,8 @@ réexécutée après `git pull` — sauf si les dépendances dans
   ```
 - **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
   télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans
-  `~/.u2net`). La barre d'état affiche « 🤖 Chargement du modèle IA… »
-  puis « 🤖 IA prête ».
+  `~/.u2net`). La barre d'état affiche « Chargement du modèle IA… »
+  puis « IA prête ».
 - **L'application démarre sans IA / « No onnxruntime backend found »** → l'extra
   `ai` n'a pas été installé. L'installer après coup dans le venv :
   ```bash

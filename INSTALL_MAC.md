@@ -183,8 +183,8 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
   danach den Install-Befehl erneut ausführen.
 - **Erster KI-Klick dauert lange** → Beim allerersten Mal lädt `rembg`
   sein Modell herunter (einige hundert MB, einmalig, Cache in
-  `~/.u2net`). Die Statusleiste zeigt „🤖 KI-Modell wird geladen…"
-  und danach „🤖 KI bereit".
+  `~/.u2net`). Die Statusleiste zeigt „KI-Modell wird geladen…"
+  und danach „KI bereit".
 - **Gatekeeper: „nicht verifizierter Entwickler"** → Rechtsklick auf
   `BgRemover.app` → **Öffnen**. Das Build-Skript entfernt die
   Quarantäne bereits per `xattr`, ein Rechtsklick-Öffnen genügt im

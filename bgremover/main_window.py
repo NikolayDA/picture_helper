@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QInputDialog,
+    QLabel,
     QMainWindow,
     QMessageBox,
     QStatusBar,
@@ -52,6 +53,7 @@ from bgremover.export_checks import format_finding as format_check_finding
 from bgremover.height_map_panel import HeightMapActions
 from bgremover.history_popup import HistoryPopup
 from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
+from bgremover.icons import make_tool_icon
 from bgremover.image_ops import (
     DEFAULT_SAVE_FORMAT,
     ensure_save_extension,
@@ -98,6 +100,7 @@ from bgremover.status_messages import StatusMessages as SM
 from bgremover.stepper import Stepper, WorkflowStep, step_label
 from bgremover.theme import (
     CANVAS_CONTAINER_STYLE,
+    Palette,
     active_palette,
     build_app_stylesheet,
     build_qpalette,
@@ -198,6 +201,16 @@ class MainWindow(QMainWindow):
         self._sb = QStatusBar()
         self._sb.setStyleSheet(status_bar_style(active_palette()))
         self.setStatusBar(self._sb)
+        # KI-Hinweis-Grafik ersetzt das frühere 🤖-Emoji in den KI-Statustexten
+        # (Variante A). Permanentes Widget, weil showMessage() normale
+        # addWidget()-Inhalte während einer Temporärmeldung verdeckt;
+        # Sichtbarkeit folgt daher dem aktuellen Statustext über messageChanged.
+        self._ai_status_icon = QLabel()
+        self._ai_status_icon.setFixedSize(14, 14)
+        self._ai_status_icon.setVisible(False)
+        self._refresh_ai_status_icon(active_palette())
+        self._sb.addPermanentWidget(self._ai_status_icon)
+        self._sb.messageChanged.connect(self._on_status_message_changed)
 
         root_w = QWidget()
         self.setCentralWidget(root_w)
@@ -655,10 +668,21 @@ class MainWindow(QMainWindow):
         self._canvas.apply_palette(pal)
         self._canvas.zoom_control.apply_palette(pal)
         self._sb.setStyleSheet(status_bar_style(pal))
+        self._refresh_ai_status_icon(pal)
         menu_bar = self.menuBar()
         if menu_bar is not None:
             menu_bar.setStyleSheet(menu_style(pal))
         self._rebuild_right_panel()
+
+    def _refresh_ai_status_icon(self, pal: Palette) -> None:
+        """Färbt die KI-Hinweis-Grafik der Statuszeile auf die aktive Palette ein."""
+        self._ai_status_icon.setPixmap(
+            make_tool_icon("ai", 14, QColor(pal.text3)).pixmap(14, 14))
+
+    def _on_status_message_changed(self, message: str) -> None:
+        """Zeigt die KI-Hinweis-Grafik nur neben den drei KI-Statustexten."""
+        self._ai_status_icon.setVisible(
+            message in (SM.KI_VERARBEITET, SM.KI_BEREIT, SM.KI_MODELL_LADEN))
 
     def _rebuild_right_panel(self) -> None:
         """Baut das rechte Panel neu auf und stellt seinen Zustand wieder her.
