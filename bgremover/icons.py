@@ -129,6 +129,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "height_lighten",
     "height_darken",
     "prototype_image",
+    "transparency",
     "layer_add",
     "layer_duplicate",
     "layer_delete",
@@ -368,6 +369,25 @@ def _draw_prototype_image_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawPath(path)
 
 
+def _draw_transparency_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Transparenz-Schachbrett „Variante A" für „Entfernen (transparent)":
+    Rahmen + 2×2-Kacheln (zwei gedimmt), 1:1 zum Prototyp-SVG (viewBox 20,
+    Symbol ``ic-r1``)."""
+    k = s / 20.0
+    dim = QColor(color)
+    dim.setAlphaF(color.alphaF() * 0.28)
+    p.setPen(QPen(color, max(1.0, 1.4 * k)))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(3 * k, 3 * k, 14 * k, 14 * k), 2 * k, 2 * k)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawRect(QRectF(3 * k, 3 * k, 7 * k, 7 * k))
+    p.drawRect(QRectF(10 * k, 10 * k, 7 * k, 7 * k))
+    p.setBrush(QBrush(dim))
+    p.drawRect(QRectF(10 * k, 3 * k, 7 * k, 7 * k))
+    p.drawRect(QRectF(3 * k, 10 * k, 7 * k, 7 * k))
+
+
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
     """Ebenen-Plus aus dem Prototyp (`M10 4 V16`, `M4 10 H16`)."""
     k = s / 20.0
@@ -529,6 +549,7 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "height_lighten": _draw_height_lighten_icon,
     "height_darken":  _draw_height_darken_icon,
     "prototype_image": _draw_prototype_image_icon,
+    "transparency":    _draw_transparency_icon,
     "layer_add":       _draw_layer_add_icon,
     "layer_duplicate": _draw_layer_duplicate_icon,
     "layer_delete":    _draw_layer_delete_icon,

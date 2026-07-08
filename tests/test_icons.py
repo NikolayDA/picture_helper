@@ -129,3 +129,30 @@ def test_ai_icon_has_no_png_asset():
     res = importlib.resources.files("bgremover") / "icons" / "ai.png"
     with importlib.resources.as_file(res) as png_path:
         assert not png_path.is_file(), "ai.png sollte entfernt sein (Variante A)"
+
+
+def test_transparency_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Das Transparenz-Schachbrett von „Entfernen (transparent)" (ic-r1) ist
+    ebenfalls ein currentColor-Icon – kein stales PNG darf den Theme-Farbpfad
+    überdecken."""
+    assert "transparency" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "transparency-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("transparency", 24)
+    blue = make_tool_icon("transparency", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_transparency_icon_has_no_png_asset():
+    """Der nie verdrahtete Platzhalter ``transparency.png`` ist entfernt – ic-r1
+    wird ausschließlich vektoriell gerendert."""
+    res = importlib.resources.files("bgremover") / "icons" / "transparency.png"
+    with importlib.resources.as_file(res) as png_path:
+        assert not png_path.is_file(), "transparency.png sollte entfernt sein (Variante A)"
