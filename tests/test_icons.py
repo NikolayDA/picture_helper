@@ -103,3 +103,29 @@ def test_rail_icons_have_no_png_assets():
         res = importlib.resources.files("bgremover") / "icons" / f"{name}.png"
         with importlib.resources.as_file(res) as png_path:
             assert not png_path.is_file(), f"{name}.png sollte entfernt sein (#487)"
+
+
+def test_ai_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Das KI-Icon (Inspector-Primärbutton, kein Rail-Icon) ist seit Variante A
+    ebenfalls ein currentColor-Sparkle – wie bei der Rail darf kein stales
+    ``ai.png`` aus alten Paketdaten den Theme-Farbpfad überdecken."""
+    assert "ai" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError("ai-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("ai", 24)
+    blue = make_tool_icon("ai", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_ai_icon_has_no_png_asset():
+    """Das alte mehrfarbige Gehirn-PNG ist entfernt – Variante A ersetzt es
+    vollständig durch den Vektor-Sparkle."""
+    res = importlib.resources.files("bgremover") / "icons" / "ai.png"
+    with importlib.resources.as_file(res) as png_path:
+        assert not png_path.is_file(), "ai.png sollte entfernt sein (Variante A)"

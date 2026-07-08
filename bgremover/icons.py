@@ -125,6 +125,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "brush",
     "eraser",
     "lasso",
+    "ai",
     "height_lighten",
     "height_darken",
     "prototype_image",
@@ -203,15 +204,15 @@ def _draw_lasso_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawPolygon(QPolygonF([QPointF(x * k, y * k) for x, y in pts]))
 
 
-def _draw_ai_icon(p: QPainter, s: int, _color: QColor) -> None:
-    bolt = QPolygonF([
-        QPointF(s*0.55, s*0.10), QPointF(s*0.28, s*0.52),
-        QPointF(s*0.48, s*0.52), QPointF(s*0.42, s*0.90),
-        QPointF(s*0.72, s*0.46), QPointF(s*0.52, s*0.46),
-    ])
-    p.setPen(QPen(QColor(80, 190, 255), 1.5))
-    p.setBrush(QBrush(QColor(80, 190, 255, 200)))
-    p.drawPolygon(bolt)
+def _draw_ai_icon(p: QPainter, s: int, color: QColor) -> None:
+    """KI-Funke „Variante A": 4-Zacken-Sparkle, 1:1 zum Prototyp-SVG
+    (viewBox 20, Symbol ``ic-a``)."""
+    k = s / 20.0
+    pts = [(10, 3.6), (11.68, 8.32), (16.4, 10), (11.68, 11.68),
+           (10, 16.4), (8.32, 11.68), (3.6, 10), (8.32, 8.32)]
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([QPointF(x * k, y * k) for x, y in pts]))
 
 
 def _draw_open_icon(p: QPainter, s: int, _color: QColor) -> None:

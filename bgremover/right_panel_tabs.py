@@ -856,10 +856,11 @@ def _make_primary_btn(
     ``wrap=True`` bricht die Beschriftung fontmetrisch um, statt die feste
     Panelbreite (332 px, §1) durch überlange Übersetzungen zu sprengen.
     """
+    p = active_palette()
     b = QPushButton(label)
-    b.setStyleSheet(primary_btn_style(active_palette()))
+    b.setStyleSheet(primary_btn_style(p))
     if icon_name:
-        b.setIcon(make_tool_icon(icon_name, 22))
+        b.setIcon(make_tool_icon(icon_name, 22, QColor(p.on_accent)))
         b.setIconSize(QSize(22, 22))
     if wrap:
         font = QFont(); font.setPixelSize(14); font.setWeight(QFont.Weight.DemiBold)
