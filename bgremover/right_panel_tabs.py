@@ -392,7 +392,7 @@ class BackgroundTab:
         btn_rem = _make_neutral_btn(
             tr("right_panel.background.remove"),
             tr("right_panel.background.remove.tooltip"),
-            height=38, icon_name="prototype_image")
+            height=38, icon_name="transparency")
         btn_rem.clicked.connect(lambda _=False: self._actions.remove_background())
         gb.addWidget(btn_rem)
 
@@ -411,7 +411,7 @@ class BackgroundTab:
         btn_repl = _make_neutral_btn(
             tr("right_panel.background.replace"),
             tr("right_panel.background.replace.tooltip"),
-            icon_name="prototype_image")
+            icon_name="replace_color")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
         color_row.addWidget(btn_repl, 1)
         gb.addLayout(color_row)
@@ -431,7 +431,7 @@ class BackgroundTab:
         btn_feather = _make_neutral_btn(
             tr("right_panel.background.feather"),
             tr("right_panel.background.feather.tooltip"),
-            height=38, icon_name="prototype_image")
+            height=38, icon_name="feather")
         btn_feather.clicked.connect(
             lambda _=False: self._actions.feather(feather_slider.value()))
         ge.addWidget(btn_feather)
@@ -558,7 +558,7 @@ class ShapeTab:
         btn_corner = _make_neutral_btn(
             tr("right_panel.shape.round"),
             tr("right_panel.shape.round.tooltip"),
-            height=38, icon_name="prototype_image")
+            height=38, icon_name="round_corners")
         btn_corner.clicked.connect(
             lambda _=False: self._actions.round_corners(corner_slider.value()))
         gc.addWidget(btn_corner)
@@ -785,6 +785,14 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     return content, lay
 
 
+# Dedizierte Icons dieser Karten-Buttons bleiben bei einer kompakten
+# 14-px-Größe (statt der sonst üblichen 22 px) – so passen sie unverändert
+# in dieselben Zeilen (§5.3).
+_COMPACT_CARD_ICON_NAMES = frozenset({
+    "transparency", "replace_color", "feather", "round_corners", "height_import",
+})
+
+
 def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
                       icon_name: str = "", wrap: bool = False) -> QPushButton:
     """Neutraler Sekundärbutton (§5.3) – Fläche/Text aus der **aktiven Palette**.
@@ -801,7 +809,7 @@ def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,
         style += f"\nQPushButton {{ min-height: {height}px; }}"
     b.setStyleSheet(style)
     if icon_name:
-        icon_size = 14 if icon_name == "prototype_image" else 22
+        icon_size = 14 if icon_name in _COMPACT_CARD_ICON_NAMES else 22
         b.setIcon(make_tool_icon(icon_name, icon_size, QColor(p.text2)))
         b.setIconSize(QSize(icon_size, icon_size))
         b.setProperty("prototypeIconName", icon_name)
@@ -856,10 +864,11 @@ def _make_primary_btn(
     ``wrap=True`` bricht die Beschriftung fontmetrisch um, statt die feste
     Panelbreite (332 px, §1) durch überlange Übersetzungen zu sprengen.
     """
+    p = active_palette()
     b = QPushButton(label)
-    b.setStyleSheet(primary_btn_style(active_palette()))
+    b.setStyleSheet(primary_btn_style(p))
     if icon_name:
-        b.setIcon(make_tool_icon(icon_name, 22))
+        b.setIcon(make_tool_icon(icon_name, 22, QColor(p.on_accent)))
         b.setIconSize(QSize(22, 22))
     if wrap:
         font = QFont(); font.setPixelSize(14); font.setWeight(QFont.Weight.DemiBold)

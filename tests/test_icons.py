@@ -103,3 +103,129 @@ def test_rail_icons_have_no_png_assets():
         res = importlib.resources.files("bgremover") / "icons" / f"{name}.png"
         with importlib.resources.as_file(res) as png_path:
             assert not png_path.is_file(), f"{name}.png sollte entfernt sein (#487)"
+
+
+def test_ai_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Das KI-Icon (Inspector-Primärbutton, kein Rail-Icon) ist seit Variante A
+    ebenfalls ein currentColor-Sparkle – wie bei der Rail darf kein stales
+    ``ai.png`` aus alten Paketdaten den Theme-Farbpfad überdecken."""
+    assert "ai" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError("ai-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("ai", 24)
+    blue = make_tool_icon("ai", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_ai_icon_has_no_png_asset():
+    """Das alte mehrfarbige Gehirn-PNG ist entfernt – Variante A ersetzt es
+    vollständig durch den Vektor-Sparkle."""
+    res = importlib.resources.files("bgremover") / "icons" / "ai.png"
+    with importlib.resources.as_file(res) as png_path:
+        assert not png_path.is_file(), "ai.png sollte entfernt sein (Variante A)"
+
+
+def test_transparency_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Das Transparenz-Schachbrett von „Entfernen (transparent)" (ic-r1) ist
+    ebenfalls ein currentColor-Icon – kein stales PNG darf den Theme-Farbpfad
+    überdecken."""
+    assert "transparency" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "transparency-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("transparency", 24)
+    blue = make_tool_icon("transparency", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_transparency_icon_has_no_png_asset():
+    """Der nie verdrahtete Platzhalter ``transparency.png`` ist entfernt – ic-r1
+    wird ausschließlich vektoriell gerendert."""
+    res = importlib.resources.files("bgremover") / "icons" / "transparency.png"
+    with importlib.resources.as_file(res) as png_path:
+        assert not png_path.is_file(), "transparency.png sollte entfernt sein (Variante A)"
+
+
+def test_replace_color_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Der Farbeimer von „Farbe ersetzen" (ic-f1) ist ebenfalls ein
+    currentColor-Icon – kein PNG-Lookup darf den Theme-Farbpfad überdecken."""
+    assert "replace_color" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "replace_color-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("replace_color", 24)
+    blue = make_tool_icon("replace_color", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_feather_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Die ausklingenden Striche von „Kante glätten" (ic-e1) sind ebenfalls ein
+    currentColor-Icon – kein PNG-Lookup darf den Theme-Farbpfad überdecken."""
+    assert "feather" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "feather-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("feather", 24)
+    blue = make_tool_icon("feather", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_round_corners_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Das Rundrechteck von „Ecken abrunden" (ic-c2) ist ebenfalls ein
+    currentColor-Icon – kein PNG-Lookup darf den Theme-Farbpfad überdecken."""
+    assert "round_corners" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "round_corners-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("round_corners", 24)
+    blue = make_tool_icon("round_corners", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_height_import_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Die Berg-Silhouette mit Import-Pfeil von „Graustufe importieren…" (ic-h2)
+    ist ebenfalls ein currentColor-Icon – kein PNG-Lookup darf den Theme-
+    Farbpfad überdecken."""
+    assert "height_import" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "height_import-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("height_import", 24)
+    blue = make_tool_icon("height_import", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()

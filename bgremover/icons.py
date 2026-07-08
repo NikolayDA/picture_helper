@@ -125,9 +125,14 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "brush",
     "eraser",
     "lasso",
+    "ai",
     "height_lighten",
     "height_darken",
-    "prototype_image",
+    "height_import",
+    "transparency",
+    "replace_color",
+    "feather",
+    "round_corners",
     "layer_add",
     "layer_duplicate",
     "layer_delete",
@@ -203,15 +208,15 @@ def _draw_lasso_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawPolygon(QPolygonF([QPointF(x * k, y * k) for x, y in pts]))
 
 
-def _draw_ai_icon(p: QPainter, s: int, _color: QColor) -> None:
-    bolt = QPolygonF([
-        QPointF(s*0.55, s*0.10), QPointF(s*0.28, s*0.52),
-        QPointF(s*0.48, s*0.52), QPointF(s*0.42, s*0.90),
-        QPointF(s*0.72, s*0.46), QPointF(s*0.52, s*0.46),
-    ])
-    p.setPen(QPen(QColor(80, 190, 255), 1.5))
-    p.setBrush(QBrush(QColor(80, 190, 255, 200)))
-    p.drawPolygon(bolt)
+def _draw_ai_icon(p: QPainter, s: int, color: QColor) -> None:
+    """KI-Funke „Variante A": 4-Zacken-Sparkle, 1:1 zum Prototyp-SVG
+    (viewBox 20, Symbol ``ic-a``)."""
+    k = s / 20.0
+    pts = [(10, 3.6), (11.68, 8.32), (16.4, 10), (11.68, 11.68),
+           (10, 16.4), (8.32, 11.68), (3.6, 10), (8.32, 8.32)]
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([QPointF(x * k, y * k) for x, y in pts]))
 
 
 def _draw_open_icon(p: QPainter, s: int, _color: QColor) -> None:
@@ -345,26 +350,95 @@ def _draw_height_darken_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawEllipse(QPointF(10 * k, 10 * k), 5.5 * k, 5.5 * k)
 
 
-def _draw_prototype_image_icon(p: QPainter, s: int, color: QColor) -> None:
-    """Bild-Aktion im Inspector: Prototyp-SVG aus den Karten-Buttons."""
+def _draw_transparency_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Transparenz-Schachbrett „Variante A" für „Entfernen (transparent)":
+    Rahmen + 2×2-Kacheln (zwei gedimmt), 1:1 zum Prototyp-SVG (viewBox 20,
+    Symbol ``ic-r1``)."""
     k = s / 20.0
-    pen = QPen(color, max(1.0, 1.6 * k), Qt.PenStyle.SolidLine,
-               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-    p.setPen(pen)
+    dim = QColor(color)
+    dim.setAlphaF(color.alphaF() * 0.28)
+    p.setPen(QPen(color, max(1.0, 1.4 * k)))
     p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRoundedRect(QRectF(2.5 * k, 4 * k, 15 * k, 12 * k), 2.2 * k, 2.2 * k)
+    p.drawRoundedRect(QRectF(3 * k, 3 * k, 14 * k, 14 * k), 2 * k, 2 * k)
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(QBrush(color))
-    p.drawEllipse(QPointF(7.2 * k, 8.6 * k), 1.3 * k, 1.3 * k)
+    p.drawRect(QRectF(3 * k, 3 * k, 7 * k, 7 * k))
+    p.drawRect(QRectF(10 * k, 10 * k, 7 * k, 7 * k))
+    p.setBrush(QBrush(dim))
+    p.drawRect(QRectF(10 * k, 3 * k, 7 * k, 7 * k))
+    p.drawRect(QRectF(3 * k, 10 * k, 7 * k, 7 * k))
+
+
+def _draw_replace_color_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Farbeimer „Variante A" für „Farbe ersetzen": Eimer-Kontur + Tropfen,
+    1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-f1``)."""
+    k = s / 20.0
+    pen = QPen(color, max(1.0, 1.4 * k), Qt.PenStyle.SolidLine,
+               Qt.PenCapStyle.FlatCap, Qt.PenJoinStyle.RoundJoin)
     p.setPen(pen)
     p.setBrush(Qt.BrushStyle.NoBrush)
-    path = QPainterPath()
-    path.moveTo(3.2 * k, 14.3 * k)
-    path.lineTo(7.8 * k, 10.2 * k)
-    path.lineTo(11.2 * k, 13 * k)
-    path.lineTo(14.3 * k, 9.8 * k)
-    path.lineTo(16.8 * k, 12.6 * k)
-    p.drawPath(path)
+    body = QPainterPath()
+    body.moveTo(4 * k, 9 * k)
+    body.lineTo(5.5 * k, 16.5 * k)
+    body.quadTo(10 * k, 18 * k, 14.5 * k, 16.5 * k)
+    body.lineTo(16 * k, 9 * k)
+    body.closeSubpath()
+    p.drawPath(body)
+    p.drawEllipse(QPointF(10 * k, 9 * k), 6 * k, 1.6 * k)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    drip = QPainterPath()
+    drip.moveTo(15.5 * k, 2.6 * k)
+    drip.cubicTo(15.5 * k, 2.6 * k, 17.6 * k, 5.6 * k, 15.5 * k, 7.3 * k)
+    drip.cubicTo(13.4 * k, 5.6 * k, 15.5 * k, 2.6 * k, 15.5 * k, 2.6 * k)
+    p.drawPath(drip)
+
+
+def _draw_feather_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Ausklingende Striche „Variante A" für „Kante glätten": 5 Linien,
+    1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-e1``)."""
+    k = s / 20.0
+    bars = (
+        (4.0, 3.0, 17.0, 2.0, 1.0),
+        (7.5, 4.5, 15.5, 1.8, 0.75),
+        (10.5, 6.0, 14.0, 1.5, 0.5),
+        (13.5, 7.5, 12.5, 1.2, 0.3),
+        (16.5, 9.0, 11.0, 1.0, 0.15),
+    )
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for x, y1, y2, width, opacity in bars:
+        c = QColor(color)
+        c.setAlphaF(color.alphaF() * opacity)
+        p.setPen(QPen(c, max(1.0, width * k), Qt.PenStyle.SolidLine,
+                      Qt.PenCapStyle.RoundCap))
+        p.drawLine(QPointF(x * k, y1 * k), QPointF(x * k, y2 * k))
+
+
+def _draw_round_corners_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Rundrechteck „Variante A" für „Ecken abrunden", 1:1 zum Prototyp-SVG
+    (viewBox 20, Symbol ``ic-c2``)."""
+    k = s / 20.0
+    p.setPen(QPen(color, max(1.0, 1.6 * k)))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(3 * k, 3 * k, 14 * k, 14 * k), 5 * k, 5 * k)
+
+
+def _draw_height_import_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Berg-Silhouette mit Import-Pfeil „Variante A" für „Graustufe
+    importieren…", 1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-h2``)."""
+    k = s / 20.0
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([
+        QPointF(2 * k, 16 * k), QPointF(7 * k, 6 * k), QPointF(10 * k, 11 * k),
+        QPointF(13 * k, 4 * k), QPointF(18 * k, 16 * k),
+    ]))
+    p.setPen(QPen(color, max(1.0, 1.6 * k), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(QPointF(13 * k, 1 * k), QPointF(13 * k, 3.6 * k))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawPolygon(QPolygonF([
+        QPointF(11.2 * k, 3.4 * k), QPointF(14.8 * k, 3.4 * k), QPointF(13 * k, 5.8 * k),
+    ]))
 
 
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
@@ -527,7 +601,11 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "move":           _draw_move_icon,
     "height_lighten": _draw_height_lighten_icon,
     "height_darken":  _draw_height_darken_icon,
-    "prototype_image": _draw_prototype_image_icon,
+    "height_import":  _draw_height_import_icon,
+    "transparency":    _draw_transparency_icon,
+    "replace_color":   _draw_replace_color_icon,
+    "feather":         _draw_feather_icon,
+    "round_corners":   _draw_round_corners_icon,
     "layer_add":       _draw_layer_add_icon,
     "layer_duplicate": _draw_layer_duplicate_icon,
     "layer_delete":    _draw_layer_delete_icon,
