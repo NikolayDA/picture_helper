@@ -128,7 +128,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "ai",
     "height_lighten",
     "height_darken",
-    "prototype_image",
+    "height_import",
     "transparency",
     "replace_color",
     "feather",
@@ -350,28 +350,6 @@ def _draw_height_darken_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawEllipse(QPointF(10 * k, 10 * k), 5.5 * k, 5.5 * k)
 
 
-def _draw_prototype_image_icon(p: QPainter, s: int, color: QColor) -> None:
-    """Bild-Aktion im Inspector: Prototyp-SVG aus den Karten-Buttons."""
-    k = s / 20.0
-    pen = QPen(color, max(1.0, 1.6 * k), Qt.PenStyle.SolidLine,
-               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-    p.setPen(pen)
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRoundedRect(QRectF(2.5 * k, 4 * k, 15 * k, 12 * k), 2.2 * k, 2.2 * k)
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QBrush(color))
-    p.drawEllipse(QPointF(7.2 * k, 8.6 * k), 1.3 * k, 1.3 * k)
-    p.setPen(pen)
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    path = QPainterPath()
-    path.moveTo(3.2 * k, 14.3 * k)
-    path.lineTo(7.8 * k, 10.2 * k)
-    path.lineTo(11.2 * k, 13 * k)
-    path.lineTo(14.3 * k, 9.8 * k)
-    path.lineTo(16.8 * k, 12.6 * k)
-    p.drawPath(path)
-
-
 def _draw_transparency_icon(p: QPainter, s: int, color: QColor) -> None:
     """Transparenz-Schachbrett „Variante A" für „Entfernen (transparent)":
     Rahmen + 2×2-Kacheln (zwei gedimmt), 1:1 zum Prototyp-SVG (viewBox 20,
@@ -443,6 +421,24 @@ def _draw_round_corners_icon(p: QPainter, s: int, color: QColor) -> None:
     p.setPen(QPen(color, max(1.0, 1.6 * k)))
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.drawRoundedRect(QRectF(3 * k, 3 * k, 14 * k, 14 * k), 5 * k, 5 * k)
+
+
+def _draw_height_import_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Berg-Silhouette mit Import-Pfeil „Variante A" für „Graustufe
+    importieren…", 1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-h2``)."""
+    k = s / 20.0
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(color))
+    p.drawPolygon(QPolygonF([
+        QPointF(2 * k, 16 * k), QPointF(7 * k, 6 * k), QPointF(10 * k, 11 * k),
+        QPointF(13 * k, 4 * k), QPointF(18 * k, 16 * k),
+    ]))
+    p.setPen(QPen(color, max(1.0, 1.6 * k), Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    p.drawLine(QPointF(13 * k, 1 * k), QPointF(13 * k, 3.6 * k))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawPolygon(QPolygonF([
+        QPointF(11.2 * k, 3.4 * k), QPointF(14.8 * k, 3.4 * k), QPointF(13 * k, 5.8 * k),
+    ]))
 
 
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
@@ -605,7 +601,7 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "move":           _draw_move_icon,
     "height_lighten": _draw_height_lighten_icon,
     "height_darken":  _draw_height_darken_icon,
-    "prototype_image": _draw_prototype_image_icon,
+    "height_import":  _draw_height_import_icon,
     "transparency":    _draw_transparency_icon,
     "replace_color":   _draw_replace_color_icon,
     "feather":         _draw_feather_icon,

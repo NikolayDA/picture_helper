@@ -549,26 +549,18 @@ def test_background_tab_feather_button_delegates_radius(qapp):
     assert calls == [("feather", 5)]
 
 
-def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
-    """Die betroffenen Prototyp-Kacheln nutzen das neue Bild-SVG statt Alt-Icons;
-    einzelne Buttons bekamen mit Variante A ihr eigenes dediziertes Icon."""
+def test_affected_inspector_tiles_use_their_own_dedicated_icon(qapp):
+    """Die betroffenen Karten-Buttons nutzen mit Variante A jeweils ihr eigenes
+    dediziertes Icon statt des inzwischen entfernten generischen Bild-SVGs."""
     panel = build_right_panel(
         _actions([]), _noop_layer_actions(), _noop_height_actions())
-
-    for text in (
-        "Graustufe importieren…",
-    ):
-        button = _button(panel.frame, text)
-        assert button.property("prototypeIconName") == "prototype_image"
-        assert not button.icon().isNull()
-        assert button.iconSize().width() == 14
-        assert button.iconSize().height() == 14
 
     for text, icon_name in (
         ("Entfernen (transparent)", "transparency"),
         ("Farbe ersetzen", "replace_color"),
         ("Kante glätten", "feather"),
         ("Ecken abrunden", "round_corners"),
+        ("Graustufe importieren…", "height_import"),
     ):
         button = _button(panel.frame, text)
         assert button.property("prototypeIconName") == icon_name

@@ -785,11 +785,11 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
     return content, lay
 
 
-# Eigene, dichtere Icons einzelner Karten-Buttons (statt des generischen
-# ``prototype_image``-Bilds) bleiben bei dessen kompakter 14-px-Größe – so
-# passen sie unverändert in dieselben Zeilen (§5.3).
+# Dedizierte Icons dieser Karten-Buttons bleiben bei einer kompakten
+# 14-px-Größe (statt der sonst üblichen 22 px) – so passen sie unverändert
+# in dieselben Zeilen (§5.3).
 _COMPACT_CARD_ICON_NAMES = frozenset({
-    "prototype_image", "transparency", "replace_color", "feather", "round_corners",
+    "transparency", "replace_color", "feather", "round_corners", "height_import",
 })
 
 

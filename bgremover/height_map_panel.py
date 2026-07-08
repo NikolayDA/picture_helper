@@ -107,7 +107,7 @@ class HeightMapPanel:
         btn_gen.clicked.connect(lambda _=False: self._actions.generate())
         btn_imp = _make_neutral_btn(
             tr("right_panel.height.import"),
-            tr("right_panel.height.import.tooltip"), icon_name="prototype_image")
+            tr("right_panel.height.import.tooltip"), icon_name="height_import")
         btn_imp.clicked.connect(lambda _=False: self._actions.import_file())
         body.addWidget(btn_gen)
         body.addWidget(btn_imp)
