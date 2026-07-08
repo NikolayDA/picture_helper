@@ -297,8 +297,8 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   ```
 - **Erster KI-Klick dauert lange** → Beim allerersten Mal lädt `rembg`
   sein Modell herunter (einige hundert MB, einmalig, Cache in
-  `~/.u2net`). Die Statusleiste zeigt „🤖 KI-Modell wird geladen…"
-  und danach „🤖 KI bereit".
+  `~/.u2net`). Die Statusleiste zeigt „KI-Modell wird geladen…"
+  und danach „KI bereit".
 - **App startet ohne KI / „No onnxruntime backend found"** → Das
   `ai`-Extra wurde nicht installiert. In der venv nachinstallieren:
   ```bash

@@ -293,8 +293,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
   ```
 - **首次点击 AI 耗时较长** → 在首次时，`rembg` 会
   下载它的模型（几百 MB，一次性，缓存在
-  `~/.u2net`）。状态栏会显示“🤖 AI 模型加载中…”
-  然后显示“🤖 AI 就绪”。
+  `~/.u2net`）。状态栏会显示”AI 模型加载中…”
+  然后显示”AI 就绪”。
 - **应用程序在没有 AI 的情况下启动 / “No onnxruntime backend found”** →
   没有安装 `ai` extra。在 venv 中补装：
   ```bash
