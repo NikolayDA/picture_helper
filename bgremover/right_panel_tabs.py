@@ -431,7 +431,7 @@ class BackgroundTab:
         btn_feather = _make_neutral_btn(
             tr("right_panel.background.feather"),
             tr("right_panel.background.feather.tooltip"),
-            height=38, icon_name="prototype_image")
+            height=38, icon_name="feather")
         btn_feather.clicked.connect(
             lambda _=False: self._actions.feather(feather_slider.value()))
         ge.addWidget(btn_feather)
@@ -788,7 +788,9 @@ def _make_scroll_tab() -> tuple[QWidget, QVBoxLayout]:
 # Eigene, dichtere Icons einzelner Karten-Buttons (statt des generischen
 # ``prototype_image``-Bilds) bleiben bei dessen kompakter 14-px-Größe – so
 # passen sie unverändert in dieselben Zeilen (§5.3).
-_COMPACT_CARD_ICON_NAMES = frozenset({"prototype_image", "transparency", "replace_color"})
+_COMPACT_CARD_ICON_NAMES = frozenset({
+    "prototype_image", "transparency", "replace_color", "feather",
+})
 
 
 def _make_neutral_btn(label: str, tooltip: str = "", height: int = 36,

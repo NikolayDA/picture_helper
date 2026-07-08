@@ -131,6 +131,7 @@ _VECTOR_ONLY_ICON_NAMES = frozenset({
     "prototype_image",
     "transparency",
     "replace_color",
+    "feather",
     "layer_add",
     "layer_duplicate",
     "layer_delete",
@@ -414,6 +415,26 @@ def _draw_replace_color_icon(p: QPainter, s: int, color: QColor) -> None:
     p.drawPath(drip)
 
 
+def _draw_feather_icon(p: QPainter, s: int, color: QColor) -> None:
+    """Ausklingende Striche „Variante A" für „Kante glätten": 5 Linien,
+    1:1 zum Prototyp-SVG (viewBox 20, Symbol ``ic-e1``)."""
+    k = s / 20.0
+    bars = (
+        (4.0, 3.0, 17.0, 2.0, 1.0),
+        (7.5, 4.5, 15.5, 1.8, 0.75),
+        (10.5, 6.0, 14.0, 1.5, 0.5),
+        (13.5, 7.5, 12.5, 1.2, 0.3),
+        (16.5, 9.0, 11.0, 1.0, 0.15),
+    )
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for x, y1, y2, width, opacity in bars:
+        c = QColor(color)
+        c.setAlphaF(color.alphaF() * opacity)
+        p.setPen(QPen(c, max(1.0, width * k), Qt.PenStyle.SolidLine,
+                      Qt.PenCapStyle.RoundCap))
+        p.drawLine(QPointF(x * k, y1 * k), QPointF(x * k, y2 * k))
+
+
 def _draw_layer_add_icon(p: QPainter, s: int, color: QColor) -> None:
     """Ebenen-Plus aus dem Prototyp (`M10 4 V16`, `M4 10 H16`)."""
     k = s / 20.0
@@ -577,6 +598,7 @@ _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "prototype_image": _draw_prototype_image_icon,
     "transparency":    _draw_transparency_icon,
     "replace_color":   _draw_replace_color_icon,
+    "feather":         _draw_feather_icon,
     "layer_add":       _draw_layer_add_icon,
     "layer_duplicate": _draw_layer_duplicate_icon,
     "layer_delete":    _draw_layer_delete_icon,

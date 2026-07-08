@@ -556,7 +556,6 @@ def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
         _actions([]), _noop_layer_actions(), _noop_height_actions())
 
     for text in (
-        "Kante glätten",
         "Ecken abrunden",
         "Graustufe importieren…",
     ):
@@ -569,6 +568,7 @@ def test_prototype_image_icon_used_for_affected_inspector_tiles(qapp):
     for text, icon_name in (
         ("Entfernen (transparent)", "transparency"),
         ("Farbe ersetzen", "replace_color"),
+        ("Kante glätten", "feather"),
     ):
         button = _button(panel.frame, text)
         assert button.property("prototypeIconName") == icon_name

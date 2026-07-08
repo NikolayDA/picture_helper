@@ -174,3 +174,21 @@ def test_replace_color_icon_prefers_vector_path_even_if_png_resource_exists(monk
     assert not grey.pixmap(24, 24).isNull()
     assert not blue.pixmap(24, 24).isNull()
     assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
+
+
+def test_feather_icon_prefers_vector_path_even_if_png_resource_exists(monkeypatch, qapp):
+    """Die ausklingenden Striche von „Kante glätten" (ic-e1) sind ebenfalls ein
+    currentColor-Icon – kein PNG-Lookup darf den Theme-Farbpfad überdecken."""
+    assert "feather" in icons._VECTOR_ONLY_ICON_NAMES
+
+    def fail_if_png_resource_is_consulted(_package):
+        raise AssertionError(
+            "feather-Icon muss aus dem Vektorpfad rendern statt PNG-Lookup")
+
+    monkeypatch.setattr(icons.importlib.resources, "files", fail_if_png_resource_is_consulted)
+
+    grey = make_tool_icon("feather", 24)
+    blue = make_tool_icon("feather", 24, QColor(40, 90, 240))
+    assert not grey.pixmap(24, 24).isNull()
+    assert not blue.pixmap(24, 24).isNull()
+    assert grey.pixmap(24, 24).toImage() != blue.pixmap(24, 24).toImage()
