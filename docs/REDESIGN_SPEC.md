@@ -229,11 +229,16 @@ min-Höhe 40 px. Für die hervorgehobene Aktion eines Schritts (Datei
 ### §5.5 Slider & Zahlenfelder
 Slider: Prototyp-Range-Control (`input[type=range]`) mit 8 px Groove, oben
 9 px/unten 2 px Abstand, gefüllter Strecke in `accent`, heller grauer
-ungefüllter Strecke (`#e6e6e6` im dunklen Schema), 1 px weißem Track-Rahmen
-im dunklen Schema und weißem 16 px Griff (Radius 8); Klickziel ist der
+ungefüllter Strecke (`#e6e6e6` dunkel, `#d4d9e2` hell), beide Strecken ohne
+Rahmen (#497/#498), und weißem 16 px Griff (Radius 8). Der Griff ist im
+dunklen Schema randlos, im hellen trägt er einen 1-px-`text3`-Ring, sonst
+verschwände er auf weißen Karten (WCAG 1.4.11 ≥ 3:1); Tastatur-Fokus
+markiert den Griff mit einem 2-px-`accent`-Ring (#441). Klickziel ist der
 gesamte Groove.
 QSpinBox/QComboBox: `surface`, 1 px `border`, Radius 6, 12 px,
-min-Höhe 24 px (#441).
+min-Höhe 24 px (#441); SpinBox-Stepper zeigen Plus/Minus-Symbole,
+QComboBox läuft über den eigenen Stilpfad ohne Stepper-Pseudoelemente
+(#497/#498).
 
 ### §5.6 Semantische Buttons & Checkboxen
 Erweitern/Schrumpfen (`.bs`, §9 Schritt 2) sind die einzige Ausnahme mit

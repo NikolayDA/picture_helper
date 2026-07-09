@@ -11,16 +11,16 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-06)
+## Aktueller Stand (2026-07-09)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs. Seit dem Snapshot vom
-2026-07-05 ist der Recommendations-Snapshot-Fix **#490** geschlossen. Die
-heutige Verifikation der Redesign-Epics (#413/#418/#424/#455/#463/#474/#483)
-brachte drei neue, klar umrissene Befunde: **#499** (helles Schema noch nicht
-1:1 am Prototyp), **#500** (Screenshot-Skript kaputt, blockiert #432) und
-**#501** (totes Widget `TopIconTab*`). GitHub zeigt aktuell **14** offene
-Issues.
+2026-07-06 sind alle drei Redesign-Nacharbeiten **#499/#500/#501** (PR #504)
+sowie der Tote-Code-Befund **#503** (PR #506; #505 war ein versehentlicher
+Leer-Diff-Merge, der Inhalt kam über #506) geschlossen; dazu der Icon-/
+Statuszeilen-Feinschliff **PR #507/#508**. Neu sind der UI-Bug **#509**
+(Werkzeug-Cursor ignoriert Canvas-Zoom) und **#510** (dieser
+Snapshot-Refresh). GitHub zeigt aktuell **13** offene Issues.
 
 ### Erledigt seit dem letzten Review
 
@@ -31,19 +31,20 @@ Issues.
   Dead-Code-/Audit-Befunde erledigt.
 - **Redesign-Kern, Rail/Zoom, Karten-Inspector, Dark Mode:** **#413/#414/
   #455–#464/#474–#489** sind über PR #412/#423/#466/#467/#473/#482/#489
-  abgeschlossen (Schrittleiste, Design-Tokens, Dark-Mode-Angleichung,
-  Vektor-Icons).
-- **#490 und #433/#434 abgeschlossen:** Snapshot-Drift behoben; Smoke-Tests/
-  Regression über PR #423 gelandet – Epic **#426** hängt nur noch an **#435**.
+  abgeschlossen; **#490** und **#433/#434** ebenso (Epic **#426** hängt nur
+  noch an **#435**).
+- **Seit 2026-07-06 geschlossen:** **#499/#500/#501** (PR #504 – helles
+  Schema am Prototyp, Screenshot-Generator repariert, tote Widgets entfernt;
+  der #500-Blocker vor **#432** ist damit gefallen) und **#503** (PR #506 –
+  `CanvasHistory`/`_make_panel_btn`/tote Theme-Konstanten entfernt).
 
 ### Neu seit dem letzten Review
 
-- **#499 🟡:** `theme.LIGHT` weicht in mehreren Tokens vom Prototyp ab
-  (Muster wie #474–#480, Test in `tests/test_theme.py` vorhanden).
-- **#500 🟠:** `scripts/generate_app_screenshots.py` sucht ein nicht mehr
-  existierendes `QTabWidget`; blockiert **#432**.
-- **#501 🟢:** `TopIconTabBar`/`TopIconTabWidget` in `widgets.py` sind seit
-  der Stepper-Umstellung tote Widgets.
+- **#509 🟠:** Pinsel-/Radiergummi-Cursor skaliert nicht mit dem Canvas-Zoom
+  – angezeigte Werkzeuggröße ≠ tatsächliche Wirkfläche (betrifft auch die
+  Höhen-Pinsel; Ursache in `set_tool`/`set_brush_size` präzise lokalisiert).
+- **#510 🟢:** Triage-Snapshot war vom 30 Minuten später gemergten PR #504
+  überholt – mit diesem Update erledigt.
 
 ### Noch offen
 
@@ -52,19 +53,19 @@ Issues.
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach
   Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-06)
+## Offene GitHub-Issues – Triage-Stand (2026-07-09)
 
-Stand 2026-07-06 zeigt GitHub **14** offene Issues: drei Redesign-
-Nacharbeiten (**#499/#500/#501**), i18n/Doku (**#425/#430/#431/#432**),
+Stand 2026-07-09 zeigt GitHub **13** offene Issues: UI-Bug (**#509**),
+dieser Doku-Snapshot (**#510**), i18n/Doku (**#425/#430/#431/#432**),
 Rollout/Release (**#426/#435/#392/#389**) und Backlog/Externe Punkte
 (**#299/#318/#245**).
 
 ### Sinnvolle Bündelung
 
-- **Redesign-Nacharbeit:** #499/#500/#501 sind unabhängig und risikoarm;
-  **#500** zuerst, weil es **#432** entsperrt.
+- **UI-Bug:** #509 ist präzise lokalisiert (Cursor wird bei `zoomChanged`
+  nie neu berechnet) und der einzige offene Code-Befund – guter nächster PR.
 - **i18n/Doku:** #430 entsperrt die Paritätstests; #431/#432 folgen nach
-  UI-Freeze **und** #500.
+  UI-Freeze (der #500-Blocker vor #432 ist mit PR #504 gefallen).
 - **Rollout/Release:** #426 hängt nur an #435; mit #392 koordinieren, dann
   #426/#389 schließen.
 - **Backlog:** #299 nach dem Release; #318 erst schärfen; #245 extern
@@ -75,13 +76,12 @@ geschätzter Umsetzungsaufwand.
 
 | # | Titel | Relevanz | Komplexität | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|------------------------------|
-| [#500](https://github.com/NikolayDA/picture_helper/issues/500) | Screenshot-Skript nach Redesign kaputt (blockiert #432) | 🟠 Hoch | 🟢 Niedrig | **Ready for PR** – Navigation auf `Stepper` umstellen. |
-| [#499](https://github.com/NikolayDA/picture_helper/issues/499) | Helles Schema 1:1 an Prototyp A angleichen | 🟡 Mittel | 🟢 Niedrig | **Ready for PR** – gleiches Muster wie #474–#480. |
-| [#501](https://github.com/NikolayDA/picture_helper/issues/501) | Verwaiste `TopIconTab*`-Widgets entfernen | 🟢 Niedrig | 🟢 Niedrig | **Ready for PR** – reines Aufräumen, 3 Dateien. |
+| [#509](https://github.com/NikolayDA/picture_helper/issues/509) | Pinsel-/Radiergummi-Cursor ignoriert Canvas-Zoom | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – Cursor bei `zoomChanged`/Größenwahl mitskalieren. |
+| [#510](https://github.com/NikolayDA/picture_helper/issues/510) | Triage-Snapshot veraltet (Stand 2026-07-06) | 🟢 Niedrig | 🟢 Niedrig | **In Arbeit** – dieser Snapshot erledigt es. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalisierung & Dokumentation | 🟠 Hoch | 🟡 Mittel | **In Arbeit** – #430/#431/#432 offen. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Neue UI-Strings (Schritte/Karten/Navigation) | 🟠 Hoch | 🟡 Mittel | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423 da. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | ANLEITUNG & README auf geführten Workflow | 🟡 Mittel | 🟡 Mittel | **Nach UI-Freeze** – 6-Sprachen-Spiegel, Link-Tests. |
-| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | App-Screenshots des Redesigns neu erstellen | 🟢 Niedrig | 🟢 Niedrig | **Blockiert** – braucht UI-Freeze **und** #500. |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | App-Screenshots des Redesigns neu erstellen | 🟢 Niedrig | 🟢 Niedrig | **Nach UI-Freeze** – #500-Blocker gefallen (PR #504). |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: Qualitätssicherung & Rollout | 🟠 Hoch | 🟢 Niedrig | **Fast fertig** – nur #435 bleibt offen. |
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & Versionsanhebung für das Redesign | 🟡 Mittel | 🟢 Niedrig | **Mit #392 abstimmen** – Release-Sequenz klären. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden | 🟠 Hoch | 🟡 Mittel | **Startbereit** – Sequenz mit Redesign entscheiden. |
@@ -92,8 +92,7 @@ geschätzter Umsetzungsaufwand.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#500** zuerst – entsperrt **#432**; **#499**/**#501** im selben oder
-   einem direkt folgenden PR.
+1. **#509** zuerst – einziger offener Code-Bug, Ursache bereits lokalisiert.
 2. **#430** vorziehen – entsperrt die i18n-Parität; danach **#431**/**#432**.
 3. **Release:** **#435** + **#392** koordiniert fahren, dann **#426**/**#389**
    schließen.
@@ -102,6 +101,8 @@ geschätzter Umsetzungsaufwand.
 
 ## Vorige Runden
 
+- **2026-07-06** — #499/#500/#501 (PR #504) und #503 (PR #506) abgeschlossen;
+  Icon-/Statuszeilen-Feinschliff über PR #507/#508.
 - **2026-07-05** — #490 (Snapshot-Drift) in Bearbeitung, Dark-Mode-/Rail-
   Icon-Welle und Karten-Inspector (#413/#414) abgeschlossen.
 - **2026-06-29** — #404/#406/#408 abgeschlossen (PR #412), Redesign-Welle eröffnet.
