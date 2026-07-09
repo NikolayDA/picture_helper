@@ -259,6 +259,12 @@ zusammenhängende Schaltergruppe; der kombinierte Modus bleibt bewusst
 außen vor (nur über das Ansicht-Menü, §9 Schritt 6). Auswahl im
 `.sel`-Look (§5.3).
 
+**Layout-Stabilität (#517):** Alle vier Segmente teilen eine gemeinsame
+Mindestbreite (breitestes Label über beide Schriftgewichte 400/500);
+das Stretch-Layout hält sie dadurch zustandsunabhängig gleich breit –
+kein Springen beim (ersten) Moduswechsel. `font-weight` ist in beiden
+Zuständen explizit gesetzt (aktiv 500, inaktiv 400).
+
 ### §5.8 Ablagefeld & Listenzeilen
 Ablagefeld (Schritt 1): 2 px **gestrichelter** `border`-Rand, Radius 12,
 transparent; Fokus färbt die Strichlinie `accent`. Listenzeilen („Zuletzt

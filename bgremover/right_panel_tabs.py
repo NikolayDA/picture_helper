@@ -130,18 +130,44 @@ class _ModeSegments(QWidget):
             btn.clicked.connect(lambda _=False, m=mode: self._select(m))
             self._buttons[mode] = btn
             lay.addWidget(btn, 1)
+        # Gemeinsame Mindestbreite = breitestes Label über beide Gewichte:
+        # gleicht die effektiven sizeHints der vier Segmente an, sodass das
+        # Stretch-Layout sie stets gleich breit hält – weder Label-Länge noch
+        # der Gewichtswechsel des aktiven Segments (500 vs. 400) verschiebt
+        # die Buttons beim Moduswechsel (#517, analog zum Stepper-Fix #514).
+        reserved = self._reserved_segment_width([label for label, _ in modes])
+        for btn in self._buttons.values():
+            btn.setMinimumWidth(reserved)
         self.set_mode(PreviewMode.COLOR)
+
+    @staticmethod
+    def _reserved_segment_width(labels: list[str]) -> int:
+        """Breite des breitesten Segment-Labels (12 px, Gewicht 400 und 500).
+
+        Einmalig bei der Konstruktion reserviert, damit ``set_mode`` die
+        Segmentgeometrie zustandsunabhängig lässt (#517).
+        """
+        font = QFont(); font.setPixelSize(12)
+        width = 0
+        for weight in (QFont.Weight.Normal, QFont.Weight.Medium):
+            font.setWeight(weight)
+            fm = QFontMetrics(font)
+            width = max(width, max(fm.size(0, label).width() for label in labels))
+        return width + 8 + 6  # + horizontales Padding (2×4) + Polish-Reserve
 
     @staticmethod
     def _seg_style(active: bool) -> str:
         p = active_palette()
+        # ``font-weight`` in beiden Zuständen explizit (kein metrischer Drift
+        # zwischen aktiv 500 und inaktiv Default, #517).
         if active:
             return (f"QPushButton {{ background:{p.accent}; color:{p.on_accent};"
                     " border:none; border-radius:6px; font-size:12px;"
                     " font-weight:500; padding:7px 4px; }"
                     f"QPushButton:focus {{ outline:none; border:2px solid {p.on_accent}; }}")
         return (f"QPushButton {{ background:transparent; color:{p.text3};"
-                " border:none; border-radius:6px; font-size:12px; padding:7px 4px; }"
+                " border:none; border-radius:6px; font-size:12px;"
+                " font-weight:400; padding:7px 4px; }"
                 f"QPushButton:hover {{ color:{p.text}; }}"
                 f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}")
 
