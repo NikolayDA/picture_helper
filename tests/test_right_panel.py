@@ -149,7 +149,7 @@ def test_step2_ai_and_step6_save_export_delegate(qapp):
     panel = build_right_panel(
         _actions(calls), _noop_layer_actions(), _noop_height_actions())
 
-    _button(panel.frame, "Hintergrund automatisch entfernen (KI)").click()
+    _button(panel.frame, "Hintergrund entfernen (KI)").click()
     _button(panel.frame, "JPEG").click()
     _button(panel.frame, "Bild speichern").click()
     _button(panel.frame, "Assets für EufyMake Studio exportieren…").click()
@@ -166,10 +166,47 @@ def test_step2_ai_button_respects_rembg_availability(qapp):
         _actions([]), _noop_layer_actions(), _noop_height_actions(),
         rembg_available=False)
 
-    ai_button = _button(panel.frame, "Hintergrund automatisch entfernen (KI)")
+    ai_button = _button(panel.frame, "Hintergrund entfernen (KI)")
     assert ai_button is panel.ai_button
     assert not ai_button.isEnabled()
     assert "rembg" in ai_button.toolTip()
+
+
+@pytest.mark.ui_smoke
+def test_step2_ai_button_label_single_line(qapp):
+    """#515: Der KI-Primärbutton bleibt in allen Runtime-Sprachen einzeilig –
+    Spec §5.4 kennt (anders als §5.3 für den EufyMake-Button) keine
+    Umbruch-Ausnahme. Bei Mindestfenstergröße hält er die min-Höhe von 40 px
+    (kein Wachstum durch eine zweite Zeile) und schneidet nichts ab."""
+    from PyQt6.QtGui import QFontMetrics
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+    from bgremover.i18n import DEFAULT_LOCALE, available_locales, configure_locale
+
+    try:
+        for locale in available_locales():
+            configure_locale(locale)
+            panel = build_right_panel(
+                _actions([]), _noop_layer_actions(), _noop_height_actions())
+            button = panel.ai_button
+            assert button.text().strip(), locale
+            assert "\n" not in button.text(), (locale, button.text())
+
+            win = QMainWindow()
+            win.setCentralWidget(panel.frame)
+            win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+            win.show()
+            panel.set_step(WorkflowStep.CUTOUT)
+            qapp.processEvents()
+            try:
+                assert button.height() == 40, (locale, button.height())
+                needed = QFontMetrics(button.font()).horizontalAdvance(button.text())
+                assert needed <= button.width(), (locale, needed, button.width())
+            finally:
+                win.hide()
+    finally:
+        configure_locale(DEFAULT_LOCALE)
 
 
 def test_open_step_recent_card_delegates(qapp, tmp_path):
@@ -301,9 +338,38 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
         assert "height: 16px" in style
 
 
+def _spin_button_rects(spin: QSpinBox):
+    """Up-/Down-Subcontrol-Rechtecke einer SpinBox (nur öffentliche API)."""
+    from PyQt6.QtWidgets import QStyle, QStyleOptionSpinBox
+
+    opt = QStyleOptionSpinBox()
+    opt.initFrom(spin)
+    opt.buttonSymbols = spin.buttonSymbols()
+    opt.frame = True
+    opt.subControls = (
+        QStyle.SubControl.SC_SpinBoxFrame | QStyle.SubControl.SC_SpinBoxUp
+        | QStyle.SubControl.SC_SpinBoxDown | QStyle.SubControl.SC_SpinBoxEditField)
+    get = lambda sc: spin.style().subControlRect(  # noqa: E731
+        QStyle.ComplexControl.CC_SpinBox, opt, sc, spin)
+    return get(QStyle.SubControl.SC_SpinBoxUp), get(QStyle.SubControl.SC_SpinBoxDown)
+
+
 def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
-    """SpinBox-Stepper erhalten gut erkennbare Plus/Minus-Buttons in Hell/Dunkel."""
+    """SpinBox-Stepper erhalten gut erkennbare Plus/Minus-Buttons in Hell/Dunkel.
+
+    #516: Die ±-Spalte ist explizit gestylt (18 px laut §5.5 statt der ~14 px
+    des nativen Pfads), die Trennlinien nutzen die Palettenfarbe (hell/dunkel
+    verschieden statt themenunabhängig), die Stepper liegen vollständig im
+    1-px-Rahmen und die gemalten ±-Glyphen sind palettenfarben sichtbar.
+    """
+    from PyQt6.QtGui import QColor
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
     from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    # Die Trennlinienfarbe unterscheidet die Schemata (kein fixer Strich).
+    assert DARK.border != LIGHT.border
 
     for palette in (DARK, LIGHT):
         set_active_palette(palette)
@@ -318,6 +384,49 @@ def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
             assert f"background:{palette.surface}" in style
             assert f"color:{palette.text}" in style
             assert f"border:1px solid {palette.border}" in style
+            # #516: explizite Subcontrol-Regeln statt nativer Default-Metriken.
+            assert "QSpinBox::up-button" in style
+            assert "QSpinBox::down-button" in style
+            assert "width:18px" in style
+            assert f"border-left:1px solid {palette.border}" in style
+            assert f"border-top:1px solid {palette.border}" in style
+
+        # Geometrie + gemalte Glyphen im gelayouteten Fenster prüfen.
+        win = QMainWindow()
+        win.setCentralWidget(panel.frame)
+        win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+        win.show()
+        checked = 0
+        try:
+            for step in (WorkflowStep.CUTOUT, WorkflowStep.SHAPE,
+                         WorkflowStep.RELIEF):
+                panel.set_step(step)
+                qapp.processEvents()
+                for spin in panel.frame.findChildren(QSpinBox):
+                    if not spin.isVisible():
+                        continue
+                    checked += 1
+                    up, down = _spin_button_rects(spin)
+                    # Dokumentierte Mindestbreite der ±-Spalte (§5.5): 18 px –
+                    # der native Pfad lieferte zuvor nur ~14 px.
+                    assert up.width() >= 18 and down.width() >= 18, step.name
+                    assert up.height() >= 10 and down.height() >= 10, step.name
+                    # Vollständig innerhalb des 1-px-Rahmens (kein Anschnitt
+                    # an der abgerundeten rechten Kontur).
+                    inner = spin.rect().adjusted(1, 1, -1, -1)
+                    assert inner.contains(up) and inner.contains(down), step.name
+                    # ±-Glyphen sind gemalt und palettenfarben (Pixelprobe im
+                    # Zentrum; am Bereichsende gedimmt via ``muted``).
+                    img = spin.grab().toImage()
+                    for rect in (up, down):
+                        color = img.pixelColor(rect.center()).name()
+                        assert color in (
+                            QColor(palette.text).name(),
+                            QColor(palette.muted).name(),
+                        ), (step.name, color)
+        finally:
+            win.hide()
+        assert checked, "keine sichtbare SpinBox geprüft"
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):
@@ -399,9 +508,10 @@ def test_panel_buttons_not_clipped_at_min_width(qapp):
                     continue
                 fm = QFontMetrics(button.font())
                 # Mnemonic-Escaping ("&&" -> gerendertes "&", §11-Labels wie
-                # „Relief & Ebenen") und bewusst umgebrochene Buttons (§5.3-
-                # Ausnahme, z. B. der KI-/EufyMake-Button) sind kein Clipping:
-                # jede *gerenderte* Zeile muss passen, nicht der Rohtext am Stück.
+                # „Relief & Ebenen") und der bewusst umgebrochene EufyMake-
+                # Button (einzige §5.3-Ausnahme; der KI-Primärbutton ist seit
+                # #515 einzeilig) sind kein Clipping: jede *gerenderte* Zeile
+                # muss passen, nicht der Rohtext am Stück.
                 lines = button.text().replace("&&", "&").split("\n")
                 needed = max(fm.horizontalAdvance(line) for line in lines)
                 # Der reine Text muss in die Button-Box passen (echte Clipping-
@@ -531,6 +641,96 @@ def test_preview_tab_controls_and_export_hint(qapp) -> None:
     ]
     assert segments.current_mode() is PreviewMode.RELIEF
     assert "Bild speichern" in refs["preview_export_hint"].text()
+
+
+@pytest.mark.ui_smoke
+def test_preview_mode_segments_keep_geometry_on_first_and_later_switches(qapp):
+    """#517: Die vier Segment-Buttons (Farbe/Relief/Höhe/Gloss) behalten
+    Position und Breite beim ersten wie bei jedem weiteren Moduswechsel –
+    je Runtime-Sprache und Farbschema, für jede Nicht-Default-Option als
+    erstes Klickziel. Die Aktiv-Kennzeichnung (Akzentfläche, ``on_accent``,
+    §5.7) bleibt dabei unverändert erhalten.
+
+    Der sichtbare Erst-Klick-Sprung braucht einen Font mit echtem
+    Medium-Schnitt (macOS); offscreen rendern die Gewichte 400/500
+    metrisch identisch. Vor dem Fix rot ist der Test deshalb über die
+    strukturellen Invarianten, die das Springen verhindern: gemeinsame
+    Mindestbreite ≥ jedem Label-Hint und in beiden Zuständen explizites
+    ``font-weight`` (der im Issue benannte Code-Defekt in ``_seg_style``).
+    """
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+    from bgremover.i18n import DEFAULT_LOCALE, available_locales, configure_locale
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    def geometry(segments) -> dict[PreviewMode, tuple[int, int]]:
+        return {mode: (btn.x(), btn.width())
+                for mode, btn in segments._buttons.items()}
+
+    try:
+        for locale in available_locales():
+            configure_locale(locale)
+            for palette in (DARK, LIGHT):
+                set_active_palette(palette)
+                for first in (PreviewMode.RELIEF, PreviewMode.HEIGHT,
+                              PreviewMode.GLOSS):
+                    panel = build_right_panel(
+                        _actions([]), _noop_layer_actions(),
+                        _noop_height_actions())
+                    win = QMainWindow()
+                    win.setCentralWidget(panel.frame)
+                    win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+                    win.show()
+                    panel.set_step(WorkflowStep.EXPORT)
+                    qapp.processEvents()
+                    segments = panel.preview_mode_segments
+                    buttons = segments._buttons
+                    # Strukturelle Invariante: alle Segmente teilen eine
+                    # gemeinsame Mindestbreite, die jeden Label-Hint abdeckt –
+                    # erst dadurch kann keine Metrik-Änderung (Sprache,
+                    # Gewicht, Style-Polish) die Stretch-Verteilung
+                    # verschieben. Vor dem Fix ungesetzt (0) und damit rot.
+                    minimums = {btn.minimumWidth() for btn in buttons.values()}
+                    assert len(minimums) == 1, minimums
+                    assert all(
+                        btn.minimumWidth() >= btn.sizeHint().width()
+                        for btn in buttons.values()), (
+                        locale, [(b.minimumWidth(), b.sizeHint().width())
+                                 for b in buttons.values()])
+                    # Gleich breite Segmente (±1 px qGeomCalc-Rundung).
+                    widths = [btn.width() for btn in buttons.values()]
+                    assert max(widths) - min(widths) <= 1, widths
+                    before = geometry(segments)
+                    # Der gemeldete Fall: allererster Wechsel nach dem
+                    # Erzeugen des Widgets.
+                    buttons[first].click()
+                    qapp.processEvents()
+                    assert geometry(segments) == before, (locale, first.name)
+                    # Zweiter/dritter/… Wechsel bleibt ebenso stabil.
+                    for later in (PreviewMode.COLOR, PreviewMode.GLOSS,
+                                  PreviewMode.RELIEF, PreviewMode.HEIGHT):
+                        buttons[later].click()
+                        qapp.processEvents()
+                        assert geometry(segments) == before, (locale, later.name)
+                    # Aktiv-Kennzeichnung (§5.7) unverändert: Akzentfläche +
+                    # ``on_accent``-Text am aktiven Segment, transparenter
+                    # Grund an den übrigen – und ``font-weight`` in beiden
+                    # Zuständen explizit (vor dem Fix fehlte das inaktive
+                    # Gewicht, der metrische Kern des Sprungs).
+                    active_sheet = buttons[PreviewMode.HEIGHT].styleSheet()
+                    assert f"background:{palette.accent}" in active_sheet
+                    assert f"color:{palette.on_accent}" in active_sheet
+                    assert "font-weight:500" in active_sheet
+                    for mode in (PreviewMode.COLOR, PreviewMode.RELIEF,
+                                 PreviewMode.GLOSS):
+                        sheet = buttons[mode].styleSheet()
+                        assert "background:transparent" in sheet
+                        assert "font-weight:400" in sheet
+                    win.hide()
+    finally:
+        configure_locale(DEFAULT_LOCALE)
+        set_active_palette(DARK)
 
 
 # ── Kantenglättung / Feather (#361) ───────────────────────────────────────

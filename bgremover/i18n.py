@@ -743,8 +743,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.crop_circle": "Format: Kreis",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
         # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
-        "right_panel.ai.remove": "Hintergrund automatisch entfernen (KI)",
-        "right_panel.ai.remove.tooltip": "Motiv per KI vom Hintergrund trennen",
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "Hintergrund entfernen (KI)",
+        "right_panel.ai.remove.tooltip": (
+            "Hintergrund automatisch entfernen: Motiv per KI vom Hintergrund trennen"),
         "right_panel.export.section.save": "Speichern",
         "right_panel.export.format_label": "Dateiformat",
         "right_panel.export.save": "Bild speichern",
@@ -1499,8 +1502,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "history.desc.crop_circle": "Format: Circle",
         "history.desc.crop_ratio": "Format: {w}×{h} px",
         # §9 alignment of the right column – AI/export/save (#436–#440)
-        "right_panel.ai.remove": "Remove background automatically (AI)",
-        "right_panel.ai.remove.tooltip": "Separate the subject from the background with AI",
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "Remove background (AI)",
+        "right_panel.ai.remove.tooltip": (
+            "Remove the background automatically: separate the subject from the"
+            " background with AI"),
         "right_panel.export.section.save": "Save",
         "right_panel.export.format_label": "File format",
         "right_panel.export.save": "Save image",

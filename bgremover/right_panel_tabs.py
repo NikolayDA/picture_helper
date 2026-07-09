@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QColor, QFont, QFontMetrics
+from PyQt6.QtGui import QColor, QFont, QFontMetrics, QPainter
 from PyQt6.QtWidgets import (
     QAbstractSpinBox,
     QCheckBox,
@@ -22,6 +22,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSlider,
     QSpinBox,
+    QStyle,
+    QStyleOptionSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -128,18 +130,44 @@ class _ModeSegments(QWidget):
             btn.clicked.connect(lambda _=False, m=mode: self._select(m))
             self._buttons[mode] = btn
             lay.addWidget(btn, 1)
+        # Gemeinsame Mindestbreite = breitestes Label über beide Gewichte:
+        # gleicht die effektiven sizeHints der vier Segmente an, sodass das
+        # Stretch-Layout sie stets gleich breit hält – weder Label-Länge noch
+        # der Gewichtswechsel des aktiven Segments (500 vs. 400) verschiebt
+        # die Buttons beim Moduswechsel (#517, analog zum Stepper-Fix #514).
+        reserved = self._reserved_segment_width([label for label, _ in modes])
+        for btn in self._buttons.values():
+            btn.setMinimumWidth(reserved)
         self.set_mode(PreviewMode.COLOR)
+
+    @staticmethod
+    def _reserved_segment_width(labels: list[str]) -> int:
+        """Breite des breitesten Segment-Labels (12 px, Gewicht 400 und 500).
+
+        Einmalig bei der Konstruktion reserviert, damit ``set_mode`` die
+        Segmentgeometrie zustandsunabhängig lässt (#517).
+        """
+        font = QFont(); font.setPixelSize(12)
+        width = 0
+        for weight in (QFont.Weight.Normal, QFont.Weight.Medium):
+            font.setWeight(weight)
+            fm = QFontMetrics(font)
+            width = max(width, max(fm.size(0, label).width() for label in labels))
+        return width + 8 + 6  # + horizontales Padding (2×4) + Polish-Reserve
 
     @staticmethod
     def _seg_style(active: bool) -> str:
         p = active_palette()
+        # ``font-weight`` in beiden Zuständen explizit (kein metrischer Drift
+        # zwischen aktiv 500 und inaktiv Default, #517).
         if active:
             return (f"QPushButton {{ background:{p.accent}; color:{p.on_accent};"
                     " border:none; border-radius:6px; font-size:12px;"
                     " font-weight:500; padding:7px 4px; }"
                     f"QPushButton:focus {{ outline:none; border:2px solid {p.on_accent}; }}")
         return (f"QPushButton {{ background:transparent; color:{p.text3};"
-                " border:none; border-radius:6px; font-size:12px; padding:7px 4px; }"
+                " border:none; border-radius:6px; font-size:12px;"
+                " font-weight:400; padding:7px 4px; }"
                 f"QPushButton:hover {{ color:{p.text}; }}"
                 f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}")
 
@@ -279,13 +307,15 @@ class SelectionTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Umbruch, da die
-        # DE-Beschriftung bei 332 px Panelbreite die Button-Fläche sprengt.
+        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Die Kurzlabels
+        # (de/en) passen einzeilig in die 332-px-Panelbreite – Primärbuttons
+        # kennen keine Umbruch-Ausnahme (§5.4, #515); der volle Wortlaut steht
+        # im Tooltip.
         btn_ai = _make_primary_btn(
             tr("right_panel.ai.remove"),
             (tr("right_panel.ai.remove.tooltip")
              if self._rembg_available else tr("toolbar.ai.missing.tooltip")),
-            icon_name="ai", wrap=True)
+            icon_name="ai")
         btn_ai.setEnabled(self._rembg_available)
         btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
         layout.addWidget(btn_ai)
@@ -340,12 +370,12 @@ class SelectionTab:
 
         morph_row = QHBoxLayout(); morph_row.setObjectName("selectionMorphRow")
         morph_row.setSpacing(_OPTION_SPACING)
-        morph_spin = QSpinBox()
+        morph_spin = _PanelSpinBox()
         morph_spin.setRange(1, 20); morph_spin.setValue(2)
         morph_spin.setSuffix(" px")
-        # Schmaler als die 72 px anderer Zahlenfelder: nur zweistellige Werte
-        # (1-20), muss neben zwei Buttons in der 332-px-Karte Platz finden.
-        morph_spin.setFixedWidth(54)
+        # 76 px: „20 px" braucht neben der 18-px-Stepper-Spalte die volle
+        # Breite (#516); passt weiterhin neben zwei Buttons in die 332-px-Karte.
+        morph_spin.setFixedWidth(76)
         morph_spin.setToolTip(tr("right_panel.selection.morph.tooltip"))
         _style_spin_box(morph_spin)
         btn_expand = _make_semantic_btn(
@@ -493,10 +523,11 @@ class TransformTab:
         rotation_slider.setRange(-180, 180); rotation_slider.setValue(0)
         rotation_slider.setStyleSheet(slider_style(active_palette()))
         rotation_slider.setToolTip(tr("right_panel.transform.angle_slider.tooltip"))
-        rotation_spin = QSpinBox()
+        rotation_spin = _PanelSpinBox()
         rotation_spin.setRange(-180, 180); rotation_spin.setValue(0)
         rotation_spin.setSuffix("°")
-        rotation_spin.setFixedWidth(66)
+        # 76 px: „-180°" + 18-px-Stepper-Spalte (#516).
+        rotation_spin.setFixedWidth(76)
         rotation_spin.setToolTip(tr("right_panel.transform.angle_spin.tooltip"))
         _style_spin_box(rotation_spin)
         rotation_slider.valueChanged.connect(lambda v: rotation_spin.setValue(v))
@@ -567,10 +598,11 @@ class ShapeTab:
         # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438)
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
         size_row = QHBoxLayout(); size_row.setSpacing(_OPTION_SPACING)
-        resize_w = QSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
-        resize_w.setFixedWidth(76); _style_spin_box(resize_w)
-        resize_h = QSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
-        resize_h.setFixedWidth(76); _style_spin_box(resize_h)
+        # 80 px: fünfstellige Größen (bis 60000) + 18-px-Stepper-Spalte (#516).
+        resize_w = _PanelSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
+        resize_w.setFixedWidth(80); _style_spin_box(resize_w)
+        resize_h = _PanelSpinBox(); resize_h.setRange(1, 60000); resize_h.setValue(900)
+        resize_h.setFixedWidth(80); _style_spin_box(resize_h)
         size_row.addWidget(resize_w)
         size_row.addWidget(_make_label("×", "#888"))
         size_row.addWidget(resize_h)
@@ -857,12 +889,13 @@ def _set_button_selected(btn: QPushButton, selected: bool) -> None:
 
 
 def _make_primary_btn(
-    label: str, tooltip: str = "", icon_name: str = "", wrap: bool = False,
+    label: str, tooltip: str = "", icon_name: str = "",
 ) -> QPushButton:
     """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector.
 
-    ``wrap=True`` bricht die Beschriftung fontmetrisch um, statt die feste
-    Panelbreite (332 px, §1) durch überlange Übersetzungen zu sprengen.
+    Immer einzeilig: §5.4 kennt – anders als §5.3 für den EufyMake-Button –
+    keine Umbruch-Ausnahme; Beschriftungen müssen in die feste Panelbreite
+    (332 px, §1) passen (#515).
     """
     p = active_palette()
     b = QPushButton(label)
@@ -870,10 +903,6 @@ def _make_primary_btn(
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22, QColor(p.on_accent)))
         b.setIconSize(QSize(22, 22))
-    if wrap:
-        font = QFont(); font.setPixelSize(14); font.setWeight(QFont.Weight.DemiBold)
-        icon_allowance = 24 if icon_name else 0
-        b.setText(_wrap_to_width(label, font, _CARD_TEXT_WIDTH - 24 - icon_allowance))
     if tooltip:
         b.setToolTip(tooltip)
     return b
@@ -895,7 +924,47 @@ def _spin_style() -> str:
     return num_style(active_palette())
 
 
+class _PanelSpinBox(QSpinBox):
+    """QSpinBox, die ihre ±-Glyphen selbst zeichnet (§5.5, #516).
+
+    Sobald QSS-Regeln für ``::up-button``/``::down-button`` existieren
+    (``num_style``), zeichnet die Stylesheet-Engine nur noch die Stepper-
+    Boxen und lässt die nativen PlusMinus-Primitives vollständig weg. Die
+    Glyphen entstehen deshalb hier: 9 px groß, zentriert im jeweiligen
+    Subcontrol-Rechteck, palettenfarben (gedimmt am Bereichsende bzw. bei
+    deaktiviertem Feld).
+    """
+
+    _GLYPH_ARM = 4  # halbe Glyphenlänge → 9-px-Strich (deutlich > native ~5 px)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        super().paintEvent(event)
+        style = self.style()
+        if style is None:  # von Qt praktisch garantiert; beruhigt mypy
+            return
+        opt = QStyleOptionSpinBox()
+        self.initStyleOption(opt)
+        p = active_palette()
+        step_state = self.stepEnabled()
+        painter = QPainter(self)
+        for sub, is_plus, flag in (
+            (QStyle.SubControl.SC_SpinBoxUp, True,
+             QAbstractSpinBox.StepEnabledFlag.StepUpEnabled),
+            (QStyle.SubControl.SC_SpinBoxDown, False,
+             QAbstractSpinBox.StepEnabledFlag.StepDownEnabled),
+        ):
+            rect = style.subControlRect(
+                QStyle.ComplexControl.CC_SpinBox, opt, sub, self)
+            enabled = self.isEnabled() and bool(step_state & flag)
+            color = QColor(p.text if enabled else p.muted)
+            cx, cy, arm = rect.center().x(), rect.center().y(), self._GLYPH_ARM
+            painter.fillRect(cx - arm, cy, 2 * arm + 1, 1, color)
+            if is_plus:
+                painter.fillRect(cx, cy - arm, 1, 2 * arm + 1, color)
+        painter.end()
+
+
 def _style_spin_box(box: QSpinBox) -> None:
-    """Apply the panel number style and clearer native stepper symbols."""
+    """Panel-Zahlenstil mit ±-Symbolen und gestylter Stepper-Spalte (§5.5, #516)."""
     box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
     box.setStyleSheet(_spin_style())

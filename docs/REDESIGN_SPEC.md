@@ -224,7 +224,10 @@ Ausgewählter Zustand `.sel`: Fläche `accent_soft`, Text `accent_text`,
 ### §5.4 Primärbutton
 Blauer Verlauf `accent → accent2`, Text `on_accent`, Radius 9, 13 px/600,
 min-Höhe 40 px. Für die hervorgehobene Aktion eines Schritts (Datei
-öffnen, KI-Freistellen, Höhenkarte erzeugen).
+öffnen, KI-Freistellen, Höhenkarte erzeugen). **Kein Zeilenumbruch** –
+die §5.3-Ausnahme (EufyMake-Button) gilt hier nicht; Beschriftungen
+müssen in allen Runtime-Sprachen einzeilig in die Panelbreite passen,
+ausführlicher Wortlaut gehört in den Tooltip (#515).
 
 ### §5.5 Slider & Zahlenfelder
 Slider: Prototyp-Range-Control (`input[type=range]`) mit 8 px Groove, oben
@@ -238,7 +241,11 @@ gesamte Groove.
 QSpinBox/QComboBox: `surface`, 1 px `border`, Radius 6, 12 px,
 min-Höhe 24 px (#441); SpinBox-Stepper zeigen Plus/Minus-Symbole,
 QComboBox läuft über den eigenen Stilpfad ohne Stepper-Pseudoelemente
-(#497/#498).
+(#497/#498). Die ±-Stepper sind explizit gestylt (#516): **18 px** breite
+Spalte (up oben rechts, down darunter) vollständig innerhalb des
+1-px-Rahmens, Trennlinien in `border`-Palettenfarbe statt nativer
+Default-Striche, ±-Glyphen 9 px, palettenfarben gemalt (`text`, am
+Bereichsende bzw. deaktiviert `muted`); Hover `surface_hover`.
 
 ### §5.6 Semantische Buttons & Checkboxen
 Erweitern/Schrumpfen (`.bs`, §9 Schritt 2) sind die einzige Ausnahme mit
@@ -251,6 +258,12 @@ Vorschaumodus in Schritt 6: Segmente **Farbe / Relief / Höhe / Gloss** als
 zusammenhängende Schaltergruppe; der kombinierte Modus bleibt bewusst
 außen vor (nur über das Ansicht-Menü, §9 Schritt 6). Auswahl im
 `.sel`-Look (§5.3).
+
+**Layout-Stabilität (#517):** Alle vier Segmente teilen eine gemeinsame
+Mindestbreite (breitestes Label über beide Schriftgewichte 400/500);
+das Stretch-Layout hält sie dadurch zustandsunabhängig gleich breit –
+kein Springen beim (ersten) Moduswechsel. `font-weight` ist in beiden
+Zuständen explizit gesetzt (aktiv 500, inaktiv 400).
 
 ### §5.8 Ablagefeld & Listenzeilen
 Ablagefeld (Schritt 1): 2 px **gestrichelter** `border`-Rand, Radius 12,
@@ -342,6 +355,13 @@ aktiven Schritt nach Maus-Klick** (#445) – Fokus-Markierung nur mit
 `:focus-visible`-Semantik: ausschließlich Tastatur-Fokus (Tab/Backtab)
 zeigt eine akzentgetönte, rahmenlose Fläche (`accent_soft`, Radius 8).
 Gesperrte Zellen sind deaktiviert und fallen aus der Tab-Reihenfolge.
+
+**Layout-Stabilität (#514):** Jede Zelle reserviert die Geometrie ihrer
+breitesten Variante – der Kreis sitzt zentriert in einem festen
+28-px-Slot (der aktiven Kreisgröße), die Label-Breite ist auf die fette
+(aktive) Textmetrik fixiert. Ein Zustandswechsel (aktiv/erledigt/
+ausstehend/gesperrt) ändert dadurch keine Zellbreite; Zellen und
+Verbinder stehen bei jedem Schrittwechsel still (Toleranz ≤ 1 px).
 
 ## §7 Navigation (Zurück / Weiter)
 

@@ -41,6 +41,7 @@ from bgremover.right_panel_tabs import (
     _make_primary_btn,
     _make_scroll_tab,
     _make_section,
+    _PanelSpinBox,
     _style_spin_box,
 )
 
@@ -65,7 +66,7 @@ class HeightMapActions:
 
 def _spin(lo: int, hi: int, value: int, *, suffix: str = "", width: int = 72) -> QSpinBox:
     """Einheitlich gestylte Ganzzahl-Eingabe für das Höhen-Panel."""
-    box = QSpinBox()
+    box = _PanelSpinBox()
     box.setRange(lo, hi)
     box.setValue(value)
     if suffix:

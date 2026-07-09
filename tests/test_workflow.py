@@ -311,6 +311,127 @@ def test_toolbar_buttons_meet_minimum_hit_size(window):
         assert btn.width() >= 32 and btn.height() >= 32
 
 
+# ── Layout-Stabilität der Schrittleiste (#514) ────────────────────────────
+
+
+def _shown_stepper(qtbot) -> Stepper:
+    """Stepper mit realistischer Breite, gelayoutet (offscreen)."""
+    stepper = Stepper()
+    qtbot.addWidget(stepper)
+    stepper.resize(980, 72)
+    stepper.show()
+    return stepper
+
+
+def _settle(qapp) -> None:
+    """Kaskadierte LayoutRequest-Events abarbeiten (Slot → Zelle → Leiste)."""
+    for _ in range(3):
+        qapp.processEvents()
+
+
+def _stepper_geometries(stepper: Stepper) -> dict[str, tuple[int, int]]:
+    """x-Position und Breite aller Zellen und Verbinder, stabil benannt."""
+    geo: dict[str, tuple[int, int]] = {}
+    for step, cell in stepper._cells.items():
+        geo[f"cell:{step.name}"] = (cell.x(), cell.width())
+    for i, conn in enumerate(stepper._connectors):
+        geo[f"conn:{i}"] = (conn.x(), conn.width())
+    return geo
+
+
+def _assert_stable(before: dict, after: dict) -> None:
+    """Kein Widget darf sich mehr als 1 px (Rundungstoleranz) bewegen."""
+    for key, (x0, w0) in before.items():
+        x1, w1 = after[key]
+        assert abs(x1 - x0) <= 1 and abs(w1 - w0) <= 1, (
+            f"{key} verschoben: x {x0}→{x1}, Breite {w0}→{w1}")
+
+
+@pytest.mark.ui_smoke
+@pytest.mark.parametrize(("first", "second"), [
+    (WorkflowStep.OPEN, WorkflowStep.ADJUST),
+    (WorkflowStep.OPEN, WorkflowStep.EXPORT),    # kurze Labels („Öffnen"/„Export")
+    (WorkflowStep.RELIEF, WorkflowStep.EXPORT),  # langes ↔ kurzes Label
+    (WorkflowStep.CUTOUT, WorkflowStep.RELIEF),  # „Relief & Ebenen" wird aktiv
+    (WorkflowStep.SHAPE, WorkflowStep.OPEN),
+])
+def test_stepper_cells_keep_position_on_step_change(qapp, qtbot, first, second):
+    """#514: Der Schrittwechsel (Klick/Tastatur/``set_current``) verschiebt keine
+    Zelle und keinen Verbinder horizontal – die aktive Hervorhebung (größerer
+    Kreis, fette Schrift) bleibt in der reservierten Zellgeometrie."""
+    stepper = _shown_stepper(qtbot)
+    stepper.set_current(int(first))
+    _settle(qapp)
+    before = _stepper_geometries(stepper)
+    stepper.set_current(int(second))
+    _settle(qapp)
+    _assert_stable(before, _stepper_geometries(stepper))
+    # Auch der Rückweg ist stabil (kein akkumulierter Drift).
+    stepper.set_current(int(first))
+    _settle(qapp)
+    _assert_stable(before, _stepper_geometries(stepper))
+
+
+@pytest.mark.ui_smoke
+def test_stepper_cells_keep_position_on_lock_toggle(qapp, qtbot):
+    """#514: ``set_locked(...)`` (Schritte 2–6 sperren/entsperren) verschiebt
+    keine Zellen/Verbinder."""
+    stepper = _shown_stepper(qtbot)
+    _settle(qapp)
+    before = _stepper_geometries(stepper)
+    for locked in (True, False):
+        stepper.set_locked(locked)
+        _settle(qapp)
+        _assert_stable(before, _stepper_geometries(stepper))
+
+
+@pytest.mark.ui_smoke
+def test_stepper_cells_keep_position_across_palettes(qapp, qtbot):
+    """#514: Schema-Wechsel (hell/dunkel) erzeugt keinen Zusatzdrift, und der
+    Schrittwechsel bleibt in beiden Schemata positionsstabil."""
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    try:
+        stepper = _shown_stepper(qtbot)
+        stepper.set_current(int(WorkflowStep.ADJUST))
+        _settle(qapp)
+        before = _stepper_geometries(stepper)
+        for palette in (LIGHT, DARK):
+            set_active_palette(palette)
+            stepper.apply_palette(palette)
+            _settle(qapp)
+            _assert_stable(before, _stepper_geometries(stepper))
+            stepper.set_current(int(WorkflowStep.EXPORT))
+            _settle(qapp)
+            _assert_stable(before, _stepper_geometries(stepper))
+            stepper.set_current(int(WorkflowStep.ADJUST))
+            _settle(qapp)
+    finally:
+        set_active_palette(DARK)
+
+
+@pytest.mark.ui_smoke
+def test_stepper_active_step_keeps_visual_differentiation(qapp):
+    """#514: Die Spec-§6-Optik bleibt erhalten – aktiver Kreis 28 px und Label
+    13/700, erledigt/ausstehend 26 px und Label 13 ohne Fettgewicht."""
+    stepper = Stepper()
+    stepper.set_current(int(WorkflowStep.ADJUST))
+    active = stepper._cells[WorkflowStep.ADJUST]
+    assert active._circle.width() == active._circle.height() == 28
+    assert "font-weight: 700" in active._label.styleSheet()
+    assert "font-size: 13px" in active._label.styleSheet()
+    done = stepper._cells[WorkflowStep.OPEN]
+    pending = stepper._cells[WorkflowStep.EXPORT]
+    for cell in (done, pending):
+        assert cell._circle.width() == cell._circle.height() == 26
+        assert "font-weight: 700" not in cell._label.styleSheet()
+        assert "font-size: 13px" in cell._label.styleSheet()
+    # Die reservierte Label-Breite deckt die fette (breiteste) Variante ab –
+    # das aktive Label wird nicht abgeschnitten.
+    active._label.ensurePolished()
+    assert active._label.width() >= active._label.sizeHint().width()
+
+
 # ── Rail 1:1 zum Prototyp (Epic #455) ─────────────────────────────────────
 
 
