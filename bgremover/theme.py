@@ -269,11 +269,30 @@ def panel_btn_style(p: Palette) -> str:
 
 
 def num_style(p: Palette) -> str:
-    """Zahlenfelder/Combos in den Inspector-Karten (Trefferfläche ≥ 24 px, #441)."""
+    """Zahlenfelder/Combos in den Inspector-Karten (Trefferfläche ≥ 24 px, #441).
+
+    Die ±-Stepper der SpinBoxen sind explizit gestylt (§5.5, #516) statt
+    nativ: eine 18 px breite Stepper-Spalte innerhalb des 1-px-Rahmens
+    (``subcontrol-origin: padding``; die Style-Engine hält das Edit-Feld
+    automatisch von der Spalte frei) und Trennlinien in Palettenfarbe statt
+    der themenunabhängigen Default-Striche der Style-Engine. Die ±-Glyphen
+    selbst malt ``_PanelSpinBox`` (right_panel_tabs) – der QSS-Subcontrol-
+    Pfad zeichnet keine PlusMinus-Primitives. QComboBox bleibt bewusst ohne
+    Stepper-Pseudoelemente (``combo_style``).
+    """
     return (
         f"QSpinBox, QComboBox {{ background:{p.surface}; color:{p.text};"
         f" border:1px solid {p.border}; border-radius:6px; padding:3px 6px;"
         " font-size:12px; min-height:24px; }"
+        " QSpinBox::up-button, QSpinBox::down-button {"
+        " subcontrol-origin:padding; width:18px; background:transparent;"
+        f" border:none; border-left:1px solid {p.border}; }}"
+        " QSpinBox::up-button { subcontrol-position:top right;"
+        " border-top-right-radius:5px; }"
+        " QSpinBox::down-button { subcontrol-position:bottom right;"
+        f" border-top:1px solid {p.border}; border-bottom-right-radius:5px; }}"
+        " QSpinBox::up-button:hover, QSpinBox::down-button:hover {"
+        f" background:{p.surface_hover}; }}"
         f" QSpinBox:focus, QComboBox:focus {{ border:1px solid {p.accent}; }}"
         f" QComboBox QAbstractItemView {{ background:{p.surface}; color:{p.text}; }}"
     )

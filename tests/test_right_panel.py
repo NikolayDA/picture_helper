@@ -338,9 +338,38 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
         assert "height: 16px" in style
 
 
+def _spin_button_rects(spin: QSpinBox):
+    """Up-/Down-Subcontrol-Rechtecke einer SpinBox (nur öffentliche API)."""
+    from PyQt6.QtWidgets import QStyle, QStyleOptionSpinBox
+
+    opt = QStyleOptionSpinBox()
+    opt.initFrom(spin)
+    opt.buttonSymbols = spin.buttonSymbols()
+    opt.frame = True
+    opt.subControls = (
+        QStyle.SubControl.SC_SpinBoxFrame | QStyle.SubControl.SC_SpinBoxUp
+        | QStyle.SubControl.SC_SpinBoxDown | QStyle.SubControl.SC_SpinBoxEditField)
+    get = lambda sc: spin.style().subControlRect(  # noqa: E731
+        QStyle.ComplexControl.CC_SpinBox, opt, sc, spin)
+    return get(QStyle.SubControl.SC_SpinBoxUp), get(QStyle.SubControl.SC_SpinBoxDown)
+
+
 def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
-    """SpinBox-Stepper erhalten gut erkennbare Plus/Minus-Buttons in Hell/Dunkel."""
+    """SpinBox-Stepper erhalten gut erkennbare Plus/Minus-Buttons in Hell/Dunkel.
+
+    #516: Die ±-Spalte ist explizit gestylt (18 px laut §5.5 statt der ~14 px
+    des nativen Pfads), die Trennlinien nutzen die Palettenfarbe (hell/dunkel
+    verschieden statt themenunabhängig), die Stepper liegen vollständig im
+    1-px-Rahmen und die gemalten ±-Glyphen sind palettenfarben sichtbar.
+    """
+    from PyQt6.QtGui import QColor
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
     from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    # Die Trennlinienfarbe unterscheidet die Schemata (kein fixer Strich).
+    assert DARK.border != LIGHT.border
 
     for palette in (DARK, LIGHT):
         set_active_palette(palette)
@@ -355,6 +384,49 @@ def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
             assert f"background:{palette.surface}" in style
             assert f"color:{palette.text}" in style
             assert f"border:1px solid {palette.border}" in style
+            # #516: explizite Subcontrol-Regeln statt nativer Default-Metriken.
+            assert "QSpinBox::up-button" in style
+            assert "QSpinBox::down-button" in style
+            assert "width:18px" in style
+            assert f"border-left:1px solid {palette.border}" in style
+            assert f"border-top:1px solid {palette.border}" in style
+
+        # Geometrie + gemalte Glyphen im gelayouteten Fenster prüfen.
+        win = QMainWindow()
+        win.setCentralWidget(panel.frame)
+        win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+        win.show()
+        checked = 0
+        try:
+            for step in (WorkflowStep.CUTOUT, WorkflowStep.SHAPE,
+                         WorkflowStep.RELIEF):
+                panel.set_step(step)
+                qapp.processEvents()
+                for spin in panel.frame.findChildren(QSpinBox):
+                    if not spin.isVisible():
+                        continue
+                    checked += 1
+                    up, down = _spin_button_rects(spin)
+                    # Dokumentierte Mindestbreite der ±-Spalte (§5.5): 18 px –
+                    # der native Pfad lieferte zuvor nur ~14 px.
+                    assert up.width() >= 18 and down.width() >= 18, step.name
+                    assert up.height() >= 10 and down.height() >= 10, step.name
+                    # Vollständig innerhalb des 1-px-Rahmens (kein Anschnitt
+                    # an der abgerundeten rechten Kontur).
+                    inner = spin.rect().adjusted(1, 1, -1, -1)
+                    assert inner.contains(up) and inner.contains(down), step.name
+                    # ±-Glyphen sind gemalt und palettenfarben (Pixelprobe im
+                    # Zentrum; am Bereichsende gedimmt via ``muted``).
+                    img = spin.grab().toImage()
+                    for rect in (up, down):
+                        color = img.pixelColor(rect.center()).name()
+                        assert color in (
+                            QColor(palette.text).name(),
+                            QColor(palette.muted).name(),
+                        ), (step.name, color)
+        finally:
+            win.hide()
+        assert checked, "keine sichtbare SpinBox geprüft"
 
 
 def test_step2_and_step4_option_spacing_is_uniform(qapp):

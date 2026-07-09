@@ -241,7 +241,11 @@ gesamte Groove.
 QSpinBox/QComboBox: `surface`, 1 px `border`, Radius 6, 12 px,
 min-Höhe 24 px (#441); SpinBox-Stepper zeigen Plus/Minus-Symbole,
 QComboBox läuft über den eigenen Stilpfad ohne Stepper-Pseudoelemente
-(#497/#498).
+(#497/#498). Die ±-Stepper sind explizit gestylt (#516): **18 px** breite
+Spalte (up oben rechts, down darunter) vollständig innerhalb des
+1-px-Rahmens, Trennlinien in `border`-Palettenfarbe statt nativer
+Default-Striche, ±-Glyphen 9 px, palettenfarben gemalt (`text`, am
+Bereichsende bzw. deaktiviert `muted`); Hover `surface_hover`.
 
 ### §5.6 Semantische Buttons & Checkboxen
 Erweitern/Schrumpfen (`.bs`, §9 Schritt 2) sind die einzige Ausnahme mit
