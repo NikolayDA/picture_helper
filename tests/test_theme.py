@@ -129,7 +129,18 @@ def test_slider_style_matches_prototype_range_control():
         assert f"background: {palette.on_accent}" in style
         assert "width: 16px" in style
         assert "height: 16px" in style
-        assert "border-radius: 8px" in style
+        # Sichtbarer Tastatur-Fokus statt wirkungslosem border:none (#441;
+        # Codex-Befund auf #496).
+        assert f"focus {{ border: 2px solid {palette.accent}" in style
+    # Griff: dunkel randlos wie im Prototyp; hell mit 1-px-text3-Ring gegen
+    # weisse Karten (WCAG 1.4.11). Radius bleibt 8 (= halbe Border-Box, s.
+    # slider_style-Kommentar), sonst verwirft Qt die Rundung ganz.
+    dark = slider_style(DARK)
+    assert "border: none; width: 16px" in dark
+    assert "border-radius: 8px" in dark
+    light = slider_style(LIGHT)
+    assert f"border: 1px solid {LIGHT.text3}; width: 16px" in light
+    assert "border-radius: 8px" in light
 
 
 def test_build_qpalette_uses_scheme_colors(qapp):
@@ -259,7 +270,11 @@ def test_interactive_style_builders_carry_focus_state():
     )
     for build in builders:
         for p in (theme.DARK, theme.LIGHT):
-            assert ":focus" in build(p), build.__name__
+            style = build(p)
+            assert ":focus" in style, build.__name__
+            # Ein :focus, das nur "border: none" setzt, erfuellt den Vertrag
+            # bloss formal und laesst den Fokus unsichtbar (Codex-Befund #496).
+            assert "focus { border: none" not in style, build.__name__
     # Statische Crop-Leisten-Stile (border:none) ebenso.
     assert ":focus" in theme.CROP_CONFIRM_STYLE
     assert ":focus" in theme.CROP_CANCEL_STYLE

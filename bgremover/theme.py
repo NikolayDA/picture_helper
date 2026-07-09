@@ -291,21 +291,32 @@ def combo_style(p: Palette) -> str:
 
 
 def slider_style(p: Palette) -> str:
-    """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496)."""
+    """Slider: nativer Prototyp-Range-Look mit weissem Griff (#441/#496).
+
+    Der weisse Griff braucht im hellen Schema einen 1-px-``text3``-Ring, sonst
+    verschwindet er auf weissen Karten (WCAG 1.4.11 ≥ 3:1; Codex-Befund auf
+    #496); im dunklen Schema traegt er selbst genug Kontrast und bleibt
+    randlos wie im Prototyp. Tastatur-Fokus markiert den Griff sichtbar mit
+    dem 2-px-``accent``-Ring aller interaktiven Bausteine (#441).
+    """
     rest = "#e6e6e6" if p.is_dark else "#d4d9e2"
+    # Qt zeichnet Sub-Control-Raender INNERHALB der 16-px-Griff-Box
+    # (Border-Box); Radius 8 = Boxhaelfte bleibt daher fuer alle Zustaende
+    # der Kreis – ein groesserer Radius wuerde von Qt komplett verworfen.
+    handle_border = "none" if p.is_dark else f"1px solid {p.text3}"
     return f"""
     QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
     QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
     QSlider::sub-page:horizontal {{ background: {p.accent}; border: none; border-radius: 4px; }}
     QSlider::add-page:horizontal {{ background: {rest}; border: none; border-radius: 4px; }}
     QSlider::handle:horizontal {{
-        background: {p.on_accent}; border: none; width: 16px; height: 16px;
+        background: {p.on_accent}; border: {handle_border}; width: 16px; height: 16px;
         margin: -4px 0; border-radius: 8px;
     }}
     QSlider::sub-page:horizontal:disabled {{ background: {p.muted}; }}
     QSlider::add-page:horizontal:disabled {{ background: {p.divider}; }}
     QSlider::handle:horizontal:disabled {{ background: {p.muted}; }}
-    QSlider::handle:horizontal:focus {{ border: none; }}
+    QSlider::handle:horizontal:focus {{ border: 2px solid {p.accent}; }}
 """
 
 
