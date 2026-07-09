@@ -153,23 +153,28 @@ class _ModeSegments(QWidget):
             font.setWeight(weight)
             fm = QFontMetrics(font)
             width = max(width, max(fm.size(0, label).width() for label in labels))
-        return width + 8 + 6  # + horizontales Padding (2×4) + Polish-Reserve
+        return width + 8 + 6  # + Padding/Rahmen horizontal (2×4) + Polish-Reserve
 
     @staticmethod
     def _seg_style(active: bool) -> str:
         p = active_palette()
-        # ``font-weight`` in beiden Zuständen explizit (kein metrischer Drift
-        # zwischen aktiv 500 und inaktiv Default, #517).
+        # Konstante Box-Metrik über alle Zustände (#517): beide Zustände tragen
+        # denselben, im Padding kompensierten 2-px-Rahmen (unfokussiert
+        # transparent; 5+2 = 7 bzw. 2+2 = 4 wie zuvor), der Fokusring wechselt
+        # nur die Farbe. Ein ``border`` nur im ``:focus``-Zweig vergrößerte
+        # sonst den sizeHint des per Maus-Klick fokussierten Segments – der
+        # gemeldete Erst-Klick-Ruck von Buttons und Kachelhöhe. ``font-weight``
+        # ist in beiden Zuständen explizit (kein metrischer Drift 500/400).
         if active:
             return (f"QPushButton {{ background:{p.accent}; color:{p.on_accent};"
-                    " border:none; border-radius:6px; font-size:12px;"
-                    " font-weight:500; padding:7px 4px; }"
+                    " border:2px solid transparent; border-radius:6px;"
+                    " font-size:12px; font-weight:500; padding:5px 2px; }"
                     f"QPushButton:focus {{ outline:none; border:2px solid {p.on_accent}; }}")
         return (f"QPushButton {{ background:transparent; color:{p.text3};"
-                " border:none; border-radius:6px; font-size:12px;"
-                " font-weight:400; padding:7px 4px; }"
+                " border:2px solid transparent; border-radius:6px;"
+                " font-size:12px; font-weight:400; padding:5px 2px; }"
                 f"QPushButton:hover {{ color:{p.text}; }}"
-                f"QPushButton:focus {{ outline:none; border:1px solid {p.accent}; }}")
+                f"QPushButton:focus {{ outline:none; border:2px solid {p.accent}; }}")
 
     def set_mode(self, mode: PreviewMode) -> None:
         """Spiegelt den aktiven Modus (rein visuell, ohne ``on_select``)."""

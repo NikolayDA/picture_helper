@@ -646,27 +646,47 @@ def test_preview_tab_controls_and_export_hint(qapp) -> None:
 @pytest.mark.ui_smoke
 def test_preview_mode_segments_keep_geometry_on_first_and_later_switches(qapp):
     """#517: Die vier Segment-Buttons (Farbe/Relief/Höhe/Gloss) behalten
-    Position und Breite beim ersten wie bei jedem weiteren Moduswechsel –
+    Position und Größe – und die Kachel ihre Höhe – beim ersten wie bei
+    jedem weiteren Moduswechsel per **Maus-Klick** (inkl. Fokus-Transfer),
     je Runtime-Sprache und Farbschema, für jede Nicht-Default-Option als
     erstes Klickziel. Die Aktiv-Kennzeichnung (Akzentfläche, ``on_accent``,
     §5.7) bleibt dabei unverändert erhalten.
 
-    Der sichtbare Erst-Klick-Sprung braucht einen Font mit echtem
-    Medium-Schnitt (macOS); offscreen rendern die Gewichte 400/500
-    metrisch identisch. Vor dem Fix rot ist der Test deshalb über die
-    strukturellen Invarianten, die das Springen verhindern: gemeinsame
-    Mindestbreite ≥ jedem Label-Hint und in beiden Zuständen explizites
-    ``font-weight`` (der im Issue benannte Code-Defekt in ``_seg_style``).
+    Kern des gemeldeten Erst-Klick-Rucks: Ein ``border`` nur im
+    ``:focus``-Zweig vergrößerte den sizeHint des per Klick fokussierten
+    Segments (+4 px) – Buttons und Kachel wuchsen beim ersten Klick und
+    blieben danach „stabil", weil stets ein Segment fokussiert ist. Dazu
+    kommen die strukturellen Invarianten gegen metrischen Drift:
+    gemeinsame Mindestbreite ≥ jedem Label-Hint und in beiden Zuständen
+    explizites ``font-weight`` (offscreen rendern 400/500 identisch, auf
+    macOS-Fonts mit Medium-Schnitt nicht).
     """
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
     from PyQt6.QtWidgets import QMainWindow
 
     from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
     from bgremover.i18n import DEFAULT_LOCALE, available_locales, configure_locale
     from bgremover.theme import DARK, LIGHT, set_active_palette
 
-    def geometry(segments) -> dict[PreviewMode, tuple[int, int]]:
-        return {mode: (btn.x(), btn.width())
-                for mode, btn in segments._buttons.items()}
+    def card_of(segments):
+        widget = segments.parentWidget()
+        while widget is not None and widget.objectName() != "sectionCard":
+            widget = widget.parentWidget()
+        assert widget is not None, "Kachel (sectionCard) nicht gefunden"
+        return widget
+
+    def geometry(segments, card) -> dict:
+        geo: dict = {
+            mode: (btn.x(), btn.y(), btn.width(), btn.height())
+            for mode, btn in segments._buttons.items()}
+        geo["segments_h"] = segments.height()
+        geo["card_h"] = card.height()
+        return geo
+
+    def settle() -> None:
+        for _ in range(3):
+            qapp.processEvents()
 
     try:
         for locale in available_locales():
@@ -683,9 +703,10 @@ def test_preview_mode_segments_keep_geometry_on_first_and_later_switches(qapp):
                     win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
                     win.show()
                     panel.set_step(WorkflowStep.EXPORT)
-                    qapp.processEvents()
+                    settle()
                     segments = panel.preview_mode_segments
                     buttons = segments._buttons
+                    card = card_of(segments)
                     # Strukturelle Invariante: alle Segmente teilen eine
                     # gemeinsame Mindestbreite, die jeden Label-Hint abdeckt –
                     # erst dadurch kann keine Metrik-Änderung (Sprache,
@@ -701,32 +722,39 @@ def test_preview_mode_segments_keep_geometry_on_first_and_later_switches(qapp):
                     # Gleich breite Segmente (±1 px qGeomCalc-Rundung).
                     widths = [btn.width() for btn in buttons.values()]
                     assert max(widths) - min(widths) <= 1, widths
-                    before = geometry(segments)
+                    before = geometry(segments, card)
                     # Der gemeldete Fall: allererster Wechsel nach dem
-                    # Erzeugen des Widgets.
-                    buttons[first].click()
-                    qapp.processEvents()
-                    assert geometry(segments) == before, (locale, first.name)
+                    # Erzeugen – echter Maus-Klick, der auch den Fokus in
+                    # die Gruppe holt (der Fokusrahmen darf die Metrik
+                    # nicht ändern).
+                    QTest.mouseClick(buttons[first], Qt.MouseButton.LeftButton)
+                    settle()
+                    assert geometry(segments, card) == before, (
+                        locale, first.name)
                     # Zweiter/dritter/… Wechsel bleibt ebenso stabil.
                     for later in (PreviewMode.COLOR, PreviewMode.GLOSS,
                                   PreviewMode.RELIEF, PreviewMode.HEIGHT):
-                        buttons[later].click()
-                        qapp.processEvents()
-                        assert geometry(segments) == before, (locale, later.name)
+                        QTest.mouseClick(
+                            buttons[later], Qt.MouseButton.LeftButton)
+                        settle()
+                        assert geometry(segments, card) == before, (
+                            locale, later.name)
                     # Aktiv-Kennzeichnung (§5.7) unverändert: Akzentfläche +
                     # ``on_accent``-Text am aktiven Segment, transparenter
-                    # Grund an den übrigen – und ``font-weight`` in beiden
-                    # Zuständen explizit (vor dem Fix fehlte das inaktive
-                    # Gewicht, der metrische Kern des Sprungs).
+                    # Grund an den übrigen – ``font-weight`` beidseitig
+                    # explizit und der Fokusring nur als Farbwechsel des
+                    # konstanten 2-px-Rahmens (metrikneutral).
                     active_sheet = buttons[PreviewMode.HEIGHT].styleSheet()
                     assert f"background:{palette.accent}" in active_sheet
                     assert f"color:{palette.on_accent}" in active_sheet
                     assert "font-weight:500" in active_sheet
+                    assert "border:2px solid transparent" in active_sheet
                     for mode in (PreviewMode.COLOR, PreviewMode.RELIEF,
                                  PreviewMode.GLOSS):
                         sheet = buttons[mode].styleSheet()
                         assert "background:transparent" in sheet
                         assert "font-weight:400" in sheet
+                        assert "border:2px solid transparent" in sheet
                     win.hide()
     finally:
         configure_locale(DEFAULT_LOCALE)

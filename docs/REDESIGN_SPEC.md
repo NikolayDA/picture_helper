@@ -263,7 +263,10 @@ außen vor (nur über das Ansicht-Menü, §9 Schritt 6). Auswahl im
 Mindestbreite (breitestes Label über beide Schriftgewichte 400/500);
 das Stretch-Layout hält sie dadurch zustandsunabhängig gleich breit –
 kein Springen beim (ersten) Moduswechsel. `font-weight` ist in beiden
-Zuständen explizit gesetzt (aktiv 500, inaktiv 400).
+Zuständen explizit gesetzt (aktiv 500, inaktiv 400). Der Fokusring ist
+ein reiner **Farbwechsel** des konstanten, im Padding kompensierten
+2-px-Rahmens (unfokussiert transparent; aktiv `on_accent`, inaktiv
+`accent`) – der Klick-Fokus ändert weder Button- noch Kachelgeometrie.
 
 ### §5.8 Ablagefeld & Listenzeilen
 Ablagefeld (Schritt 1): 2 px **gestrichelter** `border`-Rand, Radius 12,
