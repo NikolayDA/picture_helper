@@ -242,7 +242,14 @@ def nav_next_style(p: Palette) -> str:
 
 
 def panel_frame_style(p: Palette) -> str:
-    return f"QFrame {{ background: {p.inspector}; border-left: 1px solid {p.border}; }}"
+    """Rahmen des Inspector-Panels (Objektname ``inspectorPanel``, right_panel).
+
+    ID-Selektor statt ``QFrame``: QLabel erbt von QFrame – ein typweiter
+    Selektor kaskadiert ``border-left`` sonst als senkrechten Störstrich auf
+    alle rahmenlosen Labels der Karten (z. B. vor „ד/„px" in „Größe ändern").
+    """
+    return (f"QFrame#inspectorPanel {{ background: {p.inspector};"
+            f" border-left: 1px solid {p.border}; }}")
 
 
 def scroll_style(p: Palette) -> str:
