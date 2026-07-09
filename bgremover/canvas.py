@@ -41,6 +41,8 @@ from bgremover.constants import (
     _DEFAULT_BRUSH_RADIUS,
     _DEFAULT_HEIGHT_STEP,
     _DEFAULT_TOLERANCE,
+    BRUSH_CURSOR_MAX_SCREEN_PX,
+    BRUSH_TOOLS,
     TOOL_BRUSH,
     TOOL_ERASER,
     TOOL_HEIGHT_DARKEN,
@@ -260,6 +262,9 @@ class ImageCanvas(QGraphicsView):
         self._zoom_control = ZoomControl(self._viewport, self._vp)
         self._zoom_control.setVisible(False)
         self.zoomChanged.connect(self._zoom_control.set_percent)
+        # Pinsel-Cursor skaliert mit dem Zoom (#509): jeder Zoompfad
+        # (Mausrad, Zoom-Kontrolle, Fit-to-View) erneuert den Bitmap-Cursor.
+        self.zoomChanged.connect(self._on_zoom_changed)
 
         # Laufender Höhen-Malstrich (#457); None = kein Strich aktiv.
         self._height_stroke: _HeightStroke | None = None
@@ -1522,27 +1527,43 @@ class ImageCanvas(QGraphicsView):
         if self._tool == TOOL_LASSO and tool != TOOL_LASSO:
             self._lasso_cancel()
         self._tool = tool
+        self._apply_tool_cursor()
+        if tool not in BRUSH_TOOLS:
+            self._brush_preview.setVisible(False)
+
+    def _apply_tool_cursor(self) -> None:
+        """Setzt den Cursor des aktiven Werkzeugs; Pinsel-artige zoom-bewusst (#509).
+
+        Pinsel/Radiergummi/Höhen-Pinsel (#457) zeigen den Pinseldurchmesser in
+        **Bildschirm**-Pixeln: Bildpixel (``_brush_r * 2``) × View-Skalierung –
+        damit deckt sich der Cursor mit der tatsächlich bemalten Fläche.
+        Oberhalb von ``BRUSH_CURSOR_MAX_SCREEN_PX`` übernimmt ein neutrales
+        Fadenkreuz; die Größe zeigt dann allein die Vorschau-Ellipse.
+        """
+        tool = self._tool
         if tool == TOOL_WAND:
             self.setCursor(make_wand_cursor())
-            self._brush_preview.setVisible(False)
-        elif tool == TOOL_BRUSH:
-            self.setCursor(make_brush_cursor(self._brush_r * 2))
-        elif tool == TOOL_ERASER:
-            self.setCursor(make_eraser_cursor(self._brush_r * 2))
+        elif tool in BRUSH_TOOLS:
+            d = round(self._brush_r * 2 * self.transform().m11())
+            if d > BRUSH_CURSOR_MAX_SCREEN_PX:
+                self.setCursor(QCursor(Qt.CursorShape.CrossCursor))
+            elif tool == TOOL_ERASER:
+                self.setCursor(make_eraser_cursor(d))
+            else:
+                self.setCursor(make_brush_cursor(d))
         elif tool == TOOL_LASSO:
             self.setCursor(QCursor(Qt.CursorShape.CrossCursor))
-            self._brush_preview.setVisible(False)
         elif tool == TOOL_MOVE:
             # Verschieben/Zoom (#456): offene Hand als Ruhe-Cursor; während des
             # Ziehens setzt der Pan-Helfer die geschlossene Hand.
             self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
-            self._brush_preview.setVisible(False)
-        elif tool in (TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
-            # Malende Höhen-Werkzeuge (#457) nutzen den Pinselradius.
-            self.setCursor(make_brush_cursor(self._brush_r * 2))
         else:
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
-            self._brush_preview.setVisible(False)
+
+    def _on_zoom_changed(self, _pct: float) -> None:
+        """Zoomwechsel (#509): aktiver Pinsel-Cursor folgt der Bildschirmgröße."""
+        if self._tool in BRUSH_TOOLS:
+            self._apply_tool_cursor()
 
     def set_tolerance(self, v: int) -> None:
         self._tolerance = v
@@ -1550,16 +1571,12 @@ class ImageCanvas(QGraphicsView):
     def set_brush_size(self, v: int) -> None:
         self._brush_r = max(1, v // 2)
         # Cursor sofort aktualisieren
-        if self._tool in (TOOL_BRUSH, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
-            self.setCursor(make_brush_cursor(v))
-        elif self._tool == TOOL_ERASER:
-            self.setCursor(make_eraser_cursor(v))
+        if self._tool in BRUSH_TOOLS:
+            self._apply_tool_cursor()
 
     def _update_brush_preview(self, sp: QPointF) -> None:
         """Aktualisiert Position/Sichtbarkeit des Pinsel-Vorschau-Kreises."""
-        if self._tool not in (
-            TOOL_BRUSH, TOOL_ERASER, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN,
-        ) or self._pil is None:
+        if self._tool not in BRUSH_TOOLS or self._pil is None:
             self._brush_preview.setVisible(False)
             return
         r = self._brush_r

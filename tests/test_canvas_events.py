@@ -24,6 +24,7 @@ from PyQt6.QtGui import (
 )
 
 from bgremover import TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO, TOOL_WAND, ImageCanvas
+from bgremover.constants import TOOL_HEIGHT_DARKEN, TOOL_HEIGHT_LIGHTEN
 from bgremover.i18n import tr
 from bgremover.status_messages import StatusMessages as SM
 
@@ -654,3 +655,73 @@ def test_drag_move_without_urls_is_not_accepted(qapp):
                         QEvent.Type.DragMove)
     c.dragMoveEvent(ev)
     assert not ev.isAccepted()
+
+
+# ── Zoom-bewusster Pinsel-Cursor (#509) ───────────────────────────────
+
+# Cursor-Bitmap: Bildschirm-Durchmesser + 2×6 px Innenabstand der Fabriken.
+_CURSOR_PAD = 12
+
+
+def test_brush_cursor_matches_zoom_at_tool_selection(qapp):
+    """Cursorgröße = Pinseldurchmesser (Bildpixel) × View-Zoom, je Werkzeug."""
+    c = _canvas()
+    c.set_brush_size(100)  # _brush_r = 50 → 100 Bildpixel Durchmesser
+    for tool in (TOOL_BRUSH, TOOL_ERASER, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
+        for scale, expected in ((0.25, 25), (0.5, 50), (1.0, 100), (2.0, 200)):
+            c.resetTransform()
+            c.scale(scale, scale)
+            c.set_tool(tool)
+            pm = c.cursor().pixmap()
+            assert pm.width() == expected + _CURSOR_PAD, (tool, scale)
+            assert pm.height() == expected + _CURSOR_PAD, (tool, scale)
+
+
+def test_zoom_change_updates_active_brush_cursor(qapp):
+    """Zoomwechsel bei aktivem Werkzeug erneuert den Cursor sofort (#509)."""
+    c = _canvas()
+    c.set_brush_size(100)
+    for tool in (TOOL_BRUSH, TOOL_ERASER, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN):
+        c.resetTransform()  # 100 %
+        c.set_tool(tool)
+        assert c.cursor().pixmap().width() == 100 + _CURSOR_PAD
+        c._viewport.zoom(0.5)  # Mausrad-/API-Pfad → zoomChanged
+        assert c.cursor().pixmap().width() == 50 + _CURSOR_PAD, tool
+
+
+def test_zoom_control_step_updates_active_brush_cursor(qapp):
+    """Auch der Zoom-Kontroll-Pfad (step_zoom) erneuert den Cursor."""
+    c = _canvas()
+    c.set_brush_size(100)
+    c.resetTransform()
+    c._viewport.zoom(0.5)  # 50 %
+    c.set_tool(TOOL_BRUSH)
+    assert c.cursor().pixmap().width() == 50 + _CURSOR_PAD
+    c._viewport.step_zoom(10)  # 50 % → 60 %
+    assert c.cursor().pixmap().width() == 60 + _CURSOR_PAD
+
+
+def test_oversized_brush_cursor_falls_back_to_crosshair(qapp):
+    """Oberhalb der Bitmap-Grenze zeigt ein Fadenkreuz; die Ellipse trägt die Größe."""
+    from bgremover.constants import BRUSH_CURSOR_MAX_SCREEN_PX
+
+    c = _canvas()
+    c.set_brush_size(200)  # 200 Bildpixel Durchmesser
+    c.resetTransform()
+    c.scale(2.0, 2.0)  # 400 Bildschirmpixel > 256
+    assert BRUSH_CURSOR_MAX_SCREEN_PX < 200 * 2
+    c.set_tool(TOOL_BRUSH)
+    assert c.cursor().shape() == Qt.CursorShape.CrossCursor
+    # Zurück unter die Grenze: wieder exakter Bitmap-Cursor.
+    c._viewport.zoom(0.5)  # 200 % → 100 %
+    assert c.cursor().pixmap().width() == 200 + _CURSOR_PAD
+
+
+def test_tiny_zoom_keeps_brush_cursor_visible(qapp):
+    """Weit herausgezoomt greift der 6-px-Sichtbarkeitsboden der Cursor-Fabrik."""
+    c = _canvas()
+    c.set_brush_size(30)  # Standardgröße, _brush_r = 15
+    c.resetTransform()
+    c.scale(0.1, 0.1)  # 3 Bildschirmpixel → Boden 6
+    c.set_tool(TOOL_BRUSH)
+    assert c.cursor().pixmap().width() == 6 + _CURSOR_PAD
