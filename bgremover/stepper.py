@@ -14,6 +14,7 @@ from __future__ import annotations
 from enum import IntEnum
 
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QFont, QFontMetrics
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 
 from bgremover.i18n import tr
@@ -82,9 +83,37 @@ class _StepCell(QWidget):
         self._circle = QLabel()
         self._circle.setFixedSize(26, 26)
         self._circle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Fester 28-px-Slot (die aktive Kreisgröße) um den Kreis: Der bewusste
+        # 26↔28-Sprung aus ``apply_state`` (Spec §6) bleibt im Slot zentriert
+        # und ändert die Zellbreite nicht mehr – ohne den Slot ließ jeder
+        # Schrittwechsel alle Nachbarzellen horizontal springen (#514).
+        slot = QWidget()
+        slot.setFixedSize(28, 28)
+        slot_lay = QHBoxLayout(slot)
+        slot_lay.setContentsMargins(0, 0, 0, 0)
+        slot_lay.setSpacing(0)
+        slot_lay.addWidget(self._circle, 0, Qt.AlignmentFlag.AlignCenter)
         self._label = QLabel(step_label(step))
-        lay.addWidget(self._circle)
+        # Label-Breite auf die breiteste Gewichtsvariante fixieren: Der Wechsel
+        # 400→700 beim aktiven Schritt (Spec §6) ändert sonst die Textmetrik
+        # und damit die Zellbreite (#514).
+        self._label.setFixedWidth(self._reserved_label_width())
+        lay.addWidget(slot)
         lay.addWidget(self._label)
+
+    def _reserved_label_width(self) -> int:
+        """Breite der breitesten Label-Variante (13 px, Gewicht 400 und 700).
+
+        Reserviert einmalig bei der Konstruktion, damit ``apply_state`` die
+        Zellgeometrie zustandsunabhängig lässt (#514).
+        """
+        font = QFont(self._label.font())
+        font.setPixelSize(13)
+        width = 0
+        for weight in (QFont.Weight.Normal, QFont.Weight.Bold):
+            font.setWeight(weight)
+            width = max(width, QFontMetrics(font).size(0, self._label.text()).width())
+        return width + 2  # kleine Reserve gegen Render-/Hinting-Rundung
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
         if event is not None and event.button() == Qt.MouseButton.LeftButton:

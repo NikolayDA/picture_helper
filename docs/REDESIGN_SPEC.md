@@ -343,6 +343,13 @@ aktiven Schritt nach Maus-Klick** (#445) – Fokus-Markierung nur mit
 zeigt eine akzentgetönte, rahmenlose Fläche (`accent_soft`, Radius 8).
 Gesperrte Zellen sind deaktiviert und fallen aus der Tab-Reihenfolge.
 
+**Layout-Stabilität (#514):** Jede Zelle reserviert die Geometrie ihrer
+breitesten Variante – der Kreis sitzt zentriert in einem festen
+28-px-Slot (der aktiven Kreisgröße), die Label-Breite ist auf die fette
+(aktive) Textmetrik fixiert. Ein Zustandswechsel (aktiv/erledigt/
+ausstehend/gesperrt) ändert dadurch keine Zellbreite; Zellen und
+Verbinder stehen bei jedem Schrittwechsel still (Toleranz ≤ 1 px).
+
 ## §7 Navigation (Zurück / Weiter)
 
 Fixe Fußzeile des Inspectors, **immer sichtbar** (außerhalb der
