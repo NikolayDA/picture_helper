@@ -149,7 +149,7 @@ def test_step2_ai_and_step6_save_export_delegate(qapp):
     panel = build_right_panel(
         _actions(calls), _noop_layer_actions(), _noop_height_actions())
 
-    _button(panel.frame, "Hintergrund automatisch entfernen (KI)").click()
+    _button(panel.frame, "Hintergrund entfernen (KI)").click()
     _button(panel.frame, "JPEG").click()
     _button(panel.frame, "Bild speichern").click()
     _button(panel.frame, "Assets für EufyMake Studio exportieren…").click()
@@ -166,10 +166,47 @@ def test_step2_ai_button_respects_rembg_availability(qapp):
         _actions([]), _noop_layer_actions(), _noop_height_actions(),
         rembg_available=False)
 
-    ai_button = _button(panel.frame, "Hintergrund automatisch entfernen (KI)")
+    ai_button = _button(panel.frame, "Hintergrund entfernen (KI)")
     assert ai_button is panel.ai_button
     assert not ai_button.isEnabled()
     assert "rembg" in ai_button.toolTip()
+
+
+@pytest.mark.ui_smoke
+def test_step2_ai_button_label_single_line(qapp):
+    """#515: Der KI-Primärbutton bleibt in allen Runtime-Sprachen einzeilig –
+    Spec §5.4 kennt (anders als §5.3 für den EufyMake-Button) keine
+    Umbruch-Ausnahme. Bei Mindestfenstergröße hält er die min-Höhe von 40 px
+    (kein Wachstum durch eine zweite Zeile) und schneidet nichts ab."""
+    from PyQt6.QtGui import QFontMetrics
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.constants import _WINDOW_MIN_H, _WINDOW_MIN_W
+    from bgremover.i18n import DEFAULT_LOCALE, available_locales, configure_locale
+
+    try:
+        for locale in available_locales():
+            configure_locale(locale)
+            panel = build_right_panel(
+                _actions([]), _noop_layer_actions(), _noop_height_actions())
+            button = panel.ai_button
+            assert button.text().strip(), locale
+            assert "\n" not in button.text(), (locale, button.text())
+
+            win = QMainWindow()
+            win.setCentralWidget(panel.frame)
+            win.resize(_WINDOW_MIN_W, _WINDOW_MIN_H)
+            win.show()
+            panel.set_step(WorkflowStep.CUTOUT)
+            qapp.processEvents()
+            try:
+                assert button.height() == 40, (locale, button.height())
+                needed = QFontMetrics(button.font()).horizontalAdvance(button.text())
+                assert needed <= button.width(), (locale, needed, button.width())
+            finally:
+                win.hide()
+    finally:
+        configure_locale(DEFAULT_LOCALE)
 
 
 def test_open_step_recent_card_delegates(qapp, tmp_path):
@@ -399,9 +436,10 @@ def test_panel_buttons_not_clipped_at_min_width(qapp):
                     continue
                 fm = QFontMetrics(button.font())
                 # Mnemonic-Escaping ("&&" -> gerendertes "&", §11-Labels wie
-                # „Relief & Ebenen") und bewusst umgebrochene Buttons (§5.3-
-                # Ausnahme, z. B. der KI-/EufyMake-Button) sind kein Clipping:
-                # jede *gerenderte* Zeile muss passen, nicht der Rohtext am Stück.
+                # „Relief & Ebenen") und der bewusst umgebrochene EufyMake-
+                # Button (einzige §5.3-Ausnahme; der KI-Primärbutton ist seit
+                # #515 einzeilig) sind kein Clipping: jede *gerenderte* Zeile
+                # muss passen, nicht der Rohtext am Stück.
                 lines = button.text().replace("&&", "&").split("\n")
                 needed = max(fm.horizontalAdvance(line) for line in lines)
                 # Der reine Text muss in die Button-Box passen (echte Clipping-

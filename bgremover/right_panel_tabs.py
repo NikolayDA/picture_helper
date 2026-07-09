@@ -279,13 +279,15 @@ class SelectionTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
-        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Umbruch, da die
-        # DE-Beschriftung bei 332 px Panelbreite die Button-Fläche sprengt.
+        # KI-Primärbutton oben im Inspector (§9 Schritt 2, #437). Die Kurzlabels
+        # (de/en) passen einzeilig in die 332-px-Panelbreite – Primärbuttons
+        # kennen keine Umbruch-Ausnahme (§5.4, #515); der volle Wortlaut steht
+        # im Tooltip.
         btn_ai = _make_primary_btn(
             tr("right_panel.ai.remove"),
             (tr("right_panel.ai.remove.tooltip")
              if self._rembg_available else tr("toolbar.ai.missing.tooltip")),
-            icon_name="ai", wrap=True)
+            icon_name="ai")
         btn_ai.setEnabled(self._rembg_available)
         btn_ai.clicked.connect(lambda _=False: self._actions.run_ai())
         layout.addWidget(btn_ai)
@@ -857,12 +859,13 @@ def _set_button_selected(btn: QPushButton, selected: bool) -> None:
 
 
 def _make_primary_btn(
-    label: str, tooltip: str = "", icon_name: str = "", wrap: bool = False,
+    label: str, tooltip: str = "", icon_name: str = "",
 ) -> QPushButton:
     """Blauer Primärbutton (§5.4) für hervorgehobene Aktionen im Inspector.
 
-    ``wrap=True`` bricht die Beschriftung fontmetrisch um, statt die feste
-    Panelbreite (332 px, §1) durch überlange Übersetzungen zu sprengen.
+    Immer einzeilig: §5.4 kennt – anders als §5.3 für den EufyMake-Button –
+    keine Umbruch-Ausnahme; Beschriftungen müssen in die feste Panelbreite
+    (332 px, §1) passen (#515).
     """
     p = active_palette()
     b = QPushButton(label)
@@ -870,10 +873,6 @@ def _make_primary_btn(
     if icon_name:
         b.setIcon(make_tool_icon(icon_name, 22, QColor(p.on_accent)))
         b.setIconSize(QSize(22, 22))
-    if wrap:
-        font = QFont(); font.setPixelSize(14); font.setWeight(QFont.Weight.DemiBold)
-        icon_allowance = 24 if icon_name else 0
-        b.setText(_wrap_to_width(label, font, _CARD_TEXT_WIDTH - 24 - icon_allowance))
     if tooltip:
         b.setToolTip(tooltip)
     return b

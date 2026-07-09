@@ -224,7 +224,10 @@ Ausgewählter Zustand `.sel`: Fläche `accent_soft`, Text `accent_text`,
 ### §5.4 Primärbutton
 Blauer Verlauf `accent → accent2`, Text `on_accent`, Radius 9, 13 px/600,
 min-Höhe 40 px. Für die hervorgehobene Aktion eines Schritts (Datei
-öffnen, KI-Freistellen, Höhenkarte erzeugen).
+öffnen, KI-Freistellen, Höhenkarte erzeugen). **Kein Zeilenumbruch** –
+die §5.3-Ausnahme (EufyMake-Button) gilt hier nicht; Beschriftungen
+müssen in allen Runtime-Sprachen einzeilig in die Panelbreite passen,
+ausführlicher Wortlaut gehört in den Tooltip (#515).
 
 ### §5.5 Slider & Zahlenfelder
 Slider: Prototyp-Range-Control (`input[type=range]`) mit 8 px Groove, oben
