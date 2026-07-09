@@ -100,6 +100,17 @@ TOOL_MOVE   = "move"
 TOOL_HEIGHT_LIGHTEN = "height_lighten"
 TOOL_HEIGHT_DARKEN  = "height_darken"
 
+# Pinsel-artige Werkzeuge (#509): Cursor und Vorschau-Ellipse folgen dem
+# Pinselradius; die Cursor-Bitmap wird mit dem Canvas-Zoom mitskaliert.
+BRUSH_TOOLS: tuple[str, ...] = (
+    TOOL_BRUSH, TOOL_ERASER, TOOL_HEIGHT_LIGHTEN, TOOL_HEIGHT_DARKEN,
+)
+# Obergrenze der Cursor-Bitmap in Bildschirmpixeln: darüber zeigt ein
+# neutrales Fadenkreuz an, dass die exakt mitzoomende Vorschau-Ellipse die
+# Größendarstellung übernimmt (riesige Pixmap-Cursor sind auf X11/macOS
+# nicht zuverlässig darstellbar).
+BRUSH_CURSOR_MAX_SCREEN_PX = 256
+
 
 def init_runtime() -> None:
     """Initialisiert explizite Runtime-Seiteneffekte für die Anwendung.
