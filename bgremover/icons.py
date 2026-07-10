@@ -582,10 +582,11 @@ def _draw_theme_icon(p: QPainter, s: int, color: QColor) -> None:
 
 
 # Zeichenfunktion je Icon-Name, Signatur ``(QPainter, Größe, Farbe)``. Die
-# zehn Rail-Icons (sieben Werkzeuge + drei Rail-Fuß-Aktionen) verwenden die
-# Farbe für ihren einzigen Strich/ihre Füllung; die übrigen, mehrfarbigen
-# Icons (Inspector/Zoom-Pille, außerhalb der Rail) ignorieren sie bewusst –
-# eigenes Farbschema je Icon, kein Verbraucher für Palette-Einfärbung (#486).
+# meisten Icons verwenden die Farbe für ihren einzigen Strich/ihre Füllung und
+# werden von ihren Verbrauchern mit Palette-Farben gespeist (Rail-Buttons,
+# Inspector-Karten, Ebenen-Panel – z. B. ``p.text2``/``p.text3``). Wenige Icons
+# mit fester Mehrton-Optik (``open``/``save``/``restore``/``history``/``lock``)
+# ignorieren das Farbargument bewusst (Parameter ``_color``) (#486).
 _ICON_DRAW: dict[str, Callable[[QPainter, int, QColor], None]] = {
     "wand":    _draw_wand_icon,
     "brush":   _draw_brush_icon,
