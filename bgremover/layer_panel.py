@@ -13,8 +13,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QColor, QStandardItemModel
+from PyQt6.QtCore import QPointF, QSize, Qt
+from PyQt6.QtGui import QColor, QPainter, QPen, QPolygonF, QStandardItemModel
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -22,6 +22,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSlider,
+    QStyle,
+    QStyleOptionComboBox,
     QVBoxLayout,
     QWidget,
 )
@@ -51,6 +53,41 @@ def _role_label(role: LayerRole | None) -> str:
     if role is LayerRole.GLOSS_MASK:
         return tr("layers.role.gloss")
     return tr("layers.role.none")
+
+
+class _PanelComboBox(QComboBox):
+    """QComboBox, die ihren Aufklapp-Chevron selbst zeichnet (Muster ``_PanelSpinBox``, #516).
+
+    Sobald eine QSS-Regel für ``::drop-down`` existiert (``combo_style``),
+    zeichnet die Stylesheet-Engine nur noch die – bewusst rahmenlose –
+    Pfeilspalte und lässt das native Pfeil-Primitive vollständig weg. Der
+    Chevron entsteht deshalb hier: zentriert im Arrow-Subcontrol,
+    palettenfarben (gedimmt bei deaktiviertem Feld).
+    """
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Override)
+        super().paintEvent(event)
+        style = self.style()
+        if style is None:  # von Qt praktisch garantiert; beruhigt mypy
+            return
+        opt = QStyleOptionComboBox()
+        self.initStyleOption(opt)
+        rect = style.subControlRect(
+            QStyle.ComplexControl.CC_ComboBox, opt,
+            QStyle.SubControl.SC_ComboBoxArrow, self)
+        p = active_palette()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor(p.text2 if self.isEnabled() else p.muted), 1.6)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        cx, cy = float(rect.center().x()), float(rect.center().y())
+        # 7 px breiter, 3,5 px hoher Chevron (∨) mittig in der Pfeilspalte.
+        painter.drawPolyline(QPolygonF([
+            QPointF(cx - 3.5, cy - 1.75), QPointF(cx, cy + 1.75),
+            QPointF(cx + 3.5, cy - 1.75)]))
+        painter.end()
 
 
 @dataclass(frozen=True)
@@ -153,10 +190,13 @@ class LayerPanel:
     def _build_role_row(self) -> QHBoxLayout:
         p = active_palette()
         row = QHBoxLayout()
-        row.setSpacing(6)
+        row.setSpacing(8)
         label = QLabel(tr("right_panel.layers.role_label"))
-        label.setStyleSheet(f"color:{p.text3}; font-size:12px; background:transparent;")
-        combo = QComboBox()
+        # Feldbeschriftung wie die ``.lab``-Labels der Nachbarkarten („Stärke",
+        # „Wert"): text2 + Gewicht 500 statt gedämpftem text3 (Prototyp-Parität).
+        label.setStyleSheet(
+            f"color:{p.text2}; font-size:12px; font-weight:500; background:transparent;")
+        combo = _PanelComboBox()
         combo.setToolTip(tr("right_panel.layers.role.tooltip"))
         combo.setStyleSheet(combo_style(p))
         for role in _ROLE_ORDER:
