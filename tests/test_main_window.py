@@ -660,7 +660,7 @@ def test_close_event_cancelled_keeps_window_open(win, monkeypatch):
 # ── __init__: rembg-Warmup-Zweig ─────────────────────────────
 
 def test_init_starts_warmup_when_rembg_available(qapp, monkeypatch):
-    """Ist rembg installiert, stößt ``__init__`` den Warmup an (Zeile 106)."""
+    """Ist rembg installiert, stößt ``__init__`` den Warmup an (``_start_rembg_warmup``)."""
     called: dict = {}
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     monkeypatch.setattr(MainWindow, "_start_rembg_warmup",

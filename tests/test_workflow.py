@@ -303,7 +303,7 @@ def test_stepper_tab_order_follows_step_sequence(qapp):
 
 @pytest.mark.ui_smoke
 def test_toolbar_buttons_meet_minimum_hit_size(window):
-    """#441: Werkzeugleisten-Buttons sind großzügige Ziele (54 px ≥ 32 px)."""
+    """#441: Werkzeugleisten-Buttons sind großzügige Ziele (44 px ≥ 32 px)."""
     tb = window.toolbar
     for btn in (tb.btn_move, tb.btn_wand, tb.btn_brush, tb.btn_eraser,
                 tb.btn_lasso, tb.btn_height_lighten, tb.btn_height_darken,

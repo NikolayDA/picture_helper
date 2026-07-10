@@ -165,8 +165,8 @@ def test_migrate_from_older_version_without_registered_step(
 def test_migrate_runs_registered_step(isolated_settings, monkeypatch):
     """Sichert das Migrationsmuster für künftige Schritte: ist ein Schritt
     für die aktuelle Version registriert, wird er ausgeführt und die
-    Version anschließend hochgezogen. Aktuell ist ``_MIGRATIONS`` leer,
-    daher wird hier ein Schritt für 0→1 temporär eingehängt.
+    Version anschließend hochgezogen. Der 0→1-Schritt in ``_MIGRATIONS`` wird
+    hier durch einen Test-Callback überschrieben, um die Ausführung zu prüfen.
     """
     calls: list[bool] = []
     monkeypatch.setitem(_ss._MIGRATIONS, 0, lambda s: calls.append(True))

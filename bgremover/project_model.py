@@ -36,8 +36,8 @@ from bgremover.height_map import layer_to_gray_image
 from bgremover.image_ops import resize_image
 from bgremover.units import dpi_for_size, parse_size_mm, size_mm_for_dpi
 
-# Aktuelle Modellversion. Eigener Schlüssel mit Migrationshaken folgt mit dem
-# Dateiformat (#333), Muster wie ``settings_schema``.
+# Aktuelle Modellversion. Der Dateiformat-Schlüssel mit Migrationshaken liegt seit
+# #333 in ``project_schema`` (``PROJECT_FORMAT_VERSION``, Muster wie ``settings_schema``).
 PROJECT_VERSION = 1
 
 # Schlüssel in ``Project.metadata`` für die maßgenaue Ausgabe (#329/#376):
@@ -496,9 +496,10 @@ class Project:
         Höhen-Repräsentation normalisiert (``R==G==B==Höhe`` bleibt erhalten –
         verlustfrei für 8 Bit, robust für die spätere 16-Bit-Erweiterung).
 
-        Gleiche Zielgröße ist ein **No-op**. Die reservierte physische Zielgröße
+        Gleiche Zielgröße ist ein **No-op**. Die physische Zielgröße
         (``META_PHYSICAL_SIZE_MM``) bleibt bewusst unangetastet: dies ist ein
-        reines Pixel-Resampling; mm/DPI-Editing ist späteren Rängen vorbehalten.
+        reines Pixel-Resampling; mm/DPI-Editing läuft getrennt (#376,
+        ``set_physical_size_mm``/``set_dpi``).
         """
         if width <= 0 or height <= 0:
             raise ValueError(f"Canvas-Größe muss positiv sein, war {width}x{height}")

@@ -5,9 +5,9 @@ ein technisch konsistentes Set importierbarer Studio-Assets erzeugen kann. Das
 Modul liefert eine deterministisch sortierte, strukturierte Befundliste
 (:class:`ExportFinding`) mit stabilem Code, Schweregrad (``error``/``warning``),
 betroffener Assetrolle, i18n-Key und Platzhaltern – **ohne** Dialoge, ohne
-Dateisystem und ohne Rendering. Damit bleibt die Prüflogik für eine spätere
-allgemeine Pre-Export-Prüfung wiederverwendbar (UI-Texte/Dialoge gehören nicht
-hierher).
+Dateisystem und ohne Rendering. Das geteilte Befund-Framework liegt seit #379 in
+``export_checks`` (allgemeine Pre-Export-Prüfung); dieses Modul baut darauf auf und
+bleibt produktspezifisch (UI-Texte/Dialoge gehören nicht hierher).
 
 Vertrag (deckungsgleich mit der ADR ``docs/history/ADR-2026-eufymake-exportpaket.md``
 und #352): Es wird **keine** offizielle EufyMake-Triplet-/Container-/Gloss-
@@ -254,9 +254,9 @@ def format_finding(finding: ExportFinding) -> str:
     """Qt-freie, lokalisierte Klartextmeldung eines Befunds (de/en über ``tr``).
 
     Nutzt je Code einen **literalen** i18n-Key, damit die zentrale Coverage-Prüfung
-    (``test_no_unused_keys_in_table``) jede Meldung als referenziert erkennt. Die
-    eigentliche Dialog-/UI-Anbindung folgt in #355; hier entsteht nur der
-    übersetzte String (z. B. für Logs, Tests und später die UI).
+    (``test_no_unused_keys_in_table``) jede Meldung als referenziert erkennt. Hier
+    entsteht nur der übersetzte String; die Dialog-/UI-Anbindung (#355) nutzt ihn
+    bereits (``EufyMakeExportDialog``, Logs, Tests).
     """
     p = dict(finding.params)
     code = finding.code
