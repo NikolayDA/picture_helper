@@ -224,9 +224,9 @@ class ImageCanvas(QGraphicsView):
 
         self._tool      = TOOL_WAND
         # Werkzeug-Interaktion (Klick/Zeichnen) global freigeben. Im geführten
-        # Workflow schaltet das MainWindow dies außerhalb des Freistellen-Schritts
-        # ab, damit ausgeblendete Auswahlwerkzeuge das Bild nicht unsichtbar
-        # weiterbearbeiten (PR #423-Review). Pan/Zoom bleiben unberührt.
+        # Workflow lässt das MainWindow dies nur in den Werkzeug-Schritten
+        # (Freistellen, Relief) zu, damit ausgeblendete Werkzeuge das Bild nicht
+        # unsichtbar weiterbearbeiten (PR #423-Review). Pan/Zoom bleiben unberührt.
         self._tools_enabled = True
         self._tolerance = _DEFAULT_TOLERANCE
         self._brush_r   = _DEFAULT_BRUSH_RADIUS
@@ -462,9 +462,10 @@ class ImageCanvas(QGraphicsView):
         layer = project.create_layer(
             img, name=tr("layers.new_name", n=1), kind=LayerKind.COLOR)
         # Objekt-Identität wie bisher bewahren (Parität: ``canvas.image is img``
-        # ohne zusätzlichen Kopiersprung; die Async-Lade-Generationslogik prüft
-        # darüber, welches Ladeergebnis gewann). ``img`` ist auf den Lade-Pfaden
-        # bereits RGBA (open_validated_image); sonst bleibt die RGBA-Kopie der Ebene.
+        # ohne zusätzlichen Kopiersprung; Tests prüfen darüber, welches Ladeergebnis
+        # gewann – die Async-Lade-Logik selbst entscheidet über Generationszähler).
+        # ``img`` ist auf den Lade-Pfaden bereits RGBA (open_validated_image);
+        # sonst bleibt die RGBA-Kopie der Ebene.
         if img.mode == "RGBA":
             layer.image = img
         return project
@@ -1262,7 +1263,7 @@ class ImageCanvas(QGraphicsView):
         ``op`` ist eine reine ``HeightField → HeightField``-Funktion (z. B. eine
         an ihre Parameter gebundene ``height_ops``-Operation). Die Ebene bleibt
         **unverändert** – nur die Anzeige zeigt das Resultat. Wiederholtes Aufrufen
-        aktualisiert die Vorschau live (Reglerbewegung in der späteren UI #349).
+        aktualisiert die Vorschau live (Reglerbewegung im Höhen-Tab #349).
         """
         ctx = self._height_edit_context()
         if ctx is None:
@@ -1867,9 +1868,9 @@ class ImageCanvas(QGraphicsView):
         if dirty is not None:
             self._refresh_overlay(dirty)
 
-    # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier nur als
-    # Convenience-Reexport, damit bestehende Tests ``canvas.ZOOM_MIN`` /
-    # ``canvas.ZOOM_MAX`` weiter ohne Umweg lesen können.
+    # Zoom-Grenzen werden von ``CanvasViewport`` definiert; hier als
+    # Convenience-Reexport gespiegelt, damit ``canvas.ZOOM_MIN`` / ``canvas.ZOOM_MAX``
+    # ohne Umweg über den Viewport lesbar bleiben.
     ZOOM_MIN = CanvasViewport.ZOOM_MIN
     ZOOM_MAX = CanvasViewport.ZOOM_MAX
 

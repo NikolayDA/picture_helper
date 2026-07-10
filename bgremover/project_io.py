@@ -82,8 +82,8 @@ def save_project(project: Project, path: str | Path) -> None:
     manifest = build_manifest(project)
     files = layer_files(manifest)
 
-    # ``delete=False`` + manuelles Aufräumen: wir brauchen den Pfad für
-    # ``os.replace``; bei Fehler wird die Temp-Datei entfernt.
+    # ``mkstemp`` + manuelles Aufräumen: wir brauchen den Pfad für ``os.replace``;
+    # bei Fehler wird die Temp-Datei entfernt.
     fd, tmp_name = tempfile.mkstemp(dir=str(out.parent), suffix=".bgrproj.tmp")
     try:
         with (

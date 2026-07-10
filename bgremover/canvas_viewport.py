@@ -93,7 +93,10 @@ class CanvasViewport:
         self._vp.update()
 
     def zoom(self, factor: float) -> None:
-        """Wendet einen Skalierungsfaktor an, beschnitten auf ``[ZOOM_MIN, ZOOM_MAX]``.
+        """Wendet einen Skalierungsfaktor an, sofern das Ergebnis in ``[ZOOM_MIN, ZOOM_MAX]`` liegt.
+
+        Ein Faktor, der aus dem Bereich führen würde, wird **verworfen** (die
+        Skalierung bleibt unverändert) – es wird nicht auf die Grenze geklemmt.
 
         Bei fixiertem Zoom (#464) ein No-op – der Wert bleibt eingefroren,
         bis der Fixier-Lock wieder gelöst wird.

@@ -11,8 +11,9 @@ Headless-Strategie (Begruendung):
 - Menue-Aktionen werden ueber ``QAction.trigger()`` ausgeloest, nie ueber
   Klicks auf die Menueleisten-Geometrie – damit immun gegen das native
   macOS-Menue.
-- ``QFileDialog`` / ``SettingsDialog.exec`` werden auf dem ``BgRemover``-
-  Modulobjekt gepatcht (die Datei nutzt ``from PyQt6.QtWidgets import
+- ``QFileDialog`` wird in den jeweiligen Submodulen (``bgremover.main_window`` /
+  ``bgremover.settings_dialog``) gepatcht, ``SettingsDialog.exec`` an der Klasse
+  ``bgremover.SettingsDialog`` (die Module nutzen ``from PyQt6.QtWidgets import
   QFileDialog``; ein Patch auf die PyQt-Klasse selbst greift nicht).
 - Canvas wird synchron via ``apply_loaded_image`` befuellt statt ueber den
   Async-Worker-Thread.
@@ -79,7 +80,7 @@ def loaded_window(main_window, tmp_path):
 
 
 class _FakeFileDialog:
-    """Ersetzt ``bgremover.QFileDialog`` in Tests (keine nativen Dialoge)."""
+    """Ersetzt ``QFileDialog`` in den Submodulen in Tests (keine nativen Dialoge)."""
     open_ret: tuple = ("", "")
     dir_ret: str = ""
 

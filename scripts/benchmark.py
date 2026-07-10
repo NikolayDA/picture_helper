@@ -2,9 +2,9 @@
 """Performance-Benchmark für die Bildverarbeitung von BgRemover.
 
 Misst die Verarbeitungszeit **pro Bildformat** (PNG, JPEG, WebP, TIFF) über die
-echten Code-Pfade des Pakets (``bgremover.image_ops`` / ``image_utils``): Encode,
-Decode und eine repräsentative Verarbeitungs-Pipeline (Laden → Drehen → Ecken
-runden → Zuschneiden → Speichern).
+echten Code-Pfade des Pakets (``bgremover.image_ops``): Encode, Decode und eine
+repräsentative Verarbeitungs-Pipeline (Laden → Drehen → Ecken runden →
+Zuschneiden → Speichern).
 
 Zwei Unterbefehle:
 
