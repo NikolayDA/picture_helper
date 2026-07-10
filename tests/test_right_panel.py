@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
     QAbstractSpinBox,
@@ -327,7 +328,8 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
     assert sliders, "keine Slider in der rechten Spalte gefunden"
     for slider in sliders:
         style = slider.styleSheet()
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
+        assert ("QSlider { margin: 9px 0 2px 0; min-height: 22px;"
+                " background: transparent; }") in style
         assert "QSlider::sub-page:horizontal" in style
         assert f"background: {DARK.accent}" in style
         assert "QSlider::add-page:horizontal" in style
@@ -444,6 +446,80 @@ def test_step2_and_step4_option_spacing_is_uniform(qapp):
     assert grid is not None
     assert grid.horizontalSpacing() == _OPTION_SPACING
     assert grid.verticalSpacing() == _OPTION_SPACING
+
+
+def test_step_pages_fit_panel_width_without_horizontal_scrollbar(qapp):
+    """Schrittinhalte passen quer in die feste 332-px-Spalte (kein Querbalken).
+
+    Die dreispaltige Morph-Zeile in Schritt 2 sprengte die Spalte (min.
+    349 px) und erzwang einen nativen horizontalen Scrollbalken. Quer ist
+    deshalb hart abgeschaltet; die vertikale 6-px-Spur bleibt dauerhaft
+    reserviert, damit die Kartenbreite in allen Schritten identisch ist.
+    """
+    from bgremover.constants import _RIGHT_PANEL_WIDTH
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    # Budget: Panelbreite minus 1 px Rahmenlinie links + 6 px Scroll-Spur.
+    available = _RIGHT_PANEL_WIDTH - 1 - 6
+    checked = 0
+    for index in range(panel.stack.count()):
+        scroll = panel.stack.widget(index).findChild(QScrollArea)
+        if scroll is None:  # Schritt 1 (Öffnen) hat keinen Scrollbereich
+            continue
+        assert (scroll.horizontalScrollBarPolicy()
+                == Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        assert (scroll.verticalScrollBarPolicy()
+                == Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        content = scroll.widget()
+        assert content.minimumSizeHint().width() <= available, (
+            index, content.minimumSizeHint().width(), available)
+        checked += 1
+    assert checked == 5, "erwartet: fünf scrollende Schritt-Seiten"
+
+
+def test_idle_scroll_track_paints_no_disabled_handle_stripe(qapp):
+    """Always-On-Scrollspur bleibt ohne Scrollbedarf unsichtbar (zu #521).
+
+    Bei Range 0 zeichnet Qt den deaktivierten Handle über die volle Spur;
+    ``scroll_style`` blendet ihn transparent aus – sonst bliebe ein
+    durchgehender border-farbener 6-px-Streifen am rechten Panelrand
+    sichtbar. Pixelprobe über der Spur in beiden Farbschemata.
+    """
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    for palette in (DARK, LIGHT):
+        set_active_palette(palette)
+        panel = build_right_panel(
+            _actions([]), _noop_layer_actions(), _noop_height_actions())
+        win = QMainWindow()
+        win.setCentralWidget(panel.frame)
+        # Hoch genug, dass Schritt-Seiten ohne Scrollbedarf (Range 0) rendern.
+        win.resize(420, 1400)
+        win.show()
+        idle_tracks = 0
+        expected = QColor(palette.inspector).name()
+        try:
+            for step in WorkflowStep:
+                panel.set_step(step)
+                qapp.processEvents()
+                scroll = panel.stack.widget(int(step) - 1).findChild(QScrollArea)
+                if scroll is None:  # Schritt 1 (Öffnen) hat keinen Scrollbereich
+                    continue
+                if scroll.verticalScrollBar().maximum() > 0:
+                    continue  # echter Scrollbedarf: Handle darf sichtbar sein
+                idle_tracks += 1
+                img = scroll.grab().toImage()
+                for x in (img.width() - 5, img.width() - 3, img.width() - 1):
+                    for y in range(2, img.height(), 40):
+                        assert img.pixelColor(x, y).name() == expected, (
+                            palette.inspector, step.name, x, y,
+                            img.pixelColor(x, y).name())
+        finally:
+            win.hide()
+        assert idle_tracks, "keine Schritt-Seite ohne Scrollbedarf geprüft"
 
 
 def test_step2_and_step4_card_spacing_is_uniform_across_blocks(qapp):

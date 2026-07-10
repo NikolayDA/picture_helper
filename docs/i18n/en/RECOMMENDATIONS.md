@@ -11,16 +11,16 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-09)
+## Current Status (2026-07-10)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs. Since the 2026-07-06 snapshot, all three
-redesign follow-ups **#499/#500/#501** (PR #504) and the dead-code finding
-**#503** (PR #506; #505 was an accidental empty-diff merge, the content
-landed via #506) are closed; on top of that, the icon/status-bar polish
-**PR #507/#508**. New are the UI bug **#509** (tool cursor ignores canvas
-zoom) and **#510** (this snapshot refresh). GitHub currently shows **13**
-open issues.
+remain the baseline before new PRs. Since the 2026-07-09 snapshot, **#509**
+(cursor zoom, PR #513) and **#510** (snapshot, PR #512) are closed; after that
+came the UI follow-up wave **#514–#517** via PR #518/#519 and
+inspector/scroll-track polish via PR #520/#521/#522. The 2026-07-06 benchmark
+run was technically stable, but failed when pushing directly to protected
+`main`; this PR switches it to benchmark-baseline PRs. GitHub currently shows
+**11** open issues.
 
 ### Completed Since The Last Review
 
@@ -37,14 +37,15 @@ open issues.
   aligned with the prototype, screenshot generator repaired, dead widgets
   removed; the #500 blocker in front of **#432** is gone) and **#503**
   (PR #506 — `CanvasHistory`/`_make_panel_btn`/dead theme constants removed).
+- **Closed since 2026-07-09:** **#509/#510** (PR #512/#513), **#514–#517**
+  (PR #518/#519 — stepper, AI button, SpinBox steppers, preview segments), and
+  PR #520/#521/#522 (inspector lines, right column, scroll-track pixel test).
 
 ### New Since The Last Review
 
-- **#509 🟠:** brush/eraser cursor does not scale with the canvas zoom —
-  displayed tool size ≠ actual affected area (also hits the height brushes;
-  cause precisely located in `set_tool`/`set_brush_size`).
-- **#510 🟢:** triage snapshot was overtaken by PR #504 merged 30 minutes
-  later — resolved by this update.
+- **Benchmark CI 🟢:** The weekly run produced a stable result, but failed
+  when a direct `git push` to `main` hit branch protection. The workflow now
+  opens a PR branch for new baseline JSONs.
 
 ### Still Open
 
@@ -53,18 +54,16 @@ open issues.
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup
   after generation; mockup-only, the real app is unaffected (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-09)
+## Open GitHub Issues — Triage Status (2026-07-10)
 
-As of 2026-07-09, GitHub shows **13** open issues: UI bug (**#509**), this
-docs snapshot (**#510**), i18n/docs (**#425/#430/#431/#432**), rollout/release
-(**#426/#435/#392/#389**), and backlog/external items (**#299/#318/#245**).
+As of 2026-07-10, GitHub shows **11** open issues: i18n/docs
+(**#425/#430/#431/#432**), rollout/release (**#426/#435/#392/#389**), and
+backlog/external items (**#299/#318/#245**).
 
 ### Sensible Bundles
 
-- **UI bug:** #509 is precisely located (the cursor is never recomputed on
-  `zoomChanged`) and the only open code finding — a good next PR.
 - **i18n/docs:** #430 unblocks the parity tests; #431/#432 follow after the
-  UI freeze (the #500 blocker in front of #432 fell with PR #504).
+  UI freeze (the #500/#509/#514–#517 blockers are gone).
 - **Rollout/release:** #426 hinges only on #435; coordinate with #392, then
   close #426/#389.
 - **Backlog:** #299 after the release; refine #318 first; #245 stays
@@ -75,8 +74,6 @@ estimated implementation effort.
 
 | # | Title | Relevance | Complexity | Recommended next step |
 |---|-------|-----------|------------|-----------------------|
-| [#509](https://github.com/NikolayDA/picture_helper/issues/509) | Brush/eraser cursor ignores canvas zoom | 🟠 High | 🟡 Medium | **Ready for PR** – rescale the cursor on `zoomChanged`/size changes. |
-| [#510](https://github.com/NikolayDA/picture_helper/issues/510) | Triage snapshot outdated (as of 2026-07-06) | 🟢 Low | 🟢 Low | **In progress** – this snapshot resolves it. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟡 Medium | **In progress** – #430/#431/#432 open. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | New UI strings (steps/cards/navigation) | 🟠 High | 🟡 Medium | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | **After UI freeze** – 6-language mirror, link tests. |
@@ -91,15 +88,17 @@ estimated implementation effort.
 
 ### Recommended Next (PR order)
 
-1. **#509** first — the only open code bug, cause already located.
-2. Pull **#430** forward — unblocks i18n parity; then **#431**/**#432**.
-3. **Release:** run **#435** + **#392** in a coordinated way, then close
+1. Pull **#430** forward — unblocks i18n parity; then **#431**/**#432**.
+2. **Release:** run **#435** + **#392** in a coordinated way, then close
    **#426**/**#389**.
-4. **#299** after the release; research **#318** only; keep **#245**
+3. **#299** after the release; research **#318** only; keep **#245**
    externally blocked.
 
 ## Previous Rounds
 
+- **2026-07-10** — #509/#510 closed, #514–#517 completed, right-column
+  follow-up finished through PR #520/#521/#522; benchmark-baseline workflow
+  switched to PRs instead of direct pushes.
 - **2026-07-06** — #499/#500/#501 (PR #504) and #503 (PR #506) completed;
   icon/status-bar polish via PR #507/#508.
 - **2026-07-05** — #490 (snapshot drift) in progress, Dark Mode/rail-icon

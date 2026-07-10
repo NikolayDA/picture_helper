@@ -11,17 +11,17 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-09)
+## État actuel (2026-07-10)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
 locale restent la base avant tout nouveau PR. Depuis l'instantané du
-2026-07-06, les trois suivis de redesign **#499/#500/#501** (PR #504) et le
-constat de code mort **#503** (PR #506 ; #505 était un merge accidentel à
-diff vide, le contenu a atterri via #506) sont fermés ; s'y ajoute le
-peaufinage icônes/barre d'état **PR #507/#508**. Sont nouveaux le bogue d'UI
-**#509** (le curseur d'outil ignore le zoom du canevas) et **#510** (ce
-rafraîchissement d'instantané). GitHub affiche actuellement **13** tickets
-ouverts.
+2026-07-09, **#509** (zoom du curseur, PR #513) et **#510** (instantané,
+PR #512) sont fermés ; ensuite sont arrivés la vague de suivi UI
+**#514–#517** via PR #518/#519 et le peaufinage inspecteur/piste de scroll
+via PR #520/#521/#522. Le benchmark du 2026-07-06 était stable sur le fond,
+mais a échoué en poussant directement vers le `main` protégé ; ce PR le fait
+passer à des PR de baseline benchmark. GitHub affiche actuellement **11**
+tickets ouverts.
 
 ### Terminé depuis la dernière revue
 
@@ -39,14 +39,17 @@ ouverts.
   morts retirés ; le blocage #500 devant **#432** est levé) et **#503**
   (PR #506 — `CanvasHistory`/`_make_panel_btn`/constantes de thème mortes
   retirées).
+- **Fermés depuis le 2026-07-09 :** **#509/#510** (PR #512/#513),
+  **#514–#517** (PR #518/#519 — stepper, bouton IA, steppers SpinBox,
+  segments d'aperçu) et PR #520/#521/#522 (lignes d'inspecteur, colonne
+  droite, test pixel de la piste de scroll).
 
 ### Nouveau depuis la dernière revue
 
-- **#509 🟠 :** le curseur pinceau/gomme ne suit pas le zoom du canevas —
-  taille affichée ≠ zone réellement affectée (touche aussi les pinceaux de
-  hauteur ; cause localisée dans `set_tool`/`set_brush_size`).
-- **#510 🟢 :** l'instantané de triage a été dépassé par le PR #504 fusionné
-  30 minutes plus tard — résolu par cette mise à jour.
+- **CI benchmark 🟢 :** Le run hebdomadaire a produit un résultat stable,
+  mais a échoué lorsqu'un `git push` direct vers `main` a rencontré la
+  protection de branche. Le workflow ouvre désormais une branche de PR pour
+  les nouveaux JSON de baseline.
 
 ### Encore ouvert
 
@@ -57,21 +60,16 @@ ouverts.
   verrouillés dans la maquette après génération ; n'affecte que la
   simulation (#347).
 
-## Tickets GitHub ouverts — Triage (2026-07-09)
+## Tickets GitHub ouverts — Triage (2026-07-10)
 
-Au 2026-07-09, GitHub affiche **13** tickets ouverts : bogue d'UI
-(**#509**), cet instantané de docs (**#510**), i18n/docs
+Au 2026-07-10, GitHub affiche **11** tickets ouverts : i18n/docs
 (**#425/#430/#431/#432**), rollout/publication (**#426/#435/#392/#389**) et
 backlog/points externes (**#299/#318/#245**).
 
 ### Regroupements pertinents
 
-- **Bogue d'UI :** #509 est localisé avec précision (le curseur n'est
-  jamais recalculé sur `zoomChanged`) et est le seul constat de code
-  ouvert — bon prochain PR.
 - **i18n/docs :** #430 débloque les tests de parité ; #431/#432 suivent
-  après le gel de l'UI (le blocage #500 devant #432 est tombé avec le PR
-  #504).
+  après le gel de l'UI (les blocages #500/#509/#514–#517 sont levés).
 - **Rollout/publication :** #426 ne dépend que de #435 ; coordonner avec
   #392, puis clore #426/#389.
 - **Backlog :** #299 après la publication ; affiner #318 d'abord ; #245
@@ -82,8 +80,6 @@ backlog/points externes (**#299/#318/#245**).
 
 | # | Titre | Pertinence | Complexité | Prochaine étape recommandée |
 |---|-------|------------|------------|-----------------------------|
-| [#509](https://github.com/NikolayDA/picture_helper/issues/509) | Le curseur pinceau/gomme ignore le zoom du canevas | 🟠 Élevée | 🟡 Moyenne | **Prêt pour PR** – remettre le curseur à l'échelle sur `zoomChanged`/changement de taille. |
-| [#510](https://github.com/NikolayDA/picture_helper/issues/510) | Instantané de triage périmé (état 2026-07-06) | 🟢 Faible | 🟢 Faible | **En cours** – cet instantané le résout. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC : Internationalisation et documentation | 🟠 Élevée | 🟡 Moyenne | **En cours** – #430/#431/#432 ouverts. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nouvelles chaînes d'UI (étapes/cartes/navigation) | 🟠 Élevée | 🟡 Moyenne | **Prêt pour PR** – ES/FR/UK/ZH ; DE/EN via PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Mettre ANLEITUNG et README au workflow guidé | 🟡 Moyenne | 🟡 Moyenne | **Après gel de l'UI** – miroir en 6 langues. |
@@ -98,15 +94,17 @@ backlog/points externes (**#299/#318/#245**).
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **#509** d'abord — seul bogue de code ouvert, cause déjà localisée.
-2. Avancer **#430** — débloque la parité i18n ; puis **#431**/**#432**.
-3. **Publication :** mener **#435** + **#392** de façon coordonnée, puis
+1. Avancer **#430** — débloque la parité i18n ; puis **#431**/**#432**.
+2. **Publication :** mener **#435** + **#392** de façon coordonnée, puis
    clore **#426**/**#389**.
-4. **#299** après la publication ; n'étudier que **#318** ; garder **#245**
+3. **#299** après la publication ; n'étudier que **#318** ; garder **#245**
    bloqué en externe.
 
 ## Tours précédents
 
+- **2026-07-10** — #509/#510 fermés, #514–#517 achevés, suivi de la colonne
+  droite terminé via PR #520/#521/#522 ; workflow de baseline benchmark passé
+  aux PR au lieu des pushs directs.
 - **2026-07-06** — #499/#500/#501 (PR #504) et #503 (PR #506) achevés ;
   peaufinage icônes/barre d'état via PR #507/#508.
 - **2026-07-05** — #490 (dérive d'instantané) en cours, vague Dark
