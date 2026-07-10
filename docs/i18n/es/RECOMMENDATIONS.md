@@ -11,17 +11,16 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-09)
+## Estado actual (2026-07-10)
 
 La lista activa de análisis de código está vacía. Ruff, mypy y la suite de
 pruebas local siguen siendo la base antes de nuevos PR. Desde la instantánea
-del 2026-07-06 se cerraron los tres seguimientos de rediseño
-**#499/#500/#501** (PR #504) y el hallazgo de código muerto **#503** (PR
-#506; #505 fue un merge accidental con diff vacío, el contenido llegó con
-#506); además, el pulido de iconos/barra de estado **PR #507/#508**. Son
-nuevos el bug de UI **#509** (el cursor de herramienta ignora el zoom del
-lienzo) y **#510** (este refresco de instantánea). GitHub muestra
-actualmente **13** incidencias abiertas.
+del 2026-07-09, **#509** (zoom del cursor, PR #513) y **#510** (instantánea,
+PR #512) están cerrados; después llegó la ola de seguimiento UI **#514–#517**
+vía PR #518/#519 y el pulido de inspector/pista de scroll vía PR
+#520/#521/#522. El benchmark del 2026-07-06 fue estable en lo técnico, pero
+falló al hacer push directo al `main` protegido; este PR lo cambia a PRs de
+baseline de benchmark. GitHub muestra actualmente **11** incidencias abiertas.
 
 ### Completado desde la última revisión
 
@@ -39,14 +38,16 @@ actualmente **13** incidencias abiertas.
   muertos eliminados; el bloqueo de #500 ante **#432** ha caído) y **#503**
   (PR #506 — `CanvasHistory`/`_make_panel_btn`/constantes de tema muertas
   eliminadas).
+- **Cerrados desde el 2026-07-09:** **#509/#510** (PR #512/#513),
+  **#514–#517** (PR #518/#519 — stepper, botón IA, steppers de SpinBox,
+  segmentos de vista previa) y PR #520/#521/#522 (líneas del inspector,
+  columna derecha, prueba de píxeles de la pista de scroll).
 
 ### Nuevo desde la última revisión
 
-- **#509 🟠:** el cursor de pincel/goma no escala con el zoom del lienzo —
-  tamaño mostrado ≠ área realmente afectada (también afecta a los pinceles
-  de altura; causa localizada en `set_tool`/`set_brush_size`).
-- **#510 🟢:** la instantánea de triaje quedó superada por el PR #504
-  fusionado 30 minutos después — resuelto con esta actualización.
+- **CI de benchmark 🟢:** El run semanal produjo un resultado estable, pero
+  falló cuando un `git push` directo a `main` chocó con la protección de rama.
+  El workflow ahora abre una rama de PR para nuevos JSON de baseline.
 
 ### Aún abierto
 
@@ -55,20 +56,16 @@ actualmente **13** incidencias abiertas.
 - **O8 🟢 — Imprecisión del prototipo:** las herramientas de altura quedan
   bloqueadas en el mockup tras generarla; solo afecta a la simulación (#347).
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-09)
+## Incidencias abiertas de GitHub — Clasificación (2026-07-10)
 
-A fecha del 2026-07-09, GitHub muestra **13** incidencias abiertas: bug de
-UI (**#509**), esta instantánea de docs (**#510**), i18n/docs
-(**#425/#430/#431/#432**), rollout/publicación (**#426/#435/#392/#389**) y
-backlog/puntos externos (**#299/#318/#245**).
+A fecha del 2026-07-10, GitHub muestra **11** incidencias abiertas:
+i18n/docs (**#425/#430/#431/#432**), rollout/publicación
+(**#426/#435/#392/#389**) y backlog/puntos externos (**#299/#318/#245**).
 
 ### Agrupaciones sensatas
 
-- **Bug de UI:** #509 está localizado con precisión (el cursor nunca se
-  recalcula en `zoomChanged`) y es el único hallazgo de código abierto —
-  buen próximo PR.
 - **i18n/docs:** #430 desbloquea las pruebas de paridad; #431/#432 siguen
-  tras el UI freeze (el bloqueo de #500 ante #432 cayó con el PR #504).
+  tras el UI freeze (los bloqueos #500/#509/#514–#517 ya cayeron).
 - **Rollout/publicación:** #426 depende solo de #435; coordinar con #392 y
   luego cerrar #426/#389.
 - **Backlog:** #299 tras la publicación; refinar #318 primero; #245 sigue
@@ -79,8 +76,6 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 
 | # | Título | Relevancia | Complejidad | Próximo paso recomendado |
 |---|--------|------------|-------------|--------------------------|
-| [#509](https://github.com/NikolayDA/picture_helper/issues/509) | El cursor de pincel/goma ignora el zoom del lienzo | 🟠 Alta | 🟡 Media | **Listo para PR** – reescalar el cursor en `zoomChanged`/cambios de tamaño. |
-| [#510](https://github.com/NikolayDA/picture_helper/issues/510) | Instantánea de triaje desactualizada (2026-07-06) | 🟢 Baja | 🟢 Baja | **En curso** – esta instantánea lo resuelve. |
 | [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internacionalización y documentación | 🟠 Alta | 🟡 Media | **En curso** – #430/#431/#432 abiertos. |
 | [#430](https://github.com/NikolayDA/picture_helper/issues/430) | Nuevas cadenas de UI (pasos/tarjetas/navegación) | 🟠 Alta | 🟡 Media | **Listo para PR** – ES/FR/UK/ZH; DE/EN vía PR #423. |
 | [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Actualizar ANLEITUNG y README al flujo guiado | 🟡 Media | 🟡 Media | **Tras congelar la UI** – espejo en 6 idiomas. |
@@ -95,15 +90,17 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 
 ### Recomendado a continuación (orden de PR)
 
-1. **#509** primero — único bug de código abierto, causa ya localizada.
-2. Adelantar **#430** — desbloquea la paridad i18n; luego **#431**/**#432**.
-3. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego
+1. Adelantar **#430** — desbloquea la paridad i18n; luego **#431**/**#432**.
+2. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego
    cerrar **#426**/**#389**.
-4. **#299** tras la publicación; investigar solo **#318**; mantener **#245**
+3. **#299** tras la publicación; investigar solo **#318**; mantener **#245**
    bloqueado externamente.
 
 ## Rondas anteriores
 
+- **2026-07-10** — #509/#510 cerrados, #514–#517 completados, seguimiento de
+  la columna derecha cerrado vía PR #520/#521/#522; workflow de baseline de
+  benchmark cambiado a PRs en vez de push directo.
 - **2026-07-06** — #499/#500/#501 (PR #504) y #503 (PR #506) completados;
   pulido de iconos/barra de estado vía PR #507/#508.
 - **2026-07-05** — #490 (drift de instantánea) en curso, ola de Dark

@@ -40,6 +40,9 @@ Pro Format werden gemessen (Median über `--iterations` Läufe, in Millisekunden
 
 Jeder Lauf wird als datiertes JSON unter `benchmarks/results/<JJJJ-MM-TT>.json`
 abgelegt. „Letzte Woche" ist schlicht die jüngste Datei vor dem aktuellen Lauf.
+Der wöchentliche GitHub-Actions-Lauf pusht neue Baselines nicht direkt nach
+`main`, sondern öffnet dafür einen separaten PR-Branch; so bleibt die
+Branch-Protection die einzige Schreibschleuse für eingecheckte Ergebnisse.
 
 Der Vergleich rechnet die prozentuale Änderung je Format aus; ein Format gilt als
 **degradiert**, wenn es sich um mehr als `--threshold` Prozent (Default **10 %**)

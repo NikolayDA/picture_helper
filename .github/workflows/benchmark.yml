@@ -26,10 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       # contents: write, um das neue Ergebnis-JSON als Baseline fuer den
-      # naechsten Lauf zurueckzucommitten; issues: write fuer die
-      # Regressions-Issues.
+      # naechsten Lauf auf einen PR-Branch zu committen; pull-requests: write,
+      # um den Baseline-PR zu oeffnen; issues: write fuer die Regressions-Issues.
       contents: write
       issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v5
 
@@ -83,10 +84,19 @@ jobs:
             --fail-on-regression \
             --post-issues
 
-      # Das neue Ergebnis wird als Baseline fuer den naechsten Lauf
-      # zurueckgeschrieben. Laeuft unabhaengig vom Regressions-Ausgang, damit die
-      # Historie auch bei einer gemeldeten Regression fortgeschrieben wird.
-      - name: Commit new benchmark result
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results
+          path: benchmarks/results/
+          if-no-files-found: error
+
+      # Das neue Ergebnis wird als Baseline fuer den naechsten Lauf ueber einen
+      # PR-Branch vorgeschlagen. Ein direkter Push auf main wuerde an der
+      # Branch-Protection scheitern.
+      - name: Open benchmark baseline PR
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -94,16 +104,16 @@ jobs:
           if git diff --cached --quiet; then
             echo "Kein neues Benchmark-Ergebnis zu committen."
           else
-            git commit -m "ci: Benchmark-Ergebnis erfasst [skip ci]"
-            git push
+            branch="ci/benchmark-results-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            git switch -c "$branch"
+            git commit -m "ci: Benchmark-Ergebnis erfasst"
+            git push --set-upstream origin "$branch"
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "ci: Benchmark-Ergebnis erfassen" \
+              --body "Automatischer Benchmark-Baseline-PR aus ${GITHUB_WORKFLOW} Run ${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}."
           fi
-
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-results
-          path: benchmarks/results/
-          if-no-files-found: error
 
       # continue-on-error oben haelt den Job am Leben, damit Commit/Upload noch
       # laufen; hier wird der Job am Ende sichtbar rot, wenn ein Format ueber der
