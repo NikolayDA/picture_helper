@@ -253,11 +253,16 @@ def panel_frame_style(p: Palette) -> str:
 
 
 def scroll_style(p: Palette) -> str:
+    # handle:disabled transparent: Bei ScrollBarAlwaysOn (#521) zeichnet Qt
+    # ohne Scrollbedarf (Range 0) den deaktivierten Handle über die volle
+    # Spur – ohne diese Regel bliebe ein durchgehender border-farbener
+    # 6-px-Streifen am rechten Panelrand sichtbar.
     return f"""
     QScrollArea {{ background: {p.inspector}; border: none; }}
     QScrollBar:vertical {{ background: {p.inspector}; width: 6px; margin: 0; }}
     QScrollBar::handle:vertical {{
         background: {p.border}; border-radius: 3px; min-height: 20px; }}
+    QScrollBar::handle:vertical:disabled {{ background: transparent; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
 """
 

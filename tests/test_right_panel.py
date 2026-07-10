@@ -478,6 +478,50 @@ def test_step_pages_fit_panel_width_without_horizontal_scrollbar(qapp):
     assert checked == 5, "erwartet: fünf scrollende Schritt-Seiten"
 
 
+def test_idle_scroll_track_paints_no_disabled_handle_stripe(qapp):
+    """Always-On-Scrollspur bleibt ohne Scrollbedarf unsichtbar (zu #521).
+
+    Bei Range 0 zeichnet Qt den deaktivierten Handle über die volle Spur;
+    ``scroll_style`` blendet ihn transparent aus – sonst bliebe ein
+    durchgehender border-farbener 6-px-Streifen am rechten Panelrand
+    sichtbar. Pixelprobe über der Spur in beiden Farbschemata.
+    """
+    from PyQt6.QtWidgets import QMainWindow
+
+    from bgremover.theme import DARK, LIGHT, set_active_palette
+
+    for palette in (DARK, LIGHT):
+        set_active_palette(palette)
+        panel = build_right_panel(
+            _actions([]), _noop_layer_actions(), _noop_height_actions())
+        win = QMainWindow()
+        win.setCentralWidget(panel.frame)
+        # Hoch genug, dass Schritt-Seiten ohne Scrollbedarf (Range 0) rendern.
+        win.resize(420, 1400)
+        win.show()
+        idle_tracks = 0
+        expected = QColor(palette.inspector).name()
+        try:
+            for step in WorkflowStep:
+                panel.set_step(step)
+                qapp.processEvents()
+                scroll = panel.stack.widget(int(step) - 1).findChild(QScrollArea)
+                if scroll is None:  # Schritt 1 (Öffnen) hat keinen Scrollbereich
+                    continue
+                if scroll.verticalScrollBar().maximum() > 0:
+                    continue  # echter Scrollbedarf: Handle darf sichtbar sein
+                idle_tracks += 1
+                img = scroll.grab().toImage()
+                for x in (img.width() - 5, img.width() - 3, img.width() - 1):
+                    for y in range(2, img.height(), 40):
+                        assert img.pixelColor(x, y).name() == expected, (
+                            palette.inspector, step.name, x, y,
+                            img.pixelColor(x, y).name())
+        finally:
+            win.hide()
+        assert idle_tracks, "keine Schritt-Seite ohne Scrollbedarf geprüft"
+
+
 def test_step2_and_step4_card_spacing_is_uniform_across_blocks(qapp):
     """Kombinierte Schrittinhalte stapeln keine Spacer/Außenabstände."""
     from bgremover.right_panel_tabs import (
