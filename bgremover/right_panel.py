@@ -639,6 +639,13 @@ class _RightPanelBuilder:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        # Horizontal wird in der festen 332-px-Spalte nie gescrollt – Inhalte
+        # müssen in die Breite passen; ein (nativer, ungestylter) Querbalken
+        # wäre immer ein Layoutfehler. Vertikal bleibt die 6-px-Spur dauerhaft
+        # reserviert, damit die Kartenbreite in allen Schritten identisch ist
+        # (kein Springen, wenn ein Schritt scrollt und der nächste nicht).
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         scroll.setStyleSheet(scroll_style(p))
         container = QWidget()
         container.setStyleSheet(f"background: {p.inspector};")

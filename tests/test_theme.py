@@ -117,7 +117,10 @@ def test_slider_style_matches_prototype_range_control():
 
     for palette in (DARK, LIGHT):
         style = slider_style(palette)
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
+        # background: transparent verhindert, dass der kaskadierte
+        # Inspector-Hintergrund als grauer Kasten um den Slider erscheint.
+        assert ("QSlider { margin: 9px 0 2px 0; min-height: 22px;"
+                " background: transparent; }") in style
         assert "QSlider::groove:horizontal" in style
         assert "height: 8px" in style
         assert "background: transparent" in style

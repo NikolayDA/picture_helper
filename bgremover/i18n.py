@@ -504,6 +504,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.selection.invert.tooltip": (
             "Tauscht aus- und nicht-ausgewählte Bereiche  ({modifier}+Shift+I)"
         ),
+        "right_panel.selection.morph.label": "Radius:",
         "right_panel.selection.morph.tooltip": (
             "Radius in Pixeln für Erweitern/Schrumpfen der Auswahl"
         ),
@@ -1264,6 +1265,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.selection.invert.tooltip": (
             "Swaps selected and unselected areas  ({modifier}+Shift+I)"
         ),
+        "right_panel.selection.morph.label": "Radius:",
         "right_panel.selection.morph.tooltip": (
             "Radius in pixels for growing/shrinking the selection"
         ),

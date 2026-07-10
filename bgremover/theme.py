@@ -330,8 +330,11 @@ def slider_style(p: Palette) -> str:
     # (Border-Box); Radius 8 = Boxhaelfte bleibt daher fuer alle Zustaende
     # der Kreis – ein groesserer Radius wuerde von Qt komplett verworfen.
     handle_border = "none" if p.is_dark else f"1px solid {p.text3}"
+    # background: transparent hält die Widget-Box unsichtbar – ohne eigenen
+    # Wert kaskadiert sonst der Inspector-Hintergrund des Tab-Inhalts hinein
+    # und zeichnet auf den weissen Karten einen hellgrauen Kasten um den Slider.
     return f"""
-    QSlider {{ margin: 9px 0 2px 0; min-height: 22px; }}
+    QSlider {{ margin: 9px 0 2px 0; min-height: 22px; background: transparent; }}
     QSlider::groove:horizontal {{ height: 8px; background: transparent; border-radius: 4px; }}
     QSlider::sub-page:horizontal {{ background: {p.accent}; border: none; border-radius: 4px; }}
     QSlider::add-page:horizontal {{ background: {rest}; border: none; border-radius: 4px; }}
