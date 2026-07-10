@@ -373,16 +373,28 @@ class SelectionTab:
         row_ci.addWidget(btn_clr, 1)
         gsel.addLayout(row_ci)
 
-        morph_row = QHBoxLayout(); morph_row.setObjectName("selectionMorphRow")
-        morph_row.setSpacing(_OPTION_SPACING)
+        # Radius-Zeile über den beiden Semantik-Buttons: dreispaltig
+        # ([Spin][Button][Button], min. 283 px) sprengt die 332-px-Spalte und
+        # erzwang einen horizontalen Scrollbalken in Schritt 2.
+        radius_row = QHBoxLayout(); radius_row.setObjectName("selectionMorphRadiusRow")
+        radius_row.setSpacing(_OPTION_SPACING)
         morph_spin = _PanelSpinBox()
         morph_spin.setRange(1, 20); morph_spin.setValue(2)
         morph_spin.setSuffix(" px")
         # 76 px: „20 px" braucht neben der 18-px-Stepper-Spalte die volle
-        # Breite (#516); passt weiterhin neben zwei Buttons in die 332-px-Karte.
+        # Breite (#516).
         morph_spin.setFixedWidth(76)
         morph_spin.setToolTip(tr("right_panel.selection.morph.tooltip"))
         _style_spin_box(morph_spin)
+        radius_label = _make_label(tr("right_panel.selection.morph.label"), "#aaa")
+        radius_label.setToolTip(tr("right_panel.selection.morph.tooltip"))
+        radius_row.addWidget(radius_label)
+        radius_row.addWidget(morph_spin)
+        radius_row.addStretch()
+        gsel.addLayout(radius_row)
+
+        morph_row = QHBoxLayout(); morph_row.setObjectName("selectionMorphRow")
+        morph_row.setSpacing(_OPTION_SPACING)
         btn_expand = _make_semantic_btn(
             tr("right_panel.selection.expand"), good=True,
             tooltip=tr("right_panel.selection.expand.tooltip"))
@@ -393,7 +405,6 @@ class SelectionTab:
             tooltip=tr("right_panel.selection.shrink.tooltip"))
         btn_shrink.clicked.connect(
             lambda _=False: self._actions.shrink_selection(morph_spin.value()))
-        morph_row.addWidget(morph_spin)
         morph_row.addWidget(btn_expand, 1)
         morph_row.addWidget(btn_shrink, 1)
         gsel.addLayout(morph_row)

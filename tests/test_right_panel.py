@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
     QAbstractSpinBox,
@@ -327,7 +328,8 @@ def test_right_panel_sliders_use_prototype_range_style(qapp):
     assert sliders, "keine Slider in der rechten Spalte gefunden"
     for slider in sliders:
         style = slider.styleSheet()
-        assert "QSlider { margin: 9px 0 2px 0; min-height: 22px; }" in style
+        assert ("QSlider { margin: 9px 0 2px 0; min-height: 22px;"
+                " background: transparent; }") in style
         assert "QSlider::sub-page:horizontal" in style
         assert f"background: {DARK.accent}" in style
         assert "QSlider::add-page:horizontal" in style
@@ -444,6 +446,36 @@ def test_step2_and_step4_option_spacing_is_uniform(qapp):
     assert grid is not None
     assert grid.horizontalSpacing() == _OPTION_SPACING
     assert grid.verticalSpacing() == _OPTION_SPACING
+
+
+def test_step_pages_fit_panel_width_without_horizontal_scrollbar(qapp):
+    """Schrittinhalte passen quer in die feste 332-px-Spalte (kein Querbalken).
+
+    Die dreispaltige Morph-Zeile in Schritt 2 sprengte die Spalte (min.
+    349 px) und erzwang einen nativen horizontalen Scrollbalken. Quer ist
+    deshalb hart abgeschaltet; die vertikale 6-px-Spur bleibt dauerhaft
+    reserviert, damit die Kartenbreite in allen Schritten identisch ist.
+    """
+    from bgremover.constants import _RIGHT_PANEL_WIDTH
+
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions())
+    # Budget: Panelbreite minus 1 px Rahmenlinie links + 6 px Scroll-Spur.
+    available = _RIGHT_PANEL_WIDTH - 1 - 6
+    checked = 0
+    for index in range(panel.stack.count()):
+        scroll = panel.stack.widget(index).findChild(QScrollArea)
+        if scroll is None:  # Schritt 1 (Öffnen) hat keinen Scrollbereich
+            continue
+        assert (scroll.horizontalScrollBarPolicy()
+                == Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        assert (scroll.verticalScrollBarPolicy()
+                == Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        content = scroll.widget()
+        assert content.minimumSizeHint().width() <= available, (
+            index, content.minimumSizeHint().width(), available)
+        checked += 1
+    assert checked == 5, "erwartet: fünf scrollende Schritt-Seiten"
 
 
 def test_step2_and_step4_card_spacing_is_uniform_across_blocks(qapp):
