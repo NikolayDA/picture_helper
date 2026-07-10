@@ -311,14 +311,36 @@ def num_style(p: Palette) -> str:
 
 
 def combo_style(p: Palette) -> str:
-    """ComboBox-Stil ohne SpinBox-Stepper-Pseudoelemente."""
-    return (
-        f"QComboBox {{ background:{p.surface}; color:{p.text};"
-        f" border:1px solid {p.border}; border-radius:6px; padding:3px 6px;"
-        " font-size:12px; min-height:24px; }"
-        f" QComboBox:focus {{ border:1px solid {p.accent}; }}"
-        f" QComboBox QAbstractItemView {{ background:{p.surface}; color:{p.text}; }}"
-    )
+    """Auswahlfeld der Inspector-Karten (Prototyp-``.num``-Select, z. B. Ebenen-Rolle).
+
+    Metrik wie die Sekundärbausteine der Karten (34 px Trefferhöhe,
+    ``border_2``-Rahmen, Radius 7 – Prototyp-Klasse ``.num``), damit das Feld
+    kein Fremdkörper zwischen Aktionsleiste und Buttons ist. Der Drop-down-
+    Bereich ist explizit rahmenlos gestylt, sonst zeichnet Qt dort den
+    native-artigen Knopf samt Trennsteg in die runde Ecke; die Stylesheet-
+    Engine lässt dann aber das Pfeil-Primitive weg – den Chevron malt
+    ``_PanelComboBox`` (layer_panel) selbst. Hover/Fokus/Disabled folgen
+    ``panel_btn_style``, die aufgeklappte Liste dem Menü-Look (``menu_style``).
+    """
+    return f"""
+    QComboBox {{
+        background: {p.surface}; color: {p.text};
+        border: 1px solid {p.border_2}; border-radius: 7px;
+        padding: 0 8px; font-size: 12px; font-weight: 500; min-height: 32px;
+    }}
+    QComboBox:hover {{ background: {p.surface_hover}; }}
+    QComboBox:focus {{ outline: none; border: 1px solid {p.accent}; }}
+    QComboBox:disabled {{ background: {p.divider}; color: {p.muted}; }}
+    QComboBox::drop-down {{
+        subcontrol-origin: padding; subcontrol-position: top right;
+        width: 22px; border: none; background: transparent;
+    }}
+    QComboBox QAbstractItemView {{
+        background: {p.surface}; color: {p.text};
+        border: 1px solid {p.border_2}; outline: 0; padding: 2px;
+        selection-background-color: {p.accent}; selection-color: {p.on_accent};
+    }}
+"""
 
 
 def slider_style(p: Palette) -> str:

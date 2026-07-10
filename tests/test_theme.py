@@ -269,7 +269,7 @@ def test_interactive_style_builders_carry_focus_state():
     builders = (
         theme.panel_btn_style, theme.primary_btn_style, theme.nav_back_style,
         theme.nav_next_style, theme.tool_style, theme.history_button_style,
-        theme.num_style, theme.slider_style,
+        theme.num_style, theme.combo_style, theme.slider_style,
     )
     for build in builders:
         for p in (theme.DARK, theme.LIGHT):
