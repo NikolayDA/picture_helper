@@ -508,27 +508,55 @@ def test_inspector_ai_button_disabled_when_rembg_missing(tmp_path, qapp, monkeyp
 
 def test_ai_controls_stay_in_sync_for_warmup_and_running_ai(tmp_path, qapp, monkeypatch):
     """#446/#458: Warmup/AI-Lauf sperrt den Inspector-KI-Button."""
+    from bgremover.i18n import tr
+
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     win = _isolated_window(tmp_path)
     try:
         _load_dummy_image(win, tmp_path)
         assert win._right_panel.ai_button.isEnabled()
+        assert win._right_panel.ai_button.toolTip() == tr("right_panel.ai.remove.tooltip")
 
         win._worker_controller.warmup_thread = _RunningThread()
         win._sync_ai_controls()
         assert not win._right_panel.ai_button.isEnabled()
+        assert (
+            win._right_panel.ai_button.toolTip()
+            == tr("right_panel.ai.remove.tooltip.warmup")
+        )
 
         win._worker_controller.warmup_thread = None
         win._worker_controller.ai_thread = _RunningThread()
         win._sync_ai_controls()
         assert not win._right_panel.ai_button.isEnabled()
+        assert (
+            win._right_panel.ai_button.toolTip()
+            == tr("right_panel.ai.remove.tooltip.processing")
+        )
 
         win._worker_controller.ai_thread = None
         win._sync_ai_controls()
         assert win._right_panel.ai_button.isEnabled()
+        assert win._right_panel.ai_button.toolTip() == tr("right_panel.ai.remove.tooltip")
     finally:
         win._worker_controller.warmup_thread = None
         win._worker_controller.ai_thread = None
+        win.close()
+
+
+def test_ai_button_tooltip_explains_missing_image(tmp_path, qapp, monkeypatch):
+    """#531: Ohne geladenes Bild erklärt der Tooltip den Sperrgrund."""
+    from bgremover.i18n import tr
+
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
+    win = _isolated_window(tmp_path)
+    try:
+        assert not win._right_panel.ai_button.isEnabled()
+        assert (
+            win._right_panel.ai_button.toolTip()
+            == tr("right_panel.ai.remove.tooltip.no_image")
+        )
+    finally:
         win.close()
 
 
