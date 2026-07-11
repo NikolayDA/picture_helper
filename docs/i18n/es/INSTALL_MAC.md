@@ -182,10 +182,13 @@ automáticamente la copia del paquete en el venv dedicado de la app.
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   luego ejecuta de nuevo el comando de instalación.
-- **El primer clic de IA tarda mucho** → La primerísima vez, `rembg`
-  descarga su modelo (algunos cientos de MB, una sola vez, caché en
-  `~/.u2net`). La barra de estado muestra «Cargando modelo de IA…»
-  y luego «IA lista».
+- **El botón de IA queda desactivado un momento tras iniciar** → No es
+  un error de instalación: en cuanto `rembg` está instalado, la app
+  descarga automáticamente su modelo una sola vez al **iniciar la app**
+  (no en el primer clic de IA), algunos cientos de MB, caché en
+  `~/.u2net`. La barra de estado muestra mientras tanto «Cargando
+  modelo de IA…» y luego «IA lista»; el botón de IA permanece
+  desactivado hasta entonces (y sin imagen cargada, de todos modos).
 - **Gatekeeper: «desarrollador no verificado»** → Clic derecho sobre
   `BgRemover.app` → **Abrir**. El script de compilación ya elimina la
   cuarentena mediante `xattr`; aun así, en caso de duda, abrir con clic

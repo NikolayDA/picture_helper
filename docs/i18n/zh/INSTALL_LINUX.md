@@ -155,8 +155,9 @@ python3 -m bgremover
 ```
 `--system-site-packages` 会让通过 `apt` 安装的
 PyQt6/Pillow/numpy 在 venv 中可见，这样就只需加载 `rembg` 和
-`onnxruntime`。首次点击 AI 时，`rembg` 会一次性
-下载它的模型（几百 MB，缓存在 `~/.u2net`）。
+`onnxruntime`。在下次应用**启动**时，`rembg` 会自动一次性
+下载它的模型（几百 MB，缓存在 `~/.u2net`）；期间状态栏会显示
+“AI 模型加载中…”，AI 按钮在此之前保持禁用——这是预期行为。
 之后从 venv 启动：`source .venv/bin/activate` 然后
 `python3 -m bgremover`。
 
@@ -291,10 +292,11 @@ git checkout <branch> && git pull      # 更新某个特定分支
   ```bash
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
-- **首次点击 AI 耗时较长** → 在首次时，`rembg` 会
-  下载它的模型（几百 MB，一次性，缓存在
-  `~/.u2net`）。状态栏会显示”AI 模型加载中…”
-  然后显示”AI 就绪”。
+- **启动后 AI 按钮短暂保持禁用** → 这不是安装错误：只要安装了
+  `rembg`，应用就会在**应用启动**时（而不是首次点击 AI 时）自动
+  一次性下载模型，几百 MB，缓存在 `~/.u2net`。期间状态栏会显示
+  ”AI 模型加载中…”，然后显示”AI 就绪”；AI 按钮在此之前
+  （以及未加载图片时）保持禁用。
 - **应用程序在没有 AI 的情况下启动 / “No onnxruntime backend found”** →
   没有安装 `ai` extra。在 venv 中补装：
   ```bash

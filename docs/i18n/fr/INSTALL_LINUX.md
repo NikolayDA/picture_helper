@@ -159,8 +159,11 @@ python3 -m bgremover
 ```
 `--system-site-packages` rend les PyQt6/Pillow/numpy installés via `apt`
 visibles dans le venv, de sorte que seuls `rembg` et
-`onnxruntime` sont chargés en plus. Au tout premier clic d'IA, `rembg`
-télécharge son modèle une seule fois (quelques centaines de Mo, cache dans `~/.u2net`).
+`onnxruntime` sont chargés en plus. Au prochain **démarrage** de l'app,
+`rembg` télécharge automatiquement son modèle une seule fois (quelques
+centaines de Mo, cache dans `~/.u2net`) ; la barre d'état affiche
+entre-temps « Chargement du modèle IA… » et le bouton IA reste
+désactivé jusque-là — c'est le comportement attendu.
 Pour les démarrages suivants, depuis le venv : `source .venv/bin/activate` et
 `python3 -m bgremover`.
 
@@ -294,10 +297,13 @@ réexécutée après `git pull` — sauf si les dépendances dans
   ```bash
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
-- **Le premier clic d'IA prend du temps** → à la toute première fois, `rembg`
-  télécharge son modèle (quelques centaines de Mo, une seule fois, cache dans
-  `~/.u2net`). La barre d'état affiche « Chargement du modèle IA… »
-  puis « IA prête ».
+- **Le bouton IA reste désactivé un instant après le démarrage** → Ce
+  n'est pas une erreur d'installation : dès que `rembg` est installé,
+  l'app télécharge automatiquement son modèle une seule fois au
+  **démarrage de l'app** (pas au premier clic d'IA), quelques centaines
+  de Mo, cache dans `~/.u2net`. La barre d'état affiche entre-temps
+  « Chargement du modèle IA… » puis « IA prête » ; le bouton IA reste
+  désactivé jusque-là (et de toute façon sans image chargée).
 - **L'application démarre sans IA / « No onnxruntime backend found »** → l'extra
   `ai` n'a pas été installé. L'installer après coup dans le venv :
   ```bash
