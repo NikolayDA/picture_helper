@@ -181,10 +181,13 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   danach den Install-Befehl erneut ausführen.
-- **Erster KI-Klick dauert lange** → Beim allerersten Mal lädt `rembg`
-  sein Modell herunter (einige hundert MB, einmalig, Cache in
-  `~/.u2net`). Die Statusleiste zeigt „KI-Modell wird geladen…"
-  und danach „KI bereit".
+- **KI-Button bleibt nach dem Start kurz deaktiviert** → Das ist kein
+  Installationsfehler: Sobald `rembg` installiert ist, lädt die App
+  automatisch beim **App-Start** (nicht erst beim ersten KI-Klick)
+  einmalig ihr Modell herunter (einige hundert MB, Cache in
+  `~/.u2net`). Die Statusleiste zeigt währenddessen „KI-Modell wird
+  geladen…" und danach „KI bereit"; der KI-Button bleibt bis dahin
+  (und ohne geladenes Bild ohnehin) deaktiviert.
 - **Gatekeeper: „nicht verifizierter Entwickler"** → Rechtsklick auf
   `BgRemover.app` → **Öffnen**. Das Build-Skript entfernt die
   Quarantäne bereits per `xattr`, ein Rechtsklick-Öffnen genügt im
