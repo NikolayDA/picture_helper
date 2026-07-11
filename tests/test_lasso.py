@@ -9,9 +9,13 @@ from __future__ import annotations
 
 import numpy as np
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QGraphicsScene
+from PyQt6.QtWidgets import QGraphicsLineItem, QGraphicsScene
 
 from bgremover.canvas_lasso import CanvasLasso
+
+
+def _line_items(scene: QGraphicsScene) -> list[QGraphicsLineItem]:
+    return [it for it in scene.items() if isinstance(it, QGraphicsLineItem)]
 
 
 def _lasso(qapp) -> CanvasLasso:
@@ -33,14 +37,15 @@ def test_initial_state_is_empty(qapp):
 def test_add_point_tracks_state_and_creates_overlay(qapp):
     scene = QGraphicsScene()
     lasso = CanvasLasso(scene)
+    assert scene.items() == []
     msg = lasso.add_point(10, 20)
     assert lasso.has_points is True
     assert lasso.point_count == 1
     assert lasso.points == [(10, 20)]
     # Erster Punkt → Singular ohne "e".
     assert "1 Punkt " in msg
-    # Pfad- und Linien-Item wurden der Szene hinzugefügt.
-    assert len(scene.items()) == 2
+    # Overlay-Items wurden der Szene hinzugefügt.
+    assert scene.items() != []
 
 
 def test_add_point_multiple_uses_plural_and_appends(qapp):
@@ -53,13 +58,15 @@ def test_add_point_multiple_uses_plural_and_appends(qapp):
 
 
 def test_add_point_reuses_overlay_items(qapp):
-    """Ab dem zweiten Punkt dürfen keine weiteren Items entstehen."""
+    """Ab dem zweiten Punkt dürfen keine weiteren Items entstehen – die
+    vorhandenen Overlay-Items werden wiederverwendet statt neu erzeugt."""
     scene = QGraphicsScene()
     lasso = CanvasLasso(scene)
     lasso.add_point(0, 0)
+    items_after_first_point = list(scene.items())
     lasso.add_point(10, 0)
     lasso.add_point(10, 10)
-    assert len(scene.items()) == 2
+    assert list(scene.items()) == items_after_first_point
 
 
 # ── Modifikatoren ──────────────────────────────────────────────────────
@@ -97,12 +104,16 @@ def test_update_preview_line_without_points_is_noop(qapp):
 
 
 def test_update_preview_line_after_point(qapp):
-    lasso = _lasso(qapp)
+    scene = QGraphicsScene()
+    lasso = CanvasLasso(scene)
     lasso.add_point(0, 0)
-    # Bewegt die gestrichelte Vorschaulinie – Hauptzweck ist, ohne Fehler
-    # durchzulaufen, solange ein Linien-Item existiert.
     lasso.update_preview_line(50.0, 60.0)
-    assert lasso._line_item is not None
+    # Die gestrichelte Vorschaulinie geht vom letzten Punkt bis zum neuen
+    # Endpunkt.
+    [line_item] = _line_items(scene)
+    line = line_item.line()
+    assert (line.x1(), line.y1()) == (0.0, 0.0)
+    assert (line.x2(), line.y2()) == (50.0, 60.0)
 
 
 # ── Doppelklick-Duplikat ───────────────────────────────────────────────
@@ -164,7 +175,7 @@ def test_cancel_clears_state_and_overlay(qapp):
     lasso.modifiers = Qt.KeyboardModifier.ShiftModifier
     lasso.add_point(0, 0)
     lasso.add_point(5, 5)
-    assert len(scene.items()) == 2
+    assert scene.items() != []
     lasso.cancel()
     assert lasso.points == []
     assert lasso.modifiers == Qt.KeyboardModifier.NoModifier

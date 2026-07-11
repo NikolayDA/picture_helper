@@ -176,6 +176,8 @@ def test_magic_wand_selects_region(loaded_window, qtbot):
     # Flood-Fill laeuft im Worker; auf das Maskenupdate warten, bevor
     # die Auswahlflaeche geprueft wird. Einfarbiges Bild ⇒ alles selektiert.
     qtbot.waitUntil(lambda: c._mask.sum() > 0, timeout=3000)
+    assert c._mask.all()
+    assert c._mask.shape == (30, 40)
 
 
 # ── Menue / Toolbar ──────────────────────────────────────────────────────

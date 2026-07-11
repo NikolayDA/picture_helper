@@ -543,12 +543,11 @@ def test_removed_rail_functions_stay_reachable(window):
     assert actions["Speichern"].shortcut().toString(fmt) == "Ctrl+S"
     assert "Original wiederherstellen" in actions
     # Verlauf: neuer Menü-Anker „Ansicht → Verlauf" öffnet das Popup.
-    assert w._history_popup._popup is None
+    assert w._history_popup.is_open is False
     actions["Verlauf"].trigger()
-    assert w._history_popup._popup is not None
-    assert w._history_popup._popup.isVisible()
+    assert w._history_popup.is_open is True
     actions["Verlauf"].trigger()
-    assert not w._history_popup._popup.isVisible()
+    assert w._history_popup.is_open is False
 
 
 @pytest.mark.ui_smoke

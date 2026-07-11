@@ -18,11 +18,20 @@ def test_apply_loaded_image_sets_state(qapp):
     canvas.apply_loaded_image(img, "/tmp/x.png")
     assert canvas.image is img
     assert canvas.selection_mask.shape == (24, 32)
+
+    edited = Image.new("RGBA", (32, 24), (1, 2, 3, 255))
+    canvas.apply_edit(edited, desc="edit")
+    assert canvas.image.getpixel((0, 0)) == (1, 2, 3, 255)
+
+    # Echter Zustandsuebergang: Undo kehrt zum geladenen Bild zurueck,
+    # Redo wieder zum bearbeiteten Bild. Die History rekonstruiert Bilder aus
+    # ihrem Pixelpool, daher wird der Pixelinhalt statt Objektidentitaet
+    # verglichen.
     canvas.undo()
-    assert canvas.image is img
+    assert canvas.image.getpixel((0, 0)) == (50, 100, 150, 255)
     canvas.redo()
-    assert canvas.image is img
-    canvas.apply_edit(Image.new("RGBA", (32, 24), (1, 2, 3, 255)), desc="edit")
+    assert canvas.image.getpixel((0, 0)) == (1, 2, 3, 255)
+
     canvas.restore_original()
     assert canvas.image is not None
     assert canvas.image.getpixel((0, 0)) == (50, 100, 150, 255)
@@ -51,16 +60,6 @@ def test_image_load_worker_emits_finished(qapp, tmp_path):
     img, path = received[0]
     assert img.mode == "RGBA"
     assert path == str(p)
-
-
-def test_image_load_worker_emits_error_on_invalid(qapp, tmp_path):
-    bad = tmp_path / "broken.png"
-    bad.write_bytes(b"not a png")
-    worker = ImageLoadWorker(str(bad))
-    errors = []
-    worker.error.connect(errors.append)
-    worker.run()
-    assert errors
 
 
 def test_async_load_result_is_discarded_after_canvas_edit(

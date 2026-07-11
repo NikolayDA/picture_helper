@@ -72,6 +72,18 @@ def test_close_event_shuts_down_all_threads(functions):
 
 
 def test_shutdown_helper_uses_wait_and_terminate(functions):
+    """Bewusst als statischer Lifecycle-Guard behalten (kein
+    Implementierungsdetail-Test): ``shutdown_thread`` muss zwei bewachte
+    ``QThread.wait(timeout)``-Aufrufe (kooperatives Quit) UND
+    ``terminate()`` (begrenzte Notbremse für einen hängenden Thread)
+    enthalten. Die zwei ``wait()``-Aufrufe sind kein Zufall der aktuellen
+    Formulierung, sondern der geschützte Vertrag selbst: fehlt einer, kann
+    ``closeEvent`` beim Schliessen mit einem noch laufenden QThread
+    abstürzen (Python-Interpreter-Crash) oder ``terminate()`` würde nie als
+    Notbremse erreicht. Ein rein verhaltensbasierter Test könnte diesen
+    Timeout-/Notfallpfad nicht ohne einen echten (langsamen, flakigen)
+    hängenden Thread reproduzieren.
+    """
     function = functions["shutdown_thread"]
     body = ast.unparse(function)
     wait_calls = [
