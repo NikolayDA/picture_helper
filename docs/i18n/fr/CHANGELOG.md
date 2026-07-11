@@ -11,6 +11,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Ajouté
 
+- **Interface d'exécution en six langues (i18n de la refonte, #430).** La table
+  complète des chaînes d'exécution est désormais également maintenue en
+  espagnol, français, ukrainien et chinois simplifié – y compris les nouvelles
+  chaînes du flux de travail de la refonte (libellés d'étapes, titres et
+  descriptions d'étapes, titres de cartes, navigation). Les langues
+  apparaissent automatiquement dans le sélecteur de langue du dialogue des
+  réglages ; l'allemand reste la langue de repli garantie et les tests de
+  parité i18n (égalité des clés et des espaces réservés, un test de fumée de
+  l'interface par langue) couvrent les six langues (partie de l'épopée #425).
 - **Thème clair et jetons de design (refonte de l'interface, épopée #424).** Un
   système de thèmes centralisé et basé sur des jetons (une `Palette` avec un
   schéma clair et un schéma sombre) colore toute l'interface via une `QPalette` et
