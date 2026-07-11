@@ -11,6 +11,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Añadido
 
+- **Interfaz en seis idiomas en tiempo de ejecución (i18n del rediseño, #430).**
+  La tabla completa de cadenas en tiempo de ejecución ahora se mantiene también
+  en español, francés, ucraniano y chino simplificado, incluidas las nuevas
+  cadenas del flujo de trabajo del rediseño (etiquetas de pasos, títulos y
+  descripciones de pasos, títulos de tarjetas, navegación). Los idiomas
+  aparecen automáticamente en el selector de idioma del diálogo de ajustes; el
+  alemán sigue siendo el idioma de reserva garantizado y las pruebas de paridad
+  i18n (igualdad de claves y de marcadores, una prueba de humo de la interfaz
+  por idioma) cubren los seis idiomas (parte de la épica #425).
 - **Tema claro y tokens de diseño (rediseño de la interfaz, épica #424).** Un
   sistema central de temas basado en tokens (una `Palette` con un esquema claro y
   uno oscuro) colorea toda la interfaz mediante una `QPalette` y una hoja de

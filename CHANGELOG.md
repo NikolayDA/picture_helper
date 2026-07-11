@@ -11,6 +11,15 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Laufzeit-UI in sechs Sprachen (Redesign-i18n, #430).** Die komplette
+  Runtime-Stringtabelle ist jetzt zusätzlich auf Spanisch, Französisch,
+  Ukrainisch und vereinfachtem Chinesisch gepflegt – einschließlich der neuen
+  Workflow-Strings des Redesigns (Schritt-Labels, Schritt-Titel und
+  -Beschreibungen, Karten-Titel, Navigation). Die Sprachen erscheinen
+  automatisch in der Sprachauswahl des Einstellungsdialogs; Deutsch bleibt
+  garantierter Fallback, und die i18n-Paritätstests (Key- und
+  Platzhalter-Gleichheit, UI-Smoke je Locale) decken alle sechs Sprachen ab
+  (Teil von Epic #425).
 - **Helles Design & Design-Tokens (UI-Redesign, Epic #424).** Ein zentrales,
   token-basiertes Theming (`Palette` mit hellem und dunklem Schema) färbt die
   gesamte Oberfläche über eine `QPalette` und ein anwendungsweites Stylesheet.
