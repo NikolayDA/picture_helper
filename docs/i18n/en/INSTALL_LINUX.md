@@ -158,8 +158,11 @@ python3 -m bgremover
 ```
 `--system-site-packages` makes the PyQt6/Pillow/numpy installed via
 `apt` visible in the venv, so that only `rembg` and
-`onnxruntime` are loaded additionally. On the very first AI click, `rembg`
-downloads its model once (a few hundred MB, cached in `~/.u2net`).
+`onnxruntime` are loaded additionally. On the first app start with
+`rembg` installed, the app automatically downloads the model once (a few
+hundred MB, cached in `~/.u2net`). The status bar shows "Loading AI
+model…" and then "AI ready". Until then, the AI buttons remain disabled;
+this is expected behavior, not an installation failure.
 Future starts then run from the venv: `source .venv/bin/activate` and
 `python3 -m bgremover`.
 
@@ -293,10 +296,12 @@ again after `git pull` — unless the dependencies in
   ```bash
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
-- **First AI click takes a long time** → On the very first time, `rembg`
-  downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "Loading AI model…"
-  and then "AI ready".
+- **First app start with AI takes a long time** → On the very first app
+  start with `rembg` installed, the app downloads the model
+  automatically (a few hundred MB, one-time, cached in `~/.u2net`). The
+  status bar shows "Loading AI model…" and then "AI ready". Until then,
+  the AI buttons remain disabled; this is expected behavior, not an
+  installation failure.
 - **App starts without AI / "No onnxruntime backend found"** → The
   `ai` extra was not installed. Install it afterwards in the venv:
   ```bash

@@ -179,10 +179,12 @@ non-editable package copy in the app venv.
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
   then run the install command again.
-- **First AI click takes a long time** → On the very first time, `rembg`
-  downloads its model (a few hundred MB, one-time, cached in
-  `~/.u2net`). The status bar shows "Loading AI model…"
-  and then "AI ready".
+- **First app start with AI takes a long time** → On the very first app
+  start with `rembg` installed, the app downloads the model
+  automatically (a few hundred MB, one-time, cached in `~/.u2net`). The
+  status bar shows "Loading AI model…" and then "AI ready". Until then,
+  the AI buttons remain disabled; this is expected behavior, not an
+  installation failure.
 - **Gatekeeper: "unverified developer"** → Right-click on
   `BgRemover.app` → **Open**. The build script already removes the
   quarantine via `xattr`; a right-click open is enough in any

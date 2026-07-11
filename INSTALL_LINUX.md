@@ -159,8 +159,12 @@ python3 -m bgremover
 ```
 `--system-site-packages` macht die per `apt` installierten
 PyQt6/Pillow/numpy in der venv sichtbar, sodass nur `rembg` und
-`onnxruntime` nachgeladen werden. Beim allerersten KI-Klick lädt `rembg`
-sein Modell einmalig herunter (einige hundert MB, Cache in `~/.u2net`).
+`onnxruntime` nachgeladen werden. Beim ersten App-Start mit installiertem
+`rembg` lädt die Anwendung das Modell einmalig automatisch herunter
+(einige hundert MB, Cache in `~/.u2net`). Die Statusleiste zeigt dabei
+„KI-Modell wird geladen…“ und danach „KI bereit“. Bis dahin bleiben die
+KI-Buttons deaktiviert; das ist erwartetes Verhalten und kein
+Installationsfehler.
 Künftige Starts dann aus der venv: `source .venv/bin/activate` und
 `python3 -m bgremover`.
 
@@ -295,10 +299,12 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   ```bash
   python3 -m pip install --upgrade "pip>=26.1.2"
   ```
-- **Erster KI-Klick dauert lange** → Beim allerersten Mal lädt `rembg`
-  sein Modell herunter (einige hundert MB, einmalig, Cache in
-  `~/.u2net`). Die Statusleiste zeigt „KI-Modell wird geladen…"
-  und danach „KI bereit".
+- **Erster App-Start mit KI dauert lange** → Beim allerersten Start mit
+  installiertem `rembg` lädt die Anwendung das Modell automatisch
+  herunter (einige hundert MB, einmalig, Cache in `~/.u2net`). Die
+  Statusleiste zeigt „KI-Modell wird geladen…“ und danach „KI bereit“.
+  Bis dahin bleiben die KI-Buttons deaktiviert; das ist erwartetes
+  Verhalten und kein Installationsfehler.
 - **App startet ohne KI / „No onnxruntime backend found"** → Das
   `ai`-Extra wurde nicht installiert. In der venv nachinstallieren:
   ```bash
