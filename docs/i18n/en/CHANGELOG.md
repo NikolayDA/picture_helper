@@ -10,6 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Runtime UI in six languages (redesign i18n, #430).** The complete runtime
+  string table is now also maintained in Spanish, French, Ukrainian, and
+  Simplified Chinese – including the redesign's new workflow strings (step
+  labels, step titles and descriptions, card titles, navigation). The languages
+  appear automatically in the settings dialog's language selector; German
+  remains the guaranteed fallback, and the i18n parity tests (key and
+  placeholder equality, a UI smoke test per locale) cover all six languages
+  (part of epic #425).
 - **Light theme & design tokens (UI redesign, epic #424).** A central,
   token-based theming system (a `Palette` with a light and a dark scheme) colors
   the entire interface through a `QPalette` and an application-wide stylesheet.

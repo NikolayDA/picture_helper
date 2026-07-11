@@ -2,7 +2,8 @@
 
 Die zentrale ``_TRANSLATIONS``-Tabelle bildet String-Keys auf Werte je Locale
 ab. Deutsch ist Default und garantierter Fallback für jeden Key, der einer
-Locale fehlt; Englisch ist als Laufzeitsprache verfügbar, der
+Locale fehlt; als Laufzeitsprachen sind Deutsch, Englisch, Spanisch,
+Französisch, Ukrainisch und vereinfachtes Chinesisch gepflegt (#430), der
 Einstellungsdialog bietet eine Sprachauswahl. Weitere Locales lassen sich durch
 Erweitern von ``_TRANSLATIONS`` ergänzen (Key-für-Key synchron zum Deutschen),
 ohne die Aufrufstellen anzufassen.
@@ -1550,6 +1551,3046 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Open file…",
         "workflow.locked": "Open an image first (Step 1)",
         "workflow.status.step": "Step {num}/{total}: {title}",
+    },
+    "es": {
+        # Status bar messages
+        "status.no_image_loaded": "No hay imagen cargada",
+        "status.no_image_to_save": "No hay imagen para guardar",
+        "status.already_loading": "Ya se está cargando una imagen…",
+        "status.load_result_discarded": (
+            "Resultado de carga descartado – la imagen cambió mientras tanto"
+        ),
+        "status.ai_already_running": "La IA ya está en marcha…",
+        "status.ai_processing": "La IA está procesando la imagen… (puede tardar unos segundos)",
+        "status.ai_ready": "IA lista",
+        "status.ai_model_loading": "Cargando el modelo de IA…",
+        "status.ai_warmup_failed": "⚠️ No se pudo cargar el modelo de IA",
+        "status.ai_cancelling": "Cancelando – esperando a la IA en curso…",
+        "status.ai_cancelled": "Procesamiento de IA cancelado",
+        "status.ai_result_discarded": (
+            "Resultado de IA descartado – la imagen cambió mientras tanto"
+        ),
+        "status.wand_busy": "La varita mágica sigue trabajando…",
+        "status.selection_calculating": "⏳ Calculando la selección…",
+        "status.wand_discarded": (
+            "Selección de la varita descartada – la imagen cambió mientras tanto"
+        ),
+        "status.no_selection": (
+            "No hay selección – selecciona primero un área con la varita mágica o el pincel"
+        ),
+        "status.start_hint": (
+            "Abrir una imagen: Archivo → Abrir  o  arrástrala al lienzo"
+        ),
+        "status.quitting": "Cerrando…",
+        "status.shutdown_failed": (
+            "No se pudo cerrar – todavía hay un proceso en segundo plano"
+        ),
+        # Statusleisten-Meldungen mit interpolierten Werten
+        "status.loading": "⏳ Cargando: {name}…",
+        "status.load_error": "Error de carga: {msg}",
+        "status.file_too_large": "Archivo demasiado grande ({size} MB) – máximo: {limit} MB",
+        "status.image_too_large": "Imagen demasiado grande – máximo: {limit} MP",
+        "status.image_too_large_mp": "Imagen demasiado grande ({mp:.0f} MP) – máximo: {limit} MP",
+        "status.file_missing": "El archivo ya no existe: {name}",
+        "status.open_not_local": "Solo se pueden abrir archivos locales.",
+        "status.ai_error": "Error de IA: {msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "El archivo de proyecto está dañado o no es un proyecto válido",
+        "project.error.too_large": (
+            "Archivo de proyecto demasiado grande ({size} MB) – máximo: {limit} MB"
+        ),
+        "project.error.manifest_missing": "Archivo de proyecto incompleto: falta manifest.json",
+        "project.error.manifest_invalid": "Archivo de proyecto dañado: manifiesto no válido",
+        "project.error.unsupported_version": (
+            "La versión de formato de proyecto {version} no es compatible"
+        ),
+        "project.error.unexpected_entry": (
+            "Archivo de proyecto rechazado: entrada inesperada “{name}”"
+        ),
+        "project.error.entry_too_large": (
+            "Archivo de proyecto rechazado: la entrada “{name}” es demasiado grande (descomprimida)"
+        ),
+        "project.error.layer_file_missing": (
+            "Archivo de proyecto incompleto: falta la imagen de capa “{file}”"
+        ),
+        "project.error.layer_too_large": (
+            "Capa demasiado grande ({mp:.0f} MP) – máximo: {limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "El tamaño de capa {actual} no coincide con el tamaño del lienzo {expected}"
+        ),
+        "project.warning.role_normalized": (
+            "Rol de mapa de altura incompatible eliminado: “{name}” no es una capa de altura"
+        ),
+        # EufyMake-Export – Konsistenzbefunde (#354)
+        "eufymake.export.color_motif_missing": (
+            "Falta el motivo de color: no hay rol COLOR_MOTIF ni ninguna capa de "
+            "color que contribuya a la composición."
+        ),
+        "eufymake.export.optional_role_missing": (
+            "El rol opcional seleccionado “{role_name}” no tiene capa."
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "El tamaño del asset {actual} no coincide con el tamaño objetivo {expected}."
+        ),
+        "eufymake.export.invalid_target_params": "Parámetros de destino no válidos: {detail}",
+        "eufymake.export.height_map_empty": (
+            "El mapa de altura está vacío o es constante y puede no producir relieve."
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "La máscara de gloss está vacía o es constante y puede ser inútil."
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "Un mapa de altura de {bits} bits no está confirmado oficialmente para EufyMake Studio."
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "El gloss es solo un asset auxiliar de importación – el modo de tinta y "
+            "la asignación de capas se hacen en EufyMake Studio."
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero no "
+            "un contrato confirmado del fabricante."
+        ),
+        # Allgemeine Pre-Export-Prüfung (#379)
+        "export.checks.dimensions_invalid": (
+            "Dimensiones no válidas: {width}×{height} px – ancho y alto deben ser positivos."
+        ),
+        "export.checks.dimensions_too_large": (
+            "Salida demasiado grande: {mp} MP superan el límite de {limit} MP."
+        ),
+        "export.checks.color_space_unexpected": (
+            "Espacio de color inesperado: {actual} (esperado: {expected})."
+        ),
+        "export.checks.output_empty": "Salida vacía: el proyecto no contiene capas.",
+        "export.checks.resolution_too_low": (
+            "Resolución baja: {dpi} DPI (mínimo recomendado: {minimum} DPI)."
+        ),
+        "export.checks.resolution_too_high": (
+            "Resolución muy alta: {dpi} DPI (máximo recomendado: {maximum} DPI)."
+        ),
+        "export.checks.fully_transparent": (
+            "Completamente transparente: la salida no tiene píxeles visibles."
+        ),
+        "export.checks.unexpected_alpha": (
+            "Transparencia parcial: el {percent}% de los píxeles son semitransparentes."
+        ),
+        "export.checks.print_area_exceeded": (
+            "El motivo supera el área de impresión: "
+            "{width}×{height} mm > {medium_w}×{medium_h} mm."
+        ),
+        # Pre-Export-Prüfung beim normalen Speichern (#380)
+        "export.check.error.title": "No se puede guardar",
+        "export.check.blocked": (
+            "El guardado se canceló por los siguientes problemas:\n\n{details}"
+        ),
+        "export.check.warning.title": "Advertencias antes de guardar",
+        "export.check.confirm": (
+            "Hay advertencias:\n\n{details}\n\n¿Guardar de todos modos?"
+        ),
+        # EufyMake-Export – Menü, Dialog & Meldungen (#355)
+        "action.export_eufymake": "Exportar assets para EufyMake Studio…",
+        "eufymake.dialog.title": "Exportar assets para EufyMake Studio",
+        "eufymake.dialog.intro": (
+            "BgRemover escribe assets de importación para EufyMake Studio – no un "
+            "proyecto “.empf” terminado. Impórtalos y colócalos después en Studio, "
+            "asigna allí los modos de tinta/capas y guarda el proyecto tú mismo "
+            "como “.empf”."
+        ),
+        "eufymake.dialog.section.assets": "Assets",
+        "eufymake.dialog.color_motif": "Motivo de color (obligatorio)",
+        "eufymake.dialog.color_motif.hint": (
+            "PNG RGBA de la composición de color; la transparencia se conserva."
+        ),
+        "eufymake.dialog.height": "Incluir mapa de altura",
+        "eufymake.dialog.height.hint": "PNG en escala de grises: claro = alto, oscuro = bajo.",
+        "eufymake.dialog.height.unavailable": "No hay capa de altura en el proyecto.",
+        "eufymake.dialog.gloss": "Incluir máscara de gloss (experimental)",
+        "eufymake.dialog.gloss.hint": (
+            "Asset auxiliar opcional. El modo de tinta y la asignación de capas se "
+            "hacen en EufyMake Studio."
+        ),
+        "eufymake.dialog.gloss.unavailable": "No hay capa de gloss en el proyecto.",
+        "eufymake.dialog.section.target": "Parámetros de destino",
+        "eufymake.dialog.bit_depth": "Profundidad de bits del mapa de altura:",
+        "eufymake.dialog.bit_depth.8": "8 bits (estándar)",
+        "eufymake.dialog.bit_depth.16": "16 bits (experimental, sin confirmar)",
+        "eufymake.dialog.size": "Tamaño objetivo: {w} × {h} px",
+        "eufymake.dialog.physical": "Tamaño físico: {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical.unset": "Tamaño físico: sin definir",
+        "eufymake.dialog.section.dest": "Destino",
+        "eufymake.dialog.dest.label": "Carpeta de exportación:",
+        "eufymake.dialog.dest.placeholder": "Aún no se ha elegido carpeta",
+        "eufymake.dialog.dest.is_file": (
+            "El destino es un archivo existente – elige una carpeta."
+        ),
+        "eufymake.dialog.dest.browse": "Examinar…",
+        "eufymake.dialog.dest.dialog_title": "Elegir carpeta de exportación",
+        "eufymake.dialog.section.findings": "Comprobación",
+        "eufymake.dialog.findings.ok": "Sin observaciones.",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "Entiendo las advertencias – exportar igualmente",
+        "eufymake.dialog.cancel": "Cancelar",
+        "eufymake.dialog.export": "Exportar",
+        "eufymake.status.no_project": "No hay proyecto para exportar",
+        "eufymake.status.cancelled": "Exportación cancelada",
+        "eufymake.status.exported": "✅ Assets exportados para EufyMake Studio: {path}",
+        "eufymake.error.title": "Exportación fallida",
+        "eufymake.error.write": "Exportación fallida: {error}",
+        "eufymake.error.not_directory": (
+            "El destino “{path}” es un archivo existente. Elige una carpeta como "
+            "destino de exportación."
+        ),
+        "eufymake.error.blocked": "Exportación bloqueada – corrige esto primero:\n{details}",
+        "eufymake.overwrite.title": "¿Sobrescribir carpeta?",
+        "eufymake.overwrite.body": "“{path}” ya existe. ¿Reemplazar su contenido?",
+        "eufymake.success.title": "Exportación completada",
+        "eufymake.success.body": (
+            "Assets de importación escritos en:\n{path}\n\n"
+            "Próximos pasos en EufyMake Studio:\n"
+            "1. Importar y colocar los assets.\n"
+            "2. Asignar modos de tinta/capas (p. ej. gloss/barniz).\n"
+            "3. Guardar el proyecto en Studio como “.empf”."
+        ),
+        # Ebenen-Panel & Projekt-Aktionen (#334)
+        "layers.new_name": "Capa {n}",
+        "layers.role.none": "Ninguno",
+        "layers.role.color_motif": "Motivo de color",
+        "layers.role.height_map": "Mapa de altura",
+        "layers.role.gloss": "Gloss",
+        "layers.height_name": "Mapa de altura",
+        "history.desc.layer_added": "Capa añadida",
+        "history.desc.layer_removed": "Capa eliminada",
+        "history.desc.layer_duplicated": "Capa duplicada",
+        "history.desc.layer_reordered": "Capa movida",
+        "history.desc.layer_renamed": "Capa renombrada",
+        "history.desc.layer_active": "Capa activa cambiada",
+        "history.desc.layer_visibility": "Visibilidad cambiada",
+        "history.desc.layer_opacity": "Opacidad cambiada",
+        "history.desc.layer_role": "Rol cambiado",
+        "history.desc.height_generated": "Mapa de altura generado",
+        "history.desc.height_imported": "Mapa de altura importado",
+        "history.desc.height_lighten": "Altura aclarada",
+        "history.desc.height_darken": "Altura oscurecida",
+        "history.desc.height_set": "Altura establecida",
+        "history.desc.height_invert": "Altura invertida",
+        "history.desc.height_optimized": "Altura optimizada",
+        "canvas.layer_added": "Nueva capa añadida",
+        "canvas.height_generated": "Mapa de altura generado a partir de la imagen",
+        "canvas.height_imported": "Mapa de altura importado: {name}",
+        "canvas.height_lightened": "Altura aclarada",
+        "canvas.height_darkened": "Altura oscurecida",
+        "canvas.height_set": "Altura establecida",
+        "canvas.height_inverted": "Altura invertida",
+        "canvas.height_optimized": "Altura optimizada",
+        "canvas.height_op_error": "La operación de altura falló: {error}",
+        "canvas.not_height_layer": "No hay capa de altura activa",
+        "canvas.role_incompatible": (
+            "El rol “Mapa de altura” solo está disponible para capas de altura"
+        ),
+        "canvas.layer_removed": "Capa eliminada",
+        "canvas.layer_duplicated": "Capa duplicada",
+        "canvas.cannot_delete_last": "La última capa no se puede eliminar",
+        "right_panel.tab.layers": "Capas",
+        "right_panel.tab.layers.tooltip": "Gestionar capas",
+        "right_panel.tab.height": "Altura",
+        "right_panel.tab.height.tooltip": "Mapa de altura (relieve)",
+        "right_panel.tab.preview": "Vista previa",
+        "right_panel.tab.preview.tooltip": "Vista 2D de color, relieve y gloss",
+        "right_panel.preview.section": "Modo de vista previa 2D",
+        "right_panel.preview.hint": (
+            "La vista previa es independiente de la capa activa."
+        ),
+        "right_panel.preview.mode": "Mostrar:",
+        "right_panel.preview.relief_strength": "Intensidad del relieve:  {value} %",
+        "right_panel.preview.relief_strength.tooltip": (
+            "Intensidad del sombreado en los modos Relieve y Combinado"
+        ),
+        "right_panel.preview.gloss_visible": "Mostrar gloss",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "Mostrar u ocultar el brillo de gloss en los modos Gloss y Combinado"
+        ),
+        "right_panel.preview.export_hint": (
+            "Solo visualización – “Guardar imagen” sigue exportando únicamente "
+            "el motivo de color."
+        ),
+        "right_panel.height.section.acquire": "Obtener",
+        "right_panel.height.section.edit": "Editar",
+        "right_panel.height.section.optimize": "Optimizar",
+        "right_panel.height.generate": "Generar desde la imagen",
+        "right_panel.height.generate.tooltip": (
+            "Generar un mapa de altura a partir de la imagen actual"
+        ),
+        "right_panel.height.import": "Importar escala de grises…",
+        "right_panel.height.import.tooltip": (
+            "Importar una imagen en escala de grises como mapa de altura"
+        ),
+        "right_panel.height.hint": (
+            "Las herramientas de altura actúan sobre la capa de altura activa."
+        ),
+        "right_panel.height.strength": "Intensidad",
+        "right_panel.height.lighten": "Aclarar",
+        "right_panel.height.lighten.tooltip": (
+            "Elevar la altura en la selección (si no, global)"
+        ),
+        "right_panel.height.darken": "Oscurecer",
+        "right_panel.height.darken.tooltip": (
+            "Reducir la altura en la selección (si no, global)"
+        ),
+        "right_panel.height.set_value": "Valor",
+        "right_panel.height.set": "Establecer altura",
+        "right_panel.height.set.tooltip": (
+            "Establecer la altura al valor (selección o global)"
+        ),
+        "right_panel.height.invert": "Invertir",
+        "right_panel.height.invert.tooltip": (
+            "Invertir la altura (selección o global)"
+        ),
+        "right_panel.height.levels": "Niveles (negro/blanco)",
+        "right_panel.height.gamma": "Gamma",
+        "right_panel.height.gaussian": "Desenfoque gaussiano (radio)",
+        "right_panel.height.median": "Desenfoque de mediana (radio)",
+        "right_panel.height.threshold": "Umbral",
+        "right_panel.height.steps": "Escalones",
+        "right_panel.height.range": "Rango (mín/máx)",
+        "right_panel.height.apply": "Aplicar",
+        "right_panel.height.apply.tooltip": "Aplicar la vista previa a la capa de altura",
+        "right_panel.height.discard_preview": "Descartar vista previa",
+        "right_panel.height.discard_preview.tooltip": (
+            "Descartar la vista previa sin aplicarla"
+        ),
+        "right_panel.layers.section": "Capas",
+        "right_panel.layers.add.tooltip": "Nueva capa",
+        "right_panel.layers.duplicate.tooltip": "Duplicar la capa activa",
+        "right_panel.layers.delete.tooltip": "Eliminar la capa activa",
+        "right_panel.layers.move_up.tooltip": "Subir capa",
+        "right_panel.layers.move_down.tooltip": "Bajar capa",
+        "right_panel.layers.rename.tooltip": "Renombrar la capa activa",
+        "right_panel.layers.role_label": "Rol:",
+        "right_panel.layers.role.tooltip": (
+            "Rol de la capa activa (para futuras herramientas de impresión UV)"
+        ),
+        "right_panel.layers.visible.tooltip": "Alternar visibilidad",
+        "right_panel.layers.select.tooltip": "Elegir como capa activa",
+        "right_panel.layers.opacity.tooltip": "Opacidad (se aplica al soltar)",
+        "right_panel.layers.empty": (
+            "No hay proyecto cargado – abre una imagen o “Nuevo proyecto”."
+        ),
+        "menu.project": "Proyecto",
+        "action.new_project": "Nuevo proyecto",
+        "action.open_project": "Abrir proyecto…",
+        "action.save_project": "Guardar proyecto",
+        "action.save_project_as": "Guardar proyecto como…",
+        "dialog.open_project.title": "Abrir proyecto",
+        "dialog.open_project.filter": "Proyecto de BgRemover (*.bgrproj)",
+        "dialog.save_project.title": "Guardar proyecto",
+        "dialog.rename.title": "Renombrar capa",
+        "dialog.rename.label": "Nuevo nombre:",
+        "dialog.import_height.title": "Importar mapa de altura",
+        "dialog.project_error.title": "Error de proyecto",
+        "project.new": "Nuevo proyecto creado",
+        "project.saved": "Proyecto guardado: {name}",
+        "project.opened": "Proyecto abierto: {name}",
+        "project.no_project": "No hay proyecto para guardar",
+        "project.save_failed": "Error al guardar el proyecto: {error}",
+        # Main menu
+        "menu.file": "Archivo",
+        "menu.recent_files": "Abiertos recientemente",
+        "menu.edit": "Edición",
+        "menu.view": "Ver",
+        "menu.preview_mode": "Modo de vista previa",
+        "menu.extras": "Herramientas",
+        "action.open": "Abrir…",
+        "action.save": "Guardar",
+        "action.save_as": "Guardar como…",
+        "action.undo": "Deshacer",
+        "action.redo": "Rehacer",
+        "action.rotate_left_90": "Girar 90° a la izquierda",
+        "action.rotate_right_90": "Girar 90° a la derecha",
+        "action.rotate_180": "Girar 180°",
+        "action.flip_horizontal": "Voltear horizontalmente",
+        "action.flip_vertical": "Voltear verticalmente",
+        "action.resize": "Cambiar tamaño…",
+        "action.clear_selection": "Anular selección",
+        "action.invert_selection": "Invertir selección",
+        "action.restore_original": "Restaurar original",
+        "action.fit_to_view": "Ajustar a la vista",
+        # Verlauf-Popup: Menü-Anker seit #458 (Rail-Button entfallen)
+        "action.history": "Historial",
+        # Zoom-Kontrolle auf der Arbeitsfläche (#464)
+        "zoom.in.tooltip": "Acercar (+10 %)",
+        "zoom.out.tooltip": "Alejar (−10 %)",
+        "zoom.lock.tooltip": "Fijar zoom (mantener el valor actual)",
+        "zoom.unlock.tooltip": "Liberar el zoom",
+        "preview.mode.color": "Color",
+        "preview.mode.relief": "Relieve sobre color",
+        "preview.mode.height": "Altura (escala de grises)",
+        "preview.mode.gloss": "Gloss",
+        "preview.mode.combined": "Combinado",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "Color",
+        "preview.seg.relief": "Relieve",
+        "preview.seg.height": "Altura",
+        "preview.seg.gloss": "Gloss",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "Tema claro",
+        "theme.switched.light": "Tema claro activado.",
+        "theme.switched.dark": "Tema oscuro activado.",
+        "action.settings": "Ajustes…",
+        # Left toolbar
+        "toolbar.move.tooltip": (
+            "Mover / Zoom\n"
+            "Arrastrar con clic izquierdo desplaza la vista · la rueda del ratón hace zoom"
+        ),
+        "toolbar.wand.tooltip": (
+            "Varita mágica  (W)\n"
+            "Un clic selecciona un área de color (relleno por difusión)\n"
+            "Shift = añadir  ·  {modifier} = restar"
+        ),
+        "toolbar.brush.tooltip": "Pincel  (B)\nAñadir áreas a la selección manualmente",
+        "toolbar.eraser.tooltip": "Borrador  (E)\nQuitar áreas de la selección",
+        "toolbar.lasso.tooltip": (
+            "Lazo poligonal  (L)\n"
+            "Clic coloca puntos · doble clic cierra el polígono\n"
+            "Shift = añadir  ·  {modifier} = restar  ·  Esc = cancelar"
+        ),
+        "toolbar.height_lighten.tooltip": (
+            "Aclarar (elevar)\n"
+            "La pincelada eleva la altura de la capa de altura activa"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "Oscurecer (bajar)\n"
+            "La pincelada reduce la altura de la capa de altura activa"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "Herramienta de altura\n"
+            "Activa primero una capa de altura (paso 5: generar/importar un mapa de altura)"
+        ),
+        "toolbar.ai.missing.tooltip": (
+            'rembg no está instalado\n→ python3 -m pip install -e ".[ai]"'
+        ),
+        "toolbar.undo.tooltip": (
+            "Deshacer  ({shortcut})\n"
+            "Deshacer el último paso de edición"
+        ),
+        "toolbar.redo.tooltip": (
+            "Rehacer  ({shortcut})\n"
+            "Rehacer el último paso deshecho"
+        ),
+        "toolbar.theme.to_light.tooltip": "Cambiar al tema claro",
+        "toolbar.theme.to_dark.tooltip": "Cambiar al tema oscuro",
+        # Right panel tabs
+        "right_panel.tab.selection": "Selección",
+        "right_panel.tab.selection.tooltip": (
+            "Selección – varita mágica, pincel, borrador"
+        ),
+        "right_panel.tab.background": "Fondo",
+        "right_panel.tab.background.tooltip": (
+            "Fondo – eliminar, reemplazar color"
+        ),
+        "right_panel.tab.adjust": "Ajustar",
+        "right_panel.tab.adjust.tooltip": (
+            "Corrección de color – brillo, contraste, saturación"
+        ),
+        "right_panel.tab.transform": "Girar/Voltear",
+        "right_panel.tab.transform.tooltip": "Transformar – girar, voltear",
+        "right_panel.tab.shape": "Forma",
+        "right_panel.tab.shape.tooltip": (
+            "Forma y recorte – redondear esquinas, elegir formato"
+        ),
+        # History popup
+        "history.window_title": "Historial de cambios",
+        "history.hint": "Doble clic en una entrada → volver a ese paso",
+        "history.list.tooltip": (
+            "Historial de todos los pasos de edición.\n"
+            "Doble clic en una entrada vuelve a ese paso."
+        ),
+        # Crop bar
+        "crop_bar.label": "✂  Posiciona el recorte y confirma:",
+        "crop_bar.confirm": "✓  Aplicar recorte",
+        "crop_bar.cancel": "✗  Cancelar",
+        # Right panel — Selection tab contents
+        "right_panel.selection.section.settings": "Ajustes de herramienta",
+        "right_panel.selection.section.select": "Selección",
+        "right_panel.selection.tolerance": "Tolerancia (varita mágica):  {value}",
+        "right_panel.selection.tolerance.tooltip": (
+            "Controla cuán similares deben ser los colores para seleccionarse.\n"
+            "Bajo = solo colores muy similares · Alto = muchos tonos"
+        ),
+        "right_panel.selection.brush_size": "Tamaño del pincel:  {value} px",
+        "right_panel.selection.brush_size.tooltip": (
+            "Tamaño de la herramienta pincel/borrador en píxeles"
+        ),
+        "right_panel.selection.clear": "Anular",
+        "right_panel.selection.clear.tooltip": (
+            "Anula la selección actual (también: tecla Esc)"
+        ),
+        "right_panel.selection.invert": "Invertir",
+        "right_panel.selection.invert.tooltip": (
+            "Intercambia áreas seleccionadas y no seleccionadas  ({modifier}+Shift+I)"
+        ),
+        "right_panel.selection.morph.label": "Radio:",
+        "right_panel.selection.morph.tooltip": (
+            "Radio en píxeles para ampliar/encoger la selección"
+        ),
+        "right_panel.selection.expand": "+ Ampliar",
+        "right_panel.selection.expand.tooltip": (
+            "Amplía la selección según el radio establecido"
+        ),
+        "right_panel.selection.shrink": "− Encoger",
+        "right_panel.selection.shrink.tooltip": (
+            "Encoge la selección según el radio establecido"
+        ),
+        # Right panel — Background tab contents
+        "right_panel.background.section": "Editar fondo",
+        "right_panel.background.remove": "Eliminar (transparente)",
+        "right_panel.background.remove.tooltip": (
+            "Hace completamente transparente el área seleccionada.\n"
+            "Consejo: selecciona primero el fondo con la varita mágica."
+        ),
+        "right_panel.background.color_label": "Elegir color y rellenar la selección:",
+        "right_panel.background.color.tooltip": "Clic para elegir el color de fondo de reemplazo",
+        "right_panel.background.replace": "Reemplazar color",
+        "right_panel.background.replace.tooltip": (
+            "Rellena el área seleccionada con el color elegido"
+        ),
+        "right_panel.background.section.feather": "Suavizar borde",
+        "right_panel.background.feather_hint": (
+            "Difumina el borde del recorte (solo alfa)."
+        ),
+        "right_panel.background.feather_radius": "Radio:  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Radio del suavizado de borde en píxeles (0 = desactivado)"
+        ),
+        "right_panel.background.feather": "Suavizar borde",
+        "right_panel.background.feather.tooltip": (
+            "Difuminar el borde alfa de la capa activa (selección o global)"
+        ),
+        # Right panel — Transform tab contents
+        "right_panel.transform.section.rotate": "Girar",
+        "right_panel.transform.quick_label": "Giro rápido:",
+        "right_panel.transform.rotate_left_90": "↺ 90° izquierda",
+        "right_panel.transform.rotate_left_90.tooltip": "Girar 90° en sentido antihorario",
+        "right_panel.transform.rotate_right_90": "↻ 90° derecha",
+        "right_panel.transform.rotate_right_90.tooltip": "Girar 90° en sentido horario",
+        "right_panel.transform.rotate_180": "↺ 180°",
+        "right_panel.transform.rotate_180.tooltip": "Girar la imagen 180°",
+        "right_panel.transform.rotate_270": "↺ 270°",
+        "right_panel.transform.rotate_270.tooltip": "270° antihorario (= 90° a la derecha)",
+        "right_panel.transform.free_label": "Ángulo libre:",
+        "right_panel.transform.angle_slider.tooltip": "Ajustar el ángulo de giro: −180° a +180°",
+        "right_panel.transform.angle_spin.tooltip": "Introducir el ángulo de giro directamente",
+        "right_panel.transform.apply_angle": "Aplicar ángulo",
+        "right_panel.transform.apply_angle.tooltip": (
+            "Gira la imagen según el ángulo establecido.\n"
+            "Los ángulos oblicuos crean esquinas transparentes."
+        ),
+        "right_panel.transform.section.flip": "Voltear",
+        "right_panel.transform.flip_h": "Horizontal",
+        "right_panel.transform.flip_h.tooltip": "Voltear la imagen horizontalmente (izquierda ↔ derecha)",
+        "right_panel.transform.flip_v": "Vertical",
+        "right_panel.transform.flip_v.tooltip": "Voltear la imagen verticalmente (arriba ↕ abajo)",
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "Cambiar tamaño",
+        "resize.width": "Ancho",
+        "resize.height": "Alto",
+        "resize.link_aspect": "Mantener proporciones",
+        "resize.resample.label": "Método:",
+        "resize.resample.lanczos": "Lanczos (mejor calidad)",
+        "resize.resample.bicubic": "Bicúbico",
+        "resize.resample.bilinear": "Bilineal",
+        "resize.resample.nearest": "Vecino más próximo",
+        "resize.megapixels": "{mp:.1f} MP (máximo: {maximum} MP)",
+        "resize.ok": "Aplicar",
+        "resize.cancel": "Cancelar",
+        # mm/DPI-Modus + Druckflächenprüfung (#377)
+        "resize.mode.label": "Unidad:",
+        "resize.mode.pixel": "Píxeles",
+        "resize.mode.mm": "Milímetros (mm + DPI)",
+        "resize.width_mm": "Ancho",
+        "resize.height_mm": "Alto",
+        "resize.dpi": "Resolución",
+        "resize.medium.label": "Medio de destino:",
+        "resize.pixels_result": "Resultado: {width}×{height} px ({mp} MP)",
+        "resize.print_area_ok": "Cabe en {medium} ({medium_w}×{medium_h} mm).",
+        "resize.print_area_exceeded": (
+            "⚠ El motivo {width}×{height} mm supera {medium} "
+            "({medium_w}×{medium_h} mm)."
+        ),
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Corrección de color",
+        "right_panel.adjust.hint": "Actúa sobre la capa de color activa.",
+        "right_panel.adjust.brightness": "Brillo:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Brillo de la capa de color activa (100 % = sin cambios)"
+        ),
+        "right_panel.adjust.contrast": "Contraste:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Contraste de la capa de color activa (100 % = sin cambios)"
+        ),
+        "right_panel.adjust.saturation": "Saturación:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Saturación de la capa de color activa (0 % = escala de grises, 100 % = sin cambios)"
+        ),
+        "right_panel.adjust.reset": "Restablecer",
+        "right_panel.adjust.reset.tooltip": (
+            "Restablecer los controles al 100 % y descartar la vista previa"
+        ),
+        "right_panel.adjust.apply": "Aplicar",
+        "right_panel.adjust.apply.tooltip": (
+            "Aplicar la corrección de color a la capa de color activa"
+        ),
+        # Right panel — Shape tab contents
+        "right_panel.shape.section.corner": "Redondear esquinas",
+        "right_panel.shape.radius": "Radio:  {value} px",
+        "right_panel.shape.radius.tooltip": (
+            "Radio del redondeo de esquinas en píxeles.\n"
+            "0 = sin redondeo · 500 = redondeo máximo"
+        ),
+        "right_panel.shape.round": "Redondear esquinas",
+        "right_panel.shape.round.tooltip": (
+            "Aplica el redondeo de esquinas.\n"
+            "El resultado se guarda como PNG con esquinas transparentes."
+        ),
+        "right_panel.shape.section.resize": "Cambiar tamaño",
+        "right_panel.shape.resize_apply": "Aplicar tamaño",
+        "right_panel.shape.resize_apply.tooltip": "Escalar al tamaño introducido",
+        "right_panel.shape.section.format": "Formato de recorte",
+        "right_panel.shape.circle": "⬤  Círculo",
+        "right_panel.shape.circle.tooltip": "Posicionar un recorte circular y aplicarlo",
+        # Settings dialog
+        "settings.title": "Ajustes",
+        "settings.open_dir.label": "Directorio predeterminado para abrir",
+        "settings.save_dir.label": "Directorio predeterminado para exportar / guardar",
+        "settings.dir.placeholder": "Vacío = último directorio usado",
+        "settings.format.label": "Formato de imagen preferido",
+        "settings.log.label": "Archivo de registro",
+        "settings.log.tooltip": "Ruta del archivo de registro (selecciónala para copiar)",
+        "settings.log.open_button": "Abrir carpeta",
+        "settings.log.open_failed": "No se pudo abrir la carpeta:\n{target}",
+        "settings.cancel": "Cancelar",
+        "settings.ok": "OK",
+        "settings.pick_open.title": "Elegir directorio para abrir",
+        "settings.pick_save.title": "Elegir directorio para exportar/guardar",
+        "settings.invalid_dir.title": "Directorio no válido",
+        "settings.invalid_dir.body": "{label} no es un directorio existente:\n{value}",
+        "settings.language.label": "Idioma",
+        "settings.language.restart_title": "Reinicio necesario",
+        "settings.language.restart_hint": (
+            "El cambio de idioma se aplicará en el próximo inicio."
+        ),
+        # Dialogs (QMessageBox)
+        "dialog.ai_error.title": "Error de IA",
+        "dialog.ai_error.body": (
+            "Error durante la eliminación automática del fondo:\n\n{msg}"
+        ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "Cambios sin guardar",
+        "dialog.unsaved.body": (
+            "La imagen ha sido editada. ¿Guardar los cambios antes de descartarla?"
+        ),
+        "dialog.open.title": "Abrir imagen",
+        "dialog.open.filter": (
+            "Imágenes (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "Todos los archivos (*)"
+        ),
+        "dialog.save.title": "Guardar imagen como…",
+        "dialog.color.title": "Elegir color de fondo",
+        # Canvas status messages
+        "canvas.opened": "Abierto: {name}  ({w} × {h} px)",
+        "canvas.opened_extra": (
+            "Abierto: {name}  ({extra} archivo(s) adicional(es) ignorado(s))"
+        ),
+        "canvas.undo_none": "No queda nada por deshacer",
+        "canvas.undo_done": "↩  Deshecho: {desc}",
+        "canvas.redo_none": "No queda nada por rehacer",
+        "canvas.redo_done": "↪  Rehecho: {desc}",
+        "canvas.undo_to": "↩  {steps} paso(s) deshecho(s)  (hasta: {desc})",
+        "canvas.original_restored": "🔄  Original restaurado",
+        "canvas.selection_cleared": "Selección anulada",
+        "canvas.selection_inverted": "Selección invertida: {pixels:,} píxeles",
+        "canvas.selection_expanded": "Selección ampliada en {radius} px: {pixels:,} píxeles",
+        "canvas.selection_shrunk": "Selección encogida en {radius} px: {pixels:,} píxeles",
+        "canvas.bg_removed": "Fondo eliminado (transparente)",
+        "canvas.remove_error": "Error al eliminar: {error}",
+        "canvas.bg_replaced": "Fondo reemplazado: {color}",
+        "canvas.replace_error": "Error al reemplazar: {error}",
+        "canvas.ai_done": "✅ Eliminación de fondo por IA completada",
+        "canvas.selection_pixels": "Selección: {pixels:,} píxeles",
+        "canvas.selection_error": "Error de selección: {msg}",
+        "canvas.lasso_cancelled": "Lazo poligonal cancelado",
+        "canvas.lasso_selected": "Lazo poligonal: {pixels:,} píxeles seleccionados",
+        "canvas.lasso_points_one": (
+            "Lazo poligonal: {n} punto — doble clic para terminar · Esc = cancelar"
+        ),
+        "canvas.lasso_points_many": (
+            "Lazo poligonal: {n} puntos — doble clic para terminar · Esc = cancelar"
+        ),
+        "canvas.format_unsupported": "Formato no compatible",
+        "canvas.radius_positive": "El radio debe ser > 0",
+        "canvas.corners_rounded": "Esquinas redondeadas: radio de {r} px",
+        "canvas.rotate_too_large": (
+            "Girar {degrees}° haría la imagen demasiado grande "
+            "({mp:.0f} MP) – máximo: {maximum} MP"
+        ),
+        "canvas.rotated": "{direction} Girado: {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Tamaño cambiado: {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Tamaño objetivo {w} × {h} px demasiado grande ({mp:.0f} MP) – máximo: {maximum} MP"
+        ),
+        "canvas.color_adjusted": "🎨 Corrección de color aplicada",
+        "canvas.not_color_layer": "No hay capa de color activa",
+        "canvas.feathered": "🪶 Borde suavizado: {radius} px",
+        "canvas.flipped_h": "↔ Volteado horizontalmente",
+        "canvas.flipped_v": "↕ Volteado verticalmente",
+        "canvas.crop_cancelled": "Recorte cancelado",
+        "canvas.crop_size": "⇲ Tamaño: {w} × {h} px",
+        "canvas.crop_start_circle": (
+            "✂  Mueve el recorte  [círculo]  —  luego pulsa ✓ Aplicar"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  Mueve el recorte  [{w} × {h} px]  —  luego pulsa ✓ Aplicar"
+        ),
+        "canvas.cropped": "✂  Recortado: {w} × {h} px",
+        "canvas.save_failed": "Error al guardar: {error}",
+        "canvas.saved": "💾 Guardado: {name}",
+        # History step descriptions
+        "history.desc.generic": "Edición",
+        "history.desc.original_restored": "🔄 Original restaurado",
+        "history.desc.bg_removed": "Fondo eliminado",
+        "history.desc.color_replaced": "Color reemplazado ({color})",
+        "history.desc.ai_bg": "Eliminación de fondo por IA",
+        "history.desc.round_corners": "Esquinas redondeadas ({r} px)",
+        "history.desc.rotated": "{direction} Girado {degrees}°",
+        "history.desc.resized": "Tamaño cambiado ({w}×{h} px)",
+        "history.desc.color_adjusted": "Corrección de color",
+        "history.desc.feathered": "Borde suavizado ({radius} px)",
+        "history.desc.crop_circle": "Formato: círculo",
+        "history.desc.crop_ratio": "Formato: {w}×{h} px",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "Eliminar fondo (IA)",
+        "right_panel.ai.remove.tooltip": (
+            "Eliminar el fondo automáticamente: separar el motivo del fondo con IA"),
+        "right_panel.export.section.save": "Guardar",
+        "right_panel.export.format_label": "Formato de archivo",
+        "right_panel.export.save": "Guardar imagen",
+        "right_panel.export.save.tooltip": "Guardar el motivo de color como imagen",
+        "right_panel.export.section.uvprint": "Impresión UV",
+        "right_panel.export.eufymake": "Exportar assets para EufyMake Studio…",
+        "right_panel.export.eufymake.tooltip": (
+            "Exportar color, altura y gloss para EufyMake Studio"),
+        "workflow.open.recent": "Abiertos recientemente",
+        # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
+        "workflow.step.open": "Abrir",
+        "workflow.step.cutout": "Quitar fondo",
+        "workflow.step.adjust": "Ajustar",
+        "workflow.step.shape": "Forma y medidas",
+        "workflow.step.relief": "Relieve y capas",
+        "workflow.step.export": "Exportar",
+        "workflow.title.open": "Paso 1 · Abrir",
+        "workflow.title.cutout": "Paso 2 · Quitar fondo",
+        "workflow.title.adjust": "Paso 3 · Ajustar",
+        "workflow.title.shape": "Paso 4 · Forma y medidas",
+        "workflow.title.relief": "Paso 5 · Relieve y capas",
+        "workflow.title.export": "Paso 6 · Exportar",
+        "workflow.desc.open": "Cargar una imagen — arrastrar y soltar, diálogo o abiertas recientemente.",
+        "workflow.desc.cutout": "Separar el motivo del fondo — automáticamente o a mano.",
+        "workflow.desc.adjust": "Brillo, contraste y saturación con vista previa en vivo.",
+        "workflow.desc.shape": "Girar, voltear, redondear, recortar y escalar.",
+        "workflow.desc.relief": "Gestionar capas y el mapa de altura para la impresión en relieve.",
+        "workflow.desc.export": "Revisar el resultado, guardar o exportar para EufyMake.",
+        "workflow.next.open": "Siguiente: Quitar fondo →",
+        "workflow.next.cutout": "Siguiente: Ajustar →",
+        "workflow.next.adjust": "Siguiente: Forma y medidas →",
+        "workflow.next.shape": "Siguiente: Relieve y capas →",
+        "workflow.next.relief": "Siguiente: Exportar →",
+        "workflow.next.export": "Exportar ✓",
+        "workflow.back": "← Atrás",
+        "workflow.open.drop": "Arrastra una imagen aquí",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "Abrir archivo…",
+        "workflow.locked": "Abre primero una imagen (paso 1)",
+        "workflow.status.step": "Paso {num}/{total}: {title}",
+    },
+    "fr": {
+        # Status bar messages
+        "status.no_image_loaded": "Aucune image chargée",
+        "status.no_image_to_save": "Aucune image à enregistrer",
+        "status.already_loading": "Une image est déjà en cours de chargement…",
+        "status.load_result_discarded": (
+            "Résultat de chargement abandonné – l'image a changé entre-temps"
+        ),
+        "status.ai_already_running": "L'IA est déjà en cours…",
+        "status.ai_processing": "L'IA traite l'image… (peut prendre quelques secondes)",
+        "status.ai_ready": "IA prête",
+        "status.ai_model_loading": "Chargement du modèle d'IA…",
+        "status.ai_warmup_failed": "⚠️ Impossible de charger le modèle d'IA",
+        "status.ai_cancelling": "Annulation – en attente de l'IA en cours…",
+        "status.ai_cancelled": "Traitement IA annulé",
+        "status.ai_result_discarded": (
+            "Résultat IA abandonné – l'image a changé entre-temps"
+        ),
+        "status.wand_busy": "La baguette magique travaille encore…",
+        "status.selection_calculating": "⏳ Calcul de la sélection…",
+        "status.wand_discarded": (
+            "Sélection de la baguette abandonnée – l'image a changé entre-temps"
+        ),
+        "status.no_selection": (
+            "Aucune sélection – sélectionnez d'abord une zone avec la baguette magique ou le pinceau"
+        ),
+        "status.start_hint": (
+            "Ouvrir une image : Fichier → Ouvrir  ou  glisser-déposer sur la zone de travail"
+        ),
+        "status.quitting": "Fermeture…",
+        "status.shutdown_failed": (
+            "Fermeture impossible – un processus en arrière-plan est encore actif"
+        ),
+        # Statusleisten-Meldungen mit interpolierten Werten
+        "status.loading": "⏳ Chargement : {name}…",
+        "status.load_error": "Erreur de chargement : {msg}",
+        "status.file_too_large": "Fichier trop volumineux ({size} Mo) – maximum : {limit} Mo",
+        "status.image_too_large": "Image trop grande – maximum : {limit} Mpx",
+        "status.image_too_large_mp": "Image trop grande ({mp:.0f} Mpx) – maximum : {limit} Mpx",
+        "status.file_missing": "Le fichier n'existe plus : {name}",
+        "status.open_not_local": "Seuls les fichiers locaux peuvent être ouverts.",
+        "status.ai_error": "Erreur IA : {msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "Fichier de projet endommagé ou projet non valide",
+        "project.error.too_large": (
+            "Fichier de projet trop volumineux ({size} Mo) – maximum : {limit} Mo"
+        ),
+        "project.error.manifest_missing": "Fichier de projet incomplet : manifest.json manquant",
+        "project.error.manifest_invalid": "Fichier de projet endommagé : manifeste non valide",
+        "project.error.unsupported_version": (
+            "La version de format de projet {version} n'est pas prise en charge"
+        ),
+        "project.error.unexpected_entry": (
+            "Fichier de projet rejeté : entrée inattendue « {name} »"
+        ),
+        "project.error.entry_too_large": (
+            "Fichier de projet rejeté : l'entrée « {name} » est trop volumineuse (décompressée)"
+        ),
+        "project.error.layer_file_missing": (
+            "Fichier de projet incomplet : l'image de calque « {file} » est manquante"
+        ),
+        "project.error.layer_too_large": (
+            "Calque trop grand ({mp:.0f} Mpx) – maximum : {limit} Mpx"
+        ),
+        "project.error.layer_size_mismatch": (
+            "La taille du calque {actual} ne correspond pas à la taille du plan de travail {expected}"
+        ),
+        "project.warning.role_normalized": (
+            "Rôle de carte de hauteur incompatible retiré : « {name} » n'est pas un calque de hauteur"
+        ),
+        # EufyMake-Export – Konsistenzbefunde (#354)
+        "eufymake.export.color_motif_missing": (
+            "Motif couleur manquant : aucun rôle COLOR_MOTIF et aucun calque de "
+            "couleur contribuant au composite."
+        ),
+        "eufymake.export.optional_role_missing": (
+            "Le rôle optionnel sélectionné « {role_name} » n'a pas de calque."
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "La taille de l'asset {actual} ne correspond pas à la taille cible {expected}."
+        ),
+        "eufymake.export.invalid_target_params": "Paramètres cibles non valides : {detail}",
+        "eufymake.export.height_map_empty": (
+            "La carte de hauteur est vide ou constante et pourrait ne produire aucun relief."
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "Le masque gloss est vide ou constant et pourrait être inutile."
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "Une carte de hauteur {bits} bits n'est pas officiellement confirmée pour EufyMake Studio."
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "Le gloss n'est qu'un asset d'import/d'aide – le mode d'encre et "
+            "l'affectation des calques se font dans EufyMake Studio."
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais "
+            "sans contrat fabricant confirmé."
+        ),
+        # Allgemeine Pre-Export-Prüfung (#379)
+        "export.checks.dimensions_invalid": (
+            "Dimensions non valides : {width}×{height} px – largeur et hauteur doivent être positives."
+        ),
+        "export.checks.dimensions_too_large": (
+            "Sortie trop grande : {mp} Mpx dépassent la limite de {limit} Mpx."
+        ),
+        "export.checks.color_space_unexpected": (
+            "Espace colorimétrique inattendu : {actual} (attendu : {expected})."
+        ),
+        "export.checks.output_empty": "Sortie vide : le projet ne contient aucun calque.",
+        "export.checks.resolution_too_low": (
+            "Résolution faible : {dpi} DPI (minimum recommandé : {minimum} DPI)."
+        ),
+        "export.checks.resolution_too_high": (
+            "Résolution très élevée : {dpi} DPI (maximum recommandé : {maximum} DPI)."
+        ),
+        "export.checks.fully_transparent": (
+            "Entièrement transparent : la sortie ne contient aucun pixel visible."
+        ),
+        "export.checks.unexpected_alpha": (
+            "Transparence partielle : {percent} % des pixels sont semi-transparents."
+        ),
+        "export.checks.print_area_exceeded": (
+            "Le motif dépasse la surface d'impression : "
+            "{width}×{height} mm > {medium_w}×{medium_h} mm."
+        ),
+        # Pre-Export-Prüfung beim normalen Speichern (#380)
+        "export.check.error.title": "Enregistrement impossible",
+        "export.check.blocked": (
+            "L'enregistrement a été interrompu à cause des problèmes suivants :\n\n{details}"
+        ),
+        "export.check.warning.title": "Avertissements avant l'enregistrement",
+        "export.check.confirm": (
+            "Des avertissements existent :\n\n{details}\n\nEnregistrer quand même ?"
+        ),
+        # EufyMake-Export – Menü, Dialog & Meldungen (#355)
+        "action.export_eufymake": "Exporter les assets pour EufyMake Studio…",
+        "eufymake.dialog.title": "Exporter les assets pour EufyMake Studio",
+        "eufymake.dialog.intro": (
+            "BgRemover écrit des assets d'import pour EufyMake Studio – pas un "
+            "projet « .empf » fini. Importez-les et positionnez-les ensuite dans "
+            "Studio, affectez-y les modes d'encre/calques et enregistrez vous-même "
+            "le projet en « .empf »."
+        ),
+        "eufymake.dialog.section.assets": "Assets",
+        "eufymake.dialog.color_motif": "Motif couleur (obligatoire)",
+        "eufymake.dialog.color_motif.hint": (
+            "PNG RGBA issu du composite couleur ; la transparence est conservée."
+        ),
+        "eufymake.dialog.height": "Inclure la carte de hauteur",
+        "eufymake.dialog.height.hint": "PNG en niveaux de gris : clair = haut, sombre = bas.",
+        "eufymake.dialog.height.unavailable": "Aucun calque de hauteur dans le projet.",
+        "eufymake.dialog.gloss": "Inclure le masque gloss (expérimental)",
+        "eufymake.dialog.gloss.hint": (
+            "Asset d'aide optionnel. Le mode d'encre et l'affectation des calques "
+            "se font dans EufyMake Studio."
+        ),
+        "eufymake.dialog.gloss.unavailable": "Aucun calque gloss dans le projet.",
+        "eufymake.dialog.section.target": "Paramètres cibles",
+        "eufymake.dialog.bit_depth": "Profondeur de bits de la carte de hauteur :",
+        "eufymake.dialog.bit_depth.8": "8 bits (par défaut)",
+        "eufymake.dialog.bit_depth.16": "16 bits (expérimental, non confirmé)",
+        "eufymake.dialog.size": "Taille cible : {w} × {h} px",
+        "eufymake.dialog.physical": "Taille physique : {w} × {h} mm ({dpi} dpi)",
+        "eufymake.dialog.physical.unset": "Taille physique : non définie",
+        "eufymake.dialog.section.dest": "Destination",
+        "eufymake.dialog.dest.label": "Dossier d'export :",
+        "eufymake.dialog.dest.placeholder": "Aucun dossier choisi pour l'instant",
+        "eufymake.dialog.dest.is_file": (
+            "La destination est un fichier existant – veuillez choisir un dossier."
+        ),
+        "eufymake.dialog.dest.browse": "Parcourir…",
+        "eufymake.dialog.dest.dialog_title": "Choisir le dossier d'export",
+        "eufymake.dialog.section.findings": "Vérification",
+        "eufymake.dialog.findings.ok": "Aucune anomalie.",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "Avertissements compris – exporter quand même",
+        "eufymake.dialog.cancel": "Annuler",
+        "eufymake.dialog.export": "Exporter",
+        "eufymake.status.no_project": "Aucun projet à exporter",
+        "eufymake.status.cancelled": "Export annulé",
+        "eufymake.status.exported": "✅ Assets exportés pour EufyMake Studio : {path}",
+        "eufymake.error.title": "Échec de l'export",
+        "eufymake.error.write": "Échec de l'export : {error}",
+        "eufymake.error.not_directory": (
+            "La cible « {path} » est un fichier existant. Veuillez choisir un "
+            "dossier comme destination d'export."
+        ),
+        "eufymake.error.blocked": "Export bloqué – corrigez d'abord ceci :\n{details}",
+        "eufymake.overwrite.title": "Écraser le dossier ?",
+        "eufymake.overwrite.body": "« {path} » existe déjà. Remplacer son contenu ?",
+        "eufymake.success.title": "Export terminé",
+        "eufymake.success.body": (
+            "Assets d'import écrits dans :\n{path}\n\n"
+            "Étapes suivantes dans EufyMake Studio :\n"
+            "1. Importer et positionner les assets.\n"
+            "2. Affecter les modes d'encre/calques (p. ex. gloss/vernis).\n"
+            "3. Enregistrer le projet dans Studio en « .empf »."
+        ),
+        # Ebenen-Panel & Projekt-Aktionen (#334)
+        "layers.new_name": "Calque {n}",
+        "layers.role.none": "Aucun",
+        "layers.role.color_motif": "Motif couleur",
+        "layers.role.height_map": "Carte de hauteur",
+        "layers.role.gloss": "Gloss",
+        "layers.height_name": "Carte de hauteur",
+        "history.desc.layer_added": "Calque ajouté",
+        "history.desc.layer_removed": "Calque supprimé",
+        "history.desc.layer_duplicated": "Calque dupliqué",
+        "history.desc.layer_reordered": "Calque déplacé",
+        "history.desc.layer_renamed": "Calque renommé",
+        "history.desc.layer_active": "Calque actif changé",
+        "history.desc.layer_visibility": "Visibilité modifiée",
+        "history.desc.layer_opacity": "Opacité modifiée",
+        "history.desc.layer_role": "Rôle modifié",
+        "history.desc.height_generated": "Carte de hauteur générée",
+        "history.desc.height_imported": "Carte de hauteur importée",
+        "history.desc.height_lighten": "Hauteur éclaircie",
+        "history.desc.height_darken": "Hauteur assombrie",
+        "history.desc.height_set": "Hauteur définie",
+        "history.desc.height_invert": "Hauteur inversée",
+        "history.desc.height_optimized": "Hauteur optimisée",
+        "canvas.layer_added": "Nouveau calque ajouté",
+        "canvas.height_generated": "Carte de hauteur générée depuis l'image",
+        "canvas.height_imported": "Carte de hauteur importée : {name}",
+        "canvas.height_lightened": "Hauteur éclaircie",
+        "canvas.height_darkened": "Hauteur assombrie",
+        "canvas.height_set": "Hauteur définie",
+        "canvas.height_inverted": "Hauteur inversée",
+        "canvas.height_optimized": "Hauteur optimisée",
+        "canvas.height_op_error": "Échec de l'opération de hauteur : {error}",
+        "canvas.not_height_layer": "Aucun calque de hauteur actif",
+        "canvas.role_incompatible": (
+            "Le rôle « Carte de hauteur » n'est disponible que pour les calques de hauteur"
+        ),
+        "canvas.layer_removed": "Calque supprimé",
+        "canvas.layer_duplicated": "Calque dupliqué",
+        "canvas.cannot_delete_last": "Le dernier calque ne peut pas être supprimé",
+        "right_panel.tab.layers": "Calques",
+        "right_panel.tab.layers.tooltip": "Gérer les calques",
+        "right_panel.tab.height": "Hauteur",
+        "right_panel.tab.height.tooltip": "Carte de hauteur (relief)",
+        "right_panel.tab.preview": "Aperçu",
+        "right_panel.tab.preview.tooltip": "Affichage 2D pour couleur, relief et gloss",
+        "right_panel.preview.section": "Mode d'aperçu 2D",
+        "right_panel.preview.hint": (
+            "L'aperçu est indépendant du calque actif."
+        ),
+        "right_panel.preview.mode": "Affichage :",
+        "right_panel.preview.relief_strength": "Intensité du relief :  {value} %",
+        "right_panel.preview.relief_strength.tooltip": (
+            "Intensité de l'ombrage dans les modes Relief et Combiné"
+        ),
+        "right_panel.preview.gloss_visible": "Afficher le gloss",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "Afficher ou masquer le reflet gloss dans les modes Gloss et Combiné"
+        ),
+        "right_panel.preview.export_hint": (
+            "Affichage seulement – « Enregistrer l'image » exporte toujours "
+            "uniquement le motif couleur."
+        ),
+        "right_panel.height.section.acquire": "Obtenir",
+        "right_panel.height.section.edit": "Modifier",
+        "right_panel.height.section.optimize": "Optimiser",
+        "right_panel.height.generate": "Générer depuis l'image",
+        "right_panel.height.generate.tooltip": (
+            "Générer une carte de hauteur à partir de l'image actuelle"
+        ),
+        "right_panel.height.import": "Importer niveaux de gris…",
+        "right_panel.height.import.tooltip": (
+            "Importer une image en niveaux de gris comme carte de hauteur"
+        ),
+        "right_panel.height.hint": (
+            "Les outils de hauteur agissent sur le calque de hauteur actif."
+        ),
+        "right_panel.height.strength": "Intensité",
+        "right_panel.height.lighten": "Éclaircir",
+        "right_panel.height.lighten.tooltip": (
+            "Augmenter la hauteur dans la sélection (sinon globalement)"
+        ),
+        "right_panel.height.darken": "Assombrir",
+        "right_panel.height.darken.tooltip": (
+            "Diminuer la hauteur dans la sélection (sinon globalement)"
+        ),
+        "right_panel.height.set_value": "Valeur",
+        "right_panel.height.set": "Définir la hauteur",
+        "right_panel.height.set.tooltip": (
+            "Définir la hauteur à la valeur (sélection ou global)"
+        ),
+        "right_panel.height.invert": "Inverser",
+        "right_panel.height.invert.tooltip": (
+            "Inverser la hauteur (sélection ou global)"
+        ),
+        "right_panel.height.levels": "Niveaux (noir/blanc)",
+        "right_panel.height.gamma": "Gamma",
+        "right_panel.height.gaussian": "Flou gaussien (rayon)",
+        "right_panel.height.median": "Flou médian (rayon)",
+        "right_panel.height.threshold": "Seuil",
+        "right_panel.height.steps": "Paliers",
+        "right_panel.height.range": "Plage (min/max)",
+        "right_panel.height.apply": "Appliquer",
+        "right_panel.height.apply.tooltip": "Appliquer l'aperçu au calque de hauteur",
+        "right_panel.height.discard_preview": "Abandonner l'aperçu",
+        "right_panel.height.discard_preview.tooltip": (
+            "Abandonner l'aperçu sans l'appliquer"
+        ),
+        "right_panel.layers.section": "Calques",
+        "right_panel.layers.add.tooltip": "Nouveau calque",
+        "right_panel.layers.duplicate.tooltip": "Dupliquer le calque actif",
+        "right_panel.layers.delete.tooltip": "Supprimer le calque actif",
+        "right_panel.layers.move_up.tooltip": "Monter le calque",
+        "right_panel.layers.move_down.tooltip": "Descendre le calque",
+        "right_panel.layers.rename.tooltip": "Renommer le calque actif",
+        "right_panel.layers.role_label": "Rôle :",
+        "right_panel.layers.role.tooltip": (
+            "Rôle du calque actif (pour de futurs outils d'impression UV)"
+        ),
+        "right_panel.layers.visible.tooltip": "Basculer la visibilité",
+        "right_panel.layers.select.tooltip": "Choisir comme calque actif",
+        "right_panel.layers.opacity.tooltip": "Opacité (appliquée au relâchement)",
+        "right_panel.layers.empty": (
+            "Aucun projet chargé – ouvrez une image ou « Nouveau projet »."
+        ),
+        "menu.project": "Projet",
+        "action.new_project": "Nouveau projet",
+        "action.open_project": "Ouvrir un projet…",
+        "action.save_project": "Enregistrer le projet",
+        "action.save_project_as": "Enregistrer le projet sous…",
+        "dialog.open_project.title": "Ouvrir un projet",
+        "dialog.open_project.filter": "Projet BgRemover (*.bgrproj)",
+        "dialog.save_project.title": "Enregistrer le projet",
+        "dialog.rename.title": "Renommer le calque",
+        "dialog.rename.label": "Nouveau nom :",
+        "dialog.import_height.title": "Importer une carte de hauteur",
+        "dialog.project_error.title": "Erreur de projet",
+        "project.new": "Nouveau projet créé",
+        "project.saved": "Projet enregistré : {name}",
+        "project.opened": "Projet ouvert : {name}",
+        "project.no_project": "Aucun projet à enregistrer",
+        "project.save_failed": "Échec de l'enregistrement du projet : {error}",
+        # Main menu
+        "menu.file": "Fichier",
+        "menu.recent_files": "Récemment ouverts",
+        "menu.edit": "Édition",
+        "menu.view": "Affichage",
+        "menu.preview_mode": "Mode d'aperçu",
+        "menu.extras": "Outils",
+        "action.open": "Ouvrir…",
+        "action.save": "Enregistrer",
+        "action.save_as": "Enregistrer sous…",
+        "action.undo": "Annuler",
+        "action.redo": "Rétablir",
+        "action.rotate_left_90": "Pivoter de 90° à gauche",
+        "action.rotate_right_90": "Pivoter de 90° à droite",
+        "action.rotate_180": "Pivoter de 180°",
+        "action.flip_horizontal": "Retourner horizontalement",
+        "action.flip_vertical": "Retourner verticalement",
+        "action.resize": "Redimensionner…",
+        "action.clear_selection": "Annuler la sélection",
+        "action.invert_selection": "Inverser la sélection",
+        "action.restore_original": "Restaurer l'original",
+        "action.fit_to_view": "Ajuster à la vue",
+        # Verlauf-Popup: Menü-Anker seit #458 (Rail-Button entfallen)
+        "action.history": "Historique",
+        # Zoom-Kontrolle auf der Arbeitsfläche (#464)
+        "zoom.in.tooltip": "Zoom avant (+10 %)",
+        "zoom.out.tooltip": "Zoom arrière (−10 %)",
+        "zoom.lock.tooltip": "Verrouiller le zoom (garder la valeur actuelle)",
+        "zoom.unlock.tooltip": "Déverrouiller le zoom",
+        "preview.mode.color": "Couleur",
+        "preview.mode.relief": "Relief sur couleur",
+        "preview.mode.height": "Hauteur (niveaux de gris)",
+        "preview.mode.gloss": "Gloss",
+        "preview.mode.combined": "Combiné",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "Couleur",
+        "preview.seg.relief": "Relief",
+        "preview.seg.height": "Hauteur",
+        "preview.seg.gloss": "Gloss",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "Thème clair",
+        "theme.switched.light": "Thème clair activé.",
+        "theme.switched.dark": "Thème sombre activé.",
+        "action.settings": "Réglages…",
+        # Left toolbar
+        "toolbar.move.tooltip": (
+            "Déplacer / Zoom\n"
+            "Glisser avec le clic gauche déplace la vue · la molette zoome"
+        ),
+        "toolbar.wand.tooltip": (
+            "Baguette magique  (W)\n"
+            "Un clic sélectionne une zone de couleur (remplissage par diffusion)\n"
+            "Maj = ajouter  ·  {modifier} = soustraire"
+        ),
+        "toolbar.brush.tooltip": "Pinceau  (B)\nAjouter manuellement des zones à la sélection",
+        "toolbar.eraser.tooltip": "Gomme  (E)\nRetirer des zones de la sélection",
+        "toolbar.lasso.tooltip": (
+            "Lasso polygonal  (L)\n"
+            "Cliquer pose des points · double-clic ferme le polygone\n"
+            "Maj = ajouter  ·  {modifier} = soustraire  ·  Échap = annuler"
+        ),
+        "toolbar.height_lighten.tooltip": (
+            "Éclaircir (rehausser)\n"
+            "Le coup de pinceau augmente la hauteur du calque de hauteur actif"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "Assombrir (abaisser)\n"
+            "Le coup de pinceau diminue la hauteur du calque de hauteur actif"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "Outil de hauteur\n"
+            "Activez d'abord un calque de hauteur (étape 5 : générer/importer une carte de hauteur)"
+        ),
+        "toolbar.ai.missing.tooltip": (
+            'rembg non installé\n→ python3 -m pip install -e ".[ai]"'
+        ),
+        "toolbar.undo.tooltip": (
+            "Annuler  ({shortcut})\n"
+            "Annuler la dernière étape d'édition"
+        ),
+        "toolbar.redo.tooltip": (
+            "Rétablir  ({shortcut})\n"
+            "Rétablir la dernière étape annulée"
+        ),
+        "toolbar.theme.to_light.tooltip": "Passer au thème clair",
+        "toolbar.theme.to_dark.tooltip": "Passer au thème sombre",
+        # Right panel tabs
+        "right_panel.tab.selection": "Sélection",
+        "right_panel.tab.selection.tooltip": (
+            "Sélection – baguette magique, pinceau, gomme"
+        ),
+        "right_panel.tab.background": "Arrière-plan",
+        "right_panel.tab.background.tooltip": (
+            "Arrière-plan – supprimer, remplacer la couleur"
+        ),
+        "right_panel.tab.adjust": "Ajuster",
+        "right_panel.tab.adjust.tooltip": (
+            "Correction colorimétrique – luminosité, contraste, saturation"
+        ),
+        "right_panel.tab.transform": "Pivoter/Retourner",
+        "right_panel.tab.transform.tooltip": "Transformation – pivoter, retourner",
+        "right_panel.tab.shape": "Forme",
+        "right_panel.tab.shape.tooltip": (
+            "Forme & recadrage – arrondir les coins, choix du format"
+        ),
+        # History popup
+        "history.window_title": "Historique des modifications",
+        "history.hint": "Double-clic sur une entrée → revenir à cette étape",
+        "history.list.tooltip": (
+            "Historique de toutes les étapes d'édition.\n"
+            "Double-cliquez sur une entrée pour revenir à cette étape."
+        ),
+        # Crop bar
+        "crop_bar.label": "✂  Positionnez le recadrage, puis confirmez :",
+        "crop_bar.confirm": "✓  Appliquer le recadrage",
+        "crop_bar.cancel": "✗  Annuler",
+        # Right panel — Selection tab contents
+        "right_panel.selection.section.settings": "Réglages de l'outil",
+        "right_panel.selection.section.select": "Sélection",
+        "right_panel.selection.tolerance": "Tolérance (baguette magique) :  {value}",
+        "right_panel.selection.tolerance.tooltip": (
+            "Contrôle la similarité requise des couleurs pour être sélectionnées.\n"
+            "Bas = seulement des couleurs très proches · Haut = beaucoup de nuances"
+        ),
+        "right_panel.selection.brush_size": "Taille du pinceau :  {value} px",
+        "right_panel.selection.brush_size.tooltip": (
+            "Taille de l'outil pinceau/gomme en pixels"
+        ),
+        "right_panel.selection.clear": "Annuler",
+        "right_panel.selection.clear.tooltip": (
+            "Annule la sélection actuelle (aussi : touche Échap)"
+        ),
+        "right_panel.selection.invert": "Inverser",
+        "right_panel.selection.invert.tooltip": (
+            "Échange les zones sélectionnées et non sélectionnées  ({modifier}+Maj+I)"
+        ),
+        "right_panel.selection.morph.label": "Rayon :",
+        "right_panel.selection.morph.tooltip": (
+            "Rayon en pixels pour dilater/contracter la sélection"
+        ),
+        "right_panel.selection.expand": "+ Dilater",
+        "right_panel.selection.expand.tooltip": (
+            "Dilate la sélection du rayon défini"
+        ),
+        "right_panel.selection.shrink": "− Contracter",
+        "right_panel.selection.shrink.tooltip": (
+            "Contracte la sélection du rayon défini"
+        ),
+        # Right panel — Background tab contents
+        "right_panel.background.section": "Modifier l'arrière-plan",
+        "right_panel.background.remove": "Supprimer (transparent)",
+        "right_panel.background.remove.tooltip": (
+            "Rend la zone sélectionnée entièrement transparente.\n"
+            "Astuce : sélectionnez d'abord l'arrière-plan avec la baguette magique."
+        ),
+        "right_panel.background.color_label": "Choisir une couleur et remplir la sélection :",
+        "right_panel.background.color.tooltip": "Cliquez pour choisir la couleur d'arrière-plan de remplacement",
+        "right_panel.background.replace": "Remplacer la couleur",
+        "right_panel.background.replace.tooltip": (
+            "Remplit la zone sélectionnée avec la couleur choisie"
+        ),
+        "right_panel.background.section.feather": "Lisser le bord",
+        "right_panel.background.feather_hint": (
+            "Adoucit le bord du détourage (alpha uniquement)."
+        ),
+        "right_panel.background.feather_radius": "Rayon :  {value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "Rayon du lissage de bord en pixels (0 = désactivé)"
+        ),
+        "right_panel.background.feather": "Lisser le bord",
+        "right_panel.background.feather.tooltip": (
+            "Adoucir le bord alpha du calque actif (sélection ou global)"
+        ),
+        # Right panel — Transform tab contents
+        "right_panel.transform.section.rotate": "Pivoter",
+        "right_panel.transform.quick_label": "Rotation rapide :",
+        "right_panel.transform.rotate_left_90": "↺ 90° à gauche",
+        "right_panel.transform.rotate_left_90.tooltip": "Pivoter de 90° dans le sens antihoraire",
+        "right_panel.transform.rotate_right_90": "↻ 90° à droite",
+        "right_panel.transform.rotate_right_90.tooltip": "Pivoter de 90° dans le sens horaire",
+        "right_panel.transform.rotate_180": "↺ 180°",
+        "right_panel.transform.rotate_180.tooltip": "Pivoter l'image de 180°",
+        "right_panel.transform.rotate_270": "↺ 270°",
+        "right_panel.transform.rotate_270.tooltip": "270° antihoraire (= 90° à droite)",
+        "right_panel.transform.free_label": "Angle libre :",
+        "right_panel.transform.angle_slider.tooltip": "Régler l'angle de rotation : −180° à +180°",
+        "right_panel.transform.angle_spin.tooltip": "Saisir directement l'angle de rotation",
+        "right_panel.transform.apply_angle": "Appliquer l'angle",
+        "right_panel.transform.apply_angle.tooltip": (
+            "Pivote l'image de l'angle défini.\n"
+            "Les angles obliques créent des coins transparents."
+        ),
+        "right_panel.transform.section.flip": "Retourner",
+        "right_panel.transform.flip_h": "Horizontal",
+        "right_panel.transform.flip_h.tooltip": "Retourner l'image horizontalement (gauche ↔ droite)",
+        "right_panel.transform.flip_v": "Vertical",
+        "right_panel.transform.flip_v.tooltip": "Retourner l'image verticalement (haut ↕ bas)",
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "Redimensionner",
+        "resize.width": "Largeur",
+        "resize.height": "Hauteur",
+        "resize.link_aspect": "Conserver les proportions",
+        "resize.resample.label": "Méthode :",
+        "resize.resample.lanczos": "Lanczos (meilleure qualité)",
+        "resize.resample.bicubic": "Bicubique",
+        "resize.resample.bilinear": "Bilinéaire",
+        "resize.resample.nearest": "Plus proche voisin",
+        "resize.megapixels": "{mp:.1f} Mpx (maximum : {maximum} Mpx)",
+        "resize.ok": "Appliquer",
+        "resize.cancel": "Annuler",
+        # mm/DPI-Modus + Druckflächenprüfung (#377)
+        "resize.mode.label": "Unité :",
+        "resize.mode.pixel": "Pixels",
+        "resize.mode.mm": "Millimètres (mm + DPI)",
+        "resize.width_mm": "Largeur",
+        "resize.height_mm": "Hauteur",
+        "resize.dpi": "Résolution",
+        "resize.medium.label": "Support cible :",
+        "resize.pixels_result": "Résultat : {width}×{height} px ({mp} Mpx)",
+        "resize.print_area_ok": "Tient sur {medium} ({medium_w}×{medium_h} mm).",
+        "resize.print_area_exceeded": (
+            "⚠ Le motif {width}×{height} mm dépasse {medium} "
+            "({medium_w}×{medium_h} mm)."
+        ),
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Correction colorimétrique",
+        "right_panel.adjust.hint": "Agit sur le calque de couleur actif.",
+        "right_panel.adjust.brightness": "Luminosité :  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Luminosité du calque de couleur actif (100 % = inchangé)"
+        ),
+        "right_panel.adjust.contrast": "Contraste :  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Contraste du calque de couleur actif (100 % = inchangé)"
+        ),
+        "right_panel.adjust.saturation": "Saturation :  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Saturation du calque de couleur actif (0 % = niveaux de gris, 100 % = inchangé)"
+        ),
+        "right_panel.adjust.reset": "Réinitialiser",
+        "right_panel.adjust.reset.tooltip": (
+            "Réinitialiser les curseurs à 100 % et abandonner l'aperçu"
+        ),
+        "right_panel.adjust.apply": "Appliquer",
+        "right_panel.adjust.apply.tooltip": (
+            "Appliquer la correction colorimétrique au calque de couleur actif"
+        ),
+        # Right panel — Shape tab contents
+        "right_panel.shape.section.corner": "Arrondir les coins",
+        "right_panel.shape.radius": "Rayon :  {value} px",
+        "right_panel.shape.radius.tooltip": (
+            "Rayon de l'arrondi des coins en pixels.\n"
+            "0 = aucun arrondi · 500 = arrondi maximal"
+        ),
+        "right_panel.shape.round": "Arrondir les coins",
+        "right_panel.shape.round.tooltip": (
+            "Applique l'arrondi des coins.\n"
+            "Le résultat est enregistré en PNG avec des coins transparents."
+        ),
+        "right_panel.shape.section.resize": "Redimensionner",
+        "right_panel.shape.resize_apply": "Appliquer la taille",
+        "right_panel.shape.resize_apply.tooltip": "Mettre à l'échelle à la taille saisie",
+        "right_panel.shape.section.format": "Format de recadrage",
+        "right_panel.shape.circle": "⬤  Cercle",
+        "right_panel.shape.circle.tooltip": "Positionner un recadrage circulaire et l'appliquer",
+        # Settings dialog
+        "settings.title": "Réglages",
+        "settings.open_dir.label": "Répertoire par défaut pour l'ouverture",
+        "settings.save_dir.label": "Répertoire par défaut pour l'export / l'enregistrement",
+        "settings.dir.placeholder": "Vide = dernier répertoire utilisé",
+        "settings.format.label": "Format d'image préféré",
+        "settings.log.label": "Fichier journal",
+        "settings.log.tooltip": "Chemin du fichier journal (sélectionner pour copier)",
+        "settings.log.open_button": "Ouvrir le dossier",
+        "settings.log.open_failed": "Impossible d'ouvrir le dossier :\n{target}",
+        "settings.cancel": "Annuler",
+        "settings.ok": "OK",
+        "settings.pick_open.title": "Choisir le répertoire pour l'ouverture",
+        "settings.pick_save.title": "Choisir le répertoire pour l'export/l'enregistrement",
+        "settings.invalid_dir.title": "Répertoire non valide",
+        "settings.invalid_dir.body": "{label} n'est pas un répertoire existant :\n{value}",
+        "settings.language.label": "Langue",
+        "settings.language.restart_title": "Redémarrage requis",
+        "settings.language.restart_hint": (
+            "Le changement de langue prendra effet au prochain démarrage."
+        ),
+        # Dialogs (QMessageBox)
+        "dialog.ai_error.title": "Erreur IA",
+        "dialog.ai_error.body": (
+            "Erreur lors de la suppression automatique de l'arrière-plan :\n\n{msg}"
+        ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "Modifications non enregistrées",
+        "dialog.unsaved.body": (
+            "L'image a été modifiée. Enregistrer les modifications avant de l'abandonner ?"
+        ),
+        "dialog.open.title": "Ouvrir une image",
+        "dialog.open.filter": (
+            "Images (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "Tous les fichiers (*)"
+        ),
+        "dialog.save.title": "Enregistrer l'image sous…",
+        "dialog.color.title": "Choisir la couleur d'arrière-plan",
+        # Canvas status messages
+        "canvas.opened": "Ouvert : {name}  ({w} × {h} px)",
+        "canvas.opened_extra": (
+            "Ouvert : {name}  ({extra} autre(s) fichier(s) ignoré(s))"
+        ),
+        "canvas.undo_none": "Plus rien à annuler",
+        "canvas.undo_done": "↩  Annulé : {desc}",
+        "canvas.redo_none": "Plus rien à rétablir",
+        "canvas.redo_done": "↪  Rétabli : {desc}",
+        "canvas.undo_to": "↩  {steps} étape(s) annulée(s)  (jusqu'à : {desc})",
+        "canvas.original_restored": "🔄  Original restauré",
+        "canvas.selection_cleared": "Sélection annulée",
+        "canvas.selection_inverted": "Sélection inversée : {pixels:,} pixels",
+        "canvas.selection_expanded": "Sélection dilatée de {radius} px : {pixels:,} pixels",
+        "canvas.selection_shrunk": "Sélection contractée de {radius} px : {pixels:,} pixels",
+        "canvas.bg_removed": "Arrière-plan supprimé (transparent)",
+        "canvas.remove_error": "Erreur lors de la suppression : {error}",
+        "canvas.bg_replaced": "Arrière-plan remplacé : {color}",
+        "canvas.replace_error": "Erreur lors du remplacement : {error}",
+        "canvas.ai_done": "✅ Suppression de l'arrière-plan par IA terminée",
+        "canvas.selection_pixels": "Sélection : {pixels:,} pixels",
+        "canvas.selection_error": "Erreur de sélection : {msg}",
+        "canvas.lasso_cancelled": "Lasso polygonal annulé",
+        "canvas.lasso_selected": "Lasso polygonal : {pixels:,} pixels sélectionnés",
+        "canvas.lasso_points_one": (
+            "Lasso polygonal : {n} point — double-clic pour terminer · Échap = annuler"
+        ),
+        "canvas.lasso_points_many": (
+            "Lasso polygonal : {n} points — double-clic pour terminer · Échap = annuler"
+        ),
+        "canvas.format_unsupported": "Format non pris en charge",
+        "canvas.radius_positive": "Le rayon doit être > 0",
+        "canvas.corners_rounded": "Coins arrondis : rayon de {r} px",
+        "canvas.rotate_too_large": (
+            "Une rotation de {degrees}° rendrait l'image trop grande "
+            "({mp:.0f} Mpx) – maximum : {maximum} Mpx"
+        ),
+        "canvas.rotated": "{direction} Pivoté : {degrees}°  ({w} × {h} px)",
+        "canvas.resized": "⇲ Redimensionné : {w} × {h} px",
+        "canvas.resize_too_large": (
+            "Taille cible {w} × {h} px trop grande ({mp:.0f} Mpx) – maximum : {maximum} Mpx"
+        ),
+        "canvas.color_adjusted": "🎨 Correction colorimétrique appliquée",
+        "canvas.not_color_layer": "Aucun calque de couleur actif",
+        "canvas.feathered": "🪶 Bord lissé : {radius} px",
+        "canvas.flipped_h": "↔ Retourné horizontalement",
+        "canvas.flipped_v": "↕ Retourné verticalement",
+        "canvas.crop_cancelled": "Recadrage annulé",
+        "canvas.crop_size": "⇲ Taille : {w} × {h} px",
+        "canvas.crop_start_circle": (
+            "✂  Déplacez le recadrage  [cercle]  —  puis cliquez sur ✓ Appliquer"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  Déplacez le recadrage  [{w} × {h} px]  —  puis cliquez sur ✓ Appliquer"
+        ),
+        "canvas.cropped": "✂  Recadré : {w} × {h} px",
+        "canvas.save_failed": "Échec de l'enregistrement : {error}",
+        "canvas.saved": "💾 Enregistré : {name}",
+        # History step descriptions
+        "history.desc.generic": "Modification",
+        "history.desc.original_restored": "🔄 Original restauré",
+        "history.desc.bg_removed": "Arrière-plan supprimé",
+        "history.desc.color_replaced": "Couleur remplacée ({color})",
+        "history.desc.ai_bg": "Suppression de l'arrière-plan par IA",
+        "history.desc.round_corners": "Coins arrondis ({r} px)",
+        "history.desc.rotated": "{direction} Pivoté {degrees}°",
+        "history.desc.resized": "Redimensionné ({w}×{h} px)",
+        "history.desc.color_adjusted": "Correction colorimétrique",
+        "history.desc.feathered": "Bord lissé ({radius} px)",
+        "history.desc.crop_circle": "Format : cercle",
+        "history.desc.crop_ratio": "Format : {w}×{h} px",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "Supprimer le fond (IA)",
+        "right_panel.ai.remove.tooltip": (
+            "Supprimer l'arrière-plan automatiquement : séparer le sujet du fond par IA"),
+        "right_panel.export.section.save": "Enregistrer",
+        "right_panel.export.format_label": "Format de fichier",
+        "right_panel.export.save": "Enregistrer l'image",
+        "right_panel.export.save.tooltip": "Enregistrer le motif couleur comme image",
+        "right_panel.export.section.uvprint": "Impression UV",
+        "right_panel.export.eufymake": "Exporter les assets pour EufyMake Studio…",
+        "right_panel.export.eufymake.tooltip": (
+            "Exporter couleur, hauteur et gloss pour EufyMake Studio"),
+        "workflow.open.recent": "Récemment ouverts",
+        # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
+        "workflow.step.open": "Ouvrir",
+        "workflow.step.cutout": "Détourer",
+        "workflow.step.adjust": "Ajuster",
+        "workflow.step.shape": "Forme & dimensions",
+        "workflow.step.relief": "Relief & calques",
+        "workflow.step.export": "Export",
+        "workflow.title.open": "Étape 1 · Ouvrir",
+        "workflow.title.cutout": "Étape 2 · Détourer",
+        "workflow.title.adjust": "Étape 3 · Ajuster",
+        "workflow.title.shape": "Étape 4 · Forme & dimensions",
+        "workflow.title.relief": "Étape 5 · Relief & calques",
+        "workflow.title.export": "Étape 6 · Export",
+        "workflow.desc.open": "Charger une image — par glisser-déposer, dialogue ou récemment ouverts.",
+        "workflow.desc.cutout": "Séparer le sujet de l'arrière-plan — automatiquement ou à la main.",
+        "workflow.desc.adjust": "Luminosité, contraste et saturation avec aperçu en direct.",
+        "workflow.desc.shape": "Pivoter, retourner, arrondir, recadrer et mettre à l'échelle.",
+        "workflow.desc.relief": "Gérer les calques et la carte de hauteur pour l'impression en relief.",
+        "workflow.desc.export": "Vérifier le résultat, enregistrer ou exporter pour EufyMake.",
+        "workflow.next.open": "Suivant : Détourer →",
+        "workflow.next.cutout": "Suivant : Ajuster →",
+        "workflow.next.adjust": "Suivant : Forme & dimensions →",
+        "workflow.next.shape": "Suivant : Relief & calques →",
+        "workflow.next.relief": "Suivant : Export →",
+        "workflow.next.export": "Exporter ✓",
+        "workflow.back": "← Retour",
+        "workflow.open.drop": "Glissez une image ici",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "Ouvrir un fichier…",
+        "workflow.locked": "Ouvrez d'abord une image (étape 1)",
+        "workflow.status.step": "Étape {num}/{total} : {title}",
+    },
+    "uk": {
+        # Status bar messages
+        "status.no_image_loaded": "Зображення не завантажено",
+        "status.no_image_to_save": "Немає зображення для збереження",
+        "status.already_loading": "Зображення вже завантажується…",
+        "status.load_result_discarded": (
+            "Результат завантаження відхилено – зображення тим часом змінилося"
+        ),
+        "status.ai_already_running": "ШІ вже працює…",
+        "status.ai_processing": "ШІ обробляє зображення… (може тривати кілька секунд)",
+        "status.ai_ready": "ШІ готовий",
+        "status.ai_model_loading": "Завантаження моделі ШІ…",
+        "status.ai_warmup_failed": "⚠️ Не вдалося завантажити модель ШІ",
+        "status.ai_cancelling": "Скасування – очікування завершення ШІ…",
+        "status.ai_cancelled": "Обробку ШІ скасовано",
+        "status.ai_result_discarded": (
+            "Результат ШІ відхилено – зображення тим часом змінилося"
+        ),
+        "status.wand_busy": "Чарівна паличка ще працює…",
+        "status.selection_calculating": "⏳ Обчислення виділення…",
+        "status.wand_discarded": (
+            "Виділення палички відхилено – зображення тим часом змінилося"
+        ),
+        "status.no_selection": (
+            "Немає виділення – спочатку виділіть область чарівною паличкою або пензлем"
+        ),
+        "status.start_hint": (
+            "Відкрити зображення: Файл → Відкрити  або  перетягніть на робочу область"
+        ),
+        "status.quitting": "Завершення…",
+        "status.shutdown_failed": (
+            "Не вдалося завершити роботу – фоновий процес ще виконується"
+        ),
+        # Statusleisten-Meldungen mit interpolierten Werten
+        "status.loading": "⏳ Завантаження: {name}…",
+        "status.load_error": "Помилка завантаження: {msg}",
+        "status.file_too_large": "Файл завеликий ({size} МБ) – максимум: {limit} МБ",
+        "status.image_too_large": "Зображення завелике – максимум: {limit} Мпкс",
+        "status.image_too_large_mp": "Зображення завелике ({mp:.0f} Мпкс) – максимум: {limit} Мпкс",
+        "status.file_missing": "Файл більше не існує: {name}",
+        "status.open_not_local": "Відкривати можна лише локальні файли.",
+        "status.ai_error": "Помилка ШІ: {msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "Файл проєкту пошкоджено, або це не дійсний проєкт",
+        "project.error.too_large": (
+            "Файл проєкту завеликий ({size} МБ) – максимум: {limit} МБ"
+        ),
+        "project.error.manifest_missing": "Файл проєкту неповний: відсутній manifest.json",
+        "project.error.manifest_invalid": "Файл проєкту пошкоджено: недійсний маніфест",
+        "project.error.unsupported_version": (
+            "Версія формату проєкту {version} не підтримується"
+        ),
+        "project.error.unexpected_entry": (
+            "Файл проєкту відхилено: неочікуваний запис «{name}»"
+        ),
+        "project.error.entry_too_large": (
+            "Файл проєкту відхилено: запис «{name}» завеликий (у розпакованому вигляді)"
+        ),
+        "project.error.layer_file_missing": (
+            "Файл проєкту неповний: відсутнє зображення шару «{file}»"
+        ),
+        "project.error.layer_too_large": (
+            "Шар завеликий ({mp:.0f} Мпкс) – максимум: {limit} Мпкс"
+        ),
+        "project.error.layer_size_mismatch": (
+            "Розмір шару {actual} не відповідає розміру полотна {expected}"
+        ),
+        "project.warning.role_normalized": (
+            "Несумісну роль карти висот вилучено: «{name}» не є шаром висот"
+        ),
+        # EufyMake-Export – Konsistenzbefunde (#354)
+        "eufymake.export.color_motif_missing": (
+            "Відсутній колірний мотив: немає ролі COLOR_MOTIF і жодного колірного "
+            "шару, що бере участь у композиті."
+        ),
+        "eufymake.export.optional_role_missing": (
+            "Вибрана необов'язкова роль «{role_name}» не має шару."
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "Розмір ресурсу {actual} не відповідає цільовому розміру {expected}."
+        ),
+        "eufymake.export.invalid_target_params": "Недійсні цільові параметри: {detail}",
+        "eufymake.export.height_map_empty": (
+            "Карта висот порожня або стала й може не дати рельєфу."
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "Маска глянцю порожня або стала й може бути марною."
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "{bits}-бітна карта висот офіційно не підтверджена для EufyMake Studio."
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "Глянець – лише допоміжний ресурс для імпорту: режим фарби та "
+            "призначення шарів виконуються в EufyMake Studio."
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але не є "
+            "підтвердженим контрактом виробника."
+        ),
+        # Allgemeine Pre-Export-Prüfung (#379)
+        "export.checks.dimensions_invalid": (
+            "Недійсні розміри: {width}×{height} пкс – ширина та висота мають бути додатними."
+        ),
+        "export.checks.dimensions_too_large": (
+            "Вивід завеликий: {mp} Мпкс перевищують ліміт {limit} Мпкс."
+        ),
+        "export.checks.color_space_unexpected": (
+            "Неочікуваний колірний простір: {actual} (очікувався: {expected})."
+        ),
+        "export.checks.output_empty": "Порожній вивід: проєкт не містить шарів.",
+        "export.checks.resolution_too_low": (
+            "Низька роздільність: {dpi} DPI (рекомендований мінімум: {minimum} DPI)."
+        ),
+        "export.checks.resolution_too_high": (
+            "Дуже висока роздільність: {dpi} DPI (рекомендований максимум: {maximum} DPI)."
+        ),
+        "export.checks.fully_transparent": (
+            "Повністю прозоро: у виводі немає видимих пікселів."
+        ),
+        "export.checks.unexpected_alpha": (
+            "Часткова прозорість: {percent}% пікселів напівпрозорі."
+        ),
+        "export.checks.print_area_exceeded": (
+            "Мотив перевищує область друку: "
+            "{width}×{height} мм > {medium_w}×{medium_h} мм."
+        ),
+        # Pre-Export-Prüfung beim normalen Speichern (#380)
+        "export.check.error.title": "Зберегти неможливо",
+        "export.check.blocked": (
+            "Збереження перервано через такі проблеми:\n\n{details}"
+        ),
+        "export.check.warning.title": "Попередження перед збереженням",
+        "export.check.confirm": (
+            "Є попередження:\n\n{details}\n\nУсе одно зберегти?"
+        ),
+        # EufyMake-Export – Menü, Dialog & Meldungen (#355)
+        "action.export_eufymake": "Експортувати ресурси для EufyMake Studio…",
+        "eufymake.dialog.title": "Експорт ресурсів для EufyMake Studio",
+        "eufymake.dialog.intro": (
+            "BgRemover записує ресурси для імпорту в EufyMake Studio – не готовий "
+            "проєкт «.empf». Потім імпортуйте й розмістіть їх у Studio, призначте "
+            "там режими фарби/шари та збережіть проєкт самостійно як «.empf»."
+        ),
+        "eufymake.dialog.section.assets": "Ресурси",
+        "eufymake.dialog.color_motif": "Колірний мотив (обов'язково)",
+        "eufymake.dialog.color_motif.hint": (
+            "RGBA-PNG з колірного композиту; прозорість зберігається."
+        ),
+        "eufymake.dialog.height": "Додати карту висот",
+        "eufymake.dialog.height.hint": "PNG у відтінках сірого: світле = високо, темне = низько.",
+        "eufymake.dialog.height.unavailable": "У проєкті немає шару висот.",
+        "eufymake.dialog.gloss": "Додати маску глянцю (експериментально)",
+        "eufymake.dialog.gloss.hint": (
+            "Необов'язковий допоміжний ресурс. Режим фарби та призначення шарів "
+            "виконуються в EufyMake Studio."
+        ),
+        "eufymake.dialog.gloss.unavailable": "У проєкті немає шару глянцю.",
+        "eufymake.dialog.section.target": "Цільові параметри",
+        "eufymake.dialog.bit_depth": "Бітність карти висот:",
+        "eufymake.dialog.bit_depth.8": "8 біт (стандарт)",
+        "eufymake.dialog.bit_depth.16": "16 біт (експериментально, не підтверджено)",
+        "eufymake.dialog.size": "Цільовий розмір: {w} × {h} пкс",
+        "eufymake.dialog.physical": "Фізичний розмір: {w} × {h} мм ({dpi} dpi)",
+        "eufymake.dialog.physical.unset": "Фізичний розмір: не задано",
+        "eufymake.dialog.section.dest": "Призначення",
+        "eufymake.dialog.dest.label": "Тека експорту:",
+        "eufymake.dialog.dest.placeholder": "Теку ще не вибрано",
+        "eufymake.dialog.dest.is_file": (
+            "Ціль – наявний файл; виберіть, будь ласка, теку."
+        ),
+        "eufymake.dialog.dest.browse": "Огляд…",
+        "eufymake.dialog.dest.dialog_title": "Вибрати теку експорту",
+        "eufymake.dialog.section.findings": "Перевірка",
+        "eufymake.dialog.findings.ok": "Зауважень немає.",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "Попередження зрозумілі – експортувати все одно",
+        "eufymake.dialog.cancel": "Скасувати",
+        "eufymake.dialog.export": "Експортувати",
+        "eufymake.status.no_project": "Немає проєкту для експорту",
+        "eufymake.status.cancelled": "Експорт скасовано",
+        "eufymake.status.exported": "✅ Ресурси для EufyMake Studio експортовано: {path}",
+        "eufymake.error.title": "Помилка експорту",
+        "eufymake.error.write": "Помилка експорту: {error}",
+        "eufymake.error.not_directory": (
+            "Ціль «{path}» – наявний файл. Виберіть, будь ласка, теку як "
+            "призначення експорту."
+        ),
+        "eufymake.error.blocked": "Експорт заблоковано – спочатку виправте:\n{details}",
+        "eufymake.overwrite.title": "Перезаписати теку?",
+        "eufymake.overwrite.body": "«{path}» вже існує. Замінити вміст?",
+        "eufymake.success.title": "Експорт завершено",
+        "eufymake.success.body": (
+            "Ресурси для імпорту записано до:\n{path}\n\n"
+            "Наступні кроки в EufyMake Studio:\n"
+            "1. Імпортуйте та розмістіть ресурси.\n"
+            "2. Призначте режими фарби/шари (напр., глянець/лак).\n"
+            "3. Збережіть проєкт у Studio як «.empf»."
+        ),
+        # Ebenen-Panel & Projekt-Aktionen (#334)
+        "layers.new_name": "Шар {n}",
+        "layers.role.none": "Немає",
+        "layers.role.color_motif": "Колірний мотив",
+        "layers.role.height_map": "Карта висот",
+        "layers.role.gloss": "Глянець",
+        "layers.height_name": "Карта висот",
+        "history.desc.layer_added": "Шар додано",
+        "history.desc.layer_removed": "Шар видалено",
+        "history.desc.layer_duplicated": "Шар здубльовано",
+        "history.desc.layer_reordered": "Шар переміщено",
+        "history.desc.layer_renamed": "Шар перейменовано",
+        "history.desc.layer_active": "Активний шар змінено",
+        "history.desc.layer_visibility": "Видимість змінено",
+        "history.desc.layer_opacity": "Непрозорість змінено",
+        "history.desc.layer_role": "Роль змінено",
+        "history.desc.height_generated": "Карту висот згенеровано",
+        "history.desc.height_imported": "Карту висот імпортовано",
+        "history.desc.height_lighten": "Висоту підвищено",
+        "history.desc.height_darken": "Висоту знижено",
+        "history.desc.height_set": "Висоту задано",
+        "history.desc.height_invert": "Висоту інвертовано",
+        "history.desc.height_optimized": "Висоту оптимізовано",
+        "canvas.layer_added": "Додано новий шар",
+        "canvas.height_generated": "Карту висот згенеровано із зображення",
+        "canvas.height_imported": "Карту висот імпортовано: {name}",
+        "canvas.height_lightened": "Висоту підвищено",
+        "canvas.height_darkened": "Висоту знижено",
+        "canvas.height_set": "Висоту задано",
+        "canvas.height_inverted": "Висоту інвертовано",
+        "canvas.height_optimized": "Висоту оптимізовано",
+        "canvas.height_op_error": "Операція з висотою не вдалася: {error}",
+        "canvas.not_height_layer": "Немає активного шару висот",
+        "canvas.role_incompatible": (
+            "Роль «Карта висот» доступна лише для шарів висот"
+        ),
+        "canvas.layer_removed": "Шар видалено",
+        "canvas.layer_duplicated": "Шар здубльовано",
+        "canvas.cannot_delete_last": "Останній шар видалити неможливо",
+        "right_panel.tab.layers": "Шари",
+        "right_panel.tab.layers.tooltip": "Керування шарами",
+        "right_panel.tab.height": "Висота",
+        "right_panel.tab.height.tooltip": "Карта висот (рельєф)",
+        "right_panel.tab.preview": "Перегляд",
+        "right_panel.tab.preview.tooltip": "2D-показ кольору, рельєфу та глянцю",
+        "right_panel.preview.section": "Режим 2D-перегляду",
+        "right_panel.preview.hint": (
+            "Перегляд не залежить від активного шару."
+        ),
+        "right_panel.preview.mode": "Показ:",
+        "right_panel.preview.relief_strength": "Сила рельєфу:  {value} %",
+        "right_panel.preview.relief_strength.tooltip": (
+            "Сила тіньового відмивання в режимах «Рельєф» і «Комбіновано»"
+        ),
+        "right_panel.preview.gloss_visible": "Показувати глянець",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "Показ або приховання полиску в режимах «Глянець» і «Комбіновано»"
+        ),
+        "right_panel.preview.export_hint": (
+            "Лише показ – «Зберегти зображення», як і раніше, експортує тільки "
+            "колірний мотив."
+        ),
+        "right_panel.height.section.acquire": "Отримати",
+        "right_panel.height.section.edit": "Редагувати",
+        "right_panel.height.section.optimize": "Оптимізувати",
+        "right_panel.height.generate": "Згенерувати із зображення",
+        "right_panel.height.generate.tooltip": (
+            "Згенерувати карту висот із поточного зображення"
+        ),
+        "right_panel.height.import": "Імпортувати відтінки сірого…",
+        "right_panel.height.import.tooltip": (
+            "Імпортувати зображення у відтінках сірого як карту висот"
+        ),
+        "right_panel.height.hint": (
+            "Інструменти висоти діють на активний шар висот."
+        ),
+        "right_panel.height.strength": "Сила",
+        "right_panel.height.lighten": "Підвищити",
+        "right_panel.height.lighten.tooltip": (
+            "Підняти висоту у виділенні (інакше – глобально)"
+        ),
+        "right_panel.height.darken": "Знизити",
+        "right_panel.height.darken.tooltip": (
+            "Опустити висоту у виділенні (інакше – глобально)"
+        ),
+        "right_panel.height.set_value": "Значення",
+        "right_panel.height.set": "Задати висоту",
+        "right_panel.height.set.tooltip": (
+            "Задати висоту на значення (виділення або глобально)"
+        ),
+        "right_panel.height.invert": "Інвертувати",
+        "right_panel.height.invert.tooltip": (
+            "Інвертувати висоту (виділення або глобально)"
+        ),
+        "right_panel.height.levels": "Рівні (чорний/білий)",
+        "right_panel.height.gamma": "Гамма",
+        "right_panel.height.gaussian": "Гаусове розмиття (радіус)",
+        "right_panel.height.median": "Медіанне розмиття (радіус)",
+        "right_panel.height.threshold": "Поріг",
+        "right_panel.height.steps": "Сходинки",
+        "right_panel.height.range": "Діапазон (мін/макс)",
+        "right_panel.height.apply": "Застосувати",
+        "right_panel.height.apply.tooltip": "Застосувати перегляд до шару висот",
+        "right_panel.height.discard_preview": "Відхилити перегляд",
+        "right_panel.height.discard_preview.tooltip": (
+            "Відхилити перегляд без застосування"
+        ),
+        "right_panel.layers.section": "Шари",
+        "right_panel.layers.add.tooltip": "Новий шар",
+        "right_panel.layers.duplicate.tooltip": "Дублювати активний шар",
+        "right_panel.layers.delete.tooltip": "Видалити активний шар",
+        "right_panel.layers.move_up.tooltip": "Шар вище",
+        "right_panel.layers.move_down.tooltip": "Шар нижче",
+        "right_panel.layers.rename.tooltip": "Перейменувати активний шар",
+        "right_panel.layers.role_label": "Роль:",
+        "right_panel.layers.role.tooltip": (
+            "Роль активного шару (для майбутніх інструментів УФ-друку)"
+        ),
+        "right_panel.layers.visible.tooltip": "Перемкнути видимість",
+        "right_panel.layers.select.tooltip": "Зробити активним шаром",
+        "right_panel.layers.opacity.tooltip": "Непрозорість (застосовується після відпускання)",
+        "right_panel.layers.empty": (
+            "Проєкт не завантажено – відкрийте зображення або «Новий проєкт»."
+        ),
+        "menu.project": "Проєкт",
+        "action.new_project": "Новий проєкт",
+        "action.open_project": "Відкрити проєкт…",
+        "action.save_project": "Зберегти проєкт",
+        "action.save_project_as": "Зберегти проєкт як…",
+        "dialog.open_project.title": "Відкрити проєкт",
+        "dialog.open_project.filter": "Проєкт BgRemover (*.bgrproj)",
+        "dialog.save_project.title": "Зберегти проєкт",
+        "dialog.rename.title": "Перейменувати шар",
+        "dialog.rename.label": "Нова назва:",
+        "dialog.import_height.title": "Імпортувати карту висот",
+        "dialog.project_error.title": "Помилка проєкту",
+        "project.new": "Новий проєкт створено",
+        "project.saved": "Проєкт збережено: {name}",
+        "project.opened": "Проєкт відкрито: {name}",
+        "project.no_project": "Немає проєкту для збереження",
+        "project.save_failed": "Не вдалося зберегти проєкт: {error}",
+        # Main menu
+        "menu.file": "Файл",
+        "menu.recent_files": "Нещодавно відкриті",
+        "menu.edit": "Редагування",
+        "menu.view": "Вигляд",
+        "menu.preview_mode": "Режим перегляду",
+        "menu.extras": "Інструменти",
+        "action.open": "Відкрити…",
+        "action.save": "Зберегти",
+        "action.save_as": "Зберегти як…",
+        "action.undo": "Скасувати",
+        "action.redo": "Повторити",
+        "action.rotate_left_90": "Повернути на 90° ліворуч",
+        "action.rotate_right_90": "Повернути на 90° праворуч",
+        "action.rotate_180": "Повернути на 180°",
+        "action.flip_horizontal": "Віддзеркалити горизонтально",
+        "action.flip_vertical": "Віддзеркалити вертикально",
+        "action.resize": "Змінити розмір…",
+        "action.clear_selection": "Зняти виділення",
+        "action.invert_selection": "Інвертувати виділення",
+        "action.restore_original": "Відновити оригінал",
+        "action.fit_to_view": "За розміром вікна",
+        # Verlauf-Popup: Menü-Anker seit #458 (Rail-Button entfallen)
+        "action.history": "Історія",
+        # Zoom-Kontrolle auf der Arbeitsfläche (#464)
+        "zoom.in.tooltip": "Збільшити (+10 %)",
+        "zoom.out.tooltip": "Зменшити (−10 %)",
+        "zoom.lock.tooltip": "Зафіксувати масштаб (зберегти поточне значення)",
+        "zoom.unlock.tooltip": "Зняти фіксацію масштабу",
+        "preview.mode.color": "Колір",
+        "preview.mode.relief": "Рельєф поверх кольору",
+        "preview.mode.height": "Висота (відтінки сірого)",
+        "preview.mode.gloss": "Глянець",
+        "preview.mode.combined": "Комбіновано",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "Колір",
+        "preview.seg.relief": "Рельєф",
+        "preview.seg.height": "Висота",
+        "preview.seg.gloss": "Глянець",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "Світла тема",
+        "theme.switched.light": "Світлу тему ввімкнено.",
+        "theme.switched.dark": "Темну тему ввімкнено.",
+        "action.settings": "Налаштування…",
+        # Left toolbar
+        "toolbar.move.tooltip": (
+            "Переміщення / Масштаб\n"
+            "Перетягування лівою кнопкою зсуває вид · коліщатко масштабує"
+        ),
+        "toolbar.wand.tooltip": (
+            "Чарівна паличка  (W)\n"
+            "Клік виділяє область кольору (заливка)\n"
+            "Shift = додати  ·  {modifier} = відняти"
+        ),
+        "toolbar.brush.tooltip": "Пензель  (B)\nДодавати області до виділення вручну",
+        "toolbar.eraser.tooltip": "Гумка  (E)\nВилучати області з виділення",
+        "toolbar.lasso.tooltip": (
+            "Полігональне ласо  (L)\n"
+            "Клік ставить точки · подвійний клік замикає полігон\n"
+            "Shift = додати  ·  {modifier} = відняти  ·  Esc = скасувати"
+        ),
+        "toolbar.height_lighten.tooltip": (
+            "Підвищити (вище)\n"
+            "Мазок піднімає висоту активного шару висот"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "Знизити (нижче)\n"
+            "Мазок опускає висоту активного шару висот"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "Інструмент висоти\n"
+            "Спочатку активуйте шар висот (крок 5: згенеруйте/імпортуйте карту висот)"
+        ),
+        "toolbar.ai.missing.tooltip": (
+            'rembg не встановлено\n→ python3 -m pip install -e ".[ai]"'
+        ),
+        "toolbar.undo.tooltip": (
+            "Скасувати  ({shortcut})\n"
+            "Скасувати останній крок редагування"
+        ),
+        "toolbar.redo.tooltip": (
+            "Повторити  ({shortcut})\n"
+            "Повторити останній скасований крок"
+        ),
+        "toolbar.theme.to_light.tooltip": "Перейти до світлої теми",
+        "toolbar.theme.to_dark.tooltip": "Перейти до темної теми",
+        # Right panel tabs
+        "right_panel.tab.selection": "Виділення",
+        "right_panel.tab.selection.tooltip": (
+            "Виділення – чарівна паличка, пензель, гумка"
+        ),
+        "right_panel.tab.background": "Фон",
+        "right_panel.tab.background.tooltip": (
+            "Фон – вилучити, замінити колір"
+        ),
+        "right_panel.tab.adjust": "Корекція",
+        "right_panel.tab.adjust.tooltip": (
+            "Корекція кольору – яскравість, контраст, насиченість"
+        ),
+        "right_panel.tab.transform": "Поворот/Дзеркало",
+        "right_panel.tab.transform.tooltip": "Трансформація – поворот, віддзеркалення",
+        "right_panel.tab.shape": "Форма",
+        "right_panel.tab.shape.tooltip": (
+            "Форма й обрізання – заокруглення кутів, вибір формату"
+        ),
+        # History popup
+        "history.window_title": "Історія змін",
+        "history.hint": "Подвійний клік на записі → повернутися до цього кроку",
+        "history.list.tooltip": (
+            "Історія всіх кроків редагування.\n"
+            "Подвійний клік на записі повертає до цього кроку."
+        ),
+        # Crop bar
+        "crop_bar.label": "✂  Розмістіть кадр, потім підтвердьте:",
+        "crop_bar.confirm": "✓  Застосувати обрізання",
+        "crop_bar.cancel": "✗  Скасувати",
+        # Right panel — Selection tab contents
+        "right_panel.selection.section.settings": "Налаштування інструмента",
+        "right_panel.selection.section.select": "Виділення",
+        "right_panel.selection.tolerance": "Допуск (чарівна паличка):  {value}",
+        "right_panel.selection.tolerance.tooltip": (
+            "Керує тим, наскільки схожими мають бути кольори для виділення.\n"
+            "Низький = лише дуже схожі кольори · Високий = багато відтінків"
+        ),
+        "right_panel.selection.brush_size": "Розмір пензля:  {value} пкс",
+        "right_panel.selection.brush_size.tooltip": (
+            "Розмір інструмента пензель/гумка в пікселях"
+        ),
+        "right_panel.selection.clear": "Зняти",
+        "right_panel.selection.clear.tooltip": (
+            "Знімає поточне виділення (також: клавіша Esc)"
+        ),
+        "right_panel.selection.invert": "Інвертувати",
+        "right_panel.selection.invert.tooltip": (
+            "Міняє місцями виділені та невиділені області  ({modifier}+Shift+I)"
+        ),
+        "right_panel.selection.morph.label": "Радіус:",
+        "right_panel.selection.morph.tooltip": (
+            "Радіус у пікселях для розширення/звуження виділення"
+        ),
+        "right_panel.selection.expand": "+ Розширити",
+        "right_panel.selection.expand.tooltip": (
+            "Розширює виділення на заданий радіус"
+        ),
+        "right_panel.selection.shrink": "− Звузити",
+        "right_panel.selection.shrink.tooltip": (
+            "Звужує виділення на заданий радіус"
+        ),
+        # Right panel — Background tab contents
+        "right_panel.background.section": "Редагувати фон",
+        "right_panel.background.remove": "Вилучити (прозоро)",
+        "right_panel.background.remove.tooltip": (
+            "Робить виділену область повністю прозорою.\n"
+            "Порада: спочатку виділіть фон чарівною паличкою."
+        ),
+        "right_panel.background.color_label": "Виберіть колір і заповніть виділення:",
+        "right_panel.background.color.tooltip": "Клацніть, щоб вибрати колір фону для заміни",
+        "right_panel.background.replace": "Замінити колір",
+        "right_panel.background.replace.tooltip": (
+            "Заповнює виділену область вибраним кольором"
+        ),
+        "right_panel.background.section.feather": "Згладити край",
+        "right_panel.background.feather_hint": (
+            "Розмиває край вирізання (лише альфа)."
+        ),
+        "right_panel.background.feather_radius": "Радіус:  {value} пкс",
+        "right_panel.background.feather_radius.tooltip": (
+            "Радіус згладжування краю в пікселях (0 = вимкнено)"
+        ),
+        "right_panel.background.feather": "Згладити край",
+        "right_panel.background.feather.tooltip": (
+            "Розмити альфа-край активного шару (виділення або глобально)"
+        ),
+        # Right panel — Transform tab contents
+        "right_panel.transform.section.rotate": "Поворот",
+        "right_panel.transform.quick_label": "Швидкий поворот:",
+        "right_panel.transform.rotate_left_90": "↺ 90° ліворуч",
+        "right_panel.transform.rotate_left_90.tooltip": "Повернути на 90° проти годинникової стрілки",
+        "right_panel.transform.rotate_right_90": "↻ 90° праворуч",
+        "right_panel.transform.rotate_right_90.tooltip": "Повернути на 90° за годинниковою стрілкою",
+        "right_panel.transform.rotate_180": "↺ 180°",
+        "right_panel.transform.rotate_180.tooltip": "Повернути зображення на 180°",
+        "right_panel.transform.rotate_270": "↺ 270°",
+        "right_panel.transform.rotate_270.tooltip": "270° проти годинникової (= 90° праворуч)",
+        "right_panel.transform.free_label": "Довільний кут:",
+        "right_panel.transform.angle_slider.tooltip": "Задати кут повороту: від −180° до +180°",
+        "right_panel.transform.angle_spin.tooltip": "Ввести кут повороту напряму",
+        "right_panel.transform.apply_angle": "Застосувати кут",
+        "right_panel.transform.apply_angle.tooltip": (
+            "Повертає зображення на заданий кут.\n"
+            "Похилі кути створюють прозорі кути зображення."
+        ),
+        "right_panel.transform.section.flip": "Віддзеркалення",
+        "right_panel.transform.flip_h": "Горизонтально",
+        "right_panel.transform.flip_h.tooltip": "Віддзеркалити зображення горизонтально (ліво ↔ право)",
+        "right_panel.transform.flip_v": "Вертикально",
+        "right_panel.transform.flip_v.tooltip": "Віддзеркалити зображення вертикально (верх ↕ низ)",
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "Змінити розмір",
+        "resize.width": "Ширина",
+        "resize.height": "Висота",
+        "resize.link_aspect": "Зберігати пропорції",
+        "resize.resample.label": "Метод:",
+        "resize.resample.lanczos": "Ланцош (найкраща якість)",
+        "resize.resample.bicubic": "Бікубічний",
+        "resize.resample.bilinear": "Білінійний",
+        "resize.resample.nearest": "Найближчий сусід",
+        "resize.megapixels": "{mp:.1f} Мпкс (максимум: {maximum} Мпкс)",
+        "resize.ok": "Застосувати",
+        "resize.cancel": "Скасувати",
+        # mm/DPI-Modus + Druckflächenprüfung (#377)
+        "resize.mode.label": "Одиниця:",
+        "resize.mode.pixel": "Пікселі",
+        "resize.mode.mm": "Міліметри (мм + DPI)",
+        "resize.width_mm": "Ширина",
+        "resize.height_mm": "Висота",
+        "resize.dpi": "Роздільність",
+        "resize.medium.label": "Цільовий носій:",
+        "resize.pixels_result": "Результат: {width}×{height} пкс ({mp} Мпкс)",
+        "resize.print_area_ok": "Вміщується на {medium} ({medium_w}×{medium_h} мм).",
+        "resize.print_area_exceeded": (
+            "⚠ Мотив {width}×{height} мм перевищує {medium} "
+            "({medium_w}×{medium_h} мм)."
+        ),
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "Корекція кольору",
+        "right_panel.adjust.hint": "Діє на активний колірний шар.",
+        "right_panel.adjust.brightness": "Яскравість:  {value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "Яскравість активного колірного шару (100 % = без змін)"
+        ),
+        "right_panel.adjust.contrast": "Контраст:  {value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "Контраст активного колірного шару (100 % = без змін)"
+        ),
+        "right_panel.adjust.saturation": "Насиченість:  {value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "Насиченість активного колірного шару (0 % = відтінки сірого, 100 % = без змін)"
+        ),
+        "right_panel.adjust.reset": "Скинути",
+        "right_panel.adjust.reset.tooltip": (
+            "Скинути повзунки на 100 % і відхилити перегляд"
+        ),
+        "right_panel.adjust.apply": "Застосувати",
+        "right_panel.adjust.apply.tooltip": (
+            "Застосувати корекцію кольору до активного колірного шару"
+        ),
+        # Right panel — Shape tab contents
+        "right_panel.shape.section.corner": "Заокруглити кути",
+        "right_panel.shape.radius": "Радіус:  {value} пкс",
+        "right_panel.shape.radius.tooltip": (
+            "Радіус заокруглення кутів у пікселях.\n"
+            "0 = без заокруглення · 500 = максимально кругло"
+        ),
+        "right_panel.shape.round": "Заокруглити кути",
+        "right_panel.shape.round.tooltip": (
+            "Застосовує заокруглення кутів.\n"
+            "Результат зберігається як PNG із прозорими кутами."
+        ),
+        "right_panel.shape.section.resize": "Змінити розмір",
+        "right_panel.shape.resize_apply": "Застосувати розмір",
+        "right_panel.shape.resize_apply.tooltip": "Масштабувати до введеного розміру",
+        "right_panel.shape.section.format": "Формат обрізання",
+        "right_panel.shape.circle": "⬤  Коло",
+        "right_panel.shape.circle.tooltip": "Розмістити круглий кадр і застосувати обрізання",
+        # Settings dialog
+        "settings.title": "Налаштування",
+        "settings.open_dir.label": "Типова тека для відкриття",
+        "settings.save_dir.label": "Типова тека для експорту / збереження",
+        "settings.dir.placeholder": "Порожньо = остання використана тека",
+        "settings.format.label": "Бажаний формат файлів зображень",
+        "settings.log.label": "Файл журналу",
+        "settings.log.tooltip": "Шлях до файлу журналу (виділіть, щоб скопіювати)",
+        "settings.log.open_button": "Відкрити теку",
+        "settings.log.open_failed": "Не вдалося відкрити теку:\n{target}",
+        "settings.cancel": "Скасувати",
+        "settings.ok": "OK",
+        "settings.pick_open.title": "Вибрати теку для відкриття",
+        "settings.pick_save.title": "Вибрати теку для експорту/збереження",
+        "settings.invalid_dir.title": "Недійсна тека",
+        "settings.invalid_dir.body": "{label} не є наявною текою:\n{value}",
+        "settings.language.label": "Мова",
+        "settings.language.restart_title": "Потрібен перезапуск",
+        "settings.language.restart_hint": (
+            "Зміна мови набуде чинності після наступного запуску."
+        ),
+        # Dialogs (QMessageBox)
+        "dialog.ai_error.title": "Помилка ШІ",
+        "dialog.ai_error.body": (
+            "Помилка під час автоматичного вилучення фону:\n\n{msg}"
+        ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "Незбережені зміни",
+        "dialog.unsaved.body": (
+            "Зображення було змінено. Зберегти зміни, перш ніж відхилити їх?"
+        ),
+        "dialog.open.title": "Відкрити зображення",
+        "dialog.open.filter": (
+            "Зображення (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "Усі файли (*)"
+        ),
+        "dialog.save.title": "Зберегти зображення як…",
+        "dialog.color.title": "Вибрати колір фону",
+        # Canvas status messages
+        "canvas.opened": "Відкрито: {name}  ({w} × {h} пкс)",
+        "canvas.opened_extra": (
+            "Відкрито: {name}  (проігноровано ще файлів: {extra})"
+        ),
+        "canvas.undo_none": "Більше нічого скасовувати",
+        "canvas.undo_done": "↩  Скасовано: {desc}",
+        "canvas.redo_none": "Більше нічого повторювати",
+        "canvas.redo_done": "↪  Повторено: {desc}",
+        "canvas.undo_to": "↩  Скасовано кроків: {steps}  (до: {desc})",
+        "canvas.original_restored": "🔄  Оригінал відновлено",
+        "canvas.selection_cleared": "Виділення знято",
+        "canvas.selection_inverted": "Виділення інвертовано: {pixels:,} пкс",
+        "canvas.selection_expanded": "Виділення розширено на {radius} пкс: {pixels:,} пкс",
+        "canvas.selection_shrunk": "Виділення звужено на {radius} пкс: {pixels:,} пкс",
+        "canvas.bg_removed": "Фон вилучено (прозоро)",
+        "canvas.remove_error": "Помилка вилучення: {error}",
+        "canvas.bg_replaced": "Фон замінено: {color}",
+        "canvas.replace_error": "Помилка заміни: {error}",
+        "canvas.ai_done": "✅ Вилучення фону ШІ завершено",
+        "canvas.selection_pixels": "Виділення: {pixels:,} пкс",
+        "canvas.selection_error": "Помилка виділення: {msg}",
+        "canvas.lasso_cancelled": "Полігональне ласо скасовано",
+        "canvas.lasso_selected": "Полігональне ласо: виділено {pixels:,} пкс",
+        "canvas.lasso_points_one": (
+            "Полігональне ласо: {n} точка — подвійний клік завершує · Esc = скасувати"
+        ),
+        "canvas.lasso_points_many": (
+            "Полігональне ласо: точок: {n} — подвійний клік завершує · Esc = скасувати"
+        ),
+        "canvas.format_unsupported": "Формат не підтримується",
+        "canvas.radius_positive": "Радіус має бути > 0",
+        "canvas.corners_rounded": "Кути заокруглено: радіус {r} пкс",
+        "canvas.rotate_too_large": (
+            "Поворот на {degrees}° зробив би зображення завеликим "
+            "({mp:.0f} Мпкс) – максимум: {maximum} Мпкс"
+        ),
+        "canvas.rotated": "{direction} Повернуто: {degrees}°  ({w} × {h} пкс)",
+        "canvas.resized": "⇲ Розмір змінено: {w} × {h} пкс",
+        "canvas.resize_too_large": (
+            "Цільовий розмір {w} × {h} пкс завеликий ({mp:.0f} Мпкс) – максимум: {maximum} Мпкс"
+        ),
+        "canvas.color_adjusted": "🎨 Корекцію кольору застосовано",
+        "canvas.not_color_layer": "Немає активного колірного шару",
+        "canvas.feathered": "🪶 Край згладжено: {radius} пкс",
+        "canvas.flipped_h": "↔ Віддзеркалено горизонтально",
+        "canvas.flipped_v": "↕ Віддзеркалено вертикально",
+        "canvas.crop_cancelled": "Обрізання скасовано",
+        "canvas.crop_size": "⇲ Розмір: {w} × {h} пкс",
+        "canvas.crop_start_circle": (
+            "✂  Пересуньте кадр  [коло]  —  потім натисніть ✓ Застосувати"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  Пересуньте кадр  [{w} × {h} пкс]  —  потім натисніть ✓ Застосувати"
+        ),
+        "canvas.cropped": "✂  Обрізано: {w} × {h} пкс",
+        "canvas.save_failed": "Не вдалося зберегти: {error}",
+        "canvas.saved": "💾 Збережено: {name}",
+        # History step descriptions
+        "history.desc.generic": "Редагування",
+        "history.desc.original_restored": "🔄 Оригінал відновлено",
+        "history.desc.bg_removed": "Фон вилучено",
+        "history.desc.color_replaced": "Колір замінено ({color})",
+        "history.desc.ai_bg": "Вилучення фону ШІ",
+        "history.desc.round_corners": "Кути заокруглено ({r} пкс)",
+        "history.desc.rotated": "{direction} Повернуто {degrees}°",
+        "history.desc.resized": "Розмір змінено ({w}×{h} пкс)",
+        "history.desc.color_adjusted": "Корекція кольору",
+        "history.desc.feathered": "Край згладжено ({radius} пкс)",
+        "history.desc.crop_circle": "Формат: коло",
+        "history.desc.crop_ratio": "Формат: {w}×{h} пкс",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "Вилучити фон (ШІ)",
+        "right_panel.ai.remove.tooltip": (
+            "Вилучити фон автоматично: відділити мотив від фону за допомогою ШІ"),
+        "right_panel.export.section.save": "Збереження",
+        "right_panel.export.format_label": "Формат файлу",
+        "right_panel.export.save": "Зберегти зображення",
+        "right_panel.export.save.tooltip": "Зберегти колірний мотив як зображення",
+        "right_panel.export.section.uvprint": "УФ-друк",
+        "right_panel.export.eufymake": "Експортувати ресурси для EufyMake Studio…",
+        "right_panel.export.eufymake.tooltip": (
+            "Експортувати колір, висоту та глянець для EufyMake Studio"),
+        "workflow.open.recent": "Нещодавно відкриті",
+        # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
+        "workflow.step.open": "Відкрити",
+        "workflow.step.cutout": "Вилучити фон",
+        "workflow.step.adjust": "Корекція",
+        "workflow.step.shape": "Форма й розміри",
+        "workflow.step.relief": "Рельєф і шари",
+        "workflow.step.export": "Експорт",
+        "workflow.title.open": "Крок 1 · Відкрити",
+        "workflow.title.cutout": "Крок 2 · Вилучити фон",
+        "workflow.title.adjust": "Крок 3 · Корекція",
+        "workflow.title.shape": "Крок 4 · Форма й розміри",
+        "workflow.title.relief": "Крок 5 · Рельєф і шари",
+        "workflow.title.export": "Крок 6 · Експорт",
+        "workflow.desc.open": "Завантажте зображення — перетягуванням, через діалог або з нещодавно відкритих.",
+        "workflow.desc.cutout": "Відділіть мотив від фону — автоматично або вручну.",
+        "workflow.desc.adjust": "Яскравість, контраст і насиченість із живим переглядом.",
+        "workflow.desc.shape": "Поворот, віддзеркалення, заокруглення, обрізання та масштабування.",
+        "workflow.desc.relief": "Керуйте шарами та картою висот для рельєфного друку.",
+        "workflow.desc.export": "Перевірте результат, збережіть або експортуйте для EufyMake.",
+        "workflow.next.open": "Далі: Вилучити фон →",
+        "workflow.next.cutout": "Далі: Корекція →",
+        "workflow.next.adjust": "Далі: Форма й розміри →",
+        "workflow.next.shape": "Далі: Рельєф і шари →",
+        "workflow.next.relief": "Далі: Експорт →",
+        "workflow.next.export": "Експортувати ✓",
+        "workflow.back": "← Назад",
+        "workflow.open.drop": "Перетягніть зображення сюди",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "Відкрити файл…",
+        "workflow.locked": "Спочатку відкрийте зображення (крок 1)",
+        "workflow.status.step": "Крок {num}/{total}: {title}",
+    },
+    "zh": {
+        # Status bar messages
+        "status.no_image_loaded": "未加载图像",
+        "status.no_image_to_save": "没有可保存的图像",
+        "status.already_loading": "正在加载图像…",
+        "status.load_result_discarded": (
+            "加载结果已丢弃——图像在此期间已更改"
+        ),
+        "status.ai_already_running": "AI 已在运行…",
+        "status.ai_processing": "AI 正在处理图像…（可能需要几秒钟）",
+        "status.ai_ready": "AI 就绪",
+        "status.ai_model_loading": "正在加载 AI 模型…",
+        "status.ai_warmup_failed": "⚠️ 无法加载 AI 模型",
+        "status.ai_cancelling": "正在取消——等待运行中的 AI…",
+        "status.ai_cancelled": "AI 处理已取消",
+        "status.ai_result_discarded": (
+            "AI 结果已丢弃——图像在此期间已更改"
+        ),
+        "status.wand_busy": "魔棒仍在工作…",
+        "status.selection_calculating": "⏳ 正在计算选区…",
+        "status.wand_discarded": (
+            "魔棒选区已丢弃——图像在此期间已更改"
+        ),
+        "status.no_selection": (
+            "没有选区——请先用魔棒或画笔选择一个区域"
+        ),
+        "status.start_hint": (
+            "打开图像：文件 → 打开  或  拖放到工作区"
+        ),
+        "status.quitting": "正在退出…",
+        "status.shutdown_failed": (
+            "无法退出——仍有后台进程在运行"
+        ),
+        # Statusleisten-Meldungen mit interpolierten Werten
+        "status.loading": "⏳ 正在加载：{name}…",
+        "status.load_error": "加载错误：{msg}",
+        "status.file_too_large": "文件过大（{size} MB）——上限：{limit} MB",
+        "status.image_too_large": "图像过大——上限：{limit} MP",
+        "status.image_too_large_mp": "图像过大（{mp:.0f} MP）——上限：{limit} MP",
+        "status.file_missing": "文件已不存在：{name}",
+        "status.open_not_local": "只能打开本地文件。",
+        "status.ai_error": "AI 错误：{msg}",
+        # Projektdatei (.bgrproj) – Lade-/Speicherfehler
+        "project.error.corrupt": "项目文件已损坏或不是有效的项目",
+        "project.error.too_large": (
+            "项目文件过大（{size} MB）——上限：{limit} MB"
+        ),
+        "project.error.manifest_missing": "项目文件不完整：缺少 manifest.json",
+        "project.error.manifest_invalid": "项目文件已损坏：清单无效",
+        "project.error.unsupported_version": (
+            "不支持项目格式版本 {version}"
+        ),
+        "project.error.unexpected_entry": (
+            "项目文件被拒绝：意外条目“{name}”"
+        ),
+        "project.error.entry_too_large": (
+            "项目文件被拒绝：条目“{name}”过大（解压后）"
+        ),
+        "project.error.layer_file_missing": (
+            "项目文件不完整：缺少图层图像“{file}”"
+        ),
+        "project.error.layer_too_large": (
+            "图层过大（{mp:.0f} MP）——上限：{limit} MP"
+        ),
+        "project.error.layer_size_mismatch": (
+            "图层尺寸 {actual} 与画布尺寸 {expected} 不匹配"
+        ),
+        "project.warning.role_normalized": (
+            "已移除不兼容的高度图角色：“{name}”不是高度图层"
+        ),
+        # EufyMake-Export – Konsistenzbefunde (#354)
+        "eufymake.export.color_motif_missing": (
+            "缺少颜色图案：没有 COLOR_MOTIF 角色，也没有参与合成的颜色图层。"
+        ),
+        "eufymake.export.optional_role_missing": (
+            "所选的可选角色“{role_name}”没有图层。"
+        ),
+        "eufymake.export.asset_size_mismatch": (
+            "素材尺寸 {actual} 与目标尺寸 {expected} 不匹配。"
+        ),
+        "eufymake.export.invalid_target_params": "目标参数无效：{detail}",
+        "eufymake.export.height_map_empty": (
+            "高度图为空或恒定，可能不会产生浮雕。"
+        ),
+        "eufymake.export.gloss_mask_empty": (
+            "光泽蒙版为空或恒定，可能没有用处。"
+        ),
+        "eufymake.export.bit_depth_unconfirmed": (
+            "{bits} 位高度图尚未获得 EufyMake Studio 官方确认。"
+        ),
+        "eufymake.export.gloss_ink_mode": (
+            "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
+        ),
+        "eufymake.export.physical_size_unverified": (
+            "物理尺寸及像素↔毫米/DPI 假设合理，但并非经确认的厂商约定。"
+        ),
+        # Allgemeine Pre-Export-Prüfung (#379)
+        "export.checks.dimensions_invalid": (
+            "尺寸无效：{width}×{height} px——宽度和高度必须为正值。"
+        ),
+        "export.checks.dimensions_too_large": (
+            "输出过大：{mp} MP 超出 {limit} MP 的上限。"
+        ),
+        "export.checks.color_space_unexpected": (
+            "颜色空间异常：{actual}（应为：{expected}）。"
+        ),
+        "export.checks.output_empty": "输出为空：项目不包含任何图层。",
+        "export.checks.resolution_too_low": (
+            "分辨率偏低：{dpi} DPI（建议最低：{minimum} DPI）。"
+        ),
+        "export.checks.resolution_too_high": (
+            "分辨率过高：{dpi} DPI（建议最高：{maximum} DPI）。"
+        ),
+        "export.checks.fully_transparent": (
+            "完全透明：输出中没有可见像素。"
+        ),
+        "export.checks.unexpected_alpha": (
+            "部分透明：{percent}% 的像素为半透明。"
+        ),
+        "export.checks.print_area_exceeded": (
+            "图案超出打印区域："
+            "{width}×{height} mm > {medium_w}×{medium_h} mm。"
+        ),
+        # Pre-Export-Prüfung beim normalen Speichern (#380)
+        "export.check.error.title": "无法保存",
+        "export.check.blocked": (
+            "由于以下问题，保存已中止：\n\n{details}"
+        ),
+        "export.check.warning.title": "保存前的警告",
+        "export.check.confirm": (
+            "存在警告：\n\n{details}\n\n仍要保存吗？"
+        ),
+        # EufyMake-Export – Menü, Dialog & Meldungen (#355)
+        "action.export_eufymake": "导出 EufyMake Studio 素材…",
+        "eufymake.dialog.title": "导出 EufyMake Studio 素材",
+        "eufymake.dialog.intro": (
+            "BgRemover 写出的是供 EufyMake Studio 导入的素材，而不是成品“.empf”项目。"
+            "请随后在 Studio 中导入并摆放这些素材，在那里分配墨水模式/图层，"
+            "并自行将项目保存为“.empf”。"
+        ),
+        "eufymake.dialog.section.assets": "素材",
+        "eufymake.dialog.color_motif": "颜色图案（必需）",
+        "eufymake.dialog.color_motif.hint": (
+            "来自颜色合成的 RGBA PNG；透明度保持不变。"
+        ),
+        "eufymake.dialog.height": "包含高度图",
+        "eufymake.dialog.height.hint": "灰度 PNG：亮 = 高，暗 = 低。",
+        "eufymake.dialog.height.unavailable": "项目中没有高度图层。",
+        "eufymake.dialog.gloss": "包含光泽蒙版（实验性）",
+        "eufymake.dialog.gloss.hint": (
+            "可选的辅助素材。墨水模式和图层分配在 EufyMake Studio 中完成。"
+        ),
+        "eufymake.dialog.gloss.unavailable": "项目中没有光泽图层。",
+        "eufymake.dialog.section.target": "目标参数",
+        "eufymake.dialog.bit_depth": "高度图位深：",
+        "eufymake.dialog.bit_depth.8": "8 位（标准）",
+        "eufymake.dialog.bit_depth.16": "16 位（实验性，未经确认）",
+        "eufymake.dialog.size": "目标尺寸：{w} × {h} px",
+        "eufymake.dialog.physical": "物理尺寸：{w} × {h} mm（{dpi} dpi）",
+        "eufymake.dialog.physical.unset": "物理尺寸：未设置",
+        "eufymake.dialog.section.dest": "目标位置",
+        "eufymake.dialog.dest.label": "导出文件夹：",
+        "eufymake.dialog.dest.placeholder": "尚未选择文件夹",
+        "eufymake.dialog.dest.is_file": (
+            "目标是一个已存在的文件——请选择一个文件夹。"
+        ),
+        "eufymake.dialog.dest.browse": "浏览…",
+        "eufymake.dialog.dest.dialog_title": "选择导出文件夹",
+        "eufymake.dialog.section.findings": "检查",
+        "eufymake.dialog.findings.ok": "未发现问题。",
+        "eufymake.dialog.finding.error": "⛔  {msg}",
+        "eufymake.dialog.finding.warning": "⚠️  {msg}",
+        "eufymake.dialog.confirm_warnings": "我已了解警告——仍要导出",
+        "eufymake.dialog.cancel": "取消",
+        "eufymake.dialog.export": "导出",
+        "eufymake.status.no_project": "没有可导出的项目",
+        "eufymake.status.cancelled": "导出已取消",
+        "eufymake.status.exported": "✅ 已为 EufyMake Studio 导出素材：{path}",
+        "eufymake.error.title": "导出失败",
+        "eufymake.error.write": "导出失败：{error}",
+        "eufymake.error.not_directory": (
+            "目标“{path}”是一个已存在的文件。请选择一个文件夹作为导出目标。"
+        ),
+        "eufymake.error.blocked": "导出被阻止——请先修正：\n{details}",
+        "eufymake.overwrite.title": "覆盖文件夹？",
+        "eufymake.overwrite.body": "“{path}”已存在。要替换其内容吗？",
+        "eufymake.success.title": "导出完成",
+        "eufymake.success.body": (
+            "导入素材已写入：\n{path}\n\n"
+            "在 EufyMake Studio 中的后续步骤：\n"
+            "1. 导入并摆放素材。\n"
+            "2. 分配墨水模式/图层（例如光泽/上光油）。\n"
+            "3. 在 Studio 中将项目保存为“.empf”。"
+        ),
+        # Ebenen-Panel & Projekt-Aktionen (#334)
+        "layers.new_name": "图层 {n}",
+        "layers.role.none": "无",
+        "layers.role.color_motif": "颜色图案",
+        "layers.role.height_map": "高度图",
+        "layers.role.gloss": "光泽",
+        "layers.height_name": "高度图",
+        "history.desc.layer_added": "已添加图层",
+        "history.desc.layer_removed": "已删除图层",
+        "history.desc.layer_duplicated": "已复制图层",
+        "history.desc.layer_reordered": "已移动图层",
+        "history.desc.layer_renamed": "已重命名图层",
+        "history.desc.layer_active": "已切换活动图层",
+        "history.desc.layer_visibility": "已更改可见性",
+        "history.desc.layer_opacity": "已更改不透明度",
+        "history.desc.layer_role": "已更改角色",
+        "history.desc.height_generated": "已生成高度图",
+        "history.desc.height_imported": "已导入高度图",
+        "history.desc.height_lighten": "已调亮高度",
+        "history.desc.height_darken": "已调暗高度",
+        "history.desc.height_set": "已设置高度",
+        "history.desc.height_invert": "已反转高度",
+        "history.desc.height_optimized": "已优化高度",
+        "canvas.layer_added": "已添加新图层",
+        "canvas.height_generated": "已从图像生成高度图",
+        "canvas.height_imported": "已导入高度图：{name}",
+        "canvas.height_lightened": "已调亮高度",
+        "canvas.height_darkened": "已调暗高度",
+        "canvas.height_set": "已设置高度",
+        "canvas.height_inverted": "已反转高度",
+        "canvas.height_optimized": "已优化高度",
+        "canvas.height_op_error": "高度操作失败：{error}",
+        "canvas.not_height_layer": "没有活动的高度图层",
+        "canvas.role_incompatible": (
+            "“高度图”角色仅适用于高度图层"
+        ),
+        "canvas.layer_removed": "已删除图层",
+        "canvas.layer_duplicated": "已复制图层",
+        "canvas.cannot_delete_last": "无法删除最后一个图层",
+        "right_panel.tab.layers": "图层",
+        "right_panel.tab.layers.tooltip": "管理图层",
+        "right_panel.tab.height": "高度",
+        "right_panel.tab.height.tooltip": "高度图（浮雕）",
+        "right_panel.tab.preview": "预览",
+        "right_panel.tab.preview.tooltip": "颜色、浮雕和光泽的 2D 显示",
+        "right_panel.preview.section": "2D 预览模式",
+        "right_panel.preview.hint": (
+            "预览与活动图层无关。"
+        ),
+        "right_panel.preview.mode": "显示：",
+        "right_panel.preview.relief_strength": "浮雕强度：{value} %",
+        "right_panel.preview.relief_strength.tooltip": (
+            "浮雕与组合模式中山体阴影的强度"
+        ),
+        "right_panel.preview.gloss_visible": "显示光泽",
+        "right_panel.preview.gloss_visible.tooltip": (
+            "在光泽与组合模式中显示或隐藏光泽效果"
+        ),
+        "right_panel.preview.export_hint": (
+            "仅用于显示——“保存图像”仍然只导出颜色图案。"
+        ),
+        "right_panel.height.section.acquire": "获取",
+        "right_panel.height.section.edit": "编辑",
+        "right_panel.height.section.optimize": "优化",
+        "right_panel.height.generate": "从图像生成",
+        "right_panel.height.generate.tooltip": (
+            "从当前图像生成高度图"
+        ),
+        "right_panel.height.import": "导入灰度图…",
+        "right_panel.height.import.tooltip": (
+            "将灰度图像导入为高度图"
+        ),
+        "right_panel.height.hint": (
+            "高度工具作用于活动的高度图层。"
+        ),
+        "right_panel.height.strength": "强度",
+        "right_panel.height.lighten": "调亮",
+        "right_panel.height.lighten.tooltip": (
+            "提升选区内的高度（否则全局）"
+        ),
+        "right_panel.height.darken": "调暗",
+        "right_panel.height.darken.tooltip": (
+            "降低选区内的高度（否则全局）"
+        ),
+        "right_panel.height.set_value": "数值",
+        "right_panel.height.set": "设置高度",
+        "right_panel.height.set.tooltip": (
+            "将高度设为该数值（选区或全局）"
+        ),
+        "right_panel.height.invert": "反转",
+        "right_panel.height.invert.tooltip": (
+            "反转高度（选区或全局）"
+        ),
+        "right_panel.height.levels": "色阶（黑/白）",
+        "right_panel.height.gamma": "伽马",
+        "right_panel.height.gaussian": "高斯模糊（半径）",
+        "right_panel.height.median": "中值模糊（半径）",
+        "right_panel.height.threshold": "阈值",
+        "right_panel.height.steps": "阶数",
+        "right_panel.height.range": "范围（最小/最大）",
+        "right_panel.height.apply": "应用",
+        "right_panel.height.apply.tooltip": "将预览应用到高度图层",
+        "right_panel.height.discard_preview": "放弃预览",
+        "right_panel.height.discard_preview.tooltip": (
+            "放弃预览而不应用"
+        ),
+        "right_panel.layers.section": "图层",
+        "right_panel.layers.add.tooltip": "新建图层",
+        "right_panel.layers.duplicate.tooltip": "复制活动图层",
+        "right_panel.layers.delete.tooltip": "删除活动图层",
+        "right_panel.layers.move_up.tooltip": "上移图层",
+        "right_panel.layers.move_down.tooltip": "下移图层",
+        "right_panel.layers.rename.tooltip": "重命名活动图层",
+        "right_panel.layers.role_label": "角色：",
+        "right_panel.layers.role.tooltip": (
+            "活动图层的角色（用于将来的 UV 打印工具）"
+        ),
+        "right_panel.layers.visible.tooltip": "切换可见性",
+        "right_panel.layers.select.tooltip": "设为活动图层",
+        "right_panel.layers.opacity.tooltip": "不透明度（松开时应用）",
+        "right_panel.layers.empty": (
+            "未加载项目——请打开图像或“新建项目”。"
+        ),
+        "menu.project": "项目",
+        "action.new_project": "新建项目",
+        "action.open_project": "打开项目…",
+        "action.save_project": "保存项目",
+        "action.save_project_as": "项目另存为…",
+        "dialog.open_project.title": "打开项目",
+        "dialog.open_project.filter": "BgRemover 项目 (*.bgrproj)",
+        "dialog.save_project.title": "保存项目",
+        "dialog.rename.title": "重命名图层",
+        "dialog.rename.label": "新名称：",
+        "dialog.import_height.title": "导入高度图",
+        "dialog.project_error.title": "项目错误",
+        "project.new": "已创建新项目",
+        "project.saved": "项目已保存：{name}",
+        "project.opened": "项目已打开：{name}",
+        "project.no_project": "没有可保存的项目",
+        "project.save_failed": "保存项目失败：{error}",
+        # Main menu
+        "menu.file": "文件",
+        "menu.recent_files": "最近打开",
+        "menu.edit": "编辑",
+        "menu.view": "视图",
+        "menu.preview_mode": "预览模式",
+        "menu.extras": "工具",
+        "action.open": "打开…",
+        "action.save": "保存",
+        "action.save_as": "另存为…",
+        "action.undo": "撤销",
+        "action.redo": "重做",
+        "action.rotate_left_90": "向左旋转 90°",
+        "action.rotate_right_90": "向右旋转 90°",
+        "action.rotate_180": "旋转 180°",
+        "action.flip_horizontal": "水平翻转",
+        "action.flip_vertical": "垂直翻转",
+        "action.resize": "调整大小…",
+        "action.clear_selection": "取消选区",
+        "action.invert_selection": "反选",
+        "action.restore_original": "恢复原图",
+        "action.fit_to_view": "适应窗口",
+        # Verlauf-Popup: Menü-Anker seit #458 (Rail-Button entfallen)
+        "action.history": "历史记录",
+        # Zoom-Kontrolle auf der Arbeitsfläche (#464)
+        "zoom.in.tooltip": "放大（+10 %）",
+        "zoom.out.tooltip": "缩小（−10 %）",
+        "zoom.lock.tooltip": "锁定缩放（保持当前值）",
+        "zoom.unlock.tooltip": "解除缩放锁定",
+        "preview.mode.color": "颜色",
+        "preview.mode.relief": "颜色上的浮雕",
+        "preview.mode.height": "高度（灰度）",
+        "preview.mode.gloss": "光泽",
+        "preview.mode.combined": "组合",
+        # Kurzlabels für das Segmented-Control der 2D-Vorschau (§9 Schritt 6)
+        "preview.seg.color": "颜色",
+        "preview.seg.relief": "浮雕",
+        "preview.seg.height": "高度",
+        "preview.seg.gloss": "光泽",
+        # Design-Umschalter (Epic #424, Issue #428)
+        "action.light_mode": "浅色主题",
+        "theme.switched.light": "已启用浅色主题。",
+        "theme.switched.dark": "已启用深色主题。",
+        "action.settings": "设置…",
+        # Left toolbar
+        "toolbar.move.tooltip": (
+            "移动 / 缩放\n"
+            "按住左键拖动可平移视图 · 滚轮缩放"
+        ),
+        "toolbar.wand.tooltip": (
+            "魔棒  (W)\n"
+            "单击选择颜色区域（泛洪填充）\n"
+            "Shift = 加选  ·  {modifier} = 减选"
+        ),
+        "toolbar.brush.tooltip": "画笔  (B)\n手动将区域添加到选区",
+        "toolbar.eraser.tooltip": "橡皮擦  (E)\n从选区中移除区域",
+        "toolbar.lasso.tooltip": (
+            "多边形套索  (L)\n"
+            "单击放置顶点 · 双击闭合多边形\n"
+            "Shift = 加选  ·  {modifier} = 减选  ·  Esc = 取消"
+        ),
+        "toolbar.height_lighten.tooltip": (
+            "调亮（升高）\n"
+            "笔触提升活动高度图层的高度"
+        ),
+        "toolbar.height_darken.tooltip": (
+            "调暗（降低）\n"
+            "笔触降低活动高度图层的高度"
+        ),
+        "toolbar.height_tools.disabled.tooltip": (
+            "高度工具\n"
+            "请先激活一个高度图层（第 5 步：生成/导入高度图）"
+        ),
+        "toolbar.ai.missing.tooltip": (
+            'rembg 未安装\n→ python3 -m pip install -e ".[ai]"'
+        ),
+        "toolbar.undo.tooltip": (
+            "撤销  ({shortcut})\n"
+            "撤销上一个编辑步骤"
+        ),
+        "toolbar.redo.tooltip": (
+            "重做  ({shortcut})\n"
+            "重做上一个被撤销的步骤"
+        ),
+        "toolbar.theme.to_light.tooltip": "切换到浅色主题",
+        "toolbar.theme.to_dark.tooltip": "切换到深色主题",
+        # Right panel tabs
+        "right_panel.tab.selection": "选区",
+        "right_panel.tab.selection.tooltip": (
+            "选区——魔棒、画笔、橡皮擦"
+        ),
+        "right_panel.tab.background": "背景",
+        "right_panel.tab.background.tooltip": (
+            "背景——移除、替换颜色"
+        ),
+        "right_panel.tab.adjust": "调整",
+        "right_panel.tab.adjust.tooltip": (
+            "色彩校正——亮度、对比度、饱和度"
+        ),
+        "right_panel.tab.transform": "旋转/翻转",
+        "right_panel.tab.transform.tooltip": "变换——旋转、翻转",
+        "right_panel.tab.shape": "形状",
+        "right_panel.tab.shape.tooltip": (
+            "形状与裁剪——圆角、选择版式"
+        ),
+        # History popup
+        "history.window_title": "更改历史",
+        "history.hint": "双击条目 → 回到该步骤",
+        "history.list.tooltip": (
+            "所有编辑步骤的历史。\n"
+            "双击条目可回到该步骤。"
+        ),
+        # Crop bar
+        "crop_bar.label": "✂  放置裁剪框，然后确认：",
+        "crop_bar.confirm": "✓  应用裁剪",
+        "crop_bar.cancel": "✗  取消",
+        # Right panel — Selection tab contents
+        "right_panel.selection.section.settings": "工具设置",
+        "right_panel.selection.section.select": "选区",
+        "right_panel.selection.tolerance": "容差（魔棒）：{value}",
+        "right_panel.selection.tolerance.tooltip": (
+            "控制颜色需要多相似才会被选中。\n"
+            "低 = 只选非常相近的颜色 · 高 = 包含更多色调"
+        ),
+        "right_panel.selection.brush_size": "画笔大小：{value} px",
+        "right_panel.selection.brush_size.tooltip": (
+            "画笔/橡皮擦工具的大小（像素）"
+        ),
+        "right_panel.selection.clear": "取消选区",
+        "right_panel.selection.clear.tooltip": (
+            "取消当前选区（也可按 Esc 键）"
+        ),
+        "right_panel.selection.invert": "反选",
+        "right_panel.selection.invert.tooltip": (
+            "交换选中与未选中的区域  ({modifier}+Shift+I)"
+        ),
+        "right_panel.selection.morph.label": "半径：",
+        "right_panel.selection.morph.tooltip": (
+            "扩展/收缩选区的半径（像素）"
+        ),
+        "right_panel.selection.expand": "+ 扩展",
+        "right_panel.selection.expand.tooltip": (
+            "按设定的半径扩展选区"
+        ),
+        "right_panel.selection.shrink": "− 收缩",
+        "right_panel.selection.shrink.tooltip": (
+            "按设定的半径收缩选区"
+        ),
+        # Right panel — Background tab contents
+        "right_panel.background.section": "编辑背景",
+        "right_panel.background.remove": "移除（透明）",
+        "right_panel.background.remove.tooltip": (
+            "使选中的区域完全透明。\n"
+            "提示：先用魔棒选择背景。"
+        ),
+        "right_panel.background.color_label": "选择颜色并填充选区：",
+        "right_panel.background.color.tooltip": "单击以选择替换的背景颜色",
+        "right_panel.background.replace": "替换颜色",
+        "right_panel.background.replace.tooltip": (
+            "用所选颜色填充选中的区域"
+        ),
+        "right_panel.background.section.feather": "平滑边缘",
+        "right_panel.background.feather_hint": (
+            "柔化抠图边缘（仅 Alpha）。"
+        ),
+        "right_panel.background.feather_radius": "半径：{value} px",
+        "right_panel.background.feather_radius.tooltip": (
+            "边缘平滑半径（像素，0 = 关闭）"
+        ),
+        "right_panel.background.feather": "平滑边缘",
+        "right_panel.background.feather.tooltip": (
+            "柔化活动图层的 Alpha 边缘（选区或全局）"
+        ),
+        # Right panel — Transform tab contents
+        "right_panel.transform.section.rotate": "旋转",
+        "right_panel.transform.quick_label": "快速旋转：",
+        "right_panel.transform.rotate_left_90": "↺ 向左 90°",
+        "right_panel.transform.rotate_left_90.tooltip": "逆时针旋转 90°",
+        "right_panel.transform.rotate_right_90": "↻ 向右 90°",
+        "right_panel.transform.rotate_right_90.tooltip": "顺时针旋转 90°",
+        "right_panel.transform.rotate_180": "↺ 180°",
+        "right_panel.transform.rotate_180.tooltip": "将图像旋转 180°",
+        "right_panel.transform.rotate_270": "↺ 270°",
+        "right_panel.transform.rotate_270.tooltip": "逆时针 270°（= 向右 90°）",
+        "right_panel.transform.free_label": "任意角度：",
+        "right_panel.transform.angle_slider.tooltip": "设置旋转角度：−180° 至 +180°",
+        "right_panel.transform.angle_spin.tooltip": "直接输入旋转角度",
+        "right_panel.transform.apply_angle": "应用角度",
+        "right_panel.transform.apply_angle.tooltip": (
+            "按设定角度旋转图像。\n"
+            "倾斜角度会产生透明的边角。"
+        ),
+        "right_panel.transform.section.flip": "翻转",
+        "right_panel.transform.flip_h": "水平",
+        "right_panel.transform.flip_h.tooltip": "水平翻转图像（左 ↔ 右）",
+        "right_panel.transform.flip_v": "垂直",
+        "right_panel.transform.flip_v.tooltip": "垂直翻转图像（上 ↕ 下）",
+        # Größe-ändern-Dialog (#359)
+        "resize.title": "调整大小",
+        "resize.width": "宽度",
+        "resize.height": "高度",
+        "resize.link_aspect": "锁定宽高比",
+        "resize.resample.label": "方法：",
+        "resize.resample.lanczos": "Lanczos（最佳质量）",
+        "resize.resample.bicubic": "双三次",
+        "resize.resample.bilinear": "双线性",
+        "resize.resample.nearest": "最近邻",
+        "resize.megapixels": "{mp:.1f} MP（上限：{maximum} MP）",
+        "resize.ok": "应用",
+        "resize.cancel": "取消",
+        # mm/DPI-Modus + Druckflächenprüfung (#377)
+        "resize.mode.label": "单位：",
+        "resize.mode.pixel": "像素",
+        "resize.mode.mm": "毫米（mm + DPI）",
+        "resize.width_mm": "宽度",
+        "resize.height_mm": "高度",
+        "resize.dpi": "分辨率",
+        "resize.medium.label": "目标介质：",
+        "resize.pixels_result": "结果：{width}×{height} px（{mp} MP）",
+        "resize.print_area_ok": "可放入 {medium}（{medium_w}×{medium_h} mm）。",
+        "resize.print_area_exceeded": (
+            "⚠ 图案 {width}×{height} mm 超出 {medium}"
+            "（{medium_w}×{medium_h} mm）。"
+        ),
+        # Right panel — Adjust tab contents (#360)
+        "right_panel.adjust.section": "色彩校正",
+        "right_panel.adjust.hint": "作用于活动的颜色图层。",
+        "right_panel.adjust.brightness": "亮度：{value} %",
+        "right_panel.adjust.brightness.tooltip": (
+            "活动颜色图层的亮度（100 % = 不变）"
+        ),
+        "right_panel.adjust.contrast": "对比度：{value} %",
+        "right_panel.adjust.contrast.tooltip": (
+            "活动颜色图层的对比度（100 % = 不变）"
+        ),
+        "right_panel.adjust.saturation": "饱和度：{value} %",
+        "right_panel.adjust.saturation.tooltip": (
+            "活动颜色图层的饱和度（0 % = 灰度，100 % = 不变）"
+        ),
+        "right_panel.adjust.reset": "重置",
+        "right_panel.adjust.reset.tooltip": (
+            "将滑块重置为 100 % 并放弃预览"
+        ),
+        "right_panel.adjust.apply": "应用",
+        "right_panel.adjust.apply.tooltip": (
+            "将色彩校正应用到活动的颜色图层"
+        ),
+        # Right panel — Shape tab contents
+        "right_panel.shape.section.corner": "圆角",
+        "right_panel.shape.radius": "半径：{value} px",
+        "right_panel.shape.radius.tooltip": (
+            "圆角半径（像素）。\n"
+            "0 = 不圆角 · 500 = 最大圆角"
+        ),
+        "right_panel.shape.round": "应用圆角",
+        "right_panel.shape.round.tooltip": (
+            "应用圆角。\n"
+            "结果保存为带透明边角的 PNG。"
+        ),
+        "right_panel.shape.section.resize": "调整大小",
+        "right_panel.shape.resize_apply": "应用尺寸",
+        "right_panel.shape.resize_apply.tooltip": "缩放到输入的尺寸",
+        "right_panel.shape.section.format": "裁剪版式",
+        "right_panel.shape.circle": "⬤  圆形",
+        "right_panel.shape.circle.tooltip": "放置圆形裁剪框并应用",
+        # Settings dialog
+        "settings.title": "设置",
+        "settings.open_dir.label": "打开文件的默认目录",
+        "settings.save_dir.label": "导出 / 保存的默认目录",
+        "settings.dir.placeholder": "留空 = 上次使用的目录",
+        "settings.format.label": "首选图像文件格式",
+        "settings.log.label": "日志文件",
+        "settings.log.tooltip": "日志文件路径（选中即可复制）",
+        "settings.log.open_button": "打开文件夹",
+        "settings.log.open_failed": "无法打开文件夹：\n{target}",
+        "settings.cancel": "取消",
+        "settings.ok": "确定",
+        "settings.pick_open.title": "选择打开文件的目录",
+        "settings.pick_save.title": "选择导出/保存的目录",
+        "settings.invalid_dir.title": "目录无效",
+        "settings.invalid_dir.body": "{label} 不是已存在的目录：\n{value}",
+        "settings.language.label": "语言",
+        "settings.language.restart_title": "需要重新启动",
+        "settings.language.restart_hint": (
+            "语言更改将在下次启动时生效。"
+        ),
+        # Dialogs (QMessageBox)
+        "dialog.ai_error.title": "AI 错误",
+        "dialog.ai_error.body": (
+            "自动移除背景时出错：\n\n{msg}"
+        ),
+        # Main-window dialogs
+        "dialog.unsaved.title": "未保存的更改",
+        "dialog.unsaved.body": (
+            "图像已被编辑。要在丢弃之前保存更改吗？"
+        ),
+        "dialog.open.title": "打开图像",
+        "dialog.open.filter": (
+            "图像 (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.tif *.gif);;"
+            "所有文件 (*)"
+        ),
+        "dialog.save.title": "图像另存为…",
+        "dialog.color.title": "选择背景颜色",
+        # Canvas status messages
+        "canvas.opened": "已打开：{name}  （{w} × {h} px）",
+        "canvas.opened_extra": (
+            "已打开：{name}  （已忽略另外 {extra} 个文件）"
+        ),
+        "canvas.undo_none": "没有可撤销的操作了",
+        "canvas.undo_done": "↩  已撤销：{desc}",
+        "canvas.redo_none": "没有可重做的操作了",
+        "canvas.redo_done": "↪  已重做：{desc}",
+        "canvas.undo_to": "↩  已撤销 {steps} 步  （至：{desc}）",
+        "canvas.original_restored": "🔄  已恢复原图",
+        "canvas.selection_cleared": "已取消选区",
+        "canvas.selection_inverted": "已反选：{pixels:,} 像素",
+        "canvas.selection_expanded": "选区已扩展 {radius} px：{pixels:,} 像素",
+        "canvas.selection_shrunk": "选区已收缩 {radius} px：{pixels:,} 像素",
+        "canvas.bg_removed": "已移除背景（透明）",
+        "canvas.remove_error": "移除时出错：{error}",
+        "canvas.bg_replaced": "已替换背景：{color}",
+        "canvas.replace_error": "替换时出错：{error}",
+        "canvas.ai_done": "✅ AI 背景移除完成",
+        "canvas.selection_pixels": "选区：{pixels:,} 像素",
+        "canvas.selection_error": "选区错误：{msg}",
+        "canvas.lasso_cancelled": "已取消多边形套索",
+        "canvas.lasso_selected": "多边形套索：已选择 {pixels:,} 像素",
+        "canvas.lasso_points_one": (
+            "多边形套索：{n} 个顶点——双击完成 · Esc = 取消"
+        ),
+        "canvas.lasso_points_many": (
+            "多边形套索：{n} 个顶点——双击完成 · Esc = 取消"
+        ),
+        "canvas.format_unsupported": "不支持的格式",
+        "canvas.radius_positive": "半径必须 > 0",
+        "canvas.corners_rounded": "已应用圆角：半径 {r} px",
+        "canvas.rotate_too_large": (
+            "旋转 {degrees}° 会使图像过大"
+            "（{mp:.0f} MP）——上限：{maximum} MP"
+        ),
+        "canvas.rotated": "{direction} 已旋转：{degrees}°  （{w} × {h} px）",
+        "canvas.resized": "⇲ 已调整大小：{w} × {h} px",
+        "canvas.resize_too_large": (
+            "目标尺寸 {w} × {h} px 过大（{mp:.0f} MP）——上限：{maximum} MP"
+        ),
+        "canvas.color_adjusted": "🎨 已应用色彩校正",
+        "canvas.not_color_layer": "没有活动的颜色图层",
+        "canvas.feathered": "🪶 已平滑边缘：{radius} px",
+        "canvas.flipped_h": "↔ 已水平翻转",
+        "canvas.flipped_v": "↕ 已垂直翻转",
+        "canvas.crop_cancelled": "已取消裁剪",
+        "canvas.crop_size": "⇲ 尺寸：{w} × {h} px",
+        "canvas.crop_start_circle": (
+            "✂  移动裁剪框  [圆形]  ——  然后点击 ✓ 应用"
+        ),
+        "canvas.crop_start_ratio": (
+            "✂  移动裁剪框  [{w} × {h} px]  ——  然后点击 ✓ 应用"
+        ),
+        "canvas.cropped": "✂  已裁剪：{w} × {h} px",
+        "canvas.save_failed": "保存失败：{error}",
+        "canvas.saved": "💾 已保存：{name}",
+        # History step descriptions
+        "history.desc.generic": "编辑",
+        "history.desc.original_restored": "🔄 已恢复原图",
+        "history.desc.bg_removed": "已移除背景",
+        "history.desc.color_replaced": "已替换颜色（{color}）",
+        "history.desc.ai_bg": "AI 背景移除",
+        "history.desc.round_corners": "已应用圆角（{r} px）",
+        "history.desc.rotated": "{direction} 已旋转 {degrees}°",
+        "history.desc.resized": "已调整大小（{w}×{h} px）",
+        "history.desc.color_adjusted": "色彩校正",
+        "history.desc.feathered": "已平滑边缘（{radius} px）",
+        "history.desc.crop_circle": "版式：圆形",
+        "history.desc.crop_ratio": "版式：{w}×{h} px",
+        # §9-Angleich rechte Spalte – KI/Export/Speichern (#436–#440)
+        # Kurzlabel, damit der Primärbutton einzeilig bleibt (§5.4, #515);
+        # der volle Wortlaut steht im Tooltip.
+        "right_panel.ai.remove": "移除背景（AI）",
+        "right_panel.ai.remove.tooltip": (
+            "自动移除背景：用 AI 将主体与背景分离"),
+        "right_panel.export.section.save": "保存",
+        "right_panel.export.format_label": "文件格式",
+        "right_panel.export.save": "保存图像",
+        "right_panel.export.save.tooltip": "将颜色图案保存为图像",
+        "right_panel.export.section.uvprint": "UV 打印",
+        "right_panel.export.eufymake": "导出 EufyMake Studio 素材…",
+        "right_panel.export.eufymake.tooltip": (
+            "为 EufyMake Studio 导出颜色、高度和光泽"),
+        "workflow.open.recent": "最近打开",
+        # Geführter Workflow – Schrittleiste, Inspector-Kopf, Navigation (Epic #418)
+        "workflow.step.open": "打开",
+        "workflow.step.cutout": "抠图",
+        "workflow.step.adjust": "调整",
+        "workflow.step.shape": "形状与尺寸",
+        "workflow.step.relief": "浮雕与图层",
+        "workflow.step.export": "导出",
+        "workflow.title.open": "第 1 步 · 打开",
+        "workflow.title.cutout": "第 2 步 · 抠图",
+        "workflow.title.adjust": "第 3 步 · 调整",
+        "workflow.title.shape": "第 4 步 · 形状与尺寸",
+        "workflow.title.relief": "第 5 步 · 浮雕与图层",
+        "workflow.title.export": "第 6 步 · 导出",
+        "workflow.desc.open": "加载图像——拖放、对话框或最近打开。",
+        "workflow.desc.cutout": "将主体与背景分离——自动或手动。",
+        "workflow.desc.adjust": "亮度、对比度和饱和度，带实时预览。",
+        "workflow.desc.shape": "旋转、翻转、圆角、裁剪和缩放。",
+        "workflow.desc.relief": "管理图层以及用于浮雕打印的高度图。",
+        "workflow.desc.export": "检查结果、保存或导出到 EufyMake。",
+        "workflow.next.open": "下一步：抠图 →",
+        "workflow.next.cutout": "下一步：调整 →",
+        "workflow.next.adjust": "下一步：形状与尺寸 →",
+        "workflow.next.shape": "下一步：浮雕与图层 →",
+        "workflow.next.relief": "下一步：导出 →",
+        "workflow.next.export": "导出 ✓",
+        "workflow.back": "← 返回",
+        "workflow.open.drop": "将图像拖到此处",
+        "workflow.open.formats": "PNG · JPEG · WebP · TIFF · BMP · GIF",
+        "workflow.open.button": "打开文件…",
+        "workflow.locked": "请先打开图像（第 1 步）",
+        "workflow.status.step": "第 {num}/{total} 步：{title}",
     },
 }
 
