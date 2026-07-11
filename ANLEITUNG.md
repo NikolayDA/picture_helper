@@ -77,7 +77,7 @@ UV-Druck-Assets. Die wichtigsten Funktionen:
 
 ## 2. Die Programmoberfläche im Überblick
 
-![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260625_123039/01_main_empty.png)
+![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
 
 *Das Hauptfenster direkt nach dem Start: Werkzeugleiste links, Arbeitsfläche
 mit Transparenz-Schachbrett in der Mitte, Tab-Panel rechts (hier der Tab
@@ -121,7 +121,7 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   (siehe [Abschnitt 13](#13-ebenen--projekte) und
   [Abschnitt 16](#16-bild-speichern--export)).
 
-![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260625_123039/23_menu_edit.png)
+![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
 *Das Menü „Bearbeiten" bündelt Rückgängig/Wiederherstellen, Drehen, Spiegeln
 und die Auswahl-Aktionen.*
@@ -153,7 +153,7 @@ So entfernen Sie einen Hintergrund in unter einer Minute:
 5. **Speichern** – `Datei → Speichern` (⌘S), Format **PNG** wählen
    (behält die Transparenz).
 
-![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260625_123039/55_function_ai_result.png)
+![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
 
 *Nach einem Klick auf das KI-Symbol ist der Hintergrund automatisch
 freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
@@ -187,7 +187,7 @@ Alle Wege nutzen denselben **validierten, asynchronen Ladepfad**: Es gelten
 dieselben Format- und Größenprüfungen, und große Bilder werden im
 Hintergrund geladen – die Statusleiste zeigt den Fortschritt an.
 
-![Das Menü „Datei"](app_screenshots/bgremover_complete_20260625_123039/20_menu_file.png)
+![Das Menü „Datei"](app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
 
 *Das Menü „Datei" bündelt Öffnen (⌘O), „Zuletzt geöffnet", Speichern (⌘S)
 und Speichern unter… (⇧⌘S).*
@@ -244,7 +244,7 @@ Bei allen Auswahl-Werkzeugen gilt:
 | ⟲ | **Original wiederherstellen** – alle Bearbeitungen verwerfen |
 | 🕘 | **Änderungshistorie** – Liste aller Schritte; **Doppelklick** auf einen Eintrag springt zu diesem Zustand zurück |
 
-![Popup „Änderungshistorie"](app_screenshots/bgremover_complete_20260625_123039/44_popup_history.png)
+![Popup „Änderungshistorie"](app_screenshots/bgremover_complete_20260711_094027/44_popup_history.png)
 
 *Die Änderungshistorie listet jeden Bearbeitungsschritt auf; ein Doppelklick
 auf einen Eintrag springt zu genau diesem Zustand zurück.*
@@ -267,7 +267,7 @@ Fast alle Bearbeitungen (transparent machen, Farbe ersetzen) wirken auf
 den **aktuell ausgewählten Bereich**. Die Auswahl wird auf dem Bild
 farblich hervorgehoben.
 
-![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260625_123039/02_main_loaded_selection.png)
+![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
 
 *Ein geladenes Bild mit aktiver Auswahl: Der ausgewählte Hintergrundbereich
 ist auf der Arbeitsfläche farblich hervorgehoben.*
@@ -334,7 +334,7 @@ aufgelistet.
 
 Hier wird die getroffene Auswahl tatsächlich verändert.
 
-![Der Tab „Hintergrund"](app_screenshots/bgremover_complete_20260625_123039/12_tab_background.png)
+![Der Tab „Hintergrund"](app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
 
 *Der Tab „Hintergrund": „Entfernen (transparent)" macht die Auswahl
 durchsichtig; das Farbfeld und „Farbe ersetzen" füllen sie mit einer Farbe.*
@@ -345,7 +345,7 @@ durchsichtig; das Farbfeld und „Farbe ersetzen" füllen sie mit einer Farbe.*
 | **Farbe wählen** | Öffnet einen Farbwähler. Die kleine farbige Schaltfläche zeigt die aktuell gewählte Ersatzfarbe. |
 | **Farbe ersetzen** | Füllt den ausgewählten Bereich mit der gewählten Farbe. |
 
-![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260625_123039/31_dialog_color_picker.png)
+![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260711_094027/31_dialog_color_picker.png)
 
 *Über „Farbe wählen" öffnet sich der Farbwähler; die gewählte Farbe landet
 im Farbfeld und wird mit „Farbe ersetzen" auf die Auswahl angewendet.*
@@ -391,7 +391,7 @@ lässt die Transparenz unverändert.
 
 ## 10. Tab „Drehen/Spiegeln"
 
-![Der Tab „Drehen/Spiegeln"](app_screenshots/bgremover_complete_20260625_123039/14_tab_transform.png)
+![Der Tab „Drehen/Spiegeln"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
 
 *Der Tab „Drehen/Spiegeln" mit Schnell-Drehung (90°/180°/270°), freiem
 Winkel und den Schaltflächen zum horizontalen und vertikalen Spiegeln.*
@@ -417,7 +417,7 @@ Winkel und den Schaltflächen zum horizontalen und vertikalen Spiegeln.*
 
 ## 11. Tab „Form" – Ecken & Zuschnitt
 
-![Der Tab „Form"](app_screenshots/bgremover_complete_20260625_123039/15_tab_shape_crop.png)
+![Der Tab „Form"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
 
 *Der Tab „Form": oben „Ecken abrunden" mit Radius-Regler, darunter die
 Zuschnitt-Formate (Sonderformate, Quer- und Hochformat).*
@@ -444,7 +444,7 @@ PNG.
    - **✓ Zuschnitt anwenden** – schneidet das Bild zu.
    - **✗ Abbrechen** – verwirft den Rahmen.
 
-![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260625_123039/63_crop_circle_overlay.png)
+![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260711_094027/63_crop_circle_overlay.png)
 
 *Beispiel „Kreis": Der Zuschnitt-Rahmen liegt mit Anfasspunkten über dem
 Bild. Über „✓ Zuschnitt anwenden" wird zugeschnitten, „✗ Abbrechen" verwirft
@@ -657,7 +657,7 @@ weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als
 Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
 Einstellungen verwalten:
 
-![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260625_123039/30_dialog_settings.png)
+![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
 
 *Der Einstellungen-Dialog: Sprache, Standard-Verzeichnisse zum Öffnen und
 Speichern, bevorzugtes Bilddateiformat sowie der Pfad zur Protokolldatei mit

@@ -77,7 +77,7 @@ funciones principales:
 
 ## 2. La ventana de la aplicación de un vistazo
 
-![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260625_123039/01_main_empty.png)
+![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
 
 *La ventana principal justo tras el inicio: la barra de herramientas a la
 izquierda, el lienzo con el tablero de transparencia en el centro, el panel de
@@ -122,7 +122,7 @@ Muchas acciones también están disponibles desde la barra de menú:
   *…como…* (`.bgrproj`) y *Exportar activos para EufyMake Studio…* (consulta la
   [sección 13](#13-capas-y-proyectos) y la [sección 16](#16-guardar-y-exportar)).
 
-![El menú "Editar"](../../../app_screenshots/bgremover_complete_20260625_123039/23_menu_edit.png)
+![El menú "Editar"](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
 *El menú "Editar" reúne deshacer/rehacer, rotar, voltear y las acciones de
 selección.*
@@ -154,7 +154,7 @@ Elimina un fondo en menos de un minuto:
 5. **Guardar** – `Archivo → Guardar` (⌘S), elige el formato **PNG** (conserva
    la transparencia).
 
-![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260625_123039/55_function_ai_result.png)
+![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
 
 *Tras un clic en el ícono de IA, el fondo queda recortado automáticamente; la
 barra de estado confirma que la eliminación de fondo con IA ha finalizado y el
@@ -188,7 +188,7 @@ Todas estas vías utilizan la misma **ruta de carga validada y asíncrona**: se
 aplican las mismas comprobaciones de formato y tamaño, y las imágenes grandes se
 cargan en segundo plano — la barra de estado muestra el progreso.
 
-![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260625_123039/20_menu_file.png)
+![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
 
 *El menú "Archivo" agrupa Abrir (⌘O), "Archivos recientes", Guardar (⌘S) y
 Guardar como… (⇧⌘S).*
@@ -244,7 +244,7 @@ Para todas las herramientas de selección:
 | ⟲ | **Restaurar original** – descartar todas las ediciones |
 | 🕘 | **Historial de ediciones** – lista de todos los pasos; **doble clic** en una entrada para saltar a ese estado |
 
-![Ventana emergente "Historial de ediciones"](../../../app_screenshots/bgremover_complete_20260625_123039/44_popup_history.png)
+![Ventana emergente "Historial de ediciones"](../../../app_screenshots/bgremover_complete_20260711_094027/44_popup_history.png)
 
 *El historial de ediciones lista cada paso de edición; un doble clic en una
 entrada vuelve exactamente a ese estado.*
@@ -267,7 +267,7 @@ Casi todas las ediciones (hacer transparente, reemplazar color) actúan sobre
 el **área actualmente seleccionada**. La selección se resalta en color sobre
 la imagen.
 
-![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260625_123039/02_main_loaded_selection.png)
+![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
 
 *Una imagen cargada con una selección activa: el área de fondo seleccionada se
 resalta en color sobre el lienzo.*
@@ -332,7 +332,7 @@ Ctrl/Cmd = sustraer).
 
 Aquí se modifica realmente la selección actual.
 
-![La pestaña "Fondo"](../../../app_screenshots/bgremover_complete_20260625_123039/12_tab_background.png)
+![La pestaña "Fondo"](../../../app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
 
 *La pestaña "Fondo": "Eliminar (transparente)" hace transparente la selección;
 el cuadro de color y "Reemplazar color" la rellenan con un color.*
@@ -343,7 +343,7 @@ el cuadro de color y "Reemplazar color" la rellenan con un color.*
 | **Elegir color** | Abre un selector de color. El pequeño botón de color muestra el color de reemplazo elegido actualmente. |
 | **Reemplazar color** | Rellena el área seleccionada con el color elegido. |
 
-![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260625_123039/31_dialog_color_picker.png)
+![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260711_094027/31_dialog_color_picker.png)
 
 *"Elegir color" abre el selector de color; el color elegido aparece en el
 cuadro y se aplica a la selección con "Reemplazar color".*
@@ -388,7 +388,7 @@ deja la transparencia sin cambios.
 
 ## 10. Pestaña "Rotar/Voltear"
 
-![La pestaña "Rotar/Voltear"](../../../app_screenshots/bgremover_complete_20260625_123039/14_tab_transform.png)
+![La pestaña "Rotar/Voltear"](../../../app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
 
 *La pestaña "Rotar/Voltear" con rotación rápida (90°/180°/270°), ángulo libre y
 los botones para voltear horizontal y verticalmente.*
@@ -414,7 +414,7 @@ los botones para voltear horizontal y verticalmente.*
 
 ## 11. Pestaña "Forma" – Esquinas y recorte
 
-![La pestaña "Forma"](../../../app_screenshots/bgremover_complete_20260625_123039/15_tab_shape_crop.png)
+![La pestaña "Forma"](../../../app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
 
 *La pestaña "Forma": arriba "Redondear esquinas" con control deslizante de
 radio; debajo, los formatos de recorte (especiales, horizontal y vertical).*
@@ -440,7 +440,7 @@ El resultado se guarda con esquinas transparentes — mejor como PNG.
    - **✓ Aplicar recorte** – recorta la imagen.
    - **✗ Cancelar** – descarta el marco.
 
-![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260625_123039/63_crop_circle_overlay.png)
+![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260711_094027/63_crop_circle_overlay.png)
 
 *Ejemplo "Círculo": el marco de recorte se sitúa sobre la imagen con tiradores.
 "✓ Aplicar recorte" recorta la imagen y "✗ Cancelar" descarta el marco.*
@@ -651,7 +651,7 @@ modos de tinta/capas y guarda el proyecto de Studio como `.empf`.
 A través de `Extras → Configuración…` (⌘, / Ctrl+,) puedes gestionar los
 siguientes ajustes:
 
-![El diálogo de configuración](../../../app_screenshots/bgremover_complete_20260625_123039/30_dialog_settings.png)
+![El diálogo de configuración](../../../app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
 
 *El diálogo de configuración: idioma, directorios predeterminados de apertura y
 guardado, formato de imagen preferido y ruta del archivo de registro con el
