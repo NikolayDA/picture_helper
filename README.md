@@ -21,7 +21,7 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Freistellen, Bearbeiten und
 - **🖌 Pinsel / Radiergummi** – Auswahl manuell aufmalen oder entfernen.
 - **➰ Polygon-Lasso** – Auswahl durch gesetzte Eckpunkte präzise eingrenzen.
 - **🎨 Hintergrund ersetzen** – Auswahl mit beliebiger Farbe füllen oder auf Transparenz setzen.
-- **✂ Zuschnitt** mit Rule-of-Thirds-Raster: Kreis, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
+- **✂ Zuschnitt** mit Rule-of-Thirds-Raster: Kreis, 1:1, 16:9, 4:3, 9:16, 3:4.
 - **⟲ Drehen** in 90°-Schritten oder beliebigem Winkel; **↔ Spiegeln** horizontal/vertikal.
 - **⬤ Ecken abrunden** mit einstellbarem Radius.
 - **📐 Größe & physische Maße** – auf eine Zielauflösung in Pixeln **oder** über Millimeter und DPI skalieren (Seitenverhältnis koppeln, wählbares Resample-Verfahren); inklusive Druckflächenprüfung gegen ein Zielmedium (z. B. A4/A3).
@@ -39,20 +39,21 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Freistellen, Bearbeiten und
 
 ## Screenshots
 
-![BgRemover – Hauptfenster mit Ebenen-Panel](docs/screenshot.png)
+![BgRemover – Schritt „Relief & Ebenen" mit Ebenen-Karte](docs/screenshot.png)
 
-*Hauptfenster mit dem Ebenen-Panel (rechts): ein Projekt aus Farbmotiv- und
-Höhen-Ebene samt Rollen-Zuweisung.*
+*Der geführte Schritt „Relief & Ebenen": die Ebenen-Karte (rechts) zeigt ein
+Projekt aus Farbmotiv- und Höhen-Ebene samt Rollen-Zuweisung.*
 
 ![Höhenkarten-Arbeitsbereich](docs/screenshot_height.png)
 
-*Der Höhe-Tab: Höhenkarte beschaffen, bearbeiten und optimieren – die Graustufen-
-Ansicht zeigt hell = hoch.*
+*Derselbe Schritt mit den Karten „Beschaffen" und „Bearbeiten": Höhenkarte aus
+dem Bild erzeugen oder importieren, dann anpassen – die Höhensemantik ist
+hell = hoch.*
 
 ![2D-Vorschau: Relief und Gloss über Farbe](docs/screenshot_preview.png)
 
-*Die kombinierte 2D-Vorschau legt Relief und Gloss über das Farbmotiv – reine
-Anzeige, der Export bleibt unverändert.*
+*Schritt „Export": die kombinierte 2D-Vorschau legt Relief und Gloss über das
+Farbmotiv – reine Anzeige, der Export bleibt unverändert.*
 
 ![Export-Dialog für EufyMake Studio](docs/screenshot_export.png)
 
@@ -160,19 +161,19 @@ Systempakete via `apt`); siehe ebenfalls **[INSTALL_LINUX.md](INSTALL_LINUX.md)*
 > 📖 **Ausführliche Schritt-für-Schritt-Anleitung:**
 > **[ANLEITUNG.md](ANLEITUNG.md)** (auch als
 > [ANLEITUNG.pdf](ANLEITUNG.pdf)) — mit Oberflächen-Überblick, allen
-> Werkzeugen und Tabs, typischen Arbeitsabläufen und Fehlerbehebung.
+> Werkzeugen und Schritten, typischen Arbeitsabläufen und Fehlerbehebung.
 
-Kurzüberblick:
+Ein **geführter 6-Schritte-Workflow** (Schrittleiste über der
+Arbeitsfläche + Karten-Inspector rechts) führt durch die Bearbeitung:
 
-1. **Bild öffnen** über `Datei → Öffnen` (⌘O), per Drag & Drop ins Fenster oder mit einem Startpfad (CLI / Finder).
-2. **Auswahl treffen** mit Zauberstab, Pinsel, Radiergummi oder Polygon-Lasso (Tab *Auswahl*).
+1. **Öffnen** – Bild per Drag & Drop ins Ablagefeld, über `Datei → Öffnen` (⌘O), per Drag & Drop ins Fenster oder mit einem Startpfad (CLI / Finder) laden.
+2. **Freistellen** – **KI**-Schaltfläche im Karten-Inspector oder Zauberstab, Pinsel, Radiergummi bzw. Polygon-Lasso; danach transparent machen, Farbe ersetzen oder die Kante glätten.
    - `Shift+Klick` addiert zur Auswahl, `⌘+Klick` (macOS) bzw. `Ctrl+Klick` (Linux) zieht ab.
-   - Werkzeuge wechseln per Tastatur: `W` Zauberstab, `B` Pinsel, `E` Radiergummi, `L` Lasso.
-3. **Hintergrund bearbeiten** (Tab *Hintergrund*): transparent machen, Farbe ersetzen oder Kante glätten — oder direkt **KI** in der Werkzeugleiste.
-4. **Optimieren & transformieren** (Tabs *Anpassen* und *Drehen/Spiegeln*): Helligkeit/Kontrast/Sättigung anpassen, drehen, spiegeln, Größe ändern.
-5. **Form & Zuschnitt** (Tab *Form*): Ecken abrunden oder Format zuschneiden — Rahmen verschieben/skalieren, dann ✓ Anwenden.
-6. **Ebenen, Höhe & Vorschau** (Tabs *Ebenen*, *Höhe*, *Vorschau*): Projekt-Ebenen verwalten, eine Höhenkarte erzeugen/bearbeiten und das Ergebnis als Relief/Gloss prüfen.
-7. **Speichern** über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF — oder `Projekt → Assets für EufyMake Studio exportieren…` für den UV-Druck.
+   - Werkzeuge wechseln per Tastatur: `W` Zauberstab, `B` Pinsel, `E` Radiergummi, `L` Lasso (nur in diesem Schritt aktiv).
+3. **Anpassen** – Helligkeit/Kontrast/Sättigung mit Live-Vorschau.
+4. **Form & Maße** – Drehen, spiegeln, Ecken abrunden, ein Zuschnitt-Format wählen (Rahmen verschieben/skalieren, dann ✓ Anwenden) und die Größe ändern.
+5. **Relief & Ebenen** – Projekt-Ebenen verwalten und eine Höhenkarte erzeugen/bearbeiten/optimieren.
+6. **Export** – das Ergebnis als Farbe/Relief/Höhe/Gloss/Kombiniert prüfen, über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF speichern — oder `Projekt → Assets für EufyMake Studio exportieren…` für den UV-Druck.
 
 ### Einstellungen
 
@@ -193,6 +194,8 @@ automatisch wiederhergestellt.
 ### Tastatur-Kürzel
 
 Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux **Ctrl**.
+Die Werkzeug-Kürzel (W/B/E/L) greifen nur, solange der Schritt
+*Freistellen* aktiv ist.
 
 | Aktion | Shortcut |
 |--------|----------|
@@ -290,10 +293,15 @@ BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
 - **`ImageCanvas`** (QGraphicsView) hält den Bildzustand, die Auswahl­maske,
   Undo-/Redo-Stapel und die Werkzeuge (Zauberstab, Pinsel, Lasso, Crop).
 - **`MainWindow`** baut Toolbar, Status-/Crop-Leiste und verbindet Canvas,
-  Menüs, rechtes Panel und Worker.
-- **`right_panel`** baut die acht rechten Tabs (Vorschau, Auswahl, Hintergrund,
-  Anpassen, Drehen/Spiegeln, Form, Ebenen, Höhe) aus einem Callback-Satz;
-  `project_model`/`height_map` liefern das Qt-freie Ebenen- und Höhenmodell.
+  Menüs, rechtes Panel und Worker; `_apply_toolbar_for_step` schaltet die
+  kontextuelle Werkzeugleiste zum aktiven Schritt um.
+- **`stepper`** ist die zustandslose 6-Schritte-Leiste (Öffnen/Freistellen/
+  Anpassen/Form & Maße/Relief & Ebenen/Export); **`right_panel`** baut daraus
+  den Karten-Inspector (Kopf, `QStackedWidget` mit einer Seite je Schritt,
+  Navigations-Fußzeile) und ordnet ihm die acht bestehenden Tab-Bausteine aus
+  `right_panel_tabs` (Vorschau, Auswahl, Hintergrund, Anpassen, Drehen/
+  Spiegeln, Form, Ebenen, Höhe) zu; `project_model`/`height_map` liefern das
+  Qt-freie Ebenen- und Höhenmodell.
 - **`menu_actions`** baut Menüleiste, Actions und Shortcuts; `MainWindow`
   liefert dafür nur noch Callbacks.
 - **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für

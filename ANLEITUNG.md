@@ -19,26 +19,22 @@ und Anwender ohne Vorkenntnisse in der Bildbearbeitung.
 1. [Was kann BgRemover?](#1-was-kann-bgremover)
 2. [Die Programmoberfläche im Überblick](#2-die-programmoberfläche-im-überblick)
 3. [Schnellstart in 5 Schritten](#3-schnellstart-in-5-schritten)
-4. [Bild öffnen](#4-bild-öffnen)
+4. [Schritt 1 – Bild öffnen](#4-schritt-1--bild-öffnen)
 5. [Die Werkzeugleiste (links)](#5-die-werkzeugleiste-links)
 6. [Eine Auswahl treffen](#6-eine-auswahl-treffen)
-7. [Tab „Auswahl"](#7-tab-auswahl)
-8. [Tab „Hintergrund"](#8-tab-hintergrund)
-9. [Tab „Anpassen" – Farbkorrektur](#9-tab-anpassen--farbkorrektur)
-10. [Tab „Drehen/Spiegeln"](#10-tab-drehenspiegeln)
-11. [Tab „Form" – Ecken & Zuschnitt](#11-tab-form--ecken--zuschnitt)
-12. [Größe ändern & physische Maße](#12-größe-ändern--physische-maße)
-13. [Ebenen & Projekte](#13-ebenen--projekte)
-14. [Höhenkarten-Arbeitsbereich](#14-höhenkarten-arbeitsbereich)
-15. [2D-Vorschau (Farbe, Relief, Höhe, Gloss)](#15-2d-vorschau-farbe-relief-höhe-gloss)
-16. [Bild speichern & Export](#16-bild-speichern--export)
-17. [Einstellungen](#17-einstellungen)
-18. [Tastatur-Kürzel](#18-tastatur-kürzel)
-19. [Typische Arbeitsabläufe](#19-typische-arbeitsabläufe)
-20. [Tipps & Tricks](#20-tipps--tricks)
-21. [Bekannte Einschränkungen](#21-bekannte-einschränkungen)
-22. [Fehlerbehebung & Log-Datei](#22-fehlerbehebung--log-datei)
-23. [Lizenz](#23-lizenz)
+7. [Schritt 2 – Freistellen](#7-schritt-2--freistellen)
+8. [Schritt 3 – Anpassen (Farbkorrektur)](#8-schritt-3--anpassen-farbkorrektur)
+9. [Schritt 4 – Form & Maße](#9-schritt-4--form--maße)
+10. [Größe ändern & physische Maße](#10-größe-ändern--physische-maße)
+11. [Schritt 5 – Relief & Ebenen](#11-schritt-5--relief--ebenen)
+12. [Schritt 6 – Export](#12-schritt-6--export)
+13. [Einstellungen](#13-einstellungen)
+14. [Tastatur-Kürzel](#14-tastatur-kürzel)
+15. [Typische Arbeitsabläufe](#15-typische-arbeitsabläufe)
+16. [Tipps & Tricks](#16-tipps--tricks)
+17. [Bekannte Einschränkungen](#17-bekannte-einschränkungen)
+18. [Fehlerbehebung & Log-Datei](#18-fehlerbehebung--log-datei)
+19. [Lizenz](#19-lizenz)
 
 ---
 
@@ -47,7 +43,9 @@ und Anwender ohne Vorkenntnisse in der Bildbearbeitung.
 BgRemover ist ein Bildbearbeitungs-Werkzeug zum **Entfernen, Ersetzen
 und Bearbeiten von Hintergründen** – mit zusätzlichen Funktionen für
 einfache Bildoptimierung, Ebenen/Projekte und die Vorbereitung von
-UV-Druck-Assets. Die wichtigsten Funktionen:
+UV-Druck-Assets. Ein **geführter 6-Schritte-Workflow** (Öffnen →
+Freistellen → Anpassen → Form & Maße → Relief & Ebenen → Export) führt
+durch die Bearbeitung. Die wichtigsten Funktionen:
 
 - **KI-Hintergrundentfernung** – Hintergrund mit einem Klick automatisch
   freistellen.
@@ -65,8 +63,8 @@ UV-Druck-Assets. Die wichtigsten Funktionen:
   DPI eine Druckgröße festlegen (mit Druckflächen-Hinweis).
 - **Ebenen & Projekte** – mehrere Ebenen (Farbe/Höhe/Gloss/Generisch)
   verwalten und das Ganze als `.bgrproj`-Projekt speichern und öffnen.
-- **Höhenkarten** – aus einem Bild eine Höhenkarte erzeugen, bearbeiten
-  und optimieren.
+- **Höhenkarten** – aus einem Bild eine Höhenkarte erzeugen, per Regler
+  oder direkt mit dem Pinsel bearbeiten und optimieren.
 - **2D-Vorschau** – Farbe, Relief, Höhe und Gloss am Bildschirm prüfen.
 - **EufyMake-Studio-Export** – Import-Assets für den UV-Druck erzeugen.
 - **Verlauf** mit Rückgängig/Wiederherstellen und Sprung zu jedem
@@ -79,18 +77,22 @@ UV-Druck-Assets. Die wichtigsten Funktionen:
 
 ![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
 
-*Das Hauptfenster direkt nach dem Start: Werkzeugleiste links, Arbeitsfläche
-mit Transparenz-Schachbrett in der Mitte, Tab-Panel rechts (hier der Tab
-„Auswahl") und die Statusleiste unten.*
+*Das Hauptfenster direkt nach dem Start: Menüleiste oben, Werkzeugleiste
+links, Arbeitsfläche mit Transparenz-Schachbrett in der Mitte, die
+Schrittleiste über der Arbeitsfläche, der Karten-Inspector rechts (hier
+Schritt 1 „Öffnen") und die Statusleiste unten.*
 
-Das Fenster ist in vier Bereiche aufgeteilt:
+Das Fenster ist in fünf Bereiche aufgeteilt:
 
 ```
-┌──────────┬───────────────────────────────┬──────────────────┐
-│          │                               │                  │
-│ Werkzeug-│        Arbeitsfläche          │   Tab-Panel      │
-│  leiste  │      (Bild + Auswahl)         │  (Einstellungen) │
-│  (links) │                               │   (rechts)       │
+┌─────────────────────────────────────────────────────────────┐
+│ Menüleiste                                                   │
+├──────────┬───────────────────────────────┬──────────────────┤
+│          │      Schrittleiste (6 Schritte)                  │
+│ Werkzeug-├───────────────────────────────┼──────────────────┤
+│  leiste  │                               │  Karten-         │
+│  (links) │        Arbeitsfläche          │  Inspector       │
+│          │      (Bild + Auswahl)         │  (rechts)        │
 │          │                               │                  │
 ├──────────┴───────────────────────────────┴──────────────────┤
 │ Statusleiste (Hinweise & Meldungen)                          │
@@ -100,38 +102,57 @@ Das Fenster ist in vier Bereiche aufgeteilt:
 | Bereich | Zweck |
 |---|---|
 | **Menüleiste** (oben) | Datei, Projekt, Bearbeiten, Ansicht, Extras |
-| **Werkzeugleiste** (links) | Auswahl-Werkzeuge, KI, Verlauf, Öffnen/Speichern |
-| **Arbeitsfläche** (Mitte) | Zeigt das Bild und die aktuelle Auswahl |
-| **Tab-Panel** (rechts) | Acht Reiter: Vorschau, Auswahl, Hintergrund, Anpassen, Drehen/Spiegeln, Form, Ebenen, Höhe |
+| **Schrittleiste** (über der Arbeitsfläche) | Sechs Schritte: Öffnen, Freistellen, Anpassen, Form & Maße, Relief & Ebenen, Export |
+| **Werkzeugleiste** (links) | Verschieben/Zoom, kontextuelle Auswahl-/Höhen-Werkzeuge, Rückgängig/Wiederherstellen/Theme |
+| **Arbeitsfläche** (Mitte) | Zeigt das Bild und die aktuelle Auswahl; die Zoom-Pille unten rechts zeigt und steuert die Vergrößerung |
+| **Karten-Inspector** (rechts) | Kopf mit Schritt-Titel/-Beschreibung, die Karten des aktiven Schritts, Fußzeile mit „Zurück"/„Weiter" |
 | **Statusleiste** (unten) | Hinweise und Rückmeldungen des Programms |
 
-### Menüs „Bearbeiten", „Ansicht" & „Projekt"
+### Menüs „Bearbeiten", „Ansicht", „Projekt" & „Extras"
 
 Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
 
-- **Bearbeiten** – Rückgängig/Wiederherstellen, Drehen (90° links/rechts),
-  Horizontal/Vertikal spiegeln, *Größe ändern…* sowie Auswahl aufheben/
-  invertieren und *Original wiederherstellen*. Praktisch, wenn Sie eine
-  Funktion lieber über das Menü als über Werkzeugleiste oder Tab aufrufen.
-- **Ansicht** – *Fit to View* (⌘0) und das Untermenü *Vorschaumodus* (siehe
-  [Abschnitt 15](#15-2d-vorschau-farbe-relief-höhe-gloss)); siehe auch
-  „Zoomen & Ansicht" unten.
+- **Bearbeiten** – Rückgängig/Wiederherstellen, Drehen (90° links/rechts/
+  180°), Horizontal/Vertikal spiegeln, *Größe ändern…* sowie Auswahl
+  aufheben/invertieren und *Original wiederherstellen*. Praktisch, wenn
+  Sie eine Funktion lieber über das Menü als über Werkzeugleiste oder
+  Karten-Inspector aufrufen.
+- **Ansicht** – *Fit to View* (⌘0), *Verlauf* (öffnet dieselbe
+  Änderungshistorie wie zuvor der Werkzeugleisten-Knopf), das Untermenü
+  *Vorschaumodus* (siehe [Abschnitt 12](#12-schritt-6--export)) sowie
+  *Heller Modus* zum Umschalten des Farbschemas.
 - **Projekt** – *Neues Projekt*, *Projekt öffnen…*, *Projekt speichern* /
   *…unter…* (`.bgrproj`) sowie *Assets für EufyMake Studio exportieren…*
-  (siehe [Abschnitt 13](#13-ebenen--projekte) und
-  [Abschnitt 16](#16-bild-speichern--export)).
+  (siehe [Abschnitt 11](#11-schritt-5--relief--ebenen) und
+  [Abschnitt 12](#12-schritt-6--export)).
+- **Extras** – *Einstellungen…* (siehe [Abschnitt 13](#13-einstellungen)).
 
 ![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
 *Das Menü „Bearbeiten" bündelt Rückgängig/Wiederherstellen, Drehen, Spiegeln
 und die Auswahl-Aktionen.*
 
+### Die Schrittleiste
+
+Über der Arbeitsfläche führt die **Schrittleiste** durch sechs Stationen:
+**Öffnen → Freistellen → Anpassen → Form & Maße → Relief & Ebenen →
+Export**. Ein Klick auf einen bereits erreichten oder freigegebenen
+Schritt springt direkt dorthin; ohne geladenes Bild bleiben die Schritte
+2–6 gesperrt (nur Schritt 1 ist frei). Erledigte Schritte zeigen ein
+Häkchen, der aktive Schritt ist hervorgehoben. Am unteren Rand des
+Karten-Inspectors führen **„← Zurück"** und **„Weiter: …"** durch den
+Ablauf; im letzten Schritt löst die Schaltfläche stattdessen
+**„Exportieren ✓"** (Speichern) aus.
+
 ### Zoomen & Ansicht
 
 - **Zoomen:** Mit dem **Mausrad** über der Arbeitsfläche vergrößern bzw.
-  verkleinern Sie die Ansicht.
-- **Verschieben:** Ist das Bild größer als das Fenster, navigieren Sie
-  über die **Bildlaufleisten** am rechten und unteren Rand.
+  verkleinern Sie die Ansicht, oder nutzen Sie die schwebende
+  **Zoom-Pille** unten rechts auf der Arbeitsfläche (**−** / Prozentwert /
+  **+** / Schloss zum Fixieren des Zoomstands).
+- **Verschieben:** Ist das Bild größer als das Fenster, verschieben Sie es
+  mit dem **Verschieben/Zoom**-Werkzeug (Linksklick-Ziehen) oder über die
+  Bildlaufleisten.
 - **Einpassen:** `Ansicht → Fit to View` (⌘0) passt das Bild wieder
   vollständig ins Fenster ein. Beim Laden eines Bildes geschieht das
   automatisch.
@@ -142,39 +163,46 @@ und die Auswahl-Aktionen.*
 
 So entfernen Sie einen Hintergrund in unter einer Minute:
 
-1. **Bild öffnen** – `Datei → Öffnen` (⌘O / Strg+O) oder das Bild per
-   Drag & Drop ins Fenster ziehen.
-2. **KI starten** – in der Werkzeugleiste links auf das **KI-Symbol**
-   klicken. Der Hintergrund wird automatisch entfernt.
+1. **Bild öffnen** – im Schritt *Öffnen* das Bild in das Ablagefeld
+   ziehen, `Datei → Öffnen` (⌘O / Strg+O) nutzen oder es direkt auf die
+   Arbeitsfläche ziehen.
+2. **KI starten** – im Schritt *Freistellen* oben auf **„Hintergrund
+   entfernen (KI)"** klicken. Der Hintergrund wird automatisch entfernt.
 3. **Nachbessern (optional)** – mit dem **Radiergummi** Reste der
    Auswahl entfernen oder mit dem **Pinsel** ergänzen.
 4. **Kontrolle** – ggf. mit **Rückgängig** (⌘Z) einen Schritt
    zurückgehen.
-5. **Speichern** – `Datei → Speichern` (⌘S), Format **PNG** wählen
-   (behält die Transparenz).
+5. **Speichern** – im Schritt *Export* Format **PNG** wählen (behält die
+   Transparenz) und **Speichern** klicken, oder `Datei → Speichern`
+   (⌘S).
 
 ![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
 
-*Nach einem Klick auf das KI-Symbol ist der Hintergrund automatisch
-freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
+*Nach einem Klick auf „Hintergrund entfernen (KI)" ist der Hintergrund
+automatisch freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
 abgeschlossen", freie Bereiche zeigt das Schachbrettmuster an.*
 
 Die folgenden Kapitel erklären jeden Schritt im Detail.
 
 ---
 
-## 4. Bild öffnen
+## 4. Schritt 1 – Bild öffnen
 
 Es gibt mehrere Wege, ein Bild zu laden:
 
+- **Ablagefeld (Schritt 1):** Ein Bild aus dem Dateimanager direkt auf
+  das gestrichelte Feld im Karten-Inspector ziehen, oder darauf klicken,
+  um den Datei-Dialog zu öffnen.
 - **Menü:** `Datei → Öffnen…` (⌘O / Strg+O).
-- **Drag & Drop:** Eine Bilddatei aus dem Dateimanager direkt auf die
+- **Drag & Drop auf die Arbeitsfläche:** Eine Bilddatei direkt auf die
   Arbeitsfläche ziehen. Beim Ziehen mehrerer Dateien wird nur das erste
   Bild geladen.
-- **Zuletzt geöffnet:** `Datei → Zuletzt geöffnet` listet die letzten
-  10 geöffneten Einträge auf. Das sind sowohl Bilder als auch
-  `.bgrproj`-**Projekte** (siehe [Abschnitt 13](#13-ebenen--projekte)); beim
-  Anklicken erkennt das Programm den Typ und öffnet ihn passend.
+- **Zuletzt geöffnet:** `Datei → Zuletzt geöffnet` sowie die Karte
+  „Zuletzt geöffnet" im Schritt *Öffnen* (bis zu drei Einträge mit
+  Vorschaubild) listen zuletzt verwendete Einträge auf. Das sind sowohl
+  Bilder als auch `.bgrproj`-**Projekte** (siehe
+  [Abschnitt 11](#11-schritt-5--relief--ebenen)); beim Anklicken erkennt
+  das Programm den Typ und öffnet ihn passend.
 - **Start mit Bildpfad:** Wird das Programm mit einem Bildpfad gestartet –
   über die **Kommandozeile** (`bgremover bild.png`) oder eine **Linux-
   Desktop-Verknüpfung** (Dateizuordnung) –, lädt es dieses Bild direkt
@@ -185,7 +213,8 @@ Es gibt mehrere Wege, ein Bild zu laden:
 
 Alle Wege nutzen denselben **validierten, asynchronen Ladepfad**: Es gelten
 dieselben Format- und Größenprüfungen, und große Bilder werden im
-Hintergrund geladen – die Statusleiste zeigt den Fortschritt an.
+Hintergrund geladen – die Statusleiste zeigt den Fortschritt an. Nach dem
+Laden schaltet die Schrittleiste automatisch zum nächsten Schritt frei.
 
 ![Das Menü „Datei"](app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
 
@@ -197,7 +226,7 @@ BMP und GIF**. Diese Liste ist der aktuelle Eingabevertrag, kein Beispiel:
 Andere Formate werden kontrolliert abgelehnt. Insbesondere wird
 **HEIC/HEIF derzeit bewusst nicht unterstützt** – eine HEIC-/HEIF-Datei
 wird als nicht unterstütztes Format abgewiesen. Gespeichert wird in PNG,
-JPEG, WebP oder TIFF (siehe [Abschnitt 16](#16-bild-speichern--export)).
+JPEG, WebP oder TIFF (siehe [Abschnitt 12](#12-schritt-6--export)).
 
 > **Maximale Bildgröße: 40 Megapixel.** Größere Bilder werden mit einer
 > Hinweismeldung in der Statusleiste abgelehnt.
@@ -206,9 +235,16 @@ JPEG, WebP oder TIFF (siehe [Abschnitt 16](#16-bild-speichern--export)).
 
 ## 5. Die Werkzeugleiste (links)
 
-Die senkrechte Leiste am linken Rand enthält von oben nach unten:
+Die senkrechte Leiste am linken Rand ist **kontextuell**: Sie zeigt nur
+die Werkzeuge des aktuell aktiven Schritts. Von oben nach unten:
 
-### Auswahl-Werkzeuge
+### Verschieben / Zoom (immer verfügbar)
+
+| Symbol | Werkzeug | Funktion |
+|---|---|---|
+| ✥ | **Verschieben / Zoom** | Linksklick-Ziehen verschiebt den Bildausschnitt, das Mausrad zoomt. Aktiv in allen Schritten außer *Freistellen* und *Relief & Ebenen*. |
+
+### Auswahl-Werkzeuge (nur im Schritt „Freistellen")
 
 | Symbol | Werkzeug | Funktion |
 |---|---|---|
@@ -218,43 +254,42 @@ Die senkrechte Leiste am linken Rand enthält von oben nach unten:
 | ⬡ | **Polygon-Lasso** | Punkte nacheinander anklicken; **Doppelklick** schließt das Polygon. **Esc** bricht ab. |
 
 Schnellwechsel per Tastatur: **W** Zauberstab, **B** Pinsel,
-**E** Radiergummi, **L** Lasso.
+**E** Radiergummi, **L** Lasso – diese Kürzel greifen nur, solange der
+Schritt *Freistellen* aktiv ist.
 
 Bei allen Auswahl-Werkzeugen gilt:
 
 - **Shift + Klick** → zur Auswahl **hinzufügen**
 - **Ctrl/Cmd + Klick** → von der Auswahl **abziehen**
 
-### KI-Hintergrundentfernung
+### Höhen-Werkzeuge (nur im Schritt „Relief & Ebenen")
 
-| Symbol | Funktion |
-|---|---|
-| ✨ | **KI** – entfernt den Hintergrund vollautomatisch. Beim ersten Aufruf wird das KI-Modell geladen, das kann einen Moment dauern. |
+| Symbol | Werkzeug | Funktion |
+|---|---|---|
+| ▲ | **Aufhellen (höher)** | Malstrich hebt die Höhe der aktiven Höhen-Ebene an. |
+| ▼ | **Abdunkeln (tiefer)** | Malstrich senkt die Höhe der aktiven Höhen-Ebene ab. |
 
-> Ist die KI-Komponente (`rembg`) nicht installiert, ist die Schaltfläche
-> ausgegraut. Siehe Installationsanleitung für die Einrichtung der
-> KI-Funktion.
+Beide Werkzeuge sind deaktiviert, solange keine Höhen-Ebene aktiv ist
+(siehe [Abschnitt 11](#11-schritt-5--relief--ebenen)); der Tooltip nennt
+dann den Grund. Sie ergänzen die reglerbasierten Aufhellen-/Abdunkeln-
+Aktionen im Karten-Inspector um ein freihändiges Malwerkzeug.
 
-### Verlauf
+### Rail-Fuß: Rückgängig, Wiederherstellen, Theme
+
+Unten in der Werkzeugleiste bleiben – schrittunabhängig – drei
+Schaltflächen sichtbar:
 
 | Symbol | Funktion |
 |---|---|
 | ↩ | **Rückgängig** (⌘Z) – letzten Schritt zurücknehmen |
 | ↪ | **Wiederherstellen** (⇧⌘Z) – rückgängig gemachten Schritt erneut anwenden |
-| ⟲ | **Original wiederherstellen** – alle Bearbeitungen verwerfen |
-| 🕘 | **Änderungshistorie** – Liste aller Schritte; **Doppelklick** auf einen Eintrag springt zu diesem Zustand zurück |
+| ◐ | **Heller/Dunkler Modus umschalten** – wechselt das Farbschema (dieselbe Aktion wie `Ansicht → Heller Modus`) |
 
-![Popup „Änderungshistorie"](app_screenshots/bgremover_complete_20260711_094027/44_popup_history.png)
-
-*Die Änderungshistorie listet jeden Bearbeitungsschritt auf; ein Doppelklick
-auf einen Eintrag springt zu genau diesem Zustand zurück.*
-
-### Datei
-
-| Symbol | Funktion |
-|---|---|
-| 📂 | **Bild öffnen** (⌘O) |
-| 💾 | **Bild speichern** (⌘S) |
+> Die KI-Hintergrundentfernung, die Änderungshistorie sowie Bild öffnen/
+> speichern liegen nicht mehr in der Werkzeugleiste: Sie sind über den
+> Karten-Inspector der jeweiligen Schritte, das Menü oder ihre Tastatur-
+> Kürzel erreichbar (siehe [Abschnitt 7](#7-schritt-2--freistellen) und
+> [Abschnitt 12](#12-schritt-6--export)).
 
 > **Tipp:** Fahren Sie mit der Maus über ein Symbol, um einen kurzen
 > Hilfetext (Tooltip) anzuzeigen.
@@ -265,7 +300,8 @@ auf einen Eintrag springt zu genau diesem Zustand zurück.*
 
 Fast alle Bearbeitungen (transparent machen, Farbe ersetzen) wirken auf
 den **aktuell ausgewählten Bereich**. Die Auswahl wird auf dem Bild
-farblich hervorgehoben.
+farblich hervorgehoben. Die Auswahl-Werkzeuge sind im Schritt
+*Freistellen* aktiv.
 
 ![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
 
@@ -278,7 +314,8 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
 2. Auf den Hintergrund klicken – alle ähnlichen, zusammenhängenden
    Farben werden ausgewählt.
 3. Reicht die Auswahl nicht? Mit **Shift+Klick** weitere Flächen
-   hinzunehmen oder die **Toleranz** erhöhen (Tab *Auswahl*).
+   hinzunehmen oder die **Toleranz** erhöhen (Karte *Werkzeug-
+   Einstellungen* im Schritt *Freistellen*).
 
 ### Mit Pinsel & Radiergummi (für feine Korrekturen)
 
@@ -286,7 +323,8 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
   hinzuzufügen.
 - **Radiergummi:** über fälschlich ausgewählte Bereiche malen, um sie
   zu entfernen.
-- Die **Pinselgröße** stellen Sie im Tab *Auswahl* ein.
+- Die **Pinselgröße** stellen Sie in der Karte *Werkzeug-Einstellungen*
+  ein.
 
 ### Mit dem Polygon-Lasso (für gerade Kanten)
 
@@ -297,19 +335,28 @@ ist auf der Arbeitsfläche farblich hervorgehoben.*
 
 ---
 
-## 7. Tab „Auswahl"
+## 7. Schritt 2 – Freistellen
 
-Der erste Bearbeitungs-Reiter im rechten Panel steuert das Auswahlverhalten – er ist
-im Überblick oben ([Abschnitt 2](#2-die-programmoberfläche-im-überblick)) und in der Abbildung in [Abschnitt 6](#6-eine-auswahl-treffen)
-bereits zu sehen.
+Im Schritt *Freistellen* trennen Sie das Motiv vom Hintergrund –
+automatisch per KI oder von Hand. Der Karten-Inspector bündelt dafür vier
+Karten.
 
-### Werkzeug-Hinweise
+![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
 
-Oben werden die vier Auswahl-Werkzeuge mit Kurzbeschreibung und den
-Modifikatortasten (Shift = addieren, Ctrl/Cmd = subtrahieren)
-aufgelistet.
+*Schritt 2 „Freistellen": oben die KI-Schaltfläche, darunter Werkzeug-
+Einstellungen, Auswahl-Aktionen und „Hintergrund bearbeiten".*
 
-### Einstellungen
+### KI-Hintergrundentfernung
+
+Oben im Karten-Inspector entfernt die Schaltfläche **„Hintergrund
+entfernen (KI)"** den Hintergrund vollautomatisch. Beim ersten Aufruf wird
+das KI-Modell geladen, das kann einen Moment dauern.
+
+> Ist die KI-Komponente (`rembg`) nicht installiert, ist die Schaltfläche
+> ausgegraut. Siehe Installationsanleitung für die Einrichtung der
+> KI-Funktion.
+
+### Werkzeug-Einstellungen (Toleranz & Pinselgröße)
 
 | Regler | Bereich | Wirkung |
 |---|---|---|
@@ -328,16 +375,7 @@ aufgelistet.
   um den daneben eingestellten Radius (1 – 20 px, Standard: 2 px). Nützlich, um einen
   schmalen Farbsaum nach der Freistellung zu entfernen.
 
----
-
-## 8. Tab „Hintergrund"
-
-Hier wird die getroffene Auswahl tatsächlich verändert.
-
-![Der Tab „Hintergrund"](app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
-
-*Der Tab „Hintergrund": „Entfernen (transparent)" macht die Auswahl
-durchsichtig; das Farbfeld und „Farbe ersetzen" füllen sie mit einer Farbe.*
+### Hintergrund bearbeiten
 
 | Aktion | Beschreibung |
 |---|---|
@@ -357,7 +395,7 @@ Farbe wählen und *Farbe ersetzen* für einen einfarbigen Hintergrund
 
 ### Kante glätten (Feather)
 
-Im Abschnitt *Kante glätten* desselben Tabs lässt sich die **Alphakante**
+Im Abschnitt *Kante glätten* derselben Karte lässt sich die **Alphakante**
 weicher zeichnen – nützlich gegen harte, „ausgeschnitten" wirkende Ränder
 nach einer Freistellung.
 
@@ -369,10 +407,10 @@ nach einer Freistellung.
 
 ---
 
-## 9. Tab „Anpassen" – Farbkorrektur
+## 8. Schritt 3 – Anpassen (Farbkorrektur)
 
-Der Tab *Anpassen* enthält eine einfache **Farbkorrektur**. Sie wirkt auf
-die **aktive Farbebene** (siehe [Abschnitt 13](#13-ebenen--projekte)) und
+Der Schritt *Anpassen* enthält eine einfache **Farbkorrektur**. Sie wirkt auf
+die **aktive Farbebene** (siehe [Abschnitt 11](#11-schritt-5--relief--ebenen)) und
 lässt die Transparenz unverändert.
 
 | Regler | Bereich | Wirkung |
@@ -389,12 +427,15 @@ lässt die Transparenz unverändert.
 
 ---
 
-## 10. Tab „Drehen/Spiegeln"
+## 9. Schritt 4 – Form & Maße
 
-![Der Tab „Drehen/Spiegeln"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
+Der Schritt *Form & Maße* bündelt Drehen/Spiegeln sowie Ecken abrunden,
+Zuschnitt und eine schnelle Pixel-Größenänderung.
 
-*Der Tab „Drehen/Spiegeln" mit Schnell-Drehung (90°/180°/270°), freiem
-Winkel und den Schaltflächen zum horizontalen und vertikalen Spiegeln.*
+![Der Schritt „Form & Maße"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
+
+*Schritt 4 „Form & Maße": Drehen (Schnell-Drehung/freier Winkel),
+Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
 
 ### Drehen
 
@@ -404,23 +445,13 @@ Winkel und den Schaltflächen zum horizontalen und vertikalen Spiegeln.*
   anschließend **Winkel anwenden**. Bei schrägen Winkeln entstehen
   transparente Ecken.
 
+> Schnelles Drehen geht auch per Tastatur: ⌘← (90° links) und
+> ⌘→ (90° rechts).
+
 ### Spiegeln
 
 - **Horizontal** – links ↔ rechts spiegeln.
 - **Vertikal** – oben ↕ unten spiegeln.
-
-> Schnelles Drehen geht auch per Tastatur: ⌘← (90° links) und
-> ⌘→ (90° rechts). Ganz unten im Tab führt **Größe ändern…** zum
-> Dialog aus [Abschnitt 12](#12-größe-ändern--physische-maße).
-
----
-
-## 11. Tab „Form" – Ecken & Zuschnitt
-
-![Der Tab „Form"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
-
-*Der Tab „Form": oben „Ecken abrunden" mit Radius-Regler, darunter die
-Zuschnitt-Formate (Sonderformate, Quer- und Hochformat).*
 
 ### Ecken abrunden
 
@@ -431,11 +462,20 @@ Zuschnitt-Formate (Sonderformate, Quer- und Hochformat).*
 Das Ergebnis wird mit transparenten Ecken gespeichert – am besten als
 PNG.
 
+### Größe ändern (Pixel, direkt im Schritt)
+
+Die Karte „Größe ändern" bietet **Breite × Höhe in Pixeln** direkt im
+Schritt an: Werte eintragen und **Übernehmen** anklicken. Für das
+gekoppelte Seitenverhältnis, Resampling-Verfahren und die physischen
+Maße (mm/DPI) nutzen Sie den vollständigen Dialog aus
+[Abschnitt 10](#10-größe-ändern--physische-maße).
+
 ### Ausgabe-Format & Zuschnitt
 
 1. Ein Format wählen – es erscheint ein **Rahmen** auf dem Bild:
-   - **Sonderformate:** ⬤ Kreis, ■ 1:1 (Quadrat)
-   - **Querformat:** 16:9, 4:3, 3:2, 2:1, 7:4.5 (14:9)
+   - **Sonderformat:** ⬤ Kreis
+   - **Quadratisch:** 1:1
+   - **Querformat:** 16:9, 4:3
    - **Hochformat:** 9:16, 3:4
 2. **Rahmen verschieben:** in die Mitte klicken und ziehen.
 3. **Größe ändern:** an den Ecken ziehen – das Seitenverhältnis bleibt
@@ -452,11 +492,14 @@ den Rahmen.*
 
 ---
 
-## 12. Größe ändern & physische Maße
+## 10. Größe ändern & physische Maße
 
-Über `Bearbeiten → Größe ändern…` (Strg+R), die Schaltfläche **Größe
-ändern…** im Tab *Drehen/Spiegeln* skalieren Sie das Bild auf eine neue
-Zielgröße. Der Dialog kennt zwei Maßeinheiten:
+Über `Bearbeiten → Größe ändern…` (Strg+R) öffnen Sie den vollständigen
+Größenänderungs-Dialog – mit gekoppeltem Seitenverhältnis, Resampling-
+Verfahren und physischen Maßen. Für eine schnelle Pixel-Größenänderung
+ohne Dialog steht im Schritt *Form & Maße* die Inline-Karte aus
+[Abschnitt 9](#9-schritt-4--form--maße) bereit. Der Dialog kennt zwei
+Maßeinheiten:
 
 ### Pixelgröße ändern
 
@@ -487,29 +530,31 @@ Medium, weist ein Hinweis auf die Überschreitung der Druckfläche hin.
 
 ---
 
-## 13. Ebenen & Projekte
+## 11. Schritt 5 – Relief & Ebenen
+
+Der Schritt *Relief & Ebenen* bündelt die Ebenenverwaltung und den
+Höhenkarten-Arbeitsbereich in zwei Karten.
+
+### Ebenen-Arten und Rollen
 
 BgRemover kann mehrere **Ebenen** in einem **Projekt** verwalten und das
 Ganze als `.bgrproj`-Datei speichern. Für die klassische
 Hintergrundbearbeitung müssen Sie sich damit nicht befassen – ein einzelnes
-Bild verhält sich wie eine einzige Farbebene.
-
-### Ebenen-Arten und Rollen
-
-Jede Ebene hat eine **Art** und optional eine **Rolle**. Nur **Farb-Ebenen**
-fließen in das sichtbare Farbbild ein; die übrigen Arten sind Datenebenen
-für die Druckvorbereitung.
+Bild verhält sich wie eine einzige Farbebene. Jede Ebene hat eine **Art**
+und optional eine **Rolle**. Nur **Farb-Ebenen** fließen in das sichtbare
+Farbbild ein; die übrigen Arten sind Datenebenen für die
+Druckvorbereitung.
 
 | Art / Rolle | Bedeutung |
 |---|---|
 | **Farbe** (Farbmotiv) | Das sichtbare Bild. Mehrere Farb-Ebenen ergeben zusammen das Komposit, das auch exportiert wird. |
-| **Höhe** (Height Map) | Eine Graustufen-Höhenkarte für Relief/UV-Druck (siehe [Abschnitt 14](#14-höhenkarten-arbeitsbereich)). |
+| **Höhe** (Height Map) | Eine Graustufen-Höhenkarte für Relief/UV-Druck. |
 | **Gloss** (Gloss-Maske) | Eine Maske für Glanzeffekte (experimentell). |
 | **Generisch** | Eine neutrale Datenebene ohne feste Rolle. |
 
-### Der Tab „Ebenen"
+### Ebenen verwalten
 
-Im Tab *Ebenen* verwalten Sie die Ebenenliste:
+In der Karte *Ebenen* verwalten Sie die Ebenenliste:
 
 | Aktion | Beschreibung |
 |---|---|
@@ -533,36 +578,34 @@ Eine `.bgrproj`-Datei ist ein Archiv aus einem **Manifest** (Reihenfolge,
 Arten, Rollen, Namen, physische Maße) und **je einem PNG pro Ebene**. So
 bleiben alle Ebenen samt Transparenz verlustfrei erhalten. Projekte
 erscheinen zusätzlich unter „Zuletzt geöffnet" (siehe
-[Abschnitt 4](#4-bild-öffnen)).
+[Abschnitt 4](#4-schritt-1--bild-öffnen)).
 
----
-
-## 14. Höhenkarten-Arbeitsbereich
+### Höhenkarten: Beschaffen
 
 Eine **Höhenkarte** ist eine Graustufen-Ebene, in der die Helligkeit eine
 Höhe darstellt: **hell = hoch, dunkel = niedrig**. Sie ist die Grundlage
-für Relief und UV-Druck. Der Tab *Höhe* ist in drei Abschnitte gegliedert
-und arbeitet auf der aktiven **Höhen-Ebene**; die Bearbeiten- und
-Optimieren-Funktionen sind nur aktiv, wenn eine Höhen-Ebene aktiv ist.
-
-### Beschaffen
+für Relief und UV-Druck. Die Karte *Höhe* arbeitet auf der aktiven
+**Höhen-Ebene**; die Abschnitte Bearbeiten und Optimieren sind nur aktiv,
+wenn eine Höhen-Ebene aktiv ist.
 
 - **Aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
   eine Höhenkarte um und legt sie als neue Höhen-Ebene an.
 - **Graustufe importieren…** – lädt ein Graustufenbild als Höhenkarte und
   skaliert es auf die Projektgröße.
 
-### Bearbeiten
+### Höhenkarten: Bearbeiten
 
 - **Aufhellen / Abdunkeln** – hebt die Höhe an oder senkt sie ab; die
-  **Stärke** steuert, wie stark.
+  **Stärke** steuert, wie stark. Für freihändiges Malen stehen im
+  Schritt *Relief & Ebenen* zusätzlich die gleichnamigen Pinsel-Werkzeuge
+  in der Werkzeugleiste bereit (siehe [Abschnitt 5](#5-die-werkzeugleiste-links)).
 - **Höhe setzen** – setzt die Höhe auf einen festen **Wert**.
 - **Invertieren** – kehrt hoch und niedrig um.
 
-Ist eine Auswahl aktiv, wirken diese Aktionen nur innerhalb der Auswahl,
-sonst auf die ganze Ebene.
+Ist eine Auswahl aktiv, wirken die reglerbasierten Aktionen nur innerhalb
+der Auswahl, sonst auf die ganze Ebene.
 
-### Optimieren
+### Höhenkarten: Optimieren
 
 Die Optimieren-Operationen zeigen eine **Live-Vorschau**; **Anwenden**
 übernimmt sie (undo-/redobar), **Vorschau verwerfen** verwirft sie.
@@ -579,38 +622,46 @@ Die Optimieren-Operationen zeigen eine **Live-Vorschau**; **Anwenden**
 
 ---
 
-## 15. 2D-Vorschau (Farbe, Relief, Höhe, Gloss)
+## 12. Schritt 6 – Export
+
+Der letzte Schritt *Export* bündelt die 2D-Vorschau, das Speichern des
+Bildes und den UV-Druck-Export in drei Karten.
+
+### 2D-Vorschau (Farbe, Relief, Höhe, Gloss, Kombiniert)
 
 Die **2D-Vorschau** zeigt verschiedene Ansichten desselben Motivs direkt
 auf der Arbeitsfläche. Sie ist eine **reine Bildschirmanzeige** und ändert
-weder das Bild noch den Export. Den Modus wählen Sie im Tab *Vorschau* oder
-über `Ansicht → Vorschaumodus`.
+weder das Bild noch den Export. Die Karte *Vorschau* bietet ein
+Segmented-Control mit vier Modi; der fünfte Modus „Kombiniert" ist über
+`Ansicht → Vorschaumodus` erreichbar.
 
 | Modus | Anzeige |
 |---|---|
 | **Farbe** | Das normale Farbbild. |
-| **Relief über Farbe** | Ein Schummerungs-Relief aus der Höhenkarte, multiplikativ über das Farbbild gelegt. |
-| **Höhe (Graustufe)** | Die Höhenkarte als Graustufenbild. |
+| **Relief** | Ein Schummerungs-Relief aus der Höhenkarte, multiplikativ über das Farbbild gelegt. |
+| **Höhe** | Die Höhenkarte als Graustufenbild. |
 | **Gloss** | Die Gloss-Maske als Glanz-Sheen. |
-| **Kombiniert** | Farbe, Relief und Gloss zusammen. |
+| **Kombiniert** (nur über `Ansicht → Vorschaumodus`) | Farbe, Relief und Gloss zusammen. |
 
-- Mit **Relief-Stärke** stellen Sie die Intensität des Reliefs ein; bei 0 %
-  wird das Relief übersprungen.
+- Mit **Relief-Stärke** (0 – 100 %, Standard 70 %) stellen Sie die
+  Intensität des Reliefs ein; bei 0 % wird das Relief übersprungen.
 - **Gloss anzeigen** blendet den Glanzanteil ein oder aus.
 
-Der Vorschau-Tab und das Ansicht-Untermenü bleiben synchron. Unsichtbare
+Der Vorschau-Karte und das Ansicht-Untermenü bleiben synchron. Unsichtbare
 Datenebenen werden in der Vorschau ignoriert.
 
----
+### Speichern
 
-## 16. Bild speichern & Export
+Die Karte *Speichern* bietet eine Formatauswahl (PNG/JPEG/WebP/TIFF) und
+den Speichern-Knopf direkt im Schritt; alternativ speichern Sie über das
+Menü:
 
 - **Speichern:** `Datei → Speichern` (⌘S / Strg+S)
 - **Speichern unter…:** `Datei → Speichern unter…` (⇧⌘S)
 
 Beim Speichern wird stets das **Farb-Komposit** geschrieben (unabhängig
 davon, welche Ebene gerade aktiv ist oder welcher Vorschaumodus eingestellt
-ist). Wählen Sie im Dialog das gewünschte **Dateiformat**:
+ist).
 
 | Format | Eigenschaften | Empfehlung |
 |---|---|---|
@@ -624,8 +675,10 @@ ist). Wählen Sie im Dialog das gewünschte **Dateiformat**:
 
 ### Export für EufyMake Studio
 
-Über `Projekt → Assets für EufyMake Studio exportieren…` (Strg+Alt+E) schreibt
-BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige `.empf`-Datei:
+Über die Karte *UV-Druck* im Schritt *Export* oder
+`Projekt → Assets für EufyMake Studio exportieren…` (Strg+Alt+E) schreibt
+BgRemover **Import-Assets** für EufyMake Studio – **keine** fertige
+`.empf`-Datei:
 
 - **Farbmotiv** (Pflicht) als RGBA-PNG – aus einer Ebene mit Rolle *Farbmotiv*
   oder, falls keine vorhanden ist, aus dem Farbkomposit.
@@ -652,7 +705,7 @@ weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als
 
 ---
 
-## 17. Einstellungen
+## 13. Einstellungen
 
 Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
 Einstellungen verwalten:
@@ -668,7 +721,7 @@ dem Knopf „Ordner öffnen".*
 | **Standard-Verzeichnis zum Öffnen** | Startordner des Öffnen-Dialogs (leer = zuletzt verwendet) |
 | **Standard-Verzeichnis für Export/Speichern** | Startordner des Speichern-Dialogs (leer = zuletzt verwendet) |
 | **Bevorzugtes Bilddateiformat** | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
-| **Sprache** | Deutsch oder Englisch; die Änderung wird nach einem Neustart wirksam |
+| **Sprache** | Deutsch, Englisch, Spanisch, Französisch, Ukrainisch oder Chinesisch; die Änderung wird nach einem Neustart wirksam |
 | **Protokolldatei** | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
 
 Die Verzeichnisse, das bevorzugte Dateiformat und die Sprache bleiben über
@@ -676,17 +729,19 @@ Programmstarts hinweg erhalten.
 
 ---
 
-## 18. Tastatur-Kürzel
+## 14. Tastatur-Kürzel
 
 Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
-**Strg**.
+**Strg**. Die Werkzeug-Kürzel (W/B/E/L) greifen nur, solange der Schritt
+*Freistellen* aktiv ist; Aktionen ohne Kürzel in der Tabelle sind nur über
+Menü bzw. Karten-Inspector erreichbar.
 
 | Aktion | Shortcut |
 |---|---|
-| Zauberstab wählen | W |
-| Pinsel wählen | B |
-| Radiergummi wählen | E |
-| Polygon-Lasso wählen | L |
+| Zauberstab wählen (nur Schritt „Freistellen") | W |
+| Pinsel wählen (nur Schritt „Freistellen") | B |
+| Radiergummi wählen (nur Schritt „Freistellen") | E |
+| Polygon-Lasso wählen (nur Schritt „Freistellen") | L |
 | Bild öffnen | ⌘O |
 | Bild speichern | ⌘S |
 | Bild speichern unter… | ⇧⌘S |
@@ -707,74 +762,74 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
 
 ---
 
-## 19. Typische Arbeitsabläufe
+## 15. Typische Arbeitsabläufe
 
 ### A) Produktfoto freistellen (transparenter Hintergrund)
 
 1. Bild öffnen.
-2. **KI** in der Werkzeugleiste klicken.
+2. Im Schritt *Freistellen* **„Hintergrund entfernen (KI)"** klicken.
 3. Mit **Radiergummi**/**Pinsel** Ränder nachbessern.
-4. Im Tab *Auswahl* ggf. **Schrumpfen** (1–2 px), um den Farbsaum zu
-   entfernen.
-5. Als **PNG** speichern.
+4. Ggf. **Schrumpfen** (1–2 px), um den Farbsaum zu entfernen.
+5. Im Schritt *Export* als **PNG** speichern.
 
 ### B) Passfoto mit weißem Hintergrund
 
 1. Bild öffnen.
-2. **Zauberstab** auf den Hintergrund klicken (Toleranz anpassen).
-3. Tab *Hintergrund* → **Farbe wählen** (Weiß) → **Farbe ersetzen**.
-4. Tab *Form* → Format **1:1** wählen, Rahmen positionieren,
+2. Im Schritt *Freistellen* **Zauberstab** auf den Hintergrund klicken
+   (Toleranz anpassen).
+3. **Farbe wählen** (Weiß) → **Farbe ersetzen**.
+4. Im Schritt *Form & Maße* Format **1:1** wählen, Rahmen positionieren,
    **✓ Zuschnitt anwenden**.
-5. Als **JPEG** oder **PNG** speichern.
+5. Im Schritt *Export* als **JPEG** oder **PNG** speichern.
 
 ### C) Rundes Profilbild
 
 1. Bild öffnen.
 2. Hintergrund per **KI** entfernen (optional).
-3. Tab *Form* → **⬤ Kreis** wählen, Rahmen über das Gesicht ziehen.
+3. Im Schritt *Form & Maße* **⬤ Kreis** wählen, Rahmen über das Gesicht
+   ziehen.
 4. **✓ Zuschnitt anwenden**.
-5. Als **PNG** speichern (Transparenz außerhalb des Kreises).
+5. Im Schritt *Export* als **PNG** speichern (Transparenz außerhalb des
+   Kreises).
 
 ### D) Objekt behalten, nur Hintergrund tauschen
 
-1. Bild öffnen, **Zauberstab** auf das **Objekt** klicken.
-2. Tab *Auswahl* → **Auswahl invertieren** (⌘⇧I) → jetzt ist der
-   Hintergrund ausgewählt.
-3. Tab *Hintergrund* → Farbe wählen → **Farbe ersetzen**.
-4. Speichern.
+1. Bild öffnen, im Schritt *Freistellen* **Zauberstab** auf das
+   **Objekt** klicken.
+2. **Auswahl invertieren** (⌘⇧I) → jetzt ist der Hintergrund ausgewählt.
+3. Farbe wählen → **Farbe ersetzen**.
+4. Im Schritt *Export* speichern.
 
 ### E) Höhenrelief-Asset für EufyMake Studio
 
 1. Bild öffnen und freistellen.
-2. Tab *Höhe* → **Aus Bild erzeugen**.
+2. Im Schritt *Relief & Ebenen* **Aus Bild erzeugen**.
 3. Höhe im Abschnitt *Optimieren* nachschärfen (z. B. *Tonwert*, *Glättung*)
    und **Anwenden**.
-4. In der *2D-Vorschau* den Modus **Relief über Farbe** oder **Kombiniert**
-   zur Kontrolle wählen.
-5. `Projekt → Assets für EufyMake Studio exportieren…`, Befunde prüfen und
-   exportieren.
+4. Im Schritt *Export* den Vorschau-Modus **Relief** oder über
+   `Ansicht → Vorschaumodus` **Kombiniert** zur Kontrolle wählen.
+5. Karte *UV-Druck* → Befunde prüfen und exportieren.
 
 ---
 
-## 20. Tipps & Tricks
+## 16. Tipps & Tricks
 
 - **Erst grob, dann fein:** Mit KI oder Zauberstab grob freistellen,
   danach mit Pinsel/Radiergummi korrigieren.
 - **Toleranz anpassen:** Wird zu viel ausgewählt → Toleranz senken.
   Wird zu wenig erfasst → Toleranz erhöhen oder Shift+Klick nutzen.
-- **Farbsaum loswerden:** Nach dem Freistellen im Tab *Auswahl*
+- **Farbsaum loswerden:** Nach dem Freistellen im Schritt *Freistellen*
   „Schrumpfen" um 1–2 px anwenden, bevor der Hintergrund entfernt wird.
-- **Weiche Kanten:** Mit *Kante glätten* (Tab *Hintergrund*) wirken
+- **Weiche Kanten:** Mit *Kante glätten* (Schritt *Freistellen*) wirken
   freigestellte Ränder weniger hart.
-- **Schritt zurück:** Jeder Schritt landet im Verlauf – über die
-  **Änderungshistorie** (🕘) per Doppelklick zu jedem früheren Zustand
-  zurückspringen.
-- **Nichts geht mehr?** **Original wiederherstellen** setzt das Bild auf
-  den Ladezustand zurück.
+- **Schritt zurück:** Jeder Schritt landet im Verlauf – über `Ansicht →
+  Verlauf` per Doppelklick zu jedem früheren Zustand zurückspringen.
+- **Nichts geht mehr?** `Bearbeiten → Original wiederherstellen` setzt
+  das Bild auf den Ladezustand zurück.
 
 ---
 
-## 21. Bekannte Einschränkungen
+## 17. Bekannte Einschränkungen
 
 - **Maximale Bildgröße: 40 Megapixel.** Größere Bilder werden abgelehnt.
 - **Eingabeformate:** Unterstützt werden PNG, JPEG, WebP, TIFF, BMP und GIF.
@@ -792,7 +847,7 @@ Unter macOS ist die Modifikatortaste **⌘ (Cmd)**, unter Linux/Windows
 
 ---
 
-## 22. Fehlerbehebung & Log-Datei
+## 18. Fehlerbehebung & Log-Datei
 
 Bei Problemen lohnt ein Blick in die interne **Log-Datei**
 `bgremover.log`. Sie liegt im von Qt ermittelten App-Datenverzeichnis
@@ -824,7 +879,7 @@ Knopf **„Ordner öffnen"** öffnet das Verzeichnis direkt im Dateimanager
 
 ---
 
-## 23. Lizenz
+## 19. Lizenz
 
 BgRemover steht unter der **GNU General Public License v3.0 oder später**
 (`GPL-3.0-or-later`) – siehe [LICENSE](LICENSE). Eine vollständige

@@ -21,7 +21,7 @@ An image-editing tool for macOS and Linux for **cutting out, editing, and print-
 - **🖌 Brush / eraser** – paint or remove a selection manually.
 - **➰ Polygon lasso** – precisely narrow a selection by placing corner points.
 - **🎨 Replace background** – fill the selection with any color or set it to transparent.
-- **✂ Crop** with a rule-of-thirds grid: circle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
+- **✂ Crop** with a rule-of-thirds grid: circle, 1:1, 16:9, 4:3, 9:16, 3:4.
 - **⟲ Rotate** in 90° steps or by any angle; **↔ flip** horizontally/vertically.
 - **⬤ Round corners** with an adjustable radius.
 - **📐 Resize & physical dimensions** – scale to a target resolution in pixels **or** via millimeters and DPI (link aspect ratio, selectable resampling method); including a print-area check against a target medium (e.g. A4/A3).
@@ -39,20 +39,21 @@ An image-editing tool for macOS and Linux for **cutting out, editing, and print-
 
 ## Screenshots
 
-![BgRemover – main window with the layers panel](../../screenshot.png)
+![BgRemover – "Relief & Layers" step with the layers card](../../screenshot.png)
 
-*Main window with the layers panel (right): a project made of a color-motif and
-a height layer, including role assignment.*
+*The guided "Relief & Layers" step: the layers card (right) shows a project
+made of a color-motif and a height layer, including role assignment.*
 
 ![Height-map workspace](../../screenshot_height.png)
 
-*The Height tab: acquire, edit, and optimize a height map – the grayscale view
-shows light = high.*
+*The same step with the "Acquire" and "Edit" cards: generate a height map from
+the image or import one, then adjust it – the height semantics are light =
+high.*
 
 ![2D preview: relief and gloss over color](../../screenshot_preview.png)
 
-*The combined 2D preview lays relief and gloss over the color motif – display
-only, the export stays unchanged.*
+*"Export" step: the combined 2D preview lays relief and gloss over the color
+motif – display only, the export stays unchanged.*
 
 ![Export dialog for EufyMake Studio](../../screenshot_export.png)
 
@@ -156,15 +157,17 @@ system packages via `apt`); see **[INSTALL_LINUX.md](INSTALL_LINUX.md)** as well
 
 ## Usage
 
-1. **Open an image** via `File → Open` (⌘O), by dragging and dropping it onto the window, or with a startup path (CLI / Finder).
-2. **Make a selection** with the magic wand, brush, eraser, or polygon lasso (tab *Selection*).
+A **guided 6-step workflow** (step bar above the canvas + card inspector on
+the right) walks you through editing:
+
+1. **Open** – load an image by dragging it onto the drop zone, via `File → Open` (⌘O), by dragging and dropping it onto the window, or with a startup path (CLI / Finder).
+2. **Cut out** – the **AI** button in the card inspector, or the magic wand, brush, eraser, or polygon lasso; then make it transparent, replace the color, or smooth the edge.
    - `Shift+Click` adds to the selection; `⌘+Click` (macOS) or `Ctrl+Click` (Linux) subtracts.
-   - Switch tools from the keyboard: `W` magic wand, `B` brush, `E` eraser, `L` lasso.
-3. **Edit the background** (tab *Background*): make it transparent, replace the color, or smooth the edge — or use **AI** directly in the toolbar.
-4. **Optimize & transform** (tabs *Adjust* and *Rotate/Flip*): adjust brightness/contrast/saturation, rotate, flip, resize.
-5. **Shape & crop** (tab *Shape*): round corners or crop to a format — move/resize the frame, then ✓ Apply.
-6. **Layers, height & preview** (tabs *Layers*, *Height*, *Preview*): manage project layers, generate/edit a height map, and check the result as relief/gloss.
-7. **Save** via `File → Save` (⌘S) as PNG, JPEG, WebP, or TIFF — or `Project → Export assets for EufyMake Studio…` for UV printing.
+   - Switch tools from the keyboard: `W` magic wand, `B` brush, `E` eraser, `L` lasso (only active in this step).
+3. **Adjust** – brightness/contrast/saturation with a live preview.
+4. **Shape & Size** – rotate, flip, round corners, pick a crop format (move/resize the frame, then ✓ Apply), and resize.
+5. **Relief & Layers** – manage project layers and generate/edit/optimize a height map.
+6. **Export** – check the result as color/relief/height/gloss/combined, save via `File → Save` (⌘S) as PNG, JPEG, WebP, or TIFF — or `Project → Export assets for EufyMake Studio…` for UV printing.
 
 ### Settings
 
@@ -183,7 +186,8 @@ via **QSettings** and automatically restored the next time the program starts.
 
 ### Keyboard shortcuts
 
-On macOS the modifier key is **⌘ (Cmd)**, on Linux **Ctrl**.
+On macOS the modifier key is **⌘ (Cmd)**, on Linux **Ctrl**. The tool
+shortcuts (W/B/E/L) only work while the *Cut out* step is active.
 
 | Action | Shortcut |
 |--------|----------|
@@ -276,10 +280,15 @@ BgRemover is an installable package (`bgremover/`, launched via
 - **`ImageCanvas`** (QGraphicsView) holds the image state, the selection mask,
   undo/redo stacks, and the tools (magic wand, brush, lasso, crop).
 - **`MainWindow`** builds the toolbar, status/crop bar, and connects the canvas,
-  menus, right panel, and workers.
-- **`right_panel`** builds the eight right-hand tabs (Preview, Selection,
-  Background, Adjust, Rotate/Flip, Shape, Layers, Height) from a callback set;
-  `project_model`/`height_map` provide the Qt-free layer and height model.
+  menus, right panel, and workers; `_apply_toolbar_for_step` switches the
+  contextual toolbar to match the active step.
+- **`stepper`** is the stateless 6-step bar (Open/Cut out/Adjust/Shape &
+  Size/Relief & Layers/Export); **`right_panel`** builds the card inspector
+  from it (header, a `QStackedWidget` with one page per step, navigation
+  footer) and assigns it the eight existing tab building blocks from
+  `right_panel_tabs` (Preview, Selection, Background, Adjust, Rotate/Flip,
+  Shape, Layers, Height); `project_model`/`height_map` provide the Qt-free
+  layer and height model.
 - **`menu_actions`** builds the menu bar, actions, and shortcuts; `MainWindow`
   only supplies callbacks for it.
 - **`RecentFiles`** encapsulates persistence, de-duplication, and the menu

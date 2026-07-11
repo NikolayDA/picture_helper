@@ -21,7 +21,7 @@ Una herramienta de edición de imágenes para macOS y Linux para **recortar, edi
 - **🖌 Pincel / Borrador**: dibuja o elimina la selección manualmente.
 - **➰ Lazo poligonal**: delimita la selección con precisión mediante puntos de esquina.
 - **🎨 Reemplazar fondo**: rellena la selección con cualquier color o establécela como transparente.
-- **✂ Recorte** con rejilla de la regla de los tercios: círculo, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
+- **✂ Recorte** con rejilla de la regla de los tercios: círculo, 1:1, 16:9, 4:3, 9:16, 3:4.
 - **⟲ Rotar** en pasos de 90° o en cualquier ángulo; **↔ Reflejar** horizontal/vertical.
 - **⬤ Redondear esquinas** con radio ajustable.
 - **📐 Tamaño y dimensiones físicas** – escala a una resolución objetivo en píxeles **o** mediante milímetros y DPI (vincular relación de aspecto, método de remuestreo seleccionable); con comprobación del área de impresión frente a un medio objetivo (p. ej. A4/A3).
@@ -39,20 +39,22 @@ Una herramienta de edición de imágenes para macOS y Linux para **recortar, edi
 
 ## Capturas de pantalla
 
-![BgRemover – Ventana principal con el panel de capas](../../screenshot.png)
+![BgRemover – paso «Relieve y capas» con la tarjeta de capas](../../screenshot.png)
 
-*Ventana principal con el panel de capas (derecha): un proyecto formado por una
-capa de motivo de color y una capa de altura, con asignación de roles.*
+*El paso guiado «Relieve y capas»: la tarjeta de capas (derecha) muestra un
+proyecto formado por una capa de motivo de color y una capa de altura, con
+asignación de roles.*
 
 ![Espacio de trabajo de mapa de altura](../../screenshot_height.png)
 
-*La pestaña Altura: adquirir, editar y optimizar un mapa de altura – la vista en
-escala de grises muestra claro = alto.*
+*El mismo paso con las tarjetas «Obtener» y «Editar»: genera un mapa de altura
+a partir de la imagen o impórtalo, luego ajústalo – la semántica de altura es
+claro = alto.*
 
 ![Vista previa 2D: relieve y brillo sobre color](../../screenshot_preview.png)
 
-*La vista previa 2D combinada superpone relieve y brillo sobre el motivo de color
-– solo visualización, la exportación no cambia.*
+*Paso «Exportar»: la vista previa 2D combinada superpone relieve y brillo sobre
+el motivo de color – solo visualización, la exportación no cambia.*
 
 ![Diálogo de exportación para EufyMake Studio](../../screenshot_export.png)
 
@@ -161,15 +163,17 @@ de sistema vía `apt`); consulta igualmente **[INSTALL_LINUX.md](INSTALL_LINUX.m
 
 ## Uso
 
-1. **Abre una imagen** mediante `Archivo → Abrir` (⌘O), arrastrando y soltando en la ventana o con una ruta de inicio (CLI / Finder).
-2. **Realiza una selección** con la varita mágica, el pincel, el borrador o el lazo poligonal (pestaña *Selección*).
+Un **flujo guiado de 6 pasos** (barra de pasos sobre el lienzo + tarjetas de
+inspector a la derecha) conduce la edición:
+
+1. **Abrir** – carga una imagen arrastrándola a la zona de destino, mediante `Archivo → Abrir` (⌘O), arrastrando y soltando en la ventana o con una ruta de inicio (CLI / Finder).
+2. **Quitar fondo** – el botón **IA** en el inspector de tarjetas, o la varita mágica, el pincel, el borrador o el lazo poligonal; luego hazlo transparente, reemplaza el color o suaviza el borde.
    - `Shift+clic` añade a la selección; `⌘+clic` (macOS) o `Ctrl+clic` (Linux) resta.
-   - Cambia de herramienta con el teclado: `W` varita, `B` pincel, `E` borrador, `L` lazo.
-3. **Edita el fondo** (pestaña *Fondo*): hazlo transparente, reemplaza el color o suaviza el borde — o directamente con **IA** en la barra de herramientas.
-4. **Optimiza y transforma** (pestañas *Ajustar* y *Rotar/Voltear*): ajusta brillo/contraste/saturación, rota, refleja, cambia el tamaño.
-5. **Forma y recorte** (pestaña *Forma*): redondea esquinas o recorta a un formato — mueve/escala el marco, luego ✓ Aplicar.
-6. **Capas, altura y vista previa** (pestañas *Capas*, *Altura*, *Vista previa*): gestiona las capas del proyecto, genera/edita un mapa de altura y comprueba el resultado como relieve/brillo.
-7. **Guarda** mediante `Archivo → Guardar` (⌘S) como PNG, JPEG, WebP o TIFF — o `Proyecto → Exportar activos para EufyMake Studio…` para la impresión UV.
+   - Cambia de herramienta con el teclado: `W` varita, `B` pincel, `E` borrador, `L` lazo (solo activo en este paso).
+3. **Ajustar** – brillo/contraste/saturación con vista previa en vivo.
+4. **Forma y medidas** – rota, refleja, redondea esquinas, elige un formato de recorte (mueve/escala el marco, luego ✓ Aplicar) y cambia el tamaño.
+5. **Relieve y capas** – gestiona las capas del proyecto y genera/edita/optimiza un mapa de altura.
+6. **Exportar** – comprueba el resultado como color/relieve/altura/brillo/combinado, guarda mediante `Archivo → Guardar` (⌘S) como PNG, JPEG, WebP o TIFF — o `Proyecto → Exportar activos para EufyMake Studio…` para la impresión UV.
 
 ### Ajustes
 
@@ -189,7 +193,9 @@ siguiente inicio del programa.
 
 ### Atajos de teclado
 
-En macOS la tecla modificadora es **⌘ (Cmd)**; en Linux, **Ctrl**.
+En macOS la tecla modificadora es **⌘ (Cmd)**; en Linux, **Ctrl**. Los
+atajos de herramienta (W/B/E/L) solo funcionan mientras el paso *Quitar
+fondo* está activo.
 
 | Acción | Atajo |
 |--------|----------|
@@ -286,11 +292,16 @@ BgRemover es un paquete instalable (`bgremover/`, iniciado vía
   máscara de selección, las pilas de Deshacer/Rehacer y las herramientas
   (varita mágica, pincel, lazo, recorte).
 - **`MainWindow`** construye la barra de herramientas, la barra de estado/
-  recorte y conecta el lienzo, menús, panel derecho y workers.
-- **`right_panel`** construye las ocho pestañas derechas (Vista previa,
-  Selección, Fondo, Ajustar, Rotar/Voltear, Forma, Capas, Altura) a partir de un
-  conjunto de callbacks; `project_model`/`height_map` aportan el modelo de capas
-  y altura sin Qt.
+  recorte y conecta el lienzo, menús, panel derecho y workers;
+  `_apply_toolbar_for_step` cambia la barra de herramientas contextual según
+  el paso activo.
+- **`stepper`** es la barra de 6 pasos sin estado (Abrir/Quitar fondo/
+  Ajustar/Forma y medidas/Relieve y capas/Exportar); **`right_panel`**
+  construye a partir de ella el inspector de tarjetas (cabecera,
+  `QStackedWidget` con una página por paso, pie de navegación) y le asigna
+  los ocho bloques de pestañas existentes de `right_panel_tabs` (Vista
+  previa, Selección, Fondo, Ajustar, Rotar/Voltear, Forma, Capas, Altura);
+  `project_model`/`height_map` aportan el modelo de capas y altura sin Qt.
 - **`menu_actions`** construye la barra de menú, acciones y atajos;
   `MainWindow` solo aporta callbacks.
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador
