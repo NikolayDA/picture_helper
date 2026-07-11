@@ -459,9 +459,20 @@ class MainWindow(QMainWindow):
         )
         controls_enabled = can_enable if enabled is None else enabled and can_enable
         self._right_panel.ai_button.setEnabled(controls_enabled)
-        self._right_panel.ai_button.setToolTip(
-            tr("right_panel.ai.remove.tooltip")
-            if REMBG_AVAILABLE else tr("toolbar.ai.missing.tooltip"))
+        self._right_panel.ai_button.setToolTip(self._ai_button_tooltip())
+
+    def _ai_button_tooltip(self) -> str:
+        # Erklärt sichtbar am Button, *warum* er gerade deaktiviert ist (#531) –
+        # spiegelt exakt die Bedingungen aus ``can_enable`` oben wider.
+        if not REMBG_AVAILABLE:
+            return tr("toolbar.ai.missing.tooltip")
+        if self._is_warmup_running():
+            return tr("right_panel.ai.remove.tooltip.warmup")
+        if not self._canvas.has_image:
+            return tr("right_panel.ai.remove.tooltip.no_image")
+        if self._worker_controller.is_ai_running:
+            return tr("right_panel.ai.remove.tooltip.processing")
+        return tr("right_panel.ai.remove.tooltip")
 
     def _import_height_map(self) -> None:
         """Öffnet eine Graustufendatei und importiert sie als HEIGHT-Ebene (#346)."""
@@ -966,13 +977,15 @@ class MainWindow(QMainWindow):
         nicht spürbar wartet."""
         self._warmup_failed = False
         self._sb.showMessage(SM.KI_MODELL_LADEN)
-        # KI-Buttons bis Warmup-Ende sperren: ein KI-Klick während des Warmups
-        # würde rembg parallel initialisieren (doppelter Modell-Load / Race).
-        self._sync_ai_controls(enabled=False)
         self._worker_controller.start_warmup(
             on_finished=self._on_warmup_done,
             on_error=self._on_warmup_error,
         )
+        # KI-Buttons bis Warmup-Ende sperren: ein KI-Klick während des Warmups
+        # würde rembg parallel initialisieren (doppelter Modell-Load / Race).
+        # Erst NACH start_warmup(), damit warmup_thread bereits gesetzt ist und
+        # der Tooltip den korrekten Grund ("Modell wird geladen…") zeigt (#531).
+        self._sync_ai_controls(enabled=False)
 
     def _on_warmup_done(self) -> None:
         # Läuft als Thread-Abschluss IMMER (auch nach Fehler). Button wieder
@@ -1375,7 +1388,6 @@ class MainWindow(QMainWindow):
             self._sync_ai_controls()
             return
         self._sb.showMessage(SM.KI_VERARBEITET)
-        self._sync_ai_controls(enabled=False)
 
         # Revision merken, damit verspätete KI-Ergebnisse verworfen werden.
         self._ai_input_version = self._canvas.version
@@ -1391,6 +1403,10 @@ class MainWindow(QMainWindow):
         if not started:
             self._sb.showMessage(SM.KI_LAEUFT_BEREITS)
             self._sync_ai_controls()
+            return
+        # Erst NACH start_ai(), damit ai_thread bereits gesetzt ist und der
+        # Tooltip den korrekten Grund ("KI verarbeitet bereits…") zeigt (#531).
+        self._sync_ai_controls(enabled=False)
 
     def _on_ai_thread_finished(self) -> None:
         self._sync_ai_controls()

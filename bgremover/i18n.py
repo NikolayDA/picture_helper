@@ -750,6 +750,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove": "Hintergrund entfernen (KI)",
         "right_panel.ai.remove.tooltip": (
             "Hintergrund automatisch entfernen: Motiv per KI vom Hintergrund trennen"),
+        "right_panel.ai.remove.tooltip.warmup": (
+            "KI-Modell wird geladen… – Button wird gleich aktiv"),
+        "right_panel.ai.remove.tooltip.no_image": "Zuerst ein Bild öffnen",
+        "right_panel.ai.remove.tooltip.processing": "KI verarbeitet bereits ein Bild…",
         "right_panel.export.section.save": "Speichern",
         "right_panel.export.format_label": "Dateiformat",
         "right_panel.export.save": "Bild speichern",
@@ -1511,6 +1515,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove.tooltip": (
             "Remove the background automatically: separate the subject from the"
             " background with AI"),
+        "right_panel.ai.remove.tooltip.warmup": (
+            "Loading AI model… – the button will become active shortly"),
+        "right_panel.ai.remove.tooltip.no_image": "Open an image first",
+        "right_panel.ai.remove.tooltip.processing": "AI is already processing an image…",
         "right_panel.export.section.save": "Save",
         "right_panel.export.format_label": "File format",
         "right_panel.export.save": "Save image",
@@ -2273,6 +2281,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove": "Eliminar fondo (IA)",
         "right_panel.ai.remove.tooltip": (
             "Eliminar el fondo automáticamente: separar el motivo del fondo con IA"),
+        "right_panel.ai.remove.tooltip.warmup": (
+            "Cargando modelo de IA… – el botón se activará en breve"),
+        "right_panel.ai.remove.tooltip.no_image": "Primero abre una imagen",
+        "right_panel.ai.remove.tooltip.processing": "La IA ya está procesando una imagen…",
         "right_panel.export.section.save": "Guardar",
         "right_panel.export.format_label": "Formato de archivo",
         "right_panel.export.save": "Guardar imagen",
@@ -3035,6 +3047,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove": "Supprimer le fond (IA)",
         "right_panel.ai.remove.tooltip": (
             "Supprimer l'arrière-plan automatiquement : séparer le sujet du fond par IA"),
+        "right_panel.ai.remove.tooltip.warmup": (
+            "Chargement du modèle IA… – le bouton sera bientôt actif"),
+        "right_panel.ai.remove.tooltip.no_image": "Ouvrez d'abord une image",
+        "right_panel.ai.remove.tooltip.processing": "L'IA traite déjà une image…",
         "right_panel.export.section.save": "Enregistrer",
         "right_panel.export.format_label": "Format de fichier",
         "right_panel.export.save": "Enregistrer l'image",
@@ -3796,6 +3812,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove": "Вилучити фон (ШІ)",
         "right_panel.ai.remove.tooltip": (
             "Вилучити фон автоматично: відділити мотив від фону за допомогою ШІ"),
+        "right_panel.ai.remove.tooltip.warmup": (
+            "Завантаження моделі ШІ… – кнопка стане активною незабаром"),
+        "right_panel.ai.remove.tooltip.no_image": "Спершу відкрийте зображення",
+        "right_panel.ai.remove.tooltip.processing": "ШІ вже обробляє зображення…",
         "right_panel.export.section.save": "Збереження",
         "right_panel.export.format_label": "Формат файлу",
         "right_panel.export.save": "Зберегти зображення",
@@ -4551,6 +4571,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "right_panel.ai.remove": "移除背景（AI）",
         "right_panel.ai.remove.tooltip": (
             "自动移除背景：用 AI 将主体与背景分离"),
+        "right_panel.ai.remove.tooltip.warmup": "AI 模型加载中…按钮即将可用",
+        "right_panel.ai.remove.tooltip.no_image": "请先打开一张图片",
+        "right_panel.ai.remove.tooltip.processing": "AI 正在处理图片…",
         "right_panel.export.section.save": "保存",
         "right_panel.export.format_label": "文件格式",
         "right_panel.export.save": "保存图像",
