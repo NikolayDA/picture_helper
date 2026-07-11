@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.5.0] – 2026-07-11
+
 ### Hinzugefügt
 
 - **Laufzeit-UI in sechs Sprachen (Redesign-i18n, #430).** Die komplette

@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.5.0] – 2026-07-11
+
 ### Added
 
 - **Runtime UI in six languages (redesign i18n, #430).** The complete runtime

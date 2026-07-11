@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.5.0] – 2026-07-11
+
 ### Ajouté
 
 - **Interface d'exécution en six langues (i18n de la refonte, #430).** La table
