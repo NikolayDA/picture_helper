@@ -17,9 +17,10 @@ Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs. **#431/#432** wurden über PR
 #529 gemergt und geschlossen – ANLEITUNG/README und alle Screenshots spiegeln
 jetzt den geführten 6-Schritte-Workflow. Damit ist Epic **#425** vollständig
-erledigt (alle drei Sub-Issues #430/#431/#432 geschlossen). Zwei neue Issues
-aus einem Support-Fall vom 2026-07-11 kamen hinzu (**#530**/**#531**). GitHub
-zeigt aktuell weiterhin **10** offene Issues.
+erledigt und am 2026-07-11 geschlossen (alle drei Sub-Issues #430/#431/#432
+geschlossen). Die zwei danach entstandenen KI-Warmup-Issues **#530**/**#531**
+sind über PR #533/#535 ebenfalls geschlossen. GitHub zeigt aktuell **7**
+offene Issues.
 
 ### Erledigt seit dem letzten Review
 
@@ -35,7 +36,8 @@ zeigt aktuell weiterhin **10** offene Issues.
 - **Seit 2026-07-11 geschlossen:** **#430** (PR #526) – Laufzeit-i18n
   ES/FR/UK/ZH vollständig gepflegt und parität-geprüft; **#431/#432** (PR
   #529) – ANLEITUNG/README/Screenshots auf den 6-Schritte-Workflow gebracht.
-  **Epic #425 ist damit inhaltlich vollständig** und kann geschlossen werden.
+  **#425** ist als erledigtes i18n/Doku-Epic geschlossen; **#530** (PR #533)
+  und **#531** (PR #535) schließen den KI-Warmup-Support-Fall ab.
 
 ### Noch offen
 
@@ -44,20 +46,13 @@ zeigt aktuell weiterhin **10** offene Issues.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-11)
 
-Stand 2026-07-11 zeigt GitHub **10** offene Issues: i18n/Doku-Epic
-(**#425**, bereit zum Schließen), Rollout/Release (**#426/#435/#392/#389**),
-Backlog/Externe Punkte (**#299/#318/#245**) und zwei neue KI-Warmup-Befunde
-aus demselben Support-Fall (**#530/#531**).
+Stand 2026-07-11 zeigt GitHub **7** offene Issues: Rollout/Release
+(**#426/#435/#392/#389**) sowie Backlog/Externe Punkte (**#299/#318/#245**).
 
 ### Sinnvolle Bündelung
 
-- **i18n/Doku:** #425 ist mit #430/#431/#432 vollständig erledigt – nur noch
-  formal schließen.
 - **Rollout/Release:** #426 hängt nur an #435; mit #392 koordinieren, dann
   #426/#389 schließen.
-- **KI-Warmup-Support-Fall (2026-07-11):** #530 (Doku-Korrektur, mechanisch)
-  und #531 (Tooltip-/Statustext-UX) sind unabhängig voneinander umsetzbar;
-  #530 ist der schnellere, risikoärmere Fix und kann zuerst laufen.
 - **Backlog:** #299 nach dem Release; #318 erst schärfen; #245 extern
   blockiert.
 
@@ -69,9 +64,6 @@ Claude-Modell und Reasoning-Effort für die Umsetzung durch Claude Code.
 |---|-------|----------|-------------|-----------------|------------------------------|
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & Versionsanhebung für das Redesign | 🟡 Mittel | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – mechanisch, klar umrissen; blockiert #426 und #392. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden | 🟠 Hoch | 🟡 Mittel | Sonnet 5 · mittel | **Startbereit** – nach #435 sequenzieren; #431/#432 sind jetzt kein Blocker mehr; macOS-`.dmg`-Build braucht eine lokale/macOS-Runner-Umgebung außerhalb des Remote-Containers. |
-| [#530](https://github.com/NikolayDA/picture_helper/issues/530) | INSTALL_LINUX/MAC.md: KI-Download startet beim App-Start, nicht beim ersten Klick | 🟡 Mittel | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – reine Textkorrektur in 2 Dateien + 5 i18n-Spiegeln, Code-Zeilen bereits im Issue belegt. |
-| [#531](https://github.com/NikolayDA/picture_helper/issues/531) | KI-Button: Warmup-/Ladezustand sichtbar machen | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – klare Akzeptanzkriterien inkl. qtbot-Test-Vorgabe; Tooltip-Text in 6 Sprachen zu ergänzen, `can_enable`-Logik bleibt unverändert. |
-| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalisierung & Dokumentation | 🟠 Hoch | 🟢 Niedrig | – (Tracking-Issue) | **Bereit zum Schließen** – #430/#431/#432 alle erledigt (PR #526/#529). |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: Qualitätssicherung & Rollout | 🟠 Hoch | 🟢 Niedrig | – (Tracking-Issue) | **Fast fertig** – nur #435 bleibt offen. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Nutzer-Doku aktualisieren & Release | 🟠 Hoch | 🟢 Niedrig | – (Tracking-Issue) | **Nach #392 schließen** – nur Release offen. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – Katalog + N13-Nachträge aus Triage 2026-07-08 liegen vor; nach der Release priorisieren. |
@@ -80,15 +72,16 @@ Claude-Modell und Reasoning-Effort für die Umsetzung durch Claude Code.
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#530** – schnellster, risikoärmster Fix; kann sofort parallel laufen.
-2. **Release:** **#435** + **#392** koordiniert fahren, dann **#426**/**#389**
-   sowie **#425** schließen.
-3. **#531** – UX-Fix zum selben Support-Fall wie #530.
-4. **#299** nach der Release; **#318** nur erforschen; **#245** extern
+1. **Release:** **#435** + **#392** koordiniert fahren, dann **#426**/**#389**
+   schließen.
+2. **#299** nach der Release; **#318** nur erforschen; **#245** extern
    blockiert.
 
 ## Vorige Runden
 
+- **2026-07-11 (finaler Nachzug)** — #425 formal geschlossen; #530/#531 über
+  PR #533/#535 geschlossen; Open-Issue-Snapshot auf 7 verbleibende Issues
+  aktualisiert.
 - **2026-07-11 (2. Triage)** — #431/#432 geschlossen (PR #529, ANLEITUNG/
   README/Screenshots auf den 6-Schritte-Workflow); Epic #425 vollständig
   erledigt. Neue Issues #530/#531 aus einem KI-Warmup-Support-Fall erfasst.
