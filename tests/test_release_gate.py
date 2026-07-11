@@ -300,25 +300,52 @@ def _permission_dict(perms: object) -> dict[str, str]:
     return {}
 
 
-def _required_permissions(doc: dict) -> dict[str, int]:
-    """Höchstes Permission-Level je Scope, das *doc* verlangt.
+def _leveled_permission_dict(perms: object) -> dict[str, int]:
+    """``permissions``-Block zu ``{scope: level_int}`` (0/1/2)."""
+    return {scope: _PERMISSION_LEVELS.get(level, 0)
+            for scope, level in _permission_dict(perms).items()}
 
-    Bewusst die Vereinigung aus Top-Level- UND Job-Level-``permissions``: für
-    einen Guard gegen ``startup_failure`` ist Über-Anfordern (eine ungenutzte
-    Permission am Caller einfordern) harmlos, Unter-Anfordern dagegen lässt
-    genau den Startabbruch durch, den der Test verhindern soll. Eine vom
-    aufgerufenen Workflow überhaupt deklarierte Permission wird daher
-    konservativ als „verlangt" gewertet.
+
+def _effective_job_permissions(job: dict, top_level: dict[str, int]) -> dict[str, int]:
+    """Effektiv angeforderte Rechte eines Jobs im aufgerufenen Workflow.
+
+    GitHub validiert einen ``workflow_call`` je *nested job* gegen dessen
+    effektiv angeforderte Rechte: ein Job-``permissions``-Block ERSETZT die
+    Top-Level-Deklaration (nicht additiv). Fehlt der Key ganz (``None``), erbt
+    der Job Top-Level; ein *leerer* Block (``{}``) überschreibt dagegen bewusst
+    auf „nichts". Beleg: die reale Startup-Meldung „The nested job 'X' is
+    requesting …, but is only allowed …" (github/gh-aw#21071).
     """
-    required: dict[str, int] = {}
-    blocks = [doc.get("permissions")]
-    for job in (doc.get("jobs") or {}).values():
+    block = job.get("permissions")
+    if block is None:                       # kein eigener Block → erbt Top-Level
+        return dict(top_level)
+    return _leveled_permission_dict(block)  # gesetzt (auch {}) → ersetzt Top-Level
+
+
+def _required_permissions(doc: dict) -> dict[str, int]:
+    """Höchstes *effektiv* angefordertes Permission-Level je Scope über alle Jobs.
+
+    GitHub bricht einen ``workflow_call`` beim Start ab, wenn der Aufrufer-Job
+    einem *nested job* weniger gewährt, als dieser effektiv anfordert (Job-Level
+    ersetzt Top-Level, sonst Erben). Der Aufrufer muss je Job das Maximum decken,
+    also das Maximum der effektiven Job-Rechte über alle Jobs.
+
+    Früher wurde bewusst die unbedingte Top-Level∪Job-Vereinigung genommen. Die
+    forderte aber auch Scopes ein, die *jeder* Job per eigenem Block
+    weg-überschreibt – ein False Positive, der legitime Per-Job-Härtung
+    fälschlich rot färbt, obwohl GitHub den Run gar nicht abbräche (#318). Der
+    OIDC-Regressionsfall (#303) bleibt gedeckt: In ``ci.yml`` steht
+    ``id-token: write`` top-level und der ``test``-Job hat keinen eigenen Block –
+    er erbt das Recht, es bleibt „verlangt".
+    """
+    top_level = _leveled_permission_dict(doc.get("permissions"))
+    jobs = doc.get("jobs") or {}
+    # Ohne Jobs (theoretisch) bleibt Top-Level die einzige Referenz.
+    required: dict[str, int] = dict(top_level) if not jobs else {}
+    for job in jobs.values():
         if isinstance(job, dict):
-            blocks.append(job.get("permissions"))
-    for block in blocks:
-        for scope, level in _permission_dict(block).items():
-            lvl = _PERMISSION_LEVELS.get(level, 0)
-            required[scope] = max(required.get(scope, 0), lvl)
+            for scope, lvl in _effective_job_permissions(job, top_level).items():
+                required[scope] = max(required.get(scope, 0), lvl)
     return {scope: lvl for scope, lvl in required.items() if lvl > 0}
 
 
@@ -436,3 +463,56 @@ def test_permission_helpers_honor_all_shorthands_and_workflow_call() -> None:
     assert _declares_workflow_call({"on": ["workflow_call"]})
     assert _declares_workflow_call({"on": "workflow_call"})
     assert not _declares_workflow_call({"on": {"push": None}})
+
+
+# ── #318: effektiv-per-Job statt Top-Level∪Job-Vereinigung ──────────────
+#
+# GitHub validiert den startup einer workflow_call-Kette je *nested job* gegen
+# dessen effektiv angeforderte Rechte (Job-Level ersetzt Top-Level, sonst
+# Erben). Ein Top-Level-Recht, das JEDER Job weg-überschreibt, wird effektiv
+# nicht angefordert – der Guard darf es dann nicht einfordern (kein False
+# Positive gegen legitime Per-Job-Härtung). Beleg der Semantik: github/gh-aw
+# #21071 (reale Meldung „The nested job 'X' is requesting …, but is only
+# allowed …").
+
+
+def test_required_permissions_covers_inherited_top_level_oidc_case() -> None:
+    """OIDC-Fall (#303): Top-Level ``id-token: write`` + Job ohne eigenen Block
+    ⇒ der Job erbt das Recht, es bleibt „verlangt". So bleibt der Guard rot,
+    wenn ein Caller ``id-token`` nicht durchreicht."""
+    ci_like = {
+        "permissions": {"contents": "read", "id-token": "write"},
+        "jobs": {"test": {"runs-on": "ubuntu-latest"}},  # kein eigener Block → erbt
+    }
+    assert _required_permissions(ci_like) == {"contents": 1, "id-token": 2}
+
+
+def test_required_permissions_ignores_top_level_scope_every_job_overrides() -> None:
+    """Kein False Positive (#318): Ein Top-Level-Recht, das JEDER Job per
+    eigenem ``permissions``-Block weg-überschreibt, wird effektiv nicht
+    angefordert – der Guard darf es nicht als „verlangt" werten."""
+    doc = {
+        "permissions": {"contents": "read", "id-token": "write"},
+        "jobs": {
+            "a": {"permissions": {"contents": "read"}},  # id-token weg-überschrieben
+            "b": {"permissions": {"contents": "read"}},
+        },
+    }
+    required = _required_permissions(doc)
+    assert "id-token" not in required, required
+    assert required == {"contents": 1}
+    # Verglichen mit einem Caller, der nur contents:read gewährt: kein Fehlbetrag.
+    assert _missing_grants(required, {"contents": 1}) == {}
+
+
+def test_required_permissions_takes_max_effective_across_jobs() -> None:
+    """Ein Job, der ein Recht behält/anfordert, genügt – maximiert über Jobs.
+    Ein leerer Block (``{}``) überschreibt bewusst auf „nichts"."""
+    doc = {
+        "permissions": {"contents": "read"},
+        "jobs": {
+            "keeps": {"permissions": {"contents": "read", "id-token": "write"}},
+            "drops": {"permissions": {}},  # leerer Block → nichts
+        },
+    }
+    assert _required_permissions(doc) == {"contents": 1, "id-token": 2}
