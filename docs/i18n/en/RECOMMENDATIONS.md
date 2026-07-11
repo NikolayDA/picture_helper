@@ -11,84 +11,71 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-10)
+## Current Status (2026-07-11)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs. Since the 2026-07-09 snapshot, **#509**
-(cursor zoom, PR #513) and **#510** (snapshot, PR #512) are closed; after that
-came the UI follow-up wave **#514–#517** via PR #518/#519 and
-inspector/scroll-track polish via PR #520/#521/#522. The 2026-07-06 benchmark
-run was technically stable, but failed when pushing directly to protected
-`main`; this PR switches it to benchmark-baseline PRs. GitHub currently shows
-**11** open issues.
+remain the baseline before new PRs. **#430** (runtime i18n for ES/FR/UK/ZH)
+merged via PR #526 and is closed — verified: `bgremover/i18n.py::_TRANSLATIONS`
+now carries `de/en/es/fr/uk/zh`, each with 494 keys in full parity. That also
+closes out **O1** (additional runtime languages). GitHub currently shows
+**10** open issues.
 
 ### Completed Since The Last Review
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8** and **O2–O7** remain done;
   epics **#329/#344/#358/#384** (N9–N12) plus export fix **#363** are merged
   and archived.
-- **Closed since the 2026-06-25 review:** **#404/#406/#408** (PR #412) —
-  preview/dead-code/audit findings done.
-- **Redesign core, rail/zoom, card inspector, Dark Mode:** **#413/#414/
-  #455–#464/#474–#489** landed via PR #412/#423/#466/#467/#473/#482/#489;
-  **#490** and **#433/#434** likewise (epic **#426** now hinges only on
-  **#435**).
-- **Closed since 2026-07-06:** **#499/#500/#501** (PR #504 — light theme
-  aligned with the prototype, screenshot generator repaired, dead widgets
-  removed; the #500 blocker in front of **#432** is gone) and **#503**
-  (PR #506 — `CanvasHistory`/`_make_panel_btn`/dead theme constants removed).
-- **Closed since 2026-07-09:** **#509/#510** (PR #512/#513), **#514–#517**
-  (PR #518/#519 — stepper, AI button, SpinBox steppers, preview segments), and
-  PR #520/#521/#522 (inspector lines, right column, scroll-track pixel test).
-
-### New Since The Last Review
-
-- **Benchmark CI 🟢:** The weekly run produced a stable result, but failed
-  when a direct `git push` to `main` hit branch protection. The workflow now
-  opens a PR branch for new baseline JSONs.
+- **Closed since 2026-06-25:** **#404/#406/#408** (PR #412) — preview/
+  dead-code/audit findings done.
+- **Redesign core, rail/zoom, card inspector, Dark Mode, UI follow-up:**
+  **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517** landed
+  via PR #412/#423/#466/#467/#473/#482/#489/#504/#506/#512/#513/#518/#519 and
+  PR #520/#521/#522; **#490** and **#433/#434** likewise (epic **#426** now
+  hinges only on **#435**).
+- **Closed since 2026-07-11:** **#430** (PR #526) — runtime i18n for
+  ES/FR/UK/ZH fully maintained and parity-checked; **O1** is done (epic
+  **#425** now hinges only on **#431**/**#432**).
 
 ### Still Open
 
-- **O1 🟠 — Additional runtime languages.** DE/EN are switchable; es/fr/uk/zh
-  are still missing as runtime locales (matches **#430**).
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup
   after generation; mockup-only, the real app is unaffected (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-10)
+## Open GitHub Issues — Triage Status (2026-07-11)
 
-As of 2026-07-10, GitHub shows **11** open issues: i18n/docs
-(**#425/#430/#431/#432**), rollout/release (**#426/#435/#392/#389**), and
+As of 2026-07-11, GitHub shows **10** open issues: i18n/docs
+(**#425/#431/#432**), rollout/release (**#426/#435/#392/#389**), and
 backlog/external items (**#299/#318/#245**).
 
 ### Sensible Bundles
 
-- **i18n/docs:** #430 unblocks the parity tests; #431/#432 follow after the
-  UI freeze (the #500/#509/#514–#517 blockers are gone).
+- **i18n/docs:** #430 is done; #431/#432 are now ready to implement (the UI
+  freeze blocker is gone per the 2026-07-09 #431 audit).
 - **Rollout/release:** #426 hinges only on #435; coordinate with #392, then
   close #426/#389.
 - **Backlog:** #299 after the release; refine #318 first; #245 stays
   externally blocked.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
-estimated implementation effort.
+estimated implementation effort, **Model/Effort** = the recommended Claude
+model and reasoning effort for Claude Code to implement it.
 
-| # | Title | Relevance | Complexity | Recommended next step |
-|---|-------|-----------|------------|-----------------------|
-| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟡 Medium | **In progress** – #430/#431/#432 open. |
-| [#430](https://github.com/NikolayDA/picture_helper/issues/430) | New UI strings (steps/cards/navigation) | 🟠 High | 🟡 Medium | **Ready for PR** – ES/FR/UK/ZH; DE/EN via PR #423. |
-| [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | **After UI freeze** – 6-language mirror, link tests. |
-| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Recreate app screenshots for the redesign | 🟢 Low | 🟢 Low | **After UI freeze** – #500 blocker gone (PR #504). |
-| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | **Nearly done** – only #435 remains open. |
-| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | **Align with #392** – settle the release sequence. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | **Ready** – decide the sequence with the redesign. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Update user docs & cut release | 🟠 High | 🟢 Low | **Close after #392** – only the release remains. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟢 Low | **After the release** – highest impact first. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | **Needs refinement** – prove GitHub semantics. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | **Blocked (external)** – OpenAI billing/quota. |
+| # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
+|---|-------|-----------|------------|---------------|-----------------------|
+| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟢 Low | – (tracking issue) | **In progress** – #431/#432 open, #430 done. |
+| [#431](https://github.com/NikolayDA/picture_helper/issues/431) | Update ANLEITUNG & README to guided workflow | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – 2026-07-09 audit already done (includes fixing the 6-format crop-ratio list). |
+| [#432](https://github.com/NikolayDA/picture_helper/issues/432) | Recreate app screenshots for the redesign | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – #500 blocker gone (PR #504); a visual sanity check by the user is worthwhile. |
+| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | – (tracking issue) | **Nearly done** – only #435 remains open. |
+| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | Sonnet 5 · low | **Ready for PR** – mechanical, well-scoped. |
+| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | Sonnet 5 · medium | **Ready** – sequence after #435; the macOS `.dmg` build needs a local/macOS runner outside this remote container. |
+| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Update user docs & cut release | 🟠 High | 🟢 Low | – (tracking issue) | **Close after #392** – only the release remains. |
+| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – catalog plus the N13 follow-ups from the 2026-07-08 triage are documented; prioritize after the release. |
+| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | Opus 4.8 · high | **Needs refinement** – prove the GitHub semantics (top-level vs. effective-per-job) first; must not weaken the OIDC regression guard. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | – (no code task) | **Blocked (external)** – restoring OpenAI billing/quota is an account action, not a PR. |
 
 ### Recommended Next (PR order)
 
-1. Pull **#430** forward — unblocks i18n parity; then **#431**/**#432**.
+1. **#431**/**#432** — both ready to implement, no blocker left.
 2. **Release:** run **#435** + **#392** in a coordinated way, then close
    **#426**/**#389**.
 3. **#299** after the release; research **#318** only; keep **#245**
@@ -96,6 +83,8 @@ estimated implementation effort.
 
 ## Previous Rounds
 
+- **2026-07-11** — #430 closed (PR #526, full runtime i18n ES/FR/UK/ZH; O1
+  done); epic #425 now hinges only on #431/#432.
 - **2026-07-10** — #509/#510 closed, #514–#517 completed, right-column
   follow-up finished through PR #520/#521/#522; benchmark-baseline workflow
   switched to PRs instead of direct pushes.
