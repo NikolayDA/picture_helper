@@ -9,7 +9,9 @@ from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 
 import numpy as np
+import pytest
 from PIL import Image
+from PyQt6.QtGui import QColor
 
 import bgremover
 from bgremover import ImageCanvas
@@ -65,28 +67,27 @@ def _raise_value_error(*_args, **_kwargs):
     raise ValueError("simulierter Bildverarbeitungsfehler")
 
 
-def test_apply_remove_logs_expected_value_error(qapp, caplog, monkeypatch):
+@pytest.mark.parametrize(
+    ("selection_method", "call"),
+    [
+        ("remove_background", lambda canvas: canvas.apply_remove()),
+        ("replace_background",
+         lambda canvas: canvas.apply_replace(QColor(255, 0, 0))),
+    ],
+    ids=["apply_remove", "apply_replace"],
+)
+def test_apply_op_logs_expected_value_error(
+    qapp, caplog, monkeypatch, selection_method, call,
+):
     """Erwartete Bildverarbeitungsfehler (ValueError) landen im Logger
-    und als Statusmeldung statt unbehandelt auf stderr zu enden."""
+    und als Statusmeldung statt unbehandelt auf stderr zu enden – sowohl
+    für ``apply_remove`` als auch für ``apply_replace``."""
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
     canvas._mask = np.ones((10, 10), dtype=bool)
-    monkeypatch.setattr(
-        canvas._selection, "remove_background", _raise_value_error)
+    monkeypatch.setattr(canvas._selection, selection_method, _raise_value_error)
     with caplog.at_level(logging.ERROR, logger="BgRemover"):
-        canvas.apply_remove()
-    assert any("Fehler" in record.message for record in caplog.records)
-
-
-def test_apply_replace_logs_expected_value_error(qapp, caplog, monkeypatch):
-    from PyQt6.QtGui import QColor
-    canvas = ImageCanvas()
-    canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
-    canvas._mask = np.ones((10, 10), dtype=bool)
-    monkeypatch.setattr(
-        canvas._selection, "replace_background", _raise_value_error)
-    with caplog.at_level(logging.ERROR, logger="BgRemover"):
-        canvas.apply_replace(QColor(255, 0, 0))
+        call(canvas)
     assert any("Fehler" in record.message for record in caplog.records)
 
 
@@ -100,7 +101,6 @@ def test_apply_remove_propagates_unexpected_bug(qapp, monkeypatch):
     OSError/ValueError/UnidentifiedImageError gefasst. Der Bug wird als
     Klassen-Monkeypatch simuliert statt durch Korrumpieren privater
     Canvas-Attribute."""
-    import pytest
     canvas = ImageCanvas()
     canvas.apply_loaded_image(Image.new("RGBA", (10, 10), (0, 0, 0, 255)), "seed.png")
     canvas.invert_selection()                    # volle Auswahl über die Public API

@@ -21,9 +21,11 @@ def test_pil_to_numpy_returns_rgba_array():
     # RGB → RGBA: Alpha = 255
     assert (arr[:, :, 3] == 255).all()
     assert (arr[:, :, 0] == 10).all()
-    # Defensive Variante: das Resultat ist schreibbar.
+    # Defensive Variante: das Resultat ist schreibbar und ein Schreibzugriff
+    # schlägt tatsächlich sichtbar durch.
     assert arr.flags.writeable
     arr[0, 0, 0] = 99
+    assert arr[0, 0, 0] == 99
 
 
 def test_pil_to_numpy_readonly_is_not_writable():

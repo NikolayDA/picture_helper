@@ -73,6 +73,28 @@ class HistoryPopup:
         self._entries = list(descriptions)
         self._refresh_list()
 
+    @property
+    def is_open(self) -> bool:
+        """Sichtbarkeitsvertrag für Aufrufer/Tests, ohne das lazy gebaute
+        ``QDialog`` selbst offenzulegen."""
+        return self._popup is not None and self._popup.isVisible()
+
+    def item_texts(self) -> list[str]:
+        """Tatsächlich gerenderter Listeninhalt (öffentlicher Test-/Inspektionspfad)."""
+        if self._history_list is None:
+            return []
+        texts = []
+        for i in range(self._history_list.count()):
+            item = self._history_list.item(i)
+            assert item is not None
+            texts.append(item.text())
+        return texts
+
+    @property
+    def list_widget(self) -> QListWidget | None:
+        """Zielwidget für echte Maus-/Tastatur-Ereignisse (Tests)."""
+        return self._history_list
+
     def _build(self) -> None:
         popup = QDialog(self._parent, Qt.WindowType.Tool)
         popup.setWindowTitle(tr("history.window_title"))

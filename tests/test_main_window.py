@@ -168,13 +168,23 @@ def test_load_image_async_rejects_while_loading(win, monkeypatch):
 # ── _start_flood_fill_async ──────────────────────────────────
 
 def test_start_flood_fill_async_passes_through_when_started(win, monkeypatch):
-    monkeypatch.setattr(win._worker_controller, "start_flood_fill",
-                        lambda *a, **k: True)
+    calls: list = []
+    monkeypatch.setattr(
+        win._worker_controller, "start_flood_fill",
+        lambda *a, **k: (calls.append((a, k)), True)[1])
     cancelled: dict = {}
     monkeypatch.setattr(win._canvas, "cancel_pending_wand",
                         lambda msg: cancelled.__setitem__("msg", msg))
-    win._start_flood_fill_async(object(), 1, 2, 3)
+    arr = object()
+    win._start_flood_fill_async(arr, 1, 2, 3)
     assert "msg" not in cancelled
+    # Positionsargumente und Callbacks werden unveraendert an den Controller
+    # durchgereicht.
+    assert len(calls) == 1
+    args, kwargs = calls[0]
+    assert args == (arr, 1, 2, 3)
+    assert kwargs["on_done"] == win._canvas.apply_wand_result
+    assert kwargs["on_error"] == win._canvas.cancel_pending_wand
 
 
 def test_start_flood_fill_async_resets_canvas_when_rejected(win, monkeypatch):
@@ -584,7 +594,6 @@ def test_run_ai_starts_worker_and_disables_button(win, tmp_path, monkeypatch):
     win._run_ai()
     assert win.statusBar().currentMessage() == SM.KI_VERARBEITET
     assert not win._right_panel.ai_button.isEnabled()
-    assert win._ai_input_version == win._canvas.version
     assert "img" in started
 
 
@@ -610,28 +619,70 @@ def test_ai_status_icon_visible_only_for_ai_status_messages(win):
 
 # ── KI-Abschluss / -Ergebnis / -Fehler ───────────────────────
 
-def test_on_ai_thread_finished_reenables_button(win, tmp_path, monkeypatch):
+def test_on_ai_thread_finished_reenables_button_and_discards_late_result(
+    win, tmp_path, monkeypatch,
+):
+    """Nach Thread-Ende muss der Button wieder aktiv sein UND jedes weitere
+    (verspätete) KI-Ergebnis als veraltet verworfen werden – beobachtbar
+    über ``_on_ai_done`` statt über das private ``_ai_input_version``."""
     monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     _load_dummy_image(win, tmp_path)
+    monkeypatch.setattr(
+        win._worker_controller, "start_ai",
+        lambda img, on_done, on_error, on_finished: True)
+    win._run_ai()
     win._right_panel.ai_button.setEnabled(False)
-    win._ai_input_version = 5
     win._sb.showMessage("irgendwas")
     win._on_ai_thread_finished()
     assert win._right_panel.ai_button.isEnabled()
-    assert win._ai_input_version == -1
     # Nur die Abbruch-Wartemeldung würde umgeschaltet – sonst bleibt sie stehen.
     assert win.statusBar().currentMessage() == "irgendwas"
 
+    applied: dict = {}
+    monkeypatch.setattr(win._canvas, "apply_ai_result",
+                        lambda img: applied.__setitem__("img", img))
+    win._on_ai_done(Image.new("RGBA", (4, 4), (1, 2, 3, 255)))
+    assert "img" not in applied
+    assert win.statusBar().currentMessage() == SM.KI_ERGEBNIS_VERWORFEN
 
-def test_on_ai_done_applies_result_when_version_matches(win, tmp_path, monkeypatch):
+
+def test_on_ai_done_applies_result_when_canvas_unchanged_since_start(
+    win, tmp_path, monkeypatch,
+):
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
     _load_dummy_image(win, tmp_path)
-    win._ai_input_version = win._canvas.version
+    monkeypatch.setattr(
+        win._worker_controller, "start_ai",
+        lambda img, on_done, on_error, on_finished: True)
+    win._run_ai()
     applied: dict = {}
     monkeypatch.setattr(win._canvas, "apply_ai_result",
                         lambda img: applied.__setitem__("img", img))
     result = Image.new("RGBA", (4, 4), (1, 2, 3, 255))
     win._on_ai_done(result)
     assert applied["img"] is result
+    assert win.statusBar().currentMessage() != SM.KI_ERGEBNIS_VERWORFEN
+
+
+def test_on_ai_done_discards_result_when_canvas_changed_since_start(
+    win, tmp_path, monkeypatch,
+):
+    """Wird der Canvas zwischen KI-Start und -Ergebnis bearbeitet, muss das
+    (jetzt veraltete) KI-Ergebnis verworfen statt angewendet werden."""
+    monkeypatch.setattr(mw, "REMBG_AVAILABLE", True)
+    _load_dummy_image(win, tmp_path)
+    monkeypatch.setattr(
+        win._worker_controller, "start_ai",
+        lambda img, on_done, on_error, on_finished: True)
+    win._run_ai()
+    win._canvas.apply_edit(
+        Image.new("RGBA", (4, 4), (9, 9, 9, 255)), desc="edit-during-ai")
+    applied: dict = {}
+    monkeypatch.setattr(win._canvas, "apply_ai_result",
+                        lambda img: applied.__setitem__("img", img))
+    win._on_ai_done(Image.new("RGBA", (4, 4), (1, 2, 3, 255)))
+    assert "img" not in applied
+    assert win.statusBar().currentMessage() == SM.KI_ERGEBNIS_VERWORFEN
 
 
 def test_on_ai_error_reports_status_and_shows_dialog(win, monkeypatch):
@@ -661,28 +712,8 @@ def test_open_settings_opens_dialog(win, monkeypatch):
     assert opened.get("exec") is True
 
 
-# ── closeEvent (Abbruch-Zweig) ───────────────────────────────
-
-def test_close_event_cancelled_keeps_window_open(win, monkeypatch):
-    monkeypatch.setattr(win, "_confirm_discard_changes", lambda: False)
-    shut: dict = {}
-    monkeypatch.setattr(win._worker_controller, "shutdown_all",
-                        lambda: shut.__setitem__("called", True))
-
-    class _Event:
-        def __init__(self) -> None:
-            self.ignored = False
-
-        def ignore(self) -> None:
-            self.ignored = True
-
-        def accept(self) -> None:
-            pass
-
-    ev = _Event()
-    win.closeEvent(ev)
-    assert ev.ignored is True
-    assert "called" not in shut
+# closeEvent-Abbruch (Discard abgelehnt): siehe
+# test_unsaved_changes.py::test_close_event_aborts_when_discard_declined.
 
 
 # ── __init__: rembg-Warmup-Zweig ─────────────────────────────

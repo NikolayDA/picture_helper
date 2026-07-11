@@ -13,7 +13,6 @@ import bgremover
 from bgremover import _version
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION_MODULE = "bgremover/_version.py"
 
 
 def _read(name: str) -> str:
@@ -26,12 +25,21 @@ def _pyproject_version() -> str:
     return m.group(1)
 
 
-def test_version_is_sourced_from_package_metadata() -> None:
-    src = _read(VERSION_MODULE)
-    assert '_pkg_version("bgremover")' in src, (
-        "__version__ muss primaer aus den Paket-Metadaten kommen (Single "
-        "Source), damit pyproject.toml die maßgebliche Versionsquelle bleibt."
-    )
+def test_version_prefers_package_metadata_over_pyproject_fallback(monkeypatch) -> None:
+    """``get_version()`` muss verfügbare Paket-Metadaten immer vor dem
+    pyproject-Fallback verwenden (Single Source of Truth), damit ein
+    installiertes Paket nicht versehentlich die Quelldatei statt seiner
+    eigenen Metadaten meldet."""
+    monkeypatch.setattr(_version, "_pkg_version", lambda _name: "9.9.9-from-metadata")
+
+    def _unexpected_fallback() -> str:
+        raise AssertionError(
+            "pyproject-Fallback wurde aufgerufen, obwohl Paket-Metadaten "
+            "verfügbar waren")
+
+    monkeypatch.setattr(_version, "_read_pyproject_version", _unexpected_fallback)
+
+    assert _version.get_version() == "9.9.9-from-metadata"
 
 
 def test_source_fallback_reads_pyproject_directly() -> None:

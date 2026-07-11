@@ -12,6 +12,7 @@ kein sichtbares Fenster) – damit zählen diese Tests in die CI-Coverage.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from PIL import Image
 from PyQt6.QtCore import QEvent, QMimeData, QPoint, QPointF, Qt, QUrl
 from PyQt6.QtGui import (
@@ -134,18 +135,21 @@ def test_set_tolerance_stores_value(qapp):
     assert c._tolerance == 42
 
 
-def test_set_brush_size_updates_radius_for_brush(qapp):
+@pytest.mark.parametrize(
+    ("tool", "size", "expected_radius"),
+    [
+        (TOOL_BRUSH, 20, 10),
+        (TOOL_ERASER, 16, 8),
+        (TOOL_WAND, 20, 10),
+    ],
+)
+def test_set_brush_size_updates_radius(qapp, tool, size, expected_radius):
+    """_brush_r wird werkzeugunabhängig identisch gesetzt; der Cursor-Zweig
+    (nur für Pinsel-artige Werkzeuge) wirft dabei nie einen Fehler."""
     c = _canvas()
-    c.set_tool(TOOL_BRUSH)
-    c.set_brush_size(20)
-    assert c._brush_r == 10
-
-
-def test_set_brush_size_updates_radius_for_eraser(qapp):
-    c = _canvas()
-    c.set_tool(TOOL_ERASER)
-    c.set_brush_size(16)
-    assert c._brush_r == 8
+    c.set_tool(tool)
+    c.set_brush_size(size)
+    assert c._brush_r == expected_radius
 
 
 # ── apply_remove / apply_replace Guard-Pfade ───────────────────────────
@@ -639,12 +643,6 @@ def test_mouse_move_with_lasso_updates_preview_line(qapp, monkeypatch):
     c.mouseMoveEvent(_mouse(QEvent.Type.MouseMove, 12, 14,
                             button=Qt.MouseButton.NoButton))
     assert updated  # Vorschaulinie wurde nachgeführt
-
-
-def test_set_brush_size_with_wand_updates_radius_only(qapp):
-    c = _canvas()  # Standard-Tool: Zauberstab
-    c.set_brush_size(20)
-    assert c._brush_r == 10  # Radius gesetzt, kein Cursor-Zweig
 
 
 def test_drag_move_without_urls_is_not_accepted(qapp):
