@@ -17,9 +17,9 @@ The active code-analysis list is empty. Ruff, mypy, and the local test suite
 remain the baseline before new PRs. **#431/#432** merged via PR #529 and are
 closed — ANLEITUNG/README and every screenshot now reflect the guided
 6-step workflow. That makes epic **#425** fully complete (all three
-sub-issues #430/#431/#432 closed). Two new issues from a support case on
-2026-07-11 were filed (**#530**/**#531**). GitHub still shows **10** open
-issues.
+sub-issues #430/#431/#432 closed) and closed on 2026-07-11. The two AI-warmup
+issues filed afterwards, **#530**/**#531**, are also closed via PR #533/#535.
+GitHub currently shows **7** open issues.
 
 ### Completed Since The Last Review
 
@@ -35,7 +35,8 @@ issues.
 - **Closed since 2026-07-11:** **#430** (PR #526) — runtime i18n for
   ES/FR/UK/ZH fully maintained and parity-checked; **#431/#432** (PR #529) —
   ANLEITUNG/README/screenshots brought to the guided 6-step workflow.
-  **Epic #425 is now content-complete** and can be closed.
+  **#425** is closed as the completed i18n/docs epic; **#530** (PR #533) and
+  **#531** (PR #535) close out the AI-warmup support case.
 
 ### Still Open
 
@@ -44,20 +45,13 @@ issues.
 
 ## Open GitHub Issues — Triage Status (2026-07-11)
 
-As of 2026-07-11, GitHub shows **10** open issues: the i18n/docs epic
-(**#425**, ready to close), rollout/release (**#426/#435/#392/#389**),
-backlog/external items (**#299/#318/#245**), and two new AI-warmup findings
-from the same support case (**#530/#531**).
+As of 2026-07-11, GitHub shows **7** open issues: rollout/release
+(**#426/#435/#392/#389**) plus backlog/external items (**#299/#318/#245**).
 
 ### Sensible Bundles
 
-- **i18n/docs:** #425 is fully done via #430/#431/#432 — only formal closing
-  remains.
 - **Rollout/release:** #426 hinges only on #435; coordinate with #392, then
   close #426/#389.
-- **AI warmup support case (2026-07-11):** #530 (doc fix, mechanical) and
-  #531 (tooltip/status-text UX) are independently shippable; #530 is the
-  faster, lower-risk fix and can go first.
 - **Backlog:** #299 after the release; refine #318 first; #245 stays
   externally blocked.
 
@@ -69,9 +63,6 @@ model and reasoning effort for Claude Code to implement it.
 |---|-------|-----------|------------|---------------|-----------------------|
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | Sonnet 5 · low | **Ready for PR** – mechanical, well-scoped; blocks #426 and #392. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | Sonnet 5 · medium | **Ready** – sequence after #435; #431/#432 are no longer a blocker; the macOS `.dmg` build needs a local/macOS runner outside this remote container. |
-| [#530](https://github.com/NikolayDA/picture_helper/issues/530) | INSTALL_LINUX/MAC.md: AI download starts at app launch, not first click | 🟡 Medium | 🟢 Low | Sonnet 5 · low | **Ready for PR** – pure text fix across 2 files + 5 i18n mirrors; the exact code lines are already cited in the issue. |
-| [#531](https://github.com/NikolayDA/picture_helper/issues/531) | AI button: surface warmup/loading state | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – clear acceptance criteria including a qtbot-test requirement; tooltip text needs adding in 6 languages, `can_enable` logic stays unchanged. |
-| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internationalization & documentation | 🟠 High | 🟢 Low | – (tracking issue) | **Ready to close** – #430/#431/#432 all done (PR #526/#529). |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | – (tracking issue) | **Nearly done** – only #435 remains open. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Update user docs & cut release | 🟠 High | 🟢 Low | – (tracking issue) | **Close after #392** – only the release remains. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – catalog plus the N13 follow-ups from the 2026-07-08 triage are documented; prioritize after the release. |
@@ -80,15 +71,15 @@ model and reasoning effort for Claude Code to implement it.
 
 ### Recommended Next (PR order)
 
-1. **#530** – fastest, lowest-risk fix; can run right away in parallel.
-2. **Release:** run **#435** + **#392** in a coordinated way, then close
-   **#426**/**#389** and **#425**.
-3. **#531** – UX fix for the same support case as #530.
-4. **#299** after the release; research **#318** only; keep **#245**
+1. **Release:** run **#435** + **#392** in a coordinated way, then close
+   **#426**/**#389**.
+2. **#299** after the release; research **#318** only; keep **#245**
    externally blocked.
 
 ## Previous Rounds
 
+- **2026-07-11 (final follow-up)** — #425 formally closed; #530/#531 closed
+  through PR #533/#535; open-issue snapshot updated to 7 remaining issues.
 - **2026-07-11 (2nd triage)** — #431/#432 closed (PR #529, ANLEITUNG/README/
   screenshots brought to the guided 6-step workflow); epic #425 is fully
   done. New issues #530/#531 filed from an AI-warmup support case.

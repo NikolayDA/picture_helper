@@ -18,9 +18,9 @@ pruebas local siguen siendo la base antes de nuevos PR. **#431/#432** se
 fusionaron vía PR #529 y están cerrados — ANLEITUNG/README y todas las
 capturas reflejan ahora el flujo guiado de 6 pasos. Con ello el epic
 **#425** queda completo en contenido (sus tres sub-incidencias
-#430/#431/#432 cerradas). Se abrieron dos incidencias nuevas a partir de un
-caso de soporte del 2026-07-11 (**#530**/**#531**). GitHub sigue mostrando
-**10** incidencias abiertas.
+#430/#431/#432 cerradas) y se cerró el 2026-07-11. Las dos incidencias de
+warmup de IA abiertas después, **#530**/**#531**, también están cerradas por
+PR #533/#535. GitHub muestra ahora **7** incidencias abiertas.
 
 ### Completado desde la última revisión
 
@@ -37,8 +37,9 @@ caso de soporte del 2026-07-11 (**#530**/**#531**). GitHub sigue mostrando
 - **Cerrado desde el 2026-07-11:** **#430** (PR #526) — i18n en tiempo de
   ejecución para ES/FR/UK/ZH mantenido por completo y verificado en paridad;
   **#431/#432** (PR #529) — ANLEITUNG/README/capturas llevados al flujo
-  guiado de 6 pasos. **El epic #425 queda completo en contenido** y puede
-  cerrarse.
+  guiado de 6 pasos. **#425** queda cerrado como epic i18n/docs completado;
+  **#530** (PR #533) y **#531** (PR #535) cierran el caso de soporte de
+  warmup de IA.
 
 ### Aún abierto
 
@@ -47,22 +48,14 @@ caso de soporte del 2026-07-11 (**#530**/**#531**). GitHub sigue mostrando
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-07-11)
 
-A fecha del 2026-07-11, GitHub muestra **10** incidencias abiertas: el epic
-de i18n/docs (**#425**, listo para cerrar), rollout/publicación
-(**#426/#435/#392/#389**), backlog/puntos externos (**#299/#318/#245**) y
-dos hallazgos nuevos de warmup de IA del mismo caso de soporte
-(**#530/#531**).
+A fecha del 2026-07-11, GitHub muestra **7** incidencias abiertas:
+rollout/publicación (**#426/#435/#392/#389**) y backlog/puntos externos
+(**#299/#318/#245**).
 
 ### Agrupaciones sensatas
 
-- **i18n/docs:** #425 está completo con #430/#431/#432 — solo falta el
-  cierre formal.
 - **Rollout/publicación:** #426 depende solo de #435; coordinar con #392 y
   luego cerrar #426/#389.
-- **Caso de soporte de warmup de IA (2026-07-11):** #530 (corrección de
-  documentación, mecánica) y #531 (UX de tooltip/texto de estado) se pueden
-  implementar por separado; #530 es la corrección más rápida y de menor
-  riesgo, puede ir primero.
 - **Backlog:** #299 tras la publicación; refinar #318 primero; #245 sigue
   bloqueado externamente.
 
@@ -75,9 +68,6 @@ lo implemente.
 |---|--------|------------|-------------|------------------|---------------------------|
 | [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG y subida de versión del rediseño | 🟡 Media | 🟢 Baja | Sonnet 5 · baja | **Listo para PR** – mecánico, bien acotado; bloquea #426 y #392. |
 | [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publicar la versión v2.5.0 | 🟠 Alta | 🟡 Media | Sonnet 5 · media | **Lista** – secuenciar tras #435; #431/#432 ya no bloquean; el build de `.dmg` de macOS necesita un runner local/macOS fuera de este contenedor remoto. |
-| [#530](https://github.com/NikolayDA/picture_helper/issues/530) | INSTALL_LINUX/MAC.md: la descarga de IA arranca al iniciar la app, no al primer clic | 🟡 Media | 🟢 Baja | Sonnet 5 · baja | **Listo para PR** – corrección de texto pura en 2 archivos + 5 espejos i18n; el issue ya cita las líneas de código exactas. |
-| [#531](https://github.com/NikolayDA/picture_helper/issues/531) | Botón de IA: mostrar el estado de warmup/carga | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Listo para PR** – criterios de aceptación claros incluyendo un test qtbot; hay que añadir texto de tooltip en 6 idiomas, la lógica `can_enable` no cambia. |
-| [#425](https://github.com/NikolayDA/picture_helper/issues/425) | EPIC: Internacionalización y documentación | 🟠 Alta | 🟢 Baja | – (issue de seguimiento) | **Lista para cerrar** – #430/#431/#432 hechos (PR #526/#529). |
 | [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA y despliegue del rediseño | 🟠 Alta | 🟢 Baja | – (issue de seguimiento) | **Casi hecho** – solo #435 queda abierto. |
 | [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Actualizar docs de usuario y publicar | 🟠 Alta | 🟢 Baja | – (issue de seguimiento) | **Cerrar tras #392** – solo queda publicar. |
 | [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de pruebas: aserciones débiles/redundancias | 🟢 Baja | 🟡 Media | Sonnet 5 · media | **Listo para PR** – catálogo más los seguimientos N13 de la clasificación del 2026-07-08 ya documentados; priorizar tras la publicación. |
@@ -86,16 +76,16 @@ lo implemente.
 
 ### Recomendado a continuación (orden de PR)
 
-1. **#530** — corrección más rápida y de menor riesgo; puede ir en paralelo
-   ya mismo.
-2. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego
-   cerrar **#426**/**#389** y **#425**.
-3. **#531** — corrección de UX para el mismo caso de soporte que #530.
-4. **#299** tras la publicación; investigar solo **#318**; mantener **#245**
+1. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego
+   cerrar **#426**/**#389**.
+2. **#299** tras la publicación; investigar solo **#318**; mantener **#245**
    bloqueado externamente.
 
 ## Rondas anteriores
 
+- **2026-07-11 (seguimiento final)** — #425 cerrado formalmente; #530/#531
+  cerrados mediante PR #533/#535; instantánea de issues abiertos actualizada
+  a 7 issues restantes.
 - **2026-07-11 (2.ª clasificación)** — #431/#432 cerrados (PR #529,
   ANLEITUNG/README/capturas llevados al flujo guiado de 6 pasos); el epic
   #425 queda completo. Nuevas incidencias #530/#531 abiertas por un caso de
