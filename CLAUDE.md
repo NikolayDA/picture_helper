@@ -101,7 +101,7 @@ Ein Paket, `bgremover/`:
   inkompatibler Altzustände normalisiert verlustfrei (siehe Persistenz). `project_history.py` (`ProjectHistory`) ist die
   ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
   + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
-  zählen nur einmal) – noch nicht im Canvas verdrahtet (#331, folgt #332).
+  zählen nur einmal) – im Canvas verdrahtet (#331/#332).
 - **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
@@ -111,8 +111,8 @@ Ein Paket, `bgremover/`:
   COLOR-Ebene) deterministisch normalisiert: nur die unzulässige Rolle wird
   entfernt (Kind/Name/Pixel/Reihenfolge/Metadaten bleiben wertgleich), und
   `load_project(..., warnings=...)` reicht eine übersetzte Warnung an die UI
-  (Statusleiste) durch (#364). Noch ohne
-  Menü-/Dialog-Anbindung (folgt #334/#335).
+  (Statusleiste) durch (#364). Menü-/Dialog-Anbindung über das „Projekt"-Menü
+  in `menu_actions.py` (#334/#335).
 - **EufyMake-Export (Plan, Epic #351):** `eufymake_export.py` — Qt-freies, strikt
   getyptes Export-**Datenmodell** (#352): `build_export_plan(project)` bildet die
   Ebenenrollen deterministisch auf `ExportAsset`s in einem `ExportPlan` ab –
