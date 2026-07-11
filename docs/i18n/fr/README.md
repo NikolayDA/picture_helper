@@ -21,7 +21,7 @@ Un outil de retouche d'image pour macOS et Linux permettant de **détourer, modi
 - **🖌 Pinceau / gomme** – dessiner ou effacer la sélection manuellement.
 - **➰ Lasso polygonal** – délimiter précisément la sélection en plaçant des sommets.
 - **🎨 Remplacer l'arrière-plan** – remplir la sélection avec une couleur quelconque ou la rendre transparente.
-- **✂ Recadrage** avec grille des tiers : cercle, 1:1, 16:9, 4:3, 3:2, 2:1, 14:9, 9:16, 3:4.
+- **✂ Recadrage** avec grille des tiers : cercle, 1:1, 16:9, 4:3, 9:16, 3:4.
 - **⟲ Rotation** par pas de 90° ou selon un angle quelconque ; **↔ Miroir** horizontal/vertical.
 - **⬤ Arrondir les coins** avec un rayon réglable.
 - **📐 Taille et dimensions physiques** – mettre à l'échelle vers une résolution cible en pixels **ou** via les millimètres et les DPI (lier le rapport d'aspect, méthode de rééchantillonnage au choix) ; avec contrôle de la zone d'impression face à un support cible (p. ex. A4/A3).
@@ -39,21 +39,22 @@ Un outil de retouche d'image pour macOS et Linux permettant de **détourer, modi
 
 ## Captures d'écran
 
-![BgRemover – fenêtre principale avec le panneau des calques](../../screenshot.png)
+![BgRemover – étape « Relief & calques » avec la carte des calques](../../screenshot.png)
 
-*Fenêtre principale avec le panneau des calques (à droite) : un projet composé
-d'un calque de motif couleur et d'un calque de hauteur, avec attribution des
-rôles.*
+*L'étape guidée « Relief & calques » : la carte des calques (à droite) montre
+un projet composé d'un calque de motif couleur et d'un calque de hauteur,
+avec attribution des rôles.*
 
 ![Espace de travail des cartes de hauteur](../../screenshot_height.png)
 
-*L'onglet Hauteur : obtenir, modifier et optimiser une carte de hauteur – la vue
-en niveaux de gris montre clair = haut.*
+*La même étape avec les cartes « Obtenir » et « Modifier » : générer une carte
+de hauteur à partir de l'image ou en importer une, puis l'ajuster – la
+sémantique de hauteur est clair = haut.*
 
 ![Aperçu 2D : relief et brillance sur la couleur](../../screenshot_preview.png)
 
-*L'aperçu 2D combiné superpose relief et brillance au motif couleur – affichage
-seul, l'export ne change pas.*
+*Étape « Export » : l'aperçu 2D combiné superpose relief et brillance au motif
+couleur – affichage seul, l'export ne change pas.*
 
 ![Boîte de dialogue d'export pour EufyMake Studio](../../screenshot_export.png)
 
@@ -164,15 +165,17 @@ Pillow, numpy en paquets système via `apt`) ; voir également
 
 ## Utilisation
 
-1. **Ouvrir une image** via `Fichier → Ouvrir` (⌘O), par glisser-déposer dans la fenêtre ou avec un chemin de démarrage (CLI / Finder).
-2. **Effectuer une sélection** avec la baguette magique, le pinceau, la gomme ou le lasso polygonal (onglet *Sélection*).
+Un **flux guidé en 6 étapes** (barre d'étapes au-dessus du canevas + cartes
+de l'inspecteur à droite) guide l'édition :
+
+1. **Ouvrir** – charger une image en la glissant dans la zone de dépôt, via `Fichier → Ouvrir` (⌘O), par glisser-déposer dans la fenêtre ou avec un chemin de démarrage (CLI / Finder).
+2. **Détourer** – le bouton **IA** dans l'inspecteur de cartes, ou la baguette magique, le pinceau, la gomme ou le lasso polygonal ; puis rendre transparent, remplacer la couleur ou lisser le bord.
    - `Maj+Clic` ajoute à la sélection ; `⌘+Clic` (macOS) ou `Ctrl+Clic` (Linux) retire.
-   - Changer d'outil au clavier : `W` baguette, `B` pinceau, `E` gomme, `L` lasso.
-3. **Modifier l'arrière-plan** (onglet *Arrière-plan*) : le rendre transparent, remplacer la couleur ou lisser le bord — ou directement l'**IA** dans la barre d'outils.
-4. **Optimiser et transformer** (onglets *Ajuster* et *Rotation/Miroir*) : ajuster luminosité/contraste/saturation, pivoter, mettre en miroir, redimensionner.
-5. **Forme et recadrage** (onglet *Forme*) : arrondir les coins ou recadrer au format — déplacer/redimensionner le cadre, puis ✓ Appliquer.
-6. **Calques, hauteur et aperçu** (onglets *Calques*, *Hauteur*, *Aperçu*) : gérer les calques du projet, générer/modifier une carte de hauteur et vérifier le résultat en relief/brillance.
-7. **Enregistrer** via `Fichier → Enregistrer` (⌘S) en PNG, JPEG, WebP ou TIFF — ou `Projet → Exporter des assets pour EufyMake Studio…` pour l'impression UV.
+   - Changer d'outil au clavier : `W` baguette, `B` pinceau, `E` gomme, `L` lasso (actif uniquement à cette étape).
+3. **Ajuster** – luminosité/contraste/saturation avec aperçu en direct.
+4. **Forme & dimensions** – pivoter, mettre en miroir, arrondir les coins, choisir un format de recadrage (déplacer/redimensionner le cadre, puis ✓ Appliquer) et redimensionner.
+5. **Relief & calques** – gérer les calques du projet et générer/modifier/optimiser une carte de hauteur.
+6. **Export** – vérifier le résultat en couleur/relief/hauteur/brillance/combiné, enregistrer via `Fichier → Enregistrer` (⌘S) en PNG, JPEG, WebP ou TIFF — ou `Projet → Exporter des assets pour EufyMake Studio…` pour l'impression UV.
 
 ### Paramètres
 
@@ -193,6 +196,8 @@ démarrage du programme.
 ### Raccourcis clavier
 
 Sur macOS, la touche modificatrice est **⌘ (Cmd)** ; sur Linux, **Ctrl**.
+Les raccourcis d'outils (W/B/E/L) ne fonctionnent que tant que l'étape
+*Détourer* est active.
 
 | Action | Raccourci |
 |--------|----------|
@@ -287,11 +292,16 @@ BgRemover est un paquet installable (`bgremover/`, lancé via
 - **`ImageCanvas`** (QGraphicsView) gère l'état de l'image, le masque de sélection,
   les piles d'annulation/rétablissement et les outils (baguette magique, pinceau, lasso, recadrage).
 - **`MainWindow`** construit la barre d'outils, la barre d'état/recadrage,
-  et relie le canevas, les menus, le panneau droit et les workers.
-- **`right_panel`** construit les huit onglets droits (Aperçu, Sélection,
-  Arrière-plan, Ajuster, Rotation/Miroir, Forme, Calques, Hauteur) à partir d'un
-  jeu de callbacks ; `project_model`/`height_map` fournissent le modèle de
-  calques et de hauteur sans Qt.
+  et relie le canevas, les menus, le panneau droit et les workers ;
+  `_apply_toolbar_for_step` bascule la barre d'outils contextuelle selon
+  l'étape active.
+- **`stepper`** est la barre sans état à 6 étapes (Ouvrir/Détourer/Ajuster/
+  Forme & dimensions/Relief & calques/Export) ; **`right_panel`** construit à
+  partir d'elle l'inspecteur de cartes (en-tête, `QStackedWidget` avec une
+  page par étape, pied de navigation) et lui assigne les huit blocs d'onglets
+  existants de `right_panel_tabs` (Aperçu, Sélection, Arrière-plan, Ajuster,
+  Rotation/Miroir, Forme, Calques, Hauteur) ; `project_model`/`height_map`
+  fournissent le modèle de calques et de hauteur sans Qt.
 - **`menu_actions`** construit la barre de menus, les actions et les
   raccourcis ; `MainWindow` ne fournit plus que les callbacks.
 - **`RecentFiles`** encapsule la persistance, la déduplication et
