@@ -21,9 +21,9 @@ gesamte Rollout-/Release-Welle ist damit geschlossen: **#435** (PR #538),
 dem separat nachgezogenen N13-Testhygiene-Follow-up **#541** (PR #543), sowie
 **#318** (PR #540) und die Recommendations-Snapshot-Synchronisation **#542**.
 Ein Repo-Audit vom 2026-07-12 hat fünf neue Befunde erfasst (**#549–#553**);
-**#552** ist bereits über PR #557 geschlossen, **#549** schließt mit diesem
-PR. Live-Stand (erneut abgefragt): **4** offene Issues – **#245**, **#550**,
-**#551**, **#553**.
+**#552** und **#549** sind bereits geschlossen (PR #557 bzw. Snapshot-Sync),
+**#553** (SessionStart-Hook-Fix) schließt mit diesem PR. Live-Stand (erneut
+abgefragt): **3** offene Issues – **#245**, **#550**, **#551**.
 
 ### Erledigt seit dem letzten Review
 
@@ -39,9 +39,9 @@ PR. Live-Stand (erneut abgefragt): **4** offene Issues – **#245**, **#550**,
 - **Seit 2026-07-12 geschlossen:** Release-Welle **#435/#392/#426/#389**
   (v2.5.0, PR #538) sowie **#299** (PR #539), das Testhygiene-Follow-up
   **#541** (PR #543), **#318** (PR #540), die Recommendations-Snapshot-
-  Synchronisation **#542**, das PR-Template **#552** (PR #557) und dieser
-  Snapshot-Sync **#549**. Damit sind alle Redesign-/Release-/Backlog-Punkte
-  des letzten Snapshots abgearbeitet.
+  Synchronisation **#542**, das PR-Template **#552** (PR #557), der
+  Snapshot-Sync **#549** und der SessionStart-Hook-Fix **#553**. Damit sind
+  alle Redesign-/Release-/Backlog-Punkte des letzten Snapshots abgearbeitet.
 
 ### Noch offen
 
@@ -50,19 +50,18 @@ PR. Live-Stand (erneut abgefragt): **4** offene Issues – **#245**, **#550**,
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-12)
 
-Live-Stand direkt vor dieser Bearbeitung: **#552** ist über PR #557
-geschlossen, **#549** schließt mit diesem PR. Es verbleiben **4** offene
-Issues: **#245** (Quota-/Billing-Blocker), **#550** (v2.3.0-Tag-/Release-
-Konsistenz), **#551** (Grundsatzentscheidung Codex Security Scan) und
-**#553** (SessionStart-Hook-Verifikation).
+Live-Stand direkt vor dieser Bearbeitung: **#552**/**#549** waren bereits
+geschlossen, **#553** (SessionStart-Hook) schließt mit diesem PR. Es
+verbleiben **3** offene Issues: **#245** (Quota-/Billing-Blocker), **#550**
+(v2.3.0-Tag-/Release-Konsistenz) und **#551** (Grundsatzentscheidung Codex
+Security Scan).
 
 ### Sinnvolle Bündelung
 
 #245 und #551 hängen inhaltlich zusammen (Codex-Scan): #245 ist eine reine
 Account-Aktion, #551 braucht dagegen eine eigene Grundsatzentscheidung
 (reaktivieren/zurückbauen/ersetzen). #550 braucht ebenfalls zuerst eine
-Entscheidung (Tag+Release vs. nur Doku-Klarstellung). #553 ist unabhängig und
-sofort umsetzbar.
+Entscheidung (Tag+Release vs. nur Doku-Klarstellung).
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes
@@ -70,20 +69,17 @@ Claude-Modell und Reasoning-Effort für die Umsetzung durch Claude Code.
 
 | # | Titel | Relevanz | Komplexität | Modell/Aufwand | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|-----------------|------------------------------|
-| [#553](https://github.com/NikolayDA/picture_helper/issues/553) | SessionStart-Hook-Zuverlässigkeit in Web-Sessions verifizieren | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – Reproduktion in frischer Web-Session, danach ggf. Fix + Doku. |
 | [#550](https://github.com/NikolayDA/picture_helper/issues/550) | v2.3.0: Tag-/Release-Konsistenz im CHANGELOG herstellen | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Needs refinement** – Variante A (Tag+Release) vs. B (nur Doku-Klarstellung) erfordert eine Entscheidung vor der Umsetzung. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Grundsatzentscheidung Codex Security Scan (reaktivieren/zurückbauen/ersetzen) | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Needs refinement** – erfordert eine bewusste Entscheidung zwischen drei Optionen; Empfehlung: Option 2 (Zurückbauen/Deaktivieren) angesichts wochenlanger externer Blockade und Redundanz zu pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | – (kein Code-Task) | **Blockiert (extern)** – OpenAI-Billing/Quota-Wiederherstellung ist eine Account-Aktion, kein PR. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#553** — SessionStart-Hook in frischer Web-Session reproduzieren und
-   ggf. beheben.
-2. **#550** — Entscheidung Variante A/B einholen, dann CHANGELOG/Tag/Release
+1. **#550** — Entscheidung Variante A/B einholen, dann CHANGELOG/Tag/Release
    anpassen.
-3. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
+2. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
    dann Workflow anpassen.
-4. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
+3. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
    OpenAI-Quota manuell verifizieren.
 
 *Drift-Hinweis:* Die Anzahl offener Issues vor jeder künftigen
@@ -92,9 +88,13 @@ zeigten dasselbe Off-by-one).
 
 ## Vorige Runden
 
+- **2026-07-12 (#553)** — SessionStart-Hook-Fix: fehlgeschlagenes
+  `pip install --upgrade pip` (Debian-Paket ohne RECORD-Datei) brach den
+  Hook unter `set -e` vor dem eigentlichen `.[test]`-Install ab; behoben mit
+  `--ignore-installed`, plus idempotente Vorprüfung und Fehler-Trap.
+  Open-Issue-Snapshot auf 3 reduziert (#245, #550, #551).
 - **2026-07-12 (Snapshot-Sync #549)** — #552 (PR-Template) über PR #557
-  geschlossen; dieser PR schließt #549. Open-Issue-Snapshot auf 4 reduziert
-  (#245, #550, #551, #553).
+  geschlossen; #549 (Recommendations-Sync) ebenfalls abgeschlossen.
 - **2026-07-12 (Issue-Audit)** — #542 geschlossen; Repo-Audit hat fünf neue
   Issues erfasst (#549–#553); Open-Issue-Snapshot auf 6 aktualisiert
   (#245 + #549–#553).

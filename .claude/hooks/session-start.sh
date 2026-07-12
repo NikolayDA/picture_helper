@@ -12,6 +12,11 @@
 # startet, bevor sie verfügbar sind.
 set -euo pipefail
 
+# Klarer Fehler statt stillem Abbruch (Issue #553): set -e beendet das
+# Skript bei jedem fehlgeschlagenen Befehl, aber ohne Kontext sieht das wie
+# ein Hook aus, der gar nicht gelaufen ist. Der Trap meldet Skript+Zeile.
+trap 'echo "SessionStart-Hook: FEHLGESCHLAGEN in ${BASH_SOURCE[0]}:${LINENO} – ruff/mypy/pytest sind ggf. nicht installiert. Siehe Ausgabe oberhalb für die Ursache." >&2' ERR
+
 # Nur in der entfernten Web-Umgebung ausführen. Lokal richtet die
 # Entwicklerin ihre venv selbst ein (siehe README / INSTALL_*).
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
@@ -19,6 +24,18 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
+
+# Idempotente Vorprüfung (#553): Läuft der Hook in einer Folge-Session mit
+# gecachtem Container erneut, sind Systemlibs + editable Install oft schon
+# vorhanden. Dann apt/pip-Arbeit überspringen statt sie folgenlos zu
+# wiederholen – spart Zeit und reduziert die Fläche für neue Fehlschläge.
+if python3 -m ruff --version >/dev/null 2>&1 \
+  && python3 -m mypy --version >/dev/null 2>&1 \
+  && python3 -m pytest --version >/dev/null 2>&1 \
+  && python3 -c "import PyQt6, bgremover" >/dev/null 2>&1; then
+  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/bgremover) – überspringe Install."
+  exit 0
+fi
 
 # Headless-Qt für alle Session-Befehle persistent setzen. conftest.py
 # setzt es für pytest ohnehin per setdefault – das hier deckt direkte
@@ -49,7 +66,17 @@ fi
 # Path-Traversal/Symlink/Modul-Hijacking) auch in der Web-Session – pip ist das
 # Installationswerkzeug selbst und laesst sich daher nicht ueber constraints.txt
 # anheben. Gleiche Mindestversion wie in den CI-Workflows (tests/test_ci_pip_pin.py).
-python3 -m pip install -q --upgrade "pip>=26.1.2"
+#
+# --ignore-installed ist hier zwingend (Befund zu #553): Der Web-Container
+# bringt pip 24.0 als Debian-Paket mit (apt, nicht pip-verwaltet) – ohne
+# RECORD-Metadatei kann pip sein eigenes Debian-Paket nicht sauber
+# deinstallieren ("Cannot uninstall pip 24.0, RECORD file not found") und
+# bricht unter set -e sofort ab, VOR dem eigentlichen Projekt-Install in
+# Zeile unten. Das war die tatsächliche Ursache des in #553 beobachteten
+# stillen Fehlschlags (weder Qt-Systemlibs- noch pip-Install-Schritt selbst
+# waren defekt). --ignore-installed installiert die neue Version daneben,
+# ohne das kaputte RECORD zu benötigen.
+python3 -m pip install -q --upgrade --ignore-installed "pip>=26.1.2"
 
 # Projekt inkl. Test-/Lint-Werkzeuge (pytest, pytest-qt, ruff, mypy).
 # Idempotent; -e nutzt den Container-Cache bei Folge-Sessions. Mit dem
