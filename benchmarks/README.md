@@ -40,9 +40,17 @@ Pro Format werden gemessen (Median über `--iterations` Läufe, in Millisekunden
 
 Jeder Lauf wird als datiertes JSON unter `benchmarks/results/<JJJJ-MM-TT>.json`
 abgelegt. „Letzte Woche" ist schlicht die jüngste Datei vor dem aktuellen Lauf.
-Der wöchentliche GitHub-Actions-Lauf pusht neue Baselines nicht direkt nach
-`main`, sondern öffnet dafür einen separaten PR-Branch; so bleibt die
-Branch-Protection die einzige Schreibschleuse für eingecheckte Ergebnisse.
+Der wöchentliche GitHub-Actions-Lauf schreibt neue Baselines **nicht** nach
+`main` (der geschützte Branch lässt sich vom `GITHUB_TOKEN` weder direkt noch
+über einen Auto-PR beschreiben, Issue #545). Stattdessen trägt jeder Lauf seine
+Ergebnisse als **Workflow-Artefakt** (`benchmark-results`) weiter: Vor dem Messen
+lädt der Job das Artefakt des letzten *erfolgreichen* Laufs nach
+`benchmarks/results/` zurück und vergleicht gegen dessen jüngste Datei – so
+gleitet die Baseline von Woche zu Woche, ganz ohne Schreibzugriff auf `main`.
+Fehlt das Artefakt (erster Lauf nach der Umstellung, abgelaufene Aufbewahrung),
+bleibt die im Repo eingecheckte Baseline die Referenz; der Job wird dadurch nie
+fälschlich rot. Eine eingecheckte Baseline lässt sich bei Bedarf jederzeit über
+einen regulären PR aktualisieren.
 
 Der Vergleich rechnet die prozentuale Änderung je Format aus; ein Format gilt als
 **degradiert**, wenn es sich um mehr als `--threshold` Prozent (Default **10 %**)
