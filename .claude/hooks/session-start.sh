@@ -25,23 +25,44 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
+# Headless-Qt für alle Session-Befehle persistent setzen. conftest.py
+# setzt es für pytest ohnehin per setdefault – das hier deckt direkte
+# Qt-Aufrufe (z. B. `import bgremover` in einem Ad-hoc-Skript) mit ab.
+# Muss VOR der Vorprüfung unten stehen (Review-Fund zu #553): sonst bekommt
+# eine Session, die den Kurzschluss nimmt, nie QT_QPA_PLATFORM gesetzt.
+if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
+fi
+
 # Idempotente Vorprüfung (#553): Läuft der Hook in einer Folge-Session mit
 # gecachtem Container erneut, sind Systemlibs + editable Install oft schon
 # vorhanden. Dann apt/pip-Arbeit überspringen statt sie folgenlos zu
 # wiederholen – spart Zeit und reduziert die Fläche für neue Fehlschläge.
+#
+# Jede Teilprüfung deckt genau die Lücke ab, die apt/pip weiter unten
+# schließen (Review-Funde zu #553):
+# - `PyQt6.QtWidgets` statt nur `PyQt6` laden, weil das Namespace-Paket
+#   ohne die Qt-Systemlibs (libGL/libEGL) importierbar bleibt – erst
+#   QtWidgets zieht sie tatsächlich.
+# - pip-Version explizit gegen die Mindestversion prüfen, statt sie beim
+#   Überspringen stillschweigend unterhalb des CVE-Floors zu belassen.
+# - `bgremover`-Paketmetadaten (nicht nur den Quellbaum-Import) und
+#   `pytest-qt` prüfen, sonst kann der Kurzschluss greifen, obwohl
+#   `.[test]` nie installiert wurde.
 if python3 -m ruff --version >/dev/null 2>&1 \
   && python3 -m mypy --version >/dev/null 2>&1 \
   && python3 -m pytest --version >/dev/null 2>&1 \
-  && python3 -c "import PyQt6, bgremover" >/dev/null 2>&1; then
-  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/bgremover) – überspringe Install."
+  && python3 -c "
+import sys
+from importlib import metadata
+from packaging.version import Version
+import PyQt6.QtWidgets  # noqa: F401 -- erzwingt libGL/libEGL-Ladeversuch
+import pytestqt  # noqa: F401
+metadata.version('bgremover')
+sys.exit(0 if Version(metadata.version('pip')) >= Version('26.1.2') else 1)
+" >/dev/null 2>&1; then
+  echo "SessionStart-Hook: Umgebung bereits vollständig (ruff/mypy/pytest/PyQt6/pytest-qt/bgremover/pip>=26.1.2) – überspringe Install."
   exit 0
-fi
-
-# Headless-Qt für alle Session-Befehle persistent setzen. conftest.py
-# setzt es für pytest ohnehin per setdefault – das hier deckt direkte
-# Qt-Aufrufe (z. B. `import bgremover` in einem Ad-hoc-Skript) mit ab.
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo 'export QT_QPA_PLATFORM=offscreen' >> "$CLAUDE_ENV_FILE"
 fi
 
 # Qt-Systembibliotheken – dieselbe Qt-Lib-Liste wie in den CI-Workflows
