@@ -21,8 +21,10 @@ ola de rollout/publicación queda así cerrada: **#435** (PR #538), **#392**,
 seguimiento de higiene de pruebas N13 rastreado por separado **#541**
 (PR #543), más **#318** (PR #540) y la sincronización de la instantánea de
 recomendaciones **#542**. Una auditoría del repositorio del 2026-07-12 abrió
-cinco nuevos hallazgos como incidencias (**#549–#553**); GitHub muestra ahora
-**6** incidencias abiertas: **#245** más **#549–#553**.
+cinco nuevos hallazgos como incidencias (**#549–#553**); **#552** ya está
+cerrado vía PR #557 y **#549** se cierra con este PR. Estado en vivo
+(reconsultado): **4** incidencias abiertas – **#245**, **#550**, **#551**,
+**#553**.
 
 ### Completado desde la última revisión
 
@@ -34,13 +36,14 @@ cinco nuevos hallazgos como incidencias (**#549–#553**); GitHub muestra ahora
 - **Núcleo del rediseño, rail/zoom, inspector de tarjetas, Dark Mode,
   seguimiento de UI:** **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/
   #510/#514–#517** llegaron vía PR #412/#423/#466/#467/#473/#482/#489/#504/
-  #506/#512/#513/#518/#519 y PR #520/#521/#522; **#490** y **#433/#434**
-  también.
+  #506/#512/#513/#518/#519 y PR #520/#521/#522; **#490** y **#433/#434** también.
 - **Cerrado desde el 2026-07-12:** la ola de publicación **#435/#392/#426/
   #389** (v2.5.0, PR #538) más **#299** (PR #539), el seguimiento de higiene
-  de pruebas **#541** (PR #543), **#318** (PR #540) y la sincronización de la
-  instantánea de recomendaciones **#542**. Con ello se despachan todos los
-  puntos de rediseño/publicación/backlog de la última instantánea.
+  de pruebas **#541** (PR #543), **#318** (PR #540), la sincronización de la
+  instantánea de recomendaciones **#542**, la plantilla de PR **#552**
+  (PR #557) y esta sincronización de instantánea **#549**. Con ello se
+  despachan todos los puntos de rediseño/publicación/backlog de la última
+  instantánea.
 
 ### Aún abierto
 
@@ -49,20 +52,19 @@ cinco nuevos hallazgos como incidencias (**#549–#553**); GitHub muestra ahora
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-07-12)
 
-A fecha del 2026-07-12, GitHub muestra **6** incidencias abiertas: el bloqueo
-externo de cuota/facturación **#245** más cinco nuevos hallazgos de la
-auditoría en curso del repositorio — **#549** (instantánea de
-recomendaciones), **#550** (consistencia de tag/release de v2.3.0), **#551**
-(decisión de estrategia para Codex Security Scan), **#552** (plantilla de PR)
-y **#553** (verificación del hook SessionStart).
+Estado en vivo justo antes de esta edición: **#552** está cerrado vía
+PR #557, **#549** se cierra con este PR. Quedan **4** incidencias abiertas:
+**#245** (bloqueo de cuota/facturación), **#550** (consistencia de
+tag/release de v2.3.0), **#551** (decisión de estrategia para Codex Security
+Scan) y **#553** (verificación del hook SessionStart).
 
 ### Agrupaciones sensatas
 
 #245 y #551 están vinculados en contenido (scan Codex): #245 es una acción de
 cuenta pura, mientras que #551 requiere su propia decisión estratégica
 (reactivar/retirar/reemplazar). #550 también requiere primero una decisión
-(tag+release frente a solo aclaración en docs). #549 (este PR), #552 y #553
-son independientes y pueden avanzar de inmediato.
+(tag+release frente a solo aclaración en docs). #553 es independiente y
+puede avanzar de inmediato.
 
 Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 **Complejidad** = esfuerzo de implementación estimado, **Modelo/Esfuerzo** =
@@ -71,29 +73,30 @@ lo implemente.
 
 | # | Título | Relevancia | Complejidad | Modelo/Esfuerzo | Próximo paso recomendado |
 |---|--------|------------|-------------|------------------|---------------------------|
-| [#552](https://github.com/NikolayDA/picture_helper/issues/552) | Añadir plantilla de PR con checklist del gate estándar | 🟡 Media | 🟢 Baja | Sonnet 5 · baja | **Ready for PR** – un único archivo nuevo, sin dependencias. |
 | [#553](https://github.com/NikolayDA/picture_helper/issues/553) | Verificar la fiabilidad del hook SessionStart en sesiones web | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Ready for PR** – reproducir en una sesión web nueva, luego corregir/documentar según haga falta. |
-| [#549](https://github.com/NikolayDA/picture_helper/issues/549) | Actualizar la instantánea de recomendaciones al estado en vivo | 🟢 Baja | 🟢 Baja | Sonnet 5 · baja | **Ready for PR** – cubierto por esta sincronización de instantánea. |
 | [#550](https://github.com/NikolayDA/picture_helper/issues/550) | v2.3.0: conciliar el CHANGELOG con el historial de tag/release | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Needs refinement** – la variante A (tag+release) frente a B (aclaración solo en docs) requiere una decisión antes de implementar. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Decisión de estrategia para Codex Security Scan (reactivar/retirar/reemplazar) | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Needs refinement** – requiere elegir deliberadamente entre tres opciones; recomendación: opción 2 (retirar/deshabilitar) dado el bloqueo externo de semanas y la redundancia con pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan «Quota exceeded» | 🟡 Media | 🟢 Baja | – (sin tarea de código) | **Bloqueado (externo)** – restaurar la facturación/cuota de OpenAI es una acción de cuenta, no un PR. |
 
 ### Recomendado a continuación (orden de PR)
 
-1. **#552** — añadir la plantilla de PR (autocontenida, bajo riesgo).
-2. **#549** — cerrar con este PR (sincronización de instantánea en los seis
-   espejos, incluyendo #550–#553).
-3. **#553** — reproducir el comportamiento del hook SessionStart en una
+1. **#553** — reproducir el comportamiento del hook SessionStart en una
    sesión web nueva y corregir según haga falta.
-4. **#550** — obtener una decisión sobre la variante A/B, luego ajustar el
+2. **#550** — obtener una decisión sobre la variante A/B, luego ajustar el
    CHANGELOG/tag/release.
-5. **#551** — obtener una decisión sobre la estrategia del scan (vinculada a
+3. **#551** — obtener una decisión sobre la estrategia del scan (vinculada a
    #245), luego ajustar el workflow.
-6. **#245** — sigue bloqueado externamente; verificar manualmente solo tras
+4. **#245** — sigue bloqueado externamente; verificar manualmente solo tras
    restaurar la cuota de OpenAI.
+
+*Drift:* reconsultar el número de incidencias abiertas en vivo, sin
+arrastrarlo (#542 → #549: mismo desfase).
 
 ## Rondas anteriores
 
+- **2026-07-12 (sincronización #549)** — #552 (plantilla de PR) cerrado vía
+  PR #557; este PR cierra #549. Instantánea reducida a 4 (#245, #550, #551,
+  #553).
 - **2026-07-12 (auditoría de issues)** — #542 cerrado; auditoría del repo
   abrió cinco nuevas incidencias (#549–#553); instantánea de issues
   abiertos actualizada a 6 (#245 + #549–#553).
@@ -105,14 +108,12 @@ lo implemente.
   cerrados mediante PR #533/#535; instantánea actualizada a 7 restantes.
 - **2026-07-11 (2.ª clasificación)** — #431/#432 cerrados (PR #529); epic
   #425 completo. Nuevas incidencias #530/#531 de un caso de soporte de IA.
-- **2026-07-11** — #430 cerrado (PR #526, i18n ES/FR/UK/ZH completa; O1
-  hecho); epic #425 pasó a depender solo de #431/#432.
+  #430 cerrado (PR #526, i18n ES/FR/UK/ZH completa; O1 hecho).
 - **2026-07-10** — #509/#510 cerrados, #514–#517 completados, seguimiento de
-  la columna derecha cerrado vía PR #520/#521/#522; workflow de baseline de
-  benchmark cambiado a PRs en vez de push directo.
-- **2026-07-05/06** — #490 (drift de instantánea), ola de Dark Mode/iconos
-  rail, inspector de tarjetas (#413/#414), #499–#501/#503 (PR #504/#506) y
-  pulido de iconos/barra de estado (PR #507/#508) completados.
+  la columna derecha cerrado vía PR #520/#521/#522.
+- **2026-07-05/06** — #490, ola de Dark Mode/iconos rail, inspector de
+  tarjetas (#413/#414), #499–#501/#503 (PR #504/#506) y pulido de iconos/
+  barra de estado (PR #507/#508).
 - **2026-06-29** — #404/#406/#408 completados (PR #412), ola de rediseño abierta.
 - **v2.2, «admiring-mayer» (#1–#15)** — lista externa, completada o descartada donde era un falso positivo.
 
