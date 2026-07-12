@@ -15,6 +15,13 @@ from bgremover.constants import (
 )
 from bgremover.i18n import tr
 
+# Prototyp-Spec-Wert (§ Redesign): bewusst als *literaler* Vertrag geführt und
+# **nicht** aus ``zoom_control._MARGIN`` importiert. Sonst würde der Test die
+# Verankerung nur gegen dieselbe Implementierungskonstante prüfen, die sie
+# positioniert (tautologisch) – ein versehentliches Verstellen von ``_MARGIN``
+# weg von den geforderten 14 px bliebe unentdeckt.
+_PROTOTYPE_MARGIN_PX = 14
+
 
 def _canvas(size=(120, 80)) -> ImageCanvas:
     c = ImageCanvas()
@@ -184,9 +191,10 @@ def test_overlay_repositions_bottom_right(qapp):
     ctrl.reposition()
     assert ctrl.x() + ctrl.width() <= parent.width()
     assert ctrl.y() + ctrl.height() <= parent.height()
-    # Verankerung an der rechten/unteren Viewport-Kante (Prototyp: 14 px Abstand).
-    assert ctrl.x() + ctrl.width() == parent.width() - 14
-    assert ctrl.y() + ctrl.height() == parent.height() - 14
+    # Verankerung an der rechten/unteren Viewport-Kante (Prototyp: 14 px Abstand,
+    # bewusst als implementierungsunabhängiger Spec-Vertrag – siehe Modulkopf).
+    assert ctrl.x() + ctrl.width() == parent.width() - _PROTOTYPE_MARGIN_PX
+    assert ctrl.y() + ctrl.height() == parent.height() - _PROTOTYPE_MARGIN_PX
 
 
 def test_overlay_repositions_inside_viewport_when_scrollbars_are_visible(qapp):
@@ -204,5 +212,5 @@ def test_overlay_repositions_inside_viewport_when_scrollbars_are_visible(qapp):
     ctrl = c.zoom_control
     parent = c.viewport()
     assert ctrl.parentWidget() is parent
-    assert ctrl.x() + ctrl.width() == parent.width() - 14
-    assert ctrl.y() + ctrl.height() == parent.height() - 14
+    assert ctrl.x() + ctrl.width() == parent.width() - _PROTOTYPE_MARGIN_PX
+    assert ctrl.y() + ctrl.height() == parent.height() - _PROTOTYPE_MARGIN_PX

@@ -349,6 +349,9 @@ def test_future_version_file_still_loads_best_effort(tmp_path, caplog) -> None:
     with caplog.at_level(logging.WARNING):
         loaded = load_project(path)
     _assert_projects_equal(loaded, project)
+    # Die im Docstring versprochene Best-effort-Warnung wird tatsächlich geloggt.
+    assert any("neuer" in rec.message or "newer" in rec.message.lower()
+               for rec in caplog.records)
 
 
 def test_manifest_without_version_is_rejected() -> None:

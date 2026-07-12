@@ -171,7 +171,11 @@ def test_manifest_describes_plan() -> None:
     assert manifest["target"]["pixel_size"] == [6, 3]
     filenames = [a["filename"] for a in manifest["assets"]]
     assert filenames == ["color_motif.png", "height_map.png"]
-    assert ".empf" not in manifest["note"].lower() or "kein" in manifest["note"].lower()
+    # Stabiles strukturiertes Feld statt freier Notiztext: das Manifest kennzeichnet
+    # sich als Import-Asset-Paket und markiert den bewussten Verzicht auf natives
+    # ``.empf`` maschinenlesbar über die offene Frage.
+    assert manifest["kind"] == "eufymake_import_assets"
+    assert "native_empf_project" in manifest["open_questions"]
 
 
 # ── Atomares Schreiben: Erfolg & Kollision ───────────────────────────────
