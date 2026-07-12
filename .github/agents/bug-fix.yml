@@ -13,7 +13,7 @@ triggers:
       - agent:bug-fix
   - type: workflow_run
     workflows:
-      - pr-ci.yml
+      - PR CI  # entspricht .github/workflows/pr-ci.yml (name:)
     conclusion: failure
 
 configuration:

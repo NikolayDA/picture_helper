@@ -45,21 +45,33 @@ Diese Konfigurationen aktivieren zwei Agents mit hoher Priorität:
 
 ---
 
-## Aktivierung
+## Status: deklarative Spezifikation, (noch) nicht automatisch aktiv
 
-1. **Merge** diesen Branch in `main`
-2. **GitHub Actions** erkennt automatisch die `.github/agents/*.yml`-Dateien
-3. **Agents starten** beim nächsten PR oder Issue
+> **Wichtig:** Diese `*.yml`-Dateien sind eine **deklarative Beschreibung** der
+> gewünschten Agent-Aufgaben, Trigger und Fokusbereiche – **kein** von GitHub
+> automatisch ausgeführtes Format. GitHub lädt aus `.github/agents/` nur
+> [Copilot-Agent-Profile](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents)
+> (Markdown mit YAML-Frontmatter + Prompt); ereignisgesteuerte Automatik
+> (bei PR, `workflow_run`, Zeitplan) läuft ausschließlich über echte
+> **GitHub-Actions-Workflows** in `.github/workflows/` bzw.
+> [GitHub Agentic Workflows](https://docs.github.com/en/copilot/how-tos/github-agentic-workflows/creating-github-agentic-workflows).
+> Ein Merge dieser Dateien aktiviert die Agents daher **nicht** von selbst.
 
-## Überwachung
+## Aktivierung (manuell / geplant)
 
-- Logs unter **Actions → Agent Workflows**
-- Agent-Kommentare direkt in PRs/Issues
-- Labels zeigen Agent-Aktivität an
+Um die hier beschriebenen Agents tatsächlich laufen zu lassen, muss die
+jeweilige Aufgabe in ein unterstütztes Format überführt werden, z. B.:
+
+- als echter Workflow unter `.github/workflows/` (Trigger + Aufruf eines
+  AI-Agent-Actions/Skripts), oder
+- als GitHub Agentic Workflow (Markdown → `*.lock.yml`), oder
+- als Copilot-Agent-Profil (`.github/agents/<name>.md`) für die manuelle
+  Zuweisung.
+
+Diese YAML-Dateien dienen bis dahin als Referenz/Spezifikation für die
+Umsetzung.
 
 ## Konfiguration anpassen
 
-Wenn später Anpassungen nötig sind:
-- Ändere die YAML-Dateien
-- Pushe auf `main`
-- Agents nutzen die neuen Settings ab dem nächsten Trigger
+Solange die Umsetzung als Workflow aussteht, ändere die YAML-Dateien nur als
+Spezifikation – ein Push allein löst keine Automatik aus.
