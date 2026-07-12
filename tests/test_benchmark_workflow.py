@@ -26,6 +26,12 @@ def test_benchmark_workflow_carries_baseline_via_artifact() -> None:
     # Baseline des letzten erfolgreichen Laufs zurueckholen …
     assert "gh run download" in text
     assert "--status success" in text
+    # … ausschliesslich von main, damit ein Feature-Branch-Dispatch die
+    # main-Baseline nicht verfaelscht …
+    assert "--branch main" in text
+    # … in ein leeres Temp-Verzeichnis (gh run download ueberschreibt keine
+    # vorhandenen Dateien), sonst rueckt die gleitende Baseline nie vor …
+    assert "mktemp" in text
     # … und das eigene Ergebnis fuer den naechsten Lauf weiterreichen.
     assert "actions/upload-artifact" in text
     assert "name: benchmark-results" in text

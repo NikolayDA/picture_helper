@@ -44,9 +44,11 @@ Der wöchentliche GitHub-Actions-Lauf schreibt neue Baselines **nicht** nach
 `main` (der geschützte Branch lässt sich vom `GITHUB_TOKEN` weder direkt noch
 über einen Auto-PR beschreiben, Issue #545). Stattdessen trägt jeder Lauf seine
 Ergebnisse als **Workflow-Artefakt** (`benchmark-results`) weiter: Vor dem Messen
-lädt der Job das Artefakt des letzten *erfolgreichen* Laufs nach
+lädt der Job das Artefakt des letzten *erfolgreichen* **main**-Laufs nach
 `benchmarks/results/` zurück und vergleicht gegen dessen jüngste Datei – so
 gleitet die Baseline von Woche zu Woche, ganz ohne Schreibzugriff auf `main`.
+(Nur `main`-Läufe zählen, damit ein manueller `workflow_dispatch` auf einem
+Feature-Branch die Baseline nicht verfälscht.)
 Fehlt das Artefakt (erster Lauf nach der Umstellung, abgelaufene Aufbewahrung),
 bleibt die im Repo eingecheckte Baseline die Referenz; der Job wird dadurch nie
 fälschlich rot. Eine eingecheckte Baseline lässt sich bei Bedarf jederzeit über

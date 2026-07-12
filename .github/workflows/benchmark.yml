@@ -81,16 +81,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prev="$(gh run list --workflow benchmark.yml --status success \
-            --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
-          if [ -n "$prev" ]; then
-            echo "Hole Baseline-Artefakt aus Lauf $prev."
-            gh run download "$prev" --name benchmark-results \
-              --dir benchmarks/results \
-              || echo "Kein Baseline-Artefakt im Vorlauf – eingecheckte Baseline bleibt Referenz."
-          else
-            echo "Kein frueherer erfolgreicher Lauf – eingecheckte Baseline bleibt Referenz."
+          # Nur erfolgreiche main-Laeufe kommen als Baseline infrage: ein
+          # workflow_dispatch auf einem Feature-Branch darf die main-Baseline
+          # nicht mit Messungen aus ungemergtem Code verfaelschen.
+          prev="$(gh run list --workflow benchmark.yml --branch main --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)"
+          if [ -z "$prev" ]; then
+            echo "Kein frueherer erfolgreicher main-Lauf – eingecheckte Baseline bleibt Referenz."
+            exit 0
           fi
+          echo "Hole Baseline-Artefakt aus Lauf $prev."
+          # In ein LEERES Temp-Verzeichnis laden: 'gh run download' kann
+          # vorhandene Dateien nicht ueberschreiben (cli/cli#8338), und nach dem
+          # Checkout liegen die eingecheckten Baselines – die das Artefakt selbst
+          # ebenfalls enthaelt – bereits in benchmarks/results/. Erst danach in
+          # die Baseline mergen, damit sie wirklich vorrueckt.
+          tmp="$(mktemp -d)"
+          if gh run download "$prev" --name benchmark-results --dir "$tmp" 2>/dev/null; then
+            cp -f "$tmp"/*.json benchmarks/results/
+            echo "Baseline aus Vorlauf uebernommen."
+          else
+            echo "Kein Baseline-Artefakt im Vorlauf – eingecheckte Baseline bleibt Referenz."
+          fi
+          rm -rf "$tmp"
 
       # Eine Auffaelligkeit wird im selben Lauf durch zusaetzliche
       # Wiederholungen bestaetigt (--confirm-runs); gemeldet wird nur, was der
