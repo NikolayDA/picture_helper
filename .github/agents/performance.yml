@@ -20,7 +20,7 @@ triggers:
       - bgremover/canvas.py
   - type: workflow_run
     workflows:
-      - benchmarks.yml
+      - Performance Benchmark  # entspricht .github/workflows/benchmark.yml (name:)
 
 configuration:
   # Benchmark-Modi

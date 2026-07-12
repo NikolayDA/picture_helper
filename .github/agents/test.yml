@@ -18,7 +18,7 @@ triggers:
       - test:edge-case
   - type: workflow_run
     workflows:
-      - pr-ci.yml
+      - PR CI  # entspricht .github/workflows/pr-ci.yml (name:)
     conclusion: failure
     filter: "test failure"
 

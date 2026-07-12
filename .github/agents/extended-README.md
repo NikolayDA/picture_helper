@@ -112,14 +112,17 @@ Diese Dateien konfigurieren drei weitere Agents mit mittlerer Priorität:
 
 ## Aktivierung
 
-1. **Merge** diesen Branch in `main`
-2. Alle **5 Agents** sind sofort aktiv
-3. Logs unter **Actions → Agent Workflows**
+> **Hinweis:** Wie in [`README.md`](README.md) beschrieben, sind diese
+> `*.yml`-Dateien eine **deklarative Spezifikation** und werden von GitHub
+> **nicht** automatisch ausgeführt. Ein Merge aktiviert die 5 Agents daher
+> **nicht** von selbst – dazu muss jede Aufgabe als echter GitHub-Actions-
+> Workflow, GitHub Agentic Workflow oder Copilot-Agent-Profil umgesetzt werden.
 
 ---
 
-## Tipps
+## Geplante Bedienung (nach Umsetzung als Workflow)
 
-- **Dokumentation:** Nutze `/agent:documentation` in PR-Kommentaren, um sofort Docs zu updaten
-- **Tests:** Issues mit `test:coverage` erstellen → Agent generiert Tests
-- **Performance:** Wöchentliche Reports unter **Actions → Performance Benchmarks**
+- **Dokumentation:** perspektivisch über einen `agent:documentation`-Trigger in
+  PR-Kommentaren, um Docs zu aktualisieren
+- **Tests:** Issues mit `test:coverage` → generierte Tests
+- **Performance:** wöchentliche Reports unter **Actions → Performance Benchmark**

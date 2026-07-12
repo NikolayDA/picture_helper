@@ -1,0 +1,82 @@
+name: Claude Code Review
+
+# Automatisches Code-Review durch Claude bei jedem geöffneten/aktualisierten
+# Pull Request. Realisiert den "Code Review Agent" aus .github/agents/
+# code-review.yml. Bewertet nur (Kommentare/Review) – schreibt keinen Code und
+# blockt den Merge nicht (das erledigen die required Checks aus pr-ci.yml).
+#
+# Voraussetzung: Repo-Secret ANTHROPIC_API_KEY. Ohne Secret wird das Review
+# sauber übersprungen (kein roter Lauf).
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read  # Damit Claude die CI-Ergebnisse des PR lesen kann.
+    env:
+      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Hinweis bei fehlendem Secret
+        if: env.HAS_ANTHROPIC_KEY != 'true'
+        run: |
+          echo "::warning::ANTHROPIC_API_KEY ist nicht gesetzt – Review übersprungen. \
+          Secret unter Settings → Secrets and variables → Actions ergänzen."
+
+      - name: Claude Review
+        if: env.HAS_ANTHROPIC_KEY == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Standard-GITHUB_TOKEN statt der Claude-GitHub-App verwenden – so
+          # genügt als Secret ANTHROPIC_API_KEY (keine App-Installation nötig).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_sticky_comment: true
+          # Automation-/Prompt-Modus (kein track_progress → kein Tag-Modus mit
+          # Schreib-/Git-Fähigkeiten). Die allowlist erlaubt ausschließlich
+          # Lesen und Kommentieren – Edit/Write/git sind nicht enthalten, das
+          # Review kann also keinen Code committen/pushen (zusätzlich ist
+          # contents auf read beschränkt).
+          prompt: |
+            Reviewe diesen Pull Request für das Projekt BgRemover (PyQt6-Desktop-App,
+            Python >= 3.10). Gib fokussiertes, umsetzbares Feedback – bevorzugt als
+            inline-Kommentare an den betroffenen Stellen, ergänzt um eine kurze
+            Zusammenfassung. Wenn nichts Wesentliches auffällt, sag das klar.
+
+            Prüfe insbesondere:
+            - **Korrektheit & Edge Cases** (Image-Ops, Height-Map, Qt-UI, Worker/
+              Race-Conditions, Undo/Redo-Speicher).
+            - **Projektstandards:** Das maßgebliche Gate ist `make check`
+              (ruff line-length 100 / Regeln E,F,W,I,B,UP,SIM; mypy; pytest mit
+              QT_QPA_PLATFORM=offscreen). Coverage-Baseline `make coverage` >= 86.
+            - **Konventionen:** Kommentare/Docstrings auf Deutsch, Code-Identifier
+              englisch; den bestehenden kompakten Stil treffen.
+            - **Drift-Disziplin (Befund N6):** Die Qt-apt-Paketliste muss in sechs
+              Dateien identisch bleiben (ci.yml, pr-ci.yml, ui-nightly.yml,
+              benchmark.yml, coverage.yml, .claude/hooks/session-start.sh).
+            - **Sicherheit & Performance** relevanter Änderungen.
+
+            Kontext steht in CLAUDE.md. Wiederhole nicht, was die CI-Checks ohnehin
+            abfangen – ergänze menschlich wertvolles Review. Nutze zum Setzen von
+            Zeilen-Kommentaren das Inline-Comment-Werkzeug; die Zusammenfassung
+            landet im (Sticky-)PR-Kommentar.
+          claude_args: |
+            --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Grep,Glob"
