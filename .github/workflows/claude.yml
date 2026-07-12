@@ -1,0 +1,67 @@
+name: Claude Code
+
+# Interaktiver Claude-Agent: reagiert auf "@claude"-Erwähnungen in Issues,
+# Pull Requests, PR-Reviews und Review-Kommentaren. Deckt die On-Demand-Agents
+# (Bug-Fix, Tests, Dokumentation, Performance) aus .github/agents/*.yml ab –
+# die konkrete Aufgabe wird direkt in der Erwähnung beschrieben, z. B.
+# "@claude fixe den fehlschlagenden Test in tests/test_height_ops.py".
+#
+# Voraussetzung: Ein Repo-Secret ANTHROPIC_API_KEY (Settings → Secrets and
+# variables → Actions). Alternativ CLAUDE_CODE_OAUTH_TOKEN – dann unten das
+# Input entsprechend ersetzen. Ohne Secret wird der Claude-Schritt sauber
+# übersprungen (kein roter Lauf).
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # Nur laufen, wenn "@claude" tatsächlich erwähnt wurde.
+    if: >-
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read  # Damit Claude CI-Ergebnisse auf PRs lesen kann.
+    env:
+      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Hinweis bei fehlendem Secret
+        if: env.HAS_ANTHROPIC_KEY != 'true'
+        run: |
+          echo "::warning::ANTHROPIC_API_KEY ist nicht gesetzt – Claude-Schritt übersprungen. \
+          Secret unter Settings → Secrets and variables → Actions ergänzen."
+
+      - name: Run Claude Code
+        if: env.HAS_ANTHROPIC_KEY == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          trigger_phrase: "@claude"
+          # Projektkontext (make check als Gate, Konventionen, N6-Drift) liest
+          # Claude Code automatisch aus CLAUDE.md im Repo-Root.
+          claude_args: |
+            --max-turns 25
