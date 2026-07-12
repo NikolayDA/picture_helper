@@ -60,6 +60,12 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Standard-GITHUB_TOKEN statt der Claude-GitHub-App – so genügt als
+          # Secret ANTHROPIC_API_KEY. Hinweis: Commits, die Claude damit pusht,
+          # lösen keine nachgelagerten Workflows aus (GITHUB_TOKEN-Limit). Wer
+          # das braucht, installiert die Claude-GitHub-App und entfernt diese
+          # Zeile (siehe .github/agents/README.md).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           trigger_phrase: "@claude"
           # Projektkontext (make check als Gate, Konventionen, N6-Drift) liest
           # Claude Code automatisch aus CLAUDE.md im Repo-Root.

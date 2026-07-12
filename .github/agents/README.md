@@ -72,10 +72,22 @@ für diese Aufrufe.
 
 ### Voraussetzung
 
-Ein Repo-Secret **`ANTHROPIC_API_KEY`** (Settings → *Secrets and variables* →
-*Actions*); alternativ `CLAUDE_CODE_OAUTH_TOKEN` (dann Input im Workflow
-ersetzen). Fehlt das Secret, überspringen sich beide Workflows sauber – ohne
-roten Lauf.
+Nur **ein** Repo-Secret nötig: **`ANTHROPIC_API_KEY`** (Settings → *Secrets and
+variables* → *Actions*). Fehlt es, überspringen sich beide Workflows sauber –
+ohne roten Lauf.
+
+Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
+`GITHUB_TOKEN` durch (`github_token: ${{ secrets.GITHUB_TOKEN }}`), damit die
+[Claude-GitHub-App](https://github.com/apps/claude) **nicht** installiert werden
+muss (die `anthropics/claude-code-action` würde sonst standardmäßig deren
+Token-Austausch erwarten und ohne App fehlschlagen).
+
+> **Trade-off:** Commits, die der interaktive Agent mit dem `GITHUB_TOKEN`
+> pusht, lösen **keine** nachgelagerten Workflows aus (bekannte GitHub-
+> Einschränkung). Wer das braucht, installiert die Claude-GitHub-App (oder eine
+> eigene App via `actions/create-github-app-token`) und entfernt die
+> `github_token`-Zeile bzw. setzt den App-Token ein. Für das reine
+> Review-Feedback (`claude-code-review.yml`) spielt das keine Rolle.
 
 ### Optional erweitern
 
