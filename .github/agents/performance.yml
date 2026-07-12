@@ -1,0 +1,94 @@
+name: Performance Agent
+description: |
+  Automatisches Performance-Monitoring und Optimierung mit Fokus auf:
+  - Benchmark-Pipeline pro Format (PNG, JPEG, WebP, TIFF)
+  - Performance-Regressionen erkennen (>10% Schwelle)
+  - Memory-Profiling für große Bilder
+  - Bottlenecks in Image-Ops und Height-Map identifizieren
+  - Optimierungsempfehlungen
+
+triggers:
+  - type: schedule
+    interval: weekly  # Wöchentliche Benchmarks
+  - type: pull_request
+    labels:
+      - performance
+      - agent:performance
+    paths:
+      - bgremover/image_ops.py
+      - bgremover/height_ops.py
+      - bgremover/canvas.py
+  - type: workflow_run
+    workflows:
+      - benchmarks.yml
+
+configuration:
+  # Benchmark-Modi
+  benchmarking:
+    - image_pipeline: true     # PNG, JPEG, WebP, TIFF
+    - memory_profiling: true   # RAM-Nutzung
+    - cpu_profiling: true      # CPU-Zeit
+    - startup_time: true       # App-Start
+  
+  # Zu benchmarkende Formate
+  formats:
+    - PNG
+    - JPEG
+    - WebP
+    - TIFF
+  
+  # Performance-Metriken
+  metrics:
+    - encode_ms
+    - decode_ms
+    - process_ms
+    - memory_peak_mb
+    - cpu_percent
+  
+  # Regressionschwelle
+  regression_threshold: 10  # Prozent
+  confirmation_runs: 3      # Bestätigungsläufe
+  
+  # Fokus-Module (Profiling)
+  profile_modules:
+    - bgremover/image_ops.py
+    - bgremover/height_ops.py
+    - bgremover/canvas.py
+    - bgremover/relief_preview.py
+  
+  # Memory-Tests
+  large_image_tests: true
+  max_megapixel_test: 40
+  
+  # Reporting
+  create_issues_on_regression: true
+  post_benchmark_comment: true
+  compare_with_baseline: true
+  
+  # Commit-Strategie
+  auto_commit_results: true
+  baseline_update_strategy: weekly
+
+labels:
+  - agent:performance
+  - performance
+  - benchmarks
+
+context:
+  project_type: python-desktop-app
+  benchmark_tool: custom (scripts/benchmark.py)
+  benchmark_command: "make bench"
+  compare_command: "make bench-compare"
+  memory_tool: memory_profiler
+  cpu_tool: cProfile
+  results_dir: benchmarks/results/
+  baseline_schema: "Schema 2"
+  environment_fingerprint: true
+  tracked_dependencies:
+    - Python version
+    - Pillow version
+    - NumPy version
+    - Operating System
+    - CPU count
+  megapixel_limit: 40
+  history_memory_limit: true

@@ -1,0 +1,67 @@
+name: Documentation Agent
+description: |
+  Automatische Generierung und Wartung von Dokumentation mit Fokus auf:
+  - API-Docs aus Code-Kommentaren
+  - Module dokumentieren (height_ops.py, relief_preview.py, etc.)
+  - README und CLAUDE.md aktuell halten
+  - Architektur-Diagramme und Übersichten
+  - ANLEITUNG.md bei neuen Features updaten
+
+triggers:
+  - type: pull_request
+    paths:
+      - bgremover/**/*.py
+    labels:
+      - feature
+      - agent:documentation
+  - type: schedule
+    interval: weekly  # Jede Woche Doku-Check
+
+configuration:
+  # Dokumentations-Modi
+  generation:
+    - api_docs: true           # Aus Docstrings
+    - module_docs: true        # Pro Modul
+    - architecture_diagrams: true  # Struktur visualisieren
+    - changelog_snippet: true  # CHANGELOG-Vorschlag
+  
+  # Ziel-Dateien
+  target_files:
+    - CLAUDE.md
+    - ANLEITUNG.md
+    - RESOURCES.md
+    - docs/
+    - .claude/
+  
+  # Module (Priorität)
+  focus_modules:
+    - bgremover/image_ops.py    # 1. ImageOps
+    - bgremover/height_ops.py   # 2. HeightOps
+    - bgremover/canvas.py       # 3. Canvas
+    - bgremover/ai_process.py   # 4. AI-Prozesse
+    - bgremover/right_panel_tabs  # 5. UI-Komponenten
+  
+  # Commit-Strategie
+  auto_commit: true
+  pull_request_creation: auto
+  commit_message_prefix: "docs: "
+  
+  # Validierung
+  validate_links: true
+  check_code_samples: true
+
+labels:
+  - agent:documentation
+  - documentation
+  - auto-docs
+
+context:
+  project_type: python-desktop-app
+  documentation_format: markdown
+  api_doc_style: Google-style docstrings
+  diagram_tool: mermaid
+  main_docs:
+    - CLAUDE.md (Architektur & Standards)
+    - ANLEITUNG.md (Benutzer-Guide)
+    - README.md (Übersicht)
+    - RESOURCES.md (Lizenzen & Dependencies)

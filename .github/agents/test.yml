@@ -1,0 +1,91 @@
+name: Test Agent
+description: |
+  Automatische Test-Generierung, Verbesserung und Fehler-Debugging mit Fokus auf:
+  - Neue Tests für neue Features schreiben
+  - Test-Coverage ausbauen (Target: ≥86%)
+  - Edge Cases in komplexen Modulen testen
+  - Test-Failures debuggen und fixen
+  - UI-Smoke-Tests erweitern (headless Qt)
+
+triggers:
+  - type: pull_request
+    labels:
+      - feature
+      - agent:test
+  - type: issue
+    labels:
+      - test:coverage
+      - test:edge-case
+  - type: workflow_run
+    workflows:
+      - pr-ci.yml
+    conclusion: failure
+    filter: "test failure"
+
+configuration:
+  # Test-Generierung
+  generation:
+    - unit_tests: true
+    - integration_tests: true
+    - edge_case_tests: true
+    - ui_smoke_tests: true
+  
+  # Module mit geringer Coverage (Priorität)
+  low_coverage_modules:
+    - bgremover/height_ops.py
+    - bgremover/relief_preview.py
+    - bgremover/image_ops.py
+    - bgremover/project_model.py
+  
+  # Test-Bereiche
+  test_focus:
+    - Image Operations (16-Bit, Floating, MedianBlur)
+    - Height Map Conversions
+    - Crop Geometry & Rule of Thirds
+    - Qt UI Components (headless)
+    - Worker Threads & Race Conditions
+    - Memory Management (Undo/Redo)
+  
+  # Test-Framework
+  framework: pytest
+  headless_mode: true
+  qt_platform: offscreen
+  coverage_target: 86
+  coverage_tool: coverage.py
+  
+  # Debugging
+  auto_debug_failures: true
+  failure_analysis: true
+  suggest_fixes: true
+  
+  # Commit-Strategie
+  auto_commit: false
+  create_pull_request: true
+  require_review: true
+
+labels:
+  - agent:test
+  - testing
+  - coverage
+
+context:
+  project_type: python-desktop-app
+  test_command: "make test"
+  coverage_command: "make coverage"
+  coverage_minimum: 86
+  test_framework: pytest
+  test_config_file: pyproject.toml
+  conftest_path: tests/conftest.py
+  test_markers:
+    - unit
+    - integration
+    - ui
+    - ui_smoke
+  platforms_tested:
+    - Linux
+    - macOS
+  python_versions:
+    - "3.10"
+    - "3.11"
+    - "3.12"
+    - "3.13"
