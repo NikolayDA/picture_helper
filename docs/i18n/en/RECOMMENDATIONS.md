@@ -20,9 +20,9 @@ wave is therefore closed: **#435** (PR #538), **#392**, **#426**, and
 **#389**. Also closed: **#299** (PR #539) together with the separately
 tracked N13 test-hygiene follow-up **#541** (PR #543), plus **#318**
 (PR #540) and the recommendations-snapshot sync **#542**. A repo audit on
-2026-07-12 filed five new findings as issues (**#549–#553**); **#552** is
-already closed via PR #557, and **#549** closes with this PR. Live state
-(re-checked): **4** open issues – **#245**, **#550**, **#551**, **#553**.
+2026-07-12 filed five new findings as issues (**#549–#553**); **#552**,
+**#549**, **#553**, and **#550** are now closed via PR #557, #558, #559, and
+#560. Live state (re-checked): **2** open issues – **#245** and **#551**.
 
 ### Completed Since The Last Review
 
@@ -38,8 +38,10 @@ already closed via PR #557, and **#549** closes with this PR. Live state
 - **Closed since 2026-07-12:** release wave **#435/#392/#426/#389** (v2.5.0,
   PR #538) plus **#299** (PR #539), the test-hygiene follow-up **#541**
   (PR #543), **#318** (PR #540), the recommendations-snapshot sync **#542**,
-  the PR template **#552** (PR #557), and this snapshot sync **#549**. All
-  redesign/release/backlog items from the last snapshot are thereby cleared.
+  the PR template **#552** (PR #557), this snapshot sync **#549**, the
+  SessionStart hook fix **#553**, and the v2.3.0 tag/release formalization
+  **#550**. All redesign/release/backlog items from the last snapshot are
+  thereby cleared.
 
 ### Still Open
 
@@ -48,19 +50,15 @@ already closed via PR #557, and **#549** closes with this PR. Live state
 
 ## Open GitHub Issues — Triage Status (2026-07-12)
 
-Live state right before this edit: **#552** is closed via PR #557, **#549**
-closes with this PR. **4** open issues remain: **#245** (quota/billing
-blocker), **#550** (v2.3.0 tag/release consistency), **#551** (Codex
-Security Scan strategy decision), and **#553** (SessionStart hook
-verification).
+Live state right before this edit: **#552**, **#549**, **#553**, and **#550**
+are closed. **2** open issues remain: **#245** (quota/billing blocker) and
+**#551** (Codex Security Scan strategy decision).
 
 ### Sensible Bundles
 
 #245 and #551 are content-linked (Codex scan): #245 is a pure account
 action, while #551 needs its own strategic decision
-(reactivate/decommission/replace). #550 also needs a decision first
-(tag+release vs. docs-only clarification). #553 is independent and can
-proceed right away.
+(reactivate/decommission/replace).
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort, **Model/Effort** = the recommended Claude
@@ -68,20 +66,14 @@ model and reasoning effort for Claude Code to implement it.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#553](https://github.com/NikolayDA/picture_helper/issues/553) | Verify SessionStart hook reliability in web sessions | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – reproduce in a fresh web session, then fix + document as needed. |
-| [#550](https://github.com/NikolayDA/picture_helper/issues/550) | v2.3.0: reconcile CHANGELOG with tag/release history | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Needs refinement** – variant A (tag+release) vs. B (docs-only clarification) needs a decision before implementation. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Codex Security Scan strategy decision (reactivate/decommission/replace) | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Needs refinement** – needs a deliberate choice among three options; recommendation: option 2 (decommission/disable) given weeks of external blockage and redundancy with pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | – (no code task) | **Blocked (external)** – restoring OpenAI billing/quota is an account action, not a PR. |
 
 ### Recommended Next (PR order)
 
-1. **#553** — reproduce the SessionStart hook behavior in a fresh web
-   session and fix as needed.
-2. **#550** — get a decision on variant A/B, then adjust the
-   CHANGELOG/tag/release.
-3. **#551** — get a decision on the scan strategy (linked to #245), then
+1. **#551** — get a decision on the scan strategy (linked to #245), then
    adjust the workflow.
-4. **#245** — stays externally blocked; verify manually only after the
+2. **#245** — stays externally blocked; verify manually only after the
    OpenAI quota is restored.
 
 *Drift note:* re-check the live open-issue count before every future update
@@ -89,6 +81,13 @@ instead of carrying it forward (#542 → #549 hit the same off-by-one).
 
 ## Previous Rounds
 
+- **2026-07-12 (#550)** — v2.3.0 tag and GitHub release formalized
+  retroactively; CHANGELOG footers in all six languages now use `v2.3.0`
+  instead of raw commit SHAs. Open-issue snapshot reduced to 2 (#245, #551).
+- **2026-07-12 (#553)** — SessionStart hook fix: a failed
+  `pip install --upgrade pip` (Debian package without RECORD metadata) stopped
+  the hook before the `.[test]` install; fixed with `--ignore-installed` plus
+  an idempotent readiness check and error trap.
 - **2026-07-12 (snapshot sync #549)** — #552 (PR template) closed via
   PR #557; this PR closes #549. Open-issue snapshot reduced to 4 (#245,
   #550, #551, #553).

@@ -20,10 +20,10 @@ vague de rollout/publication est donc close : **#435** (PR #538), **#392**,
 **#426** et **#389**. Également clos : **#299** (PR #539) avec le suivi
 d'hygiène des tests N13 traité séparément **#541** (PR #543), plus **#318**
 (PR #540) et la synchronisation de l'instantané de recommandations **#542**.
-Un audit du dépôt du 2026-07-12 a ouvert cinq nouveaux constats (**#549–#553**) ;
-**#552** est déjà clos via PR #557 et **#549** se clôt avec ce PR. État en
-direct (revérifié) : **4** tickets ouverts – **#245**, **#550**, **#551**,
-**#553**.
+Un audit du dépôt du 2026-07-12 a ouvert cinq nouveaux constats
+(**#549–#553**) ; **#552**, **#549**, **#553** et **#550** sont désormais clos
+via PR #557, #558, #559 et #560. État en direct (revérifié) : **2** tickets
+ouverts – **#245** et **#551**.
 
 ### Terminé depuis la dernière revue
 
@@ -40,8 +40,10 @@ direct (revérifié) : **4** tickets ouverts – **#245**, **#550**, **#551**,
   #389** (v2.5.0, PR #538) plus **#299** (PR #539), le suivi d'hygiène des
   tests **#541** (PR #543), **#318** (PR #540), la synchronisation de
   l'instantané de recommandations **#542**, le modèle de PR **#552**
-  (PR #557) et cette synchronisation d'instantané **#549**. Tous les points
-  redesign/publication/backlog du dernier instantané sont ainsi soldés.
+  (PR #557), cette synchronisation d'instantané **#549**, le correctif du hook
+  SessionStart **#553** et la formalisation tag/release v2.3.0 **#550**. Tous
+  les points redesign/publication/backlog du dernier instantané sont ainsi
+  soldés.
 
 ### Encore ouvert
 
@@ -51,19 +53,16 @@ direct (revérifié) : **4** tickets ouverts – **#245**, **#550**, **#551**,
 
 ## Tickets GitHub ouverts — Triage (2026-07-12)
 
-État en direct juste avant cette édition : **#552** est clos via PR #557,
-**#549** se clôt avec ce PR. Il reste **4** tickets ouverts : **#245**
-(blocage quota/facturation), **#550** (cohérence tag/release de v2.3.0),
-**#551** (décision de stratégie pour Codex Security Scan) et **#553**
-(vérification du hook SessionStart).
+État en direct juste avant cette édition : **#552**, **#549**, **#553** et
+**#550** sont clos. Il reste **2** tickets ouverts : **#245** (blocage
+quota/facturation) et **#551** (décision de stratégie pour Codex Security
+Scan).
 
 ### Regroupements pertinents
 
 #245 et #551 sont liés en contenu (scan Codex) : #245 est une pure action de
 compte, tandis que #551 requiert sa propre décision stratégique
-(réactiver/retirer/remplacer). #550 requiert aussi d'abord une décision
-(tag+release vs. clarification doc seule). #553 est indépendant et peut
-avancer immédiatement.
+(réactiver/retirer/remplacer).
 
 Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs,
 **Complexité** = effort de mise en œuvre estimé, **Modèle/Effort** = modèle
@@ -72,20 +71,14 @@ Claude Code.
 
 | # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
 |---|-------|------------|------------|----------------|-----------------------------|
-| [#553](https://github.com/NikolayDA/picture_helper/issues/553) | Vérifier la fiabilité du hook SessionStart dans les sessions web | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Ready for PR** – reproduire dans une session web neuve, puis corriger/documenter si besoin. |
-| [#550](https://github.com/NikolayDA/picture_helper/issues/550) | v2.3.0 : réconcilier le CHANGELOG avec l'historique tag/release | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Needs refinement** – la variante A (tag+release) vs. B (clarification doc seule) nécessite une décision avant implémentation. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Décision de stratégie pour Codex Security Scan (réactiver/retirer/remplacer) | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Needs refinement** – nécessite un choix délibéré entre trois options ; recommandation : option 2 (retirer/désactiver) vu le blocage externe de plusieurs semaines et la redondance avec pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan « Quota exceeded » | 🟡 Moyenne | 🟢 Faible | – (aucune tâche de code) | **Bloqué (externe)** – restaurer la facturation/le quota OpenAI est une action de compte, pas un PR. |
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **#553** — reproduire le comportement du hook SessionStart dans une
-   session web neuve et corriger si besoin.
-2. **#550** — obtenir une décision sur la variante A/B, puis ajuster le
-   CHANGELOG/tag/release.
-3. **#551** — obtenir une décision sur la stratégie du scan (liée à #245),
+1. **#551** — obtenir une décision sur la stratégie du scan (liée à #245),
    puis ajuster le workflow.
-4. **#245** — reste bloqué en externe ; vérifier manuellement seulement
+2. **#245** — reste bloqué en externe ; vérifier manuellement seulement
    après restauration du quota OpenAI.
 
 *Dérive :* revérifier en direct le nombre de tickets ouverts avant chaque
@@ -93,6 +86,13 @@ mise à jour, sans le reporter tel quel (#542 → #549 : même décalage).
 
 ## Tours précédents
 
+- **2026-07-12 (#550)** — tag v2.3.0 et GitHub Release formalisés
+  rétroactivement ; les footers CHANGELOG dans les six langues utilisent
+  désormais `v2.3.0` au lieu de SHA bruts. Instantané réduit à 2 (#245, #551).
+- **2026-07-12 (#553)** — correctif du hook SessionStart : un
+  `pip install --upgrade pip` échoué (paquet Debian sans métadonnées RECORD)
+  arrêtait le hook avant l'installation `.[test]` ; corrigé avec
+  `--ignore-installed`, une vérification idempotente et un piège d'erreur.
 - **2026-07-12 (sync #549)** — #552 (modèle de PR) clos via PR #557 ; ce PR
   clôt #549. Instantané réduit à 4 (#245, #550, #551, #553).
 - **2026-07-12 (audit des tickets)** — #542 clos ; un audit du dépôt a ouvert
