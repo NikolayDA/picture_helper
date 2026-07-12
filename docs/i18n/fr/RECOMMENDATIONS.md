@@ -11,16 +11,15 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-11)
+## État actuel (2026-07-12)
 
 La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests
-locale restent la base avant tout nouveau PR. **#431/#432** ont été fusionnés
-via PR #529 et sont fermés — ANLEITUNG/README et toutes les captures
-reflètent désormais le workflow guidé en 6 étapes. L'epic **#425** est donc
-complet sur le fond (ses trois sous-tickets #430/#431/#432 fermés) et a été
-fermé le 2026-07-11. Les deux tickets de warmup IA ouverts ensuite,
-**#530**/**#531**, sont eux aussi fermés via PR #533/#535. GitHub affiche
-désormais **7** tickets ouverts.
+locale restent la base avant tout nouveau PR. La version **v2.5.0** a été
+publiée le 2026-07-11 (CHANGELOG curé, version montée — PR #538). Toute la
+vague de rollout/publication est donc close : **#435** (PR #538), **#392**,
+**#426** et **#389**. Également clos : **#299** (PR #539) avec le suivi
+d'hygiène des tests N13 traité séparément **#541** (PR #543), plus **#318**
+(PR #540). GitHub n'affiche désormais plus que **2** tickets ouverts.
 
 ### Terminé depuis la dernière revue
 
@@ -33,12 +32,10 @@ désormais **7** tickets ouverts.
   **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517** ont
   atterri via PR #412/#423/#466/#467/#473/#482/#489/#504/#506/#512/#513/
   #518/#519 et PR #520/#521/#522 ; **#490** et **#433/#434** de même.
-- **Fermé depuis le 2026-07-11 :** **#430** (PR #526) — i18n à l'exécution
-  pour ES/FR/UK/ZH entièrement maintenue et vérifiée en parité ;
-  **#431/#432** (PR #529) — ANLEITUNG/README/captures amenés au workflow
-  guidé en 6 étapes. **#425** est fermé comme epic i18n/docs terminé ;
-  **#530** (PR #533) et **#531** (PR #535) clôturent le cas de support
-  warmup IA.
+- **Fermé depuis le 2026-07-12 :** la vague de publication **#435/#392/#426/
+  #389** (v2.5.0, PR #538) plus **#299** (PR #539), le suivi d'hygiène des
+  tests **#541** (PR #543) et **#318** (PR #540). Tous les points redesign/
+  publication/backlog du dernier instantané sont ainsi soldés.
 
 ### Encore ouvert
 
@@ -46,17 +43,18 @@ désormais **7** tickets ouverts.
   verrouillés dans la maquette après génération ; n'affecte que la
   simulation (#347).
 
-## Tickets GitHub ouverts — Triage (2026-07-11)
+## Tickets GitHub ouverts — Triage (2026-07-12)
 
-Au 2026-07-11, GitHub affiche **7** tickets ouverts : rollout/publication
-(**#426/#435/#392/#389**) et backlog/points externes (**#299/#318/#245**).
+Au 2026-07-12, GitHub n'affiche plus que **2** tickets ouverts : le blocage
+externe de quota/facturation **#245** et cette synchronisation de
+documentation **#542**.
 
 ### Regroupements pertinents
 
-- **Rollout/publication :** #426 ne dépend que de #435 ; coordonner avec
-  #392, puis clore #426/#389.
-- **Backlog :** #299 après la publication ; affiner #318 d'abord ; #245
-  reste bloqué en externe.
+- **Bloqué en externe :** #245 dépend de la facturation/du quota OpenAI — une
+  action de compte, pas un PR du dépôt.
+- **Documentation :** #542 aligne les six miroirs de recommandations sur
+  l'état en direct et est résolu par le PR associé.
 
 Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs,
 **Complexité** = effort de mise en œuvre estimé, **Modèle/Effort** = modèle
@@ -65,23 +63,21 @@ Claude Code.
 
 | # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
 |---|-------|------------|------------|----------------|-----------------------------|
-| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG et bump de version du redesign | 🟡 Moyenne | 🟢 Faible | Sonnet 5 · faible | **Prêt pour PR** – mécanique, bien délimité ; bloque #426 et #392. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publier la version v2.5.0 | 🟠 Élevée | 🟡 Moyenne | Sonnet 5 · moyen | **Prête** – séquencer après #435 ; #431/#432 ne bloquent plus ; le build `.dmg` macOS nécessite un runner local/macOS hors de ce conteneur distant. |
-| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC : QA et déploiement du redesign | 🟠 Élevée | 🟢 Faible | – (ticket de suivi) | **Presque fini** – seul #435 reste ouvert. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC : Màj docs utilisateur et publication | 🟠 Élevée | 🟢 Faible | – (ticket de suivi) | **Clore après #392** – seule la publication reste. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Hygiène des tests : assertions faibles/redondances | 🟢 Faible | 🟡 Moyenne | Sonnet 5 · moyen | **Prêt pour PR** – catalogue plus les suites N13 du triage du 2026-07-08 sont documentés ; prioriser après la publication. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Overrides de permissions par job dans WF réutilisable | 🟢 Faible | 🟡 Moyenne | Opus 4.8 · élevé | **À affiner** – prouver d'abord la sémantique GitHub (top-level vs. effective par job) ; ne doit pas affaiblir le garde-fou de régression OIDC. |
+| [#542](https://github.com/NikolayDA/picture_helper/issues/542) | Rafraîchir l'instantané des recommandations après v2.5.0 | 🟢 Faible | 🟢 Faible | Sonnet 5 · faible | **En cours** – ce PR aligne les six miroirs sur l'état en direct, structurellement synchronisés. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan « Quota exceeded » | 🟡 Moyenne | 🟢 Faible | – (aucune tâche de code) | **Bloqué (externe)** – restaurer la facturation/le quota OpenAI est une action de compte, pas un PR. |
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **Publication :** mener **#435** + **#392** de façon coordonnée, puis
-   clore **#426**/**#389**.
-2. **#299** après la publication ; n'étudier que **#318** ; garder **#245**
-   bloqué en externe.
+1. Clore **#542** avec ce PR (synchronisation structurelle de l'instantané
+   sur les six miroirs).
+2. **#245** reste bloqué en externe — aucun PR du dépôt n'est possible ;
+   vérifier manuellement seulement après restauration du quota OpenAI.
 
 ## Tours précédents
 
+- **2026-07-12** — version **v2.5.0** publiée ; vague de rollout
+  #435/#392/#426/#389 close ; #299 (PR #539), suivi N13 #541 (PR #543) et
+  #318 (PR #540) clos ; instantané des tickets ouverts réduit à #245 + #542.
 - **2026-07-11 (suivi final)** — #425 fermé formellement ; #530/#531 fermés
   via PR #533/#535 ; instantané des tickets ouverts mis à jour à 7 tickets
   restants.

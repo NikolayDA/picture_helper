@@ -11,16 +11,16 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-11)
+## Estado actual (2026-07-12)
 
 La lista activa de análisis de código está vacía. Ruff, mypy y la suite de
-pruebas local siguen siendo la base antes de nuevos PR. **#431/#432** se
-fusionaron vía PR #529 y están cerrados — ANLEITUNG/README y todas las
-capturas reflejan ahora el flujo guiado de 6 pasos. Con ello el epic
-**#425** queda completo en contenido (sus tres sub-incidencias
-#430/#431/#432 cerradas) y se cerró el 2026-07-11. Las dos incidencias de
-warmup de IA abiertas después, **#530**/**#531**, también están cerradas por
-PR #533/#535. GitHub muestra ahora **7** incidencias abiertas.
+pruebas local siguen siendo la base antes de nuevos PR. La versión **v2.5.0**
+se publicó el 2026-07-11 (CHANGELOG curado, versión subida — PR #538). Toda la
+ola de rollout/publicación queda así cerrada: **#435** (PR #538), **#392**,
+**#426** y **#389**. También cerrado: **#299** (PR #539) junto con el
+seguimiento de higiene de pruebas N13 rastreado por separado **#541**
+(PR #543), más **#318** (PR #540). GitHub muestra ahora solo **2**
+incidencias abiertas.
 
 ### Completado desde la última revisión
 
@@ -34,30 +34,28 @@ PR #533/#535. GitHub muestra ahora **7** incidencias abiertas.
   #510/#514–#517** llegaron vía PR #412/#423/#466/#467/#473/#482/#489/#504/
   #506/#512/#513/#518/#519 y PR #520/#521/#522; **#490** y **#433/#434**
   también.
-- **Cerrado desde el 2026-07-11:** **#430** (PR #526) — i18n en tiempo de
-  ejecución para ES/FR/UK/ZH mantenido por completo y verificado en paridad;
-  **#431/#432** (PR #529) — ANLEITUNG/README/capturas llevados al flujo
-  guiado de 6 pasos. **#425** queda cerrado como epic i18n/docs completado;
-  **#530** (PR #533) y **#531** (PR #535) cierran el caso de soporte de
-  warmup de IA.
+- **Cerrado desde el 2026-07-12:** la ola de publicación **#435/#392/#426/
+  #389** (v2.5.0, PR #538) más **#299** (PR #539), el seguimiento de higiene
+  de pruebas **#541** (PR #543) y **#318** (PR #540). Con ello se despachan
+  todos los puntos de rediseño/publicación/backlog de la última instantánea.
 
 ### Aún abierto
 
 - **O8 🟢 — Imprecisión del prototipo:** las herramientas de altura quedan
   bloqueadas en el mockup tras generarla; solo afecta a la simulación (#347).
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-11)
+## Incidencias abiertas de GitHub — Clasificación (2026-07-12)
 
-A fecha del 2026-07-11, GitHub muestra **7** incidencias abiertas:
-rollout/publicación (**#426/#435/#392/#389**) y backlog/puntos externos
-(**#299/#318/#245**).
+A fecha del 2026-07-12, GitHub muestra solo **2** incidencias abiertas: el
+bloqueo externo de cuota/facturación **#245** y esta sincronización de
+documentación **#542**.
 
 ### Agrupaciones sensatas
 
-- **Rollout/publicación:** #426 depende solo de #435; coordinar con #392 y
-  luego cerrar #426/#389.
-- **Backlog:** #299 tras la publicación; refinar #318 primero; #245 sigue
-  bloqueado externamente.
+- **Bloqueado externamente:** #245 depende de la facturación/cuota de OpenAI
+  — una acción de cuenta, no un PR del repo.
+- **Documentación:** #542 alinea los seis espejos de recomendaciones con el
+  estado en vivo y se resuelve con el PR asociado.
 
 Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios,
 **Complejidad** = esfuerzo de implementación estimado, **Modelo/Esfuerzo** =
@@ -66,23 +64,22 @@ lo implemente.
 
 | # | Título | Relevancia | Complejidad | Modelo/Esfuerzo | Próximo paso recomendado |
 |---|--------|------------|-------------|------------------|---------------------------|
-| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG y subida de versión del rediseño | 🟡 Media | 🟢 Baja | Sonnet 5 · baja | **Listo para PR** – mecánico, bien acotado; bloquea #426 y #392. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Publicar la versión v2.5.0 | 🟠 Alta | 🟡 Media | Sonnet 5 · media | **Lista** – secuenciar tras #435; #431/#432 ya no bloquean; el build de `.dmg` de macOS necesita un runner local/macOS fuera de este contenedor remoto. |
-| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA y despliegue del rediseño | 🟠 Alta | 🟢 Baja | – (issue de seguimiento) | **Casi hecho** – solo #435 queda abierto. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Actualizar docs de usuario y publicar | 🟠 Alta | 🟢 Baja | – (issue de seguimiento) | **Cerrar tras #392** – solo queda publicar. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Higiene de pruebas: aserciones débiles/redundancias | 🟢 Baja | 🟡 Media | Sonnet 5 · media | **Listo para PR** – catálogo más los seguimientos N13 de la clasificación del 2026-07-08 ya documentados; priorizar tras la publicación. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Overrides de permisos por job en WF reutilizable | 🟢 Baja | 🟡 Media | Opus 4.8 · alta | **Necesita refinamiento** – probar primero la semántica de GitHub (nivel superior vs. efectiva por job); no debe debilitar la protección de regresión OIDC. |
+| [#542](https://github.com/NikolayDA/picture_helper/issues/542) | Actualizar la instantánea de recomendaciones tras v2.5.0 | 🟢 Baja | 🟢 Baja | Sonnet 5 · baja | **En curso** – este PR alinea los seis espejos con el estado en vivo, estructuralmente sincronizados. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan «Quota exceeded» | 🟡 Media | 🟢 Baja | – (sin tarea de código) | **Bloqueado (externo)** – restaurar la facturación/cuota de OpenAI es una acción de cuenta, no un PR. |
 
 ### Recomendado a continuación (orden de PR)
 
-1. **Publicación:** ejecutar **#435** + **#392** de forma coordinada, luego
-   cerrar **#426**/**#389**.
-2. **#299** tras la publicación; investigar solo **#318**; mantener **#245**
-   bloqueado externamente.
+1. Cerrar **#542** con este PR (sincronización estructural de la instantánea
+   en los seis espejos).
+2. **#245** sigue bloqueado externamente — no es posible un PR del repo;
+   verificar manualmente solo tras restaurar la cuota de OpenAI.
 
 ## Rondas anteriores
 
+- **2026-07-12** — versión **v2.5.0** publicada; ola de rollout
+  #435/#392/#426/#389 cerrada; #299 (PR #539), seguimiento N13 #541 (PR #543)
+  y #318 (PR #540) cerrados; instantánea de issues abiertos reducida a #245 +
+  #542.
 - **2026-07-11 (seguimiento final)** — #425 cerrado formalmente; #530/#531
   cerrados mediante PR #533/#535; instantánea de issues abiertos actualizada
   a 7 issues restantes.
