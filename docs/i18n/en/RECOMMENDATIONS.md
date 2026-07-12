@@ -11,15 +11,15 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-11)
+## Current Status (2026-07-12)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
-remain the baseline before new PRs. **#431/#432** merged via PR #529 and are
-closed — ANLEITUNG/README and every screenshot now reflect the guided
-6-step workflow. That makes epic **#425** fully complete (all three
-sub-issues #430/#431/#432 closed) and closed on 2026-07-11. The two AI-warmup
-issues filed afterwards, **#530**/**#531**, are also closed via PR #533/#535.
-GitHub currently shows **7** open issues.
+remain the baseline before new PRs. Release **v2.5.0** was cut on 2026-07-11
+(CHANGELOG curated, version bumped — PR #538). The entire rollout/release
+wave is therefore closed: **#435** (PR #538), **#392**, **#426**, and
+**#389**. Also closed: **#299** (PR #539) together with the separately
+tracked N13 test-hygiene follow-up **#541** (PR #543), plus **#318**
+(PR #540). GitHub currently shows only **2** open issues.
 
 ### Completed Since The Last Review
 
@@ -32,28 +32,27 @@ GitHub currently shows **7** open issues.
   **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517** landed
   via PR #412/#423/#466/#467/#473/#482/#489/#504/#506/#512/#513/#518/#519 and
   PR #520/#521/#522; **#490** and **#433/#434** likewise.
-- **Closed since 2026-07-11:** **#430** (PR #526) — runtime i18n for
-  ES/FR/UK/ZH fully maintained and parity-checked; **#431/#432** (PR #529) —
-  ANLEITUNG/README/screenshots brought to the guided 6-step workflow.
-  **#425** is closed as the completed i18n/docs epic; **#530** (PR #533) and
-  **#531** (PR #535) close out the AI-warmup support case.
+- **Closed since 2026-07-12:** release wave **#435/#392/#426/#389** (v2.5.0,
+  PR #538) plus **#299** (PR #539), the test-hygiene follow-up **#541**
+  (PR #543), and **#318** (PR #540). All redesign/release/backlog items from
+  the last snapshot are thereby cleared.
 
 ### Still Open
 
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup
   after generation; mockup-only, the real app is unaffected (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-11)
+## Open GitHub Issues — Triage Status (2026-07-12)
 
-As of 2026-07-11, GitHub shows **7** open issues: rollout/release
-(**#426/#435/#392/#389**) plus backlog/external items (**#299/#318/#245**).
+As of 2026-07-12, GitHub shows only **2** open issues: the external
+quota/billing blocker **#245** and this docs synchronization **#542**.
 
 ### Sensible Bundles
 
-- **Rollout/release:** #426 hinges only on #435; coordinate with #392, then
-  close #426/#389.
-- **Backlog:** #299 after the release; refine #318 first; #245 stays
-  externally blocked.
+- **Externally blocked:** #245 hinges on OpenAI billing/quota — an account
+  action, not a repo PR.
+- **Docs:** #542 aligns the six recommendations mirrors with the live state
+  and is resolved by the accompanying PR.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort, **Model/Effort** = the recommended Claude
@@ -61,23 +60,21 @@ model and reasoning effort for Claude Code to implement it.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & version bump for the redesign | 🟡 Medium | 🟢 Low | Sonnet 5 · low | **Ready for PR** – mechanical, well-scoped; blocks #426 and #392. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Cut release v2.5.0 | 🟠 High | 🟡 Medium | Sonnet 5 · medium | **Ready** – sequence after #435; #431/#432 are no longer a blocker; the macOS `.dmg` build needs a local/macOS runner outside this remote container. |
-| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: QA & rollout of the redesign | 🟠 High | 🟢 Low | – (tracking issue) | **Nearly done** – only #435 remains open. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Update user docs & cut release | 🟠 High | 🟢 Low | – (tracking issue) | **Close after #392** – only the release remains. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test hygiene: weak assertions/redundancies | 🟢 Low | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – catalog plus the N13 follow-ups from the 2026-07-08 triage are documented; prioritize after the release. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-level permission overrides in reusable WF | 🟢 Low | 🟡 Medium | Opus 4.8 · high | **Needs refinement** – prove the GitHub semantics (top-level vs. effective-per-job) first; must not weaken the OIDC regression guard. |
+| [#542](https://github.com/NikolayDA/picture_helper/issues/542) | Refresh recommendations snapshot after v2.5.0 | 🟢 Low | 🟢 Low | Sonnet 5 · low | **In progress** – this PR aligns all six mirrors with the live state, structurally in sync. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | – (no code task) | **Blocked (external)** – restoring OpenAI billing/quota is an account action, not a PR. |
 
 ### Recommended Next (PR order)
 
-1. **Release:** run **#435** + **#392** in a coordinated way, then close
-   **#426**/**#389**.
-2. **#299** after the release; research **#318** only; keep **#245**
-   externally blocked.
+1. Close **#542** with this PR (structurally synchronized snapshot sync
+   across all six mirrors).
+2. **#245** stays externally blocked — no repo PR is possible; verify
+   manually only after the OpenAI quota is restored.
 
 ## Previous Rounds
 
+- **2026-07-12** — release **v2.5.0** cut; rollout wave #435/#392/#426/#389
+  closed; #299 (PR #539), N13 follow-up #541 (PR #543), and #318 (PR #540)
+  closed; open-issue snapshot reduced to #245 + #542.
 - **2026-07-11 (final follow-up)** — #425 formally closed; #530/#531 closed
   through PR #533/#535; open-issue snapshot updated to 7 remaining issues.
 - **2026-07-11 (2nd triage)** — #431/#432 closed (PR #529, ANLEITUNG/README/

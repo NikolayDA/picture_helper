@@ -11,16 +11,15 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-11)
+## Aktueller Stand (2026-07-12)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
-bleiben die maßgebliche Baseline vor neuen PRs. **#431/#432** wurden über PR
-#529 gemergt und geschlossen – ANLEITUNG/README und alle Screenshots spiegeln
-jetzt den geführten 6-Schritte-Workflow. Damit ist Epic **#425** vollständig
-erledigt und am 2026-07-11 geschlossen (alle drei Sub-Issues #430/#431/#432
-geschlossen). Die zwei danach entstandenen KI-Warmup-Issues **#530**/**#531**
-sind über PR #533/#535 ebenfalls geschlossen. GitHub zeigt aktuell **7**
-offene Issues.
+bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am
+2026-07-11 geschnitten (CHANGELOG kuratiert, Version angehoben – PR #538). Die
+gesamte Rollout-/Release-Welle ist damit geschlossen: **#435** (PR #538),
+**#392**, **#426** und **#389**. Ebenfalls geschlossen: **#299** (PR #539) mit
+dem separat nachgezogenen N13-Testhygiene-Follow-up **#541** (PR #543) sowie
+**#318** (PR #540). GitHub zeigt aktuell nur noch **2** offene Issues.
 
 ### Erledigt seit dem letzten Review
 
@@ -33,28 +32,27 @@ offene Issues.
   **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517** sind
   über PR #412/#423/#466/#467/#473/#482/#489/#504/#506/#512/#513/#518/#519
   sowie PR #520/#521/#522 abgeschlossen; **#490** und **#433/#434** ebenso.
-- **Seit 2026-07-11 geschlossen:** **#430** (PR #526) – Laufzeit-i18n
-  ES/FR/UK/ZH vollständig gepflegt und parität-geprüft; **#431/#432** (PR
-  #529) – ANLEITUNG/README/Screenshots auf den 6-Schritte-Workflow gebracht.
-  **#425** ist als erledigtes i18n/Doku-Epic geschlossen; **#530** (PR #533)
-  und **#531** (PR #535) schließen den KI-Warmup-Support-Fall ab.
+- **Seit 2026-07-12 geschlossen:** Release-Welle **#435/#392/#426/#389**
+  (v2.5.0, PR #538) sowie **#299** (PR #539), das Testhygiene-Follow-up
+  **#541** (PR #543) und **#318** (PR #540). Damit sind alle Redesign-/
+  Release-/Backlog-Punkte des letzten Snapshots abgearbeitet.
 
 ### Noch offen
 
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach
   Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-11)
+## Offene GitHub-Issues – Triage-Stand (2026-07-12)
 
-Stand 2026-07-11 zeigt GitHub **7** offene Issues: Rollout/Release
-(**#426/#435/#392/#389**) sowie Backlog/Externe Punkte (**#299/#318/#245**).
+Stand 2026-07-12 zeigt GitHub nur noch **2** offene Issues: den externen
+Quota-/Billing-Blocker **#245** und diese Doku-Synchronisation **#542**.
 
 ### Sinnvolle Bündelung
 
-- **Rollout/Release:** #426 hängt nur an #435; mit #392 koordinieren, dann
-  #426/#389 schließen.
-- **Backlog:** #299 nach dem Release; #318 erst schärfen; #245 extern
-  blockiert.
+- **Extern blockiert:** #245 hängt an der OpenAI-Billing/Quota – eine
+  Account-Aktion, kein Repo-PR.
+- **Doku:** #542 gleicht die sechs Recommendations-Spiegel an den Live-Stand
+  an und wird durch den zugehörigen PR erledigt.
 
 Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
 geschätzter Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes
@@ -62,23 +60,22 @@ Claude-Modell und Reasoning-Effort für die Umsetzung durch Claude Code.
 
 | # | Titel | Relevanz | Komplexität | Modell/Aufwand | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|-----------------|------------------------------|
-| [#435](https://github.com/NikolayDA/picture_helper/issues/435) | CHANGELOG & Versionsanhebung für das Redesign | 🟡 Mittel | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – mechanisch, klar umrissen; blockiert #426 und #392. |
-| [#392](https://github.com/NikolayDA/picture_helper/issues/392) | Release v2.5.0 schneiden | 🟠 Hoch | 🟡 Mittel | Sonnet 5 · mittel | **Startbereit** – nach #435 sequenzieren; #431/#432 sind jetzt kein Blocker mehr; macOS-`.dmg`-Build braucht eine lokale/macOS-Runner-Umgebung außerhalb des Remote-Containers. |
-| [#426](https://github.com/NikolayDA/picture_helper/issues/426) | EPIC: Qualitätssicherung & Rollout | 🟠 Hoch | 🟢 Niedrig | – (Tracking-Issue) | **Fast fertig** – nur #435 bleibt offen. |
-| [#389](https://github.com/NikolayDA/picture_helper/issues/389) | EPIC: Nutzer-Doku aktualisieren & Release | 🟠 Hoch | 🟢 Niedrig | – (Tracking-Issue) | **Nach #392 schließen** – nur Release offen. |
-| [#299](https://github.com/NikolayDA/picture_helper/issues/299) | Test-Hygiene: schwache Assertions/Redundanzen | 🟢 Niedrig | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – Katalog + N13-Nachträge aus Triage 2026-07-08 liegen vor; nach der Release priorisieren. |
-| [#318](https://github.com/NikolayDA/picture_helper/issues/318) | Job-Level-Permission-Overrides im Reusable-WF | 🟢 Niedrig | 🟡 Mittel | Opus 4.8 · hoch | **Needs refinement** – GitHub-Semantik (Top-Level vs. effektiv-per-Job) zuerst belegen, OIDC-Regressionsguard darf nicht aufweichen. |
+| [#542](https://github.com/NikolayDA/picture_helper/issues/542) | Recommendations-Snapshot nach v2.5.0 aktualisieren | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **In Arbeit** – dieser PR gleicht alle sechs Spiegel struktursynchron an den Live-Stand an. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | – (kein Code-Task) | **Blockiert (extern)** – OpenAI-Billing/Quota-Wiederherstellung ist eine Account-Aktion, kein PR. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **Release:** **#435** + **#392** koordiniert fahren, dann **#426**/**#389**
-   schließen.
-2. **#299** nach der Release; **#318** nur erforschen; **#245** extern
-   blockiert.
+1. **#542** mit diesem PR abschließen (struktursynchroner Snapshot-Sync über
+   alle sechs Spiegel).
+2. **#245** bleibt extern blockiert – kein Repo-PR möglich; erst nach
+   Wiederherstellung der OpenAI-Quota manuell verifizieren.
 
 ## Vorige Runden
 
+- **2026-07-12** — Release **v2.5.0** geschnitten; Rollout-Welle
+  #435/#392/#426/#389 geschlossen; #299 (PR #539), N13-Follow-up #541
+  (PR #543) und #318 (PR #540) geschlossen; Open-Issue-Snapshot auf #245 +
+  #542 reduziert.
 - **2026-07-11 (finaler Nachzug)** — #425 formal geschlossen; #530/#531 über
   PR #533/#535 geschlossen; Open-Issue-Snapshot auf 7 verbleibende Issues
   aktualisiert.
