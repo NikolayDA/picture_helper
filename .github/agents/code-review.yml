@@ -1,0 +1,49 @@
+name: Code Review Agent
+description: |
+  Automatische Code-Reviews für Pull Requests mit Fokus auf:
+  - Einhaltung von `make check` (Lint, Type-Check, Tests)
+  - Code-Qualität und Best Practices
+  - Test-Coverage (≥86% erforderlich)
+  - Sicherheit und Performance
+
+triggers:
+  - type: pull_request
+    actions:
+      - opened
+      - synchronize
+
+configuration:
+  # Validierungsschritte
+  validations:
+    - make_check_lint: true      # Ruff Lint-Check
+    - make_check_type: true      # mypy Type-Check
+    - make_check_test: true      # pytest
+    - coverage_minimum: 86       # Mindest-Coverage
+  
+  # Review-Fokus
+  review_focus:
+    - code_quality
+    - test_coverage
+    - security
+    - performance
+    - architecture
+  
+  # Automatische Kommentare
+  auto_comment: true
+  suggest_improvements: true
+  block_on_failure: true
+
+labels:
+  - agent:code-review
+  - needs-review
+
+context:
+  project_type: python-desktop-app
+  quality_gates:
+    - lint_pass
+    - type_check_pass
+    - test_pass
+    - coverage_ge_86
+  test_framework: pytest
+  type_checker: mypy
+  code_style: ruff

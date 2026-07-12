@@ -1,0 +1,69 @@
+name: Bug Fix Agent
+description: |
+  Automatisches Debugging und Fixing von Bugs mit Fokus auf:
+  - Test-Failures analysieren und fixen
+  - `make check` Fehler beheben
+  - Edge Cases in Image-Ops, Height-Map, Qt-UI
+  - Race Conditions und Memory-Leaks
+
+triggers:
+  - type: issue
+    labels:
+      - bug
+      - agent:bug-fix
+  - type: workflow_run
+    workflows:
+      - pr-ci.yml
+    conclusion: failure
+
+configuration:
+  # Analyse-Modi
+  analysis:
+    - test_failures: true
+    - lint_errors: true
+    - type_errors: true
+    - runtime_errors: true
+  
+  # Automatische Fixes
+  auto_fixes:
+    - type_annotations: true
+    - lint_violations: true
+    - import_errors: true
+    - simple_logic_errors: true
+  
+  # Commit-Strategie
+  commit_strategy: commit_to_branch
+  pull_request_creation: auto
+  
+  # Bereiche (Module)
+  focus_areas:
+    - bgremover/image_ops.py
+    - bgremover/height_ops.py
+    - bgremover/canvas.py
+    - bgremover/ai_process.py
+    - tests/
+  
+  # Fallback bei Komplexität
+  complexity_threshold: medium  # high = nur manuelle Review
+  create_issue_on_complex: true
+
+labels:
+  - agent:bug-fix
+  - auto-fix
+
+context:
+  project_type: python-desktop-app
+  main_dependencies:
+    - PyQt6
+    - Pillow
+    - numpy
+    - rembg (optional)
+  test_command: "make pr-check"
+  failure_patterns:
+    - AssertionError
+    - TypeError
+    - AttributeError
+    - IndexError
+    - RuntimeError
+    - QThread issues
+    - Memory leaks
