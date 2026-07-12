@@ -267,6 +267,10 @@ def test_set_active_layer_role_rejects_incompatible_height_map(qapp) -> None:
     assert canvas.project.active_layer().role is None
     assert canvas._history.descriptions() == history_before   # kein Undo-Eintrag
     assert any("höhenebene" in m.lower() for m in msgs)
+
+
+def test_move_and_set_active_layer_are_undoable(qapp) -> None:
+    """Ebene umsortieren und aktive Ebene wechseln sind je ein Undo-Schritt."""
     canvas = ImageCanvas()
     project = _two_layer_project()
     canvas.set_project(project)

@@ -14,6 +14,7 @@ from bgremover.constants import (
     _ZOOM_CTRL_MIN_PCT,
 )
 from bgremover.i18n import tr
+from bgremover.zoom_control import _MARGIN
 
 
 def _canvas(size=(120, 80)) -> ImageCanvas:
@@ -184,9 +185,10 @@ def test_overlay_repositions_bottom_right(qapp):
     ctrl.reposition()
     assert ctrl.x() + ctrl.width() <= parent.width()
     assert ctrl.y() + ctrl.height() <= parent.height()
-    # Verankerung an der rechten/unteren Viewport-Kante (Prototyp: 14 px Abstand).
-    assert ctrl.x() + ctrl.width() == parent.width() - 14
-    assert ctrl.y() + ctrl.height() == parent.height() - 14
+    # Verankerung an der rechten/unteren Viewport-Kante über die geteilte
+    # ``_MARGIN``-Konstante (statt der hartkodierten Pixelzahl).
+    assert ctrl.x() + ctrl.width() == parent.width() - _MARGIN
+    assert ctrl.y() + ctrl.height() == parent.height() - _MARGIN
 
 
 def test_overlay_repositions_inside_viewport_when_scrollbars_are_visible(qapp):
@@ -204,5 +206,5 @@ def test_overlay_repositions_inside_viewport_when_scrollbars_are_visible(qapp):
     ctrl = c.zoom_control
     parent = c.viewport()
     assert ctrl.parentWidget() is parent
-    assert ctrl.x() + ctrl.width() == parent.width() - 14
-    assert ctrl.y() + ctrl.height() == parent.height() - 14
+    assert ctrl.x() + ctrl.width() == parent.width() - _MARGIN
+    assert ctrl.y() + ctrl.height() == parent.height() - _MARGIN

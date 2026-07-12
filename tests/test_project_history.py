@@ -254,6 +254,15 @@ def test_returned_project_is_independent_of_history() -> None:
     redone = history.redo(_project(8, 8))
     assert redone is not None
     assert redone[1] == "a"
+    # Der Projektinhalt selbst ist unabhängig: die auf ``prev`` hinzugefügte
+    # Ebene ist nicht durchgeschlagen und die Basis-Pixel entsprechen exakt dem
+    # beim Undo erfassten Live-Zustand (5,5,5) – nicht der (8,8,8)-Mutation.
+    redone_project = redone[0]
+    assert len(redone_project.layers) == 1
+    assert np.array_equal(
+        np.asarray(redone_project.layers[0].image),
+        np.asarray(_solid(8, 8, (5, 5, 5, 255))),
+    )
 
 
 # ── Sprung-Undo (undo_to) ───────────────────────────────────────────────

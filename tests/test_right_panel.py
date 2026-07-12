@@ -256,7 +256,8 @@ def test_open_step_recent_card_uses_prototype_background(qapp, tmp_path):
 
     card = panel.frame.findChild(QFrame, "recentCard")
     assert card is not None
-    assert "#2e353f" in card.styleSheet()
+    # Gegen das Theme-Token prüfen statt gegen den rohen Hex-Wert.
+    assert DARK.card_bg in card.styleSheet()
 
 
 def test_open_step_drop_zone_uses_prototype_hover(qapp):
@@ -317,7 +318,14 @@ def test_section_headers_use_single_blue_accent_and_are_cards(qapp):
 
 
 def test_right_panel_sliders_use_prototype_range_style(qapp):
-    """Alle Slider der rechten Spalte nutzen den Prototyp-Range-Look (§5.5)."""
+    """Alle Slider der rechten Spalte nutzen den Prototyp-Range-Look (§5.5).
+
+    Die exakten Pixel-/Hex-Metriken (``margin``/``width``/``#e6e6e6``) sind hier
+    bewusst als Vertrag gegen die Redesign-Spec §5.5 festgeschrieben: der
+    Track-Restton hat kein exportiertes Theme-Token, und ein Abgleich gegen
+    ``slider_style(DARK)`` selbst wäre tautologisch. Themenfarben werden dagegen
+    über Tokens (``DARK.accent``/``DARK.on_accent``) geprüft.
+    """
     from bgremover.theme import DARK, set_active_palette
 
     set_active_palette(DARK)

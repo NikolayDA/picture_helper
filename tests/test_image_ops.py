@@ -180,9 +180,12 @@ def test_save_image_file_dpi_does_not_alter_pixels(tmp_path) -> None:
 
 def test_save_image_file_webp_ignores_dpi(tmp_path) -> None:
     out = tmp_path / "pic.webp"
-    # WebP trägt keine DPI – das Argument darf dennoch fehlerfrei durchlaufen.
+    # WebP trägt keine DPI – das Argument darf dennoch fehlerfrei durchlaufen …
     save_image_file(Image.new("RGBA", (8, 8), (10, 20, 30, 255)), out, dpi=(300.0, 300.0))
-    assert out.exists()
+    with Image.open(out) as saved:
+        # … und beim Wiederladen ist tatsächlich keine DPI-Metadateninfo gesetzt.
+        assert saved.format == "WEBP"
+        assert "dpi" not in saved.info
 
 
 def test_save_image_file_empty_extension_defaults_to_png(tmp_path) -> None:
