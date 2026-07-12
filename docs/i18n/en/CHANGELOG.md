@@ -1060,8 +1060,8 @@ First documented 2.0.0 release state. The repository has no historical
 [Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...HEAD
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
-[2.4.0]: https://github.com/NikolayDA/picture_helper/compare/64c1f4c87af2a41e82122b361855f0021ec62cf3...v2.4.0
-[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...64c1f4c87af2a41e82122b361855f0021ec62cf3
+[2.4.0]: https://github.com/NikolayDA/picture_helper/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/NikolayDA/picture_helper/compare/79f61c5514f283fae31ce9d21f31786a3acfbe16...v2.3.0
 [2.2.0]: https://github.com/NikolayDA/picture_helper/compare/666d4a3932f70eabaafde8de4bfc2a0574be5d16...79f61c5514f283fae31ce9d21f31786a3acfbe16
 [2.1.0]: https://github.com/NikolayDA/picture_helper/compare/d80067dbc064a8eab5774457eaaffab733c4cab6...666d4a3932f70eabaafde8de4bfc2a0574be5d16
 [2.0.0]: https://github.com/NikolayDA/picture_helper/tree/d80067dbc064a8eab5774457eaaffab733c4cab6
