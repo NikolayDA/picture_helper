@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
 
 from bgremover import __version__
 from bgremover.ai_model_dialog import AiModelDialog
+from bgremover.ai_model_status import ModelStatus, get_model_status
 from bgremover.app_update import UpdateCheckResult, UpdateStatus
 from bgremover.canvas import ImageCanvas
 from bgremover.constants import (
@@ -1568,13 +1569,18 @@ class MainWindow(QMainWindow):
             # Fortschritt sofort an, statt dass der Nutzer erst „Jetzt
             # herunterladen" klicken müsste (#570).
             self._start_ai_model_download(dlg)
-        elif self._last_warmup_error is not None:
+        elif self._last_warmup_error is not None and get_model_status().status is not ModelStatus.DOWNLOADED:
             # Der automatische Start-Warmup ist bereits (unsichtbar für den
             # Nutzer, nur in der Statusleiste generisch angekündigt) mit
             # einem konkreten Fehler beendet – z. B. ``ModuleNotFoundError``
             # aus dem Inferenz-Kindprozess oder ein Verbindungsabbruch (#575).
             # Ohne diesen Hinweis wirkt der Dialog, als „täte er nichts": Er
             # zeigt sonst nur den neutralen „Nicht heruntergeladen"-Status.
+            # Ist das Modell inzwischen auf anderem Weg vorhanden (z. B. über
+            # einen erfolgreichen KI-Lauf, der die Session/das Modell selbst
+            # lädt, oder einen extern aktualisierten Cache), bleibt die alte
+            # Fehlermeldung sonst fälschlich neben einem gültigen
+            # „Heruntergeladen"-Status stehen (Review-Befund #576).
             dlg.download_failed(self._last_warmup_error)
         dlg.exec()
 

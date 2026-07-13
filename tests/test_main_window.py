@@ -1395,8 +1395,12 @@ def test_open_ai_model_dialog_surfaces_stale_warmup_error(win, monkeypatch):
     dem Raspberry Pi), zeigt der Dialog diesen sofort an, statt neutral
     „Nicht heruntergeladen" ohne jeden Hinweis auf das Problem."""
     from bgremover import ai_model_dialog as ai_model_dialog_module
+    from bgremover.ai_model_status import ModelStatus, ModelStatusResult
 
     monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    monkeypatch.setattr(
+        mw, "get_model_status",
+        lambda: ModelStatusResult(status=ModelStatus.NOT_DOWNLOADED, model_path=Path("x")))
     win._last_warmup_error = "ModuleNotFoundError: No module named 'rembg'"
 
     created: list = []
@@ -1416,6 +1420,40 @@ def test_open_ai_model_dialog_surfaces_stale_warmup_error(win, monkeypatch):
     dlg = created[0]
     assert not dlg._error_label.isHidden()
     assert dlg._error_label.text() == "ModuleNotFoundError: No module named 'rembg'"
+
+
+def test_open_ai_model_dialog_suppresses_stale_error_if_model_now_downloaded(
+    win, monkeypatch,
+):
+    """Review-Befund #576: Ist das Modell inzwischen auf anderem Weg
+    vorhanden (z. B. über einen erfolgreichen KI-Lauf oder einen extern
+    aktualisierten Cache), darf eine veraltete Warmup-Fehlermeldung nicht
+    mehr neben dem gültigen „Heruntergeladen"-Status auftauchen."""
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+    from bgremover.ai_model_status import ModelStatus, ModelStatusResult
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    monkeypatch.setattr(
+        mw, "get_model_status",
+        lambda: ModelStatusResult(
+            status=ModelStatus.DOWNLOADED, model_path=Path("x"), size_bytes=1234))
+    win._last_warmup_error = "ModuleNotFoundError: No module named 'rembg'"
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert created[0]._error_label.isHidden()
 
 
 def test_open_ai_model_dialog_without_stale_error_shows_no_error(win, monkeypatch):
