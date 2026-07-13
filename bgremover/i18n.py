@@ -41,6 +41,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "KI bereit",
         "status.ai_model_loading": "KI-Modell wird geladen…",
         "status.ai_warmup_failed": "⚠️ KI-Modell konnte nicht geladen werden",
+        "status.ai_warmup_cancelled": "KI-Modell-Download abgebrochen",
         "status.ai_cancelling": "Abbruch – warte auf laufende KI…",
         "status.ai_cancelled": "KI-Verarbeitung abgebrochen",
         "status.ai_result_discarded": (
@@ -418,6 +419,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # App-Update-Check (#565)
         "status.update_check_running": "Suche nach Updates…",
         "status.update_check_already_running": "Update-Check läuft bereits…",
+        "status.update_available_hint": "🆕 Update verfügbar: {version} – klicken für Details",
         "dialog.update_check.title": "Update-Check",
         "dialog.update_check.up_to_date.body": (
             "Sie verwenden bereits die aktuelle Version ({version})."
@@ -440,13 +442,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "Erneut versuchen",
         "ai_model.dialog.cancel": "Abbrechen",
         "ai_model.dialog.close": "Schließen",
-        "ai_model.dialog.busy": (
-            "Es läuft bereits ein anderer Download. Bitte kurz warten und erneut versuchen."
-        ),
-        "ai_model.dialog.cancel_not_yet_supported": (
-            "Der Download läuft im Hintergrund weiter; ein sofortiger Abbruch ist "
-            "derzeit noch nicht möglich."
-        ),
+        "ai_model.dialog.cancelled": "Download abgebrochen",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Verschieben / Zoom\n"
@@ -678,6 +674,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "Pfad der Log-Datei (markieren zum Kopieren)",
         "settings.log.open_button": "Ordner öffnen",
         "settings.log.open_failed": "Ordner konnte nicht geöffnet werden:\n{target}",
+        "settings.update.auto_check.label": (
+            "Beim Start automatisch nach Updates suchen"
+        ),
         "settings.cancel": "Abbrechen",
         "settings.ok": "OK",
         "settings.pick_open.title": "Verzeichnis zum Öffnen wählen",
@@ -842,6 +841,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "AI ready",
         "status.ai_model_loading": "Loading AI model…",
         "status.ai_warmup_failed": "⚠️ Could not load the AI model",
+        "status.ai_warmup_cancelled": "AI model download cancelled",
         "status.ai_cancelling": "Cancelling – waiting for the running AI…",
         "status.ai_cancelled": "AI processing cancelled",
         "status.ai_result_discarded": (
@@ -1217,6 +1217,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # App-Update-Check (#565)
         "status.update_check_running": "Checking for updates…",
         "status.update_check_already_running": "Update check already running…",
+        "status.update_available_hint": "🆕 Update available: {version} – click for details",
         "dialog.update_check.title": "Update Check",
         "dialog.update_check.up_to_date.body": (
             "You are already using the latest version ({version})."
@@ -1239,13 +1240,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "Retry",
         "ai_model.dialog.cancel": "Cancel",
         "ai_model.dialog.close": "Close",
-        "ai_model.dialog.busy": (
-            "Another download is already in progress. Please wait a moment and try again."
-        ),
-        "ai_model.dialog.cancel_not_yet_supported": (
-            "The download keeps running in the background; an immediate cancel is "
-            "not yet possible."
-        ),
+        "ai_model.dialog.cancelled": "Download cancelled",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Move / Zoom\n"
@@ -1477,6 +1472,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "Path of the log file (select to copy)",
         "settings.log.open_button": "Open folder",
         "settings.log.open_failed": "Could not open the folder:\n{target}",
+        "settings.update.auto_check.label": (
+            "Automatically check for updates on startup"
+        ),
         "settings.cancel": "Cancel",
         "settings.ok": "OK",
         "settings.pick_open.title": "Choose directory for opening",
@@ -1641,6 +1639,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "IA lista",
         "status.ai_model_loading": "Cargando el modelo de IA…",
         "status.ai_warmup_failed": "⚠️ No se pudo cargar el modelo de IA",
+        "status.ai_warmup_cancelled": "Descarga del modelo de IA cancelada",
         "status.ai_cancelling": "Cancelando – esperando a la IA en curso…",
         "status.ai_cancelled": "Procesamiento de IA cancelado",
         "status.ai_result_discarded": (
@@ -2020,6 +2019,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.update_check_already_running": (
             "Ya hay una comprobación de actualizaciones en curso…"
         ),
+        "status.update_available_hint": (
+            "🆕 Actualización disponible: {version} – haz clic para más información"
+        ),
         "dialog.update_check.title": "Comprobación de actualizaciones",
         "dialog.update_check.up_to_date.body": (
             "Ya tienes la versión más reciente ({version})."
@@ -2042,13 +2044,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "Reintentar",
         "ai_model.dialog.cancel": "Cancelar",
         "ai_model.dialog.close": "Cerrar",
-        "ai_model.dialog.busy": (
-            "Ya hay otra descarga en curso. Espera un momento e inténtalo de nuevo."
-        ),
-        "ai_model.dialog.cancel_not_yet_supported": (
-            "La descarga continúa en segundo plano; todavía no es posible "
-            "cancelarla de inmediato."
-        ),
+        "ai_model.dialog.cancelled": "Descarga cancelada",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Mover / Zoom\n"
@@ -2280,6 +2276,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "Ruta del archivo de registro (selecciónala para copiar)",
         "settings.log.open_button": "Abrir carpeta",
         "settings.log.open_failed": "No se pudo abrir la carpeta:\n{target}",
+        "settings.update.auto_check.label": (
+            "Buscar actualizaciones automáticamente al iniciar"
+        ),
         "settings.cancel": "Cancelar",
         "settings.ok": "OK",
         "settings.pick_open.title": "Elegir directorio para abrir",
@@ -2443,6 +2442,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "IA prête",
         "status.ai_model_loading": "Chargement du modèle d'IA…",
         "status.ai_warmup_failed": "⚠️ Impossible de charger le modèle d'IA",
+        "status.ai_warmup_cancelled": "Téléchargement du modèle d'IA annulé",
         "status.ai_cancelling": "Annulation – en attente de l'IA en cours…",
         "status.ai_cancelled": "Traitement IA annulé",
         "status.ai_result_discarded": (
@@ -2822,6 +2822,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.update_check_already_running": (
             "Une recherche de mises à jour est déjà en cours…"
         ),
+        "status.update_available_hint": (
+            "🆕 Mise à jour disponible : {version} – cliquez pour plus de détails"
+        ),
         "dialog.update_check.title": "Vérification des mises à jour",
         "dialog.update_check.up_to_date.body": (
             "Vous utilisez déjà la dernière version ({version})."
@@ -2844,13 +2847,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "Réessayer",
         "ai_model.dialog.cancel": "Annuler",
         "ai_model.dialog.close": "Fermer",
-        "ai_model.dialog.busy": (
-            "Un autre téléchargement est déjà en cours. Veuillez patienter puis réessayer."
-        ),
-        "ai_model.dialog.cancel_not_yet_supported": (
-            "Le téléchargement continue en arrière-plan ; une annulation immédiate "
-            "n'est pas encore possible."
-        ),
+        "ai_model.dialog.cancelled": "Téléchargement annulé",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Déplacer / Zoom\n"
@@ -3082,6 +3079,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "Chemin du fichier journal (sélectionner pour copier)",
         "settings.log.open_button": "Ouvrir le dossier",
         "settings.log.open_failed": "Impossible d'ouvrir le dossier :\n{target}",
+        "settings.update.auto_check.label": (
+            "Rechercher automatiquement des mises à jour au démarrage"
+        ),
         "settings.cancel": "Annuler",
         "settings.ok": "OK",
         "settings.pick_open.title": "Choisir le répertoire pour l'ouverture",
@@ -3245,6 +3245,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "ШІ готовий",
         "status.ai_model_loading": "Завантаження моделі ШІ…",
         "status.ai_warmup_failed": "⚠️ Не вдалося завантажити модель ШІ",
+        "status.ai_warmup_cancelled": "Завантаження моделі ШІ скасовано",
         "status.ai_cancelling": "Скасування – очікування завершення ШІ…",
         "status.ai_cancelled": "Обробку ШІ скасовано",
         "status.ai_result_discarded": (
@@ -3621,6 +3622,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # App-Update-Check (#565)
         "status.update_check_running": "Перевірка оновлень…",
         "status.update_check_already_running": "Перевірка оновлень уже виконується…",
+        "status.update_available_hint": (
+            "🆕 Доступне оновлення: {version} – натисніть для деталей"
+        ),
         "dialog.update_check.title": "Перевірка оновлень",
         "dialog.update_check.up_to_date.body": (
             "Ви вже використовуєте найновішу версію ({version})."
@@ -3643,12 +3647,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "Повторити спробу",
         "ai_model.dialog.cancel": "Скасувати",
         "ai_model.dialog.close": "Закрити",
-        "ai_model.dialog.busy": (
-            "Уже триває інше завантаження. Зачекайте трохи і спробуйте ще раз."
-        ),
-        "ai_model.dialog.cancel_not_yet_supported": (
-            "Завантаження триває у фоновому режимі; негайне скасування поки що неможливе."
-        ),
+        "ai_model.dialog.cancelled": "Завантаження скасовано",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Переміщення / Масштаб\n"
@@ -3880,6 +3879,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "Шлях до файлу журналу (виділіть, щоб скопіювати)",
         "settings.log.open_button": "Відкрити теку",
         "settings.log.open_failed": "Не вдалося відкрити теку:\n{target}",
+        "settings.update.auto_check.label": (
+            "Автоматично перевіряти оновлення під час запуску"
+        ),
         "settings.cancel": "Скасувати",
         "settings.ok": "OK",
         "settings.pick_open.title": "Вибрати теку для відкриття",
@@ -4043,6 +4045,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "status.ai_ready": "AI 就绪",
         "status.ai_model_loading": "正在加载 AI 模型…",
         "status.ai_warmup_failed": "⚠️ 无法加载 AI 模型",
+        "status.ai_warmup_cancelled": "AI 模型下载已取消",
         "status.ai_cancelling": "正在取消——等待运行中的 AI…",
         "status.ai_cancelled": "AI 处理已取消",
         "status.ai_result_discarded": (
@@ -4413,6 +4416,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         # App-Update-Check (#565)
         "status.update_check_running": "正在检查更新…",
         "status.update_check_already_running": "更新检查已在进行中…",
+        "status.update_available_hint": "🆕 有可用更新：{version} —— 点击查看详情",
         "dialog.update_check.title": "更新检查",
         "dialog.update_check.up_to_date.body": "您使用的已是最新版本（{version}）。",
         "dialog.update_check.available.body": "有新版本可用：{latest}（已安装：{current}）。",
@@ -4427,8 +4431,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.retry": "重试",
         "ai_model.dialog.cancel": "取消",
         "ai_model.dialog.close": "关闭",
-        "ai_model.dialog.busy": "已有其他下载正在进行，请稍候再试。",
-        "ai_model.dialog.cancel_not_yet_supported": "下载将在后台继续；目前还无法立即取消。",
+        "ai_model.dialog.cancelled": "下载已取消",
         # Left toolbar
         "toolbar.move.tooltip": (
             "移动 / 缩放\n"
@@ -4660,6 +4663,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "settings.log.tooltip": "日志文件路径（选中即可复制）",
         "settings.log.open_button": "打开文件夹",
         "settings.log.open_failed": "无法打开文件夹：\n{target}",
+        "settings.update.auto_check.label": "启动时自动检查更新",
         "settings.cancel": "取消",
         "settings.ok": "确定",
         "settings.pick_open.title": "选择打开文件的目录",

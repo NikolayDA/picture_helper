@@ -1117,7 +1117,115 @@ def test_update_check_result_available_opens_release_page(win, monkeypatch):
     assert opened == ["https://example.invalid/release"]
 
 
-# ── KI-Modell-Verwaltung (#569) ─────────────────────────────────────────
+# ── Automatischer Start-Update-Check (#566) ─────────────────────────────
+
+def test_no_startup_update_check_when_setting_disabled(tmp_path, qapp, monkeypatch):
+    """Default aus: kein Netzwerkzugriff (start_update_check) beim Start."""
+    calls: list[str] = []
+    monkeypatch.setattr(
+        mw.WorkerController, "start_update_check",
+        lambda self, *a, **kw: calls.append("started") or True)
+    win = _isolated_window(tmp_path)
+    try:
+        assert calls == []
+    finally:
+        win.close()
+
+
+def test_startup_update_check_runs_when_setting_enabled(tmp_path, qapp, monkeypatch):
+    from bgremover.settings_schema import AUTO_UPDATE_CHECK_KEY
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        mw.WorkerController, "start_update_check",
+        lambda self, *a, **kw: calls.append("started") or True)
+
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
+                      str(tmp_path / "settings"))
+    presettings = QSettings("BgRemover", "BgRemover")
+    presettings.setValue(AUTO_UPDATE_CHECK_KEY, True)
+    presettings.sync()
+
+    win = _isolated_window(tmp_path)
+    try:
+        assert calls == ["started"]
+    finally:
+        win.close()
+
+
+def test_automatic_update_check_up_to_date_is_silent(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+
+    shown: list = []
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: shown.append(a))
+
+    win._on_automatic_update_check_result(UpdateCheckResult(status=UpdateStatus.UP_TO_DATE))
+
+    assert shown == []
+    assert win._update_hint_btn.isHidden()
+
+
+def test_automatic_update_check_failure_is_completely_silent(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+
+    shown: list = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: shown.append(a))
+
+    win._on_automatic_update_check_result(
+        UpdateCheckResult(status=UpdateStatus.CHECK_FAILED, error="offline"))
+
+    assert shown == []
+    assert win._update_hint_btn.isHidden()
+
+
+def test_automatic_update_check_available_shows_discreet_hint(win):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.i18n import tr
+
+    result = UpdateCheckResult(
+        status=UpdateStatus.UPDATE_AVAILABLE,
+        latest_version="v9.9.9",
+        release_url="https://example.invalid/release",
+    )
+    win._on_automatic_update_check_result(result)
+
+    assert not win._update_hint_btn.isHidden()
+    assert win._update_hint_btn.text() == tr("status.update_available_hint", version="v9.9.9")
+    assert win._update_available_result is result
+
+
+def test_clicking_update_hint_opens_same_dialog_as_manual_check(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+
+    result = UpdateCheckResult(
+        status=UpdateStatus.UPDATE_AVAILABLE,
+        latest_version="v9.9.9",
+        release_url="https://example.invalid/release",
+    )
+    win._on_automatic_update_check_result(result)
+
+    received: list = []
+    monkeypatch.setattr(win, "_on_update_check_result", received.append)
+
+    win._show_cached_update_result()
+
+    assert received == [result]
+    assert win._update_hint_btn.isHidden()
+
+
+def test_show_cached_update_result_without_result_is_noop(win, monkeypatch):
+    """Defensiv: ohne gecachtes Ergebnis (Hint-Button eigentlich unsichtbar)
+    darf ein Klick weder einen Dialog öffnen noch werfen."""
+    received: list = []
+    monkeypatch.setattr(win, "_on_update_check_result", received.append)
+
+    win._show_cached_update_result()
+
+    assert received == []
+
+
+# ── KI-Modell-Verwaltung (#569/#570) ────────────────────────────────────
 
 def test_start_ai_model_download_uses_warmup_mechanism(win, monkeypatch):
     from bgremover.ai_model_dialog import AiModelDialog
@@ -1126,7 +1234,7 @@ def test_start_ai_model_download_uses_warmup_mechanism(win, monkeypatch):
     calls: list[str] = []
     monkeypatch.setattr(
         win._worker_controller, "start_warmup",
-        lambda on_finished, on_error: calls.append("started") or True)
+        lambda on_finished, on_error, on_cancelled: calls.append("started") or True)
 
     dlg = AiModelDialog(status_provider=get_model_status)
     downloading: list[bool] = []
@@ -1138,35 +1246,38 @@ def test_start_ai_model_download_uses_warmup_mechanism(win, monkeypatch):
     assert downloading == [True]
 
 
-def test_start_ai_model_download_reports_busy_when_already_running(win, monkeypatch):
+def test_start_ai_model_download_attaches_when_already_running(win, monkeypatch):
+    """#570: start_warmup haengt sich immer an (nie "busy") – der Dialog
+    zeigt in beiden Faellen denselben Fortschritt."""
     from bgremover.ai_model_dialog import AiModelDialog
     from bgremover.ai_model_status import get_model_status
-    from bgremover.i18n import tr
 
     monkeypatch.setattr(
-        win._worker_controller, "start_warmup", lambda on_finished, on_error: False)
+        win._worker_controller, "start_warmup",
+        lambda on_finished, on_error, on_cancelled: True)
 
     dlg = AiModelDialog(status_provider=get_model_status)
-    failures: list[str] = []
-    monkeypatch.setattr(dlg, "download_failed", failures.append)
+    downloading: list[bool] = []
+    monkeypatch.setattr(dlg, "start_downloading", lambda: downloading.append(True))
 
     win._start_ai_model_download(dlg)
 
-    assert failures == [tr("ai_model.dialog.busy")]
+    assert downloading == [True]
 
 
-def test_cancel_ai_model_download_hides_busy_state(win, monkeypatch):
+def test_cancel_ai_model_download_calls_cancel_warmup(win, monkeypatch):
+    """#570: Abbrechen ruft den echten kooperativen Abbruch auf."""
     from bgremover.ai_model_dialog import AiModelDialog
     from bgremover.ai_model_status import get_model_status
-    from bgremover.i18n import tr
+
+    calls: list[bool] = []
+    monkeypatch.setattr(
+        win._worker_controller, "cancel_warmup", lambda: calls.append(True))
 
     dlg = AiModelDialog(status_provider=get_model_status)
-    failures: list[str] = []
-    monkeypatch.setattr(dlg, "download_failed", failures.append)
-
     win._cancel_ai_model_download(dlg)
 
-    assert failures == [tr("ai_model.dialog.cancel_not_yet_supported")]
+    assert calls == [True]
 
 
 def test_open_ai_model_dialog_wires_signals(win, monkeypatch):
@@ -1190,3 +1301,56 @@ def test_open_ai_model_dialog_wires_signals(win, monkeypatch):
     dlg = created[0]
     assert dlg.receivers(dlg.download_requested) >= 1
     assert dlg.receivers(dlg.cancel_requested) >= 1
+
+
+def test_open_ai_model_dialog_shows_progress_immediately_if_warmup_running(
+    win, monkeypatch,
+):
+    """#570: Öffnet der Nutzer den Dialog waehrend eines laufenden
+    Start-Warmups, zeigt er dessen Fortschritt sofort, ohne dass "Jetzt
+    herunterladen" geklickt werden muss."""
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: True)
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup",
+        lambda on_finished, on_error, on_cancelled: True)
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert len(created) == 1
+    assert created[0].is_downloading
+
+
+def test_open_ai_model_dialog_does_not_start_download_without_running_warmup(
+    win, monkeypatch,
+):
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup",
+        lambda *a, **kw: calls.append("started") or True)
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert calls == []

@@ -208,3 +208,40 @@ def test_open_log_dir_warns_when_open_fails(qapp, isolated_settings, monkeypatch
     )
     dlg._open_log_dir()
     assert len(warnings) == 1
+
+
+# ── Automatischer Update-Check beim Start (#566) ───────────────────────
+
+def test_auto_update_check_defaults_to_disabled(qapp, isolated_settings):
+    """Explizites Opt-in: ohne gespeicherten Wert bleibt die Checkbox aus."""
+    dlg = SettingsDialog(_settings())
+    assert dlg._auto_update_check.isChecked() is False
+
+
+def test_auto_update_check_persists_when_enabled(qapp, isolated_settings):
+    from bgremover.settings_schema import AUTO_UPDATE_CHECK_KEY
+
+    settings = _settings()
+    dlg = SettingsDialog(settings)
+    dlg._auto_update_check.setChecked(True)
+    dlg._save_and_accept()
+
+    assert settings.value(AUTO_UPDATE_CHECK_KEY, False, type=bool) is True
+
+    # Ueberlebt einen "Neustart" (frischer Dialog liest denselben Settings-Wert).
+    reloaded = SettingsDialog(settings)
+    assert reloaded._auto_update_check.isChecked() is True
+
+
+def test_auto_update_check_persists_when_disabled_again(qapp, isolated_settings):
+    from bgremover.settings_schema import AUTO_UPDATE_CHECK_KEY
+
+    settings = _settings()
+    settings.setValue(AUTO_UPDATE_CHECK_KEY, True)
+
+    dlg = SettingsDialog(settings)
+    assert dlg._auto_update_check.isChecked() is True
+    dlg._auto_update_check.setChecked(False)
+    dlg._save_and_accept()
+
+    assert settings.value(AUTO_UPDATE_CHECK_KEY, True, type=bool) is False

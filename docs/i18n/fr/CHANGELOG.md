@@ -37,9 +37,25 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   modèle rembg (Téléchargé/Non téléchargé/Fonction d'IA indisponible) avec des
   boutons télécharger/réessayer et annuler ainsi qu'un indicateur d'activité ;
   l'entrée de menu est désactivée sans rembg installé (avec une infobulle
-  explicative). Le téléchargement réutilise déjà le mécanisme de warmup
-  existant ; le rattachement à un warmup de démarrage en cours et
-  l'annulation côté processus suivront dans un ticket de suivi (#570).
+  explicative).
+- **Vérification automatique des mises à jour au démarrage (#566, partie de
+  l'Epic #563).** Nouveau réglage « Rechercher automatiquement des mises à
+  jour au démarrage » (désactivé **par défaut** – opt-in explicite) dans la
+  boîte de dialogue des réglages. Une fois activé, une vérification
+  silencieuse s'exécute peu après le démarrage ; `CHECK_FAILED` reste
+  totalement silencieux, seul `UPDATE_AVAILABLE` affiche un indice discret et
+  cliquable dans la barre d'état qui ouvre la même boîte de dialogue de
+  résultat que la vérification manuelle – sans nouvelle requête réseau.
+- **Téléchargement du modèle d'IA : véritable connexion avec le mécanisme de
+  warmup (#570, partie de l'Epic #563).** Le bouton de téléchargement dans la
+  boîte de dialogue du modèle d'IA se rattache désormais à un warmup de
+  démarrage déjà en cours au lieu de démarrer un second processus/thread
+  (`WorkerController.start_warmup` prend désormais en charge plusieurs
+  observateurs) ; la barre d'état et la boîte de dialogue n'affichent jamais
+  d'états contradictoires. Le bouton d'annulation utilise une nouvelle
+  annulation coopérative (`RembgWarmupWorker.cancel()`, analogue à
+  `AIWorker`/`FloodFillWorker`) : le processus enfant d'inférence est arrêté
+  proprement, sans signaler à tort l'annulation comme un succès ou un échec.
 
 ## [2.5.0] – 2026-07-11
 

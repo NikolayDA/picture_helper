@@ -363,6 +363,80 @@ def test_warmup_releases_worker_when_inference_raises(qapp):
     assert controller._workers == []
 
 
+def test_start_warmup_attaches_to_running_instead_of_second_thread(qapp):
+    """#570: ein zweiter ``start_warmup``-Aufruf waehrend eines laufenden
+    Warmups haengt sich an denselben Thread/Prozess an, statt einen zweiten
+    zu starten – beide Aufrufer werden ueber denselben Abschluss informiert."""
+    import threading
+
+    gate = threading.Event()
+    fake = FakeInference(gate=gate)
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+
+    first_done: list[bool] = []
+    started_first = controller.start_warmup(on_finished=lambda: first_done.append(True))
+    assert started_first
+    first_thread = controller.warmup_thread
+    assert first_thread is not None
+    assert controller.is_warmup_running
+
+    second_done: list[bool] = []
+    second_errors: list[str] = []
+    second_cancelled: list[bool] = []
+    started_second = controller.start_warmup(
+        on_finished=lambda: second_done.append(True),
+        on_error=second_errors.append,
+        on_cancelled=lambda: second_cancelled.append(True),
+    )
+    assert started_second
+    assert controller.warmup_thread is first_thread  # kein zweiter Thread
+
+    gate.set()  # laesst den (einzigen) Warmup abschliessen
+    _drain(qapp, lambda: controller.warmup_thread is None)
+
+    assert first_done == [True]
+    assert second_done == [True]
+    assert second_errors == []
+    assert second_cancelled == []
+    assert fake.warmup_calls == 1  # nur EIN tatsaechlicher Warmup-Aufruf
+
+
+def test_cancel_warmup_notifies_attached_caller_as_cancelled_not_error(qapp):
+    """#570: ``cancel_warmup`` markiert den Abbruch; ein spaeter angehaengter
+    Aufrufer bekommt ``on_cancelled``, NICHT ``on_error`` oder blind
+    ``on_finished`` als Erfolg gedeutet."""
+    import threading
+
+    gate = threading.Event()
+    fake = FakeInference(gate=gate)
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+
+    done: list[bool] = []
+    errors: list[str] = []
+    cancelled: list[bool] = []
+    started = controller.start_warmup(
+        on_finished=lambda: done.append(True),
+        on_error=errors.append,
+        on_cancelled=lambda: cancelled.append(True),
+    )
+    assert started
+    assert controller.warmup_worker is not None
+
+    controller.cancel_warmup()
+    gate.set()  # Fake pollt should_cancel zuerst – kein Blockieren noetig
+
+    _drain(qapp, lambda: controller.warmup_thread is None)
+
+    assert cancelled == [True]
+    assert errors == []
+    assert done == [True]  # on_finished (via "done") feuert immer
+    assert controller.warmup_worker is None
+
+
+def test_cancel_warmup_without_running_warmup_is_noop(controller):
+    controller.cancel_warmup()  # darf nicht werfen
+
+
 def test_start_update_check_releases_worker_and_delivers_result(
     qapp, controller, monkeypatch,
 ):

@@ -661,40 +661,74 @@ def test_flood_fill_worker_error_signal_on_bad_array(qapp) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
-# RembgWarmupWorker – Always-emit-finished-Vertrag
+# RembgWarmupWorker – finished/error/cancelled + Always-emit-done (#570)
 # ─────────────────────────────────────────────────────────────
 
 def test_warmup_worker_emits_finished_on_success(qapp) -> None:
-    """Erfolgsfall: ``finished`` muss genau einmal feuern und der Warmup den
-    Inferenzprozess genau einmal anstoßen."""
+    """Erfolgsfall: ``finished`` UND ``done`` feuern genau einmal, der Warmup
+    stößt den Inferenzprozess genau einmal an."""
     from bgremover.workers import RembgWarmupWorker
 
     fake = FakeInference()
     worker = RembgWarmupWorker(fake)
     finished: list = []
+    done: list = []
     worker.finished.connect(lambda: finished.append(True))
+    worker.done.connect(lambda: done.append(True))
 
     worker.run()
 
     assert finished == [True]
+    assert done == [True]
     assert fake.warmup_calls == 1
 
 
-def test_warmup_worker_emits_finished_on_error(qapp) -> None:
-    """Fehlerfall: ``finished`` muss trotzdem feuern – sonst hängt der
-    WorkerController-Thread-Lifecycle (``warmup_done`` würde nie gesetzt)."""
+def test_warmup_worker_emits_error_and_done_but_not_finished(qapp) -> None:
+    """Fehlerfall: ``done`` muss trotzdem feuern (sonst hängt der
+    WorkerController-Thread-Lifecycle), ``finished`` darf NICHT feuern –
+    sonst würde ein Fehler fälschlich als „KI bereit" gedeutet (#570)."""
     from bgremover.workers import RembgWarmupWorker
 
     worker = RembgWarmupWorker(FakeInference(warmup_error=InferenceError("boom")))
     finished: list = []
+    done: list = []
     errors: list[str] = []
     worker.finished.connect(lambda: finished.append(True))
+    worker.done.connect(lambda: done.append(True))
     worker.error.connect(errors.append)
 
     worker.run()
 
-    assert finished == [True]
+    assert finished == []
+    assert done == [True]
     assert len(errors) == 1
+
+
+def test_warmup_worker_cancel_emits_cancelled_and_done_but_not_finished_or_error(
+    qapp,
+) -> None:
+    """Abbruch (#570): weder ``finished`` noch ``error`` dürfen feuern – nur
+    ``cancelled`` und (immer) ``done``, damit kein Aufrufer den Abbruch als
+    Erfolg oder als generischen Fehler fehldeutet."""
+    from bgremover.workers import RembgWarmupWorker
+
+    worker = RembgWarmupWorker(FakeInference())
+    worker.cancel()
+    finished: list = []
+    done: list = []
+    cancelled: list = []
+    errors: list[str] = []
+    worker.finished.connect(lambda: finished.append(True))
+    worker.done.connect(lambda: done.append(True))
+    worker.cancelled.connect(lambda: cancelled.append(True))
+    worker.error.connect(errors.append)
+
+    worker.run()
+
+    assert finished == []
+    assert errors == []
+    assert cancelled == [True]
+    assert done == [True]
 
 
 # ─────────────────────────────────────────────────────────────

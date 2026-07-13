@@ -31,9 +31,23 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `ai_model_dialog.py` shows the rembg model's cache status
   (Downloaded/Not downloaded/AI feature unavailable) with download/retry and
   cancel buttons plus a busy indicator; the menu entry is disabled without
-  rembg installed (with an explanatory tooltip). The download already reuses
-  the existing warmup mechanism; attaching to an in-progress startup warmup
-  and the process-side abort follow in a follow-up issue (#570).
+  rembg installed (with an explanatory tooltip).
+- **Automatic update check on startup (#566, part of Epic #563).** New
+  setting "Automatically check for updates on startup" (default **off** –
+  explicit opt-in) in the Settings dialog. When enabled, a silent update
+  check runs shortly after startup; `CHECK_FAILED` stays completely silent,
+  only `UPDATE_AVAILABLE` shows a discreet, clickable status bar hint that
+  opens the same result dialog as the manual check – without another network
+  request.
+- **AI model download: real wiring with the warmup mechanism (#570, part of
+  Epic #563).** The download button in the AI model dialog now attaches to
+  an already-running startup warmup instead of starting a second
+  process/thread (`WorkerController.start_warmup` now supports multiple
+  observers); the status bar and dialog never show contradictory states as a
+  result. The cancel button uses a new cooperative cancellation
+  (`RembgWarmupWorker.cancel()`, analogous to `AIWorker`/`FloodFillWorker`):
+  the inference child process is stopped cleanly, without misreporting the
+  cancellation as success or failure.
 
 ## [2.5.0] – 2026-07-11
 

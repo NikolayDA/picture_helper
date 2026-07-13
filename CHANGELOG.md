@@ -33,10 +33,23 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Dialog `ai_model_dialog.py` zeigt den Cache-Status des rembg-Modells
   (Heruntergeladen/Nicht heruntergeladen/KI-Funktion nicht verfügbar) mit
   Download-/Retry- und Abbrechen-Button samt Busy-Indikator; der Menüpunkt
-  ist ohne installiertes rembg deaktiviert (mit erklärendem Tooltip). Der
-  Download nutzt bereits den bestehenden Warmup-Mechanismus; das Anhängen an
-  einen laufenden Start-Warmup sowie der prozessseitige Abbruch folgen in
-  einem Folge-Issue (#570).
+  ist ohne installiertes rembg deaktiviert (mit erklärendem Tooltip).
+- **Automatischer Update-Check beim Start (#566, Teil von Epic #563).** Neue
+  Einstellung „Beim Start automatisch nach Updates suchen" (Default **aus** –
+  explizites Opt-in) im Einstellungen-Dialog. Bei Aktivierung läuft kurz nach
+  dem Start ein stiller Update-Check; `CHECK_FAILED` bleibt komplett still,
+  nur `UPDATE_AVAILABLE` zeigt einen dezenten, klickbaren Statusleisten-
+  Hinweis, der denselben Ergebnisdialog wie der manuelle Check öffnet – ohne
+  erneuten Netzwerkzugriff.
+- **KI-Modell-Download: echte Verdrahtung mit dem Warmup-Mechanismus (#570,
+  Teil von Epic #563).** Der Download-Button im KI-Modell-Dialog hängt sich
+  an einen bereits laufenden Start-Warmup an, statt einen zweiten
+  Prozess/Thread zu starten (`WorkerController.start_warmup` unterstützt jetzt
+  mehrere Beobachter); Statusleiste und Dialog zeigen dadurch nie
+  widersprüchliche Zustände. Der Abbrechen-Button nutzt einen neuen
+  kooperativen Abbruch (`RembgWarmupWorker.cancel()`, analog zu
+  `AIWorker`/`FloodFillWorker`): der Inferenz-Kindprozess wird sauber beendet,
+  ohne den Abbruch fälschlich als Erfolg oder Fehler zu melden.
 
 ## [2.5.0] – 2026-07-11
 
