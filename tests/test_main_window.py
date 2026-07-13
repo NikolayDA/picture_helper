@@ -28,6 +28,12 @@ from bgremover.status_messages import StatusMessages as SM
 # klassenweit durch ``-> True``. Für die gezielten Verwerfen-Tests wird die
 # Originalmethode hier festgehalten und je Instanz wieder eingebunden.
 _REAL_CONFIRM_DISCARD = MainWindow._confirm_discard_changes
+# ``_start_rembg_warmup`` wird global durch die autouse-Fixture
+# ``_no_rembg_warmup`` (conftest) auf ein No-op gepatcht (hermetische Tests
+# ohne echten Netz-Download). Für den gezielten Reset-Test unten wird hier die
+# echte Methode zum Importzeitpunkt festgehalten (siehe ``_REAL_CONFIRM_DISCARD``
+# oben für dasselbe Muster).
+_REAL_START_REMBG_WARMUP = MainWindow._start_rembg_warmup
 
 
 @pytest.fixture
@@ -1362,3 +1368,152 @@ def test_open_ai_model_dialog_does_not_start_download_without_running_warmup(
     win._open_ai_model_dialog()
 
     assert calls == []
+
+
+# ── #575: sichtbarer Warmup-Fehler statt scheinbar untätigem Dialog ─────
+
+def test_warmup_error_is_remembered_for_later_dialog_open(win):
+    """Ein fehlgeschlagener (automatischer) Warmup merkt sich seine
+    technische Meldung, statt sie nur zu loggen."""
+    assert win._last_warmup_error is None
+    win._on_warmup_error("ModuleNotFoundError: No module named 'rembg'")
+    assert win._last_warmup_error == "ModuleNotFoundError: No module named 'rembg'"
+
+
+def test_start_rembg_warmup_resets_last_warmup_error(win, monkeypatch):
+    monkeypatch.setattr(win._worker_controller, "start_warmup", lambda **kw: True)
+    win._last_warmup_error = "InferenceError: Inferenzprozess hat die Verbindung geschlossen"
+
+    _REAL_START_REMBG_WARMUP(win)
+
+    assert win._last_warmup_error is None
+
+
+def test_open_ai_model_dialog_surfaces_stale_warmup_error(win, monkeypatch):
+    """#575: Ist ein vorheriger automatischer Warmup bereits mit Fehler
+    beendet (z. B. ``ModuleNotFoundError`` aus dem Inferenz-Kindprozess auf
+    dem Raspberry Pi), zeigt der Dialog diesen sofort an, statt neutral
+    „Nicht heruntergeladen" ohne jeden Hinweis auf das Problem."""
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+    from bgremover.ai_model_status import ModelStatus, ModelStatusResult
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    monkeypatch.setattr(
+        mw, "get_model_status",
+        lambda: ModelStatusResult(status=ModelStatus.NOT_DOWNLOADED, model_path=Path("x")))
+    win._last_warmup_error = "ModuleNotFoundError: No module named 'rembg'"
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    dlg = created[0]
+    assert not dlg._error_label.isHidden()
+    assert dlg._error_label.text() == "ModuleNotFoundError: No module named 'rembg'"
+
+
+def test_open_ai_model_dialog_suppresses_stale_error_if_model_now_downloaded(
+    win, monkeypatch,
+):
+    """Review-Befund #576: Ist das Modell inzwischen auf anderem Weg
+    vorhanden (z. B. über einen erfolgreichen KI-Lauf oder einen extern
+    aktualisierten Cache), darf eine veraltete Warmup-Fehlermeldung nicht
+    mehr neben dem gültigen „Heruntergeladen"-Status auftauchen."""
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+    from bgremover.ai_model_status import ModelStatus, ModelStatusResult
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    monkeypatch.setattr(
+        mw, "get_model_status",
+        lambda: ModelStatusResult(
+            status=ModelStatus.DOWNLOADED, model_path=Path("x"), size_bytes=1234))
+    win._last_warmup_error = "ModuleNotFoundError: No module named 'rembg'"
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert created[0]._error_label.isHidden()
+
+
+def test_open_ai_model_dialog_without_stale_error_shows_no_error(win, monkeypatch):
+    """Ohne vorherigen Fehler bleibt das Verhalten unveraendert (kein
+    Fehlerlabel, neutraler Status)."""
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+
+    monkeypatch.setattr(win, "_is_warmup_running", lambda: False)
+    assert win._last_warmup_error is None
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert created[0]._error_label.isHidden()
+
+
+def test_ai_model_download_success_clears_last_warmup_error(win, monkeypatch):
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import get_model_status
+
+    captured: dict = {}
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup",
+        lambda **kw: captured.update(kw) or True)
+    win._last_warmup_error = "ModuleNotFoundError: No module named 'rembg'"
+
+    dlg = AiModelDialog(status_provider=get_model_status)
+    win._start_ai_model_download(dlg)
+    captured["on_success"]()
+
+    assert win._last_warmup_error is None
+
+
+def test_ai_model_download_error_records_last_warmup_error(win, monkeypatch):
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import get_model_status
+
+    captured: dict = {}
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup",
+        lambda **kw: captured.update(kw) or True)
+
+    dlg = AiModelDialog(status_provider=get_model_status)
+    win._start_ai_model_download(dlg)
+    captured["on_error"]("InferenceError: Inferenzprozess hat die Verbindung geschlossen")
+
+    assert win._last_warmup_error == (
+        "InferenceError: Inferenzprozess hat die Verbindung geschlossen"
+    )
+    assert dlg._error_label.text() == (
+        "InferenceError: Inferenzprozess hat die Verbindung geschlossen"
+    )

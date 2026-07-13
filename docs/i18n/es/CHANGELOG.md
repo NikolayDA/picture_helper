@@ -53,6 +53,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `AIWorker`/`FloodFillWorker`): el proceso hijo de inferencia se detiene de
   forma limpia, sin informar erróneamente la cancelación como éxito o fallo.
 
+### Corregido
+
+- **Error de calentamiento visible en el diálogo del modelo de IA (#575).**
+  Si el calentamiento automático al iniciar falla con un error concreto del
+  proceso hijo de inferencia (p. ej. un `ModuleNotFoundError` por una
+  discrepancia de venv/intérprete, o un corte de conexión/`EOFError`),
+  «Gestionar modelo de IA…» muestra ahora la causa técnica de inmediato la
+  próxima vez que se abre, en lugar de solo el mensaje neutro «No
+  descargado» sin ninguna pista del problema — antes el error solo quedaba
+  en el registro.
+
 ## [2.5.0] – 2026-07-11
 
 ### Añadido
