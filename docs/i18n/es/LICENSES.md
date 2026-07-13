@@ -3,7 +3,7 @@
 # Resumen de Licencias y Aspectos Legales – bgremover 2.5.0
 
 > Generado automáticamente – **una evaluación puramente técnica de los términos de licencia, no asesoramiento jurídico.**
-> A fecha de: 2026-07-11 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
+> A fecha de: 2026-07-13 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
 
 ## Evaluación general – usabilidad comercial
 
@@ -55,7 +55,7 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | onnxruntime | 1.26.0 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | packaging | 24.0 | `Apache Software License; BSD License` | Permisiva | Licencia permisiva con concesión de patente explícita. Se permite el uso comercial y propietario; deben conservarse el aviso de licencia/copyright y las notas de cambios (NOTICE). |
 | pathspec | 1.1.1 | `Mozilla Public License 2.0 (MPL 2.0)` | Copyleft débil (archivo) | Copyleft débil, a nivel de archivo. Se permite el uso comercial; solo los cambios en los propios archivos con licencia MPL deben divulgarse de nuevo bajo MPL. Compatible con GPL-3.0. |
-| pillow | 12.2.0 | `MIT-CMU` | Permisiva | Licencia permisiva HPND/MIT-CMU (Pillow). Se permite el uso comercial y propietario; conservar el aviso de copyright y de licencia. |
+| pillow | 12.3.0 | `MIT-CMU` | Permisiva | Licencia permisiva HPND/MIT-CMU (Pillow). Se permite el uso comercial y propietario; conservar el aviso de copyright y de licencia. |
 | platformdirs | 4.9.6 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | pluggy | 1.6.0 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | pooch | 1.9.0 | `BSD-3-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |

@@ -21,7 +21,7 @@ Declared in `pyproject.toml` under `[project] dependencies`.
 | Package | Purpose in the program | Min. | Verified | License |
 |-------|-------------------|------|---------|--------|
 | **PyQt6** | The complete GUI (window, canvas, widgets, events, QSettings, QThread) | `>=6.5` | 6.11.0 | **GPL v3** or commercial Riverbank license |
-| **Pillow** (PIL) | Image I/O, EXIF transpose, rotate/flip, masks/alpha, saving (PNG/JPEG/WebP/TIFF) | `>=10` | 12.2.0 | HPND (also "MIT-CMU"; the open-source PIL license) |
+| **Pillow** (PIL) | Image I/O, EXIF transpose, rotate/flip, masks/alpha, saving (PNG/JPEG/WebP/TIFF) | `>=10` | 12.3.0 | HPND (also "MIT-CMU"; the open-source PIL license) |
 | **NumPy** | Pixel arrays, flood fill, mask operations | `>=1.24` | 2.4.5 | BSD-3-Clause |
 
 Via PyQt6, the **Qt 6** framework (The Qt Company) is additionally bound.

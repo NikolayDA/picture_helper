@@ -22,7 +22,7 @@ Deklariert in `pyproject.toml` unter `[project] dependencies`.
 | Paket | Zweck im Programm | Min. | Geprüft | Lizenz |
 |-------|-------------------|------|---------|--------|
 | **PyQt6** | Komplette GUI (Fenster, Canvas, Widgets, Events, QSettings, QThread) | `>=6.5` | 6.11.0 | **GPL v3** oder kommerzielle Riverbank-Lizenz |
-| **Pillow** (PIL) | Bild-IO, EXIF-Transpose, Drehen/Spiegeln, Masken/Alpha, Speichern (PNG/JPEG/WebP/TIFF) | `>=10` | 12.2.0 | HPND (auch „MIT-CMU"; Open-Source-PIL-Lizenz) |
+| **Pillow** (PIL) | Bild-IO, EXIF-Transpose, Drehen/Spiegeln, Masken/Alpha, Speichern (PNG/JPEG/WebP/TIFF) | `>=10` | 12.3.0 | HPND (auch „MIT-CMU"; Open-Source-PIL-Lizenz) |
 | **NumPy** | Pixel-Arrays, Flood-Fill, Maskenoperationen | `>=1.24` | 2.4.5 | BSD-3-Clause |
 
 Über PyQt6 wird zudem das **Qt 6**-Framework (The Qt Company) gebunden.

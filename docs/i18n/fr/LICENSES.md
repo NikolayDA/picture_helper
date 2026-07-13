@@ -3,7 +3,7 @@
 # Aperçu des licences et aspects juridiques – bgremover 2.5.0
 
 > Généré automatiquement – **une évaluation purement technique des conditions de licence, pas un conseil juridique.**
-> Au : 2026-07-11 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
+> Au : 2026-07-13 · Licence propre du projet : `GPL-3.0-or-later` · 45 dépendances analysées.
 
 ## Évaluation globale – utilisabilité commerciale
 
@@ -55,7 +55,7 @@ Licence pertinente la plus forte dans l'œuvre combinée : **Copyleft fort**.
 | onnxruntime | 1.26.0 | `MIT License` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | packaging | 24.0 | `Apache Software License; BSD License` | Permissive | Licence permissive avec octroi de brevet explicite. Utilisation commerciale et propriétaire autorisée ; la mention de licence/copyright et les notes de modification (NOTICE) doivent être conservées. |
 | pathspec | 1.1.1 | `Mozilla Public License 2.0 (MPL 2.0)` | Copyleft faible (fichier) | Copyleft faible, au niveau du fichier. Utilisation commerciale autorisée ; seules les modifications des fichiers sous licence MPL eux-mêmes doivent être à nouveau divulguées sous MPL. Compatible avec GPL-3.0. |
-| pillow | 12.2.0 | `MIT-CMU` | Permissive | Licence permissive HPND/MIT-CMU (Pillow). Utilisation commerciale et propriétaire autorisée ; conserver la mention de copyright et de licence. |
+| pillow | 12.3.0 | `MIT-CMU` | Permissive | Licence permissive HPND/MIT-CMU (Pillow). Utilisation commerciale et propriétaire autorisée ; conserver la mention de copyright et de licence. |
 | platformdirs | 4.9.6 | `MIT` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | pluggy | 1.6.0 | `MIT License` | Permissive | Licence permissive. L'utilisation, la modification et la redistribution – y compris à des fins commerciales et dans des produits propriétaires – sont autorisées tant que les mentions de copyright et de licence sont conservées. |
 | pooch | 1.9.0 | `BSD-3-Clause` | Permissive | Licence permissive (famille BSD). Utilisation commerciale et propriétaire autorisée ; la mention de copyright/licence doit être fournie et le nom des auteurs ne peut pas être utilisé à des fins publicitaires sans accord. |
