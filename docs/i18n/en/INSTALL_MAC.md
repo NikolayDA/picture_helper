@@ -184,7 +184,9 @@ non-editable package copy in the app venv.
   downloads its model once at **app start** (not on the first AI
   click), a few hundred MB, cached in `~/.u2net`. The status bar shows
   "Loading AI model…" meanwhile and then "AI ready"; the AI button
-  stays disabled until then (and anyway without a loaded image).
+  stays disabled until then (and anyway without a loaded image). If the
+  download failed offline, the status can be checked anytime via
+  `Tools → Manage AI model…`, which triggers a manual download/retry.
 - **Gatekeeper: "unverified developer"** → Right-click on
   `BgRemover.app` → **Open**. The build script already removes the
   quarantine via `xattr`; a right-click open is enough in any

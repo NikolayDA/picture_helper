@@ -186,10 +186,28 @@ Arbeitsfläche + Karten-Inspector rechts) führt durch die Bearbeitung:
 | Bevorzugtes Bilddateiformat | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
 | Sprache | Deutsch oder Englisch; die Änderung wird nach einem Neustart wirksam |
 | Protokolldatei | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
+| Beim Start automatisch nach Updates suchen | Standardmäßig aus; bei Aktivierung läuft kurz nach dem Start ein stiller Update-Check (siehe unten) |
 
-Die Verzeichnisse, das bevorzugte Dateiformat und die Sprache werden über
-**QSettings** persistent gespeichert und beim nächsten Programmstart
-automatisch wiederhergestellt.
+Die Verzeichnisse, das bevorzugte Dateiformat, die Sprache und der
+automatische Update-Check werden über **QSettings** persistent gespeichert
+und beim nächsten Programmstart automatisch wiederhergestellt.
+
+### App-Update & KI-Modell verwalten
+
+Das Menü `Extras` bietet zwei weitere Einträge:
+
+- **„Nach Updates suchen…"** fragt nicht-blockierend die neueste
+  GitHub-Release ab und zeigt je nach Ergebnis einen Dialog: aktuelle
+  Version, eine neue Version mit Link zur Release-Seite, oder eine
+  verständliche Fehlermeldung. Ist „Beim Start automatisch nach Updates
+  suchen" aktiviert, erscheint bei einer verfügbaren neuen Version zusätzlich
+  ein dezenter, klickbarer Hinweis in der Statusleiste, der denselben Dialog
+  öffnet – ohne erneuten Netzwerkzugriff.
+- **„KI-Modell verwalten…"** (nur aktiv, wenn `rembg` installiert ist) zeigt,
+  ob das rembg-Standardmodell bereits lokal zwischengespeichert ist, und
+  erlaubt einen expliziten Download/Retry mit Fortschrittsanzeige und
+  Abbrechen-Button – als Alternative zum automatischen Download beim
+  App-Start (siehe Installationsanleitung, z. B. `INSTALL_MAC.md`).
 
 ### Tastatur-Kürzel
 

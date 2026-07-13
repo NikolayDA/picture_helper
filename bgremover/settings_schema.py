@@ -34,6 +34,11 @@ EXPORT_BIT_DEPTH_KEY = "eufymake_bit_depth"
 # der Default ``"dark"`` – deshalb ohne Schema-Migration.
 THEME_KEY = "theme_mode"
 
+# Automatischer Update-Check beim Start (#566). Additiver Schluessel, Default
+# **aus** (explizites Opt-in): fehlt er (aeltere Settings), liest der Dialog
+# ``False`` – kein Netzwerkzugriff beim Start ohne vorherige Zustimmung.
+AUTO_UPDATE_CHECK_KEY = "auto_update_check"
+
 
 def _read_version(settings: QSettings) -> int | None:
     """Liest die persistierte Schema-Version.

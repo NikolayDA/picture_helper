@@ -125,25 +125,43 @@ class RembgWarmupWorker(_Worker):
     teure Schritt) und eine kleine Probe-Inferenz ausführen; jeder spätere
     ``AIWorker`` nutzt dieselbe Session im selben Prozess wieder (#229).
 
-    ``finished`` ist parameterlos (anders als bei den Daten-Workern) und wird
-    bewusst auch im Fehlerfall gefeuert – der WorkerController nutzt es als
-    Abschluss-Signal für den Thread-Lifecycle. Ein fehlgeschlagener Warmup
-    meldet zusätzlich ``error`` (Import-/Init-Fehler aus dem Kindprozess),
-    damit die UI nicht fälschlich „KI bereit" anzeigt.
+    ``finished`` feuert nur bei Erfolg; ``done`` feuert über
+    ``_always_finished`` **immer** (Erfolg, Fehler, Abbruch) und ist das
+    Abschluss-Signal für den WorkerController-Thread-Lifecycle (analog
+    ``AIWorker``/``FloodFillWorker``, #270). Ein fehlgeschlagener Warmup
+    meldet zusätzlich ``error`` (Import-/Init-Fehler aus dem Kindprozess).
+    ``cancel()`` markiert ein Flag, das ``InferenceProcess.warmup`` über
+    ``should_cancel`` kooperativ prüft: ein Abbruch beendet den
+    Inferenz-Kindprozess und emittiert **weder** ``finished`` noch ``error``,
+    sondern das dedizierte ``cancelled``-Signal – der KI-Modell-Dialog (#569)
+    kann den Modell-Download darüber sauber abbrechen, ohne dass ein
+    Aufrufer den Abbruch fälschlich als „KI bereit" oder als Fehler deutet
+    (#570).
     """
-    finished = pyqtSignal()
+    finished = pyqtSignal()    # nur bei Erfolg
+    cancelled = pyqtSignal()   # nur bei Abbruch
+    done = pyqtSignal()        # immer – Thread-Abschluss (auch Fehler/Abbruch)
     _error_context = "rembg-Warmup"
 
     def __init__(self, inference: InferenceProcess) -> None:
         super().__init__()
         self._inference = inference
+        self._cancelled_flag = False
+
+    def cancel(self) -> None:
+        self._cancelled_flag = True
 
     def _work(self) -> None:
-        self._inference.warmup()
+        try:
+            self._inference.warmup(should_cancel=lambda: self._cancelled_flag)
+        except InferenceCancelled:
+            self.cancelled.emit()
+            return
         logger.info("rembg-Warmup abgeschlossen")
+        self.finished.emit()
 
     def _always_finished(self) -> None:
-        self.finished.emit()
+        self.done.emit()
 
 
 class UpdateCheckWorker(_Worker):

@@ -170,7 +170,7 @@ Ein Paket, `bgremover/`:
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
-- **App-Update & KI-Modell-Status (Epic #563):** `app_update.py` —
+- **App-Update & KI-Modell-Status (Epic #563, abgeschlossen):** `app_update.py` —
   Qt-freie `check_for_update(current_version)` fragt
   `https://api.github.com/repos/NikolayDA/picture_helper/releases/latest`
   über `urllib.request` ab (kurzer Timeout, keine Pflichtabhängigkeit) und
@@ -178,7 +178,7 @@ Ein Paket, `bgremover/`:
   (`UP_TO_DATE`/`UPDATE_AVAILABLE`/`CHECK_FAILED`) – jeder Netzwerk-/
   Parsing-Fehler wird als `CHECK_FAILED` zurückgegeben, nie als Exception
   (#564). `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
-  rembg-Cache-Zustand (`U2NET_HOME`/`~/.u2net`, Standardmodell
+  rembg-Cache-Zustand (`U2NET_HOME`/`XDG_DATA_HOME`/`~/.u2net`, Standardmodell
   `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu
   importieren (#568). UI-Anbindung (#565/#569): Extras-Menü „Nach Updates
   suchen…" startet `UpdateCheckWorker` (`workers.py`) nicht-blockierend über
@@ -186,16 +186,29 @@ Ein Paket, `bgremover/`:
   in `shutdown_all` mitverdrahtet) und zeigt je nach `UpdateStatus` einen
   passenden `QMessageBox`-Dialog (`MainWindow._on_update_check_result`;
   „Release-Seite öffnen" via `QDesktopServices.openUrl`, `CHECK_FAILED` ohne
-  technischen Stacktrace). „KI-Modell verwalten…" (nur bei `REMBG_AVAILABLE`
-  aktiv, sonst deaktiviert mit Tooltip) öffnet `ai_model_dialog.py`
-  (`AiModelDialog`): zeigt den Status aus `get_model_status()` und meldet
-  Download-/Cancel-Klicks über die Signale `download_requested`/
-  `cancel_requested` – bewusst entkoppelt von echtem `WorkerController`/
-  `InferenceProcess` (nur testbare Zustandsmethoden `start_downloading`/
-  `download_succeeded`/`download_failed`); `MainWindow` verdrahtet den
-  Download aktuell auf den bestehenden Warmup-Mechanismus, das Anhängen an
-  einen laufenden Start-Warmup sowie der prozessseitige Abbruch folgen in
-  einem Folge-Issue (#570).
+  technischen Stacktrace). Optionaler automatischer Start-Check (#566):
+  Checkbox „Beim Start automatisch nach Updates suchen" in `settings_dialog.py`
+  (`settings_schema.AUTO_UPDATE_CHECK_KEY`, additiv, Default **aus**); bei
+  Aktivierung läuft `MainWindow._start_automatic_update_check` still im
+  Hintergrund – nur `UPDATE_AVAILABLE` zeigt einen dezenten, klickbaren
+  Statusleisten-Button (`_update_hint_btn`), der über das gecachte Ergebnis
+  (`_update_available_result`) denselben Dialog wie der manuelle Check öffnet,
+  ohne erneuten Netzwerkzugriff; `CHECK_FAILED` bleibt beim Start komplett
+  still. „KI-Modell verwalten…" (nur bei `REMBG_AVAILABLE` aktiv, sonst
+  deaktiviert mit Tooltip) öffnet `ai_model_dialog.py` (`AiModelDialog`): zeigt
+  den Status aus `get_model_status()` und meldet Download-/Cancel-Klicks über
+  die Signale `download_requested`/`cancel_requested`. Die echte Verdrahtung
+  (#570) läuft über `WorkerController.start_warmup`, das jetzt mehrere
+  Beobachter unterstützt: läuft bereits ein Warmup (Start-Warmup oder ein
+  vorheriger Dialog-Download), hängen sich weitere `start_warmup`-Aufrufer an
+  denselben `RembgWarmupWorker` an (`worker_controller.warmup_worker`), statt
+  einen zweiten Prozess zu starten – Statusleiste und Dialog werden dadurch
+  nie widersprüchliche Zustände zeigen. `RembgWarmupWorker` unterstützt
+  kooperativen Abbruch (`cancel()`/`should_cancel`, analog `AIWorker`) mit
+  drei getrennten Signalen (`finished` nur Erfolg, `error` nur Fehler,
+  `cancelled` nur Abbruch, `done` immer als Thread-Lifecycle-Signal);
+  `WorkerController.cancel_warmup()` bricht sauber ab, ohne den Abbruch
+  fälschlich als Erfolg oder Fehler zu melden.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,

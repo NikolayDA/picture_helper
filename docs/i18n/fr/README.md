@@ -188,10 +188,31 @@ Via `Outils → Paramètres…` (⌘,), les paramètres suivants peuvent être g
 | Format de fichier image préféré | PNG, JPEG, WebP ou TIFF – apparaît comme première option dans la boîte de dialogue d'enregistrement |
 | Langue | Allemand ou anglais ; le changement s’applique après un redémarrage |
 | Fichier journal | Affiche le chemin du fichier journal ; le bouton « Ouvrir le dossier » ouvre le répertoire dans le gestionnaire de fichiers |
+| Rechercher automatiquement des mises à jour au démarrage | Désactivé par défaut ; si activé, une vérification silencieuse s'exécute peu après le démarrage (voir ci-dessous) |
 
-Les répertoires, le format préféré et la langue sont enregistrés de façon
-persistante via **QSettings** et restaurés automatiquement au prochain
-démarrage du programme.
+Les répertoires, le format préféré, la langue et la vérification
+automatique des mises à jour sont enregistrés de façon persistante via
+**QSettings** et restaurés automatiquement au prochain démarrage du
+programme.
+
+### Mise à jour de l'application & gestion du modèle d'IA
+
+Le menu `Outils` propose deux entrées supplémentaires :
+
+- **« Rechercher des mises à jour… »** interroge la dernière release
+  GitHub sans bloquer et affiche une boîte de dialogue selon le résultat :
+  version actuelle, nouvelle version avec un lien vers la page de la
+  version, ou un message d'erreur compréhensible. Si « Rechercher
+  automatiquement des mises à jour au démarrage » est activé, une nouvelle
+  version affiche aussi un indice discret et cliquable dans la barre
+  d'état qui ouvre la même boîte de dialogue – sans nouvelle requête
+  réseau.
+- **« Gérer le modèle d'IA… »** (actif uniquement si `rembg` est installé)
+  affiche si le modèle par défaut de rembg est déjà en cache local et
+  permet un téléchargement/nouvel essai explicite avec indicateur
+  d'activité et bouton d'annulation – en alternative au téléchargement
+  automatique au démarrage de l'application (voir le guide
+  d'installation, par ex. `INSTALL_MAC.md`).
 
 ### Raccourcis clavier
 

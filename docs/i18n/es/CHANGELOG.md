@@ -34,10 +34,24 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   diálogo `ai_model_dialog.py` que muestra el estado de caché del modelo de
   rembg (Descargado/No descargado/Función de IA no disponible) con botones de
   descarga/reintento y cancelar, además de un indicador de progreso; el menú
-  está deshabilitado sin rembg instalado (con un tooltip explicativo). La
-  descarga ya reutiliza el mecanismo de warmup existente; adjuntarse a un
-  warmup de inicio en curso y la cancelación a nivel de proceso llegarán en un
-  issue de seguimiento (#570).
+  está deshabilitado sin rembg instalado (con un tooltip explicativo).
+- **Comprobación automática de actualizaciones al iniciar (#566, parte del
+  Epic #563).** Nueva opción "Buscar actualizaciones automáticamente al
+  iniciar" (por defecto **desactivada** – opt-in explícito) en el diálogo de
+  ajustes. Si está activada, se ejecuta una comprobación silenciosa poco
+  después de iniciar; `CHECK_FAILED` permanece completamente silencioso,
+  solo `UPDATE_AVAILABLE` muestra un aviso discreto y clicable en la barra de
+  estado que abre el mismo diálogo de resultado que la comprobación manual –
+  sin otra solicitud de red.
+- **Descarga del modelo de IA: conexión real con el mecanismo de warmup
+  (#570, parte del Epic #563).** El botón de descarga en el diálogo del
+  modelo de IA ahora se une a un warmup de inicio ya en curso en lugar de
+  iniciar un segundo proceso/hilo (`WorkerController.start_warmup` ahora
+  admite varios observadores); la barra de estado y el diálogo nunca
+  muestran estados contradictorios. El botón de cancelar usa una nueva
+  cancelación cooperativa (`RembgWarmupWorker.cancel()`, análoga a
+  `AIWorker`/`FloodFillWorker`): el proceso hijo de inferencia se detiene de
+  forma limpia, sin informar erróneamente la cancelación como éxito o fallo.
 
 ## [2.5.0] – 2026-07-11
 

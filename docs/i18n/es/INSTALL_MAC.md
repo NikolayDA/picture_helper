@@ -188,7 +188,10 @@ automáticamente la copia del paquete en el venv dedicado de la app.
   (no en el primer clic de IA), algunos cientos de MB, caché en
   `~/.u2net`. La barra de estado muestra mientras tanto «Cargando
   modelo de IA…» y luego «IA lista»; el botón de IA permanece
-  desactivado hasta entonces (y sin imagen cargada, de todos modos).
+  desactivado hasta entonces (y sin imagen cargada, de todos modos). Si la
+  descarga falló sin conexión, el estado puede comprobarse en cualquier
+  momento mediante `Herramientas → Gestionar modelo de IA…`, que permite
+  un descarga/reintento manual.
 - **Gatekeeper: «desarrollador no verificado»** → Clic derecho sobre
   `BgRemover.app` → **Abrir**. El script de compilación ya elimina la
   cuarentena mediante `xattr`; aun así, en caso de duda, abrir con clic

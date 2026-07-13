@@ -166,6 +166,12 @@ geladen…" und der KI-Button bleibt bis dahin deaktiviert — das ist
 erwartetes Verhalten. Künftige Starts dann aus der venv: `source .venv/bin/activate` und
 `python3 -m bgremover`.
 
+Alternativ zum automatischen Download beim Start lässt sich der
+Modell-Status jederzeit über `Extras → KI-Modell verwalten…` einsehen und
+ein Download/Retry explizit auslösen (mit Fortschrittsanzeige und
+Abbrechen-Button) — nützlich, wenn der Start-Download offline
+fehlgeschlagen ist.
+
 ## Schnellstart aus `main`
 
 Auf modernem Linux blockieren System-Python-Installationen `pip install`
@@ -303,7 +309,9 @@ erneut ausgeführt werden — außer die Abhängigkeiten in
   einmalig ihr Modell herunter (einige hundert MB, Cache in
   `~/.u2net`). Die Statusleiste zeigt währenddessen „KI-Modell wird
   geladen…" und danach „KI bereit"; der KI-Button bleibt bis dahin
-  (und ohne geladenes Bild ohnehin) deaktiviert.
+  (und ohne geladenes Bild ohnehin) deaktiviert. Ist der Download offline
+  fehlgeschlagen, lässt sich der Status jederzeit über `Extras → KI-Modell
+  verwalten…` prüfen und ein erneuter Download/Retry manuell auslösen.
 - **App startet ohne KI / „No onnxruntime backend found"** → Das
   `ai`-Extra wurde nicht installiert. In der venv nachinstallieren:
   ```bash

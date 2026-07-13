@@ -43,6 +43,11 @@ automatische Hintergrundentfernung (`rembg`-Werkzeug):
 Ohne die `ai`-Extras startet das Programm normal; der KI-Button ist dann
 deaktiviert (`REMBG_AVAILABLE = False`).
 
+Der Download läuft weiterhin implizit beim App-Start (Warmup); zusätzlich
+lässt sich der Cache-Status jederzeit über `Extras → KI-Modell verwalten…`
+einsehen und ein Download/Retry explizit auslösen, ohne die App neu zu
+starten.
+
 ## 3. Python-Standardbibliothek
 
 Teil von CPython, **keine zusätzliche Installation** nötig

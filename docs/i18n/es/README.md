@@ -186,10 +186,29 @@ Mediante `Herramientas → Ajustes…` (⌘,) se pueden gestionar los siguientes
 | Formato de archivo de imagen preferido | PNG, JPEG, WebP o TIFF – aparece como primera opción en el diálogo de guardado |
 | Idioma | Alemán o inglés; el cambio se aplica después de reiniciar |
 | Archivo de registro | Muestra la ruta del archivo de registro; el botón «Abrir carpeta» abre el directorio en el gestor de archivos |
+| Buscar actualizaciones automáticamente al iniciar | Desactivado por defecto; si se activa, se ejecuta una comprobación silenciosa poco después de iniciar (ver más abajo) |
 
-Los directorios, el formato preferido y el idioma se guardan de forma
-persistente mediante **QSettings** y se restauran automáticamente en el
-siguiente inicio del programa.
+Los directorios, el formato preferido, el idioma y la comprobación
+automática de actualizaciones se guardan de forma persistente mediante
+**QSettings** y se restauran automáticamente en el siguiente inicio del
+programa.
+
+### Actualizaciones y gestión del modelo de IA
+
+El menú `Herramientas` ofrece dos opciones más:
+
+- **"Buscar actualizaciones…"** consulta la última versión de GitHub sin
+  bloquear y muestra un diálogo según el resultado: versión actual, una
+  nueva versión con un enlace a la página de la versión, o un mensaje de
+  error comprensible. Si "Buscar actualizaciones automáticamente al
+  iniciar" está activado, una nueva versión también muestra un aviso
+  discreto y clicable en la barra de estado que abre el mismo diálogo –
+  sin otra solicitud de red.
+- **"Gestionar modelo de IA…"** (activo solo si `rembg` está instalado)
+  muestra si el modelo por defecto de rembg ya está en caché local y
+  permite una descarga/reintento explícitos con indicador de progreso y
+  botón de cancelar – como alternativa a la descarga automática al iniciar
+  la app (ver la guía de instalación, p. ej. `INSTALL_MAC.md`).
 
 ### Atajos de teclado
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from PyQt6.QtCore import QSettings, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -33,6 +34,7 @@ from bgremover.i18n import (
 )
 from bgremover.image_ops import SAVE_FORMATS
 from bgremover.logging_config import current_log_file
+from bgremover.settings_schema import AUTO_UPDATE_CHECK_KEY
 from bgremover.theme import SETTINGS_TITLE_STYLE
 
 
@@ -117,6 +119,11 @@ class SettingsDialog(QDialog):
         log_lay.addWidget(btn_log)
         lay.addWidget(log_grp)
 
+        # Automatischer Update-Check beim Start (#566) – Default aus, siehe
+        # ``settings_schema.AUTO_UPDATE_CHECK_KEY``.
+        self._auto_update_check = QCheckBox(tr("settings.update.auto_check.label"))
+        lay.addWidget(self._auto_update_check)
+
         lay.addStretch()
 
         # OK / Abbrechen
@@ -164,6 +171,8 @@ class SettingsDialog(QDialog):
         idx = self._fmt_combo.findText(fmt)
         if idx >= 0:
             self._fmt_combo.setCurrentIndex(idx)
+        self._auto_update_check.setChecked(
+            self._settings.value(AUTO_UPDATE_CHECK_KEY, False, type=bool))
         self._log_path_edit.setText(str(current_log_file()))
 
     def _save_and_accept(self) -> None:
@@ -185,6 +194,8 @@ class SettingsDialog(QDialog):
         self._settings.setValue("open_dir", open_dir)
         self._settings.setValue("save_dir", save_dir)
         self._settings.setValue("preferred_format", self._fmt_combo.currentText())
+        self._settings.setValue(
+            AUTO_UPDATE_CHECK_KEY, self._auto_update_check.isChecked())
 
         selected_locale = self._lang_combo.currentData()
         self._settings.setValue(SETTINGS_LOCALE_KEY, selected_locale)

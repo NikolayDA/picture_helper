@@ -42,6 +42,11 @@ suppression automatique d'arrière-plan (outil `rembg`) :
 Sans les extras `ai`, le programme démarre normalement ; le bouton d'IA est alors
 désactivé (`REMBG_AVAILABLE = False`).
 
+Le téléchargement continue de s'exécuter implicitement au démarrage de
+l'application (warmup) ; l'état du cache peut aussi être consulté à tout
+moment via `Outils → Gérer le modèle d'IA…`, qui permet de déclencher
+explicitement un téléchargement/nouvel essai sans redémarrer l'application.
+
 ## 3. Bibliothèque standard Python
 
 Partie de CPython, **aucune installation supplémentaire** nécessaire

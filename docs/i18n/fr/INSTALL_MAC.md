@@ -187,7 +187,10 @@ le venv dédié à l'application.
   **démarrage de l'app** (pas au premier clic d'IA), quelques centaines
   de Mo, cache dans `~/.u2net`. La barre d'état affiche entre-temps
   « Chargement du modèle IA… » puis « IA prête » ; le bouton IA reste
-  désactivé jusque-là (et de toute façon sans image chargée).
+  désactivé jusque-là (et de toute façon sans image chargée). Si le
+  téléchargement a échoué hors ligne, l'état peut être vérifié à tout
+  moment via `Outils → Gérer le modèle d'IA…`, qui permet un
+  téléchargement/nouvel essai manuel.
 - **Gatekeeper : « développeur non vérifié »** → clic droit sur
   `BgRemover.app` → **Ouvrir**. Le script de construction supprime déjà la
   quarantaine via `xattr`, mais un clic droit suivi d'Ouvrir suffit en

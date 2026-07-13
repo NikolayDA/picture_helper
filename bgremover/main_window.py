@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
+    QPushButton,
     QStatusBar,
     QVBoxLayout,
     QWidget,
@@ -90,6 +91,7 @@ from bgremover.right_panel import (
 )
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.settings_schema import (
+    AUTO_UPDATE_CHECK_KEY,
     EXPORT_BIT_DEPTH_KEY,
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
@@ -142,6 +144,10 @@ class MainWindow(QMainWindow):
         # True, sobald der rembg-Warmup mit Fehler endete: unterdrückt die
         # irreführende „KI bereit"-Meldung im Abschluss-Callback.
         self._warmup_failed: bool = False
+        # Gecachtes Ergebnis des automatischen Start-Update-Checks (#566):
+        # der Statusleisten-Hinweis öffnet daraus denselben Ergebnisdialog
+        # wie der manuelle Check (#565), ohne erneuten Netzwerkzugriff.
+        self._update_available_result: UpdateCheckResult | None = None
         # Speicher-Pfad des aktuellen Bildes (für Quick-Save ⌘S).
         # Wird beim Laden eines neuen Bildes zurückgesetzt.
         self._save_path: str | None = None
@@ -193,6 +199,8 @@ class MainWindow(QMainWindow):
         self._build_tool_shortcuts()
         if REMBG_AVAILABLE:
             self._start_rembg_warmup()
+        if self._settings.value(AUTO_UPDATE_CHECK_KEY, False, type=bool):
+            self._start_automatic_update_check()
 
     # ── UI aufbauen ──────────────────────────────────────────
 
@@ -213,6 +221,17 @@ class MainWindow(QMainWindow):
         self._refresh_ai_status_icon(active_palette())
         self._sb.addPermanentWidget(self._ai_status_icon)
         self._sb.messageChanged.connect(self._on_status_message_changed)
+
+        # Dezenter Hinweis für den automatischen Start-Update-Check (#566):
+        # bleibt unsichtbar, bis ein stiller Check tatsächlich ein Update
+        # findet; Klick öffnet denselben Ergebnisdialog wie der manuelle
+        # Check (#565) – ohne erneuten Netzwerkzugriff (gecachtes Ergebnis).
+        self._update_hint_btn = QPushButton()
+        self._update_hint_btn.setFlat(True)
+        self._update_hint_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._update_hint_btn.setVisible(False)
+        self._update_hint_btn.clicked.connect(self._show_cached_update_result)
+        self._sb.addPermanentWidget(self._update_hint_btn)
 
         root_w = QWidget()
         self.setCentralWidget(root_w)
@@ -447,8 +466,7 @@ class MainWindow(QMainWindow):
             self._right_panel.set_project_size(project.width, project.height)
 
     def _is_warmup_running(self) -> bool:
-        thread = self._worker_controller.warmup_thread
-        return thread is not None and thread.isRunning()
+        return self._worker_controller.is_warmup_running
 
     def _sync_ai_controls(self, enabled: bool | None = None) -> None:
         # Seit #458 lebt die KI-Aktion ausschließlich als Schritt-2-Primärbutton
@@ -985,6 +1003,7 @@ class MainWindow(QMainWindow):
         self._worker_controller.start_warmup(
             on_finished=self._on_warmup_done,
             on_error=self._on_warmup_error,
+            on_cancelled=self._on_warmup_cancelled,
         )
         # KI-Buttons bis Warmup-Ende sperren: ein KI-Klick während des Warmups
         # würde rembg parallel initialisieren (doppelter Modell-Load / Race).
@@ -993,9 +1012,10 @@ class MainWindow(QMainWindow):
         self._sync_ai_controls(enabled=False)
 
     def _on_warmup_done(self) -> None:
-        # Läuft als Thread-Abschluss IMMER (auch nach Fehler). Button wieder
-        # freigeben; ein fehlgeschlagener Warmup darf dennoch nicht als
-        # „KI bereit" gemeldet werden – on_error hat das Flag bereits gesetzt.
+        # Läuft als Thread-Abschluss IMMER (auch nach Fehler/Abbruch). Button
+        # wieder freigeben; ein nicht erfolgreich beendeter Warmup darf
+        # dennoch nicht als „KI bereit" gemeldet werden – on_error/
+        # on_cancelled haben das Flag bereits gesetzt.
         self._sync_ai_controls()
         if self._warmup_failed:
             return
@@ -1012,6 +1032,15 @@ class MainWindow(QMainWindow):
         """
         self._warmup_failed = True
         self._sb.showMessage(SM.KI_FEHLER_WARMUP)
+
+    def _on_warmup_cancelled(self) -> None:
+        """Warmup wurde abgebrochen (z. B. über den KI-Modell-Dialog, #570).
+
+        Läuft wie ``_on_warmup_error`` vor ``_on_warmup_done`` und setzt das
+        Flag, das dort die fälschliche "KI bereit"-Meldung verhindert.
+        """
+        self._warmup_failed = True
+        self._sb.showMessage(tr("status.ai_warmup_cancelled"))
 
     def _confirm_pre_save_checks(self) -> bool:
         """Allgemeine Pre-Export-Prüfung (#379) vor dem Speichern (#380).
@@ -1441,17 +1470,20 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self._settings, self)
         dlg.exec()
 
-    # ── App-Update-Check (#565) ────────────────────────────────
+    # ── App-Update-Check (#565/#566) ────────────────────────────
 
     def _check_for_updates(self) -> None:
-        """Startet den manuellen Update-Check nicht-blockierend im Hintergrund."""
-        started = self._worker_controller.start_update_check(
+        """Startet den manuellen Update-Check nicht-blockierend im Hintergrund.
+
+        Läuft bereits ein automatischer Start-Check (#566), hängt sich dieser
+        Aufruf über ``start_update_check`` an dessen Ergebnis an, statt einen
+        zweiten Netzwerkaufruf zu starten – der Nutzer bekommt so garantiert
+        seinen Ergebnisdialog, auch wenn im Hintergrund schon ein stiller
+        Check lief (Review-Befund #574).
+        """
+        self._worker_controller.start_update_check(
             __version__, self._on_update_check_result)
-        if started:
-            self._sb.showMessage(tr("status.update_check_running"))
-        else:
-            # Re-Entrancy-Schutz analog Warmup: ein Check läuft bereits.
-            self._sb.showMessage(tr("status.update_check_already_running"))
+        self._sb.showMessage(tr("status.update_check_running"))
 
     def _on_update_check_result(self, result: UpdateCheckResult) -> None:
         if result.status is UpdateStatus.UP_TO_DATE:
@@ -1481,35 +1513,78 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(
             self, tr("dialog.update_check.title"), tr("dialog.update_check.failed.body"))
 
-    # ── KI-Modell-Verwaltung (#569) ────────────────────────────
+    def _start_automatic_update_check(self) -> None:
+        """Stiller Update-Check kurz nach dem Start, wenn per Einstellung aktiviert (#566).
+
+        Nicht-blockierend wie der Start-Warmup. Anders als der manuelle Check
+        (#565) bleibt ``CHECK_FAILED`` hier komplett still (kein Hinweis, kein
+        Crash) – nur ``UPDATE_AVAILABLE`` zeigt einen dezenten Statusleisten-
+        Hinweis statt eines Dialog-Popups direkt beim Start.
+        """
+        self._worker_controller.start_update_check(
+            __version__, self._on_automatic_update_check_result)
+
+    def _on_automatic_update_check_result(self, result: UpdateCheckResult) -> None:
+        if result.status is not UpdateStatus.UPDATE_AVAILABLE:
+            # UP_TO_DATE braucht keine Meldung, CHECK_FAILED bleibt bewusst
+            # still (kein Netz o. Ä. beim Start ist kein Nutzerfehler).
+            return
+        self._update_available_result = result
+        self._update_hint_btn.setText(
+            tr("status.update_available_hint", version=result.latest_version or "?"))
+        self._update_hint_btn.setVisible(True)
+
+    def _show_cached_update_result(self) -> None:
+        """Öffnet den Ergebnisdialog des automatischen Checks (#566).
+
+        Nutzt das bereits vorliegende Ergebnis – kein erneuter Netzwerkzugriff
+        – und denselben Dialog wie der manuelle Check (#565).
+        """
+        if self._update_available_result is not None:
+            self._on_update_check_result(self._update_available_result)
+        self._update_hint_btn.setVisible(False)
+
+    # ── KI-Modell-Verwaltung (#569/#570) ────────────────────────
 
     def _open_ai_model_dialog(self) -> None:
         dlg = AiModelDialog(parent=self)
         dlg.download_requested.connect(lambda: self._start_ai_model_download(dlg))
         dlg.cancel_requested.connect(lambda: self._cancel_ai_model_download(dlg))
+        if self._is_warmup_running():
+            # Ein Warmup läuft bereits (Start-Warmup oder ein vorheriger
+            # Download-Versuch aus diesem Dialog) – der Dialog zeigt dessen
+            # Fortschritt sofort an, statt dass der Nutzer erst „Jetzt
+            # herunterladen" klicken müsste (#570).
+            self._start_ai_model_download(dlg)
         dlg.exec()
 
     def _start_ai_model_download(self, dlg: AiModelDialog) -> None:
-        """Startet den Modell-Download über den bestehenden Warmup-Mechanismus.
+        """Startet den Modell-Download oder hängt sich an einen bereits
+        laufenden Warmup an (#570).
 
-        Das Anhängen an einen bereits laufenden Start-Warmup, Race-Vermeidung
-        und der prozessseitige Abbruch sind laut Scope-Klarstellung auf #569
-        Teil des Folge-Issues #570; hier greift nur die eingebaute
-        Re-Entrancy-Prüfung von ``start_warmup`` selbst.
+        ``WorkerController.start_warmup`` übernimmt beides transparent über
+        denselben Re-Entrancy-/Anhänge-Mechanismus wie der automatische
+        Start-Warmup – Statusleiste und Dialog werden dadurch nie
+        widersprüchliche Zustände zeigen. Wichtig: ``dlg.download_succeeded``
+        hängt an ``on_success`` (feuert NUR bei Erfolg), nicht an
+        ``on_finished`` (feuert immer) – sonst würde ein Abbruch/Fehler die
+        gerade gezeigte Fehler-/Abbruchmeldung sofort wieder als „erfolgreich
+        heruntergeladen" überschreiben (Review-Befund #574).
         """
-        started = self._worker_controller.start_warmup(
-            dlg.download_succeeded, dlg.download_failed)
-        if started:
-            dlg.start_downloading()
-        else:
-            dlg.download_failed(tr("ai_model.dialog.busy"))
+        self._worker_controller.start_warmup(
+            on_success=dlg.download_succeeded,
+            on_error=dlg.download_failed,
+            on_cancelled=lambda: dlg.download_failed(tr("ai_model.dialog.cancelled")),
+        )
+        dlg.start_downloading()
 
     def _cancel_ai_model_download(self, dlg: AiModelDialog) -> None:
-        """Blendet den Busy-Zustand im Dialog aus.
+        """Bricht den laufenden rembg-Warmup/-Download sauber ab (#570).
 
-        Der reale Prozessabbruch (``InferenceProcess``-seitig) folgt in #570;
-        ein bereits laufender Warmup läuft im Hintergrund unverändert weiter
-        (kein Zombie-Prozess – der bestehende Thread-Lifecycle bleibt
-        unangetastet), nur die Dialoganzeige hört auf zu warten.
+        ``WorkerController.cancel_warmup`` markiert das kooperative
+        Abbruch-Flag; der pollende Worker-Thread beendet den Inferenz-
+        Kindprozess und meldet ``cancelled`` statt ``finished``/``error`` –
+        die zuvor über ``start_warmup`` verbundene Callback-Kette
+        aktualisiert Statusleiste und Dialog konsistent, kein Zombie-Prozess.
         """
-        dlg.download_failed(tr("ai_model.dialog.cancel_not_yet_supported"))
+        self._worker_controller.cancel_warmup()

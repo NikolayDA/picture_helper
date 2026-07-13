@@ -167,6 +167,12 @@ eso es el comportamiento esperado.
 Inicios posteriores entonces desde el venv: `source .venv/bin/activate`
 y `python3 -m bgremover`.
 
+Como alternativa a la descarga automática al iniciar, el estado del
+modelo puede consultarse en cualquier momento mediante `Herramientas →
+Gestionar modelo de IA…`, que permite un descarga/reintento manual (con
+indicador de progreso y botón de cancelar) – útil si la descarga inicial
+falló sin conexión.
+
 ## Inicio rápido desde `main`
 
 En Linux moderno, las instalaciones del Python del sistema bloquean
@@ -304,7 +310,10 @@ en `pyproject.toml` o `requirements/constraints.txt`.
   (no en el primer clic de IA), algunos cientos de MB, caché en
   `~/.u2net`. La barra de estado muestra mientras tanto «Cargando
   modelo de IA…» y luego «IA lista»; el botón de IA permanece
-  desactivado hasta entonces (y sin imagen cargada, de todos modos).
+  desactivado hasta entonces (y sin imagen cargada, de todos modos). Si la
+  descarga falló sin conexión, el estado puede comprobarse en cualquier
+  momento mediante `Herramientas → Gestionar modelo de IA…`, que permite
+  un descarga/reintento manual.
 - **La app se inicia sin IA / «No onnxruntime backend found»** → No se
   instaló el extra `ai`. Instálalo adicionalmente en el venv:
   ```bash

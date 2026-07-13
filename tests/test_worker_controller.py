@@ -363,6 +363,154 @@ def test_warmup_releases_worker_when_inference_raises(qapp):
     assert controller._workers == []
 
 
+def test_start_warmup_on_success_not_fired_on_error_or_cancel(qapp):
+    """#574-Review: ``on_success`` (an ``finished`` gebunden) darf bei einem
+    Fehler oder Abbruch NICHT feuern – sonst würde ein Aufrufer wie der
+    KI-Modell-Dialog seine gerade gezeigte Fehler-/Abbruchmeldung sofort
+    wieder als Erfolg überschreiben."""
+    fake_error = FakeInference(warmup_error=InferenceError("boom"))
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake_error)
+    success: list[bool] = []
+    errors: list[str] = []
+    controller.start_warmup(on_success=lambda: success.append(True), on_error=errors.append)
+    _drain(qapp, lambda: controller.warmup_thread is None)
+    assert success == []
+    assert errors == ["InferenceError: boom"]
+
+    fake_cancel = FakeInference()
+    controller2 = WorkerController(QObject(), shutdown_ms=2000, inference=fake_cancel)
+    success2: list[bool] = []
+    cancelled: list[bool] = []
+    started = controller2.start_warmup(
+        on_success=lambda: success2.append(True),
+        on_cancelled=lambda: cancelled.append(True),
+    )
+    assert started
+    controller2.cancel_warmup()
+    _drain(qapp, lambda: controller2.warmup_thread is None)
+    assert success2 == []
+    assert cancelled == [True]
+
+
+def test_start_warmup_on_success_fires_only_on_real_success(qapp):
+    fake = FakeInference()
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+    success: list[bool] = []
+    controller.start_warmup(on_success=lambda: success.append(True))
+    _drain(qapp, lambda: controller.warmup_thread is None)
+    assert success == [True]
+
+
+def test_start_warmup_recovers_from_attach_race(qapp):
+    """#574-Review: entscheidet sich ``start_warmup`` fürs Anhängen, ist der
+    Warmup zwischen Prüfung und Verbinden aber bereits fertig (Race), muss
+    ein frischer Warmup starten – statt den Aufrufer dauerhaft ohne
+    Benachrichtigung hängen zu lassen."""
+    from bgremover.workers import RembgWarmupWorker
+
+    class _FlakyThread:
+        """Simuliert das Race-Fenster: laeuft nur beim ERSTEN isRunning()-Check."""
+
+        def __init__(self):
+            self.calls = 0
+
+        def isRunning(self):
+            self.calls += 1
+            return self.calls == 1
+
+    fake = FakeInference()
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+    stale_thread = _FlakyThread()
+    controller.warmup_thread = stale_thread
+    controller.warmup_worker = RembgWarmupWorker(fake)
+
+    success: list[bool] = []
+    started = controller.start_warmup(on_success=lambda: success.append(True))
+
+    assert started
+    # Ein echter, neuer Thread ersetzt den "veralteten" Stub-Thread.
+    assert controller.warmup_thread is not stale_thread
+    assert controller.warmup_thread is not None
+
+    _drain(qapp, lambda: controller.warmup_thread is None)
+    assert success == [True]
+    assert fake.warmup_calls == 1  # nur der Fallback-Warmup lief tatsaechlich
+
+
+def test_start_warmup_attaches_to_running_instead_of_second_thread(qapp):
+    """#570: ein zweiter ``start_warmup``-Aufruf waehrend eines laufenden
+    Warmups haengt sich an denselben Thread/Prozess an, statt einen zweiten
+    zu starten – beide Aufrufer werden ueber denselben Abschluss informiert."""
+    import threading
+
+    gate = threading.Event()
+    fake = FakeInference(gate=gate)
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+
+    first_done: list[bool] = []
+    started_first = controller.start_warmup(on_finished=lambda: first_done.append(True))
+    assert started_first
+    first_thread = controller.warmup_thread
+    assert first_thread is not None
+    assert controller.is_warmup_running
+
+    second_done: list[bool] = []
+    second_errors: list[str] = []
+    second_cancelled: list[bool] = []
+    started_second = controller.start_warmup(
+        on_finished=lambda: second_done.append(True),
+        on_error=second_errors.append,
+        on_cancelled=lambda: second_cancelled.append(True),
+    )
+    assert started_second
+    assert controller.warmup_thread is first_thread  # kein zweiter Thread
+
+    gate.set()  # laesst den (einzigen) Warmup abschliessen
+    _drain(qapp, lambda: controller.warmup_thread is None)
+
+    assert first_done == [True]
+    assert second_done == [True]
+    assert second_errors == []
+    assert second_cancelled == []
+    assert fake.warmup_calls == 1  # nur EIN tatsaechlicher Warmup-Aufruf
+
+
+def test_cancel_warmup_notifies_attached_caller_as_cancelled_not_error(qapp):
+    """#570: ``cancel_warmup`` markiert den Abbruch; ein spaeter angehaengter
+    Aufrufer bekommt ``on_cancelled``, NICHT ``on_error`` oder blind
+    ``on_finished`` als Erfolg gedeutet."""
+    import threading
+
+    gate = threading.Event()
+    fake = FakeInference(gate=gate)
+    controller = WorkerController(QObject(), shutdown_ms=2000, inference=fake)
+
+    done: list[bool] = []
+    errors: list[str] = []
+    cancelled: list[bool] = []
+    started = controller.start_warmup(
+        on_finished=lambda: done.append(True),
+        on_error=errors.append,
+        on_cancelled=lambda: cancelled.append(True),
+    )
+    assert started
+    assert controller.warmup_worker is not None
+
+    controller.cancel_warmup()
+    gate.set()  # Fake pollt should_cancel zuerst – kein Blockieren noetig
+
+    _drain(qapp, lambda: controller.warmup_thread is None)
+
+    assert cancelled == [True]
+    assert errors == []
+    assert done == [True]  # on_finished (via "done") feuert immer
+    assert controller.warmup_worker is None
+
+
+def test_cancel_warmup_without_running_warmup_is_noop(controller):
+    controller.cancel_warmup()  # darf nicht werfen
+
+
 def test_start_update_check_releases_worker_and_delivers_result(
     qapp, controller, monkeypatch,
 ):
@@ -390,9 +538,13 @@ def test_start_update_check_releases_worker_and_delivers_result(
     assert controller._workers == []
 
 
-def test_start_update_check_rejects_second_call_while_running(
+def test_start_update_check_attaches_second_call_while_running(
     qapp, controller, monkeypatch,
 ):
+    """#574-Review: ein zweiter Aufruf waehrend eines laufenden Checks
+    haengt sich an dessen Ergebnis an, statt abgelehnt zu werden – sonst
+    bekaeme ein manueller Klick waehrend eines automatischen Start-Checks
+    nie seinen Ergebnisdialog."""
     import threading
 
     release = threading.Event()
@@ -404,17 +556,56 @@ def test_start_update_check_rejects_second_call_while_running(
 
     monkeypatch.setattr("bgremover.workers.check_for_update", _blocking_check)
 
-    results: list = []
-    started_first = controller.start_update_check("1.0.0", results.append)
+    first_results: list = []
+    second_results: list = []
+    started_first = controller.start_update_check("1.0.0", first_results.append)
     assert started_first
-    started_second = controller.start_update_check("1.0.0", results.append)
-    assert not started_second
+    first_thread = controller.update_check_thread
+    started_second = controller.start_update_check("1.0.0", second_results.append)
+    assert started_second
+    assert controller.update_check_thread is first_thread  # kein zweiter Thread
 
     release.set()
     _drain(
         qapp,
         lambda: controller.update_check_thread is None,
     )
+    assert len(first_results) == 1
+    assert len(second_results) == 1
+
+
+def test_start_update_check_recovers_from_attach_race(qapp, controller, monkeypatch):
+    """#574-Review: analog zum Warmup – ein Check kann zwischen Pruefung und
+    Verbinden bereits abgeschlossen sein; ein frischer Check muss dann
+    starten, statt den Aufrufer haengen zu lassen."""
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.workers import UpdateCheckWorker
+
+    class _FlakyThread:
+        def __init__(self):
+            self.calls = 0
+
+        def isRunning(self):
+            self.calls += 1
+            return self.calls == 1
+
+    monkeypatch.setattr(
+        "bgremover.workers.check_for_update",
+        lambda *a, **kw: UpdateCheckResult(status=UpdateStatus.UP_TO_DATE),
+    )
+
+    stale_thread = _FlakyThread()
+    controller.update_check_thread = stale_thread
+    controller.update_check_worker = UpdateCheckWorker("1.0.0")
+
+    results: list = []
+    started = controller.start_update_check("1.0.0", results.append)
+
+    assert started
+    assert controller.update_check_thread is not stale_thread
+    assert controller.update_check_thread is not None
+
+    _drain(qapp, lambda: controller.update_check_thread is None)
     assert len(results) == 1
 
 

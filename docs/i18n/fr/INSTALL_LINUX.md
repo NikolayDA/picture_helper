@@ -167,6 +167,12 @@ désactivé jusque-là — c'est le comportement attendu.
 Pour les démarrages suivants, depuis le venv : `source .venv/bin/activate` et
 `python3 -m bgremover`.
 
+En alternative au téléchargement automatique au démarrage, l'état du
+modèle peut être vérifié à tout moment via `Outils → Gérer le modèle
+d'IA…`, qui permet un téléchargement/nouvel essai manuel (avec indicateur
+d'activité et bouton d'annulation) – utile si le téléchargement au
+démarrage a échoué hors ligne.
+
 ## Démarrage rapide depuis `main`
 
 Sur Linux moderne, les installations Python système bloquent `pip install`
@@ -303,7 +309,10 @@ réexécutée après `git pull` — sauf si les dépendances dans
   **démarrage de l'app** (pas au premier clic d'IA), quelques centaines
   de Mo, cache dans `~/.u2net`. La barre d'état affiche entre-temps
   « Chargement du modèle IA… » puis « IA prête » ; le bouton IA reste
-  désactivé jusque-là (et de toute façon sans image chargée).
+  désactivé jusque-là (et de toute façon sans image chargée). Si le
+  téléchargement a échoué hors ligne, l'état peut être vérifié à tout
+  moment via `Outils → Gérer le modèle d'IA…`, qui permet un
+  téléchargement/nouvel essai manuel.
 - **L'application démarre sans IA / « No onnxruntime backend found »** → l'extra
   `ai` n'a pas été installé. L'installer après coup dans le venv :
   ```bash

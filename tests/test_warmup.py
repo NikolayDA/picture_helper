@@ -78,6 +78,19 @@ def test_warmup_success_reports_ready(main_window):
     assert w._sb.currentMessage() == SM.KI_BEREIT
 
 
+def test_warmup_cancellation_does_not_report_ready(main_window):
+    """#570: nach einem Abbruch (z. B. über den KI-Modell-Dialog) darf nicht
+    „KI bereit" erscheinen – analog zum Fehlerfall."""
+    from bgremover.i18n import tr
+
+    w = main_window
+    w._on_warmup_cancelled()
+    w._on_warmup_done()
+    assert w._warmup_failed is True
+    assert w._right_panel.ai_button.isEnabled() is False
+    assert w._sb.currentMessage() == tr("status.ai_warmup_cancelled")
+
+
 def test_start_warmup_disables_ai_button(main_window, monkeypatch):
     """Während des Warmups ist der KI-Button gesperrt."""
     w = main_window

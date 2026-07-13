@@ -49,8 +49,10 @@ class WorkerController:
         self.ai_thread: QThread | None = None
         self.ai_worker: AIWorker | None = None
         self.warmup_thread: QThread | None = None
+        self.warmup_worker: RembgWarmupWorker | None = None
         self.warmup_done = False
         self.update_check_thread: QThread | None = None
+        self.update_check_worker: UpdateCheckWorker | None = None
         self.flood_fill_thread: QThread | None = None
         self.flood_fill_worker: FloodFillWorker | None = None
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
@@ -78,6 +80,10 @@ class WorkerController:
     @property
     def is_ai_running(self) -> bool:
         return self.ai_thread is not None and self.ai_thread.isRunning()
+
+    @property
+    def is_warmup_running(self) -> bool:
+        return self.warmup_thread is not None and self.warmup_thread.isRunning()
 
     @property
     def is_update_check_running(self) -> bool:
@@ -140,41 +146,132 @@ class WorkerController:
 
     def start_warmup(
         self,
-        on_finished: Callable[[], None],
+        on_finished: Callable[[], None] | None = None,
         on_error: Callable[[str], None] | None = None,
+        on_cancelled: Callable[[], None] | None = None,
+        on_success: Callable[[], None] | None = None,
     ) -> bool:
-        """Startet den rembg-Warmup; gibt False zurück, wenn der Warmup bereits läuft."""
-        if self.warmup_thread is not None and self.warmup_thread.isRunning():
-            return False
+        """Startet den rembg-Warmup oder hängt sich an einen laufenden an (#570).
+
+        Läuft bereits ein Warmup (der automatische Start-Warmup oder ein
+        vorheriger Download-Versuch aus dem KI-Modell-Dialog), werden die
+        übergebenen Callbacks zusätzlich an den *laufenden* Worker gehängt,
+        statt einen zweiten Thread/Prozess zu starten – beide Aufrufer werden
+        über denselben Abschluss benachrichtigt, und es läuft nie mehr als
+        eine Modellinitialisierung gleichzeitig. Gibt in beiden Fällen True
+        zurück: der Aufrufer wird garantiert benachrichtigt, unabhängig davon,
+        ob dieser Aufruf den Warmup gestartet oder sich nur angehängt hat.
+
+        ``on_finished`` feuert **immer** (Erfolg/Fehler/Abbruch) – für
+        Aufrufer wie den Start-Warmup, die unabhängig vom Ausgang aufräumen
+        müssen (z. B. den KI-Button wieder freigeben). ``on_success`` feuert
+        **nur** bei Erfolg; ein Aufrufer, der bei Abbruch/Fehler etwas
+        anderes als bei Erfolg zeigen will (z. B. der KI-Modell-Dialog), darf
+        dafür NICHT ``on_finished`` verwenden – das würde einen Abbruch/Fehler
+        nach der Fehler-/Abbruch-Meldung sofort wieder als Erfolg überschreiben.
+        """
+        if self.is_warmup_running:
+            worker = self.warmup_worker
+            assert worker is not None
+            if on_finished is not None:
+                worker.done.connect(self._guard_ui_callback(on_finished))
+            if on_success is not None:
+                worker.finished.connect(self._guard_ui_callback(on_success))
+            if on_error is not None:
+                worker.error.connect(self._guard_ui_callback(on_error))
+            if on_cancelled is not None:
+                worker.cancelled.connect(self._guard_ui_callback(on_cancelled))
+            if self.is_warmup_running:
+                return True
+            # Race (Review-Befund #574): der Warmup kann zwischen der
+            # obigen Prüfung und dem Verbinden auf dem Worker-Thread bereits
+            # abgeschlossen sein – Qt liefert kein „Signal-Replay" für einen
+            # Emit, der vor dem Connect passierte. Statt diesen Aufrufer
+            # dauerhaft ohne Benachrichtigung hängen zu lassen, startet ein
+            # frischer Warmup neu und garantiert ihm so einen Abschluss.
+
+        return self._start_new_warmup_thread(on_finished, on_error, on_cancelled, on_success)
+
+    def _start_new_warmup_thread(
+        self,
+        on_finished: Callable[[], None] | None,
+        on_error: Callable[[str], None] | None,
+        on_cancelled: Callable[[], None] | None,
+        on_success: Callable[[], None] | None,
+    ) -> bool:
         worker = RembgWarmupWorker(self._inference)
+        if on_success is not None:
+            # ``finished`` feuert nur bei Erfolg – klar getrennt vom
+            # Lifecycle-Signal ``done`` (siehe ``start_warmup``-Docstring).
+            worker.finished.connect(self._guard_ui_callback(on_success))
         if on_error is not None:
-            # ``error`` feuert nur im Fehlerfall (vor dem finished/Lifecycle).
+            # ``error`` feuert nur im Fehlerfall (vor dem Lifecycle-Ende).
             # So kann der Aufrufer einen fehlgeschlagenen Warmup von einem
             # erfolgreichen unterscheiden, statt blind „KI bereit" zu melden.
             worker.error.connect(self._guard_ui_callback(on_error))
-        guarded_on_finished = self._guard_ui_callback(on_finished)
+        if on_cancelled is not None:
+            worker.cancelled.connect(self._guard_ui_callback(on_cancelled))
+        guarded_on_finished = self._guard_ui_callback(on_finished) if on_finished else None
         thread = self._build_thread(
             worker,
-            quit_on=(worker.finished,),
+            quit_on=(worker.done,),
             on_finished=lambda: self._finish_warmup_thread(guarded_on_finished),
         )
         self.warmup_thread = thread
+        self.warmup_worker = worker
         thread.start()
         return True
 
-    def _finish_warmup_thread(self, on_finished: Callable[[], None]) -> None:
+    def _finish_warmup_thread(self, on_finished: Callable[[], None] | None) -> None:
         self.warmup_done = True
         self.warmup_thread = None
-        on_finished()
+        self.warmup_worker = None
+        if on_finished is not None:
+            on_finished()
+
+    def cancel_warmup(self) -> None:
+        """Markiert den laufenden rembg-Warmup als abgebrochen (#570).
+
+        Der pollende Worker-Thread bemerkt das kooperative Abbruch-Flag,
+        beendet den Inferenz-Kindprozess (stoppt den laufenden Modell-
+        Download/die Probe-Inferenz) und kehrt zurück, ohne ``finished``
+        oder ``error`` zu emittieren – nur ``cancelled`` und (immer)
+        ``done``. Ohne laufenden Warmup ein No-op.
+        """
+        if self.warmup_worker is not None:
+            self.warmup_worker.cancel()
 
     def start_update_check(
         self,
         current_version: str,
         on_result: Callable[[UpdateCheckResult], None],
     ) -> bool:
-        """Startet den Update-Check (#565); gibt False zurück, wenn bereits einer läuft."""
+        """Startet den Update-Check oder hängt sich an einen laufenden an.
+
+        Läuft bereits ein Check (z. B. der stille automatische Start-Check,
+        #566), wird ``on_result`` zusätzlich an dessen Ergebnis gehängt,
+        statt einen zweiten Netzwerkaufruf zu starten – ein manueller
+        „Nach Updates suchen…"-Klick während eines laufenden automatischen
+        Checks bekommt so trotzdem seinen Ergebnisdialog, statt nur
+        „läuft bereits" zu sehen (Review-Befund #574). Gibt immer True
+        zurück.
+        """
         if self.is_update_check_running:
-            return False
+            worker = self.update_check_worker
+            assert worker is not None
+            worker.finished.connect(self._guard_ui_callback(on_result))
+            if self.is_update_check_running:
+                return True
+            # Race (analog start_warmup): der Check kann zwischen der
+            # Pruefung und dem Verbinden bereits abgeschlossen sein.
+
+        return self._start_new_update_check_thread(current_version, on_result)
+
+    def _start_new_update_check_thread(
+        self,
+        current_version: str,
+        on_result: Callable[[UpdateCheckResult], None],
+    ) -> bool:
         worker = UpdateCheckWorker(current_version)
         guarded_on_result = self._guard_ui_callback(on_result)
         worker.finished.connect(guarded_on_result)
@@ -184,11 +281,13 @@ class WorkerController:
             on_finished=self._finish_update_check_thread,
         )
         self.update_check_thread = thread
+        self.update_check_worker = worker
         thread.start()
         return True
 
     def _finish_update_check_thread(self) -> None:
         self.update_check_thread = None
+        self.update_check_worker = None
 
     def start_ai(
         self,
@@ -277,6 +376,7 @@ class WorkerController:
         self._shutting_down = True
         self.cancel_ai()
         self.cancel_flood_fill()
+        self.cancel_warmup()
         # Laufende, nicht unterbrechbare Inferenz sofort entwerten: killt den
         # Inferenz-Kindprozess, sodass der pollende KI-Thread seinen Loop
         # verlässt und kooperativ endet – ohne QThread.terminate() für die KI.
@@ -313,8 +413,12 @@ class WorkerController:
                 setattr(self, attr_name, None)
         if shutdowns[0][1]:
             self.ai_worker = None
+        if shutdowns[2][1]:
+            self.warmup_worker = None
         if shutdowns[3][1]:
             self.flood_fill_worker = None
+        if shutdowns[4][1]:
+            self.update_check_worker = None
 
         all_stopped = all(stopped for _, stopped in shutdowns)
         if not all_stopped:

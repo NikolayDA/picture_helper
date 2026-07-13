@@ -3,9 +3,10 @@
 ``FakeInference`` ersetzt ``bgremover.ai_process.InferenceProcess`` in
 Controller-/Lifecycle-Tests durch eine In-Process-Variante (kein echter
 Subprozess): schnell, hermetisch und ohne rembg. Es bildet die für die
-Thread-Lifecycle-Buchhaltung relevante Semantik nach – ``infer`` pollt
-``should_cancel`` und bricht mit ``InferenceCancelled`` ab, ``request_stop``
-entwertet eine laufende Inferenz mit ``InferenceError``. Das echte
+Thread-Lifecycle-Buchhaltung relevante Semantik nach – ``infer`` **und**
+``warmup`` pollen ``should_cancel`` und brechen mit ``InferenceCancelled`` ab,
+``request_stop`` entwertet eine laufende Inferenz/einen laufenden Warmup mit
+``InferenceError``. Das echte
 Prozess-/Kill-Verhalten prüft ``tests/test_ai_process.py`` mit echten
 spawn-Subprozessen.
 """
@@ -59,6 +60,17 @@ class FakeInference:
     def warmup(self, should_cancel: Callable[[], bool] | None = None) -> None:
         self.warmup_calls += 1
         self.alive = True
+        cancelled = should_cancel or (lambda: False)
+        while True:
+            if cancelled():
+                self.alive = False
+                raise InferenceCancelled
+            if self._stopped.is_set():
+                self.alive = False
+                raise InferenceError("Inferenzprozess beendet")
+            if self._gate is None or self._gate.is_set():
+                break
+            threading.Event().wait(self._poll)
         if self._warmup_error is not None:
             raise self._warmup_error
 
