@@ -9,6 +9,7 @@ from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtBoundSignal
 
 from bgremover.ai_process import InferenceProcess
+from bgremover.app_update import UpdateCheckResult
 from bgremover.constants import (
     _THREAD_SHUTDOWN_MS,
     _THREAD_TERMINATE_WAIT_MS,
@@ -19,6 +20,7 @@ from bgremover.workers import (
     FloodFillWorker,
     ImageLoadWorker,
     RembgWarmupWorker,
+    UpdateCheckWorker,
     _Worker,
 )
 
@@ -48,6 +50,7 @@ class WorkerController:
         self.ai_worker: AIWorker | None = None
         self.warmup_thread: QThread | None = None
         self.warmup_done = False
+        self.update_check_thread: QThread | None = None
         self.flood_fill_thread: QThread | None = None
         self.flood_fill_worker: FloodFillWorker | None = None
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
@@ -75,6 +78,10 @@ class WorkerController:
     @property
     def is_ai_running(self) -> bool:
         return self.ai_thread is not None and self.ai_thread.isRunning()
+
+    @property
+    def is_update_check_running(self) -> bool:
+        return self.update_check_thread is not None and self.update_check_thread.isRunning()
 
     @property
     def is_flood_fill_running(self) -> bool:
@@ -159,6 +166,29 @@ class WorkerController:
         self.warmup_done = True
         self.warmup_thread = None
         on_finished()
+
+    def start_update_check(
+        self,
+        current_version: str,
+        on_result: Callable[[UpdateCheckResult], None],
+    ) -> bool:
+        """Startet den Update-Check (#565); gibt False zurück, wenn bereits einer läuft."""
+        if self.is_update_check_running:
+            return False
+        worker = UpdateCheckWorker(current_version)
+        guarded_on_result = self._guard_ui_callback(on_result)
+        worker.finished.connect(guarded_on_result)
+        thread = self._build_thread(
+            worker,
+            quit_on=(worker.finished,),
+            on_finished=self._finish_update_check_thread,
+        )
+        self.update_check_thread = thread
+        thread.start()
+        return True
+
+    def _finish_update_check_thread(self) -> None:
+        self.update_check_thread = None
 
     def start_ai(
         self,
@@ -263,6 +293,10 @@ class WorkerController:
             (
                 "flood_fill_thread",
                 self.shutdown_thread(self.flood_fill_thread, "Flood-Fill"),
+            ),
+            (
+                "update_check_thread",
+                self.shutdown_thread(self.update_check_thread, "Update-Check"),
             ),
         )
         # Inferenz-Kindprozess endgültig beenden und einsammeln. Die

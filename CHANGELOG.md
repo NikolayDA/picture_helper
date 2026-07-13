@@ -22,6 +22,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   rembg-Standardmodell (`u2net.onnx`) bereits im Cache-Verzeichnis
   (`U2NET_HOME` bzw. `~/.u2net`) liegt – ohne `rembg` zu importieren und ohne
   einen Download auszulösen.
+- **Menüpunkt „Nach Updates suchen…" (#565, Teil von Epic #563).** Der
+  manuelle Update-Check aus dem Extras-Menü läuft nicht-blockierend in einem
+  eigenen Worker-Thread (`UpdateCheckWorker`, analog zum bestehenden
+  rembg-Warmup) und zeigt je nach Ergebnis einen passenden, übersetzten
+  Dialog: aktuelle Version, neue Version mit „Release-Seite öffnen"-Button
+  oder eine Fehlermeldung ohne technischen Stacktrace. Re-Entrancy-Schutz
+  verhindert einen zweiten parallelen Check.
+- **Menüpunkt „KI-Modell verwalten…" (#569, Teil von Epic #563).** Neuer
+  Dialog `ai_model_dialog.py` zeigt den Cache-Status des rembg-Modells
+  (Heruntergeladen/Nicht heruntergeladen/KI-Funktion nicht verfügbar) mit
+  Download-/Retry- und Abbrechen-Button samt Busy-Indikator; der Menüpunkt
+  ist ohne installiertes rembg deaktiviert (mit erklärendem Tooltip). Der
+  Download nutzt bereits den bestehenden Warmup-Mechanismus; das Anhängen an
+  einen laufenden Start-Warmup sowie der prozessseitige Abbruch folgen in
+  einem Folge-Issue (#570).
 
 ## [2.5.0] – 2026-07-11
 

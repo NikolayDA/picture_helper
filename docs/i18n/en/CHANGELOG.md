@@ -21,6 +21,19 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   model (`u2net.onnx`) is already present in the cache directory
   (`U2NET_HOME` or `~/.u2net`) — without importing `rembg` and without
   triggering a download.
+- **"Check for updates…" menu entry (#565, part of Epic #563).** The manual
+  update check in the Extras menu runs non-blocking in its own worker thread
+  (`UpdateCheckWorker`, analogous to the existing rembg warmup) and shows a
+  matching, translated dialog depending on the result: current version, a new
+  version with an "Open release page" button, or an error message without a
+  technical stack trace. Re-entrancy guard prevents a second parallel check.
+- **"Manage AI model…" menu entry (#569, part of Epic #563).** New dialog
+  `ai_model_dialog.py` shows the rembg model's cache status
+  (Downloaded/Not downloaded/AI feature unavailable) with download/retry and
+  cancel buttons plus a busy indicator; the menu entry is disabled without
+  rembg installed (with an explanatory tooltip). The download already reuses
+  the existing warmup mechanism; attaching to an in-progress startup warmup
+  and the process-side abort follow in a follow-up issue (#570).
 
 ## [2.5.0] – 2026-07-11
 

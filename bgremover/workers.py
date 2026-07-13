@@ -17,6 +17,7 @@ from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from bgremover.ai_process import InferenceCancelled, InferenceProcess
+from bgremover.app_update import UpdateCheckResult, UpdateStatus, check_for_update
 from bgremover.constants import logger
 from bgremover.image_loading import open_validated_image
 from bgremover.image_utils import flood_fill
@@ -143,6 +144,33 @@ class RembgWarmupWorker(_Worker):
 
     def _always_finished(self) -> None:
         self.finished.emit()
+
+
+class UpdateCheckWorker(_Worker):
+    """Fragt im Hintergrund die neueste GitHub-Release ab (#565).
+
+    ``check_for_update`` fängt bereits jeden Netzwerk-/Parsing-Fehler intern
+    ab und liefert nie eine Exception – ``finished`` feuert deshalb über
+    ``_always_finished`` immer mit einem gültigen ``UpdateCheckResult``
+    (nötigenfalls ``CHECK_FAILED``, falls die Basisklasse doch einmal einen
+    unerwarteten Fehler abfängt).
+    """
+    finished = pyqtSignal(object)   # UpdateCheckResult – immer
+    _error_context = "Update-Check"
+
+    def __init__(self, current_version: str, timeout: float = 5.0) -> None:
+        super().__init__()
+        self._current_version = current_version
+        self._timeout = timeout
+        # Defensiver Startwert, falls die Basisklasse doch einen unerwarteten
+        # Fehler aus ``_work`` abfaengt, bevor ``self._result`` gesetzt wird.
+        self._result = UpdateCheckResult(status=UpdateStatus.CHECK_FAILED)
+
+    def _work(self) -> None:
+        self._result = check_for_update(self._current_version, timeout=self._timeout)
+
+    def _always_finished(self) -> None:
+        self.finished.emit(self._result)
 
 
 class ImageLoadWorker(_Worker):

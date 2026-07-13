@@ -698,6 +698,45 @@ def test_warmup_worker_emits_finished_on_error(qapp) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
+# UpdateCheckWorker (#565) – Always-emit-finished-Vertrag
+# ─────────────────────────────────────────────────────────────
+
+def test_update_check_worker_emits_result(qapp, monkeypatch) -> None:
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.workers import UpdateCheckWorker
+
+    expected = UpdateCheckResult(status=UpdateStatus.UP_TO_DATE)
+    monkeypatch.setattr(
+        "bgremover.workers.check_for_update", lambda *a, **kw: expected)
+
+    worker = UpdateCheckWorker("1.0.0")
+    results: list = []
+    worker.finished.connect(results.append)
+
+    worker.run()
+
+    assert results == [expected]
+
+
+def test_update_check_worker_passes_version_and_timeout(qapp, monkeypatch) -> None:
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.workers import UpdateCheckWorker
+
+    calls: list[tuple] = []
+
+    def _fake_check(current_version, *, timeout):
+        calls.append((current_version, timeout))
+        return UpdateCheckResult(status=UpdateStatus.UP_TO_DATE)
+
+    monkeypatch.setattr("bgremover.workers.check_for_update", _fake_check)
+
+    worker = UpdateCheckWorker("2.3.4", timeout=1.5)
+    worker.run()
+
+    assert calls == [("2.3.4", 1.5)]
+
+
+# ─────────────────────────────────────────────────────────────
 # N7 – rembg wird lazy importiert (App-Start-Latenz)
 # ─────────────────────────────────────────────────────────────
 

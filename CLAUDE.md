@@ -180,8 +180,22 @@ Ein Paket, `bgremover/`:
   (#564). `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
   rembg-Cache-Zustand (`U2NET_HOME`/`~/.u2net`, Standardmodell
   `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu
-  importieren (#568). Beide Module sind Grundlage für die noch
-  ausstehende UI-Anbindung (Menü/Dialog) aus dem Epic.
+  importieren (#568). UI-Anbindung (#565/#569): Extras-Menü „Nach Updates
+  suchen…" startet `UpdateCheckWorker` (`workers.py`) nicht-blockierend über
+  `WorkerController.start_update_check` (Re-Entrancy-Schutz analog Warmup,
+  in `shutdown_all` mitverdrahtet) und zeigt je nach `UpdateStatus` einen
+  passenden `QMessageBox`-Dialog (`MainWindow._on_update_check_result`;
+  „Release-Seite öffnen" via `QDesktopServices.openUrl`, `CHECK_FAILED` ohne
+  technischen Stacktrace). „KI-Modell verwalten…" (nur bei `REMBG_AVAILABLE`
+  aktiv, sonst deaktiviert mit Tooltip) öffnet `ai_model_dialog.py`
+  (`AiModelDialog`): zeigt den Status aus `get_model_status()` und meldet
+  Download-/Cancel-Klicks über die Signale `download_requested`/
+  `cancel_requested` – bewusst entkoppelt von echtem `WorkerController`/
+  `InferenceProcess` (nur testbare Zustandsmethoden `start_downloading`/
+  `download_succeeded`/`download_failed`); `MainWindow` verdrahtet den
+  Download aktuell auf den bestehenden Warmup-Mechanismus, das Anhängen an
+  einen laufenden Start-Warmup sowie der prozessseitige Abbruch folgen in
+  einem Folge-Issue (#570).
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,

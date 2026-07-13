@@ -23,6 +23,21 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   modelo por defecto de rembg (`u2net.onnx`) ya está en el directorio de caché
   (`U2NET_HOME` o `~/.u2net`) — sin importar `rembg` y sin desencadenar una
   descarga.
+- **Menú "Buscar actualizaciones…" (#565, parte del Epic #563).** La
+  comprobación manual de actualizaciones en el menú Herramientas se ejecuta
+  sin bloquear en su propio hilo de trabajo (`UpdateCheckWorker`, análogo al
+  warmup de rembg existente) y muestra un diálogo traducido según el
+  resultado: versión actual, nueva versión con botón "Abrir página de la
+  versión", o un mensaje de error sin detalles técnicos. Una protección de
+  reentrada evita una segunda comprobación paralela.
+- **Menú "Gestionar modelo de IA…" (#569, parte del Epic #563).** Nuevo
+  diálogo `ai_model_dialog.py` que muestra el estado de caché del modelo de
+  rembg (Descargado/No descargado/Función de IA no disponible) con botones de
+  descarga/reintento y cancelar, además de un indicador de progreso; el menú
+  está deshabilitado sin rembg instalado (con un tooltip explicativo). La
+  descarga ya reutiliza el mecanismo de warmup existente; adjuntarse a un
+  warmup de inicio en curso y la cancelación a nivel de proceso llegarán en un
+  issue de seguimiento (#570).
 
 ## [2.5.0] – 2026-07-11
 

@@ -150,3 +150,32 @@ def test_check_failed_on_missing_fields() -> None:
         result = check_for_update("1.2.3")
     assert result.status == UpdateStatus.CHECK_FAILED
     assert result.error
+
+
+def test_check_failed_on_non_object_json_payload() -> None:
+    class _ListResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b"[1, 2, 3]"
+
+    with patch("urllib.request.urlopen", return_value=_ListResp()):
+        result = check_for_update("1.2.3")
+    assert result.status == UpdateStatus.CHECK_FAILED
+    assert result.error
+
+
+def test_up_to_date_prefers_release_over_local_prerelease_suffix() -> None:
+    # Gleiche Kernversion, aber die lokale Version hat KEIN Suffix, die
+    # entfernte schon: die installierte Version bleibt "neuer" bzw. gleich
+    # aktuell (deckt den ``current_suffix == ""``-Zweig von ``_is_newer``).
+    with patch(
+        "urllib.request.urlopen",
+        return_value=_fake_response({"tag_name": "v1.2.3-rc1", "html_url": "https://example"}),
+    ):
+        result = check_for_update("1.2.3")
+    assert result.status == UpdateStatus.UP_TO_DATE
