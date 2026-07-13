@@ -170,6 +170,32 @@ Ein Paket, `bgremover/`:
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
+- **App-Update & KI-Modell-Status (Epic #563):** `app_update.py` —
+  Qt-freie `check_for_update(current_version)` fragt
+  `https://api.github.com/repos/NikolayDA/picture_helper/releases/latest`
+  über `urllib.request` ab (kurzer Timeout, keine Pflichtabhängigkeit) und
+  liefert ein strukturiertes `UpdateCheckResult`
+  (`UP_TO_DATE`/`UPDATE_AVAILABLE`/`CHECK_FAILED`) – jeder Netzwerk-/
+  Parsing-Fehler wird als `CHECK_FAILED` zurückgegeben, nie als Exception
+  (#564). `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
+  rembg-Cache-Zustand (`U2NET_HOME`/`~/.u2net`, Standardmodell
+  `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu
+  importieren (#568). UI-Anbindung (#565/#569): Extras-Menü „Nach Updates
+  suchen…" startet `UpdateCheckWorker` (`workers.py`) nicht-blockierend über
+  `WorkerController.start_update_check` (Re-Entrancy-Schutz analog Warmup,
+  in `shutdown_all` mitverdrahtet) und zeigt je nach `UpdateStatus` einen
+  passenden `QMessageBox`-Dialog (`MainWindow._on_update_check_result`;
+  „Release-Seite öffnen" via `QDesktopServices.openUrl`, `CHECK_FAILED` ohne
+  technischen Stacktrace). „KI-Modell verwalten…" (nur bei `REMBG_AVAILABLE`
+  aktiv, sonst deaktiviert mit Tooltip) öffnet `ai_model_dialog.py`
+  (`AiModelDialog`): zeigt den Status aus `get_model_status()` und meldet
+  Download-/Cancel-Klicks über die Signale `download_requested`/
+  `cancel_requested` – bewusst entkoppelt von echtem `WorkerController`/
+  `InferenceProcess` (nur testbare Zustandsmethoden `start_downloading`/
+  `download_succeeded`/`download_failed`); `MainWindow` verdrahtet den
+  Download aktuell auf den bestehenden Warmup-Mechanismus, das Anhängen an
+  einen laufenden Start-Warmup sowie der prozessseitige Abbruch folgen in
+  einem Folge-Issue (#570).
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,
@@ -218,7 +244,8 @@ Ein Paket, `bgremover/`:
   py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
   `tests/conftest.py` `E402`.
 - **mypy:** Die Qt-armen Logikmodule sind streng getypt (`disallow_untyped_defs`
-  + `check_untyped_defs`): `ai_process`, `image_ops`, `image_utils`, `color_ops`,
+  + `check_untyped_defs`): `ai_model_status`, `ai_process`, `app_update`,
+  `image_ops`, `image_utils`, `color_ops`,
   `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
   `relief_preview`, `height_map`, `height_ops`, `preview_mode`, `crop`,
   `project_model/_history/_schema/_io`, `recent_files`, `units` und

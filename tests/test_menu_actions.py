@@ -57,6 +57,8 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             set_preview_mode=preview_modes.append,
             toggle_light_mode=lambda light: calls.append(f"theme:{light}"),
             open_settings=lambda: calls.append("settings"),
+            check_for_updates=lambda: calls.append("check_for_updates"),
+            manage_ai_model=lambda: calls.append("manage_ai_model"),
         ),
     )
 
@@ -76,6 +78,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
         "Auswahl aufheben", "Auswahl invertieren",
         "Original wiederherstellen", "Fit to View", "Verlauf", "Einstellungen…",
         "Farbe", "Relief über Farbe", "Höhe (Graustufe)", "Gloss", "Kombiniert",
+        "Nach Updates suchen…", "KI-Modell verwalten…",
     }
     assert expected <= set(actions)
     assert _portable_shortcut(actions["Öffnen…"]) == "Ctrl+O"
@@ -102,6 +105,8 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["Fit to View"].trigger()
     actions["Verlauf"].trigger()
     actions["Einstellungen…"].trigger()
+    actions["Nach Updates suchen…"].trigger()
+    actions["KI-Modell verwalten…"].trigger()
     actions["Relief über Farbe"].trigger()
     actions["Kombiniert"].trigger()
 
@@ -121,6 +126,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert calls == [
         "open", "save", "save_as", "undo", "redo",
         "clear", "invert", "restore", "fit", "history", "settings",
+        "check_for_updates", "manage_ai_model",
         "new_project", "open_project", "save_project", "save_project_as",
         "export_eufymake",
         "resize",
@@ -132,3 +138,49 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert not actions["Relief über Farbe"].isChecked()
     assert opened_recent == []
     assert missing_recent == []
+
+
+def _minimal_callbacks(**overrides) -> MainMenuCallbacks:
+    noop = lambda *a: None  # noqa: E731
+    defaults = {
+        "open_image": noop, "open_recent_path": noop, "recent_path_missing": noop,
+        "save": noop, "save_as": noop, "new_project": noop, "open_project": noop,
+        "save_project": noop, "save_project_as": noop, "export_eufymake": noop,
+        "undo": noop, "redo": noop, "rotate": noop, "flip": noop, "resize": noop,
+        "clear_selection": noop, "invert_selection": noop, "restore_original": noop,
+        "fit_to_view": noop, "toggle_history": noop, "set_preview_mode": noop,
+        "toggle_light_mode": noop, "open_settings": noop, "check_for_updates": noop,
+        "manage_ai_model": noop,
+    }
+    defaults.update(overrides)
+    return MainMenuCallbacks(**defaults)
+
+
+def test_ai_model_action_disabled_and_tooltipped_without_rembg(qapp, tmp_path):
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+    window = QMainWindow()
+
+    build_main_menu(
+        window, window.menuBar(),
+        RecentFiles(QSettings("BgRemover", "BgRemover")),
+        _minimal_callbacks(), rembg_available=False,
+    )
+
+    action = _actions(window)["KI-Modell verwalten…"]
+    assert not action.isEnabled()
+    assert action.toolTip()
+
+
+def test_ai_model_action_enabled_when_rembg_available(qapp, tmp_path):
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+    window = QMainWindow()
+
+    build_main_menu(
+        window, window.menuBar(),
+        RecentFiles(QSettings("BgRemover", "BgRemover")),
+        _minimal_callbacks(), rembg_available=True,
+    )
+
+    assert _actions(window)["KI-Modell verwalten…"].isEnabled()

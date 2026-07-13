@@ -363,6 +363,61 @@ def test_warmup_releases_worker_when_inference_raises(qapp):
     assert controller._workers == []
 
 
+def test_start_update_check_releases_worker_and_delivers_result(
+    qapp, controller, monkeypatch,
+):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+
+    expected = UpdateCheckResult(status=UpdateStatus.UP_TO_DATE)
+    monkeypatch.setattr(
+        "bgremover.workers.check_for_update", lambda *a, **kw: expected)
+
+    results: list = []
+    started = controller.start_update_check("1.0.0", results.append)
+    assert started
+    assert len(controller._workers) == 1
+    thread = controller.update_check_thread
+    assert thread is not None
+
+    _drain(
+        qapp,
+        lambda: controller.update_check_thread is None and controller._workers == [],
+    )
+
+    assert thread.isFinished()
+    assert controller.update_check_thread is None
+    assert results == [expected]
+    assert controller._workers == []
+
+
+def test_start_update_check_rejects_second_call_while_running(
+    qapp, controller, monkeypatch,
+):
+    import threading
+
+    release = threading.Event()
+
+    def _blocking_check(*a, **kw):
+        release.wait(timeout=3.0)
+        from bgremover.app_update import UpdateCheckResult, UpdateStatus
+        return UpdateCheckResult(status=UpdateStatus.UP_TO_DATE)
+
+    monkeypatch.setattr("bgremover.workers.check_for_update", _blocking_check)
+
+    results: list = []
+    started_first = controller.start_update_check("1.0.0", results.append)
+    assert started_first
+    started_second = controller.start_update_check("1.0.0", results.append)
+    assert not started_second
+
+    release.set()
+    _drain(
+        qapp,
+        lambda: controller.update_check_thread is None,
+    )
+    assert len(results) == 1
+
+
 def test_release_worker_is_idempotent(controller):
     """``_release_worker`` darf doppelt feuern, ohne zu werfen."""
     sentinel = QObject()
@@ -389,6 +444,7 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
         "Bildladen": object(),
         "rembg-Warmup": object(),
         "Flood-Fill": object(),
+        "Update-Check": object(),
     }
     controller.ai_worker = ai_worker
     controller.flood_fill_worker = flood_worker
@@ -396,6 +452,7 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
     controller.load_thread = threads["Bildladen"]
     controller.warmup_thread = threads["rembg-Warmup"]
     controller.flood_fill_thread = threads["Flood-Fill"]
+    controller.update_check_thread = threads["Update-Check"]
     shutdowns: list[tuple[object, str]] = []
     monkeypatch.setattr(
         controller,
@@ -412,11 +469,13 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
         (threads["Bildladen"], "Bildladen"),
         (threads["rembg-Warmup"], "rembg-Warmup"),
         (threads["Flood-Fill"], "Flood-Fill"),
+        (threads["Update-Check"], "Update-Check"),
     ]
     assert controller.ai_thread is None
     assert controller.load_thread is None
     assert controller.warmup_thread is None
     assert controller.flood_fill_thread is None
+    assert controller.update_check_thread is None
 
 
 def test_shutdown_all_keeps_unstopped_thread_referenced(

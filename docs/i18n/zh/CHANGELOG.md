@@ -9,6 +9,29 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 新增
+
+- **更新检查核心逻辑（#564，Epic #563 的一部分）。** 新增无 Qt 依赖模块
+  `app_update.py`：`check_for_update(current_version)` 查询 GitHub Releases
+  API（仅使用标准库 `urllib.request`，不下载任何资源文件），返回结构化的
+  `UpdateCheckResult`（`UP_TO_DATE` / `UPDATE_AVAILABLE` /
+  `CHECK_FAILED`）；任何网络/解析错误都以带可读错误信息的 `CHECK_FAILED`
+  返回，绝不向外抛出异常。
+- **AI 模型状态检测（#568，Epic #563 的一部分）。** 新增无 Qt 依赖模块
+  `ai_model_status.py`：`get_model_status()` 检测 rembg 默认模型
+  (`u2net.onnx`) 是否已存在于缓存目录（`U2NET_HOME` 或 `~/.u2net`）中——
+  不导入 `rembg`，也不会触发下载。
+- **"检查更新…" 菜单项（#565，Epic #563 的一部分）。** 工具菜单中的手动更新
+  检查在独立的工作线程中非阻塞运行（`UpdateCheckWorker`，类似现有的 rembg
+  预热机制），并根据结果显示相应的翻译对话框：当前版本、带"打开发布页面"
+  按钮的新版本，或不含技术堆栈信息的错误提示。重入保护可防止第二次并行
+  检查。
+- **"管理 AI 模型…" 菜单项（#569，Epic #563 的一部分）。** 新增对话框
+  `ai_model_dialog.py` 显示 rembg 模型的缓存状态（已下载/尚未下载/AI 功能
+  不可用），提供下载/重试和取消按钮及忙碌指示器；未安装 rembg 时菜单项被
+  禁用（并带有说明性提示）。下载已复用现有的预热机制；附加到正在运行的
+  启动预热以及进程侧的取消将在后续 issue（#570）中实现。
+
 ## [2.5.0] – 2026-07-11
 
 ### 新增

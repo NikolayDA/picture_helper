@@ -9,6 +9,38 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Logique centrale de vérification des mises à jour (#564, partie de
+  l'Epic #563).** Nouveau module sans Qt `app_update.py` :
+  `check_for_update(current_version)` interroge l'API GitHub Releases
+  (uniquement `urllib.request` de la bibliothèque standard, sans téléchargement
+  d'actif) et renvoie un `UpdateCheckResult` structuré (`UP_TO_DATE` /
+  `UPDATE_AVAILABLE` / `CHECK_FAILED`) ; toute erreur réseau/d'analyse est
+  renvoyée sous forme de `CHECK_FAILED` avec un message lisible, jamais sous
+  forme d'exception.
+- **Détection de l'état du modèle d'IA (#568, partie de l'Epic #563).**
+  Nouveau module sans Qt `ai_model_status.py` : `get_model_status()` détecte
+  si le modèle par défaut de rembg (`u2net.onnx`) est déjà présent dans le
+  répertoire de cache (`U2NET_HOME` ou `~/.u2net`) — sans importer `rembg` et
+  sans déclencher de téléchargement.
+- **Entrée de menu « Rechercher des mises à jour… » (#565, partie de l'Epic
+  #563).** La vérification manuelle des mises à jour dans le menu Outils
+  s'exécute sans bloquer dans son propre thread de travail
+  (`UpdateCheckWorker`, analogue au warmup rembg existant) et affiche une
+  boîte de dialogue traduite adaptée au résultat : version actuelle, nouvelle
+  version avec un bouton « Ouvrir la page de la version », ou un message
+  d'erreur sans trace technique. Une protection contre la réentrance empêche
+  une seconde vérification parallèle.
+- **Entrée de menu « Gérer le modèle d'IA… » (#569, partie de l'Epic #563).**
+  Nouvelle boîte de dialogue `ai_model_dialog.py` affichant l'état du cache du
+  modèle rembg (Téléchargé/Non téléchargé/Fonction d'IA indisponible) avec des
+  boutons télécharger/réessayer et annuler ainsi qu'un indicateur d'activité ;
+  l'entrée de menu est désactivée sans rembg installé (avec une infobulle
+  explicative). Le téléchargement réutilise déjà le mécanisme de warmup
+  existant ; le rattachement à un warmup de démarrage en cours et
+  l'annulation côté processus suivront dans un ticket de suivi (#570).
+
 ## [2.5.0] – 2026-07-11
 
 ### Ajouté

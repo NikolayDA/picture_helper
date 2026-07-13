@@ -43,6 +43,8 @@ class MainMenuCallbacks:
     set_preview_mode: Callable[[PreviewMode], None]
     toggle_light_mode: Callable[[bool], None]
     open_settings: Callable[[], None]
+    check_for_updates: Callable[[], None]
+    manage_ai_model: Callable[[], None]
 
 
 def build_main_menu(
@@ -52,6 +54,7 @@ def build_main_menu(
     callbacks: MainMenuCallbacks,
     *,
     light_mode: bool = False,
+    rembg_available: bool = True,
 ) -> RecentFilesMenu:
     """Baut die Menüleiste und gibt den Recent-Files-Adapter zurück."""
 
@@ -145,6 +148,16 @@ def build_main_menu(
 
     extras_menu = _add_menu(menu_bar, tr("menu.extras"))
     _add_action(extras_menu, parent, tr("action.settings"), callbacks.open_settings, "Ctrl+,")
+    extras_menu.addSeparator()
+    _add_action(
+        extras_menu, parent, tr("action.check_for_updates"), callbacks.check_for_updates)
+    ai_model_action = _add_action(
+        extras_menu, parent, tr("action.manage_ai_model"), callbacks.manage_ai_model)
+    # KI-Modell-Verwaltung ist ohne rembg sinnlos (#569) – analog zur
+    # bestehenden REMBG_AVAILABLE-Gate am KI-Button (right_panel_tabs.py).
+    ai_model_action.setEnabled(rembg_available)
+    if not rembg_available:
+        ai_model_action.setToolTip(tr("toolbar.ai.missing.tooltip"))
 
     return recent_menu
 

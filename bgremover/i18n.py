@@ -413,6 +413,40 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "Helles Design aktiviert.",
         "theme.switched.dark": "Dunkles Design aktiviert.",
         "action.settings": "Einstellungen…",
+        "action.check_for_updates": "Nach Updates suchen…",
+        "action.manage_ai_model": "KI-Modell verwalten…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "Suche nach Updates…",
+        "status.update_check_already_running": "Update-Check läuft bereits…",
+        "dialog.update_check.title": "Update-Check",
+        "dialog.update_check.up_to_date.body": (
+            "Sie verwenden bereits die aktuelle Version ({version})."
+        ),
+        "dialog.update_check.available.body": (
+            "Eine neue Version ist verfügbar: {latest} (installiert: {current})."
+        ),
+        "dialog.update_check.open_release": "Release-Seite öffnen",
+        "dialog.update_check.failed.body": (
+            "Der Update-Check ist fehlgeschlagen. Bitte später erneut versuchen."
+        ),
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "KI-Modell verwalten",
+        "ai_model.status.downloaded": "Heruntergeladen ({path}, {size})",
+        "ai_model.status.not_downloaded": "Nicht heruntergeladen",
+        "ai_model.status.rembg_unavailable": (
+            "KI-Funktion nicht verfügbar (rembg nicht installiert)"
+        ),
+        "ai_model.dialog.download": "Jetzt herunterladen",
+        "ai_model.dialog.retry": "Erneut versuchen",
+        "ai_model.dialog.cancel": "Abbrechen",
+        "ai_model.dialog.close": "Schließen",
+        "ai_model.dialog.busy": (
+            "Es läuft bereits ein anderer Download. Bitte kurz warten und erneut versuchen."
+        ),
+        "ai_model.dialog.cancel_not_yet_supported": (
+            "Der Download läuft im Hintergrund weiter; ein sofortiger Abbruch ist "
+            "derzeit noch nicht möglich."
+        ),
         # Left toolbar
         "toolbar.move.tooltip": (
             "Verschieben / Zoom\n"
@@ -1178,6 +1212,40 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "Light theme enabled.",
         "theme.switched.dark": "Dark theme enabled.",
         "action.settings": "Settings…",
+        "action.check_for_updates": "Check for updates…",
+        "action.manage_ai_model": "Manage AI model…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "Checking for updates…",
+        "status.update_check_already_running": "Update check already running…",
+        "dialog.update_check.title": "Update Check",
+        "dialog.update_check.up_to_date.body": (
+            "You are already using the latest version ({version})."
+        ),
+        "dialog.update_check.available.body": (
+            "A new version is available: {latest} (installed: {current})."
+        ),
+        "dialog.update_check.open_release": "Open release page",
+        "dialog.update_check.failed.body": (
+            "The update check failed. Please try again later."
+        ),
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "Manage AI Model",
+        "ai_model.status.downloaded": "Downloaded ({path}, {size})",
+        "ai_model.status.not_downloaded": "Not downloaded",
+        "ai_model.status.rembg_unavailable": (
+            "AI feature unavailable (rembg not installed)"
+        ),
+        "ai_model.dialog.download": "Download now",
+        "ai_model.dialog.retry": "Retry",
+        "ai_model.dialog.cancel": "Cancel",
+        "ai_model.dialog.close": "Close",
+        "ai_model.dialog.busy": (
+            "Another download is already in progress. Please wait a moment and try again."
+        ),
+        "ai_model.dialog.cancel_not_yet_supported": (
+            "The download keeps running in the background; an immediate cancel is "
+            "not yet possible."
+        ),
         # Left toolbar
         "toolbar.move.tooltip": (
             "Move / Zoom\n"
@@ -1945,6 +2013,42 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "Tema claro activado.",
         "theme.switched.dark": "Tema oscuro activado.",
         "action.settings": "Ajustes…",
+        "action.check_for_updates": "Buscar actualizaciones…",
+        "action.manage_ai_model": "Gestionar modelo de IA…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "Buscando actualizaciones…",
+        "status.update_check_already_running": (
+            "Ya hay una comprobación de actualizaciones en curso…"
+        ),
+        "dialog.update_check.title": "Comprobación de actualizaciones",
+        "dialog.update_check.up_to_date.body": (
+            "Ya tienes la versión más reciente ({version})."
+        ),
+        "dialog.update_check.available.body": (
+            "Hay una nueva versión disponible: {latest} (instalada: {current})."
+        ),
+        "dialog.update_check.open_release": "Abrir página de la versión",
+        "dialog.update_check.failed.body": (
+            "La comprobación de actualizaciones falló. Inténtalo de nuevo más tarde."
+        ),
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "Gestionar modelo de IA",
+        "ai_model.status.downloaded": "Descargado ({path}, {size})",
+        "ai_model.status.not_downloaded": "No descargado",
+        "ai_model.status.rembg_unavailable": (
+            "Función de IA no disponible (rembg no instalado)"
+        ),
+        "ai_model.dialog.download": "Descargar ahora",
+        "ai_model.dialog.retry": "Reintentar",
+        "ai_model.dialog.cancel": "Cancelar",
+        "ai_model.dialog.close": "Cerrar",
+        "ai_model.dialog.busy": (
+            "Ya hay otra descarga en curso. Espera un momento e inténtalo de nuevo."
+        ),
+        "ai_model.dialog.cancel_not_yet_supported": (
+            "La descarga continúa en segundo plano; todavía no es posible "
+            "cancelarla de inmediato."
+        ),
         # Left toolbar
         "toolbar.move.tooltip": (
             "Mover / Zoom\n"
@@ -2711,6 +2815,42 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "Thème clair activé.",
         "theme.switched.dark": "Thème sombre activé.",
         "action.settings": "Réglages…",
+        "action.check_for_updates": "Rechercher des mises à jour…",
+        "action.manage_ai_model": "Gérer le modèle d'IA…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "Recherche de mises à jour…",
+        "status.update_check_already_running": (
+            "Une recherche de mises à jour est déjà en cours…"
+        ),
+        "dialog.update_check.title": "Vérification des mises à jour",
+        "dialog.update_check.up_to_date.body": (
+            "Vous utilisez déjà la dernière version ({version})."
+        ),
+        "dialog.update_check.available.body": (
+            "Une nouvelle version est disponible : {latest} (installée : {current})."
+        ),
+        "dialog.update_check.open_release": "Ouvrir la page de la version",
+        "dialog.update_check.failed.body": (
+            "La vérification des mises à jour a échoué. Veuillez réessayer plus tard."
+        ),
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "Gérer le modèle d'IA",
+        "ai_model.status.downloaded": "Téléchargé ({path}, {size})",
+        "ai_model.status.not_downloaded": "Non téléchargé",
+        "ai_model.status.rembg_unavailable": (
+            "Fonction d'IA indisponible (rembg non installé)"
+        ),
+        "ai_model.dialog.download": "Télécharger maintenant",
+        "ai_model.dialog.retry": "Réessayer",
+        "ai_model.dialog.cancel": "Annuler",
+        "ai_model.dialog.close": "Fermer",
+        "ai_model.dialog.busy": (
+            "Un autre téléchargement est déjà en cours. Veuillez patienter puis réessayer."
+        ),
+        "ai_model.dialog.cancel_not_yet_supported": (
+            "Le téléchargement continue en arrière-plan ; une annulation immédiate "
+            "n'est pas encore possible."
+        ),
         # Left toolbar
         "toolbar.move.tooltip": (
             "Déplacer / Zoom\n"
@@ -3476,6 +3616,39 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "Світлу тему ввімкнено.",
         "theme.switched.dark": "Темну тему ввімкнено.",
         "action.settings": "Налаштування…",
+        "action.check_for_updates": "Перевірити оновлення…",
+        "action.manage_ai_model": "Керувати моделлю ШІ…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "Перевірка оновлень…",
+        "status.update_check_already_running": "Перевірка оновлень уже виконується…",
+        "dialog.update_check.title": "Перевірка оновлень",
+        "dialog.update_check.up_to_date.body": (
+            "Ви вже використовуєте найновішу версію ({version})."
+        ),
+        "dialog.update_check.available.body": (
+            "Доступна нова версія: {latest} (встановлено: {current})."
+        ),
+        "dialog.update_check.open_release": "Відкрити сторінку релізу",
+        "dialog.update_check.failed.body": (
+            "Перевірка оновлень не вдалася. Спробуйте пізніше."
+        ),
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "Керування моделлю ШІ",
+        "ai_model.status.downloaded": "Завантажено ({path}, {size})",
+        "ai_model.status.not_downloaded": "Не завантажено",
+        "ai_model.status.rembg_unavailable": (
+            "Функція ШІ недоступна (rembg не встановлено)"
+        ),
+        "ai_model.dialog.download": "Завантажити зараз",
+        "ai_model.dialog.retry": "Повторити спробу",
+        "ai_model.dialog.cancel": "Скасувати",
+        "ai_model.dialog.close": "Закрити",
+        "ai_model.dialog.busy": (
+            "Уже триває інше завантаження. Зачекайте трохи і спробуйте ще раз."
+        ),
+        "ai_model.dialog.cancel_not_yet_supported": (
+            "Завантаження триває у фоновому режимі; негайне скасування поки що неможливе."
+        ),
         # Left toolbar
         "toolbar.move.tooltip": (
             "Переміщення / Масштаб\n"
@@ -4235,6 +4408,27 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "theme.switched.light": "已启用浅色主题。",
         "theme.switched.dark": "已启用深色主题。",
         "action.settings": "设置…",
+        "action.check_for_updates": "检查更新…",
+        "action.manage_ai_model": "管理 AI 模型…",
+        # App-Update-Check (#565)
+        "status.update_check_running": "正在检查更新…",
+        "status.update_check_already_running": "更新检查已在进行中…",
+        "dialog.update_check.title": "更新检查",
+        "dialog.update_check.up_to_date.body": "您使用的已是最新版本（{version}）。",
+        "dialog.update_check.available.body": "有新版本可用：{latest}（已安装：{current}）。",
+        "dialog.update_check.open_release": "打开发布页面",
+        "dialog.update_check.failed.body": "更新检查失败，请稍后重试。",
+        # KI-Modell-Verwaltung (#569)
+        "ai_model.dialog.title": "管理 AI 模型",
+        "ai_model.status.downloaded": "已下载（{path}，{size}）",
+        "ai_model.status.not_downloaded": "尚未下载",
+        "ai_model.status.rembg_unavailable": "AI 功能不可用（未安装 rembg）",
+        "ai_model.dialog.download": "立即下载",
+        "ai_model.dialog.retry": "重试",
+        "ai_model.dialog.cancel": "取消",
+        "ai_model.dialog.close": "关闭",
+        "ai_model.dialog.busy": "已有其他下载正在进行，请稍候再试。",
+        "ai_model.dialog.cancel_not_yet_supported": "下载将在后台继续；目前还无法立即取消。",
         # Left toolbar
         "toolbar.move.tooltip": (
             "移动 / 缩放\n"

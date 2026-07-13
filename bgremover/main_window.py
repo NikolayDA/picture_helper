@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import cast
 
 from PIL import Image
-from PyQt6.QtCore import QSettings, Qt
-from PyQt6.QtGui import QAction, QColor, QKeySequence, QShortcut
+from PyQt6.QtCore import QSettings, Qt, QUrl
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QColorDialog,
@@ -24,6 +24,8 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover import __version__
+from bgremover.ai_model_dialog import AiModelDialog
+from bgremover.app_update import UpdateCheckResult, UpdateStatus
 from bgremover.canvas import ImageCanvas
 from bgremover.constants import (
     _THREAD_SHUTDOWN_MS,
@@ -745,8 +747,11 @@ class MainWindow(QMainWindow):
                 set_preview_mode=self._canvas.set_preview_mode,
                 toggle_light_mode=self._toggle_light_mode,
                 open_settings=self._open_settings,
+                check_for_updates=self._check_for_updates,
+                manage_ai_model=self._open_ai_model_dialog,
             ),
             light_mode=self._light_mode,
+            rembg_available=REMBG_AVAILABLE,
         )
 
     def _build_tool_shortcuts(self) -> None:
@@ -1435,3 +1440,76 @@ class MainWindow(QMainWindow):
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)
         dlg.exec()
+
+    # ── App-Update-Check (#565) ────────────────────────────────
+
+    def _check_for_updates(self) -> None:
+        """Startet den manuellen Update-Check nicht-blockierend im Hintergrund."""
+        started = self._worker_controller.start_update_check(
+            __version__, self._on_update_check_result)
+        if started:
+            self._sb.showMessage(tr("status.update_check_running"))
+        else:
+            # Re-Entrancy-Schutz analog Warmup: ein Check läuft bereits.
+            self._sb.showMessage(tr("status.update_check_already_running"))
+
+    def _on_update_check_result(self, result: UpdateCheckResult) -> None:
+        if result.status is UpdateStatus.UP_TO_DATE:
+            QMessageBox.information(
+                self, tr("dialog.update_check.title"),
+                tr("dialog.update_check.up_to_date.body", version=__version__))
+            return
+        if result.status is UpdateStatus.UPDATE_AVAILABLE:
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Icon.Information)
+            box.setWindowTitle(tr("dialog.update_check.title"))
+            box.setText(tr(
+                "dialog.update_check.available.body",
+                current=__version__,
+                latest=result.latest_version or "?",
+            ))
+            open_btn = box.addButton(
+                tr("dialog.update_check.open_release"), QMessageBox.ButtonRole.ActionRole)
+            box.addButton(QMessageBox.StandardButton.Close)
+            box.exec()
+            if box.clickedButton() is open_btn and result.release_url:
+                QDesktopServices.openUrl(QUrl(result.release_url))
+            return
+        # CHECK_FAILED: kein technischer Stacktrace in der UI – der Detailfehler
+        # (result.error, nicht lokalisiert) landet nur im Log.
+        logger.warning("Update-Check fehlgeschlagen: %s", result.error)
+        QMessageBox.warning(
+            self, tr("dialog.update_check.title"), tr("dialog.update_check.failed.body"))
+
+    # ── KI-Modell-Verwaltung (#569) ────────────────────────────
+
+    def _open_ai_model_dialog(self) -> None:
+        dlg = AiModelDialog(parent=self)
+        dlg.download_requested.connect(lambda: self._start_ai_model_download(dlg))
+        dlg.cancel_requested.connect(lambda: self._cancel_ai_model_download(dlg))
+        dlg.exec()
+
+    def _start_ai_model_download(self, dlg: AiModelDialog) -> None:
+        """Startet den Modell-Download über den bestehenden Warmup-Mechanismus.
+
+        Das Anhängen an einen bereits laufenden Start-Warmup, Race-Vermeidung
+        und der prozessseitige Abbruch sind laut Scope-Klarstellung auf #569
+        Teil des Folge-Issues #570; hier greift nur die eingebaute
+        Re-Entrancy-Prüfung von ``start_warmup`` selbst.
+        """
+        started = self._worker_controller.start_warmup(
+            dlg.download_succeeded, dlg.download_failed)
+        if started:
+            dlg.start_downloading()
+        else:
+            dlg.download_failed(tr("ai_model.dialog.busy"))
+
+    def _cancel_ai_model_download(self, dlg: AiModelDialog) -> None:
+        """Blendet den Busy-Zustand im Dialog aus.
+
+        Der reale Prozessabbruch (``InferenceProcess``-seitig) folgt in #570;
+        ein bereits laufender Warmup läuft im Hintergrund unverändert weiter
+        (kein Zombie-Prozess – der bestehende Thread-Lifecycle bleibt
+        unangetastet), nur die Dialoganzeige hört auf zu warten.
+        """
+        dlg.download_failed(tr("ai_model.dialog.cancel_not_yet_supported"))

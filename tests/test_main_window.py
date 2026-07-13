@@ -1026,3 +1026,167 @@ def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
     finally:
         set_active_palette(DARK)
         win.close()
+
+
+# ── App-Update-Check (#565) ─────────────────────────────────────────────
+
+def test_check_for_updates_starts_worker_and_shows_busy_message(win, monkeypatch):
+    from bgremover.i18n import tr
+
+    monkeypatch.setattr(
+        win._worker_controller, "start_update_check", lambda *a, **kw: True)
+
+    win._check_for_updates()
+
+    assert win.statusBar().currentMessage() == tr("status.update_check_running")
+
+
+def test_check_for_updates_reports_already_running(win, monkeypatch):
+    from bgremover.i18n import tr
+
+    monkeypatch.setattr(
+        win._worker_controller, "start_update_check", lambda *a, **kw: False)
+
+    win._check_for_updates()
+
+    assert win.statusBar().currentMessage() == tr("status.update_check_already_running")
+
+
+def test_update_check_result_up_to_date_shows_information(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+
+    shown: list[tuple] = []
+    monkeypatch.setattr(
+        QMessageBox, "information",
+        lambda *a, **kw: shown.append(a) or QMessageBox.StandardButton.Ok)
+
+    win._on_update_check_result(UpdateCheckResult(status=UpdateStatus.UP_TO_DATE))
+
+    assert len(shown) == 1
+
+
+def test_update_check_result_failed_shows_warning_without_raw_error(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.i18n import tr
+
+    shown: list[tuple] = []
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        lambda *a, **kw: shown.append(a) or QMessageBox.StandardButton.Ok)
+
+    win._on_update_check_result(
+        UpdateCheckResult(status=UpdateStatus.CHECK_FAILED, error="HTTP 500 technical detail"))
+
+    assert len(shown) == 1
+    assert tr("dialog.update_check.failed.body") in shown[0]
+    assert "HTTP 500 technical detail" not in shown[0]
+
+
+def test_update_check_result_available_opens_release_page(win, monkeypatch):
+    from bgremover.app_update import UpdateCheckResult, UpdateStatus
+    from bgremover.i18n import tr
+
+    opened: list[str] = []
+    monkeypatch.setattr(
+        mw.QDesktopServices, "openUrl", lambda url: opened.append(url.toString()) or True)
+
+    # Statt die ganze Klasse zu ersetzen (nimmt sonst die echten Icon-/
+    # ButtonRole-/StandardButton-Enums mit), werden nur ``exec``/``addButton``/
+    # ``clickedButton`` überschrieben – der „Release-Seite öffnen"-Button
+    # bleibt so der real erzeugte, den ``clickedButton()`` zurückgibt.
+    open_buttons: list[object] = []
+    original_add_button = QMessageBox.addButton
+
+    def _tracking_add_button(self, *a, **kw):
+        btn = original_add_button(self, *a, **kw)
+        if a and a[0] == tr("dialog.update_check.open_release"):
+            open_buttons.append(btn)
+        return btn
+
+    monkeypatch.setattr(QMessageBox, "addButton", _tracking_add_button)
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    monkeypatch.setattr(QMessageBox, "clickedButton", lambda self: open_buttons[-1])
+
+    result = UpdateCheckResult(
+        status=UpdateStatus.UPDATE_AVAILABLE,
+        latest_version="v9.9.9",
+        release_url="https://example.invalid/release",
+    )
+    win._on_update_check_result(result)
+
+    assert opened == ["https://example.invalid/release"]
+
+
+# ── KI-Modell-Verwaltung (#569) ─────────────────────────────────────────
+
+def test_start_ai_model_download_uses_warmup_mechanism(win, monkeypatch):
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import get_model_status
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup",
+        lambda on_finished, on_error: calls.append("started") or True)
+
+    dlg = AiModelDialog(status_provider=get_model_status)
+    downloading: list[bool] = []
+    monkeypatch.setattr(dlg, "start_downloading", lambda: downloading.append(True))
+
+    win._start_ai_model_download(dlg)
+
+    assert calls == ["started"]
+    assert downloading == [True]
+
+
+def test_start_ai_model_download_reports_busy_when_already_running(win, monkeypatch):
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import get_model_status
+    from bgremover.i18n import tr
+
+    monkeypatch.setattr(
+        win._worker_controller, "start_warmup", lambda on_finished, on_error: False)
+
+    dlg = AiModelDialog(status_provider=get_model_status)
+    failures: list[str] = []
+    monkeypatch.setattr(dlg, "download_failed", failures.append)
+
+    win._start_ai_model_download(dlg)
+
+    assert failures == [tr("ai_model.dialog.busy")]
+
+
+def test_cancel_ai_model_download_hides_busy_state(win, monkeypatch):
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import get_model_status
+    from bgremover.i18n import tr
+
+    dlg = AiModelDialog(status_provider=get_model_status)
+    failures: list[str] = []
+    monkeypatch.setattr(dlg, "download_failed", failures.append)
+
+    win._cancel_ai_model_download(dlg)
+
+    assert failures == [tr("ai_model.dialog.cancel_not_yet_supported")]
+
+
+def test_open_ai_model_dialog_wires_signals(win, monkeypatch):
+    from bgremover import ai_model_dialog as ai_model_dialog_module
+
+    created: list = []
+
+    class _RecordingDialog(ai_model_dialog_module.AiModelDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiModelDialog", _RecordingDialog)
+
+    win._open_ai_model_dialog()
+
+    assert len(created) == 1
+    dlg = created[0]
+    assert dlg.receivers(dlg.download_requested) >= 1
+    assert dlg.receivers(dlg.cancel_requested) >= 1

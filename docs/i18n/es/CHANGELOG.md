@@ -9,6 +9,36 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **Lógica central de comprobación de actualizaciones (#564, parte del Epic
+  #563).** Nuevo módulo sin Qt `app_update.py`: `check_for_update(current_version)`
+  consulta la API de Releases de GitHub (solo `urllib.request` de la biblioteca
+  estándar, sin descargar activos) y devuelve un `UpdateCheckResult`
+  estructurado (`UP_TO_DATE` / `UPDATE_AVAILABLE` / `CHECK_FAILED`); todo error
+  de red/parseo se devuelve como `CHECK_FAILED` con un mensaje legible, nunca
+  como excepción.
+- **Detección del estado del modelo de IA (#568, parte del Epic #563).** Nuevo
+  módulo sin Qt `ai_model_status.py`: `get_model_status()` detecta si el
+  modelo por defecto de rembg (`u2net.onnx`) ya está en el directorio de caché
+  (`U2NET_HOME` o `~/.u2net`) — sin importar `rembg` y sin desencadenar una
+  descarga.
+- **Menú "Buscar actualizaciones…" (#565, parte del Epic #563).** La
+  comprobación manual de actualizaciones en el menú Herramientas se ejecuta
+  sin bloquear en su propio hilo de trabajo (`UpdateCheckWorker`, análogo al
+  warmup de rembg existente) y muestra un diálogo traducido según el
+  resultado: versión actual, nueva versión con botón "Abrir página de la
+  versión", o un mensaje de error sin detalles técnicos. Una protección de
+  reentrada evita una segunda comprobación paralela.
+- **Menú "Gestionar modelo de IA…" (#569, parte del Epic #563).** Nuevo
+  diálogo `ai_model_dialog.py` que muestra el estado de caché del modelo de
+  rembg (Descargado/No descargado/Función de IA no disponible) con botones de
+  descarga/reintento y cancelar, además de un indicador de progreso; el menú
+  está deshabilitado sin rembg instalado (con un tooltip explicativo). La
+  descarga ya reutiliza el mecanismo de warmup existente; adjuntarse a un
+  warmup de inicio en curso y la cancelación a nivel de proceso llegarán en un
+  issue de seguimiento (#570).
+
 ## [2.5.0] – 2026-07-11
 
 ### Añadido
