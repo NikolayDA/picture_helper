@@ -12,6 +12,7 @@ JSON-Metadaten des `/releases/latest`-Endpunkts (`tag_name`, `html_url`).
 """
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import urllib.error
@@ -95,7 +96,7 @@ def check_for_update(current_version: str, *, timeout: float = 5.0) -> UpdateChe
             status=UpdateStatus.CHECK_FAILED,
             error=f"GitHub-Release-Abfrage fehlgeschlagen (HTTP {e.code}).",
         )
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
+    except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as e:
         return UpdateCheckResult(
             status=UpdateStatus.CHECK_FAILED,
             error=f"GitHub-Release-Abfrage nicht erreichbar: {e}",

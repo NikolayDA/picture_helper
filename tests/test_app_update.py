@@ -6,6 +6,7 @@ HTTP-Fehler, ungültiges JSON und unparsebares Tag-Format.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import urllib.error
 from unittest.mock import patch
@@ -91,6 +92,16 @@ def test_check_failed_on_connection_error() -> None:
     with patch(
         "urllib.request.urlopen",
         side_effect=urllib.error.URLError("no route to host"),
+    ):
+        result = check_for_update("1.2.3")
+    assert result.status == UpdateStatus.CHECK_FAILED
+    assert result.error
+
+
+def test_check_failed_on_incomplete_read() -> None:
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=http.client.IncompleteRead(b""),
     ):
         result = check_for_update("1.2.3")
     assert result.status == UpdateStatus.CHECK_FAILED
