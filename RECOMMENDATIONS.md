@@ -11,71 +11,85 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-12)
+## Aktueller Stand (2026-07-13)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am
-2026-07-11 geschnitten (CHANGELOG kuratiert, Version angehoben – PR #538). Die
-gesamte Rollout-/Release-Welle ist damit geschlossen: **#435** (PR #538),
-**#392**, **#426** und **#389**. Ebenfalls geschlossen: **#299** (PR #539) mit
-dem separat nachgezogenen N13-Testhygiene-Follow-up **#541** (PR #543), sowie
-**#318** (PR #540) und die Recommendations-Snapshot-Synchronisation **#542**.
-Ein Repo-Audit vom 2026-07-12 hat fünf neue Befunde erfasst (**#549–#553**);
-**#552**, **#549**, **#553** und **#550** sind inzwischen geschlossen
-(PR #557, #558, #559 und #560). Live-Stand (erneut abgefragt): **2** offene
-Issues – **#245** und **#551**.
+2026-07-11 geschnitten (PR #538); die Rollout-Welle **#435/#392/#426/#389**
+ist geschlossen, ebenso **#299** (PR #539) mit N13-Follow-up **#541**
+(PR #543), **#318** (PR #540) und Snapshot-Sync **#542**. Ein Repo-Audit vom
+2026-07-12 hat **#549–#553** erfasst; **#552/#549/#553/#550** sind über
+PR #557–#560 geschlossen. Seit dem letzten Snapshot (#245, #551) ist am
+2026-07-13 Epic **#563** („App-Update-Prüfung & KI-Modell-Verwaltung") mit
+acht Sub-Issues (**#564–#571**) hinzugekommen. Live-Stand: **11** offene
+Issues – #245, #551, #563–#571.
 
 ### Erledigt seit dem letzten Review
 
-- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** bleiben
-  erledigt; Epics **#329/#344/#358/#384** (N9–N12) samt Export-Fix **#363**
-  sind gemergt und archiviert.
-- **Seit 2026-06-25 geschlossen:** **#404/#406/#408** (PR #412) – Vorschau-/
-  Dead-Code-/Audit-Befunde erledigt.
-- **Redesign-Kern, Rail/Zoom, Karten-Inspector, Dark Mode, UI-Nacharbeit:**
-  **#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517** sind
-  über PR #412/#423/#466/#467/#473/#482/#489/#504/#506/#512/#513/#518/#519
-  sowie PR #520/#521/#522 abgeschlossen; **#490** und **#433/#434** ebenso.
-- **Seit 2026-07-12 geschlossen:** Release-Welle **#435/#392/#426/#389**
-  (v2.5.0, PR #538) sowie **#299** (PR #539), das Testhygiene-Follow-up
-  **#541** (PR #543), **#318** (PR #540), die Recommendations-Snapshot-
-  Synchronisation **#542**, das PR-Template **#552** (PR #557), der
-  Snapshot-Sync **#549**, der SessionStart-Hook-Fix **#553** und die
-  v2.3.0-Tag-/Release-Formalisierung **#550**. Damit sind alle Redesign-/
-  Release-/Backlog-Punkte des letzten Snapshots abgearbeitet.
+- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** erledigt;
+  Epics **#329/#344/#358/#384** (N9–N12) + Export-Fix **#363** gemergt/
+  archiviert. Seit 2026-06-25 zusätzlich **#404/#406/#408** (PR #412)
+  geschlossen.
+- **Redesign & Release:** Redesign-Kern/Rail/Zoom/Karten-Inspector/Dark
+  Mode/UI-Nacharbeit (**#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/
+  #510/#514–#517**, **#490**, **#433/#434**) über PR #412–#522
+  abgeschlossen. Release-Welle **#435/#392/#426/#389** (v2.5.0),
+  **#299/#541/#318/#542**, PR-Template **#552**, Snapshot-Sync **#549**,
+  SessionStart-Fix **#553**, v2.3.0-Formalisierung **#550** – alles seit
+  2026-07-12 geschlossen.
 
 ### Noch offen
 
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach
   Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-12)
+## Offene GitHub-Issues – Triage-Stand (2026-07-13)
 
-Live-Stand direkt vor dieser Bearbeitung: **#552**, **#549**, **#553** und
-**#550** sind geschlossen. Es verbleiben **2** offene Issues: **#245**
-(Quota-/Billing-Blocker) und **#551** (Grundsatzentscheidung Codex Security
-Scan).
+Live-Stand: **11** offene Issues – zwei bestehende CI-/Security-Issues
+(**#245**, **#551**) plus Epic **#563** mit acht Sub-Issues (**#564–#571**)
+für zwei unabhängige Gruppen: App-Update (#564–#567) und KI-Modell-
+Verwaltung (#568–#571). Alle Kommentare geprüft – bestehende
+Owner-Triage-Notizen vom 2026-07-13 decken Reihenfolge/Scope bereits ab,
+keine Issue-Beschreibung musste angepasst werden.
 
 ### Sinnvolle Bündelung
 
-#245 und #551 hängen inhaltlich zusammen (Codex-Scan): #245 ist eine reine
-Account-Aktion, #551 braucht dagegen eine eigene Grundsatzentscheidung
-(reaktivieren/zurückbauen/ersetzen).
+#245/#551 hängen zusammen (Codex-Scan: Account-Aktion vs.
+Grundsatzentscheidung). Die acht #563-Sub-Issues bilden zwei intern
+sequenzielle, gegenseitig unabhängige Ketten: **App-Update**
+(#564→#565→#566→#567) und **KI-Modell-Download** (#568→#569→#570→#571) –
+vom Issue-Autor am 2026-07-13 bestätigt (Kommentare zu #563/#569/#570).
 
-Bewertung: **Relevanz** = Bedeutung für Roadmap/Nutzer, **Komplexität** =
-geschätzter Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes
-Claude-Modell und Reasoning-Effort für die Umsetzung durch Claude Code.
+Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** =
+Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes Claude-Modell +
+Reasoning-Effort.
 
 | # | Titel | Relevanz | Komplexität | Modell/Aufwand | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|-----------------|------------------------------|
-| [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Grundsatzentscheidung Codex Security Scan (reaktivieren/zurückbauen/ersetzen) | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Needs refinement** – erfordert eine bewusste Entscheidung zwischen drei Optionen; Empfehlung: Option 2 (Zurückbauen/Deaktivieren) angesichts wochenlanger externer Blockade und Redundanz zu pip-audit/license/CI. |
+| [#563](https://github.com/NikolayDA/picture_helper/issues/563) | Epic: Menü-Erweiterung App-Update & KI-Modell-Verwaltung | 🟠 Hoch | 🟠 Hoch (8 Sub-Issues) | – (reines Tracking) | **Blocked (auf Sub-Issues)** – schließt automatisch mit #564–#571; Reihenfolge im Owner-Kommentar vom 2026-07-13 festgehalten. |
+| [#564](https://github.com/NikolayDA/picture_helper/issues/564) | App-Update: Update-Check-Kernlogik (`app_update.py`) | 🟠 Hoch | 🟢 Niedrig (Größe S, keine Abhängigkeiten) | Sonnet 5 · niedrig–mittel | **Ready for PR** – Qt-frei, strikt getypt, klare Akzeptanzkriterien. |
+| [#565](https://github.com/NikolayDA/picture_helper/issues/565) | App-Update: Menü-/Dialog-Integration „Nach Updates suchen…" | 🟠 Hoch | 🟡 Mittel (Größe S–M, async QThread + i18n) | Sonnet 5 · mittel | **Needs #564** – danach direkt PR-bereit. |
+| [#566](https://github.com/NikolayDA/picture_helper/issues/566) | App-Update: optionaler automatischer Start-Check | 🟡 Mittel | 🟢 Niedrig (Größe S) | Sonnet 5 · niedrig | **Needs #564+#565**. |
+| [#567](https://github.com/NikolayDA/picture_helper/issues/567) | App-Update: Doku-Abschluss + i18n-Governance | 🟢 Niedrig | 🟢 Niedrig (Größe XS) | Sonnet 5 · niedrig | **Needs #564–#566 gemergt**. |
+| [#568](https://github.com/NikolayDA/picture_helper/issues/568) | KI-Modell-Download: Statuserkennung (Qt-frei) | 🟠 Hoch | 🟢 Niedrig (Größe S, keine Abhängigkeiten) | Sonnet 5 · niedrig–mittel | **Ready for PR** – Qt-frei, strikt getypt, klare Akzeptanzkriterien. |
+| [#569](https://github.com/NikolayDA/picture_helper/issues/569) | KI-Modell-Download: Menü-/Dialog-Integration „KI-Modell verwalten…" | 🟠 Hoch | 🟡 Mittel (Größe M, Dialog+Progress+Cancel gemockt) | Sonnet 5 · mittel | **Needs #568** – gemockter Download-/Cancel-Pfad reicht (Scope-Klarstellung 2026-07-13). |
+| [#570](https://github.com/NikolayDA/picture_helper/issues/570) | KI-Modell-Download: Verdrahtung mit Warmup/WorkerController | 🟠 Hoch | 🟡 Mittel–Hoch (Größe S–M, neuer `cancel_warmup()`-Hook nötig) | Sonnet 5 · mittel–hoch | **Needs #568+#569**. |
+| [#571](https://github.com/NikolayDA/picture_helper/issues/571) | KI-Modell-Download: Doku-Abschluss + i18n-Governance | 🟢 Niedrig | 🟢 Niedrig (Größe XS) | Sonnet 5 · niedrig | **Needs #568–#570 gemergt**. |
+| [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Grundsatzentscheidung Codex Security Scan (reaktivieren/zurückbauen/ersetzen) | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Needs refinement** – Entscheidung zwischen drei Optionen; Empfehlung: Option 2 (Zurückbauen/Deaktivieren) angesichts wochenlanger externer Blockade und Redundanz zu pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | – (kein Code-Task) | **Blockiert (extern)** – OpenAI-Billing/Quota-Wiederherstellung ist eine Account-Aktion, kein PR. |
 
 ### Als Nächstes empfohlen (PR-Reihenfolge)
 
-1. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
+1. **#564+#568** — Qt-freie Kernlogik zuerst & parallel umsetzen (unabhängig,
+   ohne offene Abhängigkeiten, vollständig PR-bereit).
+2. **#565+#569** — Menü-/Dialog-Integration je Gruppe nach Kernlogik-Merge
+   (ein gemockter Download-/Check-Pfad reicht).
+3. **#566+#570** — Start-Check bzw. Warmup-Verdrahtung; #570 braucht laut
+   Owner-Kommentar (2026-07-13) zusätzlich einen neuen `cancel_warmup()`-Hook.
+4. **#567+#571** — Doku-Abschluss je Gruppe (XS, trivial).
+5. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
    dann Workflow anpassen.
-2. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
+6. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
    OpenAI-Quota manuell verifizieren.
 
 *Drift-Hinweis:* Die Anzahl offener Issues vor jeder künftigen
@@ -84,37 +98,23 @@ zeigten dasselbe Off-by-one).
 
 ## Vorige Runden
 
-- **2026-07-12 (#550)** — v2.3.0-Tag und GitHub-Release nachträglich
-  formalisiert; CHANGELOG-Footer in allen sechs Sprachen nutzt jetzt
-  `v2.3.0` statt roher Commit-SHAs. Open-Issue-Snapshot auf 2 reduziert
-  (#245, #551).
-- **2026-07-12 (#553)** — SessionStart-Hook-Fix: fehlgeschlagenes
-  `pip install --upgrade pip` (Debian-Paket ohne RECORD-Datei) brach den
-  Hook unter `set -e` vor dem eigentlichen `.[test]`-Install ab; behoben mit
-  `--ignore-installed`, plus idempotente Vorprüfung und Fehler-Trap.
-  Open-Issue-Snapshot auf 3 reduziert (#245, #550, #551).
-- **2026-07-12 (Snapshot-Sync #549)** — #552 (PR-Template) über PR #557
-  geschlossen; #549 (Recommendations-Sync) ebenfalls abgeschlossen.
-- **2026-07-12 (Issue-Audit)** — #542 geschlossen; Repo-Audit hat fünf neue
-  Issues erfasst (#549–#553); Open-Issue-Snapshot auf 6 aktualisiert
-  (#245 + #549–#553).
-- **2026-07-12** — Release **v2.5.0** geschnitten; Rollout-Welle
-  #435/#392/#426/#389 geschlossen; #299 (PR #539), N13-Follow-up #541
-  (PR #543) und #318 (PR #540) geschlossen; Open-Issue-Snapshot auf #245 +
-  #542 reduziert.
-- **2026-07-11 (finaler Nachzug)** — #425 formal geschlossen; #530/#531 über
-  PR #533/#535 geschlossen; Open-Issue-Snapshot auf 7 verbleibende Issues
-  aktualisiert.
-- **2026-07-11 (2. Triage)** — #431/#432 geschlossen (PR #529); Epic #425
-  vollständig erledigt. Neue Issues #530/#531 erfasst.
-- **2026-07-11** — #430 geschlossen (PR #526, Laufzeit-i18n ES/FR/UK/ZH
-  vollständig, O1 erledigt); Epic #425 hing danach nur noch an #431/#432.
-- **2026-07-10** — #509/#510 geschlossen, #514–#517 erledigt, rechte-Spalte-
-  Nacharbeit über PR #520/#521/#522 abgeschlossen.
-- **2026-07-05/06** — #490, Dark-Mode-/Rail-Icon-Welle, Karten-Inspector
-  (#413/#414), #499–#501/#503 (PR #504/#506) sowie Icon-/Statuszeilen-
-  Feinschliff (PR #507/#508) abgeschlossen.
-- **2026-06-29** — #404/#406/#408 abgeschlossen (PR #412), Redesign-Welle eröffnet.
-- **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, erledigt oder bei Fehlalarm verworfen.
+- **2026-07-13 (Issue-Audit)** — Epic **#563** + acht Sub-Issues
+  (**#564–#571**) erfasst; alle 11 offenen Issues neu bewertet,
+  Owner-Kommentare berücksichtigt. Kein Issue geschlossen. Empfehlung:
+  #564/#568 zuerst. Snapshot auf 11.
+- **2026-07-12** — v2.3.0-Formalisierung (**#550**), SessionStart-Hook-Fix
+  (**#553**), Snapshot-Sync (**#549**, PR-Template **#552** via PR #557),
+  Issue-Audit (**#542** geschlossen, #549–#553 erfasst) und Release
+  **v2.5.0** (Rollout-Welle #435/#392/#426/#389, #299/#541/#318) – Snapshot
+  zwischenzeitlich auf 2 (#245, #551) reduziert.
+- **2026-07-11** — Epic #425 komplett abgeschlossen (#430 PR #526,
+  Laufzeit-i18n ES/FR/UK/ZH vollständig, O1 erledigt; #431/#432 PR #529;
+  finaler Nachzug #530/#531 PR #533/#535).
+- **2026-07-05–10** — #509/#510/#514–#517 (PR #520–#522), #490,
+  Dark-Mode-/Rail-Icon-Welle, Karten-Inspector (#413/#414), #499–#501/#503,
+  Icon-/Statuszeilen-Feinschliff.
+- **2026-06-29** — #404/#406/#408 (PR #412), Redesign-Welle eröffnet.
+- **v2.2, „admiring-mayer" (#1–#15)** — externe Liste, erledigt oder bei
+  Fehlalarm verworfen.
 
 Historische Befunde und Arbeitsprotokolle (Runden 1–5): [docs/history/RECOMMENDATIONS-2026-pre-v2.2.md](docs/history/RECOMMENDATIONS-2026-pre-v2.2.md).
