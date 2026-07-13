@@ -1041,15 +1041,23 @@ def test_check_for_updates_starts_worker_and_shows_busy_message(win, monkeypatch
     assert win.statusBar().currentMessage() == tr("status.update_check_running")
 
 
-def test_check_for_updates_reports_already_running(win, monkeypatch):
+def test_check_for_updates_attaches_to_in_flight_automatic_check(win, monkeypatch):
+    """#574-Review: ein manueller Klick waehrend eines laufenden
+    automatischen Start-Checks (#566) muss trotzdem seinen Ergebnisdialog
+    bekommen (start_update_check haengt an, statt abzulehnen)."""
     from bgremover.i18n import tr
 
+    calls: list[tuple] = []
     monkeypatch.setattr(
-        win._worker_controller, "start_update_check", lambda *a, **kw: False)
+        win._worker_controller, "start_update_check",
+        lambda *a, **kw: calls.append((a, kw)) or True)
 
     win._check_for_updates()
 
-    assert win.statusBar().currentMessage() == tr("status.update_check_already_running")
+    assert len(calls) == 1
+    args, _ = calls[0]
+    assert args[1] == win._on_update_check_result
+    assert win.statusBar().currentMessage() == tr("status.update_check_running")
 
 
 def test_update_check_result_up_to_date_shows_information(win, monkeypatch):
@@ -1234,7 +1242,7 @@ def test_start_ai_model_download_uses_warmup_mechanism(win, monkeypatch):
     calls: list[str] = []
     monkeypatch.setattr(
         win._worker_controller, "start_warmup",
-        lambda on_finished, on_error, on_cancelled: calls.append("started") or True)
+        lambda **kw: calls.append("started") or True)
 
     dlg = AiModelDialog(status_provider=get_model_status)
     downloading: list[bool] = []
@@ -1254,7 +1262,7 @@ def test_start_ai_model_download_attaches_when_already_running(win, monkeypatch)
 
     monkeypatch.setattr(
         win._worker_controller, "start_warmup",
-        lambda on_finished, on_error, on_cancelled: True)
+        lambda **kw: True)
 
     dlg = AiModelDialog(status_provider=get_model_status)
     downloading: list[bool] = []
@@ -1314,7 +1322,7 @@ def test_open_ai_model_dialog_shows_progress_immediately_if_warmup_running(
     monkeypatch.setattr(win, "_is_warmup_running", lambda: True)
     monkeypatch.setattr(
         win._worker_controller, "start_warmup",
-        lambda on_finished, on_error, on_cancelled: True)
+        lambda **kw: True)
 
     created: list = []
 

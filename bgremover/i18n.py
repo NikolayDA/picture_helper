@@ -418,7 +418,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "KI-Modell verwalten…",
         # App-Update-Check (#565)
         "status.update_check_running": "Suche nach Updates…",
-        "status.update_check_already_running": "Update-Check läuft bereits…",
         "status.update_available_hint": "🆕 Update verfügbar: {version} – klicken für Details",
         "dialog.update_check.title": "Update-Check",
         "dialog.update_check.up_to_date.body": (
@@ -1216,7 +1215,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "Manage AI model…",
         # App-Update-Check (#565)
         "status.update_check_running": "Checking for updates…",
-        "status.update_check_already_running": "Update check already running…",
         "status.update_available_hint": "🆕 Update available: {version} – click for details",
         "dialog.update_check.title": "Update Check",
         "dialog.update_check.up_to_date.body": (
@@ -2016,9 +2014,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "Gestionar modelo de IA…",
         # App-Update-Check (#565)
         "status.update_check_running": "Buscando actualizaciones…",
-        "status.update_check_already_running": (
-            "Ya hay una comprobación de actualizaciones en curso…"
-        ),
         "status.update_available_hint": (
             "🆕 Actualización disponible: {version} – haz clic para más información"
         ),
@@ -2819,9 +2814,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "Gérer le modèle d'IA…",
         # App-Update-Check (#565)
         "status.update_check_running": "Recherche de mises à jour…",
-        "status.update_check_already_running": (
-            "Une recherche de mises à jour est déjà en cours…"
-        ),
         "status.update_available_hint": (
             "🆕 Mise à jour disponible : {version} – cliquez pour plus de détails"
         ),
@@ -3621,7 +3613,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "Керувати моделлю ШІ…",
         # App-Update-Check (#565)
         "status.update_check_running": "Перевірка оновлень…",
-        "status.update_check_already_running": "Перевірка оновлень уже виконується…",
         "status.update_available_hint": (
             "🆕 Доступне оновлення: {version} – натисніть для деталей"
         ),
@@ -4415,7 +4406,6 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.manage_ai_model": "管理 AI 模型…",
         # App-Update-Check (#565)
         "status.update_check_running": "正在检查更新…",
-        "status.update_check_already_running": "更新检查已在进行中…",
         "status.update_available_hint": "🆕 有可用更新：{version} —— 点击查看详情",
         "dialog.update_check.title": "更新检查",
         "dialog.update_check.up_to_date.body": "您使用的已是最新版本（{version}）。",

@@ -1473,14 +1473,17 @@ class MainWindow(QMainWindow):
     # ── App-Update-Check (#565/#566) ────────────────────────────
 
     def _check_for_updates(self) -> None:
-        """Startet den manuellen Update-Check nicht-blockierend im Hintergrund."""
-        started = self._worker_controller.start_update_check(
+        """Startet den manuellen Update-Check nicht-blockierend im Hintergrund.
+
+        Läuft bereits ein automatischer Start-Check (#566), hängt sich dieser
+        Aufruf über ``start_update_check`` an dessen Ergebnis an, statt einen
+        zweiten Netzwerkaufruf zu starten – der Nutzer bekommt so garantiert
+        seinen Ergebnisdialog, auch wenn im Hintergrund schon ein stiller
+        Check lief (Review-Befund #574).
+        """
+        self._worker_controller.start_update_check(
             __version__, self._on_update_check_result)
-        if started:
-            self._sb.showMessage(tr("status.update_check_running"))
-        else:
-            # Re-Entrancy-Schutz analog Warmup: ein Check läuft bereits.
-            self._sb.showMessage(tr("status.update_check_already_running"))
+        self._sb.showMessage(tr("status.update_check_running"))
 
     def _on_update_check_result(self, result: UpdateCheckResult) -> None:
         if result.status is UpdateStatus.UP_TO_DATE:
@@ -1562,12 +1565,16 @@ class MainWindow(QMainWindow):
         ``WorkerController.start_warmup`` übernimmt beides transparent über
         denselben Re-Entrancy-/Anhänge-Mechanismus wie der automatische
         Start-Warmup – Statusleiste und Dialog werden dadurch nie
-        widersprüchliche Zustände zeigen.
+        widersprüchliche Zustände zeigen. Wichtig: ``dlg.download_succeeded``
+        hängt an ``on_success`` (feuert NUR bei Erfolg), nicht an
+        ``on_finished`` (feuert immer) – sonst würde ein Abbruch/Fehler die
+        gerade gezeigte Fehler-/Abbruchmeldung sofort wieder als „erfolgreich
+        heruntergeladen" überschreiben (Review-Befund #574).
         """
         self._worker_controller.start_warmup(
-            dlg.download_succeeded,
-            dlg.download_failed,
-            lambda: dlg.download_failed(tr("ai_model.dialog.cancelled")),
+            on_success=dlg.download_succeeded,
+            on_error=dlg.download_failed,
+            on_cancelled=lambda: dlg.download_failed(tr("ai_model.dialog.cancelled")),
         )
         dlg.start_downloading()
 
