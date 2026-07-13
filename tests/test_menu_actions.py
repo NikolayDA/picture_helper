@@ -156,7 +156,11 @@ def _minimal_callbacks(**overrides) -> MainMenuCallbacks:
     return MainMenuCallbacks(**defaults)
 
 
-def test_ai_model_action_disabled_and_tooltipped_without_rembg(qapp, tmp_path):
+def test_ai_model_action_always_enabled(qapp, tmp_path):
+    """#575: Der Menüpunkt ist auch ohne rembg IMMER aktiv. Qt zeigt Tooltips
+    in Menüs standardmäßig nicht an – ein still deaktivierter Eintrag wirkte
+    wie ein Bug („Klick tut nichts"). Der Dialog erklärt den Zustand selbst
+    (``ModelStatus.REMBG_UNAVAILABLE`` inkl. aktiver Python-Umgebung)."""
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
     window = QMainWindow()
@@ -164,23 +168,7 @@ def test_ai_model_action_disabled_and_tooltipped_without_rembg(qapp, tmp_path):
     build_main_menu(
         window, window.menuBar(),
         RecentFiles(QSettings("BgRemover", "BgRemover")),
-        _minimal_callbacks(), rembg_available=False,
-    )
-
-    action = _actions(window)["KI-Modell verwalten…"]
-    assert not action.isEnabled()
-    assert action.toolTip()
-
-
-def test_ai_model_action_enabled_when_rembg_available(qapp, tmp_path):
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
-    window = QMainWindow()
-
-    build_main_menu(
-        window, window.menuBar(),
-        RecentFiles(QSettings("BgRemover", "BgRemover")),
-        _minimal_callbacks(), rembg_available=True,
+        _minimal_callbacks(),
     )
 
     assert _actions(window)["KI-Modell verwalten…"].isEnabled()

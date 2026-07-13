@@ -43,6 +43,18 @@ def test_shows_rembg_unavailable_status_with_disabled_download(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
+def test_rembg_unavailable_status_names_active_python_environment(qapp) -> None:
+    """#575: „rembg nicht installiert" heißt oft nur „falscher Interpreter"
+    (App per Desktop-Icon mit System-Python gestartet, rembg liegt in einer
+    venv). Der Dialog zeigt daher die aktive Python-Umgebung mit an."""
+    import sys
+
+    dlg = AiModelDialog(status_provider=lambda: _status(ModelStatus.REMBG_UNAVAILABLE))
+
+    assert sys.executable in dlg._status_label.text()
+
+
+@pytest.mark.ui_smoke
 def test_download_button_emits_signal(qapp) -> None:
     dlg = AiModelDialog(status_provider=lambda: _status(ModelStatus.NOT_DOWNLOADED))
     calls: list[bool] = []

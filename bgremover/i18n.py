@@ -437,6 +437,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.rembg_unavailable": (
             "KI-Funktion nicht verfügbar (rembg nicht installiert)"
         ),
+        "ai_model.status.python_hint": "Aktive Python-Umgebung: {path}",
         "ai_model.dialog.download": "Jetzt herunterladen",
         "ai_model.dialog.retry": "Erneut versuchen",
         "ai_model.dialog.cancel": "Abbrechen",
@@ -1234,6 +1235,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.rembg_unavailable": (
             "AI feature unavailable (rembg not installed)"
         ),
+        "ai_model.status.python_hint": "Active Python environment: {path}",
         "ai_model.dialog.download": "Download now",
         "ai_model.dialog.retry": "Retry",
         "ai_model.dialog.cancel": "Cancel",
@@ -2035,6 +2037,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.rembg_unavailable": (
             "Función de IA no disponible (rembg no instalado)"
         ),
+        "ai_model.status.python_hint": "Entorno de Python activo: {path}",
         "ai_model.dialog.download": "Descargar ahora",
         "ai_model.dialog.retry": "Reintentar",
         "ai_model.dialog.cancel": "Cancelar",
@@ -2835,6 +2838,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.rembg_unavailable": (
             "Fonction d'IA indisponible (rembg non installé)"
         ),
+        "ai_model.status.python_hint": "Environnement Python actif : {path}",
         "ai_model.dialog.download": "Télécharger maintenant",
         "ai_model.dialog.retry": "Réessayer",
         "ai_model.dialog.cancel": "Annuler",
@@ -3634,6 +3638,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.rembg_unavailable": (
             "Функція ШІ недоступна (rembg не встановлено)"
         ),
+        "ai_model.status.python_hint": "Активне середовище Python: {path}",
         "ai_model.dialog.download": "Завантажити зараз",
         "ai_model.dialog.retry": "Повторити спробу",
         "ai_model.dialog.cancel": "Скасувати",
@@ -4417,6 +4422,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.status.downloaded": "已下载（{path}，{size}）",
         "ai_model.status.not_downloaded": "尚未下载",
         "ai_model.status.rembg_unavailable": "AI 功能不可用（未安装 rembg）",
+        "ai_model.status.python_hint": "当前 Python 环境：{path}",
         "ai_model.dialog.download": "立即下载",
         "ai_model.dialog.retry": "重试",
         "ai_model.dialog.cancel": "取消",
