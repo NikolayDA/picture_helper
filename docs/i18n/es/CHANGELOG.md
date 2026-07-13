@@ -63,6 +63,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   próxima vez que se abre, en lugar de solo el mensaje neutro «No
   descargado» sin ninguna pista del problema — antes el error solo quedaba
   en el registro.
+- **«Gestionar modelo de IA…» ya no queda mudo sin rembg (#575).** Sin
+  rembg instalado, la entrada del menú se desactivaba silenciosamente — y
+  como Qt no muestra tooltips en los menús por defecto, un clic parecía un
+  error («no hace nada») sin ninguna explicación. La entrada ahora está
+  siempre activa: el propio diálogo muestra el estado «Función de IA no
+  disponible» y nombra además el entorno de Python activo
+  (`sys.executable`) — así, un arranque con el intérprete equivocado (p.
+  ej. Python del sistema en lugar de la venv con rembg) se reconoce de
+  inmediato.
 
 ## [2.5.0] – 2026-07-11
 

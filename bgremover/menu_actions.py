@@ -54,7 +54,6 @@ def build_main_menu(
     callbacks: MainMenuCallbacks,
     *,
     light_mode: bool = False,
-    rembg_available: bool = True,
 ) -> RecentFilesMenu:
     """Baut die Menüleiste und gibt den Recent-Files-Adapter zurück."""
 
@@ -151,13 +150,13 @@ def build_main_menu(
     extras_menu.addSeparator()
     _add_action(
         extras_menu, parent, tr("action.check_for_updates"), callbacks.check_for_updates)
-    ai_model_action = _add_action(
+    # Bewusst IMMER aktiv – auch ohne installiertes rembg (#575): Qt zeigt
+    # Tooltips in Menüs standardmäßig nicht an, ein still deaktivierter
+    # Eintrag wirkt daher wie ein Bug („Klick tut nichts"). Der Dialog selbst
+    # erklärt den Zustand (``ModelStatus.REMBG_UNAVAILABLE`` inkl. aktiver
+    # Python-Umgebung) und sperrt den Download-Button.
+    _add_action(
         extras_menu, parent, tr("action.manage_ai_model"), callbacks.manage_ai_model)
-    # KI-Modell-Verwaltung ist ohne rembg sinnlos (#569) – analog zur
-    # bestehenden REMBG_AVAILABLE-Gate am KI-Button (right_panel_tabs.py).
-    ai_model_action.setEnabled(rembg_available)
-    if not rembg_available:
-        ai_model_action.setToolTip(tr("toolbar.ai.missing.tooltip"))
 
     return recent_menu
 

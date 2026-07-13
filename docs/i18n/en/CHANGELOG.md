@@ -58,6 +58,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   cause immediately the next time it's opened, instead of just the neutral
   "Not downloaded" message with no hint of the problem — previously the
   error only ended up in the log.
+- **"Manage AI model…" is no longer mute without rembg (#575).** Without
+  rembg installed, the menu entry was silently disabled — and since Qt does
+  not show tooltips in menus by default, a click looked like a bug ("does
+  nothing") with no explanation at all. The entry is now always enabled:
+  the dialog itself shows the "AI feature unavailable" state and
+  additionally names the active Python environment (`sys.executable`) — so
+  launching with the wrong interpreter (e.g. system Python instead of the
+  venv containing rembg) is immediately recognizable.
 
 ## [2.5.0] – 2026-07-11
 

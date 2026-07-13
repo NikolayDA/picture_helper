@@ -11,6 +11,7 @@ hier ein testbarer, gemockter Download-/Retry-/Cancel-Pfad; die echte
 """
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 
 from PyQt6.QtCore import pyqtSignal
@@ -135,7 +136,15 @@ class AiModelDialog(QDialog):
             self._download_btn.setText(tr("ai_model.dialog.download"))
             self._download_btn.setEnabled(True)
         else:
-            self._status_label.setText(tr("ai_model.status.rembg_unavailable"))
+            # Die aktive Python-Umgebung mit anzeigen (#575): „rembg nicht
+            # installiert" heißt oft nur „falscher Interpreter" (z. B. App per
+            # Desktop-Icon mit System-Python gestartet, rembg liegt aber in
+            # einer venv). Mit dem Pfad ist der Mismatch sofort erkennbar.
+            self._status_label.setText(
+                tr("ai_model.status.rembg_unavailable")
+                + "\n"
+                + tr("ai_model.status.python_hint", path=sys.executable)
+            )
             self._download_btn.setText(tr("ai_model.dialog.download"))
             self._download_btn.setEnabled(False)
 

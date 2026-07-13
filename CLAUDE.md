@@ -194,10 +194,13 @@ Ein Paket, `bgremover/`:
   Statusleisten-Button (`_update_hint_btn`), der über das gecachte Ergebnis
   (`_update_available_result`) denselben Dialog wie der manuelle Check öffnet,
   ohne erneuten Netzwerkzugriff; `CHECK_FAILED` bleibt beim Start komplett
-  still. „KI-Modell verwalten…" (nur bei `REMBG_AVAILABLE` aktiv, sonst
-  deaktiviert mit Tooltip) öffnet `ai_model_dialog.py` (`AiModelDialog`): zeigt
-  den Status aus `get_model_status()` und meldet Download-/Cancel-Klicks über
-  die Signale `download_requested`/`cancel_requested`. Die echte Verdrahtung
+  still. „KI-Modell verwalten…" ist **immer aktiv** (#575: Qt zeigt Tooltips
+  in Menüs nicht an – ein still deaktivierter Eintrag wirkte wie „Klick tut
+  nichts") und öffnet `ai_model_dialog.py` (`AiModelDialog`): zeigt den Status
+  aus `get_model_status()` (bei `REMBG_UNAVAILABLE` inkl. der aktiven
+  Python-Umgebung `sys.executable`, um venv-/Interpreter-Mismatches sichtbar
+  zu machen) und meldet Download-/Cancel-Klicks über die Signale
+  `download_requested`/`cancel_requested`. Die echte Verdrahtung
   (#570) läuft über `WorkerController.start_warmup`, das jetzt mehrere
   Beobachter unterstützt: läuft bereits ein Warmup (Start-Warmup oder ein
   vorheriger Dialog-Download), hängen sich weitere `start_warmup`-Aufrufer an

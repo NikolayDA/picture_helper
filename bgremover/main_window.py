@@ -776,7 +776,6 @@ class MainWindow(QMainWindow):
                 manage_ai_model=self._open_ai_model_dialog,
             ),
             light_mode=self._light_mode,
-            rembg_available=REMBG_AVAILABLE,
         )
 
     def _build_tool_shortcuts(self) -> None:

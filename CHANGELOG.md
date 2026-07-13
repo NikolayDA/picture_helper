@@ -60,6 +60,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   „KI-Modell verwalten…" die technische Ursache beim nächsten Öffnen sofort
   an, statt nur die neutrale „Nicht heruntergeladen"-Meldung ohne jeden
   Hinweis auf das Problem – zuvor landete der Fehler nur im Log.
+- **„KI-Modell verwalten…" ist ohne rembg nicht mehr stumm (#575).** Der
+  Menüpunkt war ohne installiertes rembg still deaktiviert – und da Qt
+  Tooltips in Menüs standardmäßig nicht anzeigt, wirkte ein Klick wie ein
+  Bug („tut nichts"), ohne jede Erklärung. Der Eintrag ist jetzt immer
+  aktiv: Der Dialog zeigt den Zustand „KI-Funktion nicht verfügbar" selbst
+  an und nennt dabei zusätzlich die aktive Python-Umgebung
+  (`sys.executable`) – so ist ein Start mit dem falschen Interpreter (z. B.
+  System-Python statt venv mit rembg) sofort erkennbar.
 
 ## [2.5.0] – 2026-07-11
 

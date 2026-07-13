@@ -67,6 +67,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   désormais la cause technique dès la prochaine ouverture, au lieu du simple
   message neutre « Non téléchargé » sans aucun indice sur le problème –
   auparavant l'erreur n'apparaissait que dans le journal.
+- **« Gérer le modèle d'IA… » n'est plus muet sans rembg (#575).** Sans
+  rembg installé, l'entrée de menu était silencieusement désactivée – et
+  comme Qt n'affiche pas les infobulles dans les menus par défaut, un clic
+  ressemblait à un bug (« ne fait rien ») sans aucune explication. L'entrée
+  est désormais toujours active : la boîte de dialogue affiche elle-même
+  l'état « Fonction d'IA indisponible » et nomme en plus l'environnement
+  Python actif (`sys.executable`) – un lancement avec le mauvais
+  interpréteur (p. ex. Python système au lieu de la venv contenant rembg)
+  est ainsi immédiatement reconnaissable.
 
 ## [2.5.0] – 2026-07-11
 
