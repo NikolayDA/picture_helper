@@ -43,6 +43,11 @@ para la eliminación automática de fondo (herramienta `rembg`):
 Sin los extras `ai`, el programa se inicia con normalidad; el botón de
 IA está entonces desactivado (`REMBG_AVAILABLE = False`).
 
+La descarga sigue ejecutándose implícitamente al iniciar la app (warmup);
+el estado de la caché también puede consultarse en cualquier momento
+mediante `Herramientas → Gestionar modelo de IA…`, que permite un
+descarga/reintento explícitos sin reiniciar la app.
+
 ## 3. Biblioteca estándar de Python
 
 Parte de CPython, **no se necesita ninguna instalación adicional**

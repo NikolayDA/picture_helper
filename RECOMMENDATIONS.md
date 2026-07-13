@@ -19,10 +19,10 @@ bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am
 ist geschlossen, ebenso **#299** (PR #539) mit N13-Follow-up **#541**
 (PR #543), **#318** (PR #540) und Snapshot-Sync **#542**. Ein Repo-Audit vom
 2026-07-12 hat **#549–#553** erfasst; **#552/#549/#553/#550** sind über
-PR #557–#560 geschlossen. Seit dem letzten Snapshot (#245, #551) ist am
-2026-07-13 Epic **#563** („App-Update-Prüfung & KI-Modell-Verwaltung") mit
-acht Sub-Issues (**#564–#571**) hinzugekommen. Live-Stand: **11** offene
-Issues – #245, #551, #563–#571.
+PR #557–#560 geschlossen. Epic **#563** („App-Update-Prüfung &
+KI-Modell-Verwaltung", acht Sub-Issues **#564–#571**) ist am 2026-07-13
+vollständig über PR #573/#574 umgesetzt und geschlossen worden (**N14**).
+Live-Stand: **2** offene Issues – #245, #551.
 
 ### Erledigt seit dem letzten Review
 
@@ -37,6 +37,18 @@ Issues – #245, #551, #563–#571.
   **#299/#541/#318/#542**, PR-Template **#552**, Snapshot-Sync **#549**,
   SessionStart-Fix **#553**, v2.3.0-Formalisierung **#550** – alles seit
   2026-07-12 geschlossen.
+- **N14 — Epic #563 (App-Update & KI-Modell-Verwaltung) komplett
+  abgeschlossen:** Update-Check-Kernlogik `app_update.py` (#564) und
+  Modellstatus-Kernlogik `ai_model_status.py` (#568) – beide Qt-frei,
+  strikt getypt, in der mypy-Strict-Liste (PR #573). Menü-/Dialog-
+  Integration „Nach Updates suchen…"/„KI-Modell verwalten…" (#565/#569,
+  PR #573). Optionaler automatischer Start-Check samt Einstellung
+  (#566) und echte Verdrahtung des Modell-Downloads mit dem bestehenden
+  Warmup-Mechanismus inkl. Mehrfach-Beobachter/kooperativem Abbruch
+  (#570, PR #574, inkl. dreier Codex-Review-Fixes: on_success/on_finished
+  getrennt, manueller Check hängt sich an einen laufenden Start-Check an,
+  Race-Schutz beim Anhängen). Doku-Abschluss (README/CLAUDE.md/CHANGELOG/
+  RESOURCES/INSTALL_\*, alle sechs Sprachen) über #567/#571.
 
 ### Noch offen
 
@@ -45,20 +57,14 @@ Issues – #245, #551, #563–#571.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-13)
 
-Live-Stand: **11** offene Issues – zwei bestehende CI-/Security-Issues
-(**#245**, **#551**) plus Epic **#563** mit acht Sub-Issues (**#564–#571**)
-für zwei unabhängige Gruppen: App-Update (#564–#567) und KI-Modell-
-Verwaltung (#568–#571). Alle Kommentare geprüft – bestehende
-Owner-Triage-Notizen vom 2026-07-13 decken Reihenfolge/Scope bereits ab,
-keine Issue-Beschreibung musste angepasst werden.
+Live-Stand: **2** offene Issues – beide bestehende CI-/Security-Issues,
+unverändert gegenüber der letzten Runde (Epic #563 mit allen acht
+Sub-Issues ist zwischenzeitlich komplett geschlossen worden).
 
 ### Sinnvolle Bündelung
 
 #245/#551 hängen zusammen (Codex-Scan: Account-Aktion vs.
-Grundsatzentscheidung). Die acht #563-Sub-Issues bilden zwei intern
-sequenzielle, gegenseitig unabhängige Ketten: **App-Update**
-(#564→#565→#566→#567) und **KI-Modell-Download** (#568→#569→#570→#571) –
-vom Issue-Autor am 2026-07-13 bestätigt (Kommentare zu #563/#569/#570).
+Grundsatzentscheidung).
 
 Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** =
 Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes Claude-Modell +
@@ -66,30 +72,14 @@ Reasoning-Effort.
 
 | # | Titel | Relevanz | Komplexität | Modell/Aufwand | Empfohlener nächster Schritt |
 |---|-------|----------|-------------|-----------------|------------------------------|
-| [#563](https://github.com/NikolayDA/picture_helper/issues/563) | Epic: Menü-Erweiterung App-Update & KI-Modell-Verwaltung | 🟠 Hoch | 🟠 Hoch (8 Sub-Issues) | – (reines Tracking) | **Blocked (auf Sub-Issues)** – schließt automatisch mit #564–#571; Reihenfolge im Owner-Kommentar vom 2026-07-13 festgehalten. |
-| [#564](https://github.com/NikolayDA/picture_helper/issues/564) | App-Update: Update-Check-Kernlogik (`app_update.py`) | 🟠 Hoch | 🟢 Niedrig (Größe S, keine Abhängigkeiten) | Sonnet 5 · niedrig–mittel | **Ready for PR** – Qt-frei, strikt getypt, klare Akzeptanzkriterien. |
-| [#565](https://github.com/NikolayDA/picture_helper/issues/565) | App-Update: Menü-/Dialog-Integration „Nach Updates suchen…" | 🟠 Hoch | 🟡 Mittel (Größe S–M, async QThread + i18n) | Sonnet 5 · mittel | **Needs #564** – danach direkt PR-bereit. |
-| [#566](https://github.com/NikolayDA/picture_helper/issues/566) | App-Update: optionaler automatischer Start-Check | 🟡 Mittel | 🟢 Niedrig (Größe S) | Sonnet 5 · niedrig | **Needs #564+#565**. |
-| [#567](https://github.com/NikolayDA/picture_helper/issues/567) | App-Update: Doku-Abschluss + i18n-Governance | 🟢 Niedrig | 🟢 Niedrig (Größe XS) | Sonnet 5 · niedrig | **Needs #564–#566 gemergt**. |
-| [#568](https://github.com/NikolayDA/picture_helper/issues/568) | KI-Modell-Download: Statuserkennung (Qt-frei) | 🟠 Hoch | 🟢 Niedrig (Größe S, keine Abhängigkeiten) | Sonnet 5 · niedrig–mittel | **Ready for PR** – Qt-frei, strikt getypt, klare Akzeptanzkriterien. |
-| [#569](https://github.com/NikolayDA/picture_helper/issues/569) | KI-Modell-Download: Menü-/Dialog-Integration „KI-Modell verwalten…" | 🟠 Hoch | 🟡 Mittel (Größe M, Dialog+Progress+Cancel gemockt) | Sonnet 5 · mittel | **Needs #568** – gemockter Download-/Cancel-Pfad reicht (Scope-Klarstellung 2026-07-13). |
-| [#570](https://github.com/NikolayDA/picture_helper/issues/570) | KI-Modell-Download: Verdrahtung mit Warmup/WorkerController | 🟠 Hoch | 🟡 Mittel–Hoch (Größe S–M, neuer `cancel_warmup()`-Hook nötig) | Sonnet 5 · mittel–hoch | **Needs #568+#569**. |
-| [#571](https://github.com/NikolayDA/picture_helper/issues/571) | KI-Modell-Download: Doku-Abschluss + i18n-Governance | 🟢 Niedrig | 🟢 Niedrig (Größe XS) | Sonnet 5 · niedrig | **Needs #568–#570 gemergt**. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Grundsatzentscheidung Codex Security Scan (reaktivieren/zurückbauen/ersetzen) | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Needs refinement** – Entscheidung zwischen drei Optionen; Empfehlung: Option 2 (Zurückbauen/Deaktivieren) angesichts wochenlanger externer Blockade und Redundanz zu pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟡 Mittel | 🟢 Niedrig | – (kein Code-Task) | **Blockiert (extern)** – OpenAI-Billing/Quota-Wiederherstellung ist eine Account-Aktion, kein PR. |
 
-### Als Nächstes empfohlen (PR-Reihenfolge)
+### Als Nächstes empfohlen
 
-1. **#564+#568** — Qt-freie Kernlogik zuerst & parallel umsetzen (unabhängig,
-   ohne offene Abhängigkeiten, vollständig PR-bereit).
-2. **#565+#569** — Menü-/Dialog-Integration je Gruppe nach Kernlogik-Merge
-   (ein gemockter Download-/Check-Pfad reicht).
-3. **#566+#570** — Start-Check bzw. Warmup-Verdrahtung; #570 braucht laut
-   Owner-Kommentar (2026-07-13) zusätzlich einen neuen `cancel_warmup()`-Hook.
-4. **#567+#571** — Doku-Abschluss je Gruppe (XS, trivial).
-5. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
+1. **#551** — Entscheidung zur Scan-Strategie einholen (an #245 gekoppelt),
    dann Workflow anpassen.
-6. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
+2. **#245** — bleibt extern blockiert; erst nach Wiederherstellung der
    OpenAI-Quota manuell verifizieren.
 
 *Drift-Hinweis:* Die Anzahl offener Issues vor jeder künftigen
@@ -98,6 +88,10 @@ zeigten dasselbe Off-by-one).
 
 ## Vorige Runden
 
+- **2026-07-13 (Epic-Abschluss)** — Epic **#563** komplett abgeschlossen:
+  alle acht Sub-Issues (**#564–#571**) über PR #573 (#564/#565/#568/#569)
+  und PR #574 (#566/#570 + Doku-Abschluss #567/#571) geschlossen. Snapshot
+  auf 2 (#245, #551) reduziert.
 - **2026-07-13 (Issue-Audit)** — Epic **#563** + acht Sub-Issues
   (**#564–#571**) erfasst; alle 11 offenen Issues neu bewertet,
   Owner-Kommentare berücksichtigt. Kein Issue geschlossen. Empfehlung:

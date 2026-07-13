@@ -161,6 +161,10 @@ PyQt6/Pillow/numpy 在 venv 中可见，这样就只需加载 `rembg` 和
 之后从 venv 启动：`source .venv/bin/activate` 然后
 `python3 -m bgremover`。
 
+作为启动时自动下载的替代方案，可随时通过 `工具 → 管理 AI 模型…` 查看
+模型状态，并手动触发下载/重试（附带进度指示和取消按钮）——如果启动
+时的下载在离线状态下失败，这会很有用。
+
 ## 从 `main` 快速开始
 
 在现代 Linux 上，系统 Python 安装会根据 PEP 668
@@ -296,7 +300,8 @@ git checkout <branch> && git pull      # 更新某个特定分支
   `rembg`，应用就会在**应用启动**时（而不是首次点击 AI 时）自动
   一次性下载模型，几百 MB，缓存在 `~/.u2net`。期间状态栏会显示
   ”AI 模型加载中…”，然后显示”AI 就绪”；AI 按钮在此之前
-  （以及未加载图片时）保持禁用。
+  （以及未加载图片时）保持禁用。若下载在离线状态下失败，可随时通过
+  `工具 → 管理 AI 模型…` 查看状态并手动触发下载/重试。
 - **应用程序在没有 AI 的情况下启动 / “No onnxruntime backend found”** →
   没有安装 `ai` extra。在 venv 中补装：
   ```bash

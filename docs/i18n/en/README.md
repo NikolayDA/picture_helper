@@ -180,9 +180,27 @@ Via `Tools → Settings…` (⌘,), the following settings can be managed:
 | Preferred image file format | PNG, JPEG, WebP, or TIFF – appears as the first option in the save dialog |
 | Language | German or English; the change takes effect after a restart |
 | Log file | Shows the log-file path; the "Open Folder" button opens the directory in the file manager |
+| Automatically check for updates on startup | Off by default; when enabled, a silent update check runs shortly after startup (see below) |
 
-The directories, preferred file format, and language are stored persistently
-via **QSettings** and automatically restored the next time the program starts.
+The directories, preferred file format, language, and automatic update
+check are stored persistently via **QSettings** and automatically restored
+the next time the program starts.
+
+### App update & AI model management
+
+The `Tools` menu offers two more entries:
+
+- **"Check for updates…"** queries the latest GitHub release non-blocking
+  and shows a dialog depending on the result: current version, a new
+  version with a link to the release page, or an understandable error
+  message. If "Automatically check for updates on startup" is enabled, a
+  new version also shows a discreet, clickable hint in the status bar that
+  opens the same dialog – without another network request.
+- **"Manage AI model…"** (only active if `rembg` is installed) shows
+  whether the rembg default model is already cached locally and allows an
+  explicit download/retry with a progress indicator and a cancel button –
+  as an alternative to the automatic download on app startup (see the
+  install guide, e.g. `INSTALL_MAC.md`).
 
 ### Keyboard shortcuts
 

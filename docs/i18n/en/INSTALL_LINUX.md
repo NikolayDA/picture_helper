@@ -165,6 +165,11 @@ the AI button stays disabled until then — that is expected behavior.
 Future starts then run from the venv: `source .venv/bin/activate` and
 `python3 -m bgremover`.
 
+As an alternative to the automatic download on startup, the model status
+can be checked anytime via `Tools → Manage AI model…`, which triggers a
+manual download/retry (with a progress indicator and a cancel button) –
+useful if the startup download failed offline.
+
 ## Quick start from `main`
 
 On modern Linux, system Python installations block `pip install`
@@ -300,7 +305,9 @@ again after `git pull` — unless the dependencies in
   downloads its model once at **app start** (not on the first AI
   click), a few hundred MB, cached in `~/.u2net`. The status bar shows
   "Loading AI model…" meanwhile and then "AI ready"; the AI button
-  stays disabled until then (and anyway without a loaded image).
+  stays disabled until then (and anyway without a loaded image). If the
+  download failed offline, the status can be checked anytime via
+  `Tools → Manage AI model…`, which triggers a manual download/retry.
 - **App starts without AI / "No onnxruntime backend found"** → The
   `ai` extra was not installed. Install it afterwards in the venv:
   ```bash

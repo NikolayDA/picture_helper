@@ -42,6 +42,10 @@ automatic background removal (the `rembg` tool):
 Without the `ai` extras the program starts normally; the AI button is
 then disabled (`REMBG_AVAILABLE = False`).
 
+The download still runs implicitly on app startup (warmup); the cache
+status can also be checked any time via `Tools → Manage AI model…`, which
+triggers an explicit download/retry without restarting the app.
+
 ## 3. Python standard library
 
 Part of CPython, **no additional installation** needed

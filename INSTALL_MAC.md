@@ -187,7 +187,9 @@ die nicht-editierbare Paketkopie in der App-venv automatisch.
   einmalig ihr Modell herunter (einige hundert MB, Cache in
   `~/.u2net`). Die Statusleiste zeigt währenddessen „KI-Modell wird
   geladen…" und danach „KI bereit"; der KI-Button bleibt bis dahin
-  (und ohne geladenes Bild ohnehin) deaktiviert.
+  (und ohne geladenes Bild ohnehin) deaktiviert. Ist der Download offline
+  fehlgeschlagen, lässt sich der Status jederzeit über `Extras → KI-Modell
+  verwalten…` prüfen und ein erneuter Download/Retry manuell auslösen.
 - **Gatekeeper: „nicht verifizierter Entwickler"** → Rechtsklick auf
   `BgRemover.app` → **Öffnen**. Das Build-Skript entfernt die
   Quarantäne bereits per `xattr`, ein Rechtsklick-Öffnen genügt im
