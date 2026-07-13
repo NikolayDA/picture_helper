@@ -51,6 +51,16 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   `AIWorker`/`FloodFillWorker`): der Inferenz-Kindprozess wird sauber beendet,
   ohne den Abbruch fälschlich als Erfolg oder Fehler zu melden.
 
+### Behoben
+
+- **Sichtbarer Warmup-Fehler im KI-Modell-Dialog (#575).** Scheitert der
+  automatische Start-Warmup mit einem konkreten Fehler aus dem
+  Inferenz-Kindprozess (z. B. `ModuleNotFoundError` bei einem
+  venv-/Interpreter-Mismatch oder ein Verbindungsabbruch/`EOFError`), zeigt
+  „KI-Modell verwalten…" die technische Ursache beim nächsten Öffnen sofort
+  an, statt nur die neutrale „Nicht heruntergeladen"-Meldung ohne jeden
+  Hinweis auf das Problem – zuvor landete der Fehler nur im Log.
+
 ## [2.5.0] – 2026-07-11
 
 ### Hinzugefügt

@@ -57,6 +57,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   `AIWorker`/`FloodFillWorker`) : le processus enfant d'inférence est arrêté
   proprement, sans signaler à tort l'annulation comme un succès ou un échec.
 
+### Corrigé
+
+- **Erreur de préchauffage visible dans la boîte de dialogue du modèle d'IA
+  (#575).** Si le préchauffage automatique au démarrage échoue avec une
+  erreur concrète du processus enfant d'inférence (p. ex. un
+  `ModuleNotFoundError` dû à une discordance de venv/interpréteur, ou une
+  coupure de connexion/`EOFError`), « Gérer le modèle d'IA… » affiche
+  désormais la cause technique dès la prochaine ouverture, au lieu du simple
+  message neutre « Non téléchargé » sans aucun indice sur le problème –
+  auparavant l'erreur n'apparaissait que dans le journal.
+
 ## [2.5.0] – 2026-07-11
 
 ### Ajouté

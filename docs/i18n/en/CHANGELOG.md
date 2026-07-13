@@ -49,6 +49,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the inference child process is stopped cleanly, without misreporting the
   cancellation as success or failure.
 
+### Fixed
+
+- **Visible warmup error in the AI model dialog (#575).** If the automatic
+  startup warmup fails with a concrete error from the inference child
+  process (e.g. a `ModuleNotFoundError` from a venv/interpreter mismatch, or
+  a connection drop/`EOFError`), "Manage AI model…" now shows the technical
+  cause immediately the next time it's opened, instead of just the neutral
+  "Not downloaded" message with no hint of the problem — previously the
+  error only ended up in the log.
+
 ## [2.5.0] – 2026-07-11
 
 ### Added

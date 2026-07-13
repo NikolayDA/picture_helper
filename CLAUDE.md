@@ -208,7 +208,13 @@ Ein Paket, `bgremover/`:
   drei getrennten Signalen (`finished` nur Erfolg, `error` nur Fehler,
   `cancelled` nur Abbruch, `done` immer als Thread-Lifecycle-Signal);
   `WorkerController.cancel_warmup()` bricht sauber ab, ohne den Abbruch
-  fälschlich als Erfolg oder Fehler zu melden.
+  fälschlich als Erfolg oder Fehler zu melden. `MainWindow._last_warmup_error`
+  merkt sich die technische Meldung eines fehlgeschlagenen automatischen
+  Start-Warmups (#575): landet der Fehler (z. B. `ModuleNotFoundError` bei
+  venv-/Interpreter-Mismatch des Inferenz-Kindprozesses oder ein
+  Verbindungsabbruch) sonst nur im Log, zeigt `AiModelDialog` sie beim
+  nächsten Öffnen sofort an (`download_failed`), statt den neutralen
+  „Nicht heruntergeladen"-Status ohne jeden Hinweis zu zeigen.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,

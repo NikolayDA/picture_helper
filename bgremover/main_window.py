@@ -144,6 +144,12 @@ class MainWindow(QMainWindow):
         # True, sobald der rembg-Warmup mit Fehler endete: unterdrückt die
         # irreführende „KI bereit"-Meldung im Abschluss-Callback.
         self._warmup_failed: bool = False
+        # Technische Meldung des zuletzt fehlgeschlagenen (automatischen)
+        # Warmups (#575): landet sonst nur im Log, obwohl der Nutzer sie
+        # braucht, um z. B. einen ModuleNotFoundError/Verbindungsabbruch aus
+        # dem Inferenz-Kindprozess zu erkennen. „KI-Modell verwalten…" zeigt
+        # sie beim Öffnen an, statt einen scheinbar untätigen Dialog zu bieten.
+        self._last_warmup_error: str | None = None
         # Gecachtes Ergebnis des automatischen Start-Update-Checks (#566):
         # der Statusleisten-Hinweis öffnet daraus denselben Ergebnisdialog
         # wie der manuelle Check (#565), ohne erneuten Netzwerkzugriff.
@@ -999,6 +1005,7 @@ class MainWindow(QMainWindow):
         """Lädt das rembg-Modell im Hintergrund, damit der erste KI-Klick
         nicht spürbar wartet."""
         self._warmup_failed = False
+        self._last_warmup_error = None
         self._sb.showMessage(SM.KI_MODELL_LADEN)
         self._worker_controller.start_warmup(
             on_finished=self._on_warmup_done,
@@ -1021,16 +1028,21 @@ class MainWindow(QMainWindow):
             return
         self._sb.showMessage(SM.KI_BEREIT)
 
-    def _on_warmup_error(self, _msg: str) -> None:
+    def _on_warmup_error(self, msg: str) -> None:
         """Warmup fehlgeschlagen (z. B. Modell-Download offline nicht möglich).
 
         Wird vor ``_on_warmup_done`` zugestellt; setzt das Flag, das dort die
         falsche Bereitschaftsmeldung verhindert. Den Fehler protokolliert
-        bereits der Worker (``_Worker.run`` → ``logger.exception``). Die KI
-        bleibt nutzbar – ein späterer Klick versucht rembg erneut und meldet
-        Fehler ggf. sichtbar.
+        bereits der Worker (``_Worker.run`` → ``logger.exception``), UND merkt
+        ihn zusätzlich (#575): die Statusleiste zeigt bewusst nur eine
+        generische Meldung (kein Popup bei jedem automatischen Start-Warmup),
+        aber „KI-Modell verwalten…" kann die technische Ursache so beim
+        nächsten Öffnen sichtbar nachreichen, statt dass sie nur im Log
+        landet. Die KI bleibt nutzbar – ein späterer Klick versucht rembg
+        erneut und meldet Fehler ggf. sichtbar.
         """
         self._warmup_failed = True
+        self._last_warmup_error = msg
         self._sb.showMessage(SM.KI_FEHLER_WARMUP)
 
     def _on_warmup_cancelled(self) -> None:
@@ -1556,6 +1568,14 @@ class MainWindow(QMainWindow):
             # Fortschritt sofort an, statt dass der Nutzer erst „Jetzt
             # herunterladen" klicken müsste (#570).
             self._start_ai_model_download(dlg)
+        elif self._last_warmup_error is not None:
+            # Der automatische Start-Warmup ist bereits (unsichtbar für den
+            # Nutzer, nur in der Statusleiste generisch angekündigt) mit
+            # einem konkreten Fehler beendet – z. B. ``ModuleNotFoundError``
+            # aus dem Inferenz-Kindprozess oder ein Verbindungsabbruch (#575).
+            # Ohne diesen Hinweis wirkt der Dialog, als „täte er nichts": Er
+            # zeigt sonst nur den neutralen „Nicht heruntergeladen"-Status.
+            dlg.download_failed(self._last_warmup_error)
         dlg.exec()
 
     def _start_ai_model_download(self, dlg: AiModelDialog) -> None:
@@ -1569,14 +1589,28 @@ class MainWindow(QMainWindow):
         hängt an ``on_success`` (feuert NUR bei Erfolg), nicht an
         ``on_finished`` (feuert immer) – sonst würde ein Abbruch/Fehler die
         gerade gezeigte Fehler-/Abbruchmeldung sofort wieder als „erfolgreich
-        heruntergeladen" überschreiben (Review-Befund #574).
+        heruntergeladen" überschreiben (Review-Befund #574). ``_last_warmup_error``
+        wird bei Erfolg/Abbruch gelöscht und bei Fehler gemerkt (#575), damit ein
+        späteres erneutes Öffnen des Dialogs den aktuellen Stand zeigt.
         """
         self._worker_controller.start_warmup(
-            on_success=dlg.download_succeeded,
-            on_error=dlg.download_failed,
-            on_cancelled=lambda: dlg.download_failed(tr("ai_model.dialog.cancelled")),
+            on_success=lambda: self._on_ai_model_download_success(dlg),
+            on_error=lambda msg: self._on_ai_model_download_error(dlg, msg),
+            on_cancelled=lambda: self._on_ai_model_download_cancelled(dlg),
         )
         dlg.start_downloading()
+
+    def _on_ai_model_download_success(self, dlg: AiModelDialog) -> None:
+        self._last_warmup_error = None
+        dlg.download_succeeded()
+
+    def _on_ai_model_download_error(self, dlg: AiModelDialog, msg: str) -> None:
+        self._last_warmup_error = msg
+        dlg.download_failed(msg)
+
+    def _on_ai_model_download_cancelled(self, dlg: AiModelDialog) -> None:
+        self._last_warmup_error = None
+        dlg.download_failed(tr("ai_model.dialog.cancelled"))
 
     def _cancel_ai_model_download(self, dlg: AiModelDialog) -> None:
         """Bricht den laufenden rembg-Warmup/-Download sauber ab (#570).
