@@ -19,7 +19,7 @@
 | 软件包 | 在程序中的用途 | 最低 | 已验证 | 许可证 |
 |-------|-------------------|------|---------|--------|
 | **PyQt6** | 完整 GUI（窗口、画布、控件、事件、QSettings、QThread） | `>=6.5` | 6.11.0 | **GPL v3** 或 Riverbank 商业许可证 |
-| **Pillow** (PIL) | 图像 IO、EXIF 转置、旋转/翻转、蒙版/Alpha、保存（PNG/JPEG/WebP/TIFF） | `>=10` | 12.2.0 | HPND（亦称“MIT-CMU”；开源 PIL 许可证） |
+| **Pillow** (PIL) | 图像 IO、EXIF 转置、旋转/翻转、蒙版/Alpha、保存（PNG/JPEG/WebP/TIFF） | `>=10` | 12.3.0 | HPND（亦称“MIT-CMU”；开源 PIL 许可证） |
 | **NumPy** | 像素数组、flood-fill、蒙版运算 | `>=1.24` | 2.4.5 | BSD-3-Clause |
 
 通过 PyQt6 还绑定了 **Qt 6** 框架（The Qt Company）。Qt 本身采用

@@ -3,7 +3,7 @@
 # License & Legal Overview – bgremover 2.5.0
 
 > Automatically generated – **a purely technical assessment of the license terms, not legal advice.**
-> As of: 2026-07-11 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
+> As of: 2026-07-13 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
 
 ## Overall Assessment – Commercial Usability
 
@@ -55,7 +55,7 @@ Strongest relevant license in the combined work: **Strong copyleft**.
 | onnxruntime | 1.26.0 | `MIT License` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
 | packaging | 24.0 | `Apache Software License; BSD License` | Permissive | Permissive license with an explicit patent grant. Commercial and proprietary use is allowed; the license/copyright notice and change notes (NOTICE) must be retained. |
 | pathspec | 1.1.1 | `Mozilla Public License 2.0 (MPL 2.0)` | Weak copyleft (file) | Weak, file-level copyleft. Commercial use is allowed; only changes to the MPL-licensed files themselves must be disclosed again under the MPL. Compatible with GPL-3.0. |
-| pillow | 12.2.0 | `MIT-CMU` | Permissive | Permissive HPND/MIT-CMU license (Pillow). Commercial and proprietary use is allowed; keep the copyright and license notice. |
+| pillow | 12.3.0 | `MIT-CMU` | Permissive | Permissive HPND/MIT-CMU license (Pillow). Commercial and proprietary use is allowed; keep the copyright and license notice. |
 | platformdirs | 4.9.6 | `MIT` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
 | pluggy | 1.6.0 | `MIT License` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
 | pooch | 1.9.0 | `BSD-3-Clause` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |

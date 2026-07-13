@@ -22,7 +22,7 @@ Declaradas en `pyproject.toml` bajo `[project] dependencies`.
 | Paquete | Propósito en el programa | Mín. | Comprobado | Licencia |
 |-------|-------------------|------|---------|--------|
 | **PyQt6** | GUI completa (ventana, lienzo, widgets, eventos, QSettings, QThread) | `>=6.5` | 6.11.0 | **GPL v3** o licencia comercial de Riverbank |
-| **Pillow** (PIL) | E/S de imagen, EXIF-Transpose, rotar/reflejar, máscaras/alfa, guardar (PNG/JPEG/WebP/TIFF) | `>=10` | 12.2.0 | HPND (también «MIT-CMU»; licencia PIL de código abierto) |
+| **Pillow** (PIL) | E/S de imagen, EXIF-Transpose, rotar/reflejar, máscaras/alfa, guardar (PNG/JPEG/WebP/TIFF) | `>=10` | 12.3.0 | HPND (también «MIT-CMU»; licencia PIL de código abierto) |
 | **NumPy** | Arrays de píxeles, flood-fill, operaciones de máscara | `>=1.24` | 2.4.5 | BSD-3-Clause |
 
 Mediante PyQt6 se vincula además el framework **Qt 6** (The Qt Company).
