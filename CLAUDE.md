@@ -20,7 +20,8 @@ headless-Qt-Betrieb:
 - `make doctor` — prüft die Test-Umgebung (`scripts/check_test_env.py`)
 
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
-`tests/conftest.py` (per `setdefault`) erledigen das selbst.
+`tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
+(`.github/PULL_REQUEST_TEMPLATE.md`) führt die Standard-Gate-Checkliste (#557).
 
 ## Architektur
 
@@ -207,7 +208,7 @@ Ein Paket, `bgremover/`:
   („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
   Dispatch nach Endung im MainWindow, #335).
 - **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
-  unter `docs/i18n/`.
+  (en/es/fr/uk/zh) unter `docs/i18n/`.
 
 ## Konventionen
 
@@ -230,6 +231,17 @@ Ein Paket, `bgremover/`:
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.
 - **Befunde** werden in `RECOMMENDATIONS.md` mit IDs geführt (`N#`/`O#`);
   Historie unter `docs/history/`.
+
+## CI-Automatisierung
+
+- `.github/workflows/claude.yml` — interaktiver Claude-Agent, reagiert auf
+  `@claude`-Erwähnungen in Issues/PR-Kommentaren; `claude-code-review.yml` —
+  automatisches Claude-Review neuer PRs (#555).
+- `.github/agents/` — Agent-Konfigurationen (Code Review, Bug Fix,
+  Documentation, Test, Performance; #547/#548), Details in
+  [`.github/agents/README.md`](.github/agents/README.md).
+- `benchmark.yml` trägt seine Baseline seit #546 als Workflow-Artefakt statt
+  per Push nach `main`.
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 
