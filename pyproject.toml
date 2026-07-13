@@ -119,7 +119,9 @@ check_untyped_defs = false
 # realistisch.
 [[tool.mypy.overrides]]
 module = [
+    "bgremover.ai_model_status",
     "bgremover.ai_process",
+    "bgremover.app_update",
     "bgremover.image_ops",
     "bgremover.image_utils",
     "bgremover.color_ops",

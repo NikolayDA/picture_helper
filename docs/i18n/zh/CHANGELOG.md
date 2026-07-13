@@ -9,6 +9,19 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 新增
+
+- **更新检查核心逻辑（#564，Epic #563 的一部分）。** 新增无 Qt 依赖模块
+  `app_update.py`：`check_for_update(current_version)` 查询 GitHub Releases
+  API（仅使用标准库 `urllib.request`，不下载任何资源文件），返回结构化的
+  `UpdateCheckResult`（`UP_TO_DATE` / `UPDATE_AVAILABLE` /
+  `CHECK_FAILED`）；任何网络/解析错误都以带可读错误信息的 `CHECK_FAILED`
+  返回，绝不向外抛出异常。
+- **AI 模型状态检测（#568，Epic #563 的一部分）。** 新增无 Qt 依赖模块
+  `ai_model_status.py`：`get_model_status()` 检测 rembg 默认模型
+  (`u2net.onnx`) 是否已存在于缓存目录（`U2NET_HOME` 或 `~/.u2net`）中——
+  不导入 `rembg`，也不会触发下载。
+
 ## [2.5.0] – 2026-07-11
 
 ### 新增

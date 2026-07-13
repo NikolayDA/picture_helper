@@ -170,6 +170,18 @@ Ein Paket, `bgremover/`:
   gestarteten Prozess (`ai_process.py`), den der KI-Worker nur pollt – Abbruch
   und Schließen beenden ihn hart, ohne `QThread.terminate()` (#270). `rembg` ist
   optionales `ai`-Extra und wird erst im Kindprozess lazy importiert.
+- **App-Update & KI-Modell-Status (Epic #563):** `app_update.py` —
+  Qt-freie `check_for_update(current_version)` fragt
+  `https://api.github.com/repos/NikolayDA/picture_helper/releases/latest`
+  über `urllib.request` ab (kurzer Timeout, keine Pflichtabhängigkeit) und
+  liefert ein strukturiertes `UpdateCheckResult`
+  (`UP_TO_DATE`/`UPDATE_AVAILABLE`/`CHECK_FAILED`) – jeder Netzwerk-/
+  Parsing-Fehler wird als `CHECK_FAILED` zurückgegeben, nie als Exception
+  (#564). `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
+  rembg-Cache-Zustand (`U2NET_HOME`/`~/.u2net`, Standardmodell
+  `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu
+  importieren (#568). Beide Module sind Grundlage für die noch
+  ausstehende UI-Anbindung (Menü/Dialog) aus dem Epic.
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,
@@ -218,7 +230,8 @@ Ein Paket, `bgremover/`:
   py310. In `bgremover/*` ist `E702` erlaubt (kompakter Stil), in
   `tests/conftest.py` `E402`.
 - **mypy:** Die Qt-armen Logikmodule sind streng getypt (`disallow_untyped_defs`
-  + `check_untyped_defs`): `ai_process`, `image_ops`, `image_utils`, `color_ops`,
+  + `check_untyped_defs`): `ai_model_status`, `ai_process`, `app_update`,
+  `image_ops`, `image_utils`, `color_ops`,
   `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
   `relief_preview`, `height_map`, `height_ops`, `preview_mode`, `crop`,
   `project_model/_history/_schema/_io`, `recent_files`, `units` und

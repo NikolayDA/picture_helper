@@ -8,6 +8,20 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Update-check core logic (#564, part of Epic #563).** New Qt-free module
+  `app_update.py`: `check_for_update(current_version)` queries the GitHub
+  Releases API (stdlib `urllib.request` only, no asset download) and returns a
+  structured `UpdateCheckResult` (`UP_TO_DATE` / `UPDATE_AVAILABLE` /
+  `CHECK_FAILED`); every network/parsing error is returned as `CHECK_FAILED`
+  with a readable message, never as an exception.
+- **AI model status detection (#568, part of Epic #563).** New Qt-free module
+  `ai_model_status.py`: `get_model_status()` detects whether the rembg default
+  model (`u2net.onnx`) is already present in the cache directory
+  (`U2NET_HOME` or `~/.u2net`) — without importing `rembg` and without
+  triggering a download.
+
 ## [2.5.0] – 2026-07-11
 
 ### Added
