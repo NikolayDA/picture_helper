@@ -172,6 +172,13 @@ ein Download/Retry explizit auslösen (mit Fortschrittsanzeige und
 Abbrechen-Button) — nützlich, wenn der Start-Download offline
 fehlgeschlagen ist.
 
+Der obige venv-/pip-Befehl zum Nachrüsten lässt sich auch direkt aus der
+App kopieren: `Extras → KI-Hintergrundentfernung installieren…` zeigt ihn
+mit einem Kopieren-Button — ein automatischer Install-Versuch aus der App
+heraus findet bewusst nicht statt (PEP 668 blockiert `pip` ohnehin ins
+System-Python, und ein frisch installiertes Paket wäre im laufenden
+Prozess erst nach einem Neustart sichtbar).
+
 ## Schnellstart aus `main`
 
 Auf modernem Linux blockieren System-Python-Installationen `pip install`

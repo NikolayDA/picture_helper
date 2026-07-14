@@ -59,6 +59,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             open_settings=lambda: calls.append("settings"),
             check_for_updates=lambda: calls.append("check_for_updates"),
             manage_ai_model=lambda: calls.append("manage_ai_model"),
+            install_ai_backend=lambda: calls.append("install_ai_backend"),
         ),
     )
 
@@ -79,6 +80,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
         "Original wiederherstellen", "Fit to View", "Verlauf", "Einstellungen…",
         "Farbe", "Relief über Farbe", "Höhe (Graustufe)", "Gloss", "Kombiniert",
         "Nach Updates suchen…", "KI-Modell verwalten…",
+        "KI-Hintergrundentfernung installieren…",
     }
     assert expected <= set(actions)
     assert _portable_shortcut(actions["Öffnen…"]) == "Ctrl+O"
@@ -107,6 +109,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     actions["Einstellungen…"].trigger()
     actions["Nach Updates suchen…"].trigger()
     actions["KI-Modell verwalten…"].trigger()
+    actions["KI-Hintergrundentfernung installieren…"].trigger()
     actions["Relief über Farbe"].trigger()
     actions["Kombiniert"].trigger()
 
@@ -126,7 +129,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
     assert calls == [
         "open", "save", "save_as", "undo", "redo",
         "clear", "invert", "restore", "fit", "history", "settings",
-        "check_for_updates", "manage_ai_model",
+        "check_for_updates", "manage_ai_model", "install_ai_backend",
         "new_project", "open_project", "save_project", "save_project_as",
         "export_eufymake",
         "resize",
@@ -150,7 +153,7 @@ def _minimal_callbacks(**overrides) -> MainMenuCallbacks:
         "clear_selection": noop, "invert_selection": noop, "restore_original": noop,
         "fit_to_view": noop, "toggle_history": noop, "set_preview_mode": noop,
         "toggle_light_mode": noop, "open_settings": noop, "check_for_updates": noop,
-        "manage_ai_model": noop,
+        "manage_ai_model": noop, "install_ai_backend": noop,
     }
     defaults.update(overrides)
     return MainMenuCallbacks(**defaults)
