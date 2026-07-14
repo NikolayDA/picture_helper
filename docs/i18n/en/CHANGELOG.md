@@ -48,6 +48,25 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   (`RembgWarmupWorker.cancel()`, analogous to `AIWorker`/`FloodFillWorker`):
   the inference child process is stopped cleanly, without misreporting the
   cancellation as success or failure.
+- **Menu item "Install AI background removal…".** New `ai_install_dialog.py`
+  dialog shows users without an installed rembg backend (e.g. after the
+  Raspberry Pi minimal install) the matching command to add it, with a
+  copy-to-clipboard button – platform-specific (Linux: venv/pip recipe;
+  macOS: `create_BgRemover_app.sh`, since it maintains its own app-bundle
+  venv) and with a warning when the active Python version is below the 3.11
+  that rembg/onnxruntime require. Deliberately no automatic install attempt
+  from within the app: PEP 668 blocks `pip` into the system Python anyway,
+  and a freshly installed package wouldn't be visible in the running
+  process until a restart.
+
+### Changed
+
+- **setuptools pin raised against a new CVE.** `setuptools` is raised in
+  `pyproject.toml` (`[build-system]`) and `requirements/constraints.txt` from
+  `78.1.1` to `>=83.0.0` (`==83.0.0` in `constraints.txt`) – closes
+  `PYSEC-2026-3447` (Unicode-normalization bypass in `MANIFEST.in` exclude
+  patterns, macOS APFS/HFS+), in addition to the already-pinned
+  CVE-2024-6345/CVE-2025-47273.
 
 ### Fixed
 

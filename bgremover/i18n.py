@@ -416,6 +416,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "Einstellungen…",
         "action.check_for_updates": "Nach Updates suchen…",
         "action.manage_ai_model": "KI-Modell verwalten…",
+        "action.install_ai_backend": "KI-Hintergrundentfernung installieren…",
         # App-Update-Check (#565)
         "status.update_check_running": "Suche nach Updates…",
         "status.update_available_hint": "🆕 Update verfügbar: {version} – klicken für Details",
@@ -443,6 +444,29 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "Abbrechen",
         "ai_model.dialog.close": "Schließen",
         "ai_model.dialog.cancelled": "Download abgebrochen",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "KI-Hintergrundentfernung installieren",
+        "ai_install.dialog.intro": (
+            "Diese Installation enthält kein rembg (KI-Backend). Aus der App heraus "
+            "wird nichts automatisch installiert – moderne Linux-Systeme blockieren "
+            "pip ins System-Python (PEP 668), und ein frisch installiertes Paket "
+            "wäre im laufenden Prozess ohnehin erst nach einem Neustart sichtbar. "
+            "Im Terminal im Projektordner ausführen:"
+        ),
+        "ai_install.dialog.venv_note": (
+            'Schon eine eigene venv aktiv? Dann reicht: pip install "rembg[cpu]"'
+        ),
+        "ai_install.dialog.already_installed": (
+            "Hinweis: rembg ist in der aktuell laufenden Umgebung bereits installiert."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Aktives Python {version} ist zu alt für die KI: rembg/onnxruntime "
+            "benötigen Python 3.11+. Vor dem Befehl eine neuere Python-Version "
+            "installieren (z. B. via Homebrew/pyenv/apt) und sicherstellen, dass "
+            "„python3“ darauf zeigt."
+        ),
+        "ai_install.dialog.copy": "Befehl kopieren",
+        "ai_install.dialog.copied": "In die Zwischenablage kopiert.",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Verschieben / Zoom\n"
@@ -1214,6 +1238,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "Settings…",
         "action.check_for_updates": "Check for updates…",
         "action.manage_ai_model": "Manage AI model…",
+        "action.install_ai_backend": "Install AI background removal…",
         # App-Update-Check (#565)
         "status.update_check_running": "Checking for updates…",
         "status.update_available_hint": "🆕 Update available: {version} – click for details",
@@ -1241,6 +1266,29 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "Cancel",
         "ai_model.dialog.close": "Close",
         "ai_model.dialog.cancelled": "Download cancelled",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "Install AI Background Removal",
+        "ai_install.dialog.intro": (
+            "This installation does not include rembg (the AI backend). Nothing "
+            "is installed automatically from within the app – modern Linux "
+            "systems block pip into the system Python (PEP 668), and a freshly "
+            "installed package wouldn't be visible in the running process until "
+            "a restart anyway. Run this in a terminal inside the project folder:"
+        ),
+        "ai_install.dialog.venv_note": (
+            'Already using your own venv? Just run: pip install "rembg[cpu]"'
+        ),
+        "ai_install.dialog.already_installed": (
+            "Note: rembg is already installed in the currently running environment."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Active Python {version} is too old for the AI: rembg/onnxruntime "
+            "require Python 3.11+. Install a newer Python first (e.g. via "
+            'Homebrew/pyenv/apt) and make sure "python3" points to it before '
+            "running the command."
+        ),
+        "ai_install.dialog.copy": "Copy command",
+        "ai_install.dialog.copied": "Copied to clipboard.",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Move / Zoom\n"
@@ -2014,6 +2062,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "Ajustes…",
         "action.check_for_updates": "Buscar actualizaciones…",
         "action.manage_ai_model": "Gestionar modelo de IA…",
+        "action.install_ai_backend": "Instalar eliminación de fondo por IA…",
         # App-Update-Check (#565)
         "status.update_check_running": "Buscando actualizaciones…",
         "status.update_available_hint": (
@@ -2043,6 +2092,31 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "Cancelar",
         "ai_model.dialog.close": "Cerrar",
         "ai_model.dialog.cancelled": "Descarga cancelada",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "Instalar eliminación de fondo por IA",
+        "ai_install.dialog.intro": (
+            "Esta instalación no incluye rembg (el backend de IA). La app no "
+            "instala nada automáticamente: los sistemas Linux modernos bloquean "
+            "pip en el Python del sistema (PEP 668), y un paquete recién "
+            "instalado no sería visible en el proceso en ejecución hasta "
+            "reiniciar. Ejecuta esto en una terminal dentro de la carpeta del "
+            "proyecto:"
+        ),
+        "ai_install.dialog.venv_note": (
+            '¿Ya usas tu propio venv? Basta con: pip install "rembg[cpu]"'
+        ),
+        "ai_install.dialog.already_installed": (
+            "Nota: rembg ya está instalado en el entorno en ejecución actual."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ El Python activo {version} es demasiado antiguo para la IA: "
+            "rembg/onnxruntime requieren Python 3.11+. Instala primero una "
+            'versión de Python más reciente (p. ej. con Homebrew/pyenv/apt) y '
+            'asegúrate de que "python3" apunte a ella antes de ejecutar el '
+            "comando."
+        ),
+        "ai_install.dialog.copy": "Copiar comando",
+        "ai_install.dialog.copied": "Copiado al portapapeles.",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Mover / Zoom\n"
@@ -2815,6 +2889,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "Réglages…",
         "action.check_for_updates": "Rechercher des mises à jour…",
         "action.manage_ai_model": "Gérer le modèle d'IA…",
+        "action.install_ai_backend": "Installer la suppression d'arrière-plan par IA…",
         # App-Update-Check (#565)
         "status.update_check_running": "Recherche de mises à jour…",
         "status.update_available_hint": (
@@ -2844,6 +2919,32 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "Annuler",
         "ai_model.dialog.close": "Fermer",
         "ai_model.dialog.cancelled": "Téléchargement annulé",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "Installer la suppression d'arrière-plan par IA",
+        "ai_install.dialog.intro": (
+            "Cette installation ne contient pas rembg (le moteur d'IA). Rien "
+            "n'est installé automatiquement depuis l'application : les systèmes "
+            "Linux récents bloquent pip vers le Python système (PEP 668), et un "
+            "paquet fraîchement installé ne serait de toute façon visible dans "
+            "le processus en cours qu'après un redémarrage. Exécutez ceci dans "
+            "un terminal, dans le dossier du projet :"
+        ),
+        "ai_install.dialog.venv_note": (
+            'Déjà dans votre propre venv ? Il suffit de : pip install "rembg[cpu]"'
+        ),
+        "ai_install.dialog.already_installed": (
+            "Remarque : rembg est déjà installé dans l'environnement en cours "
+            "d'exécution."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Le Python actif {version} est trop ancien pour l'IA : "
+            "rembg/onnxruntime nécessitent Python 3.11+. Installez d'abord une "
+            'version de Python plus récente (p. ex. via Homebrew/pyenv/apt) et '
+            'assurez-vous que "python3" pointe dessus avant d\'exécuter la '
+            "commande."
+        ),
+        "ai_install.dialog.copy": "Copier la commande",
+        "ai_install.dialog.copied": "Copié dans le presse-papiers.",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Déplacer / Zoom\n"
@@ -3615,6 +3716,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "Налаштування…",
         "action.check_for_updates": "Перевірити оновлення…",
         "action.manage_ai_model": "Керувати моделлю ШІ…",
+        "action.install_ai_backend": "Встановити видалення фону через ШІ…",
         # App-Update-Check (#565)
         "status.update_check_running": "Перевірка оновлень…",
         "status.update_available_hint": (
@@ -3644,6 +3746,29 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "Скасувати",
         "ai_model.dialog.close": "Закрити",
         "ai_model.dialog.cancelled": "Завантаження скасовано",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "Встановлення видалення фону через ШІ",
+        "ai_install.dialog.intro": (
+            "У цій установці немає rembg (бекенду ШІ). Додаток нічого не "
+            "встановлює автоматично: сучасні Linux-системи блокують pip у "
+            "системний Python (PEP 668), а щойно встановлений пакет усе одно "
+            "буде видно в запущеному процесі лише після перезапуску. Виконайте "
+            "це в терміналі в теці проєкту:"
+        ),
+        "ai_install.dialog.venv_note": (
+            'Уже у власному venv? Достатньо: pip install "rembg[cpu]"'
+        ),
+        "ai_install.dialog.already_installed": (
+            "Примітка: rembg уже встановлено в поточному середовищі виконання."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Активний Python {version} застарий для ШІ: rembg/onnxruntime "
+            "потребують Python 3.11+. Спочатку встановіть новішу версію Python "
+            "(наприклад, через Homebrew/pyenv/apt) і переконайтеся, що "
+            "«python3» вказує на неї, перш ніж виконувати команду."
+        ),
+        "ai_install.dialog.copy": "Скопіювати команду",
+        "ai_install.dialog.copied": "Скопійовано в буфер обміну.",
         # Left toolbar
         "toolbar.move.tooltip": (
             "Переміщення / Масштаб\n"
@@ -4409,6 +4534,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "action.settings": "设置…",
         "action.check_for_updates": "检查更新…",
         "action.manage_ai_model": "管理 AI 模型…",
+        "action.install_ai_backend": "安装 AI 背景移除…",
         # App-Update-Check (#565)
         "status.update_check_running": "正在检查更新…",
         "status.update_available_hint": "🆕 有可用更新：{version} —— 点击查看详情",
@@ -4428,6 +4554,22 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_model.dialog.cancel": "取消",
         "ai_model.dialog.close": "关闭",
         "ai_model.dialog.cancelled": "下载已取消",
+        # KI-Backend nachrüsten (Menü-Aktion ohne Auto-Install)
+        "ai_install.dialog.title": "安装 AI 背景移除",
+        "ai_install.dialog.intro": (
+            "此安装未包含 rembg（AI 后端）。应用不会自动安装任何内容——现代 Linux "
+            "系统会阻止向系统 Python 执行 pip 安装（PEP 668），而且刚安装的包在当前"
+            "进程中也要重启后才能生效。请在项目文件夹的终端中执行："
+        ),
+        "ai_install.dialog.venv_note": '已经在使用自己的 venv？只需执行：pip install "rembg[cpu]"',
+        "ai_install.dialog.already_installed": "提示：rembg 已在当前运行环境中安装。",
+        "ai_install.dialog.python_too_old": (
+            "⚠ 当前 Python {version} 版本过旧，无法用于 AI：rembg/onnxruntime 需要 "
+            "Python 3.11+。请先安装更新的 Python（例如通过 Homebrew/pyenv/apt），"
+            "并确保「python3」指向它，然后再执行该命令。"
+        ),
+        "ai_install.dialog.copy": "复制命令",
+        "ai_install.dialog.copied": "已复制到剪贴板。",
         # Left toolbar
         "toolbar.move.tooltip": (
             "移动 / 缩放\n"

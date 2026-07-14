@@ -50,6 +50,26 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   kooperativen Abbruch (`RembgWarmupWorker.cancel()`, analog zu
   `AIWorker`/`FloodFillWorker`): der Inferenz-Kindprozess wird sauber beendet,
   ohne den Abbruch fälschlich als Erfolg oder Fehler zu melden.
+- **Menüpunkt „KI-Hintergrundentfernung installieren…".** Neuer Dialog
+  `ai_install_dialog.py` zeigt Nutzer:innen ohne installiertes rembg-Backend
+  (z. B. nach der Raspberry-Pi-Minimal-Installation) den passenden Befehl zum
+  Nachrüsten, mit Kopieren-Button für die Zwischenablage – plattformabhängig
+  (Linux: venv-/pip-Rezept; macOS: `create_BgRemover_app.sh`, da dort eine
+  eigene App-Bundle-venv gepflegt wird) und mit einer Warnung, wenn die
+  aktive Python-Version unter der von rembg/onnxruntime geforderten 3.11
+  liegt. Bewusst kein automatischer Install-Versuch aus der App heraus:
+  PEP 668 blockiert `pip` ohnehin ins System-Python, und ein frisch
+  installiertes Paket wäre im laufenden Prozess erst nach einem Neustart
+  sichtbar.
+
+### Geändert
+
+- **setuptools-Pin gegen neue CVE angehoben.** `setuptools` wird in
+  `pyproject.toml` (`[build-system]`) und `requirements/constraints.txt` von
+  `78.1.1` auf `>=83.0.0` (`==83.0.0` in `constraints.txt`) angehoben –
+  schließt `PYSEC-2026-3447` (Unicode-Normalisierungs-Bypass bei
+  `MANIFEST.in`-Exclude-Mustern, macOS APFS/HFS+), zusätzlich zu den bereits
+  gepinnten CVE-2024-6345/CVE-2025-47273.
 
 ### Behoben
 

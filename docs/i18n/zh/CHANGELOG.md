@@ -41,6 +41,21 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   与对话框因此不会再显示相互矛盾的状态。取消按钮使用新的协作式取消机制
   （`RembgWarmupWorker.cancel()`，类似于 `AIWorker`/`FloodFillWorker`）：
   推理子进程会被干净地终止，且不会将取消误报为成功或失败。
+- **菜单项「安装 AI 背景移除…」。** 新的 `ai_install_dialog.py` 对话框会向未安装
+  rembg 后端的用户（例如在 Raspberry Pi 最小化安装之后）显示相应的安装命令，
+  并带有复制到剪贴板按钮——按平台区分（Linux：venv/pip 方案；macOS：
+  `create_BgRemover_app.sh`，因为那里维护着专属的应用包 venv），并在当前
+  Python 版本低于 rembg/onnxruntime 所需的 3.11 时给出警告。应用内故意不做
+  自动安装尝试：PEP 668 无论如何都会阻止向系统 Python 执行 pip 安装，而且
+  刚安装的包在当前进程中也要重启后才能生效。
+
+### 变更
+
+- **针对新 CVE 提升了 setuptools 的版本锁定。** `pyproject.toml`
+  （`[build-system]`）和 `requirements/constraints.txt` 中的 `setuptools`
+  已从 `78.1.1` 提升到 `>=83.0.0`（`constraints.txt` 中为 `==83.0.0`）——
+  修复了 `PYSEC-2026-3447`（`MANIFEST.in` 排除模式中的 Unicode 规范化绕过，
+  macOS APFS/HFS+），并在此前已锁定的 CVE-2024-6345/CVE-2025-47273 之外。
 
 ### 修复
 

@@ -45,6 +45,7 @@ class MainMenuCallbacks:
     open_settings: Callable[[], None]
     check_for_updates: Callable[[], None]
     manage_ai_model: Callable[[], None]
+    install_ai_backend: Callable[[], None]
 
 
 def build_main_menu(
@@ -157,6 +158,10 @@ def build_main_menu(
     # Python-Umgebung) und sperrt den Download-Button.
     _add_action(
         extras_menu, parent, tr("action.manage_ai_model"), callbacks.manage_ai_model)
+    # Ebenfalls immer aktiv (analog #575): zeigt den Nachrüst-Befehl auch dann,
+    # wenn rembg bereits installiert ist (harmloser Hinweis statt Sackgasse).
+    _add_action(
+        extras_menu, parent, tr("action.install_ai_backend"), callbacks.install_ai_backend)
 
     return recent_menu
 

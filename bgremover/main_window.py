@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bgremover import __version__
+from bgremover.ai_install_dialog import AiInstallDialog
 from bgremover.ai_model_dialog import AiModelDialog
 from bgremover.ai_model_status import ModelStatus, get_model_status
 from bgremover.app_update import UpdateCheckResult, UpdateStatus
@@ -774,6 +775,7 @@ class MainWindow(QMainWindow):
                 open_settings=self._open_settings,
                 check_for_updates=self._check_for_updates,
                 manage_ai_model=self._open_ai_model_dialog,
+                install_ai_backend=self._open_ai_install_dialog,
             ),
             light_mode=self._light_mode,
         )
@@ -1555,6 +1557,13 @@ class MainWindow(QMainWindow):
         if self._update_available_result is not None:
             self._on_update_check_result(self._update_available_result)
         self._update_hint_btn.setVisible(False)
+
+    # ── KI-Backend nachrüsten (rembg per Terminal-Befehl) ───────
+
+    def _open_ai_install_dialog(self) -> None:
+        """Zeigt den Nachrüst-Befehl fürs rembg-Backend, kein Auto-Install
+        (siehe ``ai_install_dialog``-Modul-Docstring für die Begründung)."""
+        AiInstallDialog(parent=self).exec()
 
     # ── KI-Modell-Verwaltung (#569/#570) ────────────────────────
 
