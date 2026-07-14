@@ -197,7 +197,7 @@ programme.
 
 ### Mise à jour de l'application & gestion du modèle d'IA
 
-Le menu `Outils` propose deux entrées supplémentaires :
+Le menu `Outils` propose trois entrées supplémentaires :
 
 - **« Rechercher des mises à jour… »** interroge la dernière release
   GitHub sans bloquer et affiche une boîte de dialogue selon le résultat :
@@ -207,12 +207,16 @@ Le menu `Outils` propose deux entrées supplémentaires :
   version affiche aussi un indice discret et cliquable dans la barre
   d'état qui ouvre la même boîte de dialogue – sans nouvelle requête
   réseau.
-- **« Gérer le modèle d'IA… »** (actif uniquement si `rembg` est installé)
-  affiche si le modèle par défaut de rembg est déjà en cache local et
-  permet un téléchargement/nouvel essai explicite avec indicateur
-  d'activité et bouton d'annulation – en alternative au téléchargement
-  automatique au démarrage de l'application (voir le guide
-  d'installation, par ex. `INSTALL_MAC.md`).
+- **« Gérer le modèle d'IA… »** affiche si `rembg` est disponible et si le
+  modèle par défaut de rembg est déjà en cache local, et permet un
+  téléchargement/nouvel essai explicite avec indicateur d'activité et bouton
+  d'annulation – en alternative au téléchargement automatique au démarrage
+  de l'application (voir le guide d'installation, par ex. `INSTALL_MAC.md`).
+- **« Installer la suppression d'arrière-plan par IA… »** affiche la
+  commande appropriée pour ajouter le backend rembg, avec un bouton de copie
+  dans le presse-papiers. L'application n'installe volontairement rien
+  automatiquement ; après l'installation, redémarrez-la pour que le processus
+  en cours voie le nouveau paquet.
 
 ### Raccourcis clavier
 

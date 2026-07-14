@@ -188,7 +188,7 @@ the next time the program starts.
 
 ### App update & AI model management
 
-The `Tools` menu offers two more entries:
+The `Tools` menu offers three more entries:
 
 - **"Check for updates…"** queries the latest GitHub release non-blocking
   and shows a dialog depending on the result: current version, a new
@@ -196,11 +196,15 @@ The `Tools` menu offers two more entries:
   message. If "Automatically check for updates on startup" is enabled, a
   new version also shows a discreet, clickable hint in the status bar that
   opens the same dialog – without another network request.
-- **"Manage AI model…"** (only active if `rembg` is installed) shows
-  whether the rembg default model is already cached locally and allows an
-  explicit download/retry with a progress indicator and a cancel button –
-  as an alternative to the automatic download on app startup (see the
-  install guide, e.g. `INSTALL_MAC.md`).
+- **"Manage AI model…"** shows whether `rembg` is available and whether the
+  rembg default model is already cached locally, and allows an explicit
+  download/retry with a progress indicator and a cancel button – as an
+  alternative to the automatic download on app startup (see the install
+  guide, e.g. `INSTALL_MAC.md`).
+- **"Install AI background removal…"** shows the matching command for adding
+  the rembg backend, with a copy-to-clipboard button. The app deliberately
+  does not install anything automatically; after installation, restart the
+  app so the running process can see the new package.
 
 ### Keyboard shortcuts
 

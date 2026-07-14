@@ -11,7 +11,7 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-13)
+## Aktueller Stand (2026-07-14)
 
 Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite
 bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am
@@ -55,7 +55,7 @@ Live-Stand: **2** offene Issues – #245, #551.
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach
   Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-13)
+## Offene GitHub-Issues – Triage-Stand (2026-07-14)
 
 Live-Stand: **2** offene Issues – beide bestehende CI-/Security-Issues,
 unverändert gegenüber der letzten Runde (Epic #563 mit allen acht

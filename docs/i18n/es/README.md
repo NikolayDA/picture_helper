@@ -195,7 +195,7 @@ programa.
 
 ### Actualizaciones y gestión del modelo de IA
 
-El menú `Herramientas` ofrece dos opciones más:
+El menú `Herramientas` ofrece tres opciones más:
 
 - **"Buscar actualizaciones…"** consulta la última versión de GitHub sin
   bloquear y muestra un diálogo según el resultado: versión actual, una
@@ -204,11 +204,16 @@ El menú `Herramientas` ofrece dos opciones más:
   iniciar" está activado, una nueva versión también muestra un aviso
   discreto y clicable en la barra de estado que abre el mismo diálogo –
   sin otra solicitud de red.
-- **"Gestionar modelo de IA…"** (activo solo si `rembg` está instalado)
-  muestra si el modelo por defecto de rembg ya está en caché local y
-  permite una descarga/reintento explícitos con indicador de progreso y
-  botón de cancelar – como alternativa a la descarga automática al iniciar
-  la app (ver la guía de instalación, p. ej. `INSTALL_MAC.md`).
+- **"Gestionar modelo de IA…"** muestra si `rembg` está disponible y si el
+  modelo por defecto de rembg ya está en caché local, y permite una
+  descarga/reintento explícitos con indicador de progreso y botón de
+  cancelar – como alternativa a la descarga automática al iniciar la app
+  (ver la guía de instalación, p. ej. `INSTALL_MAC.md`).
+- **"Instalar eliminación de fondo por IA…"** muestra el comando adecuado
+  para añadir el backend rembg, con botón para copiarlo al portapapeles. La
+  app no instala nada automáticamente de forma deliberada; tras la
+  instalación hay que reiniciarla para que el proceso en ejecución vea el
+  paquete nuevo.
 
 ### Atajos de teclado
 
