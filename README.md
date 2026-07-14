@@ -194,7 +194,7 @@ und beim nächsten Programmstart automatisch wiederhergestellt.
 
 ### App-Update & KI-Modell verwalten
 
-Das Menü `Extras` bietet zwei weitere Einträge:
+Das Menü `Extras` bietet drei weitere Einträge:
 
 - **„Nach Updates suchen…"** fragt nicht-blockierend die neueste
   GitHub-Release ab und zeigt je nach Ergebnis einen Dialog: aktuelle
@@ -203,11 +203,15 @@ Das Menü `Extras` bietet zwei weitere Einträge:
   suchen" aktiviert, erscheint bei einer verfügbaren neuen Version zusätzlich
   ein dezenter, klickbarer Hinweis in der Statusleiste, der denselben Dialog
   öffnet – ohne erneuten Netzwerkzugriff.
-- **„KI-Modell verwalten…"** (nur aktiv, wenn `rembg` installiert ist) zeigt,
-  ob das rembg-Standardmodell bereits lokal zwischengespeichert ist, und
-  erlaubt einen expliziten Download/Retry mit Fortschrittsanzeige und
-  Abbrechen-Button – als Alternative zum automatischen Download beim
-  App-Start (siehe Installationsanleitung, z. B. `INSTALL_MAC.md`).
+- **„KI-Modell verwalten…"** zeigt, ob `rembg` verfügbar ist und ob das
+  rembg-Standardmodell bereits lokal zwischengespeichert ist, und erlaubt
+  einen expliziten Download/Retry mit Fortschrittsanzeige und Abbrechen-
+  Button – als Alternative zum automatischen Download beim App-Start
+  (siehe Installationsanleitung, z. B. `INSTALL_MAC.md`).
+- **„KI-Hintergrundentfernung installieren…"** zeigt den passenden
+  Nachrüst-Befehl für das rembg-Backend mit Kopieren-Button. Die App
+  installiert bewusst nichts automatisch; nach der Installation ist ein
+  Neustart nötig, damit der laufende Prozess das neue Paket sieht.
 
 ### Tastatur-Kürzel
 

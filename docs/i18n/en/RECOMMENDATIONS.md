@@ -11,17 +11,17 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-13)
+## Current Status (2026-07-14)
 
 The active code-analysis list is empty. Ruff, mypy, and the local test suite
 remain the baseline before new PRs. Release **v2.5.0** was cut on 2026-07-11
 (PR #538); the rollout wave **#435/#392/#426/#389** is closed, as is **#299**
 (PR #539) with N13 follow-up **#541** (PR #543), **#318** (PR #540), and the
 snapshot sync **#542**. A repo audit on 2026-07-12 filed **#549–#553**;
-**#552/#549/#553/#550** are now closed via PR #557–#560. Since the last
-snapshot (#245, #551), epic **#563** ("app update check & AI model
-management") with eight sub-issues (**#564–#571**) was filed on 2026-07-13.
-Live state: **11** open issues – #245, #551, #563–#571.
+**#552/#549/#553/#550** are now closed via PR #557–#560. Epic **#563**
+("app update check & AI model management", eight sub-issues **#564–#571**)
+was fully implemented and closed on 2026-07-13 via PR #573/#574 (**N14**).
+Live state: **2** open issues – #245, #551.
 
 ### Completed Since The Last Review
 
@@ -34,28 +34,32 @@ Live state: **11** open issues – #245, #551, #563–#571.
   Release wave **#435/#392/#426/#389** (v2.5.0), **#299/#541/#318/#542**, PR
   template **#552**, snapshot sync **#549**, SessionStart fix **#553**,
   v2.3.0 formalization **#550** – all closed since 2026-07-12.
+- **N14 — Epic #563 (app update & AI model management) fully closed:**
+  update-check core logic `app_update.py` (#564) and model-status core logic
+  `ai_model_status.py` (#568) – both Qt-free, strictly typed, and in the
+  mypy strict list (PR #573). Menu/dialog integration "Check for updates…"/
+  "Manage AI model…" (#565/#569, PR #573). Optional automatic startup check
+  (#566) and real wiring of model download into the existing warmup mechanism
+  with multiple observers/cooperative cancellation (#570, PR #574, including
+  three Codex review fixes: separate on_success/on_finished callbacks,
+  manual check attaches to a running startup check, race protection while
+  attaching). Docs wrap-up (README/CLAUDE.md/CHANGELOG/RESOURCES/INSTALL_*,
+  all six languages) via #567/#571.
 
 ### Still Open
 
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup
   after generation; mockup-only, the real app is unaffected (#347).
 
-## Open GitHub Issues — Triage Status (2026-07-13)
+## Open GitHub Issues — Triage Status (2026-07-14)
 
-Live state: **11** open issues – two pre-existing CI/security issues
-(**#245**, **#551**) plus epic **#563** with eight sub-issues
-(**#564–#571**) for two independent groups: app update (#564–#567) and AI
-model management (#568–#571). All comments reviewed – existing owner triage
-notes from 2026-07-13 already cover ordering/scope; no issue description
-needed editing.
+Live state: **2** open issues – both pre-existing CI/security issues,
+unchanged from the previous round (epic #563 and all eight sub-issues have
+since been fully closed).
 
 ### Sensible Bundles
 
 #245/#551 are linked (Codex scan: account action vs. strategic decision).
-The eight #563 sub-issues form two internally sequential but mutually
-independent chains: **app update** (#564→#565→#566→#567) and **AI model
-download** (#568→#569→#570→#571) – confirmed by the issue author on
-2026-07-13 (comments on #563/#569/#570).
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** =
 estimated implementation effort, **Model/Effort** = the recommended Claude
@@ -63,30 +67,14 @@ model and reasoning effort.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#563](https://github.com/NikolayDA/picture_helper/issues/563) | Epic: menu extension app update & AI model management | 🟠 High | 🟠 High (8 sub-issues) | – (pure tracking) | **Blocked (on sub-issues)** – closes automatically with #564–#571; order captured in the owner comment from 2026-07-13. |
-| [#564](https://github.com/NikolayDA/picture_helper/issues/564) | App update: update-check core logic (`app_update.py`) | 🟠 High | 🟢 Low (size S, no dependencies) | Sonnet 5 · low–medium | **Ready for PR** – Qt-free, strictly typed, clear acceptance criteria. |
-| [#565](https://github.com/NikolayDA/picture_helper/issues/565) | App update: menu/dialog integration "Check for updates…" | 🟠 High | 🟡 Medium (size S–M, async QThread + i18n) | Sonnet 5 · medium | **Needs #564** – ready for a PR right after. |
-| [#566](https://github.com/NikolayDA/picture_helper/issues/566) | App update: optional automatic startup check | 🟡 Medium | 🟢 Low (size S) | Sonnet 5 · low | **Needs #564+#565**. |
-| [#567](https://github.com/NikolayDA/picture_helper/issues/567) | App update: docs wrap-up + i18n governance | 🟢 Low | 🟢 Low (size XS) | Sonnet 5 · low | **Needs #564–#566 merged**. |
-| [#568](https://github.com/NikolayDA/picture_helper/issues/568) | AI model download: status detection (Qt-free) | 🟠 High | 🟢 Low (size S, no dependencies) | Sonnet 5 · low–medium | **Ready for PR** – Qt-free, strictly typed, clear acceptance criteria. |
-| [#569](https://github.com/NikolayDA/picture_helper/issues/569) | AI model download: menu/dialog integration "Manage AI model…" | 🟠 High | 🟡 Medium (size M, dialog+progress+cancel mocked) | Sonnet 5 · medium | **Needs #568** – a mocked download/cancel path is sufficient (2026-07-13 scope clarification). |
-| [#570](https://github.com/NikolayDA/picture_helper/issues/570) | AI model download: wiring into existing warmup/WorkerController | 🟠 High | 🟡 Medium–High (size S–M, new `cancel_warmup()` hook needed) | Sonnet 5 · medium–high | **Needs #568+#569**. |
-| [#571](https://github.com/NikolayDA/picture_helper/issues/571) | AI model download: docs wrap-up + i18n governance | 🟢 Low | 🟢 Low (size XS) | Sonnet 5 · low | **Needs #568–#570 merged**. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Codex Security Scan strategy decision (reactivate/decommission/replace) | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Needs refinement** – choice among three options; recommendation: option 2 (decommission/disable) given weeks of external blockage and redundancy with pip-audit/license/CI. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟡 Medium | 🟢 Low | – (no code task) | **Blocked (external)** – restoring OpenAI billing/quota is an account action, not a PR. |
 
 ### Recommended Next (PR order)
 
-1. **#564+#568** — implement the Qt-free core logic first & in parallel
-   (mutually independent, no open dependencies, fully PR-ready).
-2. **#565+#569** — menu/dialog integration per group once the core logic
-   merges (a mocked download/check path is sufficient).
-3. **#566+#570** — startup check / warmup wiring respectively; #570 also
-   needs a new `cancel_warmup()` hook per the owner comment (2026-07-13).
-4. **#567+#571** — docs wrap-up per group (XS, trivial).
-5. **#551** — get a decision on the scan strategy (linked to #245), then
+1. **#551** — get a decision on the scan strategy (linked to #245), then
    adjust the workflow.
-6. **#245** — stays externally blocked; verify manually only after the
+2. **#245** — stays externally blocked; verify manually only after the
    OpenAI quota is restored.
 
 *Drift note:* re-check the live open-issue count before every future update
@@ -94,6 +82,10 @@ instead of carrying it forward (#542 → #549 hit the same off-by-one).
 
 ## Previous Rounds
 
+- **2026-07-13 (epic completion)** — epic **#563** fully closed: all eight
+  sub-issues (**#564–#571**) closed through PR #573 (#564/#565/#568/#569)
+  and PR #574 (#566/#570 + docs wrap-up #567/#571). Snapshot reduced to 2
+  (#245, #551).
 - **2026-07-13 (issue audit)** — epic **#563** + eight sub-issues
   (**#564–#571**) filed; all 11 open issues re-assessed, owner comments
   taken into account. No issue closed. Recommendation: #564/#568 first.
