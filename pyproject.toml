@@ -1,10 +1,11 @@
-# setuptools>=78.1.1: schliesst CVE-2024-6345 (RCE in package_index) und
-# CVE-2025-47273 (Path-Traversal in PackageIndex._download_url). setuptools ist
-# eine direkte Build-Abhaengigkeit; der Build-Backend laeuft in pip-Isolation,
-# daher wird die sichere Version hier (und in requirements/constraints.txt)
-# erzwungen.
+# setuptools>=83.0.0: schliesst CVE-2024-6345 (RCE in package_index),
+# CVE-2025-47273 (Path-Traversal in PackageIndex._download_url) und
+# PYSEC-2026-3447 (Unicode-Normalisierungs-Bypass bei MANIFEST.in-Exclude-
+# Mustern auf macOS APFS/HFS+). setuptools ist eine direkte Build-
+# Abhaengigkeit; der Build-Backend laeuft in pip-Isolation, daher wird die
+# sichere Version hier (und in requirements/constraints.txt) erzwungen.
 [build-system]
-requires = ["setuptools>=78.1.1"]
+requires = ["setuptools>=83.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]

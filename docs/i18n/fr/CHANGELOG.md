@@ -56,6 +56,27 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   annulation coopérative (`RembgWarmupWorker.cancel()`, analogue à
   `AIWorker`/`FloodFillWorker`) : le processus enfant d'inférence est arrêté
   proprement, sans signaler à tort l'annulation comme un succès ou un échec.
+- **Élément de menu « Installer la suppression d'arrière-plan par IA… ».** Le
+  nouveau dialogue `ai_install_dialog.py` affiche, pour les utilisateur·rice·s
+  sans backend rembg installé (p. ex. après l'installation minimale sur
+  Raspberry Pi), la commande appropriée pour l'installer, avec un bouton de
+  copie dans le presse-papiers – spécifique à la plateforme (Linux : recette
+  venv/pip ; macOS : `create_BgRemover_app.sh`, car une venv dédiée au
+  bundle d'application y est maintenue) et avec un avertissement lorsque la
+  version de Python active est inférieure au 3.11 requis par
+  rembg/onnxruntime. Volontairement aucune tentative d'installation
+  automatique depuis l'application : PEP 668 bloque de toute façon `pip`
+  vers le Python système, et un paquet fraîchement installé ne serait
+  visible dans le processus en cours qu'après un redémarrage.
+
+### Modifié
+
+- **Épinglage de setuptools relevé contre une nouvelle CVE.** `setuptools`
+  est relevé dans `pyproject.toml` (`[build-system]`) et
+  `requirements/constraints.txt` de `78.1.1` à `>=83.0.0` (`==83.0.0` dans
+  `constraints.txt`) – corrige `PYSEC-2026-3447` (contournement de
+  normalisation Unicode dans les motifs d'exclusion de `MANIFEST.in`, macOS
+  APFS/HFS+), en plus des CVE-2024-6345/CVE-2025-47273 déjà épinglées.
 
 ### Corrigé
 

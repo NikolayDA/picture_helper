@@ -143,11 +143,13 @@ def test_installers_use_constraints_file() -> None:
 
 
 def test_build_system_setuptools_excludes_known_rce() -> None:
-    """[build-system].requires darf keine setuptools-Version vor 78.1.1 zulassen
-    (CVE-2024-6345 RCE, CVE-2025-47273 Path-Traversal)."""
+    """[build-system].requires darf keine setuptools-Version vor 83.0.0 zulassen
+    (CVE-2024-6345 RCE, CVE-2025-47273 Path-Traversal, PYSEC-2026-3447 Unicode-
+    Normalisierungs-Bypass bei MANIFEST.in-Exclude-Mustern)."""
     spec = _build_system_setuptools().specifier
-    assert Version("78.1.1") in spec
-    assert Version("78.1.0") not in spec
+    assert Version("83.0.0") in spec
+    assert Version("82.0.0") not in spec  # PYSEC-2026-3447
+    assert Version("78.1.0") not in spec  # CVE-2025-47273
     assert Version("68.1.2") not in spec  # die in CI/Dev vorgefundene Altversion
 
 
@@ -158,7 +160,8 @@ def test_constraints_pin_patched_build_backend() -> None:
 
     assert "setuptools" in reqs, "setuptools fehlt in requirements/constraints.txt"
     setuptools_spec = reqs["setuptools"].specifier
-    assert Version("78.1.1") in setuptools_spec
+    assert Version("83.0.0") in setuptools_spec
+    assert Version("82.0.0") not in setuptools_spec  # PYSEC-2026-3447
     assert Version("78.1.0") not in setuptools_spec  # CVE-2025-47273
 
     assert "wheel" in reqs, "wheel fehlt in requirements/constraints.txt"

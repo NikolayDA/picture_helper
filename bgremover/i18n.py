@@ -459,6 +459,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_install.dialog.already_installed": (
             "Hinweis: rembg ist in der aktuell laufenden Umgebung bereits installiert."
         ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Aktives Python {version} ist zu alt für die KI: rembg/onnxruntime "
+            "benötigen Python 3.11+. Vor dem Befehl eine neuere Python-Version "
+            "installieren (z. B. via Homebrew/pyenv/apt) und sicherstellen, dass "
+            "„python3“ darauf zeigt."
+        ),
         "ai_install.dialog.copy": "Befehl kopieren",
         "ai_install.dialog.copied": "In die Zwischenablage kopiert.",
         # Left toolbar
@@ -1274,6 +1280,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "ai_install.dialog.already_installed": (
             "Note: rembg is already installed in the currently running environment."
+        ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Active Python {version} is too old for the AI: rembg/onnxruntime "
+            "require Python 3.11+. Install a newer Python first (e.g. via "
+            'Homebrew/pyenv/apt) and make sure "python3" points to it before '
+            "running the command."
         ),
         "ai_install.dialog.copy": "Copy command",
         "ai_install.dialog.copied": "Copied to clipboard.",
@@ -2096,6 +2108,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_install.dialog.already_installed": (
             "Nota: rembg ya está instalado en el entorno en ejecución actual."
         ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ El Python activo {version} es demasiado antiguo para la IA: "
+            "rembg/onnxruntime requieren Python 3.11+. Instala primero una "
+            'versión de Python más reciente (p. ej. con Homebrew/pyenv/apt) y '
+            'asegúrate de que "python3" apunte a ella antes de ejecutar el '
+            "comando."
+        ),
         "ai_install.dialog.copy": "Copiar comando",
         "ai_install.dialog.copied": "Copiado al portapapeles.",
         # Left toolbar
@@ -2917,6 +2936,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Remarque : rembg est déjà installé dans l'environnement en cours "
             "d'exécution."
         ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Le Python actif {version} est trop ancien pour l'IA : "
+            "rembg/onnxruntime nécessitent Python 3.11+. Installez d'abord une "
+            'version de Python plus récente (p. ex. via Homebrew/pyenv/apt) et '
+            'assurez-vous que "python3" pointe dessus avant d\'exécuter la '
+            "commande."
+        ),
         "ai_install.dialog.copy": "Copier la commande",
         "ai_install.dialog.copied": "Copié dans le presse-papiers.",
         # Left toolbar
@@ -3735,6 +3761,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "ai_install.dialog.already_installed": (
             "Примітка: rembg уже встановлено в поточному середовищі виконання."
         ),
+        "ai_install.dialog.python_too_old": (
+            "⚠ Активний Python {version} застарий для ШІ: rembg/onnxruntime "
+            "потребують Python 3.11+. Спочатку встановіть новішу версію Python "
+            "(наприклад, через Homebrew/pyenv/apt) і переконайтеся, що "
+            "«python3» вказує на неї, перш ніж виконувати команду."
+        ),
         "ai_install.dialog.copy": "Скопіювати команду",
         "ai_install.dialog.copied": "Скопійовано в буфер обміну.",
         # Left toolbar
@@ -4531,6 +4563,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "ai_install.dialog.venv_note": '已经在使用自己的 venv？只需执行：pip install "rembg[cpu]"',
         "ai_install.dialog.already_installed": "提示：rembg 已在当前运行环境中安装。",
+        "ai_install.dialog.python_too_old": (
+            "⚠ 当前 Python {version} 版本过旧，无法用于 AI：rembg/onnxruntime 需要 "
+            "Python 3.11+。请先安装更新的 Python（例如通过 Homebrew/pyenv/apt），"
+            "并确保「python3」指向它，然后再执行该命令。"
+        ),
         "ai_install.dialog.copy": "复制命令",
         "ai_install.dialog.copied": "已复制到剪贴板。",
         # Left toolbar

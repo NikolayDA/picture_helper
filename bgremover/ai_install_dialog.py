@@ -8,9 +8,19 @@ selbst per Subprocess: Auf Systemen ohne venv blockiert PEP 668
 ohnehin, und ein frisch installiertes Paket wäre im laufenden Prozess erst
 nach einem Neustart sichtbar – ein automatischer Install-Versuch aus der
 App heraus würde also entweder scheitern oder nur Verwirrung stiften.
+
+Der Befehl ist plattformabhängig (#578-Review): Unter macOS zeigt
+``INSTALL_MAC.md`` das App-Bundle-Skript als empfohlenen Weg (eigene venv
+unter ``~/Library/Application Support/BgRemover/venv``) – ein
+Linux-Rezept mit eigener Projekt-``.venv`` würde dort am laufenden
+Interpreter der gepackten App vorbeigehen. Zusätzlich warnt der Dialog,
+wenn der aktuell laufende Python älter als die von rembg/onnxruntime
+geforderte Mindestversion ist (siehe ``INSTALL_LINUX.md``/``INSTALL_MAC.md``:
+„KI-Hintergrundentfernung benötigt Python 3.11+").
 """
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 
 from PyQt6.QtGui import QGuiApplication
@@ -27,12 +37,20 @@ from PyQt6.QtWidgets import (
 from bgremover.ai_model_status import ModelStatus, ModelStatusResult, get_model_status
 from bgremover.i18n import tr
 
-INSTALL_COMMAND = (
+LINUX_INSTALL_COMMAND = (
     'python3 -m venv --system-site-packages .venv\n'
     'source .venv/bin/activate\n'
     'pip install "rembg[cpu]"\n'
     'python3 -m bgremover'
 )
+MACOS_INSTALL_COMMAND = "bash create_BgRemover_app.sh"
+
+MIN_AI_PYTHON_VERSION = (3, 11)
+
+
+def install_command_for_platform(platform: str) -> str:
+    """Liefert den Nachrüst-Befehl passend zur Plattform (``sys.platform``)."""
+    return MACOS_INSTALL_COMMAND if platform == "darwin" else LINUX_INSTALL_COMMAND
 
 
 class AiInstallDialog(QDialog):
@@ -42,10 +60,14 @@ class AiInstallDialog(QDialog):
         self,
         *,
         status_provider: Callable[[], ModelStatusResult] = get_model_status,
+        platform: str = sys.platform,
+        python_version: tuple[int, int] = sys.version_info[:2],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._status_provider = status_provider
+        self._platform = platform
+        self._python_version = python_version
         self.setWindowTitle(tr("ai_install.dialog.title"))
         self.setMinimumWidth(480)
         self._build_ui()
@@ -67,7 +89,18 @@ class AiInstallDialog(QDialog):
             already.setWordWrap(True)
             lay.addWidget(already)
 
-        self._command_view = QPlainTextEdit(INSTALL_COMMAND)
+        if self._python_version < MIN_AI_PYTHON_VERSION:
+            too_old = QLabel(
+                tr(
+                    "ai_install.dialog.python_too_old",
+                    version=f"{self._python_version[0]}.{self._python_version[1]}",
+                )
+            )
+            too_old.setWordWrap(True)
+            lay.addWidget(too_old)
+
+        self._command = install_command_for_platform(self._platform)
+        self._command_view = QPlainTextEdit(self._command)
         self._command_view.setReadOnly(True)
         self._command_view.setFixedHeight(96)
         lay.addWidget(self._command_view)
@@ -95,5 +128,5 @@ class AiInstallDialog(QDialog):
     def _copy_command(self) -> None:
         clipboard = QGuiApplication.clipboard()
         if clipboard is not None:
-            clipboard.setText(INSTALL_COMMAND)
+            clipboard.setText(self._command)
         self._copied_label.setVisible(True)

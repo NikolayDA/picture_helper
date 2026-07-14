@@ -14,7 +14,9 @@
 #
 # Build backend (setuptools/wheel) is pinned to patched releases so constrained
 # installs and the isolated wheel build cannot pull vulnerable versions:
-#   setuptools==78.1.1 -> CVE-2024-6345 (RCE), CVE-2025-47273 (path traversal)
+#   setuptools==83.0.0 -> CVE-2024-6345 (RCE), CVE-2025-47273 (path traversal),
+#                         PYSEC-2026-3447 (Unicode-normalization exclude bypass
+#                         in MANIFEST.in patterns on macOS APFS/HFS+)
 #   wheel==0.46.2      -> CVE-2026-24049 (path traversal in `wheel unpack`)
 # setuptools is also pinned in pyproject.toml's [build-system].requires.
 
@@ -60,7 +62,7 @@ rpds-py==0.30.0
 ruff==0.15.13
 scikit-image==0.26.0; python_version >= "3.11"
 scipy==1.17.1; python_version >= "3.11"
-setuptools==78.1.1
+setuptools==83.0.0
 tifffile==2026.3.3; python_version >= "3.12"
 tqdm==4.67.3
 typing_extensions==4.15.0
