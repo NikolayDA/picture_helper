@@ -88,7 +88,13 @@ Ein Paket, `bgremover/`:
   werden ignoriert und Relief-Stärke 0 überspringt das Hillshade vollständig (#397).
   Ein Vorschau-Tab und das exklusive Ansicht-Untermenü halten sich signalbasiert
   synchron; der UI-Hinweis macht den unveränderten Bildexport ausdrücklich sichtbar
-  (#388).
+  (#388). Die echte 3D-Reliefvorschau (Epic #582) ist architektonisch entschieden
+  (#591): Qt-nativer OpenGL-Viewer (`QOpenGLWidget`, keine neue Laufzeitabhängigkeit)
+  über einem Qt-freien, backend-neutralen Geometriekern mit harten Mesh-Budgets,
+  Capability-Probe und verbindlichem 2D-Fallback – ADR
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md),
+  UX-Vertrag [`docs/UX_3D_PREVIEW.md`](docs/UX_3D_PREVIEW.md); Umsetzung folgt in
+  #592–#595.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
