@@ -355,6 +355,21 @@ jobs:
           # andere Fehler bricht den Job ab.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "Release $GITHUB_REF_NAME existiert bereits – Body + Assets werden aktualisiert."
+            # #584: ALLE vorhandenen Assets vorab entfernen statt uns auf das
+            # nachfolgende ``gh release upload --clobber`` zu verlassen –
+            # ``--clobber`` ersetzt laut GitHub-CLI-Doku nur Assets MIT
+            # IDENTISCHEM Namen. Aendert sich das Namensschema oder die Menge
+            # der gebauten Dateien zwischen zwei Publish-Laeufen desselben Tags
+            # (z. B. nach einer Tag-Verschiebung auf einen Commit mit neuer
+            # Paketierung), blieben sonst veraltete Assets zusaetzlich zu den
+            # neuen haengen – der Asset-Satz eines Release muss immer exakt
+            # dem aktuell gebauten ``dist/`` entsprechen.
+            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' \
+              | while IFS= read -r asset_name; do
+                  [ -n "$asset_name" ] || continue
+                  echo "Entferne veraltetes Release-Asset: $asset_name"
+                  gh release delete-asset "$GITHUB_REF_NAME" "$asset_name" -y
+                done
             gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
           else
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
