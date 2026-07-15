@@ -193,6 +193,37 @@ def test_release_sets_body_on_reuse_too() -> None:
     )
 
 
+def test_release_reuse_deletes_stale_assets_before_reupload() -> None:
+    """Beim Reuse eines Releases werden ALLE vorhandenen Assets vorab entfernt.
+
+    ``gh release upload --clobber`` ersetzt laut GitHub-CLI-Doku nur Assets mit
+    identischem Namen; aendert sich das Namensschema oder die Menge der
+    gebauten Dateien zwischen zwei Publish-Laeufen desselben Tags (z. B. nach
+    einer Tag-Verschiebung auf einen Commit mit geaenderter Paketierung wie in
+    #584), blieben sonst veraltete Assets zusaetzlich zu den neuen haengen.
+    """
+    text = _release_text()
+    assert "gh release delete-asset" in text, (
+        "Beim Reuse eines Releases muessen alte Assets aktiv entfernt werden – "
+        "'--clobber' allein ersetzt nur gleichnamige Assets."
+    )
+    assert "--json assets" in text and "assets[].name" in text, (
+        "Die vorhandenen Asset-Namen muessen ueber 'gh release view --json "
+        "assets' ermittelt werden, nicht hartkodiert."
+    )
+    # Der spezifische Aufruf (nicht die blosse Phrase "gh release upload", die
+    # auch in einem erklaerenden Kommentar vorkommen kann) markiert den
+    # tatsaechlichen Upload-Schritt.
+    upload_call = 'gh release upload "$GITHUB_REF_NAME" dist/*'
+    assert upload_call in text
+    delete_idx = text.index("gh release delete-asset")
+    upload_idx = text.index(upload_call)
+    assert delete_idx < upload_idx, (
+        "Alte Assets muessen VOR dem Upload der neu gebauten Dateien entfernt "
+        "werden, sonst sind sie zwischenzeitlich doppelt vorhanden."
+    )
+
+
 def test_extract_release_notes_reads_changelog_section() -> None:
     module = _load_extract_module()
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
