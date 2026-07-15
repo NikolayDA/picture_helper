@@ -43,8 +43,12 @@ variant on a Pi or an arm64 host). Needs `python3` + `pip` and network access:
 ./packaging/linux/build_deb.sh
 ```
 
-Outputs land in `build/appimage/BgRemover-<version>-<arch>.AppImage` and
-`build/deb/BgRemover-<version>-<arch>.deb`.
+Outputs land in `build/appimage/BgRemover-<version>-<platform-tag>[-ai].AppImage`
+and `build/deb/BgRemover-<version>-<platform-tag>[-ai].deb`, where
+`<platform-tag>` is `linux-x86_64` or `linux-raspberrypi-arm64` — an explicit
+OS+device tag instead of a bare architecture, so it can't be confused with the
+macOS `.dmg`'s `arm64` (#584). `-ai` is only appended when the build actually
+bundles rembg/onnxruntime.
 
 `build_appimage.sh` applies the committed
 `requirements/constraints.txt` snapshot to both its own `pip` calls and the
@@ -55,19 +59,22 @@ testing a different dependency snapshot.
 ## Architectures / Raspberry Pi OS
 
 `uname -m` selects the architecture automatically: `x86_64` and `aarch64`
-(Raspberry Pi OS 64-bit) are supported; the `.deb` maps these to `amd64` /
-`arm64`. The release workflow builds both on native runners
-(`ubuntu-24.04` and `ubuntu-24.04-arm`), so no cross-compilation/QEMU is needed.
+(Raspberry Pi OS 64-bit) are supported. The artifact filename's
+`<platform-tag>` is `linux-x86_64` / `linux-raspberrypi-arm64`; the `.deb`'s
+internal `Architecture:` control field still uses the Debian codes `amd64` /
+`arm64` that apt expects (independent of the human-readable filename). The
+release workflow builds both on native runners (`ubuntu-24.04` and
+`ubuntu-24.04-arm`), so no cross-compilation/QEMU is needed.
 
 ## Installing
 
 ```bash
 # AppImage — make executable and run (double-click also works)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage          # or: ... --appimage-extract-and-run  (no FUSE)
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage          # or: ... --appimage-extract-and-run  (no FUSE)
 
 # .deb — apt resolves the FUSE dependency
-sudo apt install ./BgRemover-*-amd64.deb
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
 ## Release verification (headless smoke launch)

@@ -58,6 +58,14 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   已从 `78.1.1` 提升到 `>=83.0.0`（`constraints.txt` 中为 `==83.0.0`）——
   修复了 `PYSEC-2026-3447`（`MANIFEST.in` 排除模式中的 Unicode 规范化绕过，
   macOS APFS/HFS+），并在此前已锁定的 CVE-2024-6345/CVE-2025-47273 之外。
+- **发行版构件名称现在按平台/设备明确区分（#584）。** 五个发行版下载文件
+  （Linux x86_64 和 Linux/树莓派 aarch64 的 AppImage/`.deb`，macOS arm64 的
+  `.dmg`）现在命名为
+  `BgRemover-X.Y.Z-<平台标签>[-ai].<扩展名>`，而不再是裸架构名——例如
+  `BgRemover-2.6.0-linux-raspberrypi-arm64-ai.AppImage`。此前 Linux/树莓派的
+  `.deb` 和 macOS 的 `.dmg` 都使用相同的 `arm64` 标签，只能靠扩展名区分；
+  `-ai` 后缀还能清楚显示每个构件——包括树莓派构建——都内置了与 macOS
+  构建相同的 AI 背景移除功能。
 
 ### 修复
 

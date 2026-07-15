@@ -7,6 +7,15 @@ name: Release artifacts (Linux + macOS)
 # Also runnable on demand via workflow_dispatch. The downloadable artifacts
 # bundle the rembg/onnxruntime AI background removal by default.
 #
+# Artifact naming (#584): ``BgRemover-<version>-<platform_tag>[-ai].<ext>``,
+# e.g. ``BgRemover-2.6.0-linux-raspberrypi-arm64-ai.AppImage``. ``platform_tag``
+# spells out OS *and* device (``linux-x86_64`` / ``linux-raspberrypi-arm64`` /
+# ``macos-arm64``) instead of a bare architecture — a raw ``arm64`` cannot tell
+# a Raspberry Pi .deb apart from the macOS .dmg. The ``-ai`` suffix is only
+# appended when the AI stack (rembg/onnxruntime) is actually bundled, so it is
+# visible per file whether that build has the same integrated AI model as the
+# macOS one, instead of only being documented out-of-band.
+#
 # Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
 # GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
 # erzwungen:
@@ -102,13 +111,16 @@ jobs:
             runner: ubuntu-24.04
             arch: x86_64
             deb_arch: amd64
+            platform_tag: linux-x86_64
           - os: linux
             runner: ubuntu-24.04-arm   # native arm64 runner → Raspberry Pi OS
             arch: aarch64
             deb_arch: arm64
+            platform_tag: linux-raspberrypi-arm64
           - os: macos
             runner: macos-latest        # native Apple Silicon (arm64)
             arch: arm64
+            platform_tag: macos-arm64
     env:
       # appimagetool needs FUSE to run; extract-and-run avoids requiring it
       # (and the FUSE2 package) on the CI runner. Harmlos/ungenutzt auf macOS.
@@ -153,11 +165,15 @@ jobs:
           test "${#debs[@]}" -eq 1 || { echo "::error::erwarte genau ein .deb, habe ${#debs[@]}"; exit 1; }
           appimage="${appimages[0]}"
           deb="${debs[0]}"
-          # Dateiname traegt Version und Zielarchitektur.
-          expected_appimage="BgRemover-${project_version}-${{ matrix.arch }}.AppImage"
+          # Dateiname traegt Version, ein eindeutiges OS+Geraet-Tag (#584: kein
+          # rohes "arm64", das Linux/Raspi und macOS gleichermassen meinen
+          # koennte) und den KI-Bündelstatus.
+          ai_suffix=""
+          [ "$WITH_AI" = "1" ] && ai_suffix="-ai"
+          expected_appimage="BgRemover-${project_version}-${{ matrix.platform_tag }}${ai_suffix}.AppImage"
           test "$(basename "$appimage")" = "$expected_appimage" \
             || { echo "::error::AppImage-Name '$(basename "$appimage")' != '$expected_appimage'"; exit 1; }
-          expected_deb="BgRemover-${project_version}-${{ matrix.deb_arch }}.deb"
+          expected_deb="BgRemover-${project_version}-${{ matrix.platform_tag }}${ai_suffix}.deb"
           test "$(basename "$deb")" = "$expected_deb" \
             || { echo "::error::.deb-Name '$(basename "$deb")' != '$expected_deb'"; exit 1; }
           # AppImage ist ausfuehrbar.
@@ -227,7 +243,9 @@ jobs:
           dmgs=(dist/*.dmg)
           test "${#dmgs[@]}" -eq 1 || { echo "::error::erwarte genau ein .dmg, habe ${#dmgs[@]}"; exit 1; }
           dmg="${dmgs[0]}"
-          expected_dmg="BgRemover-${project_version}-${{ matrix.arch }}.dmg"
+          ai_suffix=""
+          [ "$WITH_AI" = "1" ] && ai_suffix="-ai"
+          expected_dmg="BgRemover-${project_version}-${{ matrix.platform_tag }}${ai_suffix}.dmg"
           test "$(basename "$dmg")" = "$expected_dmg" \
             || { echo "::error::DMG-Name '$(basename "$dmg")' != '$expected_dmg'"; exit 1; }
           hdiutil imageinfo "$dmg" >/dev/null
@@ -260,7 +278,7 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: bgremover-${{ matrix.os }}-${{ matrix.arch }}
+          name: bgremover-${{ matrix.platform_tag }}
           path: dist/*
           if-no-files-found: error
 

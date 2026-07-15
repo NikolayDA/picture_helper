@@ -10,8 +10,9 @@ um einen offenen Pull Request vor dem Merge zu testen).
 
 Der einfachste Weg – **ohne Python, git oder Terminal**: das fertige
 App-Bundle aus den [GitHub-Releases](https://github.com/NikolayDA/picture_helper/releases)
-laden. Für Apple Silicon (arm64) gibt es `BgRemover-<version>-arm64.dmg`; die
-KI-Hintergrundentfernung ist bereits enthalten.
+laden. Für Apple Silicon (arm64) gibt es `BgRemover-<Version>-macos-arm64-ai.dmg`
+(der Dateiname nennt Plattform und Architektur); die KI-Hintergrundentfernung
+ist bereits eingebaut — erkennbar am `-ai`-Suffix, wie bei den Linux-Artefakten.
 
 1. `.dmg` öffnen und `BgRemover.app` in den Ordner **Programme** ziehen.
 2. Beim **ersten** Start per **Rechtsklick → „Öffnen"** bestätigen – das Bundle

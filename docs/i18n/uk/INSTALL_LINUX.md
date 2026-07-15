@@ -25,20 +25,25 @@
 - **`.deb`:** встановлюваний пакет для Debian/Ubuntu/Raspberry Pi OS із пунктом
   меню та чистим видаленням через apt/dpkg.
 
-Завантажте відповідний артефакт зі [сторінки релізів GitHub](https://github.com/NikolayDA/picture_helper/releases):
+Завантажте відповідний артефакт зі [сторінки релізів GitHub](https://github.com/NikolayDA/picture_helper/releases)
+— назва файлу містить версію, платформу/пристрій і те, чи вбудований ШІ:
+`BgRemover-<версія>-<тег-платформи>[-ai].<розширення>`.
 
 ```bash
 # AppImage (приклад x86_64)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb (приклад amd64; apt встановить залежність FUSE)
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb (приклад x86_64; apt встановить залежність FUSE)
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-Доступні builds для **x86_64** і **aarch64/Raspberry Pi OS 64-bit**. Наведені
-нижче інструкції venv/Git залишаються корисними, якщо потрібно тестувати з
-`main`, із feature-гілки або з локальними змінами.
+Доступні builds для **x86_64** (`linux-x86_64`) і **aarch64/Raspberry Pi OS
+64-bit** (`linux-raspberrypi-arm64`) — як AppImage, так і `.deb`, із суфіксом
+`-ai`, щойно вбудовано видалення фону через ШІ (типово для релізних
+завантажень, див. вище). Наведені нижче інструкції venv/Git залишаються
+корисними, якщо потрібно тестувати з `main`, із feature-гілки або з
+локальними змінами.
 
 ## Вимоги
 

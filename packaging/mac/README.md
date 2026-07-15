@@ -44,10 +44,14 @@ Build on an Apple Silicon Mac with the Xcode command line tools installed
 ./packaging/mac/build_macos.sh --ai
 ```
 
-The output lands in `build/macos/BgRemover-<version>-arm64.dmg`. Like the Linux
-build, the script applies the committed `requirements/constraints.txt` snapshot
-to its `pip` calls; set `PIP_CONSTRAINT=/path/to/constraints.txt` only when
-intentionally testing a different dependency snapshot.
+The output lands in `build/macos/BgRemover-<version>-macos-arm64[-ai].dmg` — an
+explicit OS+device tag rather than a bare architecture, since a lone `arm64`
+could otherwise be confused with the Linux/Raspberry-Pi `.deb` of the same
+name; `-ai` is only appended when `--ai` actually bundles rembg/onnxruntime
+(#584). Like the Linux build, the script applies the committed
+`requirements/constraints.txt` snapshot to its `pip` calls; set
+`PIP_CONSTRAINT=/path/to/constraints.txt` only when intentionally testing a
+different dependency snapshot.
 
 ## Installing
 

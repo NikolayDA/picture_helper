@@ -26,20 +26,25 @@ plus simple — **sans venv, sans pip et sans checkout Git** :
 - **`.deb` :** paquet installable pour Debian/Ubuntu/Raspberry Pi OS avec entrée
   de menu et désinstallation propre via apt/dpkg.
 
-Téléchargez l'artefact adapté depuis la [page des releases GitHub](https://github.com/NikolayDA/picture_helper/releases) :
+Téléchargez l'artefact adapté depuis la [page des releases GitHub](https://github.com/NikolayDA/picture_helper/releases)
+— le nom de fichier indique la version, la plateforme/l'appareil et si l'IA
+est intégrée : `BgRemover-<version>-<tag-plateforme>[-ai].<extension>`.
 
 ```bash
 # AppImage (exemple x86_64)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb (exemple amd64 ; apt installe la dépendance FUSE)
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb (exemple x86_64 ; apt installe la dépendance FUSE)
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-Des builds existent pour **x86_64** et **aarch64/Raspberry Pi OS 64-bit**. Les
-instructions venv/Git ci-dessous restent utiles pour tester depuis `main`, une
-branche de fonctionnalité ou avec des changements locaux.
+Des builds existent pour **x86_64** (`linux-x86_64`) et **aarch64/Raspberry
+Pi OS 64-bit** (`linux-raspberrypi-arm64`) — en AppImage et en `.deb`, avec un
+suffixe `-ai` dès que la suppression d'arrière-plan par IA est intégrée (par
+défaut pour les téléchargements de releases, voir ci-dessus). Les
+instructions venv/Git ci-dessous restent utiles pour tester depuis `main`,
+une branche de fonctionnalité ou avec des changements locaux.
 
 ## Prérequis
 

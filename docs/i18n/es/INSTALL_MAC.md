@@ -10,8 +10,10 @@ un pull request abierto antes del merge).
 
 La forma más sencilla — **sin Python, git ni terminal**: descarga el paquete de
 la app desde las [releases de GitHub](https://github.com/NikolayDA/picture_helper/releases).
-Para Apple Silicon (arm64) está `BgRemover-<version>-arm64.dmg`; el borrado de
-fondo por IA ya viene incluido.
+Para Apple Silicon (arm64) está `BgRemover-<version>-macos-arm64-ai.dmg`
+(el nombre indica la plataforma y la arquitectura); el borrado de fondo por
+IA ya viene integrado — reconocible por el sufijo `-ai`, igual que en los
+artefactos de Linux.
 
 1. Abre el `.dmg` y arrastra `BgRemover.app` a **Aplicaciones**.
 2. En el **primer** arranque confírmalo con **clic derecho → «Abrir»**: el
