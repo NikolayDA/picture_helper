@@ -1,9 +1,9 @@
 [Deutsch](../../../LICENSES.md) · [English](../en/LICENSES.md) · [Español](../es/LICENSES.md) · [Français](../fr/LICENSES.md) · [Українська](../uk/LICENSES.md) · **简体中文**
 
-# 许可证与法律概览 – bgremover 2.5.0
+# 许可证与法律概览 – bgremover 2.6.0
 
 > 自动生成 – **纯粹是对许可条款的技术性评估，并非法律意见。**
-> 截至：2026-07-13 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 45 个依赖。
+> 截至：2026-07-15 · 项目自身许可证：`GPL-3.0-or-later` · 已分析 45 个依赖。
 
 ## 总体评估 – 商业可用性
 
