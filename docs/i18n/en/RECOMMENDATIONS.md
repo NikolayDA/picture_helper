@@ -13,7 +13,7 @@
 
 ## Current Status (2026-07-15)
 
-The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.5.0** was cut on 2026-07-11 (PR #538); the rollout wave **#435/#392/#426/#389** is closed, as is **#299** (PR #539) with N13 follow-up **#541** (PR #543), **#318** (PR #540), and the snapshot sync **#542**. A repo audit on 2026-07-12 filed **#549–#553**; **#552/#549/#553/#550** are now closed via PR #557–#560. Epic **#563** ("app update check & AI model management", eight sub-issues **#564–#571**) was fully implemented and closed on 2026-07-13 via PR #573/#574 (**N14**). Live state: **18** open issues – the pre-existing #245/#551 plus three epics newly filed on 2026-07-15: **Release v2.6.0** (#580, sub-issues #583–#585), the **16-bit height pipeline** (#581, sub-issues #586–#590), and the **3D relief preview** (#582, sub-issues #591–#595).
+The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.5.0** was cut on 2026-07-11 (PR #538); the rollout wave **#435/#392/#426/#389** is closed, as is **#299** (PR #539) with N13 follow-up **#541** (PR #543), **#318** (PR #540), and the snapshot sync **#542**. A repo audit on 2026-07-12 filed **#549–#553**; **#552/#549/#553/#550** are now closed via PR #557–#560. Epic **#563** ("app update check & AI model management", eight sub-issues **#564–#571**) was fully implemented and closed on 2026-07-13 via PR #573/#574 (**N14**). Live state: **20** open issues – the pre-existing #245/#551 plus three epics newly filed on 2026-07-15 (**Release v2.6.0** #580 with sub-issues #583–#585, the **16-bit height pipeline** #581 with sub-issues #586–#590, the **3D relief preview** #582 with sub-issues #591–#595) plus two test-coverage findings **N15/N16** (#597/#598) filed the same day from a coverage audit.
 
 ### Completed Since The Last Review
 
@@ -24,10 +24,12 @@ The active code-analysis list is empty. Ruff, mypy, and the local test suite rem
 ### Still Open
 
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup after generation; mockup-only, the real app is unaffected (#347).
+- **N15 🟡 — Untested dialog wiring:** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) has no dedicated test, unlike the structurally identical sibling method `_open_ai_model_dialog` (#597).
+- **N16 🟡 — Untested non-RGBA conversion:** the non-RGBA branches in `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) are never exercised with an RGB/palette/grayscale source image (#598).
 
 ## Open GitHub Issues — Triage Status (2026-07-15)
 
-Live state: **18** open issues – a jump from the previous **2**: the repository owner filed three new epics with twelve sub-issues on 2026-07-14/15 for the next release/feature cycle (Release v2.6.0, 16-bit height pipeline, 3D relief preview). The comment check found nothing needing a response: #245 was last commented on 2026-06-19 (status still accurate, no new owner reaction needed), and #551 plus all 16 new issues have no comments.
+Live state: **20** open issues – a further increase from **18**: on top of the three epics, two test-coverage findings from a 2026-07-15 coverage audit were filed (**#597**/**#598**, matching **N15**/**N16** above). The comment check found nothing needing a response: #245 was last commented on 2026-06-19 (status still accurate), and all other 19 issues have no comments.
 
 ### Sensible Bundles
 
@@ -35,6 +37,7 @@ Live state: **18** open issues – a jump from the previous **2**: the repositor
 - **16-bit height pipeline** (#581 → #586 → #587 → {#588 ‖ #589} → #590): #586 (ADR) is explicitly allowed to proceed in parallel with the release, but schema-changing implementation (#587+) only starts after #585 (per #580's scope-freeze mandate).
 - **3D relief preview** (#582 → #591 → #592 → #593 → #594 → #595): #591 additionally depends on #586 (it consumes the same HEIGHT contract) – so #582 is effectively downstream of the 16-bit chain and the largest effort block this round.
 - **#245/#551** remain linked (Codex scan: account action vs. strategic decision).
+- **#597/#598** are independent, fully specified coverage gaps (test sketch already in the issue) – no chain, no dependency on the three epics.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
 
@@ -58,15 +61,18 @@ Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estima
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large) | – (tracking epic) | **In progress** – runs via #591→…→#595; blocked on #586. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Codex Security Scan strategy decision (reactivate/decommission/replace) | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – recommendation remains option 2 (decommission/disable), now 5+ weeks externally blocked. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan "Quota exceeded" | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – restoring OpenAI billing/quota is an account action, not a PR. |
+| [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test: `_open_ai_install_dialog` has no wiring test (N15) | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – test sketch already in the issue, no dependency. |
+| [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test: non-RGBA conversion paths in `image_utils.py` untested (N16) | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – test sketch already in the issue, no dependency; could be bundled with #597 in one PR. |
 
 ### Recommended Next (PR order)
 
 1. **#583** — tackle the v2.6.0 scope freeze first: no open dependency, locks in already-built user value at low risk.
 2. **#586** — start the 16-bit ADR now rather than after #585: it blocks two full epics (#581 directly, #582 indirectly via #591) and is explicitly allowed to run in parallel with the release.
 3. **#551** — resolve the short, independent strategy decision; the recommendation remains option 2 (decommission/disable).
-4. **#584/#585** and every 16-bit/3D sub-issue follow their dependencies sequentially – see the table, no extra trigger needed.
+4. **#597 + #598** — the fastest coverage win this round, both test sketches are already in the issue bodies; can be done as one shared PR.
+5. **#584/#585** and every 16-bit/3D sub-issue follow their dependencies sequentially – see the table, no extra trigger needed.
 
-*Drift note:* re-check the live open-issue count before every future update instead of carrying it forward – this round's jump from 2 to 18 shows how fast the snapshot goes stale.
+*Drift note:* re-check the live open-issue count before every future update instead of carrying it forward – this round's jump from 2 to 18 plus the two coverage issues (#597/#598) filed shortly after show how fast the snapshot goes stale.
 
 ## Previous Rounds
 

@@ -13,7 +13,7 @@
 
 ## Estado actual (2026-07-15)
 
-La lista activa de análisis de código está vacía. Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. La versión **v2.5.0** se publicó el 2026-07-11 (PR #538); la ola de rollout **#435/#392/#426/#389** está cerrada, igual que **#299** (PR #539) con el seguimiento N13 **#541** (PR #543), **#318** (PR #540) y la sincronización de instantánea **#542**. Una auditoría del repositorio del 2026-07-12 abrió **#549–#553**; **#552/#549/#553/#550** ya están cerrados vía PR #557–#560. El epic **#563** («comprobación de actualizaciones y gestión del modelo de IA», ocho subincidencias **#564–#571**) quedó completamente implementado y cerrado el 2026-07-13 vía PR #573/#574 (**N14**). Estado en vivo: **18** incidencias abiertas – las ya existentes #245/#551 más tres epics abiertos el 2026-07-15: **Release v2.6.0** (#580, subincidencias #583–#585), la **canalización de altura de 16 bits** (#581, subincidencias #586–#590) y la **vista previa de relieve 3D** (#582, subincidencias #591–#595).
+La lista activa de análisis de código está vacía. Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. La versión **v2.5.0** se publicó el 2026-07-11 (PR #538); la ola de rollout **#435/#392/#426/#389** está cerrada, igual que **#299** (PR #539) con el seguimiento N13 **#541** (PR #543), **#318** (PR #540) y la sincronización de instantánea **#542**. Una auditoría del repositorio del 2026-07-12 abrió **#549–#553**; **#552/#549/#553/#550** ya están cerrados vía PR #557–#560. El epic **#563** («comprobación de actualizaciones y gestión del modelo de IA», ocho subincidencias **#564–#571**) quedó completamente implementado y cerrado el 2026-07-13 vía PR #573/#574 (**N14**). Estado en vivo: **20** incidencias abiertas – las ya existentes #245/#551 más tres epics abiertos el 2026-07-15 (**Release v2.6.0** #580 con subincidencias #583–#585, la **canalización de altura de 16 bits** #581 con subincidencias #586–#590, la **vista previa de relieve 3D** #582 con subincidencias #591–#595) más dos hallazgos de cobertura de pruebas **N15/N16** (#597/#598) abiertos el mismo día tras una auditoría de cobertura.
 
 ### Completado desde la última revisión
 
@@ -24,10 +24,12 @@ La lista activa de análisis de código está vacía. Ruff, mypy y la suite de p
 ### Aún abierto
 
 - **O8 🟢 — Imprecisión del prototipo:** las herramientas de altura quedan bloqueadas en el mockup tras generarla; solo afecta a la simulación (#347).
+- **N15 🟡 — Wiring de diálogo sin probar:** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) no tiene ninguna prueba dedicada, a diferencia del método hermano estructuralmente idéntico `_open_ai_model_dialog` (#597).
+- **N16 🟡 — Conversión no-RGBA sin probar:** las ramas no-RGBA de `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) nunca se ejercitan con una imagen de origen RGB/paleta/escala de grises (#598).
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-07-15)
 
-Estado en vivo: **18** incidencias abiertas – un salto respecto a las **2** anteriores: la persona propietaria del repositorio abrió el 2026-07-14/15 tres nuevos epics con doce subincidencias para el próximo ciclo de versión/funcionalidades (Release v2.6.0, canalización de altura de 16 bits, vista previa de relieve 3D). La revisión de comentarios no encontró nada que requiera acción: #245 se comentó por última vez el 2026-06-19 (estado aún válido, sin reacción nueva necesaria), y #551 más las 16 incidencias nuevas no tienen comentarios.
+Estado en vivo: **20** incidencias abiertas – un nuevo aumento desde las **18** anteriores: además de los tres epics, se abrieron dos hallazgos de cobertura de pruebas de una auditoría del 2026-07-15 (**#597**/**#598**, corresponden a **N15**/**N16** arriba). La revisión de comentarios no encontró nada que requiera acción: #245 se comentó por última vez el 2026-06-19 (estado aún válido), y las otras 19 incidencias no tienen comentarios.
 
 ### Agrupaciones sensatas
 
@@ -35,6 +37,7 @@ Estado en vivo: **18** incidencias abiertas – un salto respecto a las **2** an
 - **Canalización de altura de 16 bits** (#581 → #586 → #587 → {#588 ‖ #589} → #590): #586 (ADR) puede avanzar explícitamente en paralelo a la publicación, pero la implementación que cambia el esquema (#587+) solo empieza tras #585 (mandato de scope-freeze de #580).
 - **Vista previa de relieve 3D** (#582 → #591 → #592 → #593 → #594 → #595): #591 depende además de #586 (consume el mismo contrato HEIGHT), así que #582 queda de facto detrás de la cadena de 16 bits y es el mayor bloque de esfuerzo de esta ronda.
 - **#245/#551** siguen vinculados (scan Codex: acción de cuenta vs. decisión estratégica).
+- **#597/#598** son brechas de cobertura independientes y totalmente especificadas (el boceto de prueba ya está en el issue) – sin cadena, sin dependencia de los tres epics.
 
 Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios, **Complejidad** = esfuerzo estimado, **Modelo/Esfuerzo** = modelo/esfuerzo recomendados.
 
@@ -58,15 +61,18 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios, **Compl
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Vista previa de relieve 3D real | 🟡 Media | 🟠 Alta (muy grande) | – (epic de seguimiento) | **In progress** – avanza vía #591→…→#595; bloqueado por #586. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Decisión de estrategia para Codex Security Scan (reactivar/retirar/reemplazar) | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Ready for PR** – la recomendación sigue siendo la opción 2 (retirar/deshabilitar), ya con más de 5 semanas de bloqueo externo. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan «Quota exceeded» | 🟢 Baja | 🟢 Baja | – (sin tarea de código) | **Blocked (external)** – restaurar la facturación/cuota de OpenAI es una acción de cuenta, no un PR. |
+| [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test: `_open_ai_install_dialog` sin prueba de wiring (N15) | 🟢 Baja | 🟢 Baja | Sonnet 5 · baja | **Ready for PR** – el boceto de prueba ya está en el issue, sin dependencia. |
+| [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test: rutas de conversión no-RGBA en `image_utils.py` sin probar (N16) | 🟢 Baja | 🟢 Baja | Sonnet 5 · baja | **Ready for PR** – el boceto de prueba ya está en el issue, sin dependencia; se podría combinar con #597 en un solo PR. |
 
 ### Recomendado a continuación (orden de PR)
 
 1. **#583** — abordar primero el scope-freeze de v2.6.0: sin dependencia abierta, fija el valor de usuario ya construido con bajo riesgo.
 2. **#586** — empezar ya el ADR de 16 bits en lugar de esperar a #585: bloquea dos epics completos (#581 directamente, #582 indirectamente vía #591) y puede avanzar explícitamente en paralelo a la publicación.
 3. **#551** — resolver la decisión de estrategia, corta e independiente; la recomendación sigue siendo la opción 2 (retirar/deshabilitar).
-4. **#584/#585** y todas las subincidencias de 16 bits/3D siguen sus dependencias de forma secuencial – ver la tabla, sin disparador adicional necesario.
+4. **#597 + #598** — la victoria de cobertura más rápida de esta ronda, ambos bocetos de prueba ya están en los issues; se pueden resolver en un único PR conjunto.
+5. **#584/#585** y todas las subincidencias de 16 bits/3D siguen sus dependencias de forma secuencial – ver la tabla, sin disparador adicional necesario.
 
-*Drift:* reconsultar el número de incidencias abiertas en vivo antes de cada actualización futura, sin arrastrarlo – el salto de 2 a 18 en esta ronda muestra lo rápido que se desactualiza la instantánea.
+*Drift:* reconsultar el número de incidencias abiertas en vivo antes de cada actualización futura, sin arrastrarlo – el salto de 2 a 18 más los dos issues de cobertura (#597/#598) abiertos poco después muestran lo rápido que se desactualiza la instantánea.
 
 ## Rondas anteriores
 

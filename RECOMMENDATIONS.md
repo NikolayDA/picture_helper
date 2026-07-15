@@ -13,7 +13,7 @@
 
 ## Aktueller Stand (2026-07-15)
 
-Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am 2026-07-11 geschnitten (PR #538); die Rollout-Welle **#435/#392/#426/#389** ist geschlossen, ebenso **#299** (PR #539) mit N13-Follow-up **#541** (PR #543), **#318** (PR #540) und Snapshot-Sync **#542**. Ein Repo-Audit vom 2026-07-12 hat **#549–#553** erfasst; **#552/#549/#553/#550** sind über PR #557–#560 geschlossen. Epic **#563** („App-Update-Prüfung & KI-Modell-Verwaltung", acht Sub-Issues **#564–#571**) ist am 2026-07-13 vollständig über PR #573/#574 umgesetzt und geschlossen worden (**N14**). Live-Stand: **18** offene Issues – die bestehenden #245/#551 plus drei am 2026-07-15 neu erfasste Epics: **Release v2.6.0** (#580, Teil-Issues #583–#585), **16-Bit-Höhenpipeline** (#581, Teil-Issues #586–#590) und **3D-Reliefvorschau** (#582, Teil-Issues #591–#595).
+Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.5.0** ist am 2026-07-11 geschnitten (PR #538); die Rollout-Welle **#435/#392/#426/#389** ist geschlossen, ebenso **#299** (PR #539) mit N13-Follow-up **#541** (PR #543), **#318** (PR #540) und Snapshot-Sync **#542**. Ein Repo-Audit vom 2026-07-12 hat **#549–#553** erfasst; **#552/#549/#553/#550** sind über PR #557–#560 geschlossen. Epic **#563** („App-Update-Prüfung & KI-Modell-Verwaltung", acht Sub-Issues **#564–#571**) ist am 2026-07-13 vollständig über PR #573/#574 umgesetzt und geschlossen worden (**N14**). Live-Stand: **20** offene Issues – die bestehenden #245/#551 plus drei am 2026-07-15 neu erfasste Epics (**Release v2.6.0** #580 mit Teil-Issues #583–#585, **16-Bit-Höhenpipeline** #581 mit Teil-Issues #586–#590, **3D-Reliefvorschau** #582 mit Teil-Issues #591–#595) sowie zwei am selben Tag aus einem Coverage-Audit nachgereichte Testabdeckungs-Befunde **N15/N16** (#597/#598).
 
 ### Erledigt seit dem letzten Review
 
@@ -24,10 +24,12 @@ Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite ble
 ### Noch offen
 
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
+- **N15 🟡 — Ungetestetes Dialog-Wiring:** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) hat keinen dedizierten Test, anders als die strukturell identische Schwester-Methode `_open_ai_model_dialog` (#597).
+- **N16 🟡 — Ungetestete Nicht-RGBA-Konvertierung:** Die Nicht-RGBA-Zweige in `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) werden nie mit RGB-/Palette-/Graustufenbildern getroffen (#598).
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-15)
 
-Live-Stand: **18** offene Issues – ein Sprung von zuvor **2**: Der Repository-Owner hat am 2026-07-14/15 drei neue Epics mit zwölf Teil-Issues für den nächsten Release-/Feature-Zyklus angelegt (Release v2.6.0, 16-Bit-Höhenpipeline, 3D-Reliefvorschau). Keine Kommentar-Prüfung ergab Handlungsbedarf: #245 zuletzt am 2026-06-19 kommentiert (Status weiterhin gültig, keine neue Owner-Reaktion nötig), #551 und alle 16 neuen Issues ohne Kommentare.
+Live-Stand: **20** offene Issues – ein weiterer Zuwachs von **18**: Zusätzlich zu den drei Epics sind zwei Testabdeckungs-Befunde aus einem Coverage-Audit vom 2026-07-15 hinzugekommen (**#597**/**#598**, entsprechen **N15**/**N16** oben). Keine Kommentar-Prüfung ergab Handlungsbedarf: #245 zuletzt am 2026-06-19 kommentiert (Status weiterhin gültig), alle übrigen 19 Issues ohne Kommentare.
 
 ### Sinnvolle Bündelung
 
@@ -35,6 +37,7 @@ Live-Stand: **18** offene Issues – ein Sprung von zuvor **2**: Der Repository-
 - **16-Bit-Höhenpipeline** (#581 → #586 → #587 → {#588 ∥ #589} → #590): #586 (ADR) darf ausdrücklich parallel zum Release entstehen, schema-ändernde Umsetzung (#587+) beginnt aber erst nach #585 (Scope-Freeze-Vorgabe von #580).
 - **3D-Reliefvorschau** (#582 → #591 → #592 → #593 → #594 → #595): #591 hängt zusätzlich an #586 (konsumiert denselben HEIGHT-Vertrag) – #582 ist damit faktisch der 16-Bit-Kette nachgeordnet und der größte Effort-Block dieser Runde.
 - **#245/#551** bleiben gekoppelt (Codex-Scan: Account-Aktion vs. Grundsatzentscheidung).
+- **#597/#598** sind unabhängige, vollständig spezifizierte Coverage-Lücken (Testskizze bereits im Issue) – keine Kette, keine Abhängigkeit zu den drei Epics.
 
 Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** = Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes Claude-Modell + Reasoning-Effort.
 
@@ -58,15 +61,18 @@ Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** = Umsetzung
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Echte 3D-Reliefvorschau | 🟡 Mittel | 🟠 Hoch (sehr groß) | – (Tracking-Epic) | **In Arbeit** – läuft über #591→…→#595; blockiert an #586. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Grundsatzentscheidung Codex Security Scan (reaktivieren/zurückbauen/ersetzen) | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – Empfehlung weiterhin Option 2 (Zurückbauen/Deaktivieren), jetzt 5+ Wochen extern blockiert. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan „Quota exceeded" | 🟢 Niedrig | 🟢 Niedrig | – (kein Code-Task) | **Blocked (extern)** – OpenAI-Billing/Quota-Wiederherstellung ist eine Account-Aktion, kein PR. |
+| [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test: `_open_ai_install_dialog` ohne Wiring-Test (N15) | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – Testskizze bereits im Issue, keine Abhängigkeit. |
+| [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test: Nicht-RGBA-Konvertierungspfade in `image_utils.py` ungetestet (N16) | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – Testskizze bereits im Issue, keine Abhängigkeit; ließe sich mit #597 in einem PR bündeln. |
 
 ### Als Nächstes empfohlen
 
 1. **#583** — Scope-Freeze v2.6.0 zuerst angehen: keine offene Abhängigkeit, sichert bereits gebauten Nutzerwert mit geringem Risiko.
 2. **#586** — 16-Bit-ADR jetzt beginnen statt erst nach #585: blockiert zwei komplette Epics (#581 direkt, #582 indirekt über #591) und darf explizit parallel zum Release laufen.
 3. **#551** — kurze, unabhängige Grundsatzentscheidung treffen; Empfehlung bleibt Option 2 (Zurückbauen/Deaktivieren).
-4. **#584/#585** sowie alle 16-Bit-/3D-Teil-Issues folgen sequentiell ihren Abhängigkeiten – siehe Tabelle, kein zusätzlicher Trigger nötig.
+4. **#597 + #598** — schnellster Coverage-Gewinn dieser Runde, beide Testskizzen liegen bereits im Issue vor; lässt sich in einem gemeinsamen PR erledigen.
+5. **#584/#585** sowie alle 16-Bit-/3D-Teil-Issues folgen sequentiell ihren Abhängigkeiten – siehe Tabelle, kein zusätzlicher Trigger nötig.
 
-*Drift-Hinweis:* Die Anzahl offener Issues vor jeder künftigen Aktualisierung erneut live abfragen statt fortzuschreiben – der Sprung von 2 auf 18 in dieser Runde zeigt, wie schnell der Snapshot veraltet.
+*Drift-Hinweis:* Die Anzahl offener Issues vor jeder künftigen Aktualisierung erneut live abfragen statt fortzuschreiben – der Sprung von 2 auf 18 und die zwei kurzfristig nachgereichten Coverage-Issues (#597/#598) in dieser Runde zeigen, wie schnell der Snapshot veraltet.
 
 ## Vorige Runden
 

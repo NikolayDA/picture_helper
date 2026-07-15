@@ -13,7 +13,7 @@
 
 ## État actuel (2026-07-15)
 
-La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. La version **v2.5.0** a été publiée le 2026-07-11 (PR #538) ; la vague de rollout **#435/#392/#426/#389** est close, ainsi que **#299** (PR #539) avec le suivi N13 **#541** (PR #543), **#318** (PR #540) et la synchronisation d'instantané **#542**. Un audit du dépôt du 2026-07-12 a ouvert **#549–#553** ; **#552/#549/#553/#550** sont désormais clos via PR #557–#560. L'epic **#563** (« vérification des mises à jour et gestion du modèle d'IA », huit sous-tickets **#564–#571**) a été entièrement implémenté et clos le 2026-07-13 via PR #573/#574 (**N14**). État en direct : **18** tickets ouverts – les tickets préexistants #245/#551 plus trois epics ouverts le 2026-07-15 : **Release v2.6.0** (#580, sous-tickets #583–#585), le **pipeline de hauteur 16 bits** (#581, sous-tickets #586–#590) et l'**aperçu de relief 3D** (#582, sous-tickets #591–#595).
+La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. La version **v2.5.0** a été publiée le 2026-07-11 (PR #538) ; la vague de rollout **#435/#392/#426/#389** est close, ainsi que **#299** (PR #539) avec le suivi N13 **#541** (PR #543), **#318** (PR #540) et la synchronisation d'instantané **#542**. Un audit du dépôt du 2026-07-12 a ouvert **#549–#553** ; **#552/#549/#553/#550** sont désormais clos via PR #557–#560. L'epic **#563** (« vérification des mises à jour et gestion du modèle d'IA », huit sous-tickets **#564–#571**) a été entièrement implémenté et clos le 2026-07-13 via PR #573/#574 (**N14**). État en direct : **20** tickets ouverts – les tickets préexistants #245/#551 plus trois epics ouverts le 2026-07-15 (**Release v2.6.0** #580 avec sous-tickets #583–#585, le **pipeline de hauteur 16 bits** #581 avec sous-tickets #586–#590, l'**aperçu de relief 3D** #582 avec sous-tickets #591–#595) plus deux constats de couverture de tests **N15/N16** (#597/#598) ouverts le même jour suite à un audit de couverture.
 
 ### Terminé depuis la dernière revue
 
@@ -24,10 +24,12 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests loca
 ### Encore ouvert
 
 - **O8 🟢 — Imprécision du prototype :** les outils de hauteur restent verrouillés dans la maquette après génération ; n'affecte que la simulation (#347).
+- **N15 🟡 — Câblage de dialogue non testé :** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) n'a aucun test dédié, contrairement à la méthode sœur structurellement identique `_open_ai_model_dialog` (#597).
+- **N16 🟡 — Conversion non-RGBA non testée :** les branches non-RGBA de `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) ne sont jamais exercées avec une image source RGB/palette/niveaux de gris (#598).
 
 ## Tickets GitHub ouverts — Triage (2026-07-15)
 
-État en direct : **18** tickets ouverts – un bond depuis les **2** précédents : le propriétaire du dépôt a ouvert les 2026-07-14/15 trois nouveaux epics avec douze sous-tickets pour le prochain cycle de publication/fonctionnalités (Release v2.6.0, pipeline de hauteur 16 bits, aperçu de relief 3D). La vérification des commentaires n'a rien trouvé nécessitant une action : #245 a été commenté pour la dernière fois le 2026-06-19 (statut toujours valide, aucune nouvelle réaction du propriétaire nécessaire), et #551 ainsi que les 16 nouveaux tickets n'ont aucun commentaire.
+État en direct : **20** tickets ouverts – une nouvelle hausse depuis les **18** précédents : en plus des trois epics, deux constats de couverture de tests issus d'un audit du 2026-07-15 ont été ouverts (**#597**/**#598**, correspondant à **N15**/**N16** ci-dessus). La vérification des commentaires n'a rien trouvé nécessitant une action : #245 a été commenté pour la dernière fois le 2026-06-19 (statut toujours valide), et les 19 autres tickets n'ont aucun commentaire.
 
 ### Regroupements pertinents
 
@@ -35,6 +37,7 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests loca
 - **Pipeline de hauteur 16 bits** (#581 → #586 → #587 → {#588 ‖ #589} → #590) : #586 (ADR) peut explicitement avancer en parallèle de la publication, mais l'implémentation qui change le schéma (#587+) ne démarre qu'après #585 (mandat de scope-freeze de #580).
 - **Aperçu de relief 3D** (#582 → #591 → #592 → #593 → #594 → #595) : #591 dépend en plus de #586 (il consomme le même contrat HEIGHT) – #582 est donc de fait en aval de la chaîne 16 bits et représente le plus gros bloc d'effort de cette ronde.
 - **#245/#551** restent liés (scan Codex : action de compte vs. décision stratégique).
+- **#597/#598** sont des lacunes de couverture indépendantes et entièrement spécifiées (l'esquisse de test est déjà dans le ticket) – aucune chaîne, aucune dépendance envers les trois epics.
 
 Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort estimé, **Modèle/Effort** = modèle/effort recommandés.
 
@@ -58,15 +61,18 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests loca
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large) | – (epic de suivi) | **In progress** – avance via #591→…→#595 ; bloqué par #586. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Décision de stratégie pour Codex Security Scan (réactiver/retirer/remplacer) | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Ready for PR** – la recommandation reste l'option 2 (retirer/désactiver), désormais bloquée en externe depuis 5+ semaines. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Codex Security Scan « Quota exceeded » | 🟢 Faible | 🟢 Faible | – (aucune tâche de code) | **Blocked (external)** – restaurer la facturation/le quota OpenAI est une action de compte, pas un PR. |
+| [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test : `_open_ai_install_dialog` sans test de câblage (N15) | 🟢 Faible | 🟢 Faible | Sonnet 5 · faible | **Ready for PR** – l'esquisse de test est déjà dans le ticket, aucune dépendance. |
+| [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test : chemins de conversion non-RGBA non testés dans `image_utils.py` (N16) | 🟢 Faible | 🟢 Faible | Sonnet 5 · faible | **Ready for PR** – l'esquisse de test est déjà dans le ticket, aucune dépendance ; peut être combiné avec #597 en un seul PR. |
 
 ### Recommandé ensuite (ordre des PR)
 
 1. **#583** — traiter d'abord le scope-freeze de v2.6.0 : aucune dépendance ouverte, fige la valeur utilisateur déjà construite à faible risque.
 2. **#586** — démarrer dès maintenant l'ADR 16 bits plutôt qu'après #585 : il bloque deux epics complets (#581 directement, #582 indirectement via #591) et peut explicitement avancer en parallèle de la publication.
 3. **#551** — trancher la décision de stratégie, courte et indépendante ; la recommandation reste l'option 2 (retirer/désactiver).
-4. **#584/#585** ainsi que tous les sous-tickets 16 bits/3D suivent leurs dépendances de façon séquentielle – voir le tableau, aucun déclencheur supplémentaire nécessaire.
+4. **#597 + #598** — le gain de couverture le plus rapide de cette ronde, les deux esquisses de test sont déjà dans les tickets ; réalisable en un seul PR commun.
+5. **#584/#585** ainsi que tous les sous-tickets 16 bits/3D suivent leurs dépendances de façon séquentielle – voir le tableau, aucun déclencheur supplémentaire nécessaire.
 
-*Dérive :* revérifier en direct le nombre de tickets ouverts avant chaque mise à jour, sans le reporter tel quel – le bond de 2 à 18 cette ronde montre à quelle vitesse l'instantané se périme.
+*Dérive :* revérifier en direct le nombre de tickets ouverts avant chaque mise à jour, sans le reporter tel quel – le bond de 2 à 18 plus les deux tickets de couverture (#597/#598) ouverts peu après montrent à quelle vitesse l'instantané se périme.
 
 ## Tours précédents
 
