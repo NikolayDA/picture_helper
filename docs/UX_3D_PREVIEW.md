@@ -14,9 +14,14 @@ sechster `PreviewMode`. Die 2D-Vorschaupipeline (Farbe/Relief/Höhe/Gloss/
 Kombiniert) bleibt semantisch unverändert; 3D liegt als eigene Ebene
 **darüber**:
 
-- **Ort:** Workflow-Schritt 5 (**RELIEF**, `stepper.py`). Im Vorschau-Tab
-  des rechten Panels erscheint oberhalb der bestehenden Modus-Segmente
-  (§5.7) eine neue Zeile **„Darstellung"** mit den Segmenten **[2D] [3D]**.
+- **Ort:** Workflow-Schritt 5 (**RELIEF**, `stepper.py`). Der Schritt trägt
+  im rechten Panel heute die Tabs **Ebenen** und **Höhe** (`right_panel.py`);
+  der Vorschau-Tab liegt in Schritt 6 (Export) und wird **nicht** verschoben.
+  Die neue Zeile **„Darstellung"** mit den Segmenten **[2D] [3D]** (§5.7)
+  kommt deshalb als eigener Abschnitt **oben in den Höhen-Tab** – dort, wo
+  die HEIGHT-Arbeit stattfindet und der `layersChanged`-getriebene Kontext
+  fürs Gating bereits existiert. Der Vorschau-Tab in Schritt 6 bleibt rein
+  2D-bezogen; im 3D-Modus sind seine 2D-Modus-Segmente deaktiviert (s. u.).
 - **Menü:** Ansicht → neuer checkbarer Eintrag **„3D-Relief anzeigen"**
   (ohne Shortcut im MVP; hält sich signalbasiert mit dem Segment synchron,
   wie das bestehende Vorschau-Untermenü, #388).
@@ -65,7 +70,7 @@ Wireframe des 3D-Zustands (Karten-/Token-Sprache aus §2/§5 der Spec):
 
 ```
 ┌──────────────────────────────────────────────┬──────────────────────┐
-│  ┌────────────────────────────────────────┐  │ Vorschau-Tab         │
+│  ┌────────────────────────────────────────┐  │ Höhen-Tab (Schritt 5)│
 │  │ [Vereinfacht 1:8]              (Badge) │  │ Darstellung  [2D|3D] │
 │  │                                        │  │ ──────────────────── │
 │  │            3D-Viewport                 │  │ Überhöhung   ●──── 1,0│
@@ -144,7 +149,8 @@ Farbe oder Spinner. Verbindliche Formulierungen (de / en):
 ## §6 COLOR-Bezug (spätere Stufe)
 
 Das Farbmotiv als Oberflächentextur ist eine **optionale spätere Stufe**
-(Stretch im ADR): eigene Checkbox „Farbmotiv anzeigen" im Vorschau-Tab,
+(Stretch im ADR): eigene Checkbox „Farbmotiv anzeigen" im 3D-Abschnitt
+des Höhen-Tabs,
 eigener Textur-Cache-Key, Options-Gating wie Height/Gloss im
 EufyMake-Dialog. **HEIGHT-only ist vollständig nutzbar**: Ohne COLOR-Bezug
 rendert der Viewer neutralgrau schattiert (Lambert); kein Kriterium dieses

@@ -82,8 +82,9 @@ FBO-Readback.
 ### Option A: Qt-nativer OpenGL-Viewer (`QOpenGLWidget` + PyQt6-GL-Klassen)
 
 Ein `QOpenGLWidget` rendert das vom Qt-freien Geometriekern (#592)
-gelieferte Grid-Mesh über `QOpenGLShaderProgram`, `QOpenGLBuffer` (VBO/IBO),
-VAO und `QOpenGLVersionFunctionsFactory` (GL 2.1-Pfad; 4.1 Core optional).
+gelieferte Grid-Mesh über `QOpenGLShaderProgram`, `QOpenGLBuffer` (VBO/IBO)
+und `QOpenGLVersionFunctionsFactory` (GL 2.1-Pfad; 4.1 Core optional); ein
+VAO wird nur benutzt, wenn der Kontext ihn anbietet (s. u.).
 Kamera-/Orbit-Mathematik liegt als Qt-freie, strikt getypte Logik neben dem
 Geometriekern. Keine neue Laufzeitabhängigkeit.
 
@@ -152,7 +153,7 @@ erfüllt das Interaktionsziel des Epics per Konstruktion nicht.
 ## Entscheidung
 
 **Option A: Qt-nativer OpenGL-Viewer** (`QOpenGLWidget` +
-`QOpenGLShaderProgram`/`QOpenGLBuffer`/VAO über die PyQt6-Bindings) mit
+`QOpenGLShaderProgram`/`QOpenGLBuffer` über die PyQt6-Bindings) mit
 einem **Qt-freien, rendererunabhängigen Geometriekern** (#592) davor.
 
 Tragende Gründe: keine neue Laufzeitabhängigkeit (Leitplanke), belegte
@@ -170,6 +171,12 @@ Pipeline.
 - **Mindestvoraussetzung:** Desktop-OpenGL ≥ 2.1 (llvmpipe genügt);
   optionaler 4.1-Core-Pfad, wenn verfügbar. Reine-ES-Kontexte gelten als
   „nicht 3D-fähig" (PyQt6 bindet keine ES-Funktionssätze) → 2D-Fallback.
+  **VAOs sind ausdrücklich keine Mindestvoraussetzung** (in GL 2.1 nur als
+  `ARB_vertex_array_object`-Extension vorhanden): Der Viewer probiert
+  `QOpenGLVertexArrayObject.create()` und fällt ohne Unterstützung auf
+  direkte Attribut-Bindung je Frame zurück – die Capability-Probe und das
+  3D-Gating hängen nicht am VAO, das Fallback-Verhalten bleibt auf
+  Minimal-Hardware konsistent.
 - **Laufzeit-Probe** (`probe_3d_capability()`, Qt-frei testbar gekapselt):
   erzeugt lazy – erst beim ersten 3D-Wunsch, nie beim App-Start –
   `QOpenGLContext` (Format 2.1) + `QOffscreenSurface`, prüft `create()`,
@@ -245,9 +252,15 @@ Vollauflösungs-Mesh (Decimation läuft **vor** jeder float-Expansion auf dem
 | Standard (Default) | ≤ 512 | ≤ 262 144 | ≤ 522 242 | ≤ 8,4 MB | ≤ 6,3 MB |
 | Reduziert (Software-GL/CI) | ≤ 256 | ≤ 65 536 | ≤ 130 050 | ≤ 2,1 MB | ≤ 1,6 MB |
 
-- **GPU-Budget gesamt:** ≤ 80 MB (VBO + IBO + optionale COLOR-Textur
-  ≤ 2048×2048 RGBA = 16,8 MB + Framebuffer). Übergroße Uploads werden vom
-  Viewer kontrolliert abgelehnt (Fallback-Tabelle).
+- **GPU-Budget gesamt (vom Viewer allozierte Puffer):** ≤ 80 MB
+  (VBO + IBO + optionale COLOR-Textur ≤ 2048×2048 RGBA = 16,8 MB).
+  Übergroße Uploads werden vom Viewer kontrolliert abgelehnt
+  (Fallback-Tabelle). Der **Widget-Framebuffer** ist Qt-verwaltet und
+  skaliert mit Viewportgröße × DevicePixelRatio (RGBA + Depth ≈ 12 B je
+  Gerätepixel, z. B. ≈ 25 MB bei 1024×768 @ 2×); er zählt **nicht** gegen
+  das harte Puffer-Budget – er ist fenstergesteuert und nicht vom Mesh
+  abhängig –, wird aber im Kopieninventar und in den #595-Messprotokollen
+  separat ausgewiesen.
 - **CPU-Zwischenarrays (Mesh-Build):** ≤ 128 MB transient am
   Hoch-Budget (Herleitung 1024²: z 4 MB + Gitterkoordinaten 8 MB +
   Positionen 12 MB + Gradienten 8 MB + Normalen 12 MB + Normierung 4 MB +
@@ -280,7 +293,14 @@ Build-Zeiten (Evidenz Nr. 5) liegen bei ≈ 37 ms (512²) bzw.
 - Verfahren: **Block-Mittelung** (Area-Downsampling) des `uint16`-Felds auf
   das Zielgrid – deterministisch, seitenverhältnis- und randerhaltend
   (äußerste Zellzentren bleiben Randpunkte), `rint`-Rundung nach
-  #586-Regel. Coverage wird identisch gemittelt und erst am Vertex
+  #586-Regel. Die Höhen-Mittelung ist **coverage-gewichtet**
+  (`z_block = Σ(values × coverage) / Σ(coverage)`): Höhe und Deckung sind
+  im #586-Vertrag orthogonal, Pixel mit `coverage == 0` tragen daher
+  **keinen** Höhenbeitrag in Randblöcke, die die Gültigkeitsschwelle noch
+  erreichen (kein „Bleed" beliebiger Werte unter Transparenz in die
+  Kantengeometrie). Bei `Σ(coverage) == 0` ist der Block ohnehin ungültig
+  (Schwelle), der Höhenwert dort irrelevant und deterministisch 0.
+  Coverage selbst wird ungewichtet blockgemittelt und erst am Vertex
   binärisiert (s. o.).
 - Kanten-/Reliefcharakter: Block-Mittelung wirkt als Anti-Alias-Filter;
   als messbares Abnahmekriterium (#592) gilt der Erhalt synthetischer
@@ -313,16 +333,20 @@ Kamera, Licht und Überhöhung sind Uniforms und erzeugen **keine** Kopie.
 ### Cache-Invalidierung und Debounce
 
 - **Mesh-Key** = (Content-Revision der aktiven HEIGHT-Payload,
-  Canvas-Größe, Seitenverhältnis-Quelle [px oder mm], Qualitätsstufe,
-  Coverage-Schwelle [konstant im MVP]). Ändert sich ein Bestandteil →
-  Rebuild; sonst Wiederverwendung. Kamera, Licht, Überhöhung und
+  Canvas-Größe, **effektives Grundflächen-Seitenverhältnis** – d. h. bei
+  gesetzter physischer Größe die konkreten `physical_size_mm`-Werte, sonst
+  das Pixelverhältnis –, Qualitätsstufe, Coverage-Schwelle [konstant im
+  MVP]). Eine reine Metadaten-Änderung (mm/DPI) ohne Pixeländerung ändert
+  damit den Key und erzwingt den Rebuild der Grundfläche. Ändert sich ein
+  Bestandteil → Rebuild; sonst Wiederverwendung. Kamera, Licht, Überhöhung und
   Theme sind **nicht** Teil des Keys (reine Uniforms/UI-Zustand, analog
   Relief-Stärke in #397 – keine History-/Dirty-Revision).
 - **Textur-Key** (Stretch-Stufe COLOR-Bezug) = Revision des
   COLOR-Komposits; unabhängig vom Mesh-Key.
 - **Invalidierungsauslöser:** Höhen-Edit/Op-Apply, Undo/Redo auf einen
   anderen Payload-Stand, Layerwechsel der aktiven HEIGHT-Ebene,
-  `Project.resize`, Projekt Neu/Öffnen/Schließen, Qualitätswechsel.
+  `Project.resize`, Änderung der physischen Größe/DPI-Metadaten
+  (`physical_size_mm`), Projekt Neu/Öffnen/Schließen, Qualitätswechsel.
   Unveränderte Undo/Redo-Stände (gleiche Payload-Referenz, #586-Ownership)
   dürfen den Cache-Treffer wiederverwenden.
 - **Debounce:** 200 ms nach der letzten geometriewirksamen Änderung startet
