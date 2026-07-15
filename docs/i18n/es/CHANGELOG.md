@@ -9,6 +9,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-07-15
+
 ### Añadido
 
 - **Lógica central de comprobación de actualizaciones (#564, parte del Epic

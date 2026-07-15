@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-07-15
+
 ### Ajouté
 
 - **Logique centrale de vérification des mises à jour (#564, partie de

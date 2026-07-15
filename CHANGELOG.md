@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-07-15
+
 ### Hinzugefügt
 
 - **Update-Check-Kernlogik (#564, Teil von Epic #563).** Neues Qt-freies Modul
