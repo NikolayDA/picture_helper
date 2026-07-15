@@ -69,6 +69,17 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `PYSEC-2026-3447` (Unicode-normalization bypass in `MANIFEST.in` exclude
   patterns, macOS APFS/HFS+), in addition to the already-pinned
   CVE-2024-6345/CVE-2025-47273.
+- **Release artifact names now unambiguous by platform/device (#584).** The
+  five release downloads (AppImage/`.deb` for Linux x86_64 and Linux/
+  Raspberry Pi aarch64, `.dmg` for macOS arm64) are now named
+  `BgRemover-X.Y.Z-<platform-tag>[-ai].<extension>` instead of the bare
+  `uname` architecture – e.g.
+  `BgRemover-2.6.0-linux-raspberrypi-arm64-ai.AppImage`. Previously the
+  Linux/Raspberry Pi `.deb` and the macOS `.dmg` both carried the same
+  `arm64` tag and could only be told apart by file extension; the `-ai`
+  suffix additionally makes it visible that every artifact – including the
+  Raspberry Pi build – bundles the same built-in AI background removal as
+  the macOS build.
 
 ### Fixed
 

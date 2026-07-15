@@ -26,20 +26,25 @@ For normal Linux installation, the release artifacts are the easiest path —
 - **`.deb`:** installable package for Debian/Ubuntu/Raspberry Pi OS with a
   menu entry and clean removal via apt/dpkg.
 
-Download the matching artifact from the [GitHub Releases page](https://github.com/NikolayDA/picture_helper/releases):
+Download the matching artifact from the [GitHub Releases page](https://github.com/NikolayDA/picture_helper/releases)
+— the filename spells out the version, platform/device, and whether AI is
+built in: `BgRemover-<version>-<platform-tag>[-ai].<extension>`.
 
 ```bash
 # AppImage (x86_64 example)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb (amd64 example; apt installs the FUSE dependency)
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb (x86_64 example; apt installs the FUSE dependency)
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-Builds are available for **x86_64** and **aarch64/Raspberry Pi OS 64-bit**.
-The venv/Git instructions below remain useful when you want to test from
-`main`, from a feature branch, or with local changes.
+Builds are available for **x86_64** (`linux-x86_64`) and **aarch64/Raspberry
+Pi OS 64-bit** (`linux-raspberrypi-arm64`) — both as AppImage and `.deb`, with
+an `-ai` suffix once AI background removal is built in (the default for
+release downloads, see above). The venv/Git instructions below remain useful
+when you want to test from `main`, from a feature branch, or with local
+changes.
 
 ## Requirements
 

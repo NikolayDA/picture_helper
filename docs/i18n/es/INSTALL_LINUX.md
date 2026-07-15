@@ -25,20 +25,25 @@ cómoda — **sin venv, sin pip y sin checkout de Git**:
 - **`.deb`:** paquete instalable para Debian/Ubuntu/Raspberry Pi OS con entrada
   de menú y desinstalación limpia vía apt/dpkg.
 
-Descarga el artefacto adecuado desde la [página de releases de GitHub](https://github.com/NikolayDA/picture_helper/releases):
+Descarga el artefacto adecuado desde la [página de releases de GitHub](https://github.com/NikolayDA/picture_helper/releases)
+— el nombre del archivo indica versión, plataforma/dispositivo y si la IA
+está integrada: `BgRemover-<versión>-<etiqueta-de-plataforma>[-ai].<extensión>`.
 
 ```bash
 # AppImage (ejemplo x86_64)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb (ejemplo amd64; apt instala la dependencia FUSE)
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb (ejemplo x86_64; apt instala la dependencia FUSE)
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-Hay builds para **x86_64** y **aarch64/Raspberry Pi OS 64-bit**. Las
-instrucciones venv/Git siguientes siguen siendo útiles si quieres probar desde
-`main`, desde una rama de funcionalidad o con cambios locales.
+Hay builds para **x86_64** (`linux-x86_64`) y **aarch64/Raspberry Pi OS
+64-bit** (`linux-raspberrypi-arm64`) — como AppImage y `.deb`, con el sufijo
+`-ai` cuando la eliminación de fondo por IA está integrada (el valor
+predeterminado en las descargas de releases, ver arriba). Las instrucciones
+venv/Git siguientes siguen siendo útiles si quieres probar desde `main`,
+desde una rama de funcionalidad o con cambios locales.
 
 ## Requisitos
 

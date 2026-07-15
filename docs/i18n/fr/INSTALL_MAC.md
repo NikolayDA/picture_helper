@@ -10,8 +10,10 @@ pour tester une pull request ouverte avant la fusion).
 
 Le plus simple — **sans Python, git ni terminal** : récupérez le bundle de
 l'application depuis les [releases GitHub](https://github.com/NikolayDA/picture_helper/releases).
-Pour Apple Silicon (arm64), il y a `BgRemover-<version>-arm64.dmg` ; la
-suppression d'arrière-plan par IA est déjà incluse.
+Pour Apple Silicon (arm64), il y a `BgRemover-<version>-macos-arm64-ai.dmg`
+(le nom de fichier indique la plateforme et l'architecture) ; la suppression
+d'arrière-plan par IA est déjà intégrée — reconnaissable au suffixe `-ai`,
+comme pour les artefacts Linux.
 
 1. Ouvrez le `.dmg` et glissez `BgRemover.app` dans **Applications**.
 2. Au **premier** lancement, confirmez via **clic droit → « Ouvrir »** : le

@@ -74,6 +74,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   `PYSEC-2026-3447` (bypass de normalización Unicode en patrones de exclusión
   de `MANIFEST.in`, macOS APFS/HFS+), además de las CVE-2024-6345/CVE-2025-47273
   ya fijadas.
+- **Nombres de artefactos de release ahora inequívocos por
+  plataforma/dispositivo (#584).** Las cinco descargas de release
+  (AppImage/`.deb` para Linux x86_64 y Linux/Raspberry Pi aarch64, `.dmg`
+  para macOS arm64) ahora se llaman
+  `BgRemover-X.Y.Z-<etiqueta-de-plataforma>[-ai].<extensión>` en lugar de la
+  arquitectura `uname` sin más – p. ej.
+  `BgRemover-2.6.0-linux-raspberrypi-arm64-ai.AppImage`. Antes el `.deb` de
+  Linux/Raspberry Pi y el `.dmg` de macOS llevaban ambos la misma etiqueta
+  `arm64` y solo se distinguían por la extensión; el sufijo `-ai` además
+  deja visible que cada artefacto – incluido el build de Raspberry Pi –
+  incluye la misma eliminación de fondo por IA integrada que el build de
+  macOS.
 
 ### Corregido
 

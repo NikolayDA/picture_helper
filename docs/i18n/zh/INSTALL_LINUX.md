@@ -24,19 +24,23 @@ Git checkout**：
 - **`.deb`：** 面向 Debian/Ubuntu/Raspberry Pi OS 的可安装软件包，带菜单项，
   可通过 apt/dpkg 干净移除。
 
-从 [GitHub Releases 页面](https://github.com/NikolayDA/picture_helper/releases) 下载匹配的构件：
+从 [GitHub Releases 页面](https://github.com/NikolayDA/picture_helper/releases) 下载匹配的构件
+——文件名标明了版本、平台/设备以及是否内置了 AI：
+`BgRemover-<版本>-<平台标签>[-ai].<扩展名>`。
 
 ```bash
 # AppImage（x86_64 示例）
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb（amd64 示例；apt 会安装 FUSE 依赖）
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb（x86_64 示例；apt 会安装 FUSE 依赖）
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-提供 **x86_64** 和 **aarch64/Raspberry Pi OS 64-bit** 构建。下面的 venv/Git
-说明仍适用于从 `main`、功能分支或本地修改进行测试。
+提供 **x86_64**（`linux-x86_64`）和 **aarch64/Raspberry Pi OS 64-bit**
+（`linux-raspberrypi-arm64`）构建，均包含 AppImage 和 `.deb`；一旦内置了 AI
+背景移除（发行版下载的默认设置，见上文），文件名就会带有 `-ai` 后缀。下面的
+venv/Git 说明仍适用于从 `main`、功能分支或本地修改进行测试。
 
 ## 前提条件
 

@@ -26,20 +26,25 @@ Weg — **ohne venv, ohne pip und ohne Git-Checkout**:
 - **`.deb`:** installierbares Paket für Debian/Ubuntu/Raspberry Pi OS mit
   Menüeintrag und sauberem Entfernen über apt/dpkg.
 
-Lade das passende Artefakt von der [GitHub-Releases-Seite](https://github.com/NikolayDA/picture_helper/releases) herunter:
+Lade das passende Artefakt von der [GitHub-Releases-Seite](https://github.com/NikolayDA/picture_helper/releases)
+herunter — der Dateiname nennt Version, Plattform/Gerät und ob die KI
+eingebaut ist: `BgRemover-<Version>-<Plattform-Tag>[-ai].<Endung>`.
 
 ```bash
 # AppImage (Beispiel x86_64)
-chmod +x BgRemover-*-x86_64.AppImage
-./BgRemover-*-x86_64.AppImage
+chmod +x BgRemover-*-linux-x86_64-ai.AppImage
+./BgRemover-*-linux-x86_64-ai.AppImage
 
-# .deb (Beispiel amd64; apt installiert die FUSE-Abhängigkeit mit)
-sudo apt install ./BgRemover-*-amd64.deb
+# .deb (Beispiel x86_64; apt installiert die FUSE-Abhängigkeit mit)
+sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-Es gibt Builds für **x86_64** und **aarch64/Raspberry Pi OS 64-bit**. Die
-folgenden venv-/Git-Anleitungen bleiben wichtig, wenn du aus `main`, aus einem
-Feature-Branch oder mit lokalen Änderungen testen willst.
+Es gibt Builds für **x86_64** (`linux-x86_64`) und **aarch64/Raspberry Pi OS
+64-bit** (`linux-raspberrypi-arm64`) — jeweils als AppImage und `.deb`, mit
+`-ai`-Suffix, sobald die KI-Hintergrundentfernung eingebaut ist (Standard für
+Release-Downloads, siehe oben). Die folgenden venv-/Git-Anleitungen bleiben
+wichtig, wenn du aus `main`, aus einem Feature-Branch oder mit lokalen
+Änderungen testen willst.
 
 ## Voraussetzungen
 

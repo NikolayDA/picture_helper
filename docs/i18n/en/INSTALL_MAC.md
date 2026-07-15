@@ -10,8 +10,10 @@ to test an open pull request before merging).
 
 The easiest way — **no Python, git or terminal**: grab the prebuilt app bundle
 from the [GitHub releases](https://github.com/NikolayDA/picture_helper/releases).
-For Apple Silicon (arm64) there is `BgRemover-<version>-arm64.dmg`; AI background
-removal is already included.
+For Apple Silicon (arm64) there is `BgRemover-<version>-macos-arm64-ai.dmg`
+(the filename spells out the platform and architecture); AI background
+removal is already built in — visible from the `-ai` suffix, same as the
+Linux artifacts.
 
 1. Open the `.dmg` and drag `BgRemover.app` into **Applications**.
 2. On the **first** launch confirm via **right-click → “Open”** — the bundle is

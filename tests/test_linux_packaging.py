@@ -188,6 +188,21 @@ def test_build_script_is_executable_and_sane() -> None:
     assert APP_ID in txt
 
 
+def test_appimage_names_with_platform_tag_and_ai_suffix() -> None:
+    """Dateiname traegt OS+Geraet statt roher Architektur (Befund/#584).
+
+    Ein blosses ``arm64`` waere sowohl fuer den Linux/Raspi- als auch den
+    macOS-Build gueltig; ``linux-raspberrypi-arm64`` ist eindeutig. Der
+    ``-ai``-Suffix macht sichtbar, ob rembg/onnxruntime tatsaechlich gebuendelt
+    sind (dieselbe Bedingung wie ``requirements.txt`` weiter oben im Skript).
+    """
+    txt = BUILD_SH.read_text(encoding="utf-8")
+    assert 'PLATFORM_TAG="linux-x86_64"' in txt
+    assert 'PLATFORM_TAG="linux-raspberrypi-arm64"' in txt
+    assert 'AI_SUFFIX="-ai"' in txt
+    assert 'FINAL="$BUILD/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.AppImage"' in txt
+
+
 def test_appimage_build_exports_constraints_to_bundler(tmp_path) -> None:
     fake_bin = tmp_path / "fake-bin"
     fake_bin.mkdir()
@@ -272,6 +287,19 @@ def test_deb_build_script_sane() -> None:
     assert "libfuse2" in txt  # FUSE dep so the wrapped AppImage runs
 
 
+def test_deb_names_with_platform_tag_and_ai_suffix_from_wrapped_appimage() -> None:
+    """Wie test_appimage_names_with_platform_tag_and_ai_suffix, fuers .deb (#584).
+
+    Der KI-Suffix wird aus dem Dateinamen der gewrappten AppImage abgeleitet
+    (kein eigener --ai-Schalter), kann also nie von ihr abweichen.
+    """
+    txt = BUILD_DEB.read_text(encoding="utf-8")
+    assert 'PLATFORM_TAG="linux-x86_64"' in txt
+    assert 'PLATFORM_TAG="linux-raspberrypi-arm64"' in txt
+    assert '*-ai.AppImage) AI_SUFFIX="-ai" ;;' in txt
+    assert 'OUT="$BUILD/deb/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.deb"' in txt
+
+
 @pytest.mark.skipif(shutil.which("dpkg-deb") is None, reason="dpkg-deb not available")
 def test_deb_build_produces_valid_package(tmp_path) -> None:
     # Build a .deb from a stub AppImage and inspect it — no network needed.
@@ -284,6 +312,10 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
     )
     debs = list((tmp_path / "build" / "deb").glob("*.deb"))
     assert len(debs) == 1, f"expected one .deb, got {debs}"
+    # Kein --ai-Tag im Namen: die gewrappte Stub-AppImage heisst nicht *-ai.AppImage.
+    assert re.match(
+        r"BgRemover-.+-linux-(x86_64|raspberrypi-(arm64|armhf))\.deb$", debs[0].name
+    ), debs[0].name
 
     info = subprocess.run(
         ["dpkg-deb", "--info", str(debs[0])],
@@ -305,6 +337,27 @@ def test_deb_build_produces_valid_package(tmp_path) -> None:
         assert expected in contents, f"missing from .deb: {expected}"
 
 
+@pytest.mark.skipif(shutil.which("dpkg-deb") is None, reason="dpkg-deb not available")
+def test_deb_build_propagates_ai_suffix_from_appimage_name(tmp_path) -> None:
+    """Eine ``*-ai.AppImage`` ergibt ein ``*-ai.deb`` (Befund/#584).
+
+    Der KI-Hinweis im .deb-Namen wird bewusst aus dem Namen der gewrappten
+    AppImage abgeleitet statt ueber einen zweiten, unabhaengig zu pflegenden
+    --ai-Schalter — so kann das .deb nie faelschlich "AI bundled" behaupten,
+    waehrend die tatsaechlich verpackte AppImage keine ist (oder umgekehrt).
+    """
+    appimage = tmp_path / "BgRemover-2.6.0-linux-x86_64-ai.AppImage"
+    appimage.write_bytes(b"#!/bin/sh\nexit 0\n")
+    env = {**os.environ, "BUILD_DIR": str(tmp_path / "build")}
+    subprocess.run(
+        ["bash", str(BUILD_DEB), str(appimage)],
+        cwd=str(ROOT), env=env, check=True, capture_output=True, text=True,
+    )
+    debs = list((tmp_path / "build" / "deb").glob("*.deb"))
+    assert len(debs) == 1, f"expected one .deb, got {debs}"
+    assert debs[0].name.endswith("-ai.deb"), debs[0].name
+
+
 # ── Release workflow ───────────────────────────────────────────────────
 
 def test_release_workflow_builds_both_arches_and_formats() -> None:
@@ -324,3 +377,18 @@ def test_release_workflow_builds_both_arches_and_formats() -> None:
     assert "build_appimage.sh" in text
     assert "build_deb.sh" in text
     assert "gh release" in text
+
+
+def test_release_workflow_uses_unambiguous_platform_tags() -> None:
+    """Jedes Matrix-Leg traegt ein OS+Geraet-Tag statt der rohen Architektur.
+
+    #584: ein blosses ``arm64`` liesse den Linux/Raspi-Build nicht vom
+    macOS-Build unterscheiden (beide melden ``uname -m`` = ``arm64``/``aarch64``
+    fuer denselben CPU-Typ). Die Verify-Schritte muessen denselben Tag lesen,
+    den der jeweilige Build-Schritt tatsaechlich erzeugt.
+    """
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "platform_tag: linux-x86_64" in text
+    assert "platform_tag: linux-raspberrypi-arm64" in text
+    assert "platform_tag: macos-arm64" in text
+    assert text.count("matrix.platform_tag") >= 3

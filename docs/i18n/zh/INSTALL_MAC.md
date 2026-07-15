@@ -11,7 +11,8 @@
 最简单的方式——**无需 Python、git 或终端**：从
 [GitHub releases](https://github.com/NikolayDA/picture_helper/releases)
 下载预构建的应用程序包。Apple Silicon（arm64）对应
-`BgRemover-<version>-arm64.dmg`，且已内置 AI 抠图。
+`BgRemover-<version>-macos-arm64-ai.dmg`(文件名标明了平台和架构)；AI 抠图已经
+内置——从 `-ai` 后缀即可看出，与 Linux 构件一致。
 
 1. 打开 `.dmg`，将 `BgRemover.app` 拖入**应用程序**文件夹。
 2. **首次**启动时通过**右键点击 →“打开”**确认——该程序包尚未经过 Apple

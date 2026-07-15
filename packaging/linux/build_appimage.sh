@@ -46,6 +46,16 @@ WITH_AI=0
 
 VERSION="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$ROOT/pyproject.toml" | head -1)"
 ARCH="$(uname -m)"
+# Plattform-Tag fuer den Artefaktnamen: OS + Geraet statt der rohen
+# uname-Architektur, sonst laesst sich z. B. "arm64" nicht von der
+# gleichnamigen macOS-.dmg unterscheiden (#584).
+case "$ARCH" in
+  x86_64)  PLATFORM_TAG="linux-x86_64" ;;
+  aarch64) PLATFORM_TAG="linux-raspberrypi-arm64" ;;
+  *)       PLATFORM_TAG="linux-${ARCH}" ;;
+esac
+AI_SUFFIX=""
+[ "$WITH_AI" = "1" ] && AI_SUFFIX="-ai"
 echo ">> Building ${APP_NAME} ${VERSION} AppImage (python ${PYVER}, arch ${ARCH}, ai=${WITH_AI})"
 echo ">> Constraints: $PIP_CONSTRAINT"
 
@@ -83,7 +93,7 @@ cp "$ROOT/BgRemover_icon.png" "$RECIPE/$APP_ID.png"
 
 OUT="$(ls -1t "$BUILD"/*.AppImage 2>/dev/null | head -1 || true)"
 [ -n "$OUT" ] || { echo "!! python-appimage produced no .AppImage"; exit 1; }
-FINAL="$BUILD/${APP_NAME}-${VERSION}-${ARCH}.AppImage"
+FINAL="$BUILD/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.AppImage"
 mv -f "$OUT" "$FINAL"
 chmod +x "$FINAL"
 

@@ -51,10 +51,18 @@ def test_build_script_is_executable_and_sane() -> None:
     assert "codesign" in txt
 
 
-def test_build_script_names_dmg_with_version_and_arch() -> None:
+def test_build_script_names_dmg_with_version_and_platform_tag() -> None:
+    """Dateiname traegt OS+Geraet statt der rohen Architektur (#584).
+
+    Ein blosses ``arm64`` waere sowohl fuer die macOS-.dmg als auch fuer den
+    Linux/Raspi-Build gueltig; ``macos-arm64`` ist eindeutig. Der ``-ai``-
+    Suffix macht sichtbar, ob rembg/onnxruntime tatsaechlich gebuendelt sind.
+    """
     txt = BUILD_SH.read_text(encoding="utf-8")
     assert 'ARCH="$(uname -m)"' in txt
-    assert 'DMG="$BUILD/${APP_NAME}-${VERSION}-${ARCH}.dmg"' in txt
+    assert 'PLATFORM_TAG="macos-${ARCH}"' in txt
+    assert 'AI_SUFFIX="-ai"' in txt
+    assert 'DMG="$BUILD/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.dmg"' in txt
 
 
 def test_build_script_reads_version_and_constraints() -> None:
@@ -217,6 +225,7 @@ def test_release_workflow_builds_macos_dmg() -> None:
     assert "os: macos" in text
     assert re.search(r"runner:\s*macos-\S*", text), "needs a native macOS runner"
     assert "arch: arm64" in text
+    assert "platform_tag: macos-arm64" in text
     assert "build_macos.sh" in text
     # Publish gathers and verifies the .dmg alongside the Linux artifacts.
     assert "dist/*.dmg" in text

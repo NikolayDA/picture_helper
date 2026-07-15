@@ -45,6 +45,11 @@ WITH_AI=0
 
 VERSION="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$ROOT/pyproject.toml" | head -1)"
 ARCH="$(uname -m)"   # arm64 on Apple Silicon
+# Gleiches OS+Geraet-Vokabular wie build_appimage.sh/build_deb.sh, damit z. B.
+# "arm64" nicht gleichzeitig macOS UND Linux/Raspi meinen kann (#584).
+PLATFORM_TAG="macos-${ARCH}"
+AI_SUFFIX=""
+[ "$WITH_AI" = "1" ] && AI_SUFFIX="-ai"
 echo ">> Building ${APP_NAME} ${VERSION} .app/.dmg (arch ${ARCH}, ai=${WITH_AI})"
 echo ">> Constraints: $PIP_CONSTRAINT"
 
@@ -116,7 +121,7 @@ fi
 
 # Wrap the .app into a compressed, read-only .dmg (hdiutil ships with macOS),
 # with the usual drag-to-Applications symlink.
-DMG="$BUILD/${APP_NAME}-${VERSION}-${ARCH}.dmg"
+DMG="$BUILD/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.dmg"
 rm -f "$DMG"
 STAGE="$BUILD/dmg"
 rm -rf "$STAGE"; mkdir -p "$STAGE"

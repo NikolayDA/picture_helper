@@ -28,11 +28,21 @@ APPIMAGE="${1:-$(ls -1t "$BUILD/appimage"/*.AppImage 2>/dev/null | head -1 || tr
 [ -n "$APPIMAGE" ] && [ -f "$APPIMAGE" ] || {
   echo "!! No AppImage found — run build_appimage.sh first or pass its path."; exit 1; }
 
+# DEB_ARCH ist die von dpkg/apt verlangte Architekturkennung (Control-Datei);
+# PLATFORM_TAG ist der menschenlesbare Teil des Dateinamens, im selben
+# OS+Geraet-Vokabular wie build_appimage.sh (#584).
 case "$(uname -m)" in
-  x86_64)  DEB_ARCH=amd64 ;;
-  aarch64) DEB_ARCH=arm64 ;;
-  armv7l)  DEB_ARCH=armhf ;;
+  x86_64)  DEB_ARCH=amd64; PLATFORM_TAG="linux-x86_64" ;;
+  aarch64) DEB_ARCH=arm64; PLATFORM_TAG="linux-raspberrypi-arm64" ;;
+  armv7l)  DEB_ARCH=armhf; PLATFORM_TAG="linux-raspberrypi-armhf" ;;
   *) echo "!! Unsupported architecture: $(uname -m)"; exit 1 ;;
+esac
+
+# Der KI-Hinweis im Dateinamen spiegelt die gewrappte AppImage wider, statt
+# einen eigenen --ai-Schalter zu pflegen, der von ihr abweichen koennte.
+AI_SUFFIX=""
+case "$(basename "$APPIMAGE")" in
+  *-ai.AppImage) AI_SUFFIX="-ai" ;;
 esac
 
 echo ">> Packaging $APP_NAME $VERSION ($DEB_ARCH) from $(basename "$APPIMAGE")"
@@ -74,7 +84,7 @@ Description: Background removal and image editing tool
  desktop launcher. Needs FUSE to run the bundled AppImage.
 CONTROL
 
-OUT="$BUILD/deb/${APP_NAME}-${VERSION}-${DEB_ARCH}.deb"
+OUT="$BUILD/deb/${APP_NAME}-${VERSION}-${PLATFORM_TAG}${AI_SUFFIX}.deb"
 mkdir -p "$BUILD/deb"
 dpkg-deb --build --root-owner-group "$STAGE" "$OUT"
 echo ">> Done: $OUT"
