@@ -365,3 +365,22 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          # #584 (Codex-Review auf #602): Erst NACH dem erfolgreichen Upload
+          # verwaiste Alt-Assets entfernen, die im aktuell gebauten ``dist/``
+          # keine Entsprechung mehr haben (z. B. Reste eines frueheren Laufs
+          # mit anderem Namensschema oder anderer Artefaktmenge) – ``--clobber``
+          # ersetzt laut GitHub-CLI-Doku nur Assets MIT IDENTISCHEM Namen.
+          # Bewusst NACH statt VOR dem Upload: schlaegt dieser (oder der
+          # vorherige ``gh release edit``) fehl, bleiben die bisherigen,
+          # weiterhin funktionsfaehigen Downloads unangetastet, statt das
+          # Release zwischenzeitlich ganz ohne Assets zurueckzulassen. Es wird
+          # ausschliesslich geloescht, was NICHT (mehr) in ``dist/`` liegt –
+          # kein pauschales Wegwerfen des gesamten Alt-Bestands.
+          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' \
+            | while IFS= read -r asset_name; do
+                [ -n "$asset_name" ] || continue
+                if [ ! -f "dist/$asset_name" ]; then
+                  echo "Entferne veraltetes Release-Asset: $asset_name"
+                  gh release delete-asset "$GITHUB_REF_NAME" "$asset_name" -y
+                fi
+              done

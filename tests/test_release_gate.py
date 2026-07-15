@@ -193,6 +193,48 @@ def test_release_sets_body_on_reuse_too() -> None:
     )
 
 
+def test_release_reuse_prunes_orphaned_assets_only_after_successful_upload() -> None:
+    """Verwaiste Alt-Assets werden erst NACH einem erfolgreichen Reupload entfernt.
+
+    ``gh release upload --clobber`` ersetzt laut GitHub-CLI-Doku nur Assets mit
+    identischem Namen; aendert sich das Namensschema oder die Menge der
+    gebauten Dateien zwischen zwei Publish-Laeufen desselben Tags (z. B. nach
+    einer Tag-Verschiebung auf einen Commit mit geaenderter Paketierung),
+    blieben sonst veraltete Assets zusaetzlich zu den neuen haengen (#584).
+    Die Loeschung muss aber NACH dem Upload laufen: schluege ``gh release
+    edit``/``gh release upload`` fehl, waere das Release sonst zwischenzeitlich
+    komplett ohne Downloads, obwohl der alte Asset-Satz noch funktionsfaehig
+    war (Codex-Review auf #602). Zudem darf nur geloescht werden, was NICHT
+    (mehr) im aktuell gebauten ``dist/`` liegt – kein pauschales Wegwerfen des
+    gesamten Alt-Bestands.
+    """
+    text = _release_text()
+    assert "gh release delete-asset" in text, (
+        "Nicht mehr im aktuellen dist/ enthaltene Alt-Assets muessen aktiv "
+        "entfernt werden – '--clobber' allein ersetzt nur gleichnamige Assets."
+    )
+    assert "--json assets" in text and "assets[].name" in text, (
+        "Die vorhandenen Asset-Namen muessen ueber 'gh release view --json "
+        "assets' ermittelt werden, nicht hartkodiert."
+    )
+    assert re.search(r'if\s*\[\s*!\s*-f\s*"dist/\$asset_name"\s*\]', text), (
+        "Geloescht werden darf nur, was NICHT (mehr) in dist/ liegt – kein "
+        "pauschales Entfernen aller vorhandenen Assets."
+    )
+    # Der spezifische Aufruf (nicht die blosse Phrase "gh release upload", die
+    # auch in einem erklaerenden Kommentar vorkommen kann) markiert den
+    # tatsaechlichen Upload-Schritt.
+    upload_call = 'gh release upload "$GITHUB_REF_NAME" dist/*'
+    assert upload_call in text
+    delete_idx = text.index("gh release delete-asset")
+    upload_idx = text.index(upload_call)
+    assert upload_idx < delete_idx, (
+        "Der Upload muss VOR dem Entfernen alter Assets abgeschlossen sein – "
+        "sonst verwaist das Release bei einem Zwischenfehler ohne jeden "
+        "Download."
+    )
+
+
 def test_extract_release_notes_reads_changelog_section() -> None:
     module = _load_extract_module()
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
