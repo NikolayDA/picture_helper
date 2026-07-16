@@ -12,9 +12,23 @@ den Scan mit Exit 1 – geloggt wird nur ein nicht umkehrbares Fingerprint, nie
 das Geheimnis selbst, damit der Scan keine Geheimnisse in die CI-Logs kopiert.
 
 Absolute Pfade unter ``/home/<user>`` bzw. ``/Users/<user>`` mit einem
-Benutzernamen außerhalb der expliziten Allowlist (CI-Konten plus bekannte
-Drittanbieter-Build-Infrastruktur) gelten als Leak einer echten
-Entwicklermaschine und lassen den Scan ebenfalls fehlschlagen.
+Benutzernamen außerhalb der expliziten Allowlist gelten als möglicher Leak
+einer echten Entwicklermaschine – aber **nur innerhalb des eigenen
+``bgremover``-Pakets** lässt das den Scan hart fehlschlagen. Drittanbieter-
+Abhängigkeiten (numpy, networkx, PyQt6-sip, …) bringen nachweislich eigene,
+harmlose ``/home``/``/Users``-Beispielpfade mit – Docstrings (numpys
+``DataSource`` nutzt seit jeher ``/home/guido/…``), Kommentare (numbas
+``pycc/cc.py`` nennt ``/home/antoine/…``), Zitat-URLs (networkx' HITS-Modul
+verlinkt Jon Kleinbergs Cornell-Homepage ``.../home/kleinber/auth.pdf``) oder
+vom jeweiligen Hersteller einkompilierte Build-Pfade (PyQt6-Qt6s ``sip``-
+Erweiterung enthält ``/home/bob/bob/include/…``). Diese Strings gehören nicht
+zu unserem Build und ändern sich unvorhersehbar mit jedem Versions-Bump einer
+Abhängigkeit – ein Hart-Fehlschlag darauf wäre struktureller Lärm ohne
+Sicherheitswert (empirisch an drei realen CI-Läufen bestätigt, #608). Nur
+``bgremover`` kompilieren wir selbst zu Bytecode; ein echter Leak einer
+Entwicklermaschine könnte sich daher ausschließlich dort zeigen. Funde
+außerhalb bleiben sichtbar (nicht blockierend geloggt), damit nichts still
+verschwindet.
 """
 from __future__ import annotations
 
@@ -150,11 +164,27 @@ def extract_payload(archive: Path, dest: Path) -> None:
         raise ValueError(f"unbekanntes Artefaktformat: {archive.suffix}")
 
 
-def scan_artifact(path: Path, workdir: Path) -> tuple[list[str], set[str]]:
-    """Scannt *path* selbst (Container-Ebene) und seinen entpackten Inhalt."""
+def _is_own_package_path(relative_path: Path) -> bool:
+    """True, wenn *relative_path* zum eigenen ``bgremover``-Paket gehört.
+
+    Alles andere im entpackten Baum ist eine Drittanbieter-Abhängigkeit, die
+    wir nie selbst kompilieren – deren eigene ``/home``/``/Users``-Strings
+    sind daher kein Signal für einen Leak unserer Build-Umgebung."""
+    return "bgremover" in relative_path.parts
+
+
+def scan_artifact(path: Path, workdir: Path) -> tuple[list[str], set[str], set[str]]:
+    """Scannt *path* selbst (Container-Ebene) und seinen entpackten Inhalt.
+
+    Liefert ``(Funde, blockierende Pfad-Benutzer, informative Pfad-Benutzer)``.
+    Blockierend ist nur ein unbekannter Pfad-Benutzer innerhalb des eigenen
+    ``bgremover``-Pakets; derselbe Fund in einer Drittanbieter-Abhängigkeit
+    oder in den rohen Container-Bytes (keine Paketzuordnung möglich) ist
+    lediglich informativ – s. Modul-Docstring."""
     raw = path.read_bytes()
     findings = scan_bytes(raw)
-    unknown_users = dev_path_users(raw)
+    informational_users = dev_path_users(raw)
+    blocking_users: set[str] = set()
 
     extract_dir = workdir / f"{path.name}.extracted"
     extract_payload(path, extract_dir)
@@ -162,8 +192,14 @@ def scan_artifact(path: Path, workdir: Path) -> tuple[list[str], set[str]]:
         if member.is_file() and not member.is_symlink():
             data = member.read_bytes()
             findings.extend(scan_bytes(data))
-            unknown_users |= dev_path_users(data)
-    return findings, unknown_users
+            users = dev_path_users(data)
+            if not users:
+                continue
+            if _is_own_package_path(member.relative_to(extract_dir)):
+                blocking_users |= users
+            else:
+                informational_users |= users
+    return findings, blocking_users, informational_users
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -184,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
             size_mb = path.stat().st_size / 1_000_000
             print(f">> Scanne {path.name} ({size_mb:.1f} MB, inkl. entpacktem Inhalt)")
             try:
-                findings, unknown_users = scan_artifact(path, workdir)
+                findings, blocking_users, informational_users = scan_artifact(path, workdir)
             except (subprocess.CalledProcessError, ValueError) as exc:
                 print(f"::error::{path.name}: Entpacken zum Scannen fehlgeschlagen – {exc}")
                 failed = True
@@ -192,14 +228,20 @@ def main(argv: list[str] | None = None) -> int:
             for finding in findings:
                 print(f"::error::{path.name}: möglicher Fund – {finding}")
                 failed = True
-            if unknown_users:
+            if blocking_users:
                 print(
-                    f"::error::{path.name}: unbekannte Pfad-Benutzer außerhalb der Allowlist "
-                    f"{sorted(_ALLOWED_PATH_USERS)}: {sorted(unknown_users)}"
+                    f"::error::{path.name}: unbekannte Pfad-Benutzer im eigenen bgremover-Paket "
+                    f"außerhalb der Allowlist {sorted(_ALLOWED_PATH_USERS)}: {sorted(blocking_users)}"
                 )
                 failed = True
             else:
-                print("   OK: keine Entwicklerpfade außerhalb der Allowlist gefunden")
+                print("   OK: keine Entwicklerpfade außerhalb der Allowlist im eigenen Paket gefunden")
+            if informational_users:
+                print(
+                    f"   Hinweis (nicht blockierend): unbekannte Pfad-Benutzer in "
+                    f"Drittanbieter-Inhalten außerhalb der Allowlist "
+                    f"{sorted(_ALLOWED_PATH_USERS)}: {sorted(informational_users)}"
+                )
 
     if failed:
         print("::error::Secret-Scan fehlgeschlagen – siehe obige Funde.")

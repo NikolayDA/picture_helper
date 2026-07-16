@@ -3,7 +3,13 @@
 Deckt insbesondere die Codex-Review-Befunde auf PR #608 ab: Geheimnisse
 dürfen nicht im Klartext geloggt werden (nur Fingerprint), komprimierte
 Nutzdaten (AppImage/`.deb`/`.dmg`) müssen vor dem Scan entpackt werden, und
-ein unbekannter Entwicklerpfad muss den Scan hart fehlschlagen lassen.
+ein unbekannter Entwicklerpfad **im eigenen bgremover-Paket** muss den Scan
+hart fehlschlagen lassen. Derselbe Fund in einer Drittanbieter-Abhängigkeit
+ist dagegen nur informativ (nicht blockierend) – reale CI-Läufe zeigten, dass
+numpy/numba/networkx/PyQt6-sip u. a. eigene, harmlose ``/home``/``/Users``-
+Beispielpfade mitbringen (Docstrings, Kommentare, Zitat-URLs, vom Hersteller
+einkompilierte Build-Pfade), die sich mit jedem Versions-Bump unvorhersehbar
+ändern und kein Signal für einen Leak unserer Build-Umgebung sind.
 """
 from __future__ import annotations
 
@@ -162,6 +168,18 @@ def test_dev_path_users_flags_unknown_user() -> None:
     assert scan_release_artifacts.dev_path_users(b"/Users/alice/dev/project") == {"alice"}
 
 
+# ── _is_own_package_path: Geltungsbereich fuer den Hart-Fehlschlag ──────
+
+def test_is_own_package_path_true_for_bgremover_member() -> None:
+    path = Path("site-packages/bgremover/canvas.py")
+    assert scan_release_artifacts._is_own_package_path(path) is True
+
+
+def test_is_own_package_path_false_for_third_party_dependency() -> None:
+    path = Path("site-packages/numpy/lib/_datasource.py")
+    assert scan_release_artifacts._is_own_package_path(path) is False
+
+
 # ── extract_payload: reales .deb (echtes dpkg-deb) ───────────────────────
 
 def test_extract_payload_deb_recovers_compressed_payload(tmp_path: Path) -> None:
@@ -316,15 +334,30 @@ def test_main_fails_for_deb_with_secret(tmp_path) -> None:
     assert scan_release_artifacts.main([str(dist)]) == 1
 
 
-def test_main_fails_for_deb_with_unknown_dev_path(tmp_path) -> None:
-    """Codex P2: ein unbekannter Entwicklerpfad muss den Scan fehlschlagen lassen."""
+def test_main_fails_for_deb_with_unknown_dev_path_in_own_package(tmp_path) -> None:
+    """Codex P2: ein unbekannter Entwicklerpfad im eigenen bgremover-Paket
+    muss den Scan fehlschlagen lassen."""
     dist = tmp_path / "dist"
     dist.mkdir()
     _build_deb(
         tmp_path / "stage", dist / "leaky.deb",
-        {"opt/test/build_log.txt": b"/Users/alice/dev/picture_helper/build.log"},
+        {"opt/test/bgremover/canvas.py": b"# built at /Users/alice/dev/picture_helper/bgremover"},
     )
     assert scan_release_artifacts.main([str(dist)]) == 1
+
+
+def test_main_passes_for_deb_with_unknown_dev_path_in_third_party_dependency(tmp_path) -> None:
+    """Derselbe unbekannte Pfad-Benutzer in einer Drittanbieter-Abhaengigkeit
+    (kein bgremover-Pfad) ist nur informativ – reale CI-Laeufe zeigten, dass
+    z. B. numpy/numba/networkx/PyQt6-sip eigene, harmlose Beispielpfade
+    mitbringen (#608, s. Modul-Docstring)."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    _build_deb(
+        tmp_path / "stage", dist / "clean.deb",
+        {"opt/test/numpy/lib/_datasource.py": b"local files : '/home/guido/src/local/data.txt'"},
+    )
+    assert scan_release_artifacts.main([str(dist)]) == 0
 
 
 def test_main_returns_one_for_empty_directory(tmp_path: Path) -> None:
