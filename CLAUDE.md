@@ -53,8 +53,12 @@ Ein Paket, `bgremover/`:
 - **Höhenkarten:** `height_map.py` — Qt-freie, strikt getypte Höhen-Repräsentation
   (Fundament des Height-Map-Epics #344/#345): verlustfreie Konvertierung Höhe ↔
   Graustufen-Array (`HeightField`, Konvention `R=G=B=Höhe`, `A=Deckung`),
-  Normalisierung beliebiger Werte auf den Höhenbereich und Canvas-Größen-Validierung;
-  als `uint16` geführt und damit 16-Bit-erweiterbar (`max_value`). `generate_from_image`
+  Normalisierung beliebiger Werte auf den Höhenbereich und Canvas-Größen-Validierung.
+  Seit #587 gilt der 16-Bit-Vertrag aus ADR #586: `max_value` ist auf **255**
+  (Legacy) und **65535** (kanonisch) beschränkt, die Arrays sind nach Konstruktion
+  write-gelockt (Aliasing-Verstöße werfen), `expand_to_16bit` ist die
+  deterministische ×257-Migration und `resize_height_field` skaliert
+  präzisionserhaltend (Werte als `float32`, Deckung als `L`, gleicher Filter). `generate_from_image`
   erzeugt deterministisch eine Höhenkarte (Kanalgewichtung/Luminanz → Tonwert-Kennlinie
   → Gamma → Invertieren) (#346). Der Canvas verdrahtet das (`generate_height_map` aus
   aktiver COLOR-Ebene/Komposit, `import_height_map` via `open_validated_image` mit
@@ -105,10 +109,21 @@ Ein Paket, `bgremover/`:
   `Layer.__init__` und `assign_role` lehnen inkompatible Kombinationen mit
   `IncompatibleRoleError` ab; Modell, Persistenz, Layer-/Height-Panel und Canvas
   konsultieren ausschließlich diese Funktion (kein Drift). Das Laden
-  inkompatibler Altzustände normalisiert verlustfrei (siehe Persistenz). `project_history.py` (`ProjectHistory`) ist die
+  inkompatibler Altzustände normalisiert verlustfrei (siehe Persistenz).
+  **16-Bit-HEIGHT-Payload (#587, ADR #586):** Eine HEIGHT-Ebene hält ihre Höhen
+  kanonisch in `Layer.height_data` (`HeightField`, `uint16`, `max_value=65535`);
+  `Layer.image` ist dort nur die abgeleitete 8-Bit-Ansicht (je Payload-Änderung
+  einmal neu berechnet, nie zurückgelesen). Schreibpfad: `set_height_data`/
+  `Project.set_layer_height_data` (canvas-validiert); 8-Bit-Zuweisungen an
+  `layer.image` laufen über einen befristeten, geloggten Legacy-Adapter (×257,
+  entfällt mit #589). `duplicate_layer` teilt die unveränderliche Payload,
+  `Project.resize` skaliert sie über `resize_height_field`; die transiente
+  Canvas-Vorschau tauscht nur die Ansicht (`swap_display_view`). `project_history.py` (`ProjectHistory`) ist die
   ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots
   + deduplizierter Pixelpool (geteiltes Undo-/Redo-Budget; unveränderte Ebenen
-  zählen nur einmal) – im Canvas verdrahtet (#331/#332).
+  zählen nur einmal) – im Canvas verdrahtet (#331/#332). HEIGHT-Snapshots
+  referenzieren die Payload (3 B/px statt 4-B/px-Ansicht) und stellen sie bei
+  Undo/Redo bitgenau wieder her (#587).
 - **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-

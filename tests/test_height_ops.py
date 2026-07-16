@@ -127,13 +127,13 @@ def test_median_band_split_is_independent_of_band_size() -> None:
     """Sehr kleines Budget erzwingt viele Bänder – Ergebnis bleibt identisch,
     auch über die Bandgrenzen hinweg (Höhe kein Vielfaches der Bandbreite)."""
     rng = np.random.default_rng(7)
-    arr = rng.integers(0, 4096, size=(31, 19), dtype=np.uint16)
-    field = HeightField(arr, np.full(arr.shape, 255, np.uint8), max_value=4095)
+    arr = rng.integers(0, 65536, size=(31, 19), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 255, np.uint8), max_value=65535)
     full = median_blur(field, radius=3)                       # Standardbudget
     tiny = median_blur(field, radius=3, max_temp_bytes=1)     # erzwingt band_rows=1
     assert np.array_equal(full.values, tiny.values)
     # Referenz bestätigt zusätzlich die Korrektheit beider Wege.
-    expected = np.clip(np.rint(_median_reference(arr, 3)), 0, 4095).astype(np.uint16)
+    expected = np.clip(np.rint(_median_reference(arr, 3)), 0, 65535).astype(np.uint16)
     assert np.array_equal(tiny.values, expected)
 
 
@@ -203,12 +203,13 @@ def test_clamp_range_rejects_invalid_bounds() -> None:
 
 
 def test_ops_are_16bit_capable() -> None:
-    """Operationen rechnen im Bereich ``0..max_value`` (hier 1023)."""
-    field = _field([[0, 512, 1023]], max_value=1023)
-    assert list(levels(field, 0, 1023).values[0]) == [0, 512, 1023]
-    assert list(threshold(field, 700).values[0]) == [0, 0, 1023]   # 512<700<=1023
-    assert list(quantize(field, 2).values[0]) == [0, 1023, 1023]   # 512/1023>0.5→round 1
-    assert list(clamp_range(field, 100, 800).values[0]) == [100, 512, 800]
+    """Operationen rechnen im Bereich ``0..max_value`` (kanonisch 65535, ADR #586)."""
+    field = _field([[0, 32768, 65535]], max_value=65535)
+    assert list(levels(field, 0, 65535).values[0]) == [0, 32768, 65535]
+    assert list(threshold(field, 40000).values[0]) == [0, 0, 65535]  # 32768<40000<=65535
+    # 32768/65535 > 0.5 → Stufe 1 von 2.
+    assert list(quantize(field, 2).values[0]) == [0, 65535, 65535]
+    assert list(clamp_range(field, 100, 50000).values[0]) == [100, 32768, 50000]
 
 
 def test_ops_do_not_mutate_input() -> None:

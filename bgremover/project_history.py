@@ -18,24 +18,32 @@ groß. Stattdessen besteht ein Snapshot (:class:`_ProjectState`) nur aus
 1. **strukturellen Metadaten** (Canvas-Größe, Version, ``metadata``, geordnete
    Ebenenliste mit ID/Name/Kind/Sichtbarkeit/Opazität/Sperre/Rolle, aktiver ID) –
    durchweg kleine, unveränderliche Werte, die beim Erfassen kopiert werden, und
-2. **Referenzen** auf die RGBA-Pixeldaten je Ebene (keine Pixelkopie).
+2. **Referenzen** auf die Pixel-Payload je Ebene (keine Pixelkopie): das
+   RGBA-Bild einer COLOR-/GLOSS-/GENERIC-Ebene bzw. die **kanonische
+   16-Bit-Höhen-Payload** (:class:`~bgremover.height_map.HeightField`) einer
+   HEIGHT-Ebene (#587, ADR #586). Die abgeleitete 8-Bit-Ansicht einer
+   HEIGHT-Ebene wird **nicht** gesnapshottet, sondern nach Undo/Redo aus der
+   Payload neu abgeleitet – Undo/Redo ist damit für Höhen bitgenau (auch die
+   niedrigen 8 Bits) und das Budget zählt 3 B/px statt der 4-B/px-Ansicht.
 
 Die Pixelpuffer landen in einem **deduplizierenden Pool** (:class:`_PoolEntry`),
-der jeden Puffer über *Objektidentität* refzählt: gleiche Ebenen-Bilder werden
+der jede Payload über *Objektidentität* refzählt: gleiche Ebenen-Payloads werden
 über viele Snapshots hinweg **nur einmal** im Speicherbudget gezählt. Da
-strukturelle Operationen die Bildobjekte nicht anfassen und Pixel-Operationen
-das Bild einer Ebene **ersetzen** (statt es in-place zu mutieren), teilen sich
+strukturelle Operationen die Payload-Objekte nicht anfassen und Pixel-Operationen
+die Payload einer Ebene **ersetzen** (statt sie in-place zu mutieren), teilen sich
 aufeinanderfolgende Snapshots automatisch alle *unveränderten* Ebenen. Effektiv
 kostet ein Schritt nur die **betroffene/aktive** Ebene plus die winzigen
 Metadaten – genau die im Issue geforderte Strategie.
 
-Vertrag (wichtig): Aufrufer behandeln Ebenen-Pixeldaten als **unveränderlich**
+Vertrag (wichtig): Aufrufer behandeln Ebenen-Payloads als **unveränderlich**
 (ersetzen, nicht in-place mutieren). Nur so bleiben erfasste Snapshots gültig und
 ist die Identitäts-Deduplizierung tragfähig (der Pool hält starke Referenzen auf
-alle gezählten Puffer, deshalb kann eine ``id`` nie fälschlich wiederverwendet
-auf einen falschen Puffer zeigen). Das Modell erfüllt diesen Vertrag bereits:
-:class:`~bgremover.project_model.Layer` kopiert Eingabe-Pixeldaten beim Anlegen
-und reine Operationen erzeugen neue Bildobjekte.
+alle gezählten Payloads, deshalb kann eine ``id`` nie fälschlich wiederverwendet
+auf einen falschen Puffer zeigen). Das Modell erfüllt diesen Vertrag:
+:class:`~bgremover.project_model.Layer` kopiert Eingabe-Pixeldaten beim Anlegen,
+reine Operationen erzeugen neue Objekte, und Höhen-Payloads sind per Write-Lock
+hart unveränderlich (Verstöße werfen ``ValueError`` statt Snapshots zu
+korrumpieren).
 
 Budget/Trim (Strategie der früheren Einzelbild-Historie)
 ---------------------------------------------------------
@@ -57,20 +65,27 @@ from typing import Any, NamedTuple
 from PIL import Image
 
 from bgremover.constants import _HISTORY_MEMORY_LIMIT, _REDO_MAX_ENTRIES
+from bgremover.height_map import HeightField
 from bgremover.project_model import Layer, LayerKind, LayerRole, Project
 
 
 class _LayerState(NamedTuple):
-    """Unveränderlicher Snapshot einer Ebene (Metadaten + Bildreferenz)."""
+    """Unveränderlicher Snapshot einer Ebene (Metadaten + Payload-Referenz).
+
+    Genau eine der beiden Payload-Referenzen ist gesetzt: ``image`` für
+    COLOR-/GLOSS-/GENERIC-Ebenen, ``height_data`` für HEIGHT-Ebenen (deren
+    abgeleitete 8-Bit-Ansicht wird nicht gesnapshottet, siehe Modul-Doku).
+    """
 
     id: str
     name: str
     kind: LayerKind
-    image: Image.Image
+    image: Image.Image | None
     visible: bool
     opacity: float
     locked: bool
     role: LayerRole | None
+    height_data: HeightField | None
 
 
 class _ProjectState(NamedTuple):
@@ -86,13 +101,21 @@ class _ProjectState(NamedTuple):
 
 
 class _PoolEntry:
-    """Refzähl-Eintrag eines geteilten Pixelpuffers im Dedup-Pool."""
+    """Refzähl-Eintrag einer geteilten Pixel-Payload im Dedup-Pool.
 
-    __slots__ = ("image", "count")
+    ``payload`` hält eine starke Referenz auf das RGBA-Bild bzw. die
+    Höhen-Payload – so kann eine gezählte ``id`` nie fälschlich auf ein
+    anderes, wiederverwendetes Objekt zeigen. ``nbytes`` friert die beim
+    Registrieren gezählte Größe ein, damit Ein- und Ausbuchung exakt
+    symmetrisch sind.
+    """
 
-    def __init__(self, image: Image.Image) -> None:
-        self.image = image
+    __slots__ = ("payload", "count", "nbytes")
+
+    def __init__(self, payload: Image.Image | HeightField, nbytes: int) -> None:
+        self.payload = payload
         self.count = 1
+        self.nbytes = nbytes
 
 
 def _capture_state(project: Project, desc: str) -> _ProjectState:
@@ -110,11 +133,14 @@ def _capture_state(project: Project, desc: str) -> _ProjectState:
             layer.id,
             layer.name,
             layer.kind,
-            layer.image,
+            # HEIGHT-Ebenen: nur die kanonische Payload snapshotten; die
+            # abgeleitete Ansicht wird beim Wiederherstellen neu berechnet.
+            None if layer.height_data is not None else layer.image,
             layer.visible,
             layer.opacity,
             layer.locked,
             layer.role,
+            layer.height_data,
         )
         for layer in project.layers
     )
@@ -152,6 +178,9 @@ def _build_project(state: _ProjectState) -> Project:
                 opacity=ls.opacity,
                 locked=ls.locked,
                 role=ls.role,
+                # HEIGHT: bitgenaue Payload-Referenz (unveränderlich geteilt);
+                # die 8-Bit-Ansicht leitet ``Layer`` daraus frisch ab.
+                height_data=ls.height_data,
             ),
             make_active=False,
         )
@@ -190,30 +219,41 @@ class ProjectHistory:
         return self._pool_bytes
 
     @staticmethod
-    def _img_bytes(img: Image.Image) -> int:
-        return img.width * img.height * 4
+    def _payload_of(ls: _LayerState) -> tuple[Image.Image | HeightField, int]:
+        """Payload-Objekt und reale Bytegröße eines Ebenen-Snapshots.
+
+        COLOR-/GLOSS-/GENERIC: RGBA-Bild mit 4 B/px. HEIGHT: kanonische
+        Payload mit ``values.nbytes + coverage.nbytes`` (3 B/px, ADR #586) –
+        die nicht gesnapshottete 8-Bit-Ansicht zählt bewusst nicht.
+        """
+        if ls.height_data is not None:
+            field = ls.height_data
+            return field, field.values.nbytes + field.coverage.nbytes
+        assert ls.image is not None
+        return ls.image, ls.image.width * ls.image.height * 4
 
     # ── Pool-Buchhaltung ────────────────────────────────────────────────
     def _register(self, state: _ProjectState) -> None:
-        """Zählt die Pixelpuffer eines neu gestapelten Snapshots ein."""
+        """Zählt die Payloads eines neu gestapelten Snapshots ein."""
         for layer in state.layers:
-            key = id(layer.image)
+            payload, nbytes = self._payload_of(layer)
+            key = id(payload)
             entry = self._pool.get(key)
             if entry is None:
-                self._pool[key] = _PoolEntry(layer.image)
-                self._pool_bytes += self._img_bytes(layer.image)
+                self._pool[key] = _PoolEntry(payload, nbytes)
+                self._pool_bytes += nbytes
             else:
                 entry.count += 1
 
     def _unregister(self, state: _ProjectState) -> None:
-        """Zählt die Pixelpuffer eines entfernten Snapshots wieder aus."""
+        """Zählt die Payloads eines entfernten Snapshots wieder aus."""
         for layer in state.layers:
-            key = id(layer.image)
-            entry = self._pool[key]
+            payload, _nbytes = self._payload_of(layer)
+            entry = self._pool[id(payload)]
             entry.count -= 1
             if entry.count == 0:
-                del self._pool[key]
-                self._pool_bytes -= self._img_bytes(layer.image)
+                del self._pool[id(payload)]
+                self._pool_bytes -= entry.nbytes
 
     # ── Stapel-Primitive ────────────────────────────────────────────────
     def _append_undo(self, state: _ProjectState) -> None:

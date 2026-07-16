@@ -9,6 +9,22 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Modifié
+
+- **Pipeline de hauteurs 16 bits : modèle de domaine et historique sans perte
+  (#587, partie de l'épopée #581).** Les calques HEIGHT portent désormais
+  leurs hauteurs de manière canonique sous forme de payload 16 bits
+  (`Layer.height_data` : valeurs `uint16` 0…65535 plus couverture gérée
+  séparément) selon l'ADR #586 ; `Layer.image` n'y est plus que la vue 8 bits
+  dérivée et n'est jamais relue. Annuler/rétablir capture la payload au bit
+  près (3 o/px au lieu de la vue à 4 o/px dans le budget de 256 Mio),
+  dupliquer/réordonner/supprimer préservent les bits de poids faible, le
+  redimensionnement interpole les hauteurs en `float32` au lieu de canaux
+  8 bits, et les données 8 bits existantes migrent de façon déterministe
+  (`×257`) via un adaptateur de compatibilité temporaire et journalisé. Le
+  format de projet (v1) et l'export restent inchangés à cette étape
+  (#588/#590 suivront) ; les calques COLOR/GLOSS sont sans régression.
+
 ## [2.6.0] – 2026-07-15
 
 ### Ajouté

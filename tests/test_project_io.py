@@ -584,3 +584,43 @@ def test_module_is_qt_free() -> None:
         assert not any(
             name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported
         ), mod.__name__
+
+
+# ── 16-Bit-HEIGHT-Payload an der v1-Formatgrenze (#587) ──────────────────
+
+
+def test_v1_height_layer_loads_with_canonical_payload(tmp_path) -> None:
+    """Laden migriert die 8-Bit-HEIGHT-PNG deterministisch (×257) in die Payload."""
+    from bgremover.height_map import HeightField
+
+    project = Project(2, 2)
+    arr = np.zeros((2, 2, 4), dtype=np.uint8)
+    arr[:, :, :3] = 100
+    arr[:, :, 3] = 128
+    project.create_layer(
+        Image.fromarray(arr, "RGBA"), name="Höhe", kind=LayerKind.HEIGHT)
+    path = tmp_path / "height.bgrproj"
+    save_project(project, path)
+
+    loaded = load_project(path)
+    layer = loaded.layers[0]
+    assert layer.kind is LayerKind.HEIGHT
+    assert layer.height_data is not None
+    assert layer.height_data.max_value == 65535
+    assert np.all(layer.height_data.values == 100 * 257)
+    assert np.all(layer.height_data.coverage == 128)
+
+    # v1 bleibt die dokumentierte 8-Bit-Grenze (#588 bringt die 16-Bit-Datei):
+    # echte Niederbits quantisieren beim Speichern kontrolliert auf rint(v/257).
+    project.set_layer_height_data(
+        layer_id=project.layers[0].id,
+        field=HeightField(
+            np.full((2, 2), 0x1234, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8),
+            max_value=65535,
+        ),
+    )
+    save_project(project, path)
+    requantized = load_project(path).layers[0].height_data
+    assert requantized is not None
+    assert np.all(requantized.values == 18 * 257)       # rint(0x1234/257) = 18

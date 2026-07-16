@@ -13,16 +13,19 @@ from PIL import Image
 
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
+    HEIGHT_MAX_16BIT,
     LUMA_WEIGHTS_REC601,
     HeightField,
     HeightMapError,
     adjust_height,
+    expand_to_16bit,
     generate_from_image,
     height_to_layer,
     invert_height,
     layer_to_gray_image,
     layer_to_height,
     normalize_to_height,
+    resize_height_field,
     set_height,
     validate_canvas_size,
 )
@@ -118,11 +121,11 @@ def test_layer_to_gray_image_forces_grayscale() -> None:
 
 
 def test_height_to_layer_scales_down_higher_bit_depth() -> None:
-    """Ein ``max_value`` > 255 (16-Bit-Pfad) wird linear auf 8-Bit-Grau skaliert."""
-    values = np.array([[0, 511, 1023]], dtype=np.uint16)
-    coverage = np.full((1, 3), 255, dtype=np.uint8)
-    arr = np.array(height_to_layer(HeightField(values, coverage, max_value=1023)))
-    assert list(arr[0, :, 0]) == [0, 127, 255]   # 0/255, 511*255/1023≈127, 1023→255
+    """Ein 16-Bit-Feld wird per ``rint(v16 / 257)`` auf 8-Bit-Grau skaliert (ADR #586)."""
+    values = np.array([[0, 1, 32768, 65534, 65535]], dtype=np.uint16)
+    coverage = np.full((1, 5), 255, dtype=np.uint8)
+    arr = np.array(height_to_layer(HeightField(values, coverage, max_value=65535)))
+    assert list(arr[0, :, 0]) == [0, 0, 128, 255, 255]   # Beispieltabelle des ADR
 
 
 def test_height_field_rejects_value_above_max() -> None:
@@ -334,3 +337,129 @@ def test_validate_canvas_size_rejects_mismatch() -> None:
     field = layer_to_height(Image.new("RGBA", (5, 3)))
     with pytest.raises(HeightMapError):
         validate_canvas_size(field, (3, 5))
+
+
+# ── 16-Bit-Vertrag: Whitelist, Write-Lock, Migration, Resize (#587) ──────
+
+
+def test_height_field_rejects_non_contract_max_value() -> None:
+    """Nur die Vertragswerte 255 und 65535 sind erlaubt (ADR #586)."""
+    values = np.zeros((1, 1), dtype=np.uint16)
+    coverage = np.zeros((1, 1), dtype=np.uint8)
+    for bad in (0, -1, 1, 254, 256, 1023, 4095, 65534, 65536):
+        with pytest.raises(HeightMapError):
+            HeightField(values.copy(), coverage.copy(), max_value=bad)
+    HeightField(values.copy(), coverage.copy(), max_value=HEIGHT_MAX_8BIT)
+    HeightField(values.copy(), coverage.copy(), max_value=HEIGHT_MAX_16BIT)
+
+
+def test_height_field_accepts_full_16bit_boundary_values() -> None:
+    """Grenzwerte des Vertrags konstruieren und lesen verlustfrei."""
+    values = np.array([[0, 1, 255, 256, 32767, 65534, 65535]], dtype=np.uint16)
+    coverage = np.full(values.shape, 255, dtype=np.uint8)
+    field = HeightField(values, coverage, max_value=HEIGHT_MAX_16BIT)
+    assert list(field.values[0]) == [0, 1, 255, 256, 32767, 65534, 65535]
+
+
+def test_height_field_arrays_are_write_locked() -> None:
+    """Aliasing-Verstöße schlagen hart fehl (ADR #586, Abschnitt 5)."""
+    values = np.zeros((2, 2), dtype=np.uint16)
+    coverage = np.zeros((2, 2), dtype=np.uint8)
+    field = HeightField(values, coverage)
+    with pytest.raises(ValueError):
+        field.values[0, 0] = 1
+    with pytest.raises(ValueError):
+        field.coverage[0, 0] = 1
+    # Auch das ursprünglich übergebene Array ist gesperrt (gleicher Puffer).
+    with pytest.raises(ValueError):
+        values[0, 0] = 1
+    # Kopien sind dagegen normal beschreibbar (Ersetzen-statt-Mutieren-Vertrag).
+    writable = field.values.copy()
+    writable[0, 0] = 1
+
+
+def test_expand_to_16bit_matches_adr_table_and_roundtrips() -> None:
+    """``v16 = v8 × 257`` gemäß Beispieltabelle; Rückweg über die Ansicht exakt."""
+    values = np.array([[0, 1, 128, 254, 255]], dtype=np.uint16)
+    coverage = np.array([[0, 1, 128, 254, 255]], dtype=np.uint8)
+    legacy = HeightField(values, coverage, max_value=HEIGHT_MAX_8BIT)
+    out = expand_to_16bit(legacy)
+    assert out.max_value == HEIGHT_MAX_16BIT
+    assert out.values.dtype == np.uint16
+    assert list(out.values[0]) == [0, 257, 32896, 65278, 65535]
+    # Deckung bleibt wertgleich (orthogonal zur Höhe).
+    assert np.array_equal(out.coverage, legacy.coverage)
+    # Rückweg (16→8-Ansicht) reproduziert alle 256 Stufen exakt.
+    full = HeightField(
+        np.arange(256, dtype=np.uint16).reshape(16, 16),
+        np.full((16, 16), 255, dtype=np.uint8),
+    )
+    round_tripped = np.array(height_to_layer(expand_to_16bit(full)))[:, :, 0]
+    assert np.array_equal(round_tripped, np.arange(256, dtype=np.uint8).reshape(16, 16))
+
+
+def test_expand_to_16bit_is_identity_for_canonical_fields() -> None:
+    field = HeightField(
+        np.array([[4660]], dtype=np.uint16),   # 0x1234: bewusst gesetzte Niederbits
+        np.array([[255]], dtype=np.uint8),
+        max_value=HEIGHT_MAX_16BIT,
+    )
+    assert expand_to_16bit(field) is field
+
+
+def test_resize_height_field_keeps_uint16_and_low_bits_nearest() -> None:
+    """NEAREST-Resize repliziert Werte exakt – inklusive Niederbits (0x1234)."""
+    values = np.array([[0x1234, 0x0001], [0xFFFE, 0x8000]], dtype=np.uint16)
+    coverage = np.array([[255, 0], [7, 255]], dtype=np.uint8)
+    field = HeightField(values, coverage, max_value=HEIGHT_MAX_16BIT)
+    out = resize_height_field(field, 4, 4, resample=Image.Resampling.NEAREST)
+    assert out.values.dtype == np.uint16
+    assert out.max_value == HEIGHT_MAX_16BIT
+    assert out.size == (4, 4)
+    assert np.array_equal(out.values, np.repeat(np.repeat(values, 2, axis=0), 2, axis=1))
+    assert np.array_equal(
+        out.coverage, np.repeat(np.repeat(coverage, 2, axis=0), 2, axis=1))
+
+
+def test_resize_height_field_interpolates_in_float_without_8bit_step() -> None:
+    """Bilinear: Ergebnis entspricht der float-Interpolation, nicht einer 8-Bit-Stufe."""
+    values = np.array([[0, 257]], dtype=np.uint16)      # zwei benachbarte 16-Bit-Stufen
+    coverage = np.full((1, 2), 255, dtype=np.uint8)
+    field = HeightField(values, coverage, max_value=HEIGHT_MAX_16BIT)
+    out = resize_height_field(field, 4, 1, resample=Image.Resampling.BILINEAR)
+    # Alle Zwischenwerte liegen im Intervall [0, 257] – eine 8-Bit-Pipeline
+    # (rint(v/257) vor der Interpolation) könnte nur 0 oder 257 liefern.
+    assert out.values.dtype == np.uint16
+    assert int(out.values.min()) >= 0 and int(out.values.max()) <= 257
+    assert any(0 < v < 257 for v in out.values[0])
+
+
+def test_resize_height_field_same_size_is_identity() -> None:
+    field = HeightField(
+        np.array([[1, 2]], dtype=np.uint16), np.array([[3, 4]], dtype=np.uint8))
+    assert resize_height_field(field, 2, 1) is field
+
+
+def test_resize_height_field_rejects_nonpositive_target() -> None:
+    field = HeightField(
+        np.zeros((1, 1), dtype=np.uint16), np.zeros((1, 1), dtype=np.uint8))
+    with pytest.raises(HeightMapError):
+        resize_height_field(field, 0, 4)
+    with pytest.raises(HeightMapError):
+        resize_height_field(field, 4, -1)
+
+
+def test_generate_from_image_rejects_non_contract_max_value() -> None:
+    with pytest.raises(HeightMapError):
+        generate_from_image(_rgba((10, 10, 10, 255)), max_value=1023)
+
+
+def test_generate_from_image_16bit_target_scales_full_range() -> None:
+    """Erzeugung direkt auf den 16-Bit-Vertrag: Weiß → 65535, Schwarz → 0."""
+    img = Image.new("RGBA", (1, 2))
+    img.putpixel((0, 0), (0, 0, 0, 255))
+    img.putpixel((0, 1), (255, 255, 255, 255))
+    field = generate_from_image(img, max_value=HEIGHT_MAX_16BIT)
+    assert field.max_value == HEIGHT_MAX_16BIT
+    assert int(field.values[0, 0]) == 0
+    assert int(field.values[1, 0]) == HEIGHT_MAX_16BIT

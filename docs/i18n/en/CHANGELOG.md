@@ -8,6 +8,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- **16-bit height pipeline: lossless domain model and history (#587, part of
+  epic #581).** HEIGHT layers now carry their heights canonically as a 16-bit
+  payload (`Layer.height_data`: `uint16` values 0…65535 plus separately
+  tracked coverage) per ADR #586; `Layer.image` is only the derived 8-bit
+  view there and is never read back. Undo/redo snapshots the payload
+  bit-exactly (3 B/px instead of the 4 B/px view within the 256 MiB budget),
+  duplicate/reorder/delete preserve the low bits, resizing interpolates the
+  heights in `float32` instead of on 8-bit channels, and existing 8-bit data
+  migrates deterministically (`×257`) through a deliberately temporary,
+  logged compatibility adapter. The project file format (v1) and export stay
+  unchanged in this step (#588/#590 follow); COLOR/GLOSS layers are
+  regression-free.
+
 ## [2.6.0] – 2026-07-15
 
 ### Added

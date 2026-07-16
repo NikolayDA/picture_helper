@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from bgremover.height_map import HeightField, HeightMapError
 from bgremover.project_history import ProjectHistory
 from bgremover.project_model import LayerKind, LayerRole, Project
 
@@ -30,7 +31,12 @@ def _project(width: int = 8, height: int = 8) -> Project:
 
 
 def _layer_signature(project: Project) -> tuple:
-    """Struktur + Pixelinhalt aller Ebenen als vergleichbarer Fingerabdruck."""
+    """Struktur + Pixelinhalt aller Ebenen als vergleichbarer Fingerabdruck.
+
+    HEIGHT-Ebenen gehen zusätzlich mit ihrer kanonischen 16-Bit-Payload ein
+    (Werte + Deckung + ``max_value``), damit Bitgenauigkeit – nicht nur die
+    8-Bit-Ansicht – verglichen wird (#587).
+    """
     return tuple(
         (
             layer.id,
@@ -41,6 +47,13 @@ def _layer_signature(project: Project) -> tuple:
             layer.locked,
             layer.role,
             np.asarray(layer.image).tobytes(),
+            (
+                layer.height_data.values.tobytes(),
+                layer.height_data.coverage.tobytes(),
+                layer.height_data.max_value,
+            )
+            if layer.height_data is not None
+            else None,
         )
         for layer in project.layers
     )
@@ -61,9 +74,20 @@ def _assert_same(a: Project, b: Project) -> None:
     assert _signature(a) == _signature(b)
 
 
+def _payload_bytes(payload) -> int:
+    """Erwartete Budget-Bytes einer Pool-Payload (RGBA 4 B/px, HEIGHT 3 B/px)."""
+    if isinstance(payload, HeightField):
+        return payload.values.nbytes + payload.coverage.nbytes
+    return payload.width * payload.height * 4
+
+
+def _rgba_bytes(image: Image.Image) -> int:
+    return image.width * image.height * 4
+
+
 def _pool_bytes(history: ProjectHistory) -> int:
     """Unabhängig nachgerechnete, deduplizierte Pool-Größe."""
-    return sum(history._img_bytes(entry.image) for entry in history._pool.values())
+    return sum(_payload_bytes(entry.payload) for entry in history._pool.values())
 
 
 def _assert_accounting(history: ProjectHistory) -> None:
@@ -71,11 +95,13 @@ def _assert_accounting(history: ProjectHistory) -> None:
     assert history._pool_bytes == _pool_bytes(history)
     assert history._history_bytes == history._pool_bytes
     # Jeder gestapelte Snapshot muss mit genau einem Refzähl-Beitrag im Pool
-    # stehen; verwaiste oder fehlende Einträge fielen hier auf.
+    # stehen; verwaiste oder fehlende Einträge fielen hier auf. HEIGHT-Ebenen
+    # zählen über ihre kanonische Payload, alle übrigen über das RGBA-Bild.
     expected: dict[int, int] = {}
     for state in (*history._undo, *history._redo):
         for layer in state.layers:
-            expected[id(layer.image)] = expected.get(id(layer.image), 0) + 1
+            payload = layer.height_data if layer.height_data is not None else layer.image
+            expected[id(payload)] = expected.get(id(payload), 0) + 1
     assert {key: e.count for key, e in history._pool.items()} == expected
 
 
@@ -89,7 +115,7 @@ def test_unchanged_layers_are_shared_in_the_budget() -> None:
 
     history.push(project, "s1")
     bytes_after_first = history._history_bytes
-    assert bytes_after_first == history._img_bytes(project.layers[0].image)
+    assert bytes_after_first == _rgba_bytes(project.layers[0].image)
 
     # Rein strukturelle Folge: Sichtbarkeit, Opazität, aktive Ebene. Das
     # Bildobjekt der Ebene bleibt identisch → kein zusätzliches Pixelbudget.
@@ -109,7 +135,7 @@ def test_pixel_edit_adds_only_the_changed_layer() -> None:
     second = project.create_layer(_solid(8, 8, (0, 255, 0, 255)), name="Oben")
     history.push(project, "zwei ebenen")
     base_bytes = history._history_bytes
-    assert base_bytes == 2 * history._img_bytes(project.layers[0].image)
+    assert base_bytes == 2 * _rgba_bytes(project.layers[0].image)
 
     # Nur das Bild der aktiven Ebene ersetzen (Vertrag: ersetzen, nicht mutieren).
     project.layer_by_id(second.id).image = _solid(8, 8, (0, 0, 255, 255))
@@ -117,7 +143,7 @@ def test_pixel_edit_adds_only_the_changed_layer() -> None:
 
     # Drei Snapshots teilen die unveränderte Basis; nur die geänderte Ebene
     # kommt einmal hinzu.
-    assert history._history_bytes == base_bytes + history._img_bytes(second.image)
+    assert history._history_bytes == base_bytes + _rgba_bytes(second.image)
     _assert_accounting(history)
 
 
@@ -221,12 +247,13 @@ def _build_clone(project: Project) -> Project:
             type(layer)(
                 name=layer.name,
                 kind=layer.kind,
-                image=layer.image,
+                image=None if layer.height_data is not None else layer.image,
                 id=layer.id,
                 visible=layer.visible,
                 opacity=layer.opacity,
                 locked=layer.locked,
                 role=layer.role,
+                height_data=layer.height_data,
             ),
             make_active=False,
         )
@@ -583,3 +610,242 @@ def test_kind_is_preserved_for_data_layers() -> None:
     restored = history.undo(project)
     assert restored is not None
     _assert_same(restored[0], expected)
+
+
+# ── 16-Bit-HEIGHT-Payload in Snapshots (#587, ADR #586) ─────────────────
+
+
+def _field16(values, coverage=None) -> HeightField:
+    arr = np.asarray(values, dtype=np.uint16)
+    cov = (
+        np.full(arr.shape, 255, dtype=np.uint8)
+        if coverage is None
+        else np.asarray(coverage, dtype=np.uint8)
+    )
+    return HeightField(arr, cov, max_value=65535)
+
+
+def _height_project(values, coverage=None) -> Project:
+    """Projekt mit einer COLOR-Basis und einer aktiven HEIGHT-Payload-Ebene."""
+    arr = np.asarray(values, dtype=np.uint16)
+    h, w = arr.shape
+    project = Project(w, h)
+    project.create_layer(_solid(w, h, (255, 0, 0, 255)), name="Basis")
+    project.create_layer(
+        name="Höhe", kind=LayerKind.HEIGHT, height_data=_field16(arr, coverage))
+    return project
+
+
+def test_height_undo_redo_restores_boundary_values_bit_exactly() -> None:
+    """Grenz- und Niederbit-Werte überleben Undo/Redo bitgenau (inkl. Deckung)."""
+    start = [[0, 1, 255, 256], [32767, 65534, 65535, 0x1234]]
+    coverage = [[0, 1, 254, 255], [128, 7, 0, 200]]
+    project = _height_project(start, coverage)
+    height_id = project.layers[1].id
+    history = ProjectHistory()
+
+    history.push(project, "edit")
+    project.set_layer_height_data(height_id, _field16([[9] * 4, [9] * 4]))
+
+    undone = history.undo(project)
+    assert undone is not None
+    restored, _ = undone
+    field = restored.layer_by_id(height_id).height_data
+    assert field is not None
+    assert field.max_value == 65535
+    assert np.array_equal(field.values, np.asarray(start, dtype=np.uint16))
+    assert np.array_equal(field.coverage, np.asarray(coverage, dtype=np.uint8))
+
+    redone = history.redo(restored)
+    assert redone is not None
+    again = redone[0].layer_by_id(height_id).height_data
+    assert again is not None
+    assert np.all(again.values == 9)
+    _assert_accounting(history)
+
+
+def test_repeated_height_undo_redo_cycles_have_no_drift() -> None:
+    """Wiederholte Undo/Redo-Zyklen akkumulieren keinerlei Rundungsverlust."""
+    values = [[0x1234, 0xABCD], [0x0101, 0xFFFE]]
+    project = _height_project(values)
+    height_id = project.layers[1].id
+    history = ProjectHistory()
+
+    history.push(project, "edit")
+    project.set_layer_height_data(height_id, _field16([[1, 2], [3, 4]]))
+    before_sig = None
+    current = project
+    for _ in range(25):
+        undone = history.undo(current)
+        assert undone is not None
+        current = undone[0]
+        sig = _signature(current)
+        if before_sig is None:
+            before_sig = sig
+        assert sig == before_sig                     # exakt derselbe Zustand
+        field = current.layer_by_id(height_id).height_data
+        assert field is not None
+        assert np.array_equal(field.values, np.asarray(values, dtype=np.uint16))
+        redone = history.redo(current)
+        assert redone is not None
+        current = redone[0]
+    _assert_accounting(history)
+
+
+def test_height_snapshots_count_payload_bytes_not_view() -> None:
+    """Budget: HEIGHT zählt 3 B/px (Payload), nicht die 4-B/px-Ansicht."""
+    project = _height_project(np.zeros((4, 8), dtype=np.uint16))
+    history = ProjectHistory()
+    history.push(project, "s1")
+    color_bytes = 4 * 8 * 4                          # COLOR-Basis: RGBA, 4 B/px
+    height_bytes = 4 * 8 * 2 + 4 * 8                 # values (2 B) + coverage (1 B)
+    assert history._history_bytes == color_bytes + height_bytes
+    _assert_accounting(history)
+
+
+def test_unchanged_height_payload_is_shared_across_snapshots() -> None:
+    """Dedup: unveränderte HEIGHT-Payloads kosten über viele Snapshots nur einmal."""
+    project = _height_project(np.full((4, 4), 0x1234, dtype=np.uint16))
+    history = ProjectHistory()
+    history.push(project, "s1")
+    first = history._history_bytes
+    # Rein strukturelle Schritte: Payload-Objekt bleibt identisch.
+    project.set_visible(project.layers[1].id, False)
+    history.push(project, "s2")
+    project.set_opacity(project.layers[1].id, 0.5)
+    history.push(project, "s3")
+    assert history._history_bytes == first
+    _assert_accounting(history)
+
+
+def test_restored_height_payload_shares_immutable_reference() -> None:
+    """Undo teilt die Payload-Referenz – Write-Lock verhindert jede Rückwirkung."""
+    project = _height_project([[5, 6], [7, 8]])
+    height_id = project.layers[1].id
+    original_payload = project.layers[1].height_data
+    history = ProjectHistory()
+    history.push(project, "edit")
+    project.set_layer_height_data(height_id, _field16([[1, 1], [1, 1]]))
+
+    undone = history.undo(project)
+    assert undone is not None
+    restored_layer = undone[0].layer_by_id(height_id)
+    assert restored_layer.height_data is original_payload
+    with pytest.raises(ValueError):
+        restored_layer.height_data.values[0, 0] = 0   # geteilt, aber unveränderlich
+
+
+def test_failed_height_mutation_leaves_state_and_history_cursor_intact() -> None:
+    """Eine abgewiesene Operation hinterlässt weder halben Zustand noch Cursor-Drift."""
+    project = _height_project([[1, 2], [3, 4]])
+    height_id = project.layers[1].id
+    payload = project.layers[1].height_data
+    history = ProjectHistory()
+    history.push(project, "edit")
+    with pytest.raises(HeightMapError):
+        # Größen-Mismatch: wird vor jeder Modelländerung abgewiesen.
+        project.set_layer_height_data(height_id, _field16([[1]]))
+    assert project.layers[1].height_data is payload
+    assert history.descriptions() == ["edit"]
+    assert history.can_redo is False
+    _assert_accounting(history)
+
+
+def test_color_and_gloss_snapshots_stay_rgba_accounted() -> None:
+    """Regression: COLOR/GLOSS bleiben 8-Bit-RGBA mit 4-B/px-Abrechnung."""
+    project = Project(4, 4)
+    project.create_layer(_solid(4, 4, (1, 2, 3, 255)), name="c")
+    gloss = project.create_layer(_solid(4, 4, (9, 9, 9, 128)), name="g",
+                                 kind=LayerKind.GLOSS)
+    assert gloss.height_data is None
+    history = ProjectHistory()
+    history.push(project, "s1")
+    assert history._history_bytes == 2 * 4 * 4 * 4
+    undone = history.undo(project)
+    assert undone is not None
+    restored = undone[0]
+    assert [layer.kind for layer in restored.layers] == [LayerKind.COLOR, LayerKind.GLOSS]
+    assert all(layer.height_data is None for layer in restored.layers)
+    assert np.array_equal(
+        np.asarray(restored.layers[1].image), np.asarray(gloss.image))
+    _assert_accounting(history)
+
+
+@pytest.mark.parametrize("seed", [3, 21])
+def test_random_height_payloads_survive_history_roundtrip(seed: int) -> None:
+    """Zufällige gültige Arrays/Formen/Masken bleiben über Push/Undo/Redo bitgenau."""
+    rng = np.random.default_rng(seed)
+    h, w = int(rng.integers(1, 16)), int(rng.integers(1, 16))
+    values = rng.integers(0, 65536, size=(h, w), dtype=np.uint16)
+    coverage = rng.integers(0, 256, size=(h, w), dtype=np.uint8)
+    project = _height_project(values, coverage)
+    height_id = project.layers[1].id
+    history = ProjectHistory()
+    history.push(project, "edit")
+    replacement = rng.integers(0, 65536, size=(h, w), dtype=np.uint16)
+    project.set_layer_height_data(height_id, _field16(replacement, coverage))
+
+    undone = history.undo(project)
+    assert undone is not None
+    field = undone[0].layer_by_id(height_id).height_data
+    assert field is not None
+    assert np.array_equal(field.values, values)
+    assert np.array_equal(field.coverage, coverage)
+    redone = history.redo(undone[0])
+    assert redone is not None
+    field2 = redone[0].layer_by_id(height_id).height_data
+    assert field2 is not None
+    assert np.array_equal(field2.values, replacement)
+    _assert_accounting(history)
+
+
+def test_40mp_height_scenario_stays_within_adr_budget() -> None:
+    """40-MP-Szenario: Payload-Budget und Laufzeit gegen die ADR-#586-Budgets.
+
+    Ein 40-MP-HEIGHT-Snapshot kostet kanonisch 3 B/px = 120 MB – laut ADR
+    müssen mindestens zwei volle Schritte ins 256-MiB-History-Budget passen.
+    Der Test misst die reale Pool-Abrechnung (keine Ansicht im Budget) und
+    hält die Laufzeit der History-Operationen in einer großzügigen Schranke.
+    """
+    import time
+
+    width, height = 8000, 5000                      # 40,0 MP
+    values = np.zeros((height, width), dtype=np.uint16)
+    values[0, :8] = [0, 1, 255, 256, 32767, 65534, 65535, 0x1234]
+    coverage = np.full((height, width), 255, dtype=np.uint8)
+    project = Project(width, height)
+    project.create_layer(
+        name="Höhe", kind=LayerKind.HEIGHT,
+        height_data=HeightField(values, coverage, max_value=65535))
+    height_id = project.layers[0].id
+    history = ProjectHistory()
+
+    start = time.perf_counter()
+    history.push(project, "s1")
+    second = np.ones((height, width), dtype=np.uint16)
+    project.set_layer_height_data(
+        height_id, HeightField(second, coverage, max_value=65535))
+    history.push(project, "s2")
+
+    per_snapshot = width * height * 3               # 3 B/px kanonisch (ADR-Tabelle)
+    # Zwei unterschiedliche Payload-Objekte → zwei volle 3-B/px-Snapshots
+    # (die Dedup-Abrechnung arbeitet je Payload, die 160-MB-Ansicht zählt nie).
+    assert history._history_bytes == 2 * per_snapshot
+    assert 2 * per_snapshot <= history._memory_limit  # ≥ 2 volle Schritte im Budget
+    assert history.descriptions() == ["s2", "s1"]     # nichts evakuiert
+    _assert_accounting(history)
+
+    # Zweimal zurück: der jüngste Snapshot ist der „s2"-Zustand (Einsen), der
+    # zweite Undo-Schritt stellt die Grenzwerte aus „s1" bitgenau wieder her.
+    undone = history.undo(project)
+    assert undone is not None
+    undone = history.undo(undone[0])
+    assert undone is not None
+    field = undone[0].layer_by_id(height_id).height_data
+    assert field is not None
+    assert list(field.values[0, :8]) == [0, 1, 255, 256, 32767, 65534, 65535, 0x1234]
+    # Push/Push/Undo/Undo auf 40 MP: Snapshots sind Referenzen, kein Pixel-
+    # kopieren – großzügige Schranke gegen versehentliche O(N)-Vollkopien.
+    total = time.perf_counter() - start
+    assert total < 30.0
+    _assert_accounting(history)

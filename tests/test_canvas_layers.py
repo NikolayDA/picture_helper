@@ -1120,3 +1120,42 @@ def test_color_tools_ignore_non_color_layer(qapp) -> None:
     canvas.apply_color_op(_brighten_op)
     assert np.array_equal(np.array(canvas.project.active_layer().image), before)
     assert any("farbebene" in m.lower() for m in msgs)
+
+
+def test_height_preview_never_writes_back_into_payload(qapp) -> None:
+    """Transiente Vorschau lässt die kanonische 16-Bit-Payload unangetastet (#587).
+
+    Die Vorschau-Substitution tauscht nur die Anzeige-Sicht der Ebene
+    (``swap_display_view``); Payload-Objekt und Niederbits (0x1234) bleiben
+    über Render, Moduswechsel und Abbruch identisch – abgeleitete Vorschauen
+    können nie in den kanonischen Zustand zurückgeschrieben werden (ADR #586).
+    """
+    from bgremover.height_map import HeightField
+
+    canvas = ImageCanvas()
+    project = Project(8, 8)
+    project.create_layer(_solid(8, 8, (200, 0, 0, 255)), name="C", kind=LayerKind.COLOR)
+    project.create_layer(
+        name="H", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            np.full((8, 8), 0x1234, dtype=np.uint16),
+            np.full((8, 8), 255, dtype=np.uint8),
+            max_value=65535,
+        ))
+    canvas.set_project(project)
+    canvas.set_preview_mode(PreviewMode.HEIGHT)
+    layer = project.active_layer()
+    assert layer is not None
+    payload = layer.height_data
+    assert payload is not None
+    view = layer.image
+
+    canvas.preview_height_op(_levels_op)
+    assert canvas._preview is not None
+    assert layer.height_data is payload                 # Payload-Objekt unberührt
+    assert list(np.unique(payload.values)) == [0x1234]  # Niederbits erhalten
+    assert layer.image is view                          # Ansicht nach Render restauriert
+
+    canvas.cancel_height_preview()
+    assert layer.height_data is payload
+    assert layer.image is view

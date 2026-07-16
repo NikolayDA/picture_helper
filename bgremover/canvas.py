@@ -699,13 +699,15 @@ class ImageCanvas(QGraphicsView):
             return None
         layer_id, preview_image = self._preview_layer_override
         layer = self._project.layer_by_id(layer_id)
-        original = layer.image
         self._preview_render_cache = None
+        # Nur die Anzeige-Sicht tauschen (#587): die kanonische Höhen-Payload
+        # einer HEIGHT-Ebene bleibt unberührt – eine abgeleitete Vorschau kann
+        # so nie in den 16-Bit-Zustand zurückgeschrieben werden (ADR #586).
+        original = layer.swap_display_view(preview_image)
         try:
-            layer.image = preview_image
             return self._render_image()
         finally:
-            layer.image = original
+            layer.swap_display_view(original)
             self._preview_render_cache = None
 
     def _refresh_image(self) -> None:

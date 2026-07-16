@@ -9,6 +9,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **16-Bit-Höhenpipeline: Domänenmodell und Verlauf verlustfrei (#587, Teil
+  von Epic #581).** HEIGHT-Ebenen führen ihre Höhen jetzt kanonisch als
+  16-Bit-Payload (`Layer.height_data`: `uint16`-Werte 0…65535 plus getrennt
+  geführte Deckung) gemäß ADR #586; `Layer.image` ist dort nur noch die
+  abgeleitete 8-Bit-Ansicht und wird nie zurückgelesen. Undo/Redo snapshottet
+  die Payload bitgenau (3 B/px statt der 4-B/px-Ansicht im 256-MiB-Budget),
+  Duplizieren/Umsortieren/Löschen erhalten die Niederbits, Skalieren
+  interpoliert die Höhen in `float32` statt auf 8-Bit-Kanälen, und bestehende
+  8-Bit-Bestände migrieren deterministisch (`×257`) über einen befristeten,
+  protokollierten Kompatibilitätsadapter. Projektdateiformat (v1) und Export
+  bleiben in diesem Schritt unverändert (#588/#590 folgen); COLOR-/GLOSS-
+  Ebenen sind regressionsfrei.
+
 ## [2.6.0] – 2026-07-15
 
 ### Hinzugefügt
