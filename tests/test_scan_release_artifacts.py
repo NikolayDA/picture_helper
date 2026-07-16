@@ -1,8 +1,18 @@
-"""Tests für den Secret-/Entwicklerpfad-Scan gebauter Release-Artefakte (#584)."""
+"""Tests für den Secret-/Entwicklerpfad-Scan gebauter Release-Artefakte (#584).
+
+Deckt insbesondere die Codex-Review-Befunde auf PR #608 ab: Geheimnisse
+dürfen nicht im Klartext geloggt werden (nur Fingerprint), komprimierte
+Nutzdaten (AppImage/`.deb`/`.dmg`) müssen vor dem Scan entpackt werden, und
+ein unbekannter Entwicklerpfad muss den Scan hart fehlschlagen lassen.
+"""
 from __future__ import annotations
 
 import importlib.util
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SCRIPT = _ROOT / "scripts" / "scan_release_artifacts.py"
@@ -12,72 +22,243 @@ assert _spec is not None and _spec.loader is not None
 scan_release_artifacts = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(scan_release_artifacts)
 
+_AWS_KEY = b"AKIAIOSFODNN7EXAMPLE"  # oeffentliches AWS-Beispiel, kein echtes Secret.
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("dpkg-deb") is None, reason="dpkg-deb not available"
+)
+
+
+def _build_deb(stage: Path, out: Path, payload_files: dict[str, bytes]) -> None:
+    """Baut ein reales .deb (nur fuer Tests) mit den gegebenen Nutzdateien."""
+    (stage / "DEBIAN").mkdir(parents=True, exist_ok=True)
+    (stage / "DEBIAN" / "control").write_text(
+        "Package: test\nVersion: 1.0\nArchitecture: amd64\n"
+        "Maintainer: test <test@example.com>\nDescription: test\n"
+    )
+    for rel, content in payload_files.items():
+        target = stage / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    subprocess.run(
+        ["dpkg-deb", "--build", "--root-owner-group", str(stage), str(out)],
+        check=True, capture_output=True,
+    )
+
 
 def test_script_exists() -> None:
     assert _SCRIPT.is_file()
 
 
-def test_clean_file_has_no_findings(tmp_path: Path) -> None:
-    target = tmp_path / "clean.bin"
-    target.write_bytes(b"just a harmless binary blob, nothing to see here\x00\x01\x02")
-    findings, unknown_users = scan_release_artifacts.scan_file(target)
-    assert findings == []
-    assert unknown_users == set()
+# ── scan_bytes: Muster-Erkennung ohne Geheimnis-Leck ins Log ────────────
+
+def test_scan_bytes_clean_data_has_no_findings() -> None:
+    assert scan_release_artifacts.scan_bytes(b"just a harmless blob") == []
 
 
-def test_detects_aws_access_key(tmp_path: Path) -> None:
-    # Öffentlich dokumentiertes AWS-Beispiel-Muster (kein echtes Secret).
-    target = tmp_path / "leaky.bin"
-    target.write_bytes(b"...AKIAIOSFODNN7EXAMPLE...")
-    findings, _ = scan_release_artifacts.scan_file(target)
+def test_scan_bytes_detects_aws_access_key() -> None:
+    findings = scan_release_artifacts.scan_bytes(b"...%s..." % _AWS_KEY)
     assert any("AWS Access Key ID" in f for f in findings)
 
 
-def test_detects_github_token(tmp_path: Path) -> None:
-    target = tmp_path / "leaky.bin"
-    target.write_bytes(b"token=ghp_" + b"a1b2c3" * 7)
-    findings, _ = scan_release_artifacts.scan_file(target)
+def test_scan_bytes_finding_never_contains_the_raw_secret() -> None:
+    """Codex P1: das Log darf das Geheimnis nicht im Klartext enthalten."""
+    findings = scan_release_artifacts.scan_bytes(b"token=%s" % _AWS_KEY)
+    joined = " ".join(findings)
+    assert _AWS_KEY.decode() not in joined
+    assert "Fingerprint" in joined
+    assert "Position" in joined
+
+
+def test_scan_bytes_detects_github_token() -> None:
+    findings = scan_release_artifacts.scan_bytes(b"ghp_" + b"a1b2c3" * 7)
     assert any("GitHub-Token" in f for f in findings)
 
 
-def test_detects_pem_private_key(tmp_path: Path) -> None:
-    target = tmp_path / "leaky.bin"
-    target.write_bytes(b"-----BEGIN RSA PRIVATE KEY-----\nMIIB...\n-----END RSA PRIVATE KEY-----")
-    findings, _ = scan_release_artifacts.scan_file(target)
+def test_scan_bytes_detects_pem_private_key() -> None:
+    findings = scan_release_artifacts.scan_bytes(
+        b"-----BEGIN RSA PRIVATE KEY-----\nMIIB...\n-----END RSA PRIVATE KEY-----"
+    )
     assert any("PEM-Schlüssel" in f for f in findings)
 
 
-def test_known_ci_user_paths_are_not_flagged(tmp_path: Path) -> None:
-    target = tmp_path / "build.bin"
-    target.write_bytes(b"/home/runner/work/picture_helper/picture_helper/bgremover/app.py")
-    _, unknown_users = scan_release_artifacts.scan_file(target)
-    assert unknown_users == set()
+# ── dev_path_users: Allowlist ────────────────────────────────────────────
+
+def test_dev_path_users_allows_known_ci_and_build_infra_users() -> None:
+    data = (
+        b"/home/runner/work/x /Users/default/Desktop "
+        b"/home/qt/work/qt/qtbase /root/build"
+    )
+    assert scan_release_artifacts.dev_path_users(data) == set()
 
 
-def test_unknown_dev_path_is_flagged(tmp_path: Path) -> None:
-    target = tmp_path / "build.bin"
-    target.write_bytes(b"/Users/alice/dev/picture_helper/bgremover/app.py")
-    _, unknown_users = scan_release_artifacts.scan_file(target)
-    assert unknown_users == {"alice"}
+def test_dev_path_users_flags_unknown_user() -> None:
+    assert scan_release_artifacts.dev_path_users(b"/Users/alice/dev/project") == {"alice"}
 
 
-def test_main_returns_zero_for_clean_directory(tmp_path: Path, capsys: object) -> None:
-    (tmp_path / "clean.bin").write_bytes(b"nothing interesting")
-    rc = scan_release_artifacts.main([str(tmp_path)])
-    assert rc == 0
+# ── extract_payload: reales .deb (echtes dpkg-deb) ───────────────────────
+
+def test_extract_payload_deb_recovers_compressed_payload(tmp_path: Path) -> None:
+    """Codex P2: ein Secret in einer normalen Payload-Datei darf nicht durch
+    die .deb-Kompression verdeckt werden."""
+    stage = tmp_path / "stage"
+    deb = tmp_path / "test.deb"
+    _build_deb(stage, deb, {"opt/test/secret.txt": _AWS_KEY})
+
+    # Die rohen .deb-Bytes enthalten das Secret NICHT im Klartext (komprimiert).
+    assert _AWS_KEY not in deb.read_bytes()
+
+    dest = tmp_path / "out"
+    scan_release_artifacts.extract_payload(deb, dest)
+    extracted = dest / "opt" / "test" / "secret.txt"
+    assert extracted.is_file()
+    assert extracted.read_bytes() == _AWS_KEY
 
 
-def test_main_returns_one_when_secret_present(tmp_path: Path, capsys: object) -> None:
-    (tmp_path / "leaky.bin").write_bytes(b"AKIAIOSFODNN7EXAMPLE")
-    rc = scan_release_artifacts.main([str(tmp_path)])
-    assert rc == 1
+def test_extract_payload_unknown_suffix_raises(tmp_path: Path) -> None:
+    stray = tmp_path / "stray.bin"
+    stray.write_bytes(b"nothing")
+    with pytest.raises(ValueError, match="unbekanntes Artefaktformat"):
+        scan_release_artifacts.extract_payload(stray, tmp_path / "out")
 
 
-def test_main_returns_zero_for_unknown_dev_path_only(tmp_path: Path, capsys: object) -> None:
-    """Fremde Entwicklerpfade sind nur ein Hinweis, kein harter Fehlschlag."""
-    (tmp_path / "build.bin").write_bytes(b"/Users/alice/dev/picture_helper")
-    rc = scan_release_artifacts.main([str(tmp_path)])
-    assert rc == 0
+# ── extract_payload: AppImage/.dmg über gemockte Subprozesse ────────────
+# (Weder ein echtes AppImage-Runtime noch macOS/hdiutil sind in dieser
+# Sandbox verfuegbar; die Orchestrierung wird an der Subprozess-Grenze
+# getestet, ``dpkg-deb`` bleibt echt.)
+
+def test_extract_payload_appimage_invokes_extract_flag(tmp_path, monkeypatch) -> None:
+    appimage = tmp_path / "Fake-ai.AppImage"
+    appimage.write_bytes(b"#!/bin/sh\nexit 0\n")
+    calls = []
+
+    def fake_run(cmd, check=True, capture_output=True, **kwargs):
+        calls.append((cmd, kwargs.get("cwd")))
+        cwd = Path(kwargs["cwd"])
+        (cwd / "squashfs-root").mkdir(parents=True, exist_ok=True)
+        (cwd / "squashfs-root" / "embedded.txt").write_bytes(_AWS_KEY)
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
+    dest = tmp_path / "out"
+    scan_release_artifacts.extract_payload(appimage, dest)
+
+    assert len(calls) == 1
+    cmd, cwd = calls[0]
+    assert cmd[-1] == "--appimage-extract"
+    assert Path(cwd) == dest
+    assert (dest / "squashfs-root" / "embedded.txt").read_bytes() == _AWS_KEY
+
+
+def test_extract_payload_deb_recurses_into_wrapped_appimage(tmp_path, monkeypatch) -> None:
+    """Eine in der .deb gewrappte AppImage wird ebenfalls entpackt (#584)."""
+    real_run = subprocess.run
+
+    def fake_run(cmd, check=True, capture_output=True, **kwargs):
+        if cmd[0] == "dpkg-deb":
+            return real_run(cmd, check=check, capture_output=capture_output, **kwargs)
+        assert cmd[-1] == "--appimage-extract"
+        cwd = Path(kwargs["cwd"])
+        (cwd / "squashfs-root").mkdir(parents=True, exist_ok=True)
+        (cwd / "squashfs-root" / "site-packages.txt").write_bytes(_AWS_KEY)
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
+
+    stage = tmp_path / "stage"
+    deb = tmp_path / "wrapper.deb"
+    _build_deb(stage, deb, {"opt/BgRemover/BgRemover.AppImage": b"#!/bin/sh\nexit 0\n"})
+
+    dest = tmp_path / "out"
+    scan_release_artifacts.extract_payload(deb, dest)
+
+    nested = (
+        dest / "opt" / "BgRemover" / "BgRemover.AppImage.extracted"
+        / "squashfs-root" / "site-packages.txt"
+    )
+    assert nested.read_bytes() == _AWS_KEY
+
+
+def test_extract_payload_dmg_mounts_copies_and_always_detaches(tmp_path, monkeypatch) -> None:
+    dmg = tmp_path / "Fake.dmg"
+    dmg.write_bytes(b"not a real dmg")
+    detach_calls = []
+
+    def fake_run(cmd, check=True, capture_output=True, **kwargs):
+        if cmd[0] == "hdiutil" and cmd[1] == "attach":
+            mount_point = Path(cmd[cmd.index("-mountpoint") + 1])
+            (mount_point / "BgRemover.app").mkdir(parents=True, exist_ok=True)
+            (mount_point / "BgRemover.app" / "secret.txt").write_bytes(_AWS_KEY)
+            return subprocess.CompletedProcess(cmd, 0)
+        if cmd[0] == "hdiutil" and cmd[1] == "detach":
+            detach_calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0)
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
+    dest = tmp_path / "out"
+    scan_release_artifacts.extract_payload(dmg, dest)
+
+    assert len(detach_calls) == 1
+    copied = dest / "contents" / "BgRemover.app" / "secret.txt"
+    assert copied.read_bytes() == _AWS_KEY
+
+
+def test_extract_payload_dmg_detaches_even_if_copy_fails(tmp_path, monkeypatch) -> None:
+    dmg = tmp_path / "Fake.dmg"
+    dmg.write_bytes(b"not a real dmg")
+    detach_calls = []
+
+    def fake_run(cmd, check=True, capture_output=True, **kwargs):
+        if cmd[0] == "hdiutil" and cmd[1] == "attach":
+            mount_point = Path(cmd[cmd.index("-mountpoint") + 1])
+            (mount_point / "file.txt").write_bytes(b"data")
+            return subprocess.CompletedProcess(cmd, 0)
+        if cmd[0] == "hdiutil" and cmd[1] == "detach":
+            detach_calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0)
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    def fake_copy2(src: Path, dst: Path) -> None:
+        raise OSError("simulierter Kopierfehler")
+
+    monkeypatch.setattr(scan_release_artifacts.subprocess, "run", fake_run)
+    monkeypatch.setattr(scan_release_artifacts.shutil, "copy2", fake_copy2)
+    with pytest.raises(OSError):
+        scan_release_artifacts.extract_payload(dmg, tmp_path / "out")
+    assert len(detach_calls) == 1, "hdiutil detach muss auch bei einem Fehler laufen"
+
+
+# ── main(): Ende-zu-Ende über ein reales .deb ───────────────────────────
+
+def test_main_passes_for_clean_deb(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    dist = tmp_path / "dist"
+    _build_deb(
+        tmp_path / "stage", dist_deb := tmp_path / "clean.deb",
+        {"opt/test/readme.txt": b"nothing interesting here"},
+    )
+    dist.mkdir()
+    shutil.copy2(dist_deb, dist / "clean.deb")
+    assert scan_release_artifacts.main([str(dist)]) == 0
+
+
+def test_main_fails_for_deb_with_secret(tmp_path) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    _build_deb(tmp_path / "stage", dist / "leaky.deb", {"opt/test/secret.txt": _AWS_KEY})
+    assert scan_release_artifacts.main([str(dist)]) == 1
+
+
+def test_main_fails_for_deb_with_unknown_dev_path(tmp_path) -> None:
+    """Codex P2: ein unbekannter Entwicklerpfad muss den Scan fehlschlagen lassen."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    _build_deb(
+        tmp_path / "stage", dist / "leaky.deb",
+        {"opt/test/build_log.txt": b"/Users/alice/dev/picture_helper/build.log"},
+    )
+    assert scan_release_artifacts.main([str(dist)]) == 1
 
 
 def test_main_returns_one_for_empty_directory(tmp_path: Path) -> None:
