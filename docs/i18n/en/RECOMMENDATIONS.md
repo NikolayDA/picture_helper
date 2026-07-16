@@ -13,40 +13,38 @@
 
 ## Current Status (2026-07-16)
 
-The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.5.0** was cut on 2026-07-11 (PR #538); the rollout wave **#435/#392/#426/#389** is closed, as is **#299** (PR #539) with N13 follow-up **#541** (PR #543), **#318** (PR #540), and the snapshot sync **#542**. A repo audit on 2026-07-12 filed **#549–#553**; **#552/#549/#553/#550** are now closed via PR #557–#560. Epic **#563** ("app update check & AI model management", eight sub-issues **#564–#571**) was fully implemented and closed on 2026-07-13 via PR #573/#574 (**N14**). Live state: **16** open issues – the pre-existing #245/#551 plus three epics filed on 2026-07-15 (**Release v2.6.0** #580, the **16-bit height pipeline** #581, the **3D relief preview** #582) with their remaining open sub-issues, plus two test-coverage findings **N15/N16** (#597/#598). **#583** (v2.6.0 scope freeze), **#586** (16-bit ADR), and **#591** (3D ADR/UX contract, PR #603) are complete. **#584** was first reopened in the 2026-07-16 live audit (PRs #601–#604 only hardened artifact naming and release reuse) and is now closed via the real candidate gate: five real artifacts, a SHA-256 per artifact, native platform smokes (Linux x86_64/aarch64, macOS arm64), and a documented Go decision on commit `427725477d` (details: [`docs/history/RELEASE-2.6.0-candidate-gate.md`](../../history/RELEASE-2.6.0-candidate-gate.md)); **#585** is now unblocked.
+The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.6.0** was published on 2026-07-16 from approved commit `f24cef69829da8e37aa400dad471dc4d607b89b3`: tag workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), public [GitHub release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), five freshly downloaded application artifacts verified by SHA-256, and green native platform smokes for Linux x86_64/aarch64 and macOS arm64. Release issues **#580/#583/#584/#585** and stale-snapshot finding **#607** are complete. The resulting live state is **15** open issues: #245/#551, epics **#581/#582** and their remaining sub-issues, coverage findings **N15/N16** (#597/#598), and the clearly scoped user-guide gap **#606**.
 
 ### Completed Since The Last Review
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8** and **O2–O7** remain done; epics **#329/#344/#358/#384** (N9–N12) plus export fix **#363** are merged/archived; since 2026-06-25 also **#404/#406/#408** (PR #412) closed.
 - **Redesign & release v2.5.0:** redesign core/rail/zoom/card inspector/Dark Mode/UI follow-up (**#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517**, **#490**, **#433/#434**) via PR #412–#522; release wave **#435/#392/#426/#389** (v2.5.0), **#299/#541/#318/#542**, PR template **#552**, snapshot sync **#549**, SessionStart fix **#553**, v2.3.0 formalization **#550** – all closed since 2026-07-12.
 - **N14 — Epic #563 (app update & AI model management) fully closed:** `app_update.py` (#564), `ai_model_status.py` (#568), menu/dialog integration (#565/#569), optional automatic startup check (#566), warmup wiring with multiple observers/cooperative cancellation (#570) via PR #573/#574; docs wrap-up (#567/#571).
-- **#583/#586/#591/#584 complete:** the v2.6.0 scope freeze/version/CHANGELOG curation (#583), 16-bit HEIGHT ADR (#586), 3D ADR/UX contract (#591, PR #603), and the v2.6.0 candidate gate (#584: five real artifacts, SHA-256, native platform smokes, Go decision, commit `427725477d`) are complete; **#585** is unblocked.
+- **Release v2.6.0 fully complete:** scope freeze (#583), candidate gate on the final `main` SHA (#584), tag/release/post-release verification (#585), and tracking epic #580 are done; this update resolves snapshot drift #607. The 16-bit HEIGHT ADR (#586) and 3D ADR/UX contract (#591, PR #603) also remain complete.
 
 ### Still Open
 
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup after generation; mockup-only, the real app is unaffected (#347).
 - **N15 🟡 — Untested dialog wiring:** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) has no dedicated test, unlike the structurally identical sibling method `_open_ai_model_dialog` (#597).
 - **N16 🟡 — Untested non-RGBA conversion:** the non-RGBA branches in `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) are never exercised with an RGB/palette/grayscale source image (#598).
+- **Documentation gap 🟢 — New Extras/settings features missing from the guide:** update checking, AI model management/installation, and the automatic-update setting must be added to all six ANLEITUNG versions (#606).
 
 ## Open GitHub Issues — Triage Status (2026-07-16)
 
-Live state: **16** open issues. **#591** is complete through PR #603; **#584** is closed following the real candidate gate (five artifacts, SHA-256, native smokes), so **#585** is now unblocked. The 2026-07-15 owner comments on **#245**/**#551** and their tightened issue bodies remain current.
+Live state after the post-release closeout: **15** open issues. Release v2.6.0 and **#580/#585** are complete, so **#587** is no longer blocked by the release. The 2026-07-15 owner comments on **#245**/**#551** and their tightened issue bodies remain current.
 
 ### Sensible Bundles
 
-- **Release v2.6.0** (#580 → #585; #583/#584 are already closed): ships the already-built update/AI-management state from `main`; top priority given low risk and immediate user value.
-- **16-bit height pipeline** (#581 → #587 → {#588 ‖ #589} → #590; the #586 ADR is already closed): schema-changing implementation (#587+) still only starts after #585 (per #580's scope-freeze mandate).
+- **16-bit height pipeline** (#581 → #587 → {#588 ‖ #589} → #590; the #586 ADR is complete): the release gate is cleared and #587 can start.
 - **3D relief preview** (#582 → #592 → #593 → #594 → #595; #591 is complete): the Qt-free geometry pipeline #592 can now start in parallel with the 16-bit model work; #582 remains the largest effort block this round regardless.
 - **#245/#551** remain linked, but the strategic decision is now made: #551 tracks only the implementation of the hybrid model (CodeQL automatic, Codex manual), #245 tracks only the external OpenAI quota proof.
-- **#597/#598** are independent, fully specified coverage gaps (test sketch already in the issue) – no chain, no dependency on the three epics.
+- **#597/#598** are independent, fully specified coverage gaps; **#606** is an equally well-scoped independent documentation gap across the six ANLEITUNG versions.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#580](https://github.com/NikolayDA/picture_helper/issues/580) | [Epic] Release v2.6.0 | 🟠 High | 🟠 High | – (tracking epic) | **In progress** – runs via #585 (#583/#584 closed), no PR of its own. |
-| [#585](https://github.com/NikolayDA/picture_helper/issues/585) | Release 2.6.0: tag, GitHub release, post-release check | 🟠 High | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – #584 is complete, no open dependency remains. |
-| [#587](https://github.com/NikolayDA/picture_helper/issues/587) | [16-bit] HEIGHT domain model & ProjectHistory, lossless | 🟠 High | 🟠 High (very large) | Opus 4.8 · high | **Blocked** – #586 is closed; now only waits on the release being published (#585). |
+| [#587](https://github.com/NikolayDA/picture_helper/issues/587) | [16-bit] HEIGHT domain model & ProjectHistory, lossless | 🟠 High | 🟠 High (very large) | Opus 4.8 · high | **Ready for PR** – #586 and release v2.6.0 are complete; no open dependency remains. |
 | [#588](https://github.com/NikolayDA/picture_helper/issues/588) | [16-bit] Project format v2: persistence, migration, validation | 🟠 High | 🟠 High | Opus 4.8 · high | **Blocked** – waits on #587. |
 | [#589](https://github.com/NikolayDA/picture_helper/issues/589) | [16-bit] Import/generation/height ops without 8-bit quantization | 🟠 High | 🟠 High | Opus 4.8 · high | **Blocked** – waits on #587. |
 | [#590](https://github.com/NikolayDA/picture_helper/issues/590) | [16-bit] Preview, export, UI, end-to-end acceptance | 🟠 High | 🟠 High | Opus 4.8 · high | **Blocked** – waits on #588/#589. |
@@ -60,20 +58,22 @@ Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estima
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – scope narrowed further on 2026-07-15: purely an external OpenAI billing/quota tracker, blocks neither CodeQL nor the release nor #551. |
 | [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test: `_open_ai_install_dialog` has no wiring test (N15) | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – test sketch already in the issue, no dependency. |
 | [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test: non-RGBA conversion paths in `image_utils.py` untested (N16) | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – test sketch already in the issue, no dependency; could be bundled with #597 in one PR. |
+| [#606](https://github.com/NikolayDA/picture_helper/issues/606) | docs: update check/AI model management missing from ANLEITUNG | 🟢 Low | 🟢 Low | Sonnet 5 · low | **Ready for PR** – complete documentation checklist in the issue; update all six language versions together. |
 
 ### Recommended Next (PR order)
 
-1. **#585** — cut the `v2.6.0` tag and publish the GitHub release: #584 is complete, no open dependency remains.
-2. **#592** — start the 3D geometry pipeline now: #586 and #591 are complete, so no dependency remains open.
-3. **#551** — move on to implementing the already-decided hybrid model (automate CodeQL for Python, reduce the Codex workflow to pure `workflow_dispatch`); no open strategy question remains.
-4. **#597 + #598** — the fastest coverage win this round, both test sketches are already in the issue bodies; can be done as one shared PR.
-5. Every remaining 16-bit/3D sub-issue follows its dependencies sequentially (waiting on #585) – see the table, no extra trigger needed.
+1. **#587** — start the canonical 16-bit HEIGHT domain model; both the ADR and release gate are complete.
+2. **#592** — start the 3D geometry pipeline in parallel; #586 and #591 are complete.
+3. **#606** — document the new update/AI controls in all six ANLEITUNG versions.
+4. **#551** — implement the agreed hybrid model (CodeQL automatic, Codex manual only via `workflow_dispatch`).
+5. **#597 + #598** — close both independent coverage gaps in one small PR; all other 16-bit/3D issues follow their documented dependencies.
 
-*Drift note:* the 2026-07-16 live follow-up exposed the premature closure of #584 and the actual completion of #591; #584 was reopened as a result and is now closed with evidence from the real five-artifact gate. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
+*Drift note:* this post-release update aligns the snapshot with the published release, the #580/#585 closures, and newly filed documentation gap #606; it resolves #607. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
 
 ## Previous Rounds
 
-- **2026-07-16 (candidate gate)** — #584 closed via the real five-artifact gate (SHA `427725477d`, CI run 29488035790, SHA-256 + secret scan per artifact, native platform smokes); #585 unblocked; live state 16.
+- **2026-07-16 (release v2.6.0)** — tag on `f24cef69829da8e37aa400dad471dc4d607b89b3`, release run 29531147950 green, five public artifacts freshly downloaded and verified by SHA-256; #580/#585/#607 closed, live state 15.
+- **2026-07-16 (candidate gate)** — #584 closed through the real five-artifact gate (final gate run 29529595934 on `f24cef69829da8e37aa400dad471dc4d607b89b3`, SHA-256 + secret scan per artifact, native platform smokes); #585 unblocked.
 - **2026-07-15/16 (audit follow-up)** — #583/#586/#591 completed; #584 reopened after confirming that the candidate gate is still outstanding; live state 17.
 - **2026-07-14** — live state still 2 open issues (#245, #551), unchanged since the epic completion the day before.
 - **2026-07-13 (epic completion)** — epic **#563** fully closed: all eight sub-issues (**#564–#571**) closed through PR #573/#574; snapshot reduced to 2.
