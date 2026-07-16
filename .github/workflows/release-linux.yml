@@ -152,6 +152,9 @@ jobs:
           cp build/appimage/*.AppImage dist/
           cp build/deb/*.deb dist/
           ls -lh dist/
+          # #584: SHA-256 je Artefakt fuer die Kandidaten-Gate-Doku direkt im
+          # Job-Log sichtbar machen (kein zusaetzlicher Download noetig).
+          sha256sum dist/*
 
       - name: Verify built Linux artifacts
         if: matrix.os == 'linux'
@@ -233,6 +236,15 @@ jobs:
           mkdir -p dist
           cp build/macos/*.dmg dist/
           ls -lh dist/
+          # #584: SHA-256 je Artefakt fuer die Kandidaten-Gate-Doku direkt im
+          # Job-Log sichtbar machen (kein zusaetzlicher Download noetig).
+          shasum -a 256 dist/*
+
+      # #584: Kein Artefakt darf Secrets oder Entwicklerpfade enthalten. Laeuft
+      # fuer beide OS (kein 'if:'), da dist/ zu diesem Zeitpunkt auf jedem Leg
+      # bereits befuellt ist (der jeweils andere OS-Collect-Schritt ist skipped).
+      - name: Scan built artifacts for secrets and dev paths
+        run: python3 scripts/scan_release_artifacts.py dist
 
       - name: Verify built macOS artifact
         if: matrix.os == 'macos'
