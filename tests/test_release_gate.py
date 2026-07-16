@@ -102,6 +102,28 @@ def test_release_verifies_tag_matches_project_version() -> None:
     assert r"v[0-9]+\.[0-9]+\.[0-9]+" in text, "Tag-Format vX.Y.Z wird geprüft."
 
 
+def test_release_runs_real_deb_install_start_remove_cycle() -> None:
+    """#584 (Codex-Review auf PR #608): ein reales ``.deb`` muss ueber den
+    echten Paketmanager installiert, gestartet und wieder entfernt werden –
+    reine ``dpkg-deb --info/--contents``-Introspektion (statisch) beweist
+    keinen funktionierenden Install-/Remove-Zyklus (z. B. kaputte Depends-
+    Aufloesung oder falsche Pfade waeren damit unsichtbar)."""
+    text = _release_text()
+    assert re.search(r"apt-get install -y \"\./\$deb\"", text), (
+        "Das gebaute .deb muss ueber 'apt-get install ./*.deb' installiert "
+        "werden (loest Depends: libfuse2|libfuse2t64 aus den Runner-Repos "
+        "auf), nicht nur mit dpkg-deb inspiziert."
+    )
+    assert "dpkg -r bgremover" in text, (
+        "Nach dem Install-Smoke muss das Paket auch real entfernt werden "
+        "(dpkg -r), um einen echten Install/Remove-Zyklus zu belegen."
+    )
+    assert '/opt/BgRemover/BgRemover.AppImage' in text, (
+        "Der Installationspfad des gewrappten AppImage muss nach Install "
+        "und nach Remove ueberprueft werden."
+    )
+
+
 def test_publish_job_is_gated_on_a_tag_ref() -> None:
     assert "startsWith(github.ref, 'refs/tags/')" in _release_text(), (
         "Der Publish-Job darf nur für Tag-Pushes laufen."
