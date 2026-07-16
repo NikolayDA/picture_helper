@@ -225,6 +225,48 @@ jobs:
             --timeout 120 \
             -- "$appimage" --appimage-extract-and-run
 
+      # #584 (Codex-Review auf PR #608): "Verify built Linux artifacts" prueft
+      # nur dpkg-deb-Metadaten (--info/--field) – kein echter System-Install.
+      # Das Kandidaten-Gate-Dokument hatte einen echten dpkg-Installationszyklus
+      # behauptet, obwohl der lokal nur mit einer Platzhalter-Payload
+      # nachgebaut wurde; das tatsaechliche CI-Artefakt blieb ungetestet, ein
+      # kaputtes reales .deb haette so trotzdem ein gruenes Gate passieren
+      # koennen. Hier laeuft der echte Zyklus nativ (Job laeuft bereits auf dem
+      # x86_64- bzw. aarch64-Runner) gegen genau das gebaute Artefakt: Install
+      # ueber apt (loest "Depends: libfuse2|libfuse2t64" aus den Runner-Repos
+      # auf), ein echter Start des installierten AppImage (derselbe Fork-Bomb-/
+      # Haenger-Waechter wie oben), Remove, und die Abwesenheit aller
+      # installierten Dateien danach.
+      - name: Real .deb install/start/remove smoke (native architecture)
+        if: matrix.os == 'linux'
+        run: |
+          set -euo pipefail
+          deb="$(ls -1 dist/*.deb | head -1)"
+          installed_appimage="/opt/BgRemover/BgRemover.AppImage"
+          desktop_file="/usr/share/applications/de.bgremover.app.desktop"
+          icon_file="/usr/share/icons/hicolor/512x512/apps/de.bgremover.app.png"
+
+          sudo apt-get install -y "./$deb"
+          test -x "$installed_appimage" \
+            || { echo "::error::AppImage nach Install nicht unter $installed_appimage"; exit 1; }
+          test -f "$desktop_file" || { echo "::error::Desktop-Launcher fehlt nach Install"; exit 1; }
+          test -f "$icon_file" || { echo "::error::Icon fehlt nach Install"; exit 1; }
+
+          max_instances=1
+          [ "$WITH_AI" = "1" ] && max_instances=5
+          python3 scripts/smoke_launch.py \
+            --match "BgRemover.AppImage" \
+            --max-instances "$max_instances" \
+            --timeout 120 \
+            -- "$installed_appimage" --appimage-extract-and-run
+
+          sudo dpkg -r bgremover
+          test ! -e "$installed_appimage" \
+            || { echo "::error::AppImage nach dpkg -r weiterhin vorhanden"; exit 1; }
+          test ! -e "$desktop_file" \
+            || { echo "::error::Desktop-Launcher nach dpkg -r weiterhin vorhanden"; exit 1; }
+          echo "OK: echter apt-Install/Start/dpkg-Remove-Zyklus fuer $(basename "$deb") erfolgreich."
+
       # ── macOS: .app + .dmg ──────────────────────────────────────────────
       - name: Build macOS app + .dmg (PyInstaller)
         if: matrix.os == 'macos'
