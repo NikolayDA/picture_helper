@@ -44,6 +44,63 @@ _DEV_PATH = re.compile(rb"/(?:home|Users)/([A-Za-z0-9_.-]+)/")
 # laesst den Scan fehlschlagen.
 _ALLOWED_PATH_USERS = {"runner", "root", "qt", "default"}
 
+# Bekannte Fehlalarme in Drittanbieter-Binaerdateien, die diese Anwendung
+# bewusst mitbuendelt (#584/#608). Jeder Eintrag wurde durch einen lokalen
+# Nachbau der exakten, in requirements/constraints.txt gepinnten
+# rembg[cpu]-/PyQt6-Abhaengigkeiten *empirisch verifiziert* (nicht nur
+# vermutet) – der Fund liegt nachweislich in oeffentlichem Drittanbieter-Code,
+# nicht in diesem Projekt. Schluessel: SHA-256-Fingerprint der ersten 12
+# Hex-Zeichen (wie in den Funden geloggt). Achtung Wartungslast: ein
+# Versions-Bump von Pillow/scipy aendert den exakten Byte-Inhalt und damit
+# den Fingerprint – der Scan schlaegt dann erneut fehl, bis der neue
+# Fingerprint auf dieselbe Weise nachverifiziert und ergaenzt wird. Das ist
+# beabsichtigt (kein blindes Vertrauen in "diese Bibliothek ist immer
+# sicher"), nicht ein Defekt dieses Mechanismus. PEM-Treffer sind hier
+# bewusst NICHT gelistet: die Kopfzeile allein (der einzige Teil, den das
+# PEM-Muster erfasst) ist immer einer von nur sechs festen Strings, egal ob
+# echtes Schluesselmaterial folgt oder nicht – ein Fingerprint nur der
+# Kopfzeile waere nicht aussagekraeftig (jede echte PEM-Datei desselben Typs
+# haette denselben Fingerprint wie ein Fehlalarm). Fuer PEM entscheidet
+# stattdessen `_looks_like_real_pem_body` anhand des tatsaechlich folgenden
+# Inhalts (s. u.) – robuster gegenueber Versions-/Architektur-Aenderungen,
+# da mehrfach empirisch bestaetigt (x86_64/aarch64/macOS-arm64: 16
+# unterschiedliche Fingerprints allein fuer dieselbe OpenSSL-Typtabelle in
+# PyQt6-Qt6, s. PR-#608-Diskussion).
+_ALLOWED_SECRET_FINGERPRINTS = {
+    # Pillow, PIL/ImageFont.py: "AKIA" + 16 alphanumerische Zeichen tritt
+    # zufaellig innerhalb einer als Literal eingebetteten, Base64-kodierten
+    # Schriftmetrik-Tabelle auf (oeffentlicher, MIT-lizenzierter Quelltext).
+    # Nur auf den Linux-Beinen beobachtet (python-appimage buendelt die
+    # .py-Quelle direkt); die macOS-.app-Buendelung (PyInstaller) hat hier
+    # keinen Treffer.
+    "57a26f03da12": "Pillow ImageFont-Tabelle (Zufallstreffer in Base64-Daten)",
+    # scipy, scipy/optimize/_highspy/_core*.so: "ghs_" ist eine Teilzeichen-
+    # kette von "highs_setCallback" (HiGHS-Solver-C-API), gefolgt von genug
+    # alphanumerischen Zeichen aus dem C++-Mangling, um zufaellig zu passen.
+    # Der exakte Fingerprint ist Compiler-/Plattform-abhaengig (Linux
+    # GCC-Build vs. macOS-Clang-Build erzeugen unterschiedliches Mangling).
+    "d5ac2d294246": "scipy/HiGHS gemanglete C++-Symbole, Linux x86_64/aarch64 (Zufallstreffer)",
+    "6d2cd5d3aea5": "scipy/HiGHS gemanglete C++-Symbole, macOS arm64 (Zufallstreffer)",
+}
+
+# Ein echter PEM-Schluessel hat unmittelbar nach der Kopfzeile (hoechstens
+# durch einen Zeilenumbruch getrennt) einen langen Base64-Koerper
+# (typischerweise hunderte Zeichen). OpenSSLs eigene PEM-Typtabelle (in
+# libQt6Network/libqopensslbackend etc., s. o.) hat direkt danach nur ein
+# Nullbyte oder das naechste Label. Eine reine "irgendwo in den naechsten
+# Bytes"-Suche reicht nicht: einkompilierte Klartext-Fehlermeldungen wie
+# "QSslDiffieHellmanParameters" (28 Zeichen, nur Buchstaben) koennen zufaellig
+# lang genug sein – deshalb muss der Base64-Lauf **direkt** an die Kopfzeile
+# anschliessen (± ein Zeilenumbruch), nicht irgendwo in einem Lookahead-Fenster.
+_PEM_BODY_START = re.compile(rb"[\r\n]{0,2}[A-Za-z0-9+/=]{40,}")
+
+
+def _looks_like_real_pem_body(data: bytes, match_end: int) -> bool:
+    """Unterscheidet echtes PEM-Schluesselmaterial von einer Bibliotheks-
+    internen Typ-/Dispatch-Tabelle (kein direkt anschliessender Schluessel-
+    koerper)."""
+    return _PEM_BODY_START.match(data, match_end) is not None
+
 
 def scan_bytes(data: bytes) -> list[str]:
     """Sucht Geheimnis-Muster in *data*; liefert redigierte Fund-Beschreibungen.
@@ -51,12 +108,27 @@ def scan_bytes(data: bytes) -> list[str]:
     Loggt nie das Geheimnis selbst – nur Label, Byte-Position und einen
     SHA-256-Fingerprint der ersten 12 Hex-Zeichen, ausreichend zur
     Korrelation ("ist das derselbe Fund wie vorhin"), aber nicht umkehrbar.
+    Findet alle Vorkommen je Muster (nicht nur das erste), damit ein
+    zusaetzlicher, echter Fund nicht hinter einem frueheren – ggf.
+    zugelassenen – Treffer verborgen bleibt; identische (Label, Fingerprint)
+    werden dedupliziert, damit ein oft wiederholter Treffer nicht die
+    Ausgabe flutet.
     """
     findings = []
+    seen: set[tuple[str, str]] = set()
     for label, pattern in _SECRET_PATTERNS.items():
-        match = pattern.search(data)
-        if match:
+        for match in pattern.finditer(data):
+            if label == "privater PEM-Schlüssel" and not _looks_like_real_pem_body(
+                data, match.end()
+            ):
+                continue
             fingerprint = hashlib.sha256(match.group(0)).hexdigest()[:12]
+            if fingerprint in _ALLOWED_SECRET_FINGERPRINTS:
+                continue
+            key = (label, fingerprint)
+            if key in seen:
+                continue
+            seen.add(key)
             findings.append(f"{label} (Position {match.start()}, Fingerprint {fingerprint})")
     return findings
 

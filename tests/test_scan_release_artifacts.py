@@ -7,6 +7,7 @@ ein unbekannter Entwicklerpfad muss den Scan hart fehlschlagen lassen.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import shutil
 import subprocess
@@ -76,10 +77,54 @@ def test_scan_bytes_detects_github_token() -> None:
 
 
 def test_scan_bytes_detects_pem_private_key() -> None:
+    body = b"MIIEowIBAAKCAQEA1234567890abcdefABCDEF" * 3
     findings = scan_release_artifacts.scan_bytes(
-        b"-----BEGIN RSA PRIVATE KEY-----\nMIIB...\n-----END RSA PRIVATE KEY-----"
+        b"-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----" % body
     )
     assert any("PEM-Schlüssel" in f for f in findings)
+
+
+def test_scan_bytes_ignores_pem_header_without_key_body() -> None:
+    """Codex-Nachbesserung (#608): OpenSSLs eigene, in Qt6/libqopensslbackend
+    einkompilierte Typtabelle listet alle PEM-Kopfzeilen als NUL-separierte
+    Strings ohne jeden Schluesselkoerper – das darf nicht als Fund gelten
+    (empirisch aus den echten PyQt6-Qt6-Binaries nachgebildet)."""
+    findings = scan_release_artifacts.scan_bytes(
+        b"-----BEGIN PRIVATE KEY-----\x00-----END PUBLIC KEY-----"
+        b"\x00-----END RSA PRIVATE KEY-----\x00-----END DSA PRIVATE KEY-----"
+    )
+    assert findings == []
+
+
+def test_scan_bytes_pem_header_followed_by_short_garbage_is_ignored() -> None:
+    findings = scan_release_artifacts.scan_bytes(b"-----BEGIN EC PRIVATE KEY-----\x00\x00abc")
+    assert findings == []
+
+
+def test_scan_bytes_finds_every_occurrence_not_just_the_first() -> None:
+    """Ein frueherer Treffer (z. B. ein zugelassener Fehlalarm) darf einen
+    zweiten, andersartigen Fund desselben Musters nicht verdecken (#608:
+    reale CI-Artefakte zeigten mehrere unabhaengige Treffer pro Muster)."""
+    other_key = b"AKIAZZZZZZZZZZZZZZZZ"
+    assert other_key != _AWS_KEY
+    findings = scan_release_artifacts.scan_bytes(b"%s ... %s" % (_AWS_KEY, other_key))
+    fingerprints = {f.split("Fingerprint ")[1].rstrip(")") for f in findings}
+    assert len(fingerprints) == 2
+
+
+def test_scan_bytes_deduplicates_repeated_identical_matches() -> None:
+    findings = scan_release_artifacts.scan_bytes(b"%s ... %s" % (_AWS_KEY, _AWS_KEY))
+    assert len(findings) == 1
+
+
+def test_scan_bytes_suppresses_allowlisted_fingerprint(monkeypatch) -> None:
+    """Ein bekannter, empirisch verifizierter Fehlalarm (#608: Pillow/scipy/
+    Qt6-Bibliotheksinterna) wird nicht als Fund gemeldet."""
+    fingerprint = hashlib.sha256(_AWS_KEY).hexdigest()[:12]
+    monkeypatch.setitem(
+        scan_release_artifacts._ALLOWED_SECRET_FINGERPRINTS, fingerprint, "Testzweck"
+    )
+    assert scan_release_artifacts.scan_bytes(b"...%s..." % _AWS_KEY) == []
 
 
 # ── dev_path_users: Allowlist ────────────────────────────────────────────
