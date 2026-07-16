@@ -26,13 +26,27 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+# Echte Secrets stehen als eigenstaendiger Wert (Umgebungsvariable, Header,
+# JSON-Feld, Kommandozeile) und sind daher immer von einem Nicht-Identifier-
+# Zeichen umgeben (Anfuehrungszeichen, Gleichheitszeichen, Leerraum,
+# Zeilenende). In grossen kompilierten Binaerdateien (C++-Mangling,
+# Symboltabellen) tauchen dieselben Zeichenklassen dagegen oft *mitten* in
+# einem viel laengeren, ununterbrochenen Bezeichner auf – z. B. "highs_..."
+# enthaelt "ghs_" ohne Wortgrenze davor. Die Lookaround-Anker unten verwerfen
+# genau diesen Fall, ohne auf einen Fingerprint-Allowlist-Eintrag pro
+# Bibliothek angewiesen zu sein (empirisch bestaetigt: scipy/HiGHS liefert so
+# 43 Treffer aus derselben Namenskonvention – ein Fingerprint je Symbol waere
+# nicht wartbar).
 _SECRET_PATTERNS: dict[str, re.Pattern[bytes]] = {
-    "AWS Access Key ID": re.compile(rb"AKIA[0-9A-Z]{16}"),
-    "GitHub-Token": re.compile(rb"gh[oprsu]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}"),
+    "AWS Access Key ID": re.compile(rb"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"),
+    "GitHub-Token": re.compile(
+        rb"(?<![A-Za-z0-9_])gh[oprsu]_[A-Za-z0-9]{36,}(?![A-Za-z0-9_])"
+        rb"|(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{22,}(?![A-Za-z0-9_])"
+    ),
     "privater PEM-Schlüssel": re.compile(
         rb"-----BEGIN (RSA |EC |OPENSSH |DSA |ENCRYPTED |)PRIVATE KEY-----"
     ),
-    "Slack-Token": re.compile(rb"xox[baprs]-[0-9A-Za-z-]{10,}"),
+    "Slack-Token": re.compile(rb"(?<![A-Za-z0-9-])xox[baprs]-[0-9A-Za-z-]{10,}(?![A-Za-z0-9-])"),
 }
 _DEV_PATH = re.compile(rb"/(?:home|Users)/([A-Za-z0-9_.-]+)/")
 # "qt" stammt aus dem oeffentlich bekannten Build-Pfad-Muster der Qt-eigenen
@@ -43,45 +57,6 @@ _DEV_PATH = re.compile(rb"/(?:home|Users)/([A-Za-z0-9_.-]+)/")
 # Entwicklermaschine) und daher explizit zugelassen; jeder andere Benutzername
 # laesst den Scan fehlschlagen.
 _ALLOWED_PATH_USERS = {"runner", "root", "qt", "default"}
-
-# Bekannte Fehlalarme in Drittanbieter-Binaerdateien, die diese Anwendung
-# bewusst mitbuendelt (#584/#608). Jeder Eintrag wurde durch einen lokalen
-# Nachbau der exakten, in requirements/constraints.txt gepinnten
-# rembg[cpu]-/PyQt6-Abhaengigkeiten *empirisch verifiziert* (nicht nur
-# vermutet) – der Fund liegt nachweislich in oeffentlichem Drittanbieter-Code,
-# nicht in diesem Projekt. Schluessel: SHA-256-Fingerprint der ersten 12
-# Hex-Zeichen (wie in den Funden geloggt). Achtung Wartungslast: ein
-# Versions-Bump von Pillow/scipy aendert den exakten Byte-Inhalt und damit
-# den Fingerprint – der Scan schlaegt dann erneut fehl, bis der neue
-# Fingerprint auf dieselbe Weise nachverifiziert und ergaenzt wird. Das ist
-# beabsichtigt (kein blindes Vertrauen in "diese Bibliothek ist immer
-# sicher"), nicht ein Defekt dieses Mechanismus. PEM-Treffer sind hier
-# bewusst NICHT gelistet: die Kopfzeile allein (der einzige Teil, den das
-# PEM-Muster erfasst) ist immer einer von nur sechs festen Strings, egal ob
-# echtes Schluesselmaterial folgt oder nicht – ein Fingerprint nur der
-# Kopfzeile waere nicht aussagekraeftig (jede echte PEM-Datei desselben Typs
-# haette denselben Fingerprint wie ein Fehlalarm). Fuer PEM entscheidet
-# stattdessen `_looks_like_real_pem_body` anhand des tatsaechlich folgenden
-# Inhalts (s. u.) – robuster gegenueber Versions-/Architektur-Aenderungen,
-# da mehrfach empirisch bestaetigt (x86_64/aarch64/macOS-arm64: 16
-# unterschiedliche Fingerprints allein fuer dieselbe OpenSSL-Typtabelle in
-# PyQt6-Qt6, s. PR-#608-Diskussion).
-_ALLOWED_SECRET_FINGERPRINTS = {
-    # Pillow, PIL/ImageFont.py: "AKIA" + 16 alphanumerische Zeichen tritt
-    # zufaellig innerhalb einer als Literal eingebetteten, Base64-kodierten
-    # Schriftmetrik-Tabelle auf (oeffentlicher, MIT-lizenzierter Quelltext).
-    # Nur auf den Linux-Beinen beobachtet (python-appimage buendelt die
-    # .py-Quelle direkt); die macOS-.app-Buendelung (PyInstaller) hat hier
-    # keinen Treffer.
-    "57a26f03da12": "Pillow ImageFont-Tabelle (Zufallstreffer in Base64-Daten)",
-    # scipy, scipy/optimize/_highspy/_core*.so: "ghs_" ist eine Teilzeichen-
-    # kette von "highs_setCallback" (HiGHS-Solver-C-API), gefolgt von genug
-    # alphanumerischen Zeichen aus dem C++-Mangling, um zufaellig zu passen.
-    # Der exakte Fingerprint ist Compiler-/Plattform-abhaengig (Linux
-    # GCC-Build vs. macOS-Clang-Build erzeugen unterschiedliches Mangling).
-    "d5ac2d294246": "scipy/HiGHS gemanglete C++-Symbole, Linux x86_64/aarch64 (Zufallstreffer)",
-    "6d2cd5d3aea5": "scipy/HiGHS gemanglete C++-Symbole, macOS arm64 (Zufallstreffer)",
-}
 
 # Ein echter PEM-Schluessel hat unmittelbar nach der Kopfzeile (hoechstens
 # durch einen Zeilenumbruch getrennt) einen langen Base64-Koerper
@@ -109,10 +84,9 @@ def scan_bytes(data: bytes) -> list[str]:
     SHA-256-Fingerprint der ersten 12 Hex-Zeichen, ausreichend zur
     Korrelation ("ist das derselbe Fund wie vorhin"), aber nicht umkehrbar.
     Findet alle Vorkommen je Muster (nicht nur das erste), damit ein
-    zusaetzlicher, echter Fund nicht hinter einem frueheren – ggf.
-    zugelassenen – Treffer verborgen bleibt; identische (Label, Fingerprint)
-    werden dedupliziert, damit ein oft wiederholter Treffer nicht die
-    Ausgabe flutet.
+    zusaetzlicher, echter Fund nicht hinter einem frueheren Treffer verborgen
+    bleibt; identische (Label, Fingerprint) werden dedupliziert, damit ein
+    oft wiederholter Treffer nicht die Ausgabe flutet.
     """
     findings = []
     seen: set[tuple[str, str]] = set()
@@ -123,8 +97,6 @@ def scan_bytes(data: bytes) -> list[str]:
             ):
                 continue
             fingerprint = hashlib.sha256(match.group(0)).hexdigest()[:12]
-            if fingerprint in _ALLOWED_SECRET_FINGERPRINTS:
-                continue
             key = (label, fingerprint)
             if key in seen:
                 continue

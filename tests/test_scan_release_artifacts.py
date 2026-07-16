@@ -7,7 +7,6 @@ ein unbekannter Entwicklerpfad muss den Scan hart fehlschlagen lassen.
 """
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import shutil
 import subprocess
@@ -117,14 +116,36 @@ def test_scan_bytes_deduplicates_repeated_identical_matches() -> None:
     assert len(findings) == 1
 
 
-def test_scan_bytes_suppresses_allowlisted_fingerprint(monkeypatch) -> None:
-    """Ein bekannter, empirisch verifizierter Fehlalarm (#608: Pillow/scipy/
-    Qt6-Bibliotheksinterna) wird nicht als Fund gemeldet."""
-    fingerprint = hashlib.sha256(_AWS_KEY).hexdigest()[:12]
-    monkeypatch.setitem(
-        scan_release_artifacts._ALLOWED_SECRET_FINGERPRINTS, fingerprint, "Testzweck"
+def test_scan_bytes_ignores_aws_key_embedded_mid_identifier() -> None:
+    """Codex-Nachbesserung (#608): Pillows ``PIL/ImageFont.py`` enthaelt eine
+    Base64-kodierte Schriftmetrik-Tabelle, in der "AKIA" + 16 passende Zeichen
+    zufaellig vorkommt – aber eingebettet mitten in einem laengeren
+    Base64-Lauf, nie als eigenstaendiger Wert. Ein echter Schluessel steht
+    immer freistehend (Anfuehrungszeichen/Gleichheitszeichen/Leerraum davor
+    und danach)."""
+    findings = scan_release_artifacts.scan_bytes(b"AwAaAKIAAQAAAAAABAAHAM0AAQAAAAAABQA8AU8AAQAA")
+    assert findings == []
+
+
+def test_scan_bytes_ignores_github_token_embedded_mid_identifier() -> None:
+    """Codex-Nachbesserung (#608): scipys HiGHS-Solver-Bindung
+    (``scipy/optimize/_highspy/_core*.so``) benennt jede exportierte
+    C-API-Funktion "Highs_...", was im C++-Mangling "ghs_..." als
+    Teilzeichenkette ergibt – bei 43 verschiedenen Funktionsnamen in
+    derselben Datei ist ein Fingerprint-Allowlist-Eintrag pro Symbol nicht
+    wartbar. Die Wortgrenzen-Anker greifen strukturell fuer die gesamte
+    Namensfamilie."""
+    findings = scan_release_artifacts.scan_bytes(
+        b"hi" + b"ghs_setCallbackP5HighsSt8functionIFviRKNSt7"
     )
-    assert scan_release_artifacts.scan_bytes(b"...%s..." % _AWS_KEY) == []
+    assert findings == []
+
+
+def test_scan_bytes_detects_github_token_with_realistic_boundaries() -> None:
+    """Ein echtes Token in typischem Kontext (z. B. in JSON gequotet) muss
+    trotz der Wortgrenzen-Anker weiterhin erkannt werden."""
+    findings = scan_release_artifacts.scan_bytes(b'{"token": "ghp_' + b"a1b2c3" * 7 + b'"}')
+    assert any("GitHub-Token" in f for f in findings)
 
 
 # ── dev_path_users: Allowlist ────────────────────────────────────────────
