@@ -68,6 +68,11 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   al volver a guardar; las versiones antiguas de BgRemover (hasta 2.6.0)
   no pueden abrir proyectos v2 e informan de un error claro; el archivo
   queda intacto. Referencia del formato: `docs/PROJECT_FORMAT.md`.
+- **Las versiones futuras del formato de proyecto se rechazan estrictamente
+  (#588).** Un formato v3 o posterior se detiene antes de procesar campos o
+  payloads desconocidos, con una indicación traducida para actualizar la
+  aplicación. El proyecto activo y el archivo no cambian, evitando que una
+  versión antigua reescriba silenciosamente datos futuros como v2.
 - **Refuerzo tras la revisión del canal de 16 bits (#610).** Las herramientas
   de altura, el giro y el recorte ahora leen y escriben directamente el payload
   canónico; los valores existentes de la UI 0…255 se escalan a 16 bits en un

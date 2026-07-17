@@ -255,22 +255,27 @@ numpy-Mathematik. **Verworfen: Option C** (siehe oben).
   RGBA-PNGs – verlustfrei im Sinne der ursprünglichen 256 Stufen und
   deterministisch rückrechenbar (siehe Abbildungstabelle). COLOR/GLOSS
   migrieren nicht (keine Änderung).
-- **Alte Anwendungsstände mit v2-Dateien:** Der bestehende
-  Zukunfts-Versions-Pfad (`project_schema.migrate_manifest`) warnt und
-  liest best-effort – ein alter Stand zeigt die 8-Bit-Ansicht korrekt an
-  (visuell äquivalent). **Erwartetes, dokumentiertes Verhalten beim
-  erneuten Speichern im alten Stand:** Es entsteht eine v1-Datei ohne
-  16-Bit-Payload – die Niederbits gehen dabei verloren, aber kontrolliert
-  auf die dokumentierte 16→8-Abbildung (keine stillschweigende
-  Beschädigung, das Ergebnis ist das definierte 8-Bit-Äquivalent).
+- **Alte Anwendungsstände mit v2-Dateien:** Stände bis 2.6.0 können v2-Dateien
+  nicht öffnen: Ihr Container-Validator weist die zusätzliche
+  `height16`-Payload als unerwarteten Eintrag ab. Das ist ein kontrollierter
+  Fehler vor dem Einbau ins aktive Projekt; die Datei bleibt unangetastet und
+  kann deshalb nicht versehentlich als v1 ohne Niederbits zurückgeschrieben
+  werden.
 - **Beschädigt/inkonsistent:** fehlende/undekodierbare 16-Bit-Datei bei
   v2-Manifest-Eintrag, Größen-Mismatch oder Wertebereichsverstoß →
   `ProjectFileError` (Laden schlägt fehl); die bestehenden Limits
   (`_MAX_ENTRY_UNCOMPRESSED_BYTES`, Megapixel-Gate, Zip-Slip-Abwehr)
   werden für den neuen Eintragstyp mitgezogen (16-Bit-Grau = 2 B/px,
   eigenes Entry-Limit `40 MP × 2 B + Puffer`).
-- **Zukunftsversionen (≥3):** unverändert Warnung + Best-effort, keine
-  Umschreibung.
+- **Zukunftsversionen (≥3):** Die ursprüngliche Entscheidung „Warnung +
+  Best-effort" ist seit 2026-07-17 **superseded**. Ein alter Stand kann die
+  Semantik unbekannter Felder/Payloads nicht beweisen und würde ein geladenes
+  Projekt beim Quick-Save als v2 zurückschreiben. Deshalb werden neuere
+  Formatversionen vor jeder Payload-Verarbeitung strikt mit `ProjectFileError`
+  abgewiesen; die Meldung nennt gefundene und unterstützte Version, die Datei
+  bleibt bytegenau unverändert. Echte Vorwärtslesbarkeit darf eine spätere
+  Formatversion nur über einen expliziten Mindest-Leseversions-/Capability-
+  Vertrag freigeben.
 - **Atomizität:** unverändert `mkstemp` + genau ein `os.replace`
   (`save_project`); ein Schreibfehler lässt die Zieldatei unversehrt,
   Temp-Dateien werden aufgeräumt.

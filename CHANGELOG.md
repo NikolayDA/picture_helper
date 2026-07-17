@@ -63,6 +63,11 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   BgRemover-Versionen (bis 2.6.0) können v2-Projekte nicht öffnen und melden
   einen klaren Fehler – die Datei bleibt unangetastet. Formatreferenz:
   `docs/PROJECT_FORMAT.md`.
+- **Zukunftsversionen des Projektformats werden strikt abgewiesen (#588).**
+  Ein Format ab v3 wird vor jeder Verarbeitung unbekannter Felder oder
+  Payloads mit einer übersetzten Aktualisierungsaufforderung beendet. Das
+  aktive Projekt und die Datei bleiben unverändert; dadurch kann ein älterer
+  Stand keine zukünftigen Daten unbemerkt als v2 zurückschreiben.
 - **Review-Härtung der 16-Bit-Pipeline (#610).** Höhenwerkzeuge sowie Drehen
   und Zuschneiden lesen und schreiben jetzt direkt die kanonische Payload;
   bestehende 0…255-UI-Werte werden an einer expliziten Grenze auf 16 Bit

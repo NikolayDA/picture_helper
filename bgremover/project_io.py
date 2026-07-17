@@ -22,8 +22,8 @@ zerstört. Lesen ist **defensiv** (Philosophie aus
 Eintrag (getrennte Limits für RGBA- und 16-Bit-Grau-Einträge), Megapixel-Limit
 je Ebene, Abwehr von Zip-Slip-/unerwarteten Einträgen und klare, übersetzte
 Fehlermeldungen statt Crashes. Die Versionsmigration liegt in
-:mod:`project_schema` (Zukunfts-Version wird nicht überschrieben; v1-Projekte
-laden über den ×257-Adapter des Modells, #587).
+:mod:`project_schema` (Zukunfts-Versionen werden vor jeder Payload-Verarbeitung
+abgewiesen; v1-Projekte laden über den ×257-Adapter des Modells, #587).
 """
 from __future__ import annotations
 
@@ -297,8 +297,9 @@ def load_project(path: str | Path, *, warnings: list[str] | None = None) -> Proj
     Wirft :class:`ProjectFileError` mit klarer, übersetzter Meldung bei
     beschädigten/zu großen Dateien, fehlenden Manifest-Einträgen, zu großen oder
     abweichend dimensionierten Ebenen und Zip-Slip-/unerwarteten Einträgen –
-    ohne Crash. Eine **neuere** Formatversion wird best-effort geladen (Warnung,
-    Datei bleibt unangetastet; siehe :func:`project_schema.migrate_manifest`).
+    ohne Crash. Eine **neuere** Formatversion wird vor jeder Payload-Verarbeitung
+    mit verständlicher Meldung abgewiesen und bleibt unangetastet (siehe
+    :func:`project_schema.migrate_manifest`).
 
     Wird ``warnings`` übergeben, sammelt der Loader dort nutzerverständliche,
     bereits übersetzte Hinweise zu verlustfrei geheilten Altzuständen (etwa eine
@@ -331,7 +332,8 @@ def load_project(path: str | Path, *, warnings: list[str] | None = None) -> Proj
             # Ursprungsversion **vor** der Migration merken: eine echte
             # v2-Datei muss je HEIGHT-Ebene eine Payload deklarieren – nur
             # migrierte v1-Dateien dürfen auf den ×257-Adapter zurückfallen.
-            # Zukunftsversionen (≥ 3) bleiben gemäß ADR #586 Best-effort.
+            # Zukunftsversionen (≥ 3) weist ``migrate_manifest`` strikt ab,
+            # bevor Container-Payloads interpretiert werden.
             source_version = manifest.get("version")
             manifest = migrate_manifest(manifest)
             require_height16 = source_version == PROJECT_FORMAT_VERSION

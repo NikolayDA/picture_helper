@@ -67,8 +67,12 @@ bitgenau inklusive der Niederbits.
   stille Beschädigung noch einen unbemerkten Niederbit-Verlust. Wer ein
   Projekt mit einer älteren Version weiterbearbeiten will, muss es dort neu
   aus den Quellbildern aufbauen.
-- **Zukunftsversionen (≥ 3):** Warnung + Best-effort-Lesen, die Datei wird
-  **nie** umgeschrieben.
+- **Zukunftsversionen (≥ 3):** werden vor jeder Verarbeitung von Ebenen oder
+  unbekannten Container-Payloads mit einer verständlichen Meldung strikt
+  abgewiesen. Die Meldung nennt gefundene und maximal unterstützte Version und
+  fordert zum Aktualisieren der Anwendung auf. Die Datei bleibt bytegenau
+  unangetastet; damit kann ein alter Stand sie nicht unbemerkt als v2
+  zurückschreiben und zukünftige Daten verlieren.
 
 ## Validierung und Fehlerfälle
 
