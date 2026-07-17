@@ -226,8 +226,15 @@ def collect_environment() -> dict[str, Any]:
 
 
 def make_height_values(width: int, height: int) -> np.ndarray:
-    """Deterministisches 16-Bit-Höhenmuster mit gesetzten Niederbits."""
-    yy, xx = np.mgrid[0:height, 0:width]
+    """Deterministisches 16-Bit-Höhenmuster mit gesetzten Niederbits.
+
+    Baut das Muster aus 1-D-Zeilen-/Spaltenvektoren per Broadcasting statt über
+    ``np.mgrid`` – bei 40 MP spart das zwei volle int64-Koordinatengitter
+    (~640 MiB transienter Zusatzspeicher), bevor überhaupt das eigentliche
+    ``uint16``-Höhenfeld sowie die PNG-/Blur-/Preview-Puffer angelegt werden.
+    """
+    xx = np.arange(width, dtype=np.int64)
+    yy = np.arange(height, dtype=np.int64).reshape(-1, 1)
     return ((xx * 131 + yy * 17) % 65536).astype(np.uint16)
 
 
@@ -712,9 +719,22 @@ def post_issues(
 # ── CLI ──────────────────────────────────────────────────────────────────
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    # Die feste Höhenpipeline-Baseline (bis 40 MP) gehört zum vollen, geplanten
+    # Lauf mit den Standardmaßen. Ein manueller/Smoke-Lauf mit reduzierter
+    # Größe oder Iterationszahl erwartet dagegen eine schnelle, kleine
+    # Messung – ohne explizite Erzwingung (``--height-bench``) läuft die
+    # 40-MP-Höhenpipeline dort nicht implizit mit (Codex-Review zu #590).
+    is_default_run = (
+        args.width == DEFAULT_WIDTH
+        and args.height == DEFAULT_HEIGHT
+        and args.iterations == DEFAULT_ITERATIONS
+    )
+    include_height_bench = (
+        args.height_bench if args.height_bench is not None else is_default_run
+    )
+    height_sizes = HEIGHT_BENCH_SIZES if include_height_bench else None
     result = run_benchmark(
-        args.iterations, args.width, args.height,
-        height_sizes=HEIGHT_BENCH_SIZES,
+        args.iterations, args.width, args.height, height_sizes=height_sizes,
     )
     path = save_result(result, args.results_dir)
     print(f"Ergebnis gespeichert: {_rel(path)}")
@@ -750,7 +770,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
           f"{repeats} Wiederholung(en) …\n")
     confirmed = aggregate_results(
         [result, *(run_benchmark(args.iterations, args.width, args.height,
-                                  height_sizes=HEIGHT_BENCH_SIZES)
+                                  height_sizes=height_sizes)
                    for _ in range(repeats))]
     )
     # Persistierte Baseline durch den robusten Median ersetzen. Sonst committet
@@ -858,6 +878,14 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--height", type=int, default=DEFAULT_HEIGHT)
     run_p.add_argument("--no-compare", action="store_true",
                        help="Nur messen und speichern, nicht vergleichen.")
+    run_p.add_argument(
+        "--height-bench", dest="height_bench", action="store_true", default=None,
+        help="Höhenpipeline-Baseline (HEIGHT16-1MP/16MP/40MP) unabhängig von "
+             "--width/--height/--iterations erzwingen.")
+    run_p.add_argument(
+        "--no-height-bench", dest="height_bench", action="store_false",
+        help="Höhenpipeline-Baseline auslassen (z. B. für schnelle manuelle "
+             "Smoke-Läufe mit reduzierter Größe).")
     run_p.add_argument("--confirm-runs", type=int, default=DEFAULT_CONFIRM_RUNS,
                        help="Wiederholungen zur Bestätigung einer Auffälligkeit "
                             "(Median; Default 3).")
