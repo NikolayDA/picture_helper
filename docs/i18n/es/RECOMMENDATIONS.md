@@ -11,9 +11,9 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-16)
+## Estado actual (2026-07-17)
 
-La lista activa de análisis de código está vacía. Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. La versión **v2.6.0** se publicó el 2026-07-16 desde el commit aprobado `f24cef69829da8e37aa400dad471dc4d607b89b3`: workflow del tag [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), [release público de GitHub](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), cinco artefactos de aplicación descargados de nuevo y verificados por SHA-256, y smokes nativos verdes para Linux x86_64/aarch64 y macOS arm64. Las incidencias de release **#580/#583/#584/#585** y el hallazgo de instantánea obsoleta **#607** están completados. Estado en vivo resultante: **15** incidencias abiertas — #245/#551, los epics **#581/#582** con sus subincidencias restantes, los hallazgos de cobertura **N15/N16** (#597/#598) y la brecha claramente acotada de la guía **#606**.
+La lista activa de análisis de código está vacía. Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. La versión **v2.6.0** se publicó el 2026-07-16 desde el commit aprobado `f24cef69829da8e37aa400dad471dc4d607b89b3`: workflow del tag [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), [release público de GitHub](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), cinco artefactos de aplicación descargados de nuevo y verificados por SHA-256, y smokes nativos verdes para Linux x86_64/aarch64 y macOS arm64. Las incidencias de release **#580/#583/#584/#585**, el hallazgo **#607** y la canalización de altura de 16 bits completa **#581/#587–#590** están cerrados. Estado en vivo: **10** incidencias abiertas — #245/#551, el epic 3D **#582** con #592–#595, los hallazgos de cobertura **N15/N16** (#597/#598) y la brecha de la guía **#606**.
 
 ### Completado desde la última revisión
 
@@ -21,6 +21,7 @@ La lista activa de análisis de código está vacía. Ruff, mypy y la suite de p
 - **Rediseño y publicación v2.5.0:** núcleo del rediseño/rail/zoom/inspector de tarjetas/Dark Mode/seguimiento de UI (**#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517**, **#490**, **#433/#434**) vía PR #412–#522; ola de publicación **#435/#392/#426/#389** (v2.5.0), **#299/#541/#318/#542**, plantilla de PR **#552**, sincronización **#549**, arreglo de SessionStart **#553**, formalización v2.3.0 **#550** – todo cerrado desde el 2026-07-12.
 - **N14 — Epic #563 (actualizaciones de la app y gestión del modelo de IA) completamente cerrado:** `app_update.py` (#564), `ai_model_status.py` (#568), integración de menú/diálogo (#565/#569), comprobación automática opcional al iniciar (#566), conexión del warmup con múltiples observadores/cancelación cooperativa (#570) vía PR #573/#574; cierre de documentación (#567/#571).
 - **Release v2.6.0 completamente cerrado:** scope-freeze (#583), gate del candidato sobre el SHA final de `main` (#584), tag/release/verificación post-release (#585) y epic de seguimiento #580 están hechos; esta actualización resuelve la deriva #607. El ADR HEIGHT de 16 bits (#586) y el contrato ADR/UX 3D (#591, PR #603) también siguen completados.
+- **Canalización de altura de 16 bits completamente cerrada:** modelo de dominio/history y formato de proyecto v2 (#587/#588, PR #610), importación/generación/operaciones (#589, PR #612) y preview/exportación/UI/E2E (#590, PR #613) están en `main`; el epic #581 está cerrado tras gates verdes, reviews resueltas y una matriz de aceptación completa.
 
 ### Aún abierto
 
@@ -29,14 +30,13 @@ La lista activa de análisis de código está vacía. Ruff, mypy y la suite de p
 - **N16 🟡 — Conversión no-RGBA sin probar:** las ramas no-RGBA de `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) nunca se ejercitan con una imagen de origen RGB/paleta/escala de grises (#598).
 - **Brecha de documentación 🟢 — Nuevas funciones de Extras/ajustes ausentes de la guía:** la comprobación de actualizaciones, la gestión/instalación del modelo de IA y el ajuste automático deben añadirse a las seis versiones de ANLEITUNG (#606).
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-16)
+## Incidencias abiertas de GitHub — Clasificación (2026-07-17)
 
-Estado en vivo tras el cierre post-release: **15** incidencias abiertas. Release v2.6.0 y **#580/#585** están completados; **#587** ya no está bloqueado por el release. Los comentarios del propietario del 2026-07-15 en **#245**/**#551** y sus cuerpos acotados siguen vigentes.
+Estado en vivo tras completar la canalización de altura de 16 bits: **10** incidencias abiertas. **#581/#587–#590** están cerrados mediante PR #610/#612/#613. Los comentarios del propietario del 2026-07-15 en **#245**/**#551** y sus cuerpos acotados siguen vigentes.
 
 ### Agrupaciones sensatas
 
-- **Canalización de altura de 16 bits** (#581 → #587 → {#588 ‖ #589} → #590; el ADR #586 está completado): el bloqueo del release se ha levantado y #587 puede empezar.
-- **Vista previa de relieve 3D** (#582 → #592 → #593 → #594 → #595; #591 está completado): la canalización geométrica sin Qt #592 puede empezar ya en paralelo a la implementación del modelo de 16 bits; #582 sigue siendo el mayor bloque de esfuerzo de esta ronda.
+- **Vista previa de relieve 3D** (#582 → #592 → #593 → #594 → #595; #591 y los prerrequisitos de 16 bits están completados): #592 es el siguiente paso ejecutable; #594 ya solo espera a #593.
 - **#245/#551** siguen vinculados, pero la decisión estratégica ya está tomada: #551 solo rastrea la implementación del modelo híbrido (CodeQL automático, Codex manual), #245 solo la prueba externa de cuota de OpenAI.
 - **#597/#598** son brechas de cobertura independientes y totalmente especificadas; **#606** es una brecha de documentación igualmente acotada en las seis versiones de ANLEITUNG.
 
@@ -44,14 +44,9 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios, **Compl
 
 | # | Título | Relevancia | Complejidad | Modelo/Esfuerzo | Próximo paso recomendado |
 |---|--------|------------|-------------|------------------|---------------------------|
-| [#587](https://github.com/NikolayDA/picture_helper/issues/587) | [16 bits] Modelo de dominio HEIGHT y ProjectHistory sin pérdida | 🟠 Alta | 🟠 Alta (muy grande) | Opus 4.8 · alta | **Ready for PR** – #586 y release v2.6.0 están completados; no queda ninguna dependencia abierta. |
-| [#588](https://github.com/NikolayDA/picture_helper/issues/588) | [16 bits] Formato de proyecto v2: persistencia, migración, validación | 🟠 Alta | 🟠 Alta | Opus 4.8 · alta | **Blocked** – espera a #587. |
-| [#589](https://github.com/NikolayDA/picture_helper/issues/589) | [16 bits] Importación/generación/operaciones de altura sin cuantización de 8 bits | 🟠 Alta | 🟠 Alta | Opus 4.8 · alta | **Blocked** – espera a #587. |
-| [#590](https://github.com/NikolayDA/picture_helper/issues/590) | [16 bits] Vista previa, exportación, UI, aceptación end-to-end | 🟠 Alta | 🟠 Alta | Opus 4.8 · alta | **Blocked** – espera a #588/#589. |
-| [#581](https://github.com/NikolayDA/picture_helper/issues/581) | [Epic] Canalización de altura de 16 bits de extremo a extremo | 🟠 Alta | 🟠 Alta (muy grande) | – (epic de seguimiento) | **In progress** – avanza vía #587→(#588‖#589)→#590 (#586 cerrado). |
 | [#592](https://github.com/NikolayDA/picture_helper/issues/592) | [3D] Pipeline de geometría/normales/decimación sin Qt | 🟡 Media | 🟠 Alta (muy grande) | Opus 4.8 · alta | **Ready for PR** – #586 y #591 están completados; no queda ninguna dependencia abierta. |
 | [#593](https://github.com/NikolayDA/picture_helper/issues/593) | [3D] Visor interactivo con orbit/pan/zoom, fallback | 🟡 Media | 🟠 Alta (muy grande) | Opus 4.8 · xalta | **Blocked** – espera a #592; la pieza más arriesgada (Qt/OpenGL específico de plataforma). |
-| [#594](https://github.com/NikolayDA/picture_helper/issues/594) | [3D] Integración de workflow, estado y caché | 🟡 Media | 🟠 Alta (muy grande) | Opus 4.8 · alta | **Blocked** – espera a #593, #587, #588. |
+| [#594](https://github.com/NikolayDA/picture_helper/issues/594) | [3D] Integración de workflow, estado y caché | 🟡 Media | 🟠 Alta (muy grande) | Opus 4.8 · alta | **Blocked** – espera a #593; los prerrequisitos de 16 bits #587/#588 están completados. |
 | [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Rendimiento, empaquetado, documentación, aceptación end-to-end | 🟡 Media | 🟠 Alta | Sonnet 5 · alta | **Blocked** – espera a #594. |
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Vista previa de relieve 3D real | 🟡 Media | 🟠 Alta (muy grande) | – (epic de seguimiento) | **In progress** – avanza vía #592→…→#595; #591 está completado. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Automatizar CodeQL y ejecutar Codex Security solo de forma manual | 🟡 Media | 🟡 Media | Sonnet 5 · media | **Ready for PR** – decisión estratégica tomada el 2026-07-15 (modelo híbrido: CodeQL automático + Codex manual vía `workflow_dispatch`); el cuerpo del issue ya tiene la lista de verificación completa de implementación. |
@@ -62,16 +57,16 @@ Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios, **Compl
 
 ### Recomendado a continuación (orden de PR)
 
-1. **#587** — empezar el modelo de dominio HEIGHT canónico de 16 bits; ADR y bloqueo del release están completados.
-2. **#592** — iniciar en paralelo la canalización geométrica 3D; #586 y #591 están completados.
-3. **#606** — documentar los nuevos controles de actualización/IA en las seis versiones de ANLEITUNG.
-4. **#551** — implementar el modelo híbrido acordado (CodeQL automático, Codex solo manual vía `workflow_dispatch`).
-5. **#597 + #598** — cerrar ambas brechas de cobertura en un PR pequeño; el resto de incidencias de 16 bits/3D siguen sus dependencias documentadas.
+1. **#592** — iniciar la canalización geométrica 3D; #586, #591 y los prerrequisitos de 16 bits están completados.
+2. **#606** — documentar los nuevos controles de actualización/IA en las seis versiones de ANLEITUNG.
+3. **#551** — implementar el modelo híbrido acordado (CodeQL automático, Codex solo manual vía `workflow_dispatch`).
+4. **#597 + #598** — cerrar ambas brechas de cobertura en un PR pequeño.
 
-*Drift:* esta actualización post-release alinea la instantánea con el release publicado, los cierres #580/#585 y la nueva brecha documental #606; con ello resuelve #607. Las próximas actualizaciones siguen consultando estados, checklists y dependencias en vivo, no arrastrando una marca de tiempo.
+*Drift:* esta actualización elimina la cadena de 16 bits completada de la clasificación abierta, corrige el contador en vivo a 10 y elimina dependencias 3D obsoletas. Las próximas actualizaciones siguen consultando estados, checklists y dependencias en vivo, no arrastrando una marca de tiempo.
 
 ## Rondas anteriores
 
+- **2026-07-17 (cierre del epic de 16 bits)** — #581/#587–#590 completados mediante PR #610/#612/#613; todos los gates y reviews verdes, matriz de aceptación presente, estado en vivo 10.
 - **2026-07-16 (release v2.6.0)** — tag sobre `f24cef69829da8e37aa400dad471dc4d607b89b3`, ejecución 29531147950 verde, cinco artefactos públicos descargados de nuevo y verificados por SHA-256; #580/#585/#607 cerrados, estado en vivo 15.
 - **2026-07-16 (gate del candidato)** — #584 cerrado mediante el gate real de cinco artefactos (ejecución final 29529595934 sobre `f24cef69829da8e37aa400dad471dc4d607b89b3`, SHA-256 + escaneo de secretos por artefacto, smokes de plataforma nativos); #585 desbloqueado.
 - **2026-07-15/16 (seguimiento de auditoría)** — #583/#586/#591 completados; #584 reabierto al confirmar que el gate del candidato sigue pendiente; estado en vivo 17.

@@ -4,7 +4,7 @@ Verknüpft jedes Akzeptanzkriterium des Epics #581 mit seinem Nachweis
 (PR, Test oder Dokument). Datenvertrag: ADR
 [ADR-2026-height-16bit-datenvertrag.md](ADR-2026-height-16bit-datenvertrag.md)
 (#586). Umsetzung: #587 + #588 (PR #610, inkl. Review-Nachtrag `a42fe77`),
-#589 (PR #612), #590 (Abschluss-PR).
+#589 (PR #612), #590 (PR #613).
 
 | Epic-Kriterium | Nachweis |
 |---|---|
@@ -18,7 +18,7 @@ Verknüpft jedes Akzeptanzkriterium des Epics #581 mit seinem Nachweis
 | 40-MP-Grenzen, History-Budget, Temp-Puffer bewertet/limitiert/getestet | `tests/test_project_history.py::test_40mp_height_scenario_stays_within_adr_budget`, `tests/test_project_io.py::test_40mp_height_project_saves_and_opens_within_budget`, `tests/test_height16_e2e.py::test_40mp_e2e_stays_within_budgets` (nightly, `ui`-Marker), `scripts/benchmark.py` (`HEIGHT16-1MP/16MP/40MP`-Baseline) |
 | Projektdatei-Validierung defensiv, Schreiben atomar | `tests/test_project_io.py` (Integritäts-/Security-Negativtests, Schreibabbruch), [PROJECT_FORMAT.md](../PROJECT_FORMAT.md) |
 | Laufzeit-i18n, Doku, CHANGELOG konsistent | i18n-Paritätstests (6 Sprachen), ANLEITUNG + 5 Spiegel, CHANGELOG + 5 Spiegel, CLAUDE.md |
-| `make pr-check`, `make check`, `make ui` grün; neue Qt-freie Module strikt getypt | Gate-Läufe der PRs #610/#612/#590-PR; `height_map`/`height_ops`/`project_*`/`eufymake_*` in der strikten mypy-Liste |
+| `make pr-check`, `make check`, `make ui` grün; neue Qt-freie Module strikt getypt | Gate-Läufe der PRs #610/#612/#613; `height_map`/`height_ops`/`project_*`/`eufymake_*` in der strikten mypy-Liste |
 
 ## Bewusste Grenzen (dokumentiert, keine offenen Pflichtkriterien)
 
