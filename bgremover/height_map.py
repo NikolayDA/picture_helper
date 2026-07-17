@@ -98,8 +98,15 @@ class HeightField:
                 f"values überschreitet max_value ({self.max_value})"
             )
         # Vertragsregel „Arrays sind nach Konstruktion unveränderlich" (ADR #586,
-        # Abschnitt 5): der Write-Lock macht geteilte Referenzen (Duplicate,
-        # History-Pool) beweisbar sicher – Schreibversuche werfen ValueError.
+        # Abschnitt 5): Sichten auf fremde Puffer (``base``) würden trotz
+        # Write-Lock über den Basis-Puffer mutierbar bleiben – solche Eingaben
+        # werden deshalb in eigene Kopien überführt. Der anschließende
+        # Write-Lock macht geteilte Referenzen (Duplicate, History-Pool)
+        # beweisbar sicher – Schreibversuche werfen ValueError.
+        if self.values.base is not None:
+            object.__setattr__(self, "values", self.values.copy())
+        if self.coverage.base is not None:
+            object.__setattr__(self, "coverage", self.coverage.copy())
         self.values.setflags(write=False)
         self.coverage.setflags(write=False)
 

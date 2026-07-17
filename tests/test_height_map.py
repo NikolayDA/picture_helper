@@ -463,3 +463,28 @@ def test_generate_from_image_16bit_target_scales_full_range() -> None:
     assert field.max_value == HEIGHT_MAX_16BIT
     assert int(field.values[0, 0]) == 0
     assert int(field.values[1, 0]) == HEIGHT_MAX_16BIT
+
+
+def test_height_field_owns_views_against_base_aliasing() -> None:
+    """Sichten auf fremde Puffer werden kopiert – Mutation der Basis wirkt nie durch.
+
+    Der Write-Lock allein schützt nur das Sicht-Objekt; über den Basis-Puffer
+    bliebe eine Sicht mutierbar und könnte geteilte Duplicate-/History-
+    Referenzen korrumpieren (Codex-Review-Befund zu #587).
+    """
+    base_values = np.zeros((4, 4), dtype=np.uint16)
+    base_coverage = np.full((4, 4), 255, dtype=np.uint8)
+    field = HeightField(base_values[1:3, 1:3], base_coverage[1:3, 1:3])
+    base_values[:, :] = 999
+    base_coverage[:, :] = 7
+    assert np.all(field.values == 0)          # eigene Kopie, keine Durchgriffe
+    assert np.all(field.coverage == 255)
+    with pytest.raises(ValueError):
+        field.values[0, 0] = 1                # Write-Lock bleibt bestehen
+    # Eigentümer-Arrays (base is None) werden weiterhin ohne Kopie übernommen
+    # und direkt gesperrt (Ersetzen-statt-Mutieren-Vertrag).
+    owned = np.zeros((2, 2), dtype=np.uint16)
+    locked = HeightField(owned, np.zeros((2, 2), dtype=np.uint8))
+    assert locked.values is owned
+    with pytest.raises(ValueError):
+        owned[0, 0] = 1
