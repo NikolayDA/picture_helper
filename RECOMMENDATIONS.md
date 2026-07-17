@@ -11,9 +11,9 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-17)
+## Aktueller Stand (2026-07-18)
 
-Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.6.0** ist am 2026-07-16 aus dem freigegebenen Commit `f24cef69829da8e37aa400dad471dc4d607b89b3` veröffentlicht worden: Tag-Workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), öffentlicher [GitHub Release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), fünf erneut heruntergeladene und per SHA-256 geprüfte Anwendungsartefakte sowie grüne native Plattform-Smokes für Linux x86_64/aarch64 und macOS arm64. Die Release-Issues **#580/#583/#584/#585**, der Snapshot-Befund **#607** und die vollständige 16-Bit-Höhenpipeline **#581/#587–#590** sind abgeschlossen. Live-Stand: **10** offene Issues – #245/#551, das 3D-Epic **#582** mit #592–#595, die Coverage-Befunde **N15/N16** (#597/#598) sowie die Anleitungslücke **#606**.
+Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite bleiben die maßgebliche Baseline vor neuen PRs. Release **v2.6.0** ist am 2026-07-16 aus dem freigegebenen Commit `f24cef69829da8e37aa400dad471dc4d607b89b3` veröffentlicht worden: Tag-Workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), öffentlicher [GitHub Release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), fünf erneut heruntergeladene und per SHA-256 geprüfte Anwendungsartefakte sowie grüne native Plattform-Smokes für Linux x86_64/aarch64 und macOS arm64. Die Release-Issues **#580/#583/#584/#585**, der Snapshot-Befund **#607** und die vollständige 16-Bit-Höhenpipeline **#581/#587–#590** sind abgeschlossen. Live-Stand: **7** offene Issues – #245/#551 sowie das 3D-Epic **#582** mit #592–#595.
 
 ### Erledigt seit dem letzten Review
 
@@ -22,23 +22,20 @@ Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite ble
 - **N14 — Epic #563 (App-Update & KI-Modell-Verwaltung) komplett abgeschlossen:** `app_update.py` (#564), `ai_model_status.py` (#568), Menü-/Dialog-Integration (#565/#569), optionaler automatischer Start-Check (#566), Warmup-Verdrahtung mit Mehrfach-Beobachtern/kooperativem Abbruch (#570) über PR #573/#574; Doku-Abschluss (#567/#571).
 - **Release v2.6.0 vollständig abgeschlossen:** Scope-Freeze (#583), Kandidaten-Gate auf dem finalen `main`-SHA (#584), Tag/Release/Post-Release-Prüfung (#585) und Tracking-Epic #580 sind erledigt; der Snapshot-Drift #607 wird mit diesem Nachzug behoben. Das 16-Bit-HEIGHT-ADR (#586) und der 3D-ADR/UX-Vertrag (#591, PR #603) bleiben ebenfalls abgeschlossen.
 - **16-Bit-Höhenpipeline vollständig abgeschlossen:** Domänenmodell/History und Projektformat v2 (#587/#588, PR #610), Import/Erzeugung/Operationen (#589, PR #612) sowie Preview/Export/UI/E2E (#590, PR #613) sind in `main`; Epic #581 ist nach grünen PR-Gates, aufgelösten Reviews und vollständiger Abnahmematrix geschlossen.
+- **Audit-Nachzug #614–#616 abgeschlossen:** Zukunftsversionen werden fail-closed abgewiesen (#588, PR #614), die Coverage-Lücken #597/#598 sind über PR #615 geschlossen und die Anleitungslücke #606 ist über PR #616 in allen sechs Sprachfassungen behoben.
 
 ### Noch offen
 
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
-- **N15 🟡 — Ungetestetes Dialog-Wiring:** `MainWindow._open_ai_install_dialog` (`main_window.py:1566`) hat keinen dedizierten Test, anders als die strukturell identische Schwester-Methode `_open_ai_model_dialog` (#597).
-- **N16 🟡 — Ungetestete Nicht-RGBA-Konvertierung:** Die Nicht-RGBA-Zweige in `pil_to_qpixmap`/`pil_to_numpy_readonly` (`image_utils.py:16`/`:43`) werden nie mit RGB-/Palette-/Graustufenbildern getroffen (#598).
-- **Doku-Lücke 🟢 — Neue Extras-/Einstellungsfunktionen fehlen in der Anleitung:** Der Update-Check, die KI-Modellverwaltung/-Installation und die Auto-Update-Einstellung sind in allen sechs ANLEITUNG-Fassungen nachzuziehen (#606).
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-17)
+## Offene GitHub-Issues – Triage-Stand (2026-07-18)
 
-Live-Stand nach Abschluss der 16-Bit-Höhenpipeline: **10** offene Issues. **#581/#587–#590** sind über PR #610/#612/#613 abgeschlossen. Die Owner-Kommentare vom 2026-07-15 auf **#245**/**#551** und die entsprechend geschärften Issue-Bodys bleiben aktuell.
+Live-Stand nach den Merges von PR #614/#615/#616: **7** offene Issues. **#581/#587–#590**, **#597/#598** und **#606** sind abgeschlossen. Die Owner-Kommentare vom 2026-07-15 auf **#245**/**#551** und die entsprechend geschärften Issue-Bodys bleiben aktuell.
 
 ### Sinnvolle Bündelung
 
 - **3D-Reliefvorschau** (#582 → #592 → #593 → #594 → #595; #591 und die 16-Bit-Voraussetzungen sind abgeschlossen): #592 ist der nächste ausführbare Schritt; #594 wartet nur noch auf #593.
 - **#245/#551** bleiben gekoppelt, aber die Grundsatzentscheidung ist jetzt getroffen: #551 verfolgt nur noch die Umsetzung des hybriden Modells (CodeQL automatisch, Codex manuell), #245 ausschließlich den externen OpenAI-Quota-Nachweis.
-- **#597/#598** sind unabhängige, vollständig spezifizierte Coverage-Lücken; **#606** ist eine ebenso klar umrissene, unabhängige Doku-Lücke in den sechs ANLEITUNG-Fassungen.
 
 Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** = Umsetzungsaufwand, **Modell/Aufwand** = empfohlenes Claude-Modell + Reasoning-Effort.
 
@@ -51,21 +48,17 @@ Bewertung: **Relevanz** = Roadmap-/Nutzerbedeutung, **Komplexität** = Umsetzung
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Echte 3D-Reliefvorschau | 🟡 Mittel | 🟠 Hoch (sehr groß) | – (Tracking-Epic) | **In Arbeit** – läuft über #592→…→#595; #591 ist abgeschlossen. |
 | [#551](https://github.com/NikolayDA/picture_helper/issues/551) | CodeQL automatisieren, Codex Security nur noch manuell ausführen | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – Grundsatzentscheidung am 2026-07-15 getroffen (hybrides Modell: CodeQL automatisch + Codex nur manuell via `workflow_dispatch`); Issue-Body enthält bereits die vollständige Umsetzungs-Checkliste. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuelle Codex-Security-Prüfung wiederherstellen | 🟢 Niedrig | 🟢 Niedrig | – (kein Code-Task) | **Blocked (extern)** – Scope am 2026-07-15 weiter geschärft: reiner externer Tracker für OpenAI-Billing/Quota, blockiert weder CodeQL noch Release noch #551. |
-| [#597](https://github.com/NikolayDA/picture_helper/issues/597) | test: `_open_ai_install_dialog` ohne Wiring-Test (N15) | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – Testskizze bereits im Issue, keine Abhängigkeit. |
-| [#598](https://github.com/NikolayDA/picture_helper/issues/598) | test: Nicht-RGBA-Konvertierungspfade in `image_utils.py` ungetestet (N16) | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – Testskizze bereits im Issue, keine Abhängigkeit; ließe sich mit #597 in einem PR bündeln. |
-| [#606](https://github.com/NikolayDA/picture_helper/issues/606) | docs: Update-Check/KI-Modell-Verwaltung fehlen in ANLEITUNG | 🟢 Niedrig | 🟢 Niedrig | Sonnet 5 · niedrig | **Ready for PR** – vollständige Doku-Checkliste im Issue, sechs Sprachfassungen synchron nachziehen. |
 
 ### Als Nächstes empfohlen
 
 1. **#592** — die 3D-Geometrie-Pipeline starten; #586, #591 und die 16-Bit-Voraussetzungen sind abgeschlossen.
-2. **#606** — die neue Update-/KI-Bedienung in allen sechs ANLEITUNG-Fassungen nachziehen.
-3. **#551** — das beschlossene Hybridmodell umsetzen (CodeQL automatisch, Codex nur manuell via `workflow_dispatch`).
-4. **#597 + #598** — die beiden unabhängigen Coverage-Lücken in einem kleinen gemeinsamen PR schließen.
+2. **#551** — das beschlossene Hybridmodell umsetzen (CodeQL automatisch, Codex nur manuell via `workflow_dispatch`).
 
-*Drift-Hinweis:* Dieser Nachzug entfernt die abgeschlossene 16-Bit-Issue-Kette aus der offenen Triage, korrigiert den Live-Zähler auf 10 und löst die überholten 3D-Abhängigkeiten auf. Künftige Updates prüfen Status, Checklisten und Abhängigkeiten weiterhin live statt nur einen Zeitstempel fortzuschreiben.
+*Drift-Hinweis:* Dieser Nachzug entfernt #597/#598/#606 nach den Merges von PR #615/#616 aus der offenen Triage und korrigiert den Live-Zähler auf 7. Künftige Updates prüfen Status, Checklisten und Abhängigkeiten weiterhin live statt nur einen Zeitstempel fortzuschreiben.
 
 ## Vorige Runden
 
+- **2026-07-18 (Audit-Nachzug #614–#616)** — Future-Version-Härtung aus PR #614 nachgetragen; #597/#598 über PR #615 und #606 über PR #616 abgeschlossen; Live-Stand 7.
 - **2026-07-17 (16-Bit-Epic-Abschluss)** — #581/#587–#590 über PR #610/#612/#613 abgeschlossen; alle PR-Gates und Reviews grün, Abnahmematrix vorhanden, Live-Stand 10.
 - **2026-07-16 (Release v2.6.0)** — Tag auf `f24cef69829da8e37aa400dad471dc4d607b89b3`, Release-Lauf 29531147950 grün, fünf öffentliche Artefakte erneut heruntergeladen und per SHA-256 verifiziert; #580/#585/#607 geschlossen, Live-Stand 15.
 - **2026-07-16 (Kandidaten-Gate)** — #584 durch echten Fünf-Artefakt-Gate geschlossen (finaler Gate-Lauf 29529595934 auf `f24cef69829da8e37aa400dad471dc4d607b89b3`, SHA-256 + Secret-Scan je Artefakt, native Plattform-Smokes); #585 entsperrt.
