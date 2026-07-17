@@ -81,6 +81,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.unsupported_version": (
             "Projektformat-Version {version} wird nicht unterstützt"
         ),
+        "project.error.future_version": (
+            "Dieses Projekt wurde mit einer neueren BgRemover-Version erstellt "
+            "(Format v{version}; unterstützt: v{supported}). Bitte aktualisieren "
+            "Sie die Anwendung. Die Datei wurde nicht verändert."
+        ),
         "project.error.unexpected_entry": (
             "Projektdatei abgewiesen: unerwarteter Eintrag „{name}“"
         ),
@@ -930,6 +935,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.unsupported_version": (
             "Project format version {version} is not supported"
         ),
+        "project.error.future_version": (
+            "This project was created with a newer BgRemover version "
+            "(format v{version}; supported: v{supported}). Please update the "
+            "application. The file was not modified."
+        ),
         "project.error.unexpected_entry": (
             "Project file rejected: unexpected entry “{name}”"
         ),
@@ -1776,6 +1786,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.manifest_invalid": "Archivo de proyecto dañado: manifiesto no válido",
         "project.error.unsupported_version": (
             "La versión de formato de proyecto {version} no es compatible"
+        ),
+        "project.error.future_version": (
+            "Este proyecto se creó con una versión más reciente de BgRemover "
+            "(formato v{version}; compatible: v{supported}). Actualiza la "
+            "aplicación. El archivo no se ha modificado."
         ),
         "project.error.unexpected_entry": (
             "Archivo de proyecto rechazado: entrada inesperada “{name}”"
@@ -2628,6 +2643,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.manifest_invalid": "Fichier de projet endommagé : manifeste non valide",
         "project.error.unsupported_version": (
             "La version de format de projet {version} n'est pas prise en charge"
+        ),
+        "project.error.future_version": (
+            "Ce projet a été créé avec une version plus récente de BgRemover "
+            "(format v{version} ; pris en charge : v{supported}). Mettez "
+            "l'application à jour. Le fichier n'a pas été modifié."
         ),
         "project.error.unexpected_entry": (
             "Fichier de projet rejeté : entrée inattendue « {name} »"
@@ -3482,6 +3502,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.unsupported_version": (
             "Версія формату проєкту {version} не підтримується"
         ),
+        "project.error.future_version": (
+            "Цей проєкт створено в новішій версії BgRemover (формат v{version}; "
+            "підтримується: v{supported}). Оновіть застосунок. Файл не було змінено."
+        ),
         "project.error.unexpected_entry": (
             "Файл проєкту відхилено: неочікуваний запис «{name}»"
         ),
@@ -4330,6 +4354,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.manifest_invalid": "项目文件已损坏：清单无效",
         "project.error.unsupported_version": (
             "不支持项目格式版本 {version}"
+        ),
+        "project.error.future_version": (
+            "此项目由较新版本的 BgRemover 创建（格式 v{version}；支持至 "
+            "v{supported}）。请更新应用程序。文件未被修改。"
         ),
         "project.error.unexpected_entry": (
             "项目文件被拒绝：意外条目“{name}”"

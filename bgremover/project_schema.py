@@ -7,9 +7,10 @@ der serialisierten Manifest-Form (ein JSON-taugliches ``dict``), die
 Versionierung analog ``settings_schema``: das Manifest trägt einen eigenen
 ``version``-Schlüssel mit Migrationshaken. Ältere Versionen durchlaufen die
 registrierten ``_MIGRATIONS``-Schritte; die **gleiche** Version ist ein No-op;
-eine **neuere** (Zukunfts-)Version wird **nicht** umgeschrieben – es wird nur
-gewarnt und das Manifest best-effort weiterverarbeitet (Vorwärtskompatibilität:
-unbekannte Felder werden ignoriert).
+eine **neuere** (Zukunfts-)Version wird strikt abgewiesen. Nur die Anwendung,
+die den neueren Formatvertrag kennt, darf dessen Felder und Payloads
+interpretieren; so kann ein alter Stand das Projekt nicht unbemerkt als v2
+zurückschreiben und dabei unbekannte Daten verlieren.
 
 **Formatversion 2 (#588, ADR #586):** Je HEIGHT-Ebene referenziert das
 Manifest zusätzlich eine 16-Bit-Graustufen-PNG (``layer_NNNN_height16.png``)
@@ -197,8 +198,8 @@ def migrate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
 
     - Gleiche Version: unverändert zurück.
     - Ältere Version: registrierte ``_MIGRATIONS`` anwenden, ``version`` heben.
-    - **Neuere** Version: unangetastet zurück, nur warnen (kein Downgrade) –
-      das Laden bleibt best-effort vorwärtskompatibel.
+    - **Neuere** Version: mit verständlichem Fehler strikt abweisen, bevor
+      unbekannte Felder oder Container-Payloads verarbeitet werden.
     """
     version = manifest.get("version")
     if not isinstance(version, int) or isinstance(version, bool):
@@ -207,12 +208,13 @@ def migrate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     if version == PROJECT_FORMAT_VERSION:
         return manifest
     if version > PROJECT_FORMAT_VERSION:
-        logger.warning(
-            "Projektdatei-Formatversion %d ist neuer als die unterstützte "
-            "Version %d – lade best-effort, die Datei bleibt unverändert.",
-            version, PROJECT_FORMAT_VERSION,
+        raise ProjectFileError(
+            tr(
+                "project.error.future_version",
+                version=version,
+                supported=PROJECT_FORMAT_VERSION,
+            )
         )
-        return manifest
 
     migrated = manifest
     for step_version in range(version, PROJECT_FORMAT_VERSION):

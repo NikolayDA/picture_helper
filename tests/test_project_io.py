@@ -3,19 +3,19 @@
 Geprüft werden der verlustfreie Round-Trip (Pixel + Metadaten + Rollen), die
 defensive Abweisung beschädigter/zu großer/zip-slip-behafteter Dateien sowie das
 versionierte Migrationsverhalten (älter → migriert, gleich → no-op, neuer →
-unangetastet + Warnung).
+strikt und ohne Dateimutation abgewiesen).
 """
 from __future__ import annotations
 
 import io
 import json
-import logging
 import zipfile
 
 import numpy as np
 import pytest
 from PIL import Image
 
+from bgremover.i18n import tr
 from bgremover.project_io import (
     PROJECT_SUFFIX,
     load_project,
@@ -333,22 +333,24 @@ def test_older_version_manifest_is_migrated() -> None:
     assert migrated["version"] == PROJECT_FORMAT_VERSION
 
 
-def test_future_version_manifest_is_left_untouched_with_warning(caplog) -> None:
+def test_future_version_manifest_is_rejected() -> None:
     project = Project(3, 3)
     project.create_layer(_solid(3, 3, (1, 1, 1, 255)), name="L")
     manifest = build_manifest(project)
-    manifest["version"] = PROJECT_FORMAT_VERSION + 5
+    future = PROJECT_FORMAT_VERSION + 5
+    manifest["version"] = future
 
-    with caplog.at_level(logging.WARNING):
-        result = migrate_manifest(dict(manifest))
+    with pytest.raises(ProjectFileError) as err:
+        migrate_manifest(dict(manifest))
+    assert str(err.value) == tr(
+        "project.error.future_version",
+        version=future,
+        supported=PROJECT_FORMAT_VERSION,
+    )
 
-    assert result["version"] == PROJECT_FORMAT_VERSION + 5  # unangetastet
-    assert any("neuer" in rec.message or "newer" in rec.message.lower()
-               for rec in caplog.records)
 
-
-def test_future_version_file_still_loads_best_effort(tmp_path, caplog) -> None:
-    """Eine Datei mit neuerer Formatversion lädt best-effort (mit Warnung)."""
+def test_future_version_file_is_rejected_without_modification(tmp_path) -> None:
+    """Zukunftsversionen scheitern vor Payload-Verarbeitung und bleiben bytegleich."""
     project = _sample_project()
     path = tmp_path / f"future{PROJECT_SUFFIX}"
     save_project(project, path)
@@ -357,16 +359,25 @@ def test_future_version_file_still_loads_best_effort(tmp_path, caplog) -> None:
     with zipfile.ZipFile(path) as zf:
         members = {name: zf.read(name) for name in zf.namelist()}
     manifest = json.loads(members[MANIFEST_NAME])
-    manifest["version"] = PROJECT_FORMAT_VERSION + 1
+    future = PROJECT_FORMAT_VERSION + 1
+    manifest["version"] = future
+    manifest["future_payload"] = "layer_future.bin"
     members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+    # Dieser unbekannte v3-Eintrag darf nicht einmal in die normale
+    # Container-Mitglieder-Validierung gelangen: die Version wird zuerst
+    # abgewiesen.
+    members["layer_future.bin"] = b"future-format-data"
     _write_zip(path, members)
+    original_bytes = path.read_bytes()
 
-    with caplog.at_level(logging.WARNING):
-        loaded = load_project(path)
-    _assert_projects_equal(loaded, project)
-    # Die im Docstring versprochene Best-effort-Warnung wird tatsächlich geloggt.
-    assert any("neuer" in rec.message or "newer" in rec.message.lower()
-               for rec in caplog.records)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert str(err.value) == tr(
+        "project.error.future_version",
+        version=future,
+        supported=PROJECT_FORMAT_VERSION,
+    )
+    assert path.read_bytes() == original_bytes
 
 
 def test_manifest_without_version_is_rejected() -> None:

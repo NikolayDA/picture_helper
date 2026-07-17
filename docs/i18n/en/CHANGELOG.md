@@ -61,6 +61,11 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the next save in a controlled way; older BgRemover versions (up to
   2.6.0) cannot open v2 projects and report a clear error – the file stays
   untouched. Format reference: `docs/PROJECT_FORMAT.md`.
+- **Future project-format versions are rejected strictly (#588).** A format
+  starting with v3 is stopped before any unknown fields or payloads are
+  processed, with a translated prompt to update the application. The active
+  project and the file remain unchanged, preventing an older version from
+  silently rewriting future data as v2.
 - **16-bit pipeline review hardening (#610).** Height tools plus rotate and
   crop now read and write the canonical payload directly; existing 0…255 UI
   values are scaled to 16 bit at an explicit boundary. The 16-bit EufyMake

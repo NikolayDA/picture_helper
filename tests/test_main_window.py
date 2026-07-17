@@ -9,6 +9,8 @@ gezielt gepatcht, statt eine echte Event-Loop zu starten.
 """
 from __future__ import annotations
 
+import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,8 @@ from bgremover import MainWindow
 from bgremover import main_window as mw
 from bgremover.constants import TOOL_BRUSH, TOOL_WAND
 from bgremover.export_checks import CheckCode, Finding, Severity
+from bgremover.project_io import save_project
+from bgremover.project_schema import MANIFEST_NAME, PROJECT_FORMAT_VERSION
 from bgremover.status_messages import StatusMessages as SM
 
 # Die echte ``_confirm_discard_changes`` zum Importzeitpunkt sichern: die
@@ -818,6 +822,42 @@ def test_open_project_error_keeps_current_project(win, tmp_path, monkeypatch):
 
     assert win._canvas.project is current                 # Projektobjekt unberührt
     assert win._project_path != str(broken)               # Pfad nicht übernommen
+
+
+def test_future_project_version_keeps_current_project(win, tmp_path, monkeypatch):
+    """Eine Zukunftsversion wird vor Canvas-/Pfadübernahme strikt abgewiesen."""
+    win._canvas.apply_loaded_image(
+        Image.new("RGBA", (4, 4), (1, 2, 3, 255)), "seed.png")
+    current = win._canvas.project
+    assert current is not None
+
+    future_path = tmp_path / "future.bgrproj"
+    save_project(current, future_path)
+    with zipfile.ZipFile(future_path) as zf:
+        members = {name: zf.read(name) for name in zf.namelist()}
+    manifest = json.loads(members[MANIFEST_NAME])
+    manifest["version"] = PROJECT_FORMAT_VERSION + 1
+    members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+    with zipfile.ZipFile(future_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in members.items():
+            zf.writestr(name, data)
+    original_bytes = future_path.read_bytes()
+
+    warned: dict[str, str] = {}
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda *args, **kwargs: warned.__setitem__("msg", args[2])
+        or QMessageBox.StandardButton.Ok,
+    )
+
+    win._load_project_into_canvas(str(future_path))
+
+    assert "v3" in warned["msg"]
+    assert "v2" in warned["msg"]
+    assert win._canvas.project is current
+    assert win._project_path != str(future_path)
+    assert future_path.read_bytes() == original_bytes
 
 
 def test_save_project_without_project_reports_status(win):
