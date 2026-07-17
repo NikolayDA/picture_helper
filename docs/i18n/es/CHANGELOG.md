@@ -11,6 +11,21 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Alturas de 16 bits: importación, generación y operaciones sin
+  cuantización de 8 bits (#589, parte de la épica #581).** La importación de
+  mapas de altura ahora lee escala de grises de 16 bits (PNG/TIFF) de forma
+  nativa con los 65536 niveles (con control de endianness); los modos no
+  compatibles, como las imágenes float, se rechazan con un mensaje claro sin
+  crear una capa parcial. Las fuentes de 8 bits y de color siguen la regla de
+  luminancia documentada exactamente hacia el contrato de 16 bits
+  (equivalente a ×257); el alfa solo cuenta como cobertura. La generación
+  escala directamente a 0…65535, las nuevas capas de altura nacen de la
+  payload canónica y los tamaños ajenos se reescalan conservando la
+  precisión. Cada operación de altura está clasificada explícitamente como
+  segura en 16 bits o deliberadamente cuantizadora (los parámetros de
+  identidad son no-ops exactos al bit); los controles 0–255 conservan su
+  escala y explican el mapeo al rango de 16 bits mediante tooltip.
+
 - **Canal de alturas de 16 bits: modelo de dominio e historial sin pérdidas
   (#587, parte de la épica #581).** Las capas HEIGHT ahora llevan sus alturas
   de forma canónica como payload de 16 bits (`Layer.height_data`: valores

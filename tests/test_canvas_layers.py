@@ -1237,3 +1237,187 @@ def test_height_preview_never_writes_back_into_payload(qapp) -> None:
     canvas.cancel_height_preview()
     assert layer.height_data is payload
     assert layer.image is view
+
+
+# ── 16-Bit-Import & Erzeugung (#589) ─────────────────────────────────────
+
+
+def _write_png16(path, values: np.ndarray) -> None:
+    """Schreibt ``uint16``-Werte als natives 16-Bit-Graustufen-PNG."""
+    h, w = values.shape
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    Image.frombytes("I;16", (w, h), raw).save(path)
+
+
+def test_import_height_map_native_16bit_png_preserves_low_bits(qapp, tmp_path) -> None:
+    """16-Bit-PNG-Import: Niederbits landen bitgenau in der kanonischen Payload."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 2, (0, 0, 0, 255)), "base.png")
+    values = np.array([[0x1234, 0x0001], [0xFFFE, 0x8000]], dtype=np.uint16)
+    path = tmp_path / "height16.png"
+    _write_png16(path, values)
+
+    canvas.import_height_map(str(path))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    field = active.height_data
+    assert field is not None
+    assert field.max_value == 65535
+    assert np.array_equal(field.values, values)     # nativ, ohne 8-Bit-Zwischenschritt
+    assert np.all(field.coverage == 255)
+
+
+def test_import_height_map_native_16bit_tiff(qapp, tmp_path) -> None:
+    """16-Bit-Graustufen-TIFF wird verlustfrei importiert."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 2, (0, 0, 0, 255)), "base.png")
+    values = np.array([[0x0101, 0xABCD], [0x0000, 0xFFFF]], dtype=np.uint16)
+    path = tmp_path / "height16.tif"
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    Image.frombytes("I;16", (2, 2), raw).save(path, format="TIFF")
+
+    canvas.import_height_map(str(path))
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert np.array_equal(field.values, values)
+
+
+def test_import_height_map_resizes_via_precise_float_path(qapp, tmp_path) -> None:
+    """Skalierung fremder Größen läuft über resize_height_field (uint16, 65535)."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    values = np.arange(16, dtype=np.uint16).reshape(4, 4) * 4111 + 3
+    _write_png16(tmp_path / "odd.png", values)
+
+    canvas.import_height_map(str(tmp_path / "odd.png"))
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert field.values.shape == (8, 8)
+    assert field.values.dtype == np.uint16
+    assert field.max_value == 65535
+    # Präzisionspfad: das Ergebnis behält mehr als 8-Bit-Stufen (keine
+    # ×257-Vielfachen-Rasterung durch einen RGBA-Zwischenschritt).
+    assert np.any(field.values % 257 != 0)
+
+
+def test_import_height_map_rejects_float_tiff_without_partial_layer(qapp, tmp_path) -> None:
+    """Nicht unterstützte Modi (Float-TIFF): übersetzte Meldung, kein Teil-Layer."""
+    from bgremover.i18n import tr
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(4, 4, (0, 0, 0, 255)), "base.png")
+    path = tmp_path / "float.tif"
+    Image.new("F", (4, 4), 0.5).save(path, format="TIFF")
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+    assert len(canvas.project.layers) == 1                 # kein Teil-Layer
+    assert tr("status.height_source_unsupported", mode="F") in msgs
+
+
+def test_generate_height_map_produces_true_16bit_payload(qapp) -> None:
+    """Erzeugung skaliert direkt auf 0..65535 – feiner als jede ×257-Stufe."""
+    canvas = ImageCanvas()
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, 0] = np.arange(8, dtype=np.uint8) * 30       # Gradient
+    arr[:, :, 3] = 255
+    canvas.apply_loaded_image(Image.fromarray(arr, "RGBA"), "grad.png")
+
+    canvas.generate_height_map(gamma=2.2)
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert field.max_value == 65535
+    # Gamma-Zwischenwerte liegen zwischen den 256 Legacy-Stufen: die Payload
+    # enthält Werte, die kein ×257-Vielfaches sind (echte 16-Bit-Präzision).
+    assert np.any(field.values % 257 != 0)
+    # Undo räumt die Ebene vollständig weg (konsistente History).
+    canvas.undo()
+    assert len(canvas.project.layers) == 1
+
+
+def _handcrafted_png16(color_type: int, pixel_bytes: bytes, w: int, h: int) -> bytes:
+    """Baut ein minimales 16-Bit-PNG (Farbtyp 2/4/6), das PIL nicht schreiben kann."""
+    import struct
+    import zlib
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data)) + tag + data
+            + struct.pack(">I", zlib.crc32(tag + data))
+        )
+
+    channels = {0: 1, 2: 3, 4: 2, 6: 4}[color_type]
+    stride = w * channels * 2
+    raw = b"".join(
+        b"\x00" + pixel_bytes[y * stride:(y + 1) * stride] for y in range(h)
+    )
+    ihdr = struct.pack(">IIBBBBB", w, h, 16, color_type, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+def test_import_rejects_16bit_gray_alpha_png_instead_of_quantizing(qapp, tmp_path) -> None:
+    """16-Bit-Grau+Alpha: PIL liefert nur 8 Bit – Abweisung statt stiller ×257.
+
+    Codex-Review-Befund zu #589: der Luminanz-Fallback würde die von Pillow
+    bereits quantisierten Kanäle still auf ×257-Stufen zurückspreizen.
+    """
+    import struct
+
+    from bgremover.i18n import tr
+
+    # 2×1 Pixel: Grau 0x1234/0xABCD, Alpha voll (Big-Endian, PNG-Norm).
+    pixels = struct.pack(">HHHH", 0x1234, 0xFFFF, 0xABCD, 0xFFFF)
+    path = tmp_path / "gray_alpha16.png"
+    path.write_bytes(_handcrafted_png16(4, pixels, 2, 1))
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 1, (0, 0, 0, 255)), "base.png")
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+
+    assert len(canvas.project.layers) == 1                 # kein Teil-Layer
+    assert any(
+        m == tr("status.height_source_unsupported", mode=mode)
+        for m in msgs
+        for mode in ("LA;16B", "LA;16")
+    )
+
+
+def test_import_rejects_16bit_rgb_png_instead_of_quantizing(qapp, tmp_path) -> None:
+    """Auch 16-Bit-Farb-PNGs werden abgewiesen statt still 8-Bit-quantisiert."""
+    import struct
+
+    pixels = struct.pack(">HHHHHH", 0x1234, 0x0001, 0xFFFE, 0x8000, 0x4242, 0x0100)
+    path = tmp_path / "rgb16.png"
+    path.write_bytes(_handcrafted_png16(2, pixels, 2, 1))
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 1, (0, 0, 0, 255)), "base.png")
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+
+    assert len(canvas.project.layers) == 1
+    assert msgs and "16" in msgs[0]                        # Rohmodus in der Meldung
+
+
+def test_normal_image_loader_still_accepts_quantized_16bit_sources(tmp_path) -> None:
+    """Regression: der normale Bild-Ladepfad zeigt solche Quellen weiter an."""
+    import struct
+
+    from bgremover.image_loading import open_validated_image
+
+    pixels = struct.pack(">HHHH", 0x1234, 0xFFFF, 0xABCD, 0xFFFF)
+    path = tmp_path / "gray_alpha16.png"
+    path.write_bytes(_handcrafted_png16(4, pixels, 2, 1))
+
+    img, err = open_validated_image(str(path))
+    assert err is None
+    assert img is not None and img.mode == "RGBA"          # Anzeigepfad unverändert

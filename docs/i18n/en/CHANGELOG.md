@@ -10,6 +10,20 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **16-bit heights: import, generation and operations without 8-bit
+  quantization (#589, part of epic #581).** The height-map import now reads
+  16-bit grayscale (PNG/TIFF) natively with all 65536 levels
+  (endianness-controlled); unsupported modes such as float images are
+  rejected with a clear message without creating a partial layer. 8-bit and
+  color sources follow the documented luminance rule exactly into the 16-bit
+  contract (×257-equivalent); alpha only ever counts as coverage. Height-map
+  generation scales directly to 0…65535, new height layers are created
+  straight from the canonical payload, and foreign sizes are resized
+  precision-preservingly. Every height operation is explicitly classified as
+  16-bit-safe or deliberately quantizing (identity parameters are bit-exact
+  no-ops); the 0–255 controls keep their scale and explain the mapping onto
+  the 16-bit range via tooltip.
+
 - **16-bit height pipeline: lossless domain model and history (#587, part of
   epic #581).** HEIGHT layers now carry their heights canonically as a 16-bit
   payload (`Layer.height_data`: `uint16` values 0…65535 plus separately

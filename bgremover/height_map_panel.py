@@ -65,13 +65,21 @@ class HeightMapActions:
 
 
 def _spin(lo: int, hi: int, value: int, *, suffix: str = "", width: int = 72) -> QSpinBox:
-    """Einheitlich gestylte Ganzzahl-Eingabe für das Höhen-Panel."""
+    """Einheitlich gestylte Ganzzahl-Eingabe für das Höhen-Panel.
+
+    Höhenwert-Eingaben behalten die vertraute ``0..255``-Skala als
+    Bedienoberfläche; der Tooltip macht die proportionale Abbildung auf den
+    kanonischen 16-Bit-Wertebereich sichtbar (#589) – so bleibt die
+    Feinsteuerung handhabbar, ohne 65536 Einzelschritte zu verlangen.
+    """
     box = _PanelSpinBox()
     box.setRange(lo, hi)
     box.setValue(value)
     if suffix:
         box.setSuffix(suffix)
     box.setFixedWidth(width)
+    if hi == 255:
+        box.setToolTip(tr("right_panel.height.scale_hint"))
     _style_spin_box(box)
     return box
 

@@ -137,6 +137,64 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     Erfolgreich geladene Bilder sind EXIF-orientiert und nach RGBA
     konvertiert.
     """
+    img, _raw_modes, err = _open_validated_raw(path)
+    if img is None:
+        return None, err
+    return ImageOps.exif_transpose(img).convert("RGBA"), None
+
+
+def open_validated_height_image(path: str) -> tuple[Image.Image | None, str | None]:
+    """Öffnet und validiert *path* für den 16-Bit-Höhenimport (#589).
+
+    Identische Schutzschicht wie :func:`open_validated_image` (Dateigrößen-
+    Limit, Struktur-``verify``, Format-Whitelist, Megapixel-/Bomb-Schutz),
+    aber **ohne** die abschließende RGBA-Konvertierung: 16-Bit-Graustufen
+    (PNG ``I;16``/``I``, TIFF ``I;16``/``I;16B``) behalten ihren nativen
+    Pixelmodus und damit alle 65536 Stufen.
+
+    **Abgewiesen** werden 16-Bit-Quellen, die Pillow nur 8-Bit-quantisiert
+    ausliefern kann (16-Bit-Grau **mit Alphakanal** sowie 16-Bit-Farbbilder,
+    Roh-Dekodiermodi wie ``LA;16B``/``RGB;16N``): Die Niederbits wären vor
+    unserem Import bereits verworfen – eine klare Meldung ist ehrlicher als
+    eine stille ``×257``-Requantisierung (Codex-Review-Befund zu #589).
+    Die EXIF-Orientierung wird wie im RGBA-Pfad angewandt; die übrige
+    Moduslogik (nativ vs. Luminanz vs. Abweisung) liegt in
+    :func:`bgremover.height_map.image_to_height_field`.
+    """
+    img, raw_modes, err = _open_validated_raw(path)
+    if img is None:
+        return None, err
+    if img.mode in ("L", "LA", "P", "RGB", "RGBA"):
+        quantized = next((mode for mode in raw_modes if ";16" in mode), None)
+        if quantized is not None:
+            return None, tr("status.height_source_unsupported", mode=quantized)
+    return ImageOps.exif_transpose(img), None
+
+
+def _tile_raw_modes(image: Image.Image) -> tuple[str, ...]:
+    """Roh-Dekodiermodi der Bildkacheln – **vor** ``load()`` ausgelesen.
+
+    Nur über die Kachel-Metadaten ist erkennbar, ob eine Quelle 16-Bit-Kanäle
+    trägt, die Pillow beim Dekodieren auf 8 Bit reduziert (z. B. PNG-Farbtyp
+    „Grau+Alpha" mit Bittiefe 16 → Modus ``LA``, Rohmodus ``LA;16B``).
+    Defensiv extrahiert: unerwartete Kachelformen liefern einfach keine Modi.
+    """
+    modes: list[str] = []
+    for tile in getattr(image, "tile", ()):
+        try:
+            args = tile[3]
+        except (IndexError, TypeError):
+            continue
+        raw = args[0] if isinstance(args, tuple) and args else args
+        if isinstance(raw, str):
+            modes.append(raw)
+    return tuple(modes)
+
+
+def _open_validated_raw(
+    path: str,
+) -> tuple[Image.Image | None, tuple[str, ...], str | None]:
+    """Gemeinsamer, modus-erhaltender Kern der validierten Ladepfade."""
     # Datei genau EINMAL lesen und verify() wie Decode aus diesem Puffer
     # bedienen. Frueher wurde der Pfad zweimal geoeffnet (verify schliesst das
     # File, der Decode oeffnet neu) – dazwischen konnte unter demselben Pfad
@@ -150,7 +208,7 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
             # dem Dekodieren und schützt davor gerade nicht (Befund #230).
             size = os.fstat(fh.fileno()).st_size
             if size > _MAX_INPUT_FILE_BYTES:
-                return None, _file_too_large_message(size)
+                return None, (), _file_too_large_message(size)
             # Begrenzt und in Chunks lesen (kein read() in Limitgröße, das sonst
             # einen 512-MiB-Puffer vorallokiert und kleine Dateien unter knappem
             # Speicher killt). Die fstat-Größe begrenzt den ersten Read, und der
@@ -160,14 +218,14 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
             # ``None`` signalisiert „über dem Limit".
             data = _read_capped(fh, _MAX_INPUT_FILE_BYTES, size)
     except OSError as e:
-        return None, f"{type(e).__name__}: {e}"
+        return None, (), f"{type(e).__name__}: {e}"
 
     if data is None:
         # Inhalt wuchs zwischen fstat() und Lesen über das Limit (TOCTOU) oder
         # das Fileobjekt liefert keine verlässliche Größe. Den genauen Ist-Wert
         # kennen wir hier nicht; „Limit + 1 Byte" zeigt eindeutig die
         # Überschreitung an.
-        return None, _file_too_large_message(_MAX_INPUT_FILE_BYTES + 1)
+        return None, (), _file_too_large_message(_MAX_INPUT_FILE_BYTES + 1)
 
     # verify() prueft die Struktur (Header, Chunks) ohne die Pixel zu
     # dekodieren – manipulierte oder abgeschnittene Dateien werden so
@@ -184,22 +242,24 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
         # (im synchronen load_image-Pfad als ungefangene Exception). Auf
         # dieselbe nutzerfreundliche „zu groß"-Meldung abbilden statt den
         # rohen DOS-Schutz-Text durchzureichen.
-        return None, _too_large_message()
+        return None, (), _too_large_message()
     except (UnidentifiedImageError, SyntaxError, OSError) as e:
-        return None, f"{type(e).__name__}: {e}"
+        return None, (), f"{type(e).__name__}: {e}"
 
     try:
         img: Image.Image = Image.open(io.BytesIO(data))
         if img.format not in _ALLOWED_IMAGE_FORMATS:
-            return None, f"Format nicht unterstützt: {img.format}"
+            return None, (), f"Format nicht unterstützt: {img.format}"
         mp = img.width * img.height / 1_000_000
         if mp > _MAX_MEGAPIXELS:
-            return None, _too_large_message(mp)
+            return None, (), _too_large_message(mp)
+        # Roh-Dekodiermodi VOR load() sichern – danach sind die Kacheln
+        # konsumiert und die 16-Bit-Erkennung (Höhenpfad) unmöglich.
+        raw_modes = _tile_raw_modes(img)
         img.load()
     except Image.DecompressionBombError:
-        return None, _too_large_message()
+        return None, (), _too_large_message()
     except (UnidentifiedImageError, OSError) as e:
-        return None, f"{type(e).__name__}: {e}"
+        return None, (), f"{type(e).__name__}: {e}"
 
-    img = ImageOps.exif_transpose(img).convert("RGBA")
-    return img, None
+    return img, raw_modes, None
