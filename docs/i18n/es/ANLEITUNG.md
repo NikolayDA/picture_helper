@@ -131,7 +131,10 @@ Muchas acciones también están disponibles desde la barra de menú:
   Studio…* (consulta la [sección 11](#11-paso-5--relieve-y-capas) y la
   [sección 12](#12-paso-6--exportar)).
 - **Herramientas** – *Ajustes…* (consulta la
-  [sección 13](#13-configuración)).
+  [sección 13](#13-configuración)), *Buscar actualizaciones…*, *Gestionar
+  modelo de IA…* e *Instalar eliminación de fondo con IA…* (consulta la
+  [sección 7](#7-paso-2--quitar-fondo) y la
+  [sección 18](#18-solución-de-problemas-y-archivo-de-registro)).
 
 ![Menú "Edición"](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
@@ -365,8 +368,14 @@ elimina el fondo de forma totalmente automática. En la primera llamada
 se carga el modelo de IA, lo que puede tardar un momento.
 
 > Si el componente de IA (`rembg`) no está instalado, el botón aparece
-> en gris. Consulta la guía de instalación para configurar la función
-> de IA.
+> en gris. `Herramientas → Instalar eliminación de fondo con IA…` muestra
+> directamente en la app el comando de instalación adecuado para tu
+> plataforma (con botón de copiar); alternativamente, consulta la guía de
+> instalación para configurar la función de IA.
+
+A través de `Herramientas → Gestionar modelo de IA…` puedes comprobar en
+cualquier momento si el modelo de IA ya se ha descargado, e iniciar o
+cancelar la descarga allí.
 
 ### Ajustes de herramienta (tolerancia y tamaño de pincel)
 
@@ -756,9 +765,15 @@ registro con el botón "Abrir carpeta".*
 | **Formato de imagen preferido** | PNG, JPEG, WebP o TIFF – aparece como primera opción en el diálogo de guardar |
 | **Idioma** | Alemán, inglés, español, francés, ucraniano o chino; el cambio surte efecto tras reiniciar |
 | **Archivo de registro** | Muestra la ruta del archivo de registro; el botón "Abrir carpeta" abre el directorio en el gestor de archivos |
+| **Buscar actualizaciones automáticamente al iniciar** | Casilla, desactivada por defecto; comprueba en segundo plano y solo muestra un aviso discreto y clicable en la barra de estado si hay una actualización disponible |
 
-Los directorios, el formato preferido y el idioma se conservan entre
-inicios del programa.
+Los directorios, el formato preferido, el idioma y la opción de búsqueda
+automática de actualizaciones se conservan entre inicios del programa.
+
+A través de `Herramientas → Buscar actualizaciones…` también puedes
+lanzar la comprobación manualmente en cualquier momento; el resultado se
+muestra como un diálogo con un enlace a la página de la versión (si hay
+una actualización disponible).
 
 ---
 
@@ -916,7 +931,7 @@ de registro a un correo de soporte.
 
 | Problema | Posible solución |
 |---|---|
-| Botón de IA en gris | `rembg` no está instalado – consulta la guía de instalación |
+| Botón de IA en gris | `rembg` no está instalado – `Herramientas → Instalar eliminación de fondo con IA…` muestra el comando de instalación, o consulta la guía de instalación |
 | La imagen no se puede abrir | ¿Más de 40 megapíxeles? ¿Formato admitido (sin HEIC/HEIF)? Lee la barra de estado |
 | La IA tarda mucho | La primera llamada carga el modelo – solo una vez, luego es más rápida |
 | Transparencia perdida tras guardar | Guardado como JPEG → elige PNG/WebP/TIFF en su lugar |

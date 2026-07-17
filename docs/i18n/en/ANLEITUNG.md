@@ -121,7 +121,10 @@ Many actions are also available from the menu bar:
   (`.bgrproj`), and *Export assets for EufyMake Studio…* (see
   [section 11](#11-step-5--relief--layers) and
   [section 12](#12-step-6--export)).
-- **Extras** – *Settings…* (see [section 13](#13-settings)).
+- **Extras** – *Settings…* (see [section 13](#13-settings)), *Check for
+  updates…*, *Manage AI model…*, and *Install AI background removal…* (see
+  [section 7](#7-step-2--cutout) and
+  [section 18](#18-troubleshooting--log-file)).
 
 ![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
@@ -329,7 +332,12 @@ removes the background fully automatically. On first use, the AI model is
 loaded, which can take a moment.
 
 > If the AI component (`rembg`) is not installed, the button is greyed out.
-> See the installation guide for setting up the AI feature.
+> `Extras → Install AI background removal…` shows the matching install
+> command for your platform right in the app (with a copy button) – or see
+> the installation guide for setting up the AI feature.
+
+Via `Extras → Manage AI model…` you can always check whether the AI model
+has already been downloaded, and start or cancel the download there.
 
 ### Tool settings (tolerance & brush size)
 
@@ -689,9 +697,14 @@ button.*
 | **Preferred image file format** | PNG, JPEG, WebP, or TIFF – appears as the first option in the save dialog |
 | **Language** | German, English, Spanish, French, Ukrainian, or Chinese; the change takes effect after a restart |
 | **Log file** | Shows the path of the log file; the "Open folder" button opens the directory in the file manager |
+| **Automatically check for updates on start** | Checkbox, off by default; checks silently in the background and only shows a subtle, clickable hint in the status bar when an update is available |
 
-The directories, the preferred file format, and the language are remembered
-across application starts.
+The directories, the preferred file format, the language, and the
+auto-update-check setting are remembered across application starts.
+
+Via `Extras → Check for updates…` you can also trigger the update check
+manually at any time; the result is shown as a dialog with a link to the
+release page (if an update is available).
 
 ---
 
@@ -835,7 +848,7 @@ to a support email.
 
 | Problem | Possible solution |
 |---|---|
-| AI button greyed out | `rembg` is not installed – see the installation guide |
+| AI button greyed out | `rembg` is not installed – `Extras → Install AI background removal…` shows the install command, or see the installation guide |
 | Image cannot be opened | Over 40 megapixels? Format supported (no HEIC/HEIF)? Read the status bar |
 | AI takes very long | First call loads the model – one-time only, faster afterwards |
 | Transparency gone after saving | Saved as JPEG → choose PNG/WebP/TIFF instead |

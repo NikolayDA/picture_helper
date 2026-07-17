@@ -125,7 +125,10 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   *…unter…* (`.bgrproj`) sowie *Assets für EufyMake Studio exportieren…*
   (siehe [Abschnitt 11](#11-schritt-5--relief--ebenen) und
   [Abschnitt 12](#12-schritt-6--export)).
-- **Extras** – *Einstellungen…* (siehe [Abschnitt 13](#13-einstellungen)).
+- **Extras** – *Einstellungen…* (siehe [Abschnitt 13](#13-einstellungen)),
+  *Nach Updates suchen…*, *KI-Modell verwalten…* sowie
+  *KI-Hintergrundentfernung installieren…* (siehe [Abschnitt 7](#7-schritt-2--freistellen)
+  und [Abschnitt 18](#18-fehlerbehebung--log-datei)).
 
 ![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
@@ -353,8 +356,14 @@ entfernen (KI)"** den Hintergrund vollautomatisch. Beim ersten Aufruf wird
 das KI-Modell geladen, das kann einen Moment dauern.
 
 > Ist die KI-Komponente (`rembg`) nicht installiert, ist die Schaltfläche
-> ausgegraut. Siehe Installationsanleitung für die Einrichtung der
-> KI-Funktion.
+> ausgegraut. Über `Extras → KI-Hintergrundentfernung installieren…` zeigt
+> BgRemover direkt in der App den passenden Nachrüst-Befehl für Ihre
+> Plattform an (mit Kopieren-Button) – alternativ hilft die
+> Installationsanleitung bei der Einrichtung der KI-Funktion.
+
+Über `Extras → KI-Modell verwalten…` sehen Sie jederzeit, ob das
+KI-Modell bereits heruntergeladen ist, und können den Download dort
+starten oder abbrechen.
 
 ### Werkzeug-Einstellungen (Toleranz & Pinselgröße)
 
@@ -734,9 +743,14 @@ dem Knopf „Ordner öffnen".*
 | **Bevorzugtes Bilddateiformat** | PNG, JPEG, WebP oder TIFF – erscheint als erste Option im Speichern-Dialog |
 | **Sprache** | Deutsch, Englisch, Spanisch, Französisch, Ukrainisch oder Chinesisch; die Änderung wird nach einem Neustart wirksam |
 | **Protokolldatei** | Zeigt den Pfad der Log-Datei; Knopf „Ordner öffnen" öffnet das Verzeichnis im Dateimanager |
+| **Beim Start automatisch nach Updates suchen** | Checkbox, Standard aus; prüft still im Hintergrund und zeigt nur bei verfügbarem Update einen dezenten, klickbaren Hinweis in der Statusleiste |
 
-Die Verzeichnisse, das bevorzugte Dateiformat und die Sprache bleiben über
-Programmstarts hinweg erhalten.
+Die Verzeichnisse, das bevorzugte Dateiformat, die Sprache sowie die
+Auto-Update-Check-Einstellung bleiben über Programmstarts hinweg erhalten.
+
+Über `Extras → Nach Updates suchen…` lässt sich der Update-Check auch
+jederzeit manuell auslösen; das Ergebnis erscheint als Dialog mit Link zur
+Release-Seite (falls ein Update verfügbar ist).
 
 ---
 
@@ -882,7 +896,7 @@ Knopf **„Ordner öffnen"** öffnet das Verzeichnis direkt im Dateimanager
 
 | Problem | Mögliche Lösung |
 |---|---|
-| KI-Schaltfläche ausgegraut | `rembg` ist nicht installiert – siehe Installationsanleitung |
+| KI-Schaltfläche ausgegraut | `rembg` ist nicht installiert – `Extras → KI-Hintergrundentfernung installieren…` zeigt den Nachrüst-Befehl, alternativ siehe Installationsanleitung |
 | Bild lässt sich nicht öffnen | Über 40 Megapixel? Format unterstützt (kein HEIC/HEIF)? Statusleiste lesen |
 | KI dauert sehr lange | Erster Aufruf lädt das Modell – einmalig, danach schneller |
 | Transparenz weg nach Speichern | Als JPEG gespeichert → stattdessen PNG/WebP/TIFF wählen |
