@@ -32,6 +32,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   the next save in a controlled way; older BgRemover versions (up to
   2.6.0) cannot open v2 projects and report a clear error – the file stays
   untouched. Format reference: `docs/PROJECT_FORMAT.md`.
+- **16-bit pipeline review hardening (#610).** Height tools plus rotate and
+  crop now read and write the canonical payload directly; existing 0…255 UI
+  values are scaled to 16 bit at an explicit boundary. The 16-bit EufyMake
+  export preserves real source low bits instead of spreading the 8-bit view by
+  `×257`, while the 8-bit export quantizes exactly once in a controlled way.
+  Foreign NumPy views are copied before sharing so their base buffers cannot
+  alter duplicates or history snapshots.
 
 ## [2.6.0] – 2026-07-15
 

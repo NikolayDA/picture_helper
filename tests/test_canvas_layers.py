@@ -14,6 +14,7 @@ from PIL import Image
 from PyQt6.QtGui import QColor
 
 from bgremover import ImageCanvas
+from bgremover.height_map import HeightField, scale_8bit_height_value
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole, Project
 
@@ -27,6 +28,27 @@ def _two_layer_project(w: int = 8, h: int = 8) -> Project:
     project = Project(w, h)
     project.create_layer(_solid(w, h, (200, 0, 0, 255)), name="A", kind=LayerKind.COLOR)
     project.create_layer(_solid(w, h, (0, 200, 0, 255)), name="B", kind=LayerKind.COLOR)
+    return project
+
+
+def _height16_project(values: np.ndarray) -> Project:
+    """COLOR-Basis plus aktive HEIGHT-Ebene mit echten Niederbits."""
+    height, width = values.shape
+    project = Project(width, height)
+    project.create_layer(
+        _solid(width, height, (200, 0, 0, 255)),
+        name="C",
+        kind=LayerKind.COLOR,
+    )
+    project.create_layer(
+        name="H",
+        kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            values.copy(),
+            np.full(values.shape, 255, dtype=np.uint8),
+            max_value=65535,
+        ),
+    )
     return project
 
 
@@ -164,6 +186,39 @@ def test_crop_transforms_all_layers(qapp) -> None:
     assert w == h
     for layer in canvas.project.layers:
         assert layer.size == (w, h)
+
+
+def test_rotate_preserves_canonical_height_low_bits_and_undo(qapp) -> None:
+    values = np.array(
+        [[0x1201, 0x1202, 0x12FE], [0x3401, 0x3402, 0x34FE]],
+        dtype=np.uint16,
+    )
+    canvas = ImageCanvas()
+    canvas.set_project(_height16_project(values))
+
+    canvas.apply_rotate(90)
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert np.array_equal(field.values, np.rot90(values))
+
+    canvas.undo()
+    restored = canvas.project.active_layer().height_data
+    assert restored is not None
+    assert np.array_equal(restored.values, values)
+
+
+def test_crop_preserves_canonical_height_low_bits(qapp) -> None:
+    values = np.full((4, 6), 0x1234, dtype=np.uint16)
+    canvas = ImageCanvas()
+    canvas.set_project(_height16_project(values))
+
+    canvas.start_crop_ratio(1, 1)
+    canvas.confirm_crop()
+
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert field.size == (4, 4)
+    assert np.all(field.values == 0x1234)
 
 
 def test_selection_mask_tracks_active_layer_size(qapp) -> None:
@@ -923,6 +978,25 @@ def test_height_edit_respects_selection(qapp) -> None:
     assert np.all(arr[:, 4:, 0] == 0)           # außerhalb unverändert
 
 
+def test_height_edit_uses_payload_and_preserves_unmodified_low_bits(qapp) -> None:
+    values = np.full((4, 4), 0x1234, dtype=np.uint16)
+    canvas = ImageCanvas()
+    canvas.set_project(_height16_project(values))
+    mask = np.zeros((4, 4), dtype=bool)
+    mask[:, :2] = True
+    canvas._mask = mask
+
+    canvas.lighten_active_height(1)
+
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert np.all(field.values[:, :2] == 0x1234 + 257)
+    assert np.all(field.values[:, 2:] == 0x1234)
+
+    canvas.lighten_active_height(0)
+    assert np.all(canvas.project.active_layer().height_data.values[:, 2:] == 0x1234)
+
+
 def test_height_tools_ignore_color_layer(qapp) -> None:
     """Höhenwerkzeuge wirken nicht auf COLOR-Ebenen (keine Regression)."""
     canvas = ImageCanvas()
@@ -945,7 +1019,11 @@ def test_height_tools_ignore_color_layer(qapp) -> None:
 
 def _levels_op(field):
     from bgremover.height_ops import levels
-    return levels(field, 0, 200)            # Höhe 100 → 0.5*255 → 128
+    return levels(
+        field,
+        0,
+        scale_8bit_height_value(200, field),
+    )                                       # Höhe 100 → 0.5*255 → 128
 
 
 def test_height_op_preview_is_nondestructive(qapp) -> None:

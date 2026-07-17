@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from PIL import Image
 
 from bgremover.constants import _MAX_MEGAPIXELS
+from bgremover.height_map import rotate_height_field
 from bgremover.i18n import tr
 from bgremover.image_ops import (
     flip_image,
@@ -72,6 +73,7 @@ class CanvasTransform:
         self._canvas.apply_geometry(
             lambda im: rotate_image(im, degrees),
             desc=tr("history.desc.rotated", direction=direction, degrees=abs(degrees)),
+            height_transform=lambda field: rotate_height_field(field, degrees),
         )
         result = self._canvas.image
         assert result is not None

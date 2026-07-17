@@ -18,6 +18,7 @@ from bgremover.height_map import (
     HeightField,
     HeightMapError,
     adjust_height,
+    crop_height_field,
     expand_to_16bit,
     generate_from_image,
     height_to_layer,
@@ -26,6 +27,8 @@ from bgremover.height_map import (
     layer_to_height,
     normalize_to_height,
     resize_height_field,
+    rotate_height_field,
+    scale_8bit_height_value,
     set_height,
     validate_canvas_size,
 )
@@ -447,6 +450,40 @@ def test_resize_height_field_rejects_nonpositive_target() -> None:
         resize_height_field(field, 0, 4)
     with pytest.raises(HeightMapError):
         resize_height_field(field, 4, -1)
+
+
+def test_rotate_height_field_preserves_low_bits_and_coverage() -> None:
+    values = np.array(
+        [[0x1201, 0x1202, 0x12FE], [0x3401, 0x3402, 0x34FE]],
+        dtype=np.uint16,
+    )
+    coverage = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.uint8)
+    field = HeightField(values, coverage, HEIGHT_MAX_16BIT)
+    rotated = rotate_height_field(field, 90)
+    assert np.array_equal(rotated.values, np.rot90(values))
+    assert np.array_equal(rotated.coverage, np.rot90(coverage))
+    assert rotated.max_value == HEIGHT_MAX_16BIT
+
+
+def test_crop_height_field_preserves_low_bits_and_masks_only_coverage() -> None:
+    values = np.arange(24, dtype=np.uint16).reshape(4, 6) + 0x1200
+    coverage = np.full((4, 6), 200, dtype=np.uint8)
+    field = HeightField(values, coverage, HEIGHT_MAX_16BIT)
+    cropped = crop_height_field(field, (1, 0, 4, 4), is_circle=True)
+    assert np.array_equal(cropped.values, values[:, 1:5])
+    assert int(cropped.coverage[0, 0]) == 0
+    assert int(cropped.coverage[2, 2]) == 200
+
+
+def test_scale_8bit_height_value_preserves_existing_ui_semantics() -> None:
+    field = HeightField(
+        np.zeros((1, 1), dtype=np.uint16),
+        np.full((1, 1), 255, dtype=np.uint8),
+        HEIGHT_MAX_16BIT,
+    )
+    assert scale_8bit_height_value(0, field) == 0
+    assert scale_8bit_height_value(128, field) == 128 * 257
+    assert scale_8bit_height_value(255, field) == 65535
 
 
 def test_generate_from_image_rejects_non_contract_max_value() -> None:

@@ -34,6 +34,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   BgRemover-Versionen (bis 2.6.0) können v2-Projekte nicht öffnen und melden
   einen klaren Fehler – die Datei bleibt unangetastet. Formatreferenz:
   `docs/PROJECT_FORMAT.md`.
+- **Review-Härtung der 16-Bit-Pipeline (#610).** Höhenwerkzeuge sowie Drehen
+  und Zuschneiden lesen und schreiben jetzt direkt die kanonische Payload;
+  bestehende 0…255-UI-Werte werden an einer expliziten Grenze auf 16 Bit
+  skaliert. Der 16-Bit-EufyMake-Export übernimmt echte Quell-Niederbits statt
+  die 8-Bit-Ansicht per `×257` zu spreizen, während der 8-Bit-Export genau
+  einmal kontrolliert quantisiert. Fremde NumPy-Sichten werden vor dem Teilen
+  kopiert, sodass Basispuffer weder Duplikate noch Verlaufssnapshots verändern.
 
 ## [2.6.0] – 2026-07-15
 

@@ -14,6 +14,7 @@ from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QGraphicsScene
 
 from bgremover.crop import CropOverlayItem
+from bgremover.height_map import crop_height_field
 from bgremover.i18n import tr
 from bgremover.image_ops import crop_image, crop_size_for_ratio
 from bgremover.status_messages import StatusMessages as SM
@@ -107,6 +108,9 @@ class CanvasCrop:
         self._canvas.apply_geometry(
             lambda im: crop_image(im, (cx, cy, cw, ch), is_circle=is_circle),
             desc=desc,
+            height_transform=lambda field: crop_height_field(
+                field, (cx, cy, cw, ch), is_circle=is_circle
+            ),
         )
         result = self._canvas.image
         assert result is not None

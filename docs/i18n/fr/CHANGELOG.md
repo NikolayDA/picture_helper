@@ -36,6 +36,14 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   enregistrement ; les anciennes versions de BgRemover (jusqu'à 2.6.0) ne
   peuvent pas ouvrir les projets v2 et signalent une erreur claire – le
   fichier reste intact. Référence du format : `docs/PROJECT_FORMAT.md`.
+- **Durcissement après revue de la pipeline 16 bits (#610).** Les outils de
+  hauteur, la rotation et le recadrage lisent et écrivent désormais directement
+  la payload canonique ; les valeurs UI existantes 0…255 sont converties en
+  16 bits à une frontière explicite. L'export EufyMake 16 bits conserve les
+  véritables bits de poids faible de la source au lieu d'étendre la vue 8 bits
+  par `×257`, tandis que l'export 8 bits ne quantifie qu'une fois de manière
+  contrôlée. Les vues NumPy externes sont copiées avant partage afin que leurs
+  buffers de base ne modifient ni les duplicatas ni l'historique.
 
 ## [2.6.0] – 2026-07-15
 
