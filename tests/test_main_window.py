@@ -1376,6 +1376,28 @@ def test_open_ai_model_dialog_wires_signals(win, monkeypatch):
     assert dlg.receivers(dlg.cancel_requested) >= 1
 
 
+def test_open_ai_install_dialog_creates_dialog_with_parent(win, monkeypatch):
+    """#597: `_open_ai_install_dialog` instanziiert `AiInstallDialog` mit
+    `parent=self` (analog zu `test_open_ai_model_dialog_wires_signals`)."""
+
+    created: list = []
+
+    class _RecordingDialog(mw.AiInstallDialog):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            created.append(self)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(mw, "AiInstallDialog", _RecordingDialog)
+
+    win._open_ai_install_dialog()
+
+    assert len(created) == 1
+    assert created[0].parent() is win
+
+
 def test_open_ai_model_dialog_shows_progress_immediately_if_warmup_running(
     win, monkeypatch,
 ):
