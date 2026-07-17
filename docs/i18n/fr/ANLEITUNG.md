@@ -589,9 +589,16 @@ Via le menu **Projet**, vous travaillez avec des fichiers de projet :
   sous…** (Ctrl+Alt+Maj+S).
 
 Un fichier `.bgrproj` est une archive comprenant un **manifeste** (ordre,
-types, rôles, noms, dimensions physiques) et **un PNG par calque**. Ainsi,
-tous les calques sont conservés sans perte, transparence comprise. Les
-projets apparaissent aussi sous « Récemment ouverts » (voir la
+types, rôles, noms, dimensions physiques) et **un PNG par calque** ; les
+calques de hauteur enregistrent en plus leurs valeurs de hauteur 16 bits
+dans un fichier dédié (version de format 2). Ainsi, tous les calques sont
+conservés sans perte – transparence comprise et hauteurs en pleine
+précision. Les anciens projets sont repris automatiquement à l'ouverture
+et convertis au nouveau format au prochain enregistrement. Les anciennes
+versions de BgRemover (jusqu'à 2.6.0) ne peuvent pas ouvrir les fichiers
+de projet v2 et signalent une entrée inattendue – le fichier reste
+intact. Les projets
+apparaissent aussi sous « Récemment ouverts » (voir la
 [section 4](#4-étape-1--ouvrir-une-image)).
 
 ### Cartes de hauteur : obtenir

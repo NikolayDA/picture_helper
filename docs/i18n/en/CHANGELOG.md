@@ -8,6 +8,38 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- **16-bit height pipeline: lossless domain model and history (#587, part of
+  epic #581).** HEIGHT layers now carry their heights canonically as a 16-bit
+  payload (`Layer.height_data`: `uint16` values 0…65535 plus separately
+  tracked coverage) per ADR #586; `Layer.image` is only the derived 8-bit
+  view there and is never read back. Undo/redo snapshots the payload
+  bit-exactly (3 B/px instead of the 4 B/px view within the 256 MiB budget),
+  duplicate/reorder/delete preserve the low bits, resizing interpolates the
+  heights in `float32` instead of on 8-bit channels, and existing 8-bit data
+  migrates deterministically (`×257`) through a deliberately temporary,
+  logged compatibility adapter. The project file format (v1) and export stay
+  unchanged in this step (#588/#590 follow); COLOR/GLOSS layers are
+  regression-free.
+- **Project format v2: 16-bit heights bit-exact in the `.bgrproj` file
+  (#588, part of epic #581).** Height layers now additionally store their
+  canonical `uint16` height values as a 16-bit grayscale PNG inside the
+  project container (endianness-controlled, sha256-integrity-protected
+  against truncated/swapped payloads, dedicated entry limit) – the
+  save/open roundtrip preserves the low bits exactly. Existing v1 projects
+  load unchanged (deterministic ×257 migration) and are written as v2 on
+  the next save in a controlled way; older BgRemover versions (up to
+  2.6.0) cannot open v2 projects and report a clear error – the file stays
+  untouched. Format reference: `docs/PROJECT_FORMAT.md`.
+- **16-bit pipeline review hardening (#610).** Height tools plus rotate and
+  crop now read and write the canonical payload directly; existing 0…255 UI
+  values are scaled to 16 bit at an explicit boundary. The 16-bit EufyMake
+  export preserves real source low bits instead of spreading the 8-bit view by
+  `×257`, while the 8-bit export quantizes exactly once in a controlled way.
+  Foreign NumPy views are copied before sharing so their base buffers cannot
+  alter duplicates or history snapshots.
+
 ## [2.6.0] – 2026-07-15
 
 ### Added

@@ -575,8 +575,14 @@ In der Karte *Ebenen* verwalten Sie die Ebenenliste:
   (Strg+Alt+Umschalt+S).
 
 Eine `.bgrproj`-Datei ist ein Archiv aus einem **Manifest** (Reihenfolge,
-Arten, Rollen, Namen, physische Maße) und **je einem PNG pro Ebene**. So
-bleiben alle Ebenen samt Transparenz verlustfrei erhalten. Projekte
+Arten, Rollen, Namen, physische Maße) und **je einem PNG pro Ebene**;
+Höhen-Ebenen speichern zusätzlich ihre 16-Bit-Höhenwerte in einer eigenen
+Datei (Formatversion 2). So bleiben alle Ebenen samt Transparenz – und
+Höhen in voller Präzision – verlustfrei erhalten. Ältere Projekte werden
+beim Öffnen automatisch übernommen und beim nächsten Speichern ins neue
+Format überführt. Ältere BgRemover-Versionen (bis 2.6.0) können
+v2-Projektdateien nicht öffnen und melden einen unerwarteten Eintrag –
+die Datei bleibt dabei unangetastet. Projekte
 erscheinen zusätzlich unter „Zuletzt geöffnet" (siehe
 [Abschnitt 4](#4-schritt-1--bild-öffnen)).
 

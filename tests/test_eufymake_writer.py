@@ -26,6 +26,7 @@ from bgremover.eufymake_writer import (
     render_export,
     write_export,
 )
+from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.project_model import (
     META_BIT_DEPTH,
     LayerKind,
@@ -120,6 +121,27 @@ def test_height_16bit_spreads_losslessly() -> None:
     assert height.image.mode == "I;16"
     row = np.asarray(height.image)[0]
     assert row.tolist() == [0, 65535]
+
+
+def test_height_16bit_export_preserves_canonical_payload_low_bits() -> None:
+    project = _color_project((3, 1))
+    values = np.array([[0x1201, 0x1234, 0x12FE]], dtype=np.uint16)
+    layer = project.create_layer(
+        name="Höhe",
+        kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            values,
+            np.full(values.shape, 255, dtype=np.uint8),
+            HEIGHT_MAX_16BIT,
+        ),
+    )
+    project.assign_role(layer.id, LayerRole.HEIGHT_MAP)
+    project.metadata[META_BIT_DEPTH] = 16
+
+    height = render_export(project, build_export_plan(project)).assets[1]
+
+    assert height.image.mode == "I;16"
+    assert np.array_equal(np.asarray(height.image), values)
 
 
 def test_gloss_is_grayscale() -> None:

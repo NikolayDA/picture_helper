@@ -66,6 +66,7 @@ from bgremover.height_map import (
     invert_height,
     layer_to_gray_image,
     layer_to_height,
+    scale_8bit_height_value,
     set_height,
 )
 from bgremover.i18n import tr
@@ -534,10 +535,36 @@ class ImageCanvas(QGraphicsView):
         active.image = rgba
         self._set_image_state()
 
+    def _apply_height_field(
+        self,
+        field: HeightField,
+        *,
+        push: bool = True,
+        desc: str | None = None,
+    ) -> None:
+        """Ersetzt die kanonische Payload der aktiven HEIGHT-Ebene.
+
+        Anders als :meth:`_apply_pil` führt dieser Pfad weder beim Lesen noch
+        beim Schreiben über die abgeleitete 8-Bit-Ansicht. History und
+        Canvas-Größenvalidierung bleiben identisch zum übrigen Modellpfad.
+        """
+        if self._project is None:
+            return
+        active = self._project.active_layer()
+        if active is None or active.kind is not LayerKind.HEIGHT:
+            raise HeightMapError("Aktive Ebene ist keine HEIGHT-Ebene")
+        if push:
+            self._history.push(self._project, desc or tr("history.desc.generic"))
+            self._emit_history()
+        self._project.set_layer_height_data(active.id, field)
+        self._set_image_state()
+
     def apply_geometry(
         self,
         transform: Callable[[Image.Image], Image.Image],
         desc: str,
+        *,
+        height_transform: Callable[[HeightField], HeightField],
     ) -> None:
         """Wendet eine **größenändernde** Geometrie auf das **ganze** Projekt an.
 
@@ -549,14 +576,30 @@ class ImageCanvas(QGraphicsView):
         """
         if self._project is None:
             return
+        transformed: list[tuple[Layer, Image.Image | HeightField]] = []
+        for layer in self._project.layers:
+            if layer.kind is LayerKind.HEIGHT:
+                field = layer.height_data
+                assert field is not None
+                transformed.append((layer, height_transform(field)))
+            else:
+                result = transform(layer.image)
+                transformed.append(
+                    (layer, result if result.mode == "RGBA" else result.convert("RGBA"))
+                )
+        if not transformed:
+            return
+        target_size = transformed[0][1].size
+        if any(result.size != target_size for _layer, result in transformed):
+            raise HeightMapError("Geometrie lieferte uneinheitliche Ebenengrößen")
         self._history.push(self._project, desc)
         self._emit_history()
-        for layer in self._project.layers:
-            result = transform(layer.image)
-            layer.image = result if result.mode == "RGBA" else result.convert("RGBA")
-        active = self._project.active_layer()
-        assert active is not None
-        self._project.width, self._project.height = active.image.size
+        for layer, transformed_result in transformed:
+            if isinstance(transformed_result, HeightField):
+                layer.set_height_data(transformed_result)
+            else:
+                layer.image = transformed_result
+        self._project.width, self._project.height = target_size
         self._set_image_state()
 
     def _render_export_image(self) -> Image.Image | None:
@@ -699,13 +742,15 @@ class ImageCanvas(QGraphicsView):
             return None
         layer_id, preview_image = self._preview_layer_override
         layer = self._project.layer_by_id(layer_id)
-        original = layer.image
         self._preview_render_cache = None
+        # Nur die Anzeige-Sicht tauschen (#587): die kanonische Höhen-Payload
+        # einer HEIGHT-Ebene bleibt unberührt – eine abgeleitete Vorschau kann
+        # so nie in den 16-Bit-Zustand zurückgeschrieben werden (ADR #586).
+        original = layer.swap_display_view(preview_image)
         try:
-            layer.image = preview_image
             return self._render_image()
         finally:
-            layer.image = original
+            layer.swap_display_view(original)
             self._preview_render_cache = None
 
     def _refresh_image(self) -> None:
@@ -1105,11 +1150,13 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit(tr("canvas.not_height_layer"))
             return None
         mask = self._selection.mask if self._selection.has_selection else None
-        return layer_to_height(active.image), mask
+        field = active.height_data
+        assert field is not None
+        return field, mask
 
     def _run_height_edit(self, new_field: HeightField, desc: str, status: str) -> None:
         """Schreibt ein bearbeitetes Höhenfeld undo-fähig in die aktive Ebene."""
-        self._apply_pil(height_to_layer(new_field), desc=desc)
+        self._apply_height_field(new_field, desc=desc)
         self.statusMsg.emit(status)
 
     @_requires_image
@@ -1120,7 +1167,7 @@ class ImageCanvas(QGraphicsView):
             return
         field, mask = ctx
         self._run_height_edit(
-            adjust_height(field, amount, mask=mask),
+            adjust_height(field, scale_8bit_height_value(amount, field), mask=mask),
             tr("history.desc.height_lighten"), tr("canvas.height_lightened"))
 
     @_requires_image
@@ -1131,7 +1178,7 @@ class ImageCanvas(QGraphicsView):
             return
         field, mask = ctx
         self._run_height_edit(
-            adjust_height(field, -amount, mask=mask),
+            adjust_height(field, -scale_8bit_height_value(amount, field), mask=mask),
             tr("history.desc.height_darken"), tr("canvas.height_darkened"))
 
     @_requires_image
@@ -1142,7 +1189,7 @@ class ImageCanvas(QGraphicsView):
             return
         field, mask = ctx
         self._run_height_edit(
-            set_height(field, value, mask=mask),
+            set_height(field, scale_8bit_height_value(value, field), mask=mask),
             tr("history.desc.height_set"), tr("canvas.height_set"))
 
     @_requires_image
@@ -1169,10 +1216,16 @@ class ImageCanvas(QGraphicsView):
         if active is None or active.kind is not LayerKind.HEIGHT:
             self.statusMsg.emit(tr("canvas.not_height_layer"))
             return
-        field = layer_to_height(active.image)
-        amount = (
+        field = active.height_data
+        assert field is not None
+        ui_amount = (
             _DEFAULT_HEIGHT_STEP
             if self._tool == TOOL_HEIGHT_LIGHTEN else -_DEFAULT_HEIGHT_STEP
+        )
+        amount = (
+            scale_8bit_height_value(ui_amount, field)
+            if ui_amount >= 0
+            else -scale_8bit_height_value(-ui_amount, field)
         )
         self._height_stroke = _HeightStroke(
             layer_id=active.id,

@@ -9,6 +9,41 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Canal de alturas de 16 bits: modelo de dominio e historial sin pérdidas
+  (#587, parte de la épica #581).** Las capas HEIGHT ahora llevan sus alturas
+  de forma canónica como payload de 16 bits (`Layer.height_data`: valores
+  `uint16` 0…65535 más cobertura gestionada por separado) según el ADR #586;
+  `Layer.image` es allí solo la vista derivada de 8 bits y nunca se vuelve a
+  leer. Deshacer/rehacer captura la payload con exactitud de bits (3 B/px en
+  lugar de la vista de 4 B/px dentro del presupuesto de 256 MiB),
+  duplicar/reordenar/eliminar conservan los bits bajos, el escalado interpola
+  las alturas en `float32` en vez de sobre canales de 8 bits, y los datos de
+  8 bits existentes migran de forma determinista (`×257`) mediante un
+  adaptador de compatibilidad temporal y registrado. El formato de proyecto
+  (v1) y la exportación no cambian en este paso (#588/#590 seguirán); las
+  capas COLOR/GLOSS quedan libres de regresiones.
+- **Formato de proyecto v2: alturas de 16 bits con exactitud de bits en el
+  archivo `.bgrproj` (#588, parte de la épica #581).** Las capas de altura
+  ahora guardan además sus valores canónicos `uint16` como PNG en escala de
+  grises de 16 bits dentro del contenedor del proyecto (con control de
+  endianness, integridad sha256 contra payloads truncados o intercambiados
+  y límite de entrada propio): el ciclo guardar/abrir conserva los bits
+  bajos con exactitud. Los proyectos v1 existentes cargan sin cambios
+  (migración determinista ×257) y se escriben de forma controlada como v2
+  al volver a guardar; las versiones antiguas de BgRemover (hasta 2.6.0)
+  no pueden abrir proyectos v2 e informan de un error claro; el archivo
+  queda intacto. Referencia del formato: `docs/PROJECT_FORMAT.md`.
+- **Refuerzo tras la revisión del canal de 16 bits (#610).** Las herramientas
+  de altura, el giro y el recorte ahora leen y escriben directamente el payload
+  canónico; los valores existentes de la UI 0…255 se escalan a 16 bits en un
+  límite explícito. La exportación EufyMake de 16 bits conserva los bits bajos
+  reales de la fuente en vez de expandir la vista de 8 bits con `×257`, mientras
+  que la exportación de 8 bits cuantiza una sola vez de forma controlada. Las
+  vistas NumPy ajenas se copian antes de compartirlas para que sus buffers base
+  no alteren duplicados ni instantáneas del historial.
+
 ## [2.6.0] – 2026-07-15
 
 ### Añadido

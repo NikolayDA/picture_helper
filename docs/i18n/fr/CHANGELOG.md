@@ -9,6 +9,42 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Modifié
+
+- **Pipeline de hauteurs 16 bits : modèle de domaine et historique sans perte
+  (#587, partie de l'épopée #581).** Les calques HEIGHT portent désormais
+  leurs hauteurs de manière canonique sous forme de payload 16 bits
+  (`Layer.height_data` : valeurs `uint16` 0…65535 plus couverture gérée
+  séparément) selon l'ADR #586 ; `Layer.image` n'y est plus que la vue 8 bits
+  dérivée et n'est jamais relue. Annuler/rétablir capture la payload au bit
+  près (3 o/px au lieu de la vue à 4 o/px dans le budget de 256 Mio),
+  dupliquer/réordonner/supprimer préservent les bits de poids faible, le
+  redimensionnement interpole les hauteurs en `float32` au lieu de canaux
+  8 bits, et les données 8 bits existantes migrent de façon déterministe
+  (`×257`) via un adaptateur de compatibilité temporaire et journalisé. Le
+  format de projet (v1) et l'export restent inchangés à cette étape
+  (#588/#590 suivront) ; les calques COLOR/GLOSS sont sans régression.
+- **Format de projet v2 : hauteurs 16 bits au bit près dans le fichier
+  `.bgrproj` (#588, partie de l'épopée #581).** Les calques de hauteur
+  enregistrent désormais en plus leurs valeurs canoniques `uint16` sous
+  forme de PNG en niveaux de gris 16 bits dans le conteneur de projet
+  (endianness contrôlée, intégrité sha256 contre les payloads tronqués ou
+  intervertis, limite d'entrée dédiée) – l'aller-retour
+  enregistrer/ouvrir préserve exactement les bits de poids faible. Les
+  projets v1 existants se chargent sans changement (migration déterministe
+  ×257) et sont réécrits de manière contrôlée en v2 au prochain
+  enregistrement ; les anciennes versions de BgRemover (jusqu'à 2.6.0) ne
+  peuvent pas ouvrir les projets v2 et signalent une erreur claire – le
+  fichier reste intact. Référence du format : `docs/PROJECT_FORMAT.md`.
+- **Durcissement après revue de la pipeline 16 bits (#610).** Les outils de
+  hauteur, la rotation et le recadrage lisent et écrivent désormais directement
+  la payload canonique ; les valeurs UI existantes 0…255 sont converties en
+  16 bits à une frontière explicite. L'export EufyMake 16 bits conserve les
+  véritables bits de poids faible de la source au lieu d'étendre la vue 8 bits
+  par `×257`, tandis que l'export 8 bits ne quantifie qu'une fois de manière
+  contrôlée. Les vues NumPy externes sont copiées avant partage afin que leurs
+  buffers de base ne modifient ni les duplicatas ni l'historique.
+
 ## [2.6.0] – 2026-07-15
 
 ### Ajouté

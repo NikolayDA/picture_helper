@@ -18,6 +18,12 @@ Invarianten:
   beim Einfügen abgelehnt.
 - Eine **Rolle** ist projektweit eindeutig: höchstens eine Ebene je Rolle.
 - Operationen auf einer unbekannten Ebenen-ID werfen :class:`LayerNotFoundError`.
+- **16-Bit-HEIGHT-Vertrag (ADR #586, #587):** Eine HEIGHT-Ebene hält ihre Höhen
+  kanonisch als :class:`~bgremover.height_map.HeightField` (``uint16``-Werte,
+  ``uint8``-Deckung, ``max_value=65535``) in :attr:`Layer.height_data`;
+  :attr:`Layer.image` ist dort nur die **abgeleitete 8-Bit-Ansicht** (für
+  Anzeige/PIL-Konsumenten, wird nie zurückgelesen). COLOR-/GLOSS-/GENERIC-Ebenen
+  bleiben unverändert 8-Bit-RGBA ohne Payload.
 """
 from __future__ import annotations
 
@@ -29,10 +35,19 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+from bgremover.constants import logger
+from bgremover.height_map import (
+    HeightField,
+    expand_to_16bit,
+    height_to_layer,
+    layer_to_height,
+    resize_height_field,
+    validate_canvas_size,
+)
+
 # ``image_ops`` ist seit dem #359-Review import-zeitlich Qt-frei (lazy ``numpy_to_pil``),
 # daher kann das Domänenmodell die reine ``resize_image``-Primitive direkt nutzen,
 # ohne PyQt6 einzuziehen – ``Project.resize`` bleibt headless aufrufbar.
-from bgremover.height_map import layer_to_gray_image
 from bgremover.image_ops import resize_image
 from bgremover.units import dpi_for_size, parse_size_mm, size_mm_for_dpi
 
@@ -149,24 +164,36 @@ class Layer:
     """Eine einzelne Bild-Ebene mit stabiler ID und RGBA-Pixeldaten.
 
     ``image`` akzeptiert ein Pillow-Bild *oder* ein RGBA-numpy-Array und wird
-    stets als **eigenständige** RGBA-Kopie gehalten (siehe :func:`_ensure_rgba`);
-    so können typisierte Bildverarbeitungsmodule numpy-Puffer ohne
-    ``# type: ignore`` übergeben. ``opacity`` liegt in ``[0.0, 1.0]``. Eine
-    optionale ``role`` ist projektweit eindeutig (siehe :class:`Project`). ``id``
-    bleibt stabil; ohne Angabe wird eine UUID erzeugt. Ebenen werden per Identität
-    verglichen, nicht über die – teuren und mehrdeutigen – Pixelinhalte.
+    beim Anlegen als **eigenständige** RGBA-Kopie gehalten (siehe
+    :func:`_ensure_rgba`); so können typisierte Bildverarbeitungsmodule
+    numpy-Puffer ohne ``# type: ignore`` übergeben. ``opacity`` liegt in
+    ``[0.0, 1.0]``. Eine optionale ``role`` ist projektweit eindeutig (siehe
+    :class:`Project`). ``id`` bleibt stabil; ohne Angabe wird eine UUID erzeugt.
+    Ebenen werden per Identität verglichen, nicht über die – teuren und
+    mehrdeutigen – Pixelinhalte.
+
+    **HEIGHT-Ebenen (16-Bit-Vertrag, ADR #586):** Kanonisch ist ausschließlich
+    :attr:`height_data` (``HeightField`` mit ``max_value=65535``; ein
+    Legacy-Feld mit ``max_value=255`` wird beim Übernehmen deterministisch via
+    :func:`~bgremover.height_map.expand_to_16bit` gehoben). :attr:`image` ist
+    dort die daraus **abgeleitete 8-Bit-Ansicht** – bei jeder Payload-Änderung
+    genau einmal neu berechnet, nie zurückgelesen. Höhen schreiben laufen über
+    :meth:`set_height_data`; eine ``image``-Zuweisung auf einer HEIGHT-Ebene
+    läuft über den bewusst befristeten Legacy-Adapter (8-Bit → ``×257``),
+    bis die verbleibenden 8-Bit-Aufrufer in #589 umgestellt sind.
     """
 
     def __init__(
         self,
         name: str,
         kind: LayerKind,
-        image: Image.Image | np.ndarray,
+        image: Image.Image | np.ndarray | None = None,
         id: str | None = None,
         visible: bool = True,
         opacity: float = 1.0,
         locked: bool = False,
         role: LayerRole | None = None,
+        height_data: HeightField | None = None,
     ) -> None:
         if not role_allowed_for_kind(role, kind):
             raise IncompatibleRoleError(
@@ -174,17 +201,146 @@ class Layer:
             )
         self.name = name
         self.kind = kind
-        self.image = _ensure_rgba(image)
         self.id = id if id is not None else uuid.uuid4().hex
         self.visible = visible
         self.opacity = _validate_opacity(opacity)
         self.locked = locked
         self.role = role
+        self._image: Image.Image
+        self._height_data: HeightField | None = None
+        if kind is LayerKind.HEIGHT:
+            if height_data is not None:
+                if image is not None:
+                    raise ProjectModelError(
+                        "HEIGHT-Ebene: image und height_data zugleich sind mehrdeutig – "
+                        "die Ansicht wird ausschließlich aus der Payload abgeleitet"
+                    )
+                self._adopt_height_data(height_data)
+            elif image is not None:
+                self._migrate_legacy_image(_ensure_rgba(image))
+            else:
+                raise ProjectModelError(
+                    "HEIGHT-Ebene braucht height_data oder (Legacy-)Bilddaten"
+                )
+        else:
+            if height_data is not None:
+                raise ProjectModelError(
+                    f"height_data ist nur auf HEIGHT-Ebenen erlaubt, Ebenen-Typ war {kind}"
+                )
+            if image is None:
+                raise ProjectModelError(f"Ebene vom Typ {kind} braucht Bilddaten")
+            self._image = _ensure_rgba(image)
+
+    # ── Kanonische Höhen-Payload (ADR #586) ─────────────────────────────
+    def _adopt_height_data(self, field: HeightField) -> None:
+        """Übernimmt ``field`` als kanonische Payload und leitet die Ansicht ab.
+
+        Legacy-Felder (``max_value=255``) werden deterministisch (``×257``)
+        auf den 16-Bit-Vertrag gehoben – es gibt keine zweite Auflösung im
+        Modell. Die 8-Bit-Ansicht wird genau **einmal** je Payload-Änderung
+        abgeleitet (benannte Quantisierungsgrenze); das Feld selbst wird ohne
+        Kopie referenziert (unveränderlich per Write-Lock, siehe
+        :class:`~bgremover.height_map.HeightField`).
+        """
+        self._height_data = expand_to_16bit(field)
+        self._image = height_to_layer(self._height_data)
+
+    def _migrate_legacy_image(self, rgba: Image.Image) -> None:
+        """Bewusst befristeter Kompatibilitätsadapter (#587, entfällt mit #589).
+
+        Migriert 8-Bit-RGBA-Pixel (Konvention ``R == G == B == Höhe``,
+        ``A == Deckung``) deterministisch in die kanonische 16-Bit-Payload
+        (``v16 = v8 × 257``). Abweichungen von der Grau-Konvention werden –
+        ohne Bilddaten zu protokollieren – als Warnung geloggt und auf den
+        R-Kanal normalisiert (identisch zur bisherigen
+        ``layer_to_gray_image``-Anzeige-Normalisierung).
+        """
+        arr = np.asarray(rgba)
+        gray = bool(
+            np.array_equal(arr[:, :, 0], arr[:, :, 1])
+            and np.array_equal(arr[:, :, 0], arr[:, :, 2])
+        )
+        if gray:
+            logger.debug(
+                "HEIGHT-Ebene %s: 8-Bit-Legacy-Pixel (%dx%d) via ×257 in die "
+                "16-Bit-Payload migriert.",
+                self.id, rgba.width, rgba.height,
+            )
+        else:
+            logger.warning(
+                "HEIGHT-Ebene %s: Legacy-Pixel (%dx%d) verletzen die "
+                "Grau-Konvention (R != G/B) – Höhe aus dem R-Kanal übernommen, "
+                "Ansicht auf Graustufen normalisiert.",
+                self.id, rgba.width, rgba.height,
+            )
+        self._adopt_height_data(layer_to_height(rgba))
+
+    @property
+    def height_data(self) -> HeightField | None:
+        """Kanonische 16-Bit-Höhen-Payload einer HEIGHT-Ebene, sonst ``None``.
+
+        Auf einer HEIGHT-Ebene ist der Wert nie ``None`` (Invariante der
+        Konstruktion) und stets ``max_value=65535``. Das Feld ist
+        unveränderlich; Änderungen laufen über :meth:`set_height_data`.
+        """
+        return self._height_data
+
+    def set_height_data(self, field: HeightField) -> None:
+        """Kanonischer Schreibpfad für Höhenpixel (nur HEIGHT-Ebenen).
+
+        Ersetzt die Payload durch ``field`` (ggf. deterministisch auf 16 Bit
+        gehoben) und leitet die 8-Bit-Ansicht neu ab – ohne impliziten
+        8-Bit-Zwischenschritt für die Höhenwerte. Auf Nicht-HEIGHT-Ebenen
+        :class:`ProjectModelError` (Kind↔Payload-Vertrag).
+        """
+        if self.kind is not LayerKind.HEIGHT:
+            raise ProjectModelError(
+                f"set_height_data ist nur auf HEIGHT-Ebenen erlaubt, "
+                f"Ebenen-Typ war {self.kind}"
+            )
+        self._adopt_height_data(field)
+
+    # ── Pixel-Sichten ───────────────────────────────────────────────────
+    @property
+    def image(self) -> Image.Image:
+        """RGBA-Pixeldaten der Ebene.
+
+        Auf HEIGHT-Ebenen ist dies ausschließlich die aus :attr:`height_data`
+        **abgeleitete 8-Bit-Ansicht** (Anzeige-/Kompatibilitätssicht, ADR #586)
+        – lesend für Anzeige, Komposit-Nachbarn und PIL-RGBA-Konsumenten, nie
+        eine zweite Quelle der Wahrheit für Höhenwerte.
+        """
+        return self._image
+
+    @image.setter
+    def image(self, value: Image.Image) -> None:
+        if self.kind is LayerKind.HEIGHT:
+            # Legacy-Adapter (bewusst befristet, #589 stellt die Aufrufer um):
+            # 8-Bit-Zuweisungen wandern deterministisch in die Payload, die
+            # gehaltene Ansicht wird daraus neu abgeleitet.
+            self._migrate_legacy_image(_ensure_rgba(value))
+        else:
+            # Parität zum bisherigen Attribut: direkte Übernahme ohne Kopie
+            # (Aufrufer wie der Canvas verlassen sich auf Objekt-Identität).
+            self._image = value
+
+    def swap_display_view(self, image: Image.Image) -> Image.Image:
+        """Tauscht **nur** die gehaltene RGBA-Ansicht und gibt die bisherige zurück.
+
+        Ausschließlich für die synchrone Vorschau-Substitution des Canvas
+        (#397): eine transiente Vorschau ersetzt die Anzeigepixel, ohne die
+        kanonische Höhen-Payload zu berühren – abgeleitete Vorschauen können so
+        nie in den kanonischen Zustand zurückgeschrieben werden (ADR #586).
+        Der Aufrufer stellt die zurückgegebene Ansicht anschließend wieder her.
+        """
+        previous = self._image
+        self._image = image
+        return previous
 
     @property
     def size(self) -> tuple[int, int]:
         """Pixelgröße der Ebene als ``(width, height)``."""
-        return self.image.size
+        return self._image.size
 
 
 class Project:
@@ -298,7 +454,7 @@ class Project:
 
     def create_layer(
         self,
-        image: Image.Image,
+        image: Image.Image | None = None,
         *,
         name: str,
         kind: LayerKind = LayerKind.COLOR,
@@ -308,8 +464,14 @@ class Project:
         opacity: float = 1.0,
         locked: bool = False,
         role: LayerRole | None = None,
+        height_data: HeightField | None = None,
     ) -> Layer:
-        """Baut eine Ebene mit frischer ID und fügt sie via :meth:`add_layer` ein."""
+        """Baut eine Ebene mit frischer ID und fügt sie via :meth:`add_layer` ein.
+
+        Eine HEIGHT-Ebene entsteht bevorzugt direkt aus ihrer kanonischen
+        ``height_data``-Payload (16-Bit-Pfad, ADR #586); ``image`` bleibt dort
+        der befristete 8-Bit-Legacy-Weg (siehe :class:`Layer`).
+        """
         layer = Layer(
             name=name,
             kind=kind,
@@ -318,6 +480,7 @@ class Project:
             opacity=opacity,
             locked=locked,
             role=role,
+            height_data=height_data,
         )
         return self.add_layer(layer, index=index, make_active=make_active)
 
@@ -364,23 +527,26 @@ class Project:
         self._layers = [by_id[i] for i in ids]
 
     def duplicate_layer(self, layer_id: str, *, make_active: bool = True) -> Layer:
-        """Dupliziert eine Ebene (tiefe Bildkopie) direkt darüber.
+        """Dupliziert eine Ebene direkt darüber.
 
         Die Kopie erhält eine neue ID, einen abgeleiteten Namen und **keine**
-        Rolle (Rollen sind eindeutig). ``Layer`` kopiert die Bilddaten beim
-        Anlegen ohnehin, sodass Bearbeitungen der einen Ebene die andere nicht
-        beeinflussen.
+        Rolle (Rollen sind eindeutig). COLOR-/GLOSS-/GENERIC-Ebenen erhalten
+        eine tiefe Bildkopie (``Layer`` kopiert beim Anlegen). Eine
+        HEIGHT-Ebene **teilt** die unveränderliche Payload-Referenz (Write-Lock,
+        ADR #586 Abschnitt 5) – Höhenänderungen *ersetzen* die Payload stets,
+        sodass Original und Duplikat sich nie gegenseitig mutieren können.
         """
         src = self.layer_by_id(layer_id)
         idx = self.index_of(layer_id)
         clone = Layer(
             name=f"{src.name} Kopie",
             kind=src.kind,
-            image=src.image,
+            image=None if src.kind is LayerKind.HEIGHT else src.image,
             visible=src.visible,
             opacity=src.opacity,
             locked=src.locked,
             role=None,
+            height_data=src.height_data,
         )
         return self.add_layer(clone, index=idx + 1, make_active=make_active)
 
@@ -421,6 +587,25 @@ class Project:
 
     def clear_role(self, layer_id: str) -> None:
         self.layer_by_id(layer_id).role = None
+
+    def set_layer_height_data(self, layer_id: str, field: HeightField) -> None:
+        """Setzt die kanonische Höhen-Payload einer HEIGHT-Ebene canvas-validiert.
+
+        Projektweiter, kanonischer Schreibpfad (ADR #586, Abschnitt 6): prüft
+        zusätzlich zur :meth:`Layer.set_height_data`-Typprüfung die
+        Canvas-Größen-Invariante (:func:`~bgremover.height_map.
+        validate_canvas_size`, wirft :class:`~bgremover.height_map.
+        HeightMapError`). Schlägt eine Prüfung fehl, bleibt das Projekt
+        unverändert (kein halb aktualisierter Zustand).
+        """
+        layer = self.layer_by_id(layer_id)
+        if layer.kind is not LayerKind.HEIGHT:
+            raise ProjectModelError(
+                f"set_layer_height_data ist nur auf HEIGHT-Ebenen erlaubt, "
+                f"Ebenen-Typ war {layer.kind}"
+            )
+        validate_canvas_size(field, self.size)
+        layer.set_height_data(field)
 
     # ── Physische Zielgröße / Auflösung (mm/DPI) ────────────────────────
     @property
@@ -492,9 +677,12 @@ class Project:
         Hält die Invariante „jede Ebene in Canvas-Größe": jede Ebene wird mit
         demselben *resample*-Verfahren skaliert, sodass das Farb-Komposit
         deckungsgleich bleibt. ``COLOR``-/Daten-Ebenen laufen direkt über das
-        Resampling; eine ``HEIGHT``-Ebene wird zusätzlich über die
-        Höhen-Repräsentation normalisiert (``R==G==B==Höhe`` bleibt erhalten –
-        verlustfrei für 8 Bit, robust für die spätere 16-Bit-Erweiterung).
+        RGBA-Resampling; eine ``HEIGHT``-Ebene skaliert ihre **kanonische
+        16-Bit-Payload** präzisionserhaltend (:func:`~bgremover.height_map.
+        resize_height_field`: Werte als ``float32``, Deckung als 8-Bit-``L``,
+        jeweils derselbe Filter – ADR #586, Abschnitt 4) und leitet die
+        8-Bit-Ansicht danach **neu** ab, statt sie mitzuskalieren (keine
+        doppelte Quantisierung).
 
         Gleiche Zielgröße ist ein **No-op**. Die physische Zielgröße
         (``META_PHYSICAL_SIZE_MM``) bleibt bewusst unangetastet: dies ist ein
@@ -506,10 +694,13 @@ class Project:
         if (width, height) == self.size:
             return
         for layer in self._layers:
-            resized = resize_image(layer.image, width, height, resample=resample)
-            if layer.kind is LayerKind.HEIGHT:
-                resized = layer_to_gray_image(resized)
-            layer.image = resized
+            field = layer.height_data
+            if field is not None:
+                layer.set_height_data(
+                    resize_height_field(field, width, height, resample=resample)
+                )
+            else:
+                layer.image = resize_image(layer.image, width, height, resample=resample)
         self.width = width
         self.height = height
 
@@ -521,7 +712,10 @@ class Project:
         Pro-Ebene-Opazität. Unsichtbare Ebenen, Opazität ``0`` sowie alle
         Nicht-``COLOR``-Ebenen (Daten-Ebenen ``HEIGHT``/``GLOSS``/``GENERIC``)
         bleiben außen vor. Das Ergebnis hat immer Canvas-Größe; ohne beitragende
-        Ebene ist es vollständig transparent.
+        Ebene ist es vollständig transparent. Ein Merge/Flatten **in** eine
+        HEIGHT-Ebene existiert bewusst nicht (Abgrenzung des 16-Bit-Vertrags,
+        #587): Höhen-Payloads werden nie über den 8-Bit-Komposit-Pfad
+        zusammengeführt.
         """
         base = Image.new("RGBA", self.size, (0, 0, 0, 0))
         for layer in self._layers:

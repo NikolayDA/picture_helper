@@ -9,23 +9,38 @@ der eine aktive HEIGHT-Ebene neben dem COLOR-Komposit sichtbar macht. Konvention
 analog ``image_ops``/``image_utils``: reine Logik ohne Qt-, Datei- oder
 Netzzugriffe, deutsche Docstrings, englische Identifier, strikte mypy-Typisierung.
 
-16-Bit-Erweiterbarkeit: Höhen werden intern als ``uint16`` geführt und über
-``max_value`` interpretiert; aktuell ist ``max_value == HEIGHT_MAX_8BIT`` (volle
-Parität zu den 8-Bit-RGBA-Layerdaten). Eine spätere 16-Bit-Tiefe (Rang #6/#7)
-erhöht nur ``max_value`` und ändert die Skalierung in :func:`height_to_layer`,
-ohne die öffentliche API zu brechen.
+16-Bit-Vertrag (ADR #586, umgesetzt ab #587): Höhen werden als ``uint16``
+geführt und über ``max_value`` interpretiert. Erlaubt sind genau **zwei**
+Auflösungen – ``HEIGHT_MAX_8BIT`` (Legacy-/Kompatibilitätspfad) und
+``HEIGHT_MAX_16BIT`` (kanonischer Zielvertrag, echte 16-Bit-Präzision). Die
+deterministische 8→16-Abbildung ist ``v16 = v8 × 257`` (Bit-Replikation,
+:func:`expand_to_16bit`); die 16→8-Ansicht ``v8 = rint(v16 / 257)`` existiert
+nur an benannten Quantisierungsgrenzen (:func:`height_to_layer`). Die Arrays
+eines Feldes sind nach Konstruktion **unveränderlich** (Write-Lock), sodass
+Kopien, History-Snapshots und Duplikate Referenzen gefahrlos teilen können.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
-# Voller Wertebereich einer 8-Bit-Höhe. Die Höhen-Repräsentation ist über
-# ``HeightField.max_value`` 16-Bit-erweiterbar; dieser Standard hält die
-# bitgenaue Parität zu den RGBA-Layerdaten.
+# Voller Wertebereich einer 8-Bit-Höhe (Legacy-/Kompatibilitätspfad).
 HEIGHT_MAX_8BIT = 255
+
+# Voller Wertebereich des kanonischen 16-Bit-Vertrags (ADR #586).
+HEIGHT_MAX_16BIT = 65535
+
+# Deterministische 8→16-Abbildung: ``257 = 0x0101 = 65535 / 255`` exakt; die
+# Multiplikation entspricht der Bit-Replikation ``(v8 << 8) | v8`` und ist über
+# ``v8 = rint(v16 / 257)`` verlustfrei rückrechenbar (ADR #586, Abschnitt 3).
+_EXPAND_8_TO_16 = 257
+
+# Whitelist der erlaubten Höhenauflösungen. Andere Werte lehnt
+# ``HeightField.__post_init__`` hart ab – es gibt keine „krummen" Bittiefen im
+# kanonischen Modellpfad (Verschärfung der früheren „nur positiv"-Prüfung).
+_ALLOWED_MAX_VALUES = frozenset({HEIGHT_MAX_8BIT, HEIGHT_MAX_16BIT})
 
 # Standard-Kanalgewichtung (Rec. 601 Luma): wahrnehmungsnahe Graustufe aus R/G/B.
 # Die Summe ist 1.0, sodass die gewichtete Luminanz im Bereich 0..255 bleibt.
@@ -41,14 +56,20 @@ class HeightField:
     """Qt-freie Höhen-Repräsentation: ein 2D-Höhenfeld plus Deckungs-Alpha.
 
     ``values`` hält die Höhe je Pixel als ``uint16`` im Bereich ``0..max_value``
-    (Form ``(H, W)``); ``coverage`` ist der Deckungs-Alphakanal als ``uint8``
-    (``0..255``, gleiche Form). ``max_value`` trennt die logische Höhenauflösung
-    von der 8-Bit-Speicherung der Ebene und ist der Hebel für eine spätere
-    16-Bit-Tiefe (Standard ``HEIGHT_MAX_8BIT``).
+    (Form ``(H, W)``, ``0`` = niedrigste, ``max_value`` = höchste Stufe, **hell =
+    hoch**); ``coverage`` ist die davon **orthogonale** Deckung als ``uint8``
+    (``0..255``, gleiche Form): ``coverage == 0`` bedeutet „kein Material", der
+    Höhenwert darunter bleibt erhalten (kein implizites Nullen). ``max_value``
+    ist auf die Vertragswerte ``HEIGHT_MAX_8BIT`` (Legacy) und
+    ``HEIGHT_MAX_16BIT`` (kanonisch, ADR #586) beschränkt.
 
-    Die Invarianten (Form, dtype, Wertebereich) werden beim Anlegen geprüft;
-    danach ist das Feld unveränderlich (``frozen``). Vergleich/Hashing über die
-    – teuren – Pixelinhalte ist bewusst nicht vorgesehen.
+    Die Invarianten (Form, dtype, Wertebereich, ``max_value``-Whitelist) werden
+    beim Anlegen geprüft; danach ist das Feld unveränderlich: ``frozen`` plus
+    **Write-Lock auf beiden Arrays**, damit Aliasing-Verstöße (in-place-Mutation
+    geteilter Puffer, etwa aus History-Snapshots) hart fehlschlagen statt still
+    Snapshots zu korrumpieren. Alle Operationen geben neue Felder zurück.
+    Vergleich/Hashing über die – teuren – Pixelinhalte ist bewusst nicht
+    vorgesehen.
     """
 
     values: np.ndarray
@@ -56,8 +77,11 @@ class HeightField:
     max_value: int = HEIGHT_MAX_8BIT
 
     def __post_init__(self) -> None:
-        if self.max_value <= 0:
-            raise HeightMapError(f"max_value muss positiv sein, war {self.max_value}")
+        if self.max_value not in _ALLOWED_MAX_VALUES:
+            raise HeightMapError(
+                f"max_value muss {HEIGHT_MAX_8BIT} oder {HEIGHT_MAX_16BIT} sein, "
+                f"war {self.max_value}"
+            )
         if self.values.ndim != 2 or self.coverage.ndim != 2:
             raise HeightMapError("values und coverage müssen 2D-Arrays sein")
         if self.values.shape != self.coverage.shape:
@@ -73,12 +97,37 @@ class HeightField:
             raise HeightMapError(
                 f"values überschreitet max_value ({self.max_value})"
             )
+        # Vertragsregel „Arrays sind nach Konstruktion unveränderlich" (ADR #586,
+        # Abschnitt 5): Sichten auf fremde Puffer (``base``) würden trotz
+        # Write-Lock über den Basis-Puffer mutierbar bleiben – solche Eingaben
+        # werden deshalb in eigene Kopien überführt. Der anschließende
+        # Write-Lock macht geteilte Referenzen (Duplicate, History-Pool)
+        # beweisbar sicher – Schreibversuche werfen ValueError.
+        if self.values.base is not None:
+            object.__setattr__(self, "values", self.values.copy())
+        if self.coverage.base is not None:
+            object.__setattr__(self, "coverage", self.coverage.copy())
+        self.values.setflags(write=False)
+        self.coverage.setflags(write=False)
 
     @property
     def size(self) -> tuple[int, int]:
         """Größe als ``(width, height)`` – analog zu ``Layer.size``/``Project.size``."""
         h, w = self.values.shape[:2]
         return (w, h)
+
+
+def scale_8bit_height_value(value: int, field: HeightField) -> int:
+    """Skaliert einen bestehenden ``0..255``-UI-Wert auf ``field.max_value``.
+
+    Diese explizite Adaptergrenze erhält die bisherige Reglersemantik, während
+    Modell und Operationen direkt im kanonischen Wertebereich arbeiten.
+    """
+    if not 0 <= value <= HEIGHT_MAX_8BIT:
+        raise HeightMapError(
+            f"UI-Höhenwert {value} außerhalb 0..{HEIGHT_MAX_8BIT}"
+        )
+    return round(value * field.max_value / HEIGHT_MAX_8BIT)
 
 
 def _to_gray8(field: HeightField) -> np.ndarray:
@@ -141,6 +190,116 @@ def layer_to_gray_image(image: Image.Image) -> Image.Image:
     return height_to_layer(layer_to_height(image))
 
 
+# ── 16-Bit-Vertrag: Migration & Resize (#587) ────────────────────────────
+
+
+def expand_to_16bit(field: HeightField) -> HeightField:
+    """Hebt ein Legacy-8-Bit-Höhenfeld deterministisch auf den 16-Bit-Vertrag.
+
+    Abbildung ``v16 = v8 × 257`` (ADR #586, Abschnitt 3): exakt, äquidistant,
+    ``0 → 0`` und ``255 → 65535``, rückrechenbar über ``v8 = rint(v16 / 257)``
+    – verlustfrei im Sinne der ursprünglichen 256 Stufen. Ein bereits
+    kanonisches Feld (``max_value == HEIGHT_MAX_16BIT``) wird unverändert
+    zurückgegeben (Identität, keine Kopie – Felder sind unveränderlich).
+    Die Deckung wird unverändert übernommen (Referenz; Write-Lock schützt).
+    """
+    if field.max_value == HEIGHT_MAX_16BIT:
+        return field
+    values = (field.values.astype(np.uint32) * _EXPAND_8_TO_16).astype(np.uint16)
+    return HeightField(values, field.coverage, HEIGHT_MAX_16BIT)
+
+
+def resize_height_field(
+    field: HeightField,
+    width: int,
+    height: int,
+    *,
+    resample: Image.Resampling = Image.Resampling.LANCZOS,
+) -> HeightField:
+    """Skaliert ein Höhenfeld präzisionserhaltend auf ``width × height``.
+
+    Interpolations-/Maskenregel des ADR #586 (Abschnitt 4): die Höhenwerte
+    laufen als ``float32``-Bild (PIL-Modus ``F``) durch **denselben**
+    Resampling-Filter wie die COLOR-Ebenen und werden danach mit
+    ``rint`` + ``clip`` auf ``0..max_value`` als ``uint16`` übernommen – ohne
+    8-Bit-Zwischenschritt. Die Deckung wird separat als 8-Bit-``L``-Bild mit
+    demselben Filter skaliert (identisch zur Alpha-Behandlung des
+    RGBA-Resamplings); Höhenwerte unter ``coverage == 0`` nehmen normal an der
+    Interpolation teil, das Randverhalten ist das des gewählten PIL-Filters.
+    Gleiche Zielgröße gibt das Feld unverändert zurück (Identität).
+    """
+    if width <= 0 or height <= 0:
+        raise HeightMapError(f"Zielgröße muss positiv sein, war {width}x{height}")
+    if (width, height) == field.size:
+        return field
+    values_f = Image.fromarray(field.values.astype(np.float32), mode="F")
+    resized = np.asarray(values_f.resize((width, height), resample), dtype=np.float64)
+    values = np.clip(np.rint(resized), 0, field.max_value).astype(np.uint16)
+    coverage_l = Image.fromarray(field.coverage, mode="L")
+    coverage = np.array(coverage_l.resize((width, height), resample), dtype=np.uint8)
+    return HeightField(values, coverage, field.max_value)
+
+
+def rotate_height_field(field: HeightField, degrees: int) -> HeightField:
+    """Dreht Höhe und Deckung ohne 8-Bit-Zwischenschritt.
+
+    Rechtwinklige Drehungen sind bitgenaue Permutationen. Bei freien Winkeln
+    verwendet der Helfer – analog zu :func:`bgremover.image_ops.rotate_image` –
+    bikubische Interpolation; die Höhenwerte laufen dafür im exakt darstellbaren
+    ``float32``-Bereich und werden erst am Ende gerundet und geklemmt. Die
+    Deckung wird separat mit demselben Filter transformiert.
+    """
+    resample = (
+        Image.Resampling.NEAREST
+        if degrees % 90 == 0
+        else Image.Resampling.BICUBIC
+    )
+    values_f = Image.fromarray(field.values.astype(np.float32), mode="F")
+    rotated_values = np.asarray(
+        values_f.rotate(degrees, expand=True, resample=resample),
+        dtype=np.float64,
+    )
+    values = np.clip(
+        np.rint(rotated_values), 0, field.max_value
+    ).astype(np.uint16)
+    coverage_l = Image.fromarray(field.coverage, mode="L")
+    coverage = np.array(
+        coverage_l.rotate(degrees, expand=True, resample=resample),
+        dtype=np.uint8,
+    )
+    return HeightField(values, coverage, field.max_value)
+
+
+def crop_height_field(
+    field: HeightField,
+    rect: tuple[int, int, int, int],
+    *,
+    is_circle: bool = False,
+) -> HeightField:
+    """Schneidet Höhe und Deckung präzisionserhaltend auf ``rect`` zu.
+
+    Der rechteckige Zuschnitt ist eine reine Pixelkopie. Beim Kreiszuschnitt
+    wird ausschließlich die orthogonale Deckung mit der Kreismaske begrenzt;
+    die kanonischen Höhenwerte unter transparenten Pixeln bleiben erhalten.
+    """
+    x, y, width, height = rect
+    if width <= 0 or height <= 0:
+        raise HeightMapError(
+            f"Zuschnittgröße muss positiv sein, war {width}x{height}"
+        )
+    box = (x, y, x + width, y + height)
+    values_f = Image.fromarray(field.values.astype(np.float32), mode="F")
+    values = np.asarray(values_f.crop(box), dtype=np.float64)
+    values_u16 = np.clip(np.rint(values), 0, field.max_value).astype(np.uint16)
+    coverage_l = Image.fromarray(field.coverage, mode="L").crop(box)
+    coverage = np.array(coverage_l, dtype=np.uint8)
+    if is_circle:
+        mask = Image.new("L", (width, height), 0)
+        ImageDraw.Draw(mask).ellipse([0, 0, width - 1, height - 1], fill=255)
+        coverage = np.minimum(coverage, np.asarray(mask)).astype(np.uint8)
+    return HeightField(values_u16, coverage, field.max_value)
+
+
 def generate_from_image(
     image: Image.Image,
     *,
@@ -170,8 +329,11 @@ def generate_from_image(
     importierte Graustufen (``R==G==B``) ergeben mit den Standardgewichten genau
     ihren Grauwert als Höhe. Fehlerhafte Parameter werfen :class:`HeightMapError`.
     """
-    if max_value <= 0:
-        raise HeightMapError(f"max_value muss positiv sein, war {max_value}")
+    if max_value not in _ALLOWED_MAX_VALUES:
+        raise HeightMapError(
+            f"max_value muss {HEIGHT_MAX_8BIT} oder {HEIGHT_MAX_16BIT} sein, "
+            f"war {max_value}"
+        )
     if len(weights) != 3:
         raise HeightMapError("weights braucht genau drei Werte (R, G, B)")
     if any(w < 0 for w in weights):

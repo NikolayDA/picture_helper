@@ -9,6 +9,39 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **16-Bit-Höhenpipeline: Domänenmodell und Verlauf verlustfrei (#587, Teil
+  von Epic #581).** HEIGHT-Ebenen führen ihre Höhen jetzt kanonisch als
+  16-Bit-Payload (`Layer.height_data`: `uint16`-Werte 0…65535 plus getrennt
+  geführte Deckung) gemäß ADR #586; `Layer.image` ist dort nur noch die
+  abgeleitete 8-Bit-Ansicht und wird nie zurückgelesen. Undo/Redo snapshottet
+  die Payload bitgenau (3 B/px statt der 4-B/px-Ansicht im 256-MiB-Budget),
+  Duplizieren/Umsortieren/Löschen erhalten die Niederbits, Skalieren
+  interpoliert die Höhen in `float32` statt auf 8-Bit-Kanälen, und bestehende
+  8-Bit-Bestände migrieren deterministisch (`×257`) über einen befristeten,
+  protokollierten Kompatibilitätsadapter. Projektdateiformat (v1) und Export
+  bleiben in diesem Schritt unverändert (#588/#590 folgen); COLOR-/GLOSS-
+  Ebenen sind regressionsfrei.
+- **Projektformat v2: 16-Bit-Höhen bitgenau in der `.bgrproj`-Datei (#588,
+  Teil von Epic #581).** Höhen-Ebenen speichern ihre kanonischen
+  `uint16`-Höhenwerte jetzt zusätzlich als 16-Bit-Graustufen-PNG im
+  Projektcontainer (endianness-kontrolliert, sha256-integritätsgesichert
+  gegen abgeschnittene/vertauschte Payloads, eigenes Entry-Limit) – der
+  Save/Open-Roundtrip erhält die Niederbits bitgenau. Bestehende
+  v1-Projekte laden unverändert (deterministische ×257-Migration) und
+  werden beim nächsten Speichern kontrolliert als v2 geschrieben; ältere
+  BgRemover-Versionen (bis 2.6.0) können v2-Projekte nicht öffnen und melden
+  einen klaren Fehler – die Datei bleibt unangetastet. Formatreferenz:
+  `docs/PROJECT_FORMAT.md`.
+- **Review-Härtung der 16-Bit-Pipeline (#610).** Höhenwerkzeuge sowie Drehen
+  und Zuschneiden lesen und schreiben jetzt direkt die kanonische Payload;
+  bestehende 0…255-UI-Werte werden an einer expliziten Grenze auf 16 Bit
+  skaliert. Der 16-Bit-EufyMake-Export übernimmt echte Quell-Niederbits statt
+  die 8-Bit-Ansicht per `×257` zu spreizen, während der 8-Bit-Export genau
+  einmal kontrolliert quantisiert. Fremde NumPy-Sichten werden vor dem Teilen
+  kopiert, sodass Basispuffer weder Duplikate noch Verlaufssnapshots verändern.
+
 ## [2.6.0] – 2026-07-15
 
 ### Hinzugefügt

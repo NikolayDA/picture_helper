@@ -50,7 +50,7 @@ from bgremover.eufymake_validate import (
     split_findings,
     validate_export,
 )
-from bgremover.height_map import HEIGHT_MAX_8BIT, layer_to_height
+from bgremover.height_map import HEIGHT_MAX_8BIT, HEIGHT_MAX_16BIT, HeightField
 from bgremover.project_model import LayerRole, Project
 
 # Manifest-Dateiname im Exportordner (BgRemover-Konvention).
@@ -143,21 +143,35 @@ def _render_color_motif(
 
 
 def _render_height(
-    layer_image: Image.Image, bit_depth: int, target: tuple[int, int]
+    field: HeightField, bit_depth: int, target: tuple[int, int]
 ) -> Image.Image:
     """Rendert die Höhenkarte als Graustufe (hell = hoch); 8-Bit ``L`` oder 16-Bit.
 
-    Die HEIGHT-Ebene führt ihre Höhe als ``R==G==B==Höhe`` (0..255). Der Grauwert
-    *ist* die Höhe, sodass **Weiß = höchste, Schwarz = niedrigste** Stufe gilt. Für
-    16 Bit wird verlustfrei auf ``0..65535`` gespreizt (``×257``); das ist der im
-    Plan vorgesehene Hook, keine bestätigte EufyMake-Anforderung (#354 warnt).
+    Quelle ist ausschließlich die kanonische Payload – nie die abgeleitete
+    8-Bit-Ansicht. Ein 16-Bit-Ziel erhält dadurch echte Niederbits; ein 8-Bit-Ziel
+    quantisiert kontrolliert und genau einmal auf ``0..255``. Weiß bleibt die
+    höchste, Schwarz die niedrigste Stufe (#354 warnt weiterhin, dass 16 Bit keine
+    bestätigte EufyMake-Anforderung sind).
     """
-    values = layer_to_height(layer_image).values  # uint16, 0..HEIGHT_MAX_8BIT
     if bit_depth == 16:
-        spread = values.astype(np.uint32) * (65535 // HEIGHT_MAX_8BIT)
-        image = Image.fromarray(spread.astype(np.uint16))  # Modus I;16
+        if field.max_value == HEIGHT_MAX_16BIT:
+            values16 = field.values
+        else:
+            values16 = (
+                field.values.astype(np.uint32)
+                * (HEIGHT_MAX_16BIT // HEIGHT_MAX_8BIT)
+            ).astype(np.uint16)
+        image = Image.fromarray(values16.astype(np.uint16))  # Modus I;16
     else:
-        image = Image.fromarray(values.astype(np.uint8))  # Modus L
+        values8 = np.clip(
+            np.rint(
+                field.values.astype(np.float64)
+                * (HEIGHT_MAX_8BIT / field.max_value)
+            ),
+            0,
+            HEIGHT_MAX_8BIT,
+        ).astype(np.uint8)
+        image = Image.fromarray(values8)  # Modus L
     return _ensure_size(image, target, _DATA_RESAMPLE)
 
 
@@ -219,7 +233,12 @@ def render_export(project: Project, plan: ExportPlan) -> RenderedExport:
             image = _render_color_motif(project, asset, target)
         elif asset.role is LayerRole.HEIGHT_MAP:
             layer = project.layer_by_id(_require_source(asset))
-            image = _render_height(layer.image, asset.bit_depth, target)
+            field = layer.height_data
+            if field is None:  # Kind↔Rollen-Vertrag sollte dies ausschließen.
+                raise EufyMakeWriteError(
+                    f"HEIGHT_MAP-Ebene {layer.id} besitzt keine Höhen-Payload"
+                )
+            image = _render_height(field, asset.bit_depth, target)
         elif asset.role is LayerRole.GLOSS_MASK:
             layer = project.layer_by_id(_require_source(asset))
             image = _render_gloss(layer.image, target)

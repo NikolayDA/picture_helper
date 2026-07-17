@@ -96,6 +96,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.layer_size_mismatch": (
             "Ebenengröße {actual} passt nicht zur Canvas-Größe {expected}"
         ),
+        "project.error.height16_invalid": (
+            "Projektdatei beschädigt: 16-Bit-Höhendaten „{file}“ sind ungültig"
+        ),
+        "project.error.height16_integrity": (
+            "Projektdatei beschädigt: Integritätsprüfung für „{file}“ fehlgeschlagen "
+            "(Datei abgeschnitten oder vertauscht)"
+        ),
         "project.warning.role_normalized": (
             "Inkompatible Height-Map-Rolle entfernt: „{name}“ ist keine Höhenebene"
         ),
@@ -920,6 +927,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.layer_size_mismatch": (
             "Layer size {actual} does not match the canvas size {expected}"
         ),
+        "project.error.height16_invalid": (
+            "Project file corrupt: 16-bit height data “{file}” is invalid"
+        ),
+        "project.error.height16_integrity": (
+            "Project file corrupt: integrity check failed for “{file}” "
+            "(file truncated or swapped)"
+        ),
         "project.warning.role_normalized": (
             "Removed incompatible height-map role: “{name}” is not a height layer"
         ),
@@ -1741,6 +1755,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "project.error.layer_size_mismatch": (
             "El tamaño de capa {actual} no coincide con el tamaño del lienzo {expected}"
+        ),
+        "project.error.height16_invalid": (
+            "Archivo de proyecto dañado: los datos de altura de 16 bits “{file}” no son válidos"
+        ),
+        "project.error.height16_integrity": (
+            "Archivo de proyecto dañado: la comprobación de integridad de “{file}” falló "
+            "(archivo truncado o intercambiado)"
         ),
         "project.warning.role_normalized": (
             "Rol de mapa de altura incompatible eliminado: “{name}” no es una capa de altura"
@@ -2568,6 +2589,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "project.error.layer_size_mismatch": (
             "La taille du calque {actual} ne correspond pas à la taille du plan de travail {expected}"
+        ),
+        "project.error.height16_invalid": (
+            "Fichier de projet endommagé : les données de hauteur 16 bits « {file} » sont invalides"
+        ),
+        "project.error.height16_integrity": (
+            "Fichier de projet endommagé : la vérification d'intégrité de « {file} » a échoué "
+            "(fichier tronqué ou interverti)"
         ),
         "project.warning.role_normalized": (
             "Rôle de carte de hauteur incompatible retiré : « {name} » n'est pas un calque de hauteur"
@@ -3397,6 +3425,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "project.error.layer_size_mismatch": (
             "Розмір шару {actual} не відповідає розміру полотна {expected}"
         ),
+        "project.error.height16_invalid": (
+            "Файл проєкту пошкоджено: 16-бітні дані висот «{file}» недійсні"
+        ),
+        "project.error.height16_integrity": (
+            "Файл проєкту пошкоджено: перевірка цілісності «{file}» не пройдена "
+            "(файл обрізано або переплутано)"
+        ),
         "project.warning.role_normalized": (
             "Несумісну роль карти висот вилучено: «{name}» не є шаром висот"
         ),
@@ -4220,6 +4255,12 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "project.error.layer_size_mismatch": (
             "图层尺寸 {actual} 与画布尺寸 {expected} 不匹配"
+        ),
+        "project.error.height16_invalid": (
+            "项目文件已损坏：16 位高度数据“{file}”无效"
+        ),
+        "project.error.height16_integrity": (
+            "项目文件已损坏：“{file}”的完整性校验失败（文件被截断或调换）"
         ),
         "project.warning.role_normalized": (
             "已移除不兼容的高度图角色：“{name}”不是高度图层"

@@ -1,11 +1,13 @@
 """Pure-Domänenmodell-Tests (Qt-frei) für ``bgremover.project_model``."""
 
+import logging
 import math
 
 import numpy as np
 import pytest
 from PIL import Image
 
+from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField, HeightMapError
 from bgremover.project_model import (
     PROJECT_VERSION,
     IncompatibleRoleError,
@@ -575,3 +577,281 @@ def test_present_null_physical_size_is_rejected_not_treated_as_unset() -> None:
         _ = proj.physical_size_mm
     with pytest.raises(InvalidLengthError):
         _ = proj.dpi
+
+
+# ── 16-Bit-HEIGHT-Payload-Vertrag (#587, ADR #586) ───────────────────────
+
+def _field16(
+    values: list[list[int]] | np.ndarray,
+    coverage: list[list[int]] | np.ndarray | None = None,
+) -> HeightField:
+    """Kanonisches 16-Bit-Höhenfeld aus verschachtelten Listen/Arrays."""
+    arr = np.asarray(values, dtype=np.uint16)
+    cov = (
+        np.full(arr.shape, 255, dtype=np.uint8)
+        if coverage is None
+        else np.asarray(coverage, dtype=np.uint8)
+    )
+    return HeightField(arr, cov, max_value=HEIGHT_MAX_16BIT)
+
+
+def _gray_rgba(values: np.ndarray, alpha: np.ndarray) -> Image.Image:
+    """Graustufige RGBA-Ebene (``R==G==B==values``, ``A==alpha``)."""
+    h, w = values.shape
+    arr = np.empty((h, w, 4), dtype=np.uint8)
+    for c in range(3):
+        arr[:, :, c] = values
+    arr[:, :, 3] = alpha
+    return Image.fromarray(arr, "RGBA")
+
+
+def test_height_layer_from_payload_is_canonical() -> None:
+    """Eine aus der Payload erzeugte HEIGHT-Ebene erfüllt den 16-Bit-Vertrag."""
+    field = _field16([[0, 1, 255], [256, 32767, 65535]])
+    layer = Layer(name="h", kind=LayerKind.HEIGHT, height_data=field)
+    assert layer.height_data is field                       # Referenz, keine Kopie
+    assert layer.height_data.max_value == HEIGHT_MAX_16BIT
+    assert layer.height_data.values.dtype == np.uint16
+    # Die Ansicht ist die dokumentierte 16→8-Ableitung (rint(v/257)) in Grau.
+    view = np.array(layer.image)
+    assert layer.image.mode == "RGBA"
+    assert np.array_equal(view[:, :, 0], view[:, :, 1])
+    assert np.array_equal(view[:, :, 0], view[:, :, 2])
+    assert list(view[0, :, 0]) == [0, 0, 1]
+    assert list(view[1, :, 0]) == [1, 127, 255]   # rint(32767/257) = 127
+    assert layer.size == (3, 2)
+
+
+def test_height_layer_low_bits_survive_model_access() -> None:
+    """Niederbits (0x1234) kollabieren bei Modellzugriffen nicht auf 8-Bit-Stufen."""
+    field = _field16([[0x1234, 0xABCD]])
+    layer = Layer(name="h", kind=LayerKind.HEIGHT, height_data=field)
+    # Wiederholte Lesezugriffe auf die Ansicht ändern die Payload nicht.
+    for _ in range(3):
+        assert layer.image.mode == "RGBA"
+    assert list(layer.height_data.values[0]) == [0x1234, 0xABCD]
+
+
+def test_legacy_image_adapter_migrates_x257_and_logs(caplog: pytest.LogCaptureFixture) -> None:
+    """8-Bit-RGBA-Konstruktion migriert deterministisch (×257) und loggt debug."""
+    rng = np.random.default_rng(11)
+    values = rng.integers(0, 256, size=(4, 3), dtype=np.uint8)
+    alpha = rng.integers(0, 256, size=(4, 3), dtype=np.uint8)
+    src = _gray_rgba(values, alpha)
+    with caplog.at_level(logging.DEBUG, logger="BgRemover"):
+        layer = Layer(name="h", kind=LayerKind.HEIGHT, image=src)
+    assert layer.height_data is not None
+    assert layer.height_data.max_value == HEIGHT_MAX_16BIT
+    assert np.array_equal(
+        layer.height_data.values, values.astype(np.uint16) * 257)
+    assert np.array_equal(layer.height_data.coverage, alpha)
+    # Die abgeleitete Ansicht ist bitgenau das graue Eingabebild (Parität).
+    assert np.array_equal(np.array(layer.image), np.array(src))
+    assert any("×257" in rec.message for rec in caplog.records)
+    # Kein Bildinhalt im Log – nur ID und Größe.
+    assert all("[[" not in rec.message for rec in caplog.records)
+
+
+def test_legacy_adapter_warns_on_non_gray_input(caplog: pytest.LogCaptureFixture) -> None:
+    """Nicht-graue Legacy-Pixel: Warnung, Höhe aus R, Ansicht normalisiert."""
+    arr = np.zeros((2, 2, 4), dtype=np.uint8)
+    arr[:, :, 0] = 90     # Rot = Höhe
+    arr[:, :, 1] = 30
+    arr[:, :, 2] = 60
+    arr[:, :, 3] = 255
+    with caplog.at_level(logging.WARNING, logger="BgRemover"):
+        layer = Layer(name="h", kind=LayerKind.HEIGHT, image=Image.fromarray(arr, "RGBA"))
+    assert layer.height_data is not None
+    assert np.all(layer.height_data.values == 90 * 257)
+    view = np.array(layer.image)
+    assert np.all(view[:, :, 0] == 90) and np.all(view[:, :, 1] == 90)
+    assert any(rec.levelno == logging.WARNING for rec in caplog.records)
+
+
+def test_layer_rejects_invalid_height_data_combinations() -> None:
+    field = _field16([[0]])
+    img = _solid((1, 1), (0, 0, 0, 0))
+    with pytest.raises(ProjectModelError):
+        Layer(name="c", kind=LayerKind.COLOR, image=img, height_data=field)
+    with pytest.raises(ProjectModelError):
+        Layer(name="g", kind=LayerKind.GLOSS, image=img, height_data=field)
+    with pytest.raises(ProjectModelError):
+        Layer(name="h", kind=LayerKind.HEIGHT)                # weder Payload noch Bild
+    with pytest.raises(ProjectModelError):
+        Layer(name="h", kind=LayerKind.HEIGHT, image=img, height_data=field)  # beides
+    with pytest.raises(ProjectModelError):
+        Layer(name="c", kind=LayerKind.COLOR)                 # COLOR braucht Bilddaten
+
+
+def test_set_height_data_only_on_height_layers() -> None:
+    field = _field16([[7]])
+    color = Layer(name="c", kind=LayerKind.COLOR, image=_solid((1, 1), (1, 2, 3, 4)))
+    with pytest.raises(ProjectModelError):
+        color.set_height_data(field)
+    height = Layer(name="h", kind=LayerKind.HEIGHT, height_data=_field16([[0]]))
+    height.set_height_data(field)
+    assert height.height_data is field
+    assert np.array(height.image)[0, 0, 0] == 0   # rint(7/257) = 0
+
+
+def test_set_height_data_promotes_legacy_fields_deterministically() -> None:
+    legacy = HeightField(
+        np.array([[128]], dtype=np.uint16), np.array([[255]], dtype=np.uint8))
+    layer = Layer(name="h", kind=LayerKind.HEIGHT, height_data=legacy)
+    assert layer.height_data is not None
+    assert layer.height_data.max_value == HEIGHT_MAX_16BIT
+    assert int(layer.height_data.values[0, 0]) == 128 * 257
+
+
+def test_set_layer_height_data_validates_canvas_size_atomically() -> None:
+    """Größen-Mismatch wird abgewiesen, ohne das Projekt halb zu ändern."""
+    proj = Project(2, 2)
+    layer = proj.create_layer(name="h", kind=LayerKind.HEIGHT,
+                              height_data=_field16([[1, 2], [3, 4]]))
+    before = layer.height_data
+    with pytest.raises(HeightMapError):
+        proj.set_layer_height_data(layer.id, _field16([[1]]))
+    assert layer.height_data is before                      # unverändert
+    good = _field16([[5, 6], [7, 8]])
+    proj.set_layer_height_data(layer.id, good)
+    assert layer.height_data is good
+    color = proj.create_layer(_solid((2, 2), (0, 0, 0, 0)), name="c")
+    with pytest.raises(ProjectModelError):
+        proj.set_layer_height_data(color.id, good)
+
+
+def test_duplicate_height_layer_shares_frozen_payload_and_stays_independent() -> None:
+    proj = Project(2, 1)
+    src = proj.create_layer(name="h", kind=LayerKind.HEIGHT,
+                            height_data=_field16([[0x1234, 0x0001]]))
+    clone = proj.duplicate_layer(src.id)
+    # Geteilte, unveränderliche Referenz (ADR #586, Abschnitt 5) …
+    assert clone.height_data is src.height_data
+    with pytest.raises(ValueError):
+        clone.height_data.values[0, 0] = 0                  # Write-Lock greift
+    # … und Unabhängigkeit beim Ersetzen: das Ziel mutiert nie die Quelle.
+    clone.set_height_data(_field16([[9, 9]]))
+    assert list(src.height_data.values[0]) == [0x1234, 0x0001]
+    assert list(clone.height_data.values[0]) == [9, 9]
+
+
+def test_reorder_and_delete_do_not_touch_other_height_values() -> None:
+    proj = Project(1, 1)
+    proj.create_layer(_solid((1, 1), (5, 5, 5, 255)), name="c")
+    keep = proj.create_layer(name="h1", kind=LayerKind.HEIGHT,
+                             height_data=_field16([[0x1234]]))
+    drop = proj.create_layer(name="h2", kind=LayerKind.HEIGHT,
+                             height_data=_field16([[42]]))
+    payload = keep.height_data
+    proj.reorder([drop.id, keep.id, proj.layers[0].id])
+    proj.remove_layer(drop.id)
+    assert keep.height_data is payload                      # Referenz unangetastet
+    assert int(keep.height_data.values[0, 0]) == 0x1234
+
+
+def test_resize_height_payload_precisely_and_rederives_view() -> None:
+    """Resize skaliert die 16-Bit-Payload (NEAREST: exakt) und leitet die Ansicht neu ab."""
+    proj = Project(2, 1)
+    proj.create_layer(_solid((2, 1), (9, 9, 9, 9)), name="c")
+    h = proj.create_layer(name="h", kind=LayerKind.HEIGHT,
+                          height_data=_field16([[0x1234, 0xFFFE]]))
+    proj.resize(4, 2, resample=Image.Resampling.NEAREST)
+    assert proj.size == (4, 2)
+    assert h.height_data is not None
+    assert h.height_data.values.dtype == np.uint16
+    assert h.height_data.max_value == HEIGHT_MAX_16BIT
+    expected = np.repeat(
+        np.repeat(np.array([[0x1234, 0xFFFE]], dtype=np.uint16), 2, axis=1), 2, axis=0)
+    assert np.array_equal(h.height_data.values, expected)
+    # Ansicht wurde aus der skalierten Payload neu abgeleitet (nicht mitskaliert).
+    view = np.array(h.image)
+    assert view.shape == (2, 4, 4)
+    assert np.all(view[:, :2, 0] == 18)                     # rint(0x1234/257)
+    assert np.all(view[:, 2:, 0] == 255)                    # rint(0xFFFE/257)
+    # COLOR-Ebene läuft unverändert über das RGBA-Resampling.
+    assert proj.layers[0].image.size == (4, 2)
+
+
+def test_resize_same_size_keeps_height_payload_identity() -> None:
+    proj = Project(2, 2)
+    layer = proj.create_layer(name="h", kind=LayerKind.HEIGHT,
+                              height_data=_field16([[1, 2], [3, 4]]))
+    payload = layer.height_data
+    view = layer.image
+    proj.resize(2, 2)
+    assert layer.height_data is payload
+    assert layer.image is view
+
+
+def test_composite_color_ignores_height_payload_layers() -> None:
+    proj = Project(1, 1)
+    proj.create_layer(_solid((1, 1), (10, 20, 30, 255)), name="c")
+    proj.create_layer(name="h", kind=LayerKind.HEIGHT,
+                      height_data=_field16([[65535]]))
+    assert proj.composite_color().getpixel((0, 0)) == (10, 20, 30, 255)
+
+
+def test_one_pixel_and_fully_transparent_height_layers_are_defined() -> None:
+    """1×1- und volltransparente HEIGHT-Ebenen verhalten sich definiert."""
+    proj = Project(1, 1)
+    layer = proj.create_layer(
+        name="h", kind=LayerKind.HEIGHT,
+        height_data=_field16([[0x1234]], coverage=[[0]]))
+    assert layer.height_data is not None
+    # coverage == 0 heißt „kein Material" – der Höhenwert bleibt erhalten.
+    assert int(layer.height_data.values[0, 0]) == 0x1234
+    assert int(layer.height_data.coverage[0, 0]) == 0
+    assert np.array(layer.image)[0, 0, 3] == 0              # Ansicht: Alpha 0
+
+
+def test_color_image_setter_keeps_object_identity() -> None:
+    """Parität: COLOR-Zuweisungen übernehmen das Objekt ohne Kopie (Canvas-Vertrag)."""
+    layer = Layer(name="c", kind=LayerKind.COLOR, image=_solid((2, 2), (1, 1, 1, 255)))
+    replacement = _solid((2, 2), (2, 2, 2, 255))
+    layer.image = replacement
+    assert layer.image is replacement
+
+
+def test_height_image_setter_runs_legacy_adapter() -> None:
+    """Der befristete Adapter hält Payload und Ansicht auf HEIGHT-Ebenen synchron."""
+    layer = Layer(name="h", kind=LayerKind.HEIGHT, height_data=_field16([[0]]))
+    rng = np.random.default_rng(3)
+    values = rng.integers(0, 256, size=(1, 1), dtype=np.uint8)
+    alpha = np.array([[200]], dtype=np.uint8)
+    layer.image = _gray_rgba(values, alpha)
+    assert layer.height_data is not None
+    assert int(layer.height_data.values[0, 0]) == int(values[0, 0]) * 257
+    assert int(layer.height_data.coverage[0, 0]) == 200
+
+
+def test_swap_display_view_never_touches_payload() -> None:
+    """Vorschau-Substitution tauscht nur die Ansicht – die Payload bleibt kanonisch."""
+    layer = Layer(name="h", kind=LayerKind.HEIGHT, height_data=_field16([[0x1234]]))
+    payload = layer.height_data
+    original_view = layer.image
+    preview = _solid((1, 1), (255, 255, 255, 255))
+    returned = layer.swap_display_view(preview)
+    assert returned is original_view
+    assert layer.image is preview
+    assert layer.height_data is payload                     # unangetastet
+    layer.swap_display_view(returned)
+    assert layer.image is original_view
+    assert list(layer.height_data.values[0]) == [0x1234]
+
+
+@pytest.mark.parametrize("seed", [0, 1, 7, 42])
+def test_random_height_payloads_roundtrip_through_model(seed: int) -> None:
+    """Parametrisierte Zufallsfelder: Modellwege erhalten Werte und Deckung bitgenau."""
+    rng = np.random.default_rng(seed)
+    h, w = int(rng.integers(1, 24)), int(rng.integers(1, 24))
+    values = rng.integers(0, 65536, size=(h, w), dtype=np.uint16)
+    coverage = rng.integers(0, 256, size=(h, w), dtype=np.uint8)
+    field = HeightField(values.copy(), coverage.copy(), max_value=HEIGHT_MAX_16BIT)
+    proj = Project(w, h)
+    layer = proj.create_layer(name="h", kind=LayerKind.HEIGHT, height_data=field)
+    clone = proj.duplicate_layer(layer.id)
+    proj.reorder([clone.id, layer.id])
+    assert layer.height_data is not None and clone.height_data is not None
+    assert np.array_equal(layer.height_data.values, values)
+    assert np.array_equal(layer.height_data.coverage, coverage)
+    assert np.array_equal(clone.height_data.values, values)

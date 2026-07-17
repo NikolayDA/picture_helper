@@ -79,6 +79,14 @@ def _assert_projects_equal(a: Project, b: Project) -> None:
         assert la.locked == lb.locked
         assert la.role == lb.role
         assert np.array_equal(np.asarray(la.image), np.asarray(lb.image))
+        # 16-Bit-Payload (v2, #588): bitgenau inklusive Deckung und max_value.
+        if la.height_data is None:
+            assert lb.height_data is None
+        else:
+            assert lb.height_data is not None
+            assert lb.height_data.max_value == la.height_data.max_value
+            assert np.array_equal(la.height_data.values, lb.height_data.values)
+            assert np.array_equal(la.height_data.coverage, lb.height_data.coverage)
 
 
 def _write_zip(path, members: dict[str, bytes]) -> None:
@@ -165,7 +173,7 @@ def test_round_trip_empty_metadata_and_single_layer(tmp_path) -> None:
 
 
 def test_saved_container_layout(tmp_path) -> None:
-    """Der Container enthält genau das Manifest plus eine PNG je Ebene."""
+    """Der v2-Container: Manifest + RGBA-PNG je Ebene + 16-Bit-Payload je HEIGHT."""
     project = _sample_project()
     path = tmp_path / f"layout{PROJECT_SUFFIX}"
     save_project(project, path)
@@ -173,7 +181,14 @@ def test_saved_container_layout(tmp_path) -> None:
     with zipfile.ZipFile(path) as zf:
         names = set(zf.namelist())
     assert MANIFEST_NAME in names
-    assert names == {MANIFEST_NAME, "layer_0000.png", "layer_0001.png", "layer_0002.png"}
+    # Ebene 1 ist die HEIGHT-Ebene → zusätzliche kanonische 16-Bit-Datei (#588).
+    assert names == {
+        MANIFEST_NAME,
+        "layer_0000.png",
+        "layer_0001.png",
+        "layer_0001_height16.png",
+        "layer_0002.png",
+    }
 
 
 def test_save_is_atomic_keeps_existing_file_on_failure(tmp_path, monkeypatch) -> None:
@@ -469,6 +484,13 @@ def test_load_project_normalizes_legacy_incompatible_role(tmp_path) -> None:
     project.create_layer(_solid(3, 3, (40, 50, 60, 255)), name="Höhe", kind=LayerKind.HEIGHT)
     manifest = build_manifest(project)
     manifest["layers"][0]["role"] = LayerRole.HEIGHT_MAP.value   # COLOR trägt HEIGHT_MAP
+    # Handgebauter **v1**-Alt-Container ohne 16-Bit-Payload: HEIGHT lädt über
+    # den deterministischen Legacy-Pfad (×257-Adapter, #587/#588). Eine echte
+    # v2-Datei ohne Payload-Deklaration würde dagegen abgewiesen.
+    manifest["version"] = 1
+    for entry in manifest["layers"]:
+        entry.pop("height16_file", None)
+        entry.pop("height16_max_value", None)
     path = tmp_path / ("legacy" + PROJECT_SUFFIX)
     _write_zip(path, {
         MANIFEST_NAME: json.dumps(manifest).encode("utf-8"),
@@ -584,3 +606,490 @@ def test_module_is_qt_free() -> None:
         assert not any(
             name.split(".")[0] in {"PyQt6", "PyQt5", "PySide6"} for name in imported
         ), mod.__name__
+
+
+# ── 16-Bit-HEIGHT-Payload an der v1-Formatgrenze (#587) ──────────────────
+
+
+def test_v1_height_layer_loads_with_canonical_payload(tmp_path) -> None:
+    """Laden migriert die 8-Bit-HEIGHT-PNG deterministisch (×257) in die Payload."""
+    from bgremover.height_map import HeightField
+
+    project = Project(2, 2)
+    arr = np.zeros((2, 2, 4), dtype=np.uint8)
+    arr[:, :, :3] = 100
+    arr[:, :, 3] = 128
+    project.create_layer(
+        Image.fromarray(arr, "RGBA"), name="Höhe", kind=LayerKind.HEIGHT)
+    path = tmp_path / "height.bgrproj"
+    save_project(project, path)
+
+    loaded = load_project(path)
+    layer = loaded.layers[0]
+    assert layer.kind is LayerKind.HEIGHT
+    assert layer.height_data is not None
+    assert layer.height_data.max_value == 65535
+    assert np.all(layer.height_data.values == 100 * 257)
+    assert np.all(layer.height_data.coverage == 128)
+
+    # Seit Formatversion 2 (#588) schreibt Speichern die kanonische
+    # 16-Bit-Payload mit – echte Niederbits überleben den Roundtrip bitgenau.
+    project.set_layer_height_data(
+        layer_id=project.layers[0].id,
+        field=HeightField(
+            np.full((2, 2), 0x1234, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8),
+            max_value=65535,
+        ),
+    )
+    save_project(project, path)
+    reloaded = load_project(path).layers[0].height_data
+    assert reloaded is not None
+    assert np.all(reloaded.values == 0x1234)
+
+
+# ── Formatversion 2: Roundtrip, Migration, Integrität (#588) ─────────────
+
+
+def _height16_project(values, coverage=None, *, extra_color: bool = True) -> Project:
+    """Projekt mit kanonischer 16-Bit-HEIGHT-Payload (plus optionaler COLOR-Basis)."""
+    from bgremover.height_map import HeightField
+
+    arr = np.asarray(values, dtype=np.uint16)
+    h, w = arr.shape
+    cov = (
+        np.full(arr.shape, 255, dtype=np.uint8)
+        if coverage is None
+        else np.asarray(coverage, dtype=np.uint8)
+    )
+    project = Project(w, h)
+    if extra_color:
+        project.create_layer(_solid(w, h, (200, 10, 10, 255)), name="Farbe")
+    project.create_layer(
+        name="Höhe", kind=LayerKind.HEIGHT, role=LayerRole.HEIGHT_MAP,
+        height_data=HeightField(arr, cov, max_value=65535))
+    return project
+
+
+def test_v2_roundtrip_restores_boundary_values_bit_exactly(tmp_path) -> None:
+    """Grenzwerte des Vertrags überleben Save/Open bitgenau (inkl. Deckung)."""
+    values = [[0, 1, 255, 256], [257, 32767, 65534, 65535]]
+    coverage = [[0, 1, 128, 255], [254, 7, 200, 0]]
+    project = _height16_project(values, coverage)
+    path = tmp_path / f"v2{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    loaded = load_project(path)
+    _assert_projects_equal(project, loaded)
+    field = loaded.layers[1].height_data
+    assert field is not None
+    assert field.values.dtype == np.uint16
+    assert field.values.tolist() == values
+    assert field.coverage.tolist() == coverage
+
+
+@pytest.mark.parametrize("seed", [0, 5, 99])
+def test_v2_roundtrip_random_arrays_and_masks(tmp_path, seed: int) -> None:
+    """Zufällige 16-Bit-Arrays und Deckungsmasken bestehen den Roundtrip."""
+    rng = np.random.default_rng(seed)
+    h, w = int(rng.integers(1, 32)), int(rng.integers(1, 32))
+    values = rng.integers(0, 65536, size=(h, w), dtype=np.uint16)
+    coverage = rng.integers(0, 256, size=(h, w), dtype=np.uint8)
+    project = _height16_project(values, coverage)
+    path = tmp_path / f"rand{seed}{PROJECT_SUFFIX}"
+    save_project(project, path)
+    _assert_projects_equal(project, load_project(path))
+
+
+def test_v2_mixed_project_roundtrip_keeps_semantics(tmp_path) -> None:
+    """COLOR + HEIGHT + GLOSS: Reihenfolge, Rollen, Metadaten, Payload erhalten."""
+    from bgremover.height_map import HeightField
+
+    project = Project(4, 3, metadata={"note": "mix"})
+    project.create_layer(
+        _solid(4, 3, (10, 20, 30, 255)), name="Motiv", role=LayerRole.COLOR_MOTIF)
+    project.create_layer(
+        name="Höhe", kind=LayerKind.HEIGHT, role=LayerRole.HEIGHT_MAP,
+        visible=False, opacity=0.5, locked=True,
+        height_data=HeightField(
+            np.full((3, 4), 0x1234, dtype=np.uint16),
+            np.full((3, 4), 200, dtype=np.uint8),
+            max_value=65535,
+        ))
+    project.create_layer(
+        _solid(4, 3, (0, 0, 255, 128)), name="Glanz", kind=LayerKind.GLOSS)
+    project.set_active(project.layers[1].id)
+    path = tmp_path / f"mix{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    loaded = load_project(path)
+    _assert_projects_equal(project, loaded)
+
+
+def test_v1_fixture_loads_and_migrates_deterministically(tmp_path) -> None:
+    """Realistische v1-Datei: HEIGHT → ×257, COLOR/GLOSS/Reihenfolge unverändert."""
+    manifest = {
+        "version": 1,
+        "project_version": 1,
+        "width": 2,
+        "height": 2,
+        "active_layer_id": "h1",
+        "metadata": {"note": "legacy"},
+        "layers": [
+            {"id": "c1", "name": "Farbe", "kind": "color", "visible": True,
+             "opacity": 1.0, "locked": False, "role": "color_motif",
+             "bit_depth": 8, "file": "layer_0000.png"},
+            {"id": "h1", "name": "Höhe", "kind": "height", "visible": True,
+             "opacity": 1.0, "locked": False, "role": "height_map",
+             "bit_depth": 8, "file": "layer_0001.png"},
+            {"id": "g1", "name": "Glanz", "kind": "gloss", "visible": False,
+             "opacity": 0.5, "locked": False, "role": None,
+             "bit_depth": 8, "file": "layer_0002.png"},
+        ],
+    }
+    harr = np.zeros((2, 2, 4), dtype=np.uint8)
+    harr[:, :, :3] = 100
+    harr[:, :, 3] = 128
+    path = tmp_path / ("v1" + PROJECT_SUFFIX)
+    _write_zip(path, {
+        MANIFEST_NAME: json.dumps(manifest).encode("utf-8"),
+        "layer_0000.png": _png_bytes(_solid(2, 2, (10, 20, 30, 255))),
+        "layer_0001.png": _png_bytes(Image.fromarray(harr, "RGBA")),
+        "layer_0002.png": _png_bytes(_solid(2, 2, (9, 9, 9, 64))),
+    })
+
+    loaded = load_project(path)
+    assert [lyr.name for lyr in loaded.layers] == ["Farbe", "Höhe", "Glanz"]
+    assert loaded.metadata == {"note": "legacy"}
+    field = loaded.layers[1].height_data
+    assert field is not None
+    assert field.max_value == 65535
+    assert np.all(field.values == 100 * 257)          # deterministisch v8 × 257
+    assert np.all(field.coverage == 128)
+    # COLOR/GLOSS bleiben pixelidentisch, Sichtbarkeit/Opazität erhalten.
+    assert np.array_equal(
+        np.asarray(loaded.layers[0].image), np.asarray(_solid(2, 2, (10, 20, 30, 255))))
+    assert loaded.layers[2].visible is False
+    assert loaded.layers[2].opacity == pytest.approx(0.5)
+    # Erneutes Speichern schreibt kontrolliert v2 (mit 16-Bit-Payload).
+    out = tmp_path / ("resaved" + PROJECT_SUFFIX)
+    save_project(loaded, out)
+    with zipfile.ZipFile(out) as zf:
+        manifest2 = json.loads(zf.read(MANIFEST_NAME))
+        assert manifest2["version"] == PROJECT_FORMAT_VERSION
+        assert "layer_0001_height16.png" in zf.namelist()
+    _assert_projects_equal(loaded, load_project(out))
+
+
+def test_v2_repeated_open_save_has_no_cumulative_loss(tmp_path) -> None:
+    """Fünf Open/Save-Zyklen: Payload bleibt bitgenau (kein kumulativer Verlust)."""
+    rng = np.random.default_rng(1234)
+    values = rng.integers(0, 65536, size=(9, 7), dtype=np.uint16)
+    project = _height16_project(values)
+    path = tmp_path / f"cycle{PROJECT_SUFFIX}"
+    save_project(project, path)
+    current = load_project(path)
+    for _ in range(5):
+        save_project(current, path)
+        current = load_project(path)
+    field = current.layers[1].height_data
+    assert field is not None
+    assert np.array_equal(field.values, values)
+
+
+def test_save_abort_during_height16_write_keeps_existing_file(
+    tmp_path, monkeypatch
+) -> None:
+    """I/O-Abbruch beim Payload-Schreiben: Zieldatei intakt, kein Temp-Rest."""
+    import bgremover.project_io as pio
+
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"abort{PROJECT_SUFFIX}"
+    save_project(project, path)
+    original = path.read_bytes()
+
+    def boom(*_a, **_k):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pio, "_encode_height16_png", boom)
+    with pytest.raises(OSError):
+        save_project(project, path)
+
+    assert path.read_bytes() == original                  # unversehrt
+    leftovers = [p for p in tmp_path.iterdir() if p.suffix == ".tmp"]
+    assert leftovers == []                                # Temp aufgeräumt
+
+
+# ── v2-Integritäts- und Sicherheits-Negativtests (#588) ──────────────────
+
+
+def _tamper(path, mutate) -> None:
+    """Schreibt den Container mit mutierten Einträgen neu (Manipulations-Helfer)."""
+    with zipfile.ZipFile(path) as zf:
+        members = {name: zf.read(name) for name in zf.namelist()}
+    mutate(members)
+    _write_zip(path, members)
+
+
+def test_truncated_height16_payload_is_rejected(tmp_path) -> None:
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"trunc{PROJECT_SUFFIX}"
+    save_project(project, path)
+    _tamper(path, lambda m: m.__setitem__(
+        "layer_0001_height16.png", m["layer_0001_height16.png"][:-7]))
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "Integritätsprüfung" in str(err.value)
+
+
+def test_swapped_height16_payloads_are_rejected(tmp_path) -> None:
+    """Vertauschte Payload-Dateien zweier HEIGHT-Ebenen fallen per Checksumme auf."""
+    from bgremover.height_map import HeightField
+
+    project = Project(2, 2)
+    project.create_layer(
+        name="H1", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            np.full((2, 2), 111, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8), max_value=65535))
+    project.create_layer(
+        name="H2", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            np.full((2, 2), 222, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8), max_value=65535))
+    path = tmp_path / f"swap{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def swap(members: dict) -> None:
+        a, b = "layer_0000_height16.png", "layer_0001_height16.png"
+        members[a], members[b] = members[b], members[a]
+
+    _tamper(path, swap)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "Integritätsprüfung" in str(err.value)
+
+
+def test_manifest_without_height16_sha_is_rejected(tmp_path) -> None:
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"nosha{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def strip_sha(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1].pop("height16_sha256")
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, strip_sha)
+    with pytest.raises(ProjectFileError):
+        load_project(path)
+
+
+def test_wrong_height16_max_value_is_rejected(tmp_path) -> None:
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"maxv{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def wrong_max(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1]["height16_max_value"] = 255
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, wrong_max)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "16-Bit-Höhendaten" in str(err.value)
+
+
+def test_height16_on_non_height_layer_is_rejected(tmp_path) -> None:
+    """Eine height16-Deklaration auf einer COLOR-Ebene ist inkonsistent."""
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"kind{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def move_to_color(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        height_entry = manifest["layers"][1]
+        color_entry = manifest["layers"][0]
+        for key in ("height16_file", "height16_sha256", "height16_max_value"):
+            color_entry[key] = height_entry.pop(key)
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, move_to_color)
+    with pytest.raises(ProjectFileError):
+        load_project(path)
+
+
+def test_missing_height16_file_in_container_is_rejected(tmp_path) -> None:
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"missing{PROJECT_SUFFIX}"
+    save_project(project, path)
+    _tamper(path, lambda m: m.pop("layer_0001_height16.png"))
+    with pytest.raises(ProjectFileError):
+        load_project(path)
+
+
+def test_wrong_sized_height16_payload_is_rejected(tmp_path) -> None:
+    """Payload in fremder Größe: Checksumme stimmt, Größenprüfung greift."""
+    import bgremover.project_io as pio
+
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"size{PROJECT_SUFFIX}"
+    save_project(project, path)
+    tiny = pio._encode_height16_png(np.array([[7]], dtype=np.uint16))
+
+    def shrink(members: dict) -> None:
+        import hashlib
+
+        members["layer_0001_height16.png"] = tiny
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1]["height16_sha256"] = hashlib.sha256(tiny).hexdigest()
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, shrink)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "passt nicht" in str(err.value)
+
+
+def test_8bit_gray_png_as_height16_payload_is_rejected(tmp_path) -> None:
+    """Eine 8-Bit-Grau-PNG ist keine gültige 16-Bit-Payload (kein stilles Spreizen)."""
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"gray8{PROJECT_SUFFIX}"
+    save_project(project, path)
+    fake = _png_bytes(Image.new("L", (2, 2), 100))
+
+    def replace(members: dict) -> None:
+        import hashlib
+
+        members["layer_0001_height16.png"] = fake
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1]["height16_sha256"] = hashlib.sha256(fake).hexdigest()
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, replace)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "16-Bit-Höhendaten" in str(err.value)
+
+
+def test_height16_zip_slip_name_is_rejected(tmp_path) -> None:
+    """Pfadanteile im height16-Namen werden wie bisher als Zip-Slip abgewiesen."""
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"slip{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def slip(members: dict) -> None:
+        payload = members.pop("layer_0001_height16.png")
+        members["../escape.png"] = payload
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1]["height16_file"] = "../escape.png"
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, slip)
+    with pytest.raises(ProjectFileError):
+        load_project(path)
+
+
+def test_oversized_height16_entry_is_rejected(tmp_path, monkeypatch) -> None:
+    """Das eigene 2-B/px-Entry-Limit greift für height16-Einträge."""
+    import bgremover.project_io as pio
+
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"big{PROJECT_SUFFIX}"
+    save_project(project, path)
+    monkeypatch.setattr(pio, "_MAX_HEIGHT16_ENTRY_BYTES", 4)
+    with pytest.raises(ProjectFileError) as err:
+        load_project(path)
+    assert "zu groß" in str(err.value)
+
+
+def test_duplicate_height16_file_names_are_rejected(tmp_path) -> None:
+    """Zwei Ebenen dürfen nicht dieselbe Payload-Datei referenzieren."""
+    from bgremover.height_map import HeightField
+
+    project = Project(2, 2)
+    project.create_layer(
+        name="H1", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            np.full((2, 2), 1, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8), max_value=65535))
+    project.create_layer(
+        name="H2", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            np.full((2, 2), 2, dtype=np.uint16),
+            np.full((2, 2), 255, dtype=np.uint8), max_value=65535))
+    path = tmp_path / f"dup{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def duplicate(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        manifest["layers"][1]["height16_file"] = (
+            manifest["layers"][0]["height16_file"])
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+
+    _tamper(path, duplicate)
+    with pytest.raises(ProjectFileError):
+        load_project(path)
+
+
+def test_40mp_height_project_saves_and_opens_within_budget(tmp_path) -> None:
+    """40-MP-HEIGHT-Projekt: Save/Open bitgenau und innerhalb großzügiger Budgets.
+
+    Misst den vollen v2-Zyklus am harten Megapixel-Limit (ADR #586): die
+    Containergröße bleibt für glatte Höhen klein (PNG/Deflate), Laufzeit in
+    einer bewusst großzügigen CI-Schranke; die Grenzwerte inklusive Niederbits
+    überleben bitgenau.
+    """
+    import time
+
+    width, height = 8000, 5000                          # 40,0 MP
+    values = np.zeros((height, width), dtype=np.uint16)
+    values[0, :8] = [0, 1, 255, 256, 32767, 65534, 65535, 0x1234]
+    project = _height16_project(values, extra_color=False)
+    path = tmp_path / f"mp40{PROJECT_SUFFIX}"
+
+    start = time.perf_counter()
+    save_project(project, path)
+    save_seconds = time.perf_counter() - start
+    size_mb = path.stat().st_size / 1_000_000
+
+    start = time.perf_counter()
+    loaded = load_project(path)
+    load_seconds = time.perf_counter() - start
+
+    field = loaded.layers[0].height_data
+    assert field is not None
+    assert list(field.values[0, :8]) == [0, 1, 255, 256, 32767, 65534, 65535, 0x1234]
+    assert field.values.shape == (height, width)
+    # Großzügige Schranken gegen strukturelle Regressionen (kein Benchmark):
+    # unkomprimiert wären es 240 MB – der Container muss deutlich darunter
+    # bleiben, Save+Open zusammen klar unter einer Minute.
+    assert size_mb < 60.0
+    assert save_seconds + load_seconds < 60.0
+
+
+def test_v2_height_layer_without_payload_declaration_is_rejected(tmp_path) -> None:
+    """Echte v2-Datei, HEIGHT ohne height16-Deklaration: Integritätsverstoß.
+
+    Da die Migration v1-Manifeste in-memory auf Version 2 hebt, muss der
+    Loader die **Ursprungsversion** heranziehen: nur echte v1-Dateien dürfen
+    auf den ×257-Adapter zurückfallen – bei einer manipulierten/abgeschnittenen
+    v2-Datei wäre der stille Rückfall ein requantisierter Datenverlust
+    (Codex-Review-Befund zu #588).
+    """
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"nodecl{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def strip_declaration(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        assert manifest["version"] == PROJECT_FORMAT_VERSION
+        for key in ("height16_file", "height16_sha256", "height16_max_value"):
+            manifest["layers"][1].pop(key)
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+        members.pop("layer_0001_height16.png")
+
+    _tamper(path, strip_declaration)
+    with pytest.raises(ProjectFileError):
+        load_project(path)

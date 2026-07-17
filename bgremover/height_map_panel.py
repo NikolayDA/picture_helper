@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
 
 from bgremover import height_ops
 from bgremover.canvas import LayerInfo
-from bgremover.height_map import HeightField
+from bgremover.height_map import HeightField, scale_8bit_height_value
 from bgremover.i18n import tr
 from bgremover.project_model import LayerKind
 from bgremover.right_panel_tabs import (
@@ -170,7 +170,11 @@ class HeightMapPanel:
         white = _spin(1, 255, 255)
 
         def levels_op(f: HeightField) -> HeightField:
-            return height_ops.levels(f, black.value(), white.value())
+            return height_ops.levels(
+                f,
+                scale_8bit_height_value(black.value(), f),
+                scale_8bit_height_value(white.value(), f),
+            )
         body.addWidget(_make_label(tr("right_panel.height.levels"), "#aaa"))
         self._op_row([black, white], levels_op, body, "levels")
         self._refs.update(height_levels_black=black, height_levels_white=white)
@@ -207,7 +211,7 @@ class HeightMapPanel:
         thresh = _spin(0, 255, 128)
 
         def thresh_op(f: HeightField) -> HeightField:
-            return height_ops.threshold(f, thresh.value())
+            return height_ops.threshold(f, scale_8bit_height_value(thresh.value(), f))
         body.addWidget(_make_label(tr("right_panel.height.threshold"), "#aaa"))
         self._op_row([thresh], thresh_op, body, "threshold")
         self._refs["height_threshold"] = thresh
@@ -226,7 +230,11 @@ class HeightMapPanel:
         rng_hi = _spin(1, 255, 255)
 
         def range_op(f: HeightField) -> HeightField:
-            return height_ops.clamp_range(f, rng_lo.value(), rng_hi.value())
+            return height_ops.clamp_range(
+                f,
+                scale_8bit_height_value(rng_lo.value(), f),
+                scale_8bit_height_value(rng_hi.value(), f),
+            )
         body.addWidget(_make_label(tr("right_panel.height.range"), "#aaa"))
         self._op_row([rng_lo, rng_hi], range_op, body, "range")
         self._refs.update(height_range_lo=rng_lo, height_range_hi=rng_hi)
