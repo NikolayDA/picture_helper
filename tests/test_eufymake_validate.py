@@ -333,6 +333,9 @@ def test_format_finding_renders_every_code() -> None:
             ExportCheckCode.BIT_DEPTH_UNCONFIRMED, Severity.WARNING, LayerRole.HEIGHT_MAP,
             {"bits": 16},
         ),
+        ExportCheckCode.HEIGHT_PRECISION_LOSS: ExportFinding(
+            ExportCheckCode.HEIGHT_PRECISION_LOSS, Severity.WARNING, LayerRole.HEIGHT_MAP
+        ),
         ExportCheckCode.GLOSS_INK_MODE: ExportFinding(
             ExportCheckCode.GLOSS_INK_MODE, Severity.WARNING, LayerRole.GLOSS_MASK
         ),
@@ -355,3 +358,60 @@ def test_format_finding_renders_every_code() -> None:
 def test_finding_i18n_key_matches_namespace() -> None:
     finding = ExportFinding(ExportCheckCode.COLOR_MOTIF_MISSING, Severity.ERROR)
     assert finding.i18n_key == "eufymake.export.color_motif_missing"
+
+
+# ── Präzisionsverlust-Warnung beim 8-Bit-Ziel (#590) ─────────────────────
+
+
+def _with_height_payload(project: Project, values: np.ndarray) -> Project:
+    """HEIGHT-Ebene direkt aus einer kanonischen 16-Bit-Payload."""
+    from bgremover.height_map import HeightField
+
+    layer = project.create_layer(
+        name="Höhe", kind=LayerKind.HEIGHT,
+        height_data=HeightField(
+            values, np.full(values.shape, 255, dtype=np.uint8), max_value=65535))
+    project.assign_role(layer.id, LayerRole.HEIGHT_MAP)
+    return project
+
+
+def test_8bit_target_with_true_16bit_heights_warns_precision_loss() -> None:
+    """Echte Niederbits + 8-Bit-Ziel → bestätigungspflichtige Warnung (#590)."""
+    values = np.array([[0x1234, 0x0000], [0x8000, 0xFFFF]], dtype=np.uint16)
+    project = _with_height_payload(_color_project((2, 2)), values)
+    findings = validate_export(
+        project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=8)
+    codes = [f.code for f in findings]
+    assert ExportCheckCode.HEIGHT_PRECISION_LOSS in codes
+    finding = next(
+        f for f in findings if f.code is ExportCheckCode.HEIGHT_PRECISION_LOSS)
+    assert finding.severity is Severity.WARNING
+    assert format_finding(finding)                       # rendert ohne KeyError
+
+
+def test_16bit_target_does_not_warn_precision_loss() -> None:
+    values = np.array([[0x1234, 0x0000], [0x8000, 0xFFFF]], dtype=np.uint16)
+    project = _with_height_payload(_color_project((2, 2)), values)
+    findings = validate_export(
+        project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=16)
+    codes = [f.code for f in findings]
+    assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in codes
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in codes
+
+
+def test_8bit_target_without_low_bits_does_not_warn() -> None:
+    """Reine ×257-Stufen (8-Bit-äquivalent) verlieren nichts – keine Warnung."""
+    values = (np.array([[0, 1], [128, 255]], dtype=np.uint32) * 257).astype(np.uint16)
+    project = _with_height_payload(_color_project((2, 2)), values)
+    findings = validate_export(
+        project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=8)
+    assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in [f.code for f in findings]
+
+
+def test_low_bit_only_variation_counts_as_non_empty() -> None:
+    """Konstante 8-Bit-Ansicht, aber variierende Niederbits: nicht „leer" (#590)."""
+    values = np.array([[0x0100, 0x0101], [0x0102, 0x0103]], dtype=np.uint16)
+    project = _with_height_payload(_color_project((2, 2)), values)
+    findings = validate_export(
+        project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=16)
+    assert ExportCheckCode.HEIGHT_MAP_EMPTY not in [f.code for f in findings]

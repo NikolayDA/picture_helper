@@ -615,7 +615,13 @@ solo están activas cuando hay una capa de altura activa.
   de color actual en un mapa de altura y lo crea como una nueva capa
   de altura.
 - **Importar escala de grises…** – carga una imagen en escala de
-  grises como mapa de altura y la escala al tamaño del proyecto.
+  grises como mapa de altura y la escala al tamaño del proyecto. Los
+  archivos en escala de grises de 16 bits (PNG/TIFF) se importan de forma
+  **nativa con los 65536 niveles**; las imágenes en color y de 8 bits se
+  convierten según su brillo. Las imágenes de 16 bits con canal alfa y las
+  imágenes float no pueden leerse sin pérdidas y se rechazan con un
+  mensaje. Al exportar para EufyMake, BgRemover avisa cuando un destino de
+  8 bits cuantizaría las alturas internas de 16 bits.
 
 ### Mapas de altura: editar
 

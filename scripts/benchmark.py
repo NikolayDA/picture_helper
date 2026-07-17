@@ -45,12 +45,22 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import numpy as np  # noqa: E402
+
+from bgremover.height_map import (  # noqa: E402
+    HeightField,
+    image_to_height_field,
+)
+from bgremover.height_ops import gaussian_blur  # noqa: E402
 from bgremover.image_ops import (  # noqa: E402  (Pfad muss vor dem Import stehen)
     crop_image,
     rotate_image,
     round_corners,
     save_image_file,
 )
+from bgremover.project_io import load_project, save_project  # noqa: E402
+from bgremover.project_model import LayerKind, Project  # noqa: E402
+from bgremover.relief_preview import compose_over, relief_shading  # noqa: E402
 
 # Format-Label → Default-Suffix. Spiegelt bewusst ``image_ops.SAVE_FORMATS``;
 # als getrennte Liste gehalten, damit der Benchmark auch dann eine stabile
@@ -60,6 +70,15 @@ BENCH_FORMATS: dict[str, str] = {
     "JPEG": ".jpg",
     "WebP": ".webp",
     "TIFF": ".tif",
+}
+
+# 16-Bit-Höhenpipeline (#590, Baseline aus ADR #586): Import, repräsentative
+# Operation (separabler Gauß), .bgrproj-Roundtrip und Relief-Preview je
+# Projektgröße. Iterationszahl fällt mit der Bildgröße (40 MP: 1 Messung).
+HEIGHT_BENCH_SIZES: dict[str, tuple[int, int, int]] = {
+    "HEIGHT16-1MP": (1000, 1000, 5),
+    "HEIGHT16-16MP": (4000, 4000, 3),
+    "HEIGHT16-40MP": (8000, 5000, 1),
 }
 
 DEFAULT_ITERATIONS = 7
@@ -206,7 +225,73 @@ def collect_environment() -> dict[str, Any]:
     }
 
 
-def run_benchmark(iterations: int, width: int, height: int) -> dict[str, Any]:
+def make_height_values(width: int, height: int) -> np.ndarray:
+    """Deterministisches 16-Bit-Höhenmuster mit gesetzten Niederbits."""
+    yy, xx = np.mgrid[0:height, 0:width]
+    return ((xx * 131 + yy * 17) % 65536).astype(np.uint16)
+
+
+def benchmark_height_pipeline(
+    width: int, height: int, iterations: int, work_dir: Path
+) -> dict[str, float]:
+    """Misst die 16-Bit-Höhenpipeline über die echten Code-Pfade (#590).
+
+    Metriken je Größe: ``import_ms`` (natives 16-Bit-PNG → ``HeightField``),
+    ``process_ms`` (separabler ``gaussian_blur`` als repräsentative Operation –
+    zugleich die Standard-Vergleichsmetrik des Benchmarks), ``roundtrip_ms``
+    (``.bgrproj`` Save + Open, Formatversion 2) und ``preview_ms``
+    (Relief-Hillshade + Compose aus der kanonischen Payload).
+    """
+    values = make_height_values(width, height)
+    coverage = np.full((height, width), 255, dtype=np.uint8)
+    field = HeightField(values, coverage, max_value=65535)
+
+    png_path = work_dir / f"height16-{width}x{height}.png"
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    Image.frombytes("I;16", (width, height), raw).save(png_path)
+
+    def _import() -> None:
+        with Image.open(png_path) as img:
+            img.load()
+            image_to_height_field(img)
+
+    import_ms = _median_ms(_import, iterations)
+    process_ms = _median_ms(lambda: gaussian_blur(field, 2.0), iterations)
+
+    project = Project(width, height)
+    project.create_layer(name="H", kind=LayerKind.HEIGHT, height_data=field)
+    proj_path = work_dir / f"height16-{width}x{height}.bgrproj"
+
+    def _roundtrip() -> None:
+        save_project(project, proj_path)
+        load_project(proj_path)
+
+    roundtrip_ms = _median_ms(_roundtrip, iterations)
+
+    base = Image.new("RGBA", (width, height), (128, 96, 64, 255))
+
+    def _preview() -> None:
+        compose_over(
+            base,
+            relief_shading(field, azimuth=315.0, elevation=45.0, strength=1.0),
+            strength=0.7,
+        )
+
+    preview_ms = _median_ms(_preview, iterations)
+    return {
+        "import_ms": import_ms,
+        "process_ms": process_ms,
+        "roundtrip_ms": roundtrip_ms,
+        "preview_ms": preview_ms,
+    }
+
+
+def run_benchmark(
+    iterations: int,
+    width: int,
+    height: int,
+    height_sizes: dict[str, tuple[int, int, int]] | None = None,
+) -> dict[str, Any]:
     """Führt den Benchmark für alle Formate aus und liefert das Ergebnis-Dict."""
     img = make_sample_image(width, height)
     formats: dict[str, dict[str, float]] = {}
@@ -214,6 +299,11 @@ def run_benchmark(iterations: int, width: int, height: int) -> dict[str, Any]:
         work_dir = Path(td)
         for fmt, suffix in BENCH_FORMATS.items():
             formats[fmt] = benchmark_format(img, fmt, suffix, iterations, work_dir)
+        # Additiv (#590): die Vergleichslogik behandelt neue Einträge wie neue
+        # Formate; Unit-Smoke-Läufe rufen ohne ``height_sizes`` auf.
+        for name, (h_width, h_height, h_iters) in (height_sizes or {}).items():
+            formats[name] = benchmark_height_pipeline(
+                h_width, h_height, h_iters, work_dir)
     return {
         "schema": SCHEMA_VERSION,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -622,7 +712,10 @@ def post_issues(
 # ── CLI ──────────────────────────────────────────────────────────────────
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    result = run_benchmark(args.iterations, args.width, args.height)
+    result = run_benchmark(
+        args.iterations, args.width, args.height,
+        height_sizes=HEIGHT_BENCH_SIZES,
+    )
     path = save_result(result, args.results_dir)
     print(f"Ergebnis gespeichert: {_rel(path)}")
 
@@ -656,7 +749,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
     print(f"\n🔁 {len(comp.flagged)} Format(e) auffällig – Bestätigung mit "
           f"{repeats} Wiederholung(en) …\n")
     confirmed = aggregate_results(
-        [result, *(run_benchmark(args.iterations, args.width, args.height)
+        [result, *(run_benchmark(args.iterations, args.width, args.height,
+                                  height_sizes=HEIGHT_BENCH_SIZES)
                    for _ in range(repeats))]
     )
     # Persistierte Baseline durch den robusten Median ersetzen. Sonst committet

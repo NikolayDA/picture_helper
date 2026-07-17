@@ -67,6 +67,7 @@ from bgremover.height_map import (
     height_to_layer,
     image_to_height_field,
     invert_height,
+    is_native_16bit_source,
     layer_to_gray_image,
     layer_to_height,
     resize_height_field,
@@ -684,8 +685,21 @@ class ImageCanvas(QGraphicsView):
 
         rendered = base
         if height is not None and self._relief_strength > 0:
+            # Hillshade direkt aus der kanonischen 16-Bit-Payload (#590):
+            # feine Höhenverläufe unterhalb einer 8-Bit-Stufe werden im Relief
+            # sichtbar. Nur während einer transienten Live-Vorschau (Override)
+            # zählt die getauschte 8-Bit-Ansicht – sie trägt die Vorschaupixel
+            # und ist als Anzeigeableitung die dokumentierte Ausnahme.
+            overridden = (
+                self._preview_layer_override is not None
+                and self._preview_layer_override[0] == height.id
+            )
+            if height.height_data is not None and not overridden:
+                shading_source = height.height_data
+            else:
+                shading_source = layer_to_height(height.image)
             shading = relief_shading(
-                layer_to_height(height.image),
+                shading_source,
                 azimuth=315.0,
                 elevation=45.0,
                 strength=1.0,
@@ -1153,7 +1167,13 @@ class ImageCanvas(QGraphicsView):
             self.statusMsg.emit(tr("status.height_import_failed"))
             return
         self._add_height_layer(field, tr("history.desc.height_imported"))
-        self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
+        # Quell-Bittiefe benennen (#590): native 16-Bit-Quelle vs. Ableitung
+        # aus einer 8-Bit-Basis (Luminanz-Regel, ×257-äquivalent).
+        if is_native_16bit_source(img):
+            self.statusMsg.emit(
+                tr("canvas.height_imported_16bit", name=Path(path).name))
+        else:
+            self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
 
     # ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ─────
     def _height_edit_context(self) -> tuple[HeightField, np.ndarray | None] | None:

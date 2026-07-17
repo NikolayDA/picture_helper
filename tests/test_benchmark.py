@@ -338,3 +338,16 @@ def test_compare_reports_for_fully_comparable_baseline(
     ])
     assert rc == 1
     assert len(posted) == 1
+
+
+def test_run_benchmark_height_pipeline_metrics(tmp_path: Path) -> None:
+    """Höhen-Baseline (#590): kleine Größen liefern alle vier Metriken."""
+    result = bench.run_benchmark(
+        iterations=1, width=16, height=12,
+        height_sizes={"HEIGHT16-TINY": (8, 6, 1)},
+    )
+    metrics = result["formats"]["HEIGHT16-TINY"]
+    for key in ("import_ms", "process_ms", "roundtrip_ms", "preview_ms"):
+        assert metrics[key] >= 0.0
+    # Bestehende Format-Messungen bleiben unangetastet daneben stehen.
+    assert set(bench.BENCH_FORMATS) <= set(result["formats"])

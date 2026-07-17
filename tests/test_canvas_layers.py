@@ -1421,3 +1421,42 @@ def test_normal_image_loader_still_accepts_quantized_16bit_sources(tmp_path) -> 
     img, err = open_validated_image(str(path))
     assert err is None
     assert img is not None and img.mode == "RGBA"          # Anzeigepfad unverändert
+
+
+def test_relief_preview_renders_from_canonical_16bit_payload(qapp) -> None:
+    """Das Hillshade rechnet aus der Payload – Sub-8-Bit-Verläufe werden sichtbar (#590)."""
+    from bgremover.height_map import HeightField, layer_to_height
+    from bgremover.relief_preview import compose_over, relief_shading
+
+    canvas = ImageCanvas()
+    project = Project(16, 16)
+    project.create_layer(_solid(16, 16, (120, 80, 40, 255)), name="C", kind=LayerKind.COLOR)
+    # Feinstrukturierte 16-Bit-Höhen (0..4000): die 8-Bit-Ansicht rastert die
+    # Steigungen auf ×257-Stufen – das Hillshade aus der Payload weicht nach
+    # dem Compose sichtbar davon ab (deterministischer Seed).
+    rng = np.random.default_rng(5)
+    values = rng.integers(0, 4000, size=(16, 16), dtype=np.uint16)
+    field = HeightField(values, np.full((16, 16), 255, dtype=np.uint8), max_value=65535)
+    height = project.create_layer(name="H", kind=LayerKind.HEIGHT, height_data=field)
+    project.assign_role(height.id, LayerRole.HEIGHT_MAP)
+    canvas.set_project(project)
+    canvas.set_preview_mode(PreviewMode.RELIEF)
+    canvas.set_relief_strength(80)
+
+    rendered = np.array(canvas._render_image())
+    base = project.composite_color()
+    expected_16bit = np.array(compose_over(
+        base,
+        relief_shading(field, azimuth=315.0, elevation=45.0, strength=1.0),
+        strength=0.8,
+    ))
+    expected_8bit = np.array(compose_over(
+        base,
+        relief_shading(
+            layer_to_height(height.image), azimuth=315.0, elevation=45.0, strength=1.0),
+        strength=0.8,
+    ))
+    assert np.array_equal(rendered, expected_16bit)        # Payload-Pfad
+    assert not np.array_equal(rendered, expected_8bit)     # nicht die 8-Bit-Ansicht
+    # Anzeige bleibt reine Ableitung: Payload-Objekt und Werte unverändert.
+    assert height.height_data is field

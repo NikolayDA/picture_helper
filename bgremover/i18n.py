@@ -262,6 +262,16 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Neue Ebene hinzugefügt",
         "canvas.height_generated": "Höhenkarte aus Bild erzeugt",
         "canvas.height_imported": "Höhenkarte importiert: {name}",
+        "canvas.height_imported_16bit": (
+            "Höhenkarte importiert: {name} (16 Bit nativ)"
+        ),
+        "right_panel.height.depth_info": (
+            "Höhendaten intern: 16 Bit (0–65535)"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "8-Bit-Export quantisiert die 16-Bit-Höhen kontrolliert auf 256 "
+            "Stufen – für volle Präzision Bittiefe 16 wählen"
+        ),
         "status.height_source_unsupported": (
             "Höhen-Import: Bildmodus „{mode}“ wird nicht unterstützt"
         ),
@@ -1100,6 +1110,16 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "New layer added",
         "canvas.height_generated": "Height map generated from image",
         "canvas.height_imported": "Height map imported: {name}",
+        "canvas.height_imported_16bit": (
+            "Height map imported: {name} (native 16-bit)"
+        ),
+        "right_panel.height.depth_info": (
+            "Internal height data: 16-bit (0–65535)"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "8-bit export quantizes the 16-bit heights to 256 controlled "
+            "levels – choose bit depth 16 for full precision"
+        ),
         "status.height_source_unsupported": (
             "Height import: image mode “{mode}” is not supported"
         ),
@@ -1938,6 +1958,16 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Nueva capa añadida",
         "canvas.height_generated": "Mapa de altura generado a partir de la imagen",
         "canvas.height_imported": "Mapa de altura importado: {name}",
+        "canvas.height_imported_16bit": (
+            "Mapa de altura importado: {name} (16 bits nativo)"
+        ),
+        "right_panel.height.depth_info": (
+            "Datos de altura internos: 16 bits (0–65535)"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "La exportación de 8 bits cuantiza las alturas de 16 bits a 256 "
+            "niveles controlados; elige 16 bits para precisión completa"
+        ),
         "status.height_source_unsupported": (
             "Importación de alturas: el modo de imagen “{mode}” no es compatible"
         ),
@@ -2780,6 +2810,16 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Nouveau calque ajouté",
         "canvas.height_generated": "Carte de hauteur générée depuis l'image",
         "canvas.height_imported": "Carte de hauteur importée : {name}",
+        "canvas.height_imported_16bit": (
+            "Carte de hauteur importée : {name} (16 bits natif)"
+        ),
+        "right_panel.height.depth_info": (
+            "Données de hauteur internes : 16 bits (0–65535)"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "L'export 8 bits quantifie les hauteurs 16 bits sur 256 niveaux "
+            "contrôlés – choisissez 16 bits pour la pleine précision"
+        ),
         "status.height_source_unsupported": (
             "Import de hauteurs : le mode d'image « {mode} » n'est pas pris en charge"
         ),
@@ -3622,6 +3662,16 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Додано новий шар",
         "canvas.height_generated": "Карту висот згенеровано із зображення",
         "canvas.height_imported": "Карту висот імпортовано: {name}",
+        "canvas.height_imported_16bit": (
+            "Карту висот імпортовано: {name} (нативні 16 біт)"
+        ),
+        "right_panel.height.depth_info": (
+            "Внутрішні дані висот: 16 біт (0–65535)"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "8-бітний експорт контрольовано квантує 16-бітні висоти до 256 "
+            "рівнів – для повної точності оберіть 16 біт"
+        ),
         "status.height_source_unsupported": (
             "Імпорт висот: режим зображення «{mode}» не підтримується"
         ),
@@ -4455,6 +4505,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "已添加新图层",
         "canvas.height_generated": "已从图像生成高度图",
         "canvas.height_imported": "已导入高度图：{name}",
+        "canvas.height_imported_16bit": (
+            "已导入高度图：{name}（原生 16 位）"
+        ),
+        "right_panel.height.depth_info": (
+            "内部高度数据：16 位（0–65535）"
+        ),
+        "eufymake.export.height_precision_loss": (
+            "8 位导出会把 16 位高度受控量化为 256 级——如需完整精度请选择 16 位"
+        ),
         "status.height_source_unsupported": (
             "高度导入：不支持图像模式“{mode}”"
         ),

@@ -253,6 +253,16 @@ _NATIVE_16BIT_MODES: dict[str, str] = {
 }
 
 
+def is_native_16bit_source(image: Image.Image) -> bool:
+    """True, wenn *image* als **native** 16-Bit-Graustufenquelle importiert wird.
+
+    Spiegelregel zu :func:`image_to_height_field` (kein Drift: dieselben Modi),
+    damit die UI die Quell-Bittiefe benennen kann (#590) – alle übrigen Quellen
+    laufen über die Luminanz-Regel aus einer 8-Bit-Basis.
+    """
+    return image.mode in _NATIVE_16BIT_MODES or image.mode == "I"
+
+
 def image_to_height_field(image: Image.Image) -> HeightField:
     """Wandelt ein geladenes Bild verlustfrei in ein kanonisches Höhenfeld (#589).
 

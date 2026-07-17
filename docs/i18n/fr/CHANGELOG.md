@@ -11,6 +11,23 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Pipeline de hauteurs 16 bits achevé : aperçu, avertissement d'export
+  et recette de bout en bout (#590, clôture de l'épopée #581).** L'aperçu
+  de relief calcule désormais son ombrage directement depuis la payload
+  canonique 16 bits – les dégradés fins sous un pas de 8 bits deviennent
+  visibles (les aperçus transitoires restent l'exception d'affichage
+  documentée). L'export EufyMake affiche un avertissement à confirmer
+  lorsqu'une cible 8 bits quantifierait de vraies hauteurs 16 bits, et le
+  contrôle « vide » travaille sur la payload. L'import de hauteurs nomme
+  la profondeur de bits source dans la barre d'état, et le panneau de
+  hauteurs affiche la représentation interne 16 bits. De nouveaux tests de
+  bout en bout prouvent import → édition → aller-retour de projet →
+  export → relecture sans réduction involontaire à 8 bits (y compris la
+  migration héritée et la quantification de référence 8 bits exacte au
+  pixel) ; le benchmark hebdomadaire mesure désormais aussi le pipeline de
+  hauteurs (import, opération, aller-retour, aperçu à 1/16/40 MP) comme
+  référence.
+
 - **Hauteurs 16 bits : import, génération et opérations sans quantification
   8 bits (#589, partie de l'épopée #581).** L'import de cartes de hauteur
   lit désormais les niveaux de gris 16 bits (PNG/TIFF) nativement avec les

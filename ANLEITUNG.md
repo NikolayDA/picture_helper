@@ -597,7 +597,12 @@ wenn eine Höhen-Ebene aktiv ist.
 - **Aus Bild erzeugen** – wandelt das aktuelle Farbbild deterministisch in
   eine Höhenkarte um und legt sie als neue Höhen-Ebene an.
 - **Graustufe importieren…** – lädt ein Graustufenbild als Höhenkarte und
-  skaliert es auf die Projektgröße.
+  skaliert es auf die Projektgröße. 16-Bit-Graustufen (PNG/TIFF) werden
+  dabei **nativ mit allen 65536 Stufen** übernommen; Farb- und 8-Bit-Bilder
+  werden über ihre Helligkeit umgerechnet. 16-Bit-Bilder mit Alphakanal
+  sowie Float-Bilder lassen sich nicht verlustfrei lesen und werden mit
+  einer Meldung abgewiesen. Beim EufyMake-Export warnt BgRemover, wenn ein
+  8-Bit-Ziel die intern 16-Bit geführten Höhen quantisieren würde.
 
 ### Höhenkarten: Bearbeiten
 

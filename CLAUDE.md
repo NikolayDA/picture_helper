@@ -97,6 +97,9 @@ Ein Paket, `bgremover/`:
   je Content-Revision + Anzeigeparameter. Modus, Relief-Stärke und Gloss-Sichtbarkeit
   sind reiner UI-Zustand (keine History-/Dirty-Revision); unsichtbare Datenrollen
   werden ignoriert und Relief-Stärke 0 überspringt das Hillshade vollständig (#397).
+  Seit #590 rechnet das Relief-Hillshade direkt aus der kanonischen 16-Bit-Payload
+  (`layer.height_data`); nur eine transiente Live-Vorschau (Override) nutzt die
+  getauschte 8-Bit-Ansicht als dokumentierte Anzeige-Ausnahme.
   Ein Vorschau-Tab und das exklusive Ansicht-Untermenü halten sich signalbasiert
   synchron; der UI-Hinweis macht den unveränderten Bildexport ausdrücklich sichtbar
   (#388). Die echte 3D-Reliefvorschau (Epic #582) ist architektonisch entschieden
@@ -176,9 +179,10 @@ Ein Paket, `bgremover/`:
   (`ExportFinding`: stabiler `ExportCheckCode`, `error`/`warning`, Rolle, i18n-Key,
   Platzhalter) deterministisch sortiert. Harte Fehler (fehlendes Farbmotiv, fehlende
   ausgewählte Rolle, Größen-Mismatch, ungültige Zielparameter) blockieren;
-  Warnungen (leere/konstante Height-/Gloss-Daten, 16-Bit unbestätigt, Gloss=Ink-Mode-
+  Warnungen (leere/konstante Height-/Gloss-Daten, 16-Bit unbestätigt,
+  8-Bit-Ziel mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-
   Hilfsasset, physische Größe ohne Herstellervertrag) erlauben den Export erst nach
-  Bestätigung. `format_finding` liefert die de/en-Meldung (literale `tr`-Keys
+  Bestätigung; die Height-Prüfungen arbeiten auf der kanonischen Payload. `format_finding` liefert die de/en-Meldung (literale `tr`-Keys
   `eufymake.export.*`). Das Befund-Fundament (`Severity`, `severity_rank`,
   `has_blocking_errors`, `split_findings`) liegt seit #379 geteilt in
   `export_checks.py` und wird hier re-exportiert (Rückwärtskompatibilität).

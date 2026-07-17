@@ -11,6 +11,21 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **16-Bit-Höhenpipeline abgeschlossen: Vorschau, Export-Warnung und
+  End-to-End-Abnahme (#590, Abschluss von Epic #581).** Die Relief-Vorschau
+  rechnet ihr Hillshade jetzt direkt aus der kanonischen 16-Bit-Payload –
+  feine Verläufe unterhalb einer 8-Bit-Stufe werden sichtbar (transiente
+  Live-Vorschauen bleiben die dokumentierte Anzeige-Ausnahme). Der
+  EufyMake-Export warnt bestätigungspflichtig, wenn ein 8-Bit-Ziel echte
+  16-Bit-Höhen quantisieren würde, und die „leer"-Prüfung arbeitet auf der
+  Payload. Der Höhen-Import benennt die Quell-Bittiefe in der Statusleiste,
+  das Höhen-Panel zeigt die interne 16-Bit-Führung an. Neue
+  End-to-End-Tests beweisen Import → Bearbeitung → Projekt-Roundtrip →
+  Export → Wiederlesen ohne unbeabsichtigte 8-Bit-Reduktion (inklusive
+  Legacy-Migration und pixelgenauer 8-Bit-Referenzquantisierung); der
+  wöchentliche Benchmark misst die Höhenpipeline (Import, Operation,
+  Roundtrip, Preview bei 1/16/40 MP) als Baseline mit.
+
 - **16-Bit-Höhen: Import, Erzeugung und Operationen ohne 8-Bit-Quantisierung
   (#589, Teil von Epic #581).** Der Höhenkarten-Import liest 16-Bit-Graustufen
   (PNG/TIFF) jetzt nativ mit allen 65536 Stufen (endianness-kontrolliert);
