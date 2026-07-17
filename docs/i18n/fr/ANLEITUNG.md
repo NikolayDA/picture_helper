@@ -595,8 +595,9 @@ dans un fichier dédié (version de format 2). Ainsi, tous les calques sont
 conservés sans perte – transparence comprise et hauteurs en pleine
 précision. Les anciens projets sont repris automatiquement à l'ouverture
 et convertis au nouveau format au prochain enregistrement. Les anciennes
-versions de BgRemover peuvent encore afficher un projet v2, mais
-l'enregistrent sans les valeurs de hauteur 16 bits. Les projets
+versions de BgRemover (jusqu'à 2.6.0) ne peuvent pas ouvrir les fichiers
+de projet v2 et signalent une entrée inattendue – le fichier reste
+intact. Les projets
 apparaissent aussi sous « Récemment ouverts » (voir la
 [section 4](#4-étape-1--ouvrir-une-image)).
 

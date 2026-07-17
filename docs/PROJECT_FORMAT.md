@@ -48,18 +48,25 @@ bitgenau inklusive der Niederbits.
 - **v1** (bis BgRemover 2.6.0): alle Ebenen ausschließlich als 8-Bit-RGBA-PNG.
   HEIGHT-Höhen liegen als Graustufe im RGB (Konvention `R = G = B = Höhe`).
 - **v2** (#588): zusätzlich die kanonische 16-Bit-Payload je HEIGHT-Ebene
-  (siehe oben). Die 8-Bit-Ansicht bleibt **redundant** enthalten – Absicht:
-  Abwärts-Lesbarkeit.
+  (siehe oben). Das RGBA-PNG der HEIGHT-Ebene bleibt **bewusst** enthalten:
+  es transportiert die Deckung (Alphakanal), hält die Ebenen-Pipeline
+  einheitlich und gibt externen Werkzeugen eine 8-Bit-Sicht auf die Höhen.
 - **v1 → v2 (Öffnen):** deterministisch und verlustfrei im Sinne der
   ursprünglichen 256 Stufen – HEIGHT-Ebenen ohne `height16_file` erhalten
   `v16 = v8 × 257` aus dem R-Kanal ihres RGBA-PNGs (Adapter aus #587).
-  COLOR/GLOSS, Reihenfolge und Metadaten bleiben unverändert. Beim nächsten
-  Speichern entsteht kontrolliert eine v2-Datei.
-- **Alte Anwendungsstände mit v2-Dateien:** Der Zukunfts-Versions-Pfad lädt
-  best-effort (Warnung im Log); die 8-Bit-Ansicht wird korrekt angezeigt.
-  **Speichert** ein alter Stand das Projekt erneut, entsteht eine v1-Datei
-  ohne 16-Bit-Payload – die Niederbits gehen dabei kontrolliert auf die
-  dokumentierte 16→8-Abbildung (`v8 = rint(v16 / 257)`) verloren.
+  Dieser Rückfall gilt **nur** für echte v1-Dateien: in einer als v2
+  gespeicherten Datei ist eine HEIGHT-Ebene ohne Payload-Deklaration ein
+  Integritätsverstoß und wird abgewiesen. COLOR/GLOSS, Reihenfolge und
+  Metadaten bleiben unverändert. Beim nächsten Speichern entsteht
+  kontrolliert eine v2-Datei.
+- **Alte Anwendungsstände (bis 2.6.0) mit v2-Dateien:** Ältere Versionen
+  können v2-Dateien **nicht öffnen** – ihr Container-Validator erlaubt nur
+  die im Manifest als `file` deklarierten Einträge und weist die
+  `height16`-Zusatzdatei mit „unerwarteter Eintrag" ab. Das ist ein klarer,
+  kontrollierter Fehler: die Datei bleibt unangetastet, es gibt weder eine
+  stille Beschädigung noch einen unbemerkten Niederbit-Verlust. Wer ein
+  Projekt mit einer älteren Version weiterbearbeiten will, muss es dort neu
+  aus den Quellbildern aufbauen.
 - **Zukunftsversionen (≥ 3):** Warnung + Best-effort-Lesen, die Datei wird
   **nie** umgeschrieben.
 
@@ -75,7 +82,8 @@ Projekt gelangt (ein fehlgeschlagener Open-Vorgang lässt es unverändert):
   im Manifest deklarierte Menge plus `manifest.json`).
 - Manifest-Strukturprüfung: fehlende/falsch typisierte Felder, unbekannte
   Kinds/Rollen, doppelte IDs/Rollen/Dateinamen, `height16_*` auf einer
-  Nicht-HEIGHT-Ebene, fehlender `height16_sha256`, `height16_max_value ≠ 65535`.
+  Nicht-HEIGHT-Ebene, fehlender `height16_sha256`, `height16_max_value ≠ 65535`,
+  HEIGHT-Ebene **ohne** Payload-Deklaration in einer echten v2-Datei.
 - **Integrität:** Der sha256-Digest der Payload-Bytes muss dem Manifest
   entsprechen – abgeschnittene oder untereinander vertauschte
   `height16`-Dateien fallen vor dem Dekodieren auf.
@@ -100,5 +108,5 @@ Gemessen (ein HEIGHT-Layer, Save + Open, Linux-CI-Klasse):
 | 40 MP | Gradient | 0,1 MB | 3,3 s | 4,6 s |
 
 Das bestehende 1-GiB-Dateilimit und das 40-MP-Gate je Ebene bleiben die
-harten Grenzen; die v2-Redundanz (Ansicht + Payload) ist zugunsten der
-Abwärts-Lesbarkeit akzeptiert (ADR #586).
+harten Grenzen; die v2-Redundanz (Ansicht + Payload) ist akzeptiert – die
+Ansicht trägt die Deckung und hält die RGBA-Pipeline einheitlich (ADR #586).

@@ -484,8 +484,10 @@ def test_load_project_normalizes_legacy_incompatible_role(tmp_path) -> None:
     project.create_layer(_solid(3, 3, (40, 50, 60, 255)), name="Höhe", kind=LayerKind.HEIGHT)
     manifest = build_manifest(project)
     manifest["layers"][0]["role"] = LayerRole.HEIGHT_MAP.value   # COLOR trägt HEIGHT_MAP
-    # Handgebauter Alt-Container ohne 16-Bit-Payload: HEIGHT lädt über den
-    # deterministischen Legacy-Pfad (×257-Adapter, #587/#588).
+    # Handgebauter **v1**-Alt-Container ohne 16-Bit-Payload: HEIGHT lädt über
+    # den deterministischen Legacy-Pfad (×257-Adapter, #587/#588). Eine echte
+    # v2-Datei ohne Payload-Deklaration würde dagegen abgewiesen.
+    manifest["version"] = 1
     for entry in manifest["layers"]:
         entry.pop("height16_file", None)
         entry.pop("height16_max_value", None)
@@ -1065,3 +1067,29 @@ def test_40mp_height_project_saves_and_opens_within_budget(tmp_path) -> None:
     # bleiben, Save+Open zusammen klar unter einer Minute.
     assert size_mb < 60.0
     assert save_seconds + load_seconds < 60.0
+
+
+def test_v2_height_layer_without_payload_declaration_is_rejected(tmp_path) -> None:
+    """Echte v2-Datei, HEIGHT ohne height16-Deklaration: Integritätsverstoß.
+
+    Da die Migration v1-Manifeste in-memory auf Version 2 hebt, muss der
+    Loader die **Ursprungsversion** heranziehen: nur echte v1-Dateien dürfen
+    auf den ×257-Adapter zurückfallen – bei einer manipulierten/abgeschnittenen
+    v2-Datei wäre der stille Rückfall ein requantisierter Datenverlust
+    (Codex-Review-Befund zu #588).
+    """
+    project = _height16_project([[1, 2], [3, 4]])
+    path = tmp_path / f"nodecl{PROJECT_SUFFIX}"
+    save_project(project, path)
+
+    def strip_declaration(members: dict) -> None:
+        manifest = json.loads(members[MANIFEST_NAME])
+        assert manifest["version"] == PROJECT_FORMAT_VERSION
+        for key in ("height16_file", "height16_sha256", "height16_max_value"):
+            manifest["layers"][1].pop(key)
+        members[MANIFEST_NAME] = json.dumps(manifest).encode("utf-8")
+        members.pop("layer_0001_height16.png")
+
+    _tamper(path, strip_declaration)
+    with pytest.raises(ProjectFileError):
+        load_project(path)

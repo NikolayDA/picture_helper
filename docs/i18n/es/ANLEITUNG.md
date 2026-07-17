@@ -597,8 +597,9 @@ un archivo propio (versión de formato 2). Así se conservan todas las
 capas sin pérdidas, incluida la transparencia y las alturas con toda su
 precisión. Los proyectos antiguos se adoptan automáticamente al abrirlos
 y se convierten al nuevo formato al guardarlos. Las versiones antiguas
-de BgRemover aún pueden mostrar un proyecto v2, pero lo guardan sin los
-valores de altura de 16 bits. Los proyectos aparecen además en
+de BgRemover (hasta 2.6.0) no pueden abrir archivos de proyecto v2 e
+informan de una entrada inesperada; el archivo queda intacto. Los
+proyectos aparecen además en
 "Abiertos recientemente" (consulta la
 [sección 4](#4-paso-1--abrir-imagen)).
 

@@ -135,8 +135,10 @@ Ein Paket, `bgremover/`:
   per `height16_sha256` im Manifest gegen abgeschnittene/vertauschte Payloads
   gesichert und mit eigenem 2-B/px-Entry-Limit; der Roundtrip ist bitgenau
   inkl. Niederbits. v1 lädt unverändert über den ×257-Adapter (#587) und wird
-  beim Speichern kontrolliert v2; alte Stände lesen v2 best-effort (8-Bit-
-  Ansicht bleibt redundant enthalten). Formatreferenz:
+  beim Speichern kontrolliert v2; echte v2-Dateien verlangen die Payload-
+  Deklaration je HEIGHT-Ebene (Ursprungsversion wird vor der Migration
+  geprüft), ältere Stände (≤ 2.6.0) weisen v2 als unerwarteten Eintrag ab
+  (klarer Fehler statt stiller Beschädigung). Formatreferenz:
   [`docs/PROJECT_FORMAT.md`](docs/PROJECT_FORMAT.md). Beim Laden wird
   ein historisch inkompatibler Rollen-Zustand (z. B. `HEIGHT_MAP` auf einer
   COLOR-Ebene) deterministisch normalisiert: nur die unzulässige Rolle wird

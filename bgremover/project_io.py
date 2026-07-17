@@ -48,6 +48,7 @@ from bgremover.i18n import tr
 from bgremover.project_model import Project
 from bgremover.project_schema import (
     MANIFEST_NAME,
+    PROJECT_FORMAT_VERSION,
     ProjectFileError,
     build_manifest,
     height16_files,
@@ -327,7 +328,13 @@ def load_project(path: str | Path, *, warnings: list[str] | None = None) -> Proj
     try:
         with zipfile.ZipFile(p) as zf:
             manifest = _read_manifest(zf)
+            # Ursprungsversion **vor** der Migration merken: eine echte
+            # v2-Datei muss je HEIGHT-Ebene eine Payload deklarieren – nur
+            # migrierte v1-Dateien dürfen auf den ×257-Adapter zurückfallen.
+            # Zukunftsversionen (≥ 3) bleiben gemäß ADR #586 Best-effort.
+            source_version = manifest.get("version")
             manifest = migrate_manifest(manifest)
+            require_height16 = source_version == PROJECT_FORMAT_VERSION
             expected = layer_files(manifest)
             height16 = height16_files(manifest)
             _validate_members(zf, expected, set(height16))
@@ -337,7 +344,8 @@ def load_project(path: str | Path, *, warnings: list[str] | None = None) -> Proj
                 for name, digest in height16.items()
             }
             return project_from_manifest(
-                manifest, images, height_values=height_values, warnings=warnings
+                manifest, images, height_values=height_values,
+                warnings=warnings, require_height16=require_height16,
             )
     except zipfile.BadZipFile as exc:
         raise ProjectFileError(tr("project.error.corrupt")) from exc

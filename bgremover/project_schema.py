@@ -18,10 +18,13 @@ mit den kanonischen Höhenwerten (``height16_file``), deren Integrität über
 ``height16_max_value`` fixiert den Wertebereich (immer ``65535``). Das
 bestehende 8-Bit-RGBA-PNG bleibt je Ebene erhalten – für HEIGHT enthält es die
 abgeleitete Ansicht, deren Alphakanal weiterhin die Deckung trägt (bewusste
-Redundanz: ältere Anwendungsstände lesen v2 best-effort als „v1 + ignorierte
-Zusatzdatei"; speichern sie erneut, entsteht kontrolliert eine v1-Datei ohne
-Niederbits). v1-Projekte laden unverändert: HEIGHT-Ebenen **ohne**
-``height16_file`` migrieren deterministisch über den ×257-Adapter des Modells.
+Redundanz: Deckungs-Transport, einheitliche RGBA-Pipeline, 8-Bit-Sicht für
+externe Werkzeuge). Ältere Anwendungsstände (bis 2.6.0) können v2-Dateien
+**nicht** öffnen – ihr Container-Validator weist die ``height16``-Zusatzdatei
+als unerwarteten Eintrag ab (klarer Fehler, keine stille Beschädigung).
+v1-Projekte laden unverändert: HEIGHT-Ebenen **ohne** ``height16_file``
+migrieren deterministisch über den ×257-Adapter des Modells; in einer echten
+v2-Datei ist eine fehlende Payload-Deklaration dagegen ein Integritätsverstoß.
 
 Fehler werden als :class:`ProjectFileError` mit bereits übersetzter,
 nutzerverständlicher Meldung geworfen (deutsche/englische Laufzeit-Keys), damit
@@ -249,20 +252,28 @@ def _height_field_from_entry(
     image: Image.Image,
     height_values: Mapping[str, np.ndarray] | None,
     canvas_size: tuple[int, int],
+    require_height16: bool = False,
 ) -> HeightField | None:
     """Baut die kanonische 16-Bit-Payload eines v2-``height16``-Eintrags (#588).
 
     ``None``, wenn der Eintrag keine Payload deklariert (COLOR/GLOSS/GENERIC
-    sowie v1-/Legacy-HEIGHT – Letztere migriert der Modell-Adapter). Deklariert
-    ein Nicht-HEIGHT-Eintrag eine Payload, ist ``height16_max_value`` nicht der
-    Vertragswert ``65535``, fehlt das dekodierte Array, passt Shape/dtype/
-    Wertebereich nicht oder verletzt die Kombination die Modell-Invarianten,
-    wird mit :class:`ProjectFileError` abgewiesen – keine stillen Reparaturen
-    an Pixeldaten. Die Deckung stammt aus dem Alphakanal des (bereits
+    sowie v1-/Legacy-HEIGHT – Letztere migriert der Modell-Adapter). Stammt das
+    Manifest nachweislich aus einer v2-Datei (``require_height16``), ist eine
+    HEIGHT-Ebene **ohne** Payload-Deklaration dagegen ein Integritätsverstoß
+    (abgeschnittenes/manipuliertes Archiv) und wird abgewiesen – der stille
+    Rückfall auf die requantisierte 8-Bit-Ansicht bleibt echten v1-Dateien
+    vorbehalten. Deklariert ein Nicht-HEIGHT-Eintrag eine Payload, ist
+    ``height16_max_value`` nicht der Vertragswert ``65535``, fehlt das
+    dekodierte Array, passt Shape/dtype/Wertebereich nicht oder verletzt die
+    Kombination die Modell-Invarianten, wird ebenfalls mit
+    :class:`ProjectFileError` abgewiesen – keine stillen Reparaturen an
+    Pixeldaten. Die Deckung stammt aus dem Alphakanal des (bereits
     canvas-größengeprüften) RGBA-PNGs der Ebene.
     """
     file_name = entry.get("height16_file")
     if file_name is None:
+        if require_height16 and kind is LayerKind.HEIGHT:
+            raise ProjectFileError(tr("project.error.manifest_invalid"))
         return None
     if not isinstance(file_name, str) or kind is not LayerKind.HEIGHT:
         raise ProjectFileError(tr("project.error.manifest_invalid"))
@@ -304,6 +315,7 @@ def project_from_manifest(
     *,
     height_values: Mapping[str, np.ndarray] | None = None,
     warnings: list[str] | None = None,
+    require_height16: bool = False,
 ) -> Project:
     """Rekonstruiert ein :class:`Project` aus Manifest + dekodierten Ebenendaten.
 
@@ -319,7 +331,11 @@ def project_from_manifest(
 
     **v1-/Legacy-HEIGHT (#587/#588):** Eine HEIGHT-Ebene ohne
     ``height16_file`` wird über den befristeten Modell-Adapter deterministisch
-    (``×257``) aus dem R-Kanal ihres RGBA-PNGs rekonstruiert.
+    (``×257``) aus dem R-Kanal ihres RGBA-PNGs rekonstruiert. Da die Migration
+    v1-Manifeste bereits vor diesem Aufruf auf Version 2 hebt, sagt der
+    Aufrufer über ``require_height16`` an, ob die Datei **ursprünglich** eine
+    v2-Datei war – dort ist eine HEIGHT-Ebene ohne Payload-Deklaration ein
+    Verstoß gegen den Integritätsvertrag und wird abgewiesen.
 
     **Legacy-Normalisierung (#364):** Ein von älteren Versionen geschriebener,
     inkompatibler Zustand – etwa ``HEIGHT_MAP`` auf einer Nicht-HEIGHT-Ebene –
@@ -386,7 +402,7 @@ def project_from_manifest(
             )
         field = _height_field_from_entry(
             entry, kind=kind, image=image, height_values=height_values,
-            canvas_size=(width, height),
+            canvas_size=(width, height), require_height16=require_height16,
         )
         try:
             project.add_layer(

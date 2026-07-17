@@ -31,8 +31,9 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   Save/Open-Roundtrip erhält die Niederbits bitgenau. Bestehende
   v1-Projekte laden unverändert (deterministische ×257-Migration) und
   werden beim nächsten Speichern kontrolliert als v2 geschrieben; ältere
-  BgRemover-Versionen zeigen v2-Projekte weiter an, speichern sie aber ohne
-  die 16-Bit-Höhen. Formatreferenz: `docs/PROJECT_FORMAT.md`.
+  BgRemover-Versionen (bis 2.6.0) können v2-Projekte nicht öffnen und melden
+  einen klaren Fehler – die Datei bleibt unangetastet. Formatreferenz:
+  `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 

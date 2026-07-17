@@ -543,8 +543,9 @@ additionally store their 16-bit height values in a separate file (format
 version 2). This preserves all layers, including transparency – and
 heights at full precision – losslessly. Older projects are adopted
 automatically on opening and converted to the new format on the next
-save. Older BgRemover versions can still display a v2 project, but save
-it without the 16-bit height values. Projects also appear under
+save. Older BgRemover versions (up to 2.6.0) cannot open v2 project
+files and report an unexpected entry – the file itself stays untouched.
+Projects also appear under
 "Recent files" (see [section 4](#4-step-1--open-an-image)).
 
 ### Height maps: Acquire

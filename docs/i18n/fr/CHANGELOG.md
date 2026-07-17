@@ -33,9 +33,9 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   enregistrer/ouvrir préserve exactement les bits de poids faible. Les
   projets v1 existants se chargent sans changement (migration déterministe
   ×257) et sont réécrits de manière contrôlée en v2 au prochain
-  enregistrement ; les anciennes versions de BgRemover affichent encore les
-  projets v2 mais les enregistrent sans les hauteurs 16 bits. Référence du
-  format : `docs/PROJECT_FORMAT.md`.
+  enregistrement ; les anciennes versions de BgRemover (jusqu'à 2.6.0) ne
+  peuvent pas ouvrir les projets v2 et signalent une erreur claire – le
+  fichier reste intact. Référence du format : `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 

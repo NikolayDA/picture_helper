@@ -29,9 +29,9 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   against truncated/swapped payloads, dedicated entry limit) – the
   save/open roundtrip preserves the low bits exactly. Existing v1 projects
   load unchanged (deterministic ×257 migration) and are written as v2 on
-  the next save in a controlled way; older BgRemover versions still
-  display v2 projects but save them without the 16-bit heights. Format
-  reference: `docs/PROJECT_FORMAT.md`.
+  the next save in a controlled way; older BgRemover versions (up to
+  2.6.0) cannot open v2 projects and report a clear error – the file stays
+  untouched. Format reference: `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 

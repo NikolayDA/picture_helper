@@ -32,9 +32,9 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   y límite de entrada propio): el ciclo guardar/abrir conserva los bits
   bajos con exactitud. Los proyectos v1 existentes cargan sin cambios
   (migración determinista ×257) y se escriben de forma controlada como v2
-  al volver a guardar; las versiones antiguas de BgRemover siguen mostrando
-  proyectos v2, pero los guardan sin las alturas de 16 bits. Referencia del
-  formato: `docs/PROJECT_FORMAT.md`.
+  al volver a guardar; las versiones antiguas de BgRemover (hasta 2.6.0)
+  no pueden abrir proyectos v2 e informan de un error claro; el archivo
+  queda intacto. Referencia del formato: `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 
