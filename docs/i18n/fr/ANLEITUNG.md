@@ -107,14 +107,14 @@ La fenêtre est divisée en cinq zones :
 
 | Zone | Rôle |
 |---|---|
-| **Barre de menus** (haut) | Fichier, Projet, Édition, Affichage, Extras |
+| **Barre de menus** (haut) | Fichier, Projet, Édition, Affichage, Outils |
 | **Barre d'étapes** (au-dessus de la zone de travail) | Six étapes : Ouvrir, Détourer, Ajuster, Forme & dimensions, Relief & calques, Export |
 | **Barre d'outils** (gauche) | Déplacer/Zoom, outils de sélection/hauteur contextuels, Annuler/Rétablir/Thème |
 | **Zone de travail** (centre) | Affiche l'image et la sélection actuelle ; la pilule de zoom en bas à droite affiche et contrôle l'agrandissement |
 | **Inspecteur de cartes** (droite) | En-tête avec le titre/la description de l'étape, les cartes de l'étape active, pied de page avec « Retour »/« Suivant » |
 | **Barre d'état** (bas) | Conseils et retours de l'application |
 
-### Menus « Édition », « Affichage », « Projet » et « Extras »
+### Menus « Édition », « Affichage », « Projet » et « Outils »
 
 De nombreuses actions sont aussi accessibles depuis la barre de menus :
 
@@ -132,7 +132,7 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
   projet* / *…sous…* (`.bgrproj`) ainsi que *Exporter des assets pour
   EufyMake Studio…* (voir la [section 11](#11-étape-5--relief--calques) et
   la [section 12](#12-étape-6--export)).
-- **Extras** – *Réglages…* (voir la [section 13](#13-paramètres)),
+- **Outils** – *Réglages…* (voir la [section 13](#13-paramètres)),
   *Rechercher des mises à jour…*, *Gérer le modèle d'IA…* ainsi
   qu'*Installer la suppression d'arrière-plan par IA…* (voir la
   [section 7](#7-étape-2--détourer) et la
@@ -367,12 +367,12 @@ supprime l'arrière-plan de façon entièrement automatique. Au premier appel,
 le modèle d'IA est chargé, ce qui peut prendre un moment.
 
 > Si le composant IA (`rembg`) n'est pas installé, le bouton est grisé.
-> `Extras → Installer la suppression d'arrière-plan par IA…` affiche
+> `Outils → Installer la suppression d'arrière-plan par IA…` affiche
 > directement dans l'application la commande d'installation adaptée à
 > votre plateforme (avec un bouton de copie) ; sinon, consultez le guide
 > d'installation pour configurer la fonctionnalité IA.
 
-Via `Extras → Gérer le modèle d'IA…`, vous pouvez à tout moment vérifier
+Via `Outils → Gérer le modèle d'IA…`, vous pouvez à tout moment vérifier
 si le modèle d'IA a déjà été téléchargé, et démarrer ou annuler le
 téléchargement.
 
@@ -747,7 +747,7 @@ lui-même en `.empf`.
 
 ## 13. Paramètres
 
-Via `Extras → Réglages…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
+Via `Outils → Réglages…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
 
 ![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
@@ -769,7 +769,7 @@ Les répertoires, le format préféré, la langue ainsi que le réglage de
 vérification automatique des mises à jour sont mémorisés entre les
 démarrages du programme.
 
-Via `Extras → Rechercher des mises à jour…`, vous pouvez aussi déclencher
+Via `Outils → Rechercher des mises à jour…`, vous pouvez aussi déclencher
 la vérification manuellement à tout moment ; le résultat s'affiche sous
 forme de boîte de dialogue avec un lien vers la page de version (si une
 mise à jour est disponible).
@@ -920,14 +920,14 @@ d'erreurs (traces de pile) et constitue le premier point de contact en cas
 de demande d'assistance.
 
 Le moyen le plus simple de trouver le fichier est via
-`Extras → Réglages… → Fichier journal` : le chemin complet y est affiché,
+`Outils → Réglages… → Fichier journal` : le chemin complet y est affiché,
 et le bouton **« Ouvrir le dossier »** ouvre le répertoire directement dans
 le gestionnaire de fichiers — idéal pour joindre le fichier journal à un
 e-mail d'assistance.
 
 | Problème | Solution possible |
 |---|---|
-| Bouton IA grisé | `rembg` n'est pas installé – `Extras → Installer la suppression d'arrière-plan par IA…` affiche la commande d'installation, ou consultez le guide d'installation |
+| Bouton IA grisé | `rembg` n'est pas installé – `Outils → Installer la suppression d'arrière-plan par IA…` affiche la commande d'installation, ou consultez le guide d'installation |
 | L'image ne peut pas être ouverte | Plus de 40 mégapixels ? Format pris en charge (pas de HEIC/HEIF) ? Lisez la barre d'état |
 | L'IA prend très longtemps | Le premier appel charge le modèle – une seule fois, plus rapide ensuite |
 | Transparence perdue après enregistrement | Enregistré en JPEG → choisissez PNG/WebP/TIFF à la place |

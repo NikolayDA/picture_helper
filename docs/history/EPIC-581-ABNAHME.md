@@ -3,8 +3,8 @@
 Verknüpft jedes Akzeptanzkriterium des Epics #581 mit seinem Nachweis
 (PR, Test oder Dokument). Datenvertrag: ADR
 [ADR-2026-height-16bit-datenvertrag.md](ADR-2026-height-16bit-datenvertrag.md)
-(#586). Umsetzung: #587 + #588 (PR #610, inkl. Review-Nachtrag `a42fe77`),
-#589 (PR #612), #590 (PR #613).
+(#586). Umsetzung: #587 + #588 (PR #610, inkl. Review-Nachtrag `a42fe77`,
+und Future-Version-Härtung PR #614), #589 (PR #612), #590 (PR #613).
 
 | Epic-Kriterium | Nachweis |
 |---|---|
@@ -16,9 +16,9 @@ Verknüpft jedes Akzeptanzkriterium des Epics #581 mit seinem Nachweis
 | 8-Bit-Export kontrolliert quantisiert; 16-Bit-Export echte Quellpräzision | `tests/test_height16_e2e.py::test_8bit_export_matches_reference_quantization`, `::test_16bit_export_metadata_and_independent_reread`, `tests/test_eufymake_writer.py` (Niederbit-Re-Read) |
 | COLOR-/GLOSS- und Exportverhalten regressionsfrei | `tests/test_project_history.py::test_color_and_gloss_snapshots_stay_rgba_accounted`, `tests/test_height16_e2e.py::test_mixed_project_roundtrip_and_export_without_regression`, bestehende eufymake-/Canvas-Suiten grün |
 | 40-MP-Grenzen, History-Budget, Temp-Puffer bewertet/limitiert/getestet | `tests/test_project_history.py::test_40mp_height_scenario_stays_within_adr_budget`, `tests/test_project_io.py::test_40mp_height_project_saves_and_opens_within_budget`, `tests/test_height16_e2e.py::test_40mp_e2e_stays_within_budgets` (nightly, `ui`-Marker), `scripts/benchmark.py` (`HEIGHT16-1MP/16MP/40MP`-Baseline) |
-| Projektdatei-Validierung defensiv, Schreiben atomar | `tests/test_project_io.py` (Integritäts-/Security-Negativtests, Schreibabbruch), [PROJECT_FORMAT.md](../PROJECT_FORMAT.md) |
+| Projektdatei-Validierung defensiv, Schreiben atomar | `tests/test_project_io.py::test_future_version_manifest_is_rejected`, `::test_future_version_file_is_rejected_without_modification`, `tests/test_main_window.py::test_future_project_version_keeps_current_project`, weitere Integritäts-/Security-Negativtests und Schreibabbruch, [PROJECT_FORMAT.md](../PROJECT_FORMAT.md) |
 | Laufzeit-i18n, Doku, CHANGELOG konsistent | i18n-Paritätstests (6 Sprachen), ANLEITUNG + 5 Spiegel, CHANGELOG + 5 Spiegel, CLAUDE.md |
-| `make pr-check`, `make check`, `make ui` grün; neue Qt-freie Module strikt getypt | Gate-Läufe der PRs #610/#612/#613; `height_map`/`height_ops`/`project_*`/`eufymake_*` in der strikten mypy-Liste |
+| `make pr-check`, `make check`, `make ui` grün; neue Qt-freie Module strikt getypt | Gate-Läufe der PRs #610/#612/#613/#614; `height_map`/`height_ops`/`project_*`/`eufymake_*` in der strikten mypy-Liste |
 
 ## Bewusste Grenzen (dokumentiert, keine offenen Pflichtkriterien)
 
