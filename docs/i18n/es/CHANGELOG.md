@@ -11,6 +11,24 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Canal de alturas de 16 bits completado: vista previa, aviso de
+  exportación y aceptación de extremo a extremo (#590, cierre de la épica
+  #581).** La vista previa de relieve calcula ahora su sombreado
+  directamente desde la payload canónica de 16 bits: los degradados finos
+  por debajo de un paso de 8 bits se vuelven visibles (las vistas previas
+  transitorias siguen siendo la excepción documentada de visualización).
+  La exportación EufyMake muestra un aviso que requiere confirmación
+  cuando un destino de 8 bits cuantizaría alturas reales de 16 bits, y la
+  comprobación de «vacío» trabaja sobre la payload. La importación de
+  alturas indica la profundidad de bits de la fuente en la barra de
+  estado, y el panel de alturas muestra la representación interna de
+  16 bits. Nuevas pruebas de extremo a extremo demuestran importación →
+  edición → ida y vuelta del proyecto → exportación → relectura sin
+  reducción involuntaria a 8 bits (incluida la migración heredada y la
+  cuantización de referencia de 8 bits exacta al píxel); el benchmark
+  semanal también mide ahora el canal de alturas (importación, operación,
+  ida y vuelta, vista previa a 1/16/40 MP) como línea base.
+
 - **Alturas de 16 bits: importación, generación y operaciones sin
   cuantización de 8 bits (#589, parte de la épica #581).** La importación de
   mapas de altura ahora lee escala de grises de 16 bits (PNG/TIFF) de forma

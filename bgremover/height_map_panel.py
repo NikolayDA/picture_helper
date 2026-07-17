@@ -127,6 +127,10 @@ class HeightMapPanel:
     def _build_edit(self) -> QWidget:
         section, body = _make_section(tr("right_panel.height.section.edit"))
 
+        # Interne Bit-Tiefe sichtbar machen (#590): HEIGHT-Ebenen führen ihre
+        # Höhen kanonisch als 16 Bit – die 0–255-Regler sind nur die Bedienskala.
+        body.addWidget(_make_label(tr("right_panel.height.depth_info"), "#777", 11))
+
         strength = _spin(1, 255, 32)
         row_s = QHBoxLayout(); row_s.setSpacing(6)
         row_s.addWidget(_make_label(tr("right_panel.height.strength"), "#aaa"), 1)

@@ -10,6 +10,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **16-bit height pipeline completed: preview, export warning and
+  end-to-end acceptance (#590, closing epic #581).** The relief preview now
+  computes its hillshade directly from the canonical 16-bit payload – fine
+  gradients below one 8-bit step become visible (transient live previews
+  remain the documented display exception). The EufyMake export shows a
+  confirmation-required warning when an 8-bit target would quantize true
+  16-bit heights, and the "empty" check works on the payload. The height
+  import names the source bit depth in the status bar, and the height panel
+  shows the internal 16-bit representation. New end-to-end tests prove
+  import → editing → project roundtrip → export → re-read without
+  unintended 8-bit reduction (including legacy migration and pixel-exact
+  8-bit reference quantization); the weekly benchmark now also measures the
+  height pipeline (import, operation, roundtrip, preview at 1/16/40 MP) as
+  a baseline.
+
 - **16-bit heights: import, generation and operations without 8-bit
   quantization (#589, part of epic #581).** The height-map import now reads
   16-bit grayscale (PNG/TIFF) natively with all 65536 levels

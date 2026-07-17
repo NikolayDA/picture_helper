@@ -613,7 +613,13 @@ lorsqu'un calque de hauteur est actif.
   couleur actuelle en carte de hauteur et la crée comme nouveau calque de
   hauteur.
 - **Importer niveaux de gris…** – charge une image en niveaux de gris comme
-  carte de hauteur et la met à l'échelle de la taille du projet.
+  carte de hauteur et la met à l'échelle de la taille du projet. Les
+  fichiers en niveaux de gris 16 bits (PNG/TIFF) sont importés
+  **nativement avec les 65536 niveaux** ; les images couleur et 8 bits
+  sont converties selon leur luminosité. Les images 16 bits avec canal
+  alpha et les images float ne peuvent pas être lues sans perte et sont
+  refusées avec un message. Lors de l'export EufyMake, BgRemover avertit
+  quand une cible 8 bits quantifierait les hauteurs internes 16 bits.
 
 ### Cartes de hauteur : modifier
 

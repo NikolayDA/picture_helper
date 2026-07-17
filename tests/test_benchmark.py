@@ -12,6 +12,8 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parent.parent
 # Das Skript via importlib laden (scripts/ ist kein Paket). Der Modulname muss
 # in sys.modules stehen, sonst scheitert die Typprüfung der frozen-dataclasses
@@ -338,3 +340,109 @@ def test_compare_reports_for_fully_comparable_baseline(
     ])
     assert rc == 1
     assert len(posted) == 1
+
+
+def test_run_benchmark_height_pipeline_metrics(tmp_path: Path) -> None:
+    """Höhen-Baseline (#590): kleine Größen liefern alle vier Metriken."""
+    result = bench.run_benchmark(
+        iterations=1, width=16, height=12,
+        height_sizes={"HEIGHT16-TINY": (8, 6, 1)},
+    )
+    metrics = result["formats"]["HEIGHT16-TINY"]
+    for key in ("import_ms", "process_ms", "roundtrip_ms", "preview_ms"):
+        assert metrics[key] >= 0.0
+    # Bestehende Format-Messungen bleiben unangetastet daneben stehen.
+    assert set(bench.BENCH_FORMATS) <= set(result["formats"])
+
+
+def test_make_height_values_matches_mgrid_reference() -> None:
+    """Die broadcasting-basierte Musterbildung bleibt bitgenau zur Referenz."""
+    width, height = 37, 19
+    yy, xx = np.mgrid[0:height, 0:width]
+    reference = ((xx * 131 + yy * 17) % 65536).astype(np.uint16)
+    assert np.array_equal(bench.make_height_values(width, height), reference)
+
+
+# ── CLI respektiert skalierte Läufe (#590 Codex-Review) ──────────────────
+
+def test_cli_run_includes_height_bench_only_for_default_dimensions(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Ein Lauf mit Standardmaßen zieht die feste Höhenpipeline-Baseline mit."""
+    calls: list[dict | None] = []
+
+    def fake_run_benchmark(iterations, width, height, height_sizes=None):
+        calls.append(height_sizes)
+        return _run(_env(), iterations=iterations)
+
+    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
+    rc = bench.main([
+        "run", "--results-dir", str(tmp_path), "--no-compare",
+        "--iterations", str(bench.DEFAULT_ITERATIONS),
+        "--width", str(bench.DEFAULT_WIDTH),
+        "--height", str(bench.DEFAULT_HEIGHT),
+    ])
+    assert rc == 0
+    assert calls == [bench.HEIGHT_BENCH_SIZES]
+
+
+def test_cli_run_skips_height_bench_for_scaled_down_dimensions(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Ein manueller Smoke-Lauf mit reduzierter Größe zieht die 40-MP-Höhen-
+    pipeline nicht implizit mit (Codex-Review: OOM-/Hänger-Risiko)."""
+    calls: list[dict | None] = []
+
+    def fake_run_benchmark(iterations, width, height, height_sizes=None):
+        calls.append(height_sizes)
+        return _run(_env(), iterations=iterations, image={"width": width, "height": height})
+
+    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
+    rc = bench.main([
+        "run", "--results-dir", str(tmp_path), "--no-compare",
+        "--width", "16", "--height", "12", "--iterations", "1",
+    ])
+    assert rc == 0
+    assert calls == [None]
+
+
+def test_cli_run_height_bench_flag_forces_inclusion_on_small_run(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """``--height-bench`` erzwingt die Baseline unabhängig von --width/--height."""
+    calls: list[dict | None] = []
+
+    def fake_run_benchmark(iterations, width, height, height_sizes=None):
+        calls.append(height_sizes)
+        return _run(_env(), iterations=iterations, image={"width": width, "height": height})
+
+    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
+    rc = bench.main([
+        "run", "--results-dir", str(tmp_path), "--no-compare",
+        "--width", "16", "--height", "12", "--iterations", "1",
+        "--height-bench",
+    ])
+    assert rc == 0
+    assert calls == [bench.HEIGHT_BENCH_SIZES]
+
+
+def test_cli_run_no_height_bench_flag_skips_it_on_default_run(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """``--no-height-bench`` lässt die Baseline auch beim Standardlauf aus."""
+    calls: list[dict | None] = []
+
+    def fake_run_benchmark(iterations, width, height, height_sizes=None):
+        calls.append(height_sizes)
+        return _run(_env(), iterations=iterations)
+
+    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
+    rc = bench.main([
+        "run", "--results-dir", str(tmp_path), "--no-compare",
+        "--iterations", str(bench.DEFAULT_ITERATIONS),
+        "--width", str(bench.DEFAULT_WIDTH),
+        "--height", str(bench.DEFAULT_HEIGHT),
+        "--no-height-bench",
+    ])
+    assert rc == 0
+    assert calls == [None]

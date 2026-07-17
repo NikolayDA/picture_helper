@@ -70,6 +70,7 @@ class ExportCheckCode(Enum):
     HEIGHT_MAP_EMPTY = "height_map_empty"
     GLOSS_MASK_EMPTY = "gloss_mask_empty"
     BIT_DEPTH_UNCONFIRMED = "bit_depth_unconfirmed"
+    HEIGHT_PRECISION_LOSS = "height_precision_loss"
     GLOSS_INK_MODE = "gloss_ink_mode"
     PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
 
@@ -83,6 +84,7 @@ _SEVERITY: dict[ExportCheckCode, Severity] = {
     ExportCheckCode.HEIGHT_MAP_EMPTY: Severity.WARNING,
     ExportCheckCode.GLOSS_MASK_EMPTY: Severity.WARNING,
     ExportCheckCode.BIT_DEPTH_UNCONFIRMED: Severity.WARNING,
+    ExportCheckCode.HEIGHT_PRECISION_LOSS: Severity.WARNING,
     ExportCheckCode.GLOSS_INK_MODE: Severity.WARNING,
     ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED: Severity.WARNING,
 }
@@ -223,7 +225,15 @@ def validate_export(
                 )
             )
         if role is LayerRole.HEIGHT_MAP:
-            field_ = layer_to_height(layer.image)
+            # Prüfgrundlage ist die kanonische 16-Bit-Payload (#590): eine in
+            # der 8-Bit-Ansicht konstante, in den Niederbits aber variierende
+            # Höhe gilt korrekt als nicht-leer. Der Ansicht-Fallback bleibt
+            # rein defensiv für anomale Fremdzustände.
+            field_ = (
+                layer.height_data
+                if layer.height_data is not None
+                else layer_to_height(layer.image)
+            )
             if int(field_.coverage.max(initial=0)) == 0 or _is_constant(field_.values):
                 findings.append(_finding(ExportCheckCode.HEIGHT_MAP_EMPTY, role=role))
             if effective_bit_depth == 16:
@@ -231,6 +241,16 @@ def validate_export(
                     _finding(
                         ExportCheckCode.BIT_DEPTH_UNCONFIRMED, role=role, bits=effective_bit_depth
                     )
+                )
+            elif (
+                layer.height_data is not None
+                and bool(np.any(layer.height_data.values % 257 != 0))
+            ):
+                # 8-Bit-Ziel, aber echte 16-Bit-Präzision im Projekt: die
+                # Quantisierung (rint(v/257), ADR #586) verwirft Niederbits –
+                # Warnung mit Bestätigungspflicht statt stillem Verlust (#590).
+                findings.append(
+                    _finding(ExportCheckCode.HEIGHT_PRECISION_LOSS, role=role)
                 )
         elif role is LayerRole.GLOSS_MASK:
             if _is_constant(_gray_array(layer.image)):
@@ -274,6 +294,8 @@ def format_finding(finding: ExportFinding) -> str:
         return tr("eufymake.export.gloss_mask_empty")
     if code is ExportCheckCode.BIT_DEPTH_UNCONFIRMED:
         return tr("eufymake.export.bit_depth_unconfirmed", **p)
+    if code is ExportCheckCode.HEIGHT_PRECISION_LOSS:
+        return tr("eufymake.export.height_precision_loss")
     if code is ExportCheckCode.GLOSS_INK_MODE:
         return tr("eufymake.export.gloss_ink_mode")
     if code is ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED:

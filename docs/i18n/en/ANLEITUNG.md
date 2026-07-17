@@ -558,7 +558,12 @@ and Optimise sections are only active when a height layer is active.
 - **Generate from image** – deterministically converts the current colour
   image into a height map and creates it as a new height layer.
 - **Import grayscale…** – loads a grayscale image as a height map and scales
-  it to the project size.
+  it to the project size. 16-bit grayscale files (PNG/TIFF) are imported
+  **natively with all 65536 levels**; color and 8-bit images are converted
+  via their brightness. 16-bit images with an alpha channel and float
+  images cannot be read losslessly and are rejected with a message. During
+  EufyMake export, BgRemover warns when an 8-bit target would quantize the
+  internally 16-bit heights.
 
 ### Height maps: Edit
 
