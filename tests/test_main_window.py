@@ -801,6 +801,25 @@ def test_open_project_error_shows_translated_message(win, tmp_path, monkeypatch)
     assert win.statusBar().currentMessage() == tr("project.error.corrupt")
 
 
+def test_open_project_error_keeps_current_project(win, tmp_path, monkeypatch):
+    """Ein fehlgeschlagener Open-Vorgang lässt das geöffnete Projekt unverändert (#588)."""
+    from PIL import Image
+
+    win._canvas.apply_loaded_image(
+        Image.new("RGBA", (4, 4), (1, 2, 3, 255)), "seed.png")
+    current = win._canvas.project
+    assert current is not None
+    broken = tmp_path / "broken.bgrproj"
+    broken.write_bytes(b"not a zip")
+    monkeypatch.setattr(
+        QMessageBox, "warning", lambda *a, **k: QMessageBox.StandardButton.Ok)
+
+    win._load_project_into_canvas(str(broken))
+
+    assert win._canvas.project is current                 # Projektobjekt unberührt
+    assert win._project_path != str(broken)               # Pfad nicht übernommen
+
+
 def test_save_project_without_project_reports_status(win):
     from bgremover.i18n import tr
 

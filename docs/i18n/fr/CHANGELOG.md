@@ -24,6 +24,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   (`×257`) via un adaptateur de compatibilité temporaire et journalisé. Le
   format de projet (v1) et l'export restent inchangés à cette étape
   (#588/#590 suivront) ; les calques COLOR/GLOSS sont sans régression.
+- **Format de projet v2 : hauteurs 16 bits au bit près dans le fichier
+  `.bgrproj` (#588, partie de l'épopée #581).** Les calques de hauteur
+  enregistrent désormais en plus leurs valeurs canoniques `uint16` sous
+  forme de PNG en niveaux de gris 16 bits dans le conteneur de projet
+  (endianness contrôlée, intégrité sha256 contre les payloads tronqués ou
+  intervertis, limite d'entrée dédiée) – l'aller-retour
+  enregistrer/ouvrir préserve exactement les bits de poids faible. Les
+  projets v1 existants se chargent sans changement (migration déterministe
+  ×257) et sont réécrits de manière contrôlée en v2 au prochain
+  enregistrement ; les anciennes versions de BgRemover affichent encore les
+  projets v2 mais les enregistrent sans les hauteurs 16 bits. Référence du
+  format : `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 

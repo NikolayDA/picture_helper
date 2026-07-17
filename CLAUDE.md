@@ -128,7 +128,16 @@ Ein Paket, `bgremover/`:
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
   Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
-  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333). Beim Laden wird
+  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333).
+  **Formatversion 2 (#588, ADR #586):** je HEIGHT-Ebene zusätzlich eine
+  16-Bit-Graustufen-PNG (`layer_NNNN_height16.png`) mit den kanonischen
+  `uint16`-Höhen – endianness-kontrolliert über numpy geschrieben/gelesen,
+  per `height16_sha256` im Manifest gegen abgeschnittene/vertauschte Payloads
+  gesichert und mit eigenem 2-B/px-Entry-Limit; der Roundtrip ist bitgenau
+  inkl. Niederbits. v1 lädt unverändert über den ×257-Adapter (#587) und wird
+  beim Speichern kontrolliert v2; alte Stände lesen v2 best-effort (8-Bit-
+  Ansicht bleibt redundant enthalten). Formatreferenz:
+  [`docs/PROJECT_FORMAT.md`](docs/PROJECT_FORMAT.md). Beim Laden wird
   ein historisch inkompatibler Rollen-Zustand (z. B. `HEIGHT_MAP` auf einer
   COLOR-Ebene) deterministisch normalisiert: nur die unzulässige Rolle wird
   entfernt (Kind/Name/Pixel/Reihenfolge/Metadaten bleiben wertgleich), und

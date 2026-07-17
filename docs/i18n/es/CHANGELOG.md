@@ -24,6 +24,17 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   adaptador de compatibilidad temporal y registrado. El formato de proyecto
   (v1) y la exportación no cambian en este paso (#588/#590 seguirán); las
   capas COLOR/GLOSS quedan libres de regresiones.
+- **Formato de proyecto v2: alturas de 16 bits con exactitud de bits en el
+  archivo `.bgrproj` (#588, parte de la épica #581).** Las capas de altura
+  ahora guardan además sus valores canónicos `uint16` como PNG en escala de
+  grises de 16 bits dentro del contenedor del proyecto (con control de
+  endianness, integridad sha256 contra payloads truncados o intercambiados
+  y límite de entrada propio): el ciclo guardar/abrir conserva los bits
+  bajos con exactitud. Los proyectos v1 existentes cargan sin cambios
+  (migración determinista ×257) y se escriben de forma controlada como v2
+  al volver a guardar; las versiones antiguas de BgRemover siguen mostrando
+  proyectos v2, pero los guardan sin las alturas de 16 bits. Referencia del
+  formato: `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 

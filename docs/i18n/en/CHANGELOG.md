@@ -22,6 +22,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   logged compatibility adapter. The project file format (v1) and export stay
   unchanged in this step (#588/#590 follow); COLOR/GLOSS layers are
   regression-free.
+- **Project format v2: 16-bit heights bit-exact in the `.bgrproj` file
+  (#588, part of epic #581).** Height layers now additionally store their
+  canonical `uint16` height values as a 16-bit grayscale PNG inside the
+  project container (endianness-controlled, sha256-integrity-protected
+  against truncated/swapped payloads, dedicated entry limit) – the
+  save/open roundtrip preserves the low bits exactly. Existing v1 projects
+  load unchanged (deterministic ×257 migration) and are written as v2 on
+  the next save in a controlled way; older BgRemover versions still
+  display v2 projects but save them without the 16-bit heights. Format
+  reference: `docs/PROJECT_FORMAT.md`.
 
 ## [2.6.0] – 2026-07-15
 
