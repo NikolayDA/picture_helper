@@ -273,12 +273,13 @@ def test_chained_operations_keep_more_than_256_levels() -> None:
     assert out.max_value == 65535
 
 
-def test_16mp_blur_and_40mp_import_within_generous_budgets() -> None:
-    """Repräsentative Operationen am Megapixel-Limit bleiben in CI-Schranken.
+def test_blur_and_import_regression_stays_small_and_correct() -> None:
+    """Kleiner, deterministischer Budget-Regressionsfall für Blur + Import.
 
-    Kein Benchmark – eine strukturelle Obergrenze gegen versehentliche
-    O(N·Radius)- oder Kopier-Explosionen (Budgets aus ADR #586; Baseline-
-    Zielwerte erhebt #590 über die Benchmark-Infrastruktur).
+    Bewusst klein gehalten (1 MP Blur, 4 MP Import), damit die Default-Suite
+    auf geteilten/langsamen Runnern weder Speicher noch Wandzeit strapaziert
+    (Codex-Review-Befund zu #589); die echten 16-/40-MP-Budgetmessungen
+    laufen über die Benchmark-Infrastruktur (`scripts/benchmark.py`, #590).
     """
     import time
 
@@ -286,15 +287,15 @@ def test_16mp_blur_and_40mp_import_within_generous_budgets() -> None:
 
     from bgremover.height_map import image_to_height_field
 
-    arr16 = np.zeros((4000, 4000), dtype=np.uint16)      # 16 MP
+    arr16 = np.zeros((1000, 1000), dtype=np.uint16)      # 1 MP
     arr16[0, :4] = [1, 0x1234, 65534, 65535]
     field16 = HeightField(arr16, np.full(arr16.shape, 255, np.uint8), max_value=65535)
     start = time.perf_counter()
     out = gaussian_blur(field16, sigma=5.0)
     blur_seconds = time.perf_counter() - start
-    assert out.values.shape == (4000, 4000)
+    assert out.values.shape == (1000, 1000)
 
-    h, w = 5000, 8000                                    # 40 MP
+    h, w = 2000, 2000                                    # 4 MP
     raw = np.zeros((h, w), dtype="<u2")
     raw[0, 0] = 0x1234
     img = Image.frombytes("I;16", (w, h), raw.tobytes())
@@ -302,4 +303,5 @@ def test_16mp_blur_and_40mp_import_within_generous_budgets() -> None:
     imported = image_to_height_field(img)
     import_seconds = time.perf_counter() - start
     assert int(imported.values[0, 0]) == 0x1234
-    assert blur_seconds + import_seconds < 60.0
+    # Großzügige Schranke gegen strukturelle Regressionen (kein Benchmark).
+    assert blur_seconds + import_seconds < 30.0

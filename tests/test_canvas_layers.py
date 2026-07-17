@@ -1334,3 +1334,90 @@ def test_generate_height_map_produces_true_16bit_payload(qapp) -> None:
     # Undo räumt die Ebene vollständig weg (konsistente History).
     canvas.undo()
     assert len(canvas.project.layers) == 1
+
+
+def _handcrafted_png16(color_type: int, pixel_bytes: bytes, w: int, h: int) -> bytes:
+    """Baut ein minimales 16-Bit-PNG (Farbtyp 2/4/6), das PIL nicht schreiben kann."""
+    import struct
+    import zlib
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data)) + tag + data
+            + struct.pack(">I", zlib.crc32(tag + data))
+        )
+
+    channels = {0: 1, 2: 3, 4: 2, 6: 4}[color_type]
+    stride = w * channels * 2
+    raw = b"".join(
+        b"\x00" + pixel_bytes[y * stride:(y + 1) * stride] for y in range(h)
+    )
+    ihdr = struct.pack(">IIBBBBB", w, h, 16, color_type, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+def test_import_rejects_16bit_gray_alpha_png_instead_of_quantizing(qapp, tmp_path) -> None:
+    """16-Bit-Grau+Alpha: PIL liefert nur 8 Bit – Abweisung statt stiller ×257.
+
+    Codex-Review-Befund zu #589: der Luminanz-Fallback würde die von Pillow
+    bereits quantisierten Kanäle still auf ×257-Stufen zurückspreizen.
+    """
+    import struct
+
+    from bgremover.i18n import tr
+
+    # 2×1 Pixel: Grau 0x1234/0xABCD, Alpha voll (Big-Endian, PNG-Norm).
+    pixels = struct.pack(">HHHH", 0x1234, 0xFFFF, 0xABCD, 0xFFFF)
+    path = tmp_path / "gray_alpha16.png"
+    path.write_bytes(_handcrafted_png16(4, pixels, 2, 1))
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 1, (0, 0, 0, 255)), "base.png")
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+
+    assert len(canvas.project.layers) == 1                 # kein Teil-Layer
+    assert any(
+        m == tr("status.height_source_unsupported", mode=mode)
+        for m in msgs
+        for mode in ("LA;16B", "LA;16")
+    )
+
+
+def test_import_rejects_16bit_rgb_png_instead_of_quantizing(qapp, tmp_path) -> None:
+    """Auch 16-Bit-Farb-PNGs werden abgewiesen statt still 8-Bit-quantisiert."""
+    import struct
+
+    pixels = struct.pack(">HHHHHH", 0x1234, 0x0001, 0xFFFE, 0x8000, 0x4242, 0x0100)
+    path = tmp_path / "rgb16.png"
+    path.write_bytes(_handcrafted_png16(2, pixels, 2, 1))
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 1, (0, 0, 0, 255)), "base.png")
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+
+    assert len(canvas.project.layers) == 1
+    assert msgs and "16" in msgs[0]                        # Rohmodus in der Meldung
+
+
+def test_normal_image_loader_still_accepts_quantized_16bit_sources(tmp_path) -> None:
+    """Regression: der normale Bild-Ladepfad zeigt solche Quellen weiter an."""
+    import struct
+
+    from bgremover.image_loading import open_validated_image
+
+    pixels = struct.pack(">HHHH", 0x1234, 0xFFFF, 0xABCD, 0xFFFF)
+    path = tmp_path / "gray_alpha16.png"
+    path.write_bytes(_handcrafted_png16(4, pixels, 2, 1))
+
+    img, err = open_validated_image(str(path))
+    assert err is None
+    assert img is not None and img.mode == "RGBA"          # Anzeigepfad unverändert

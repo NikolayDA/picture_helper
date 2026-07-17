@@ -271,8 +271,10 @@ def image_to_height_field(image: Image.Image) -> HeightField:
     - **Abgewiesen** (präzise, dokumentierte Einschränkung –
       :class:`UnsupportedHeightSourceError`, kein Teil-Layer): Float-Bilder
       (``F``), 32-Bit-``I`` außerhalb ``0..65535`` sowie leere Bilder.
-      16-Bit-**Farb**-TIFFs reduziert PIL bereits beim Laden auf 8-Bit-RGB und
-      sie laufen damit über die Luminanz-Regel (dokumentierte Einschränkung).
+      16-Bit-Quellen, die Pillow nur 8-Bit-quantisiert ausliefern kann
+      (16-Bit-Grau **mit Alpha**, 16-Bit-Farbbilder), weist bereits die
+      Ladegrenze :func:`bgremover.image_loading.open_validated_height_image`
+      ab – ihre Niederbits wären vor diesem Konverter verloren.
     """
     if image.width <= 0 or image.height <= 0:
         raise UnsupportedHeightSourceError(
