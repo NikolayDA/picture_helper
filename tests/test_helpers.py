@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 from PIL import Image
+from PyQt6.QtGui import QImage
 
 from bgremover import (
     flood_fill,
@@ -9,6 +10,7 @@ from bgremover import (
     numpy_to_pil,
     pil_to_numpy,
     pil_to_numpy_readonly,
+    pil_to_qpixmap,
 )
 
 # ── pil_to_numpy / numpy_to_pil ─────────────────────────────────────────
@@ -38,6 +40,28 @@ def test_pil_to_numpy_readonly_is_not_writable():
     assert not arr.flags.writeable
     with pytest.raises(ValueError):
         arr[0, 0, 0] = 5
+
+
+def test_pil_to_numpy_readonly_converts_non_rgba_source():
+    """#598: Palette-Bild (Modus ``P``) muss vor der Array-Sicht nach
+    RGBA konvertiert werden."""
+    img = Image.new("P", (4, 3))
+    arr = pil_to_numpy_readonly(img)
+    assert arr.shape == (3, 4, 4)
+    assert arr.dtype == np.uint8
+
+
+def test_pil_to_qpixmap_converts_non_rgba_source(qapp):
+    """#598: RGB-Quellbild wird vor der QPixmap-Erzeugung nach RGBA
+    konvertiert (Alpha wird dabei auf 255 gesetzt)."""
+    img = Image.new("RGB", (4, 3), (10, 20, 30))
+    px = pil_to_qpixmap(img)
+    assert px.width() == 4
+    assert px.height() == 3
+    qi = px.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
+    arr = np.array(qi.bits().asarray(4 * 3 * 4)).reshape(3, 4, 4)
+    assert (arr[:, :, 3] == 255).all()
+    assert (arr[:, :, 0] == 10).all()
 
 
 def test_numpy_to_pil_round_trip():
