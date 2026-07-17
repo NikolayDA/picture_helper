@@ -1237,3 +1237,100 @@ def test_height_preview_never_writes_back_into_payload(qapp) -> None:
     canvas.cancel_height_preview()
     assert layer.height_data is payload
     assert layer.image is view
+
+
+# ── 16-Bit-Import & Erzeugung (#589) ─────────────────────────────────────
+
+
+def _write_png16(path, values: np.ndarray) -> None:
+    """Schreibt ``uint16``-Werte als natives 16-Bit-Graustufen-PNG."""
+    h, w = values.shape
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    Image.frombytes("I;16", (w, h), raw).save(path)
+
+
+def test_import_height_map_native_16bit_png_preserves_low_bits(qapp, tmp_path) -> None:
+    """16-Bit-PNG-Import: Niederbits landen bitgenau in der kanonischen Payload."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 2, (0, 0, 0, 255)), "base.png")
+    values = np.array([[0x1234, 0x0001], [0xFFFE, 0x8000]], dtype=np.uint16)
+    path = tmp_path / "height16.png"
+    _write_png16(path, values)
+
+    canvas.import_height_map(str(path))
+    active = canvas.project.active_layer()
+    assert active.kind is LayerKind.HEIGHT
+    field = active.height_data
+    assert field is not None
+    assert field.max_value == 65535
+    assert np.array_equal(field.values, values)     # nativ, ohne 8-Bit-Zwischenschritt
+    assert np.all(field.coverage == 255)
+
+
+def test_import_height_map_native_16bit_tiff(qapp, tmp_path) -> None:
+    """16-Bit-Graustufen-TIFF wird verlustfrei importiert."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(2, 2, (0, 0, 0, 255)), "base.png")
+    values = np.array([[0x0101, 0xABCD], [0x0000, 0xFFFF]], dtype=np.uint16)
+    path = tmp_path / "height16.tif"
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    Image.frombytes("I;16", (2, 2), raw).save(path, format="TIFF")
+
+    canvas.import_height_map(str(path))
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert np.array_equal(field.values, values)
+
+
+def test_import_height_map_resizes_via_precise_float_path(qapp, tmp_path) -> None:
+    """Skalierung fremder Größen läuft über resize_height_field (uint16, 65535)."""
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(8, 8, (0, 0, 0, 255)), "base.png")
+    values = np.arange(16, dtype=np.uint16).reshape(4, 4) * 4111 + 3
+    _write_png16(tmp_path / "odd.png", values)
+
+    canvas.import_height_map(str(tmp_path / "odd.png"))
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert field.values.shape == (8, 8)
+    assert field.values.dtype == np.uint16
+    assert field.max_value == 65535
+    # Präzisionspfad: das Ergebnis behält mehr als 8-Bit-Stufen (keine
+    # ×257-Vielfachen-Rasterung durch einen RGBA-Zwischenschritt).
+    assert np.any(field.values % 257 != 0)
+
+
+def test_import_height_map_rejects_float_tiff_without_partial_layer(qapp, tmp_path) -> None:
+    """Nicht unterstützte Modi (Float-TIFF): übersetzte Meldung, kein Teil-Layer."""
+    from bgremover.i18n import tr
+
+    canvas = ImageCanvas()
+    canvas.apply_loaded_image(_solid(4, 4, (0, 0, 0, 255)), "base.png")
+    path = tmp_path / "float.tif"
+    Image.new("F", (4, 4), 0.5).save(path, format="TIFF")
+
+    msgs: list[str] = []
+    canvas.statusMsg.connect(msgs.append)
+    canvas.import_height_map(str(path))
+    assert len(canvas.project.layers) == 1                 # kein Teil-Layer
+    assert tr("status.height_source_unsupported", mode="F") in msgs
+
+
+def test_generate_height_map_produces_true_16bit_payload(qapp) -> None:
+    """Erzeugung skaliert direkt auf 0..65535 – feiner als jede ×257-Stufe."""
+    canvas = ImageCanvas()
+    arr = np.zeros((8, 8, 4), dtype=np.uint8)
+    arr[:, :, 0] = np.arange(8, dtype=np.uint8) * 30       # Gradient
+    arr[:, :, 3] = 255
+    canvas.apply_loaded_image(Image.fromarray(arr, "RGBA"), "grad.png")
+
+    canvas.generate_height_map(gamma=2.2)
+    field = canvas.project.active_layer().height_data
+    assert field is not None
+    assert field.max_value == 65535
+    # Gamma-Zwischenwerte liegen zwischen den 256 Legacy-Stufen: die Payload
+    # enthält Werte, die kein ×257-Vielfaches sind (echte 16-Bit-Präzision).
+    assert np.any(field.values % 257 != 0)
+    # Undo räumt die Ebene vollständig weg (konsistente History).
+    canvas.undo()
+    assert len(canvas.project.layers) == 1

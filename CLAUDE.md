@@ -60,9 +60,16 @@ Ein Paket, `bgremover/`:
   deterministische ×257-Migration und `resize_height_field` skaliert
   präzisionserhaltend (Werte als `float32`, Deckung als `L`, gleicher Filter). `generate_from_image`
   erzeugt deterministisch eine Höhenkarte (Kanalgewichtung/Luminanz → Tonwert-Kennlinie
-  → Gamma → Invertieren) (#346). Der Canvas verdrahtet das (`generate_height_map` aus
-  aktiver COLOR-Ebene/Komposit, `import_height_map` via `open_validated_image` mit
-  Skalierung auf Canvas-Größe) als neue, aktive HEIGHT-Ebene mit Rolle `HEIGHT_MAP`,
+  → Gamma → Invertieren) (#346), seit #589 im Canvas direkt auf `0..65535` skaliert.
+  `image_to_height_field` ist die dokumentierte Import-Regel (#589): 16-Bit-Graustufen
+  (`I;16*`/wertebereichsgeprüftes `I`) nativ mit allen 65536 Stufen, 8-Bit-/Farbquellen
+  über die Luminanz-Regel ×257-äquivalent, Float-Modi abgewiesen
+  (`UnsupportedHeightSourceError`); das Modul-Docstring führt das verbindliche
+  Operations-Inventar (16-Bit-sicher / bewusst quantisierend / nicht anwendbar).
+  Der Canvas verdrahtet das (`generate_height_map` aus aktiver COLOR-Ebene/Komposit,
+  `import_height_map` via `open_validated_height_image` ohne RGBA-Zwang, fremde
+  Größen präzisionserhaltend über `resize_height_field`) als neue, aktive
+  HEIGHT-Ebene mit Rolle `HEIGHT_MAP` direkt aus der kanonischen Payload,
   undo-/redobar. Höhen-Editor (#347): `adjust_height`/`set_height`/`invert_height`
   (auswahlbewusst, geklemmt, verlustfrei) – im Canvas als `lighten_/darken_/set_/
   invert_active_height` an der aktiven HEIGHT-Ebene verdrahtet (Auswahl bzw. global,
@@ -116,7 +123,9 @@ Ein Paket, `bgremover/`:
   einmal neu berechnet, nie zurückgelesen). Schreibpfad: `set_height_data`/
   `Project.set_layer_height_data` (canvas-validiert); 8-Bit-Zuweisungen an
   `layer.image` laufen über einen befristeten, geloggten Legacy-Adapter (×257,
-  entfällt mit #589). `duplicate_layer` teilt die unveränderliche Payload,
+  verbleibt seit #589 nur als geloggter Rückfall für generische
+  RGBA-Pixelwerkzeuge auf HEIGHT-Ebenen und für v1-Projekte).
+  `duplicate_layer` teilt die unveränderliche Payload,
   `Project.resize` skaliert sie über `resize_height_field`; die transiente
   Canvas-Vorschau tauscht nur die Ansicht (`swap_display_view`). `project_history.py` (`ProjectHistory`) ist die
   ebenenbewusste, Qt-freie Undo/Redo-Historie darauf: leichte Struktur-Snapshots

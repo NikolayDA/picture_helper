@@ -11,6 +11,21 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Hauteurs 16 bits : import, génération et opérations sans quantification
+  8 bits (#589, partie de l'épopée #581).** L'import de cartes de hauteur
+  lit désormais les niveaux de gris 16 bits (PNG/TIFF) nativement avec les
+  65536 niveaux (endianness contrôlée) ; les modes non pris en charge comme
+  les images float sont rejetés avec un message clair, sans créer de calque
+  partiel. Les sources 8 bits et couleur suivent la règle de luminance
+  documentée exactement vers le contrat 16 bits (équivalent ×257) ; l'alpha
+  ne compte que comme couverture. La génération met directement à l'échelle
+  0…65535, les nouveaux calques de hauteur naissent de la payload canonique
+  et les tailles étrangères sont redimensionnées en préservant la précision.
+  Chaque opération de hauteur est explicitement classée sûre en 16 bits ou
+  volontairement quantifiante (les paramètres d'identité sont des no-ops au
+  bit près) ; les commandes 0–255 gardent leur échelle et expliquent la
+  projection sur la plage 16 bits par info-bulle.
+
 - **Pipeline de hauteurs 16 bits : modèle de domaine et historique sans perte
   (#587, partie de l'épopée #581).** Les calques HEIGHT portent désormais
   leurs hauteurs de manière canonique sous forme de payload 16 bits

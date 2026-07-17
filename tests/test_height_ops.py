@@ -223,3 +223,83 @@ def test_ops_do_not_mutate_input() -> None:
     quantize(field, 4)
     clamp_range(field, 20, 180)
     assert np.array_equal(field.values, before)
+
+
+# ── 16-Bit-Vertrag: Identität, Ketten, Budgets (#589) ────────────────────
+
+
+def test_identity_parameters_are_bit_exact_noops() -> None:
+    """Identitätsparameter verändern kein einziges Bit (Vertrag #589)."""
+    rng = np.random.default_rng(17)
+    arr = rng.integers(0, 65536, size=(37, 23), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 255, np.uint8), max_value=65535)
+    assert np.array_equal(levels(field, 0, 65535).values, arr)
+    assert np.array_equal(gamma(field, 1.0).values, arr)
+    assert np.array_equal(clamp_range(field, 0, 65535).values, arr)
+
+
+def test_levels_and_gamma_are_monotone_on_16bit_ramp() -> None:
+    """Monotone Eingaben bleiben monoton – keine Overflow-/Rundungsartefakte."""
+    ramp = np.arange(65536, dtype=np.uint16).reshape(1, 65536)
+    field = HeightField(ramp, np.full(ramp.shape, 255, np.uint8), max_value=65535)
+    for out in (
+        levels(field, 1000, 60000).values[0],
+        gamma(field, 2.2).values[0],
+        gamma(field, 0.45).values[0],
+    ):
+        assert bool(np.all(np.diff(out.astype(np.int64)) >= 0))
+
+
+def test_gamma_matches_high_precision_reference() -> None:
+    """Referenzrechnung (float64, extern nachgestellt) validiert die Rundung."""
+    rng = np.random.default_rng(23)
+    arr = rng.integers(0, 65536, size=(9, 11), dtype=np.uint16)
+    field = HeightField(arr, np.full(arr.shape, 255, np.uint8), max_value=65535)
+    expected = np.clip(
+        np.rint((arr.astype(np.float64) / 65535.0) ** 1.7 * 65535.0),
+        0, 65535,
+    ).astype(np.uint16)
+    assert np.array_equal(gamma(field, 1.7).values, expected)
+
+
+def test_chained_operations_keep_more_than_256_levels() -> None:
+    """Verkettete Operationen kollabieren nicht unbemerkt auf 256 Stufen."""
+    ramp = np.arange(65536, dtype=np.uint16).reshape(256, 256)
+    field = HeightField(ramp, np.full(ramp.shape, 255, np.uint8), max_value=65535)
+    out = gaussian_blur(gamma(levels(field, 500, 65000), 1.3), sigma=2.0)
+    assert len(np.unique(out.values)) > 256
+    # und die Kette bleibt im Vertragsbereich mit kanonischem dtype.
+    assert out.values.dtype == np.uint16
+    assert out.max_value == 65535
+
+
+def test_16mp_blur_and_40mp_import_within_generous_budgets() -> None:
+    """Repräsentative Operationen am Megapixel-Limit bleiben in CI-Schranken.
+
+    Kein Benchmark – eine strukturelle Obergrenze gegen versehentliche
+    O(N·Radius)- oder Kopier-Explosionen (Budgets aus ADR #586; Baseline-
+    Zielwerte erhebt #590 über die Benchmark-Infrastruktur).
+    """
+    import time
+
+    from PIL import Image
+
+    from bgremover.height_map import image_to_height_field
+
+    arr16 = np.zeros((4000, 4000), dtype=np.uint16)      # 16 MP
+    arr16[0, :4] = [1, 0x1234, 65534, 65535]
+    field16 = HeightField(arr16, np.full(arr16.shape, 255, np.uint8), max_value=65535)
+    start = time.perf_counter()
+    out = gaussian_blur(field16, sigma=5.0)
+    blur_seconds = time.perf_counter() - start
+    assert out.values.shape == (4000, 4000)
+
+    h, w = 5000, 8000                                    # 40 MP
+    raw = np.zeros((h, w), dtype="<u2")
+    raw[0, 0] = 0x1234
+    img = Image.frombytes("I;16", (w, h), raw.tobytes())
+    start = time.perf_counter()
+    imported = image_to_height_field(img)
+    import_seconds = time.perf_counter() - start
+    assert int(imported.values[0, 0]) == 0x1234
+    assert blur_seconds + import_seconds < 60.0

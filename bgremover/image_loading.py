@@ -137,6 +137,31 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     Erfolgreich geladene Bilder sind EXIF-orientiert und nach RGBA
     konvertiert.
     """
+    img, err = _open_validated_raw(path)
+    if img is None:
+        return None, err
+    return ImageOps.exif_transpose(img).convert("RGBA"), None
+
+
+def open_validated_height_image(path: str) -> tuple[Image.Image | None, str | None]:
+    """Öffnet und validiert *path* für den 16-Bit-Höhenimport (#589).
+
+    Identische Schutzschicht wie :func:`open_validated_image` (Dateigrößen-
+    Limit, Struktur-``verify``, Format-Whitelist, Megapixel-/Bomb-Schutz),
+    aber **ohne** die abschließende RGBA-Konvertierung: 16-Bit-Graustufen
+    (PNG ``I;16``/``I``, TIFF ``I;16``/``I;16B``) behalten ihren nativen
+    Pixelmodus und damit alle 65536 Stufen. Die EXIF-Orientierung wird wie
+    im RGBA-Pfad angewandt; die Moduslogik (nativ vs. Luminanz vs. Abweisung)
+    liegt in :func:`bgremover.height_map.image_to_height_field`.
+    """
+    img, err = _open_validated_raw(path)
+    if img is None:
+        return None, err
+    return ImageOps.exif_transpose(img), None
+
+
+def _open_validated_raw(path: str) -> tuple[Image.Image | None, str | None]:
+    """Gemeinsamer, modus-erhaltender Kern der validierten Ladepfade."""
     # Datei genau EINMAL lesen und verify() wie Decode aus diesem Puffer
     # bedienen. Frueher wurde der Pfad zweimal geoeffnet (verify schliesst das
     # File, der Decode oeffnet neu) – dazwischen konnte unter demselben Pfad
@@ -201,5 +226,4 @@ def open_validated_image(path: str) -> tuple[Image.Image | None, str | None]:
     except (UnidentifiedImageError, OSError) as e:
         return None, f"{type(e).__name__}: {e}"
 
-    img = ImageOps.exif_transpose(img).convert("RGBA")
     return img, None

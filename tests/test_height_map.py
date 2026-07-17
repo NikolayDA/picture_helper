@@ -17,11 +17,13 @@ from bgremover.height_map import (
     LUMA_WEIGHTS_REC601,
     HeightField,
     HeightMapError,
+    UnsupportedHeightSourceError,
     adjust_height,
     crop_height_field,
     expand_to_16bit,
     generate_from_image,
     height_to_layer,
+    image_to_height_field,
     invert_height,
     layer_to_gray_image,
     layer_to_height,
@@ -525,3 +527,95 @@ def test_height_field_owns_views_against_base_aliasing() -> None:
     assert locked.values is owned
     with pytest.raises(ValueError):
         owned[0, 0] = 1
+
+
+# ── 16-Bit-Import & Erzeugung ohne 8-Bit-Quantisierung (#589) ────────────
+
+
+def _png16(values: np.ndarray) -> Image.Image:
+    """Baut ein natives ``I;16``-PIL-Bild aus ``uint16``-Werten (Little-Endian)."""
+    h, w = values.shape
+    raw = np.ascontiguousarray(values, dtype="<u2").tobytes()
+    return Image.frombytes("I;16", (w, h), raw)
+
+
+def test_image_to_height_field_reads_all_65536_native_levels() -> None:
+    """Ein natives 16-Bit-Graubild behält sämtliche 65536 Stufen bitgenau."""
+    values = np.arange(65536, dtype=np.uint16).reshape(256, 256)
+    field = image_to_height_field(_png16(values))
+    assert field.max_value == HEIGHT_MAX_16BIT
+    assert field.values.dtype == np.uint16
+    assert np.array_equal(field.values, values)
+    assert len(np.unique(field.values)) == 65536      # keine 8-Bit-Zwischenstufe
+    assert np.all(field.coverage == 255)              # 16-Bit-Grau trägt kein Alpha
+
+
+def test_image_to_height_field_handles_big_endian_mode() -> None:
+    """``I;16B`` (Big-Endian, z. B. TIFF) wird byte-korrekt gedeutet."""
+    values = np.array([[0x1234, 0x0001], [0xFF00, 0x65535 % 65536]], dtype=np.uint16)
+    raw = values.astype(">u2").tobytes()
+    img = Image.frombytes("I;16B", (2, 2), raw)
+    field = image_to_height_field(img)
+    assert np.array_equal(field.values, values)
+
+
+def test_image_to_height_field_accepts_int32_fallback_in_range() -> None:
+    """PILs ``I``-Fallback (32 Bit) wird wertebereichsgeprüft nativ übernommen."""
+    img = Image.new("I", (2, 1))
+    img.putpixel((0, 0), 0x1234)
+    img.putpixel((1, 0), 65535)
+    field = image_to_height_field(img)
+    assert list(field.values[0]) == [0x1234, 65535]
+    big = Image.new("I", (1, 1), 70000)               # außerhalb des Vertrags
+    with pytest.raises(UnsupportedHeightSourceError):
+        image_to_height_field(big)
+
+
+def test_image_to_height_field_8bit_gray_uses_exact_x257_mapping() -> None:
+    """8-Bit-Quellen folgen exakt der ×257-Abbildung aus ADR #586."""
+    values = np.arange(256, dtype=np.uint8).reshape(16, 16)
+    field = image_to_height_field(Image.fromarray(values, "L"))
+    assert field.max_value == HEIGHT_MAX_16BIT
+    assert np.array_equal(field.values, values.astype(np.uint16) * 257)
+
+
+def test_image_to_height_field_rgba_uses_luminance_and_alpha_as_coverage() -> None:
+    """Farbquellen: Rec.-601-Luminanz als Höhe, Alpha ausschließlich als Deckung."""
+    arr = np.zeros((1, 2, 4), dtype=np.uint8)
+    arr[0, 0] = (255, 0, 0, 0)      # rot, volltransparent
+    arr[0, 1] = (0, 255, 0, 128)    # grün, halbdeckend
+    field = image_to_height_field(Image.fromarray(arr, "RGBA"))
+    # Luminanz (0.299/0.587/0.114) → Höhe; Alpha wird NIE als Höhe gedeutet.
+    assert int(field.values[0, 0]) == round(0.299 * 255 / 255 * 65535)
+    assert int(field.values[0, 1]) == round(0.587 * 255 / 255 * 65535)
+    assert list(field.coverage[0]) == [0, 128]
+
+
+def test_image_to_height_field_fully_transparent_and_tiny_inputs() -> None:
+    """1×1-, sehr schmale und volltransparente Quellen verhalten sich definiert."""
+    tiny = image_to_height_field(_png16(np.array([[0x1234]], dtype=np.uint16)))
+    assert tiny.size == (1, 1) and int(tiny.values[0, 0]) == 0x1234
+    narrow = image_to_height_field(_png16(np.arange(9, dtype=np.uint16).reshape(1, 9)))
+    assert narrow.size == (9, 1)
+    transparent = image_to_height_field(
+        Image.new("RGBA", (2, 2), (77, 77, 77, 0)))
+    assert np.all(transparent.coverage == 0)          # „kein Material"
+    assert np.all(transparent.values == round(77 / 255 * 65535))
+
+
+def test_image_to_height_field_rejects_float_mode() -> None:
+    with pytest.raises(UnsupportedHeightSourceError) as err:
+        image_to_height_field(Image.new("F", (2, 2), 0.5))
+    assert err.value.mode == "F"
+
+
+def test_expand_to_16bit_is_complete_and_injective_over_all_8bit_values() -> None:
+    """Alle 256 Stufen migrieren vollständig, eindeutig und streng monoton."""
+    legacy = HeightField(
+        np.arange(256, dtype=np.uint16).reshape(1, 256),
+        np.full((1, 256), 255, dtype=np.uint8),
+    )
+    out = expand_to_16bit(legacy).values[0]
+    assert len(np.unique(out)) == 256                  # injektiv
+    assert bool(np.all(np.diff(out.astype(np.int64)) == 257))  # äquidistant
+    assert int(out[0]) == 0 and int(out[255]) == 65535

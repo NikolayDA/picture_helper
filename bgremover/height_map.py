@@ -18,6 +18,26 @@ deterministische 8→16-Abbildung ist ``v16 = v8 × 257`` (Bit-Replikation,
 nur an benannten Quantisierungsgrenzen (:func:`height_to_layer`). Die Arrays
 eines Feldes sind nach Konstruktion **unveränderlich** (Write-Lock), sodass
 Kopien, History-Snapshots und Duplikate Referenzen gefahrlos teilen können.
+
+Operations-Inventar des 16-Bit-Vertrags (#589) – jede Höhen-Operation ist
+explizit klassifiziert:
+
+- **16-Bit-sicher** (rechnen relativ zu ``max_value``, Zwischenpräzision
+  float64/int32, Endrundung ``rint`` + Clamp): :func:`adjust_height`,
+  :func:`set_height`, :func:`invert_height`, :func:`resize_height_field`,
+  :func:`rotate_height_field`, :func:`crop_height_field`,
+  :func:`generate_from_image`, :func:`normalize_to_height`,
+  :func:`image_to_height_field` sowie in :mod:`bgremover.height_ops`:
+  ``levels``/``gamma`` (Identitätsparameter sind bitgenaue No-ops),
+  ``gaussian_blur``/``median_blur`` (separabel bzw. bandweise, dokumentierte
+  Rand-/Kernelregeln), ``clamp_range``.
+- **Bewusst quantisierend** (benannte Grenzen): ``threshold``/``quantize``
+  (Stufenbildung ist der Zweck), :func:`height_to_layer`/:func:`_to_gray8`
+  (8-Bit-Anzeige-/Kompatibilitätsableitung, ``rint(v/257)``) sowie generische
+  RGBA-Pixelwerkzeuge auf einer HEIGHT-Ebene (laufen über den geloggten
+  Legacy-Adapter des Modells).
+- **Nicht anwendbar** auf Höhen: Farb-/Alpha-Operationen (``color_ops`` etc.)
+  – sie erreichen die kanonische Payload nicht.
 """
 from __future__ import annotations
 
@@ -49,6 +69,19 @@ LUMA_WEIGHTS_REC601 = (0.299, 0.587, 0.114)
 
 class HeightMapError(ValueError):
     """Fehler bei Höhen-Konvertierung, Normalisierung oder Größen-Validierung."""
+
+
+class UnsupportedHeightSourceError(HeightMapError):
+    """Bildmodus/-inhalt ist keine unterstützte Höhenquelle (#589).
+
+    ``mode`` transportiert den PIL-Modus für eine übersetzte UI-Meldung; die
+    Ursache steht im ``args[0]``-Text (Log/Diagnose). Es entsteht nie ein
+    Teil-Layer: der Import bricht vor jeder Modelländerung ab.
+    """
+
+    def __init__(self, message: str, *, mode: str) -> None:
+        super().__init__(message)
+        self.mode = mode
 
 
 @dataclass(frozen=True)
@@ -207,6 +240,66 @@ def expand_to_16bit(field: HeightField) -> HeightField:
         return field
     values = (field.values.astype(np.uint32) * _EXPAND_8_TO_16).astype(np.uint16)
     return HeightField(values, field.coverage, HEIGHT_MAX_16BIT)
+
+
+# PIL-Modi, deren Pixel echte 16-Bit-Graustufen sind. Die Rohbytes werden mit
+# explizitem Byte-Order über numpy gedeutet (ADR-#586-Risikohinweis: kein
+# Verlass auf plattformabhängige PIL-Moduskonvertierungen).
+_NATIVE_16BIT_MODES: dict[str, str] = {
+    "I;16": "<u2",
+    "I;16L": "<u2",
+    "I;16N": "<u2",
+    "I;16B": ">u2",
+}
+
+
+def image_to_height_field(image: Image.Image) -> HeightField:
+    """Wandelt ein geladenes Bild verlustfrei in ein kanonisches Höhenfeld (#589).
+
+    Dokumentierte Quellregeln (Ziel immer ``max_value=HEIGHT_MAX_16BIT``):
+
+    - **16-Bit-Graustufen** (PNG/TIFF, Modi ``I;16``/``I;16L``/``I;16B``/
+      ``I;16N`` sowie PILs 32-Bit-Fallback ``I`` mit Werten in ``0..65535``):
+      alle 65536 Stufen werden **nativ** übernommen – ohne 8-Bit-Zwischen-
+      konvertierung, endianness-kontrolliert über numpy. Diese Modi tragen
+      kein Alpha; die Deckung ist voll (255).
+    - **8-Bit-/Farbquellen** (``L``/``LA``/``P``/``RGB``/``RGBA``/…): Luminanz-
+      Regel aus :func:`generate_from_image` (Rec.-601-Gewichtung in float64,
+      Skalierung direkt auf ``0..65535``). Für reine Graustufen ist das exakt
+      die ``×257``-Abbildung aus ADR #586; der Alphakanal wird ausschließlich
+      als **Deckung** übernommen und nie als Höhenwert interpretiert.
+    - **Abgewiesen** (präzise, dokumentierte Einschränkung –
+      :class:`UnsupportedHeightSourceError`, kein Teil-Layer): Float-Bilder
+      (``F``), 32-Bit-``I`` außerhalb ``0..65535`` sowie leere Bilder.
+      16-Bit-**Farb**-TIFFs reduziert PIL bereits beim Laden auf 8-Bit-RGB und
+      sie laufen damit über die Luminanz-Regel (dokumentierte Einschränkung).
+    """
+    if image.width <= 0 or image.height <= 0:
+        raise UnsupportedHeightSourceError(
+            "Leere Bildquelle für den Höhen-Import", mode=image.mode
+        )
+    byte_order = _NATIVE_16BIT_MODES.get(image.mode)
+    if byte_order is not None:
+        values = (
+            np.frombuffer(image.tobytes(), dtype=byte_order)
+            .reshape(image.height, image.width)
+            .astype(np.uint16)
+        )
+        coverage = np.full(values.shape, 255, dtype=np.uint8)
+        return HeightField(values, coverage, HEIGHT_MAX_16BIT)
+    if image.mode == "I":
+        arr = np.asarray(image, dtype=np.int64)
+        if arr.size and (int(arr.min()) < 0 or int(arr.max()) > HEIGHT_MAX_16BIT):
+            raise UnsupportedHeightSourceError(
+                f"32-Bit-Graustufe außerhalb 0..{HEIGHT_MAX_16BIT}", mode=image.mode
+            )
+        coverage = np.full((image.height, image.width), 255, dtype=np.uint8)
+        return HeightField(arr.astype(np.uint16), coverage, HEIGHT_MAX_16BIT)
+    if image.mode == "F":
+        raise UnsupportedHeightSourceError(
+            "Float-Bilder sind keine unterstützte Höhenquelle", mode=image.mode
+        )
+    return generate_from_image(image, max_value=HEIGHT_MAX_16BIT)
 
 
 def resize_height_field(

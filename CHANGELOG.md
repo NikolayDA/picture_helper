@@ -11,6 +11,20 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **16-Bit-Höhen: Import, Erzeugung und Operationen ohne 8-Bit-Quantisierung
+  (#589, Teil von Epic #581).** Der Höhenkarten-Import liest 16-Bit-Graustufen
+  (PNG/TIFF) jetzt nativ mit allen 65536 Stufen (endianness-kontrolliert);
+  nicht unterstützte Modi wie Float-Bilder werden mit klarer Meldung
+  abgewiesen, ohne eine Teil-Ebene anzulegen. 8-Bit- und Farbquellen laufen
+  über die dokumentierte Luminanz-Regel exakt in den 16-Bit-Vertrag
+  (×257-äquivalent); Alpha zählt ausschließlich als Deckung. Die
+  Höhenkarten-Erzeugung skaliert direkt auf 0…65535, neue Höhen-Ebenen
+  entstehen unmittelbar aus der kanonischen Payload, fremde Größen skalieren
+  präzisionserhaltend. Alle Höhen-Operationen sind explizit als 16-Bit-sicher
+  bzw. bewusst quantisierend klassifiziert (Identitätsparameter sind bitgenaue
+  No-ops); die 0–255-Regler behalten ihre Skala und erklären die Abbildung auf
+  den 16-Bit-Bereich per Tooltip.
+
 - **16-Bit-Höhenpipeline: Domänenmodell und Verlauf verlustfrei (#587, Teil
   von Epic #581).** HEIGHT-Ebenen führen ihre Höhen jetzt kanonisch als
   16-Bit-Payload (`Layer.height_data`: `uint16`-Werte 0…65535 plus getrennt

@@ -262,6 +262,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Neue Ebene hinzugefügt",
         "canvas.height_generated": "Höhenkarte aus Bild erzeugt",
         "canvas.height_imported": "Höhenkarte importiert: {name}",
+        "status.height_source_unsupported": (
+            "Höhen-Import: Bildmodus „{mode}“ wird nicht unterstützt"
+        ),
+        "status.height_import_failed": "Höhen-Import fehlgeschlagen",
+        "right_panel.height.scale_hint": (
+            "Skala 0–255; wird proportional auf den 16-Bit-Höhenbereich "
+            "(0–65535) abgebildet"
+        ),
         "canvas.height_lightened": "Höhe aufgehellt",
         "canvas.height_darkened": "Höhe abgedunkelt",
         "canvas.height_set": "Höhe gesetzt",
@@ -1092,6 +1100,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "New layer added",
         "canvas.height_generated": "Height map generated from image",
         "canvas.height_imported": "Height map imported: {name}",
+        "status.height_source_unsupported": (
+            "Height import: image mode “{mode}” is not supported"
+        ),
+        "status.height_import_failed": "Height import failed",
+        "right_panel.height.scale_hint": (
+            "0–255 scale; mapped proportionally onto the 16-bit height "
+            "range (0–65535)"
+        ),
         "canvas.height_lightened": "Height lightened",
         "canvas.height_darkened": "Height darkened",
         "canvas.height_set": "Height set",
@@ -1922,6 +1938,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Nueva capa añadida",
         "canvas.height_generated": "Mapa de altura generado a partir de la imagen",
         "canvas.height_imported": "Mapa de altura importado: {name}",
+        "status.height_source_unsupported": (
+            "Importación de alturas: el modo de imagen “{mode}” no es compatible"
+        ),
+        "status.height_import_failed": "La importación de alturas falló",
+        "right_panel.height.scale_hint": (
+            "Escala 0–255; se proyecta proporcionalmente sobre el rango de "
+            "alturas de 16 bits (0–65535)"
+        ),
         "canvas.height_lightened": "Altura aclarada",
         "canvas.height_darkened": "Altura oscurecida",
         "canvas.height_set": "Altura establecida",
@@ -2756,6 +2780,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Nouveau calque ajouté",
         "canvas.height_generated": "Carte de hauteur générée depuis l'image",
         "canvas.height_imported": "Carte de hauteur importée : {name}",
+        "status.height_source_unsupported": (
+            "Import de hauteurs : le mode d'image « {mode} » n'est pas pris en charge"
+        ),
+        "status.height_import_failed": "L'import de hauteurs a échoué",
+        "right_panel.height.scale_hint": (
+            "Échelle 0–255 ; projetée proportionnellement sur la plage de "
+            "hauteurs 16 bits (0–65535)"
+        ),
         "canvas.height_lightened": "Hauteur éclaircie",
         "canvas.height_darkened": "Hauteur assombrie",
         "canvas.height_set": "Hauteur définie",
@@ -3590,6 +3622,14 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "Додано новий шар",
         "canvas.height_generated": "Карту висот згенеровано із зображення",
         "canvas.height_imported": "Карту висот імпортовано: {name}",
+        "status.height_source_unsupported": (
+            "Імпорт висот: режим зображення «{mode}» не підтримується"
+        ),
+        "status.height_import_failed": "Не вдалося імпортувати висоти",
+        "right_panel.height.scale_hint": (
+            "Шкала 0–255; пропорційно відображається на 16-бітний діапазон "
+            "висот (0–65535)"
+        ),
         "canvas.height_lightened": "Висоту підвищено",
         "canvas.height_darkened": "Висоту знижено",
         "canvas.height_set": "Висоту задано",
@@ -4415,6 +4455,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "canvas.layer_added": "已添加新图层",
         "canvas.height_generated": "已从图像生成高度图",
         "canvas.height_imported": "已导入高度图：{name}",
+        "status.height_source_unsupported": (
+            "高度导入：不支持图像模式“{mode}”"
+        ),
+        "status.height_import_failed": "高度导入失败",
+        "right_panel.height.scale_hint": (
+            "0–255 刻度；按比例映射到 16 位高度范围（0–65535）"
+        ),
         "canvas.height_lightened": "已调亮高度",
         "canvas.height_darkened": "已调暗高度",
         "canvas.height_set": "已设置高度",

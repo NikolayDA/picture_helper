@@ -57,21 +57,25 @@ from bgremover.gloss_preview import compose_over as compose_gloss
 from bgremover.gloss_preview import gloss_overlay
 from bgremover.height_map import (
     HEIGHT_MAX_8BIT,
+    HEIGHT_MAX_16BIT,
     LUMA_WEIGHTS_REC601,
     HeightField,
     HeightMapError,
+    UnsupportedHeightSourceError,
     adjust_height,
     generate_from_image,
     height_to_layer,
+    image_to_height_field,
     invert_height,
     layer_to_gray_image,
     layer_to_height,
+    resize_height_field,
     scale_8bit_height_value,
     set_height,
 )
 from bgremover.i18n import tr
 from bgremover.icons import make_brush_cursor, make_eraser_cursor, make_wand_cursor
-from bgremover.image_loading import open_validated_image
+from bgremover.image_loading import open_validated_height_image, open_validated_image
 from bgremover.image_ops import feather_alpha, save_image_file
 from bgremover.image_utils import (
     make_checker_brush,
@@ -1063,21 +1067,23 @@ class ImageCanvas(QGraphicsView):
         self._commit_state_change()
 
     # ── Höhenkarten: Erzeugung & Import (#346) ──────────────────────────
-    def _add_height_layer(self, image: Image.Image, desc: str) -> None:
-        """Fügt *image* als neue, aktive HEIGHT-Ebene mit Rolle HEIGHT_MAP ein.
+    def _add_height_layer(self, field: HeightField, desc: str) -> None:
+        """Fügt *field* als neue, aktive HEIGHT-Ebene mit Rolle HEIGHT_MAP ein.
 
-        Erfasst den Projektzustand für Undo, legt die Ebene über das Modell an
-        (``create_layer`` → oben, aktiv) und weist die projektweit eindeutige
-        Rolle via ``assign_role`` zu – diese wird damit von einer etwaigen
-        bestehenden Höhenkarte übertragen, statt an der Eindeutigkeit zu
-        scheitern. Anzeige wechselt durch die neue aktive HEIGHT-Ebene in die
-        Höhensicht (#345); ``_commit_active_change`` resynchronisiert Caches,
-        Verlauf und Panel.
+        Erfasst den Projektzustand für Undo und legt die Ebene **direkt aus
+        der kanonischen 16-Bit-Payload** an (#589) – ohne Umweg über die
+        8-Bit-Ansicht (``create_layer`` mit ``height_data`` → oben, aktiv).
+        Die projektweit eindeutige Rolle wird via ``assign_role`` zugewiesen –
+        sie wird damit von einer etwaigen bestehenden Höhenkarte übertragen,
+        statt an der Eindeutigkeit zu scheitern. Anzeige wechselt durch die
+        neue aktive HEIGHT-Ebene in die Höhensicht (#345);
+        ``_commit_active_change`` resynchronisiert Caches, Verlauf und Panel.
         """
         assert self._project is not None
         self._push_layers(desc)
         layer = self._project.create_layer(
-            image, name=tr("layers.height_name"), kind=LayerKind.HEIGHT)
+            name=tr("layers.height_name"), kind=LayerKind.HEIGHT,
+            height_data=field)
         self._project.assign_role(layer.id, LayerRole.HEIGHT_MAP)
         self._commit_active_change()
 
@@ -1095,9 +1101,11 @@ class ImageCanvas(QGraphicsView):
 
         Quelle ist die **aktive** Ebene, sofern sie COLOR ist, sonst das
         Farb-Komposit (``composite_color``). Kanalgewichtung, Tonwert-Kennlinie
-        (``black``/``white``), Gamma und Invertieren laufen in
-        ``height_map.generate_from_image``. Die neue Ebene wird aktiv (Höhensicht
-        via #345) und ist undo-/redobar.
+        (``black``/``white``, bezogen auf die 8-Bit-Quell-Luminanz), Gamma und
+        Invertieren laufen in ``height_map.generate_from_image`` – seit #589
+        skaliert die float64-Pipeline direkt auf den kanonischen
+        16-Bit-Wertebereich (keine 8-Bit-Zwischenquantisierung). Die neue
+        Ebene wird aktiv (Höhensicht via #345) und ist undo-/redobar.
         """
         assert self._project is not None
         active = self._project.active_layer()
@@ -1107,32 +1115,44 @@ class ImageCanvas(QGraphicsView):
             source = self._project.composite_color()
         field = generate_from_image(
             source, weights=weights, black=black, white=white,
-            gamma=gamma, invert=invert)
-        self._add_height_layer(
-            height_to_layer(field), tr("history.desc.height_generated"))
+            gamma=gamma, invert=invert, max_value=HEIGHT_MAX_16BIT)
+        self._add_height_layer(field, tr("history.desc.height_generated"))
         self.statusMsg.emit(tr("canvas.height_generated"))
 
     @_requires_image
     def import_height_map(self, path: str) -> None:
-        """Importiert eine Graustufendatei als HEIGHT-Ebene (#346).
+        """Importiert eine Höhenkarten-Datei als HEIGHT-Ebene (#346/#589).
 
-        Validiertes Laden über ``open_validated_image`` (Format-Whitelist,
-        Dateigrößen- und Megapixel-Schutz); Fehler erscheinen als übersetzte
-        Statusmeldung, ohne eine Ebene anzulegen. Eine von der Canvas-Größe
-        abweichende Datei wird auf die Canvas-Größe skaliert (Modell-Invariante),
-        ihre Luminanz als Höhe übernommen. Undo-/redobar.
+        Validiertes Laden über ``open_validated_height_image`` (Format-
+        Whitelist, Dateigrößen- und Megapixel-Schutz) **ohne** RGBA-Zwang:
+        16-Bit-Graustufen (PNG/TIFF) behalten nativ alle 65536 Stufen,
+        8-Bit-/Farbquellen laufen über die dokumentierte Luminanz-Regel
+        direkt in den 16-Bit-Vertrag (``image_to_height_field``). Eine von
+        der Canvas-Größe abweichende Datei wird präzisionserhaltend über
+        ``resize_height_field`` skaliert (Modell-Invariante). Fehler –
+        auch nicht unterstützte Modi wie Float-Bilder – erscheinen als
+        übersetzte Statusmeldung, ohne einen Teil-Layer anzulegen.
+        Undo-/redobar.
         """
         assert self._project is not None
-        img, err = open_validated_image(path)
+        img, err = open_validated_height_image(path)
         if err is not None:
             self.statusMsg.emit(err)
             return
         assert img is not None
-        if img.size != self._project.size:
-            img = img.resize(self._project.size, Image.Resampling.LANCZOS)
-        field = generate_from_image(img)
-        self._add_height_layer(
-            height_to_layer(field), tr("history.desc.height_imported"))
+        try:
+            field = image_to_height_field(img)
+            if field.size != self._project.size:
+                field = resize_height_field(field, *self._project.size)
+        except UnsupportedHeightSourceError as exc:
+            self.statusMsg.emit(
+                tr("status.height_source_unsupported", mode=exc.mode))
+            return
+        except HeightMapError as exc:
+            logger.warning("Höhen-Import fehlgeschlagen: %s", exc)
+            self.statusMsg.emit(tr("status.height_import_failed"))
+            return
+        self._add_height_layer(field, tr("history.desc.height_imported"))
         self.statusMsg.emit(tr("canvas.height_imported", name=Path(path).name))
 
     # ── Höhen-Editor: Aufhellen/Abdunkeln/Setzen/Invertieren (#347) ─────
