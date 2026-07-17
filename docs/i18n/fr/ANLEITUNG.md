@@ -132,7 +132,11 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
   projet* / *…sous…* (`.bgrproj`) ainsi que *Exporter des assets pour
   EufyMake Studio…* (voir la [section 11](#11-étape-5--relief--calques) et
   la [section 12](#12-étape-6--export)).
-- **Extras** – *Réglages…* (voir la [section 13](#13-paramètres)).
+- **Extras** – *Réglages…* (voir la [section 13](#13-paramètres)),
+  *Rechercher des mises à jour…*, *Gérer le modèle d'IA…* ainsi
+  qu'*Installer la suppression d'arrière-plan par IA…* (voir la
+  [section 7](#7-étape-2--détourer) et la
+  [section 18](#18-résolution-de-problèmes-et-fichier-journal)).
 
 ![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
 
@@ -363,7 +367,14 @@ supprime l'arrière-plan de façon entièrement automatique. Au premier appel,
 le modèle d'IA est chargé, ce qui peut prendre un moment.
 
 > Si le composant IA (`rembg`) n'est pas installé, le bouton est grisé.
-> Consultez le guide d'installation pour configurer la fonctionnalité IA.
+> `Extras → Installer la suppression d'arrière-plan par IA…` affiche
+> directement dans l'application la commande d'installation adaptée à
+> votre plateforme (avec un bouton de copie) ; sinon, consultez le guide
+> d'installation pour configurer la fonctionnalité IA.
+
+Via `Extras → Gérer le modèle d'IA…`, vous pouvez à tout moment vérifier
+si le modèle d'IA a déjà été téléchargé, et démarrer ou annuler le
+téléchargement.
 
 ### Réglages de l'outil (tolérance et taille du pinceau)
 
@@ -752,9 +763,16 @@ fichier journal avec le bouton « Ouvrir le dossier ».*
 | **Format d'image préféré** | PNG, JPEG, WebP ou TIFF – apparaît comme première option dans la boîte de dialogue d'enregistrement |
 | **Langue** | Allemand, anglais, espagnol, français, ukrainien ou chinois ; le changement prend effet après un redémarrage |
 | **Fichier journal** | Affiche le chemin du fichier journal ; le bouton « Ouvrir le dossier » ouvre le répertoire dans le gestionnaire de fichiers |
+| **Rechercher automatiquement des mises à jour au démarrage** | Case à cocher, désactivée par défaut ; vérifie silencieusement en arrière-plan et n'affiche qu'un indice discret et cliquable dans la barre d'état si une mise à jour est disponible |
 
-Les répertoires, le format préféré et la langue sont mémorisés entre les
+Les répertoires, le format préféré, la langue ainsi que le réglage de
+vérification automatique des mises à jour sont mémorisés entre les
 démarrages du programme.
+
+Via `Extras → Rechercher des mises à jour…`, vous pouvez aussi déclencher
+la vérification manuellement à tout moment ; le résultat s'affiche sous
+forme de boîte de dialogue avec un lien vers la page de version (si une
+mise à jour est disponible).
 
 ---
 
@@ -909,7 +927,7 @@ e-mail d'assistance.
 
 | Problème | Solution possible |
 |---|---|
-| Bouton IA grisé | `rembg` n'est pas installé – consultez le guide d'installation |
+| Bouton IA grisé | `rembg` n'est pas installé – `Extras → Installer la suppression d'arrière-plan par IA…` affiche la commande d'installation, ou consultez le guide d'installation |
 | L'image ne peut pas être ouverte | Plus de 40 mégapixels ? Format pris en charge (pas de HEIC/HEIF) ? Lisez la barre d'état |
 | L'IA prend très longtemps | Le premier appel charge le modèle – une seule fois, plus rapide ensuite |
 | Transparence perdue après enregistrement | Enregistré en JPEG → choisissez PNG/WebP/TIFF à la place |
