@@ -72,8 +72,8 @@ Absturz. Abweichungen mit Begründung protokollieren.
 
 ### 2.3 Lifecycle-/Leak-Beobachtung
 
-- Automatisiert: `tests/test_preview3d_acceptance.py::test_hundred_build_cycles_hold_single_mesh_and_do_not_crash`
-  (Cache hält genau ein Mesh über 100 Zyklen).
+- Automatisiert: `tests/test_preview3d_acceptance.py::test_hundred_viewer_lifecycle_cycles_do_not_leak_or_crash`
+  (100× Build/Anzeige/GL-Cleanup: Cache hält genau ein Mesh, ≤ 1 GL-Viewer).
 - Manuell: 100× Projekt-/Moduswechsel unter `valgrind --tool=massif` bzw.
   RSS-Beobachtung; RSS pendelt sich ein, kein stetiges Wachstum.
 

@@ -90,8 +90,14 @@ def test_ten_rapid_changes_build_only_latest_and_discard_stale(qapp) -> None:
     ctrl = Preview3DController(view, canvas, worker, capability_probe=_ok)
     ctrl.set_active(True)
 
+    # Ein erster Build wird tatsächlich beim Worker registriert (Generation G1),
+    # der Callback aber noch nicht ausgelöst – dieser Build „läuft" also, während
+    # die Änderungsflut eintrifft.
+    ctrl._start_build()
+    stale_gen, stale_cb = worker.calls[0]
+
     # Zehn geometriewirksame Änderungen in schneller Folge. Jede erhöht die
-    # Generation sofort und bricht einen laufenden Build kooperativ ab; der
+    # Generation sofort und bricht den laufenden Build kooperativ ab; der
     # Debounce-Timer wird pro Test durch direkten ``_start_build``-Aufruf
     # überbrückt (das Fire-Verhalten des QTimer gehört zu Qt).
     for revision in range(2, 12):
@@ -101,17 +107,18 @@ def test_ten_rapid_changes_build_only_latest_and_discard_stale(qapp) -> None:
 
     ctrl._start_build()  # nur der zuletzt entprellte Zustand baut wirklich
     latest_gen, latest_cb = worker.calls[-1]
-
-    # Ein verspätetes Ergebnis einer frühen Generation darf nie gecacht werden.
-    if len(worker.calls) > 1:
-        stale_gen, stale_cb = worker.calls[0]
-        stale_cb(build_relief_mesh(_field(), MeshQuality.STANDARD), stale_gen)
-        assert ctrl._cache_mesh is None  # noch nichts Aktuelles geliefert
+    assert latest_gen != stale_gen  # die Generation wurde nachweislich erhöht
 
     fresh = build_relief_mesh(_field(), MeshQuality.STANDARD)
     latest_cb(fresh, latest_gen)
     assert view.state == "ready"
     assert ctrl._cache_mesh is fresh  # genau ein Mesh im Cache
+
+    # Das verspätete Ergebnis des ersten (superseded) Builds trifft *nach* dem
+    # aktuellen ein – es darf den Cache nie überschreiben (stale-result-Schutz).
+    stale_cb(build_relief_mesh(_field(), MeshQuality.STANDARD), stale_gen)
+    assert ctrl._cache_mesh is fresh
+    assert view.state == "ready"
 
     ctrl.cleanup()
 
@@ -141,10 +148,14 @@ def test_returning_to_cached_state_reuses_without_rebuild(qapp) -> None:
 
 
 # ── Viewer-Lifecycle-Churn / Speicherdisziplin ─────────────────────────────
-def test_hundred_build_cycles_hold_single_mesh_and_do_not_crash(qapp) -> None:
-    """100 Änderungs-/Build-/Anzeige-Zyklen auf demselben Controller halten genau
-    **ein** Mesh im Cache (veraltete Meshes werden verworfen, Speicher fällt auf
-    das erwartete Niveau zurück) und laufen absturzfrei durch."""
+def test_hundred_viewer_lifecycle_cycles_do_not_leak_or_crash(qapp) -> None:
+    """100 vollständige Lifecycle-Zyklen (Aktivieren → Build → Anzeige → GL-
+    Cleanup → Deaktivieren) auf demselben Container zeigen kein stetiges
+    Wachstum: der Cache hält genau **ein** Mesh und es existiert nie mehr als
+    **ein** GL-Viewer (Wiederverwendung statt Anhäufung); der Lauf ist
+    absturzfrei."""
+    from bgremover.viewer_3d import GLReliefViewer
+
     view = Relief3DView()
     canvas = _FakeCanvas()
     worker = _FakeWorker()
@@ -158,15 +169,20 @@ def test_hundred_build_cycles_hold_single_mesh_and_do_not_crash(qapp) -> None:
         gen, cb = worker.calls[-1]
         cb(build_relief_mesh(_field(), MeshQuality.STANDARD), gen)
         assert view.state == "ready"
+        assert view.viewer() is not None       # Viewer real erzeugt/angezeigt
+        ctrl.cleanup()                          # GL-Ressourcen je Zyklus freigeben
         ctrl.set_active(False)
 
     qapp.processEvents()
     gc.collect()
-    # Kernaussage: unabhängig von 100 gebauten Meshes hält unser Cache exakt eins;
-    # es gibt kein stetiges Anwachsen von ReliefMesh-Instanzen in unserem Code.
+    # Kernaussage: unabhängig von 100 gebauten Meshes hält unser Cache exakt eins,
+    # und der GL-Viewer wird wiederverwendet statt je Zyklus neu akkumuliert –
+    # kein stetiges Anwachsen von ReliefMesh- oder GLReliefViewer-Instanzen.
     live_meshes = [o for o in gc.get_objects() if isinstance(o, ReliefMesh)]
     assert len(live_meshes) == 1
     assert ctrl._cache_mesh is live_meshes[0]
+    live_viewers = [o for o in gc.get_objects() if isinstance(o, GLReliefViewer)]
+    assert len(live_viewers) <= 1
 
     ctrl.cleanup()
 
@@ -256,13 +272,25 @@ def test_export_bytes_identical_after_full_3d_interaction(window) -> None:
     revision_before = window._canvas.content_revision
 
     window._set_preview3d_mode(True)
+    ctrl = window._preview3d
+    # Statt auf den realen 200-ms-async-Build zu warten: den debounced Build
+    # deterministisch überbrücken und ein synchron gebautes Mesh einspeisen, damit
+    # der GL-Viewer real erzeugt wird und die Kamera-Interaktion wirklich läuft.
+    ctrl._debounce.stop()
+    ctrl._workers.cancel_mesh_build()
+    field = window._canvas.height_preview_field()
+    assert field is not None
+    mesh = build_relief_mesh(
+        field, ctrl.quality, physical_size_mm=window._canvas.physical_size_mm())
+    ctrl._on_mesh_ready(mesh, ctrl._generation)
     viewer = window._relief3d_view.viewer()
-    if viewer is not None:  # Kamera-Orbit/Zoom sind reine Anzeige-Uniforms
-        viewer.camera.orbit(30.0, -20.0)
-        viewer.camera.zoom(1.3)
-    window._preview3d.set_exaggeration(6.0)
-    window._preview3d.set_light(90.0, 30.0)
-    window._preview3d.set_quality(MeshQuality.HIGH)
+    assert viewer is not None  # echte Viewer-Interaktion folgt (Kamera = Uniform)
+    viewer.camera.orbit(30.0, -20.0)
+    viewer.camera.zoom(1.3)
+    ctrl.set_exaggeration(6.0)
+    ctrl.set_light(90.0, 30.0)
+    ctrl.set_quality(MeshQuality.HIGH)
+    ctrl._debounce.stop()  # den durch die Qualitätsänderung geplanten Build stoppen
     window._set_preview3d_mode(False)
 
     after = np.array(window._canvas._render_export_image())
@@ -278,9 +306,22 @@ def test_mixed_project_feeds_height_layer_to_3d(window) -> None:
     window._canvas.set_project(project)
     window._update_preview3d_availability()
 
+    from bgremover.project_model import LayerRole
+
     field = window._canvas.height_preview_field()
     assert field is not None
     assert field.size == (20, 12)  # (width, height) der HEIGHT-Payload
+
+    # Nicht nur die Größe (alle drei Ebenen sind gleich groß), sondern die echten
+    # Werte prüfen: die 3D-Quelle ist die HEIGHT-Payload, nicht Farbe/Gloss.
+    height_layer = project.layer_by_role(LayerRole.HEIGHT_MAP)
+    assert height_layer is not None
+    assert np.array_equal(field.values, height_layer.height_data.values)
+    # Der HEIGHT-Gradient ist bewusst distinktiv: Spaltenverlauf 0 → Maximum,
+    # klar unterscheidbar von der konstanten Gloss-Fläche (128) oder der Farbe.
+    assert int(field.values.min()) == 0
+    assert int(field.values.max()) >= 65000
+    assert field.values[:, 0].max() < field.values[:, -1].min()
 
     window._set_preview3d_mode(True)
     assert window._preview3d_active
@@ -312,12 +353,14 @@ def test_viewer_error_does_not_corrupt_project_or_history(window) -> None:
     window._update_preview3d_availability()
     window._set_preview3d_mode(True)
 
-    # Fehler der aktuellen Generation simulieren (Worker scheitert). Direkter
-    # Fehlerpfad, unabhängig vom GL-Kontext des Offscreen-CI.
+    # Fehler der aktuellen Generation simulieren (Worker scheitert). Den realen
+    # async-Build vorher deterministisch stoppen, damit ausschließlich der
+    # Fehlerpfad greift und der Container exakt in den Fehlerzustand wechselt.
     ctrl = window._preview3d
-    ctrl._start_build()
+    ctrl._debounce.stop()
+    ctrl._workers.cancel_mesh_build()
     ctrl._on_mesh_error("simulierter Bufferfehler", ctrl._generation)
-    assert window._relief3d_view.state in ("error", "loading", "ready")
+    assert window._relief3d_view.state == "error"
 
     # Projekt/History intakt: eine reguläre Bearbeitung + Undo greift weiter.
     window._set_preview3d_mode(False)
