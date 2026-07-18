@@ -1199,6 +1199,31 @@ class ImageCanvas(QGraphicsView):
         self._apply_height_field(new_field, desc=desc)
         self.statusMsg.emit(status)
 
+    def height_preview_field(self) -> HeightField | None:
+        """Kanonisches Höhenfeld für die 3D-Vorschau (rein lesend, #594).
+
+        Bevorzugt die **aktive** Ebene, falls sie eine HEIGHT-Ebene ist (der
+        Höhen-Tab-Kontext); sonst die Ebene mit Rolle ``HEIGHT_MAP`` (wie die
+        2D-Reliefvorschau). Ohne gültige, sichtbare HEIGHT-Payload ``None``. Der
+        Rückgabewert ist die unveränderliche ``height_data``-Referenz (ADR #586)
+        – kein Kopieren, keine Mutation der Quelle.
+        """
+        if self._project is None:
+            return None
+        active = self._project.active_layer()
+        if active is not None and active.kind is LayerKind.HEIGHT and active.visible:
+            return active.height_data
+        role_layer = self._project.layer_by_role(LayerRole.HEIGHT_MAP)
+        if role_layer is not None and role_layer.visible:
+            return role_layer.height_data
+        return None
+
+    def physical_size_mm(self) -> tuple[float, float] | None:
+        """Physische Zielgröße (mm) des Projekts oder ``None`` (für Mesh-Aspekt)."""
+        if self._project is None:
+            return None
+        return self._project.physical_size_mm
+
     @_requires_image
     def lighten_active_height(self, amount: int = _DEFAULT_HEIGHT_STEP) -> None:
         """Hellt die aktive HEIGHT-Ebene auf (Auswahl bzw. global), undo-fähig."""

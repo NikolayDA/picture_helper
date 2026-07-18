@@ -630,20 +630,24 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
 
     ai_worker = Cancellable()
     flood_worker = Cancellable()
+    mesh_worker = Cancellable()
     threads = {
         "KI": object(),
         "Bildladen": object(),
         "rembg-Warmup": object(),
         "Flood-Fill": object(),
         "Update-Check": object(),
+        "3D-Mesh-Aufbau": object(),
     }
     controller.ai_worker = ai_worker
     controller.flood_fill_worker = flood_worker
+    controller.mesh_build_worker = mesh_worker
     controller.ai_thread = threads["KI"]
     controller.load_thread = threads["Bildladen"]
     controller.warmup_thread = threads["rembg-Warmup"]
     controller.flood_fill_thread = threads["Flood-Fill"]
     controller.update_check_thread = threads["Update-Check"]
+    controller.mesh_build_thread = threads["3D-Mesh-Aufbau"]
     shutdowns: list[tuple[object, str]] = []
     monkeypatch.setattr(
         controller,
@@ -655,18 +659,21 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
 
     assert ai_worker.cancelled
     assert flood_worker.cancelled
+    assert mesh_worker.cancelled
     assert shutdowns == [
         (threads["KI"], "KI"),
         (threads["Bildladen"], "Bildladen"),
         (threads["rembg-Warmup"], "rembg-Warmup"),
         (threads["Flood-Fill"], "Flood-Fill"),
         (threads["Update-Check"], "Update-Check"),
+        (threads["3D-Mesh-Aufbau"], "3D-Mesh-Aufbau"),
     ]
     assert controller.ai_thread is None
     assert controller.load_thread is None
     assert controller.warmup_thread is None
     assert controller.flood_fill_thread is None
     assert controller.update_check_thread is None
+    assert controller.mesh_build_thread is None
 
 
 def test_shutdown_all_keeps_unstopped_thread_referenced(

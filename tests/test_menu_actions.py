@@ -55,6 +55,7 @@ def test_main_menu_builder_creates_expected_actions(qapp, tmp_path):
             fit_to_view=lambda: calls.append("fit"),
             toggle_history=lambda: calls.append("history"),
             set_preview_mode=preview_modes.append,
+            toggle_preview3d=lambda active: calls.append(f"preview3d:{active}"),
             toggle_light_mode=lambda light: calls.append(f"theme:{light}"),
             open_settings=lambda: calls.append("settings"),
             check_for_updates=lambda: calls.append("check_for_updates"),
@@ -152,7 +153,8 @@ def _minimal_callbacks(**overrides) -> MainMenuCallbacks:
         "undo": noop, "redo": noop, "rotate": noop, "flip": noop, "resize": noop,
         "clear_selection": noop, "invert_selection": noop, "restore_original": noop,
         "fit_to_view": noop, "toggle_history": noop, "set_preview_mode": noop,
-        "toggle_light_mode": noop, "open_settings": noop, "check_for_updates": noop,
+        "toggle_preview3d": noop, "toggle_light_mode": noop,
+        "open_settings": noop, "check_for_updates": noop,
         "manage_ai_model": noop, "install_ai_backend": noop,
     }
     defaults.update(overrides)

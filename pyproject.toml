@@ -75,6 +75,7 @@ addopts = "-q -m 'not ui or ui_smoke'"
 markers = [
     "ui: qtbot-gesteuerte UI-Interaktionstests; die volle Suite laeuft nur nightly via `make ui`.",
     "ui_smoke: kleines, stabiles UI-Smoke-Subset (zusaetzlich `ui`); laeuft in PR/Full-CI im normalen Testlauf.",
+    "gl_smoke: Offscreen-3D-Render-Smokes (echter GL-Kontext noetig, ADR #591); ueberspringen sich auf Plattformen ohne renderbaren FBO (z. B. `offscreen`).",
 ]
 
 [tool.coverage.run]
@@ -134,6 +135,9 @@ module = [
     "bgremover.height_map",
     "bgremover.height_ops",
     "bgremover.preview_mode",
+    "bgremover.preview3d_camera",
+    "bgremover.preview3d_capability",
+    "bgremover.relief_mesh",
     "bgremover.relief_preview",
     "bgremover.crop",
     "bgremover.project_model",
@@ -158,5 +162,7 @@ module = [
     "bgremover.canvas",
     "bgremover.main_window",
     "bgremover.worker_controller",
+    "bgremover.preview3d_controller",
+    "bgremover.viewer_3d",
 ]
 check_untyped_defs = true

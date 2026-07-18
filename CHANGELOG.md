@@ -9,6 +9,31 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Echte 3D-Reliefvorschau – interaktiv, performant und robust degradierend
+  (Epic #582, #592–#595).** Aus der kanonischen HEIGHT-Ebene entsteht eine
+  dreh-, schwenk- und zoombare 3D-Oberfläche (Workflow-Schritt „Relief",
+  Segment **Darstellung [2D|3D]** im Höhen-Tab bzw. „Ansicht → 3D-Relief
+  anzeigen"). Ein Qt-freier, deterministischer Geometriekern
+  (`relief_mesh.py`) baut aus dem 16-Bit-Höhenfeld ein **hart begrenztes**
+  Grid-Mesh (Block-Decimation coverage-gewichtet und zeilenbandweise; Vertex-/
+  Dreiecksbudget je Qualitätsstufe – ein 40-MP-Bild erzeugt nie ein
+  Vollauflösungs-Mesh), ein Qt-nativer `QOpenGLWidget`-Viewer (`viewer_3d.py`)
+  rendert es über einen GL-2.1-Shaderpfad mit Lambert-Beleuchtung. Überhöhung,
+  Licht und Qualität sind reine, begrenzte Anzeigeparameter (Überhöhung und
+  Licht ohne Mesh-Neubau); der asynchrone, entprellte Mesh-Build verwendet
+  Generation-IDs und einen Ein-Mesh-Cache (Cache-Invalidierung genau bei
+  Höhen-/Rollen-/Größenänderung). Fehlt ein OpenGL-2.1-Kontext oder scheitert
+  die Initialisierung, bleibt die App stabil und bietet weiterhin die
+  bestehende 2D-Reliefvorschau mit verständlichem Hinweis an
+  (Capability-Probe + garantierter 2D-Fallback). „Bild speichern", EufyMake-
+  und Projekt-Export bleiben unverändert – die 3D-Ansicht ist reine
+  Darstellung ohne Schreibpfad ins Modell. Architektur/UX festgelegt in
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md)
+  und [`docs/UX_3D_PREVIEW.md`](docs/UX_3D_PREVIEW.md); Bedienung/Fallback in
+  [`ANLEITUNG.md`](ANLEITUNG.md). Laufzeit-i18n (de/en) für alle 3D-Zustände.
+
 ### Geändert
 
 - **Hybrides Sicherheitsscan-Modell: CodeQL automatisch, Codex nur noch

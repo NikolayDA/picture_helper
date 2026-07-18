@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QStackedWidget,
     QStatusBar,
     QVBoxLayout,
     QWidget,
@@ -55,7 +56,7 @@ from bgremover.eufymake_writer import (
 )
 from bgremover.export_checks import CheckCode, check_export, split_findings
 from bgremover.export_checks import format_finding as format_check_finding
-from bgremover.height_map_panel import HeightMapActions
+from bgremover.height_map_panel import HeightMapActions, Preview3DActions
 from bgremover.history_popup import HistoryPopup
 from bgremover.i18n import SETTINGS_LOCALE_KEY, init_locale_from_settings, tr
 from bgremover.icons import make_tool_icon
@@ -72,6 +73,8 @@ from bgremover.main_toolbar import (
     theme_toggle_tooltip,
 )
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
+from bgremover.preview3d_capability import probe_3d_capability
+from bgremover.preview3d_controller import Preview3DController
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import (
     PROJECT_SUFFIX,
@@ -86,6 +89,7 @@ from bgremover.recent_files import (
     RecentFiles,
     RecentFilesMenu,
 )
+from bgremover.relief_mesh import MeshQuality
 from bgremover.resize_dialog import ResizeDialog
 from bgremover.right_panel import (
     RightPanelActions,
@@ -98,6 +102,7 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    PREVIEW3D_QUALITY_KEY,
     THEME_KEY,
     is_future_schema,
 )
@@ -116,11 +121,20 @@ from bgremover.theme import (
     status_bar_style,
 )
 from bgremover.units import UnitsError
+from bgremover.viewer_3d import Relief3DView
 from bgremover.worker_controller import WorkerController
 from bgremover.workers import REMBG_AVAILABLE
 
 # Standard-Canvas-Größe eines per „Neues Projekt" erzeugten leeren Projekts.
 _NEW_PROJECT_SIZE = (1024, 1024)
+
+
+def _quality_from_setting(value: str) -> MeshQuality:
+    """Deutet den persistierten Qualitäts-String defensiv (Fallback Standard)."""
+    try:
+        return MeshQuality(value)
+    except ValueError:
+        return MeshQuality.STANDARD
 
 # Befunde, die vor einem **normalen** Raster-Speichern (#380) bewusst NICHT
 # angezeigt werden: BgRemover ist ein Freistellungswerkzeug, Teiltransparenz ist
@@ -205,6 +219,8 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._build_menu()
         self._build_tool_shortcuts()
+        # Startzustand des 3D-Segments/Menüs (ohne Projekt: nicht verfügbar).
+        self._update_preview3d_availability()
         if REMBG_AVAILABLE:
             self._start_rembg_warmup()
         if self._settings.value(AUTO_UPDATE_CHECK_KEY, False, type=bool):
@@ -285,7 +301,23 @@ class MainWindow(QMainWindow):
 
         cv_lay.addWidget(self._canvas, 1)
 
-        body.addWidget(canvas_container, 1)
+        # Canvas-Stack (#594): wechselt zwischen 2D-Leinwand und 3D-Reliefviewer.
+        # Stepper, Menüs und rechtes Panel bleiben stehen; der 3D-Viewer ist reine
+        # Darstellung ohne Schreibpfad ins Modell (UX-Vertrag §1).
+        self._relief3d_view = Relief3DView()
+        self._canvas_stack = QStackedWidget()
+        self._canvas_stack.addWidget(canvas_container)   # Index 0 – 2D
+        self._canvas_stack.addWidget(self._relief3d_view)  # Index 1 – 3D
+        self._preview3d = Preview3DController(
+            self._relief3d_view, self._canvas, self._worker_controller,
+            capability_probe=probe_3d_capability, parent=self)
+        self._preview3d.set_show_2d_callback(lambda: self._set_preview3d_mode(False))
+        self._preview3d_active = False
+        stored_quality = str(
+            self._settings.value(PREVIEW3D_QUALITY_KEY, MeshQuality.STANDARD.value))
+        self._preview3d.set_quality(_quality_from_setting(stored_quality))
+
+        body.addWidget(self._canvas_stack, 1)
         # Body-Layout und rechten Rahmen merken, damit das Panel beim
         # Theme-Wechsel (#428) ausgetauscht werden kann.
         self._body_layout = body
@@ -371,6 +403,14 @@ class MainWindow(QMainWindow):
                 apply_op=self._canvas.apply_height_op,
                 cancel_preview=self._canvas.cancel_height_preview,
             ),
+            preview3d_actions=Preview3DActions(
+                set_mode_3d=self._set_preview3d_mode,
+                set_exaggeration=self._preview3d.set_exaggeration,
+                set_light=self._preview3d.set_light,
+                set_quality=self._set_preview3d_quality,
+                fit_view=self._preview3d.fit_view,
+                reset_view=self._preview3d.reset_view,
+            ),
             on_open=self._open_image,
             on_open_path=self._open_recent_path,
             recent=self._recent_files.paths()[:3],
@@ -407,6 +447,8 @@ class MainWindow(QMainWindow):
         self._layer_panel.refresh(layers)
         self._height_panel.refresh(layers)
         self._sync_height_tools(layers)
+        self._update_preview3d_availability()
+        self._preview3d.refresh()
 
     def _sync_height_tools(self, layers: list) -> None:
         """Gibt die Höhen-Malwerkzeuge nur mit aktiver HEIGHT-Ebene frei (#457).
@@ -589,6 +631,11 @@ class MainWindow(QMainWindow):
 
     def _go_to_step(self, step: WorkflowStep) -> None:
         """Wechselt den aktiven Schritt und aktualisiert die gesamte UI."""
+        # Die 3D-Vorschau lebt im Relief-Schritt (UX-Vertrag §1); beim Verlassen
+        # sauber auf die 2D-Leinwand zurückschalten, damit kein fremder Schritt
+        # die 3D-Ansicht zeigt.
+        if step is not WorkflowStep.RELIEF and self._preview3d_active:
+            self._set_preview3d_mode(False)
         self._step = step
         self._stepper.set_current(int(step))
         self._right_panel.set_step(step)
@@ -706,6 +753,7 @@ class MainWindow(QMainWindow):
         self._toolbar.apply_palette(pal)
         self._canvas.apply_palette(pal)
         self._canvas.zoom_control.apply_palette(pal)
+        self._relief3d_view.apply_palette(pal)
         self._sb.setStyleSheet(status_bar_style(pal))
         self._refresh_ai_status_icon(pal)
         menu_bar = self.menuBar()
@@ -741,6 +789,9 @@ class MainWindow(QMainWindow):
         self._canvas.resync_panels()
         self._sync_panel_state()
         self._sync_ai_controls()
+        # 3D-Segmentzustand nach dem Panel-Neuaufbau wiederherstellen (#428/#594).
+        self._height_panel.set_preview3d_active(self._preview3d_active)
+        self._update_preview3d_availability()
 
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
@@ -771,6 +822,7 @@ class MainWindow(QMainWindow):
                 fit_to_view=self._canvas.fit_to_view,
                 toggle_history=lambda: self._history_popup.toggle(),
                 set_preview_mode=self._canvas.set_preview_mode,
+                toggle_preview3d=self._set_preview3d_mode,
                 toggle_light_mode=self._toggle_light_mode,
                 open_settings=self._open_settings,
                 check_for_updates=self._check_for_updates,
@@ -819,6 +871,9 @@ class MainWindow(QMainWindow):
             return
         self._sb.showMessage(SM.BEENDE)
         self._sb.repaint()
+        # 3D-Viewer-Ressourcen vor dem Thread-Shutdown freigeben (GL-Buffer,
+        # laufender Mesh-Build); der Viewer hat keinen Schreibpfad ins Modell.
+        self._preview3d.cleanup()
         if not self._worker_controller.shutdown_all():
             self._sb.showMessage(SM.BEENDEN_FEHLGESCHLAGEN)
             event.ignore()
@@ -1479,6 +1534,64 @@ class MainWindow(QMainWindow):
         # Rail-Fuß (#458): Undo/Redo folgen dem tatsächlichen History-Zustand.
         self._toolbar.btn_undo.setEnabled(self._canvas.can_undo)
         self._toolbar.btn_redo.setEnabled(self._canvas.can_redo)
+        # Content-Edits (Höhen-Op, Resize, Undo/Redo) invalidieren das 3D-Mesh:
+        # der Controller entprellt und baut nur bei tatsächlichem Bedarf neu.
+        self._preview3d.refresh()
+
+    # ── 3D-Reliefvorschau (Epic #582, #594) ─────────────────────────────
+
+    def _update_preview3d_availability(self) -> None:
+        """Schaltet das 3D-Segment frei, wenn HEIGHT-Daten + OpenGL vorhanden sind."""
+        capability = probe_3d_capability()
+        has_height = self._canvas.height_preview_field() is not None
+        available = capability.ok and has_height
+        tooltip = "" if available else tr("preview3d.display.3d.disabled_tooltip")
+        self._height_panel.set_preview3d_available(available, tooltip)
+        action = self._preview3d_menu_action()
+        if action is not None:
+            action.setEnabled(capability.ok)
+        # Wird eine aktive 3D-Ansicht durch fehlende Capability unmöglich, sauber
+        # auf 2D zurückfallen (Projektwechsel auf HW ohne GL o. Ä.).
+        if self._preview3d_active and not capability.ok:
+            self._set_preview3d_mode(False)
+
+    def _preview3d_menu_action(self) -> QAction | None:
+        for action in self.findChildren(QAction):
+            if action.objectName() == "preview3d_toggle":
+                return action
+        return None
+
+    def _set_preview3d_mode(self, active: bool) -> None:
+        """Schaltet zwischen 2D-Leinwand und 3D-Reliefviewer (UX-Vertrag §1).
+
+        Der Wechsel mutiert nie Bild-/Höhendaten und beeinflusst nie den Export;
+        der 2D-Zoomzustand bleibt beim Rückwechsel erhalten. Im 3D-Modus sind die
+        Canvas-Werkzeuge abgeschaltet (kein verstecktes Weiterbearbeiten).
+        """
+        active = bool(active)
+        if active == self._preview3d_active:
+            return
+        self._preview3d_active = active
+        self._preview3d.set_active(active)
+        self._canvas_stack.setCurrentIndex(1 if active else 0)
+        self._height_panel.set_preview3d_active(active)
+        action = self._preview3d_menu_action()
+        if action is not None and action.isChecked() != active:
+            action.blockSignals(True)
+            action.setChecked(active)
+            action.blockSignals(False)
+        if active:
+            # 2D-Werkzeug-Interaktion ruhen lassen; Höhen-/Auswahlkürzel greifen
+            # nur mit sichtbarer 2D-Leinwand.
+            self._canvas.set_tools_enabled(False)
+            self._sb.showMessage(tr("preview3d.ready_hint"))
+        else:
+            self._apply_toolbar_for_step(self._step)
+
+    def _set_preview3d_quality(self, quality: MeshQuality) -> None:
+        """Merkt die Qualität als Sitzungspräferenz und löst einen Rebuild aus."""
+        self._settings.setValue(PREVIEW3D_QUALITY_KEY, quality.value)
+        self._preview3d.set_quality(quality)
 
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)

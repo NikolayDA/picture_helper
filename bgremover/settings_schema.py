@@ -39,6 +39,11 @@ THEME_KEY = "theme_mode"
 # ``False`` – kein Netzwerkzugriff beim Start ohne vorherige Zustimmung.
 AUTO_UPDATE_CHECK_KEY = "auto_update_check"
 
+# Qualitaetsstufe der 3D-Reliefvorschau (#594, Epic #582). Additiver Schluessel,
+# reine Sitzungs-/UI-Praeferenz (kein Projektzustand, kein abgeleitetes Mesh);
+# fehlt er, greift der Default ``"standard"``. Ohne Schema-Migration.
+PREVIEW3D_QUALITY_KEY = "preview3d_quality"
+
 
 def _read_version(settings: QSettings) -> int | None:
     """Liest die persistierte Schema-Version.

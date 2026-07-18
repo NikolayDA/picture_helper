@@ -41,6 +41,7 @@ class MainMenuCallbacks:
     # Verlauf-Popup (#458): neuer Menü-Anker, nachdem der Rail-Button entfiel.
     toggle_history: Callable[[], None]
     set_preview_mode: Callable[[PreviewMode], None]
+    toggle_preview3d: Callable[[bool], None]
     toggle_light_mode: Callable[[bool], None]
     open_settings: Callable[[], None]
     check_for_updates: Callable[[], None]
@@ -136,6 +137,14 @@ def build_main_menu(
         action.setData(mode)
         action.setObjectName(f"preview_mode_{mode.value}")
         preview_group.addAction(action)
+
+    # 3D-Reliefvorschau (Epic #582): checkbarer Umschalter, signalbasiert mit
+    # dem Höhen-Tab-Segment synchron (kein Shortcut im MVP, UX-Vertrag §1).
+    show_3d_action = QAction(tr("menu.view.show_3d"), parent)
+    show_3d_action.setObjectName("preview3d_toggle")
+    show_3d_action.setCheckable(True)
+    show_3d_action.toggled.connect(lambda checked: callbacks.toggle_preview3d(checked))
+    view_menu.addAction(show_3d_action)
 
     view_menu.addSeparator()
     # Helles Design umschalten (#428) – reiner UI-Zustand, in QSettings gemerkt.

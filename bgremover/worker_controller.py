@@ -19,6 +19,7 @@ from bgremover.workers import (
     AIWorker,
     FloodFillWorker,
     ImageLoadWorker,
+    MeshBuildWorker,
     RembgWarmupWorker,
     UpdateCheckWorker,
     _Worker,
@@ -55,6 +56,8 @@ class WorkerController:
         self.update_check_worker: UpdateCheckWorker | None = None
         self.flood_fill_thread: QThread | None = None
         self.flood_fill_worker: FloodFillWorker | None = None
+        self.mesh_build_thread: QThread | None = None
+        self.mesh_build_worker: MeshBuildWorker | None = None
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
         # Slots gebundener Methoden nur schwach: ohne diese Liste sammelt
         # CPython den Worker direkt nach _build_thread ein und run() liefe
@@ -93,6 +96,11 @@ class WorkerController:
     def is_flood_fill_running(self) -> bool:
         return (self.flood_fill_thread is not None
                 and self.flood_fill_thread.isRunning())
+
+    @property
+    def is_mesh_build_running(self) -> bool:
+        return (self.mesh_build_thread is not None
+                and self.mesh_build_thread.isRunning())
 
     def _build_thread(
         self,
@@ -371,12 +379,54 @@ class WorkerController:
         self.flood_fill_thread = None
         self.flood_fill_worker = None
 
+    def start_mesh_build(
+        self,
+        field: object,
+        quality: object,
+        generation_id: int,
+        on_done: Callable[[object, int], None],
+        *,
+        physical_size_mm: tuple[float, float] | None = None,
+    ) -> bool:
+        """Startet einen 3D-Mesh-Build; bricht einen laufenden zuvor ab (#594).
+
+        Anders als KI/Flood-Fill ist immer nur **ein** aktueller Build sinnvoll:
+        eine neue geometriewirksame Änderung entwertet den laufenden. Ein bereits
+        laufender Build wird deshalb kooperativ abgebrochen und der neue erst nach
+        dessen Ende gestartet ist nicht nötig – der abgebrochene Worker emittiert
+        kein ``finished`` mehr, seine veraltete Generation-ID würde ohnehin
+        verworfen. Der neue Worker läuft auf einem eigenen kurzlebigen Thread.
+        """
+        self.cancel_mesh_build()
+        worker = MeshBuildWorker(
+            field, quality, generation_id, physical_size_mm=physical_size_mm)
+        worker.finished.connect(self._guard_ui_callback(on_done))
+        self.mesh_build_worker = worker
+        thread = self._build_thread(
+            worker,
+            quit_on=(worker.done,),
+            on_finished=self._finish_mesh_build_thread,
+        )
+        self.mesh_build_thread = thread
+        thread.start()
+        return True
+
+    def cancel_mesh_build(self) -> None:
+        """Markiert einen laufenden Mesh-Build als abgebrochen (kein Ergebnis)."""
+        if self.mesh_build_worker is not None:
+            self.mesh_build_worker.cancel()
+
+    def _finish_mesh_build_thread(self) -> None:
+        self.mesh_build_thread = None
+        self.mesh_build_worker = None
+
     def shutdown_all(self) -> bool:
         """Stoppt alle Worker; False hält das besitzende Fenster am Leben."""
         self._shutting_down = True
         self.cancel_ai()
         self.cancel_flood_fill()
         self.cancel_warmup()
+        self.cancel_mesh_build()
         # Laufende, nicht unterbrechbare Inferenz sofort entwerten: killt den
         # Inferenz-Kindprozess, sodass der pollende KI-Thread seinen Loop
         # verlässt und kooperativ endet – ohne QThread.terminate() für die KI.
@@ -397,6 +447,10 @@ class WorkerController:
             (
                 "update_check_thread",
                 self.shutdown_thread(self.update_check_thread, "Update-Check"),
+            ),
+            (
+                "mesh_build_thread",
+                self.shutdown_thread(self.mesh_build_thread, "3D-Mesh-Aufbau"),
             ),
         )
         # Inferenz-Kindprozess endgültig beenden und einsammeln. Die
@@ -419,6 +473,8 @@ class WorkerController:
             self.flood_fill_worker = None
         if shutdowns[4][1]:
             self.update_check_worker = None
+        if shutdowns[5][1]:
+            self.mesh_build_worker = None
 
         all_stopped = all(stopped for _, stopped in shutdowns)
         if not all_stopped:

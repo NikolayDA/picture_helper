@@ -8,6 +8,29 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Real 3D relief preview – interactive, performant, and gracefully degrading
+  (Epic #582, #592–#595).** The canonical HEIGHT layer becomes an orbit-, pan-,
+  and zoomable 3D surface (workflow step "Relief", **Display [2D|3D]** segment in
+  the Height tab or "View → Show 3D relief"). A Qt-free, deterministic geometry
+  core (`relief_mesh.py`) turns the 16-bit height field into a **hard-bounded**
+  grid mesh (coverage-weighted, row-banded block decimation; per-quality vertex/
+  triangle budgets – a 40 MP image never produces a full-resolution mesh), and a
+  Qt-native `QOpenGLWidget` viewer (`viewer_3d.py`) renders it via a GL 2.1
+  shader path with Lambert lighting. Exaggeration, light, and quality are pure,
+  bounded display parameters (exaggeration and light without a mesh rebuild); the
+  asynchronous, debounced mesh build uses generation IDs and a single-mesh cache
+  (cache invalidated exactly on height/role/size changes). If no OpenGL 2.1
+  context is available or initialization fails, the app stays stable and keeps
+  offering the existing 2D relief preview with a clear notice (capability probe +
+  guaranteed 2D fallback). "Save image", EufyMake, and project export are
+  unchanged – the 3D view is display-only with no write path into the model.
+  Architecture/UX are fixed in
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](../../history/ADR-2026-3d-reliefvorschau-renderer.md)
+  and [`docs/UX_3D_PREVIEW.md`](../../UX_3D_PREVIEW.md); usage/fallback in
+  [`ANLEITUNG.md`](../../../ANLEITUNG.md). Runtime i18n (de/en) for all 3D states.
+
 ### Changed
 
 - **Hybrid security scan model: CodeQL automatic, Codex manual only

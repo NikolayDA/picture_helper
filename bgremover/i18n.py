@@ -439,6 +439,49 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relief",
         "preview.seg.height": "Höhe",
         "preview.seg.gloss": "Gloss",
+        # 3D-Reliefvorschau (Epic #582)
+        "menu.view.show_3d": "3D-Relief anzeigen",
+        "preview3d.section": "3D-Reliefvorschau",
+        "preview3d.display": "Darstellung:",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "3D benötigt eine Höhenkarte mit gültigen Daten und OpenGL 2.1."
+        ),
+        "preview3d.exaggeration": "Überhöhung:  {value}×",
+        "preview3d.exaggeration.hint": "Verändert nur die Anzeige, nie die Höhendaten.",
+        "preview3d.light_azimuth": "Licht-Azimut:  {value}°",
+        "preview3d.light_elevation": "Licht-Höhe:  {value}°",
+        "preview3d.quality": "Qualität:",
+        "preview3d.quality.reduced": "Reduziert",
+        "preview3d.quality.standard": "Standard",
+        "preview3d.quality.high": "Hoch",
+        "preview3d.fit": "Einpassen",
+        "preview3d.reset": "Zurücksetzen",
+        "preview3d.empty": (
+            "Keine Höhenkarte vorhanden. Erzeugen Sie im Höhen-Tab eine Höhenkarte, "
+            "um die 3D-Vorschau zu nutzen."
+        ),
+        "preview3d.unavailable": (
+            "3D-Vorschau nicht verfügbar: Diese Umgebung bietet kein OpenGL 2.1. "
+            "Die 2D-Reliefvorschau steht weiterhin zur Verfügung."
+        ),
+        "preview3d.loading": "3D-Vorschau wird berechnet…",
+        "preview3d.ready_hint": (
+            "3D-Vorschau aktiv – gespeicherte Bilder und Exporte bleiben unverändert."
+        ),
+        "preview3d.decimated": "Vereinfachte Darstellung 1:{factor}",
+        "preview3d.error": (
+            "Die 3D-Vorschau ist auf einen Grafikfehler gestoßen. Ihre Bearbeitung, "
+            "das Projekt und der Export sind davon nicht betroffen."
+        ),
+        "preview3d.error.show_2d": "2D-Relief anzeigen",
+        "preview3d.error.retry": "Erneut versuchen",
+        "preview3d.a11y.name": "3D-Reliefvorschau",
+        "preview3d.a11y.desc": (
+            "Interaktive 3D-Oberfläche. Ziehen zum Drehen, Mausrad zum Zoomen, "
+            "Alt+Ziehen zum Verschieben; Pfeiltasten drehen, Pos1 passt ein."
+        ),
         # Design-Umschalter (Epic #424, Issue #428)
         "action.light_mode": "Helles Design",
         "theme.switched.light": "Helles Design aktiviert.",
@@ -1291,6 +1334,49 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relief",
         "preview.seg.height": "Height",
         "preview.seg.gloss": "Gloss",
+        # 3D relief preview (Epic #582)
+        "menu.view.show_3d": "Show 3D relief",
+        "preview3d.section": "3D relief preview",
+        "preview3d.display": "Display:",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "3D needs a height map with valid data and OpenGL 2.1."
+        ),
+        "preview3d.exaggeration": "Exaggeration:  {value}×",
+        "preview3d.exaggeration.hint": "Changes only the display, never the height data.",
+        "preview3d.light_azimuth": "Light azimuth:  {value}°",
+        "preview3d.light_elevation": "Light elevation:  {value}°",
+        "preview3d.quality": "Quality:",
+        "preview3d.quality.reduced": "Reduced",
+        "preview3d.quality.standard": "Standard",
+        "preview3d.quality.high": "High",
+        "preview3d.fit": "Fit to view",
+        "preview3d.reset": "Reset",
+        "preview3d.empty": (
+            "No height map yet. Create a height map in the Height tab to use the "
+            "3D preview."
+        ),
+        "preview3d.unavailable": (
+            "3D preview unavailable: this environment does not provide OpenGL 2.1. "
+            "The 2D relief preview remains available."
+        ),
+        "preview3d.loading": "Computing 3D preview…",
+        "preview3d.ready_hint": (
+            "3D preview active – saved images and exports remain unchanged."
+        ),
+        "preview3d.decimated": "Simplified view 1:{factor}",
+        "preview3d.error": (
+            "The 3D preview hit a graphics error. Your edits, project, and export "
+            "are not affected."
+        ),
+        "preview3d.error.show_2d": "Show 2D relief",
+        "preview3d.error.retry": "Try again",
+        "preview3d.a11y.name": "3D relief preview",
+        "preview3d.a11y.desc": (
+            "Interactive 3D surface. Drag to orbit, scroll to zoom, Alt+drag to pan; "
+            "arrow keys orbit, Home fits the view."
+        ),
         # Design toggle (Epic #424, Issue #428)
         "action.light_mode": "Light theme",
         "theme.switched.light": "Light theme enabled.",
@@ -2145,6 +2231,49 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relieve",
         "preview.seg.height": "Altura",
         "preview.seg.gloss": "Gloss",
+        # Vista previa de relieve 3D (Epic #582)
+        "menu.view.show_3d": "Mostrar relieve 3D",
+        "preview3d.section": "Vista previa de relieve 3D",
+        "preview3d.display": "Visualización:",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "3D necesita un mapa de altura con datos válidos y OpenGL 2.1."
+        ),
+        "preview3d.exaggeration": "Exageración:  {value}×",
+        "preview3d.exaggeration.hint": "Solo cambia la visualización, nunca los datos de altura.",
+        "preview3d.light_azimuth": "Azimut de luz:  {value}°",
+        "preview3d.light_elevation": "Elevación de luz:  {value}°",
+        "preview3d.quality": "Calidad:",
+        "preview3d.quality.reduced": "Reducida",
+        "preview3d.quality.standard": "Estándar",
+        "preview3d.quality.high": "Alta",
+        "preview3d.fit": "Ajustar a vista",
+        "preview3d.reset": "Restablecer",
+        "preview3d.empty": (
+            "Aún no hay mapa de altura. Crea un mapa de altura en la pestaña Altura "
+            "para usar la vista previa 3D."
+        ),
+        "preview3d.unavailable": (
+            "Vista previa 3D no disponible: este entorno no ofrece OpenGL 2.1. "
+            "La vista previa de relieve 2D sigue disponible."
+        ),
+        "preview3d.loading": "Calculando vista previa 3D…",
+        "preview3d.ready_hint": (
+            "Vista previa 3D activa: las imágenes guardadas y las exportaciones no cambian."
+        ),
+        "preview3d.decimated": "Vista simplificada 1:{factor}",
+        "preview3d.error": (
+            "La vista previa 3D encontró un error gráfico. Tu edición, el proyecto y "
+            "la exportación no se ven afectados."
+        ),
+        "preview3d.error.show_2d": "Mostrar relieve 2D",
+        "preview3d.error.retry": "Reintentar",
+        "preview3d.a11y.name": "Vista previa de relieve 3D",
+        "preview3d.a11y.desc": (
+            "Superficie 3D interactiva. Arrastra para orbitar, rueda para acercar, "
+            "Alt+arrastrar para desplazar; las flechas orbitan, Inicio ajusta la vista."
+        ),
         # Design-Umschalter (Epic #424, Issue #428)
         "action.light_mode": "Tema claro",
         "theme.switched.light": "Tema claro activado.",
@@ -3002,6 +3131,49 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Relief",
         "preview.seg.height": "Hauteur",
         "preview.seg.gloss": "Gloss",
+        # Aperçu du relief 3D (Epic #582)
+        "menu.view.show_3d": "Afficher le relief 3D",
+        "preview3d.section": "Aperçu du relief 3D",
+        "preview3d.display": "Affichage :",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "La 3D nécessite une carte de hauteur valide et OpenGL 2.1."
+        ),
+        "preview3d.exaggeration": "Exagération :  {value}×",
+        "preview3d.exaggeration.hint": "Modifie seulement l'affichage, jamais les données de hauteur.",
+        "preview3d.light_azimuth": "Azimut de lumière :  {value}°",
+        "preview3d.light_elevation": "Élévation de lumière :  {value}°",
+        "preview3d.quality": "Qualité :",
+        "preview3d.quality.reduced": "Réduite",
+        "preview3d.quality.standard": "Standard",
+        "preview3d.quality.high": "Haute",
+        "preview3d.fit": "Ajuster à la vue",
+        "preview3d.reset": "Réinitialiser",
+        "preview3d.empty": (
+            "Aucune carte de hauteur pour l'instant. Créez-en une dans l'onglet "
+            "Hauteur pour utiliser l'aperçu 3D."
+        ),
+        "preview3d.unavailable": (
+            "Aperçu 3D indisponible : cet environnement ne fournit pas OpenGL 2.1. "
+            "L'aperçu du relief 2D reste disponible."
+        ),
+        "preview3d.loading": "Calcul de l'aperçu 3D…",
+        "preview3d.ready_hint": (
+            "Aperçu 3D actif – les images enregistrées et les exports restent inchangés."
+        ),
+        "preview3d.decimated": "Vue simplifiée 1:{factor}",
+        "preview3d.error": (
+            "L'aperçu 3D a rencontré une erreur graphique. Votre édition, le projet "
+            "et l'export ne sont pas affectés."
+        ),
+        "preview3d.error.show_2d": "Afficher le relief 2D",
+        "preview3d.error.retry": "Réessayer",
+        "preview3d.a11y.name": "Aperçu du relief 3D",
+        "preview3d.a11y.desc": (
+            "Surface 3D interactive. Glissez pour orbiter, molette pour zoomer, "
+            "Alt+glisser pour déplacer ; les flèches orbitent, Origine ajuste la vue."
+        ),
         # Design-Umschalter (Epic #424, Issue #428)
         "action.light_mode": "Thème clair",
         "theme.switched.light": "Thème clair activé.",
@@ -3858,6 +4030,49 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "Рельєф",
         "preview.seg.height": "Висота",
         "preview.seg.gloss": "Глянець",
+        # 3D-перегляд рельєфу (Epic #582)
+        "menu.view.show_3d": "Показати 3D-рельєф",
+        "preview3d.section": "3D-перегляд рельєфу",
+        "preview3d.display": "Відображення:",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "Для 3D потрібні карта висот із дійсними даними та OpenGL 2.1."
+        ),
+        "preview3d.exaggeration": "Перебільшення:  {value}×",
+        "preview3d.exaggeration.hint": "Змінює лише відображення, ніколи дані висот.",
+        "preview3d.light_azimuth": "Азимут світла:  {value}°",
+        "preview3d.light_elevation": "Висота світла:  {value}°",
+        "preview3d.quality": "Якість:",
+        "preview3d.quality.reduced": "Знижена",
+        "preview3d.quality.standard": "Стандартна",
+        "preview3d.quality.high": "Висока",
+        "preview3d.fit": "Вписати у вигляд",
+        "preview3d.reset": "Скинути",
+        "preview3d.empty": (
+            "Карти висот ще немає. Створіть її на вкладці «Висота», щоб "
+            "користуватися 3D-переглядом."
+        ),
+        "preview3d.unavailable": (
+            "3D-перегляд недоступний: це середовище не надає OpenGL 2.1. "
+            "2D-перегляд рельєфу залишається доступним."
+        ),
+        "preview3d.loading": "Обчислення 3D-перегляду…",
+        "preview3d.ready_hint": (
+            "3D-перегляд активний – збережені зображення та експорти не змінюються."
+        ),
+        "preview3d.decimated": "Спрощений вигляд 1:{factor}",
+        "preview3d.error": (
+            "3D-перегляд натрапив на графічну помилку. Ваше редагування, проєкт "
+            "та експорт це не зачіпає."
+        ),
+        "preview3d.error.show_2d": "Показати 2D-рельєф",
+        "preview3d.error.retry": "Спробувати ще раз",
+        "preview3d.a11y.name": "3D-перегляд рельєфу",
+        "preview3d.a11y.desc": (
+            "Інтерактивна 3D-поверхня. Перетягуйте для обертання, колесо для "
+            "масштабу, Alt+перетягування для панорами; стрілки обертають, Home вписує."
+        ),
         # Design-Umschalter (Epic #424, Issue #428)
         "action.light_mode": "Світла тема",
         "theme.switched.light": "Світлу тему ввімкнено.",
@@ -4702,6 +4917,45 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "preview.seg.relief": "浮雕",
         "preview.seg.height": "高度",
         "preview.seg.gloss": "光泽",
+        # 3D 浮雕预览（Epic #582）
+        "menu.view.show_3d": "显示 3D 浮雕",
+        "preview3d.section": "3D 浮雕预览",
+        "preview3d.display": "显示：",
+        "preview3d.display.2d": "2D",
+        "preview3d.display.3d": "3D",
+        "preview3d.display.3d.disabled_tooltip": (
+            "3D 需要有效的高度图数据和 OpenGL 2.1。"
+        ),
+        "preview3d.exaggeration": "高度夸张：  {value}×",
+        "preview3d.exaggeration.hint": "仅改变显示，绝不改变高度数据。",
+        "preview3d.light_azimuth": "光照方位角：  {value}°",
+        "preview3d.light_elevation": "光照仰角：  {value}°",
+        "preview3d.quality": "质量：",
+        "preview3d.quality.reduced": "降低",
+        "preview3d.quality.standard": "标准",
+        "preview3d.quality.high": "高",
+        "preview3d.fit": "适应视图",
+        "preview3d.reset": "重置",
+        "preview3d.empty": (
+            "尚无高度图。请在“高度”标签页中创建高度图，以使用 3D 预览。"
+        ),
+        "preview3d.unavailable": (
+            "3D 预览不可用：此环境不提供 OpenGL 2.1。2D 浮雕预览仍然可用。"
+        ),
+        "preview3d.loading": "正在计算 3D 预览…",
+        "preview3d.ready_hint": (
+            "3D 预览已启用 – 已保存的图像和导出保持不变。"
+        ),
+        "preview3d.decimated": "简化显示 1:{factor}",
+        "preview3d.error": (
+            "3D 预览遇到图形错误。您的编辑、项目和导出均不受影响。"
+        ),
+        "preview3d.error.show_2d": "显示 2D 浮雕",
+        "preview3d.error.retry": "重试",
+        "preview3d.a11y.name": "3D 浮雕预览",
+        "preview3d.a11y.desc": (
+            "交互式 3D 表面。拖动旋转，滚轮缩放，Alt+拖动平移；方向键旋转，Home 键适应视图。"
+        ),
         # Design-Umschalter (Epic #424, Issue #428)
         "action.light_mode": "浅色主题",
         "theme.switched.light": "已启用浅色主题。",
