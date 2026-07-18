@@ -11,6 +11,17 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 变更
 
+- **混合安全扫描模型：CodeQL 自动化，Codex 仅手动触发（#551）。** CodeQL
+  现在以已版本化的高级配置形式运行（`.github/workflows/codeql.yml`），在
+  推送/PR 到 `main` 时以及每周自动分析 Python，提供确定性的、GitHub 原生
+  的 SAST 基础覆盖，不依赖外部 API 配额。现有的 Codex Security Scan 现在
+  仅通过手动 `workflow_dispatch` 运行；此前的 14 天节奏路径（锚定日期、
+  `cadence` 任务）及其启用/禁用开关因对纯手动触发而言冗余而被移除。提示
+  词、JSON 模式、产物上传、发现结果校验、去重的 issue 同步以及权限分离
+  （`issues: write` 仅存在于下游同步任务中）均保持不变。`SECURITY.md`
+  现在描述了当前实际生效的完整安全检查体系；架构决策已记录为 ADR
+  （`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`）。
+
 - **16 位高度管线收官：预览、导出警告与端到端验收（#590，史诗 #581 收
   尾）。** 浮雕预览现在直接基于规范的 16 位 payload 计算晕渲——低于一个
   8 位台阶的细腻渐变变得可见（瞬态实时预览仍是文档化的显示例外）。当

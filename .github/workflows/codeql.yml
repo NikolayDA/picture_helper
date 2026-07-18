@@ -1,0 +1,62 @@
+name: CodeQL
+
+# Automatisierte SAST-Grundabdeckung fuer Python (#551). Bewusst als
+# versioniertes Advanced Setup statt als GitHub-UI-"Default Setup"
+# umgesetzt: Ein Repository-Setting ist aus einem Code-Review/PR-Diff heraus
+# weder sichtbar noch reproduzierbar, ein Workflow hier schon – konsistent
+# mit der uebrigen Drift-Disziplin dieses Repos (z. B. #N6, Qt-Paketliste).
+# Ergaenzt (ersetzt nicht) pip-audit (dependency-audit.yml), license-check.yml
+# und den manuellen Codex-Scan (codex-security-scan.yml, semantische
+# Repo-Grenzen).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Frische-Gate unabhaengig von Code-Aenderungen, analog zu
+    # dependency-audit.yml (Mo 05:00) und codex-security-scan.yml (Mo 04:23).
+    # Neue/aktualisierte CodeQL-Queries koennen so bestehenden Code ohne
+    # jeden Commit neu befunden.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Fuer das Hochladen der SARIF-Ergebnisse in den Code-Scanning-Tab.
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          # Kein `queries:`-Override: laesst CodeQL auf der Standard-Suite
+          # ("default"), die bekannte CWE-Klassen mit geringer
+          # False-Positive-Rate abdeckt. security-extended liefert mehr
+          # Regeln, aber auch mehr Rauschen – laut Issue #551 erst nach
+          # einer bewussten Signal-/Noise-Bewertung eines stabilen
+          # Default-Laufs, nicht als Startpunkt.
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"

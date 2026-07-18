@@ -10,6 +10,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Hybrid security scan model: CodeQL automatic, Codex manual only
+  (#551).** CodeQL now runs as a versioned advanced setup
+  (`.github/workflows/codeql.yml`), automatically analyzing Python on
+  push/PR to `main` and weekly, providing deterministic, GitHub-native SAST
+  baseline coverage without depending on external API quota. The existing
+  Codex Security Scan now runs exclusively via manual `workflow_dispatch`;
+  the previous 14-day cadence path (anchor date, `cadence` job) and its
+  enable/disable switches are removed as redundant for a purely manual
+  trigger. Prompt, JSON schema, artifact upload, findings validation,
+  deduplicating issue sync and permission separation (`issues: write` only
+  in the downstream sync job) remain unchanged. `SECURITY.md` now describes
+  the full, currently active security-check landscape; the architecture
+  decision is documented as an ADR
+  (`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`).
+
 - **16-bit height pipeline completed: preview, export warning and
   end-to-end acceptance (#590, closing epic #581).** The relief preview now
   computes its hillshade directly from the canonical 16-bit payload – fine

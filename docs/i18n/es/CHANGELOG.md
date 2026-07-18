@@ -11,6 +11,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Modelo híbrido de análisis de seguridad: CodeQL automático, Codex solo
+  manual (#551).** CodeQL ahora se ejecuta como una configuración avanzada
+  versionada (`.github/workflows/codeql.yml`), analizando Python
+  automáticamente en cada push/PR a `main` y semanalmente, aportando una
+  cobertura SAST determinista y nativa de GitHub sin depender de cuota de
+  API externa. El Codex Security Scan existente ahora se ejecuta
+  exclusivamente mediante `workflow_dispatch` manual; la ruta de cadencia
+  de 14 días anterior (fecha ancla, job `cadence`) y sus interruptores de
+  activación/desactivación se eliminan por ser redundantes para un
+  disparador puramente manual. El prompt, el esquema JSON, la carga de
+  artefactos, la validación de hallazgos, la sincronización deduplicada de
+  issues y la separación de permisos (`issues: write` solo en el job de
+  sincronización posterior) permanecen sin cambios. `SECURITY.md` describe
+  ahora el panorama completo y actualmente activo de comprobaciones de
+  seguridad; la decisión de arquitectura está documentada como un ADR
+  (`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`).
+
 - **Canal de alturas de 16 bits completado: vista previa, aviso de
   exportación y aceptación de extremo a extremo (#590, cierre de la épica
   #581).** La vista previa de relieve calcula ahora su sombreado

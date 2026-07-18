@@ -1,11 +1,16 @@
 name: Codex Security Scan
 
+# Ausschliesslich manuell (#551): CodeQL (codeql.yml) traegt die
+# automatisierte SAST-Grundabdeckung; dieser Workflow bleibt fuer
+# repo-spezifische, semantische Pruefungen (Bild-/Projektdatei-Grenzen,
+# Pfad-/Temp-Verhalten, Worker-/Prozessgrenzen, Packaging-/Release-/
+# CI-Vertrauensgrenzen) erhalten, laeuft aber nur noch auf Zuruf – kein
+# Zeitplan, kein Push-/PR-Trigger. Der frueher hier vorhandene 14-Tage-
+# Cadence-Pfad (Anchor-Datum, cadence-Job) und die Enable-/Disable-Schalter
+# (CODEX_SECURITY_SCAN_ENABLED-Variable, run_scan-Dry-Skip) sind fuer einen
+# rein manuellen Trigger redundant: Wer nicht scannen will, startet den
+# workflow_dispatch schlicht nicht. Beide entfallen ersatzlos.
 on:
-  # GitHub cron has no native "every two weeks" interval. This workflow wakes
-  # up weekly and the cadence job runs the scan only every 14 days from the
-  # anchor date below.
-  schedule:
-    - cron: '23 4 * * 1'
   workflow_dispatch:
     inputs:
       min_severity:
@@ -13,11 +18,6 @@ on:
         type: choice
         options: [low, medium, high, critical]
         default: low
-      run_scan:
-        description: 'Run the scan (set to false for maintenance-only dry skip)'
-        type: choice
-        options: ['true', 'false']
-        default: 'true'
 
 permissions:
   contents: read
@@ -26,82 +26,9 @@ concurrency:
   group: codex-security-scan
   cancel-in-progress: false
 
-env:
-  SCAN_ANCHOR_DATE: '2026-06-08'
-  SECURITY_SCAN_ENABLED: "${{ vars.CODEX_SECURITY_SCAN_ENABLED || 'true' }}"
-
 jobs:
-  cadence:
-    name: Check 14-day cadence
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.cadence.outputs.should_run }}
-      skip_reason: ${{ steps.cadence.outputs.skip_reason }}
-      min_severity: ${{ steps.config.outputs.min_severity }}
-    steps:
-      - name: Resolve configuration
-        id: config
-        env:
-          INPUT_MIN_SEVERITY: ${{ inputs.min_severity || 'low' }}
-          INPUT_RUN_SCAN: ${{ inputs.run_scan || 'true' }}
-        run: |
-          echo "min_severity=${INPUT_MIN_SEVERITY}" >> "$GITHUB_OUTPUT"
-          echo "run_scan=${INPUT_RUN_SCAN}" >> "$GITHUB_OUTPUT"
-
-      - name: Decide whether the scheduled scan should run
-        id: cadence
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          RUN_SCAN: ${{ steps.config.outputs.run_scan }}
-        run: |
-          if [ "$SECURITY_SCAN_ENABLED" != "true" ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=Codex Security Scan disabled by CODEX_SECURITY_SCAN_ENABLED repository variable." >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ "$RUN_SCAN" != "true" ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=Codex Security Scan disabled by workflow_dispatch run_scan input." >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ "$EVENT_NAME" != "schedule" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          anchor_seconds="$(date -u -d "$SCAN_ANCHOR_DATE" +%s)"
-          now_seconds="$(date -u +%s)"
-          days_since_anchor="$(( (now_seconds - anchor_seconds) / 86400 ))"
-          if [ "$days_since_anchor" -lt 0 ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=Scheduled scan is before the configured anchor date." >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ "$(( days_since_anchor % 14 ))" -eq 0 ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "skip_reason=Scheduled scan is outside the 14-day cadence window." >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Summarize skipped scan
-        if: steps.cadence.outputs.should_run != 'true'
-        env:
-          SKIP_REASON: ${{ steps.cadence.outputs.skip_reason }}
-        run: |
-          {
-            echo "## Codex Security Scan skipped"
-            echo
-            echo "$SKIP_REASON"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   scan:
     name: Run Codex scan
-    needs: cadence
-    if: needs.cadence.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -119,7 +46,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run scheduled security scan
+      - name: Run manual security scan
         id: codex_security
         uses: openai/codex-action@v1
         with:
@@ -154,7 +81,7 @@ jobs:
 
   create-issues:
     name: Create GitHub issues
-    needs: [cadence, scan]
+    needs: scan
     if: needs.scan.result == 'success'
     runs-on: ubuntu-latest
     permissions:
@@ -173,7 +100,7 @@ jobs:
       - name: Create or reuse security issues
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          SECURITY_SCAN_MIN_SEVERITY: ${{ needs.cadence.outputs.min_severity }}
+          SECURITY_SCAN_MIN_SEVERITY: ${{ inputs.min_severity }}
         run: |
           python3 scripts/create_security_scan_issues.py \
             codex-security-findings.json \

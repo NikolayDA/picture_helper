@@ -38,20 +38,31 @@ def _write_findings(tmp_path: Path, findings: list[dict]) -> Path:
     return path
 
 
-def test_security_scan_workflow_is_scheduled_and_isolates_issue_token() -> None:
+def test_security_scan_workflow_is_manual_only_and_isolates_issue_token() -> None:
     workflow = (ROOT / ".github/workflows/codex-security-scan.yml").read_text(
         encoding="utf-8"
     )
 
-    assert "cron: '23 4 * * 1'" in workflow
-    assert "SCAN_ANCHOR_DATE: '2026-06-08'" in workflow
-    assert 'SECURITY_SCAN_ENABLED: "${{ vars.CODEX_SECURITY_SCAN_ENABLED || \'true\' }}"' in workflow
-    assert "run_scan:" in workflow
-    assert "should_run: ${{ steps.cadence.outputs.should_run }}" in workflow
-    assert "skip_reason: ${{ steps.cadence.outputs.skip_reason }}" in workflow
-    assert "Codex Security Scan disabled by CODEX_SECURITY_SCAN_ENABLED" in workflow
-    assert "Codex Security Scan disabled by workflow_dispatch run_scan input" in workflow
-    assert "## Codex Security Scan skipped" in workflow
+    # #551: ausschliesslich workflow_dispatch – kein Zeitplan, kein
+    # automatischer Push-/Pull-Request-Trigger. CodeQL (codeql.yml) traegt
+    # jetzt die automatisierte SAST-Grundabdeckung.
+    trigger_block = workflow.split("\non:", 1)[1].split("\npermissions:", 1)[0]
+    assert "workflow_dispatch:" in trigger_block
+    assert "schedule:" not in trigger_block
+    assert "pull_request" not in trigger_block
+    assert "push:" not in trigger_block
+
+    # Der 14-Tage-Cadence-Pfad und die Enable-/Disable-Schalter sind fuer
+    # einen rein manuellen Trigger redundant und wurden ersatzlos entfernt
+    # (die YAML-Struktur selbst, nicht nur Kommentartext, wird geprueft).
+    assert "cadence:\n" not in workflow
+    assert "needs: cadence" not in workflow
+    assert "needs: [cadence" not in workflow
+    assert "SCAN_ANCHOR_DATE:" not in workflow
+    assert "vars.CODEX_SECURITY_SCAN_ENABLED" not in workflow
+    assert "run_scan:" not in workflow
+
+    assert "min_severity:" in workflow
     assert "openai/codex-action@v1" in workflow
     assert "output-schema-file: .github/codex/security-findings.schema.json" in workflow
     assert "sandbox: read-only" in workflow
@@ -62,6 +73,36 @@ def test_security_scan_workflow_is_scheduled_and_isolates_issue_token() -> None:
     issue_job = workflow.split("  create-issues:", 1)[1]
     assert "issues: write" not in scan_job
     assert "issues: write" in issue_job
+
+
+def test_codeql_workflow_runs_automatically_for_python() -> None:
+    """#551: CodeQL traegt die automatisierte SAST-Grundabdeckung – laeuft
+    ohne manuelles Zutun bei Push/PR auf main sowie zeitgesteuert, analysiert
+    Python und laedt SARIF ausschliesslich im dafuer vorgesehenen Job hoch."""
+    workflow = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+
+    trigger_block = workflow.split("\non:", 1)[1].split("\npermissions:", 1)[0]
+    assert "push:" in trigger_block
+    assert "pull_request:" in trigger_block
+    assert "schedule:" in trigger_block
+
+    assert "languages: python" in workflow
+    assert "github/codeql-action/init@v3" in workflow
+    assert "github/codeql-action/analyze@v3" in workflow
+    assert "security-events: write" in workflow
+    # Standard-Query-Suite als Startpunkt (kein queries:-Override in der
+    # `init`-Step-Konfiguration) – siehe Issue #551: security-extended erst
+    # nach bewusster Signal-/Noise-Bewertung. Nur der begruendende Kommentar
+    # darf das Wort "queries:" enthalten, nicht die YAML-Konfiguration.
+    init_step = workflow.split("github/codeql-action/init@v3", 1)[1].split(
+        "github/codeql-action/autobuild@v3", 1
+    )[0]
+    config_lines = [
+        line
+        for line in init_step.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert not any("queries:" in line for line in config_lines)
 
 
 def test_security_scan_prompt_requires_structured_reportable_findings() -> None:
