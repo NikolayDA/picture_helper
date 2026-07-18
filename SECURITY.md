@@ -41,7 +41,19 @@ BgRemover ist ein lokales Desktop-Tool ohne Netzwerkdienst, Nutzerdatenbank oder
 - **rembg / ONNX-Laufzeit:** Das optionale KI-Extra lädt Modelle aus dem Netz und führt ONNX-Inferenz lokal aus.
 - **CI/CD und Abhängigkeiten:** Supply-Chain-Risiken in Workflows und transitiven Paketen.
 
-Regelmäßige automatische Sicherheitsscans laufen über den GitHub Codex Security Scanner (`.github/codex/`).
+### Aktive Sicherheitsprüf-Ebenen (#551)
+
+| Ebene | Trigger | Rolle |
+|-------|---------|-------|
+| **CodeQL** (`.github/workflows/codeql.yml`) | automatisch: Push/PR auf `main`, wöchentlich, `workflow_dispatch` | Deterministische SAST-Grundabdeckung für Python (Standard-Query-Suite), GitHub-nativ über den *Security*-Tab, unabhängig von externer API-Quota. |
+| **Codex Security Scan** (`.github/codex/`, `.github/workflows/codex-security-scan.yml`) | **ausschließlich manuell** über `workflow_dispatch` | Repo-spezifische, semantische Prüfung (Bild-/Projektdatei-Grenzen, Pfad-/Temp-Verhalten, Worker-/Prozessgrenzen, Packaging-/Release-/CI-Vertrauensgrenzen). Kein Zeitplan, kein automatischer Lauf bei Push/PR – abhängig von einem gültigen `OPENAI_API_KEY` und dessen Quota (separater Betriebs-Tracker: #245). |
+| **pip-audit** (`dependency-audit.yml`) | PR + wöchentlich | Bekannte CVEs im gepinnten Abhängigkeits-Snapshot (`requirements/constraints.txt`). |
+| **Lizenzprüfung** (`license-check.yml`) | PR | Inventar-/Lizenz-Drift der Abhängigkeiten. |
+| **CI-Matrix** (`ci.yml`/`pr-ci.yml`) | PR | Qualität/Funktion (Lint, Typecheck, Tests) – ersetzt keine Quellcode-Sicherheitsanalyse. |
+
+Die Entscheidung für dieses hybride Modell (CodeQL automatisch, Codex manuell) inklusive Begründung
+und Branch-Protection-Abwägung ist dokumentiert in
+[`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
 
 ## Abhängigkeiten
 
