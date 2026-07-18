@@ -355,6 +355,39 @@ def test_run_benchmark_height_pipeline_metrics(tmp_path: Path) -> None:
     assert set(bench.BENCH_FORMATS) <= set(result["formats"])
 
 
+def test_run_benchmark_includes_mesh_build_metrics(tmp_path: Path) -> None:
+    """3D-Baseline (#595): die Höhenszenarien tragen die ``mesh_*``-Metriken."""
+    result = bench.run_benchmark(
+        iterations=1, width=16, height=12,
+        height_sizes={"HEIGHT16-TINY": (64, 48, 1)},
+    )
+    metrics = result["formats"]["HEIGHT16-TINY"]
+    for key in ("mesh_build_ms", "mesh_peak_mb", "mesh_vertices",
+                "mesh_triangles", "mesh_decimation"):
+        assert key in metrics
+    assert metrics["mesh_build_ms"] >= 0.0
+    assert metrics["mesh_vertices"] > 0.0
+    assert metrics["mesh_decimation"] >= 1.0
+
+
+def test_benchmark_mesh_build_respects_quality_budget() -> None:
+    """Auch ein großes Feld bleibt unter dem harten Vertex-/Dreiecksbudget und
+    hält den transienten Peak-Speicher unter dem 128-MB-Deckel (kein Vollmesh)."""
+    from bgremover.height_map import HeightField
+    from bgremover.relief_mesh import MeshQuality
+
+    width = height = 4000  # 16 MP
+    values = bench.make_height_values(width, height)
+    coverage = np.full((height, width), 255, dtype=np.uint8)
+    field = HeightField(values, coverage, max_value=65535)
+
+    metrics = bench.benchmark_mesh_build(field, iterations=1)
+    assert metrics["mesh_vertices"] <= float(MeshQuality.STANDARD.max_vertices)
+    assert metrics["mesh_triangles"] <= float(MeshQuality.STANDARD.max_triangles)
+    assert metrics["mesh_decimation"] > 1.0  # 16 MP wird zwingend decimiert
+    assert metrics["mesh_peak_mb"] < 128.0
+
+
 def test_make_height_values_matches_mgrid_reference() -> None:
     """Die broadcasting-basierte Musterbildung bleibt bitgenau zur Referenz."""
     width, height = 37, 19

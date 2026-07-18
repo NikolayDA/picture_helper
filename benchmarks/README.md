@@ -36,6 +36,30 @@ Pro Format werden gemessen (Median über `--iterations` Läufe, in Millisekunden
 
 `process_ms` ist die **Standard-Vergleichsmetrik** (`--metric` überschreibt das).
 
+### 16-Bit-Höhen- und 3D-Reliefmesh-Baseline
+
+Der volle Standardlauf (bzw. `--height-bench`) misst zusätzlich die
+16-Bit-Höhenpipeline **und** den 3D-Reliefmesh-Aufbau je Projektgröße
+(`HEIGHT16-1MP`/`-16MP`/`-40MP`). Neben `import_ms`/`process_ms`/`roundtrip_ms`/
+`preview_ms` (2D) trägt jede Größe die 3D-Metriken aus dem echten Geometriekern
+(`bgremover.relief_mesh.build_relief_mesh` – derselbe Pfad wie der
+`MeshBuildWorker` des Viewers, nur ohne Qt/GL):
+
+| Metrik           | Bedeutung                                                             |
+|------------------|-----------------------------------------------------------------------|
+| `mesh_build_ms`  | Median-Bauzeit des begrenzten Grid-Meshes (Näherung „Zeit bis erste sichtbare Vorschau"; GPU-Upload/Framerate sind hardwaregebunden, siehe Plattform-Smoke) |
+| `mesh_peak_mb`   | Transienter Peak-Speicher **eines** Baus (`tracemalloc`) – belegt reproduzierbar, dass auch 40 MP kein Vollmesh materialisiert (64-MiB-Decimation-Deckel + Gitterbudget) |
+| `mesh_vertices`  | Tatsächliche Vertexzahl gegen `MeshQuality.STANDARD.max_vertices` (262 144) |
+| `mesh_triangles` | Tatsächliche Dreieckszahl gegen `max_triangles`                        |
+| `mesh_decimation`| Vereinfachungsfaktor (`1` = keine Decimation)                          |
+
+`mesh_build_ms` ist eine reguläre Zeit-Metrik und läuft durch dieselbe
+Regressions-/Bestätigungslogik wie `process_ms`
+(`--metric mesh_build_ms --fail-on-regression`). GPU-/Renderer-Upload,
+interaktive Framerate und Update-Latenz hängen an der Grafikhardware und werden
+im manuellen Plattform-Smoke belegt (siehe
+[`docs/PACKAGING_SMOKE.md`](../docs/PACKAGING_SMOKE.md)).
+
 ## Ergebnisse & Vergleich
 
 Jeder Lauf wird als datiertes JSON unter `benchmarks/results/<JJJJ-MM-TT>.json`
