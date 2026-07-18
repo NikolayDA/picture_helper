@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tracemalloc
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -60,6 +61,7 @@ from bgremover.image_ops import (  # noqa: E402  (Pfad muss vor dem Import stehe
 )
 from bgremover.project_io import load_project, save_project  # noqa: E402
 from bgremover.project_model import LayerKind, Project  # noqa: E402
+from bgremover.relief_mesh import MeshQuality, build_relief_mesh  # noqa: E402
 from bgremover.relief_preview import compose_over, relief_shading  # noqa: E402
 
 # Format-Label → Default-Suffix. Spiegelt bewusst ``image_ops.SAVE_FORMATS``;
@@ -238,16 +240,62 @@ def make_height_values(width: int, height: int) -> np.ndarray:
     return ((xx * 131 + yy * 17) % 65536).astype(np.uint16)
 
 
+def benchmark_mesh_build(
+    field: HeightField, iterations: int,
+    quality: MeshQuality = MeshQuality.STANDARD,
+) -> dict[str, float]:
+    """Misst den 3D-Reliefmesh-Aufbau über den echten Geometriekern (#595).
+
+    Baut das begrenzte Grid-Mesh (:func:`~bgremover.relief_mesh.build_relief_mesh`)
+    aus der **kanonischen** 16-Bit-Payload – exakt der Pfad des ``MeshBuildWorker``
+    im Viewer, nur ohne Qt/GL. Metriken:
+
+    - ``mesh_build_ms`` – Median-Bauzeit (Näherung „Zeit bis erste sichtbare
+      Vorschau", GPU-Upload/Framerate sind hardwaregebunden und im manuellen
+      Plattform-Smoke belegt).
+    - ``mesh_peak_mb`` – transienter Peak-Speicher **eines** Baus (``tracemalloc``,
+      gleiches Muster wie ``test_relief_mesh.test_wide_aspect_is_memory_bounded``).
+      Belegt reproduzierbar, dass auch 40 MP kein Vollmesh materialisiert
+      (64-MiB-Decimation-Deckel + Zielgitter-Budget).
+    - ``mesh_vertices`` / ``mesh_triangles`` – tatsächliche Gittergröße gegen das
+      harte Qualitätsbudget (``quality.max_vertices``/``max_triangles``).
+    - ``mesh_decimation`` – Vereinfachungsfaktor (``1`` = keine Decimation).
+
+    ``mesh_build_ms`` ist eine reguläre Zeit-Metrik und läuft damit durch dieselbe
+    Regressions-/Bestätigungslogik wie ``process_ms`` (Vergleich per
+    ``--metric mesh_build_ms``).
+    """
+    mesh_build_ms = _median_ms(lambda: build_relief_mesh(field, quality), iterations)
+
+    # Ein einzelner, getrennt verfolgter Bau für den Peak – der Median-Lauf oben
+    # verfälschte die Hochwassermarke sonst über wiederholte Allokationen.
+    tracemalloc.start()
+    tracemalloc.reset_peak()
+    mesh = build_relief_mesh(field, quality)
+    _current, peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    return {
+        "mesh_build_ms": mesh_build_ms,
+        "mesh_peak_mb": round(peak_bytes / (1024.0 * 1024.0), 3),
+        "mesh_vertices": float(mesh.vertex_count),
+        "mesh_triangles": float(mesh.triangle_count),
+        "mesh_decimation": float(mesh.decimation_factor),
+    }
+
+
 def benchmark_height_pipeline(
     width: int, height: int, iterations: int, work_dir: Path
 ) -> dict[str, float]:
-    """Misst die 16-Bit-Höhenpipeline über die echten Code-Pfade (#590).
+    """Misst die 16-Bit-Höhenpipeline über die echten Code-Pfade (#590/#595).
 
     Metriken je Größe: ``import_ms`` (natives 16-Bit-PNG → ``HeightField``),
     ``process_ms`` (separabler ``gaussian_blur`` als repräsentative Operation –
     zugleich die Standard-Vergleichsmetrik des Benchmarks), ``roundtrip_ms``
-    (``.bgrproj`` Save + Open, Formatversion 2) und ``preview_ms``
-    (Relief-Hillshade + Compose aus der kanonischen Payload).
+    (``.bgrproj`` Save + Open, Formatversion 2), ``preview_ms``
+    (2D-Relief-Hillshade + Compose aus der kanonischen Payload) sowie die
+    ``mesh_*``-Metriken des 3D-Reliefmesh-Aufbaus (:func:`benchmark_mesh_build`,
+    #595) – dieselben 1/16/40-MP-Szenarien tragen damit auch die 3D-Baseline.
     """
     values = make_height_values(width, height)
     coverage = np.full((height, width), 255, dtype=np.uint8)
@@ -285,12 +333,14 @@ def benchmark_height_pipeline(
         )
 
     preview_ms = _median_ms(_preview, iterations)
-    return {
+    metrics = {
         "import_ms": import_ms,
         "process_ms": process_ms,
         "roundtrip_ms": roundtrip_ms,
         "preview_ms": preview_ms,
     }
+    metrics.update(benchmark_mesh_build(field, iterations))
+    return metrics
 
 
 def run_benchmark(
