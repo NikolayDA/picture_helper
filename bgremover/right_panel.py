@@ -47,7 +47,11 @@ from PyQt6.QtWidgets import (
 
 from bgremover.color_ops import ColorOp
 from bgremover.constants import _RIGHT_PANEL_WIDTH
-from bgremover.height_map_panel import HeightMapActions, HeightMapPanel
+from bgremover.height_map_panel import (
+    HeightMapActions,
+    HeightMapPanel,
+    Preview3DActions,
+)
 from bgremover.i18n import tr
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
@@ -302,6 +306,7 @@ def build_right_panel(
     layer_actions: LayerPanelActions,
     height_actions: HeightMapActions,
     *,
+    preview3d_actions: Preview3DActions | None = None,
     on_open: Callable[[], None] | None = None,
     on_open_path: Callable[[str], None] | None = None,
     recent: list[str] | None = None,
@@ -309,7 +314,7 @@ def build_right_panel(
 ) -> RightPanel:
     return _RightPanelBuilder(
         actions, layer_actions, height_actions, on_open, on_open_path, recent,
-        rembg_available).build()
+        rembg_available, preview3d_actions).build()
 
 
 def _set_value_silently(widget: QSlider | QSpinBox, value: int) -> None:
@@ -376,6 +381,7 @@ class _RightPanelBuilder:
         on_open_path: Callable[[str], None] | None,
         recent: list[str] | None,
         rembg_available: bool,
+        preview3d_actions: Preview3DActions | None = None,
     ) -> None:
         self._actions = actions
         self._on_open = on_open
@@ -383,7 +389,7 @@ class _RightPanelBuilder:
         self._recent = recent or []
         self._rembg_available = rembg_available
         self._layer_panel = LayerPanel(layer_actions)
-        self._height_panel = HeightMapPanel(height_actions)
+        self._height_panel = HeightMapPanel(height_actions, preview3d_actions)
 
     def build(self) -> RightPanel:
         refs: dict[str, QWidget] = {}

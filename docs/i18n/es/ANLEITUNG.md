@@ -661,6 +661,35 @@ previa** las descarta.
 | **Escalones** | Cuantizar la altura a una cantidad de escalones. |
 | **Rango (mín/máx)** | Limitar la altura a un rango de valores. |
 
+### Vista previa de relieve 3D
+
+Además de la vista previa de relieve 2D, puedes ver el mapa de altura activo
+como una **superficie 3D real y giratoria**. En la parte superior de la tarjeta
+*Altura*, la fila **Visualización** alterna entre **2D** y **3D** (o mediante
+«Ver → Mostrar relieve 3D»). El segmento 3D solo está activo cuando existe un
+mapa de altura con datos válidos y tu entorno gráfico ofrece OpenGL 2.1.
+
+La vista 3D es **solo de visualización**: permite girar e inspeccionar la
+superficie desde distintos ángulos, pero **no cambia ni los datos de altura ni
+la imagen guardada o la exportación**. En el viewport, arrastra con el botón
+izquierdo para orbitar, usa el botón central o Alt+arrastrar para desplazar y
+la rueda para acercar. Con el teclado, las flechas orbitan, Mayús+flechas
+desplazan, `+`/`−` acercan, `Inicio` ajusta la vista y `Mayús+Inicio` restablece
+cámara, exageración y luz a los valores predeterminados.
+
+Los controles 3D ajustan la **exageración** (cuánto se amplifica visualmente el
+relieve plano – solo la visualización, nunca los datos de altura), el **azimut
+y la elevación de la luz** y la **calidad** (Reducida / Estándar / Alta). Las
+imágenes muy grandes se simplifican de forma automática y determinista para la
+vista 3D; un aviso «Vista simplificada 1:N» en la esquina superior izquierda del
+viewport lo indica. La referencia exacta a nivel de píxel sigue siendo la vista
+previa 2D.
+
+Si el entorno no ofrece OpenGL 2.1 o se produce un error gráfico, la app sigue
+siendo totalmente utilizable: el segmento 3D se desactiva, o el visor muestra un
+aviso claro con las acciones «Mostrar relieve 2D» y «Reintentar»; la probada
+vista previa de relieve 2D está siempre disponible como respaldo seguro.
+
 ---
 
 ## 12. Paso 6 – Exportar

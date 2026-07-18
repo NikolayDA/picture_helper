@@ -9,6 +9,32 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **Vista previa de relieve 3D real: interactiva, eficiente y con degradación
+  robusta (Epic #582, #592–#595).** La capa HEIGHT canónica se convierte en una
+  superficie 3D que se puede orbitar, desplazar y ampliar (paso «Relieve»,
+  segmento **Visualización [2D|3D]** en la pestaña Altura o «Ver → Mostrar
+  relieve 3D»). Un núcleo geométrico determinista y sin Qt (`relief_mesh.py`)
+  convierte el campo de altura de 16 bits en una malla de rejilla **estrictamente
+  limitada** (decimación por bloques ponderada por cobertura y por bandas de
+  filas; presupuestos de vértices/triángulos por calidad: una imagen de 40 MP
+  nunca genera una malla a resolución completa), y un visor `QOpenGLWidget`
+  nativo de Qt (`viewer_3d.py`) la renderiza con una ruta de shader GL 2.1 y
+  luz Lambert. La exageración, la luz y la calidad son parámetros de
+  visualización puros y acotados (exageración y luz sin reconstruir la malla); la
+  construcción asíncrona y con antirrebote usa IDs de generación y una caché de
+  una sola malla (invalidada exactamente al cambiar altura/rol/tamaño). Si no hay
+  contexto OpenGL 2.1 o falla la inicialización, la app permanece estable y sigue
+  ofreciendo la vista previa de relieve 2D con un aviso claro (sonda de
+  capacidad + respaldo 2D garantizado). «Guardar imagen», la exportación EufyMake
+  y de proyecto no cambian: la vista 3D es solo de visualización, sin escritura
+  en el modelo. La arquitectura/UX está fijada en
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](../../history/ADR-2026-3d-reliefvorschau-renderer.md)
+  y [`docs/UX_3D_PREVIEW.md`](../../UX_3D_PREVIEW.md); el uso/respaldo en
+  [`ANLEITUNG.md`](../../../ANLEITUNG.md). i18n en tiempo de ejecución (de/en)
+  para todos los estados 3D.
+
 ### Cambiado
 
 - **Modelo híbrido de análisis de seguridad: CodeQL automático, Codex solo

@@ -600,6 +600,33 @@ The optimise operations show a **live preview**; **Apply** commits it
 | **Steps** | Quantise the height to a number of levels. |
 | **Range (min/max)** | Clamp the height to a value range. |
 
+### 3D relief preview
+
+Beyond the 2D relief preview you can view the active height map as a **real,
+rotatable 3D surface**. At the top of the *Height* card the **Display** row
+switches between **2D** and **3D** (or via "View → Show 3D relief"). The 3D
+segment is only active when a height map with valid data exists and your
+graphics environment provides OpenGL 2.1.
+
+The 3D view is **display-only**: it lets you rotate and inspect the surface
+from different angles but changes **neither the height data nor the saved
+image or export**. In the viewport, drag with the left mouse button to orbit,
+use the middle button or Alt+drag to pan, and the wheel to zoom. With the
+keyboard, arrow keys orbit, Shift+arrows pan, `+`/`−` zoom, `Home` fits the
+view and `Shift+Home` resets camera, exaggeration and light to defaults.
+
+The 3D controls set **exaggeration** (how strongly the flat relief is visually
+amplified – display only, never the height data), **light azimuth/elevation**
+and **quality** (Reduced / Standard / High). Very large images are simplified
+automatically and deterministically for the 3D view; a "Simplified view 1:N"
+badge in the top-left of the viewport indicates this. The pixel-accurate
+reference remains the 2D preview.
+
+If the environment provides no OpenGL 2.1 or a graphics error occurs, the app
+stays fully usable: the 3D segment is disabled, or the viewer shows a clear
+notice with "Show 2D relief" and "Try again" actions – the proven 2D relief
+preview is always available as a safe fallback.
+
 ---
 
 ## 12. Step 6 – Export

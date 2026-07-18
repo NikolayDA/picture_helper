@@ -102,13 +102,44 @@ Ein Paket, `bgremover/`:
   getauschte 8-Bit-Ansicht als dokumentierte Anzeige-Ausnahme.
   Ein Vorschau-Tab und das exklusive Ansicht-Untermenü halten sich signalbasiert
   synchron; der UI-Hinweis macht den unveränderten Bildexport ausdrücklich sichtbar
-  (#388). Die echte 3D-Reliefvorschau (Epic #582) ist architektonisch entschieden
-  (#591): Qt-nativer OpenGL-Viewer (`QOpenGLWidget`, keine neue Laufzeitabhängigkeit)
-  über einem Qt-freien, backend-neutralen Geometriekern mit harten Mesh-Budgets,
-  Capability-Probe und verbindlichem 2D-Fallback – ADR
-  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md),
-  UX-Vertrag [`docs/UX_3D_PREVIEW.md`](docs/UX_3D_PREVIEW.md); Umsetzung folgt in
-  #592–#595.
+  (#388).
+- **Echte 3D-Reliefvorschau (Epic #582, umgesetzt #592–#595):** Qt-nativer
+  OpenGL-Viewer über einem Qt-freien, backend-neutralen Geometriekern – ADR
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](docs/history/ADR-2026-3d-reliefvorschau-renderer.md)
+  (#591), UX-Vertrag [`docs/UX_3D_PREVIEW.md`](docs/UX_3D_PREVIEW.md).
+  `relief_mesh.py` — Qt-freier, strikt getypter Geometriekern (#592): erzeugt
+  aus einem `HeightField` deterministisch ein **hart begrenztes** Grid-Mesh
+  (`ReliefMesh`, frozen numpy-DTO). Block-Decimation ist **coverage-gewichtet**
+  und läuft **zeilenbandweise** mit hartem 64-MiB-Temp-Deckel (Muster von
+  `height_ops._MEDIAN_MAX_TEMP_BYTES`, #365) – die Decimation greift **vor**
+  jeder float-Expansion auf dem `uint16`-Feld, ein 40-MP-Bild erzeugt daher nie
+  ein Vollmesh. Vertex-/Dreiecksbudget je `MeshQuality` (REDUCED/STANDARD/HIGH),
+  Winding CCW von `+Z`, Löcher statt Brückendreiecke (Vertex gültig ⇔ Deckung
+  ≥ 128); Normalen analytisch, `slope` exaggerations-unabhängig für den
+  Uniform-Pfad des Viewers; `mesh_cache_key` deckt genau die geometrie-
+  bestimmenden Größen ab (nicht Kamera/Licht/Überhöhung). Quelldaten werden nie
+  mutiert (Hash-Tests), Abbruch über Cancel-Token wirft `MeshBuildCancelled`.
+  `preview3d_camera.py` — Qt-freie Orbit-Kamera (Polhöhen-Klemme ±88°,
+  Zoom-/Fit-Klemmen, `look_at`/`perspective`, Spaltenvektor-Konvention).
+  `preview3d_capability.py` — Laufzeit-Probe (`probe_3d_capability`, über
+  `probe_fn` mockbar) für Desktop-GL ≥ 2.1; wirft nie, liefert strukturiertes
+  `RendererCapability`, je Sitzung gecacht (`reset_capability_cache` = „Erneut
+  versuchen"). Der Offscreen-CI-Pfad trifft real den Fallback-Zweig.
+  `viewer_3d.py` — `GLReliefViewer` (`QOpenGLWidget`, GL-2.1-Shaderpfad über
+  `QOpenGLVersionFunctionsFactory`, alle GL-Hooks gekapselt → `initFailed`,
+  keine neue Laufzeitabhängigkeit) und der einbettbare, GL-frei testbare
+  Zustandscontainer `Relief3DView` (Empty/Unavailable/Loading/Error/Ready).
+  `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
+  entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
+  `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem
+  **Ein-Mesh-Cache**; Kamera/Licht/Überhöhung sind reine Uniforms ohne Rebuild.
+  Verdrahtung im `MainWindow`: Canvas-Stack (2D-Leinwand ↔ 3D-Viewer), Segment
+  **Darstellung [2D|3D]** oben im Höhen-Tab (`height_map_panel.Preview3DActions`)
+  und „Ansicht → 3D-Relief anzeigen"; Qualität als QSettings-Präferenz
+  (`PREVIEW3D_QUALITY_KEY`). Der Viewer ist **reine Darstellung ohne Schreibpfad
+  ins Modell** – „Bild speichern", EufyMake- und Projekt-Export bleiben
+  unverändert; die 2D-`PreviewMode`-Pipeline bleibt der garantierte Fallback.
+  i18n-Keys `preview3d.*` (de/en).
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/

@@ -253,3 +253,69 @@ class FloodFillWorker(_Worker):
 
     def _always_finished(self) -> None:
         self.done.emit()
+
+
+class MeshBuildWorker(_Worker):
+    """Baut das begrenzte 3D-Relief-Mesh im Hintergrund (#594, Epic #582).
+
+    Der Worker konsumiert ausschließlich die Qt-freie Geometrie-Pipeline
+    (:func:`bgremover.relief_mesh.build_relief_mesh`) auf einer
+    **unveränderlichen** ``HeightField``-Kopie – er greift auf keine
+    nicht-threadsicheren Qt-/Renderer-Objekte zu. Die Decimation läuft
+    zeilenbandweise mit hartem Temp-Deckel, sodass auch 40-MP-Quellen kein
+    Vollmesh materialisieren.
+
+    ``finished`` trägt ``(ReliefMesh, generation_id)`` – nur bei Erfolg; die
+    Generation-ID erlaubt dem Aufrufer, veraltete Ergebnisse zu verwerfen (ein
+    abgebrochener Build emittiert **kein** ``finished``). ``done`` feuert über
+    ``_always_finished`` immer und ist das Thread-Lifecycle-Signal.
+    """
+    finished = pyqtSignal(object, int)   # (ReliefMesh, generation_id) – nur Erfolg
+    done = pyqtSignal()                  # immer – Thread-Abschluss
+    _error_context = "3D-Mesh-Aufbau"
+
+    def __init__(
+        self,
+        field: object,
+        quality: object,
+        generation_id: int,
+        *,
+        physical_size_mm: tuple[float, float] | None = None,
+    ) -> None:
+        super().__init__()
+        self._field = field
+        self._quality = quality
+        self._generation_id = generation_id
+        self._physical_size_mm = physical_size_mm
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def _work(self) -> None:
+        # Lazy-Import: der Geometriekern zieht nur numpy, bleibt aber unnötig
+        # aus dem Start-Import von ``workers`` heraus.
+        from bgremover.height_map import HeightField
+        from bgremover.relief_mesh import (
+            MeshBuildCancelled,
+            MeshQuality,
+            build_relief_mesh,
+        )
+
+        assert isinstance(self._field, HeightField)
+        assert isinstance(self._quality, MeshQuality)
+        try:
+            mesh = build_relief_mesh(
+                self._field,
+                self._quality,
+                physical_size_mm=self._physical_size_mm,
+                cancel=lambda: self._cancelled,
+            )
+        except MeshBuildCancelled:
+            return
+        if self._cancelled:
+            return
+        self.finished.emit(mesh, self._generation_id)
+
+    def _always_finished(self) -> None:
+        self.done.emit()

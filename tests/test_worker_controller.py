@@ -630,20 +630,24 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
 
     ai_worker = Cancellable()
     flood_worker = Cancellable()
+    mesh_worker = Cancellable()
     threads = {
         "KI": object(),
         "Bildladen": object(),
         "rembg-Warmup": object(),
         "Flood-Fill": object(),
         "Update-Check": object(),
+        "3D-Mesh-Aufbau": object(),
     }
     controller.ai_worker = ai_worker
     controller.flood_fill_worker = flood_worker
+    controller.mesh_build_worker = mesh_worker
     controller.ai_thread = threads["KI"]
     controller.load_thread = threads["Bildladen"]
     controller.warmup_thread = threads["rembg-Warmup"]
     controller.flood_fill_thread = threads["Flood-Fill"]
     controller.update_check_thread = threads["Update-Check"]
+    controller.mesh_build_thread = threads["3D-Mesh-Aufbau"]
     shutdowns: list[tuple[object, str]] = []
     monkeypatch.setattr(
         controller,
@@ -655,18 +659,21 @@ def test_shutdown_all_cancels_workers_and_visits_every_thread(
 
     assert ai_worker.cancelled
     assert flood_worker.cancelled
+    assert mesh_worker.cancelled
     assert shutdowns == [
         (threads["KI"], "KI"),
         (threads["Bildladen"], "Bildladen"),
         (threads["rembg-Warmup"], "rembg-Warmup"),
         (threads["Flood-Fill"], "Flood-Fill"),
         (threads["Update-Check"], "Update-Check"),
+        (threads["3D-Mesh-Aufbau"], "3D-Mesh-Aufbau"),
     ]
     assert controller.ai_thread is None
     assert controller.load_thread is None
     assert controller.warmup_thread is None
     assert controller.flood_fill_thread is None
     assert controller.update_check_thread is None
+    assert controller.mesh_build_thread is None
 
 
 def test_shutdown_all_keeps_unstopped_thread_referenced(
@@ -687,6 +694,28 @@ def test_shutdown_all_keeps_unstopped_thread_referenced(
     assert controller.warmup_thread is None
     assert controller.flood_fill_thread is None
     assert controller._shutting_down is False
+
+
+def test_mesh_finish_only_clears_matching_worker(controller):
+    """Review #620 (P1): ein spät endender, superseded Mesh-Thread darf die
+    Handles des neuen Builds nicht per Identitäts-blindem Nullen überschreiben."""
+    old_thread, old_worker = object(), object()
+    new_thread, new_worker = object(), object()
+    controller.mesh_build_thread = new_thread
+    controller.mesh_build_worker = new_worker
+    controller._mesh_build_draining.append(old_thread)
+
+    # Der alte (superseded) Thread endet: Identitätsprüfung lässt die aktuellen
+    # Referenzen unberührt, entfernt ihn aber aus der Draining-Liste.
+    controller._finish_mesh_build_thread(old_thread, old_worker)
+    assert controller.mesh_build_thread is new_thread
+    assert controller.mesh_build_worker is new_worker
+    assert old_thread not in controller._mesh_build_draining
+
+    # Endet der aktuelle Build, werden seine Referenzen geräumt.
+    controller._finish_mesh_build_thread(new_thread, new_worker)
+    assert controller.mesh_build_thread is None
+    assert controller.mesh_build_worker is None
 
 
 def test_flood_fill_releases_worker_on_completion(qapp, controller):

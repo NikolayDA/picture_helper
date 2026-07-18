@@ -660,6 +660,37 @@ les abandonne.
 | **Paliers** | Quantifier la hauteur en un nombre de niveaux. |
 | **Plage (min/max)** | Limiter la hauteur à une plage de valeurs. |
 
+### Aperçu du relief 3D
+
+Outre l'aperçu de relief 2D, vous pouvez afficher la carte de hauteur active
+comme une **véritable surface 3D pivotante**. En haut de la carte *Hauteur*, la
+ligne **Affichage** bascule entre **2D** et **3D** (ou via « Affichage →
+Afficher le relief 3D »). Le segment 3D n'est actif que lorsqu'il existe une
+carte de hauteur avec des données valides et que votre environnement graphique
+fournit OpenGL 2.1.
+
+La vue 3D est **en lecture seule** : elle permet de faire pivoter et d'inspecter
+la surface sous différents angles, mais ne modifie **ni les données de hauteur,
+ni l'image enregistrée, ni l'export**. Dans le viewport, faites glisser avec le
+bouton gauche pour orbiter, utilisez le bouton central ou Alt+glisser pour
+déplacer, et la molette pour zoomer. Au clavier, les flèches orbitent,
+Maj+flèches déplacent, `+`/`−` zooment, `Origine` ajuste la vue et `Maj+Origine`
+réinitialise la caméra, l'exagération et la lumière aux valeurs par défaut.
+
+Les commandes 3D règlent l'**exagération** (l'amplitude visuelle donnée au
+relief plat – uniquement l'affichage, jamais les données de hauteur),
+l'**azimut/élévation de la lumière** et la **qualité** (Réduite / Standard /
+Haute). Les très grandes images sont simplifiées automatiquement et de manière
+déterministe pour la vue 3D ; un indicateur « Vue simplifiée 1:N » en haut à
+gauche du viewport le signale. La référence exacte au pixel près reste l'aperçu
+2D.
+
+Si l'environnement ne fournit pas OpenGL 2.1 ou en cas d'erreur graphique,
+l'application reste pleinement utilisable : le segment 3D est désactivé, ou la
+visionneuse affiche un message clair avec les actions « Afficher le relief 2D »
+et « Réessayer » ; l'aperçu de relief 2D éprouvé est toujours disponible comme
+repli sûr.
+
 ---
 
 ## 12. Étape 6 – Export

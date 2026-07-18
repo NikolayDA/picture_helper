@@ -9,6 +9,33 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Véritable aperçu de relief 3D – interactif, performant et à dégradation
+  robuste (Epic #582, #592–#595).** Le calque HEIGHT canonique devient une
+  surface 3D que l'on peut faire pivoter, déplacer et zoomer (étape « Relief »,
+  segment **Affichage [2D|3D]** dans l'onglet Hauteur ou « Affichage → Afficher
+  le relief 3D »). Un noyau géométrique déterministe et sans Qt
+  (`relief_mesh.py`) transforme le champ de hauteur 16 bits en un maillage de
+  grille **strictement borné** (décimation par blocs pondérée par la couverture
+  et par bandes de lignes ; budgets de sommets/triangles par qualité – une image
+  de 40 MP ne produit jamais un maillage pleine résolution), et une visionneuse
+  `QOpenGLWidget` native Qt (`viewer_3d.py`) le rend via un chemin de shader
+  GL 2.1 avec éclairage Lambert. L'exagération, la lumière et la qualité sont des
+  paramètres d'affichage purs et bornés (exagération et lumière sans
+  reconstruction du maillage) ; la construction asynchrone et anti-rebond utilise
+  des identifiants de génération et un cache à maillage unique (invalidé
+  précisément lors des changements de hauteur/rôle/taille). En l'absence de
+  contexte OpenGL 2.1 ou en cas d'échec d'initialisation, l'application reste
+  stable et continue de proposer l'aperçu de relief 2D avec un message clair
+  (sonde de capacité + repli 2D garanti). « Enregistrer l'image », l'export
+  EufyMake et de projet sont inchangés : la vue 3D est en lecture seule, sans
+  écriture dans le modèle. Architecture/UX fixées dans
+  [`docs/history/ADR-2026-3d-reliefvorschau-renderer.md`](../../history/ADR-2026-3d-reliefvorschau-renderer.md)
+  et [`docs/UX_3D_PREVIEW.md`](../../UX_3D_PREVIEW.md) ; utilisation/repli dans
+  [`ANLEITUNG.md`](../../../ANLEITUNG.md). i18n à l'exécution (de/en) pour tous
+  les états 3D.
+
 ### Modifié
 
 - **Modèle hybride d'analyse de sécurité : CodeQL automatique, Codex

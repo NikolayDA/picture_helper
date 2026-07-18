@@ -640,6 +640,38 @@ Die Optimieren-Operationen zeigen eine **Live-Vorschau**; **Anwenden**
 | **Stufen** | Höhe auf eine Anzahl Stufen quantisieren. |
 | **Bereich (Min/Max)** | Höhe auf einen Wertebereich begrenzen. |
 
+### 3D-Reliefvorschau
+
+Neben der 2D-Reliefvorschau können Sie die aktive Höhenkarte als **echte,
+drehbare 3D-Oberfläche** betrachten. Oben in der Karte *Höhe* schaltet die
+Zeile **Darstellung** zwischen **2D** und **3D** um; alternativ über
+„Ansicht → 3D-Relief anzeigen". Das 3D-Segment ist nur aktiv, wenn eine
+Höhenkarte mit gültigen Daten vorhanden ist und Ihre Grafikumgebung
+OpenGL 2.1 bereitstellt.
+
+Die 3D-Ansicht ist **reine Darstellung**: Sie dreht, prüft und beurteilt die
+Oberfläche aus verschiedenen Blickwinkeln, verändert dabei aber **weder die
+Höhendaten noch das gespeicherte Bild oder den Export**. Bedienung im
+Viewport: linke Maustaste ziehen dreht (Orbit), mittlere Maustaste oder
+Alt+Ziehen verschiebt (Pan), das Mausrad zoomt. Mit der Tastatur drehen die
+Pfeiltasten, Umschalt+Pfeiltasten verschieben, `+`/`−` zoomen, `Pos1` passt
+ein und `Umschalt+Pos1` setzt Kamera, Überhöhung und Licht auf die
+Standardwerte zurück.
+
+Über die Regler im 3D-Abschnitt stellen Sie **Überhöhung** (wie stark das
+flache Relief räumlich überzeichnet wird – nur die Anzeige, nie die
+Höhendaten), **Licht-Azimut/-Höhe** und die **Qualität** (Reduziert /
+Standard / Hoch) ein. Sehr große Bilder werden für die 3D-Darstellung
+automatisch und deterministisch vereinfacht; ein Hinweis „Vereinfachte
+Darstellung 1:N" oben links im Viewport zeigt das an. Die pixelgenaue
+Referenz bleibt die 2D-Vorschau.
+
+Bietet die Umgebung kein OpenGL 2.1 oder tritt ein Grafikfehler auf, bleibt
+die App uneingeschränkt nutzbar: Das 3D-Segment ist dann deaktiviert bzw. der
+Viewer zeigt einen verständlichen Hinweis mit den Aktionen „2D-Relief
+anzeigen" und „Erneut versuchen" – die bewährte 2D-Reliefvorschau steht
+immer als sichere Rückfallebene zur Verfügung.
+
 ---
 
 ## 12. Schritt 6 – Export
