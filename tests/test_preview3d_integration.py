@@ -99,3 +99,16 @@ def test_leaving_relief_step_returns_to_2d(window) -> None:
     window._go_to_step(WorkflowStep.EXPORT)
     assert not window._preview3d_active
     assert window._canvas_stack.currentIndex() == 0
+
+
+def test_activating_3d_from_other_step_routes_to_relief(window) -> None:
+    # Review #620 (P2): 3D aus einem Nicht-Relief-Schritt (z. B. Ansicht-Menü)
+    # navigiert zuerst in den Relief-Schritt statt Stepper/Panel stehen zu lassen.
+    from bgremover.stepper import WorkflowStep
+    window._canvas.set_project(_height_project())
+    window._update_preview3d_availability()
+    window._go_to_step(WorkflowStep.EXPORT)
+    window._set_preview3d_mode(True)
+    assert window._preview3d_active
+    assert window._step is WorkflowStep.RELIEF
+    assert window._canvas_stack.currentIndex() == 1

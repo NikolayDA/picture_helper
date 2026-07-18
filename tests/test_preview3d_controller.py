@@ -41,11 +41,13 @@ class _FakeCanvas:
 class _FakeWorker:
     def __init__(self) -> None:
         self.calls: list[tuple[int, Callable]] = []
+        self.errors: list[Callable] = []
         self.cancelled = 0
 
     def start_mesh_build(self, field, quality, generation_id, on_done, *,
-                         physical_size_mm=None) -> bool:
+                         on_error=None, physical_size_mm=None) -> bool:
         self.calls.append((generation_id, on_done))
+        self.errors.append(on_error)
         return True
 
     def cancel_mesh_build(self) -> None:
@@ -106,16 +108,59 @@ def test_active_with_field_schedules_build_then_shows_mesh(qapp) -> None:
 def test_stale_generation_is_discarded(qapp) -> None:
     ctrl, canvas, worker, view = _make(qapp, _ok)
     ctrl.set_active(True)
-    ctrl._start_build()                       # Generation 1
-    stale_gen, stale_cb = worker.calls[0]
+    ctrl._start_build()                       # Build der Generation 1 (K1)
+    gen1, cb1 = worker.calls[0]
+    # Inhalt ändert sich, während Generation 1 „läuft": _evaluate erhöht die
+    # Generation *sofort* und bricht den laufenden Build ab.
     canvas.content_revision = 2
-    ctrl._start_build()                       # Generation 2
-    _deliver(ctrl, worker, index=1)           # aktuelles Ergebnis
+    ctrl.refresh()
+    ctrl._start_build()                       # Build der Generation 2 (K2)
+    gen2, cb2 = worker.calls[1]
+    assert gen1 != gen2
+    fresh = build_relief_mesh(_field(), MeshQuality.STANDARD)
+    cb2(fresh, gen2)                          # aktuelles Ergebnis
     assert view.state == "ready"
-    # Verspätetes Ergebnis der Generation 1 darf den Zustand nicht überschreiben.
-    mesh = build_relief_mesh(_field(), MeshQuality.STANDARD)
-    stale_cb(mesh, stale_gen)
-    assert ctrl._generation == 2
+    assert ctrl._cache_mesh is fresh
+    # Das verspätete Ergebnis der Generation 1 wird verworfen – nie gecacht.
+    stale = build_relief_mesh(_field(), MeshQuality.STANDARD)
+    cb1(stale, gen1)
+    assert ctrl._cache_mesh is fresh
+
+
+def test_supersede_cancels_running_build(qapp) -> None:
+    ctrl, canvas, worker, _view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    cancels_before = worker.cancelled
+    canvas.content_revision = 5
+    ctrl.refresh()                            # _evaluate bricht laufenden Build ab
+    assert worker.cancelled > cancels_before
+
+
+def test_mesh_build_error_shows_error_state(qapp) -> None:
+    ctrl, _canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    gen, _cb = worker.calls[0]
+    on_error = worker.errors[0]
+    assert on_error is not None
+    on_error("Kaputt", gen)                   # Worker-Fehler der aktuellen Generation
+    assert view.state == "error"
+
+
+def test_stale_mesh_error_is_ignored(qapp) -> None:
+    ctrl, canvas, worker, view = _make(qapp, _ok)
+    ctrl.set_active(True)
+    ctrl._start_build()
+    gen1, _cb1 = worker.calls[0]
+    stale_error = worker.errors[0]
+    canvas.content_revision = 2
+    ctrl.refresh()
+    ctrl._start_build()
+    _deliver(ctrl, worker, index=1)
+    assert view.state == "ready"
+    stale_error("alter Fehler", gen1)         # veraltete Generation → ignorieren
+    assert view.state == "ready"
 
 
 # ── Cache ──────────────────────────────────────────────────────────────────

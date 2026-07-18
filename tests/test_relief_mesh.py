@@ -122,6 +122,18 @@ def test_fully_transparent_field_yields_no_triangles() -> None:
     assert lo.shape == (3,)
 
 
+def test_bounds_ignore_uncovered_vertices() -> None:
+    # Ein einzelnes hohes, aber ungedecktes Pixel darf die Rahmung (fit/reset)
+    # nicht auf unsichtbare Geometrie ziehen.
+    values = np.zeros((10, 10), np.uint16)
+    values[0, 0] = HEIGHT_MAX_16BIT
+    coverage = np.full((10, 10), 255, np.uint8)
+    coverage[0, 0] = 0
+    mesh = build_relief_mesh(_field(values, coverage), MeshQuality.STANDARD)
+    _lo, hi = mesh.bounds
+    assert float(hi[2]) == pytest.approx(0.0, abs=1e-6)  # ungedeckte Spitze ignoriert
+
+
 # ── Budgets / Decimation ─────────────────────────────────────────────────
 @pytest.mark.parametrize("quality,limit", [
     (MeshQuality.REDUCED, 256),
@@ -165,10 +177,30 @@ def test_coverage_weighted_decimation_ignores_uncovered_height() -> None:
 def test_banded_decimation_matches_single_band() -> None:
     rng = np.random.default_rng(7)
     values = rng.integers(0, HEIGHT_MAX_16BIT, (400, 400), dtype=np.uint16)
-    field = _field(values)
-    a, ca = decimate_field(field, 80, 80, max_temp_bytes=1024)      # viele Bänder
-    b, cb = decimate_field(field, 80, 80, max_temp_bytes=1 << 30)   # ein Band
+    coverage = rng.integers(0, 256, (400, 400), dtype=np.uint8)
+    field = _field(values, coverage)
+    # Winziges Budget erzwingt Zeilenband- **und** Spaltenkachelung.
+    a, ca = decimate_field(field, 80, 80, max_temp_bytes=512)
+    b, cb = decimate_field(field, 80, 80, max_temp_bytes=1 << 30)   # ein Tile
     assert np.array_equal(a, b) and np.array_equal(ca, cb)
+
+
+def test_wide_aspect_is_memory_bounded() -> None:
+    # Extremes Seitenverhältnis (breit): früher materialisierte ein Zeilenband
+    # alle Spalten als float64 → potenziell hunderte MB. Die Spaltenkachelung
+    # begrenzt den transienten Puffer hart.
+    import tracemalloc
+
+    wide = _field(
+        np.zeros((1, 1_500_000), np.uint16),
+        np.full((1, 1_500_000), 255, np.uint8),
+    )
+    tracemalloc.start()
+    mesh = build_relief_mesh(wide, MeshQuality.STANDARD)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    assert mesh.grid_size[1] == 512
+    assert peak < 128 * 1024 * 1024  # deutlich unter dem 128-MB-Budget
 
 
 # ── Determinismus / Nicht-Mutation / Abbruch ─────────────────────────────

@@ -49,6 +49,7 @@ class _WorkerLike(Protocol):
         generation_id: int,
         on_done: Callable[[object, int], None],
         *,
+        on_error: Callable[[str, int], None] | None = None,
         physical_size_mm: tuple[float, float] | None = None,
     ) -> bool: ...
     def cancel_mesh_build(self) -> None: ...
@@ -80,6 +81,7 @@ class Preview3DController(QObject):
         self._generation = 0
         self._cache_key: MeshCacheKey | None = None
         self._cache_mesh: ReliefMesh | None = None
+        self._pending_key: MeshCacheKey | None = None
         self._displaying = False
 
         self._debounce = QTimer(self)
@@ -194,15 +196,35 @@ class Preview3DController(QObject):
             self._debounce.stop()
             self._show_cached()
             return
-        # Cache-Miss → entprellter Rebuild. Ein bereits angezeigtes Mesh bleibt
-        # stehen (kein Schwarzbild); sonst erscheint der Ladezustand.
+        if (
+            not force_rebuild
+            and key == self._pending_key
+            and self._debounce.isActive()
+        ):
+            # Für genau diesen Zustand ist bereits ein Build entprellt – kein
+            # unnötiges Neubumpen/Cancel-Restart im 200-ms-Fenster.
+            return
+        # Cache-Miss → **generationssicherer**, entprellter Rebuild. Die
+        # Generation wird bereits *hier* erhöht (nicht erst beim Build-Start) und
+        # ein laufender Build kooperativ abgebrochen: ein verspätetes älteres
+        # Ergebnis trägt damit eine veraltete Generation und wird in
+        # ``_on_mesh_ready`` verworfen – es kann nie unter dem neuen Key gecacht
+        # oder angezeigt werden (stale-result-Schutz, Review #620). Ein bereits
+        # angezeigtes Mesh bleibt stehen (kein Schwarzbild).
+        self._generation += 1
+        self._workers.cancel_mesh_build()
         self._pending_key = key
         if not self._displaying:
             self._view.show_loading()
         self._debounce.start()
 
     def _start_build(self) -> None:
-        """Startet den asynchronen Mesh-Build mit neuer Generation-ID."""
+        """Startet den asynchronen Mesh-Build für die aktuelle Generation.
+
+        Die Generation-ID stammt aus :meth:`_evaluate` (dort erhöht); hier wird
+        sie **nicht** erneut erhöht, damit ein zwischenzeitlich superseded
+        Zustand (erneutes ``_evaluate``) diesen Build eindeutig entwertet.
+        """
         if not self._active:
             return
         field = self._canvas.height_preview_field()
@@ -210,17 +232,10 @@ class Preview3DController(QObject):
             self._view.show_empty()
             self._displaying = False
             return
-        self._generation += 1
         generation = self._generation
-        key = mesh_cache_key(
-            content_revision=self._canvas.content_revision,
-            source_size=field.size,  # type: ignore[attr-defined]
-            quality=self._quality,
-            physical_size_mm=self._canvas.physical_size_mm(),
-        )
-        self._pending_key = key
         self._workers.start_mesh_build(
             field, self._quality, generation, self._on_mesh_ready,
+            on_error=self._on_mesh_error,
             physical_size_mm=self._canvas.physical_size_mm(),
         )
 
@@ -235,8 +250,21 @@ class Preview3DController(QObject):
             return
         assert isinstance(mesh, ReliefMesh)
         self._cache_mesh = mesh
-        self._cache_key = getattr(self, "_pending_key", None)
+        self._cache_key = self._pending_key
         self._show_cached()
+
+    def _on_mesh_error(self, message: str, generation: int) -> None:
+        """Meldet einen Mesh-Build-Fehler als Fehlerzustand (mit Retry-Pfad).
+
+        Nur für die aktuelle Generation im aktiven 3D-Modus – ein Fehler eines
+        bereits superseded Builds wird ignoriert. So bleibt der Nutzer nicht im
+        Ladezustand hängen, wenn der Worker unerwartet scheitert (Review #620).
+        """
+        if not self._active or generation != self._generation:
+            return
+        logger.warning("3D-Mesh-Build fehlgeschlagen: %s", message)
+        self._displaying = False
+        self._view.show_error()
 
     def _show_cached(self) -> None:
         assert self._cache_mesh is not None

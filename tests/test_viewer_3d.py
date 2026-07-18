@@ -55,6 +55,22 @@ def test_show_mesh_reaches_ready_or_error(qapp) -> None:
     assert view.state in ("ready", "error")
 
 
+def test_failed_viewer_is_recreated_on_retry(qapp) -> None:
+    view = Relief3DView()
+    view.show_mesh(_mesh())
+    viewer = view.viewer()
+    if viewer is None:
+        pytest.skip("Kein GL-Viewer-Widget verfügbar")
+    # GL-Fehler simulieren: der Viewer ist nicht mehr renderfähig.
+    viewer._failed = True
+    view.show_mesh(_mesh())
+    new_viewer = view.viewer()
+    # Der fehlgeschlagene Viewer wurde verworfen und ein frischer aufgebaut.
+    assert new_viewer is not None
+    assert new_viewer is not viewer
+    assert not new_viewer.has_failed
+
+
 def test_decimation_badge_reflects_factor(qapp) -> None:
     view = Relief3DView()
     view.show_mesh(_large_mesh())

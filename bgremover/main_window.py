@@ -1571,6 +1571,15 @@ class MainWindow(QMainWindow):
         active = bool(active)
         if active == self._preview3d_active:
             return
+        # Die 3D-Ansicht gehört in den Relief-Schritt (UX-Vertrag §1). Wird sie
+        # aus einem anderen Schritt heraus (z. B. über das Ansicht-Menü)
+        # aktiviert, zuerst dorthin navigieren, damit Stepper/rechtes Panel nicht
+        # auf einem fremden Schritt stehen bleiben (Review #620, P2). Das Gating
+        # (Bild geladen) bleibt gewahrt; ohne Bild ist der Menüeintrag inaktiv.
+        if active and self._step is not WorkflowStep.RELIEF:
+            if not self._canvas.has_image:
+                return
+            self._go_to_step(WorkflowStep.RELIEF)
         self._preview3d_active = active
         self._preview3d.set_active(active)
         self._canvas_stack.setCurrentIndex(1 if active else 0)

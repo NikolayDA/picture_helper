@@ -58,6 +58,10 @@ class WorkerController:
         self.flood_fill_worker: FloodFillWorker | None = None
         self.mesh_build_thread: QThread | None = None
         self.mesh_build_worker: MeshBuildWorker | None = None
+        # Superseded, aber noch nicht beendete Mesh-Threads (nach cancel()):
+        # shutdown_all wartet sie ab, damit beim Fensterschluss kein lebender
+        # QThread verbleibt (Review #620, P1).
+        self._mesh_build_draining: list[QThread] = []
         # Starke Python-Referenz auf jeden aktiven Worker. PyQt verbindet
         # Slots gebundener Methoden nur schwach: ohne diese Liste sammelt
         # CPython den Worker direkt nach _build_thread ein und run() liefe
@@ -386,39 +390,56 @@ class WorkerController:
         generation_id: int,
         on_done: Callable[[object, int], None],
         *,
+        on_error: Callable[[str, int], None] | None = None,
         physical_size_mm: tuple[float, float] | None = None,
     ) -> bool:
-        """Startet einen 3D-Mesh-Build; bricht einen laufenden zuvor ab (#594).
+        """Startet einen 3D-Mesh-Build; entwertet einen laufenden zuvor (#594).
 
         Anders als KI/Flood-Fill ist immer nur **ein** aktueller Build sinnvoll:
-        eine neue geometriewirksame Änderung entwertet den laufenden. Ein bereits
-        laufender Build wird deshalb kooperativ abgebrochen und der neue erst nach
-        dessen Ende gestartet ist nicht nötig – der abgebrochene Worker emittiert
-        kein ``finished`` mehr, seine veraltete Generation-ID würde ohnehin
-        verworfen. Der neue Worker läuft auf einem eigenen kurzlebigen Thread.
+        eine neue geometriewirksame Änderung entwertet den laufenden. Der bisher
+        aktuelle Build wird kooperativ abgebrochen und – da er nach ``cancel()``
+        noch kurz weiterläuft – in eine **Draining-Liste** verschoben, bis sein
+        Thread wirklich endet. Beide Referenzen (`mesh_build_thread`/`-worker`)
+        zeigen sofort auf den **neuen** Build; der Abschluss-Callback räumt nur
+        die zum jeweils endenden Thread gehörenden Referenzen (Identitätsprüfung),
+        sodass ein spät endender alter Thread nicht die Handles des neuen
+        überschreibt (Review #620, P1). ``on_error`` erhält die Generation-ID des
+        gescheiterten Builds, damit die UI aus dem Ladezustand herausfindet.
         """
-        self.cancel_mesh_build()
+        if self.mesh_build_worker is not None:
+            self.mesh_build_worker.cancel()
+        if self.mesh_build_thread is not None and self.mesh_build_thread.isRunning():
+            self._mesh_build_draining.append(self.mesh_build_thread)
+
         worker = MeshBuildWorker(
             field, quality, generation_id, physical_size_mm=physical_size_mm)
         worker.finished.connect(self._guard_ui_callback(on_done))
+        if on_error is not None:
+            worker.error.connect(
+                self._guard_ui_callback(
+                    lambda msg, g=generation_id: on_error(msg, g)))
         self.mesh_build_worker = worker
-        thread = self._build_thread(
-            worker,
-            quit_on=(worker.done,),
-            on_finished=self._finish_mesh_build_thread,
-        )
+        thread = self._build_thread(worker, quit_on=(worker.done,))
+        thread.finished.connect(
+            lambda t=thread, w=worker: self._finish_mesh_build_thread(t, w))
         self.mesh_build_thread = thread
         thread.start()
         return True
 
     def cancel_mesh_build(self) -> None:
-        """Markiert einen laufenden Mesh-Build als abgebrochen (kein Ergebnis)."""
+        """Markiert den aktuellen Mesh-Build als abgebrochen (kein Ergebnis)."""
         if self.mesh_build_worker is not None:
             self.mesh_build_worker.cancel()
 
-    def _finish_mesh_build_thread(self) -> None:
-        self.mesh_build_thread = None
-        self.mesh_build_worker = None
+    def _finish_mesh_build_thread(self, thread: QThread, worker: QObject) -> None:
+        # Nur die zum tatsächlich endenden Build gehörenden Referenzen räumen:
+        # ein spät endender, superseded Thread darf die Handles des neuen Builds
+        # nicht auf None setzen (Review #620, P1).
+        if self.mesh_build_worker is worker:
+            self.mesh_build_thread = None
+            self.mesh_build_worker = None
+        with contextlib.suppress(ValueError):
+            self._mesh_build_draining.remove(thread)
 
     def shutdown_all(self) -> bool:
         """Stoppt alle Worker; False hält das besitzende Fenster am Leben."""
@@ -476,7 +497,17 @@ class WorkerController:
         if shutdowns[5][1]:
             self.mesh_build_worker = None
 
-        all_stopped = all(stopped for _, stopped in shutdowns)
+        # Superseded, aber noch nicht beendete Mesh-Threads abwarten – sonst
+        # bliebe beim Fensterschluss ein lebender QThread zurück (Review #620).
+        drained = True
+        for draining in list(self._mesh_build_draining):
+            if self.shutdown_thread(draining, "3D-Mesh-Aufbau (superseded)"):
+                with contextlib.suppress(ValueError):
+                    self._mesh_build_draining.remove(draining)
+            else:
+                drained = False
+
+        all_stopped = drained and all(stopped for _, stopped in shutdowns)
         if not all_stopped:
             # Das Fenster bleibt offen; reguläre Worker-Callbacks dürfen
             # deshalb bei einem späteren Abschluss wieder die lebende UI

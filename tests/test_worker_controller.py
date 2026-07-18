@@ -696,6 +696,28 @@ def test_shutdown_all_keeps_unstopped_thread_referenced(
     assert controller._shutting_down is False
 
 
+def test_mesh_finish_only_clears_matching_worker(controller):
+    """Review #620 (P1): ein spät endender, superseded Mesh-Thread darf die
+    Handles des neuen Builds nicht per Identitäts-blindem Nullen überschreiben."""
+    old_thread, old_worker = object(), object()
+    new_thread, new_worker = object(), object()
+    controller.mesh_build_thread = new_thread
+    controller.mesh_build_worker = new_worker
+    controller._mesh_build_draining.append(old_thread)
+
+    # Der alte (superseded) Thread endet: Identitätsprüfung lässt die aktuellen
+    # Referenzen unberührt, entfernt ihn aber aus der Draining-Liste.
+    controller._finish_mesh_build_thread(old_thread, old_worker)
+    assert controller.mesh_build_thread is new_thread
+    assert controller.mesh_build_worker is new_worker
+    assert old_thread not in controller._mesh_build_draining
+
+    # Endet der aktuelle Build, werden seine Referenzen geräumt.
+    controller._finish_mesh_build_thread(new_thread, new_worker)
+    assert controller.mesh_build_thread is None
+    assert controller.mesh_build_worker is None
+
+
 def test_flood_fill_releases_worker_on_completion(qapp, controller):
     arr = np.zeros((6, 8, 4), dtype=np.uint8)
     arr[..., 3] = 255  # opak; Pixelinhalt egal fuer Tolerance=0/Saat (0,0)

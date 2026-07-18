@@ -39,6 +39,7 @@ Konstruktion write-gelockt; die Quell-Payload wird nie kopiert oder mutiert.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -141,11 +142,19 @@ class ReliefMesh:
 
     @property
     def bounds(self) -> tuple[np.ndarray, np.ndarray]:
-        """Achsenparallele Bounding-Box ``(min_xyz, max_xyz)`` (leer → Nullbox)."""
-        if self.vertex_count == 0:
+        """Achsenparallele Bounding-Box **des gerenderten Reliefs** (Nullbox leer).
+
+        Bewusst nur über die von Dreiecken referenzierten (gedeckten) Vertices:
+        ungedeckte Pixel behalten laut #586-Vertrag beliebige Höhen, dürfen aber
+        die Kamera-Rahmung (`fit`/`reset`) nicht auf unsichtbare Geometrie
+        ziehen. Ohne Dreiecke gibt es kein sichtbares Relief → Nullbox.
+        """
+        if self.vertex_count == 0 or self.triangle_count == 0:
             zero = np.zeros(3, dtype=np.float32)
             return zero, zero.copy()
-        return self.positions.min(axis=0), self.positions.max(axis=0)
+        used = np.unique(self.indices)
+        pts = self.positions[used]
+        return pts.min(axis=0), pts.max(axis=0)
 
 
 @dataclass(frozen=True)
@@ -280,34 +289,44 @@ def decimate_field(
     col_edges = _block_edges(w, grid_w)
     row_edges = _block_edges(h, grid_h)
     # Persistente Akkumulatoren nur in Zielgröße (klein). Die Reduktion läuft in
-    # **Ausgabezeilen-Bändern**: je Band werden nur die zugehörigen Quellzeilen
-    # geladen und sofort auf ihre Zielzeilen reduziert – der transiente Puffer
-    # bleibt vom Bildmaß unabhängig (Deckel ``max_temp_bytes``, zwei float64-
-    # Arbeitsarrays cov + weighted eingerechnet).
+    # **2D-Kacheln** aus Ausgabezeilen-Bändern × Ausgabespalten-Kacheln: je Kachel
+    # werden nur die zugehörigen Quellpixel als float64 materialisiert und sofort
+    # auf ihre Zielzellen reduziert. So bleibt der transiente Puffer vom Bildmaß
+    # **und vom Seitenverhältnis** unabhängig unter ``max_temp_bytes`` – auch ein
+    # extrem breites (oder hohes) Feld unter dem MP-Deckel kann nicht OOMen.
     wsum = np.empty((grid_h, grid_w), dtype=np.float64)
     csum = np.empty((grid_h, grid_w), dtype=np.float64)
-    # Budget für die drei gleichzeitig lebenden Band-Arbeitsarrays (cov,
-    # weighted, Spalten-Reduktion) – hält den transienten Peak vom Bildmaß
-    # unabhängig unter dem Deckel.
-    src_rows_budget = max(1, max_temp_bytes // (w * 8 * 3))
+    # Elementbudget je Kachel: cov + weighted (+ reduceat-Ausgabe) ~ 3 float64.
+    max_elems = max(1, max_temp_bytes // (8 * 3))
+    # Zeilenkappe quadratisch balanciert, damit auch bei kleiner Kappe eine
+    # nutzbare Spaltenkachel bleibt (mind. 1 Ausgabezeile je Band).
+    row_cap = max(1, int(math.isqrt(max_elems)))
     gi = 0
     while gi < grid_h:
         _check_cancel(cancel)
-        # So viele Zielzeilen bündeln, dass ihre Quellzeilen im Temp-Budget bleiben
-        # (mindestens eine Zielzeile, auch wenn ihr Block das Budget überschreitet).
         gj = gi + 1
-        while gj < grid_h and (row_edges[gj + 1] - row_edges[gi]) <= src_rows_budget:
+        while gj < grid_h and (row_edges[gj + 1] - row_edges[gi]) <= row_cap:
             gj += 1
-        src0, src1 = int(row_edges[gi]), int(row_edges[gj])
-        cov = coverage[src0:src1].astype(np.float64)
-        # weighted = values·cov in-place (kein separater values-float-Puffer).
-        weighted = values[src0:src1].astype(np.float64)
-        weighted *= cov
-        wc = np.add.reduceat(weighted, col_edges[:-1], axis=1)
-        cc = np.add.reduceat(cov, col_edges[:-1], axis=1)
-        local_edges = row_edges[gi:gj + 1] - src0
-        wsum[gi:gj] = np.add.reduceat(wc, local_edges[:-1], axis=0)
-        csum[gi:gj] = np.add.reduceat(cc, local_edges[:-1], axis=0)
+        src_r0, src_r1 = int(row_edges[gi]), int(row_edges[gj])
+        src_rows = src_r1 - src_r0
+        col_cap = max(1, max_elems // src_rows)  # Quellspalten je Kachel
+        ci = 0
+        while ci < grid_w:
+            cj = ci + 1
+            while cj < grid_w and (col_edges[cj + 1] - col_edges[ci]) <= col_cap:
+                cj += 1
+            src_c0, src_c1 = int(col_edges[ci]), int(col_edges[cj])
+            cov = coverage[src_r0:src_r1, src_c0:src_c1].astype(np.float64)
+            # weighted = values·cov in-place (kein separater values-float-Puffer).
+            weighted = values[src_r0:src_r1, src_c0:src_c1].astype(np.float64)
+            weighted *= cov
+            local_cols = col_edges[ci:cj + 1] - src_c0
+            wc = np.add.reduceat(weighted, local_cols[:-1], axis=1)
+            cc = np.add.reduceat(cov, local_cols[:-1], axis=1)
+            local_rows = row_edges[gi:gj + 1] - src_r0
+            wsum[gi:gj, ci:cj] = np.add.reduceat(wc, local_rows[:-1], axis=0)
+            csum[gi:gj, ci:cj] = np.add.reduceat(cc, local_rows[:-1], axis=0)
+            ci = cj
         gi = gj
         _report(progress, 0.6 * gi / grid_h)
     _check_cancel(cancel)

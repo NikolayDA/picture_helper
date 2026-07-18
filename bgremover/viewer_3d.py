@@ -539,7 +539,13 @@ class Relief3DView(QStackedWidget):
     # ── intern ───────────────────────────────────────────────────────────
     def _ensure_viewer(self) -> GLReliefViewer | None:
         if self._viewer is not None:
-            return self._viewer
+            # Ein bereits fehlgeschlagener Viewer (initializeGL/paintGL-Fehler)
+            # kann nicht wieder rendern – vor einem Retry verwerfen und neu
+            # aufbauen, sonst bliebe der Container fälschlich „ready" ohne Bild
+            # (Review #620, P2).
+            if not self._viewer.has_failed:
+                return self._viewer
+            self._discard_viewer()
         if not _HAS_GL_WIDGET:
             return None
         try:
@@ -555,6 +561,20 @@ class Relief3DView(QStackedWidget):
         except Exception as exc:  # noqa: BLE001
             logger.warning("3D-Viewer konnte nicht erstellt werden: %s", exc)
             return None
+
+    def _discard_viewer(self) -> None:
+        """Verwirft den (fehlgeschlagenen) GL-Viewer kontrolliert."""
+        viewer = self._viewer
+        self._viewer = None
+        if viewer is None:
+            return
+        with contextlib.suppress(Exception):
+            viewer.cleanup_gl()
+        layout = self._ready_page.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.removeWidget(viewer)
+        viewer.setParent(None)
+        viewer.deleteLater()
 
     def _update_badge(self, mesh: ReliefMesh) -> None:
         if mesh.is_decimated:
