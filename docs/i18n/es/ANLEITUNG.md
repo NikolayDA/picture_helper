@@ -675,7 +675,7 @@ la imagen guardada o la exportación**. En el viewport, arrastra con el botón
 izquierdo para orbitar, usa el botón central o Alt+arrastrar para desplazar y
 la rueda para acercar. Con el teclado, las flechas orbitan, Mayús+flechas
 desplazan, `+`/`−` acercan, `Inicio` ajusta la vista y `Mayús+Inicio` restablece
-cámara, exageración y luz a los valores predeterminados.
+cámara, exageración, luz y calidad a los valores predeterminados.
 
 Los controles 3D ajustan la **exageración** (cuánto se amplifica visualmente el
 relieve plano – solo la visualización, nunca los datos de altura), el **azimut

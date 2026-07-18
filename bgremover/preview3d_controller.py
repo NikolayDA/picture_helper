@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from PyQt6.QtCore import QObject, QTimer
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from bgremover.constants import logger
 from bgremover.preview3d_capability import (
@@ -57,6 +57,8 @@ class _WorkerLike(Protocol):
 
 class Preview3DController(QObject):
     """Orchestriert Gating, Build, Cache und Anzeige der 3D-Vorschau."""
+
+    capabilityChecked = pyqtSignal(object)
 
     def __init__(
         self,
@@ -104,6 +106,14 @@ class Preview3DController(QObject):
     def quality(self) -> MeshQuality:
         return self._quality
 
+    @property
+    def exaggeration(self) -> float:
+        return self._exaggeration
+
+    @property
+    def light(self) -> tuple[float, float]:
+        return self._light
+
     def set_show_2d_callback(self, callback: Callable[[], None]) -> None:
         """Verbindet den „2D-Relief anzeigen"-Button des Fehlerzustands."""
         self._view.show2DRequested.connect(callback)
@@ -146,6 +156,7 @@ class Preview3DController(QObject):
         self._view.fit_view()
 
     def reset_view(self) -> None:
+        self.set_quality(MeshQuality.STANDARD)
         self._exaggeration = 1.0
         self._light = (315.0, 45.0)
         self._view.reset_view()
@@ -166,6 +177,7 @@ class Preview3DController(QObject):
     def _evaluate(self, *, force_rebuild: bool) -> None:
         """Bestimmt den Zielzustand: unavailable/empty/cache-hit/(debounced) build."""
         capability = self._capability_probe()
+        self.capabilityChecked.emit(capability)
         if not capability.ok:
             self._debounce.stop()
             self._workers.cancel_mesh_build()

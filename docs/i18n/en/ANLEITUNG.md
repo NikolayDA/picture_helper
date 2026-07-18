@@ -613,7 +613,7 @@ from different angles but changes **neither the height data nor the saved
 image or export**. In the viewport, drag with the left mouse button to orbit,
 use the middle button or Alt+drag to pan, and the wheel to zoom. With the
 keyboard, arrow keys orbit, Shift+arrows pan, `+`/`−` zoom, `Home` fits the
-view and `Shift+Home` resets camera, exaggeration and light to defaults.
+view and `Shift+Home` resets camera, exaggeration, light and quality to defaults.
 
 The 3D controls set **exaggeration** (how strongly the flat relief is visually
 amplified – display only, never the height data), **light azimuth/elevation**

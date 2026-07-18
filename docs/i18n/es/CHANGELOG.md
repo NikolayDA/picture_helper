@@ -37,6 +37,12 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **Auditoría posterior 3D: capacidad lazy, estado de UI coherente y
+  recuperación robusta del contexto (#582/#595).** El probe OpenGL solo se
+  ejecuta al primer uso 3D; exageración, luz y calidad se sincronizan mediante
+  QSettings y paneles reconstruidos; Restablecer recupera todos los parámetros;
+  y un contexto GL perdido vuelve a cargar el mesh de CPU.
+
 - **Modelo híbrido de análisis de seguridad: CodeQL automático, Codex solo
   manual (#551).** CodeQL ahora se ejecuta como una configuración avanzada
   versionada (`.github/workflows/codeql.yml`), analizando Python

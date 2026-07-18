@@ -655,7 +655,7 @@ Höhendaten noch das gespeicherte Bild oder den Export**. Bedienung im
 Viewport: linke Maustaste ziehen dreht (Orbit), mittlere Maustaste oder
 Alt+Ziehen verschiebt (Pan), das Mausrad zoomt. Mit der Tastatur drehen die
 Pfeiltasten, Umschalt+Pfeiltasten verschieben, `+`/`−` zoomen, `Pos1` passt
-ein und `Umschalt+Pos1` setzt Kamera, Überhöhung und Licht auf die
+ein und `Umschalt+Pos1` setzt Kamera, Überhöhung, Licht und Qualität auf die
 Standardwerte zurück.
 
 Über die Regler im 3D-Abschnitt stellen Sie **Überhöhung** (wie stark das

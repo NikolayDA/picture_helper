@@ -96,7 +96,7 @@ sind und die Pan-Gesten bewusst **identisch** zur 2D-Konvention liegen.
 | Pan (Fokuspunkt verschieben) | Mittlere Taste **oder** Alt+Linke Taste ziehen (wie 2D-Canvas) | Umschalt+Pfeiltasten |
 | Zoom | Mausrad / Trackpad-Scrollen (Grenzen: Nah-/Fernklemme) | `+` / `−` |
 | Einpassen (Fit-to-view) | Button „Einpassen" | `Pos1`; zusätzlich global `Strg+0` (gleiche Semantik wie 2D-„Einpassen", kontextabhängig geroutet) |
-| Ansicht zurücksetzen (Kamera + Überhöhung + Licht auf Defaults) | Button „Zurücksetzen" | `Umschalt+Pos1` |
+| Ansicht zurücksetzen (Kamera + Überhöhung + Licht + Qualität auf Defaults) | Button „Zurücksetzen" | `Umschalt+Pos1` |
 | Fokus verlassen | – | `Esc` / `Tab` (kein Fokus-Traps; `Esc` bricht zuvor eine laufende Drag-Geste ab, wie im 2D-Canvas) |
 
 - Orbit klemmt die Polhöhe (±88°) gegen Kamerasprünge; Zoomgrenzen

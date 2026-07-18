@@ -1,6 +1,7 @@
 """MainWindow – die Top-Level-Fensterklasse."""
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
@@ -73,7 +74,11 @@ from bgremover.main_toolbar import (
     theme_toggle_tooltip,
 )
 from bgremover.menu_actions import MainMenuCallbacks, build_main_menu
-from bgremover.preview3d_capability import probe_3d_capability
+from bgremover.preview3d_capability import (
+    RendererCapability,
+    cached_3d_capability,
+    probe_3d_capability,
+)
 from bgremover.preview3d_controller import Preview3DController
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import (
@@ -102,6 +107,9 @@ from bgremover.settings_schema import (
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
     EXPORT_INCLUDE_HEIGHT_KEY,
+    PREVIEW3D_EXAGGERATION_KEY,
+    PREVIEW3D_LIGHT_AZIMUTH_KEY,
+    PREVIEW3D_LIGHT_ELEVATION_KEY,
     PREVIEW3D_QUALITY_KEY,
     THEME_KEY,
     is_future_schema,
@@ -136,6 +144,23 @@ def _quality_from_setting(value: str) -> MeshQuality:
     except ValueError:
         return MeshQuality.STANDARD
 
+
+def _bounded_float_setting(
+    settings: QSettings,
+    key: str,
+    default: float,
+    minimum: float,
+    maximum: float,
+) -> float:
+    """Liest eine endliche UI-Zahl defensiv und klemmt sie in den Vertrag."""
+    try:
+        value = float(settings.value(key, default))
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(value):
+        return default
+    return max(minimum, min(maximum, value))
+
 # Befunde, die vor einem **normalen** Raster-Speichern (#380) bewusst NICHT
 # angezeigt werden: BgRemover ist ein Freistellungswerkzeug, Teiltransparenz ist
 # das erwartete Ergebnis und keine warnwürdige Auffälligkeit. Alle übrigen Befunde
@@ -146,6 +171,7 @@ _SAVE_CHECK_SKIP_CODES = frozenset({CheckCode.UNEXPECTED_ALPHA})
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+        self._preview3d_capability: RendererCapability | None = None
         self.setWindowTitle(f"BgRemover Pro {__version__}")
         self.setMinimumSize(_WINDOW_MIN_W, _WINDOW_MIN_H)
         self._bg_color   = QColor(255, 255, 255)
@@ -312,10 +338,25 @@ class MainWindow(QMainWindow):
             self._relief3d_view, self._canvas, self._worker_controller,
             capability_probe=probe_3d_capability, parent=self)
         self._preview3d.set_show_2d_callback(lambda: self._set_preview3d_mode(False))
+        self._relief3d_view.resetRequested.connect(self._reset_preview3d_view)
+        self._preview3d.capabilityChecked.connect(
+            self._on_preview3d_capability_checked
+        )
         self._preview3d_active = False
         stored_quality = str(
             self._settings.value(PREVIEW3D_QUALITY_KEY, MeshQuality.STANDARD.value))
         self._preview3d.set_quality(_quality_from_setting(stored_quality))
+        self._preview3d.set_exaggeration(_bounded_float_setting(
+            self._settings, PREVIEW3D_EXAGGERATION_KEY, 1.0, 0.1, 10.0,
+        ))
+        self._preview3d.set_light(
+            _bounded_float_setting(
+                self._settings, PREVIEW3D_LIGHT_AZIMUTH_KEY, 315.0, 0.0, 360.0,
+            ),
+            _bounded_float_setting(
+                self._settings, PREVIEW3D_LIGHT_ELEVATION_KEY, 45.0, 15.0, 90.0,
+            ),
+        )
 
         body.addWidget(self._canvas_stack, 1)
         # Body-Layout und rechten Rahmen merken, damit das Panel beim
@@ -405,11 +446,11 @@ class MainWindow(QMainWindow):
             ),
             preview3d_actions=Preview3DActions(
                 set_mode_3d=self._set_preview3d_mode,
-                set_exaggeration=self._preview3d.set_exaggeration,
-                set_light=self._preview3d.set_light,
+                set_exaggeration=self._set_preview3d_exaggeration,
+                set_light=self._set_preview3d_light,
                 set_quality=self._set_preview3d_quality,
                 fit_view=self._preview3d.fit_view,
-                reset_view=self._preview3d.reset_view,
+                reset_view=self._reset_preview3d_view,
             ),
             on_open=self._open_image,
             on_open_path=self._open_recent_path,
@@ -422,6 +463,7 @@ class MainWindow(QMainWindow):
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
+        self._sync_preview3d_controls()
         self._preview_mode_segments = panel.preview_mode_segments
         self._preview_relief_label = panel.preview_relief_label
         self._preview_relief_slider = panel.preview_relief_slider
@@ -1541,19 +1583,22 @@ class MainWindow(QMainWindow):
     # ── 3D-Reliefvorschau (Epic #582, #594) ─────────────────────────────
 
     def _update_preview3d_availability(self) -> None:
-        """Schaltet das 3D-Segment frei, wenn HEIGHT-Daten + OpenGL vorhanden sind."""
-        capability = probe_3d_capability()
+        """Aktualisiert das Gating, ohne beim App-Start einen GL-Kontext zu öffnen."""
+        capability = self._preview3d_capability or cached_3d_capability()
         has_height = self._canvas.height_preview_field() is not None
-        available = capability.ok and has_height
+        capability_ok = capability is None or capability.ok
+        available = capability_ok and has_height
         tooltip = "" if available else tr("preview3d.display.3d.disabled_tooltip")
         self._height_panel.set_preview3d_available(available, tooltip)
         action = self._preview3d_menu_action()
         if action is not None:
-            action.setEnabled(capability.ok)
-        # Wird eine aktive 3D-Ansicht durch fehlende Capability unmöglich, sauber
-        # auf 2D zurückfallen (Projektwechsel auf HW ohne GL o. Ä.).
-        if self._preview3d_active and not capability.ok:
-            self._set_preview3d_mode(False)
+            action.setEnabled(capability_ok)
+
+    def _on_preview3d_capability_checked(self, capability: object) -> None:
+        """Spiegelt das Ergebnis der lazy Probe in Segment und Menü."""
+        if isinstance(capability, RendererCapability):
+            self._preview3d_capability = capability
+            self._update_preview3d_availability()
 
     def _preview3d_menu_action(self) -> QAction | None:
         for action in self.findChildren(QAction):
@@ -1601,6 +1646,38 @@ class MainWindow(QMainWindow):
         """Merkt die Qualität als Sitzungspräferenz und löst einen Rebuild aus."""
         self._settings.setValue(PREVIEW3D_QUALITY_KEY, quality.value)
         self._preview3d.set_quality(quality)
+        self._sync_preview3d_controls()
+
+    def _set_preview3d_exaggeration(self, value: float) -> None:
+        value = max(0.1, min(10.0, float(value)))
+        self._settings.setValue(PREVIEW3D_EXAGGERATION_KEY, value)
+        self._preview3d.set_exaggeration(value)
+
+    def _set_preview3d_light(self, azimuth: float, elevation: float) -> None:
+        azimuth = max(0.0, min(360.0, float(azimuth)))
+        elevation = max(15.0, min(90.0, float(elevation)))
+        self._settings.setValue(PREVIEW3D_LIGHT_AZIMUTH_KEY, azimuth)
+        self._settings.setValue(PREVIEW3D_LIGHT_ELEVATION_KEY, elevation)
+        self._preview3d.set_light(azimuth, elevation)
+
+    def _reset_preview3d_view(self) -> None:
+        """Setzt Kamera und alle vier Anzeigeparameter samt QSettings zurück."""
+        self._preview3d.reset_view()
+        self._settings.setValue(PREVIEW3D_QUALITY_KEY, MeshQuality.STANDARD.value)
+        self._settings.setValue(PREVIEW3D_EXAGGERATION_KEY, 1.0)
+        self._settings.setValue(PREVIEW3D_LIGHT_AZIMUTH_KEY, 315.0)
+        self._settings.setValue(PREVIEW3D_LIGHT_ELEVATION_KEY, 45.0)
+        self._sync_preview3d_controls()
+
+    def _sync_preview3d_controls(self) -> None:
+        """Hält neu gebaute Panels und den kanonischen Controller synchron."""
+        panel = getattr(self, "_height_panel", None)
+        if panel is not None:
+            panel.sync_preview3d_state(
+                quality=self._preview3d.quality,
+                exaggeration=self._preview3d.exaggeration,
+                light=self._preview3d.light,
+            )
 
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self._settings, self)

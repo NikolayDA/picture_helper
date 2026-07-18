@@ -81,9 +81,12 @@ def _deliver(ctrl: Preview3DController, worker: _FakeWorker, index: int = -1) ->
 # ── Gating ────────────────────────────────────────────────────────────────
 def test_unavailable_capability_shows_unavailable(qapp) -> None:
     ctrl, _canvas, worker, view = _make(qapp, _unavailable)
+    checked: list[RendererCapability] = []
+    ctrl.capabilityChecked.connect(checked.append)
     ctrl.set_active(True)
     assert view.state == "unavailable"
     assert worker.calls == []
+    assert checked == [_unavailable()]
 
 
 def test_no_height_field_shows_empty(qapp) -> None:

@@ -24,7 +24,9 @@ from dataclasses import dataclass
 
 from PyQt6.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QPushButton,
+    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -138,8 +140,15 @@ class HeightMapPanel:
         # 3D-Regler (Überhöhung/Licht/Qualität/Buttons) – nur im 3D-Modus aktiv.
         self._preview3d_param_widgets: list[QWidget] = []
         self._quality_buttons: dict[MeshQuality, QPushButton] = {}
+        self._selected_quality = MeshQuality.STANDARD
         self._btn_2d: QPushButton | None = None
         self._btn_3d: QPushButton | None = None
+        self._exagg_slider: QSlider | None = None
+        self._exagg_label: QLabel | None = None
+        self._azimuth_slider: QSlider | None = None
+        self._azimuth_label: QLabel | None = None
+        self._elevation_slider: QSlider | None = None
+        self._elevation_label: QLabel | None = None
         self._light_azimuth = 315
         self._light_elevation = 45
         # Benannte Widgets für Tests/Introspektion (Prefix ``height_``).
@@ -194,6 +203,7 @@ class HeightMapPanel:
         body.addWidget(exagg)
         body.addWidget(_make_label(tr("preview3d.exaggeration.hint"), "#777", 11))
         self._refs.update(preview3d_exaggeration=exagg)
+        self._exagg_slider, self._exagg_label = exagg, exagg_label
 
         # Licht-Azimut / Licht-Höhe (Uniforms).
         azimuth_label = _make_label(
@@ -218,6 +228,8 @@ class HeightMapPanel:
         body.addWidget(azimuth_label); body.addWidget(azimuth)
         body.addWidget(elevation_label); body.addWidget(elevation)
         self._refs.update(preview3d_azimuth=azimuth, preview3d_elevation=elevation)
+        self._azimuth_slider, self._azimuth_label = azimuth, azimuth_label
+        self._elevation_slider, self._elevation_label = elevation, elevation_label
 
         body.addWidget(_make_hdivider())
 
@@ -242,7 +254,7 @@ class HeightMapPanel:
         btn_fit = _make_neutral_btn(tr("preview3d.fit"))
         btn_reset = _make_neutral_btn(tr("preview3d.reset"))
         btn_fit.clicked.connect(lambda _=False: actions.fit_view())
-        btn_reset.clicked.connect(lambda _=False: self._on_reset(actions, exagg))
+        btn_reset.clicked.connect(lambda _=False: actions.reset_view())
         action_row.addWidget(btn_fit, 1); action_row.addWidget(btn_reset, 1)
         body.addLayout(action_row)
         self._refs.update(preview3d_fit=btn_fit, preview3d_reset=btn_reset)
@@ -258,14 +270,58 @@ class HeightMapPanel:
         actions.set_quality(quality)
 
     def _select_quality(self, quality: MeshQuality) -> None:
+        self._selected_quality = quality
         for q, btn in self._quality_buttons.items():
             _set_button_selected(btn, q is quality)
 
-    def _on_reset(self, actions: Preview3DActions, exagg_slider: QWidget) -> None:
-        actions.reset_view()
-        # Regler sichtbar auf die Defaults zurücksetzen (Überhöhung 1,0×).
-        if hasattr(exagg_slider, "setValue"):
-            exagg_slider.setValue(slider_from_exaggeration(1.0))  # type: ignore[attr-defined]
+    def sync_preview3d_state(
+        self,
+        *,
+        quality: MeshQuality,
+        exaggeration: float,
+        light: tuple[float, float],
+    ) -> None:
+        """Spiegelt den kanonischen Controller-Zustand ohne Callback-Schleifen.
+
+        Wird nach Start, Reset und jedem Panel-Neuaufbau aufgerufen. Dadurch
+        zeigen QSettings, Controller und Regler stets dieselben Werte.
+        """
+        azimuth = max(0, min(360, int(round(light[0]))))
+        elevation = max(15, min(90, int(round(light[1]))))
+        self._light_azimuth = azimuth
+        self._light_elevation = elevation
+
+        widgets = (
+            self._exagg_slider,
+            self._azimuth_slider,
+            self._elevation_slider,
+        )
+        for widget in widgets:
+            if widget is not None:
+                widget.blockSignals(True)
+        try:
+            if self._exagg_slider is not None:
+                self._exagg_slider.setValue(slider_from_exaggeration(exaggeration))
+            if self._azimuth_slider is not None:
+                self._azimuth_slider.setValue(azimuth)
+            if self._elevation_slider is not None:
+                self._elevation_slider.setValue(elevation)
+        finally:
+            for widget in widgets:
+                if widget is not None:
+                    widget.blockSignals(False)
+
+        if self._exagg_label is not None:
+            self._exagg_label.setText(
+                tr("preview3d.exaggeration", value=f"{exaggeration:.1f}")
+            )
+        if self._azimuth_label is not None:
+            self._azimuth_label.setText(tr("preview3d.light_azimuth", value=azimuth))
+        if self._elevation_label is not None:
+            self._elevation_label.setText(
+                tr("preview3d.light_elevation", value=elevation)
+            )
+        self._select_quality(quality)
 
     def set_preview3d_active(self, is_3d: bool) -> None:
         """Spiegelt den 2D/3D-Segmentzustand und schaltet die 3D-Regler frei."""

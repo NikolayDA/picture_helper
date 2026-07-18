@@ -13,7 +13,7 @@
 
 ## État actuel (2026-07-18)
 
-La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. La version **v2.6.0** a été publiée le 2026-07-16 depuis le commit approuvé `f24cef69829da8e37aa400dad471dc4d607b89b3` : workflow du tag [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), [release GitHub publique](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), cinq artefacts applicatifs retéléchargés et vérifiés par SHA-256, et smokes natifs verts pour Linux x86_64/aarch64 et macOS arm64. Les tickets de release **#580/#583/#584/#585**, le constat **#607** et le pipeline de hauteur 16 bits complet **#581/#587–#590** sont achevés. État en direct : **7** tickets ouverts — #245/#551 et l'epic 3D **#582** avec #592–#595.
+La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. La version **v2.6.0** a été publiée le 2026-07-16 depuis le commit approuvé `f24cef69829da8e37aa400dad471dc4d607b89b3` : workflow du tag [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), [release GitHub publique](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), cinq artefacts applicatifs retéléchargés et vérifiés par SHA-256, et smokes natifs verts pour Linux x86_64/aarch64 et macOS arm64. Les tickets de release **#580/#583/#584/#585**, le constat **#607**, le pipeline 16 bits **#581/#587–#590** et le modèle de sécurité hybride **#551** sont achevés. État en direct : **3** tickets ouverts — #245 et **#582/#595** rouverts.
 
 ### Terminé depuis la dernière revue
 
@@ -23,6 +23,7 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests loca
 - **Release v2.6.0 entièrement achevée :** scope-freeze (#583), gate candidat sur le SHA final de `main` (#584), tag/release/vérification post-release (#585) et epic de suivi #580 sont terminés ; cette mise à jour résout la dérive #607. L'ADR HEIGHT 16 bits (#586) et le contrat ADR/UX 3D (#591, PR #603) restent également achevés.
 - **Pipeline de hauteur 16 bits entièrement achevé :** modèle de domaine/historique et format de projet v2 (#587/#588, PR #610), import/génération/opérations (#589, PR #612), puis aperçu/export/UI/E2E (#590, PR #613) sont dans `main` ; l'epic #581 est clos après des gates verts, des revues résolues et une matrice de recette complète.
 - **Suivi d'audit #614–#616 achevé :** les versions futures sont refusées de façon sûre (#588, PR #614), les lacunes de couverture #597/#598 sont closes via PR #615 et la lacune du guide #606 est corrigée dans les six langues via PR #616.
+- **Modèle de sécurité et cœur 3D implémentés :** #551 est achevé via PR #619 ; #592–#594 sont dans `main` via PR #620. L'audit suivant a rouvert #582/#595 car les preuves packaging/plateformes, la recette performance complète et les captures manquent encore.
 
 ### Encore ouvert
 
@@ -30,34 +31,30 @@ La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests loca
 
 ## Tickets GitHub ouverts — Triage (2026-07-18)
 
-État en direct après la fusion des PR #614/#615/#616 : **7** tickets ouverts. **#581/#587–#590**, **#597/#598** et **#606** sont achevés. Les commentaires propriétaire du 2026-07-15 sur **#245**/**#551** et leurs corps de ticket resserrés restent valides.
+État en direct après les PR #619/#620 et l'audit suivant : **3** tickets ouverts. **#551** et **#592–#594** sont achevés ; **#582/#595** sont rouverts pour la recette finale.
 
 ### Regroupements pertinents
 
-- **Aperçu de relief 3D** (#582 → #592 → #593 → #594 → #595 ; #591 et les prérequis 16 bits sont achevés) : #592 est la prochaine étape exécutable ; #594 n'attend plus que #593.
-- **#245/#551** restent liés, mais la décision stratégique est désormais prise : #551 ne suit plus que l'implémentation du modèle hybride (CodeQL automatique, Codex manuel), #245 uniquement la preuve externe de quota OpenAI.
+- **Recette finale 3D** (#582 → #595) : #592–#594 sont achevés ; #595 suit les preuves packaging/plateformes, performance complète, captures et matrice finale.
+- **#245** reste un tracker externe de quota OpenAI et ne bloque ni CodeQL, ni publication, ni 3D.
 
 Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort estimé, **Modèle/Effort** = modèle/effort recommandés.
 
 | # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
 |---|-------|------------|------------|----------------|-----------------------------|
-| [#592](https://github.com/NikolayDA/picture_helper/issues/592) | [3D] Pipeline de géométrie/normales/décimation sans Qt | 🟡 Moyenne | 🟠 Élevée (très large) | Opus 4.8 · élevé | **Ready for PR** – #586 et #591 sont achevés ; plus aucune dépendance ouverte. |
-| [#593](https://github.com/NikolayDA/picture_helper/issues/593) | [3D] Visualiseur interactif avec orbit/pan/zoom, fallback | 🟡 Moyenne | 🟠 Élevée (très large) | Opus 4.8 · xélevé | **Blocked** – attend #592 ; la partie la plus risquée (Qt/OpenGL spécifique à la plateforme). |
-| [#594](https://github.com/NikolayDA/picture_helper/issues/594) | [3D] Intégration workflow, état et cache | 🟡 Moyenne | 🟠 Élevée (très large) | Opus 4.8 · élevé | **Blocked** – attend #593 ; les prérequis 16 bits #587/#588 sont achevés. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟠 Élevée | Sonnet 5 · élevé | **Blocked** – attend #594. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large) | – (epic de suivi) | **In progress** – avance via #592→…→#595 ; #591 est achevé. |
-| [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Automatiser CodeQL, n'exécuter Codex Security que manuellement | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Ready for PR** – décision stratégique prise le 2026-07-15 (modèle hybride : CodeQL automatique + Codex manuel via `workflow_dispatch`) ; le corps du ticket contient déjà la checklist complète de mise en œuvre. |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟠 Élevée | Sonnet 5 · élevé | **In progress** – preuves packaging/plateformes, performance complète, captures et matrice finale manquantes. |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large) | – (epic de suivi) | **In progress** – #591–#594 achevés ; attend seulement #595. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible | 🟢 Faible | – (aucune tâche de code) | **Blocked (external)** – périmètre resserré encore le 2026-07-15 : purement un tracker externe de facturation/quota OpenAI, ne bloque ni CodeQL, ni la publication, ni #551. |
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **#592** — démarrer le pipeline de géométrie 3D ; #586, #591 et les prérequis 16 bits sont achevés.
-2. **#551** — implémenter le modèle hybride convenu (CodeQL automatique, Codex uniquement manuel via `workflow_dispatch`).
+1. **#595** — compléter les preuves restantes avant de clore #582.
 
-*Dérive :* cette mise à jour retire #597/#598/#606 du triage ouvert après la fusion des PR #615/#616 et corrige le compteur en direct à 7. Les futures mises à jour continuent de revérifier statuts, checklists et dépendances en direct plutôt que de reporter un horodatage.
+*Dérive :* cette mise à jour retire #551/#592–#594 du triage ouvert, rouvre #582/#595 pour preuves manquantes et corrige le compteur à 3.
 
 ## Tours précédents
 
+- **2026-07-18 (audit post-merge)** — #551 et #592–#594 confirmés ; #582/#595 rouverts pour preuves manquantes ; état en direct 3.
 - **2026-07-18 (suivi d'audit #614–#616)** — durcissement des versions futures de la PR #614 consigné ; #597/#598 achevés via PR #615 et #606 via PR #616 ; état en direct 7.
 - **2026-07-17 (clôture de l'epic 16 bits)** — #581/#587–#590 achevés via PR #610/#612/#613 ; tous les gates et revues verts, matrice de recette présente, état en direct 10.
 - **2026-07-16 (release v2.6.0)** — tag sur `f24cef69829da8e37aa400dad471dc4d607b89b3`, exécution 29531147950 verte, cinq artefacts publics retéléchargés et vérifiés par SHA-256 ; #580/#585/#607 clos, état en direct 15.

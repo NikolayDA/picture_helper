@@ -38,6 +38,12 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Audit de suivi 3D : capacité lazy, état UI cohérent et récupération robuste
+  du contexte (#582/#595).** Le probe OpenGL ne s'exécute qu'au premier usage
+  3D ; exagération, lumière et qualité restent synchronisées via QSettings et
+  les panneaux reconstruits ; Réinitialiser restaure tous les paramètres ; un
+  contexte GL perdu recharge le mesh CPU.
+
 - **Modèle hybride d'analyse de sécurité : CodeQL automatique, Codex
   uniquement manuel (#551).** CodeQL s'exécute désormais comme une
   configuration avancée versionnée (`.github/workflows/codeql.yml`),
