@@ -36,6 +36,12 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **3D-Nachprüfung: Lazy Capability, konsistenter UI-State und robuster
+  Kontext-Neuaufbau (#582/#595).** Der OpenGL-Probe läuft erst beim ersten
+  3D-Aufruf, Überhöhung/Licht/Qualität werden vollständig über QSettings und
+  neu aufgebaute Panels synchronisiert, „Zurücksetzen" setzt alle Parameter
+  zurück, und ein verlorener GL-Kontext lädt das CPU-Mesh erneut hoch.
+
 - **Hybrides Sicherheitsscan-Modell: CodeQL automatisch, Codex nur noch
   manuell (#551).** CodeQL läuft jetzt als versioniertes Advanced Setup
   (`.github/workflows/codeql.yml`) automatisiert für Python bei Push/PR auf

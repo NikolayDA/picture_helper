@@ -675,7 +675,7 @@ ni l'image enregistrée, ni l'export**. Dans le viewport, faites glisser avec le
 bouton gauche pour orbiter, utilisez le bouton central ou Alt+glisser pour
 déplacer, et la molette pour zoomer. Au clavier, les flèches orbitent,
 Maj+flèches déplacent, `+`/`−` zooment, `Origine` ajuste la vue et `Maj+Origine`
-réinitialise la caméra, l'exagération et la lumière aux valeurs par défaut.
+réinitialise la caméra, l'exagération, la lumière et la qualité aux valeurs par défaut.
 
 Les commandes 3D règlent l'**exagération** (l'amplitude visuelle donnée au
 relief plat – uniquement l'affichage, jamais les données de hauteur),

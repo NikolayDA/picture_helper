@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeyEvent
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
@@ -99,6 +101,20 @@ def test_gl_viewer_construction_and_params_do_not_raise(qapp) -> None:
     viewer.cleanup_gl()
 
 
+def test_shift_home_requests_central_reset(qapp) -> None:
+    viewer = GLReliefViewer()
+    requested: list[bool] = []
+    viewer.resetRequested.connect(lambda: requested.append(True))
+
+    viewer.keyPressEvent(QKeyEvent(
+        QKeyEvent.Type.KeyPress,
+        Qt.Key.Key_Home,
+        Qt.KeyboardModifier.ShiftModifier,
+    ))
+
+    assert requested == [True]
+
+
 def test_gl_viewer_reports_init_failure_without_propagating(qapp) -> None:
     viewer = GLReliefViewer()
     failures: list[str] = []
@@ -107,6 +123,22 @@ def test_gl_viewer_reports_init_failure_without_propagating(qapp) -> None:
     # propagiert aber nie – es meldet höchstens initFailed.
     viewer.initializeGL()
     assert viewer.has_failed or not failures  # kein Crash, definierter Zustand
+
+
+def test_context_loss_requeues_cpu_mesh_for_upload(qapp) -> None:
+    """ADR #591: Ein neuer GL-Kontext lädt die gehaltene CPU-Kopie erneut."""
+    viewer = GLReliefViewer()
+    mesh = _mesh()
+    viewer.set_mesh(mesh)
+    viewer._pending_mesh = None  # simuliert: bereits in den alten Kontext geladen
+    viewer._gl_ready = True
+
+    viewer._on_context_about_to_be_destroyed()
+
+    assert viewer._pending_mesh is mesh
+    assert viewer._mesh is mesh
+    assert not viewer._gl_ready
+    assert viewer._index_count == 0
 
 
 def test_accessible_names_present(qapp) -> None:

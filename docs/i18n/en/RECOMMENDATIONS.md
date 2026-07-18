@@ -13,7 +13,7 @@
 
 ## Current Status (2026-07-18)
 
-The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.6.0** was published on 2026-07-16 from approved commit `f24cef69829da8e37aa400dad471dc4d607b89b3`: tag workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), public [GitHub release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), five freshly downloaded application artifacts verified by SHA-256, and green native platform smokes for Linux x86_64/aarch64 and macOS arm64. Release issues **#580/#583/#584/#585**, stale-snapshot finding **#607**, and the full 16-bit height pipeline **#581/#587–#590** are complete. The live state is **7** open issues: #245/#551 and 3D epic **#582** with #592–#595.
+The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.6.0** was published on 2026-07-16 from approved commit `f24cef69829da8e37aa400dad471dc4d607b89b3`: tag workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), public [GitHub release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), five freshly downloaded application artifacts verified by SHA-256, and green native platform smokes for Linux x86_64/aarch64 and macOS arm64. Release issues **#580/#583/#584/#585**, stale-snapshot finding **#607**, the full 16-bit height pipeline **#581/#587–#590**, and hybrid security model **#551** are complete. The live state is **3** open issues: #245 plus reopened 3D epic **#582** and final acceptance **#595**.
 
 ### Completed Since The Last Review
 
@@ -23,6 +23,7 @@ The active code-analysis list is empty. Ruff, mypy, and the local test suite rem
 - **Release v2.6.0 fully complete:** scope freeze (#583), candidate gate on the final `main` SHA (#584), tag/release/post-release verification (#585), and tracking epic #580 are done; this update resolves snapshot drift #607. The 16-bit HEIGHT ADR (#586) and 3D ADR/UX contract (#591, PR #603) also remain complete.
 - **16-bit height pipeline fully complete:** domain model/history and project format v2 (#587/#588, PR #610), import/generation/operations (#589, PR #612), and preview/export/UI/E2E (#590, PR #613) are on `main`; epic #581 is closed after green PR gates, resolved reviews, and a complete acceptance matrix.
 - **Audit follow-up #614–#616 complete:** future versions now fail closed (#588, PR #614), coverage gaps #597/#598 are closed through PR #615, and guide gap #606 is fixed in all six language versions through PR #616.
+- **Security model and 3D core implemented:** #551 is complete through PR #619; geometry, viewer, and integration #592–#594 are on `main` through PR #620. The follow-up audit reopened #582/#595 because packaging/platform evidence, complete performance acceptance, and screenshots are still missing.
 
 ### Still Open
 
@@ -30,34 +31,30 @@ The active code-analysis list is empty. Ruff, mypy, and the local test suite rem
 
 ## Open GitHub Issues — Triage Status (2026-07-18)
 
-Live state after merging PR #614/#615/#616: **7** open issues. **#581/#587–#590**, **#597/#598**, and **#606** are complete. The 2026-07-15 owner comments on **#245**/**#551** and their tightened issue bodies remain current.
+Live state after merging PR #619/#620 and the follow-up audit: **3** open issues. **#551** and **#592–#594** are complete; **#582/#595** were reopened for the still-unproven final acceptance.
 
 ### Sensible Bundles
 
-- **3D relief preview** (#582 → #592 → #593 → #594 → #595; #591 and the 16-bit prerequisites are complete): #592 is the next executable step; #594 now waits only on #593.
-- **#245/#551** remain linked, but the strategic decision is now made: #551 tracks only the implementation of the hybrid model (CodeQL automatic, Codex manual), #245 tracks only the external OpenAI quota proof.
+- **3D final acceptance** (#582 → #595): core work #592–#594 is complete; #595 now tracks packaging/platform evidence, complete performance acceptance, screenshots, and the final matrix.
+- **#245** remains a purely external OpenAI quota tracker and blocks neither CodeQL, release, nor 3D.
 
 Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#592](https://github.com/NikolayDA/picture_helper/issues/592) | [3D] Qt-free geometry/normal/decimation pipeline | 🟡 Medium | 🟠 High (very large) | Opus 4.8 · high | **Ready for PR** – #586 and #591 are complete; no open dependency remains. |
-| [#593](https://github.com/NikolayDA/picture_helper/issues/593) | [3D] Interactive viewer with orbit/pan/zoom, fallback | 🟡 Medium | 🟠 High (very large) | Opus 4.8 · xhigh | **Blocked** – waits on #592; the riskiest piece (platform-specific Qt/OpenGL). |
-| [#594](https://github.com/NikolayDA/picture_helper/issues/594) | [3D] Workflow, state, and cache integration | 🟡 Medium | 🟠 High (very large) | Opus 4.8 · high | **Blocked** – waits on #593; the 16-bit prerequisites #587/#588 are complete. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟡 Medium | 🟠 High | Sonnet 5 · high | **Blocked** – waits on #594. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large) | – (tracking epic) | **In progress** – runs via #592→…→#595; #591 is complete. |
-| [#551](https://github.com/NikolayDA/picture_helper/issues/551) | Automate CodeQL, run Codex Security manually only | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – strategic decision made on 2026-07-15 (hybrid model: CodeQL automatic + Codex manual via `workflow_dispatch`); the issue body already has the full implementation checklist. |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟡 Medium | 🟠 High | Sonnet 5 · high | **In progress** – core integrated; packaging/platform evidence, complete performance acceptance, screenshots, and the final matrix remain. |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large) | – (tracking epic) | **In progress** – #591–#594 complete; waits solely on complete acceptance in #595. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – scope narrowed further on 2026-07-15: purely an external OpenAI billing/quota tracker, blocks neither CodeQL nor the release nor #551. |
 
 ### Recommended Next (PR order)
 
-1. **#592** — start the 3D geometry pipeline; #586, #591, and the 16-bit prerequisites are complete.
-2. **#551** — implement the agreed hybrid model (CodeQL automatic, Codex manual only via `workflow_dispatch`).
+1. **#595** — complete the remaining packaging/platform, performance, and documentation evidence before closing #582.
 
-*Drift note:* this update removes #597/#598/#606 from open triage after PR #615/#616 merged and corrects the live count to 7. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
+*Drift note:* this update removes completed #551/#592–#594 from open triage, reopens #582/#595 for missing acceptance evidence, and corrects the live count to 3. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
 
 ## Previous Rounds
 
+- **2026-07-18 (post-merge audit)** — confirmed #551 and #592–#594 complete; reopened #582/#595 for missing packaging/platform, performance, and screenshot evidence; live state 3.
 - **2026-07-18 (audit follow-up #614–#616)** — recorded future-version hardening from PR #614; #597/#598 completed through PR #615 and #606 through PR #616; live state 7.
 - **2026-07-17 (16-bit epic completion)** — #581/#587–#590 completed through PR #610/#612/#613; all PR gates and reviews green, acceptance matrix present, live state 10.
 - **2026-07-16 (release v2.6.0)** — tag on `f24cef69829da8e37aa400dad471dc4d607b89b3`, release run 29531147950 green, five public artifacts freshly downloaded and verified by SHA-256; #580/#585/#607 closed, live state 15.

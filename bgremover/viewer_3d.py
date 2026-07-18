@@ -116,6 +116,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     """
 
     initFailed = pyqtSignal(str)
+    resetRequested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -137,6 +138,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._index_count = 0
         self._gl_ready = False
         self._failed = False
+        self._connected_context: Any = None
         self._last_pos: tuple[float, float] | None = None
         self._palette = active_palette()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -190,7 +192,12 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     # ── GL-Lifecycle (gekapselt – propagiert nie) ────────────────────────
     def initializeGL(self) -> None:  # noqa: N802 (Qt-Override)
         try:
+            self._connect_context_lifecycle()
             self._init_gl()
+            # QOpenGLWidget darf seinen Kontext bei Reparenting, Treiber- oder
+            # Surface-Wechsel neu erzeugen. Die CPU-Kopie bleibt kanonisch und
+            # muss in den neuen Kontext erneut hochgeladen werden.
+            self._pending_mesh = self._mesh
             self._gl_ready = True
         except Exception as exc:  # noqa: BLE001
             self._fail(f"initializeGL: {type(exc).__name__}: {exc}")
@@ -213,6 +220,20 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         profile = QOpenGLVersionProfile()
         profile.setVersion(2, 1)
         return QOpenGLVersionFunctionsFactory.get(profile, self.context())
+
+    def _connect_context_lifecycle(self) -> None:
+        """Bindet die Aufräumlogik genau einmal an den aktuellen GL-Kontext."""
+        context = self.context()
+        if context is None or context is self._connected_context:
+            return
+        context.aboutToBeDestroyed.connect(self._on_context_about_to_be_destroyed)
+        self._connected_context = context
+
+    def _on_context_about_to_be_destroyed(self) -> None:
+        """Gibt kontextgebundene Objekte frei und plant den Reupload ein."""
+        mesh = self._mesh
+        self.cleanup_gl()
+        self._pending_mesh = mesh
 
     def _init_gl(self) -> None:
         program = QOpenGLShaderProgram(self)
@@ -376,7 +397,10 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             self._camera.zoom(1.0 / 0.9)
         elif key == Qt.Key.Key_Home:
             if shift:
-                self.reset_view()
+                # Der Shortcut muss über denselben zentralen Pfad wie der
+                # Panel-Button laufen, damit Controller, QSettings und alle
+                # sichtbaren Regler gemeinsam zurückgesetzt werden.
+                self.resetRequested.emit()
             else:
                 self.fit_view()
         else:
@@ -399,6 +423,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         finally:
             self._pos_vbo = self._slope_vbo = self._index_ibo = self._vao = None
             self._program = None
+            self._index_count = 0
             self._gl_ready = False
             if _HAS_GL_WIDGET:
                 with contextlib.suppress(Exception):
@@ -437,6 +462,7 @@ class Relief3DView(QStackedWidget):
 
     show2DRequested = pyqtSignal()
     retryRequested = pyqtSignal()
+    resetRequested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -552,6 +578,7 @@ class Relief3DView(QStackedWidget):
             viewer = GLReliefViewer(self._ready_page)
             viewer.set_palette(self._palette)
             viewer.initFailed.connect(lambda _msg: self.show_error())
+            viewer.resetRequested.connect(self.resetRequested.emit)
             layout = self._ready_page.layout()
             assert isinstance(layout, QVBoxLayout)
             layout.addWidget(viewer)

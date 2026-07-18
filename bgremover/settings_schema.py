@@ -43,6 +43,9 @@ AUTO_UPDATE_CHECK_KEY = "auto_update_check"
 # reine Sitzungs-/UI-Praeferenz (kein Projektzustand, kein abgeleitetes Mesh);
 # fehlt er, greift der Default ``"standard"``. Ohne Schema-Migration.
 PREVIEW3D_QUALITY_KEY = "preview3d_quality"
+PREVIEW3D_EXAGGERATION_KEY = "preview3d_exaggeration"
+PREVIEW3D_LIGHT_AZIMUTH_KEY = "preview3d_light_azimuth"
+PREVIEW3D_LIGHT_ELEVATION_KEY = "preview3d_light_elevation"
 
 
 def _read_version(settings: QSettings) -> int | None:

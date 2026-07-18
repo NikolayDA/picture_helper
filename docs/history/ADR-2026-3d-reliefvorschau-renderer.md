@@ -426,7 +426,7 @@ Drei Schichten (Marker-Modell analog `ui`/`ui_smoke`):
 - **#594 – Integration:** Einbauort/Umschalter gemäß UX-Vertrag,
   Debounce/Generation-IDs, Cache-Invalidierungsmatrix, i18n-Keys
   (`preview3d.*`), QSettings nur für UI-Präferenzen (Qualität,
-  Überhöhung; keine Meshes).
+  Überhöhung und Licht; keine Meshes).
 - **#595 – Abnahme:** Benchmarks gegen die Zieltabelle, fünf
   Packaging-Smokes, Doku/Screenshots/i18n, Abschlussmatrix.
 - 2D-Pipeline (`PreviewMode`, `relief_preview`, Export) bleibt in allen

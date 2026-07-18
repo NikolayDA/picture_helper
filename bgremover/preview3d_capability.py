@@ -152,6 +152,15 @@ def probe_3d_capability(
     return result
 
 
+def cached_3d_capability() -> RendererCapability | None:
+    """Liefert das Sitzungs-Ergebnis, ohne eine GL-Probe auszulösen.
+
+    Der Hauptfenster-Aufbau nutzt ausschließlich diesen read-only Zugriff, damit
+    der verbindliche ADR-Vertrag „erst beim ersten 3D-Wunsch" gewahrt bleibt.
+    """
+    return _cached
+
+
 def reset_capability_cache() -> None:
     """Verwirft den Sitzungs-Cache – für die „Erneut versuchen"-Aktion (UX §5)."""
     global _cached
