@@ -140,7 +140,11 @@ Ein Paket, `bgremover/`:
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
   Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
-  Migrationshaken (Zukunfts-Version bleibt unangetastet) (#333).
+  Migrationshaken (#333). Eine **neuere** (Zukunfts-)Formatversion wird seit
+  #614 vor jeder Payload-Verarbeitung strikt mit verständlicher, übersetzter
+  Meldung abgewiesen (`project.error.future_version`, Datei bleibt
+  unangetastet) – kein Best-effort-Laden mehr, damit ein alter Stand fremde
+  Formatdaten nicht unbemerkt verlieren kann.
   **Formatversion 2 (#588, ADR #586):** je HEIGHT-Ebene zusätzlich eine
   16-Bit-Graustufen-PNG (`layer_NNNN_height16.png`) mit den kanonischen
   `uint16`-Höhen – endianness-kontrolliert über numpy geschrieben/gelesen,
@@ -262,7 +266,15 @@ Ein Paket, `bgremover/`:
   venv-/Interpreter-Mismatch des Inferenz-Kindprozesses oder ein
   Verbindungsabbruch) sonst nur im Log, zeigt `AiModelDialog` sie beim
   nächsten Öffnen sofort an (`download_failed`), statt den neutralen
-  „Nicht heruntergeladen"-Status ohne jeden Hinweis zu zeigen.
+  „Nicht heruntergeladen"-Status ohne jeden Hinweis zu zeigen. Ergänzend
+  öffnet der ebenfalls immer aktive Extras-Eintrag „KI-Hintergrundentfernung
+  installieren…" den `ai_install_dialog.py` (`AiInstallDialog`, #578): zeigt
+  den plattformabhängigen Terminal-Befehl zum Nachrüsten des rembg-Backends
+  (Linux: Projekt-venv-Rezept, macOS: Verweis auf das App-Bundle-Skript aus
+  `INSTALL_MAC.md`) inkl. Kopieren-Button und warnt, wenn der laufende
+  Python älter als das rembg-/onnxruntime-Minimum (3.11+) ist; er
+  installiert bewusst **nicht** selbst per Subprocess (PEP 668, frisch
+  installierte Pakete wären erst nach Neustart sichtbar).
 - **UI-Bausteine:** `main_toolbar.py`, `right_panel.py` + `right_panel_tabs.py`
   (zentraler Builder + je Tab eine Tab-Klasse, liefert `(Widget, dict)`-DTO),
   `layer_panel.py` (Ebenen-Tab, getrieben vom `ImageCanvas.layersChanged`-Signal,
