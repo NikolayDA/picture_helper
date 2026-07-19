@@ -20,6 +20,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+_HEADLESS_QT_PLATFORMS = {"minimal", "minimalegl", "offscreen"}
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -64,8 +66,14 @@ def _configure_qt_platform(mode: str) -> None:
     elif mode == "native":
         if sys.platform == "darwin":
             os.environ["QT_QPA_PLATFORM"] = "cocoa"
-        else:
+        elif _is_headless_qt_platform(os.environ.get("QT_QPA_PLATFORM")):
             os.environ.pop("QT_QPA_PLATFORM", None)
+
+
+def _is_headless_qt_platform(value: str | None) -> bool:
+    if not value:
+        return False
+    return value.split(":", 1)[0].lower() in _HEADLESS_QT_PLATFORMS
 
 
 def _run_hybrid_live_3d(args: argparse.Namespace, out: Path) -> int:
