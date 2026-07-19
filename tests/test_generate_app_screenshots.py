@@ -31,6 +31,30 @@ _EXPECTED_ARTIFACTS = [
 ]
 
 
+def test_native_qt_platform_preserves_explicit_linux_platform(monkeypatch):
+    """Native 3D capture must not erase an explicit Wayland/X11 selection."""
+    from scripts import generate_app_screenshots as screenshots
+
+    monkeypatch.setattr(screenshots.sys, "platform", "linux")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "wayland")
+
+    screenshots._configure_qt_platform("native")
+
+    assert os.environ["QT_QPA_PLATFORM"] == "wayland"
+
+
+def test_native_qt_platform_clears_inherited_headless_platform(monkeypatch):
+    """Native 3D capture may clear inherited headless values before probing GL."""
+    from scripts import generate_app_screenshots as screenshots
+
+    monkeypatch.setattr(screenshots.sys, "platform", "linux")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+
+    screenshots._configure_qt_platform("native")
+
+    assert "QT_QPA_PLATFORM" not in os.environ
+
+
 def test_generate_app_screenshots_covers_all_workflow_steps(tmp_path):
     """Der Generator läuft fehlerfrei durch und liefert alle sechs Schritte."""
     out = tmp_path / "shots"
