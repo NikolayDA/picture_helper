@@ -3,7 +3,7 @@
 # License & Legal Overview – bgremover 2.6.0
 
 > Automatically generated – **a purely technical assessment of the license terms, not legal advice.**
-> As of: 2026-07-15 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
+> As of: 2026-07-19 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
 
 ## Overall Assessment – Commercial Usability
 
@@ -62,8 +62,8 @@ Strongest relevant license in the combined work: **Strong copyleft**.
 | protobuf | 7.34.1 | `3-Clause BSD License` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |
 | Pygments | 2.20.0 | `BSD-2-Clause` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |
 | PyMatting | 1.1.15 | `MIT License` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
-| PyQt6 | 6.11.0 | `GPL-3.0-only` | Strong copyleft | Strong copyleft. Any redistribution of the combined work must be provided as complete source code under the GPL; proprietary (closed-source) redistribution is excluded. |
-| PyQt6-Qt6 | 6.11.1 | `LGPL v3` | Weak copyleft (library) | Weak copyleft for libraries. Commercial use is allowed; the end user must be able to replace the library (dynamic linking or a re-link option). Compatible with GPL-3.0. |
+| PyQt6 | 6.7.1 | `GPL v3` | Strong copyleft | Strong copyleft. Any redistribution of the combined work must be provided as complete source code under the GPL; proprietary (closed-source) redistribution is excluded. |
+| PyQt6-Qt6 | 6.7.3 | `LGPL v3` | Weak copyleft (library) | Weak copyleft for libraries. Commercial use is allowed; the end user must be able to replace the library (dynamic linking or a re-link option). Compatible with GPL-3.0. |
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | Permissive | Permissive license (BSD family). Commercial and proprietary use is allowed; the copyright/license notice must be shipped along, and the authors' names may not be used for promotion without consent. |
 | pytest | 9.0.3 | `MIT` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |
 | pytest-qt | 4.5.0 | `MIT License` | Permissive | Permissive license. Use, modification and redistribution – including commercial use and in proprietary products – are permitted as long as the copyright and license notice are retained. |

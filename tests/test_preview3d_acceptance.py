@@ -34,7 +34,7 @@ from bgremover.preview3d_capability import (
     reset_capability_cache,
 )
 from bgremover.preview3d_controller import Preview3DController
-from bgremover.relief_mesh import MeshQuality, ReliefMesh, build_relief_mesh
+from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import Relief3DView
 
 
@@ -154,12 +154,20 @@ def test_hundred_viewer_lifecycle_cycles_do_not_leak_or_crash(qapp) -> None:
     Wachstum: der Cache hält genau **ein** Mesh und es existiert nie mehr als
     **ein** GL-Viewer (Wiederverwendung statt Anhäufung); der Lauf ist
     absturzfrei."""
-    from bgremover.viewer_3d import GLReliefViewer
+    import weakref
 
     view = Relief3DView()
     canvas = _FakeCanvas()
     worker = _FakeWorker()
     ctrl = Preview3DController(view, canvas, worker, capability_probe=_ok)
+
+    # Schwache Referenzen auf jedes selbst gebaute Mesh: ein prozessweiter
+    # ``gc.get_objects()``-Scan wäre durch andere, in derselben Session zuvor
+    # gelaufene Tests (z. B. nicht per ``deleteLater``/``processEvents``
+    # abgeräumte Viewer-Widgets aus ``test_viewer_3d.py``) verfälschbar – die
+    # gezielte Weakref-Liste prüft ausschließlich die 100 hier gebauten Meshes.
+    mesh_refs: list[weakref.ReferenceType] = []
+    first_viewer = None
 
     for revision in range(2, 102):
         canvas.content_revision = revision
@@ -167,22 +175,31 @@ def test_hundred_viewer_lifecycle_cycles_do_not_leak_or_crash(qapp) -> None:
         ctrl.refresh()
         ctrl._start_build()
         gen, cb = worker.calls[-1]
-        cb(build_relief_mesh(_field(), MeshQuality.STANDARD), gen)
+        mesh = build_relief_mesh(_field(), MeshQuality.STANDARD)
+        mesh_refs.append(weakref.ref(mesh))
+        cb(mesh, gen)
+        del mesh
         assert view.state == "ready"
-        assert view.viewer() is not None       # Viewer real erzeugt/angezeigt
+        viewer = view.viewer()
+        assert viewer is not None               # Viewer real erzeugt/angezeigt
+        if first_viewer is None:
+            first_viewer = viewer
+        else:
+            # Identitätsprüfung statt prozessweitem Objekt-Scan: derselbe
+            # Viewer wird über alle 100 Zyklen wiederverwendet, nicht je
+            # Zyklus neu erzeugt (kein Akkumulieren von GL-Ressourcen).
+            assert viewer is first_viewer
         ctrl.cleanup()                          # GL-Ressourcen je Zyklus freigeben
         ctrl.set_active(False)
 
     qapp.processEvents()
     gc.collect()
-    # Kernaussage: unabhängig von 100 gebauten Meshes hält unser Cache exakt eins,
-    # und der GL-Viewer wird wiederverwendet statt je Zyklus neu akkumuliert –
-    # kein stetiges Anwachsen von ReliefMesh- oder GLReliefViewer-Instanzen.
-    live_meshes = [o for o in gc.get_objects() if isinstance(o, ReliefMesh)]
-    assert len(live_meshes) == 1
-    assert ctrl._cache_mesh is live_meshes[0]
-    live_viewers = [o for o in gc.get_objects() if isinstance(o, GLReliefViewer)]
-    assert len(live_viewers) <= 1
+    # Kernaussage: von den 100 hier gebauten Meshes bleibt genau eines (das
+    # aktuell gecachte) am Leben – die anderen 99 wurden freigegeben, kein
+    # stetiges Anwachsen.
+    alive = [r for r in mesh_refs if r() is not None]
+    assert len(alive) == 1
+    assert alive[0]() is ctrl._cache_mesh
 
     ctrl.cleanup()
 
