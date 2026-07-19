@@ -34,6 +34,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   OpenGL 探测仅在首次使用 3D 时运行；高度夸张、光照与质量通过 QSettings 和
   重建面板保持同步；重置会恢复所有参数；GL 上下文丢失后会重新上传 CPU 网格。
 
+- **Linux AppImage 恢复启动；修复 aarch64 兼容性问题（#595）。** 在真实的
+  Raspberry Pi 5 硬件上手动测试发现两个打包缺陷：AppImage 缺少自己的
+  `AppRun` 入口点，在无参数情况下调用捆绑的 Python 解释器，导致进入交互式
+  控制台而非图形界面（现通过专用的 `entrypoint.sh` 配方修复）；此外，固定
+  的 PyQt6/PyQt6-Qt6 版本在 aarch64 上需要比当前 Raspberry Pi OS/Debian 12
+  「bookworm」（2.36）更新的 glibc（2.39），导致出现 `GLIBC` 加载错误。
+  PyQt6/PyQt6-Qt6 已回退到最后一个支持 aarch64 的可移植版本
+  （6.7.1/6.7.3）。
+
 - **混合安全扫描模型：CodeQL 自动化，Codex 仅手动触发（#551）。** CodeQL
   现在以已版本化的高级配置形式运行（`.github/workflows/codeql.yml`），在
   推送/PR 到 `main` 时以及每周自动分析 Python，提供确定性的、GitHub 原生
