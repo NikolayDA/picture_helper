@@ -280,6 +280,17 @@ simulates the AI result view without a real `rembg` model run. The transient
 `_runtime/` and `_exports/` subdirectories stay local via `.gitignore`; the
 numbered PNG files and `manifest.md` are the committable artifacts.
 
+For acceptance runs of the real 3D relief preview on local graphics hardware,
+the hybrid target first creates the same headless set and then overlays the
+3D ready/display states from the native Qt/OpenGL viewer:
+
+```bash
+make screenshots-live-3d
+```
+
+That run intentionally fails when no OpenGL 2.1 capable renderer is available;
+the regular CI/docs path `make screenshots` is unchanged.
+
 ### Regenerating the guide PDF
 
 `ANLEITUNG.pdf` is generated from `ANLEITUNG.md` (Markdown to HTML to

@@ -293,6 +293,17 @@ Los subdirectorios transitorios `_runtime/` y `_exports/` permanecen locales
 gracias a `.gitignore`; los PNG numerados y `manifest.md` son los artefactos
 que se pueden commitear.
 
+Para acceptance runs de la vista 3D real en hardware grafico local, el target
+hibrido crea primero el mismo conjunto headless y despues superpone los estados
+3D ready/display desde el visor nativo Qt/OpenGL:
+
+```bash
+make screenshots-live-3d
+```
+
+Ese run falla intencionadamente si no hay un renderer compatible con OpenGL 2.1;
+el camino regular de CI/documentacion `make screenshots` no cambia.
+
 ### Regenerar el PDF de la guía
 
 `ANLEITUNG.pdf` se genera desde `ANLEITUNG.md` (Markdown a HTML a PDF

@@ -265,6 +265,17 @@ make screenshots
 会通过 `.gitignore` 保持为本地文件；可提交的产物是编号 PNG 文件和
 `manifest.md`。
 
+如需在本地图形硬件上验收真实 3D 预览，混合 target 会先生成同一个
+headless 截图集，然后用原生 Qt/OpenGL viewer 覆盖/补充 3D ready/display
+状态：
+
+```bash
+make screenshots-live-3d
+```
+
+如果没有兼容 OpenGL 2.1 的 renderer，这个 run 会故意失败；常规
+CI/文档路径 `make screenshots` 不变。
+
 ### 重新生成指南 PDF
 
 `ANLEITUNG.pdf` 由 `ANLEITUNG.md` 生成（Markdown → HTML → PDF，

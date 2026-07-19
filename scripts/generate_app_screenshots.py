@@ -1,14 +1,16 @@
 """Generate a reproducible BgRemover UI screenshot set.
 
-The script drives the Qt widgets directly with the offscreen platform plugin.
-It does not open native file dialogs, does not run rembg, and replaces
-QSettings with an in-memory implementation so local app preferences stay
-untouched.
+The script drives the Qt widgets directly, using the offscreen platform by
+default. For local visual acceptance runs it can switch to the native platform
+and capture the real OpenGL-backed 3D relief viewer. It does not open native
+file dialogs, does not run rembg, and replaces QSettings with an in-memory
+implementation so local app preferences stay untouched.
 """
 from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +36,59 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--width", type=int, default=1320)
     parser.add_argument("--height", type=int, default=820)
+    parser.add_argument(
+        "--qt-platform",
+        choices=("offscreen", "native", "env"),
+        default="offscreen",
+        help=(
+            "Qt platform to use. 'offscreen' is reproducible/headless; "
+            "'native' enables live 3D OpenGL screenshots on a local desktop; "
+            "'env' leaves QT_QPA_PLATFORM unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--include-live-3d",
+        action="store_true",
+        help=(
+            "Generate the full headless set, then overlay ready/adjusted 3D "
+            "viewer screenshots from a native OpenGL-backed run."
+        ),
+    )
+    parser.add_argument("--live-3d-only", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
+
+
+def _configure_qt_platform(mode: str) -> None:
+    if mode == "offscreen":
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    elif mode == "native":
+        if sys.platform == "darwin":
+            os.environ["QT_QPA_PLATFORM"] = "cocoa"
+        else:
+            os.environ.pop("QT_QPA_PLATFORM", None)
+
+
+def _run_hybrid_live_3d(args: argparse.Namespace, out: Path) -> int:
+    script = Path(__file__).resolve()
+    common_args = [
+        sys.executable,
+        str(script),
+        "--output-dir",
+        str(out),
+        "--width",
+        str(args.width),
+        "--height",
+        str(args.height),
+    ]
+    steps = [
+        [*common_args, "--qt-platform", "offscreen"],
+        [*common_args, "--qt-platform", "native", "--live-3d-only"],
+    ]
+    for step in steps:
+        completed = subprocess.run(step, cwd=REPO_ROOT, check=False)
+        if completed.returncode != 0:
+            return completed.returncode
+    return 0
 
 
 class MemorySettings:
@@ -71,7 +125,6 @@ class MemorySettings:
 
 def main() -> int:
     args = _parse_args()
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
     if args.output_dir:
         out = Path(args.output_dir).expanduser()
@@ -81,6 +134,11 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / "_runtime").mkdir(exist_ok=True)
     (out / "_exports").mkdir(exist_ok=True)
+
+    if args.include_live_3d and not args.live_3d_only:
+        return _run_hybrid_live_3d(args, out)
+
+    _configure_qt_platform(args.qt_platform)
 
     from bgremover.qt_plugins import ensure_qt_plugin_path
 
@@ -112,6 +170,7 @@ def main() -> int:
     from bgremover.main_window import MainWindow
     from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
     from bgremover.preview_mode import PreviewMode
+    from bgremover.relief_mesh import MeshQuality, build_relief_mesh
     from bgremover.resize_dialog import ResizeDialog
     from bgremover.settings_dialog import SettingsDialog
     from bgremover.stepper import WorkflowStep
@@ -151,6 +210,41 @@ def main() -> int:
         widget.close()
         process(40)
 
+    def wait_preview3d_state(state: str, *, attempts: int = 30, delay_ms: int = 80) -> bool:
+        for _ in range(attempts):
+            process(delay_ms)
+            if window._relief3d_view.state == state:
+                return True
+        return False
+
+    def use_sync_mesh_builder(*, fail: bool = False) -> None:
+        def start_mesh_build(
+            field: object,
+            quality: object,
+            generation_id: int,
+            on_done: object,
+            *,
+            on_error: object | None = None,
+            physical_size_mm: tuple[float, float] | None = None,
+        ) -> bool:
+            if fail:
+                if callable(on_error):
+                    on_error("Screenshot-Demo: 3D-Mesh-Aufbau fehlgeschlagen.", generation_id)
+                return False
+            if not isinstance(quality, MeshQuality):
+                raise TypeError(f"Unexpected mesh quality: {quality!r}")
+            mesh = build_relief_mesh(
+                field,
+                quality,
+                physical_size_mm=physical_size_mm,
+            )
+            if callable(on_done):
+                on_done(mesh, generation_id)
+            return True
+
+        window._worker_controller.start_mesh_build = start_mesh_build
+        window._worker_controller.cancel_mesh_build = lambda: None
+
     sample_path = out / "_runtime" / "sample_bgremover.png"
     sample_img = _make_sample_image(sample_path, Image, ImageDraw, ImageFont)
     background_mask, small_selection = _sample_masks(sample_img, np)
@@ -159,7 +253,6 @@ def main() -> int:
     window.resize(args.width, args.height)
     window.show()
     process(160)
-    snap(window, "01_main_empty.png", "Hauptfenster ohne geladenes Bild")
 
     def set_step(step: WorkflowStep) -> None:
         """Navigiert den geführten Workflow wie ein Klick auf die Schrittleiste.
@@ -183,6 +276,67 @@ def main() -> int:
         if status:
             window._sb.showMessage(status)
         process(100)
+
+    def capture_live_preview3d_states() -> None:
+        load_sample(None, "3D-Reliefvorschau aktiviert")
+        window._canvas.generate_height_map()
+        set_step(WorkflowStep.RELIEF)
+        capability = window._preview3d._capability_probe()
+        if not capability.ok:
+            raise RuntimeError(
+                "Live 3D screenshots requested, but no OpenGL 2.1 renderer is available: "
+                f"{capability.detail or capability.error_key or 'unknown'}"
+            )
+        window._preview3d._debounce.setInterval(10_000)
+        window._set_preview3d_mode(True)
+        if not wait_preview3d_state("loading", attempts=10):
+            raise RuntimeError("3D preview did not enter loading state")
+        snap(window, "75_function_preview3d_loading.png", "Funktion: 3D-Reliefvorschau berechnet Mesh")
+
+        use_sync_mesh_builder()
+        window._preview3d._debounce.stop()
+        window._preview3d._start_build()
+        if not wait_preview3d_state("ready", attempts=30):
+            raise RuntimeError("3D preview did not reach ready state")
+        process(250)
+        snap(window, "76_function_preview3d_ready.png", "Funktion: 3D-Reliefvorschau gerendert")
+
+        window._set_preview3d_exaggeration(3.0)
+        window._set_preview3d_light(125.0, 70.0)
+        window._sync_preview3d_controls()
+        viewer = window._relief3d_view.viewer()
+        if viewer is not None:
+            viewer.camera.orbit(28.0, 14.0)
+            viewer.update()
+        process(250)
+        snap(window, "77_function_preview3d_adjusted.png", "Funktion: 3D-Reliefvorschau mit Anzeigeparametern")
+        window._set_preview3d_mode(False)
+
+        set_step(WorkflowStep.RELIEF)
+        use_sync_mesh_builder(fail=True)
+        window._preview3d._capability_probe = lambda: RendererCapability(ok=True, diagnostic="screenshot")
+        window._preview3d._debounce.setInterval(10_000)
+        window._set_preview3d_mode(True)
+        window._preview3d._debounce.stop()
+        window._preview3d._start_build()
+        if not wait_preview3d_state("error", attempts=10):
+            raise RuntimeError("3D preview did not enter error state")
+        snap(window, "78_function_preview3d_error.png", "Funktion: 3D-Reliefvorschau Fehlerzustand")
+        window._set_preview3d_mode(False)
+
+    if args.live_3d_only:
+        labels = _read_manifest_labels(out)
+        capture_live_preview3d_states()
+        labels.update({filename: label for filename, label, _width, _height in records})
+        refreshed = _refresh_output_index(out, labels, Image, ImageDraw, ImageFont, live_3d=True)
+        window._saved_revision = window._canvas.content_revision
+        window.close()
+        app.quit()
+        print(out)
+        print(f"screenshots={len([r for r in refreshed if r[0].endswith('.png')])}")
+        return 0
+
+    snap(window, "01_main_empty.png", "Hauptfenster ohne geladenes Bild")
 
     load_sample(background_mask, "Beispielbild geladen, Hintergrundbereich ausgewaehlt")
     snap(window, "02_main_loaded_selection.png", "Hauptfenster mit Beispielbild und Auswahlmaske")
@@ -531,12 +685,15 @@ def main() -> int:
     load_sample(None, "3D-Reliefvorschau aktiviert")
     window._canvas.generate_height_map()
     set_step(WorkflowStep.RELIEF)
-    window._preview3d._capability_probe = lambda: RendererCapability(ok=True, diagnostic="screenshot")
-    window._preview3d._debounce.setInterval(10_000)
-    window._set_preview3d_mode(True)
-    process(120)
-    snap(window, "75_function_preview3d_loading.png", "Funktion: 3D-Reliefvorschau aktiv")
-    window._set_preview3d_mode(False)
+    if args.include_live_3d:
+        capture_live_preview3d_states()
+    else:
+        window._preview3d._capability_probe = lambda: RendererCapability(ok=True, diagnostic="screenshot")
+        window._preview3d._debounce.setInterval(10_000)
+        window._set_preview3d_mode(True)
+        process(120)
+        snap(window, "75_function_preview3d_loading.png", "Funktion: 3D-Reliefvorschau aktiv")
+        window._set_preview3d_mode(False)
 
     window._preview3d._capability_probe = lambda: RendererCapability(
         ok=False,
@@ -547,7 +704,7 @@ def main() -> int:
     window._preview3d_capability = None
     window._set_preview3d_mode(True)
     process(120)
-    snap(window, "76_function_preview3d_fallback.png", "Funktion: 3D-Reliefvorschau Headless-Fallback")
+    snap(window, "79_function_preview3d_fallback.png", "Funktion: 3D-Reliefvorschau Headless-Fallback")
     window._set_preview3d_mode(False)
 
     load_sample(None, "Speichern ausgefuehrt")
@@ -560,7 +717,7 @@ def main() -> int:
 
     _write_contact_sheet(out, records, Image, ImageDraw, ImageFont)
     records.insert(0, _image_record(out / "00_contact_sheet.png", "Uebersicht aller erstellten Screenshots", Image))
-    _write_manifest(out, records)
+    _write_manifest(out, records, live_3d=args.include_live_3d)
 
     window._saved_revision = window._canvas.content_revision
     window.close()
@@ -676,7 +833,59 @@ def _image_record(path: Path, label: str, Image: Any) -> tuple[str, str, int, in
     return path.name, label, img.width, img.height
 
 
-def _write_manifest(out: Path, records: list[tuple[str, str, int, int]]) -> None:
+def _read_manifest_labels(out: Path) -> dict[str, str]:
+    manifest = out / "manifest.md"
+    if not manifest.exists():
+        return {}
+    labels: dict[str, str] = {}
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("| `"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        filename = cells[0].strip("`")
+        if filename:
+            labels[filename] = cells[1]
+    return labels
+
+
+def _folder_image_records(
+    out: Path,
+    labels: dict[str, str],
+    Image: Any,
+) -> list[tuple[str, str, int, int]]:
+    records: list[tuple[str, str, int, int]] = []
+    for path in sorted(out.glob("*.png")):
+        if path.name == "00_contact_sheet.png":
+            continue
+        label = labels.get(path.name, path.stem.replace("_", " "))
+        records.append(_image_record(path, label, Image))
+    return records
+
+
+def _refresh_output_index(
+    out: Path,
+    labels: dict[str, str],
+    Image: Any,
+    ImageDraw: Any,
+    ImageFont: Any,
+    *,
+    live_3d: bool,
+) -> list[tuple[str, str, int, int]]:
+    records = _folder_image_records(out, labels, Image)
+    _write_contact_sheet(out, records, Image, ImageDraw, ImageFont)
+    records.insert(0, _image_record(out / "00_contact_sheet.png", "Uebersicht aller erstellten Screenshots", Image))
+    _write_manifest(out, records, live_3d=live_3d)
+    return records
+
+
+def _write_manifest(
+    out: Path,
+    records: list[tuple[str, str, int, int]],
+    *,
+    live_3d: bool = False,
+) -> None:
     lines = [
         "# BgRemover Screenshots",
         "",
@@ -693,6 +902,14 @@ def _write_manifest(out: Path, records: list[tuple[str, str, int, int]]) -> None
         "Die macOS-nativen Datei-Oeffnen/Speichern-Dialoge sind Systemdialoge; die zugehoerigen App-Einstiege sind in Datei-/Projekt-Menue und Speicherstatus enthalten.",
         "Der Lauf nutzt In-Memory-QSettings, damit echte macOS-App-Preferences unveraendert bleiben.",
     ]
+    if live_3d:
+        lines.append(
+            "Die 3D-Ready- und Anzeigeparameter-Screenshots wurden mit nativer Qt-Plattform und echtem OpenGL-Viewer erzeugt; Loading, Fallback und Fehlerzustand werden deterministisch hergestellt."
+        )
+    else:
+        lines.append(
+            "Der headless Standardlauf zeigt 3D-Loading und Fallback; fuer gerenderte 3D-Ready-Screenshots nutze --qt-platform native --include-live-3d."
+        )
     (out / "manifest.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

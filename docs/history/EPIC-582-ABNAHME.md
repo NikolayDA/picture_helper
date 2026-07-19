@@ -73,7 +73,7 @@ speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 | Entwicklerdoku: Grenzen, Datenfluss, Budgets, Cache, Tests, Erweiterungspunkte | ADR #591, CLAUDE.md-Architekturabschnitt |
 | Changelog nennt Plattformanforderungen und 2D-Fallback | CHANGELOG.md (+ 5 Spiegel) |
 | Abschlussmatrix verknüpft jedes Kriterium mit Nachweis | **dieses Dokument** |
-| Screenshots (3D, Controls, Fallback/Empty) | **Manuell** [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §5 (reale Grafikhardware nötig) |
+| Screenshots (3D, Controls, Fallback/Empty) | `make screenshots-live-3d` + [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §5 (hybrid: vollständiger Offscreen-Satz plus native OpenGL-3D-Zustände auf realer Grafikhardware) |
 
 ## Bewusste Grenzen / offener Release-Scope (keine MVP-Blocker)
 
