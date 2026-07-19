@@ -83,10 +83,24 @@ if [ "$WITH_AI" = "1" ]; then
 else
   printf '%s\n' "$WHEEL" > "$RECIPE/requirements.txt"
 fi
-# python-appimage derives the entry point from the desktop Exec; strip the
-# field codes (%F/%U) so only the `bgremover` console script remains.
+# The desktop file feeds icon/name/mimetype desktop-integration metadata
+# only; strip the field codes (%F/%U), python-appimage doesn't need them.
 sed -E 's/[[:space:]]*%[fFuU]//g' "$HERE/$APP_ID.desktop" > "$RECIPE/$APP_ID.desktop"
 cp "$ROOT/BgRemover_icon.png" "$RECIPE/$APP_ID.png"
+
+# python-appimage's AppRun invocation is generated from a recipe/entrypoint.*
+# file (see python_appimage/commands/build/app.py: it globs `entrypoint.*`,
+# and only rewrites AppDir/AppRun if found). Without one, the base image's
+# generic AppRun (a bare passthrough to the interpreter) stays in place and
+# running the AppImage with no arguments starts an *interactive* Python REPL
+# instead of the app (found via manual Raspberry Pi testing, #595). Run the
+# console-script entry point through `-m bgremover` rather than the
+# `bgremover` wrapper script directly, since that wrapper's shebang is an
+# absolute build-time path and isn't relocatable.
+cat > "$RECIPE/entrypoint.sh" <<'EOF'
+#! /bin/bash
+exec "{{ python-executable }}" -m bgremover "$@"
+EOF
 
 # 3) Bundle everything into a single AppImage.
 ( cd "$BUILD" && python-appimage build app -p "$PYVER" "$RECIPE" )

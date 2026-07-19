@@ -619,7 +619,10 @@ class _RightPanelBuilder:
             layout.takeAt(layout.count() - 1)
         if first and last:
             return
-        left, top, right, bottom = layout.getContentsMargins()
+        # cast(): aeltere PyQt6-Stubs (<6.8) typisieren getContentsMargins()
+        # als Tuple[Optional[int], ...] statt Tuple[int, ...] (reine
+        # Stub-Praezision, Laufzeitwerte sind in jeder Version echte ints).
+        left, top, right, bottom = (cast(int, v) for v in layout.getContentsMargins())
         layout.setContentsMargins(
             left,
             top if first else CARD_STACK_SPACING,

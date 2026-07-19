@@ -50,8 +50,16 @@ pooch==1.9.0
 protobuf==7.34.1
 Pygments==2.20.0
 PyMatting==1.1.15
-PyQt6==6.11.0
-PyQt6-Qt6==6.11.1
+# PyQt6/-Qt6 pinned to the last aarch64-portable release (#595): upstream
+# stopped publishing manylinux_2_28_aarch64 wheels after 6.7.x (PyQt6 6.8.0+,
+# PyQt6-Qt6 6.8.1+ ship only manylinux_2_39_aarch64, i.e. they require glibc
+# >= 2.39 - newer than current Raspberry Pi OS/Debian 12 "bookworm", which
+# only has 2.36). A newer pin here would make the aarch64 AppImage/.deb
+# unstartable on that widely used target OS (confirmed via manual Raspberry
+# Pi 5 testing: ImportError "GLIBC_2.38' not found" in PyQt6.QtGui). Revisit
+# once Raspberry Pi OS ships a newer glibc baseline.
+PyQt6==6.7.1
+PyQt6-Qt6==6.7.3
 PyQt6_sip==13.11.1
 pytest==9.0.3
 pytest-qt==4.5.0

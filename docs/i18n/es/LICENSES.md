@@ -3,7 +3,7 @@
 # Resumen de Licencias y Aspectos Legales – bgremover 2.6.0
 
 > Generado automáticamente – **una evaluación puramente técnica de los términos de licencia, no asesoramiento jurídico.**
-> A fecha de: 2026-07-15 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
+> A fecha de: 2026-07-19 · Licencia propia del proyecto: `GPL-3.0-or-later` · 45 dependencias analizadas.
 
 ## Evaluación general – usabilidad comercial
 
@@ -62,8 +62,8 @@ Licencia relevante más fuerte en la obra combinada: **Copyleft fuerte**.
 | protobuf | 7.34.1 | `3-Clause BSD License` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | Pygments | 2.20.0 | `BSD-2-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | PyMatting | 1.1.15 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
-| PyQt6 | 6.11.0 | `GPL-3.0-only` | Copyleft fuerte | Copyleft fuerte. Toda redistribución de la obra combinada debe realizarse como código fuente completo bajo la GPL; queda excluida una redistribución propietaria (código cerrado). |
-| PyQt6-Qt6 | 6.11.1 | `LGPL v3` | Copyleft débil (biblioteca) | Copyleft débil para bibliotecas. Se permite el uso comercial; el usuario final debe poder reemplazar la biblioteca (enlazado dinámico o posibilidad de reenlazado). Compatible con GPL-3.0. |
+| PyQt6 | 6.7.1 | `GPL v3` | Copyleft fuerte | Copyleft fuerte. Toda redistribución de la obra combinada debe realizarse como código fuente completo bajo la GPL; queda excluida una redistribución propietaria (código cerrado). |
+| PyQt6-Qt6 | 6.7.3 | `LGPL v3` | Copyleft débil (biblioteca) | Copyleft débil para bibliotecas. Se permite el uso comercial; el usuario final debe poder reemplazar la biblioteca (enlazado dinámico o posibilidad de reenlazado). Compatible con GPL-3.0. |
 | PyQt6_sip | 13.11.1 | `BSD-2-Clause` | Permisiva | Licencia permisiva (familia BSD). Se permite el uso comercial y propietario; debe incluirse el aviso de copyright/licencia y no se puede usar el nombre de los autores con fines publicitarios sin consentimiento. |
 | pytest | 9.0.3 | `MIT` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |
 | pytest-qt | 4.5.0 | `MIT License` | Permisiva | Licencia permisiva. El uso, la modificación y la redistribución – incluido el uso comercial y en productos propietarios – están permitidos siempre que se conserven el aviso de copyright y de licencia. |

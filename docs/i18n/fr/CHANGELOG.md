@@ -44,6 +44,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   les panneaux reconstruits ; Réinitialiser restaure tous les paramètres ; un
   contexte GL perdu recharge le mesh CPU.
 
+- **L'AppImage Linux redémarre ; compatibilité aarch64 restaurée (#595).**
+  Des tests manuels sur du matériel réel Raspberry Pi 5 ont révélé deux bugs
+  d'empaquetage : l'AppImage n'avait pas son propre point d'entrée `AppRun`
+  et invoquait l'interpréteur Python embarqué sans argument, aboutissant à
+  une console interactive au lieu de l'interface graphique (corrigé via une
+  recette `entrypoint.sh` dédiée) ; de plus, les versions figées de
+  PyQt6/PyQt6-Qt6 exigeaient sur aarch64 une glibc plus récente (2.39) que
+  celle fournie par l'actuel Raspberry Pi OS/Debian 12 « bookworm » (2.36),
+  échouant avec une erreur de chargement `GLIBC`. PyQt6/PyQt6-Qt6 reviennent
+  à la dernière version portable pour aarch64 (6.7.1/6.7.3).
+
 - **Modèle hybride d'analyse de sécurité : CodeQL automatique, Codex
   uniquement manuel (#551).** CodeQL s'exécute désormais comme une
   configuration avancée versionnée (`.github/workflows/codeql.yml`),

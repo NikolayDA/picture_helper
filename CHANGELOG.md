@@ -42,6 +42,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   neu aufgebaute Panels synchronisiert, „Zurücksetzen" setzt alle Parameter
   zurück, und ein verlorener GL-Kontext lädt das CPU-Mesh erneut hoch.
 
+- **Linux-AppImage startet wieder, aarch64-Kompatibilität wiederhergestellt
+  (#595).** Manuelles Testen auf echter Raspberry-Pi-5-Hardware deckte zwei
+  Packaging-Bugs auf: Die AppImage rief mangels eigenem `AppRun`-Entry-Point
+  den gebündelten Python-Interpreter ohne Argumente auf und landete damit in
+  einer interaktiven Konsole statt im GUI (jetzt über ein eigenes
+  `entrypoint.sh`-Rezept behoben); zusätzlich erforderten die gepinnten
+  PyQt6-/PyQt6-Qt6-Versionen auf aarch64 eine neuere glibc (2.39) als das
+  aktuelle Raspberry Pi OS/Debian 12 „bookworm" (2.36) mitbringt und
+  scheiterten dort mit einem `GLIBC`-Ladefehler. PyQt6/PyQt6-Qt6 sind auf die
+  letzten aarch64-portablen Versionen (6.7.1/6.7.3) zurückgesetzt.
+
 - **Hybrides Sicherheitsscan-Modell: CodeQL automatisch, Codex nur noch
   manuell (#551).** CodeQL läuft jetzt als versioniertes Advanced Setup
   (`.github/workflows/codeql.yml`) automatisiert für Python bei Push/PR auf
