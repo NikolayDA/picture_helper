@@ -55,6 +55,30 @@ def test_native_qt_platform_clears_inherited_headless_platform(monkeypatch):
     assert "QT_QPA_PLATFORM" not in os.environ
 
 
+def test_native_qt_platform_clears_headless_first_fallback_list(monkeypatch):
+    """Qt fallback lists should not keep a headless-first native capture."""
+    from scripts import generate_app_screenshots as screenshots
+
+    monkeypatch.setattr(screenshots.sys, "platform", "linux")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen;xcb")
+
+    screenshots._configure_qt_platform("native")
+
+    assert "QT_QPA_PLATFORM" not in os.environ
+
+
+def test_native_qt_platform_preserves_native_first_fallback_list(monkeypatch):
+    """Native-first fallback lists remain explicit caller choices."""
+    from scripts import generate_app_screenshots as screenshots
+
+    monkeypatch.setattr(screenshots.sys, "platform", "linux")
+    monkeypatch.setenv("QT_QPA_PLATFORM", "wayland;offscreen")
+
+    screenshots._configure_qt_platform("native")
+
+    assert os.environ["QT_QPA_PLATFORM"] == "wayland;offscreen"
+
+
 def test_generate_app_screenshots_covers_all_workflow_steps(tmp_path):
     """Der Generator läuft fehlerfrei durch und liefert alle sechs Schritte."""
     out = tmp_path / "shots"
