@@ -73,7 +73,8 @@ def _configure_qt_platform(mode: str) -> None:
 def _is_headless_qt_platform(value: str | None) -> bool:
     if not value:
         return False
-    return value.split(":", 1)[0].lower() in _HEADLESS_QT_PLATFORMS
+    first_fallback = value.split(";", 1)[0]
+    return first_fallback.split(":", 1)[0].lower() in _HEADLESS_QT_PLATFORMS
 
 
 def _run_hybrid_live_3d(args: argparse.Namespace, out: Path) -> int:
