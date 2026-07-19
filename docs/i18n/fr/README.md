@@ -295,6 +295,17 @@ sous-dossiers transitoires `_runtime/` et `_exports/` restent locaux via
 `.gitignore` ; les PNG numerotes et `manifest.md` sont les artefacts a
 committer.
 
+Pour les acceptance runs de la vraie previsualisation 3D sur du materiel
+graphique local, la cible hybride cree d'abord le meme jeu headless puis
+superpose les etats 3D ready/display depuis le viewer natif Qt/OpenGL :
+
+```bash
+make screenshots-live-3d
+```
+
+Ce run echoue volontairement si aucun renderer compatible OpenGL 2.1 n'est
+disponible ; le chemin CI/docs regulier `make screenshots` reste inchange.
+
 ### Régénérer le PDF du guide
 
 `ANLEITUNG.pdf` est généré depuis `ANLEITUNG.md` (Markdown vers HTML

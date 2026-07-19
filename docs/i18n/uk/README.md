@@ -283,6 +283,17 @@ make screenshots
 через `.gitignore`; пронумеровані PNG-файли та `manifest.md` є артефактами,
 які можна комітити.
 
+Для acceptance runs справжнього 3D-перегляду на локальному графічному
+обладнанні гібридна ціль спершу створює той самий headless-набір, а потім
+накладає стани 3D ready/display із нативного Qt/OpenGL-переглядача:
+
+```bash
+make screenshots-live-3d
+```
+
+Цей run навмисно падає, якщо немає renderer, сумісного з OpenGL 2.1; звичайний
+шлях CI/документації `make screenshots` не змінюється.
+
 ### Повторно згенерувати PDF-інструкцію
 
 `ANLEITUNG.pdf` генерується з `ANLEITUNG.md` (Markdown → HTML → PDF

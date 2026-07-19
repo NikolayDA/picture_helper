@@ -290,6 +290,18 @@ simuliert die KI-Ergebnisansicht ohne echten `rembg`-Modellaufruf. Die
 transienten Unterordner `_runtime/` und `_exports/` bleiben per `.gitignore`
 lokal; die nummerierten PNGs und `manifest.md` sind die committbaren Artefakte.
 
+Für Abnahmen der echten 3D-Reliefvorschau auf lokaler Grafikhardware erzeugt
+der Hybrid-Lauf zuerst denselben headless Satz und ergänzt danach die
+3D-Ready-/Darstellungszustände über den nativen Qt/OpenGL-Viewer:
+
+```bash
+make screenshots-live-3d
+```
+
+Der Lauf schlägt absichtlich fehl, wenn kein OpenGL-2.1-fähiger Renderer
+verfügbar ist; der normale CI-/Doku-Pfad `make screenshots` bleibt davon
+unberührt.
+
 ### Anleitung-PDF neu erzeugen
 
 `ANLEITUNG.pdf` wird aus `ANLEITUNG.md` generiert (Markdown → HTML →

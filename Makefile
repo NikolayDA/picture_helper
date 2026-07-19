@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots bench bench-compare clean
+.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-compare clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -66,6 +66,11 @@ ui:
 # Ergebniszustand ohne rembg-Modell-Download.
 screenshots:
 	$(QT_ENV) "$(PYTHON)" scripts/generate_app_screenshots.py
+
+# Lokaler Desktop-Lauf: erzeugt erst den vollstaendigen Offscreen-Satz und
+# ueberschreibt/ergaenzt danach nur die 3D-Vorschau mit echtem OpenGL-Viewer.
+screenshots-live-3d:
+	$(RUN_ENV) "$(PYTHON)" scripts/generate_app_screenshots.py --include-live-3d
 
 # Performance-Benchmark der Bild-Pipeline pro Format (PNG/JPEG/WebP/TIFF).
 # 'bench' misst, speichert nach benchmarks/results/ und vergleicht gegen den
