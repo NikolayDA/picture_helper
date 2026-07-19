@@ -100,11 +100,17 @@ def main() -> int:
 
     import bgremover.main_window as main_window_mod
     import bgremover.settings_dialog as settings_dialog_mod
+    from bgremover import __version__
+    from bgremover.ai_install_dialog import AiInstallDialog
+    from bgremover.ai_model_dialog import AiModelDialog
+    from bgremover.ai_model_status import ModelStatus, ModelStatusResult
     from bgremover.color_ops import adjust_color
     from bgremover.constants import TOOL_BRUSH, TOOL_ERASER, TOOL_LASSO, TOOL_WAND
     from bgremover.eufymake_export_dialog import EufyMakeExportDialog
+    from bgremover.i18n import tr
     from bgremover.image_ops import remove_selection
     from bgremover.main_window import MainWindow
+    from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
     from bgremover.preview_mode import PreviewMode
     from bgremover.resize_dialog import ResizeDialog
     from bgremover.settings_dialog import SettingsDialog
@@ -138,6 +144,12 @@ def main() -> int:
         if not pix.save(str(out / filename)):
             raise RuntimeError(f"Could not save screenshot: {out / filename}")
         records.append((filename, label, pix.width(), pix.height()))
+
+    def snap_dialog(widget: object, filename: str, label: str, wait_ms: int = 80) -> None:
+        widget.show()
+        snap(widget, filename, label, wait_ms=wait_ms)
+        widget.close()
+        process(40)
 
     sample_path = out / "_runtime" / "sample_bgremover.png"
     sample_img = _make_sample_image(sample_path, Image, ImageDraw, ImageFont)
@@ -293,6 +305,77 @@ def main() -> int:
     resize_dlg.close()
     process(40)
 
+    def model_status(status: ModelStatus, *, size_bytes: int | None = None) -> ModelStatusResult:
+        return ModelStatusResult(
+            status=status,
+            model_path=Path("/tmp/bgremover-model/u2net.onnx"),
+            size_bytes=size_bytes,
+        )
+
+    ai_model_missing = AiModelDialog(
+        status_provider=lambda: model_status(ModelStatus.NOT_DOWNLOADED),
+        parent=window,
+    )
+    ai_model_missing.resize(560, 260)
+    snap_dialog(ai_model_missing, "38_dialog_ai_model_missing.png", "Dialog: KI-Modell verwalten, Modell fehlt")
+
+    ai_model_downloading = AiModelDialog(
+        status_provider=lambda: model_status(ModelStatus.NOT_DOWNLOADED),
+        parent=window,
+    )
+    ai_model_downloading.resize(560, 280)
+    ai_model_downloading.start_downloading()
+    snap_dialog(ai_model_downloading, "39_dialog_ai_model_downloading.png", "Dialog: KI-Modell verwalten, Download laeuft")
+
+    ai_model_error = AiModelDialog(
+        status_provider=lambda: model_status(ModelStatus.NOT_DOWNLOADED),
+        parent=window,
+    )
+    ai_model_error.resize(560, 300)
+    ai_model_error.download_failed("Screenshot-Demo: Modell-Download nicht erreichbar.")
+    snap_dialog(ai_model_error, "45_dialog_ai_model_error.png", "Dialog: KI-Modell verwalten, Fehler und Retry")
+
+    ai_model_ready = AiModelDialog(
+        status_provider=lambda: model_status(ModelStatus.DOWNLOADED, size_bytes=176_300_000),
+        parent=window,
+    )
+    ai_model_ready.resize(560, 260)
+    snap_dialog(ai_model_ready, "46_dialog_ai_model_ready.png", "Dialog: KI-Modell verwalten, Modell vorhanden")
+
+    ai_install = AiInstallDialog(
+        status_provider=lambda: model_status(ModelStatus.REMBG_UNAVAILABLE),
+        platform="darwin",
+        python_version=(3, 11),
+        parent=window,
+    )
+    ai_install.resize(640, 380)
+    snap_dialog(ai_install, "47_dialog_ai_install_backend.png", "Dialog: KI-Hintergrundentfernung installieren")
+
+    update_available = QMessageBox(window)
+    update_available.setIcon(QMessageBox.Icon.Information)
+    update_available.setWindowTitle(tr("dialog.update_check.title"))
+    update_available.setText(tr("dialog.update_check.available.body", current=__version__, latest="v9.9.9"))
+    update_available.addButton(tr("dialog.update_check.open_release"), QMessageBox.ButtonRole.ActionRole)
+    update_available.addButton(QMessageBox.StandardButton.Close)
+    update_available.resize(560, 220)
+    snap_dialog(update_available, "48_dialog_update_available.png", "Dialog: Update verfuegbar")
+
+    update_current = QMessageBox(window)
+    update_current.setIcon(QMessageBox.Icon.Information)
+    update_current.setWindowTitle(tr("dialog.update_check.title"))
+    update_current.setText(tr("dialog.update_check.up_to_date.body", version=__version__))
+    update_current.setStandardButtons(QMessageBox.StandardButton.Ok)
+    update_current.resize(520, 180)
+    snap_dialog(update_current, "49_dialog_update_current.png", "Dialog: App ist aktuell")
+
+    update_failed = QMessageBox(window)
+    update_failed.setIcon(QMessageBox.Icon.Warning)
+    update_failed.setWindowTitle(tr("dialog.update_check.title"))
+    update_failed.setText(tr("dialog.update_check.failed.body"))
+    update_failed.setStandardButtons(QMessageBox.StandardButton.Ok)
+    update_failed.resize(520, 180)
+    snap_dialog(update_failed, "49b_dialog_update_failed.png", "Dialog: Update-Check fehlgeschlagen")
+
     load_sample(None, "Hoehenkarte erzeugt")
     window._canvas.generate_height_map()
     set_step(WorkflowStep.RELIEF)
@@ -444,6 +527,28 @@ def main() -> int:
     window._canvas.apply_height_op(lambda field: field)
     window._canvas.fit_to_view()
     snap(window, "74_function_height_optimize_apply.png", "Funktion: Hoehen-Optimierung anwenden")
+
+    load_sample(None, "3D-Reliefvorschau aktiviert")
+    window._canvas.generate_height_map()
+    set_step(WorkflowStep.RELIEF)
+    window._preview3d._capability_probe = lambda: RendererCapability(ok=True, diagnostic="screenshot")
+    window._preview3d._debounce.setInterval(10_000)
+    window._set_preview3d_mode(True)
+    process(120)
+    snap(window, "75_function_preview3d_loading.png", "Funktion: 3D-Reliefvorschau aktiv")
+    window._set_preview3d_mode(False)
+
+    window._preview3d._capability_probe = lambda: RendererCapability(
+        ok=False,
+        error_key=UNAVAILABLE_KEY,
+        detail="Screenshot-Headless-Fallback",
+    )
+    window._preview3d._debounce.setInterval(200)
+    window._preview3d_capability = None
+    window._set_preview3d_mode(True)
+    process(120)
+    snap(window, "76_function_preview3d_fallback.png", "Funktion: 3D-Reliefvorschau Headless-Fallback")
+    window._set_preview3d_mode(False)
 
     load_sample(None, "Speichern ausgefuehrt")
     save_path = out / "_exports" / "saved_sample.png"
