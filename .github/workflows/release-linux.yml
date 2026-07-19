@@ -207,6 +207,16 @@ jobs:
       # zusätzlich den KI-Selbsttest über den Spawn-Kindprozess fahren (rembg-
       # Kette inkl. pymatting-Metadaten importierbar). Schlägt einer fehl, fällt
       # der build-Job und ``publish`` (needs: build) veröffentlicht nichts.
+      # Der Selbsttest läuft seit #595 ebenfalls über den smoke_launch.py-
+      # Wächter (nicht nur roh im Vordergrund): ein manueller Raspberry-Pi-Test
+      # deckte auf, dass der AppRun-Fix (#595) diesen Pfad im gepackten
+      # AppImage-Kontext zum ersten Mal wirklich erreicht – zuvor verdeckte der
+      # kaputte AppRun-Passthrough jeden Fehler dort. Ohne eigenen Wächter kann
+      # ein hängender Spawn-Kindprozess (z. B. multiprocessing im
+      # --appimage-extract-and-run-Mount) den Job stundenlang blockieren statt
+      # sauber fehlzuschlagen (real beobachtet: 37 Minuten bis zum erzwungenen
+      # Abbruch). Root Cause noch offen (#595-Folge-Issue), der Wächter ist die
+      # sofortige Absicherung.
       - name: Smoke-launch built AppImage (headless, fork-bomb guard)
         if: matrix.os == 'linux'
         run: |
@@ -216,8 +226,12 @@ jobs:
           if [ "$WITH_AI" = "1" ]; then
             max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
             echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
-            QT_QPA_PLATFORM=offscreen BGREMOVER_AI_SELFCHECK=1 \
-              "$appimage" --appimage-extract-and-run
+            python3 scripts/smoke_launch.py \
+              --match "$(basename "$appimage")" \
+              --max-instances "$max_instances" \
+              --timeout 120 \
+              -- env BGREMOVER_AI_SELFCHECK=1 \
+                 "$appimage" --appimage-extract-and-run
           fi
           python3 scripts/smoke_launch.py \
             --match "$(basename "$appimage")" \
@@ -321,7 +335,14 @@ jobs:
           if [ "$WITH_AI" = "1" ]; then
             max_instances=5   # GUI + KI-Warmup-Kind (+ mp-Resource-Tracker)
             echo ">> KI-Selbsttest (#308): rembg-Kette im Spawn-Kindprozess importierbar?"
-            QT_QPA_PLATFORM=offscreen BGREMOVER_AI_SELFCHECK=1 "$app_bin"
+            # Wie im Linux-Leg (#595): über den smoke_launch.py-Wächter statt
+            # roh im Vordergrund, damit ein hängender Selbsttest den Job nicht
+            # unbegrenzt blockiert.
+            python3 scripts/smoke_launch.py \
+              --match "Contents/MacOS/BgRemover" \
+              --max-instances "$max_instances" \
+              --timeout 120 \
+              -- env BGREMOVER_AI_SELFCHECK=1 "$app_bin"
           fi
           python3 scripts/smoke_launch.py \
             --match "Contents/MacOS/BgRemover" \
