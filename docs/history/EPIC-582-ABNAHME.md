@@ -74,7 +74,7 @@ speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 | Entwicklerdoku: Grenzen, Datenfluss, Budgets, Cache, Tests, Erweiterungspunkte | ADR #591, CLAUDE.md-Architekturabschnitt |
 | Changelog nennt Plattformanforderungen und 2D-Fallback | CHANGELOG.md (+ 5 Spiegel) |
 | Abschlussmatrix verknüpft jedes Kriterium mit Nachweis | **dieses Dokument** |
-| Screenshots (3D, Controls, Fallback/Empty) | `make screenshots-live-3d` + [Manifest des Abnahmelaufs](../../app_screenshots/bgremover_complete_20260719_162826/manifest.md): `76_function_preview3d_ready.png`, `77_function_preview3d_adjusted.png` und `79_function_preview3d_fallback.png`; die README-Spiegel zeigen den nativen OpenGL-3D-Zustand |
+| Screenshots (3D, Controls, Fallback/Empty) | `make screenshots-live-3d` + [Manifest des Abnahmelaufs](../../app_screenshots/bgremover_complete_20260719_162826/manifest.md): `76_function_preview3d_ready.png`, `77_function_preview3d_adjusted.png`, `77b_function_preview3d_controls.png` und `79_function_preview3d_fallback.png`; das Manifest protokolliert Qt-/OS-/Architektur- und OpenGL-Renderer-Provenienz, bekannte Software-Renderer werden abgelehnt |
 
 ## Bewusste Grenzen / offener Release-Scope (keine MVP-Blocker)
 
@@ -82,8 +82,9 @@ Die automatisierten Start-Smokes der fünf Artefaktklassen sind in den oben
 verlinkten Release-Läufen grün. Auch der vollständige Screenshot-Satz ist
 erzeugt: Die Ready-/Controls-Aufnahmen stammen laut
 [Manifest](../../app_screenshots/bgremover_complete_20260719_162826/manifest.md)
-von nativer Qt-/OpenGL-Grafikhardware; Fallback und Fehlerzustand wurden
-deterministisch ergänzt.
+von der dort konkret ausgewiesenen nativen Qt-/OpenGL-Grafikhardware; der
+Generator lehnt fehlende Provenienz und bekannte Software-Renderer ab. Fallback
+und Fehlerzustand wurden deterministisch ergänzt.
 
 Die folgenden Kriterien sind **nicht** durch diese Headless-/CI-Nachweise
 abgedeckt und bleiben – wie im Issue #595 vorgesehen – dem eigenen

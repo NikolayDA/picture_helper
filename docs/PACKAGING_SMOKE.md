@@ -150,14 +150,19 @@ Der Hybrid-Lauf erzeugt zuerst den vollständigen Offscreen-Satz und ergänzt
 danach in einem nativen Qt/OpenGL-Teilprozess die 3D-Zustände. Für die Abnahme
 müssen insbesondere `75_function_preview3d_loading.png`,
 `76_function_preview3d_ready.png`, `77_function_preview3d_adjusted.png`,
-`78_function_preview3d_error.png` und `79_function_preview3d_fallback.png` im
-Manifest erscheinen. `76_function_preview3d_ready.png` und
+`77b_function_preview3d_controls.png`, `78_function_preview3d_error.png` und
+`79_function_preview3d_fallback.png` im Manifest erscheinen. Das Manifest muss
+außerdem Aufnahmezeit, Qt-Plattform, Betriebssystem/Architektur und OpenGL
+Vendor/Renderer/Version nennen; bekannte Software-Renderer werden vom Generator
+abgelehnt. `76_function_preview3d_ready.png` und
 `77_function_preview3d_adjusted.png` müssen ein gerendertes Relief zeigen, nicht
 nur den Loading- oder Fallback-Text.
 
 1. **Normaler 3D-Zustand:** geladenes HEIGHT-Relief, sichtbares Hillshade.
-2. **Controls:** Segment „Darstellung [2D|3D]", Überhöhungs-/Licht-Regler,
-   Qualitätswahl, Decimation-Badge.
+2. **Controls:** Segment „Darstellung [2D|3D]", Überhöhungs-/Licht-Regler und
+   Decimation-Badge in `77_function_preview3d_adjusted.png`; die nach unten
+   gescrollte Aufnahme `77b_function_preview3d_controls.png` zeigt zusätzlich
+   Licht-Höhe, Qualitätswahl sowie Einpassen/Zurücksetzen.
 3. **Fallback/Empty:** „nicht verfügbar" **oder** „kein HEIGHT" mit den
    Aktions-Buttons.
 

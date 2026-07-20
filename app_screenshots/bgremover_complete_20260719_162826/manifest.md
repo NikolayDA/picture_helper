@@ -65,10 +65,11 @@ Quelle: Repository-Root
 | `72_function_height_lighten.png` | Funktion: Hoehenkarte aufhellen | 1320x820 |
 | `73_function_height_invert.png` | Funktion: Hoehenkarte invertieren | 1320x820 |
 | `74_function_height_optimize_apply.png` | Funktion: Hoehen-Optimierung anwenden | 1320x820 |
-| `75_function_preview3d_loading.png` | Funktion: 3D-Reliefvorschau berechnet Mesh | 2640x1640 |
-| `76_function_preview3d_ready.png` | Funktion: 3D-Reliefvorschau gerendert | 2640x1640 |
-| `77_function_preview3d_adjusted.png` | Funktion: 3D-Reliefvorschau mit Anzeigeparametern | 2640x1640 |
-| `78_function_preview3d_error.png` | Funktion: 3D-Reliefvorschau Fehlerzustand | 2640x1640 |
+| `75_function_preview3d_loading.png` | Funktion: 3D-Reliefvorschau berechnet Mesh | 2582x1640 |
+| `76_function_preview3d_ready.png` | Funktion: 3D-Reliefvorschau gerendert | 2582x1640 |
+| `77_function_preview3d_adjusted.png` | Funktion: 3D-Reliefvorschau mit Anzeigeparametern | 2582x1640 |
+| `77b_function_preview3d_controls.png` | Funktion: 3D-Reliefvorschau mit vollstaendigen Controls | 2582x1640 |
+| `78_function_preview3d_error.png` | Funktion: 3D-Reliefvorschau Fehlerzustand | 2582x1640 |
 | `79_function_preview3d_fallback.png` | Funktion: 3D-Reliefvorschau Headless-Fallback | 1320x820 |
 | `80_function_save_status.png` | Funktion: Bild speichern Statusmeldung | 1320x820 |
 | `81_function_project_save_status.png` | Funktion: Projekt speichern Statusmeldung | 1320x820 |
@@ -76,4 +77,12 @@ Quelle: Repository-Root
 Hinweis: Die KI-Ergebnis-Ansicht wurde ohne echten rembg-Modellaufruf erzeugt, damit kein Modell-Download oder langer Hintergrundprozess startet.
 Die macOS-nativen Datei-Oeffnen/Speichern-Dialoge sind Systemdialoge; die zugehoerigen App-Einstiege sind in Datei-/Projekt-Menue und Speicherstatus enthalten.
 Der Lauf nutzt In-Memory-QSettings, damit echte macOS-App-Preferences unveraendert bleiben.
-Die 3D-Ready- und Anzeigeparameter-Screenshots wurden mit nativer Qt-Plattform und echtem OpenGL-Viewer erzeugt; Loading, Fallback und Fehlerzustand werden deterministisch hergestellt.
+
+## 3D-Renderer-Provenienz
+
+- Aufnahmezeit: `2026-07-20T16:12:38+02:00`
+- Qt-Plattform: `cocoa`
+- Betriebssystem/Architektur: `Darwin 25.5.0 (arm64)`
+- OpenGL Vendor / Renderer / Version: `Apple / Apple M3 Max / 2.1 Metal - 90.5`
+
+Die 3D-Ready-, Anzeigeparameter- und Controls-Screenshots wurden mit nativer Qt-Plattform und dem oben protokollierten Hardware-Renderer erzeugt; Loading, Fallback und Fehlerzustand werden deterministisch hergestellt.

@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import argparse
 import os
+import platform
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,23 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 _HEADLESS_QT_PLATFORMS = {"minimal", "minimalegl", "offscreen"}
+_SOFTWARE_RENDERER_MARKERS = (
+    "llvmpipe",
+    "softpipe",
+    "software rasterizer",
+    "swiftshader",
+    "basic render driver",
+)
+
+
+@dataclass(frozen=True)
+class Live3DProvenance:
+    """Reproduzierbare Umgebungsevidenz eines nativen 3D-Screenshot-Laufs."""
+
+    captured_at: str
+    qt_platform: str
+    host: str
+    renderer: str
 
 
 def _parse_args() -> argparse.Namespace:
@@ -75,6 +94,12 @@ def _is_headless_qt_platform(value: str | None) -> bool:
         return False
     first_fallback = value.split(";", 1)[0]
     return first_fallback.split(":", 1)[0].lower() in _HEADLESS_QT_PLATFORMS
+
+
+def _is_software_renderer(diagnostic: str) -> bool:
+    """Erkennt bekannte CPU-/Software-Renderer in der GL-Diagnose."""
+    normalized = diagnostic.casefold()
+    return any(marker in normalized for marker in _SOFTWARE_RENDERER_MARKERS)
 
 
 def _run_hybrid_live_3d(args: argparse.Namespace, out: Path) -> int:
@@ -163,6 +188,7 @@ def main() -> int:
         QColorDialog,
         QInputDialog,
         QMessageBox,
+        QScrollArea,
     )
 
     import bgremover.main_window as main_window_mod
@@ -286,7 +312,7 @@ def main() -> int:
             window._sb.showMessage(status)
         process(100)
 
-    def capture_live_preview3d_states() -> None:
+    def capture_live_preview3d_states() -> RendererCapability:
         load_sample(None, "3D-Reliefvorschau aktiviert")
         window._canvas.generate_height_map()
         set_step(WorkflowStep.RELIEF)
@@ -295,6 +321,15 @@ def main() -> int:
             raise RuntimeError(
                 "Live 3D screenshots requested, but no OpenGL 2.1 renderer is available: "
                 f"{capability.detail or capability.error_key or 'unknown'}"
+            )
+        if not capability.diagnostic.strip():
+            raise RuntimeError(
+                "Live 3D screenshots require OpenGL vendor/renderer/version provenance"
+            )
+        if _is_software_renderer(capability.diagnostic):
+            raise RuntimeError(
+                "Live 3D acceptance screenshots require real graphics hardware; "
+                f"software renderer detected: {capability.diagnostic}"
             )
         window._preview3d._debounce.setInterval(10_000)
         window._set_preview3d_mode(True)
@@ -319,6 +354,21 @@ def main() -> int:
             viewer.update()
         process(250)
         snap(window, "77_function_preview3d_adjusted.png", "Funktion: 3D-Reliefvorschau mit Anzeigeparametern")
+
+        page = window._right_panel.stack.currentWidget()
+        scroll = page.findChild(QScrollArea) if page is not None else None
+        quality = window._height_panel._refs.get("preview3d_quality_standard")
+        if scroll is None or quality is None:
+            raise RuntimeError("Could not locate the 3D quality controls for capture")
+        scroll.ensureWidgetVisible(quality, 16, 40)
+        process(120)
+        snap(
+            window,
+            "77b_function_preview3d_controls.png",
+            "Funktion: 3D-Reliefvorschau mit vollstaendigen Controls",
+        )
+        scroll.verticalScrollBar().setValue(0)
+        process(80)
         window._set_preview3d_mode(False)
 
         set_step(WorkflowStep.RELIEF)
@@ -332,12 +382,26 @@ def main() -> int:
             raise RuntimeError("3D preview did not enter error state")
         snap(window, "78_function_preview3d_error.png", "Funktion: 3D-Reliefvorschau Fehlerzustand")
         window._set_preview3d_mode(False)
+        return capability
 
     if args.live_3d_only:
         labels = _read_manifest_labels(out)
-        capture_live_preview3d_states()
+        capability = capture_live_preview3d_states()
         labels.update({filename: label for filename, label, _width, _height in records})
-        refreshed = _refresh_output_index(out, labels, Image, ImageDraw, ImageFont, live_3d=True)
+        provenance = Live3DProvenance(
+            captured_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+            qt_platform=app.platformName(),
+            host=f"{platform.system()} {platform.release()} ({platform.machine()})",
+            renderer=capability.diagnostic,
+        )
+        refreshed = _refresh_output_index(
+            out,
+            labels,
+            Image,
+            ImageDraw,
+            ImageFont,
+            live_3d_provenance=provenance,
+        )
         window._saved_revision = window._canvas.content_revision
         window.close()
         app.quit()
@@ -726,7 +790,7 @@ def main() -> int:
 
     _write_contact_sheet(out, records, Image, ImageDraw, ImageFont)
     records.insert(0, _image_record(out / "00_contact_sheet.png", "Uebersicht aller erstellten Screenshots", Image))
-    _write_manifest(out, records, live_3d=args.include_live_3d)
+    _write_manifest(out, records)
 
     window._saved_revision = window._canvas.content_revision
     window.close()
@@ -880,12 +944,12 @@ def _refresh_output_index(
     ImageDraw: Any,
     ImageFont: Any,
     *,
-    live_3d: bool,
+    live_3d_provenance: Live3DProvenance | None = None,
 ) -> list[tuple[str, str, int, int]]:
     records = _folder_image_records(out, labels, Image)
     _write_contact_sheet(out, records, Image, ImageDraw, ImageFont)
     records.insert(0, _image_record(out / "00_contact_sheet.png", "Uebersicht aller erstellten Screenshots", Image))
-    _write_manifest(out, records, live_3d=live_3d)
+    _write_manifest(out, records, live_3d_provenance=live_3d_provenance)
     return records
 
 
@@ -893,7 +957,7 @@ def _write_manifest(
     out: Path,
     records: list[tuple[str, str, int, int]],
     *,
-    live_3d: bool = False,
+    live_3d_provenance: Live3DProvenance | None = None,
 ) -> None:
     lines = [
         "# BgRemover Screenshots",
@@ -911,10 +975,19 @@ def _write_manifest(
         "Die macOS-nativen Datei-Oeffnen/Speichern-Dialoge sind Systemdialoge; die zugehoerigen App-Einstiege sind in Datei-/Projekt-Menue und Speicherstatus enthalten.",
         "Der Lauf nutzt In-Memory-QSettings, damit echte macOS-App-Preferences unveraendert bleiben.",
     ]
-    if live_3d:
-        lines.append(
-            "Die 3D-Ready- und Anzeigeparameter-Screenshots wurden mit nativer Qt-Plattform und echtem OpenGL-Viewer erzeugt; Loading, Fallback und Fehlerzustand werden deterministisch hergestellt."
-        )
+    if live_3d_provenance is not None:
+        provenance = live_3d_provenance
+        lines += [
+            "",
+            "## 3D-Renderer-Provenienz",
+            "",
+            f"- Aufnahmezeit: `{provenance.captured_at}`",
+            f"- Qt-Plattform: `{provenance.qt_platform}`",
+            f"- Betriebssystem/Architektur: `{provenance.host}`",
+            f"- OpenGL Vendor / Renderer / Version: `{provenance.renderer}`",
+            "",
+            "Die 3D-Ready-, Anzeigeparameter- und Controls-Screenshots wurden mit nativer Qt-Plattform und dem oben protokollierten Hardware-Renderer erzeugt; Loading, Fallback und Fehlerzustand werden deterministisch hergestellt.",
+        ]
     else:
         lines.append(
             "Der headless Standardlauf zeigt 3D-Loading und Fallback; fuer gerenderte 3D-Ready-Screenshots nutze --qt-platform native --include-live-3d."
