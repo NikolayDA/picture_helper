@@ -30,6 +30,7 @@ An image-editing tool for macOS and Linux for **cutting out, editing, and print-
 - **🗂 Layers & projects** – manage several layers (color, height, gloss, generic) with roles and save and open the whole thing losslessly as a `.bgrproj` project.
 - **🏔 Height maps** – generate, edit, and optimize a grayscale height map from an image (light = high) – the basis for relief and UV printing.
 - **👁 2D preview** – check color, relief over color, height, and gloss on screen; display only, the image export stays the color motif.
+- **🧊 3D relief preview** – inspect the active height map as a rotatable surface with orbit, pan, zoom, exaggeration, lighting, and selectable quality; display only, with no change to height data or exports. If OpenGL 2.1 is unavailable, the 2D preview remains available.
 - **↩ History** with undo and jumping to any earlier step.
 - **📥 Drag & drop** for images directly onto the window.
 - **📂 Input formats** – opens **PNG, JPEG, WebP, TIFF, BMP, and GIF**. **HEIC/HEIF is currently not supported.**
@@ -54,6 +55,12 @@ high.*
 
 *"Export" step: the combined 2D preview lays relief and gloss over the color
 motif – display only, the export stays unchanged.*
+
+![3D relief preview with display controls](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+
+*"Relief & Layers" step: inspect the active height map as a rotatable 3D
+surface. Exaggeration, lighting, and quality affect the display only; for large
+images a badge indicates the simplified representation.*
 
 ![Export dialog for EufyMake Studio](../../screenshot_export.png)
 
@@ -166,7 +173,7 @@ the right) walks you through editing:
    - Switch tools from the keyboard: `W` magic wand, `B` brush, `E` eraser, `L` lasso (only active in this step).
 3. **Adjust** – brightness/contrast/saturation with a live preview.
 4. **Shape & Size** – rotate, flip, round corners, pick a crop format (move/resize the frame, then ✓ Apply), and resize.
-5. **Relief & Layers** – manage project layers and generate/edit/optimize a height map.
+5. **Relief & Layers** – manage project layers and generate/edit/optimize a height map. With a valid height map, switch between **2D** and **3D** under **Display**; in 3D, drag with the left mouse button to orbit, use the middle button or `Alt`+drag to pan, and the wheel to zoom. Without OpenGL 2.1, the 2D relief preview remains available.
 6. **Export** – check the result as color/relief/height/gloss/combined, save via `File → Save` (⌘S) as PNG, JPEG, WebP, or TIFF — or `Project → Export assets for EufyMake Studio…` for UV printing.
 
 ### Settings

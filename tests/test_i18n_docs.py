@@ -17,13 +17,21 @@ DOC_NAMES = (
     "ANLEITUNG.md",
 )
 
+README_3D_FEATURE_MARKERS = {
+    "de": "**🧊 3D-Reliefvorschau**",
+    "en": "**🧊 3D relief preview**",
+    "es": "**🧊 Vista previa de relieve 3D**",
+    "fr": "**🧊 Aperçu du relief 3D**",
+    "uk": "**🧊 3D-перегляд рельєфу**",
+    "zh": "**🧊 3D 浮雕预览**",
+}
+README_3D_SCREENSHOT = "77_function_preview3d_adjusted.png"
+
 _HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
 _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
-_TABLE_SEPARATOR_RE = re.compile(
-    r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$"
-)
+_TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 _SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 
 
@@ -146,6 +154,35 @@ def test_i18n_markdown_image_links_resolve() -> None:
 
             resolved = (path.parent / target).resolve()
             assert resolved.is_file(), f"{path.relative_to(ROOT)} links to missing image: {target}"
+
+
+def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
+    paths = {"de": ROOT / "README.md"} | {
+        language: I18N_ROOT / language / "README.md" for language in LANGUAGES
+    }
+
+    for language, path in paths.items():
+        text = _without_fenced_code(_read(path))
+        assert README_3D_FEATURE_MARKERS[language] in text, (
+            f"{path.relative_to(ROOT)} does not list the 3D preview as a feature"
+        )
+        assert re.search(r"^5\..*\b3D\b", text, re.MULTILINE), (
+            f"{path.relative_to(ROOT)} does not explain the 3D entry point in step 5"
+        )
+
+        screenshot_links = [
+            match.group(1)
+            for match in _IMAGE_LINK_RE.finditer(text)
+            if README_3D_SCREENSHOT in match.group(1)
+        ]
+        assert len(screenshot_links) == 1, (
+            f"{path.relative_to(ROOT)} must embed exactly one accepted 3D screenshot"
+        )
+        target = _local_target(screenshot_links[0])
+        assert target is not None
+        assert (path.parent / target).resolve().is_file(), (
+            f"{path.relative_to(ROOT)} links to a missing 3D screenshot: {target}"
+        )
 
 
 def test_i18n_docs_match_canonical_structure() -> None:

@@ -79,6 +79,47 @@ def test_native_qt_platform_preserves_native_first_fallback_list(monkeypatch):
     assert os.environ["QT_QPA_PLATFORM"] == "wayland;offscreen"
 
 
+def test_live_3d_acceptance_rejects_known_software_renderers():
+    """Native Qt alone is insufficient evidence when GL still uses the CPU."""
+    from scripts import generate_app_screenshots as screenshots
+
+    assert screenshots._is_software_renderer("Mesa / llvmpipe (LLVM 18.1.8, 256 bits) / 4.5")
+    assert screenshots._is_software_renderer(
+        "Google Inc. / ANGLE (SwiftShader Device) / OpenGL 4.1"
+    )
+    assert not screenshots._is_software_renderer("Apple / Apple M3 Max / 4.1 Metal - 89.3")
+
+
+def test_live_3d_manifest_records_renderer_provenance(tmp_path):
+    """Accepted live screenshots must name environment and renderer explicitly."""
+    from scripts import generate_app_screenshots as screenshots
+
+    provenance = screenshots.Live3DProvenance(
+        captured_at="2026-07-20T16:30:00+02:00",
+        qt_platform="cocoa",
+        host="Darwin 25.5.0 (arm64)",
+        renderer="Apple / Apple M3 Max / 4.1 Metal - 89.3",
+    )
+    screenshots._write_manifest(
+        tmp_path,
+        [
+            (
+                "77b_function_preview3d_controls.png",
+                "Funktion: 3D-Reliefvorschau mit vollstaendigen Controls",
+                2640,
+                1640,
+            )
+        ],
+        live_3d_provenance=provenance,
+    )
+
+    manifest = (tmp_path / "manifest.md").read_text(encoding="utf-8")
+    assert "## 3D-Renderer-Provenienz" in manifest
+    assert "Qt-Plattform: `cocoa`" in manifest
+    assert "Betriebssystem/Architektur: `Darwin 25.5.0 (arm64)`" in manifest
+    assert "Apple / Apple M3 Max / 4.1 Metal - 89.3" in manifest
+
+
 def test_generate_app_screenshots_covers_all_workflow_steps(tmp_path):
     """Der Generator läuft fehlerfrei durch und liefert alle sechs Schritte."""
     out = tmp_path / "shots"

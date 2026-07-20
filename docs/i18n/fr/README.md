@@ -30,6 +30,7 @@ Un outil de retouche d'image pour macOS et Linux permettant de **détourer, modi
 - **🗂 Calques et projets** – gérer plusieurs calques (couleur, hauteur, brillance, générique) avec des rôles et enregistrer et ouvrir l'ensemble sans perte en tant que projet `.bgrproj`.
 - **🏔 Cartes de hauteur** – générer, modifier et optimiser une carte de hauteur en niveaux de gris à partir d'une image (clair = haut) : la base du relief et de l'impression UV.
 - **👁 Aperçu 2D** – vérifier la couleur, le relief sur couleur, la hauteur et la brillance à l'écran ; affichage seul, l'export d'image reste le motif couleur.
+- **🧊 Aperçu du relief 3D** – inspecter la carte de hauteur active comme une surface pivotante avec orbite, déplacement, zoom, exagération, éclairage et qualité au choix ; affichage seul, sans modifier les données de hauteur ni l'export. Sans OpenGL 2.1, l'aperçu 2D reste disponible.
 - **↩ Historique** avec annulation et retour à n'importe quelle étape antérieure.
 - **📥 Glisser-déposer** des images directement sur la fenêtre.
 - **📂 Formats d'entrée** – ouvre **PNG, JPEG, WebP, TIFF, BMP et GIF**. **HEIC/HEIF n'est actuellement pas pris en charge.**
@@ -55,6 +56,13 @@ sémantique de hauteur est clair = haut.*
 
 *Étape « Export » : l'aperçu 2D combiné superpose relief et brillance au motif
 couleur – affichage seul, l'export ne change pas.*
+
+![Aperçu du relief 3D avec commandes d'affichage](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+
+*Étape « Relief & calques » : inspecter la carte de hauteur active comme une
+surface 3D pivotante. L'exagération, l'éclairage et la qualité n'affectent que
+l'affichage ; un indicateur signale la représentation simplifiée des grandes
+images.*
 
 ![Boîte de dialogue d'export pour EufyMake Studio](../../screenshot_export.png)
 
@@ -174,7 +182,7 @@ de l'inspecteur à droite) guide l'édition :
    - Changer d'outil au clavier : `W` baguette, `B` pinceau, `E` gomme, `L` lasso (actif uniquement à cette étape).
 3. **Ajuster** – luminosité/contraste/saturation avec aperçu en direct.
 4. **Forme & dimensions** – pivoter, mettre en miroir, arrondir les coins, choisir un format de recadrage (déplacer/redimensionner le cadre, puis ✓ Appliquer) et redimensionner.
-5. **Relief & calques** – gérer les calques du projet et générer/modifier/optimiser une carte de hauteur.
+5. **Relief & calques** – gérer les calques du projet et générer/modifier/optimiser une carte de hauteur. Avec une carte de hauteur valide, basculer entre **2D** et **3D** sous **Affichage** ; en 3D, faire glisser le bouton gauche pour orbiter, utiliser le bouton central ou `Alt`+glisser pour déplacer et la molette pour zoomer. Sans OpenGL 2.1, l'aperçu du relief 2D reste disponible.
 6. **Export** – vérifier le résultat en couleur/relief/hauteur/brillance/combiné, enregistrer via `Fichier → Enregistrer` (⌘S) en PNG, JPEG, WebP ou TIFF — ou `Projet → Exporter des assets pour EufyMake Studio…` pour l'impression UV.
 
 ### Paramètres

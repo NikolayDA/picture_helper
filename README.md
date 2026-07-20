@@ -30,6 +30,7 @@ Ein Bildbearbeitungs-Tool für macOS und Linux zum **Freistellen, Bearbeiten und
 - **🗂 Ebenen & Projekte** – mehrere Ebenen (Farbe, Höhe, Gloss, generisch) mit Rollen verwalten und das Ganze verlustfrei als `.bgrproj`-Projekt speichern und öffnen.
 - **🏔 Höhenkarten** – aus einem Bild eine Graustufen-Höhenkarte erzeugen, bearbeiten und optimieren (hell = hoch) – die Grundlage für Relief und UV-Druck.
 - **👁 2D-Vorschau** – Farbe, Relief über Farbe, Höhe und Gloss am Bildschirm prüfen; reine Anzeige, der Bildexport bleibt das Farbmotiv.
+- **🧊 3D-Reliefvorschau** – die aktive Höhenkarte als drehbare Oberfläche mit Orbit, Pan, Zoom, Überhöhung, Licht und wählbarer Qualität prüfen; reine Anzeige, ohne Änderung an Höhendaten oder Export. Fehlt OpenGL 2.1, bleibt die 2D-Vorschau verfügbar.
 - **↩ Verlauf** mit Undo und Sprung zu beliebigem früheren Schritt.
 - **📥 Drag & Drop** für Bilder direkt aufs Fenster.
 - **📂 Eingabeformate** – öffnet **PNG, JPEG, WebP, TIFF, BMP und GIF**. **HEIC/HEIF wird derzeit nicht unterstützt.**
@@ -54,6 +55,12 @@ hell = hoch.*
 
 *Schritt „Export": die kombinierte 2D-Vorschau legt Relief und Gloss über das
 Farbmotiv – reine Anzeige, der Export bleibt unverändert.*
+
+![3D-Reliefvorschau mit Anzeigeparametern](app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+
+*Schritt „Relief & Ebenen": Die aktive Höhenkarte lässt sich als drehbare
+3D-Oberfläche prüfen. Überhöhung, Licht und Qualitätsstufe verändern nur die
+Anzeige; bei großen Bildern weist ein Badge auf die vereinfachte Darstellung hin.*
 
 ![Export-Dialog für EufyMake Studio](docs/screenshot_export.png)
 
@@ -172,7 +179,7 @@ Arbeitsfläche + Karten-Inspector rechts) führt durch die Bearbeitung:
    - Werkzeuge wechseln per Tastatur: `W` Zauberstab, `B` Pinsel, `E` Radiergummi, `L` Lasso (nur in diesem Schritt aktiv).
 3. **Anpassen** – Helligkeit/Kontrast/Sättigung mit Live-Vorschau.
 4. **Form & Maße** – Drehen, spiegeln, Ecken abrunden, ein Zuschnitt-Format wählen (Rahmen verschieben/skalieren, dann ✓ Anwenden) und die Größe ändern.
-5. **Relief & Ebenen** – Projekt-Ebenen verwalten und eine Höhenkarte erzeugen/bearbeiten/optimieren.
+5. **Relief & Ebenen** – Projekt-Ebenen verwalten und eine Höhenkarte erzeugen/bearbeiten/optimieren. Mit einer gültigen Höhenkarte unter **Darstellung** zwischen **2D** und **3D** wechseln; in 3D mit linker Maustaste drehen, mit mittlerer Maustaste oder `Alt`+Ziehen verschieben und mit dem Mausrad zoomen. Ohne OpenGL 2.1 steht die 2D-Reliefvorschau weiter zur Verfügung.
 6. **Export** – das Ergebnis als Farbe/Relief/Höhe/Gloss/Kombiniert prüfen, über `Datei → Speichern` (⌘S) als PNG, JPEG, WebP oder TIFF speichern — oder `Projekt → Assets für EufyMake Studio exportieren…` für den UV-Druck.
 
 ### Einstellungen
