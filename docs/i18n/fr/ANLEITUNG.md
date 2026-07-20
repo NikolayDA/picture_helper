@@ -81,7 +81,7 @@ tout au long de l'édition. Les fonctionnalités principales :
 
 ## 2. La fenêtre de l'application en un coup d'œil
 
-![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
+![BgRemover – fenêtre principale après le lancement](../../../app_screenshots/bgremover_complete_20260719_162826/01_main_empty.png)
 
 *La fenêtre principale juste après le lancement : la barre de menus en haut,
 la barre d'outils à gauche, la zone de travail avec le damier de transparence
@@ -138,7 +138,7 @@ De nombreuses actions sont aussi accessibles depuis la barre de menus :
   [section 7](#7-étape-2--détourer) et la
   [section 18](#18-résolution-de-problèmes-et-fichier-journal)).
 
-![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
+![Le menu « Édition »](../../../app_screenshots/bgremover_complete_20260719_162826/23_menu_edit.png)
 
 *Le menu « Édition » regroupe annuler/rétablir, rotation, retournement et
 les actions de sélection.*
@@ -186,7 +186,7 @@ Voici comment supprimer un arrière-plan en moins d'une minute :
    (conserve la transparence) et cliquez sur **Enregistrer**, ou utilisez
    `Fichier → Enregistrer` (⌘S).
 
-![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
+![Résultat de la suppression d'arrière-plan par IA](../../../app_screenshots/bgremover_complete_20260719_162826/55_function_ai_result.png)
 
 *Après un clic sur « Supprimer le fond (IA) », l'arrière-plan est détouré
 automatiquement — la barre d'état confirme que la suppression d'arrière-plan
@@ -228,7 +228,7 @@ les grandes images sont chargées en arrière-plan — la barre d'état affiche 
 progression. Une fois le chargement terminé, la barre d'étapes passe
 automatiquement à l'étape suivante.
 
-![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
+![Le menu « Fichier »](../../../app_screenshots/bgremover_complete_20260719_162826/20_menu_file.png)
 
 *Le menu « Fichier » regroupe Ouvrir (⌘O), « Récemment ouverts »,
 Enregistrer (⌘S) et Enregistrer sous… (⇧⌘S).*
@@ -318,7 +318,7 @@ couleur) s'appliquent à la **zone actuellement sélectionnée**. La sélection
 est mise en surbrillance en couleur sur l'image. Les outils de sélection
 sont actifs à l'étape *Détourer*.
 
-![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
+![Une image chargée avec une sélection active](../../../app_screenshots/bgremover_complete_20260719_162826/02_main_loaded_selection.png)
 
 *Une image chargée avec une sélection active : la zone d'arrière-plan
 sélectionnée est mise en surbrillance en couleur sur la zone de travail.*
@@ -355,7 +355,7 @@ sélectionnée est mise en surbrillance en couleur sur la zone de travail.*
 automatique par IA ou à la main. L'inspecteur de cartes regroupe quatre
 cartes à cet effet.
 
-![L'étape « Détourer »](../../../app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
+![L'étape « Détourer »](../../../app_screenshots/bgremover_complete_20260719_162826/11_step_2_cutout.png)
 
 *L'étape 2 « Détourer » : en haut le bouton IA, en dessous les réglages de
 l'outil, les actions de sélection et « Modifier l'arrière-plan ».*
@@ -403,7 +403,7 @@ téléchargement.
 | **Choisir une couleur** | Ouvre un sélecteur de couleur. Le petit bouton coloré affiche la couleur de remplacement actuellement choisie. |
 | **Remplacer la couleur** | Remplit la zone sélectionnée avec la couleur choisie. |
 
-![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260711_094027/31_dialog_color_picker.png)
+![Boîte de dialogue du sélecteur de couleur](../../../app_screenshots/bgremover_complete_20260719_162826/31_dialog_color_picker.png)
 
 *Via « Choisir une couleur » s'ouvre le sélecteur de couleur ; la couleur
 choisie apparaît dans le carré et s'applique à la sélection avec
@@ -455,7 +455,7 @@ inchangée.
 L'étape *Forme & dimensions* regroupe pivoter/retourner ainsi qu'arrondir
 les coins, le recadrage et un redimensionnement rapide en pixels.
 
-![L'étape « Forme & dimensions »](../../../app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
+![L'étape « Forme & dimensions »](../../../app_screenshots/bgremover_complete_20260719_162826/13_step_4_shape.png)
 
 *L'étape 4 « Forme & dimensions » : rotation (rotation rapide/angle libre),
 retournement, arrondi des coins et, en bas, les formats de recadrage.*
@@ -508,7 +508,7 @@ de dialogue complète de la
    - **✓ Appliquer le recadrage** – recadre l'image.
    - **✗ Annuler** – abandonne le cadre.
 
-![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260711_094027/63_crop_circle_overlay.png)
+![Recadrage circulaire actif avec barre de confirmation](../../../app_screenshots/bgremover_complete_20260719_162826/63_crop_circle_overlay.png)
 
 *Exemple « Cercle » : le cadre de recadrage se place sur l'image avec des
 poignées. « ✓ Appliquer le recadrage » recadre l'image, « ✗ Annuler »
@@ -781,7 +781,7 @@ lui-même en `.empf`.
 Via `Outils → Réglages…` (⌘, / Ctrl+,), vous pouvez gérer les paramètres
 suivants :
 
-![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
+![La boîte de dialogue des paramètres](../../../app_screenshots/bgremover_complete_20260719_162826/30_dialog_settings.png)
 
 *La boîte de dialogue des paramètres : langue, répertoires d'ouverture et
 d'enregistrement par défaut, format d'image préféré ainsi que le chemin du

@@ -75,7 +75,7 @@ durch die Bearbeitung. Die wichtigsten Funktionen:
 
 ## 2. Die Programmoberfläche im Überblick
 
-![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
+![BgRemover – Hauptfenster nach dem Start](app_screenshots/bgremover_complete_20260719_162826/01_main_empty.png)
 
 *Das Hauptfenster direkt nach dem Start: Menüleiste oben, Werkzeugleiste
 links, Arbeitsfläche mit Transparenz-Schachbrett in der Mitte, die
@@ -130,7 +130,7 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
   *KI-Hintergrundentfernung installieren…* (siehe [Abschnitt 7](#7-schritt-2--freistellen)
   und [Abschnitt 18](#18-fehlerbehebung--log-datei)).
 
-![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
+![Menü „Bearbeiten"](app_screenshots/bgremover_complete_20260719_162826/23_menu_edit.png)
 
 *Das Menü „Bearbeiten" bündelt Rückgängig/Wiederherstellen, Drehen, Spiegeln
 und die Auswahl-Aktionen.*
@@ -179,7 +179,7 @@ So entfernen Sie einen Hintergrund in unter einer Minute:
    Transparenz) und **Speichern** klicken, oder `Datei → Speichern`
    (⌘S).
 
-![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
+![Ergebnis der KI-Hintergrundentfernung](app_screenshots/bgremover_complete_20260719_162826/55_function_ai_result.png)
 
 *Nach einem Klick auf „Hintergrund entfernen (KI)" ist der Hintergrund
 automatisch freigestellt – die Statusleiste meldet „KI-Hintergrundentfernung
@@ -219,7 +219,7 @@ dieselben Format- und Größenprüfungen, und große Bilder werden im
 Hintergrund geladen – die Statusleiste zeigt den Fortschritt an. Nach dem
 Laden schaltet die Schrittleiste automatisch zum nächsten Schritt frei.
 
-![Das Menü „Datei"](app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
+![Das Menü „Datei"](app_screenshots/bgremover_complete_20260719_162826/20_menu_file.png)
 
 *Das Menü „Datei" bündelt Öffnen (⌘O), „Zuletzt geöffnet", Speichern (⌘S)
 und Speichern unter… (⇧⌘S).*
@@ -306,7 +306,7 @@ den **aktuell ausgewählten Bereich**. Die Auswahl wird auf dem Bild
 farblich hervorgehoben. Die Auswahl-Werkzeuge sind im Schritt
 *Freistellen* aktiv.
 
-![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
+![Geladenes Bild mit aktiver Auswahl](app_screenshots/bgremover_complete_20260719_162826/02_main_loaded_selection.png)
 
 *Ein geladenes Bild mit aktiver Auswahl: Der ausgewählte Hintergrundbereich
 ist auf der Arbeitsfläche farblich hervorgehoben.*
@@ -344,7 +344,7 @@ Im Schritt *Freistellen* trennen Sie das Motiv vom Hintergrund –
 automatisch per KI oder von Hand. Der Karten-Inspector bündelt dafür vier
 Karten.
 
-![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
+![Der Schritt „Freistellen"](app_screenshots/bgremover_complete_20260719_162826/11_step_2_cutout.png)
 
 *Schritt 2 „Freistellen": oben die KI-Schaltfläche, darunter Werkzeug-
 Einstellungen, Auswahl-Aktionen und „Hintergrund bearbeiten".*
@@ -392,7 +392,7 @@ starten oder abbrechen.
 | **Farbe wählen** | Öffnet einen Farbwähler. Die kleine farbige Schaltfläche zeigt die aktuell gewählte Ersatzfarbe. |
 | **Farbe ersetzen** | Füllt den ausgewählten Bereich mit der gewählten Farbe. |
 
-![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260711_094027/31_dialog_color_picker.png)
+![Farbwähler-Dialog](app_screenshots/bgremover_complete_20260719_162826/31_dialog_color_picker.png)
 
 *Über „Farbe wählen" öffnet sich der Farbwähler; die gewählte Farbe landet
 im Farbfeld und wird mit „Farbe ersetzen" auf die Auswahl angewendet.*
@@ -441,7 +441,7 @@ lässt die Transparenz unverändert.
 Der Schritt *Form & Maße* bündelt Drehen/Spiegeln sowie Ecken abrunden,
 Zuschnitt und eine schnelle Pixel-Größenänderung.
 
-![Der Schritt „Form & Maße"](app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
+![Der Schritt „Form & Maße"](app_screenshots/bgremover_complete_20260719_162826/13_step_4_shape.png)
 
 *Schritt 4 „Form & Maße": Drehen (Schnell-Drehung/freier Winkel),
 Spiegeln, Ecken abrunden sowie unten die Zuschnitt-Formate.*
@@ -493,7 +493,7 @@ Maße (mm/DPI) nutzen Sie den vollständigen Dialog aus
    - **✓ Zuschnitt anwenden** – schneidet das Bild zu.
    - **✗ Abbrechen** – verwirft den Rahmen.
 
-![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260711_094027/63_crop_circle_overlay.png)
+![Aktiver Kreis-Zuschnitt mit Bestätigungsleiste](app_screenshots/bgremover_complete_20260719_162826/63_crop_circle_overlay.png)
 
 *Beispiel „Kreis": Der Zuschnitt-Rahmen liegt mit Anfasspunkten über dem
 Bild. Über „✓ Zuschnitt anwenden" wird zugeschnitten, „✗ Abbrechen" verwirft
@@ -762,7 +762,7 @@ weisen dort Ink-Modi/Layer zu und speichern das Studio-Projekt selbst als
 Über `Extras → Einstellungen…` (⌘, / Strg+,) lassen sich folgende
 Einstellungen verwalten:
 
-![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
+![Der Einstellungen-Dialog](app_screenshots/bgremover_complete_20260719_162826/30_dialog_settings.png)
 
 *Der Einstellungen-Dialog: Sprache, Standard-Verzeichnisse zum Öffnen und
 Speichern, bevorzugtes Bilddateiformat sowie der Pfad zur Protokolldatei mit
