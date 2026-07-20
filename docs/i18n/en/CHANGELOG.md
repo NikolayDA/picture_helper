@@ -33,6 +33,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Linux AI AppImage: recursive spawn hang fixed at its source (#633).**
+  `python-appimage` sets `sys.executable` in the bundle to the outer AppImage,
+  which made `multiprocessing` relaunch the complete app for every AI child.
+  AI processes now select the embedded Python wrapper under `$APPDIR/usr/bin`
+  for `spawn`. The self-check and inference therefore start exactly one child;
+  the timeout and fork-bomb guard remain active as additional safeguards.
+
 - **Qt plugin staging now reliably removes per-instance temporary trees
   (#631 follow-up).** Each process uses an isolated staging tree named from
   its source path, PID, and a random token. A kernel lease protects concurrent

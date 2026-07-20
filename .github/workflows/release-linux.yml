@@ -215,8 +215,10 @@ jobs:
       # ein hängender Spawn-Kindprozess (z. B. multiprocessing im
       # --appimage-extract-and-run-Mount) den Job stundenlang blockieren statt
       # sauber fehlzuschlagen (real beobachtet: 37 Minuten bis zum erzwungenen
-      # Abbruch). Root Cause noch offen (#595-Folge-Issue), der Wächter ist die
-      # sofortige Absicherung.
+      # Abbruch). Ursache: python-appimage setzt ``sys.executable`` auf das
+      # äußere AppImage; multiprocessing startete damit jedes Spawn-Kind als
+      # vollständige App neu. Der KI-Prozess wählt nun gezielt den eingebetteten
+      # Python-Wrapper (#633). Der Wächter bleibt als Defense-in-Depth aktiv.
       - name: Smoke-launch built AppImage (headless, fork-bomb guard)
         if: matrix.os == 'linux'
         run: |

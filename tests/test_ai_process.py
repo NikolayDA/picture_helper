@@ -32,6 +32,7 @@ from bgremover.ai_process import (
     InferenceCancelled,
     InferenceError,
     InferenceProcess,
+    _get_spawn_context,
     _serve,
 )
 
@@ -341,6 +342,53 @@ def test_serve_releases_input_payload_when_idle() -> None:
 # ─────────────────────────────────────────────────────────────
 # InferenceProcess – echte spawn-Subprozesse
 # ─────────────────────────────────────────────────────────────
+
+def test_appimage_spawn_uses_bundled_python(monkeypatch, tmp_path) -> None:
+    """#633: python-appimage setzt ``sys.executable`` auf die äußere
+    AppImage. Spawn muss stattdessen den eingebetteten Python-Wrapper nutzen,
+    damit das AppImage nicht rekursiv neu startet."""
+    appimage = tmp_path / "BgRemover.AppImage"
+    bundled_python = tmp_path / "usr" / "bin" / (
+        f"python{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    bundled_python.parent.mkdir(parents=True)
+    bundled_python.touch()
+    expected_context = object()
+    selected: list[str] = []
+
+    monkeypatch.setenv("APPDIR", str(tmp_path))
+    monkeypatch.setenv("APPIMAGE_COMMAND", str(appimage))
+    monkeypatch.setattr(sys, "executable", str(appimage))
+    monkeypatch.setattr(multiprocessing, "set_executable", selected.append)
+    monkeypatch.setattr(
+        multiprocessing,
+        "get_context",
+        lambda method: expected_context if method == "spawn" else None,
+    )
+
+    assert _get_spawn_context() is expected_context
+    assert selected == [str(bundled_python)]
+
+
+def test_appimage_spawn_override_requires_python_appimage_patch(
+    monkeypatch, tmp_path,
+) -> None:
+    """Bloße, fremde AppImage-Umgebungsvariablen dürfen einen normalen
+    Python-Prozess nicht auf einen anderen Interpreter umlenken."""
+    bundled_python = tmp_path / "usr" / "bin" / (
+        f"python{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    bundled_python.parent.mkdir(parents=True)
+    bundled_python.touch()
+    selected: list[str] = []
+
+    monkeypatch.setenv("APPDIR", str(tmp_path))
+    monkeypatch.setenv("APPIMAGE_COMMAND", str(tmp_path / "BgRemover.AppImage"))
+    monkeypatch.setattr(multiprocessing, "set_executable", selected.append)
+    monkeypatch.setattr(multiprocessing, "get_context", lambda method: method)
+
+    assert _get_spawn_context() == "spawn"
+    assert selected == []
 
 def test_infer_through_real_subprocess_echoes_and_reuses() -> None:
     """Ende-zu-Ende über einen echten Subprozess: Inferenz liefert ein Ergebnis,

@@ -30,6 +30,12 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ### 变更
 
+- **Linux AI AppImage：从根源修复递归 spawn 卡死（#633）。**
+  `python-appimage` 会将包内的 `sys.executable` 指向外层 AppImage，导致
+  `multiprocessing` 为每个 AI 子进程重新启动完整应用。AI 进程现在会为 `spawn`
+  明确选择 `$APPDIR/usr/bin` 下的内置 Python。自检和推理因此只启动一个子进程；
+  超时与 fork-bomb 防护仍继续生效。
+
 - **Qt 插件暂存现在会可靠清理每个实例的临时目录（#631 后续）。** 每个进程使用
   以源路径、PID 和随机令牌命名的独立暂存目录。内核锁保护并行运行的实例；正常
   退出时由退出处理器删除本进程目录，崩溃后则由下一次启动清理已释放的锁。旧版

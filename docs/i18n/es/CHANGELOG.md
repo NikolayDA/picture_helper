@@ -37,6 +37,13 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **AppImage Linux con IA: corregido en origen el bloqueo por spawn recursivo
+  (#633).** `python-appimage` establece `sys.executable` en el AppImage externo,
+  por lo que `multiprocessing` reiniciaba la aplicación completa para cada
+  proceso hijo de IA. Los procesos de IA usan ahora para `spawn` el intérprete
+  incluido en `$APPDIR/usr/bin`. El autotest y la inferencia crean así un único
+  hijo; el timeout y la protección contra fork bombs siguen activos.
+
 - **El staging de plugins Qt elimina de forma fiable los árboles temporales
   por instancia (seguimiento de #631).** Cada proceso usa un árbol aislado cuyo
   nombre combina la ruta de origen, el PID y un token aleatorio. Un bloqueo del
