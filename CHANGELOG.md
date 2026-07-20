@@ -36,6 +36,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Qt-Plugin-Staging räumt instanzbezogene Temp-Bäume zuverlässig auf
+  (#631 Folge-Fund).** Jeder Prozess verwendet nun einen isolierten, über
+  Quellpfad, PID und Zufallstoken benannten Staging-Baum. Eine Kernel-Lease
+  schützt parallel aktive Instanzen; beim normalen Beenden entfernt ein
+  Exit-Handler den eigenen Baum, nach einem Absturz räumt der nächste Start
+  die freigegebene Lease auf. Verwaiste Bäume aus dem alten AppImage-Schema
+  werden anhand ihres gebrochenen `Qt6/lib`-Links sicher bereinigt.
+
 - **3D-Nachprüfung: Lazy Capability, konsistenter UI-State und robuster
   Kontext-Neuaufbau (#582/#595).** Der OpenGL-Probe läuft erst beim ersten
   3D-Aufruf, Überhöhung/Licht/Qualität werden vollständig über QSettings und

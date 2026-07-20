@@ -33,6 +33,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Qt plugin staging now reliably removes per-instance temporary trees
+  (#631 follow-up).** Each process uses an isolated staging tree named from
+  its source path, PID, and a random token. A kernel lease protects concurrent
+  active instances; an exit handler removes the process's own tree after a
+  normal shutdown, while the next launch prunes a released lease after a
+  crash. Orphaned trees from the previous AppImage layout are removed safely
+  when their `Qt6/lib` link is broken.
+
 - **3D follow-up audit: lazy capability, consistent UI state, and robust
   context recovery (#582/#595).** The OpenGL probe now runs only on first 3D
   use; exaggeration, light, and quality stay synchronized through QSettings

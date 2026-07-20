@@ -38,6 +38,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Modifié
 
+- **Le staging des plugins Qt supprime désormais de façon fiable les arbres
+  temporaires propres à chaque instance (suivi de #631).** Chaque processus
+  utilise un arbre isolé nommé à partir du chemin source, du PID et d'un jeton
+  aléatoire. Un verrou du noyau protège les instances actives en parallèle ;
+  un gestionnaire de sortie supprime l'arbre du processus après un arrêt
+  normal, tandis que le lancement suivant nettoie les verrous libérés après
+  un crash. Les arbres orphelins de l'ancien schéma AppImage sont supprimés en
+  sécurité lorsque leur lien `Qt6/lib` est rompu.
+
 - **Audit de suivi 3D : capacité lazy, état UI cohérent et récupération robuste
   du contexte (#582/#595).** Le probe OpenGL ne s'exécute qu'au premier usage
   3D ; exagération, lumière et qualité restent synchronisées via QSettings et

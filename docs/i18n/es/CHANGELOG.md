@@ -37,6 +37,15 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Cambiado
 
+- **El staging de plugins Qt elimina de forma fiable los árboles temporales
+  por instancia (seguimiento de #631).** Cada proceso usa un árbol aislado cuyo
+  nombre combina la ruta de origen, el PID y un token aleatorio. Un bloqueo del
+  kernel protege las instancias activas en paralelo; un manejador de salida
+  elimina el árbol propio tras un cierre normal y el siguiente inicio limpia
+  los bloqueos liberados por un fallo. Los árboles huérfanos del esquema
+  AppImage anterior se eliminan de forma segura cuando su enlace `Qt6/lib` está
+  roto.
+
 - **Auditoría posterior 3D: capacidad lazy, estado de UI coherente y
   recuperación robusta del contexto (#582/#595).** El probe OpenGL solo se
   ejecuta al primer uso 3D; exageración, luz y calidad se sincronizan mediante
