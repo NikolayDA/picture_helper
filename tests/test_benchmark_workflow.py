@@ -26,6 +26,7 @@ def test_benchmark_workflow_carries_baseline_via_artifact() -> None:
     # Baseline des letzten erfolgreichen Laufs zurueckholen …
     assert "gh run download" in text
     assert "--status success" in text
+    assert "--event schedule" in text
     # … ausschliesslich von main, damit ein Feature-Branch-Dispatch die
     # main-Baseline nicht verfaelscht …
     assert "--branch main" in text
@@ -55,4 +56,28 @@ def test_benchmark_workflow_still_fails_on_real_regression() -> None:
     text = _workflow_text()
 
     assert "--fail-on-regression" in text
-    assert "steps.bench.outcome == 'failure'" in text
+    assert "steps.format_bench.outcome == 'failure'" in text
+    assert "steps.height_bench.outcome == 'failure'" in text
+
+
+def test_benchmark_workflow_isolates_format_and_height_suites() -> None:
+    """Die 40-MP-Höhenpipeline darf PNG-Wiederholungen nicht beeinflussen."""
+    text = _workflow_text()
+
+    assert "--suite formats" in text
+    assert "--suite height" in text
+    assert "id: format_bench" in text
+    assert "id: height_bench" in text
+
+
+def test_benchmark_workflow_supports_paired_same_runner_comparison() -> None:
+    """A/B nutzt denselben Harness/Runner und alterniert die Messreihenfolge."""
+    text = _workflow_text()
+
+    assert "mode == 'paired'" in text
+    assert "fetch-depth: 0" in text
+    assert "git worktree add --detach" in text
+    assert 'cp scripts/benchmark.py "$baseline_root/scripts/benchmark.py"' in text
+    assert "pair % 2" in text
+    assert "paired-compare" in text
+    assert "benchmark-ab-results" in text
