@@ -117,6 +117,41 @@ def _copy_if_needed(src: Path, dst: Path) -> None:
         raise
 
 
+def _ensure_lib_symlink(staged_qt6: Path, real_lib: Path) -> None:
+    """Verlinkt ``staged_qt6/lib`` sicher auf das echte Qt6-``lib``-Verzeichnis.
+
+    Gestagte Platform-Plugins tragen ein einkompiliertes ``RUNPATH`` von
+    ``$ORIGIN/../../lib`` (z. B. sucht ``libqxcb.so`` dort seine
+    ``libQt6XcbQpa.so.6``). Ohne diesen Symlink läuft der Loader bei
+    ``$ORIGIN/../../lib`` ins Leere und weicht auf eine ggf. inkompatible
+    System-Qt6 aus (beobachtet auf Raspberry Pi OS: ``undefined symbol``).
+    Der Symlink liegt unter dem bereits versionsgebundenen,
+    ``0700``-gesicherten Staging-Verzeichnis; da dieses pro Qt6-Version neu
+    angelegt wird, kann hier kein veralteter Verweis überdauern. Die
+    Zwischendatei bekommt über ``mkstemp`` einen eindeutigen Namen, damit
+    kein vorhersagbarer Pfad kurzzeitig existiert.
+    """
+    if not real_lib.is_dir():
+        return
+    link = staged_qt6 / "lib"
+    with contextlib.suppress(OSError):
+        if link.is_symlink() and Path(os.readlink(link)) == real_lib:
+            return
+
+    tmp: Path | None = None
+    try:
+        fd, tmp_name = tempfile.mkstemp(dir=str(staged_qt6), prefix=".lib.")
+        os.close(fd)
+        tmp = Path(tmp_name)
+        tmp.unlink()
+        os.symlink(real_lib, tmp)
+        os.replace(tmp, link)
+    except OSError:
+        if tmp is not None:
+            with contextlib.suppress(OSError):
+                tmp.unlink()
+
+
 def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
     """Kopiert Qt-Platform-Plugins bei Bedarf in ein Temp-Verzeichnis.
 
@@ -127,6 +162,15 @@ def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
     Das Staging-Ziel ist ein nutzerspezifisches ``0700``-Verzeichnis (siehe
     ``_secure_stage_root``); lässt es sich nicht absichern, unterbleibt das
     Staging und der Aufrufer fällt auf den Original-Pluginpfad zurück.
+
+    Die Verzeichnisstruktur unter dem Staging-Root spiegelt bewusst die
+    Original-Verschachtelung ``Qt6/plugins/platforms`` (statt flach
+    ``platforms``): Das einkompilierte Plugin-``RUNPATH``
+    (``$ORIGIN/../../lib``) erwartet ein ``lib``-Verzeichnis exakt zwei
+    Ebenen über den Plugin-Dateien. Ein zusätzlicher Symlink
+    ``Qt6/lib`` (siehe ``_ensure_lib_symlink``) macht diesen Pfad im
+    gestagten Baum auffindbar, statt beim geglätteten Layout ins Leere zu
+    laufen.
     """
     platform_files = [p for p in platforms.iterdir() if p.is_file()]
     if not platform_files:
@@ -141,14 +185,23 @@ def _stage_platform_plugins(platforms: Path) -> tuple[Path, Path] | None:
     staged_root = _secure_stage_root(base_tmp, qt_version)
     if staged_root is None:
         return None
-    staged_platforms = staged_root / "platforms"
+
+    staged_qt6 = staged_root / "Qt6"
+    staged_plugins = staged_qt6 / "plugins"
+    staged_platforms = staged_plugins / "platforms"
     try:
+        staged_qt6.mkdir(mode=0o700, exist_ok=True)
+        staged_plugins.mkdir(mode=0o700, exist_ok=True)
         staged_platforms.mkdir(mode=0o700, exist_ok=True)
     except OSError:
         return None
     for src in platform_files:
         _copy_if_needed(src, staged_platforms / src.name)
-    return staged_root, staged_platforms
+
+    real_lib = platforms.parent.parent / "lib"
+    _ensure_lib_symlink(staged_qt6, real_lib)
+
+    return staged_plugins, staged_platforms
 
 
 def ensure_qt_plugin_path() -> None:

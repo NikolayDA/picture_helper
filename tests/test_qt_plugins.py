@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -112,10 +113,15 @@ def test_copy_if_needed_leaves_no_temp_files(tmp_path):
 # ── _stage_platform_plugins (Ende-zu-Ende, ohne Qt) ────────────────────
 
 def test_stage_platform_plugins_round_trip(tmp_path, monkeypatch):
-    plugins = tmp_path / "platforms"
-    plugins.mkdir()
+    # Original-Layout: <pkg>/Qt6/{plugins/platforms,lib} – wie bei PyQt6.
+    qt6 = tmp_path / "Qt6"
+    plugins = qt6 / "plugins" / "platforms"
+    plugins.mkdir(parents=True)
     (plugins / "libqoffscreen.so").write_bytes(b"\x7fELF-fake")
     (plugins / "libqxcb.so").write_bytes(b"\x7fELF-fake-2")
+    real_lib = qt6 / "lib"
+    real_lib.mkdir()
+    (real_lib / "libQt6XcbQpa.so.6").write_bytes(b"\x7fELF-lib")
 
     staged_base = tmp_path / "tmp"
     staged_base.mkdir()
@@ -126,10 +132,18 @@ def test_stage_platform_plugins_round_trip(tmp_path, monkeypatch):
 
     result = qt_plugins._stage_platform_plugins(plugins)
     assert result is not None
-    staged_root, staged_platforms = result
+    staged_plugins, staged_platforms = result
     names = sorted(p.name for p in staged_platforms.iterdir())
     assert names == ["libqoffscreen.so", "libqxcb.so"]
     assert (staged_platforms / "libqxcb.so").read_bytes() == b"\x7fELF-fake-2"
+
+    # Das einkompilierte RUNPATH $ORIGIN/../../lib der gestagten Plugins
+    # muss auf ein echtes lib-Verzeichnis mit der Original-Bibliothek
+    # zeigen, nicht ins Leere laufen (Raspberry-Pi-Regressionsfall).
+    resolved_lib = (staged_platforms / ".." / ".." / "lib").resolve()
+    assert resolved_lib.is_dir()
+    assert (resolved_lib / "libQt6XcbQpa.so.6").read_bytes() == b"\x7fELF-lib"
+    assert staged_plugins.name == "plugins"
 
 
 def test_stage_platform_plugins_empty_dir_returns_none(tmp_path):
@@ -148,3 +162,67 @@ def test_stage_platform_plugins_aborts_when_root_insecure(tmp_path, monkeypatch)
     monkeypatch.setattr(qt_plugins.sys, "platform", "linux")
     monkeypatch.setattr(qt_plugins, "_secure_stage_root", lambda *a: None)
     assert qt_plugins._stage_platform_plugins(plugins) is None
+
+
+# ── _ensure_lib_symlink (RUNPATH-Regression) ───────────────────────────
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
+def test_ensure_lib_symlink_creates_link(tmp_path):
+    staged_qt6 = tmp_path / "staged" / "Qt6"
+    staged_qt6.mkdir(parents=True)
+    real_lib = tmp_path / "real" / "lib"
+    real_lib.mkdir(parents=True)
+    (real_lib / "libQt6XcbQpa.so.6").write_bytes(b"lib-bytes")
+
+    qt_plugins._ensure_lib_symlink(staged_qt6, real_lib)
+
+    link = staged_qt6 / "lib"
+    assert link.is_symlink()
+    assert Path(os.readlink(link)) == real_lib
+    assert (link / "libQt6XcbQpa.so.6").read_bytes() == b"lib-bytes"
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
+def test_ensure_lib_symlink_refreshes_stale_link(tmp_path):
+    """Ein Symlink von einer älteren Qt6-Version wird auf das aktuelle
+    lib-Verzeichnis nachgezogen, statt veraltet stehen zu bleiben."""
+    staged_qt6 = tmp_path / "staged" / "Qt6"
+    staged_qt6.mkdir(parents=True)
+    old_lib = tmp_path / "old" / "lib"
+    old_lib.mkdir(parents=True)
+    (staged_qt6 / "lib").symlink_to(old_lib)
+
+    new_lib = tmp_path / "new" / "lib"
+    new_lib.mkdir(parents=True)
+    (new_lib / "libQt6XcbQpa.so.6").write_bytes(b"new-lib")
+
+    qt_plugins._ensure_lib_symlink(staged_qt6, new_lib)
+
+    link = staged_qt6 / "lib"
+    assert Path(os.readlink(link)) == new_lib
+    assert (link / "libQt6XcbQpa.so.6").read_bytes() == b"new-lib"
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
+def test_ensure_lib_symlink_noop_when_already_current(tmp_path):
+    staged_qt6 = tmp_path / "staged" / "Qt6"
+    staged_qt6.mkdir(parents=True)
+    real_lib = tmp_path / "real" / "lib"
+    real_lib.mkdir(parents=True)
+    link = staged_qt6 / "lib"
+    link.symlink_to(real_lib)
+
+    # Darf keinen Fehler werfen und den bestehenden, korrekten Link nicht
+    # anfassen (keine neue mkstemp-Zwischendatei nötig).
+    qt_plugins._ensure_lib_symlink(staged_qt6, real_lib)
+    assert sorted(p.name for p in staged_qt6.iterdir()) == ["lib"]
+
+
+def test_ensure_lib_symlink_skips_missing_real_lib(tmp_path):
+    staged_qt6 = tmp_path / "staged" / "Qt6"
+    staged_qt6.mkdir(parents=True)
+    missing_lib = tmp_path / "does-not-exist"
+
+    qt_plugins._ensure_lib_symlink(staged_qt6, missing_lib)
+
+    assert list(staged_qt6.iterdir()) == []

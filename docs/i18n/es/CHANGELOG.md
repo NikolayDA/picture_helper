@@ -55,6 +55,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   PyQt6/PyQt6-Qt6 vuelven a la última versión portable para aarch64
   (6.7.1/6.7.3).
 
+- **Staging de plugins de Qt: los plugins de plataforma en staging vuelven a
+  encontrar sus bibliotecas Qt6 (#595, hallazgo posterior).** Más pruebas en
+  Raspberry Pi tras el arreglo de glibc revelaron un tercer fallo de inicio:
+  el directorio de staging endurecido para plugins de plataforma
+  (`qt_plugins.py`) colocaba los archivos de forma plana, rompiendo el
+  `RUNPATH` compilado (`$ORIGIN/../../lib`) de `libqxcb.so` — el cargador
+  recurría a una Qt6 del sistema posiblemente incompatible (fallo
+  `undefined symbol` en sistemas con su propia Qt6, p. ej. Raspberry Pi OS).
+  El staging ahora refleja exactamente el anidamiento original
+  (`Qt6/plugins/platforms`) y añade un enlace simbólico `Qt6/lib` seguro y
+  vinculado a la versión que apunta al directorio de bibliotecas real.
+
 - **Modelo híbrido de análisis de seguridad: CodeQL automático, Codex solo
   manual (#551).** CodeQL ahora se ejecuta como una configuración avanzada
   versionada (`.github/workflows/codeql.yml`), analizando Python
