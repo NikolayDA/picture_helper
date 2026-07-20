@@ -118,10 +118,13 @@ aktuellen Commit abwechselnd auf **demselben GitHub-Runner**. Beide Quellstände
 verwenden denselben Schema-3-Benchmark-Harness und dieselben Dependency-Pins.
 Der Workflow verlangt mindestens vier und stets eine gerade Zahl von Paaren,
 damit beide Commits gleich oft zuerst laufen. `paired-compare` berechnet zuerst
-die Prozentänderung innerhalb jedes Paars und bildet anschließend deren Median;
-Runner-Drift zwischen den Paaren kann den Schwellenentscheid dadurch nicht
-verfälschen. Jede Kohorte muss genau einen Commit enthalten. Sämtliche Läufe und
-Paar-Deltas landen im Artefakt `benchmark-ab-results`. Dieser Modus ist der
+das logarithmische Current/Baseline-Zeitverhältnis innerhalb jedes Paars und
+bildet anschließend dessen Median. Reziproke Reihenfolgeeffekte heben sich damit
+symmetrisch auf; Runner-Drift zwischen den Paaren kann den Schwellenentscheid
+nicht verfälschen. Die Report-Zeiten sind paar-normalisierte, mathematisch zum
+Delta passende Repräsentativwerte; alle beobachteten Einzelwerte bleiben im
+JSON erhalten. Jede Kohorte muss genau einen Commit enthalten. Sämtliche Läufe
+und Paar-Deltas landen im Artefakt `benchmark-ab-results`. Dieser Modus ist der
 belastbare Nachweis, wenn sich die Hosted-Runner-Umgebung zwischen zwei
 Wochenläufen geändert hat.
 
