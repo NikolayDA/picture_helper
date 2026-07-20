@@ -78,7 +78,7 @@ te acompaña durante la edición. Las funciones principales:
 
 ## 2. La interfaz del programa de un vistazo
 
-![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260711_094027/01_main_empty.png)
+![BgRemover – ventana principal tras el inicio](../../../app_screenshots/bgremover_complete_20260719_162826/01_main_empty.png)
 
 *La ventana principal justo tras el inicio: la barra de menú arriba, la
 barra de herramientas a la izquierda, el lienzo con el tablero de
@@ -136,7 +136,7 @@ Muchas acciones también están disponibles desde la barra de menú:
   [sección 7](#7-paso-2--quitar-fondo) y la
   [sección 18](#18-solución-de-problemas-y-archivo-de-registro)).
 
-![Menú "Edición"](../../../app_screenshots/bgremover_complete_20260711_094027/23_menu_edit.png)
+![Menú "Edición"](../../../app_screenshots/bgremover_complete_20260719_162826/23_menu_edit.png)
 
 *El menú "Edición" reúne deshacer/rehacer, rotar, voltear y las
 acciones de selección.*
@@ -185,7 +185,7 @@ Así eliminas un fondo en menos de un minuto:
    (conserva la transparencia) y haz clic en **Guardar**, o usa
    `Archivo → Guardar` (⌘S).
 
-![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260711_094027/55_function_ai_result.png)
+![Resultado de la eliminación de fondo con IA](../../../app_screenshots/bgremover_complete_20260719_162826/55_function_ai_result.png)
 
 *Tras un clic en "Eliminar fondo (IA)", el fondo queda recortado
 automáticamente — la barra de estado informa "Eliminación de fondo con
@@ -228,7 +228,7 @@ y las imágenes grandes se cargan en segundo plano — la barra de estado
 muestra el progreso. Tras la carga, la barra de pasos habilita
 automáticamente el paso siguiente.
 
-![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260711_094027/20_menu_file.png)
+![El menú "Archivo"](../../../app_screenshots/bgremover_complete_20260719_162826/20_menu_file.png)
 
 *El menú "Archivo" agrupa Abrir (⌘O), "Abiertos recientemente", Guardar
 (⌘S) y Guardar como… (⇧⌘S).*
@@ -318,7 +318,7 @@ sobre el **área actualmente seleccionada**. La selección se resalta en
 color sobre la imagen. Las herramientas de selección están activas en
 el paso *Quitar fondo*.
 
-![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260711_094027/02_main_loaded_selection.png)
+![Imagen cargada con una selección activa](../../../app_screenshots/bgremover_complete_20260719_162826/02_main_loaded_selection.png)
 
 *Una imagen cargada con una selección activa: el área de fondo
 seleccionada se resalta en color sobre el lienzo.*
@@ -356,7 +356,7 @@ En el paso *Quitar fondo* separas el motivo del fondo — automáticamente
 mediante IA o a mano. El inspector de tarjetas agrupa para ello cuatro
 tarjetas.
 
-![El paso "Quitar fondo"](../../../app_screenshots/bgremover_complete_20260711_094027/11_step_2_cutout.png)
+![El paso "Quitar fondo"](../../../app_screenshots/bgremover_complete_20260719_162826/11_step_2_cutout.png)
 
 *Paso 2 "Quitar fondo": arriba el botón de IA, debajo los ajustes de
 herramienta, las acciones de selección y "Editar fondo".*
@@ -404,7 +404,7 @@ cancelar la descarga allí.
 | **Elegir color** | Abre un selector de color. El pequeño botón de color muestra el color de reemplazo elegido actualmente. |
 | **Reemplazar color** | Rellena el área seleccionada con el color elegido. |
 
-![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260711_094027/31_dialog_color_picker.png)
+![Diálogo selector de color](../../../app_screenshots/bgremover_complete_20260719_162826/31_dialog_color_picker.png)
 
 *Mediante "Elegir color" se abre el selector de color; el color
 elegido aparece en el campo de color y se aplica a la selección con
@@ -456,7 +456,7 @@ cambios.
 El paso *Forma y medidas* agrupa rotar/voltear, redondear esquinas,
 recorte y un cambio rápido de tamaño en píxeles.
 
-![El paso "Forma y medidas"](../../../app_screenshots/bgremover_complete_20260711_094027/13_step_4_shape.png)
+![El paso "Forma y medidas"](../../../app_screenshots/bgremover_complete_20260719_162826/13_step_4_shape.png)
 
 *Paso 4 "Forma y medidas": rotación (rápida/ángulo libre), voltear,
 redondear esquinas y, abajo, los formatos de recorte.*
@@ -508,7 +508,7 @@ la [sección 10](#10-cambiar-tamaño-y-medidas-físicas).
    - **✓ Aplicar recorte** – recorta la imagen.
    - **✗ Cancelar** – descarta el marco.
 
-![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260711_094027/63_crop_circle_overlay.png)
+![Recorte circular activo con barra de confirmación](../../../app_screenshots/bgremover_complete_20260719_162826/63_crop_circle_overlay.png)
 
 *Ejemplo "Círculo": el marco de recorte se sitúa sobre la imagen con
 tiradores. Con "✓ Aplicar recorte" se recorta y "✗ Cancelar" descarta
@@ -781,7 +781,7 @@ como `.empf`.
 A través de `Herramientas → Ajustes…` (⌘, / Ctrl+,) puedes gestionar
 los siguientes ajustes:
 
-![El diálogo de ajustes](../../../app_screenshots/bgremover_complete_20260711_094027/30_dialog_settings.png)
+![El diálogo de ajustes](../../../app_screenshots/bgremover_complete_20260719_162826/30_dialog_settings.png)
 
 *El diálogo de ajustes: idioma, directorios predeterminados para abrir
 y guardar, formato de imagen preferido, así como la ruta al archivo de
