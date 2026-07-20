@@ -12,6 +12,11 @@ from __future__ import annotations
 
 import os
 import stat
+import subprocess
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -19,6 +24,12 @@ import pytest
 from bgremover import qt_plugins
 
 _POSIX = os.name == "posix"
+
+
+def _instance_dir(root: Path, *, pid: int = 1234, token: str = "1" * 16) -> Path:
+    path = root / f"6_7_3_{'a' * 16}_pid{pid}_{token}"
+    path.mkdir(mode=0o700)
+    return path
 
 
 # ── _secure_stage_root ─────────────────────────────────────────────────
@@ -67,6 +78,167 @@ def test_secure_dir_rejects_group_or_other_permissions(tmp_path):
     d.mkdir(mode=0o700)
     os.chmod(d, 0o750)  # Gruppenrechte → unsicher
     assert qt_plugins._secure_dir(d) is False
+
+
+# ── Staging-Lebenszyklus und verwaiste Instanzen ──────────────────────
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-flock-Semantik erforderlich")
+def test_cleanup_stage_dir_removes_own_leased_tree(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    staged = _instance_dir(root)
+    (staged / "payload").write_bytes(b"plugin")
+
+    assert qt_plugins._acquire_stage_lease(staged) is True
+    assert staged in qt_plugins._STAGE_LEASES
+
+    qt_plugins._cleanup_stage_dir(staged)
+
+    assert not staged.exists()
+    assert staged not in qt_plugins._STAGE_LEASES
+
+
+def test_cleanup_stage_dir_never_removes_unowned_tree(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    staged = _instance_dir(root)
+
+    qt_plugins._cleanup_stage_dir(staged)
+
+    assert staged.is_dir()
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-flock-Semantik erforderlich")
+def test_concurrent_threads_share_single_process_lease(tmp_path, monkeypatch):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    staged = _instance_dir(root)
+    barrier = threading.Barrier(8)
+    flock_calls = 0
+    count_lock = threading.Lock()
+    assert qt_plugins.fcntl is not None
+    real_flock = qt_plugins.fcntl.flock
+
+    def _slow_flock(*args):
+        nonlocal flock_calls
+        with count_lock:
+            flock_calls += 1
+        time.sleep(0.02)
+        return real_flock(*args)
+
+    monkeypatch.setattr(qt_plugins.fcntl, "flock", _slow_flock)
+
+    def _acquire() -> bool:
+        barrier.wait()
+        return qt_plugins._acquire_stage_lease(staged)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: _acquire(), range(8)))
+
+    assert results == [True] * 8
+    assert flock_calls == 1
+    qt_plugins._cleanup_stage_dir(staged)
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="fork() erforderlich")
+@pytest.mark.filterwarnings(
+    "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks:DeprecationWarning"
+)
+def test_forked_child_cannot_cleanup_parent_stage(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    staged = _instance_dir(root)
+    assert qt_plugins._acquire_stage_lease(staged) is True
+
+    pid = os.fork()
+    if pid == 0:
+        try:
+            # register_at_fork hat die geerbte Besitzliste im Kind geleert.
+            if staged in qt_plugins._STAGE_LEASES:
+                os._exit(2)
+            qt_plugins._cleanup_stage_dir(staged)
+            os._exit(0 if staged.is_dir() else 3)
+        except BaseException:
+            os._exit(4)
+
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    assert staged.is_dir()
+    qt_plugins._cleanup_stage_dir(staged)
+    assert not staged.exists()
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-flock-Semantik erforderlich")
+def test_prune_keeps_foreign_active_lease_and_removes_it_after_exit(tmp_path):
+    """Eine Lease eines anderen Prozesses schützt dessen Baum; nach einem
+    harten Ende gibt der Kernel die Sperre frei und der nächste Prune räumt
+    denselben Baum auf."""
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    staged = _instance_dir(root)
+    lease_path = staged / ".lease"
+    lease_path.touch(mode=0o600)
+
+    helper = (
+        "import fcntl, pathlib, sys; "
+        "f = pathlib.Path(sys.argv[1]).open('r+b', buffering=0); "
+        "fcntl.flock(f.fileno(), fcntl.LOCK_EX); "
+        "print('locked', flush=True); "
+        "sys.stdin.read(1)"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", helper, str(lease_path)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert proc.stdout is not None
+        assert proc.stdout.readline().strip() == "locked"
+        qt_plugins._prune_stale_stage_dirs(root)
+        assert staged.is_dir()
+    finally:
+        assert proc.stdin is not None
+        proc.stdin.close()
+        proc.wait(timeout=5)
+
+    qt_plugins._prune_stale_stage_dirs(root)
+    assert not staged.exists()
+
+
+def test_prune_waits_before_removing_tree_without_lease(tmp_path, monkeypatch):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    fresh = _instance_dir(root, token="1" * 16)
+    stale = _instance_dir(root, token="2" * 16)
+    now = time.time()
+    os.utime(stale, (now - 301, now - 301))
+    monkeypatch.setattr(qt_plugins.time, "time", lambda: now)
+
+    qt_plugins._prune_stale_stage_dirs(root)
+
+    assert fresh.is_dir()
+    assert not stale.exists()
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
+def test_prune_removes_legacy_broken_appimage_tree_only(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir(mode=0o700)
+    stale = root / f"6_7_3_{'a' * 16}"
+    active = root / f"6_7_3_{'b' * 16}"
+    for staged in (stale, active):
+        staged.mkdir(mode=0o700)
+        (staged / "Qt6").mkdir(mode=0o700)
+    (stale / "Qt6" / "lib").symlink_to(tmp_path / "vanished-appimage" / "lib")
+    live_lib = tmp_path / "mounted-appimage" / "lib"
+    live_lib.mkdir(parents=True)
+    (active / "Qt6" / "lib").symlink_to(live_lib)
+
+    qt_plugins._prune_stale_stage_dirs(root)
+
+    assert not stale.exists()
+    assert active.is_dir()
 
 
 # ── _copy_if_needed: Inhaltsvergleich + eindeutige Temp-Datei ──────────
@@ -180,6 +352,10 @@ def test_stage_platform_plugins_aborts_when_lib_symlink_fails(tmp_path, monkeypa
     monkeypatch.setattr(qt_plugins, "_ensure_lib_symlink", lambda *a: False)
 
     assert qt_plugins._stage_platform_plugins(plugins) is None
+    uid = os.geteuid() if _POSIX else 0
+    user_root = tmp_path / "tmp" / f"bgremover_qt_plugins_{uid}"
+    assert user_root.is_dir()
+    assert list(user_root.iterdir()) == []
 
 
 def test_stage_platform_plugins_isolates_concurrent_sources(tmp_path, monkeypatch):
