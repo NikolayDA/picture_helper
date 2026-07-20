@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+      - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -58,7 +58,16 @@ jobs:
             ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
             ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
             --output "${RUNNER_TEMP}/abnahme-macos-arm64"
+      - name: DMG-Smoke inkl. Retina-Nachweis (#643)
+        run: |
+          # devicePixelRatio des Hauptfensters ermitteln (nativer Qt-Kontext).
+          scale="$(python3 scripts/abnahme_scale_probe.py)"
+          python3 scripts/abnahme_smoke.py \
+            --platform macos-arm64 \
+            --evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64" \
+            --scale-factor "$scale"
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: abnahme-macos-arm64
           path: ${{ runner.temp }}/abnahme-macos-arm64/
@@ -71,7 +80,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+      - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -80,7 +89,13 @@ jobs:
             ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
             ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
+      - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
+        run: |
+          python3 scripts/abnahme_smoke.py \
+            --platform linux-arm64 \
+            --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64"
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: abnahme-linux-arm64
           path: ${{ runner.temp }}/abnahme-linux-arm64/
@@ -99,7 +114,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+      - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -108,7 +123,13 @@ jobs:
             ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
             ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
             --output "${RUNNER_TEMP}/abnahme-linux-x86_64"
+      - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
+        run: |
+          python3 scripts/abnahme_smoke.py \
+            --platform linux-x86_64 \
+            --evidence-dir "${RUNNER_TEMP}/abnahme-linux-x86_64"
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: abnahme-linux-x86_64
           path: ${{ runner.temp }}/abnahme-linux-x86_64/

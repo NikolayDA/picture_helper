@@ -31,6 +31,11 @@ from typing import Any
 EVIDENCE_SCHEMA = 1
 EVIDENCE_KIND = "abnahme-evidenz"
 STATUS_PLACEHOLDER = "platzhalter"
+STATUS_PASSED = "bestanden"
+STATUS_FAILED = "fehlgeschlagen"
+
+# Retina/High-DPI gilt ab devicePixelRatio 2 als erfüllt (macOS-Panels, #643).
+RETINA_MIN_SCALE = 2.0
 
 # Plattform → Namensbestandteil der Release-Artefakte (Benennung seit #584).
 PLATFORM_PATTERNS: dict[str, str] = {
@@ -193,6 +198,71 @@ def write_evidence(output: Path, evidence: dict[str, Any]) -> None:
     ]
     lines += ["", *[f"> {note}" for note in evidence["hinweise"]], ""]
     (output / "manifest.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+# ── Smoke-Entscheidungslogik (Qt-frei, testbar) ─────────────────────────────
+# Die OS-spezifischen Treiber (scripts/abnahme_linux_smoke.py,
+# scripts/abnahme_macos_smoke.py) sammeln die Rohsignale (App-Start,
+# GL-Diagnose, Screenshot, Instanzzahl, .deb-Rückstände) und übergeben sie an
+# diese Funktionen – so ist die Bewertung ohne echte Hardware testbar.
+
+
+@dataclass(frozen=True)
+class ProvenanceVerdict:
+    """Bewertung einer GL-Diagnose als Hardware-Nachweis."""
+
+    ok: bool
+    diagnostic: str
+    note: str
+
+
+def evaluate_gl_provenance(diagnostic: str | None) -> ProvenanceVerdict:
+    """Prüft, ob die GL-Diagnose einen echten Hardware-Renderer belegt.
+
+    Fehlt die Diagnose oder nennt sie einen Software-Renderer (llvmpipe & Co.,
+    geteilte Regel aus ``bgremover.renderer_provenance``), gilt der Smoke als
+    **nicht erbracht** – die Offscreen-CI kann diese Nachweise nicht liefern.
+    """
+    from bgremover.renderer_provenance import is_software_renderer
+
+    if not diagnostic or not diagnostic.strip():
+        return ProvenanceVerdict(False, "", "Keine GL-Diagnose erfasst.")
+    if is_software_renderer(diagnostic):
+        return ProvenanceVerdict(
+            False, diagnostic, f"Software-Renderer abgewiesen: {diagnostic}",
+        )
+    return ProvenanceVerdict(True, diagnostic, f"Hardware-Renderer: {diagnostic}")
+
+
+def evaluate_retina(scale_factor: float) -> bool:
+    """High-DPI erfüllt, wenn devicePixelRatio ≥ ``RETINA_MIN_SCALE`` (#643)."""
+    return scale_factor >= RETINA_MIN_SCALE
+
+
+def evaluate_deb_cleanup(package_installed: bool, leftover_paths: list[str]) -> bool:
+    """Rückstandsfreie ``.deb``-Deinstallation: nicht mehr installiert, keine Reste."""
+    return not package_installed and not leftover_paths
+
+
+def finalize_evidence(
+    evidence: dict[str, Any],
+    *,
+    passed: bool,
+    gl_provenance: str | None,
+    extra_notes: list[str] | None = None,
+) -> dict[str, Any]:
+    """Platzhalter-Evidenz zum echten Smoke-Ergebnis fortschreiben.
+
+    Setzt ``status`` auf ``bestanden``/``fehlgeschlagen`` und trägt die
+    geprüfte GL-Provenance ein; ergänzende Hinweise werden angehängt.
+    """
+    updated = dict(evidence)
+    updated["status"] = STATUS_PASSED if passed else STATUS_FAILED
+    updated["gl_provenance"] = gl_provenance
+    notes = [n for n in evidence.get("hinweise", []) if "Platzhalter-Smoke" not in n]
+    notes += extra_notes or []
+    updated["hinweise"] = notes
+    return updated
 
 
 def main(argv: list[str] | None = None, fetcher: Fetcher = _default_fetcher) -> int:

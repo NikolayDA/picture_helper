@@ -68,3 +68,15 @@ def test_workflow_runs_evidence_helper() -> None:
 
     assert "scripts/release_abnahme.py" in text
     assert (ROOT / "scripts" / "release_abnahme.py").is_file()
+
+
+def test_workflow_runs_hardware_smoke() -> None:
+    """Die aktiven Plattform-Jobs führen den echten Hardware-Smoke aus (#642/#643)."""
+    text = _workflow_text()
+
+    assert "scripts/abnahme_smoke.py" in text
+    assert "scripts/abnahme_scale_probe.py" in text  # Retina-Nachweis macOS
+    for script in ("abnahme_smoke.py", "abnahme_scale_probe.py", "abnahme_probe.py"):
+        assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
+    # Evidenz auch bei fehlgeschlagenem Smoke hochladen (Diagnose bleibt sichtbar).
+    assert "if: always()" in text

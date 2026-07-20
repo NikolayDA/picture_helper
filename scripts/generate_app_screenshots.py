@@ -22,14 +22,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-_HEADLESS_QT_PLATFORMS = {"minimal", "minimalegl", "offscreen"}
-_SOFTWARE_RENDERER_MARKERS = (
-    "llvmpipe",
-    "softpipe",
-    "software rasterizer",
-    "swiftshader",
-    "basic render driver",
+from bgremover.renderer_provenance import (  # noqa: E402
+    is_software_renderer as _is_software_renderer,
 )
+
+_HEADLESS_QT_PLATFORMS = {"minimal", "minimalegl", "offscreen"}
 
 
 @dataclass(frozen=True)
@@ -94,12 +91,6 @@ def _is_headless_qt_platform(value: str | None) -> bool:
         return False
     first_fallback = value.split(";", 1)[0]
     return first_fallback.split(":", 1)[0].lower() in _HEADLESS_QT_PLATFORMS
-
-
-def _is_software_renderer(diagnostic: str) -> bool:
-    """Erkennt bekannte CPU-/Software-Renderer in der GL-Diagnose."""
-    normalized = diagnostic.casefold()
-    return any(marker in normalized for marker in _SOFTWARE_RENDERER_MARKERS)
 
 
 def _run_hybrid_live_3d(args: argparse.Namespace, out: Path) -> int:

@@ -52,6 +52,51 @@ def test_build_evidence_carries_contract_fields() -> None:
     assert set(evidence["umgebung"]) == {"os", "arch", "python", "runner"}
 
 
+def test_evaluate_gl_provenance_gates_software_and_missing() -> None:
+    hardware = ra.evaluate_gl_provenance("Apple / Apple M3 Max / 2.1 Metal - 90.5")
+    assert hardware.ok and "Hardware-Renderer" in hardware.note
+
+    software = ra.evaluate_gl_provenance("Mesa / llvmpipe (LLVM 18) / 4.5")
+    assert not software.ok and "Software-Renderer" in software.note
+
+    for empty in (None, "", "   "):
+        verdict = ra.evaluate_gl_provenance(empty)
+        assert not verdict.ok and verdict.diagnostic == ""
+
+
+def test_evaluate_retina_threshold() -> None:
+    assert ra.evaluate_retina(2.0)
+    assert ra.evaluate_retina(3.0)
+    assert not ra.evaluate_retina(1.0)
+    assert not ra.evaluate_retina(1.5)
+
+
+def test_evaluate_deb_cleanup() -> None:
+    assert ra.evaluate_deb_cleanup(package_installed=False, leftover_paths=[])
+    assert not ra.evaluate_deb_cleanup(package_installed=True, leftover_paths=[])
+    assert not ra.evaluate_deb_cleanup(package_installed=False, leftover_paths=["/usr/bin/x"])
+
+
+def test_finalize_evidence_sets_status_and_provenance() -> None:
+    records = [ra.ArtifactRecord(name="a.dmg", sha256="cafe", bytes=7)]
+    base = ra.build_evidence(
+        "macos-arm64", "abc", {"art": "release-tag", "wert": "v2.7.0"}, records,
+        ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."],
+    )
+    passed = ra.finalize_evidence(
+        base, passed=True, gl_provenance="Apple / M3 / 2.1 Metal", extra_notes=["ok"],
+    )
+    assert passed["status"] == ra.STATUS_PASSED
+    assert passed["gl_provenance"] == "Apple / M3 / 2.1 Metal"
+    # Der Platzhalter-Hinweis ist ersetzt, der echte Hinweis übernommen.
+    assert not any("Platzhalter-Smoke" in n for n in passed["hinweise"])
+    assert "ok" in passed["hinweise"]
+
+    failed = ra.finalize_evidence(base, passed=False, gl_provenance=None)
+    assert failed["status"] == ra.STATUS_FAILED
+    assert failed["gl_provenance"] is None
+
+
 def test_write_evidence_emits_json_and_manifest(tmp_path: Path) -> None:
     records = [ra.ArtifactRecord(name="a.dmg", sha256="cafe", bytes=7)]
     evidence = ra.build_evidence(
