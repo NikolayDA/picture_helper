@@ -79,5 +79,8 @@ def test_benchmark_workflow_supports_paired_same_runner_comparison() -> None:
     assert "git worktree add --detach" in text
     assert 'cp scripts/benchmark.py "$baseline_root/scripts/benchmark.py"' in text
     assert "pair % 2" in text
+    assert "default: '4'" in text
+    assert "PAIRS % 2" in text
+    assert "gerade Zahl zwischen 4 und 10" in text
     assert "paired-compare" in text
     assert "benchmark-ab-results" in text

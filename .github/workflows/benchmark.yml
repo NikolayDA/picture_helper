@@ -24,9 +24,9 @@ on:
         type: string
         default: 'b72c322f3dea450f3f145974da0e505e1df41a99'
       pairs:
-        description: 'Anzahl alternierend gemessener A/B-Paare'
+        description: 'Gerade Anzahl alternierend gemessener A/B-Paare'
         type: string
-        default: '3'
+        default: '4'
 
 permissions:
   contents: read
@@ -214,8 +214,8 @@ jobs:
           case "$PAIRS" in
             ''|*[!0-9]*) echo "pairs muss eine Ganzzahl sein"; exit 2 ;;
           esac
-          if [ "$PAIRS" -lt 3 ] || [ "$PAIRS" -gt 10 ]; then
-            echo "pairs muss zwischen 3 und 10 liegen"
+          if [ "$PAIRS" -lt 4 ] || [ "$PAIRS" -gt 10 ] || [ $((PAIRS % 2)) -ne 0 ]; then
+            echo "pairs muss eine gerade Zahl zwischen 4 und 10 sein"
             exit 2
           fi
 
@@ -236,8 +236,8 @@ jobs:
 
           pair=1
           while [ "$pair" -le "$PAIRS" ]; do
-            # Reihenfolge alternieren, damit Aufwärm-/Lastdrift nicht einseitig
-            # Baseline oder aktuellen Commit bevorzugt.
+            # Gerade Paarzahl + alternierende Reihenfolge: Beide Commits laufen
+            # exakt gleich oft zuerst, damit Aufwärm-/Lastdrift keinen bevorzugt.
             if [ $((pair % 2)) -eq 1 ]; then
               run_one "$BASELINE_ROOT" baseline "$pair"
               run_one "$GITHUB_WORKSPACE" current "$pair"

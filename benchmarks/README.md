@@ -116,9 +116,13 @@ oder Scheduler-Effekte verfälschen.
 Der manuelle Workflow-Modus `paired` misst einen Baseline-Commit und den
 aktuellen Commit abwechselnd auf **demselben GitHub-Runner**. Beide Quellstände
 verwenden denselben Schema-3-Benchmark-Harness und dieselben Dependency-Pins.
-`paired-compare` bildet den Median aus mindestens drei A/B-Paaren und schreibt
-sämtliche Einzelwerte in das Artefakt `benchmark-ab-results`. Dieser Modus ist
-der belastbare Nachweis, wenn sich die Hosted-Runner-Umgebung zwischen zwei
+Der Workflow verlangt mindestens vier und stets eine gerade Zahl von Paaren,
+damit beide Commits gleich oft zuerst laufen. `paired-compare` berechnet zuerst
+die Prozentänderung innerhalb jedes Paars und bildet anschließend deren Median;
+Runner-Drift zwischen den Paaren kann den Schwellenentscheid dadurch nicht
+verfälschen. Jede Kohorte muss genau einen Commit enthalten. Sämtliche Läufe und
+Paar-Deltas landen im Artefakt `benchmark-ab-results`. Dieser Modus ist der
+belastbare Nachweis, wenn sich die Hosted-Runner-Umgebung zwischen zwei
 Wochenläufen geändert hat.
 
 ## CI / Issues
