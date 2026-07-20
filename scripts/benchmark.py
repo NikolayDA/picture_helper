@@ -86,6 +86,7 @@ DEFAULT_HEIGHT = 1080
 DEFAULT_THRESHOLD = 10.0  # Prozent; darüber gilt ein Format als degradiert.
 DEFAULT_METRIC = "process_ms"
 DEFAULT_CONFIRM_RUNS = 3  # Gesamtläufe, um eine Auffälligkeit zu bestätigen.
+DEFAULT_MINIMUM_PAIRS = 4  # Gerade Zahl: beide A/B-Reihenfolgen gleich oft.
 RESULTS_DIR = ROOT / "benchmarks" / "results"
 # Schema 3 ergänzt die Benchmark-Suite, den vollständigen Runner-Fingerprint und
 # Rohmessungen. Ältere Läufe dürfen deshalb nicht automatisch als vergleichbare
@@ -536,6 +537,7 @@ class Comparison:
 
     metric: str
     threshold: float
+    timing_basis: str = "direct"
     deltas: list[FormatDelta] = field(default_factory=list)
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
@@ -588,10 +590,14 @@ def compare(
 
 def format_report(comp: Comparison) -> str:
     """Menschlich lesbarer Tabellen-Report eines Vergleichs."""
+    paired = comp.timing_basis == "paired-log-ratio"
+    baseline_heading = "Referenz*" if paired else "Vorwoche"
+    current_heading = "Äquivalent*" if paired else "Diese Woche"
     lines = [
         f"Metrik: {comp.metric}   Schwelle: +{comp.threshold:.1f}%",
         "",
-        f"{'Format':<8} {'Vorwoche':>12} {'Diese Woche':>14} {'Änderung':>11}  Status",
+        f"{'Format':<8} {baseline_heading:>12} {current_heading:>14} "
+        f"{'Änderung':>11}  Status",
         f"{'-' * 8} {'-' * 12} {'-' * 14} {'-' * 11}  {'-' * 8}",
     ]
     for d in comp.deltas:
@@ -604,14 +610,20 @@ def format_report(comp: Comparison) -> str:
         lines.append(f"\nNeu (keine Vorwochen-Daten): {', '.join(comp.added)}")
     if comp.removed:
         lines.append(f"Entfallen (fehlen diese Woche): {', '.join(comp.removed)}")
+    if paired:
+        lines.append(
+            "\n* Paar-normalisierte Darstellung: Referenz = Median der Baseline-"
+            "Zeiten; Äquivalent = Referenz × aggregiertes Zeitverhältnis."
+        )
 
     lines.append("")
     if comp.flagged:
         lines.append(f"⚠️  {len(comp.flagged)} Format(e) über der {comp.threshold:.0f}%-Schwelle:")
         for d in comp.flagged:
             lines.append(
-                f"  - {d.fmt}: Vorwoche {d.baseline_ms:.2f}ms → "
-                f"diese Woche {d.current_ms:.2f}ms (+{d.pct_change:.1f}%)"
+                f"  - {d.fmt}: {baseline_heading} {d.baseline_ms:.2f}ms → "
+                f"{current_heading} {d.current_ms:.2f}ms "
+                f"(+{d.pct_change:.1f}%)"
             )
     else:
         lines.append("✅ Alle Formate innerhalb von "
@@ -776,6 +788,14 @@ def _issue_body(d: FormatDelta, comp: Comparison, context: IssueContext | None =
 - Bestätigungsläufe: {context.confirm_runs} (gemeldet wird der Median)
 - Ausführungsumgebung weicht von der Baseline ab: {"ja" if context.requires_confirmation else "nein"}
 """
+    paired = comp.timing_basis == "paired-log-ratio"
+    baseline_heading = "Referenz (Baseline-Median)" if paired else "Vorwoche"
+    current_heading = "Äquivalent (paar-normalisiert)" if paired else "Diese Woche"
+    timing_note = (
+        "\nDie angezeigte Äquivalentzeit wird aus dem Baseline-Median und dem "
+        "Median der paarweisen Log-Verhältnisse abgeleitet.\n"
+        if paired else ""
+    )
     return f"""<!-- {_issue_marker(d.fmt, comp.metric)} -->
 ## Performance-Regression: {d.fmt}
 
@@ -784,9 +804,10 @@ vorigen Benchmark-Lauf um mehr als {comp.threshold:.0f}% verschlechtert.
 
 | | Zeit |
 |---|---|
-| Vorwoche | {d.baseline_ms:.2f} ms |
-| Diese Woche | {d.current_ms:.2f} ms |
+| {baseline_heading} | {d.baseline_ms:.2f} ms |
+| {current_heading} | {d.current_ms:.2f} ms |
 | Änderung | +{d.pct_change:.1f}% |
+{timing_note}
 {extra}
 Erzeugt von `scripts/benchmark.py`.
 """
@@ -865,7 +886,7 @@ def _load_results(paths: list[Path]) -> list[dict[str, Any]]:
 def _paired_compatibility(
     baseline_runs: list[dict[str, Any]], current_runs: list[dict[str, Any]],
 ) -> Compatibility:
-    """Sicherstellen, dass jedes A/B-Paar auf derselben Umgebung lief."""
+    """Umgebung und Commit-Kohorten aller A/B-Paare validieren."""
     if len(baseline_runs) != len(current_runs):
         return Compatibility(False, False, [
             "Anzahl der Baseline- und aktuellen Läufe unterscheidet sich "
@@ -873,6 +894,21 @@ def _paired_compatibility(
         ])
 
     reasons: list[str] = []
+    for label, runs in (("Baseline", baseline_runs), ("Aktuell", current_runs)):
+        commits = [run.get("git_commit") for run in runs]
+        missing = [index for index, commit in enumerate(commits, start=1) if not commit]
+        if missing:
+            reasons.append(
+                f"{label}-Kohorte ohne Commit-Hash in Lauf/Läufen "
+                f"{', '.join(str(index) for index in missing)}."
+            )
+        distinct = {str(commit) for commit in commits if commit}
+        if len(distinct) > 1:
+            reasons.append(
+                f"{label}-Kohorte enthält mehrere Commits: "
+                f"{', '.join(sorted(distinct))}."
+            )
+
     for index, (baseline, current) in enumerate(
         zip(baseline_runs, current_runs, strict=True), start=1,
     ):
@@ -894,11 +930,84 @@ def _paired_compatibility(
     return Compatibility(True, False, [])
 
 
+def compare_paired(
+    baseline_runs: list[dict[str, Any]],
+    current_runs: list[dict[str, Any]],
+    metric: str = DEFAULT_METRIC,
+    threshold: float = DEFAULT_THRESHOLD,
+) -> tuple[Comparison, list[Comparison]]:
+    """A/B-Paare einzeln vergleichen und deren Zeitverhältnisse aggregieren.
+
+    Absolute Runner-Geschwindigkeit kann zwischen Paaren driften. Deshalb wird
+    das logarithmische Current/Baseline-Verhältnis zuerst innerhalb jedes Paars
+    berechnet. Der Median der Log-Verhältnisse ist richtungssymmetrisch: Reziproke
+    Reihenfolgeeffekte heben sich auf. Für den Report wird die aktuelle
+    Äquivalentzeit konsistent aus Baseline-Median und aggregiertem Verhältnis
+    abgeleitet; die beobachteten Einzelwerte bleiben in ``pair_comparisons``.
+    """
+    if not baseline_runs or len(baseline_runs) != len(current_runs):
+        raise ValueError("compare_paired braucht gleich viele, nicht leere Kohorten")
+
+    pair_comparisons = [
+        compare(baseline, current, metric, threshold)
+        for baseline, current in zip(baseline_runs, current_runs, strict=True)
+    ]
+    delta_maps = [
+        {delta.fmt: delta for delta in comparison.deltas}
+        for comparison in pair_comparisons
+    ]
+    common_formats = set(delta_maps[0])
+    for delta_map in delta_maps[1:]:
+        common_formats &= set(delta_map)
+
+    result = Comparison(
+        metric=metric, threshold=threshold, timing_basis="paired-log-ratio",
+    )
+    for fmt in sorted(common_formats):
+        deltas = [delta_map[fmt] for delta_map in delta_maps]
+        log_ratios = [
+            math.log(delta.current_ms / delta.baseline_ms)
+            for delta in deltas
+            if (
+                math.isfinite(delta.baseline_ms)
+                and math.isfinite(delta.current_ms)
+                and delta.baseline_ms > 0.0
+                and delta.current_ms > 0.0
+            )
+        ]
+        if len(log_ratios) != len(deltas):
+            raise ValueError(
+                f"{fmt}/{metric}: Log-Verhältnis braucht positive, endliche Zeiten"
+            )
+        aggregate_ratio = math.exp(statistics.median(log_ratios))
+        change = round((aggregate_ratio - 1.0) * 100.0, 4)
+        representative_baseline = round(
+            statistics.median(delta.baseline_ms for delta in deltas), 4,
+        )
+        result.deltas.append(
+            FormatDelta(
+                fmt=fmt,
+                baseline_ms=representative_baseline,
+                current_ms=round(representative_baseline * aggregate_ratio, 4),
+                pct_change=change,
+                degraded=change > threshold,
+            )
+        )
+    result.added = sorted(
+        {fmt for comparison in pair_comparisons for fmt in comparison.added}
+    )
+    result.removed = sorted(
+        {fmt for comparison in pair_comparisons for fmt in comparison.removed}
+    )
+    return result, pair_comparisons
+
+
 def _comparison_payload(comp: Comparison) -> dict[str, Any]:
     """Vergleich für das A/B-Artefakt JSON-serialisierbar machen."""
     return {
         "metric": comp.metric,
         "threshold": comp.threshold,
+        "timing_basis": comp.timing_basis,
         "deltas": [
             {
                 "format": delta.fmt,
@@ -924,6 +1033,12 @@ def _cmd_paired_compare(args: argparse.Namespace) -> int:
             f"{len(baseline_runs)}.",
         )
         return 2
+    if len(baseline_runs) % 2 != 0:
+        print(
+            "Eine gerade Anzahl A/B-Paare ist nötig, damit Baseline und aktueller "
+            "Commit gleich oft zuerst laufen."
+        )
+        return 2
 
     compatibility = _paired_compatibility(baseline_runs, current_runs)
     print(format_compatibility(compatibility, "gepaarte Baseline"))
@@ -932,10 +1047,20 @@ def _cmd_paired_compare(args: argparse.Namespace) -> int:
 
     baseline = aggregate_results(baseline_runs)
     current = aggregate_results(current_runs)
-    comp = compare(baseline, current, args.metric, args.threshold)
+    comp, pair_comparisons = compare_paired(
+        baseline_runs, current_runs, args.metric, args.threshold,
+    )
     print()
     print(f"Gepaarter A/B-Vergleich ({len(baseline_runs)} Paare):")
+    print("Entscheidungsbasis: Median der paarweisen Log-Zeitverhältnisse.")
     print(format_report(comp))
+
+    comparison_payload = _comparison_payload(comp)
+    comparison_payload["aggregation"] = "median-of-pair-log-ratios"
+    comparison_payload["pair_comparisons"] = [
+        {"pair": index, **_comparison_payload(pair_comp)}
+        for index, pair_comp in enumerate(pair_comparisons, start=1)
+    ]
 
     payload = {
         "schema": SCHEMA_VERSION,
@@ -944,7 +1069,7 @@ def _cmd_paired_compare(args: argparse.Namespace) -> int:
         "pairs": len(baseline_runs),
         "baseline": baseline,
         "current": current,
-        "comparison": _comparison_payload(comp),
+        "comparison": comparison_payload,
     }
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -1160,7 +1285,10 @@ def main(argv: list[str] | None = None) -> int:
         "--current", type=Path, nargs="+", required=True,
         help="Aktuelle JSONs in Paar-Reihenfolge.",
     )
-    paired_p.add_argument("--minimum-pairs", type=int, default=3)
+    paired_p.add_argument(
+        "--minimum-pairs", type=int, default=DEFAULT_MINIMUM_PAIRS,
+        help="Gerade Mindestzahl ausbalancierter A/B-Paare (Default 4).",
+    )
     paired_p.add_argument("--output", type=Path, help="Detailliertes A/B-JSON.")
     paired_p.add_argument("--metric", default=DEFAULT_METRIC)
     paired_p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)

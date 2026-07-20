@@ -169,10 +169,18 @@ def _env(**over: object) -> dict:
     return base
 
 
-def _run(env: dict, *, iterations: int = 7, image: dict | None = None, **process_ms: float) -> dict:
+def _run(
+    env: dict,
+    *,
+    iterations: int = 7,
+    image: dict | None = None,
+    commit: str | None = "abc1234",
+    **process_ms: float,
+) -> dict:
     return {
         "schema": bench.SCHEMA_VERSION,
         "suite": "formats",
+        "git_commit": commit,
         "iterations": iterations,
         "image": image or {"width": 1920, "height": 1080},
         "environment": env,
@@ -383,15 +391,18 @@ def test_paired_compare_persists_all_runs_and_stays_green(
     baseline_paths: list[Path] = []
     current_paths: list[Path] = []
     for index, (baseline_ms, current_ms) in enumerate(
-        [(100.0, 105.0), (102.0, 103.0), (98.0, 104.0)], start=1,
+        [(100.0, 105.0), (102.0, 103.0), (98.0, 104.0), (101.0, 102.0)],
+        start=1,
     ):
         baseline = tmp_path / f"baseline-{index}.json"
         current = tmp_path / f"current-{index}.json"
         baseline.write_text(
-            json.dumps(_run(_env(), PNG=baseline_ms)), encoding="utf-8",
+            json.dumps(_run(_env(), commit="base123", PNG=baseline_ms)),
+            encoding="utf-8",
         )
         current.write_text(
-            json.dumps(_run(_env(), PNG=current_ms)), encoding="utf-8",
+            json.dumps(_run(_env(), commit="cur456", PNG=current_ms)),
+            encoding="utf-8",
         )
         baseline_paths.append(baseline)
         current_paths.append(current)
@@ -408,25 +419,205 @@ def test_paired_compare_persists_all_runs_and_stays_green(
     assert rc == 0
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["kind"] == "paired-comparison"
-    assert payload["pairs"] == 3
-    assert payload["baseline"]["repeats"] == 3
-    assert len(payload["current"]["runs"]) == 3
+    assert payload["pairs"] == 4
+    assert payload["baseline"]["repeats"] == 4
+    assert len(payload["current"]["runs"]) == 4
     assert payload["comparison"]["deltas"][0]["degraded"] is False
-    assert "Gepaarter A/B-Vergleich (3 Paare)" in capsys.readouterr().out
+    assert payload["comparison"]["aggregation"] == "median-of-pair-log-ratios"
+    assert payload["comparison"]["timing_basis"] == "paired-log-ratio"
+    assert len(payload["comparison"]["pair_comparisons"]) == 4
+    assert "Gepaarter A/B-Vergleich (4 Paare)" in capsys.readouterr().out
 
 
-def test_paired_compare_rejects_different_runner_images(tmp_path: Path) -> None:
+def test_paired_compare_aggregates_pairwise_log_ratios(
+    tmp_path: Path, capsys,
+) -> None:
+    """Runner-Drift zwischen Paaren darf einen Mehrheitsbefund nicht verdecken."""
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index, (baseline_ms, current_ms) in enumerate(
+        [(100.0, 120.0), (100.0, 120.0), (1000.0, 1200.0), (1000.0, 500.0)],
+        start=1,
+    ):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(_run(_env(), commit="base123", PNG=baseline_ms)),
+            encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(_run(_env(), commit="cur456", PNG=current_ms)),
+            encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    output = tmp_path / "paired.json"
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+        "--output", str(output),
+        "--fail-on-regression",
+    ])
+
+    assert rc == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    delta = payload["comparison"]["deltas"][0]
+    assert delta["pct_change"] == 20.0
+    assert delta["degraded"] is True
+    assert delta["baseline_ms"] == 550.0
+    assert delta["current_ms"] == 660.0
+    assert [
+        pair["deltas"][0]["pct_change"]
+        for pair in payload["comparison"]["pair_comparisons"]
+    ] == [20.0, 20.0, 20.0, -50.0]
+    report = capsys.readouterr().out
+    assert "Referenz* 550.00ms" in report
+    assert "Äquivalent* 660.00ms" in report
+    assert "Paar-normalisierte Darstellung" in report
+
+
+def test_paired_compare_log_ratio_cancels_balanced_order_bias(
+    tmp_path: Path,
+) -> None:
+    """Reziproke First-Run-Effekte müssen sich bei gleicher Reihenfolgezahl aufheben."""
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index, (baseline_ms, current_ms) in enumerate(
+        [(200.0, 100.0), (100.0, 200.0), (200.0, 100.0), (100.0, 200.0)],
+        start=1,
+    ):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(_run(_env(), commit="base123", PNG=baseline_ms)),
+            encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(_run(_env(), commit="cur456", PNG=current_ms)),
+            encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    output = tmp_path / "paired.json"
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+        "--output", str(output),
+        "--fail-on-regression",
+    ])
+
+    assert rc == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    delta = payload["comparison"]["deltas"][0]
+    assert delta["pct_change"] == 0.0
+    assert delta["baseline_ms"] == delta["current_ms"] == 150.0
+    assert delta["degraded"] is False
+
+
+def test_paired_issue_body_labels_representative_times() -> None:
+    baseline_runs = [
+        _run(_env(), commit="base123", PNG=value)
+        for value in (100.0, 100.0, 1000.0, 1000.0)
+    ]
+    current_runs = [
+        _run(_env(), commit="cur456", PNG=value)
+        for value in (120.0, 120.0, 1200.0, 500.0)
+    ]
+    comp, _pair_comparisons = bench.compare_paired(baseline_runs, current_runs)
+
+    body = bench._issue_body(comp.flagged[0], comp)
+
+    assert "Referenz (Baseline-Median)" in body
+    assert "Äquivalent (paar-normalisiert)" in body
+    assert "550.00 ms" in body
+    assert "660.00 ms" in body
+    assert "Median der paarweisen Log-Verhältnisse" in body
+
+
+def test_paired_compare_rejects_mixed_commits(tmp_path: Path, capsys) -> None:
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index in range(4):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(
+                _run(
+                    _env(), commit="other789" if index == 3 else "base123",
+                    PNG=100.0,
+                )
+            ),
+            encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(_run(_env(), commit="cur456", PNG=100.0)),
+            encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+    ])
+
+    assert rc == 2
+    assert "mehrere Commits" in capsys.readouterr().out
+
+
+def test_paired_compare_rejects_odd_pair_count(tmp_path: Path, capsys) -> None:
     baseline_paths: list[Path] = []
     current_paths: list[Path] = []
     for index in range(3):
         baseline = tmp_path / f"baseline-{index}.json"
         current = tmp_path / f"current-{index}.json"
         baseline.write_text(
-            json.dumps(_run(_env(runner_image_version="old"), PNG=100.0)),
+            json.dumps(_run(_env(), commit="base123", PNG=100.0)),
             encoding="utf-8",
         )
         current.write_text(
-            json.dumps(_run(_env(runner_image_version="new"), PNG=100.0)),
+            json.dumps(_run(_env(), commit="cur456", PNG=100.0)),
+            encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+        "--minimum-pairs", "3",
+    ])
+
+    assert rc == 2
+    assert "gerade Anzahl" in capsys.readouterr().out
+
+
+def test_paired_compare_rejects_different_runner_images(tmp_path: Path) -> None:
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index in range(4):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(
+                _run(
+                    _env(runner_image_version="old"), commit="base123", PNG=100.0,
+                )
+            ),
+            encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(
+                _run(
+                    _env(runner_image_version="new"), commit="cur456", PNG=100.0,
+                )
+            ),
             encoding="utf-8",
         )
         baseline_paths.append(baseline)
