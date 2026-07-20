@@ -1,0 +1,130 @@
+name: Release-Abnahme (Self-hosted Hardware)
+
+# Sammelt die Release-Abnahme-Evidenz (Issue #595, Epic #639) auf Self-hosted
+# Runnern echter Zielhardware. Betrieb: docs/RELEASE_AUTOMATION.md, Vertrag:
+# docs/history/ADR-2026-release-abnahme-automatisierung.md.
+#
+# Sicherheitsmodell (verbindlich): ausschliesslich workflow_dispatch – nie
+# push/pull_request/Fork; Least-Privilege-Permissions (nur Lesen); keine
+# Secrets in den Smoke-Steps. Schreibrechte erst im Aggregations-Job (#646).
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release-Tag der zu pruefenden Assets (z. B. v2.7.0). Genau eine Quelle.'
+        type: string
+        default: ''
+      run_id:
+        description: 'Run-ID eines release-linux.yml-Laufs (Kandidat vor dem Tag). Genau eine Quelle.'
+        type: string
+        default: ''
+      platforms:
+        description: 'Zielplattformen'
+        type: choice
+        options:
+          - alle
+          - macos-arm64
+          - linux-arm64
+        default: alle
+      dry_run:
+        description: 'Nur Smokes, ohne Auswertung (Vision/Aggregation, #646)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  # Kein paralleler Abnahme-Lauf auf denselben Geraeten.
+  group: release-abnahme
+  cancel-in-progress: false
+
+jobs:
+  abnahme-macos-arm64:
+    name: Abnahme macOS arm64
+    if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/release_abnahme.py \
+            --platform macos-arm64 \
+            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
+            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+            --output "${RUNNER_TEMP}/abnahme-macos-arm64"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: abnahme-macos-arm64
+          path: ${{ runner.temp }}/abnahme-macos-arm64/
+          if-no-files-found: error
+
+  abnahme-linux-arm64:
+    name: Abnahme Linux aarch64
+    if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/release_abnahme.py \
+            --platform linux-arm64 \
+            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
+            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+            --output "${RUNNER_TEMP}/abnahme-linux-arm64"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: abnahme-linux-arm64
+          path: ${{ runner.temp }}/abnahme-linux-arm64/
+          if-no-files-found: error
+
+  # Linux x86_64 ist bis auf weiteres pausiert (kein GPU-Hardwarezugang,
+  # Entscheidung 2026-07-20). Der Job bleibt vollstaendig definiert, laeuft aber
+  # nur, wenn die Repository-Variable ABNAHME_X86_64_ENABLED == 'true' ist.
+  # Reaktivierung ohne Code-Aenderung: siehe docs/RELEASE_AUTOMATION.md §5.
+  abnahme-linux-x86_64:
+    name: Abnahme Linux x86_64
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
+      && vars.ABNAHME_X86_64_ENABLED == 'true'
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Evidenz erzeugen (Platzhalter-Smoke, #641)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/release_abnahme.py \
+            --platform linux-x86_64 \
+            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
+            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+            --output "${RUNNER_TEMP}/abnahme-linux-x86_64"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: abnahme-linux-x86_64
+          path: ${{ runner.temp }}/abnahme-linux-x86_64/
+          if-no-files-found: error
+
+  # Sichtbarer Hinweis, wenn x86_64 pausiert ist – laeuft auf GitHub-hosted, weil
+  # ein passender Self-hosted Runner gerade fehlen kann. So faellt der pausierte
+  # Pfad nie still weg (ADR-Prinzip: pausiert, nicht erfuellt statt unsichtbar).
+  hinweis-x86_64-pausiert:
+    name: Hinweis Linux x86_64 pausiert
+    if: >-
+      (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
+      && vars.ABNAHME_X86_64_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pause protokollieren
+        run: |
+          echo "::notice title=Linux x86_64 pausiert::Der x86_64-Hardware-Smoke ist pausiert (kein GPU-Zugang, Entscheidung 2026-07-20). Reaktivierung: docs/RELEASE_AUTOMATION.md §5 – ABNAHME_X86_64_ENABLED=true setzen."
