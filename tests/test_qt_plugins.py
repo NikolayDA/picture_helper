@@ -164,6 +164,65 @@ def test_stage_platform_plugins_aborts_when_root_insecure(tmp_path, monkeypatch)
     assert qt_plugins._stage_platform_plugins(plugins) is None
 
 
+def test_stage_platform_plugins_aborts_when_lib_symlink_fails(tmp_path, monkeypatch):
+    """Scheitert der RUNPATH-Symlink, wird das Staging verworfen statt einen
+    Baum mit fehlendem lib-Ziel als nutzbar zu melden (Codex-Review-Fund
+    #631)."""
+    qt6 = tmp_path / "Qt6"
+    plugins = qt6 / "plugins" / "platforms"
+    plugins.mkdir(parents=True)
+    (plugins / "libqxcb.so").write_bytes(b"x")
+    (qt6 / "lib").mkdir()
+
+    monkeypatch.setattr(qt_plugins.tempfile, "gettempdir", lambda: str(tmp_path / "tmp"))
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.setattr(qt_plugins.sys, "platform", "linux")
+    monkeypatch.setattr(qt_plugins, "_ensure_lib_symlink", lambda *a: False)
+
+    assert qt_plugins._stage_platform_plugins(plugins) is None
+
+
+def test_stage_platform_plugins_isolates_concurrent_sources(tmp_path, monkeypatch):
+    """Zwei gleichzeitig 'laufende' Instanzen derselben Qt6-Version, aber aus
+    unterschiedlichen Quellpfaden (z. B. zwei parallel gemountete AppImages),
+    dürfen sich nicht denselben Qt6/lib-Symlink teilen – sonst überschreibt
+    eine Instanz den RUNPATH-Ziel-Symlink der anderen (Codex-Review-Fund
+    #631)."""
+    staged_base = tmp_path / "tmp"
+    staged_base.mkdir()
+    monkeypatch.setattr(qt_plugins.tempfile, "gettempdir", lambda: str(staged_base))
+    monkeypatch.setattr(qt_plugins.sys, "platform", "linux")
+    monkeypatch.setattr(qt_plugins, "_dist_version", lambda name: "6_7_3")
+
+    def _make_source(name: str) -> Path:
+        qt6 = tmp_path / name / "Qt6"
+        plugins = qt6 / "plugins" / "platforms"
+        plugins.mkdir(parents=True)
+        (plugins / "libqxcb.so").write_bytes(name.encode())
+        real_lib = qt6 / "lib"
+        real_lib.mkdir()
+        (real_lib / "libQt6XcbQpa.so.6").write_bytes(name.encode())
+        return plugins
+
+    plugins_a = _make_source("mount_a")
+    plugins_b = _make_source("mount_b")
+
+    result_a = qt_plugins._stage_platform_plugins(plugins_a)
+    result_b = qt_plugins._stage_platform_plugins(plugins_b)
+    assert result_a is not None and result_b is not None
+    staged_plugins_a, staged_platforms_a = result_a
+    staged_plugins_b, staged_platforms_b = result_b
+
+    # Unterschiedliche Quellen -> getrennte Staging-Bäume, kein gemeinsamer
+    # Qt6/lib-Symlink, der sich gegenseitig überschreiben könnte.
+    assert staged_plugins_a.parent != staged_plugins_b.parent
+
+    lib_a = (staged_platforms_a / ".." / ".." / "lib").resolve()
+    lib_b = (staged_platforms_b / ".." / ".." / "lib").resolve()
+    assert (lib_a / "libQt6XcbQpa.so.6").read_bytes() == b"mount_a"
+    assert (lib_b / "libQt6XcbQpa.so.6").read_bytes() == b"mount_b"
+
+
 # ── _ensure_lib_symlink (RUNPATH-Regression) ───────────────────────────
 
 @pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
@@ -174,7 +233,7 @@ def test_ensure_lib_symlink_creates_link(tmp_path):
     real_lib.mkdir(parents=True)
     (real_lib / "libQt6XcbQpa.so.6").write_bytes(b"lib-bytes")
 
-    qt_plugins._ensure_lib_symlink(staged_qt6, real_lib)
+    assert qt_plugins._ensure_lib_symlink(staged_qt6, real_lib) is True
 
     link = staged_qt6 / "lib"
     assert link.is_symlink()
@@ -196,7 +255,7 @@ def test_ensure_lib_symlink_refreshes_stale_link(tmp_path):
     new_lib.mkdir(parents=True)
     (new_lib / "libQt6XcbQpa.so.6").write_bytes(b"new-lib")
 
-    qt_plugins._ensure_lib_symlink(staged_qt6, new_lib)
+    assert qt_plugins._ensure_lib_symlink(staged_qt6, new_lib) is True
 
     link = staged_qt6 / "lib"
     assert Path(os.readlink(link)) == new_lib
@@ -214,15 +273,36 @@ def test_ensure_lib_symlink_noop_when_already_current(tmp_path):
 
     # Darf keinen Fehler werfen und den bestehenden, korrekten Link nicht
     # anfassen (keine neue mkstemp-Zwischendatei nötig).
-    qt_plugins._ensure_lib_symlink(staged_qt6, real_lib)
+    assert qt_plugins._ensure_lib_symlink(staged_qt6, real_lib) is True
     assert sorted(p.name for p in staged_qt6.iterdir()) == ["lib"]
 
 
 def test_ensure_lib_symlink_skips_missing_real_lib(tmp_path):
+    """Kein ``lib``-Verzeichnis in der Quelle (z. B. manche macOS-Layouts) ist
+    kein Fehler – das RUNPATH-Problem betrifft nur ELF-Plugins."""
     staged_qt6 = tmp_path / "staged" / "Qt6"
     staged_qt6.mkdir(parents=True)
     missing_lib = tmp_path / "does-not-exist"
 
-    qt_plugins._ensure_lib_symlink(staged_qt6, missing_lib)
+    assert qt_plugins._ensure_lib_symlink(staged_qt6, missing_lib) is True
 
+    assert list(staged_qt6.iterdir()) == []
+
+
+@pytest.mark.skipif(not _POSIX, reason="POSIX-Symlink-Semantik erforderlich")
+def test_ensure_lib_symlink_reports_failure_when_symlink_cannot_be_created(tmp_path, monkeypatch):
+    """Scheitert die Symlink-Erstellung (z. B. kein Symlink-Support), muss
+    der Aufrufer das erfahren, statt einen kaputten Baum als gültig
+    zu erhalten (Codex-Review-Fund #631)."""
+    staged_qt6 = tmp_path / "staged" / "Qt6"
+    staged_qt6.mkdir(parents=True)
+    real_lib = tmp_path / "real" / "lib"
+    real_lib.mkdir(parents=True)
+
+    def _boom(*args, **kwargs):
+        raise OSError("no symlink support")
+
+    monkeypatch.setattr(qt_plugins.os, "symlink", _boom)
+    assert qt_plugins._ensure_lib_symlink(staged_qt6, real_lib) is False
+    # Keine Zwischendatei bleibt zurück.
     assert list(staged_qt6.iterdir()) == []
