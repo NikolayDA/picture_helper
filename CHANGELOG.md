@@ -53,6 +53,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   scheiterten dort mit einem `GLIBC`-Ladefehler. PyQt6/PyQt6-Qt6 sind auf die
   letzten aarch64-portablen Versionen (6.7.1/6.7.3) zurückgesetzt.
 
+- **Qt-Plugin-Staging: gestagte Platform-Plugins finden ihre Qt6-Bibliotheken
+  wieder (#595 Folge-Fund).** Weiteres Raspberry-Pi-Testen zeigte nach dem
+  glibc-Fix einen dritten Startfehler: Das zur Sandbox-Härtung gestagte
+  Platform-Plugin-Verzeichnis (`qt_plugins.py`) legte die Plugin-Dateien
+  flach ab und brach damit das einkompilierte `RUNPATH` (`$ORIGIN/../../lib`)
+  von `libqxcb.so` – der Loader wich auf eine ggf. inkompatible System-Qt6
+  aus (`undefined symbol`-Absturz auf Systemen mit eigenem Qt6, etwa
+  Raspberry Pi OS). Das Staging spiegelt die Original-Verschachtelung
+  (`Qt6/plugins/platforms`) jetzt exakt und ergänzt einen gesicherten,
+  versionsgebundenen `Qt6/lib`-Symlink auf das echte Bibliotheksverzeichnis.
+
 - **Hybrides Sicherheitsscan-Modell: CodeQL automatisch, Codex nur noch
   manuell (#551).** CodeQL läuft jetzt als versioniertes Advanced Setup
   (`.github/workflows/codeql.yml`) automatisiert für Python bei Push/PR auf

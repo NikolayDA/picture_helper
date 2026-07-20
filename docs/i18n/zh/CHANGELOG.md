@@ -43,6 +43,15 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
   PyQt6/PyQt6-Qt6 已回退到最后一个支持 aarch64 的可移植版本
   （6.7.1/6.7.3）。
 
+- **Qt 插件暂存：暂存的平台插件重新找到其 Qt6 库（#595 后续发现）。**
+  在修复 glibc 问题后，进一步在 Raspberry Pi 上测试发现了第三个启动缺陷:
+  用于沙盒加固的平台插件暂存目录（`qt_plugins.py`）将插件文件平铺存放，
+  破坏了 `libqxcb.so` 内置编译的 `RUNPATH`（`$ORIGIN/../../lib`)——加载器
+  因此回退到可能不兼容的系统 Qt6（在拥有自带 Qt6 的系统上出现
+  `undefined symbol` 崩溃，例如 Raspberry Pi OS）。暂存目录结构现在精确
+  镜像原始的嵌套方式（`Qt6/plugins/platforms`），并新增一个安全的、按版本
+  绑定的 `Qt6/lib` 符号链接，指向真正的库目录。
+
 - **混合安全扫描模型：CodeQL 自动化，Codex 仅手动触发（#551）。** CodeQL
   现在以已版本化的高级配置形式运行（`.github/workflows/codeql.yml`），在
   推送/PR 到 `main` 时以及每周自动分析 Python，提供确定性的、GitHub 原生
