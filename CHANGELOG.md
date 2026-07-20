@@ -36,6 +36,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Linux-KI-AppImage: rekursiver Spawn-Hänger an der Ursache behoben (#633).**
+  `python-appimage` setzt `sys.executable` im Bundle auf das äußere AppImage;
+  dadurch startete `multiprocessing` jedes KI-Kind als vollständige App erneut.
+  Der KI-Prozess verwendet für `spawn` nun gezielt den eingebetteten
+  Python-Wrapper unter `$APPDIR/usr/bin`. Selbsttest und Inferenz starten damit
+  genau ein Kind; Timeout und Fork-Bomb-Wächter bleiben zusätzlich aktiv.
+
 - **Qt-Plugin-Staging räumt instanzbezogene Temp-Bäume zuverlässig auf
   (#631 Folge-Fund).** Jeder Prozess verwendet nun einen isolierten, über
   Quellpfad, PID und Zufallstoken benannten Staging-Baum. Eine Kernel-Lease

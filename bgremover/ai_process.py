@@ -29,10 +29,15 @@ from __future__ import annotations
 import contextlib
 import io
 import multiprocessing
+import os
+import sys
 import threading
 from collections.abc import Callable
 from multiprocessing.connection import Connection
+from multiprocessing.context import SpawnContext
 from multiprocessing.process import BaseProcess
+from pathlib import Path
+from typing import cast
 
 from PIL import Image
 
@@ -45,6 +50,32 @@ _POLL_INTERVAL_S = 0.05
 # Kindprozesses nach ``SIGKILL``. SIGKILL wirkt sofort; der Wert ist nur ein
 # Sicherheitsnetz, damit ein hängendes ``join`` den Aufrufer nicht blockiert.
 _KILL_JOIN_TIMEOUT_S = 2.0
+
+
+def _get_spawn_context() -> SpawnContext:
+    """Liefert einen ``spawn``-Kontext mit korrektem AppImage-Interpreter.
+
+    ``python-appimage`` ersetzt im Bundle ``sys.executable`` absichtlich durch
+    ``APPIMAGE_COMMAND`` (das äußere AppImage). Das ist für normale
+    Subprozess-Relaunches nützlich, führt bei Python 3.12 aber dazu, dass
+    ``multiprocessing`` für jedes Spawn-Kind erneut die komplette AppImage
+    startet. Mit geerbtem ``BGREMOVER_AI_SELFCHECK`` entsteht so eine rekursive
+    Spawn-Kaskade (#633).
+
+    Für ``multiprocessing`` setzen wir deshalb ausschließlich im erkannten
+    python-appimage-Lauf den dokumentierten eingebetteten Python-Wrapper. Der
+    normale Python-Start und PyInstallers eigener Bootstrap bleiben unberührt.
+    """
+    appdir = os.environ.get("APPDIR")
+    appimage_command = os.environ.get("APPIMAGE_COMMAND")
+    if appdir and appimage_command:
+        command = os.path.abspath(appimage_command)
+        if os.path.abspath(sys.executable) == command:
+            version = f"{sys.version_info.major}.{sys.version_info.minor}"
+            bundled_python = Path(appdir) / "usr" / "bin" / f"python{version}"
+            if bundled_python.is_file():
+                multiprocessing.set_executable(str(bundled_python))
+    return cast(SpawnContext, multiprocessing.get_context("spawn"))
 
 
 class InferenceError(RuntimeError):
@@ -157,7 +188,7 @@ class InferenceProcess:
     ) -> None:
         # ``spawn`` erzwingen: ein frischer Prozess ohne Kopie des Qt-/Thread-
         # Zustands des GUI-Prozesses (``fork`` kann dort deadlocken).
-        self._ctx = multiprocessing.get_context("spawn")
+        self._ctx = _get_spawn_context()
         self._target = target
         self._poll_interval = poll_interval
         self._kill_join_timeout = kill_join_timeout
@@ -383,7 +414,7 @@ def run_ai_selfcheck(
 
     Gibt ``(ok, meldung)`` zurück.
     """
-    ctx = multiprocessing.get_context("spawn")
+    ctx = _get_spawn_context()
     parent_conn, child_conn = ctx.Pipe()
     proc = ctx.Process(target=target, args=(child_conn,), daemon=True)
     proc.start()
