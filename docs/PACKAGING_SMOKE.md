@@ -137,8 +137,10 @@ Zusätzlich je Artefakt prüfen:
 
 ## 5. Screenshots
 
-Auf realer Grafikhardware (nicht offscreen) aufnehmen und unter `docs/`
-ablegen bzw. in ANLEITUNG verlinken:
+Auf realer Grafikhardware (nicht offscreen) aufnehmen. Der Generator legt den
+vollständigen Satz samt `manifest.md` unter
+`app_screenshots/bgremover_complete_<Zeitstempel>/` ab; der abgenommene native
+3D-Zustand wird in README und ihren Sprachspiegeln verlinkt:
 
 ```sh
 make screenshots-live-3d

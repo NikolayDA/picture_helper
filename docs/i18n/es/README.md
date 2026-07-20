@@ -30,6 +30,7 @@ Una herramienta de edición de imágenes para macOS y Linux para **recortar, edi
 - **🗂 Capas y proyectos** – gestiona varias capas (color, altura, brillo, genérica) con roles y guarda y abre todo sin pérdidas como un proyecto `.bgrproj`.
 - **🏔 Mapas de altura** – genera, edita y optimiza un mapa de altura en escala de grises a partir de una imagen (claro = alto): la base para el relieve y la impresión UV.
 - **👁 Vista previa 2D** – comprueba color, relieve sobre color, altura y brillo en pantalla; solo visualización, la exportación de imagen sigue siendo el motivo de color.
+- **🧊 Vista previa de relieve 3D** – inspecciona el mapa de altura activo como una superficie giratoria con órbita, desplazamiento, zoom, exageración, iluminación y calidad seleccionable; solo visualización, sin modificar los datos de altura ni la exportación. Si no hay OpenGL 2.1, la vista previa 2D sigue disponible.
 - **↩ Historial** con Deshacer y salto a cualquier paso anterior.
 - **📥 Arrastrar y soltar** imágenes directamente a la ventana.
 - **📂 Formatos de entrada** – abre **PNG, JPEG, WebP, TIFF, BMP y GIF**. **HEIC/HEIF no es compatible actualmente.**
@@ -55,6 +56,13 @@ claro = alto.*
 
 *Paso «Exportar»: la vista previa 2D combinada superpone relieve y brillo sobre
 el motivo de color – solo visualización, la exportación no cambia.*
+
+![Vista previa de relieve 3D con controles de visualización](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+
+*Paso «Relieve y capas»: inspecciona el mapa de altura activo como una
+superficie 3D giratoria. La exageración, la iluminación y la calidad solo
+afectan a la visualización; un aviso indica la representación simplificada de
+las imágenes grandes.*
 
 ![Diálogo de exportación para EufyMake Studio](../../screenshot_export.png)
 
@@ -172,7 +180,7 @@ inspector a la derecha) conduce la edición:
    - Cambia de herramienta con el teclado: `W` varita, `B` pincel, `E` borrador, `L` lazo (solo activo en este paso).
 3. **Ajustar** – brillo/contraste/saturación con vista previa en vivo.
 4. **Forma y medidas** – rota, refleja, redondea esquinas, elige un formato de recorte (mueve/escala el marco, luego ✓ Aplicar) y cambia el tamaño.
-5. **Relieve y capas** – gestiona las capas del proyecto y genera/edita/optimiza un mapa de altura.
+5. **Relieve y capas** – gestiona las capas del proyecto y genera/edita/optimiza un mapa de altura. Con un mapa de altura válido, cambia entre **2D** y **3D** en **Visualización**; en 3D, arrastra con el botón izquierdo para orbitar, usa el botón central o `Alt`+arrastrar para desplazar y la rueda para acercar. Sin OpenGL 2.1, la vista previa de relieve 2D sigue disponible.
 6. **Exportar** – comprueba el resultado como color/relieve/altura/brillo/combinado, guarda mediante `Archivo → Guardar` (⌘S) como PNG, JPEG, WebP o TIFF — o `Proyecto → Exportar activos para EufyMake Studio…` para la impresión UV.
 
 ### Ajustes

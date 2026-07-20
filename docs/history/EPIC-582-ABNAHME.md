@@ -45,7 +45,8 @@ speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 | Shader/Assets arbeitsverzeichnisunabhängig gefunden | GLSL als String-Literale in `bgremover/viewer_3d.py` (keine externen Shader-Dateien); `tests/test_app_smoke.py` |
 | Offscreen-/Headless-Start bleibt funktionsfähig | `tests/test_app_smoke.py`, gesamte Offscreen-CI grün; `gl_smoke`-Tests self-skippen auf offscreen |
 | Keine neue Laufzeit-Pflichtabhängigkeit | GL-Pfad nutzt nur vorhandene PyQt6-`QtOpenGL*`-Module; `make license-check` unverändert |
-| Fünf Artefaktklassen starten 3D/Fallback, saubere Installation/Entfernung, Größe/Startzeit gemessen | **Manuelle Packaging-Smokes** [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §4 (Release-Scope: reale Build-Artefakte + Hardware nötig) |
+| Fünf Artefaktklassen bauen und bestehen den automatisierten Start-/Crash-Smoke | Release-Läufe [mit KI](https://github.com/NikolayDA/picture_helper/actions/runs/29745404251) und [ohne KI](https://github.com/NikolayDA/picture_helper/actions/runs/29737924197): macOS-arm64-DMG sowie Linux-x86_64-/aarch64-AppImage und `.deb` |
+| Sichtbarer 3D-/Fallback-Start auf Zielhardware, saubere Installation/Entfernung, Größe/Startzeit gemessen | **Manuelle Packaging-Smokes** [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §4; der reale Raspberry-Pi-5-AppImage-Smoke ist in [#595](https://github.com/NikolayDA/picture_helper/issues/595) protokolliert, die übrigen Artefakt-/Hardwarekombinationen bleiben Release-Scope |
 
 ## End-to-End und Regression
 
@@ -59,34 +60,42 @@ speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 | Kamera-/Überhöhungs-/Qualitätseinstellungen folgen dem Sitzungs-/Projektvertrag | `tests/test_preview3d_integration.py::test_persisted_3d_state_is_reflected_and_reset_consistently` |
 | Kernpfade headless/offscreen automatisiert; manuelle Smokes reproduzierbar | 3D-Testsuite (`test_relief_mesh`/`_camera`/`_capability`/`_controller`/`_viewer_3d`/`_integration`/`_acceptance`) + [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) |
 | Bestehende 2D-Preview-/Canvas-/Projekt-/Export-/i18n-Tests bleiben grün | volle Suite unter `make check` |
-| `make pr-check` und relevante CI-Matrix grün | Gate-Läufe PR #620/#621 + dieser PR |
+| `make pr-check` und relevante CI-Matrix grün | Gate-Läufe PR #620/#621; jede Folgeänderung durchläuft erneut den vollständigen PR-Gate |
 
 ## Dokumentation, UX und Abschluss
 
 | Kriterium | Nachweis |
 |---|---|
-| Nutzerdoku: Zweck, 3D-vs-2D, Steuerung, Überhöhung, Decimation, Fallback | ANLEITUNG.md (+ 5 Spiegel), [UX_3D_PREVIEW.md](../UX_3D_PREVIEW.md) |
-| 3D ist Vorschau, verändert weder HEIGHT noch Export | ANLEITUNG.md, [UX_3D_PREVIEW.md](../UX_3D_PREVIEW.md), CLAUDE.md-Architektur |
+| Nutzerdoku: Zweck, 3D-vs-2D, Einstieg, Steuerung, Überhöhung, Decimation, Fallback | README.md und ANLEITUNG.md (jeweils + 5 Spiegel), [UX_3D_PREVIEW.md](../UX_3D_PREVIEW.md) |
+| 3D ist Vorschau, verändert weder HEIGHT noch Export | README.md, ANLEITUNG.md, [UX_3D_PREVIEW.md](../UX_3D_PREVIEW.md), CLAUDE.md-Architektur |
 | Troubleshooting (fehlende GPU/API, schwarzer Viewport, Treiberfehler, langsame Vorschau, Fallback) | ANLEITUNG.md, [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §3 |
-| Sechs Sprachfassungen synchron | i18n-Paritätstests, `preview3d.*`-Keys de/en (`tests/test_i18n_*`) |
+| Sechs Sprachfassungen synchron | README-/ANLEITUNG-Spiegel de/en/es/fr/uk/zh; Struktur-, Link- und 3D-Inhaltsprüfung in `tests/test_i18n_docs.py`; Laufzeit-Keys de/en in `tests/test_i18n_*` |
 | Tastatur-/Accessibility-Hinweise dokumentiert | `tests/test_viewer_3d.py::test_accessible_names_present`, UX-Vertrag |
 | Entwicklerdoku: Grenzen, Datenfluss, Budgets, Cache, Tests, Erweiterungspunkte | ADR #591, CLAUDE.md-Architekturabschnitt |
 | Changelog nennt Plattformanforderungen und 2D-Fallback | CHANGELOG.md (+ 5 Spiegel) |
 | Abschlussmatrix verknüpft jedes Kriterium mit Nachweis | **dieses Dokument** |
-| Screenshots (3D, Controls, Fallback/Empty) | `make screenshots-live-3d` + [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) §5 (hybrid: vollständiger Offscreen-Satz plus native OpenGL-3D-Zustände auf realer Grafikhardware) |
+| Screenshots (3D, Controls, Fallback/Empty) | `make screenshots-live-3d` + [Manifest des Abnahmelaufs](../../app_screenshots/bgremover_complete_20260719_162826/manifest.md): `76_function_preview3d_ready.png`, `77_function_preview3d_adjusted.png` und `79_function_preview3d_fallback.png`; die README-Spiegel zeigen den nativen OpenGL-3D-Zustand |
 
 ## Bewusste Grenzen / offener Release-Scope (keine MVP-Blocker)
 
-Die folgenden Kriterien sind **nicht** headless erfüllbar und bleiben – wie im
-Issue #595 ausdrücklich vorgesehen – dem eigenen Release-Scope vorbehalten. Sie
-sind als reproduzierbare manuelle Prozeduren in
+Die automatisierten Start-Smokes der fünf Artefaktklassen sind in den oben
+verlinkten Release-Läufen grün. Auch der vollständige Screenshot-Satz ist
+erzeugt: Die Ready-/Controls-Aufnahmen stammen laut
+[Manifest](../../app_screenshots/bgremover_complete_20260719_162826/manifest.md)
+von nativer Qt-/OpenGL-Grafikhardware; Fallback und Fehlerzustand wurden
+deterministisch ergänzt.
+
+Die folgenden Kriterien sind **nicht** durch diese Headless-/CI-Nachweise
+abgedeckt und bleiben – wie im Issue #595 vorgesehen – dem eigenen
+Release-Scope vorbehalten. Sie sind als reproduzierbare manuelle Prozeduren in
 [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md) hinterlegt:
 
 - GPU-/Renderer-Upload, interaktive Framerate und Update-Latenz auf der
   #591-Referenzhardware (§2.2).
-- Start-/Sicht-/Entfernungs-Smokes der fünf Artefaktklassen inkl. Paketgröße/
-  Startzeit gegen die #591-Baseline (§4).
-- Screenshots für normalen 3D-Zustand, Controls und Fallback/Empty (§5).
+- Sicht-/Installations-/Entfernungs-Smokes der noch nicht real protokollierten
+  Artefakt-/Hardwarekombinationen inklusive Paketgröße und Startzeit gegen die
+  #591-Baseline (§4). Der Raspberry-Pi-5-/aarch64-AppImage-Nachweis ist bereits
+  in [#595](https://github.com/NikolayDA/picture_helper/issues/595) festgehalten.
 
 Erst nach protokollierten manuellen Smokes (Commit-SHA, Umgebung, Ergebnis im
 #582-Abschlusskommentar) ist die Produktveröffentlichung begründbar; der Abschluss
