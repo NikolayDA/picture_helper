@@ -6,7 +6,7 @@ echten Code-Pfade des Pakets (``bgremover.image_ops``): Encode, Decode und eine
 repräsentative Verarbeitungs-Pipeline (Laden → Drehen → Ecken runden →
 Zuschneiden → Speichern).
 
-Zwei Unterbefehle:
+Drei Unterbefehle:
 
 - ``run``     – Benchmark ausführen, Ergebnis als datiertes JSON unter
                ``benchmarks/results/`` ablegen und – falls ein früherer Lauf
@@ -14,6 +14,8 @@ Zwei Unterbefehle:
 - ``compare`` – Zwei vorhandene Ergebnis-Dateien vergleichen (oder das aktuellste
                gegen das vorherige), Regressionen jenseits der Schwelle melden
                und optional GitHub-Issues anlegen.
+- ``paired-compare`` – Mehrere auf demselben Runner erzeugte Baseline-/Current-
+                       Paare aggregieren und als A/B-Nachweis vergleichen.
 
 Die *Vergleichslogik* ist bewusst von der (zeitabhängigen) Messung getrennt und
 in reinen Funktionen gekapselt, damit sie deterministisch testbar bleibt.
@@ -38,7 +40,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PIL import Image
 
@@ -48,21 +50,16 @@ if str(ROOT) not in sys.path:
 
 import numpy as np  # noqa: E402
 
-from bgremover.height_map import (  # noqa: E402
-    HeightField,
-    image_to_height_field,
-)
-from bgremover.height_ops import gaussian_blur  # noqa: E402
 from bgremover.image_ops import (  # noqa: E402  (Pfad muss vor dem Import stehen)
     crop_image,
     rotate_image,
     round_corners,
     save_image_file,
 )
-from bgremover.project_io import load_project, save_project  # noqa: E402
-from bgremover.project_model import LayerKind, Project  # noqa: E402
-from bgremover.relief_mesh import MeshQuality, build_relief_mesh  # noqa: E402
-from bgremover.relief_preview import compose_over, relief_shading  # noqa: E402
+
+if TYPE_CHECKING:
+    from bgremover.height_map import HeightField
+    from bgremover.relief_mesh import MeshQuality
 
 # Format-Label → Default-Suffix. Spiegelt bewusst ``image_ops.SAVE_FORMATS``;
 # als getrennte Liste gehalten, damit der Benchmark auch dann eine stabile
@@ -88,11 +85,12 @@ DEFAULT_WIDTH = 1920
 DEFAULT_HEIGHT = 1080
 DEFAULT_THRESHOLD = 10.0  # Prozent; darüber gilt ein Format als degradiert.
 DEFAULT_METRIC = "process_ms"
-DEFAULT_CONFIRM_RUNS = 3  # Wiederholungen, um eine Auffälligkeit zu bestätigen.
+DEFAULT_CONFIRM_RUNS = 3  # Gesamtläufe, um eine Auffälligkeit zu bestätigen.
 RESULTS_DIR = ROOT / "benchmarks" / "results"
-# Schema 2 ergänzt den Umgebungs-Fingerprint (``environment``); ältere Läufe ohne
-# diesen Block gelten nicht als automatische Baseline (#277/#278/#279).
-SCHEMA_VERSION = 2
+# Schema 3 ergänzt die Benchmark-Suite, den vollständigen Runner-Fingerprint und
+# Rohmessungen. Ältere Läufe dürfen deshalb nicht automatisch als vergleichbare
+# Baseline gelten (#630).
+SCHEMA_VERSION = 3
 DEFAULT_API_URL = "https://api.github.com"
 
 
@@ -125,37 +123,39 @@ def make_sample_image(width: int, height: int) -> Image.Image:
 
 # ── Messung ──────────────────────────────────────────────────────────────
 
-def _median_ms(fn: Callable[[], Any], iterations: int) -> float:
-    """Median der Laufzeit von ``fn`` in Millisekunden über ``iterations`` Läufe.
-
-    Der Median ist robuster gegen GC-/Scheduler-Ausreißer als der Mittelwert.
-    """
+def _measure_ms(fn: Callable[[], Any], iterations: int) -> tuple[float, list[float]]:
+    """Median und Rohwerte von ``fn`` in Millisekunden zurückgeben."""
     samples: list[float] = []
     for _ in range(max(1, iterations)):
         start = time.perf_counter()
         fn()
         samples.append((time.perf_counter() - start) * 1000.0)
-    return statistics.median(samples)
+    return statistics.median(samples), [round(value, 4) for value in samples]
 
 
-def benchmark_format(
+def _median_ms(fn: Callable[[], Any], iterations: int) -> float:
+    """Robusten Median einer Messreihe in Millisekunden zurückgeben."""
+    median, _samples = _measure_ms(fn, iterations)
+    return median
+
+
+def _benchmark_format_with_samples(
     img: Image.Image, fmt: str, suffix: str, iterations: int, work_dir: Path,
-) -> dict[str, float]:
-    """Misst Encode-, Decode- und End-to-End-Verarbeitungszeit für ein Format."""
+) -> tuple[dict[str, float], dict[str, list[float]]]:
+    """Format messen und zusätzlich die einzelnen Zeitwerte erhalten."""
     target = work_dir / f"bench{suffix}"
 
-    # Encode: einmal über den App-Pfad schreiben (atomar, mit Format-Vorgaben).
-    encode_ms = _median_ms(lambda: save_image_file(img, target), iterations)
+    encode_ms, encode_samples = _measure_ms(
+        lambda: save_image_file(img, target), iterations,
+    )
     encoded_bytes = target.stat().st_size
 
-    # Decode: vollständig in den Speicher laden (load() erzwingt das Dekodieren).
     def _decode() -> None:
         with Image.open(target) as handle:
             handle.load()
 
-    decode_ms = _median_ms(_decode, iterations)
+    decode_ms, decode_samples = _measure_ms(_decode, iterations)
 
-    # End-to-End: Laden → Drehen → Ecken runden → Zuschneiden → Speichern.
     out = work_dir / f"bench_out{suffix}"
 
     def _process() -> None:
@@ -167,14 +167,29 @@ def benchmark_format(
         stage = crop_image(stage, (0, 0, w * 3 // 4, h * 3 // 4), is_circle=False)
         save_image_file(stage, out)
 
-    process_ms = _median_ms(_process, iterations)
-
-    return {
+    process_ms, process_samples = _measure_ms(_process, iterations)
+    metrics = {
         "encode_ms": round(encode_ms, 4),
         "decode_ms": round(decode_ms, 4),
         "process_ms": round(process_ms, 4),
         "encoded_bytes": float(encoded_bytes),
     }
+    samples = {
+        "encode_ms": encode_samples,
+        "decode_ms": decode_samples,
+        "process_ms": process_samples,
+    }
+    return metrics, samples
+
+
+def benchmark_format(
+    img: Image.Image, fmt: str, suffix: str, iterations: int, work_dir: Path,
+) -> dict[str, float]:
+    """Misst Encode-, Decode- und End-to-End-Verarbeitungszeit für ein Format."""
+    metrics, _samples = _benchmark_format_with_samples(
+        img, fmt, suffix, iterations, work_dir,
+    )
+    return metrics
 
 
 def git_commit() -> str | None:
@@ -189,20 +204,40 @@ def git_commit() -> str | None:
     return out.stdout.strip() or None if out.returncode == 0 else None
 
 
+def _cpu_model() -> str | None:
+    """Möglichst genaue CPU-Bezeichnung ohne zusätzliche Abhängigkeit liefern."""
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.is_file():
+        try:
+            for line in cpuinfo.read_text(encoding="utf-8", errors="replace").splitlines():
+                key, separator, value = line.partition(":")
+                if separator and key.strip().lower() in {"model name", "hardware"}:
+                    model = value.strip()
+                    if model:
+                        return model
+        except OSError:
+            pass
+
+    import platform
+
+    return platform.processor() or None
+
+
 def collect_environment() -> dict[str, Any]:
     """Umgebungs-Fingerprint des aktuellen Laufs.
 
     Hält fest, *worauf* gemessen wurde, damit der Vergleich später entscheiden
     kann, ob zwei Läufe überhaupt vergleichbar sind (#277/#278/#279): Software-
-    versionen (Python/Pillow/NumPy) als harte Bedingung, Hardware (Architektur/
-    CPU-Anzahl) als weiche. ``runner`` dokumentiert den GitHub-Runner, ``system``/
-    ``release``/``processor`` sind rein informativ (gehen nicht in den Vergleich
-    ein, da sie zwischen sonst gleichen Runnern schwanken können).
+    versionen, Betriebssystem-/Runner-Image und CPU-Modell sind harte
+    Vergleichsbedingungen. Das verhindert, dass ein Wechsel des GitHub-Hosted-
+    Runners wie bei #630 als Anwendungsregression gemeldet wird.
     """
     import platform
 
     try:
-        from PIL import __version__ as pillow_version
+        from PIL import __version__ as detected_pillow_version
+
+        pillow_version: str | None = detected_pillow_version
     except Exception:  # pragma: no cover - Pillow ist Pflicht, defensiv dennoch
         pillow_version = None
     try:
@@ -220,7 +255,13 @@ def collect_environment() -> dict[str, Any]:
         "release": platform.release(),
         "machine": platform.machine(),
         "processor": platform.processor() or None,
+        "cpu_model": _cpu_model(),
         "cpu_count": os.cpu_count(),
+        "runner_arch": os.environ.get("RUNNER_ARCH"),
+        "runner_environment": os.environ.get("RUNNER_ENVIRONMENT"),
+        # GitHub setzt diese beiden Runner-Variablen absichtlich in CamelCase.
+        "runner_image_os": os.environ.get("ImageOS"),  # noqa: SIM112
+        "runner_image_version": os.environ.get("ImageVersion"),  # noqa: SIM112
         "runner": os.environ.get("RUNNER_NAME")
         or os.environ.get("RUNNER_OS")
         or "local",
@@ -242,7 +283,7 @@ def make_height_values(width: int, height: int) -> np.ndarray:
 
 def benchmark_mesh_build(
     field: HeightField, iterations: int,
-    quality: MeshQuality = MeshQuality.STANDARD,
+    quality: MeshQuality | None = None,
 ) -> dict[str, float]:
     """Misst den 3D-Reliefmesh-Aufbau über den echten Geometriekern (#595).
 
@@ -265,13 +306,18 @@ def benchmark_mesh_build(
     Regressions-/Bestätigungslogik wie ``process_ms`` (Vergleich per
     ``--metric mesh_build_ms``).
     """
-    mesh_build_ms = _median_ms(lambda: build_relief_mesh(field, quality), iterations)
+    from bgremover.relief_mesh import MeshQuality, build_relief_mesh
+
+    selected_quality = quality or MeshQuality.STANDARD
+    mesh_build_ms = _median_ms(
+        lambda: build_relief_mesh(field, selected_quality), iterations,
+    )
 
     # Ein einzelner, getrennt verfolgter Bau für den Peak – der Median-Lauf oben
     # verfälschte die Hochwassermarke sonst über wiederholte Allokationen.
     tracemalloc.start()
     tracemalloc.reset_peak()
-    mesh = build_relief_mesh(field, quality)
+    mesh = build_relief_mesh(field, selected_quality)
     _current, peak_bytes = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
@@ -297,6 +343,12 @@ def benchmark_height_pipeline(
     ``mesh_*``-Metriken des 3D-Reliefmesh-Aufbaus (:func:`benchmark_mesh_build`,
     #595) – dieselben 1/16/40-MP-Szenarien tragen damit auch die 3D-Baseline.
     """
+    from bgremover.height_map import HeightField, image_to_height_field
+    from bgremover.height_ops import gaussian_blur
+    from bgremover.project_io import load_project, save_project
+    from bgremover.project_model import LayerKind, Project
+    from bgremover.relief_preview import compose_over, relief_shading
+
     values = make_height_values(width, height)
     coverage = np.full((height, width), 255, dtype=np.uint8)
     field = HeightField(values, coverage, max_value=65535)
@@ -348,28 +400,49 @@ def run_benchmark(
     width: int,
     height: int,
     height_sizes: dict[str, tuple[int, int, int]] | None = None,
+    *,
+    include_formats: bool = True,
 ) -> dict[str, Any]:
-    """Führt den Benchmark für alle Formate aus und liefert das Ergebnis-Dict."""
-    img = make_sample_image(width, height)
+    """Eine isolierte Benchmark-Suite ausführen und als Ergebnis zurückgeben."""
+    if not include_formats and not height_sizes:
+        raise ValueError("Mindestens eine Benchmark-Suite muss aktiviert sein")
+
+    suite = "combined" if include_formats and height_sizes else (
+        "formats" if include_formats else "height"
+    )
     formats: dict[str, dict[str, float]] = {}
+    samples: dict[str, dict[str, list[float]]] = {}
     with tempfile.TemporaryDirectory(prefix="bgremover-bench-") as td:
         work_dir = Path(td)
-        for fmt, suffix in BENCH_FORMATS.items():
-            formats[fmt] = benchmark_format(img, fmt, suffix, iterations, work_dir)
-        # Additiv (#590): die Vergleichslogik behandelt neue Einträge wie neue
-        # Formate; Unit-Smoke-Läufe rufen ohne ``height_sizes`` auf.
+        if include_formats:
+            img = make_sample_image(width, height)
+            for fmt, suffix in BENCH_FORMATS.items():
+                metrics, raw = _benchmark_format_with_samples(
+                    img, fmt, suffix, iterations, work_dir,
+                )
+                formats[fmt] = metrics
+                samples[fmt] = raw
         for name, (h_width, h_height, h_iters) in (height_sizes or {}).items():
             formats[name] = benchmark_height_pipeline(
                 h_width, h_height, h_iters, work_dir)
     return {
         "schema": SCHEMA_VERSION,
+        "suite": suite,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git_commit(),
         "iterations": iterations,
         "image": {"width": width, "height": height},
         "environment": collect_environment(),
         "formats": formats,
+        "samples": samples,
+        "repeats": 1,
     }
+
+
+def _run_snapshot(result: dict[str, Any]) -> dict[str, Any]:
+    """Diagnostisch relevante Einzelwerte eines vollständigen Laufs kopieren."""
+    keys = ("timestamp", "git_commit", "environment", "formats", "samples")
+    return {key: result.get(key) for key in keys}
 
 
 def aggregate_results(runs: list[dict[str, Any]]) -> dict[str, Any]:
@@ -402,6 +475,7 @@ def aggregate_results(runs: list[dict[str, Any]]) -> dict[str, Any]:
     merged = dict(runs[-1])
     merged["formats"] = merged_formats
     merged["repeats"] = len(runs)
+    merged["runs"] = [_run_snapshot(run) for run in runs]
     return merged
 
 
@@ -551,9 +625,20 @@ def format_report(comp: Comparison) -> str:
 # Encoder-/Laufzeit-Implementierung). Python wird nur auf Minor verglichen, damit
 # ein reiner Patch-Bump die Baseline nicht unnötig verwirft.
 _VERSION_KEYS = (("pillow", "Pillow"), ("numpy", "NumPy"))
-# Hardware: Abweichung macht den Vergleich *weich* – Messung bleibt möglich,
-# verlangt aber einen Bestätigungslauf.
-_HARDWARE_KEYS = (("machine", "Architektur"), ("cpu_count", "CPU-Anzahl"))
+# Runner-/Hardware-Abweichungen sind hart: Wiederholungen auf der neuen Maschine
+# können einen Vergleich gegen die alte Maschine nicht nachträglich legitimieren
+# (#630). Dafür gibt es den gepaarten A/B-Lauf auf demselben Runner.
+_EXECUTION_KEYS = (
+    ("system", "Betriebssystem"),
+    ("release", "Kernel/OS-Release"),
+    ("machine", "Architektur"),
+    ("cpu_model", "CPU-Modell"),
+    ("cpu_count", "CPU-Anzahl"),
+    ("runner_arch", "Runner-Architektur"),
+    ("runner_environment", "Runner-Umgebung"),
+    ("runner_image_os", "Runner-Image-OS"),
+    ("runner_image_version", "Runner-Image-Version"),
+)
 
 
 @dataclass
@@ -561,9 +646,8 @@ class Compatibility:
     """Ob Baseline und aktueller Lauf automatisch vergleichbar sind.
 
     ``comparable`` = False bedeutet „nur Anzeige, keine automatische Regressions-
-    meldung". ``requires_confirmation`` = True heißt „vergleichbar, aber die
-    Hardware weicht ab – erst ein Bestätigungslauf darf melden". ``reasons``
-    erklärt die Entscheidung menschenlesbar (für Report und Issue-Text).
+    meldung". ``requires_confirmation`` bleibt für Ausgabe-/Issue-Kompatibilität
+    erhalten; Schema 3 akzeptiert jedoch nur identische Ausführungsumgebungen.
     """
 
     comparable: bool
@@ -582,11 +666,9 @@ def _python_minor(version: str | None) -> str | None:
 def check_compatibility(baseline: dict[str, Any], current: dict[str, Any]) -> Compatibility:
     """Prüft, ob ``baseline`` und ``current`` automatisch vergleichbar sind.
 
-    Harte Inkompatibilität (``comparable=False``): fehlender Umgebungs-Fingerprint
-    in der Baseline, abweichende Python-Minor-/Pillow-/NumPy-Version oder
-    abweichende Benchmark-Parameter (Iterationszahl, Bildabmessungen). Weiche
-    Inkompatibilität (``requires_confirmation=True``): nur Hardware (Architektur/
-    CPU-Anzahl) weicht ab.
+    Schema, Suite, Benchmark-Parameter, Software und Ausführungsumgebung müssen
+    übereinstimmen. Ein Bestätigungslauf auf einer anderen Maschine kann eine
+    abweichende Baseline nicht vergleichbar machen; dafür dient ``paired-compare``.
     """
     base_env = baseline.get("environment") or {}
     cur_env = current.get("environment") or {}
@@ -597,6 +679,16 @@ def check_compatibility(baseline: dict[str, Any], current: dict[str, Any]) -> Co
         ])
 
     hard: list[str] = []
+    if baseline.get("schema") != current.get("schema"):
+        hard.append(
+            f"Ergebnisschema unterschiedlich ({baseline.get('schema')} vs. "
+            f"{current.get('schema')})."
+        )
+    if baseline.get("suite") != current.get("suite"):
+        hard.append(
+            f"Benchmark-Suite unterschiedlich ({baseline.get('suite')} vs. "
+            f"{current.get('suite')})."
+        )
     if baseline.get("iterations") != current.get("iterations"):
         hard.append(
             f"Iterationszahl unterschiedlich ({baseline.get('iterations')} vs. "
@@ -618,18 +710,13 @@ def check_compatibility(baseline: dict[str, Any], current: dict[str, Any]) -> Co
                 f"{label}-Version unterschiedlich ({base_env.get(key)} vs. "
                 f"{cur_env.get(key)})."
             )
-    if hard:
-        return Compatibility(False, False, hard)
-
-    soft: list[str] = []
-    for key, label in _HARDWARE_KEYS:
+    for key, label in _EXECUTION_KEYS:
         if base_env.get(key) != cur_env.get(key):
-            soft.append(
+            hard.append(
                 f"{label} unterschiedlich ({base_env.get(key)} vs. {cur_env.get(key)})."
             )
-    if soft:
-        soft.append("Hardware weicht ab – Bestätigungslauf erforderlich.")
-        return Compatibility(True, True, soft)
+    if hard:
+        return Compatibility(False, False, hard)
     return Compatibility(True, False, [])
 
 
@@ -668,7 +755,11 @@ def _format_env(env: dict[str, Any]) -> str:
     """Kompakte, einzeilige Darstellung des Umgebungs-Fingerprints."""
     if not env:
         return "—"
-    keys = ("python", "pillow", "numpy", "system", "machine", "cpu_count", "runner")
+    keys = (
+        "python", "pillow", "numpy", "system", "release", "machine",
+        "cpu_model", "cpu_count", "runner_arch", "runner_image_os",
+        "runner_image_version", "runner",
+    )
     parts = [f"{k}={env.get(k)}" for k in keys if env.get(k) is not None]
     return ", ".join(parts) if parts else "—"
 
@@ -683,7 +774,7 @@ def _issue_body(d: FormatDelta, comp: Comparison, context: IssueContext | None =
 - Aktueller Commit: {context.current_commit or "unbekannt"}
 - Umgebungs-Fingerprint: {_format_env(context.environment)}
 - Bestätigungsläufe: {context.confirm_runs} (gemeldet wird der Median)
-- Hardware weicht von der Baseline ab: {"ja" if context.requires_confirmation else "nein"}
+- Ausführungsumgebung weicht von der Baseline ab: {"ja" if context.requires_confirmation else "nein"}
 """
     return f"""<!-- {_issue_marker(d.fmt, comp.metric)} -->
 ## Performance-Regression: {d.fmt}
@@ -766,32 +857,135 @@ def post_issues(
     return results
 
 
+def _load_results(paths: list[Path]) -> list[dict[str, Any]]:
+    """Ergebnisdateien in der übergebenen Paar-Reihenfolge laden."""
+    return [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+
+
+def _paired_compatibility(
+    baseline_runs: list[dict[str, Any]], current_runs: list[dict[str, Any]],
+) -> Compatibility:
+    """Sicherstellen, dass jedes A/B-Paar auf derselben Umgebung lief."""
+    if len(baseline_runs) != len(current_runs):
+        return Compatibility(False, False, [
+            "Anzahl der Baseline- und aktuellen Läufe unterscheidet sich "
+            f"({len(baseline_runs)} vs. {len(current_runs)}).",
+        ])
+
+    reasons: list[str] = []
+    for index, (baseline, current) in enumerate(
+        zip(baseline_runs, current_runs, strict=True), start=1,
+    ):
+        compatibility = check_compatibility(baseline, current)
+        if not compatibility.comparable:
+            reasons.extend(
+                f"Paar {index}: {reason}" for reason in compatibility.reasons
+            )
+    for label, runs in (("Baseline", baseline_runs), ("Aktuell", current_runs)):
+        for index, run in enumerate(runs[1:], start=2):
+            compatibility = check_compatibility(runs[0], run)
+            if not compatibility.comparable:
+                reasons.extend(
+                    f"{label}-Lauf {index}: {reason}"
+                    for reason in compatibility.reasons
+                )
+    if reasons:
+        return Compatibility(False, False, reasons)
+    return Compatibility(True, False, [])
+
+
+def _comparison_payload(comp: Comparison) -> dict[str, Any]:
+    """Vergleich für das A/B-Artefakt JSON-serialisierbar machen."""
+    return {
+        "metric": comp.metric,
+        "threshold": comp.threshold,
+        "deltas": [
+            {
+                "format": delta.fmt,
+                "baseline_ms": delta.baseline_ms,
+                "current_ms": delta.current_ms,
+                "pct_change": delta.pct_change,
+                "degraded": delta.degraded,
+            }
+            for delta in comp.deltas
+        ],
+        "added": comp.added,
+        "removed": comp.removed,
+    }
+
+
+def _cmd_paired_compare(args: argparse.Namespace) -> int:
+    """Mehrere auf demselben Runner gemessene A/B-Paare vergleichen."""
+    baseline_runs = _load_results(args.baseline)
+    current_runs = _load_results(args.current)
+    if len(baseline_runs) < args.minimum_pairs:
+        print(
+            f"Mindestens {args.minimum_pairs} A/B-Paare nötig; erhalten: "
+            f"{len(baseline_runs)}.",
+        )
+        return 2
+
+    compatibility = _paired_compatibility(baseline_runs, current_runs)
+    print(format_compatibility(compatibility, "gepaarte Baseline"))
+    if not compatibility.comparable:
+        return 2
+
+    baseline = aggregate_results(baseline_runs)
+    current = aggregate_results(current_runs)
+    comp = compare(baseline, current, args.metric, args.threshold)
+    print()
+    print(f"Gepaarter A/B-Vergleich ({len(baseline_runs)} Paare):")
+    print(format_report(comp))
+
+    payload = {
+        "schema": SCHEMA_VERSION,
+        "kind": "paired-comparison",
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "pairs": len(baseline_runs),
+        "baseline": baseline,
+        "current": current,
+        "comparison": _comparison_payload(comp),
+    }
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"A/B-Nachweis gespeichert: {_rel(args.output)}")
+
+    context = IssueContext(
+        baseline_label=str(baseline.get("git_commit") or "gepaarte Baseline"),
+        current_commit=current.get("git_commit"),
+        environment=current.get("environment", {}),
+        confirm_runs=len(current_runs),
+        requires_confirmation=False,
+    )
+    if comp.flagged and (args.post_issues or args.dry_run_issues):
+        print()
+        post_issues(
+            comp, dry_run=args.dry_run_issues or not args.post_issues,
+            context=context,
+        )
+    return 1 if (comp.flagged and args.fail_on_regression) else 0
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    # Die feste Höhenpipeline-Baseline (bis 40 MP) gehört zum vollen, geplanten
-    # Lauf mit den Standardmaßen. Ein manueller/Smoke-Lauf mit reduzierter
-    # Größe oder Iterationszahl erwartet dagegen eine schnelle, kleine
-    # Messung – ohne explizite Erzwingung (``--height-bench``) läuft die
-    # 40-MP-Höhenpipeline dort nicht implizit mit (Codex-Review zu #590).
-    is_default_run = (
-        args.width == DEFAULT_WIDTH
-        and args.height == DEFAULT_HEIGHT
-        and args.iterations == DEFAULT_ITERATIONS
-    )
-    include_height_bench = (
-        args.height_bench if args.height_bench is not None else is_default_run
-    )
-    height_sizes = HEIGHT_BENCH_SIZES if include_height_bench else None
+    # Format- und HEIGHT/3D-Suite laufen bewusst in getrennten Prozessen. Die
+    # großen HEIGHT-Läufe dürfen die Bestätigungswerte des CPU-lastigen PNG-
+    # Encoders nicht durch Wärme-, Speicher- oder Scheduler-Effekte verzerren.
+    height_sizes = HEIGHT_BENCH_SIZES if args.suite == "height" else None
+    include_formats = args.suite == "formats"
+    results_dir = args.results_dir or RESULTS_DIR / args.suite
     result = run_benchmark(
-        args.iterations, args.width, args.height, height_sizes=height_sizes,
+        args.iterations, args.width, args.height,
+        height_sizes=height_sizes, include_formats=include_formats,
     )
-    path = save_result(result, args.results_dir)
+    path = save_result(result, results_dir)
     print(f"Ergebnis gespeichert: {_rel(path)}")
 
     if args.no_compare:
         return 0
-    baseline = load_baseline(args.results_dir, exclude=path)
+    baseline = load_baseline(results_dir, exclude=path)
     if baseline is None:
         print("Kein früherer Lauf gefunden – dieser Lauf ist die neue Baseline.")
         return 0
@@ -815,13 +1009,14 @@ def _cmd_run(args: argparse.Namespace) -> int:
     # Bestätigungslauf: mehrere vollständige Wiederholungen, Median vergleichen.
     # Der zuerst gespeicherte Lauf fließt mit in den Median ein – so beruht die
     # Bestätigung auf allen Messungen, nicht nur auf den Nachläufen.
-    repeats = max(1, args.confirm_runs)
+    repeats = max(2, args.confirm_runs)
     print(f"\n🔁 {len(comp.flagged)} Format(e) auffällig – Bestätigung mit "
-          f"{repeats} Wiederholung(en) …\n")
+          f"insgesamt {repeats} Lauf/Läufen …\n")
     confirmed = aggregate_results(
         [result, *(run_benchmark(args.iterations, args.width, args.height,
-                                  height_sizes=height_sizes)
-                   for _ in range(repeats))]
+                                  height_sizes=height_sizes,
+                                  include_formats=include_formats)
+                   for _ in range(repeats - 1))]
     )
     # Persistierte Baseline durch den robusten Median ersetzen. Sonst committet
     # der CI-Workflow den (womöglich Ausreißer-)Erstlauf, und der nächste
@@ -861,7 +1056,8 @@ def _cmd_compare(args: argparse.Namespace) -> int:
         cur_data = json.loads(Path(args.current).read_text(encoding="utf-8"))
         base_label = Path(args.baseline).name
     else:
-        files = _result_files(args.results_dir)
+        results_dir = args.results_dir or RESULTS_DIR / args.suite
+        files = _result_files(results_dir)
         if len(files) < 2:
             print("Mindestens zwei Ergebnis-Dateien nötig für einen Vergleich.")
             return 2
@@ -882,13 +1078,6 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     if not compat.comparable:
         print("\nℹ️  Baseline nicht vergleichbar – keine Regression gemeldet.")
         return 0
-    # Reine Hardware-Abweichung verlangt einen Bestätigungslauf – den kann der
-    # statische ``compare`` nicht leisten. Sonst entstünden genau die
-    # Hardware-Artefakt-Fehlalarme, die der Gate verhindern soll (#277/#278/#279).
-    if compat.requires_confirmation:
-        print("\nℹ️  Hardware weicht ab – „compare“ kann nicht nachmessen; "
-              "keine Regression gemeldet (für den Bestätigungslauf „run“ nutzen).")
-        return 0
     if comp.flagged and (args.post_issues or args.dry_run_issues):
         context = IssueContext(
             baseline_label=base_label,
@@ -905,7 +1094,10 @@ def _cmd_compare(args: argparse.Namespace) -> int:
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
+    parser.add_argument(
+        "--results-dir", type=Path,
+        help="Ergebnisverzeichnis (Default: benchmarks/results/<suite>).",
+    )
     parser.add_argument("--metric", default=DEFAULT_METRIC,
                         help="Vergleichsmetrik (process_ms|encode_ms|decode_ms).")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
@@ -928,25 +1120,54 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--height", type=int, default=DEFAULT_HEIGHT)
     run_p.add_argument("--no-compare", action="store_true",
                        help="Nur messen und speichern, nicht vergleichen.")
-    run_p.add_argument(
-        "--height-bench", dest="height_bench", action="store_true", default=None,
-        help="Höhenpipeline-Baseline (HEIGHT16-1MP/16MP/40MP) unabhängig von "
-             "--width/--height/--iterations erzwingen.")
-    run_p.add_argument(
-        "--no-height-bench", dest="height_bench", action="store_false",
-        help="Höhenpipeline-Baseline auslassen (z. B. für schnelle manuelle "
-             "Smoke-Läufe mit reduzierter Größe).")
+    suite_group = run_p.add_mutually_exclusive_group()
+    suite_group.add_argument(
+        "--suite", choices=("formats", "height"), default="formats",
+        help="Isolierte Benchmark-Suite (Default: formats).",
+    )
+    # Rückwärtskompatible, nicht mehr beworbene Aliase. Anders als früher
+    # koppelt --height-bench die Formatmessung nicht mehr an die HEIGHT-Suite.
+    suite_group.add_argument(
+        "--height-bench", dest="suite", action="store_const", const="height",
+        help=argparse.SUPPRESS,
+    )
+    suite_group.add_argument(
+        "--no-height-bench", dest="suite", action="store_const", const="formats",
+        help=argparse.SUPPRESS,
+    )
     run_p.add_argument("--confirm-runs", type=int, default=DEFAULT_CONFIRM_RUNS,
-                       help="Wiederholungen zur Bestätigung einer Auffälligkeit "
-                            "(Median; Default 3).")
+                       help="Gesamtzahl der Läufe zur Bestätigung einer "
+                            "Auffälligkeit (Median; Default 3).")
     _add_common(run_p)
     run_p.set_defaults(func=_cmd_run)
 
     cmp_p = sub.add_parser("compare", help="Zwei Ergebnis-Dateien vergleichen.")
     cmp_p.add_argument("--baseline", type=Path, help="Baseline-JSON (Vorwoche).")
     cmp_p.add_argument("--current", type=Path, help="Aktuelles JSON (diese Woche).")
+    cmp_p.add_argument("--suite", choices=("formats", "height"), default="formats")
     _add_common(cmp_p)
     cmp_p.set_defaults(func=_cmd_compare)
+
+    paired_p = sub.add_parser(
+        "paired-compare",
+        help="Mehrere A/B-Läufe von demselben Runner robust vergleichen.",
+    )
+    paired_p.add_argument(
+        "--baseline", type=Path, nargs="+", required=True,
+        help="Baseline-JSONs in Paar-Reihenfolge.",
+    )
+    paired_p.add_argument(
+        "--current", type=Path, nargs="+", required=True,
+        help="Aktuelle JSONs in Paar-Reihenfolge.",
+    )
+    paired_p.add_argument("--minimum-pairs", type=int, default=3)
+    paired_p.add_argument("--output", type=Path, help="Detailliertes A/B-JSON.")
+    paired_p.add_argument("--metric", default=DEFAULT_METRIC)
+    paired_p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
+    paired_p.add_argument("--fail-on-regression", action="store_true")
+    paired_p.add_argument("--post-issues", action="store_true")
+    paired_p.add_argument("--dry-run-issues", action="store_true")
+    paired_p.set_defaults(func=_cmd_paired_compare)
 
     args = parser.parse_args(argv)
     return int(args.func(args))

@@ -141,7 +141,7 @@ Ein Paket, `bgremover/`:
   unverändert; die 2D-`PreviewMode`-Pipeline bleibt der garantierte Fallback.
   i18n-Keys `preview3d.*` (de/en). Abnahme-Nachweise (#595): Mesh-Build-Benchmark
   (`scripts/benchmark.py`, `mesh_*`-Metriken je 1/16/40 MP, reproduzierbar via
-  `--height-bench`), headless-Abnahme in
+  `--suite height`), headless-Abnahme in
   `tests/test_preview3d_acceptance.py`, Kriterien↔Nachweis in
   [`docs/history/EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md), manuelle
   Plattform-/Packaging-/Screenshot-Prozeduren (Release-Scope) in

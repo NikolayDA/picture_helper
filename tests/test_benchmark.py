@@ -136,7 +136,11 @@ def test_save_and_load_baseline_roundtrip(tmp_path: Path) -> None:
 
 def test_collect_environment_has_expected_keys() -> None:
     env = bench.collect_environment()
-    for key in ("python", "pillow", "numpy", "system", "machine", "cpu_count", "runner"):
+    for key in (
+        "python", "pillow", "numpy", "system", "release", "machine",
+        "cpu_model", "cpu_count", "runner_arch", "runner_environment",
+        "runner_image_os", "runner_image_version", "runner",
+    ):
         assert key in env
     # Python/Pillow/NumPy müssen für die Vergleichbarkeit auflösbar sein.
     assert env["python"] and env["pillow"] and env["numpy"]
@@ -144,9 +148,11 @@ def test_collect_environment_has_expected_keys() -> None:
 
 def test_run_benchmark_records_environment_and_schema() -> None:
     result = bench.run_benchmark(iterations=1, width=16, height=12)
-    assert result["schema"] == bench.SCHEMA_VERSION == 2
+    assert result["schema"] == bench.SCHEMA_VERSION == 3
+    assert result["suite"] == "formats"
     assert isinstance(result["environment"], dict)
     assert result["environment"]["python"]
+    assert len(result["samples"]["PNG"]["process_ms"]) == 1
 
 
 # ── Kompatibilität ───────────────────────────────────────────────────────
@@ -154,7 +160,10 @@ def test_run_benchmark_records_environment_and_schema() -> None:
 def _env(**over: object) -> dict:
     base = {
         "python": "3.12.4", "pillow": "11.0.0", "numpy": "2.1.0",
-        "machine": "x86_64", "cpu_count": 4,
+        "system": "Linux", "release": "6.17.0", "machine": "x86_64",
+        "cpu_model": "Example CPU", "cpu_count": 4, "runner_arch": "X64",
+        "runner_environment": "github-hosted", "runner_image_os": "ubuntu24",
+        "runner_image_version": "20260720.1",
     }
     base.update(over)
     return base
@@ -162,10 +171,14 @@ def _env(**over: object) -> dict:
 
 def _run(env: dict, *, iterations: int = 7, image: dict | None = None, **process_ms: float) -> dict:
     return {
+        "schema": bench.SCHEMA_VERSION,
+        "suite": "formats",
         "iterations": iterations,
         "image": image or {"width": 1920, "height": 1080},
         "environment": env,
         "formats": {fmt: {"process_ms": v} for fmt, v in process_ms.items()},
+        "samples": {},
+        "repeats": 1,
     }
 
 
@@ -187,6 +200,16 @@ def test_compatibility_missing_fingerprint_blocks() -> None:
     assert compat.comparable is False
 
 
+def test_compatibility_schema_or_suite_mismatch_blocks() -> None:
+    baseline = _run(_env())
+    baseline["schema"] = 2
+    assert bench.check_compatibility(baseline, _run(_env())).comparable is False
+
+    baseline = _run(_env())
+    baseline["suite"] = "height"
+    assert bench.check_compatibility(baseline, _run(_env())).comparable is False
+
+
 def test_compatibility_version_mismatch_blocks() -> None:
     for over in ({"pillow": "12.0.0"}, {"numpy": "3.0.0"}, {"python": "3.13.0"}):
         compat = bench.check_compatibility(_run(_env()), _run(_env(**over)))
@@ -202,11 +225,20 @@ def test_compatibility_benchmark_param_mismatch_blocks() -> None:
     ).comparable is False
 
 
-def test_compatibility_hardware_difference_requires_confirmation() -> None:
+def test_compatibility_hardware_difference_blocks_comparison() -> None:
     compat = bench.check_compatibility(_run(_env(cpu_count=2)), _run(_env(cpu_count=8)))
-    assert compat.comparable is True
-    assert compat.requires_confirmation is True
+    assert compat.comparable is False
+    assert compat.requires_confirmation is False
     assert compat.reasons  # nennt den Grund
+
+
+def test_compatibility_runner_image_difference_blocks_comparison() -> None:
+    compat = bench.check_compatibility(
+        _run(_env(runner_image_version="20260713.1")),
+        _run(_env(runner_image_version="20260720.1")),
+    )
+    assert compat.comparable is False
+    assert "Runner-Image-Version" in " ".join(compat.reasons)
 
 
 # ── Median-Aggregation (Bestätigungslauf) ────────────────────────────────
@@ -220,6 +252,9 @@ def test_aggregate_results_takes_median_per_metric() -> None:
     merged = bench.aggregate_results(runs)
     assert merged["formats"]["PNG"]["process_ms"] == 20.0
     assert merged["repeats"] == 3
+    assert [run["formats"]["PNG"]["process_ms"] for run in merged["runs"]] == [
+        10.0, 30.0, 20.0,
+    ]
 
 
 # ── Issue-Kontext ────────────────────────────────────────────────────────
@@ -263,7 +298,7 @@ def test_run_does_not_post_issue_when_baseline_incompatible(
 
     rc = bench.main([
         "run", "--results-dir", str(tmp_path), "--dry-run-issues",
-        "--fail-on-regression", "--confirm-runs", "2",
+        "--fail-on-regression", "--confirm-runs", "3",
     ])
     assert rc == 0
     assert posted == []
@@ -289,7 +324,7 @@ def test_run_clears_flag_when_confirmation_shows_no_regression(
 
     rc = bench.main([
         "run", "--results-dir", str(tmp_path), "--dry-run-issues",
-        "--fail-on-regression", "--confirm-runs", "2",
+        "--fail-on-regression", "--confirm-runs", "3",
     ])
     assert rc == 0
     assert posted == []
@@ -320,7 +355,7 @@ def test_compare_blocks_report_for_hardware_mismatch(
     ])
     assert rc == 0
     assert posted == []
-    assert "Hardware weicht ab" in capsys.readouterr().out
+    assert "NICHT VERGLEICHBAR" in capsys.readouterr().out
 
 
 def test_compare_reports_for_fully_comparable_baseline(
@@ -342,6 +377,69 @@ def test_compare_reports_for_fully_comparable_baseline(
     assert len(posted) == 1
 
 
+def test_paired_compare_persists_all_runs_and_stays_green(
+    tmp_path: Path, capsys,
+) -> None:
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index, (baseline_ms, current_ms) in enumerate(
+        [(100.0, 105.0), (102.0, 103.0), (98.0, 104.0)], start=1,
+    ):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(_run(_env(), PNG=baseline_ms)), encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(_run(_env(), PNG=current_ms)), encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    output = tmp_path / "paired.json"
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+        "--output", str(output),
+        "--fail-on-regression",
+    ])
+
+    assert rc == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["kind"] == "paired-comparison"
+    assert payload["pairs"] == 3
+    assert payload["baseline"]["repeats"] == 3
+    assert len(payload["current"]["runs"]) == 3
+    assert payload["comparison"]["deltas"][0]["degraded"] is False
+    assert "Gepaarter A/B-Vergleich (3 Paare)" in capsys.readouterr().out
+
+
+def test_paired_compare_rejects_different_runner_images(tmp_path: Path) -> None:
+    baseline_paths: list[Path] = []
+    current_paths: list[Path] = []
+    for index in range(3):
+        baseline = tmp_path / f"baseline-{index}.json"
+        current = tmp_path / f"current-{index}.json"
+        baseline.write_text(
+            json.dumps(_run(_env(runner_image_version="old"), PNG=100.0)),
+            encoding="utf-8",
+        )
+        current.write_text(
+            json.dumps(_run(_env(runner_image_version="new"), PNG=100.0)),
+            encoding="utf-8",
+        )
+        baseline_paths.append(baseline)
+        current_paths.append(current)
+
+    rc = bench.main([
+        "paired-compare",
+        "--baseline", *(str(path) for path in baseline_paths),
+        "--current", *(str(path) for path in current_paths),
+    ])
+    assert rc == 2
+
+
 def test_run_benchmark_height_pipeline_metrics(tmp_path: Path) -> None:
     """Höhen-Baseline (#590): kleine Größen liefern alle vier Metriken."""
     result = bench.run_benchmark(
@@ -353,6 +451,16 @@ def test_run_benchmark_height_pipeline_metrics(tmp_path: Path) -> None:
         assert metrics[key] >= 0.0
     # Bestehende Format-Messungen bleiben unangetastet daneben stehen.
     assert set(bench.BENCH_FORMATS) <= set(result["formats"])
+
+
+def test_run_benchmark_can_isolate_height_suite() -> None:
+    result = bench.run_benchmark(
+        iterations=1, width=16, height=12,
+        height_sizes={"HEIGHT16-TINY": (8, 6, 1)}, include_formats=False,
+    )
+    assert result["suite"] == "height"
+    assert set(result["formats"]) == {"HEIGHT16-TINY"}
+    assert result["samples"] == {}
 
 
 def test_run_benchmark_includes_mesh_build_metrics(tmp_path: Path) -> None:
@@ -396,16 +504,17 @@ def test_make_height_values_matches_mgrid_reference() -> None:
     assert np.array_equal(bench.make_height_values(width, height), reference)
 
 
-# ── CLI respektiert skalierte Läufe (#590 Codex-Review) ──────────────────
+# ── CLI isoliert Format- und HEIGHT-Suite (#630) ─────────────────────────
 
-def test_cli_run_includes_height_bench_only_for_default_dimensions(
+def test_cli_run_defaults_to_format_suite(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """Ein Lauf mit Standardmaßen zieht die feste Höhenpipeline-Baseline mit."""
-    calls: list[dict | None] = []
+    calls: list[tuple[dict | None, bool]] = []
 
-    def fake_run_benchmark(iterations, width, height, height_sizes=None):
-        calls.append(height_sizes)
+    def fake_run_benchmark(
+        iterations, width, height, height_sizes=None, *, include_formats=True,
+    ):
+        calls.append((height_sizes, include_formats))
         return _run(_env(), iterations=iterations)
 
     monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
@@ -416,18 +525,18 @@ def test_cli_run_includes_height_bench_only_for_default_dimensions(
         "--height", str(bench.DEFAULT_HEIGHT),
     ])
     assert rc == 0
-    assert calls == [bench.HEIGHT_BENCH_SIZES]
+    assert calls == [(None, True)]
 
 
-def test_cli_run_skips_height_bench_for_scaled_down_dimensions(
+def test_cli_run_scaled_dimensions_stays_in_format_suite(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """Ein manueller Smoke-Lauf mit reduzierter Größe zieht die 40-MP-Höhen-
-    pipeline nicht implizit mit (Codex-Review: OOM-/Hänger-Risiko)."""
-    calls: list[dict | None] = []
+    calls: list[tuple[dict | None, bool]] = []
 
-    def fake_run_benchmark(iterations, width, height, height_sizes=None):
-        calls.append(height_sizes)
+    def fake_run_benchmark(
+        iterations, width, height, height_sizes=None, *, include_formats=True,
+    ):
+        calls.append((height_sizes, include_formats))
         return _run(_env(), iterations=iterations, image={"width": width, "height": height})
 
     monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
@@ -436,46 +545,54 @@ def test_cli_run_skips_height_bench_for_scaled_down_dimensions(
         "--width", "16", "--height", "12", "--iterations", "1",
     ])
     assert rc == 0
-    assert calls == [None]
+    assert calls == [(None, True)]
 
 
-def test_cli_run_height_bench_flag_forces_inclusion_on_small_run(
+def test_cli_height_suite_excludes_format_benchmark(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """``--height-bench`` erzwingt die Baseline unabhängig von --width/--height."""
-    calls: list[dict | None] = []
+    calls: list[tuple[dict | None, bool]] = []
 
-    def fake_run_benchmark(iterations, width, height, height_sizes=None):
-        calls.append(height_sizes)
-        return _run(_env(), iterations=iterations, image={"width": width, "height": height})
+    def fake_run_benchmark(
+        iterations, width, height, height_sizes=None, *, include_formats=True,
+    ):
+        calls.append((height_sizes, include_formats))
+        result = _run(
+            _env(), iterations=iterations, image={"width": width, "height": height},
+        )
+        result["suite"] = "height"
+        return result
 
     monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
     rc = bench.main([
         "run", "--results-dir", str(tmp_path), "--no-compare",
         "--width", "16", "--height", "12", "--iterations", "1",
+        "--suite", "height",
+    ])
+    assert rc == 0
+    assert calls == [(bench.HEIGHT_BENCH_SIZES, False)]
+
+
+def test_cli_height_bench_alias_is_isolated(
+    tmp_path: Path, monkeypatch
+) -> None:
+    calls: list[tuple[dict | None, bool]] = []
+
+    def fake_run_benchmark(
+        iterations, width, height, height_sizes=None, *, include_formats=True,
+    ):
+        calls.append((height_sizes, include_formats))
+        result = _run(_env(), iterations=iterations)
+        result["suite"] = "height"
+        return result
+
+    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
+    rc = bench.main([
+        "run", "--results-dir", str(tmp_path), "--no-compare",
+        "--iterations", str(bench.DEFAULT_ITERATIONS),
+        "--width", str(bench.DEFAULT_WIDTH),
+        "--height", str(bench.DEFAULT_HEIGHT),
         "--height-bench",
     ])
     assert rc == 0
-    assert calls == [bench.HEIGHT_BENCH_SIZES]
-
-
-def test_cli_run_no_height_bench_flag_skips_it_on_default_run(
-    tmp_path: Path, monkeypatch
-) -> None:
-    """``--no-height-bench`` lässt die Baseline auch beim Standardlauf aus."""
-    calls: list[dict | None] = []
-
-    def fake_run_benchmark(iterations, width, height, height_sizes=None):
-        calls.append(height_sizes)
-        return _run(_env(), iterations=iterations)
-
-    monkeypatch.setattr(bench, "run_benchmark", fake_run_benchmark)
-    rc = bench.main([
-        "run", "--results-dir", str(tmp_path), "--no-compare",
-        "--iterations", str(bench.DEFAULT_ITERATIONS),
-        "--width", str(bench.DEFAULT_WIDTH),
-        "--height", str(bench.DEFAULT_HEIGHT),
-        "--no-height-bench",
-    ])
-    assert rc == 0
-    assert calls == [None]
+    assert calls == [(bench.HEIGHT_BENCH_SIZES, False)]

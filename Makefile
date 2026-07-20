@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-compare clean
+.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-height bench-compare clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -77,7 +77,10 @@ screenshots-live-3d:
 # letzten Lauf; 'bench-compare' vergleicht die letzten zwei Laeufe ohne neue
 # Messung. Details: benchmarks/README.md.
 bench:
-	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py run
+	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py run --suite formats
+
+bench-height:
+	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py run --suite height
 
 bench-compare:
 	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py compare

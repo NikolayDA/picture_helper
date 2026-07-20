@@ -35,7 +35,7 @@ Renderer (llvmpipe), Qt-/PyQt6-Version, ob X11/Wayland/Cocoa.
 ### 2.1 Mesh-Build, Peak-Speicher, Budgets (automatisiert, reproduzierbar)
 
 ```sh
-QT_QPA_PLATFORM=offscreen python scripts/benchmark.py run --height-bench --no-compare
+QT_QPA_PLATFORM=offscreen python scripts/benchmark.py run --suite height --no-compare
 ```
 
 Liefert je Szenario (`HEIGHT16-1MP`/`-16MP`/`-40MP`) die Metriken

@@ -8,10 +8,25 @@ on:
     - cron: '17 5 * * 1'
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'Ausführung: regulär oder gepaarter Commitvergleich'
+        type: choice
+        options:
+          - regular
+          - paired
+        default: regular
       threshold:
         description: 'Regressions-Schwelle in Prozent'
         type: string
         default: '10'
+      baseline_ref:
+        description: 'Baseline-Commit für den gepaarten A/B-Lauf'
+        type: string
+        default: 'b72c322f3dea450f3f145974da0e505e1df41a99'
+      pairs:
+        description: 'Anzahl alternierend gemessener A/B-Paare'
+        type: string
+        default: '3'
 
 permissions:
   contents: read
@@ -23,6 +38,7 @@ concurrency:
 jobs:
   benchmark:
     name: Run and compare benchmark
+    if: github.event_name == 'schedule' || inputs.mode != 'paired'
     runs-on: ubuntu-latest
     permissions:
       # contents: read fuer den Checkout; actions: read, um das Ergebnis-Artefakt
@@ -84,7 +100,7 @@ jobs:
           # Nur erfolgreiche main-Laeufe kommen als Baseline infrage: ein
           # workflow_dispatch auf einem Feature-Branch darf die main-Baseline
           # nicht mit Messungen aus ungemergtem Code verfaelschen.
-          prev="$(gh run list --workflow benchmark.yml --branch main --status success \
+          prev="$(gh run list --workflow benchmark.yml --branch main --event schedule --status success \
             --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)"
           if [ -z "$prev" ]; then
             echo "Kein frueherer erfolgreicher main-Lauf – eingecheckte Baseline bleibt Referenz."
@@ -98,18 +114,18 @@ jobs:
           # die Baseline mergen, damit sie wirklich vorrueckt.
           tmp="$(mktemp -d)"
           if gh run download "$prev" --name benchmark-results --dir "$tmp" 2>/dev/null; then
-            cp -f "$tmp"/*.json benchmarks/results/
+            cp -R "$tmp"/. benchmarks/results/
             echo "Baseline aus Vorlauf uebernommen."
           else
             echo "Kein Baseline-Artefakt im Vorlauf – eingecheckte Baseline bleibt Referenz."
           fi
           rm -rf "$tmp"
 
-      # Eine Auffaelligkeit wird im selben Lauf durch zusaetzliche
-      # Wiederholungen bestaetigt (--confirm-runs); gemeldet wird nur, was der
-      # Median bestaetigt und was gegen eine *vergleichbare* Baseline laeuft.
-      - name: Run benchmark, compare and report regressions
-        id: bench
+      # Format- und HEIGHT/3D-Messung laufen in getrennten Prozessen und
+      # Ergebnisverzeichnissen (#630). Die großen 40-MP-Läufe können dadurch
+      # keine PNG-Bestätigungswiederholung thermisch oder per Scheduler belasten.
+      - name: Run format benchmark, compare and report regressions
+        id: format_bench
         continue-on-error: true
         env:
           QT_QPA_PLATFORM: offscreen
@@ -117,6 +133,22 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python scripts/benchmark.py run \
+            --suite formats \
+            --threshold "${{ inputs.threshold || '10' }}" \
+            --confirm-runs 3 \
+            --fail-on-regression \
+            --post-issues
+
+      - name: Run HEIGHT and 3D benchmark separately
+        id: height_bench
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/benchmark.py run \
+            --suite height \
             --threshold "${{ inputs.threshold || '10' }}" \
             --confirm-runs 3 \
             --fail-on-regression \
@@ -133,7 +165,118 @@ jobs:
       # noch laeuft; hier wird der Job am Ende sichtbar rot, wenn ein Format ueber
       # der Schwelle lag.
       - name: Fail if a format regressed
-        if: steps.bench.outcome == 'failure'
+        if: steps.format_bench.outcome == 'failure' || steps.height_bench.outcome == 'failure'
         run: |
           echo "::error::Mindestens ein Format hat sich um mehr als die Schwelle verschlechtert."
+          exit 1
+
+  paired:
+    name: Paired A/B benchmark
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'paired'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Der Baseline-Commit muss für das temporäre Worktree verfügbar sein.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: "Install pinned benchmark dependencies"
+        run: |
+          python -m pip install --upgrade "pip>=26.1.2"
+          python -m pip install "Pillow==12.2.0" "numpy==2.4.6"
+
+      - name: Prepare baseline worktree
+        id: prepare
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref }}
+        run: |
+          baseline_sha="$(git rev-parse --verify "${BASELINE_REF}^{commit}")"
+          baseline_root="${RUNNER_TEMP}/picture-helper-baseline"
+          git worktree add --detach "$baseline_root" "$baseline_sha"
+          # Beide Commits werden mit exakt demselben Schema-3-Harness gemessen.
+          # Die Format-Suite importiert nur image_ops aus dem jeweiligen Root.
+          cp scripts/benchmark.py "$baseline_root/scripts/benchmark.py"
+          echo "baseline_sha=$baseline_sha" >> "$GITHUB_OUTPUT"
+          echo "baseline_root=$baseline_root" >> "$GITHUB_OUTPUT"
+
+      - name: Run alternating A/B pairs
+        env:
+          BASELINE_ROOT: ${{ steps.prepare.outputs.baseline_root }}
+          PAIRS: ${{ inputs.pairs }}
+        run: |
+          case "$PAIRS" in
+            ''|*[!0-9]*) echo "pairs muss eine Ganzzahl sein"; exit 2 ;;
+          esac
+          if [ "$PAIRS" -lt 3 ] || [ "$PAIRS" -gt 10 ]; then
+            echo "pairs muss zwischen 3 und 10 liegen"
+            exit 2
+          fi
+
+          result_root="${RUNNER_TEMP}/benchmark-ab"
+          mkdir -p "$result_root/baseline" "$result_root/current"
+
+          run_one() {
+            root="$1"
+            label="$2"
+            pair="$3"
+            output="$result_root/$label/$pair"
+            mkdir -p "$output"
+            python "$root/scripts/benchmark.py" run \
+              --suite formats \
+              --no-compare \
+              --results-dir "$output"
+          }
+
+          pair=1
+          while [ "$pair" -le "$PAIRS" ]; do
+            # Reihenfolge alternieren, damit Aufwärm-/Lastdrift nicht einseitig
+            # Baseline oder aktuellen Commit bevorzugt.
+            if [ $((pair % 2)) -eq 1 ]; then
+              run_one "$BASELINE_ROOT" baseline "$pair"
+              run_one "$GITHUB_WORKSPACE" current "$pair"
+            else
+              run_one "$GITHUB_WORKSPACE" current "$pair"
+              run_one "$BASELINE_ROOT" baseline "$pair"
+            fi
+            pair=$((pair + 1))
+          done
+
+      - name: Compare paired measurements
+        id: compare
+        continue-on-error: true
+        env:
+          PAIRS: ${{ inputs.pairs }}
+        run: |
+          result_root="${RUNNER_TEMP}/benchmark-ab"
+          python scripts/benchmark.py paired-compare \
+            --baseline "$result_root"/baseline/*/*.json \
+            --current "$result_root"/current/*/*.json \
+            --minimum-pairs "$PAIRS" \
+            --threshold "${{ inputs.threshold || '10' }}" \
+            --output "$result_root/paired-report.json" \
+            --fail-on-regression
+
+      - name: Upload paired benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-ab-results
+          path: ${{ runner.temp }}/benchmark-ab/
+          if-no-files-found: error
+
+      - name: Remove baseline worktree
+        if: always() && steps.prepare.outputs.baseline_root != ''
+        run: git worktree remove --force "${{ steps.prepare.outputs.baseline_root }}"
+
+      - name: Fail if paired comparison regressed
+        if: steps.compare.outcome == 'failure'
+        run: |
+          echo "::error::Der gepaarte A/B-Lauf bestätigt eine Regression."
           exit 1

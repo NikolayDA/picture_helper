@@ -11,17 +11,20 @@ Mock, kein Mikro-Benchmark einzelner Zeilen.
 ## Ausführen
 
 ```sh
-make bench            # Lauf + Vergleich gegen den letzten gespeicherten Lauf
-make bench-compare    # Die letzten zwei gespeicherten Läufe vergleichen
+make bench            # isolierte PNG/JPEG/WebP/TIFF-Suite
+make bench-height     # isolierte HEIGHT16-/3D-Suite
+make bench-compare    # die letzten zwei Format-Läufe vergleichen
 ```
 
 Oder direkt:
 
 ```sh
-QT_QPA_PLATFORM=offscreen python scripts/benchmark.py run --iterations 7
+QT_QPA_PLATFORM=offscreen python scripts/benchmark.py run \
+    --suite formats --iterations 7
+QT_QPA_PLATFORM=offscreen python scripts/benchmark.py run --suite height
 QT_QPA_PLATFORM=offscreen python scripts/benchmark.py compare \
-    --baseline benchmarks/results/2026-06-01.json \
-    --current  benchmarks/results/2026-06-08.json
+    --baseline benchmarks/results/formats/2026-06-01.json \
+    --current  benchmarks/results/formats/2026-06-08.json
 ```
 
 ## Metriken
@@ -38,7 +41,7 @@ Pro Format werden gemessen (Median über `--iterations` Läufe, in Millisekunden
 
 ### 16-Bit-Höhen- und 3D-Reliefmesh-Baseline
 
-Der volle Standardlauf (bzw. `--height-bench`) misst zusätzlich die
+Die eigenständige Suite `--suite height` (Alias: `--height-bench`) misst die
 16-Bit-Höhenpipeline **und** den 3D-Reliefmesh-Aufbau je Projektgröße
 (`HEIGHT16-1MP`/`-16MP`/`-40MP`). Neben `import_ms`/`process_ms`/`roundtrip_ms`/
 `preview_ms` (2D) trägt jede Größe die 3D-Metriken aus dem echten Geometriekern
@@ -62,8 +65,9 @@ im manuellen Plattform-Smoke belegt (siehe
 
 ## Ergebnisse & Vergleich
 
-Jeder Lauf wird als datiertes JSON unter `benchmarks/results/<JJJJ-MM-TT>.json`
-abgelegt. „Letzte Woche" ist schlicht die jüngste Datei vor dem aktuellen Lauf.
+Jeder Lauf wird suite-getrennt als datiertes JSON unter
+`benchmarks/results/formats/` bzw. `benchmarks/results/height/` abgelegt.
+„Letzte Woche" ist die jüngste Datei derselben Suite vor dem aktuellen Lauf.
 Der wöchentliche GitHub-Actions-Lauf schreibt neue Baselines **nicht** nach
 `main` (der geschützte Branch lässt sich vom `GITHUB_TOKEN` weder direkt noch
 über einen Auto-PR beschreiben, Issue #545). Stattdessen trägt jeder Lauf seine
@@ -83,26 +87,39 @@ Der Vergleich rechnet die prozentuale Änderung je Format aus; ein Format gilt a
 verschlechtert hat. Sind alle Formate innerhalb der Schwelle, meldet der Report
 kurz „Benchmarks stabil".
 
-## Vergleichbarkeit & Bestätigung (Schema 2)
+## Vergleichbarkeit, Rohwerte & Bestätigung (Schema 3)
 
 Damit kein Mess- oder Umgebungsartefakt fälschlich als Regression gemeldet wird
-(#277/#278/#279), trägt jedes Ergebnis seit Schema 2 einen **Umgebungs-
-Fingerprint** (`environment`): Python-, Pillow- und NumPy-Version, Betriebssystem,
-Architektur, logische CPU-Anzahl und der GitHub-Runner. Zusammen mit den
-Benchmark-Parametern (Iterationszahl, Bildabmessungen) entscheidet er, ob zwei
-Läufe überhaupt vergleichbar sind:
+(#277/#278/#279/#630), trägt jedes Ergebnis seit Schema 3 einen vollständigen
+**Umgebungs-Fingerprint** (`environment`): Python-, Pillow- und NumPy-Version,
+Betriebssystem/Kernel, Architektur, exaktes CPU-Modell, logische CPU-Anzahl sowie
+GitHub-Runner-Image und -Version. Zusammen mit Suite und Benchmark-Parametern
+entscheidet er, ob zwei Läufe überhaupt vergleichbar sind:
 
-- **Nicht vergleichbar** (nur Anzeige, *keine* Regressionsmeldung): die Baseline
-  hat keinen Fingerprint, oder Python-Minor-/Pillow-/NumPy-Version bzw.
-  Iterationszahl/Bildabmessungen weichen ab.
-- **Bedingt vergleichbar** (Bestätigungslauf nötig): nur die Hardware
-  (Architektur/CPU-Anzahl) weicht ab.
-- **Vergleichbar**: alles passt.
+- **Nicht vergleichbar** (nur Anzeige, *keine* Regressionsmeldung): Schema,
+  Suite, Parameter, Software, Kernel, CPU oder Runner-Image weichen ab.
+- **Vergleichbar**: alle leistungsrelevanten Merkmale stimmen überein.
 
 Wird gegen eine vergleichbare Baseline eine Auffälligkeit über der Schwelle
-gemessen, läuft der Benchmark im selben Durchgang `--confirm-runs` Mal komplett
-nach (Default **3**); verglichen wird der **Median**. Nur eine im
-Bestätigungslauf weiterhin überschrittene Schwelle gilt als echte Regression.
+gemessen, werden insgesamt `--confirm-runs` vollständige Läufe ausgeführt
+(Default **3**); verglichen wird der **Median**. Das JSON bewahrt zusätzlich die
+Einzelzeiten je Iteration (`samples`) und alle vollständigen Bestätigungsläufe
+(`runs`) auf. Nur eine danach weiterhin überschrittene Schwelle gilt als echte
+Regression.
+
+Format- und HEIGHT/3D-Suite laufen in CI in getrennten Prozessen. Dadurch können
+die großen 16-/40-MP-Höhenläufe die PNG-Messung nicht durch Speicher-, Wärme-
+oder Scheduler-Effekte verfälschen.
+
+### Gepaarter Commitvergleich
+
+Der manuelle Workflow-Modus `paired` misst einen Baseline-Commit und den
+aktuellen Commit abwechselnd auf **demselben GitHub-Runner**. Beide Quellstände
+verwenden denselben Schema-3-Benchmark-Harness und dieselben Dependency-Pins.
+`paired-compare` bildet den Median aus mindestens drei A/B-Paaren und schreibt
+sämtliche Einzelwerte in das Artefakt `benchmark-ab-results`. Dieser Modus ist
+der belastbare Nachweis, wenn sich die Hosted-Runner-Umgebung zwischen zwei
+Wochenläufen geändert hat.
 
 ## CI / Issues
 
