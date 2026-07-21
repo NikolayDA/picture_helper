@@ -216,29 +216,40 @@ def _linux_appimage(path: str, report: SmokeReport, runner: Runner) -> None:
 
 def _linux_deb(path: str, report: SmokeReport, runner: Runner) -> None:
     name = Path(path).name
-    if runner(["sudo", "apt-get", "install", "-y", path]).returncode != 0:
+    installed_ok = runner(["sudo", "apt-get", "install", "-y", path]).returncode == 0
+    if not installed_ok:
         report.fail(f"deb-Installation fehlgeschlagen: {name}")
-        return
-    # Das installierte AppImage starten (kein `bgremover`-Kommando im PATH).
-    max_instances = _fork_limit(name)
-    launch_cmd = [DEB_INSTALLED_APPIMAGE, "--appimage-extract-and-run"]
-    _run_ai_selfcheck_if_needed(
-        runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
-        name=name, report=report,
-    )
-    started = _guard(runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances)
-    report.ok(f"deb-Start ok: {name}") if started.returncode == 0 else report.fail(
-        f"deb-Start fehlgeschlagen ({started.returncode}): {name}"
-    )
-    # Rückstandsfreie Deinstallation: bekannte Pfade real prüfen (dpkg -L ist
-    # nach purge wertlos, da der Paketeintrag weg ist – Codex-Fund).
-    runner(["sudo", "dpkg", "-r", "bgremover"])
-    installed = runner(["dpkg", "-s", "bgremover"]).returncode == 0
-    leftover = [p for p in DEB_KNOWN_PATHS if runner(["test", "-e", p]).returncode == 0]
-    if ra.evaluate_deb_cleanup(installed, leftover):
-        report.ok(f"deb rückstandsfrei entfernt: {name}")
-    else:
-        report.fail(f"deb-Rückstände nach Remove: {name} ({leftover or 'Paket noch registriert'})")
+    try:
+        if installed_ok:
+            # Das installierte AppImage starten (kein `bgremover`-Kommando im PATH).
+            max_instances = _fork_limit(name)
+            launch_cmd = [DEB_INSTALLED_APPIMAGE, "--appimage-extract-and-run"]
+            _run_ai_selfcheck_if_needed(
+                runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
+                name=name, report=report,
+            )
+            started = _guard(
+                runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
+            )
+            report.ok(f"deb-Start ok: {name}") if started.returncode == 0 else report.fail(
+                f"deb-Start fehlgeschlagen ({started.returncode}): {name}"
+            )
+    finally:
+        # Cleanup laeuft IMMER, auch nach fehlgeschlagener Installation
+        # (#651-Review-Fund): ``apt-get install`` kann vor dem eigentlichen
+        # Fehlschlag schon Dateien/Paketeintraege hinterlassen haben – ohne
+        # diesen Cleanup bliebe der dedizierte Runner dann verschmutzt.
+        # Bekannte Pfade real pruefen (dpkg -L ist nach purge wertlos, da der
+        # Paketeintrag weg ist – Codex-Fund).
+        runner(["sudo", "dpkg", "-r", "bgremover"])
+        installed = runner(["dpkg", "-s", "bgremover"]).returncode == 0
+        leftover = [p for p in DEB_KNOWN_PATHS if runner(["test", "-e", p]).returncode == 0]
+        if ra.evaluate_deb_cleanup(installed, leftover):
+            report.ok(f"deb rückstandsfrei entfernt: {name}")
+        else:
+            report.fail(
+                f"deb-Rückstände nach Remove: {name} ({leftover or 'Paket noch registriert'})"
+            )
 
 
 def parse_mount_point(hdiutil_stdout: str) -> str | None:
@@ -301,33 +312,42 @@ def _macos_dmg(path: str, report: SmokeReport, runner: Runner) -> None:
     disk_id = parse_disk_identifier(attach.stdout)
     # Cleanup-Trap: ``attach`` war erfolgreich, also ist ein Volume gemountet –
     # detach in jedem Fall versuchen, auch wenn der Mount-Pfad nicht geparst
-    # werden konnte (sonst bleibt es haengen, #643-Fund).
+    # werden konnte (sonst bleibt es haengen, #643-Fund). Detach laeuft HIER
+    # bewusst nur um die Kopie herum (#651-Review-Fund): der eigentliche
+    # App-Start (bis zu 240s Guard-Timeout) darf das DMG nicht mehr gemountet
+    # halten, sonst bleibt bei einem abgebrochenen/gekillten Job ein Volume
+    # unnoetig lange haengen – die Temp-Kopie existiert ja genau dafuer.
     try:
-        _macos_dmg_mounted(name, mount, report, runner)
+        temp_app = _macos_dmg_copy(name, mount, report, runner)
     finally:
         detach_target = mount or disk_id
         if detach_target:
             runner(["hdiutil", "detach", detach_target])
+    if temp_app is None:
+        return
+    try:
+        _start_macos_app(temp_app, name, report, runner)
+    finally:
+        runner(["rm", "-rf", temp_app])
 
 
-def _macos_dmg_mounted(
+def _macos_dmg_copy(
     dmg_name: str, mount: str | None, report: SmokeReport, runner: Runner,
-) -> None:
+) -> str | None:
+    """Findet das App-Bundle auf dem Mount und kopiert es in eine Temp-Kopie.
+
+    Laeuft ausschliesslich waehrend das DMG noch gemountet ist; der Aufrufer
+    detacht direkt danach, bevor der (potenziell lange) App-Start beginnt.
+    """
     if not mount:
         report.fail(f"DMG-Mount-Pfad nicht erkannt: {dmg_name}")
-        return
+        return None
     listing = runner(["/bin/sh", "-c", f"ls -d {mount}/*.app"])
     app = listing.stdout.strip().splitlines()[0] if listing.stdout.strip() else ""
     if not app:
         report.fail(f"Keine .app im DMG gefunden: {dmg_name}")
-        return
-    temp_app = _copy_app_to_temp(app, report, runner)
-    if temp_app is None:
-        return
-    try:
-        _start_macos_app(temp_app, dmg_name, report, runner)
-    finally:
-        runner(["rm", "-rf", temp_app])
+        return None
+    return _copy_app_to_temp(app, report, runner)
 
 
 def _copy_app_to_temp(app: str, report: SmokeReport, runner: Runner) -> str | None:

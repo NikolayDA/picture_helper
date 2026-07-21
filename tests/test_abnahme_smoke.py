@@ -126,6 +126,24 @@ def test_linux_smoke_fails_when_appimage_start_fails() -> None:
     assert any("AppImage-Start fehlgeschlagen" in n for n in result.notes)
 
 
+def test_linux_smoke_runs_cleanup_after_failed_deb_install() -> None:
+    """#651-Review-Fund (Codex): eine fehlgeschlagene ``apt-get install`` darf
+    den Cleanup (dpkg -r + Rückstandsprüfung) nicht überspringen – ``apt-get``
+    kann vor dem Fehlschlag schon Dateien/Paketeinträge hinterlassen haben."""
+    results = {"apt-get install": smoke.CommandResult(1)}
+    runner, calls = _recording_runner(results)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert not result.passed
+    assert any("deb-Installation fehlgeschlagen" in n for n in result.notes)
+    assert any(c.startswith("sudo dpkg -r bgremover") for c in calls)
+    assert any(c.startswith("dpkg -s bgremover") for c in calls)
+    # Kein Start-Versuch für das installierte AppImage nach Fehlschlag.
+    assert not any("smoke_launch.py" in c and "BgRemover.AppImage" in c for c in calls)
+
+
 def test_linux_smoke_runs_ai_selfcheck_for_ai_variant() -> None:
     """#642-Fund: KI-Selbsttest fehlte im Abnahme-Smoke, obwohl release-linux.yml
     ihn fuer -ai-Artefakte beim Build bereits faehrt."""
@@ -205,6 +223,23 @@ def test_macos_smoke_copies_to_temp_and_clears_quarantine() -> None:
     assert any(f"{smoke.TEMP_DMG_ROOT}/BgRemover.app/Contents/MacOS/BgRemover" in c for c in calls)
     # Original bleibt unangetastet – kein xattr/App-Start direkt auf dem Mount.
     assert not any(c.startswith("xattr") and "/Volumes/" in c for c in calls)
+
+
+def test_macos_smoke_detaches_dmg_before_starting_app() -> None:
+    """#651-Review-Fund (Codex): das DMG darf nicht waehrend des (bis zu 240s
+    langen) App-Starts gemountet bleiben – detach muss vor dem ersten
+    Start-Guard-Aufruf passieren, sonst bleibt bei einem abgebrochenen Job
+    ein Volume unnoetig lange haengen."""
+    runner, calls = _recording_runner(_MACOS_MOUNT)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    detach_index = next(i for i, c in enumerate(calls) if c.startswith("hdiutil detach"))
+    guard_index = next(i for i, c in enumerate(calls) if "smoke_launch.py" in c)
+    assert detach_index < guard_index
 
 
 def test_macos_smoke_detaches_when_mount_point_unparseable() -> None:
