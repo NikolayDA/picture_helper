@@ -36,7 +36,10 @@ def probe_diagnostic() -> str:
     """
     from bgremover.preview3d_capability import probe_3d_capability
 
-    QApplication.instance() or QApplication(sys.argv)
+    # Referenz bewusst halten: eine unzugewiesene Ausdrucksanweisung würde in
+    # CPython sofort nach dieser Zeile wieder freigegeben (Codex-Fund PR
+    # #655), bevor probe_3d_capability() den GL-Kontext aufbaut.
+    _app = QApplication.instance() or QApplication(sys.argv)
     capability = probe_3d_capability(use_cache=False)
     return capability.diagnostic if capability.ok else ""
 
