@@ -17,17 +17,16 @@ Die laufende Codeanalyse-Liste ist leer. Ruff, mypy und die lokale Testsuite ble
 
 ### Erledigt seit dem letzten Review
 
-- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** erledigt; Epics **#329/#344/#358/#384** (N9–N12) + Export-Fix **#363** gemergt/archiviert.
+- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8** und **O2–O7** erledigt; Epics **#329/#344/#358/#384** (N9–N12) + Export-Fix **#363** gemergt/archiviert; seit 2026-06-25 zusätzlich **#404/#406/#408** (PR #412) geschlossen.
 - **16-Bit-Höhenpipeline komplett abgeschlossen:** Epic **#581** inkl. **#587/#588** (PR #610), **#589** (PR #612) und **#590** (PR #613) sind in `main`; alle Gates/Reviews grün, vollständige Abnahmematrix vorhanden.
 - **Sicherheitsmodell & 3D-Kern abgeschlossen:** **#551** (CodeQL automatisch, Codex nur manuell) über PR #619; **#592–#594** (Geometriekern, Viewer, Workflow-/Cache-Integration) über PR #620 in `main`. Coverage-Lücken **#597/#598** über PR #615 geschlossen, Anleitungslücke **#606** über PR #616 in allen sechs Sprachen behoben.
 - **Raspberry-Pi-5-Packaging gehärtet:** drei reale Startfehler auf Zielhardware gefunden und behoben – AppImage-Entry-Point (PR #627), aarch64-glibc-Kompatibilität (PR #627), Qt-Plugin-Staging/RUNPATH (PR #631); App startet bestätigt auf dem Pi 5 inkl. funktionierender 3D-Vorschau.
-- **Neues Epic #639 eröffnet UND größtenteils umgesetzt:** ADR + Betriebsdoku (#640), Workflow-Gerüst `release-abnahme.yml` (#641), Linux-/macOS-Hardware-Smokes mit GL-Provenance (#642/#643), E2E-Release-Regressionstest (#644), Live-GL-Performance-Suite (#645) und Vision-Vorbewertung + Abschlussmatrix (#646) sind über PR #647 und PR #649 vollständig implementiert und auf `main` verifiziert. Sie bleiben nur deshalb als offene Issues gelistet, weil die PR-Beschreibungen deutsche Formulierungen („Löst #640 …") statt der von GitHub erkannten englischen Schließen-Schlüsselwörter verwenden (siehe Kommentar in #639 vom 2026-07-21).
+- **Neues Epic #639 eröffnet UND größtenteils umgesetzt:** ADR + Betriebsdoku (#640), Workflow-Gerüst `release-abnahme.yml` (#641), Linux-/macOS-Hardware-Smokes mit GL-Provenance (#642/#643), E2E-Release-Regressionstest (#644), Live-GL-Performance-Suite (#645) und Vision-Vorbewertung + Abschlussmatrix (#646) sind über PR #647 und PR #649 vollständig implementiert und auf `main` verifiziert. **#640–#643** bleiben nur deshalb als offene Issues gelistet, weil die PR-Beschreibung deutsche Formulierungen („Löst #640 …") statt der von GitHub erkannten englischen Schließen-Schlüsselwörter verwendet – reiner Auto-Close-Formfehler, keine inhaltliche Lücke. **#644–#646** sind ebenfalls technisch fertig, sollen aber bewusst erst nach einem echten Hardware-Dispatch (Runner-Evidenz) geschlossen werden (siehe Kommentar in #639 vom 2026-07-21).
 
 ### Noch offen
 
 - **O8 🟢 — Prototyp-Ungenauigkeit:** Höhen-Werkzeuge bleiben im Mockup nach Erzeugung gesperrt; betrifft nur die Simulation, nicht die echte App (#347).
 - **Admin-Nachzug 🟢 — Vier Issues sind fertig, aber nicht geschlossen:** #640–#643 sind über PR #647 vollständig umgesetzt; nur der fehlende englische Schließen-Schlüsselwort in der PR-Beschreibung hat den Auto-Close verhindert (siehe Kommentar in #639).
-- **Doku-Lücke 🟢 — README.md fehlt der 3D-Abschnitt:** Die 3D-Reliefvorschau ist in `ANLEITUNG.md` und `CHANGELOG.md` dokumentiert, aber `README.md` erwähnt sie bisher nicht (Funktionsliste, Bedienungsschritt 5, Screenshots). Deckt sich mit dem offenen Kriterium „ANLEITUNG/README/Architekturdoku aktualisiert" in #582/#595.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-21)
 
@@ -51,7 +50,7 @@ Live-Stand: **12** offene Issues. Bewertung: **Relevanz** = Roadmap-/Nutzerbedeu
 | [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Live-GL-Performance-Suite im Benchmark-Harness | 🟡 Mittel | 🟡 Mittel (erledigt) | – (kein Code-Task) | **Ready to close / needs live verification** – `preview3d-live`-Suite in `scripts/benchmark.py` über PR #649 vorhanden. |
 | [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Vision-Vorbewertung, Evidenz-Aggregation, Abschlussmatrix | 🟡 Mittel | 🟡 Mittel (erledigt) | – (kein Code-Task) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` über PR #647/#649 vorhanden; braucht zusätzlich `ANTHROPIC_API_KEY`-Secret für echte Bewertung. |
 | [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Nativer 3D-Render-Nachweis des gepackten Artefakts | 🟡 Mittel | 🟡 Mittel | Sonnet 5 · mittel | **Ready for PR** – klar umrissene, unabhängige Lücke (Screenshot-Automations-Hook im gepackten Artefakt statt Source-Checkout); einzige echte verbleibende Codeaufgabe der Abnahme-Automatisierung. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, Packaging, Doku, End-to-End-Abnahme | 🟡 Mittel | 🟡 Mittel (gesunken, Automatisierung existiert) | Sonnet 5 · mittel | **Blocked** – wartet auf denselben Hardware-Dispatch wie #639 sowie #648; README.md fehlt zusätzlich der 3D-Abschnitt. |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, Packaging, Doku, End-to-End-Abnahme | 🟡 Mittel | 🟡 Mittel (gesunken, Automatisierung existiert) | Sonnet 5 · mittel | **Blocked** – wartet auf denselben Hardware-Dispatch wie #639 sowie #648. |
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Echte 3D-Reliefvorschau | 🟡 Mittel | 🟠 Hoch (sehr groß, MVP fertig) | – (Tracking-Epic) | **Blocked** – wartet nur noch auf #595. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuelle Codex-Security-Prüfung wiederherstellen | 🟢 Niedrig | 🟢 Niedrig | – (kein Code-Task) | **Blocked (extern)** – unverändert seit 2026-07-15: reiner externer Billing-Tracker, blockiert nichts im Repository. |
 
@@ -60,7 +59,7 @@ Live-Stand: **12** offene Issues. Bewertung: **Relevanz** = Roadmap-/Nutzerbedeu
 1. **#640–#643 schließen** — Umsetzung ist vollständig (PR #647), es fehlt nur die manuelle Bestätigung durch den Owner.
 2. **#648 umsetzen** — die einzige verbleibende Codeaufgabe: Automations-/Screenshot-Modus im gepackten Artefakt für einen echten 3D-Render-Nachweis.
 3. **Self-hosted Runner registrieren und `release-abnahme.yml` per `workflow_dispatch` auslösen** — verifiziert #642–#646 mit echter Hardware-Evidenz und liefert die Abschlussmatrix für #595.
-4. **Nach grünem Lauf + #648:** #595 schließen, danach #582 (nur noch von #595 blockiert); README.md um den 3D-Abschnitt ergänzen.
+4. **Nach grünem Lauf + #648:** #595 schließen, danach #582 (nur noch von #595 blockiert).
 5. **#245** bleibt liegen — kein Repository-Patch kann den externen OpenAI-Billing-Blocker beheben.
 
 *Drift-Hinweis:* Dieser Nachzug gleicht den Snapshot mit dem tatsächlichen `main`-Stand (ungekürzte Git-Historie, zuvor durch einen Shallow-Clone verdeckt) und einer Live-GitHub-Abfrage ab; er ersetzt den 2026-07-18-Stand mit 3 offenen Issues. Künftige Updates prüfen Status, Checklisten und Abhängigkeiten weiterhin live statt nur einen Zeitstempel fortzuschreiben.
