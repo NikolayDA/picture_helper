@@ -78,8 +78,11 @@ Abnahme-Runnern (Epic #639) läuft sie über
 | `gl_upload_ms`      | VBO/IBO-Upload des Meshes                                         |
 | `gl_frame_ms_p50`   | Median der Frame-Zeiten über eine Orbit-Bewegung (→ Framerate)   |
 | `gl_frame_ms_p95`   | 95.-Perzentil der Frame-Zeiten (Ruckler-Sicht)                   |
-| `gl_peak_mb`        | Peak der hostseitigen Buffer-Payloads (GL-2.1-portable Näherung) |
+| `gl_peak_mb`        | Prozess-RSS-High-Water-Mark inklusive Qt-/Treiber-Allokationen |
 
+Jedes 1-/16-/40-MP-Szenario wird im Abnahme-Workflow dreimal gemessen. Das
+Ergebnis-JSON enthält die Rohwerte unter `samples`; Zeitmetriken werden per
+Median verdichtet, `gl_peak_mb` verwendet den größten beobachteten Peak.
 Das Ergebnis-JSON trägt die GL-Provenance im `environment`-Block; absolute
 Zeiten sind hardwaregebunden, ein Regressionsvergleich ist nur **innerhalb
 derselben Umgebung** sinnvoll (`check_compatibility` lehnt abweichende

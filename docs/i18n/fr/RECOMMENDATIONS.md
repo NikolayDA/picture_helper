@@ -13,54 +13,47 @@
 
 ## État actuel (2026-07-21)
 
-La liste active d'analyse de code est vide. Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Depuis le dernier instantané (2026-07-18, 3 tickets ouverts), un tout nouvel epic est apparu et a été largement implémenté en une seule journée : **#639** (recette de publication automatisée via des runners matériels auto-hébergés) avec les sous-tickets **#640–#646** et le ticket de suivi **#648**. État en direct selon la requête GitHub : **12** tickets ouverts.
+Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Les PR **#647**, **#649**, **#650**, **#651** et **#652** ont été fusionnées aujourd'hui. ADR, workflow, smokes, E2E, GL en direct, agrégation et hook natif de l'artefact sont dans `main`. **#640** et **#641** sont fermés. **#648** a été rouvert faute d'une exécution matérielle réussie avec preuves distinctes pour AppImage, `.deb` installé et DMG. État en direct : **10** tickets ouverts.
 
-### Terminé depuis la dernière revue
+### Résultat de la revue
 
 - **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8** et **O2–O7** restent faits ; les epics **#329/#344/#358/#384** (N9–N12) plus le correctif d'export **#363** sont fusionnés/archivés ; depuis le 2026-06-25, également **#404/#406/#408** (PR #412) clos.
 - **Pipeline de hauteur 16 bits entièrement achevé :** l'epic **#581** incluant **#587/#588** (PR #610), **#589** (PR #612) et **#590** (PR #613) est dans `main` ; tous les gates/revues sont verts, matrice de recette complète présente.
 - **Modèle de sécurité et cœur 3D achevés :** **#551** (CodeQL automatique, Codex manuel uniquement) via PR #619 ; **#592–#594** (cœur géométrique, viewer, intégration workflow/cache) via PR #620 dans `main`. Les lacunes de couverture **#597/#598** closes via PR #615 ; la lacune du guide **#606** corrigée dans les six langues via PR #616.
 - **Packaging Raspberry Pi 5 durci :** trois véritables bogues de démarrage trouvés et corrigés sur le matériel cible — point d'entrée AppImage (PR #627), compatibilité glibc aarch64 (PR #627), mise en place des plugins Qt/RUNPATH (PR #631) ; le démarrage de l'application sur le Pi 5 est confirmé, aperçu 3D fonctionnel inclus.
-- **Nouvel epic #639 ouvert ET largement implémenté :** ADR + documentation opérationnelle (#640), squelette de workflow `release-abnahme.yml` (#641), smokes matériels Linux/macOS avec preuve de provenance GL (#642/#643), test de régression E2E de publication (#644), suite de performance GL en direct (#645), et pré-évaluation vision + matrice de recette (#646) sont entièrement implémentés et vérifiés dans `main` via PR #647 et PR #649. **#640–#643** restent listés comme ouverts uniquement parce que la description des PR utilise une formulation allemande (« Löst #640 … ») au lieu des mots-clés de clôture anglais reconnus par GitHub — une simple formalité d'auto-clôture, pas une lacune de contenu. **#644–#646** sont eux aussi techniquement terminés, mais doivent délibérément rester ouverts jusqu'à un véritable dispatch matériel (preuve du runner) qui les vérifie (voir le commentaire sur #639 du 2026-07-21).
+- **Code de recette complet, preuve matérielle en attente :** ce suivi ajoute une capture par classe de paquet, des contrôles de session graphique, une nouvelle preuve 3D après Save/Open, trois mesures GL avec RSS réel du processus et un champ `target_issue` validé.
 
-### Encore ouvert
-
-- **O8 🟢 — Imprécision du prototype :** les outils de hauteur restent verrouillés dans la maquette après génération ; cela ne concerne que la maquette, l'application réelle n'est pas affectée (#347).
-- **Suivi administratif 🟢 — Quatre tickets sont terminés mais non fermés :** #640–#643 sont entièrement implémentés via PR #647 ; seul le mot-clé de clôture anglais manquant dans la description de la PR a empêché la fermeture automatique (voir le commentaire sur #639).
+- **Preuve opérationnelle 🟡 :** #642–#646 et #648 rouvert restent ouverts jusqu'à un vrai dispatch matériel graphique.
+- **Tracker externe 🟢 :** #245 reste une question de facturation/quota OpenAI hors dépôt.
 
 ## Tickets GitHub ouverts — Triage (2026-07-21)
 
-État en direct : **12** tickets ouverts. Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort d'implémentation estimé, **Modèle/Effort** = modèle Claude et effort de raisonnement recommandés.
+État en direct : **10** tickets ouverts. Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort d'implémentation estimé, **Modèle/Effort** = modèle Claude et effort de raisonnement recommandés.
 
-### Regroupements pertinents
-
-- **Automatisation de la recette de publication** (#639 → {#640 ‖ #641} → {#642 ‖ #643} → #644 → #645 → #646) : techniquement déjà implémentée via PR #647/#649 ; il ne reste que la vérification par preuves matérielles réelles (dispatch des runners) et les quatre fermetures administratives #640–#643.
-- **#648** est la seule véritable tâche de code restante dans ce domaine : un mode automatisation/capture d'écran intégré à l'artefact packagé, afin que la preuve de rendu 3D provienne du paquet réel plutôt que d'un checkout source.
-- **Aperçu de relief 3D** (#582 → #595) : le MVP fonctionnel est terminé (Go pour le périmètre automatisable, voir le rapport de recette sur #582) ; #595 attend le même dispatch matériel que ci-dessus, plus #648.
+- **Automatisation de la recette** (#639 → #642–#646 + #648) : les chemins de code existent ; la clôture exige des preuves complètes du matériel cible.
+- **#648** est rouvert pour les preuves, pas pour un hook manquant : AppImage, `.deb` installé et DMG doivent chacun produire capture 3D native et provenance.
+- **Aperçu de relief 3D** (#582 → #595) : le MVP est terminé ; #595 attend la même recette matérielle verte.
 - **#245** reste un pur tracker externe de facturation/quota OpenAI et ne bloque ni CodeQL, ni la publication, ni la 3D.
 
 | # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
 |---|-------|------------|------------|----------------|-----------------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Recette de publication automatisée | 🟠 Élevée | 🟠 Élevée (très large, largement implémenté) | – (epic de suivi) | **In progress, nearly done** – #640–#646 techniquement implémentés via PR #647/#649 ; attend la vérification par les runners + la fermeture des sous-tickets ; #648 est le seul effort réellement restant. |
-| [#640](https://github.com/NikolayDA/picture_helper/issues/640) | ADR + documentation opérationnelle/sécurité pour les runners de recette auto-hébergés | 🟡 Moyenne | 🟢 Faible (terminé) | – (aucune tâche de code) | **Ready to close** – ADR + `RELEASE_AUTOMATION.md` intégralement présents via PR #647 ; seul le mot-clé de clôture manque. |
-| [#641](https://github.com/NikolayDA/picture_helper/issues/641) | Workflow `release-abnahme.yml` : squelette, récupération des artefacts, format des preuves | 🟠 Élevée | 🟢 Faible (terminé) | – (aucune tâche de code) | **Ready to close** – workflow + test de gouvernance présents via PR #647 ; seul le mot-clé de clôture manque. |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Recette de publication automatisée | 🟠 Élevée | 🟠 Élevée (code presque terminé) | – (epic de suivi) | **En cours** – configurer les runners, dispatcher le workflow et examiner les preuves. |
 | [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Smokes Linux (AppImage/.deb) avec preuve de provenance GL | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_smoke.py` + tests présents via PR #647 ; l'exécution réelle n'aura lieu qu'après dispatch sur le runner Pi 5. |
 | [#643](https://github.com/NikolayDA/picture_helper/issues/643) | Smoke DMG macOS avec preuve Retina/HiDPI | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – même base que #642, pour le runner M3. |
 | [#644](https://github.com/NikolayDA/picture_helper/issues/644) | Scénario de régression de publication E2E en test `ui` | 🟠 Élevée | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) présent via PR #649 ; la branche Ready nécessite un véritable dispatch GL. |
 | [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Suite de performance GL en direct dans le harnais de benchmark | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – suite `preview3d-live` dans `scripts/benchmark.py` présente via PR #649. |
 | [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Pré-évaluation vision, agrégation des preuves, matrice de recette | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` présents via PR #647/#649 ; nécessite aussi un secret `ANTHROPIC_API_KEY` pour une évaluation réelle. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Preuve de rendu 3D natif de l'artefact packagé | 🟡 Moyenne | 🟡 Moyenne | Sonnet 5 · moyen | **Ready for PR** – une lacune clairement délimitée et indépendante (un point d'ancrage d'automatisation de capture d'écran dans l'artefact packagé plutôt qu'un checkout source) ; la seule véritable tâche de code restante de l'automatisation de recette. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟡 Moyenne (en baisse, l'automatisation existe désormais) | Sonnet 5 · moyen | **Blocked** – attend le même dispatch matériel que #639, plus #648. |
+| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Preuve de rendu 3D natif de l'artefact packagé | 🟡 Moyenne | 🟡 Moyenne (code terminé) | – (preuve) | **Rouvert** – fermer seulement après preuves natives AppImage, `.deb` installé et DMG. |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟡 Moyenne | – (preuve) | **Bloqué** – attend le dispatch matériel vert de #639. |
 | [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large, MVP terminé) | – (epic de suivi) | **Blocked** – attend uniquement #595. |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible | 🟢 Faible | – (aucune tâche de code) | **Blocked (external)** – inchangé depuis le 2026-07-15 : un pur tracker externe de facturation qui ne bloque rien dans le dépôt. |
 
 ### Recommandé ensuite (ordre des PR)
 
-1. **Fermer #640–#643** — l'implémentation est complète (PR #647) ; seule la confirmation manuelle du propriétaire manque.
-2. **Implémenter #648** — la seule tâche de code restante : un mode automatisation/capture d'écran dans l'artefact packagé pour une véritable preuve de rendu 3D.
-3. **Enregistrer les runners auto-hébergés et dispatcher `release-abnahme.yml`** — vérifie #642–#646 avec des preuves matérielles réelles et produit la matrice de recette pour #595.
-4. **Après une exécution verte + #648 :** fermer #595, puis #582 (bloqué uniquement par #595).
-5. **#245** reste en l'état — aucun correctif du dépôt ne peut résoudre le blocage externe de facturation OpenAI.
+1. Fusionner ce suivi et configurer les runners dans leurs sessions graphiques selon `docs/RELEASE_AUTOMATION.md`.
+2. Dispatcher `release-abnahme.yml` avec tag ou ID de build, toutes les plateformes disponibles et le `target_issue` voulu.
+3. Fermer **#642–#646** et **#648** uniquement avec des preuves entièrement vertes, puis **#595** et **#582**.
+4. Garder **#245** séparé comme tracker externe de facturation/quota.
 
 *Dérive :* cette mise à jour réconcilie l'instantané avec l'état réel de `main` (historique Git complet, auparavant masqué par un clone superficiel) et une requête GitHub en direct ; elle remplace l'état du 2026-07-18 à 3 tickets ouverts. Les mises à jour futures continuent de revérifier en direct les statuts, listes de contrôle et dépendances plutôt que de reporter un horodatage.
 

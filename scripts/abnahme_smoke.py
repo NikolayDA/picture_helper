@@ -60,7 +60,11 @@ TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 # schwächerer Raspberry-Pi-)Hardware brauchen spürbar länger als der reine
 # Prozessstart.
 NATIVE_3D_TIMEOUT = 180
-NATIVE_3D_SCREENSHOT_NAME = "native_preview3d_ready.png"
+NATIVE_3D_SCREENSHOT_NAMES = {
+    "appimage": "native_preview3d_ready_appimage.png",
+    "deb": "native_preview3d_ready_deb.png",
+    "dmg": "native_preview3d_ready_dmg.png",
+}
 # Bereitschafts-Timeout des Automationshooks selbst (BGREMOVER_SCREENSHOT_3D_
 # TIMEOUT_MS, siehe bgremover/app.py) – bewusst kleiner als NATIVE_3D_TIMEOUT:
 # der äußere Wächter (smoke_launch.py) braucht danach noch Zeit für
@@ -105,7 +109,7 @@ class SmokeReport:
     passed: bool = True
     gl_diagnostic: str | None = None
     notes: list[str] = field(default_factory=list)
-    native_3d_attempted: bool = False
+    native_3d_attempted: set[str] = field(default_factory=set)
 
     def fail(self, note: str) -> None:
         self.passed = False
@@ -187,6 +191,7 @@ def _native_3d_screenshot(
     label: str,
     report: SmokeReport,
     screenshot_dir: Path,
+    screenshot_name: str,
 ) -> None:
     """Nativer 3D-Render-Nachweis des gepackten Artefakts (#648).
 
@@ -195,16 +200,17 @@ def _native_3d_screenshot(
     ``BGREMOVER_SMOKE_TEST``) mit dem Automationshook
     ``BGREMOVER_SCREENSHOT_3D``. Der Fork-Bomb-/Hänger-Wächter bleibt aktiv;
     nur der erzwungene Offscreen-Betrieb entfällt. Läuft nur einmal je
-    Plattform (``report.native_3d_attempted``), auch wenn mehrere
-    Artefaktklassen dasselbe Binary starten (z. B. AppImage + installiertes
-    ``.deb``-AppImage unter derselben Zielhardware).
+    Artefaktklasse. AppImage, installiertes ``.deb``-AppImage und DMG erhalten
+    getrennte Dateinamen, damit jede der in ``PACKAGING_SMOKE.md`` geforderten
+    Klassen ihren eigenen nativen Nachweis trägt. Derselbe Dateiname wird
+    innerhalb eines Laufs höchstens einmal erzeugt.
     """
-    if report.native_3d_attempted:
+    if screenshot_name in report.native_3d_attempted:
         return
-    report.native_3d_attempted = True
+    report.native_3d_attempted.add(screenshot_name)
 
     screenshot_dir.mkdir(parents=True, exist_ok=True)
-    target = (screenshot_dir / NATIVE_3D_SCREENSHOT_NAME).resolve()
+    target = (screenshot_dir / screenshot_name).resolve()
     result = runner([
         sys.executable, str(SMOKE_LAUNCH),
         "--match", match,
@@ -263,7 +269,7 @@ def run_linux_smoke(
         if artefact.endswith(".AppImage"):
             _linux_appimage(artefact, report, runner, screenshot_dir)
         elif artefact.endswith(".deb"):
-            _linux_deb(artefact, report, runner)
+            _linux_deb(artefact, report, runner, screenshot_dir)
 
     return report
 
@@ -283,12 +289,15 @@ def _linux_appimage(path: str, report: SmokeReport, runner: Runner, screenshot_d
         _native_3d_screenshot(
             runner, launch_cmd, match=name, max_instances=max_instances,
             label=name, report=report, screenshot_dir=screenshot_dir,
+            screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["appimage"],
         )
     else:
         report.fail(f"AppImage-Start fehlgeschlagen ({result.returncode}): {name}")
 
 
-def _linux_deb(path: str, report: SmokeReport, runner: Runner) -> None:
+def _linux_deb(
+    path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path,
+) -> None:
     name = Path(path).name
     installed_ok = runner(["sudo", "apt-get", "install", "-y", path]).returncode == 0
     if not installed_ok:
@@ -305,9 +314,16 @@ def _linux_deb(path: str, report: SmokeReport, runner: Runner) -> None:
             started = _guard(
                 runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
             )
-            report.ok(f"deb-Start ok: {name}") if started.returncode == 0 else report.fail(
-                f"deb-Start fehlgeschlagen ({started.returncode}): {name}"
-            )
+            if started.returncode == 0:
+                report.ok(f"deb-Start ok: {name}")
+                _native_3d_screenshot(
+                    runner, launch_cmd, match="BgRemover.AppImage",
+                    max_instances=max_instances, label=name, report=report,
+                    screenshot_dir=screenshot_dir,
+                    screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["deb"],
+                )
+            else:
+                report.fail(f"deb-Start fehlgeschlagen ({started.returncode}): {name}")
     finally:
         # Cleanup laeuft IMMER, auch nach fehlgeschlagener Installation
         # (#651-Review-Fund): ``apt-get install`` kann vor dem eigentlichen
@@ -466,6 +482,7 @@ def _start_macos_app(
         _native_3d_screenshot(
             runner, [binary], match=match, max_instances=max_instances,
             label=dmg_name, report=report, screenshot_dir=screenshot_dir,
+            screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["dmg"],
         )
     else:
         report.fail(f"DMG-Start fehlgeschlagen ({started.returncode}): {dmg_name}")

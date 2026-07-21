@@ -51,7 +51,11 @@ def test_aggregation_job_scoped_and_posts() -> None:
     assert "if: always() && !inputs.dry_run" in text
     assert "scripts/abnahme_aggregate.py" in text
     assert "scripts/abnahme_vision_check.py" in text
-    assert "gh issue comment 595" in text
+    assert "target_issue:" in text
+    assert "default: '595'" in text
+    assert "TARGET_ISSUE: ${{ inputs.target_issue }}" in text
+    assert 'gh issue comment "$TARGET_ISSUE"' in text
+    assert "target_issue muss eine positive Issue-Nummer sein" in text
     for script in ("abnahme_aggregate.py", "abnahme_vision_check.py"):
         assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
 
@@ -101,6 +105,17 @@ def test_workflow_runs_hardware_smoke() -> None:
     assert "if: always()" in text
 
 
+def test_workflow_requires_graphical_runner_sessions() -> None:
+    """Native Qt-/GL-Schritte dürfen nicht versehentlich offscreen laufen."""
+    text = _workflow_text()
+
+    assert text.count("name: Grafische Runner-Session pruefen") == 3
+    assert "Runner-Benutzer $runner_user ist nicht der angemeldete Konsolenbenutzer" in text
+    assert 'if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]' in text
+    assert 'if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -z "${XDG_RUNTIME_DIR:-}" ]' in text
+    assert text.count("unset QT_QPA_PLATFORM") == 9
+
+
 def test_workflow_runs_native_e2e_and_persists_evidence() -> None:
     """Jeder Hardwarepfad verlangt 3D-ready und schreibt E2E-Evidenz (#644)."""
     text = _workflow_text()
@@ -131,3 +146,4 @@ def test_workflow_tags_live_gl_results_with_platform() -> None:
 
     for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
         assert f"--platform {platform}" in text
+    assert text.count("--iterations 3") == 3

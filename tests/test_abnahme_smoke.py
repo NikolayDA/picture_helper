@@ -364,15 +364,18 @@ def test_linux_smoke_writes_native_3d_screenshot_and_provenance(tmp_path: Path) 
         prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=screenshot_dir,
     )
     assert result.passed
-    assert any("Nativer 3D-Screenshot ok" in n for n in result.notes)
-    target = screenshot_dir / smoke.NATIVE_3D_SCREENSHOT_NAME
-    assert target.is_file()
-    assert json.loads(target.with_name(target.name + ".json").read_text(encoding="utf-8"))
+    assert sum("Nativer 3D-Screenshot ok" in n for n in result.notes) == 2
+    for artifact_class in ("appimage", "deb"):
+        target = screenshot_dir / smoke.NATIVE_3D_SCREENSHOT_NAMES[artifact_class]
+        assert target.is_file()
+        sidecar = json.loads(
+            target.with_name(target.name + ".json").read_text(encoding="utf-8"),
+        )
+        assert sidecar["gl_provenance"] == "Broadcom / V3D 7.1 / 3.1"
 
 
-def test_linux_smoke_native_3d_screenshot_runs_once_for_appimage_and_deb(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
-    """AppImage + installiertes ``.deb``-AppImage starten dasselbe Binary –
-    der native 3D-Nachweis läuft trotzdem nur einmal je Plattform."""
+def test_linux_smoke_native_3d_screenshot_runs_for_appimage_and_deb(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """AppImage und installiertes ``.deb`` erhalten getrennte Nachweise."""
     runner, calls = _recording_runner(_CLEAN_DEB)
     report = smoke.SmokeReport()
     result = smoke.run_linux_smoke(
@@ -381,8 +384,11 @@ def test_linux_smoke_native_3d_screenshot_runs_once_for_appimage_and_deb(tmp_pat
     )
     assert result.passed
     native_calls = [c for c in calls if "smoke_launch.py" in c and "--native" in c]
-    assert len(native_calls) == 1
-    assert "BGREMOVER_SCREENSHOT_3D=" in native_calls[0]
+    assert len(native_calls) == 2
+    assert any(
+        smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"] in call for call in native_calls
+    )
+    assert any(smoke.NATIVE_3D_SCREENSHOT_NAMES["deb"] in call for call in native_calls)
 
 
 def test_native_3d_screenshot_passes_readiness_timeout_to_hook(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
@@ -395,6 +401,7 @@ def test_native_3d_screenshot_passes_readiness_timeout_to_hook(tmp_path: Path) -
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
         report=report, screenshot_dir=tmp_path / "shots",
+        screenshot_name=smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"],
     )
     native_calls = [c for c in calls if "smoke_launch.py" in c and "--native" in c]
     assert len(native_calls) == 1
@@ -415,7 +422,7 @@ def test_macos_smoke_writes_native_3d_screenshot_and_provenance(tmp_path: Path) 
     )
     assert result.passed
     assert any("Nativer 3D-Screenshot ok" in n for n in result.notes)
-    assert (screenshot_dir / smoke.NATIVE_3D_SCREENSHOT_NAME).is_file()
+    assert (screenshot_dir / smoke.NATIVE_3D_SCREENSHOT_NAMES["dmg"]).is_file()
 
 
 def test_native_3d_screenshot_fails_on_software_renderer(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
@@ -424,6 +431,7 @@ def test_native_3d_screenshot_fails_on_software_renderer(tmp_path: Path) -> None
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
         report=report, screenshot_dir=tmp_path / "shots",
+        screenshot_name=smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"],
     )
     assert not report.passed
     assert any("Software-Renderer" in n for n in report.notes)
@@ -435,19 +443,23 @@ def test_native_3d_screenshot_fails_when_process_exits_nonzero(tmp_path: Path) -
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
         report=report, screenshot_dir=tmp_path / "shots",
+        screenshot_name=smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"],
     )
     assert not report.passed
     assert any(
         "Nativer 3D-Screenshot fehlgeschlagen" in n and "x.AppImage" in n for n in report.notes
     )
-    assert not (tmp_path / "shots" / smoke.NATIVE_3D_SCREENSHOT_NAME).exists()
+    assert not (
+        tmp_path / "shots" / smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"]
+    ).exists()
 
 
 def test_native_3d_screenshot_fails_when_sidecar_missing(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """Der Automationshook meldet Exit 0, schreibt aber (unerwartet) keine
     Provenance-Sidecar – der Nachweis darf das nicht stillschweigend als
     erfüllt werten."""
-    target = tmp_path / "shots" / smoke.NATIVE_3D_SCREENSHOT_NAME
+    screenshot_name = smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"]
+    target = tmp_path / "shots" / screenshot_name
 
     def runner(cmd: list[str]) -> smoke.CommandResult:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -457,7 +469,7 @@ def test_native_3d_screenshot_fails_when_sidecar_missing(tmp_path: Path) -> None
     report = smoke.SmokeReport()
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
-        report=report, screenshot_dir=tmp_path / "shots",
+        report=report, screenshot_dir=tmp_path / "shots", screenshot_name=screenshot_name,
     )
     assert not report.passed
     assert any("Provenance-JSON" in n or "kein Screenshot" in n for n in report.notes)
@@ -472,16 +484,17 @@ def test_native_3d_screenshot_runs_once_even_when_called_directly_twice(tmp_path
 
     report = smoke.SmokeReport()
     screenshot_dir = tmp_path / "shots"
+    screenshot_name = smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"]
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
-        report=report, screenshot_dir=screenshot_dir,
+        report=report, screenshot_dir=screenshot_dir, screenshot_name=screenshot_name,
     )
     smoke._native_3d_screenshot(
         runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
-        report=report, screenshot_dir=screenshot_dir,
+        report=report, screenshot_dir=screenshot_dir, screenshot_name=screenshot_name,
     )
     assert len(calls) == 1
-    assert report.native_3d_attempted is True
+    assert report.native_3d_attempted == {screenshot_name}
 
 
 def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]

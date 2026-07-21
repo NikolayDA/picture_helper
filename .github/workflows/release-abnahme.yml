@@ -33,6 +33,10 @@ on:
         description: 'Nur Smokes, ohne Auswertung (Vision/Aggregation, #646)'
         type: boolean
         default: false
+      target_issue:
+        description: 'Issue fuer den Kommentar mit der Abschlussmatrix'
+        type: string
+        default: '595'
 
 permissions:
   contents: read
@@ -55,6 +59,16 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - name: Grafische Runner-Session pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner_user="$(id -un)"
+          console_user="$(stat -f '%Su' /dev/console)"
+          if [ "$runner_user" != "$console_user" ]; then
+            echo "::error::Runner-Benutzer $runner_user ist nicht der angemeldete Konsolenbenutzer $console_user. Der Runner muss als LaunchAgent in dessen GUI-Sitzung laufen."
+            exit 1
+          fi
       - name: Abnahme-venv (PyQt6 fuer die Probes)
         run: |
           python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
@@ -77,6 +91,7 @@ jobs:
       - name: DMG-Smoke inkl. Retina- und nativem 3D-Nachweis (#643/#648)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           # devicePixelRatio des Hauptfensters ermitteln (nativer Qt-Kontext).
           scale="$("${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_scale_probe.py)"
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
@@ -90,13 +105,15 @@ jobs:
           ABNAHME_REQUIRE_NATIVE_3D: '1'
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pytest -q \
             tests/test_e2e_release_regression.py
       - name: Live-GL-Performance-Suite (#645)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
-            --suite preview3d-live --require-gl --no-compare \
+            --suite preview3d-live --require-gl --no-compare --iterations 3 \
             --platform macos-arm64 \
             --results-dir "${RUNNER_TEMP}/abnahme-macos-arm64/preview3d-live"
       - uses: actions/upload-artifact@v6
@@ -115,6 +132,18 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - name: Grafische Runner-Session pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+            echo "::error::Weder DISPLAY noch WAYLAND_DISPLAY ist gesetzt. Der Runner muss in der angemeldeten grafischen Sitzung laufen."
+            exit 1
+          fi
+          if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+            echo "::error::WAYLAND_DISPLAY ist gesetzt, aber XDG_RUNTIME_DIR fehlt."
+            exit 1
+          fi
       - name: Abnahme-venv (PyQt6 fuer die Probes)
         run: |
           python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
@@ -137,6 +166,7 @@ jobs:
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64"
@@ -147,13 +177,15 @@ jobs:
           ABNAHME_REQUIRE_NATIVE_3D: '1'
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pytest -q \
             tests/test_e2e_release_regression.py
       - name: Live-GL-Performance-Suite (#645)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
-            --suite preview3d-live --require-gl --no-compare \
+            --suite preview3d-live --require-gl --no-compare --iterations 3 \
             --platform linux-arm64 \
             --results-dir "${RUNNER_TEMP}/abnahme-linux-arm64/preview3d-live"
       - uses: actions/upload-artifact@v6
@@ -178,6 +210,18 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - name: Grafische Runner-Session pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+            echo "::error::Weder DISPLAY noch WAYLAND_DISPLAY ist gesetzt. Der Runner muss in der angemeldeten grafischen Sitzung laufen."
+            exit 1
+          fi
+          if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+            echo "::error::WAYLAND_DISPLAY ist gesetzt, aber XDG_RUNTIME_DIR fehlt."
+            exit 1
+          fi
       - name: Abnahme-venv (PyQt6 fuer die Probes)
         run: |
           python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
@@ -200,6 +244,7 @@ jobs:
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-x86_64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-x86_64"
@@ -210,13 +255,15 @@ jobs:
           ABNAHME_REQUIRE_NATIVE_3D: '1'
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pytest -q \
             tests/test_e2e_release_regression.py
       - name: Live-GL-Performance-Suite (#645)
         run: |
           set -euo pipefail
+          unset QT_QPA_PLATFORM
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
-            --suite preview3d-live --require-gl --no-compare \
+            --suite preview3d-live --require-gl --no-compare --iterations 3 \
             --platform linux-x86_64 \
             --results-dir "${RUNNER_TEMP}/abnahme-linux-x86_64/preview3d-live"
       - uses: actions/upload-artifact@v6
@@ -305,7 +352,12 @@ jobs:
       - name: Matrix als Issue-Kommentar posten
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_ISSUE: ${{ inputs.target_issue }}
         run: |
           set -euo pipefail
-          gh issue comment 595 --repo "${GITHUB_REPOSITORY}" \
+          if [[ ! "$TARGET_ISSUE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::target_issue muss eine positive Issue-Nummer sein."
+            exit 1
+          fi
+          gh issue comment "$TARGET_ISSUE" --repo "${GITHUB_REPOSITORY}" \
             --body-file "${RUNNER_TEMP}/abschlussmatrix.md"

@@ -111,8 +111,9 @@ Bearbeitung/Projekt-Save/Export bleiben voll funktionsfähig.
 > (`evidenz.json` + `manifest.md`, GL-Provenance, Retina-Faktor,
 > `.deb`-Rückstandsprüfung) als Artefakt ab – Bedienung:
 > [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md). Die 3D-Sicht-Spalte dieser
-> Zeilen ist seit #648 ebenfalls automatisiert: das Hauptartefakt startet ein
-> zweites Mal nativ (kein `offscreen`) mit dem Automationshook
+> Zeilen ist seit #648 ebenfalls automatisiert: jede Artefaktklasse (AppImage,
+> installiertes `.deb`-AppImage und DMG-App) startet getrennt ein zweites Mal
+> nativ (kein `offscreen`) mit dem Automationshook
 > `BGREMOVER_SCREENSHOT_3D` und liefert Screenshot + GL-Provenance-Sidecar aus
 > dem laufenden **gepackten** Prozess (nicht aus dem Source-Checkout) –
 > Software-Renderer lassen den Nachweis scheitern. Zeilen 1 und 3 (Linux
@@ -148,8 +149,8 @@ cat /tmp/native_preview3d_ready.png.json
 |---|---|---|---|---|
 | 1 | Linux x86_64 AppImage | `smoke_launch.py` Exit 0 | unter xcb/Wayland: 3D öffnet, Ramp sichtbar | — |
 | 2 | Linux aarch64 AppImage | nativer/CI-Smoke Exit 0 | nativer Zielumgebungs-Smoke | — |
-| 3 | Linux x86_64 `.deb` | Installation + `smoke_launch.py` | 3D **oder** dokumentierter 2D-Fallback | `apt remove` rückstandsfrei |
-| 4 | Linux aarch64 `.deb` | Zielumgebungs-Smoke | 3D/Fallback | rückstandsfrei |
+| 3 | Linux x86_64 `.deb` | Installation + `smoke_launch.py` | installiertes Paket rendert 3D nativ; eigener Screenshot + Provenance | `apt remove` rückstandsfrei |
+| 4 | Linux aarch64 `.deb` | Zielumgebungs-Smoke | installiertes Paket rendert 3D nativ; eigener Screenshot + Provenance | rückstandsfrei |
 | 5 | macOS arm64 DMG | `.app`-Binary Exit 0 | Retina/High-DPI: 3D öffnet | — |
 
 Zusätzlich je Artefakt prüfen:

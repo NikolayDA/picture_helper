@@ -504,6 +504,24 @@ def measure_preview3d_live(
         hooks.close()
 
 
+def _process_peak_rss_mb(
+    raw_peak: float | None = None, platform_name: str | None = None,
+) -> float:
+    """Prozess-RSS-High-Water-Mark portabel für Linux und macOS in MiB.
+
+    ``resource.getrusage().ru_maxrss`` liefert auf Linux KiB, auf macOS jedoch
+    Bytes. Optionale Rohwerte machen genau diese Konvertierung ohne echten
+    Prozess-Peak testbar.
+    """
+    if raw_peak is None:
+        import resource
+
+        raw_peak = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    platform_name = platform_name or sys.platform
+    peak_bytes = raw_peak if platform_name == "darwin" else raw_peak * 1024.0
+    return round(peak_bytes / (1024.0 * 1024.0), 3)
+
+
 def _live_height_field(width: int, height: int) -> HeightField:
     """Deterministisches, glattes 16-Bit-Höhenfeld für die Live-Messung."""
     from bgremover.height_map import HeightField
@@ -541,6 +559,39 @@ def benchmark_preview3d_live(
     return measure_preview3d_live(mesh, hooks, frames)
 
 
+def benchmark_preview3d_live_repeated(
+    width: int,
+    height: int,
+    iterations: int,
+    quality: Any | None = None,
+    hooks_factory: Callable[[], LiveGlHooks] | None = None,
+    frames: int = PREVIEW3D_LIVE_FRAMES,
+) -> tuple[dict[str, float], dict[str, list[float]]]:
+    """Wiederholt ein Live-GL-Szenario und liefert Median plus Rohmessungen.
+
+    Zeitmetriken werden wie die übrigen Benchmarks per Median verdichtet. Für
+    die Prozess-RSS-High-Water-Mark ist der größte beobachtete Wert maßgeblich.
+    """
+    repeats = max(1, iterations)
+    samples: dict[str, list[float]] = {}
+    for _ in range(repeats):
+        hooks = hooks_factory() if hooks_factory is not None else None
+        metrics = benchmark_preview3d_live(
+            width, height, quality=quality, hooks=hooks, frames=frames,
+        )
+        for metric, value in metrics.items():
+            samples.setdefault(metric, []).append(value)
+
+    summary = {
+        metric: round(
+            max(values) if metric == "gl_peak_mb" else statistics.median(values),
+            4 if metric != "gl_peak_mb" else 3,
+        )
+        for metric, values in samples.items()
+    }
+    return summary, samples
+
+
 class _QtGlLiveHooks(LiveGlHooks):
     """Realer GL-Hook: Offscreen-Kontext + Viewer-Shader (hardware-only, #645).
 
@@ -553,7 +604,6 @@ class _QtGlLiveHooks(LiveGlHooks):
     def __init__(self, diagnostic: str) -> None:
         self.diagnostic = diagnostic
         self._built = False
-        self._buffer_bytes = 0
         self._frame_number = 0
         self._pos: Any = None
         self._slope: Any = None
@@ -627,7 +677,6 @@ class _QtGlLiveHooks(LiveGlHooks):
         self._slope = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, slopes)
         self._idx = self._make_buffer(QOpenGLBuffer.Type.IndexBuffer, indices)
         self._index_count = int(indices.size)
-        self._buffer_bytes = positions.nbytes + slopes.nbytes + indices.nbytes
         self._camera = OrbitCamera()
         lo, hi = mesh.bounds
         self._camera.reset(lo, hi)
@@ -732,11 +781,10 @@ class _QtGlLiveHooks(LiveGlHooks):
         return self._draw()
 
     def peak_mb(self) -> float:  # pragma: no cover - hardwaregebunden
-        # Peak-GPU-Speicher ist über GL 2.1 nicht portabel abfragbar. Als
-        # reproduzierbare Untergrenze melden wir alle VBO/IBO-Payloads plus
-        # Color- und Depth/Stencil-Attachment des 512²-Framebuffers.
-        framebuffer_bytes = 512 * 512 * 8
-        return round((self._buffer_bytes + framebuffer_bytes) / (1024.0 * 1024.0), 3)
+        # Portabel messbare Prozess-RSS statt einer irreführenden Summe nur der
+        # bekannten GL-Payloads. Das ist die High-Water-Mark des realen
+        # Benchmark-Prozesses inklusive Treiber-/Qt-Allokationen.
+        return _process_peak_rss_mb()
 
     def close(self) -> None:  # pragma: no cover - hardwaregebunden
         if not self._built:
@@ -1474,9 +1522,13 @@ def _cmd_run_preview3d_live(args: argparse.Namespace) -> int:
         print(f"preview3d-live übersprungen: {reason}")
         return 2 if args.require_gl else 0
 
+    iterations = max(1, args.iterations)
     formats: dict[str, dict[str, float]] = {}
+    samples: dict[str, dict[str, list[float]]] = {}
     for name, (w, h) in PREVIEW3D_LIVE_SIZES.items():
-        formats[name] = benchmark_preview3d_live(w, h)
+        formats[name], samples[name] = benchmark_preview3d_live_repeated(
+            w, h, iterations, hooks_factory=lambda: _QtGlLiveHooks(diagnostic),
+        )
     environment = collect_environment()
     environment["gl_provenance"] = diagnostic
     result = {
@@ -1485,12 +1537,12 @@ def _cmd_run_preview3d_live(args: argparse.Namespace) -> int:
         "platform": getattr(args, "platform", None) or "unbekannt",
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git_commit(),
-        "iterations": 1,
+        "iterations": iterations,
         "image": {"width": args.width, "height": args.height},
         "environment": environment,
         "formats": formats,
-        "samples": {},
-        "repeats": 1,
+        "samples": samples,
+        "repeats": iterations,
     }
     results_dir = args.results_dir or RESULTS_DIR / args.suite
     path = save_result(result, results_dir)
