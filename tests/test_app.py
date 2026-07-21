@@ -63,6 +63,9 @@ class _FakeApp:
     def quit(self) -> None:
         self.calls["quit"] = True
 
+    def exit(self, code: int = 0) -> None:
+        self.calls["exit_code"] = code
+
     def exec(self) -> int:
         self.calls["exec"] = True
         return 0
@@ -111,6 +114,8 @@ def patched_app(monkeypatch):
                         lambda: created.__setitem__("runtime", True))
     monkeypatch.delenv("BGREMOVER_SMOKE_TEST", raising=False)
     monkeypatch.delenv("BGREMOVER_AI_SELFCHECK", raising=False)
+    monkeypatch.delenv("BGREMOVER_SCREENSHOT_3D", raising=False)
+    monkeypatch.delenv("BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS", raising=False)
     return created
 
 
@@ -165,6 +170,72 @@ def test_main_smoke_hook_schedules_self_quit(patched_app, monkeypatch):
     # Der eingeplante Callback ist ``app.quit``.
     scheduled["callback"]()
     assert patched_app["app"].calls.get("quit") is True
+
+
+def test_main_screenshot_hook_uses_configured_timeout(patched_app, monkeypatch):
+    """``BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS`` reicht das Bereitschafts-Timeout
+    an ``run_native_3d_screenshot`` durch (Codex-Fund, PR #652) – sonst bliebe
+    das von ``abnahme_smoke.py`` für schwache Zielhardware konfigurierte
+    großzügigere Timeout für den Hook selbst wirkungslos."""
+    import bgremover.screenshot3d as screenshot3d_module
+
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["ms"] = ms
+            scheduled["callback"] = callback
+
+    calls: dict = {}
+
+    def fake_run(window, output_path, *, timeout_ms=25_000):
+        calls["window"] = window
+        calls["output_path"] = output_path
+        calls["timeout_ms"] = timeout_ms
+        return screenshot3d_module.Screenshot3DResult(True, "ready", "GPU/Treiber/1.0", "ok")
+
+    monkeypatch.setattr(screenshot3d_module, "run_native_3d_screenshot", fake_run)
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_SCREENSHOT_3D", "/tmp/native_preview3d_ready.png")
+    monkeypatch.setenv("BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS", "150000")
+
+    app_module.main()
+    scheduled["callback"]()
+
+    assert calls["timeout_ms"] == 150_000
+    assert str(calls["output_path"]) == "/tmp/native_preview3d_ready.png"
+    assert calls["window"] is patched_app["window"]
+    assert patched_app["app"].calls.get("exit_code") == 0
+
+
+def test_main_screenshot_hook_defaults_timeout_without_env(patched_app, monkeypatch):
+    """Ohne ``BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS`` bleibt der 25s-Default aktiv
+    (manuelle/lokale Nutzung außerhalb von ``abnahme_smoke.py``)."""
+    import bgremover.screenshot3d as screenshot3d_module
+
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["callback"] = callback
+
+    calls: dict = {}
+
+    def fake_run(window, output_path, *, timeout_ms=25_000):
+        calls["timeout_ms"] = timeout_ms
+        return screenshot3d_module.Screenshot3DResult(False, "unavailable", "", "nicht bereit")
+
+    monkeypatch.setattr(screenshot3d_module, "run_native_3d_screenshot", fake_run)
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_SCREENSHOT_3D", "/tmp/native_preview3d_ready.png")
+
+    app_module.main()
+    scheduled["callback"]()
+
+    assert calls["timeout_ms"] == 25_000
+    assert patched_app["app"].calls.get("exit_code") == 1
 
 
 # ── #249: Startpfade & macOS-FileOpen-Verdrahtung ────────────────────────

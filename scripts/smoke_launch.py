@@ -20,6 +20,13 @@ Quell-Lauf in ``tests/test_app_smoke.py`` sieht sie nicht):
 Exit 0 nur, wenn das Bundle sauber mit Exit 0 endet und nie mehr als
 ``--max-instances`` Instanzen gleichzeitig liefen. Der Watchdog nutzt nur die
 Standardbibliothek und ``ps`` (Linux + macOS) – keine Fremdpakete.
+
+Der Wächter selbst ist vom erzwungenen Offscreen-Betrieb entkoppelt (#648):
+``--native`` lässt ``QT_QPA_PLATFORM``/``BGREMOVER_SMOKE_TEST`` unangetastet
+(z. B. für einen nativen 3D-Screenshot-Nachweis über echtes GL), ``--env
+KEY=VALUE`` (wiederholbar) setzt zusätzliche Umgebungsvariablen für das
+Zielkommando – in beiden Fällen bleiben Fork-Bomb-/Hänger-/Start-Crash-Wächter
+unverändert aktiv.
 """
 from __future__ import annotations
 
@@ -95,9 +102,16 @@ def run(
     timeout: float,
     max_instances: int,
     poll_interval: float = 0.25,
+    env_overrides: dict[str, str] | None = None,
 ) -> int:
-    """Startet *command* headless und überwacht es. Gibt 0 (ok) oder 1 (Fehler)."""
-    env = {**os.environ, **_SMOKE_ENV}
+    """Startet *command* und überwacht es. Gibt 0 (ok) oder 1 (Fehler).
+
+    ``env_overrides`` ersetzt den Default ``_SMOKE_ENV`` (offscreen +
+    Selbst-Quit-Hook); ``{}`` startet mit der unveränderten Elternumgebung
+    (nativer Betrieb, #648), ein eigenes Mapping setzt beliebige zusätzliche
+    Variablen.
+    """
+    env = {**os.environ, **(env_overrides if env_overrides is not None else _SMOKE_ENV)}
     # Eigene Prozessgruppe (``start_new_session``): ein Fork-Bomb-Baum ist so als
     # Ganzes per ``killpg`` beendbar, statt verwaiste Kinder zu hinterlassen.
     proc = subprocess.Popen(command, env=env, start_new_session=True)
@@ -163,15 +177,34 @@ def main(argv: list[str] | None = None) -> int:
         "--poll-interval", type=float, default=0.25,
         help="Abtastintervall des Wächters in Sekunden (Default 0.25).",
     )
+    parser.add_argument(
+        "--native", action="store_true",
+        help=(
+            "Erzwingt NICHT QT_QPA_PLATFORM=offscreen/BGREMOVER_SMOKE_TEST=1 "
+            "(nativer GL-Start, z. B. #648); --env-Overrides gelten trotzdem."
+        ),
+    )
+    parser.add_argument(
+        "--env", action="append", default=[], metavar="KEY=VALUE",
+        help="Zusätzliche Umgebungsvariable für das Zielkommando (wiederholbar).",
+    )
     args = parser.parse_args(own_args)
     if not command:
         parser.error("kein Zielkommando nach '--' angegeben")
+    extra: dict[str, str] = {}
+    for item in args.env:
+        key, sep, value = item.partition("=")
+        if not sep:
+            parser.error(f"--env erwartet KEY=VALUE: {item!r}")
+        extra[key] = value
+    base: dict[str, str] = {} if args.native else dict(_SMOKE_ENV)
     return run(
         command,
         match_token=args.match,
         timeout=args.timeout,
         max_instances=args.max_instances,
         poll_interval=args.poll_interval,
+        env_overrides={**base, **extra},
     )
 
 

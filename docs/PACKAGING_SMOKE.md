@@ -110,7 +110,12 @@ Bearbeitung/Projekt-Save/Export bleiben voll funktionsfähig.
 > `workflow_dispatch` auf den Self-hosted Runnern und legt die Evidenz
 > (`evidenz.json` + `manifest.md`, GL-Provenance, Retina-Faktor,
 > `.deb`-Rückstandsprüfung) als Artefakt ab – Bedienung:
-> [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md). Zeilen 1 und 3 (Linux
+> [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md). Die 3D-Sicht-Spalte dieser
+> Zeilen ist seit #648 ebenfalls automatisiert: das Hauptartefakt startet ein
+> zweites Mal nativ (kein `offscreen`) mit dem Automationshook
+> `BGREMOVER_SCREENSHOT_3D` und liefert Screenshot + GL-Provenance-Sidecar aus
+> dem laufenden **gepackten** Prozess (nicht aus dem Source-Checkout) –
+> Software-Renderer lassen den Nachweis scheitern. Zeilen 1 und 3 (Linux
 > x86_64) bleiben pausiert (kein GPU-Hardwarezugang, Stand 2026-07-20) und
 > gelten weiterhin als **offen deklariert**. Die Kriterien hier bleiben
 > maßgeblich; die Automatisierung liefert nur den Nachweis, die Go-/No-Go-
@@ -125,6 +130,18 @@ Headless-Start (funktioniert für AppImage/`.app`-Binary):
 ```sh
 QT_QPA_PLATFORM=offscreen python scripts/smoke_launch.py \
     --match <artefakt-token> --timeout 120 -- <startkommando>
+```
+
+Nativer 3D-Screenshot-Nachweis (#648, funktioniert für AppImage/`.app`-Binary,
+Wächter bleibt aktiv, nur ohne erzwungenes `offscreen`):
+
+```sh
+python scripts/smoke_launch.py \
+    --match <artefakt-token> --timeout 180 --native \
+    --env BGREMOVER_SCREENSHOT_3D=/tmp/native_preview3d_ready.png \
+    -- <startkommando>
+# Provenance-Sidecar neben dem Screenshot:
+cat /tmp/native_preview3d_ready.png.json
 ```
 
 | # | Artefaktklasse | Headless-Start | 3D-Sicht-Smoke | sauber entfernbar |

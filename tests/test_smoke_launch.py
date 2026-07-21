@@ -109,6 +109,64 @@ def test_fork_bomb_is_detected_before_timeout(tmp_path: Path) -> None:
     assert smoke_launch._count_instances(token, set()) == 0
 
 
+def test_default_env_forces_offscreen_smoke_test() -> None:
+    """Ohne ``env_overrides`` bleibt der bisherige Default aktiv (offscreen)."""
+    rc = smoke_launch.run(
+        [sys.executable, "-c",
+         "import os, sys; sys.exit(0 if os.environ.get('BGREMOVER_SMOKE_TEST') == '1' "
+         "and os.environ.get('QT_QPA_PLATFORM') == 'offscreen' else 4)"],
+        match_token="kein-treffer-token-xyz", timeout=10, max_instances=1, poll_interval=0.05,
+    )
+    assert rc == 0
+
+
+def test_env_overrides_replace_default_smoke_env() -> None:
+    """Ein eigenes ``env_overrides``-Mapping ersetzt ``_SMOKE_ENV`` vollständig (#648)."""
+    rc = smoke_launch.run(
+        [sys.executable, "-c",
+         "import os, sys; sys.exit(0 if os.environ.get('BGREMOVER_SMOKE_TEST') is None "
+         "and os.environ.get('FOO') == 'bar' else 5)"],
+        match_token="kein-treffer-token-xyz", timeout=10, max_instances=1, poll_interval=0.05,
+        env_overrides={"FOO": "bar"},
+    )
+    assert rc == 0
+
+
+def test_main_native_flag_skips_forced_offscreen_env() -> None:
+    """``--native --env FOO=bar`` startet ohne erzwungenes ``BGREMOVER_SMOKE_TEST`` (#648)."""
+    rc = smoke_launch.main([
+        "--match", "kein-treffer-token-xyz", "--timeout", "10", "--poll-interval", "0.05",
+        "--native", "--env", "FOO=bar",
+        "--",
+        sys.executable, "-c",
+        "import os, sys; sys.exit(0 if os.environ.get('BGREMOVER_SMOKE_TEST') is None "
+        "and os.environ.get('FOO') == 'bar' else 6)",
+    ])
+    assert rc == 0
+
+
+def test_main_env_without_native_still_forces_offscreen() -> None:
+    """``--env`` allein (ohne ``--native``) ergänzt nur, ersetzt den Default nicht."""
+    rc = smoke_launch.main([
+        "--match", "kein-treffer-token-xyz", "--timeout", "10", "--poll-interval", "0.05",
+        "--env", "FOO=bar",
+        "--",
+        sys.executable, "-c",
+        "import os, sys; sys.exit(0 if os.environ.get('BGREMOVER_SMOKE_TEST') == '1' "
+        "and os.environ.get('FOO') == 'bar' else 7)",
+    ])
+    assert rc == 0
+
+
+def test_main_env_requires_key_value() -> None:
+    """Ein ``--env``-Eintrag ohne ``=`` bricht das CLI kontrolliert ab."""
+    with pytest.raises(SystemExit) as excinfo:
+        smoke_launch.main([
+            "--match", "x", "--env", "NOVALUE", "--", sys.executable, "-c", "pass",
+        ])
+    assert excinfo.value.code != 0
+
+
 def test_main_requires_target_command() -> None:
     """Ohne Zielkommando nach ``--`` bricht das CLI mit Fehler ab."""
     with pytest.raises(SystemExit) as excinfo:

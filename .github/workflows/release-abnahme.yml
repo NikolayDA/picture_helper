@@ -74,7 +74,7 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
             --platform macos-arm64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-macos-arm64"
-      - name: DMG-Smoke inkl. Retina-Nachweis (#643)
+      - name: DMG-Smoke inkl. Retina- und nativem 3D-Nachweis (#643/#648)
         run: |
           set -euo pipefail
           # devicePixelRatio des Hauptfensters ermitteln (nativer Qt-Kontext).
@@ -134,7 +134,7 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
             --platform linux-arm64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
-      - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
+      - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
           set -euo pipefail
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
@@ -197,7 +197,7 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
             --platform linux-x86_64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-linux-x86_64"
-      - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
+      - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
           set -euo pipefail
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
