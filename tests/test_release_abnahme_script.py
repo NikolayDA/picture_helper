@@ -23,6 +23,25 @@ sys.modules["release_abnahme"] = ra
 _SPEC.loader.exec_module(ra)
 
 
+def test_default_fetcher_strips_auth_header_on_redirect() -> None:
+    # Regression: GitHub-Artefakt-/Asset-Downloads redirecten auf signierte
+    # Blob-Storage-URLs; ein weitergereichter Authorization-Header lässt den
+    # Blob-Store dort mit 401 scheitern (live auf dem macOS-Runner beobachtet).
+    handler = ra._StripAuthOnRedirect()
+    original = urllib.request.Request(
+        "https://api.github.com/repos/o/r/actions/artifacts/1/zip",
+        headers={"Authorization": "Bearer secret-token", "Accept": "application/vnd.github+json"},
+    )
+    redirected = handler.redirect_request(
+        original, None, 302, "Found", None,
+        "https://example.blob.core.windows.net/artifacts/1.zip?sig=abc",
+    )
+    assert redirected is not None
+    assert not redirected.has_header("Authorization")
+    # Andere Header bleiben erhalten, nur Authorization wird entfernt.
+    assert redirected.has_header("Accept")
+
+
 def test_matches_platform() -> None:
     assert ra.matches_platform("BgRemover-2.7.0-macos-arm64-ai.dmg", "macos-arm64")
     assert ra.matches_platform(
