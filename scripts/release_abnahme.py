@@ -20,6 +20,7 @@ import json
 import os
 import platform as platform_mod
 import sys
+import urllib.parse
 import urllib.request
 import zipfile
 from collections.abc import Callable
@@ -57,8 +58,38 @@ class ArtifactRecord:
     bytes: int
 
 
+class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+    """Entfernt ``Authorization`` nur bei Redirects auf einen anderen Host.
+
+    Die Download-Endpunkte (``.../actions/artifacts/{id}/zip``,
+    Release-Asset-``url``) antworten mit 302 auf signierte Blob-Storage-URLs
+    auf einem fremden Host (Auth per Query-SAS-Token). ``urllib`` reicht
+    Header bei Redirects im Gegensatz zu ``requests``/``curl`` unverändert
+    weiter; ein mitgeschickter ``Authorization``-Header lässt den Blob-Store
+    mit ``401 Server failed to authenticate the request`` scheitern. Bleibt
+    ein Redirect dagegen auf demselben Host (z. B. api.github.com nach einer
+    Repo-Umbenennung), bleibt der Token erhalten – sonst würden private
+    Downloads dort unautorisiert und fehlschlagen.
+    """
+
+    def redirect_request(
+        self, req: urllib.request.Request, fp: Any, code: int, msg: str,
+        headers: Any, newurl: str,
+    ) -> urllib.request.Request | None:
+        new_request = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new_request is not None:
+            old_host = urllib.parse.urlsplit(req.full_url).hostname
+            new_host = urllib.parse.urlsplit(newurl).hostname
+            if old_host != new_host:
+                new_request.remove_header("Authorization")
+        return new_request
+
+
+_REDIRECT_OPENER = urllib.request.build_opener(_StripAuthOnRedirect)
+
+
 def _default_fetcher(request: urllib.request.Request) -> bytes:
-    with urllib.request.urlopen(request, timeout=600) as response:  # noqa: S310
+    with _REDIRECT_OPENER.open(request, timeout=600) as response:  # noqa: S310
         return response.read()  # type: ignore[no-any-return]
 
 
