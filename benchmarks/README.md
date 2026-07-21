@@ -60,8 +60,30 @@ Die eigenständige Suite `--suite height` (Alias: `--height-bench`) misst die
 Regressions-/Bestätigungslogik wie `process_ms`
 (`--metric mesh_build_ms --fail-on-regression`). GPU-/Renderer-Upload,
 interaktive Framerate und Update-Latenz hängen an der Grafikhardware und werden
-im manuellen Plattform-Smoke belegt (siehe
-[`docs/PACKAGING_SMOKE.md`](../docs/PACKAGING_SMOKE.md)).
+von der Live-GL-Suite (unten) auf echter Hardware gemessen.
+
+### Live-GL-Performance (`--suite preview3d-live`, #645)
+
+Die GPU-gebundenen Metriken der 3D-Vorschau brauchen einen echten
+**Hardware-GL-Kontext**. Die Suite läuft daher nur auf einem Rechner mit echter
+GPU; ohne Kontext oder mit Software-Renderer (llvmpipe) **verweigert** sie die
+Messung (freundlicher Skip; im Abnahme-Modus `--require-gl` ein Fehler) – sie
+meldet nie stumm Software-Werte als Hardware-Protokoll. Auf den Self-hosted
+Abnahme-Runnern (Epic #639) läuft sie über
+[`release-abnahme.yml`](../.github/workflows/release-abnahme.yml).
+
+| Metrik              | Bedeutung                                                        |
+|---------------------|------------------------------------------------------------------|
+| `gl_first_frame_ms` | Zeit vom Mesh-Ready bis zum ersten gerenderten Bild (Zeit bis Vorschau) |
+| `gl_upload_ms`      | VBO/IBO-Upload des Meshes                                         |
+| `gl_frame_ms_p50`   | Median der Frame-Zeiten über eine Orbit-Bewegung (→ Framerate)   |
+| `gl_frame_ms_p95`   | 95.-Perzentil der Frame-Zeiten (Ruckler-Sicht)                   |
+| `gl_peak_mb`        | Peak der hostseitigen Buffer-Payloads (GL-2.1-portable Näherung) |
+
+Das Ergebnis-JSON trägt die GL-Provenance im `environment`-Block; absolute
+Zeiten sind hardwaregebunden, ein Regressionsvergleich ist nur **innerhalb
+derselben Umgebung** sinnvoll (`check_compatibility` lehnt abweichende
+Runner-Fingerprints ab, Mechanik aus #636). Referenzumgebung/Budgets: #591.
 
 ## Ergebnisse & Vergleich
 

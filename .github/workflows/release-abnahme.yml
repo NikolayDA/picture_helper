@@ -82,6 +82,12 @@ jobs:
             --platform macos-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64" \
             --scale-factor "$scale"
+      - name: Live-GL-Performance-Suite (#645)
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
+            --suite preview3d-live --require-gl --no-compare \
+            --results-dir "${RUNNER_TEMP}/abnahme-macos-arm64/preview3d-live"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -123,6 +129,12 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64"
+      - name: Live-GL-Performance-Suite (#645)
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
+            --suite preview3d-live --require-gl --no-compare \
+            --results-dir "${RUNNER_TEMP}/abnahme-linux-arm64/preview3d-live"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -170,6 +182,12 @@ jobs:
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-x86_64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-x86_64"
+      - name: Live-GL-Performance-Suite (#645)
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/benchmark.py run \
+            --suite preview3d-live --require-gl --no-compare \
+            --results-dir "${RUNNER_TEMP}/abnahme-linux-x86_64/preview3d-live"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
