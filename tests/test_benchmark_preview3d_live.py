@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ class _FakeHooks(bench.LiveGlHooks):
 
     def __init__(self) -> None:
         self._frame = 0.0
+        self.closed = False
 
     def upload(self, mesh: object) -> float:
         return 4.0
@@ -33,6 +35,9 @@ class _FakeHooks(bench.LiveGlHooks):
 
     def peak_mb(self) -> float:
         return 12.5
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def test_percentile_linear_interpolation() -> None:
@@ -52,7 +57,8 @@ def test_summarize_frame_times() -> None:
 
 
 def test_measure_assembles_all_five_metrics() -> None:
-    metrics = bench.measure_preview3d_live(object(), _FakeHooks(), frames=10)
+    hooks = _FakeHooks()
+    metrics = bench.measure_preview3d_live(object(), hooks, frames=10)
     assert set(metrics) == {
         "gl_upload_ms", "gl_first_frame_ms", "gl_peak_mb",
         "gl_frame_ms_p50", "gl_frame_ms_p95",
@@ -62,6 +68,7 @@ def test_measure_assembles_all_five_metrics() -> None:
     assert metrics["gl_peak_mb"] == 12.5
     # Frames 1..10 → p50 = 5.5.
     assert metrics["gl_frame_ms_p50"] == pytest.approx(5.5)
+    assert hooks.closed
 
 
 def test_benchmark_with_injected_hooks_builds_real_mesh() -> None:
@@ -69,6 +76,16 @@ def test_benchmark_with_injected_hooks_builds_real_mesh() -> None:
     metrics = bench.benchmark_preview3d_live(32, 32, hooks=_FakeHooks(), frames=5)
     assert metrics["gl_upload_ms"] == 4.0
     assert "gl_frame_ms_p95" in metrics
+
+
+def test_real_hook_uses_complete_viewer_render_path() -> None:
+    """Governance-Guard: Shader, beide Attribute und Indizes bleiben gebunden."""
+    source = inspect.getsource(bench._QtGlLiveHooks)
+    for required in (
+        "_VERTEX_SHADER", "_FRAGMENT_SHADER", '"a_pos"', '"a_slope"',
+        "setUniformValue", "glDrawElements", "toImage", "CombinedDepthStencil",
+    ):
+        assert required in source
 
 
 def test_refuses_without_hardware_gl_offscreen(qapp) -> None:  # type: ignore[no-untyped-def]

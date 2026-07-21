@@ -1,15 +1,18 @@
 """Gemeinsame pytest-Fixtures.
 
-Setzt das Qt-Platform-Plugin auf ``offscreen``, damit die Tests headless
-laufen (CI, lokale Server ohne Display) und stellt eine geteilte
-``QApplication`` als Session-Fixture bereit.
+Setzt das Qt-Platform-Plugin normalerweise auf ``offscreen``, damit die Tests
+headless laufen (CI, lokale Server ohne Display), und stellt eine geteilte
+``QApplication`` als Session-Fixture bereit. Die explizite Hardware-Abnahme
+mit ``ABNAHME_REQUIRE_NATIVE_3D=1`` lässt Qt dagegen sein natives Backend aus
+der laufenden Desktop-Session wählen.
 """
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+if os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") != "1":
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # Repo-Root in sys.path aufnehmen, damit Unit-Tests die aktuelle Quelle
 # importieren. Die App-Smoke-Tests prüfen zusätzlich die echte Installation
