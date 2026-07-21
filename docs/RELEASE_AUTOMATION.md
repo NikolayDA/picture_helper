@@ -77,8 +77,10 @@ workflow**, dann:
   Genau eine der beiden Quellen angeben.
 - **`platforms`**: `alle` (Standard) oder gezielt `macos-arm64` /
   `linux-arm64`.
-- **`dry_run`**: überspringt die Auswertungs-Jobs (Vision/Aggregation, #646);
-  im aktuellen Gerüst ohne Wirkung, der Vertrag ist für #646 reserviert.
+- **`dry_run`**: überspringt den Auswertungs-Job (Vision-Vorbewertung +
+  Abschlussmatrix, #646). Die Plattform-Jobs laufen weiterhin und laden ihre
+  Evidenz hoch; nur die zusammenfassende Matrix und der Issue-Kommentar
+  entfallen (nützlich für reine Runner-/Smoke-Prüfläufe).
 
 Jeder Plattform-Job lädt die passenden Artefakte herunter, berechnet ihren
 SHA256 und lädt sein Ergebnis als Workflow-Artefakt `abnahme-<plattform>` hoch
@@ -89,9 +91,19 @@ Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
 wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
-(macOS) Retina; das **native** 3D-Rendering des gepackten Artefakts (nativer
-Start + Screenshot) folgt mit #646 und ist in der Evidenz bis dahin offen
-deklariert.
+(macOS) Retina.
+
+Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
+(#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
+über die Claude-Vision-API vor (`abnahme_vision_check.py`, fail-safe – ohne
+`ANTHROPIC_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie),
+erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium
+erfüllt/fehlgeschlagen/fehlt/pausiert/unbewertet mit Nachweis und
+GL-Provenance) und postet sie als Kommentar an Issue #595. Der pausierte
+x86_64-Pfad erscheint darin explizit als „pausiert", fehlende Evidenz als
+„fehlt" – keine stillen Lücken. Die Vision-Vorbewertung ist **beratend**:
+`nicht_erfuellt` markiert eine Zeile als fehlgeschlagen, aber die Go-/No-Go-
+Entscheidung bleibt der menschliche Schritt.
 
 Repository-Variablen (Settings → Secrets and variables → Actions →
 Variables):
@@ -99,6 +111,13 @@ Variables):
 | Variable | Wirkung |
 |---|---|
 | `ABNAHME_X86_64_ENABLED` | `true` aktiviert den Linux-x86_64-Job; jeder andere Wert (oder nicht gesetzt) lässt ihn pausiert |
+
+Optionales Repository-Secret (Settings → Secrets and variables → Actions →
+Secrets):
+
+| Secret | Wirkung |
+|---|---|
+| `ANTHROPIC_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler) |
 
 ## 5. Pausiert: Linux x86_64 (GPU)
 

@@ -209,3 +209,57 @@ jobs:
       - name: Pause protokollieren
         run: |
           echo "::notice title=Linux x86_64 pausiert::Der x86_64-Hardware-Smoke ist pausiert (kein GPU-Zugang, Entscheidung 2026-07-20). Reaktivierung: docs/RELEASE_AUTOMATION.md §5 – ABNAHME_X86_64_ENABLED=true setzen."
+
+  # Aggregation: sammelt alle Evidenzen, bewertet Screenshots (Vision, fail-safe)
+  # und postet die Abschlussmatrix als Kommentar. Schreibrechte NUR hier; die
+  # Smoke-Jobs bleiben read-only (Sicherheitsmodell #640). Go/No-Go bleibt
+  # menschlich (#646).
+  aggregation:
+    name: Abschlussmatrix
+    needs: [abnahme-macos-arm64, abnahme-linux-arm64]
+    if: always() && !inputs.dry_run
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Evidenz-Artefakte herunterladen
+        uses: actions/download-artifact@v7
+        with:
+          path: ${{ runner.temp }}/abnahme-evidenz
+          pattern: abnahme-*
+      - name: Screenshots vorbewerten (Vision, fail-safe)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Kein Key/SDK oder API-Fehler ⇒ jedes Kriterium 'unbewertet'; der
+          # Lauf bricht nie ab (fail-safe, #646).
+          python3 scripts/abnahme_vision_check.py \
+            --screenshots-dir "${RUNNER_TEMP}/abnahme-evidenz" \
+            --output "${RUNNER_TEMP}/abnahme-evidenz/vision-verdikte.json"
+      - name: Abschlussmatrix erzeugen
+        run: |
+          set -euo pipefail
+          x86flag=""
+          [ "${{ vars.ABNAHME_X86_64_ENABLED }}" = "true" ] && x86flag="--x86-64-enabled"
+          python3 scripts/abnahme_aggregate.py \
+            --artifacts-dir "${RUNNER_TEMP}/abnahme-evidenz" \
+            --output "${RUNNER_TEMP}/abschlussmatrix.md" \
+            --commit-sha "${GITHUB_SHA}" $x86flag
+      - uses: actions/upload-artifact@v6
+        with:
+          name: abschlussmatrix
+          path: ${{ runner.temp }}/abschlussmatrix.md
+          if-no-files-found: error
+      - name: Matrix als Issue-Kommentar posten
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment 595 --repo "${GITHUB_REPOSITORY}" \
+            --body-file "${RUNNER_TEMP}/abschlussmatrix.md"

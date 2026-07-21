@@ -26,16 +26,31 @@ def test_workflow_is_dispatch_only() -> None:
 
 
 def test_workflow_is_least_privilege() -> None:
-    """Nur Lese-Scopes; kein Schreibrecht im Smoke-Gerüst (#641)."""
+    """Nur Lese-Scopes im Smoke-Gerüst; Schreibrechte nur im Aggregations-Job (#646)."""
     text = _workflow_text()
 
     assert "permissions:" in text
     assert "contents: read" in text
     assert "actions: read" in text
-    # Schreib-Scopes gehören erst in den Aggregations-Job (#646), nicht hierher.
+    # contents: write gibt es nirgends; pull-requests: write auch nicht.
     assert "contents: write" not in text
-    assert "issues: write" not in text
     assert "pull-requests: write" not in text
+    # issues: write existiert genau einmal – ausschließlich im Aggregations-Job.
+    assert text.count("issues: write") == 1
+
+
+def test_aggregation_job_scoped_and_posts() -> None:
+    """Der Aggregations-Job (#646) läuft nachgelagert, fail-safe, mit Kommentar."""
+    text = _workflow_text()
+
+    assert "aggregation:" in text
+    assert "needs: [abnahme-macos-arm64, abnahme-linux-arm64]" in text
+    assert "if: always() && !inputs.dry_run" in text
+    assert "scripts/abnahme_aggregate.py" in text
+    assert "scripts/abnahme_vision_check.py" in text
+    assert "gh issue comment 595" in text
+    for script in ("abnahme_aggregate.py", "abnahme_vision_check.py"):
+        assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
 
 
 def test_workflow_uploads_evidence_per_platform() -> None:
@@ -44,9 +59,10 @@ def test_workflow_uploads_evidence_per_platform() -> None:
 
     assert "name: abnahme-macos-arm64" in text
     assert "name: abnahme-linux-arm64" in text
-    # Genau ein Artefakt-Upload je aktivem Plattform-Job (macOS, linux-arm64,
-    # linux-x86_64) – der Hinweis-Job lädt nichts hoch.
-    assert text.count("actions/upload-artifact") == 3
+    # Vier Uploads: je ein Evidenz-Artefakt der drei aktiven Plattform-Jobs
+    # (macOS, linux-arm64, linux-x86_64) plus die Abschlussmatrix des
+    # Aggregations-Jobs (#646); der Hinweis-Job lädt nichts hoch.
+    assert text.count("actions/upload-artifact") == 4
 
 
 def test_workflow_gates_and_surfaces_paused_x86_64() -> None:
