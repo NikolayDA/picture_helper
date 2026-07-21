@@ -19,10 +19,17 @@ ein menschlicher Schritt.
 | Linux aarch64 | Raspberry Pi 5 (Debian 12) | `self-hosted`, `Linux`, `ARM64` | aktiv geplant |
 | Linux x86_64 | – | `self-hosted`, `Linux`, `X64` | **pausiert** (siehe §5) |
 
-Voraussetzungen je Gerät: `python3` (≥ 3.10) im PATH, laufende grafische
-Sitzung (macOS: angemeldeter Benutzer; Pi: X11-/Wayland-Session), genug freier
-Speicher für die Release-Artefakte (≥ 2 GB) und Netzzugang zu
-`api.github.com`/`github.com`.
+Voraussetzungen je Gerät: `python3` (≥ 3.10) **mit venv-Modul** im PATH
+(Debian/Pi: `python3-venv`), laufende grafische Sitzung (macOS: angemeldeter
+Benutzer; Pi: X11-/Wayland-Session), genug freier Speicher für die
+Release-Artefakte (≥ 2 GB) und Netzzugang zu `api.github.com`/`github.com`.
+Der Workflow legt seine PyQt6-Umgebung selbst als venv an (die GL-/Retina-
+Probes brauchen PyQt6) – es muss **kein** PyQt6 systemweit installiert sein;
+auf dem Pi müssen aber die Qt-Systembibliotheken (`libGL`, xcb-Plugins der
+laufenden Desktop-Session) vorhanden sein. Für den **`.deb`-Smoke** braucht der
+Linux-Runner-Benutzer ein eng begrenztes `sudo` – nur für
+`apt-get install`/`dpkg -r` von `bgremover` (siehe §3), analog zum
+`release-linux.yml`-Installationszyklus.
 
 ## 2. Runner registrieren (je Gerät ca. 5 Minuten)
 
@@ -47,7 +54,12 @@ Speicher für die Release-Artefakte (≥ 2 GB) und Netzzugang zu
       oder Fork-Events (erzwungen durch
       `tests/test_release_abnahme_workflow.py`).
 - [ ] Runner läuft unter einem **dedizierten Benutzer** ohne Zugriff auf
-      persönliche Daten/Schlüssel; kein `sudo` ohne Passwort.
+      persönliche Daten/Schlüssel.
+- [ ] Linux-Runner (für den `.deb`-Smoke): **eng begrenztes** `sudo` nur für
+      die Paketkommandos, z. B. per `/etc/sudoers.d/abnahme`:
+      `runner ALL=(root) NOPASSWD: /usr/bin/apt-get install *, /usr/bin/dpkg -r bgremover`.
+      Kein allgemeines passwortloses `sudo`. macOS braucht kein `sudo` (DMG
+      wird read-only gemountet).
 - [ ] Repository-Einstellung geprüft: Actions-Ausführung für Fork-PRs
       erfordert Freigabe (Settings → Actions → General).
 - [ ] Ausreichend freier Speicher; das Arbeitsverzeichnis des Runners liegt
@@ -68,12 +80,18 @@ workflow**, dann:
 - **`dry_run`**: überspringt die Auswertungs-Jobs (Vision/Aggregation, #646);
   im aktuellen Gerüst ohne Wirkung, der Vertrag ist für #646 reserviert.
 
-Jeder Plattform-Job lädt die passenden Artefakte herunter, verifiziert sie per
+Jeder Plattform-Job lädt die passenden Artefakte herunter, berechnet ihren
 SHA256 und lädt sein Ergebnis als Workflow-Artefakt `abnahme-<plattform>` hoch
 (`evidenz.json` + `manifest.md`, Pflichtfelder im
-[ADR](history/ADR-2026-release-abnahme-automatisierung.md)). Bis #642/#643
-umgesetzt sind, tragen die Nachweise den Status `platzhalter` – der eigentliche
-Smoke-Inhalt (App-Start, GL-Provenance, Screenshots) folgt dort.
+[ADR](history/ADR-2026-release-abnahme-automatisierung.md)). Bei
+Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
+`digest` des Release-Assets geprüft (Mismatch = harter Abbruch); bei
+Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
+wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
+Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
+(macOS) Retina; das **native** 3D-Rendering des gepackten Artefakts (nativer
+Start + Screenshot) folgt mit #646 und ist in der Evidenz bis dahin offen
+deklariert.
 
 Repository-Variablen (Settings → Secrets and variables → Actions →
 Variables):

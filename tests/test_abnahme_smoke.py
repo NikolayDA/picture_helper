@@ -50,29 +50,41 @@ def _runner_factory(results: dict[str, smoke.CommandResult], default_rc: int = 0
     return runner
 
 
+# Vollständiger, sauberer Linux-Artefaktsatz: nicht installiert nach Remove
+# (dpkg -s != 0), keine bekannten Pfade übrig (test -e != 0).
+_LINUX_ARTEFACTS = [
+    "/tmp/BgRemover-linux-raspberrypi-arm64-ai.AppImage",
+    "/tmp/BgRemover-linux-raspberrypi-arm64-ai.deb",
+]
+_CLEAN_DEB = {"dpkg -s": smoke.CommandResult(1), "test -e": smoke.CommandResult(1)}
+
+
 def test_linux_smoke_passes_with_hardware_renderer_and_clean_deb() -> None:
     report = smoke.SmokeReport()
-    # dpkg -s (nach purge) != 0 → nicht installiert; dpkg -L → keine Reste.
-    runner = _runner_factory(
-        {
-            "dpkg -s": smoke.CommandResult(1),
-            "dpkg -L": smoke.CommandResult(0, stdout=""),
-        }
-    )
     result = smoke.run_linux_smoke(
-        ["/tmp/BgRemover-linux-raspberrypi-arm64-ai.AppImage",
-         "/tmp/BgRemover-linux-raspberrypi-arm64-ai.deb"],
-        report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        _LINUX_ARTEFACTS, report, _runner_factory(_CLEAN_DEB),
+        prober=lambda: "Broadcom / V3D 7.1 / 3.1",
     )
     assert result.passed
     assert result.gl_diagnostic == "Broadcom / V3D 7.1 / 3.1"
 
 
+def test_linux_smoke_requires_complete_artifact_set() -> None:
+    report = smoke.SmokeReport()
+    # Nur AppImage, .deb fehlt → unvollständig, darf nicht bestehen.
+    result = smoke.run_linux_smoke(
+        ["/tmp/only.AppImage"], report, _runner_factory(_CLEAN_DEB),
+        prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert not result.passed
+    assert any("fehlen" in n for n in result.notes)
+
+
 def test_linux_smoke_fails_on_software_renderer() -> None:
     report = smoke.SmokeReport()
-    runner = _runner_factory({"dpkg -s": smoke.CommandResult(1)})
     result = smoke.run_linux_smoke(
-        ["/tmp/x.AppImage"], report, runner, prober=lambda: "Mesa / llvmpipe / 4.5",
+        _LINUX_ARTEFACTS, report, _runner_factory(_CLEAN_DEB),
+        prober=lambda: "Mesa / llvmpipe / 4.5",
     )
     assert not result.passed
     assert any("Software-Renderer" in n for n in result.notes)
@@ -80,12 +92,10 @@ def test_linux_smoke_fails_on_software_renderer() -> None:
 
 def test_linux_smoke_fails_on_deb_residue() -> None:
     report = smoke.SmokeReport()
-    # dpkg -s == 0 → noch installiert (purge-Rückstand).
-    runner = _runner_factory(
-        {"dpkg -s": smoke.CommandResult(0), "dpkg -L": smoke.CommandResult(0, "/usr/bin/bgremover")}
-    )
+    # test -e == 0 → bekannter Pfad liegt noch auf der Platte (Rückstand).
+    runner = _runner_factory({"dpkg -s": smoke.CommandResult(1), "test -e": smoke.CommandResult(0)})
     result = smoke.run_linux_smoke(
-        ["/tmp/x.deb"], report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
     )
     assert not result.passed
     assert any("Rückstände" in n for n in result.notes)
@@ -93,21 +103,37 @@ def test_linux_smoke_fails_on_deb_residue() -> None:
 
 def test_linux_smoke_fails_when_appimage_start_fails() -> None:
     report = smoke.SmokeReport()
-    runner = _runner_factory({"smoke_launch.py": smoke.CommandResult(1)})
+    runner = _runner_factory({**_CLEAN_DEB, "smoke_launch.py": smoke.CommandResult(1)})
     result = smoke.run_linux_smoke(
-        ["/tmp/x.AppImage"], report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
     )
     assert not result.passed
     assert any("AppImage-Start fehlgeschlagen" in n for n in result.notes)
 
 
+def test_parse_mount_point() -> None:
+    stdout = (
+        "/dev/disk4          GUID_partition_scheme\n"
+        "/dev/disk4s1        Apple_HFS        /Volumes/BgRemover 1.0\n"
+    )
+    assert smoke.parse_mount_point(stdout) == "/Volumes/BgRemover 1.0"
+    assert smoke.parse_mount_point("no volumes here") is None
+
+
+_MACOS_MOUNT = {
+    "hdiutil attach": smoke.CommandResult(0, "/dev/disk4s1 Apple_HFS /Volumes/BgRemover"),
+    "ls -d": smoke.CommandResult(0, "/Volumes/BgRemover/BgRemover.app"),
+}
+
+
 def test_macos_smoke_passes_with_retina_and_hardware() -> None:
     report = smoke.SmokeReport()
     result = smoke.run_macos_smoke(
-        ["/tmp/BgRemover-macos-arm64-ai.dmg"], report, _runner_factory({}),
+        ["/tmp/BgRemover-macos-arm64-ai.dmg"], report, _runner_factory(_MACOS_MOUNT),
         prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
     )
     assert result.passed
+    assert result.gl_diagnostic == "Apple / Apple M3 Max / 2.1 Metal - 90.5"
 
 
 def test_macos_smoke_fails_on_low_dpi() -> None:

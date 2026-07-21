@@ -79,10 +79,33 @@ def matches_platform(name: str, platform: str) -> bool:
     return PLATFORM_PATTERNS[platform] in name
 
 
-def _store(dest: Path, name: str, payload: bytes) -> ArtifactRecord:
+def verify_digest(name: str, computed: str, expected: str | None) -> None:
+    """Berechneten SHA256 gegen den vertrauenswürdigen Digest prüfen.
+
+    ``expected`` ist das ``sha256:…``-Digestfeld des GitHub-Release-Assets. Ein
+    Mismatch (ersetztes/beschädigtes Asset) bricht sofort ab; fehlt der Digest
+    (z. B. Workflow-Artefakt-Zip ohne Feld), wird nur der berechnete Wert
+    protokolliert – ohne unabhängige Bestätigung zu behaupten.
+    """
+    if not expected:
+        return
+    prefix, _, want = expected.partition(":")
+    if prefix != "sha256" or not want:
+        return
+    if want.lower() != computed.lower():
+        raise SystemExit(
+            f"SHA256-Mismatch für {name}: erwartet {want}, berechnet {computed} "
+            "– Asset beschädigt oder ersetzt."
+        )
+
+
+def _store(
+    dest: Path, name: str, payload: bytes, expected_digest: str | None = None,
+) -> ArtifactRecord:
     path = dest / name
     path.write_bytes(payload)
     digest = hashlib.sha256(payload).hexdigest()
+    verify_digest(name, digest, expected_digest)
     return ArtifactRecord(name=name, sha256=digest, bytes=len(payload))
 
 
@@ -99,7 +122,7 @@ def fetch_release_assets(
         if not matches_platform(name, platform):
             continue
         payload = fetcher(_request(str(asset["url"]), token, "application/octet-stream"))
-        records.append(_store(dest, name, payload))
+        records.append(_store(dest, name, payload, asset.get("digest")))
     if not records:
         raise SystemExit(
             f"Release {tag} enthält keine Assets für Plattform {platform!r} "

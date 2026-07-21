@@ -139,6 +139,46 @@ def test_fetch_release_assets_filters_and_hashes(tmp_path: Path) -> None:
     assert (tmp_path / records[0].name).read_bytes() == payload
 
 
+def test_verify_digest_matches_and_rejects() -> None:
+    computed = hashlib.sha256(b"x").hexdigest()
+    # Kein/ungültiger Digest → keine Ausnahme (nur protokolliert).
+    ra.verify_digest("a", computed, None)
+    ra.verify_digest("a", computed, "md5:whatever")
+    # Passender sha256-Digest → ok.
+    ra.verify_digest("a", computed, f"sha256:{computed}")
+    # Mismatch → harter Abbruch.
+    with pytest.raises(SystemExit):
+        ra.verify_digest("a", computed, "sha256:deadbeef")
+
+
+def test_fetch_release_assets_verifies_trusted_digest(tmp_path: Path) -> None:
+    payload = b"binary-artifact"
+    good = hashlib.sha256(payload).hexdigest()
+
+    def make_fetcher(digest: str):  # type: ignore[no-untyped-def]
+        def fetcher(request: urllib.request.Request) -> bytes:
+            if request.full_url.endswith("/releases/tags/v2.7.0"):
+                return json.dumps(
+                    {"assets": [{
+                        "name": "BgRemover-2.7.0-macos-arm64-ai.dmg",
+                        "url": "https://x/1", "digest": digest,
+                    }]}
+                ).encode("utf-8")
+            return payload
+        return fetcher
+
+    # Passender Digest → ok.
+    records = ra.fetch_release_assets(
+        "o/r", "v2.7.0", "macos-arm64", tmp_path, None, make_fetcher(f"sha256:{good}"),
+    )
+    assert records[0].sha256 == good
+    # Manipulierter Digest → Abbruch.
+    with pytest.raises(SystemExit):
+        ra.fetch_release_assets(
+            "o/r", "v2.7.0", "macos-arm64", tmp_path, None, make_fetcher("sha256:dead"),
+        )
+
+
 def test_fetch_release_assets_errors_when_platform_absent(tmp_path: Path) -> None:
     def fake_fetcher(request: urllib.request.Request) -> bytes:
         return json.dumps(

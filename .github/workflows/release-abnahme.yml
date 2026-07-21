@@ -6,7 +6,8 @@ name: Release-Abnahme (Self-hosted Hardware)
 #
 # Sicherheitsmodell (verbindlich): ausschliesslich workflow_dispatch – nie
 # push/pull_request/Fork; Least-Privilege-Permissions (nur Lesen); keine
-# Secrets in den Smoke-Steps. Schreibrechte erst im Aggregations-Job (#646).
+# Secrets in den Smoke-Steps (persist-credentials: false, Dispatch-Inputs nur
+# ueber env). Schreibrechte erst im Aggregations-Job (#646).
 
 on:
   workflow_dispatch:
@@ -48,21 +49,36 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
+      # persist-credentials: false – kein GITHUB_TOKEN in der Git-Config, waehrend
+      # spaeter ein heruntergeladenes Artefakt ausgefuehrt wird (Smoke-Grenze).
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Abnahme-venv (PyQt6 fuer die Probes)
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install \
+            -e . -c requirements/constraints.txt
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_ID: ${{ inputs.run_id }}
         run: |
-          python3 scripts/release_abnahme.py \
-            --platform macos-arm64 \
-            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
-            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+          set -euo pipefail
+          args=()
+          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
+          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
+            --platform macos-arm64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-macos-arm64"
       - name: DMG-Smoke inkl. Retina-Nachweis (#643)
         run: |
+          set -euo pipefail
           # devicePixelRatio des Hauptfensters ermitteln (nativer Qt-Kontext).
-          scale="$(python3 scripts/abnahme_scale_probe.py)"
-          python3 scripts/abnahme_smoke.py \
+          scale="$("${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_scale_probe.py)"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform macos-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-macos-arm64" \
             --scale-factor "$scale"
@@ -80,18 +96,31 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Abnahme-venv (PyQt6 fuer die Probes)
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install \
+            -e . -c requirements/constraints.txt
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_ID: ${{ inputs.run_id }}
         run: |
-          python3 scripts/release_abnahme.py \
-            --platform linux-arm64 \
-            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
-            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+          set -euo pipefail
+          args=()
+          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
+          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
+            --platform linux-arm64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
         run: |
-          python3 scripts/abnahme_smoke.py \
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64"
       - uses: actions/upload-artifact@v6
@@ -114,18 +143,31 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Abnahme-venv (PyQt6 fuer die Probes)
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/abnahme-venv"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install --upgrade "pip>=26.1.2"
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" -m pip install \
+            -e . -c requirements/constraints.txt
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_ID: ${{ inputs.run_id }}
         run: |
-          python3 scripts/release_abnahme.py \
-            --platform linux-x86_64 \
-            ${{ inputs.release_tag != '' && format('--release-tag {0}', inputs.release_tag) || '' }} \
-            ${{ inputs.run_id != '' && format('--source-run-id {0}', inputs.run_id) || '' }} \
+          set -euo pipefail
+          args=()
+          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
+          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
+            --platform linux-x86_64 "${args[@]}" \
             --output "${RUNNER_TEMP}/abnahme-linux-x86_64"
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance (#642)
         run: |
-          python3 scripts/abnahme_smoke.py \
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-x86_64 \
             --evidence-dir "${RUNNER_TEMP}/abnahme-linux-x86_64"
       - uses: actions/upload-artifact@v6
