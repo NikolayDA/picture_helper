@@ -50,6 +50,21 @@ def _runner_factory(results: dict[str, smoke.CommandResult], default_rc: int = 0
     return runner
 
 
+def _recording_runner(results: dict[str, smoke.CommandResult], default_rc: int = 0):
+    """Wie ``_runner_factory``, protokolliert zusätzlich jedes Kommando (join)."""
+    calls: list[str] = []
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        joined = " ".join(cmd)
+        calls.append(joined)
+        for token, result in results.items():
+            if token in joined:
+                return result
+        return smoke.CommandResult(default_rc)
+
+    return runner, calls
+
+
 # Vollständiger, sauberer Linux-Artefaktsatz: nicht installiert nach Remove
 # (dpkg -s != 0), keine bekannten Pfade übrig (test -e != 0).
 _LINUX_ARTEFACTS = [
@@ -111,6 +126,53 @@ def test_linux_smoke_fails_when_appimage_start_fails() -> None:
     assert any("AppImage-Start fehlgeschlagen" in n for n in result.notes)
 
 
+def test_linux_smoke_runs_cleanup_after_failed_deb_install() -> None:
+    """#651-Review-Fund (Codex): eine fehlgeschlagene ``apt-get install`` darf
+    den Cleanup (dpkg -r + Rückstandsprüfung) nicht überspringen – ``apt-get``
+    kann vor dem Fehlschlag schon Dateien/Paketeinträge hinterlassen haben."""
+    results = {"apt-get install": smoke.CommandResult(1)}
+    runner, calls = _recording_runner(results)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert not result.passed
+    assert any("deb-Installation fehlgeschlagen" in n for n in result.notes)
+    assert any(c.startswith("sudo dpkg -r bgremover") for c in calls)
+    assert any(c.startswith("dpkg -s bgremover") for c in calls)
+    # Kein Start-Versuch für das installierte AppImage nach Fehlschlag.
+    assert not any("smoke_launch.py" in c and "BgRemover.AppImage" in c for c in calls)
+
+
+def test_linux_smoke_runs_ai_selfcheck_for_ai_variant() -> None:
+    """#642-Fund: KI-Selbsttest fehlte im Abnahme-Smoke, obwohl release-linux.yml
+    ihn fuer -ai-Artefakte beim Build bereits faehrt."""
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert result.passed
+    selfcheck_notes = [n for n in result.notes if "KI-Selbsttest ok" in n]
+    assert len(selfcheck_notes) == 2  # AppImage + deb
+    assert any("BGREMOVER_AI_SELFCHECK=1" in c for c in calls)
+
+
+def test_linux_smoke_skips_ai_selfcheck_for_non_ai_variant() -> None:
+    artefacts = [
+        "/tmp/BgRemover-linux-raspberrypi-arm64.AppImage",
+        "/tmp/BgRemover-linux-raspberrypi-arm64.deb",
+    ]
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        artefacts, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert result.passed
+    assert not any("KI-Selbsttest" in n for n in result.notes)
+    assert not any("BGREMOVER_AI_SELFCHECK" in c for c in calls)
+
+
 def test_parse_mount_point() -> None:
     stdout = (
         "/dev/disk4          GUID_partition_scheme\n"
@@ -144,6 +206,92 @@ def test_macos_smoke_fails_on_low_dpi() -> None:
     )
     assert not result.passed
     assert any("Retina" in n for n in result.notes)
+
+
+def test_macos_smoke_copies_to_temp_and_clears_quarantine() -> None:
+    """#643-Fund: Start muss von einer Temp-Kopie laufen, nicht vom read-only
+    DMG-Mount – sonst laesst sich die Quarantaene nie entfernen (Gatekeeper)."""
+    runner, calls = _recording_runner(_MACOS_MOUNT)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    assert any(c.startswith("cp -R /Volumes/BgRemover/BgRemover.app") for c in calls)
+    assert any("xattr -r -d com.apple.quarantine" in c and smoke.TEMP_DMG_ROOT in c for c in calls)
+    assert any(f"{smoke.TEMP_DMG_ROOT}/BgRemover.app/Contents/MacOS/BgRemover" in c for c in calls)
+    # Original bleibt unangetastet – kein xattr/App-Start direkt auf dem Mount.
+    assert not any(c.startswith("xattr") and "/Volumes/" in c for c in calls)
+
+
+def test_macos_smoke_detaches_dmg_before_starting_app() -> None:
+    """#651-Review-Fund (Codex): das DMG darf nicht waehrend des (bis zu 240s
+    langen) App-Starts gemountet bleiben – detach muss vor dem ersten
+    Start-Guard-Aufruf passieren, sonst bleibt bei einem abgebrochenen Job
+    ein Volume unnoetig lange haengen."""
+    runner, calls = _recording_runner(_MACOS_MOUNT)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    detach_index = next(i for i, c in enumerate(calls) if c.startswith("hdiutil detach"))
+    guard_index = next(i for i, c in enumerate(calls) if "smoke_launch.py" in c)
+    assert detach_index < guard_index
+
+
+def test_macos_smoke_detaches_when_mount_point_unparseable() -> None:
+    """Cleanup-Trap (#643-Fund): ``attach`` erfolgreich, aber Mount-Pfad nicht
+    geparst – detach muss trotzdem ueber die Geraete-Kennung laufen, sonst
+    bleibt ein Volume haengen."""
+    results = {
+        "hdiutil attach": smoke.CommandResult(0, "/dev/disk9         GUID_partition_scheme"),
+    }
+    runner, calls = _recording_runner(results)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/x.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert not result.passed
+    assert any("Mount-Pfad nicht erkannt" in n for n in result.notes)
+    assert any(c == "hdiutil detach /dev/disk9" for c in calls)
+
+
+def test_macos_smoke_runs_ai_selfcheck_for_ai_variant() -> None:
+    runner, calls = _recording_runner(_MACOS_MOUNT)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64-ai.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    assert any("KI-Selbsttest ok" in n for n in result.notes)
+    assert any("BGREMOVER_AI_SELFCHECK=1" in c for c in calls)
+
+
+def test_macos_smoke_skips_ai_selfcheck_for_non_ai_variant() -> None:
+    runner, calls = _recording_runner(_MACOS_MOUNT)
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, runner,
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    assert not any("KI-Selbsttest" in n for n in result.notes)
+    assert not any("BGREMOVER_AI_SELFCHECK" in c for c in calls)
+
+
+def test_macos_smoke_reports_startup_time() -> None:
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, _runner_factory(_MACOS_MOUNT),
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+    )
+    assert result.passed
+    assert any("Startzeit" in n for n in result.notes)
 
 
 def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]

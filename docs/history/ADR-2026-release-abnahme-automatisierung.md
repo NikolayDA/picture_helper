@@ -126,3 +126,21 @@ der Smoke als nicht erbracht.
   Variable, keine Code-Änderung.
 - Die Teil-Issues #641–#646 implementieren gegen diesen Vertrag; Änderungen am
   Vertrag laufen über einen ADR-Nachtrag, nicht über stille Formatdrift.
+
+## Nachtrag (2026-07-21, #642): `.deb`-Smoke ohne Wegwerf-Container
+
+Der `.deb`-Smoke (`scripts/abnahme_smoke.py::_linux_deb`) installiert direkt per
+`apt-get install`/`dpkg -r` auf dem Pi-5-Runner, statt in einer
+`systemd-nspawn`-Wegwerf-Umgebung. Begründung: Der GL-/GPU-Nachweis (Zweck des
+Smokes) braucht die reale grafische Session des Runner-Benutzers (`xcb`/Wayland,
+`libGL`-Treiber); ein Container-Root ohne Durchreichung dieser Session könnte
+den Provenance-Nachweis gar nicht erbringen, und eine vollständige
+Session-Durchreichung in `systemd-nspawn` steht in keinem Verhältnis zum Nutzen
+gegenüber einem dedizierten, repo-exklusiven Runner-Benutzer (Sicherheitsmodell
+oben), der ohnehin schon isoliert ist. Stattdessen sichert
+`_linux_deb`/`evaluate_deb_cleanup` die Rückstandsfreiheit **aktiv** nach jedem
+Lauf (Paketstatus `dpkg -s` plus bekannte Pfade `DEB_KNOWN_PATHS` real geprüft,
+kein Verlass auf Container-Wegwerfen) und das eng begrenzte `sudo` aus
+[../RELEASE_AUTOMATION.md](../RELEASE_AUTOMATION.md) §3 hält den Blast-Radius
+klein. Bei wiederholten Rückstandsfunden würde eine Container-Lösung erneut
+geprüft.
