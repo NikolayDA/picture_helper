@@ -76,7 +76,8 @@ workflow**, dann:
   hochgeladenen Workflow-Artefakte (für Kandidaten-Prüfung **vor** dem Tag).
   Genau eine der beiden Quellen angeben.
 - **`platforms`**: `alle` (Standard) oder gezielt `macos-arm64` /
-  `linux-arm64`.
+  `linux-arm64` / `linux-x86_64` (letzteres nur bei aktivierter Variable aus
+  §5).
 - **`dry_run`**: überspringt den Auswertungs-Job (Vision-Vorbewertung +
   Abschlussmatrix, #646). Die Plattform-Jobs laufen weiterhin und laden ihre
   Evidenz hoch; nur die zusammenfassende Matrix und der Issue-Kommentar
@@ -91,21 +92,30 @@ Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
 wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
-(macOS) Retina. **Offen deklariert:** das *native* 3D-Rendering des gepackten
-Artefakts prüft dieser Smoke noch nicht (der Start-Wächter läuft headless, die
-GL-Provenance stammt aus dem Source-Checkout); der native Start mit Screenshot
-ist als Folge-Issue #648 ausgelagert. Bis dahin trägt jede Evidenz den Hinweis
-`NATIVE_3D_CAVEAT`.
+(macOS) Retina. Danach führt derselbe Hardware-Job die native
+MainWindow-E2E-Regression aus (Bild öffnen → HEIGHT → 3D-`ready` samt
+hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open) und schreibt
+`e2e-evidenz.json`. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
+die 1-/16-/40-MP-Szenarien und speichert alle fünf GL-Metriken plus
+Renderer-Provenance unter `preview3d-live/`. **Offen deklariert:** das *native*
+3D-Rendering des **gepackten Artefakts** prüfen diese Source-Checkout-Nachweise
+noch nicht (der Artefakt-Start-Wächter läuft headless); der native Paketstart
+mit Screenshot ist als Folge-Issue #648 ausgelagert. Bis dahin trägt jede
+Plattform-Evidenz den Hinweis `NATIVE_3D_CAVEAT`.
 
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
 über die Claude-Vision-API vor (`abnahme_vision_check.py`, fail-safe – ohne
 `ANTHROPIC_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie),
+installiert dafür das gepinnte SDK in einem eigenen kurzlebigen venv,
 erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium
 erfüllt/fehlgeschlagen/fehlt/pausiert/unbewertet mit Nachweis und
-GL-Provenance) und postet sie als Kommentar an Issue #595. Der pausierte
-x86_64-Pfad erscheint darin explizit als „pausiert", fehlende Evidenz als
-„fehlt" – keine stillen Lücken. Die Vision-Vorbewertung ist **beratend**:
+GL-Provenance) und postet sie als Kommentar an Issue #595. Pro aktiver
+Plattform erscheinen Hardware-Smoke, nativer Source-E2E und Live-GL-
+Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann
+dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
+x86_64-Pfad erscheint explizit als „pausiert", fehlende Evidenz als „fehlt" –
+keine stillen Lücken. Die Vision-Vorbewertung ist **beratend**:
 `nicht_erfuellt` markiert eine Zeile als fehlgeschlagen, aber die Go-/No-Go-
 Entscheidung bleibt der menschliche Schritt.
 
@@ -139,7 +149,8 @@ Wiederaufnahme-Kriterien (in dieser Reihenfolge):
    registrieren (§2, Labels `self-hosted`, `Linux`, `X64`) und §3 abhaken.
 2. Repository-Variable `ABNAHME_X86_64_ENABLED` auf `true` setzen.
 3. Einen vollen Abnahme-Lauf starten; der x86_64-Job muss inklusive
-   GL-Provenance (echter Hardware-Renderer, kein llvmpipe) grün durchlaufen.
+   GL-Provenance, nativem Source-E2E und Live-GL-Suite (echter
+   Hardware-Renderer, kein llvmpipe) grün durchlaufen.
 
 Es ist keine Code-Änderung nötig.
 

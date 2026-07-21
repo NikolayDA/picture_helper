@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,11 +28,20 @@ EXPECTED_PLATFORMS: dict[str, str] = {
 }
 PAUSED_PLATFORM = "linux-x86_64"
 PAUSED_LABEL = "Linux x86_64: Hardware-Smoke"
+LIVE_GL_SCENARIOS = ("HEIGHT16-1MP", "HEIGHT16-16MP", "HEIGHT16-40MP")
+LIVE_GL_METRICS = (
+    "gl_upload_ms", "gl_first_frame_ms", "gl_peak_mb",
+    "gl_frame_ms_p50", "gl_frame_ms_p95",
+)
 
 # Pflichtfelder des Evidenzvertrags (#640).
 REQUIRED_FIELDS = (
     "schema", "kind", "platform", "status", "commit_sha", "quelle",
-    "artefakte", "umgebung", "erzeugt_am",
+    "artefakte", "umgebung", "gl_provenance", "erzeugt_am", "hinweise",
+)
+E2E_REQUIRED_FIELDS = (
+    "schema", "kind", "platform", "status", "scenario", "commit_sha",
+    "native_3d_required", "native_3d_state", "erzeugt_am", "hinweise",
 )
 
 
@@ -46,6 +56,13 @@ class MatrixRow:
     hinweis: str
 
 
+def _platform_from_path(path: Path) -> str:
+    for part in reversed(path.parts):
+        if part.startswith("abnahme-"):
+            return part.removeprefix("abnahme-")
+    return path.parent.name
+
+
 def load_evidence(root: Path) -> dict[str, dict[str, Any]]:
     """Alle ``evidenz.json`` unter *root* laden, geschlüsselt nach ``platform``."""
     found: dict[str, dict[str, Any]] = {}
@@ -54,19 +71,39 @@ def load_evidence(root: Path) -> dict[str, dict[str, Any]]:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
-        platform = str(data.get("platform", path.parent.name))
+        platform = str(data.get("platform") or _platform_from_path(path))
         found[platform] = data
     return found
 
 
-def load_e2e(root: Path) -> dict[str, Any] | None:
-    """Optionale E2E-Evidenz (#644) laden, falls vorhanden."""
+def load_e2e(root: Path) -> dict[str, dict[str, Any]]:
+    """E2E-Evidenz (#644) je Plattform laden."""
+    found: dict[str, dict[str, Any]] = {}
     for path in sorted(root.rglob("e2e-evidenz.json")):
         try:
-            return json.loads(path.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
-    return None
+        platform = str(data.get("platform") or _platform_from_path(path))
+        found[platform] = data
+    return found
+
+
+def load_live_gl(root: Path) -> dict[str, dict[str, Any]]:
+    """Jüngstes ``preview3d-live``-Ergebnis je Plattform laden."""
+    found: dict[str, dict[str, Any]] = {}
+    for path in sorted(root.rglob("*.json")):
+        if path.parent.name != "preview3d-live":
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if data.get("suite") != "preview3d-live":
+            continue
+        platform = str(data.get("platform") or _platform_from_path(path))
+        found[platform] = data
+    return found
 
 
 def load_vision(root: Path) -> list[dict[str, Any]]:
@@ -108,8 +145,71 @@ def _vision_row(verdicts: list[dict[str, Any]]) -> MatrixRow:
 
 
 def validate_evidence(evidence: dict[str, Any]) -> list[str]:
-    """Fehlende Pflichtfelder des Vertrags zurückgeben (leer = gültig)."""
-    return [field for field in REQUIRED_FIELDS if field not in evidence]
+    """Vertragsverstöße der Plattform-Evidenz zurückgeben."""
+    issues = [field for field in REQUIRED_FIELDS if field not in evidence]
+    if evidence.get("schema") != 1:
+        issues.append("schema!=1")
+    if evidence.get("kind") != "abnahme-evidenz":
+        issues.append("kind!=abnahme-evidenz")
+    if evidence.get("status") != "platzhalter" and not str(
+        evidence.get("gl_provenance") or ""
+    ).strip():
+        issues.append("gl_provenance leer")
+    return issues
+
+
+def validate_e2e(
+    evidence: dict[str, Any], *, platform: str, commit_sha: str,
+) -> list[str]:
+    """E2E-Vertrag inklusive des nativen Ready-Nachweises validieren."""
+    issues = [field for field in E2E_REQUIRED_FIELDS if field not in evidence]
+    if evidence.get("schema") != 1:
+        issues.append("schema!=1")
+    if evidence.get("kind") != "abnahme-e2e":
+        issues.append("kind!=abnahme-e2e")
+    if evidence.get("platform") != platform:
+        issues.append(f"platform!={platform}")
+    if commit_sha and evidence.get("commit_sha") != commit_sha:
+        issues.append("commit_sha abweichend")
+    return issues
+
+
+def validate_live_gl(
+    result: dict[str, Any], *, platform: str, commit_sha: str,
+) -> list[str]:
+    """Live-GL-Ergebnis gegen Suite-, Provenance- und Metrikvertrag prüfen."""
+    issues: list[str] = []
+    if result.get("schema") != 3:
+        issues.append("schema!=3")
+    if result.get("suite") != "preview3d-live":
+        issues.append("suite!=preview3d-live")
+    if result.get("platform") != platform:
+        issues.append(f"platform!={platform}")
+    if commit_sha and result.get("git_commit") != commit_sha:
+        issues.append("git_commit abweichend")
+    environment = result.get("environment")
+    if not isinstance(environment, dict) or not str(
+        environment.get("gl_provenance") or ""
+    ).strip():
+        issues.append("gl_provenance leer")
+    formats = result.get("formats")
+    if not isinstance(formats, dict):
+        return [*issues, "formats fehlt"]
+    for scenario in LIVE_GL_SCENARIOS:
+        metrics = formats.get(scenario)
+        if not isinstance(metrics, dict):
+            issues.append(f"{scenario} fehlt")
+            continue
+        for metric in LIVE_GL_METRICS:
+            value = metrics.get(metric)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or float(value) < 0.0
+            ):
+                issues.append(f"{scenario}.{metric} ungültig")
+    return issues
 
 
 def _status_from_evidence(evidence: dict[str, Any]) -> str:
@@ -125,7 +225,8 @@ def build_matrix(
     evidences: dict[str, dict[str, Any]],
     *,
     x86_64_enabled: bool = False,
-    e2e: dict[str, Any] | None = None,
+    e2e: dict[str, dict[str, Any]] | None = None,
+    live_gl: dict[str, dict[str, Any]] | None = None,
     vision: list[dict[str, Any]] | None = None,
 ) -> list[MatrixRow]:
     """Abschlussmatrix aus den gesammelten Evidenzen bauen."""
@@ -137,7 +238,12 @@ def build_matrix(
             continue
         missing = validate_evidence(ev)
         note = "" if not missing else f"Vertragsverstoß: fehlende Felder {missing}"
-        status = "unbewertet" if missing else _status_from_evidence(ev)
+        evidence_status = _status_from_evidence(ev)
+        status = (
+            evidence_status
+            if evidence_status == "fehlgeschlagen" or not missing
+            else "unbewertet"
+        )
         rows.append(MatrixRow(
             kriterium, status, "evidenz.json",
             str(ev.get("gl_provenance") or "—"), note,
@@ -145,36 +251,104 @@ def build_matrix(
 
     # Pausierter x86_64-Pfad: explizit sichtbar, nie stille Lücke.
     px = evidences.get(PAUSED_PLATFORM)
-    if x86_64_enabled and px is not None:
-        status = _status_from_evidence(px)
-        rows.append(MatrixRow(
-            PAUSED_LABEL, status, "evidenz.json", str(px.get("gl_provenance") or "—"), "",
-        ))
+    if x86_64_enabled:
+        if px is None:
+            rows.append(MatrixRow(
+                PAUSED_LABEL, "fehlt", "—", "—", "Kein Evidenz-Artefakt.",
+            ))
+        else:
+            missing = validate_evidence(px)
+            evidence_status = _status_from_evidence(px)
+            status = (
+                evidence_status
+                if evidence_status == "fehlgeschlagen" or not missing
+                else "unbewertet"
+            )
+            note = "" if not missing else f"Vertragsverstoß: {missing}"
+            rows.append(MatrixRow(
+                PAUSED_LABEL, status, "evidenz.json",
+                str(px.get("gl_provenance") or "—"), note,
+            ))
     else:
         rows.append(MatrixRow(
             PAUSED_LABEL, "pausiert", "—", "—",
             "Pausiert (kein GPU-Zugang) – siehe RELEASE_AUTOMATION.md §5.",
         ))
 
-    if e2e is not None:
-        status = "erfuellt" if str(e2e.get("status")) == "bestanden" else "fehlgeschlagen"
-        rows.append(MatrixRow(
-            "E2E-Regression (Projekt→HEIGHT→3D→Undo/Save)", status,
-            "e2e-evidenz.json", "—", "",
-        ))
-    else:
-        rows.append(MatrixRow(
-            "E2E-Regression (Projekt→HEIGHT→3D→Undo/Save)", "fehlt", "—", "—",
-            "Keine E2E-Evidenz.",
-        ))
+    active_platforms = [*EXPECTED_PLATFORMS]
+    if x86_64_enabled:
+        active_platforms.append(PAUSED_PLATFORM)
+    e2e = e2e or {}
+    live_gl = live_gl or {}
+    for platform in active_platforms:
+        platform_evidence = evidences.get(platform)
+        commit_sha = str((platform_evidence or {}).get("commit_sha") or "")
+
+        e2e_result = e2e.get(platform)
+        e2e_label = f"{platform}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)"
+        if e2e_result is None:
+            rows.append(MatrixRow(
+                e2e_label, "fehlt", "—", "—", "Keine E2E-Evidenz.",
+            ))
+        else:
+            issues = validate_e2e(
+                e2e_result, platform=platform, commit_sha=commit_sha,
+            )
+            if e2e_result.get("status") != "bestanden":
+                status = "fehlgeschlagen"
+                note = (
+                    f"E2E-Szenario fehlgeschlagen; Vertragsverstoß: {issues}"
+                    if issues else "E2E-Szenario fehlgeschlagen."
+                )
+            elif issues:
+                status = "unbewertet"
+                note = f"Vertragsverstoß: {issues}"
+            elif (
+                e2e_result.get("native_3d_required") is not True
+                or e2e_result.get("native_3d_state") != "ready"
+            ):
+                status = "fehlgeschlagen"
+                note = "Kein nativer 3D-Ready-Nachweis."
+            else:
+                status = "erfuellt"
+                note = "Nativer GL-Viewer ready und Geometrie gerendert."
+            rows.append(MatrixRow(
+                e2e_label, status, "e2e-evidenz.json", "—", note,
+            ))
+
+        live_result = live_gl.get(platform)
+        live_label = f"{platform}: Live-GL-Performance"
+        if live_result is None:
+            rows.append(MatrixRow(
+                live_label, "fehlt", "—", "—", "Kein preview3d-live-Ergebnis.",
+            ))
+        else:
+            issues = validate_live_gl(
+                live_result, platform=platform, commit_sha=commit_sha,
+            )
+            provenance = str(
+                (live_result.get("environment") or {}).get("gl_provenance") or "—"
+            )
+            rows.append(MatrixRow(
+                live_label, "unbewertet" if issues else "erfuellt",
+                "preview3d-live/*.json", provenance,
+                f"Vertragsverstoß: {issues}" if issues else "Alle 5 Metriken für 1/16/40 MP.",
+            ))
 
     rows.append(_vision_row(vision or []))
     return rows
 
 
 def has_blocking_gaps(rows: list[MatrixRow]) -> bool:
-    """Ob die Matrix blockierende Lücken enthält (nicht erfüllt/fehlt, außer pausiert)."""
-    return any(r.status in ("fehlgeschlagen", "fehlt") for r in rows)
+    """Blockierende Lücken; nur die beratende Vision darf unbewertet bleiben."""
+    return any(
+        r.status in ("fehlgeschlagen", "fehlt")
+        or (
+            r.status == "unbewertet"
+            and r.kriterium != "Screenshots (Vision-Vorbewertung)"
+        )
+        for r in rows
+    )
 
 
 def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> str:
@@ -216,9 +390,11 @@ def main(argv: list[str] | None = None) -> int:
 
     evidences = load_evidence(args.artifacts_dir)
     e2e = load_e2e(args.artifacts_dir)
+    live_gl = load_live_gl(args.artifacts_dir)
     vision = load_vision(args.artifacts_dir)
     rows = build_matrix(
-        evidences, x86_64_enabled=args.x86_64_enabled, e2e=e2e, vision=vision,
+        evidences, x86_64_enabled=args.x86_64_enabled, e2e=e2e,
+        live_gl=live_gl, vision=vision,
     )
     markdown = render_markdown(rows, commit_sha=args.commit_sha)
     args.output.write_text(markdown, encoding="utf-8")

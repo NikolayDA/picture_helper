@@ -26,7 +26,6 @@ import pytest
 from PIL import Image
 
 from bgremover import MainWindow, height_ops
-from bgremover.project_io import load_project, save_project
 from bgremover.project_model import LayerKind, LayerRole
 
 pytestmark = pytest.mark.ui_smoke
@@ -54,7 +53,7 @@ def _payload_hash(win: MainWindow) -> str:
     return digest.hexdigest()
 
 
-def _emit_evidence(status: str, notes: list[str]) -> None:
+def _emit_evidence(status: str, notes: list[str], native_3d_state: str) -> None:
     """Evidenz-JSON nach Vertrag #640 schreiben, wenn im Abnahme-Workflow."""
     target = os.environ.get("ABNAHME_EVIDENCE_DIR")
     if not target:
@@ -64,10 +63,13 @@ def _emit_evidence(status: str, notes: list[str]) -> None:
     payload = {
         "schema": 1,
         "kind": "abnahme-e2e",
+        "platform": os.environ.get("ABNAHME_PLATFORM", "unbekannt"),
         "status": status,
         "scenario": "open->height->3d->op->undo/redo->save/open",
         "commit_sha": os.environ.get("GITHUB_SHA", "unbekannt"),
         "erzeugt_am": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "native_3d_required": os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") == "1",
+        "native_3d_state": native_3d_state,
         "hinweise": notes,
     }
     (out / "e2e-evidenz.json").write_text(
@@ -75,11 +77,21 @@ def _emit_evidence(status: str, notes: list[str]) -> None:
     )
 
 
-def _run_scenario(win: MainWindow, tmp_path: Path) -> list[str]:
+def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], str]:  # type: ignore[no-untyped-def]
     notes: list[str] = []
 
-    # 1) Bild öffnen → genau eine COLOR-Ebene.
-    win._canvas.apply_loaded_image(_gradient(), str(tmp_path / "src.png"))
+    # 1) Bild über die öffentliche MainWindow-Fassade und den echten
+    # asynchronen Loader öffnen → genau eine COLOR-Ebene.
+    source_path = tmp_path / "src.png"
+    _gradient().save(source_path)
+    win.open_paths([str(source_path)])
+    qtbot.waitUntil(
+        lambda: (
+            win._canvas.project is not None
+            and len(win._canvas.project.layers) == 1
+        ),
+        timeout=30_000,
+    )
     project = win._canvas.project
     assert project is not None
     assert [layer.kind for layer in project.layers] == [LayerKind.COLOR]
@@ -94,16 +106,45 @@ def _run_scenario(win: MainWindow, tmp_path: Path) -> list[str]:
     hash_after_generate = _payload_hash(win)
     notes.append("Höhenkarte erzeugt: aktive HEIGHT-Ebene, 16-Bit-Payload.")
 
-    # 3) 3D-Vorschau aktivieren – headless: dokumentierter Fallback, kein Crash.
+    # 3) 3D-Vorschau aktivieren. Headless muss im dokumentierten Fallback
+    # landen; die Hardware-Abnahme verlangt dagegen ausdrücklich den fertig
+    # initialisierten nativen GL-Viewer samt hochgeladenem Mesh.
     win._set_preview3d_mode(True)
+    require_native = os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") == "1"
+    qtbot.waitUntil(
+        lambda: win._relief3d_view.state in {"ready", "unavailable", "error"},
+        timeout=30_000,
+    )
     state = win._relief3d_view.state
-    assert state in {"unavailable", "empty", "loading"}, f"unerwarteter 3D-Zustand: {state}"
+    if require_native:
+        assert state == "ready", f"nativer 3D-Zweig nicht bereit: {state}"
+        viewer = win._relief3d_view.viewer()
+        assert viewer is not None, "Ready-Zustand ohne GL-Viewer"
+        qtbot.waitUntil(
+            lambda: (
+                viewer.has_failed
+                or (
+                    viewer.isValid()
+                    and viewer._gl_ready
+                    and viewer._mesh is not None
+                    and viewer._pending_mesh is None
+                )
+            ),
+            timeout=30_000,
+        )
+        state = win._relief3d_view.state
+        assert not viewer.has_failed and state == "ready", "nativer GL-Frame fehlgeschlagen"
+        assert viewer._index_count > 0, "nativer GL-Viewer hat keine Geometrie hochgeladen"
+        notes.append("Nativer 3D-GL-Zweig ready; Mesh hochgeladen und Frame gerendert.")
+    else:
+        assert state == "unavailable", f"unerwarteter Headless-3D-Zustand: {state}"
+        notes.append("Dokumentierter Headless-3D-Fallback erreicht.")
     # 2D↔3D-Wechsel mutiert die Höhendaten nicht.
     assert _payload_hash(win) == hash_after_generate
     win._set_preview3d_mode(False)
     assert win._canvas_stack.currentIndex() == 0
     assert _payload_hash(win) == hash_after_generate
-    notes.append(f"3D-Fallback headless erreicht (Zustand: {state}), Höhendaten unverändert.")
+    notes.append(f"3D-Zustand {state}; Höhendaten beim 2D↔3D-Wechsel unverändert.")
 
     # 4) Höhen-Operation anwenden → Undo → Redo (bitgenau, #587).
     win._canvas.apply_height_op(lambda f: height_ops.quantize(f, 4))
@@ -115,14 +156,19 @@ def _run_scenario(win: MainWindow, tmp_path: Path) -> list[str]:
     assert _payload_hash(win) == hash_after_op, "Redo nicht bitgenau"
     notes.append("Höhen-Op + Undo/Redo bitgenau.")
 
-    # 5) Projekt speichern (v2) und wieder laden – Payload bitgenau, Struktur gleich.
+    # 5) Projekt über die MainWindow-Pfade speichern und wieder laden – nicht
+    # direkt über project_io am UI vorbei. Payload und Struktur bleiben gleich.
     path = tmp_path / "regression.bgrproj"
-    save_project(win._canvas.project, str(path))
     before = win._canvas.project
-    reloaded = load_project(str(path))
-    assert [(layer.kind, layer.role, layer.name) for layer in reloaded.layers] == [
+    before_signature = [
         (layer.kind, layer.role, layer.name) for layer in before.layers
     ]
+    assert win._write_project(str(path)), "MainWindow-Speicherpfad fehlgeschlagen"
+    win._load_project_into_canvas(str(path))
+    reloaded = win._canvas.project
+    assert [
+        (layer.kind, layer.role, layer.name) for layer in reloaded.layers
+    ] == before_signature
     reloaded_active = reloaded.active_layer()
     assert reloaded_active is not None and reloaded_active.kind is LayerKind.HEIGHT
     assert reloaded_active.height_data is not None
@@ -131,17 +177,21 @@ def _run_scenario(win: MainWindow, tmp_path: Path) -> list[str]:
     rd.update(reloaded_active.height_data.coverage.tobytes())
     assert rd.hexdigest() == hash_after_op, "Payload nach Save/Open nicht bitgenau"
     notes.append("Save/Open (v2) bitgenau, Ebenenstruktur wertgleich.")
-    return notes
+    return notes, state
 
 
-def test_e2e_release_regression(qapp, tmp_path) -> None:
+def test_e2e_release_regression(qapp, qtbot, tmp_path) -> None:  # type: ignore[no-untyped-def]
     win = MainWindow()
+    native_3d_state = "nicht-erreicht"
+    qtbot.addWidget(win)
+    win.show()
     try:
-        notes = _run_scenario(win, tmp_path)
+        notes, native_3d_state = _run_scenario(win, tmp_path, qtbot)
     except Exception as exc:  # noqa: BLE001 - Evidenz auch bei Fehlschlag schreiben.
-        _emit_evidence("fehlgeschlagen", [f"Abbruch: {exc}"])
+        native_3d_state = win._relief3d_view.state
+        _emit_evidence("fehlgeschlagen", [f"Abbruch: {exc}"], native_3d_state)
         raise
     else:
-        _emit_evidence("bestanden", notes)
+        _emit_evidence("bestanden", notes, native_3d_state)
     finally:
         win.close()

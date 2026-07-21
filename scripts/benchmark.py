@@ -476,6 +476,10 @@ class LiveGlHooks:
     def peak_mb(self) -> float:
         raise NotImplementedError
 
+    def close(self) -> None:
+        """Optionale Freigabe kontextgebundener Ressourcen nach einem Szenario."""
+        return None
+
 
 def measure_preview3d_live(
     mesh: Any, hooks: LiveGlHooks, frames: int = PREVIEW3D_LIVE_FRAMES,
@@ -485,16 +489,19 @@ def measure_preview3d_live(
     ``gl_upload_ms`` (Buffer-Upload), ``gl_first_frame_ms`` (Mesh-Ready → erstes
     Bild), ``gl_frame_ms_p50``/``_p95`` (Orbit-Frames) und ``gl_peak_mb``.
     """
-    upload_ms = hooks.upload(mesh)
-    first_ms = hooks.first_frame()
-    frame_ms = [hooks.frame() for _ in range(max(1, frames))]
-    metrics = {
-        "gl_upload_ms": round(upload_ms, 4),
-        "gl_first_frame_ms": round(first_ms, 4),
-        "gl_peak_mb": round(hooks.peak_mb(), 3),
-    }
-    metrics.update(summarize_frame_times(frame_ms))
-    return metrics
+    try:
+        upload_ms = hooks.upload(mesh)
+        first_ms = hooks.first_frame()
+        frame_ms = [hooks.frame() for _ in range(max(1, frames))]
+        metrics = {
+            "gl_upload_ms": round(upload_ms, 4),
+            "gl_first_frame_ms": round(first_ms, 4),
+            "gl_peak_mb": round(hooks.peak_mb(), 3),
+        }
+        metrics.update(summarize_frame_times(frame_ms))
+        return metrics
+    finally:
+        hooks.close()
 
 
 def _live_height_field(width: int, height: int) -> HeightField:
@@ -546,14 +553,25 @@ class _QtGlLiveHooks(LiveGlHooks):
     def __init__(self, diagnostic: str) -> None:
         self.diagnostic = diagnostic
         self._built = False
+        self._buffer_bytes = 0
+        self._frame_number = 0
+        self._pos: Any = None
+        self._slope: Any = None
+        self._idx: Any = None
+        self._vao: Any = None
 
     def _build(self) -> None:  # pragma: no cover - hardwaregebunden
         from PyQt6.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
         from PyQt6.QtOpenGL import (
             QOpenGLFramebufferObject,
+            QOpenGLShader,
+            QOpenGLShaderProgram,
             QOpenGLVersionFunctionsFactory,
             QOpenGLVersionProfile,
+            QOpenGLVertexArrayObject,
         )
+
+        from bgremover.viewer_3d import _FRAGMENT_SHADER, _VERTEX_SHADER
 
         fmt = QSurfaceFormat()
         fmt.setVersion(2, 1)
@@ -572,7 +590,26 @@ class _QtGlLiveHooks(LiveGlHooks):
         self._fns = QOpenGLVersionFunctionsFactory.get(profile, self._ctx)
         if self._fns is None:
             raise Preview3DLiveUnavailable("Keine GL-2.1-Versionsfunktionen")
-        self._fbo = QOpenGLFramebufferObject(512, 512)
+        self._fbo = QOpenGLFramebufferObject(
+            512, 512, QOpenGLFramebufferObject.Attachment.CombinedDepthStencil,
+        )
+        if not self._fbo.isValid():
+            raise Preview3DLiveUnavailable("GL-Framebuffer ist ungültig")
+
+        self._program = QOpenGLShaderProgram()
+        if not self._program.addShaderFromSourceCode(
+            QOpenGLShader.ShaderTypeBit.Vertex, _VERTEX_SHADER,
+        ):
+            raise Preview3DLiveUnavailable(f"Vertex-Shader: {self._program.log()}")
+        if not self._program.addShaderFromSourceCode(
+            QOpenGLShader.ShaderTypeBit.Fragment, _FRAGMENT_SHADER,
+        ):
+            raise Preview3DLiveUnavailable(f"Fragment-Shader: {self._program.log()}")
+        if not self._program.link():
+            raise Preview3DLiveUnavailable(f"Programm-Link: {self._program.log()}")
+        self._vao = QOpenGLVertexArrayObject()
+        if not self._vao.create():
+            self._vao = None
         self._built = True
 
     def upload(self, mesh: Any) -> float:  # pragma: no cover - hardwaregebunden
@@ -580,45 +617,142 @@ class _QtGlLiveHooks(LiveGlHooks):
             self._build()
         from PyQt6.QtOpenGL import QOpenGLBuffer
 
+        from bgremover.preview3d_camera import OrbitCamera
+
         start = time.perf_counter()
-        self._pos = QOpenGLBuffer(QOpenGLBuffer.Type.VertexBuffer)
-        self._pos.create()
-        self._pos.bind()
         positions = np.ascontiguousarray(mesh.positions, np.float32)
-        self._pos.allocate(positions.tobytes(), positions.nbytes)
-        self._idx = QOpenGLBuffer(QOpenGLBuffer.Type.IndexBuffer)
-        self._idx.create()
-        self._idx.bind()
-        indices = np.ascontiguousarray(mesh.indices, np.uint32)
-        self._idx.allocate(indices.tobytes(), indices.nbytes)
+        slopes = np.ascontiguousarray(mesh.slope, np.float32)
+        indices = np.ascontiguousarray(mesh.indices, np.uint32).ravel()
+        self._pos = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, positions)
+        self._slope = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, slopes)
+        self._idx = self._make_buffer(QOpenGLBuffer.Type.IndexBuffer, indices)
         self._index_count = int(indices.size)
+        self._buffer_bytes = positions.nbytes + slopes.nbytes + indices.nbytes
+        self._camera = OrbitCamera()
+        lo, hi = mesh.bounds
+        self._camera.reset(lo, hi)
         self._fns.glFinish()
         return (time.perf_counter() - start) * 1000.0
 
+    @staticmethod
+    def _make_buffer(buffer_type: Any, data: np.ndarray) -> Any:  # pragma: no cover
+        from PyQt6.QtOpenGL import QOpenGLBuffer
+
+        buffer = QOpenGLBuffer(buffer_type)
+        if not buffer.create():
+            raise Preview3DLiveUnavailable("GL-Buffer konnte nicht erzeugt werden")
+        buffer.bind()
+        raw = data.tobytes()
+        buffer.allocate(raw, len(raw))
+        buffer.release()
+        return buffer
+
+    @staticmethod
+    def _bind_attribute(program: Any, name: str, vbo: Any, components: int) -> None:
+        from bgremover.viewer_3d import _GL_FLOAT
+
+        location = program.attributeLocation(name)
+        if location < 0:
+            raise Preview3DLiveUnavailable(f"Shader-Attribut fehlt: {name}")
+        vbo.bind()
+        program.enableAttributeArray(location)
+        program.setAttributeBuffer(location, _GL_FLOAT, 0, components, 0)
+
     def _draw(self) -> float:  # pragma: no cover - hardwaregebunden
+        from bgremover.viewer_3d import (
+            _GL_COLOR_BUFFER_BIT,
+            _GL_DEPTH_BUFFER_BIT,
+            _GL_DEPTH_TEST,
+            _GL_TRIANGLES,
+            _GL_UNSIGNED_INT,
+            _light_direction,
+            _qmatrix,
+        )
+
         start = time.perf_counter()
+        if not self._ctx.makeCurrent(self._surface):
+            raise Preview3DLiveUnavailable("GL-Kontext vor Frame nicht aktuell")
+        self._camera.orbit(0.75, 0.15)
         self._fbo.bind()
         self._fns.glViewport(0, 0, 512, 512)
-        self._fns.glClear(0x00004000 | 0x00000100)  # COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT
-        self._fns.glDrawElements(0x0004, self._index_count, 0x1405, None)  # TRIANGLES, UINT
+        self._fns.glClearColor(0.02, 0.025, 0.035, 1.0)
+        self._fns.glEnable(_GL_DEPTH_TEST)
+        self._fns.glClear(_GL_COLOR_BUFFER_BIT | _GL_DEPTH_BUFFER_BIT)
+
+        self._program.bind()
+        mvp = self._camera.projection_matrix(1.0) @ self._camera.view_matrix()
+        self._program.setUniformValue(
+            self._program.uniformLocation("u_mvp"), _qmatrix(mvp),
+        )
+        self._program.setUniformValue(
+            self._program.uniformLocation("u_exagg"), 1.0,
+        )
+        lx, ly, lz = _light_direction(315.0, 45.0)
+        self._program.setUniformValue(
+            self._program.uniformLocation("u_light_dir"), lx, ly, lz,
+        )
+        self._program.setUniformValue(
+            self._program.uniformLocation("u_color"), 0.72, 0.74, 0.78,
+        )
+        if self._vao is not None:
+            self._vao.bind()
+        self._bind_attribute(self._program, "a_pos", self._pos, 3)
+        self._bind_attribute(self._program, "a_slope", self._slope, 2)
+        self._idx.bind()
+        self._fns.glDrawElements(
+            _GL_TRIANGLES, self._index_count, _GL_UNSIGNED_INT, None,
+        )
+        self._idx.release()
+        if self._vao is not None:
+            self._vao.release()
+        self._program.release()
         self._fns.glFinish()
         self._fbo.release()
+        self._frame_number += 1
         return (time.perf_counter() - start) * 1000.0
 
     def first_frame(self) -> float:  # pragma: no cover - hardwaregebunden
-        return self._draw()
+        elapsed = self._draw()
+        # Ein Draw-Call allein beweist noch keine Geometrie. Der einmalige
+        # Readback liegt bewusst außerhalb der gemessenen Framezeit und weist
+        # nach, dass der Viewer-Shader tatsächlich Pixel vom Clear-Wert abhebt.
+        image = self._fbo.toImage().scaled(32, 32)
+        colors = {
+            image.pixel(x, y)
+            for y in range(image.height())
+            for x in range(image.width())
+        }
+        if image.isNull() or len(colors) < 2:
+            raise Preview3DLiveUnavailable(
+                "GL-Frame enthält keine nachweisbar gerenderte Geometrie"
+            )
+        return elapsed
 
     def frame(self) -> float:  # pragma: no cover - hardwaregebunden
         return self._draw()
 
     def peak_mb(self) -> float:  # pragma: no cover - hardwaregebunden
-        # Peak-GPU-Speicher ist über GL 2.1 nicht portabel abfragbar; wir melden
-        # den Host-seitigen Peak der Buffer-Payloads als konservative Näherung.
-        pos = getattr(self, "_pos", None)
-        size = 0
-        if pos is not None:
-            size = self._index_count * 4
-        return round(size / (1024.0 * 1024.0), 3)
+        # Peak-GPU-Speicher ist über GL 2.1 nicht portabel abfragbar. Als
+        # reproduzierbare Untergrenze melden wir alle VBO/IBO-Payloads plus
+        # Color- und Depth/Stencil-Attachment des 512²-Framebuffers.
+        framebuffer_bytes = 512 * 512 * 8
+        return round((self._buffer_bytes + framebuffer_bytes) / (1024.0 * 1024.0), 3)
+
+    def close(self) -> None:  # pragma: no cover - hardwaregebunden
+        if not self._built:
+            return
+        try:
+            self._ctx.makeCurrent(self._surface)
+            for buffer in (self._pos, self._slope, self._idx):
+                if buffer is not None:
+                    buffer.destroy()
+            if self._vao is not None:
+                self._vao.destroy()
+            self._fbo = None
+            self._program = None
+        finally:
+            self._ctx.doneCurrent()
+            self._built = False
 
 
 def run_benchmark(
@@ -1325,6 +1459,15 @@ def _cmd_run_preview3d_live(args: argparse.Namespace) -> int:
     Verweigert ohne Hardware-GL-Kontext; ``--require-gl`` macht das zum Fehler
     (Abnahme), sonst ein freundlicher Skip ohne gespeichertes Ergebnis.
     """
+    # QOffscreenSurface setzt eine QGuiApplication voraus. Im normalen App-
+    # Prozess existiert sie bereits; der eigenständige Benchmark legt genau
+    # eine Instanz an und hält sie für alle Szenarien am Leben.
+    from PyQt6.QtGui import QGuiApplication
+
+    gui_app = QGuiApplication.instance()
+    if gui_app is None:
+        gui_app = QGuiApplication(["bgremover-preview3d-live"])
+
     available, diagnostic = probe_live_gl()
     if not available:
         reason = f"Kein Hardware-GL-Kontext (Diagnose: {diagnostic or 'kein GL'})."
@@ -1339,6 +1482,7 @@ def _cmd_run_preview3d_live(args: argparse.Namespace) -> int:
     result = {
         "schema": SCHEMA_VERSION,
         "suite": "preview3d-live",
+        "platform": getattr(args, "platform", None) or "unbekannt",
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git_commit(),
         "iterations": 1,
@@ -1516,6 +1660,10 @@ def main(argv: list[str] | None = None) -> int:
         "--require-gl", action="store_true",
         help="preview3d-live: fehlender Hardware-GL-Kontext ist ein Fehler "
              "(Abnahme-Modus) statt eines freundlichen Skips.",
+    )
+    run_p.add_argument(
+        "--platform", choices=("macos-arm64", "linux-arm64", "linux-x86_64"),
+        help="Evidenz-Plattform für preview3d-live (Abnahme-Workflow).",
     )
     # Rückwärtskompatible, nicht mehr beworbene Aliase. Anders als früher
     # koppelt --height-bench die Formatmessung nicht mehr an die HEIGHT-Suite.

@@ -44,7 +44,10 @@ def test_aggregation_job_scoped_and_posts() -> None:
     text = _workflow_text()
 
     assert "aggregation:" in text
-    assert "needs: [abnahme-macos-arm64, abnahme-linux-arm64]" in text
+    assert (
+        "needs: [abnahme-macos-arm64, abnahme-linux-arm64, "
+        "abnahme-linux-x86_64]" in text
+    )
     assert "if: always() && !inputs.dry_run" in text
     assert "scripts/abnahme_aggregate.py" in text
     assert "scripts/abnahme_vision_check.py" in text
@@ -96,3 +99,34 @@ def test_workflow_runs_hardware_smoke() -> None:
         assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"
     # Evidenz auch bei fehlgeschlagenem Smoke hochladen (Diagnose bleibt sichtbar).
     assert "if: always()" in text
+
+
+def test_workflow_runs_native_e2e_and_persists_evidence() -> None:
+    """Jeder Hardwarepfad verlangt 3D-ready und schreibt E2E-Evidenz (#644)."""
+    text = _workflow_text()
+
+    assert text.count("tests/test_e2e_release_regression.py") == 3
+    assert text.count("ABNAHME_EVIDENCE_DIR:") == 3
+    assert text.count("ABNAHME_PLATFORM:") == 3
+    assert text.count("ABNAHME_REQUIRE_NATIVE_3D: '1'") == 3
+    assert text.count('-e ".[test]" -c requirements/constraints.txt') == 3
+
+
+def test_workflow_installs_vision_sdk_in_dedicated_venv() -> None:
+    """Vision läuft auf einem frischen Runner mit reproduzierbar gepinntem SDK."""
+    text = _workflow_text()
+
+    assert "abnahme-vision-venv" in text
+    assert '"anthropic==0.117.0"' in text
+    assert (
+        '"${RUNNER_TEMP}/abnahme-vision-venv/bin/python" '
+        "scripts/abnahme_vision_check.py" in text
+    )
+
+
+def test_workflow_tags_live_gl_results_with_platform() -> None:
+    """Die Aggregation kann jedes Live-GL-Ergebnis eindeutig zuordnen."""
+    text = _workflow_text()
+
+    for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
+        assert f"--platform {platform}" in text
