@@ -23,7 +23,7 @@ sys.modules["release_abnahme"] = ra
 _SPEC.loader.exec_module(ra)
 
 
-def test_default_fetcher_strips_auth_header_on_redirect() -> None:
+def test_default_fetcher_strips_auth_header_on_cross_host_redirect() -> None:
     # Regression: GitHub-Artefakt-/Asset-Downloads redirecten auf signierte
     # Blob-Storage-URLs; ein weitergereichter Authorization-Header lässt den
     # Blob-Store dort mit 401 scheitern (live auf dem macOS-Runner beobachtet).
@@ -40,6 +40,23 @@ def test_default_fetcher_strips_auth_header_on_redirect() -> None:
     assert not redirected.has_header("Authorization")
     # Andere Header bleiben erhalten, nur Authorization wird entfernt.
     assert redirected.has_header("Accept")
+
+
+def test_default_fetcher_keeps_auth_header_on_same_host_redirect() -> None:
+    # Bleibt der Redirect auf demselben Host (z. B. api.github.com nach einer
+    # Repo-Umbenennung), muss der Token erhalten bleiben – sonst scheitern
+    # private Downloads dort unautorisiert (Codex-Review zu PR #654).
+    handler = ra._StripAuthOnRedirect()
+    original = urllib.request.Request(
+        "https://api.github.com/repos/o/old-name/releases/assets/1",
+        headers={"Authorization": "Bearer secret-token"},
+    )
+    redirected = handler.redirect_request(
+        original, None, 301, "Moved Permanently", None,
+        "https://api.github.com/repos/o/new-name/releases/assets/1",
+    )
+    assert redirected is not None
+    assert redirected.has_header("Authorization")
 
 
 def test_matches_platform() -> None:
