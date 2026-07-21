@@ -27,6 +27,7 @@ import argparse
 import importlib.util
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,6 +44,10 @@ DEB_KNOWN_PATHS = (
     "/usr/share/applications/de.bgremover.app.desktop",
     "/usr/share/icons/hicolor/512x512/apps/de.bgremover.app.png",
 )
+
+# Wegwerf-Kopie des App-Bundles fuer den DMG-Smoke (#643): das Original bleibt
+# auf dem read-only DMG-Mount, der direkt danach detacht wird.
+TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 
 # Offener Nachweis: Grenze dieses Smokes bis #648 (nativer Start + Screenshot).
 NATIVE_3D_CAVEAT = (
@@ -213,6 +218,21 @@ def parse_mount_point(hdiutil_stdout: str) -> str | None:
     return None
 
 
+def parse_disk_identifier(hdiutil_stdout: str) -> str | None:
+    """Geraete-Kennung (``/dev/diskN…``) aus der ``hdiutil attach``-Ausgabe.
+
+    Fallback fuer ``hdiutil detach``, falls der Mount-Pfad nicht geparst werden
+    konnte: ``attach`` war dann trotzdem erfolgreich (ein Volume ist gemountet),
+    der Cleanup-Trap muss es auch ohne bekannten Mount-Pfad wieder loesen
+    (#643-Fund, sonst bleibt ein Volume haengen).
+    """
+    for line in hdiutil_stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("/dev/"):
+            return stripped.split()[0]
+    return None
+
+
 def run_macos_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober, scale_factor: float,
 ) -> SmokeReport:
@@ -242,23 +262,89 @@ def run_macos_smoke(
 def _macos_dmg(path: str, report: SmokeReport, runner: Runner) -> None:
     name = Path(path).name
     attach = runner(["hdiutil", "attach", "-nobrowse", "-readonly", path])
-    mount = parse_mount_point(attach.stdout)
-    if attach.returncode != 0 or not mount:
+    if attach.returncode != 0:
         report.fail(f"DMG-Mount fehlgeschlagen: {name}")
         return
+    mount = parse_mount_point(attach.stdout)
+    disk_id = parse_disk_identifier(attach.stdout)
+    # Cleanup-Trap: ``attach`` war erfolgreich, also ist ein Volume gemountet –
+    # detach in jedem Fall versuchen, auch wenn der Mount-Pfad nicht geparst
+    # werden konnte (sonst bleibt es haengen, #643-Fund).
     try:
-        listing = runner(["/bin/sh", "-c", f"ls -d {mount}/*.app"])
-        app = listing.stdout.strip().splitlines()[0] if listing.stdout.strip() else ""
-        if not app:
-            report.fail(f"Keine .app im DMG gefunden: {name}")
-            return
-        binary = f"{app}/Contents/MacOS/{Path(app).stem}"
-        started = _guard(runner, [binary], match=Path(app).name, max_instances=5)
-        report.ok(f"DMG-Start ok: {name}") if started.returncode == 0 else report.fail(
-            f"DMG-Start fehlgeschlagen ({started.returncode}): {name}"
-        )
+        _macos_dmg_mounted(name, mount, report, runner)
     finally:
-        runner(["hdiutil", "detach", mount])
+        detach_target = mount or disk_id
+        if detach_target:
+            runner(["hdiutil", "detach", detach_target])
+
+
+def _macos_dmg_mounted(
+    dmg_name: str, mount: str | None, report: SmokeReport, runner: Runner,
+) -> None:
+    if not mount:
+        report.fail(f"DMG-Mount-Pfad nicht erkannt: {dmg_name}")
+        return
+    listing = runner(["/bin/sh", "-c", f"ls -d {mount}/*.app"])
+    app = listing.stdout.strip().splitlines()[0] if listing.stdout.strip() else ""
+    if not app:
+        report.fail(f"Keine .app im DMG gefunden: {dmg_name}")
+        return
+    temp_app = _copy_app_to_temp(app, report, runner)
+    if temp_app is None:
+        return
+    try:
+        _start_macos_app(temp_app, dmg_name, report, runner)
+    finally:
+        runner(["rm", "-rf", temp_app])
+
+
+def _copy_app_to_temp(app: str, report: SmokeReport, runner: Runner) -> str | None:
+    """Kopiert das App-Bundle vom read-only DMG-Mount in eine Temp-Wegwerfkopie.
+
+    Noetig aus zwei Gruenden: (1) Quarantaene laesst sich auf einem read-only
+    Mount nicht entfernen, (2) der DMG-Mount kann sofort danach detacht werden,
+    statt waehrend des ganzen App-Laufs belegt zu bleiben (#643-Fund).
+    """
+    temp_app = f"{TEMP_DMG_ROOT}/{Path(app).name}"
+    if runner(["rm", "-rf", temp_app]).returncode != 0:
+        report.fail(f"Temp-Verzeichnis konnte nicht bereinigt werden: {temp_app}")
+        return None
+    if runner(["mkdir", "-p", TEMP_DMG_ROOT]).returncode != 0:
+        report.fail(f"Temp-Verzeichnis konnte nicht angelegt werden: {TEMP_DMG_ROOT}")
+        return None
+    if runner(["cp", "-R", app, temp_app]).returncode != 0:
+        report.fail(f"App-Bundle konnte nicht in Temp kopiert werden: {app}")
+        return None
+    # Quarantaene NUR auf der Temp-Kopie entfernen: das lokal gebaute,
+    # unsignierte Artefakt wuerde Gatekeeper sonst beim Start blockieren. Die
+    # Kopie existiert ausschliesslich fuer diesen Smoke und wird danach wieder
+    # geloescht – kein dauerhafter Gatekeeper-Bypass des Originals.
+    runner(["xattr", "-r", "-d", "com.apple.quarantine", temp_app])
+    return temp_app
+
+
+def _start_macos_app(app: str, dmg_name: str, report: SmokeReport, runner: Runner) -> None:
+    binary = f"{app}/Contents/MacOS/{Path(app).stem}"
+    match = Path(app).name
+    max_instances = _fork_limit(dmg_name)
+    if max_instances > 1:
+        # KI-Variante (-ai-DMG): denselben Selbsttest wie release-linux.yml
+        # fahren (rembg-Kette im Spawn-Kindprozess importierbar).
+        selfcheck = _guard(
+            runner, ["env", "BGREMOVER_AI_SELFCHECK=1", binary],
+            match=match, max_instances=max_instances,
+        )
+        if selfcheck.returncode == 0:
+            report.ok(f"KI-Selbsttest ok: {dmg_name}")
+        else:
+            report.fail(f"KI-Selbsttest fehlgeschlagen ({selfcheck.returncode}): {dmg_name}")
+    start = time.monotonic()
+    started = _guard(runner, [binary], match=match, max_instances=max_instances)
+    elapsed = time.monotonic() - start
+    if started.returncode == 0:
+        report.ok(f"DMG-Start ok: {dmg_name} (Startzeit {elapsed:.1f}s)")
+    else:
+        report.fail(f"DMG-Start fehlgeschlagen ({started.returncode}): {dmg_name}")
 
 
 def main(argv: list[str] | None = None) -> int:
