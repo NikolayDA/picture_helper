@@ -92,16 +92,25 @@ Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
 wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
-(macOS) Retina. Danach führt derselbe Hardware-Job die native
+(macOS) Retina. Innerhalb desselben Smoke-Schritts startet das Hauptartefakt
+(AppImage bzw. das aus dem DMG kopierte `.app`-Bundle) ein zweites Mal – über
+`smoke_launch.py --native` (kein erzwungenes `offscreen`) mit dem
+Automationshook `BGREMOVER_SCREENSHOT_3D` – und liefert Screenshot samt
+GL-Provenance-Sidecar direkt aus dem **laufenden gepackten Prozess** (#648):
+Beispielbild synthetisieren → Höhenkarte erzeugen → 3D-Vorschau aktivieren →
+Framebuffer-Grab, sobald der Viewer `ready` ist. Ein Software-Renderer lässt
+diesen Nachweis fehlschlagen (dasselbe Gate wie die Runner-Hardware-Provenance
+oben); Screenshot und Sidecar landen unter `screenshots/` in der
+Plattform-Evidenz. Danach führt derselbe Hardware-Job die native
 MainWindow-E2E-Regression aus (Bild öffnen → HEIGHT → 3D-`ready` samt
 hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open) und schreibt
-`e2e-evidenz.json`. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
+`e2e-evidenz.json` – dieser Nachweis läuft weiterhin aus dem **Source-
+Checkout** heraus (`pytest` gegen das installierte `bgremover`-Paket), nicht
+aus dem gepackten Artefakt; genau diese Lücke schließt der neue native
+3D-Screenshot oben. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
 die 1-/16-/40-MP-Szenarien und speichert alle fünf GL-Metriken plus
-Renderer-Provenance unter `preview3d-live/`. **Offen deklariert:** das *native*
-3D-Rendering des **gepackten Artefakts** prüfen diese Source-Checkout-Nachweise
-noch nicht (der Artefakt-Start-Wächter läuft headless); der native Paketstart
-mit Screenshot ist als Folge-Issue #648 ausgelagert. Bis dahin trägt jede
-Plattform-Evidenz den Hinweis `NATIVE_3D_CAVEAT`.
+Renderer-Provenance unter `preview3d-live/` (ebenfalls aus dem Source-
+Checkout).
 
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from typing import cast
 
 from bgremover.qt_plugins import ensure_qt_plugin_path
@@ -143,5 +144,24 @@ def main() -> int:
     if os.environ.get("BGREMOVER_SMOKE_TEST"):
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(0, app.quit)
+
+    # Nativer 3D-Screenshot-Automationshook (#648): ist BGREMOVER_SCREENSHOT_3D
+    # gesetzt (Zielpfad der PNG), fährt die App den Automationsablauf (Beispielbild
+    # → Höhenkarte → 3D-Vorschau → Framebuffer-Grab) und beendet sich mit dem
+    # Ergebnis-Exit-Code. Bewusst NICHT offscreen – anders als BGREMOVER_SMOKE_TEST
+    # lässt dieser Hook QT_QPA_PLATFORM unverändert, die GL-Provenance muss aus
+    # diesem laufenden, gepackten Prozess stammen.
+    screenshot_target = os.environ.get("BGREMOVER_SCREENSHOT_3D")
+    if screenshot_target:
+        from PyQt6.QtCore import QTimer
+
+        from bgremover.screenshot3d import run_native_3d_screenshot
+
+        def _run_screenshot_hook() -> None:
+            result = run_native_3d_screenshot(win, Path(screenshot_target))
+            print(result.message)
+            app.exit(0 if result.ok else 1)
+
+        QTimer.singleShot(0, _run_screenshot_hook)
 
     return app.exec()

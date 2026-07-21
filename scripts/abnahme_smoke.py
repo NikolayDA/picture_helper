@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Release-Abnahme-Smoke auf echter Hardware (#642 Linux, #643 macOS).
+"""Release-Abnahme-Smoke auf echter Hardware (#642 Linux, #643 macOS, #648 nativer 3D-Screenshot).
 
 Baut auf ``release_abnahme.py`` auf: bezieht die Artefakte, startet sie auf dem
 Self-hosted Runner (Start-/Fork-Bomb-/Hänger-Invarianten über den bestehenden
@@ -8,12 +8,17 @@ erfasst die GL-Provenance (echte Runner-Hardware) und schreibt die zum Ergebnis
 fortgeschriebene Evidenz.
 
 **Was dieser Smoke belegt:** sauberer Start ohne Crash/Fork-Bomb/Hänger,
-GL-Provenance der Runner-Hardware, rückstandsfreie ``.deb``-Installation und
-(macOS) Retina/High-DPI. **Was er (noch) nicht belegt:** das *native*
-3D-Rendering des gepackten Artefakts – der Wächter startet headless
-(``offscreen``), die Provenance stammt aus dem Source-Checkout. Der native
-Start mit Screenshot ist als Folge-Issue #648 ausgelagert; die Evidenz
-deklariert diese Grenze bis dahin offen (``NATIVE_3D_CAVEAT``).
+GL-Provenance der Runner-Hardware, rückstandsfreie ``.deb``-Installation,
+(macOS) Retina/High-DPI **und** das native 3D-Rendering des gepackten
+Artefakts selbst (#648): das Hauptartefakt (AppImage bzw. das aus dem DMG
+kopierte ``.app``-Bundle) startet ein zweites Mal – diesmal über
+``smoke_launch.py --native`` (kein erzwungenes ``offscreen``) mit dem
+Automationshook ``BGREMOVER_SCREENSHOT_3D`` – und liefert Screenshot samt
+Provenance-Sidecar direkt aus dem laufenden gepackten Prozess (nicht aus dem
+Source-Checkout wie der native E2E-Nachweis in #644). Ein Software-Renderer
+lässt diesen Nachweis scheitern (geteiltes Gate aus
+``bgremover.renderer_provenance``, dieselbe Regel wie die Runner-Hardware-
+Provenance oben).
 
 Alle Pass/Fail-Entscheidungen liegen in den getesteten Funktionen von
 ``release_abnahme``. Die OS-Kommandos laufen über einen injizierbaren
@@ -25,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import subprocess
 import sys
 import time
@@ -49,11 +55,12 @@ DEB_KNOWN_PATHS = (
 # auf dem read-only DMG-Mount, der direkt danach detacht wird.
 TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 
-# Offener Nachweis: Grenze dieses Smokes bis #648 (nativer Start + Screenshot).
-NATIVE_3D_CAVEAT = (
-    "Nativer 3D-Render-Nachweis des gepackten Artefakts steht aus (#648): "
-    "Start-Wächter läuft headless, GL-Provenance stammt vom Runner."
-)
+# Nativer 3D-Screenshot-Nachweis (#648): großzügigeres Timeout als der
+# Headless-Start – Shader-Compile + erster Mesh-Build auf echter (ggf.
+# schwächerer Raspberry-Pi-)Hardware brauchen spürbar länger als der reine
+# Prozessstart.
+NATIVE_3D_TIMEOUT = 180
+NATIVE_3D_SCREENSHOT_NAME = "native_preview3d_ready.png"
 
 
 def _load_release_abnahme():  # type: ignore[no-untyped-def]
@@ -91,6 +98,7 @@ class SmokeReport:
     passed: bool = True
     gl_diagnostic: str | None = None
     notes: list[str] = field(default_factory=list)
+    native_3d_attempted: bool = False
 
     def fail(self, note: str) -> None:
         self.passed = False
@@ -163,6 +171,60 @@ def _run_ai_selfcheck_if_needed(
         report.fail(f"KI-Selbsttest fehlgeschlagen ({selfcheck.returncode}): {name}")
 
 
+def _native_3d_screenshot(
+    runner: Runner,
+    launch_cmd: list[str],
+    *,
+    match: str,
+    max_instances: int,
+    label: str,
+    report: SmokeReport,
+    screenshot_dir: Path,
+) -> None:
+    """Nativer 3D-Render-Nachweis des gepackten Artefakts (#648).
+
+    Startet dasselbe Artefakt-Kommando wie der Headless-Smoke ein zweites Mal
+    – über ``smoke_launch.py --native`` (kein erzwungenes ``offscreen``/
+    ``BGREMOVER_SMOKE_TEST``) mit dem Automationshook
+    ``BGREMOVER_SCREENSHOT_3D``. Der Fork-Bomb-/Hänger-Wächter bleibt aktiv;
+    nur der erzwungene Offscreen-Betrieb entfällt. Läuft nur einmal je
+    Plattform (``report.native_3d_attempted``), auch wenn mehrere
+    Artefaktklassen dasselbe Binary starten (z. B. AppImage + installiertes
+    ``.deb``-AppImage unter derselben Zielhardware).
+    """
+    if report.native_3d_attempted:
+        return
+    report.native_3d_attempted = True
+
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    target = (screenshot_dir / NATIVE_3D_SCREENSHOT_NAME).resolve()
+    result = runner([
+        sys.executable, str(SMOKE_LAUNCH),
+        "--match", match,
+        "--max-instances", str(max_instances),
+        "--timeout", str(NATIVE_3D_TIMEOUT),
+        "--native",
+        "--env", f"BGREMOVER_SCREENSHOT_3D={target}",
+        "--", *launch_cmd,
+    ])
+    sidecar = target.with_name(target.name + ".json")
+    if result.returncode != 0 or not target.is_file() or not sidecar.is_file():
+        detail = (result.stderr or result.stdout or "").strip()
+        report.fail(f"Nativer 3D-Screenshot fehlgeschlagen ({label}): {detail or 'kein Screenshot erzeugt'}")
+        return
+    try:
+        provenance = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        report.fail(f"Nativer 3D-Screenshot: Provenance-JSON unlesbar ({label}): {exc}")
+        return
+
+    verdict = ra.evaluate_gl_provenance(str(provenance.get("gl_provenance") or ""))
+    if verdict.ok:
+        report.ok(f"Nativer 3D-Screenshot ok ({label}): {verdict.note}")
+    else:
+        report.fail(f"Nativer 3D-Screenshot: {verdict.note} ({label})")
+
+
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:
     """Prüft, dass genau die erwarteten Artefaktklassen vorliegen (kein Teilsatz)."""
     present = {Path(a).suffix for a in artefacts}
@@ -180,6 +242,7 @@ def _require_extensions(artefacts: list[str], required: set[str], report: SmokeR
 
 def run_linux_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober,
+    screenshot_dir: Path,
 ) -> SmokeReport:
     """AppImage- und ``.deb``-Smoke auf einem Linux-Runner (#642)."""
     _require_extensions(artefacts, {".AppImage", ".deb"}, report)
@@ -190,15 +253,14 @@ def run_linux_smoke(
 
     for artefact in artefacts:
         if artefact.endswith(".AppImage"):
-            _linux_appimage(artefact, report, runner)
+            _linux_appimage(artefact, report, runner, screenshot_dir)
         elif artefact.endswith(".deb"):
             _linux_deb(artefact, report, runner)
 
-    report.ok(NATIVE_3D_CAVEAT)
     return report
 
 
-def _linux_appimage(path: str, report: SmokeReport, runner: Runner) -> None:
+def _linux_appimage(path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path) -> None:
     name = Path(path).name
     runner(["chmod", "+x", path])
     max_instances = _fork_limit(name)
@@ -210,6 +272,10 @@ def _linux_appimage(path: str, report: SmokeReport, runner: Runner) -> None:
     result = _guard(runner, launch_cmd, match=name, max_instances=max_instances)
     if result.returncode == 0:
         report.ok(f"AppImage-Start ok: {name}")
+        _native_3d_screenshot(
+            runner, launch_cmd, match=name, max_instances=max_instances,
+            label=name, report=report, screenshot_dir=screenshot_dir,
+        )
     else:
         report.fail(f"AppImage-Start fehlgeschlagen ({result.returncode}): {name}")
 
@@ -278,6 +344,7 @@ def parse_disk_identifier(hdiutil_stdout: str) -> str | None:
 
 def run_macos_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober, scale_factor: float,
+    screenshot_dir: Path,
 ) -> SmokeReport:
     """DMG-Smoke inkl. Retina-Nachweis auf einem macOS-Runner (#643)."""
     _require_extensions(artefacts, {".dmg"}, report)
@@ -296,13 +363,12 @@ def run_macos_smoke(
 
     for artefact in artefacts:
         if artefact.endswith(".dmg"):
-            _macos_dmg(artefact, report, runner)
+            _macos_dmg(artefact, report, runner, screenshot_dir)
 
-    report.ok(NATIVE_3D_CAVEAT)
     return report
 
 
-def _macos_dmg(path: str, report: SmokeReport, runner: Runner) -> None:
+def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path) -> None:
     name = Path(path).name
     attach = runner(["hdiutil", "attach", "-nobrowse", "-readonly", path])
     if attach.returncode != 0:
@@ -326,7 +392,7 @@ def _macos_dmg(path: str, report: SmokeReport, runner: Runner) -> None:
     if temp_app is None:
         return
     try:
-        _start_macos_app(temp_app, name, report, runner)
+        _start_macos_app(temp_app, name, report, runner, screenshot_dir)
     finally:
         runner(["rm", "-rf", temp_app])
 
@@ -375,7 +441,9 @@ def _copy_app_to_temp(app: str, report: SmokeReport, runner: Runner) -> str | No
     return temp_app
 
 
-def _start_macos_app(app: str, dmg_name: str, report: SmokeReport, runner: Runner) -> None:
+def _start_macos_app(
+    app: str, dmg_name: str, report: SmokeReport, runner: Runner, screenshot_dir: Path,
+) -> None:
     binary = f"{app}/Contents/MacOS/{Path(app).stem}"
     match = Path(app).name
     max_instances = _fork_limit(dmg_name)
@@ -387,6 +455,10 @@ def _start_macos_app(app: str, dmg_name: str, report: SmokeReport, runner: Runne
     elapsed = time.monotonic() - start
     if started.returncode == 0:
         report.ok(f"DMG-Start ok: {dmg_name} (Startzeit {elapsed:.1f}s)")
+        _native_3d_screenshot(
+            runner, [binary], match=match, max_instances=max_instances,
+            label=dmg_name, report=report, screenshot_dir=screenshot_dir,
+        )
     else:
         report.fail(f"DMG-Start fehlgeschlagen ({started.returncode}): {dmg_name}")
 
@@ -408,12 +480,14 @@ def main(argv: list[str] | None = None) -> int:
         str(args.evidence_dir / "artefakte" / a["name"]) for a in evidence["artefakte"]
     ]
 
+    screenshot_dir = args.evidence_dir / "screenshots"
     report = SmokeReport()
     if args.platform.startswith("linux"):
-        run_linux_smoke(artefacts, report, _default_runner, _default_prober)
+        run_linux_smoke(artefacts, report, _default_runner, _default_prober, screenshot_dir)
     else:
         run_macos_smoke(
             artefacts, report, _default_runner, _default_prober, args.scale_factor,
+            screenshot_dir,
         )
 
     finalized = ra.finalize_evidence(
