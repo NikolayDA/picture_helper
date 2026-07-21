@@ -385,6 +385,26 @@ def test_linux_smoke_native_3d_screenshot_runs_once_for_appimage_and_deb(tmp_pat
     assert "BGREMOVER_SCREENSHOT_3D=" in native_calls[0]
 
 
+def test_native_3d_screenshot_passes_readiness_timeout_to_hook(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Reicht ``NATIVE_3D_READINESS_TIMEOUT_MS`` als ``--env`` an den
+    Automationshook durch (Codex-Fund, PR #652) – sonst bliebe das für
+    schwache Zielhardware großzügigere ``NATIVE_3D_TIMEOUT`` für den Hook
+    selbst wirkungslos, weil er an seinem eigenen 25s-Default scheitert."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._native_3d_screenshot(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, screenshot_dir=tmp_path / "shots",
+    )
+    native_calls = [c for c in calls if "smoke_launch.py" in c and "--native" in c]
+    assert len(native_calls) == 1
+    assert (
+        f"BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS={smoke.NATIVE_3D_READINESS_TIMEOUT_MS}"
+        in native_calls[0]
+    )
+    assert smoke.NATIVE_3D_READINESS_TIMEOUT_MS < smoke.NATIVE_3D_TIMEOUT * 1000
+
+
 def test_macos_smoke_writes_native_3d_screenshot_and_provenance(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     screenshot_dir = tmp_path / "shots"
     report = smoke.SmokeReport()

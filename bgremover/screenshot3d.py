@@ -3,7 +3,8 @@
 Erzeugt ohne manuelle Interaktion einen Screenshot der 3D-Reliefvorschau aus
 dem **laufenden Prozess** heraus: synthetisches Beispielbild laden →
 Höhenkarte erzeugen → 3D-Ansicht aktivieren → auf den ``ready``-Zustand warten
-→ Framebuffer-Grab des echten GL-Viewers → PNG + Provenance-JSON schreiben.
+→ Fenster-Grab (GL-Viewer **und** 3D-Inspector-Bedienelemente, für die
+Vision-Kriterien aus #646) → PNG + Provenance-JSON schreiben.
 
 Der Hook wird über die Umgebungsvariable ``BGREMOVER_SCREENSHOT_3D`` (Pfad der
 Ziel-PNG) in ``bgremover.app.main`` aktiviert – analog zu den bestehenden
@@ -139,7 +140,12 @@ def run_native_3d_screenshot(
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not viewer.grab().save(str(output_path)):
+    # Ganzes Fenster grabben, nicht nur den GL-Viewer: die Vision-Vorbewertung
+    # (#646, ``criteria_for``) bewertet ``*preview3d*ready*`` u. a. gegen
+    # ``controls_sichtbar`` (3D-Inspector-Bedienelemente) – ein reiner
+    # Viewport-Screenshot könnte dieses Kriterium nie erfüllen (Codex-Fund,
+    # PR #652).
+    if not window.grab().save(str(output_path)):
         return Screenshot3DResult(False, state, diagnostic, f"Screenshot nicht speicherbar: {output_path}")
 
     _write_provenance(output_path, diagnostic)

@@ -147,18 +147,28 @@ def main() -> int:
 
     # Nativer 3D-Screenshot-Automationshook (#648): ist BGREMOVER_SCREENSHOT_3D
     # gesetzt (Zielpfad der PNG), fährt die App den Automationsablauf (Beispielbild
-    # → Höhenkarte → 3D-Vorschau → Framebuffer-Grab) und beendet sich mit dem
+    # → Höhenkarte → 3D-Vorschau → Fenster-Grab) und beendet sich mit dem
     # Ergebnis-Exit-Code. Bewusst NICHT offscreen – anders als BGREMOVER_SMOKE_TEST
     # lässt dieser Hook QT_QPA_PLATFORM unverändert, die GL-Provenance muss aus
-    # diesem laufenden, gepackten Prozess stammen.
+    # diesem laufenden, gepackten Prozess stammen. BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS
+    # (optional) reicht das Bereitschafts-Timeout des äußeren Wächters durch –
+    # ohne das bliebe der von abnahme_smoke.py für schwache Zielhardware (z. B.
+    # Raspberry Pi) konfigurierte großzügigere Timeout wirkungslos, weil dieser
+    # Hook sonst am eigenen, kürzeren Default scheitert (Codex-Fund, PR #652).
     screenshot_target = os.environ.get("BGREMOVER_SCREENSHOT_3D")
     if screenshot_target:
         from PyQt6.QtCore import QTimer
 
         from bgremover.screenshot3d import run_native_3d_screenshot
 
+        screenshot_timeout_ms = int(
+            os.environ.get("BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS", "25000")
+        )
+
         def _run_screenshot_hook() -> None:
-            result = run_native_3d_screenshot(win, Path(screenshot_target))
+            result = run_native_3d_screenshot(
+                win, Path(screenshot_target), timeout_ms=screenshot_timeout_ms,
+            )
             print(result.message)
             app.exit(0 if result.ok else 1)
 

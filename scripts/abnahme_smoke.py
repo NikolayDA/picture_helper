@@ -61,6 +61,13 @@ TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 # Prozessstart.
 NATIVE_3D_TIMEOUT = 180
 NATIVE_3D_SCREENSHOT_NAME = "native_preview3d_ready.png"
+# Bereitschafts-Timeout des Automationshooks selbst (BGREMOVER_SCREENSHOT_3D_
+# TIMEOUT_MS, siehe bgremover/app.py) – bewusst kleiner als NATIVE_3D_TIMEOUT:
+# der äußere Wächter (smoke_launch.py) braucht danach noch Zeit für
+# Prozessstart, Screenshot-/Provenance-Schreiben und sauberes Beenden, bevor
+# sein eigenes Timeout greift (Codex-Fund, PR #652 – sonst bliebe das
+# großzügigere NATIVE_3D_TIMEOUT für den Hook selbst wirkungslos).
+NATIVE_3D_READINESS_TIMEOUT_MS = (NATIVE_3D_TIMEOUT - 30) * 1000
 
 
 def _load_release_abnahme():  # type: ignore[no-untyped-def]
@@ -205,6 +212,7 @@ def _native_3d_screenshot(
         "--timeout", str(NATIVE_3D_TIMEOUT),
         "--native",
         "--env", f"BGREMOVER_SCREENSHOT_3D={target}",
+        "--env", f"BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS={NATIVE_3D_READINESS_TIMEOUT_MS}",
         "--", *launch_cmd,
     ])
     sidecar = target.with_name(target.name + ".json")
