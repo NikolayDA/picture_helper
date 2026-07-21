@@ -396,6 +396,231 @@ def benchmark_height_pipeline(
     return metrics
 
 
+# ── Live-GL-Performance-Suite (#645) ────────────────────────────────────────
+# Misst die GPU-gebundenen Metriken der 3D-Vorschau (Zeit bis erstes Bild,
+# VBO/IBO-Upload, Framerate, Peak-Speicher). Diese brauchen einen echten
+# Hardware-GL-Kontext; die Offscreen-CI kann sie nicht ehrlich liefern und die
+# Suite verweigert dort die Messung. Die Messlogik selbst ist über injizierbare
+# Hooks Qt-frei getestet; nur der reale Hook (``_QtGlLiveHooks``) berührt Qt/GL.
+
+# Szenarien wie die HEIGHT-Suite; Frames je Szenario für die Frame-Zeit-Statistik.
+PREVIEW3D_LIVE_SIZES: dict[str, tuple[int, int]] = {
+    "HEIGHT16-1MP": (1000, 1000),
+    "HEIGHT16-16MP": (4000, 4000),
+    "HEIGHT16-40MP": (8000, 5000),
+}
+PREVIEW3D_LIVE_FRAMES = 60
+
+
+class Preview3DLiveUnavailable(RuntimeError):
+    """Kein echter Hardware-GL-Kontext – die Live-Messung wird verweigert."""
+
+
+def _percentile(values: list[float], q: float) -> float:
+    """Linear interpoliertes Perzentil ``q`` (0..100) einer Messreihe."""
+    if not values:
+        return float("nan")
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    rank = (q / 100.0) * (len(ordered) - 1)
+    low = int(rank)
+    high = min(low + 1, len(ordered) - 1)
+    frac = rank - low
+    return ordered[low] * (1.0 - frac) + ordered[high] * frac
+
+
+def summarize_frame_times(frame_ms: list[float]) -> dict[str, float]:
+    """Frame-Zeiten zu p50/p95 verdichten (→ Framerate-Aussage)."""
+    return {
+        "gl_frame_ms_p50": round(_percentile(frame_ms, 50.0), 4),
+        "gl_frame_ms_p95": round(_percentile(frame_ms, 95.0), 4),
+    }
+
+
+def probe_live_gl() -> tuple[bool, str]:
+    """Prüft, ob ein echter Hardware-GL-Kontext vorliegt.
+
+    Nutzt dieselbe Capability-Probe wie der Viewer und die geteilte
+    Software-Renderer-Regel (``bgremover.renderer_provenance``). Liefert
+    ``(verfügbar, diagnose)``; Software-Renderer (llvmpipe) gelten als **nicht**
+    verfügbar.
+    """
+    from bgremover.preview3d_capability import probe_3d_capability
+    from bgremover.renderer_provenance import is_software_renderer
+
+    capability = probe_3d_capability(use_cache=False)
+    if not capability.ok:
+        return False, ""
+    if is_software_renderer(capability.diagnostic):
+        return False, capability.diagnostic
+    return True, capability.diagnostic
+
+
+class LiveGlHooks:
+    """Injizierbare GL-Messhaken (Qt-frei testbar über Fakes).
+
+    Alle Zeitmessungen in Millisekunden. Der Default-Hook (``_QtGlLiveHooks``)
+    berührt Qt/GL; Tests reichen einen Fake mit festen Zeiten herein.
+    """
+
+    def upload(self, mesh: Any) -> float:
+        raise NotImplementedError
+
+    def first_frame(self) -> float:
+        raise NotImplementedError
+
+    def frame(self) -> float:
+        raise NotImplementedError
+
+    def peak_mb(self) -> float:
+        raise NotImplementedError
+
+
+def measure_preview3d_live(
+    mesh: Any, hooks: LiveGlHooks, frames: int = PREVIEW3D_LIVE_FRAMES,
+) -> dict[str, float]:
+    """Live-GL-Metriken aus den Hooks zusammensetzen (reine Orchestrierung).
+
+    ``gl_upload_ms`` (Buffer-Upload), ``gl_first_frame_ms`` (Mesh-Ready → erstes
+    Bild), ``gl_frame_ms_p50``/``_p95`` (Orbit-Frames) und ``gl_peak_mb``.
+    """
+    upload_ms = hooks.upload(mesh)
+    first_ms = hooks.first_frame()
+    frame_ms = [hooks.frame() for _ in range(max(1, frames))]
+    metrics = {
+        "gl_upload_ms": round(upload_ms, 4),
+        "gl_first_frame_ms": round(first_ms, 4),
+        "gl_peak_mb": round(hooks.peak_mb(), 3),
+    }
+    metrics.update(summarize_frame_times(frame_ms))
+    return metrics
+
+
+def _live_height_field(width: int, height: int) -> HeightField:
+    """Deterministisches, glattes 16-Bit-Höhenfeld für die Live-Messung."""
+    from bgremover.height_map import HeightField
+
+    ys = np.linspace(0.0, 1.0, height, dtype=np.float32)[:, None]
+    xs = np.linspace(0.0, 1.0, width, dtype=np.float32)[None, :]
+    ramp = (0.5 + 0.5 * np.sin(6.28318 * (xs + ys))) * 65535.0
+    values = ramp.astype(np.uint16)
+    coverage = np.full((height, width), 255, np.uint8)
+    return HeightField(values, coverage, max_value=65535)
+
+
+def benchmark_preview3d_live(
+    width: int, height: int, quality: Any | None = None,
+    hooks: LiveGlHooks | None = None, frames: int = PREVIEW3D_LIVE_FRAMES,
+) -> dict[str, float]:
+    """Live-GL-Suite für **ein** Szenario (Mesh-Build → GL-Messung).
+
+    Baut das Mesh über den echten Geometriekern und misst die GPU-gebundenen
+    Metriken über die Hooks. Ohne echten Hardware-GL-Kontext (bzw. mit
+    Software-Renderer) wirft die Funktion ``Preview3DLiveUnavailable`` – sie
+    liefert nie stumm llvmpipe-Werte als Hardware-Protokoll.
+    """
+    from bgremover.relief_mesh import MeshQuality, build_relief_mesh
+
+    if hooks is None:
+        available, diagnostic = probe_live_gl()
+        if not available:
+            raise Preview3DLiveUnavailable(
+                f"Kein Hardware-GL-Kontext für die Live-Messung (Diagnose: "
+                f"{diagnostic or 'kein GL'})."
+            )
+        hooks = _QtGlLiveHooks(diagnostic)
+    mesh = build_relief_mesh(_live_height_field(width, height), quality or MeshQuality.STANDARD)
+    return measure_preview3d_live(mesh, hooks, frames)
+
+
+class _QtGlLiveHooks(LiveGlHooks):
+    """Realer GL-Hook: Offscreen-Kontext + Viewer-Shader (hardware-only, #645).
+
+    **In der Offscreen-CI nicht ausführbar** (dort greift die Verweigerung in
+    ``benchmark_preview3d_live``); wird auf einem Self-hosted Runner mit echter
+    GPU zum ersten Mal validiert. Wiederverwendet exakt die Kontext-Erzeugung
+    der Capability-Probe und die GLSL-Quellen aus ``viewer_3d``.
+    """
+
+    def __init__(self, diagnostic: str) -> None:
+        self.diagnostic = diagnostic
+        self._built = False
+
+    def _build(self) -> None:  # pragma: no cover - hardwaregebunden
+        from PyQt6.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
+        from PyQt6.QtOpenGL import (
+            QOpenGLFramebufferObject,
+            QOpenGLVersionFunctionsFactory,
+            QOpenGLVersionProfile,
+        )
+
+        fmt = QSurfaceFormat()
+        fmt.setVersion(2, 1)
+        fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+        self._ctx = QOpenGLContext()
+        self._ctx.setFormat(fmt)
+        if not self._ctx.create():
+            raise Preview3DLiveUnavailable("QOpenGLContext.create() fehlgeschlagen")
+        self._surface = QOffscreenSurface()
+        self._surface.setFormat(self._ctx.format())
+        self._surface.create()
+        if not self._surface.isValid() or not self._ctx.makeCurrent(self._surface):
+            raise Preview3DLiveUnavailable("Kein aktueller Offscreen-Kontext")
+        profile = QOpenGLVersionProfile()
+        profile.setVersion(2, 1)
+        self._fns = QOpenGLVersionFunctionsFactory.get(profile, self._ctx)
+        if self._fns is None:
+            raise Preview3DLiveUnavailable("Keine GL-2.1-Versionsfunktionen")
+        self._fbo = QOpenGLFramebufferObject(512, 512)
+        self._built = True
+
+    def upload(self, mesh: Any) -> float:  # pragma: no cover - hardwaregebunden
+        if not self._built:
+            self._build()
+        from PyQt6.QtOpenGL import QOpenGLBuffer
+
+        start = time.perf_counter()
+        self._pos = QOpenGLBuffer(QOpenGLBuffer.Type.VertexBuffer)
+        self._pos.create()
+        self._pos.bind()
+        positions = np.ascontiguousarray(mesh.positions, np.float32)
+        self._pos.allocate(positions.tobytes(), positions.nbytes)
+        self._idx = QOpenGLBuffer(QOpenGLBuffer.Type.IndexBuffer)
+        self._idx.create()
+        self._idx.bind()
+        indices = np.ascontiguousarray(mesh.indices, np.uint32)
+        self._idx.allocate(indices.tobytes(), indices.nbytes)
+        self._index_count = int(indices.size)
+        self._fns.glFinish()
+        return (time.perf_counter() - start) * 1000.0
+
+    def _draw(self) -> float:  # pragma: no cover - hardwaregebunden
+        start = time.perf_counter()
+        self._fbo.bind()
+        self._fns.glViewport(0, 0, 512, 512)
+        self._fns.glClear(0x00004000 | 0x00000100)  # COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT
+        self._fns.glDrawElements(0x0004, self._index_count, 0x1405, None)  # TRIANGLES, UINT
+        self._fns.glFinish()
+        self._fbo.release()
+        return (time.perf_counter() - start) * 1000.0
+
+    def first_frame(self) -> float:  # pragma: no cover - hardwaregebunden
+        return self._draw()
+
+    def frame(self) -> float:  # pragma: no cover - hardwaregebunden
+        return self._draw()
+
+    def peak_mb(self) -> float:  # pragma: no cover - hardwaregebunden
+        # Peak-GPU-Speicher ist über GL 2.1 nicht portabel abfragbar; wir melden
+        # den Host-seitigen Peak der Buffer-Payloads als konservative Näherung.
+        pos = getattr(self, "_pos", None)
+        size = 0
+        if pos is not None:
+            size = self._index_count * 4
+        return round(size / (1024.0 * 1024.0), 3)
+
+
 def run_benchmark(
     iterations: int,
     width: int,
@@ -1094,7 +1319,44 @@ def _cmd_paired_compare(args: argparse.Namespace) -> int:
 
 # ── CLI ──────────────────────────────────────────────────────────────────
 
+def _cmd_run_preview3d_live(args: argparse.Namespace) -> int:
+    """preview3d-live-Suite: GPU-gebundene Metriken auf echter Hardware (#645).
+
+    Verweigert ohne Hardware-GL-Kontext; ``--require-gl`` macht das zum Fehler
+    (Abnahme), sonst ein freundlicher Skip ohne gespeichertes Ergebnis.
+    """
+    available, diagnostic = probe_live_gl()
+    if not available:
+        reason = f"Kein Hardware-GL-Kontext (Diagnose: {diagnostic or 'kein GL'})."
+        print(f"preview3d-live übersprungen: {reason}")
+        return 2 if args.require_gl else 0
+
+    formats: dict[str, dict[str, float]] = {}
+    for name, (w, h) in PREVIEW3D_LIVE_SIZES.items():
+        formats[name] = benchmark_preview3d_live(w, h)
+    environment = collect_environment()
+    environment["gl_provenance"] = diagnostic
+    result = {
+        "schema": SCHEMA_VERSION,
+        "suite": "preview3d-live",
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "git_commit": git_commit(),
+        "iterations": 1,
+        "image": {"width": args.width, "height": args.height},
+        "environment": environment,
+        "formats": formats,
+        "samples": {},
+        "repeats": 1,
+    }
+    results_dir = args.results_dir or RESULTS_DIR / args.suite
+    path = save_result(result, results_dir)
+    print(f"Ergebnis gespeichert: {_rel(path)}")
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
+    if args.suite == "preview3d-live":
+        return _cmd_run_preview3d_live(args)
     # Format- und HEIGHT/3D-Suite laufen bewusst in getrennten Prozessen. Die
     # großen HEIGHT-Läufe dürfen die Bestätigungswerte des CPU-lastigen PNG-
     # Encoders nicht durch Wärme-, Speicher- oder Scheduler-Effekte verzerren.
@@ -1247,8 +1509,13 @@ def main(argv: list[str] | None = None) -> int:
                        help="Nur messen und speichern, nicht vergleichen.")
     suite_group = run_p.add_mutually_exclusive_group()
     suite_group.add_argument(
-        "--suite", choices=("formats", "height"), default="formats",
+        "--suite", choices=("formats", "height", "preview3d-live"), default="formats",
         help="Isolierte Benchmark-Suite (Default: formats).",
+    )
+    run_p.add_argument(
+        "--require-gl", action="store_true",
+        help="preview3d-live: fehlender Hardware-GL-Kontext ist ein Fehler "
+             "(Abnahme-Modus) statt eines freundlichen Skips.",
     )
     # Rückwärtskompatible, nicht mehr beworbene Aliase. Anders als früher
     # koppelt --height-bench die Formatmessung nicht mehr an die HEIGHT-Suite.

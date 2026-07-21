@@ -104,6 +104,18 @@ Bearbeitung/Projekt-Save/Export bleiben voll funktionsfähig.
 
 ## 4. Packaging-/Start-Smokes (fünf Artefaktklassen)
 
+> **Automatisiert (Epic #639):** Die Zeilen 2, 4 und 5 (Linux aarch64
+> AppImage/`.deb`, macOS arm64 DMG) erzeugt der Workflow
+> [`release-abnahme.yml`](../.github/workflows/release-abnahme.yml) per
+> `workflow_dispatch` auf den Self-hosted Runnern und legt die Evidenz
+> (`evidenz.json` + `manifest.md`, GL-Provenance, Retina-Faktor,
+> `.deb`-Rückstandsprüfung) als Artefakt ab – Bedienung:
+> [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md). Zeilen 1 und 3 (Linux
+> x86_64) bleiben pausiert (kein GPU-Hardwarezugang, Stand 2026-07-20) und
+> gelten weiterhin als **offen deklariert**. Die Kriterien hier bleiben
+> maßgeblich; die Automatisierung liefert nur den Nachweis, die Go-/No-Go-
+> Entscheidung bleibt manuell.
+
 Für jede Klasse: Artefakt aus dem Release-Build beziehen, dann **headless**
 (Start-Crash-/Fork-Bomb-Wächter) **und** unter echtem Backend (3D sichtbar)
 starten.

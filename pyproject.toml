@@ -139,6 +139,7 @@ module = [
     "bgremover.preview3d_capability",
     "bgremover.relief_mesh",
     "bgremover.relief_preview",
+    "bgremover.renderer_provenance",
     "bgremover.crop",
     "bgremover.project_model",
     "bgremover.project_history",
