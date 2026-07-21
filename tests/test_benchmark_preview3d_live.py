@@ -78,6 +78,31 @@ def test_benchmark_with_injected_hooks_builds_real_mesh() -> None:
     assert "gl_frame_ms_p95" in metrics
 
 
+def test_repeated_live_gl_uses_medians_peak_max_and_keeps_samples(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    measurements = iter([
+        {"gl_upload_ms": 9.0, "gl_first_frame_ms": 30.0, "gl_peak_mb": 100.0,
+         "gl_frame_ms_p50": 6.0, "gl_frame_ms_p95": 10.0},
+        {"gl_upload_ms": 3.0, "gl_first_frame_ms": 10.0, "gl_peak_mb": 120.0,
+         "gl_frame_ms_p50": 2.0, "gl_frame_ms_p95": 4.0},
+        {"gl_upload_ms": 6.0, "gl_first_frame_ms": 20.0, "gl_peak_mb": 110.0,
+         "gl_frame_ms_p50": 4.0, "gl_frame_ms_p95": 7.0},
+    ])
+    monkeypatch.setattr(bench, "benchmark_preview3d_live", lambda *a, **kw: next(measurements))
+
+    summary, samples = bench.benchmark_preview3d_live_repeated(32, 32, 3)
+
+    assert summary["gl_upload_ms"] == 6.0
+    assert summary["gl_first_frame_ms"] == 20.0
+    assert summary["gl_frame_ms_p95"] == 7.0
+    assert summary["gl_peak_mb"] == 120.0
+    assert samples["gl_upload_ms"] == [9.0, 3.0, 6.0]
+
+
+def test_process_peak_rss_converts_linux_kib_and_macos_bytes() -> None:
+    assert bench._process_peak_rss_mb(128 * 1024, "linux") == 128.0
+    assert bench._process_peak_rss_mb(128 * 1024 * 1024, "darwin") == 128.0
+
+
 def test_real_hook_uses_complete_viewer_render_path() -> None:
     """Governance-Guard: Shader, beide Attribute und Indizes bleiben gebunden."""
     source = inspect.getsource(bench._QtGlLiveHooks)
@@ -113,9 +138,43 @@ def test_cmd_run_skips_or_fails_without_gl(qapp) -> None:  # type: ignore[no-unt
     def _args(require_gl: bool) -> argparse.Namespace:
         return argparse.Namespace(
             suite="preview3d-live", require_gl=require_gl, width=1920, height=1080,
-            results_dir=None,
+            results_dir=None, iterations=3,
         )
 
     # Offscreen: ohne --require-gl freundlicher Skip (0), mit --require-gl Fehler (2).
     assert bench._cmd_run_preview3d_live(_args(False)) == 0
     assert bench._cmd_run_preview3d_live(_args(True)) == 2
+
+
+def test_cmd_run_persists_repeats_and_raw_samples(qapp, monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import argparse
+
+    saved: dict[str, object] = {}
+    monkeypatch.setattr(bench, "probe_live_gl", lambda: (True, "Apple / M3 / Metal"))
+    monkeypatch.setattr(
+        bench,
+        "benchmark_preview3d_live_repeated",
+        lambda *a, **kw: (
+            {"gl_upload_ms": 4.0, "gl_first_frame_ms": 9.0, "gl_peak_mb": 80.0,
+             "gl_frame_ms_p50": 2.0, "gl_frame_ms_p95": 3.0},
+            {"gl_upload_ms": [3.0, 4.0, 5.0]},
+        ),
+    )
+    monkeypatch.setattr(bench, "collect_environment", lambda: {})
+    monkeypatch.setattr(bench, "git_commit", lambda: "abc")
+
+    def _save(result, results_dir):  # type: ignore[no-untyped-def]
+        saved.update(result)
+        return tmp_path / "result.json"
+
+    monkeypatch.setattr(bench, "save_result", _save)
+    args = argparse.Namespace(
+        suite="preview3d-live", require_gl=True, width=1920, height=1080,
+        results_dir=tmp_path, iterations=3, platform="macos-arm64",
+    )
+
+    assert bench._cmd_run_preview3d_live(args) == 0
+    assert saved["iterations"] == 3
+    assert saved["repeats"] == 3
+    assert saved["platform"] == "macos-arm64"
+    assert saved["samples"]

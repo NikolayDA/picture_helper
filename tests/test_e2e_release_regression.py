@@ -77,6 +77,43 @@ def _emit_evidence(status: str, notes: list[str], native_3d_state: str) -> None:
     )
 
 
+def _assert_preview3d_state(
+    win: MainWindow, qtbot, *, require_native: bool, phase: str,  # type: ignore[no-untyped-def]
+) -> str:
+    """Aktiviert 3D und belegt je nach Umgebung Ready oder Headless-Fallback."""
+    win._set_preview3d_mode(True)
+    qtbot.waitUntil(
+        lambda: win._relief3d_view.state in {"ready", "unavailable", "error"},
+        timeout=30_000,
+    )
+    state = win._relief3d_view.state
+    if not require_native:
+        assert state == "unavailable", f"unerwarteter Headless-3D-Zustand ({phase}): {state}"
+        return state
+
+    assert state == "ready", f"nativer 3D-Zweig nicht bereit ({phase}): {state}"
+    viewer = win._relief3d_view.viewer()
+    assert viewer is not None, f"Ready-Zustand ohne GL-Viewer ({phase})"
+    qtbot.waitUntil(
+        lambda: (
+            viewer.has_failed
+            or (
+                viewer.isValid()
+                and viewer._gl_ready
+                and viewer._mesh is not None
+                and viewer._pending_mesh is None
+            )
+        ),
+        timeout=30_000,
+    )
+    state = win._relief3d_view.state
+    assert not viewer.has_failed and state == "ready", (
+        f"nativer GL-Frame fehlgeschlagen ({phase})"
+    )
+    assert viewer._index_count > 0, f"keine 3D-Geometrie hochgeladen ({phase})"
+    return state
+
+
 def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], str]:  # type: ignore[no-untyped-def]
     notes: list[str] = []
 
@@ -109,35 +146,13 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     # 3) 3D-Vorschau aktivieren. Headless muss im dokumentierten Fallback
     # landen; die Hardware-Abnahme verlangt dagegen ausdrücklich den fertig
     # initialisierten nativen GL-Viewer samt hochgeladenem Mesh.
-    win._set_preview3d_mode(True)
     require_native = os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") == "1"
-    qtbot.waitUntil(
-        lambda: win._relief3d_view.state in {"ready", "unavailable", "error"},
-        timeout=30_000,
+    state = _assert_preview3d_state(
+        win, qtbot, require_native=require_native, phase="vor Save/Open",
     )
-    state = win._relief3d_view.state
     if require_native:
-        assert state == "ready", f"nativer 3D-Zweig nicht bereit: {state}"
-        viewer = win._relief3d_view.viewer()
-        assert viewer is not None, "Ready-Zustand ohne GL-Viewer"
-        qtbot.waitUntil(
-            lambda: (
-                viewer.has_failed
-                or (
-                    viewer.isValid()
-                    and viewer._gl_ready
-                    and viewer._mesh is not None
-                    and viewer._pending_mesh is None
-                )
-            ),
-            timeout=30_000,
-        )
-        state = win._relief3d_view.state
-        assert not viewer.has_failed and state == "ready", "nativer GL-Frame fehlgeschlagen"
-        assert viewer._index_count > 0, "nativer GL-Viewer hat keine Geometrie hochgeladen"
         notes.append("Nativer 3D-GL-Zweig ready; Mesh hochgeladen und Frame gerendert.")
     else:
-        assert state == "unavailable", f"unerwarteter Headless-3D-Zustand: {state}"
         notes.append("Dokumentierter Headless-3D-Fallback erreicht.")
     # 2D↔3D-Wechsel mutiert die Höhendaten nicht.
     assert _payload_hash(win) == hash_after_generate
@@ -176,7 +191,18 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     rd.update(reloaded_active.height_data.values.tobytes())
     rd.update(reloaded_active.height_data.coverage.tobytes())
     assert rd.hexdigest() == hash_after_op, "Payload nach Save/Open nicht bitgenau"
-    notes.append("Save/Open (v2) bitgenau, Ebenenstruktur wertgleich.")
+
+    # Der Roundtrip ist erst vollständig bewiesen, wenn die neu geladene
+    # HEIGHT-Ebene erneut durch den echten 3D-Pfad gerendert werden kann. Dabei
+    # darf die 16-Bit-Payload ebenfalls nicht mutieren.
+    state = _assert_preview3d_state(
+        win, qtbot, require_native=require_native, phase="nach Save/Open",
+    )
+    assert _payload_hash(win) == hash_after_op, "3D nach Save/Open mutiert die Payload"
+    notes.append(
+        "Save/Open (v2) bitgenau, Ebenenstruktur wertgleich; "
+        f"3D-Zustand nach Reload erneut {state}.",
+    )
     return notes, state
 
 

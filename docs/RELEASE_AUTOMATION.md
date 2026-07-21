@@ -41,10 +41,71 @@ Linux-Runner-Benutzer ein eng begrenztes `sudo` – nur für
    `[self-hosted, macOS, ARM64]` bzw. `[self-hosted, Linux, ARM64]`.
 3. **Als Dienst einrichten**, damit der Runner Neustarts überlebt:
    - Linux (Pi): `sudo ./svc.sh install && sudo ./svc.sh start` (systemd).
-   - macOS: `./svc.sh install && ./svc.sh start` (launchd; Gerät darf für
+   - macOS: als der angemeldete dedizierte Runner-Benutzer
+     `./svc.sh install && ./svc.sh start` (LaunchAgent; Gerät darf für
      Abnahme-Läufe nicht im Ruhezustand sein).
 4. Sichtprüfung: Der Runner erscheint unter Settings → Actions → Runners als
    „Idle".
+
+### 2.1 Grafische Sitzung an den Dienst durchreichen (Pflicht)
+
+Ein „Idle"-Runner allein reicht nicht: Qt/Cocoa/X11/Wayland und der GPU-Treiber
+müssen aus dem Runner-Prozess erreichbar sein. Der Workflow prüft dies vor der
+Installation des Test-venv und bricht mit einer konkreten Fehlermeldung ab,
+statt versehentlich einen Offscreen-Lauf als Hardware-Nachweis zu werten.
+
+**macOS:** `svc.sh` muss vom aktuell angemeldeten Runner-Benutzer ausgeführt
+werden. Der erzeugte Dienst muss unter
+`~/Library/LaunchAgents/actions.runner.*.service.plist` liegen, nicht als
+systemweiter LaunchDaemon. Prüfen:
+
+```sh
+cat .service
+./svc.sh status
+printf 'Runner: %s; Konsole: %s\n' "$(id -un)" "$(stat -f '%Su' /dev/console)"
+```
+
+Runner- und Konsolenbenutzer müssen identisch sein. Diese Form entspricht dem
+von GitHub [dokumentierten macOS-LaunchAgent](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/configure-the-application?platform=mac);
+der Workflow prüft dieselbe Bedingung nochmals unmittelbar vor dem nativen
+Qt-Lauf.
+
+**Linux:** Der systemd-Dienst läuft als derselbe dedizierte Benutzer, der an
+der Desktop-Sitzung angemeldet ist. Zuerst in einem Terminal **dieser
+grafischen Sitzung** die tatsächlichen Werte erfassen:
+
+```sh
+printf 'DISPLAY=%s\nWAYLAND_DISPLAY=%s\nXDG_RUNTIME_DIR=%s\nXAUTHORITY=%s\n' \
+  "${DISPLAY:-}" "${WAYLAND_DISPLAY:-}" "${XDG_RUNTIME_DIR:-}" "${XAUTHORITY:-}"
+id -u
+```
+
+Dann den von `svc.sh` erzeugten Unit-Namen mit `cat .service` ermitteln und
+per `sudo systemctl edit <actions.runner.…service>` ergänzen. Für X11 zum
+Beispiel (Werte an die Ausgabe oben anpassen):
+
+```ini
+[Service]
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/runner/.Xauthority
+```
+
+Für Wayland zum Beispiel (`1001` und `wayland-0` anpassen):
+
+```ini
+[Service]
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus
+```
+
+Danach `sudo systemctl daemon-reload`, `sudo ./svc.sh stop` und
+`sudo ./svc.sh start`. Mit `sudo systemctl show <unit> -p User -p Environment`
+prüfen, dass Benutzer und Werte stimmen. Mindestens `DISPLAY` oder
+`WAYLAND_DISPLAY` muss gesetzt sein; bei Wayland ist `XDG_RUNTIME_DIR`
+zusätzlich Pflicht. Die nativen Workflow-Schritte entfernen außerdem bewusst
+ein eventuell geerbtes `QT_QPA_PLATFORM`, damit Qt das Backend dieser Sitzung
+wählt.
 
 ## 3. Sicherheits-Checkliste (vor Inbetriebnahme, je Runner)
 
@@ -82,6 +143,9 @@ workflow**, dann:
   Abschlussmatrix, #646). Die Plattform-Jobs laufen weiterhin und laden ihre
   Evidenz hoch; nur die zusammenfassende Matrix und der Issue-Kommentar
   entfallen (nützlich für reine Runner-/Smoke-Prüfläufe).
+- **`target_issue`**: positive Issue-Nummer für den Kommentar mit der
+  Abschlussmatrix; Standard ist `595`. Ungültige Werte brechen nur den
+  nachgelagerten Kommentar-Schritt kontrolliert ab.
 
 Jeder Plattform-Job lädt die passenden Artefakte herunter, berechnet ihren
 SHA256 und lädt sein Ergebnis als Workflow-Artefakt `abnahme-<plattform>` hoch
@@ -92,25 +156,30 @@ Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
 wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
-(macOS) Retina. Innerhalb desselben Smoke-Schritts startet das Hauptartefakt
-(AppImage bzw. das aus dem DMG kopierte `.app`-Bundle) ein zweites Mal – über
+(macOS) Retina. Innerhalb desselben Smoke-Schritts starten AppImage,
+installiertes `.deb`-AppImage und das aus dem DMG kopierte `.app`-Bundle
+jeweils ein zweites Mal – über
 `smoke_launch.py --native` (kein erzwungenes `offscreen`) mit dem
 Automationshook `BGREMOVER_SCREENSHOT_3D` – und liefert Screenshot samt
 GL-Provenance-Sidecar direkt aus dem **laufenden gepackten Prozess** (#648):
 Beispielbild synthetisieren → Höhenkarte erzeugen → 3D-Vorschau aktivieren →
 Framebuffer-Grab, sobald der Viewer `ready` ist. Ein Software-Renderer lässt
 diesen Nachweis fehlschlagen (dasselbe Gate wie die Runner-Hardware-Provenance
-oben); Screenshot und Sidecar landen unter `screenshots/` in der
-Plattform-Evidenz. Danach führt derselbe Hardware-Job die native
+oben); Screenshot und Sidecar landen mit artefaktklassenspezifischen Namen
+unter `screenshots/` in der Plattform-Evidenz. Danach führt derselbe
+Hardware-Job die native
 MainWindow-E2E-Regression aus (Bild öffnen → HEIGHT → 3D-`ready` samt
-hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open) und schreibt
+hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open → erneut
+3D-`ready`/Fallback aus der neu geladenen HEIGHT-Ebene) und schreibt
 `e2e-evidenz.json` – dieser Nachweis läuft weiterhin aus dem **Source-
 Checkout** heraus (`pytest` gegen das installierte `bgremover`-Paket), nicht
 aus dem gepackten Artefakt; genau diese Lücke schließt der neue native
 3D-Screenshot oben. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
-die 1-/16-/40-MP-Szenarien und speichert alle fünf GL-Metriken plus
-Renderer-Provenance unter `preview3d-live/` (ebenfalls aus dem Source-
-Checkout).
+die 1-/16-/40-MP-Szenarien jeweils dreimal. Sie speichert die Rohmessungen,
+verdichtet Zeitmetriken per Median und meldet für `gl_peak_mb` die größte
+Prozess-RSS-High-Water-Mark inklusive Qt-/Treiber-Allokationen. Alle fünf
+GL-Metriken plus Renderer-Provenance landen unter `preview3d-live/` (ebenfalls
+aus dem Source-Checkout).
 
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
@@ -120,7 +189,8 @@ installiert dafür das gepinnte SDK in einem eigenen kurzlebigen venv (auch ein
 Installationsfehler bleibt fail-safe und verhindert die Matrix nicht),
 erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium
 erfüllt/fehlgeschlagen/fehlt/pausiert/unbewertet mit Nachweis und
-GL-Provenance) und postet sie als Kommentar an Issue #595. Pro aktiver
+GL-Provenance) und postet sie als Kommentar an das Dispatch-Eingabefeld
+`target_issue` (Standard: #595). Pro aktiver
 Plattform erscheinen Hardware-Smoke, nativer Source-E2E und Live-GL-
 Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann
 dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
