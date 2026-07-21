@@ -11,49 +11,63 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-18)
+## Current Status (2026-07-21)
 
-The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Release **v2.6.0** was published on 2026-07-16 from approved commit `f24cef69829da8e37aa400dad471dc4d607b89b3`: tag workflow [29531147950](https://github.com/NikolayDA/picture_helper/actions/runs/29531147950), public [GitHub release](https://github.com/NikolayDA/picture_helper/releases/tag/v2.6.0), five freshly downloaded application artifacts verified by SHA-256, and green native platform smokes for Linux x86_64/aarch64 and macOS arm64. Release issues **#580/#583/#584/#585**, stale-snapshot finding **#607**, the full 16-bit height pipeline **#581/#587–#590**, and hybrid security model **#551** are complete. The live state is **3** open issues: #245 plus reopened 3D epic **#582** and final acceptance **#595**.
+The active code-analysis list is empty. Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last snapshot (2026-07-18, 3 open issues), a brand-new epic appeared and was largely implemented within a single day: **#639** (automated release acceptance via self-hosted hardware runners) with sub-issues **#640–#646** and follow-up issue **#648**. Live state per GitHub query: **12** open issues.
 
 ### Completed Since The Last Review
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8** and **O2–O7** remain done; epics **#329/#344/#358/#384** (N9–N12) plus export fix **#363** are merged/archived; since 2026-06-25 also **#404/#406/#408** (PR #412) closed.
-- **Redesign & release v2.5.0:** redesign core/rail/zoom/card inspector/Dark Mode/UI follow-up (**#413/#414/#455–#464/#474–#489/#499–#501/#503/#509/#510/#514–#517**, **#490**, **#433/#434**) via PR #412–#522; release wave **#435/#392/#426/#389** (v2.5.0), **#299/#541/#318/#542**, PR template **#552**, snapshot sync **#549**, SessionStart fix **#553**, v2.3.0 formalization **#550** – all closed since 2026-07-12.
-- **N14 — Epic #563 (app update & AI model management) fully closed:** `app_update.py` (#564), `ai_model_status.py` (#568), menu/dialog integration (#565/#569), optional automatic startup check (#566), warmup wiring with multiple observers/cooperative cancellation (#570) via PR #573/#574; docs wrap-up (#567/#571).
-- **Release v2.6.0 fully complete:** scope freeze (#583), candidate gate on the final `main` SHA (#584), tag/release/post-release verification (#585), and tracking epic #580 are done; this update resolves snapshot drift #607. The 16-bit HEIGHT ADR (#586) and 3D ADR/UX contract (#591, PR #603) also remain complete.
-- **16-bit height pipeline fully complete:** domain model/history and project format v2 (#587/#588, PR #610), import/generation/operations (#589, PR #612), and preview/export/UI/E2E (#590, PR #613) are on `main`; epic #581 is closed after green PR gates, resolved reviews, and a complete acceptance matrix.
-- **Audit follow-up #614–#616 complete:** future versions now fail closed (#588, PR #614), coverage gaps #597/#598 are closed through PR #615, and guide gap #606 is fixed in all six language versions through PR #616.
-- **Security model and 3D core implemented:** #551 is complete through PR #619; geometry, viewer, and integration #592–#594 are on `main` through PR #620. The follow-up audit reopened #582/#595 because packaging/platform evidence, complete performance acceptance, and screenshots are still missing.
+- **16-bit height pipeline fully complete:** epic **#581** including **#587/#588** (PR #610), **#589** (PR #612), and **#590** (PR #613) are on `main`; all gates/reviews green, complete acceptance matrix present.
+- **Security model & 3D core complete:** **#551** (CodeQL automatic, Codex manual only) via PR #619; **#592–#594** (geometry core, viewer, workflow/cache integration) via PR #620 on `main`. Coverage gaps **#597/#598** closed via PR #615; guide gap **#606** fixed in all six languages via PR #616.
+- **Raspberry Pi 5 packaging hardened:** three real startup bugs found and fixed on target hardware — AppImage entry point (PR #627), aarch64 glibc compatibility (PR #627), Qt plugin staging/RUNPATH (PR #631); the app is confirmed to start on the Pi 5 including a working 3D preview.
+- **New epic #639 opened AND largely implemented:** ADR + operations docs (#640), workflow skeleton `release-abnahme.yml` (#641), Linux/macOS hardware smokes with GL provenance (#642/#643), E2E release regression test (#644), live-GL performance suite (#645), and vision pre-assessment + acceptance matrix (#646) are fully implemented and verified on `main` via PR #647 and PR #649. **#640–#643** remain listed as open only because the PR description uses German phrasing ("Löst #640 …") instead of the English closing keywords GitHub recognizes — a pure auto-close formality, not a content gap. **#644–#646** are likewise technically done, but are deliberately meant to stay open until a real hardware dispatch (runner evidence) verifies them (see comment on #639 from 2026-07-21).
 
 ### Still Open
 
 - **O8 🟢 — Prototype inaccuracy:** height tools stay locked in the mockup after generation; mockup-only, the real app is unaffected (#347).
+- **Admin follow-up 🟢 — Four issues are done but not closed:** #640–#643 are fully implemented via PR #647; only the missing English closing keyword in the PR description prevented auto-close (see comment on #639).
 
-## Open GitHub Issues — Triage Status (2026-07-18)
+## Open GitHub Issues — Triage Status (2026-07-21)
 
-Live state after merging PR #619/#620 and the follow-up audit: **3** open issues. **#551** and **#592–#594** are complete; **#582/#595** were reopened for the still-unproven final acceptance.
+Live state: **12** open issues. Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
 
 ### Sensible Bundles
 
-- **3D final acceptance** (#582 → #595): core work #592–#594 is complete; #595 now tracks packaging/platform evidence, complete performance acceptance, screenshots, and the final matrix.
-- **#245** remains a purely external OpenAI quota tracker and blocks neither CodeQL, release, nor 3D.
-
-Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
+- **Release acceptance automation** (#639 → {#640 ‖ #641} → {#642 ‖ #643} → #644 → #645 → #646): technically already implemented via PR #647/#649; only real hardware-evidence verification (runner dispatch) and the four administrative closures #640–#643 remain.
+- **#648** is the only genuine remaining code task in this area: an automation/screenshot mode inside the packaged artifact, so the 3D render proof comes from the real package instead of a source checkout.
+- **3D relief preview** (#582 → #595): the functional MVP is done (Go for the automatable scope, see the acceptance report on #582); #595 waits on the same hardware dispatch as above plus #648.
+- **#245** remains a purely external OpenAI billing/quota tracker and blocks neither CodeQL, release, nor 3D.
 
 | # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
 |---|-------|-----------|------------|---------------|-----------------------|
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟡 Medium | 🟠 High | Sonnet 5 · high | **In progress** – core integrated; packaging/platform evidence, complete performance acceptance, screenshots, and the final matrix remain. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large) | – (tracking epic) | **In progress** – #591–#594 complete; waits solely on complete acceptance in #595. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – scope narrowed further on 2026-07-15: purely an external OpenAI billing/quota tracker, blocks neither CodeQL nor the release nor #551. |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Automated release acceptance | 🟠 High | 🟠 High (very large, largely implemented) | – (tracking epic) | **In progress, nearly done** – #640–#646 technically implemented via PR #647/#649; waits on runner verification + closing the sub-issues; #648 is the only genuine remaining effort. |
+| [#640](https://github.com/NikolayDA/picture_helper/issues/640) | ADR + operations/security docs for self-hosted acceptance runners | 🟡 Medium | 🟢 Low (done) | – (no code task) | **Ready to close** – ADR + `RELEASE_AUTOMATION.md` fully present via PR #647; only the closing keyword is missing. |
+| [#641](https://github.com/NikolayDA/picture_helper/issues/641) | Workflow `release-abnahme.yml`: skeleton, artifact retrieval, evidence format | 🟠 High | 🟢 Low (done) | – (no code task) | **Ready to close** – workflow + governance test present via PR #647; only the closing keyword is missing. |
+| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Linux smokes (AppImage/.deb) with GL provenance | 🟠 High | 🟡 Medium (core logic done) | – (no code task) | **Ready to close / needs live verification** – `abnahme_smoke.py` + tests present via PR #647; real execution only happens once dispatched on the Pi 5 runner. |
+| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | macOS DMG smoke with Retina/HiDPI proof | 🟠 High | 🟡 Medium (core logic done) | – (no code task) | **Ready to close / needs live verification** – same basis as #642, for the M3 runner. |
+| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | E2E release regression scenario as a `ui` test | 🟠 High | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) present via PR #649; the Ready branch needs a real GL dispatch. |
+| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Live-GL performance suite in the benchmark harness | 🟡 Medium | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `preview3d-live` suite in `scripts/benchmark.py` present via PR #649. |
+| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Vision pre-assessment, evidence aggregation, acceptance matrix | 🟡 Medium | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` present via PR #647/#649; also needs an `ANTHROPIC_API_KEY` secret for real assessment. |
+| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Native 3D render proof of the packaged artifact | 🟡 Medium | 🟡 Medium | Sonnet 5 · medium | **Ready for PR** – a clearly scoped, independent gap (a screenshot automation hook inside the packaged artifact instead of a source checkout); the only genuine remaining code task of the acceptance automation. |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟡 Medium | 🟡 Medium (down, automation now exists) | Sonnet 5 · medium | **Blocked** – waits on the same hardware dispatch as #639 plus #648. |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large, MVP done) | – (tracking epic) | **Blocked** – waits solely on #595. |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – unchanged since 2026-07-15: a purely external billing tracker that blocks nothing in the repository. |
 
 ### Recommended Next (PR order)
 
-1. **#595** — complete the remaining packaging/platform, performance, and documentation evidence before closing #582.
+1. **Close #640–#643** — implementation is complete (PR #647); only the owner's manual confirmation is missing.
+2. **Implement #648** — the only remaining code task: an automation/screenshot mode inside the packaged artifact for a genuine 3D render proof.
+3. **Register self-hosted runners and dispatch `release-abnahme.yml`** — verifies #642–#646 with real hardware evidence and produces the acceptance matrix for #595.
+4. **After a green run + #648:** close #595, then #582 (blocked only on #595).
+5. **#245** stays put — no repository patch can fix the external OpenAI billing blocker.
 
-*Drift note:* this update removes completed #551/#592–#594 from open triage, reopens #582/#595 for missing acceptance evidence, and corrects the live count to 3. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
+*Drift note:* this update reconciles the snapshot with the actual `main` state (full git history, previously hidden by a shallow clone) and a live GitHub query; it supersedes the 2026-07-18 state with 3 open issues. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
 
 ## Previous Rounds
 
+- **2026-07-21 (release acceptance automation, epic #639)** — epic #639 opened and largely implemented within a single day: ADR/docs (#640), workflow skeleton (#641), Linux/macOS hardware smokes (#642/#643), E2E regression test (#644), live-GL performance suite (#645), vision pre-assessment + acceptance matrix (#646) — all merged via PR #647/#649 but not auto-closed due to German closing keywords; follow-up issue #648 (native 3D render proof) remains the only open code task. Live state 12 open issues.
+- **2026-07-20 (Pi 5 hardware smoke)** — three real packaging bugs found and fixed on Raspberry Pi 5 (PR #627/#631); the app is confirmed to start including the 3D preview.
 - **2026-07-18 (post-merge audit)** — confirmed #551 and #592–#594 complete; reopened #582/#595 for missing packaging/platform, performance, and screenshot evidence; live state 3.
 - **2026-07-18 (audit follow-up #614–#616)** — recorded future-version hardening from PR #614; #597/#598 completed through PR #615 and #606 through PR #616; live state 7.
 - **2026-07-17 (16-bit epic completion)** — #581/#587–#590 completed through PR #610/#612/#613; all PR gates and reviews green, acceptance matrix present, live state 10.
