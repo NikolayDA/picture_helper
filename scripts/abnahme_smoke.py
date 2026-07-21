@@ -136,6 +136,33 @@ def _guard(
     )
 
 
+def _run_ai_selfcheck_if_needed(
+    runner: Runner,
+    launch_cmd: list[str],
+    *,
+    match: str,
+    max_instances: int,
+    name: str,
+    report: SmokeReport,
+) -> None:
+    """KI-Selbsttest (rembg-Kette im Spawn-Kindprozess importierbar) vor dem
+    eigentlichen Start – analog ``release-linux.yml`` (#308). Läuft nur für
+    ``-ai``-Artefakte (``max_instances`` > 1 über ``_fork_limit``); ``env``
+    setzt ``BGREMOVER_AI_SELFCHECK=1`` nur für diesen einen Start, ohne den
+    Fork-Bomb-Wächter selbst zu verändern (#642/#643-Fund: fehlte bisher im
+    Abnahme-Smoke, obwohl release-linux.yml ihn beim Build bereits fährt)."""
+    if max_instances <= 1:
+        return
+    selfcheck = _guard(
+        runner, ["env", "BGREMOVER_AI_SELFCHECK=1", *launch_cmd],
+        match=match, max_instances=max_instances,
+    )
+    if selfcheck.returncode == 0:
+        report.ok(f"KI-Selbsttest ok: {name}")
+    else:
+        report.fail(f"KI-Selbsttest fehlgeschlagen ({selfcheck.returncode}): {name}")
+
+
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:
     """Prüft, dass genau die erwarteten Artefaktklassen vorliegen (kein Teilsatz)."""
     present = {Path(a).suffix for a in artefacts}
@@ -174,11 +201,13 @@ def run_linux_smoke(
 def _linux_appimage(path: str, report: SmokeReport, runner: Runner) -> None:
     name = Path(path).name
     runner(["chmod", "+x", path])
-    # --appimage-extract-and-run: kein Host-FUSE nötig (wie release-linux.yml).
-    result = _guard(
-        runner, [path, "--appimage-extract-and-run"],
-        match=name, max_instances=_fork_limit(name),
+    max_instances = _fork_limit(name)
+    launch_cmd = [path, "--appimage-extract-and-run"]
+    _run_ai_selfcheck_if_needed(
+        runner, launch_cmd, match=name, max_instances=max_instances, name=name, report=report,
     )
+    # --appimage-extract-and-run: kein Host-FUSE nötig (wie release-linux.yml).
+    result = _guard(runner, launch_cmd, match=name, max_instances=max_instances)
     if result.returncode == 0:
         report.ok(f"AppImage-Start ok: {name}")
     else:
@@ -191,10 +220,13 @@ def _linux_deb(path: str, report: SmokeReport, runner: Runner) -> None:
         report.fail(f"deb-Installation fehlgeschlagen: {name}")
         return
     # Das installierte AppImage starten (kein `bgremover`-Kommando im PATH).
-    started = _guard(
-        runner, [DEB_INSTALLED_APPIMAGE, "--appimage-extract-and-run"],
-        match="BgRemover.AppImage", max_instances=_fork_limit(name),
+    max_instances = _fork_limit(name)
+    launch_cmd = [DEB_INSTALLED_APPIMAGE, "--appimage-extract-and-run"]
+    _run_ai_selfcheck_if_needed(
+        runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
+        name=name, report=report,
     )
+    started = _guard(runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances)
     report.ok(f"deb-Start ok: {name}") if started.returncode == 0 else report.fail(
         f"deb-Start fehlgeschlagen ({started.returncode}): {name}"
     )
@@ -327,17 +359,9 @@ def _start_macos_app(app: str, dmg_name: str, report: SmokeReport, runner: Runne
     binary = f"{app}/Contents/MacOS/{Path(app).stem}"
     match = Path(app).name
     max_instances = _fork_limit(dmg_name)
-    if max_instances > 1:
-        # KI-Variante (-ai-DMG): denselben Selbsttest wie release-linux.yml
-        # fahren (rembg-Kette im Spawn-Kindprozess importierbar).
-        selfcheck = _guard(
-            runner, ["env", "BGREMOVER_AI_SELFCHECK=1", binary],
-            match=match, max_instances=max_instances,
-        )
-        if selfcheck.returncode == 0:
-            report.ok(f"KI-Selbsttest ok: {dmg_name}")
-        else:
-            report.fail(f"KI-Selbsttest fehlgeschlagen ({selfcheck.returncode}): {dmg_name}")
+    _run_ai_selfcheck_if_needed(
+        runner, [binary], match=match, max_instances=max_instances, name=dmg_name, report=report,
+    )
     start = time.monotonic()
     started = _guard(runner, [binary], match=match, max_instances=max_instances)
     elapsed = time.monotonic() - start

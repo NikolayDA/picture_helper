@@ -126,6 +126,35 @@ def test_linux_smoke_fails_when_appimage_start_fails() -> None:
     assert any("AppImage-Start fehlgeschlagen" in n for n in result.notes)
 
 
+def test_linux_smoke_runs_ai_selfcheck_for_ai_variant() -> None:
+    """#642-Fund: KI-Selbsttest fehlte im Abnahme-Smoke, obwohl release-linux.yml
+    ihn fuer -ai-Artefakte beim Build bereits faehrt."""
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert result.passed
+    selfcheck_notes = [n for n in result.notes if "KI-Selbsttest ok" in n]
+    assert len(selfcheck_notes) == 2  # AppImage + deb
+    assert any("BGREMOVER_AI_SELFCHECK=1" in c for c in calls)
+
+
+def test_linux_smoke_skips_ai_selfcheck_for_non_ai_variant() -> None:
+    artefacts = [
+        "/tmp/BgRemover-linux-raspberrypi-arm64.AppImage",
+        "/tmp/BgRemover-linux-raspberrypi-arm64.deb",
+    ]
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        artefacts, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+    )
+    assert result.passed
+    assert not any("KI-Selbsttest" in n for n in result.notes)
+    assert not any("BGREMOVER_AI_SELFCHECK" in c for c in calls)
+
+
 def test_parse_mount_point() -> None:
     stdout = (
         "/dev/disk4          GUID_partition_scheme\n"
