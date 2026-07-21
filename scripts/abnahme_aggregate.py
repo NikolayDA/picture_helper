@@ -158,6 +158,20 @@ def validate_evidence(evidence: dict[str, Any]) -> list[str]:
     return issues
 
 
+def _commit_hashes_match(left: object, right: object) -> bool:
+    """Gleichen Commit trotz Git-Kurzform erkennen, ohne beliebige Präfixe zu akzeptieren."""
+    first = str(left or "").strip().lower()
+    second = str(right or "").strip().lower()
+    if first == second:
+        return bool(first)
+    if min(len(first), len(second)) < 7:
+        return False
+    if any(char not in "0123456789abcdef" for char in first + second):
+        return False
+    shorter, longer = sorted((first, second), key=len)
+    return longer.startswith(shorter)
+
+
 def validate_e2e(
     evidence: dict[str, Any], *, platform: str, commit_sha: str,
 ) -> list[str]:
@@ -169,7 +183,7 @@ def validate_e2e(
         issues.append("kind!=abnahme-e2e")
     if evidence.get("platform") != platform:
         issues.append(f"platform!={platform}")
-    if commit_sha and evidence.get("commit_sha") != commit_sha:
+    if commit_sha and not _commit_hashes_match(evidence.get("commit_sha"), commit_sha):
         issues.append("commit_sha abweichend")
     return issues
 
@@ -185,7 +199,7 @@ def validate_live_gl(
         issues.append("suite!=preview3d-live")
     if result.get("platform") != platform:
         issues.append(f"platform!={platform}")
-    if commit_sha and result.get("git_commit") != commit_sha:
+    if commit_sha and not _commit_hashes_match(result.get("git_commit"), commit_sha):
         issues.append("git_commit abweichend")
     environment = result.get("environment")
     if not isinstance(environment, dict) or not str(
@@ -326,8 +340,10 @@ def build_matrix(
             issues = validate_live_gl(
                 live_result, platform=platform, commit_sha=commit_sha,
             )
+            environment = live_result.get("environment")
             provenance = str(
-                (live_result.get("environment") or {}).get("gl_provenance") or "—"
+                environment.get("gl_provenance") or "—"
+                if isinstance(environment, dict) else "—"
             )
             rows.append(MatrixRow(
                 live_label, "unbewertet" if issues else "erfuellt",

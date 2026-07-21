@@ -162,6 +162,30 @@ def test_live_gl_requires_all_metrics_and_provenance() -> None:
     assert "HEIGHT16-40MP.gl_frame_ms_p95 ungültig" in issues
 
 
+def test_commit_validation_accepts_git_short_hash() -> None:
+    full = "0123456789abcdef0123456789abcdef01234567"
+    result = _live_gl("linux-arm64", git_commit=full[:7])
+    assert agg.validate_live_gl(
+        result, platform="linux-arm64", commit_sha=full,
+    ) == []
+    result["git_commit"] = "deadbee"
+    assert "git_commit abweichend" in agg.validate_live_gl(
+        result, platform="linux-arm64", commit_sha=full,
+    )
+
+
+def test_malformed_live_gl_environment_remains_renderable(tmp_path: Path) -> None:
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    result = _live_gl("linux-arm64", environment=["corrupt"])
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), live_gl={"linux-arm64": result},
+    )
+    row = next(r for r in rows if r.kriterium == "linux-arm64: Live-GL-Performance")
+    assert row.status == "unbewertet"
+    assert row.provenance == "—"
+    assert "gl_provenance leer" in row.hinweis
+
+
 def test_live_gl_load_from_disk(tmp_path: Path) -> None:
     target = tmp_path / "abnahme-linux-arm64" / "preview3d-live"
     target.mkdir(parents=True)

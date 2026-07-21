@@ -264,6 +264,7 @@ jobs:
           path: ${{ runner.temp }}/abnahme-evidenz
           pattern: abnahme-*
       - name: Vision-SDK reproduzierbar installieren
+        continue-on-error: true
         run: |
           set -euo pipefail
           python3 -m venv "${RUNNER_TEMP}/abnahme-vision-venv"
@@ -277,8 +278,14 @@ jobs:
         run: |
           set -euo pipefail
           # Kein Key oder API-Fehler ⇒ jedes Kriterium 'unbewertet'; der
-          # Lauf bricht nie ab (fail-safe, #646).
-          "${RUNNER_TEMP}/abnahme-vision-venv/bin/python" scripts/abnahme_vision_check.py \
+          # Lauf bricht nie ab (fail-safe, #646). Falls schon venv-Erzeugung
+          # oder SDK-Installation scheiterte, übernimmt System-Python; das
+          # Skript degradiert das fehlende SDK kontrolliert zu 'unbewertet'.
+          vision_python=python3
+          if [ -x "${RUNNER_TEMP}/abnahme-vision-venv/bin/python" ]; then
+            vision_python="${RUNNER_TEMP}/abnahme-vision-venv/bin/python"
+          fi
+          "$vision_python" scripts/abnahme_vision_check.py \
             --screenshots-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abnahme-evidenz/vision-verdikte.json"
       - name: Abschlussmatrix erzeugen

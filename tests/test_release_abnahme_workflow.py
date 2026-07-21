@@ -110,6 +110,8 @@ def test_workflow_runs_native_e2e_and_persists_evidence() -> None:
     assert text.count("ABNAHME_PLATFORM:") == 3
     assert text.count("ABNAHME_REQUIRE_NATIVE_3D: '1'") == 3
     assert text.count('-e ".[test]" -c requirements/constraints.txt') == 3
+    conftest = (ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert 'os.environ.get("ABNAHME_REQUIRE_NATIVE_3D") != "1"' in conftest
 
 
 def test_workflow_installs_vision_sdk_in_dedicated_venv() -> None:
@@ -118,10 +120,9 @@ def test_workflow_installs_vision_sdk_in_dedicated_venv() -> None:
 
     assert "abnahme-vision-venv" in text
     assert '"anthropic==0.117.0"' in text
-    assert (
-        '"${RUNNER_TEMP}/abnahme-vision-venv/bin/python" '
-        "scripts/abnahme_vision_check.py" in text
-    )
+    assert "continue-on-error: true" in text
+    assert "vision_python=python3" in text
+    assert '"$vision_python" scripts/abnahme_vision_check.py' in text
 
 
 def test_workflow_tags_live_gl_results_with_platform() -> None:
