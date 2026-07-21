@@ -12,7 +12,8 @@ GL-Provenance der Runner-Hardware, rückstandsfreie ``.deb``-Installation und
 (macOS) Retina/High-DPI. **Was er (noch) nicht belegt:** das *native*
 3D-Rendering des gepackten Artefakts – der Wächter startet headless
 (``offscreen``), die Provenance stammt aus dem Source-Checkout. Der native
-Start mit Screenshot folgt mit #646; die Evidenz deklariert diese Grenze offen.
+Start mit Screenshot ist als Folge-Issue #648 ausgelagert; die Evidenz
+deklariert diese Grenze bis dahin offen (``NATIVE_3D_CAVEAT``).
 
 Alle Pass/Fail-Entscheidungen liegen in den getesteten Funktionen von
 ``release_abnahme``. Die OS-Kommandos laufen über einen injizierbaren
@@ -43,9 +44,9 @@ DEB_KNOWN_PATHS = (
     "/usr/share/icons/hicolor/512x512/apps/de.bgremover.app.png",
 )
 
-# Offener Nachweis: Grenze dieses Smokes bis #646 (nativer Start + Screenshot).
+# Offener Nachweis: Grenze dieses Smokes bis #648 (nativer Start + Screenshot).
 NATIVE_3D_CAVEAT = (
-    "Nativer 3D-Render-Nachweis des gepackten Artefakts steht aus (#646): "
+    "Nativer 3D-Render-Nachweis des gepackten Artefakts steht aus (#648): "
     "Start-Wächter läuft headless, GL-Provenance stammt vom Runner."
 )
 

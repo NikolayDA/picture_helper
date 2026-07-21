@@ -91,7 +91,11 @@ Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
 wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
-(macOS) Retina.
+(macOS) Retina. **Offen deklariert:** das *native* 3D-Rendering des gepackten
+Artefakts prüft dieser Smoke noch nicht (der Start-Wächter läuft headless, die
+GL-Provenance stammt aus dem Source-Checkout); der native Start mit Screenshot
+ist als Folge-Issue #648 ausgelagert. Bis dahin trägt jede Evidenz den Hinweis
+`NATIVE_3D_CAVEAT`.
 
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
