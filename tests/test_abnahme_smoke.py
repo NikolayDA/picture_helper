@@ -39,6 +39,40 @@ def test_probe_without_require_always_zero(monkeypatch) -> None:  # type: ignore
     assert probe.main([]) == 0
 
 
+def test_probe_diagnostic_bootstraps_qapplication(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    # Regression: probe_3d_capability baut einen QOpenGLContext, der ohne
+    # QApplication mangels Plattformintegration scheitert – live auf den
+    # Mac-/Pi-Abnahme-Runnern als leere Diagnose beobachtet, obwohl derselbe
+    # GL-Kontext im gepackten Artefakt (das immer eine QApplication laufen
+    # hat) klaglos funktioniert. Patcht nur das Modul-lokale ``probe.
+    # QApplication`` (nicht die geteilte PyQt6.QtWidgets-Klasse) – sonst
+    # verwechselt pytest-qt die Fake-Instanz mit der echten Session-App und
+    # reißt die ganze restliche Suite mit.
+    import bgremover.preview3d_capability as cap
+
+    calls: list[str] = []
+
+    class _FakeApp:
+        _instance: object | None = None
+
+        @classmethod
+        def instance(cls):  # type: ignore[no-untyped-def]
+            return cls._instance
+
+        def __init__(self, argv: list[str]) -> None:
+            calls.append("constructed")
+            _FakeApp._instance = self
+
+    monkeypatch.setattr(probe, "QApplication", _FakeApp)
+    monkeypatch.setattr(
+        cap, "probe_3d_capability",
+        lambda *, use_cache=True: cap.RendererCapability(ok=True, diagnostic="Fake / GPU / 1.0"),
+    )
+
+    assert probe.probe_diagnostic() == "Fake / GPU / 1.0"
+    assert calls == ["constructed"]
+
+
 def _fake_native_screenshot(
     cmd: list[str], diagnostic: str | None, rc: int,
 ) -> smoke.CommandResult | None:
