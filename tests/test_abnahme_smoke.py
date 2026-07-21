@@ -39,6 +39,49 @@ def test_probe_without_require_always_zero(monkeypatch) -> None:  # type: ignore
     assert probe.main([]) == 0
 
 
+def test_probe_diagnostic_keeps_qapplication_alive_through_probe(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    # Regression: probe_3d_capability baut einen QOpenGLContext, der ohne
+    # QApplication mangels Plattformintegration scheitert – live auf den
+    # Mac-/Pi-Abnahme-Runnern als leere Diagnose beobachtet, obwohl derselbe
+    # GL-Kontext im gepackten Artefakt (das immer eine QApplication laufen
+    # hat) klaglos funktioniert. Patcht nur das Modul-lokale ``probe.
+    # QApplication`` (nicht die geteilte PyQt6.QtWidgets-Klasse) – sonst
+    # verwechselt pytest-qt die Fake-Instanz mit der echten Session-App und
+    # reißt die ganze restliche Suite mit.
+    #
+    # Codex-Fund zu PR #655 (P1): eine unzugewiesene Ausdrucksanweisung
+    # "QApplication.instance() or QApplication(sys.argv)" hält in CPython
+    # keine Referenz – das Objekt kann sofort nach der Anweisung wieder
+    # freigegeben werden, bevor probe_3d_capability() den GL-Kontext
+    # aufbaut. ``__del__`` macht diese Lebensdauer beobachtbar (statt sie wie
+    # in der Vorversion künstlich per Klassenattribut zu verlängern, was den
+    # Fund erst maskiert hatte). ``instance()`` gibt immer ``None`` zurück,
+    # damit jeder Aufruf eine frische Instanz erzwingt.
+    import bgremover.preview3d_capability as cap
+
+    class _FakeApp:
+        live_count = 0
+
+        @classmethod
+        def instance(cls):  # type: ignore[no-untyped-def]
+            return None
+
+        def __init__(self, argv: list[str]) -> None:
+            _FakeApp.live_count += 1
+
+        def __del__(self) -> None:
+            _FakeApp.live_count -= 1
+
+    def fake_probe_3d_capability(*, use_cache: bool = True):  # type: ignore[no-untyped-def]
+        assert _FakeApp.live_count == 1, "QApplication wurde vor dem GL-Probe bereits freigegeben"
+        return cap.RendererCapability(ok=True, diagnostic="Fake / GPU / 1.0")
+
+    monkeypatch.setattr(probe, "QApplication", _FakeApp)
+    monkeypatch.setattr(cap, "probe_3d_capability", fake_probe_3d_capability)
+
+    assert probe.probe_diagnostic() == "Fake / GPU / 1.0"
+
+
 def _fake_native_screenshot(
     cmd: list[str], diagnostic: str | None, rc: int,
 ) -> smoke.CommandResult | None:

@@ -18,13 +18,28 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from PyQt6.QtWidgets import QApplication  # noqa: E402
+
 from bgremover.renderer_provenance import is_software_renderer  # noqa: E402
 
 
 def probe_diagnostic() -> str:
-    """GL-Diagnose über die Capability-Probe holen (leer bei Fallback)."""
+    """GL-Diagnose über die Capability-Probe holen (leer bei Fallback).
+
+    ``probe_3d_capability`` baut einen ``QOpenGLContext``/``QOffscreenSurface``
+    auf – dafür muss eine ``QApplication`` existieren (Muster aus
+    ``abnahme_scale_probe.py``), sonst scheitert ``ctx.create()`` mangels
+    Plattformintegration lautlos, auch mit echter GPU/Session (live auf
+    Mac- und Pi-Runnern beobachtet: ``QApplication`` fehlte hier, obwohl
+    derselbe Kontext im gepackten Artefakt – das immer eine QApplication
+    laufen hat – klaglos funktioniert).
+    """
     from bgremover.preview3d_capability import probe_3d_capability
 
+    # Referenz bewusst halten: eine unzugewiesene Ausdrucksanweisung würde in
+    # CPython sofort nach dieser Zeile wieder freigegeben (Codex-Fund PR
+    # #655), bevor probe_3d_capability() den GL-Kontext aufbaut.
+    _app = QApplication.instance() or QApplication(sys.argv)
     capability = probe_3d_capability(use_cache=False)
     return capability.diagnostic if capability.ok else ""
 
