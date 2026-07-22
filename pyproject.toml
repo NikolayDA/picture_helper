@@ -106,7 +106,7 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
-files = ["bgremover"]
+files = ["bgremover", "scripts/abnahme_vision_check.py", "scripts/abnahme_aggregate.py"]
 ignore_missing_imports = true
 # Qt-Override-Signaturen (event/option/widget) und dynamische Qt-Attribute
 # erzeugen sonst viel Rauschen ohne echten Mehrwert; geprüft wird, dass
@@ -166,4 +166,12 @@ module = [
     "bgremover.preview3d_controller",
     "bgremover.viewer_3d",
 ]
+check_untyped_defs = true
+
+# Abnahme-Skripte (#646): eigenstaendige Dateien ohne scripts/__init__.py, daher
+# Modulname = Dateibasisname statt Paketpfad. Qt-frei, sollen denselben
+# mypy-Massstab wie die strengen bgremover-Logikmodule oben erfuellen.
+[[tool.mypy.overrides]]
+module = ["abnahme_vision_check", "abnahme_aggregate"]
+disallow_untyped_defs = true
 check_untyped_defs = true
