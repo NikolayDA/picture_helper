@@ -65,7 +65,6 @@ def test_warmup_failure_does_not_report_ready(main_window):
     w._on_warmup_done()
     assert w._warmup_failed is True
     assert w._right_panel.ai_button.isEnabled() is False
-    assert w._right_panel.ai_button.isEnabled() is False
     assert w._sb.currentMessage() == SM.KI_FEHLER_WARMUP
 
 
@@ -73,7 +72,6 @@ def test_warmup_success_reports_ready(main_window):
     w = main_window
     w._on_warmup_done()
     assert w._warmup_failed is False
-    assert w._right_panel.ai_button.isEnabled() is False
     assert w._right_panel.ai_button.isEnabled() is False
     assert w._sb.currentMessage() == SM.KI_BEREIT
 
@@ -98,7 +96,5 @@ def test_start_warmup_disables_ai_button(main_window, monkeypatch):
     monkeypatch.setattr(
         w._worker_controller, "start_warmup", lambda **kwargs: True)
     w._right_panel.ai_button.setEnabled(True)
-    w._right_panel.ai_button.setEnabled(True)
     _REAL_START_WARMUP(w)  # echte Methode, umgeht den autouse-No-op
-    assert w._right_panel.ai_button.isEnabled() is False
     assert w._right_panel.ai_button.isEnabled() is False

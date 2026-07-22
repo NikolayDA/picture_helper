@@ -933,7 +933,6 @@ def test_load_image_async_reports_pending_ai_cancellation(qapp, monkeypatch) -> 
 
         assert win.statusBar().currentMessage() == SM.KI_ABGEBROCHEN
         assert win._right_panel.ai_button.isEnabled()
-        assert win._right_panel.ai_button.isEnabled()
     finally:
         win._worker_controller.ai_thread = None
         win._worker_controller.ai_worker = None

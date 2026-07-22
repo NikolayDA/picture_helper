@@ -2,12 +2,14 @@
 
 Textbasiert (ohne PyYAML, analog zu ``tests/test_ci_qt_packages.py``): stellt
 sicher, dass der ``build``-Job jedes frisch gebaute Artefakt headless startet,
-den Fork-Bomb-Wächter nutzt, im ``--ai``-Build den KI-Selbsttest fährt und
-``publish`` weiterhin per ``needs: build`` gegated bleibt.
+den Fork-Bomb-Wächter nutzt und im ``--ai``-Build den KI-Selbsttest fährt.
+Das ``publish``-Gating (``needs: build``) wird bewusst nicht hier erneut
+geprüft – die stärkere, geparste Prüfung dazu lebt in
+``tests/test_release_gate.py::test_release_jobgraph_gates_publish_on_tests_and_tag``
+(#659, konsolidiert aus einem vormals identischen Regex-Duplikat).
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -52,12 +54,3 @@ def test_linux_smoke_installs_qt_runtime_libs() -> None:
     # offscreen-Qt braucht System-libGL/-libEGL auf dem Runner, sonst scheitert
     # der AppImage-Start mit ``libGL.so.1: cannot open shared object file``.
     assert "libgl1" in text and "libegl1" in text
-
-
-def test_publish_stays_gated_on_build() -> None:
-    text = _release_text()
-    # Ein durchgefallener Smoke-Launch fällt den build-Job; publish darf erst
-    # nach einem erfolgreichen build laufen (AC #307: needs: build).
-    assert re.search(r"(?m)^\s*needs:\s*build\b", text), (
-        "publish muss per needs: build gegated bleiben."
-    )

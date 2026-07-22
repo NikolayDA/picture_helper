@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtCore import QEvent, QPoint, QPointF, Qt
+from PyQt6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import GLReliefViewer, Relief3DView
 
 pytestmark = pytest.mark.ui_smoke
+
+NO_MOD = Qt.KeyboardModifier.NoModifier
 
 
 def _mesh(size: int = 24) -> object:
@@ -26,6 +28,25 @@ def _mesh(size: int = 24) -> object:
         HEIGHT_MAX_16BIT,
     )
     return build_relief_mesh(field, MeshQuality.REDUCED)
+
+
+def _mouse_event(
+    kind: QEvent.Type, x: float, y: float,
+    button: Qt.MouseButton = Qt.MouseButton.LeftButton,
+    buttons: Qt.MouseButton | None = None,
+) -> QMouseEvent:
+    return QMouseEvent(kind, QPointF(x, y), button, buttons or button, NO_MOD)
+
+
+def _wheel_event(delta_y: int) -> QWheelEvent:
+    return QWheelEvent(
+        QPointF(5, 5), QPointF(5, 5), QPoint(0, 0), QPoint(0, delta_y),
+        Qt.MouseButton.NoButton, NO_MOD, Qt.ScrollPhase.NoScrollPhase, False,
+    )
+
+
+def _key_event(key: Qt.Key, modifiers: Qt.KeyboardModifier = NO_MOD) -> QKeyEvent:
+    return QKeyEvent(QKeyEvent.Type.KeyPress, key, modifiers)
 
 
 def _large_mesh() -> object:
@@ -74,10 +95,15 @@ def test_failed_viewer_is_recreated_on_retry(qapp) -> None:
 
 
 def test_decimation_badge_reflects_factor(qapp) -> None:
+    mesh = _large_mesh()
+    assert mesh.is_decimated and mesh.decimation_factor > 1
     view = Relief3DView()
-    view.show_mesh(_large_mesh())
-    if view.state == "ready":
-        assert "1:" in view._badge.text()
+    view.show_mesh(mesh)
+    # ``show_mesh`` konstruiert den GL-Viewer synchron (initializeGL läuft erst
+    # beim ersten Paint) – der Zustand wird auch offscreen deterministisch
+    # ``ready``, unabhängig davon, ob der Kontext später real rendert.
+    assert view.state == "ready"
+    assert f"1:{mesh.decimation_factor}" in view._badge.text()
 
 
 def test_show2d_and_retry_signals_fire(qapp) -> None:
@@ -91,14 +117,36 @@ def test_show2d_and_retry_signals_fire(qapp) -> None:
 
 
 def test_gl_viewer_construction_and_params_do_not_raise(qapp) -> None:
+    mesh = _mesh()
     viewer = GLReliefViewer()
-    viewer.set_mesh(_mesh())
+    viewer.set_mesh(mesh)
+    assert viewer._mesh is mesh
+    assert viewer._pending_mesh is mesh
+
     viewer.set_exaggeration(3.0)
+    assert viewer._exaggeration == 3.0
+    viewer.set_exaggeration(50.0)  # oberhalb der Klemme
+    assert viewer._exaggeration == 10.0
+
     viewer.set_light(120.0, 60.0)
+    assert viewer._light == (120.0, 60.0)
+
+    fitted_distance = viewer.camera.distance
+    viewer.camera.zoom(5.0)
+    assert viewer.camera.distance != fitted_distance
     viewer.fit_view()
+    assert viewer.camera.distance == pytest.approx(fitted_distance)
+
     viewer.reset_view()
+    assert viewer._exaggeration == 1.0
+    assert viewer._light == (315.0, 45.0)
+    assert viewer.camera.distance == pytest.approx(fitted_distance)
+
     viewer.cleanup_gl()  # doppelte Freigabe muss ebenfalls sicher sein
+    assert viewer._gl_ready is False
+    assert viewer._index_count == 0
     viewer.cleanup_gl()
+    assert viewer._gl_ready is False
 
 
 def test_shift_home_requests_central_reset(qapp) -> None:
@@ -119,10 +167,14 @@ def test_gl_viewer_reports_init_failure_without_propagating(qapp) -> None:
     viewer = GLReliefViewer()
     failures: list[str] = []
     viewer.initFailed.connect(failures.append)
-    # initializeGL ist gekapselt: ohne echten GL-Kontext schlägt es fehl,
-    # propagiert aber nie – es meldet höchstens initFailed.
+    # initializeGL ist gekapselt: ohne echten GL-Kontext (Offscreen-Plattform)
+    # schlägt es deterministisch fehl, propagiert aber nie – es meldet
+    # initFailed genau einmal und hinterlässt einen definierten Fehlerzustand.
     viewer.initializeGL()
-    assert viewer.has_failed or not failures  # kein Crash, definierter Zustand
+    assert viewer.has_failed is True
+    assert len(failures) == 1
+    assert "initializeGL" in failures[0]
+    assert viewer._gl_ready is False
 
 
 def test_context_loss_requeues_cpu_mesh_for_upload(qapp) -> None:
@@ -145,3 +197,151 @@ def test_accessible_names_present(qapp) -> None:
     viewer = GLReliefViewer()
     assert viewer.accessibleName()
     assert viewer.accessibleDescription()
+
+
+# ── Maus-/Wheel-/Tastatur-Dispatch (#659, O8) ────────────────────────────
+
+def test_mouse_press_sets_last_pos(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.mousePressEvent(_mouse_event(QEvent.Type.MouseButtonPress, 10.0, 20.0))
+    assert viewer._last_pos == (10.0, 20.0)
+
+
+def test_mouse_press_ignores_none_event(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.mousePressEvent(None)
+    assert viewer._last_pos is None
+
+
+def test_mouse_drag_with_left_button_orbits_camera(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_azimuth = viewer.camera.azimuth
+    viewer.mousePressEvent(_mouse_event(QEvent.Type.MouseButtonPress, 0.0, 0.0))
+    viewer.mouseMoveEvent(_mouse_event(
+        QEvent.Type.MouseMove, 10.0, 0.0, buttons=Qt.MouseButton.LeftButton,
+    ))
+    assert viewer.camera.azimuth != before_azimuth
+
+
+def test_mouse_drag_with_middle_button_pans_camera(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_focus = viewer.camera.focus.copy()
+    viewer.mousePressEvent(_mouse_event(
+        QEvent.Type.MouseButtonPress, 0.0, 0.0, button=Qt.MouseButton.MiddleButton,
+    ))
+    viewer.mouseMoveEvent(_mouse_event(
+        QEvent.Type.MouseMove, 10.0, 10.0, buttons=Qt.MouseButton.MiddleButton,
+    ))
+    assert not np.array_equal(viewer.camera.focus, before_focus)
+
+
+def test_mouse_drag_with_left_button_and_alt_pans_camera(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_focus = viewer.camera.focus.copy()
+    viewer.mousePressEvent(_mouse_event(
+        QEvent.Type.MouseButtonPress, 0.0, 0.0, button=Qt.MouseButton.LeftButton,
+    ))
+    ev = QMouseEvent(
+        QEvent.Type.MouseMove, QPointF(10.0, 10.0), Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.AltModifier,
+    )
+    viewer.mouseMoveEvent(ev)
+    assert not np.array_equal(viewer.camera.focus, before_focus)
+
+
+def test_mouse_move_without_prior_press_is_noop(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_azimuth = viewer.camera.azimuth
+    viewer.mouseMoveEvent(_mouse_event(
+        QEvent.Type.MouseMove, 10.0, 0.0, buttons=Qt.MouseButton.LeftButton,
+    ))
+    assert viewer.camera.azimuth == before_azimuth
+
+
+def test_mouse_move_ignores_none_event(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.mousePressEvent(_mouse_event(QEvent.Type.MouseButtonPress, 0.0, 0.0))
+    viewer.mouseMoveEvent(None)  # darf nicht werfen
+
+
+def test_mouse_release_clears_last_pos(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.mousePressEvent(_mouse_event(QEvent.Type.MouseButtonPress, 0.0, 0.0))
+    assert viewer._last_pos is not None
+    viewer.mouseReleaseEvent(_mouse_event(QEvent.Type.MouseButtonRelease, 0.0, 0.0))
+    assert viewer._last_pos is None
+
+
+def test_wheel_event_zooms_camera_distance_both_directions(qapp) -> None:
+    viewer = GLReliefViewer()
+    before = viewer.camera.distance
+    viewer.wheelEvent(_wheel_event(120))
+    assert viewer.camera.distance < before
+
+    before = viewer.camera.distance
+    viewer.wheelEvent(_wheel_event(-120))
+    assert viewer.camera.distance > before
+
+
+def test_wheel_event_zero_delta_and_none_event_are_noops(qapp) -> None:
+    viewer = GLReliefViewer()
+    before = viewer.camera.distance
+    viewer.wheelEvent(_wheel_event(0))
+    viewer.wheelEvent(None)
+    assert viewer.camera.distance == before
+
+
+def test_key_press_left_right_orbit_azimuth(qapp) -> None:
+    viewer = GLReliefViewer()
+    before = viewer.camera.azimuth
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Right))
+    assert viewer.camera.azimuth != before
+
+
+def test_key_press_up_down_orbit_elevation(qapp) -> None:
+    viewer = GLReliefViewer()
+    before = viewer.camera.elevation
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Up))
+    assert viewer.camera.elevation != before
+
+
+def test_key_press_shift_arrows_pan_camera(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_focus = viewer.camera.focus.copy()
+    viewer.keyPressEvent(
+        _key_event(Qt.Key.Key_Right, Qt.KeyboardModifier.ShiftModifier)
+    )
+    assert not np.array_equal(viewer.camera.focus, before_focus)
+
+
+def test_key_press_plus_minus_zoom_camera(qapp) -> None:
+    viewer = GLReliefViewer()
+    before = viewer.camera.distance
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Plus))
+    assert viewer.camera.distance < before
+
+    before = viewer.camera.distance
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Minus))
+    assert viewer.camera.distance > before
+
+
+def test_key_press_home_without_shift_fits_view(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.set_mesh(_mesh())
+    fitted_distance = viewer.camera.distance
+    viewer.camera.zoom(5.0)
+    assert viewer.camera.distance != fitted_distance
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_Home))
+    assert viewer.camera.distance == pytest.approx(fitted_distance)
+
+
+def test_key_press_unhandled_key_passes_through_without_raising(qapp) -> None:
+    viewer = GLReliefViewer()
+    before_azimuth = viewer.camera.azimuth
+    viewer.keyPressEvent(_key_event(Qt.Key.Key_A))  # kein zugeordnetes Kürzel
+    assert viewer.camera.azimuth == before_azimuth
+
+
+def test_key_press_ignores_none_event(qapp) -> None:
+    viewer = GLReliefViewer()
+    viewer.keyPressEvent(None)  # darf nicht werfen
