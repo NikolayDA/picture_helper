@@ -11,54 +11,47 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-21)
+## Current Status (2026-07-22, corrected after Codex review)
 
-Ruff, mypy, and the local test suite remain the baseline before new PRs. PRs **#647**, **#649**, **#650**, **#651**, and **#652** were merged today. ADR, workflow, platform smokes, source E2E, live GL, aggregation, and the packaged artifact's native screenshot hook are therefore on `main`. **#640** and **#641** are closed. **#648** was reopened after review because no successful hardware run yet provides separate AppImage, installed `.deb`, and DMG evidence. Live state per GitHub query: **10** open issues.
+Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last round, **#640–#645** and **#648** have been closed. An earlier version of this update relied solely on the 2026-07-21 `release-abnahme.yml` dispatch (commit `fa2241d`) and wrongly framed the vision row (#656) as the sole blocker of the chain — a PR review (Codex) refuted four points of that, corrected here:
+
+1. **The dispatch evidence was already stale.** PR #657 (resolves #642, merged `521bd63`, after `fa2241d`) makes `waechter_ergebnisse` a required field in `abnahme_aggregate.py::validate_evidence`, and PR #658 (resolves #644, merged `4416e80`) adds missing E2E assertions. The cited dispatch ran **before** both fixes, so its "✅ met" rows do not evidence today's code. A fresh dispatch against current `main` is needed before the matrix can be cited as valid proof.
+2. **Vision pre-assessment is advisory, not a blocker.** `abnahme_aggregate.py::has_blocking_gaps` explicitly exempts only the "Screenshots (vision pre-assessment)" row from blocking when `unassessed` (`docs/RELEASE_AUTOMATION.md` §4: "without `ANTHROPIC_API_KEY`, every criterion stays unassessed and never blocks"). **#656** is a worthwhile evidence-quality improvement, but **not** a blocker for #646, #639, #595, or #582.
+3. **Linux x86_64 remains an open criterion, not merely a paused one.** Per the ADR/`RELEASE_AUTOMATION.md` §5, the paused x86_64 hardware smoke is explicitly treated as "declared open, not met" for release decisions — a deliberately accepted but still-open item, not a completed row.
+4. **No epic auto-closes.** Closing #646 only updates #639's sub-issue progress on GitHub; #639, #595, and #582 each need to be manually reviewed and closed individually.
+
+Live state per GitHub query: **6** open issues.
 
 ### Review Result
 
-- **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8** and **O2–O7** remain done; epics **#329/#344/#358/#384** (N9–N12) plus export fix **#363** are merged/archived; since 2026-06-25 also **#404/#406/#408** (PR #412) closed.
-- **16-bit height pipeline fully complete:** epic **#581** including **#587/#588** (PR #610), **#589** (PR #612), and **#590** (PR #613) are on `main`; all gates/reviews green, complete acceptance matrix present.
-- **Security model & 3D core complete:** **#551** (CodeQL automatic, Codex manual only) via PR #619; **#592–#594** (geometry core, viewer, workflow/cache integration) via PR #620 on `main`. Coverage gaps **#597/#598** closed via PR #615; guide gap **#606** fixed in all six languages via PR #616.
-- **Raspberry Pi 5 packaging hardened:** three real startup bugs found and fixed on target hardware — AppImage entry point (PR #627), aarch64 glibc compatibility (PR #627), Qt plugin staging/RUNPATH (PR #631); the app is confirmed to start on the Pi 5 including a working 3D preview.
-- **Release-acceptance code complete, hardware proof pending:** PRs #647/#649/#652 supplied the workflow, smokes, E2E, live GL, aggregation, and packaged-artifact hook; #650 updated the snapshot and #651 clarified `.deb` installation. This audit follow-up adds per-package screenshots, graphical-session preflights, post-reload 3D proof, repeated live-GL samples with process RSS, and a validated `target_issue` input.
+- **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7**, and everything completed since **2026-06-25** remain done.
+- Epic **#639** is done for 7 of its 8 sub-issues; its issue-body checklist still had every box unchecked even though #640–#645/#648 had long been closed — reconciled (comment + body edit on #639); that body edit also overstated the dispatch evidence and is being corrected via a follow-up comment.
+- **No issue currently qualifies as "ready for PR"** in the classic sense: all six remaining open issues are either purely external/operational tasks (set a secret, resolve billing) or epics that fundamentally wait on a fresh, valid acceptance dispatch and the documented x86_64 pause.
+- The actual remaining step is **not** a missing secret — it's a fresh `release-abnahme.yml` dispatch against current `main` (post #657/#658), whose matrix then needs to be checked against #595's criteria including the deliberately open x86_64 row.
 
-- **Operational proof 🟡:** #642–#646 and reopened #648 stay open until registered runners complete a real graphical hardware dispatch.
-- **External tracker 🟢:** #245 remains an OpenAI billing/quota matter outside the repository.
+## Open GitHub Issues — Triage Status (2026-07-22)
 
-## Open GitHub Issues — Triage Status (2026-07-21)
+| # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
+|---|-------|-----------|------------|------------------------------|-----------|
+| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Vision pre-assessment, evidence aggregation, acceptance matrix | 🟠 High (last open sub-issue of epic #639) | 🟢 Low (code/tests already merged in PR #647/#649/#657) | Sonnet 5 (low) – verification against a fresh dispatch only, no new code expected | Needs verification – its own acceptance criteria do **not** depend on #656 (the vision fail-safe is already evidenced); close after a fresh dispatch |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Automated release acceptance | 🟠 High (epic, 7/8 sub-issues done) | 🟢 Low (only #646 remains) | – (epic, no direct agent use) | Blocked – does **not** auto-close with #646; review and close manually once #646 is done |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟠 High (acceptance gate for epic #582) | 🟡 Medium (vision is advisory-satisfied, but the x86_64 criterion remains declared open) | – (no code task) | Blocked – waits on a fresh, valid dispatch post #657/#658 and an explicit decision on the x86_64 pause |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟠 High (large, nearly finished feature epic) | 🟢 Low (only #595 remains) | – (epic, no direct agent use) | Blocked – does **not** auto-close with #595; review and close manually afterward |
+| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Enable ANTHROPIC_API_KEY secret for the vision pre-assessment | 🟡 Medium (only improves evidence quality; not a blocker per contract) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: Settings → Secrets) | Blocked (external) – can be done independently of the rest of the chain |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – resolve billing/quota on the OpenAI platform project |
 
-Live state: **10** open issues. Rating: **Relevance** = importance to the roadmap/users, **Complexity** = estimated implementation effort, **Model/Effort** = the recommended Claude model and reasoning effort.
+### Recommended Next
 
-- **Release acceptance automation** (#639 → #642–#646 + #648): code paths exist; closure now requires complete target-hardware evidence from the dispatch.
-- **#648** is reopened for evidence, not a missing hook: AppImage, installed `.deb`, and DMG must each produce a native 3D screenshot and provenance sidecar.
-- **3D relief preview** (#582 → #595): the functional MVP is done; #595 waits on the same green hardware acceptance.
-- **#245** remains a purely external OpenAI billing/quota tracker and blocks neither CodeQL, release, nor 3D.
-
-| # | Title | Relevance | Complexity | Model/Effort | Recommended next step |
-|---|-------|-----------|------------|---------------|-----------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Automated release acceptance | 🟠 High | 🟠 High (very large, code largely done) | – (tracking epic) | **In progress** – configure runners, dispatch the workflow, and review the evidence. |
-| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Linux smokes (AppImage/.deb) with GL provenance | 🟠 High | 🟡 Medium (core logic done) | – (no code task) | **Ready to close / needs live verification** – `abnahme_smoke.py` + tests present via PR #647; real execution only happens once dispatched on the Pi 5 runner. |
-| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | macOS DMG smoke with Retina/HiDPI proof | 🟠 High | 🟡 Medium (core logic done) | – (no code task) | **Ready to close / needs live verification** – same basis as #642, for the M3 runner. |
-| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | E2E release regression scenario as a `ui` test | 🟠 High | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) present via PR #649; the Ready branch needs a real GL dispatch. |
-| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Live-GL performance suite in the benchmark harness | 🟡 Medium | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `preview3d-live` suite in `scripts/benchmark.py` present via PR #649. |
-| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Vision pre-assessment, evidence aggregation, acceptance matrix | 🟡 Medium | 🟡 Medium (done) | – (no code task) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` present via PR #647/#649; also needs an `ANTHROPIC_API_KEY` secret for real assessment. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Native 3D render proof of the packaged artifact | 🟡 Medium | 🟡 Medium (code done) | – (evidence task) | **Reopened** – close only after native AppImage, installed `.deb`, and DMG evidence exists. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, docs, end-to-end acceptance | 🟡 Medium | 🟡 Medium | – (evidence task) | **Blocked** – waits on the green hardware dispatch from #639. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Real 3D relief preview | 🟡 Medium | 🟠 High (very large, MVP done) | – (tracking epic) | **Blocked** – waits solely on #595. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low | 🟢 Low | – (no code task) | **Blocked (external)** – unchanged since 2026-07-15: a purely external billing tracker that blocks nothing in the repository. |
-
-### Recommended Next (PR order)
-
-1. Merge this audit follow-up and configure the runners in their graphical user sessions according to `docs/RELEASE_AUTOMATION.md`.
-2. Dispatch `release-abnahme.yml` with a release tag or build run ID, all available platforms, and the desired `target_issue`.
-3. Close **#642–#646** and **#648** only with complete green evidence; then close **#595** and **#582**.
-4. Keep **#245** separate as an external billing/quota tracker.
-
-*Drift note:* this update reconciles the snapshot with the actual `main` state (full git history, previously hidden by a shallow clone) and a live GitHub query; it supersedes the 2026-07-18 state with 3 open issues. Future updates keep rechecking statuses, checklists, and dependencies live instead of carrying a timestamp forward.
+1. Trigger a fresh `release-abnahme.yml` dispatch against current `main` (post #657/#658) — the previously cited 2026-07-21 matrix no longer evidences today's code.
+2. Check the new matrix against **all** of #595's criteria, including the deliberately open x86_64 row (stays "paused/declared open" even if everything else is green) — clarify explicitly whether #595 may close with a documented x86_64 pause (as #639 already allows for itself) or needs a separate sign-off.
+3. Check **#646** against its own acceptance criteria (the fail-safe behavior is already evidenced and does not depend on #656) and close it if met; then review and close **#639** separately and manually, followed by **#595** and **#582** — no issue auto-closes with another.
+4. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
+5. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
+6. There is currently **no** open issue that justifies a new code PR — the next sensible agent task is verification after a fresh dispatch, not new implementation.
 
 ## Previous Rounds
 
+- **2026-07-22 (issue review, corrected after Codex review)** — full reassessment of all open issues; an earlier version overstated what the 2026-07-21 dispatch proved (since superseded by PR #657/#658) and wrongly framed the advisory vision row (#656) as a blocker. Corrected after PR review (Codex): #656 can be resolved independently, Linux x86_64 remains a declared-open criterion, and #639/#595/#582 do not auto-close with their sub-issues. Live state 6 open issues — the lowest since epic #582.
 - **2026-07-21 (release acceptance automation, epic #639)** — epic #639 opened and largely implemented within a single day: ADR/docs (#640), workflow skeleton (#641), Linux/macOS hardware smokes (#642/#643), E2E regression test (#644), live-GL performance suite (#645), vision pre-assessment + acceptance matrix (#646) — all merged via PR #647/#649 but not auto-closed due to German closing keywords; follow-up issue #648 (native 3D render proof) remains the only open code task. Live state 12 open issues.
 - **2026-07-20 (Pi 5 hardware smoke)** — three real packaging bugs found and fixed on Raspberry Pi 5 (PR #627/#631); the app is confirmed to start including the 3D preview.
 - **2026-07-18 (post-merge audit)** — confirmed #551 and #592–#594 complete; reopened #582/#595 for missing packaging/platform, performance, and screenshot evidence; live state 3.

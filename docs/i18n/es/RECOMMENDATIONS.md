@@ -11,54 +11,47 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-21)
+## Estado actual (2026-07-22, corregido tras la revisión de Codex)
 
-Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. Hoy se fusionaron los PR **#647**, **#649**, **#650**, **#651** y **#652**. El ADR, el workflow, los smokes, el E2E, GL en vivo, la agregación y el gancho nativo del artefacto están en `main`. **#640** y **#641** están cerradas. **#648** se reabrió porque aún no existe una ejecución de hardware correcta con evidencia separada para AppImage, `.deb` instalado y DMG. Estado en vivo: **10** incidencias abiertas.
+Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR. Desde la última ronda, **#640–#645** y **#648** se han cerrado. Una versión anterior de esta actualización se apoyaba únicamente en el despacho de `release-abnahme.yml` del 2026-07-21 (commit `fa2241d`) y calificaba erróneamente la fila de visión (#656) como el único bloqueo de la cadena — una revisión del PR (Codex) refutó cuatro puntos de eso, corregidos aquí:
+
+1. **La evidencia del despacho ya estaba desactualizada.** El PR #657 (resuelve #642, fusionado en `521bd63`, después de `fa2241d`) convierte `waechter_ergebnisse` en campo obligatorio en `abnahme_aggregate.py::validate_evidence`, y el PR #658 (resuelve #644, fusionado en `4416e80`) añade comprobaciones E2E que faltaban. El despacho citado se ejecutó **antes** de ambos arreglos, así que sus filas "✅ cumplido" no evidencian el código actual. Se necesita un despacho nuevo contra el `main` actual antes de poder citar la matriz como prueba válida.
+2. **La evaluación previa por visión es consultiva, no un bloqueo.** `abnahme_aggregate.py::has_blocking_gaps` exime explícitamente solo a la fila "Screenshots (evaluación previa por visión)" de bloquear cuando está `sin evaluar` (`docs/RELEASE_AUTOMATION.md` §4: "sin `ANTHROPIC_API_KEY`, todo criterio permanece sin evaluar y nunca bloquea"). **#656** es una mejora valiosa de la calidad de la evidencia, pero **no** es un bloqueo para #646, #639, #595 ni #582.
+3. **Linux x86_64 sigue siendo un criterio abierto, no solo pausado.** Según el ADR/`RELEASE_AUTOMATION.md` §5, el smoke de hardware x86_64 pausado se trata explícitamente como "declarado abierto, no cumplido" para las decisiones de publicación — un punto deliberadamente aceptado pero aún abierto, no una fila completada.
+4. **Ningún epic se cierra automáticamente.** Cerrar #646 solo actualiza el progreso de incidencias secundarias de #639 en GitHub; #639, #595 y #582 deben revisarse y cerrarse manualmente cada uno por separado.
+
+Estado en vivo: **6** incidencias abiertas.
 
 ### Resultado de la revisión
 
-- **Base antigua estable:** **N1/N2/N4/N5/N6/N7/N8** y **O2–O7** siguen hechos; los epics **#329/#344/#358/#384** (N9–N12) más la corrección de exportación **#363** están fusionados/archivados; desde el 2026-06-25 también **#404/#406/#408** (PR #412) cerrado.
-- **Canalización de altura de 16 bits completamente cerrada:** el epic **#581**, incluidos **#587/#588** (PR #610), **#589** (PR #612) y **#590** (PR #613), está en `main`; todos los gates/reviews en verde, matriz de aceptación completa presente.
-- **Modelo de seguridad y núcleo 3D completos:** **#551** (CodeQL automático, Codex solo manual) mediante PR #619; **#592–#594** (núcleo de geometría, visor, integración de flujo de trabajo/caché) mediante PR #620 en `main`. Las brechas de cobertura **#597/#598** se cerraron mediante PR #615; la brecha de la guía **#606** se corrigió en los seis idiomas mediante PR #616.
-- **Empaquetado para Raspberry Pi 5 reforzado:** se encontraron y corrigieron tres errores de arranque reales en el hardware de destino — punto de entrada del AppImage (PR #627), compatibilidad glibc en aarch64 (PR #627), preparación de plugins Qt/RUNPATH (PR #631); se confirmó que la app arranca en la Pi 5, incluida una vista previa 3D funcional.
-- **Código de aceptación completo; evidencia de hardware pendiente:** este seguimiento añade capturas separadas por paquete, preflight de sesión gráfica, una nueva prueba 3D tras Save/Open, tres muestras GL con RSS real del proceso y una entrada `target_issue` validada.
+- **Base antigua estable:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** y todo lo completado desde el **2026-06-25** sigue hecho.
+- El epic **#639** tiene 7 de sus 8 incidencias secundarias resueltas; la lista de verificación del cuerpo de la incidencia seguía con todas las casillas sin marcar aunque #640–#645/#648 llevaban tiempo cerradas — conciliado (comentario + edición del cuerpo en #639); esa edición del cuerpo también sobrestimó la evidencia del despacho y se corrige mediante un comentario de seguimiento.
+- **Ninguna incidencia califica actualmente como "lista para PR"** en el sentido clásico: las seis incidencias abiertas restantes son tareas puramente externas/operativas (configurar un secreto, resolver facturación) o epics que en el fondo esperan un despacho de aceptación nuevo y válido más la pausa documentada de x86_64.
+- El paso real que queda **no** es un secreto ausente — es un despacho nuevo de `release-abnahme.yml` contra el `main` actual (tras #657/#658), cuya matriz debe entonces contrastarse con los criterios de #595, incluida la fila de x86_64 deliberadamente abierta.
 
-- **Evidencia operativa 🟡:** #642–#646 y la reabierta #648 siguen abiertas hasta que los runners completen un despacho gráfico real.
-- **Tracker externo 🟢:** #245 sigue siendo un asunto de facturación/cuota de OpenAI fuera del repositorio.
+## Incidencias abiertas de GitHub — Clasificación (2026-07-22)
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-21)
+| # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
+|---|--------|------------|-------------|--------------------------------|--------------|
+| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Evaluación previa por visión, agregación de evidencia, matriz de aceptación | 🟠 Alta (última incidencia secundaria abierta del epic #639) | 🟢 Baja (código/pruebas ya fusionados en PR #647/#649/#657) | Sonnet 5 (bajo) – solo verificación contra un despacho nuevo, no se espera código nuevo | Necesita verificación – sus propios criterios de aceptación **no** dependen de #656 (el fail-safe de visión ya está evidenciado); cerrar tras un despacho nuevo |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Aceptación automatizada de releases | 🟠 Alta (epic, 7/8 incidencias secundarias hechas) | 🟢 Baja (solo queda #646) | – (epic, sin uso directo de agente) | Bloqueada – **no** se cierra automáticamente con #646; revisar y cerrar manualmente cuando #646 esté hecho |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Rendimiento, empaquetado, documentación, aceptación end-to-end | 🟠 Alta (puerta de aceptación del epic #582) | 🟡 Media (la visión está satisfecha de forma consultiva, pero el criterio x86_64 sigue declarado abierto) | – (sin tarea de código) | Bloqueada – espera un despacho nuevo y válido tras #657/#658 y una decisión explícita sobre la pausa de x86_64 |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Vista previa de relieve 3D real | 🟠 Alta (epic grande, casi terminado) | 🟢 Baja (solo queda #595) | – (epic, sin uso directo de agente) | Bloqueada – **no** se cierra automáticamente con #595; revisar y cerrar manualmente después |
+| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activar el secreto ANTHROPIC_API_KEY para la evaluación previa por visión | 🟡 Media (solo mejora la calidad de la evidencia; no es un bloqueo según el contrato) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: Settings → Secrets) | Bloqueada (externa) – se puede hacer con independencia del resto de la cadena |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – resolver facturación/cuota en el proyecto de la plataforma OpenAI |
 
-Estado en vivo: **10** incidencias abiertas. Valoración: **Relevancia** = importancia para la hoja de ruta/usuarios, **Complejidad** = esfuerzo de implementación estimado, **Modelo/Esfuerzo** = modelo de Claude y esfuerzo de razonamiento recomendados.
+### Recomendado a continuación
 
-- **Automatización de aceptación** (#639 → #642–#646 + #648): los caminos de código existen; el cierre exige evidencia completa del hardware de destino.
-- **#648** está reabierta por evidencia, no por falta del gancho: AppImage, `.deb` instalado y DMG deben producir cada uno captura 3D nativa y procedencia.
-- **Vista previa de relieve 3D** (#582 → #595): el MVP está hecho; #595 espera la misma aceptación de hardware en verde.
-- **#245** sigue siendo un tracker puramente externo de facturación/cuota de OpenAI y no bloquea ni CodeQL, ni la publicación, ni el 3D.
-
-| # | Título | Relevancia | Complejidad | Modelo/Esfuerzo | Próximo paso recomendado |
-|---|--------|------------|-------------|------------------|---------------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Aceptación automatizada de releases | 🟠 Alta | 🟠 Alta (código casi terminado) | – (epic de seguimiento) | **En curso** – configurar runners, despachar el workflow y revisar la evidencia. |
-| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Smokes de Linux (AppImage/.deb) con procedencia de GL | 🟠 Alta | 🟡 Media (lógica principal hecha) | – (sin tarea de código) | **Ready to close / needs live verification** – `abnahme_smoke.py` + las pruebas están presentes mediante PR #647; la ejecución real solo se produce una vez despachada en el runner de la Pi 5. |
-| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | Smoke de DMG de macOS con prueba Retina/HiDPI | 🟠 Alta | 🟡 Media (lógica principal hecha) | – (sin tarea de código) | **Ready to close / needs live verification** – misma base que #642, para el runner M3. |
-| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | Escenario de regresión E2E de release como prueba `ui` | 🟠 Alta | 🟡 Media (hecho) | – (sin tarea de código) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) presente mediante PR #649; la rama Ready necesita un despacho real con GL. |
-| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Suite de rendimiento con GL en vivo en el arnés de benchmark | 🟡 Media | 🟡 Media (hecho) | – (sin tarea de código) | **Ready to close / needs live verification** – la suite `preview3d-live` en `scripts/benchmark.py` está presente mediante PR #649. |
-| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Evaluación previa por visión, agregación de evidencia, matriz de aceptación | 🟡 Media | 🟡 Media (hecho) | – (sin tarea de código) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` presentes mediante PR #647/#649; también necesita un secreto `ANTHROPIC_API_KEY` para la evaluación real. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Prueba nativa de renderizado 3D del artefacto empaquetado | 🟡 Media | 🟡 Media (código hecho) | – (tarea de evidencia) | **Reabierta** – cerrar solo tras evidencias nativas de AppImage, `.deb` instalado y DMG. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Rendimiento, empaquetado, documentación, aceptación end-to-end | 🟡 Media | 🟡 Media | – (tarea de evidencia) | **Bloqueada** – espera el despacho de hardware en verde de #639. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Vista previa de relieve 3D real | 🟡 Media | 🟠 Alta (muy grande, MVP hecho) | – (epic de seguimiento) | **Blocked** – espera únicamente a #595. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja | 🟢 Baja | – (sin tarea de código) | **Blocked (external)** – sin cambios desde el 2026-07-15: un tracker puramente externo de facturación que no bloquea nada en el repositorio. |
-
-### Recomendado a continuación (orden de PR)
-
-1. Fusionar este seguimiento y configurar los runners en sus sesiones gráficas según `docs/RELEASE_AUTOMATION.md`.
-2. Despachar `release-abnahme.yml` con tag o ID de build, todas las plataformas disponibles y el `target_issue` deseado.
-3. Cerrar **#642–#646** y **#648** solo con evidencia verde completa; después **#595** y **#582**.
-4. Mantener **#245** separado como tracker externo de facturación/cuota.
-
-*Nota de deriva:* esta actualización concilia la instantánea con el estado real de `main` (historial completo de git, antes oculto por un clon superficial) y una consulta en vivo a GitHub; sustituye el estado del 2026-07-18 con 3 incidencias abiertas. Las próximas actualizaciones seguirán revisando en vivo estados, listas de verificación y dependencias, en lugar de arrastrar una marca de tiempo.
+1. Lanzar un despacho nuevo de `release-abnahme.yml` contra el `main` actual (tras #657/#658) — la matriz del 2026-07-21 citada previamente ya no evidencia el código actual.
+2. Comprobar la nueva matriz contra **todos** los criterios de #595, incluida la fila x86_64 deliberadamente abierta (sigue "pausada/declarada abierta" aunque todo lo demás esté en verde) — aclarar explícitamente si #595 puede cerrarse con una pausa x86_64 documentada (como ya permite #639 para sí mismo) o necesita una aprobación aparte.
+3. Comprobar **#646** contra sus propios criterios de aceptación (el comportamiento fail-safe ya está evidenciado y no depende de #656) y cerrarlo si se cumplen; después revisar y cerrar **#639** por separado y de forma manual, seguido de **#595** y **#582** — ninguna incidencia se cierra automáticamente con otra.
+4. Gestionar **#656** de forma independiente si se desean veredictos de visión reales — es una mejora de calidad, no un bloqueo.
+5. Dejar **#245** como tracker puramente externo de facturación/cuota; no hay ninguna acción posible ni necesaria en el repositorio.
+6. Actualmente **no** hay ninguna incidencia abierta que justifique un nuevo PR de código — la siguiente tarea sensata para un agente es la verificación tras un despacho nuevo, no una nueva implementación.
 
 ## Rondas anteriores
 
+- **2026-07-22 (revisión de incidencias, corregida tras revisión de Codex)** — reevaluación completa de todas las incidencias abiertas; una versión anterior sobrestimó lo que probaba el despacho del 2026-07-21 (desde entonces superado por los PR #657/#658) y calificó erróneamente la fila consultiva de visión (#656) como un bloqueo. Corregido tras la revisión del PR (Codex): #656 puede resolverse de forma independiente, Linux x86_64 sigue siendo un criterio declarado abierto, y #639/#595/#582 no se cierran automáticamente con sus incidencias secundarias. Estado en vivo: 6 incidencias abiertas — el nivel más bajo desde el epic #582.
 - **2026-07-21 (automatización de aceptación de releases, epic #639)** — el epic #639 se abrió y se implementó en gran parte en un solo día: ADR/documentación (#640), esqueleto del workflow (#641), smokes de hardware Linux/macOS (#642/#643), prueba de regresión E2E (#644), suite de rendimiento con GL en vivo (#645), evaluación previa por visión + matriz de aceptación (#646) — todo fusionado mediante PR #647/#649 pero sin cierre automático debido a palabras clave de cierre en alemán; la incidencia de seguimiento #648 (prueba nativa de renderizado 3D del artefacto empaquetado) sigue siendo la única tarea de código abierta. Estado en vivo: 12 incidencias abiertas.
 - **2026-07-20 (smoke de hardware en la Pi 5)** — se encontraron y corrigieron tres errores reales de empaquetado en la Raspberry Pi 5 (PR #627/#631); se confirmó que la app arranca, incluida la vista previa 3D.
 - **2026-07-18 (auditoría posterior al merge)** — #551 y #592–#594 confirmados; #582/#595 reabiertos por pruebas pendientes; estado en vivo 3.
