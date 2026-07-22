@@ -99,7 +99,10 @@ def _parse_response(text: str, criteria: tuple[tuple[str, str], ...]) -> list[Cr
     results: list[CriterionVerdict] = []
     for cid, _desc in criteria:
         entry = by_id.get(cid)
-        verdict = str(entry.get("verdict", "")) if entry else ""
+        if entry is None:
+            results.append(CriterionVerdict(cid, "unbewertet", "Kein gültiges Verdikt geliefert."))
+            continue
+        verdict = str(entry.get("verdict", ""))
         if verdict not in ("erfuellt", "nicht_erfuellt", "unsicher"):
             results.append(CriterionVerdict(cid, "unbewertet", "Kein gültiges Verdikt geliefert."))
         else:
