@@ -72,6 +72,12 @@ def test_build_script_reads_version_and_constraints() -> None:
     assert "requirements/constraints.txt" in txt
 
 
+def test_build_script_uses_shared_app_icon_master() -> None:
+    txt = BUILD_SH.read_text(encoding="utf-8")
+    assert 'ICON_PNG="$ROOT/BgRemover_icon.png"' in txt
+    assert 'export BGREMOVER_ICON="$ICNS"' in txt
+
+
 # ── PyInstaller spec ───────────────────────────────────────────────────
 
 def test_spec_builds_arm64_app_bundle() -> None:

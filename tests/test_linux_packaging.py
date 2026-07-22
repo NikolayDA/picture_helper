@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 PKG = ROOT / "packaging" / "linux"
@@ -167,8 +168,12 @@ def test_pyproject_declares_entry_point_and_license() -> None:
     assert re.search(r'(?m)^\s*license\s*=\s*"GPL-3\.0-or-later"', _PYPROJECT)
 
 
-def test_icon_is_png() -> None:
+def test_icon_is_valid_rgba_master() -> None:
     assert ICON.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+    with Image.open(ICON) as icon:
+        assert icon.size == (1024, 1024)
+        assert icon.mode == "RGBA"
+        assert icon.getchannel("A").getextrema() == (0, 255)
 
 
 def test_app_sets_desktop_file_name() -> None:
