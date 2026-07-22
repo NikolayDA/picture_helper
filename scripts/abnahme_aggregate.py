@@ -34,10 +34,12 @@ LIVE_GL_METRICS = (
     "gl_frame_ms_p50", "gl_frame_ms_p95",
 )
 
-# Pflichtfelder des Evidenzvertrags (#640).
+# Pflichtfelder des Evidenzvertrags (#640; ``waechter_ergebnisse`` seit dem
+# #642-Nachtrag: strukturierte Wächter-Ergebnisse je Startphase/Artefaktklasse).
 REQUIRED_FIELDS = (
     "schema", "kind", "platform", "status", "commit_sha", "quelle",
-    "artefakte", "umgebung", "gl_provenance", "erzeugt_am", "hinweise",
+    "artefakte", "umgebung", "gl_provenance", "waechter_ergebnisse",
+    "erzeugt_am", "hinweise",
 )
 E2E_REQUIRED_FIELDS = (
     "schema", "kind", "platform", "status", "scenario", "commit_sha",
@@ -155,6 +157,8 @@ def validate_evidence(evidence: dict[str, Any]) -> list[str]:
         evidence.get("gl_provenance") or ""
     ).strip():
         issues.append("gl_provenance leer")
+    if evidence.get("status") != "platzhalter" and not evidence.get("waechter_ergebnisse"):
+        issues.append("waechter_ergebnisse leer")
     return issues
 
 

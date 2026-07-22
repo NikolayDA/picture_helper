@@ -86,6 +86,8 @@ def test_build_evidence_carries_contract_fields() -> None:
     assert evidence["gl_provenance"] is None
     assert evidence["artefakte"][0]["sha256"] == "deadbeef"
     assert set(evidence["umgebung"]) == {"os", "arch", "python", "runner"}
+    # #642-Nachtrag: das Feld muss von Anfang an vorhanden sein (nie fehlend).
+    assert evidence["waechter_ergebnisse"] == []
 
 
 def test_evaluate_gl_provenance_gates_software_and_missing() -> None:
@@ -133,6 +135,35 @@ def test_finalize_evidence_sets_status_and_provenance() -> None:
     assert failed["gl_provenance"] is None
 
 
+def test_finalize_evidence_carries_structured_guard_results() -> None:
+    """#642-Nachtrag: Wächter-Ergebnisse (Exit-Code/Peak-Instanzen/Status/Log je
+    Startphase und Artefaktklasse) müssen strukturiert in die Evidenz übernommen
+    werden, nicht nur als Freitext-Notiz."""
+    records = [ra.ArtifactRecord(name="a.AppImage", sha256="cafe", bytes=7)]
+    base = ra.build_evidence(
+        "linux-arm64", "abc", {"art": "release-tag", "wert": "v2.7.0"}, records, [],
+    )
+    guard_results = [
+        {
+            "phase": "start", "artefaktklasse": "appimage", "exit_code": 0,
+            "peak_instanzen": 1, "status": "ok", "log": "smoke_launch OK",
+        },
+        {
+            "phase": "nativer_3d_screenshot", "artefaktklasse": "appimage", "exit_code": 0,
+            "peak_instanzen": 1, "status": "ok", "log": "smoke_launch OK",
+        },
+    ]
+    finalized = ra.finalize_evidence(
+        base, passed=True, gl_provenance="Broadcom / V3D 7.1 / 3.1",
+        guard_results=guard_results,
+    )
+    assert finalized["waechter_ergebnisse"] == guard_results
+
+    # Ohne Angabe bleibt das Feld eine leere Liste statt zu fehlen.
+    without = ra.finalize_evidence(base, passed=True, gl_provenance="x")
+    assert without["waechter_ergebnisse"] == []
+
+
 def test_write_evidence_emits_json_and_manifest(tmp_path: Path) -> None:
     records = [ra.ArtifactRecord(name="a.dmg", sha256="cafe", bytes=7)]
     evidence = ra.build_evidence(
@@ -146,6 +177,34 @@ def test_write_evidence_emits_json_and_manifest(tmp_path: Path) -> None:
     assert "Abnahme-Evidenz: macos-arm64" in manifest
     assert "`cafe`" in manifest
     assert "> note" in manifest
+
+
+def test_write_evidence_includes_guard_results_table_when_present(tmp_path: Path) -> None:
+    records = [ra.ArtifactRecord(name="a.AppImage", sha256="cafe", bytes=7)]
+    evidence = ra.build_evidence(
+        "linux-arm64", "abc", {"art": "release-tag", "wert": "v2.7.0"}, records, [],
+    )
+    finalized = ra.finalize_evidence(
+        evidence, passed=True, gl_provenance="Broadcom / V3D 7.1 / 3.1",
+        guard_results=[{
+            "phase": "start", "artefaktklasse": "appimage", "exit_code": 0,
+            "peak_instanzen": 1, "status": "ok", "log": "smoke_launch OK",
+        }],
+    )
+    ra.write_evidence(tmp_path, finalized)
+    manifest = (tmp_path / "manifest.md").read_text(encoding="utf-8")
+    assert "| Phase | Artefaktklasse | Status | Exit-Code | Peak-Instanzen |" in manifest
+    assert "| start | appimage | ok | 0 | 1 |" in manifest
+
+
+def test_write_evidence_omits_guard_results_table_when_empty(tmp_path: Path) -> None:
+    records = [ra.ArtifactRecord(name="a.AppImage", sha256="cafe", bytes=7)]
+    evidence = ra.build_evidence(
+        "linux-arm64", "abc", {"art": "release-tag", "wert": "v2.7.0"}, records, [],
+    )
+    ra.write_evidence(tmp_path, evidence)
+    manifest = (tmp_path / "manifest.md").read_text(encoding="utf-8")
+    assert "Artefaktklasse" not in manifest
 
 
 def test_fetch_release_assets_filters_and_hashes(tmp_path: Path) -> None:

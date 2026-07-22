@@ -22,6 +22,12 @@ def _evidence(platform: str, status: str = "bestanden", **extra: object) -> dict
         "commit_sha": "abc", "quelle": {"art": "release-tag", "wert": "v2.7.0"},
         "artefakte": [], "umgebung": {}, "erzeugt_am": "2026-07-21T00:00:00+00:00",
         "gl_provenance": "Broadcom / V3D 7.1 / 3.1",
+        "waechter_ergebnisse": [
+            {
+                "phase": "start", "artefaktklasse": "appimage", "exit_code": 0,
+                "peak_instanzen": 1, "status": "ok", "log": "smoke_launch OK",
+            },
+        ],
         "hinweise": [],
     }
     base.update(extra)
@@ -75,6 +81,16 @@ def test_validate_evidence_reports_missing_fields() -> None:
 def test_validate_evidence_requires_nonempty_gl_provenance() -> None:
     broken = _evidence("linux-arm64", gl_provenance=None)
     assert "gl_provenance leer" in agg.validate_evidence(broken)
+
+
+def test_validate_evidence_requires_nonempty_waechter_ergebnisse() -> None:
+    # #642-Nachtrag: eine "bestandene" Evidenz ohne strukturierte
+    # Wächter-Ergebnisse ist kein vollständiger Nachweis mehr.
+    broken = _evidence("linux-arm64", waechter_ergebnisse=[])
+    assert "waechter_ergebnisse leer" in agg.validate_evidence(broken)
+    # Der Platzhalter-Status ist von der Pflicht ausgenommen (noch kein Smoke gelaufen).
+    placeholder = _evidence("linux-arm64", status="platzhalter", waechter_ergebnisse=[])
+    assert "waechter_ergebnisse leer" not in agg.validate_evidence(placeholder)
 
 
 def test_matrix_all_passed(tmp_path: Path) -> None:
