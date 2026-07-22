@@ -137,6 +137,14 @@ läuft in jedem normalen `pytest`-Lauf mit:
   der `ui_smoke`-Tests (das explizite `-m ui` hebt den
   Standard-Ausschluss auf).
 
+Ein weiterer Marker, `gl_smoke`, kennzeichnet die wenigen Tests mit echtem
+OpenGL-Rendering (`tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py`,
+ADR #591). Sie laufen in jedem normalen `pytest`-Lauf mit, überspringen sich
+aber automatisch, sobald keine renderfähige Qt-Plattform verfügbar ist –
+das trifft auf `offscreen` (und damit auf CI sowie diese Anleitung) zu.
+Details zum manuellen Nachweis unter echtem GL:
+[`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
+
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet
 sich also **kein Fenster**.
 
