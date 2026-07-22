@@ -11,42 +11,40 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-21)
+## Aktueller Stand (2026-07-22)
 
-Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Heute wurden PR **#647**, **#649**, **#650**, **#651** und **#652** gemergt. Damit sind ADR, Workflow, Plattform-Smokes, Source-E2E, Live-GL, Aggregation und der native Screenshot-Hook im gepackten Artefakt in `main`. **#640** und **#641** sind geschlossen. **#648** wurde nach der Nachprüfung wieder geöffnet, weil noch kein erfolgreicher Hardwarelauf mit getrennten Nachweisen für AppImage, installiertes `.deb` und DMG vorliegt. Live-Stand nach GitHub-Abfrage: **10** offene Issues.
+Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der letzten Runde wurden **#640–#645** und **#648** vollständig abgenommen und geschlossen (Hardware-Evidenz aus dem `release-abnahme.yml`-Dispatch vom 2026-07-21, Abschlussmatrix-Kommentar in #595: macOS-arm64- und Pi-5-Smokes, native 3D-E2E und Live-GL-Performance zeigen durchgehend **✅ erfüllt**). Live-Stand nach GitHub-Abfrage: **6** offene Issues – der niedrigste Stand seit Beginn des 3D-Epics.
 
 ### Ergebnis der Nachprüfung
 
-- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** und die seit
+- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** und alle seit
   **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
-- Die gemergten Änderungen sind strukturell sauber; alle PR-Gates und Review-Threads waren grün bzw. aufgelöst.
-- Der Code-Nachzug schließt die gefundenen Restlücken: eigener nativer 3D-Nachweis je Paketklasse, grafische Runner-Preflights, erneuter 3D-Nachweis nach Save/Open, drei Live-GL-Wiederholungen mit Rohwerten und echter Prozess-RSS-High-Water-Mark sowie ein validierbares `target_issue`-Dispatch-Eingabefeld.
-- Der verbleibende Blocker ist operativ: Ohne registrierte Runner in einer echten grafischen Sitzung und einen erfolgreichen `release-abnahme.yml`-Dispatch gibt es noch keine belastbare Zielhardware-Evidenz. Deshalb bleiben **#642–#646** und **#648** offen.
+- Epic **#639** ist mit 7 von 8 Teil-Issues fertig; die Teil-Issue-Checkliste im Issue-Text war noch unverändert (alle Kästchen leer), obwohl #640–#645/#648 längst geschlossen waren – heute nachgetragen (Kommentar + Body-Edit in #639), kein Code betroffen.
+- **Kein Issue ist aktuell „ready for PR"** im klassischen Sinn: Alle sechs verbleibenden offenen Issues sind entweder reine externe/operative Aufgaben (Secret setzen, Billing klären) oder Epics, die ausschließlich auf genau diese externen Aufgaben warten. Es gibt derzeit keinen offenen, code-seitig unbearbeiteten Task.
+- Einziger verbleibender Blocker der gesamten Kette: Repository-Secret `ANTHROPIC_API_KEY` fehlt (**#656**), daher zeigt die Abschlussmatrix-Zeile „Screenshots (Vision-Vorbewertung)" durchgehend `❓ unbewertet` statt echter Verdikte. Der Fail-safe-Pfad selbst funktioniert nachweislich wie vorgesehen.
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-21)
+## Offene GitHub-Issues – Triage-Stand (2026-07-22)
 
-| # | Status | Empfohlener nächster Schritt |
-|---|--------|------------------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | 🟠 Epic fast fertig | Runner konfigurieren, vollständigen Abnahme-Dispatch ausführen und Evidenz prüfen. |
-| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | 🟡 Code fertig, Live-Nachweis offen | Pi-5-Job: AppImage und installiertes `.deb` jeweils nativ prüfen. |
-| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | 🟡 Code fertig, Live-Nachweis offen | M3-Job: DMG, Retina und nativen 3D-Frame prüfen. |
-| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | 🟡 Code fertig, Live-Nachweis offen | E2E auf Hardware bis zum erneuten 3D-Ready nach Save/Open ausführen. |
-| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | 🟡 Code fertig, Live-Nachweis offen | Dreifache 1-/16-/40-MP-Live-GL-Messung auf Zielhardware ausführen. |
-| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | 🟡 Code fertig, Live-Nachweis offen | Abschlussmatrix erzeugen und an das gewählte Ziel-Issue posten. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | 🟡 Wieder geöffnet | Erst nach nativen Paketnachweisen für AppImage, `.deb` und DMG schließen. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | 🟡 Blockiert | Wartet auf die grüne Hardware-Abnahme aus #639. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | 🟡 Blockiert | Nach #595 abschließen. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 🟢 Extern blockiert | OpenAI-Billing/Quota außerhalb des Repositories klären. |
+| # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
+|---|-------|----------|--------------|-------------------------------|-------------------|
+| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟠 Hoch (letzter Blocker der gesamten Abnahme-Kette) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – Secret hinterlegen, dann Dispatch erneut prüfen |
+| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Vision-Vorbewertung, Evidenz-Aggregation, Abschlussmatrix | 🟠 Hoch (letztes offenes Teil-Issue von Epic #639) | 🟢 Niedrig (Code/Tests bereits gemergt in PR #649) | Sonnet 5 (low) – nur Verifikation, kein neuer Code erwartet | Needs verification – nach #656 realen Vision-Dispatch prüfen, dann schließen |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Automatisierte Release-Abnahme | 🟠 Hoch (Epic, 7/8 Teil-Issues fertig) | 🟢 Niedrig (nur noch #646 offen) | – (Epic, kein direkter Agent-Einsatz) | Blocked – schließt automatisch mit #646 |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance-/Packaging-/Doku-/E2E-Abnahme | 🟠 Hoch (Abnahme-Gate für Epic #582) | 🟢 Niedrig (alle Kriterien bis auf Vision-Zeile ✅) | – (kein Code-Task) | Blocked – wartet auf #646/#656, danach schließen |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Echte 3D-Reliefvorschau | 🟠 Hoch (großes, fast fertiges Feature-Epic) | 🟢 Niedrig (nur noch #595 offen) | – (Epic, kein direkter Agent-Einsatz) | Blocked – schließt automatisch mit #595 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
 
 ### Als Nächstes empfohlen
 
-1. Diesen Audit-Nachzug mergen und die Runner gemäß `docs/RELEASE_AUTOMATION.md` in der grafischen Benutzer-Sitzung konfigurieren.
-2. `release-abnahme.yml` mit Release-Tag oder Build-Run-ID, allen verfügbaren Plattformen und dem gewünschten `target_issue` auslösen.
-3. Nur bei vollständiger grüner Evidenz **#642–#646** und **#648** schließen; danach **#595** und **#582**.
-4. **#245** separat als externen Billing-/Quota-Tracker behandeln.
+1. **#656** zuerst erledigen (Repository-Secret `ANTHROPIC_API_KEY` setzen) – das ist der einzige verbleibende Hebel, der die gesamte Kette #646 → #639 → #595 → #582 entsperrt.
+2. Danach `release-abnahme.yml` erneut per `workflow_dispatch` auslösen und prüfen, ob die Vision-Zeile der Abschlussmatrix echte Verdikte statt `unbewertet` zeigt (mit kurzer Stichprobenkontrolle gegen die Screenshots, wie in #656 gefordert).
+3. Bei grüner Vision-Zeile **#646** schließen; damit schließen **#639**, **#595** und **#582** in Kaskade (jeweils kurz gegenprüfen, bevor manuell geschlossen wird).
+4. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
+5. Es gibt aktuell **keinen** offenen Issue, der eine neue Code-PR rechtfertigt – die nächste sinnvolle Agent-Aufgabe ist die Verifikation nach #656, nicht neue Implementierung.
 
 ## Vorige Runden
 
+- **2026-07-22 (Issue-Review)** — Vollständige Neubewertung aller offenen Issues: #640–#645 und #648 waren bereits über den Abnahme-Dispatch vom 2026-07-21 abgenommen und geschlossen worden, die Teil-Issue-Checkliste in Epic #639 war dabei nicht nachgezogen worden (heute per Issue-Edit + Kommentar nachgetragen, kein Code betroffen). Neuer Blocker **#656** (fehlendes `ANTHROPIC_API_KEY`-Secret) identifiziert als einziger verbleibender Hebel für #646/#639/#595/#582. Live-Stand 6 offene Issues – niedrigster Stand seit Epic #582.
 - **2026-07-21 (Abnahme-Automatisierung, Epic #639)** — Epic #639 eröffnet und binnen eines Tages größtenteils umgesetzt: ADR/Doku (#640), Workflow-Gerüst (#641), Linux-/macOS-Hardware-Smokes (#642/#643), E2E-Regressionstest (#644), Live-GL-Performance-Suite (#645), Vision-Vorbewertung + Abschlussmatrix (#646) – alle über PR #647/#649 gemergt, aber wegen deutscher Schließen-Schlüsselwörter nicht automatisch geschlossen; Folge-Issue #648 (nativer 3D-Render-Nachweis) bleibt die einzige offene Codeaufgabe. Live-Stand 12 offene Issues.
 - **2026-07-20 (Pi-5-Hardware-Smoke)** — drei reale Packaging-Bugs auf Raspberry Pi 5 gefunden und behoben (PR #627/#631); App startet bestätigt inkl. 3D-Vorschau.
 - **2026-07-18 (Post-Merge-Nachprüfung)** — #551 und #592–#594 als erledigt bestätigt; #582/#595 wegen offener Packaging-/Plattform-, Performance- und Screenshot-Nachweise wieder geöffnet; Live-Stand 3.

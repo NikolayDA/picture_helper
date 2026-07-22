@@ -11,54 +11,39 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-21)
+## État actuel (2026-07-22)
 
-Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Les PR **#647**, **#649**, **#650**, **#651** et **#652** ont été fusionnées aujourd'hui. ADR, workflow, smokes, E2E, GL en direct, agrégation et hook natif de l'artefact sont dans `main`. **#640** et **#641** sont fermés. **#648** a été rouvert faute d'une exécution matérielle réussie avec preuves distinctes pour AppImage, `.deb` installé et DMG. État en direct : **10** tickets ouverts.
+Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Depuis le dernier tour, **#640–#645** et **#648** ont été intégralement acceptés puis fermés (preuves matérielles issues du dispatch `release-abnahme.yml` du 2026-07-21 ; le commentaire de matrice de recette sur #595 montre les smokes macOS-arm64 et Pi-5, l'E2E 3D natif et la performance GL en direct tous **✅ satisfaits**). État en direct : **6** tickets ouverts — le niveau le plus bas depuis le début de l'epic 3D.
 
 ### Résultat de la revue
 
-- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8** et **O2–O7** restent faits ; les epics **#329/#344/#358/#384** (N9–N12) plus le correctif d'export **#363** sont fusionnés/archivés ; depuis le 2026-06-25, également **#404/#406/#408** (PR #412) clos.
-- **Pipeline de hauteur 16 bits entièrement achevé :** l'epic **#581** incluant **#587/#588** (PR #610), **#589** (PR #612) et **#590** (PR #613) est dans `main` ; tous les gates/revues sont verts, matrice de recette complète présente.
-- **Modèle de sécurité et cœur 3D achevés :** **#551** (CodeQL automatique, Codex manuel uniquement) via PR #619 ; **#592–#594** (cœur géométrique, viewer, intégration workflow/cache) via PR #620 dans `main`. Les lacunes de couverture **#597/#598** closes via PR #615 ; la lacune du guide **#606** corrigée dans les six langues via PR #616.
-- **Packaging Raspberry Pi 5 durci :** trois véritables bogues de démarrage trouvés et corrigés sur le matériel cible — point d'entrée AppImage (PR #627), compatibilité glibc aarch64 (PR #627), mise en place des plugins Qt/RUNPATH (PR #631) ; le démarrage de l'application sur le Pi 5 est confirmé, aperçu 3D fonctionnel inclus.
-- **Code de recette complet, preuve matérielle en attente :** ce suivi ajoute une capture par classe de paquet, des contrôles de session graphique, une nouvelle preuve 3D après Save/Open, trois mesures GL avec RSS réel du processus et un champ `target_issue` validé.
+- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** et tout ce qui a été achevé depuis le **2026-06-25** reste fait.
+- L'epic **#639** est achevé pour 7 de ses 8 tickets enfants ; la liste de contrôle du corps du ticket avait toutes les cases décochées alors que #640–#645/#648 étaient fermés depuis longtemps — réconcilié aujourd'hui (commentaire + édition du corps sur #639), sans impact code.
+- **Aucun ticket ne se qualifie actuellement comme « prêt pour un PR »** au sens classique : les six tickets ouverts restants sont soit des tâches purement externes/opérationnelles (configurer un secret, régler une facturation), soit des epics bloqués exclusivement par ces mêmes tâches externes. Il n'existe actuellement aucune tâche ouverte côté code non traitée.
+- Le seul blocage restant pour toute la chaîne : le secret de dépôt `ANTHROPIC_API_KEY` est manquant (**#656**), donc la ligne « Screenshots (pré-évaluation vision) » de la matrice de recette affiche toujours `❓ non évalué` au lieu de véritables verdicts. Le chemin de repli lui-même fonctionne exactement comme prévu.
 
-- **Preuve opérationnelle 🟡 :** #642–#646 et #648 rouvert restent ouverts jusqu'à un vrai dispatch matériel graphique.
-- **Tracker externe 🟢 :** #245 reste une question de facturation/quota OpenAI hors dépôt.
+## Tickets GitHub ouverts — Triage (2026-07-22)
 
-## Tickets GitHub ouverts — Triage (2026-07-21)
+| # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
+|---|-------|------------|------------|------------------------------|------------------|
+| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activer le secret ANTHROPIC_API_KEY pour la pré-évaluation vision | 🟠 Élevée (dernier blocage de toute la chaîne de recette) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : Settings → Secrets) | Bloquée (externe) – configurer le secret, puis revérifier le dispatch |
+| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Pré-évaluation vision, agrégation des preuves, matrice de recette | 🟠 Élevée (dernier ticket enfant ouvert de l'epic #639) | 🟢 Faible (code/tests déjà fusionnés dans PR #649) | Sonnet 5 (faible) – vérification uniquement, aucun nouveau code attendu | Vérification nécessaire – après #656, contrôler un dispatch réel avec vision, puis fermer |
+| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Recette de publication automatisée | 🟠 Élevée (epic, 7/8 tickets enfants faits) | 🟢 Faible (seul #646 reste) | – (epic, pas d'usage direct d'agent) | Bloquée – se ferme automatiquement avec #646 |
+| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟠 Élevée (porte de recette de l'epic #582) | 🟢 Faible (tous les critères satisfaits sauf la ligne vision) | – (aucune tâche de code) | Bloquée – attend #646/#656, puis fermer |
+| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟠 Élevée (epic volumineux, presque terminé) | 🟢 Faible (seul #595 reste) | – (epic, pas d'usage direct d'agent) | Bloquée – se ferme automatiquement avec #595 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – régler la facturation/le quota sur le projet de la plateforme OpenAI |
 
-État en direct : **10** tickets ouverts. Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort d'implémentation estimé, **Modèle/Effort** = modèle Claude et effort de raisonnement recommandés.
+### Recommandé ensuite
 
-- **Automatisation de la recette** (#639 → #642–#646 + #648) : les chemins de code existent ; la clôture exige des preuves complètes du matériel cible.
-- **#648** est rouvert pour les preuves, pas pour un hook manquant : AppImage, `.deb` installé et DMG doivent chacun produire capture 3D native et provenance.
-- **Aperçu de relief 3D** (#582 → #595) : le MVP est terminé ; #595 attend la même recette matérielle verte.
-- **#245** reste un pur tracker externe de facturation/quota OpenAI et ne bloque ni CodeQL, ni la publication, ni la 3D.
-
-| # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
-|---|-------|------------|------------|----------------|-----------------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Recette de publication automatisée | 🟠 Élevée | 🟠 Élevée (code presque terminé) | – (epic de suivi) | **En cours** – configurer les runners, dispatcher le workflow et examiner les preuves. |
-| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Smokes Linux (AppImage/.deb) avec preuve de provenance GL | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_smoke.py` + tests présents via PR #647 ; l'exécution réelle n'aura lieu qu'après dispatch sur le runner Pi 5. |
-| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | Smoke DMG macOS avec preuve Retina/HiDPI | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – même base que #642, pour le runner M3. |
-| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | Scénario de régression de publication E2E en test `ui` | 🟠 Élevée | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) présent via PR #649 ; la branche Ready nécessite un véritable dispatch GL. |
-| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Suite de performance GL en direct dans le harnais de benchmark | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – suite `preview3d-live` dans `scripts/benchmark.py` présente via PR #649. |
-| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Pré-évaluation vision, agrégation des preuves, matrice de recette | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` présents via PR #647/#649 ; nécessite aussi un secret `ANTHROPIC_API_KEY` pour une évaluation réelle. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Preuve de rendu 3D natif de l'artefact packagé | 🟡 Moyenne | 🟡 Moyenne (code terminé) | – (preuve) | **Rouvert** – fermer seulement après preuves natives AppImage, `.deb` installé et DMG. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟡 Moyenne | – (preuve) | **Bloqué** – attend le dispatch matériel vert de #639. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large, MVP terminé) | – (epic de suivi) | **Blocked** – attend uniquement #595. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible | 🟢 Faible | – (aucune tâche de code) | **Blocked (external)** – inchangé depuis le 2026-07-15 : un pur tracker externe de facturation qui ne bloque rien dans le dépôt. |
-
-### Recommandé ensuite (ordre des PR)
-
-1. Fusionner ce suivi et configurer les runners dans leurs sessions graphiques selon `docs/RELEASE_AUTOMATION.md`.
-2. Dispatcher `release-abnahme.yml` avec tag ou ID de build, toutes les plateformes disponibles et le `target_issue` voulu.
-3. Fermer **#642–#646** et **#648** uniquement avec des preuves entièrement vertes, puis **#595** et **#582**.
-4. Garder **#245** séparé comme tracker externe de facturation/quota.
-
-*Dérive :* cette mise à jour réconcilie l'instantané avec l'état réel de `main` (historique Git complet, auparavant masqué par un clone superficiel) et une requête GitHub en direct ; elle remplace l'état du 2026-07-18 à 3 tickets ouverts. Les mises à jour futures continuent de revérifier en direct les statuts, listes de contrôle et dépendances plutôt que de reporter un horodatage.
+1. Régler d'abord **#656** (configurer le secret de dépôt `ANTHROPIC_API_KEY`) — le seul levier restant qui débloque toute la chaîne #646 → #639 → #595 → #582.
+2. Ensuite, dispatcher à nouveau `release-abnahme.yml` via `workflow_dispatch` et vérifier si la ligne vision de la matrice de recette affiche de véritables verdicts au lieu de `non évalué` (contrôler ponctuellement un couple par rapport aux captures, comme l'exige #656).
+3. Une fois la ligne vision au vert, fermer **#646** ; cela ferme en cascade **#639**, **#595** et **#582** (revérifier brièvement chacun avant de le fermer manuellement).
+4. Laisser **#245** comme pur tracker externe de facturation/quota ; aucune action possible ni nécessaire dans le dépôt.
+5. Il n'existe actuellement **aucun** ticket ouvert justifiant un nouveau PR de code — la prochaine tâche d'agent sensée est la vérification après #656, pas une nouvelle implémentation.
 
 ## Tours précédents
 
+- **2026-07-22 (revue des tickets)** — réévaluation complète de tous les tickets ouverts : #640–#645 et #648 avaient déjà été acceptés et fermés via le dispatch de recette du 2026-07-21, mais la liste de contrôle des tickets enfants de l'epic #639 n'avait pas été réconciliée (corrigé aujourd'hui via édition du corps + commentaire, sans impact code). Nouveau blocage **#656** (secret `ANTHROPIC_API_KEY` manquant) identifié comme seul levier restant pour #646/#639/#595/#582. État en direct : 6 tickets ouverts — le niveau le plus bas depuis l'epic #582.
 - **2026-07-21 (automatisation de la recette de publication, epic #639)** — epic #639 ouvert et largement implémenté en une seule journée : ADR/documentation (#640), squelette de workflow (#641), smokes matériels Linux/macOS (#642/#643), test de régression E2E (#644), suite de performance GL en direct (#645), pré-évaluation vision + matrice de recette (#646) — tous fusionnés via PR #647/#649 mais non fermés automatiquement en raison de mots-clés de clôture en allemand ; le ticket de suivi #648 (preuve de rendu 3D natif) reste la seule tâche de code ouverte. État en direct : 12 tickets ouverts.
 - **2026-07-20 (smoke matériel Pi 5)** — trois véritables bogues de packaging trouvés et corrigés sur Raspberry Pi 5 (PR #627/#631) ; le démarrage de l'application est confirmé, aperçu 3D inclus.
 - **2026-07-18 (audit post-merge)** — #551 et #592–#594 confirmés ; #582/#595 rouverts pour preuves manquantes ; état en direct 3.
