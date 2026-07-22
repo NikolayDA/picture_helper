@@ -368,7 +368,11 @@ Ein Paket, `bgremover/`:
   `canvas_selection/_lasso/_transform/_viewport`. Die zustandsbehafteten
   Qt-Module `canvas`, `main_window`, `worker_controller` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
-  Annotationszwang); die übrigen UI-Module bleiben bewusst laxer.
+  Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
+  Strenge gilt für die Abnahme-Skripte `scripts/abnahme_vision_check.py` und
+  `scripts/abnahme_aggregate.py` (#646) – als eigenständige Dateien ohne
+  `scripts/__init__.py` explizit per Dateipfad in `files` sowie per
+  Modul-Override (Modulname = Dateibasisname) erfasst.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit).
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
   (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.

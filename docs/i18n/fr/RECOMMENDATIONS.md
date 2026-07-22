@@ -11,54 +11,47 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-21)
+## État actuel (2026-07-22, après la clôture de la recette)
 
-Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Les PR **#647**, **#649**, **#650**, **#651** et **#652** ont été fusionnées aujourd'hui. ADR, workflow, smokes, E2E, GL en direct, agrégation et hook natif de l'artefact sont dans `main`. **#640** et **#641** sont fermés. **#648** a été rouvert faute d'une exécution matérielle réussie avec preuves distinctes pour AppImage, `.deb` installé et DMG. État en direct : **10** tickets ouverts.
+Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. Le nouveau dispatch `release-abnahme.yml` demandé au tour précédent a été déclenché (exécution [#4](https://github.com/NikolayDA/picture_helper/actions/runs/29908256619), commit `9165c00`, après #657/#658) et a produit une matrice entièrement verte à l'exception de la ligne Linux x86_64 délibérément en pause. Sur cette base, les quatre tickets auparavant bloqués ont été **vérifiés et fermés individuellement par rapport à leurs propres critères d'acceptation** — aucun ticket ne s'est fermé automatiquement avec un autre :
+
+1. **#595** — tous les points de la liste « toujours ouvert » sont satisfaits, **à l'exception** de la ligne Linux x86_64 délibérément en pause : selon l'ADR/`RELEASE_AUTOMATION.md`, elle reste « déclarée ouverte, non satisfaite » — pour cette fermeture, elle a été traitée explicitement comme une exception accordée (waiver), et non requalifiée en critère satisfait (à l'image du propre critère d'acceptation de #639).
+2. **#646** — cinq critères sur six étaient déjà satisfaits ; une véritable lacune a été trouvée : `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py` étaient entièrement exclus de `make type`/`make check`, et une exécution stricte d'essai a révélé une véritable erreur `union-attr`. Corrigée et fusionnée via le PR #662 (commit `f47445f`).
+3. **#639** — #646 étant fermé, les huit tickets enfants sont désormais fermés ; la liste de contrôle du corps du ticket a été mise à jour.
+4. **#582** — les cinq tickets enfants sont fermés ; la décision requise sur la texture comme objectif optionnel figure déjà dans l'ADR, la lacune du README relevée lors de l'audit du 2026-07-20 est corrigée, et `make ui` est confirmé vert.
+
+De plus, deux nouveaux tickets issus d'audits automatisés sont apparus depuis le dernier tour : **#660** est déjà terminé et n'attend plus qu'une fusion, tandis que **#659** attend véritablement une décision du propriétaire.
+
+État en direct : **4** tickets ouverts.
 
 ### Résultat de la revue
 
-- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8** et **O2–O7** restent faits ; les epics **#329/#344/#358/#384** (N9–N12) plus le correctif d'export **#363** sont fusionnés/archivés ; depuis le 2026-06-25, également **#404/#406/#408** (PR #412) clos.
-- **Pipeline de hauteur 16 bits entièrement achevé :** l'epic **#581** incluant **#587/#588** (PR #610), **#589** (PR #612) et **#590** (PR #613) est dans `main` ; tous les gates/revues sont verts, matrice de recette complète présente.
-- **Modèle de sécurité et cœur 3D achevés :** **#551** (CodeQL automatique, Codex manuel uniquement) via PR #619 ; **#592–#594** (cœur géométrique, viewer, intégration workflow/cache) via PR #620 dans `main`. Les lacunes de couverture **#597/#598** closes via PR #615 ; la lacune du guide **#606** corrigée dans les six langues via PR #616.
-- **Packaging Raspberry Pi 5 durci :** trois véritables bogues de démarrage trouvés et corrigés sur le matériel cible — point d'entrée AppImage (PR #627), compatibilité glibc aarch64 (PR #627), mise en place des plugins Qt/RUNPATH (PR #631) ; le démarrage de l'application sur le Pi 5 est confirmé, aperçu 3D fonctionnel inclus.
-- **Code de recette complet, preuve matérielle en attente :** ce suivi ajoute une capture par classe de paquet, des contrôles de session graphique, une nouvelle preuve 3D après Save/Open, trois mesures GL avec RSS réel du processus et un champ `target_issue` validé.
+- **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** et tout ce qui a été achevé depuis le **2026-06-25** reste fait.
+- **#646/#639/#595/#582 sont désormais vérifiés individuellement et fermés** (sans effet domino de fermeture automatique) ; l'unique véritable lacune trouvée au passage (rigueur mypy pour les scripts de recette, #646) a été corrigée et fusionnée via le PR #662.
+- **#659/#660 sont nouveaux :** #660 est **prêt pour un PR** – un correctif terminé mais non fusionné se trouve déjà sur la branche `claude/festive-gates-4dkzds` (commit `80b7aa0`) ; il n'y a plus rien à décider, seulement à fusionner. #659, en revanche, reste véritablement **non tranché** : une analyse pure sans changement de code, proposant deux nouveaux identifiants de constat (**N9**/**O8**), encore en attente de validation du propriétaire.
+- L'étape restante n'est donc **plus** un sujet de recette — il s'agit d'ouvrir/fusionner un PR pour #660 et d'obtenir une décision sur les constats proposés dans #659.
 
-- **Preuve opérationnelle 🟡 :** #642–#646 et #648 rouvert restent ouverts jusqu'à un vrai dispatch matériel graphique.
-- **Tracker externe 🟢 :** #245 reste une question de facturation/quota OpenAI hors dépôt.
+## Tickets GitHub ouverts — Triage (2026-07-22)
 
-## Tickets GitHub ouverts — Triage (2026-07-21)
+| # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
+|---|-------|------------|------------|------------------------------|------------------|
+| [#660](https://github.com/NikolayDA/picture_helper/issues/660) | Audit de TESTING.md : à jour, une petite lacune corrigée (marqueur `gl_smoke` non documenté) | 🟢 Faible (pure exactitude documentaire, aucun impact fonctionnel) | 🟢 Faible (un court paragraphe, déjà implémenté) | – (aucun agent nécessaire ; le correctif est déjà sur la branche `claude/festive-gates-4dkzds`, commit `80b7aa0`) | Ready for PR – il ne reste qu'à l'ouvrir/le fusionner, puis fermer le ticket |
+| [#659](https://github.com/NikolayDA/picture_helper/issues/659) | Audit de la suite de tests : petites lacunes de qualité en 6 lots (`test_i18n_sync`, `test_viewer_3d`, etc.) | 🟡 Moyenne (qualité/couverture des tests, pas un blocage) | 🟡 Moyenne (mélange de suppressions/correctifs triviaux et de véritables lacunes de couverture sur plusieurs modules) | Sonnet 5 (moyen) – si adopté comme N9/O8 | Needs decision – proposition pas encore intégrée à la liste des constats ; validation du propriétaire en attente, puis mise en œuvre en tant que PR dédié |
+| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activer le secret ANTHROPIC_API_KEY pour la pré-évaluation vision | 🟡 Moyenne (améliore seulement la qualité des preuves ; pas un blocage selon le contrat) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : Settings → Secrets) | Bloquée (externe) – réalisable indépendamment |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – régler la facturation/le quota sur le projet de la plateforme OpenAI |
 
-État en direct : **10** tickets ouverts. Évaluation : **Pertinence** = importance pour la feuille de route/les utilisateurs, **Complexité** = effort d'implémentation estimé, **Modèle/Effort** = modèle Claude et effort de raisonnement recommandés.
+### Recommandé ensuite
 
-- **Automatisation de la recette** (#639 → #642–#646 + #648) : les chemins de code existent ; la clôture exige des preuves complètes du matériel cible.
-- **#648** est rouvert pour les preuves, pas pour un hook manquant : AppImage, `.deb` installé et DMG doivent chacun produire capture 3D native et provenance.
-- **Aperçu de relief 3D** (#582 → #595) : le MVP est terminé ; #595 attend la même recette matérielle verte.
-- **#245** reste un pur tracker externe de facturation/quota OpenAI et ne bloque ni CodeQL, ni la publication, ni la 3D.
-
-| # | Titre | Pertinence | Complexité | Modèle/Effort | Prochaine étape recommandée |
-|---|-------|------------|------------|----------------|-----------------------------|
-| [#639](https://github.com/NikolayDA/picture_helper/issues/639) | [Epic] Recette de publication automatisée | 🟠 Élevée | 🟠 Élevée (code presque terminé) | – (epic de suivi) | **En cours** – configurer les runners, dispatcher le workflow et examiner les preuves. |
-| [#642](https://github.com/NikolayDA/picture_helper/issues/642) | Smokes Linux (AppImage/.deb) avec preuve de provenance GL | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_smoke.py` + tests présents via PR #647 ; l'exécution réelle n'aura lieu qu'après dispatch sur le runner Pi 5. |
-| [#643](https://github.com/NikolayDA/picture_helper/issues/643) | Smoke DMG macOS avec preuve Retina/HiDPI | 🟠 Élevée | 🟡 Moyenne (logique principale terminée) | – (aucune tâche de code) | **Ready to close / needs live verification** – même base que #642, pour le runner M3. |
-| [#644](https://github.com/NikolayDA/picture_helper/issues/644) | Scénario de régression de publication E2E en test `ui` | 🟠 Élevée | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `tests/test_e2e_release_regression.py` (ui_smoke) présent via PR #649 ; la branche Ready nécessite un véritable dispatch GL. |
-| [#645](https://github.com/NikolayDA/picture_helper/issues/645) | Suite de performance GL en direct dans le harnais de benchmark | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – suite `preview3d-live` dans `scripts/benchmark.py` présente via PR #649. |
-| [#646](https://github.com/NikolayDA/picture_helper/issues/646) | Pré-évaluation vision, agrégation des preuves, matrice de recette | 🟡 Moyenne | 🟡 Moyenne (terminé) | – (aucune tâche de code) | **Ready to close / needs live verification** – `abnahme_vision_check.py`/`abnahme_aggregate.py` présents via PR #647/#649 ; nécessite aussi un secret `ANTHROPIC_API_KEY` pour une évaluation réelle. |
-| [#648](https://github.com/NikolayDA/picture_helper/issues/648) | Preuve de rendu 3D natif de l'artefact packagé | 🟡 Moyenne | 🟡 Moyenne (code terminé) | – (preuve) | **Rouvert** – fermer seulement après preuves natives AppImage, `.deb` installé et DMG. |
-| [#595](https://github.com/NikolayDA/picture_helper/issues/595) | [3D] Performance, packaging, documentation, recette end-to-end | 🟡 Moyenne | 🟡 Moyenne | – (preuve) | **Bloqué** – attend le dispatch matériel vert de #639. |
-| [#582](https://github.com/NikolayDA/picture_helper/issues/582) | [Epic] Véritable aperçu de relief 3D | 🟡 Moyenne | 🟠 Élevée (très large, MVP terminé) | – (epic de suivi) | **Blocked** – attend uniquement #595. |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible | 🟢 Faible | – (aucune tâche de code) | **Blocked (external)** – inchangé depuis le 2026-07-15 : un pur tracker externe de facturation qui ne bloque rien dans le dépôt. |
-
-### Recommandé ensuite (ordre des PR)
-
-1. Fusionner ce suivi et configurer les runners dans leurs sessions graphiques selon `docs/RELEASE_AUTOMATION.md`.
-2. Dispatcher `release-abnahme.yml` avec tag ou ID de build, toutes les plateformes disponibles et le `target_issue` voulu.
-3. Fermer **#642–#646** et **#648** uniquement avec des preuves entièrement vertes, puis **#595** et **#582**.
-4. Garder **#245** séparé comme tracker externe de facturation/quota.
-
-*Dérive :* cette mise à jour réconcilie l'instantané avec l'état réel de `main` (historique Git complet, auparavant masqué par un clone superficiel) et une requête GitHub en direct ; elle remplace l'état du 2026-07-18 à 3 tickets ouverts. Les mises à jour futures continuent de revérifier en direct les statuts, listes de contrôle et dépendances plutôt que de reporter un horodatage.
+1. **#660** : ouvrir un PR pour le correctif TESTING.md déjà validé (branche `claude/festive-gates-4dkzds`, commit `80b7aa0`) et le fusionner ; puis fermer le ticket.
+2. **#659** : décider si les constats proposés **N9** (supprimer/fusionner le poids mort `test_i18n_sync.py`) et **O8** (assertions tautologiques dans `viewer_3d` plus lacunes de couverture dans `screenshot3d.py`/`viewer_3d.py`/`preview3d_capability.py`/`height_map.py`/`gloss_preview.py`) sont adoptés ; mettre en œuvre comme PR dédié en cas d'accord.
+3. Traiter **#656** indépendamment si de véritables verdicts vision sont souhaités — c'est une amélioration de qualité, pas un blocage.
+4. Laisser **#245** comme pur tracker externe de facturation/quota ; aucune action possible ni nécessaire dans le dépôt.
+5. La chaîne recette/epic 3D (#646/#639/#595/#582) est entièrement close et ne nécessite plus aucune action.
 
 ## Tours précédents
 
+- **2026-07-22 (clôture de la recette)** — nouveau dispatch `release-abnahme.yml` déclenché (exécution #4, commit `9165c00`) ; matrice comparée à #595 (x86_64 reste documentée en pause mais ne bloque pas) ; #595, #646, #639, #582 vérifiés et fermés individuellement par rapport à leurs propres critères d'acceptation. L'unique véritable lacune trouvée (rigueur mypy pour `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) corrigée et fusionnée via le PR #662. Deux nouveaux tickets d'audit enregistrés : #660 avec un correctif terminé non fusionné (prêt pour un PR), #659 en attente d'une véritable décision du propriétaire sur les constats proposés. État en direct : 4 tickets ouverts — le niveau le plus bas depuis le début de ce journal.
+- **2026-07-22 (revue des tickets, corrigée après revue Codex)** — réévaluation complète de tous les tickets ouverts ; une version antérieure surestimait ce que prouvait le dispatch du 2026-07-21 (depuis dépassé par les PR #657/#658) et présentait à tort la ligne vision consultative (#656) comme un blocage. Corrigé après revue de PR (Codex) : #656 peut être résolu indépendamment, Linux x86_64 reste un critère déclaré ouvert, et #639/#595/#582 ne se ferment pas automatiquement avec leurs tickets enfants. État en direct : 6 tickets ouverts — le niveau le plus bas depuis l'epic #582.
 - **2026-07-21 (automatisation de la recette de publication, epic #639)** — epic #639 ouvert et largement implémenté en une seule journée : ADR/documentation (#640), squelette de workflow (#641), smokes matériels Linux/macOS (#642/#643), test de régression E2E (#644), suite de performance GL en direct (#645), pré-évaluation vision + matrice de recette (#646) — tous fusionnés via PR #647/#649 mais non fermés automatiquement en raison de mots-clés de clôture en allemand ; le ticket de suivi #648 (preuve de rendu 3D natif) reste la seule tâche de code ouverte. État en direct : 12 tickets ouverts.
 - **2026-07-20 (smoke matériel Pi 5)** — trois véritables bogues de packaging trouvés et corrigés sur Raspberry Pi 5 (PR #627/#631) ; le démarrage de l'application est confirmé, aperçu 3D inclus.
 - **2026-07-18 (audit post-merge)** — #551 et #592–#594 confirmés ; #582/#595 rouverts pour preuves manquantes ; état en direct 3.
