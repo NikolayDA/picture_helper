@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.0] – 2026-07-22
+
 ### Added
 
 - **Real 3D relief preview – interactive, performant, and gracefully degrading
@@ -154,6 +156,13 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   `×257`, while the 8-bit export quantizes exactly once in a controlled way.
   Foreign NumPy views are copied before sharing so their base buffers cannot
   alter duplicates or history snapshots.
+
+- **New app icon: "Liquid Glass" design (#667).** The shared master icon
+  `BgRemover_icon.png` (1024×1024 RGBA, transparent outer corners) was
+  replaced; the macOS `.icns`, Linux AppImage, and `.deb` icon all derive from
+  the same repository master, so every distribution path shows the new
+  design. Linux packaging tests now also check icon dimensions and the alpha
+  channel.
 
 ## [2.6.0] – 2026-07-15
 
