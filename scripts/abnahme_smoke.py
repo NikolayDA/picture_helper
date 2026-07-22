@@ -163,17 +163,45 @@ def _record_guard(
     echten Subprozess), bleiben ``peak_instanzen``/``status`` ``None``/
     ``"unbekannt"`` statt den Smoke zum Scheitern zu bringen – die
     Fail/Pass-Entscheidung selbst liegt weiter bei ``report.fail``/``report.ok``.
+
+    Drei Codex-Funde zu PR #657 behoben:
+    - ``exit_code`` ist – falls geparst – der Exit-Code des GEWÄCHTEN Prozesses
+      (aus der Nutzlast), nicht der immer auf 0/1 normalisierte Exit-Code von
+      ``smoke_launch.py`` selbst (sonst ginge z. B. ein Ziel-Exit 7 als „1"
+      in die Evidenz ein). ``result.returncode`` bleibt nur der Fallback ohne
+      Nutzlast.
+    - ``log`` kombiniert stdout **und** stderr (statt nur stderr zu behalten,
+      falls beide nicht leer sind) – sonst ginge auf stdout geschriebene
+      Diagnose des gewächten Prozesses verloren.
+    - Da ``_default_runner`` den Subprozess mit ``capture_output=True``
+      abfängt, landet nichts davon automatisch im Actions-Job-Log; die
+      Wächter-Zusammenfassung wird deshalb zusätzlich auf das eigene stdout
+      von ``abnahme_smoke.py`` gedruckt (das der Job unverändert live zeigt).
     """
     parsed = sl.parse_result_line(result.stdout)
-    log = (result.stderr or result.stdout or "").strip()
-    report.guard_results.append({
+    exit_code = (parsed.get("exit_code") if parsed else None)
+    if exit_code is None:
+        exit_code = result.returncode
+    segments = [
+        f"{label}:\n{stream.strip()}"
+        for label, stream in (("stdout", result.stdout), ("stderr", result.stderr))
+        if stream and stream.strip()
+    ]
+    log = "\n".join(segments)
+    entry = {
         "phase": phase,
         "artefaktklasse": artifact_class,
-        "exit_code": result.returncode,
+        "exit_code": exit_code,
         "peak_instanzen": parsed.get("peak_instances") if parsed else None,
         "status": (parsed.get("status") if parsed else None) or "unbekannt",
         "log": log[-_GUARD_LOG_MAX_CHARS:],
-    })
+    }
+    report.guard_results.append(entry)
+    print(
+        f"[waechter] phase={entry['phase']} artefaktklasse={entry['artefaktklasse']} "
+        f"status={entry['status']} exit_code={entry['exit_code']} "
+        f"peak_instanzen={entry['peak_instanzen']}"
+    )
 
 
 def _default_runner(cmd: list[str]) -> CommandResult:

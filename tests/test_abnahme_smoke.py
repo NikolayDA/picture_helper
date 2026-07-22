@@ -555,7 +555,7 @@ def test_record_guard_parses_structured_result_line() -> None:
     )
     assert report.guard_results == [{
         "phase": "start", "artefaktklasse": "appimage", "exit_code": 0,
-        "peak_instanzen": 2, "status": "ok", "log": stdout,
+        "peak_instanzen": 2, "status": "ok", "log": f"stdout:\n{stdout}",
     }]
 
 
@@ -572,7 +572,59 @@ def test_record_guard_falls_back_to_unbekannt_without_result_line() -> None:
     assert entry["status"] == "unbekannt"
     assert entry["peak_instanzen"] is None
     assert entry["exit_code"] == 1
-    assert entry["log"] == "boom"
+    assert entry["log"] == "stderr:\nboom"
+
+
+def test_record_guard_prefers_parsed_exit_code_over_smoke_launch_returncode() -> None:
+    """Codex-Fund zu PR #657: ``smoke_launch.py`` normalisiert seinen eigenen
+    Exit-Code auf 0/1 – der echte Exit-Code des gewächten Prozesses (z. B. 7
+    bei einem Start-Crash) steckt nur in der geparsten Nutzlast und darf nicht
+    durch den gröberen 0/1-Wert überschrieben werden."""
+    report = smoke.SmokeReport()
+    stdout = smoke.sl.format_result_line(
+        match_token="x", timeout=120.0, max_instances=1, peak_instances=1,
+        exit_code=7, status="start_crash", detail="Bundle endete mit Exit-Code 7",
+    )
+    smoke._record_guard(
+        report, smoke.CommandResult(1, stdout=stdout, stderr=""),
+        phase="start", artifact_class="appimage",
+    )
+    assert report.guard_results[0]["exit_code"] == 7
+
+
+def test_record_guard_combines_stdout_and_stderr_in_log() -> None:
+    """Codex-Fund zu PR #657: Diagnose kann auf stdout ODER stderr landen –
+    ``log`` darf nicht nur einen der beiden Streams behalten."""
+    report = smoke.SmokeReport()
+    smoke._record_guard(
+        report, smoke.CommandResult(1, stdout="app-diagnose auf stdout", stderr="wächter-fehler"),
+        phase="start", artifact_class="deb",
+    )
+    log = report.guard_results[0]["log"]
+    assert "app-diagnose auf stdout" in log
+    assert "wächter-fehler" in log
+
+
+def test_record_guard_prints_summary_for_the_workflow_log(capsys) -> None:  # type: ignore[no-untyped-def]
+    """Codex-Fund zu PR #657: ``_default_runner`` fängt den Subprozess mit
+    ``capture_output=True`` ab – ohne einen eigenen Print landet die
+    Wächter-Zusammenfassung nie im Actions-Job-Log, obwohl genau das der
+    Zweck der Aufgabe war."""
+    report = smoke.SmokeReport()
+    stdout = smoke.sl.format_result_line(
+        match_token="x", timeout=120.0, max_instances=1, peak_instances=1,
+        exit_code=0, status="ok", detail="sauber gestartet",
+    )
+    smoke._record_guard(
+        report, smoke.CommandResult(0, stdout=stdout, stderr=""),
+        phase="start", artifact_class="appimage",
+    )
+    out = capsys.readouterr().out
+    assert "phase=start" in out
+    assert "artefaktklasse=appimage" in out
+    assert "status=ok" in out
+    assert "exit_code=0" in out
+    assert "peak_instanzen=1" in out
 
 
 def _guarded_runner(*, clean_deb: dict[str, smoke.CommandResult] = _CLEAN_DEB):
