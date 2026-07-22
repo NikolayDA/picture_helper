@@ -8,10 +8,11 @@ Zweig, die Nicht-Mutation der Höhendaten durch den 2D↔3D-Wechsel und die
 **bitgenaue** 16-Bit-Payload über Undo/Redo und den ``.bgrproj``-Roundtrip
 (#587/#588).
 
-Läuft headless/offscreen deterministisch (Marker ``ui_smoke`` → im CI-Gate).
-Auf einem Self-hosted Runner mit echtem GL erreicht dasselbe Szenario den
-Ready-Zweig – gesteuert nur über die Umgebung, ohne Testcode-Fork. Ist
-``ABNAHME_EVIDENCE_DIR`` gesetzt (Abnahme-Workflow), wird zusätzlich ein
+Läuft headless/offscreen deterministisch (Marker ``ui_smoke`` → im normalen
+CI-Gate **und** ``ui`` → zusätzlich in ``make ui``/der Nightly-Suite, #644-
+Nachtrag). Auf einem Self-hosted Runner mit echtem GL erreicht dasselbe
+Szenario den Ready-Zweig – gesteuert nur über die Umgebung, ohne Testcode-Fork.
+Ist ``ABNAHME_EVIDENCE_DIR`` gesetzt (Abnahme-Workflow), wird zusätzlich ein
 Evidenz-JSON nach dem Vertrag aus #640 geschrieben.
 """
 from __future__ import annotations
@@ -26,9 +27,13 @@ import pytest
 from PIL import Image
 
 from bgremover import MainWindow, height_ops
-from bgremover.project_model import LayerKind, LayerRole
+from bgremover.project_model import LayerKind, LayerRole, Project
 
-pytestmark = pytest.mark.ui_smoke
+# ``ui`` UND ``ui_smoke`` gemeinsam (#644-Nachtrag): ``ui_smoke`` allein hält
+# das Szenario nur im normalen Check/PR-CI-Lauf (Default-``addopts`` "not ui or
+# ui_smoke"), ``make ui``/die Nightly-Suite selektieren dagegen strikt "-m ui"
+# – ohne den zusätzlichen ``ui``-Marker liefe der Test dort gar nicht mit.
+pytestmark = [pytest.mark.ui, pytest.mark.ui_smoke]
 
 
 def _gradient(size: int = 16) -> Image.Image:
@@ -39,6 +44,33 @@ def _gradient(size: int = 16) -> Image.Image:
         for y in range(size):
             px[x, y] = (x * 16 % 256, y * 16 % 256, (x + y) * 8 % 256, 255)
     return img
+
+
+_LayerSignature = tuple[str, LayerKind, LayerRole | None, str, bool, float, bool]
+
+
+def _project_signature(
+    project: Project,
+) -> tuple[list[_LayerSignature], str | None, dict[str, object]]:
+    """Vollständige Struktur-/Metadaten-Signatur für den Save/Open-Vergleich
+    (#644-Nachtrag): Ebenenreihenfolge, stabile IDs, Sichtbarkeit/Deckkraft/
+    Sperre je Ebene, aktive Ebene und Projekt-Metadaten – nicht nur
+    ``(kind, role, name)`` wie zuvor. Die Metadaten laufen durch einen
+    JSON-Roundtrip: ``.bgrproj`` persistiert sie als JSON, ein Tupel wie
+    ``physical_size_mm`` kommt beim Laden also als Liste zurück – bewusst
+    dieselbe (verlustfreie) Normalisierung wie die echte Datei, sonst würde
+    ein reiner Python-Typunterschied (Tuple vs. Liste) fälschlich als
+    Roundtrip-Fehler erscheinen.
+    """
+    layers = [
+        (
+            layer.id, layer.kind, layer.role, layer.name,
+            layer.visible, layer.opacity, layer.locked,
+        )
+        for layer in project.layers
+    ]
+    metadata = json.loads(json.dumps(dict(project.metadata)))
+    return layers, project.active_layer_id, metadata
 
 
 def _payload_hash(win: MainWindow) -> str:
@@ -173,17 +205,26 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
 
     # 5) Projekt über die MainWindow-Pfade speichern und wieder laden – nicht
     # direkt über project_io am UI vorbei. Payload und Struktur bleiben gleich.
-    path = tmp_path / "regression.bgrproj"
+    # Nicht-Default-Zustand auf der COLOR-Ebene + physische Zielgröße als
+    # Metadaten-Beleg (#644-Nachtrag): sonst prüfte der Vergleich nur
+    # triviale, ohnehin unveränderte Default-Werte.
     before = win._canvas.project
-    before_signature = [
-        (layer.kind, layer.role, layer.name) for layer in before.layers
-    ]
+    color_layer = before.layers[0]
+    assert color_layer.kind is LayerKind.COLOR
+    color_layer.visible = False
+    color_layer.opacity = 0.5
+    color_layer.locked = True
+    before.set_physical_size_mm(50.0, 30.0)
+
+    path = tmp_path / "regression.bgrproj"
+    before_signature = _project_signature(before)
     assert win._write_project(str(path)), "MainWindow-Speicherpfad fehlgeschlagen"
     win._load_project_into_canvas(str(path))
     reloaded = win._canvas.project
-    assert [
-        (layer.kind, layer.role, layer.name) for layer in reloaded.layers
-    ] == before_signature
+    assert _project_signature(reloaded) == before_signature, (
+        "Ebenen-/Metadaten-Struktur (ID/Sichtbarkeit/Deckkraft/Sperre/aktive "
+        "Ebene/Metadaten) nach Save/Open nicht wertgleich"
+    )
     reloaded_active = reloaded.active_layer()
     assert reloaded_active is not None and reloaded_active.kind is LayerKind.HEIGHT
     assert reloaded_active.height_data is not None
