@@ -15,12 +15,12 @@
 
 Ruff, mypy, and the local test suite remain the baseline before new PRs. The fresh `release-abnahme.yml` dispatch requested in the last round was triggered (run [#4](https://github.com/NikolayDA/picture_helper/actions/runs/29908256619), commit `9165c00`, post #657/#658) and produced a fully green matrix except for the deliberately paused Linux x86_64 row. Building on that, all four previously blocked issues were **individually checked against their own acceptance criteria and closed** — no issue auto-closed with another:
 
-1. **#595** — every item on the "still open" list is satisfied; the Linux x86_64 row stays "paused/declared open" but, per an explicit decision, does not block closing (mirroring #639's own acceptance criterion).
+1. **#595** — every item on the "still open" list is satisfied **except** the deliberately paused Linux x86_64 row: per the ADR/`RELEASE_AUTOMATION.md` it remains "declared open, not met" — for this closure it was explicitly treated as a waived exception, not reframed as satisfied (mirroring #639's own acceptance criterion).
 2. **#646** — five of six criteria were already met; a real gap was found: `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py` were entirely excluded from `make type`/`make check`, and a strict trial run surfaced a genuine `union-attr` error. Fixed and merged via PR #662 (commit `f47445f`).
 3. **#639** — with #646 closed, all eight sub-issues are now closed; the issue-body checklist has been reconciled.
 4. **#582** — all five sub-issues are closed; the required texture stretch-goal decision already exists in the ADR, the README gap from the 2026-07-20 audit is fixed, and `make ui` is confirmed green.
 
-In addition, two new issues from automated audits appeared since the last round (**#659**, **#660**), still awaiting a decision.
+In addition, two new issues from automated audits appeared since the last round: **#660** is already finished and just one merge away, while **#659** genuinely awaits an owner decision.
 
 Live state per GitHub query: **4** open issues.
 
@@ -28,7 +28,7 @@ Live state per GitHub query: **4** open issues.
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7**, and everything completed since **2026-06-25** remain done.
 - **#646/#639/#595/#582 have now been individually verified and closed** (no auto-close domino); the one real gap found along the way (mypy strictness for the acceptance scripts, #646) was fixed and merged via PR #662.
-- **#659/#660 are new and still undecided:** #660 already has a finished but unmerged fix on branch `claude/festive-gates-4dkzds` (commit `80b7aa0`); #659 is a pure analysis with no code change, proposing two new finding IDs (**N9**/**O8**) that still await owner sign-off.
+- **#659/#660 are new:** #660 is **ready for PR** – a finished but unmerged fix already sits on branch `claude/festive-gates-4dkzds` (commit `80b7aa0`); there's nothing left to decide there, only to merge. #659, by contrast, is genuinely **still undecided** – a pure analysis with no code change, proposing two new finding IDs (**N9**/**O8**) that still await owner sign-off.
 - The remaining step is therefore **no longer** an acceptance topic — it's opening/merging a PR for #660 and getting a decision on the findings proposed in #659.
 
 ## Open GitHub Issues — Triage Status (2026-07-22)
@@ -50,7 +50,7 @@ Live state per GitHub query: **4** open issues.
 
 ## Previous Rounds
 
-- **2026-07-22 (acceptance closeout)** — triggered a fresh `release-abnahme.yml` dispatch (run #4, commit `9165c00`); checked the matrix against #595 (x86_64 stays documented-paused but doesn't block); individually verified and closed #595, #646, #639, #582 against their own acceptance criteria. The one real gap found (mypy strictness for `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) was fixed and merged via PR #662. Two new audit issues (#659/#660) filed, still undecided. Live state 4 open issues — the lowest since this log began.
+- **2026-07-22 (acceptance closeout)** — triggered a fresh `release-abnahme.yml` dispatch (run #4, commit `9165c00`); checked the matrix against #595 (x86_64 stays documented-paused but doesn't block); individually verified and closed #595, #646, #639, #582 against their own acceptance criteria. The one real gap found (mypy strictness for `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) was fixed and merged via PR #662. Two new audit issues filed: #660 with a finished, unmerged fix (ready for PR), #659 awaiting a genuine owner decision on newly proposed findings. Live state 4 open issues — the lowest since this log began.
 - **2026-07-22 (issue review, corrected after Codex review)** — full reassessment of all open issues; an earlier version overstated what the 2026-07-21 dispatch proved (since superseded by PR #657/#658) and wrongly framed the advisory vision row (#656) as a blocker. Corrected after PR review (Codex): #656 can be resolved independently, Linux x86_64 remains a declared-open criterion, and #639/#595/#582 do not auto-close with their sub-issues. Live state 6 open issues — the lowest since epic #582.
 - **2026-07-21 (release acceptance automation, epic #639)** — epic #639 opened and largely implemented within a single day: ADR/docs (#640), workflow skeleton (#641), Linux/macOS hardware smokes (#642/#643), E2E regression test (#644), live-GL performance suite (#645), vision pre-assessment + acceptance matrix (#646) — all merged via PR #647/#649 but not auto-closed due to German closing keywords; follow-up issue #648 (native 3D render proof) remains the only open code task. Live state 12 open issues.
 - **2026-07-20 (Pi 5 hardware smoke)** — three real packaging bugs found and fixed on Raspberry Pi 5 (PR #627/#631); the app is confirmed to start including the 3D preview.

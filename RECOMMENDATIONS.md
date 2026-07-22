@@ -15,12 +15,12 @@
 
 Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Der in der letzten Runde geforderte frische `release-abnahme.yml`-Dispatch wurde ausgelöst (Run [#4](https://github.com/NikolayDA/picture_helper/actions/runs/29908256619), Commit `9165c00`, nach #657/#658) und lieferte eine vollständig grüne Matrix bis auf die bewusst pausierte Linux-x86_64-Zeile. Darauf aufbauend wurden alle vier zuvor blockierten Issues **einzeln gegen ihre eigenen Akzeptanzkriterien geprüft und geschlossen** – kein Issue wurde automatisch mit einem anderen mitgeschlossen:
 
-1. **#595** — alle Kriterien aus der „Weiterhin offen"-Liste erfüllt; die Linux-x86_64-Zeile bleibt „pausiert/offen deklariert", blockiert den Abschluss laut expliziter Entscheidung aber nicht (analog zu #639s eigenem Akzeptanzkriterium).
+1. **#595** — alle Kriterien aus der „Weiterhin offen"-Liste erfüllt **außer** der bewusst pausierten Linux-x86_64-Zeile: Die bleibt laut ADR/`RELEASE_AUTOMATION.md` weiterhin „offen deklariert, nicht erfüllt" – für diesen Abschluss wurde sie explizit als Ausnahme (Waiver) behandelt statt fälschlich als erfüllt umgedeutet (analog zu #639s eigenem Akzeptanzkriterium).
 2. **#646** — fünf von sechs Kriterien direkt erfüllt; ein echter Rest wurde gefunden: `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py` waren komplett von `make type`/`make check` ausgenommen, ein strikter Probelauf deckte einen echten `union-attr`-Fehler auf. Behoben und über PR #662 (Commit `f47445f`) gemergt.
 3. **#639** — nach Abschluss von #646 sind alle acht Teil-Issues geschlossen; Checkliste im Issue-Body nachgezogen.
 4. **#582** — alle fünf Sub-Issues geschlossen; die geforderte Textur-Stretch-Entscheidung liegt bereits im ADR vor, die README-Lücke aus dem Audit vom 2026-07-20 ist behoben, `make ui` läuft grün.
 
-Zusätzlich sind seit der letzten Runde zwei neue Issues aus automatisierten Audits hinzugekommen (**#659**, **#660**), die noch keine Entscheidung hatten.
+Zusätzlich sind seit der letzten Runde zwei neue Issues aus automatisierten Audits hinzugekommen: **#660** ist bereits fertig und nur noch ein Merge entfernt, **#659** wartet dagegen noch auf eine echte Owner-Entscheidung.
 
 Live-Stand nach GitHub-Abfrage: **4** offene Issues.
 
@@ -29,7 +29,7 @@ Live-Stand nach GitHub-Abfrage: **4** offene Issues.
 - **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** und alle seit
   **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
 - **#646/#639/#595/#582 sind jetzt einzeln verifiziert und geschlossen** (kein Auto-Close-Domino); der einzige dabei gefundene echte Rest (mypy-Strenge für die Abnahme-Skripte, #646) ist über PR #662 behoben und gemergt.
-- **#659/#660 sind neu und noch unentschieden:** #660 hat bereits einen fertigen, aber ungemergten Fix auf Branch `claude/festive-gates-4dkzds` (Commit `80b7aa0`); #659 ist eine reine Analyse ohne Code-Änderung, die zwei neue Befund-IDs (**N9**/**O8**) vorschlägt, aber noch keine Owner-Zustimmung hat.
+- **#659/#660 sind neu:** #660 ist **ready for PR** – ein fertiger, aber ungemergter Fix liegt auf Branch `claude/festive-gates-4dkzds` (Commit `80b7aa0`), hier ist nur noch zu mergen, nichts mehr zu entscheiden. #659 ist dagegen tatsächlich **noch unentschieden** – eine reine Analyse ohne Code-Änderung, die zwei neue Befund-IDs (**N9**/**O8**) vorschlägt und noch auf Owner-Zustimmung wartet.
 - Der verbleibende Arbeitsschritt ist damit **kein** Abnahme-Thema mehr, sondern: PR für #660 öffnen/mergen sowie eine Entscheidung zu den in #659 vorgeschlagenen Befunden einholen.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-22)
@@ -51,7 +51,7 @@ Live-Stand nach GitHub-Abfrage: **4** offene Issues.
 
 ## Vorige Runden
 
-- **2026-07-22 (Abnahme-Abschluss)** — Frischer `release-abnahme.yml`-Dispatch (Run #4, Commit `9165c00`) ausgelöst; Matrix gegen #595 geprüft (x86_64 bleibt dokumentiert pausiert, blockiert aber nicht); #595, #646, #639, #582 nacheinander einzeln gegen ihre eigenen Akzeptanzkriterien verifiziert und geschlossen. Einziger echter Rest (mypy-Strenge für `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) über PR #662 behoben und gemergt. Zwei neue Audit-Issues (#659/#660) erfasst, noch ohne Entscheidung. Live-Stand 4 offene Issues – niedrigster Stand seit Beginn dieser Aufzeichnung.
+- **2026-07-22 (Abnahme-Abschluss)** — Frischer `release-abnahme.yml`-Dispatch (Run #4, Commit `9165c00`) ausgelöst; Matrix gegen #595 geprüft (x86_64 bleibt dokumentiert pausiert, blockiert aber nicht); #595, #646, #639, #582 nacheinander einzeln gegen ihre eigenen Akzeptanzkriterien verifiziert und geschlossen. Einziger echter Rest (mypy-Strenge für `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) über PR #662 behoben und gemergt. Zwei neue Audit-Issues erfasst: #660 mit fertigem, ungemergtem Fix (ready for PR), #659 wartet auf eine echte Owner-Entscheidung zu neuen Befund-Vorschlägen. Live-Stand 4 offene Issues – niedrigster Stand seit Beginn dieser Aufzeichnung.
 - **2026-07-22 (Issue-Review, nach Codex-Korrektur)** — Vollständige Neubewertung aller offenen Issues; eine erste Fassung überschätzte die Aussagekraft des 2026-07-21-Dispatches (inzwischen durch PR #657/#658 überholt) und stufte die beratende Vision-Zeile (#656) fälschlich als Blocker ein. Nach PR-Review (Codex) korrigiert: #656 ist unabhängig erledigbar, Linux x86_64 bleibt ein offen deklariertes Kriterium, und #639/#595/#582 schließen nicht automatisch mit ihren jeweiligen Sub-Issues. Live-Stand 6 offene Issues – niedrigster Stand seit Epic #582.
 - **2026-07-21 (Abnahme-Automatisierung, Epic #639)** — Epic #639 eröffnet und binnen eines Tages größtenteils umgesetzt: ADR/Doku (#640), Workflow-Gerüst (#641), Linux-/macOS-Hardware-Smokes (#642/#643), E2E-Regressionstest (#644), Live-GL-Performance-Suite (#645), Vision-Vorbewertung + Abschlussmatrix (#646) – alle über PR #647/#649 gemergt, aber wegen deutscher Schließen-Schlüsselwörter nicht automatisch geschlossen; Folge-Issue #648 (nativer 3D-Render-Nachweis) bleibt die einzige offene Codeaufgabe. Live-Stand 12 offene Issues.
 - **2026-07-20 (Pi-5-Hardware-Smoke)** — drei reale Packaging-Bugs auf Raspberry Pi 5 gefunden und behoben (PR #627/#631); App startet bestätigt inkl. 3D-Vorschau.
