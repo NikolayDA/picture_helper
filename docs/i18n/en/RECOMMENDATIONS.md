@@ -11,46 +11,42 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-22, after acceptance closeout)
+## Current Status (2026-07-22, before release preparation)
 
-Ruff, mypy, and the local test suite remain the baseline before new PRs. The fresh `release-abnahme.yml` dispatch requested in the last round was triggered (run [#4](https://github.com/NikolayDA/picture_helper/actions/runs/29908256619), commit `9165c00`, post #657/#658) and produced a fully green matrix except for the deliberately paused Linux x86_64 row. Building on that, all four previously blocked issues were **individually checked against their own acceptance criteria and closed** — no issue auto-closed with another:
+Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last round both previously open audit issues were closed individually:
 
-1. **#595** — every item on the "still open" list is satisfied **except** the deliberately paused Linux x86_64 row: per the ADR/`RELEASE_AUTOMATION.md` it remains "declared open, not met" — for this closure it was explicitly treated as a waived exception, not reframed as satisfied (mirroring #639's own acceptance criterion).
-2. **#646** — five of six criteria were already met; a real gap was found: `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py` were entirely excluded from `make type`/`make check`, and a strict trial run surfaced a genuine `union-attr` error. Fixed and merged via PR #662 (commit `f47445f`).
-3. **#639** — with #646 closed, all eight sub-issues are now closed; the issue-body checklist has been reconciled.
-4. **#582** — all five sub-issues are closed; the required texture stretch-goal decision already exists in the ADR, the README gap from the 2026-07-20 audit is fixed, and `make ui` is confirmed green.
+1. **#660** — the already-finished TESTING.md fix (branch `claude/festive-gates-4dkzds`, commit `80b7aa0`) was merged via PR #664 (commit `92c14ba`): a short paragraph on the `gl_smoke` marker was added.
+2. **#659** — owner sign-off on **N9**/**O8** is in; all nine items of the implementation list were completed via PR #665 (commit `c4ab92a`): `tests/test_i18n_sync.py` removed as a redundant soft gate (still covered by the hard `test_i18n_docs.py` test), tautological/conditionally-empty `test_viewer_3d.py` assertions replaced with deterministic checks, mouse/wheel/keyboard dispatch and negative post-ready branches in `screenshot3d.py`/`viewer_3d.py`/`preview3d_capability.py`/`height_map.py` tested in isolation, confirmed copy-paste duplicates removed, redundant release/EufyMake checks consolidated. `make check`: 1995 passed/5 skipped (baseline 1962/5); `make coverage`: 93% (baseline 92%, gate `fail_under=86`). The suspected big-endian issue in `gloss_preview.py` was **not** confirmed (no production bug).
 
-In addition, two new issues from automated audits appeared since the last round: **#660** is already finished and just one merge away, while **#659** genuinely awaits an owner decision.
+In addition, two purely asset-related PRs were merged that still have **no CHANGELOG entry**: **#666** (a complete new screenshot set including native 3D states, Apple M3 Max renderer provenance) and **#667** (a new "Liquid Glass" app icon, 1024×1024 RGBA — the macOS `.icns`, AppImage, and `.deb` icons all derive from the same `BgRemover_icon.png` master; Linux packaging tests extended to check dimensions/alpha channel).
 
-Live state per GitHub query: **4** open issues.
+Live state per GitHub query: **2** open issues — the lowest since this log began.
 
 ### Review Result
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7**, and everything completed since **2026-06-25** remain done.
-- **#646/#639/#595/#582 have now been individually verified and closed** (no auto-close domino); the one real gap found along the way (mypy strictness for the acceptance scripts, #646) was fixed and merged via PR #662.
-- **#659/#660 are new:** #660 is **ready for PR** – a finished but unmerged fix already sits on branch `claude/festive-gates-4dkzds` (commit `80b7aa0`); there's nothing left to decide there, only to merge. #659, by contrast, is genuinely **still undecided** – a pure analysis with no code change, proposing two new finding IDs (**N9**/**O8**) that still await owner sign-off.
-- The remaining step is therefore **no longer** an acceptance topic — it's opening/merging a PR for #660 and getting a decision on the findings proposed in #659.
+- **#660/#659 have now been verified and closed**, each through its own PR (#664/#665), no auto-close domino. **N9**/**O8** should now be treated as completed.
+- **No code blocker open:** the two remaining issues (#656, #245) are, per their own acceptance-criteria lists, purely external/operational (setting a secret vs. billing/quota) and explicitly **not a release blocker**.
+- **Newly identified (this review):** for the upcoming release preparation, the `[Unreleased]` section in `CHANGELOG.md` is already well populated (16-bit height pipeline #581, 3D relief preview #582, CodeQL/Codex overhaul #551), but `pyproject.toml`/`LICENSES.md`/`de.bgremover.app.metainfo.xml` still read `2.6.0` — a version bump and moving the CHANGELOG entries are needed before the next tag. The #666/#667 assets (icon/screenshots) still have no CHANGELOG line.
 
 ## Open GitHub Issues — Triage Status (2026-07-22)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#660](https://github.com/NikolayDA/picture_helper/issues/660) | TESTING.md audit: current, one small gap fixed (`gl_smoke` marker undocumented) | 🟢 Low (pure doc accuracy, no functional impact) | 🟢 Low (one short paragraph, already implemented) | – (no agent needed; fix already on branch `claude/festive-gates-4dkzds`, commit `80b7aa0`) | Ready for PR – just open/merge it, then close the issue |
-| [#659](https://github.com/NikolayDA/picture_helper/issues/659) | Test suite audit: minor quality gaps across 6 batches (`test_i18n_sync`, `test_viewer_3d`, etc.) | 🟡 Medium (test quality/coverage, not a blocker) | 🟡 Medium (mix of trivial deletions/fixes and real coverage gaps across several modules) | Sonnet 5 (medium) – if adopted as N9/O8 | Needs decision – proposal not yet adopted into the findings list; owner sign-off pending, then implement as its own PR |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Enable ANTHROPIC_API_KEY secret for the vision pre-assessment | 🟡 Medium (only improves evidence quality; not a blocker per contract) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: Settings → Secrets) | Blocked (external) – can be done independently |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – resolve billing/quota on the OpenAI platform project |
 
 ### Recommended Next
 
-1. **#660**: open a PR for the already-committed TESTING.md fix (branch `claude/festive-gates-4dkzds`, commit `80b7aa0`) and merge it; then close the issue.
-2. **#659**: decide whether to adopt the proposed findings **N9** (remove/merge the dead-weight `test_i18n_sync.py`) and **O8** (tautological `viewer_3d` assertions plus coverage gaps in `screenshot3d.py`/`viewer_3d.py`/`preview3d_capability.py`/`height_map.py`/`gloss_preview.py`); implement as its own PR if agreed.
-3. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
-4. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
-5. The acceptance/3D-epic chain (#646/#639/#595/#582) is fully closed and needs no further action.
+1. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
+2. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
+3. The acceptance/3D/test-audit chain (#646/#639/#595/#582/#659/#660) is fully closed and needs no further action.
+4. For the next release: bump the version (`pyproject.toml` + `CHANGELOG.md`/`LICENSES.md` + translations + `de.bgremover.app.metainfo.xml`), move `[Unreleased]` into a new version section, run the candidate gate (`make pr-check`/`coverage`/`ui` + full CI matrix), and trigger a fresh `release-abnahme.yml` dispatch against the actual target commit (the last run, run #4/commit `9165c00`, predates the icon change #667).
 
 ## Previous Rounds
 
-- **2026-07-22 (acceptance closeout)** — triggered a fresh `release-abnahme.yml` dispatch (run #4, commit `9165c00`); checked the matrix against #595 (x86_64 stays documented-paused but doesn't block); individually verified and closed #595, #646, #639, #582 against their own acceptance criteria. The one real gap found (mypy strictness for `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) was fixed and merged via PR #662. Two new audit issues filed: #660 with a finished, unmerged fix (ready for PR), #659 awaiting a genuine owner decision on newly proposed findings. Live state 4 open issues — the lowest since this log began.
+- **2026-07-22 (test-audit closeout)** — both previously open audit issues closed: #660 via PR #664 (commit `92c14ba`, documented the `gl_smoke` marker in TESTING.md), #659 via PR #665 (commit `c4ab92a`, N9/O8 fully implemented, `make check` 1995/5, `make coverage` 93%). Also merged two asset-related PRs (#666 screenshot set, #667 new app icon), both still without a CHANGELOG entry. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
+- **2026-07-22 (acceptance closeout)** — triggered a fresh `release-abnahme.yml` dispatch (run #4, commit `9165c00`); checked the matrix against #595 (x86_64 stays documented-paused but doesn't block); individually verified and closed #595, #646, #639, #582 against their own acceptance criteria. The one real gap found (mypy strictness for `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) was fixed and merged via PR #662. Two new audit issues filed: #660 with a finished, unmerged fix (ready for PR), #659 awaiting a genuine owner decision on newly proposed findings. Live state 4 open issues.
 - **2026-07-22 (issue review, corrected after Codex review)** — full reassessment of all open issues; an earlier version overstated what the 2026-07-21 dispatch proved (since superseded by PR #657/#658) and wrongly framed the advisory vision row (#656) as a blocker. Corrected after PR review (Codex): #656 can be resolved independently, Linux x86_64 remains a declared-open criterion, and #639/#595/#582 do not auto-close with their sub-issues. Live state 6 open issues — the lowest since epic #582.
 - **2026-07-21 (release acceptance automation, epic #639)** — epic #639 opened and largely implemented within a single day: ADR/docs (#640), workflow skeleton (#641), Linux/macOS hardware smokes (#642/#643), E2E regression test (#644), live-GL performance suite (#645), vision pre-assessment + acceptance matrix (#646) — all merged via PR #647/#649 but not auto-closed due to German closing keywords; follow-up issue #648 (native 3D render proof) remains the only open code task. Live state 12 open issues.
 - **2026-07-20 (Pi 5 hardware smoke)** — three real packaging bugs found and fixed on Raspberry Pi 5 (PR #627/#631); the app is confirmed to start including the 3D preview.
