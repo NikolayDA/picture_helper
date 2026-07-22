@@ -175,17 +175,17 @@ def test_asset_filenames_are_deterministic_and_ordered() -> None:
 
     plan = build_export_plan(project)
     # Stabile Reihenfolge: Farbmotiv, Höhenkarte, Gloss-Maske.
-    assert plan.filenames == ("color_motif.png", "height_map.png", "gloss_mask.png")
+    expected_filenames = ("color_motif.png", "height_map.png", "gloss_mask.png")
+    assert plan.filenames == expected_filenames
     assert [a.role for a in plan.assets] == [
         LayerRole.COLOR_MOTIF,
         LayerRole.HEIGHT_MAP,
         LayerRole.GLOSS_MASK,
     ]
-
-
-def test_filenames_stable_across_repeated_builds() -> None:
-    project = _color_project()
-    assert build_export_plan(project).filenames == build_export_plan(project).filenames
+    # Reiner Funktionsaufruf ohne Seiteneffekte: ein zweiter Build liefert
+    # exakt dasselbe Ergebnis (#659, konsolidiert aus der vormals eigenen,
+    # schwächeren Stabilitätsprüfung).
+    assert build_export_plan(project).filenames == expected_filenames
 
 
 # ── optional_roles-Auswahl (#355) ────────────────────────────────────────
@@ -199,11 +199,6 @@ def _full_project() -> Project:
         _solid((8, 4), (255, 255, 255, 255)), name="Gloss", kind=LayerKind.GLOSS)
     project.assign_role(gloss.id, LayerRole.GLOSS_MASK)
     return project
-
-
-def test_optional_roles_none_includes_all_present() -> None:
-    assert build_export_plan(_full_project()).filenames == (
-        "color_motif.png", "height_map.png", "gloss_mask.png")
 
 
 def test_optional_roles_empty_excludes_optionals() -> None:

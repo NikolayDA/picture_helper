@@ -55,6 +55,19 @@ def test_16_bit_gloss_mask_uses_full_value_range() -> None:
     assert overlay[0, :, 3].tolist() == [0, 96, GLOSS_MAX_ALPHA]
 
 
+def test_16bit_big_endian_gloss_mask_matches_native_order() -> None:
+    """``I;16B`` (Big-Endian, z. B. TIFF) liefert dieselbe Maske wie native Byteordnung."""
+    values = np.array([[0x0001, 0x1234, 0xABCD, 0xFF00]], dtype=np.uint16)
+    big_endian = Image.frombytes(
+        "I;16B", (values.shape[1], values.shape[0]), values.astype(">u2").tobytes()
+    )
+    native = Image.fromarray(values)
+
+    overlay_be = np.asarray(gloss_overlay(big_endian, intensity=1.0))
+    overlay_native = np.asarray(gloss_overlay(native, intensity=1.0))
+    assert overlay_be.tolist() == overlay_native.tolist()
+
+
 def test_compose_is_visible_and_preserves_base_alpha_exactly() -> None:
     base_arr = np.array(
         [[[0, 0, 0, 17], [0, 0, 0, 123], [0, 0, 0, 255]]], dtype=np.uint8

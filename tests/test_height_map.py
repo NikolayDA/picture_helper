@@ -25,6 +25,7 @@ from bgremover.height_map import (
     height_to_layer,
     image_to_height_field,
     invert_height,
+    is_native_16bit_source,
     layer_to_gray_image,
     layer_to_height,
     normalize_to_height,
@@ -539,6 +540,21 @@ def _png16(values: np.ndarray) -> Image.Image:
     return Image.frombytes("I;16", (w, h), raw)
 
 
+def test_is_native_16bit_source_accepts_all_native_modes_and_i() -> None:
+    """Spiegelregel zu ``image_to_height_field``: dieselben Modi gelten als nativ."""
+    for mode in ("I;16", "I;16L", "I;16N", "I;16B"):
+        img = Image.frombytes(mode, (1, 1), (0).to_bytes(2, "little"))
+        assert is_native_16bit_source(img) is True
+    assert is_native_16bit_source(Image.new("I", (1, 1))) is True
+
+
+def test_is_native_16bit_source_rejects_8bit_and_color_modes() -> None:
+    assert is_native_16bit_source(Image.new("L", (1, 1))) is False
+    assert is_native_16bit_source(Image.new("RGBA", (1, 1))) is False
+    assert is_native_16bit_source(Image.new("RGB", (1, 1))) is False
+    assert is_native_16bit_source(Image.new("P", (1, 1))) is False
+
+
 def test_image_to_height_field_reads_all_65536_native_levels() -> None:
     """Ein natives 16-Bit-Graubild behält sämtliche 65536 Stufen bitgenau."""
     values = np.arange(65536, dtype=np.uint16).reshape(256, 256)
@@ -607,6 +623,13 @@ def test_image_to_height_field_rejects_float_mode() -> None:
     with pytest.raises(UnsupportedHeightSourceError) as err:
         image_to_height_field(Image.new("F", (2, 2), 0.5))
     assert err.value.mode == "F"
+
+
+@pytest.mark.parametrize("size", [(0, 5), (5, 0), (0, 0)])
+def test_image_to_height_field_rejects_empty_image(size: tuple[int, int]) -> None:
+    with pytest.raises(UnsupportedHeightSourceError) as err:
+        image_to_height_field(Image.new("L", size))
+    assert err.value.mode == "L"
 
 
 def test_expand_to_16bit_is_complete_and_injective_over_all_8bit_values() -> None:
