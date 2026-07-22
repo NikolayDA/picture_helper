@@ -27,20 +27,71 @@ Der Wächter selbst ist vom erzwungenen Offscreen-Betrieb entkoppelt (#648):
 KEY=VALUE`` (wiederholbar) setzt zusätzliche Umgebungsvariablen für das
 Zielkommando – in beiden Fällen bleiben Fork-Bomb-/Hänger-/Start-Crash-Wächter
 unverändert aktiv.
+
+Neben der menschenlesbaren OK/FAIL-Zeile schreibt der Wächter zusätzlich EINE
+maschinenlesbare ``SMOKE_LAUNCH_RESULT``-Zeile auf stdout (#642-Nachtrag):
+Aufrufer wie ``abnahme_smoke.py`` können damit Exit-Code, Peak-Instanzen und
+Fehlerklasse (``ok``/``start_crash``/``fork_bombe``/``timeout``) strukturiert
+in die Abnahme-Evidenz übernehmen, statt nur die Freitext-Zeile zu behalten.
 """
 from __future__ import annotations
 
 import argparse
 import contextlib
+import json
 import os
 import signal
 import subprocess
 import sys
 import time
+from typing import Any
 
 # Smoke-Umgebung: offscreen-Qt (kein Display nötig) + Selbst-Quit nach dem
 # ersten Event-Loop-Tick (Hook ``BGREMOVER_SMOKE_TEST`` in ``bgremover.app``).
 _SMOKE_ENV = {"QT_QPA_PLATFORM": "offscreen", "BGREMOVER_SMOKE_TEST": "1"}
+
+# Präfix der maschinenlesbaren Ergebniszeile (siehe Modul-Docstring).
+RESULT_LINE_PREFIX = "SMOKE_LAUNCH_RESULT "
+
+
+def format_result_line(
+    *,
+    match_token: str,
+    timeout: float,
+    max_instances: int,
+    peak_instances: int,
+    exit_code: int,
+    status: str,
+    detail: str,
+) -> str:
+    """Baut die maschinenlesbare Ergebniszeile für stdout."""
+    payload = {
+        "match": match_token,
+        "timeout_s": timeout,
+        "max_instances": max_instances,
+        "peak_instances": peak_instances,
+        "exit_code": exit_code,
+        "status": status,
+        "detail": detail,
+    }
+    return RESULT_LINE_PREFIX + json.dumps(payload, ensure_ascii=False)
+
+
+def parse_result_line(stdout: str) -> dict[str, Any] | None:
+    """Extrahiert die ``SMOKE_LAUNCH_RESULT``-Nutzlast aus erfasstem stdout.
+
+    Liefert ``None``, wenn keine (oder eine defekte) Ergebniszeile vorliegt –
+    z. B. bei einem gefälschten Test-Runner ohne echten Subprozess. Aufrufer
+    behandeln das als „keine Wächter-Daten verfügbar", nicht als Fehler.
+    """
+    for line in stdout.splitlines():
+        if line.startswith(RESULT_LINE_PREFIX):
+            try:
+                payload = json.loads(line[len(RESULT_LINE_PREFIX):])
+            except json.JSONDecodeError:
+                return None
+            return payload if isinstance(payload, dict) else None
+    return None
 
 
 def _count_instances(match_token: str, exclude_pids: set[int]) -> int:
@@ -119,6 +170,7 @@ def run(
     peak = 0
     deadline = time.monotonic() + timeout
     failure: str | None = None
+    status = "ok"
     try:
         while True:
             returncode = proc.poll()
@@ -129,28 +181,42 @@ def run(
                     f"Fork-Bomb erkannt: {instances} gleichzeitige Instanzen von "
                     f"'{match_token}' (erlaubt: {max_instances})"
                 )
+                status = "fork_bombe"
                 break
             if returncode is not None:
                 if returncode != 0:
                     failure = f"Bundle endete mit Exit-Code {returncode} (Start-Crash?)"
+                    status = "start_crash"
                 break
             if time.monotonic() > deadline:
                 failure = (
                     f"Bundle terminierte nicht in {timeout:.0f}s "
                     "(Hänger oder Fork-Bomb?)"
                 )
+                status = "timeout"
                 break
             time.sleep(poll_interval)
     finally:
         _terminate_tree(proc)
 
+    # Nach dem Beenden (ggf. per SIGKILL) trägt ``proc.returncode`` den
+    # tatsächlichen Exit-Code bzw. das negative Signal – aussagekräftiger als
+    # der zuletzt gepollte Wert, falls der Wächter selbst terminieren musste.
+    exit_code = proc.returncode if proc.returncode is not None else -1
+
     if failure is not None:
         print(f"smoke_launch FAIL: {failure} (peak Instanzen={peak})", file=sys.stderr)
+        print(format_result_line(
+            match_token=match_token, timeout=timeout, max_instances=max_instances,
+            peak_instances=peak, exit_code=exit_code, status=status, detail=failure,
+        ))
         return 1
-    print(
-        f"smoke_launch OK: '{' '.join(command)}' sauber gestartet "
-        f"(peak Instanzen={peak}, erlaubt={max_instances})"
-    )
+    detail = f"sauber gestartet (peak Instanzen={peak}, erlaubt={max_instances})"
+    print(f"smoke_launch OK: '{' '.join(command)}' {detail}")
+    print(format_result_line(
+        match_token=match_token, timeout=timeout, max_instances=max_instances,
+        peak_instances=peak, exit_code=exit_code, status=status, detail=detail,
+    ))
     return 0
 
 

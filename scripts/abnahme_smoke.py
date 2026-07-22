@@ -37,6 +37,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SMOKE_LAUNCH = REPO_ROOT / "scripts" / "smoke_launch.py"
@@ -86,7 +87,25 @@ def _load_release_abnahme():  # type: ignore[no-untyped-def]
     return module
 
 
+def _load_smoke_launch():  # type: ignore[no-untyped-def]
+    """``smoke_launch`` als Modul laden (scripts/ ist kein Paket).
+
+    Liefert Zugriff auf ``parse_result_line`` – die maschinenlesbare
+    ``SMOKE_LAUNCH_RESULT``-Zeile, die ``smoke_launch.py`` seit dem
+    #642-Nachtrag zusätzlich auf stdout schreibt.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "smoke_launch", REPO_ROOT / "scripts" / "smoke_launch.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("smoke_launch", module)
+    spec.loader.exec_module(module)
+    return module
+
+
 ra = _load_release_abnahme()
+sl = _load_smoke_launch()
 
 # Injektionspunkte für Tests.
 Runner = Callable[[list[str]], "CommandResult"]
@@ -110,6 +129,10 @@ class SmokeReport:
     gl_diagnostic: str | None = None
     notes: list[str] = field(default_factory=list)
     native_3d_attempted: set[str] = field(default_factory=set)
+    # Strukturierte Wächter-Ergebnisse je Startphase/Artefaktklasse (#642-Nachtrag,
+    # Schließkriterium: Exit-Code/Peak-Instanzen/Timeout-Fork-Bomb-Status/Log
+    # müssen in die Evidenz statt nur in Freitext-Notizen einfließen).
+    guard_results: list[dict[str, Any]] = field(default_factory=list)
 
     def fail(self, note: str) -> None:
         self.passed = False
@@ -117,6 +140,68 @@ class SmokeReport:
 
     def ok(self, note: str) -> None:
         self.notes.append(note)
+
+
+# Länge, auf die verwertbare Logausgabe je Wächter-Eintrag begrenzt wird –
+# genug für die Fehlersuche, ohne die Evidenz durch komplette Prozess-Logs
+# ausufern zu lassen.
+_GUARD_LOG_MAX_CHARS = 2000
+
+# Rückwärts-Lookup Screenshot-Dateiname → Artefaktklasse für den nativen
+# 3D-Nachweis – aus ``NATIVE_3D_SCREENSHOT_NAMES`` abgeleitet statt dupliziert,
+# damit die beiden Zuordnungen nie auseinanderlaufen können.
+_SCREENSHOT_NAME_TO_CLASS = {name: cls for cls, name in NATIVE_3D_SCREENSHOT_NAMES.items()}
+
+
+def _record_guard(
+    report: SmokeReport, result: CommandResult, *, phase: str, artifact_class: str,
+) -> None:
+    """Wächter-Ergebnis eines ``smoke_launch.py``-Aufrufs strukturiert erfassen.
+
+    Parst die maschinenlesbare ``SMOKE_LAUNCH_RESULT``-Zeile aus *result*
+    (``sl.parse_result_line``); fehlt sie (z. B. gefälschter Test-Runner ohne
+    echten Subprozess), bleiben ``peak_instanzen``/``status`` ``None``/
+    ``"unbekannt"`` statt den Smoke zum Scheitern zu bringen – die
+    Fail/Pass-Entscheidung selbst liegt weiter bei ``report.fail``/``report.ok``.
+
+    Drei Codex-Funde zu PR #657 behoben:
+    - ``exit_code`` ist – falls geparst – der Exit-Code des GEWÄCHTEN Prozesses
+      (aus der Nutzlast), nicht der immer auf 0/1 normalisierte Exit-Code von
+      ``smoke_launch.py`` selbst (sonst ginge z. B. ein Ziel-Exit 7 als „1"
+      in die Evidenz ein). ``result.returncode`` bleibt nur der Fallback ohne
+      Nutzlast.
+    - ``log`` kombiniert stdout **und** stderr (statt nur stderr zu behalten,
+      falls beide nicht leer sind) – sonst ginge auf stdout geschriebene
+      Diagnose des gewächten Prozesses verloren.
+    - Da ``_default_runner`` den Subprozess mit ``capture_output=True``
+      abfängt, landet nichts davon automatisch im Actions-Job-Log; die
+      Wächter-Zusammenfassung wird deshalb zusätzlich auf das eigene stdout
+      von ``abnahme_smoke.py`` gedruckt (das der Job unverändert live zeigt).
+    """
+    parsed = sl.parse_result_line(result.stdout)
+    exit_code = (parsed.get("exit_code") if parsed else None)
+    if exit_code is None:
+        exit_code = result.returncode
+    segments = [
+        f"{label}:\n{stream.strip()}"
+        for label, stream in (("stdout", result.stdout), ("stderr", result.stderr))
+        if stream and stream.strip()
+    ]
+    log = "\n".join(segments)
+    entry = {
+        "phase": phase,
+        "artefaktklasse": artifact_class,
+        "exit_code": exit_code,
+        "peak_instanzen": parsed.get("peak_instances") if parsed else None,
+        "status": (parsed.get("status") if parsed else None) or "unbekannt",
+        "log": log[-_GUARD_LOG_MAX_CHARS:],
+    }
+    report.guard_results.append(entry)
+    print(
+        f"[waechter] phase={entry['phase']} artefaktklasse={entry['artefaktklasse']} "
+        f"status={entry['status']} exit_code={entry['exit_code']} "
+        f"peak_instanzen={entry['peak_instanzen']}"
+    )
 
 
 def _default_runner(cmd: list[str]) -> CommandResult:
@@ -139,12 +224,15 @@ def _fork_limit(name: str) -> int:
 
 def _guard(
     runner: Runner, launch_cmd: list[str], *, match: str, max_instances: int, timeout: int = 120,
+    report: SmokeReport, phase: str, artifact_class: str,
 ) -> CommandResult:
     """Artefakt über den Fork-Bomb-/Hänger-Wächter starten (smoke_launch.py).
 
-    ``--match`` ist Pflicht (sonst bricht argparse mit Exit 2 ab).
+    ``--match`` ist Pflicht (sonst bricht argparse mit Exit 2 ab). Das
+    Wächter-Ergebnis (Exit-Code/Peak-Instanzen/Status) wird strukturiert unter
+    *phase*/*artifact_class* an ``report.guard_results`` angehängt (#642-Nachtrag).
     """
-    return runner(
+    result = runner(
         [
             sys.executable, str(SMOKE_LAUNCH),
             "--match", match,
@@ -153,6 +241,8 @@ def _guard(
             "--", *launch_cmd,
         ]
     )
+    _record_guard(report, result, phase=phase, artifact_class=artifact_class)
+    return result
 
 
 def _run_ai_selfcheck_if_needed(
@@ -162,6 +252,7 @@ def _run_ai_selfcheck_if_needed(
     match: str,
     max_instances: int,
     name: str,
+    artifact_class: str,
     report: SmokeReport,
 ) -> None:
     """KI-Selbsttest (rembg-Kette im Spawn-Kindprozess importierbar) vor dem
@@ -175,6 +266,7 @@ def _run_ai_selfcheck_if_needed(
     selfcheck = _guard(
         runner, ["env", "BGREMOVER_AI_SELFCHECK=1", *launch_cmd],
         match=match, max_instances=max_instances,
+        report=report, phase="ki_selbsttest", artifact_class=artifact_class,
     )
     if selfcheck.returncode == 0:
         report.ok(f"KI-Selbsttest ok: {name}")
@@ -221,6 +313,10 @@ def _native_3d_screenshot(
         "--env", f"BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS={NATIVE_3D_READINESS_TIMEOUT_MS}",
         "--", *launch_cmd,
     ])
+    _record_guard(
+        report, result, phase="nativer_3d_screenshot",
+        artifact_class=_SCREENSHOT_NAME_TO_CLASS.get(screenshot_name, "unbekannt"),
+    )
     sidecar = target.with_name(target.name + ".json")
     if result.returncode != 0 or not target.is_file() or not sidecar.is_file():
         detail = (result.stderr or result.stdout or "").strip()
@@ -280,10 +376,14 @@ def _linux_appimage(path: str, report: SmokeReport, runner: Runner, screenshot_d
     max_instances = _fork_limit(name)
     launch_cmd = [path, "--appimage-extract-and-run"]
     _run_ai_selfcheck_if_needed(
-        runner, launch_cmd, match=name, max_instances=max_instances, name=name, report=report,
+        runner, launch_cmd, match=name, max_instances=max_instances, name=name,
+        artifact_class="appimage", report=report,
     )
     # --appimage-extract-and-run: kein Host-FUSE nötig (wie release-linux.yml).
-    result = _guard(runner, launch_cmd, match=name, max_instances=max_instances)
+    result = _guard(
+        runner, launch_cmd, match=name, max_instances=max_instances,
+        report=report, phase="start", artifact_class="appimage",
+    )
     if result.returncode == 0:
         report.ok(f"AppImage-Start ok: {name}")
         _native_3d_screenshot(
@@ -309,10 +409,11 @@ def _linux_deb(
             launch_cmd = [DEB_INSTALLED_APPIMAGE, "--appimage-extract-and-run"]
             _run_ai_selfcheck_if_needed(
                 runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
-                name=name, report=report,
+                name=name, artifact_class="deb", report=report,
             )
             started = _guard(
                 runner, launch_cmd, match="BgRemover.AppImage", max_instances=max_instances,
+                report=report, phase="start", artifact_class="deb",
             )
             if started.returncode == 0:
                 report.ok(f"deb-Start ok: {name}")
@@ -472,10 +573,14 @@ def _start_macos_app(
     match = Path(app).name
     max_instances = _fork_limit(dmg_name)
     _run_ai_selfcheck_if_needed(
-        runner, [binary], match=match, max_instances=max_instances, name=dmg_name, report=report,
+        runner, [binary], match=match, max_instances=max_instances, name=dmg_name,
+        artifact_class="dmg", report=report,
     )
     start = time.monotonic()
-    started = _guard(runner, [binary], match=match, max_instances=max_instances)
+    started = _guard(
+        runner, [binary], match=match, max_instances=max_instances,
+        report=report, phase="start", artifact_class="dmg",
+    )
     elapsed = time.monotonic() - start
     if started.returncode == 0:
         report.ok(f"DMG-Start ok: {dmg_name} (Startzeit {elapsed:.1f}s)")
@@ -517,7 +622,7 @@ def main(argv: list[str] | None = None) -> int:
 
     finalized = ra.finalize_evidence(
         evidence, passed=report.passed, gl_provenance=report.gl_diagnostic,
-        extra_notes=report.notes,
+        extra_notes=report.notes, guard_results=report.guard_results,
     )
     ra.write_evidence(args.evidence_dir, finalized)
     print(f"Smoke {'bestanden' if report.passed else 'FEHLGESCHLAGEN'}: {args.platform}")

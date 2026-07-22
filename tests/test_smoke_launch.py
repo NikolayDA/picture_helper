@@ -184,3 +184,91 @@ def test_main_parses_and_runs_clean_command() -> None:
         sys.executable, "-c", "print('ok')",
     ])
     assert rc == 0
+
+
+# ── Maschinenlesbare Wächter-Ergebniszeile (#642-Nachtrag) ─────────────────
+
+
+def test_parse_result_line_returns_none_without_marker() -> None:
+    assert smoke_launch.parse_result_line("nur normaler Text\nkeine Ergebniszeile\n") is None
+
+
+def test_parse_result_line_returns_none_on_malformed_json() -> None:
+    broken = smoke_launch.RESULT_LINE_PREFIX + "{nicht valides json"
+    assert smoke_launch.parse_result_line(broken) is None
+
+
+def test_parse_result_line_extracts_payload_among_other_output() -> None:
+    payload = smoke_launch.format_result_line(
+        match_token="tok", timeout=30.0, max_instances=1, peak_instances=1,
+        exit_code=0, status="ok", detail="sauber gestartet",
+    )
+    stdout = f"irgendeine andere Zeile\n{payload}\nnoch eine Zeile\n"
+    parsed = smoke_launch.parse_result_line(stdout)
+    assert parsed == {
+        "match": "tok", "timeout_s": 30.0, "max_instances": 1, "peak_instances": 1,
+        "exit_code": 0, "status": "ok", "detail": "sauber gestartet",
+    }
+
+
+def test_run_clean_exit_emits_ok_result_line(capsys) -> None:  # type: ignore[no-untyped-def]
+    rc = smoke_launch.run(
+        [sys.executable, "-c", "print('hochgefahren')"],
+        match_token="kein-treffer-token-xyz", timeout=30, max_instances=1, poll_interval=0.05,
+    )
+    assert rc == 0
+    parsed = smoke_launch.parse_result_line(capsys.readouterr().out)
+    assert parsed is not None
+    assert parsed["status"] == "ok"
+    assert parsed["exit_code"] == 0
+    assert parsed["peak_instances"] == 0
+    assert parsed["max_instances"] == 1
+
+
+def test_run_start_crash_emits_structured_exit_code(capsys) -> None:  # type: ignore[no-untyped-def]
+    rc = smoke_launch.run(
+        [sys.executable, "-c", "import sys; sys.exit(3)"],
+        match_token="kein-treffer-token-xyz", timeout=30, max_instances=1, poll_interval=0.05,
+    )
+    assert rc == 1
+    parsed = smoke_launch.parse_result_line(capsys.readouterr().out)
+    assert parsed is not None
+    assert parsed["status"] == "start_crash"
+    assert parsed["exit_code"] == 3
+
+
+def test_run_timeout_emits_structured_status(capsys) -> None:  # type: ignore[no-untyped-def]
+    rc = smoke_launch.run(
+        [sys.executable, "-c", "import time; time.sleep(60)"],
+        match_token="kein-treffer-token-xyz", timeout=1.0, max_instances=1, poll_interval=0.05,
+    )
+    assert rc == 1
+    parsed = smoke_launch.parse_result_line(capsys.readouterr().out)
+    assert parsed is not None
+    assert parsed["status"] == "timeout"
+    # Hart per SIGKILL beendet: negativer Exit-Code (Signalnummer), kein 0.
+    assert parsed["exit_code"] != 0
+
+
+def test_run_fork_bomb_emits_structured_peak_instances(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    token = f"forkbomb-{uuid.uuid4().hex}"
+    bomb = tmp_path / "bomb.py"
+    bomb.write_text(
+        "import subprocess, sys, time\n"
+        "token = sys.argv[1]\n"
+        "for _ in range(6):\n"
+        "    subprocess.Popen(\n"
+        "        [sys.executable, '-c', 'import sys, time; time.sleep(60)', token]\n"
+        "    )\n"
+        "time.sleep(60)\n",
+        encoding="utf-8",
+    )
+    rc = smoke_launch.run(
+        [sys.executable, str(bomb), token],
+        match_token=token, timeout=30, max_instances=2, poll_interval=0.05,
+    )
+    assert rc == 1
+    parsed = smoke_launch.parse_result_line(capsys.readouterr().out)
+    assert parsed is not None
+    assert parsed["status"] == "fork_bombe"
+    assert parsed["peak_instances"] > 2

@@ -223,6 +223,7 @@ def build_evidence(
         ],
         "umgebung": environment_info(),
         "gl_provenance": None,
+        "waechter_ergebnisse": [],
         "erzeugt_am": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "hinweise": notes,
     }
@@ -250,6 +251,18 @@ def write_evidence(output: Path, evidence: dict[str, Any]) -> None:
     lines += [
         f"| {a['name']} | `{a['sha256']}` | {a['bytes']} |" for a in evidence["artefakte"]
     ]
+    guard_results = evidence.get("waechter_ergebnisse") or []
+    if guard_results:
+        lines += [
+            "",
+            "| Phase | Artefaktklasse | Status | Exit-Code | Peak-Instanzen |",
+            "|---|---|---|---:|---:|",
+        ]
+        lines += [
+            f"| {g['phase']} | {g['artefaktklasse']} | {g['status']} | {g['exit_code']} | "
+            f"{g.get('peak_instanzen') if g.get('peak_instanzen') is not None else '—'} |"
+            for g in guard_results
+        ]
     lines += ["", *[f"> {note}" for note in evidence["hinweise"]], ""]
     (output / "manifest.md").write_text("\n".join(lines), encoding="utf-8")
 
@@ -304,15 +317,21 @@ def finalize_evidence(
     passed: bool,
     gl_provenance: str | None,
     extra_notes: list[str] | None = None,
+    guard_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Platzhalter-Evidenz zum echten Smoke-Ergebnis fortschreiben.
 
     Setzt ``status`` auf ``bestanden``/``fehlgeschlagen`` und trägt die
     geprüfte GL-Provenance ein; ergänzende Hinweise werden angehängt.
+    ``guard_results`` trägt die strukturierten Wächter-Ergebnisse (Exit-Code,
+    Peak-Instanzen, Timeout-/Fork-Bomb-Status, Log) je Startphase und
+    Artefaktklasse ein (#642-Nachtrag) – ``None``/leer ergibt eine leere Liste,
+    nie ein fehlendes Feld.
     """
     updated = dict(evidence)
     updated["status"] = STATUS_PASSED if passed else STATUS_FAILED
     updated["gl_provenance"] = gl_provenance
+    updated["waechter_ergebnisse"] = guard_results or []
     notes = [n for n in evidence.get("hinweise", []) if "Platzhalter-Smoke" not in n]
     notes += extra_notes or []
     updated["hinweise"] = notes

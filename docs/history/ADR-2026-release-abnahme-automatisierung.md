@@ -81,6 +81,7 @@ menschenlesbaren `manifest.md` und wird je Plattform als Workflow-Artefakt
 | `artefakte` | Liste `{name, sha256, bytes}` der geprüften Release-Artefakte |
 | `umgebung` | OS/Release, Architektur, Python-Version, Runner-Name |
 | `gl_provenance` | OpenGL Vendor/Renderer/Version (`null` nur im Platzhalter; ab #642/#643 Pflicht, Software-Renderer ⇒ `fehlgeschlagen`) |
+| `waechter_ergebnisse` | Liste strukturierter Fork-Bomb-/Hänger-Wächter-Ergebnisse je Startphase und Artefaktklasse (`[]` nur im Platzhalter; ab dem #642-Nachtrag für `status: bestanden`/`fehlgeschlagen` Pflicht, siehe Nachtrag unten) |
 | `erzeugt_am` | ISO-8601-Zeitstempel (UTC) |
 | `hinweise` | Freitext-Liste (z. B. Platzhalter-Vermerk, pausierte Pfade) |
 
@@ -144,3 +145,39 @@ kein Verlass auf Container-Wegwerfen) und das eng begrenzte `sudo` aus
 [../RELEASE_AUTOMATION.md](../RELEASE_AUTOMATION.md) §3 hält den Blast-Radius
 klein. Bei wiederholten Rückstandsfunden würde eine Container-Lösung erneut
 geprüft.
+
+## Nachtrag (2026-07-22, #642): Strukturierte Wächter-Ergebnisse in der Evidenz
+
+Ein erfolgreicher Abnahme-Lauf ([29875245359](https://github.com/NikolayDA/picture_helper/actions/runs/29875245359))
+zeigte eine Lücke: `smoke_launch.py` ermittelt und meldet Exit-Code,
+Peak-Instanzen und Fehlerklasse (Fork-Bomb/Timeout/Start-Crash) je Start,
+aber `abnahme_smoke.py` übernahm daraus nur zusammenfassende Freitext-Notizen
+(`hinweise`) – weder `evidenz.json` noch das Workflow-Log enthielten die
+abgefangene Wächter-Ausgabe strukturiert. Damit ließ sich der laut Aufgabe
+(#642) geforderte Nachweis „Exit-Codes, Logs, Peak-Zählung ins Evidenz-JSON"
+nicht maschinell prüfen.
+
+Behoben additiv, ohne Schema-Versionssprung (`schema` bleibt `1`):
+
+- `smoke_launch.py` schreibt zusätzlich zur bestehenden Freitext-Zeile eine
+  maschinenlesbare `SMOKE_LAUNCH_RESULT`-Zeile auf stdout (`match`,
+  `timeout_s`, `max_instances`, `peak_instances`, `exit_code`, `status`
+  `ok`/`start_crash`/`fork_bombe`/`timeout`, `detail`).
+- `abnahme_smoke.py` parst diese Zeile bei jedem Wächter-Aufruf (Start,
+  KI-Selbsttest, nativer 3D-Screenshot-Nachweis) und sammelt sie in
+  `SmokeReport.guard_results`, getaggt mit `phase`
+  (`start`/`ki_selbsttest`/`nativer_3d_screenshot`) und `artefaktklasse`
+  (`appimage`/`deb`/`dmg`).
+- `release_abnahme.finalize_evidence` schreibt diese Liste als neues Feld
+  `waechter_ergebnisse` in `evidenz.json` (siehe Pflichtfeld-Tabelle oben);
+  `build_evidence` trägt im Platzhalter bereits `[]` ein, damit das Feld nie
+  fehlt. `write_evidence` spiegelt die Liste zusätzlich als Tabelle in
+  `manifest.md`.
+- `abnahme_aggregate.validate_evidence` verlangt das Feld (Pflichtfeld) und
+  wertet es bei `status != platzhalter` als Vertragsverstoß, wenn es leer
+  bleibt – dieselbe Regel wie für `gl_provenance` – damit ein „bestandener"
+  Lauf ohne echte Wächter-Nachweise nicht unbemerkt als vollständig gilt.
+
+Betrifft nur die gemeinsame Smoke-Infrastruktur aus #642/#643 (macOS und
+Linux teilen `_guard`/`_run_ai_selfcheck_if_needed`/`_native_3d_screenshot`);
+keine Verhaltensänderung an den Pass/Fail-Kriterien selbst.

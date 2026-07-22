@@ -540,6 +540,190 @@ def test_native_3d_screenshot_runs_once_even_when_called_directly_twice(tmp_path
     assert report.native_3d_attempted == {screenshot_name}
 
 
+# ── Strukturierte Wächter-Ergebnisse (#642-Nachtrag) ────────────────────────
+
+
+def test_record_guard_parses_structured_result_line() -> None:
+    report = smoke.SmokeReport()
+    stdout = smoke.sl.format_result_line(
+        match_token="x", timeout=120.0, max_instances=2, peak_instances=2,
+        exit_code=0, status="ok", detail="sauber gestartet",
+    )
+    smoke._record_guard(
+        report, smoke.CommandResult(0, stdout=stdout, stderr=""),
+        phase="start", artifact_class="appimage",
+    )
+    assert report.guard_results == [{
+        "phase": "start", "artefaktklasse": "appimage", "exit_code": 0,
+        "peak_instanzen": 2, "status": "ok", "log": f"stdout:\n{stdout}",
+    }]
+
+
+def test_record_guard_falls_back_to_unbekannt_without_result_line() -> None:
+    """Ein gefälschter Test-Runner ohne echten Subprozess liefert keine
+    ``SMOKE_LAUNCH_RESULT``-Zeile – das darf den Smoke nicht zum Scheitern
+    bringen, sondern degradiert nur die Wächter-Daten zu ``unbekannt``."""
+    report = smoke.SmokeReport()
+    smoke._record_guard(
+        report, smoke.CommandResult(1, stderr="boom"),
+        phase="start", artifact_class="deb",
+    )
+    entry = report.guard_results[0]
+    assert entry["status"] == "unbekannt"
+    assert entry["peak_instanzen"] is None
+    assert entry["exit_code"] == 1
+    assert entry["log"] == "stderr:\nboom"
+
+
+def test_record_guard_prefers_parsed_exit_code_over_smoke_launch_returncode() -> None:
+    """Codex-Fund zu PR #657: ``smoke_launch.py`` normalisiert seinen eigenen
+    Exit-Code auf 0/1 – der echte Exit-Code des gewächten Prozesses (z. B. 7
+    bei einem Start-Crash) steckt nur in der geparsten Nutzlast und darf nicht
+    durch den gröberen 0/1-Wert überschrieben werden."""
+    report = smoke.SmokeReport()
+    stdout = smoke.sl.format_result_line(
+        match_token="x", timeout=120.0, max_instances=1, peak_instances=1,
+        exit_code=7, status="start_crash", detail="Bundle endete mit Exit-Code 7",
+    )
+    smoke._record_guard(
+        report, smoke.CommandResult(1, stdout=stdout, stderr=""),
+        phase="start", artifact_class="appimage",
+    )
+    assert report.guard_results[0]["exit_code"] == 7
+
+
+def test_record_guard_combines_stdout_and_stderr_in_log() -> None:
+    """Codex-Fund zu PR #657: Diagnose kann auf stdout ODER stderr landen –
+    ``log`` darf nicht nur einen der beiden Streams behalten."""
+    report = smoke.SmokeReport()
+    smoke._record_guard(
+        report, smoke.CommandResult(1, stdout="app-diagnose auf stdout", stderr="wächter-fehler"),
+        phase="start", artifact_class="deb",
+    )
+    log = report.guard_results[0]["log"]
+    assert "app-diagnose auf stdout" in log
+    assert "wächter-fehler" in log
+
+
+def test_record_guard_prints_summary_for_the_workflow_log(capsys) -> None:  # type: ignore[no-untyped-def]
+    """Codex-Fund zu PR #657: ``_default_runner`` fängt den Subprozess mit
+    ``capture_output=True`` ab – ohne einen eigenen Print landet die
+    Wächter-Zusammenfassung nie im Actions-Job-Log, obwohl genau das der
+    Zweck der Aufgabe war."""
+    report = smoke.SmokeReport()
+    stdout = smoke.sl.format_result_line(
+        match_token="x", timeout=120.0, max_instances=1, peak_instances=1,
+        exit_code=0, status="ok", detail="sauber gestartet",
+    )
+    smoke._record_guard(
+        report, smoke.CommandResult(0, stdout=stdout, stderr=""),
+        phase="start", artifact_class="appimage",
+    )
+    out = capsys.readouterr().out
+    assert "phase=start" in out
+    assert "artefaktklasse=appimage" in out
+    assert "status=ok" in out
+    assert "exit_code=0" in out
+    assert "peak_instanzen=1" in out
+
+
+def _guarded_runner(*, clean_deb: dict[str, smoke.CommandResult] = _CLEAN_DEB):
+    """Fake-Runner, der ``smoke_launch.py``-Startaufrufe (ohne ``--native``)
+    mit einer echten ``SMOKE_LAUNCH_RESULT``-Zeile beantwortet – simuliert den
+    strukturierten Ausgabepfad aus dem #642-Nachtrag."""
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        handled = _fake_native_screenshot(cmd, "Broadcom / V3D 7.1 / 3.1", 0)
+        if handled is not None:
+            return handled
+        joined = " ".join(cmd)
+        if "smoke_launch.py" in joined and "--native" not in cmd:
+            stdout = smoke.sl.format_result_line(
+                match_token="x", timeout=120.0, max_instances=1, peak_instances=1,
+                exit_code=0, status="ok", detail="sauber gestartet",
+            )
+            return smoke.CommandResult(0, stdout=stdout)
+        for token, result in clean_deb.items():
+            if token in joined:
+                return result
+        return smoke.CommandResult(0)
+
+    return runner
+
+
+def test_linux_smoke_collects_structured_guard_results_per_phase_and_class(
+    tmp_path: Path,
+) -> None:
+    """Vertragstest zum #642-Schließkriterium: Artefaktklasse+Phase, Exit-Code,
+    Peak-Instanzen, Status und Log müssen je Wächter-Aufruf strukturiert
+    vorliegen – für Start, KI-Selbsttest und nativen 3D-Screenshot-Nachweis,
+    getrennt für AppImage und deb."""
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, _guarded_runner(), prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        screenshot_dir=tmp_path / "shots",
+    )
+    assert result.passed
+    phases = {(g["phase"], g["artefaktklasse"]) for g in result.guard_results}
+    assert phases == {
+        ("ki_selbsttest", "appimage"), ("start", "appimage"), ("nativer_3d_screenshot", "appimage"),
+        ("ki_selbsttest", "deb"), ("start", "deb"), ("nativer_3d_screenshot", "deb"),
+    }
+    required_keys = {"phase", "artefaktklasse", "exit_code", "peak_instanzen", "status", "log"}
+    for entry in result.guard_results:
+        assert required_keys <= set(entry)
+    start_entries = [g for g in result.guard_results if g["phase"] == "start"]
+    assert all(g["status"] == "ok" and g["peak_instanzen"] == 1 for g in start_entries)
+
+
+def test_linux_smoke_records_guard_result_even_on_start_failure(tmp_path: Path) -> None:
+    """Ein fehlgeschlagener Start darf nicht stillschweigend ohne Wächter-Eintrag
+    bleiben – sonst fehlt genau im interessanten Fall die Diagnose."""
+    report = smoke.SmokeReport()
+    runner = _runner_factory({**_CLEAN_DEB, "smoke_launch.py": smoke.CommandResult(1)})
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        screenshot_dir=tmp_path / "shots",
+    )
+    assert not result.passed
+    start_entries = [g for g in result.guard_results if g["phase"] == "start"]
+    assert start_entries
+    assert all(g["exit_code"] == 1 for g in start_entries)
+
+
+def test_main_writes_guard_results_into_evidence(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Der volle ``main()``-Pfad muss ``waechter_ergebnisse`` ins
+    ``evidenz.json`` schreiben (#642-Schließkriterium)."""
+    inner_runner = _guarded_runner()
+    monkeypatch.setattr(smoke, "_default_runner", lambda cmd: inner_runner(cmd))
+    monkeypatch.setattr(smoke, "_default_prober", lambda: "Broadcom / V3D 7.1 / 3.1")
+
+    (tmp_path / "artefakte").mkdir()
+    evidence = {
+        "schema": 1, "kind": "abnahme-evidenz", "platform": "linux-arm64",
+        "status": "platzhalter", "commit_sha": "abc",
+        "quelle": {"art": "release-tag", "wert": "v2.7.0"},
+        "artefakte": [
+            {"name": "x-ai.AppImage", "sha256": "cafe", "bytes": 1},
+            {"name": "x-ai.deb", "sha256": "babe", "bytes": 1},
+        ],
+        "umgebung": {"os": "linux", "arch": "aarch64", "python": "3.12", "runner": "r"},
+        "gl_provenance": None, "waechter_ergebnisse": [],
+        "erzeugt_am": "2026-07-22T00:00:00+00:00",
+        "hinweise": ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."],
+    }
+    (tmp_path / "evidenz.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    rc = smoke.main(["--platform", "linux-arm64", "--evidence-dir", str(tmp_path)])
+    assert rc == 0
+    written = json.loads((tmp_path / "evidenz.json").read_text(encoding="utf-8"))
+    assert written["waechter_ergebnisse"]
+    for entry in written["waechter_ergebnisse"]:
+        assert {"phase", "artefaktklasse", "exit_code", "peak_instanzen", "status", "log"} <= set(
+            entry
+        )
+
+
 def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     # Keine echten Subprozesse: Default-Runner/-Probe fälschen.
     monkeypatch.setattr(smoke, "_default_runner", lambda cmd: smoke.CommandResult(0))
