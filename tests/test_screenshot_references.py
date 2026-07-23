@@ -39,22 +39,30 @@ def _latest_set_name() -> str:
 
 
 def test_docs_reference_latest_screenshot_set() -> None:
-    """ANLEITUNG.md/README.md (+ i18n-Spiegel) referenzieren nur das neueste Set."""
+    """ANLEITUNG.md/README.md (+ i18n-Spiegel) referenzieren genau das neueste Set."""
 
     latest = _latest_set_name()
-    stale: list[str] = []
+    problems: list[str] = []
 
     for path in CHECKED_FILES:
         text = path.read_text(encoding="utf-8")
-        referenced = set(SET_NAME_RE.findall(text))
-        for name in referenced:
-            if f"bgremover_complete_{name}" != latest:
-                stale.append(
-                    f"{path.relative_to(ROOT)} referenziert veraltetes Set "
-                    f"bgremover_complete_{name} statt {latest}"
-                )
+        referenced = {f"bgremover_complete_{name}" for name in SET_NAME_RE.findall(text)}
+        if not referenced:
+            # Kein Treffer ist selbst ein Fund: entweder wurde die Referenz aus
+            # Versehen entfernt/vertippt, oder die Datei bindet gar keine
+            # Screenshots ein - beides soll auffallen statt stillschweigend
+            # als "kein Problem" durchzugehen.
+            problems.append(f"{path.relative_to(ROOT)} referenziert kein Screenshot-Set")
+            continue
 
-    assert not stale, "Veraltete Screenshot-Set-Referenzen:\n" + "\n".join(stale)
+        stale = sorted(referenced - {latest})
+        if stale:
+            problems.append(
+                f"{path.relative_to(ROOT)} referenziert veraltete(s) Set(s) {stale} "
+                f"statt {latest}"
+            )
+
+    assert not problems, "Screenshot-Set-Referenzprobleme:\n" + "\n".join(problems)
 
 
 def test_latest_screenshot_set_has_manifest() -> None:
