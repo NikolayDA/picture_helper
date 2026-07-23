@@ -57,7 +57,7 @@ claro = alto.*
 *Paso «Exportar»: la vista previa 2D combinada superpone relieve y brillo sobre
 el motivo de color – solo visualización, la exportación no cambia.*
 
-![Vista previa de relieve 3D con controles de visualización](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+![Vista previa de relieve 3D con controles de visualización](../../../app_screenshots/bgremover_complete_20260722_171622/77_function_preview3d_adjusted.png)
 
 *Paso «Relieve y capas»: inspecciona el mapa de altura activo como una
 superficie 3D giratoria. La exageración, la iluminación y la calidad solo

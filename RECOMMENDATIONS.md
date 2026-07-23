@@ -11,48 +11,39 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-23, Release v2.7.0 veröffentlicht)
+## Aktueller Stand (2026-07-23, #668/#669 abgeschlossen)
 
-Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der letzten Runde ist der komplette v2.7.0-Release-Zyklus durchgelaufen:
+Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der letzten Runde wurden beide zuletzt offenen Audit-Issues abgeschlossen:
 
-1. **PR #670** (Versions-Bump `pyproject.toml`/`LICENSES.md`/`de.bgremover.app.metainfo.xml` auf 2.7.0, CHANGELOG-Umhängen `[Unreleased]` → `[2.7.0]`, Icon-Eintrag #667, RECOMMENDATIONS-Reconcile) wurde gemergt (Squash-Commit `6f103ed` auf `main`).
-2. Da der Squash-Merge einen **neuen** Commit-SHA erzeugte (abweichend vom zuvor gegateten `245f727`), wurde der komplette Kandidaten-Gate **erneut** gegen `6f103ed` durchlaufen – exakt die in `docs/history/RELEASE-2.6.0-candidate-gate.md` („Hinweis für #585") dokumentierte Regel: volle CI-Matrix (Lauf [29989059554](https://github.com/NikolayDA/picture_helper/actions/runs/29989059554), grün), Kandidaten-Build (Lauf [29990198925](https://github.com/NikolayDA/picture_helper/actions/runs/29990198925), alle drei Plattformen grün, Secret-Scan sauber), Hardware-Abnahme (Lauf [29991314117](https://github.com/NikolayDA/picture_helper/actions/runs/29991314117): macOS arm64 ✅, Linux aarch64 ✅, x86_64 dokumentiert pausiert, Abschlussmatrix an #595 gepostet).
-3. Tag `v2.7.0` auf `6f103ed` gesetzt und gepusht (musste der Repo-Owner selbst ausführen – der sitzungsinterne Git-Proxy erlaubt nur Pushes auf den zugewiesenen Feature-Branch, keine Tags/`main`). Release-Workflow-Lauf [29998307692](https://github.com/NikolayDA/picture_helper/actions/runs/29998307692) grün, `Publish GitHub Release`-Job erfolgreich: **[v2.7.0](https://github.com/NikolayDA/picture_helper/releases/tag/v2.7.0)** veröffentlicht mit allen fünf Artefakten (Linux x86_64/aarch64 AppImage + `.deb`, macOS arm64 `.dmg`).
+- **#669** (Live-Stand veraltet) — direkt geschlossen: Der vorherige RECOMMENDATIONS-Reconcile (PR #671) hatte den Inhalt bereits vollständig aktuell gemacht (#659/#660 korrekt als geschlossen geführt, #668 bereits aufgenommen); eine zusätzliche No-Op-PR war nicht nötig.
+- **#668** (Screenshot-Set-Referenzen veraltet) — mit diesem Update behoben: `ANLEITUNG.md` und `README.md` (je inkl. aller fünf Übersetzungen) zeigen jetzt auf das aktuelle Set `bgremover_complete_20260722_171622`. `docs/history/EPIC-582-ABNAHME.md` bleibt bewusst beim Set vom 2026-07-19 — dort ist es die tatsächliche Abnahme-Evidenz (GPU-/OS-/Renderer-Provenienz im Manifest), ein Umstellen hätte die dokumentierte Evidenz verfälscht; ein erklärender Hinweis wurde ergänzt, das alte Verzeichnis bleibt entsprechend erhalten. Ein neuer Governance-Test (`tests/test_markdown_links.py::test_no_new_orphaned_app_screenshot_sets`) fängt künftig eine erneute stille Drift ab.
 
-Zusätzlich sind seit dem letzten Snapshot zwei neue, automatisiert erstellte Audit-Issues hinzugekommen:
-
-- **#669** — bemängelt zurecht, dass der vorherige Live-Stand dieses Dokuments veraltet war (#659/#660 noch als offen geführt, #668 fehlte). Mit diesem Update behoben.
-- **#668** — `ANLEITUNG.md` verweist noch auf das Screenshot-Set vom 2026-07-19 statt auf das aktuelle vom 2026-07-22 (Folge-Lücke von #666); reine Repo-Hygiene, kein inhaltlicher Fehler in der Anleitung selbst. **Korrektur (Codex-Review auf PR #671):** Das Set ist nicht vollständig verwaist – `README.md` (alle sechs Sprachen) und `docs/history/EPIC-582-ABNAHME.md` referenzieren ebenfalls Dateien darin; ein Fix muss alle verbleibenden Referenzen migrieren oder das alte Verzeichnis behalten, darf es nicht einfach löschen.
-
-Live-Stand nach GitHub-Abfrage: **4** offene Issues (#669, #668, #656, #245) — alle vier sind Doku-Hygiene bzw. rein extern/operativ, kein Code-Blocker.
+Live-Stand nach GitHub-Abfrage: **2** offene Issues (#656, #245) — beide rein extern/operativ, kein Code-Blocker.
 
 ### Ergebnis der Nachprüfung
 
 - **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8** und alle seit
   **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
 - **Release v2.7.0 vollständig abgeschlossen und verifiziert:** Tag, Veröffentlichung und alle drei Gate-Stufen (CI-Matrix, Kandidaten-Build, Hardware-Abnahme) sind gegen genau den tatsächlich getaggten Commit `6f103ed` gelaufen – keine Drift zwischen geprüftem und veröffentlichtem Stand.
-- **#669 ist durch dieses Update aufgelöst**; **#668** ist eine kleine, klar umrissene Doku-Aufräumaufgabe (falsches Screenshot-Set-Datum in einem Verweis, analog zum bereits einmal erledigten #638), kein Blocker.
+- **#669/#668 abgeschlossen** — niedrigster Live-Stand seit Beginn dieser Aufzeichnung.
 - **#656/#245** bleiben unverändert rein externe/operative Tracker ohne Code-Bezug.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-23)
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#669](https://github.com/NikolayDA/picture_helper/issues/669) | RECOMMENDATIONS.md Live-Stand veraltet (#659/#660 als offen geführt, #668 fehlte) | 🟢 Niedrig (reine Doku-Aktualität, keine funktionale Auswirkung) | 🟢 Niedrig (durch dieses Update behoben) | – (kein Agent nötig) | Erledigt mit diesem Update – Issue kann geschlossen werden |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md verweist auf veraltetes Screenshot-Set (20260719 statt 20260722) | 🟢 Niedrig (Repo-Hygiene, kein inhaltlicher Fehler) | 🟢 Niedrig (Referenzen in ANLEITUNG.md **und** README.md/EPIC-582-ABNAHME.md konsolidieren; Set erst nach vollständiger Migration entfernen – Set ist laut Codex-Review nicht vollständig verwaist) | Sonnet 5 (niedrig) | Ready for PR – kleiner eigenständiger Fix möglich |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟡 Mittel (verbessert nur Evidenzqualität, kein Blocker laut Vertrag) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – unabhängig erledigbar |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
 
 ### Als Nächstes empfohlen
 
-1. **#669** schließen — der Live-Stand ist mit diesem Update aktuell.
-2. **#668** als kleinen, eigenständigen PR umsetzen: alle verbleibenden Referenzen auf das Set vom 2026-07-19 (`ANLEITUNG.md` + Übersetzungen, aber auch `README.md` + Übersetzungen und `docs/history/EPIC-582-ABNAHME.md`) auf das Set vom 2026-07-22 migrieren, bevor das alte Set entfernt wird – es ist nicht vollständig verwaist (Korrektur nach Codex-Review auf PR #671).
-3. **#656** unabhängig erledigen, wenn echte Vision-Verdikte gewünscht sind – Qualitätsverbesserung, kein Blocker.
-4. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
-5. Release v2.7.0 ist vollständig veröffentlicht — kein weiterer releasebezogener Schritt nötig.
+1. **#656** unabhängig erledigen, wenn echte Vision-Verdikte gewünscht sind – Qualitätsverbesserung, kein Blocker.
+2. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
+3. Release v2.7.0 ist vollständig veröffentlicht — kein weiterer releasebezogener Schritt nötig.
 
 ## Vorige Runden
 
+- **2026-07-23 (#668/#669 abgeschlossen)** — #669 (Doku-Live-Stand veraltet) direkt geschlossen, da bereits durch PR #671 vollständig aufgelöst, keine weitere Code-/Doku-Änderung nötig. #668 (`ANLEITUNG.md`/`README.md` verweisen auf das verwaiste Screenshot-Set vom 2026-07-19) über einen eigenständigen PR behoben: lebende Doku-Referenzen (je 6 Sprachen) auf das aktuelle Set vom 2026-07-22 migriert; die Abnahme-Evidenz in `docs/history/EPIC-582-ABNAHME.md` bewusst unangetastet gelassen (erklärender Hinweis ergänzt, altes Verzeichnis bleibt erhalten); neuer Governance-Test gegen künftige Screenshot-Drift ergänzt. Live-Stand 2 offene Issues (beide extern/operativ, kein Blocker) – niedrigster Stand seit Beginn dieser Aufzeichnung.
 - **2026-07-23 (Release v2.7.0)** — PR #670 (Versions-Bump + CHANGELOG-Umhängen + Icon-Eintrag) gemergt (`6f103ed`); kompletter Gate erneut gegen den neuen Merge-Commit durchlaufen (CI-Matrix, Kandidaten-Build, Hardware-Abnahme, alle grün); Tag `v2.7.0` gesetzt und veröffentlicht (fünf Artefakte). Zwei neue Audit-Issues erfasst: #669 (Doku-Live-Stand veraltet, mit diesem Update behoben) und #668 (verwaistes Screenshot-Set in ANLEITUNG.md, kleine Repo-Hygiene). Live-Stand 4 offene Issues, alle Doku-Hygiene oder extern, kein Code-Blocker.
 - **2026-07-22 (Test-Audit-Abschluss)** — Beide zuvor offenen Audit-Issues geschlossen: #660 über PR #664 (Commit `92c14ba`, `gl_smoke`-Marker in TESTING.md dokumentiert), #659 über PR #665 (Commit `c4ab92a`, N9/O8 vollständig umgesetzt, `make check` 1995/5, `make coverage` 93 %). Zusätzlich zwei assetbezogene PRs gemergt (#666 Screenshot-Satz, #667 neues App-Icon), beide noch ohne CHANGELOG-Eintrag. Live-Stand 2 offene Issues (beide extern/operativ, kein Blocker) – niedrigster Stand seit Beginn dieser Aufzeichnung.
 - **2026-07-22 (Abnahme-Abschluss)** — Frischer `release-abnahme.yml`-Dispatch (Run #4, Commit `9165c00`) ausgelöst; Matrix gegen #595 geprüft (x86_64 bleibt dokumentiert pausiert, blockiert aber nicht); #595, #646, #639, #582 nacheinander einzeln gegen ihre eigenen Akzeptanzkriterien verifiziert und geschlossen. Einziger echter Rest (mypy-Strenge für `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) über PR #662 behoben und gemergt. Zwei neue Audit-Issues erfasst: #660 mit fertigem, ungemergtem Fix (ready for PR), #659 wartet auf eine echte Owner-Entscheidung zu neuen Befund-Vorschlägen. Live-Stand 4 offene Issues.

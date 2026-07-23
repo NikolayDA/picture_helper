@@ -83,3 +83,50 @@ def test_all_markdown_local_links_and_images_resolve() -> None:
                     )
 
     assert not missing, "Broken local Markdown targets:\n" + "\n".join(missing)
+
+
+# Sets die absichtlich nicht (mehr) aus lebender Doku verlinkt sind. Jeder Eintrag
+# braucht eine Begründung, sonst soll der Test unten neue Waisen abfangen (#668).
+APP_SCREENSHOTS_ALLOWED_ORPHANS = {
+    # Abnahme-Evidenz für Epic #582, bewusst in docs/history/EPIC-582-ABNAHME.md
+    # gepinnt (GPU-/OS-/Renderer-Provenienz im Manifest) statt bei künftigen
+    # Screenshot-Auffrischungen mitgezogen zu werden.
+    "bgremover_complete_20260719_162826",
+    # Vor #668 bereits unreferenziert; eigenständige Aufräumaufgabe, nicht Teil
+    # dieses Fixes.
+    "bgremover_complete_20260711_094027",
+}
+
+
+def test_no_new_orphaned_app_screenshot_sets() -> None:
+    """Jedes ``app_screenshots/*``-Set muss aus lebender Doku verlinkt sein.
+
+    Verhindert eine erneute #668-artige Drift: ein neues Screenshot-Set wird
+    committet, ohne die Doku-Referenzen (ANLEITUNG.md, README.md, Übersetzungen)
+    mitzuziehen.
+    """
+    screenshots_root = ROOT / "app_screenshots"
+    if not screenshots_root.is_dir():
+        return
+
+    md_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(ROOT.rglob("*.md"))
+        if not any(
+            part in IGNORED_MARKDOWN_DIRS for part in path.relative_to(ROOT).parts[:-1]
+        )
+    )
+
+    unreferenced = [
+        entry.name
+        for entry in sorted(screenshots_root.iterdir())
+        if entry.is_dir()
+        and entry.name not in APP_SCREENSHOTS_ALLOWED_ORPHANS
+        and entry.name not in md_text
+    ]
+
+    assert not unreferenced, (
+        "app_screenshots/-Sets ohne Doku-Referenz gefunden - Referenzen migrieren "
+        "oder mit Begründung in APP_SCREENSHOTS_ALLOWED_ORPHANS aufnehmen: "
+        f"{unreferenced}"
+    )

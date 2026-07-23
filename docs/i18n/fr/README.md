@@ -57,7 +57,7 @@ sémantique de hauteur est clair = haut.*
 *Étape « Export » : l'aperçu 2D combiné superpose relief et brillance au motif
 couleur – affichage seul, l'export ne change pas.*
 
-![Aperçu du relief 3D avec commandes d'affichage](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+![Aperçu du relief 3D avec commandes d'affichage](../../../app_screenshots/bgremover_complete_20260722_171622/77_function_preview3d_adjusted.png)
 
 *Étape « Relief & calques » : inspecter la carte de hauteur active comme une
 surface 3D pivotante. L'exagération, l'éclairage et la qualité n'affectent que

@@ -8,6 +8,14 @@ Verträge: ADR
 (PR #620) + Post-Merge-Audit (PR #621). Manuelle, hardwaregebundene Prozeduren:
 [PACKAGING_SMOKE.md](../PACKAGING_SMOKE.md).
 
+Die Screenshot-/Manifest-Verweise unten zeigen bewusst auf das Set
+`bgremover_complete_20260719_162826` – das ist das tatsächlich zur
+Abnahme herangezogene Set mit der zugehörigen GPU-/OS-/Renderer-Provenienz
+im Manifest. Dieser Verweis wird bei künftigen Screenshot-Auffrischungen
+(z. B. #666/#668) **nicht** auf ein neueres Set umgestellt, da das die
+dokumentierte Abnahme-Evidenz verfälschen würde; das Verzeichnis bleibt
+dafür im Repo erhalten.
+
 Der 3D-Viewer ist **reine Darstellung ohne Schreibpfad ins Modell**: „Bild
 speichern", EufyMake- und Projekt-Export bleiben unverändert, die
 2D-`PreviewMode`-Pipeline bleibt der garantierte Fallback.
