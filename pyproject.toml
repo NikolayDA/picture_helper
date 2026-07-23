@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bgremover"
-version = "2.6.0"
+version = "2.7.0"
 description = "Hintergrund-Entfernungs- und Bildbearbeitungs-Tool (macOS und Linux)"
 readme = "README.md"
 requires-python = ">=3.10"

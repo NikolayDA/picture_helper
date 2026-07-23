@@ -11,47 +11,43 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-22, nach Abnahme-Abschluss)
+## Aktueller Stand (2026-07-22, vor Release-Vorbereitung)
 
-Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Der in der letzten Runde geforderte frische `release-abnahme.yml`-Dispatch wurde ausgelöst (Run [#4](https://github.com/NikolayDA/picture_helper/actions/runs/29908256619), Commit `9165c00`, nach #657/#658) und lieferte eine vollständig grüne Matrix bis auf die bewusst pausierte Linux-x86_64-Zeile. Darauf aufbauend wurden alle vier zuvor blockierten Issues **einzeln gegen ihre eigenen Akzeptanzkriterien geprüft und geschlossen** – kein Issue wurde automatisch mit einem anderen mitgeschlossen:
+Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der letzten Runde wurden beide zuvor offenen Audit-Issues einzeln abgeschlossen:
 
-1. **#595** — alle Kriterien aus der „Weiterhin offen"-Liste erfüllt **außer** der bewusst pausierten Linux-x86_64-Zeile: Die bleibt laut ADR/`RELEASE_AUTOMATION.md` weiterhin „offen deklariert, nicht erfüllt" – für diesen Abschluss wurde sie explizit als Ausnahme (Waiver) behandelt statt fälschlich als erfüllt umgedeutet (analog zu #639s eigenem Akzeptanzkriterium).
-2. **#646** — fünf von sechs Kriterien direkt erfüllt; ein echter Rest wurde gefunden: `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py` waren komplett von `make type`/`make check` ausgenommen, ein strikter Probelauf deckte einen echten `union-attr`-Fehler auf. Behoben und über PR #662 (Commit `f47445f`) gemergt.
-3. **#639** — nach Abschluss von #646 sind alle acht Teil-Issues geschlossen; Checkliste im Issue-Body nachgezogen.
-4. **#582** — alle fünf Sub-Issues geschlossen; die geforderte Textur-Stretch-Entscheidung liegt bereits im ADR vor, die README-Lücke aus dem Audit vom 2026-07-20 ist behoben, `make ui` läuft grün.
+1. **#660** — der bereits fertige TESTING.md-Fix (Branch `claude/festive-gates-4dkzds`, Commit `80b7aa0`) ist über PR #664 (Commit `92c14ba`) gemergt: kurzer Absatz zum `gl_smoke`-Marker ergänzt.
+2. **#659** — Owner-Zustimmung zu **N9**/**O8** liegt vor; alle neun Punkte der Umsetzungsliste sind über PR #665 (Commit `c4ab92a`) umgesetzt: `tests/test_i18n_sync.py` als redundantes Soft-Gate entfernt (durch den harten `test_i18n_docs.py`-Test weiter abgedeckt), tautologische/bedingt leerlaufende `test_viewer_3d.py`-Assertions durch deterministische Prüfungen ersetzt, Maus-/Wheel-/Tastatur-Dispatch sowie negative Post-ready-Zweige in `screenshot3d.py`/`viewer_3d.py`/`preview3d_capability.py`/`height_map.py` isoliert getestet, bestätigte Copy-Paste-Duplikate entfernt, redundante Release-/EufyMake-Prüfungen konsolidiert. `make check`: 1995 passed/5 skipped (Baseline 1962/5); `make coverage`: 93 % (Baseline 92 %, Gate `fail_under=86`). Das vermutete Big-Endian-Problem in `gloss_preview.py` wurde **nicht** bestätigt (kein Produktionsfehler).
 
-Zusätzlich sind seit der letzten Runde zwei neue Issues aus automatisierten Audits hinzugekommen: **#660** ist bereits fertig und nur noch ein Merge entfernt, **#659** wartet dagegen noch auf eine echte Owner-Entscheidung.
+Zusätzlich sind zwei rein assetbezogene PRs gemerged, die noch **keinen CHANGELOG-Eintrag** haben: **#666** (kompletter neuer Screenshot-Satz inkl. nativer 3D-Zustände, Apple-M3-Max-Renderer-Provenance) und **#667** (neues App-Icon „Liquid Glass", 1024×1024 RGBA – macOS `.icns`, AppImage- und `.deb`-Icon leiten alle vom selben `BgRemover_icon.png`-Master ab; Linux-Packaging-Tests um Dimensions-/Alpha-Kanal-Prüfung erweitert).
 
-Live-Stand nach GitHub-Abfrage: **4** offene Issues.
+Live-Stand nach GitHub-Abfrage: **2** offene Issues – niedrigster Stand seit Beginn dieser Aufzeichnung.
 
 ### Ergebnis der Nachprüfung
 
 - **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O7** und alle seit
   **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
-- **#646/#639/#595/#582 sind jetzt einzeln verifiziert und geschlossen** (kein Auto-Close-Domino); der einzige dabei gefundene echte Rest (mypy-Strenge für die Abnahme-Skripte, #646) ist über PR #662 behoben und gemergt.
-- **#659/#660 sind neu:** #660 ist **ready for PR** – ein fertiger, aber ungemergter Fix liegt auf Branch `claude/festive-gates-4dkzds` (Commit `80b7aa0`), hier ist nur noch zu mergen, nichts mehr zu entscheiden. #659 ist dagegen tatsächlich **noch unentschieden** – eine reine Analyse ohne Code-Änderung, die zwei neue Befund-IDs (**N9**/**O8**) vorschlägt und noch auf Owner-Zustimmung wartet.
-- Der verbleibende Arbeitsschritt ist damit **kein** Abnahme-Thema mehr, sondern: PR für #660 öffnen/mergen sowie eine Entscheidung zu den in #659 vorgeschlagenen Befunden einholen.
+- **#660/#659 sind jetzt verifiziert und geschlossen**, beide über eigene PRs (#664/#665), keine Auto-Close-Domino. **N9**/**O8** sind damit als abgeschlossen zu behandeln.
+- **Kein Code-Blocker offen:** Die beiden verbleibenden Issues (#656, #245) sind laut eigener Akzeptanzkriterien-Liste rein extern/operativ (Secret setzen bzw. Billing/Quota) und explizit **kein Release-Blocker**.
+- **Neu identifiziert (dieser Nachprüfung):** Für die anstehende Release-Vorbereitung ist der `[Unreleased]`-Abschnitt in `CHANGELOG.md` bereits gut gefüllt (16-Bit-Höhenpipeline #581, 3D-Reliefvorschau #582, CodeQL/Codex-Umbau #551), aber `pyproject.toml`/`LICENSES.md`/`de.bgremover.app.metainfo.xml` stehen weiterhin auf `2.6.0` – Versions-Bump und CHANGELOG-Umhängen sind vor dem nächsten Tag nötig. Die #666/#667-Assets (Icon/Screenshots) haben noch keine CHANGELOG-Zeile.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-07-22)
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#660](https://github.com/NikolayDA/picture_helper/issues/660) | TESTING.md-Audit: aktuell, eine kleine Lücke behoben (`gl_smoke`-Marker undokumentiert) | 🟢 Niedrig (reine Doku-Genauigkeit, keine funktionale Auswirkung) | 🟢 Niedrig (ein kurzer Absatz, bereits umgesetzt) | – (kein Agent nötig; Fix liegt bereits auf Branch `claude/festive-gates-4dkzds`, Commit `80b7aa0`) | Ready for PR – nur noch öffnen/mergen, danach Issue schließen |
-| [#659](https://github.com/NikolayDA/picture_helper/issues/659) | Test-Suite-Audit: kleinere Qualitätslücken in 6 Batches (`test_i18n_sync`, `test_viewer_3d` u. a.) | 🟡 Mittel (Testqualität/Coverage, kein Blocker) | 🟡 Mittel (Mix aus trivialen Löschungen/Fixes und echten Coverage-Lücken über mehrere Module) | Sonnet 5 (medium) – bei Zustimmung zur Übernahme als N9/O8 | Needs decision – Vorschlag noch nicht in die Befund-Liste übernommen; Owner-Zustimmung ausstehend, danach Umsetzung als eigener PR |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟡 Mittel (verbessert nur Evidenzqualität, kein Blocker laut Vertrag) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – unabhängig erledigbar |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
 
 ### Als Nächstes empfohlen
 
-1. **#660**: PR für den bereits committeten TESTING.md-Fix öffnen (Branch `claude/festive-gates-4dkzds`, Commit `80b7aa0`) und mergen; danach Issue schließen.
-2. **#659**: Entscheiden, ob die vorgeschlagenen Befunde **N9** (totes Testgewicht `test_i18n_sync.py` entfernen/mergen) und **O8** (tautologische `viewer_3d`-Assertions + Coverage-Lücken in `screenshot3d.py`/`viewer_3d.py`/`preview3d_capability.py`/`height_map.py`/`gloss_preview.py`) übernommen werden; bei Zustimmung als eigenen PR umsetzen.
-3. **#656** unabhängig davon erledigen, wenn echte Vision-Verdikte gewünscht sind – es ist eine Qualitätsverbesserung, kein Blocker.
-4. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
-5. Der Abnahme-/3D-Epic-Strang (#646/#639/#595/#582) ist vollständig abgeschlossen und braucht keine weitere Aktion.
+1. **#656** unabhängig erledigen, wenn echte Vision-Verdikte gewünscht sind – Qualitätsverbesserung, kein Blocker.
+2. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
+3. Der Abnahme-/3D-/Test-Audit-Strang (#646/#639/#595/#582/#659/#660) ist vollständig abgeschlossen und braucht keine weitere Aktion.
+4. Für den nächsten Release: Versions-Bump (`pyproject.toml` + `CHANGELOG.md`/`LICENSES.md` + Übersetzungen + `de.bgremover.app.metainfo.xml`), `[Unreleased]` in einen neuen Versionsabschnitt umhängen, Kandidaten-Gate (`make pr-check`/`coverage`/`ui` + volle CI-Matrix) und einen frischen `release-abnahme.yml`-Dispatch gegen den tatsächlichen Ziel-Commit (der letzte Lauf, Run #4/Commit `9165c00`, liegt vor dem Icon-Wechsel #667).
 
 ## Vorige Runden
 
-- **2026-07-22 (Abnahme-Abschluss)** — Frischer `release-abnahme.yml`-Dispatch (Run #4, Commit `9165c00`) ausgelöst; Matrix gegen #595 geprüft (x86_64 bleibt dokumentiert pausiert, blockiert aber nicht); #595, #646, #639, #582 nacheinander einzeln gegen ihre eigenen Akzeptanzkriterien verifiziert und geschlossen. Einziger echter Rest (mypy-Strenge für `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) über PR #662 behoben und gemergt. Zwei neue Audit-Issues erfasst: #660 mit fertigem, ungemergtem Fix (ready for PR), #659 wartet auf eine echte Owner-Entscheidung zu neuen Befund-Vorschlägen. Live-Stand 4 offene Issues – niedrigster Stand seit Beginn dieser Aufzeichnung.
+- **2026-07-22 (Test-Audit-Abschluss)** — Beide zuvor offenen Audit-Issues geschlossen: #660 über PR #664 (Commit `92c14ba`, `gl_smoke`-Marker in TESTING.md dokumentiert), #659 über PR #665 (Commit `c4ab92a`, N9/O8 vollständig umgesetzt, `make check` 1995/5, `make coverage` 93 %). Zusätzlich zwei assetbezogene PRs gemergt (#666 Screenshot-Satz, #667 neues App-Icon), beide noch ohne CHANGELOG-Eintrag. Live-Stand 2 offene Issues (beide extern/operativ, kein Blocker) – niedrigster Stand seit Beginn dieser Aufzeichnung.
+- **2026-07-22 (Abnahme-Abschluss)** — Frischer `release-abnahme.yml`-Dispatch (Run #4, Commit `9165c00`) ausgelöst; Matrix gegen #595 geprüft (x86_64 bleibt dokumentiert pausiert, blockiert aber nicht); #595, #646, #639, #582 nacheinander einzeln gegen ihre eigenen Akzeptanzkriterien verifiziert und geschlossen. Einziger echter Rest (mypy-Strenge für `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) über PR #662 behoben und gemergt. Zwei neue Audit-Issues erfasst: #660 mit fertigem, ungemergtem Fix (ready for PR), #659 wartet auf eine echte Owner-Entscheidung zu neuen Befund-Vorschlägen. Live-Stand 4 offene Issues.
 - **2026-07-22 (Issue-Review, nach Codex-Korrektur)** — Vollständige Neubewertung aller offenen Issues; eine erste Fassung überschätzte die Aussagekraft des 2026-07-21-Dispatches (inzwischen durch PR #657/#658 überholt) und stufte die beratende Vision-Zeile (#656) fälschlich als Blocker ein. Nach PR-Review (Codex) korrigiert: #656 ist unabhängig erledigbar, Linux x86_64 bleibt ein offen deklariertes Kriterium, und #639/#595/#582 schließen nicht automatisch mit ihren jeweiligen Sub-Issues. Live-Stand 6 offene Issues – niedrigster Stand seit Epic #582.
 - **2026-07-21 (Abnahme-Automatisierung, Epic #639)** — Epic #639 eröffnet und binnen eines Tages größtenteils umgesetzt: ADR/Doku (#640), Workflow-Gerüst (#641), Linux-/macOS-Hardware-Smokes (#642/#643), E2E-Regressionstest (#644), Live-GL-Performance-Suite (#645), Vision-Vorbewertung + Abschlussmatrix (#646) – alle über PR #647/#649 gemergt, aber wegen deutscher Schließen-Schlüsselwörter nicht automatisch geschlossen; Folge-Issue #648 (nativer 3D-Render-Nachweis) bleibt die einzige offene Codeaufgabe. Live-Stand 12 offene Issues.
 - **2026-07-20 (Pi-5-Hardware-Smoke)** — drei reale Packaging-Bugs auf Raspberry Pi 5 gefunden und behoben (PR #627/#631); App startet bestätigt inkl. 3D-Vorschau.

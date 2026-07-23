@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.0] – 2026-07-22
+
 ### Hinzugefügt
 
 - **Echte 3D-Reliefvorschau – interaktiv, performant und robust degradierend
@@ -158,6 +160,13 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   die 8-Bit-Ansicht per `×257` zu spreizen, während der 8-Bit-Export genau
   einmal kontrolliert quantisiert. Fremde NumPy-Sichten werden vor dem Teilen
   kopiert, sodass Basispuffer weder Duplikate noch Verlaufssnapshots verändern.
+
+- **Neues App-Icon: „Liquid Glass"-Design (#667).** Das gemeinsame Master-Icon
+  `BgRemover_icon.png` (1024×1024 RGBA, transparente äußere Ecken) wurde
+  ersetzt; macOS-`.icns`, Linux-AppImage- und `.deb`-Icon leiten sich alle vom
+  selben Repository-Master ab, sodass jeder Distributionsweg das neue Design
+  zeigt. Die Linux-Packaging-Tests prüfen jetzt zusätzlich Icon-Abmessungen
+  und Alphakanal.
 
 ## [2.6.0] – 2026-07-15
 

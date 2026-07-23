@@ -1,6 +1,6 @@
 [Deutsch](../../../LICENSES.md) · **English** · [Español](../es/LICENSES.md) · [Français](../fr/LICENSES.md) · [Українська](../uk/LICENSES.md) · [简体中文](../zh/LICENSES.md)
 
-# License & Legal Overview – bgremover 2.6.0
+# License & Legal Overview – bgremover 2.7.0
 
 > Automatically generated – **a purely technical assessment of the license terms, not legal advice.**
 > As of: 2026-07-19 · Project's own license: `GPL-3.0-or-later` · 45 dependencies analyzed.
