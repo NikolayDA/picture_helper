@@ -11,47 +11,38 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-23, release v2.7.0 published)
+## Current Status (2026-07-23, #668/#669 closed out)
 
-Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last round the full v2.7.0 release cycle has run to completion:
+Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last round, both previously open audit issues were closed out:
 
-1. **PR #670** (version bump `pyproject.toml`/`LICENSES.md`/`de.bgremover.app.metainfo.xml` to 2.7.0, CHANGELOG cutover `[Unreleased]` → `[2.7.0]`, icon entry #667, RECOMMENDATIONS reconcile) was merged (squash commit `6f103ed` on `main`).
-2. Because the squash merge produced a **new** commit SHA (different from the previously gated `245f727`), the complete candidate gate was **re-run** against `6f103ed` — exactly the rule documented in `docs/history/RELEASE-2.6.0-candidate-gate.md` ("note for #585"): full CI matrix (run [29989059554](https://github.com/NikolayDA/picture_helper/actions/runs/29989059554), green), candidate build (run [29990198925](https://github.com/NikolayDA/picture_helper/actions/runs/29990198925), all three platforms green, clean secret scan), hardware acceptance (run [29991314117](https://github.com/NikolayDA/picture_helper/actions/runs/29991314117): macOS arm64 ✅, Linux aarch64 ✅, x86_64 documented-paused, acceptance matrix posted to #595).
-3. Tag `v2.7.0` was set on `6f103ed` and pushed (had to be done by the repo owner directly — this session's git proxy only allows pushes to the assigned feature branch, not tags/`main`). Release workflow run [29998307692](https://github.com/NikolayDA/picture_helper/actions/runs/29998307692) green, the `Publish GitHub Release` job succeeded: **[v2.7.0](https://github.com/NikolayDA/picture_helper/releases/tag/v2.7.0)** published with all five artifacts (Linux x86_64/aarch64 AppImage + `.deb`, macOS arm64 `.dmg`).
+- **#669** (stale live state) — closed directly: the earlier RECOMMENDATIONS reconcile (PR #671) had already brought the content fully up to date (#659/#660 correctly listed as closed, #668 already included); an additional no-op PR wasn't needed.
+- **#668** (stale screenshot-set references) — fixed by this update: `ANLEITUNG.md` and `README.md` (each including all five translations) now point at the current set `bgremover_complete_20260722_171622`. `docs/history/EPIC-582-ABNAHME.md` deliberately keeps the 2026-07-19 set — there it is the actual acceptance evidence (GPU/OS/renderer provenance recorded in the manifest), and switching it would have misrepresented the documented evidence; an explanatory note was added and the old directory is kept accordingly. A new governance test (`tests/test_screenshot_references.py::test_docs_reference_latest_screenshot_set`) now catches a repeat of this silent drift.
 
-In addition, two new automated-audit issues appeared since the last snapshot:
-
-- **#669** — correctly points out that this document's previous live state was stale (still listing #659/#660 as open, missing #668). Fixed by this update.
-- **#668** — `ANLEITUNG.md` still references the 2026-07-19 screenshot set instead of the current 2026-07-22 one (a follow-up gap from #666); pure repo hygiene, no content error in the guide itself. **Correction (Codex review on PR #671):** the set is not fully orphaned — `README.md` (all six languages) and `docs/history/EPIC-582-ABNAHME.md` still reference files in it; a fix must migrate all remaining references or keep the old directory, not just delete it.
-
-Live state per GitHub query: **4** open issues (#669, #668, #656, #245) — all four are doc-hygiene or purely external/operational, no code blocker.
+Live state per GitHub query: **2** open issues (#656, #245) — both purely external/operational, no code blocker.
 
 ### Review Result
 
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, and everything completed since **2026-06-25** remain done.
 - **Release v2.7.0 fully completed and verified:** the tag, publication, and all three gate stages (CI matrix, candidate build, hardware acceptance) ran against the actual tagged commit `6f103ed` — no drift between what was gated and what was published.
-- **#669 is resolved by this update**; **#668** is a small, well-scoped doc cleanup task (wrong screenshot-set date in one reference, similar to the already-completed #638), not a blocker.
+- **#669/#668 closed out** — the lowest live state since this log began.
 - **#656/#245** remain unchanged, purely external/operational trackers with no code relation.
 
 ## Open GitHub Issues — Triage Status (2026-07-23)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#669](https://github.com/NikolayDA/picture_helper/issues/669) | RECOMMENDATIONS.md live state stale (#659/#660 still listed open, #668 missing) | 🟢 Low (pure doc accuracy, no functional impact) | 🟢 Low (fixed by this update) | – (no agent needed) | Done with this update — issue can be closed |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md references a stale screenshot set (20260719 instead of 20260722) | 🟢 Low (repo hygiene, no content error) | 🟢 Low (consolidate references in ANLEITUNG.md **and** README.md/EPIC-582-ABNAHME.md; only remove the set after full migration – per Codex review it isn't fully orphaned) | Sonnet 5 (low) | Ready for PR – small standalone fix possible |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Enable ANTHROPIC_API_KEY secret for the vision pre-assessment | 🟡 Medium (only improves evidence quality; not a blocker per contract) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: Settings → Secrets) | Blocked (external) – can be done independently |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – resolve billing/quota on the OpenAI platform project |
 
 ### Recommended Next
 
-1. Close **#669** — the live state is current as of this update.
-2. Implement **#668** as a small standalone PR: migrate all remaining references to the 2026-07-19 set (`ANLEITUNG.md` + translations, but also `README.md` + translations and `docs/history/EPIC-582-ABNAHME.md`) to the 2026-07-22 set before removing the old one — it isn't fully orphaned (correction after Codex review on PR #671).
-3. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
-4. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
-5. Release v2.7.0 is fully published — no further release-related step is needed.
+1. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
+2. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
+3. Release v2.7.0 is fully published — no further release-related step is needed.
 
 ## Previous Rounds
 
+- **2026-07-23 (#668/#669 closed out)** — #669 (stale doc live state) closed directly, since PR #671 had already fully resolved it, no further code/doc change needed. #668 (`ANLEITUNG.md`/`README.md` referencing the orphaned 2026-07-19 screenshot set) fixed via a standalone PR: living doc references (6 languages each) migrated to the current 2026-07-22 set; the acceptance evidence in `docs/history/EPIC-582-ABNAHME.md` deliberately left untouched (explanatory note added, old directory kept); new governance test added against future screenshot drift. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
 - **2026-07-23 (release v2.7.0)** — PR #670 (version bump + CHANGELOG cutover + icon entry) merged (`6f103ed`); the complete gate was re-run against the new merge commit (CI matrix, candidate build, hardware acceptance, all green); tag `v2.7.0` set and published (five artifacts). Two new audit issues filed: #669 (stale doc live state, fixed by this update) and #668 (orphaned screenshot set in ANLEITUNG.md, small repo hygiene). Live state 4 open issues, all doc hygiene or external, no code blocker.
 - **2026-07-22 (test-audit closeout)** — both previously open audit issues closed: #660 via PR #664 (commit `92c14ba`, documented the `gl_smoke` marker in TESTING.md), #659 via PR #665 (commit `c4ab92a`, N9/O8 fully implemented, `make check` 1995/5, `make coverage` 93%). Also merged two asset-related PRs (#666 screenshot set, #667 new app icon), both still without a CHANGELOG entry. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
 - **2026-07-22 (acceptance closeout)** — triggered a fresh `release-abnahme.yml` dispatch (run #4, commit `9165c00`); checked the matrix against #595 (x86_64 stays documented-paused but doesn't block); individually verified and closed #595, #646, #639, #582 against their own acceptance criteria. The one real gap found (mypy strictness for `scripts/abnahme_vision_check.py`/`abnahme_aggregate.py`, #646) was fixed and merged via PR #662. Two new audit issues filed: #660 with a finished, unmerged fix (ready for PR), #659 awaiting a genuine owner decision on newly proposed findings. Live state 4 open issues.

@@ -56,7 +56,7 @@ high.*
 *"Export" step: the combined 2D preview lays relief and gloss over the color
 motif – display only, the export stays unchanged.*
 
-![3D relief preview with display controls](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+![3D relief preview with display controls](../../../app_screenshots/bgremover_complete_20260722_171622/77_function_preview3d_adjusted.png)
 
 *"Relief & Layers" step: inspect the active height map as a rotatable 3D
 surface. Exaggeration, lighting, and quality affect the display only; for large
