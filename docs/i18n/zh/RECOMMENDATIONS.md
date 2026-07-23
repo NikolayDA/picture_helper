@@ -16,7 +16,7 @@
 Ruff、mypy 和本地测试套件仍是新 PR 前的基线。自上一轮以来，此前仍未结的两个审计议题均已收尾：
 
 - **#669**（实时状态过时）—— 直接关闭：此前的 RECOMMENDATIONS 对齐更新（PR #671）已经把内容完全更新到位（#659/#660 已正确列为已关闭，#668 已经纳入）；无需再开一个无实质改动的 PR。
-- **#668**（截图套装引用过时）—— 已随本次更新修正：`ANLEITUNG.md` 与 `README.md`（各自含五种译文）现已指向当前套装 `bgremover_complete_20260722_171622`。`docs/history/EPIC-582-ABNAHME.md` 有意保留 2026-07-19 的套装——在那里它是真正的验收证据（清单中记录了 GPU/操作系统/渲染器来源信息），改指向新套装会篡改已记录的证据；已补充说明性注记，旧目录也相应保留。新增的治理测试（`tests/test_markdown_links.py::test_no_new_orphaned_app_screenshot_sets`）今后将拦截此类静默漂移的再次发生。
+- **#668**（截图套装引用过时）—— 已随本次更新修正：`ANLEITUNG.md` 与 `README.md`（各自含五种译文）现已指向当前套装 `bgremover_complete_20260722_171622`。`docs/history/EPIC-582-ABNAHME.md` 有意保留 2026-07-19 的套装——在那里它是真正的验收证据（清单中记录了 GPU/操作系统/渲染器来源信息），改指向新套装会篡改已记录的证据；已补充说明性注记，旧目录也相应保留。新增的治理测试（`tests/test_screenshot_references.py::test_docs_reference_latest_screenshot_set`）今后将拦截此类静默漂移的再次发生。
 
 GitHub 实时状态：**2** 个未结议题（#656、#245）—— 二者均属纯外部/运维事项，没有代码阻塞项。
 
