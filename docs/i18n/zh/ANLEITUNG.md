@@ -68,7 +68,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 
 ## 2. 程序界面概览
 
-![BgRemover 启动后的主窗口](../../../app_screenshots/bgremover_complete_20260719_162826/01_main_empty.png)
+![BgRemover 启动后的主窗口](../../../app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
 
 *启动后的主窗口：上方为菜单栏，左侧为工具栏，中间为带透明棋盘格的画布，
 画布上方为步骤栏，右侧为卡片检查器（此处为第 1 步"打开"），底部为
@@ -119,7 +119,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
   [第 7 节](#7-第-2-步--抠图)和
   [第 18 节](#18-故障排除和日志文件)）。
 
-!["编辑"菜单](../../../app_screenshots/bgremover_complete_20260719_162826/23_menu_edit.png)
+!["编辑"菜单](../../../app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
 
 *"编辑"菜单汇集了撤销/重做、旋转、翻转和选区操作。*
 
@@ -158,7 +158,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 5. **保存** —— 在*导出*步骤选择 **PNG** 格式（保留透明度）并点击
    **保存**，或使用 `文件 → 保存`（⌘S）。
 
-![AI 背景移除的结果](../../../app_screenshots/bgremover_complete_20260719_162826/55_function_ai_result.png)
+![AI 背景移除的结果](../../../app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
 
 *点击"移除背景（AI）"后，背景会自动抠除 —— 状态栏提示"AI 背景移除
 完成"，空白区域显示为棋盘格图案。*
@@ -190,7 +190,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 尺寸检查，大型图片在后台加载 —— 状态栏显示进度。加载完成后，步骤栏会
 自动解锁下一步。
 
-!["文件"菜单](../../../app_screenshots/bgremover_complete_20260719_162826/20_menu_file.png)
+!["文件"菜单](../../../app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
 
 *"文件"菜单汇集了打开（⌘O）、"最近打开"、保存（⌘S）和另存为…（⇧⌘S）。*
 
@@ -268,7 +268,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 几乎所有编辑操作（设为透明、替换颜色）都作用于**当前选区**。选区在
 图片上以颜色高亮显示。选区工具在*抠图*步骤中可用。
 
-![已加载图片并带有活动选区](../../../app_screenshots/bgremover_complete_20260719_162826/02_main_loaded_selection.png)
+![已加载图片并带有活动选区](../../../app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
 
 *已加载图片并带有活动选区：选中的背景区域在画布上以颜色高亮显示。*
 
@@ -299,7 +299,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 在*抠图*步骤中，将主体与背景分离 —— 自动通过 AI，或手动完成。卡片
 检查器为此提供了四张卡片。
 
-!["抠图"步骤](../../../app_screenshots/bgremover_complete_20260719_162826/11_step_2_cutout.png)
+!["抠图"步骤](../../../app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
 
 *第 2 步"抠图"：顶部是 AI 按钮，下方是工具设置、选区操作和"编辑背景"。*
 
@@ -339,7 +339,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 | **选择颜色** | 打开颜色选择器。小的彩色按钮显示当前选定的替换颜色。 |
 | **替换颜色** | 用选定颜色填充选中的区域。 |
 
-![颜色选择器对话框](../../../app_screenshots/bgremover_complete_20260719_162826/31_dialog_color_picker.png)
+![颜色选择器对话框](../../../app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
 
 *通过"选择颜色"打开颜色选择器；所选颜色会显示在色块中，并通过
 "替换颜色"应用到选区。*
@@ -380,7 +380,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
 *形状与尺寸*步骤汇集了旋转/翻转、圆角、裁剪以及一个快速的像素尺寸
 调整功能。
 
-!["形状与尺寸"步骤](../../../app_screenshots/bgremover_complete_20260719_162826/13_step_4_shape.png)
+!["形状与尺寸"步骤](../../../app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
 
 *第 4 步"形状与尺寸"：旋转（快速旋转/自由角度）、翻转、圆角，以及
 下方的裁剪版式。*
@@ -424,7 +424,7 @@ BgRemover 是一款用于**移除、替换和编辑背景**的图像编辑工具
    - **✓ 应用裁剪** —— 裁剪图片。
    - **✗ 取消** —— 丢弃框架。
 
-![活动的圆形裁剪与确认栏](../../../app_screenshots/bgremover_complete_20260719_162826/63_crop_circle_overlay.png)
+![活动的圆形裁剪与确认栏](../../../app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
 
 *"圆形"示例：裁剪框带控制手柄叠加在图片上。通过"✓ 应用裁剪"完成裁剪，
 "✗ 取消"丢弃该框架。*
@@ -650,7 +650,7 @@ Alt+拖动可平移，滚轮可缩放。使用键盘时，方向键旋转，Shif
 
 通过 `工具 → 设置…`（⌘, / Ctrl+,）可管理以下设置：
 
-![设置对话框](../../../app_screenshots/bgremover_complete_20260719_162826/30_dialog_settings.png)
+![设置对话框](../../../app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
 
 *设置对话框：语言、默认的打开/保存目录、首选图片格式，以及带
 "打开文件夹"按钮的日志文件路径。*

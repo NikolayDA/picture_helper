@@ -72,7 +72,7 @@ through the editing process. The key features:
 
 ## 2. The application window at a glance
 
-![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260719_162826/01_main_empty.png)
+![BgRemover – main window after launch](../../../app_screenshots/bgremover_complete_20260722_171622/01_main_empty.png)
 
 *The main window right after launch: the menu bar at the top, the toolbar on
 the left, the canvas with the transparency checkerboard in the centre, the
@@ -126,7 +126,7 @@ Many actions are also available from the menu bar:
   [section 7](#7-step-2--cutout) and
   [section 18](#18-troubleshooting--log-file)).
 
-![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260719_162826/23_menu_edit.png)
+![The "Edit" menu](../../../app_screenshots/bgremover_complete_20260722_171622/23_menu_edit.png)
 
 *The "Edit" menu groups undo/redo, rotate, flip, and the selection actions.*
 
@@ -167,7 +167,7 @@ Here is how to remove a background in under a minute:
 5. **Save** – in the *Export* step choose format **PNG** (preserves
    transparency) and click **Save**, or use `File → Save` (⌘S).
 
-![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260719_162826/55_function_ai_result.png)
+![Result of the AI background removal](../../../app_screenshots/bgremover_complete_20260722_171622/55_function_ai_result.png)
 
 *After one click on "Remove background (AI)" the background is cut out
 automatically – the status bar reports "AI background removal complete", and
@@ -204,7 +204,7 @@ same format and size checks apply, and large images are loaded in the
 background — the status bar shows progress. Once loaded, the stepper
 automatically unlocks the next step.
 
-![The "File" menu](../../../app_screenshots/bgremover_complete_20260719_162826/20_menu_file.png)
+![The "File" menu](../../../app_screenshots/bgremover_complete_20260722_171622/20_menu_file.png)
 
 *The "File" menu groups Open (⌘O), "Recent files", Save (⌘S), and
 Save as… (⇧⌘S).*
@@ -287,7 +287,7 @@ Almost all edits (make transparent, replace colour) act on the **currently
 selected area**. The selection is highlighted on the image in colour. The
 selection tools are active in the *Cut out* step.
 
-![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260719_162826/02_main_loaded_selection.png)
+![A loaded image with an active selection](../../../app_screenshots/bgremover_complete_20260722_171622/02_main_loaded_selection.png)
 
 *A loaded image with an active selection: the selected background area is
 highlighted in colour on the canvas.*
@@ -320,7 +320,7 @@ In the *Cut out* step you separate the subject from the background –
 automatically via AI or by hand. The card inspector groups four cards for
 this.
 
-![The "Cut out" step](../../../app_screenshots/bgremover_complete_20260719_162826/11_step_2_cutout.png)
+![The "Cut out" step](../../../app_screenshots/bgremover_complete_20260722_171622/11_step_2_cutout.png)
 
 *Step 2 "Cut out": the AI button at the top, below it tool settings,
 selection actions, and "Edit background".*
@@ -365,7 +365,7 @@ has already been downloaded, and start or cancel the download there.
 | **Pick colour** | Opens a colour picker. The small coloured button shows the currently chosen replacement colour. |
 | **Replace colour** | Fills the selected area with the chosen colour. |
 
-![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260719_162826/31_dialog_color_picker.png)
+![Colour picker dialog](../../../app_screenshots/bgremover_complete_20260722_171622/31_dialog_color_picker.png)
 
 *"Pick colour" opens the colour picker; the chosen colour appears in the
 swatch and is applied to the selection with "Replace colour".*
@@ -410,7 +410,7 @@ leaves the transparency unchanged.
 The *Shape & Size* step groups rotate/flip as well as round corners, crop,
 and a quick pixel resize.
 
-![The "Shape & Size" step](../../../app_screenshots/bgremover_complete_20260719_162826/13_step_4_shape.png)
+![The "Shape & Size" step](../../../app_screenshots/bgremover_complete_20260722_171622/13_step_4_shape.png)
 
 *Step 4 "Shape & Size": rotate (quick rotation/free angle), flip, round
 corners, and the crop formats at the bottom.*
@@ -458,7 +458,7 @@ dialog from [section 10](#10-resize--physical-dimensions).
    - **✓ Apply crop** – crops the image.
    - **✗ Cancel** – discards the frame.
 
-![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260719_162826/63_crop_circle_overlay.png)
+![Active circle crop with confirmation bar](../../../app_screenshots/bgremover_complete_20260722_171622/63_crop_circle_overlay.png)
 
 *"Circle" example: the crop frame sits over the image with drag handles.
 "✓ Apply crop" crops the image, "✗ Cancel" discards the frame.*
@@ -711,7 +711,7 @@ modes/layers there, and save the Studio project itself as `.empf`.
 Via `Extras → Settings…` (⌘, / Ctrl+,) you can manage the following
 settings:
 
-![The settings dialog](../../../app_screenshots/bgremover_complete_20260719_162826/30_dialog_settings.png)
+![The settings dialog](../../../app_screenshots/bgremover_complete_20260722_171622/30_dialog_settings.png)
 
 *The settings dialog: language, default open/save directories, preferred
 image file format, and the path to the log file with the "Open folder"

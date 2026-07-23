@@ -55,7 +55,7 @@
 *“导出”步骤：组合式 2D 预览将浮雕和光泽叠加在彩色图案之上——仅为显示，导出
 不变。*
 
-![带显示控件的 3D 浮雕预览](../../../app_screenshots/bgremover_complete_20260719_162826/77_function_preview3d_adjusted.png)
+![带显示控件的 3D 浮雕预览](../../../app_screenshots/bgremover_complete_20260722_171622/77_function_preview3d_adjusted.png)
 
 *“浮雕与图层”步骤：将当前高度图作为可旋转的 3D 表面查看。高度夸张、光照和
 质量仅影响显示；对于大型图像，标记会提示当前使用了简化显示。*
