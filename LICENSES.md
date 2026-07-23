@@ -3,7 +3,7 @@
 # Lizenz- & Rechtsuebersicht – bgremover 2.7.0
 
 > Automatisch generiert – **rein technische Einschaetzung der Lizenzbedingungen, keine Rechtsberatung.**
-> Stand: 2026-07-19 · Eigenlizenz des Projekts: `GPL-3.0-or-later` · 45 Dependencies analysiert.
+> Stand: 2026-07-23 · Eigenlizenz des Projekts: `GPL-3.0-or-later` · 45 Dependencies analysiert.
 
 ## Gesamtbewertung – kommerzielle Nutzbarkeit
 
