@@ -22,6 +22,7 @@ Live-Stand nach GitHub-Abfrage: **2** offene Issues (#656, #245) — beide rein 
 
 ### Ergebnis der Nachprüfung
 
+- **PR-/Issue-Audit vom 22.–23.07. vollständig:** Die Merge-Stände #657/#658, #661–#665 und #670–#673 wurden gegen ihre beschriebenen Ziele und Akzeptanzkriterien nachgeprüft. Die Abnahme-Automatisierung enthält die fehlenden strukturierten Wächter- und E2E-Nachweise, die Test-/Doku-Nachzüge decken ihre jeweiligen Regressionen ab, und der Release-/Screenshot-Nachzug ist einschließlich generierter Artefakte und Governance-Test konsistent. Es blieb kein reproduzierbarer Code-, Test- oder Dokumentationsrest, der einen neuen Issue oder einen Ergänzungskommentar an einem geschlossenen Issue rechtfertigt.
 - **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8** und alle seit
   **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
 - **Release v2.7.0 vollständig abgeschlossen und verifiziert:** Tag, Veröffentlichung und alle drei Gate-Stufen (CI-Matrix, Kandidaten-Build, Hardware-Abnahme) sind gegen genau den tatsächlich getaggten Commit `6f103ed` gelaufen – keine Drift zwischen geprüftem und veröffentlichtem Stand.
