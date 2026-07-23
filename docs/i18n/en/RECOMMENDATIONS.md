@@ -22,7 +22,7 @@ Ruff, mypy, and the local test suite remain the baseline before new PRs. Since t
 In addition, two new automated-audit issues appeared since the last snapshot:
 
 - **#669** — correctly points out that this document's previous live state was stale (still listing #659/#660 as open, missing #668). Fixed by this update.
-- **#668** — `ANLEITUNG.md` still references the orphaned 2026-07-19 screenshot set instead of the current 2026-07-22 one (a follow-up gap from #666); pure repo hygiene, no content error in the guide itself.
+- **#668** — `ANLEITUNG.md` still references the 2026-07-19 screenshot set instead of the current 2026-07-22 one (a follow-up gap from #666); pure repo hygiene, no content error in the guide itself. **Correction (Codex review on PR #671):** the set is not fully orphaned — `README.md` (all six languages) and `docs/history/EPIC-582-ABNAHME.md` still reference files in it; a fix must migrate all remaining references or keep the old directory, not just delete it.
 
 Live state per GitHub query: **4** open issues (#669, #668, #656, #245) — all four are doc-hygiene or purely external/operational, no code blocker.
 
@@ -38,14 +38,14 @@ Live state per GitHub query: **4** open issues (#669, #668, #656, #245) — all 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
 | [#669](https://github.com/NikolayDA/picture_helper/issues/669) | RECOMMENDATIONS.md live state stale (#659/#660 still listed open, #668 missing) | 🟢 Low (pure doc accuracy, no functional impact) | 🟢 Low (fixed by this update) | – (no agent needed) | Done with this update — issue can be closed |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md references an orphaned screenshot set (20260719 instead of 20260722) | 🟢 Low (repo hygiene, no content error) | 🟢 Low (swap references + delete old set, like #638) | Sonnet 5 (low) | Ready for PR – small standalone fix possible |
+| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md references a stale screenshot set (20260719 instead of 20260722) | 🟢 Low (repo hygiene, no content error) | 🟢 Low (consolidate references in ANLEITUNG.md **and** README.md/EPIC-582-ABNAHME.md; only remove the set after full migration – per Codex review it isn't fully orphaned) | Sonnet 5 (low) | Ready for PR – small standalone fix possible |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Enable ANTHROPIC_API_KEY secret for the vision pre-assessment | 🟡 Medium (only improves evidence quality; not a blocker per contract) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: Settings → Secrets) | Blocked (external) – can be done independently |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – resolve billing/quota on the OpenAI platform project |
 
 ### Recommended Next
 
 1. Close **#669** — the live state is current as of this update.
-2. Implement **#668** as a small standalone PR: switch `ANLEITUNG.md` (and any i18n copies) to the 2026-07-22 set, remove the orphaned 2026-07-19 set.
+2. Implement **#668** as a small standalone PR: migrate all remaining references to the 2026-07-19 set (`ANLEITUNG.md` + translations, but also `README.md` + translations and `docs/history/EPIC-582-ABNAHME.md`) to the 2026-07-22 set before removing the old one — it isn't fully orphaned (correction after Codex review on PR #671).
 3. Handle **#656** independently if real vision verdicts are wanted — it's a quality improvement, not a blocker.
 4. Leave **#245** as a purely external billing/quota tracker; no action possible or needed in the repository.
 5. Release v2.7.0 is fully published — no further release-related step is needed.

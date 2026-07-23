@@ -22,7 +22,7 @@ Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. De
 De plus, deux nouveaux tickets d'audit automatisé sont apparus depuis le dernier instantané :
 
 - **#669** — signale à juste titre que l'état en direct précédent de ce document était obsolète (listant encore #659/#660 comme ouverts, #668 manquant). Corrigé par cette mise à jour.
-- **#668** — `ANLEITUNG.md` référence encore le jeu de captures orphelin du 2026-07-19 au lieu de l'actuel du 2026-07-22 (une lacune de suivi de #666) ; pure hygiène de dépôt, aucune erreur de contenu dans le guide lui-même.
+- **#668** — `ANLEITUNG.md` référence encore le jeu de captures du 2026-07-19 au lieu de l'actuel du 2026-07-22 (une lacune de suivi de #666) ; pure hygiène de dépôt, aucune erreur de contenu dans le guide lui-même. **Correction (revue Codex sur le PR #671) :** le jeu n'est pas entièrement orphelin — `README.md` (dans les six langues) et `docs/history/EPIC-582-ABNAHME.md` référencent aussi des fichiers qu'il contient ; un correctif doit migrer toutes les références restantes ou conserver l'ancien répertoire, pas simplement le supprimer.
 
 État en direct : **4** tickets ouverts (#669, #668, #656, #245) — les quatre relèvent de l'hygiène documentaire ou sont purement externes/opérationnels, aucun blocage de code.
 
@@ -38,14 +38,14 @@ De plus, deux nouveaux tickets d'audit automatisé sont apparus depuis le dernie
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
 | [#669](https://github.com/NikolayDA/picture_helper/issues/669) | État en direct de RECOMMENDATIONS.md obsolète (#659/#660 encore listés ouverts, #668 manquant) | 🟢 Faible (pure exactitude documentaire, aucun impact fonctionnel) | 🟢 Faible (corrigé par cette mise à jour) | – (aucun agent nécessaire) | Fait avec cette mise à jour — le ticket peut être fermé |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md référence un jeu de captures orphelin (20260719 au lieu de 20260722) | 🟢 Faible (hygiène de dépôt, aucune erreur de contenu) | 🟢 Faible (changer les références + supprimer l'ancien jeu, comme #638) | Sonnet 5 (faible) | Ready for PR – petit correctif autonome possible |
+| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md référence un jeu de captures obsolète (20260719 au lieu de 20260722) | 🟢 Faible (hygiène de dépôt, aucune erreur de contenu) | 🟢 Faible (consolider les références dans ANLEITUNG.md **et** README.md/EPIC-582-ABNAHME.md ; ne supprimer le jeu qu'après migration complète — selon la revue Codex, il n'est pas entièrement orphelin) | Sonnet 5 (faible) | Ready for PR – petit correctif autonome possible |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activer le secret ANTHROPIC_API_KEY pour la pré-évaluation vision | 🟡 Moyenne (améliore seulement la qualité des preuves ; pas un blocage selon le contrat) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : Settings → Secrets) | Bloquée (externe) – réalisable indépendamment |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – régler la facturation/le quota sur le projet de la plateforme OpenAI |
 
 ### Recommandé ensuite
 
 1. Fermer **#669** — l'état en direct est à jour suite à cette mise à jour.
-2. Mettre en œuvre **#668** comme un petit PR autonome : basculer `ANLEITUNG.md` (et les copies i18n le cas échéant) vers le jeu du 2026-07-22, supprimer le jeu orphelin du 2026-07-19.
+2. Mettre en œuvre **#668** comme un petit PR autonome : migrer toutes les références restantes vers le jeu du 2026-07-19 (`ANLEITUNG.md` + traductions, mais aussi `README.md` + traductions et `docs/history/EPIC-582-ABNAHME.md`) vers le jeu du 2026-07-22 avant de supprimer l'ancien — il n'est pas entièrement orphelin (correction après la revue Codex sur le PR #671).
 3. Traiter **#656** indépendamment si de véritables verdicts vision sont souhaités — c'est une amélioration de qualité, pas un blocage.
 4. Laisser **#245** comme pur tracker externe de facturation/quota ; aucune action possible ni nécessaire dans le dépôt.
 5. Le release v2.7.0 est entièrement publié — aucune autre étape liée au release n'est nécessaire.

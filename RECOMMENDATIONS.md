@@ -22,7 +22,7 @@ Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der
 Zusätzlich sind seit dem letzten Snapshot zwei neue, automatisiert erstellte Audit-Issues hinzugekommen:
 
 - **#669** — bemängelt zurecht, dass der vorherige Live-Stand dieses Dokuments veraltet war (#659/#660 noch als offen geführt, #668 fehlte). Mit diesem Update behoben.
-- **#668** — `ANLEITUNG.md` verweist noch auf das verwaiste Screenshot-Set vom 2026-07-19 statt auf das aktuelle vom 2026-07-22 (Folge-Lücke von #666); reine Repo-Hygiene, kein inhaltlicher Fehler in der Anleitung selbst.
+- **#668** — `ANLEITUNG.md` verweist noch auf das Screenshot-Set vom 2026-07-19 statt auf das aktuelle vom 2026-07-22 (Folge-Lücke von #666); reine Repo-Hygiene, kein inhaltlicher Fehler in der Anleitung selbst. **Korrektur (Codex-Review auf PR #671):** Das Set ist nicht vollständig verwaist – `README.md` (alle sechs Sprachen) und `docs/history/EPIC-582-ABNAHME.md` referenzieren ebenfalls Dateien darin; ein Fix muss alle verbleibenden Referenzen migrieren oder das alte Verzeichnis behalten, darf es nicht einfach löschen.
 
 Live-Stand nach GitHub-Abfrage: **4** offene Issues (#669, #668, #656, #245) — alle vier sind Doku-Hygiene bzw. rein extern/operativ, kein Code-Blocker.
 
@@ -39,14 +39,14 @@ Live-Stand nach GitHub-Abfrage: **4** offene Issues (#669, #668, #656, #245) —
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
 | [#669](https://github.com/NikolayDA/picture_helper/issues/669) | RECOMMENDATIONS.md Live-Stand veraltet (#659/#660 als offen geführt, #668 fehlte) | 🟢 Niedrig (reine Doku-Aktualität, keine funktionale Auswirkung) | 🟢 Niedrig (durch dieses Update behoben) | – (kein Agent nötig) | Erledigt mit diesem Update – Issue kann geschlossen werden |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md verweist auf verwaistes Screenshot-Set (20260719 statt 20260722) | 🟢 Niedrig (Repo-Hygiene, kein inhaltlicher Fehler) | 🟢 Niedrig (Referenzen umstellen + altes Set löschen, analog #638) | Sonnet 5 (niedrig) | Ready for PR – kleiner eigenständiger Fix möglich |
+| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md verweist auf veraltetes Screenshot-Set (20260719 statt 20260722) | 🟢 Niedrig (Repo-Hygiene, kein inhaltlicher Fehler) | 🟢 Niedrig (Referenzen in ANLEITUNG.md **und** README.md/EPIC-582-ABNAHME.md konsolidieren; Set erst nach vollständiger Migration entfernen – Set ist laut Codex-Review nicht vollständig verwaist) | Sonnet 5 (niedrig) | Ready for PR – kleiner eigenständiger Fix möglich |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟡 Mittel (verbessert nur Evidenzqualität, kein Blocker laut Vertrag) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – unabhängig erledigbar |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
 
 ### Als Nächstes empfohlen
 
 1. **#669** schließen — der Live-Stand ist mit diesem Update aktuell.
-2. **#668** als kleinen, eigenständigen PR umsetzen: `ANLEITUNG.md` (+ ggf. i18n-Kopien) auf das Set vom 2026-07-22 umstellen, das verwaiste Set vom 2026-07-19 entfernen.
+2. **#668** als kleinen, eigenständigen PR umsetzen: alle verbleibenden Referenzen auf das Set vom 2026-07-19 (`ANLEITUNG.md` + Übersetzungen, aber auch `README.md` + Übersetzungen und `docs/history/EPIC-582-ABNAHME.md`) auf das Set vom 2026-07-22 migrieren, bevor das alte Set entfernt wird – es ist nicht vollständig verwaist (Korrektur nach Codex-Review auf PR #671).
 3. **#656** unabhängig erledigen, wenn echte Vision-Verdikte gewünscht sind – Qualitätsverbesserung, kein Blocker.
 4. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
 5. Release v2.7.0 ist vollständig veröffentlicht — kein weiterer releasebezogener Schritt nötig.

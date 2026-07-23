@@ -22,7 +22,7 @@ Ruff, mypy y la suite de pruebas local siguen siendo la base antes de nuevos PR.
 Además, desde el último snapshot han aparecido dos nuevas incidencias de auditoría automatizada:
 
 - **#669** — señala con razón que el estado en vivo anterior de este documento estaba desactualizado (aún listaba #659/#660 como abiertas, faltaba #668). Corregido con esta actualización.
-- **#668** — `ANLEITUNG.md` todavía referencia el conjunto de capturas huérfano del 2026-07-19 en lugar del actual del 2026-07-22 (una laguna derivada de #666); pura higiene de repositorio, sin error de contenido en la guía en sí.
+- **#668** — `ANLEITUNG.md` todavía referencia el conjunto de capturas del 2026-07-19 en lugar del actual del 2026-07-22 (una laguna derivada de #666); pura higiene de repositorio, sin error de contenido en la guía en sí. **Corrección (revisión de Codex en el PR #671):** el conjunto no está totalmente huérfano — `README.md` (en los seis idiomas) y `docs/history/EPIC-582-ABNAHME.md` también referencian archivos en él; un arreglo debe migrar todas las referencias restantes o conservar el directorio antiguo, no simplemente eliminarlo.
 
 Estado en vivo: **4** incidencias abiertas (#669, #668, #656, #245) — las cuatro son de higiene documental o puramente externas/operativas, ningún bloqueo de código.
 
@@ -38,14 +38,14 @@ Estado en vivo: **4** incidencias abiertas (#669, #668, #656, #245) — las cuat
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
 | [#669](https://github.com/NikolayDA/picture_helper/issues/669) | Estado en vivo de RECOMMENDATIONS.md desactualizado (#659/#660 aún listadas como abiertas, faltaba #668) | 🟢 Baja (pura precisión documental, sin impacto funcional) | 🟢 Baja (corregido con esta actualización) | – (no hace falta agente) | Hecho con esta actualización — la incidencia puede cerrarse |
-| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md referencia un conjunto de capturas huérfano (20260719 en vez de 20260722) | 🟢 Baja (higiene de repositorio, sin error de contenido) | 🟢 Baja (cambiar referencias + eliminar el conjunto antiguo, como en #638) | Sonnet 5 (baja) | Ready for PR – arreglo pequeño e independiente posible |
+| [#668](https://github.com/NikolayDA/picture_helper/issues/668) | ANLEITUNG.md referencia un conjunto de capturas desactualizado (20260719 en vez de 20260722) | 🟢 Baja (higiene de repositorio, sin error de contenido) | 🟢 Baja (consolidar referencias en ANLEITUNG.md **y** README.md/EPIC-582-ABNAHME.md; eliminar el conjunto solo tras una migración completa — según la revisión de Codex no está totalmente huérfano) | Sonnet 5 (baja) | Ready for PR – arreglo pequeño e independiente posible |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activar el secreto ANTHROPIC_API_KEY para la evaluación previa por visión | 🟡 Media (solo mejora la calidad de la evidencia; no es un bloqueo según el contrato) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: Settings → Secrets) | Bloqueada (externa) – se puede hacer de forma independiente |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – resolver facturación/cuota en el proyecto de la plataforma OpenAI |
 
 ### Recomendado a continuación
 
 1. Cerrar **#669** — el estado en vivo está al día tras esta actualización.
-2. Implementar **#668** como un PR pequeño e independiente: cambiar `ANLEITUNG.md` (y las copias i18n si aplica) al conjunto del 2026-07-22, eliminar el conjunto huérfano del 2026-07-19.
+2. Implementar **#668** como un PR pequeño e independiente: migrar todas las referencias restantes al conjunto del 2026-07-19 (`ANLEITUNG.md` + traducciones, pero también `README.md` + traducciones y `docs/history/EPIC-582-ABNAHME.md`) al conjunto del 2026-07-22 antes de eliminar el antiguo — no está totalmente huérfano (corrección tras la revisión de Codex en el PR #671).
 3. Gestionar **#656** de forma independiente si se desean veredictos de visión reales — es una mejora de calidad, no un bloqueo.
 4. Dejar **#245** como tracker puramente externo de facturación/cuota; no hay ninguna acción posible ni necesaria en el repositorio.
 5. El release v2.7.0 está completamente publicado — no hace falta ningún paso adicional relacionado con el release.
