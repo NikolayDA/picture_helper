@@ -22,6 +22,7 @@ Live state per GitHub query: **2** open issues (#656, #245) — both purely exte
 
 ### Review Result
 
+- **PR/issue audit for July 22–23 complete:** Merge states #657/#658, #661–#665, and #670–#673 were checked against their stated goals and acceptance criteria. The acceptance automation contains the previously missing structured guard and E2E evidence, the test/documentation follow-ups cover their respective regressions, and the release/screenshot follow-up is consistent, including generated artifacts and the governance test. No reproducible code, test, or documentation remainder was found that would justify a new issue or an additional comment on a closed issue.
 - **Old baseline stable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, and everything completed since **2026-06-25** remain done.
 - **Release v2.7.0 fully completed and verified:** the tag, publication, and all three gate stages (CI matrix, candidate build, hardware acceptance) ran against the actual tagged commit `6f103ed` — no drift between what was gated and what was published.
 - **#669/#668 closed out** — the lowest live state since this log began.

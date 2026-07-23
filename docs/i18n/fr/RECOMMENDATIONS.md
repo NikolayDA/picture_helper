@@ -22,6 +22,7 @@ Ruff, mypy et la suite de tests locale restent la base avant tout nouveau PR. De
 
 ### Résultat de la revue
 
+- **Audit des PR/issues des 22–23 juillet terminé :** Les états fusionnés #657/#658, #661–#665 et #670–#673 ont été vérifiés par rapport à leurs objectifs et critères d’acceptation. L’automatisation de l’acceptation contient les preuves structurées de garde et E2E auparavant manquantes, les suivis tests/documentation couvrent leurs régressions respectives et le suivi release/captures est cohérent, artefacts générés et test de gouvernance compris. Aucun reliquat reproductible de code, test ou documentation ne justifie un nouvel issue ni un commentaire supplémentaire sur un issue fermé.
 - **Ancienne base stable :** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8** et tout ce qui a été achevé depuis le **2026-06-25** reste fait.
 - **Le release v2.7.0 est entièrement clos et vérifié :** le tag, la publication et les trois étapes du gate (matrice CI, build candidat, recette matérielle) ont tourné contre le commit réellement taggé `6f103ed` — aucune dérive entre ce qui a été validé et ce qui a été publié.
 - **#669/#668 clos** — le niveau le plus bas depuis le début de ce journal.

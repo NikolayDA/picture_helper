@@ -22,6 +22,7 @@ Estado en vivo: **2** incidencias abiertas (#656, #245) — ambas puramente exte
 
 ### Resultado de la revisión
 
+- **Auditoría de PR/issues del 22–23 de julio completada:** Se comprobaron los estados fusionados #657/#658, #661–#665 y #670–#673 frente a sus objetivos y criterios de aceptación. La automatización de aceptación contiene las evidencias estructuradas de guardas y E2E que faltaban, los seguimientos de pruebas/documentación cubren sus regresiones respectivas y el seguimiento de release/capturas es coherente, incluidos los artefactos generados y la prueba de gobernanza. No quedó ningún resto reproducible de código, pruebas o documentación que justifique un issue nuevo o un comentario adicional en un issue cerrado.
 - **Base antigua estable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8** y todo lo completado desde el **2026-06-25** sigue hecho.
 - **El release v2.7.0 está completamente cerrado y verificado:** la etiqueta, la publicación y las tres etapas del gate (matriz de CI, build de candidato, aceptación de hardware) se ejecutaron contra el commit realmente etiquetado `6f103ed` — sin deriva entre lo verificado y lo publicado.
 - **#669/#668 cerradas** — el nivel más bajo desde que existe este registro.
