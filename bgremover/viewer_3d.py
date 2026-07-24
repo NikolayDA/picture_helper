@@ -254,6 +254,13 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             return
         mesh = self._pending_mesh
         self._pending_mesh = None
+        # Vorherige kontextgebundene Puffer/VAO zuerst freigeben: ``_ensure_buffers``
+        # läuft ausschließlich aus ``_paint_gl`` mit aktuellem Kontext, ein erneuter
+        # Upload (Mesh-Wechsel, Cache-Wiederanzeige, 2D↔3D-Umschalten) darf die
+        # alten GL-Objekte nicht verwaisen lassen. Der VAO ist ein an das Widget
+        # geparentes QObject und überlebte sonst mit seinem GL-Namen bis zur
+        # Widget-Zerstörung (langsame Akkumulation über die Sitzung).
+        self._release_gl_objects()
         positions = np.ascontiguousarray(mesh.positions, dtype=np.float32)
         slope = np.ascontiguousarray(mesh.slope, dtype=np.float32)
         indices = np.ascontiguousarray(mesh.indices, dtype=np.uint32).ravel()
@@ -408,16 +415,27 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             return
         self._safe_update()
 
+    def _release_gl_objects(self) -> None:
+        """Zerstört die aktuellen Puffer/VAO und nullt ihre Referenzen.
+
+        Reine, kontextgebundene Ressourcenfreigabe (erwartet einen aktuellen
+        GL-Kontext, wie in ``_ensure_buffers``/``cleanup_gl`` gegeben). Programm
+        und Ready-Flag bleiben unberührt – die setzt ``cleanup_gl`` separat.
+        """
+        for buf in (self._pos_vbo, self._slope_vbo, self._index_ibo):
+            if buf is not None:
+                buf.destroy()
+        if self._vao is not None:
+            self._vao.destroy()
+        self._pos_vbo = self._slope_vbo = self._index_ibo = self._vao = None
+        self._index_count = 0
+
     def cleanup_gl(self) -> None:
         """Gibt GL-Ressourcen kontrolliert frei (Projektwechsel/Schließen)."""
         try:
             if _HAS_GL_WIDGET:
                 self.makeCurrent()
-            for buf in (self._pos_vbo, self._slope_vbo, self._index_ibo):
-                if buf is not None:
-                    buf.destroy()
-            if self._vao is not None:
-                self._vao.destroy()
+            self._release_gl_objects()
         except Exception:  # noqa: BLE001
             pass
         finally:
