@@ -1362,7 +1362,8 @@ class ImageCanvas(QGraphicsView):
             desc, status = (
                 tr("history.desc.height_darken"), tr("canvas.height_darkened"))
         # Das Modell ist noch unverändert (Strich lief nur als Vorschau);
-        # _apply_pil pusht genau diesen Vorzustand → ein History-Eintrag.
+        # _run_height_edit committet das Feld über _apply_height_field → ein
+        # History-Eintrag.
         self._run_height_edit(self._stroke_field(stroke), desc, status)
 
     def _abort_height_stroke(self) -> None:

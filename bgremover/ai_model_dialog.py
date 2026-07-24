@@ -7,7 +7,8 @@ laufenden Start-Warmup, Race-Vermeidung, prozessseitiger Abbruch) ist bewusst ü
 die Signale ``download_requested``/``cancel_requested`` sowie die von außen
 getriebenen Zustandsmethoden entkoppelt – laut Scope-Klarstellung auf #569 reicht
 hier ein testbarer, gemockter Download-/Retry-/Cancel-Pfad; die echte
-``WorkerController``/``InferenceProcess``-Anbindung folgt in #570.
+``WorkerController``/``InferenceProcess``-Anbindung ist seit #570 im MainWindow
+verdrahtet (``start_warmup``/``cancel_warmup``).
 """
 from __future__ import annotations
 

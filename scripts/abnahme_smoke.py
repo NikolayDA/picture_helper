@@ -505,7 +505,7 @@ def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: P
     # detach in jedem Fall versuchen, auch wenn der Mount-Pfad nicht geparst
     # werden konnte (sonst bleibt es haengen, #643-Fund). Detach laeuft HIER
     # bewusst nur um die Kopie herum (#651-Review-Fund): der eigentliche
-    # App-Start (bis zu 240s Guard-Timeout) darf das DMG nicht mehr gemountet
+    # App-Start (120s Guard-Timeout, _guard-Default) darf das DMG nicht mehr gemountet
     # halten, sonst bleibt bei einem abgebrochenen/gekillten Job ein Volume
     # unnoetig lange haengen – die Temp-Kopie existiert ja genau dafuer.
     try:
