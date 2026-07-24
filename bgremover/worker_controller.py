@@ -1,4 +1,5 @@
-"""QThread-Lifecycle-Verwaltung für Bildlade-, KI-, Warmup- und Flood-Fill-Worker."""
+"""QThread-Lifecycle-Verwaltung für Bildlade-, KI-, Warmup-, Flood-Fill-,
+Update-Check- und Mesh-Build-Worker."""
 from __future__ import annotations
 
 import contextlib

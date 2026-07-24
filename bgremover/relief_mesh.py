@@ -29,8 +29,9 @@ Verbindliche Verträge (ADR
 - **Budgets:** Grid-Kantenlänge, Vertex- und Dreieckszahl sind je Qualitätsstufe
   hart gedeckelt (:class:`MeshQuality`); ein 40-MP-Bild erzeugt nie ein
   Vollauflösungs-Mesh, weil die Decimation **vor** jeder float-Expansion auf dem
-  ``uint16``-Feld läuft. Das Downsampling arbeitet zeilenbandweise mit hartem
-  64-MiB-Deckel (Muster von ``height_ops._MEDIAN_MAX_TEMP_BYTES``, #365).
+  ``uint16``-Feld läuft. Das Downsampling arbeitet in 2D-Kacheln (Zeilenbänder ×
+  Spaltenkacheln) mit hartem 64-MiB-Deckel (Muster von
+  ``height_ops._MEDIAN_MAX_TEMP_BYTES``, #365).
 
 Ausgabeformat (:class:`ReliefMesh`): ``positions`` ``float32 (N, 3)``,
 ``normals`` ``float32 (N, 3)`` (normiert), ``slope`` ``float32 (N, 2)``,
@@ -272,8 +273,9 @@ def decimate_field(
     wird **ungewichtet** blockgemittelt und erst am Vertex binärisiert. Rückgabe
     ``(values_u16 (gh, gw), coverage_u8 (gh, gw))``.
 
-    Die Spaltenreduktion läuft zeilenbandweise; der Bandpuffer bleibt hart unter
-    ``max_temp_bytes`` (Bildmaß-unabhängiger Zusatzspeicher). Gleiche Gittergröße
+    Die Reduktion läuft in 2D-Kacheln (Zeilenbänder × Spaltenkacheln); der
+    Kachelpuffer bleibt hart unter ``max_temp_bytes`` (vom Bildmaß **und**
+    Seitenverhältnis unabhängiger Zusatzspeicher). Gleiche Gittergröße
     wie die Quelle ergibt eine reine Kopie (Identitäts-Decimation).
     """
     values = field.values
