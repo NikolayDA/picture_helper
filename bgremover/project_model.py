@@ -179,8 +179,9 @@ class Layer:
     dort die daraus **abgeleitete 8-Bit-Ansicht** – bei jeder Payload-Änderung
     genau einmal neu berechnet, nie zurückgelesen. Höhen schreiben laufen über
     :meth:`set_height_data`; eine ``image``-Zuweisung auf einer HEIGHT-Ebene
-    läuft über den bewusst befristeten Legacy-Adapter (8-Bit → ``×257``),
-    bis die verbleibenden 8-Bit-Aufrufer in #589 umgestellt sind.
+    läuft über den Legacy-Adapter (8-Bit → ``×257``), der seit #589 nur noch
+    als geloggter Rückfall für generische RGBA-Pixelwerkzeuge auf HEIGHT-Ebenen
+    und für v1-Projekte verbleibt.
     """
 
     def __init__(
@@ -246,7 +247,7 @@ class Layer:
         self._image = height_to_layer(self._height_data)
 
     def _migrate_legacy_image(self, rgba: Image.Image) -> None:
-        """Bewusst befristeter Kompatibilitätsadapter (#587, entfällt mit #589).
+        """Kompatibilitätsadapter (#587); seit #589 geloggter Rückfall (nicht entfernt).
 
         Migriert 8-Bit-RGBA-Pixel (Konvention ``R == G == B == Höhe``,
         ``A == Deckung``) deterministisch in die kanonische 16-Bit-Payload
@@ -315,7 +316,7 @@ class Layer:
     @image.setter
     def image(self, value: Image.Image) -> None:
         if self.kind is LayerKind.HEIGHT:
-            # Legacy-Adapter (bewusst befristet, #589 stellt die Aufrufer um):
+            # Legacy-Adapter (seit #589 geloggter Rückfall, nicht entfernt):
             # 8-Bit-Zuweisungen wandern deterministisch in die Payload, die
             # gehaltene Ansicht wird daraus neu abgeleitet.
             self._migrate_legacy_image(_ensure_rgba(value))
@@ -470,7 +471,7 @@ class Project:
 
         Eine HEIGHT-Ebene entsteht bevorzugt direkt aus ihrer kanonischen
         ``height_data``-Payload (16-Bit-Pfad, ADR #586); ``image`` bleibt dort
-        der befristete 8-Bit-Legacy-Weg (siehe :class:`Layer`).
+        der 8-Bit-Legacy-Weg (geloggter Rückfall, siehe :class:`Layer`).
         """
         layer = Layer(
             name=name,

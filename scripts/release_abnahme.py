@@ -268,8 +268,8 @@ def write_evidence(output: Path, evidence: dict[str, Any]) -> None:
 
 
 # ── Smoke-Entscheidungslogik (Qt-frei, testbar) ─────────────────────────────
-# Die OS-spezifischen Treiber (scripts/abnahme_linux_smoke.py,
-# scripts/abnahme_macos_smoke.py) sammeln die Rohsignale (App-Start,
+# Die OS-spezifischen Treiber (scripts/abnahme_smoke.py: run_linux_smoke,
+# run_macos_smoke) sammeln die Rohsignale (App-Start,
 # GL-Diagnose, Screenshot, Instanzzahl, .deb-Rückstände) und übergeben sie an
 # diese Funktionen – so ist die Bewertung ohne echte Hardware testbar.
 
