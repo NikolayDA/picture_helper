@@ -12,6 +12,7 @@ import pytest
 from PyQt6.QtCore import QEvent, QPoint, QPointF, Qt
 from PyQt6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 
+from bgremover import viewer_3d
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import GLReliefViewer, Relief3DView
@@ -345,3 +346,89 @@ def test_key_press_unhandled_key_passes_through_without_raising(qapp) -> None:
 def test_key_press_ignores_none_event(qapp) -> None:
     viewer = GLReliefViewer()
     viewer.keyPressEvent(None)  # darf nicht werfen
+
+
+# ── GL-Ressourcen-Hygiene beim (Wieder-)Upload ───────────────────────────
+
+
+class _FakeGLResource:
+    """GL-frei prüfbarer Puffer/VAO-Ersatz, der seine Freigaben zählt.
+
+    Deckt den offscreen nicht erreichbaren echten GL-Upload-Pfad ab, ohne einen
+    Kontext zu brauchen: ``create``/``bind`` melden Erfolg, ``destroy`` zählt.
+    """
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.destroyed = 0
+
+    def create(self) -> bool:
+        return True
+
+    def bind(self) -> bool:
+        return True
+
+    def release(self) -> bool:
+        return True
+
+    def allocate(self, *args: object, **kwargs: object) -> None:
+        return None
+
+    def destroy(self) -> None:
+        self.destroyed += 1
+
+
+def test_release_gl_objects_frees_and_clears(qapp) -> None:
+    """``_release_gl_objects`` gibt alle Puffer/VAO frei und nullt die Referenzen."""
+    viewer = GLReliefViewer()
+    bufs = [_FakeGLResource(), _FakeGLResource(), _FakeGLResource()]
+    vao = _FakeGLResource()
+    viewer._pos_vbo, viewer._slope_vbo, viewer._index_ibo = bufs
+    viewer._vao = vao
+    viewer._index_count = 99
+
+    viewer._release_gl_objects()
+
+    assert all(b.destroyed == 1 for b in bufs)
+    assert vao.destroyed == 1
+    assert viewer._pos_vbo is None
+    assert viewer._slope_vbo is None
+    assert viewer._index_ibo is None
+    assert viewer._vao is None
+    assert viewer._index_count == 0
+
+
+def test_reupload_releases_previous_gl_objects(qapp, monkeypatch) -> None:
+    """Ein erneuter Upload gibt die alten Puffer/VAO frei (kein Leak).
+
+    Regression: ``_ensure_buffers`` reallozierte Puffer und VAO früher ohne die
+    Vorgänger zu zerstören – der an das Widget geparentete VAO überlebte damit je
+    (Wieder-)Anzeige bis zur Widget-Zerstörung (Cache-Wiederanzeige/2D↔3D-Toggle
+    lädt dasselbe Mesh erneut).
+    """
+    monkeypatch.setattr(
+        GLReliefViewer, "_make_buffer",
+        staticmethod(lambda buffer_type, data: _FakeGLResource()),
+    )
+    monkeypatch.setattr(viewer_3d, "QOpenGLVertexArrayObject", _FakeGLResource)
+
+    viewer = GLReliefViewer()
+    mesh = _mesh()
+
+    viewer.set_mesh(mesh)
+    viewer._ensure_buffers()
+    first_bufs = [viewer._pos_vbo, viewer._slope_vbo, viewer._index_ibo]
+    first_vao = viewer._vao
+    assert all(b is not None for b in first_bufs)
+    assert first_vao is not None
+    assert all(b.destroyed == 0 for b in first_bufs)
+    assert first_vao.destroyed == 0
+
+    # Zweiter Upload desselben Meshes (Cache-Wiederanzeige/2D↔3D-Umschalten).
+    viewer.set_mesh(mesh)
+    viewer._ensure_buffers()
+
+    # Die alten GL-Objekte wurden genau einmal freigegeben und durch frische ersetzt.
+    assert all(b.destroyed == 1 for b in first_bufs)
+    assert first_vao.destroyed == 1
+    assert viewer._pos_vbo is not first_bufs[0]
+    assert viewer._vao is not first_vao
