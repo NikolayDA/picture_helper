@@ -36,13 +36,15 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Kandidaten nicht.
 - **Commits im Fenster:** 11 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
   entspricht genau einem Commit).
-- **Protokollierter Kandidaten-SHA:** `nachzutragen`
+- **Protokollierter Kandidaten-SHA:** `bba18044755cf27e53f4505a297f33349e67091a`
+  (`docs: Freeze-Basis für 2.7.1 auf den echten Kandidaten korrigieren (#699)`,
+  Stand des Korrektur-Zweigs `claude/github-issue-699-buighx`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
-(Artefakte) und #686 (Tag/Veröffentlichung). Solange dort `nachzutragen` steht,
-ist der Freeze **noch nicht** abnahmefähig; `verify_release_freeze.py
---require-pin` schlägt in diesem Zustand bewusst fehl. Kurz-SHAs dürfen im Text
-zusätzlich vorkommen, gelten aber nirgends als Nachweis.
+(Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
+Freeze **nicht** abnahmefähig; `verify_release_freeze.py --require-pin` schlägt
+in diesem Zustand bewusst fehl. Kurz-SHAs dürfen im Text zusätzlich vorkommen,
+gelten aber nirgends als Nachweis.
 
 Abzuleiten und zu prüfen mit:
 
@@ -55,7 +57,7 @@ make release-freeze-check                                   # vollständige Prü
 
 | Klasse | Pfade | Wirkung |
 |---|---|---|
-| **Protokoll** (nicht kandidatenrelevant) | `docs/history/**`, `RECOMMENDATIONS.md`, `docs/i18n/*/RECOMMENDATIONS.md`, `CLAUDE.md` | Änderung verschiebt den Kandidaten **nicht**; muss aber in der Tabelle nachgetragen werden. |
+| **Protokoll** (nicht kandidatenrelevant) | `docs/history/**`, `RECOMMENDATIONS.md`, `docs/i18n/*/RECOMMENDATIONS.md`, `CLAUDE.md` | Änderung verschiebt den Kandidaten **nicht**, bleibt aber nachweispflichtig: innerhalb des Fensters in der Klassifizierungstabelle, oberhalb des Kandidaten unter „Protokoll-Commits über dem Kandidaten". |
 | **Kandidatenrelevant** | **alles andere** – u. a. `bgremover/**`, `tests/**`, `scripts/**`, `packaging/**`, `requirements/**`, `.github/**`, `pyproject.toml`, `Makefile`, `CHANGELOG.md`, `LICENSES.md`, `docs/i18n/*/CHANGELOG.md`, `docs/i18n/*/LICENSES.md`, restliche `docs/**` | Änderung erzeugt einen **neuen Kandidaten** und erzwingt die vollständige Wiederholung dieses Dokuments. |
 
 Die Liste ist absichtlich fail-closed: ein neu eingeführter, unbekannter Pfad
@@ -81,6 +83,17 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `6dde3c6beb9aca00306cab7d4453c85fb813c383` (#683 via PR #698, kurz `6dde3c6`) | **Versionsschnitt + erste Fassung dieses Dokuments.** `pyproject.toml` 2.7.0 → 2.7.1; `[2.7.1]`-Abschnitt in `CHANGELOG.md` und allen fünf Übersetzungen; Titel-/Datumszeile in `LICENSES.md` (6 Sprachen); `<release version="2.7.1" date="2026-07-26"/>` in `packaging/linux/de.bgremover.app.metainfo.xml`; neues Scope-Freeze-Dokument. | Niedrig für die Anwendung (keine Logikänderung), **hoch für den Release-Prozess**: dieser Commit ist der eigentliche Versionsschnitt und damit der früheste Stand, der überhaupt 2.7.1 heißen darf. Der von ihm dokumentierte Freeze-Hash war inkonsistent (#699). | PR-CI von #698 grün (Lint/Typecheck/Tests, inkl. `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`); Nachprüfung über `make check` auf dem Korrektur-Commit dieses Dokuments. | **Aufnehmen – kandidatenrelevant und unverzichtbar** (ohne ihn gibt es keine Version 2.7.1). Inhaltlich unverändert übernommen; korrigiert wird ausschließlich die Freeze-Basis-Aussage, hier in dieser Datei. Kein Anwender-CHANGELOG-Eintrag (Release-Metadaten). |
 | `9b27527d1db7aa7bacc84f125ea969eceba0abc4` (#700, kurz `9b27527`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem PR-/Issue-Audit vom 26.07. (führt #699 als Folge-Issue ein). | Keins – reine Statusdoku in sechs Sprachen. | – (Doku-Snapshot); PR-CI von #700 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen, sonst nichts). Verschiebt den Kandidaten nicht; nicht in Release Notes. |
 | `Kandidaten-Commit` (#699, voller SHA unter „Protokollierter Kandidaten-SHA") | **Freeze-Korrektur.** Diese Datei vollständig neu klassifiziert (volle SHAs, Kandidatenregel, Pfadklassen); `scripts/verify_release_freeze.py` + `tests/test_release_freeze.py` als maschinelle Absicherung; `[2.7.1]`-CHANGELOG in allen sechs Sprachen um „Hinweise zu diesem Release" (Auswirkung/Betroffene/Upgrade-Relevanz/Einschränkungen) ergänzt, damit der veröffentlichte Release-Body diese Angaben wirklich enthält; `make release-freeze-check`. | Niedrig – kein `bgremover/**`-Code berührt, keine Verhaltensänderung der Anwendung; Änderungen betreffen Release-Metadaten (CHANGELOG-Text), ein neues Prüfskript und Tests. | `make check` grün auf diesem Commit (siehe „Gate-Nachweise"); `make release-freeze-check` ohne Fehler. | **Aufnehmen – neuer Kandidat.** Der Commit ist kandidatenrelevant (CHANGELOG/Skript/Tests) und damit selbst die Freeze-Basis; er kann seinen eigenen SHA nicht enthalten, deshalb steht dieser oben im Protokollfeld. |
+
+### Protokoll-Commits über dem Kandidaten
+
+Diese Commits liegen **außerhalb** des Fensters `v2.7.0..<Kandidat>` und sind
+deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfade,
+verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
+„+N Protokoll-Commit(s) darüber" aus):
+
+- **Protokollierung des Kandidaten-SHA** (dieses Issue, #699): trägt den vollen
+  40-stelligen SHA oben und die Gate-Nachweise unten nach; ändert nur
+  `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
 ### Abgrenzung „opportunistisches Refactoring" vs. `45ebac3929b8…`
 
@@ -180,11 +193,13 @@ der Releases-Seite.
   Korrektur per Edit **dieser** Datei, nicht per neuer Datei – die Historie
   bleibt in einer Datei nachvollziehbar.
 - **Protokoll-Commit (erlaubte Ausnahme):** Ein Commit, der ausschließlich
-  Protokoll-Pfade berührt (Tabelle oben), verschiebt den Kandidaten nicht. Genau
-  ein solcher Commit trägt nach dem Kandidaten-Commit den vollen 40-stelligen
-  SHA im Protokollfeld nach (plus Gate-Nachweise). Er muss zusätzlich in der
-  Tabelle erscheinen; `verify_release_freeze.py` meldet noch nicht nachgetragene
-  Protokoll-Commits als Warnung.
+  Protokoll-Pfade berührt (Pfadklassen oben), verschiebt den Kandidaten nicht.
+  Genau ein solcher Commit trägt nach dem Kandidaten-Commit den vollen
+  40-stelligen SHA im Protokollfeld nach (plus Gate-Nachweise). Er wird unter
+  „Protokoll-Commits über dem Kandidaten" geführt – nicht in der
+  Klassifizierungstabelle, die genau das Fenster `v2.7.0..<Kandidat>` abbildet.
+  Protokoll-Commits *innerhalb* des Fensters gehören dagegen in die Tabelle;
+  `verify_release_freeze.py` meldet dort fehlende Einträge als Warnung.
 - **Einbringen nach `main`:** Entsteht beim Merge ein neuer Commit
   (Merge-/Squash-Commit), wird dieser zum abgeleiteten Kandidaten. Ist sein
   kandidatenrelevanter Baum identisch zum protokollierten Kandidaten, ist das
@@ -203,19 +218,30 @@ der Releases-Seite.
 
 ## Gate-Nachweise
 
-Alle Läufe erfolgen lokal (Linux, Python 3.12, `QT_QPA_PLATFORM=offscreen`) auf
-dem Kandidaten-Commit; der SHA steht oben im Protokollfeld.
+Alle Läufe erfolgen auf dem Kandidaten-Commit
+`bba18044755cf27e53f4505a297f33349e67091a`, lokal unter Linux mit Python 3.12
+und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
+`pyproject.toml` + `requirements/constraints.txt`).
 
-| Prüfung | Ergebnis |
+| Prüfung | Lauf/Ergebnis |
 |---|---|
-| `make check` (ruff + mypy + pytest-Default-Set) | grün – 0 Lint-/Typfehler, Testsuite ohne Fehlschlag |
-| `make release-freeze-check` (`verify_release_freeze.py --require-pin`) | ohne Fehler |
-| release-relevante Einzeltests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`, `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`, `tests/test_i18n_docs.py`, `tests/test_markdown_links.py` | grün |
+| `make check` (ruff + mypy + pytest-Default-Set) | grün: ruff „All checks passed", mypy „no issues found in 69 source files", pytest **2031 passed, 5 skipped, 14 deselected** |
+| `python scripts/verify_release_freeze.py` | 0 Fehler; abgeleiteter Kandidat == `bba18044…`, 11 Commits vollständig klassifiziert, Versionsquellen/Release-Body ok (einzige Warnung vor dem Protokoll-Nachtrag: `candidate-sha-unpinned`) |
+| `make release-freeze-check` (`--require-pin`) | ohne Fehler, nachdem der Protokoll-Commit den SHA nachgetragen hat |
+| release-relevante Einzeltests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`, `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`, `tests/test_i18n_docs.py`, `tests/test_markdown_links.py` | grün (Teil des `make check`-Laufs oben) |
+
+Hinweis zur Reproduktion: `tests/test_version.py::test_exported_version_matches_pyproject`
+vergleicht `bgremover.__version__` mit `pyproject.toml`. In einer Umgebung, deren
+Installation noch vom Stand vor dem Versionsschnitt stammt, meldet
+`importlib.metadata` weiterhin `2.7.0` – vor dem Gate-Lauf also `pip install
+--constraint requirements/constraints.txt ".[test]"` (bzw. `make install-test`)
+ausführen. Das ist ein Umgebungs-, kein Kandidatenbefund.
 
 Die PR-CI (`pr-ci.yml`) wiederholt Lint/Typecheck/Tests auf demselben Stand;
 #685 wiederholt sie zusätzlich in der vollen Matrix gegen den protokollierten
-SHA. Weicht der auf `main` abgeleitete Kandidat vom protokollierten SHA ab, sind
-die Nachweise erst nach dem Protokoll-Nachtrag wieder eindeutig zuzuordnen.
+SHA. Weicht der auf `main` abgeleitete Kandidat vom protokollierten SHA ab (z. B.
+durch einen Merge-Commit), sind die Nachweise erst nach dem Protokoll-Nachtrag
+wieder eindeutig zuzuordnen.
 
 ## Verweise auf denselben Kandidaten
 
