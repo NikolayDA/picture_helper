@@ -102,11 +102,6 @@ class WorkerController:
         return (self.flood_fill_thread is not None
                 and self.flood_fill_thread.isRunning())
 
-    @property
-    def is_mesh_build_running(self) -> bool:
-        return (self.mesh_build_thread is not None
-                and self.mesh_build_thread.isRunning())
-
     def _build_thread(
         self,
         worker: _Worker,

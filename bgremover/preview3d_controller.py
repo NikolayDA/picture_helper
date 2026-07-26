@@ -95,10 +95,6 @@ class Preview3DController(QObject):
 
     # ── Öffentliche Steuerung (MainWindow) ───────────────────────────────
     @property
-    def is_active(self) -> bool:
-        return self._active
-
-    @property
     def view(self) -> Relief3DView:
         return self._view
 
