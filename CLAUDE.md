@@ -4,6 +4,10 @@ Kurzanleitung für Claude Code in diesem Repository. **BgRemover** ist ein
 Desktop-Tool zum Entfernen von Bildhintergründen und für einfache
 Bildbearbeitung (PyQt6, macOS + Linux, Python ≥ 3.10).
 
+Letzter Release-Stand: **v2.7.0** — die Version steht ausschließlich in
+`pyproject.toml` (`project.version`); `bgremover/_version.py` liest sie über
+`importlib.metadata` mit pyproject-Fallback, kein hartkodiertes Literal.
+
 ## Standard-Gate (vor jedem PR)
 
 Alles läuft über den Makefile-Wrapper. Er nutzt `python -m <tool>` (robust
@@ -11,17 +15,27 @@ gegen PATH-/venv-Eigenheiten) und setzt `QT_QPA_PLATFORM=offscreen` für den
 headless-Qt-Betrieb:
 
 - `make check` — Lint + Typecheck + Tests. **Die maßgebliche Baseline.**
-- `make lint` — `ruff check bgremover scripts tests` (+ shellcheck, falls installiert)
+- `make lint` — `ruff check bgremover scripts tests` + `lint-shell` (shellcheck
+  für `BgRemover.command`/`create_BgRemover_app.sh`/`diagnose_mac.sh`, wird ohne
+  installiertes shellcheck übersprungen statt zu scheitern)
 - `make type` — `mypy`
 - `make test` — `pytest` (ohne volle UI-Suite, das `ui_smoke`-Subset läuft mit)
-- `make coverage` — Coverage-Report (`fail_under = 86`)
-- `make ui` — volle qtbot-UI-Suite (sonst nur nightly)
+- `make coverage` — Coverage-Report (`fail_under = 86`, schreibt zusätzlich
+  `coverage.xml`/`htmlcov` für Codecov bzw. lokale Durchsicht)
+- `make ui` — volle qtbot-UI-Suite (sonst nur nightly); `make all` = `check` + `ui`
 - `make pr-check` — wie die PR-CI: nicht-editable Install + `doctor` + `check`
+- `make install-test` — `.[test]` mit `requirements/constraints.txt` (derselbe
+  Dependency-Snapshot wie PR-CI, Lizenzreport und App-Bundle)
 - `make doctor` — prüft die Test-Umgebung (`scripts/check_test_env.py`)
+- `make screenshots` / `screenshots-live-3d` — reproduzierbarer Doku-Screenshot-Satz
+  (offscreen) bzw. derselbe Satz mit echtem OpenGL-Viewer für die 3D-Vorschau
+- `make bench` / `bench-height` / `bench-compare` — `scripts/benchmark.py`
+  (Format-Suite, Höhen-/Mesh-Suite, Vergleich der letzten zwei Läufe)
 
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
 `tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
 (`.github/PULL_REQUEST_TEMPLATE.md`) führt die Standard-Gate-Checkliste (#557).
+Wann welche CI-Stufe greift, steht in [`TESTING.md`](TESTING.md).
 
 ## Architektur
 
@@ -125,6 +139,11 @@ Ein Paket, `bgremover/`:
   `probe_fn` mockbar) für Desktop-GL ≥ 2.1; wirft nie, liefert strukturiertes
   `RendererCapability`, je Sitzung gecacht (`reset_capability_cache` = „Erneut
   versuchen"). Der Offscreen-CI-Pfad trifft real den Fallback-Zweig.
+  `renderer_provenance.py` — Qt-freie, geteilte Regel `is_software_renderer`
+  (#642, ADR #639): **einzige** Quelle der Wahrheit für die Erkennung reiner
+  CPU-Rasterizer (llvmpipe & Co.) in einer GL-Diagnose. Release-Abnahme-Smokes
+  und Live-3D-Screenshot-Generator importieren dieselben Marker – kein Drift,
+  ein Software-Renderer gilt nirgends als Hardware-Nachweis.
   `viewer_3d.py` — `GLReliefViewer` (`QOpenGLWidget`, GL-2.1-Shaderpfad über
   `QOpenGLVersionFunctionsFactory`, alle GL-Hooks gekapselt → `initFailed`,
   keine neue Laufzeitabhängigkeit) und der einbettbare, GL-frei testbare
@@ -145,7 +164,12 @@ Ein Paket, `bgremover/`:
   `tests/test_preview3d_acceptance.py`, Kriterien↔Nachweis in
   [`docs/history/EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md), manuelle
   Plattform-/Packaging-/Screenshot-Prozeduren (Release-Scope) in
-  [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
+  [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md). `screenshot3d.py` ist der
+  Automationshook für den nativen 3D-Nachweis des **gepackten** Artefakts (#648):
+  über die Umgebungsvariable `BGREMOVER_SCREENSHOT_3D` in `app.main` aktiviert
+  (analog `BGREMOVER_SMOKE_TEST`/`BGREMOVER_AI_SELFCHECK`, bewusst kein CLI-Flag),
+  läuft absichtlich **nicht** offscreen und schreibt PNG + Provenance-JSON; ein
+  Software-Renderer lässt den Nachweis fehlschlagen.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
@@ -345,6 +369,7 @@ Ein Paket, `bgremover/`:
   in `META_PHYSICAL_SIZE_MM`, DPI daraus + Pixelgröße abgeleitet – kein Drift, round-trippt
   im `.bgrproj`).
 - **Infrastruktur:** `constants.py` + `logging_config.py` (Logger/Log-Pfad),
+  `_version.py` (Version aus `importlib.metadata`, Fallback `pyproject.toml`),
   `qt_plugins.py` (Qt-Pluginpfade), `settings_schema.py` (QSettings-Versionierung),
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
   („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
@@ -363,32 +388,75 @@ Ein Paket, `bgremover/`:
   + `check_untyped_defs`): `ai_model_status`, `ai_process`, `app_update`,
   `image_ops`, `image_utils`, `color_ops`,
   `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
-  `relief_preview`, `height_map`, `height_ops`, `preview_mode`, `crop`,
-  `project_model/_history/_schema/_io`, `recent_files`, `units` und
+  `relief_preview`, `relief_mesh`, `renderer_provenance`, `height_map`,
+  `height_ops`, `preview_mode`, `preview3d_camera`, `preview3d_capability`,
+  `crop`, `project_model/_history/_schema/_io`, `recent_files`, `units` und
   `canvas_selection/_lasso/_transform/_viewport`. Die zustandsbehafteten
-  Qt-Module `canvas`, `main_window`, `worker_controller` laufen mit
+  Qt-Module `canvas`, `main_window`, `worker_controller`,
+  `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
   Strenge gilt für die Abnahme-Skripte `scripts/abnahme_vision_check.py` und
   `scripts/abnahme_aggregate.py` (#646) – als eigenständige Dateien ohne
   `scripts/__init__.py` explizit per Dateipfad in `files` sowie per
   Modul-Override (Modulname = Dateibasisname) erfasst.
-- **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit).
+- **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
+  `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und
+  überspringen sich auf Plattformen ohne renderbaren FBO, z. B. `offscreen`;
+  ADR #591, dokumentiert in [`TESTING.md`](TESTING.md) #664).
   Default-`addopts`: `-m 'not ui or ui_smoke'`. Viele Doku-Governance-Tests
-  (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen) — Docs als Code behandeln.
+  (Markdown-Links, i18n-Parität, CHANGELOG, Lizenzen, Screenshot-Set-Referenzen)
+  — Docs als Code behandeln.
 - **Befunde** werden in `RECOMMENDATIONS.md` mit IDs geführt (`N#`/`O#`);
-  Historie unter `docs/history/`.
+  Historie unter `docs/history/`. Abnahme-Matrizen je Epic ebenfalls dort
+  ([`EPIC-581-ABNAHME.md`](docs/history/EPIC-581-ABNAHME.md) 16-Bit-Höhenpipeline,
+  [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau).
 
 ## CI-Automatisierung
 
-- `.github/workflows/claude.yml` — interaktiver Claude-Agent, reagiert auf
-  `@claude`-Erwähnungen in Issues/PR-Kommentaren; `claude-code-review.yml` —
-  automatisches Claude-Review neuer PRs (#555).
-- `.github/agents/` — Agent-Konfigurationen (Code Review, Bug Fix,
-  Documentation, Test, Performance; #547/#548), Details in
+Workflows unter `.github/workflows/` (13):
+
+- **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
+  Matrix Ubuntu/macOS × Py3.10–3.13; Release-Gate beim Versions-Tag, wöchentlich
+  und manuell — wird von `release-linux.yml` als wiederverwendbarer Workflow
+  aufgerufen), `ui-nightly.yml` (volle qtbot-Suite), `coverage.yml`,
+  `benchmark.yml` (Baseline seit #546 als Workflow-Artefakt statt per Push
+  nach `main`).
+- **Sicherheit/Abhängigkeiten:** `codeql.yml` (automatisierte SAST-Grundabdeckung
+  Python: Push/PR auf `main` + wöchentlich + manuell), `codex-security-scan.yml`
+  (**nur** `workflow_dispatch`, Parameter `min_severity`), `dependency-audit.yml`
+  (PR + montags), `license-check.yml` (braucht bewusst kein Qt). Modell/Begründung:
+  ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
+- **Release:** `release-linux.yml` — baut auf Versions-Tag AppImage + `.deb`
+  (x86_64 + aarch64) und macOS `.dmg`; harte `needs`-Vorbedingungen `verify-tag`
+  (Tag `vX.Y.Z` == `project.version`) und die grüne Full-CI-Matrix für **genau**
+  diesen Commit, erst danach `publish`. Artefaktnamen `BgRemover-<version>-<platform_tag>[-ai].<ext>`
+  (#584).
+- **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
+  in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
+  PRs (#555). `.github/agents/` hält die Agent-Konfigurationen (Code Review,
+  Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
-- `benchmark.yml` trägt seine Baseline seit #546 als Workflow-Artefakt statt
-  per Push nach `main`.
+
+### Release-Abnahme auf echter Hardware (Epic #639, abgeschlossen)
+
+Die Abnahmekriterien aus [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md)
+brauchen Nachweise, die die Offscreen-CI prinzipiell nicht liefern kann (Start
+der Release-Artefakte auf Zielhardware, echter GPU-Renderer, Retina/High-DPI).
+`release-abnahme.yml` (`workflow_dispatch`, Quelle entweder `--release-tag` oder
+die Run-ID eines `release-linux.yml`-Laufs) sammelt sie auf **Self-hosted
+Runnern**; der Linux-x86_64-Pfad ist über `ABNAHME_X86_64_ENABLED` bewusst
+**pausiert** und erscheint in der Matrix als „pausiert" statt als Lücke.
+Skripte in `scripts/`: `release_abnahme.py` (Artefaktbezug + SHA256 + Evidenz-
+vertrag, #641), `abnahme_smoke.py` (Start-/Fork-Bomb-/Hänger-Wächter über
+`smoke_launch.py`, GL-Provenance, `.deb`-Zyklus, nativer 3D-Screenshot),
+`abnahme_probe.py` / `abnahme_scale_probe.py` (GL- bzw. devicePixelRatio-Probe,
+native Qt-Plattform), `abnahme_vision_check.py` (**fail-safe** Vision-Vorbewertung
+der Screenshots; ohne API-Key/SDK oder bei Fehlern → `unbewertet`, blockiert
+nie) und `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix).
+Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Betrieb:
+[`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
+ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/ADR-2026-release-abnahme-automatisierung.md).
 
 ## Wichtig: Drift-Disziplin (Befund N6)
 
