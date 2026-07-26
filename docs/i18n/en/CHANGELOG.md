@@ -20,6 +20,24 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   before every (re-)upload; affects only the 3D display, not image, project,
   or export data.
 
+### Notes on this release
+
+- **Impact:** A pure patch release. It fixes only the GPU resource leak in the
+  optional 3D relief preview described above; no new features, no change to
+  image, project, or export behaviour.
+- **Affected users:** Only those who use the 3D relief preview (workflow step
+  “Relief”, segment “Display [3D]”, or “View → Show 3D relief”). The problem was
+  observable in longer sessions with repeated 2D↔3D switching: GPU memory usage
+  grew continuously. Anyone using only the 2D preview is not affected.
+- **Upgrade relevance:** Recommended for users of the 3D preview, optional
+  otherwise. No migration step is needed — project files (`.bgrproj`), export
+  formats, and settings stay fully compatible; downgrading to 2.7.0 is likewise
+  possible without any data change.
+- **Known limitations:** No new limitations beyond 2.7.0. The fix is covered by
+  GL-free regression tests against fake resources; a memory measurement over a
+  long session with a real OpenGL context is tracked separately as sub-issue
+  #684 and is not part of this patch release.
+
 ## [2.7.0] – 2026-07-22
 
 ### Added

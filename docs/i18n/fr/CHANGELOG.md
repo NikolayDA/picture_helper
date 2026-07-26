@@ -22,6 +22,28 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   libération s'exécute désormais avant chaque (re)téléversement ; n'affecte
   que l'affichage 3D, pas les données d'image, de projet ou d'export.
 
+### Remarques sur cette version
+
+- **Impact :** Version corrective pure. Elle ne corrige que la fuite de
+  ressources GPU de l'aperçu de relief 3D optionnel décrite ci-dessus ; aucune
+  nouvelle fonction, aucun changement du comportement d'image, de projet ou
+  d'export.
+- **Utilisateurs concernés :** Uniquement celles et ceux qui utilisent l'aperçu
+  de relief 3D (étape « Relief », segment « Affichage [3D] » ou « Affichage →
+  Afficher le relief 3D »). Le problème était visible lors de sessions longues
+  avec des basculements 2D↔3D répétés : l'empreinte mémoire GPU augmentait
+  continuellement. Qui n'utilise que l'aperçu 2D n'est pas concerné.
+- **Pertinence de la mise à jour :** Recommandée pour les utilisateurs de
+  l'aperçu 3D, optionnelle sinon. Aucune étape de migration n'est nécessaire :
+  les fichiers de projet (`.bgrproj`), les formats d'export et les réglages
+  restent compatibles ; un retour à 2.7.0 est également possible sans
+  modification des données.
+- **Limitations connues :** Aucune nouvelle limitation au-delà de 2.7.0. Le
+  correctif est couvert par des tests de régression sans GL sur des ressources
+  factices ; une mesure de mémoire sur une session longue avec un vrai contexte
+  OpenGL est suivie séparément dans le sous-ticket #684 et ne fait pas partie de
+  cette version corrective.
+
 ## [2.7.0] – 2026-07-22
 
 ### Ajouté

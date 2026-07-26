@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-height bench-compare clean
+.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-height bench-compare release-freeze-check clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -84,6 +84,14 @@ bench-height:
 
 bench-compare:
 	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py compare
+
+# Release-Freeze-Pruefung (#699): leitet den Kandidaten-Commit aus git ab und
+# prueft Versionsquellen, CHANGELOG/AppStream/Lizenz-Snapshots, die vollstaendige
+# Commit-Klassifizierung und den tatsaechlich veroeffentlichten Release-Body.
+# --require-pin: der volle 40-stellige Kandidaten-SHA muss protokolliert sein
+# (Voraussetzung fuer Kandidatenbau #685 und Tag #686).
+release-freeze-check:
+	$(RUN_ENV) "$(PYTHON)" scripts/verify_release_freeze.py --require-pin
 
 # Alles: check + lokale UI-Tests.
 all: check ui

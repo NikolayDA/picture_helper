@@ -22,6 +22,26 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   betrifft ausschließlich die 3D-Darstellung, keine Bild-, Projekt- oder
   Exportdaten.
 
+### Hinweise zu diesem Release
+
+- **Auswirkung:** Reines Patch-Release. Es behebt ausschließlich das oben
+  genannte GPU-Ressourcenleck der optionalen 3D-Reliefvorschau; keine neuen
+  Funktionen, keine Änderung an Bild-, Projekt- oder Exportverhalten.
+- **Betroffene Anwender:innen:** Nur wer die 3D-Reliefvorschau nutzt
+  (Workflow-Schritt „Relief", Segment „Darstellung [3D]" bzw. „Ansicht →
+  3D-Relief anzeigen"). Sichtbar war das Problem in längeren Sitzungen mit
+  wiederholtem 2D↔3D-Wechsel: der GPU-Speicherbedarf wuchs kontinuierlich.
+  Wer ausschließlich die 2D-Vorschau verwendet, ist nicht betroffen.
+- **Upgrade-Relevanz:** Empfohlen für Nutzer:innen der 3D-Vorschau, sonst
+  optional. Kein Migrationsschritt nötig – Projektdateien (`.bgrproj`),
+  Exportformate und Einstellungen bleiben unverändert kompatibel; ein Downgrade
+  auf 2.7.0 ist ebenso ohne Datenänderung möglich.
+- **Bekannte Einschränkungen:** Keine über 2.7.0 hinausgehenden neuen
+  Einschränkungen. Der Fix ist durch GL-freie Regressionstests gegen
+  Fake-Ressourcen abgesichert; eine Speichermessung über eine lange Sitzung mit
+  echtem OpenGL-Kontext ist separat als Teil-Issue #684 erfasst und nicht
+  Bestandteil dieses Patch-Release.
+
 ## [2.7.0] – 2026-07-22
 
 ### Hinzugefügt
