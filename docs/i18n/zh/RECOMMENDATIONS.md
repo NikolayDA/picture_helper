@@ -19,7 +19,7 @@ Ruff、mypy 和本地测试套件仍是新 PR 前的基线。自上次更新（2
 - **Epic #681** —— EufyMake 目标配置文件：导出中关于 HEIGHT 位深、mm/DPI 和 gloss 的假设需要对照厂商资料和真实硬件核实，并转化为一个带版本号的目标配置文件。子议题：#687（假设清单/测试矩阵）、#688（HEIGHT）、#689（mm/DPI）、#690（gloss）、#691（将配置文件整合进 validator/writer/对话框/文档）。
 - **Epic #682** —— COLOR 色调/灰度引擎：为直方图/色阶/伽马提供共享的、无 Qt 依赖的基础，作为图像优化及后续激光工作流的根基。子议题：#692（ADR/数据契约）、#693（无 Qt 依赖核心）、#694（实时预览/UI）、#695（图层/选区/历史/项目集成）、#696（性能/E2E/文档/激光接口验收）。
 
-已重新核查 #245 和 #656 的评论记录：自上次状态以来均无新评论（#245 最近一次评论在 2026-07-15，#656 从未有过评论）；两者均保持不变，仍是与代码无关的纯外部/运维事项跟踪项，因此无需更新这两个议题。
+已重新核查 #245 和 #656 的评论记录：自上次状态以来均无新评论（#245 最近一次评论在 2026-07-15，#656 从未有过评论）；两者均保持不变，仍是与代码无关的纯外部/运维事项跟踪项，因此无需更新这两个议题。自 07-23 更新以来没有关闭其他议题——但在此期间有一个例外：**#677**（vulture 扫描发现的死代码）已于 2026-07-26 通过 PR #679（提交 `45ebac3`）先创建后关闭，且发生在本次审计开始之前；因此它正确地未出现在这 19 个未结议题的列表中。
 
 GitHub 实时状态：**19** 个未结议题（17 个为新增：#680–#696；#656/#245 保持不变，仍属外部事项）。
 
@@ -35,18 +35,18 @@ GitHub 实时状态：**19** 个未结议题（17 个为新增：#680–#696；#
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x 稳定化 —— 交付 GL 修复 | 🟠 高（将已合并的 GL 资源修复交付给用户） | 🟠 高（4 个子议题，涉及发布流水线 + 硬件验收） | –（Epic；Sonnet，中等投入用于跟进） | 进行中 —— 优先启动 #683/#684 |
-| [#683](https://github.com/NikolayDA/picture_helper/issues/683) | 范围冻结、版本切割、2.7.1 发布说明 | 🟠 高（整个补丁发布的前提条件） | 🟢 低（差异审阅 + 版本元数据，流程已成熟） | Sonnet，中等 | 可提 PR |
-| [#684](https://github.com/NikolayDA/picture_helper/issues/684) | GL 资源/长时间运行测试与回归关卡 | 🟠 高（PR #676 唯一可靠的验证证据） | 🟡 中高（需对 GL 资源进行插桩/度量，长时间运行） | Opus，高 | 可提 PR |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | 针对确切提交构建候选产物 + 硬件验收 | 🟡 中（跨 5 个平台的标准发布流水线） | 🟡 中（可复用 Epic #639 已有的验收自动化） | Sonnet，中等（构建部分）；硬件冒烟测试无法用 Agent | 阻塞 —— 等待 #683 + #684 |
+| [#683](https://github.com/NikolayDA/picture_helper/issues/683) | 范围冻结、版本切割、2.7.1 发布说明 | 🟠 高（整个补丁发布的前提条件） | 🟢 低（差异审阅 + 版本元数据，流程已成熟） | Sonnet，中等 | 可立即启动 |
+| [#684](https://github.com/NikolayDA/picture_helper/issues/684) | GL 资源/长时间运行测试与回归关卡 | 🟠 高（PR #676 唯一可靠的验证证据） | 🟡 中高（需对 GL 资源进行插桩/度量，长时间运行） | Opus，高 | 可立即启动 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | 针对确切提交构建候选产物 + 硬件验收 | 🟡 中（标准发布流水线在 3 个平台/架构上产出 5 个产物：linux-x86_64、linux-raspberrypi-arm64、macos-arm64） | 🟡 中（可复用 Epic #639 已有的验收自动化） | Sonnet，中等（构建部分）；硬件冒烟测试无法用 Agent | 阻塞 —— 等待 #683 + #684 |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | 打标签、发布、发布后验证 | 🟠 高（使修复对用户可用） | 🟢 低（自 v2.6.0/v2.7.0 以来流程已成熟） | Sonnet，低 | 阻塞 —— 等待 #685 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | 进行中 —— 优先启动 #687，其余受限于硬件 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | 可提 PR（框架部分；硬件测试另计） |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | 可立即启动（框架部分；硬件测试另计） |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— 需要硬件访问权限 |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部） |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部） |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690 的结果 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图的基础，非当前活跃缺陷） | 🔴 高（5 个子议题，ADR→核心→UI→集成→验收） | –（Epic） | 进行中 —— 优先启动 #692 |
-| [#692](https://github.com/NikolayDA/picture_helper/issues/692) | 色调/直方图/灰度操作的 ADR + 数据契约 | 🟠 高（为整个 Epic 确立契约） | 🟡 中（架构决策，无需实现） | Opus，高 | 可提 PR |
+| [#692](https://github.com/NikolayDA/picture_helper/issues/692) | 色调/直方图/灰度操作的 ADR + 数据契约 | 🟠 高（为整个 Epic 确立契约） | 🟡 中（架构决策，无需实现） | Opus，高 | 可立即启动 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | 无 Qt 依赖核心：直方图/灰度/色阶/伽马 | 🟡 中高 | 🟡 中（扩展 `color_ops.py`，隔离良好、易于测试） | Sonnet，高 | 阻塞 —— 等待 ADR #692 |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | 直方图/色阶/伽马的实时预览 + 操作界面 | 🟡 中 | 🟡 中高（Qt UI，需类似高度预览的防抖/世代保护） | Sonnet，高 | 阻塞 —— 等待核心 #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
