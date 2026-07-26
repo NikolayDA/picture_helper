@@ -9,6 +9,16 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [2.7.1] – 2026-07-26
+
+### 已修复
+
+- **3D 浮雕预览：重复上传网格时 GPU 缓冲区/VAO 会不断累积（PR #676）。** 每次在
+  2D 和 3D 视图之间切换，或每次重新显示已构建的网格，都会分配新的 OpenGL
+  缓冲区和新的顶点数组对象，而不释放之前的对象——在较长的会话中，这会持续增加
+  3D 预览的 GPU 内存占用。现在释放操作会在每次（重新）上传之前执行；仅影响
+  3D 显示，不涉及图像、项目或导出数据。
+
 ## [2.7.0] – 2026-07-22
 
 ### 新增
@@ -958,7 +968,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
