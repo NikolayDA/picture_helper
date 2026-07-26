@@ -9,6 +9,19 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.1] – 2026-07-26
+
+### Corregido
+
+- **Vista previa 3D del relieve: los búferes/VAO de GPU se acumulaban en
+  subidas repetidas de la malla (PR #676).** Cada cambio entre la vista 2D y
+  3D, o cada nueva visualización de una malla ya construida, creaba nuevos
+  búferes de OpenGL y un nuevo objeto de matriz de vértices sin liberar los
+  anteriores — en una sesión larga esto aumentaba de forma continua el
+  consumo de memoria de GPU de la vista previa 3D. La liberación ahora se
+  ejecuta antes de cada (re)subida; afecta solo a la representación 3D, no a
+  los datos de imagen, proyecto o exportación.
+
 ## [2.7.0] – 2026-07-22
 
 ### Añadido
@@ -1335,7 +1348,9 @@ tag Git histórico `v2.0.0`.
 - README con arquitectura, limitaciones conocidas e instrucciones de
   instalación; `INSTALL_MAC.md` detallado.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1

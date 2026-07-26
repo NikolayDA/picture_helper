@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+## [2.7.1] – 2026-07-26
+
+### Виправлено
+
+- **3D-попередній перегляд рельєфу: GPU-буфери/VAO накопичувалися при
+  повторному завантаженні сітки (PR #676).** Кожне перемикання між 2D- та
+  3D-виглядом чи повторне відображення вже побудованої сітки виділяло нові
+  буфери OpenGL і новий об'єкт масиву вершин, не звільняючи попередні — за
+  тривалу сесію це безперервно збільшувало обсяг використовуваної GPU-пам'яті
+  3D-перегляду. Тепер звільнення відбувається перед кожним (повторним)
+  завантаженням; стосується лише 3D-відображення, а не даних зображення,
+  проєкту чи експорту.
+
 ## [2.7.0] – 2026-07-22
 
 ### Додано
@@ -1266,7 +1279,9 @@
 - README з архітектурою, відомими обмеженнями та інструкцією зі
   встановлення; докладний `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1

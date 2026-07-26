@@ -9,6 +9,19 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.1] – 2026-07-26
+
+### Behoben
+
+- **3D-Reliefvorschau: GPU-Puffer/VAO sammelten sich bei wiederholtem
+  Mesh-Upload an (PR #676).** Jeder Wechsel zwischen 2D- und 3D-Ansicht bzw.
+  jede Wiederanzeige eines bereits gebauten Mesh legte neue OpenGL-Puffer und
+  ein neues Vertex-Array-Objekt an, ohne die vorherigen freizugeben – über
+  eine längere Sitzung wuchs so der GPU-Speicherbedarf der 3D-Vorschau
+  kontinuierlich an. Die Freigabe läuft jetzt vor jedem (Wieder-)Upload;
+  betrifft ausschließlich die 3D-Darstellung, keine Bild-, Projekt- oder
+  Exportdaten.
+
 ## [2.7.0] – 2026-07-22
 
 ### Hinzugefügt
@@ -1404,7 +1417,9 @@ Erster dokumentierter 2.0.0-Release-Stand. Ein historischer
 - README mit Architektur, bekannten Einschränkungen und Installations-
   anleitung; ausführliche `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1

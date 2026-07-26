@@ -9,6 +9,19 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.1] – 2026-07-26
+
+### Corrigé
+
+- **Aperçu de relief 3D : les tampons/VAO GPU s'accumulaient lors de
+  téléversements répétés du maillage (PR #676).** Chaque basculement entre la
+  vue 2D et 3D, ou chaque nouvel affichage d'un maillage déjà construit,
+  allouait de nouveaux tampons OpenGL et un nouvel objet de tableau de
+  sommets sans libérer les précédents — sur une session prolongée, cela
+  augmentait continuellement l'empreinte mémoire GPU de l'aperçu 3D. La
+  libération s'exécute désormais avant chaque (re)téléversement ; n'affecte
+  que l'affichage 3D, pas les données d'image, de projet ou d'export.
+
 ## [2.7.0] – 2026-07-22
 
 ### Ajouté
@@ -1351,7 +1364,9 @@ historique `v2.0.0`.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
+[2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/NikolayDA/picture_helper/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/NikolayDA/picture_helper/compare/v2.4.0...v2.4.1
