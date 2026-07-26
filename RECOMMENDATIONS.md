@@ -11,39 +11,61 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-23, #668/#669 abgeschlossen)
+## Aktueller Stand (2026-07-26, Issue-Audit: drei neue Epics erfasst)
 
-Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit der letzten Runde wurden beide zuletzt offenen Audit-Issues abgeschlossen:
+Ruff, mypy und die lokale Testsuite bleiben die Baseline vor neuen PRs. Seit dem letzten Update (2026-07-23) wurde kein Issue geschlossen; der Repo-Owner hat stattdessen drei neue Epics mit insgesamt 14 Teil-Issues angelegt, wodurch der Live-Stand von 2 auf **19** offene Issues springt:
 
-- **#669** (Live-Stand veraltet) — direkt geschlossen: Der vorherige RECOMMENDATIONS-Reconcile (PR #671) hatte den Inhalt bereits vollständig aktuell gemacht (#659/#660 korrekt als geschlossen geführt, #668 bereits aufgenommen); eine zusätzliche No-Op-PR war nicht nötig.
-- **#668** (Screenshot-Set-Referenzen veraltet) — mit diesem Update behoben: `ANLEITUNG.md` und `README.md` (je inkl. aller fünf Übersetzungen) zeigen jetzt auf das aktuelle Set `bgremover_complete_20260722_171622`. `docs/history/EPIC-582-ABNAHME.md` bleibt bewusst beim Set vom 2026-07-19 — dort ist es die tatsächliche Abnahme-Evidenz (GPU-/OS-/Renderer-Provenienz im Manifest), ein Umstellen hätte die dokumentierte Evidenz verfälscht; ein erklärender Hinweis wurde ergänzt, das alte Verzeichnis bleibt entsprechend erhalten. Ein neuer Governance-Test (`tests/test_screenshot_references.py::test_docs_reference_latest_screenshot_set`) fängt künftig eine erneute stille Drift ab.
+- **Epic #680** – v2.7.x-Stabilisierung: Patch-Release **2.7.1** soll den bereits auf `main` gemergten GL-Ressourcenfix (PR #676) an Anwender ausliefern. Teil-Issues: #683 (Scope-Freeze/Versionsschnitt), #684 (GL-Ressourcen-/Langzeittest), #685 (Kandidatenartefakte + Hardware-Abnahme), #686 (Tag/Veröffentlichung/Post-Release-Verifikation).
+- **Epic #681** – EufyMake-Zielprofil: HEIGHT-Bittiefe, mm/DPI und Gloss-Annahmen im Export sollen mit Herstellerquellen und realer Hardware abgeglichen und in ein versioniertes Zielprofil überführt werden. Teil-Issues: #687 (Annahmeninventar/Testmatrix), #688 (HEIGHT), #689 (mm/DPI), #690 (Gloss), #691 (Profil-Integration in Validator/Writer/Dialog/Doku).
+- **Epic #682** – COLOR-Tonwert-/Graustufen-Engine: gemeinsame Qt-freie Basis für Histogramm/Levels/Gamma als Fundament für Bildoptimierung und spätere Laser-Workflows. Teil-Issues: #692 (ADR/Datenvertrag), #693 (Qt-freier Kern), #694 (Live-Vorschau/UI), #695 (Ebenen-/Auswahl-/History-/Projektintegration), #696 (Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme).
 
-Live-Stand nach GitHub-Abfrage: **2** offene Issues (#656, #245) — beide rein extern/operativ, kein Code-Blocker.
+Die Kommentarverläufe von #245 und #656 wurden erneut geprüft: keine neuen Kommentare seit dem letzten Stand (#245 zuletzt 2026-07-15, #656 nie); beide bleiben unverändert reine externe/operative Tracker ohne Code-Bezug, daher war keine Issue-Aktualisierung nötig.
+
+Live-Stand nach GitHub-Abfrage: **19** offene Issues (17 neu: #680–#696; #656/#245 unverändert extern).
 
 ### Ergebnis der Nachprüfung
 
-- **PR-/Issue-Audit vom 22.–23.07. vollständig:** Die Merge-Stände #657/#658, #661–#665 und #670–#673 wurden gegen ihre beschriebenen Ziele und Akzeptanzkriterien nachgeprüft. Die Abnahme-Automatisierung enthält die fehlenden strukturierten Wächter- und E2E-Nachweise, die Test-/Doku-Nachzüge decken ihre jeweiligen Regressionen ab, und der Release-/Screenshot-Nachzug ist einschließlich generierter Artefakte und Governance-Test konsistent. Es blieb kein reproduzierbarer Code-, Test- oder Dokumentationsrest, der einen neuen Issue oder einen Ergänzungskommentar an einem geschlossenen Issue rechtfertigt.
-- **Alt-Baseline stabil:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8** und alle seit
-  **2026-06-25** abgeschlossenen Punkte bleiben erledigt.
-- **Release v2.7.0 vollständig abgeschlossen und verifiziert:** Tag, Veröffentlichung und alle drei Gate-Stufen (CI-Matrix, Kandidaten-Build, Hardware-Abnahme) sind gegen genau den tatsächlich getaggten Commit `6f103ed` gelaufen – keine Drift zwischen geprüftem und veröffentlichtem Stand.
-- **#669/#668 abgeschlossen** — niedrigster Live-Stand seit Beginn dieser Aufzeichnung.
-- **#656/#245** bleiben unverändert rein externe/operative Tracker ohne Code-Bezug.
+- **Keine neuen Kommentare** an #245/#656 seit der letzten Runde – kein Update an diesen Issues nötig.
+- **Alle 17 neuen Issues sind vollständig spezifiziert:** jedes enthält Kontext, Ziel, Nicht-Ziele/Abgrenzung und eine detaillierte Akzeptanzkriterien-Liste; keines ist unterspezifiziert. Der begrenzende Faktor ist nicht die Beschreibung, sondern reale Abhängigkeiten: Epic #681 (EufyMake) braucht physische Zielhardware für #688–#690, Epic #680 braucht die Reihenfolge Scope-Freeze/Regressionstest → Kandidatenbau → Veröffentlichung, und Epic #682 braucht den ADR (#692) vor jeder Implementierung.
+- **Sofort startbar ohne fremde Abhängigkeit:** #683, #684 (Epic #680) sowie #692 (Epic #682) und das Grundgerüst von #687 (Epic #681, ohne die eigentlichen Hardwaretests).
+- **Alt-Baseline weiterhin stabil:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, alle seit **2026-06-25** abgeschlossenen Punkte sowie Release v2.7.0 (Tag/Veröffentlichung/alle drei Gate-Stufen auf Commit `6f103ed`) bleiben unverändert erledigt.
 
-## Offene GitHub-Issues – Triage-Stand (2026-07-23)
+## Offene GitHub-Issues – Triage-Stand (2026-07-26)
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x-Stabilisierung – GL-Fix veröffentlichen | 🟠 Hoch (bringt gemergten GL-Ressourcenfix an Nutzer) | 🟠 Hoch (4 Teil-Issues, Release-Pipeline + Hardware-Abnahme) | – (Epic; Sonnet, mittel zur Nachverfolgung) | In Bearbeitung – #683/#684 zuerst anstoßen |
+| [#683](https://github.com/NikolayDA/picture_helper/issues/683) | Scope-Freeze, Versionsschnitt, Release Notes 2.7.1 | 🟠 Hoch (Voraussetzung für den ganzen Patch-Release) | 🟢 Niedrig (Diff-Review + Versionsmetadaten, etablierter Prozess) | Sonnet, mittel | Ready for PR |
+| [#684](https://github.com/NikolayDA/picture_helper/issues/684) | GL-Ressourcen-/Langzeittest und Regressionsgate | 🟠 Hoch (einziger belastbarer Nachweis für PR #676) | 🟡 Mittel-Hoch (Instrumentierung/Messung von GL-Ressourcen, Langzeitlauf) | Opus, hoch | Ready for PR |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Kandidatenartefakte + Hardware-Abnahme gegen exakten Commit | 🟡 Mittel (Standard-Release-Pipeline über 5 Plattformen) | 🟡 Mittel (bestehende Abnahme-Automation aus Epic #639 wiederverwendbar) | Sonnet, mittel (Build); kein Agent für Hardware-Smokes | Blocked – wartet auf #683 + #684 |
+| [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Tag, Veröffentlichung, Post-Release-Verifikation | 🟠 Hoch (macht den Fix für Anwender verfügbar) | 🟢 Niedrig (etablierter Release-Prozess seit v2.6.0/v2.7.0) | Sonnet, niedrig | Blocked – wartet auf #685 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | In Bearbeitung – #687 zuerst anstoßen, Rest hardwaregebunden |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🟡 Mittel (Recherche/Doku, kein Hardwarezugriff nötig) | Sonnet, mittel | Ready for PR (Grundgerüst; Hardwaretests separat) |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | HEIGHT-Bittiefe/-Semantik auf realer Hardware validieren | 🟠 Hoch (Reliefhöhe direkt betroffen) | 🔴 Hoch (physischer Drucker, Fixtures, Messprotokoll) | – (kein Agent; reale EufyMake-Hardware nötig) | Blocked (extern) – Hardwarezugriff erforderlich |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | mm/DPI, Zielgröße, Positionierungsvertrag validieren | 🟠 Hoch (Druckgröße/Registrierung) | 🔴 Hoch (physische Messungen, Kontrollmotive) | – (kein Agent; reale Hardware nötig) | Blocked (extern) |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | Gloss-/Klarlack-Semantik validieren | 🟡 Mittel (Gloss ist laut Code bereits „experimental") | 🔴 Hoch (physische Drucke, Materialverbrauch) | – (kein Agent; reale Hardware nötig) | Blocked (extern) |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | Versioniertes Zielprofil in Validator/Writer/Dialog/Doku | 🟠 Hoch (härtet den produktiven Exportpfad) | 🟠 Hoch (Cross-Cutting über eufymake_export/_validate/_writer + UI) | Opus, hoch | Blocked – wartet auf Ergebnisse #688–#690 |
+| [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR-Tonwert-/Graustufen-Engine | 🟡 Mittel-Hoch (Roadmap-Fundament für Laser, kein akuter Bug) | 🔴 Hoch (5 Teil-Issues, ADR→Kern→UI→Integration→Abnahme) | – (Epic) | In Bearbeitung – #692 zuerst anstoßen |
+| [#692](https://github.com/NikolayDA/picture_helper/issues/692) | ADR + Datenvertrag Tonwert/Histogramm/Graustufe | 🟠 Hoch (legt Vertrag für den gesamten Epic fest) | 🟡 Mittel (Architekturentscheid, keine Implementierung) | Opus, hoch | Ready for PR |
+| [#693](https://github.com/NikolayDA/picture_helper/issues/693) | Qt-freier Kern: Histogramm/Graustufe/Levels/Gamma | 🟡 Mittel-Hoch | 🟡 Mittel (Erweiterung von `color_ops.py`, gut isoliert testbar) | Sonnet, hoch | Blocked – wartet auf ADR #692 |
+| [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
+| [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
+| [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟡 Mittel (verbessert nur Evidenzqualität, kein Blocker laut Vertrag) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – unabhängig erledigbar |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
 
 ### Als Nächstes empfohlen
 
-1. **#656** unabhängig erledigen, wenn echte Vision-Verdikte gewünscht sind – Qualitätsverbesserung, kein Blocker.
-2. **#245** bleibt separat als rein externer Billing-/Quota-Tracker liegen; keine Aktion im Repository möglich oder nötig.
-3. Release v2.7.0 ist vollständig veröffentlicht — kein weiterer releasebezogener Schritt nötig.
+1. **#683** (Scope-Freeze 2.7.1) zuerst starten – klein, entsperrt #685/#686 und bringt den GL-Fix schneller zu Anwendern.
+2. **#684** (GL-Ressourcen-/Regressionstest) parallel zu #683 starten – einziger belastbarer Nachweis für PR #676, unabhängig vom Versionsschnitt.
+3. **#692** (COLOR-ADR) starten – legt den Datenvertrag fest, auf dem #693–#696 aufbauen; reine Architekturentscheidung ohne Implementierungsrisiko.
+4. **#687** (EufyMake-Annahmeninventar) als Grundgerüst beginnen – Recherche/Doku ohne Hardwarezugriff möglich, muss aber vor #688–#690 vorliegen.
+5. **#688–#690** bleiben blockiert, bis reale EufyMake-Hardware für Testdrucke verfügbar ist – kein Agent kann das ersetzen; Repo-Owner sollte Hardwarezugriff/Zeitfenster einplanen.
+6. **#656/#245** unverändert: rein externe Billing-/Secret-Tracker, unabhängig vom obigen Fahrplan.
 
 ## Vorige Runden
 
+- **2026-07-26 (Issue-Audit: drei neue Epics)** — Repo-Owner hat Epics #680 (v2.7.x-Stabilisierung/2.7.1), #681 (EufyMake-Zielprofil) und #682 (COLOR-Tonwert-Engine) samt 14 Teil-Issues angelegt; kein Issue geschlossen. #245/#656 ohne neue Kommentare, unverändert extern. Sofort startbar ohne Fremdabhängigkeit: #683, #684, #692 sowie das Grundgerüst von #687. Live-Stand von 2 auf 19 offene Issues gestiegen.
 - **2026-07-23 (#668/#669 abgeschlossen)** — #669 (Doku-Live-Stand veraltet) direkt geschlossen, da bereits durch PR #671 vollständig aufgelöst, keine weitere Code-/Doku-Änderung nötig. #668 (`ANLEITUNG.md`/`README.md` verweisen auf das verwaiste Screenshot-Set vom 2026-07-19) über einen eigenständigen PR behoben: lebende Doku-Referenzen (je 6 Sprachen) auf das aktuelle Set vom 2026-07-22 migriert; die Abnahme-Evidenz in `docs/history/EPIC-582-ABNAHME.md` bewusst unangetastet gelassen (erklärender Hinweis ergänzt, altes Verzeichnis bleibt erhalten); neuer Governance-Test gegen künftige Screenshot-Drift ergänzt. Live-Stand 2 offene Issues (beide extern/operativ, kein Blocker) – niedrigster Stand seit Beginn dieser Aufzeichnung.
 - **2026-07-23 (Release v2.7.0)** — PR #670 (Versions-Bump + CHANGELOG-Umhängen + Icon-Eintrag) gemergt (`6f103ed`); kompletter Gate erneut gegen den neuen Merge-Commit durchlaufen (CI-Matrix, Kandidaten-Build, Hardware-Abnahme, alle grün); Tag `v2.7.0` gesetzt und veröffentlicht (fünf Artefakte). Zwei neue Audit-Issues erfasst: #669 (Doku-Live-Stand veraltet, mit diesem Update behoben) und #668 (verwaistes Screenshot-Set in ANLEITUNG.md, kleine Repo-Hygiene). Live-Stand 4 offene Issues, alle Doku-Hygiene oder extern, kein Code-Blocker.
 - **2026-07-22 (Test-Audit-Abschluss)** — Beide zuvor offenen Audit-Issues geschlossen: #660 über PR #664 (Commit `92c14ba`, `gl_smoke`-Marker in TESTING.md dokumentiert), #659 über PR #665 (Commit `c4ab92a`, N9/O8 vollständig umgesetzt, `make check` 1995/5, `make coverage` 93 %). Zusätzlich zwei assetbezogene PRs gemergt (#666 Screenshot-Satz, #667 neues App-Icon), beide noch ohne CHANGELOG-Eintrag. Live-Stand 2 offene Issues (beide extern/operativ, kein Blocker) – niedrigster Stand seit Beginn dieser Aufzeichnung.
