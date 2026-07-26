@@ -183,16 +183,6 @@ def _benchmark_format_with_samples(
     return metrics, samples
 
 
-def benchmark_format(
-    img: Image.Image, fmt: str, suffix: str, iterations: int, work_dir: Path,
-) -> dict[str, float]:
-    """Misst Encode-, Decode- und End-to-End-Verarbeitungszeit für ein Format."""
-    metrics, _samples = _benchmark_format_with_samples(
-        img, fmt, suffix, iterations, work_dir,
-    )
-    return metrics
-
-
 def git_commit() -> str | None:
     """Kurzer Commit-Hash des aktuellen Stands, oder ``None`` außerhalb von git."""
     try:

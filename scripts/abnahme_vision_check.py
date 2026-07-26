@@ -103,7 +103,7 @@ def _parse_response(text: str, criteria: tuple[tuple[str, str], ...]) -> list[Cr
             results.append(CriterionVerdict(cid, "unbewertet", "Kein gültiges Verdikt geliefert."))
             continue
         verdict = str(entry.get("verdict", ""))
-        if verdict not in ("erfuellt", "nicht_erfuellt", "unsicher"):
+        if verdict not in VERDICTS[:-1]:  # "unbewertet" ist nur der interne Fail-safe-Wert.
             results.append(CriterionVerdict(cid, "unbewertet", "Kein gültiges Verdikt geliefert."))
         else:
             results.append(
