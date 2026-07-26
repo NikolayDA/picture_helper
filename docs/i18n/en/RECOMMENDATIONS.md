@@ -11,33 +11,33 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-26, issue audit: three new epics filed)
+## Current Status (2026-07-26, PR/issue follow-up review)
 
-Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last update (2026-07-23) no issue was closed; instead the repo owner filed three new epics with a total of 14 sub-issues, pushing the live state from 2 up to **19** open issues:
+Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last update (2026-07-23), the repo owner filed three new epics with a total of 14 sub-issues. #677 was filed and closed again through PR #679 in the same period. #683 was then closed through PR #698; this follow-up review found an inconsistent freeze basis and filed #699. The live state therefore remains at **19** open issues:
 
 - **Epic #680** – v2.7.x stabilization: patch release **2.7.1** should ship the GL resource fix (PR #676) already merged to `main` to users. Sub-issues: #683 (scope freeze/version cut), #684 (GL resource/long-run test), #685 (candidate artifacts + hardware acceptance), #686 (tag/publish/post-release verification).
 - **Epic #681** – EufyMake target profile: HEIGHT bit depth, mm/DPI, and gloss assumptions in the export need to be checked against manufacturer sources and real hardware and turned into a versioned target profile. Sub-issues: #687 (assumption inventory/test matrix), #688 (HEIGHT), #689 (mm/DPI), #690 (gloss), #691 (profile integration into validator/writer/dialog/docs).
 - **Epic #682** – COLOR tonal/grayscale engine: a shared Qt-free base for histogram/levels/gamma as the foundation for image optimization and later laser workflows. Sub-issues: #692 (ADR/data contract), #693 (Qt-free core), #694 (live preview/UI), #695 (layer/selection/history/project integration), #696 (performance/E2E/docs/laser-interface acceptance).
 
-The comment threads on #245 and #656 were checked again: no new comments since the last state (#245 last commented 2026-07-15, #656 never); both remain unchanged, purely external/operational trackers with no code relation, so no issue update was needed. No other issue was closed since the 07-23 update — with one exception inside this same window: **#677** (dead code from the vulture scan) was both filed and closed on 2026-07-26 via PR #679 (commit `45ebac3`), before this audit began; it correctly does not appear in the list of 19 open issues.
+The comment threads on #245 and #656 were checked again: no new comments since the last state (#245 last commented 2026-07-15, #656 never); both remain unchanged, purely external/operational trackers with no code relation. The four PRs merged on 2026-07-26 (#678, #679, #697, and #698) had green PR CI, CodeQL, dependency, and license checks. #678/#679 are technically sound; #697 addressed all three review findings in its final commit. #698, however, does not inventory the actual 2.7.1 candidate, gives no full SHA, and has no submitted independent review; #699 documents the details and acceptance criteria.
 
-Live state per GitHub query: **19** open issues (17 new: #680–#696; #656/#245 unchanged external).
+Live state per GitHub query: **19** open issues (16 from #680–#696, plus #699 and the unchanged external #656/#245).
 
 ### Review Result
 
 - **No new comments** on #245/#656 since the last round – no update needed on these issues.
-- **All 17 new issues are fully specified:** each includes context, goal, non-goals/scope boundaries, and a detailed acceptance-criteria list; none is under-specified. The limiting factor isn't the description but real dependencies: epic #681 (EufyMake) needs physical target hardware for #688–#690, epic #680 needs the order scope-freeze/regression test → candidate build → publish, and epic #682 needs the ADR (#692) before any implementation.
-- **Ready to start with no external dependency:** #683, #684 (epic #680) as well as #692 (epic #682) and the scaffolding portion of #687 (epic #681, excluding the actual hardware tests).
+- **The open issues are fully specified:** each includes context, goal, non-goals/scope boundaries, and detailed acceptance criteria. The limiting factors are real dependencies: epic #681 (EufyMake) needs physical target hardware for #688–#690, epic #680 first needs freeze correction #699 and regression evidence #684, and epic #682 needs ADR #692 before any implementation.
+- **Ready to start with no external dependency:** #699 and #684 (epic #680), plus #692 (epic #682) and the scaffolding portion of #687 (epic #681, excluding the actual hardware tests).
 - **Old baseline still stable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, everything completed since **2026-06-25**, and release v2.7.0 (tag/publication/all three gate stages against commit `6f103ed`) remain unchanged and done.
 
 ## Open GitHub Issues — Triage Status (2026-07-26)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High (delivers the merged GL resource fix to users) | 🟠 High (4 sub-issues, release pipeline + hardware acceptance) | – (epic; Sonnet, medium for tracking) | In progress – start #683/#684 first |
-| [#683](https://github.com/NikolayDA/picture_helper/issues/683) | Scope freeze, version cut, 2.7.1 release notes | 🟠 High (prerequisite for the whole patch release) | 🟢 Low (diff review + version metadata, established process) | Sonnet, medium | Ready to start |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High (delivers the merged GL resource fix to users) | 🟠 High (release pipeline + hardware acceptance) | – (epic; Sonnet, medium for tracking) | In progress – complete #699/#684 first |
+| [#699](https://github.com/NikolayDA/picture_helper/issues/699) | Correct the freeze commit to the actual 2.7.1 candidate | 🟠 High (prevents build/tagging against the commit that still identifies as 2.7.0) | 🟡 Medium (synchronize commit inventory, release notes, gates, and independent review) | Opus, medium | Start now – blocks #685/#686 |
 | [#684](https://github.com/NikolayDA/picture_helper/issues/684) | GL resource/long-run test and regression gate | 🟠 High (only solid proof for PR #676) | 🟡 Medium-high (instrumenting/measuring GL resources, long-run test) | Opus, high | Ready to start |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟡 Medium (standard release pipeline producing 5 artifacts across 3 platform/architecture targets: linux-x86_64, linux-raspberrypi-arm64, macos-arm64) | 🟡 Medium (existing acceptance automation from epic #639 reusable) | Sonnet, medium (build); no agent for hardware smokes | Blocked – waits on #683 + #684 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟡 Medium (standard release pipeline producing 5 artifacts across 3 platform/architecture targets: linux-x86_64, linux-raspberrypi-arm64, macos-arm64) | 🟡 Medium (existing acceptance automation from epic #639 reusable) | Sonnet, medium (build); no agent for hardware smokes | Blocked – waits on #699 + #684 |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Tag, publish, post-release verification | 🟠 High (makes the fix available to users) | 🟢 Low (established release process since v2.6.0/v2.7.0) | Sonnet, low | Blocked – waits on #685 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | In progress – start #687 first, rest hardware-bound |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🟡 Medium (research/docs, no hardware access needed) | Sonnet, medium | Ready to start (scaffolding; hardware tests separate) |
@@ -56,8 +56,8 @@ Live state per GitHub query: **19** open issues (17 new: #680–#696; #656/#245 
 
 ### Recommended Next
 
-1. Start **#683** (2.7.1 scope freeze) first – small, unblocks #685/#686, gets the GL fix to users sooner.
-2. Start **#684** (GL resource/regression test) in parallel with #683 – the only solid proof for PR #676, independent of the version cut.
+1. Complete **#699** (2.7.1 freeze correction) first – the current freeze commit still identifies as version 2.7.0 and must not be the basis for #685/#686.
+2. Start **#684** (GL resource/regression test) in parallel with #699 – the only solid proof for PR #676, independent of the version cut.
 3. Start **#692** (COLOR ADR) – sets the data contract that #693–#696 build on; a pure architecture decision with no implementation risk.
 4. Begin the scaffolding of **#687** (EufyMake assumption inventory) – research/docs work possible without hardware access, but it must exist before #688–#690.
 5. **#688–#690** stay blocked until real EufyMake hardware is available for test prints – no agent can substitute for this; the repo owner should schedule hardware access/time.
@@ -65,7 +65,8 @@ Live state per GitHub query: **19** open issues (17 new: #680–#696; #656/#245 
 
 ## Previous Rounds
 
-- **2026-07-26 (issue audit: three new epics)** — the repo owner filed epics #680 (v2.7.x stabilization/2.7.1), #681 (EufyMake target profile), and #682 (COLOR tonal engine) with 14 sub-issues; no issue closed. #245/#656 have no new comments, unchanged external. Ready to start with no external dependency: #683, #684, #692, and the scaffolding of #687. Live state rose from 2 to 19 open issues.
+- **2026-07-26 (PR/issue follow-up #678/#679/#697/#698)** — all four PR gates were green; #678/#679 are sound and #697's review findings were fixed. #683 closed through #698, but the documented freeze commit `ba7e7cd` still contains version 2.7.0 rather than the scope cut; a full SHA and submitted independent review are also missing. Follow-up #699 was filed with acceptance criteria; #685/#686 remain blocked until corrected. Live state 19.
+- **2026-07-26 (issue audit: three new epics)** — the repo owner filed epics #680 (v2.7.x stabilization/2.7.1), #681 (EufyMake target profile), and #682 (COLOR tonal engine) with 14 sub-issues; #677 was filed and closed again in the same window. #245/#656 had no new comments and remained external. At that point #683, #684, #692, and the scaffolding of #687 were ready to start without external dependencies. Live state rose from 2 to 19 open issues.
 - **2026-07-23 (#668/#669 closed out)** — #669 (stale doc live state) closed directly, since PR #671 had already fully resolved it, no further code/doc change needed. #668 (`ANLEITUNG.md`/`README.md` referencing the orphaned 2026-07-19 screenshot set) fixed via a standalone PR: living doc references (6 languages each) migrated to the current 2026-07-22 set; the acceptance evidence in `docs/history/EPIC-582-ABNAHME.md` deliberately left untouched (explanatory note added, old directory kept); new governance test added against future screenshot drift. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
 - **2026-07-23 (release v2.7.0)** — PR #670 (version bump + CHANGELOG cutover + icon entry) merged (`6f103ed`); the complete gate was re-run against the new merge commit (CI matrix, candidate build, hardware acceptance, all green); tag `v2.7.0` set and published (five artifacts). Two new audit issues filed: #669 (stale doc live state, fixed by this update) and #668 (orphaned screenshot set in ANLEITUNG.md, small repo hygiene). Live state 4 open issues, all doc hygiene or external, no code blocker.
 - **2026-07-22 (test-audit closeout)** — both previously open audit issues closed: #660 via PR #664 (commit `92c14ba`, documented the `gl_smoke` marker in TESTING.md), #659 via PR #665 (commit `c4ab92a`, N9/O8 fully implemented, `make check` 1995/5, `make coverage` 93%). Also merged two asset-related PRs (#666 screenshot set, #667 new app icon), both still without a CHANGELOG entry. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
