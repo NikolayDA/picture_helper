@@ -22,6 +22,27 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   ejecuta antes de cada (re)subida; afecta solo a la representación 3D, no a
   los datos de imagen, proyecto o exportación.
 
+### Notas sobre esta versión
+
+- **Impacto:** Versión de parche pura. Solo corrige la fuga de recursos de GPU
+  de la vista previa 3D opcional descrita arriba; sin funciones nuevas y sin
+  cambios en el comportamiento de imagen, proyecto o exportación.
+- **Usuarios afectados:** Solo quienes usan la vista previa 3D del relieve
+  (paso del flujo «Relieve», segmento «Representación [3D]» o «Ver → Mostrar
+  relieve 3D»). El problema se notaba en sesiones largas con cambios repetidos
+  2D↔3D: el consumo de memoria de GPU crecía de forma continua. Quien solo usa
+  la vista previa 2D no está afectado.
+- **Relevancia de la actualización:** Recomendada para quienes usan la vista
+  previa 3D, opcional en los demás casos. No hace falta ningún paso de
+  migración: los archivos de proyecto (`.bgrproj`), los formatos de exportación
+  y los ajustes siguen siendo compatibles; volver a 2.7.0 también es posible sin
+  cambios en los datos.
+- **Limitaciones conocidas:** Ninguna limitación nueva más allá de 2.7.0. La
+  corrección está cubierta por pruebas de regresión sin GL contra recursos
+  simulados; la medición de memoria en una sesión larga con un contexto OpenGL
+  real se registra por separado como subincidencia #684 y no forma parte de esta
+  versión de parche.
+
 ## [2.7.0] – 2026-07-22
 
 ### Añadido
