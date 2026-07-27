@@ -31,6 +31,8 @@ headless-Qt-Betrieb:
   (offscreen) bzw. derselbe Satz mit echtem OpenGL-Viewer für die 3D-Vorschau
 - `make bench` / `bench-height` / `bench-compare` — `scripts/benchmark.py`
   (Format-Suite, Höhen-/Mesh-Suite, Vergleich der letzten zwei Läufe)
+- `make gl-stress` — GL-Ressourcen-Langzeitsonde der 3D-Vorschau
+  (`scripts/gl_stress_probe.py`, #684; JSON-Nachweis, `--mode gl` für echten Kontext)
 
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
 `tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
@@ -148,6 +150,17 @@ Ein Paket, `bgremover/`:
   `QOpenGLVersionFunctionsFactory`, alle GL-Hooks gekapselt → `initFailed`,
   keine neue Laufzeitabhängigkeit) und der einbettbare, GL-frei testbare
   Zustandscontainer `Relief3DView` (Empty/Unavailable/Loading/Error/Ready).
+  Der kontextgebundene Lebenszyklus ist seit #676/#684 **messbar**:
+  `_release_gl_objects` gibt beim (Wieder-)Upload und in `cleanup_gl` frei
+  (idempotent), `gl_resource_stats()` zählt prozessweit erzeugte/freigegebene
+  GL-Objekte und `GLReliefViewer.gl_object_count` die aktuell gehaltenen (0–4).
+  Der prozessweite Zähler ist der maßgebliche Leck-Nachweis – ein verwaistes
+  Objekt wird vom Viewer nicht mehr referenziert, lebt aber weiter. Geteilte
+  Messsonde `scripts/gl_stress_probe.py` (`make gl-stress`), Regressionstests
+  `tests/test_viewer_3d_gl_lifecycle.py` (GL-frei, >100 Zyklen je
+  Datensatzgröße, inkl. Negativkontrolle) und der `gl_smoke`-Langzeittest in
+  `tests/test_viewer_3d_gl.py`; Messwerte, Grenzen und Hardware-Prozedur in
+  [`docs/history/RELEASE-2.7.1-gl-langzeittest.md`](docs/history/RELEASE-2.7.1-gl-langzeittest.md).
   `preview3d_controller.py` (`Preview3DController`, #594) orchestriert Gating,
   entprellten (200 ms) asynchronen Mesh-Build (`MeshBuildWorker` über den
   `WorkerController`) mit **Generation-IDs** (stale-result-Schutz) und einem
@@ -396,9 +409,10 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für die Abnahme-Skripte `scripts/abnahme_vision_check.py` und
-  `scripts/abnahme_aggregate.py` (#646) – als eigenständige Dateien ohne
-  `scripts/__init__.py` explizit per Dateipfad in `files` sowie per
+  Strenge gilt für die Skripte `scripts/abnahme_vision_check.py`,
+  `scripts/abnahme_aggregate.py` (#646), `scripts/verify_release_freeze.py`
+  (#699) und `scripts/gl_stress_probe.py` (#684) – als eigenständige Dateien
+  ohne `scripts/__init__.py` explizit per Dateipfad in `files` sowie per
   Modul-Override (Modulname = Dateibasisname) erfasst.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
   `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und

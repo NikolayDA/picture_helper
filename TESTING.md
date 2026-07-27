@@ -106,6 +106,7 @@ Im Projektordner (venv aktiv):
 | `make type`  | Nur `mypy` (Typprüfung)                                                    |
 | `make test`  | Nur `pytest` (volle UI-Suite ausgeschlossen, `ui_smoke` läuft mit)         |
 | `make coverage` | `pytest` mit Coverage-Messung und HTML-Report (`fail_under = 86`)      |
+| `make gl-stress` | GL-Ressourcen-Langzeitsonde der 3D-Vorschau (`scripts/gl_stress_probe.py`) |
 
 Empfohlener Ablauf vor einem Pull Request:
 
@@ -144,6 +145,26 @@ aber automatisch, sobald keine renderfähige Qt-Plattform verfügbar ist –
 das trifft auf `offscreen` (und damit auf CI sowie diese Anleitung) zu.
 Details zum manuellen Nachweis unter echtem GL:
 [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
+
+### GL-Ressourcen-Langzeittest (#684)
+
+`tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus der
+GL-Puffer/VAO der 3D-Vorschau ab (Fix aus PR #676): über 110 Zyklen je
+Datensatzgröße darf die Zahl lebender GL-Objekte nicht wachsen. Die Tests laufen
+im normalen `pytest`-Lauf mit und brauchen **keinen** GL-Kontext – sie fahren den
+echten Kontrollfluss mit instrumentierten Puffer-Attrappen.
+
+Dieselbe Messsonde erzeugt den reproduzierbaren Nachweis für ein Release:
+
+```bash
+make gl-stress                                  # 120 Zyklen, klein/typisch/groß
+python scripts/gl_stress_probe.py --cycles 1000 --json-out gl-stress.json
+QT_QPA_PLATFORM=xcb python scripts/gl_stress_probe.py --mode gl   # echter Kontext
+```
+
+Exit 0 = kein Befund, 1 = Ressourcenbefund, 2 = in dieser Umgebung nicht
+ausführbar. Ergebnisse und Hardware-Prozedur:
+[`docs/history/RELEASE-2.7.1-gl-langzeittest.md`](docs/history/RELEASE-2.7.1-gl-langzeittest.md).
 
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet
 sich also **kein Fenster**.
