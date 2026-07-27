@@ -10,8 +10,8 @@ enthalten.** Ein handgepflegter Freeze-Hash driftet deshalb systematisch.
 
 Dieses Skript ersetzt die Handarbeit durch eine *abgeleitete* Kandidatenregel:
 
-    Kandidat = der juengste Commit seit dem Basis-Tag, der einen
-    kandidatenrelevanten Pfad aendert.
+    Kandidat = der juengste Commit der Mainline (first-parent) seit dem
+    Basis-Tag, der einen kandidatenrelevanten Pfad aendert.
 
 Kandidatenrelevant ist alles ausser einer kurzen, explizit erlaubten Liste von
 Protokoll-Pfaden (Freeze-/Historien-Dokumente, Statusdoku). Die Regel ist
@@ -29,7 +29,6 @@ laeuft. Exit 0 = keine Fehler, 1 = mindestens ein Fehler, 2 = Aufruf-/Git-Fehler
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import re
 import subprocess
 import sys
@@ -40,7 +39,8 @@ from pathlib import Path
 from typing import Final, cast
 
 _REPO_ROOT: Final = Path(__file__).resolve().parent.parent
-_EXTRACT_SCRIPT: Final = Path(__file__).resolve().parent / "extract_release_notes.py"
+#: Quelle des Release-Bodys – wird am geprueften Commit gelesen, nicht lokal.
+_EXTRACT_SCRIPT_PATH: Final = "scripts/extract_release_notes.py"
 
 LANGUAGES: Final = ("en", "es", "fr", "uk", "zh")
 
@@ -228,9 +228,16 @@ def rev_parse(repo: Path, rev: str) -> str:
     return _git(repo, "rev-parse", f"{rev}^{{commit}}").strip()
 
 
-def commits_between(repo: Path, base: str, rev: str) -> tuple[str, ...]:
-    """Volle SHAs in ``base..rev``, jüngster zuerst."""
-    out = _git(repo, "rev-list", f"{base}..{rev}")
+def commits_between(
+    repo: Path, base: str, rev: str, *, first_parent: bool = False
+) -> tuple[str, ...]:
+    """Volle SHAs in ``base..rev``, jüngster zuerst.
+
+    ``first_parent`` folgt nur der Mainline: bei einem Merge zählt der Merge-Commit
+    selbst (mit seinem *netto* eingebrachten Baum), nicht die Seitenzweig-Commits.
+    """
+    args = ["rev-list", "--first-parent"] if first_parent else ["rev-list"]
+    out = _git(repo, *args, f"{base}..{rev}")
     return tuple(line.strip() for line in out.splitlines() if line.strip())
 
 
@@ -254,8 +261,15 @@ def subject(repo: Path, sha: str) -> str:
 
 
 def derive_candidate(repo: Path, base: str, rev: str) -> str | None:
-    """Juengster kandidatenrelevanter Commit in ``base..rev`` (oder ``None``)."""
-    for sha in commits_between(repo, base, rev):
+    """Juengster kandidatenrelevanter Commit der Mainline (oder ``None``).
+
+    Bewusst **first-parent**: ein unsquashed Merge zaehlt mit dem Baum, den er
+    tatsaechlich in die Release-Linie eingebracht hat. Wuerde man alle Commits
+    aufzaehlen, koennte ein Seitenzweig-Commit zum Kandidaten werden, dessen
+    Aenderung nie ankam (Konfliktaufloesung, ``-s ours``, spaeterer Revert) –
+    alle Folgepruefungen liefen dann gegen einen Baum, der nie getaggt wird.
+    """
+    for sha in commits_between(repo, base, rev, first_parent=True):
         if candidate_relevant_paths(changed_paths(repo, sha)):
             return sha
     return None
@@ -264,14 +278,27 @@ def derive_candidate(repo: Path, base: str, rev: str) -> str | None:
 # ── Release-Body ───────────────────────────────────────────────────────
 
 
-def _load_extract_release_notes() -> Callable[[str, str], str]:
-    """Laedt ``extract_release_notes`` aus dem Nachbarskript (keine Duplizierung)."""
-    spec = importlib.util.spec_from_file_location("extract_release_notes", _EXTRACT_SCRIPT)
-    if spec is None or spec.loader is None:  # pragma: no cover - Installationsdefekt
-        raise RuntimeError(f"{_EXTRACT_SCRIPT} nicht ladbar")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return cast(Callable[[str, str], str], module.extract_release_notes)
+def load_extract_release_notes(repo: Path, rev: str) -> Callable[[str, str], str]:
+    """Laedt ``extract_release_notes`` **aus dem geprueften Commit**.
+
+    Der Release-Body entsteht aus dem Skript, das im getaggten Stand liegt.
+    Wuerde hier die Arbeitsbaum-Fassung geladen, koennte die Pruefung einen Body
+    melden, den der Kandidat selbst nie erzeugt (anderer ``--rev``/``--repo``).
+    """
+    source = read_at_rev(repo, rev, _EXTRACT_SCRIPT_PATH)
+    # ``__file__`` setzen: das Skript leitet daraus seinen CHANGELOG-Default ab.
+    # ``__name__`` ist bewusst nicht "__main__" – so laeuft dort kein CLI an.
+    namespace: dict[str, object] = {
+        "__name__": "extract_release_notes_at_rev",
+        "__file__": str(repo / _EXTRACT_SCRIPT_PATH),
+    }
+    exec(compile(source, f"{rev}:{_EXTRACT_SCRIPT_PATH}", "exec"), namespace)
+    func = namespace.get("extract_release_notes")
+    if not callable(func):
+        raise DocFormatError(
+        f"{_EXTRACT_SCRIPT_PATH} am Commit {rev} ohne extract_release_notes()"
+        )
+    return cast(Callable[[str, str], str], func)
 
 
 def missing_release_body_markers(notes: str, language: str) -> tuple[str, ...]:
@@ -360,7 +387,7 @@ def _check_versions(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
 
 def _check_release_body(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
     """Der tatsaechlich veroeffentlichte Body nennt die Pflichtangaben (#683)."""
-    extract = _load_extract_release_notes()
+    extract = load_extract_release_notes(repo, rev)
     findings: list[Finding] = []
     for language in ("de", *LANGUAGES):
         path = "CHANGELOG.md" if language == "de" else f"docs/i18n/{language}/CHANGELOG.md"
@@ -487,12 +514,15 @@ def _check_pin(repo: Path, rev: str, candidate: str, doc: FreezeDoc, require_pin
                 f"Dokument protokolliert {doc.pinned_candidate}, abgeleitet ist {candidate}; "
                 f"kandidatenrelevante Abweichung: {', '.join(drift[:5])}",
             )
+        # Ohne --require-pin ist das der normale Merge-Uebergang (Warnung). Als
+        # Gate fuer #685/#686 zaehlt dagegen nur der exakte, aktuelle SHA: sonst
+        # baut/taggt der Release einen anderen Commit als den dokumentierten.
         return Finding(
-            _WARNING,
+            _ERROR if require_pin else _WARNING,
             "candidate-sha-equivalent",
             f"Abgeleiteter Kandidat {candidate} ist freeze-äquivalent zum protokollierten "
-            f"{doc.pinned_candidate} (identischer kandidatenrelevanter Baum) – "
-            "Protokoll-Commit soll den SHA nachziehen",
+            f"{doc.pinned_candidate} (identischer kandidatenrelevanter Baum), aber nicht "
+            "identisch – Protokoll-Commit muss den SHA nachziehen, bevor gebaut/getaggt wird",
         )
     ahead = commits_between(repo, candidate, rev)
     suffix = f" (+{len(ahead)} Protokoll-Commit(s) darüber)" if ahead else ""

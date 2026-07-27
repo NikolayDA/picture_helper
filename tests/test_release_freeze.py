@@ -282,6 +282,156 @@ def _repo_is_shallow() -> bool:
     return result.stdout.strip() == "true"
 
 
+# ── Kandidatenableitung gegen ein echtes Mini-Repository ──────────────
+#
+# Codex-Review auf PR #701: Ein unsquashed Merge kann kandidatenrelevante
+# Seitenzweig-Commits enthalten, deren Änderung nie in der Release-Linie ankommt
+# (Konfliktauflösung, `-s ours`, späterer Revert). Würde die Ableitung alle
+# Commits aufzählen, liefen Versions-, Release-Body- und Pin-Prüfung gegen einen
+# Baum, der nie getaggt wird. Die Ableitung folgt deshalb der Mainline.
+
+
+def _run(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+
+def _write(repo: Path, relative: str, text: str) -> None:
+    path = repo / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _commit(repo: Path, relative: str, text: str, message: str) -> str:
+    _write(repo, relative, text)
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-m", message)
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
+@pytest.fixture
+def tiny_repo(tmp_path: Path) -> Path:
+    """Winziges Repository mit Basis-Commit (nur für die git-Logik des Skripts)."""
+    if not _git_available():
+        pytest.skip("kein git verfügbar")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _run(repo, "init", "-q", "-b", "main")
+    _run(repo, "config", "user.email", "test@example.invalid")
+    _run(repo, "config", "user.name", "Test")
+    _commit(repo, "README.md", "start\n", "base")
+    return repo
+
+
+def test_derive_candidate_ignores_discarded_side_branch_commits(tiny_repo: Path) -> None:
+    """Ein Seitenzweig-Commit, dessen Baum nie ankommt, wird nicht Kandidat."""
+    base = subprocess.run(
+        ["git", "-C", str(tiny_repo), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    _run(tiny_repo, "checkout", "-q", "-b", "seite")
+    side = _commit(tiny_repo, "bgremover/leck.py", "x = 1\n", "kandidatenrelevant")
+
+    _run(tiny_repo, "checkout", "-q", "main")
+    _commit(tiny_repo, "docs/history/notiz.md", "protokoll\n", "protokoll")
+    # '-s ours' übernimmt die Seitenzweig-Historie, aber nicht deren Baum.
+    _run(tiny_repo, "merge", "-q", "-s", "ours", "--no-edit", "seite")
+
+    assert side in vrf.commits_between(tiny_repo, base, "HEAD")
+    assert side not in vrf.commits_between(tiny_repo, base, "HEAD", first_parent=True)
+    assert vrf.derive_candidate(tiny_repo, base, "HEAD") is None
+
+
+def test_derive_candidate_picks_merge_that_really_incorporates_changes(tiny_repo: Path) -> None:
+    base = subprocess.run(
+        ["git", "-C", str(tiny_repo), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    _run(tiny_repo, "checkout", "-q", "-b", "seite")
+    _commit(tiny_repo, "bgremover/fix.py", "y = 2\n", "kandidatenrelevant")
+    _run(tiny_repo, "checkout", "-q", "main")
+    _run(tiny_repo, "merge", "-q", "--no-ff", "--no-edit", "seite")
+
+    merge = subprocess.run(
+        ["git", "-C", str(tiny_repo), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert vrf.derive_candidate(tiny_repo, base, "HEAD") == merge
+    assert vrf.candidate_relevant_paths(vrf.changed_paths(tiny_repo, merge)) == ("bgremover/fix.py",)
+
+
+def test_release_note_extractor_comes_from_the_checked_revision(tiny_repo: Path) -> None:
+    """Der Body wird mit dem Extraktor *des Kandidaten* erzeugt, nicht dem lokalen."""
+    _commit(
+        tiny_repo,
+        "scripts/extract_release_notes.py",
+        # ``__file__`` wie im echten Skript (CHANGELOG-Default) – der Loader muss
+        # es bereitstellen, sonst scheitert schon der Import.
+        "from pathlib import Path\n"
+        "_DEFAULT = Path(__file__).resolve().parent.parent / 'CHANGELOG.md'\n"
+        "def extract_release_notes(changelog: str, version: str) -> str:\n"
+        "    return 'aus dem Commit'\n",
+        "extractor",
+    )
+    _write(
+        tiny_repo,
+        "scripts/extract_release_notes.py",
+        "def extract_release_notes(changelog: str, version: str) -> str:\n"
+        "    return 'aus dem Arbeitsbaum'\n",
+    )
+    extract = vrf.load_extract_release_notes(tiny_repo, "HEAD")
+    assert extract("egal", "1.0.0") == "aus dem Commit"
+
+
+def _doc(pin: str) -> object:
+    return vrf.FreezeDoc(
+        version="1.0.0",
+        base_tag="v0.9.0",
+        declared_count=1,
+        pinned_candidate=pin,
+        classified=(),
+        has_self_row=True,
+    )
+
+
+def test_require_pin_rejects_a_merely_equivalent_candidate(tiny_repo: Path) -> None:
+    """Gate für #685/#686: nur der exakte, aktuelle SHA zählt.
+
+    Ein freeze-äquivalenter Nachfolger (reiner Protokoll-Commit darüber) ist im
+    Alltag nur eine Warnung – als Release-Gate aber ein Fehler, sonst baut oder
+    taggt der Release einen anderen Commit als den dokumentierten.
+    """
+    pinned = _commit(tiny_repo, "bgremover/a.py", "a = 1\n", "kandidat")
+    successor = _commit(tiny_repo, "docs/history/x.md", "nur protokoll\n", "protokoll")
+
+    warn = vrf._check_pin(tiny_repo, "HEAD", successor, _doc(pinned), False)
+    assert (warn.severity, warn.code) == ("warning", "candidate-sha-equivalent")
+
+    hard = vrf._check_pin(tiny_repo, "HEAD", successor, _doc(pinned), True)
+    assert (hard.severity, hard.code) == ("error", "candidate-sha-equivalent")
+
+
+def test_pin_mismatch_with_real_drift_is_always_an_error(tiny_repo: Path) -> None:
+    pinned = _commit(tiny_repo, "bgremover/a.py", "a = 1\n", "kandidat")
+    drifted = _commit(tiny_repo, "bgremover/b.py", "b = 2\n", "andere Änderung")
+
+    finding = vrf._check_pin(tiny_repo, "HEAD", drifted, _doc(pinned), False)
+    assert (finding.severity, finding.code) == ("error", "candidate-sha-mismatch")
+    assert "bgremover/b.py" in finding.message
+
+
 def test_classified_shas_exist_in_history() -> None:
     """Jeder bekannte, in der Tabelle genannte SHA ist ein echter Vorfahr von HEAD.
 
