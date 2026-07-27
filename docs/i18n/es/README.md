@@ -342,9 +342,10 @@ BgRemover es un paquete instalable (`bgremover/`, iniciado vía
   Ajustar/Forma y medidas/Relieve y capas/Exportar); **`right_panel`**
   construye a partir de ella el inspector de tarjetas (cabecera,
   `QStackedWidget` con una página por paso, pie de navegación) y le asigna
-  los ocho bloques de pestañas existentes de `right_panel_tabs` (Vista
-  previa, Selección, Fondo, Ajustar, Rotar/Voltear, Forma, Capas, Altura);
-  `project_model`/`height_map` aportan el modelo de capas y altura sin Qt.
+  los ocho bloques de pestañas existentes (Vista previa, Selección, Fondo,
+  Ajustar, Rotar/Voltear, Forma de `right_panel_tabs`, Capas de
+  `layer_panel`, Altura de `height_map_panel`); `project_model`/`height_map`
+  aportan el modelo de capas y altura sin Qt.
 - **`menu_actions`** construye la barra de menú, acciones y atajos;
   `MainWindow` solo aporta callbacks.
 - **`RecentFiles`** encapsula persistencia, deduplicación y el adaptador
