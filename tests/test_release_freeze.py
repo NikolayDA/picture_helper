@@ -257,34 +257,56 @@ def test_parse_freeze_doc_rejects_missing_mandatory_lines() -> None:
 # ── Klassifizierte SHAs existieren wirklich (git, sonst skip) ──────────
 
 
+def _git(*args: str) -> int:
+    """Exit-Code eines git-Aufrufs im Repository (Ausgabe verworfen)."""
+    return subprocess.run(
+        ["git", "-C", str(ROOT), *args], capture_output=True, check=False
+    ).returncode
+
+
 def _git_available() -> bool:
     try:
-        subprocess.run(
-            ["git", "-C", str(ROOT), "rev-parse", "--git-dir"],
-            capture_output=True,
-            check=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
+        return _git("rev-parse", "--git-dir") == 0
+    except OSError:
         return False
-    return True
+
+
+def _repo_is_shallow() -> bool:
+    """Ob der Klon abgeschnitten ist (``actions/checkout`` nutzt ``fetch-depth: 1``)."""
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "--is-shallow-repository"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.strip() == "true"
 
 
 def test_classified_shas_exist_in_history() -> None:
-    """Jeder in der Tabelle genannte SHA ist ein echter Vorfahr von HEAD.
+    """Jeder bekannte, in der Tabelle genannte SHA ist ein echter Vorfahr von HEAD.
 
     Unabhängig von der Merge-Strategie stabil: die klassifizierten Commits liegen
-    bereits auf ``main``. Ohne git (Quell-Tarball) wird übersprungen.
+    bereits auf ``main``. In einem flachen Klon (CI checkout mit ``fetch-depth: 1``)
+    sind ältere Commits schlicht nicht vorhanden – dort wird der jeweilige SHA
+    übersprungen statt als „kein Vorfahr" gemeldet. Ohne git (Quell-Tarball)
+    entfällt der Test ganz.
     """
     if not _git_available():
         pytest.skip("kein git-Repository verfügbar")
+    shallow = _repo_is_shallow()
     doc = vrf.parse_freeze_doc(_freeze_doc_text())
+    checked = 0
     for sha in doc.classified:
-        merge_base = subprocess.run(
-            ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", sha, "HEAD"],
-            capture_output=True,
-            check=False,
-        )
-        assert merge_base.returncode == 0, (
+        if _git("cat-file", "-e", f"{sha}^{{commit}}") != 0:
+            assert shallow, (
+                f"{sha} existiert nicht im vollständigen Klon – die Freeze-Tabelle "
+                f"nennt einen Commit, den es nicht gibt."
+            )
+            continue  # außerhalb der Klontiefe: nicht prüfbar, kein Befund
+        assert _git("merge-base", "--is-ancestor", sha, "HEAD") == 0, (
             f"{sha} ist kein Vorfahr von HEAD – die Freeze-Tabelle nennt einen "
             f"Commit, der nicht (mehr) im Kandidatenpfad liegt."
         )
+        checked += 1
+    if not checked:
+        pytest.skip("flacher Klon ohne die klassifizierten Commits – nicht prüfbar")
