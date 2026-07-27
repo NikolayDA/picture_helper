@@ -484,13 +484,17 @@ def test_probe_cli_writes_a_reproducible_json_report(qapp, tmp_path) -> None:
     """``main`` schreibt den versionierbaren Nachweis und meldet „ok"."""
     out = tmp_path / "gl-stress.json"
     code = probe.main(
-        ["--cycles", "5", "--sizes", "klein:64:REDUCED", "--json-out", str(out), "--quiet"]
+        ["--cycles", "5", "--allow-short-run", "--sizes", "klein:64:REDUCED",
+         "--json-out", str(out), "--quiet"]
     )
 
     assert code == 0
     payload = json.loads(out.read_text("utf-8"))
     assert payload["verdict"] == "ok"
     assert payload["findings"] == []
+    # Kurzlauf: sauber, aber ausdrücklich nicht abnahmefähig (Codex-Review #706).
+    assert payload["gating"] is False
+    assert payload["min_gating_cycles"] == probe.MIN_GATING_CYCLES
     assert payload["mode"] == "fake"
     assert payload["stats_before"]["live"] == payload["stats_after"]["live"]
     assert set(payload["memory_kib"]) == {"rss_before", "rss_after"}
@@ -506,7 +510,9 @@ def test_probe_cli_fails_when_resources_leak(qapp, monkeypatch) -> None:
     """Ein Leck führt zu Exit 1 – die Sonde taugt damit als Gate."""
     monkeypatch.setattr(GLReliefViewer, "_release_gl_objects", lambda self: None)
 
-    assert probe.main(["--cycles", "5", "--sizes", "klein:64:REDUCED", "--quiet"]) == 1
+    assert probe.main(
+        ["--cycles", "5", "--allow-short-run", "--sizes", "klein:64:REDUCED", "--quiet"]
+    ) == 1
 
 
 def test_probe_cli_refuses_gl_mode_without_renderable_platform(qapp) -> None:
@@ -514,4 +520,54 @@ def test_probe_cli_refuses_gl_mode_without_renderable_platform(qapp) -> None:
     if qapp.platformName() not in probe.NON_RENDERABLE_PLATFORMS:
         pytest.skip("Plattform ist renderfähig – der Abbruchpfad gilt hier nicht")
 
-    assert probe.main(["--mode", "gl", "--cycles", "2"]) == 2
+    assert probe.main(["--mode", "gl", "--cycles", "2", "--allow-short-run"]) == 2
+
+
+def test_probe_cli_rejects_a_short_run_without_opt_in(qapp) -> None:
+    """Unter 100 Zyklen bricht die Sonde ab statt einen dünnen Nachweis zu melden.
+
+    Ein einzelner Zyklus ersetzt keinen Puffer – selbst der Zustand vor PR #676
+    meldete sich damit sauber (Codex-Review #706).
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        probe.main(["--cycles", "1", "--sizes", "klein:64:REDUCED", "--quiet"])
+
+    assert excinfo.value.code == 2  # argparse-Nutzungsfehler
+
+
+def test_full_run_is_marked_as_gating(qapp, tmp_path) -> None:
+    """Ein Lauf ab der Mindestzyklenzahl gilt als abnahmefähiger Nachweis."""
+    out = tmp_path / "gate.json"
+    code = probe.main(
+        ["--cycles", str(probe.MIN_GATING_CYCLES), "--sizes", "klein:64:REDUCED",
+         "--json-out", str(out), "--quiet"]
+    )
+
+    assert code == 0
+    assert json.loads(out.read_text("utf-8"))["gating"] is True
+
+
+def test_gl_scenario_rejects_a_failed_viewer(qapp, monkeypatch) -> None:
+    """``--mode gl`` meldet einen fehlgeschlagenen Viewer als „nicht ausführbar".
+
+    Sonst wäre die Messreihe konstant 0 – formal „kein Wachstum" – und die Sonde
+    meldete `ok`, obwohl nie GL lief (Codex-Review #706).
+    """
+    monkeypatch.setattr(GLReliefViewer, "grab", lambda self: None)
+    monkeypatch.setattr(GLReliefViewer, "has_failed", property(lambda self: True))
+
+    with pytest.raises(probe.ProbeNotExecutable, match="fehlgeschlagen"):
+        probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
+
+
+def test_gl_scenario_rejects_a_platform_that_never_uploads(qapp) -> None:
+    """Rendert die Plattform trotz Zusage nicht, ist das ein Abbruch – kein „ok".
+
+    Offscreen ist genau dieser Fall real: ``QOpenGLWidget`` existiert, aber es
+    entsteht nie ein GL-Objekt.
+    """
+    if qapp.platformName() not in probe.NON_RENDERABLE_PLATFORMS:
+        pytest.skip("Plattform rendert wirklich – hier greift der Abbruchpfad nicht")
+
+    with pytest.raises(probe.ProbeNotExecutable, match="kein einziger Upload"):
+        probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")

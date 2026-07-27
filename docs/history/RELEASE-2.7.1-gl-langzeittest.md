@@ -85,8 +85,22 @@ QT_QPA_PLATFORM=xcb python -m pytest -m gl_smoke -v
 ```
 
 Exit-Code der Sonde: `0` = kein Befund, `1` = Ressourcenbefund, `2` = Sonde in
-dieser Umgebung nicht ausführbar (z. B. `--mode gl` ohne renderfähige Plattform).
-Sie taugt damit direkt als Gate in einem Abnahmeskript.
+dieser Umgebung nicht ausführbar. Sie taugt damit direkt als Gate in einem
+Abnahmeskript.
+
+Zwei Absicherungen gegen ein **falsches Grün** (beide aus der Codex-Review zu
+PR #706):
+
+- **Mindestzyklen.** Ein Lauf unter 100 Zyklen wird abgelehnt; er ersetzt zu
+  wenig Puffer, um ein Leck zu zeigen (bei einem einzigen Zyklus gäbe es gar
+  keinen Wieder-Upload, und selbst der Zustand vor #676 meldete sich sauber).
+  `--allow-short-run` erlaubt einen Diagnoselauf ausdrücklich und markiert den
+  Bericht mit `gating: false`.
+- **Fehlgeschlagener GL-Viewer.** Scheitert unter `--mode gl` Kontext, Shader
+  oder Upload, fängt `paintGL` den Fehler ab: es entstünden 0 GL-Objekte, die
+  Messreihe wäre konstant und damit formal „ohne Wachstum". Die Sonde bricht
+  diesen Fall stattdessen mit Exit 2 ab – ebenso, wenn eine sich renderfähig
+  meldende Plattform über alle Zyklen keinen einzigen Upload erzeugt.
 
 Im Modus `fake` ersetzt die Sonde ausschließlich die GL-Objekte selbst durch
 instrumentierte Attrappen; Meshes, `_ensure_buffers`, `_release_gl_objects` und
@@ -212,7 +226,7 @@ nicht-editable Installation mit `requirements/constraints.txt`
 
 | Prüfung | Ergebnis |
 |---|---|
-| `make check` (ruff + mypy + pytest-Standardsatz) | grün – ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2065 passed, 6 skipped, 14 deselected** |
+| `make check` (ruff + mypy + pytest-Standardsatz) | grün – ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2069 passed, 6 skipped, 14 deselected** |
 | `make ui` (volle qtbot-Suite) | grün – **20 passed** |
 | `make coverage` (`fail_under = 86`) | grün – **93 %** gesamt |
 | `make gl-stress` (Sonde, 120 Zyklen) | Exit 0, Urteil `ok` (Abschnitt 4.1) |

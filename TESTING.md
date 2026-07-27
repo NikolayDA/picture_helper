@@ -163,7 +163,9 @@ QT_QPA_PLATFORM=xcb python scripts/gl_stress_probe.py --mode gl   # echter Konte
 ```
 
 Exit 0 = kein Befund, 1 = Ressourcenbefund, 2 = in dieser Umgebung nicht
-ausführbar. Ergebnisse und Hardware-Prozedur:
+ausführbar (keine renderfähige Plattform, fehlgeschlagener Viewer oder
+ausgebliebener Upload). Läufe unter 100 Zyklen lehnt die Sonde ab – für einen
+bewusst nicht abnahmefähigen Diagnoselauf `--allow-short-run` setzen. Ergebnisse und Hardware-Prozedur:
 [`docs/history/RELEASE-2.7.1-gl-langzeittest.md`](docs/history/RELEASE-2.7.1-gl-langzeittest.md).
 
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet

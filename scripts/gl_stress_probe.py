@@ -38,7 +38,13 @@ Beispiele::
     python scripts/gl_stress_probe.py --cycles 500 --json-out bericht.json
     QT_QPA_PLATFORM=xcb python scripts/gl_stress_probe.py --mode gl
 
-Exit 0 = kein Befund, 1 = Ressourcenbefund, 2 = Sonde nicht ausführbar.
+Ein Lauf unter ``MIN_GATING_CYCLES`` Zyklen wird abgelehnt: er ersetzt zu wenig
+Puffer, um ein Leck zu zeigen. ``--allow-short-run`` erlaubt ihn ausdrücklich als
+Diagnose und markiert den Bericht mit ``gating: false``.
+
+Exit 0 = kein Befund, 1 = Ressourcenbefund, 2 = Sonde nicht ausführbar (keine
+renderfähige Plattform, fehlgeschlagener Viewer oder ausgebliebener Upload –
+ausdrücklich **kein** bestandener Nachweis).
 """
 from __future__ import annotations
 
@@ -77,10 +83,24 @@ DEFAULT_SIZES: Final[tuple[tuple[str, int, MeshQuality], ...]] = (
     ("gross", 2048, MeshQuality.STANDARD),
 )
 
+#: Mindestzyklen für einen abnahmefähigen Lauf (#684 verlangt mindestens 100).
+#: Darunter findet zu wenig Ersetzung statt, um ein Leck zuverlässig zu zeigen –
+#: bei einem einzigen Zyklus gäbe es gar keinen Wieder-Upload, und selbst der
+#: Zustand vor PR #676 meldete sich sauber.
+MIN_GATING_CYCLES: Final = 100
+
 #: Zyklen, die vor der Bewertung als Initialisierung/Cache gelten. Alles danach
 #: muss konstant bleiben – so trennt die Sonde einmalige Aufwärmkosten von einem
 #: pro Zyklus weiterwachsenden Verbrauch (Akzeptanzkriterium 3 aus #684).
 WARMUP_CYCLES: Final = 2
+
+
+class ProbeNotExecutable(RuntimeError):
+    """Die Sonde konnte in dieser Umgebung nicht messen (Exit 2, **kein** „ok").
+
+    Ausdrücklich kein Ressourcenbefund: ein Lauf, der den GL-Pfad nie erreicht
+    hat, darf nicht als bestandener Nachweis durchgehen.
+    """
 
 
 # ── Instrumentierte GL-Attrappen ───────────────────────────────────────
@@ -236,6 +256,8 @@ class ProbeReport:
     stats_after: dict[str, int]
     memory: dict[str, int] = field(default_factory=dict)
     scenarios: list[ScenarioResult] = field(default_factory=list)
+    #: Ob der Lauf die Mindestzyklen erreicht und damit als Nachweis taugt.
+    gating: bool = True
 
     @property
     def findings(self) -> list[str]:
@@ -254,6 +276,8 @@ class ProbeReport:
             "stats_before": self.stats_before,
             "stats_after": self.stats_after,
             "memory_kib": self.memory,
+            "gating": self.gating,
+            "min_gating_cycles": MIN_GATING_CYCLES,
             "scenarios": [
                 {**asdict(s), "growth": s.growth} for s in self.scenarios
             ],
@@ -400,6 +424,20 @@ def run_gl_scenario(
         QApplication.processEvents()
         samples.append(gl_resource_stats().live - before.live)
         viewer_samples.append(viewer.gl_object_count)
+    # Ein fehlgeschlagener Viewer (Kontext-, Shader- oder Pufferfehler) rendert
+    # nie: ``paintGL`` fängt den Fehler ab, es entstehen 0 GL-Objekte, und die
+    # Messreihe wäre konstant 0 – also formal „kein Wachstum". Genau dieser Fall
+    # darf nicht als bestandener Nachweis durchgehen (Codex-Review #706).
+    if viewer.has_failed:
+        raise ProbeNotExecutable(
+            f"Szenario {name!r}: der GL-Viewer ist fehlgeschlagen (Kontext-/Shader-/"
+            "Pufferfehler) – es wurde nichts gemessen"
+        )
+    if max(viewer_samples, default=0) == 0:
+        raise ProbeNotExecutable(
+            f"Szenario {name!r}: kein einziger Upload hat GL-Objekte erzeugt – die "
+            "Plattform meldet sich renderfähig, rendert aber nicht"
+        )
     viewer.cleanup_gl()
     live_after_cleanup = gl_resource_stats().live - before.live
     viewer.deleteLater()
@@ -567,6 +605,11 @@ def _print_human(report: ProbeReport) -> None:
     print(f"  Zähler gesamt: {report.stats_before} → {report.stats_after}")
     print(f"  RSS: {report.memory.get('rss_before', 0)} KiB → "
           f"{report.memory.get('rss_after', 0)} KiB")
+    if not report.gating:
+        print(
+            f"HINWEIS Kurzlauf unter {MIN_GATING_CYCLES} Zyklen – Diagnose, "
+            "**kein** abnahmefähiger Nachweis für #684"
+        )
     if report.findings:
         for finding in report.findings:
             print(f"BEFUND  {finding}")
@@ -579,7 +622,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--mode", choices=("fake", "gl"), default="fake",
                         help="fake = instrumentierte Attrappen (überall), gl = echter Kontext")
     parser.add_argument("--cycles", type=int, default=120,
-                        help="Aktualisierungszyklen je Szenario (Standard 120, Minimum 100 laut #684)")
+                        help=f"Aktualisierungszyklen je Szenario (Standard 120, "
+                             f"Minimum {MIN_GATING_CYCLES} laut #684)")
+    parser.add_argument(
+        "--allow-short-run", action="store_true",
+        help=f"weniger als {MIN_GATING_CYCLES} Zyklen zulassen – der Bericht wird "
+             "dann ausdrücklich als nicht abnahmefähig gekennzeichnet (Diagnose)",
+    )
     parser.add_argument("--sizes", type=_parse_sizes, default=DEFAULT_SIZES,
                         help="NAME:PIXEL:QUALITÄT, kommagetrennt")
     parser.add_argument("--json-out", type=Path, help="Bericht zusätzlich als JSON-Datei schreiben")
@@ -588,6 +637,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.cycles < 1:
         parser.error("--cycles muss mindestens 1 sein")
+    if args.cycles < MIN_GATING_CYCLES and not args.allow_short_run:
+        parser.error(
+            f"--cycles {args.cycles} unterschreitet die geforderten "
+            f"{MIN_GATING_CYCLES} Zyklen (#684): ein kurzer Lauf ersetzt zu wenig "
+            "Puffer, um ein Leck zu zeigen. Für einen bewusst nicht abnahmefähigen "
+            "Diagnoselauf --allow-short-run setzen."
+        )
 
     from PyQt6.QtGui import QGuiApplication
 
@@ -601,7 +657,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 2
 
-    report = run_probe(args.mode, args.cycles, args.sizes)
+    try:
+        report = run_probe(args.mode, args.cycles, args.sizes)
+    except ProbeNotExecutable as exc:
+        print(f"Sonde nicht ausführbar: {exc}", file=sys.stderr)
+        return 2
+    report.gating = args.cycles >= MIN_GATING_CYCLES
     payload = report.to_json()
     if args.json_out:
         args.json_out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", "utf-8")
