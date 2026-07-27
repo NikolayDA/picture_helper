@@ -1,4 +1,4 @@
-.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui screenshots screenshots-live-3d bench bench-height bench-compare release-freeze-check clean
+.PHONY: all check pr-check install-test doctor lint lint-shell type test coverage ui gl-stress screenshots screenshots-live-3d bench bench-height bench-compare release-freeze-check clean
 
 VENV_BIN := $(CURDIR)/.venv/bin
 PYTHON ?= $(shell if [ -x "$(VENV_BIN)/python" ]; then printf '%s' "$(VENV_BIN)/python"; elif command -v python >/dev/null 2>&1; then printf '%s' python; else printf '%s' python3; fi)
@@ -60,6 +60,13 @@ coverage:
 # laeuft damit alle ui-Tests (inkl. des ui_smoke-Subsets).
 ui:
 	$(QT_ENV) "$(PYTHON)" -m pytest -m ui
+
+# GL-Ressourcen-Langzeitsonde der 3D-Vorschau (#684). Laeuft offscreen mit
+# instrumentierten Puffer-/VAO-Attrappen; auf einer renderfaehigen Plattform
+# zusaetzlich mit echtem Kontext:
+#   QT_QPA_PLATFORM=xcb python scripts/gl_stress_probe.py --mode gl
+gl-stress:
+	$(QT_ENV) "$(PYTHON)" scripts/gl_stress_probe.py $(GL_STRESS_ARGS)
 
 # Vollstaendiger, reproduzierbarer UI-Screenshot-Satz fuer die Doku/PR-Review.
 # Der Generator nutzt Qt offscreen, In-Memory-QSettings und simuliert den KI-
