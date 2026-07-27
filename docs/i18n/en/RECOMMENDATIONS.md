@@ -11,33 +11,33 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-26, PR/issue follow-up review)
+## Current Status (2026-07-27, PR/issue follow-up review)
 
-Ruff, mypy, and the local test suite remain the baseline before new PRs. Since the last update (2026-07-23), the repo owner filed three new epics with a total of 14 sub-issues. #677 was filed and closed again through PR #679 in the same period. #683 was then closed through PR #698; this follow-up review found an inconsistent freeze basis and filed #699. The live state therefore remains at **19** open issues:
+Ruff, mypy, and the local test suite remain the baseline before new PRs. The seven PRs merged on July 26/27 (#678, #679, #697, #698, #700, #701, and #703) and closed issues #677, #683, and #699 were rechecked against the final state. #677 is cleanly complete. The initially incorrect 2.7.1 freeze from #683/#698 only became reliable through #699, the two review rounds in #701, and the protocol follow-up #703. The derived candidate is `480a5fc0008ded401b02b15373d8474d67c83382`; `make release-freeze-check` passes on `main` (`b0a8faed7921`) with 0 errors/0 warnings. Meanwhile, #702 is newly open for a small README documentation drift. The live state therefore remains at **19** open issues:
 
-- **Epic #680** – v2.7.x stabilization: patch release **2.7.1** should ship the GL resource fix (PR #676) already merged to `main` to users. Sub-issues: #683 (scope freeze/version cut), #684 (GL resource/long-run test), #685 (candidate artifacts + hardware acceptance), #686 (tag/publish/post-release verification).
+- **Epic #680** – v2.7.x stabilization: patch release **2.7.1** should ship the GL resource fix (PR #676) already merged to `main` to users. #683/#699 are complete; #684 (GL resource/long-run test), #685 (candidate artifacts + hardware acceptance), and #686 (tag/publish/post-release verification) remain open.
 - **Epic #681** – EufyMake target profile: HEIGHT bit depth, mm/DPI, and gloss assumptions in the export need to be checked against manufacturer sources and real hardware and turned into a versioned target profile. Sub-issues: #687 (assumption inventory/test matrix), #688 (HEIGHT), #689 (mm/DPI), #690 (gloss), #691 (profile integration into validator/writer/dialog/docs).
 - **Epic #682** – COLOR tonal/grayscale engine: a shared Qt-free base for histogram/levels/gamma as the foundation for image optimization and later laser workflows. Sub-issues: #692 (ADR/data contract), #693 (Qt-free core), #694 (live preview/UI), #695 (layer/selection/history/project integration), #696 (performance/E2E/docs/laser-interface acceptance).
 
-The comment threads on #245 and #656 were checked again: no new comments since the last state (#245 last commented 2026-07-15, #656 never); both remain unchanged, purely external/operational trackers with no code relation. The four PRs merged on 2026-07-26 (#678, #679, #697, and #698) had green PR CI, CodeQL, dependency, and license checks. #678/#679 are technically sound; #697 addressed all three review findings in its final commit. #698, however, does not inventory the actual 2.7.1 candidate, gives no full SHA, and has no submitted independent review; #699 documents the details and acceptance criteria.
+All seven PR heads had green PR CI, CodeQL, dependency, and license checks. #678/#679 are technically sound; #697 addressed its three review findings in the final commit. The gaps in #698 were closed through #699/#701/#703. In #701, eight Codex review findings across two rounds were answered and fixed in the final state; #703 is the expected protocol-only follow-up. The comment threads on #245 and #656 remain unchanged. #702 affects all six README language variants, not only the German root file, and now records that scope and acceptance criteria.
 
-Live state per GitHub query: **19** open issues (16 from #680–#696, plus #699 and the unchanged external #656/#245).
+Live state per GitHub query: **19** open issues (16 from #680–#696, plus #702 and the unchanged external #656/#245).
 
 ### Review Result
 
+- **#677 is fully complete; #683/#699 are now reliably complete after the #701/#703 correction path.** The freeze prerequisite is satisfied, but #685 remains blocked by #684 and #686 by #685.
+- **#702 is now fully specified:** the incorrect module attribution exists in all six README language variants; scope, acceptance criteria, and the documentation label are recorded.
+- **Ready to start with no external dependency:** #684 (epic #680), #702, #692 (epic #682), and the scaffolding portion of #687 (epic #681, excluding the actual hardware tests).
 - **No new comments** on #245/#656 since the last round – no update needed on these issues.
-- **The open issues are fully specified:** each includes context, goal, non-goals/scope boundaries, and detailed acceptance criteria. The limiting factors are real dependencies: epic #681 (EufyMake) needs physical target hardware for #688–#690, epic #680 first needs freeze correction #699 and regression evidence #684, and epic #682 needs ADR #692 before any implementation.
-- **Ready to start with no external dependency:** #699 and #684 (epic #680), plus #692 (epic #682) and the scaffolding portion of #687 (epic #681, excluding the actual hardware tests).
 - **Old baseline still stable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, everything completed since **2026-06-25**, and release v2.7.0 (tag/publication/all three gate stages against commit `6f103ed`) remain unchanged and done.
 
-## Open GitHub Issues — Triage Status (2026-07-26)
+## Open GitHub Issues — Triage Status (2026-07-27)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High (delivers the merged GL resource fix to users) | 🟠 High (release pipeline + hardware acceptance) | – (epic; Sonnet, medium for tracking) | In progress – complete #699/#684 first |
-| [#699](https://github.com/NikolayDA/picture_helper/issues/699) | Correct the freeze commit to the actual 2.7.1 candidate | 🟠 High (prevents build/tagging against the commit that still identifies as 2.7.0) | 🟡 Medium (synchronize commit inventory, release notes, gates, and independent review) | Opus, medium | Start now – blocks #685/#686 |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High (delivers the merged GL resource fix to users) | 🟠 High (release pipeline + hardware acceptance) | – (epic; Sonnet, medium for tracking) | In progress – #684 is the next release blocker |
 | [#684](https://github.com/NikolayDA/picture_helper/issues/684) | GL resource/long-run test and regression gate | 🟠 High (only solid proof for PR #676) | 🟡 Medium-high (instrumenting/measuring GL resources, long-run test) | Opus, high | Ready to start |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟡 Medium (standard release pipeline producing 5 artifacts across 3 platform/architecture targets: linux-x86_64, linux-raspberrypi-arm64, macos-arm64) | 🟡 Medium (existing acceptance automation from epic #639 reusable) | Sonnet, medium (build); no agent for hardware smokes | Blocked – waits on #699 + #684 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟡 Medium (standard release pipeline producing 5 artifacts across 3 platform/architecture targets: linux-x86_64, linux-raspberrypi-arm64, macos-arm64) | 🟡 Medium (existing acceptance automation from epic #639 reusable) | Sonnet, medium (build); no agent for hardware smokes | Blocked – freeze complete, still waits on #684 |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Tag, publish, post-release verification | 🟠 High (makes the fix available to users) | 🟢 Low (established release process since v2.6.0/v2.7.0) | Sonnet, low | Blocked – waits on #685 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | In progress – start #687 first, rest hardware-bound |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🟡 Medium (research/docs, no hardware access needed) | Sonnet, medium | Ready to start (scaffolding; hardware tests separate) |
@@ -51,13 +51,14 @@ Live state per GitHub query: **19** open issues (16 from #680–#696, plus #699 
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
+| [#702](https://github.com/NikolayDA/picture_helper/issues/702) | README: attribute Layers/Height tabs to the correct modules | 🟢 Low (small architecture-doc drift repeated across six translations) | 🟢 Low (six parallel text fixes + docs gates) | Sonnet, low | Ready – update all six README languages in sync |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Enable ANTHROPIC_API_KEY secret for the vision pre-assessment | 🟡 Medium (only improves evidence quality; not a blocker per contract) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: Settings → Secrets) | Blocked (external) – can be done independently |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – resolve billing/quota on the OpenAI platform project |
 
 ### Recommended Next
 
-1. Complete **#699** (2.7.1 freeze correction) first – the current freeze commit still identifies as version 2.7.0 and must not be the basis for #685/#686.
-2. Start **#684** (GL resource/regression test) in parallel with #699 – the only solid proof for PR #676, independent of the version cut.
+1. Complete **#684** (GL resource/regression test) – after the freeze correction, this is the only remaining blocker before #685.
+2. Pick up **#702** as a small docs fix – correct the module attribution in all six README languages and run the docs gates.
 3. Start **#692** (COLOR ADR) – sets the data contract that #693–#696 build on; a pure architecture decision with no implementation risk.
 4. Begin the scaffolding of **#687** (EufyMake assumption inventory) – research/docs work possible without hardware access, but it must exist before #688–#690.
 5. **#688–#690** stay blocked until real EufyMake hardware is available for test prints – no agent can substitute for this; the repo owner should schedule hardware access/time.
@@ -65,6 +66,7 @@ Live state per GitHub query: **19** open issues (16 from #680–#696, plus #699 
 
 ## Previous Rounds
 
+- **2026-07-27 (follow-up on #678/#679/#697/#698/#700/#701/#703 and #677/#683/#699)** — all seven PR heads had green CI/CodeQL/dependency/license runs; #677 is cleanly complete. The initial freeze defect from #683/#698 was corrected through #699/#701/#703, including two review rounds and a hard release gate; final candidate `480a5fc0008ded401b02b15373d8474d67c83382`, gate on `main` 0/0. #685 now waits only on #684, and #686 on #685. New docs issue #702 was expanded to all six README languages and given acceptance criteria. Live state 19.
 - **2026-07-26 (PR/issue follow-up #678/#679/#697/#698)** — all four PR gates were green; #678/#679 are sound and #697's review findings were fixed. #683 closed through #698, but the documented freeze commit `ba7e7cd` still contains version 2.7.0 rather than the scope cut; a full SHA and submitted independent review are also missing. Follow-up #699 was filed with acceptance criteria; #685/#686 remain blocked until corrected. Live state 19.
 - **2026-07-26 (issue audit: three new epics)** — the repo owner filed epics #680 (v2.7.x stabilization/2.7.1), #681 (EufyMake target profile), and #682 (COLOR tonal engine) with 14 sub-issues; #677 was filed and closed again in the same window. #245/#656 had no new comments and remained external. At that point #683, #684, #692, and the scaffolding of #687 were ready to start without external dependencies. Live state rose from 2 to 19 open issues.
 - **2026-07-23 (#668/#669 closed out)** — #669 (stale doc live state) closed directly, since PR #671 had already fully resolved it, no further code/doc change needed. #668 (`ANLEITUNG.md`/`README.md` referencing the orphaned 2026-07-19 screenshot set) fixed via a standalone PR: living doc references (6 languages each) migrated to the current 2026-07-22 set; the acceptance evidence in `docs/history/EPIC-582-ABNAHME.md` deliberately left untouched (explanatory note added, old directory kept); new governance test added against future screenshot drift. Live state 2 open issues (both external/operational, not a blocker) — the lowest since this log began.
