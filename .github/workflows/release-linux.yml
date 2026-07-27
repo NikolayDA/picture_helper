@@ -19,8 +19,10 @@ name: Release artifacts (Linux + macOS)
 # Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
 # GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
 # erzwungen:
-#   1. ``verify-tag`` – der Tag entspricht dem Format ``vX.Y.Z`` und seine
-#      Version stimmt mit ``project.version`` aus pyproject.toml ueberein.
+#   1. ``verify-tag`` – der Tag entspricht dem Format ``vX.Y.Z``, seine Version
+#      stimmt mit ``project.version`` aus pyproject.toml ueberein, UND der
+#      getaggte Commit ist der im Freeze-Dokument protokollierte Kandidat
+#      (``scripts/verify_release_freeze.py --require-pin``, #699).
 #   2. ``test`` – die massgebliche Full-CI-Matrix (ci.yml, als
 #      wiederverwendbarer Workflow aufgerufen) ist fuer EXAKT diesen Commit
 #      gruen (Linux/macOS x Python 3.10-3.13).
@@ -56,7 +58,11 @@ jobs:
     name: Verify tag matches project version
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 + Tags: das Freeze-Gate leitet den Kandidaten aus der
+      # Historie seit dem Basis-Tag ab und braucht dafuer das ganze Fenster.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
@@ -78,6 +84,17 @@ jobs:
             exit 1
           fi
           echo "Tag $tag_name passt zu project.version $project_version."
+
+      # Gate 1b (#699): Der getaggte Commit MUSS der dokumentierte Kandidat sein.
+      # Ohne diesen Schritt genuegt es, irgendeinen Commit zu taggen, dessen
+      # pyproject-Version zum Tag passt – auch einen, der nie eingefroren wurde.
+      # Das Werkzeug prueft Versionsquellen, CHANGELOG/AppStream/Lizenzen, die
+      # vollstaendige Commit-Klassifizierung, den Release-Body und (mit
+      # --require-pin) den exakt protokollierten Kandidaten-SHA. Fehlt das
+      # Freeze-Dokument der Version, bricht es bewusst ab (fail-closed).
+      - name: Release-Freeze-Gate (dokumentierter Kandidat)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python scripts/verify_release_freeze.py --require-pin
 
   # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
   # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt. Haengt an

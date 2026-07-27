@@ -114,7 +114,11 @@ _SEVERITY_ORDER: Final = {_ERROR: 0, _WARNING: 1, _OK: 2}
 # in festen Listenzeilen bzw. als voller SHA in der ersten Tabellenspalte.
 
 _DOC_VERSION_RE: Final = re.compile(r"(?m)^- \*\*Kandidatenversion:\*\* `(\d+\.\d+\.\d+)`")
-_DOC_BASE_RE: Final = re.compile(r"(?m)^- \*\*Basis-Tag:\*\* `(v\d+\.\d+\.\d+)`")
+#: Das Basis-Tag wird mit seinem vollen SHA eingefroren. Ein Tag ist verschiebbar –
+#: nur der SHA legt das Vergleichsfenster unveraenderlich fest (Codex-Review #701).
+_DOC_BASE_RE: Final = re.compile(
+    r"(?m)^- \*\*Basis-Tag:\*\* `(v\d+\.\d+\.\d+)` \(= `([0-9a-f]{40})`\)"
+)
 _DOC_COUNT_RE: Final = re.compile(r"(?m)^- \*\*Commits im Fenster:\*\* (\d+)\b")
 _DOC_PIN_RE: Final = re.compile(
     r"(?m)^- \*\*Protokollierter Kandidaten-SHA:\*\* `([0-9a-f]{40}|nachzutragen)`"
@@ -150,6 +154,7 @@ class FreezeDoc:
 
     version: str
     base_tag: str
+    base_sha: str
     declared_count: int
     pinned_candidate: str | None
     classified: tuple[str, ...]
@@ -186,6 +191,7 @@ def parse_freeze_doc(text: str) -> FreezeDoc:
     return FreezeDoc(
         version=version.group(1),
         base_tag=base.group(1),
+        base_sha=base.group(2),
         declared_count=int(count.group(1)),
         pinned_candidate=pinned,
         classified=tuple(match.group(1) for match in _DOC_ROW_SHA_RE.finditer(text)),
@@ -242,13 +248,34 @@ def commits_between(
 
 
 def changed_paths(repo: Path, sha: str) -> tuple[str, ...]:
-    """Pfade, die *sha* gegenueber seinem ersten Parent aendert."""
+    """Pfade, die *sha* gegenueber seinem ersten Parent aendert.
+
+    ``--no-renames`` ist Pflicht: mit Umbenennungserkennung meldet git fuer
+    ``git mv bgremover/x.py docs/history/x.py`` nur das *Ziel*. Der Commit
+    saehe damit wie ein reiner Protokoll-Commit aus, obwohl er Anwendungscode
+    aus dem Baum entfernt – der Kandidat wuerde nicht nachgezogen und
+    ``--require-pin`` bliebe gruen (Codex-Review #701). Ohne Erkennung
+    erscheinen beide Seiten, und die Quelle ist kandidatenrelevant.
+    """
     parents = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()[1:]
     if parents:
-        out = _git(repo, "diff", "--name-only", parents[0], sha)
+        out = _git(repo, "diff", "--no-renames", "--name-only", parents[0], sha)
     else:  # Root-Commit (im Repo praktisch nicht erreichbar, aber definiert)
-        out = _git(repo, "show", "--name-only", "--pretty=format:", sha)
+        out = _git(repo, "show", "--no-renames", "--name-only", "--pretty=format:", sha)
     return tuple(line.strip() for line in out.splitlines() if line.strip())
+
+
+def is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
+    """Ob *ancestor* ein Vorfahr von *descendant* ist (beide muessen existieren)."""
+    result = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", ancestor, descendant],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode in (0, 1):
+        return result.returncode == 0
+    raise GitError(f"git merge-base --is-ancestor -> {result.returncode}: {result.stderr.strip()}")
 
 
 def read_at_rev(repo: Path, rev: str, path: str) -> str:
@@ -301,6 +328,12 @@ def load_extract_release_notes(repo: Path, rev: str) -> Callable[[str, str], str
     return cast(Callable[[str, str], str], func)
 
 
+def changelog_release_date(changelog: str, version: str) -> str | None:
+    """Datum der Ueberschrift ``## [version] – JJJJ-MM-TT`` (oder ``None``)."""
+    match = re.search(rf"(?m)^## \[{re.escape(version)}\] – (\d{{4}}-\d{{2}}-\d{{2}})$", changelog)
+    return match.group(1) if match else None
+
+
 def missing_release_body_markers(notes: str, language: str) -> tuple[str, ...]:
     """Pflichtangaben, die im Release-Body *notes* der *language* fehlen."""
     return tuple(marker for marker in RELEASE_BODY_MARKERS[language] if marker not in notes)
@@ -328,11 +361,8 @@ def _check_versions(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
     else:
         findings.append(Finding(_OK, "pyproject-version", f"pyproject.toml = {version}"))
 
-    changelog = read_at_rev(repo, rev, "CHANGELOG.md")
-    date_match = re.search(
-        rf"(?m)^## \[{re.escape(version)}\] – (\d{{4}}-\d{{2}}-\d{{2}})$", changelog
-    )
-    if date_match is None:
+    release_date = changelog_release_date(read_at_rev(repo, rev, "CHANGELOG.md"), version)
+    if release_date is None:
         findings.append(
             Finding(
                 _ERROR,
@@ -342,7 +372,7 @@ def _check_versions(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
         )
     else:
         findings.append(
-            Finding(_OK, "changelog-section", f"CHANGELOG.md [{version}] – {date_match.group(1)}")
+            Finding(_OK, "changelog-section", f"CHANGELOG.md [{version}] – {release_date}")
         )
         metainfo = ET.fromstring(
             read_at_rev(repo, rev, "packaging/linux/de.bgremover.app.metainfo.xml")
@@ -352,18 +382,18 @@ def _check_versions(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
             findings.append(
                 Finding(_ERROR, "appstream-release-missing", "AppStream ohne <release>-Eintrag")
             )
-        elif (release.get("version"), release.get("date")) != (version, date_match.group(1)):
+        elif (release.get("version"), release.get("date")) != (version, release_date):
             findings.append(
                 Finding(
                     _ERROR,
                     "appstream-release-mismatch",
                     f"AppStream meldet {release.get('version')}/{release.get('date')}, "
-                    f"erwartet {version}/{date_match.group(1)}",
+                    f"erwartet {version}/{release_date}",
                 )
             )
         else:
             findings.append(
-                Finding(_OK, "appstream-release", f"AppStream {version}/{date_match.group(1)}")
+                Finding(_OK, "appstream-release", f"AppStream {version}/{release_date}")
             )
 
     for path in ("LICENSES.md", *(f"docs/i18n/{lang}/LICENSES.md" for lang in LANGUAGES)):
@@ -386,13 +416,39 @@ def _check_versions(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
 
 
 def _check_release_body(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
-    """Der tatsaechlich veroeffentlichte Body nennt die Pflichtangaben (#683)."""
+    """Der tatsaechlich veroeffentlichte Body nennt die Pflichtangaben (#683).
+
+    Zusaetzlich wird je Sprache die *Datumszeile* geprueft. ``extract_release_notes``
+    akzeptiert hinter ``## [2.7.1]`` beliebigen Text – eine Uebersetzung koennte
+    also ein fehlendes oder falsches Release-Datum tragen, waehrend der Body
+    formal vollstaendig ist; verglichen wurde bisher nur das deutsche Datum mit
+    AppStream (Codex-Review #701).
+    """
     extract = load_extract_release_notes(repo, rev)
     findings: list[Finding] = []
+    root_date = changelog_release_date(read_at_rev(repo, rev, "CHANGELOG.md"), doc.version)
     for language in ("de", *LANGUAGES):
         path = "CHANGELOG.md" if language == "de" else f"docs/i18n/{language}/CHANGELOG.md"
+        changelog = read_at_rev(repo, rev, path)
+        date = changelog_release_date(changelog, doc.version)
+        if date is None:
+            findings.append(
+                Finding(
+                    _ERROR,
+                    "release-date-missing",
+                    f"{path}: Überschrift [{doc.version}] ohne Datum 'JJJJ-MM-TT'",
+                )
+            )
+        elif root_date is not None and date != root_date:
+            findings.append(
+                Finding(
+                    _ERROR,
+                    "release-date-mismatch",
+                    f"{path}: Release-Datum {date}, CHANGELOG.md nennt {root_date}",
+                )
+            )
         try:
-            notes = extract(read_at_rev(repo, rev, path), doc.version)
+            notes = extract(changelog, doc.version)
         except KeyError:
             findings.append(
                 Finding(
@@ -418,6 +474,10 @@ def _check_release_body(repo: Path, rev: str, doc: FreezeDoc) -> list[Finding]:
                 "release-body",
                 "Release-Body nennt Auswirkung/Betroffene/Upgrade/Einschränkungen (6 Sprachen)",
             )
+        )
+    if not any(f.code.startswith("release-date") for f in findings):
+        findings.append(
+            Finding(_OK, "release-dates", f"6 CHANGELOG-Überschriften datiert auf {root_date}")
         )
     return findings
 
@@ -505,7 +565,9 @@ def _check_pin(repo: Path, rev: str, candidate: str, doc: FreezeDoc, require_pin
         # neuen kandidatenrelevanten Commit mit identischem kandidatenrelevanten
         # Inhalt. Das ist kein Freeze-Bruch, sondern ein Protokoll-Nachtrag.
         drift = candidate_relevant_paths(
-            _git(repo, "diff", "--name-only", doc.pinned_candidate, candidate).splitlines()
+            _git(
+                repo, "diff", "--no-renames", "--name-only", doc.pinned_candidate, candidate
+            ).splitlines()
         )
         if drift:
             return Finding(
@@ -543,17 +605,42 @@ def verify(repo: Path, rev: str, *, require_pin: bool = False) -> list[Finding]:
         return [Finding(_ERROR, "pyproject-version-missing", "pyproject.toml ohne version")]
     doc = parse_freeze_doc(read_at_rev(repo, head, FREEZE_DOC_TEMPLATE.format(version=version)))
 
-    base = doc.base_tag
+    # Das Vergleichsfenster haengt am eingefrorenen **SHA**, nicht am Tag-Namen:
+    # ein verschobenes Tag koennte auf einen Geschwister-Commit mit demselben
+    # Parent zeigen und dasselbe base..head-Fenster erzeugen, waehrend alle
+    # Pruefungen gegen die falsche Basis liefen (Codex-Review #701).
+    base = doc.base_sha
     try:
-        rev_parse(repo, base)
+        resolved_tag = rev_parse(repo, doc.base_tag)
     except GitError:
         return [
             Finding(
                 _ERROR,
                 "base-tag-missing",
-                f"Basis-Tag {base} ist lokal nicht bekannt (git fetch --tags?)",
+                f"Basis-Tag {doc.base_tag} ist lokal nicht bekannt (git fetch --tags?)",
             )
         ]
+    if resolved_tag != base:
+        return [
+            Finding(
+                _ERROR,
+                "base-tag-moved",
+                f"Basis-Tag {doc.base_tag} zeigt auf {resolved_tag}, eingefroren ist {base} – "
+                "das Tag wurde verschoben oder das Freeze-Dokument nennt die falsche Basis",
+            )
+        ]
+    if not is_ancestor(repo, base, head):
+        return [
+            Finding(
+                _ERROR,
+                "base-not-ancestor",
+                f"Eingefrorene Basis {base} ist kein Vorfahr von {head[:12]} – "
+                "der geprüfte Commit steht nicht auf der Release-Linie",
+            )
+        ]
+    findings.append(
+        Finding(_OK, "base-tag", f"Basis {doc.base_tag} = {base}, Vorfahr von {head[:12]}")
+    )
 
     candidate = derive_candidate(repo, base, head)
     if candidate is None:
@@ -571,7 +658,7 @@ def verify(repo: Path, rev: str, *, require_pin: bool = False) -> list[Finding]:
     findings += _check_versions(repo, candidate, doc)
     findings += _check_release_body(repo, candidate, doc)
     findings += _check_classification(
-        repo, base, candidate, commits_between(repo, base, candidate), doc
+        repo, doc.base_tag, candidate, commits_between(repo, base, candidate), doc
     )
     findings.append(_check_pin(repo, head, candidate, doc, require_pin))
     return findings
@@ -618,7 +705,7 @@ def main(argv: list[str] | None = None) -> int:
             doc = parse_freeze_doc(
                 read_at_rev(args.repo, head, FREEZE_DOC_TEMPLATE.format(version=version))
             )
-            candidate = derive_candidate(args.repo, doc.base_tag, head)
+            candidate = derive_candidate(args.repo, doc.base_sha, head)
             if candidate is None:
                 print("::error::kein kandidatenrelevanter Commit im Fenster", file=sys.stderr)
                 return 2

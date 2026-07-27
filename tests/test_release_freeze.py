@@ -89,6 +89,10 @@ def test_freeze_doc_declares_machine_readable_candidate_fields() -> None:
         "diese Abweichung."
     )
     assert re.fullmatch(r"v\d+\.\d+\.\d+", doc.base_tag)
+    assert re.fullmatch(r"[0-9a-f]{40}", doc.base_sha), (
+        "Das Basis-Tag muss mit seinem vollen SHA eingefroren sein – ein Tag "
+        "lässt sich verschieben, ein SHA nicht."
+    )
 
 
 def test_freeze_doc_window_count_matches_classification_table() -> None:
@@ -212,7 +216,7 @@ def test_candidate_relevant_paths_filters_and_keeps_order() -> None:
 
 _MINIMAL_DOC = """# Release 9.9.9 – Scope-Freeze
 
-- **Basis-Tag:** `v9.9.8`
+- **Basis-Tag:** `v9.9.8` (= `{base}`)
 - **Kandidatenversion:** `9.9.9`
 - **Commits im Fenster:** 2
 - **Protokollierter Kandidaten-SHA:** `{pin}`
@@ -224,11 +228,16 @@ _MINIMAL_DOC = """# Release 9.9.9 – Scope-Freeze
 """
 
 
+def _minimal_doc(*, pin: str, sha: str, base: str = "0" * 40) -> str:
+    return _MINIMAL_DOC.format(pin=pin, sha=sha, base=base)
+
+
 def test_parse_freeze_doc_reads_pin_and_rows() -> None:
     sha = "a" * 40
-    doc = vrf.parse_freeze_doc(_MINIMAL_DOC.format(pin="b" * 40, sha=sha))
+    doc = vrf.parse_freeze_doc(_minimal_doc(pin="b" * 40, sha=sha, base="9" * 40))
     assert doc.version == "9.9.9"
     assert doc.base_tag == "v9.9.8"
+    assert doc.base_sha == "9" * 40
     assert doc.declared_count == 2
     assert doc.pinned_candidate == "b" * 40
     assert doc.classified == (sha,)
@@ -236,19 +245,28 @@ def test_parse_freeze_doc_reads_pin_and_rows() -> None:
 
 
 def test_parse_freeze_doc_treats_placeholder_as_unpinned() -> None:
-    doc = vrf.parse_freeze_doc(_MINIMAL_DOC.format(pin="nachzutragen", sha="c" * 40))
+    doc = vrf.parse_freeze_doc(_minimal_doc(pin="nachzutragen", sha="c" * 40))
     assert doc.pinned_candidate is None
 
 
 def test_parse_freeze_doc_rejects_short_sha_pin() -> None:
     """Ein Kurz-SHA im Protokollfeld ist kein gültiger Nachweis (#699)."""
     with pytest.raises(vrf.DocFormatError):
-        vrf.parse_freeze_doc(_MINIMAL_DOC.format(pin="ba7e7cd", sha="d" * 40))
+        vrf.parse_freeze_doc(_minimal_doc(pin="ba7e7cd", sha="d" * 40))
 
 
 def test_parse_freeze_doc_rejects_missing_mandatory_lines() -> None:
-    text = _MINIMAL_DOC.format(pin="e" * 40, sha="f" * 40).replace(
-        "- **Basis-Tag:** `v9.9.8`\n", ""
+    text = _minimal_doc(pin="e" * 40, sha="f" * 40).replace(
+        "- **Basis-Tag:** `v9.9.8` (= `" + "0" * 40 + "`)\n", ""
+    )
+    with pytest.raises(vrf.DocFormatError, match="Basis-Tag"):
+        vrf.parse_freeze_doc(text)
+
+
+def test_parse_freeze_doc_requires_the_frozen_base_sha() -> None:
+    """Der Tag-Name allein genügt nicht – ein Tag ist verschiebbar (#701-Review)."""
+    text = _minimal_doc(pin="e" * 40, sha="f" * 40).replace(
+        " (= `" + "0" * 40 + "`)", ""
     )
     with pytest.raises(vrf.DocFormatError, match="Basis-Tag"):
         vrf.parse_freeze_doc(text)
@@ -299,6 +317,15 @@ def _write(repo: Path, relative: str, text: str) -> None:
     path = repo / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _head(repo: Path) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
 
 
 def _commit(repo: Path, relative: str, text: str, message: str) -> str:
@@ -399,6 +426,7 @@ def _doc(pin: str) -> object:
     return vrf.FreezeDoc(
         version="1.0.0",
         base_tag="v0.9.0",
+        base_sha="0" * 40,
         declared_count=1,
         pinned_candidate=pin,
         classified=(),
@@ -460,3 +488,122 @@ def test_classified_shas_exist_in_history() -> None:
         checked += 1
     if not checked:
         pytest.skip("flacher Klon ohne die klassifizierten Commits – nicht prüfbar")
+
+
+# ── Codex-Review (zweite Runde auf `a97e5a12…`) ───────────────────────
+
+
+def test_rename_into_a_protocol_path_stays_candidate_relevant(tiny_repo: Path) -> None:
+    """`git mv bgremover/x.py docs/history/x.py` ist kein Protokoll-Commit.
+
+    Mit git-Umbenennungserkennung meldet ``diff --name-only`` nur das Ziel – der
+    Commit sähe wie reine Protokolldoku aus, obwohl er Anwendungscode aus dem
+    Baum entfernt. Der Kandidat würde nicht nachgezogen und ``--require-pin``
+    bliebe grün.
+    """
+    base = _head(tiny_repo)
+    _commit(tiny_repo, "bgremover/x.py", "x = 1\n", "code")
+    (tiny_repo / "docs" / "history").mkdir(parents=True, exist_ok=True)
+    _run(tiny_repo, "mv", "bgremover/x.py", "docs/history/x.py")
+    _run(tiny_repo, "commit", "-q", "-m", "verschoben")
+    moved = _head(tiny_repo)
+
+    paths = vrf.changed_paths(tiny_repo, moved)
+    assert "bgremover/x.py" in paths, (
+        "Beide Seiten der Umbenennung müssen sichtbar sein (git diff --no-renames)"
+    )
+    assert vrf.candidate_relevant_paths(paths) == ("bgremover/x.py",)
+    assert vrf.derive_candidate(tiny_repo, base, "HEAD") == moved
+
+
+def _seed_freeze_doc(repo: Path, base_sha: str) -> None:
+    """pyproject + Freeze-Dokument für 9.9.9 committen (Basis-SHA frei wählbar)."""
+    _write(repo, "pyproject.toml", '[project]\nversion = "9.9.9"\n')
+    _write(
+        repo,
+        vrf.FREEZE_DOC_TEMPLATE.format(version="9.9.9"),
+        _minimal_doc(pin="b" * 40, sha="a" * 40, base=base_sha),
+    )
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "freeze")
+
+
+def test_verify_rejects_a_moved_base_tag(tiny_repo: Path) -> None:
+    """Ein verschobenes Tag darf das Vergleichsfenster nicht verschieben."""
+    frozen_base = _head(tiny_repo)
+    sibling = _commit(tiny_repo, "andere.txt", "x\n", "geschwister")
+    _run(tiny_repo, "tag", "v9.9.8", sibling)
+    _seed_freeze_doc(tiny_repo, frozen_base)
+
+    findings = vrf.verify(tiny_repo, "HEAD")
+    assert [f.code for f in findings] == ["base-tag-moved"]
+    assert findings[0].severity == "error"
+
+
+def test_verify_rejects_a_base_outside_the_release_line(tiny_repo: Path) -> None:
+    """Die eingefrorene Basis muss ein Vorfahr des geprüften Commits sein."""
+    _run(tiny_repo, "checkout", "-q", "-b", "seite")
+    off_line = _commit(tiny_repo, "seite.txt", "x\n", "seitenzweig")
+    _run(tiny_repo, "tag", "v9.9.8", off_line)
+    _run(tiny_repo, "checkout", "-q", "main")
+    _seed_freeze_doc(tiny_repo, off_line)
+
+    findings = vrf.verify(tiny_repo, "HEAD")
+    assert [f.code for f in findings] == ["base-not-ancestor"]
+
+
+def test_translated_release_date_drift_is_reported(tiny_repo: Path) -> None:
+    """Ein falsches Datum in einer Übersetzung fällt auf (#701-Review).
+
+    ``extract_release_notes`` akzeptiert hinter ``## [9.9.9]`` beliebigen Text –
+    der Body wäre formal vollständig, während die Metadaten still driften.
+    """
+    _write(
+        tiny_repo,
+        "scripts/extract_release_notes.py",
+        "def extract_release_notes(changelog: str, version: str) -> str:\n"
+        "    return changelog\n",
+    )
+    _write(tiny_repo, "CHANGELOG.md", "## [9.9.9] – 2026-01-01\n\ntext\n")
+    for language in ("en", "es", "fr", "uk"):
+        _write(
+            tiny_repo,
+            f"docs/i18n/{language}/CHANGELOG.md",
+            "## [9.9.9] – 2026-01-01\n\ntext\n",
+        )
+    _write(tiny_repo, "docs/i18n/zh/CHANGELOG.md", "## [9.9.9] – 2026-02-02\n\ntext\n")
+    _run(tiny_repo, "add", "-A")
+    _run(tiny_repo, "commit", "-q", "-m", "changelogs")
+
+    doc = vrf.FreezeDoc(
+        version="9.9.9",
+        base_tag="v9.9.8",
+        base_sha="0" * 40,
+        declared_count=1,
+        pinned_candidate=None,
+        classified=(),
+        has_self_row=True,
+    )
+    findings = vrf._check_release_body(tiny_repo, "HEAD", doc)
+    drift = [f for f in findings if f.code == "release-date-mismatch"]
+    assert len(drift) == 1, [f.code for f in findings]
+    assert "docs/i18n/zh/CHANGELOG.md" in drift[0].message
+    assert "2026-02-02" in drift[0].message and "2026-01-01" in drift[0].message
+
+
+def test_release_workflow_runs_the_freeze_gate() -> None:
+    """Das Gate ist im Release-Pfad verdrahtet, nicht bloß ein make-Ziel.
+
+    Ohne diesen Schritt genügt es, irgendeinen Commit mit passender
+    pyproject-Version zu taggen, um ihn zu bauen und zu veröffentlichen.
+    """
+    workflow = (ROOT / ".github" / "workflows" / "release-linux.yml").read_text(encoding="utf-8")
+    verify_tag_job = workflow.split("  verify-tag:", 1)[1].split("\n  test:", 1)[0]
+    assert "scripts/verify_release_freeze.py --require-pin" in verify_tag_job, (
+        "release-linux.yml muss den getaggten Commit gegen das Freeze-Dokument "
+        "prüfen, bevor gebaut oder veröffentlicht wird (#699)."
+    )
+    assert "fetch-depth: 0" in verify_tag_job, (
+        "Die Kandidatenableitung braucht die Historie seit dem Basis-Tag – der "
+        "Standard-Checkout (fetch-depth: 1) reicht dafür nicht."
+    )
