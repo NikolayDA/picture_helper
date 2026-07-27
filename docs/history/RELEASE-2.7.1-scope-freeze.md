@@ -40,12 +40,10 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
 - **Commits im Fenster:** 15 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
   entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #684,
-  ausgehend von einem Squash-Merge des zugehörigen PR).
-- **Protokollierter Kandidaten-SHA:** `nachzutragen`
-  (Kandidatenwechsel durch #684 – GL-Ressourcen-Langzeitnachweis, siehe
-  Kandidatenwechsel 6. unten. Der SHA entsteht erst mit dem Merge des
-  zugehörigen PR und wird unmittelbar danach durch einen reinen
-  Protokoll-Commit eingetragen.)
+  per Squash-Merge von PR #706 bestätigt).
+- **Protokollierter Kandidaten-SHA:** `65a656aa41416219bbcdcedba92e06047d2a8ed0`
+  (`test(viewer3d): GL-Ressourcen-Langzeitnachweis und Regressionsgate für
+  2.7.1 (#684) (#706)`, Squash-Merge von PR #706 auf `main`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -102,19 +100,14 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-Aktuell steht **kein** Commit über dem Kandidaten: der Kandidatenwechsel durch
-#684 hat die bisherigen drei Protokoll-Commits (`b0a8fae`, `d97d226`,
-`a0f6ef1`) in das Fenster gezogen; sie stehen jetzt in der Tabelle oben.
+- **Protokollierung des Kandidaten-SHA nach dem Merge von PR #706** (#684):
+  trägt den vollen 40-stelligen SHA des Squash-Commits oben ein, bestätigt die
+  Fensterzahl 15 und ergänzt die Gate-Nachweise; ändert nur
+  `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
-Ausstehend ist genau ein Protokoll-Commit:
-
-- **Protokollierung des Kandidaten-SHA nach dem Merge des #684-PR:** trägt den
-  vollen 40-stelligen SHA des Merge-/Squash-Commits oben ein (statt
-  `nachzutragen`), korrigiert bei Bedarf die Fensterzahl (bei einem echten
-  Merge-Commit statt eines Squash) und ergänzt die Gate-Nachweise; ändert nur
-  `docs/history/RELEASE-2.7.1-scope-freeze.md`. **Bis dahin ist der Freeze nicht
-  abnahmefähig** – `verify_release_freeze.py --require-pin` (und damit
-  `verify-tag` in `release-linux.yml`) schlägt bewusst fehl.
+Die drei zuvor hier geführten Protokoll-Commits (`b0a8fae`, `d97d226`,
+`a0f6ef1`) liegen seit dem Kandidatenwechsel durch #684 **im** Fenster und
+stehen in der Klassifizierungstabelle oben.
 
 **Zur Squash-Historie:** PR #701 wurde als **Squash** eingebracht. Die sechs
 Zweig-Commits (`bba18044755c…`, `09a328863e6a…`, `ad63e362062a…`,
@@ -286,8 +279,9 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | `make ui` | grün: **20 passed** |
 | `make coverage` (`fail_under = 86`) | grün: **93 %** |
 | `make gl-stress` (120 Zyklen) und Langlauf (1000 Zyklen) | Exit 0, Urteil `ok`; lebende GL-Objekte konstant, erzeugt == freigegeben, 0 nach dem Aufräumen (Zählerstände im Testbericht) |
-| `python scripts/verify_release_freeze.py` | erwartet **eine Warnung** `candidate-sha-unpinned`, bis der Protokoll-Commit nach dem Merge den SHA nachträgt; mit `--require-pin` bewusst ein Fehler |
-| dasselbe, ausgeführt **auf dem Zweig** statt auf `main` | zusätzlich `commit-count-mismatch` (16 statt 15) und `unclassified-candidate-commit` für den Code-Commit `e48dd89ab09da60e1604ae1fab0c40d8ad4c0852`: der Zweig trägt Code und Doku als zwei Commits, der Squash-Merge fasst beide zu genau **einem** Kandidaten zusammen, den die `Kandidaten-Commit`-Zeile oben abdeckt. Die Tabelle beschreibt bewusst den gemergten Stand; wird ausnahmsweise **ohne** Squash gemergt, ziehen Zahl und Zeile im ausstehenden Protokoll-Commit nach |
+| `python scripts/verify_release_freeze.py` (auf `main`, vor diesem Protokoll-Commit) | 0 Fehler, 1 Warnung `candidate-sha-unpinned`; abgeleiteter Kandidat `65a656aa4141…`, „15 Commits vollständig klassifiziert" |
+| `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Commit) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
+| PR-CI von #706 auf `973a7034f3c2…` | alle 12 Checks grün bzw. übersprungen (Lightweight PR checks, CodeQL/Analyze, license-check, pip-audit 3.10/3.12, review, license summary); beide Codex-Befunde (falsches Grün bei fehlgeschlagenem GL-Viewer, nicht erzwungene Mindestzyklen) vor dem Merge behoben |
 
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
@@ -312,8 +306,10 @@ wiederholt, keiner still nachgezogen):
    nicht abgelehnt, sondern nach dem vorgeschriebenen Verfahren vollständig
    nachgezogen: Tabelle um die drei zuvor darüber liegenden Protokoll-Commits
    und den neuen Kandidaten ergänzt, Fensterzahl 11 → 15, Kandidaten-SHA auf
-   `nachzutragen` zurückgesetzt, Gate-Nachweise wiederholt. Der SHA folgt mit
-   dem Protokoll-Commit nach dem Merge.
+   `nachzutragen` zurückgesetzt, Gate-Nachweise wiederholt. Der Squash-Merge von
+   PR #706 (`65a656aa4141…`) wurde zum abgeleiteten Kandidaten; dieser
+   Protokoll-Commit trägt den SHA nach. Damit ist der Freeze wieder
+   abnahmefähig.
 
 Die Punkte 1.–4. liegen als Commits nicht mehr auf `main` (Squash); sie sind
 über PR #701 einsehbar und hier bewusst als Entstehungsgeschichte protokolliert.
