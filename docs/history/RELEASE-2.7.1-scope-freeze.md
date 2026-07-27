@@ -30,14 +30,18 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
 
 - **Basis-Tag:** `v2.7.0` (= `6f103edde7c4394e378ade7f84cad6a02828bbad`)
 - **Kandidatenversion:** `2.7.1`
-- **Kandidatenregel:** Kandidat ist der **jüngste Commit in
-  `v2.7.0..main`, der einen kandidatenrelevanten Pfad ändert.** Reine
-  Protokoll-Commits darüber (siehe Pfadklassen unten) verschieben den
-  Kandidaten nicht.
-- **Commits im Fenster:** 13 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+- **Kandidatenregel:** Kandidat ist der **jüngste Commit der Mainline
+  (`--first-parent`) in `v2.7.0..main`, der einen kandidatenrelevanten Pfad
+  ändert.** Reine Protokoll-Commits darüber (siehe Pfadklassen unten)
+  verschieben den Kandidaten nicht. First-parent, damit ein Merge mit dem
+  Baum zählt, den er **netto** in die Release-Linie eingebracht hat: ein
+  Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
+  späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
+  bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
+- **Commits im Fenster:** 15 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
   entspricht genau einem Commit).
-- **Protokollierter Kandidaten-SHA:** `ad63e362062acebe41fa04ae50b9376923cfd9d8`
-  (`fix(tests): Freeze-SHA-Prüfung im flachen Klon nicht fehlschlagen lassen
+- **Protokollierter Kandidaten-SHA:** `f06a9cba01ce3b3b013461e383cd5931e17b1144`
+  (`fix(release-freeze): Codex-Reviewbefunde zur Kandidatenableitung beheben
   (#699)`, Stand des Korrektur-Zweigs `claude/github-issue-699-buighx`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
@@ -84,7 +88,9 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `9b27527d1db7aa7bacc84f125ea969eceba0abc4` (#700, kurz `9b27527`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem PR-/Issue-Audit vom 26.07. (führt #699 als Folge-Issue ein). | Keins – reine Statusdoku in sechs Sprachen. | – (Doku-Snapshot); PR-CI von #700 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen, sonst nichts). Verschiebt den Kandidaten nicht; nicht in Release Notes. |
 | `bba18044755cf27e53f4505a297f33349e67091a` (#699, kurz `bba1804`) | **Freeze-Korrektur.** Diese Datei vollständig neu klassifiziert (volle SHAs, Kandidatenregel, Pfadklassen); `scripts/verify_release_freeze.py` als abgeleitete, maschinelle Kandidatenbestimmung; `tests/test_release_freeze.py`; `[2.7.1]`-CHANGELOG in allen sechs Sprachen um „Hinweise zu diesem Release" (Auswirkung/Betroffene/Upgrade-Relevanz/Einschränkungen) ergänzt, damit der veröffentlichte Release-Body diese Angaben wirklich enthält; `make release-freeze-check`. | Niedrig – kein `bgremover/**`-Code berührt, keine Verhaltensänderung der Anwendung; Änderungen betreffen Release-Metadaten (CHANGELOG-Text), ein Prüfskript und Tests. | `make check` grün auf diesem Commit (2031 passed, 5 skipped, 14 deselected); PR-CI #701 rot in genau einem Punkt: der neue git-Test war nicht flach-klon-tauglich (siehe Folgezeile). | **Aufnehmen – war Kandidat, jetzt durch den Nachfreeze-Fix ersetzt.** |
 | `09a328863e6a6c42078c6850b9d7dcaed7469ab3` (#699, kurz `09a3288`) | Protokoll – trug den damaligen Kandidaten-SHA und die Gate-Nachweise nach. Ändert nur `docs/history/**`. | Keins. | – (Protokoll); `make release-freeze-check` lief danach mit 0 Fehlern/0 Warnungen. | Protokoll-Commit; verschiebt den Kandidaten nicht. Liegt seit dem Nachfreeze-Fix **innerhalb** des Fensters und ist deshalb hier klassifiziert. |
-| `Kandidaten-Commit` (#699, voller SHA unter „Protokollierter Kandidaten-SHA") | **Nachfreeze-Fix (Regressionsfund in einer release-relevanten Prüfung).** `tests/test_release_freeze.py` wertete in einem flachen Klon (`actions/checkout`, `fetch-depth: 1`) den git-Exit 128 „Not a valid commit name" als „kein Vorfahr" und färbte die PR-CI rot. Jetzt wird zwischen „Objekt nicht im Klon" (nur flach zulässig → skip) und „vorhanden, aber kein Vorfahr" (echter Befund) unterschieden. | Niedrig – reine Testlogik, kein Anwendungscode, keine Release-Metadaten. | `make check` grün (2031 passed, 5 skipped, 14 deselected); zusätzlich in einem simulierten `--depth 1`-Klon geprüft: Test meldet sich dort als *skipped* statt rot. | **Aufnehmen – neuer Kandidat.** Genau der Fall, den die Freeze-Regel zulässt (Regression in einer release-relevanten Prüfung); Dokument, Fensterzahl und Protokollfeld sind mit diesem Eintrag vollständig wiederholt. |
+| `ad63e362062acebe41fa04ae50b9376923cfd9d8` (#699, kurz `ad63e36`) | **Nachfreeze-Fix (Regressionsfund in einer release-relevanten Prüfung).** `tests/test_release_freeze.py` wertete in einem flachen Klon (`actions/checkout`, `fetch-depth: 1`) den git-Exit 128 „Not a valid commit name" als „kein Vorfahr" und färbte die PR-CI rot. Jetzt wird „Objekt nicht im Klon" (nur flach zulässig → *skipped*) von „vorhanden, aber kein Vorfahr" (echter Befund) unterschieden. | Niedrig – reine Testlogik, kein Anwendungscode, keine Release-Metadaten. | `make check` grün (2031 passed, 5 skipped, 14 deselected); zusätzlich in einem simulierten `--depth 1`-Klon geprüft. | **Aufnehmen – war Kandidat, jetzt durch die Reviewkorrektur ersetzt.** |
+| `24fe4cc56af93adabeb36373ee9cd80f9a1ec347` (#699, kurz `24fe4cc`) | Protokoll – Wiederholung des Dokuments nach dem Nachfreeze-Fix (Fensterzahl, Nachklassifizierung, Kandidaten-SHA, Gate-Nachweise). Ändert nur `docs/history/**`. | Keins. | – (Protokoll); `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll-Commit; verschiebt den Kandidaten nicht. Liegt seit der Reviewkorrektur **innerhalb** des Fensters und ist deshalb hier klassifiziert. |
+| `Kandidaten-Commit` (#699, voller SHA unter „Protokollierter Kandidaten-SHA") | **Reviewkorrektur (unabhängige Review auf PR #701).** Drei Befunde am Prüfwerkzeug behoben: Kandidatenableitung folgt `--first-parent` (ein Seitenzweig-Commit eines unsquashed Merge, dessen Baum nie ankam, kann nicht mehr Kandidat werden); der Release-Body wird mit dem `extract_release_notes.py` **des geprüften Commits** erzeugt statt mit der lokalen Fassung; `--require-pin` verlangt exakte SHA-Übereinstimmung (Freeze-Äquivalenz genügt als Release-Gate nicht). | Niedrig – Prüfwerkzeug und Tests, kein Anwendungscode, keine Release-Metadaten; die Verschärfung kann einen Release nur strenger, nie lockerer machen. | `make check` grün (2036 passed, 5 skipped, 14 deselected); neue Tests gegen ein echtes Mini-Repository (`-s ours`-Merge, echter Merge, Extraktor-Version, Pin-Fälle); `make release-freeze-check` 0 Fehler/0 Warnungen. | **Aufnehmen – neuer Kandidat.** Behebung von Reviewbefunden am Freeze-Werkzeug ist ein zulässiger Nachfreeze-Grund; Dokument, Fensterzahl und Protokollfeld sind mit diesem Eintrag vollständig wiederholt. |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -93,14 +99,15 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-- **Protokollierung des Kandidaten-SHA nach dem Nachfreeze-Fix** (#699): trägt
-  den vollen 40-stelligen SHA oben, die neue Fensterzahl, die beiden
+- **Protokollierung des Kandidaten-SHA nach der Reviewkorrektur** (#699): trägt
+  den vollen 40-stelligen SHA oben, die neue Fensterzahl, die
   nachklassifizierten Commits und die Gate-Nachweise unten nach; ändert nur
   `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
-Der erste Protokoll-Commit dieser Art (`09a328863e6a…`) liegt seit dem
-Nachfreeze-Fix innerhalb des Fensters und steht deshalb oben in der
-Klassifizierungstabelle.
+Frühere Protokoll-Commits (`09a328863e6a…`, `24fe4cc56af9…`) liegen seit den
+jeweils folgenden Kandidatenwechseln innerhalb des Fensters und stehen deshalb
+oben in der Klassifizierungstabelle. Das ist der Normalfall: Jeder neue
+Kandidat zieht die bisherigen Protokoll-Commits in die Tabelle.
 
 ### Abgrenzung „opportunistisches Refactoring" vs. `45ebac3929b8…`
 
@@ -211,8 +218,11 @@ der Releases-Seite.
   (Merge-/Squash-Commit), wird dieser zum abgeleiteten Kandidaten. Ist sein
   kandidatenrelevanter Baum identisch zum protokollierten Kandidaten, ist das
   **kein** Freeze-Bruch: `verify_release_freeze.py` meldet
-  `candidate-sha-equivalent` als Warnung, und ein Protokoll-Commit auf `main`
-  zieht den SHA nach. Weicht der Inhalt ab, ist es ein Fehler
+  `candidate-sha-equivalent`. Ohne `--require-pin` ist das eine Warnung (der
+  normale Übergang), **mit** `--require-pin` – also im Release-Gate – ein
+  Fehler: gebaut und getaggt wird nur der exakt protokollierte SHA, sonst
+  weichen Dokument und Artefakt wieder auseinander. Ein Protokoll-Commit auf
+  `main` zieht den SHA nach. Weicht der Inhalt ab, ist es ein Fehler
   (`candidate-sha-mismatch`) und die vollständige Wiederholung greift.
 - **Tag (#686):** Der Tag `v2.7.1` darf nur auf einen Commit gesetzt werden, für
   den `make release-freeze-check` (mit `--require-pin`) fehlerfrei läuft – also
@@ -226,24 +236,28 @@ der Releases-Seite.
 ## Gate-Nachweise
 
 Alle Läufe erfolgen auf dem Kandidaten-Commit
-`ad63e362062acebe41fa04ae50b9376923cfd9d8`, lokal unter Linux mit Python 3.12
+`f06a9cba01ce3b3b013461e383cd5931e17b1144`, lokal unter Linux mit Python 3.12
 und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 `pyproject.toml` + `requirements/constraints.txt`).
 
 | Prüfung | Lauf/Ergebnis |
 |---|---|
-| `make check` (ruff + mypy + pytest-Default-Set) | grün: ruff „All checks passed", mypy „no issues found in 69 source files", pytest **2031 passed, 5 skipped, 14 deselected** |
-| `python scripts/verify_release_freeze.py` | 0 Fehler; abgeleiteter Kandidat == protokollierter SHA, „13 Commits vollständig klassifiziert", Versionsquellen und Release-Body ok |
+| `make check` (ruff + mypy + pytest-Default-Set) | grün: ruff „All checks passed", mypy „no issues found in 69 source files", pytest **2036 passed, 5 skipped, 14 deselected** |
+| `python scripts/verify_release_freeze.py` | 0 Fehler, 0 Warnungen; abgeleiteter Kandidat == protokollierter SHA, „15 Commits vollständig klassifiziert", Versionsquellen und Release-Body ok |
 | `make release-freeze-check` (`--require-pin`) | ohne Fehler, nachdem der Protokoll-Commit den SHA nachgetragen hat |
-| Flacher Klon (`git clone --depth 1`) | `tests/test_release_freeze.py` grün, der git-Test meldet sich dort als *skipped* (Regression aus dem PR-CI-Lauf auf `bba18044…` behoben) |
+| Flacher Klon (`git clone --depth 1`) | `tests/test_release_freeze.py` grün, der git-Test meldet sich dort als *skipped* |
+| PR-CI von #701 auf `24fe4cc56af9…` | alle acht Checks grün (Lightweight PR checks, CodeQL/Analyze, license-check, pip-audit 3.10/3.12, review, license summary) |
 | release-relevante Einzeltests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`, `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`, `tests/test_i18n_docs.py`, `tests/test_markdown_links.py` | grün (Teil des `make check`-Laufs oben) |
 
-Voriger Stand zur Nachvollziehbarkeit: auf `bba18044755cf27e53f4505a297f33349e67091a`
-war `make check` lokal ebenfalls grün (2031 passed, 5 skipped, 14 deselected), die
-PR-CI von #701 aber rot – der neue git-Test war im flachen CI-Klon
-(`actions/checkout`, `fetch-depth: 1`) nicht lauffähig. Genau dieser Regressionsfund
-in einer release-relevanten Prüfung hat den Nachfreeze-Fix ausgelöst und dieses
-Dokument nach der eigenen Freeze-Regel vollständig wiederholen lassen.
+Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
+wiederholt, keiner still nachgezogen):
+
+1. `bba18044755cf27e53f4505a297f33349e67091a` – Freeze-Korrektur; lokal grün,
+   PR-CI rot (git-Test nicht flach-klon-tauglich).
+2. `ad63e362062acebe41fa04ae50b9376923cfd9d8` – Nachfreeze-Fix dazu; PR-CI grün.
+3. `f06a9cba01ce3b3b013461e383cd5931e17b1144` – Reviewkorrektur (aktueller
+   Kandidat): Ableitung `--first-parent`, Release-Body-Extraktor vom geprüften
+   Commit, `--require-pin` verlangt exakte SHA-Übereinstimmung.
 
 Hinweis zur Reproduktion: `tests/test_version.py::test_exported_version_matches_pyproject`
 vergleicht `bgremover.__version__` mit `pyproject.toml`. In einer Umgebung, deren
@@ -255,8 +269,8 @@ ausführen. Das ist ein Umgebungs-, kein Kandidatenbefund.
 Die PR-CI (`pr-ci.yml`) wiederholt Lint/Typecheck/Tests auf demselben Stand;
 #685 wiederholt sie zusätzlich in der vollen Matrix gegen den protokollierten
 SHA. Weicht der auf `main` abgeleitete Kandidat vom protokollierten SHA ab (z. B.
-durch einen Merge-Commit), sind die Nachweise erst nach dem Protokoll-Nachtrag
-wieder eindeutig zuzuordnen.
+durch einen Merge-Commit), verlangt `--require-pin` den Protokoll-Nachtrag, bevor
+gebaut oder getaggt wird.
 
 ## Verweise auf denselben Kandidaten
 
