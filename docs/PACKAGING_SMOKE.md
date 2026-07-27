@@ -74,8 +74,25 @@ Absturz. Abweichungen mit Begründung protokollieren.
 
 - Automatisiert: `tests/test_preview3d_acceptance.py::test_hundred_viewer_lifecycle_cycles_do_not_leak_or_crash`
   (100× Build/Anzeige/GL-Cleanup: Cache hält genau ein Mesh, ≤ 1 GL-Viewer).
+- Automatisiert (GL-Objektzählung, #684): `tests/test_viewer_3d_gl_lifecycle.py`
+  – 110 Zyklen je Datensatzgröße, Zahl lebender Puffer/VAO konstant, jede
+  Erzeugung genau einmal freigegeben, keine Doppelfreigabe/use-after-delete.
+  Läuft ohne GL-Kontext (instrumentierte Attrappen) und damit auch in CI.
+- Auf der Zielhardware (echter Kontext, echte Puffer):
+
+  ```sh
+  QT_QPA_PLATFORM=xcb python -m pytest -m gl_smoke -v      # darf nicht skippen
+  QT_QPA_PLATFORM=xcb python scripts/gl_stress_probe.py --mode gl --cycles 200 \
+      --json-out abnahme-gl.json
+  ```
+
+  Erwartet: `verdict: ok`, `live` konstant, `live_after_cleanup: 0`; JSON dem
+  Abnahmeprotokoll beilegen.
 - Manuell: 100× Projekt-/Moduswechsel unter `valgrind --tool=massif` bzw.
-  RSS-Beobachtung; RSS pendelt sich ein, kein stetiges Wachstum.
+  RSS-/GPU-Speicherbeobachtung (`nvidia-smi -l 1`, `radeontop`,
+  `intel_gpu_top`); der Wert pendelt sich ein, kein stetiges Wachstum.
+- Vollständige Prozedur und die bisherigen Messwerte:
+  [`docs/history/RELEASE-2.7.1-gl-langzeittest.md`](history/RELEASE-2.7.1-gl-langzeittest.md).
 
 ## 3. Robustheits-/Fallback-Smokes
 

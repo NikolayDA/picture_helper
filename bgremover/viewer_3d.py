@@ -18,11 +18,17 @@ Zwei Bausteine:
 
 Der Viewer besitzt **keinen** Schreibpfad ins Modell: Kamera/Licht/Überhöhung
 sind reine Anzeige-Uniforms, Bildexport und Projektpersistenz bleiben unberührt.
+
+Für den Langzeitnachweis (#684) ist der Lebenszyklus der kontextgebundenen
+GL-Objekte messbar: :func:`gl_resource_stats` liefert prozessweite Erzeugungs-/
+Freigabezähler, :attr:`GLReliefViewer.gl_object_count` die aktuell gehaltenen
+Objekte eines Viewers. Beides ist reine Diagnose ohne Einfluss auf das Rendern.
 """
 from __future__ import annotations
 
 import contextlib
 import math
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -96,6 +102,53 @@ void main() {
     gl_FragColor = vec4(u_color * shade, 1.0);
 }
 """
+
+
+@dataclass(frozen=True)
+class GLResourceStats:
+    """Zählerstand der vom Viewer besessenen GL-Objekte (Puffer + VAO, #684).
+
+    Reiner Messwert, keine Objektreferenzen: ``created`` zählt jedes erfolgreich
+    angelegte GL-Objekt, ``destroyed`` jede tatsächlich ausgeführte Freigabe.
+    ``live`` ist damit die Zahl der noch gehaltenen Objekte – der festgelegte
+    Proxy für „lebende GL-Ressourcen" im Langzeittest.
+    """
+
+    created: int
+    destroyed: int
+
+    @property
+    def live(self) -> int:
+        return self.created - self.destroyed
+
+
+#: Prozessweite Zähler. GL-Objekte entstehen und vergehen ausschließlich im
+#: GUI-Thread (``paintGL``/``cleanup_gl``), deshalb reichen einfache ints ohne
+#: Sperre. Bewusst nur Zahlen – ein Register echter Objekte wäre selbst ein Leck.
+_gl_created = 0
+_gl_destroyed = 0
+
+
+def gl_resource_stats() -> GLResourceStats:
+    """Aktueller Zählerstand der GL-Objekte aller Viewer dieses Prozesses."""
+    return GLResourceStats(created=_gl_created, destroyed=_gl_destroyed)
+
+
+def reset_gl_resource_stats() -> None:
+    """Setzt die Zähler zurück (Messbeginn in Tests/Sonden)."""
+    global _gl_created, _gl_destroyed
+    _gl_created = 0
+    _gl_destroyed = 0
+
+
+def _note_gl_created(count: int) -> None:
+    global _gl_created
+    _gl_created += count
+
+
+def _note_gl_destroyed(count: int) -> None:
+    global _gl_destroyed
+    _gl_destroyed += count
 
 
 def _light_direction(azimuth_deg: float, elevation_deg: float) -> tuple[float, float, float]:
@@ -189,6 +242,20 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
     def has_failed(self) -> bool:
         return self._failed
 
+    @property
+    def gl_object_count(self) -> int:
+        """Zahl der aktuell gehaltenen GL-Objekte (0–4: drei Puffer + VAO, #684).
+
+        Direkt aus den Referenzen abgeleitet, nicht mitgezählt – der Wert kann
+        deshalb nicht von den echten Besitzverhältnissen abdriften. Obergrenze
+        eines fehlerfreien Viewers ist 4, unabhängig von der Zahl der Uploads.
+        """
+        return sum(
+            1
+            for obj in (self._pos_vbo, self._slope_vbo, self._index_ibo, self._vao)
+            if obj is not None
+        )
+
     # ── GL-Lifecycle (gekapselt – propagiert nie) ────────────────────────
     def initializeGL(self) -> None:  # noqa: N802 (Qt-Override)
         try:
@@ -272,6 +339,7 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         self._pos_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, positions)
         self._slope_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, slope)
         self._index_ibo = self._make_buffer(QOpenGLBuffer.Type.IndexBuffer, indices)
+        _note_gl_created(self.gl_object_count)
 
     @staticmethod
     def _make_buffer(buffer_type: Any, data: np.ndarray) -> Any:
@@ -421,14 +489,19 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         Reine, kontextgebundene Ressourcenfreigabe (erwartet einen aktuellen
         GL-Kontext, wie in ``_ensure_buffers``/``cleanup_gl`` gegeben). Programm
         und Ready-Flag bleiben unberührt – die setzt ``cleanup_gl`` separat.
+
+        Idempotent: die Referenzen werden genullt, ein zweiter Aufruf gibt also
+        nichts erneut frei (keine Doppelfreigabe, #684).
         """
+        released = 0
         for buf in (self._pos_vbo, self._slope_vbo, self._index_ibo):
             if buf is not None:
-                buf.destroy()
+                buf.destroy(); released += 1
         if self._vao is not None:
-            self._vao.destroy()
+            self._vao.destroy(); released += 1
         self._pos_vbo = self._slope_vbo = self._index_ibo = self._vao = None
         self._index_count = 0
+        _note_gl_destroyed(released)
 
     def cleanup_gl(self) -> None:
         """Gibt GL-Ressourcen kontrolliert frei (Projektwechsel/Schließen)."""

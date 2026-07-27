@@ -38,11 +38,14 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
   späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
-- **Commits im Fenster:** 11 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
-  entspricht genau einem Commit).
-- **Protokollierter Kandidaten-SHA:** `480a5fc0008ded401b02b15373d8474d67c83382`
-  (`docs: Freeze-Basis für 2.7.1 auf den echten Kandidaten korrigieren (#699)
-  (#701)`, Squash-Merge von PR #701 auf `main`)
+- **Commits im Fenster:** 15 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #684,
+  ausgehend von einem Squash-Merge des zugehörigen PR).
+- **Protokollierter Kandidaten-SHA:** `nachzutragen`
+  (Kandidatenwechsel durch #684 – GL-Ressourcen-Langzeitnachweis, siehe
+  Kandidatenwechsel 6. unten. Der SHA entsteht erst mit dem Merge des
+  zugehörigen PR und wird unmittelbar danach durch einen reinen
+  Protokoll-Commit eingetragen.)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -86,7 +89,11 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `ba7e7cd7ce65b24a1d0f223def25bbaf79834cb0` (#697, kurz `ba7e7cd`) | Dokumentation – RECOMMENDATIONS um drei neue Epics (#680–#682) ergänzt. **Historisch:** in der ersten Fassung fälschlich als Freeze-Commit benannt (siehe #699); der Commit selbst enthält weder Versionsschnitt noch dieses Dokument. | Keins – reine Statusdoku. | – (Doku-Snapshot). | Protokoll. Nicht in Release Notes; **nicht** als Freeze-Basis verwendbar. |
 | `6dde3c6beb9aca00306cab7d4453c85fb813c383` (#683 via PR #698, kurz `6dde3c6`) | **Versionsschnitt + erste Fassung dieses Dokuments.** `pyproject.toml` 2.7.0 → 2.7.1; `[2.7.1]`-Abschnitt in `CHANGELOG.md` und allen fünf Übersetzungen; Titel-/Datumszeile in `LICENSES.md` (6 Sprachen); `<release version="2.7.1" date="2026-07-26"/>` in `packaging/linux/de.bgremover.app.metainfo.xml`; neues Scope-Freeze-Dokument. | Niedrig für die Anwendung (keine Logikänderung), **hoch für den Release-Prozess**: dieser Commit ist der eigentliche Versionsschnitt und damit der früheste Stand, der überhaupt 2.7.1 heißen darf. Der von ihm dokumentierte Freeze-Hash war inkonsistent (#699). | PR-CI von #698 grün (Lint/Typecheck/Tests, inkl. `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`); Nachprüfung über `make check` auf dem Korrektur-Commit dieses Dokuments. | **Aufnehmen – kandidatenrelevant und unverzichtbar** (ohne ihn gibt es keine Version 2.7.1). Inhaltlich unverändert übernommen; korrigiert wird ausschließlich die Freeze-Basis-Aussage, hier in dieser Datei. Kein Anwender-CHANGELOG-Eintrag (Release-Metadaten). |
 | `9b27527d1db7aa7bacc84f125ea969eceba0abc4` (#700, kurz `9b27527`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem PR-/Issue-Audit vom 26.07. (führt #699 als Folge-Issue ein). | Keins – reine Statusdoku in sechs Sprachen. | – (Doku-Snapshot); PR-CI von #700 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen, sonst nichts). Verschiebt den Kandidaten nicht; nicht in Release Notes. |
-| `Kandidaten-Commit` (#699 via PR #701, voller SHA unter „Protokollierter Kandidaten-SHA") | **Freeze-Korrektur, als Squash auf `main` eingebracht.** Fasst die gesamte Korrektur aus PR #701 zusammen: `scripts/verify_release_freeze.py` (abgeleitete, maschinelle Kandidatenbestimmung) + `tests/test_release_freeze.py`, `make release-freeze-check`, das Freeze-Gate als harte Vorbedingung in `release-linux.yml`, `[2.7.1]`-CHANGELOG in allen sechs Sprachen um „Hinweise zu diesem Release" ergänzt und dieses Dokument vollständig neu klassifiziert. Enthält die Ergebnisse beider Codex-Reviewrunden — u. a.: (1) **Umbenennungen** – `git diff --name-only` meldete mit Rename-Erkennung nur das Ziel, `git mv bgremover/x.py docs/history/x.py` sah damit wie ein reiner Protokoll-Commit aus, obwohl er Anwendungscode aus dem Baum entfernt (jetzt `--no-renames` in beiden Diff-Pfaden). (2) **Basis-Tag** – geprüft wurde nur, dass `v2.7.0` auflöst; ein verschobenes Tag auf einen Geschwister-Commit erzeugt dasselbe Fenster. Die Basis ist jetzt als voller SHA eingefroren (Pflichtfeld), wird mit dem aufgelösten Tag verglichen und muss Vorfahr des geprüften Commits sein. (3) **Release-Gate** – `verify-tag` in `release-linux.yml` führt das Freeze-Gate jetzt mit `--require-pin` aus (Checkout `fetch-depth: 0`); vorher war die Prüfung rein opt-in und jeder Commit mit passender pyproject-Version taggbar. (4) **Übersetzte Datumszeilen** – alle sechs CHANGELOG-Überschriften werden gegen das Datum der Wurzel-Datei geprüft. | Niedrig für die Anwendung – Prüfwerkzeug, Tests und Release-Workflow, kein `bgremover/**`-Code, nur Release-Metadaten im CHANGELOG-Text. **Erhöht für den Release-Prozess, aber nur verschärfend:** ein Tag-Push ohne passendes Freeze-Dokument scheitert ab jetzt bewusst (fail-closed). | `make check` grün auf dem Zweigstand (**2042 passed**, 5 skipped, 14 deselected); Regressionstests gegen echte Mini-Repositories (Umbenennung in einen Protokollpfad, verschobenes Basis-Tag, Basis außerhalb der Release-Linie, Datumsdrift einer Übersetzung, `-s ours`-Merge, echter Merge, Extraktor-Herkunft, beide Pin-Fälle) plus Test der Workflow-Verdrahtung; Negativkontrolle für die Rename-Erkennung in git nachgestellt; PR-CI von #701 grün; `make release-freeze-check` auf `main` 0 Fehler/0 Warnungen. | **Aufnehmen – der Kandidat.** Der Squash ist nachweislich **freeze-äquivalent** zum geprüften Zweigstand `5e7b7e30baa5…`: `verify_release_freeze.py` meldete beim Übergang `candidate-sha-equivalent` (identischer kandidatenrelevanter Baum) – genau der dokumentierte Merge-Fall, aufgelöst durch diesen Protokoll-Commit. |
+| `480a5fc0008ded401b02b15373d8474d67c83382` (#699 via PR #701, kurz `480a5fc`) | **Freeze-Korrektur, als Squash auf `main` eingebracht.** Fasst die gesamte Korrektur aus PR #701 zusammen: `scripts/verify_release_freeze.py` (abgeleitete, maschinelle Kandidatenbestimmung) + `tests/test_release_freeze.py`, `make release-freeze-check`, das Freeze-Gate als harte Vorbedingung in `release-linux.yml`, `[2.7.1]`-CHANGELOG in allen sechs Sprachen um „Hinweise zu diesem Release" ergänzt und dieses Dokument vollständig neu klassifiziert. Enthält die Ergebnisse beider Codex-Reviewrunden — u. a.: (1) **Umbenennungen** – `git diff --name-only` meldete mit Rename-Erkennung nur das Ziel, `git mv bgremover/x.py docs/history/x.py` sah damit wie ein reiner Protokoll-Commit aus, obwohl er Anwendungscode aus dem Baum entfernt (jetzt `--no-renames` in beiden Diff-Pfaden). (2) **Basis-Tag** – geprüft wurde nur, dass `v2.7.0` auflöst; ein verschobenes Tag auf einen Geschwister-Commit erzeugt dasselbe Fenster. Die Basis ist jetzt als voller SHA eingefroren (Pflichtfeld), wird mit dem aufgelösten Tag verglichen und muss Vorfahr des geprüften Commits sein. (3) **Release-Gate** – `verify-tag` in `release-linux.yml` führt das Freeze-Gate jetzt mit `--require-pin` aus (Checkout `fetch-depth: 0`); vorher war die Prüfung rein opt-in und jeder Commit mit passender pyproject-Version taggbar. (4) **Übersetzte Datumszeilen** – alle sechs CHANGELOG-Überschriften werden gegen das Datum der Wurzel-Datei geprüft. | Niedrig für die Anwendung – Prüfwerkzeug, Tests und Release-Workflow, kein `bgremover/**`-Code, nur Release-Metadaten im CHANGELOG-Text. **Erhöht für den Release-Prozess, aber nur verschärfend:** ein Tag-Push ohne passendes Freeze-Dokument scheitert ab jetzt bewusst (fail-closed). | `make check` grün auf dem Zweigstand (**2042 passed**, 5 skipped, 14 deselected); Regressionstests gegen echte Mini-Repositories (Umbenennung in einen Protokollpfad, verschobenes Basis-Tag, Basis außerhalb der Release-Linie, Datumsdrift einer Übersetzung, `-s ours`-Merge, echter Merge, Extraktor-Herkunft, beide Pin-Fälle) plus Test der Workflow-Verdrahtung; Negativkontrolle für die Rename-Erkennung in git nachgestellt; PR-CI von #701 grün; `make release-freeze-check` auf `main` 0 Fehler/0 Warnungen. | **Aufnehmen – der Kandidat.** Der Squash ist nachweislich **freeze-äquivalent** zum geprüften Zweigstand `5e7b7e30baa5…`: `verify_release_freeze.py` meldete beim Übergang `candidate-sha-equivalent` (identischer kandidatenrelevanter Baum) – genau der dokumentierte Merge-Fall, aufgelöst durch diesen Protokoll-Commit. |
+| `b0a8faed7921fb4da0b24e29118cf5085e63748b` (#699 via PR #703, kurz `b0a8fae`) | Protokoll – trägt den vollen Kandidaten-SHA von PR #701, die Fensterzahl und die Gate-Nachweise in dieses Dokument nach. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #684 *im* Fenster – daher hier klassifiziert. |
+| `d97d2260f26ab2289fe411d8c57eaac730204143` (#704, kurz `d97d226`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem Audit vom 27.07. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #704 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
+| `a0f6ef15b7fac67e79135809963fb2235ca76e6a` (#705, kurz `a0f6ef1`) | Dokumentation – Abgleich der offenen Issue-Definitionen gegen den Code, Statusdoku. | Keins – reine Statusdoku. | PR-CI von #705 grün. | Protokoll. Nicht in Release Notes. |
+| `Kandidaten-Commit` (#684 via PR zu diesem Zweig, voller SHA unter „Protokollierter Kandidaten-SHA") | **GL-Ressourcen-Langzeitnachweis und Regressionsgate.** Ergänzt den messbaren Nachweis für den Fix aus PR #676: `viewer_3d` bekommt zwei reine Diagnose-Zähler (`gl_resource_stats()` prozessweit, `GLReliefViewer.gl_object_count` je Viewer), `scripts/gl_stress_probe.py` ist die geteilte Messsonde (`make gl-stress`, JSON-Nachweis, `--mode gl` für echten Kontext), `tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus über 110 Zyklen je Datensatzgröße samt Fehler-/Abbruchpfaden und Negativkontrolle ab, `tests/test_viewer_3d_gl.py` denselben Nachweis unter echtem GL. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md). | Niedrig für die Anwendung – am Renderpfad ändert sich nichts; die Zähler sind zwei Integer ohne GL-Aufruf, kein Schreibpfad ins Modell, keine neue Abhängigkeit, keine Formatänderung. Der übrige Diff ist Test-, Werkzeug- und Doku-Code. | `make check` grün (**2069 passed**, 6 skipped, 14 deselected), `make ui` grün (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` und ein 1000-Zyklen-Langlauf ohne Befund; Details und Zählerstände im Testbericht. | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und `Makefile`; nach der Freeze-Regel als Nachweis-/Regressionsarbeit an einer release-relevanten Prüfung zulässig. Kein Anwender-CHANGELOG-Eintrag (keine sichtbare Verhaltensänderung). |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -95,10 +102,19 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-- **Protokollierung des Kandidaten-SHA nach dem Merge von PR #701** (#699):
-  trägt den vollen 40-stelligen SHA des Squash-Commits oben, die neue
-  Fensterzahl und die Gate-Nachweise unten nach; ändert nur
-  `docs/history/RELEASE-2.7.1-scope-freeze.md`.
+Aktuell steht **kein** Commit über dem Kandidaten: der Kandidatenwechsel durch
+#684 hat die bisherigen drei Protokoll-Commits (`b0a8fae`, `d97d226`,
+`a0f6ef1`) in das Fenster gezogen; sie stehen jetzt in der Tabelle oben.
+
+Ausstehend ist genau ein Protokoll-Commit:
+
+- **Protokollierung des Kandidaten-SHA nach dem Merge des #684-PR:** trägt den
+  vollen 40-stelligen SHA des Merge-/Squash-Commits oben ein (statt
+  `nachzutragen`), korrigiert bei Bedarf die Fensterzahl (bei einem echten
+  Merge-Commit statt eines Squash) und ergänzt die Gate-Nachweise; ändert nur
+  `docs/history/RELEASE-2.7.1-scope-freeze.md`. **Bis dahin ist der Freeze nicht
+  abnahmefähig** – `verify_release_freeze.py --require-pin` (und damit
+  `verify-tag` in `release-linux.yml`) schlägt bewusst fehl.
 
 **Zur Squash-Historie:** PR #701 wurde als **Squash** eingebracht. Die sechs
 Zweig-Commits (`bba18044755c…`, `09a328863e6a…`, `ad63e362062a…`,
@@ -264,6 +280,15 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | PR-CI von #701 auf `a97e5a12a6e3…` | alle 16 Checks grün bzw. übersprungen (Lightweight PR checks, CodeQL/Analyze, license-check, pip-audit 3.10/3.12, review, license summary) |
 | release-relevante Einzeltests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`, `tests/test_changelog_metadata.py`, `tests/test_licenses_version.py`, `tests/test_version.py`, `tests/test_i18n_docs.py`, `tests/test_markdown_links.py` | grün (Teil des `make check`-Laufs oben) |
 
+| Prüfung auf dem #684-Kandidaten (Zweig `claude/github-issue-684-jume86`) | Lauf/Ergebnis |
+|---|---|
+| `make check` | grün: ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2069 passed, 6 skipped, 14 deselected** |
+| `make ui` | grün: **20 passed** |
+| `make coverage` (`fail_under = 86`) | grün: **93 %** |
+| `make gl-stress` (120 Zyklen) und Langlauf (1000 Zyklen) | Exit 0, Urteil `ok`; lebende GL-Objekte konstant, erzeugt == freigegeben, 0 nach dem Aufräumen (Zählerstände im Testbericht) |
+| `python scripts/verify_release_freeze.py` | erwartet **eine Warnung** `candidate-sha-unpinned`, bis der Protokoll-Commit nach dem Merge den SHA nachträgt; mit `--require-pin` bewusst ein Fehler |
+| dasselbe, ausgeführt **auf dem Zweig** statt auf `main` | zusätzlich `commit-count-mismatch` (16 statt 15) und `unclassified-candidate-commit` für den Code-Commit `e48dd89ab09da60e1604ae1fab0c40d8ad4c0852`: der Zweig trägt Code und Doku als zwei Commits, der Squash-Merge fasst beide zu genau **einem** Kandidaten zusammen, den die `Kandidaten-Commit`-Zeile oben abdeckt. Die Tabelle beschreibt bewusst den gemergten Stand; wird ausnahmsweise **ohne** Squash gemergt, ziehen Zahl und Zeile im ausstehenden Protokoll-Commit nach |
+
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
 
@@ -278,8 +303,17 @@ wiederholt, keiner still nachgezogen):
    Basis-SHA statt bloßem Tag-Namen, Freeze-Gate als harte Vorbedingung im
    Release-Workflow, Datumsprüfung aller sechs CHANGELOGs.
 5. `480a5fc0008ded401b02b15373d8474d67c83382` – Squash-Merge von PR #701 auf
-   `main` (**aktueller Kandidat**). Kein inhaltlicher Wechsel: derselbe
+   `main`. Kein inhaltlicher Wechsel: derselbe
    kandidatenrelevante Baum wie 4., nur ein neuer SHA durch das Einbringen.
+6. **Kandidatenwechsel durch #684** (GL-Ressourcen-/Langzeittest, dieser Zweig,
+   **aktueller Kandidat**): erste kandidatenrelevante Änderung nach dem Freeze.
+   Fällt unter die in der Freeze-Regel vorgesehene Ausnahme (Nachweis- und
+   Regressionsarbeit an einer release-relevanten Prüfung) und wurde deshalb
+   nicht abgelehnt, sondern nach dem vorgeschriebenen Verfahren vollständig
+   nachgezogen: Tabelle um die drei zuvor darüber liegenden Protokoll-Commits
+   und den neuen Kandidaten ergänzt, Fensterzahl 11 → 15, Kandidaten-SHA auf
+   `nachzutragen` zurückgesetzt, Gate-Nachweise wiederholt. Der SHA folgt mit
+   dem Protokoll-Commit nach dem Merge.
 
 Die Punkte 1.–4. liegen als Commits nicht mehr auf `main` (Squash); sie sind
 über PR #701 einsehbar und hier bewusst als Entstehungsgeschichte protokolliert.
@@ -308,14 +342,20 @@ gebaut oder getaggt wird.
   Punkt „Tag") und veröffentlicht den aus `CHANGELOG.md` extrahierten Body.
 - **#699:** dieses Korrekturverfahren; der SHA und der Review-Link werden dort
   als Abschlussnachweis hinterlegt.
-- **#684:** unabhängig; GL-Langzeitnachweis, kein Freeze-Bestandteil.
+- **#684:** GL-Ressourcen-/Langzeitnachweis. **Nicht mehr unabhängig:** die
+  Arbeit berührt `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und
+  das `Makefile` und erzeugt damit den aktuellen Kandidaten (siehe
+  Kandidatenwechsel 6.). Ergebnisse:
+  [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md).
 
 ## Ausdrücklich nicht in diesem Scope-Freeze enthalten
 
 - Bauen oder Veröffentlichen der finalen Artefakte (AppImage/`.deb`/`.dmg`) –
   Aufgabe von #685/#686.
 - Erneuter GL-Ressourcen-/Langzeittest als zusätzlicher Nachweis für PR #676 –
-  eigenständiges Teil-Issue #684.
+  eigenständiges Teil-Issue #684. **Nachtrag:** dessen Umsetzung ist inzwischen
+  kandidatenrelevant und in der Tabelle oben klassifiziert; der Scope-Freeze
+  selbst bleibt davon inhaltlich unberührt (keine Anwendungsfunktion).
 - Erweiterung der Produktfunktionalität.
 - Neuimplementierung des Fixes aus PR #676 (bereits auf `main` gemergt,
   unverändert übernommen).

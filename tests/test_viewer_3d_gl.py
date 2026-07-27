@@ -15,9 +15,12 @@ from PyQt6.QtWidgets import QApplication
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
 from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
-from bgremover.viewer_3d import GLReliefViewer
+from bgremover.viewer_3d import GLReliefViewer, gl_resource_stats, reset_gl_resource_stats
 
 pytestmark = pytest.mark.gl_smoke
+
+#: Zyklen des Langzeitnachweises unter echtem GL (#684 verlangt mindestens 100).
+_STRESS_CYCLES = 110
 
 # QPA-Plattformen ohne QOpenGLWidget-FBO – dort ist kein echtes Rendern möglich.
 _NON_RENDERABLE = {"offscreen", "minimal", "vnc"}
@@ -33,9 +36,9 @@ def _require_renderable(qapp) -> None:
         pytest.skip("Keine OpenGL-2.1-Capability in dieser Umgebung")
 
 
-def _ramp_mesh():
-    ramp = np.tile(np.linspace(0, HEIGHT_MAX_16BIT, 64, dtype=np.uint16), (64, 1))
-    field = HeightField(ramp, np.full((64, 64), 255, np.uint8), HEIGHT_MAX_16BIT)
+def _ramp_mesh(size: int = 64):
+    ramp = np.tile(np.linspace(0, HEIGHT_MAX_16BIT, size, dtype=np.uint16), (size, 1))
+    field = HeightField(ramp, np.full((size, size), 255, np.uint8), HEIGHT_MAX_16BIT)
     return build_relief_mesh(field, MeshQuality.REDUCED)
 
 
@@ -63,3 +66,40 @@ def test_render_produces_nonblack_frame_without_failure(qapp) -> None:
     assert not viewer.has_failed
     assert _mean_brightness(image) > 5.0  # etwas wurde gerendert (kein Schwarzbild)
     viewer.cleanup_gl()
+
+
+def test_repeated_uploads_do_not_accumulate_gl_objects(qapp) -> None:
+    """Langzeitnachweis unter echtem GL: >100 Uploads lassen den Bestand konstant (#684).
+
+    Dieselbe Messgröße wie in ``tests/test_viewer_3d_gl_lifecycle.py`` und
+    ``scripts/gl_stress_probe.py`` – nur hier mit echten ``QOpenGLBuffer``/
+    ``QOpenGLVertexArrayObject`` in einem echten Kontext. Der Test läuft
+    ausschließlich dort, wo real gerendert werden kann (Hardware/llvmpipe), und
+    ist damit der Brückenkopf zwischen CI-Aussage und Hardware-Abnahme.
+    """
+    _require_renderable(qapp)
+    reset_gl_resource_stats()
+    small, large = _ramp_mesh(), _ramp_mesh(256)
+    viewer = GLReliefViewer()
+    viewer.resize(240, 200)
+    viewer.show()
+    QApplication.processEvents()
+
+    live_samples: list[int] = []
+    for index in range(_STRESS_CYCLES):
+        # Wechselnde Datengrößen: neuer Upload, kein bloßer Cache-Treffer.
+        viewer.set_mesh(large if index % 2 else small)
+        viewer.grab()
+        QApplication.processEvents()
+        live_samples.append(gl_resource_stats().live)
+
+    assert not viewer.has_failed
+    assert viewer.gl_object_count <= 4
+    # Nach dem ersten Upload konstant – kein Zuwachs je Zyklus.
+    assert set(live_samples[1:]) == {live_samples[1]}
+    assert max(live_samples) <= 4
+
+    viewer.cleanup_gl()
+    QApplication.processEvents()
+
+    assert gl_resource_stats().live == 0
