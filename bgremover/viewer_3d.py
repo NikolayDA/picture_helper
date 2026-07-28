@@ -403,7 +403,14 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
             # der lokalen Referenz.
             raise GLBufferError("QOpenGLBuffer.create() ist fehlgeschlagen")
         if not buf.bind():
+            # Der GL-Name existiert hier bereits, der Puffer erreicht aber nie ein
+            # Viewer-Feld – die Buchung des Aufrufers (über ``gl_object_count``)
+            # sähe ihn also nicht. Erzeugung und Freigabe deshalb hier direkt
+            # buchen, sonst verschwiege ``gl_resource_stats()`` ausgerechnet auf
+            # dem gemessenen Treiberfehlerpfad echten GPU-Umschlag.
+            _note_gl_created(1)
             buf.destroy()
+            _note_gl_destroyed(1)
             raise GLBufferError("QOpenGLBuffer.bind() ist fehlgeschlagen")
         raw = data.tobytes()
         # PyQt6 akzeptiert ein bytes-Objekt als Lesepuffer (sip.voidptr); der

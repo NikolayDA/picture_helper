@@ -285,7 +285,12 @@ class ScenarioResult:
     """
 
     name: str
+    #: Angeforderte Zyklen (CLI-Parameter).
     cycles: int
+    #: Tatsächlich gefahrene Zyklen. Weicht nur ab, wenn ein Upload-Fehler den
+    #: Lauf vorzeitig beendet – dann darf der Bericht nicht behaupten, es seien
+    #: alle Zyklen gelaufen (Codex-Review #713).
+    cycles_executed: int
     source_px: str
     vertices: int
     triangles: int
@@ -383,13 +388,19 @@ def _evaluate(
     warmup_index = min(WARMUP_CYCLES, len(samples)) - 1
     live_after_warmup = samples[warmup_index]
     live_last = samples[-1]
+    # Ein abgebrochener Lauf hat weniger Messpunkte als angeforderte Zyklen. Der
+    # Bericht nennt beide Zahlen, damit ein Fehlerartefakt nicht behauptet, alle
+    # Zyklen seien gefahren worden (Codex-Review #713).
+    executed = len(samples)
     findings: list[str] = []
     if upload_error is not None:
-        findings.append(f"Upload fehlgeschlagen: {upload_error}")
+        findings.append(
+            f"Upload fehlgeschlagen nach {executed} von {cycles} Zyklen: {upload_error}"
+        )
     if live_last != live_after_warmup:
         findings.append(
             f"lebende GL-Objekte wachsen nach der Aufwärmphase "
-            f"({live_after_warmup} → {live_last} über {cycles} Zyklen)"
+            f"({live_after_warmup} → {live_last} über {executed} Zyklen)"
         )
     if max(samples) > MAX_LIVE_PER_VIEWER:
         findings.append(
@@ -424,9 +435,15 @@ def _evaluate(
         )
     if ledger is not None and ledger.live != 0:
         findings.append(f"{ledger.live} Attrappe(n) ohne Freigabe")
+    if executed < cycles:
+        findings.append(
+            f"nur {executed} von {cycles} Zyklen gefahren – der Lauf ist kein "
+            "vollständiger Nachweis"
+        )
     return ScenarioResult(
         name=name,
         cycles=cycles,
+        cycles_executed=executed,
         source_px=source_px,
         vertices=int(mesh.positions.shape[0]),
         triangles=int(mesh.indices.shape[0]),
@@ -511,30 +528,39 @@ def run_gl_scenario(
         QApplication.processEvents()
         samples.append(gl_resource_stats().live - before.live)
         viewer_samples.append(viewer.gl_object_count)
-    # Ein fehlgeschlagener Viewer (Kontext-, Shader- oder Pufferfehler) rendert
-    # nie: ``paintGL`` fängt den Fehler ab, es entstehen 0 GL-Objekte, und die
-    # Messreihe wäre konstant 0 – also formal „kein Wachstum". Genau dieser Fall
-    # darf nicht als bestandener Nachweis durchgehen (Codex-Review #706).
+    # Drei Abbruchgründe, die formal wie „kein Wachstum" aussehen, aber keinen
+    # Nachweis darstellen:
+    #  1. Ein fehlgeschlagener Viewer (Kontext-, Shader-, Pufferfehler) rendert
+    #     nie – ``paintGL`` fängt den Fehler ab, es entstehen 0 GL-Objekte und
+    #     die Messreihe bleibt konstant 0 (Codex-Review #706).
+    #  2. Eine Plattform, die sich renderfähig meldet, aber nie hochlädt.
+    #  3. Ein *unvollständiger* Puffersatz – entsteht, wenn
+    #     ``QOpenGLBuffer.create()``/``bind()`` still ``false`` liefern (#711).
+    reason: str | None = None
     if viewer.has_failed:
-        raise ProbeNotExecutable(
+        reason = (
             f"Szenario {name!r}: der GL-Viewer ist fehlgeschlagen (Kontext-/Shader-/"
             "Pufferfehler) – es wurde nichts gemessen"
         )
-    if max(viewer_samples, default=0) == 0:
-        raise ProbeNotExecutable(
+    elif max(viewer_samples, default=0) == 0:
+        reason = (
             f"Szenario {name!r}: kein einziger Upload hat GL-Objekte erzeugt – die "
             "Plattform meldet sich renderfähig, rendert aber nicht"
         )
-    # Zusätzlich zum Totalausfall: ein *unvollständiger* Puffersatz. Er entsteht,
-    # wenn ``QOpenGLBuffer.create()``/``bind()`` still ``false`` liefern; der
-    # Viewer erkennt das seit #711 und gibt frei, die Sonde darf die Messreihe
-    # danach trotzdem nicht als Nachweis werten.
-    if max(viewer_samples) < MIN_LIVE_PER_VIEWER:
-        raise ProbeNotExecutable(
+    elif max(viewer_samples) < MIN_LIVE_PER_VIEWER:
+        reason = (
             f"Szenario {name!r}: unvollständiger Puffer-Upload – der Viewer hielt "
             f"höchstens {max(viewer_samples)} statt {MIN_LIVE_PER_VIEWER} GL-Objekte "
             "(fehlgeschlagenes create()/bind()); es wurde nichts Belastbares gemessen"
         )
+    if reason is not None:
+        # Auch der Abbruchpfad räumt auf: ein Aufrufer, der ``ProbeNotExecutable``
+        # fängt und im selben Prozess weiterläuft (Tests, Abnahmeskripte), darf
+        # weder Teilressourcen noch verfälschte Zähler erben (Codex-Review #713).
+        viewer.cleanup_gl()
+        viewer.deleteLater()
+        QApplication.processEvents()
+        raise ProbeNotExecutable(reason)
     viewer.cleanup_gl()
     live_after_cleanup = gl_resource_stats().live - before.live
     viewer.deleteLater()
@@ -690,9 +716,14 @@ def _print_human(report: ProbeReport) -> None:
     print(f"  {env['platform']} | Python {env['python']} | Qt {env['qt']} "
           f"| QPA {env['qpa_platform']} | GL {env['gl_capability']}")
     for scenario in report.scenarios:
+        # Abgebrochene Läufe zeigen „gefahren/angefordert" statt nur der Zielzahl.
+        cycles_text = (
+            f"{scenario.cycles} Zyklen" if scenario.cycles_executed == scenario.cycles
+            else f"{scenario.cycles_executed}/{scenario.cycles} Zyklen"
+        )
         print(
             f"  {scenario.name:<12} {scenario.source_px:>18}  "
-            f"{scenario.cycles} Zyklen  live {scenario.live_after_warmup}"
+            f"{cycles_text}  live {scenario.live_after_warmup}"
             f"→{scenario.live_after_last_cycle} (max {scenario.max_live}, "
             f"Viewer max {scenario.max_viewer_objects}), "
             f"erzeugt {scenario.created_total}/freigegeben {scenario.destroyed_total}, "
@@ -759,7 +790,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ProbeNotExecutable as exc:
         print(f"Sonde nicht ausführbar: {exc}", file=sys.stderr)
         return 2
-    report.gating = args.cycles >= MIN_GATING_CYCLES
+    # Fail-closed: abnahmefähig ist ein Lauf nur, wenn genug Zyklen *angefordert*
+    # **und** in jedem Szenario tatsächlich gefahren wurden. Ein Abbruch nach dem
+    # ersten Zyklus darf nicht als vollständiger Nachweis markiert sein (#713).
+    report.gating = args.cycles >= MIN_GATING_CYCLES and all(
+        scenario.cycles_executed >= MIN_GATING_CYCLES for scenario in report.scenarios
+    )
     payload = report.to_json()
     if args.json_out:
         args.json_out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", "utf-8")

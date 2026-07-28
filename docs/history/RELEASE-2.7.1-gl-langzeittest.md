@@ -209,20 +209,40 @@ Unter `--mode gl` wäre das genau das falsche Grün, das der Hardware-Nachweis i
 
 ```text
 --- create()==false ---
-BEFUND  Upload fehlgeschlagen: QOpenGLBuffer.create() ist fehlgeschlagen
+BEFUND  Upload fehlgeschlagen nach 1 von 120 Zyklen: QOpenGLBuffer.create() ist fehlgeschlagen
 BEFUND  kein vollständiger Puffer-Upload nachgewiesen (Viewer hielt höchstens 0 statt 3 GL-Objekte)
+BEFUND  nur 1 von 120 Zyklen gefahren – der Lauf ist kein vollständiger Nachweis
   live nach cleanup 0, erzeugt 0/freigegeben 0, Viewer max 0, Doppelfreigaben 0, use-after 0
 
 --- bind()==false ---
-BEFUND  Upload fehlgeschlagen: QOpenGLBuffer.bind() ist fehlgeschlagen
+BEFUND  Upload fehlgeschlagen nach 1 von 120 Zyklen: QOpenGLBuffer.bind() ist fehlgeschlagen
 BEFUND  kein vollständiger Puffer-Upload nachgewiesen (Viewer hielt höchstens 0 statt 3 GL-Objekte)
+BEFUND  nur 1 von 120 Zyklen gefahren – der Lauf ist kein vollständiger Nachweis
   live nach cleanup 0, erzeugt 2/freigegeben 2, Viewer max 0, Doppelfreigaben 0, use-after 0
 ```
 
-Die Bilanz im `bind()`-Fall zeigt den Teilerfolg sauber: VAO und erster Puffer
-entstanden (2), beide wurden genau einmal freigegeben (2); der Wrapper des
-gescheiterten Puffers wird nie als GL-Objekt gebucht, `allocate()` läuft nicht
-mehr.
+Die Bilanz zeigt beide Fälle sauber getrennt. Bei `create() == false` entsteht
+nie ein GL-Name: `erzeugt 0 / freigegeben 0`. Bei `bind() == false` existiert der
+Name bereits – VAO **und** Puffer werden deshalb gebucht und beide genau einmal
+freigegeben (`2/2`), obwohl der Puffer nie ein Viewer-Feld erreicht. `allocate()`
+läuft in keinem der beiden Fälle.
+
+Drei Berichtsdetails, die aus der Codex-Review zu PR #713 stammen und dieselbe
+Linie fortsetzen – ein Fehlerartefakt darf sich nicht besser darstellen, als der
+Lauf war:
+
+- Der bei `bind()` freigegebene Puffer wird in `gl_resource_stats()` als Paar
+  aus Erzeugung und Freigabe gebucht (sonst verschwiege die Diagnose echten
+  GPU-Umschlag auf genau dem gemessenen Fehlerpfad).
+- Der Bericht nennt **gefahrene** neben angeforderten Zyklen
+  (`cycles_executed`); ein Abbruch im ersten Zyklus behauptet nicht mehr, es
+  seien 120 gelaufen.
+- `gating` ist fail-closed: abnahmefähig ist ein Lauf nur, wenn die Mindestzahl
+  angefordert **und** in jedem Szenario tatsächlich gefahren wurde.
+- Auch der Abbruchpfad in `run_gl_scenario` räumt auf (`cleanup_gl` +
+  `deleteLater`), bevor er `ProbeNotExecutable` wirft – ein Aufrufer, der die
+  Ausnahme fängt und im selben Prozess weiterläuft, erbt weder Teilressourcen
+  noch verfälschte Zähler.
 
 **Zwei Ebenen, bewusst getrennt** – die Reproduktion oben zeigt, warum beide
 nötig sind:

@@ -332,7 +332,12 @@ def test_failed_buffer_bind_stops_before_allocate(qapp) -> None:
         assert viewer.gl_object_count == 0
         viewer.cleanup_gl()
 
-    assert gl_resource_stats().live == 0
+    stats = gl_resource_stats()
+    assert stats.live == 0
+    # Der Puffer erreicht nie ein Viewer-Feld, taucht in der prozessweiten
+    # Bilanz aber trotzdem auf: sonst verschwiege sie echten GPU-Umschlag auf
+    # genau dem gemessenen Fehlerpfad (Codex-Review #713). 1 VAO + 1 Puffer.
+    assert stats.created == stats.destroyed == 2
     assert ledger.live == 0
     assert ledger.double_destroys == []
 
@@ -451,15 +456,29 @@ def test_probe_reports_a_finding_when_no_buffer_upload_succeeds(qapp, monkeypatc
     assert result.live_after_cleanup == 0
     assert result.double_destroys == ()
     assert result.use_after_destroy == ()
+    # Der Bericht darf nicht behaupten, alle Zyklen seien gefahren worden
+    # (Codex-Review #713) – der Abbruch erfolgt im ersten Zyklus.
+    assert result.cycles == CYCLES
+    assert result.cycles_executed == 1
+    assert any("von 110 Zyklen gefahren" in finding for finding in result.findings)
 
 
-def test_probe_cli_fails_when_buffer_creation_silently_fails(qapp, monkeypatch) -> None:
+def test_probe_cli_fails_when_buffer_creation_silently_fails(qapp, monkeypatch, tmp_path) -> None:
     """Derselbe Fall über die CLI: Exit 1 statt Exit 0 mit ``verdict: ok`` (#711)."""
     monkeypatch.setattr(probe, "TrackedGLResource", _NeverCreatingResource)
+    out = tmp_path / "kaputt.json"
 
     assert probe.main(
-        ["--cycles", "5", "--allow-short-run", "--sizes", "klein:64:REDUCED", "--quiet"]
+        ["--cycles", str(probe.MIN_GATING_CYCLES), "--sizes", "klein:64:REDUCED",
+         "--json-out", str(out), "--quiet"]
     ) == 1
+
+    payload = json.loads(out.read_text("utf-8"))
+    assert payload["verdict"] == "befund"
+    # Auch bei ausreichend *angeforderten* Zyklen: ein abgebrochener Lauf ist
+    # kein abnahmefähiger Nachweis (fail-closed, Codex-Review #713).
+    assert payload["gating"] is False
+    assert payload["scenarios"][0]["cycles_executed"] == 1
 
 
 def test_gl_scenario_rejects_an_incomplete_buffer_upload(qapp, monkeypatch) -> None:
@@ -472,6 +491,11 @@ def test_gl_scenario_rejects_an_incomplete_buffer_upload(qapp, monkeypatch) -> N
 
     with pytest.raises(probe.ProbeNotExecutable, match="unvollständiger Puffer-Upload"):
         probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
+
+    # Der Abbruchpfad räumt trotzdem auf – ein Aufrufer, der die Ausnahme fängt
+    # und weiterläuft, erbt weder Teilressourcen noch verfälschte Zähler
+    # (Codex-Review #713).
+    assert gl_resource_stats().live == 0
 
 
 def test_context_loss_releases_and_schedules_reupload(qapp) -> None:
