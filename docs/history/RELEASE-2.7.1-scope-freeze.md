@@ -38,12 +38,12 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
   späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
-- **Commits im Fenster:** 15 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
-  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #684,
-  per Squash-Merge von PR #706 bestätigt).
-- **Protokollierter Kandidaten-SHA:** `65a656aa41416219bbcdcedba92e06047d2a8ed0`
-  (`test(viewer3d): GL-Ressourcen-Langzeitnachweis und Regressionsgate für
-  2.7.1 (#684) (#706)`, Squash-Merge von PR #706 auf `main`)
+- **Commits im Fenster:** 20 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #711,
+  per Squash-Merge von PR #713 bestätigt).
+- **Protokollierter Kandidaten-SHA:** `5e947ee816a2d481fa6ea901790281293aced4d5`
+  (`fix(viewer3d): still fehlgeschlagene QOpenGLBuffer-Erzeugung hart erkennen
+  (#711) (#713)`, Squash-Merge von PR #713 auf `main`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -91,7 +91,12 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `b0a8faed7921fb4da0b24e29118cf5085e63748b` (#699 via PR #703, kurz `b0a8fae`) | Protokoll – trägt den vollen Kandidaten-SHA von PR #701, die Fensterzahl und die Gate-Nachweise in dieses Dokument nach. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #684 *im* Fenster – daher hier klassifiziert. |
 | `d97d2260f26ab2289fe411d8c57eaac730204143` (#704, kurz `d97d226`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem Audit vom 27.07. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #704 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
 | `a0f6ef15b7fac67e79135809963fb2235ca76e6a` (#705, kurz `a0f6ef1`) | Dokumentation – Abgleich der offenen Issue-Definitionen gegen den Code, Statusdoku. | Keins – reine Statusdoku. | PR-CI von #705 grün. | Protokoll. Nicht in Release Notes. |
-| `Kandidaten-Commit` (#684 via PR zu diesem Zweig, voller SHA unter „Protokollierter Kandidaten-SHA") | **GL-Ressourcen-Langzeitnachweis und Regressionsgate.** Ergänzt den messbaren Nachweis für den Fix aus PR #676: `viewer_3d` bekommt zwei reine Diagnose-Zähler (`gl_resource_stats()` prozessweit, `GLReliefViewer.gl_object_count` je Viewer), `scripts/gl_stress_probe.py` ist die geteilte Messsonde (`make gl-stress`, JSON-Nachweis, `--mode gl` für echten Kontext), `tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus über 110 Zyklen je Datensatzgröße samt Fehler-/Abbruchpfaden und Negativkontrolle ab, `tests/test_viewer_3d_gl.py` denselben Nachweis unter echtem GL. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md). | Niedrig für die Anwendung – am Renderpfad ändert sich nichts; die Zähler sind zwei Integer ohne GL-Aufruf, kein Schreibpfad ins Modell, keine neue Abhängigkeit, keine Formatänderung. Der übrige Diff ist Test-, Werkzeug- und Doku-Code. | `make check` grün (**2069 passed**, 6 skipped, 14 deselected), `make ui` grün (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` und ein 1000-Zyklen-Langlauf ohne Befund; Details und Zählerstände im Testbericht. | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und `Makefile`; nach der Freeze-Regel als Nachweis-/Regressionsarbeit an einer release-relevanten Prüfung zulässig. Kein Anwender-CHANGELOG-Eintrag (keine sichtbare Verhaltensänderung). |
+| `65a656aa41416219bbcdcedba92e06047d2a8ed0` (#684 via PR #706, kurz `65a656a`) | **GL-Ressourcen-Langzeitnachweis und Regressionsgate.** Ergänzt den messbaren Nachweis für den Fix aus PR #676: `viewer_3d` bekommt zwei reine Diagnose-Zähler (`gl_resource_stats()` prozessweit, `GLReliefViewer.gl_object_count` je Viewer), `scripts/gl_stress_probe.py` ist die geteilte Messsonde (`make gl-stress`, JSON-Nachweis, `--mode gl` für echten Kontext), `tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus über 110 Zyklen je Datensatzgröße samt Fehler-/Abbruchpfaden und Negativkontrolle ab, `tests/test_viewer_3d_gl.py` denselben Nachweis unter echtem GL. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md). | Niedrig für die Anwendung – am Renderpfad ändert sich nichts; die Zähler sind zwei Integer ohne GL-Aufruf, kein Schreibpfad ins Modell, keine neue Abhängigkeit, keine Formatänderung. Der übrige Diff ist Test-, Werkzeug- und Doku-Code. | `make check` grün (**2069 passed**, 6 skipped, 14 deselected), `make ui` grün (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` und ein 1000-Zyklen-Langlauf ohne Befund; Details und Zählerstände im Testbericht. | **Aufnehmen.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und `Makefile`; nach der Freeze-Regel als Nachweis-/Regressionsarbeit an einer release-relevanten Prüfung zulässig. Kein Anwender-CHANGELOG-Eintrag (keine sichtbare Verhaltensänderung). War bis zum Kandidatenwechsel durch #711 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
+| `5c25e3b71f6be42e454e58712cd2dfad2dfb6c3a` (#684 via PR #707, kurz `5c25e3b`) | Protokoll – trug den vollen Kandidaten-SHA von PR #706, die Fensterzahl (15) und die Gate-Nachweise in dieses Dokument nach. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #711 *im* Fenster – daher hier klassifiziert. |
+| `ac053638c1d81864043798a55bf41e4fb4c877c6` (#702 via PR #708, kurz `ac05363`) | Dokumentation – korrigiert die Tab-Zuordnung im Architektur-Abschnitt von `README.md` (alle sechs Sprachen): Ebenen- und Höhen-Tab leben in eigenen Modulen (`layer_panel.LayerPanel`, `height_map_panel.HeightMapPanel`), waren aber pauschal `right_panel_tabs` zugeschrieben. | Keins – reine Textkorrektur in `README.md`/Übersetzungen, keine Code- oder Verhaltensänderung. | PR-CI von #708 grün; `test_i18n_docs`/`test_markdown_links` unberührt. | Aufnehmen (kandidatenrelevant, da `README.md` nicht unter die Protokoll-Pfadklasse fällt), aber ohne Anwendungswirkung – nicht in Release Notes. |
+| `1b04887f7aafa4fd1ddd2636f41d3b768022db31` (PR #709, kurz `1b04887`) | **CI-Härtung.** Erzwingt das Freeze-Gate (`verify_release_freeze.py --require-pin`) jetzt auch für manuelle `workflow_dispatch`-Kandidatenbauten (vorher nur bei Tag-Pushes), ergänzt einen zusätzlichen Schritt, der exakte Gleichheit von `GITHUB_SHA` und dem abgeleiteten Kandidaten erzwingt (ein Kandidatenbau auf einem Protokoll-Commit *über* dem Kandidaten schlägt damit fehl statt eines anderen Standes als den dokumentierten zu bauen), und protokolliert Produktversion/Commit-SHA/Run-ID sowie die tatsächlich verwendeten Bundler-Versionen (`python-appimage`/`build`/PyInstaller aus der isolierten `toolenv`-venv) im Build-Log jedes Matrix-Legs. | Niedrig für die Anwendung – reine Workflow-/Test-Änderung, kein `bgremover/**`-Code. Erhöht (bewusst verschärfend) für den Release-Prozess: ein Kandidatenbau ist jetzt ausschließlich auf dem exakten Kandidaten-Commit möglich, nicht mehr auf einem Protokoll-Commit darüber. | Neuer Regressionstest in `tests/test_release_gate.py` (+67 Zeilen); PR-CI von #709 grün. | **Aufnehmen – kandidatenrelevant** (`.github/workflows/release-linux.yml`, `tests/**`). Ändert den Build-/Tag-SHA-Vertrag; siehe aktualisierte Freeze-Regel „Tag (#686)" unten. Kein Anwender-CHANGELOG-Eintrag (reiner Release-Prozess). |
+| `0b021ccfa5f7145f2ae4eba24b6ded8772501b4a` (#712, kurz `0b021cc`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem Release-Audit vom 28.07. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #712 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
+| `Kandidaten-Commit` (#711 via PR #713, voller SHA unter „Protokollierter Kandidaten-SHA") | **GL-Puffer-Fehlererkennung hart erzwungen.** `QOpenGLBuffer.create()`/`bind()` melden einen Fehlschlag ausschließlich über ihren booleschen Rückgabewert; `GLReliefViewer._make_buffer` (jetzt `_new_buffer`) ignorierte ihn. Ein Wrapper ohne GL-Namen blieb dann referenziert, `has_failed` blieb `false`, und `gl_object_count`/die GL-Sonde konnten `verdict: ok` melden, ohne dass je ein Puffer entstanden war – genau das falsche Grün, das der Hardware-Nachweis in #685 hätte liefern können. Neue `GLBufferError`; ein Teilerfolg gibt VAO und bereits erzeugte Puffer genau einmal frei und schaltet über `_fail` in den bekannten Fehlerzustand mit 2D-Rückfall statt einer leeren „bereiten" 3D-Ansicht. Sonde: `MIN_LIVE_PER_VIEWER = 3` – ein unvollständiger Puffersatz ergibt im `--mode gl` `ProbeNotExecutable`/Exit 2, im `--mode fake` einen harten Befund statt `ok`. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md) Abschnitt 4.4/7.1. | Niedrig für die Anwendung – reiner Fehlerpfad der optionalen 3D-Vorschau, kein Schreibpfad ins Modell; der VAO bleibt als GL-2.1-Erweiterung weiterhin optional (kein neuer Fehlerfall). Erhöht die Verlässlichkeit des Release-Nachweises selbst (das war der Zweck von #711). | `make check` grün (ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed**, 6 skipped, 14 deselected), `make ui` (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` (Exit 0, `ok`); neun neue deterministische, GL-freie Regressionstests in `tests/test_viewer_3d_gl_lifecycle.py` (`create()==false`, `bind()==false`, Teilerfolg, 110 wiederholte Fehlschläge ohne Restbestand, 110 Reuploads im Erfolgsfall, Sonden-CLI-Fälle); PR-CI von #713 grün (Lightweight PR checks, CodeQL, License Check, Dependency Audit, Claude Code Review). | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `scripts/**`, `tests/**` und `CHANGELOG.md`. CHANGELOG-Eintrag unter `[2.7.1] → Behoben` in allen sechs Sprachen: die 3D-Vorschau zeigt auf einem Treiber mit fehlgeschlagenem Puffer-Upload jetzt den Fehlerzustand mit 2D-Rückfall statt einer leeren 3D-Ansicht. |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -100,13 +105,13 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-- **Protokollierung des Kandidaten-SHA nach dem Merge von PR #706** (#684):
+- **Protokollierung des Kandidaten-SHA nach dem Merge von PR #713** (#711):
   trägt den vollen 40-stelligen SHA des Squash-Commits oben ein, bestätigt die
-  Fensterzahl 15 und ergänzt die Gate-Nachweise; ändert nur
+  Fensterzahl 20 und ergänzt die Gate-Nachweise; ändert nur
   `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
-Die drei zuvor hier geführten Protokoll-Commits (`b0a8fae`, `d97d226`,
-`a0f6ef1`) liegen seit dem Kandidatenwechsel durch #684 **im** Fenster und
+Die zuvor hier geführten Protokoll-Commits (`5c25e3b`, `ac05363`, `1b04887`,
+`0b021cc`) liegen seit dem Kandidatenwechsel durch #711 **im** Fenster und
 stehen in der Klassifizierungstabelle oben.
 
 **Zur Squash-Historie:** PR #701 wurde als **Squash** eingebracht. Die sechs
@@ -234,14 +239,23 @@ der Releases-Seite.
   weichen Dokument und Artefakt wieder auseinander. Ein Protokoll-Commit auf
   `main` zieht den SHA nach. Weicht der Inhalt ab, ist es ein Fehler
   (`candidate-sha-mismatch`) und die vollständige Wiederholung greift.
-- **Tag (#686):** Der Tag `v2.7.1` darf nur auf einen Commit gesetzt werden, für
-  den `make release-freeze-check` (mit `--require-pin`) fehlerfrei läuft – also
-  auf den protokollierten Kandidaten oder einen darüber liegenden reinen
-  Protokoll-Commit. Das ist seit der zweiten Reviewrunde **technisch
-  erzwungen**: der Job `verify-tag` in `.github/workflows/release-linux.yml`
-  führt das Gate bei jedem Tag-Push aus, bevor gebaut oder veröffentlicht wird.
-  Fehlt das Freeze-Dokument der getaggten Version, bricht das Gate bewusst ab
-  (fail-closed) – ein Release ohne dokumentierten Freeze ist damit unmöglich.
+- **Tag/Build-SHA-Vertrag (#686/#685, seit #709 exakt):** Kandidatenartefakte
+  und der Release-Tag `v2.7.1` müssen exakt auf dem protokollierten
+  Kandidaten-SHA liegen – **nicht** auf einem Protokoll-Commit darüber. Vor
+  #709 genügte `make release-freeze-check --require-pin` (das prüft nur, dass
+  der *abgeleitete* Kandidat mit dem *dokumentierten* SHA übereinstimmt; der
+  tatsächlich ausgecheckte `GITHUB_SHA`/Tag-Commit konnte trotzdem ein
+  Protokoll-Commit darüber sein). Seit #709 erzwingt ein zusätzlicher Schritt
+  im Job `verify-tag` (`.github/workflows/release-linux.yml`) zusätzlich
+  exakte Gleichheit `github.sha == $(verify_release_freeze.py
+  --print-candidate)` – bei **jedem** Kandidatenbau, also sowohl beim Tag-Push
+  für #686 als auch bei einem manuellen `workflow_dispatch`-Kandidatenbau für
+  #685. Ein Build/Tag auf einem reinen Protokoll-Commit oberhalb des
+  Kandidaten (z. B. diesem Freeze-Nachtrag selbst) schlägt damit bewusst fehl;
+  Checkout/Tag müssen auf den Kandidaten-Commit selbst zeigen. Fehlt das
+  Freeze-Dokument der getaggten Version, bricht das Gate ebenfalls ab
+  (fail-closed) – ein Release ohne dokumentierten, exakt getroffenen Freeze
+  ist damit unmöglich.
 - **Basis-Tag:** Die Basis ist mit ihrem vollen SHA eingefroren (oben in der
   Zeile „Basis-Tag"). Ein Tag ist verschiebbar: zeigte `v2.7.0` nachträglich auf
   einen Geschwister-Commit mit demselben Parent, entstünde dasselbe
@@ -283,6 +297,18 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Commit) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
 | PR-CI von #706 auf `973a7034f3c2…` | alle 12 Checks grün bzw. übersprungen (Lightweight PR checks, CodeQL/Analyze, license-check, pip-audit 3.10/3.12, review, license summary); beide Codex-Befunde (falsches Grün bei fehlgeschlagenem GL-Viewer, nicht erzwungene Mindestzyklen) vor dem Merge behoben |
 
+| Prüfung auf dem #711-Kandidaten (Zweig `claude/github-issue-711-p4ru14`, PR #713) | Lauf/Ergebnis |
+|---|---|
+| `make check` | grün: ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed, 6 skipped, 14 deselected** |
+| `make ui` | grün: **20 passed** |
+| `make coverage` (`fail_under = 86`) | grün: **93 %** |
+| `make gl-stress` | Exit 0, Urteil `ok` |
+| Neue Regressionstests `tests/test_viewer_3d_gl_lifecycle.py` (9 Fälle) | decken `create()==false`, `bind()==false`, Teilerfolg (genau eine Freigabe je Objekt), 110 wiederholte Fehlschläge ohne Restbestand, 110 Reuploads im Erfolgsfall, sowie die Sonden-Fälle (Fake-Modus meldet Befund, CLI liefert Exit 1, `--mode gl` liefert `ProbeNotExecutable`/Exit 2) ab; alle grün |
+| `python scripts/verify_release_freeze.py --print-candidate` (auf `main`, vor diesem Protokoll-Commit) | `5e947ee816a2d481fa6ea901790281293aced4d5` |
+| `make release-freeze-check` (auf `main`, vor diesem Protokoll-Commit) | 5 Fehler, 2 Warnungen (`candidate-sha-mismatch` gegen den alten Pin `65a656aa…`, `commit-count-mismatch` 20 vs. 15, drei `unclassified-candidate-commit` für #707/#708/#709 – exakt der erwartete Zustand vor dem Nachtrag) |
+| `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Commit) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
+| PR-CI von #713 auf `6415e91c15da…` | alle Checks grün (Lightweight PR checks/PR CI, CodeQL, License Check, Dependency Audit, Claude Code Review); ein Codex-Reviewbefund vor dem Merge behoben (Buchung/Aufräumen/Zyklenzahl, Folgecommit `6415e91`) |
+
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
 
@@ -299,17 +325,28 @@ wiederholt, keiner still nachgezogen):
 5. `480a5fc0008ded401b02b15373d8474d67c83382` – Squash-Merge von PR #701 auf
    `main`. Kein inhaltlicher Wechsel: derselbe
    kandidatenrelevante Baum wie 4., nur ein neuer SHA durch das Einbringen.
-6. **Kandidatenwechsel durch #684** (GL-Ressourcen-/Langzeittest, dieser Zweig,
-   **aktueller Kandidat**): erste kandidatenrelevante Änderung nach dem Freeze.
-   Fällt unter die in der Freeze-Regel vorgesehene Ausnahme (Nachweis- und
-   Regressionsarbeit an einer release-relevanten Prüfung) und wurde deshalb
-   nicht abgelehnt, sondern nach dem vorgeschriebenen Verfahren vollständig
-   nachgezogen: Tabelle um die drei zuvor darüber liegenden Protokoll-Commits
-   und den neuen Kandidaten ergänzt, Fensterzahl 11 → 15, Kandidaten-SHA auf
-   `nachzutragen` zurückgesetzt, Gate-Nachweise wiederholt. Der Squash-Merge von
-   PR #706 (`65a656aa4141…`) wurde zum abgeleiteten Kandidaten; dieser
-   Protokoll-Commit trägt den SHA nach. Damit ist der Freeze wieder
-   abnahmefähig.
+6. **Kandidatenwechsel durch #684** (GL-Ressourcen-/Langzeittest, Squash-Merge
+   von PR #706, `65a656aa4141…`): erste kandidatenrelevante Änderung nach dem
+   Freeze. Fiel unter die in der Freeze-Regel vorgesehene Ausnahme (Nachweis-
+   und Regressionsarbeit an einer release-relevanten Prüfung) und wurde
+   deshalb nicht abgelehnt, sondern nach dem vorgeschriebenen Verfahren
+   vollständig nachgezogen: Tabelle um die drei zuvor darüber liegenden
+   Protokoll-Commits und den neuen Kandidaten ergänzt, Fensterzahl 11 → 15,
+   Kandidaten-SHA auf `nachzutragen` zurückgesetzt, Gate-Nachweise wiederholt.
+   Der Protokoll-Commit #707 (`5c25e3b71f6b…`) trug den SHA nach.
+7. **Kandidatenwechsel durch #711** (GL-Puffer-Fehlererkennung, Squash-Merge
+   von PR #713, `5e947ee816a2…`, **aktueller Kandidat**): kandidatenrelevantes
+   Follow-up zu #684 – ein stiller Fehlschlag von `QOpenGLBuffer.create()`/
+   `bind()` konnte ein falsches `verdict: ok` in der GL-Sonde erzeugen (siehe
+   Tabelle oben). Zwischen dem alten und dem neuen Kandidaten liegen zusätzlich
+   zwei weitere kandidatenrelevante Commits (#708 README-Korrektur, #709
+   CI-Härtung des Build-/Tag-SHA-Vertrags) sowie zwei reine Protokoll-Commits
+   (#707, #712), die alle nach dem vorgeschriebenen Verfahren vollständig in
+   die Tabelle nachgezogen wurden: Fensterzahl 15 → 20, Kandidaten-SHA auf den
+   neuen Stand gesetzt, Gate-Nachweise wiederholt, Tag-/Build-SHA-Vertrag-Text
+   an die seit #709 erzwungene exakte Gleichheit `GITHUB_SHA == Kandidat`
+   angepasst. Dieser Freeze-Nachtrag selbst (#710) ändert ausschließlich
+   Protokoll-/Statusdokumentation und verschiebt den Kandidaten nicht.
 
 Die Punkte 1.–4. liegen als Commits nicht mehr auf `main` (Squash); sie sind
 über PR #701 einsehbar und hier bewusst als Entstehungsgeschichte protokolliert.
@@ -340,9 +377,14 @@ gebaut oder getaggt wird.
   als Abschlussnachweis hinterlegt.
 - **#684:** GL-Ressourcen-/Langzeitnachweis. **Nicht mehr unabhängig:** die
   Arbeit berührt `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und
-  das `Makefile` und erzeugt damit den aktuellen Kandidaten (siehe
+  das `Makefile` (Squash-Merge `65a656aa4141…`, PR #706; siehe
   Kandidatenwechsel 6.). Ergebnisse:
   [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md).
+- **#711:** GL-Puffer-Fehlererkennung. **Erzeugt den aktuellen Kandidaten**
+  (Squash-Merge `5e947ee816a2…`, PR #713; siehe Kandidatenwechsel 7.) und
+  ergänzt denselben Testbericht um die verschärfte False-Green-Abwehr.
+- **#710:** dieser Freeze-Nachtrag – zieht den Kandidatenwechsel durch #711
+  vollständig nach, ändert aber selbst nur Protokoll-/Statusdokumentation.
 
 ## Ausdrücklich nicht in diesem Scope-Freeze enthalten
 
