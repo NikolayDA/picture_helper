@@ -19,10 +19,15 @@ name: Release artifacts (Linux + macOS)
 # Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
 # GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
 # erzwungen:
-#   1. ``verify-tag`` – der Tag entspricht dem Format ``vX.Y.Z``, seine Version
-#      stimmt mit ``project.version`` aus pyproject.toml ueberein, UND der
-#      getaggte Commit ist der im Freeze-Dokument protokollierte Kandidat
-#      (``scripts/verify_release_freeze.py --require-pin``, #699).
+#   1. ``verify-tag`` – bei Tag-Pushes zusaetzlich: der Tag entspricht dem
+#      Format ``vX.Y.Z`` und seine Version stimmt mit ``project.version`` aus
+#      pyproject.toml ueberein. IMMER (Tag-Push UND manueller
+#      ``workflow_dispatch``-Kandidatenbau, #685/#699): der gebaute Commit ist
+#      der im Freeze-Dokument protokollierte Kandidat
+#      (``scripts/verify_release_freeze.py --require-pin``). Das Skript leitet
+#      den Kandidaten aus der Commit-Historie ab (kein Tag noetig) – ein
+#      manueller Kandidatenbau auf einem nicht (mehr) eingefrorenen Commit
+#      schlaegt damit ebenso fehl wie ein falsch getaggter Release.
 #   2. ``test`` – die massgebliche Full-CI-Matrix (ci.yml, als
 #      wiederverwendbarer Workflow aufgerufen) ist fuer EXAKT diesen Commit
 #      gruen (Linux/macOS x Python 3.10-3.13).
@@ -50,10 +55,10 @@ permissions:
   contents: read
 
 jobs:
-  # Gate 1: Tag-Format und Tag/Version-Abgleich. Nur bei Tag-Pushes wirksam
-  # (bei workflow_dispatch existiert kein Release-Tag); der Job selbst bleibt
-  # gruen, damit der Build-Pfad fuer manuelle Builds nicht per needs-Skip
-  # entfaellt.
+  # Gate 1: Tag-Format/Tag-Version-Abgleich (nur Tag-Pushes) + Freeze-Pin
+  # (immer, auch bei manuellem workflow_dispatch-Kandidatenbau, #685). Der Job
+  # selbst bleibt fuer workflow_dispatch nicht per fehlendem Tag rot – nur der
+  # Freeze-Pin-Schritt ist dort scharf.
   verify-tag:
     name: Verify tag matches project version
     runs-on: ubuntu-latest
@@ -85,15 +90,22 @@ jobs:
           fi
           echo "Tag $tag_name passt zu project.version $project_version."
 
-      # Gate 1b (#699): Der getaggte Commit MUSS der dokumentierte Kandidat sein.
-      # Ohne diesen Schritt genuegt es, irgendeinen Commit zu taggen, dessen
-      # pyproject-Version zum Tag passt – auch einen, der nie eingefroren wurde.
-      # Das Werkzeug prueft Versionsquellen, CHANGELOG/AppStream/Lizenzen, die
-      # vollstaendige Commit-Klassifizierung, den Release-Body und (mit
-      # --require-pin) den exakt protokollierten Kandidaten-SHA. Fehlt das
-      # Freeze-Dokument der Version, bricht es bewusst ab (fail-closed).
+      # Gate 1b (#699/#685): Der gebaute Commit MUSS der dokumentierte Kandidat
+      # sein – bei Tag-Pushes UND bei manuellem workflow_dispatch. Ohne diesen
+      # Schritt genuegt es bei Tag-Pushes, irgendeinen Commit zu taggen, dessen
+      # pyproject-Version zum Tag passt (auch einen, der nie eingefroren
+      # wurde), und bei workflow_dispatch haengt der Freeze-Pin allein davon
+      # ab, dass ein Mensch vor dem Start manuell ``make release-freeze-check``
+      # laeuft (#685: genau das ist in der Praxis schon einmal uebersehen
+      # worden). Das Werkzeug prueft Versionsquellen, CHANGELOG/AppStream/
+      # Lizenzen, die vollstaendige Commit-Klassifizierung, den Release-Body
+      # und (mit --require-pin) den exakt protokollierten Kandidaten-SHA –
+      # abgeleitet aus der Commit-Historie, kein Tag noetig. Fehlt das
+      # Freeze-Dokument der Version oder ist der Commit kein aktueller
+      # Kandidat, bricht es bewusst ab (fail-closed) und verhindert damit,
+      # dass die fuenf Kandidatenartefakte je auf einem nicht (mehr)
+      # eingefrorenen Commit gebaut werden.
       - name: Release-Freeze-Gate (dokumentierter Kandidat)
-        if: startsWith(github.ref, 'refs/tags/')
         run: python scripts/verify_release_freeze.py --require-pin
 
   # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
@@ -152,6 +164,24 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+
+      # #685: Provenienz jedes Kandidatenartefakts direkt im Build-Log
+      # nachweisbar machen – Produktversion, voller Commit-SHA und
+      # Workflow-/Run-ID identifizieren, aus welchem gebuildet wurde, plus die
+      # fuer Reproduzierbarkeit relevanten Toolchain-Versionen. Alle fuenf
+      # Matrix-Legs eines Laufs teilen sich ``github.sha``/``github.run_id`` –
+      # ein Diff der Logs belegt damit denselben Kandidaten je Artefakt.
+      - name: Log build provenance (version, commit, run, toolchain)
+        run: |
+          set -euo pipefail
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          echo "Produktversion: $project_version"
+          echo "Commit-SHA: ${GITHUB_SHA}"
+          echo "Workflow: ${GITHUB_WORKFLOW} | Run-ID: ${GITHUB_RUN_ID} | Run-Attempt: ${GITHUB_RUN_ATTEMPT} | Trigger: ${GITHUB_EVENT_NAME}"
+          echo "Matrix-Leg: ${{ matrix.os }} ${{ matrix.arch }} (${{ matrix.platform_tag }})"
+          echo "Runner: ${RUNNER_OS} / ${RUNNER_ARCH}"
+          python3 --version
+          pip --version
 
       # ── Linux: AppImage + .deb ──────────────────────────────────────────
       - name: Build AppImage
