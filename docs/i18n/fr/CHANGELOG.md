@@ -21,6 +21,15 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   augmentait continuellement l'empreinte mémoire GPU de l'aperçu 3D. La
   libération s'exécute désormais avant chaque (re)téléversement ; n'affecte
   que l'affichage 3D, pas les données d'image, de projet ou d'export.
+- **Aperçu de relief 3D : un échec silencieux de création des tampons GPU
+  passait pour une réussite (#711).** Lorsque `QOpenGLBuffer.create()` ou
+  `bind()` renvoyaient `false` sur un pilote problématique, le téléversement se
+  poursuivait quand même : l'aperçu se déclarait « prêt » alors qu'aucun tampon
+  n'avait jamais été créé. Les deux valeurs de retour sont désormais
+  vérifiées : un téléversement échoué libère immédiatement et exactement une
+  fois les tampons déjà créés ainsi que l'objet de tableau de sommets, et bascule
+  l'aperçu dans l'état d'erreur connu avec repli 2D au lieu d'afficher une vue
+  3D vide.
 
 ### Remarques sur cette version
 

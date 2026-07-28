@@ -95,6 +95,11 @@ def test_repeated_uploads_do_not_accumulate_gl_objects(qapp) -> None:
 
     assert not viewer.has_failed
     assert viewer.gl_object_count <= 4
+    # Untergrenze, nicht nur Obergrenze (#711): ein echter GL-Lauf ohne
+    # erfolgreichen Puffer-Upload wäre konstant 0 und damit formal „ohne
+    # Wachstum" – er darf hier nicht als bestandener Nachweis durchgehen.
+    assert viewer.gl_object_count >= 3
+    assert min(live_samples[1:]) >= 3
     # Nach dem ersten Upload konstant – kein Zuwachs je Zyklus.
     assert set(live_samples[1:]) == {live_samples[1]}
     assert max(live_samples) <= 4

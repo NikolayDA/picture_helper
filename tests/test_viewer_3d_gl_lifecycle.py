@@ -27,12 +27,12 @@ from pathlib import Path
 
 import pytest
 
-from bgremover import viewer_3d
 from bgremover.height_map import HeightField
 from bgremover.preview3d_capability import UNAVAILABLE_KEY, RendererCapability
 from bgremover.preview3d_controller import Preview3DController
 from bgremover.relief_mesh import MeshQuality, build_relief_mesh
 from bgremover.viewer_3d import (
+    GLBufferError,
     GLReliefViewer,
     Relief3DView,
     gl_resource_stats,
@@ -220,19 +220,18 @@ def test_empty_height_data_uploads_and_releases_cleanly(qapp) -> None:
     assert not viewer.has_failed
 
 
-def test_failed_buffer_creation_leaves_no_orphans(qapp, monkeypatch) -> None:
-    """Scheitert die VAO-Erzeugung, bleibt kein verwaistes Objekt zurück."""
+def test_failed_vao_creation_leaves_no_orphans(qapp) -> None:
+    """Scheitert die VAO-Erzeugung, bleibt kein verwaistes Objekt zurück.
+
+    Der VAO ist in GL 2.1 eine Erweiterung: ein fehlgeschlagenes ``create()`` ist
+    hier – anders als bei den Puffern (#711) – kein Fehler, sondern der
+    dokumentierte Verzicht auf ein optionales Objekt.
+    """
     ledger = probe.ResourceLedger()
-
-    class _FailingVao(probe.TrackedGLResource):
-        def create(self) -> bool:
-            return False
-
-    with probe.tracked_gl_resources(ledger):
-        monkeypatch.setattr(
-            viewer_3d, "QOpenGLVertexArrayObject",
-            lambda *a, **k: _FailingVao(ledger, "vao-fail"),
-        )
+    with probe.tracked_gl_resources(
+        ledger,
+        vao_factory=lambda led, label: probe.TrackedGLResource(led, label, fail_create=True),
+    ):
         viewer = GLReliefViewer()
         for _ in range(20):
             viewer.set_mesh(_mesh(64))
@@ -241,13 +240,238 @@ def test_failed_buffer_creation_leaves_no_orphans(qapp, monkeypatch) -> None:
         # Der fehlgeschlagene VAO wird verworfen (``_vao is None``); der Viewer
         # hält dann nur die drei Puffer – und genau die werden freigegeben.
         assert viewer.gl_object_count == 3
+        assert not viewer.has_failed
         viewer.cleanup_gl()
 
     assert viewer.gl_object_count == 0
     assert ledger.double_destroys == []
-    # Die 20 nicht übernommenen VAO-Attrappen bleiben als bekannte Differenz
-    # stehen – sie gehören dem Viewer nie, Qt gibt sie mit dem Parent frei.
-    assert ledger.destroyed == 20 * 3
+    # Ohne erfolgreiches ``create()`` entsteht kein GL-Name – die 20 verworfenen
+    # VAO-Attrappen tauchen in der Bilanz deshalb gar nicht erst auf.
+    assert ledger.created == ledger.destroyed == 20 * 3
+
+
+# ── Stille boolesche Pufferfehler (#711) ────────────────────────────────
+
+
+class _BufferScript:
+    """Puffer-Attrappen nach Drehbuch – deterministische stille Fehlschläge.
+
+    ``QOpenGLBuffer.create()``/``bind()`` melden Fehler ausschließlich über ihren
+    Rückgabewert. Genau diese beiden Fälle stellt das Drehbuch je Upload-Position
+    (1 = Position, 2 = Slope, 3 = Index) nach; alle erzeugten Attrappen bleiben
+    zur Nachprüfung in ``made``.
+    """
+
+    def __init__(self, *, fail_create: int | None = None,
+                 fail_bind: int | None = None) -> None:
+        self._fail_create = fail_create
+        self._fail_bind = fail_bind
+        self.made: list[probe.TrackedGLResource] = []
+
+    def __call__(self, ledger, label: str) -> probe.TrackedGLResource:
+        position = len(self.made) % 3 + 1
+        resource = probe.TrackedGLResource(
+            ledger,
+            f"{label}@{position}",
+            fail_create=position == self._fail_create,
+            fail_bind=position == self._fail_bind,
+        )
+        self.made.append(resource)
+        return resource
+
+
+def _failed_upload(viewer: GLReliefViewer) -> None:
+    """Fährt einen Upload, der mit ``GLBufferError`` scheitern muss."""
+    viewer.set_mesh(_mesh(64))
+    with pytest.raises(GLBufferError):
+        viewer._ensure_buffers()
+
+
+def test_failed_buffer_create_is_treated_as_an_upload_error(qapp) -> None:
+    """``create() == false`` ist ein Fehler und zählt nicht als GL-Objekt.
+
+    Regression zu #711: der Rückgabewert wurde ignoriert, der Wrapper blieb ohne
+    GL-Namen in ``_pos_vbo`` stehen – ``gl_object_count`` meldete 4 und die Sonde
+    konnte ein falsches Grün liefern.
+    """
+    ledger = probe.ResourceLedger()
+    script = _BufferScript(fail_create=1)
+    with probe.tracked_gl_resources(ledger, buffer_factory=script):
+        viewer = GLReliefViewer()
+        _failed_upload(viewer)
+
+        assert viewer.has_failed
+        assert viewer.gl_object_count == 0
+        assert viewer._pos_vbo is None
+        assert viewer._index_count == 0
+        # Der gescheiterte Puffer wird nie als erzeugt gebucht …
+        assert script.made[0].created == 0
+        # … und ohne GL-Namen gibt es auch nichts zu füllen.
+        assert script.made[0].allocated == 0
+        viewer.cleanup_gl()
+
+    assert gl_resource_stats().live == 0
+    assert ledger.live == 0
+    assert ledger.double_destroys == []
+    assert ledger.use_after_destroy == []
+
+
+def test_failed_buffer_bind_stops_before_allocate(qapp) -> None:
+    """``bind() == false`` ist ebenfalls ein Fehler; ``allocate()`` läuft nicht mehr."""
+    ledger = probe.ResourceLedger()
+    script = _BufferScript(fail_bind=1)
+    with probe.tracked_gl_resources(ledger, buffer_factory=script):
+        viewer = GLReliefViewer()
+        _failed_upload(viewer)
+
+        failed = script.made[0]
+        assert failed.created == 1        # der GL-Name entstand …
+        assert failed.destroyed == 1      # … und wurde genau einmal freigegeben
+        assert failed.allocated == 0      # der Füll-/Zeichenpfad lief nicht weiter
+        assert viewer.has_failed
+        assert viewer.gl_object_count == 0
+        viewer.cleanup_gl()
+
+    assert gl_resource_stats().live == 0
+    assert ledger.live == 0
+    assert ledger.double_destroys == []
+
+
+def test_partial_buffer_failure_releases_everything_exactly_once(qapp) -> None:
+    """Teilerfolg: der bereits erzeugte Puffer **und** der VAO werden einmal frei.
+
+    Der dritte Akzeptanzpunkt aus #711 – kein halb aufgebauter Satz, keine
+    Doppelfreigabe, kein Zugriff nach der Freigabe, kein Restbestand.
+    """
+    ledger = probe.ResourceLedger()
+    script = _BufferScript(fail_create=2)
+    with probe.tracked_gl_resources(ledger, buffer_factory=script):
+        viewer = GLReliefViewer()
+        _failed_upload(viewer)
+
+        first, second = script.made[0], script.made[1]
+        assert (first.created, first.destroyed) == (1, 1)
+        assert (second.created, second.destroyed) == (0, 0)
+        assert viewer.gl_object_count == 0
+        assert viewer.has_failed
+        # Nachlaufende Freigaben dürfen nichts erneut zerstören.
+        viewer._release_gl_objects()
+        viewer.cleanup_gl()
+
+    # VAO + erster Puffer erzeugt, beide genau einmal freigegeben.
+    assert ledger.created == ledger.destroyed == 2
+    assert ledger.double_destroys == []
+    assert ledger.use_after_destroy == []
+    assert gl_resource_stats().live == 0
+
+
+def test_repeated_partial_failures_do_not_accumulate(qapp) -> None:
+    """Auch 100 fehlgeschlagene Uploads in Folge hinterlassen keinen Bestand.
+
+    Der Viewer schaltet beim ersten Fehler in den Fehlerzustand; entscheidend ist,
+    dass jeder Anlauf seine Teilressourcen sofort und genau einmal freigibt.
+    """
+    ledger = probe.ResourceLedger()
+    script = _BufferScript(fail_create=3)
+    with probe.tracked_gl_resources(ledger, buffer_factory=script):
+        viewer = GLReliefViewer()
+        for _ in range(CYCLES):
+            _failed_upload(viewer)
+
+            assert viewer.gl_object_count == 0
+        viewer.cleanup_gl()
+
+    # Je Anlauf: VAO + zwei erfolgreiche Puffer, alle wieder freigegeben.
+    assert ledger.created == ledger.destroyed == CYCLES * 3
+    assert ledger.double_destroys == []
+    assert ledger.use_after_destroy == []
+    assert gl_resource_stats().live == 0
+
+
+def test_successful_upload_keeps_three_buffers_over_many_reuploads(qapp) -> None:
+    """Der Erfolgsfall bleibt bei drei Puffern plus VAO – über >100 Reuploads."""
+    ledger = probe.ResourceLedger()
+    with probe.tracked_gl_resources(ledger):
+        viewer = GLReliefViewer()
+        for _ in range(CYCLES):
+            viewer.set_mesh(_mesh(64))
+            viewer._ensure_buffers()
+
+            assert viewer.gl_object_count == 4
+            assert None not in (viewer._pos_vbo, viewer._slope_vbo, viewer._index_ibo)
+            assert all(
+                buf.allocated == 1
+                for buf in (viewer._pos_vbo, viewer._slope_vbo, viewer._index_ibo)
+            )
+        viewer.cleanup_gl()
+
+    assert not viewer.has_failed
+    assert ledger.created == ledger.destroyed == CYCLES * 4
+
+
+def test_upload_without_vao_support_still_counts_as_complete(qapp) -> None:
+    """Ohne VAO-Erweiterung bleiben drei Puffer – das ist kein Fehlschlag.
+
+    Die Untergrenze der Sonde (``MIN_LIVE_PER_VIEWER``) darf den in GL 2.1
+    zulässigen Fall „kein VAO" nicht als unvollständigen Upload werten.
+    """
+    ledger = probe.ResourceLedger()
+    with probe.tracked_gl_resources(
+        ledger,
+        vao_factory=lambda led, label: probe.TrackedGLResource(led, label, fail_create=True),
+    ):
+        viewer = GLReliefViewer()
+        for _ in range(CYCLES):
+            viewer.set_mesh(_mesh(64))
+            viewer._ensure_buffers()
+
+            assert viewer.gl_object_count == probe.MIN_LIVE_PER_VIEWER
+        assert not viewer.has_failed
+        viewer.cleanup_gl()
+
+    assert ledger.created == ledger.destroyed == CYCLES * 3
+    assert ledger.double_destroys == []
+
+
+class _NeverCreatingResource(probe.TrackedGLResource):
+    """Attrappe, deren ``create()`` immer still ``False`` meldet (defekter Treiber)."""
+
+    def __init__(self, ledger, label: str, **_kwargs: object) -> None:
+        super().__init__(ledger, label, fail_create=True)
+
+
+def test_probe_reports_a_finding_when_no_buffer_upload_succeeds(qapp, monkeypatch) -> None:
+    """Fake-Modus: ohne erfolgreichen Upload meldet die Sonde einen Befund, nie „ok"."""
+    monkeypatch.setattr(probe, "TrackedGLResource", _NeverCreatingResource)
+
+    result = probe.run_fake_scenario("kaputt", [_mesh(64)], CYCLES, "64×64")
+
+    assert any("Upload fehlgeschlagen" in finding for finding in result.findings)
+    assert any("kein vollständiger Puffer-Upload" in finding for finding in result.findings)
+    assert result.live_after_cleanup == 0
+    assert result.double_destroys == ()
+    assert result.use_after_destroy == ()
+
+
+def test_probe_cli_fails_when_buffer_creation_silently_fails(qapp, monkeypatch) -> None:
+    """Derselbe Fall über die CLI: Exit 1 statt Exit 0 mit ``verdict: ok`` (#711)."""
+    monkeypatch.setattr(probe, "TrackedGLResource", _NeverCreatingResource)
+
+    assert probe.main(
+        ["--cycles", "5", "--allow-short-run", "--sizes", "klein:64:REDUCED", "--quiet"]
+    ) == 1
+
+
+def test_gl_scenario_rejects_an_incomplete_buffer_upload(qapp, monkeypatch) -> None:
+    """``--mode gl``: ein unvollständiger Puffersatz ist Exit 2, kein „ok" (#711)."""
+    monkeypatch.setattr(GLReliefViewer, "grab", lambda self: None)
+    monkeypatch.setattr(GLReliefViewer, "has_failed", property(lambda self: False))
+    monkeypatch.setattr(
+        GLReliefViewer, "gl_object_count", property(lambda self: 2)
+    )
+
+    with pytest.raises(probe.ProbeNotExecutable, match="unvollständiger Puffer-Upload"):
+        probe.run_gl_scenario("gl", [_mesh(64)], 3, "64×64")
 
 
 def test_context_loss_releases_and_schedules_reupload(qapp) -> None:

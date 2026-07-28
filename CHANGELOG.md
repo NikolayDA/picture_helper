@@ -21,6 +21,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   kontinuierlich an. Die Freigabe läuft jetzt vor jedem (Wieder-)Upload;
   betrifft ausschließlich die 3D-Darstellung, keine Bild-, Projekt- oder
   Exportdaten.
+- **3D-Reliefvorschau: eine still fehlgeschlagene GPU-Pufferanlage galt als
+  Erfolg (#711).** Meldeten `QOpenGLBuffer.create()` oder `bind()` auf einem
+  problematischen Treiber `false`, lief der Upload trotzdem weiter – die
+  Vorschau galt als „bereit", ohne dass je ein Puffer entstanden war. Beide
+  Rückgabewerte werden jetzt geprüft: ein fehlgeschlagener Upload gibt bereits
+  angelegte Puffer und das Vertex-Array-Objekt sofort und genau einmal frei und
+  schaltet die Vorschau in den bekannten Fehlerzustand mit 2D-Rückfall, statt
+  eine leere 3D-Ansicht zu zeigen.
 
 ### Hinweise zu diesem Release
 

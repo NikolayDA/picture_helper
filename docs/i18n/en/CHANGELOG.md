@@ -19,6 +19,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   steadily grew the 3D preview's GPU memory footprint. The release now runs
   before every (re-)upload; affects only the 3D display, not image, project,
   or export data.
+- **3D relief preview: a silently failed GPU buffer allocation counted as
+  success (#711).** When `QOpenGLBuffer.create()` or `bind()` returned `false`
+  on a problematic driver, the upload continued anyway — the preview reported
+  itself "ready" even though no buffer had ever been created. Both return
+  values are now checked: a failed upload releases already-created buffers and
+  the vertex array object immediately and exactly once, and switches the
+  preview into the familiar error state with the 2D fallback instead of showing
+  an empty 3D view.
 
 ### Notes on this release
 
