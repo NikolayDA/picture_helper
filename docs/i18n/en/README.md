@@ -325,10 +325,10 @@ BgRemover is an installable package (`bgremover/`, launched via
 - **`stepper`** is the stateless 6-step bar (Open/Cut out/Adjust/Shape &
   Size/Relief & Layers/Export); **`right_panel`** builds the card inspector
   from it (header, a `QStackedWidget` with one page per step, navigation
-  footer) and assigns it the eight existing tab building blocks from
-  `right_panel_tabs` (Preview, Selection, Background, Adjust, Rotate/Flip,
-  Shape, Layers, Height); `project_model`/`height_map` provide the Qt-free
-  layer and height model.
+  footer) and assigns it the eight existing tab building blocks (Preview,
+  Selection, Background, Adjust, Rotate/Flip, Shape from `right_panel_tabs`,
+  Layers from `layer_panel`, Height from `height_map_panel`); `project_model`/
+  `height_map` provide the Qt-free layer and height model.
 - **`menu_actions`** builds the menu bar, actions, and shortcuts; `MainWindow`
   only supplies callbacks for it.
 - **`RecentFiles`** encapsulates persistence, de-duplication, and the menu

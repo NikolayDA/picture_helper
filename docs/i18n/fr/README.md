@@ -343,9 +343,10 @@ BgRemover est un paquet installable (`bgremover/`, lancé via
   Forme & dimensions/Relief & calques/Export) ; **`right_panel`** construit à
   partir d'elle l'inspecteur de cartes (en-tête, `QStackedWidget` avec une
   page par étape, pied de navigation) et lui assigne les huit blocs d'onglets
-  existants de `right_panel_tabs` (Aperçu, Sélection, Arrière-plan, Ajuster,
-  Rotation/Miroir, Forme, Calques, Hauteur) ; `project_model`/`height_map`
-  fournissent le modèle de calques et de hauteur sans Qt.
+  existants (Aperçu, Sélection, Arrière-plan, Ajuster, Rotation/Miroir, Forme
+  issus de `right_panel_tabs`, Calques issu de `layer_panel`, Hauteur issu de
+  `height_map_panel`) ; `project_model`/`height_map` fournissent le modèle de
+  calques et de hauteur sans Qt.
 - **`menu_actions`** construit la barre de menus, les actions et les
   raccourcis ; `MainWindow` ne fournit plus que les callbacks.
 - **`RecentFiles`** encapsule la persistance, la déduplication et

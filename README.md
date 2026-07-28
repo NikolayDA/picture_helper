@@ -339,10 +339,10 @@ BgRemover ist ein installierbares Paket (`bgremover/`, gestartet via
 - **`stepper`** ist die zustandslose 6-Schritte-Leiste (Öffnen/Freistellen/
   Anpassen/Form & Maße/Relief & Ebenen/Export); **`right_panel`** baut daraus
   den Karten-Inspector (Kopf, `QStackedWidget` mit einer Seite je Schritt,
-  Navigations-Fußzeile) und ordnet ihm die acht bestehenden Tab-Bausteine aus
-  `right_panel_tabs` (Vorschau, Auswahl, Hintergrund, Anpassen, Drehen/
-  Spiegeln, Form, Ebenen, Höhe) zu; `project_model`/`height_map` liefern das
-  Qt-freie Ebenen- und Höhenmodell.
+  Navigations-Fußzeile) und ordnet ihm die acht bestehenden Tab-Bausteine zu
+  (Vorschau, Auswahl, Hintergrund, Anpassen, Drehen/Spiegeln, Form aus
+  `right_panel_tabs`, Ebenen aus `layer_panel`, Höhe aus `height_map_panel`);
+  `project_model`/`height_map` liefern das Qt-freie Ebenen- und Höhenmodell.
 - **`menu_actions`** baut Menüleiste, Actions und Shortcuts; `MainWindow`
   liefert dafür nur noch Callbacks.
 - **`RecentFiles`** kapselt Persistenz, Deduplizierung und Menüadapter für

@@ -307,10 +307,10 @@ BgRemover 是一个可安装的包（`bgremover/`，通过 `python -m bgremover`
   上下文相关的工具栏。
 - **`stepper`** 是无状态的 6 步骤条（打开/抠图/调整/形状与尺寸/浮雕与
   图层/导出）；**`right_panel`** 基于它构建卡片式检查器（标题、每个步骤
-  对应一页的 `QStackedWidget`、导航页脚），并为其分配 `right_panel_tabs`
-  中现有的八个标签页构建块（预览、选区、背景、调整、旋转/翻转、形状、
-  图层、高度）；`project_model`/`height_map` 提供与 Qt 无关的图层与
-  高度模型。
+  对应一页的 `QStackedWidget`、导航页脚），并为其分配现有的八个标签页
+  构建块（预览、选区、背景、调整、旋转/翻转、形状来自 `right_panel_tabs`、
+  图层来自 `layer_panel`、高度来自 `height_map_panel`）；`project_model`/
+  `height_map` 提供与 Qt 无关的图层与高度模型。
 - **`menu_actions`** 构建菜单栏、actions 和快捷键；`MainWindow`
   只提供回调。
 - **`RecentFiles`** 封装“最近打开”的持久化、去重和菜单适配器，
