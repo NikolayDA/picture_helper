@@ -102,6 +102,73 @@ def test_release_verifies_tag_matches_project_version() -> None:
     assert r"v[0-9]+\.[0-9]+\.[0-9]+" in text, "Tag-Format vX.Y.Z wird geprüft."
 
 
+def test_release_freeze_gate_runs_for_manual_dispatch_too() -> None:
+    """#685: Ein manueller Kandidatenbau (workflow_dispatch) muss denselben
+    Freeze-Pin durchlaufen wie ein Tag-Push – sonst haengt die Bindung des
+    Kandidaten an den dokumentierten Commit allein davon ab, dass ein Mensch
+    vor dem Start manuell ``make release-freeze-check`` ausfuehrt."""
+    text = _release_text()
+    step_start = text.index("Release-Freeze-Gate (dokumentierter Kandidat)")
+    next_step = text.index("\n  test:", step_start)
+    step_text = text[step_start:next_step]
+    assert "verify_release_freeze.py --require-pin" in step_text
+    assert "startsWith(github.ref" not in step_text, (
+        "Der Freeze-Pin-Schritt darf nicht mehr auf Tag-Pushes beschraenkt "
+        "sein (#685) – sonst pinnt ein manueller Kandidatenbau nicht "
+        "automatisch auf den eingefrorenen Commit."
+    )
+
+
+def test_build_logs_product_provenance() -> None:
+    """#685: Jedes Kandidatenartefakt muss im Build-Log Produktversion,
+    Commit-SHA und Workflow-/Run-ID ausweisen, damit alle fuenf Artefakte
+    nachweislich aus demselben Commit stammen."""
+    text = _release_text()
+    assert "GITHUB_SHA" in text
+    assert "GITHUB_RUN_ID" in text
+    assert "GITHUB_WORKFLOW" in text
+    assert 'project_version="$(python -c \'import tomllib' in text
+
+
+def test_freeze_gate_rejects_a_built_commit_that_is_not_the_candidate() -> None:
+    """#709-Review: ``--require-pin`` allein laesst einen HEAD zu, der um reine
+    Protokoll-Commits ueber dem abgeleiteten Kandidaten liegt (die verifizierte
+    Aussage bezieht sich auf den ABGELEITETEN Kandidaten, nicht auf ``rev``
+    selbst). Ohne einen zusaetzlichen Abgleich wuerde ein workflow_dispatch auf
+    so einem Commit das Gate gruen durchlaufen, aber tatsaechlich einen
+    anderen SHA als den dokumentierten Kandidaten bauen – Widerspruch zum
+    Pinning-Versprechen. Ein zusaetzlicher Schritt muss github.sha explizit
+    gegen ``--print-candidate`` pruefen."""
+    text = _release_text()
+    assert "--print-candidate" in text, (
+        "Der abgeleitete Kandidat muss explizit gegen github.sha geprueft "
+        "werden, nicht nur implizit ueber --require-pin."
+    )
+    step_start = text.index("--print-candidate")
+    surrounding = text[max(0, step_start - 400) : step_start + 400]
+    assert "GITHUB_SHA" in surrounding, (
+        "Der abgeleitete Kandidat muss mit GITHUB_SHA verglichen werden, "
+        "sonst kann ein Kandidatenbau auf einem Protokoll-Commit oberhalb "
+        "des dokumentierten Kandidaten unbemerkt durchlaufen."
+    )
+
+
+def test_build_logs_actual_bundler_versions_not_only_runner_pip() -> None:
+    """#709-Review: build_appimage.sh/build_macos.sh installieren die
+    tatsaechlich verwendeten, unversionierten Bundler (``build``/
+    ``python-appimage`` bzw. ``pyinstaller``) in eine isolierte ``toolenv``-
+    venv, nicht in die vom Runner bereitgestellte Umgebung. Ein reines
+    ``pip --version`` auf Runner-Ebene weist also nicht die Toolchain nach,
+    die die Artefakte tatsaechlich baut."""
+    text = _release_text()
+    assert 'toolenv="build/appimage/toolenv"' in text
+    assert re.search(r"toolenv/bin/pip.*python-appimage", text) or (
+        "build/appimage/toolenv/bin/pip" in text and "python-appimage" in text
+    )
+    assert 'toolenv="build/macos/toolenv"' in text
+    assert "pyinstaller" in text.split('toolenv="build/macos/toolenv"')[1][:400]
+
+
 def test_release_runs_real_deb_install_start_remove_cycle() -> None:
     """#584 (Codex-Review auf PR #608): ein reales ``.deb`` muss ueber den
     echten Paketmanager installiert, gestartet und wieder entfernt werden –
