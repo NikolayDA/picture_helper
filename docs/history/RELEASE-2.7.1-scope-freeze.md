@@ -93,7 +93,7 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `a0f6ef15b7fac67e79135809963fb2235ca76e6a` (#705, kurz `a0f6ef1`) | Dokumentation – Abgleich der offenen Issue-Definitionen gegen den Code, Statusdoku. | Keins – reine Statusdoku. | PR-CI von #705 grün. | Protokoll. Nicht in Release Notes. |
 | `65a656aa41416219bbcdcedba92e06047d2a8ed0` (#684 via PR #706, kurz `65a656a`) | **GL-Ressourcen-Langzeitnachweis und Regressionsgate.** Ergänzt den messbaren Nachweis für den Fix aus PR #676: `viewer_3d` bekommt zwei reine Diagnose-Zähler (`gl_resource_stats()` prozessweit, `GLReliefViewer.gl_object_count` je Viewer), `scripts/gl_stress_probe.py` ist die geteilte Messsonde (`make gl-stress`, JSON-Nachweis, `--mode gl` für echten Kontext), `tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus über 110 Zyklen je Datensatzgröße samt Fehler-/Abbruchpfaden und Negativkontrolle ab, `tests/test_viewer_3d_gl.py` denselben Nachweis unter echtem GL. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md). | Niedrig für die Anwendung – am Renderpfad ändert sich nichts; die Zähler sind zwei Integer ohne GL-Aufruf, kein Schreibpfad ins Modell, keine neue Abhängigkeit, keine Formatänderung. Der übrige Diff ist Test-, Werkzeug- und Doku-Code. | `make check` grün (**2069 passed**, 6 skipped, 14 deselected), `make ui` grün (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` und ein 1000-Zyklen-Langlauf ohne Befund; Details und Zählerstände im Testbericht. | **Aufnehmen.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`, `pyproject.toml` und `Makefile`; nach der Freeze-Regel als Nachweis-/Regressionsarbeit an einer release-relevanten Prüfung zulässig. Kein Anwender-CHANGELOG-Eintrag (keine sichtbare Verhaltensänderung). War bis zum Kandidatenwechsel durch #711 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
 | `5c25e3b71f6be42e454e58712cd2dfad2dfb6c3a` (#684 via PR #707, kurz `5c25e3b`) | Protokoll – trug den vollen Kandidaten-SHA von PR #706, die Fensterzahl (15) und die Gate-Nachweise in dieses Dokument nach. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #711 *im* Fenster – daher hier klassifiziert. |
-| `ac053638c1d81864043798a55bf41e4fb4c877c6` (#702 via PR #708, kurz `ac05363`) | Dokumentation – korrigiert die Tab-Zuordnung im Architektur-Abschnitt von `README.md` (alle sechs Sprachen): Ebenen- und Höhen-Tab leben in eigenen Modulen (`layer_panel.LayerPanel`, `height_map_panel.HeightMapPanel`), waren aber pauschal `right_panel_tabs` zugeschrieben. | Keins – reine Textkorrektur in `README.md`/Übersetzungen, keine Code- oder Verhaltensänderung. | PR-CI von #708 grün; `test_i18n_docs`/`test_markdown_links` unberührt. | Aufnehmen (kandidatenrelevant, da `README.md` nicht unter die Protokoll-Pfadklasse fällt), aber ohne Anwendungswirkung – nicht in Release Notes. |
+| `ac053638c1d81864043798a55bf41e4fb4c877c6` (#702 via PR #708, kurz `ac05363`) | Dokumentation – korrigiert die Tab-Zuordnung im Architektur-Abschnitt von `README.md` (alle sechs Sprachen): Ebenen- und Höhen-Tab leben in eigenen Modulen (`layer_panel.LayerPanel`, `height_map_panel.HeightMapPanel`), waren aber pauschal `right_panel_tabs` zugeschrieben. | Keins – reine Textkorrektur in `README.md`/Übersetzungen, keine Code- oder Verhaltensänderung. | PR-CI von #708 grün; `test_i18n_docs`/`test_markdown_links` unberührt. | Aufnehmen (kandidatenrelevant, da `README.md` nicht unter die Protokoll-Pfadklasse fällt), aber ohne Anwendungswirkung – nicht in Release Notes. **Erfüllt das Freeze-Kriterium nicht wörtlich** (keine Regressions-/Sicherheitsbehebung); explizite Ausnahmebegründung siehe „Scope-Ausnahme für `ac053638c1d8…` (#708)" unten. |
 | `1b04887f7aafa4fd1ddd2636f41d3b768022db31` (PR #709, kurz `1b04887`) | **CI-Härtung.** Erzwingt das Freeze-Gate (`verify_release_freeze.py --require-pin`) jetzt auch für manuelle `workflow_dispatch`-Kandidatenbauten (vorher nur bei Tag-Pushes), ergänzt einen zusätzlichen Schritt, der exakte Gleichheit von `GITHUB_SHA` und dem abgeleiteten Kandidaten erzwingt (ein Kandidatenbau auf einem Protokoll-Commit *über* dem Kandidaten schlägt damit fehl statt eines anderen Standes als den dokumentierten zu bauen), und protokolliert Produktversion/Commit-SHA/Run-ID sowie die tatsächlich verwendeten Bundler-Versionen (`python-appimage`/`build`/PyInstaller aus der isolierten `toolenv`-venv) im Build-Log jedes Matrix-Legs. | Niedrig für die Anwendung – reine Workflow-/Test-Änderung, kein `bgremover/**`-Code. Erhöht (bewusst verschärfend) für den Release-Prozess: ein Kandidatenbau ist jetzt ausschließlich auf dem exakten Kandidaten-Commit möglich, nicht mehr auf einem Protokoll-Commit darüber. | Neuer Regressionstest in `tests/test_release_gate.py` (+67 Zeilen); PR-CI von #709 grün. | **Aufnehmen – kandidatenrelevant** (`.github/workflows/release-linux.yml`, `tests/**`). Ändert den Build-/Tag-SHA-Vertrag; siehe aktualisierte Freeze-Regel „Tag (#686)" unten. Kein Anwender-CHANGELOG-Eintrag (reiner Release-Prozess). |
 | `0b021ccfa5f7145f2ae4eba24b6ded8772501b4a` (#712, kurz `0b021cc`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem Release-Audit vom 28.07. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #712 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
 | `Kandidaten-Commit` (#711 via PR #713, voller SHA unter „Protokollierter Kandidaten-SHA") | **GL-Puffer-Fehlererkennung hart erzwungen.** `QOpenGLBuffer.create()`/`bind()` melden einen Fehlschlag ausschließlich über ihren booleschen Rückgabewert; `GLReliefViewer._make_buffer` (jetzt `_new_buffer`) ignorierte ihn. Ein Wrapper ohne GL-Namen blieb dann referenziert, `has_failed` blieb `false`, und `gl_object_count`/die GL-Sonde konnten `verdict: ok` melden, ohne dass je ein Puffer entstanden war – genau das falsche Grün, das der Hardware-Nachweis in #685 hätte liefern können. Neue `GLBufferError`; ein Teilerfolg gibt VAO und bereits erzeugte Puffer genau einmal frei und schaltet über `_fail` in den bekannten Fehlerzustand mit 2D-Rückfall statt einer leeren „bereiten" 3D-Ansicht. Sonde: `MIN_LIVE_PER_VIEWER = 3` – ein unvollständiger Puffersatz ergibt im `--mode gl` `ProbeNotExecutable`/Exit 2, im `--mode fake` einen harten Befund statt `ok`. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md) Abschnitt 4.4/7.1. | Niedrig für die Anwendung – reiner Fehlerpfad der optionalen 3D-Vorschau, kein Schreibpfad ins Modell; der VAO bleibt als GL-2.1-Erweiterung weiterhin optional (kein neuer Fehlerfall). Erhöht die Verlässlichkeit des Release-Nachweises selbst (das war der Zweck von #711). | `make check` grün (ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed**, 6 skipped, 14 deselected), `make ui` (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` (Exit 0, `ok`); neun neue deterministische, GL-freie Regressionstests in `tests/test_viewer_3d_gl_lifecycle.py` (`create()==false`, `bind()==false`, Teilerfolg, 110 wiederholte Fehlschläge ohne Restbestand, 110 Reuploads im Erfolgsfall, Sonden-CLI-Fälle); PR-CI von #713 grün (Lightweight PR checks, CodeQL, License Check, Dependency Audit, Claude Code Review). | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `scripts/**`, `tests/**` und `CHANGELOG.md`. CHANGELOG-Eintrag unter `[2.7.1] → Behoben` in allen sechs Sprachen: die 3D-Vorschau zeigt auf einem Treiber mit fehlgeschlagenem Puffer-Upload jetzt den Fehlerzustand mit 2D-Rückfall statt einer leeren 3D-Ansicht. |
@@ -137,6 +137,34 @@ vor/nach dem Commit. Risikoentscheidung: **aufnehmen**, weil das Risiko eines
 stillen Verhaltensunterschieds hier nicht höher liegt als bei den übrigen
 Dokumentations-Commits, während ein nachträglicher Revert (Cherry-Pick-Historie,
 neuer Freeze-Commit) mehr Risiko einführen würde als er vermeidet.
+
+### Scope-Ausnahme für `ac053638c1d8…` (#708)
+
+Das Freeze-Kriterium erlaubt kandidatenrelevante Nachfreeze-Commits nur, wenn
+sie „nachweislich einen Regressionsfund in einer release-relevanten Prüfung …
+oder eine Sicherheitslücke" beheben. `ac053638c1d81864043798a55bf41e4fb4c877c6`
+(#708) erfüllt das wörtlich **nicht**: es korrigiert eine falsche
+Tab-Zuordnung in der Architekturbeschreibung von `README.md` (alle sechs
+Sprachen) – eine reine Dokumentationskorrektur ohne Bezug zu einer
+release-relevanten Prüfung oder Sicherheitslücke.
+
+Der Commit ist trotzdem Teil der Kandidatenlinie: er liegt bereits auf der
+Mainline zwischen dem vorherigen und dem aktuellen Kandidaten, first-parent
+eingebettet. Ihn nachträglich auszuschließen, hieße, ihn zu reverten – das
+wäre selbst ein neuer kandidatenrelevanter Commit und würde den Kandidaten
+ein weiteres Mal verschieben, ohne das eigentliche Ziel (ein sauberer 2.7.1
+ohne #708) zu erreichen, solange #708 nicht vor #711 aus der Historie entfernt
+wird.
+
+Risikoentscheidung: **aufnehmen, mit derselben Begründung wie bei
+`45ebac3929b8…` oben.** Reine Textkorrektur in sechs README-Dateien, keine
+Code-, Verhaltens- oder Formatänderung, PR-CI grün, kein Bezug zu einer
+Sicherheitslücke. Das Risiko eines stillen Verhaltensunterschieds ist nicht
+höher als bei den übrigen Dokumentations-Commits in diesem Fenster; ein
+Revert vor dem Tag würde mehr Risiko (neue Kandidatenrunde, Cherry-Pick-
+Historie) einführen, als er vermeidet. Diese Ausnahme ist damit explizit
+dokumentiert, nicht stillschweigend über die Klassifizierungstabelle
+mitgelaufen.
 
 ## Versionssynchronisierung
 
@@ -190,16 +218,28 @@ Konsequenz: Die in #683 verlangten anwenderorientierten Angaben stehen jetzt im
 CHANGELOG-Abschnitt `[2.7.1]` selbst, im Unterabschnitt „Hinweise zu diesem
 Release", in allen sechs Sprachen:
 
-- **Auswirkung** – reines Patch-Release, ausschließlich der GPU-Leak-Fix aus
-  PR #676; keine neuen Funktionen, kein geändertes Bild-/Projekt-/Exportverhalten.
-- **Betroffene Anwender:innen** – nur Nutzer:innen der 3D-Reliefvorschau; das
-  beobachtbare Symptom (wachsender GPU-Speicherbedarf bei wiederholtem
-  2D↔3D-Wechsel) ist benannt.
+- **Auswirkung** – reines Patch-Release, ausschließlich zwei Fehlerbehebungen
+  der optionalen 3D-Reliefvorschau: der GPU-Leak-Fix aus PR #676 und die
+  GL-Puffer-Fehlererkennung aus #711 (Squash-Merge PR #713, seit #710 der
+  Kandidat); keine neuen Funktionen, kein geändertes Bild-/Projekt-/
+  Exportverhalten.
+- **Betroffene Anwender:innen** – nur Nutzer:innen der 3D-Reliefvorschau; die
+  beobachtbaren Symptome (wachsender GPU-Speicherbedarf bei wiederholtem
+  2D↔3D-Wechsel; auf problematischen Treibern eine leere „bereite" 3D-Ansicht
+  statt eines sichtbaren Fehlerzustands mit 2D-Rückfall) sind benannt.
 - **Upgrade-Relevanz** – empfohlen für 3D-Nutzer:innen, sonst optional; kein
   Migrationsschritt, `.bgrproj`/Exportformate/Einstellungen unverändert
   kompatibel (auch abwärts).
 - **Bekannte Einschränkungen** – keine neuen gegenüber 2.7.0; die Langzeit-/
-  Speichermessung unter echtem GL-Kontext ist separat als #684 erfasst.
+  Speichermessung unter echtem GL-Kontext ist separat als #684 erfasst, die
+  verschärfte False-Green-Abwehr der GL-Sonde in
+  [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md).
+
+Diese Zusammenfassung spiegelt den Unterabschnitt „Hinweise zu diesem Release"
+in `CHANGELOG.md` (`[2.7.1]`) wider, der beide Fixes im „Behoben"-Abschnitt
+darüber gemeinsam als „das oben genannte" fasst – dort namentlich nicht auf
+PR #676 beschränkt. Eine Änderung an `CHANGELOG.md` selbst ist kandidatenrelevant
+und daher nicht Teil dieses Protokoll-Nachtrags.
 
 `tests/test_release_freeze.py` prüft, dass der **tatsächlich erzeugte**
 Release-Body (Ausgabe von `extract_release_notes.py`) diese vier Angaben in
@@ -305,7 +345,7 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | `make gl-stress` | Exit 0, Urteil `ok` |
 | Neue Regressionstests `tests/test_viewer_3d_gl_lifecycle.py` (9 Fälle) | decken `create()==false`, `bind()==false`, Teilerfolg (genau eine Freigabe je Objekt), 110 wiederholte Fehlschläge ohne Restbestand, 110 Reuploads im Erfolgsfall, sowie die Sonden-Fälle (Fake-Modus meldet Befund, CLI liefert Exit 1, `--mode gl` liefert `ProbeNotExecutable`/Exit 2) ab; alle grün |
 | `python scripts/verify_release_freeze.py --print-candidate` (auf `main`, vor diesem Protokoll-Commit) | `5e947ee816a2d481fa6ea901790281293aced4d5` |
-| `make release-freeze-check` (auf `main`, vor diesem Protokoll-Commit) | 5 Fehler, 2 Warnungen (`candidate-sha-mismatch` gegen den alten Pin `65a656aa…`, `commit-count-mismatch` 20 vs. 15, drei `unclassified-candidate-commit` für #707/#708/#709 – exakt der erwartete Zustand vor dem Nachtrag) |
+| `make release-freeze-check` (auf `main`, vor diesem Protokoll-Commit) | 5 Fehler, 2 Warnungen (`candidate-sha-mismatch` gegen den alten Pin `65a656aa…`, `commit-count-mismatch` 20 vs. 15, drei `unclassified-candidate-commit` für #706/#708/#709, zwei `unclassified-protocol-commit`-Warnungen für #707/#712 – exakt der erwartete Zustand vor dem Nachtrag) |
 | `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Commit) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
 | PR-CI von #713 auf `6415e91c15da…` | alle Checks grün (Lightweight PR checks/PR CI, CodeQL, License Check, Dependency Audit, Claude Code Review); ein Codex-Reviewbefund vor dem Merge behoben (Buchung/Aufräumen/Zyklenzahl, Folgecommit `6415e91`) |
 
