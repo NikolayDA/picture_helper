@@ -130,26 +130,28 @@ def test_build_logs_product_provenance() -> None:
     assert 'project_version="$(python -c \'import tomllib' in text
 
 
-def test_freeze_gate_rejects_a_built_commit_that_is_not_the_candidate() -> None:
-    """#709-Review: ``--require-pin`` allein laesst einen HEAD zu, der um reine
-    Protokoll-Commits ueber dem abgeleiteten Kandidaten liegt (die verifizierte
-    Aussage bezieht sich auf den ABGELEITETEN Kandidaten, nicht auf ``rev``
-    selbst). Ohne einen zusaetzlichen Abgleich wuerde ein workflow_dispatch auf
-    so einem Commit das Gate gruen durchlaufen, aber tatsaechlich einen
-    anderen SHA als den dokumentierten Kandidaten bauen – Widerspruch zum
-    Pinning-Versprechen. Ein zusaetzlicher Schritt muss github.sha explizit
-    gegen ``--print-candidate`` pruefen."""
+def test_freeze_gate_allows_a_protocol_commit_above_the_candidate() -> None:
+    """#710/#714-Review: Ein zwischenzeitlicher zusaetzlicher Abgleich von
+    github.sha gegen ``--print-candidate`` (#709) verbot Kandidatenbauten auf
+    einem reinen Protokoll-Commit oberhalb des Kandidaten. Das ist mit dem
+    Freeze-Workflow selbst unvereinbar: der Kandidaten-Commit kann sein
+    eigenes Freeze-Dokument nicht auf sich selbst pinnen (der SHA existiert
+    erst nach dem Commit) und scheitert damit an --require-pin; der
+    nachtraegliche Protokoll-Commit, der den Pin eintraegt, scheiterte dann am
+    github.sha-Abgleich – kein Commit konnte je beide Gates gleichzeitig
+    bestehen. ``--require-pin`` allein (ohne den zusaetzlichen Abgleich) ist
+    ausreichend, weil es bereits den ABGELEITETEN Kandidaten (den juengsten
+    kandidatenrelevanten Commit in der Historie von ``rev``) gegen den
+    dokumentierten Pin prueft – ein Kandidatenbau auf einem reinen
+    Protokoll-Commit oberhalb des Kandidaten baut denselben
+    kandidatenrelevanten Inhalt und darf das Gate bestehen."""
     text = _release_text()
-    assert "--print-candidate" in text, (
-        "Der abgeleitete Kandidat muss explizit gegen github.sha geprueft "
-        "werden, nicht nur implizit ueber --require-pin."
-    )
-    step_start = text.index("--print-candidate")
-    surrounding = text[max(0, step_start - 400) : step_start + 400]
-    assert "GITHUB_SHA" in surrounding, (
-        "Der abgeleitete Kandidat muss mit GITHUB_SHA verglichen werden, "
-        "sonst kann ein Kandidatenbau auf einem Protokoll-Commit oberhalb "
-        "des dokumentierten Kandidaten unbemerkt durchlaufen."
+    assert "--print-candidate" not in text, (
+        "Der zusaetzliche github.sha-Abgleich gegen --print-candidate darf "
+        "nicht wieder eingefuehrt werden, ohne den Freeze-Workflow "
+        "(Kandidat -> spaeterer Protokoll-Commit mit dem Pin) grundsaetzlich "
+        "zu aendern - sonst kann wieder kein Commit beide Gates gleichzeitig "
+        "bestehen."
     )
 
 
