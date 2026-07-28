@@ -23,6 +23,12 @@ Für den Langzeitnachweis (#684) ist der Lebenszyklus der kontextgebundenen
 GL-Objekte messbar: :func:`gl_resource_stats` liefert prozessweite Erzeugungs-/
 Freigabezähler, :attr:`GLReliefViewer.gl_object_count` die aktuell gehaltenen
 Objekte eines Viewers. Beides ist reine Diagnose ohne Einfluss auf das Rendern.
+
+Die Zähler messen ausschließlich **erfolgreich** angelegte GL-Objekte: ein
+Pufferaufbau, dessen ``create()``/``bind()`` fehlschlägt, ist ein harter Fehler
+(:class:`GLBufferError`) und hinterlässt keinen Wrapper im Viewer (#711). Ohne
+diese Regel sähe ein stiller Fehlschlag wie ein erfolgreicher Upload aus und die
+Sonde könnte ein falsches Grün melden.
 """
 from __future__ import annotations
 
@@ -102,6 +108,29 @@ void main() {
     gl_FragColor = vec4(u_color * shade, 1.0);
 }
 """
+
+
+class GLBufferError(RuntimeError):
+    """Ein GL-Puffer konnte nicht erzeugt oder gebunden werden (#711).
+
+    ``QOpenGLBuffer.create()``/``bind()`` melden einen Fehlschlag ausschließlich
+    über ihren booleschen Rückgabewert – sie werfen nicht. Ein ignoriertes
+    ``False`` ließe einen Wrapper **ohne** GL-Namen in ``_pos_vbo``/``_slope_vbo``/
+    ``_index_ibo`` stehen: ``gl_object_count`` zählt Referenzen, ein
+    fehlgeschlagener Upload sähe damit wie ein erfolgreicher aus. Deshalb ist
+    beides ein harter Fehler, der den Viewer in den Fehlerzustand schaltet.
+    """
+
+
+def _new_buffer(buffer_type: Any) -> Any:
+    """Erzeugt den GL-Pufferwrapper.
+
+    Eigene Funktion statt eines Inline-Konstruktors: Tests und die Messsonde
+    (``scripts/gl_stress_probe.py``) hängen sich genau hier ein und fahren
+    dadurch den echten ``_make_buffer``-Kontrollfluss inklusive der
+    ``create()``/``bind()``-Prüfung (#711).
+    """
+    return QOpenGLBuffer(buffer_type)
 
 
 @dataclass(frozen=True)
@@ -249,6 +278,11 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         Direkt aus den Referenzen abgeleitet, nicht mitgezählt – der Wert kann
         deshalb nicht von den echten Besitzverhältnissen abdriften. Obergrenze
         eines fehlerfreien Viewers ist 4, unabhängig von der Zahl der Uploads.
+
+        Referenzen entstehen nur nach erfolgreichem ``create()``/``bind()``
+        (#711): ein fehlgeschlagener Upload gibt bereits erzeugte Objekte frei
+        und lässt den Wert auf 0 zurückfallen. Ein *erfolgreicher* Upload hält
+        immer die drei Puffer; der VAO ist optional.
         """
         return sum(
             1
@@ -333,19 +367,51 @@ class GLReliefViewer(QOpenGLWidget):  # type: ignore[misc,valid-type]
         indices = np.ascontiguousarray(mesh.indices, dtype=np.uint32).ravel()
         self._index_count = int(indices.size)
 
+        # Der VAO ist in GL 2.1 eine Erweiterung: ein fehlgeschlagenes ``create()``
+        # ist kein Fehler, der Zeichenpfad kommt ohne ihn aus (deshalb ``None``
+        # statt einer Ausnahme). Die Puffer sind dagegen unverzichtbar.
         vao = QOpenGLVertexArrayObject(self)
         self._vao = vao if vao.create() else None
 
-        self._pos_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, positions)
-        self._slope_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, slope)
-        self._index_ibo = self._make_buffer(QOpenGLBuffer.Type.IndexBuffer, indices)
+        try:
+            self._pos_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, positions)
+            self._slope_vbo = self._make_buffer(QOpenGLBuffer.Type.VertexBuffer, slope)
+            self._index_ibo = self._make_buffer(QOpenGLBuffer.Type.IndexBuffer, indices)
+        except GLBufferError as exc:
+            # Teilerfolg (z. B. VAO und erster Puffer da, zweiter scheitert): erst
+            # buchen, was tatsächlich entstanden ist, dann genau einmal freigeben.
+            # Danach hält der Viewer nichts mehr – ein halb aufgebauter Satz wäre
+            # sonst weder benutzbar noch als Fehlschlag erkennbar (#711).
+            _note_gl_created(self.gl_object_count)
+            self._release_gl_objects()
+            self._fail(f"_ensure_buffers: {exc}")
+            raise
         _note_gl_created(self.gl_object_count)
 
     @staticmethod
     def _make_buffer(buffer_type: Any, data: np.ndarray) -> Any:
-        buf = QOpenGLBuffer(buffer_type)
-        buf.create()
-        buf.bind()
+        """Erzeugt, bindet und füllt einen GL-Puffer – oder wirft ``GLBufferError``.
+
+        ``create()``/``bind()`` melden Fehler nur über ihren Rückgabewert; beide
+        Werte werden ausgewertet, damit ein stiller Fehlschlag nicht als
+        gehaltenes GL-Objekt durchgeht (#711). Nach einem gescheiterten ``bind()``
+        laufen ``allocate()`` und der Zeichenpfad ausdrücklich nicht weiter.
+        """
+        buf = _new_buffer(buffer_type)
+        if not buf.create():
+            # Ohne GL-Namen gibt es nichts freizugeben; der Wrapper stirbt mit
+            # der lokalen Referenz.
+            raise GLBufferError("QOpenGLBuffer.create() ist fehlgeschlagen")
+        if not buf.bind():
+            # Der GL-Name existiert hier bereits, der Puffer erreicht aber nie ein
+            # Viewer-Feld – die Buchung des Aufrufers (über ``gl_object_count``)
+            # sähe ihn also nicht. Erzeugung und Freigabe deshalb hier direkt
+            # buchen, sonst verschwiege ``gl_resource_stats()`` ausgerechnet auf
+            # dem gemessenen Treiberfehlerpfad echten GPU-Umschlag.
+            _note_gl_created(1)
+            buf.destroy()
+            _note_gl_destroyed(1)
+            raise GLBufferError("QOpenGLBuffer.bind() ist fehlgeschlagen")
         raw = data.tobytes()
         # PyQt6 akzeptiert ein bytes-Objekt als Lesepuffer (sip.voidptr); der
         # Stub kennt nur den voidptr-Overload, daher hier bewusst ignoriert.

@@ -87,7 +87,11 @@ Absturz. Abweichungen mit Begründung protokollieren.
   ```
 
   Erwartet: `verdict: ok`, `live` konstant, `live_after_cleanup: 0`; JSON dem
-  Abnahmeprotokoll beilegen.
+  Abnahmeprotokoll beilegen. **Exit 2 ist kein bestandener Nachweis** – die
+  Sonde bricht seit #711 auch dann ab, wenn `QOpenGLBuffer.create()`/`bind()`
+  still fehlschlagen und deshalb kein vollständiger Puffersatz zustande kommt
+  (Meldung „unvollständiger Puffer-Upload"). In dem Fall ist die Zielumgebung zu
+  klären, nicht der Lauf zu wiederholen, bis er grün aussieht.
 - Manuell: 100× Projekt-/Moduswechsel unter `valgrind --tool=massif` bzw.
   RSS-/GPU-Speicherbeobachtung (`nvidia-smi -l 1`, `radeontop`,
   `intel_gpu_top`); der Wert pendelt sich ein, kein stetiges Wachstum.

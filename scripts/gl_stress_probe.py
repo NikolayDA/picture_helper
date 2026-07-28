@@ -43,8 +43,15 @@ Puffer, um ein Leck zu zeigen. ``--allow-short-run`` erlaubt ihn ausdrücklich a
 Diagnose und markiert den Bericht mit ``gating: false``.
 
 Exit 0 = kein Befund, 1 = Ressourcenbefund, 2 = Sonde nicht ausführbar (keine
-renderfähige Plattform, fehlgeschlagener Viewer oder ausgebliebener Upload –
-ausdrücklich **kein** bestandener Nachweis).
+renderfähige Plattform, fehlgeschlagener Viewer, ausgebliebener oder
+**unvollständiger** Upload – ausdrücklich **kein** bestandener Nachweis).
+
+Zum unvollständigen Upload (#711): ``QOpenGLBuffer.create()``/``bind()`` melden
+Fehler nur über ihren Rückgabewert. Der Viewer behandelt beides seit #711 als
+harten Fehler; die Sonde verlangt zusätzlich, dass ein Lauf mindestens
+``MIN_LIVE_PER_VIEWER`` gehaltene Objekte gesehen hat – eine Messreihe ohne
+vollständigen Puffersatz ist konstant und damit formal „ohne Wachstum", aber
+kein Nachweis.
 """
 from __future__ import annotations
 
@@ -54,7 +61,7 @@ import os
 import platform
 import subprocess
 import sys
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -68,10 +75,20 @@ if str(_REPO_ROOT) not in sys.path:  # Direktaufruf ohne installiertes Paket
 
 from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField  # noqa: E402
 from bgremover.relief_mesh import MeshQuality, ReliefMesh, build_relief_mesh  # noqa: E402
-from bgremover.viewer_3d import GLReliefViewer, gl_resource_stats  # noqa: E402
+from bgremover.viewer_3d import (  # noqa: E402
+    GLBufferError,
+    GLReliefViewer,
+    gl_resource_stats,
+)
 
 #: Ein fehlerfreier Viewer hält nie mehr als drei Puffer plus einen VAO.
 MAX_LIVE_PER_VIEWER: Final = 4
+
+#: Ein *erfolgreicher* Upload legt immer die drei Puffer (Position/Slope/Index)
+#: an; der VAO ist in GL 2.1 eine Erweiterung und darf fehlen. Weniger als drei
+#: gehaltene Objekte heißt: es gab keinen vollständigen Upload – eine Messreihe
+#: darauf ist kein Nachweis, sondern ein falsches Grün (#711).
+MIN_LIVE_PER_VIEWER: Final = 3
 
 #: Qt-Plattformen ohne renderbaren FBO – dort ist ``--mode gl`` unmöglich.
 NON_RENDERABLE_PLATFORMS: Final = frozenset({"offscreen", "minimal", "vnc"})
@@ -145,13 +162,29 @@ class TrackedGLResource:
     ``QOpenGLBuffer``/``QOpenGLVertexArrayObject`` nach. Jede Benutzung nach
     ``destroy`` wird als use-after-delete protokolliert statt (wie ein echter
     Treiber) still zu funktionieren oder zu crashen.
+
+    Gebucht wird erst ein **erfolgreiches** ``create()`` – wie beim echten
+    Treiber entsteht der GL-Name dort und nicht schon im Konstruktor (#711).
+    ``fail_create``/``fail_bind`` stellen die beiden stillen booleschen
+    Fehlschläge deterministisch nach, die es sonst nur auf defekten Treibern
+    gibt.
     """
 
-    def __init__(self, ledger: ResourceLedger, label: str) -> None:
+    def __init__(
+        self,
+        ledger: ResourceLedger,
+        label: str,
+        *,
+        fail_create: bool = False,
+        fail_bind: bool = False,
+    ) -> None:
         self._ledger = ledger
         self._label = label
+        self._fail_create = fail_create
+        self._fail_bind = fail_bind
+        self.created = 0
         self.destroyed = 0
-        ledger.note_created()
+        self.allocated = 0
 
     def _touch(self, what: str) -> None:
         if self.destroyed:
@@ -159,11 +192,15 @@ class TrackedGLResource:
 
     def create(self) -> bool:
         self._touch("create")
+        if self._fail_create:
+            return False
+        self.created += 1
+        self._ledger.note_created()
         return True
 
     def bind(self) -> bool:
         self._touch("bind")
-        return True
+        return not self._fail_bind
 
     def release(self) -> bool:
         self._touch("release")
@@ -171,40 +208,66 @@ class TrackedGLResource:
 
     def allocate(self, *args: object, **kwargs: object) -> None:
         self._touch("allocate")
+        self.allocated += 1
 
     def destroy(self) -> None:
+        if not self.created:
+            # Ohne erfolgreiches ``create()`` gibt es keinen GL-Namen: die
+            # Freigabe ist ein No-op und darf die Bilanz nicht verschieben.
+            return
         self._ledger.note_destroyed(self._label, already=bool(self.destroyed))
         self.destroyed += 1
 
 
+#: Bauplan einer Attrappe: ``(ledger, label) -> TrackedGLResource``. Über diesen
+#: Haken injizieren Regressionstests deterministische ``create()``/``bind()``-
+#: Fehlschläge, ohne den Patchpunkt der Sonde nachbauen zu müssen (#711).
+ResourceFactory = Callable[[ResourceLedger, str], "TrackedGLResource"]
+
+
 @contextmanager
-def tracked_gl_resources(ledger: ResourceLedger) -> Iterator[None]:
+def tracked_gl_resources(
+    ledger: ResourceLedger,
+    *,
+    buffer_factory: ResourceFactory | None = None,
+    vao_factory: ResourceFactory | None = None,
+) -> Iterator[None]:
     """Ersetzt Puffer-/VAO-Konstruktion im Viewer-Modul durch Attrappen.
 
     Bewusst an genau den beiden Stellen, an denen der Viewer GL-Objekte anlegt –
     der übrige Kontrollfluss (Freigabe, Nullen der Referenzen, ``cleanup_gl``)
-    bleibt der echte Produktionscode.
+    bleibt der echte Produktionscode. Der Puffer wird über ``viewer_3d._new_buffer``
+    ersetzt und **nicht** über ``_make_buffer``: so läuft die produktive
+    ``create()``/``bind()``-Fehlerprüfung mit, statt vom Fake überdeckt zu werden
+    (#711).
+
+    ``buffer_factory``/``vao_factory`` sind der Einhängepunkt für Fehlerbilder;
+    ohne sie entstehen normale, immer erfolgreiche Attrappen.
     """
     from bgremover import viewer_3d
 
-    original_make = GLReliefViewer._make_buffer
+    original_new_buffer = viewer_3d._new_buffer
     original_vao = viewer_3d.QOpenGLVertexArrayObject
     counter = {"n": 0}
+    # Erst beim Aufruf aufgelöst: so wirkt auch ein Patch auf
+    # ``TrackedGLResource`` selbst (Szenario-/CLI-Tests).
+    make_buffer = buffer_factory or (lambda led, label: TrackedGLResource(led, label))
+    make_vao_resource = vao_factory or (lambda led, label: TrackedGLResource(led, label))
 
-    def make_buffer(buffer_type: object, data: object) -> TrackedGLResource:
+    def new_buffer(buffer_type: object) -> TrackedGLResource:
         counter["n"] += 1
-        return TrackedGLResource(ledger, f"buffer#{counter['n']}")
+        return make_buffer(ledger, f"buffer#{counter['n']}")
 
     def make_vao(*args: object, **kwargs: object) -> TrackedGLResource:
         counter["n"] += 1
-        return TrackedGLResource(ledger, f"vao#{counter['n']}")
+        return make_vao_resource(ledger, f"vao#{counter['n']}")
 
-    GLReliefViewer._make_buffer = staticmethod(make_buffer)  # type: ignore[method-assign]
+    viewer_3d._new_buffer = new_buffer  # type: ignore[assignment]
     viewer_3d.QOpenGLVertexArrayObject = make_vao  # type: ignore[assignment,misc]
     try:
         yield
     finally:
-        GLReliefViewer._make_buffer = original_make  # type: ignore[method-assign]
+        viewer_3d._new_buffer = original_new_buffer  # type: ignore[assignment]
         viewer_3d.QOpenGLVertexArrayObject = original_vao  # type: ignore[assignment,misc]
 
 
@@ -222,7 +285,12 @@ class ScenarioResult:
     """
 
     name: str
+    #: Angeforderte Zyklen (CLI-Parameter).
     cycles: int
+    #: Tatsächlich gefahrene Zyklen. Weicht nur ab, wenn ein Upload-Fehler den
+    #: Lauf vorzeitig beendet – dann darf der Bericht nicht behaupten, es seien
+    #: alle Zyklen gelaufen (Codex-Review #713).
+    cycles_executed: int
     source_px: str
     vertices: int
     triangles: int
@@ -313,16 +381,26 @@ def _evaluate(
     destroyed: int,
     rss_start: int,
     rss_end: int,
+    *,
+    upload_error: str | None = None,
 ) -> ScenarioResult:
     """Bewertet die Messreihe eines Szenarios gegen die Kriterien aus #684."""
     warmup_index = min(WARMUP_CYCLES, len(samples)) - 1
     live_after_warmup = samples[warmup_index]
     live_last = samples[-1]
+    # Ein abgebrochener Lauf hat weniger Messpunkte als angeforderte Zyklen. Der
+    # Bericht nennt beide Zahlen, damit ein Fehlerartefakt nicht behauptet, alle
+    # Zyklen seien gefahren worden (Codex-Review #713).
+    executed = len(samples)
     findings: list[str] = []
+    if upload_error is not None:
+        findings.append(
+            f"Upload fehlgeschlagen nach {executed} von {cycles} Zyklen: {upload_error}"
+        )
     if live_last != live_after_warmup:
         findings.append(
             f"lebende GL-Objekte wachsen nach der Aufwärmphase "
-            f"({live_after_warmup} → {live_last} über {cycles} Zyklen)"
+            f"({live_after_warmup} → {live_last} über {executed} Zyklen)"
         )
     if max(samples) > MAX_LIVE_PER_VIEWER:
         findings.append(
@@ -333,6 +411,15 @@ def _evaluate(
         findings.append(
             f"Viewer hält mehr als {MAX_LIVE_PER_VIEWER} GL-Objekte "
             f"(Maximum {max(viewer_samples)})"
+        )
+    if max(viewer_samples, default=0) < MIN_LIVE_PER_VIEWER:
+        # Ohne vollständigen Puffersatz hat nie ein Upload stattgefunden. Eine
+        # konstante Messreihe wäre dann formal „ohne Wachstum" – und damit ein
+        # falsches Grün (#711).
+        findings.append(
+            f"kein vollständiger Puffer-Upload nachgewiesen (Viewer hielt "
+            f"höchstens {max(viewer_samples, default=0)} statt "
+            f"{MIN_LIVE_PER_VIEWER} GL-Objekte)"
         )
     if live_after_cleanup != 0:
         findings.append(
@@ -348,9 +435,15 @@ def _evaluate(
         )
     if ledger is not None and ledger.live != 0:
         findings.append(f"{ledger.live} Attrappe(n) ohne Freigabe")
+    if executed < cycles:
+        findings.append(
+            f"nur {executed} von {cycles} Zyklen gefahren – der Lauf ist kein "
+            "vollständiger Nachweis"
+        )
     return ScenarioResult(
         name=name,
         cycles=cycles,
+        cycles_executed=executed,
         source_px=source_px,
         vertices=int(mesh.positions.shape[0]),
         triangles=int(mesh.indices.shape[0]),
@@ -383,13 +476,23 @@ def run_fake_scenario(
     ledger = ResourceLedger()
     samples: list[int] = []
     viewer_samples: list[int] = []
+    upload_error: str | None = None
     baseline = gl_resource_stats().live
     rss_start = rss_kib()
     with tracked_gl_resources(ledger):
         viewer = GLReliefViewer()
         for index in range(cycles):
             viewer.set_mesh(meshes[index % len(meshes)])
-            viewer._ensure_buffers()
+            try:
+                viewer._ensure_buffers()
+            except GLBufferError as exc:
+                # Fehlgeschlagenes ``create()``/``bind()`` (#711): den Reststand
+                # noch messen und den Lauf als Befund beenden – ein Traceback
+                # wäre als Nachweis wertlos, ein stilles Weiterlaufen falsch.
+                upload_error = str(exc)
+                samples.append(gl_resource_stats().live - baseline)
+                viewer_samples.append(viewer.gl_object_count)
+                break
             samples.append(gl_resource_stats().live - baseline)
             viewer_samples.append(viewer.gl_object_count)
         viewer.cleanup_gl()
@@ -397,6 +500,7 @@ def run_fake_scenario(
     return _evaluate(
         name, cycles, meshes[0], source_px, samples, viewer_samples, ledger,
         live_after_cleanup, ledger.created, ledger.destroyed, rss_start, rss_kib(),
+        upload_error=upload_error,
     )
 
 
@@ -424,20 +528,39 @@ def run_gl_scenario(
         QApplication.processEvents()
         samples.append(gl_resource_stats().live - before.live)
         viewer_samples.append(viewer.gl_object_count)
-    # Ein fehlgeschlagener Viewer (Kontext-, Shader- oder Pufferfehler) rendert
-    # nie: ``paintGL`` fängt den Fehler ab, es entstehen 0 GL-Objekte, und die
-    # Messreihe wäre konstant 0 – also formal „kein Wachstum". Genau dieser Fall
-    # darf nicht als bestandener Nachweis durchgehen (Codex-Review #706).
+    # Drei Abbruchgründe, die formal wie „kein Wachstum" aussehen, aber keinen
+    # Nachweis darstellen:
+    #  1. Ein fehlgeschlagener Viewer (Kontext-, Shader-, Pufferfehler) rendert
+    #     nie – ``paintGL`` fängt den Fehler ab, es entstehen 0 GL-Objekte und
+    #     die Messreihe bleibt konstant 0 (Codex-Review #706).
+    #  2. Eine Plattform, die sich renderfähig meldet, aber nie hochlädt.
+    #  3. Ein *unvollständiger* Puffersatz – entsteht, wenn
+    #     ``QOpenGLBuffer.create()``/``bind()`` still ``false`` liefern (#711).
+    reason: str | None = None
     if viewer.has_failed:
-        raise ProbeNotExecutable(
+        reason = (
             f"Szenario {name!r}: der GL-Viewer ist fehlgeschlagen (Kontext-/Shader-/"
             "Pufferfehler) – es wurde nichts gemessen"
         )
-    if max(viewer_samples, default=0) == 0:
-        raise ProbeNotExecutable(
+    elif max(viewer_samples, default=0) == 0:
+        reason = (
             f"Szenario {name!r}: kein einziger Upload hat GL-Objekte erzeugt – die "
             "Plattform meldet sich renderfähig, rendert aber nicht"
         )
+    elif max(viewer_samples) < MIN_LIVE_PER_VIEWER:
+        reason = (
+            f"Szenario {name!r}: unvollständiger Puffer-Upload – der Viewer hielt "
+            f"höchstens {max(viewer_samples)} statt {MIN_LIVE_PER_VIEWER} GL-Objekte "
+            "(fehlgeschlagenes create()/bind()); es wurde nichts Belastbares gemessen"
+        )
+    if reason is not None:
+        # Auch der Abbruchpfad räumt auf: ein Aufrufer, der ``ProbeNotExecutable``
+        # fängt und im selben Prozess weiterläuft (Tests, Abnahmeskripte), darf
+        # weder Teilressourcen noch verfälschte Zähler erben (Codex-Review #713).
+        viewer.cleanup_gl()
+        viewer.deleteLater()
+        QApplication.processEvents()
+        raise ProbeNotExecutable(reason)
     viewer.cleanup_gl()
     live_after_cleanup = gl_resource_stats().live - before.live
     viewer.deleteLater()
@@ -593,9 +716,14 @@ def _print_human(report: ProbeReport) -> None:
     print(f"  {env['platform']} | Python {env['python']} | Qt {env['qt']} "
           f"| QPA {env['qpa_platform']} | GL {env['gl_capability']}")
     for scenario in report.scenarios:
+        # Abgebrochene Läufe zeigen „gefahren/angefordert" statt nur der Zielzahl.
+        cycles_text = (
+            f"{scenario.cycles} Zyklen" if scenario.cycles_executed == scenario.cycles
+            else f"{scenario.cycles_executed}/{scenario.cycles} Zyklen"
+        )
         print(
             f"  {scenario.name:<12} {scenario.source_px:>18}  "
-            f"{scenario.cycles} Zyklen  live {scenario.live_after_warmup}"
+            f"{cycles_text}  live {scenario.live_after_warmup}"
             f"→{scenario.live_after_last_cycle} (max {scenario.max_live}, "
             f"Viewer max {scenario.max_viewer_objects}), "
             f"erzeugt {scenario.created_total}/freigegeben {scenario.destroyed_total}, "
@@ -662,7 +790,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ProbeNotExecutable as exc:
         print(f"Sonde nicht ausführbar: {exc}", file=sys.stderr)
         return 2
-    report.gating = args.cycles >= MIN_GATING_CYCLES
+    # Fail-closed: abnahmefähig ist ein Lauf nur, wenn genug Zyklen *angefordert*
+    # **und** in jedem Szenario tatsächlich gefahren wurden. Ein Abbruch nach dem
+    # ersten Zyklus darf nicht als vollständiger Nachweis markiert sein (#713).
+    report.gating = args.cycles >= MIN_GATING_CYCLES and all(
+        scenario.cycles_executed >= MIN_GATING_CYCLES for scenario in report.scenarios
+    )
     payload = report.to_json()
     if args.json_out:
         args.json_out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", "utf-8")

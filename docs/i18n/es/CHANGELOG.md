@@ -21,6 +21,14 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   consumo de memoria de GPU de la vista previa 3D. La liberación ahora se
   ejecuta antes de cada (re)subida; afecta solo a la representación 3D, no a
   los datos de imagen, proyecto o exportación.
+- **Vista previa 3D del relieve: un fallo silencioso al crear búferes de GPU
+  contaba como éxito (#711).** Si `QOpenGLBuffer.create()` o `bind()` devolvían
+  `false` en un controlador problemático, la subida continuaba igualmente: la
+  vista previa se declaraba «lista» aunque nunca se hubiera creado ningún
+  búfer. Ahora se comprueban ambos valores de retorno: una subida fallida
+  libera de inmediato y exactamente una vez los búferes ya creados y el objeto
+  de matriz de vértices, y pone la vista previa en el estado de error conocido
+  con retroceso a 2D, en lugar de mostrar una vista 3D vacía.
 
 ### Notas sobre esta versión
 

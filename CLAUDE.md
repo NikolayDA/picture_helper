@@ -155,7 +155,13 @@ Ein Paket, `bgremover/`:
   (idempotent), `gl_resource_stats()` zählt prozessweit erzeugte/freigegebene
   GL-Objekte und `GLReliefViewer.gl_object_count` die aktuell gehaltenen (0–4).
   Der prozessweite Zähler ist der maßgebliche Leck-Nachweis – ein verwaistes
-  Objekt wird vom Viewer nicht mehr referenziert, lebt aber weiter. Geteilte
+  Objekt wird vom Viewer nicht mehr referenziert, lebt aber weiter. Gezählt
+  wird seit #711 nur **erfolgreich** Erzeugtes: `_make_buffer` wertet
+  `QOpenGLBuffer.create()`/`bind()` aus und wirft sonst `GLBufferError`; ein
+  Teilerfolg gibt VAO und bereits erzeugte Puffer genau einmal frei und schaltet
+  über `_fail` in den Fehlerzustand (der VAO bleibt als GL-2.1-Erweiterung
+  optional). Der Konstruktor liegt bewusst in `_new_buffer` – das ist der
+  Einhängepunkt von Sonde und Tests, damit die Fehlerprüfung mitläuft. Geteilte
   Messsonde `scripts/gl_stress_probe.py` (`make gl-stress`), Regressionstests
   `tests/test_viewer_3d_gl_lifecycle.py` (GL-frei, >100 Zyklen je
   Datensatzgröße, inkl. Negativkontrolle) und der `gl_smoke`-Langzeittest in
