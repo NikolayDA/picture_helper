@@ -11,19 +11,21 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-07-29, Nachprüfung: #710/#711 abgeschlossen, #685 startbereit)
+## Aktueller Stand (2026-07-29, Nachprüfung: #716 neu erfasst, sonst unverändert)
 
-Nachprüfung vom 2026-07-29: Die beiden am Vortag als release-blockierend eingestuften Folge-Issues **#711** (GL-Sonde/QOpenGLBuffer-Erkennung) und **#710** (Freeze-Nachzug/SHA-Vertrag) sind beide abgeschlossen (#711 via PR #713, #710 via PR #714). Während der #710-Review deckte Codex zusätzlich einen von PR #709 eingeführten Deadlock im Release-Gate auf (`GITHUB_SHA == Kandidat` hätte jeden künftigen Kandidatenbau strukturell verhindert); **PR #715** hat diesen Schritt zurückgenommen und den ursprünglich vorgesehenen Vertrag wiederhergestellt (`--require-pin` genügt, Kandidat oder ein reiner Protokoll-Commit darüber).
+Nachprüfung vom 2026-07-29 (später am selben Tag, nach PR #717): Gegenüber der letzten Runde ist genau **ein** neues Issue hinzugekommen – **#716** (automatisierter Test-Suite-Audit, 5. Runde nach #168/#177/#178/#659). `make coverage` läuft grün (2081 passed, 6 skipped, 93 % Coverage, Gate `fail_under=86`); **kein Produktionsfehler gefunden**, nur kleinere Testschärfungen (zwei echte Coverage-Lücken – `WorkerController.start_mesh_build`-e2e und `CropBar`-Wiring –, drei schwache Assertions, Kopplung an Implementierungsdetails in drei Tests, zwei Redundanzen/Duplikate). Alle übrigen 17 Issues sind seit der letzten Runde unverändert: keine neuen Kommentare, keine Statusänderungen.
 
-Aktueller Kandidat für 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 Commits im Fenster, `python scripts/verify_release_freeze.py --require-pin` → 0 Fehler/0 Warnungen). **#685 ist damit technisch unblockiert und laut eigenem Statushinweis startbereit** – offen bleiben nur die genuin manuellen/hardwaregebundenen Teile (Kandidatenbau, Installation/Start auf Zielhardware, Signatur-/Notarisierungsprüfung, Abnahmematrix, Go-/No-Go). #686 bleibt bis zum Abschluss von #685 blockiert.
+Die beiden am Vortag als release-blockierend eingestuften Folge-Issues **#711** (GL-Sonde/QOpenGLBuffer-Erkennung) und **#710** (Freeze-Nachzug/SHA-Vertrag) bleiben abgeschlossen (#711 via PR #713, #710 via PR #714, Deadlock-Korrektur via PR #715).
 
-Live-Stand nach GitHub-Abfrage: **17** offene Issues (#710/#711 sind mit ihrem Abschluss aus der Zählung entfallen; verbleibend 15 aus #680–#696 sowie die unveränderten externen #656/#245).
+Aktueller Kandidat für 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 Commits im Fenster, `python scripts/verify_release_freeze.py --require-pin` → 0 Fehler/0 Warnungen). **#685 bleibt technisch unblockiert und laut eigenem Statushinweis startbereit** – offen bleiben nur die genuin manuellen/hardwaregebundenen Teile (Kandidatenbau, Installation/Start auf Zielhardware, Signatur-/Notarisierungsprüfung, Abnahmematrix, Go-/No-Go). #686 bleibt bis zum Abschluss von #685 blockiert.
+
+Live-Stand nach GitHub-Abfrage: **18** offene Issues (17 unverändert aus der letzten Runde plus das neu erfasste #716).
 
 ### Ergebnis der Nachprüfung
 
-- ✅ **#711 abgeschlossen** (PR #713): fehlgeschlagene `QOpenGLBuffer.create()`/`bind()`-Aufrufe werden jetzt erkannt, Teilressourcen werden sauber und genau einmal freigegeben.
-- ✅ **#710 abgeschlossen** (PR #714, plus Korrektur PR #715): Freeze-Dokument zieht den Kandidaten `adb2205960619b9b5c29a9a05feda163310782a6` nach; der von #709 eingeführte Deadlock im Build-/Tag-Vertrag wurde durch #715 behoben.
-- ✅ **#685 jetzt startbereit:** laut aktuellem Statushinweis im Issue selbst kann der Kandidatenbau + die Hardware-Abnahme beginnen.
+- 🟢 **Neu: #716** (Test-Suite-Audit) – kein Produktionsfehler, nur kleinere Testschärfungen über ~8 Testdateien; jeder Punkt ist bereits als Checkliste im Issue klar abgegrenzt und mechanisch umsetzbar.
+- ✅ **#711/#710 bleiben abgeschlossen**, Kandidat `adb2205960619b9b5c29a9a05feda163310782a6` unverändert.
+- ✅ **#685 weiterhin startbereit:** laut aktuellem Statushinweis im Issue selbst kann der Kandidatenbau + die Hardware-Abnahme beginnen.
 - 🟠 **EufyMake-Definitionen unverändert:** #681/#687–#691 formulieren weiterhin TIFF-Kriterien gegen ein reales PNG-Asset-Paket; mm/DPI stehen im Manifest, die Auswertung durch Studio bleibt unbelegt. #687 ist vor dieser Klärung nicht startbereit.
 - **Keine neuen Kommentare** auf #245/#656 sowie auf den COLOR- (#682/#692–#696) und übrigen EufyMake-Teil-Issues (#688–#690) seit der letzten Runde – kein Update nötig.
 - **Alte Basis weiterhin stabil:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, alles seit **2026-06-25** Erledigte sowie Release v2.7.0 bleiben unverändert abgeschlossen.
@@ -49,6 +51,7 @@ Live-Stand nach GitHub-Abfrage: **17** offene Issues (#710/#711 sind mit ihrem A
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | ANTHROPIC_API_KEY-Secret für Vision-Vorbewertung aktivieren | 🟡 Mittel (verbessert nur Evidenzqualität, kein Blocker laut Vertrag) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Settings → Secrets) | Blocked (extern) – unabhängig erledigbar |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – Billing/Quota beim OpenAI-Platform-Projekt klären |
+| [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Test-Suite-Audit: kleinere Lücken (WorkerController-Mesh-e2e, CropBar-Wiring, schwache Assertions) | 🟢 Niedrig (keine Produktionsfehler, reine Testqualität) | 🟡 Niedrig-Mittel (mehrere kleine, unabhängige Punkte über ~8 Testdateien) | Sonnet, niedrig | **Startbereit** – Checkliste bereits im Issue, mechanisch umsetzbar |
 
 ### Als Nächstes empfohlen
 
@@ -57,9 +60,11 @@ Live-Stand nach GitHub-Abfrage: **17** offene Issues (#710/#711 sind mit ihrem A
 3. **#692** (COLOR-ADR) kann unabhängig parallel gestartet werden.
 4. **#681/#687–#691 im Wortlaut korrigieren, bevor #687 startet** – Kriterien auf das reale PNG-Asset-Paket beziehen oder eine empirisch begründete Container-Migration separat planen.
 5. **#688–#690** bleiben bis zu realer EufyMake-Hardware blockiert; **#656/#245** bleiben externe Secret-/Billing-Tracker.
+6. **#716** kann parallel und unabhängig als kleiner Aufräum-PR umgesetzt werden (niedrige Priorität, aber schnell und risikoarm erledigt).
 
 ## Vorige Runden
 
+- **2026-07-29 (Nachprüfung: #716 neu erfasst)** — einziges neues Issue seit der letzten Runde am selben Tag: #716 (automatisierter Test-Suite-Audit, `make coverage` grün bei 93 % Coverage, kein Produktionsfehler, nur kleinere Testschärfungen mit fertiger Umsetzungs-Checkliste). Alle übrigen 17 Issues unverändert – keine neuen Kommentare, keine Statusänderungen. Live-Stand 18.
 - **2026-07-29 (Nachprüfung: #710/#711 abgeschlossen, #685 startbereit)** — beide zuvor offenen Release-Blocker sind geschlossen (#711 via PR #713, #710 via PR #714); ein während der #710-Review von Codex gefundener Deadlock im Build-/Tag-Vertrag (durch #709 eingeführt) wurde über PR #715 zurückgenommen. Aktueller Kandidat `adb2205960619b9b5c29a9a05feda163310782a6`, `verify_release_freeze.py --require-pin` 0 Fehler/0 Warnungen. #685 ist damit startbereit (nur noch hardwaregebundene Schritte offen), #686 wartet weiter auf #685. Keine neuen Kommentare auf den übrigen 12 offenen Issues. Live-Stand 17.
 - **2026-07-28 (Nachprüfung #701/#703–#709 und #684/#699/#702)** — acht PR-Heads mit grünen PR-CI-/CodeQL-/Dependency-/Lizenzläufen; alle Reviewthreads aufgelöst. #702 sauber durch #708 erledigt, #684 als instrumentierter Nachweis belastbar geschlossen, echter GPU-Smoke weiter in #685. Zwei neue Blocker dokumentiert: #711 (False-Green bei still fehlgeschlagener QOpenGLBuffer-Erzeugung) und #710 (Freeze-/SHA-Vertrag nach #708/#709; lokal 4 Fehler/1 Warnung). #680/#685 bereinigt; belastbare Reihenfolge #711 → #710 → #685 → #686. Live-Stand 19.
 - **2026-07-27 (Issue-Definitions-Audit)** — alle 19 offenen Issues gegen den Code gelesen. Hauptbefund: Epic #681 und seine fünf Teil-Issues formulieren ihre Akzeptanzkriterien gegen ein TIFF-Paket, während der Export PNG-Assets plus `manifest.json` schreibt – dokumentiert in #681, Vorwarnung in #687. Neuer Codebefund **N10** (Bildassets ohne `pHYs`; mm/DPI nur im Manifest, dessen Auswertung durch Studio unbelegt ist). Kleinere Ungenauigkeiten in #685 (nicht existierende „TIFF-Prüfung“) und der veralteten Teil-Issue-Checkliste in #680. Die übrigen 13 Issues sind korrekt definiert; #702 gegen den Code nachgeprüft und zutreffend. Live-Stand 19.
