@@ -300,9 +300,19 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     assert v270_height.height_data is not None and v270_height.height_data.max_value == 65535
     v270_hash_before = hashlib.sha256(v270_height.height_data.values.tobytes()).hexdigest()
 
+    # Das Fixture aktiviert die COLOR-Ebene (v2.7.0-Vorgabe); Höhen-Werkzeuge
+    # wirken nur auf die aktive HEIGHT-Ebene (``_height_edit_context``), sonst
+    # kein-op. Erst aktivieren, dann wirklich bearbeiten – die Op muss den
+    # Hash sichtbar ändern, sonst prüfte das folgende Undo nur einen No-op.
+    win._canvas.set_active_layer(v270_height.id)
     win._canvas.apply_height_op(lambda f: height_ops.quantize(f, 4))
+    v270_height_after_op = win._canvas.project.active_layer()
+    assert v270_height_after_op is not None
+    v270_hash_after_op = hashlib.sha256(v270_height_after_op.height_data.values.tobytes()).hexdigest()
+    assert v270_hash_after_op != v270_hash_before, "Höhen-Op auf dem 2.7.0-Projekt war ein No-op"
     win._canvas.undo()
-    v270_height_after_undo = win._canvas.project.layers[1]
+    v270_height_after_undo = win._canvas.project.active_layer()
+    assert v270_height_after_undo is not None
     assert (
         hashlib.sha256(v270_height_after_undo.height_data.values.tobytes()).hexdigest()
         == v270_hash_before

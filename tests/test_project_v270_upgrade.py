@@ -48,23 +48,46 @@ def test_fixture_manifest_already_current_version() -> None:
     assert manifest["version"] == PROJECT_FORMAT_VERSION == 2
 
 
+# Vom Fixture-Bau (build_v270_fixture.py, echter v2.7.0-Code) protokollierte
+# Werte – hartkodiert, damit eine Regression, die IDs/Namen/Metadaten/
+# Schemaversion verändert, hier auffällt statt nur bei Kind/Rolle/Flags.
+_COLOR_ID = "50530890db2d4515baec0862fb89cc49"
+_HEIGHT_ID = "eed93ecfb5264b278ee2e5e0782ca86a"
+_EXPECTED_METADATA = {
+    "physical_size_mm": [50.0, 30.0],
+    "fixture_source": "v2.7.0 (echter Release-Code, #685-Nachweis)",
+}
+
+
 def test_open_2_7_0_project_no_unintended_migration_or_data_change() -> None:
-    """Ein echtes 2.7.0-Projekt öffnet ohne Warnungen, Struktur bleibt wertgleich."""
+    """Ein echtes 2.7.0-Projekt öffnet ohne Warnungen, Struktur bleibt wertgleich.
+
+    Vergleicht **alle** persistierten Felder (IDs, Namen, Metadaten-Dict,
+    Schemaversion) gegen die beim Fixture-Bau protokollierten Werte – nicht
+    nur Kind/Rolle/Flags, sonst könnte ein Loader-Bug IDs neu vergeben, Namen
+    verwerfen oder ``fixture_source`` stillschweigend verlieren, ohne dass
+    dieser Test es bemerkt (#685-Review).
+    """
     warnings: list[str] = []
     project = load_project(FIXTURE, warnings=warnings)
 
     assert warnings == [], f"unerwartete Normalisierung beim Laden: {warnings}"
     assert project.size == (16, 16)
+    assert project.version == 1
+    assert project.metadata == _EXPECTED_METADATA
     assert [layer.kind for layer in project.layers] == [LayerKind.COLOR, LayerKind.HEIGHT]
 
     color, height = project.layers
+    assert color.id == _COLOR_ID
+    assert color.name == "Farbmotiv"
     assert color.role is None
     assert color.visible and color.opacity == 1.0 and not color.locked
+    assert height.id == _HEIGHT_ID
+    assert height.name == "Höhenkarte"
     assert height.role is LayerRole.HEIGHT_MAP
     assert height.visible and height.opacity == 1.0 and not height.locked
-    assert project.active_layer_id == color.id
+    assert project.active_layer_id == color.id == _COLOR_ID
 
-    assert project.metadata.get("physical_size_mm") == [50.0, 30.0]
     assert project.physical_size_mm == (50.0, 30.0)
 
 
