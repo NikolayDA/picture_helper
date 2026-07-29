@@ -11,40 +11,29 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-28, revisión de PR/issues + auditoría del gate de release)
+## Estado actual (2026-07-29, revisión: #710/#711 cerradas, #685 lista para iniciarse)
 
-Se comprobaron contra código final, revisiones y CI los ocho PR fusionados el 27/28 de julio (#701 y #703–#709) y las incidencias cerradas #684, #699 y #702. Todos los heads pasaron PR CI, CodeQL, auditoría de dependencias y licencias; todos los hilos de revisión están resueltos. #702 quedó corregida por #708 en los seis README. #684 aporta la prueba instrumentada; el smoke real de GPU/hardware sigue delegado a #685.
+Revisión del 2026-07-29: los dos seguimientos marcados el día anterior como bloqueantes del release, **#711** (detección en la sonda GL/QOpenGLBuffer) y **#710** (actualización de la congelación/contrato SHA), están ambos cerrados (#711 vía PR #713, #710 vía PR #714). Durante la revisión de #710, Codex además encontró un bloqueo mutuo en el gate de release introducido por el PR #709 (`GITHUB_SHA == candidato` habría impedido estructuralmente cualquier futura construcción de candidato); el **PR #715** revirtió ese paso y restableció el contrato originalmente previsto (basta con que `--require-pin` pase, sobre el candidato o un commit puramente de protocolo por encima).
 
-- **Épica #680** – La secuencia fiable de estabilización v2.7.x es ahora **#711 → #710 → #685 → #686**.
-- **Épica #681** – Perfil objetivo EufyMake: las suposiciones sobre profundidad de bits HEIGHT, mm/DPI y gloss en la exportación deben contrastarse con fuentes del fabricante y hardware real y convertirse en un perfil objetivo versionado. Sub-incidencias: #687 (inventario de suposiciones/matriz de pruebas), #688 (HEIGHT), #689 (mm/DPI), #690 (gloss), #691 (integración del perfil en validador/writer/diálogo/documentación).
-- **Épica #682** – Motor de tono/escala de grises COLOR: una base común libre de Qt para histograma/niveles/gamma como fundamento de la optimización de imagen y futuros flujos de láser. Sub-incidencias: #692 (ADR/contrato de datos), #693 (núcleo libre de Qt), #694 (vista previa en vivo/UI), #695 (integración de capas/selección/historial/proyecto), #696 (aceptación de rendimiento/E2E/documentación/interfaz láser).
+Candidato actual para 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 commits en la ventana; `python scripts/verify_release_freeze.py --require-pin` → 0 errores/0 avisos). **#685 queda así técnicamente desbloqueada y, según su propio comentario de estado, lista para iniciarse** — solo quedan las partes genuinamente manuales/dependientes de hardware (construcción del candidato, instalación/arranque en hardware objetivo, comprobación de firma/notarización, matriz de aceptación, decisión go/no-go). #686 sigue bloqueada hasta que #685 termine.
 
-Se abrieron dos seguimientos que bloquean el release: #711 cierra un falso verde de la sonda GL real y #710 actualiza después la congelación final y el contrato SHA. `main` deriva `1b04887f7aafa4fd1ddd2636f41d3b768022db31`, pero el documento aún fija `65a656aa41416219bbcdcedba92e06047d2a8ed0`; `make release-freeze-check` reproduce **4 errores y 1 aviso**.
-
-Estado en vivo: **19** incidencias abiertas (15 de #680–#696, más #710/#711 y las externas #656/#245).
+Estado en vivo tras la consulta a GitHub: **17** incidencias abiertas (#710/#711 salieron del recuento al cerrarse; quedan 15 de #680–#696, más las externas sin cambios #656/#245).
 
 ### Resultado de la revisión y de la auditoría de definiciones
 
-- ✅ **#701/#703–#709:** workflows verdes y todos los hilos resueltos.
-- ✅ **#702/#708:** corrección completa en los seis README.
-- ✅ **#684/#706/#707:** prueba instrumentada sólida; el ensayo GPU real sigue en #685.
-- 🔴 **#710:** candidato, ventana y contrato SHA de la congelación están desactualizados.
-- 🟠 **#711:** fallos silenciosos de `QOpenGLBuffer.create()`/`bind()` aún pueden dar un falso verde.
-- 🟠 **#681 y sus sub-incidencias #687–#691 describen un paquete TIFF que la exportación no produce.** `eufymake_writer.py` escribe una carpeta con `color_motif.png` (el único recurso obligatorio), opcionalmente `height_map.png` y `gloss_mask.png`, más `manifest.json` — tal como fija el ADR; `grep -ri tiff bgremover/eufymake_*` no devuelve ningún resultado. Los criterios sobre «directorios/IFD TIFF», «orden de páginas», `SampleFormat`, `PhotometricInterpretation`, `ExtraSamples` y `X/YResolution` examinan objetos que no existen en el resultado de la exportación. Detalles, criterios afectados por sub-incidencia y dos vías de solución: [comentario en #681](https://github.com/NikolayDA/picture_helper/issues/681#issuecomment-5091039442). **#687 no está lista para iniciarse** hasta aclararlo: un inventario que omite la cuestión del formato consolida justo la suposición que la épica debe comprobar.
-- 🟡 **Nuevo hallazgo N10: los recursos de imagen exportados no llevan metadatos de resolución.** `_write_png()` llama a `image.save(path, "PNG")` sin `dpi=`, así que los PNG no contienen fragmento `pHYs`. El tamaño físico y los DPI solo están en `manifest.json` (`target.physical_size_mm`/`target.dpi`), una convención propia de BgRemover; **que EufyMake Studio lea ese manifiesto está sin verificar** y no se deduce del código. La exportación normal de imágenes sí ancla los DPI en el propio archivo (`image_ops.save_image`, de #378). Por tanto, la primera pregunta para #687/#689 no es la medición impresa, sino la vía de transporte: ¿lee Studio el manifiesto, necesita `pHYs` en los recursos o el tamaño se introduce manualmente?
-- ✅ **Higiene corregida:** #680 contiene la cadena actual y #685 nombra `scripts/scan_release_artifacts.py` en lugar de una comprobación TIFF inexistente.
-- **Limitación local:** la runtime Qt aborta la colección de pytest con exit 134; se usaron los PR verdes, inspección estática y el gate reproducido localmente.
-- **Sin comentarios nuevos** en #245/#656 desde la última ronda – no hace falta actualizarlas.
+- ✅ **#711 cerrada** (PR #713): los fallos de `QOpenGLBuffer.create()`/`bind()` ahora se detectan y los recursos parciales se liberan limpiamente, exactamente una vez.
+- ✅ **#710 cerrada** (PR #714, más la corrección PR #715): el documento de congelación ya fija el candidato `adb2205960619b9b5c29a9a05feda163310782a6`; el bloqueo mutuo en el contrato build/tag introducido por #709 se corrigió con #715.
+- ✅ **#685 lista para iniciarse:** según su propio comentario de estado, puede comenzar la construcción del candidato más la aceptación de hardware.
+- 🟠 **Definiciones de EufyMake sin cambios:** #681/#687–#691 siguen describiendo criterios TIFF contra un paquete de recursos PNG real; #687 sigue sin estar lista hasta aclararlo.
+- **Sin comentarios nuevos** en #245/#656 ni en las sub-incidencias de COLOR (#682/#692–#696) y las restantes de EufyMake (#688–#690) desde la última ronda – no hace falta actualizarlas.
 - **La base antigua sigue estable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, todo lo completado desde el **2026-06-25** y el release v2.7.0 (etiqueta/publicación/las tres etapas del gate contra el commit `6f103ed`) siguen sin cambios y hechos.
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-28)
+## Incidencias abiertas de GitHub — Clasificación (2026-07-29)
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Épica] Estabilización v2.7.x | 🟠 Alta | 🟠 Alta | – (épica) | En curso – #711 → #710 → #685 → #686 |
-| [#711](https://github.com/NikolayDA/picture_helper/issues/711) | Detectar creación fallida de QOpenGLBuffer | 🟠 Alta | 🟡 Media-alta | Opus, alto | Lista – antes de la congelación final |
-| [#710](https://github.com/NikolayDA/picture_helper/issues/710) | Actualizar congelación y contrato SHA | 🟠 Alta | 🟡 Media | Sonnet, medio | Bloqueada – paso final tras #711 |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Construir artefactos candidatos + aceptación de hardware | 🟠 Alta | 🟠 Alta | Sonnet, medio; hardware manual | Bloqueada – espera #711/#710 |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Épica] Estabilización v2.7.x | 🟠 Alta | 🟠 Alta | – (épica) | En curso – #685 está lista, orden #685 → #686 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Construir artefactos candidatos + aceptación de hardware | 🟠 Alta | 🟠 Alta | Sonnet, medio; hardware manual | **Lista** – candidato `adb2205960619b9b5c29a9a05feda163310782a6`, bloqueos #710/#711 resueltos |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Etiqueta, publicación, verificación posterior al release | 🟠 Alta (pone la corrección a disposición de los usuarios) | 🟢 Baja (proceso de release establecido desde v2.6.0/v2.7.0) | Sonnet, bajo | Bloqueada – espera a #685 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | **Corregir la definición** – los criterios describen TIFF, la exportación escribe recursos PNG |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🟡 Media (investigación/documentación, sin necesidad de acceso a hardware) | Sonnet, medio | No lista – la cuestión del contenedor/formato debe ser el primer punto del inventario |
@@ -63,15 +52,15 @@ Estado en vivo: **19** incidencias abiertas (15 de #680–#696, más #710/#711 y
 
 ### Recomendado a continuación
 
-1. Corregir **#711** para impedir falsos verdes del GL real.
-2. Completar después **#710** como último paso de congelación.
-3. Ejecutar entonces **#685** con cinco artefactos y hardware real; después #686.
-4. **#692** puede iniciarse en paralelo.
-5. Corregir **#681/#687–#691** antes de #687; #688–#690 requieren hardware real.
-6. **#656/#245** siguen siendo externos.
+1. Ejecutar **#685** ahora – construir los artefactos candidatos a partir de `adb2205960619b9b5c29a9a05feda163310782a6` y aceptarlos en hardware objetivo real.
+2. **#686** después, para etiquetar y publicar.
+3. **#692** puede iniciarse en paralelo.
+4. Corregir **#681/#687–#691** antes de #687; #688–#690 requieren hardware real.
+5. **#656/#245** siguen siendo externos.
 
 ## Rondas anteriores
 
+- **2026-07-29 (revisión: #710/#711 cerradas, #685 lista)** — los dos bloqueos de release antes abiertos están cerrados (#711 vía PR #713, #710 vía PR #714); un bloqueo mutuo en el contrato build/tag (introducido por #709, hallado por Codex durante la revisión de #710) se revirtió mediante el PR #715. Candidato actual `adb2205960619b9b5c29a9a05feda163310782a6`, `verify_release_freeze.py --require-pin` 0 errores/0 avisos. #685 queda lista para iniciarse (solo faltan pasos dependientes de hardware), #686 sigue esperando a #685. Sin comentarios nuevos en las otras 12 incidencias abiertas. Estado en vivo: 17.
 - **2026-07-28 (revisión #701/#703–#709 y #684/#699/#702)** — ocho PR verdes y todos los hilos resueltos. #702 corregida por #708; #684 conserva una prueba instrumentada válida. Se abrieron #711 (falso verde de QOpenGLBuffer) y #710 (congelación/contrato SHA; 4 errores/1 aviso). Orden fiable #711 → #710 → #685 → #686. Estado: 19.
 - **2026-07-27 (auditoría de definición de incidencias)** — las 19 incidencias abiertas leídas contra el código. Hallazgo principal: la épica #681 y sus cinco sub-incidencias formulan sus criterios contra un paquete TIFF, mientras que la exportación escribe recursos PNG más `manifest.json` — documentado en #681, con aviso en #687. Nuevo hallazgo de código **N10** (recursos de imagen sin `pHYs`; mm/DPI solo en el manifiesto, cuyo tratamiento por Studio está sin verificar). Imprecisiones menores en #685 («comprobación TIFF» inexistente) y en la lista de sub-incidencias desactualizada de #680. Las otras 13 incidencias están correctamente definidas; #702 se verificó contra el código y es correcta. Estado en vivo: 19.
 - **2026-07-27 (seguimiento de #678/#679/#697/#698/#700/#701/#703 y #677/#683/#699)** — los siete heads de PR tuvieron verdes CI/CodeQL/dependencias/licencias; #677 está correctamente resuelta. El defecto inicial de congelación de #683/#698 se corrigió mediante #699/#701/#703, incluidas dos rondas de revisión y un gate de release obligatorio; candidato final `480a5fc0008ded401b02b15373d8474d67c83382`, gate en `main` 0/0. #685 espera solo a #684 y #686 a #685. La nueva incidencia documental #702 se amplió a los seis README y recibió criterios de aceptación. Estado en vivo: 19.
