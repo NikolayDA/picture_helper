@@ -11,19 +11,21 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-29, revisión: #710/#711 cerradas, #685 lista para iniciarse)
+## Estado actual (2026-07-29, revisión: #716 registrada, sin más cambios)
 
-Revisión del 2026-07-29: los dos seguimientos marcados el día anterior como bloqueantes del release, **#711** (detección en la sonda GL/QOpenGLBuffer) y **#710** (actualización de la congelación/contrato SHA), están ambos cerrados (#711 vía PR #713, #710 vía PR #714). Durante la revisión de #710, Codex además encontró un bloqueo mutuo en el gate de release introducido por el PR #709 (`GITHUB_SHA == candidato` habría impedido estructuralmente cualquier futura construcción de candidato); el **PR #715** revirtió ese paso y restableció el contrato originalmente previsto (basta con que `--require-pin` pase, sobre el candidato o un commit puramente de protocolo por encima).
+Revisión del 2026-07-29 (más tarde el mismo día, tras el PR #717): desde la última ronda apareció exactamente **una** incidencia nueva – **#716** (auditoría automatizada de la suite de pruebas, 5.ª ronda tras #168/#177/#178/#659). `make coverage` se ejecuta en verde (2081 aprobadas, 6 omitidas, 93 % de cobertura, umbral `fail_under=86`); **no se encontró ningún error de producción**, solo pequeñas mejoras de calidad de pruebas (dos huecos de cobertura reales — e2e de `WorkerController.start_mesh_build` y el cableado de `CropBar` —, tres aserciones débiles, acoplamiento a detalles de implementación en tres pruebas, dos redundancias/duplicados). Las otras 17 incidencias no han cambiado desde la última ronda: sin comentarios nuevos, sin cambios de estado.
 
-Candidato actual para 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 commits en la ventana; `python scripts/verify_release_freeze.py --require-pin` → 0 errores/0 avisos). **#685 queda así técnicamente desbloqueada y, según su propio comentario de estado, lista para iniciarse** — solo quedan las partes genuinamente manuales/dependientes de hardware (construcción del candidato, instalación/arranque en hardware objetivo, comprobación de firma/notarización, matriz de aceptación, decisión go/no-go). #686 sigue bloqueada hasta que #685 termine.
+Los dos seguimientos marcados el día anterior como bloqueantes del release, **#711** (detección en la sonda GL/QOpenGLBuffer) y **#710** (actualización de la congelación/contrato SHA), siguen cerrados (#711 vía PR #713, #710 vía PR #714, corrección del bloqueo mutuo vía PR #715).
 
-Estado en vivo tras la consulta a GitHub: **17** incidencias abiertas (#710/#711 salieron del recuento al cerrarse; quedan 15 de #680–#696, más las externas sin cambios #656/#245).
+Candidato actual para 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 commits en la ventana; `python scripts/verify_release_freeze.py --require-pin` → 0 errores/0 avisos). **#685 sigue técnicamente desbloqueada y, según su propio comentario de estado, lista para iniciarse** — solo quedan las partes genuinamente manuales/dependientes de hardware (construcción del candidato, instalación/arranque en hardware objetivo, comprobación de firma/notarización, matriz de aceptación, decisión go/no-go). #686 sigue bloqueada hasta que #685 termine.
+
+Estado en vivo tras la consulta a GitHub: **18** incidencias abiertas (17 sin cambios respecto a la última ronda más la recién registrada #716).
 
 ### Resultado de la revisión y de la auditoría de definiciones
 
-- ✅ **#711 cerrada** (PR #713): los fallos de `QOpenGLBuffer.create()`/`bind()` ahora se detectan y los recursos parciales se liberan limpiamente, exactamente una vez.
-- ✅ **#710 cerrada** (PR #714, más la corrección PR #715): el documento de congelación ya fija el candidato `adb2205960619b9b5c29a9a05feda163310782a6`; el bloqueo mutuo en el contrato build/tag introducido por #709 se corrigió con #715.
-- ✅ **#685 lista para iniciarse:** según su propio comentario de estado, puede comenzar la construcción del candidato más la aceptación de hardware.
+- 🟢 **Nueva: #716** (auditoría de la suite de pruebas) – sin errores de producción, solo pequeñas mejoras de calidad de pruebas en ~8 archivos; cada punto ya es una entrada de lista mecánica y clara en la incidencia.
+- ✅ **#711/#710 siguen cerradas**, candidato `adb2205960619b9b5c29a9a05feda163310782a6` sin cambios.
+- ✅ **#685 sigue lista para iniciarse:** según su propio comentario de estado, puede comenzar la construcción del candidato más la aceptación de hardware.
 - 🟠 **Definiciones de EufyMake sin cambios:** #681/#687–#691 siguen describiendo criterios TIFF contra un paquete de recursos PNG real; #687 sigue sin estar lista hasta aclararlo.
 - **Sin comentarios nuevos** en #245/#656 ni en las sub-incidencias de COLOR (#682/#692–#696) y las restantes de EufyMake (#688–#690) desde la última ronda – no hace falta actualizarlas.
 - **La base antigua sigue estable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, todo lo completado desde el **2026-06-25** y el release v2.7.0 (etiqueta/publicación/las tres etapas del gate contra el commit `6f103ed`) siguen sin cambios y hechos.
@@ -49,6 +51,7 @@ Estado en vivo tras la consulta a GitHub: **17** incidencias abiertas (#710/#711
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Aceptación de rendimiento/E2E/documentación/interfaz láser | 🟡 Media (gate de cierre, no una función nueva) | 🟠 Alta (suite de benchmarks, E2E, documentación, contrato del adaptador) | Opus, alto | Bloqueada – incidencia de cierre tras #695 |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Activar el secreto ANTHROPIC_API_KEY para la evaluación previa por visión | 🟡 Media (solo mejora la calidad de la evidencia; no es un bloqueo según el contrato) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: Settings → Secrets) | Bloqueada (externa) – se puede hacer de forma independiente |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – resolver facturación/cuota en el proyecto de la plataforma OpenAI |
+| [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Auditoría de la suite de pruebas: huecos menores (e2e de WorkerController, cableado de CropBar, aserciones débiles) | 🟢 Baja (sin errores de producción, pura calidad de pruebas) | 🟡 Baja-media (varios puntos pequeños e independientes en ~8 archivos de prueba) | Sonnet, bajo | **Lista para iniciarse** – lista de tareas ya incluida en la incidencia, mecánica de implementar |
 
 ### Recomendado a continuación
 
@@ -57,9 +60,11 @@ Estado en vivo tras la consulta a GitHub: **17** incidencias abiertas (#710/#711
 3. **#692** puede iniciarse en paralelo.
 4. Corregir **#681/#687–#691** antes de #687; #688–#690 requieren hardware real.
 5. **#656/#245** siguen siendo externos.
+6. **#716** puede resolverse de forma independiente y en paralelo como un pequeño PR de limpieza (baja prioridad, pero rápido y de bajo riesgo).
 
 ## Rondas anteriores
 
+- **2026-07-29 (revisión: #716 registrada)** — única incidencia nueva desde la ronda anterior del mismo día: #716 (auditoría automatizada de la suite de pruebas, `make coverage` en verde con 93 % de cobertura, sin errores de producción, solo pequeñas mejoras de calidad de pruebas con una lista de tareas lista para implementar). Las otras 17 incidencias sin cambios – sin comentarios nuevos, sin cambios de estado. Estado en vivo: 18.
 - **2026-07-29 (revisión: #710/#711 cerradas, #685 lista)** — los dos bloqueos de release antes abiertos están cerrados (#711 vía PR #713, #710 vía PR #714); un bloqueo mutuo en el contrato build/tag (introducido por #709, hallado por Codex durante la revisión de #710) se revirtió mediante el PR #715. Candidato actual `adb2205960619b9b5c29a9a05feda163310782a6`, `verify_release_freeze.py --require-pin` 0 errores/0 avisos. #685 queda lista para iniciarse (solo faltan pasos dependientes de hardware), #686 sigue esperando a #685. Sin comentarios nuevos en las otras 12 incidencias abiertas. Estado en vivo: 17.
 - **2026-07-28 (revisión #701/#703–#709 y #684/#699/#702)** — ocho PR verdes y todos los hilos resueltos. #702 corregida por #708; #684 conserva una prueba instrumentada válida. Se abrieron #711 (falso verde de QOpenGLBuffer) y #710 (congelación/contrato SHA; 4 errores/1 aviso). Orden fiable #711 → #710 → #685 → #686. Estado: 19.
 - **2026-07-27 (auditoría de definición de incidencias)** — las 19 incidencias abiertas leídas contra el código. Hallazgo principal: la épica #681 y sus cinco sub-incidencias formulan sus criterios contra un paquete TIFF, mientras que la exportación escribe recursos PNG más `manifest.json` — documentado en #681, con aviso en #687. Nuevo hallazgo de código **N10** (recursos de imagen sin `pHYs`; mm/DPI solo en el manifiesto, cuyo tratamiento por Studio está sin verificar). Imprecisiones menores en #685 («comprobación TIFF» inexistente) y en la lista de sub-incidencias desactualizada de #680. Las otras 13 incidencias están correctamente definidas; #702 se verificó contra el código y es correcta. Estado en vivo: 19.
