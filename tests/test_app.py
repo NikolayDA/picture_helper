@@ -331,6 +331,7 @@ def test_main_acceptance_extra_hook_runs_and_exits_ok(patched_app, monkeypatch, 
         return acceptance_smoke_module.AcceptanceExtraResult(
             ok=True, eufymake_ok=True, eufymake_message="ok",
             v270_ok=True, v270_message="ok",
+            missing_component_ok=True, missing_component_message="ok",
         )
 
     monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
@@ -362,6 +363,7 @@ def test_main_acceptance_extra_hook_exits_nonzero_on_failure(patched_app, monkey
         return acceptance_smoke_module.AcceptanceExtraResult(
             ok=False, eufymake_ok=False, eufymake_message="nope",
             v270_ok=False, v270_message="nope",
+            missing_component_ok=False, missing_component_message="nope",
         )
 
     monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
