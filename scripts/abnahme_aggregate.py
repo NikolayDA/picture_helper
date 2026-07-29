@@ -82,12 +82,15 @@ def _geraet_os(evidence: dict[str, Any] | None) -> str:
     return os_name or "—"
 
 
-def _datum(evidence: dict[str, Any] | None) -> str:
-    """Nur das Datum (nicht die Uhrzeit) aus ``erzeugt_am`` extrahieren."""
+def _datum(evidence: dict[str, Any] | None, *, field: str = "erzeugt_am") -> str:
+    """Nur das Datum (nicht die Uhrzeit) aus dem gegebenen Zeitstempelfeld
+    extrahieren. Live-GL-Ergebnisse (``scripts/benchmark.py``) tragen ihren
+    Zeitstempel unter ``timestamp`` statt ``erzeugt_am`` – daher der
+    konfigurierbare Feldname (#685-Review, Codex)."""
     if not evidence:
         return "—"
-    erzeugt_am = str(evidence.get("erzeugt_am") or "")
-    return erzeugt_am[:10] if len(erzeugt_am) >= 10 else "—"
+    value = str(evidence.get(field) or "")
+    return value[:10] if len(value) >= 10 else "—"
 
 
 def _platform_from_path(path: Path) -> str:
@@ -346,9 +349,13 @@ def build_matrix(
     for platform in active_platforms:
         platform_evidence = evidences.get(platform)
         commit_sha = str((platform_evidence or {}).get("commit_sha") or "")
-        # E2E-/Live-GL-Nachweise tragen kein eigenes ``umgebung``/``erzeugt_am``
-        # (nicht Teil ihres Vertrags) – dieselbe Plattform-Evidenz aus demselben
-        # Job liefert Gerät/OS und Datum trotzdem verlässlich mit.
+        # E2E-/Live-GL-Nachweise tragen kein eigenes ``umgebung`` (nicht Teil
+        # ihres Vertrags) – dieselbe Plattform-Evidenz aus demselben Job liefert
+        # Gerät/OS trotzdem verlässlich mit. Das Datum kommt dagegen bevorzugt
+        # aus dem jeweils eigenen Zeitstempel (``erzeugt_am``/``timestamp``):
+        # der Plattform-Evidenz-Zeitstempel entsteht *vor* Smoke/E2E/Live-GL,
+        # ein UTC-Datumswechsel während des Jobs würde sonst ein falsches
+        # Datum für diese später gelaufenen Kriterien zeigen (#685-Review, Codex).
         platform_geraet_os = _geraet_os(platform_evidence)
         platform_datum = _datum(platform_evidence)
 
@@ -383,7 +390,9 @@ def build_matrix(
                 note = "Nativer GL-Viewer ready und Geometrie gerendert."
             rows.append(MatrixRow(
                 e2e_label, status, "e2e-evidenz.json", "—", note,
-                geraet_os=platform_geraet_os, datum=platform_datum, nachweis_link=run_url,
+                geraet_os=platform_geraet_os,
+                datum=_datum(e2e_result) if _datum(e2e_result) != "—" else platform_datum,
+                nachweis_link=run_url,
             ))
 
         live_result = live_gl.get(platform)
@@ -402,11 +411,14 @@ def build_matrix(
                 environment.get("gl_provenance") or "—"
                 if isinstance(environment, dict) else "—"
             )
+            live_datum = _datum(live_result, field="timestamp")
             rows.append(MatrixRow(
                 live_label, "unbewertet" if issues else "erfuellt",
                 "preview3d-live/*.json", provenance,
                 f"Vertragsverstoß: {issues}" if issues else "Alle 5 Metriken für 1/16/40 MP.",
-                geraet_os=platform_geraet_os, datum=platform_datum, nachweis_link=run_url,
+                geraet_os=platform_geraet_os,
+                datum=live_datum if live_datum != "—" else platform_datum,
+                nachweis_link=run_url,
             ))
 
     rows.append(replace(_vision_row(vision or []), nachweis_link=run_url))

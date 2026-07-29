@@ -374,3 +374,38 @@ def test_main_acceptance_extra_hook_exits_nonzero_on_failure(patched_app, monkey
     scheduled["callback"]()
 
     assert patched_app["app"].calls.get("exit_code") == 1
+
+
+def test_main_acceptance_extra_hook_prints_missing_component_diagnostic(
+    patched_app, monkeypatch, tmp_path, capsys,
+) -> None:
+    """Codex-Fund (#725-Review): schlägt nur die Fehlende-Komponente-Prüfung
+    fehl, muss ihre Meldung trotzdem im Job-Log stehen – sonst verrät der
+    Log nur zwei erfolgreiche Meldungen und verschleiert den eigentlichen
+    Fehlschlag."""
+    import bgremover.acceptance_smoke as acceptance_smoke_module
+
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["callback"] = callback
+
+    def fake_run(window, output_json, v270_fixture):
+        return acceptance_smoke_module.AcceptanceExtraResult(
+            ok=False, eufymake_ok=True, eufymake_message="eufymake ok",
+            v270_ok=True, v270_message="v270 ok",
+            missing_component_ok=False,
+            missing_component_message="fehlende-komponente-fehlschlag-detail",
+        )
+
+    monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_ACCEPTANCE_EXTRA", str(tmp_path / "out.json"))
+
+    app_module.main()
+    scheduled["callback"]()
+
+    assert patched_app["app"].calls.get("exit_code") == 1
+    assert "fehlende-komponente-fehlschlag-detail" in capsys.readouterr().out

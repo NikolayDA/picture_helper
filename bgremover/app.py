@@ -195,7 +195,10 @@ def main() -> int:
             result = run_acceptance_extra(
                 win, Path(acceptance_extra_target), Path(v270_fixture),
             )
-            print(f"{result.eufymake_message} | {result.v270_message}")
+            print(
+                f"{result.v270_message} | {result.eufymake_message} | "
+                f"{result.missing_component_message}"
+            )
             app.exit(0 if result.ok else 1)
 
         QTimer.singleShot(0, _run_acceptance_extra_hook)
