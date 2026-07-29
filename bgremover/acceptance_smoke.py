@@ -19,8 +19,12 @@ Zwei Prüfungen, beide ohne externe Testdaten aus dem Paket selbst:
    v2.7.0-Release-Code gebaute ``.bgrproj``-Datei (Pfad kommt aus dem
    Source-Checkout, der ohnehin im selben Abnahme-Job liegt – nur der
    *Code*, der sie verarbeitet, muss aus dem Paket stammen) und prüft, dass
-   das Laden keine Migration/Warnung auslöst und sich danach bitgenau
-   weiterbearbeiten lässt (Höhen-Op + Undo).
+   das Laden keine Migration/Warnung auslöst, **alle** persistierten Felder
+   (IDs, Namen, Metadaten, Schemaversion) sowie Farbmotiv-/Höhenkarten-Pixel
+   gegen die beim Fixture-Bau protokollierten Referenzwerte wertgleich sind
+   (dieselbe Prüftiefe wie ``tests/test_project_v270_upgrade.py``, #685-
+   Review nach PR #721) und sich das Projekt danach bitgenau weiterbearbeiten
+   lässt (Höhen-Op + Undo).
 
 Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad) und
 ``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) in
@@ -32,20 +36,47 @@ from __future__ import annotations
 
 import hashlib
 import json
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import numpy as np
+from PIL import Image
+
 from bgremover import height_ops
 from bgremover.eufymake_writer import write_export
+from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.i18n import tr
 from bgremover.project_model import Layer, LayerKind, LayerRole
+from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
 
 _EVIDENCE_SCHEMA = 1
+
+# Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
+# protokollierte Werte – identisch zu den Konstanten in
+# tests/test_project_v270_upgrade.py, hier dupliziert, weil dieser Hook aus
+# dem gepackten Artefakt läuft und nicht auf das tests/-Paket zugreifen kann.
+_V270_COLOR_ID = "50530890db2d4515baec0862fb89cc49"
+_V270_HEIGHT_ID = "eed93ecfb5264b278ee2e5e0782ca86a"
+_V270_EXPECTED_METADATA = {
+    "physical_size_mm": [50.0, 30.0],
+    "fixture_source": "v2.7.0 (echter Release-Code, #685-Nachweis)",
+}
+
+
+def _v270_gradient(size: int = 16) -> Image.Image:
+    """Dieselbe Quelle wie beim Bau des Fixtures (identisch zu
+    tests/test_project_v270_upgrade.py)."""
+    img = Image.new("RGBA", (size, size))
+    for x in range(size):
+        for y in range(size):
+            img.putpixel((x, y), (x * 16 % 256, y * 16 % 256, (x + y) * 8 % 256, 255))
+    return img
 
 
 @dataclass(frozen=True)
@@ -66,11 +97,29 @@ def _height_hash(layer: Layer | None) -> str | None:
 
 
 def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, str]:
-    """Öffnet das echte 2.7.0-Projekt über den echten Anwenderpfad und
-    bearbeitet es weiter – Struktur/Migrationsfreiheit siehe
-    ``tests/test_project_v270_upgrade.py`` (Qt-frei, ausführlicher)."""
+    """Öffnet das echte 2.7.0-Projekt über den echten Anwenderpfad, vergleicht
+    **alle** persistierten Felder plus Farbmotiv-/Höhenkarten-Payload gegen
+    die beim Fixture-Bau protokollierten Referenzwerte (dieselbe Prüftiefe wie
+    ``tests/test_project_v270_upgrade.py``, hier zusätzlich aus dem
+    gepackten Artefakt heraus) und bearbeitet es danach bitgenau weiter."""
     if not fixture.is_file():
         return False, f"2.7.0-Fixture fehlt: {fixture}"
+
+    # Formatversion direkt aus der rohen Manifest-Datei lesen und gegen das im
+    # gepackten Prozess geltende PROJECT_FORMAT_VERSION prüfen – project.version
+    # ist das separate, semantische "project_version"-Feld (immer 1) und sagt
+    # nichts über die .bgrproj-Schemaversion aus. Weicht die Manifest-Version
+    # vom Paket-Konstante ab, ist der No-Migration-Pfad nicht mehr garantiert,
+    # und `load_project` würde (still, ohne UI-Warnung) migrieren.
+    with zipfile.ZipFile(fixture) as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+    manifest_version = manifest.get("version")
+    if manifest_version != PROJECT_FORMAT_VERSION:
+        return False, (
+            f"2.7.0-Fixture-Manifest meldet Formatversion {manifest_version!r}, "
+            f"gepacktes PROJECT_FORMAT_VERSION ist {PROJECT_FORMAT_VERSION!r} – "
+            "Migrationspfad wäre nicht mehr ausgeschlossen."
+        )
 
     window._load_project_into_canvas(str(fixture))
     expected_message = tr("project.opened", name=fixture.name)
@@ -85,9 +134,46 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     if kinds != [LayerKind.COLOR, LayerKind.HEIGHT]:
         return False, f"2.7.0-Projekt hat unerwartete Ebenenstruktur: {kinds}"
     assert project is not None
-    height = project.layers[1]
+
+    if project.version != 1:
+        return False, f"2.7.0-Projekt: unerwartete Schemaversion {project.version}"
+    if project.metadata != _V270_EXPECTED_METADATA:
+        return False, f"2.7.0-Projekt: Metadaten weichen ab: {project.metadata}"
+
+    if project.active_layer_id != _V270_COLOR_ID:
+        return False, f"2.7.0-Projekt: aktive Ebene verändert ({project.active_layer_id!r})"
+
+    color, height = project.layers
+    if color.id != _V270_COLOR_ID or color.name != "Farbmotiv":
+        return False, (
+            f"2.7.0-Projekt: Farb-Ebene verändert (id={color.id!r}, name={color.name!r})"
+        )
+    if color.role is not None or not color.visible or color.opacity != 1.0 or color.locked:
+        return False, (
+            f"2.7.0-Projekt: Farb-Ebenen-Zustand verändert (role={color.role!r}, "
+            f"visible={color.visible!r}, opacity={color.opacity!r}, locked={color.locked!r})"
+        )
+    if height.id != _V270_HEIGHT_ID or height.name != "Höhenkarte":
+        return False, (
+            f"2.7.0-Projekt: Höhen-Ebene verändert (id={height.id!r}, name={height.name!r})"
+        )
     if height.role is not LayerRole.HEIGHT_MAP or height.height_data is None:
         return False, "2.7.0-Projekt: HEIGHT-Ebene ohne HEIGHT_MAP-Rolle/Payload."
+    if not height.visible or height.opacity != 1.0 or height.locked:
+        return False, (
+            f"2.7.0-Projekt: Höhen-Ebenen-Zustand verändert (visible={height.visible!r}, "
+            f"opacity={height.opacity!r}, locked={height.locked!r})"
+        )
+
+    expected_color = _v270_gradient()
+    if not np.array_equal(np.asarray(color.image), np.asarray(expected_color)):
+        return False, "2.7.0-Projekt: Farbmotiv weicht vom erwarteten Fixture-Inhalt ab."
+    expected_field = generate_from_image(expected_color, max_value=HEIGHT_MAX_16BIT)
+    if height.height_data.max_value != HEIGHT_MAX_16BIT or not (
+        np.array_equal(height.height_data.values, expected_field.values)
+        and np.array_equal(height.height_data.coverage, expected_field.coverage)
+    ):
+        return False, "2.7.0-Projekt: Höhenkarten-Payload weicht von der erwarteten Referenz ab."
 
     window._canvas.set_active_layer(height.id)
     hash_before = _height_hash(height)
