@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +50,7 @@ from bgremover.eufymake_writer import write_export
 from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.i18n import tr
 from bgremover.project_model import Layer, LayerKind, LayerRole
+from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
@@ -103,6 +105,22 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     if not fixture.is_file():
         return False, f"2.7.0-Fixture fehlt: {fixture}"
 
+    # Formatversion direkt aus der rohen Manifest-Datei lesen und gegen das im
+    # gepackten Prozess geltende PROJECT_FORMAT_VERSION prüfen – project.version
+    # ist das separate, semantische "project_version"-Feld (immer 1) und sagt
+    # nichts über die .bgrproj-Schemaversion aus. Weicht die Manifest-Version
+    # vom Paket-Konstante ab, ist der No-Migration-Pfad nicht mehr garantiert,
+    # und `load_project` würde (still, ohne UI-Warnung) migrieren.
+    with zipfile.ZipFile(fixture) as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+    manifest_version = manifest.get("version")
+    if manifest_version != PROJECT_FORMAT_VERSION:
+        return False, (
+            f"2.7.0-Fixture-Manifest meldet Formatversion {manifest_version!r}, "
+            f"gepacktes PROJECT_FORMAT_VERSION ist {PROJECT_FORMAT_VERSION!r} – "
+            "Migrationspfad wäre nicht mehr ausgeschlossen."
+        )
+
     window._load_project_into_canvas(str(fixture))
     expected_message = tr("project.opened", name=fixture.name)
     actual_message = window._sb.currentMessage()
@@ -122,10 +140,18 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     if project.metadata != _V270_EXPECTED_METADATA:
         return False, f"2.7.0-Projekt: Metadaten weichen ab: {project.metadata}"
 
+    if project.active_layer_id != _V270_COLOR_ID:
+        return False, f"2.7.0-Projekt: aktive Ebene verändert ({project.active_layer_id!r})"
+
     color, height = project.layers
     if color.id != _V270_COLOR_ID or color.name != "Farbmotiv":
         return False, (
             f"2.7.0-Projekt: Farb-Ebene verändert (id={color.id!r}, name={color.name!r})"
+        )
+    if color.role is not None or not color.visible or color.opacity != 1.0 or color.locked:
+        return False, (
+            f"2.7.0-Projekt: Farb-Ebenen-Zustand verändert (role={color.role!r}, "
+            f"visible={color.visible!r}, opacity={color.opacity!r}, locked={color.locked!r})"
         )
     if height.id != _V270_HEIGHT_ID or height.name != "Höhenkarte":
         return False, (
@@ -133,6 +159,11 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
         )
     if height.role is not LayerRole.HEIGHT_MAP or height.height_data is None:
         return False, "2.7.0-Projekt: HEIGHT-Ebene ohne HEIGHT_MAP-Rolle/Payload."
+    if not height.visible or height.opacity != 1.0 or height.locked:
+        return False, (
+            f"2.7.0-Projekt: Höhen-Ebenen-Zustand verändert (visible={height.visible!r}, "
+            f"opacity={height.opacity!r}, locked={height.locked!r})"
+        )
 
     expected_color = _v270_gradient()
     if not np.array_equal(np.asarray(color.image), np.asarray(expected_color)):

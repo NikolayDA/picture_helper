@@ -102,3 +102,40 @@ def test_run_acceptance_extra_detects_a_tampered_lookalike_project(  # type: ign
     assert not result.ok
     assert not result.v270_ok
     assert "verändert" in result.v270_message or "weichen ab" in result.v270_message
+
+
+def test_run_acceptance_extra_detects_opacity_drift_on_matching_ids(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Codex-Fund (#722): IDs/Namen können übereinstimmen, während visible/
+    opacity/locked/active_layer_id trotzdem abweichen (z. B. eine Farb-Ebene
+    mit halber statt voller Deckkraft) – muss ebenfalls erkannt werden, nicht
+    nur ein reiner ID-Unterschied."""
+    img = Image.new("RGBA", (16, 16), (1, 2, 3, 255))
+    project = Project(16, 16, version=1, metadata={
+        "physical_size_mm": [50.0, 30.0],
+        "fixture_source": "v2.7.0 (echter Release-Code, #685-Nachweis)",
+    })
+    color = project.create_layer(img, name="Farbmotiv", kind=LayerKind.COLOR)
+    color.id = "50530890db2d4515baec0862fb89cc49"
+    color.opacity = 0.5  # exakt das Codex-Beispiel: sonst identisch, nur die Deckkraft weicht ab.
+    field = generate_from_image(img, max_value=HEIGHT_MAX_16BIT)
+    height = project.create_layer(name="Höhenkarte", kind=LayerKind.HEIGHT, height_data=field)
+    height.id = "eed93ecfb5264b278ee2e5e0782ca86a"
+    project.assign_role(height.id, LayerRole.HEIGHT_MAP)
+    project.set_active(color.id)
+    drifted = tmp_path / "opacity_drift.bgrproj"
+    save_project(project, drifted)
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, drifted)
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.v270_ok
+    assert "Zustand verändert" in result.v270_message
