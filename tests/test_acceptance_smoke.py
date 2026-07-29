@@ -9,9 +9,13 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from bgremover import MainWindow
 from bgremover.acceptance_smoke import run_acceptance_extra
+from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
+from bgremover.project_io import save_project
+from bgremover.project_model import LayerKind, LayerRole, Project
 
 pytestmark = pytest.mark.ui_smoke
 
@@ -64,3 +68,37 @@ def test_run_acceptance_extra_reports_missing_fixture(qapp, qtbot, tmp_path: Pat
 
     payload = json.loads(output_json.read_text(encoding="utf-8"))
     assert payload["ok"] is False
+
+
+def test_run_acceptance_extra_detects_a_tampered_lookalike_project(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Negativkontrolle (#685-Review nach PR #721): eine strukturell gleiche,
+    aber inhaltlich andere Datei (frische IDs statt der Fixture-Referenz)
+    muss der Hook als Abweichung erkennen, statt fälschlich ``ok`` zu melden –
+    genau der Codex-Fund, den die verschärfte Prüfung schließt."""
+    img = Image.new("RGBA", (16, 16), (1, 2, 3, 255))
+    project = Project(16, 16, version=1, metadata={
+        "physical_size_mm": [50.0, 30.0],
+        "fixture_source": "v2.7.0 (echter Release-Code, #685-Nachweis)",
+    })
+    color = project.create_layer(img, name="Farbmotiv", kind=LayerKind.COLOR)
+    field = generate_from_image(img, max_value=HEIGHT_MAX_16BIT)
+    height = project.create_layer(name="Höhenkarte", kind=LayerKind.HEIGHT, height_data=field)
+    project.assign_role(height.id, LayerRole.HEIGHT_MAP)
+    project.set_active(color.id)
+    lookalike = tmp_path / "lookalike.bgrproj"
+    save_project(project, lookalike)
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, lookalike)
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.v270_ok
+    assert "verändert" in result.v270_message or "weichen ab" in result.v270_message
