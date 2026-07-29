@@ -10,7 +10,7 @@ schließt genau diese Lücke, analog zu ``screenshot3d.py``/
 ``BGREMOVER_SCREENSHOT_3D`` für den 3D-Nachweis: läuft aus dem **laufenden,
 gepackten Prozess** heraus (AppImage/.deb/.app), nicht aus dem Checkout.
 
-Zwei Prüfungen, beide ohne externe Testdaten aus dem Paket selbst:
+Drei Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
 
 1. **EufyMake-Export-Smoke** – erzeugt ein Beispielbild, generiert eine
    Höhenkarte und schreibt das Importpaket über den echten
@@ -25,6 +25,13 @@ Zwei Prüfungen, beide ohne externe Testdaten aus dem Paket selbst:
    (dieselbe Prüftiefe wie ``tests/test_project_v270_upgrade.py``, #685-
    Review nach PR #721) und sich das Projekt danach bitgenau weiterbearbeiten
    lässt (Höhen-Op + Undo).
+3. **Fehlendes optionales KI-Backend** – erzwingt ``REMBG_AVAILABLE = False``
+   im laufenden, gepackten Prozess (unabhängig davon, ob dieses konkrete
+   Build tatsächlich mit oder ohne ``--ai`` gepackt wurde) und prüft, dass
+   die KI-Aktion die etablierte, übersetzte Meldung zeigt statt eines
+   stillen Funktionsausfalls oder Absturzes – dieselbe Prüfung wie
+   ``tests/test_main_window.py``, hier zusätzlich aus dem gepackten Artefakt
+   heraus (#685-Review).
 
 Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad) und
 ``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) in
@@ -88,6 +95,8 @@ class AcceptanceExtraResult:
     eufymake_message: str
     v270_ok: bool
     v270_message: str
+    missing_component_ok: bool
+    missing_component_message: str
 
 
 def _height_hash(layer: Layer | None) -> str | None:
@@ -192,6 +201,40 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
 
 
+def _run_missing_component_smoke(window: MainWindow) -> tuple[bool, str]:
+    """Simuliert ein fehlendes optionales KI-Backend und prüft die Meldung.
+
+    Erzwingt ``REMBG_AVAILABLE = False`` nur für die Dauer dieser Prüfung
+    (unabhängig vom tatsächlichen ``--ai``-Build dieses Artefakts) und setzt
+    den Originalwert danach zuverlässig zurück, damit nachfolgende Prüfungen
+    im selben Prozess unbeeinflusst bleiben. Ein zuvor geladenes Projekt
+    (das 2.7.0-Fixture) liefert das Bild, ohne das die KI-Aktion vorher schon
+    mit dem "kein Bild geladen"-Hinweis abbrechen würde.
+    """
+    import bgremover.main_window as main_window_module
+
+    original = main_window_module.REMBG_AVAILABLE
+    main_window_module.REMBG_AVAILABLE = False
+    try:
+        window._sync_ai_controls()
+        expected = tr("toolbar.ai.missing.tooltip")
+        tooltip = window._right_panel.ai_button.toolTip()
+        if tooltip != expected:
+            return False, f"Tooltip bei fehlendem KI-Backend weicht ab: {tooltip!r}"
+
+        window._run_ai()
+        actual_message = window._sb.currentMessage()
+        if actual_message != expected:
+            return False, (
+                f"KI-Aktion bei fehlendem Backend zeigte unerwarteten Hinweis: "
+                f"{actual_message!r}"
+            )
+    finally:
+        main_window_module.REMBG_AVAILABLE = original
+
+    return True, "Fehlendes KI-Backend erzeugt die erwartete Meldung, kein stiller Ausfall."
+
+
 def _run_eufymake_export_smoke(window: MainWindow, export_dir: Path) -> tuple[bool, str]:
     """Schreibt das Importpaket aus dem aktuell geladenen Projekt (i. d. R. das
     zuvor geöffnete 2.7.0-Projekt) über den echten ``write_export``-Pfad."""
@@ -221,9 +264,10 @@ def run_acceptance_extra(
     """Führt beide Zusatz-Smokes aus dem laufenden, gepackten Prozess aus.
 
     Öffnet zuerst das 2.7.0-Projekt (liefert das Motiv für den nachfolgenden
-    Export, spart ein separates Beispielbild) und exportiert danach nur, wenn
-    das Öffnen selbst erfolgreich war – ein Export nach fehlgeschlagenem Open
-    würde nur den bereits gemeldeten Fehler verdoppeln.
+    Export und das Bild für die Fehlende-Komponente-Prüfung, spart ein
+    separates Beispielbild) und führt die beiden folgenden Prüfungen danach
+    nur aus, wenn das Öffnen selbst erfolgreich war – sie würden sonst nur
+    den bereits gemeldeten Fehler verdoppeln.
     """
     v270_ok, v270_message = _run_v270_project_smoke(window, v270_fixture)
     if v270_ok:
@@ -238,13 +282,18 @@ def run_acceptance_extra(
         eufymake_ok, eufymake_message = _run_eufymake_export_smoke(
             window, output_json.parent / f"{output_json.stem}_eufymake_export",
         )
+        missing_component_ok, missing_component_message = _run_missing_component_smoke(window)
     else:
         eufymake_ok, eufymake_message = False, "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
+        missing_component_ok = False
+        missing_component_message = "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
 
     result = AcceptanceExtraResult(
-        ok=eufymake_ok and v270_ok,
+        ok=eufymake_ok and v270_ok and missing_component_ok,
         eufymake_ok=eufymake_ok, eufymake_message=eufymake_message,
         v270_ok=v270_ok, v270_message=v270_message,
+        missing_component_ok=missing_component_ok,
+        missing_component_message=missing_component_message,
     )
     payload = {
         "schema": _EVIDENCE_SCHEMA,
@@ -253,6 +302,7 @@ def run_acceptance_extra(
         "ok": result.ok,
         "eufymake_export": {"ok": eufymake_ok, "message": eufymake_message},
         "v270_project_open": {"ok": v270_ok, "message": v270_message},
+        "missing_component": {"ok": missing_component_ok, "message": missing_component_message},
     }
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_json.write_text(

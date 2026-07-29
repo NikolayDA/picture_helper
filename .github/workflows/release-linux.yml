@@ -398,6 +398,35 @@ jobs:
       - name: Scan built artifacts for secrets and dev paths
         run: python3 scripts/scan_release_artifacts.py dist
 
+      # #685-Review: scan_release_artifacts.py oben kennt nur Secrets/Dev-Pfade,
+      # keine Malware-Signaturen – ergaenzt die projektuebliche
+      # Supply-Chain-Pruefung um einen echten Virenscan der fuenf gebauten
+      # Artefakte. ClamAV statt eines Marketplace-Actions, damit kein
+      # Drittanbieter-Code mit Repo-Zugriff laeuft. Die Definitionsaktualisierung
+      # ist bewusst nicht blockierend (Mirror-Netzwerkschwankungen duerfen den
+      # Build nicht flaky machen, analog zur fail-safe Vision-Vorbewertung in
+      # release-abnahme.yml) – ein tatsaechlicher Fund im Scan selbst blockiert
+      # dagegen hart (clamscan liefert exit code 1), keine stille Luecke.
+      - name: Install ClamAV (Linux)
+        if: matrix.os == 'linux'
+        run: sudo apt-get install -y clamav
+      - name: Install ClamAV (macOS)
+        if: matrix.os == 'macos'
+        run: brew install clamav
+      - name: Update ClamAV virus definitions (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            clamav_etc="$(brew --prefix)/etc/clamav"
+            [ -f "$clamav_etc/freshclam.conf" ] || cp "$clamav_etc/freshclam.conf.sample" "$clamav_etc/freshclam.conf"
+            freshclam --quiet
+          else
+            sudo freshclam --quiet
+          fi
+      - name: Virus scan built artifacts (ClamAV)
+        run: clamscan --recursive --infected --stdout dist
+
       - name: Verify built macOS artifact
         if: matrix.os == 'macos'
         run: |

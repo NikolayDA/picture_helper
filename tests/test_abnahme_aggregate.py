@@ -222,6 +222,53 @@ def test_render_markdown_contains_all_states(tmp_path: Path) -> None:
     assert "Go/No-Go entscheidet ein Mensch" in md
 
 
+def test_matrix_rows_carry_geraet_os_datum_testperson_and_link(tmp_path: Path) -> None:
+    """#685-Review: Testperson/Datum/Gerät-OS/Link fehlten bisher in der Matrix."""
+    _write(tmp_path, "linux-arm64", _evidence(
+        "linux-arm64", umgebung={"os": "Linux-6.1-aarch64", "runner": "raspberrypi"},
+        erzeugt_am="2026-07-29T23:05:31+00:00",
+    ))
+    e2e, live_gl = _complete_aux("linux-arm64")
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl,
+        run_url="https://github.com/example/repo/actions/runs/123",
+    )
+    smoke_row = next(r for r in rows if r.kriterium == agg.EXPECTED_PLATFORMS["linux-arm64"])
+    assert smoke_row.geraet_os == "raspberrypi (Linux-6.1-aarch64)"
+    assert smoke_row.datum == "2026-07-29"
+    assert smoke_row.testperson == agg.AUTOMATED_TESTPERSON
+    assert smoke_row.nachweis_link == "https://github.com/example/repo/actions/runs/123"
+
+    # E2E-/Live-GL-Zeilen tragen kein eigenes umgebung/erzeugt_am, übernehmen
+    # aber Gerät/OS + Datum von der Plattform-Evidenz desselben Jobs.
+    e2e_row = next(r for r in rows if r.kriterium.startswith("linux-arm64: Native 3D-E2E"))
+    assert e2e_row.geraet_os == "raspberrypi (Linux-6.1-aarch64)"
+    assert e2e_row.datum == "2026-07-29"
+
+    vision_row = next(r for r in rows if "Vision" in r.kriterium)
+    assert vision_row.nachweis_link == "https://github.com/example/repo/actions/runs/123"
+
+
+def test_matrix_rows_without_evidence_show_placeholder_geraet_os_and_datum() -> None:
+    rows = agg.build_matrix({})
+    row = next(r for r in rows if r.kriterium == agg.EXPECTED_PLATFORMS["macos-arm64"])
+    assert row.geraet_os == "—"
+    assert row.datum == "—"
+    assert row.nachweis_link == "—"
+
+
+def test_render_markdown_contains_new_columns(tmp_path: Path) -> None:
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), run_url="https://example.invalid/runs/1",
+    )
+    md = agg.render_markdown(rows, commit_sha="deadbeef")
+    assert "Gerät/OS" in md
+    assert "Testperson" in md
+    assert agg.AUTOMATED_TESTPERSON in md
+    assert "[Lauf](https://example.invalid/runs/1)" in md
+
+
 def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
     _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))

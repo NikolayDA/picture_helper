@@ -343,7 +343,9 @@ jobs:
           python3 scripts/abnahme_aggregate.py \
             --artifacts-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abschlussmatrix.md" \
-            --commit-sha "${GITHUB_SHA}" $x86flag
+            --commit-sha "${GITHUB_SHA}" \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            $x86flag
       - uses: actions/upload-artifact@v6
         with:
           name: abschlussmatrix
