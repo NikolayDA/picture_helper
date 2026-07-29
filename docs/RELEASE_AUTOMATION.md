@@ -174,7 +174,12 @@ hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open → erneut
 `e2e-evidenz.json` – dieser Nachweis läuft weiterhin aus dem **Source-
 Checkout** heraus (`pytest` gegen das installierte `bgremover`-Paket), nicht
 aus dem gepackten Artefakt; genau diese Lücke schließt der neue native
-3D-Screenshot oben. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
+3D-Screenshot oben. Seit #685-Review gilt dieselbe Einschränkung nicht mehr für
+den EufyMake-Export- und den 2.7.0-Projekt-Öffnen-Nachweis: derselbe
+Smoke-Schritt startet jede Artefaktklasse ein drittes Mal mit dem
+Automationshook `BGREMOVER_ACCEPTANCE_EXTRA` (`bgremover.acceptance_smoke`,
+kein GL nötig) und schreibt `acceptance_extra_<klasse>.json` direkt aus dem
+gepackten Prozess. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
 die 1-/16-/40-MP-Szenarien jeweils dreimal. Sie speichert die Rohmessungen,
 verdichtet Zeitmetriken per Median und meldet für `gl_peak_mb` die größte
 Prozess-RSS-High-Water-Mark inklusive Qt-/Treiber-Allokationen. Alle fünf

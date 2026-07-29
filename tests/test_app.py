@@ -116,6 +116,8 @@ def patched_app(monkeypatch):
     monkeypatch.delenv("BGREMOVER_AI_SELFCHECK", raising=False)
     monkeypatch.delenv("BGREMOVER_SCREENSHOT_3D", raising=False)
     monkeypatch.delenv("BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS", raising=False)
+    monkeypatch.delenv("BGREMOVER_ACCEPTANCE_EXTRA", raising=False)
+    monkeypatch.delenv("BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT", raising=False)
     return created
 
 
@@ -294,3 +296,79 @@ def test_main_connects_about_to_quit_to_shutdown(patched_app) -> None:
     app_module.main()
     slots = patched_app["app"].aboutToQuit.slots
     assert patched_app["window"].shutdown_workers in slots
+
+
+# ── #685-Review: EufyMake-Export-/2.7.0-Projekt-Automationshook ─────────────
+
+def test_main_without_acceptance_extra_env_does_not_schedule_hook(patched_app) -> None:
+    """Ohne ``BGREMOVER_ACCEPTANCE_EXTRA`` bleibt der Hook inaktiv."""
+    app_module.main()
+    assert "exit_code" not in patched_app["app"].calls
+
+
+def test_main_acceptance_extra_hook_runs_and_exits_ok(patched_app, monkeypatch, tmp_path) -> None:
+    """``BGREMOVER_ACCEPTANCE_EXTRA`` plant den Hook für den ersten Event-Loop-
+    Tick ein und beendet den Prozess mit 0 bei Erfolg (analog dem 3D-Screenshot-
+    Hook, aber ohne GL-Bezug)."""
+    import bgremover.acceptance_smoke as acceptance_smoke_module
+
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["ms"] = ms
+            scheduled["callback"] = callback
+
+    calls: dict = {}
+    target = tmp_path / "acceptance_extra.json"
+    fixture = tmp_path / "project_v2_7_0.bgrproj"
+
+    def fake_run(window, output_json, v270_fixture):
+        calls["window"] = window
+        calls["output_json"] = output_json
+        calls["v270_fixture"] = v270_fixture
+        return acceptance_smoke_module.AcceptanceExtraResult(
+            ok=True, eufymake_ok=True, eufymake_message="ok",
+            v270_ok=True, v270_message="ok",
+        )
+
+    monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_ACCEPTANCE_EXTRA", str(target))
+    monkeypatch.setenv("BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT", str(fixture))
+
+    app_module.main()
+    assert scheduled["ms"] == 0
+    scheduled["callback"]()
+
+    assert calls["window"] is patched_app["window"]
+    assert str(calls["output_json"]) == str(target)
+    assert str(calls["v270_fixture"]) == str(fixture)
+    assert patched_app["app"].calls.get("exit_code") == 0
+
+
+def test_main_acceptance_extra_hook_exits_nonzero_on_failure(patched_app, monkeypatch, tmp_path) -> None:
+    import bgremover.acceptance_smoke as acceptance_smoke_module
+
+    scheduled: dict = {}
+
+    class _FakeTimer:
+        @staticmethod
+        def singleShot(ms, callback) -> None:
+            scheduled["callback"] = callback
+
+    def fake_run(window, output_json, v270_fixture):
+        return acceptance_smoke_module.AcceptanceExtraResult(
+            ok=False, eufymake_ok=False, eufymake_message="nope",
+            v270_ok=False, v270_message="nope",
+        )
+
+    monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
+    monkeypatch.setattr("PyQt6.QtCore.QTimer", _FakeTimer)
+    monkeypatch.setenv("BGREMOVER_ACCEPTANCE_EXTRA", str(tmp_path / "out.json"))
+
+    app_module.main()
+    scheduled["callback"]()
+
+    assert patched_app["app"].calls.get("exit_code") == 1
