@@ -41,7 +41,7 @@ def test_run_acceptance_extra_succeeds_for_real_v270_fixture(qapp, qtbot, tmp_pa
     assert payload["v270_project_open"]["ok"] is True
     assert payload["eufymake_export"]["ok"] is True
 
-    export_dir = output_json.parent / "eufymake_export"
+    export_dir = output_json.parent / f"{output_json.stem}_eufymake_export"
     assert (export_dir / "color_motif.png").is_file()
     assert (export_dir / "height_map.png").is_file()
     assert (export_dir / "manifest.json").is_file()
@@ -139,3 +139,39 @@ def test_run_acceptance_extra_detects_opacity_drift_on_matching_ids(  # type: ig
     assert not result.ok
     assert not result.v270_ok
     assert "Zustand verändert" in result.v270_message
+
+
+def test_run_acceptance_extra_twice_in_same_evidence_dir_does_not_collide(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Regression (2026-07-29 Hardware-Abnahme, Pi 5, Kandidat 9845147):
+    ``scripts/abnahme_smoke.py`` ruft ``_acceptance_extra`` für jede
+    Artefaktklasse (AppImage/.deb/.dmg) mit demselben ``evidence_dir`` auf,
+    nur der JSON-Dateiname unterscheidet sich je Klasse
+    (``acceptance_extra_appimage.json``/``acceptance_extra_deb.json``/...).
+    Ein fester Exportordnername ``eufymake_export`` kollidierte deshalb mit
+    dem der zuerst gelaufenen Klasse: `write_export` (ohne `overwrite`) schlug
+    für die zweite Klasse mit `ExportTargetExistsError` fehl, obwohl beide
+    Läufe unabhängig voneinander erfolgreich hätten sein müssen – exakt das
+    auf der echten Hardware beobachtete Bild (AppImage ok, .deb
+    `write_export fehlgeschlagen: <derselbe Pfad>`)."""
+    evidence_dir = tmp_path / "acceptance_extra"
+    evidence_dir.mkdir(parents=True)  # wie scripts/abnahme_smoke.py._acceptance_extra vor dem Aufruf
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    try:
+        first = run_acceptance_extra(
+            win, evidence_dir / "acceptance_extra_appimage.json", _V270_FIXTURE,
+        )
+        second = run_acceptance_extra(
+            win, evidence_dir / "acceptance_extra_deb.json", _V270_FIXTURE,
+        )
+    finally:
+        win.close()
+
+    assert first.ok, (first.v270_message, first.eufymake_message)
+    assert second.ok, (second.v270_message, second.eufymake_message)
+    assert (evidence_dir / "acceptance_extra_appimage_eufymake_export" / "color_motif.png").is_file()
+    assert (evidence_dir / "acceptance_extra_deb_eufymake_export" / "color_motif.png").is_file()
