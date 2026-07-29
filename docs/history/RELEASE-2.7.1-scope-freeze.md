@@ -38,12 +38,12 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
   späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
-- **Commits im Fenster:** 21 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
-  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #715,
+- **Commits im Fenster:** 26 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #720,
   per Squash-Merge auf `main` bestätigt).
-- **Protokollierter Kandidaten-SHA:** `adb2205960619b9b5c29a9a05feda163310782a6`
-  (`ci(release): Deadlock im Freeze-Gate durch #709 wieder aufloesen (#715)`,
-  Squash-Merge von PR #715 auf `main`)
+- **Protokollierter Kandidaten-SHA:** `f8143db7899149447743cf20a28c8ffcf2a98acc`
+  (`test: 2.7.0-Projekt-Open und EufyMake-Export-Smoke für #685 ergänzen (#720)`,
+  Squash-Merge von PR #720 auf `main`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -97,7 +97,12 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `1b04887f7aafa4fd1ddd2636f41d3b768022db31` (PR #709, kurz `1b04887`) | **CI-Härtung.** Erzwingt das Freeze-Gate (`verify_release_freeze.py --require-pin`) jetzt auch für manuelle `workflow_dispatch`-Kandidatenbauten (vorher nur bei Tag-Pushes), ergänzt einen zusätzlichen Schritt, der exakte Gleichheit von `GITHUB_SHA` und dem abgeleiteten Kandidaten erzwingt (ein Kandidatenbau auf einem Protokoll-Commit *über* dem Kandidaten schlägt damit fehl statt eines anderen Standes als den dokumentierten zu bauen), und protokolliert Produktversion/Commit-SHA/Run-ID sowie die tatsächlich verwendeten Bundler-Versionen (`python-appimage`/`build`/PyInstaller aus der isolierten `toolenv`-venv) im Build-Log jedes Matrix-Legs. | Niedrig für die Anwendung – reine Workflow-/Test-Änderung, kein `bgremover/**`-Code. Erhöht (bewusst verschärfend) für den Release-Prozess: ein Kandidatenbau ist jetzt ausschließlich auf dem exakten Kandidaten-Commit möglich, nicht mehr auf einem Protokoll-Commit darüber. | Neuer Regressionstest in `tests/test_release_gate.py` (+67 Zeilen); PR-CI von #709 grün. | **Aufnehmen – kandidatenrelevant** (`.github/workflows/release-linux.yml`, `tests/**`). Ändert den Build-/Tag-SHA-Vertrag; siehe aktualisierte Freeze-Regel „Tag (#686)" unten. Kein Anwender-CHANGELOG-Eintrag (reiner Release-Prozess). |
 | `0b021ccfa5f7145f2ae4eba24b6ded8772501b4a` (#712, kurz `0b021cc`) | Dokumentation – RECOMMENDATIONS-Reconciliation nach dem Release-Audit vom 28.07. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #712 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
 | `5e947ee816a2d481fa6ea901790281293aced4d5` (#711 via PR #713, kurz `5e947ee`) | **GL-Puffer-Fehlererkennung hart erzwungen.** `QOpenGLBuffer.create()`/`bind()` melden einen Fehlschlag ausschließlich über ihren booleschen Rückgabewert; `GLReliefViewer._make_buffer` (jetzt `_new_buffer`) ignorierte ihn. Ein Wrapper ohne GL-Namen blieb dann referenziert, `has_failed` blieb `false`, und `gl_object_count`/die GL-Sonde konnten `verdict: ok` melden, ohne dass je ein Puffer entstanden war – genau das falsche Grün, das der Hardware-Nachweis in #685 hätte liefern können. Neue `GLBufferError`; ein Teilerfolg gibt VAO und bereits erzeugte Puffer genau einmal frei und schaltet über `_fail` in den bekannten Fehlerzustand mit 2D-Rückfall statt einer leeren „bereiten" 3D-Ansicht. Sonde: `MIN_LIVE_PER_VIEWER = 3` – ein unvollständiger Puffersatz ergibt im `--mode gl` `ProbeNotExecutable`/Exit 2, im `--mode fake` einen harten Befund statt `ok`. Testbericht: [`RELEASE-2.7.1-gl-langzeittest.md`](RELEASE-2.7.1-gl-langzeittest.md) Abschnitt 4.4/7.1. | Niedrig für die Anwendung – reiner Fehlerpfad der optionalen 3D-Vorschau, kein Schreibpfad ins Modell; der VAO bleibt als GL-2.1-Erweiterung weiterhin optional (kein neuer Fehlerfall). Erhöht die Verlässlichkeit des Release-Nachweises selbst (das war der Zweck von #711). | `make check` grün (ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed**, 6 skipped, 14 deselected), `make ui` (20 passed), `make coverage` 93 % (`fail_under = 86`), `make gl-stress` (Exit 0, `ok`); neun neue deterministische, GL-freie Regressionstests in `tests/test_viewer_3d_gl_lifecycle.py` (`create()==false`, `bind()==false`, Teilerfolg, 110 wiederholte Fehlschläge ohne Restbestand, 110 Reuploads im Erfolgsfall, Sonden-CLI-Fälle); PR-CI von #713 grün (Lightweight PR checks, CodeQL, License Check, Dependency Audit, Claude Code Review). | **Aufnehmen.** Kandidatenrelevant über `bgremover/**`, `scripts/**`, `tests/**` und `CHANGELOG.md`. CHANGELOG-Eintrag unter `[2.7.1] → Behoben` in allen sechs Sprachen: die 3D-Vorschau zeigt auf einem Treiber mit fehlgeschlagenem Puffer-Upload jetzt den Fehlerzustand mit 2D-Rückfall statt einer leeren 3D-Ansicht. War bis zum Kandidatenwechsel durch #715 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
-| `Kandidaten-Commit` (PR #715, voller SHA unter „Protokollierter Kandidaten-SHA") | **Deadlock im Freeze-Gate aus #709 aufgelöst.** Der von #709 ergänzte Schritt „Gebauter Commit ist exakt der abgeleitete Kandidat" (`github.sha == verify_release_freeze.py --print-candidate`) machte jeden künftigen Kandidatenbau strukturell unmöglich: ein Freeze-Dokument kann seinen eigenen Commit-SHA nicht enthalten (der SHA existiert erst nach dem Commit), also pinnt der Kandidaten-Commit selbst immer noch den *vorherigen* Kandidaten und scheitert an `--require-pin`; der nachträgliche Protokoll-Commit, der den Pin einträgt, scheiterte dann seinerseits am neuen `github.sha`-Abgleich. Kein Commit konnte je beide Gates gleichzeitig bestehen (gefunden bei der Codex-Review von PR #714). Der #709-Schritt ist entfernt; `--require-pin` allein reicht (prüft bereits den *abgeleiteten* Kandidaten gegen den dokumentierten Pin) – exakt das Modell, das vor #709 funktionierte (z. B. beim Squash-Übergang PR #701/#703). | Niedrig für die Anwendung – reine Workflow-/Test-Änderung, kein `bgremover/**`-Code. Für den Release-Prozess **korrigierend**: macht Kandidatenbauten (#685/#686) wieder möglich, ohne die #709-Provenienz-Garantie (Freeze-Pin muss weiterhin zum gebauten Baum passen) aufzugeben. | `make check` grün (ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed**, 6 skipped, 14 deselected); `tests/test_release_gate.py` um die Gegenprobe `test_freeze_gate_allows_a_protocol_commit_above_the_candidate` ersetzt (stellt sicher, dass der `github.sha`-Abgleich nicht wieder eingeführt wird); PR-CI von #715 grün. | **Aufnehmen – der neue Kandidat, nach der Freeze-Regel zulässig.** Kandidatenrelevant über `.github/workflows/release-linux.yml` und `tests/test_release_gate.py`. Behebt nachweislich einen Regressionsfund in einer release-relevanten Prüfung (das Freeze-Gate selbst, `tests/test_release_gate.py`/`verify_release_freeze.py`/`release-linux.yml`) – erfüllt die Freeze-Ausnahme wörtlich, anders als #708 oben. Kein Anwender-CHANGELOG-Eintrag (reiner Release-Prozess). |
+| `adb2205960619b9b5c29a9a05feda163310782a6` (PR #715, kurz `adb2205`) | **Deadlock im Freeze-Gate aus #709 aufgelöst.** Der von #709 ergänzte Schritt „Gebauter Commit ist exakt der abgeleitete Kandidat" (`github.sha == verify_release_freeze.py --print-candidate`) machte jeden künftigen Kandidatenbau strukturell unmöglich: ein Freeze-Dokument kann seinen eigenen Commit-SHA nicht enthalten (der SHA existiert erst nach dem Commit), also pinnt der Kandidaten-Commit selbst immer noch den *vorherigen* Kandidaten und scheitert an `--require-pin`; der nachträgliche Protokoll-Commit, der den Pin einträgt, scheiterte dann seinerseits am neuen `github.sha`-Abgleich. Kein Commit konnte je beide Gates gleichzeitig bestehen (gefunden bei der Codex-Review von PR #714). Der #709-Schritt ist entfernt; `--require-pin` allein reicht (prüft bereits den *abgeleiteten* Kandidaten gegen den dokumentierten Pin) – exakt das Modell, das vor #709 funktionierte (z. B. beim Squash-Übergang PR #701/#703). | Niedrig für die Anwendung – reine Workflow-/Test-Änderung, kein `bgremover/**`-Code. Für den Release-Prozess **korrigierend**: macht Kandidatenbauten (#685/#686) wieder möglich, ohne die #709-Provenienz-Garantie (Freeze-Pin muss weiterhin zum gebauten Baum passen) aufzugeben. | `make check` grün (ruff „All checks passed", mypy „no issues found in 70 source files", pytest **2082 passed**, 6 skipped, 14 deselected); `tests/test_release_gate.py` um die Gegenprobe `test_freeze_gate_allows_a_protocol_commit_above_the_candidate` ersetzt (stellt sicher, dass der `github.sha`-Abgleich nicht wieder eingeführt wird); PR-CI von #715 grün. | **Aufnehmen.** Kandidatenrelevant über `.github/workflows/release-linux.yml` und `tests/test_release_gate.py`. Behebt nachweislich einen Regressionsfund in einer release-relevanten Prüfung (das Freeze-Gate selbst, `tests/test_release_gate.py`/`verify_release_freeze.py`/`release-linux.yml`) – erfüllt die Freeze-Ausnahme wörtlich, anders als #708 oben. Kein Anwender-CHANGELOG-Eintrag (reiner Release-Prozess). War bis zum Kandidatenwechsel durch #720 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
+| `aa4369d023db087793ddc3e402be6925781426e7` (#710 via PR #714, kurz `aa4369d`) | Protokoll – Freeze-Nachtrag in zwei Schritten derselben PR: trägt zunächst den vollen Kandidaten-SHA von PR #713 (#711) nach, klassifiziert #707/#708/#709/#712 und behebt zwei Codex-Reviewbefunde (falsch zugeordnete Gate-Fehler, fehlende Scope-Ausnahme für #708); trägt danach den vollen Kandidaten-SHA von PR #715 nach, wandelt die vorherige `Kandidaten-Commit`-Platzhalterzeile für #711/#713 in eine Zeile mit vollem SHA um, ergänzt eine Zeile für #715, aktualisiert die Fensterzahl 20 → 21. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #720 *im* Fenster – daher hier klassifiziert. |
+| `b90d92a6468e0a275a84a137359b3991d7ceb00d` (#717, kurz `b90d92a`) | Dokumentation – Issue-Triage nach Schließen von #710/#711 aufgefrischt, #685 als startbereit markiert. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #717 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
+| `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2` (#718, kurz `07de38f`) | Dokumentation – neues Issue #716 (Test-Suite-Audit) nach erneuter Prüfung aller offenen Issues in die Triage aufgenommen. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #718 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
+| `dcdeeecbca08440a8f976d547216128e685866da` (#719, kurz `dcdeeec`) | Dokumentation – RECOMMENDATIONS-Audit nach Remote-Sync erweitert. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #719 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
+| `Kandidaten-Commit` (PR #720, voller SHA unter „Protokollierter Kandidaten-SHA") | **Zwei fehlende Hardware-Abnahme-Nachweise für #685 ergänzt.** Der reale Hardware-Abnahmelauf (macOS arm64 + Linux aarch64) deckte Start, GPU-Provenienz, nativen 3D-Viewer und Live-GL-Performance ab, ließ aber zwei in den Akzeptanzkriterien von #685 genannte Prüfungen automatisiert unbelegt: Öffnen eines echten 2.7.0-Projekts ohne unbeabsichtigte Formatmigration/Datenänderung, und mindestens ein EufyMake-Export-Smoke-Test. Ergänzt `tests/fixtures/project_v2_7_0.bgrproj` (mit dem tatsächlichen v2.7.0-Release-Code gebaut, kein Nachbau), `tests/test_project_v270_upgrade.py` (Qt-frei, Struktur-/Pixel-Nachweis gegen die vollständigen persistierten Felder), Erweiterungen in `tests/test_e2e_release_regression.py` (EufyMake-Export-Smoke über den echten `write_export`-Pfad + 2.7.0-Projekt-Open/Weiterarbeiten über `MainWindow`, bereits Teil des `release-abnahme.yml`-Hardware-Pfads) sowie `bgremover/acceptance_smoke.py` (neuer GL-freier Automatisierungshook, analog `screenshot3d.py`/`BGREMOVER_SCREENSHOT_3D`, bindet beide Nachweise zusätzlich an das gepackte Kandidatenartefakt statt nur an den Source-Checkout, verdrahtet über `bgremover/app.py` und `scripts/abnahme_smoke.py`). | Niedrig für die Anwendung – ausschließlich Test-/Fixture-/Automatisierungscode; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst, Exportvertrag unverändert. | `make check` grün (**2099 passed**, 6 skipped, 14 deselected); PR-CI von #720 grün; unabhängige Codex-Review (2× P1, 1× P2) vor dem Merge vollständig behoben (Höhenebene vor `apply_height_op` aktivieren und Hash-Änderung verifizieren, vollständiger Feldvergleich inkl. IDs/Namen/Metadaten/Version im Fixture-Test, Bindung an das gepackte Artefakt statt nur den Checkout). | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt einen Nachweislückenfund in einer release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685). Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -106,22 +111,16 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-- **Freeze-Nachtrag für den #711-Kandidaten** (#710 via PR #714, zwei Commits):
-  trägt den vollen 40-stelligen SHA von PR #713 nach, klassifiziert #707/#708/
-  #709/#712 und behebt die Codex-Reviewbefunde der ersten Fassung (falsch
-  zugeordnete Gate-Fehler, veraltete Release-Zusammenfassung, fehlende
-  Scope-Ausnahme für #708); ändert nur
+- **Freeze-Nachtrag für den #720-Kandidaten** (dieser Commit): trägt den
+  vollen 40-stelligen SHA von PR #720 nach, klassifiziert `aa4369d` (#710 via
+  PR #714), `b90d92a` (#717), `07de38f` (#718) und `dcdeeec` (#719) als
+  Protokoll sowie `f8143db` (#720) als neuen Kandidaten in der Tabelle,
+  aktualisiert die Fensterzahl 21 → 26 und die Gate-Nachweise; ändert nur
   `docs/history/RELEASE-2.7.1-scope-freeze.md`.
-- **Fortführung dieses Nachtrags für den Kandidatenwechsel durch #715**
-  (dieser Commit): trägt den vollen 40-stelligen SHA von PR #715 nach,
-  wandelt die vorherige `Kandidaten-Commit`-Platzhalterzeile für #711/#713 in
-  eine normale Zeile mit vollem SHA um, ergänzt eine neue Zeile für #715,
-  aktualisiert die Fensterzahl 20 → 21 und die Gate-Nachweise; ändert
-  ebenfalls nur `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
 Die zuvor hier geführten Protokoll-Commits (`5c25e3b`, `ac05363`, `1b04887`,
-`0b021cc`) liegen seit dem Kandidatenwechsel durch #711 **im** Fenster und
-stehen in der Klassifizierungstabelle oben.
+`0b021cc`, `aa4369d`) liegen seit dem Kandidatenwechsel durch #711 bzw. #720
+**im** Fenster und stehen in der Klassifizierungstabelle oben.
 
 **Zur Squash-Historie:** PR #701 wurde als **Squash** eingebracht. Die sechs
 Zweig-Commits (`bba18044755c…`, `09a328863e6a…`, `ad63e362062a…`,
@@ -373,6 +372,13 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | PR-CI von #715 | grün |
 | `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
 
+| Prüfung auf dem #720-Kandidaten (Zweig `claude/github-issue-685-lob9a4`, PR #720) | Lauf/Ergebnis |
+|---|---|
+| `make check` (auf dem Zweig, Basis `main` = `adb2205960619…`) | grün: ruff „All checks passed", mypy „no issues found in 71 source files", pytest **2099 passed, 6 skipped, 14 deselected** |
+| Unabhängige Codex-Review auf PR #720 | 2× P1, 1× P2 – vor dem Merge vollständig behoben: (1) das Fixture aktiviert die COLOR- statt der HEIGHT-Ebene, `apply_height_op()` war dadurch ein stiller No-op und das folgende Undo bewies nichts – jetzt Höhenebene aktivieren und die Hash-Änderung vor dem Undo verifizieren; (2) der Struktur-/Migrationstest verglich nur Kind/Rolle/Flags/physische Größe, nicht IDs/Namen/vollständige Metadaten/Schemaversion – jetzt vollständiger Feldvergleich gegen die beim Fixture-Bau protokollierten Werte; (3) beide neuen Prüfungen liefen nur gegen den Source-Checkout, nicht gegen das gepackte Kandidatenartefakt – neuer Hook `bgremover/acceptance_smoke.py` (analog `screenshot3d.py`/`BGREMOVER_SCREENSHOT_3D`) bindet sie zusätzlich an den laufenden, gepackten Prozess. |
+| `python scripts/verify_release_freeze.py --require-pin` (auf `main`, vor diesem Protokoll-Nachtrag) | 3 Fehler, 4 Warnungen (`candidate-sha-mismatch` gegen den alten Pin `adb220596061…`, `commit-count-mismatch` 26 vs. 21, ein `unclassified-candidate-commit` für #715, vier `unclassified-protocol-commit`-Warnungen für #719/#718/#717/#714 – erwarteter Zustand vor dem Nachtrag) |
+| `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
+
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
 
@@ -428,6 +434,22 @@ wiederholt, keiner still nachgezogen):
    wiederhergestellten Vor-#709-Stand korrigiert. Dieser (fortgeführte)
    Freeze-Nachtrag (#710, PR #714) ändert weiterhin ausschließlich Protokoll-/
    Statusdokumentation und verschiebt den Kandidaten nicht.
+9. **Kandidatenwechsel durch #720** (zwei fehlende Hardware-Abnahme-Nachweise
+   für #685 ergänzt, `f8143db78991…`, **aktueller Kandidat**): Die reale
+   Hardware-Abnahme in #685 (macOS arm64 + Linux aarch64) deckte Start,
+   GPU-Provenienz, nativen 3D-Viewer und Live-GL-Performance ab, ließ aber
+   zwei Akzeptanzkriterien automatisiert unbelegt – Öffnen eines echten
+   2.7.0-Projekts ohne unbeabsichtigte Migration/Datenänderung und einen
+   EufyMake-Export-Smoke-Test. PR #720 schließt beide Lücken (siehe Tabelle
+   oben) und erfüllt die Freeze-Ausnahme wörtlich: Nachweislückenfund in einer
+   release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685).
+   Zwischen dem alten und dem neuen Kandidaten liegen zusätzlich vier reine
+   Protokoll-Commits (`aa4369d` Fortführung des #710-Nachtrags, `b90d92a`
+   #717, `07de38f` #718, `dcdeeec` #719), die alle nach dem vorgeschriebenen
+   Verfahren vollständig in die Tabelle nachgezogen wurden: Fensterzahl
+   21 → 26, Kandidaten-SHA auf den neuen Stand gesetzt, Gate-Nachweise
+   wiederholt. Dieser Freeze-Nachtrag selbst änderte ausschließlich
+   Protokoll-/Statusdokumentation und verschiebt den Kandidaten nicht.
 
 Die Punkte 1.–4. liegen als Commits nicht mehr auf `main` (Squash); sie sind
 über PR #701 einsehbar und hier bewusst als Entstehungsgeschichte protokolliert.
@@ -465,14 +487,19 @@ gebaut oder getaggt wird.
   siehe Kandidatenwechsel 7.) und ergänzt denselben Testbericht um die
   verschärfte False-Green-Abwehr. **Nicht mehr aktueller Kandidat**, seit dem
   Kandidatenwechsel durch #715 im Fenster.
-- **#715:** Deadlock im Freeze-Gate aus #709 aufgelöst. **Erzeugt den
-  aktuellen Kandidaten** (Squash-Merge `adb2205960619…`; siehe
-  Kandidatenwechsel 8.) – ohne diesen Fix wären #685/#686 für 2.7.1 dauerhaft
-  blockiert gewesen.
-- **#710:** dieser Freeze-Nachtrag – zieht zunächst den Kandidatenwechsel
+- **#715:** Deadlock im Freeze-Gate aus #709 aufgelöst. (Squash-Merge
+  `adb2205960619…`; siehe Kandidatenwechsel 8.) – ohne diesen Fix wären
+  #685/#686 für 2.7.1 dauerhaft blockiert gewesen. **Nicht mehr aktueller
+  Kandidat**, seit dem Kandidatenwechsel durch #720 im Fenster.
+- **#710:** Freeze-Nachtrag (#714) – zieht zunächst den Kandidatenwechsel
   durch #711 vollständig nach, dann (in derselben PR #714, vor deren Merge)
   den Kandidatenwechsel durch #715; ändert selbst nur Protokoll-/
   Statusdokumentation.
+- **#685 (zwei fehlende Hardware-Abnahme-Nachweise, PR #720):** Öffnen eines
+  echten 2.7.0-Projekts und EufyMake-Export-Smoke, gefunden bei der
+  Gegenprüfung der rohen Evidenz aus dem ersten Hardware-Abnahmelauf.
+  **Erzeugt den aktuellen Kandidaten** (Squash-Merge `f8143db78991…`; siehe
+  Kandidatenwechsel 9.).
 
 ## Ausdrücklich nicht in diesem Scope-Freeze enthalten
 
