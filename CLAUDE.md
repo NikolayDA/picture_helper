@@ -188,7 +188,16 @@ Ein Paket, `bgremover/`:
   über die Umgebungsvariable `BGREMOVER_SCREENSHOT_3D` in `app.main` aktiviert
   (analog `BGREMOVER_SMOKE_TEST`/`BGREMOVER_AI_SELFCHECK`, bewusst kein CLI-Flag),
   läuft absichtlich **nicht** offscreen und schreibt PNG + Provenance-JSON; ein
-  Software-Renderer lässt den Nachweis fehlschlagen.
+  Software-Renderer lässt den Nachweis fehlschlagen. `acceptance_smoke.py`
+  (#685-Review) ist das GL-freie Gegenstück für den EufyMake-Export- und den
+  2.7.0-Projekt-Öffnen-Nachweis: `tests/test_e2e_release_regression.py` bindet
+  dieselben zwei Prüfungen an den Source-Checkout (`release-abnahme.yml`
+  installiert dort per `pip install -e ".[test]"`), nicht an das über
+  `run_id`/`release_tag` bezogene, tatsächlich gepackte Kandidatenartefakt –
+  dieser Hook schließt genau diese Lücke, analog über `BGREMOVER_ACCEPTANCE_EXTRA`
+  (Ziel-JSON) und `BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT` (Pfad der
+  `tests/fixtures/project_v2_7_0.bgrproj`-Fixture, mit echtem v2.7.0-Code
+  gebaut) aktiviert.
 - **Domänenmodell:** `project_model.py` — Qt-freies, strikt getyptes Projekt-/
   Ebenen-Modell (`Project`/`Layer`, `LayerKind`/`LayerRole`, reine Operationen
   inkl. Farb-Komposit). Fundament des Ebenen-Epics (#329); ohne Render-/
@@ -469,7 +478,10 @@ Runnern**; der Linux-x86_64-Pfad ist über `ABNAHME_X86_64_ENABLED` bewusst
 **pausiert** und erscheint in der Matrix als „pausiert" statt als Lücke.
 Skripte in `scripts/`: `release_abnahme.py` (Artefaktbezug + SHA256 + Evidenz-
 vertrag, #641), `abnahme_smoke.py` (Start-/Fork-Bomb-/Hänger-Wächter über
-`smoke_launch.py`, GL-Provenance, `.deb`-Zyklus, nativer 3D-Screenshot),
+`smoke_launch.py`, GL-Provenance, `.deb`-Zyklus, nativer 3D-Screenshot, seit
+#685-Review zusätzlich der EufyMake-Export-/2.7.0-Projekt-Zusatznachweis über
+`bgremover.acceptance_smoke`/`BGREMOVER_ACCEPTANCE_EXTRA`, je Artefaktklasse
+höchstens einmal),
 `abnahme_probe.py` / `abnahme_scale_probe.py` (GL- bzw. devicePixelRatio-Probe,
 native Qt-Plattform), `abnahme_vision_check.py` (**fail-safe** Vision-Vorbewertung
 der Screenshots; ohne API-Key/SDK oder bei Fehlern → `unbewertet`, blockiert

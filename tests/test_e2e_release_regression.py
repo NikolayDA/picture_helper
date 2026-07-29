@@ -27,6 +27,8 @@ import pytest
 from PIL import Image
 
 from bgremover import MainWindow, height_ops
+from bgremover.eufymake_writer import write_export
+from bgremover.i18n import tr
 from bgremover.project_model import LayerKind, LayerRole, Project
 
 # ``ui`` UND ``ui_smoke`` gemeinsam (#644-Nachtrag): ``ui_smoke`` allein hält
@@ -34,6 +36,12 @@ from bgremover.project_model import LayerKind, LayerRole, Project
 # ui_smoke"), ``make ui``/die Nightly-Suite selektieren dagegen strikt "-m ui"
 # – ohne den zusätzlichen ``ui``-Marker liefe der Test dort gar nicht mit.
 pytestmark = [pytest.mark.ui, pytest.mark.ui_smoke]
+
+# Echtes v2.7.0-Projekt (build_v270_fixture.py-Herkunft, #685): unverändert
+# mit dem tatsächlichen Release-Code erzeugt, siehe test_project_v270_upgrade.py
+# für die Qt-freie Struktur-/Payload-Prüfung. Hier: Öffnen + Weiterarbeiten über
+# den echten MainWindow-Pfad, auf Hardware-Runnern zusätzlicher Abnahme-Nachweis.
+_V270_FIXTURE = Path(__file__).parent / "fixtures" / "project_v2_7_0.bgrproj"
 
 
 def _gradient(size: int = 16) -> Image.Image:
@@ -243,6 +251,78 @@ def _run_scenario(win: MainWindow, tmp_path: Path, qtbot) -> tuple[list[str], st
     notes.append(
         "Save/Open (v2) bitgenau, Ebenenstruktur wertgleich; "
         f"3D-Zustand nach Reload erneut {state}.",
+    )
+
+    # 6) EufyMake-Export-Smoke (#685): schreibt das echte Importpaket über den
+    # Produktionspfad (``write_export``, denselben, den auch MainWindow._write_eufymake
+    # verwendet) aus dem geladenen Projekt – Farbmotiv + Höhenkarte + Manifest.
+    # Reiner Lese-/Schreib-Smoke, der Exportvertrag selbst bleibt unberührt.
+    color_reloaded = next(lyr for lyr in reloaded.layers if lyr.kind is LayerKind.COLOR)
+    color_reloaded.visible = True  # sichtbares Motiv, kein künstlich leeres Komposit
+    export_dir = tmp_path / "eufymake_export"
+    written = write_export(
+        reloaded, str(export_dir),
+        optional_roles=[LayerRole.HEIGHT_MAP], bit_depth=16, confirm_warnings=True,
+    )
+    assert written == export_dir
+    color_motif = export_dir / "color_motif.png"
+    height_map_png = export_dir / "height_map.png"
+    manifest_path = export_dir / "manifest.json"
+    assert color_motif.is_file(), "EufyMake-Export: Farbmotiv fehlt"
+    assert height_map_png.is_file(), "EufyMake-Export: Höhenkarte fehlt"
+    assert manifest_path.is_file(), "EufyMake-Export: manifest.json fehlt"
+    with Image.open(color_motif) as img:
+        assert img.mode == "RGBA" and img.size == reloaded.size
+    with Image.open(height_map_png) as img:
+        assert img.size == reloaded.size
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["profile"] == "bgremover-eufymake-import"
+    written_roles = {asset["role"] for asset in manifest["assets"]}
+    assert {"color_motif", "height_map"} <= written_roles
+    notes.append(
+        "EufyMake-Export-Smoke: color_motif.png + height_map.png + manifest.json "
+        "über den echten write_export-Pfad geschrieben.",
+    )
+
+    # 7) Echtes 2.7.0-Projekt öffnen und weiterverwenden (#685): kein stiller
+    # Migrationshinweis in der Statusleiste, Struktur bleibt wie vom Fixture-Bau
+    # erwartet, und das Projekt lässt sich danach normal weiterbearbeiten
+    # (Höhen-Op + Undo/Redo, erneutes Speichern) statt nur lesbar zu sein.
+    win._load_project_into_canvas(str(_V270_FIXTURE))
+    assert win._sb.currentMessage() == tr("project.opened", name=_V270_FIXTURE.name), (
+        "2.7.0-Projekt löste einen unerwarteten Hinweis (z. B. Migration) aus"
+    )
+    v270_project = win._canvas.project
+    assert v270_project is not None
+    assert [lyr.kind for lyr in v270_project.layers] == [LayerKind.COLOR, LayerKind.HEIGHT]
+    v270_height = v270_project.layers[1]
+    assert v270_height.role is LayerRole.HEIGHT_MAP
+    assert v270_height.height_data is not None and v270_height.height_data.max_value == 65535
+    v270_hash_before = hashlib.sha256(v270_height.height_data.values.tobytes()).hexdigest()
+
+    # Das Fixture aktiviert die COLOR-Ebene (v2.7.0-Vorgabe); Höhen-Werkzeuge
+    # wirken nur auf die aktive HEIGHT-Ebene (``_height_edit_context``), sonst
+    # kein-op. Erst aktivieren, dann wirklich bearbeiten – die Op muss den
+    # Hash sichtbar ändern, sonst prüfte das folgende Undo nur einen No-op.
+    win._canvas.set_active_layer(v270_height.id)
+    win._canvas.apply_height_op(lambda f: height_ops.quantize(f, 4))
+    v270_height_after_op = win._canvas.project.active_layer()
+    assert v270_height_after_op is not None
+    v270_hash_after_op = hashlib.sha256(v270_height_after_op.height_data.values.tobytes()).hexdigest()
+    assert v270_hash_after_op != v270_hash_before, "Höhen-Op auf dem 2.7.0-Projekt war ein No-op"
+    win._canvas.undo()
+    v270_height_after_undo = win._canvas.project.active_layer()
+    assert v270_height_after_undo is not None
+    assert (
+        hashlib.sha256(v270_height_after_undo.height_data.values.tobytes()).hexdigest()
+        == v270_hash_before
+    ), "2.7.0-Projekt lässt sich nach dem Öffnen nicht bitgenau weiterbearbeiten"
+
+    v270_resave_path = tmp_path / "v270_resaved.bgrproj"
+    assert win._write_project(str(v270_resave_path)), "Erneutes Speichern des 2.7.0-Projekts fehlgeschlagen"
+    notes.append(
+        "Echtes 2.7.0-Projekt geöffnet (keine Migrationswarnung), Höhen-Op + "
+        "Undo bitgenau, erneutes Speichern erfolgreich.",
     )
     return notes, state
 

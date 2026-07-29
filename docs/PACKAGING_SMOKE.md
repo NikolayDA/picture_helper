@@ -141,7 +141,10 @@ Bearbeitung/Projekt-Save/Export bleiben voll funktionsfähig.
 > x86_64) bleiben pausiert (kein GPU-Hardwarezugang, Stand 2026-07-20) und
 > gelten weiterhin als **offen deklariert**. Die Kriterien hier bleiben
 > maßgeblich; die Automatisierung liefert nur den Nachweis, die Go-/No-Go-
-> Entscheidung bleibt manuell.
+> Entscheidung bleibt manuell. Seit #685-Review startet jede Artefaktklasse
+> ein drittes Mal nativ mit dem Automationshook `BGREMOVER_ACCEPTANCE_EXTRA`:
+> EufyMake-Export- und 2.7.0-Projekt-Öffnen-Nachweis aus demselben gepackten
+> Prozess statt nur aus dem Source-Checkout.
 
 Für jede Klasse: Artefakt aus dem Release-Build beziehen, dann **headless**
 (Start-Crash-/Fork-Bomb-Wächter) **und** unter echtem Backend (3D sichtbar)
@@ -164,6 +167,18 @@ python scripts/smoke_launch.py \
     -- <startkommando>
 # Provenance-Sidecar neben dem Screenshot:
 cat /tmp/native_preview3d_ready.png.json
+```
+
+EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review, kein GL nötig,
+funktioniert für AppImage/`.app`-Binary):
+
+```sh
+python scripts/smoke_launch.py \
+    --match <artefakt-token> --timeout 60 --native \
+    --env BGREMOVER_ACCEPTANCE_EXTRA=/tmp/acceptance_extra.json \
+    --env BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT=tests/fixtures/project_v2_7_0.bgrproj \
+    -- <startkommando>
+cat /tmp/acceptance_extra.json
 ```
 
 | # | Artefaktklasse | Headless-Start | 3D-Sicht-Smoke | sauber entfernbar |

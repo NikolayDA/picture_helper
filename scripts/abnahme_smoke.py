@@ -18,7 +18,12 @@ Provenance-Sidecar direkt aus dem laufenden gepackten Prozess (nicht aus dem
 Source-Checkout wie der native E2E-Nachweis in #644). Ein Software-Renderer
 lässt diesen Nachweis scheitern (geteiltes Gate aus
 ``bgremover.renderer_provenance``, dieselbe Regel wie die Runner-Hardware-
-Provenance oben).
+Provenance oben). Ein drittes Mal startet dasselbe Artefakt mit dem
+Automationshook ``BGREMOVER_ACCEPTANCE_EXTRA`` (#685-Review, Codex-Fund auf
+PR #720): EufyMake-Export- und 2.7.0-Projekt-Öffnen-Nachweis direkt aus dem
+gepackten Prozess statt aus dem Source-Checkout (den ``test_e2e_release_
+regression.py`` bereits abdeckt, aber eben nicht am tatsächlich gebauten
+Kandidaten) – ``bgremover.acceptance_smoke``.
 
 Alle Pass/Fail-Entscheidungen liegen in den getesteten Funktionen von
 ``release_abnahme``. Die OS-Kommandos laufen über einen injizierbaren
@@ -73,6 +78,19 @@ NATIVE_3D_SCREENSHOT_NAMES = {
 # sein eigenes Timeout greift (Codex-Fund, PR #652 – sonst bliebe das
 # großzügigere NATIVE_3D_TIMEOUT für den Hook selbst wirkungslos).
 NATIVE_3D_READINESS_TIMEOUT_MS = (NATIVE_3D_TIMEOUT - 30) * 1000
+
+# EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review): kein GL, kein
+# Shader-Compile – deutlich kürzeres Timeout als der 3D-Screenshot reicht auch
+# auf schwächerer Zielhardware (Raspberry Pi).
+ACCEPTANCE_EXTRA_TIMEOUT = 60
+ACCEPTANCE_EXTRA_NAMES = {
+    "appimage": "acceptance_extra_appimage.json",
+    "deb": "acceptance_extra_deb.json",
+    "dmg": "acceptance_extra_dmg.json",
+}
+# Vom Source-Checkout mitgelieferte Fixture (#685): der laufende gepackte
+# Prozess bekommt nur den *Pfad*, ihre Verarbeitung muss aus dem Paket kommen.
+V270_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "project_v2_7_0.bgrproj"
 
 
 def _load_release_abnahme():  # type: ignore[no-untyped-def]
@@ -129,6 +147,7 @@ class SmokeReport:
     gl_diagnostic: str | None = None
     notes: list[str] = field(default_factory=list)
     native_3d_attempted: set[str] = field(default_factory=set)
+    acceptance_extra_attempted: set[str] = field(default_factory=set)
     # Strukturierte Wächter-Ergebnisse je Startphase/Artefaktklasse (#642-Nachtrag,
     # Schließkriterium: Exit-Code/Peak-Instanzen/Timeout-Fork-Bomb-Status/Log
     # müssen in die Evidenz statt nur in Freitext-Notizen einfließen).
@@ -335,6 +354,69 @@ def _native_3d_screenshot(
         report.fail(f"Nativer 3D-Screenshot: {verdict.note} ({label})")
 
 
+def _acceptance_extra(
+    runner: Runner,
+    launch_cmd: list[str],
+    *,
+    match: str,
+    max_instances: int,
+    label: str,
+    report: SmokeReport,
+    evidence_dir: Path,
+    artifact_class: str,
+) -> None:
+    """EufyMake-Export-/2.7.0-Projekt-Zusatznachweis des gepackten Artefakts
+    (#685-Review, Codex-Fund auf PR #720).
+
+    Startet dasselbe Artefakt-Kommando erneut über ``smoke_launch.py --native``
+    mit dem Automationshook ``BGREMOVER_ACCEPTANCE_EXTRA`` – analog
+    ``_native_3d_screenshot``, aber ohne GL-Bezug. ``--native`` (statt der
+    normalen ``offscreen``+``BGREMOVER_SMOKE_TEST``-Startumgebung) ist trotzdem
+    nötig: ``BGREMOVER_SMOKE_TEST`` beendet den Prozess sonst schon vor dem
+    ersten Event-Loop-Tick, bevor der Hook seinen eigenen ``app.exit()`` erreicht.
+    Läuft nur einmal je Artefaktklasse.
+    """
+    if artifact_class in report.acceptance_extra_attempted:
+        return
+    report.acceptance_extra_attempted.add(artifact_class)
+
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    target = (evidence_dir / ACCEPTANCE_EXTRA_NAMES[artifact_class]).resolve()
+    result = runner([
+        sys.executable, str(SMOKE_LAUNCH),
+        "--match", match,
+        "--max-instances", str(max_instances),
+        "--timeout", str(ACCEPTANCE_EXTRA_TIMEOUT),
+        "--native",
+        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA={target}",
+        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT={V270_FIXTURE}",
+        "--", *launch_cmd,
+    ])
+    _record_guard(report, result, phase="acceptance_extra", artifact_class=artifact_class)
+    if result.returncode != 0 or not target.is_file():
+        detail = (result.stderr or result.stdout or "").strip()
+        report.fail(
+            f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): "
+            f"{detail or 'keine Evidenz erzeugt'}"
+        )
+        return
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        report.fail(f"EufyMake/2.7.0-Zusatznachweis: Evidenz-JSON unlesbar ({label}): {exc}")
+        return
+
+    if payload.get("ok"):
+        report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
+        return
+    eufy = payload.get("eufymake_export", {})
+    v270 = payload.get("v270_project_open", {})
+    report.fail(
+        f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): "
+        f"eufymake={eufy.get('message')!r} v270={v270.get('message')!r}"
+    )
+
+
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:
     """Prüft, dass genau die erwarteten Artefaktklassen vorliegen (kein Teilsatz)."""
     present = {Path(a).suffix for a in artefacts}
@@ -391,6 +473,11 @@ def _linux_appimage(path: str, report: SmokeReport, runner: Runner, screenshot_d
             label=name, report=report, screenshot_dir=screenshot_dir,
             screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["appimage"],
         )
+        _acceptance_extra(
+            runner, launch_cmd, match=name, max_instances=max_instances,
+            label=name, report=report, evidence_dir=screenshot_dir.parent / "acceptance_extra",
+            artifact_class="appimage",
+        )
     else:
         report.fail(f"AppImage-Start fehlgeschlagen ({result.returncode}): {name}")
 
@@ -422,6 +509,12 @@ def _linux_deb(
                     max_instances=max_instances, label=name, report=report,
                     screenshot_dir=screenshot_dir,
                     screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["deb"],
+                )
+                _acceptance_extra(
+                    runner, launch_cmd, match="BgRemover.AppImage",
+                    max_instances=max_instances, label=name, report=report,
+                    evidence_dir=screenshot_dir.parent / "acceptance_extra",
+                    artifact_class="deb",
                 )
             else:
                 report.fail(f"deb-Start fehlgeschlagen ({started.returncode}): {name}")
@@ -588,6 +681,12 @@ def _start_macos_app(
             runner, [binary], match=match, max_instances=max_instances,
             label=dmg_name, report=report, screenshot_dir=screenshot_dir,
             screenshot_name=NATIVE_3D_SCREENSHOT_NAMES["dmg"],
+        )
+        _acceptance_extra(
+            runner, [binary], match=match, max_instances=max_instances,
+            label=dmg_name, report=report,
+            evidence_dir=screenshot_dir.parent / "acceptance_extra",
+            artifact_class="dmg",
         )
     else:
         report.fail(f"DMG-Start fehlgeschlagen ({started.returncode}): {dmg_name}")

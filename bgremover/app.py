@@ -174,4 +174,30 @@ def main() -> int:
 
         QTimer.singleShot(0, _run_screenshot_hook)
 
+    # EufyMake-Export-/2.7.0-Projekt-Automationshook (#685-Review): analog zum
+    # 3D-Screenshot-Hook oben, aber ohne GL-Bezug – bindet den EufyMake-Export-
+    # und den 2.7.0-Projekt-Öffnen-Nachweis an das laufende, GEPACKTE Artefakt
+    # statt an den Source-Checkout (den ``tests/test_e2e_release_regression.py``
+    # bereits abdeckt, aber eben nicht am tatsächlich gebauten Kandidaten).
+    # BGREMOVER_ACCEPTANCE_EXTRA ist der Ziel-JSON-Pfad,
+    # BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT der Pfad der ``.bgrproj``-Fixture
+    # (liegt im Source-Checkout, das im selben Abnahme-Job vorhanden ist – nur
+    # der ausführende *Code* muss aus dem Paket stammen).
+    acceptance_extra_target = os.environ.get("BGREMOVER_ACCEPTANCE_EXTRA")
+    if acceptance_extra_target:
+        from PyQt6.QtCore import QTimer
+
+        from bgremover.acceptance_smoke import run_acceptance_extra
+
+        v270_fixture = os.environ.get("BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT", "")
+
+        def _run_acceptance_extra_hook() -> None:
+            result = run_acceptance_extra(
+                win, Path(acceptance_extra_target), Path(v270_fixture),
+            )
+            print(f"{result.eufymake_message} | {result.v270_message}")
+            app.exit(0 if result.ok else 1)
+
+        QTimer.singleShot(0, _run_acceptance_extra_hook)
+
     return app.exec()

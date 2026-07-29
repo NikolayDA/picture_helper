@@ -108,18 +108,53 @@ def _fake_native_screenshot(
     return smoke.CommandResult(0)
 
 
+def _fake_acceptance_extra(
+    cmd: list[str], ok: bool | None, rc: int,
+) -> smoke.CommandResult | None:
+    """Simuliert den echten Automationshook (``bgremover.acceptance_smoke``) für
+    den ``smoke_launch.py --native``-Aufruf mit ``BGREMOVER_ACCEPTANCE_EXTRA``:
+    schreibt die Evidenz-JSON an den übergebenen Pfad, genau wie der laufende
+    gepackte Prozess es täte. ``ok=None`` lässt den Aufruf unbehandelt (fällt auf
+    die normale Substring-Matching-Logik zurück)."""
+    if ok is None or "--native" not in cmd:
+        return None
+    target: Path | None = None
+    for arg in cmd:
+        if arg.startswith("BGREMOVER_ACCEPTANCE_EXTRA="):
+            target = Path(arg.split("=", 1)[1])
+    if target is None:
+        return None
+    if rc != 0:
+        return smoke.CommandResult(rc, stderr="acceptance-extra-Hook fehlgeschlagen")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps({
+            "ok": ok,
+            "eufymake_export": {"ok": ok, "message": "ok" if ok else "nope"},
+            "v270_project_open": {"ok": ok, "message": "ok" if ok else "nope"},
+        }),
+        encoding="utf-8",
+    )
+    return smoke.CommandResult(0)
+
+
 def _runner_factory(
     results: dict[str, smoke.CommandResult],
     default_rc: int = 0,
     native_screenshot_diagnostic: str | None = "Broadcom / V3D 7.1 / 3.1",
     native_screenshot_rc: int = 0,
+    acceptance_extra_ok: bool | None = True,
+    acceptance_extra_rc: int = 0,
 ):
     """Fake-Runner: matcht anhand eines Substrings im Kommando; simuliert den
-    nativen 3D-Screenshot-Hook standardmäßig als Erfolg (siehe
-    ``_fake_native_screenshot``)."""
+    nativen 3D-Screenshot- und den EufyMake/2.7.0-Zusatz-Hook standardmäßig als
+    Erfolg (siehe ``_fake_native_screenshot``/``_fake_acceptance_extra``)."""
 
     def runner(cmd: list[str]) -> smoke.CommandResult:
         handled = _fake_native_screenshot(cmd, native_screenshot_diagnostic, native_screenshot_rc)
+        if handled is not None:
+            return handled
+        handled = _fake_acceptance_extra(cmd, acceptance_extra_ok, acceptance_extra_rc)
         if handled is not None:
             return handled
         joined = " ".join(cmd)
@@ -136,6 +171,8 @@ def _recording_runner(
     default_rc: int = 0,
     native_screenshot_diagnostic: str | None = "Broadcom / V3D 7.1 / 3.1",
     native_screenshot_rc: int = 0,
+    acceptance_extra_ok: bool | None = True,
+    acceptance_extra_rc: int = 0,
 ):
     """Wie ``_runner_factory``, protokolliert zusätzlich jedes Kommando (join)."""
     calls: list[str] = []
@@ -143,6 +180,9 @@ def _recording_runner(
     def runner(cmd: list[str]) -> smoke.CommandResult:
         calls.append(" ".join(cmd))
         handled = _fake_native_screenshot(cmd, native_screenshot_diagnostic, native_screenshot_rc)
+        if handled is not None:
+            return handled
+        handled = _fake_acceptance_extra(cmd, acceptance_extra_ok, acceptance_extra_rc)
         if handled is not None:
             return handled
         joined = " ".join(cmd)
@@ -426,7 +466,7 @@ def test_linux_smoke_native_3d_screenshot_runs_for_appimage_and_deb(tmp_path: Pa
         screenshot_dir=tmp_path / "shots",
     )
     assert result.passed
-    native_calls = [c for c in calls if "smoke_launch.py" in c and "--native" in c]
+    native_calls = [c for c in calls if "BGREMOVER_SCREENSHOT_3D=" in c]
     assert len(native_calls) == 2
     assert any(
         smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"] in call for call in native_calls
@@ -540,6 +580,144 @@ def test_native_3d_screenshot_runs_once_even_when_called_directly_twice(tmp_path
     assert report.native_3d_attempted == {screenshot_name}
 
 
+# ── EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review) ─────────────
+
+
+def test_acceptance_extra_ok_records_success(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    runner = _runner_factory({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    assert any("EufyMake/2.7.0-Zusatznachweis ok" in n for n in report.notes)
+    target = tmp_path / "acceptance_extra" / smoke.ACCEPTANCE_EXTRA_NAMES["appimage"]
+    assert target.is_file()
+
+
+def test_acceptance_extra_passes_v270_fixture_path(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Der laufende gepackte Prozess bekommt den Fixture-Pfad aus dem
+    Source-Checkout durchgereicht (#685)."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    native_calls = [c for c in calls if "BGREMOVER_ACCEPTANCE_EXTRA=" in c]
+    assert len(native_calls) == 1
+    assert f"BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT={smoke.V270_FIXTURE}" in native_calls[0]
+
+
+def test_acceptance_extra_fails_when_process_exits_nonzero(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    runner = _runner_factory({}, acceptance_extra_rc=1)
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any(
+        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n and "x.AppImage" in n
+        for n in report.notes
+    )
+
+
+def test_acceptance_extra_fails_when_evidence_missing(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Exit 0, aber (unerwartet) keine Evidenz-JSON – darf nicht stillschweigend
+    als erfüllt gelten."""
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any("keine Evidenz erzeugt" in n for n in report.notes)
+
+
+def test_acceptance_extra_fails_on_unreadable_evidence(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    evidence_dir = tmp_path / "acceptance_extra"
+    target = evidence_dir / smoke.ACCEPTANCE_EXTRA_NAMES["appimage"]
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("{kaputt", encoding="utf-8")
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=evidence_dir, artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any("Evidenz-JSON unlesbar" in n for n in report.notes)
+
+
+def test_acceptance_extra_fails_when_payload_reports_not_ok(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    runner = _runner_factory({}, acceptance_extra_ok=False)
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any(
+        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n and "eufymake=" in n and "v270=" in n
+        for n in report.notes
+    )
+
+
+def test_acceptance_extra_runs_once_even_when_called_directly_twice(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    calls: list[list[str]] = []
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        calls.append(cmd)
+        return _fake_acceptance_extra(cmd, True, 0) or smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    evidence_dir = tmp_path / "acceptance_extra"
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=evidence_dir, artifact_class="appimage",
+    )
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, evidence_dir=evidence_dir, artifact_class="appimage",
+    )
+    assert len(calls) == 1
+    assert report.acceptance_extra_attempted == {"appimage"}
+
+
+def test_linux_smoke_runs_acceptance_extra_for_appimage_and_deb(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    report = smoke.SmokeReport()
+    result = smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner, prober=lambda: "Broadcom / V3D 7.1 / 3.1",
+        screenshot_dir=tmp_path / "shots",
+    )
+    assert result.passed
+    acceptance_calls = [c for c in calls if "BGREMOVER_ACCEPTANCE_EXTRA=" in c]
+    assert len(acceptance_calls) == 2
+    assert any(smoke.ACCEPTANCE_EXTRA_NAMES["appimage"] in c for c in acceptance_calls)
+    assert any(smoke.ACCEPTANCE_EXTRA_NAMES["deb"] in c for c in acceptance_calls)
+
+
+def test_macos_smoke_runs_acceptance_extra(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    report = smoke.SmokeReport()
+    result = smoke.run_macos_smoke(
+        ["/tmp/BgRemover-macos-arm64.dmg"], report, _runner_factory(_MACOS_MOUNT),
+        prober=lambda: "Apple / Apple M3 Max / 2.1 Metal - 90.5", scale_factor=2.0,
+        screenshot_dir=tmp_path / "shots",
+    )
+    assert result.passed
+    assert any("EufyMake/2.7.0-Zusatznachweis ok" in n for n in result.notes)
+
+
 # ── Strukturierte Wächter-Ergebnisse (#642-Nachtrag) ────────────────────────
 
 
@@ -636,6 +814,9 @@ def _guarded_runner(*, clean_deb: dict[str, smoke.CommandResult] = _CLEAN_DEB):
         handled = _fake_native_screenshot(cmd, "Broadcom / V3D 7.1 / 3.1", 0)
         if handled is not None:
             return handled
+        handled = _fake_acceptance_extra(cmd, True, 0)
+        if handled is not None:
+            return handled
         joined = " ".join(cmd)
         if "smoke_launch.py" in joined and "--native" not in cmd:
             stdout = smoke.sl.format_result_line(
@@ -667,7 +848,9 @@ def test_linux_smoke_collects_structured_guard_results_per_phase_and_class(
     phases = {(g["phase"], g["artefaktklasse"]) for g in result.guard_results}
     assert phases == {
         ("ki_selbsttest", "appimage"), ("start", "appimage"), ("nativer_3d_screenshot", "appimage"),
+        ("acceptance_extra", "appimage"),
         ("ki_selbsttest", "deb"), ("start", "deb"), ("nativer_3d_screenshot", "deb"),
+        ("acceptance_extra", "deb"),
     }
     required_keys = {"phase", "artefaktklasse", "exit_code", "peak_instanzen", "status", "log"}
     for entry in result.guard_results:
