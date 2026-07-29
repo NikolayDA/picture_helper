@@ -38,12 +38,12 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
   späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
-- **Commits im Fenster:** 26 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
-  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #720,
+- **Commits im Fenster:** 27 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #722,
   per Squash-Merge auf `main` bestätigt).
-- **Protokollierter Kandidaten-SHA:** `f8143db7899149447743cf20a28c8ffcf2a98acc`
-  (`test: 2.7.0-Projekt-Open und EufyMake-Export-Smoke für #685 ergänzen (#720)`,
-  Squash-Merge von PR #720 auf `main`)
+- **Protokollierter Kandidaten-SHA:** `9845147ea708819dc68001763633401d322a36cb`
+  (`fix: acceptance_smoke.py 2.7.0-Prüftiefe an Source-Checkout-Test angleichen (#722)`,
+  Squash-Merge von PR #722 auf `main`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -102,7 +102,8 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `b90d92a6468e0a275a84a137359b3991d7ceb00d` (#717, kurz `b90d92a`) | Dokumentation – Issue-Triage nach Schließen von #710/#711 aufgefrischt, #685 als startbereit markiert. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #717 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
 | `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2` (#718, kurz `07de38f`) | Dokumentation – neues Issue #716 (Test-Suite-Audit) nach erneuter Prüfung aller offenen Issues in die Triage aufgenommen. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #718 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
 | `dcdeeecbca08440a8f976d547216128e685866da` (#719, kurz `dcdeeec`) | Dokumentation – RECOMMENDATIONS-Audit nach Remote-Sync erweitert. | Keins – reine Statusdoku in sechs Sprachen. | PR-CI von #719 grün. | Protokoll (`RECOMMENDATIONS.md` + 5 Übersetzungen). Nicht in Release Notes. |
-| `Kandidaten-Commit` (PR #720, voller SHA unter „Protokollierter Kandidaten-SHA") | **Zwei fehlende Hardware-Abnahme-Nachweise für #685 ergänzt.** Der reale Hardware-Abnahmelauf (macOS arm64 + Linux aarch64) deckte Start, GPU-Provenienz, nativen 3D-Viewer und Live-GL-Performance ab, ließ aber zwei in den Akzeptanzkriterien von #685 genannte Prüfungen automatisiert unbelegt: Öffnen eines echten 2.7.0-Projekts ohne unbeabsichtigte Formatmigration/Datenänderung, und mindestens ein EufyMake-Export-Smoke-Test. Ergänzt `tests/fixtures/project_v2_7_0.bgrproj` (mit dem tatsächlichen v2.7.0-Release-Code gebaut, kein Nachbau), `tests/test_project_v270_upgrade.py` (Qt-frei, Struktur-/Pixel-Nachweis gegen die vollständigen persistierten Felder), Erweiterungen in `tests/test_e2e_release_regression.py` (EufyMake-Export-Smoke über den echten `write_export`-Pfad + 2.7.0-Projekt-Open/Weiterarbeiten über `MainWindow`, bereits Teil des `release-abnahme.yml`-Hardware-Pfads) sowie `bgremover/acceptance_smoke.py` (neuer GL-freier Automatisierungshook, analog `screenshot3d.py`/`BGREMOVER_SCREENSHOT_3D`, bindet beide Nachweise an das gepackte Kandidatenartefakt statt nur an den Source-Checkout – **Stand bei Merge:** prüft dort Öffnen ohne Migrationshinweis, Ebenenstruktur/-rolle und bitgenaue Weiterbearbeitbarkeit (Höhen-Op + Undo) sowie den vollständigen EufyMake-Export; der volle Feld-/Pixel-Vergleich (IDs, Namen, Metadaten, Farbmotiv-/Höhenkarten-Payload gegen die Fixture-Referenz) blieb zu diesem Zeitpunkt nur im Source-Checkout-Test `tests/test_project_v270_upgrade.py` abgesichert, verdrahtet über `bgremover/app.py` und `scripts/abnahme_smoke.py`). | Niedrig für die Anwendung – ausschließlich Test-/Fixture-/Automatisierungscode; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst, Exportvertrag unverändert. | `make check` grün (**2099 passed**, 6 skipped, 14 deselected); PR-CI von #720 grün; unabhängige Codex-Review (2× P1, 1× P2) vor dem Merge behoben (Höhenebene vor `apply_height_op` aktivieren und Hash-Änderung verifizieren, vollständiger Feldvergleich inkl. IDs/Namen/Metadaten/Version im Fixture-Test, Bindung an das gepackte Artefakt statt nur den Checkout) – **Nachtrag:** eine zweite Reviewrunde (auf diesem Freeze-Nachtrag, PR #721) fand die artefaktgebundene 2.7.0-Prüfung strukturell schwächer als den Source-Checkout-Test; Nachbesserung folgt als eigener kandidatenrelevanter Commit, siehe „Verweise auf denselben Kandidaten". | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt einen Nachweislückenfund in einer release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685). Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). |
+| `f8143db7899149447743cf20a28c8ffcf2a98acc` (PR #720, kurz `f8143db`) | **Zwei fehlende Hardware-Abnahme-Nachweise für #685 ergänzt.** Der reale Hardware-Abnahmelauf (macOS arm64 + Linux aarch64) deckte Start, GPU-Provenienz, nativen 3D-Viewer und Live-GL-Performance ab, ließ aber zwei in den Akzeptanzkriterien von #685 genannte Prüfungen automatisiert unbelegt: Öffnen eines echten 2.7.0-Projekts ohne unbeabsichtigte Formatmigration/Datenänderung, und mindestens ein EufyMake-Export-Smoke-Test. Ergänzt `tests/fixtures/project_v2_7_0.bgrproj` (mit dem tatsächlichen v2.7.0-Release-Code gebaut, kein Nachbau), `tests/test_project_v270_upgrade.py` (Qt-frei, Struktur-/Pixel-Nachweis gegen die vollständigen persistierten Felder), Erweiterungen in `tests/test_e2e_release_regression.py` (EufyMake-Export-Smoke über den echten `write_export`-Pfad + 2.7.0-Projekt-Open/Weiterarbeiten über `MainWindow`, bereits Teil des `release-abnahme.yml`-Hardware-Pfads) sowie `bgremover/acceptance_smoke.py` (neuer GL-freier Automatisierungshook, analog `screenshot3d.py`/`BGREMOVER_SCREENSHOT_3D`, bindet beide Nachweise an das gepackte Kandidatenartefakt statt nur an den Source-Checkout – **Stand bei Merge:** prüft dort Öffnen ohne Migrationshinweis, Ebenenstruktur/-rolle und bitgenaue Weiterbearbeitbarkeit (Höhen-Op + Undo) sowie den vollständigen EufyMake-Export; der volle Feld-/Pixel-Vergleich (IDs, Namen, Metadaten, Farbmotiv-/Höhenkarten-Payload gegen die Fixture-Referenz) blieb zu diesem Zeitpunkt nur im Source-Checkout-Test `tests/test_project_v270_upgrade.py` abgesichert, verdrahtet über `bgremover/app.py` und `scripts/abnahme_smoke.py`). | Niedrig für die Anwendung – ausschließlich Test-/Fixture-/Automatisierungscode; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst, Exportvertrag unverändert. | `make check` grün (**2099 passed**, 6 skipped, 14 deselected); PR-CI von #720 grün; unabhängige Codex-Review (2× P1, 1× P2) vor dem Merge behoben (Höhenebene vor `apply_height_op` aktivieren und Hash-Änderung verifizieren, vollständiger Feldvergleich inkl. IDs/Namen/Metadaten/Version im Fixture-Test, Bindung an das gepackte Artefakt statt nur den Checkout) – **Nachtrag:** eine zweite Reviewrunde (auf diesem Freeze-Nachtrag, PR #721) fand die artefaktgebundene 2.7.0-Prüfung strukturell schwächer als den Source-Checkout-Test; Nachbesserung folgt als eigener kandidatenrelevanter Commit, siehe „Verweise auf denselben Kandidaten". | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`, `scripts/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt einen Nachweislückenfund in einer release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685). Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). War bis zum Kandidatenwechsel durch #722 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
+| `Kandidaten-Commit` (PR #722, voller SHA unter „Protokollierter Kandidaten-SHA") | **`acceptance_smoke.py`s 2.7.0-Prüftiefe an den Source-Checkout-Test angeglichen.** Zwei Codex-Reviewrunden auf PR #721 bzw. #722 fanden, dass die artefaktgebundene 2.7.0-Projektprüfung aus #720 strukturell schwächer war als behauptet und als `tests/test_project_v270_upgrade.py`: (1) `project.version` ist das separate, semantische `project_version`-Feld (immer 1), nicht die tatsächliche `.bgrproj`-Manifest-Formatversion – ein Paket mit abweichendem `PROJECT_FORMAT_VERSION` hätte den (warnungsfreien) Migrationspfad nehmen können, ohne dass der Hook es bemerkt; jetzt liest der Hook die rohe Manifest-Version direkt aus der Fixture-ZIP und vergleicht sie mit der im gepackten Prozess geltenden Konstante. (2) `visible`/`opacity`/`locked`/`role` beider Ebenen sowie `active_layer_id` wurden nie verglichen – ein Loader, der z. B. die Farb-Ebenen-Deckkraft von 1.0 auf 0.5 änderte, hätte weiterhin `ok` gemeldet; jetzt vollständig ergänzt. Neue Regressionstests (Lookalike-Projekt mit frischen IDs, gezielte Deckkraft-Drift bei identischen IDs) beweisen, dass die verschärften Prüfungen tatsächlich diskriminieren. | Niedrig für die Anwendung – ausschließlich der interne Abnahme-Hook und seine Tests; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst. | `make check` grün (**2101 passed**, 6 skipped, 14 deselected); PR-CI von #722 grün; beide Codex-Reviewrunden (insgesamt 3× P1) vor dem Merge behoben. | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `tests/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt einen in #721/#722 selbst gefundenen Nachweislückenfund in einer release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685). Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -111,12 +112,20 @@ deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfa
 verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
 „+N Protokoll-Commit(s) darüber" aus):
 
-- **Freeze-Nachtrag für den #720-Kandidaten** (dieser Commit): trägt den
-  vollen 40-stelligen SHA von PR #720 nach, klassifiziert `aa4369d` (#710 via
-  PR #714), `b90d92a` (#717), `07de38f` (#718) und `dcdeeec` (#719) als
-  Protokoll sowie `f8143db` (#720) als neuen Kandidaten in der Tabelle,
-  aktualisiert die Fensterzahl 21 → 26 und die Gate-Nachweise; ändert nur
-  `docs/history/RELEASE-2.7.1-scope-freeze.md`.
+- **Freeze-Nachtrag für den #720-Kandidaten** (PR #721, zwei Commits): trägt
+  den vollen 40-stelligen SHA von PR #720 nach, klassifiziert `aa4369d`
+  (#710 via PR #714), `b90d92a` (#717), `07de38f` (#718) und `dcdeeec` (#719)
+  als Protokoll sowie `f8143db` (#720) als (zu diesem Zeitpunkt) neuen
+  Kandidaten in der Tabelle, aktualisiert die Fensterzahl 21 → 26 und die
+  Gate-Nachweise; der zweite Commit korrigiert zwei Codex-Reviewbefunde
+  derselben PR (veraltete „aktueller Kandidat"-Markierung bei #715,
+  überzogener Anspruch zur artefaktgebundenen 2.7.0-Prüfung).
+- **Fortführung dieses Nachtrags für den Kandidatenwechsel durch #722**
+  (dieser Commit): trägt den vollen 40-stelligen SHA von PR #722 nach,
+  wandelt die vorherige `Kandidaten-Commit`-Platzhalterzeile für #720 in
+  eine Zeile mit vollem SHA um, ergänzt eine neue Zeile für #722,
+  aktualisiert die Fensterzahl 26 → 27 und die Gate-Nachweise; ändert
+  ebenfalls nur `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
 Die zuvor hier geführten Protokoll-Commits (`5c25e3b`, `ac05363`, `1b04887`,
 `0b021cc`, `aa4369d`) liegen seit dem Kandidatenwechsel durch #711 bzw. #720
@@ -379,6 +388,14 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | `python scripts/verify_release_freeze.py --require-pin` (auf `main`, vor diesem Protokoll-Nachtrag) | 3 Fehler, 4 Warnungen (`candidate-sha-mismatch` gegen den alten Pin `adb220596061…`, `commit-count-mismatch` 26 vs. 21, ein `unclassified-candidate-commit` für #715, vier `unclassified-protocol-commit`-Warnungen für #719/#718/#717/#714 – erwarteter Zustand vor dem Nachtrag) |
 | `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
 
+| Prüfung auf dem #722-Kandidaten (Zweig `claude/acceptance-smoke-v270-parity`, PR #722) | Lauf/Ergebnis |
+|---|---|
+| `make check` (auf dem Zweig, Basis `main` = `f8143db78991…`) | grün: pytest **2100 passed, 6 skipped, 14 deselected** (Prüftiefen-Erweiterung) bzw. **2101 passed** (nach den beiden Codex-Nachbesserungen unten) |
+| Erste Codex-Reviewrunde auf PR #722 | 1× P1 – behoben: `_run_v270_project_smoke` verglich nur Ebenenkind/-rolle und Bearbeitbarkeit, nicht IDs/Namen/Metadaten/Version/Pixel-Payload gegen die Fixture-Referenz; jetzt vollständiger Feldvergleich analog `tests/test_project_v270_upgrade.py`, plus Negativtest mit einem strukturell identischen, frisch generierten „Lookalike"-Projekt. |
+| Zweite Codex-Reviewrunde auf PR #722 | 2× P1 – behoben: (1) der Versionscheck prüfte `project.version` (das separate, immer-1 `project_version`-Feld) statt der tatsächlichen `.bgrproj`-Manifest-Formatversion – jetzt liest der Hook `manifest["version"]` direkt aus der Fixture-ZIP und vergleicht sie mit dem im gepackten Prozess geltenden `PROJECT_FORMAT_VERSION`; (2) `visible`/`opacity`/`locked`/`active_layer_id` fehlten – jetzt ergänzt, mit Regressionstest für das genannte Beispiel (Farb-Ebenen-Deckkraft 1.0 → 0.5 bei sonst identischen IDs). |
+| `python scripts/verify_release_freeze.py --require-pin` (nach Rebase auf den #722-Merge, vor diesem Protokoll-Nachtrag) | 3 Fehler (`candidate-sha-mismatch` gegen den alten Pin `f8143db78991…`, `commit-count-mismatch` 27 vs. 26, ein `unclassified-candidate-commit` für #720 – erwarteter Zustand vor dem Nachtrag) |
+| `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
+
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
 
@@ -436,7 +453,8 @@ wiederholt, keiner still nachgezogen):
    Freeze-Nachtrag (#710, PR #714) ändert weiterhin ausschließlich Protokoll-/
    Statusdokumentation und verschiebt den Kandidaten nicht.
 9. **Kandidatenwechsel durch #720** (zwei fehlende Hardware-Abnahme-Nachweise
-   für #685 ergänzt, `f8143db78991…`, **aktueller Kandidat**): Die reale
+   für #685 ergänzt, `f8143db78991…`, **nicht mehr aktueller Kandidat, seit
+   dem Kandidatenwechsel durch #722 im Fenster**): Die reale
    Hardware-Abnahme in #685 (macOS arm64 + Linux aarch64) deckte Start,
    GPU-Provenienz, nativen 3D-Viewer und Live-GL-Performance ab, ließ aber
    zwei Akzeptanzkriterien automatisiert unbelegt – Öffnen eines echten
@@ -451,6 +469,20 @@ wiederholt, keiner still nachgezogen):
    21 → 26, Kandidaten-SHA auf den neuen Stand gesetzt, Gate-Nachweise
    wiederholt. Dieser Freeze-Nachtrag selbst änderte ausschließlich
    Protokoll-/Statusdokumentation und verschiebt den Kandidaten nicht.
+10. **Kandidatenwechsel durch #722** (`acceptance_smoke.py`s 2.7.0-Prüftiefe
+    an den Source-Checkout-Test angeglichen, `9845147ea708…`, **aktueller
+    Kandidat**): Zwei Codex-Reviewrunden (auf PR #721 bzw. #722, siehe Tabelle
+    oben) fanden die in #720 eingeführte artefaktgebundene 2.7.0-Prüfung
+    strukturell schwächer als behauptet. PR #722 schließt die Lücke und
+    erfüllt die Freeze-Ausnahme wörtlich: Nachweislückenfund in einer
+    release-relevanten Prüfung (den eigenen Akzeptanzkriterien von #685).
+    Kandidatenrelevant über `bgremover/**`, `tests/**`; kein weiterer
+    Protokoll-Commit dazwischen. Nach dem vorgeschriebenen Verfahren
+    vollständig nachgezogen: Fensterzahl 26 → 27, die vorherige
+    `Kandidaten-Commit`-Platzhalterzeile für #720 zu einer Zeile mit vollem
+    SHA gewandelt, neue Zeile für #722 ergänzt, Gate-Nachweise wiederholt.
+    Dieser Freeze-Nachtrag (PR #721, fortgeführt) ändert weiterhin
+    ausschließlich Protokoll-/Statusdokumentation.
 
 Die Punkte 1.–4. liegen als Commits nicht mehr auf `main` (Squash); sie sind
 über PR #701 einsehbar und hier bewusst als Entstehungsgeschichte protokolliert.
@@ -499,18 +531,17 @@ gebaut oder getaggt wird.
 - **#685 (zwei fehlende Hardware-Abnahme-Nachweise, PR #720):** Öffnen eines
   echten 2.7.0-Projekts und EufyMake-Export-Smoke, gefunden bei der
   Gegenprüfung der rohen Evidenz aus dem ersten Hardware-Abnahmelauf.
-  **Erzeugt den aktuellen Kandidaten** (Squash-Merge `f8143db78991…`; siehe
-  Kandidatenwechsel 9.).
-- **#685 (Nachbesserung des artefaktgebundenen 2.7.0-Nachweises):** Zweite
-  Codex-Reviewrunde (auf diesem Freeze-Nachtrag, PR #721) fand
-  `bgremover/acceptance_smoke.py`s 2.7.0-Projektprüfung strukturell
-  schwächer als behauptet – sie vergleicht Ebenenstruktur/-rolle und
-  Weiterbearbeitbarkeit, aber nicht IDs/Namen/Metadaten/Version/Pixel-Payload
-  gegen die Fixture-Referenz (das bleibt vorerst nur in
-  `tests/test_project_v270_upgrade.py` abgesichert, siehe Nachtrag in der
-  Tabelle oben). Ein eigener kandidatenrelevanter Folge-Commit gleicht die
-  Prüftiefe an; **erzeugt bei seinem Merge einen weiteren Kandidatenwechsel**,
-  der nach diesem Verfahren erneut vollständig nachgezogen werden muss.
+  (Squash-Merge `f8143db78991…`; siehe Kandidatenwechsel 9.). **Nicht mehr
+  aktueller Kandidat**, seit dem Kandidatenwechsel durch #722 im Fenster.
+- **#685 (Nachbesserung des artefaktgebundenen 2.7.0-Nachweises, PR #722):**
+  Zwei Codex-Reviewrunden (auf PR #721 bzw. #722) fanden
+  `bgremover/acceptance_smoke.py`s 2.7.0-Projektprüfung aus #720 strukturell
+  schwächer als behauptet und als `tests/test_project_v270_upgrade.py` –
+  fehlende IDs-/Namen-/Metadaten-/Versions-/Pixel-Vergleiche, eine falsch
+  geprüfte Versionsangabe (`project.version` statt der tatsächlichen
+  Manifest-Formatversion) sowie fehlende `visible`/`opacity`/`locked`/
+  `active_layer_id`-Vergleiche. **Erzeugt den aktuellen Kandidaten**
+  (Squash-Merge `9845147ea708…`; siehe Kandidatenwechsel 10.).
 
 ## Ausdrücklich nicht in diesem Scope-Freeze enthalten
 
