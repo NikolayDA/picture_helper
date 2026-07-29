@@ -227,8 +227,16 @@ def run_acceptance_extra(
     """
     v270_ok, v270_message = _run_v270_project_smoke(window, v270_fixture)
     if v270_ok:
+        # Eigener Exportordner je Aufrufer (Dateiname von ``output_json``, z. B.
+        # "acceptance_extra_deb"): mehrere Artefaktklassen teilen sich denselben
+        # Evidenz-Ordner (scripts/abnahme_smoke.py ruft je Klasse mit demselben
+        # ``evidence_dir`` auf) – ein fester Name "eufymake_export" kollidierte
+        # sonst mit dem der zuerst gelaufenen Klasse und ließ ``write_export``
+        # ohne ``overwrite`` mit ``ExportTargetExistsError`` fehlschlagen (#685-
+        # Hardware-Abnahme auf dem finalen Kandidaten, Pi 5: AppImage lief zuerst
+        # erfolgreich, .deb schlug danach genau daran fehl).
         eufymake_ok, eufymake_message = _run_eufymake_export_smoke(
-            window, output_json.parent / "eufymake_export",
+            window, output_json.parent / f"{output_json.stem}_eufymake_export",
         )
     else:
         eufymake_ok, eufymake_message = False, "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
