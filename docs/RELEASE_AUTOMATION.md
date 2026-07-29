@@ -193,8 +193,11 @@ Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 installiert dafür das gepinnte SDK in einem eigenen kurzlebigen venv (auch ein
 Installationsfehler bleibt fail-safe und verhindert die Matrix nicht),
 erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium
-erfüllt/fehlgeschlagen/fehlt/pausiert/unbewertet mit Nachweis und
-GL-Provenance) und postet sie als Kommentar an das Dispatch-Eingabefeld
+erfüllt/fehlgeschlagen/fehlt/pausiert/unbewertet mit Nachweis,
+GL-Provenance, Gerät/OS (aus den Umgebungs-Pflichtfeldern der Evidenz),
+Datum, Testperson (`automatisiert (kein manueller Tester)`, #685-Review –
+der Lauf ist vollautomatisiert) und einem Link auf den erzeugenden
+Workflow-Lauf) und postet sie als Kommentar an das Dispatch-Eingabefeld
 `target_issue` (Standard: #595). Pro aktiver
 Plattform erscheinen Hardware-Smoke, nativer Source-E2E und Live-GL-
 Performance als getrennte Pflichtzeilen; fehlende/inkonsistente Evidenz kann

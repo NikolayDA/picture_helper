@@ -222,6 +222,77 @@ def test_render_markdown_contains_all_states(tmp_path: Path) -> None:
     assert "Go/No-Go entscheidet ein Mensch" in md
 
 
+def test_matrix_rows_carry_geraet_os_datum_testperson_and_link(tmp_path: Path) -> None:
+    """#685-Review: Testperson/Datum/Gerät-OS/Link fehlten bisher in der Matrix."""
+    _write(tmp_path, "linux-arm64", _evidence(
+        "linux-arm64", umgebung={"os": "Linux-6.1-aarch64", "runner": "raspberrypi"},
+        erzeugt_am="2026-07-29T23:05:31+00:00",
+    ))
+    e2e, live_gl = _complete_aux("linux-arm64")
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), e2e=e2e, live_gl=live_gl,
+        run_url="https://github.com/example/repo/actions/runs/123",
+    )
+    smoke_row = next(r for r in rows if r.kriterium == agg.EXPECTED_PLATFORMS["linux-arm64"])
+    assert smoke_row.geraet_os == "raspberrypi (Linux-6.1-aarch64)"
+    assert smoke_row.datum == "2026-07-29"
+    assert smoke_row.testperson == agg.AUTOMATED_TESTPERSON
+    assert smoke_row.nachweis_link == "https://github.com/example/repo/actions/runs/123"
+
+    # E2E-Zeilen tragen kein eigenes umgebung, übernehmen aber Gerät/OS von der
+    # Plattform-Evidenz desselben Jobs. Das Datum kommt dagegen aus dem eigenen
+    # erzeugt_am des E2E-Ergebnisses (hier "2026-07-21" laut _e2e()-Fixture),
+    # nicht von der Plattform-Evidenz (siehe eigener Test für den
+    # Datumsgrenzen-Fall).
+    e2e_row = next(r for r in rows if r.kriterium.startswith("linux-arm64: Native 3D-E2E"))
+    assert e2e_row.geraet_os == "raspberrypi (Linux-6.1-aarch64)"
+    assert e2e_row.datum == "2026-07-21"
+
+    vision_row = next(r for r in rows if "Vision" in r.kriterium)
+    assert vision_row.nachweis_link == "https://github.com/example/repo/actions/runs/123"
+
+
+def test_matrix_rows_without_evidence_show_placeholder_geraet_os_and_datum() -> None:
+    rows = agg.build_matrix({})
+    row = next(r for r in rows if r.kriterium == agg.EXPECTED_PLATFORMS["macos-arm64"])
+    assert row.geraet_os == "—"
+    assert row.datum == "—"
+    assert row.nachweis_link == "—"
+
+
+def test_e2e_and_live_gl_rows_use_their_own_timestamp_across_date_boundary(
+    tmp_path: Path,
+) -> None:
+    """Codex-Fund (#725-Review): überquert der Job die UTC-Datumsgrenze,
+    muss die E2E-/Live-GL-Zeile ihr eigenes ``erzeugt_am``/``timestamp``
+    zeigen, nicht das der (früher erzeugten) Plattform-Evidenz."""
+    _write(tmp_path, "linux-arm64", _evidence(
+        "linux-arm64", erzeugt_am="2026-07-29T23:55:00+00:00",
+    ))
+    e2e_result = _e2e("linux-arm64", erzeugt_am="2026-07-30T00:05:00+00:00")
+    live_result = _live_gl("linux-arm64", timestamp="2026-07-30T00:10:00+00:00")
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path),
+        e2e={"linux-arm64": e2e_result}, live_gl={"linux-arm64": live_result},
+    )
+    e2e_row = next(r for r in rows if r.kriterium.startswith("linux-arm64: Native 3D-E2E"))
+    live_row = next(r for r in rows if r.kriterium == "linux-arm64: Live-GL-Performance")
+    assert e2e_row.datum == "2026-07-30"
+    assert live_row.datum == "2026-07-30"
+
+
+def test_render_markdown_contains_new_columns(tmp_path: Path) -> None:
+    _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
+    rows = agg.build_matrix(
+        agg.load_evidence(tmp_path), run_url="https://example.invalid/runs/1",
+    )
+    md = agg.render_markdown(rows, commit_sha="deadbeef")
+    assert "Gerät/OS" in md
+    assert "Testperson" in md
+    assert agg.AUTOMATED_TESTPERSON in md
+    assert "[Lauf](https://example.invalid/runs/1)" in md
+
+
 def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
     _write(tmp_path, "macos-arm64", _evidence("macos-arm64"))
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))

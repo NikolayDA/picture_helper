@@ -398,6 +398,60 @@ jobs:
       - name: Scan built artifacts for secrets and dev paths
         run: python3 scripts/scan_release_artifacts.py dist
 
+      # #685-Review: scan_release_artifacts.py oben kennt nur Secrets/Dev-Pfade,
+      # keine Malware-Signaturen – ergaenzt die projektuebliche
+      # Supply-Chain-Pruefung um einen echten Virenscan der fuenf gebauten
+      # Artefakte. ClamAV statt eines Marketplace-Actions, damit kein
+      # Drittanbieter-Code mit Repo-Zugriff laeuft. Die Definitionsaktualisierung
+      # ist bewusst nicht blockierend (Mirror-Netzwerkschwankungen duerfen den
+      # Build nicht flaky machen, analog zur fail-safe Vision-Vorbewertung in
+      # release-abnahme.yml) – ein tatsaechlicher Fund im Scan selbst blockiert
+      # dagegen hart (clamscan liefert exit code 1), keine stille Luecke.
+      - name: Install ClamAV (Linux)
+        if: matrix.os == 'linux'
+        run: sudo apt-get install -y clamav
+      - name: Install ClamAV (macOS)
+        if: matrix.os == 'macos'
+        run: brew install clamav
+      - name: Update ClamAV virus definitions (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            clamav_etc="$(brew --prefix)/etc/clamav"
+            mkdir -p "$clamav_etc"
+            [ -f "$clamav_etc/freshclam.conf" ] || cp "$clamav_etc/freshclam.conf.sample" "$clamav_etc/freshclam.conf"
+            # Homebrews Beispielkonfiguration traegt eine aktive "Example"-
+            # Direktive, die freshclam als unkonfiguriert ablehnt (#685-Review,
+            # Codex) – ohne diese Zeile zu entfernen, bliebe die Datenbank leer
+            # und der nachfolgende Praesenz-Check wuerde jeden macOS-Build hart
+            # abbrechen, obwohl freshclam selbst gar nicht wirklich lief.
+            sed -i '' '/^Example/d' "$clamav_etc/freshclam.conf"
+            freshclam --quiet
+          else
+            sudo freshclam --quiet
+          fi
+      - name: Virus scan built artifacts (ClamAV)
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            clamav_db="$(brew --prefix)/share/clamav"
+          else
+            clamav_db="/var/lib/clamav"
+          fi
+          # Explizit pruefen, dass freshclam oben tatsaechlich eine
+          # Virendatenbank hinterlassen hat, statt clamscan blind laufen zu
+          # lassen: ohne Datenbank bricht clamscan mit Fehlerstatus 2 ab, was
+          # sich sonst nicht von einem echten Fund (Status 1) unterscheiden
+          # liesse und den eigentlichen Grund (fehlgeschlagenes freshclam)
+          # verschleiern wuerde (#685-Review, Codex).
+          if ! find "$clamav_db" -maxdepth 1 \( -name '*.cvd' -o -name '*.cld' \) -print -quit \
+              2>/dev/null | grep -q .; then
+            echo "::error::ClamAV-Virendatenbank fehlt unter $clamav_db – freshclam ist fehlgeschlagen."
+            exit 1
+          fi
+          clamscan --recursive --infected --stdout dist
+
       - name: Verify built macOS artifact
         if: matrix.os == 'macos'
         run: |

@@ -32,14 +32,16 @@ def test_run_acceptance_extra_succeeds_for_real_v270_fixture(qapp, qtbot, tmp_pa
     finally:
         win.close()
 
-    assert result.ok, (result.v270_message, result.eufymake_message)
+    assert result.ok, (result.v270_message, result.eufymake_message, result.missing_component_message)
     assert result.v270_ok
     assert result.eufymake_ok
+    assert result.missing_component_ok, result.missing_component_message
 
     payload = json.loads(output_json.read_text(encoding="utf-8"))
     assert payload["ok"] is True
     assert payload["v270_project_open"]["ok"] is True
     assert payload["eufymake_export"]["ok"] is True
+    assert payload["missing_component"]["ok"] is True
 
     export_dir = output_json.parent / f"{output_json.stem}_eufymake_export"
     assert (export_dir / "color_motif.png").is_file()
@@ -65,6 +67,8 @@ def test_run_acceptance_extra_reports_missing_fixture(qapp, qtbot, tmp_path: Pat
     # nochmal separat versucht (würde nur denselben Fehler verdoppeln).
     assert not result.eufymake_ok
     assert "übersprungen" in result.eufymake_message
+    assert not result.missing_component_ok
+    assert "übersprungen" in result.missing_component_message
 
     payload = json.loads(output_json.read_text(encoding="utf-8"))
     assert payload["ok"] is False
@@ -175,3 +179,29 @@ def test_run_acceptance_extra_twice_in_same_evidence_dir_does_not_collide(  # ty
     assert second.ok, (second.v270_message, second.eufymake_message)
     assert (evidence_dir / "acceptance_extra_appimage_eufymake_export" / "color_motif.png").is_file()
     assert (evidence_dir / "acceptance_extra_deb_eufymake_export" / "color_motif.png").is_file()
+
+
+def test_run_acceptance_extra_missing_component_restores_rembg_available(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Die Fehlende-Komponente-Prüfung erzwingt ``REMBG_AVAILABLE = False`` nur
+    für ihre eigene Dauer und muss den Originalwert danach zurücksetzen –
+    sonst würde eine erfolgreiche Prüfung den laufenden, gepackten Prozess
+    dauerhaft in den "kein KI-Backend"-Zustand versetzen (#685-Review)."""
+    import bgremover.main_window as main_window_module
+
+    original = main_window_module.REMBG_AVAILABLE
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    assert result.missing_component_ok, result.missing_component_message
+    assert main_window_module.REMBG_AVAILABLE is original
+
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    assert payload["missing_component"]["ok"] is True

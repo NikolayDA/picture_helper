@@ -17,7 +17,7 @@ import argparse
 import json
 import math
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +47,12 @@ E2E_REQUIRED_FIELDS = (
 )
 
 
+# Vollautomatisierter Lauf ohne manuellen Tester (#685-Review): das
+# "Testperson"-Feld der Abnahmematrix macht das explizit statt es leer zu
+# lassen (eine leere Zelle könnte wie eine vergessene Angabe aussehen).
+AUTOMATED_TESTPERSON = "automatisiert (kein manueller Tester)"
+
+
 @dataclass(frozen=True)
 class MatrixRow:
     """Eine Zeile der Abschlussmatrix."""
@@ -56,6 +62,35 @@ class MatrixRow:
     nachweis: str
     provenance: str
     hinweis: str
+    geraet_os: str = "—"
+    datum: str = "—"
+    testperson: str = AUTOMATED_TESTPERSON
+    nachweis_link: str = "—"
+
+
+def _geraet_os(evidence: dict[str, Any] | None) -> str:
+    """``Gerät/OS`` aus den Umgebungs-Pflichtfeldern (#640) ableiten."""
+    if not evidence:
+        return "—"
+    umgebung = evidence.get("umgebung")
+    if not isinstance(umgebung, dict):
+        return "—"
+    os_name = str(umgebung.get("os") or "").strip()
+    runner = str(umgebung.get("runner") or "").strip()
+    if runner and runner != "unbekannt":
+        return f"{runner} ({os_name or 'unbekannt'})"
+    return os_name or "—"
+
+
+def _datum(evidence: dict[str, Any] | None, *, field: str = "erzeugt_am") -> str:
+    """Nur das Datum (nicht die Uhrzeit) aus dem gegebenen Zeitstempelfeld
+    extrahieren. Live-GL-Ergebnisse (``scripts/benchmark.py``) tragen ihren
+    Zeitstempel unter ``timestamp`` statt ``erzeugt_am`` – daher der
+    konfigurierbare Feldname (#685-Review, Codex)."""
+    if not evidence:
+        return "—"
+    value = str(evidence.get(field) or "")
+    return value[:10] if len(value) >= 10 else "—"
 
 
 def _platform_from_path(path: Path) -> str:
@@ -246,13 +281,22 @@ def build_matrix(
     e2e: dict[str, dict[str, Any]] | None = None,
     live_gl: dict[str, dict[str, Any]] | None = None,
     vision: list[dict[str, Any]] | None = None,
+    run_url: str = "—",
 ) -> list[MatrixRow]:
-    """Abschlussmatrix aus den gesammelten Evidenzen bauen."""
+    """Abschlussmatrix aus den gesammelten Evidenzen bauen.
+
+    ``run_url`` verlinkt jede Zeile auf den erzeugenden Workflow-Lauf (Logs/
+    Screenshots liegen dort als Artefakte); "—", wenn kein Lauf bekannt ist
+    (z. B. lokale Aufrufe außerhalb von CI, #685-Review).
+    """
     rows: list[MatrixRow] = []
     for platform, kriterium in EXPECTED_PLATFORMS.items():
         ev = evidences.get(platform)
         if ev is None:
-            rows.append(MatrixRow(kriterium, "fehlt", "—", "—", "Kein Evidenz-Artefakt."))
+            rows.append(MatrixRow(
+                kriterium, "fehlt", "—", "—", "Kein Evidenz-Artefakt.",
+                nachweis_link=run_url,
+            ))
             continue
         missing = validate_evidence(ev)
         note = "" if not missing else f"Vertragsverstoß: fehlende Felder {missing}"
@@ -265,6 +309,7 @@ def build_matrix(
         rows.append(MatrixRow(
             kriterium, status, "evidenz.json",
             str(ev.get("gl_provenance") or "—"), note,
+            geraet_os=_geraet_os(ev), datum=_datum(ev), nachweis_link=run_url,
         ))
 
     # Pausierter x86_64-Pfad: explizit sichtbar, nie stille Lücke.
@@ -273,6 +318,7 @@ def build_matrix(
         if px is None:
             rows.append(MatrixRow(
                 PAUSED_LABEL, "fehlt", "—", "—", "Kein Evidenz-Artefakt.",
+                nachweis_link=run_url,
             ))
         else:
             missing = validate_evidence(px)
@@ -286,11 +332,13 @@ def build_matrix(
             rows.append(MatrixRow(
                 PAUSED_LABEL, status, "evidenz.json",
                 str(px.get("gl_provenance") or "—"), note,
+                geraet_os=_geraet_os(px), datum=_datum(px), nachweis_link=run_url,
             ))
     else:
         rows.append(MatrixRow(
             PAUSED_LABEL, "pausiert", "—", "—",
             "Pausiert (kein GPU-Zugang) – siehe RELEASE_AUTOMATION.md §5.",
+            nachweis_link=run_url,
         ))
 
     active_platforms = [*EXPECTED_PLATFORMS]
@@ -301,12 +349,22 @@ def build_matrix(
     for platform in active_platforms:
         platform_evidence = evidences.get(platform)
         commit_sha = str((platform_evidence or {}).get("commit_sha") or "")
+        # E2E-/Live-GL-Nachweise tragen kein eigenes ``umgebung`` (nicht Teil
+        # ihres Vertrags) – dieselbe Plattform-Evidenz aus demselben Job liefert
+        # Gerät/OS trotzdem verlässlich mit. Das Datum kommt dagegen bevorzugt
+        # aus dem jeweils eigenen Zeitstempel (``erzeugt_am``/``timestamp``):
+        # der Plattform-Evidenz-Zeitstempel entsteht *vor* Smoke/E2E/Live-GL,
+        # ein UTC-Datumswechsel während des Jobs würde sonst ein falsches
+        # Datum für diese später gelaufenen Kriterien zeigen (#685-Review, Codex).
+        platform_geraet_os = _geraet_os(platform_evidence)
+        platform_datum = _datum(platform_evidence)
 
         e2e_result = e2e.get(platform)
         e2e_label = f"{platform}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)"
         if e2e_result is None:
             rows.append(MatrixRow(
                 e2e_label, "fehlt", "—", "—", "Keine E2E-Evidenz.",
+                geraet_os=platform_geraet_os, datum=platform_datum, nachweis_link=run_url,
             ))
         else:
             issues = validate_e2e(
@@ -332,6 +390,9 @@ def build_matrix(
                 note = "Nativer GL-Viewer ready und Geometrie gerendert."
             rows.append(MatrixRow(
                 e2e_label, status, "e2e-evidenz.json", "—", note,
+                geraet_os=platform_geraet_os,
+                datum=_datum(e2e_result) if _datum(e2e_result) != "—" else platform_datum,
+                nachweis_link=run_url,
             ))
 
         live_result = live_gl.get(platform)
@@ -339,6 +400,7 @@ def build_matrix(
         if live_result is None:
             rows.append(MatrixRow(
                 live_label, "fehlt", "—", "—", "Kein preview3d-live-Ergebnis.",
+                geraet_os=platform_geraet_os, datum=platform_datum, nachweis_link=run_url,
             ))
         else:
             issues = validate_live_gl(
@@ -349,13 +411,17 @@ def build_matrix(
                 environment.get("gl_provenance") or "—"
                 if isinstance(environment, dict) else "—"
             )
+            live_datum = _datum(live_result, field="timestamp")
             rows.append(MatrixRow(
                 live_label, "unbewertet" if issues else "erfuellt",
                 "preview3d-live/*.json", provenance,
                 f"Vertragsverstoß: {issues}" if issues else "Alle 5 Metriken für 1/16/40 MP.",
+                geraet_os=platform_geraet_os,
+                datum=live_datum if live_datum != "—" else platform_datum,
+                nachweis_link=run_url,
             ))
 
-    rows.append(_vision_row(vision or []))
+    rows.append(replace(_vision_row(vision or []), nachweis_link=run_url))
     return rows
 
 
@@ -382,13 +448,16 @@ def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> 
         "",
         f"Commit: `{commit_sha}`. Automatisiert aus den Evidenz-Artefakten (Epic #639).",
         "",
-        "| Kriterium | Status | Nachweis | GL-Provenance | Hinweis |",
-        "|---|---|---|---|---|",
+        "| Kriterium | Status | Nachweis | GL-Provenance | Gerät/OS | Datum | "
+        "Testperson | Link | Hinweis |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         mark = f"{icon.get(r.status, '')} {r.status}".strip()
+        link = f"[Lauf]({r.nachweis_link})" if r.nachweis_link != "—" else "—"
         lines.append(
-            f"| {r.kriterium} | {mark} | {r.nachweis} | `{r.provenance}` | {r.hinweis} |"
+            f"| {r.kriterium} | {mark} | {r.nachweis} | `{r.provenance}` | "
+            f"{r.geraet_os} | {r.datum} | {r.testperson} | {link} | {r.hinweis} |"
         )
     lines += [
         "",
@@ -406,6 +475,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True, help="Ziel-Markdown der Matrix.")
     parser.add_argument("--commit-sha", default="unbekannt")
     parser.add_argument("--x86-64-enabled", action="store_true")
+    parser.add_argument(
+        "--run-url", default="—",
+        help="Link auf den erzeugenden Workflow-Lauf (Logs/Screenshots als Artefakte dort).",
+    )
     args = parser.parse_args(argv)
 
     evidences = load_evidence(args.artifacts_dir)
@@ -414,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
     vision = load_vision(args.artifacts_dir)
     rows = build_matrix(
         evidences, x86_64_enabled=args.x86_64_enabled, e2e=e2e,
-        live_gl=live_gl, vision=vision,
+        live_gl=live_gl, vision=vision, run_url=args.run_url,
     )
     markdown = render_markdown(rows, commit_sha=args.commit_sha)
     args.output.write_text(markdown, encoding="utf-8")
