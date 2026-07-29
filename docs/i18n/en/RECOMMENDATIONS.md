@@ -11,31 +11,41 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-29, follow-up: #716 newly filed, otherwise unchanged)
+## Current Status (2026-07-29, PR/issue follow-up + release-gate audit + #716 follow-up)
 
-Follow-up on 2026-07-29 (later the same day, after PR #717): exactly **one** new issue appeared since the last round – **#716** (automated test-suite audit, 5th round after #168/#177/#178/#659). `make coverage` runs green (2081 passed, 6 skipped, 93% coverage, gate `fail_under=86`); **no production bug found**, only minor test-quality sharpening (two genuine coverage gaps – `WorkerController.start_mesh_build` e2e and `CropBar` wiring –, three weak assertions, implementation-detail coupling in three tests, two redundancies/duplicates). All other 17 issues are unchanged since the last round: no new comments, no status changes.
+The eight PRs merged on July 28/29 in Europe/Berlin (#706–#709 and #712–#715) and closed issues #702, #710, and #711 were rechecked against final code, review threads, and CI. Every PR head passed PR CI, CodeQL, dependency audit, license check, and Claude Code Review. #702 is fully fixed by #708 in all six README languages; #711 is functionally complete through #713, including all three valid review findings.
 
-The two follow-ups filed the previous day as release-blocking, **#711** (GL probe/QOpenGLBuffer detection) and **#710** (freeze update/SHA contract), remain closed (#711 via PR #713, #710 via PR #714, deadlock fix via PR #715).
+Since that review, the documentation-only PRs #717 and #718 have merged. #718 records the newly opened **#716** (the fifth automated test-suite audit after #168/#177/#178/#659): `make coverage` is green with 2081 passed, 6 skipped, and 93% coverage. No production bug was found; the remaining work consists of two genuine coverage gaps, three weak assertions, and several small decoupling and redundancy cleanups. The issue already contains a clearly scoped eight-item checklist.
 
-Current candidate for 2.7.1: `adb2205960619b9b5c29a9a05feda163310782a6` (21 commits in the window; `python scripts/verify_release_freeze.py --require-pin` → 0 errors/0 warnings). **#685 remains technically unblocked and, per its own status comment, ready to start** — only the genuinely manual/hardware-bound parts remain (candidate build, install/launch on target hardware, signing/notarization check, acceptance matrix, go/no-go). #686 stays blocked until #685 is done.
+- **Epic #680** – v2.7.x stabilization now follows **#685 → #686**: build/accept all five artifacts, then publish.
+- **Epic #681** – EufyMake target profile: HEIGHT bit depth, mm/DPI, and gloss assumptions in the export need to be checked against manufacturer sources and real hardware and turned into a versioned target profile. Sub-issues: #687 (assumption inventory/test matrix), #688 (HEIGHT), #689 (mm/DPI), #690 (gloss), #691 (profile integration into validator/writer/dialog/docs).
+- **Epic #682** – COLOR tonal/grayscale engine: a shared Qt-free base for histogram/levels/gamma as the foundation for image optimization and later laser workflows. Sub-issues: #692 (ADR/data contract), #693 (Qt-free core), #694 (live preview/UI), #695 (layer/selection/history/project integration), #696 (performance/E2E/docs/laser-interface acceptance).
 
-Live state after the GitHub query: **18** open issues (17 unchanged from the last round plus the newly filed #716).
+PR #709 added a structurally unsatisfiable `GITHUB_SHA == candidate` check on top of the freeze pin. The review of #714 found the deadlock; #715 removed it, and #714 then completed the freeze follow-up for `adb2205960619b9b5c29a9a05feda163310782a6`. `make release-freeze-check` now reports **0 errors and 0 warnings** with 21 fully classified commits.
+
+Live state after the GitHub query: **18** open issues (the previous 17 plus the newly filed #716).
 
 ### Review and Definition Audit Result
 
-- 🟢 **New: #716** (test-suite audit) – no production bug, only minor test-quality sharpening across ~8 test files; every item is already a clear, mechanical checklist entry in the issue.
-- ✅ **#711/#710 remain closed**, candidate `adb2205960619b9b5c29a9a05feda163310782a6` unchanged.
-- ✅ **#685 still ready to start:** per its own current status comment, the candidate build plus hardware acceptance can begin.
-- 🟠 **EufyMake definitions unchanged:** #681/#687–#691 still describe TIFF criteria against a real PNG asset package; #687 remains not ready to start until this is resolved.
-- **No new comments** on #245/#656 or on the COLOR (#682/#692–#696) and remaining EufyMake sub-issues (#688–#690) since the last round – no update needed.
+- ✅ **#706–#709/#712–#715:** all five workflow families passed; functional review findings in #706, #709, #713, and #714 are present in the final code.
+- ✅ **#702/#708:** the Layers/Height ownership wording is correct in all six README variants; no remaining finding.
+- ✅ **#711/#713:** create/bind failure, partial setup, cleanup, counter balance, and aborted-cycle reporting are fail-closed; the real GPU run remains part of #685.
+- ✅ **#710/#714/#715:** freeze, commit inventory, and build/tag contract are consistent; a regression test prevents reintroducing #709's deadlock.
+- 🟢 **#716:** no production bug, but clearly documented test sharpening across roughly eight test files; ready to start and independent of the release and feature paths.
+- 🟡 **Review hygiene:** PR #713 has three technically answered but administratively unresolved threads; PR #712 has one open language-parity thread. This recommendations update fixes its content finding, while the historical threads remain visible.
+- 🟠 **#681 and its sub-issues #687–#691 describe a TIFF package that the export does not produce.** `eufymake_writer.py` writes a folder containing `color_motif.png` (the only mandatory asset), optionally `height_map.png` and `gloss_mask.png`, plus `manifest.json` — exactly as fixed in the ADR; `grep -ri tiff bgremover/eufymake_*` returns no hit. Criteria about "TIFF directories/IFDs", "page order", `SampleFormat`, `PhotometricInterpretation`, `ExtraSamples`, and `X/YResolution` therefore inspect objects that do not exist in the export result. Details, the affected criteria per sub-issue, and two resolution options: [comment on #681](https://github.com/NikolayDA/picture_helper/issues/681#issuecomment-5091039442). **#687 is not ready to start until this is resolved** — an inventory that skips the format question cements the very assumption the epic is meant to test.
+- 🟡 **New finding N10: the exported image assets carry no resolution metadata.** `_write_png()` calls `image.save(path, "PNG")` without `dpi=`, so the PNGs have no `pHYs` chunk. Physical size and DPI live only in `manifest.json` (`target.physical_size_mm`/`target.dpi`), a BgRemover-specific convention; **whether EufyMake Studio reads that manifest is unverified** and cannot be derived from the code. The regular image export does anchor DPI in the file itself (`image_ops.save_image`, from #378). The first question for #687/#689 is therefore not the print measurement but the transport path: does Studio read the manifest, does it need `pHYs` in the assets, or is the size entered manually?
+- ✅ **Issue hygiene fixed:** #680/#685/#686 contain the final candidate and corrected build/tag contract; an invalid command suffix in the latest #686 comment was corrected separately.
+- ✅ **Local verification:** `make check` is green (**2038 passed, 37 skipped, 14 deselected**); the freeze gate is also 0/0.
+- **No new comments** on #245/#656 since the last round – no update needed on these issues.
 - **Old baseline still stable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, everything completed since **2026-06-25**, and release v2.7.0 (tag/publication/all three gate stages against commit `6f103ed`) remain unchanged and done.
 
 ## Open GitHub Issues — Triage Status (2026-07-29)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High | 🟠 High | – (epic; Sonnet, medium for tracking) | In progress – #685 is ready, order #685 → #686 |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟠 High | 🟠 High | Sonnet, medium (build); no agent for hardware smokes | **Ready** – candidate `adb2205960619b9b5c29a9a05feda163310782a6`, blockers #710/#711 resolved |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Epic] v2.7.x stabilization – ship the GL fix | 🟠 High | 🟠 High | – (epic; Sonnet, medium for tracking) | In progress – #685 → #686 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Build candidate artifacts + hardware acceptance against the exact commit | 🟠 High | 🟠 High | Sonnet, medium (build); no agent for hardware smokes | Ready – run the candidate build and hardware acceptance |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Tag, publish, post-release verification | 🟠 High (makes the fix available to users) | 🟢 Low (established release process since v2.6.0/v2.7.0) | Sonnet, low | Blocked – waits on #685 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | **Fix the definition** – criteria describe TIFF, the export writes PNG assets |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🟡 Medium (research/docs, no hardware access needed) | Sonnet, medium | Not ready – the container/format question must become the first inventory item |
@@ -55,8 +65,8 @@ Live state after the GitHub query: **18** open issues (17 unchanged from the las
 
 ### Recommended Next
 
-1. Run **#685** now – build candidate artifacts from `adb2205960619b9b5c29a9a05feda163310782a6` and accept them on real target hardware.
-2. **#686** follows afterward for tag/publish.
+1. Run **#685** for all five artifacts from one approved build SHA and complete real hardware acceptance.
+2. Run **#686** only after #685 is green; the tag and asset provenance must match the accepted build.
 3. **#692** can start independently in parallel.
 4. Correct **#681/#687–#691** before #687; #688–#690 still need real EufyMake hardware.
 5. **#656/#245** remain external secret/billing trackers.
@@ -64,8 +74,8 @@ Live state after the GitHub query: **18** open issues (17 unchanged from the las
 
 ## Previous Rounds
 
-- **2026-07-29 (follow-up: #716 newly filed)** — the only new issue since the same-day previous round: #716 (automated test-suite audit, `make coverage` green at 93% coverage, no production bug, only minor test-quality sharpening with a ready-to-implement checklist). All other 17 issues unchanged – no new comments, no status changes. Live state 18.
-- **2026-07-29 (follow-up: #710/#711 closed, #685 ready)** — both previously open release blockers are closed (#711 via PR #713, #710 via PR #714); a deadlock in the build/tag contract (introduced by #709, found by Codex during the #710 review) was reverted via PR #715. Current candidate `adb2205960619b9b5c29a9a05feda163310782a6`, `verify_release_freeze.py --require-pin` 0 errors/0 warnings. #685 is now ready to start (only hardware-bound steps remain), #686 still waits on #685. No new comments on the other 12 open issues. Live state 17.
+- **2026-07-29 (remote follow-up #717/#718 and #716)** — `main` is at `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2`. Documentation PRs #717/#718 merged without review residue. #716 is the only new issue: 93% coverage, no production bug, and eight clearly documented test-quality tasks. The other 17 issues are unchanged; live state 18.
+- **2026-07-29 (review of #706–#709/#712–#715 and #702/#710/#711)** — all eight PR heads passed five workflow families. #702 and #711 are functionally complete; #715 fixes #709's unsatisfiable exact-SHA check; #714 records candidate `adb2205960619b9b5c29a9a05feda163310782a6`, 21 commits, gate 0/0. Four technically answered review threads in #712/#713 remain administratively open. Recommendations synchronized in six languages; local `make check` 2038/37/14. Live state 17; release path #685 → #686.
 - **2026-07-28 (review of #701/#703–#709 and #684/#699/#702)** — eight PR heads passed CI/CodeQL/dependency/license checks and all review threads were resolved. #702 is fixed by #708; #684 remains a sound instrumented proof with the real GPU smoke in #685. Filed #711 (silent QOpenGLBuffer failure can false-green) and #710 (freeze/SHA contract stale after #708/#709; locally 4 errors/1 warning). Updated #680/#685; reliable order #711 → #710 → #685 → #686. Live state 19.
 - **2026-07-27 (issue definition audit)** — all 19 open issues read against the code. Main finding: epic #681 and its five sub-issues state their acceptance criteria against a TIFF package, while the export writes PNG assets plus `manifest.json` — documented on #681, with a heads-up on #687. New code finding **N10** (image assets without `pHYs`; mm/DPI only in the manifest, whose handling by Studio is unverified). Smaller inaccuracies in #685 (a non-existent "TIFF check") and the stale sub-issue checklist on #680. The remaining 13 issues are correctly defined; #702 was verified against the code and is accurate. Live state 19.
 - **2026-07-27 (follow-up on #678/#679/#697/#698/#700/#701/#703 and #677/#683/#699)** — all seven PR heads had green CI/CodeQL/dependency/license runs; #677 is cleanly complete. The initial freeze defect from #683/#698 was corrected through #699/#701/#703, including two review rounds and a hard release gate; final candidate `480a5fc0008ded401b02b15373d8474d67c83382`, gate on `main` 0/0. #685 now waits only on #684, and #686 on #685. New docs issue #702 was expanded to all six README languages and given acceptance criteria. Live state 19.
