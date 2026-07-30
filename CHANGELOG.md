@@ -9,6 +9,40 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.2] – 2026-07-30
+
+### Geändert
+
+- **Release-Abnahme: vier Nachweise geschlossen, die bisher nur teilweise
+  belegt waren (#686).** Die Artefakte eines veröffentlichten Releases werden
+  jetzt über `browser_download_url` **ohne** Zugangstoken geladen – also über
+  denselben Weg wie von der öffentlichen Release-Seite; ein versehentlich
+  privat gebliebenes Release fällt dadurch auf. Zusätzlich prüft der
+  Automationshook im gepackten Artefakt die im Fenstertitel sichtbare
+  Produktversion gegen den Sollwert aus dem Artefaktnamen und speichert eine
+  kontrollierte Projekt-Kopie über den echten `save_project`-Pfad, lädt sie
+  neu und vergleicht sie wertgleich. Die Abnahme-Evidenz weist außerdem je
+  Artefakt aus, ob der SHA256 unabhängig gegen einen Anbieter-Digest bestätigt
+  wurde oder nur berechnet ist.
+
+### Hinweise zu diesem Release
+
+- **Auswirkung:** Bisher ausschließlich Änderungen an der Release-Abnahme.
+  Am Programm selbst ändert sich nichts – keine neuen Funktionen, kein
+  geändertes Bild-, Projekt- oder Exportverhalten.
+- **Betroffene Anwender:innen:** Niemand im laufenden Betrieb. Die Änderungen
+  betreffen die Werkzeuge, mit denen Release-Artefakte vor der
+  Veröffentlichung auf echter Hardware geprüft werden.
+- **Upgrade-Relevanz:** Ohne Eile. Projektdateien (`.bgrproj`), Exportformate
+  und Einstellungen bleiben unverändert kompatibel; ein Downgrade auf 2.7.1
+  ist ebenso ohne Datenänderung möglich.
+- **Unterstützte Plattformen:** macOS arm64 (`.dmg`), Linux x86_64 und Linux
+  arm64 (je `.AppImage` und `.deb`), Python ≥ 3.10. Alle Artefakte bündeln das
+  KI-Backend (`-ai`-Suffix). Die macOS-App ist ad-hoc signiert, nicht mit
+  Developer ID notarisiert – beim Erststart daher Rechtsklick → „Öffnen".
+- **Bekannte Einschränkungen:** Keine über 2.7.1 hinausgehenden neuen
+  Einschränkungen.
+
 ## [2.7.1] – 2026-07-26
 
 ### Behoben
