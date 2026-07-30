@@ -1007,6 +1007,69 @@ def test_main_writes_guard_results_into_evidence(tmp_path, monkeypatch) -> None:
         )
 
 
+def test_command_detail_prefers_stderr_and_falls_back(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Ungewächte Kommandos (apt-get, hdiutil) laufen mit ``capture_output``;
+    ohne diesen Helfer landete ihre Diagnose nirgends im Joblog (Codex-Fund
+    auf PR #735)."""
+    assert smoke._command_detail(smoke.CommandResult(1, stderr="  boom  ")) == "boom"
+    # Kein stderr → stdout, damit auch Werkzeuge erfasst sind, die auf stdout melden.
+    assert smoke._command_detail(smoke.CommandResult(1, stdout="details")) == "details"
+    assert smoke._command_detail(smoke.CommandResult(1)) == "keine Ausgabe"
+
+
+def test_dmg_mount_failure_reports_the_command_output(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Ein fehlgeschlagener DMG-Mount muss sagen, *woran* er scheiterte."""
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        if cmd[:2] == ["hdiutil", "attach"]:
+            return smoke.CommandResult(1, stderr="hdiutil: attach failed - no mountable file systems")
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._macos_dmg("/tmp/x.dmg", report, runner, tmp_path / "shots")
+    assert not report.passed
+    assert any("no mountable file systems" in n for n in report.notes)
+
+
+def test_main_prints_guard_log_for_a_failing_phase(tmp_path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Die Notiz allein lautet nur "…-Start fehlgeschlagen (1)"; die Ausgabe des
+    gewächten Prozesses liegt in ``guard_results[*]["log"]`` und blieb bisher
+    im Evidenz-Artefakt verborgen (Codex-Fund auf PR #735)."""
+    def fake_smoke(artefacts, report, runner, prober, screenshot_dir):  # type: ignore[no-untyped-def]
+        # ``main()`` verwendet den *übergebenen* Report, nicht den Rückgabewert.
+        report.fail("AppImage-Start fehlgeschlagen (1): x-ai.AppImage")
+        report.guard_results.append({
+            "phase": "start", "artefaktklasse": "appimage", "exit_code": 1,
+            "peak_instanzen": 1, "status": "crash",
+            "log": "stderr:\nSegmentation fault (core dumped)",
+        })
+        # Ein erfolgreicher Wächter darf das Log NICHT fluten.
+        report.guard_results.append({
+            "phase": "start", "artefaktklasse": "deb", "exit_code": 0,
+            "peak_instanzen": 1, "status": "ok", "log": "stdout:\nalles gut",
+        })
+        return report
+
+    monkeypatch.setattr(smoke, "run_linux_smoke", fake_smoke)
+    (tmp_path / "artefakte").mkdir()
+    evidence = {
+        "schema": 1, "kind": "abnahme-evidenz", "platform": "linux-arm64",
+        "status": "platzhalter", "commit_sha": "abc",
+        "quelle": {"art": "release-tag", "wert": "v2.7.1"},
+        "artefakte": [{"name": "x-ai.AppImage", "sha256": "cafe", "bytes": 1}],
+        "umgebung": {"os": "linux", "arch": "aarch64", "python": "3.12", "runner": "r"},
+        "gl_provenance": None, "waechter_ergebnisse": [],
+        "erzeugt_am": "2026-07-30T00:00:00+00:00", "hinweise": [],
+    }
+    (tmp_path / "evidenz.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    rc = smoke.main(["--platform", "linux-arm64", "--evidence-dir", str(tmp_path)])
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "Segmentation fault (core dumped)" in out
+    assert "phase=start artefaktklasse=appimage" in out
+    assert "alles gut" not in out
+
+
 def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
     # Keine echten Subprozesse: Default-Runner/-Probe fälschen.
     monkeypatch.setattr(smoke, "_default_runner", lambda cmd: smoke.CommandResult(0))
