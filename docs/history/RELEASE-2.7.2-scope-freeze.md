@@ -33,15 +33,19 @@ Historie stehen und wird nicht mehr fortgeschrieben.
   bewährt und wird hier bewusst nicht angefasst.
 - **Commits im Fenster:** 2 (`v2.7.1..<Kandidat>`, siehe Tabelle – jede Zeile
   entspricht genau einem Commit).
-- **Protokollierter Kandidaten-SHA:** `nachzutragen`
+- **Protokollierter Kandidaten-SHA:** `61d67750b1051c7008e901005c515a31a8204aa0`
+  (`chore(release): Versionsschnitt 2.7.2 und Freeze-Rollover auf Basis v2.7.1`,
+  Squash-Merge von PR #735 auf `main`)
 
-Solange dort `nachzutragen` steht, ist der Freeze **nicht** abnahmefähig;
-`verify_release_freeze.py --require-pin` schlägt in diesem Zustand bewusst
-fehl. Das ist kein Versehen: Ein Dokument kann seinen eigenen Commit-SHA nicht
-enthalten (#699), und der Versionsschnitt in diesem Commit ist selbst
-kandidatenrelevant. Der SHA wird deshalb durch einen **reinen
-Protokoll-Commit** darüber nachgetragen, der den Kandidaten nachweislich nicht
-verändert.
+Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für einen
+2.7.2-Kandidatenbau. Stünde dort `nachzutragen`, wäre der Freeze **nicht**
+abnahmefähig; `verify_release_freeze.py --require-pin` schlägt in diesem
+Zustand bewusst fehl. Genau das war zwischen PR #735 und diesem
+Protokoll-Nachtrag der Fall: Ein Dokument kann seinen eigenen Commit-SHA nicht
+enthalten (#699), und der Versionsschnitt war selbst kandidatenrelevant. Der
+SHA kommt deshalb durch einen **reinen Protokoll-Commit** darüber hinein, der
+den Kandidaten nachweislich nicht verändert. Kurz-SHAs dürfen im Text
+zusätzlich vorkommen, gelten aber nirgends als Nachweis.
 
 Abzuleiten und zu prüfen mit:
 
@@ -76,9 +80,13 @@ es gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 
 ## Protokoll-Commits über dem Kandidaten
 
-Noch keine. Der Nachtrag des protokollierten Kandidaten-SHA wird der erste
-sein – er ändert ausschließlich `docs/history/**` und verschiebt den
-Kandidaten damit nicht.
+Der Nachtrag des protokollierten Kandidaten-SHA ist der erste – also **dieser**
+Commit. Er ändert ausschließlich `docs/history/**` und verschiebt den
+Kandidaten damit nicht. Aus demselben Grund wie oben kann er sich nicht selbst
+mit vollem SHA auflisten; `verify_release_freeze.py` meldet ihn deshalb als
+`unclassified-protocol-commit` – bewusst nur als **Warnung**, nicht als Fehler,
+weil ein Protokoll-Commit den Kandidaten per Definition unberührt lässt.
+Weitere Protokoll-Commits sind hier mit vollem SHA nachzutragen.
 
 ## Zusicherungen
 
