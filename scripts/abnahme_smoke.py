@@ -180,6 +180,18 @@ _GUARD_LOG_MAX_CHARS = 2000
 _SCREENSHOT_NAME_TO_CLASS = {name: cls for cls, name in NATIVE_3D_SCREENSHOT_NAMES.items()}
 
 
+def _command_detail(result: CommandResult) -> str:
+    """Kurzfassung der Prozessausgabe für eine Fehlermeldung.
+
+    ``_default_runner`` fängt stdout/stderr per ``capture_output`` ab; ohne
+    diesen Helfer landet die eigentliche Diagnose ungewächter Kommandos
+    (apt-get, hdiutil) nirgends im Joblog. Auf ``_GUARD_LOG_MAX_CHARS``
+    begrenzt – dieselbe Grenze wie für die Wächter-Logs.
+    """
+    detail = (result.stderr or result.stdout or "").strip()
+    return detail[-_GUARD_LOG_MAX_CHARS:] if detail else "keine Ausgabe"
+
+
 def _record_guard(
     report: SmokeReport, result: CommandResult, *, phase: str, artifact_class: str,
 ) -> None:
@@ -529,9 +541,13 @@ def _linux_deb(
     path: str, report: SmokeReport, runner: Runner, screenshot_dir: Path,
 ) -> None:
     name = Path(path).name
-    installed_ok = runner(["sudo", "apt-get", "install", "-y", path]).returncode == 0
+    install = runner(["sudo", "apt-get", "install", "-y", path])
+    installed_ok = install.returncode == 0
     if not installed_ok:
-        report.fail(f"deb-Installation fehlgeschlagen: {name}")
+        # Mit Ausgabe: apt-get sagt genau, woran es scheiterte (fehlende
+        # Abhängigkeit, Signatur, Plattenplatz) – ohne sie stünde im Joblog nur
+        # "fehlgeschlagen" (Codex-Fund auf PR #735).
+        report.fail(f"deb-Installation fehlgeschlagen: {name}: {_command_detail(install)}")
     try:
         if installed_ok:
             # Das installierte AppImage starten (kein `bgremover`-Kommando im PATH).
@@ -633,7 +649,7 @@ def _macos_dmg(path: str, report: SmokeReport, runner: Runner, screenshot_dir: P
     name = Path(path).name
     attach = runner(["hdiutil", "attach", "-nobrowse", "-readonly", path])
     if attach.returncode != 0:
-        report.fail(f"DMG-Mount fehlgeschlagen: {name}")
+        report.fail(f"DMG-Mount fehlgeschlagen: {name}: {_command_detail(attach)}")
         return
     mount = parse_mount_point(attach.stdout)
     disk_id = parse_disk_identifier(attach.stdout)
@@ -767,6 +783,28 @@ def main(argv: list[str] | None = None) -> int:
         extra_notes=report.notes, guard_results=report.guard_results,
     )
     ra.write_evidence(args.evidence_dir, finalized)
+    if not report.passed:
+        # Der Grund stand bisher ausschließlich in evidenz.json/manifest.md: Ein
+        # roter Abnahme-Lauf zeigte im Joblog nur "FEHLGESCHLAGEN", die Diagnose
+        # lag in einem mehrere hundert MB großen Evidenz-Artefakt. Die Befunde
+        # gehören dorthin, wo man sie zuerst sucht.
+        for note in report.notes:
+            print(f"[befund] {note}")
+        # Die Notiz allein reicht nicht: Bei einem abgestürzten Start lautet sie
+        # nur "AppImage-Start fehlgeschlagen (1)", während die eigentliche
+        # Ausgabe des gewächten Prozesses in ``guard_results[*]["log"]`` liegt
+        # und ``_default_runner`` sie per ``capture_output`` abfängt. Ohne diese
+        # Zeilen bliebe der Absturzgrund weiterhin nur im Evidenz-Artefakt
+        # (Codex-Fund auf PR #735).
+        for entry in report.guard_results:
+            if entry.get("exit_code") in (0, None) and entry.get("status") in ("ok", "unbekannt"):
+                continue
+            if not entry.get("log"):
+                continue
+            print(
+                f"[waechter-log] phase={entry['phase']} "
+                f"artefaktklasse={entry['artefaktklasse']}:\n{entry['log']}"
+            )
     print(f"Smoke {'bestanden' if report.passed else 'FEHLGESCHLAGEN'}: {args.platform}")
     return 0 if report.passed else 1
 

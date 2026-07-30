@@ -8,6 +8,38 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.2] – 2026-07-30
+
+### Changed
+
+- **Release acceptance: closed four checks that were only partially
+  evidenced (#686).** Artifacts of a published release are now downloaded via
+  `browser_download_url` **without** an access token — the same path a user
+  takes from the public release page; a release left private by accident is
+  therefore caught. In addition, the automation hook inside the packaged
+  artifact verifies the product version visible in the window title against
+  the expected value derived from the artifact filename, and saves a
+  controlled project copy through the real `save_project` path, reloads it and
+  compares it for equality. The acceptance evidence now also records, per
+  artifact, whether its SHA256 was independently confirmed against a supplied
+  digest or merely computed.
+
+### Notes on this release
+
+- **Impact:** So far exclusively changes to the release acceptance tooling.
+  Nothing changes in the application itself — no new features, no change to
+  image, project or export behaviour.
+- **Affected users:** Nobody in day-to-day use. The changes concern the tools
+  that verify release artifacts on real hardware before publication.
+- **Upgrade relevance:** No hurry. Project files (`.bgrproj`), export formats
+  and settings remain compatible; downgrading to 2.7.1 is equally possible
+  without any data change.
+- **Supported platforms:** macOS arm64 (`.dmg`), Linux x86_64 and Linux arm64
+  (each `.AppImage` and `.deb`), Python ≥ 3.10. All artifacts bundle the AI
+  backend (`-ai` suffix). The macOS app is ad-hoc signed, not notarised with a
+  Developer ID — on first launch use right-click → "Open".
+- **Known limitations:** No new limitations beyond 2.7.1.
+
 ## [2.7.1] – 2026-07-26
 
 ### Fixed

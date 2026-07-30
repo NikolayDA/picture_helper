@@ -9,6 +9,42 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.2] – 2026-07-30
+
+### Cambiado
+
+- **Aceptación de la versión: se cerraron cuatro comprobaciones que solo
+  estaban parcialmente evidenciadas (#686).** Los artefactos de una versión
+  publicada ahora se descargan mediante `browser_download_url` **sin** token
+  de acceso, es decir, por la misma vía que sigue cualquier persona desde la
+  página pública de versiones; así se detecta una versión que haya quedado
+  privada por descuido. Además, el hook de automatización dentro del artefacto
+  empaquetado verifica la versión del producto visible en el título de la
+  ventana frente al valor esperado derivado del nombre del archivo, y guarda
+  una copia controlada del proyecto por la ruta real `save_project`, la vuelve
+  a cargar y la compara. La evidencia de aceptación indica ahora, por
+  artefacto, si su SHA256 se confirmó de forma independiente contra un digest
+  o solo se calculó.
+
+### Notas sobre esta versión
+
+- **Impacto:** Hasta ahora, exclusivamente cambios en las herramientas de
+  aceptación de versiones. En el programa en sí no cambia nada: ninguna
+  función nueva, ningún cambio en el comportamiento de imagen, proyecto o
+  exportación.
+- **Usuarios afectados:** Nadie en el uso diario. Los cambios afectan a las
+  herramientas que comprueban los artefactos en hardware real antes de la
+  publicación.
+- **Relevancia de la actualización:** Sin prisa. Los archivos de proyecto
+  (`.bgrproj`), los formatos de exportación y los ajustes siguen siendo
+  compatibles; volver a 2.7.1 también es posible sin cambios en los datos.
+- **Plataformas compatibles:** macOS arm64 (`.dmg`), Linux x86_64 y Linux
+  arm64 (`.AppImage` y `.deb` cada uno), Python ≥ 3.10. Todos los artefactos
+  incluyen el backend de IA (sufijo `-ai`). La aplicación de macOS está
+  firmada ad-hoc, no notarizada con Developer ID: en el primer inicio, usa
+  clic derecho → «Abrir».
+- **Limitaciones conocidas:** Ninguna limitación nueva más allá de 2.7.1.
+
 ## [2.7.1] – 2026-07-26
 
 ### Corregido
