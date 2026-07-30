@@ -88,6 +88,14 @@ ACCEPTANCE_EXTRA_NAMES = {
     "deb": "acceptance_extra_deb.json",
     "dmg": "acceptance_extra_dmg.json",
 }
+# Muss zu ``bgremover.acceptance_smoke._EVIDENCE_SCHEMA`` passen. Bei jeder
+# neuen Teilprüfung mitziehen – sonst meldet ein Kandidat mit älterem Hook
+# still grün, obwohl die neue Prüfung dort gar nicht existiert (#686).
+ACCEPTANCE_EXTRA_SCHEMA = 2
+ACCEPTANCE_EXTRA_REQUIRED = (
+    "visible_version", "v270_project_open", "eufymake_export",
+    "project_copy", "missing_component",
+)
 # Vom Source-Checkout mitgelieferte Fixture (#685): der laufende gepackte
 # Prozess bekommt nur den *Pfad*, ihre Verarbeitung muss aus dem Paket kommen.
 V270_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "project_v2_7_0.bgrproj"
@@ -415,22 +423,41 @@ def _acceptance_extra(
         report.fail(f"EufyMake/2.7.0-Zusatznachweis: Evidenz-JSON unlesbar ({label}): {exc}")
         return
 
-    if payload.get("ok"):
-        report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
+    # Schemaversion zuerst: Der Hook läuft im **gepackten Artefakt** und kann
+    # damit älter sein als dieses Skript aus dem Checkout. Ein Kandidat mit dem
+    # Vorgänger-Hook schreibt dieselbe Struktur mit ``ok: true``, aber ohne
+    # ``visible_version``/``project_copy`` – ein früher ``ok``-Kurzschluss hätte
+    # ihn grün gemeldet, obwohl die neuen Prüfungen nie gelaufen sind (#686).
+    schema = payload.get("schema")
+    if schema != ACCEPTANCE_EXTRA_SCHEMA:
+        report.fail(
+            f"EufyMake/2.7.0-Zusatznachweis ({label}): Evidenz-Schema {schema!r} "
+            f"statt {ACCEPTANCE_EXTRA_SCHEMA!r} – das gepackte Artefakt bringt "
+            "einen älteren Hook mit, die neuen Prüfungen sind nicht gelaufen."
+        )
         return
-    # Jede fehlgeschlagene Teilprüfung namentlich melden – eine feste Auswahl
-    # verschwieg neu hinzugekommene Prüfungen still (#686).
+
+    # Jede erwartete Teilprüfung muss vorhanden UND grün sein. Ein fehlender
+    # Schlüssel gilt als Fehlschlag, nicht als „nicht zutreffend".
+    missing = [key for key in ACCEPTANCE_EXTRA_REQUIRED if key not in payload]
+    if missing:
+        report.fail(
+            f"EufyMake/2.7.0-Zusatznachweis ({label}): Teilergebnisse fehlen in der "
+            f"Evidenz: {sorted(missing)}"
+        )
+        return
     failed = [
         f"{key}={(payload.get(key) or {}).get('message')!r}"
-        for key in (
-            "visible_version", "v270_project_open", "eufymake_export",
-            "project_copy", "missing_component",
-        )
+        for key in ACCEPTANCE_EXTRA_REQUIRED
         if not (payload.get(key) or {}).get("ok")
     ]
-    report.fail(
-        f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): {' '.join(failed)}"
-    )
+    if failed or not payload.get("ok"):
+        report.fail(
+            f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): "
+            f"{' '.join(failed) or 'ok=false ohne benannte Teilprüfung'}"
+        )
+        return
+    report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
 
 
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:

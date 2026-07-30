@@ -276,6 +276,79 @@ def test_fetch_release_assets_downloads_anonymously_from_public_url(tmp_path: Pa
     assert not any("/assets/1" in url for url, _ in seen)
 
 
+def test_evidence_marks_assets_without_a_usable_digest_as_unverified(tmp_path: Path) -> None:
+    """Codex-P2 (#734): ``verify_digest`` lässt Assets ohne prüfbaren
+    ``sha256:``-Digest bewusst durch. Die Evidenz darf dann **nicht** behaupten,
+    der anonym geladene Inhalt sei gegen die Assetliste bestätigt worden –
+    sonst steht in der Release-Evidenz eine Prüfung, die nie stattgefunden hat."""
+    payload = b"dmg-bytes"
+
+    def fake_fetcher(request: urllib.request.Request) -> bytes:
+        if request.full_url.endswith("/releases/tags/v2.7.1"):
+            return json.dumps({"assets": [{
+                "name": "BgRemover-2.7.1-macos-arm64-ai.dmg",
+                "url": "https://api.x/1",
+                "browser_download_url": "https://dl.x/1",
+                # kein "digest" – GitHub liefert ihn nicht immer
+            }]}).encode("utf-8")
+        return payload
+
+    rc = ra.main(
+        [
+            "--platform", "macos-arm64", "--repo", "o/r", "--commit-sha", "abc",
+            "--release-tag", "v2.7.1", "--output", str(tmp_path),
+        ],
+        fetcher=fake_fetcher,
+    )
+    assert rc == 0
+    loaded = json.loads((tmp_path / "evidenz.json").read_text(encoding="utf-8"))
+    assert loaded["artefakte"][0]["digest_geprueft"] is False
+    hinweise = " ".join(loaded["hinweise"])
+    assert "OHNE unabhängige Digest-Bestätigung" in hinweise
+    assert "bestätigt." not in hinweise.replace("OHNE unabhängige Digest-Bestätigung", "")
+    assert "nein" in (tmp_path / "manifest.md").read_text(encoding="utf-8")
+
+
+def test_evidence_confirms_digest_when_the_release_supplies_one(tmp_path: Path) -> None:
+    """Gegenprobe: Mit prüfbarem Digest darf die Evidenz die Bestätigung auch
+    aussprechen – sonst wäre die Notiz nutzlos vorsichtig."""
+    payload = b"dmg-bytes"
+    digest = hashlib.sha256(payload).hexdigest()
+
+    def fake_fetcher(request: urllib.request.Request) -> bytes:
+        if request.full_url.endswith("/releases/tags/v2.7.1"):
+            return json.dumps({"assets": [{
+                "name": "BgRemover-2.7.1-macos-arm64-ai.dmg",
+                "url": "https://api.x/1",
+                "browser_download_url": "https://dl.x/1",
+                "digest": f"sha256:{digest}",
+            }]}).encode("utf-8")
+        return payload
+
+    ra.main(
+        [
+            "--platform", "macos-arm64", "--repo", "o/r", "--commit-sha", "abc",
+            "--release-tag", "v2.7.1", "--output", str(tmp_path),
+        ],
+        fetcher=fake_fetcher,
+    )
+    loaded = json.loads((tmp_path / "evidenz.json").read_text(encoding="utf-8"))
+    assert loaded["artefakte"][0]["digest_geprueft"] is True
+    hinweise = " ".join(loaded["hinweise"])
+    assert "OHNE unabhängige Digest-Bestätigung" not in hinweise
+    assert "gegen den Digest der" in hinweise
+
+
+def test_has_usable_digest_is_the_shared_rule() -> None:
+    """Geteilte Regel für ``verify_digest`` und die Evidenz-Notiz – zwei
+    getrennte Implementierungen würden auseinanderlaufen."""
+    assert ra.has_usable_digest("sha256:abc")
+    assert not ra.has_usable_digest(None)
+    assert not ra.has_usable_digest("")
+    assert not ra.has_usable_digest("md5:abc")
+    assert not ra.has_usable_digest("sha256:")
+
+
 def test_version_from_artifact_name() -> None:
     """Sollwert für die sichtbare Produktversion (#686)."""
     assert ra.version_from_artifact_name("BgRemover-2.7.1-linux-x86_64-ai.deb") == "2.7.1"

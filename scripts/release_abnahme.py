@@ -60,6 +60,12 @@ class ArtifactRecord:
     name: str
     sha256: str
     bytes: int
+    # Lag ein prüfbarer ``sha256:``-Digest des Anbieters vor und wurde der
+    # berechnete Wert dagegen bestätigt? ``False`` heißt: nur berechnet, nicht
+    # unabhängig bestätigt (Workflow-Artefakte liefern grundsätzlich keinen
+    # Digest). Die Evidenz muss diesen Unterschied sichtbar machen, statt
+    # pauschal „geprüft" zu behaupten (#686-Review).
+    digest_verified: bool = False
 
 
 class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
@@ -125,6 +131,19 @@ def version_from_artifact_name(name: str) -> str | None:
     return match.group(1) if match else None
 
 
+def has_usable_digest(expected: str | None) -> bool:
+    """Liefert der Anbieter einen prüfbaren ``sha256:``-Digest?
+
+    Einzige Quelle der Wahrheit für „unabhängig bestätigt vs. nur berechnet" –
+    ``verify_digest`` und die Evidenz-Notiz konsultieren dieselbe Regel, damit
+    die Evidenz nicht mehr behauptet, als tatsächlich geprüft wurde.
+    """
+    if not expected:
+        return False
+    prefix, _, want = expected.partition(":")
+    return prefix == "sha256" and bool(want)
+
+
 def verify_digest(name: str, computed: str, expected: str | None) -> None:
     """Berechneten SHA256 gegen den vertrauenswürdigen Digest prüfen.
 
@@ -133,11 +152,9 @@ def verify_digest(name: str, computed: str, expected: str | None) -> None:
     (z. B. Workflow-Artefakt-Zip ohne Feld), wird nur der berechnete Wert
     protokolliert – ohne unabhängige Bestätigung zu behaupten.
     """
-    if not expected:
+    if not has_usable_digest(expected):
         return
-    prefix, _, want = expected.partition(":")
-    if prefix != "sha256" or not want:
-        return
+    _, _, want = str(expected).partition(":")
     if want.lower() != computed.lower():
         raise SystemExit(
             f"SHA256-Mismatch für {name}: erwartet {want}, berechnet {computed} "
@@ -152,7 +169,10 @@ def _store(
     path.write_bytes(payload)
     digest = hashlib.sha256(payload).hexdigest()
     verify_digest(name, digest, expected_digest)
-    return ArtifactRecord(name=name, sha256=digest, bytes=len(payload))
+    return ArtifactRecord(
+        name=name, sha256=digest, bytes=len(payload),
+        digest_verified=has_usable_digest(expected_digest),
+    )
 
 
 def fetch_release_assets(
@@ -250,7 +270,11 @@ def build_evidence(
         "commit_sha": commit_sha,
         "quelle": source,
         "artefakte": [
-            {"name": a.name, "sha256": a.sha256, "bytes": a.bytes} for a in artefacts
+            {
+                "name": a.name, "sha256": a.sha256, "bytes": a.bytes,
+                "digest_geprueft": a.digest_verified,
+            }
+            for a in artefacts
         ],
         "umgebung": environment_info(),
         "gl_provenance": None,
@@ -276,11 +300,15 @@ def write_evidence(output: Path, evidence: dict[str, Any]) -> None:
         f"Python {evidence['umgebung']['python']}, Runner `{evidence['umgebung']['runner']}`",
         f"- Erzeugt am: {evidence['erzeugt_am']}",
         "",
-        "| Artefakt | SHA256 | Bytes |",
-        "|---|---|---:|",
+        "| Artefakt | SHA256 | Bytes | Digest bestätigt |",
+        "|---|---|---:|---|",
     ]
+    # ``.get``: ältere Evidenz-Dokumente (vor #686) kennen das Feld nicht –
+    # dort bleibt die Spalte ehrlich leer statt „ja" zu behaupten.
     lines += [
-        f"| {a['name']} | `{a['sha256']}` | {a['bytes']} |" for a in evidence["artefakte"]
+        f"| {a['name']} | `{a['sha256']}` | {a['bytes']} | "
+        f"{'ja' if a.get('digest_geprueft') else 'nein'} |"
+        for a in evidence["artefakte"]
     ]
     guard_results = evidence.get("waechter_ergebnisse") or []
     if guard_results:
@@ -394,11 +422,26 @@ def main(argv: list[str] | None = None, fetcher: Fetcher = _default_fetcher) -> 
         records = fetch_release_assets(
             args.repo, args.release_tag, args.platform, artefact_dir, token, fetcher,
         )
+        # Die Digest-Aussage nur so stark formulieren, wie sie tatsächlich
+        # zutrifft: ``verify_digest`` lässt Assets ohne prüfbaren Digest
+        # bewusst durch, eine pauschale Notiz hätte dann eine unabhängige
+        # Bestätigung behauptet, die es nie gab (#686-Review).
+        unverified = [r.name for r in records if not r.digest_verified]
         notes.append(
             "Assets über browser_download_url ohne Authorization geladen "
-            "(öffentlicher Anwenderpfad, #686); Digest-Abgleich gegen die "
-            "authentifiziert bezogene Assetliste."
+            "(öffentlicher Anwenderpfad, #686)."
         )
+        if unverified:
+            notes.append(
+                "OHNE unabhängige Digest-Bestätigung (Release-Asset ohne "
+                f"prüfbaren sha256-Digest): {sorted(unverified)} – SHA256 nur "
+                "berechnet, nicht gegen die Assetliste abgeglichen."
+            )
+        else:
+            notes.append(
+                "SHA256 aller bezogenen Assets gegen den Digest der "
+                "authentifiziert bezogenen Assetliste bestätigt."
+            )
     else:
         source = {"art": "run-id", "wert": args.source_run_id}
         records = fetch_run_artifacts(

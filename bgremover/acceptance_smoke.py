@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -64,18 +65,27 @@ from bgremover import height_ops
 from bgremover.eufymake_writer import write_export
 from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.i18n import tr
-from bgremover.project_model import Layer, LayerKind, LayerRole
+from bgremover.project_model import Layer, LayerKind, LayerRole, Project
 from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
 
-_EVIDENCE_SCHEMA = 1
+# Schema 2 (#686): zusätzlich ``visible_version`` und ``project_copy``. Die
+# Version ist der Vertrag, an dem ``scripts/abnahme_smoke.py`` erkennt, dass
+# ein gepacktes Artefakt die neuen Prüfungen überhaupt kennt – bei jeder
+# weiteren Teilprüfung mit hochzählen (dort ACCEPTANCE_EXTRA_SCHEMA).
+_EVIDENCE_SCHEMA = 2
 
 # Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
 # tests/test_project_v270_upgrade.py, hier dupliziert, weil dieser Hook aus
 # dem gepackten Artefakt läuft und nicht auf das tests/-Paket zugreifen kann.
+# Versions-Token im Fenstertitel („BgRemover Pro 2.7.1"). Bewusst als
+# vollständiger Token verankert – ein Substring-Test hielte "2.7.1" auch in
+# "2.7.10" für einen Treffer.
+_VERSION_TOKEN_RE = re.compile(r"\b\d+\.\d+\.\d+(?:[.\-+][0-9A-Za-z.\-+]+)?\b")
+
 _V270_COLOR_ID = "50530890db2d4515baec0862fb89cc49"
 _V270_HEIGHT_ID = "eed93ecfb5264b278ee2e5e0782ca86a"
 _V270_EXPECTED_METADATA = {
@@ -220,6 +230,57 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
 
 
+def _project_state(project: Project) -> dict[str, object]:
+    """Vollständiger, **geordneter** Vergleichszustand eines Projekts.
+
+    Die Ebenen liegen bewusst als Liste vor: Ein Dict nach Ebenen-ID hätte eine
+    vertauschte Ebenenreihenfolge – also ein sichtbar anderes Komposit – als
+    gleich durchgehen lassen. Ebenso vollständig aufgeführt sind alle
+    persistierten Felder (Name, Sichtbarkeit, Deckkraft, Sperre) und der
+    Projektzustand (Canvasgröße, Schemaversion, Metadaten, aktive Ebene), damit
+    der Round-Trip nicht nur Pixel, sondern den ganzen gespeicherten Zustand
+    belegt (#686-Review).
+    """
+    return {
+        "canvas": (project.width, project.height),
+        "version": project.version,
+        "metadata": project.metadata,
+        "active_layer_id": project.active_layer_id,
+        "layers": [
+            {
+                "id": layer.id,
+                "name": layer.name,
+                "kind": layer.kind,
+                "role": layer.role,
+                "visible": layer.visible,
+                "opacity": layer.opacity,
+                "locked": layer.locked,
+                "height": _height_hash(layer),
+                "image": _image_hash(layer),
+            }
+            for layer in project.layers
+        ],
+    }
+
+
+def _first_state_difference(before: dict[str, object], after: dict[str, object]) -> str:
+    """Erste abweichende Stelle benennen – eine Meldung ohne Fundort wäre auf
+    der Abnahme-Hardware nicht nachverfolgbar."""
+    for key in ("canvas", "version", "metadata", "active_layer_id"):
+        if before[key] != after[key]:
+            return f"{key}: {before[key]!r} → {after[key]!r}"
+    old_layers = before["layers"]
+    new_layers = after["layers"]
+    assert isinstance(old_layers, list) and isinstance(new_layers, list)
+    if len(old_layers) != len(new_layers):
+        return f"Ebenenanzahl: {len(old_layers)} → {len(new_layers)}"
+    for index, (old, new) in enumerate(zip(old_layers, new_layers, strict=True)):
+        for field, value in old.items():
+            if new[field] != value:
+                return f"Ebene {index} ({field}): {value!r} → {new[field]!r}"
+    return "unbekannte Abweichung"
+
+
 def _run_visible_version_smoke(window: MainWindow, expected: str | None) -> tuple[bool, str]:
     """Prüft die im Fenstertitel **sichtbare** Produktversion (#686).
 
@@ -235,9 +296,17 @@ def _run_visible_version_smoke(window: MainWindow, expected: str | None) -> tupl
     from bgremover import __version__
 
     title = window.windowTitle()
-    if __version__ not in title:
+    # Vollständiger Token, kein Substring: ``"2.7.1" in "BgRemover Pro 2.7.10"``
+    # wäre wahr, obwohl der Titel eine *andere* Version zeigt. Genau dieser Fall
+    # – Titel aus einer anderen Quelle als ``__version__`` – ist der, den die
+    # Prüfung fangen soll.
+    shown = _VERSION_TOKEN_RE.search(title)
+    if shown is None:
+        return False, f"Fenstertitel enthält keine Versionsangabe: {title!r}"
+    if shown.group(0) != __version__:
         return False, (
-            f"Fenstertitel nennt die Paketversion {__version__!r} nicht: {title!r}"
+            f"Fenstertitel zeigt Version {shown.group(0)!r}, das Paket meldet "
+            f"{__version__!r}: {title!r}"
         )
     if expected is None:
         return True, (
@@ -269,10 +338,7 @@ def _run_project_copy_smoke(window: MainWindow, target: Path) -> tuple[bool, str
     project = window._canvas.project
     if project is None:
         return False, "Kein Projekt für die Speicher-Kopie vorhanden."
-    before = {
-        layer.id: (layer.kind, layer.role, _height_hash(layer), _image_hash(layer))
-        for layer in project.layers
-    }
+    before = _project_state(project)
 
     target.parent.mkdir(parents=True, exist_ok=True)
     if not window._write_project(str(target)):
@@ -297,12 +363,12 @@ def _run_project_copy_smoke(window: MainWindow, target: Path) -> tuple[bool, str
     reloaded = window._canvas.project
     if reloaded is None:
         return False, "Kopie ließ sich nicht wieder laden."
-    after = {
-        layer.id: (layer.kind, layer.role, _height_hash(layer), _image_hash(layer))
-        for layer in reloaded.layers
-    }
+    after = _project_state(reloaded)
     if after != before:
-        return False, "Kopie weicht nach dem Neuladen vom gespeicherten Projekt ab."
+        return False, (
+            "Kopie weicht nach dem Neuladen vom gespeicherten Projekt ab: "
+            f"{_first_state_difference(before, after)}"
+        )
     return True, f"Projekt-Kopie bitgenau gespeichert und neu geladen: {target.name}"
 
 
