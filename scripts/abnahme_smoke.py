@@ -767,6 +767,13 @@ def main(argv: list[str] | None = None) -> int:
         extra_notes=report.notes, guard_results=report.guard_results,
     )
     ra.write_evidence(args.evidence_dir, finalized)
+    if not report.passed:
+        # Der Grund stand bisher ausschließlich in evidenz.json/manifest.md: Ein
+        # roter Abnahme-Lauf zeigte im Joblog nur "FEHLGESCHLAGEN", die Diagnose
+        # lag in einem mehrere hundert MB großen Evidenz-Artefakt. Die Befunde
+        # gehören dorthin, wo man sie zuerst sucht.
+        for note in report.notes:
+            print(f"[befund] {note}")
     print(f"Smoke {'bestanden' if report.passed else 'FEHLGESCHLAGEN'}: {args.platform}")
     return 0 if report.passed else 1
 

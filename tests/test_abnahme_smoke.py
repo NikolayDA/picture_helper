@@ -1007,7 +1007,7 @@ def test_main_writes_guard_results_into_evidence(tmp_path, monkeypatch) -> None:
         )
 
 
-def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
     # Keine echten Subprozesse: Default-Runner/-Probe fälschen.
     monkeypatch.setattr(smoke, "_default_runner", lambda cmd: smoke.CommandResult(0))
     monkeypatch.setattr(smoke, "_default_prober", lambda: "Apple / M3 / 2.1 Metal")
@@ -1032,3 +1032,10 @@ def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch) 
     assert rc == 1
     written = json.loads((tmp_path / "evidenz.json").read_text(encoding="utf-8"))
     assert written["status"] == "fehlgeschlagen"
+    # Der Grund muss im Joblog stehen, nicht nur in der Evidenz: Ein roter
+    # Abnahme-Lauf zeigte bisher ausschließlich "FEHLGESCHLAGEN", die Diagnose
+    # steckte in einem mehrere hundert MB großen Artefakt (beobachtet am
+    # macOS-Leg von Lauf 30578506340).
+    out = capsys.readouterr().out
+    assert "[befund]" in out
+    assert "FEHLGESCHLAGEN" in out
