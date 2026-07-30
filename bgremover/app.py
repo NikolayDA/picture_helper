@@ -190,13 +190,19 @@ def main() -> int:
         from bgremover.acceptance_smoke import run_acceptance_extra
 
         v270_fixture = os.environ.get("BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT", "")
+        # Soll-Version aus dem Artefaktdateinamen (#686); leer = kein externer
+        # Sollwert, die Prüfung sagt das dann ausdrücklich in ihrer Meldung.
+        expected_version = os.environ.get("BGREMOVER_ACCEPTANCE_EXTRA_VERSION") or None
 
         def _run_acceptance_extra_hook() -> None:
             result = run_acceptance_extra(
-                win, Path(acceptance_extra_target), Path(v270_fixture),
+                win, Path(acceptance_extra_target), Path(v270_fixture), expected_version,
             )
+            # Jede Teilmeldung muss im Joblog stehen: Ein Fehlschlag genau einer
+            # Prüfung wäre sonst unsichtbar (#685-Review-Fund von Codex).
             print(
-                f"{result.v270_message} | {result.eufymake_message} | "
+                f"{result.visible_version_message} | {result.v270_message} | "
+                f"{result.eufymake_message} | {result.project_copy_message} | "
                 f"{result.missing_component_message}"
             )
             app.exit(0 if result.ok else 1)

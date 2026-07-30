@@ -19,6 +19,7 @@ import io
 import json
 import os
 import platform as platform_mod
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -45,6 +46,9 @@ PLATFORM_PATTERNS: dict[str, str] = {
     "macos-arm64": "macos-arm64",
 }
 
+# Artefaktname → Version (Benennung seit #584: BgRemover-<version>-<platform_tag>…).
+_ARTIFACT_VERSION_RE = re.compile(r"^BgRemover-(\d+\.\d+\.\d+)-")
+
 # Injektionspunkt für Tests: nimmt einen vorbereiteten Request, liefert Bytes.
 Fetcher = Callable[[urllib.request.Request], bytes]
 
@@ -56,6 +60,12 @@ class ArtifactRecord:
     name: str
     sha256: str
     bytes: int
+    # Lag ein prüfbarer ``sha256:``-Digest des Anbieters vor und wurde der
+    # berechnete Wert dagegen bestätigt? ``False`` heißt: nur berechnet, nicht
+    # unabhängig bestätigt (Workflow-Artefakte liefern grundsätzlich keinen
+    # Digest). Die Evidenz muss diesen Unterschied sichtbar machen, statt
+    # pauschal „geprüft" zu behaupten (#686-Review).
+    digest_verified: bool = False
 
 
 class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
@@ -110,6 +120,30 @@ def matches_platform(name: str, platform: str) -> bool:
     return PLATFORM_PATTERNS[platform] in name
 
 
+def version_from_artifact_name(name: str) -> str | None:
+    """Versionsnummer aus einem Release-Artefaktnamen (Benennung seit #584).
+
+    ``BgRemover-2.7.1-linux-x86_64-ai.deb`` → ``"2.7.1"``. Liefert ``None``,
+    wenn der Name dem Schema nicht folgt – der Aufrufer entscheidet dann, ob
+    er ohne Sollwert weiterprüft (statt hier zu raten).
+    """
+    match = _ARTIFACT_VERSION_RE.match(name)
+    return match.group(1) if match else None
+
+
+def has_usable_digest(expected: str | None) -> bool:
+    """Liefert der Anbieter einen prüfbaren ``sha256:``-Digest?
+
+    Einzige Quelle der Wahrheit für „unabhängig bestätigt vs. nur berechnet" –
+    ``verify_digest`` und die Evidenz-Notiz konsultieren dieselbe Regel, damit
+    die Evidenz nicht mehr behauptet, als tatsächlich geprüft wurde.
+    """
+    if not expected:
+        return False
+    prefix, _, want = expected.partition(":")
+    return prefix == "sha256" and bool(want)
+
+
 def verify_digest(name: str, computed: str, expected: str | None) -> None:
     """Berechneten SHA256 gegen den vertrauenswürdigen Digest prüfen.
 
@@ -118,11 +152,9 @@ def verify_digest(name: str, computed: str, expected: str | None) -> None:
     (z. B. Workflow-Artefakt-Zip ohne Feld), wird nur der berechnete Wert
     protokolliert – ohne unabhängige Bestätigung zu behaupten.
     """
-    if not expected:
+    if not has_usable_digest(expected):
         return
-    prefix, _, want = expected.partition(":")
-    if prefix != "sha256" or not want:
-        return
+    _, _, want = str(expected).partition(":")
     if want.lower() != computed.lower():
         raise SystemExit(
             f"SHA256-Mismatch für {name}: erwartet {want}, berechnet {computed} "
@@ -137,13 +169,30 @@ def _store(
     path.write_bytes(payload)
     digest = hashlib.sha256(payload).hexdigest()
     verify_digest(name, digest, expected_digest)
-    return ArtifactRecord(name=name, sha256=digest, bytes=len(payload))
+    return ArtifactRecord(
+        name=name, sha256=digest, bytes=len(payload),
+        digest_verified=has_usable_digest(expected_digest),
+    )
 
 
 def fetch_release_assets(
     repo: str, tag: str, platform: str, dest: Path, token: str | None, fetcher: Fetcher,
 ) -> list[ArtifactRecord]:
-    """Assets des Release-Tags beziehen, die zur Plattform gehören."""
+    """Assets des Release-Tags beziehen, die zur Plattform gehören.
+
+    Die **Nutzlast** kommt bewusst über ``browser_download_url`` und **ohne**
+    ``Authorization``-Header – exakt der Pfad, den Anwender:innen von der
+    öffentlichen Release-Seite gehen (#686: „Download funktioniert ohne
+    Maintainer-Sitzung"). Der vorherige Bezug über die authentifizierte
+    REST-Asset-URL belegte nur „nicht aus lokalen Build-Artefakten", nicht die
+    öffentliche Erreichbarkeit; ein versehentlich privat gebliebenes Release
+    wäre damit unbemerkt durch die Abnahme gelaufen.
+
+    Die **Metadaten** (Assetliste inkl. ``digest``) holt weiterhin ``_api_json``
+    mit Token: Das ist kein Widerspruch, sondern die Vertrauenswurzel – der
+    anonym geladene Inhalt wird gegen den authentifiziert bezogenen Digest
+    geprüft.
+    """
     release = _api_json(
         f"https://api.github.com/repos/{repo}/releases/tags/{tag}", token, fetcher,
     )
@@ -152,7 +201,9 @@ def fetch_release_assets(
         name = str(asset["name"])
         if not matches_platform(name, platform):
             continue
-        payload = fetcher(_request(str(asset["url"]), token, "application/octet-stream"))
+        payload = fetcher(
+            _request(str(asset["browser_download_url"]), None, "application/octet-stream")
+        )
         records.append(_store(dest, name, payload, asset.get("digest")))
     if not records:
         raise SystemExit(
@@ -219,7 +270,11 @@ def build_evidence(
         "commit_sha": commit_sha,
         "quelle": source,
         "artefakte": [
-            {"name": a.name, "sha256": a.sha256, "bytes": a.bytes} for a in artefacts
+            {
+                "name": a.name, "sha256": a.sha256, "bytes": a.bytes,
+                "digest_geprueft": a.digest_verified,
+            }
+            for a in artefacts
         ],
         "umgebung": environment_info(),
         "gl_provenance": None,
@@ -245,11 +300,15 @@ def write_evidence(output: Path, evidence: dict[str, Any]) -> None:
         f"Python {evidence['umgebung']['python']}, Runner `{evidence['umgebung']['runner']}`",
         f"- Erzeugt am: {evidence['erzeugt_am']}",
         "",
-        "| Artefakt | SHA256 | Bytes |",
-        "|---|---|---:|",
+        "| Artefakt | SHA256 | Bytes | Digest bestätigt |",
+        "|---|---|---:|---|",
     ]
+    # ``.get``: ältere Evidenz-Dokumente (vor #686) kennen das Feld nicht –
+    # dort bleibt die Spalte ehrlich leer statt „ja" zu behaupten.
     lines += [
-        f"| {a['name']} | `{a['sha256']}` | {a['bytes']} |" for a in evidence["artefakte"]
+        f"| {a['name']} | `{a['sha256']}` | {a['bytes']} | "
+        f"{'ja' if a.get('digest_geprueft') else 'nein'} |"
+        for a in evidence["artefakte"]
     ]
     guard_results = evidence.get("waechter_ergebnisse") or []
     if guard_results:
@@ -357,24 +416,39 @@ def main(argv: list[str] | None = None, fetcher: Fetcher = _default_fetcher) -> 
     artefact_dir = args.output / "artefakte"
     artefact_dir.mkdir(parents=True, exist_ok=True)
 
+    notes = ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."]
     if args.release_tag:
         source = {"art": "release-tag", "wert": args.release_tag}
         records = fetch_release_assets(
             args.repo, args.release_tag, args.platform, artefact_dir, token, fetcher,
         )
+        # Die Digest-Aussage nur so stark formulieren, wie sie tatsächlich
+        # zutrifft: ``verify_digest`` lässt Assets ohne prüfbaren Digest
+        # bewusst durch, eine pauschale Notiz hätte dann eine unabhängige
+        # Bestätigung behauptet, die es nie gab (#686-Review).
+        unverified = [r.name for r in records if not r.digest_verified]
+        notes.append(
+            "Assets über browser_download_url ohne Authorization geladen "
+            "(öffentlicher Anwenderpfad, #686)."
+        )
+        if unverified:
+            notes.append(
+                "OHNE unabhängige Digest-Bestätigung (Release-Asset ohne "
+                f"prüfbaren sha256-Digest): {sorted(unverified)} – SHA256 nur "
+                "berechnet, nicht gegen die Assetliste abgeglichen."
+            )
+        else:
+            notes.append(
+                "SHA256 aller bezogenen Assets gegen den Digest der "
+                "authentifiziert bezogenen Assetliste bestätigt."
+            )
     else:
         source = {"art": "run-id", "wert": args.source_run_id}
         records = fetch_run_artifacts(
             args.repo, args.source_run_id, args.platform, artefact_dir, token, fetcher,
         )
 
-    evidence = build_evidence(
-        args.platform,
-        args.commit_sha,
-        source,
-        records,
-        ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."],
-    )
+    evidence = build_evidence(args.platform, args.commit_sha, source, records, notes)
     write_evidence(args.output, evidence)
     print(f"Evidenz geschrieben: {args.output / 'evidenz.json'} ({len(records)} Artefakte)")
     return 0

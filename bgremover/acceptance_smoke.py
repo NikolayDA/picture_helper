@@ -10,8 +10,11 @@ schließt genau diese Lücke, analog zu ``screenshot3d.py``/
 ``BGREMOVER_SCREENSHOT_3D`` für den 3D-Nachweis: läuft aus dem **laufenden,
 gepackten Prozess** heraus (AppImage/.deb/.app), nicht aus dem Checkout.
 
-Drei Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
+Fünf Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
 
+0. **Sichtbare Produktversion** – vergleicht die im Fenstertitel angezeigte
+   Version mit dem Sollwert aus dem Artefaktdateinamen (#686). Läuft zuerst
+   und unabhängig vom Projektzustand.
 1. **EufyMake-Export-Smoke** – erzeugt ein Beispielbild, generiert eine
    Höhenkarte und schreibt das Importpaket über den echten
    ``bgremover.eufymake_writer.write_export``-Pfad.
@@ -25,6 +28,10 @@ Drei Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
    (dieselbe Prüftiefe wie ``tests/test_project_v270_upgrade.py``, #685-
    Review nach PR #721) und sich das Projekt danach bitgenau weiterbearbeiten
    lässt (Höhen-Op + Undo).
+2b. **Kontrollierte Projekt-Kopie** – speichert das geöffnete Projekt über den
+   echten ``_write_project``-Pfad (``save_project``) unter einem eigenen Namen,
+   lädt es neu und vergleicht Ebenen, Rollen, Pixel und 16-Bit-Höhenpayload
+   wertgleich (#686 – der Schreibpfad, den ``write_export`` nicht abdeckt).
 3. **Fehlendes optionales KI-Backend** – erzwingt ``REMBG_AVAILABLE = False``
    im laufenden, gepackten Prozess (unabhängig davon, ob dieses konkrete
    Build tatsächlich mit oder ohne ``--ai`` gepackt wurde) und prüft, dass
@@ -33,8 +40,9 @@ Drei Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
    ``tests/test_main_window.py``, hier zusätzlich aus dem gepackten Artefakt
    heraus (#685-Review).
 
-Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad) und
-``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) in
+Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad),
+``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) und
+``BGREMOVER_ACCEPTANCE_EXTRA_VERSION`` (Soll-Version aus dem Artefaktnamen) in
 ``bgremover.app.main``. Wirft nie – jeder Fehlschlag kommt strukturiert über
 :class:`AcceptanceExtraResult` zurück, damit der Aufrufer einen sauberen
 Exit-Code setzen kann.
@@ -43,6 +51,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -56,18 +65,27 @@ from bgremover import height_ops
 from bgremover.eufymake_writer import write_export
 from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.i18n import tr
-from bgremover.project_model import Layer, LayerKind, LayerRole
+from bgremover.project_model import Layer, LayerKind, LayerRole, Project
 from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
 
-_EVIDENCE_SCHEMA = 1
+# Schema 2 (#686): zusätzlich ``visible_version`` und ``project_copy``. Die
+# Version ist der Vertrag, an dem ``scripts/abnahme_smoke.py`` erkennt, dass
+# ein gepacktes Artefakt die neuen Prüfungen überhaupt kennt – bei jeder
+# weiteren Teilprüfung mit hochzählen (dort ACCEPTANCE_EXTRA_SCHEMA).
+_EVIDENCE_SCHEMA = 2
 
 # Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
 # tests/test_project_v270_upgrade.py, hier dupliziert, weil dieser Hook aus
 # dem gepackten Artefakt läuft und nicht auf das tests/-Paket zugreifen kann.
+# Versions-Token im Fenstertitel („BgRemover Pro 2.7.1"). Bewusst als
+# vollständiger Token verankert – ein Substring-Test hielte "2.7.1" auch in
+# "2.7.10" für einen Treffer.
+_VERSION_TOKEN_RE = re.compile(r"\b\d+\.\d+\.\d+(?:[.\-+][0-9A-Za-z.\-+]+)?\b")
+
 _V270_COLOR_ID = "50530890db2d4515baec0862fb89cc49"
 _V270_HEIGHT_ID = "eed93ecfb5264b278ee2e5e0782ca86a"
 _V270_EXPECTED_METADATA = {
@@ -97,12 +115,23 @@ class AcceptanceExtraResult:
     v270_message: str
     missing_component_ok: bool
     missing_component_message: str
+    visible_version_ok: bool
+    visible_version_message: str
+    project_copy_ok: bool
+    project_copy_message: str
 
 
 def _height_hash(layer: Layer | None) -> str | None:
     if layer is None or layer.height_data is None:
         return None
     return hashlib.sha256(layer.height_data.values.tobytes()).hexdigest()
+
+
+def _image_hash(layer: Layer) -> str | None:
+    """Pixel-Hash der Ebenenansicht (RGBA), für den Round-Trip-Vergleich."""
+    if layer.image is None:
+        return None
+    return hashlib.sha256(np.asarray(layer.image.convert("RGBA")).tobytes()).hexdigest()
 
 
 def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, str]:
@@ -201,6 +230,148 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
 
 
+def _project_state(project: Project) -> dict[str, object]:
+    """Vollständiger, **geordneter** Vergleichszustand eines Projekts.
+
+    Die Ebenen liegen bewusst als Liste vor: Ein Dict nach Ebenen-ID hätte eine
+    vertauschte Ebenenreihenfolge – also ein sichtbar anderes Komposit – als
+    gleich durchgehen lassen. Ebenso vollständig aufgeführt sind alle
+    persistierten Felder (Name, Sichtbarkeit, Deckkraft, Sperre) und der
+    Projektzustand (Canvasgröße, Schemaversion, Metadaten, aktive Ebene), damit
+    der Round-Trip nicht nur Pixel, sondern den ganzen gespeicherten Zustand
+    belegt (#686-Review).
+    """
+    return {
+        "canvas": (project.width, project.height),
+        "version": project.version,
+        "metadata": project.metadata,
+        "active_layer_id": project.active_layer_id,
+        "layers": [
+            {
+                "id": layer.id,
+                "name": layer.name,
+                "kind": layer.kind,
+                "role": layer.role,
+                "visible": layer.visible,
+                "opacity": layer.opacity,
+                "locked": layer.locked,
+                "height": _height_hash(layer),
+                "image": _image_hash(layer),
+            }
+            for layer in project.layers
+        ],
+    }
+
+
+def _first_state_difference(before: dict[str, object], after: dict[str, object]) -> str:
+    """Erste abweichende Stelle benennen – eine Meldung ohne Fundort wäre auf
+    der Abnahme-Hardware nicht nachverfolgbar."""
+    for key in ("canvas", "version", "metadata", "active_layer_id"):
+        if before[key] != after[key]:
+            return f"{key}: {before[key]!r} → {after[key]!r}"
+    old_layers = before["layers"]
+    new_layers = after["layers"]
+    assert isinstance(old_layers, list) and isinstance(new_layers, list)
+    if len(old_layers) != len(new_layers):
+        return f"Ebenenanzahl: {len(old_layers)} → {len(new_layers)}"
+    for index, (old, new) in enumerate(zip(old_layers, new_layers, strict=True)):
+        for field, value in old.items():
+            if new[field] != value:
+                return f"Ebene {index} ({field}): {value!r} → {new[field]!r}"
+    return "unbekannte Abweichung"
+
+
+def _run_visible_version_smoke(window: MainWindow, expected: str | None) -> tuple[bool, str]:
+    """Prüft die im Fenstertitel **sichtbare** Produktversion (#686).
+
+    ``expected`` kommt aus dem Dateinamen des gerade geprüften Artefakts
+    (``BgRemover-2.7.1-…`` → ``"2.7.1"``, siehe
+    ``scripts/release_abnahme.version_from_artifact_name``) und ist damit ein
+    *externer* Sollwert: Ohne ihn verglichen die Prüfung nur das Paket mit sich
+    selbst und würde eine falsch paketierte Version nie bemerken. Fehlt der
+    Sollwert, bleibt die schwächere Aussage „Titel nennt die Version des
+    laufenden Pakets" – das wird in der Meldung ausdrücklich gesagt, statt
+    stillschweigend mehr zu behaupten.
+    """
+    from bgremover import __version__
+
+    title = window.windowTitle()
+    # Vollständiger Token, kein Substring: ``"2.7.1" in "BgRemover Pro 2.7.10"``
+    # wäre wahr, obwohl der Titel eine *andere* Version zeigt. Genau dieser Fall
+    # – Titel aus einer anderen Quelle als ``__version__`` – ist der, den die
+    # Prüfung fangen soll.
+    shown = _VERSION_TOKEN_RE.search(title)
+    if shown is None:
+        return False, f"Fenstertitel enthält keine Versionsangabe: {title!r}"
+    if shown.group(0) != __version__:
+        return False, (
+            f"Fenstertitel zeigt Version {shown.group(0)!r}, das Paket meldet "
+            f"{__version__!r}: {title!r}"
+        )
+    if expected is None:
+        return True, (
+            f"Sichtbare Version {__version__!r} im Fenstertitel (kein externer "
+            "Sollwert übergeben – nur Selbstauskunft des Pakets geprüft)."
+        )
+    if __version__ != expected:
+        return False, (
+            f"Sichtbare Version {__version__!r} weicht vom Artefaktnamen "
+            f"{expected!r} ab – falsch paketierte Version."
+        )
+    return True, f"Sichtbare Version {__version__!r} stimmt mit dem Artefaktnamen überein."
+
+
+def _run_project_copy_smoke(window: MainWindow, target: Path) -> tuple[bool, str]:
+    """Speichert eine kontrollierte Kopie des offenen Projekts und lädt sie neu.
+
+    Deckt den ``.bgrproj``-**Schreibpfad** des gepackten Artefakts ab (#686):
+    ``_run_eufymake_export_smoke`` schreibt über ``write_export`` und sagt
+    nichts über ``save_project``. Geprüft wird über den echten UI-Pfad
+    ``_write_project`` (ohne Dialog) und anschließendes Neuladen, dass die
+    Kopie wertgleich zurückkommt – inklusive der 16-Bit-Höhenpayload, dem
+    Teil, den ein 8-Bit-Rückfall still beschädigen würde.
+
+    Die geöffnete v1-Fixture wird beim Speichern kontrolliert auf die aktuelle
+    Formatversion gehoben; das ist der dokumentierte Vertrag aus #588 und wird
+    hier ausdrücklich mitgeprüft.
+    """
+    project = window._canvas.project
+    if project is None:
+        return False, "Kein Projekt für die Speicher-Kopie vorhanden."
+    before = _project_state(project)
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not window._write_project(str(target)):
+        return False, f"Speichern der Kopie fehlgeschlagen: {window._sb.currentMessage()}"
+    expected_message = tr("project.saved", name=target.name)
+    if window._sb.currentMessage() != expected_message:
+        return False, (
+            f"Speichern meldete unerwarteten Hinweis: {window._sb.currentMessage()!r}"
+        )
+    if not target.is_file():
+        return False, f"Kopie wurde nicht geschrieben: {target}"
+
+    with zipfile.ZipFile(target) as zf:
+        written_version = json.loads(zf.read("manifest.json")).get("version")
+    if written_version != PROJECT_FORMAT_VERSION:
+        return False, (
+            f"Kopie trägt Formatversion {written_version!r}, erwartet "
+            f"{PROJECT_FORMAT_VERSION!r}."
+        )
+
+    window._load_project_into_canvas(str(target))
+    reloaded = window._canvas.project
+    if reloaded is None:
+        return False, "Kopie ließ sich nicht wieder laden."
+    after = _project_state(reloaded)
+    if after != before:
+        return False, (
+            "Kopie weicht nach dem Neuladen vom gespeicherten Projekt ab: "
+            f"{_first_state_difference(before, after)}"
+        )
+    return True, f"Projekt-Kopie bitgenau gespeichert und neu geladen: {target.name}"
+
+
 def _run_missing_component_smoke(window: MainWindow) -> tuple[bool, str]:
     """Simuliert ein fehlendes optionales KI-Backend und prüft die Meldung.
 
@@ -260,15 +431,23 @@ def _run_eufymake_export_smoke(window: MainWindow, export_dir: Path) -> tuple[bo
 
 def run_acceptance_extra(
     window: MainWindow, output_json: Path, v270_fixture: Path,
+    expected_version: str | None = None,
 ) -> AcceptanceExtraResult:
-    """Führt beide Zusatz-Smokes aus dem laufenden, gepackten Prozess aus.
+    """Führt die Zusatz-Smokes aus dem laufenden, gepackten Prozess aus.
 
-    Öffnet zuerst das 2.7.0-Projekt (liefert das Motiv für den nachfolgenden
-    Export und das Bild für die Fehlende-Komponente-Prüfung, spart ein
-    separates Beispielbild) und führt die beiden folgenden Prüfungen danach
-    nur aus, wenn das Öffnen selbst erfolgreich war – sie würden sonst nur
-    den bereits gemeldeten Fehler verdoppeln.
+    Die Versionsprüfung läuft **zuerst und unabhängig**: Sie hängt an keinem
+    Projektzustand, und bei einem fehlgeschlagenen Projekt-Öffnen bleibt die
+    Aussage über die paketierte Version trotzdem erhalten.
+
+    Danach wird das 2.7.0-Projekt geöffnet (liefert das Motiv für Export und
+    Kopie und das Bild für die Fehlende-Komponente-Prüfung, spart ein
+    separates Beispielbild); die folgenden Prüfungen laufen nur bei
+    erfolgreichem Öffnen – sie würden sonst nur den bereits gemeldeten Fehler
+    verdoppeln.
     """
+    visible_version_ok, visible_version_message = _run_visible_version_smoke(
+        window, expected_version,
+    )
     v270_ok, v270_message = _run_v270_project_smoke(window, v270_fixture)
     if v270_ok:
         # Eigener Exportordner je Aufrufer (Dateiname von ``output_json``, z. B.
@@ -282,18 +461,30 @@ def run_acceptance_extra(
         eufymake_ok, eufymake_message = _run_eufymake_export_smoke(
             window, output_json.parent / f"{output_json.stem}_eufymake_export",
         )
+        # Eigener Dateiname je Aufrufer – wie beim Exportordner teilen sich
+        # mehrere Artefaktklassen denselben Evidenz-Ordner (#723).
+        project_copy_ok, project_copy_message = _run_project_copy_smoke(
+            window, output_json.parent / f"{output_json.stem}_kopie.bgrproj",
+        )
         missing_component_ok, missing_component_message = _run_missing_component_smoke(window)
     else:
-        eufymake_ok, eufymake_message = False, "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
-        missing_component_ok = False
-        missing_component_message = "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
+        skipped = "übersprungen: 2.7.0-Projekt-Smoke fehlgeschlagen"
+        eufymake_ok, eufymake_message = False, skipped
+        project_copy_ok, project_copy_message = False, skipped
+        missing_component_ok, missing_component_message = False, skipped
 
     result = AcceptanceExtraResult(
-        ok=eufymake_ok and v270_ok and missing_component_ok,
+        ok=(
+            eufymake_ok and v270_ok and missing_component_ok
+            and visible_version_ok and project_copy_ok
+        ),
         eufymake_ok=eufymake_ok, eufymake_message=eufymake_message,
         v270_ok=v270_ok, v270_message=v270_message,
         missing_component_ok=missing_component_ok,
         missing_component_message=missing_component_message,
+        visible_version_ok=visible_version_ok,
+        visible_version_message=visible_version_message,
+        project_copy_ok=project_copy_ok, project_copy_message=project_copy_message,
     )
     payload = {
         "schema": _EVIDENCE_SCHEMA,
@@ -303,6 +494,8 @@ def run_acceptance_extra(
         "eufymake_export": {"ok": eufymake_ok, "message": eufymake_message},
         "v270_project_open": {"ok": v270_ok, "message": v270_message},
         "missing_component": {"ok": missing_component_ok, "message": missing_component_message},
+        "visible_version": {"ok": visible_version_ok, "message": visible_version_message},
+        "project_copy": {"ok": project_copy_ok, "message": project_copy_message},
     }
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_json.write_text(

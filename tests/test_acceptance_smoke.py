@@ -6,6 +6,7 @@ offscreen mit einem echten ``MainWindow``.
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from bgremover.acceptance_smoke import run_acceptance_extra
 from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.project_io import save_project
 from bgremover.project_model import LayerKind, LayerRole, Project
+from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 pytestmark = pytest.mark.ui_smoke
 
@@ -179,6 +181,196 @@ def test_run_acceptance_extra_twice_in_same_evidence_dir_does_not_collide(  # ty
     assert second.ok, (second.v270_message, second.eufymake_message)
     assert (evidence_dir / "acceptance_extra_appimage_eufymake_export" / "color_motif.png").is_file()
     assert (evidence_dir / "acceptance_extra_deb_eufymake_export" / "color_motif.png").is_file()
+
+
+def test_run_acceptance_extra_accepts_matching_expected_version(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Stimmt die Soll-Version aus dem Artefaktnamen mit der paketierten
+    Version überein, ist die Prüfung grün und sagt das auch (#686)."""
+    from bgremover import __version__
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE, __version__)
+    finally:
+        win.close()
+
+    assert result.visible_version_ok, result.visible_version_message
+    assert __version__ in result.visible_version_message
+    assert json.loads(output_json.read_text(encoding="utf-8"))["visible_version"]["ok"] is True
+
+
+def test_run_acceptance_extra_rejects_mismatching_expected_version(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Kernpunkt von #686: Ein Paket, dessen sichtbare Version nicht zum
+    Artefaktnamen passt (falsch paketierte Version), muss auffallen – ohne
+    externen Sollwert verglich die Prüfung das Paket nur mit sich selbst und
+    wäre immer grün gewesen."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE, "9.9.9")
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.visible_version_ok
+    assert "9.9.9" in result.visible_version_message
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    assert payload["ok"] is False
+    assert payload["visible_version"]["ok"] is False
+    # Die übrigen Prüfungen laufen trotzdem durch – der Fehlschlag darf sie
+    # nicht verdecken, sonst wäre im Joblog nicht erkennbar, was sonst noch gilt.
+    assert payload["v270_project_open"]["ok"] is True
+    assert payload["project_copy"]["ok"] is True
+
+
+def test_run_acceptance_extra_writes_and_reloads_a_controlled_project_copy(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """#686: Der ``save_project``-Schreibpfad des gepackten Artefakts wird
+    geprüft – ``write_export`` (EufyMake) deckt ihn nicht ab. Die v1-Fixture
+    wird dabei kontrolliert auf die aktuelle Formatversion gehoben."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    assert result.project_copy_ok, result.project_copy_message
+    copy_path = tmp_path / "acceptance_extra_kopie.bgrproj"
+    assert copy_path.is_file()
+    with zipfile.ZipFile(copy_path) as zf:
+        assert json.loads(zf.read("manifest.json"))["version"] == PROJECT_FORMAT_VERSION
+    assert json.loads(output_json.read_text(encoding="utf-8"))["project_copy"]["ok"] is True
+
+
+def test_run_acceptance_extra_project_copy_reports_write_failure(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negativkontrolle: Schlägt das Schreiben fehl, muss die Prüfung rot
+    werden – nicht still durchgehen, weil ``_write_project`` seine Fehler nur
+    in der Statusleiste meldet und keine Ausnahme wirft."""
+
+    def boom(project, path):  # type: ignore[no-untyped-def]
+        raise OSError("Ziel nicht beschreibbar")
+
+    monkeypatch.setattr("bgremover.main_window.save_project", boom)
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.project_copy_ok
+    assert "fehlgeschlagen" in result.project_copy_message
+
+
+def test_visible_version_rejects_a_prefix_match_in_the_title(  # type: ignore[no-untyped-def]
+    qapp, qtbot,
+) -> None:
+    """Codex-P2 (#734): ``"2.7.1" in "BgRemover Pro 2.7.10"`` ist wahr, obwohl
+    der Titel eine **andere** Version zeigt. Genau der Fall – Titel aus einer
+    anderen Quelle als ``__version__`` – ist der, den die Prüfung fangen soll;
+    ein Substring-Test hätte ihn durchgewinkt."""
+    from bgremover import __version__
+    from bgremover.acceptance_smoke import _run_visible_version_smoke
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    try:
+        win.setWindowTitle(f"BgRemover Pro {__version__}0")
+        ok, message = _run_visible_version_smoke(win, __version__)
+        assert not ok
+        assert f"{__version__}0" in message
+
+        # Gegenprobe: der echte Titel bleibt grün.
+        win.setWindowTitle(f"BgRemover Pro {__version__}")
+        ok, _ = _run_visible_version_smoke(win, __version__)
+        assert ok
+    finally:
+        win.close()
+
+
+def test_visible_version_rejects_a_title_without_any_version(  # type: ignore[no-untyped-def]
+    qapp, qtbot,
+) -> None:
+    """Ein Titel ganz ohne Versionsangabe ist ein Fehlschlag, kein stiller
+    Durchlauf – sonst wäre der Nachweis „sichtbare Versionsnummer" wertlos."""
+    from bgremover.acceptance_smoke import _run_visible_version_smoke
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    try:
+        win.setWindowTitle("BgRemover Pro")
+        ok, message = _run_visible_version_smoke(win, None)
+        assert not ok
+        assert "keine Versionsangabe" in message
+    finally:
+        win.close()
+
+
+def test_project_copy_detects_reordered_layers(qapp, qtbot, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Codex-P2 (#734): Ein Vergleich per Dict nach Ebenen-ID hielt eine
+    vertauschte Ebenenreihenfolge – also ein sichtbar anderes Komposit – für
+    gleich. Der Zustand wird deshalb geordnet verglichen."""
+    from bgremover.acceptance_smoke import _project_state
+
+    img = Image.new("RGBA", (8, 8), (1, 2, 3, 255))
+    project = Project(8, 8, version=1)
+    first = project.create_layer(img, name="A", kind=LayerKind.COLOR)
+    second = project.create_layer(img, name="B", kind=LayerKind.COLOR)
+    before = _project_state(project)
+
+    project.move_layer(first.id, 1)
+    assert _project_state(project) != before
+    # Dieselbe Ebenenmenge, nur andere Reihenfolge – genau der Fall, den ein
+    # Dict-Vergleich nach Ebenen-ID nicht bemerkt hätte.
+    assert {first.id, second.id} == {layer.id for layer in project.layers}
+
+
+def test_project_copy_detects_persisted_field_drift(qapp, qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Name, Sichtbarkeit, Deckkraft, Sperre und der Projektzustand gehören
+    zum gespeicherten Zustand – ein Vergleich nur über IDs, Rollen und Pixel
+    hätte eine Abweichung dort nicht bemerkt (Codex-P2, #734)."""
+    from bgremover.acceptance_smoke import _project_state
+
+    img = Image.new("RGBA", (8, 8), (1, 2, 3, 255))
+
+    def fresh() -> Project:
+        project = Project(8, 8, version=1, metadata={"physical_size_mm": [10.0, 10.0]})
+        layer = project.create_layer(img, name="A", kind=LayerKind.COLOR)
+        project.create_layer(img, name="B", kind=LayerKind.COLOR)
+        project.set_active(layer.id)
+        return project
+
+    baseline = _project_state(fresh())
+    for mutate in (
+        lambda p: setattr(p.layers[0], "name", "anders"),
+        lambda p: setattr(p.layers[0], "visible", False),
+        lambda p: setattr(p.layers[0], "opacity", 0.5),
+        lambda p: setattr(p.layers[0], "locked", True),
+        lambda p: p.metadata.update({"physical_size_mm": [20.0, 20.0]}),
+        lambda p: p.set_active(p.layers[1].id),
+    ):
+        drifted = fresh()
+        mutate(drifted)
+        assert _project_state(drifted) != baseline, mutate
 
 
 def test_run_acceptance_extra_missing_component_restores_rembg_available(  # type: ignore[no-untyped-def]

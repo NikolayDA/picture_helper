@@ -129,9 +129,13 @@ def _fake_acceptance_extra(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps({
+            "schema": smoke.ACCEPTANCE_EXTRA_SCHEMA,
             "ok": ok,
             "eufymake_export": {"ok": ok, "message": "ok" if ok else "nope"},
             "v270_project_open": {"ok": ok, "message": "ok" if ok else "nope"},
+            "visible_version": {"ok": ok, "message": "ok" if ok else "nope"},
+            "project_copy": {"ok": ok, "message": "ok" if ok else "nope"},
+            "missing_component": {"ok": ok, "message": "ok" if ok else "nope"},
         }),
         encoding="utf-8",
     )
@@ -667,7 +671,8 @@ def test_acceptance_extra_fails_when_payload_reports_not_ok(tmp_path: Path) -> N
     )
     assert not report.passed
     assert any(
-        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n and "eufymake=" in n and "v270=" in n
+        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n
+        and "eufymake_export=" in n and "v270_project_open=" in n
         for n in report.notes
     )
 
@@ -705,6 +710,101 @@ def test_linux_smoke_runs_acceptance_extra_for_appimage_and_deb(tmp_path: Path) 
     assert len(acceptance_calls) == 2
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["appimage"] in c for c in acceptance_calls)
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["deb"] in c for c in acceptance_calls)
+
+
+def test_acceptance_extra_rejects_older_hook_schema(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Codex-P1 (#734): Ein Kandidat mit dem **Vorgänger-Hook** schreibt
+    dieselbe Struktur mit ``ok: true``, aber ohne ``visible_version``/
+    ``project_copy``. Der frühere ``ok``-Kurzschluss meldete ihn grün, obwohl
+    die neuen Prüfungen dort gar nicht existieren – ein umbenanntes oder
+    veraltetes Artefakt wäre so unbemerkt durch die Abnahme gelaufen."""
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        target = next(
+            Path(a.split("=", 1)[1]) for a in cmd
+            if a.startswith("BGREMOVER_ACCEPTANCE_EXTRA=")
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({
+            "schema": 1,  # alter Hook
+            "ok": True,
+            "eufymake_export": {"ok": True, "message": "ok"},
+            "v270_project_open": {"ok": True, "message": "ok"},
+            "missing_component": {"ok": True, "message": "ok"},
+        }), encoding="utf-8")
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any("Evidenz-Schema 1" in n and "älteren Hook" in n for n in report.notes)
+
+
+def test_acceptance_extra_rejects_missing_sub_results_despite_top_level_ok(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Auch bei passender Schemaversion muss **jede** erwartete Teilprüfung
+    vorhanden sein: Ein fehlender Schlüssel ist ein Fehlschlag, nicht
+    „nicht zutreffend" (Codex-P1, #734)."""
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        target = next(
+            Path(a.split("=", 1)[1]) for a in cmd
+            if a.startswith("BGREMOVER_ACCEPTANCE_EXTRA=")
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({
+            "schema": smoke.ACCEPTANCE_EXTRA_SCHEMA,
+            "ok": True,
+            "eufymake_export": {"ok": True, "message": "ok"},
+            "v270_project_open": {"ok": True, "message": "ok"},
+            "missing_component": {"ok": True, "message": "ok"},
+            "visible_version": {"ok": True, "message": "ok"},
+            # project_copy fehlt
+        }), encoding="utf-8")
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any("Teilergebnisse fehlen" in n and "project_copy" in n for n in report.notes)
+
+
+def test_acceptance_extra_passes_expected_version_from_artifact_name(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """#686: Die Soll-Version für die sichtbare Produktversion kommt aus dem
+    Artefaktdateinamen und wird als eigene Umgebungsvariable durchgereicht –
+    nur so prüft das Paket gegen einen *externen* Wert statt gegen sich selbst."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1,
+        label="BgRemover-2.7.1-linux-x86_64-ai.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    assert any("BGREMOVER_ACCEPTANCE_EXTRA_VERSION=2.7.1" in c for c in calls)
+
+
+def test_acceptance_extra_omits_version_for_unversioned_artifact_name(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Folgt der Name nicht dem Release-Schema, wird **kein** Sollwert gesetzt –
+    die Prüfung fällt auf die schwächere Selbstauskunft zurück, statt einen
+    geratenen Wert zu vergleichen und dadurch falsch rot zu werden."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    assert not any("BGREMOVER_ACCEPTANCE_EXTRA_VERSION" in c for c in calls)
 
 
 def test_macos_smoke_runs_acceptance_extra(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]

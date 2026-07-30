@@ -44,6 +44,10 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   optional. Kein Migrationsschritt nötig – Projektdateien (`.bgrproj`),
   Exportformate und Einstellungen bleiben unverändert kompatibel; ein Downgrade
   auf 2.7.0 ist ebenso ohne Datenänderung möglich.
+- **Unterstützte Plattformen:** macOS arm64 (`.dmg`), Linux x86_64 und Linux
+  arm64 (je `.AppImage` und `.deb`), Python ≥ 3.10. Alle Artefakte bündeln das
+  KI-Backend (`-ai`-Suffix). Die macOS-App ist ad-hoc signiert, nicht mit
+  Developer ID notarisiert – beim Erststart daher Rechtsklick → „Öffnen".
 - **Bekannte Einschränkungen:** Keine über 2.7.0 hinausgehenden neuen
   Einschränkungen. Der Fix ist durch GL-freie Regressionstests gegen
   Fake-Ressourcen abgesichert; eine Speichermessung über eine lange Sitzung mit
