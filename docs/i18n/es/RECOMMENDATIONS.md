@@ -11,42 +11,39 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-07-29, revisión de PR/issues + auditoría del gate de release + seguimiento de #716)
+## Estado actual (2026-07-30, aceptación de hardware de #685 casi completa + tres incidencias nuevas #727/#728/#731)
 
-Se comprobaron los ocho PR fusionados el 28/29 de julio en Europe/Berlin (#706–#709 y #712–#715) y las incidencias cerradas #702, #710 y #711. Todos los heads pasaron PR CI, CodeQL, auditorías de dependencias y licencias y Claude Code Review. #702 quedó corregida por #708 en los seis README; #711 está funcionalmente completa mediante #713, incluidos sus tres hallazgos de revisión válidos.
+Se han fusionado diez PR desde la última ronda: #720/#722/#723/#725 automatizan la corrección de cuatro huecos reales de #685 (la prueba de apertura de proyecto 2.7.0, el smoke test de exportación EufyMake, una colisión de carpetas de exportación entre clases de artefactos detectada en la Pi 5, y el mensaje de componente faltante), además de los seguimientos de congelación #721/#724/#726/#730, #729 (ClamAV best-effort) y #732 (corrección de ANLEITUNG.md). El candidato final para 2.7.1 es `615c8d351c11f946a7f1ca23b6143f1bf3b86085`.
 
-Desde esa revisión se fusionaron los PR exclusivamente documentales #717 y #718. #718 registra la nueva **#716** (quinta auditoría automatizada de la suite de pruebas tras #168/#177/#178/#659): `make coverage` está verde con 2081 pruebas aprobadas, 6 omitidas y 93 % de cobertura. No se encontró ningún error de producción; quedan dos huecos de cobertura reales, tres aserciones débiles y varias pequeñas mejoras de desacoplamiento y redundancia. La incidencia ya contiene una lista claramente delimitada de ocho tareas.
+**#685 está ahora en 12 de 16 criterios de aceptación**, confirmado por última vez mediante la ejecución de aceptación de hardware [30534770176](https://github.com/NikolayDA/picture_helper/actions/runs/30534770176) contra exactamente este commit: macOS arm64 (MacBook M3 Max) y Linux aarch64 (Raspberry Pi 5) están completamente ✅, incluidos el E2E 3D nativo y el rendimiento GL en vivo; Linux x86_64 sigue deliberadamente en pausa (§5); la evaluación previa por visión de las capturas sigue «sin evaluar» por falta de `ANTHROPIC_API_KEY` (#656). Quedan cuatro puntos genuinamente manuales: la propia tabla de la matriz de release documentada, la firma/notarización/cuarentena de macOS, un caso demostrado de bloqueo por artefacto fallido y la comprobación final de coherencia con #686.
 
-- **Épica #680** – La secuencia restante de estabilización v2.7.x es **#685 → #686**.
-- **Épica #681** – Perfil objetivo EufyMake: las suposiciones sobre profundidad de bits HEIGHT, mm/DPI y gloss en la exportación deben contrastarse con fuentes del fabricante y hardware real y convertirse en un perfil objetivo versionado. Sub-incidencias: #687 (inventario de suposiciones/matriz de pruebas), #688 (HEIGHT), #689 (mm/DPI), #690 (gloss), #691 (integración del perfil en validador/writer/diálogo/documentación).
-- **Épica #682** – Motor de tono/escala de grises COLOR: una base común libre de Qt para histograma/niveles/gamma como fundamento de la optimización de imagen y futuros flujos de láser. Sub-incidencias: #692 (ADR/contrato de datos), #693 (núcleo libre de Qt), #694 (vista previa en vivo/UI), #695 (integración de capas/selección/historial/proyecto), #696 (aceptación de rendimiento/E2E/documentación/interfaz láser).
+Tres incidencias nuevas desde la última ronda:
 
-PR #709 añadió un control `GITHUB_SHA == candidato` estructuralmente imposible. La revisión de #714 detectó el bloqueo; #715 lo eliminó y #714 actualizó después la congelación a `adb2205960619b9b5c29a9a05feda163310782a6`. `make release-freeze-check` informa ahora **0 errores y 0 avisos** con 21 commits completamente clasificados.
-
-Estado en vivo: **18** incidencias abiertas (las 17 anteriores más la nueva #716).
+- **#727** (revisión de ANLEITUNG.md) — el hallazgo reportado («Heller Modus» en vez de «Helles Design») ya llegó a `main` mediante el PR #732; **cerrada con esta actualización**.
+- **#728** (comprobación de exactitud de RECOMMENDATIONS.md) — señalaba una sección de estado corto desactualizada desde el PR #719 y una fila de #685 descrita erróneamente como «no iniciada»; **corregida y cerrada con esta actualización**.
+- **#731** (escaneo de virus ClamAV) — el escaneo que se ejecuta en `release-linux.yml` desde el PR #725 ha fallado en todas las ejecuciones hasta ahora con el error `NULL X509 store` de `freshclam` (el mirror público rechaza los rangos de IP de CI); el PR #729 lo hizo no bloqueante. La incidencia documenta cuatro opciones de solución (caché de GitHub Actions, mirror alternativo, desacoplarlo del workflow de release, eliminarlo por completo); decisión pendiente.
 
 ### Resultado de la revisión y de la auditoría de definiciones
 
-- ✅ **#706–#709/#712–#715:** las cinco familias de workflows están verdes; los hallazgos funcionales de #706, #709, #713 y #714 están corregidos.
-- ✅ **#702/#708:** corrección completa en los seis README.
-- ✅ **#711/#713:** fallos create/bind, montaje parcial, limpieza, contadores y ciclos abortados están protegidos de forma fail-closed; el ensayo GPU real sigue en #685.
-- ✅ **#710/#714/#715:** congelación, inventario y contrato build/tag son coherentes; un test evita reintroducir el bloqueo de #709.
-- 🟢 **#716:** ningún error de producción, sino mejoras de pruebas claramente documentadas en unos ocho archivos; lista para iniciarse e independiente de las rutas de release y de funciones.
-- 🟡 **Higiene de revisión:** #713 conserva tres hilos técnicamente contestados pero no resueltos administrativamente; #712 conserva uno sobre paridad lingüística. Esta actualización corrige su contenido.
-- 🟠 **#681 y sus sub-incidencias #687–#691 describen un paquete TIFF que la exportación no produce.** `eufymake_writer.py` escribe una carpeta con `color_motif.png` (el único recurso obligatorio), opcionalmente `height_map.png` y `gloss_mask.png`, más `manifest.json` — tal como fija el ADR; `grep -ri tiff bgremover/eufymake_*` no devuelve ningún resultado. Los criterios sobre «directorios/IFD TIFF», «orden de páginas», `SampleFormat`, `PhotometricInterpretation`, `ExtraSamples` y `X/YResolution` examinan objetos que no existen en el resultado de la exportación. Detalles, criterios afectados por sub-incidencia y dos vías de solución: [comentario en #681](https://github.com/NikolayDA/picture_helper/issues/681#issuecomment-5091039442). **#687 no está lista para iniciarse** hasta aclararlo: un inventario que omite la cuestión del formato consolida justo la suposición que la épica debe comprobar.
-- 🟡 **Nuevo hallazgo N10: los recursos de imagen exportados no llevan metadatos de resolución.** `_write_png()` llama a `image.save(path, "PNG")` sin `dpi=`, así que los PNG no contienen fragmento `pHYs`. El tamaño físico y los DPI solo están en `manifest.json` (`target.physical_size_mm`/`target.dpi`), una convención propia de BgRemover; **que EufyMake Studio lea ese manifiesto está sin verificar** y no se deduce del código. La exportación normal de imágenes sí ancla los DPI en el propio archivo (`image_ops.save_image`, de #378). Por tanto, la primera pregunta para #687/#689 no es la medición impresa, sino la vía de transporte: ¿lee Studio el manifiesto, necesita `pHYs` en los recursos o el tamaño se introduce manualmente?
-- ✅ **Higiene corregida:** #680/#685/#686 contienen el candidato final y el contrato build/tag corregido; se corrigió por separado un sufijo de comando inválido en el último comentario de #686.
-- ✅ **Verificación local:** `make check` está verde (**2038 pasaron, 37 omitidos, 14 deseleccionados**); el gate de congelación también está 0/0.
-- **Sin comentarios nuevos** en #245/#656 desde la última ronda – no hace falta actualizarlas.
+- ✅ **#720/#722/#723/#725/#729/#732:** los seis PR se fusionaron con los gates estándar en verde; sin hallazgos de revisión pendientes.
+- 🟢 **#685:** 12/16 criterios cumplidos y respaldados por ID de ejecución/commit; lo que queda es puramente manual (firma/notarización, prueba de bloqueo por fallo, documentación de la matriz, comprobación con #686).
+- ✅ **#727 cerrada:** la corrección ya está en `main` (PR #732, commit `a26945e`).
+- ✅ **#728 cerrada:** la sección de estado corto y la fila de #685 se han actualizado con esta revisión; el estado en vivo está corregido.
+- 🟡 **#731 nueva:** la capa adicional de ClamAV prácticamente nunca ha llegado a ejecutarse desde que se introdujo; `scripts/scan_release_artifacts.py` sigue siendo la comprobación de cadena de suministro vinculante que realmente se ejecuta. No bloquea el release.
+- 🟠 **#681/#687–#691 sin cambios:** siguen sin comentarios nuevos desde la auditoría del 2026-07-27; persiste el desajuste TIFF-vs-PNG, #687 sigue sin estar lista para iniciarse.
+- **#245/#656/#682/#692–#696/#716** sin comentarios nuevos; valoración sin cambios.
 - **La base antigua sigue estable:** **N1/N2/N4/N5/N6/N7/N8/N9**, **O1–O8**, todo lo completado desde el **2026-06-25** y el release v2.7.0 (etiqueta/publicación/las tres etapas del gate contra el commit `6f103ed`) siguen sin cambios y hechos.
 
-## Incidencias abiertas de GitHub — Clasificación (2026-07-29)
+Estado en vivo tras la consulta a GitHub: **19** incidencias abiertas (21 antes de cerrar #727/#728, más la #731 recién registrada respecto a las 18 anteriores).
+
+## Incidencias abiertas de GitHub — Clasificación (2026-07-30)
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Épica] Estabilización v2.7.x | 🟠 Alta | 🟠 Alta | – (épica) | En curso – #685 → #686 |
-| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Construir artefactos candidatos + aceptación de hardware | 🟠 Alta | 🟠 Alta | Sonnet, medio; hardware manual | Lista – ejecutar build candidato y aceptación de hardware |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) | [Épica] Estabilización v2.7.x | 🟠 Alta | 🟠 Alta | – (épica) | En curso – #685 casi lista → #686 |
+| [#685](https://github.com/NikolayDA/picture_helper/issues/685) | Construir artefactos candidatos + aceptación de hardware | 🟠 Alta | 🟢 Baja (12/16 criterios hechos, el resto es manual) | Sonnet, bajo; sin agente para firma/notarización | 12/16 cumplidos – quedan firma/notarización (macOS), prueba de bloqueo por fallo, documentación de la matriz, comprobación con #686 |
 | [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Etiqueta, publicación, verificación posterior al release | 🟠 Alta (pone la corrección a disposición de los usuarios) | 🟢 Baja (proceso de release establecido desde v2.6.0/v2.7.0) | Sonnet, bajo | Bloqueada – espera a #685 |
+| [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Hacer que el escaneo de virus ClamAV de los artefactos de release funcione de verdad | 🟡 Media (capa adicional de cadena de suministro, no bloquea el release) | 🟡 Media (cambio de workflow + decisión, sin código de producto) | Sonnet, medio | Necesita una decisión – elegir la opción A–D (ADR breve) y luego ajustar el workflow |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | **Corregir la definición** – los criterios describen TIFF, la exportación escribe recursos PNG |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🟡 Media (investigación/documentación, sin necesidad de acceso a hardware) | Sonnet, medio | No lista – la cuestión del contenedor/formato debe ser el primer punto del inventario |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validar profundidad de bits/semántica HEIGHT en hardware real | 🟠 Alta (afecta directamente a la altura del relieve) | 🔴 Alta (impresora física, fixtures, registro de medición) | – (sin agente; requiere hardware EufyMake real) | Bloqueada (externa + definición) – generar fixtures en el formato correcto |
@@ -65,15 +62,17 @@ Estado en vivo: **18** incidencias abiertas (las 17 anteriores más la nueva #71
 
 ### Recomendado a continuación
 
-1. Ejecutar **#685** con los cinco artefactos desde un único SHA aprobado y completar la aceptación de hardware real.
-2. Ejecutar **#686** solo después de una matriz verde de #685; el tag y la procedencia deben coincidir con el build aceptado.
-3. **#692** puede iniciarse en paralelo.
-4. Corregir **#681/#687–#691** antes de #687; #688–#690 requieren hardware real.
-5. **#656/#245** siguen siendo externos.
-6. **#716** puede resolverse de forma independiente y en paralelo como un pequeño PR de limpieza (baja prioridad, pero rápido y de bajo riesgo).
+1. **Cerrar #685** – solo quedan cuatro puntos manuales (firma/notarización/cuarentena de macOS, prueba de bloqueo por fallo, documentación de la matriz de release, comprobación con #686); cerrarla después.
+2. Ejecutar **#686** solo después de que la matriz de #685 esté completa; el SHA del tag y la procedencia de los activos deben coincidir con el build aceptado.
+3. **#731** – decidir entre las cuatro opciones documentadas (ADR breve); la opción A (caché de GitHub Actions) es el punto de partida recomendado; no bloquea el release.
+4. **#692** (ADR COLOR) puede iniciarse en paralelo de forma independiente.
+5. **Corregir la redacción de #681/#687–#691 antes de que empiece #687** – alinear los criterios con el paquete real de recursos PNG, o planificar por separado una migración de contenedor justificada empíricamente.
+6. **#688–#690** siguen bloqueadas hasta disponer de hardware EufyMake real; **#656/#245** siguen siendo trackers externos de secretos/facturación.
+7. **#716** puede resolverse de forma independiente y en paralelo como un pequeño PR de limpieza (baja prioridad, pero rápido y de bajo riesgo).
 
 ## Rondas anteriores
 
+- **2026-07-30 (#685 casi terminada, #727/#728 cerradas, #731 nueva)** — `main` está en `a26945e4f6e8ee3f665f7ef797050c049fccb5ac`. Se fusionaron diez PR desde la última ronda (#720–#726, #729, #730, #732); #685 está en 12/16 criterios, con la ejecución final de hardware 30534770176 contra el commit `615c8d3` (macOS M3 Max + Pi 5 ambos ✅, x86_64 en pausa, visión aún sin evaluar). #727 (ANLEITUNG.md) y #728 (desactualización de RECOMMENDATIONS.md) cerradas; #731 (el escaneo ClamAV nunca llegó a ejecutarse) registrada con cuatro opciones de solución. Estado en vivo: 19.
 - **2026-07-29 (seguimiento remoto #717/#718 y #716)** — `main` está en `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2`. Los PR documentales #717/#718 se fusionaron sin restos de revisión. #716 es la única incidencia nueva: 93 % de cobertura, ningún error de producción y ocho tareas de calidad de pruebas claramente documentadas. Las otras 17 incidencias no cambiaron; estado en vivo: 18.
 - **2026-07-29 (revisión #706–#709/#712–#715 y #702/#710/#711)** — ocho heads con cinco familias de workflows verdes. #702 y #711 completas; #715 corrige el control SHA imposible de #709; #714 registra `adb2205960619b9b5c29a9a05feda163310782a6`, 21 commits y gate 0/0. Quedan cuatro hilos respondidos administrativamente abiertos en #712/#713. Recommendations sincronizadas en seis idiomas; `make check` local 2038/37/14. Estado: 17; ruta #685 → #686.
 - **2026-07-28 (revisión #701/#703–#709 y #684/#699/#702)** — ocho PR verdes y todos los hilos resueltos. #702 corregida por #708; #684 conserva una prueba instrumentada válida. Se abrieron #711 (falso verde de QOpenGLBuffer) y #710 (congelación/contrato SHA; 4 errores/1 aviso). Orden fiable #711 → #710 → #685 → #686. Estado: 19.
