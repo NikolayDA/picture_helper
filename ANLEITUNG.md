@@ -120,7 +120,7 @@ Viele Aktionen sind zusätzlich über die Menüleiste erreichbar:
 - **Ansicht** – *Fit to View* (⌘0), *Verlauf* (öffnet dieselbe
   Änderungshistorie wie zuvor der Werkzeugleisten-Knopf), das Untermenü
   *Vorschaumodus* (siehe [Abschnitt 12](#12-schritt-6--export)) sowie
-  *Heller Modus* zum Umschalten des Farbschemas.
+  *Helles Design* zum Umschalten des Farbschemas.
 - **Projekt** – *Neues Projekt*, *Projekt öffnen…*, *Projekt speichern* /
   *…unter…* (`.bgrproj`) sowie *Assets für EufyMake Studio exportieren…*
   (siehe [Abschnitt 11](#11-schritt-5--relief--ebenen) und
@@ -286,7 +286,7 @@ Schaltflächen sichtbar:
 |---|---|
 | ↩ | **Rückgängig** (⌘Z) – letzten Schritt zurücknehmen |
 | ↪ | **Wiederherstellen** (⇧⌘Z) – rückgängig gemachten Schritt erneut anwenden |
-| ◐ | **Heller/Dunkler Modus umschalten** – wechselt das Farbschema (dieselbe Aktion wie `Ansicht → Heller Modus`) |
+| ◐ | **Helles/Dunkles Design umschalten** – wechselt das Farbschema (dieselbe Aktion wie `Ansicht → Helles Design`) |
 
 > Die KI-Hintergrundentfernung, die Änderungshistorie sowie Bild öffnen/
 > speichern liegen nicht mehr in der Werkzeugleiste: Sie sind über den
