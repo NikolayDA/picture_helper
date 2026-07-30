@@ -38,12 +38,12 @@ ersetzt die Handarbeit durch eine abgeleitete, prüfbare Regel:
   Seitenzweig-Commit, dessen Änderung nie ankam (Konfliktauflösung, `-s ours`,
   späterer Revert), darf nicht Kandidat werden. Die *Klassifizierung* unten
   bleibt dagegen auf **allen** Commits des Fensters (Obermenge, fail-closed).
-- **Commits im Fenster:** 31 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
-  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #725,
+- **Commits im Fenster:** 33 (`v2.7.0..<Kandidat>`, siehe Tabelle – jede Zeile
+  entspricht genau einem Commit; Stand nach dem Kandidatenwechsel durch #729,
   per Squash-Merge auf `main` bestätigt).
-- **Protokollierter Kandidaten-SHA:** `42807350cecffbb07581e0909323abd1310f26de`
-  (`feat: automate three more #685 acceptance criteria (#725)`,
-  Squash-Merge von PR #725 auf `main`)
+- **Protokollierter Kandidaten-SHA:** `08ad8e158b105716dca657144ed6360555637233`
+  (`fix: make ClamAV virus scan best-effort when the definitions mirror is unreachable (#729)`,
+  Squash-Merge von PR #729 auf `main`)
 
 Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für #685
 (Artefakte) und #686 (Tag/Veröffentlichung). Steht dort `nachzutragen`, ist der
@@ -107,7 +107,9 @@ gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | `c9fb5cd96d0804815493cce0176a9b537b78c841` (PR #721, kurz `c9fb5cd`) | Protokoll – Freeze-Nachtrag, der die Kandidatenwechsel durch #720 **und** #722 in einem konsolidierten Schritt nachzieht (statt zweimal hintereinander): trägt den vollen Kandidaten-SHA von PR #722 nach, wandelt die vorherige `Kandidaten-Commit`-Platzhalterzeile für #720 in eine Zeile mit vollem SHA um, klassifiziert `aa4369d` (#710 via PR #714), `b90d92a` (#717), `07de38f` (#718) und `dcdeeec` (#719) sowie #720 selbst vollständig, aktualisiert die Fensterzahl 21 → 27. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #723 *im* Fenster – daher hier klassifiziert. |
 | `e65e9380c0160bbf59415c6f883c7ee12d1e44c7` (PR #723, kurz `e65e938`) | **EufyMake-Exportordner-Kollision zwischen Artefaktklassen behoben.** Der erste echte Hardware-Abnahmelauf gegen den #722-Kandidaten (Raspberry Pi 5) fand einen realen Bug: `scripts/abnahme_smoke.py` ruft `_acceptance_extra` je Artefaktklasse (AppImage/.deb/.dmg) mit *demselben* `evidence_dir` auf, nur der JSON-Dateiname unterscheidet sich je Klasse. `run_acceptance_extra` leitete den EufyMake-Exportordner bisher als hartkodiertes `eufymake_export` unterhalb dieses gemeinsamen Elternordners ab – die zuerst gelaufene Klasse (AppImage) legte den Ordner an, jede folgende Klasse (.deb) kollidierte damit (`write_export` ohne `overwrite=True`) und meldete `write_export fehlgeschlagen: <Pfad>`. Der Exportordnername wird jetzt vom JSON-Ausgabedateinamen abgeleitet (`output_json.stem + "_eufymake_export"`), sodass jede Artefaktklasse ihren eigenen Ordner bekommt. Neuer Regressionstest reproduziert das exakte Szenario (zwei Aufrufe, gemeinsamer `evidence_dir`, beide müssen unabhängig erfolgreich sein). | Niedrig für die Anwendung – ausschließlich der interne Abnahme-Hook und sein Test; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst. | `make check` grün (**2102 passed**, 6 skipped, 14 deselected); PR-CI von #723 grün. | **Aufnehmen.** Kandidatenrelevant über `bgremover/**`, `tests/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt einen bei der echten Hardware-Abnahme in #685 gefundenen Regressionsfund. Kein Anwender-CHANGELOG-Eintrag (reiner Bugfix eines internen Abnahme-Hooks, keine sichtbare Verhaltensänderung für Anwender:innen). War bis zum Kandidatenwechsel durch #725 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
 | `d0f8ea277ddd14e2cad13522668e2dee8be22633` (PR #724, kurz `d0f8ea2`) | Protokoll – Freeze-Nachtrag, der den vollen Kandidaten-SHA von PR #723 nachträgt, die vorherige `Kandidaten-Commit`-Platzhalterzeile für #722 in eine Zeile mit vollem SHA umwandelt, `c9fb5cd` (#721) klassifiziert, die Fensterzahl 27 → 29 aktualisiert. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #725 *im* Fenster – daher hier klassifiziert. |
-| `Kandidaten-Commit` (PR #725, voller SHA unter „Protokollierter Kandidaten-SHA") | **Drei weitere #685-Akzeptanzkriterien automatisiert.** (1) Fehlende optionale Komponenten: `bgremover/acceptance_smoke.py` erzwingt `REMBG_AVAILABLE = False` im laufenden, gepackten Prozess und prüft, dass die KI-Aktion die etablierte, übersetzte Meldung zeigt statt eines stillen Ausfalls (dieselbe Prüfung wie `tests/test_main_window.py`, jetzt zusätzlich artefaktgebunden). (2) Abschlussmatrix: `scripts/abnahme_aggregate.py` ergänzt Gerät/OS (aus den Umgebungs-Pflichtfeldern der Evidenz), Datum (aus dem jeweils eigenen `erzeugt_am`/`timestamp` der Zeile, nicht pauschal aus der Plattform-Evidenz), ein Testperson-Feld (`automatisiert (kein manueller Tester)`) und einen Link auf den erzeugenden Workflow-Lauf. (3) Virenscan: `release-linux.yml` scannt die fünf gebauten Artefakte zusätzlich zu `scan_release_artifacts.py` mit ClamAV (Definitionsaktualisierung best-effort, ein tatsächlicher Fund blockiert hart). Unabhängige Codex-Review (1× P1, 2× P2) vor dem Merge vollständig behoben: Homebrews aktive `Example`-Direktive in `freshclam.conf` verhinderte auf macOS jede Datenbankaktualisierung (jetzt entfernt + expliziter Datenbank-Präsenz-Check vor `clamscan`); E2E-/Live-GL-Zeilen zeigten bei einem UTC-Datumswechsel während des Jobs das Datum der (früher erzeugten) Plattform-Evidenz statt ihres eigenen Zeitstempels; ein reiner Fehlschlag der Fehlende-Komponente-Prüfung blieb im Job-Log unsichtbar (nur zwei der drei Meldungen wurden gedruckt). | Niedrig für die Anwendung – ausschließlich interne Abnahme-Automatisierung (Hook, Matrix-Aggregation, CI-Workflow); kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst. | `make check` grün (**2108 passed**, 6 skipped, 14 deselected); PR-CI von #725 grün; unabhängige Codex-Review (1× P1, 2× P2) vor dem Merge behoben. | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `bgremover/**`, `scripts/**`, `.github/workflows/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt drei bei der Akzeptanzkriterien-Durchsicht von #685 identifizierte Automatisierungslücken. Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). |
+| `42807350cecffbb07581e0909323abd1310f26de` (PR #725, kurz `4280735`) | **Drei weitere #685-Akzeptanzkriterien automatisiert.** (1) Fehlende optionale Komponenten: `bgremover/acceptance_smoke.py` erzwingt `REMBG_AVAILABLE = False` im laufenden, gepackten Prozess und prüft, dass die KI-Aktion die etablierte, übersetzte Meldung zeigt statt eines stillen Ausfalls (dieselbe Prüfung wie `tests/test_main_window.py`, jetzt zusätzlich artefaktgebunden). (2) Abschlussmatrix: `scripts/abnahme_aggregate.py` ergänzt Gerät/OS (aus den Umgebungs-Pflichtfeldern der Evidenz), Datum (aus dem jeweils eigenen `erzeugt_am`/`timestamp` der Zeile, nicht pauschal aus der Plattform-Evidenz), ein Testperson-Feld (`automatisiert (kein manueller Tester)`) und einen Link auf den erzeugenden Workflow-Lauf. (3) Virenscan: `release-linux.yml` scannt die fünf gebauten Artefakte zusätzlich zu `scan_release_artifacts.py` mit ClamAV. Unabhängige Codex-Review (1× P1, 2× P2) vor dem Merge vollständig behoben: Homebrews aktive `Example`-Direktive in `freshclam.conf` verhinderte auf macOS jede Datenbankaktualisierung (jetzt entfernt + expliziter Datenbank-Präsenz-Check vor `clamscan`); E2E-/Live-GL-Zeilen zeigten bei einem UTC-Datumswechsel während des Jobs das Datum der (früher erzeugten) Plattform-Evidenz statt ihres eigenen Zeitstempels; ein reiner Fehlschlag der Fehlende-Komponente-Prüfung blieb im Job-Log unsichtbar (nur zwei der drei Meldungen wurden gedruckt). | Niedrig für die Anwendung – ausschließlich interne Abnahme-Automatisierung (Hook, Matrix-Aggregation, CI-Workflow); kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik selbst. | `make check` grün (**2108 passed**, 6 skipped, 14 deselected); PR-CI von #725 grün; unabhängige Codex-Review (1× P1, 2× P2) vor dem Merge behoben. | **Aufnehmen.** Kandidatenrelevant über `bgremover/**`, `scripts/**`, `.github/workflows/**`. Erfüllt die Freeze-Ausnahme wörtlich: schließt drei bei der Akzeptanzkriterien-Durchsicht von #685 identifizierte Automatisierungslücken. Kein Anwender-CHANGELOG-Eintrag (reine Abnahme-Automatisierung, keine sichtbare Verhaltensänderung). War bis zum Kandidatenwechsel durch #729 der Kandidat (siehe „Historie der Kandidatenwechsel"). |
+| `83a46ca0af1b60a5db32df45bbda192ed8c8126d` (PR #726, kurz `83a46ca`) | Protokoll – Freeze-Nachtrag, der den vollen Kandidaten-SHA von PR #725 nachträgt, die vorherige `Kandidaten-Commit`-Platzhalterzeile für #723 in eine Zeile mit vollem SHA umwandelt, `d0f8ea2` (#724) klassifiziert, die Fensterzahl 29 → 31 aktualisiert. | Keins – ändert ausschließlich `docs/history/RELEASE-2.7.1-scope-freeze.md`. | `make release-freeze-check` danach 0 Fehler/0 Warnungen. | Protokoll. Verschiebt den Kandidaten nicht; nicht in Release Notes. Lag zum Zeitpunkt seiner Entstehung *über* dem Kandidaten und liegt seit dem Kandidatenwechsel durch #729 *im* Fenster – daher hier klassifiziert. |
+| `Kandidaten-Commit` (PR #729, voller SHA unter „Protokollierter Kandidaten-SHA") | **ClamAV-Virenscan bei fehlender Datenbank non-blocking gemacht.** Der Kandidatenbau für #725 (Run 30501537127) schlug auf allen drei Matrix-Legs am neuen Virenscan-Schritt fehl: `freshclam` scheiterte sowohl beim apt-Paket (Ubuntu) als auch beim Homebrew-Bottle mit `ERROR: NULL X509 store` und hinterließ keine Virendatenbank – eine bekannte, verbreitete Instabilität von ClamAVs öffentlicher Mirror-Infrastruktur bei geteilten CI-IP-Bereichen, kein Konfigurationsfehler (die zuvor per Codex-Review gefixte macOS-`Example`-Direktive griff korrekt). Der Datenbank-Präsenz-Check aus #725 behandelte das aber als harten Build-Fehler und hätte damit jeden künftigen Kandidatenbau blockiert, sobald der Mirror ratenlimitiert/unerreichbar ist. Fehlt die Datenbank jetzt, wird der Scan mit sichtbarer `::warning::` übersprungen statt den Build zu brechen; ein echter Fund bei vorhandener Datenbank blockiert weiterhin hart, `scan_release_artifacts.py` bleibt die deterministische Pflichtprüfung. | Niedrig für die Anwendung – ausschließlich der CI-Workflow-Schritt selbst; kein Eingriff in Farbmotiv-, Höhen- oder Exportlogik. | `make check` grün (**2108 passed**, 6 skipped, 14 deselected); PR-CI von #729 grün. | **Aufnehmen – der neue Kandidat.** Kandidatenrelevant über `.github/workflows/release-linux.yml`. Erfüllt die Freeze-Ausnahme wörtlich: behebt einen bei der ersten realen Nutzung des #725-Kandidatenbaus gefundenen Regressionsfund (der neue Kandidatenbau selbst schlug fehl). Kein Anwender-CHANGELOG-Eintrag (reiner CI-Prozess, keine sichtbare Verhaltensänderung). |
 
 ### Protokoll-Commits über dem Kandidaten
 
@@ -137,18 +139,25 @@ verschieben den Kandidaten also nicht (`verify_release_freeze.py` weist sie als
   und ergänzt eine neue Zeile für #723, aktualisiert die Fensterzahl
   27 → 29 und die Gate-Nachweise; ändert ebenfalls nur
   `docs/history/RELEASE-2.7.1-scope-freeze.md`.
-- **Freeze-Nachtrag für den #725-Kandidaten** (dieser Commit): trägt den
+- **Freeze-Nachtrag für den #725-Kandidaten** (PR #726): trägt den
   vollen 40-stelligen SHA von PR #725 nach, wandelt die vorherige
   `Kandidaten-Commit`-Platzhalterzeile für #723 in eine Zeile mit vollem SHA
   um, klassifiziert `d0f8ea2` (#724, Freeze-Nachtrag) als Protokoll und
   ergänzt eine neue Zeile für #725, aktualisiert die Fensterzahl 29 → 31
   und die Gate-Nachweise; ändert ebenfalls nur
   `docs/history/RELEASE-2.7.1-scope-freeze.md`.
+- **Freeze-Nachtrag für den #729-Kandidaten** (dieser Commit): trägt den
+  vollen 40-stelligen SHA von PR #729 nach, wandelt die vorherige
+  `Kandidaten-Commit`-Platzhalterzeile für #725 in eine Zeile mit vollem SHA
+  um, klassifiziert `83a46ca` (#726, Freeze-Nachtrag) als Protokoll und
+  ergänzt eine neue Zeile für #729, aktualisiert die Fensterzahl 31 → 33
+  und die Gate-Nachweise; ändert ebenfalls nur
+  `docs/history/RELEASE-2.7.1-scope-freeze.md`.
 
 Die zuvor hier geführten Protokoll-Commits (`5c25e3b`, `ac05363`, `1b04887`,
-`0b021cc`, `aa4369d`, `c9fb5cd`, `d0f8ea2`) liegen seit dem Kandidatenwechsel
-durch #711 bzw. #720 bzw. #723 bzw. #725 **im** Fenster und stehen in der
-Klassifizierungstabelle oben.
+`0b021cc`, `aa4369d`, `c9fb5cd`, `d0f8ea2`, `83a46ca`) liegen seit dem
+Kandidatenwechsel durch #711 bzw. #720 bzw. #723 bzw. #725 bzw. #729 **im**
+Fenster und stehen in der Klassifizierungstabelle oben.
 
 **Zur Squash-Historie:** PR #701 wurde als **Squash** eingebracht. Die sechs
 Zweig-Commits (`bba18044755c…`, `09a328863e6a…`, `ad63e362062a…`,
@@ -431,6 +440,15 @@ und `QT_QPA_PLATFORM=offscreen` (nicht-editable Installation aus
 | `python scripts/verify_release_freeze.py --require-pin` (auf `main`, vor diesem Protokoll-Nachtrag) | 3 Fehler, 1 Warnung (`candidate-sha-mismatch` gegen den alten Pin `e65e9380c016…`, `commit-count-mismatch` 31 vs. 29, ein `unclassified-candidate-commit` für #723, eine `unclassified-protocol-commit`-Warnung für #724 – erwarteter Zustand vor diesem Nachtrag) |
 | `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
 
+| Prüfung auf dem #729-Kandidaten (Zweig `claude/clamav-nonblocking-fix`, PR #729) | Lauf/Ergebnis |
+|---|---|
+| `make check` (auf dem Zweig, Basis `main` = `83a46ca0af1b6…`) | grün: ruff „All checks passed", mypy „no issues found in 71 source files", pytest **2108 passed, 6 skipped, 14 deselected** |
+| Realer Kandidatenbau gegen den #725-Kandidaten (`release-linux.yml`-Run 30501537127) | Alle drei Matrix-Legs scheiterten am neuen Virenscan-Schritt: `freshclam` meldete auf dem apt-Paket (Linux) und dem Homebrew-Bottle (macOS) `ERROR: NULL X509 store` und hinterließ keine Virendatenbank, der Präsenz-Check aus #725 behandelte das als harten Build-Fehler. Kein Konfigurationsfehler – die zuvor gefixte macOS-`Example`-Direktive griff korrekt, betroffen war die externe ClamAV-Mirror-Infrastruktur selbst. |
+| Fix | Fehlt die Virendatenbank, überspringt der Schritt den Scan jetzt mit `::warning::` statt den Build abzubrechen; ein echter Fund bei vorhandener Datenbank blockiert weiterhin hart. |
+| PR-CI von #729 | grün |
+| `python scripts/verify_release_freeze.py --require-pin` (auf `main`, vor diesem Protokoll-Nachtrag) | 3 Fehler, 1 Warnung (`candidate-sha-mismatch` gegen den alten Pin `42807350cecf…`, `commit-count-mismatch` 33 vs. 31, ein `unclassified-candidate-commit` für #725, eine `unclassified-protocol-commit`-Warnung für #726 – erwarteter Zustand vor diesem Nachtrag) |
+| `make release-freeze-check` (`--require-pin`, nach diesem Protokoll-Nachtrag) | 0 Fehler, 0 Warnungen – der Freeze ist wieder abnahmefähig |
+
 Historie der Kandidatenwechsel (jeder nach der Freeze-Regel vollständig
 wiederholt, keiner still nachgezogen):
 
@@ -538,7 +556,8 @@ wiederholt, keiner still nachgezogen):
 12. **Kandidatenwechsel durch #725** (drei weitere #685-Akzeptanzkriterien
     automatisiert – fehlende optionale Komponenten, Abschlussmatrix-Felder
     (Gerät/OS, Datum, Testperson, Link), Virenscan der gebauten Artefakte,
-    `42807350cecf…`, **aktueller Kandidat**): Bei der Durchsicht der
+    `42807350cecf…`, **nicht mehr aktueller Kandidat, seit dem
+    Kandidatenwechsel durch #729 im Fenster**): Bei der Durchsicht der
     verbleibenden offenen #685-Akzeptanzkriterien identifiziert, die sich
     ohne Bezug zum Veröffentlichungs-Issue #686 automatisieren ließen (siehe
     Tabelle oben). PR #725 erfüllt die Freeze-Ausnahme wörtlich:
@@ -549,6 +568,24 @@ wiederholt, keiner still nachgezogen):
     nachgezogen: Fensterzahl 29 → 31, die vorherige
     `Kandidaten-Commit`-Platzhalterzeile für #723 zu einer Zeile mit vollem
     SHA gewandelt, `d0f8ea2` klassifiziert, neue Zeile für #725 ergänzt,
+    Gate-Nachweise wiederholt. Dieser Freeze-Nachtrag ändert ausschließlich
+    Protokoll-/Statusdokumentation.
+13. **Kandidatenwechsel durch #729** (ClamAV-Virenscan bei fehlender
+    Datenbank non-blocking gemacht, `08ad8e158b10…`, **aktueller
+    Kandidat**): Der erste reale Kandidatenbau gegen den #725-Kandidaten
+    (`release-linux.yml`-Run 30501537127) scheiterte auf allen drei
+    Matrix-Legs an `freshclam`s `ERROR: NULL X509 store` – einer bekannten
+    Instabilität von ClamAVs öffentlicher Mirror-Infrastruktur bei geteilten
+    CI-IP-Bereichen, kein Konfigurationsfehler. PR #729 macht den Scan bei
+    fehlender Datenbank non-blocking (sichtbare Warnung statt Build-Abbruch,
+    ein echter Fund blockiert weiterhin hart) und erfüllt die Freeze-Ausnahme
+    wörtlich: Regressionsfund beim ersten realen Kandidatenbau des
+    #725-Kandidaten. Kandidatenrelevant über
+    `.github/workflows/release-linux.yml`; ein Protokoll-Commit (`83a46ca`,
+    PR #726) liegt dazwischen. Nach dem vorgeschriebenen Verfahren
+    vollständig nachgezogen: Fensterzahl 31 → 33, die vorherige
+    `Kandidaten-Commit`-Platzhalterzeile für #725 zu einer Zeile mit vollem
+    SHA gewandelt, `83a46ca` klassifiziert, neue Zeile für #729 ergänzt,
     Gate-Nachweise wiederholt. Dieser Freeze-Nachtrag ändert ausschließlich
     Protokoll-/Statusdokumentation.
 
@@ -625,8 +662,17 @@ gebaut oder getaggt wird.
 - **#685 (drei weitere Akzeptanzkriterien automatisiert, PR #725):** Fehlende
   optionale Komponenten (Fehlende-Komponente-Smoke), Abschlussmatrix-Felder
   (Gerät/OS, Datum, Testperson, Link) und ein Virenscan der fünf gebauten
-  Artefakte (ClamAV). **Erzeugt den aktuellen Kandidaten** (Squash-Merge
-  `42807350cecf…`; siehe Kandidatenwechsel 12.).
+  Artefakte (ClamAV). (Squash-Merge `42807350cecf…`; siehe
+  Kandidatenwechsel 12.). **Nicht mehr aktueller Kandidat**, seit dem
+  Kandidatenwechsel durch #729 im Fenster.
+- **#726:** Freeze-Nachtrag für den #725-Kandidaten (Squash-Merge
+  `83a46ca0af1b…`) – ändert selbst nur Protokoll-/Statusdokumentation.
+- **#685 (ClamAV-Virenscan non-blocking gemacht, PR #729):** Der erste reale
+  Kandidatenbau des #725-Kandidaten scheiterte auf allen drei Matrix-Legs an
+  einer Instabilität von ClamAVs öffentlicher Mirror-Infrastruktur; fehlende
+  Virendatenbank überspringt den Scan jetzt statt den Build zu blockieren.
+  **Erzeugt den aktuellen Kandidaten** (Squash-Merge `08ad8e158b10…`; siehe
+  Kandidatenwechsel 13.).
 
 ## Ausdrücklich nicht in diesem Scope-Freeze enthalten
 
