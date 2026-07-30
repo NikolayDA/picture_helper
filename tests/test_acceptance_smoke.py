@@ -6,6 +6,7 @@ offscreen mit einem echten ``MainWindow``.
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from bgremover.acceptance_smoke import run_acceptance_extra
 from bgremover.height_map import HEIGHT_MAX_16BIT, generate_from_image
 from bgremover.project_io import save_project
 from bgremover.project_model import LayerKind, LayerRole, Project
+from bgremover.project_schema import PROJECT_FORMAT_VERSION
 
 pytestmark = pytest.mark.ui_smoke
 
@@ -179,6 +181,104 @@ def test_run_acceptance_extra_twice_in_same_evidence_dir_does_not_collide(  # ty
     assert second.ok, (second.v270_message, second.eufymake_message)
     assert (evidence_dir / "acceptance_extra_appimage_eufymake_export" / "color_motif.png").is_file()
     assert (evidence_dir / "acceptance_extra_deb_eufymake_export" / "color_motif.png").is_file()
+
+
+def test_run_acceptance_extra_accepts_matching_expected_version(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Stimmt die Soll-Version aus dem Artefaktnamen mit der paketierten
+    Version überein, ist die Prüfung grün und sagt das auch (#686)."""
+    from bgremover import __version__
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE, __version__)
+    finally:
+        win.close()
+
+    assert result.visible_version_ok, result.visible_version_message
+    assert __version__ in result.visible_version_message
+    assert json.loads(output_json.read_text(encoding="utf-8"))["visible_version"]["ok"] is True
+
+
+def test_run_acceptance_extra_rejects_mismatching_expected_version(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """Kernpunkt von #686: Ein Paket, dessen sichtbare Version nicht zum
+    Artefaktnamen passt (falsch paketierte Version), muss auffallen – ohne
+    externen Sollwert verglich die Prüfung das Paket nur mit sich selbst und
+    wäre immer grün gewesen."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE, "9.9.9")
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.visible_version_ok
+    assert "9.9.9" in result.visible_version_message
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    assert payload["ok"] is False
+    assert payload["visible_version"]["ok"] is False
+    # Die übrigen Prüfungen laufen trotzdem durch – der Fehlschlag darf sie
+    # nicht verdecken, sonst wäre im Joblog nicht erkennbar, was sonst noch gilt.
+    assert payload["v270_project_open"]["ok"] is True
+    assert payload["project_copy"]["ok"] is True
+
+
+def test_run_acceptance_extra_writes_and_reloads_a_controlled_project_copy(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """#686: Der ``save_project``-Schreibpfad des gepackten Artefakts wird
+    geprüft – ``write_export`` (EufyMake) deckt ihn nicht ab. Die v1-Fixture
+    wird dabei kontrolliert auf die aktuelle Formatversion gehoben."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    assert result.project_copy_ok, result.project_copy_message
+    copy_path = tmp_path / "acceptance_extra_kopie.bgrproj"
+    assert copy_path.is_file()
+    with zipfile.ZipFile(copy_path) as zf:
+        assert json.loads(zf.read("manifest.json"))["version"] == PROJECT_FORMAT_VERSION
+    assert json.loads(output_json.read_text(encoding="utf-8"))["project_copy"]["ok"] is True
+
+
+def test_run_acceptance_extra_project_copy_reports_write_failure(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negativkontrolle: Schlägt das Schreiben fehl, muss die Prüfung rot
+    werden – nicht still durchgehen, weil ``_write_project`` seine Fehler nur
+    in der Statusleiste meldet und keine Ausnahme wirft."""
+
+    def boom(project, path):  # type: ignore[no-untyped-def]
+        raise OSError("Ziel nicht beschreibbar")
+
+    monkeypatch.setattr("bgremover.main_window.save_project", boom)
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    assert not result.ok
+    assert not result.project_copy_ok
+    assert "fehlgeschlagen" in result.project_copy_message
 
 
 def test_run_acceptance_extra_missing_component_restores_rembg_available(  # type: ignore[no-untyped-def]

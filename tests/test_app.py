@@ -324,14 +324,17 @@ def test_main_acceptance_extra_hook_runs_and_exits_ok(patched_app, monkeypatch, 
     target = tmp_path / "acceptance_extra.json"
     fixture = tmp_path / "project_v2_7_0.bgrproj"
 
-    def fake_run(window, output_json, v270_fixture):
+    def fake_run(window, output_json, v270_fixture, expected_version=None):
         calls["window"] = window
         calls["output_json"] = output_json
         calls["v270_fixture"] = v270_fixture
+        calls["expected_version"] = expected_version
         return acceptance_smoke_module.AcceptanceExtraResult(
             ok=True, eufymake_ok=True, eufymake_message="ok",
             v270_ok=True, v270_message="ok",
             missing_component_ok=True, missing_component_message="ok",
+            visible_version_ok=True, visible_version_message="ok",
+            project_copy_ok=True, project_copy_message="ok",
         )
 
     monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
@@ -359,11 +362,13 @@ def test_main_acceptance_extra_hook_exits_nonzero_on_failure(patched_app, monkey
         def singleShot(ms, callback) -> None:
             scheduled["callback"] = callback
 
-    def fake_run(window, output_json, v270_fixture):
+    def fake_run(window, output_json, v270_fixture, expected_version=None):
         return acceptance_smoke_module.AcceptanceExtraResult(
             ok=False, eufymake_ok=False, eufymake_message="nope",
             v270_ok=False, v270_message="nope",
             missing_component_ok=False, missing_component_message="nope",
+            visible_version_ok=False, visible_version_message="nope",
+            project_copy_ok=False, project_copy_message="nope",
         )
 
     monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)
@@ -392,12 +397,14 @@ def test_main_acceptance_extra_hook_prints_missing_component_diagnostic(
         def singleShot(ms, callback) -> None:
             scheduled["callback"] = callback
 
-    def fake_run(window, output_json, v270_fixture):
+    def fake_run(window, output_json, v270_fixture, expected_version=None):
         return acceptance_smoke_module.AcceptanceExtraResult(
             ok=False, eufymake_ok=True, eufymake_message="eufymake ok",
             v270_ok=True, v270_message="v270 ok",
             missing_component_ok=False,
             missing_component_message="fehlende-komponente-fehlschlag-detail",
+            visible_version_ok=True, visible_version_message="version ok",
+            project_copy_ok=True, project_copy_message="kopie ok",
         )
 
     monkeypatch.setattr(acceptance_smoke_module, "run_acceptance_extra", fake_run)

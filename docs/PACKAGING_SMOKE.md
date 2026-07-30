@@ -170,13 +170,17 @@ cat /tmp/native_preview3d_ready.png.json
 ```
 
 EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review, kein GL nötig,
-funktioniert für AppImage/`.app`-Binary):
+funktioniert für AppImage/`.app`-Binary). Seit #686 prüft derselbe Hook auch
+die sichtbare Produktversion und speichert eine kontrollierte Projekt-Kopie;
+`…_VERSION` ist die Soll-Version aus dem Artefaktdateinamen und **muss** von
+außen kommen – ohne sie vergleicht das Paket nur seine eigene Auskunft:
 
 ```sh
 python scripts/smoke_launch.py \
     --match <artefakt-token> --timeout 60 --native \
     --env BGREMOVER_ACCEPTANCE_EXTRA=/tmp/acceptance_extra.json \
     --env BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT=tests/fixtures/project_v2_7_0.bgrproj \
+    --env BGREMOVER_ACCEPTANCE_EXTRA_VERSION=2.7.1 \
     -- <startkommando>
 cat /tmp/acceptance_extra.json
 ```

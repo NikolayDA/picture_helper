@@ -382,14 +382,23 @@ def _acceptance_extra(
 
     evidence_dir.mkdir(parents=True, exist_ok=True)
     target = (evidence_dir / ACCEPTANCE_EXTRA_NAMES[artifact_class]).resolve()
+    # Sollwert für die sichtbare Produktversion aus dem Artefaktdateinamen
+    # (#686): ein *externer* Wert – ohne ihn verglichen sich Paket und Prüfung
+    # nur selbst. ``label`` ist der Dateiname des geprüften Artefakts.
+    expected_version = ra.version_from_artifact_name(Path(label).name)
+    env_args = [
+        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA={target}",
+        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT={V270_FIXTURE}",
+    ]
+    if expected_version:
+        env_args += ["--env", f"BGREMOVER_ACCEPTANCE_EXTRA_VERSION={expected_version}"]
     result = runner([
         sys.executable, str(SMOKE_LAUNCH),
         "--match", match,
         "--max-instances", str(max_instances),
         "--timeout", str(ACCEPTANCE_EXTRA_TIMEOUT),
         "--native",
-        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA={target}",
-        "--env", f"BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT={V270_FIXTURE}",
+        *env_args,
         "--", *launch_cmd,
     ])
     _record_guard(report, result, phase="acceptance_extra", artifact_class=artifact_class)
@@ -409,11 +418,18 @@ def _acceptance_extra(
     if payload.get("ok"):
         report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
         return
-    eufy = payload.get("eufymake_export", {})
-    v270 = payload.get("v270_project_open", {})
+    # Jede fehlgeschlagene Teilprüfung namentlich melden – eine feste Auswahl
+    # verschwieg neu hinzugekommene Prüfungen still (#686).
+    failed = [
+        f"{key}={(payload.get(key) or {}).get('message')!r}"
+        for key in (
+            "visible_version", "v270_project_open", "eufymake_export",
+            "project_copy", "missing_component",
+        )
+        if not (payload.get(key) or {}).get("ok")
+    ]
     report.fail(
-        f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): "
-        f"eufymake={eufy.get('message')!r} v270={v270.get('message')!r}"
+        f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): {' '.join(failed)}"
     )
 
 

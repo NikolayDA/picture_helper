@@ -217,8 +217,16 @@ def test_fetch_release_assets_filters_and_hashes(tmp_path: Path) -> None:
             return json.dumps(
                 {
                     "assets": [
-                        {"name": "BgRemover-2.7.0-macos-arm64-ai.dmg", "url": "https://x/1"},
-                        {"name": "BgRemover-2.7.0-linux-x86_64-ai.deb", "url": "https://x/2"},
+                        {
+                            "name": "BgRemover-2.7.0-macos-arm64-ai.dmg",
+                            "url": "https://api.x/1",
+                            "browser_download_url": "https://dl.x/1",
+                        },
+                        {
+                            "name": "BgRemover-2.7.0-linux-x86_64-ai.deb",
+                            "url": "https://api.x/2",
+                            "browser_download_url": "https://dl.x/2",
+                        },
                     ]
                 }
             ).encode("utf-8")
@@ -232,6 +240,49 @@ def test_fetch_release_assets_filters_and_hashes(tmp_path: Path) -> None:
     assert records[0].name == "BgRemover-2.7.0-macos-arm64-ai.dmg"
     assert records[0].sha256 == expected
     assert (tmp_path / records[0].name).read_bytes() == payload
+
+
+def test_fetch_release_assets_downloads_anonymously_from_public_url(tmp_path: Path) -> None:
+    """#686: Die Nutzlast muss über ``browser_download_url`` **ohne** Token
+    kommen – nur das belegt „Download über die öffentliche Release-Seite ohne
+    Maintainer-Sitzung". Der vorherige Bezug über die authentifizierte
+    REST-Asset-URL hätte ein versehentlich privat gebliebenes Release
+    anstandslos durchgewinkt. Die Metadaten dürfen weiterhin authentifiziert
+    geholt werden – sie sind die Vertrauenswurzel für den Digest-Abgleich."""
+    payload = b"binary-artifact"
+    seen: list[tuple[str, str | None]] = []
+
+    def fake_fetcher(request: urllib.request.Request) -> bytes:
+        seen.append((request.full_url, request.get_header("Authorization")))
+        if request.full_url.endswith("/releases/tags/v2.7.1"):
+            return json.dumps({"assets": [{
+                "name": "BgRemover-2.7.1-macos-arm64-ai.dmg",
+                "url": "https://api.github.com/…/assets/1",
+                "browser_download_url": "https://github.com/o/r/releases/download/v2.7.1/x.dmg",
+            }]}).encode("utf-8")
+        return payload
+
+    ra.fetch_release_assets(
+        "o/r", "v2.7.1", "macos-arm64", tmp_path, "geheimes-token", fake_fetcher,
+    )
+
+    metadata_url, metadata_auth = seen[0]
+    download_url, download_auth = seen[1]
+    assert metadata_url.endswith("/releases/tags/v2.7.1")
+    assert metadata_auth == "Bearer geheimes-token"
+    assert download_url.startswith("https://github.com/o/r/releases/download/")
+    assert download_auth is None
+    # Die authentifizierte Asset-URL darf gar nicht mehr angefragt werden.
+    assert not any("/assets/1" in url for url, _ in seen)
+
+
+def test_version_from_artifact_name() -> None:
+    """Sollwert für die sichtbare Produktversion (#686)."""
+    assert ra.version_from_artifact_name("BgRemover-2.7.1-linux-x86_64-ai.deb") == "2.7.1"
+    assert ra.version_from_artifact_name("BgRemover-10.0.3-macos-arm64-ai.dmg") == "10.0.3"
+    # Fremdes Schema → None statt geraten (der Aufrufer prüft dann ohne Sollwert).
+    assert ra.version_from_artifact_name("coverage-html.zip") is None
+    assert ra.version_from_artifact_name("BgRemover-linux-x86_64-ai.deb") is None
 
 
 def test_verify_digest_matches_and_rejects() -> None:
@@ -256,7 +307,9 @@ def test_fetch_release_assets_verifies_trusted_digest(tmp_path: Path) -> None:
                 return json.dumps(
                     {"assets": [{
                         "name": "BgRemover-2.7.0-macos-arm64-ai.dmg",
-                        "url": "https://x/1", "digest": digest,
+                        "url": "https://api.x/1",
+                        "browser_download_url": "https://dl.x/1",
+                        "digest": digest,
                     }]}
                 ).encode("utf-8")
             return payload
@@ -277,7 +330,11 @@ def test_fetch_release_assets_verifies_trusted_digest(tmp_path: Path) -> None:
 def test_fetch_release_assets_errors_when_platform_absent(tmp_path: Path) -> None:
     def fake_fetcher(request: urllib.request.Request) -> bytes:
         return json.dumps(
-            {"assets": [{"name": "BgRemover-2.7.0-linux-x86_64-ai.deb", "url": "https://x/2"}]}
+            {"assets": [{
+                "name": "BgRemover-2.7.0-linux-x86_64-ai.deb",
+                "url": "https://api.x/2",
+                "browser_download_url": "https://dl.x/2",
+            }]}
         ).encode("utf-8")
 
     with pytest.raises(SystemExit):
@@ -345,7 +402,11 @@ def test_main_writes_evidence_end_to_end(tmp_path: Path) -> None:
     def fake_fetcher(request: urllib.request.Request) -> bytes:
         if request.full_url.endswith("/releases/tags/v2.7.0"):
             return json.dumps(
-                {"assets": [{"name": "BgRemover-2.7.0-macos-arm64-ai.dmg", "url": "https://x/1"}]}
+                {"assets": [{
+                    "name": "BgRemover-2.7.0-macos-arm64-ai.dmg",
+                    "url": "https://api.x/1",
+                    "browser_download_url": "https://dl.x/1",
+                }]}
             ).encode("utf-8")
         return payload
 

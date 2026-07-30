@@ -19,6 +19,7 @@ import io
 import json
 import os
 import platform as platform_mod
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -44,6 +45,9 @@ PLATFORM_PATTERNS: dict[str, str] = {
     "linux-x86_64": "linux-x86_64",
     "macos-arm64": "macos-arm64",
 }
+
+# Artefaktname → Version (Benennung seit #584: BgRemover-<version>-<platform_tag>…).
+_ARTIFACT_VERSION_RE = re.compile(r"^BgRemover-(\d+\.\d+\.\d+)-")
 
 # Injektionspunkt für Tests: nimmt einen vorbereiteten Request, liefert Bytes.
 Fetcher = Callable[[urllib.request.Request], bytes]
@@ -110,6 +114,17 @@ def matches_platform(name: str, platform: str) -> bool:
     return PLATFORM_PATTERNS[platform] in name
 
 
+def version_from_artifact_name(name: str) -> str | None:
+    """Versionsnummer aus einem Release-Artefaktnamen (Benennung seit #584).
+
+    ``BgRemover-2.7.1-linux-x86_64-ai.deb`` → ``"2.7.1"``. Liefert ``None``,
+    wenn der Name dem Schema nicht folgt – der Aufrufer entscheidet dann, ob
+    er ohne Sollwert weiterprüft (statt hier zu raten).
+    """
+    match = _ARTIFACT_VERSION_RE.match(name)
+    return match.group(1) if match else None
+
+
 def verify_digest(name: str, computed: str, expected: str | None) -> None:
     """Berechneten SHA256 gegen den vertrauenswürdigen Digest prüfen.
 
@@ -143,7 +158,21 @@ def _store(
 def fetch_release_assets(
     repo: str, tag: str, platform: str, dest: Path, token: str | None, fetcher: Fetcher,
 ) -> list[ArtifactRecord]:
-    """Assets des Release-Tags beziehen, die zur Plattform gehören."""
+    """Assets des Release-Tags beziehen, die zur Plattform gehören.
+
+    Die **Nutzlast** kommt bewusst über ``browser_download_url`` und **ohne**
+    ``Authorization``-Header – exakt der Pfad, den Anwender:innen von der
+    öffentlichen Release-Seite gehen (#686: „Download funktioniert ohne
+    Maintainer-Sitzung"). Der vorherige Bezug über die authentifizierte
+    REST-Asset-URL belegte nur „nicht aus lokalen Build-Artefakten", nicht die
+    öffentliche Erreichbarkeit; ein versehentlich privat gebliebenes Release
+    wäre damit unbemerkt durch die Abnahme gelaufen.
+
+    Die **Metadaten** (Assetliste inkl. ``digest``) holt weiterhin ``_api_json``
+    mit Token: Das ist kein Widerspruch, sondern die Vertrauenswurzel – der
+    anonym geladene Inhalt wird gegen den authentifiziert bezogenen Digest
+    geprüft.
+    """
     release = _api_json(
         f"https://api.github.com/repos/{repo}/releases/tags/{tag}", token, fetcher,
     )
@@ -152,7 +181,9 @@ def fetch_release_assets(
         name = str(asset["name"])
         if not matches_platform(name, platform):
             continue
-        payload = fetcher(_request(str(asset["url"]), token, "application/octet-stream"))
+        payload = fetcher(
+            _request(str(asset["browser_download_url"]), None, "application/octet-stream")
+        )
         records.append(_store(dest, name, payload, asset.get("digest")))
     if not records:
         raise SystemExit(
@@ -357,10 +388,16 @@ def main(argv: list[str] | None = None, fetcher: Fetcher = _default_fetcher) -> 
     artefact_dir = args.output / "artefakte"
     artefact_dir.mkdir(parents=True, exist_ok=True)
 
+    notes = ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."]
     if args.release_tag:
         source = {"art": "release-tag", "wert": args.release_tag}
         records = fetch_release_assets(
             args.repo, args.release_tag, args.platform, artefact_dir, token, fetcher,
+        )
+        notes.append(
+            "Assets über browser_download_url ohne Authorization geladen "
+            "(öffentlicher Anwenderpfad, #686); Digest-Abgleich gegen die "
+            "authentifiziert bezogene Assetliste."
         )
     else:
         source = {"art": "run-id", "wert": args.source_run_id}
@@ -368,13 +405,7 @@ def main(argv: list[str] | None = None, fetcher: Fetcher = _default_fetcher) -> 
             args.repo, args.source_run_id, args.platform, artefact_dir, token, fetcher,
         )
 
-    evidence = build_evidence(
-        args.platform,
-        args.commit_sha,
-        source,
-        records,
-        ["Platzhalter-Smoke aus #641 – echte Smokes folgen mit #642/#643."],
-    )
+    evidence = build_evidence(args.platform, args.commit_sha, source, records, notes)
     write_evidence(args.output, evidence)
     print(f"Evidenz geschrieben: {args.output / 'evidenz.json'} ({len(records)} Artefakte)")
     return 0

@@ -154,7 +154,13 @@ SHA256 und lädt sein Ergebnis als Workflow-Artefakt `abnahme-<plattform>` hoch
 Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
 `digest` des Release-Assets geprüft (Mismatch = harter Abbruch); bei
 Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
-wird der Wert nur protokolliert. Der Smoke selbst belegt Start ohne
+wird der Wert nur protokolliert. Die **Nutzlast** der Release-Assets kommt seit
+#686 über `browser_download_url` **ohne** `Authorization`-Header – exakt der
+Pfad von der öffentlichen Release-Seite; ein versehentlich privat gebliebenes
+Release fällt damit auf, statt über die authentifizierte REST-Asset-URL
+unbemerkt durchzulaufen. Die Assetliste inklusive `digest` wird weiterhin
+authentifiziert geholt: Sie ist die Vertrauenswurzel, gegen die der anonym
+geladene Inhalt geprüft wird. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
 (macOS) Retina. Innerhalb desselben Smoke-Schritts starten AppImage,
 installiertes `.deb`-AppImage und das aus dem DMG kopierte `.app`-Bundle
@@ -179,7 +185,13 @@ den EufyMake-Export- und den 2.7.0-Projekt-Öffnen-Nachweis: derselbe
 Smoke-Schritt startet jede Artefaktklasse ein drittes Mal mit dem
 Automationshook `BGREMOVER_ACCEPTANCE_EXTRA` (`bgremover.acceptance_smoke`,
 kein GL nötig) und schreibt `acceptance_extra_<klasse>.json` direkt aus dem
-gepackten Prozess. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
+gepackten Prozess. Seit #686 prüft derselbe Hook zusätzlich die im
+Fenstertitel **sichtbare Produktversion** gegen den Sollwert aus dem
+Artefaktdateinamen (`BGREMOVER_ACCEPTANCE_EXTRA_VERSION`, gesetzt aus
+`release_abnahme.version_from_artifact_name`) und speichert eine
+**kontrollierte Projekt-Kopie** über den echten `save_project`-Pfad, lädt sie
+neu und vergleicht sie wertgleich – der `.bgrproj`-Schreibpfad, den der
+EufyMake-Export nicht abdeckt. Die Live-GL-Suite rendert mit dem echten Viewer-Shaderpfad
 die 1-/16-/40-MP-Szenarien jeweils dreimal. Sie speichert die Rohmessungen,
 verdichtet Zeitmetriken per Median und meldet für `gl_peak_mb` die größte
 Prozess-RSS-High-Water-Mark inklusive Qt-/Treiber-Allokationen. Alle fünf

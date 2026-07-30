@@ -132,6 +132,9 @@ def _fake_acceptance_extra(
             "ok": ok,
             "eufymake_export": {"ok": ok, "message": "ok" if ok else "nope"},
             "v270_project_open": {"ok": ok, "message": "ok" if ok else "nope"},
+            "visible_version": {"ok": ok, "message": "ok" if ok else "nope"},
+            "project_copy": {"ok": ok, "message": "ok" if ok else "nope"},
+            "missing_component": {"ok": ok, "message": "ok" if ok else "nope"},
         }),
         encoding="utf-8",
     )
@@ -667,7 +670,8 @@ def test_acceptance_extra_fails_when_payload_reports_not_ok(tmp_path: Path) -> N
     )
     assert not report.passed
     assert any(
-        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n and "eufymake=" in n and "v270=" in n
+        "EufyMake/2.7.0-Zusatznachweis fehlgeschlagen" in n
+        and "eufymake_export=" in n and "v270_project_open=" in n
         for n in report.notes
     )
 
@@ -705,6 +709,39 @@ def test_linux_smoke_runs_acceptance_extra_for_appimage_and_deb(tmp_path: Path) 
     assert len(acceptance_calls) == 2
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["appimage"] in c for c in acceptance_calls)
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["deb"] in c for c in acceptance_calls)
+
+
+def test_acceptance_extra_passes_expected_version_from_artifact_name(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """#686: Die Soll-Version für die sichtbare Produktversion kommt aus dem
+    Artefaktdateinamen und wird als eigene Umgebungsvariable durchgereicht –
+    nur so prüft das Paket gegen einen *externen* Wert statt gegen sich selbst."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1,
+        label="BgRemover-2.7.1-linux-x86_64-ai.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    assert any("BGREMOVER_ACCEPTANCE_EXTRA_VERSION=2.7.1" in c for c in calls)
+
+
+def test_acceptance_extra_omits_version_for_unversioned_artifact_name(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Folgt der Name nicht dem Release-Schema, wird **kein** Sollwert gesetzt –
+    die Prüfung fällt auf die schwächere Selbstauskunft zurück, statt einen
+    geratenen Wert zu vergleichen und dadurch falsch rot zu werden."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    assert not any("BGREMOVER_ACCEPTANCE_EXTRA_VERSION" in c for c in calls)
 
 
 def test_macos_smoke_runs_acceptance_extra(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
