@@ -91,7 +91,7 @@ ACCEPTANCE_EXTRA_NAMES = {
 # Muss zu ``bgremover.acceptance_smoke._EVIDENCE_SCHEMA`` passen. Bei jeder
 # neuen Teilprüfung mitziehen – sonst meldet ein Kandidat mit älterem Hook
 # still grün, obwohl die neue Prüfung dort gar nicht existiert (#686).
-ACCEPTANCE_EXTRA_SCHEMA = 2
+ACCEPTANCE_EXTRA_SCHEMA = 3
 ACCEPTANCE_EXTRA_REQUIRED = (
     "visible_version", "v270_project_open", "eufymake_export",
     "project_copy", "missing_component",
@@ -448,6 +448,21 @@ def _acceptance_extra(
             "einen älteren Hook mit, die neuen Prüfungen sind nicht gelaufen."
         )
         return
+
+    # Herkunft des geprüften Codes IMMER ausweisen – auch bei Erfolg. Der Hook
+    # soll das gepackte Artefakt belegen; stammt der Code aus dem Checkout, ist
+    # der Nachweis wertlos, und genau das war bisher aus dem Joblog nicht
+    # erkennbar (#686-Nachtrag, beobachtet in Lauf 30581788054).
+    herkunft = payload.get("laufzeit_herkunft") or {}
+    if herkunft:
+        print(
+            f"[herkunft] {label}: bgremover={herkunft.get('bgremover_datei')!r} "
+            f"ai_process={herkunft.get('ai_process_datei')!r} "
+            f"interpreter={herkunft.get('interpreter')!r} "
+            f"eingefroren={herkunft.get('eingefroren')!r} "
+            f"cwd={herkunft.get('arbeitsverzeichnis')!r} "
+            f"sys_path_0={herkunft.get('sys_path_0')!r}"
+        )
 
     # Jede erwartete Teilprüfung muss vorhanden UND grün sein. Ein fehlender
     # Schlüssel gilt als Fehlschlag, nicht als „nicht zutreffend".

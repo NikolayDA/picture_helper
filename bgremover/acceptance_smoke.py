@@ -43,7 +43,10 @@ Fünf Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
 Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad),
 ``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) und
 ``BGREMOVER_ACCEPTANCE_EXTRA_VERSION`` (Soll-Version aus dem Artefaktnamen) in
-``bgremover.app.main``. Wirft nie – jeder Fehlschlag kommt strukturiert über
+``bgremover.app.main``. Die Evidenz führt zusätzlich ``laufzeit_herkunft`` –
+den Pfad, aus dem der geprüfte Code tatsächlich geladen wurde (siehe
+:func:`_runtime_provenance`); bewertet wird er nicht, er macht die Frage nur
+beantwortbar. Wirft nie – jeder Fehlschlag kommt strukturiert über
 :class:`AcceptanceExtraResult` zurück, damit der Aufrufer einen sauberen
 Exit-Code setzen kann.
 """
@@ -51,7 +54,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import sys
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -71,11 +76,13 @@ from bgremover.project_schema import PROJECT_FORMAT_VERSION
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
 
+# Schema 3 (#686-Nachtrag): zusätzlich ``laufzeit_herkunft`` – der Nachweis,
+# aus welchem Pfad der geprüfte Code tatsächlich stammt.
 # Schema 2 (#686): zusätzlich ``visible_version`` und ``project_copy``. Die
 # Version ist der Vertrag, an dem ``scripts/abnahme_smoke.py`` erkennt, dass
 # ein gepacktes Artefakt die neuen Prüfungen überhaupt kennt – bei jeder
 # weiteren Teilprüfung mit hochzählen (dort ACCEPTANCE_EXTRA_SCHEMA).
-_EVIDENCE_SCHEMA = 2
+_EVIDENCE_SCHEMA = 3
 
 # Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
@@ -228,6 +235,36 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
         return False, "2.7.0-Projekt: Undo stellte die Payload nicht bitgenau wieder her."
 
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
+
+
+def _runtime_provenance() -> dict[str, str | bool]:
+    """Aus welchem Pfad stammt der Code, der hier gerade läuft?
+
+    Der ganze Zweck dieses Hooks ist der Nachweis am **gepackten Artefakt**
+    (#685-Review): ``tests/test_e2e_release_regression.py`` deckt den
+    Source-Checkout bereits ab. Läuft hier versehentlich trotzdem der
+    Checkout-Code – etwa weil das Arbeitsverzeichnis des Smoke-Aufrufs auf
+    ``sys.path`` landet –, prüft der Nachweis genau das, was er ausschließen
+    soll, ohne dass es irgendwo auffiele.
+
+    Beobachtet wurde das im Abnahmelauf 30581788054 (Raspberry Pi): Der
+    Interpreter kam aus dem entpackten AppImage, ein Kindprozess lud
+    ``bgremover/ai_process.py`` aber aus dem Checkout. Diese Funktion bewertet
+    **nicht** – sie protokolliert nur, damit die Frage künftig aus der Evidenz
+    beantwortbar ist statt aus Vermutungen.
+    """
+    import bgremover
+    from bgremover import ai_process
+
+    return {
+        "bgremover_datei": str(getattr(bgremover, "__file__", "unbekannt")),
+        # Genau das Modul aus der beobachteten Traceback-Zeile.
+        "ai_process_datei": str(getattr(ai_process, "__file__", "unbekannt")),
+        "interpreter": sys.executable,
+        "eingefroren": bool(getattr(sys, "frozen", False)),
+        "arbeitsverzeichnis": os.getcwd(),
+        "sys_path_0": sys.path[0] if sys.path else "",
+    }
 
 
 def _project_state(project: Project) -> dict[str, object]:
@@ -494,6 +531,8 @@ def run_acceptance_extra(
         "eufymake_export": {"ok": eufymake_ok, "message": eufymake_message},
         "v270_project_open": {"ok": v270_ok, "message": v270_message},
         "missing_component": {"ok": missing_component_ok, "message": missing_component_message},
+        # Reine Protokolldaten, kein Pass/Fail-Kriterium (#686-Nachtrag).
+        "laufzeit_herkunft": _runtime_provenance(),
         "visible_version": {"ok": visible_version_ok, "message": visible_version_message},
         "project_copy": {"ok": project_copy_ok, "message": project_copy_message},
     }
