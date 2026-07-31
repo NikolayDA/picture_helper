@@ -43,7 +43,10 @@ Fünf Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
 Aktiviert über ``BGREMOVER_ACCEPTANCE_EXTRA`` (Ziel-JSON-Pfad),
 ``BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT`` (Pfad der ``.bgrproj``-Fixture) und
 ``BGREMOVER_ACCEPTANCE_EXTRA_VERSION`` (Soll-Version aus dem Artefaktnamen) in
-``bgremover.app.main``. Wirft nie – jeder Fehlschlag kommt strukturiert über
+``bgremover.app.main``. Die Evidenz führt zusätzlich ``laufzeit_herkunft`` –
+den Pfad, aus dem der geprüfte Code tatsächlich geladen wurde (siehe
+:func:`_runtime_provenance`); bewertet wird er nicht, er macht die Frage nur
+beantwortbar. Wirft nie – jeder Fehlschlag kommt strukturiert über
 :class:`AcceptanceExtraResult` zurück, damit der Aufrufer einen sauberen
 Exit-Code setzen kann.
 """
@@ -51,12 +54,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import sys
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from PIL import Image
@@ -71,11 +76,17 @@ from bgremover.project_schema import PROJECT_FORMAT_VERSION
 if TYPE_CHECKING:
     from bgremover.main_window import MainWindow
 
+# Schema 3 (#686-Nachtrag): zusätzlich ``laufzeit_herkunft`` – der Nachweis,
+# aus welchem Pfad der geprüfte Code tatsächlich stammt.
 # Schema 2 (#686): zusätzlich ``visible_version`` und ``project_copy``. Die
 # Version ist der Vertrag, an dem ``scripts/abnahme_smoke.py`` erkennt, dass
 # ein gepacktes Artefakt die neuen Prüfungen überhaupt kennt – bei jeder
 # weiteren Teilprüfung mit hochzählen (dort ACCEPTANCE_EXTRA_SCHEMA).
-_EVIDENCE_SCHEMA = 2
+_EVIDENCE_SCHEMA = 3
+
+# Der Herkunfts-Kindprozess ist reine Diagnose – lieber ohne Ergebnis
+# weiterlaufen als das 60s-Budget des Hooks aufbrauchen.
+_CHILD_PROVENANCE_TIMEOUT_S = 20
 
 # Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
@@ -228,6 +239,100 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
         return False, "2.7.0-Projekt: Undo stellte die Payload nicht bitgenau wieder her."
 
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
+
+
+def _runtime_provenance() -> dict[str, object]:
+    """Aus welchem Pfad stammt der Code, der hier gerade läuft?
+
+    Der ganze Zweck dieses Hooks ist der Nachweis am **gepackten Artefakt**
+    (#685-Review): ``tests/test_e2e_release_regression.py`` deckt den
+    Source-Checkout bereits ab. Läuft hier versehentlich trotzdem der
+    Checkout-Code – etwa weil das Arbeitsverzeichnis des Smoke-Aufrufs auf
+    ``sys.path`` landet –, prüft der Nachweis genau das, was er ausschließen
+    soll, ohne dass es irgendwo auffiele.
+
+    Beobachtet wurde das im Abnahmelauf 30581788054 (Raspberry Pi): Der
+    Interpreter kam aus dem entpackten AppImage, ein Kindprozess lud
+    ``bgremover/ai_process.py`` aber aus dem Checkout. Diese Funktion bewertet
+    **nicht** – sie protokolliert nur, damit die Frage künftig aus der Evidenz
+    beantwortbar ist statt aus Vermutungen.
+    """
+    import bgremover
+    from bgremover import ai_process
+
+    return {
+        "bgremover_datei": str(getattr(bgremover, "__file__", "unbekannt")),
+        # Genau das Modul aus der beobachteten Traceback-Zeile.
+        "ai_process_datei": str(getattr(ai_process, "__file__", "unbekannt")),
+        "interpreter": sys.executable,
+        "eingefroren": bool(getattr(sys, "frozen", False)),
+        "arbeitsverzeichnis": os.getcwd(),
+        "sys_path_0": sys.path[0] if sys.path else "",
+        # Der Kindprozess ist der eigentliche Fundort (siehe unten) – ohne ihn
+        # beantwortet dieser Nachweis die Frage nicht, wegen der es ihn gibt.
+        "kindprozess": _spawned_provenance(),
+    }
+
+
+def _child_provenance_probe(conn: Any) -> None:
+    """Läuft im ``spawn``-Kindprozess und meldet **seine eigene** Herkunft.
+
+    Muss auf Modulebene liegen: ``spawn`` picklet die Zielfunktion über ihren
+    qualifizierten Namen und importiert dieses Modul im Kind neu.
+    """
+    try:
+        import sys as child_sys
+
+        import bgremover
+        from bgremover import ai_process
+
+        conn.send({
+            "bgremover_datei": str(getattr(bgremover, "__file__", "unbekannt")),
+            "ai_process_datei": str(getattr(ai_process, "__file__", "unbekannt")),
+            "interpreter": child_sys.executable,
+            "eingefroren": bool(getattr(child_sys, "frozen", False)),
+            "sys_path_0": child_sys.path[0] if child_sys.path else "",
+        })
+    except BaseException as exc:  # noqa: BLE001 - darf den Hook nie zum Absturz bringen
+        conn.send({"fehler": f"{type(exc).__name__}: {exc}"})
+    finally:
+        conn.close()
+
+
+def _spawned_provenance() -> dict[str, object]:
+    """Herkunft aus einem ``spawn``-Kindprozess – dem eigentlichen Fundort.
+
+    Der Elternprozess allein beantwortet die Frage **nicht**: Beobachtet wurde
+    (Lauf 30581788054, Raspberry Pi), dass der Interpreter aus dem entpackten
+    AppImage kam, ein `spawn`-Kind aber ``bgremover/ai_process.py`` aus dem
+    Source-Checkout lud. ``InferenceProcess`` startet genau so ein Kind; dessen
+    Import-Auflösung kann von der des Elternprozesses abweichen, während die
+    Evidenz einen gebündelten Pfad zeigt (Codex-Fund auf PR #738).
+
+    Wirft nie und blockiert nicht unbegrenzt: Ein hängendes oder scheiterndes
+    Kind wird als ``fehler`` protokolliert, statt den Hook mitzureißen – der
+    Nachweis darf die Abnahme nicht zum Absturz bringen.
+    """
+    import multiprocessing
+
+    try:
+        ctx = multiprocessing.get_context("spawn")
+        parent_conn, child_conn = ctx.Pipe(duplex=False)
+        process = ctx.Process(target=_child_provenance_probe, args=(child_conn,), daemon=True)
+        process.start()
+        child_conn.close()  # sonst meldet poll() nie EOF, wenn das Kind stirbt
+        try:
+            if not parent_conn.poll(_CHILD_PROVENANCE_TIMEOUT_S):
+                return {"fehler": f"Zeitüberschreitung nach {_CHILD_PROVENANCE_TIMEOUT_S}s"}
+            payload = parent_conn.recv()
+        finally:
+            parent_conn.close()
+            process.join(timeout=5)
+            if process.is_alive():
+                process.kill()
+        return dict(payload)
+    except BaseException as exc:  # noqa: BLE001 - Protokolldaten, nie ein Abbruchgrund
+        return {"fehler": f"{type(exc).__name__}: {exc}"}
 
 
 def _project_state(project: Project) -> dict[str, object]:
@@ -494,6 +599,8 @@ def run_acceptance_extra(
         "eufymake_export": {"ok": eufymake_ok, "message": eufymake_message},
         "v270_project_open": {"ok": v270_ok, "message": v270_message},
         "missing_component": {"ok": missing_component_ok, "message": missing_component_message},
+        # Reine Protokolldaten, kein Pass/Fail-Kriterium (#686-Nachtrag).
+        "laufzeit_herkunft": _runtime_provenance(),
         "visible_version": {"ok": visible_version_ok, "message": visible_version_message},
         "project_copy": {"ok": project_copy_ok, "message": project_copy_message},
     }

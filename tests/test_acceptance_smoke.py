@@ -6,6 +6,7 @@ offscreen mit einem echten ``MainWindow``.
 from __future__ import annotations
 
 import json
+import sys
 import zipfile
 from pathlib import Path
 
@@ -371,6 +372,57 @@ def test_project_copy_detects_persisted_field_drift(qapp, qtbot) -> None:  # typ
         drifted = fresh()
         mutate(drifted)
         assert _project_state(drifted) != baseline, mutate
+
+
+def test_evidence_records_where_the_checked_code_came_from(  # type: ignore[no-untyped-def]
+    qapp, qtbot, tmp_path: Path,
+) -> None:
+    """#686-Nachtrag: Der Hook soll das **gepackte Artefakt** belegen. Läuft
+    dabei versehentlich der Checkout-Code, prüft der Nachweis genau das, was er
+    ausschließen soll – und das war aus der Evidenz bisher nicht erkennbar
+    (beobachtet in Abnahmelauf 30581788054 auf dem Pi: Interpreter aus dem
+    entpackten AppImage, ``ai_process.py`` aus dem Checkout). Die Herkunft wird
+    deshalb protokolliert; bewertet wird sie ausdrücklich nicht."""
+    import bgremover
+    from bgremover import ai_process
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    output_json = tmp_path / "acceptance_extra.json"
+    try:
+        result = run_acceptance_extra(win, output_json, _V270_FIXTURE)
+    finally:
+        win.close()
+
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    herkunft = payload["laufzeit_herkunft"]
+    # Genau die beiden Module aus der beobachteten Traceback-Zeile.
+    assert herkunft["bgremover_datei"] == bgremover.__file__
+    assert herkunft["ai_process_datei"] == ai_process.__file__
+    assert herkunft["interpreter"] == sys.executable
+    assert herkunft["eingefroren"] is False  # Test läuft aus dem Checkout, nicht gepackt
+    assert "arbeitsverzeichnis" in herkunft and "sys_path_0" in herkunft
+    # Reine Protokolldaten: Die Herkunft darf das Gesamtergebnis nicht kippen.
+    assert result.ok, result.visible_version_message
+
+
+def test_evidence_schema_matches_the_smoke_expectation() -> None:
+    """Die Schemaversion des Hooks und die Erwartung in ``scripts/abnahme_smoke.py``
+    müssen zusammenpassen – sonst weist die Abnahme jedes Artefakt ab (oder,
+    schlimmer, akzeptiert eines mit fehlenden Prüfungen)."""
+    import re
+
+    from bgremover.acceptance_smoke import _EVIDENCE_SCHEMA
+
+    # Bewusst per Textsuche statt Import: ``scripts/`` ist kein Paket, und ein
+    # Nachladen über importlib bricht die Dataclass-Auflösung des Moduls.
+    source = (Path(__file__).resolve().parent.parent / "scripts" / "abnahme_smoke.py").read_text(
+        encoding="utf-8"
+    )
+    match = re.search(r"(?m)^ACCEPTANCE_EXTRA_SCHEMA = (\d+)$", source)
+    assert match is not None, "ACCEPTANCE_EXTRA_SCHEMA nicht gefunden"
+    assert int(match.group(1)) == _EVIDENCE_SCHEMA
 
 
 def test_run_acceptance_extra_missing_component_restores_rembg_available(  # type: ignore[no-untyped-def]

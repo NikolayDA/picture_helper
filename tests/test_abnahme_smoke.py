@@ -136,6 +136,17 @@ def _fake_acceptance_extra(
             "visible_version": {"ok": ok, "message": "ok" if ok else "nope"},
             "project_copy": {"ok": ok, "message": "ok" if ok else "nope"},
             "missing_component": {"ok": ok, "message": "ok" if ok else "nope"},
+            "laufzeit_herkunft": {
+                "bgremover_datei": "/opt/bundle/bgremover/__init__.py",
+                "ai_process_datei": "/opt/bundle/bgremover/ai_process.py",
+                "interpreter": "/opt/bundle/python", "eingefroren": True,
+                "arbeitsverzeichnis": "/tmp", "sys_path_0": "/opt/bundle",
+                "kindprozess": {
+                    "bgremover_datei": "/opt/bundle/bgremover/__init__.py",
+                    "ai_process_datei": "/opt/bundle/bgremover/ai_process.py",
+                    "sys_path_0": "/opt/bundle",
+                },
+            },
         }),
         encoding="utf-8",
     )
@@ -710,6 +721,69 @@ def test_linux_smoke_runs_acceptance_extra_for_appimage_and_deb(tmp_path: Path) 
     assert len(acceptance_calls) == 2
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["appimage"] in c for c in acceptance_calls)
     assert any(smoke.ACCEPTANCE_EXTRA_NAMES["deb"] in c for c in acceptance_calls)
+
+
+def test_acceptance_extra_rejects_schema3_evidence_without_provenance(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Codex-P2 (#738): Schema 3 sagt zu, die Herkunft bei jedem Lauf
+    auszuweisen. Fehlt sie trotz passender Schemaversion, ist der Erzeuger
+    defekt – still durchwinken hieße, genau die Zusicherung zu brechen, für
+    die die Schemaversion angehoben wurde."""
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        target = next(
+            Path(a.split("=", 1)[1]) for a in cmd
+            if a.startswith("BGREMOVER_ACCEPTANCE_EXTRA=")
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({
+            "schema": smoke.ACCEPTANCE_EXTRA_SCHEMA,
+            "ok": True,
+            **{k: {"ok": True, "message": "ok"} for k in smoke.ACCEPTANCE_EXTRA_REQUIRED},
+            # laufzeit_herkunft fehlt
+        }), encoding="utf-8")
+        return smoke.CommandResult(0)
+
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert not report.passed
+    assert any("laufzeit_herkunft" in n for n in report.notes)
+
+
+def test_acceptance_extra_prints_parent_and_child_provenance(  # type: ignore[no-untyped-def]
+    tmp_path: Path, capsys,
+) -> None:
+    """Die Herkunft muss bei JEDEM Lauf im Joblog stehen – auch bei Erfolg;
+    ein grüner Lauf aus dem falschen Pfad ist der gefährlichere Fall. Der
+    spawn-Kindprozess bekommt eine eigene Zeile, weil er Module aus einem
+    anderen Pfad laden kann als sein Elternprozess (#738)."""
+    runner = _runner_factory({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage", report=report,
+        evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    assert report.passed
+    out = capsys.readouterr().out
+    assert "[herkunft] x.AppImage:" in out
+    assert "[herkunft-kind] x.AppImage:" in out
+    assert "/opt/bundle/bgremover/ai_process.py" in out
+
+    # Und bei einem FEHLSCHLAG erst recht: Dort ist die Frage „stammte der
+    # geprüfte Code überhaupt aus dem Bundle?" am wichtigsten.
+    failing = _runner_factory({}, acceptance_extra_ok=False)
+    report2 = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        failing, ["launch"], match="x", max_instances=1, label="y.AppImage", report=report2,
+        evidence_dir=tmp_path / "acceptance_extra2", artifact_class="appimage",
+    )
+    assert not report2.passed
+    out2 = capsys.readouterr().out
+    assert "[herkunft] y.AppImage:" in out2
+    assert "[herkunft-kind] y.AppImage:" in out2
 
 
 def test_acceptance_extra_rejects_older_hook_schema(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
