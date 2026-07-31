@@ -120,7 +120,8 @@ def evaluate_screenshot(
     if not criteria:
         return []
     fn = vision_fn or _default_vision_fn
-    if fn is None:  # kein SDK/Key → gesamter Satz unbewertet
+    if fn is None:  # defensiver Fallback; der echte Kein-Key-/Kein-SDK-Fall
+        # wirft in _default_vision_fn und wird unten als unbewertet gefangen.
         return _unrated(criteria, "Vision nicht verfügbar (kein API-Zugang).")
     try:
         b64 = base64.standard_b64encode(image_bytes).decode("ascii")
