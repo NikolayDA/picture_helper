@@ -33,15 +33,19 @@ Historie stehen und wird nicht mehr fortgeschrieben.
   bewährt und wird hier bewusst nicht angefasst.
 - **Commits im Fenster:** 2 (`v2.7.1..<Kandidat>`, siehe Tabelle – jede Zeile
   entspricht genau einem Commit).
-- **Protokollierter Kandidaten-SHA:** `nachzutragen`
+- **Protokollierter Kandidaten-SHA:** `61d67750b1051c7008e901005c515a31a8204aa0`
+  (`chore(release): Versionsschnitt 2.7.2 und Freeze-Rollover auf Basis v2.7.1`,
+  Squash-Merge von PR #735 auf `main`)
 
-Solange dort `nachzutragen` steht, ist der Freeze **nicht** abnahmefähig;
-`verify_release_freeze.py --require-pin` schlägt in diesem Zustand bewusst
-fehl. Das ist kein Versehen: Ein Dokument kann seinen eigenen Commit-SHA nicht
-enthalten (#699), und der Versionsschnitt in diesem Commit ist selbst
-kandidatenrelevant. Der SHA wird deshalb durch einen **reinen
-Protokoll-Commit** darüber nachgetragen, der den Kandidaten nachweislich nicht
-verändert.
+Der protokollierte SHA ist die einzige verbindliche Freeze-Basis für einen
+2.7.2-Kandidatenbau. Stünde dort `nachzutragen`, wäre der Freeze **nicht**
+abnahmefähig; `verify_release_freeze.py --require-pin` schlägt in diesem
+Zustand bewusst fehl. Genau das war zwischen PR #735 und diesem
+Protokoll-Nachtrag der Fall: Ein Dokument kann seinen eigenen Commit-SHA nicht
+enthalten (#699), und der Versionsschnitt war selbst kandidatenrelevant. Der
+SHA kommt deshalb durch einen **reinen Protokoll-Commit** darüber hinein, der
+den Kandidaten nachweislich nicht verändert. Kurz-SHAs dürfen im Text
+zusätzlich vorkommen, gelten aber nirgends als Nachweis.
 
 Abzuleiten und zu prüfen mit:
 
@@ -72,13 +76,29 @@ es gibt keine unbewertete Änderung. Reihenfolge: älteste zuerst.
 | Commit | Zweck | Risiko | Testnachweis | Patch-Scope-Entscheidung |
 |---|---|---|---|---|
 | `1813e8b412375a835fc6fa6fc06f71ce112d2b09` (#734, kurz `1813e8b`) | Schließt vier Nachweise aus #686, die nach der 2.7.1-Veröffentlichung nur teilweise belegt waren: anonymer Download über `browser_download_url`, sichtbare Produktversion gegen den Sollwert aus dem Artefaktnamen, kontrollierte Projekt-Kopie über `save_project`, differenzierter Digest-Ausweis in der Evidenz. Zusätzlich Evidenz-Schema 2 mit Pflichtfeldprüfung. | Gering für Anwender:innen – berührt ausschließlich Abnahme-/Release-Werkzeug (`scripts/`, `bgremover/acceptance_smoke.py`, `bgremover/app.py`-Hook). Kein Pfad im normalen Programmablauf. Erhöht das Abnahme-Risiko bewusst *nach oben*: Ein Artefakt mit altem Hook wird jetzt abgewiesen statt still akzeptiert. | `make check` grün (2125 passed, 6 skipped); neun neue Tests, darunter `test_fetch_release_assets_downloads_anonymously_from_public_url`, `test_acceptance_extra_rejects_older_hook_schema`, `test_visible_version_rejects_a_prefix_match_in_the_title`, `test_project_copy_detects_reordered_layers`, `test_evidence_marks_assets_without_a_usable_digest_as_unverified`. | Kandidatenrelevant (`scripts/**`, `bgremover/**`, `CHANGELOG.md`, `docs/**`). In 2.7.2 aufgenommen; in den Release Notes als Werkzeugänderung ohne Anwenderwirkung ausgewiesen. |
-| `Kandidaten-Commit` (dieser Commit) | **Zwei Dinge, nicht nur eines.** (a) Versionsschnitt auf 2.7.2: `pyproject.toml`, `[2.7.2]`-CHANGELOG in sechs Sprachen, AppStream-Release-Eintrag, sechs Lizenz-Snapshots (H1 **und** Generierungsdatum) plus dieses Freeze-Dokument. (b) Änderung am Laufzeitverhalten von `scripts/abnahme_smoke.py`: Befunde und die Logs fehlgeschlagener Wächter-Phasen gehen bei einem roten Smoke ins Joblog, ungewächte Fehlschläge (apt-get, hdiutil) führen ihre Kommandoausgabe in der Meldung mit. | (a) Gering – Versions-/Dokumentationsangaben; das Risiko liegt in der *Konsistenz* der sechs Sprachstände. (b) Gering für Anwender:innen (kein Pfad im Programm), aber **operativ relevant**: Der Code läuft im Abnahmeweg und entscheidet mit, was ein Prüfer nach einem roten Lauf zu sehen bekommt. Zusätzliche Ausgabe kann Joblogs verlängern; erfolgreiche Läufe bleiben unverändert still, erfolgreiche Wächter-Phasen werden ausdrücklich nicht gedruckt. | `make check` grün; `verify_release_freeze.py` prüft pyproject, CHANGELOG-Datum, AppStream, Lizenz-Snapshots und Release-Body-Pflichtangaben in sechs Sprachen maschinell. Für (b) Regressionstests in `tests/test_abnahme_smoke.py`: `test_main_writes_failed_evidence_and_returns_nonzero` (Befunde im Log), `test_main_prints_guard_log_for_a_failing_phase` (inkl. Negativkontrolle, dass ein erfolgreicher Wächter *nicht* gedruckt wird), `test_dmg_mount_failure_reports_the_command_output`, `test_command_detail_prefers_stderr_and_falls_back`. | Kandidatenrelevant (`pyproject.toml`, `CHANGELOG.md`, `packaging/**`, `LICENSES.md`, **`scripts/**`**, **`tests/**`**). Definiert den 2.7.2-Kandidaten. (b) ist bewusst aufgenommen: Der Fund stammt aus dem Abnahmelauf gegen v2.7.1, bei dem ein rotes Leg keinerlei Diagnose im Joblog hinterließ – ohne den Fix wäre der nächste Kandidatenbau genauso schwer zu beurteilen. |
+| `Kandidaten-Commit` (= `61d67750b1051c7008e901005c515a31a8204aa0`, PR #735; die Platzhalterzeile bleibt, weil das Dokument diesen SHA erst durch den Protokoll-Nachtrag darüber kennt) | **Zwei Dinge, nicht nur eines.** (a) Versionsschnitt auf 2.7.2: `pyproject.toml`, `[2.7.2]`-CHANGELOG in sechs Sprachen, AppStream-Release-Eintrag, sechs Lizenz-Snapshots (H1 **und** Generierungsdatum) plus dieses Freeze-Dokument. (b) Änderung am Laufzeitverhalten von `scripts/abnahme_smoke.py`: Befunde und die Logs fehlgeschlagener Wächter-Phasen gehen bei einem roten Smoke ins Joblog, ungewächte Fehlschläge (apt-get, hdiutil) führen ihre Kommandoausgabe in der Meldung mit. | (a) Gering – Versions-/Dokumentationsangaben; das Risiko liegt in der *Konsistenz* der sechs Sprachstände. (b) Gering für Anwender:innen (kein Pfad im Programm), aber **operativ relevant**: Der Code läuft im Abnahmeweg und entscheidet mit, was ein Prüfer nach einem roten Lauf zu sehen bekommt. Zusätzliche Ausgabe kann Joblogs verlängern; erfolgreiche Läufe bleiben unverändert still, erfolgreiche Wächter-Phasen werden ausdrücklich nicht gedruckt. | `make check` grün; `verify_release_freeze.py` prüft pyproject, CHANGELOG-Datum, AppStream, Lizenz-Snapshots und Release-Body-Pflichtangaben in sechs Sprachen maschinell. Für (b) Regressionstests in `tests/test_abnahme_smoke.py`: `test_main_writes_failed_evidence_and_returns_nonzero` (Befunde im Log), `test_main_prints_guard_log_for_a_failing_phase` (inkl. Negativkontrolle, dass ein erfolgreicher Wächter *nicht* gedruckt wird), `test_dmg_mount_failure_reports_the_command_output`, `test_command_detail_prefers_stderr_and_falls_back`. | Kandidatenrelevant (`pyproject.toml`, `CHANGELOG.md`, `packaging/**`, `LICENSES.md`, **`scripts/**`**, **`tests/**`**). Definiert den 2.7.2-Kandidaten. (b) ist bewusst aufgenommen: Der Fund stammt aus dem Abnahmelauf gegen v2.7.1, bei dem ein rotes Leg keinerlei Diagnose im Joblog hinterließ – ohne den Fix wäre der nächste Kandidatenbau genauso schwer zu beurteilen. |
 
 ## Protokoll-Commits über dem Kandidaten
 
-Noch keine. Der Nachtrag des protokollierten Kandidaten-SHA wird der erste
-sein – er ändert ausschließlich `docs/history/**` und verschiebt den
-Kandidaten damit nicht.
+Diese Commits liegen **außerhalb** des Fensters `v2.7.1..<Kandidat>` und sind
+deshalb nicht Teil der Tabelle oben. Sie berühren ausschließlich Protokoll-Pfade,
+verschieben den Kandidaten also nicht; `verify_release_freeze.py` weist sie als
+„+N Protokoll-Commit(s) darüber" aus.
+
+- **Nachtrag des protokollierten Kandidaten-SHA** (PR #736): trägt
+  `61d67750b1051c7008e901005c515a31a8204aa0` als Kandidaten nach und macht
+  `--require-pin` damit wieder grün. Ändert ausschließlich `docs/history/**`.
+  Den eigenen SHA kann dieser Commit nicht enthalten (#699); er ist über die
+  „+N"-Angabe des Prüfskripts und über diese PR-Referenz belegt.
+
+> **Grenze der maschinellen Prüfung (Codex-Fund auf PR #736):** Die
+> Klassifizierungsprüfung erhält nur die Commits aus `Basis..Kandidat`.
+> Protokoll-Commits **oberhalb** des Kandidaten werden gezählt, aber nicht
+> darauf geprüft, ob sie hier eingetragen sind – ein vergessener Eintrag
+> erzeugt **keine** Warnung. Die Vollständigkeit dieses Abschnitts ist damit
+> Konvention, nicht erzwungen. Eine frühere Fassung dieses Absatzes behauptete
+> das Gegenteil; sie war nachweislich falsch (`--require-pin` meldet auf genau
+> diesem Stand `0 Warnung(en)`).
 
 ## Zusicherungen
 
