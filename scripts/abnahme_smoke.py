@@ -453,6 +453,10 @@ def _acceptance_extra(
     # soll das gepackte Artefakt belegen; stammt der Code aus dem Checkout, ist
     # der Nachweis wertlos, und genau das war bisher aus dem Joblog nicht
     # erkennbar (#686-Nachtrag, beobachtet in Lauf 30581788054).
+    # Herkunft ZUERST ausgeben – vor jedem Pass/Fail-Zweig. Bei einem
+    # Fehlschlag ist sie am wichtigsten (stammte der geprüfte Code überhaupt
+    # aus dem Bundle?), und ein grüner Lauf aus dem falschen Pfad ist der
+    # gefährlichere Fall.
     herkunft = payload.get("laufzeit_herkunft") or {}
     if herkunft:
         print(
@@ -462,6 +466,14 @@ def _acceptance_extra(
             f"eingefroren={herkunft.get('eingefroren')!r} "
             f"cwd={herkunft.get('arbeitsverzeichnis')!r} "
             f"sys_path_0={herkunft.get('sys_path_0')!r}"
+        )
+        # Der spawn-Kindprozess ist der eigentliche Fundort (#738): Er kann
+        # Module aus einem anderen Pfad laden als sein Elternprozess.
+        kind = herkunft.get("kindprozess") or {}
+        print(
+            f"[herkunft-kind] {label}: bgremover={kind.get('bgremover_datei')!r} "
+            f"ai_process={kind.get('ai_process_datei')!r} "
+            f"sys_path_0={kind.get('sys_path_0')!r} fehler={kind.get('fehler')!r}"
         )
 
     # Jede erwartete Teilprüfung muss vorhanden UND grün sein. Ein fehlender
@@ -482,6 +494,19 @@ def _acceptance_extra(
         report.fail(
             f"EufyMake/2.7.0-Zusatznachweis fehlgeschlagen ({label}): "
             f"{' '.join(failed) or 'ok=false ohne benannte Teilprüfung'}"
+        )
+        return
+
+    herkunft = payload.get("laufzeit_herkunft") or {}
+    if not herkunft:
+        # Schema 3 sagt zu, die Herkunft bei jedem Lauf auszuweisen. Fehlt sie
+        # trotz passender Schemaversion, ist der Erzeuger defekt – das still
+        # durchzuwinken hieße, genau die Zusicherung zu brechen, für die die
+        # Schemaversion angehoben wurde (Codex-Fund auf PR #738).
+        report.fail(
+            f"EufyMake/2.7.0-Zusatznachweis ({label}): Evidenz mit Schema "
+            f"{ACCEPTANCE_EXTRA_SCHEMA} ohne 'laufzeit_herkunft' – Herkunft des "
+            "geprüften Codes nicht nachweisbar."
         )
         return
     report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")

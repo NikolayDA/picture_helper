@@ -61,7 +61,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from PIL import Image
@@ -83,6 +83,10 @@ if TYPE_CHECKING:
 # ein gepacktes Artefakt die neuen Prüfungen überhaupt kennt – bei jeder
 # weiteren Teilprüfung mit hochzählen (dort ACCEPTANCE_EXTRA_SCHEMA).
 _EVIDENCE_SCHEMA = 3
+
+# Der Herkunfts-Kindprozess ist reine Diagnose – lieber ohne Ergebnis
+# weiterlaufen als das 60s-Budget des Hooks aufbrauchen.
+_CHILD_PROVENANCE_TIMEOUT_S = 20
 
 # Vom Fixture-Bau (tests/build_v270_fixture.py, echter v2.7.0-Code)
 # protokollierte Werte – identisch zu den Konstanten in
@@ -237,7 +241,7 @@ def _run_v270_project_smoke(window: MainWindow, fixture: Path) -> tuple[bool, st
     return True, "2.7.0-Projekt öffnet ohne Migration und lässt sich bitgenau weiterbearbeiten."
 
 
-def _runtime_provenance() -> dict[str, str | bool]:
+def _runtime_provenance() -> dict[str, object]:
     """Aus welchem Pfad stammt der Code, der hier gerade läuft?
 
     Der ganze Zweck dieses Hooks ist der Nachweis am **gepackten Artefakt**
@@ -264,7 +268,71 @@ def _runtime_provenance() -> dict[str, str | bool]:
         "eingefroren": bool(getattr(sys, "frozen", False)),
         "arbeitsverzeichnis": os.getcwd(),
         "sys_path_0": sys.path[0] if sys.path else "",
+        # Der Kindprozess ist der eigentliche Fundort (siehe unten) – ohne ihn
+        # beantwortet dieser Nachweis die Frage nicht, wegen der es ihn gibt.
+        "kindprozess": _spawned_provenance(),
     }
+
+
+def _child_provenance_probe(conn: Any) -> None:
+    """Läuft im ``spawn``-Kindprozess und meldet **seine eigene** Herkunft.
+
+    Muss auf Modulebene liegen: ``spawn`` picklet die Zielfunktion über ihren
+    qualifizierten Namen und importiert dieses Modul im Kind neu.
+    """
+    try:
+        import sys as child_sys
+
+        import bgremover
+        from bgremover import ai_process
+
+        conn.send({
+            "bgremover_datei": str(getattr(bgremover, "__file__", "unbekannt")),
+            "ai_process_datei": str(getattr(ai_process, "__file__", "unbekannt")),
+            "interpreter": child_sys.executable,
+            "eingefroren": bool(getattr(child_sys, "frozen", False)),
+            "sys_path_0": child_sys.path[0] if child_sys.path else "",
+        })
+    except BaseException as exc:  # noqa: BLE001 - darf den Hook nie zum Absturz bringen
+        conn.send({"fehler": f"{type(exc).__name__}: {exc}"})
+    finally:
+        conn.close()
+
+
+def _spawned_provenance() -> dict[str, object]:
+    """Herkunft aus einem ``spawn``-Kindprozess – dem eigentlichen Fundort.
+
+    Der Elternprozess allein beantwortet die Frage **nicht**: Beobachtet wurde
+    (Lauf 30581788054, Raspberry Pi), dass der Interpreter aus dem entpackten
+    AppImage kam, ein `spawn`-Kind aber ``bgremover/ai_process.py`` aus dem
+    Source-Checkout lud. ``InferenceProcess`` startet genau so ein Kind; dessen
+    Import-Auflösung kann von der des Elternprozesses abweichen, während die
+    Evidenz einen gebündelten Pfad zeigt (Codex-Fund auf PR #738).
+
+    Wirft nie und blockiert nicht unbegrenzt: Ein hängendes oder scheiterndes
+    Kind wird als ``fehler`` protokolliert, statt den Hook mitzureißen – der
+    Nachweis darf die Abnahme nicht zum Absturz bringen.
+    """
+    import multiprocessing
+
+    try:
+        ctx = multiprocessing.get_context("spawn")
+        parent_conn, child_conn = ctx.Pipe(duplex=False)
+        process = ctx.Process(target=_child_provenance_probe, args=(child_conn,), daemon=True)
+        process.start()
+        child_conn.close()  # sonst meldet poll() nie EOF, wenn das Kind stirbt
+        try:
+            if not parent_conn.poll(_CHILD_PROVENANCE_TIMEOUT_S):
+                return {"fehler": f"Zeitüberschreitung nach {_CHILD_PROVENANCE_TIMEOUT_S}s"}
+            payload = parent_conn.recv()
+        finally:
+            parent_conn.close()
+            process.join(timeout=5)
+            if process.is_alive():
+                process.kill()
+        return dict(payload)
+    except BaseException as exc:  # noqa: BLE001 - Protokolldaten, nie ein Abbruchgrund
+        return {"fehler": f"{type(exc).__name__}: {exc}"}
 
 
 def _project_state(project: Project) -> dict[str, object]:
