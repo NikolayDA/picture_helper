@@ -133,6 +133,8 @@ def test_every_relevant_rule_has_a_covered_sample() -> None:
         ".github/workflows/release-linux.yml",
         "docs/RELEASE_PROCESS.md",
         "docs/RELEASE_ACCEPTANCE_CHECKLIST.md",
+        "docs/history/ADR-2026-release-abnahme-automatisierung.md",
+        "docs/history/ADR-2026-release-manifest-publish.md",
     ],
 )
 def test_known_release_inputs_are_explicitly_candidate_relevant(path: str) -> None:
@@ -142,6 +144,12 @@ def test_known_release_inputs_are_explicitly_candidate_relevant(path: str) -> No
 
 def test_docs_i18n_is_not_a_broad_neutral_class() -> None:
     policy = rpp.load_policy()
+    for language in vrf.LANGUAGES:
+        translated_readme = rpp.classify_path(f"docs/i18n/{language}/README.md", policy)
+        assert (translated_readme.classification, translated_readme.explicit) == (
+            rpp.RELEASE_NEUTRAL,
+            True,
+        )
     assert rpp.classify_path("docs/i18n/en/RECOMMENDATIONS.md", policy).classification == (
         rpp.RELEASE_NEUTRAL
     )
@@ -149,6 +157,14 @@ def test_docs_i18n_is_not_a_broad_neutral_class() -> None:
         rpp.CANDIDATE_RELEVANT
     )
     unknown = rpp.classify_path("docs/i18n/en/NEW_RELEASE_INPUT.md", policy)
+    assert (unknown.classification, unknown.explicit) == (rpp.CANDIDATE_RELEVANT, False)
+
+
+def test_docs_history_is_not_a_broad_neutral_class() -> None:
+    policy = rpp.load_policy()
+    dry_run = rpp.classify_path("docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md", policy)
+    assert (dry_run.classification, dry_run.explicit) == (rpp.RELEASE_NEUTRAL, True)
+    unknown = rpp.classify_path("docs/history/NEW_RELEASE_CONTRACT.md", policy)
     assert (unknown.classification, unknown.explicit) == (rpp.CANDIDATE_RELEVANT, False)
 
 

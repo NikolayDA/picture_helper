@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 1,
+  "policy_version": 2,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -124,6 +124,46 @@
       "evidence": ["Verbindlicher chinesischer Lizenz-Snapshot ist docs/i18n/zh/LICENSES.md"]
     },
     {
+      "id": "translated-readme-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/README.md",
+      "sample_path": "docs/i18n/en/README.md",
+      "reason": "Die übersetzte Projektübersicht ist kein Paket-, Bundle-, Release- oder Gate-Eingang; nur README.md im Repository-Root wird als Paketmetadatum gelesen.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md"]
+    },
+    {
+      "id": "translated-readme-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/README.md",
+      "sample_path": "docs/i18n/es/README.md",
+      "reason": "Die übersetzte Projektübersicht ist kein Paket-, Bundle-, Release- oder Gate-Eingang; nur README.md im Repository-Root wird als Paketmetadatum gelesen.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md"]
+    },
+    {
+      "id": "translated-readme-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/README.md",
+      "sample_path": "docs/i18n/fr/README.md",
+      "reason": "Die übersetzte Projektübersicht ist kein Paket-, Bundle-, Release- oder Gate-Eingang; nur README.md im Repository-Root wird als Paketmetadatum gelesen.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md"]
+    },
+    {
+      "id": "translated-readme-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/README.md",
+      "sample_path": "docs/i18n/uk/README.md",
+      "reason": "Die übersetzte Projektübersicht ist kein Paket-, Bundle-, Release- oder Gate-Eingang; nur README.md im Repository-Root wird als Paketmetadatum gelesen.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md"]
+    },
+    {
+      "id": "translated-readme-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/README.md",
+      "sample_path": "docs/i18n/zh/README.md",
+      "reason": "Die übersetzte Projektübersicht ist kein Paket-, Bundle-, Release- oder Gate-Eingang; nur README.md im Repository-Root wird als Paketmetadatum gelesen.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md"]
+    },
+    {
       "id": "agent-context",
       "kind": "exact",
       "path": "CLAUDE.md",
@@ -180,6 +220,14 @@
       "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
     },
     {
+      "id": "release-runbook-dry-run-2026-08-01",
+      "kind": "exact",
+      "path": "docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md",
+      "sample_path": "docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md",
+      "reason": "Das abgeschlossene Dry-Run-Protokoll ist historische Evidenz und keine ausführbare oder verbindliche Quelle des aktuellen Release-Gates.",
+      "evidence": ["docs/RELEASE_PROCESS.md ist die kanonische Ablaufbeschreibung; kein Workflow liest das historische Protokoll als Eingabe"]
+    },
+    {
       "id": "pull-request-template",
       "kind": "exact",
       "path": ".github/PULL_REQUEST_TEMPLATE.md",
@@ -223,6 +271,8 @@
     {"id": "release-acceptance-checklist", "kind": "exact", "path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "sample_path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "reason": "Die für #746 geplante versionierte Abnahme-Checkliste bestimmt Evidenzsemantik."},
     {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
     {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
+    {"id": "release-acceptance-automation-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "sample_path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag der Hardware-Abnahme fest."},
+    {"id": "release-manifest-publish-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-manifest-publish.md", "sample_path": "docs/history/ADR-2026-release-manifest-publish.md", "reason": "Die ADR legt die Bindung zwischen Kandidat, Freigabemanifest und veröffentlichten Bytes fest."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
     {"id": "changelog-en", "kind": "exact", "path": "docs/i18n/en/CHANGELOG.md", "sample_path": "docs/i18n/en/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-es", "kind": "exact", "path": "docs/i18n/es/CHANGELOG.md", "sample_path": "docs/i18n/es/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
