@@ -11,9 +11,9 @@
 | 🟡 | 中 | 对质量、可读性或可测试性有用的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-08-01，#750 之后的 v2.7.2 候选）
+## 当前状态（2026-08-01，#740 之后的 v2.7.2 工作状态）
 
-**v2.7.1 已发布**（2026-07-30，标签 `a3de137a0c0873f93f84186f9bba32d684a48808`，五个产物）。后续运行虽然下载了已发布字节，但 #740 证明 AppImage 与 `.deb` 加载的是 checkout 中的代码。因此 #680/#685/#686 尚未在实质上完成：macOS 已有佐证，Linux 仍需在 #750 修复后于 Pi 上执行真实 `dry_run`。2.7.2 已切版；推导并记录的候选提交为 `57517ecbc1e59a46bb8c7362a1bd82cf3a5facd8`（#750），冻结 gate 为 0 错误/0 警告。
+**v2.7.1 已发布**（2026-07-30，标签 `a3de137a0c0873f93f84186f9bba32d684a48808`，五个产物）。#740 曾证明首次后续运行从 checkout 加载 AppImage 与 `.deb` 代码；#750 修正了探测路径。真实 Pi 运行 [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) 现已为两个 Linux 包证明 bundle 来源以及不含 checkout 的 `sys_path_0`，因此 #740 已关闭。#680/#685/#686 现已有 Linux 证据，但仍需更新其验收记录。2.7.2 候选将从受检 workflow head 推导，不再于冻结文档中事后维护 SHA 锚点（#742/#743）。
 
 对本周两个发布周期的分析促成了史诗 **#741**（发布流程稳定化）：七个新子议题 **#742–#748**，另接管四个（**#740**、**#731**、**#737**、**#656**）。返工主要源于两个原因：冻结锚点具有自指性（一个提交无法记录自身的 SHA），以及 `publish` 会重新构建产物而不是发布已验收的产物——这正是 v2.7.1 之后仍需第二次硬件验收的原因。
 
@@ -21,7 +21,7 @@
 
 复核揭示了首版分析中的三处错误，三处均已对照代码验证：
 
-- 🟠 **README.md 仍属候选相关**，`docs/i18n/**` 仅部分如此。`pyproject.toml:15` 设置了 `readme = "README.md"`（包元数据）。在 `docs/i18n/**` 下，翻译版的 CHANGELOG、许可证与使用手册属候选相关，而五份 `RECOMMENDATIONS.md` 属**协议路径**（`verify_release_freeze.py` 中的 `PROTOCOL_PATHS`）——本 PR 修改了它们却未移动候选。即便如此，最初提议的宽泛白名单仍会让已交付内容绕过候选变更（#743）。
+- 🟠 **README.md 仍属候选相关**，`docs/i18n/**` 仅部分如此。`pyproject.toml:15` 设置了 `readme = "README.md"`（包元数据）。翻译版 CHANGELOG、许可证与使用手册属候选相关；五份 `RECOMMENDATIONS.md` 则是 `release/path-policy.json` 中有严格理由的 **release-neutral** 条目。未知路径仍属候选相关并阻塞流程（#743）。
 - 🟠 **`tests/test_release_gate.py` 已经存在** —— 包含 20 多项工作流不变量，其中就有来自 #715 的 #709 死锁回归测试。最初的 #747 会重复既有工作；现在它针对 #742/#744 的新契约。
 - 🟡 **`ANTHROPIC_API_KEY` 并非专用** —— 同一个密钥名还会激活 `claude.yml` 与 `claude-code-review.yml`；因此 #656 建议使用独立的 `ANTHROPIC_VISION_API_KEY`。同样，#731 正确区分了 ClamAV 的成因（Linux：`/var/log/clamav/freshclam.log` 上的锁；macOS：X509 存储）——`release-linux.yml:413` 中的笼统注释需要更正。
 
@@ -33,26 +33,25 @@
 
 既有基线保持关闭不变：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项，以及 v2.7.0/v2.7.1 两个版本。无未决的 🔴 级发现。
 
-GitHub 查询后的实时状态：**30** 个未结议题（此前 29 个；本次复查新增 #752）。
+GitHub 查询后的实时状态：**29** 个未结议题（#740 在 Pi 证据成功后关闭）。
 
 ## GitHub 未结议题 — 分诊状态（2026-08-01）
 
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [史诗] 发布流程稳定化 —— 直至已发布字节的证据链 | 🟠 高（两个版本均有大量返工） | 🟠 高（11 个子议题，冻结与 publish 改造） | –（史诗） | 图例与盘点已补正 —— 阶段 0/1 可开始 |
-| [#743](https://github.com/NikolayDA/picture_helper/issues/743) | 引入明确的“release-neutral”路径类别 | 🟠 高（决定哪些变更需要验收） | 🟡 中（分类器 + 逐条构建输入佐证） | Opus，中 | **可开始** —— 语义上先于 #742 |
-| [#742](https://github.com/NikolayDA/picture_helper/issues/742) | 彻底消除冻结补记提交（锚点 + 提交台账） | 🟠 高（返工循环的主要来源） | 🔴 高（关卡的信任模型，需要 ADR） | Opus，高 | 受阻 —— 先完成 #743 的路径语义 |
-| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux 验收须检验打包产物而非源码检出 | 🟠 高（此前的 Linux 证据检验的是 checkout） | 🟢 低（仅剩真实硬件 dispatch 与证据复核） | –（所有者/硬件） | 修复已在 #750 合并；在 Pi 上执行真实 `dry_run` 并佐证来源行 |
+| [#743](https://github.com/NikolayDA/picture_helper/issues/743) | 引入明确的“release-neutral”路径类别 | 🟠 高（决定哪些变更需要验收） | 🟡 中（分类器 + 逐条构建输入佐证） | Opus，中 | **进行中** —— 本 PR 提供版本化正向清单以及漂移/fail-closed 测试 |
+| [#742](https://github.com/NikolayDA/picture_helper/issues/742) | 彻底消除冻结补记提交（锚点 + 提交台账） | 🟠 高（返工循环的主要来源） | 🔴 高（关卡的信任模型，需要 ADR） | Opus，高 | **进行中** —— workflow head、推导式 Actions 来源记录、ADR 与防篡改测试均在本 PR 中 |
 | [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish 复用已验收的候选产物 | 🟠 高（已验收 ≠ 已发布字节） | 🔴 高（发布路径，难以空跑验证） | Opus，高 | 受阻 —— 需要 #742 的来源信息/清单 |
 | [#747](https://github.com/NikolayDA/picture_helper/issues/747) | 在 #742/#744 之后以机器方式固化新关卡契约 | 🟡 中（避免出现 #709 式的契约漂移） | 🟡 中（扩展现有的 `test_release_gate.py`） | Sonnet，中 | 受阻 —— 与 #742/#744 同一变更包 |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | 版本化验收清单，取代按版本创建的议题 | 🟡 中（终止每次发布重新拟定标准） | 🟡 中（模式、稳定 ID、豁免规则） | Sonnet，中 | 可开始 —— 在 #745 之前或与之同时 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | 发布 Runbook 作为唯一流程来源 | 🟡 中（流程知识目前散落在议题评论中） | 🟡 中（文档 + 链接/治理测试） | Sonnet，中 | 受阻 —— 待 #742/#743/#744 决策后 |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | 用真实的前版产物验证发布后的更新检测 | 🟡 中（生产更新路径未经验证） | 🟠 高（平台/运维工作，仅能在发布后进行） | Opus，高 | 受阻 —— 在 #744 的 publish 之后执行 |
 | [#737](https://github.com/NikolayDA/picture_helper/issues/737) | 移除或推导 CLAUDE.md 中手工维护的发布状态 | 🟢 低（文档治理） | 🟢 低（删除该行 + 回归测试） | Sonnet，低 | **可开始** —— 与周期无关 |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | 约束 Recommendations 实时状态与冻结候选 | 🟡 中（继 #669/#728 后第三次已证实漂移） | 🟡 中（离线 SHA 测试 + 独立 GitHub 实时检查） | Sonnet，中 | **可开始** —— 防止状态/候选再次漂移 |
+| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | 约束 Recommendations 实时状态与冻结来源记录 | 🟡 中（继 #669/#728 后第三次已证实漂移） | 🟡 中（本地契约检查 + 独立 GitHub 实时检查） | Sonnet，中 | #742 后重新划定：验证策略版本/来源记录，不再验证已删除的冻结锚点 |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | 让 ClamAV 扫描在各平台真正可运行 | 🟡 中（供应链附加层，不阻塞发布） | 🟡 中（两个独立成因 + 所有者决策） | Sonnet，低-中 | 需所有者在 A–D 中决策；分别修复 Linux 锁与 macOS X509 |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | 有意识地限定视觉预评估的 API 访问范围 | 🟡 中（截图证据质量） | 🟢 低（密钥 + 工作流切换） | –（所有者）+ Sonnet，低 | 需所有者在 A/B 中决策 —— 推荐方案 A（独立密钥） |
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.x 发布 —— 已发布，Linux 证据未决 | 🟡 中（macOS 已验收；据 #740，Linux 证据仅能证明源码检出） | 🟢 低（验收说明 + 后续） | Sonnet，低 | 在 #680 中链接验收说明；Linux 判据须待 #740 与重跑之后再勾选 |
+| [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.x 发布 —— 已发布，Linux 证据已具备 | 🟡 中（macOS 与 Linux 均已由真实硬件佐证） | 🟢 低（更新验收说明） | Sonnet，低 | 链接运行 30706671985，更新判据并核对其余关闭条件 |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | **修正定义** —— 标准描述的是 TIFF，导出写出的是 PNG 产物 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | 尚不具备启动条件 —— 容器/格式问题应成为清单的第一项 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部 + 定义）—— 需以正确格式生成测试样件 |
@@ -70,15 +69,15 @@ GitHub 查询后的实时状态：**30** 个未结议题（此前 29 个；本�
 
 ### 接下来推荐
 
-1. **先在 Pi 上佐证 #740** —— 修复已在 #750 合并；真实 `dry_run` 必须为 AppImage 和 `.deb` 在 `[herkunft]`/`[herkunft-kind]` 中显示 bundle 路径，且 `sys_path_0` 不含 checkout。
-2. **#743 → #742** 打包放在周期开端；二者本身即属候选相关，会最后一次触发该循环。
+1. 在本 PR 中完成 **#743 + #742**；CI 与评审须确认新的路径/来源记录契约。
+2. 用运行 30706671985 更新 **#680/#685/#686**，并依据剩余判据关闭。
 3. **#744（+ #747）** 随后 —— 若不复用字节，每次发布仍需第二次硬件验收。
-4. **#737/#752** 以及所有者对 **#656**（方案 A）和 **#731**（A–D）的决定可独立推进。
-5. 在 #740 成功佐证后更新 **#680/#685/#686**，随后才完全关闭；此前的 Linux 证据检验的是 checkout。
-6. **#692**（COLOR ADR）与 **#716** 仍可并行启动；**#681/#687–#691** 依旧受阻（TIFF 与 PNG 的差异、需要真实 EufyMake 硬件）。
+4. **#737/#752** 以及所有者对 **#656**（方案 A）和 **#731**（A–D）的决定可独立推进；#752 需采用新的 #742 契约。
+5. **#692**（COLOR ADR）与 **#716** 仍可并行启动；**#681/#687–#691** 依旧受阻（TIFF 与 PNG 的差异、需要真实 EufyMake 硬件）。
 
 ## 以往轮次
 
+- **2026-08-01（#740 已关闭；#743/#742 进行中）** —— Pi 运行 30706671985 为 AppImage 与 `.deb` 证明 bundle 代码；#740 已附证据评论并关闭。GitHub 实时状态为 29。#743/#742 的联合实现以版本化正向清单取代宽泛/隐式协议路径，并以作为 Actions 产物保存的推导式来源记录取代手工冻结锚点。
 - **2026-08-01（复查 #736/#738/#739/#749/#750/#751）** —— 对 7 月 31 日/8 月 1 日合并的六个 PR，已结合代码、评审与 gates 完整检查；所有评审线程均已解决，五类 workflow 均为绿色。本地 `make check` 通过，冻结候选 `57517ec`（#750）记录正确，gate 为 0/0。#740 在真实 Pi `dry_run` 完成前保持开启是正确的；该时间窗内没有普通议题被关闭。Recommendations 的候选与后续步骤已更正，并创建了含验收标准的治理跟进 #752。实时状态 30。
 - **2026-07-31（发布流程分析，史诗 #741）** —— v2.7.1 于 2026-07-30 发布（标签 `a3de137`，五个产物，发布后针对已发布字节完成硬件验收）。两个周期的分析：在 `v2.7.0..v2.7.1` 窗口内共 36 个主线提交，其中 18 个 protocol-only、7 个为纯冻结补记。创建史诗 #741，含七个新子议题（#742–#748）与四个接管议题（#740/#731/#737/#656）。所有者复核更正了首版的三处内容（README.md 与 `docs/i18n/**` 属候选相关；`tests/test_release_gate.py` 早已存在；`ANTHROPIC_API_KEY` 并非专用），均已对照代码验证。实时状态 29。 图例与 Windows 范围已随即修正。最初被当作错误报告的提交计数本身有误（浅克隆），已予撤回——详见上文。
 - **2026-07-30（#685 基本完成，#727/#728 已关闭，#731 新增）** —— `main` 位于 `a26945e4f6e8ee3f665f7ef797050c049fccb5ac`。自上一轮以来合并了十个 PR（#720–#726、#729、#730、#732）；#685 达到 12/16 项标准，最终硬件运行 30534770176 针对提交 `615c8d3`（macOS M3 Max + Pi 5 均 ✅，x86_64 暂停，视觉评估仍未评估）。#727（ANLEITUNG.md）和 #728（RECOMMENDATIONS.md 过时问题）已关闭；#731（ClamAV 扫描从未真正运行过）新增，附四个解决方案选项。实时状态：19。

@@ -103,19 +103,17 @@ def test_release_verifies_tag_matches_project_version() -> None:
 
 
 def test_release_freeze_gate_runs_for_manual_dispatch_too() -> None:
-    """#685: Ein manueller Kandidatenbau (workflow_dispatch) muss denselben
-    Freeze-Pin durchlaufen wie ein Tag-Push – sonst haengt die Bindung des
-    Kandidaten an den dokumentierten Commit allein davon ab, dass ein Mensch
-    vor dem Start manuell ``make release-freeze-check`` ausfuehrt."""
+    """#742: Manuelle Builds und Tags nutzen denselben abgeleiteten Vertrag."""
     text = _release_text()
-    step_start = text.index("Release-Freeze-Gate (dokumentierter Kandidat)")
+    step_start = text.index("Release-Freeze-Gate und Provenienz")
     next_step = text.index("\n  test:", step_start)
     step_text = text[step_start:next_step]
-    assert "verify_release_freeze.py --require-pin" in step_text
+    assert "verify_release_freeze.py" in step_text
+    assert "--output-provenance release-evidence/release-freeze-provenance.json" in step_text
+    assert "release-freeze-provenance-${{ github.run_attempt }}" in step_text
+    assert "--require-pin" not in step_text
     assert "startsWith(github.ref" not in step_text, (
-        "Der Freeze-Pin-Schritt darf nicht mehr auf Tag-Pushes beschraenkt "
-        "sein (#685) – sonst pinnt ein manueller Kandidatenbau nicht "
-        "automatisch auf den eingefrorenen Commit."
+        "Das Freeze-/Provenienz-Gate muss fuer Tag und workflow_dispatch laufen."
     )
 
 
@@ -130,29 +128,12 @@ def test_build_logs_product_provenance() -> None:
     assert 'project_version="$(python -c \'import tomllib' in text
 
 
-def test_freeze_gate_allows_a_protocol_commit_above_the_candidate() -> None:
-    """#710/#714-Review: Ein zwischenzeitlicher zusaetzlicher Abgleich von
-    github.sha gegen ``--print-candidate`` (#709) verbot Kandidatenbauten auf
-    einem reinen Protokoll-Commit oberhalb des Kandidaten. Das ist mit dem
-    Freeze-Workflow selbst unvereinbar: der Kandidaten-Commit kann sein
-    eigenes Freeze-Dokument nicht auf sich selbst pinnen (der SHA existiert
-    erst nach dem Commit) und scheitert damit an --require-pin; der
-    nachtraegliche Protokoll-Commit, der den Pin eintraegt, scheiterte dann am
-    github.sha-Abgleich – kein Commit konnte je beide Gates gleichzeitig
-    bestehen. ``--require-pin`` allein (ohne den zusaetzlichen Abgleich) ist
-    ausreichend, weil es bereits den ABGELEITETEN Kandidaten (den juengsten
-    kandidatenrelevanten Commit in der Historie von ``rev``) gegen den
-    dokumentierten Pin prueft – ein Kandidatenbau auf einem reinen
-    Protokoll-Commit oberhalb des Kandidaten baut denselben
-    kandidatenrelevanten Inhalt und darf das Gate bestehen."""
+def test_freeze_gate_has_no_self_referential_pin_contract() -> None:
+    """#742: Weder Pin noch manueller Ledger duerfen wiederkehren."""
     text = _release_text()
-    assert "--print-candidate" not in text, (
-        "Der zusaetzliche github.sha-Abgleich gegen --print-candidate darf "
-        "nicht wieder eingefuehrt werden, ohne den Freeze-Workflow "
-        "(Kandidat -> spaeterer Protokoll-Commit mit dem Pin) grundsaetzlich "
-        "zu aendern - sonst kann wieder kein Commit beide Gates gleichzeitig "
-        "bestehen."
-    )
+    assert "--require-pin" not in text
+    assert "Protokollierter Kandidaten-SHA" not in text
+    assert "release-freeze-provenance" in text
 
 
 def test_build_logs_actual_bundler_versions_not_only_runner_pip() -> None:

@@ -79,6 +79,37 @@ sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 
 ## Release verification (headless smoke launch)
 
+### Freeze gate and provenance
+
+Before CI builds any artifact, `verify-tag` runs the versioned freeze contract
+from `docs/history/RELEASE-<version>-scope-freeze.md` against the exact workflow
+head. The freeze document contains no candidate pin or manual commit ledger.
+Instead, `scripts/verify_release_freeze.py` derives every first-parent commit
+and changed path since the frozen base SHA, classifies it through
+`release/path-policy.json`, and writes
+`release-evidence/release-freeze-provenance.json`.
+
+Unknown paths are candidate-relevant **and block the gate** until the path
+policy is deliberately extended and versioned. A successful Actions run uploads
+the JSON as `release-freeze-provenance-<run-attempt>`; the artifact ID, digest,
+run ID and candidate SHA identify the evidence that #744 will later bind to the
+five accepted artifacts.
+
+Local verification and a round-trip manipulation check:
+
+```bash
+make release-freeze-check
+python scripts/verify_release_freeze.py \
+  --output-provenance /tmp/release-freeze-provenance.json
+python scripts/verify_release_freeze.py \
+  --verify-provenance /tmp/release-freeze-provenance.json
+```
+
+Changing `candidate_sha`, the frozen base, commit list/count, path-policy
+version or policy digest makes the last command fail. Policy changes must bump
+`policy_version`; neutral entries additionally require their build-input
+reasoning directly in the JSON.
+
 Building the AppImage is not enough — `tests/test_app_smoke.py` only launches the
 **source** app (`python -m bgremover`) and cannot see *frozen-only* failures
 (missing metadata → start crash #304, missing `freeze_support()` → fork bomb

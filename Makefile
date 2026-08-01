@@ -92,13 +92,11 @@ bench-height:
 bench-compare:
 	$(QT_ENV) "$(PYTHON)" scripts/benchmark.py compare
 
-# Release-Freeze-Pruefung (#699): leitet den Kandidaten-Commit aus git ab und
-# prueft Versionsquellen, CHANGELOG/AppStream/Lizenz-Snapshots, die vollstaendige
-# Commit-Klassifizierung und den tatsaechlich veroeffentlichten Release-Body.
-# --require-pin: der volle 40-stellige Kandidaten-SHA muss protokolliert sein
-# (Voraussetzung fuer Kandidatenbau #685 und Tag #686).
+# Release-Freeze-Pruefung (#742/#743): prueft den Laufkopf, leitet Commit-Ledger
+# und Pfadklassifikation aus git ab und benoetigt keinen selbstreferenziellen
+# Kandidaten-Pin oder nachtraeglichen Commit-Zaehler mehr.
 release-freeze-check:
-	$(RUN_ENV) "$(PYTHON)" scripts/verify_release_freeze.py --require-pin
+	$(RUN_ENV) "$(PYTHON)" scripts/verify_release_freeze.py
 
 # Alles: check + lokale UI-Tests.
 all: check ui

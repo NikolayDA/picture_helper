@@ -22,12 +22,10 @@ name: Release artifacts (Linux + macOS)
 #   1. ``verify-tag`` – bei Tag-Pushes zusaetzlich: der Tag entspricht dem
 #      Format ``vX.Y.Z`` und seine Version stimmt mit ``project.version`` aus
 #      pyproject.toml ueberein. IMMER (Tag-Push UND manueller
-#      ``workflow_dispatch``-Kandidatenbau, #685/#699): der gebaute Commit ist
-#      der im Freeze-Dokument protokollierte Kandidat
-#      (``scripts/verify_release_freeze.py --require-pin``). Das Skript leitet
-#      den Kandidaten aus der Commit-Historie ab (kein Tag noetig) – ein
-#      manueller Kandidatenbau auf einem nicht (mehr) eingefrorenen Commit
-#      schlaegt damit ebenso fehl wie ein falsch getaggter Release.
+#      ``workflow_dispatch``-Kandidatenbau, #742/#743): der gebaute Laufkopf
+#      stimmt mit ``GITHUB_SHA`` ueberein, alle Commits und Pfade seit der
+#      eingefrorenen Basis sind explizit klassifiziert, und die abgeleitete
+#      Provenienz wird als Actions-Artefakt an Run und Policy gebunden.
 #   2. ``test`` – die massgebliche Full-CI-Matrix (ci.yml, als
 #      wiederverwendbarer Workflow aufgerufen) ist fuer EXAKT diesen Commit
 #      gruen (Linux/macOS x Python 3.10-3.13).
@@ -55,10 +53,10 @@ permissions:
   contents: read
 
 jobs:
-  # Gate 1: Tag-Format/Tag-Version-Abgleich (nur Tag-Pushes) + Freeze-Pin
-  # (immer, auch bei manuellem workflow_dispatch-Kandidatenbau, #685). Der Job
-  # selbst bleibt fuer workflow_dispatch nicht per fehlendem Tag rot – nur der
-  # Freeze-Pin-Schritt ist dort scharf.
+  # Gate 1: Tag-Format/Tag-Version-Abgleich (nur Tag-Pushes) + abgeleitetes
+  # Freeze-/Provenienz-Gate (immer, auch bei manuellem workflow_dispatch-
+  # Kandidatenbau, #742/#743). Der Job bleibt fuer workflow_dispatch nicht per
+  # fehlendem Tag rot; Pfadklassifikation und Laufkopfbindung sind dort scharf.
   verify-tag:
     name: Verify tag matches project version
     runs-on: ubuntu-latest
@@ -90,42 +88,26 @@ jobs:
           fi
           echo "Tag $tag_name passt zu project.version $project_version."
 
-      # Gate 1b (#699/#685): Der gebaute Commit MUSS der dokumentierte Kandidat
-      # sein – bei Tag-Pushes UND bei manuellem workflow_dispatch. Ohne diesen
-      # Schritt genuegt es bei Tag-Pushes, irgendeinen Commit zu taggen, dessen
-      # pyproject-Version zum Tag passt (auch einen, der nie eingefroren
-      # wurde), und bei workflow_dispatch haengt der Freeze-Pin allein davon
-      # ab, dass ein Mensch vor dem Start manuell ``make release-freeze-check``
-      # laeuft (#685: genau das ist in der Praxis schon einmal uebersehen
-      # worden). Das Werkzeug prueft Versionsquellen, CHANGELOG/AppStream/
-      # Lizenzen, die vollstaendige Commit-Klassifizierung, den Release-Body
-      # und (mit --require-pin) den exakt protokollierten Kandidaten-SHA –
-      # abgeleitet aus der Commit-Historie, kein Tag noetig. Fehlt das
-      # Freeze-Dokument der Version oder ist der Commit kein aktueller
-      # Kandidat, bricht es bewusst ab (fail-closed) und verhindert damit,
-      # dass die fuenf Kandidatenartefakte je auf einem nicht (mehr)
-      # eingefrorenen Commit gebaut werden.
-      - name: Release-Freeze-Gate (dokumentierter Kandidat)
-        run: python scripts/verify_release_freeze.py --require-pin
+      # Gate 1b (#742/#743): Der Laufkopf ist der Kandidat. Freeze-Dokument und
+      # Policy enthalten nur vor dem Merge bekannte Angaben; Commitliste,
+      # Pfadklassen und Zaehler werden aus der First-Parent-Historie abgeleitet.
+      # Unbekannte Pfade sind fail-closed kandidatenrelevant UND blockierend.
+      # Die JSON-Evidenz bindet Basis, github.sha, Policy-Digest und Run-IDs,
+      # ohne einen selbstreferenziellen Pin-/Ledger-Nachtrag zu verlangen.
+      - name: Release-Freeze-Gate und Provenienz
+        run: >-
+          python scripts/verify_release_freeze.py
+          --output-provenance release-evidence/release-freeze-provenance.json
 
-      # Gate 1c (#709 fuehrte hier kurzzeitig einen zusaetzlichen Schritt ein,
-      # der exakte Gleichheit von github.sha und dem abgeleiteten Kandidaten
-      # erzwang und Kandidatenbauten auf einem Protokoll-Commit oberhalb des
-      # Kandidaten ablehnte. Das machte JEDEN Kandidatenbau unmoeglich: der
-      # Kandidaten-Commit selbst kann sein eigenes Freeze-Dokument nicht auf
-      # sich selbst pinnen (der SHA existiert erst nach dem Commit), also
-      # scheitert er an --require-pin oben; der nachtraegliche Protokoll-
-      # Commit, der den Pin nachtraegt, scheiterte dann am neuen github.sha-
-      # Abgleich. Kein Commit konnte beide Gates gleichzeitig bestehen
-      # (gefunden bei PR #714, #710-Review). Wieder entfernt: --require-pin
-      # allein ist ausreichend und korrekt, weil es den ABGELEITETEN
-      # Kandidaten (den juengsten kandidatenrelevanten Commit in der Historie
-      # von github.sha) gegen den dokumentierten Pin prueft – ein
-      # workflow_dispatch/Tag auf einem reinen Protokoll-Commit oberhalb des
-      # Kandidaten baut damit denselben kandidatenrelevanten Inhalt wie der
-      # Kandidat selbst und besteht das Gate ebenso zu Recht wie der Kandidat
-      # selbst (so bereits vor #709, siehe z. B. den Squash-Uebergang bei
-      # PR #701/#703).
+      # upload-artifact v4+ erzeugt je Upload ein unveraenderliches Artefakt mit
+      # eigener ID und Digest. Der Attempt im Namen verhindert Kollisionen bei
+      # "Re-run failed jobs"; #744 kann genau diesen Nachweis konsumieren.
+      - name: Upload release freeze provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-freeze-provenance-${{ github.run_attempt }}
+          path: release-evidence/release-freeze-provenance.json
+          if-no-files-found: error
 
   # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
   # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt. Haengt an
