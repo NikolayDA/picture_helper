@@ -11,9 +11,9 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-07-31, v2.7.1 publiée + nouvelle épopée #741 processus de publication)
+## État actuel (2026-08-01, candidat v2.7.2 après #750)
 
-**v2.7.1 est publiée** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, cinq artefacts) ; la recette matérielle a ensuite été rejouée contre les octets réellement publiés. #680/#685/#686 sont donc réglés sur le fond et ne restent ouverts que formellement. 2.7.2 est coupée, candidat `49b75b25e2a7804395c4f96dc7015391c2a7726d`.
+**v2.7.1 est publiée** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, cinq artefacts). Même si l'exécution suivante a téléchargé les octets publiés, #740 a montré que l'AppImage et le `.deb` chargeaient le code du checkout. #680/#685/#686 ne sont donc pas encore réglés sur le fond : macOS est prouvé, mais Linux exige encore un vrai `dry_run` sur le Pi après le correctif #750. 2.7.2 est coupée ; le candidat dérivé et consigné est `57517ecbc1e59a46bb8c7362a1bd82cf3a5facd8` (#750), et le gate de gel indique 0 erreur/0 avertissement.
 
 L'analyse des deux cycles de cette semaine a donné l'épopée **#741** (stabilisation du processus de publication) : sept nouveaux tickets **#742–#748** et quatre repris (**#740**, **#731**, **#737**, **#656**). Deux causes expliquent l'essentiel des reprises : le pin du gel est autoréférentiel (un commit ne peut pas documenter son propre SHA) et `publish` reconstruit les artefacts au lieu de publier ceux qui ont été recettés — d'où la seconde recette matérielle nécessaire après v2.7.1.
 
@@ -33,22 +33,23 @@ La **légende des causes U1–U10** figure désormais sous forme de tableau dans
 
 Base antérieure inchangée et close : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, ainsi que les versions v2.7.0/v2.7.1. Aucun constat 🔴 ouvert.
 
-État en direct après la requête GitHub : **29** tickets ouverts (19 auparavant ; plus #737/#740 et les huit nouveaux #741–#748).
+État en direct après la requête GitHub : **30** tickets ouverts (29 auparavant ; #752 est nouveau dans cette revue).
 
-## Tickets GitHub ouverts — Triage (2026-07-31)
+## Tickets GitHub ouverts — Triage (2026-08-01)
 
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épopée] Stabilisation du processus de publication — chaîne de preuve jusqu'aux octets publiés | 🟠 Élevée (deux versions avec reprises importantes) | 🟠 Élevée (11 tickets enfants, refonte du gel et de publish) | – (épopée) | Légende et état des lieux corrigés — phase 0/1 prête à démarrer |
 | [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Introduire une classe de chemins « release-neutral » explicite | 🟠 Élevée (décide quelle modification exige une recette) | 🟡 Moyenne (classificateur + preuve d'entrée de build) | Opus, moyenne | **Prêt à démarrer** — sémantiquement avant #742 |
 | [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Éliminer le commit d'ajout du gel (pin + registre de commits) | 🟠 Élevée (source principale des boucles de reprise) | 🔴 Élevée (modèle de confiance du gate, ADR nécessaire) | Opus, élevée | Bloqué — sémantique des chemins de #743 d'abord |
-| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | La recette Linux doit tester l'artefact empaqueté, pas le checkout | 🟠 Élevée (toute la preuve Linux antérieure est sans valeur) | 🟢 Faible (esquisse de solution complète dans le ticket) | Sonnet, faible | Correctif fusionné dans #750 ; la preuve réelle `dry_run` sur le Pi reste à faire |
+| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | La recette Linux doit tester l'artefact empaqueté, pas le checkout | 🟠 Élevée (la preuve Linux antérieure testait le checkout) | 🟢 Faible (seuls le dispatch matériel réel et l'examen de la preuve restent) | – (propriétaire/matériel) | Correctif fusionné dans #750 ; exécuter le vrai `dry_run` sur le Pi et prouver les lignes de provenance |
 | [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish réutilise les artefacts candidats recettés | 🟠 Élevée (recettés ≠ octets publiés) | 🔴 Élevée (chemin de publication, difficile à tester à blanc) | Opus, élevée | Bloqué — nécessite la provenance/le manifeste de #742 |
 | [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Sécuriser par machine le nouveau contrat du gate après #742/#744 | 🟡 Moyenne (évite une dérive comme #709) | 🟡 Moyenne (étend le `test_release_gate.py` existant) | Sonnet, moyenne | Bloqué — même lot de modifications que #742/#744 |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Liste de recette versionnée au lieu de tickets par version | 🟡 Moyenne (fin de la réinvention des critères à chaque version) | 🟡 Moyenne (schéma, identifiants stables, règles de dérogation) | Sonnet, moyenne | Prêt à démarrer — avant ou avec #745 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Runbook de publication comme source unique du processus | 🟡 Moyenne (le savoir vit aujourd'hui dans les commentaires) | 🟡 Moyenne (documentation + tests de liens/gouvernance) | Sonnet, moyenne | Bloqué — seulement après décision de #742/#743/#744 |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Détection de mise à jour post-publication depuis un artefact antérieur réel | 🟡 Moyenne (chemin de mise à jour de production non vérifié) | 🟠 Élevée (travail plateforme/exploitation, possible seulement après publication) | Opus, élevée | Bloqué — s'exécute après le publish de #744 |
 | [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Supprimer ou dériver l'état de version maintenu à la main dans CLAUDE.md | 🟢 Faible (gouvernance documentaire) | 🟢 Faible (retirer la ligne + test de régression) | Sonnet, faible | **Prêt à démarrer** — indépendant du cycle |
+| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Protéger l'état en direct et le candidat de gel des Recommendations | 🟡 Moyenne (troisième dérive prouvée après #669/#728) | 🟡 Moyenne (test SHA hors ligne + contrôle GitHub séparé) | Sonnet, moyen | **Prêt à démarrer** — évite une nouvelle dérive d'état/candidat |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Rendre l'analyse ClamAV réellement exécutable par plateforme | 🟡 Moyenne (couche supply-chain supplémentaire, non bloquante) | 🟡 Moyenne (deux causes distinctes + décision du propriétaire) | Sonnet, faible-moyenne | Décision A–D requise ; corriger séparément le verrou Linux et le X509 macOS |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Délimiter volontairement l'accès API pour la pré-évaluation visuelle | 🟡 Moyenne (qualité de la preuve par captures) | 🟢 Faible (secret + bascule du workflow) | – (propriétaire) + Sonnet, faible | Décision A/B requise — variante A (secret dédié) recommandée |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Publication v2.7.x — publiée, preuve Linux en attente | 🟡 Moyenne (macOS recetté ; selon #740 la preuve Linux ne vaut que pour le checkout) | 🟢 Faible (note de recette + suivi) | Sonnet, faible | Lier la note dans #680 ; ne cocher le critère Linux qu'après #740 et une nouvelle exécution |
@@ -69,15 +70,16 @@ Base antérieure inchangée et close : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, to
 
 ### Recommandé ensuite
 
-1. **Traiter #740 en premier** — sans cela aucune recette Linux ne prouve l'artefact empaqueté ; toute exécution supplémentaire produit une preuve verte sans valeur, y compris pour 2.7.2.
+1. **Prouver #740 sur le Pi en premier** — le correctif est fusionné dans #750 ; un vrai `dry_run` doit montrer les chemins du bundle dans `[herkunft]`/`[herkunft-kind]` pour l'AppImage et le `.deb`, sans checkout dans `sys_path_0`.
 2. **#743 → #742** groupés en début de cycle ; les deux sont eux-mêmes pertinents pour le candidat et déclenchent la boucle une dernière fois.
 3. **#744 (+ #747)** ensuite — sans réutilisation des octets, chaque publication exigera encore une seconde recette matérielle.
-4. **#737** ainsi que les décisions du propriétaire sur **#656** (variante A) et **#731** (A–D) sont indépendantes.
-5. **#680/#685/#686** : lier la note de recette dans #680. Ne les clore complètement qu'une fois qu'une nouvelle exécution après #740 prouve les artefacts **Linux** — la preuve précédente portait sur le checkout.
+4. **#737/#752** ainsi que les décisions du propriétaire sur **#656** (variante A) et **#731** (A–D) sont indépendantes.
+5. Mettre à jour **#680/#685/#686** après la preuve réussie de #740 et ne les fermer complètement qu'ensuite ; la preuve Linux précédente testait le checkout.
 6. **#692** (ADR COLOR) et **#716** restent démarrables en parallèle ; **#681/#687–#691** restent bloqués (écart TIFF/PNG, matériel EufyMake réel).
 
 ## Tours précédents
 
+- **2026-08-01 (revue de #736/#738/#739/#749/#750/#751)** — six PR fusionnées les 31 juillet/1er août ont été vérifiées de bout en bout contre le code, les revues et les gates ; tous les fils sont résolus et les cinq familles de workflows sont vertes. `make check` local est vert, le candidat de gel `57517ec` (#750) est correctement consigné, gate 0/0. #740 reste à juste titre ouvert jusqu'au vrai `dry_run` sur le Pi ; aucun ticket ordinaire n'a été fermé dans la période. Le candidat et les prochaines étapes des Recommendations ont été corrigés ; le suivi de gouvernance #752 a été créé avec ses critères d'acceptation. État en direct 30.
 - **2026-07-31 (analyse du processus de publication, épopée #741)** — v2.7.1 publiée le 2026-07-30 (tag `a3de137`, cinq artefacts, recette matérielle post-publication contre les octets publiés). Analyse des deux cycles : dans la fenêtre `v2.7.0..v2.7.1`, 36 commits de la ligne principale, dont 18 protocol-only et 7 purs ajouts de gel. Épopée #741 créée avec sept nouveaux tickets (#742–#748) et quatre repris (#740/#731/#737/#656). La contre-vérification du propriétaire a corrigé trois points de la première version (README.md et `docs/i18n/**` sont pertinents pour le candidat ; `tests/test_release_gate.py` existait déjà ; `ANTHROPIC_API_KEY` n'est pas limitée à un usage) — tous vérifiés dans le code. État en direct 29. La légende et le périmètre Windows ont été appliqués aussitôt. Le décompte de commits d'abord signalé comme erreur était lui-même faux (clone superficiel) et a été retiré — détails dans la section ci-dessus.
 - **2026-07-30 (#685 presque terminé, #727/#728 fermés, #731 créé)** — `main` est à `a26945e4f6e8ee3f665f7ef797050c049fccb5ac`. Dix PR fusionnées depuis le dernier tour (#720–#726, #729, #730, #732) ; #685 en est à 12/16 critères, avec l'exécution matérielle finale 30534770176 contre le commit `615c8d3` (macOS M3 Max + Pi 5 tous deux ✅, x86_64 en pause, vision toujours non évaluée). #727 (ANLEITUNG.md) et #728 (obsolescence de RECOMMENDATIONS.md) fermés ; #731 (le scan ClamAV n'a jamais réellement tourné) créé avec quatre options de résolution. État en direct : 19.
 - **2026-07-29 (suivi distant #717/#718 et #716)** — `main` est à `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2`. Les PR documentaires #717/#718 ont été fusionnées sans reste de revue. #716 est le seul nouveau ticket : couverture à 93 %, aucun bug de production et huit tâches de qualité de tests clairement documentées. Les 17 autres tickets sont inchangés ; état en direct : 18.
