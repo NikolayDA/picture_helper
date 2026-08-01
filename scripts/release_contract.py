@@ -43,6 +43,12 @@ _TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+(?:[.-][0-9A-Za-z.]+)?)$")
 _FREEZE_ARTIFACT_RE = re.compile(r"^release-freeze-provenance-(\d+)$")
 _APPROVAL_ARTIFACT_RE = re.compile(r"^release-approval-manifest-(\d+)$")
 _CHECKLIST_ID_RE = re.compile(r"^[A-Z][A-Z0-9-]+-[0-9]{2}$")
+_CHECKLIST_TABLE_ROW_RE = re.compile(
+    r"(?m)^\|\s*`(?P<id>[A-Z][A-Z0-9-]+-[0-9]{2})`\s*"
+    r"\|\s*(?P<phase>[^|]+?)\s*"
+    r"\|\s*(?P<requirement>[^|]+?)\s*"
+    r"\|\s*(?P<owner>[^|]+?)\s*\|"
+)
 _SEMVER_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+$")
 
 CHECKLIST_STATES: Final = ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING")
@@ -176,19 +182,41 @@ def load_release_checklist(path: Path) -> dict[str, Any]:
     checklist = cast(dict[str, Any], raw)
     validate_release_checklist(checklist)
 
-    table_ids = set(
-        re.findall(
-            r"\| `([A-Z][A-Z0-9-]+-[0-9]{2})` \|",
-            text[:marker_index],
-        )
-    )
-    contract_ids = {str(item["id"]) for item in cast(list[dict[str, Any]], checklist["criteria"])}
-    if table_ids != contract_ids:
+    table_rows = [
+        match.groupdict() for match in _CHECKLIST_TABLE_ROW_RE.finditer(text[:marker_index])
+    ]
+    table_ids = [row["id"] for row in table_rows]
+    if len(table_ids) != len(set(table_ids)):
+        raise ContractError("Kriteriums-IDs in der Tabelle sind nicht eindeutig")
+    table_by_id = {row["id"]: row for row in table_rows}
+    criteria = cast(list[dict[str, Any]], checklist["criteria"])
+    contract_ids = {str(item["id"]) for item in criteria}
+    if set(table_ids) != contract_ids:
         raise ContractError(
             "Kriteriums-IDs in Tabelle und JSON driften: "
-            f"nur_tabelle={sorted(table_ids - contract_ids)}, "
-            f"nur_json={sorted(contract_ids - table_ids)}"
+            f"nur_tabelle={sorted(set(table_ids) - contract_ids)}, "
+            f"nur_json={sorted(contract_ids - set(table_ids))}"
         )
+    owner_aliases = {"hardware-abnahme": "hardware-acceptance"}
+    for item in criteria:
+        criterion_id = str(item["id"])
+        row = table_by_id[criterion_id]
+        table_values = {
+            "phase": row["phase"].strip().casefold(),
+            "requirement": row["requirement"].strip().upper(),
+            "owner": owner_aliases.get(
+                row["owner"].strip().casefold(), row["owner"].strip().casefold()
+            ),
+        }
+        for field, table_value in table_values.items():
+            contract_value = str(item[field]).strip()
+            if field != "requirement":
+                contract_value = contract_value.casefold()
+            if table_value != contract_value:
+                raise ContractError(
+                    f"Kriterium {criterion_id}: Tabellenfeld {field} driftet vom JSON "
+                    f"({table_value!r} != {contract_value!r})"
+                )
     return checklist
 
 
@@ -495,6 +523,8 @@ def validate_release_instance_completion(
             continue
         requirement = str(record["requirement"])
         status = str(record["status"])
+        if status == "FAIL":
+            raise ContractError(f"Kriterium {record['id']} ist fehlgeschlagen")
         if requirement == "MUST" and status not in ("PASS", "WAIVED"):
             raise ContractError(
                 f"Pflichtkriterium {record['id']} ist nicht abgeschlossen: {status}"
