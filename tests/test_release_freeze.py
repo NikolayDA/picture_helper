@@ -22,6 +22,23 @@ from scripts import (
 
 ROOT = Path(__file__).resolve().parent.parent
 LANGUAGES = ("de", "en", "es", "fr", "uk", "zh")
+GITHUB_ACTIONS_ENV = (
+    "GITHUB_ACTIONS",
+    "GITHUB_SHA",
+    "GITHUB_REPOSITORY",
+    "GITHUB_WORKFLOW",
+    "GITHUB_RUN_ID",
+    "GITHUB_RUN_ATTEMPT",
+    "GITHUB_JOB",
+    "GITHUB_REF",
+)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_outer_github_actions_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mini-Repositories duerfen den Actions-Kontext des Testjobs nicht erben."""
+    for name in GITHUB_ACTIONS_ENV:
+        monkeypatch.delenv(name, raising=False)
 
 
 def _pyproject_version() -> str:
