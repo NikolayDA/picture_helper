@@ -206,6 +206,42 @@ def test_checklist_rejects_a_second_machine_contract_block(tmp_path: Path) -> No
         rc.load_release_checklist(changed)
 
 
+@pytest.mark.parametrize(
+    ("original", "replacement", "field"),
+    [
+        (
+            "| `VERSION-01` | Pre-Release | MUST | Release-Owner |",
+            "| `VERSION-01` | Publish | MUST | Release-Owner |",
+            "phase",
+        ),
+        (
+            "| `VERSION-01` | Pre-Release | MUST | Release-Owner |",
+            "| `VERSION-01` | Pre-Release | SHOULD | Release-Owner |",
+            "requirement",
+        ),
+        (
+            "| `VERSION-01` | Pre-Release | MUST | Release-Owner |",
+            "| `VERSION-01` | Pre-Release | MUST | CI |",
+            "owner",
+        ),
+    ],
+)
+def test_checklist_rejects_semantic_drift_between_table_and_json(
+    tmp_path: Path,
+    original: str,
+    replacement: str,
+    field: str,
+) -> None:
+    changed = tmp_path / "docs" / "RELEASE_ACCEPTANCE_CHECKLIST.md"
+    changed.parent.mkdir()
+    source = CHECKLIST.read_text(encoding="utf-8")
+    assert source.count(original) == 1
+    changed.write_text(source.replace(original, replacement), encoding="utf-8")
+
+    with pytest.raises(rc.ContractError, match=rf"VERSION-01: Tabellenfeld {field} driftet"):
+        rc.load_release_checklist(changed)
+
+
 def test_release_instance_preserves_pending_x86_and_passes_pre_release_must(
     tmp_path: Path,
 ) -> None:
@@ -225,6 +261,27 @@ def test_release_instance_preserves_pending_x86_and_passes_pre_release_must(
         checklist_path=CHECKLIST,
         through_phase="pre-release",
     )
+
+
+def test_failed_should_criterion_blocks_phase_completion(tmp_path: Path) -> None:
+    manifest, _ = _manifest(tmp_path)
+    checklist = rc.load_release_checklist(CHECKLIST)
+    failed = rc.set_release_instance_criterion(
+        manifest["release_instance"],
+        checklist=checklist,
+        checklist_path=CHECKLIST,
+        criterion_id="MALWARE-01",
+        status="FAIL",
+        evidence=["https://example.invalid/malware-finding"],
+    )
+
+    with pytest.raises(rc.ContractError, match="Kriterium MALWARE-01 ist fehlgeschlagen"):
+        rc.validate_release_instance_completion(
+            failed,
+            checklist=checklist,
+            checklist_path=CHECKLIST,
+            through_phase="pre-release",
+        )
 
 
 @pytest.mark.parametrize(

@@ -256,21 +256,26 @@ gh api "repos/NikolayDA/picture_helper/releases/tags/${RELEASE_TAG}" \
   --jq '.assets[] | [.name, .browser_download_url] | @tsv'
 ```
 
-Lade alle fünf Assets anonym über ihre `browser_download_url` und vergleiche
-jeden Hash mit dem Manifest. Prüfe auf den aktiven Plattformen zusätzlich die
-sichtbare Produktversion. Führe danach `UPDATE-01` gemäß
-#748 mit einem
-echten Vorgängerartefakt aus: Vorgänger meldet `UPDATE_AVAILABLE`, aktuelles
-Artefakt `UP_TO_DATE`, Fehler werden `CHECK_FAILED`.
+Lade alle fünf Assets ohne GitHub-Anmeldung über ihre `browser_download_url`
+und vergleiche jeden Hash mit dem Manifest. Protokolliere für jedes Asset URL,
+Ergebnis und SHA-256 in einem verlinkbaren Issue-Kommentar oder einem
+unveränderlichen Laufprotokoll. Die URL des Publish-Laufs allein genügt dafür
+nicht, weil dessen Downloads vor der Veröffentlichung authentifiziert
+erfolgen. Prüfe auf den aktiven Plattformen zusätzlich die sichtbare
+Produktversion. Führe danach `UPDATE-01` gemäß #748 mit einem echten
+Vorgängerartefakt aus: Vorgänger meldet `UPDATE_AVAILABLE`, aktuelles Artefakt
+`UP_TO_DATE`, Fehler werden `CHECK_FAILED`.
 
-Pflege die separate Instanz mit `set-criterion`. Setze zuerst die vier
-Publish-Pflichten auf die verknüpfte Publish-Evidenz und danach `UPDATE-01` auf
-den #748-Nachweis:
+Pflege die separate Instanz mit `set-criterion`. Setze zuerst die drei
+automatisierten Publish-Pflichten auf die verknüpfte Publish-Evidenz,
+`PUBLIC-DOWNLOAD-01` auf das anonyme Download- und Hashprotokoll und danach
+`UPDATE-01` auf den #748-Nachweis:
 
 ```bash
 PUBLISH_EVIDENCE_URL="URL_DES_PUBLISH_LAUFS"
+PUBLIC_DOWNLOAD_EVIDENCE_URL="URL_DES_ANONYMEN_DOWNLOAD_UND_HASH_PROTOKOLLS"
 UPDATE_EVIDENCE_URL="URL_DES_748_NACHWEISES"
-for RELEASE_CRITERION in PUBLISH-01 PUBLISH-02 PUBLISH-03 PUBLIC-DOWNLOAD-01; do
+for RELEASE_CRITERION in PUBLISH-01 PUBLISH-02 PUBLISH-03; do
   python scripts/release_contract.py set-criterion \
     --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
     --instance /tmp/release-acceptance-instance.json \
@@ -279,6 +284,13 @@ for RELEASE_CRITERION in PUBLISH-01 PUBLISH-02 PUBLISH-03 PUBLIC-DOWNLOAD-01; do
     --evidence "$PUBLISH_EVIDENCE_URL" \
     --output /tmp/release-acceptance-instance.json
 done
+python scripts/release_contract.py set-criterion \
+  --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
+  --instance /tmp/release-acceptance-instance.json \
+  --criterion PUBLIC-DOWNLOAD-01 \
+  --status PASS \
+  --evidence "$PUBLIC_DOWNLOAD_EVIDENCE_URL" \
+  --output /tmp/release-acceptance-instance.json
 python scripts/release_contract.py set-criterion \
   --checklist docs/RELEASE_ACCEPTANCE_CHECKLIST.md \
   --instance /tmp/release-acceptance-instance.json \

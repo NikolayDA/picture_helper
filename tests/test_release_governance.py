@@ -64,6 +64,15 @@ def test_runbook_names_all_release_workflows_and_dispatch_inputs() -> None:
         assert re.search(rf"(?:-f |`){input_name}(?:=|`)", RUNBOOK), input_name
 
 
+def test_public_download_requires_separate_anonymous_evidence() -> None:
+    assert "ohne GitHub-Anmeldung" in RUNBOOK
+    assert "URL_DES_ANONYMEN_DOWNLOAD_UND_HASH_PROTOKOLLS" in RUNBOOK
+    assert "PUBLISH-03 PUBLIC-DOWNLOAD-01" not in RUNBOOK
+    public_command = RUNBOOK.split("--criterion PUBLIC-DOWNLOAD-01", maxsplit=1)[1]
+    public_command = public_command.split("python scripts/release_contract.py", maxsplit=1)[0]
+    assert '--evidence "$PUBLIC_DOWNLOAD_EVIDENCE_URL"' in public_command
+
+
 def test_secondary_docs_only_point_to_canonical_release_sources() -> None:
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     automation = (ROOT / "docs" / "RELEASE_AUTOMATION.md").read_text(encoding="utf-8")
