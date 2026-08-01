@@ -11,7 +11,7 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-01, v2.7.2 work state after PR #754)
+## Current Status (2026-08-01, v2.7.2 work state after PR #755)
 
 **v2.7.1 is published** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, five artifacts). #740 had shown that the first follow-up run loaded AppImage and `.deb` code from the checkout; #750 corrected the probe path. The real Pi run [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) now proves bundle provenance and a checkout-free `sys_path_0` for both Linux packages, so #740 is closed. Linux evidence is therefore available for #680/#685/#686, while their acceptance notes still need updating. The 2.7.2 candidate will be derived from the checked workflow head instead of maintained as a later SHA pin in the freeze document (#742/#743).
 
@@ -33,21 +33,19 @@ The **U1–U10 cause legend** is now a table in #741 — ten sub-issues previous
 
 Prior baseline unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, plus releases v2.7.0/v2.7.1. No 🔴 findings open.
 
-Live state after the GitHub query: **27** open issues. #742/#743 are closed by
-PR #754; #744/#747 are being implemented together in this PR.
+Live state after the GitHub query: **25** open issues. #744/#747 are closed by
+PR #755; #737/#745/#746 are being implemented together in this PR.
 
 ## Open GitHub Issues — Triage Status (2026-08-01)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟠 High (two releases with substantial rework) | 🟠 High (11 sub-issues, freeze and publish rebuild) | – (epic) | Legend and inventory corrected — phase 0/1 ready to start |
-| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish reuses the accepted candidate artifacts | 🟠 High (accepted ≠ published bytes) | 🔴 High (publication path, hard to dry-run) | Opus, high | **In progress** — approval manifest plus separate rebuild-free draft-first publish in this PR |
-| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Machine-verify the new gate contract after #742/#744 | 🟡 Medium (prevents contract drift like #709) | 🟡 Medium (extends existing tests) | Sonnet, medium | **In progress** — positive/negative, tamper, retry, and byte-equality tests in the same PR |
-| [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Versioned acceptance checklist instead of release-instance issues | 🟡 Medium (stops reinventing criteria each release) | 🟡 Medium (schema, stable IDs, waiver rules) | Sonnet, medium | Ready to start — before or with #745 |
-| [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Release runbook as the single process source | 🟡 Medium (process knowledge lives in issue comments today) | 🟡 Medium (docs + link/governance tests) | Sonnet, medium | Blocked — only once #742/#743/#744 are decided |
-| [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-release update detection from a real predecessor artifact | 🟡 Medium (production update path unverified) | 🟠 High (platform/ops work, only possible post-release) | Opus, high | Blocked — runs only after publish from #744 |
-| [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Remove/derive the hand-maintained release state in CLAUDE.md | 🟢 Low (docs governance) | 🟢 Low (drop the line + regression test) | Sonnet, low | **Ready to start** — cycle-independent |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Guard the Recommendations live state and freeze provenance | 🟡 Medium (third proven drift after #669/#728) | 🟡 Medium (local contract check + separate GitHub live check) | Sonnet, medium | Re-scope after #742: validate policy version/provenance instead of the removed freeze pin |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟠 High (two releases with substantial rework) | 🟠 High (11 sub-issues, freeze and publish rebuild) | – (epic) | #742–#744/#747 done; #737/#745/#746 in this PR, then real release + #748 |
+| [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Versioned acceptance checklist instead of release-instance issues | 🟡 Medium (stops reinventing criteria each release) | 🟡 Medium (schema, stable IDs, waiver rules) | Sonnet, medium | **In progress** — schema 1.0.0, stable IDs, pin, and release instance in this PR |
+| [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Release runbook as the single process source | 🟡 Medium (process knowledge lives in issue comments today) | 🟡 Medium (docs + link/governance tests) | Sonnet, medium | **In progress** — nine steps, hotfix/rollback/restart paths, and dry-run log in this PR |
+| [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-release update detection from a real predecessor artifact | 🟡 Medium (production update path unverified) | 🟠 High (platform/ops work, only possible post-release) | Opus, high | Blocked until the next real v2.7.2 publish; then execute `UPDATE-01` |
+| [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Remove/derive the hand-maintained release state in CLAUDE.md | 🟢 Low (docs governance) | 🟢 Low (drop the line + regression test) | Sonnet, low | **In progress** — canonical sources only plus regression test in this PR |
+| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Guard the Recommendations live state and freeze provenance | 🟡 Medium (third proven drift after #669/#728) | 🟡 Medium (local contract check + separate GitHub live check) | Sonnet, medium | Re-scope now to policy, checklist, and manifest contracts instead of manual state |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Make the ClamAV scan actually run per platform | 🟡 Medium (supply-chain add-on, not release-blocking) | 🟡 Medium (two separate causes + owner decision) | Sonnet, low-medium | Needs owner decision A–D; fix the Linux lock and macOS X509 separately |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Deliberately scope the API access for the vision pre-assessment | 🟡 Medium (screenshot evidence quality) | 🟢 Low (secret + workflow switch) | – (owner) + Sonnet, low | Needs owner decision A/B — variant A (dedicated secret) recommended |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.x release — published, Linux proof available | 🟡 Medium (macOS and Linux proven on real hardware) | 🟢 Low (update acceptance note) | Sonnet, low | Link run 30706671985, update criteria, and check the remaining closure conditions |
@@ -68,14 +66,15 @@ PR #754; #744/#747 are being implemented together in this PR.
 
 ### Recommended Next
 
-1. Complete **#744 + #747** in this PR; CI and review must confirm the manifest, rebuild-free publish path, and tamper tests.
-2. Update **#680/#685/#686** with run 30706671985 and close them according to their remaining criteria.
-3. Base **#745/#746** on the now-decided release contract.
-4. **#737/#752** and the owner decisions on **#656** (variant A) and **#731** (A–D) run independently; #752 needs the new #742 contract.
-5. **#692** (COLOR ADR) and **#716** remain startable in parallel; **#681/#687–#691** stay blocked (TIFF-vs-PNG discrepancy, real EufyMake hardware).
+1. Complete **#737 + #745 + #746** in this PR; CI and review must confirm the source rule, runbook, checklist pin, and governance tests.
+2. Then start a real **v2.7.2 candidate run** from the new runbook; execute **#748** against a real predecessor only after hardware acceptance and publish.
+3. Update **#680/#685/#686** with run 30706671985 and check their remaining criteria.
+4. **#752**, **#656** (owner variant A), and **#731** (A–D) remain independent; #752 should verify the new checklist/manifest contract instead of manual state.
+5. **#692** and **#716** remain parallel-ready; **#681/#687–#691** stay externally blocked.
 
 ## Previous Rounds
 
+- **2026-08-01 (#744/#747 merged; #737/#745/#746 in progress)** — PR #755 publishes only the five manifest-bound candidate bytes, draft-first and byte-verified. GitHub live state 25. This PR removes manual release state, introduces checklist 1.0.0 with stable IDs and a pinned instance, and makes the release runbook the single process source.
 - **2026-08-01 (#742/#743 merged; #744/#747 in progress)** — PR #754 replaced the self-referential freeze pin with derived Actions provenance and introduced the versioned fail-closed path policy. GitHub live state 27. This PR separates candidate build, hardware acceptance, and publish; binds exactly five SHA-256 values in an immutable approval manifest; and extends the existing gate tests with tamper/retry/byte-equality cases.
 - **2026-08-01 (#740 closed; #743/#742 in progress)** — Pi run 30706671985 proves bundle code for AppImage and `.deb`; #740 was closed with an evidence comment. GitHub live state: 29. The joint #743/#742 implementation replaces broad/implicit protocol paths with a versioned positive list and the manual freeze pin with derived provenance stored as an Actions artifact.
 - **2026-08-01 (review of #736/#738/#739/#749/#750/#751)** — six PRs merged on July 31/August 1 were checked end-to-end against code, reviews, and gates; all review threads are resolved and all five workflow families are green. Local `make check` is green, freeze candidate `57517ec` (#750) is recorded correctly, gate 0/0. #740 rightly remains open pending the real Pi `dry_run`; no regular issue was closed in the time window. Recommendations corrected for the candidate and next steps; governance follow-up #752 filed with acceptance criteria. Live state 30.

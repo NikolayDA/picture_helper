@@ -437,12 +437,16 @@ jobs:
           python3 scripts/release_contract.py create-approval \
             --candidate-contract "${RUNNER_TEMP}/candidate-contract/release-candidate-contract.json" \
             --evidence-dir "${RUNNER_TEMP}/abnahme-evidenz" \
+            --checklist "docs/RELEASE_ACCEPTANCE_CHECKLIST.md" \
             --acceptance-summary "${RUNNER_TEMP}/acceptance-summary.json" \
             --acceptance-run-id "${GITHUB_RUN_ID}" \
             --acceptance-run-attempt "${GITHUB_RUN_ATTEMPT}" \
             --acceptance-head-sha "$SOURCE_HEAD_SHA" \
             --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
             --output "${RUNNER_TEMP}/release-approval/release-approval-manifest.json"
+          python3 scripts/release_contract.py extract-instance \
+            --manifest "${RUNNER_TEMP}/release-approval/release-approval-manifest.json" \
+            --output "${RUNNER_TEMP}/release-approval/release-acceptance-instance.json"
           cp "${RUNNER_TEMP}/candidate-contract/release-freeze-provenance.json" \
             "${RUNNER_TEMP}/release-approval/release-freeze-provenance.json"
           cp "${RUNNER_TEMP}/abschlussmatrix.md" \

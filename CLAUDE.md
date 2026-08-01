@@ -4,12 +4,14 @@ Kurzanleitung für Claude Code in diesem Repository. **BgRemover** ist ein
 Desktop-Tool zum Entfernen von Bildhintergründen und für einfache
 Bildbearbeitung (PyQt6, macOS + Linux, Python ≥ 3.10).
 
-Letzter **veröffentlichter** Release: **v2.7.1** (2026-07-30). Aktueller
-Versionsschnitt im Repository: **2.7.2** — geschnitten und eingefroren
-(Freeze-Dokument [`docs/history/RELEASE-2.7.2-scope-freeze.md`](docs/history/RELEASE-2.7.2-scope-freeze.md)),
-noch nicht veröffentlicht. Die Version steht ausschließlich in
-`pyproject.toml` (`project.version`); `bgremover/_version.py` liest sie über
-`importlib.metadata` mit pyproject-Fallback, kein hartkodiertes Literal.
+Release-Status wird hier bewusst nicht manuell gepflegt: Paketversion ist
+`project.version` in `pyproject.toml`, veröffentlichte Versionen stehen in
+[GitHub Releases](https://github.com/NikolayDA/picture_helper/releases) und
+Tags. Ablauf und konkrete Evidenzquellen stehen im
+[`Release-Runbook`](docs/RELEASE_PROCESS.md), Kriterien in der
+[`versionierten Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
+`bgremover/_version.py` liest die Paketversion über `importlib.metadata` mit
+pyproject-Fallback; es enthält kein hartkodiertes Literal.
 
 ## Standard-Gate (vor jedem PR)
 
@@ -468,8 +470,9 @@ Workflows unter `.github/workflows/` (14):
   bindet Hardware-Evidenz und Freeze-Provenienz an genau diesen Build-Run.
   `release-publish.yml` veröffentlicht danach ausschließlich die fünf im
   Freigabemanifest gespeicherten SHA-256, Draft-first und ohne Neubau/Clobber
-  (#744/#747). Artefaktnamen
-  `BgRemover-<version>-<platform_tag>[-ai].<ext>` (#584).
+  (#744/#747). Der verbindliche Ablauf steht nur im
+  [`Release-Runbook`](docs/RELEASE_PROCESS.md), die stabilen Kriterien nur in
+  der [`Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
   in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
   PRs (#555). `.github/agents/` hält die Agent-Konfigurationen (Code Review,
@@ -479,8 +482,8 @@ Workflows unter `.github/workflows/` (14):
 ### Release-Freeze & Kandidatenregel (#742/#743)
 
 Vor jedem Kandidatenbau steht ein Freeze-Dokument je Version:
-`docs/history/RELEASE-<version>-scope-freeze.md` (aktuell 2.7.2, Vorgänger
-2.7.1/2.6.0). Der Kandidat wird nicht mehr von Hand gepflegt, sondern
+`docs/history/RELEASE-<version>-scope-freeze.md`. Der Kandidat wird nicht mehr
+von Hand gepflegt, sondern
 **abgeleitet**: Der Kandidat ist der geprüfte Workflow-Head (`GITHUB_SHA`);
 zusätzlich wird der jüngste kandidatenrelevante Inhalts-Commit aus der
 First-Parent-Historie ausgewiesen. `scripts/verify_release_freeze.py` und die
@@ -503,7 +506,9 @@ versionierte Policy `release/path-policy.json` sind die Quellen dieser Regel.
 
 ### Release-Abnahme auf echter Hardware (Epic #639, abgeschlossen)
 
-Die Abnahmekriterien aus [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md)
+Die Kriterien aus
+[`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md)
+und ihre Hardware-Prozeduren aus [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md)
 brauchen Nachweise, die die Offscreen-CI prinzipiell nicht liefern kann (Start
 der Release-Artefakte auf Zielhardware, echter GPU-Renderer, Retina/High-DPI).
 `release-abnahme.yml` (`workflow_dispatch`, ausschließlich die Run-ID eines
@@ -548,7 +553,8 @@ Arbeitsverzeichnis** (`smoke_launch.run(workdir=…)`/`--workdir`,
 Linux-Smoke-Aufrufen von `release-linux.yml`) — das Auslieferungsartefakt
 selbst bleibt unangetastet. Programmpfade müssen dabei **absolut** sein,
 sonst löst `Popen` sie gegen das neutrale Verzeichnis auf.
-Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Betrieb:
+Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Kanonischer
+Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md). Betrieb:
 [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
 ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/ADR-2026-release-abnahme-automatisierung.md).
 

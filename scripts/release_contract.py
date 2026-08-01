@@ -6,9 +6,11 @@ one successful hardware-acceptance run and to exactly five files.  Publishing
 may only download those files from the recorded build run and must reproduce
 their SHA-256 values byte for byte.  No build is performed in this module.
 """
+
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -19,11 +21,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final, cast
 
-MANIFEST_SCHEMA: Final = 1
+MANIFEST_SCHEMA: Final = 2
 MANIFEST_KIND: Final = "release-approval-manifest"
-POLICY_VERSION: Final = 1
+POLICY_VERSION: Final = 2
 CANDIDATE_SCHEMA: Final = 1
 CANDIDATE_KIND: Final = "release-candidate-contract"
+CHECKLIST_SCHEMA: Final = 1
+CHECKLIST_KIND: Final = "release-acceptance-checklist"
+CHECKLIST_INSTANCE_SCHEMA: Final = 1
+CHECKLIST_INSTANCE_KIND: Final = "release-acceptance-instance"
+CHECKLIST_PATH: Final = "docs/RELEASE_ACCEPTANCE_CHECKLIST.md"
 BUILD_WORKFLOW: Final = ".github/workflows/release-linux.yml"
 ACCEPTANCE_WORKFLOW: Final = ".github/workflows/release-abnahme.yml"
 FREEZE_KIND: Final = "release-freeze-provenance"
@@ -35,6 +42,19 @@ _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 _TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+(?:[.-][0-9A-Za-z.]+)?)$")
 _FREEZE_ARTIFACT_RE = re.compile(r"^release-freeze-provenance-(\d+)$")
 _APPROVAL_ARTIFACT_RE = re.compile(r"^release-approval-manifest-(\d+)$")
+_CHECKLIST_ID_RE = re.compile(r"^[A-Z][A-Z0-9-]+-[0-9]{2}$")
+_SEMVER_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+$")
+
+CHECKLIST_STATES: Final = ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE", "PENDING")
+CHECKLIST_PHASES: Final = ("pre-release", "publish", "post-release")
+CHECKLIST_REQUIREMENTS: Final = ("MUST", "SHOULD", "POST_RELEASE")
+CHECKLIST_ARTIFACTS: Final = (
+    "linux-x86_64-appimage",
+    "linux-x86_64-deb",
+    "linux-arm64-appimage",
+    "linux-arm64-deb",
+    "macos-arm64-dmg",
+)
 
 ARTIFACT_CONTAINERS: Final = (
     "bgremover-linux-x86_64",
@@ -126,16 +146,406 @@ def _timestamp(value: object, field: str) -> str:
     return text
 
 
+def load_release_checklist(path: Path) -> dict[str, Any]:
+    """Load and validate the single machine-readable block in the checklist."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ContractError(f"Release-Checkliste kann nicht gelesen werden: {path}: {exc}") from exc
+    marker = "<!-- release-checklist-json:start -->"
+    end_marker = "<!-- release-checklist-json:end -->"
+    if text.count(marker) != 1 or text.count(end_marker) != 1:
+        raise ContractError("Release-Checkliste braucht genau einen JSON-Vertragsblock")
+    marker_index = text.find(marker)
+    end_marker_index = text.find(end_marker, marker_index + len(marker))
+    if marker_index < 0 or end_marker_index < 0:
+        raise ContractError("Release-Checkliste ohne eindeutigen JSON-Vertragsblock")
+    fence_index = text.find("```json", marker_index, end_marker_index)
+    if fence_index < 0:
+        raise ContractError("Release-Checkliste ohne json-Codeblock")
+    json_start = text.find("\n", fence_index) + 1
+    json_end = text.find("\n```", json_start, end_marker_index)
+    if json_start < 1 or json_end < 0:
+        raise ContractError("Release-Checklisten-JSON ist nicht korrekt eingefasst")
+    try:
+        raw = json.loads(text[json_start:json_end])
+    except json.JSONDecodeError as exc:
+        raise ContractError(f"Release-Checklisten-JSON ist ungueltig: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise ContractError("Release-Checklisten-JSON muss ein Objekt sein")
+    checklist = cast(dict[str, Any], raw)
+    validate_release_checklist(checklist)
+
+    table_ids = set(
+        re.findall(
+            r"\| `([A-Z][A-Z0-9-]+-[0-9]{2})` \|",
+            text[:marker_index],
+        )
+    )
+    contract_ids = {str(item["id"]) for item in cast(list[dict[str, Any]], checklist["criteria"])}
+    if table_ids != contract_ids:
+        raise ContractError(
+            "Kriteriums-IDs in Tabelle und JSON driften: "
+            f"nur_tabelle={sorted(table_ids - contract_ids)}, "
+            f"nur_json={sorted(contract_ids - table_ids)}"
+        )
+    return checklist
+
+
+def validate_release_checklist(checklist: dict[str, Any]) -> None:
+    """Validate checklist schema, stable IDs, artifact scope, and gate mapping."""
+    if checklist.get("schema") != CHECKLIST_SCHEMA or checklist.get("kind") != CHECKLIST_KIND:
+        raise ContractError("Unbekanntes Release-Checklisten-Schema")
+    if not _SEMVER_RE.fullmatch(str(checklist.get("checklist_version") or "")):
+        raise ContractError("Release-Checkliste ohne gueltige semantische Version")
+    if tuple(checklist.get("allowed_states") or ()) != CHECKLIST_STATES:
+        raise ContractError("Release-Checkliste hat unerwartete Zustaende")
+    if tuple(checklist.get("phases") or ()) != CHECKLIST_PHASES:
+        raise ContractError("Release-Checkliste hat unerwartete Phasen")
+    if tuple(checklist.get("requirements") or ()) != CHECKLIST_REQUIREMENTS:
+        raise ContractError("Release-Checkliste hat unerwartete Pflichtgrade")
+
+    artifacts_raw = checklist.get("artifacts")
+    if not isinstance(artifacts_raw, list) or not all(
+        isinstance(item, dict) for item in artifacts_raw
+    ):
+        raise ContractError("Release-Checkliste ohne Artefaktdefinitionen")
+    artifacts = cast(list[dict[str, Any]], artifacts_raw)
+    artifact_ids = tuple(str(item.get("id") or "") for item in artifacts)
+    if artifact_ids != CHECKLIST_ARTIFACTS or len(set(artifact_ids)) != len(artifact_ids):
+        raise ContractError("Release-Checkliste muss exakt die fuenf Produktartefakte definieren")
+    if any("windows" in str(item.get("platform") or "").lower() for item in artifacts):
+        raise ContractError("Windows ist nicht Teil des Releasevertrags")
+
+    criteria_raw = checklist.get("criteria")
+    if not isinstance(criteria_raw, list) or not all(
+        isinstance(item, dict) for item in criteria_raw
+    ):
+        raise ContractError("Release-Checkliste ohne Kriterien")
+    criteria = cast(list[dict[str, Any]], criteria_raw)
+    ids = [str(item.get("id") or "") for item in criteria]
+    if len(ids) != len(set(ids)) or not ids or not all(_CHECKLIST_ID_RE.fullmatch(i) for i in ids):
+        raise ContractError("Release-Checkliste hat fehlende, doppelte oder ungueltige stabile IDs")
+
+    artifact_set = set(CHECKLIST_ARTIFACTS)
+    verification_values = {
+        "candidate-contract",
+        "active-platforms",
+        "manual",
+        "publish",
+        "post-release",
+        "platform:linux-x86_64",
+        "platform:linux-arm64",
+        "platform:macos-arm64",
+    }
+    for item in criteria:
+        criterion_id = str(item["id"])
+        if item.get("phase") not in CHECKLIST_PHASES:
+            raise ContractError(f"Ungueltige Phase fuer {criterion_id}")
+        if item.get("requirement") not in CHECKLIST_REQUIREMENTS:
+            raise ContractError(f"Ungueltiger Pflichtgrad fuer {criterion_id}")
+        for field in ("owner", "evidence_source", "description"):
+            if not str(item.get(field) or "").strip():
+                raise ContractError(f"Pflichtfeld {field} fehlt fuer {criterion_id}")
+        criterion_artifacts = item.get("artifacts")
+        if not isinstance(criterion_artifacts, list) or len(criterion_artifacts) != len(
+            set(str(value) for value in criterion_artifacts)
+        ):
+            raise ContractError(f"Ungueltige Artefaktliste fuer {criterion_id}")
+        unknown = set(str(value) for value in criterion_artifacts) - artifact_set
+        if unknown:
+            raise ContractError(f"Unbekannte Artefakte fuer {criterion_id}: {sorted(unknown)}")
+        verification = str(item.get("verification") or "")
+        if verification not in verification_values:
+            raise ContractError(f"Unbekannte Evidenzabbildung fuer {criterion_id}")
+        if (
+            item.get("phase") == "pre-release"
+            and item.get("requirement") == "MUST"
+            and verification == "manual"
+        ):
+            raise ContractError(f"Pre-Release-MUST {criterion_id} darf nicht nur manuell bleiben")
+        if item.get("requirement") == "POST_RELEASE" and item.get("phase") != "post-release":
+            raise ContractError(f"POST_RELEASE-Kriterium {criterion_id} hat die falsche Phase")
+        if not isinstance(item.get("waiver_allowed"), bool) or not isinstance(
+            item.get("not_applicable_allowed"), bool
+        ):
+            raise ContractError(f"Waiver-/N/A-Regel fehlt fuer {criterion_id}")
+
+    directly_covered = {
+        str(item["artifacts"][0])
+        for item in criteria
+        if isinstance(item.get("artifacts"), list) and len(item["artifacts"]) == 1
+    }
+    if directly_covered != artifact_set:
+        raise ContractError("Nicht alle fuenf Artefakte besitzen ein getrenntes Kriterium")
+
+
+def _checklist_reference(
+    path: Path,
+    checklist: dict[str, Any],
+    *,
+    commit_sha: str,
+) -> dict[str, Any]:
+    if not path.as_posix().endswith(CHECKLIST_PATH):
+        raise ContractError(f"Release-Checkliste muss unter {CHECKLIST_PATH} liegen")
+    return {
+        "schema": CHECKLIST_SCHEMA,
+        "checklist_version": checklist["checklist_version"],
+        "path": CHECKLIST_PATH,
+        "commit_sha": _full_sha(commit_sha, "checklist.commit_sha"),
+        "sha256": _sha256_file(path),
+    }
+
+
+def _automatic_criterion_record(
+    definition: dict[str, Any],
+    *,
+    candidate: dict[str, Any],
+    statuses: dict[str, str],
+    acceptance_run_id: int,
+) -> dict[str, Any]:
+    verification = str(definition["verification"])
+    evidence: list[str] = []
+    if verification == "candidate-contract":
+        status = "PASS"
+        evidence = [
+            f"github-actions-run:{candidate['run_id']}",
+            "release-candidate-contract.json",
+        ]
+    elif verification.startswith("platform:"):
+        platform = verification.partition(":")[2]
+        platform_status = statuses[platform]
+        status = (
+            "PASS"
+            if platform_status == APPROVED
+            else ("FAIL" if platform_status == "blocked" else "PENDING")
+        )
+        if status != "PENDING":
+            evidence = [f"github-actions-run:{acceptance_run_id}", f"platform:{platform}"]
+    elif verification == "active-platforms":
+        active = (statuses["linux-arm64"], statuses["macos-arm64"])
+        status = "PASS" if all(value == APPROVED for value in active) else "FAIL"
+        evidence = [f"github-actions-run:{acceptance_run_id}", "active-platforms"]
+    else:
+        status = "PENDING"
+    return {
+        "id": definition["id"],
+        "phase": definition["phase"],
+        "requirement": definition["requirement"],
+        "status": status,
+        "evidence": evidence,
+        "waiver": None,
+    }
+
+
+def build_release_instance(
+    *,
+    checklist: dict[str, Any],
+    checklist_path: Path,
+    candidate: dict[str, Any],
+    statuses: dict[str, str],
+    acceptance_run_id: int,
+) -> dict[str, Any]:
+    """Create the pinned per-release criterion ledger stored in the manifest."""
+    criteria = cast(list[dict[str, Any]], checklist["criteria"])
+    instance = {
+        "schema": CHECKLIST_INSTANCE_SCHEMA,
+        "kind": CHECKLIST_INSTANCE_KIND,
+        "release_version": candidate["version"],
+        "candidate_sha": candidate["head_sha"],
+        "checklist": _checklist_reference(
+            checklist_path,
+            checklist,
+            commit_sha=str(candidate["head_sha"]),
+        ),
+        "criteria": [
+            _automatic_criterion_record(
+                item,
+                candidate=candidate,
+                statuses=statuses,
+                acceptance_run_id=acceptance_run_id,
+            )
+            for item in criteria
+        ],
+        "generated_at": _utc_now(),
+    }
+    validate_release_instance(instance, checklist=checklist, checklist_path=checklist_path)
+    validate_release_instance_completion(
+        instance,
+        checklist=checklist,
+        checklist_path=checklist_path,
+        through_phase="pre-release",
+    )
+    return instance
+
+
+def validate_release_instance(
+    instance: dict[str, Any],
+    *,
+    checklist: dict[str, Any] | None = None,
+    checklist_path: Path | None = None,
+) -> None:
+    if (
+        instance.get("schema") != CHECKLIST_INSTANCE_SCHEMA
+        or instance.get("kind") != CHECKLIST_INSTANCE_KIND
+    ):
+        raise ContractError("Unbekanntes Release-Instanz-Schema")
+    _full_sha(instance.get("candidate_sha"), "release_instance.candidate_sha")
+    if not re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z.]+)?",
+        str(instance.get("release_version") or ""),
+    ):
+        raise ContractError("Release-Instanz ohne gueltige Version")
+    _timestamp(instance.get("generated_at"), "release_instance.generated_at")
+    reference = instance.get("checklist")
+    if not isinstance(reference, dict):
+        raise ContractError("Release-Instanz ohne Checklisten-Pin")
+    reference = cast(dict[str, Any], reference)
+    if reference.get("schema") != CHECKLIST_SCHEMA or reference.get("path") != CHECKLIST_PATH:
+        raise ContractError("Release-Instanz hat einen ungueltigen Checklisten-Pfad")
+    if reference.get("commit_sha") != instance.get("candidate_sha"):
+        raise ContractError("Checklisten-Pin und Release-Instanz haben verschiedene Commits")
+    if not _SEMVER_RE.fullmatch(str(reference.get("checklist_version") or "")):
+        raise ContractError("Release-Instanz ohne Checklisten-Version")
+    if not _DIGEST_RE.fullmatch(str(reference.get("sha256") or "")):
+        raise ContractError("Release-Instanz ohne Checklisten-SHA-256")
+
+    criteria_raw = instance.get("criteria")
+    if not isinstance(criteria_raw, list) or not all(
+        isinstance(item, dict) for item in criteria_raw
+    ):
+        raise ContractError("Release-Instanz ohne Kriteriumsstaende")
+    records = cast(list[dict[str, Any]], criteria_raw)
+    record_ids = [str(item.get("id") or "") for item in records]
+    if len(record_ids) != len(set(record_ids)) or not all(
+        _CHECKLIST_ID_RE.fullmatch(item) for item in record_ids
+    ):
+        raise ContractError("Release-Instanz hat doppelte oder ungueltige Kriteriums-IDs")
+
+    definitions: dict[str, dict[str, Any]] = {}
+    if checklist is not None:
+        validate_release_checklist(checklist)
+        definitions = {
+            str(item["id"]): item for item in cast(list[dict[str, Any]], checklist["criteria"])
+        }
+        if set(record_ids) != set(definitions):
+            raise ContractError("Release-Instanz bildet nicht exakt alle Checklisten-IDs ab")
+        if reference.get("checklist_version") != checklist.get("checklist_version"):
+            raise ContractError("Release-Instanz pinnt eine andere Checklisten-Version")
+    if checklist_path is not None and _sha256_file(checklist_path) != reference.get("sha256"):
+        raise ContractError("Release-Instanz pinnt einen anderen Checklisten-Dateihash")
+
+    for record in records:
+        criterion_id = str(record["id"])
+        status = str(record.get("status") or "")
+        if record.get("phase") not in CHECKLIST_PHASES:
+            raise ContractError(f"Ungueltige Phase in Release-Instanz: {criterion_id}")
+        if record.get("requirement") not in CHECKLIST_REQUIREMENTS:
+            raise ContractError(f"Ungueltiger Pflichtgrad in Release-Instanz: {criterion_id}")
+        if status not in CHECKLIST_STATES:
+            raise ContractError(f"Ungueltiger Status in Release-Instanz: {criterion_id}")
+        evidence = record.get("evidence")
+        if not isinstance(evidence, list) or not all(
+            isinstance(item, str) and item.strip() for item in evidence
+        ):
+            raise ContractError(f"Ungueltige Evidenzliste fuer {criterion_id}")
+        if status in ("PASS", "FAIL", "WAIVED", "NOT_APPLICABLE") and not evidence:
+            raise ContractError(f"{status} ohne Evidenz fuer {criterion_id}")
+        waiver = record.get("waiver")
+        definition = definitions.get(criterion_id)
+        if definition is not None:
+            if record.get("phase") != definition.get("phase") or record.get(
+                "requirement"
+            ) != definition.get("requirement"):
+                raise ContractError(f"Release-Instanz veraendert die Semantik von {criterion_id}")
+            if status == "NOT_APPLICABLE" and definition.get("not_applicable_allowed") is not True:
+                raise ContractError(f"NOT_APPLICABLE ist fuer {criterion_id} nicht erlaubt")
+            if status == "WAIVED" and definition.get("waiver_allowed") is not True:
+                raise ContractError(f"Waiver ist fuer {criterion_id} nicht erlaubt")
+        if status == "WAIVED":
+            if not isinstance(waiver, dict):
+                raise ContractError(f"Waiver-Daten fehlen fuer {criterion_id}")
+            waiver_data = cast(dict[str, Any], waiver)
+            waiver_evidence = waiver_data.get("evidence")
+            if (
+                not str(waiver_data.get("owner") or "").strip()
+                or not str(waiver_data.get("reason") or "").strip()
+                or not isinstance(waiver_evidence, list)
+                or not waiver_evidence
+                or not all(isinstance(item, str) and item.strip() for item in waiver_evidence)
+            ):
+                raise ContractError(f"Waiver fuer {criterion_id} ist unvollstaendig")
+        elif waiver is not None:
+            raise ContractError(f"Waiver-Daten ohne WAIVED-Status fuer {criterion_id}")
+
+
+def validate_release_instance_completion(
+    instance: dict[str, Any],
+    *,
+    checklist: dict[str, Any],
+    checklist_path: Path,
+    through_phase: str,
+) -> None:
+    validate_release_instance(instance, checklist=checklist, checklist_path=checklist_path)
+    if through_phase not in CHECKLIST_PHASES:
+        raise ContractError(f"Unbekannte Abschlussphase: {through_phase}")
+    last_phase = CHECKLIST_PHASES.index(through_phase)
+    for record in cast(list[dict[str, Any]], instance["criteria"]):
+        if CHECKLIST_PHASES.index(str(record["phase"])) > last_phase:
+            continue
+        requirement = str(record["requirement"])
+        status = str(record["status"])
+        if requirement == "MUST" and status not in ("PASS", "WAIVED"):
+            raise ContractError(
+                f"Pflichtkriterium {record['id']} ist nicht abgeschlossen: {status}"
+            )
+        if requirement == "POST_RELEASE" and status != "PASS":
+            raise ContractError(f"Post-Release-Kriterium {record['id']} ist nicht abgeschlossen")
+
+
+def set_release_instance_criterion(
+    instance: dict[str, Any],
+    *,
+    checklist: dict[str, Any],
+    checklist_path: Path,
+    criterion_id: str,
+    status: str,
+    evidence: list[str],
+    waiver_owner: str = "",
+    waiver_reason: str = "",
+) -> dict[str, Any]:
+    updated = copy.deepcopy(instance)
+    records = cast(list[dict[str, Any]], updated.get("criteria") or [])
+    matches = [item for item in records if item.get("id") == criterion_id]
+    if len(matches) != 1:
+        raise ContractError(f"Kriterium {criterion_id} fehlt oder ist doppelt")
+    record = matches[0]
+    record["status"] = status
+    record["evidence"] = evidence
+    record["waiver"] = (
+        {"owner": waiver_owner, "reason": waiver_reason, "evidence": evidence}
+        if status == "WAIVED"
+        else None
+    )
+    updated["generated_at"] = _utc_now()
+    validate_release_instance(updated, checklist=checklist, checklist_path=checklist_path)
+    return updated
+
+
 def expected_artifact_names(version: str, *, with_ai: bool) -> tuple[str, ...]:
     suffix = "-ai" if with_ai else ""
     stem = f"BgRemover-{version}"
-    return tuple(sorted((
-        f"{stem}-linux-x86_64{suffix}.AppImage",
-        f"{stem}-linux-x86_64{suffix}.deb",
-        f"{stem}-linux-raspberrypi-arm64{suffix}.AppImage",
-        f"{stem}-linux-raspberrypi-arm64{suffix}.deb",
-        f"{stem}-macos-arm64{suffix}.dmg",
-    )))
+    return tuple(
+        sorted(
+            (
+                f"{stem}-linux-x86_64{suffix}.AppImage",
+                f"{stem}-linux-x86_64{suffix}.deb",
+                f"{stem}-linux-raspberrypi-arm64{suffix}.AppImage",
+                f"{stem}-linux-raspberrypi-arm64{suffix}.deb",
+                f"{stem}-macos-arm64{suffix}.dmg",
+            )
+        )
+    )
 
 
 def platform_for_artifact(name: str) -> str:
@@ -171,9 +581,7 @@ def validate_workflow_run(
         )
     head_sha = _full_sha(run.get("head_sha"), "run.head_sha")
     if expected_head_sha is not None and head_sha != expected_head_sha:
-        raise ContractError(
-            f"Run {run_id} gehoert zu {head_sha}, erwartet ist {expected_head_sha}"
-        )
+        raise ContractError(f"Run {run_id} gehoert zu {head_sha}, erwartet ist {expected_head_sha}")
     return {
         "run_id": run_id,
         "run_attempt": _integer(run.get("run_attempt"), "run.run_attempt"),
@@ -243,9 +651,7 @@ def _validate_stored_reference(reference: object, *, freeze: bool = False) -> di
     return data
 
 
-def _validate_freeze(
-    provenance: dict[str, Any], *, source: dict[str, Any], version: str
-) -> None:
+def _validate_freeze(provenance: dict[str, Any], *, source: dict[str, Any], version: str) -> None:
     if provenance.get("schema") != 1 or provenance.get("kind") != FREEZE_KIND:
         raise ContractError("Unbekanntes Freeze-Provenienzschema")
     if provenance.get("candidate_sha") != source["head_sha"]:
@@ -270,7 +676,9 @@ def prepare_candidate_contract(
     output_dir: Path,
 ) -> dict[str, Any]:
     source = validate_workflow_run(
-        run, expected_run_id=expected_run_id, expected_workflow=BUILD_WORKFLOW,
+        run,
+        expected_run_id=expected_run_id,
+        expected_workflow=BUILD_WORKFLOW,
     )
     artifacts = _artifact_listing(listing)
     by_name: dict[str, list[dict[str, Any]]] = {}
@@ -285,7 +693,9 @@ def prepare_candidate_contract(
             )
         active_containers[name] = matches[0]
     unexpected = sorted(
-        name for name in by_name if name.startswith("bgremover-") and name not in ARTIFACT_CONTAINERS
+        name
+        for name in by_name
+        if name.startswith("bgremover-") and name not in ARTIFACT_CONTAINERS
     )
     if unexpected:
         raise ContractError(f"Unerwartete Release-Artefaktcontainer: {unexpected}")
@@ -295,9 +705,7 @@ def prepare_candidate_contract(
         match = _FREEZE_ARTIFACT_RE.fullmatch(name)
         if match:
             freeze_candidates.extend(
-                (int(match.group(1)), item)
-                for item in matches
-                if item.get("expired") is not True
+                (int(match.group(1)), item) for item in matches if item.get("expired") is not True
             )
     if not freeze_candidates:
         raise ContractError("Build-Run enthaelt keine Freeze-Provenienz")
@@ -348,7 +756,9 @@ def prepare_candidate_contract(
     return contract
 
 
-def _validate_candidate_contract(contract: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_candidate_contract(
+    contract: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if (
         contract.get("schema") != CANDIDATE_SCHEMA
         or contract.get("kind") != CANDIDATE_KIND
@@ -416,6 +826,7 @@ def _load_platform_evidence(root: Path) -> dict[str, dict[str, Any]]:
 def create_approval_manifest(
     *,
     candidate_contract: dict[str, Any],
+    checklist_path: Path,
     evidence_dir: Path,
     acceptance_summary: dict[str, Any],
     acceptance_run_id: int,
@@ -426,7 +837,8 @@ def create_approval_manifest(
     candidate, records = _validate_candidate_contract(candidate_contract)
     acceptance_run_id = _integer(acceptance_run_id, "acceptance.run_id")
     acceptance_run_attempt = _integer(
-        acceptance_run_attempt, "acceptance.run_attempt",
+        acceptance_run_attempt,
+        "acceptance.run_attempt",
     )
     artifact_match = _APPROVAL_ARTIFACT_RE.fullmatch(approval_artifact_name)
     if not artifact_match or int(artifact_match.group(1)) != acceptance_run_attempt:
@@ -463,7 +875,9 @@ def create_approval_manifest(
     for platform, status in statuses.items():
         if status == PAUSED:
             if platform in evidences:
-                raise ContractError(f"Pausierte Plattform {platform} darf keine Freigabe-Evidenz tragen")
+                raise ContractError(
+                    f"Pausierte Plattform {platform} darf keine Freigabe-Evidenz tragen"
+                )
             continue
         evidence = evidences.get(platform)
         if evidence is None:
@@ -474,7 +888,8 @@ def create_approval_manifest(
             raise ContractError(f"Abnahme fuer {platform} gehoert zu einem anderen Commit")
         source = evidence.get("quelle")
         if not isinstance(source, dict) or source != {
-            "art": "run-id", "wert": str(candidate["run_id"]),
+            "art": "run-id",
+            "wert": str(candidate["run_id"]),
         }:
             raise ContractError(f"Abnahme fuer {platform} stammt aus dem falschen Build-Run")
         raw_artifacts = evidence.get("artefakte")
@@ -498,9 +913,16 @@ def create_approval_manifest(
         if actual != expected:
             raise ContractError(f"Abnahme-Hashes fuer {platform} weichen vom Kandidaten ab")
 
+    checklist = load_release_checklist(checklist_path)
+    release_instance = build_release_instance(
+        checklist=checklist,
+        checklist_path=checklist_path,
+        candidate=candidate,
+        statuses=statuses,
+        acceptance_run_id=acceptance_run_id,
+    )
     manifest_records = [
-        {**record, "acceptance_status": statuses[str(record["platform"])]}
-        for record in records
+        {**record, "acceptance_status": statuses[str(record["platform"])]} for record in records
     ]
     return {
         "schema": MANIFEST_SCHEMA,
@@ -516,6 +938,7 @@ def create_approval_manifest(
             "platforms": statuses,
         },
         "artifacts": manifest_records,
+        "release_instance": release_instance,
         "generated_at": _utc_now(),
         # Keep the manifest-level reference structurally independent from the
         # embedded candidate contract.  They must compare equal during
@@ -536,6 +959,7 @@ def validate_approval_manifest(
     candidate_run: dict[str, Any] | None = None,
     acceptance_run: dict[str, Any] | None = None,
     tag_sha: str | None = None,
+    checklist_path: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if (
         manifest.get("schema") != MANIFEST_SCHEMA
@@ -564,7 +988,11 @@ def validate_approval_manifest(
     head_sha = _full_sha(candidate.get("head_sha"), "candidate.head_sha")
     version = str(candidate.get("version") or "")
     tag_match = _TAG_RE.fullmatch(expected_tag)
-    if not tag_match or tag_match.group(1) != version or candidate.get("expected_tag") != expected_tag:
+    if (
+        not tag_match
+        or tag_match.group(1) != version
+        or candidate.get("expected_tag") != expected_tag
+    ):
         raise ContractError("Tag und Manifest-Version stimmen nicht ueberein")
 
     acceptance_id = _integer(acceptance.get("run_id"), "acceptance.run_id")
@@ -581,6 +1009,28 @@ def validate_approval_manifest(
     if not artifact_match or int(artifact_match.group(1)) != acceptance_attempt:
         raise ContractError("Freigabemanifest-Name und Abnahme-Attempt stimmen nicht ueberein")
     statuses = _validate_platform_statuses(acceptance.get("platforms"))
+    release_instance = manifest.get("release_instance")
+    if not isinstance(release_instance, dict):
+        raise ContractError("Freigabemanifest ohne gepinnte Release-Instanz")
+    release_instance = cast(dict[str, Any], release_instance)
+    checklist = load_release_checklist(checklist_path) if checklist_path is not None else None
+    validate_release_instance(
+        release_instance,
+        checklist=checklist,
+        checklist_path=checklist_path,
+    )
+    if release_instance.get("candidate_sha") != head_sha:
+        raise ContractError("Release-Instanz gehoert zu einem anderen Kandidaten-Commit")
+    if release_instance.get("release_version") != version:
+        raise ContractError("Release-Instanz gehoert zu einer anderen Version")
+    if checklist is not None:
+        assert checklist_path is not None
+        validate_release_instance_completion(
+            release_instance,
+            checklist=checklist,
+            checklist_path=checklist_path,
+            through_phase="pre-release",
+        )
     containers = candidate.get("artifact_containers")
     if not isinstance(containers, list) or len(containers) != len(ARTIFACT_CONTAINERS):
         raise ContractError("Manifest ohne exakte Artefaktcontainer-Referenzen")
@@ -702,6 +1152,7 @@ def _parser() -> argparse.ArgumentParser:
 
     create = commands.add_parser("create-approval")
     create.add_argument("--candidate-contract", type=Path, required=True)
+    create.add_argument("--checklist", type=Path, required=True)
     create.add_argument("--evidence-dir", type=Path, required=True)
     create.add_argument("--acceptance-summary", type=Path, required=True)
     create.add_argument("--acceptance-run-id", type=int, required=True)
@@ -719,6 +1170,7 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--approval-artifact-name", required=True)
     verify.add_argument("--tag", required=True)
     verify.add_argument("--tag-sha")
+    verify.add_argument("--checklist", type=Path)
 
     artifacts = commands.add_parser("verify-artifacts")
     artifacts.add_argument("--manifest", type=Path, required=True)
@@ -728,6 +1180,28 @@ def _parser() -> argparse.ArgumentParser:
     plan.add_argument("--manifest", type=Path, required=True)
     plan.add_argument("--state", type=Path, required=True)
     plan.add_argument("--existing-dir", type=Path, required=True)
+
+    validate_checklist = commands.add_parser("validate-checklist")
+    validate_checklist.add_argument("--checklist", type=Path, required=True)
+
+    extract_instance = commands.add_parser("extract-instance")
+    extract_instance.add_argument("--manifest", type=Path, required=True)
+    extract_instance.add_argument("--output", type=Path, required=True)
+
+    set_criterion = commands.add_parser("set-criterion")
+    set_criterion.add_argument("--checklist", type=Path, required=True)
+    set_criterion.add_argument("--instance", type=Path, required=True)
+    set_criterion.add_argument("--criterion", required=True)
+    set_criterion.add_argument("--status", choices=CHECKLIST_STATES, required=True)
+    set_criterion.add_argument("--evidence", action="append", default=[])
+    set_criterion.add_argument("--waiver-owner", default="")
+    set_criterion.add_argument("--waiver-reason", default="")
+    set_criterion.add_argument("--output", type=Path, required=True)
+
+    validate_instance = commands.add_parser("validate-instance")
+    validate_instance.add_argument("--checklist", type=Path, required=True)
+    validate_instance.add_argument("--instance", type=Path, required=True)
+    validate_instance.add_argument("--through-phase", choices=CHECKLIST_PHASES)
     return parser
 
 
@@ -744,14 +1218,17 @@ def main(argv: list[str] | None = None) -> int:
                 output_dir=args.output_dir,
             )
             candidate = cast(dict[str, Any], contract["candidate"])
-            _write_github_outputs({
-                "head_sha": candidate["head_sha"],
-                "version": candidate["version"],
-                "expected_tag": candidate["expected_tag"],
-            })
+            _write_github_outputs(
+                {
+                    "head_sha": candidate["head_sha"],
+                    "version": candidate["version"],
+                    "expected_tag": candidate["expected_tag"],
+                }
+            )
         elif args.command == "create-approval":
             manifest = create_approval_manifest(
                 candidate_contract=_load_json(args.candidate_contract),
+                checklist_path=args.checklist,
                 evidence_dir=args.evidence_dir,
                 acceptance_summary=_load_json(args.acceptance_summary),
                 acceptance_run_id=args.acceptance_run_id,
@@ -770,14 +1247,17 @@ def main(argv: list[str] | None = None) -> int:
                 candidate_run=_load_json(args.candidate_run_json),
                 acceptance_run=_load_json(args.acceptance_run_json),
                 tag_sha=args.tag_sha,
+                checklist_path=args.checklist,
             )
-            _write_github_outputs({
-                "candidate_sha": candidate["head_sha"],
-                "version": candidate["version"],
-            })
+            _write_github_outputs(
+                {
+                    "candidate_sha": candidate["head_sha"],
+                    "version": candidate["version"],
+                }
+            )
         elif args.command == "verify-artifacts":
             verify_artifact_directory(_load_json(args.manifest), args.directory)
-        else:
+        elif args.command == "plan-publish":
             state = _load_json(args.state)
             action = plan_publish(
                 _load_json(args.manifest),
@@ -787,6 +1267,46 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(action)
             _write_github_outputs({"action": action})
+        elif args.command == "validate-checklist":
+            checklist = load_release_checklist(args.checklist)
+            print(f"Checkliste {checklist['checklist_version']} ist gueltig.")
+        elif args.command == "extract-instance":
+            manifest = _load_json(args.manifest)
+            instance = manifest.get("release_instance")
+            if not isinstance(instance, dict):
+                raise ContractError("Freigabemanifest ohne Release-Instanz")
+            validate_release_instance(cast(dict[str, Any], instance))
+            _write_json(args.output, cast(dict[str, Any], instance))
+        elif args.command == "set-criterion":
+            checklist = load_release_checklist(args.checklist)
+            instance = set_release_instance_criterion(
+                _load_json(args.instance),
+                checklist=checklist,
+                checklist_path=args.checklist,
+                criterion_id=args.criterion,
+                status=args.status,
+                evidence=list(args.evidence),
+                waiver_owner=args.waiver_owner,
+                waiver_reason=args.waiver_reason,
+            )
+            _write_json(args.output, instance)
+        else:
+            checklist = load_release_checklist(args.checklist)
+            instance = _load_json(args.instance)
+            if args.through_phase:
+                validate_release_instance_completion(
+                    instance,
+                    checklist=checklist,
+                    checklist_path=args.checklist,
+                    through_phase=args.through_phase,
+                )
+            else:
+                validate_release_instance(
+                    instance,
+                    checklist=checklist,
+                    checklist_path=args.checklist,
+                )
+            print("Release-Instanz ist gueltig.")
     except ContractError as exc:
         print(f"FEHLER: {exc}", file=sys.stderr)
         return 2

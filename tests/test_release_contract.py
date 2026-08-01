@@ -1,4 +1,5 @@
 """Machine-readable release promotion contract (#744/#747)."""
+
 from __future__ import annotations
 
 import copy
@@ -25,6 +26,7 @@ TAG = f"v{VERSION}"
 CANDIDATE_RUN_ID = 101
 ACCEPTANCE_RUN_ID = 202
 APPROVAL_ARTIFACT = "release-approval-manifest-1"
+CHECKLIST = ROOT / "docs" / "RELEASE_ACCEPTANCE_CHECKLIST.md"
 
 
 def _run(run_id: int, workflow: str, *, head: str = HEAD) -> dict:
@@ -53,12 +55,14 @@ def _write_release_files(directory: Path) -> list[dict]:
     for index, name in enumerate(rc.expected_artifact_names(VERSION, with_ai=True), start=1):
         payload = f"accepted-release-byte-sequence-{index}".encode()
         (directory / name).write_bytes(payload)
-        records.append({
-            "name": name,
-            "sha256": hashlib.sha256(payload).hexdigest(),
-            "bytes": len(payload),
-            "platform": rc.platform_for_artifact(name),
-        })
+        records.append(
+            {
+                "name": name,
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": len(payload),
+                "platform": rc.platform_for_artifact(name),
+            }
+        )
     return records
 
 
@@ -66,7 +70,7 @@ def _candidate_contract(records: list[dict]) -> dict:
     return {
         "schema": 1,
         "kind": "release-candidate-contract",
-        "policy_version": 1,
+        "policy_version": rc.POLICY_VERSION,
         "candidate": {
             "run_id": CANDIDATE_RUN_ID,
             "run_attempt": 1,
@@ -119,6 +123,7 @@ def _manifest(tmp_path: Path) -> tuple[dict, Path]:
     _write_evidence(evidence, records)
     manifest = rc.create_approval_manifest(
         candidate_contract=_candidate_contract(records),
+        checklist_path=CHECKLIST,
         evidence_dir=evidence,
         acceptance_summary={
             "schema": 1,
@@ -149,6 +154,7 @@ def _validate(manifest: dict, **overrides: object) -> None:
         "candidate_run": _run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
         "acceptance_run": _run(ACCEPTANCE_RUN_ID, rc.ACCEPTANCE_WORKFLOW),
         "tag_sha": HEAD,
+        "checklist_path": CHECKLIST,
     }
     args.update(overrides)
     rc.validate_approval_manifest(manifest, **args)
@@ -170,6 +176,99 @@ def test_manifest_schema_binds_runs_head_tag_provenance_platforms_and_five_hashe
     assert manifest["provenance_reference"]["artifact_id"] == 99
     assert len(manifest["artifacts"]) == 5
     assert all(len(item["sha256"]) == 64 for item in manifest["artifacts"])
+    assert manifest["release_instance"]["checklist"]["path"] == rc.CHECKLIST_PATH
+    assert manifest["release_instance"]["candidate_sha"] == HEAD
+
+
+def test_versioned_checklist_has_exact_scope_stable_ids_and_required_fields() -> None:
+    checklist = rc.load_release_checklist(CHECKLIST)
+    assert checklist["checklist_version"] == "1.0.0"
+    assert tuple(item["id"] for item in checklist["artifacts"]) == rc.CHECKLIST_ARTIFACTS
+    assert not any("windows" in json.dumps(item).lower() for item in checklist["artifacts"])
+    criteria = checklist["criteria"]
+    assert len({item["id"] for item in criteria}) == len(criteria)
+    assert all(
+        item[field]
+        for item in criteria
+        for field in ("id", "phase", "requirement", "owner", "evidence_source")
+    )
+
+
+def test_checklist_rejects_a_second_machine_contract_block(tmp_path: Path) -> None:
+    changed = tmp_path / "docs" / "RELEASE_ACCEPTANCE_CHECKLIST.md"
+    changed.parent.mkdir()
+    changed.write_text(
+        CHECKLIST.read_text(encoding="utf-8")
+        + "\n<!-- release-checklist-json:start -->\n<!-- release-checklist-json:end -->\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(rc.ContractError, match="genau einen JSON-Vertragsblock"):
+        rc.load_release_checklist(changed)
+
+
+def test_release_instance_preserves_pending_x86_and_passes_pre_release_must(
+    tmp_path: Path,
+) -> None:
+    manifest, _ = _manifest(tmp_path)
+    instance = manifest["release_instance"]
+    records = {item["id"]: item for item in instance["criteria"]}
+    assert records["LINUX-X64-APPIMAGE-01"]["status"] == "PENDING"
+    assert records["LINUX-X64-DEB-01"]["status"] == "PENDING"
+    assert all(
+        item["status"] == "PASS"
+        for item in records.values()
+        if item["phase"] == "pre-release" and item["requirement"] == "MUST"
+    )
+    rc.validate_release_instance_completion(
+        instance,
+        checklist=rc.load_release_checklist(CHECKLIST),
+        checklist_path=CHECKLIST,
+        through_phase="pre-release",
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("hash", "Dateihash"),
+        ("id", "exakt alle Checklisten-IDs"),
+        ("waiver", "Waiver ist fuer VERSION-01 nicht erlaubt"),
+        ("fail-no-evidence", "FAIL ohne Evidenz fuer PUBLISH-01"),
+    ],
+)
+def test_release_instance_tampering_or_forbidden_waiver_is_blocked(
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    manifest, _ = _manifest(tmp_path)
+    instance = copy.deepcopy(manifest["release_instance"])
+    if mutation == "hash":
+        instance["checklist"]["sha256"] = "0" * 64
+    elif mutation == "id":
+        instance["criteria"].pop()
+    elif mutation == "waiver":
+        record = next(item for item in instance["criteria"] if item["id"] == "VERSION-01")
+        record.update(
+            {
+                "status": "WAIVED",
+                "evidence": ["https://example.invalid/decision"],
+                "waiver": {
+                    "owner": "release-owner",
+                    "reason": "not allowed",
+                    "evidence": ["https://example.invalid/decision"],
+                },
+            }
+        )
+    else:
+        record = next(item for item in instance["criteria"] if item["id"] == "PUBLISH-01")
+        record["status"] = "FAIL"
+    with pytest.raises(rc.ContractError, match=message):
+        rc.validate_release_instance(
+            instance,
+            checklist=rc.load_release_checklist(CHECKLIST),
+            checklist_path=CHECKLIST,
+        )
 
 
 @pytest.mark.parametrize(
@@ -186,7 +285,9 @@ def test_manifest_schema_binds_runs_head_tag_provenance_platforms_and_five_hashe
     ],
 )
 def test_manipulated_manifest_is_blocked(
-    tmp_path: Path, mutation: str, message: str,
+    tmp_path: Path,
+    mutation: str,
+    message: str,
 ) -> None:
     manifest, _ = _manifest(tmp_path)
     changed = copy.deepcopy(manifest)
@@ -228,7 +329,10 @@ def test_manipulated_manifest_is_blocked(
     ],
 )
 def test_wrong_tag_head_or_run_metadata_is_blocked(
-    tmp_path: Path, override: str, value: object, message: str,
+    tmp_path: Path,
+    override: str,
+    value: object,
+    message: str,
 ) -> None:
     manifest, _ = _manifest(tmp_path)
     with pytest.raises(rc.ContractError, match=message):
@@ -237,7 +341,8 @@ def test_wrong_tag_head_or_run_metadata_is_blocked(
 
 @pytest.mark.parametrize("mutation", ["missing", "extra", "hash"])
 def test_missing_extra_or_hash_mismatched_candidate_files_are_blocked(
-    tmp_path: Path, mutation: str,
+    tmp_path: Path,
+    mutation: str,
 ) -> None:
     manifest, files = _manifest(tmp_path)
     if mutation == "missing":
@@ -306,6 +411,7 @@ def test_approval_creation_rejects_wrong_summary_or_extra_evidence(tmp_path: Pat
     def create(current_summary: dict) -> dict:
         return rc.create_approval_manifest(
             candidate_contract=_candidate_contract(records),
+            checklist_path=CHECKLIST,
             evidence_dir=evidence,
             acceptance_summary=current_summary,
             acceptance_run_id=ACCEPTANCE_RUN_ID,
@@ -321,7 +427,8 @@ def test_approval_creation_rejects_wrong_summary_or_extra_evidence(tmp_path: Pat
     extra = evidence / "abnahme-unexpected"
     extra.mkdir()
     (extra / "evidenz.json").write_text(
-        json.dumps({"platform": "unexpected"}), encoding="utf-8",
+        json.dumps({"platform": "unexpected"}),
+        encoding="utf-8",
     )
     with pytest.raises(rc.ContractError, match="Evidenzmenge"):
         create(summary)
@@ -335,10 +442,13 @@ def test_successful_publish_verification_proves_byte_equality(tmp_path: Path) ->
     for source in candidate_files.iterdir():
         (published / source.name).write_bytes(source.read_bytes())
     rc.verify_artifact_directory(manifest, published)
-    candidate_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                        for path in candidate_files.iterdir()}
-    published_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                        for path in published.iterdir()}
+    candidate_hashes = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in candidate_files.iterdir()
+    }
+    published_hashes = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in published.iterdir()
+    }
     assert published_hashes == candidate_hashes
 
 
@@ -348,13 +458,18 @@ def test_prepare_candidate_rejects_wrong_freeze_provenance(tmp_path: Path) -> No
     provenance_root = tmp_path / "provenance"
     provenance = provenance_root / "release-freeze-provenance-1"
     provenance.mkdir(parents=True)
-    (provenance / "release-freeze-provenance.json").write_text(json.dumps({
-        "schema": 1,
-        "kind": "release-freeze-provenance",
-        "release": {"version": VERSION},
-        "candidate_sha": "b" * 40,
-        "workflow": {"run_id": CANDIDATE_RUN_ID},
-    }), encoding="utf-8")
+    (provenance / "release-freeze-provenance.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "release-freeze-provenance",
+                "release": {"version": VERSION},
+                "candidate_sha": "b" * 40,
+                "workflow": {"run_id": CANDIDATE_RUN_ID},
+            }
+        ),
+        encoding="utf-8",
+    )
     artifacts = [
         {
             "id": index,
@@ -363,7 +478,8 @@ def test_prepare_candidate_rejects_wrong_freeze_provenance(tmp_path: Path) -> No
             "expired": False,
         }
         for index, name in enumerate(
-            (*rc.ARTIFACT_CONTAINERS, "release-freeze-provenance-1"), start=1,
+            (*rc.ARTIFACT_CONTAINERS, "release-freeze-provenance-1"),
+            start=1,
         )
     ]
     with pytest.raises(rc.ContractError, match="anderen Kandidaten"):

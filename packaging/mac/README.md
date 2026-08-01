@@ -8,10 +8,11 @@ counterpart to the Linux [AppImage](../linux/README.md):
   PyQt6/Pillow/numpy (and, with `--ai`, `rembg`/`onnxruntime`), so it runs
   without a system Python install.
 
-The GitHub Actions **release workflow** builds the `.dmg` on a native Apple
-Silicon runner as one leg of the cross-platform `build` matrix and attaches it
-to the GitHub Release on every `v*` tag, next to the Linux artifacts. See
-[`../../.github/workflows/release-linux.yml`](../../.github/workflows/release-linux.yml).
+The dispatch-only candidate workflow builds the `.dmg` on a native Apple
+Silicon runner as one leg of the cross-platform matrix. Hardware acceptance
+and byte-identical publication are separate, manifest-bound steps; tags never
+start a build. See the canonical
+[release runbook](../../docs/RELEASE_PROCESS.md).
 
 > **Architecture:** the build is **arm64-only** (Apple Silicon, macOS 11+).
 > Intel Macs are not produced yet.
