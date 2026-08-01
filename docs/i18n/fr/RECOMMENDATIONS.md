@@ -11,7 +11,7 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-08-01, état de travail v2.7.2 après #740)
+## État actuel (2026-08-01, état de travail v2.7.2 après la PR #754)
 
 **v2.7.1 est publiée** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, cinq artefacts). #740 avait montré que la première exécution suivante chargeait le code AppImage et `.deb` depuis le checkout ; #750 a corrigé le chemin de sonde. L'exécution réelle sur Pi [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) prouve désormais la provenance du bundle et un `sys_path_0` sans checkout pour les deux paquets Linux ; #740 est fermé. La preuve Linux est donc disponible pour #680/#685/#686, mais leurs notes de recette restent à mettre à jour. Le candidat 2.7.2 sera dérivé du head vérifié par le workflow au lieu d'être maintenu comme pin SHA ultérieur dans le document de gel (#742/#743).
 
@@ -33,17 +33,16 @@ La **légende des causes U1–U10** figure désormais sous forme de tableau dans
 
 Base antérieure inchangée et close : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, ainsi que les versions v2.7.0/v2.7.1. Aucun constat 🔴 ouvert.
 
-État en direct après la requête GitHub : **29** tickets ouverts (#740 fermé après la preuve réussie sur Pi).
+État en direct après la requête GitHub : **27** tickets ouverts. #742/#743 sont
+fermés par la PR #754 ; #744/#747 sont mis en œuvre ensemble dans cette PR.
 
 ## Tickets GitHub ouverts — Triage (2026-08-01)
 
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épopée] Stabilisation du processus de publication — chaîne de preuve jusqu'aux octets publiés | 🟠 Élevée (deux versions avec reprises importantes) | 🟠 Élevée (11 tickets enfants, refonte du gel et de publish) | – (épopée) | Légende et état des lieux corrigés — phase 0/1 prête à démarrer |
-| [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Introduire une classe de chemins « release-neutral » explicite | 🟠 Élevée (décide quelle modification exige une recette) | 🟡 Moyenne (classificateur + preuve d'entrée de build) | Opus, moyenne | **En cours** — liste positive versionnée et tests de dérive/fail-closed dans cette PR |
-| [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Éliminer le commit d'ajout du gel (pin + registre de commits) | 🟠 Élevée (source principale des boucles de reprise) | 🔴 Élevée (modèle de confiance du gate, ADR nécessaire) | Opus, élevée | **En cours** — head du workflow, provenance Actions dérivée, ADR et tests d'altération dans cette PR |
-| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish réutilise les artefacts candidats recettés | 🟠 Élevée (recettés ≠ octets publiés) | 🔴 Élevée (chemin de publication, difficile à tester à blanc) | Opus, élevée | Bloqué — nécessite la provenance/le manifeste de #742 |
-| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Sécuriser par machine le nouveau contrat du gate après #742/#744 | 🟡 Moyenne (évite une dérive comme #709) | 🟡 Moyenne (étend le `test_release_gate.py` existant) | Sonnet, moyenne | Bloqué — même lot de modifications que #742/#744 |
+| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish réutilise les artefacts candidats recettés | 🟠 Élevée (recettés ≠ octets publiés) | 🔴 Élevée (chemin de publication, difficile à tester à blanc) | Opus, élevée | **En cours** — manifeste d'approbation et publish séparé sans rebuild, draft-first, dans cette PR |
+| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Sécuriser par machine le nouveau contrat du gate après #742/#744 | 🟡 Moyenne (évite une dérive comme #709) | 🟡 Moyenne (étend les tests existants) | Sonnet, moyenne | **En cours** — tests positifs/négatifs, altération, reprise et égalité des octets dans la même PR |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Liste de recette versionnée au lieu de tickets par version | 🟡 Moyenne (fin de la réinvention des critères à chaque version) | 🟡 Moyenne (schéma, identifiants stables, règles de dérogation) | Sonnet, moyenne | Prêt à démarrer — avant ou avec #745 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Runbook de publication comme source unique du processus | 🟡 Moyenne (le savoir vit aujourd'hui dans les commentaires) | 🟡 Moyenne (documentation + tests de liens/gouvernance) | Sonnet, moyenne | Bloqué — seulement après décision de #742/#743/#744 |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Détection de mise à jour post-publication depuis un artefact antérieur réel | 🟡 Moyenne (chemin de mise à jour de production non vérifié) | 🟠 Élevée (travail plateforme/exploitation, possible seulement après publication) | Opus, élevée | Bloqué — s'exécute après le publish de #744 |
@@ -69,14 +68,15 @@ Base antérieure inchangée et close : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, to
 
 ### Recommandé ensuite
 
-1. Terminer **#743 + #742** dans cette PR ; la CI et la revue doivent confirmer le nouveau contrat chemins/provenance.
+1. Terminer **#744 + #747** dans cette PR ; la CI et la revue doivent confirmer le manifeste, le publish sans rebuild et les tests d'altération.
 2. Mettre à jour **#680/#685/#686** avec l'exécution 30706671985 et les fermer selon leurs critères restants.
-3. **#744 (+ #747)** ensuite — sans réutilisation des octets, chaque publication exigera encore une seconde recette matérielle.
+3. Fonder **#745/#746** sur le contrat de release désormais décidé.
 4. **#737/#752** et les décisions du propriétaire sur **#656** (variante A) et **#731** (A–D) sont indépendantes ; #752 doit adopter le contrat #742.
 5. **#692** (ADR COLOR) et **#716** restent démarrables en parallèle ; **#681/#687–#691** restent bloqués (écart TIFF/PNG, matériel EufyMake réel).
 
 ## Tours précédents
 
+- **2026-08-01 (#742/#743 fusionnés ; #744/#747 en cours)** — la PR #754 a remplacé le pin autoréférentiel par une provenance Actions dérivée et introduit la politique versionnée fail-closed. État GitHub 27. Cette PR sépare build candidat, recette matérielle et publish, lie cinq SHA-256 dans un manifeste immuable et étend les tests aux cas d'altération/reprise/égalité des octets.
 - **2026-08-01 (#740 fermé ; #743/#742 en cours)** — l'exécution Pi 30706671985 prouve le code du bundle pour l'AppImage et le `.deb` ; #740 a été fermé avec un commentaire de preuve. État GitHub : 29. L'implémentation commune #743/#742 remplace les chemins de protocole larges/implicites par une liste positive versionnée et le pin de gel manuel par une provenance dérivée stockée comme artefact Actions.
 - **2026-08-01 (revue de #736/#738/#739/#749/#750/#751)** — six PR fusionnées les 31 juillet/1er août ont été vérifiées de bout en bout contre le code, les revues et les gates ; tous les fils sont résolus et les cinq familles de workflows sont vertes. `make check` local est vert, le candidat de gel `57517ec` (#750) est correctement consigné, gate 0/0. #740 reste à juste titre ouvert jusqu'au vrai `dry_run` sur le Pi ; aucun ticket ordinaire n'a été fermé dans la période. Le candidat et les prochaines étapes des Recommendations ont été corrigés ; le suivi de gouvernance #752 a été créé avec ses critères d'acceptation. État en direct 30.
 - **2026-07-31 (analyse du processus de publication, épopée #741)** — v2.7.1 publiée le 2026-07-30 (tag `a3de137`, cinq artefacts, recette matérielle post-publication contre les octets publiés). Analyse des deux cycles : dans la fenêtre `v2.7.0..v2.7.1`, 36 commits de la ligne principale, dont 18 protocol-only et 7 purs ajouts de gel. Épopée #741 créée avec sept nouveaux tickets (#742–#748) et quatre repris (#740/#731/#737/#656). La contre-vérification du propriétaire a corrigé trois points de la première version (README.md et `docs/i18n/**` sont pertinents pour le candidat ; `tests/test_release_gate.py` existait déjà ; `ANTHROPIC_API_KEY` n'est pas limitée à un usage) — tous vérifiés dans le code. État en direct 29. La légende et le périmètre Windows ont été appliqués aussitôt. Le décompte de commits d'abord signalé comme erreur était lui-même faux (clone superficiel) et a été retiré — détails dans la section ci-dessus.

@@ -113,6 +113,7 @@ files = [
     "scripts/abnahme_aggregate.py",
     "scripts/gl_stress_probe.py",
     "scripts/release_path_policy.py",
+    "scripts/release_contract.py",
     "scripts/verify_release_freeze.py",
 ]
 ignore_missing_imports = true
@@ -180,6 +181,6 @@ check_untyped_defs = true
 # Modulname = Dateibasisname statt Paketpfad. Qt-frei, sollen denselben
 # mypy-Massstab wie die strengen bgremover-Logikmodule oben erfuellen.
 [[tool.mypy.overrides]]
-module = ["abnahme_vision_check", "abnahme_aggregate", "gl_stress_probe", "release_path_policy", "verify_release_freeze"]
+module = ["abnahme_vision_check", "abnahme_aggregate", "gl_stress_probe", "release_contract", "release_path_policy", "verify_release_freeze"]
 disallow_untyped_defs = true
 check_untyped_defs = true

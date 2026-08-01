@@ -61,7 +61,7 @@ python scripts/verify_release_freeze.py \
   --verify-provenance /tmp/release-freeze-provenance.json
 ```
 
-Im Workflow lädt `verify-tag` die Datei als unveränderliches Actions-Artefakt
+Im Workflow lädt `verify-candidate` die Datei als unveränderliches Actions-Artefakt
 `release-freeze-provenance-<run_attempt>` hoch. Sie enthält zusätzlich
 Repository, Workflow, Run-ID, Run-Attempt, Job und Ref. Der Artefakt-Digest und
 die Run-ID bilden die externe Identität; #744 kann die Datei herunterladen und

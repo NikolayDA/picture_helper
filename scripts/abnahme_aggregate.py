@@ -16,8 +16,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -100,35 +102,48 @@ def _platform_from_path(path: Path) -> str:
     return path.parent.name
 
 
+def _attempt_from_path(path: Path, platform: str) -> int:
+    pattern = re.compile(rf"^abnahme-{re.escape(platform)}-(\d+)$")
+    for part in reversed(path.parts):
+        match = pattern.fullmatch(part)
+        if match:
+            return int(match.group(1))
+    return 0
+
+
 def load_evidence(root: Path) -> dict[str, dict[str, Any]]:
     """Alle ``evidenz.json`` unter *root* laden, geschlüsselt nach ``platform``."""
-    found: dict[str, dict[str, Any]] = {}
+    selected: dict[str, tuple[int, dict[str, Any]]] = {}
     for path in sorted(root.rglob("evidenz.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
         platform = str(data.get("platform") or _platform_from_path(path))
-        found[platform] = data
-    return found
+        attempt = _attempt_from_path(path, platform)
+        if platform not in selected or attempt >= selected[platform][0]:
+            selected[platform] = (attempt, data)
+    return {platform: item[1] for platform, item in selected.items()}
 
 
 def load_e2e(root: Path) -> dict[str, dict[str, Any]]:
     """E2E-Evidenz (#644) je Plattform laden."""
-    found: dict[str, dict[str, Any]] = {}
+    selected: dict[str, tuple[int, dict[str, Any]]] = {}
     for path in sorted(root.rglob("e2e-evidenz.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
         platform = str(data.get("platform") or _platform_from_path(path))
-        found[platform] = data
-    return found
+        attempt = _attempt_from_path(path, platform)
+        if platform not in selected or attempt >= selected[platform][0]:
+            selected[platform] = (attempt, data)
+    return {platform: item[1] for platform, item in selected.items()}
 
 
 def load_live_gl(root: Path) -> dict[str, dict[str, Any]]:
     """Jüngstes ``preview3d-live``-Ergebnis je Plattform laden."""
-    found: dict[str, dict[str, Any]] = {}
+    selected: dict[str, tuple[int, dict[str, Any]]] = {}
     for path in sorted(root.rglob("*.json")):
         if path.parent.name != "preview3d-live":
             continue
@@ -139,8 +154,10 @@ def load_live_gl(root: Path) -> dict[str, dict[str, Any]]:
         if data.get("suite") != "preview3d-live":
             continue
         platform = str(data.get("platform") or _platform_from_path(path))
-        found[platform] = data
-    return found
+        attempt = _attempt_from_path(path, platform)
+        if platform not in selected or attempt >= selected[platform][0]:
+            selected[platform] = (attempt, data)
+    return {platform: item[1] for platform, item in selected.items()}
 
 
 def load_vision(root: Path) -> list[dict[str, Any]]:
@@ -437,6 +454,60 @@ def has_blocking_gaps(rows: list[MatrixRow]) -> bool:
     )
 
 
+def build_acceptance_summary(
+    rows: list[MatrixRow], *, commit_sha: str, x86_64_enabled: bool = False,
+) -> dict[str, Any]:
+    """Maschinenlesbare Plattformentscheidung fuer das Freigabemanifest (#744).
+
+    Nur die drei technischen Pflichtzeilen je aktiver Plattform zaehlen. Die
+    Vision-Vorbewertung bleibt wie im ADR festgelegt beratend. Linux x86_64
+    ist in Policy-Version 1 explizit pausiert; eine spaetere Reaktivierung
+    braucht bewusst einen Policy-Sprung im Freigabevertrag.
+    """
+    by_criterion = {row.kriterium: row for row in rows}
+    platforms: dict[str, str] = {}
+    for platform, smoke_label in EXPECTED_PLATFORMS.items():
+        required = (
+            smoke_label,
+            f"{platform}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)",
+            f"{platform}: Live-GL-Performance",
+        )
+        platforms[platform] = (
+            "approved"
+            if all(
+                by_criterion.get(label) is not None
+                and by_criterion[label].status == "erfuellt"
+                for label in required
+            )
+            else "blocked"
+        )
+    if x86_64_enabled:
+        required = (
+            PAUSED_LABEL,
+            f"{PAUSED_PLATFORM}: Native 3D-E2E (Projekt→HEIGHT→Undo/Save)",
+            f"{PAUSED_PLATFORM}: Live-GL-Performance",
+        )
+        platforms[PAUSED_PLATFORM] = (
+            "approved"
+            if all(
+                by_criterion.get(label) is not None
+                and by_criterion[label].status == "erfuellt"
+                for label in required
+            )
+            else "blocked"
+        )
+    else:
+        platforms[PAUSED_PLATFORM] = "paused"
+    return {
+        "schema": 1,
+        "kind": "release-acceptance-summary",
+        "commit_sha": commit_sha,
+        "platforms": platforms,
+        "blocking": any(status == "blocked" for status in platforms.values()),
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+
+
 def render_markdown(rows: list[MatrixRow], *, commit_sha: str = "unbekannt") -> str:
     """Abschlussmatrix als Markdown-Protokoll rendern."""
     icon = {
@@ -479,6 +550,10 @@ def main(argv: list[str] | None = None) -> int:
         "--run-url", default="—",
         help="Link auf den erzeugenden Workflow-Lauf (Logs/Screenshots als Artefakte dort).",
     )
+    parser.add_argument(
+        "--summary-output", type=Path,
+        help="Optionales maschinenlesbares Plattform-Fazit fuer #744.",
+    )
     args = parser.parse_args(argv)
 
     evidences = load_evidence(args.artifacts_dir)
@@ -491,6 +566,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     markdown = render_markdown(rows, commit_sha=args.commit_sha)
     args.output.write_text(markdown, encoding="utf-8")
+    if args.summary_output is not None:
+        summary = build_acceptance_summary(
+            rows, commit_sha=args.commit_sha, x86_64_enabled=args.x86_64_enabled,
+        )
+        args.summary_output.write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     print(markdown)
     print(f"\nMatrix geschrieben: {args.output}")
     # Blockierende Lücken sind ein Signal, kein harter Fehler (Mensch entscheidet).

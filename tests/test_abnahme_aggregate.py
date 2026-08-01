@@ -110,6 +110,23 @@ def test_matrix_all_passed(tmp_path: Path) -> None:
     assert any(r.status == "pausiert" and r.kriterium == agg.PAUSED_LABEL for r in rows)
     assert not agg.has_blocking_gaps(rows)
 
+    summary = agg.build_acceptance_summary(rows, commit_sha="abc")
+    assert summary["blocking"] is False
+    assert summary["platforms"] == {
+        "macos-arm64": "approved",
+        "linux-arm64": "approved",
+        "linux-x86_64": "paused",
+    }
+
+
+def test_acceptance_summary_blocks_incomplete_active_platform() -> None:
+    rows = agg.build_matrix({})
+    summary = agg.build_acceptance_summary(rows, commit_sha="abc")
+    assert summary["blocking"] is True
+    assert summary["platforms"]["macos-arm64"] == "blocked"
+    assert summary["platforms"]["linux-arm64"] == "blocked"
+    assert summary["platforms"]["linux-x86_64"] == "paused"
+
 
 def test_missing_platform_is_gap(tmp_path: Path) -> None:
     _write(tmp_path, "linux-arm64", _evidence("linux-arm64"))
@@ -117,6 +134,20 @@ def test_missing_platform_is_gap(tmp_path: Path) -> None:
     by = {r.kriterium: r.status for r in rows}
     assert by[agg.EXPECTED_PLATFORMS["macos-arm64"]] == "fehlt"
     assert agg.has_blocking_gaps(rows)
+
+
+def test_loaders_choose_latest_attempt_per_platform(tmp_path: Path) -> None:
+    old = tmp_path / "abnahme-linux-arm64-1"
+    new = tmp_path / "abnahme-linux-arm64-2"
+    old.mkdir()
+    new.mkdir()
+    (old / "evidenz.json").write_text(
+        json.dumps(_evidence("linux-arm64", status="fehlgeschlagen")), encoding="utf-8",
+    )
+    (new / "evidenz.json").write_text(
+        json.dumps(_evidence("linux-arm64", status="bestanden")), encoding="utf-8",
+    )
+    assert agg.load_evidence(tmp_path)["linux-arm64"]["status"] == "bestanden"
 
 
 def test_failed_status_maps_and_blocks(tmp_path: Path) -> None:

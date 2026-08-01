@@ -1,0 +1,213 @@
+name: Publish accepted release artifacts
+
+# #744: publication is a pure promotion step. It never builds and only loads
+# the five files from the candidate run recorded by an immutable approval
+# manifest. The tag, build run, acceptance run, workflow paths, commit and all
+# SHA-256 values are verified before the first release mutation.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existierender Release-Tag (vX.Y.Z), exakt auf dem Kandidaten-Commit.'
+        type: string
+        required: true
+      candidate_run_id:
+        description: 'Run-ID des erfolgreichen release-linux.yml-Kandidatenbaus.'
+        type: string
+        required: true
+      acceptance_run_id:
+        description: 'Run-ID der erfolgreichen Hardware-Abnahme.'
+        type: string
+        required: true
+      approval_artifact_name:
+        description: 'Exakter Name des Manifests, z. B. release-approval-manifest-1.'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-publish-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      ACCEPTANCE_RUN_ID: ${{ inputs.acceptance_run_id }}
+      APPROVAL_ARTIFACT_NAME: ${{ inputs.approval_artifact_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Eingaben und Run-Metadaten beziehen
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.]+)?$ ]] \
+            || { echo "::error::tag muss dem Format vX.Y.Z entsprechen."; exit 1; }
+          [[ "$CANDIDATE_RUN_ID" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::candidate_run_id muss eine positive Ganzzahl sein."; exit 1; }
+          [[ "$ACCEPTANCE_RUN_ID" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::acceptance_run_id muss eine positive Ganzzahl sein."; exit 1; }
+          [[ "$APPROVAL_ARTIFACT_NAME" =~ ^release-approval-manifest-[1-9][0-9]*$ ]] \
+            || { echo "::error::approval_artifact_name ist ungueltig."; exit 1; }
+          mkdir -p "${RUNNER_TEMP}/run-metadata"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/candidate.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}" \
+            > "${RUNNER_TEMP}/run-metadata/acceptance.json"
+
+      # Einzige Manifestquelle: exakter Name + exakte Acceptance-Run-ID. Weder
+      # Branch noch aktueller Publish-Run koennen die Freigabe unterschieben.
+      - name: Freigabemanifest nur aus dem Abnahme-Run laden
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.approval_artifact_name }}
+          path: ${{ runner.temp }}/approval
+          run-id: ${{ inputs.acceptance_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Manifest, Workflows, Runs und Commit-Bindung pruefen
+        id: approval
+        run: |
+          set -euo pipefail
+          python3 scripts/release_contract.py verify-approval \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --candidate-run-json "${RUNNER_TEMP}/run-metadata/candidate.json" \
+            --acceptance-run-json "${RUNNER_TEMP}/run-metadata/acceptance.json" \
+            --candidate-run-id "$CANDIDATE_RUN_ID" \
+            --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
+            --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
+            --tag "$RELEASE_TAG"
+
+      - name: Kandidaten-Commit fuer Provenienz und Release-Notes auschecken
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.approval.outputs.candidate_sha }}
+          path: candidate-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Tag muss auf exakt den abgenommenen Commit zeigen
+        id: tag
+        run: |
+          set -euo pipefail
+          tag_sha="$(git -C candidate-source rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+          test "$tag_sha" = "${{ steps.approval.outputs.candidate_sha }}" || {
+            echo "::error::Tag $RELEASE_TAG zeigt auf $tag_sha statt auf ${{ steps.approval.outputs.candidate_sha }}."
+            exit 1
+          }
+          echo "tag_sha=$tag_sha" >> "$GITHUB_OUTPUT"
+          python3 scripts/release_contract.py verify-approval \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --candidate-run-json "${RUNNER_TEMP}/run-metadata/candidate.json" \
+            --acceptance-run-json "${RUNNER_TEMP}/run-metadata/acceptance.json" \
+            --candidate-run-id "$CANDIDATE_RUN_ID" \
+            --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
+            --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
+            --tag "$RELEASE_TAG" --tag-sha "$tag_sha"
+
+      - name: Freeze-Provenienz am Kandidaten-Commit rekonstruieren
+        run: |
+          set -euo pipefail
+          python3 candidate-source/scripts/verify_release_freeze.py \
+            --repo candidate-source \
+            --rev "${{ steps.approval.outputs.candidate_sha }}" \
+            --verify-provenance "${RUNNER_TEMP}/approval/release-freeze-provenance.json"
+
+      # Einzige Quelle der Release-Dateien: die im Manifest gebundene Build-
+      # Run-ID. Der Publish-Run selbst enthaelt und erzeugt keine Build-Ausgabe.
+      - name: Abgenommene Kandidatenartefakte aus dem Build-Run laden
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bgremover-*
+          path: ${{ runner.temp }}/candidate-files
+          merge-multiple: true
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Exakte Dateimenge und alle SHA-256 verifizieren
+        run: |
+          set -euo pipefail
+          python3 scripts/release_contract.py verify-artifacts \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --directory "${RUNNER_TEMP}/candidate-files"
+          python3 candidate-source/scripts/extract_release_notes.py \
+            "${{ steps.approval.outputs.version }}" \
+            > "${RUNNER_TEMP}/release-notes.md"
+
+      - name: Bestehenden Release-Zustand ohne Aenderung erfassen
+        id: existing
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/existing-assets"
+          if gh release view "$RELEASE_TAG" --json isDraft,assets \
+              --jq '{exists:true,is_draft:.isDraft,asset_count:(.assets|length)}' \
+              > "${RUNNER_TEMP}/release-state.json"; then
+            asset_count="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets|length')"
+            if [ "$asset_count" -gt 0 ]; then
+              gh release download "$RELEASE_TAG" --dir "${RUNNER_TEMP}/existing-assets"
+            fi
+          else
+            printf '%s\n' '{"exists":false,"is_draft":false,"asset_count":0}' \
+              > "${RUNNER_TEMP}/release-state.json"
+          fi
+
+      - name: Idempotenten Publish-Plan festlegen
+        id: plan
+        run: |
+          set -euo pipefail
+          python3 scripts/release_contract.py plan-publish \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --state "${RUNNER_TEMP}/release-state.json" \
+            --existing-dir "${RUNNER_TEMP}/existing-assets"
+
+      # Draft-first: Nutzer sehen nie einen gemischten Zwischenzustand. Ein
+      # Teil-Upload bleibt als Draft sichtbar und wird beim Retry bewusst
+      # blockiert, bis der Owner den Zustand entschieden/bereinigt hat.
+      - name: Draft anlegen, falls noch kein Release existiert
+        if: steps.plan.outputs.action == 'create-draft-upload'
+        run: >-
+          gh release create "$RELEASE_TAG"
+          --title "$RELEASE_TAG"
+          --notes-file "${RUNNER_TEMP}/release-notes.md"
+          --verify-tag
+          --draft
+
+      - name: Fuenf verifizierte Dateien ohne Clobber in den Draft laden
+        if: >-
+          steps.plan.outputs.action == 'create-draft-upload'
+          || steps.plan.outputs.action == 'upload-to-draft'
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" "${RUNNER_TEMP}"/candidate-files/*
+
+      - name: Hochgeladene Bytes erneut vom Release laden und pruefen
+        if: steps.plan.outputs.action != 'already-complete'
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/published-verification"
+          gh release download "$RELEASE_TAG" --dir "${RUNNER_TEMP}/published-verification"
+          python3 scripts/release_contract.py verify-artifacts \
+            --manifest "${RUNNER_TEMP}/approval/release-approval-manifest.json" \
+            --directory "${RUNNER_TEMP}/published-verification"
+
+      - name: Vollstaendigen, byteidentischen Draft veroeffentlichen
+        if: steps.plan.outputs.action != 'already-complete'
+        run: >-
+          gh release edit "$RELEASE_TAG"
+          --title "$RELEASE_TAG"
+          --notes-file "${RUNNER_TEMP}/release-notes.md"
+          --draft=false
+          --latest

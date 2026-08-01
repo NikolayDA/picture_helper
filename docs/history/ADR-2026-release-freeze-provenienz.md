@@ -118,5 +118,5 @@ Attestation-Payload dienen.
 - [x] Provenienzgenerator und Rekonstruktionsprüfung
 - [x] Actions-Upload mit Run-/Attempt-Bindung
 - [x] Regressionstests für Selbstreferenz und Manipulation
-- [ ] Provenienz mit exakt fünf abgenommenen Artefakten verbinden (#744)
-- [ ] Dauerhafte Freigabemanifest-Aufbewahrung definieren (#744/#745)
+- [x] Provenienz mit exakt fünf abgenommenen Artefakten verbinden (#744)
+- [x] Freigabemanifest 90 Tage aufbewahren; danach neuer Kandidat (#744)

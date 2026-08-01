@@ -474,7 +474,7 @@ def test_actions_context_requires_candidate_and_run_ids(
 
 def test_release_workflow_uploads_attempt_bound_provenance() -> None:
     workflow = (ROOT / ".github/workflows/release-linux.yml").read_text(encoding="utf-8")
-    verify_job = workflow.split("  verify-tag:", 1)[1].split("\n  test:", 1)[0]
+    verify_job = workflow.split("  verify-candidate:", 1)[1].split("\n  test:", 1)[0]
     assert "--require-pin" not in verify_job
     assert "--output-provenance release-evidence/release-freeze-provenance.json" in verify_job
     assert "release-freeze-provenance-${{ github.run_attempt }}" in verify_job

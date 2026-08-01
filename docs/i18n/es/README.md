@@ -271,8 +271,9 @@ La suite de pruebas se ejecuta sin interfaz gráfica (plataforma Qt
 recorte y la lógica de guardado. Los pull requests ejecutan una CI
 ligera en GitHub (Ubuntu, Python 3.12, `make pr-check`). La matriz completa
 en Linux/macOS con Python 3.10, 3.11, 3.12 y 3.13 se ejecuta como gate de
-release: al enviar un tag de versión, el workflow de release la invoca antes
-de publicar; además se ejecuta semanalmente (domingos) y manualmente. Todas
+release: el workflow manual de candidato la invoca antes de compilar y otro
+workflow publica después solo los bytes aceptados en hardware; además se
+ejecuta semanalmente (domingos) y manualmente. Todas
 las instalaciones locales/CI de prueba usan
 `requirements/constraints.txt`; si hace falta, se puede sobrescribir con
 `make PIP_CONSTRAINT=/ruta/al/archivo pr-check`. Consulta

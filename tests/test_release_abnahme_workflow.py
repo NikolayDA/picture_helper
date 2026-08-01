@@ -45,7 +45,7 @@ def test_aggregation_job_scoped_and_posts() -> None:
 
     assert "aggregation:" in text
     assert (
-        "needs: [abnahme-macos-arm64, abnahme-linux-arm64, "
+        "needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, "
         "abnahme-linux-x86_64]" in text
     )
     assert "if: always() && !inputs.dry_run" in text
@@ -66,10 +66,9 @@ def test_workflow_uploads_evidence_per_platform() -> None:
 
     assert "name: abnahme-macos-arm64" in text
     assert "name: abnahme-linux-arm64" in text
-    # Vier Uploads: je ein Evidenz-Artefakt der drei aktiven Plattform-Jobs
-    # (macOS, linux-arm64, linux-x86_64) plus die Abschlussmatrix des
-    # Aggregations-Jobs (#646); der Hinweis-Job lädt nichts hoch.
-    assert text.count("actions/upload-artifact") == 4
+    # Sechs Uploads: drei Plattform-Evidenzen, Kandidatenvertrag,
+    # Abschlussmatrix und unveränderliches Freigabemanifest (#744).
+    assert text.count("actions/upload-artifact") == 6
 
 
 def test_workflow_gates_and_surfaces_paused_x86_64() -> None:
@@ -91,6 +90,29 @@ def test_workflow_runs_evidence_helper() -> None:
 
     assert "scripts/release_abnahme.py" in text
     assert (ROOT / "scripts" / "release_abnahme.py").is_file()
+
+
+def test_workflow_binds_acceptance_to_candidate_run_and_head() -> None:
+    """#744: Run-Metadaten, Workflow, Commit und fünf Dateien werden vor
+    den Hardware-Jobs als gemeinsamer Kandidatenvertrag geprüft."""
+    text = _workflow_text()
+    assert "candidate-source:" in text
+    assert "scripts/release_contract.py prepare-candidate" in text
+    assert "SOURCE_RUN_ID: ${{ inputs.run_id }}" in text
+    assert '--run-id "$SOURCE_RUN_ID"' in text
+    assert '--run-id "${{ inputs.run_id }}"' not in text
+    assert "SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}" in text
+    assert text.count('--commit-sha "$SOURCE_HEAD_SHA"') == 3
+    assert "inputs.release_tag" not in text
+
+
+def test_workflow_emits_immutable_approval_manifest() -> None:
+    text = _workflow_text()
+    assert "scripts/release_contract.py create-approval" in text
+    assert "release-approval-manifest-${{ github.run_attempt }}" in text
+    assert "release-freeze-provenance.json" in text
+    assert "--summary-output" in text
+    assert text.count("retention-days: 90") == 6
 
 
 def test_workflow_runs_hardware_smoke() -> None:

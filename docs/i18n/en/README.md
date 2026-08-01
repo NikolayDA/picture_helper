@@ -259,8 +259,9 @@ The test suite runs headless (Qt platform `offscreen`) and checks the
 image operations, the crop geometry, and the save logic. Pull requests
 run a lightweight GitHub PR CI job (Ubuntu, Python 3.12, `make pr-check`).
 The full Linux/macOS matrix under Python 3.10, 3.11, 3.12, and 3.13 runs as the
-release gate: on a version-tag push the release workflow calls it before
-publishing; it also runs weekly (Sundays) and manually. All
+release gate: the manual candidate workflow calls it before building, and a
+separate workflow later publishes only the hardware-accepted bytes; it also
+runs weekly (Sundays) and manually. All
 local/CI test installs use
 `requirements/constraints.txt`; override it with
 `make PIP_CONSTRAINT=/path/to/file pr-check` when needed. See

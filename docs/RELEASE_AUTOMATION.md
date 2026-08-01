@@ -6,10 +6,14 @@ Release-Abnahme-Evidenz aus [PACKAGING_SMOKE.md](PACKAGING_SMOKE.md) (#595)
 automatisiert auf Self-hosted GitHub-Actions-Runnern. Architektur- und
 Sicherheitsentscheidungen:
 [ADR-2026-release-abnahme-automatisierung.md](history/ADR-2026-release-abnahme-automatisierung.md).
+Der byteidentische Build→Abnahme→Publish-Vertrag ist in
+[ADR-2026-release-manifest-publish.md](history/ADR-2026-release-manifest-publish.md)
+festgelegt.
 
-Die Abnahmekriterien selbst bleiben in `PACKAGING_SMOKE.md`; hier steht nur,
-wie die Nachweise automatisiert entstehen. Die Go-/No-Go-Entscheidung bleibt
-ein menschlicher Schritt.
+Die Abnahmekriterien selbst bleiben in `PACKAGING_SMOKE.md`; hier steht, wie
+Kandidat, Nachweise, Freigabemanifest und Veröffentlichung zusammenhängen. Die
+Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt; der Publish-Workflow
+akzeptiert danach nur die bereits abgenommenen Bytes.
 
 ## 1. Runner-Übersicht
 
@@ -126,16 +130,22 @@ wählt.
 - [ ] Ausreichend freier Speicher; das Arbeitsverzeichnis des Runners liegt
       nicht in einem synchronisierten Ordner (iCloud/Nextcloud o. Ä.).
 
-## 4. Abnahme-Lauf starten
+## 4. Kandidat bauen und Abnahme-Lauf starten
+
+Zuerst GitHub → **Actions → „Release artifacts (Linux + macOS)" → Run
+workflow** auf dem gewünschten Kandidaten-Commit starten. Dieser Workflow ist
+nur noch ein Kandidatenbau: kein Tag-Trigger, kein Release und keine
+Schreibrechte. Nach erfolgreicher Full-CI und allen drei Build-Legs die
+**Run-ID** aus der Actions-URL notieren. Build-Dateien und Freeze-Provenienz
+bleiben 90 Tage verfügbar.
 
 GitHub → **Actions → „Release-Abnahme (Self-hosted Hardware)" → Run
-workflow**, dann:
+workflow**. In der Branch-Auswahl **exakt denselben Commit** wie beim
+Kandidatenbau wählen, dann:
 
-- **`release_tag`**: Tag des zu prüfenden Releases (z. B. `v2.7.0`) – bezieht
-  die Assets des veröffentlichten GitHub-Releases. *Oder*
-- **`run_id`**: Run-ID eines `release-linux.yml`-Laufs – bezieht die dort
-  hochgeladenen Workflow-Artefakte (für Kandidaten-Prüfung **vor** dem Tag).
-  Genau eine der beiden Quellen angeben.
+- **`run_id`**: die notierte Run-ID des erfolgreichen
+  `release-linux.yml`-Kandidatenlaufs. Andere Workflows, fehlgeschlagene Runs
+  oder ein abweichender Commit werden vor den Hardware-Jobs abgewiesen.
 - **`platforms`**: `alle` (Standard) oder gezielt `macos-arm64` /
   `linux-arm64` / `linux-x86_64` (letzteres nur bei aktivierter Variable aus
   §5).
@@ -147,20 +157,16 @@ workflow**, dann:
   Abschlussmatrix; Standard ist `595`. Ungültige Werte brechen nur den
   nachgelagerten Kommentar-Schritt kontrolliert ab.
 
-Jeder Plattform-Job lädt die passenden Artefakte herunter, berechnet ihren
-SHA256 und lädt sein Ergebnis als Workflow-Artefakt `abnahme-<plattform>` hoch
+Ein GitHub-hosted Vorjob prüft zuerst Run-ID, Workflow-Pfad, Abschlussstatus,
+Quell-Commit, Freeze-Provenienz, die drei Actions-Artefaktreferenzen und die
+exakte Menge aus zwei AppImages, zwei DEBs und einem DMG. Jeder Plattform-Job
+lädt danach nur die passenden Dateien aus dieser Build-Run-ID, berechnet ihren
+SHA256 und lädt sein Ergebnis als Workflow-Artefakt
+`abnahme-<plattform>-<run_attempt>` hoch
 (`evidenz.json` + `manifest.md`, Pflichtfelder im
-[ADR](history/ADR-2026-release-abnahme-automatisierung.md)). Bei
-Release-Assets wird der berechnete SHA256 gegen den vertrauenswürdigen
-`digest` des Release-Assets geprüft (Mismatch = harter Abbruch); bei
-Workflow-Artefakten (`run_id`-Quelle) liefert GitHub keinen Datei-Digest, dort
-wird der Wert nur protokolliert. Die **Nutzlast** der Release-Assets kommt seit
-#686 über `browser_download_url` **ohne** `Authorization`-Header – exakt der
-Pfad von der öffentlichen Release-Seite; ein versehentlich privat gebliebenes
-Release fällt damit auf, statt über die authentifizierte REST-Asset-URL
-unbemerkt durchzulaufen. Die Assetliste inklusive `digest` wird weiterhin
-authentifiziert geholt: Sie ist die Vertrauenswurzel, gegen die der anonym
-geladene Inhalt geprüft wird. Der Smoke selbst belegt Start ohne
+[ADR](history/ADR-2026-release-abnahme-automatisierung.md)). Der SHA-256 des
+entpackten Release-Files wird zum verbindlichen Manifestwert und muss später
+mit den veröffentlichten Bytes übereinstimmen. Der Smoke selbst belegt Start ohne
 Crash/Fork-Bomb/Hänger, GL-Provenance der Runner-Hardware, `.deb`-Hygiene und
 (macOS) Retina. Innerhalb desselben Smoke-Schritts starten AppImage,
 installiertes `.deb`-AppImage und das aus dem DMG kopierte `.app`-Bundle
@@ -217,7 +223,35 @@ dadurch nicht von einem anderen Kriterium verdeckt werden. Der pausierte
 x86_64-Pfad erscheint explizit als „pausiert", fehlende Evidenz als „fehlt" –
 keine stillen Lücken. Die Vision-Vorbewertung ist **beratend**:
 `nicht_erfuellt` markiert eine Zeile als fehlgeschlagen, aber die Go-/No-Go-
-Entscheidung bleibt der menschliche Schritt.
+Entscheidung bleibt der menschliche Schritt. Sind alle technischen
+Pflichtzeilen erfüllt (Linux x86_64 darf entsprechend §5 explizit pausiert
+sein), erzeugt derselbe Job zusätzlich
+`release-approval-manifest-<run_attempt>`. Dieses unveränderliche
+Actions-Artefakt enthält Build-/Abnahme-Run, Quell-SHA, Version/Tag,
+Freeze-Provenienzreferenz, Plattformstatus und exakt fünf Datei-SHA-256. Den
+Manifestnamen und die Abnahme-Run-ID für §4.1 notieren. Bei `dry_run`, einer
+Teilplattform-Auswahl oder einer blockierenden Lücke entsteht kein Manifest.
+
+### 4.1 Abgenommene Bytes veröffentlichen
+
+1. Den erwarteten Tag `vX.Y.Z` auf **exakt dem Kandidaten-Commit** anlegen und
+   pushen. Der Tag selbst startet keinen Build mehr.
+2. GitHub → **Actions → „Publish accepted release artifacts" → Run workflow**.
+3. Vier Felder eintragen: `tag`, Kandidaten-`candidate_run_id`,
+   `acceptance_run_id` und den exakten `approval_artifact_name` aus §4.
+
+Der Workflow prüft vor jeder Änderung Tag→Commit, beide Run-Metadaten und
+Workflow-Pfade, Freeze-Provenienz, Plattformstatus, exakte Dateimenge, Größen
+und SHA-256. Er lädt die fünf Dateien ausschließlich aus dem Kandidaten-Run,
+legt das Release als Draft an, lädt die Dateien hoch, lädt sie erneut herunter
+und veröffentlicht den Draft erst nach byteidentischer Prüfung.
+
+Wiederholung ist sicher: Ein vollständiger byteidentischer Draft wird nur noch
+veröffentlicht, ein bereits identisches Release ist ein No-op. Teilweise,
+zusätzliche oder abweichende Assets blockieren ohne Clobber/Löschen. Dann muss
+der Owner den Draft bewusst bereinigen oder einen neuen Tag wählen. Nach Ablauf
+der 90-Tage-Aufbewahrung wird ein neuer Kandidat gebaut und abgenommen; alte
+Bytes werden nicht aus Kommentaren oder lokalen Kopien rekonstruiert.
 
 Repository-Variablen (Settings → Secrets and variables → Actions →
 Variables):

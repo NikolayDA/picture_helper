@@ -3,9 +3,9 @@
 Textbasiert (ohne PyYAML, analog zu ``tests/test_ci_qt_packages.py``): stellt
 sicher, dass der ``build``-Job jedes frisch gebaute Artefakt headless startet,
 den Fork-Bomb-Wächter nutzt und im ``--ai``-Build den KI-Selbsttest fährt.
-Das ``publish``-Gating (``needs: build``) wird bewusst nicht hier erneut
+Die Trennung vom neubaufreien Publish-Workflow wird bewusst nicht hier erneut
 geprüft – die stärkere, geparste Prüfung dazu lebt in
-``tests/test_release_gate.py::test_release_jobgraph_gates_publish_on_tests_and_tag``
+``tests/test_release_gate.py::test_release_jobgraph_separates_build_from_publish``
 (#659, konsolidiert aus einem vormals identischen Regex-Duplikat).
 """
 from __future__ import annotations

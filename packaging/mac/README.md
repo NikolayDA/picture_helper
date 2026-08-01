@@ -74,10 +74,10 @@ the Linux AppImage.
 Building a bundle is not enough — `tests/test_app_smoke.py` only launches the
 **source** app (`python -m bgremover`) and cannot see *frozen-only* failures:
 missing `*.dist-info` metadata (start crash #304), a missing `freeze_support()`
-(fork bomb #305) or a broken bundled AI chain (#306). The release workflow
+(fork bomb #305) or a broken bundled AI chain (#306). The candidate workflow
 therefore **launches the freshly built `BgRemover.app` headlessly** in the
-`build` job, gated before `publish` (`needs: build`), so a bad bundle is never
-released:
+`build` job. A failing smoke check makes the candidate run unusable, so the
+separate acceptance and publish workflows can never release that bundle:
 
 - **Start + fork-bomb guard (#307):** `scripts/smoke_launch.py` starts the app
   with `QT_QPA_PLATFORM=offscreen` + `BGREMOVER_SMOKE_TEST=1` (the app self-quits
