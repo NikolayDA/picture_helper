@@ -532,6 +532,16 @@ Haupt- **und** den `spawn`-Kindprozess, weil dort real ein Import aus dem
 Source-Checkout statt aus dem Bundle beobachtet wurde. Die Herkunft wird
 bewusst **nicht bewertet** (geht nicht in `ok` ein) und bei *jedem* Lauf
 gedruckt: ein grüner Lauf aus dem falschen Pfad ist der gefährlichere Fall.
+Die Ursache dahinter ist mit #740/#750 behoben: Der AppRun-Entrypoint startet
+`python -m bgremover`, CPython stellt bei `-m` das cwd an den Anfang von
+`sys.path`, und der Wächter lief im Checkout — dessen `bgremover/` gewann
+gegen das gebündelte (macOS war durch das eingefrorene PyInstaller-Binary
+immun). Alle Startpfade nutzen jetzt ein **neutrales, leeres
+Arbeitsverzeichnis** (`smoke_launch.run(workdir=…)`/`--workdir`,
+`abnahme_smoke.neutral_workdir()`, dieselbe Option in den drei
+Linux-Smoke-Aufrufen von `release-linux.yml`) — das Auslieferungsartefakt
+selbst bleibt unangetastet. Programmpfade müssen dabei **absolut** sein,
+sonst löst `Popen` sie gegen das neutrale Verzeichnis auf.
 Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Betrieb:
 [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
 ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/ADR-2026-release-abnahme-automatisierung.md).
