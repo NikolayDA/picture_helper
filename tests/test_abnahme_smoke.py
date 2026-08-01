@@ -1176,3 +1176,27 @@ def test_main_writes_failed_evidence_and_returns_nonzero(tmp_path, monkeypatch, 
     out = capsys.readouterr().out
     assert "[befund]" in out
     assert "FEHLGESCHLAGEN" in out
+
+
+def test_guard_starts_artifacts_outside_the_checkout(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Der Wächter bekommt ein neutrales, leeres Arbeitsverzeichnis (#740).
+
+    Sonst beschattet das ``bgremover/`` des Checkouts das gebündelte Paket und
+    der Abnahme-Smoke belegt den Checkout statt des Artefakts.
+    """
+    report = smoke.SmokeReport()
+    runner, calls = _recording_runner(_CLEAN_DEB)
+    smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner,
+        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
+    )
+    guard_calls = [c for c in calls if "smoke_launch.py" in c]
+    assert guard_calls, "kein Wächter-Aufruf protokolliert"
+    for call in guard_calls:
+        assert "--workdir" in call, f"Wächter ohne --workdir: {call}"
+
+    neutral = smoke.neutral_workdir()
+    assert neutral.is_dir()
+    # Entscheidend: dort darf kein bgremover-Paket liegen, sonst wirkungslos.
+    assert not (neutral / "bgremover").exists()
+    assert neutral.resolve() != smoke.REPO_ROOT.resolve()
