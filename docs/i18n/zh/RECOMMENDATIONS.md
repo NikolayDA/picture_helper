@@ -42,7 +42,7 @@ GitHub 查询后的实时状态：**29** 个未结议题（此前 19 个；另�
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [史诗] 发布流程稳定化 —— 直至已发布字节的证据链 | 🟠 高（两个版本均有大量返工） | 🟠 高（11 个子议题，冻结与 publish 改造） | –（史诗） | 图例与盘点已补正 —— 阶段 0/1 可开始 |
 | [#743](https://github.com/NikolayDA/picture_helper/issues/743) | 引入明确的“release-neutral”路径类别 | 🟠 高（决定哪些变更需要验收） | 🟡 中（分类器 + 逐条构建输入佐证） | Opus，中 | **可开始** —— 语义上先于 #742 |
 | [#742](https://github.com/NikolayDA/picture_helper/issues/742) | 彻底消除冻结补记提交（锚点 + 提交台账） | 🟠 高（返工循环的主要来源） | 🔴 高（关卡的信任模型，需要 ADR） | Opus，高 | 受阻 —— 先完成 #743 的路径语义 |
-| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux 验收须检验打包产物而非源码检出 | 🟠 高（此前全部 Linux 证据均无意义） | 🟢 低（议题中的解决方案草案已完整） | Sonnet，低 | **可开始** —— 在任何后续硬件验收之前必须完成 |
+| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux 验收须检验打包产物而非源码检出 | 🟠 高（此前全部 Linux 证据均无意义） | 🟢 低（议题中的解决方案草案已完整） | Sonnet，低 | 修复已在 #750 合并；Pi 上的真实 `dry_run` 证据仍待补 |
 | [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish 复用已验收的候选产物 | 🟠 高（已验收 ≠ 已发布字节） | 🔴 高（发布路径，难以空跑验证） | Opus，高 | 受阻 —— 需要 #742 的来源信息/清单 |
 | [#747](https://github.com/NikolayDA/picture_helper/issues/747) | 在 #742/#744 之后以机器方式固化新关卡契约 | 🟡 中（避免出现 #709 式的契约漂移） | 🟡 中（扩展现有的 `test_release_gate.py`） | Sonnet，中 | 受阻 —— 与 #742/#744 同一变更包 |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | 版本化验收清单，取代按版本创建的议题 | 🟡 中（终止每次发布重新拟定标准） | 🟡 中（模式、稳定 ID、豁免规则） | Sonnet，中 | 可开始 —— 在 #745 之前或与之同时 |
