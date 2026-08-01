@@ -306,7 +306,12 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           set -euo pipefail
-          appimage="$(ls -1 dist/*.AppImage | head -1)"
+          # ABSOLUTER Pfad: der Waechter startet das Artefakt unten mit einem
+          # anderen Arbeitsverzeichnis (--workdir). Ein relativer ``dist/...``-
+          # Pfad wuerde dann gegen dieses leere Verzeichnis aufgeloest und der
+          # Start mit FileNotFoundError abbrechen – auch im KI-Selbsttest, wo
+          # ``env`` das Artefakt seinerseits relativ zu seinem cwd exect.
+          appimage="$(ls -1 "$PWD"/dist/*.AppImage | head -1)"
           # Neutrales Arbeitsverzeichnis (#740): der AppRun-Entrypoint startet
           # die App als ``python -m bgremover``, und CPython stellt bei ``-m``
           # das cwd an den Anfang von ``sys.path``. Im Workspace liegt der

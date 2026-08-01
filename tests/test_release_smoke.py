@@ -80,3 +80,35 @@ def test_linux_smokes_start_artifacts_in_a_neutral_workdir() -> None:
             f"Linux-Smoke-Aufruf {i} startet ohne --workdir im Checkout (#740)."
         )
     assert 'neutral="$(mktemp -d)"' in linux
+
+
+def test_linux_smoke_artifact_paths_are_absolute_when_workdir_is_set() -> None:
+    """Mit ``--workdir`` müssen Artefaktpfade absolut sein (#740, Codex-P1).
+
+    ``subprocess.Popen`` löst das Zielkommando gegen ``cwd`` auf. Ein
+    relativer ``dist/...``-Pfad zeigt dann ins leere Wächter-Verzeichnis und
+    der Start bricht mit ``FileNotFoundError`` ab, bevor das Artefakt läuft –
+    im KI-Selbsttest ebenso, weil ``env`` das Artefakt seinerseits relativ zu
+    seinem cwd exect. Der reine Vorhandenseins-Test auf ``--workdir`` hat
+    diesen Fehler nicht gefunden; deshalb prüft dieser Test die Auflösung.
+    """
+    text = _release_text()
+    start = text.index("Smoke-launch built AppImage")
+    linux = text[start:text.index("macOS: .app + .dmg", start)]
+
+    # Die Variable, die an den Wächter geht, wird absolut abgeleitet …
+    assert 'appimage="$(ls -1 "$PWD"/dist/*.AppImage | head -1)"' in linux, (
+        "AppImage-Pfad muss absolut sein, sonst scheitert der Start unter --workdir."
+    )
+
+    # … und kein Wächter-Aufruf übergibt einen relativen dist/-Pfad. Dafür
+    # Zeilenfortsetzungen zu logischen Kommandozeilen zusammenfassen.
+    flach = linux.replace("\\\n", " ")
+    aufrufe = [z for z in flach.splitlines() if "scripts/smoke_launch.py" in z]
+    assert len(aufrufe) == 3, f"drei Linux-Wächter-Aufrufe erwartet, gefunden: {len(aufrufe)}"
+    for aufruf in aufrufe:
+        assert " -- " in aufruf, f"kein Zielkommando im Aufruf: {aufruf.strip()[:80]}"
+        ziel = aufruf.split(" -- ", 1)[1]
+        assert "dist/" not in ziel, (
+            f"Relativer dist/-Pfad im Wächter-Aufruf trotz --workdir: {ziel.strip()[:80]}"
+        )

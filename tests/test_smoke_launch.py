@@ -347,3 +347,33 @@ def test_neutral_workdir_prevents_checkout_from_shadowing_the_bundle(tmp_path: P
     )
     assert rc != 0
     assert not ausgabe.exists()
+
+
+def test_relative_command_with_workdir_fails_loudly(tmp_path: Path) -> None:
+    """Relativer Programmpfad + ``workdir`` bricht sichtbar ab (#740, Codex-P1).
+
+    Hält die Falle fest, die im Release-Workflow zuerst übersehen wurde:
+    ``Popen`` löst das Kommando gegen ``cwd`` auf, ein relativer Pfad zeigt
+    also ins neutrale Verzeichnis. Wichtig ist, dass das *laut* scheitert und
+    nicht etwa still ein anderes Programm startet.
+    """
+    (tmp_path / "bin").mkdir()
+    skript = tmp_path / "bin" / "artefakt.sh"
+    skript.write_text("#!/bin/sh\nexit 0\n")
+    skript.chmod(0o755)
+    neutral = tmp_path / "neutral"
+    neutral.mkdir()
+    token = "kein-treffer-token-" + uuid.uuid4().hex
+
+    with pytest.raises(FileNotFoundError):
+        smoke_launch.run(
+            ["bin/artefakt.sh"], match_token=token, timeout=30,
+            max_instances=1, env_overrides={}, workdir=str(neutral),
+        )
+
+    # Absolut aufgelöst läuft derselbe Start sauber durch.
+    rc = smoke_launch.run(
+        [str(skript)], match_token=token, timeout=30,
+        max_instances=1, env_overrides={}, workdir=str(neutral),
+    )
+    assert rc == 0
