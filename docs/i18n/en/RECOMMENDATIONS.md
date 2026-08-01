@@ -11,9 +11,9 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-07-31, v2.7.1 published + new epic #741 release process)
+## Current Status (2026-08-01, v2.7.2 candidate after #750)
 
-**v2.7.1 is published** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, five artifacts); the hardware acceptance was re-run afterwards against the actually published bytes. #680/#685/#686 are therefore substantively done and only formally open. 2.7.2 is cut, candidate `49b75b25e2a7804395c4f96dc7015391c2a7726d`.
+**v2.7.1 is published** (2026-07-30, tag `a3de137a0c0873f93f84186f9bba32d684a48808`, five artifacts). Although the follow-up run downloaded the published bytes, #740 showed that the AppImage and `.deb` loaded code from the checkout. #680/#685/#686 are therefore not substantively complete yet: macOS is proven, while Linux still needs a real Pi `dry_run` after the fix in #750. 2.7.2 is cut; the derived and recorded candidate is `57517ecbc1e59a46bb8c7362a1bd82cf3a5facd8` (#750), and the freeze gate reports 0 errors/0 warnings.
 
 Reviewing both release cycles of this week produced epic **#741** (release-process stabilization): seven new sub-issues **#742–#748** plus four adopted ones (**#740**, **#731**, **#737**, **#656**). Two causes account for most of the rework: the freeze pin is self-referential (a commit cannot document its own SHA), and `publish` rebuilds the artifacts instead of publishing the accepted ones — which is why a second hardware acceptance run was needed after v2.7.1.
 
@@ -33,22 +33,23 @@ The **U1–U10 cause legend** is now a table in #741 — ten sub-issues previous
 
 Prior baseline unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, plus releases v2.7.0/v2.7.1. No 🔴 findings open.
 
-Live state after the GitHub query: **29** open issues (19 before; plus #737/#740 and the eight new #741–#748).
+Live state after the GitHub query: **30** open issues (29 before; #752 is new from this review).
 
-## Open GitHub Issues — Triage Status (2026-07-31)
+## Open GitHub Issues — Triage Status (2026-08-01)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟠 High (two releases with substantial rework) | 🟠 High (11 sub-issues, freeze and publish rebuild) | – (epic) | Legend and inventory corrected — phase 0/1 ready to start |
 | [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Introduce an explicit "release-neutral" path class | 🟠 High (decides which change needs acceptance) | 🟡 Medium (classifier + build-input proof per entry) | Opus, medium | **Ready to start** — semantically before #742 |
 | [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Eliminate the freeze follow-up commit (pin + commit ledger) | 🟠 High (main source of the rework loops) | 🔴 High (trust model of the gate, ADR required) | Opus, high | Blocked — path semantics from #743 first |
-| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux acceptance must test the packaged artifact, not the checkout | 🟠 High (all prior Linux evidence is meaningless) | 🟢 Low (solution sketch complete in the issue) | Sonnet, low | Fix merged in #750; the real `dry_run` proof on the Pi is still outstanding |
+| [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux acceptance must test the packaged artifact, not the checkout | 🟠 High (prior Linux evidence tested the checkout) | 🟢 Low (only a real hardware dispatch and evidence review remain) | – (owner/hardware) | Fix merged in #750; run the real Pi `dry_run` and prove the provenance lines |
 | [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish reuses the accepted candidate artifacts | 🟠 High (accepted ≠ published bytes) | 🔴 High (publication path, hard to dry-run) | Opus, high | Blocked — needs provenance/manifest from #742 |
 | [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Machine-verify the new gate contract after #742/#744 | 🟡 Medium (prevents contract drift like #709) | 🟡 Medium (extends the existing `test_release_gate.py`) | Sonnet, medium | Blocked — same change set as #742/#744 |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Versioned acceptance checklist instead of release-instance issues | 🟡 Medium (stops reinventing criteria each release) | 🟡 Medium (schema, stable IDs, waiver rules) | Sonnet, medium | Ready to start — before or with #745 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Release runbook as the single process source | 🟡 Medium (process knowledge lives in issue comments today) | 🟡 Medium (docs + link/governance tests) | Sonnet, medium | Blocked — only once #742/#743/#744 are decided |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-release update detection from a real predecessor artifact | 🟡 Medium (production update path unverified) | 🟠 High (platform/ops work, only possible post-release) | Opus, high | Blocked — runs only after publish from #744 |
 | [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Remove/derive the hand-maintained release state in CLAUDE.md | 🟢 Low (docs governance) | 🟢 Low (drop the line + regression test) | Sonnet, low | **Ready to start** — cycle-independent |
+| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Guard the Recommendations live state and freeze candidate | 🟡 Medium (third proven drift after #669/#728) | 🟡 Medium (offline SHA test + separate GitHub live check) | Sonnet, medium | **Ready to start** — prevents renewed status/candidate drift |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Make the ClamAV scan actually run per platform | 🟡 Medium (supply-chain add-on, not release-blocking) | 🟡 Medium (two separate causes + owner decision) | Sonnet, low-medium | Needs owner decision A–D; fix the Linux lock and macOS X509 separately |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Deliberately scope the API access for the vision pre-assessment | 🟡 Medium (screenshot evidence quality) | 🟢 Low (secret + workflow switch) | – (owner) + Sonnet, low | Needs owner decision A/B — variant A (dedicated secret) recommended |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.x release — published, Linux proof outstanding | 🟡 Medium (macOS accepted; per #740 the Linux evidence only proves the checkout) | 🟢 Low (acceptance note + follow-up) | Sonnet, low | Link the acceptance note in #680; tick the Linux criterion only after #740 plus a re-run |
@@ -69,15 +70,16 @@ Live state after the GitHub query: **29** open issues (19 before; plus #737/#740
 
 ### Recommended Next
 
-1. **Do #740 first** — until then no Linux acceptance run proves the packaged artifact; every further run produces green evidence without meaning, including for 2.7.2.
+1. **Prove #740 on the Pi first** — the fix is merged in #750; a real `dry_run` must show bundle paths in `[herkunft]`/`[herkunft-kind]` for both AppImage and `.deb`, with no checkout in `sys_path_0`.
 2. **#743 → #742** bundled at the start of a cycle; both are candidate-relevant themselves and trigger the loop one last time.
 3. **#744 (+ #747)** next — without byte reuse every publication still requires a second hardware acceptance run.
-4. **#737** and the owner decisions on **#656** (variant A) and **#731** (A–D) run independently of this.
-5. **#680/#685/#686**: link the acceptance note in #680. Close them fully only once a re-run after #740 proves the **Linux** artifacts — the previous Linux evidence tested the checkout.
+4. **#737/#752** and the owner decisions on **#656** (variant A) and **#731** (A–D) run independently of this.
+5. Update **#680/#685/#686** after the successful #740 proof and only then close them fully; the previous Linux evidence tested the checkout.
 6. **#692** (COLOR ADR) and **#716** remain startable in parallel; **#681/#687–#691** stay blocked (TIFF-vs-PNG discrepancy, real EufyMake hardware).
 
 ## Previous Rounds
 
+- **2026-08-01 (review of #736/#738/#739/#749/#750/#751)** — six PRs merged on July 31/August 1 were checked end-to-end against code, reviews, and gates; all review threads are resolved and all five workflow families are green. Local `make check` is green, freeze candidate `57517ec` (#750) is recorded correctly, gate 0/0. #740 rightly remains open pending the real Pi `dry_run`; no regular issue was closed in the time window. Recommendations corrected for the candidate and next steps; governance follow-up #752 filed with acceptance criteria. Live state 30.
 - **2026-07-31 (release-process analysis, epic #741)** — v2.7.1 published on 2026-07-30 (tag `a3de137`, five artifacts, post-release hardware acceptance against the published bytes). Review of both cycles: in the `v2.7.0..v2.7.1` window 36 mainline commits, of which 18 protocol-only and 7 pure freeze follow-ups. Epic #741 filed with seven new sub-issues (#742–#748) and four adopted (#740/#731/#737/#656). The owner cross-check corrected three points of the first draft (README.md/`docs/i18n/**` are candidate-relevant; `tests/test_release_gate.py` already existed; `ANTHROPIC_API_KEY` is not purpose-scoped) — all verified against the code. Live state 29. Legend and Windows scope applied straight away. The commit count first reported as an error was itself wrong (shallow clone) and has been retracted — details in the section above.
 - **2026-07-30 (#685 nearly done, #727/#728 closed, #731 filed)** — `main` is at `a26945e4f6e8ee3f665f7ef797050c049fccb5ac`. Ten PRs merged since the last round (#720–#726, #729, #730, #732); #685 stands at 12/16 criteria, with the final hardware run 30534770176 against commit `615c8d3` (macOS M3 Max + Pi 5 both ✅, x86_64 paused, vision still unassessed). #727 (ANLEITUNG.md) and #728 (RECOMMENDATIONS.md staleness) closed; #731 (ClamAV scan never actually ran) newly filed with four resolution options. Live state 19.
 - **2026-07-29 (remote follow-up #717/#718 and #716)** — `main` is at `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2`. Documentation PRs #717/#718 merged without review residue. #716 is the only new issue: 93% coverage, no production bug, and eight clearly documented test-quality tasks. The other 17 issues are unchanged; live state 18.
