@@ -54,3 +54,61 @@ def test_linux_smoke_installs_qt_runtime_libs() -> None:
     # offscreen-Qt braucht System-libGL/-libEGL auf dem Runner, sonst scheitert
     # der AppImage-Start mit ``libGL.so.1: cannot open shared object file``.
     assert "libgl1" in text and "libegl1" in text
+
+
+def test_linux_smokes_start_artifacts_in_a_neutral_workdir() -> None:
+    """Beide Linux-Smokes starten das Artefakt außerhalb des Checkouts (#740).
+
+    Der AppRun-Entrypoint ruft ``python -m bgremover``; CPython stellt dabei
+    das cwd an den Anfang von ``sys.path``. Ohne Wechsel gewinnt das
+    ``bgremover/`` des Workspace-Checkouts gegen das gebündelte Paket, und der
+    Smoke prüft nicht das Artefakt, sondern den Checkout.
+    """
+    text = _release_text()
+    # Nur der Linux-Abschnitt: macOS ist durch das eingefrorene PyInstaller-
+    # Bundle immun (sys.path[0] = base_library.zip, kein cwd-Eintrag).
+    start = text.index("Smoke-launch built AppImage")
+    linux = text[start:text.index("macOS: .app + .dmg", start)]
+    aufrufe = linux.split("scripts/smoke_launch.py")[1:]
+    assert len(aufrufe) == 3, (
+        f"Erwartet: KI-Selbsttest, AppImage-Smoke, .deb-Smoke – gefunden: {len(aufrufe)}"
+    )
+    for i, aufruf in enumerate(aufrufe, 1):
+        # Nur die Optionen bis zum ``--``-Trenner gehören zum Wächter selbst.
+        optionen = aufruf.split(" -- ")[0]
+        assert "--workdir" in optionen, (
+            f"Linux-Smoke-Aufruf {i} startet ohne --workdir im Checkout (#740)."
+        )
+    assert 'neutral="$(mktemp -d)"' in linux
+
+
+def test_linux_smoke_artifact_paths_are_absolute_when_workdir_is_set() -> None:
+    """Mit ``--workdir`` müssen Artefaktpfade absolut sein (#740, Codex-P1).
+
+    ``subprocess.Popen`` löst das Zielkommando gegen ``cwd`` auf. Ein
+    relativer ``dist/...``-Pfad zeigt dann ins leere Wächter-Verzeichnis und
+    der Start bricht mit ``FileNotFoundError`` ab, bevor das Artefakt läuft –
+    im KI-Selbsttest ebenso, weil ``env`` das Artefakt seinerseits relativ zu
+    seinem cwd exect. Der reine Vorhandenseins-Test auf ``--workdir`` hat
+    diesen Fehler nicht gefunden; deshalb prüft dieser Test die Auflösung.
+    """
+    text = _release_text()
+    start = text.index("Smoke-launch built AppImage")
+    linux = text[start:text.index("macOS: .app + .dmg", start)]
+
+    # Die Variable, die an den Wächter geht, wird absolut abgeleitet …
+    assert 'appimage="$(ls -1 "$PWD"/dist/*.AppImage | head -1)"' in linux, (
+        "AppImage-Pfad muss absolut sein, sonst scheitert der Start unter --workdir."
+    )
+
+    # … und kein Wächter-Aufruf übergibt einen relativen dist/-Pfad. Dafür
+    # Zeilenfortsetzungen zu logischen Kommandozeilen zusammenfassen.
+    flach = linux.replace("\\\n", " ")
+    aufrufe = [z for z in flach.splitlines() if "scripts/smoke_launch.py" in z]
+    assert len(aufrufe) == 3, f"drei Linux-Wächter-Aufrufe erwartet, gefunden: {len(aufrufe)}"
+    for aufruf in aufrufe:
+        assert " -- " in aufruf, f"kein Zielkommando im Aufruf: {aufruf.strip()[:80]}"
+        ziel = aufruf.split(" -- ", 1)[1]
+        assert "dist/" not in ziel, (
+            f"Relativer dist/-Pfad im Wächter-Aufruf trotz --workdir: {ziel.strip()[:80]}"
+        )

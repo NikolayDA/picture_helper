@@ -34,10 +34,13 @@ kann. Betrieb/Kriterien: ``docs/RELEASE_AUTOMATION.md``,
 from __future__ import annotations
 
 import argparse
+import atexit
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -243,6 +246,28 @@ def _record_guard(
     )
 
 
+_neutral_dir: Path | None = None
+
+
+def neutral_workdir() -> Path:
+    """Leeres Arbeitsverzeichnis für Artefaktstarts (#740).
+
+    Der AppRun-Entrypoint startet die App als ``python -m bgremover``; CPython
+    stellt bei ``-m`` das aktuelle Verzeichnis an den Anfang von ``sys.path``.
+    Läuft der Wächter im Checkout (``_default_runner`` nutzt ``REPO_ROOT``),
+    gewinnt dessen ``bgremover/`` gegen das gebündelte Paket – der Smoke prüft
+    dann den Checkout statt des Artefakts, und zwar für Haupt- **und**
+    Spawn-Kindprozess. Das Verzeichnis wird einmal je Prozess angelegt und am
+    Ende wieder entfernt; es darf kein ``bgremover/`` enthalten.
+    """
+    global _neutral_dir
+    if _neutral_dir is None:
+        path = Path(tempfile.mkdtemp(prefix="bgremover-abnahme-neutral-"))
+        atexit.register(shutil.rmtree, path, True)
+        _neutral_dir = path
+    return _neutral_dir
+
+
 def _default_runner(cmd: list[str]) -> CommandResult:
     completed = subprocess.run(  # noqa: S603
         cmd, cwd=REPO_ROOT, capture_output=True, text=True, check=False,
@@ -277,6 +302,9 @@ def _guard(
             "--match", match,
             "--max-instances", str(max_instances),
             "--timeout", str(timeout),
+            # Neutrales cwd: sonst beschattet der Checkout das gebündelte
+            # Paket und der Smoke prüft nicht das Artefakt (#740).
+            "--workdir", str(neutral_workdir()),
             "--", *launch_cmd,
         ]
     )
@@ -348,6 +376,7 @@ def _native_3d_screenshot(
         "--max-instances", str(max_instances),
         "--timeout", str(NATIVE_3D_TIMEOUT),
         "--native",
+        "--workdir", str(neutral_workdir()),  # nicht im Checkout starten (#740)
         "--env", f"BGREMOVER_SCREENSHOT_3D={target}",
         "--env", f"BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS={NATIVE_3D_READINESS_TIMEOUT_MS}",
         "--", *launch_cmd,
@@ -418,6 +447,7 @@ def _acceptance_extra(
         "--max-instances", str(max_instances),
         "--timeout", str(ACCEPTANCE_EXTRA_TIMEOUT),
         "--native",
+        "--workdir", str(neutral_workdir()),  # nicht im Checkout starten (#740)
         *env_args,
         "--", *launch_cmd,
     ])
