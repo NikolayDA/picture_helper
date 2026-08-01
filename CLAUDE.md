@@ -4,7 +4,10 @@ Kurzanleitung für Claude Code in diesem Repository. **BgRemover** ist ein
 Desktop-Tool zum Entfernen von Bildhintergründen und für einfache
 Bildbearbeitung (PyQt6, macOS + Linux, Python ≥ 3.10).
 
-Letzter Release-Stand: **v2.7.0** — die Version steht ausschließlich in
+Letzter **veröffentlichter** Release: **v2.7.1** (2026-07-30). Aktueller
+Versionsschnitt im Repository: **2.7.2** — geschnitten und eingefroren
+(Freeze-Dokument [`docs/history/RELEASE-2.7.2-scope-freeze.md`](docs/history/RELEASE-2.7.2-scope-freeze.md)),
+noch nicht veröffentlicht. Die Version steht ausschließlich in
 `pyproject.toml` (`project.version`); `bgremover/_version.py` liest sie über
 `importlib.metadata` mit pyproject-Fallback, kein hartkodiertes Literal.
 
@@ -33,6 +36,9 @@ headless-Qt-Betrieb:
   (Format-Suite, Höhen-/Mesh-Suite, Vergleich der letzten zwei Läufe)
 - `make gl-stress` — GL-Ressourcen-Langzeitsonde der 3D-Vorschau
   (`scripts/gl_stress_probe.py`, #684; JSON-Nachweis, `--mode gl` für echten Kontext)
+- `make release-freeze-check` — `scripts/verify_release_freeze.py --require-pin`
+  (#699): prüft den aktuellen Stand als selbstkonsistenten Release-Kandidaten;
+  nur vor einem Kandidatenbau nötig, nicht Teil von `make check`
 
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
 `tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
@@ -459,13 +465,43 @@ Workflows unter `.github/workflows/` (13):
 - **Release:** `release-linux.yml` — baut auf Versions-Tag AppImage + `.deb`
   (x86_64 + aarch64) und macOS `.dmg`; harte `needs`-Vorbedingungen `verify-tag`
   (Tag `vX.Y.Z` == `project.version`) und die grüne Full-CI-Matrix für **genau**
-  diesen Commit, erst danach `publish`. Artefaktnamen `BgRemover-<version>-<platform_tag>[-ai].<ext>`
-  (#584).
+  diesen Commit, erst danach `publish`. `verify-tag` fährt seit #699/#709
+  zusätzlich das **Release-Freeze-Gate** (`verify_release_freeze.py --require-pin`)
+  — und zwar bei Tag-Push **und** beim manuellen `workflow_dispatch`-Kandidatenbau,
+  weil dort sonst gar keine Absicherung greift (#685). Artefaktnamen
+  `BgRemover-<version>-<platform_tag>[-ai].<ext>` (#584).
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
   in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
   PRs (#555). `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
+
+### Release-Freeze & Kandidatenregel (#699)
+
+Vor jedem Kandidatenbau steht ein Freeze-Dokument je Version:
+`docs/history/RELEASE-<version>-scope-freeze.md` (aktuell 2.7.2, Vorgänger
+2.7.1/2.6.0). Der Kandidat wird nicht mehr von Hand gepflegt, sondern
+**abgeleitet**: Kandidat ist der jüngste Mainline-Commit (`--first-parent`)
+seit dem Basis-Tag, der einen **kandidatenrelevanten** Pfad ändert.
+`scripts/verify_release_freeze.py` ist die einzige Quelle dieser Regel; die
+Tabelle im Freeze-Dokument gibt sie nur wieder.
+
+- **Protokoll-Pfade** (verschieben den Kandidaten *nicht*): `docs/history/**`,
+  `RECOMMENDATIONS.md` + `docs/i18n/*/RECOMMENDATIONS.md` und **`CLAUDE.md`**.
+  Alles andere ist kandidatenrelevant, **fail-closed** — ein neuer, unbekannter
+  Pfad gilt als kandidatenrelevant (bei #732 hat genau das `ANLEITUNG.md`/
+  `README.md` sichtbar gemacht).
+- Das Skript prüft am abgeleiteten Commit Versionsquellen, CHANGELOG-Abschnitt
+  in sechs Sprachen, AppStream-Metadaten, Lizenz-Snapshots, die vollständige
+  Commit-Klassifizierung und den veröffentlichten Release-Body
+  (`extract_release_notes.py`). Nur Standardbibliothek + `git`.
+- **Ein Dokument kann seinen eigenen Commit-SHA nicht enthalten.** Der
+  protokollierte Kandidaten-SHA kommt deshalb immer durch einen darüber
+  liegenden **reinen Protokoll-Commit** hinein („Freeze-Nachtrag"); solange
+  dort `nachzutragen` steht, schlägt `--require-pin` bewusst fehl. Ein
+  zusätzliches `github.sha`-Gleichheits-Gate wäre deadlockend und wurde
+  deshalb wieder entfernt (#709/#715).
+- Regressionstests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`.
 
 ### Release-Abnahme auf echter Hardware (Epic #639, abgeschlossen)
 
@@ -486,6 +522,16 @@ höchstens einmal),
 native Qt-Plattform), `abnahme_vision_check.py` (**fail-safe** Vision-Vorbewertung
 der Screenshots; ohne API-Key/SDK oder bei Fehlern → `unbewertet`, blockiert
 nie) und `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix).
+Seit #686/#734 lädt `release_abnahme.py` die Artefakte eines veröffentlichten
+Releases **anonym** über `browser_download_url` (ein versehentlich privates
+Release fällt dadurch auf) und weist je Artefakt aus, ob der SHA256 gegen einen
+Anbieter-Digest bestätigt oder nur berechnet ist. **Evidenz-Schema 3** (#738)
+führt zusätzlich `laufzeit_herkunft`: `bgremover.__file__`, `ai_process.__file__`,
+`sys.executable`/`sys.frozen`, Arbeitsverzeichnis und `sys.path[0]` — für den
+Haupt- **und** den `spawn`-Kindprozess, weil dort real ein Import aus dem
+Source-Checkout statt aus dem Bundle beobachtet wurde. Die Herkunft wird
+bewusst **nicht bewertet** (geht nicht in `ok` ein) und bei *jedem* Lauf
+gedruckt: ein grüner Lauf aus dem falschen Pfad ist der gefährlichere Fall.
 Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Betrieb:
 [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
 ADR [`docs/history/ADR-2026-release-abnahme-automatisierung.md`](docs/history/ADR-2026-release-abnahme-automatisierung.md).
