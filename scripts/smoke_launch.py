@@ -154,6 +154,7 @@ def run(
     max_instances: int,
     poll_interval: float = 0.25,
     env_overrides: dict[str, str] | None = None,
+    workdir: str | os.PathLike[str] | None = None,
 ) -> int:
     """Startet *command* und überwacht es. Gibt 0 (ok) oder 1 (Fehler).
 
@@ -161,11 +162,20 @@ def run(
     Selbst-Quit-Hook); ``{}`` startet mit der unveränderten Elternumgebung
     (nativer Betrieb, #648), ein eigenes Mapping setzt beliebige zusätzliche
     Variablen.
+
+    ``workdir`` setzt das Arbeitsverzeichnis des Zielkommandos; ``None`` erbt
+    das eigene (bisheriges Verhalten, Rückwärtskompatibilität für andere
+    Aufrufer). Der AppRun-Entrypoint startet die App als ``python -m
+    bgremover``, und CPython stellt bei ``-m`` das aktuelle Verzeichnis an den
+    Anfang von ``sys.path``. Läuft der Wächter im Checkout, beschattet dessen
+    ``bgremover/`` das gebündelte Paket – der Smoke prüft dann den Checkout
+    statt des Artefakts (#740). Ein leeres Verzeichnis verhindert das für
+    Haupt- und Spawn-Kindprozess gemeinsam.
     """
     env = {**os.environ, **(env_overrides if env_overrides is not None else _SMOKE_ENV)}
     # Eigene Prozessgruppe (``start_new_session``): ein Fork-Bomb-Baum ist so als
     # Ganzes per ``killpg`` beendbar, statt verwaiste Kinder zu hinterlassen.
-    proc = subprocess.Popen(command, env=env, start_new_session=True)
+    proc = subprocess.Popen(command, env=env, start_new_session=True, cwd=workdir)
     exclude = {os.getpid()}
     peak = 0
     deadline = time.monotonic() + timeout
@@ -254,6 +264,14 @@ def main(argv: list[str] | None = None) -> int:
         "--env", action="append", default=[], metavar="KEY=VALUE",
         help="Zusätzliche Umgebungsvariable für das Zielkommando (wiederholbar).",
     )
+    parser.add_argument(
+        "--workdir", default=None, metavar="DIR",
+        help=(
+            "Arbeitsverzeichnis des Zielkommandos (Default: geerbt). Ein leeres, "
+            "neutrales Verzeichnis verhindert, dass ein Checkout im cwd das "
+            "gebündelte Paket beschattet (#740)."
+        ),
+    )
     args = parser.parse_args(own_args)
     if not command:
         parser.error("kein Zielkommando nach '--' angegeben")
@@ -271,6 +289,7 @@ def main(argv: list[str] | None = None) -> int:
         max_instances=args.max_instances,
         poll_interval=args.poll_interval,
         env_overrides={**base, **extra},
+        workdir=args.workdir,
     )
 
 

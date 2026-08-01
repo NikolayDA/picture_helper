@@ -54,3 +54,29 @@ def test_linux_smoke_installs_qt_runtime_libs() -> None:
     # offscreen-Qt braucht System-libGL/-libEGL auf dem Runner, sonst scheitert
     # der AppImage-Start mit ``libGL.so.1: cannot open shared object file``.
     assert "libgl1" in text and "libegl1" in text
+
+
+def test_linux_smokes_start_artifacts_in_a_neutral_workdir() -> None:
+    """Beide Linux-Smokes starten das Artefakt außerhalb des Checkouts (#740).
+
+    Der AppRun-Entrypoint ruft ``python -m bgremover``; CPython stellt dabei
+    das cwd an den Anfang von ``sys.path``. Ohne Wechsel gewinnt das
+    ``bgremover/`` des Workspace-Checkouts gegen das gebündelte Paket, und der
+    Smoke prüft nicht das Artefakt, sondern den Checkout.
+    """
+    text = _release_text()
+    # Nur der Linux-Abschnitt: macOS ist durch das eingefrorene PyInstaller-
+    # Bundle immun (sys.path[0] = base_library.zip, kein cwd-Eintrag).
+    start = text.index("Smoke-launch built AppImage")
+    linux = text[start:text.index("macOS: .app + .dmg", start)]
+    aufrufe = linux.split("scripts/smoke_launch.py")[1:]
+    assert len(aufrufe) == 3, (
+        f"Erwartet: KI-Selbsttest, AppImage-Smoke, .deb-Smoke – gefunden: {len(aufrufe)}"
+    )
+    for i, aufruf in enumerate(aufrufe, 1):
+        # Nur die Optionen bis zum ``--``-Trenner gehören zum Wächter selbst.
+        optionen = aufruf.split(" -- ")[0]
+        assert "--workdir" in optionen, (
+            f"Linux-Smoke-Aufruf {i} startet ohne --workdir im Checkout (#740)."
+        )
+    assert 'neutral="$(mktemp -d)"' in linux

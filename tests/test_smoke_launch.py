@@ -272,3 +272,78 @@ def test_run_fork_bomb_emits_structured_peak_instances(tmp_path: Path, capsys) -
     assert parsed is not None
     assert parsed["status"] == "fork_bombe"
     assert parsed["peak_instances"] > 2
+
+
+def test_workdir_sets_child_working_directory(tmp_path: Path) -> None:
+    """``--workdir``/``workdir=`` bestimmt das cwd des Zielkommandos (#740)."""
+    ziel = tmp_path / "neutral"
+    ziel.mkdir()
+    ausgabe = tmp_path / "cwd.txt"
+    rc = smoke_launch.run(
+        [
+            sys.executable, "-c",
+            f"import os, pathlib; pathlib.Path(r'{ausgabe}').write_text(os.getcwd())",
+        ],
+        match_token="kein-treffer-token-" + uuid.uuid4().hex,
+        timeout=30,
+        max_instances=1,
+        workdir=str(ziel),
+    )
+    assert rc == 0
+    assert Path(ausgabe.read_text()).resolve() == ziel.resolve()
+
+
+def test_without_workdir_the_parent_cwd_is_inherited(tmp_path: Path) -> None:
+    """Ohne ``workdir`` bleibt das bisherige Verhalten unverändert (#740)."""
+    ausgabe = tmp_path / "cwd.txt"
+    rc = smoke_launch.run(
+        [
+            sys.executable, "-c",
+            f"import os, pathlib; pathlib.Path(r'{ausgabe}').write_text(os.getcwd())",
+        ],
+        match_token="kein-treffer-token-" + uuid.uuid4().hex,
+        timeout=30,
+        max_instances=1,
+    )
+    assert rc == 0
+    assert Path(ausgabe.read_text()).resolve() == Path.cwd().resolve()
+
+
+def test_neutral_workdir_prevents_checkout_from_shadowing_the_bundle(tmp_path: Path) -> None:
+    """Der eigentliche Regressionsfall aus #740.
+
+    Ein Start über ``python -m paket`` stellt das cwd an den Anfang von
+    ``sys.path``. Liegt dort ein gleichnamiges Paket (im echten Fall der
+    Checkout mit ``bgremover/``), gewinnt es gegen das gebündelte – der Smoke
+    prüft dann den falschen Code. Ein neutrales cwd verhindert genau das.
+    """
+    schatten = tmp_path / "checkout"
+    (schatten / "paket").mkdir(parents=True)
+    (schatten / "paket" / "__init__.py").write_text("HERKUNFT = 'checkout'\n")
+    (schatten / "paket" / "__main__.py").write_text(
+        "import paket, pathlib, os, sys\n"
+        "pathlib.Path(os.environ['ZIEL']).write_text(paket.HERKUNFT)\n"
+    )
+    ausgabe = tmp_path / "herkunft.txt"
+    neutral = tmp_path / "neutral"
+    neutral.mkdir()
+    argv = [sys.executable, "-m", "paket"]
+    token = "kein-treffer-token-" + uuid.uuid4().hex
+
+    # Ohne neutrales cwd gewinnt der Schatten – das ist der Fehlerzustand.
+    rc = smoke_launch.run(
+        argv, match_token=token, timeout=30, max_instances=1,
+        env_overrides={"ZIEL": str(ausgabe)}, workdir=str(schatten),
+    )
+    assert rc == 0
+    assert ausgabe.read_text() == "checkout"
+
+    # Mit neutralem cwd ist das Paket schlicht nicht auffindbar: der Start
+    # scheitert sichtbar, statt still den falschen Code zu prüfen.
+    ausgabe.unlink()
+    rc = smoke_launch.run(
+        argv, match_token=token, timeout=30, max_instances=1,
+        env_overrides={"ZIEL": str(ausgabe)}, workdir=str(neutral),
+    )
+    assert rc != 0
+    assert not ausgabe.exists()
