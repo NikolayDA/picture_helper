@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "policy_version": 1,
+  "unknown_path_behavior": "candidate-relevant-blocking",
+  "release_neutral": [
+    {
+      "id": "user-guide-de",
+      "kind": "exact",
+      "path": "ANLEITUNG.md",
+      "sample_path": "ANLEITUNG.md",
+      "reason": "Die deutsche Bedienungsanleitung wird weder vom Paket- noch vom Release-Build gelesen; das PDF wird ausschließlich lokal und manuell erzeugt.",
+      "evidence": ["pyproject.toml:[project].readme verweist ausschließlich auf README.md", "tests/test_dependency_constraints.py dokumentiert den manuellen docs-Extra-Pfad"]
+    },
+    {
+      "id": "user-guide-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/ANLEITUNG.md",
+      "sample_path": "docs/i18n/en/ANLEITUNG.md",
+      "reason": "Die übersetzte Bedienungsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/en/ANLEITUNG.md"]
+    },
+    {
+      "id": "user-guide-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/ANLEITUNG.md",
+      "sample_path": "docs/i18n/es/ANLEITUNG.md",
+      "reason": "Die übersetzte Bedienungsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/es/ANLEITUNG.md"]
+    },
+    {
+      "id": "user-guide-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/ANLEITUNG.md",
+      "sample_path": "docs/i18n/fr/ANLEITUNG.md",
+      "reason": "Die übersetzte Bedienungsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/fr/ANLEITUNG.md"]
+    },
+    {
+      "id": "user-guide-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/ANLEITUNG.md",
+      "sample_path": "docs/i18n/uk/ANLEITUNG.md",
+      "reason": "Die übersetzte Bedienungsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/uk/ANLEITUNG.md"]
+    },
+    {
+      "id": "user-guide-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/ANLEITUNG.md",
+      "sample_path": "docs/i18n/zh/ANLEITUNG.md",
+      "reason": "Die übersetzte Bedienungsanleitung ist kein Paket-, Bundle-, Release- oder Gate-Eingang.",
+      "evidence": ["Kein Packaging- oder Workflow-Schritt kopiert docs/i18n/zh/ANLEITUNG.md"]
+    },
+    {
+      "id": "contribution-guide",
+      "kind": "exact",
+      "path": "CONTRIBUTING.md",
+      "sample_path": "CONTRIBUTING.md",
+      "reason": "Die Beitragsrichtlinie steuert weder Produktbytes noch Build-, Abnahme- oder Publish-Gates.",
+      "evidence": ["Nicht in pyproject.toml, Packaging-Skripten oder Release-Workflows referenziert"]
+    },
+    {
+      "id": "testing-guide",
+      "kind": "exact",
+      "path": "TESTING.md",
+      "sample_path": "TESTING.md",
+      "reason": "Die Testanleitung beschreibt Befehle, wird aber von keinem Gate als Eingabe gelesen.",
+      "evidence": ["Makefile und Workflows führen Tests direkt aus und lesen TESTING.md nicht"]
+    },
+    {
+      "id": "security-guide",
+      "kind": "exact",
+      "path": "SECURITY.md",
+      "sample_path": "SECURITY.md",
+      "reason": "Die Sicherheitskontakt- und Prüfdokumentation ist kein ausführbarer Gate- oder Build-Eingang.",
+      "evidence": ["Security-Workflows und Scanner referenzieren SECURITY.md nicht als Konfiguration"]
+    },
+    {
+      "id": "resources-de",
+      "kind": "exact",
+      "path": "RESOURCES.md",
+      "sample_path": "RESOURCES.md",
+      "reason": "Die Ressourcenübersicht wird nicht in Artefakte eingebettet; verbindliche Lizenz-Snapshots liegen separat in LICENSES.md.",
+      "evidence": ["pyproject.toml license-files verweist auf LICENSE", "Release-Gate prüft LICENSES.md, nicht RESOURCES.md"]
+    },
+    {
+      "id": "resources-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/RESOURCES.md",
+      "sample_path": "docs/i18n/en/RESOURCES.md",
+      "reason": "Die übersetzte Ressourcenübersicht ist kein Artefakt-, Release- oder Gate-Eingang.",
+      "evidence": ["Verbindlicher englischer Lizenz-Snapshot ist docs/i18n/en/LICENSES.md"]
+    },
+    {
+      "id": "resources-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/RESOURCES.md",
+      "sample_path": "docs/i18n/es/RESOURCES.md",
+      "reason": "Die übersetzte Ressourcenübersicht ist kein Artefakt-, Release- oder Gate-Eingang.",
+      "evidence": ["Verbindlicher spanischer Lizenz-Snapshot ist docs/i18n/es/LICENSES.md"]
+    },
+    {
+      "id": "resources-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/RESOURCES.md",
+      "sample_path": "docs/i18n/fr/RESOURCES.md",
+      "reason": "Die übersetzte Ressourcenübersicht ist kein Artefakt-, Release- oder Gate-Eingang.",
+      "evidence": ["Verbindlicher französischer Lizenz-Snapshot ist docs/i18n/fr/LICENSES.md"]
+    },
+    {
+      "id": "resources-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/RESOURCES.md",
+      "sample_path": "docs/i18n/uk/RESOURCES.md",
+      "reason": "Die übersetzte Ressourcenübersicht ist kein Artefakt-, Release- oder Gate-Eingang.",
+      "evidence": ["Verbindlicher ukrainischer Lizenz-Snapshot ist docs/i18n/uk/LICENSES.md"]
+    },
+    {
+      "id": "resources-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/RESOURCES.md",
+      "sample_path": "docs/i18n/zh/RESOURCES.md",
+      "reason": "Die übersetzte Ressourcenübersicht ist kein Artefakt-, Release- oder Gate-Eingang.",
+      "evidence": ["Verbindlicher chinesischer Lizenz-Snapshot ist docs/i18n/zh/LICENSES.md"]
+    },
+    {
+      "id": "agent-context",
+      "kind": "exact",
+      "path": "CLAUDE.md",
+      "sample_path": "CLAUDE.md",
+      "reason": "Der Agentenkontext beeinflusst keine bereits versionierten Produktbytes und wird von keinem Release-Gate gelesen.",
+      "evidence": ["Nicht in pyproject.toml, Packaging-Skripten oder Release-Workflows als Eingabe referenziert"]
+    },
+    {
+      "id": "recommendations-de",
+      "kind": "exact",
+      "path": "RECOMMENDATIONS.md",
+      "sample_path": "RECOMMENDATIONS.md",
+      "reason": "Die Triage ist reine Statusdokumentation und kein Build-, Evidenz- oder Gate-Eingang.",
+      "evidence": ["Release-Freeze und Release-Workflow lesen RECOMMENDATIONS.md nicht"]
+    },
+    {
+      "id": "recommendations-en",
+      "kind": "exact",
+      "path": "docs/i18n/en/RECOMMENDATIONS.md",
+      "sample_path": "docs/i18n/en/RECOMMENDATIONS.md",
+      "reason": "Die übersetzte Triage ist reine Statusdokumentation.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "recommendations-es",
+      "kind": "exact",
+      "path": "docs/i18n/es/RECOMMENDATIONS.md",
+      "sample_path": "docs/i18n/es/RECOMMENDATIONS.md",
+      "reason": "Die übersetzte Triage ist reine Statusdokumentation.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "recommendations-fr",
+      "kind": "exact",
+      "path": "docs/i18n/fr/RECOMMENDATIONS.md",
+      "sample_path": "docs/i18n/fr/RECOMMENDATIONS.md",
+      "reason": "Die übersetzte Triage ist reine Statusdokumentation.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "recommendations-uk",
+      "kind": "exact",
+      "path": "docs/i18n/uk/RECOMMENDATIONS.md",
+      "sample_path": "docs/i18n/uk/RECOMMENDATIONS.md",
+      "reason": "Die übersetzte Triage ist reine Statusdokumentation.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "recommendations-zh",
+      "kind": "exact",
+      "path": "docs/i18n/zh/RECOMMENDATIONS.md",
+      "sample_path": "docs/i18n/zh/RECOMMENDATIONS.md",
+      "reason": "Die übersetzte Triage ist reine Statusdokumentation.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "pull-request-template",
+      "kind": "exact",
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "sample_path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "reason": "Die PR-Vorlage wirkt nur bei der Erstellung einer PR und wird nicht ausgeliefert oder von Gates gelesen.",
+      "evidence": ["Kein Workflow referenziert die PR-Vorlage als Eingabe"]
+    },
+    {
+      "id": "issue-templates",
+      "kind": "prefix",
+      "path": ".github/ISSUE_TEMPLATE/",
+      "sample_path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "reason": "Issue-Vorlagen wirken nur auf neue GitHub-Issues und sind keine Build-, Release- oder Gate-Eingänge.",
+      "evidence": ["Release-Workflows lesen .github/ISSUE_TEMPLATE nicht"]
+    },
+    {
+      "id": "github-agents",
+      "kind": "prefix",
+      "path": ".github/agents/",
+      "sample_path": ".github/agents/README.md",
+      "reason": "Agentenprofile steuern interaktive Entwicklungshelfer, nicht den reproduzierbaren Build- oder Release-Pfad.",
+      "evidence": ["Kein Release-Workflow lädt .github/agents als Konfiguration"]
+    }
+  ],
+  "candidate_relevant": [
+    {"id": "package-readme", "kind": "exact", "path": "README.md", "sample_path": "README.md", "reason": "pyproject.toml verwendet README.md als Paketmetadatum."},
+    {"id": "package-license", "kind": "exact", "path": "LICENSE", "sample_path": "LICENSE", "reason": "pyproject.toml nimmt LICENSE als Lizenzdatei in das Paket auf."},
+    {"id": "license-snapshot", "kind": "exact", "path": "LICENSES.md", "sample_path": "LICENSES.md", "reason": "Der verbindliche Lizenz-Snapshot wird vom Release-Gate geprüft."},
+    {"id": "release-changelog", "kind": "exact", "path": "CHANGELOG.md", "sample_path": "CHANGELOG.md", "reason": "Der Publish-Workflow erzeugt daraus den Release-Body."},
+    {"id": "project-metadata", "kind": "exact", "path": "pyproject.toml", "sample_path": "pyproject.toml", "reason": "Version, Paketmetadaten, Abhängigkeiten und Paketinhalt werden hier definiert."},
+    {"id": "make-gates", "kind": "exact", "path": "Makefile", "sample_path": "Makefile", "reason": "Das Makefile definiert lokale und CI-nahe Qualitäts- und Freeze-Gates."},
+    {"id": "application", "kind": "prefix", "path": "bgremover/", "sample_path": "bgremover/app.py", "reason": "Anwendungscode und eingebettete Ressourcen werden ausgeliefert."},
+    {"id": "packaging", "kind": "prefix", "path": "packaging/", "sample_path": "packaging/linux/build_appimage.sh", "reason": "Packaging-Dateien steuern Bundle-Inhalt, Metadaten und Startverhalten."},
+    {"id": "release-scripts", "kind": "prefix", "path": "scripts/", "sample_path": "scripts/verify_release_freeze.py", "reason": "Skripte erzeugen oder prüfen Build-, Release- und Abnahme-Evidenz."},
+    {"id": "tests", "kind": "prefix", "path": "tests/", "sample_path": "tests/test_release_freeze.py", "reason": "Tests definieren Gate-Semantik und müssen Kandidatenänderungen absichern."},
+    {"id": "dependency-constraints", "kind": "prefix", "path": "requirements/", "sample_path": "requirements/constraints.txt", "reason": "Gepinnte Build- und Laufzeitabhängigkeiten beeinflussen Artefakte und Audits."},
+    {"id": "release-workflows", "kind": "prefix", "path": ".github/workflows/", "sample_path": ".github/workflows/release-linux.yml", "reason": "Workflows definieren Build-, Scan-, Abnahme- und Publish-Verhalten."},
+    {"id": "packaging-smoke-contract", "kind": "exact", "path": "docs/PACKAGING_SMOKE.md", "sample_path": "docs/PACKAGING_SMOKE.md", "reason": "Dieses Dokument definiert verbindliche Release-Abnahmekriterien."},
+    {"id": "release-automation-runbook", "kind": "exact", "path": "docs/RELEASE_AUTOMATION.md", "sample_path": "docs/RELEASE_AUTOMATION.md", "reason": "Das Runbook definiert Betrieb und Evidenzsemantik der Hardware-Abnahme."},
+    {"id": "release-process-runbook", "kind": "exact", "path": "docs/RELEASE_PROCESS.md", "sample_path": "docs/RELEASE_PROCESS.md", "reason": "Der für #745 geplante kanonische Release-Prozess ist bewusst kandidatenrelevant klassifiziert."},
+    {"id": "release-acceptance-checklist", "kind": "exact", "path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "sample_path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "reason": "Die für #746 geplante versionierte Abnahme-Checkliste bestimmt Evidenzsemantik."},
+    {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
+    {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
+    {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
+    {"id": "changelog-en", "kind": "exact", "path": "docs/i18n/en/CHANGELOG.md", "sample_path": "docs/i18n/en/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
+    {"id": "changelog-es", "kind": "exact", "path": "docs/i18n/es/CHANGELOG.md", "sample_path": "docs/i18n/es/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
+    {"id": "changelog-fr", "kind": "exact", "path": "docs/i18n/fr/CHANGELOG.md", "sample_path": "docs/i18n/fr/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
+    {"id": "changelog-uk", "kind": "exact", "path": "docs/i18n/uk/CHANGELOG.md", "sample_path": "docs/i18n/uk/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
+    {"id": "changelog-zh", "kind": "exact", "path": "docs/i18n/zh/CHANGELOG.md", "sample_path": "docs/i18n/zh/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
+    {"id": "licenses-en", "kind": "exact", "path": "docs/i18n/en/LICENSES.md", "sample_path": "docs/i18n/en/LICENSES.md", "reason": "Übersetzter Lizenz-Snapshot wird vom Gate geprüft."},
+    {"id": "licenses-es", "kind": "exact", "path": "docs/i18n/es/LICENSES.md", "sample_path": "docs/i18n/es/LICENSES.md", "reason": "Übersetzter Lizenz-Snapshot wird vom Gate geprüft."},
+    {"id": "licenses-fr", "kind": "exact", "path": "docs/i18n/fr/LICENSES.md", "sample_path": "docs/i18n/fr/LICENSES.md", "reason": "Übersetzter Lizenz-Snapshot wird vom Gate geprüft."},
+    {"id": "licenses-uk", "kind": "exact", "path": "docs/i18n/uk/LICENSES.md", "sample_path": "docs/i18n/uk/LICENSES.md", "reason": "Übersetzter Lizenz-Snapshot wird vom Gate geprüft."},
+    {"id": "licenses-zh", "kind": "exact", "path": "docs/i18n/zh/LICENSES.md", "sample_path": "docs/i18n/zh/LICENSES.md", "reason": "Übersetzter Lizenz-Snapshot wird vom Gate geprüft."}
+  ],
+  "drift_guards": {
+    "pyproject_file_inputs": ["README.md", "LICENSE"],
+    "pyproject_package_roots": ["bgremover/"],
+    "release_documents": [
+      "CHANGELOG.md",
+      "LICENSES.md",
+      "docs/PACKAGING_SMOKE.md",
+      "docs/RELEASE_AUTOMATION.md",
+      "docs/RELEASE_PROCESS.md",
+      "docs/RELEASE_ACCEPTANCE_CHECKLIST.md",
+      "docs/history/RELEASE-2.7.2-scope-freeze.md"
+    ]
+  }
+}
