@@ -493,8 +493,10 @@ Tabelle im Freeze-Dokument gibt sie nur wieder.
   `README.md` sichtbar gemacht).
 - Das Skript prüft am abgeleiteten Commit Versionsquellen, CHANGELOG-Abschnitt
   in sechs Sprachen, AppStream-Metadaten, Lizenz-Snapshots, die vollständige
-  Commit-Klassifizierung und den veröffentlichten Release-Body
-  (`extract_release_notes.py`). Nur Standardbibliothek + `git`.
+  Commit-Klassifizierung und den Release-Body, den `extract_release_notes.py`
+  **aus dem geprüften Commit** aus dem CHANGELOG erzeugt — also den künftigen
+  Body, **nicht** einen bereits auf GitHub veröffentlichten (die Prüfung ist
+  netzfrei: nur Standardbibliothek + `git`).
 - **Ein Dokument kann seinen eigenen Commit-SHA nicht enthalten.** Der
   protokollierte Kandidaten-SHA kommt deshalb immer durch einen darüber
   liegenden **reinen Protokoll-Commit** hinein („Freeze-Nachtrag"); solange
@@ -525,13 +527,21 @@ nie) und `abnahme_aggregate.py` (Evidenz-Aggregation + Abschlussmatrix).
 Seit #686/#734 lädt `release_abnahme.py` die Artefakte eines veröffentlichten
 Releases **anonym** über `browser_download_url` (ein versehentlich privates
 Release fällt dadurch auf) und weist je Artefakt aus, ob der SHA256 gegen einen
-Anbieter-Digest bestätigt oder nur berechnet ist. **Evidenz-Schema 3** (#738)
-führt zusätzlich `laufzeit_herkunft`: `bgremover.__file__`, `ai_process.__file__`,
-`sys.executable`/`sys.frozen`, Arbeitsverzeichnis und `sys.path[0]` — für den
-Haupt- **und** den `spawn`-Kindprozess, weil dort real ein Import aus dem
-Source-Checkout statt aus dem Bundle beobachtet wurde. Die Herkunft wird
-bewusst **nicht bewertet** (geht nicht in `ok` ein) und bei *jedem* Lauf
-gedruckt: ein grüner Lauf aus dem falschen Pfad ist der gefährlichere Fall.
+Anbieter-Digest bestätigt oder nur berechnet ist. Der **Zusatznachweis** führt
+seit #738 `laufzeit_herkunft` (Schema **3** — das ist
+`acceptance_smoke._EVIDENCE_SCHEMA`/`abnahme_smoke.ACCEPTANCE_EXTRA_SCHEMA` der
+*eingebetteten* `abnahme-acceptance-extra`-Nutzlast; die umschließende
+`abnahme-evidenz` aus `release_abnahme.py` steht unverändert auf
+`EVIDENCE_SCHEMA = 1`): Hauptprozess mit `bgremover.__file__`,
+`ai_process.__file__`, `sys.executable`/`sys.frozen`, Arbeitsverzeichnis und
+`sys.path[0]`, dazu unter `kindprozess` dieselben Felder **ohne**
+Arbeitsverzeichnis aus einem echten `spawn`-Kind — dem eigentlichen Fundort,
+denn dort wurde real ein Import aus dem Source-Checkout statt aus dem Bundle
+beobachtet. Die Herkunft wird bewusst **nicht bewertet** (geht nicht in `ok`
+ein) und bei *jedem* Lauf gedruckt: ein grüner Lauf aus dem falschen Pfad ist
+der gefährlichere Fall. Ins Joblog geht vom Kind allerdings nur
+`bgremover`/`ai_process`/`sys_path_0`/`fehler` — Interpreter und
+`eingefroren` stehen nur in der JSON-Evidenz.
 Die Ursache dahinter ist mit #740/#750 behoben: Der AppRun-Entrypoint startet
 `python -m bgremover`, CPython stellt bei `-m` das cwd an den Anfang von
 `sys.path`, und der Wächter lief im Checkout — dessen `bgremover/` gewann
