@@ -66,6 +66,37 @@ def _write_release_files(directory: Path) -> list[dict]:
     return records
 
 
+def _candidate_artifacts() -> list[dict]:
+    return [
+        {
+            "id": index,
+            "name": name,
+            "digest": "sha256:" + (str(index % 10) * 64),
+            "expired": False,
+        }
+        for index, name in enumerate(
+            (*rc.ARTIFACT_CONTAINERS, "release-freeze-provenance-1"),
+            start=1,
+        )
+    ]
+
+
+def _write_freeze_payload(path: Path, *, candidate_sha: str = HEAD) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "kind": "release-freeze-provenance",
+                "release": {"version": VERSION},
+                "candidate_sha": candidate_sha,
+                "workflow": {"run_id": CANDIDATE_RUN_ID},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def _candidate_contract(records: list[dict]) -> dict:
     return {
         "schema": 1,
@@ -509,40 +540,75 @@ def test_successful_publish_verification_proves_byte_equality(tmp_path: Path) ->
     assert published_hashes == candidate_hashes
 
 
+@pytest.mark.parametrize("layout", ["flat", "named"])
+def test_prepare_candidate_accepts_download_artifact_layouts(
+    tmp_path: Path, layout: str
+) -> None:
+    files = tmp_path / "files"
+    records = _write_release_files(files)
+    provenance_root = tmp_path / "provenance"
+    provenance_parent = (
+        provenance_root
+        if layout == "flat"
+        else provenance_root / "release-freeze-provenance-1"
+    )
+    _write_freeze_payload(provenance_parent / "release-freeze-provenance.json")
+
+    contract = rc.prepare_candidate_contract(
+        run=_run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
+        listing={"artifacts": _candidate_artifacts()},
+        candidate_dir=files,
+        provenance_dir=provenance_root,
+        expected_run_id=CANDIDATE_RUN_ID,
+        output_dir=tmp_path / "out",
+    )
+
+    assert contract["artifacts"] == records
+    assert contract["candidate"]["freeze_provenance"]["name"] == (
+        "release-freeze-provenance-1"
+    )
+    assert (tmp_path / "out" / "release-freeze-provenance.json").is_file()
+
+
+@pytest.mark.parametrize("payload_count", [0, 2])
+def test_prepare_candidate_rejects_missing_or_ambiguous_freeze_payload(
+    tmp_path: Path, payload_count: int
+) -> None:
+    files = tmp_path / "files"
+    _write_release_files(files)
+    provenance_root = tmp_path / "provenance"
+    provenance_root.mkdir()
+    if payload_count:
+        _write_freeze_payload(provenance_root / "release-freeze-provenance.json")
+        _write_freeze_payload(
+            provenance_root
+            / "release-freeze-provenance-1"
+            / "release-freeze-provenance.json"
+        )
+
+    with pytest.raises(rc.ContractError, match="genau eine regulaere Datei"):
+        rc.prepare_candidate_contract(
+            run=_run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
+            listing={"artifacts": _candidate_artifacts()},
+            candidate_dir=files,
+            provenance_dir=provenance_root,
+            expected_run_id=CANDIDATE_RUN_ID,
+            output_dir=tmp_path / "out",
+        )
+
+
 def test_prepare_candidate_rejects_wrong_freeze_provenance(tmp_path: Path) -> None:
     files = tmp_path / "files"
     _write_release_files(files)
     provenance_root = tmp_path / "provenance"
     provenance = provenance_root / "release-freeze-provenance-1"
-    provenance.mkdir(parents=True)
-    (provenance / "release-freeze-provenance.json").write_text(
-        json.dumps(
-            {
-                "schema": 1,
-                "kind": "release-freeze-provenance",
-                "release": {"version": VERSION},
-                "candidate_sha": "b" * 40,
-                "workflow": {"run_id": CANDIDATE_RUN_ID},
-            }
-        ),
-        encoding="utf-8",
+    _write_freeze_payload(
+        provenance / "release-freeze-provenance.json", candidate_sha="b" * 40
     )
-    artifacts = [
-        {
-            "id": index,
-            "name": name,
-            "digest": "sha256:" + (str(index % 10) * 64),
-            "expired": False,
-        }
-        for index, name in enumerate(
-            (*rc.ARTIFACT_CONTAINERS, "release-freeze-provenance-1"),
-            start=1,
-        )
-    ]
     with pytest.raises(rc.ContractError, match="anderen Kandidaten"):
         rc.prepare_candidate_contract(
             run=_run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
-            listing={"artifacts": artifacts},
+            listing={"artifacts": _candidate_artifacts()},
             candidate_dir=files,
             provenance_dir=provenance_root,
             expected_run_id=CANDIDATE_RUN_ID,
