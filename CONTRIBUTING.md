@@ -12,6 +12,7 @@ Danke für dein Interesse! Bugs, Verbesserungsvorschläge und Pull Requests sind
 6. [Konventionen](#konventionen)
 7. [Tests](#tests)
 8. [Dokumentation](#dokumentation)
+9. [Releases](#releases)
 
 ---
 
@@ -117,6 +118,13 @@ Neue Features brauchen Tests. Bugfixes idealerweise einen Regressionstest. Marke
 BgRemover ist mehrsprachig (Deutsch, Englisch, Spanisch, Französisch, Ukrainisch, Chinesisch). Änderungen an deutschen Basisdokumenten (`README.md`, `ANLEITUNG.md`, `CHANGELOG.md` usw.) müssen in den entsprechenden `docs/i18n/`-Dateien gespiegelt werden, damit die i18n-Paritätstests grün bleiben.
 
 Markdown-Links werden durch Tests geprüft — keine toten Links einführen.
+
+## Releases
+
+Der verbindliche Ablauf steht ausschließlich im
+[Release-Runbook](docs/RELEASE_PROCESS.md); Kriterien und Plattformumfang in
+der [versionierten Abnahme-Checkliste](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
+Release-Schritte nicht in weiteren Dokumenten duplizieren.
 
 ## Fragen?
 

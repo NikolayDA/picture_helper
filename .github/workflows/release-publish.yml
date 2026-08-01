@@ -116,7 +116,8 @@ jobs:
             --candidate-run-id "$CANDIDATE_RUN_ID" \
             --acceptance-run-id "$ACCEPTANCE_RUN_ID" \
             --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
-            --tag "$RELEASE_TAG" --tag-sha "$tag_sha"
+            --tag "$RELEASE_TAG" --tag-sha "$tag_sha" \
+            --checklist "candidate-source/docs/RELEASE_ACCEPTANCE_CHECKLIST.md"
 
       - name: Freeze-Provenienz am Kandidaten-Commit rekonstruieren
         run: |

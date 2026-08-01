@@ -42,7 +42,7 @@ ein neuer Kandidat gebaut und abgenommen.
 
 ## Freigabemanifest
 
-`release-approval-manifest.json` hat Schema- und Policy-Version `1` und enthält:
+`release-approval-manifest.json` hat Schema- und Policy-Version `2` und enthält:
 
 - Kandidaten-Run-ID/-Attempt, Workflow-Pfad und Quell-`head_sha`;
 - Version und erwarteten Tag;
@@ -53,6 +53,8 @@ ein neuer Kandidat gebaut und abgenommen.
   `paused`);
 - exakt fünf Datensätze `{name, sha256, bytes, platform,
   acceptance_status}`;
+- eine Release-Instanz mit Checklisten-Version, vollständigem Commit-SHA,
+  Checklisten-Dateihash und Status/Evidenz für jede stabile Kriteriums-ID;
 - UTC-Erzeugungszeitpunkt.
 
 Das Manifest liegt als attempt-spezifisches, unveränderliches Actions-Artefakt

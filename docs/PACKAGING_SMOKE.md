@@ -8,9 +8,14 @@ Kriterien (Geometrie, Gating, Cache/Generation, Nicht-Mutation, Fallback-Zustän
 Mesh-Build-Baseline) liegen in der Testsuite bzw. im Benchmark; siehe
 [Abschluss-Matrix](history/EPIC-582-ABNAHME.md).
 
+Dieses Dokument definiert nur die ausführbaren Hardware-Prozeduren. Verbindliche
+Kriteriums-IDs, Pflichtgrade, Plattformumfang und Statuswerte stehen in der
+[versionierten Release-Abnahme-Checkliste](RELEASE_ACCEPTANCE_CHECKLIST.md);
+Reihenfolge und Wiederanlauf im [Release-Runbook](RELEASE_PROCESS.md).
+
 > Prinzip: Jeder Smoke nennt **Vorbedingung → Schritte → erwartetes Ergebnis**
 > und ein Protokollfeld. Kein Kriterium gilt als erfüllt, ohne dass der Lauf mit
-> Commit-SHA, Umgebung und Ergebnis im Abnahmeprotokoll (#582-Abschlusskommentar)
+> Commit-SHA, Umgebung und Ergebnis unter der passenden stabilen Kriteriums-ID
 > festgehalten ist.
 
 ## 1. Referenzumgebung erfassen

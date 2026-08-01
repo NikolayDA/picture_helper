@@ -2,7 +2,8 @@
 
 Betriebsanleitung zu Epic #639: Der Workflow
 [`release-abnahme.yml`](../.github/workflows/release-abnahme.yml) sammelt die
-Release-Abnahme-Evidenz aus [PACKAGING_SMOKE.md](PACKAGING_SMOKE.md) (#595)
+Release-Abnahme-Evidenz für die
+[versionierte Checkliste](RELEASE_ACCEPTANCE_CHECKLIST.md) (#595)
 automatisiert auf Self-hosted GitHub-Actions-Runnern. Architektur- und
 Sicherheitsentscheidungen:
 [ADR-2026-release-abnahme-automatisierung.md](history/ADR-2026-release-abnahme-automatisierung.md).
@@ -10,10 +11,10 @@ Der byteidentische Build→Abnahme→Publish-Vertrag ist in
 [ADR-2026-release-manifest-publish.md](history/ADR-2026-release-manifest-publish.md)
 festgelegt.
 
-Die Abnahmekriterien selbst bleiben in `PACKAGING_SMOKE.md`; hier steht, wie
-Kandidat, Nachweise, Freigabemanifest und Veröffentlichung zusammenhängen. Die
-Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt; der Publish-Workflow
-akzeptiert danach nur die bereits abgenommenen Bytes.
+Der kanonische Build→Abnahme→Publish-Ablauf steht ausschließlich im
+[Release-Runbook](RELEASE_PROCESS.md). `PACKAGING_SMOKE.md` liefert die
+Hardware-Kommandos; dieses Dokument beschreibt nur Betrieb und technisches
+Verhalten der selbst gehosteten Runner.
 
 ## 1. Runner-Übersicht
 
@@ -130,18 +131,11 @@ wählt.
 - [ ] Ausreichend freier Speicher; das Arbeitsverzeichnis des Runners liegt
       nicht in einem synchronisierten Ordner (iCloud/Nextcloud o. Ä.).
 
-## 4. Kandidat bauen und Abnahme-Lauf starten
+## 4. Technisches Verhalten des Abnahme-Jobs
 
-Zuerst GitHub → **Actions → „Release artifacts (Linux + macOS)" → Run
-workflow** auf dem gewünschten Kandidaten-Commit starten. Dieser Workflow ist
-nur noch ein Kandidatenbau: kein Tag-Trigger, kein Release und keine
-Schreibrechte. Nach erfolgreicher Full-CI und allen drei Build-Legs die
-**Run-ID** aus der Actions-URL notieren. Build-Dateien und Freeze-Provenienz
-bleiben 90 Tage verfügbar.
-
-GitHub → **Actions → „Release-Abnahme (Self-hosted Hardware)" → Run
-workflow**. In der Branch-Auswahl **exakt denselben Commit** wie beim
-Kandidatenbau wählen, dann:
+Startreihenfolge, Inputs, erwartete Ergebnisse und Wiederanlauf stehen in
+Schritt 3 bis 6 des [Release-Runbooks](RELEASE_PROCESS.md). Für Diagnose und
+Runnerpflege sind die Eingaben des Abnahme-Jobs:
 
 - **`run_id`**: die notierte Run-ID des erfolgreichen
   `release-linux.yml`-Kandidatenlaufs. Andere Workflows, fehlgeschlagene Runs
@@ -232,26 +226,13 @@ Freeze-Provenienzreferenz, Plattformstatus und exakt fünf Datei-SHA-256. Den
 Manifestnamen und die Abnahme-Run-ID für §4.1 notieren. Bei `dry_run`, einer
 Teilplattform-Auswahl oder einer blockierenden Lücke entsteht kein Manifest.
 
-### 4.1 Abgenommene Bytes veröffentlichen
+### 4.1 Freigabemanifest und Veröffentlichung
 
-1. Den erwarteten Tag `vX.Y.Z` auf **exakt dem Kandidaten-Commit** anlegen und
-   pushen. Der Tag selbst startet keinen Build mehr.
-2. GitHub → **Actions → „Publish accepted release artifacts" → Run workflow**.
-3. Vier Felder eintragen: `tag`, Kandidaten-`candidate_run_id`,
-   `acceptance_run_id` und den exakten `approval_artifact_name` aus §4.
-
-Der Workflow prüft vor jeder Änderung Tag→Commit, beide Run-Metadaten und
-Workflow-Pfade, Freeze-Provenienz, Plattformstatus, exakte Dateimenge, Größen
-und SHA-256. Er lädt die fünf Dateien ausschließlich aus dem Kandidaten-Run,
-legt das Release als Draft an, lädt die Dateien hoch, lädt sie erneut herunter
-und veröffentlicht den Draft erst nach byteidentischer Prüfung.
-
-Wiederholung ist sicher: Ein vollständiger byteidentischer Draft wird nur noch
-veröffentlicht, ein bereits identisches Release ist ein No-op. Teilweise,
-zusätzliche oder abweichende Assets blockieren ohne Clobber/Löschen. Dann muss
-der Owner den Draft bewusst bereinigen oder einen neuen Tag wählen. Nach Ablauf
-der 90-Tage-Aufbewahrung wird ein neuer Kandidat gebaut und abgenommen; alte
-Bytes werden nicht aus Kommentaren oder lokalen Kopien rekonstruiert.
+Der Aggregations-Job erzeugt zusätzlich zur Abschlussmatrix das unveränderliche
+Freigabemanifest und eine daraus extrahierbare Release-Instanz. Beide pinnen die
+Checklisten-Version, ihren Dateihash und den Kandidaten-Commit. Veröffentlichung,
+Wiederholung, Teilzustände und Rollback sind ausschließlich in Schritt 6 bis 9
+des [Release-Runbooks](RELEASE_PROCESS.md) beschrieben.
 
 Repository-Variablen (Settings → Secrets and variables → Actions →
 Variables):

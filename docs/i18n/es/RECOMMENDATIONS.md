@@ -11,7 +11,7 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-08-01, estado de trabajo de v2.7.2 tras la PR #754)
+## Estado actual (2026-08-01, estado de trabajo de v2.7.2 tras la PR #755)
 
 **v2.7.1 está publicada** (2026-07-30, etiqueta `a3de137a0c0873f93f84186f9bba32d684a48808`, cinco artefactos). #740 había demostrado que la primera ejecución posterior cargaba código de AppImage y `.deb` desde el checkout; #750 corrigió la ruta de prueba. La ejecución real en la Pi [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) acredita ahora la procedencia del bundle y un `sys_path_0` sin checkout para ambos paquetes Linux, por lo que #740 está cerrada. La evidencia Linux ya está disponible para #680/#685/#686; aún deben actualizarse sus notas de aceptación. El candidato 2.7.2 se derivará del head comprobado por el workflow, en vez de mantener un pin SHA posterior en el documento del freeze (#742/#743).
 
@@ -33,21 +33,19 @@ La **leyenda de causas U1–U10** ya figura como tabla en #741; antes diez incid
 
 La base anterior sigue cerrada sin cambios: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25** y las versiones v2.7.0/v2.7.1. Ningún hallazgo 🔴 abierto.
 
-Estado en vivo tras la consulta a GitHub: **27** incidencias abiertas. #742/#743
-se cerraron con la PR #754; #744/#747 se implementan juntas en esta PR.
+Estado en vivo tras la consulta a GitHub: **25** incidencias abiertas. #744/#747
+se cerraron con la PR #755; #737/#745/#746 se implementan juntas en esta PR.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-08-01)
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟠 Alta (dos versiones con retrabajo notable) | 🟠 Alta (11 incidencias hijas, reforma de freeze y publish) | – (épica) | Leyenda e inventario corregidos: fase 0/1 lista para empezar |
-| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish reutiliza los artefactos candidatos aceptados | 🟠 Alta (aceptados ≠ bytes publicados) | 🔴 Alta (ruta de publicación, difícil de ensayar) | Opus, alta | **En curso** — manifiesto de aprobación y publish separado sin recompilar, draft-first, en esta PR |
-| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Asegurar por máquina el nuevo contrato del gate tras #742/#744 | 🟡 Media (evita derivas como la de #709) | 🟡 Media (amplía pruebas existentes) | Sonnet, media | **En curso** — pruebas positivas/negativas, manipulación, reintento e igualdad de bytes en la misma PR |
-| [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Lista de aceptación versionada en vez de incidencias por versión | 🟡 Media (evita reinventar los criterios en cada versión) | 🟡 Media (esquema, IDs estables, reglas de exención) | Sonnet, media | Lista para empezar — antes o junto con #745 |
-| [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Runbook de publicación como única fuente del proceso | 🟡 Media (hoy el conocimiento vive en comentarios de incidencias) | 🟡 Media (documentación + pruebas de enlaces/gobernanza) | Sonnet, media | Bloqueada — solo tras decidir #742/#743/#744 |
-| [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Detección de actualización posterior desde un artefacto anterior real | 🟡 Media (ruta de actualización productiva sin verificar) | 🟠 Alta (trabajo de plataforma/operación, solo posible tras publicar) | Opus, alta | Bloqueada — se ejecuta tras el publish de #744 |
-| [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Eliminar o derivar el estado de versión mantenido a mano en CLAUDE.md | 🟢 Baja (gobernanza documental) | 🟢 Baja (quitar la línea + prueba de regresión) | Sonnet, baja | **Lista para empezar** — independiente del ciclo |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Proteger el estado en vivo y la procedencia del freeze en Recommendations | 🟡 Media (tercera deriva acreditada tras #669/#728) | 🟡 Media (contrato local + comprobación GitHub separada) | Sonnet, media | Redefinir tras #742: validar versión de política/procedencia, no el pin eliminado |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟠 Alta (dos versiones con retrabajo notable) | 🟠 Alta (11 incidencias hijas, reforma de freeze y publish) | – (épica) | #742–#744/#747 hechas; #737/#745/#746 en esta PR, luego release real + #748 |
+| [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Lista de aceptación versionada en vez de incidencias por versión | 🟡 Media (evita reinventar los criterios en cada versión) | 🟡 Media (esquema, IDs estables, reglas de exención) | Sonnet, media | **En curso** — esquema 1.0.0, IDs estables, pin e instancia en esta PR |
+| [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Runbook de publicación como única fuente del proceso | 🟡 Media (hoy el conocimiento vive en comentarios de incidencias) | 🟡 Media (documentación + pruebas de enlaces/gobernanza) | Sonnet, media | **En curso** — nueve pasos, hotfix/rollback/reinicio y protocolo dry-run en esta PR |
+| [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Detección de actualización posterior desde un artefacto anterior real | 🟡 Media (ruta de actualización productiva sin verificar) | 🟠 Alta (trabajo de plataforma/operación, solo posible tras publicar) | Opus, alta | Bloqueada hasta el próximo publish real v2.7.2; después ejecutar `UPDATE-01` |
+| [#737](https://github.com/NikolayDA/picture_helper/issues/737) | Eliminar o derivar el estado de versión mantenido a mano en CLAUDE.md | 🟢 Baja (gobernanza documental) | 🟢 Baja (quitar la línea + prueba de regresión) | Sonnet, baja | **En curso** — solo fuentes canónicas y prueba de regresión en esta PR |
+| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Proteger el estado en vivo y la procedencia del freeze en Recommendations | 🟡 Media (tercera deriva acreditada tras #669/#728) | 🟡 Media (contrato local + comprobación GitHub separada) | Sonnet, media | Redefinir ahora sobre contratos de policy, checklist y manifiesto, no estado manual |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Hacer que el escaneo ClamAV se ejecute realmente por plataforma | 🟡 Media (capa adicional de cadena de suministro, no bloquea) | 🟡 Media (dos causas distintas + decisión del propietario) | Sonnet, baja-media | Requiere decisión A–D; corregir por separado el bloqueo en Linux y el X509 de macOS |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Acotar deliberadamente el acceso de API para la prevaloración visual | 🟡 Media (calidad de la evidencia de capturas) | 🟢 Baja (secreto + cambio de flujo de trabajo) | – (propietario) + Sonnet, baja | Requiere decisión A/B — se recomienda la variante A (secreto propio) |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Publicación v2.7.x — publicada, evidencia Linux disponible | 🟡 Media (macOS y Linux acreditados en hardware real) | 🟢 Baja (actualizar nota de aceptación) | Sonnet, baja | Enlazar la ejecución 30706671985, actualizar criterios y revisar las demás condiciones de cierre |
@@ -68,14 +66,15 @@ se cerraron con la PR #754; #744/#747 se implementan juntas en esta PR.
 
 ### Recomendado a continuación
 
-1. Completar **#744 + #747** en esta PR; CI y revisión deben confirmar el manifiesto, el publish sin recompilar y las pruebas de manipulación.
-2. Actualizar **#680/#685/#686** con la ejecución 30706671985 y cerrarlas según sus demás criterios.
-3. Basar **#745/#746** en el contrato de release ya decidido.
-4. **#737/#752** y las decisiones del propietario sobre **#656** (variante A) y **#731** (A–D) son independientes; #752 necesita el nuevo contrato de #742.
-5. **#692** (ADR de COLOR) y **#716** siguen iniciables en paralelo; **#681/#687–#691** siguen bloqueadas (discrepancia TIFF/PNG, hardware EufyMake real).
+1. Completar **#737 + #745 + #746** en esta PR; CI y revisión deben confirmar fuentes, runbook, pin y pruebas de gobernanza.
+2. Iniciar después un candidato real **v2.7.2** con el runbook; ejecutar **#748** solo después de aceptación y publish.
+3. Actualizar **#680/#685/#686** con la ejecución 30706671985 y revisar sus criterios restantes.
+4. **#752**, **#656** (variante A) y **#731** (A–D) siguen independientes; #752 debe validar el nuevo contrato.
+5. **#692** y **#716** siguen iniciables; **#681/#687–#691** continúan bloqueadas externamente.
 
 ## Rondas anteriores
 
+- **2026-08-01 (#744/#747 fusionadas; #737/#745/#746 en curso)** — la PR #755 publica solo los cinco bytes candidatos ligados al manifiesto, draft-first y verificados. Estado GitHub 25. Esta PR elimina el estado manual, introduce la checklist 1.0.0 con IDs estables e instancia fijada y convierte el runbook en fuente única.
 - **2026-08-01 (#742/#743 fusionadas; #744/#747 en curso)** — la PR #754 sustituyó el pin autorreferencial por procedencia derivada de Actions e introdujo la política versionada fail-closed. Estado GitHub 27. Esta PR separa build candidato, aceptación hardware y publish, fija cinco SHA-256 en un manifiesto inmutable y amplía las pruebas con manipulación/reintento/igualdad de bytes.
 - **2026-08-01 (#740 cerrada; #743/#742 en curso)** — la ejecución Pi 30706671985 acredita código del bundle para AppImage y `.deb`; #740 se cerró con un comentario de evidencia. Estado GitHub: 29. La implementación conjunta #743/#742 sustituye las rutas de protocolo amplias/implícitas por una lista positiva versionada y el pin manual del freeze por procedencia derivada guardada como artefacto de Actions.
 - **2026-08-01 (revisión de #736/#738/#739/#749/#750/#751)** — se comprobaron de extremo a extremo seis PR fusionadas el 31 de julio/1 de agosto contra código, revisiones y gates; todos los hilos están resueltos y las cinco familias de workflows están verdes. `make check` local está verde, el candidato del freeze `57517ec` (#750) está registrado correctamente, gate 0/0. #740 permanece abierta correctamente hasta el `dry_run` real en la Pi; no se cerró ninguna incidencia ordinaria en el intervalo. Se corrigieron el candidato y los próximos pasos de Recommendations; se creó el seguimiento de gobernanza #752 con criterios de aceptación. Estado en vivo 30.
