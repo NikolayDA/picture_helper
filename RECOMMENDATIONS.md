@@ -25,10 +25,9 @@ Die Gegenprüfung hat drei Fehler der ersten Analysefassung aufgedeckt; alle dre
 - 🟠 **`tests/test_release_gate.py` existiert bereits** – 20+ Workflow-Invarianten, inklusive des #709-Deadlock-Regressionstests aus #715. Das ursprüngliche #747 hätte Vorhandenes dupliziert; es zielt jetzt auf den neuen Vertrag aus #742/#744.
 - 🟡 **`ANTHROPIC_API_KEY` ist nicht zweckgebunden** – derselbe Secret-Name aktiviert auch `claude.yml` und `claude-code-review.yml`; #656 empfiehlt deshalb ein separates `ANTHROPIC_VISION_API_KEY`. Ebenso differenziert #731 die ClamAV-Ursachen zu Recht (Linux: Lock auf `/var/log/clamav/freshclam.log`; macOS: X509-Store) – der Sammelkommentar in `release-linux.yml:413` ist entsprechend zu korrigieren.
 
-### Zwei offene Punkte am Epic-Text
+### Zwei Nachträge am Epic-Text (erledigt)
 
-- **Metrik:** Für `v2.6.0..v2.7.0` nennt #741 **44** Commits; git meldet dort **9** (auch mit `--first-parent`). Der Vergleich trägt ohnehin nicht – **v2.6.0 und v2.7.0 haben keinen gemeinsamen Vorfahren** (getrennte Wurzel-Commits), die Historie wurde zwischen beiden Tags ersetzt. Belastbar ist nur `v2.7.0..v2.7.1`: 36 Mainline-Commits, davon **18 protocol-only** laut Repo-Klassifikator, davon wiederum **7 reine Freeze-Nachträge**. Der frühere 31-%-Buchhaltungsanteil war falsch abgegrenzt und entfällt.
-- **Fehlende Legende:** Die Teil-Issues verweisen auf Ursachen-IDs **U1–U10** (#737=U1, #656=U2, #740=U3, #743=U4, #742=U5, #744=U6, #747=U7, #746=U8, #745=U9, #748=U10), der Epic-Text definiert diese IDs seit der Überarbeitung nicht mehr – zehn Verweise ohne Auflösung.
+Beide mit diesem Update nachgezogen. Die **Ursachen-Legende U1–U10** ist in #741 als Tabelle ergänzt – zehn Teil-Issues verwiesen zuvor ins Leere. Die Commit-Zahl für `v2.6.0..v2.7.0` steht jetzt auf **9** statt 44, mit dem Zusatz, dass der Vergleich ohnehin nicht trägt: **v2.6.0 und v2.7.0 haben keinen gemeinsamen Vorfahren** (getrennte Wurzel-Commits, Historie zwischen den Tags ersetzt). Belastbar ist nur `v2.7.0..v2.7.1`. Zusätzlich fixiert #746 den Plattformumfang auf die fünf Linux-/macOS-Artefakte – **kein Windows-Kriterium**, da eine nicht gebaute Plattform dauerhaft auf `NOT_APPLICABLE` stünde.
 
 **Alte Basis unverändert abgeschlossen:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte sowie die Releases v2.7.0/v2.7.1. Keine 🔴-Befunde offen.
 
@@ -38,7 +37,7 @@ Live-Stand nach GitHub-Abfrage: **29** offene Issues (zuvor 19; zzgl. #737/#740 
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | Legende **U1–U10** im Epic-Text ergänzen, dann Phase 0/1 starten |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | Legende und Bestandsaufnahme nachgezogen – Phase 0/1 startbereit |
 | [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Explizite Pfadklasse „release-neutral“ einführen | 🟠 Hoch (entscheidet, welche Änderung Abnahme braucht) | 🟡 Mittel (Klassifikator + Build-Input-Nachweis je Eintrag) | Opus, mittel | **Startbereit** – semantisch vor #742 |
 | [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Freeze-Nachtrags-Commit eliminieren (Pin + Commit-Ledger) | 🟠 Hoch (Hauptquelle der Nacharbeitsschleifen) | 🔴 Hoch (Vertrauensmodell des Gates, ADR nötig) | Opus, hoch | Blocked – Pfadsemantik aus #743 zuerst |
 | [#740](https://github.com/NikolayDA/picture_helper/issues/740) | Linux-Abnahme prüft das gepackte Artefakt statt des Checkouts | 🟠 Hoch (bisherige Linux-Evidenz ohne Aussagekraft) | 🟢 Niedrig (Lösungsskizze im Issue vollständig) | Sonnet, niedrig | **Startbereit** – zwingend vor jedem weiteren Hardware-Abnahmelauf |
@@ -68,17 +67,16 @@ Live-Stand nach GitHub-Abfrage: **29** offene Issues (zuvor 19; zzgl. #737/#740 
 
 ### Als Nächstes empfohlen
 
-1. **#741 nachschärfen** – die Legende **U1–U10** im Epic-Text ergänzen (zehn Teil-Issues verweisen darauf) und die Commit-Zahl für `v2.6.0..v2.7.0` streichen: die beiden Tags haben keinen gemeinsamen Vorfahren, ein Vergleich über diese Grenze trägt nicht.
-2. **#740 zuerst umsetzen** – bis dahin belegt kein Linux-Abnahmelauf das gepackte Artefakt; jeder weitere Lauf erzeugt grüne Evidenz ohne Aussagekraft, auch für 2.7.2.
-3. **#743 → #742** gebündelt an den Anfang eines Zyklus legen; beide sind selbst kandidatenrelevant und lösen die Schleife ein letztes Mal aus.
-4. **#744 (+ #747)** danach – ohne Byte-Wiederverwendung bleibt nach jeder Veröffentlichung ein zweiter Hardware-Abnahmelauf nötig.
-5. **#737** und die Owner-Entscheidungen zu **#656** (Variante A) und **#731** (A–D) laufen unabhängig davon.
-6. **#680/#685/#686 schließen**, sobald der Abnahmevermerk in #680 verlinkt ist – der Release selbst ist fertig.
-7. **#692** (COLOR-ADR) und **#716** bleiben parallel startbar; **#681/#687–#691** unverändert blockiert (TIFF-vs.-PNG-Diskrepanz, reale EufyMake-Hardware).
+1. **#740 zuerst umsetzen** – bis dahin belegt kein Linux-Abnahmelauf das gepackte Artefakt; jeder weitere Lauf erzeugt grüne Evidenz ohne Aussagekraft, auch für 2.7.2.
+2. **#743 → #742** gebündelt an den Anfang eines Zyklus legen; beide sind selbst kandidatenrelevant und lösen die Schleife ein letztes Mal aus.
+3. **#744 (+ #747)** danach – ohne Byte-Wiederverwendung bleibt nach jeder Veröffentlichung ein zweiter Hardware-Abnahmelauf nötig.
+4. **#737** und die Owner-Entscheidungen zu **#656** (Variante A) und **#731** (A–D) laufen unabhängig davon.
+5. **#680/#685/#686 schließen**, sobald der Abnahmevermerk in #680 verlinkt ist – der Release selbst ist fertig.
+6. **#692** (COLOR-ADR) und **#716** bleiben parallel startbar; **#681/#687–#691** unverändert blockiert (TIFF-vs.-PNG-Diskrepanz, reale EufyMake-Hardware).
 
 ## Vorige Runden
 
-- **2026-07-31 (Release-Prozess-Analyse, Epic #741)** — v2.7.1 am 2026-07-30 veröffentlicht (Tag `a3de137`, fünf Artefakte, Nach-Release-Hardware-Abnahme gegen die veröffentlichten Bytes). Auswertung beider Zyklen: im Fenster `v2.7.0..v2.7.1` 36 Mainline-Commits, davon 18 protocol-only und 7 reine Freeze-Nachträge. Epic #741 mit sieben neuen Teil-Issues (#742–#748) und vier übernommenen (#740/#731/#737/#656) angelegt. Die Owner-Gegenprüfung korrigierte drei Punkte der ersten Fassung (README.md/`docs/i18n/**` sind kandidatenrelevant; `tests/test_release_gate.py` existierte bereits; `ANTHROPIC_API_KEY` ist nicht zweckgebunden) – alle im Code verifiziert. Live-Stand 29.
+- **2026-07-31 (Release-Prozess-Analyse, Epic #741)** — v2.7.1 am 2026-07-30 veröffentlicht (Tag `a3de137`, fünf Artefakte, Nach-Release-Hardware-Abnahme gegen die veröffentlichten Bytes). Auswertung beider Zyklen: im Fenster `v2.7.0..v2.7.1` 36 Mainline-Commits, davon 18 protocol-only und 7 reine Freeze-Nachträge. Epic #741 mit sieben neuen Teil-Issues (#742–#748) und vier übernommenen (#740/#731/#737/#656) angelegt. Die Owner-Gegenprüfung korrigierte drei Punkte der ersten Fassung (README.md/`docs/i18n/**` sind kandidatenrelevant; `tests/test_release_gate.py` existierte bereits; `ANTHROPIC_API_KEY` ist nicht zweckgebunden) – alle im Code verifiziert. Live-Stand 29. Die beiden Befunde am Epic-Text (fehlende U1–U10-Legende, nicht reproduzierbare Commit-Zahl) sowie der Windows-Umfang in #746 sind direkt nachgezogen.
 - **2026-07-30 (#685 fast abgeschlossen, #727/#728 geschlossen, #731 neu)** — `main` steht auf `a26945e4f6e8ee3f665f7ef797050c049fccb5ac`. Zehn PRs seit der letzten Runde gemergt (#720–#726, #729, #730, #732); #685 steht bei 12/16 Kriterien, finaler Hardware-Lauf 30534770176 gegen Commit `615c8d3` (macOS M3 Max + Pi 5 beide ✅, x86_64 pausiert, Vision weiterhin unbewertet). #727 (ANLEITUNG.md) und #728 (RECOMMENDATIONS.md-Staleness) geschlossen; #731 (ClamAV-Scan lief nie echt) neu erfasst mit vier Lösungsoptionen. Live-Stand 19.
 - **2026-07-29 (Remote-Nachzug #717/#718 und #716)** — `main` steht auf `07de38fdd77cce54272c9e0d0e0ceb7be0d6c7d2`. Die Doku-PRs #717/#718 sind ohne Review-Rest gemergt. #716 ist das einzige neue Issue: Coverage 93 %, kein Produktionsfehler, acht klar dokumentierte Testqualitäts-Aufgaben. Die übrigen 17 Issues sind unverändert; Live-Stand 18.
 - **2026-07-29 (Nachprüfung #706–#709/#712–#715 und #702/#710/#711)** — alle acht PR-Heads mit fünf grünen Workflow-Familien. #702 und #711 funktional vollständig; #709s unerfüllbarer Exakt-SHA-Abgleich durch #715 korrigiert; #714 dokumentiert Kandidat `adb2205960619b9b5c29a9a05feda163310782a6`, 21 Commits, Gate 0/0. Vier fachlich beantwortete Reviewthreads in #712/#713 administrativ offen. Recommendations in sechs Sprachen synchronisiert; lokales `make check` 2038/37/14. Live-Stand 17; Release-Pfad #685 → #686.
