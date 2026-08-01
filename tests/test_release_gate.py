@@ -24,6 +24,7 @@ import pytest
 _ROOT = Path(__file__).resolve().parent.parent
 _CI = _ROOT / ".github" / "workflows" / "ci.yml"
 _RELEASE = _ROOT / ".github" / "workflows" / "release-linux.yml"
+_PUBLISH = _ROOT / ".github" / "workflows" / "release-publish.yml"
 
 
 def _ci_text() -> str:
@@ -32,6 +33,10 @@ def _ci_text() -> str:
 
 def _release_text() -> str:
     return _RELEASE.read_text(encoding="utf-8")
+
+
+def _publish_text() -> str:
+    return _PUBLISH.read_text(encoding="utf-8")
 
 
 def _load(path: Path) -> dict:
@@ -63,47 +68,51 @@ def test_release_calls_reusable_full_ci() -> None:
     )
 
 
-def test_release_build_and_publish_are_wired_with_needs() -> None:
+def test_candidate_build_is_gated_and_publish_is_separate() -> None:
     text = _release_text()
     assert re.search(r"(?m)^\s*needs:\s*\[[^\]]*\btest\b[^\]]*\]", text), (
         "build muss per needs auf die Full-CI-Matrix (test) warten."
     )
-    assert re.search(r"(?m)^\s*needs:\s*\[[^\]]*\bverify-tag\b[^\]]*\]", text), (
-        "build muss per needs auf verify-tag (Tag/Version-Abgleich) warten."
+    assert re.search(r"(?m)^\s*needs:\s*\[[^\]]*\bverify-candidate\b[^\]]*\]", text), (
+        "build muss per needs auf verify-candidate warten."
     )
-    assert re.search(r"(?m)^\s*needs:\s*build\b", text), (
-        "publish muss per needs auf einen erfolgreichen build warten."
-    )
+    assert "\n  publish:" not in text
+    assert _PUBLISH.is_file()
+    assert "packaging/linux/build_appimage.sh" not in _publish_text()
+    assert "packaging/mac/build_macos.sh" not in _publish_text()
 
 
 def test_release_does_not_swallow_gh_errors() -> None:
-    assert "|| true" not in _release_text(), (
+    assert "|| true" not in _publish_text(), (
         "Fehler von gh release dürfen nicht pauschal mit '|| true' verborgen "
         "werden (#250)."
     )
 
 
 def test_release_handles_existing_release_explicitly() -> None:
-    text = _release_text()
+    text = _publish_text()
     assert "gh release view" in text, (
         "Ein bereits existierendes Release muss explizit erkannt werden "
         "(statt '|| true')."
     )
     assert "gh release create" in text
     assert "gh release upload" in text
+    assert "plan-publish" in text
+    assert "--clobber" not in text
 
 
 def test_release_verifies_tag_matches_project_version() -> None:
-    text = _release_text()
-    assert "tomllib" in text and '["project"]["version"]' in text, (
-        "release-linux.yml muss project.version aus pyproject.toml lesen."
+    text = _publish_text()
+    assert "RELEASE_TAG" in text
+    assert "verify-approval" in text
+    assert "expected_tag" in (_ROOT / "scripts" / "release_contract.py").read_text(
+        encoding="utf-8"
     )
-    assert "GITHUB_REF_NAME" in text, "Tag-Name (GITHUB_REF_NAME) wird geprüft."
     assert r"v[0-9]+\.[0-9]+\.[0-9]+" in text, "Tag-Format vX.Y.Z wird geprüft."
 
 
 def test_release_freeze_gate_runs_for_manual_dispatch_too() -> None:
-    """#742: Manuelle Builds und Tags nutzen denselben abgeleiteten Vertrag."""
+    """#742: Jeder manuelle Kandidatenbau nutzt den abgeleiteten Vertrag."""
     text = _release_text()
     step_start = text.index("Release-Freeze-Gate und Provenienz")
     next_step = text.index("\n  test:", step_start)
@@ -112,9 +121,8 @@ def test_release_freeze_gate_runs_for_manual_dispatch_too() -> None:
     assert "--output-provenance release-evidence/release-freeze-provenance.json" in step_text
     assert "release-freeze-provenance-${{ github.run_attempt }}" in step_text
     assert "--require-pin" not in step_text
-    assert "startsWith(github.ref" not in step_text, (
-        "Das Freeze-/Provenienz-Gate muss fuer Tag und workflow_dispatch laufen."
-    )
+    assert "startsWith(github.ref" not in step_text
+    assert "\n  push:" not in text
 
 
 def test_build_logs_product_provenance() -> None:
@@ -174,24 +182,25 @@ def test_release_runs_real_deb_install_start_remove_cycle() -> None:
     )
 
 
-def test_publish_job_is_gated_on_a_tag_ref() -> None:
-    assert "startsWith(github.ref, 'refs/tags/')" in _release_text(), (
-        "Der Publish-Job darf nur für Tag-Pushes laufen."
-    )
+def test_publish_is_dispatch_only_and_verifies_existing_tag_head() -> None:
+    text = _publish_text()
+    assert "workflow_dispatch:" in text
+    assert "\n  push:" not in text
+    assert 'rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}"' in text
+    assert "--tag-sha" in text
 
 
 # ── Release-Follow-ups (#257) ──────────────────────────────────────────
 
-def test_test_job_requires_verify_tag() -> None:
-    """Der wiederverwendbare Test-Job wartet auf verify-tag – ein ungültiger
-    oder zur Paketversion unpassender Tag startet die teure Matrix nicht."""
-    assert re.search(r"(?m)^\s*needs:\s*verify-tag\b", _release_text()), (
-        "test (uses: ci.yml) muss per needs auf verify-tag warten (#257)."
+def test_test_job_requires_verify_candidate() -> None:
+    """Der wiederverwendbare Test-Job wartet auf die Kandidatenprovenienz."""
+    assert re.search(r"(?m)^\s*needs:\s*verify-candidate\b", _release_text()), (
+        "test (uses: ci.yml) muss per needs auf verify-candidate warten."
     )
 
 
 def test_publish_provides_repo_context_for_gh() -> None:
-    assert "GH_REPO: ${{ github.repository }}" in _release_text(), (
+    assert "GH_REPO: ${{ github.repository }}" in _publish_text(), (
         "Die gh-release-Schritte brauchen GH_REPO (kein Checkout), damit der "
         "Repo-Kontext auf einem frischen Runner sicher ist (#257)."
     )
@@ -210,11 +219,9 @@ def test_release_passes_id_token_through_to_reusable_ci() -> None:
 
 
 def test_publish_artifact_download_is_rerun_resilient() -> None:
-    text = _release_text()
-    assert "run-id: ${{ github.run_id }}" in text, (
-        "download-artifact muss run-id setzen, damit ein Re-run die Artefakte "
-        "des Original-Runs findet (#257)."
-    )
+    text = _publish_text()
+    assert "run-id: ${{ inputs.candidate_run_id }}" in text
+    assert "run-id: ${{ inputs.acceptance_run_id }}" in text
     assert "github-token: ${{ github.token }}" in text, (
         "download-artifact per run-id braucht ein github-token."
     )
@@ -242,7 +249,7 @@ def _load_extract_module() -> object:
 
 
 def test_release_notes_are_derived_from_changelog_not_static_text() -> None:
-    text = _release_text()
+    text = _publish_text()
     assert "Automated build: Linux AppImage" not in text, (
         "Der hardcodierte 'Automated build…'-Notiztext muss entfallen – der "
         "Release-Body wird aus dem CHANGELOG abgeleitet (#311)."
@@ -257,54 +264,20 @@ def test_release_notes_are_derived_from_changelog_not_static_text() -> None:
 
 
 def test_release_sets_body_on_reuse_too() -> None:
-    text = _release_text()
-    assert re.search(r"gh release edit\s+\"\$GITHUB_REF_NAME\"\s+--notes-file", text), (
-        "Beim Reuse eines existierenden Releases muss der Body via "
-        "'gh release edit --notes-file' aktualisiert werden, nicht nur bei der "
-        "Erstanlage (#311)."
-    )
+    text = _publish_text()
+    assert "gh release edit \"$RELEASE_TAG\"" in text
+    assert '--notes-file "${RUNNER_TEMP}/release-notes.md"' in text
 
 
-def test_release_reuse_prunes_orphaned_assets_only_after_successful_upload() -> None:
-    """Verwaiste Alt-Assets werden erst NACH einem erfolgreichen Reupload entfernt.
-
-    ``gh release upload --clobber`` ersetzt laut GitHub-CLI-Doku nur Assets mit
-    identischem Namen; aendert sich das Namensschema oder die Menge der
-    gebauten Dateien zwischen zwei Publish-Laeufen desselben Tags (z. B. nach
-    einer Tag-Verschiebung auf einen Commit mit geaenderter Paketierung),
-    blieben sonst veraltete Assets zusaetzlich zu den neuen haengen (#584).
-    Die Loeschung muss aber NACH dem Upload laufen: schluege ``gh release
-    edit``/``gh release upload`` fehl, waere das Release sonst zwischenzeitlich
-    komplett ohne Downloads, obwohl der alte Asset-Satz noch funktionsfaehig
-    war (Codex-Review auf #602). Zudem darf nur geloescht werden, was NICHT
-    (mehr) im aktuell gebauten ``dist/`` liegt – kein pauschales Wegwerfen des
-    gesamten Alt-Bestands.
-    """
-    text = _release_text()
-    assert "gh release delete-asset" in text, (
-        "Nicht mehr im aktuellen dist/ enthaltene Alt-Assets muessen aktiv "
-        "entfernt werden – '--clobber' allein ersetzt nur gleichnamige Assets."
-    )
-    assert "--json assets" in text and "assets[].name" in text, (
-        "Die vorhandenen Asset-Namen muessen ueber 'gh release view --json "
-        "assets' ermittelt werden, nicht hartkodiert."
-    )
-    assert re.search(r'if\s*\[\s*!\s*-f\s*"dist/\$asset_name"\s*\]', text), (
-        "Geloescht werden darf nur, was NICHT (mehr) in dist/ liegt – kein "
-        "pauschales Entfernen aller vorhandenen Assets."
-    )
-    # Der spezifische Aufruf (nicht die blosse Phrase "gh release upload", die
-    # auch in einem erklaerenden Kommentar vorkommen kann) markiert den
-    # tatsaechlichen Upload-Schritt.
-    upload_call = 'gh release upload "$GITHUB_REF_NAME" dist/*'
-    assert upload_call in text
-    delete_idx = text.index("gh release delete-asset")
-    upload_idx = text.index(upload_call)
-    assert upload_idx < delete_idx, (
-        "Der Upload muss VOR dem Entfernen alter Assets abgeschlossen sein – "
-        "sonst verwaist das Release bei einem Zwischenfehler ohne jeden "
-        "Download."
-    )
+def test_release_reuse_blocks_partial_or_divergent_state() -> None:
+    text = _publish_text()
+    contract = (_ROOT / "scripts" / "release_contract.py").read_text(encoding="utf-8")
+    assert "plan-publish" in text
+    assert "--clobber" not in text
+    assert "gh release delete-asset" not in text
+    assert "keine automatische Aenderung" in contract
+    assert "--draft" in text
+    assert "published-verification" in text
 
 
 def test_extract_release_notes_reads_changelog_section() -> None:
@@ -327,15 +300,13 @@ def test_extract_release_notes_fails_loudly_on_missing_version() -> None:
 
 # ── Struktur des Job-Graphen (geparstes YAML, übersprungen ohne PyYAML) ─
 
-def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
+def test_release_jobgraph_separates_build_from_publish() -> None:
     jobs = _load(_RELEASE)["jobs"]
 
     # Die Full-CI-Matrix wird als wiederverwendbarer Workflow aufgerufen.
     assert jobs["test"].get("uses") == "./.github/workflows/ci.yml"
 
-    # #257: der Test-Job selbst wartet auf verify-tag – ein ungültiger Tag
-    # startet die teure Matrix gar nicht erst.
-    assert "verify-tag" in _needs_list(jobs["test"]), jobs["test"].get("needs")
+    assert "verify-candidate" in _needs_list(jobs["test"]), jobs["test"].get("needs")
 
     # #303: ci.yml fordert id-token: write (Codecov-OIDC). Der aufrufende
     # test-Job muss dieses Recht durchreichen, sonst lehnt GitHub den Run beim
@@ -345,31 +316,25 @@ def test_release_jobgraph_gates_publish_on_tests_and_tag() -> None:
         jobs["test"].get("permissions")
     )
 
-    # build hängt sowohl an der Matrix als auch am Tag/Version-Abgleich.
+    # build hängt sowohl an der Matrix als auch an der Kandidatenprovenienz.
     build_needs = _needs_list(jobs["build"])
     assert "test" in build_needs, build_needs
-    assert "verify-tag" in build_needs, build_needs
+    assert "verify-candidate" in build_needs, build_needs
+    assert "publish" not in jobs
 
-    # publish hängt an einem erfolgreichen build und läuft nur auf Tags.
-    publish = jobs["publish"]
-    assert "build" in _needs_list(publish), publish.get("needs")
-    assert "refs/tags/" in publish.get("if", "")
-
-    # #257: Publish braucht Schreibrecht aufs Release UND Leserecht auf die
-    # Actions-API (Re-run-resilienter Download per run-id).
+    publish_doc = _load(_PUBLISH)
+    publish = publish_doc["jobs"]["publish"]
     perms = publish.get("permissions", {})
     assert perms.get("contents") == "write", perms
     assert perms.get("actions") == "read", perms
-    # #257: Repo-Kontext für gh ohne Checkout.
     assert publish.get("env", {}).get("GH_REPO") == "${{ github.repository }}"
-    # #257: Re-run-resilienter Artefakt-Download (run-id + Token).
-    dl_step = next(
-        s for s in publish["steps"]
-        if "download-artifact" in str(s.get("uses", ""))
-    )
-    dl = dl_step.get("with", {})
-    assert dl.get("run-id") == "${{ github.run_id }}", dl
-    assert dl.get("github-token") == "${{ github.token }}", dl
+    downloads = [
+        step.get("with", {}) for step in publish["steps"]
+        if "download-artifact" in str(step.get("uses", ""))
+    ]
+    assert any(item.get("run-id") == "${{ inputs.acceptance_run_id }}" for item in downloads)
+    assert any(item.get("run-id") == "${{ inputs.candidate_run_id }}" for item in downloads)
+    assert all(item.get("github-token") == "${{ github.token }}" for item in downloads)
 
 
 def test_full_ci_is_reusable_and_not_independently_tag_triggered() -> None:

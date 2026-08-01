@@ -36,7 +36,7 @@ headless-Qt-Betrieb:
   (Format-Suite, Höhen-/Mesh-Suite, Vergleich der letzten zwei Läufe)
 - `make gl-stress` — GL-Ressourcen-Langzeitsonde der 3D-Vorschau
   (`scripts/gl_stress_probe.py`, #684; JSON-Nachweis, `--mode gl` für echten Kontext)
-- `make release-freeze-check` — `scripts/verify_release_freeze.py --require-pin`
+- `make release-freeze-check` — `scripts/verify_release_freeze.py`
   (#699): prüft den aktuellen Stand als selbstkonsistenten Release-Kandidaten;
   nur vor einem Kandidatenbau nötig, nicht Teil von `make check`
 
@@ -199,7 +199,7 @@ Ein Paket, `bgremover/`:
   2.7.0-Projekt-Öffnen-Nachweis: `tests/test_e2e_release_regression.py` bindet
   dieselben zwei Prüfungen an den Source-Checkout (`release-abnahme.yml`
   installiert dort per `pip install -e ".[test]"`), nicht an das über
-  `run_id`/`release_tag` bezogene, tatsächlich gepackte Kandidatenartefakt –
+  über die Build-`run_id` bezogene, tatsächlich gepackte Kandidatenartefakt –
   dieser Hook schließt genau diese Lücke, analog über `BGREMOVER_ACCEPTANCE_EXTRA`
   (Ziel-JSON) und `BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT` (Pfad der
   `tests/fixtures/project_v2_7_0.bgrproj`-Fixture, mit echtem v2.7.0-Code
@@ -449,11 +449,11 @@ Ein Paket, `bgremover/`:
 
 ## CI-Automatisierung
 
-Workflows unter `.github/workflows/` (13):
+Workflows unter `.github/workflows/` (14):
 
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
-  Matrix Ubuntu/macOS × Py3.10–3.13; Release-Gate beim Versions-Tag, wöchentlich
-  und manuell — wird von `release-linux.yml` als wiederverwendbarer Workflow
+  Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
+  wird von `release-linux.yml` als wiederverwendbarer Workflow
   aufgerufen), `ui-nightly.yml` (volle qtbot-Suite), `coverage.yml`,
   `benchmark.yml` (Baseline seit #546 als Workflow-Artefakt statt per Push
   nach `main`).
@@ -462,13 +462,13 @@ Workflows unter `.github/workflows/` (13):
   (**nur** `workflow_dispatch`, Parameter `min_severity`), `dependency-audit.yml`
   (PR + montags), `license-check.yml` (braucht bewusst kein Qt). Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
-- **Release:** `release-linux.yml` — baut auf Versions-Tag AppImage + `.deb`
-  (x86_64 + aarch64) und macOS `.dmg`; harte `needs`-Vorbedingungen `verify-tag`
-  (Tag `vX.Y.Z` == `project.version`) und die grüne Full-CI-Matrix für **genau**
-  diesen Commit, erst danach `publish`. `verify-tag` fährt seit #699/#709
-  zusätzlich das **Release-Freeze-Gate** (`verify_release_freeze.py --require-pin`)
-  — und zwar bei Tag-Push **und** beim manuellen `workflow_dispatch`-Kandidatenbau,
-  weil dort sonst gar keine Absicherung greift (#685). Artefaktnamen
+- **Release:** `release-linux.yml` baut nur manuell den Kandidaten (zwei
+  AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI;
+  kein Tag-Trigger, keine Schreibrechte, kein Publish. `release-abnahme.yml`
+  bindet Hardware-Evidenz und Freeze-Provenienz an genau diesen Build-Run.
+  `release-publish.yml` veröffentlicht danach ausschließlich die fünf im
+  Freigabemanifest gespeicherten SHA-256, Draft-first und ohne Neubau/Clobber
+  (#744/#747). Artefaktnamen
   `BgRemover-<version>-<platform_tag>[-ai].<ext>` (#584).
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
   in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
@@ -476,33 +476,29 @@ Workflows unter `.github/workflows/` (13):
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
 
-### Release-Freeze & Kandidatenregel (#699)
+### Release-Freeze & Kandidatenregel (#742/#743)
 
 Vor jedem Kandidatenbau steht ein Freeze-Dokument je Version:
 `docs/history/RELEASE-<version>-scope-freeze.md` (aktuell 2.7.2, Vorgänger
 2.7.1/2.6.0). Der Kandidat wird nicht mehr von Hand gepflegt, sondern
-**abgeleitet**: Kandidat ist der jüngste Mainline-Commit (`--first-parent`)
-seit dem Basis-Tag, der einen **kandidatenrelevanten** Pfad ändert.
-`scripts/verify_release_freeze.py` ist die einzige Quelle dieser Regel; die
-Tabelle im Freeze-Dokument gibt sie nur wieder.
+**abgeleitet**: Der Kandidat ist der geprüfte Workflow-Head (`GITHUB_SHA`);
+zusätzlich wird der jüngste kandidatenrelevante Inhalts-Commit aus der
+First-Parent-Historie ausgewiesen. `scripts/verify_release_freeze.py` und die
+versionierte Policy `release/path-policy.json` sind die Quellen dieser Regel.
 
-- **Protokoll-Pfade** (verschieben den Kandidaten *nicht*): `docs/history/**`,
-  `RECOMMENDATIONS.md` + `docs/i18n/*/RECOMMENDATIONS.md` und **`CLAUDE.md`**.
-  Alles andere ist kandidatenrelevant, **fail-closed** — ein neuer, unbekannter
-  Pfad gilt als kandidatenrelevant (bei #732 hat genau das `ANLEITUNG.md`/
-  `README.md` sichtbar gemacht).
+- Nur eng begründete Einträge der positiven Klasse **release-neutral**
+  verschieben den Inhaltskandidaten nicht. Unbekannte Pfade bleiben
+  kandidatenrelevant **und blockieren**, bis die Policy bewusst ergänzt und
+  versioniert wurde.
 - Das Skript prüft am abgeleiteten Commit Versionsquellen, CHANGELOG-Abschnitt
   in sechs Sprachen, AppStream-Metadaten, Lizenz-Snapshots, die vollständige
   Commit-Klassifizierung und den Release-Body, den `extract_release_notes.py`
   **aus dem geprüften Commit** aus dem CHANGELOG erzeugt — also den künftigen
   Body, **nicht** einen bereits auf GitHub veröffentlichten (die Prüfung ist
   netzfrei: nur Standardbibliothek + `git`).
-- **Ein Dokument kann seinen eigenen Commit-SHA nicht enthalten.** Der
-  protokollierte Kandidaten-SHA kommt deshalb immer durch einen darüber
-  liegenden **reinen Protokoll-Commit** hinein („Freeze-Nachtrag"); solange
-  dort `nachzutragen` steht, schlägt `--require-pin` bewusst fehl. Ein
-  zusätzliches `github.sha`-Gleichheits-Gate wäre deadlockend und wurde
-  deshalb wieder entfernt (#709/#715).
+- **Kein selbstreferenzieller Pin.** Commitliste, Pfadklassen, Policy-Digest
+  und Kandidaten-SHA werden als unveränderliche Actions-Provenienz aus dem
+  Laufkopf erzeugt. Es gibt keinen `--require-pin` und keinen Freeze-Nachtrag.
 - Regressionstests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`.
 
 ### Release-Abnahme auf echter Hardware (Epic #639, abgeschlossen)
@@ -510,8 +506,8 @@ Tabelle im Freeze-Dokument gibt sie nur wieder.
 Die Abnahmekriterien aus [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md)
 brauchen Nachweise, die die Offscreen-CI prinzipiell nicht liefern kann (Start
 der Release-Artefakte auf Zielhardware, echter GPU-Renderer, Retina/High-DPI).
-`release-abnahme.yml` (`workflow_dispatch`, Quelle entweder `--release-tag` oder
-die Run-ID eines `release-linux.yml`-Laufs) sammelt sie auf **Self-hosted
+`release-abnahme.yml` (`workflow_dispatch`, ausschließlich die Run-ID eines
+`release-linux.yml`-Kandidatenlaufs) sammelt sie auf **Self-hosted
 Runnern**; der Linux-x86_64-Pfad ist über `ABNAHME_X86_64_ENABLED` bewusst
 **pausiert** und erscheint in der Matrix als „pausiert" statt als Lücke.
 Skripte in `scripts/`: `release_abnahme.py` (Artefaktbezug + SHA256 + Evidenz-

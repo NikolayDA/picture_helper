@@ -273,8 +273,9 @@ La suite de tests s'exécute en mode headless (plateforme Qt `offscreen`) et vé
 opérations sur l'image, la géométrie de recadrage et la logique d'enregistrement. Les pull
 requests lancent une CI GitHub légère (Ubuntu, Python 3.12, `make pr-check`).
 La matrice complète Linux/macOS sous Python 3.10, 3.11, 3.12 et 3.13 s'exécute comme gate de
-release : lors du push d'un tag de version, le workflow de release l'appelle
-avant la publication ; elle s'exécute aussi chaque semaine (le dimanche) et
+release : le workflow manuel du candidat l'appelle avant le build, puis un
+workflow séparé ne publie que les octets acceptés sur le matériel ; elle
+s'exécute aussi chaque semaine (le dimanche) et
 manuellement. Toutes les installations
 de test locales/CI utilisent `requirements/constraints.txt` ; on peut le
 remplacer si nécessaire via `PIP_CONSTRAINT=... make pr-check`. Voir

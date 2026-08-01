@@ -68,7 +68,8 @@ folgen harte Regeln, die #641 per Workflow-Definition und Governance-Test
 
 Jeder Nachweis besteht aus einem maschinenlesbaren `evidenz.json` plus einem
 menschenlesbaren `manifest.md` und wird je Plattform als Workflow-Artefakt
-`abnahme-<plattform>` hochgeladen. Pflichtfelder in `evidenz.json`:
+`abnahme-<plattform>-<run_attempt>` hochgeladen. Die Aggregation wählt bei
+Wiederholungen je Plattform den höchsten Attempt. Pflichtfelder in `evidenz.json`:
 
 | Feld | Bedeutung |
 |---|---|
@@ -76,7 +77,7 @@ menschenlesbaren `manifest.md` und wird je Plattform als Workflow-Artefakt
 | `kind` | konstant `abnahme-evidenz` |
 | `platform` | `linux-arm64` / `linux-x86_64` / `macos-arm64` |
 | `status` | `platzhalter` (Gerüst #641) → später `bestanden` / `fehlgeschlagen` / `unbewertet` |
-| `commit_sha` | Commit, aus dem der Abnahme-Lauf gestartet wurde |
+| `commit_sha` | Quell-Commit des geprüften Kandidaten-Build-Runs |
 | `quelle` | Artefaktquelle: `{"art": "release-tag" \| "run-id", "wert": …}` |
 | `artefakte` | Liste `{name, sha256, bytes}` der geprüften Release-Artefakte |
 | `umgebung` | OS/Release, Architektur, Python-Version, Runner-Name |
@@ -181,3 +182,19 @@ Behoben additiv, ohne Schema-Versionssprung (`schema` bleibt `1`):
 Betrifft nur die gemeinsame Smoke-Infrastruktur aus #642/#643 (macOS und
 Linux teilen `_guard`/`_run_ai_selfcheck_if_needed`/`_native_3d_screenshot`);
 keine Verhaltensänderung an den Pass/Fail-Kriterien selbst.
+
+## Nachtrag (2026-08-01, #744): Abnahme vor Publish, gebunden an den Build-Run
+
+Der produktive Workflow akzeptiert keine bereits veröffentlichten
+`release_tag`-Assets mehr, sondern ausschließlich die Run-ID eines
+erfolgreichen `release-linux.yml`-Kandidaten. Ein GitHub-hosted Vorjob validiert
+Workflow-Pfad, Abschluss, Quell-`head_sha`, Freeze-Provenienz und exakt fünf
+Dateien. Die Plattform-Evidenz trägt nun diesen Quell-SHA statt `GITHUB_SHA`
+des Abnahme-Workflows. Build und Abnahme müssen auf demselben Commit laufen.
+
+Bei vollständiger Matrix erzeugt die Aggregation ein unveränderliches
+Freigabemanifest für den separaten, neubaufreien Publish-Workflow. Schema,
+Retry-Verhalten und Vertrauensgrenzen sind im
+[Publish-ADR](ADR-2026-release-manifest-publish.md) festgelegt. Der
+`release_tag`-Codepfad in `scripts/release_abnahme.py` bleibt nur als
+diagnostischer Legacy-Helfer erhalten und kann kein Freigabemanifest erzeugen.

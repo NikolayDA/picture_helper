@@ -244,8 +244,8 @@ make pr-check
 测试套件以无头模式运行（Qt 平台为 `offscreen`），检验
 图像操作、裁剪几何和保存逻辑。Pull Request 会运行轻量级
 GitHub PR CI（Ubuntu、Python 3.12、`make pr-check`）。完整的
-Linux/macOS 矩阵（Python 3.10、3.11、3.12 和 3.13）作为 release 门禁运行：推送版本标签时，
-release 工作流会在发布前调用它；此外每周（周日）和手动触发时也会运行。所有本地/CI 测试安装都使用
+Linux/macOS 矩阵（Python 3.10、3.11、3.12 和 3.13）作为 release 门禁运行：手动候选工作流
+会在构建前调用它，之后由独立工作流仅发布已通过硬件验收的字节；此外每周（周日）和手动触发时也会运行。所有本地/CI 测试安装都使用
 `requirements/constraints.txt`；需要时可通过
 `make PIP_CONSTRAINT=/path/to/file pr-check` 覆盖。完整测试流程见
 [TESTING.md](../../../TESTING.md)。

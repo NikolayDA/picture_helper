@@ -11,7 +11,7 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-08-01, estado de trabajo de v2.7.2 tras #740)
+## Estado actual (2026-08-01, estado de trabajo de v2.7.2 tras la PR #754)
 
 **v2.7.1 está publicada** (2026-07-30, etiqueta `a3de137a0c0873f93f84186f9bba32d684a48808`, cinco artefactos). #740 había demostrado que la primera ejecución posterior cargaba código de AppImage y `.deb` desde el checkout; #750 corrigió la ruta de prueba. La ejecución real en la Pi [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) acredita ahora la procedencia del bundle y un `sys_path_0` sin checkout para ambos paquetes Linux, por lo que #740 está cerrada. La evidencia Linux ya está disponible para #680/#685/#686; aún deben actualizarse sus notas de aceptación. El candidato 2.7.2 se derivará del head comprobado por el workflow, en vez de mantener un pin SHA posterior en el documento del freeze (#742/#743).
 
@@ -33,17 +33,16 @@ La **leyenda de causas U1–U10** ya figura como tabla en #741; antes diez incid
 
 La base anterior sigue cerrada sin cambios: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25** y las versiones v2.7.0/v2.7.1. Ningún hallazgo 🔴 abierto.
 
-Estado en vivo tras la consulta a GitHub: **29** incidencias abiertas (#740 cerrada tras la evidencia satisfactoria de la Pi).
+Estado en vivo tras la consulta a GitHub: **27** incidencias abiertas. #742/#743
+se cerraron con la PR #754; #744/#747 se implementan juntas en esta PR.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-08-01)
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟠 Alta (dos versiones con retrabajo notable) | 🟠 Alta (11 incidencias hijas, reforma de freeze y publish) | – (épica) | Leyenda e inventario corregidos: fase 0/1 lista para empezar |
-| [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Introducir una clase de rutas «release-neutral» explícita | 🟠 Alta (decide qué cambio requiere aceptación) | 🟡 Media (clasificador + prueba de entrada de compilación) | Opus, media | **En curso** — lista positiva versionada y pruebas de deriva/fail-closed en esta PR |
-| [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Eliminar el commit de añadido del freeze (pin + libro de commits) | 🟠 Alta (fuente principal de los bucles de retrabajo) | 🔴 Alta (modelo de confianza del gate, requiere ADR) | Opus, alta | **En curso** — head del workflow, procedencia derivada en Actions, ADR y pruebas de manipulación en esta PR |
-| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish reutiliza los artefactos candidatos aceptados | 🟠 Alta (aceptados ≠ bytes publicados) | 🔴 Alta (ruta de publicación, difícil de ensayar) | Opus, alta | Bloqueada — necesita procedencia/manifiesto de #742 |
-| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Asegurar por máquina el nuevo contrato del gate tras #742/#744 | 🟡 Media (evita derivas como la de #709) | 🟡 Media (amplía el `test_release_gate.py` existente) | Sonnet, media | Bloqueada — mismo paquete de cambios que #742/#744 |
+| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish reutiliza los artefactos candidatos aceptados | 🟠 Alta (aceptados ≠ bytes publicados) | 🔴 Alta (ruta de publicación, difícil de ensayar) | Opus, alta | **En curso** — manifiesto de aprobación y publish separado sin recompilar, draft-first, en esta PR |
+| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Asegurar por máquina el nuevo contrato del gate tras #742/#744 | 🟡 Media (evita derivas como la de #709) | 🟡 Media (amplía pruebas existentes) | Sonnet, media | **En curso** — pruebas positivas/negativas, manipulación, reintento e igualdad de bytes en la misma PR |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Lista de aceptación versionada en vez de incidencias por versión | 🟡 Media (evita reinventar los criterios en cada versión) | 🟡 Media (esquema, IDs estables, reglas de exención) | Sonnet, media | Lista para empezar — antes o junto con #745 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Runbook de publicación como única fuente del proceso | 🟡 Media (hoy el conocimiento vive en comentarios de incidencias) | 🟡 Media (documentación + pruebas de enlaces/gobernanza) | Sonnet, media | Bloqueada — solo tras decidir #742/#743/#744 |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Detección de actualización posterior desde un artefacto anterior real | 🟡 Media (ruta de actualización productiva sin verificar) | 🟠 Alta (trabajo de plataforma/operación, solo posible tras publicar) | Opus, alta | Bloqueada — se ejecuta tras el publish de #744 |
@@ -69,14 +68,15 @@ Estado en vivo tras la consulta a GitHub: **29** incidencias abiertas (#740 cerr
 
 ### Recomendado a continuación
 
-1. Completar **#743 + #742** en esta PR; CI y revisión deben confirmar el nuevo contrato de rutas/procedencia.
+1. Completar **#744 + #747** en esta PR; CI y revisión deben confirmar el manifiesto, el publish sin recompilar y las pruebas de manipulación.
 2. Actualizar **#680/#685/#686** con la ejecución 30706671985 y cerrarlas según sus demás criterios.
-3. **#744 (+ #747)** después: sin reutilización de bytes, cada publicación seguirá exigiendo una segunda aceptación de hardware.
+3. Basar **#745/#746** en el contrato de release ya decidido.
 4. **#737/#752** y las decisiones del propietario sobre **#656** (variante A) y **#731** (A–D) son independientes; #752 necesita el nuevo contrato de #742.
 5. **#692** (ADR de COLOR) y **#716** siguen iniciables en paralelo; **#681/#687–#691** siguen bloqueadas (discrepancia TIFF/PNG, hardware EufyMake real).
 
 ## Rondas anteriores
 
+- **2026-08-01 (#742/#743 fusionadas; #744/#747 en curso)** — la PR #754 sustituyó el pin autorreferencial por procedencia derivada de Actions e introdujo la política versionada fail-closed. Estado GitHub 27. Esta PR separa build candidato, aceptación hardware y publish, fija cinco SHA-256 en un manifiesto inmutable y amplía las pruebas con manipulación/reintento/igualdad de bytes.
 - **2026-08-01 (#740 cerrada; #743/#742 en curso)** — la ejecución Pi 30706671985 acredita código del bundle para AppImage y `.deb`; #740 se cerró con un comentario de evidencia. Estado GitHub: 29. La implementación conjunta #743/#742 sustituye las rutas de protocolo amplias/implícitas por una lista positiva versionada y el pin manual del freeze por procedencia derivada guardada como artefacto de Actions.
 - **2026-08-01 (revisión de #736/#738/#739/#749/#750/#751)** — se comprobaron de extremo a extremo seis PR fusionadas el 31 de julio/1 de agosto contra código, revisiones y gates; todos los hilos están resueltos y las cinco familias de workflows están verdes. `make check` local está verde, el candidato del freeze `57517ec` (#750) está registrado correctamente, gate 0/0. #740 permanece abierta correctamente hasta el `dry_run` real en la Pi; no se cerró ninguna incidencia ordinaria en el intervalo. Se corrigieron el candidato y los próximos pasos de Recommendations; se creó el seguimiento de gobernanza #752 con criterios de aceptación. Estado en vivo 30.
 - **2026-07-31 (análisis del proceso de publicación, épica #741)** — v2.7.1 publicada el 2026-07-30 (etiqueta `a3de137`, cinco artefactos, aceptación de hardware posterior contra los bytes publicados). Análisis de ambos ciclos: en la ventana `v2.7.0..v2.7.1` hay 36 commits de la línea principal, de ellos 18 protocol-only y 7 puros añadidos de freeze. Se creó la épica #741 con siete incidencias nuevas (#742–#748) y cuatro adoptadas (#740/#731/#737/#656). La contraverificación del propietario corrigió tres puntos del primer borrador (README.md y `docs/i18n/**` son relevantes para el candidato; `tests/test_release_gate.py` ya existía; `ANTHROPIC_API_KEY` no está limitada a un fin), todos verificados contra el código. Estado en vivo 29. La leyenda y el alcance de Windows se aplicaron de inmediato. El recuento de commits señalado primero como error era a su vez erróneo (clon superficial) y se ha retirado; detalles en la sección anterior.

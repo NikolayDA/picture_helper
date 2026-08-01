@@ -1,11 +1,11 @@
 name: Release artifacts (Linux + macOS)
 
-# Builds portable, self-contained artifacts and attaches them to the GitHub
-# Release on a version tag (v*):
+# Builds portable, self-contained release candidates, but never publishes them:
 #   - Linux AppImage + .deb for x86_64 and aarch64 (Raspberry Pi OS / arm64)
 #   - macOS .dmg (BgRemover.app) for Apple Silicon (arm64)
-# Also runnable on demand via workflow_dispatch. The downloadable artifacts
-# bundle the rembg/onnxruntime AI background removal by default.
+# The workflow is dispatch-only. Hardware acceptance and publication are
+# separate workflows bound to this run and its immutable artifacts (#744).
+# The downloadable artifacts bundle rembg/onnxruntime AI by default.
 #
 # Artifact naming (#584): ``BgRemover-<version>-<platform_tag>[-ai].<ext>``,
 # e.g. ``BgRemover-2.6.0-linux-raspberrypi-arm64-ai.AppImage``. ``platform_tag``
@@ -16,32 +16,24 @@ name: Release artifacts (Linux + macOS)
 # visible per file whether that build has the same integrated AI model as the
 # macOS one, instead of only being documented out-of-band.
 #
-# Release-Gate (#250): Vor jeglichem Build und vor dem Anlegen/Aendern eines
-# GitHub Releases gelten zwei harte Vorbedingungen, technisch ueber ``needs``
-# erzwungen:
-#   1. ``verify-tag`` – bei Tag-Pushes zusaetzlich: der Tag entspricht dem
-#      Format ``vX.Y.Z`` und seine Version stimmt mit ``project.version`` aus
-#      pyproject.toml ueberein. IMMER (Tag-Push UND manueller
-#      ``workflow_dispatch``-Kandidatenbau, #742/#743): der gebaute Laufkopf
+# Release-Gate (#250/#742): Vor jedem Kandidatenbau gelten zwei harte
+# Vorbedingungen, technisch ueber ``needs`` erzwungen:
+#   1. ``verify-candidate`` – der gebaute Laufkopf
 #      stimmt mit ``GITHUB_SHA`` ueberein, alle Commits und Pfade seit der
 #      eingefrorenen Basis sind explizit klassifiziert, und die abgeleitete
 #      Provenienz wird als Actions-Artefakt an Run und Policy gebunden.
 #   2. ``test`` – die massgebliche Full-CI-Matrix (ci.yml, als
 #      wiederverwendbarer Workflow aufgerufen) ist fuer EXAKT diesen Commit
 #      gruen (Linux/macOS x Python 3.10-3.13).
-# ``build`` haengt an beiden, ``publish`` haengt an ``build`` und legt das
-# Release erst danach an. Schlaegt ein Test oder ein Arch-Build fehl, wird kein
-# Release erstellt oder veraendert und keine unvollstaendige Artefaktmenge
-# veroeffentlicht.
+# ``build`` haengt an beiden. Dieser Workflow besitzt absichtlich weder einen
+# Tag-Trigger noch Schreibrechte oder einen Publish-Job. ``release-publish.yml``
+# kann spaeter ausschliesslich die hier erzeugten, abgenommenen Bytes laden.
 #
 # Der Linux-Build buendelt nur das bgremover-Wheel + Abhaengigkeiten ins
 # AppImage; der macOS-Build packt sie via PyInstaller ins .app-Bundle. Beide
 # laufen in einem isolierten venv und installieren das Projekt nicht in den
 # Runner (kein pip-Pin noetig, vgl. tests/test_ci_pip_pin.py).
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       with_ai:
@@ -53,12 +45,11 @@ permissions:
   contents: read
 
 jobs:
-  # Gate 1: Tag-Format/Tag-Version-Abgleich (nur Tag-Pushes) + abgeleitetes
-  # Freeze-/Provenienz-Gate (immer, auch bei manuellem workflow_dispatch-
-  # Kandidatenbau, #742/#743). Der Job bleibt fuer workflow_dispatch nicht per
-  # fehlendem Tag rot; Pfadklassifikation und Laufkopfbindung sind dort scharf.
-  verify-tag:
-    name: Verify tag matches project version
+  # Gate 1: abgeleitetes Freeze-/Provenienz-Gate fuer den manuellen
+  # Kandidatenbau (#742/#743). Ein Tag existiert in dieser Phase bewusst noch
+  # nicht; Pfadklassifikation und Laufkopfbindung sind fail-closed.
+  verify-candidate:
+    name: Verify candidate provenance
     runs-on: ubuntu-latest
     steps:
       # fetch-depth: 0 + Tags: das Freeze-Gate leitet den Kandidaten aus der
@@ -70,23 +61,6 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
-      - name: Tag format and version match
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          set -euo pipefail
-          tag_name="${GITHUB_REF_NAME}"
-          if [[ ! "$tag_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.]+)?$ ]]; then
-            echo "::error::Tag '$tag_name' entspricht nicht dem Format vX.Y.Z"
-            exit 1
-          fi
-          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
-          tag_version="${tag_name#v}"
-          if [[ "$project_version" != "$tag_version" ]]; then
-            echo "::error::Tag-Version '$tag_version' weicht von project.version '$project_version' ab"
-            exit 1
-          fi
-          echo "Tag $tag_name passt zu project.version $project_version."
 
       # Gate 1b (#742/#743): Der Laufkopf ist der Kandidat. Freeze-Dokument und
       # Policy enthalten nur vor dem Merge bekannte Angaben; Commitliste,
@@ -108,13 +82,14 @@ jobs:
           name: release-freeze-provenance-${{ github.run_attempt }}
           path: release-evidence/release-freeze-provenance.json
           if-no-files-found: error
+          retention-days: 90
 
   # Gate 2: Massgebliche Full-CI-Matrix fuer exakt diesen Commit – derselbe
-  # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt. Haengt an
-  # verify-tag: ein ungueltiger oder zur Paketversion unpassender Tag startet
-  # die teure Matrix gar nicht erst (#257).
+  # wiederverwendbare Workflow, den auch der Wochen-Cron faehrt. Haengt am
+  # validierten Kandidaten; ein ungueltiger Freeze-/Provenienzstand startet die
+  # teure Matrix gar nicht erst (#257/#744).
   test:
-    needs: verify-tag
+    needs: verify-candidate
     # ci.yml fordert ``id-token: write`` (tokenloser Codecov-OIDC-Upload, #303).
     # Ein per ``uses`` aufgerufener Workflow darf NICHT mehr Rechte verlangen als
     # der Aufrufer gewaehrt – sonst lehnt GitHub den GESAMTEN Run bereits beim
@@ -128,10 +103,10 @@ jobs:
 
   # Ein Build-Job mit plattformuebergreifender Matrix: zwei Linux-Arches
   # (AppImage + .deb) und ein macOS-arm64-Leg (.dmg). Bewusst EIN Job, damit
-  # ``publish`` per ``needs: build`` auf alle Legs wartet (Release-Gate #250).
+  # der gesamte Kandidatenlauf nur bei drei gruenen Legs erfolgreich ist.
   build:
     name: ${{ matrix.os }} ${{ matrix.arch }}
-    needs: [verify-tag, test]
+    needs: [verify-candidate, test]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -158,7 +133,7 @@ jobs:
       # #307/#308: ob die Artefakte rembg/onnxruntime bündeln. Dieselbe
       # Bedingung wie der ``--ai``-Schalter der Build-Schritte – steuert den
       # KI-Selbsttest und die erlaubte Instanzzahl des Fork-Bomb-Wächters.
-      WITH_AI: ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '1' || '0' }}
+      WITH_AI: ${{ inputs.with_ai && '1' || '0' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -189,7 +164,7 @@ jobs:
       # ── Linux: AppImage + .deb ──────────────────────────────────────────
       - name: Build AppImage
         if: matrix.os == 'linux'
-        run: ./packaging/linux/build_appimage.sh ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '--ai' || '' }}
+        run: ./packaging/linux/build_appimage.sh ${{ inputs.with_ai && '--ai' || '' }}
 
       # #709-Review: der Runner-``pip`` oben ist nicht der Bundler, der das
       # Artefakt tatsaechlich baut – build_appimage.sh legt dafuer eine
@@ -271,7 +246,7 @@ jobs:
       # Fork-Bomb (#305) und Nicht-Terminieren prüfen. #308: im --ai-Build
       # zusätzlich den KI-Selbsttest über den Spawn-Kindprozess fahren (rembg-
       # Kette inkl. pymatting-Metadaten importierbar). Schlägt einer fehl, fällt
-      # der build-Job und ``publish`` (needs: build) veröffentlicht nichts.
+      # der Kandidatenlauf; eine spätere Abnahme/Veröffentlichung wird blockiert.
       # Der Selbsttest läuft seit #595 ebenfalls über den smoke_launch.py-
       # Wächter (nicht nur roh im Vordergrund): ein manueller Raspberry-Pi-Test
       # deckte auf, dass der AppRun-Fix (#595) diesen Pfad im gepackten
@@ -369,7 +344,7 @@ jobs:
       # ── macOS: .app + .dmg ──────────────────────────────────────────────
       - name: Build macOS app + .dmg (PyInstaller)
         if: matrix.os == 'macos'
-        run: ./packaging/mac/build_macos.sh ${{ (github.event_name != 'workflow_dispatch' || inputs.with_ai) && '--ai' || '' }}
+        run: ./packaging/mac/build_macos.sh ${{ inputs.with_ai && '--ai' || '' }}
 
       # #709-Review: analog zum Linux-Leg – build_macos.sh installiert
       # PyInstaller unversioniert (``--upgrade``) in eine isolierte
@@ -485,7 +460,7 @@ jobs:
       # Fork-Bomb (#305) prüfen. Die macOS-.dmg war der ursprüngliche Fork-Bomb-
       # Vektor (fehlendes freeze_support → spawn relauncht die GUI). #308: im
       # --ai-Build zusätzlich den KI-Selbsttest fahren. Fällt einer durch, fällt
-      # der build-Job → ``publish`` (needs: build) veröffentlicht nichts.
+      # der Kandidatenlauf; eine spätere Abnahme/Veröffentlichung wird blockiert.
       - name: Smoke-launch built macOS app (headless, fork-bomb guard)
         if: matrix.os == 'macos'
         run: |
@@ -517,106 +492,4 @@ jobs:
           name: bgremover-${{ matrix.platform_tag }}
           path: dist/*
           if-no-files-found: error
-
-  # Publish nur fuer Tag-Pushes und erst nachdem ALLE build-Matrixlegs gruen
-  # sind (needs: build). Damit kann keine unvollstaendige Artefaktmenge in ein
-  # Release gelangen.
-  publish:
-    name: Publish GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write  # create/upload GitHub Release assets
-      actions: read    # download-artifact per run-id über die Actions-API
-    env:
-      GH_TOKEN: ${{ github.token }}
-      # GH_REPO setzt den Repo-Kontext explizit, damit ``gh release
-      # view/create/edit/upload`` auf einem frischen Runner zuverlaessig das
-      # richtige Repository ansprechen (#257) – unabhaengig vom Checkout-Remote.
-      GH_REPO: ${{ github.repository }}
-    steps:
-      # Checkout nur fuer CHANGELOG.md + scripts/: der Release-Body wird aus dem
-      # passenden ``## [X.Y.Z]``-Abschnitt abgeleitet (#311), nicht mehr aus
-      # einem hardcodierten Text.
-      - uses: actions/checkout@v5
-
-      - name: Download built artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: bgremover-*
-          path: dist
-          merge-multiple: true
-          # run-id + github-token laden die Artefakte des GESAMTEN Runs ueber
-          # die API – also auch die eines vorherigen, bereits erfolgreichen
-          # Attempts nach „Re-run failed jobs“. Ohne dies sieht download-artifact
-          # nur den aktuellen Attempt und faende die im ersten Lauf gebauten
-          # Artefakte nicht mehr (#257).
-          run-id: ${{ github.run_id }}
-          github-token: ${{ github.token }}
-
-      - name: Verify complete artifact set
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          appimages=(dist/*.AppImage)
-          debs=(dist/*.deb)
-          dmgs=(dist/*.dmg)
-          test "${#appimages[@]}" -eq 2 \
-            || { echo "::error::erwarte 2 AppImages (x86_64+aarch64), habe ${#appimages[@]}"; exit 1; }
-          test "${#debs[@]}" -eq 2 \
-            || { echo "::error::erwarte 2 .deb-Pakete (amd64+arm64), habe ${#debs[@]}"; exit 1; }
-          test "${#dmgs[@]}" -eq 1 \
-            || { echo "::error::erwarte 1 .dmg (macOS arm64), habe ${#dmgs[@]}"; exit 1; }
-          ls -lh dist/
-
-      # #311: Release-Body aus dem CHANGELOG-Abschnitt der Tag-Version ableiten.
-      # Fehlt ``## [X.Y.Z]``, bricht das Skript hart ab (Exit 2) – kein stiller
-      # generischer Fallback, der Publish-Job faellt klar.
-      - name: Derive release notes from CHANGELOG
-        run: |
-          set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          python3 scripts/extract_release_notes.py "$version" > release-notes.md
-          echo ">> Release-Notes fuer $version aus CHANGELOG.md abgeleitet:"
-          cat release-notes.md
-
-      - name: Create or reuse the GitHub Release
-        run: |
-          set -euo pipefail
-          # Der Body wird IMMER aus dem CHANGELOG gesetzt – auch beim Reuse eines
-          # bereits existierenden Releases (#311). Fehler von ``gh release`` werden
-          # NICHT pauschal verschluckt: ein existierendes Release wird explizit
-          # erkannt und sein Body via ``gh release edit`` aktualisiert, jeder
-          # andere Fehler bricht den Job ab.
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME existiert bereits – Body + Assets werden aktualisiert."
-            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
-          else
-            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
-              --notes-file release-notes.md --verify-tag
-          fi
-
-      - name: Upload artifacts to the Release
-        run: |
-          set -euo pipefail
-          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
-          # #584 (Codex-Review auf #602): Erst NACH dem erfolgreichen Upload
-          # verwaiste Alt-Assets entfernen, die im aktuell gebauten ``dist/``
-          # keine Entsprechung mehr haben (z. B. Reste eines frueheren Laufs
-          # mit anderem Namensschema oder anderer Artefaktmenge) – ``--clobber``
-          # ersetzt laut GitHub-CLI-Doku nur Assets MIT IDENTISCHEM Namen.
-          # Bewusst NACH statt VOR dem Upload: schlaegt dieser (oder der
-          # vorherige ``gh release edit``) fehl, bleiben die bisherigen,
-          # weiterhin funktionsfaehigen Downloads unangetastet, statt das
-          # Release zwischenzeitlich ganz ohne Assets zurueckzulassen. Es wird
-          # ausschliesslich geloescht, was NICHT (mehr) in ``dist/`` liegt –
-          # kein pauschales Wegwerfen des gesamten Alt-Bestands.
-          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' \
-            | while IFS= read -r asset_name; do
-                [ -n "$asset_name" ] || continue
-                if [ ! -f "dist/$asset_name" ]; then
-                  echo "Entferne veraltetes Release-Asset: $asset_name"
-                  gh release delete-asset "$GITHUB_REF_NAME" "$asset_name" -y
-                fi
-              done
+          retention-days: 90

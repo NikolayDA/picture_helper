@@ -12,14 +12,10 @@ name: Release-Abnahme (Self-hosted Hardware)
 on:
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: 'Release-Tag der zu pruefenden Assets (z. B. v2.7.0). Genau eine Quelle.'
-        type: string
-        default: ''
       run_id:
-        description: 'Run-ID eines release-linux.yml-Laufs (Kandidat vor dem Tag). Genau eine Quelle.'
+        description: 'Run-ID eines erfolgreichen release-linux.yml-Kandidatenlaufs.'
         type: string
-        default: ''
+        required: true
       platforms:
         description: 'Zielplattformen'
         type: choice
@@ -48,8 +44,82 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  candidate-source:
+    name: Kandidatenquelle und exakte Artefaktmenge
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      head_sha: ${{ steps.contract.outputs.head_sha }}
+      version: ${{ steps.contract.outputs.version }}
+      expected_tag: ${{ steps.contract.outputs.expected_tag }}
+      contract_artifact_name: ${{ steps.artifact-name.outputs.name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build-Run-Metadaten unveraenderlich beziehen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]] \
+            || { echo "::error::run_id muss eine positive Ganzzahl sein."; exit 1; }
+          mkdir -p "${RUNNER_TEMP}/candidate-metadata"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" \
+            > "${RUNNER_TEMP}/candidate-metadata/run.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts?per_page=100" \
+            > "${RUNNER_TEMP}/candidate-metadata/artifacts.json"
+      - name: Genau die Kandidatenartefakte des Build-Runs laden
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bgremover-*
+          path: ${{ runner.temp }}/candidate-files
+          merge-multiple: true
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Freeze-Provenienz desselben Build-Runs laden
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-freeze-provenance-*
+          path: ${{ runner.temp }}/candidate-provenance
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Kandidatenvertrag pruefen und erzeugen
+        id: contract
+        env:
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release_contract.py prepare-candidate \
+            --run-json "${RUNNER_TEMP}/candidate-metadata/run.json" \
+            --artifacts-json "${RUNNER_TEMP}/candidate-metadata/artifacts.json" \
+            --candidate-dir "${RUNNER_TEMP}/candidate-files" \
+            --provenance-dir "${RUNNER_TEMP}/candidate-provenance" \
+            --run-id "$SOURCE_RUN_ID" \
+            --output-dir "${RUNNER_TEMP}/candidate-contract"
+      - name: Abnahme-Workflow an exakt denselben Commit binden
+        env:
+          SOURCE_HEAD_SHA: ${{ steps.contract.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$SOURCE_HEAD_SHA" = "$GITHUB_SHA" || {
+            echo "::error::Abnahme-Workflow laeuft auf $GITHUB_SHA, Kandidat ist $SOURCE_HEAD_SHA. Workflow auf exakt dem Kandidaten-Commit dispatchen."
+            exit 1
+          }
+      - name: Attempt-spezifischen Vertragsnamen festlegen
+        id: artifact-name
+        run: echo "name=release-candidate-contract-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: ${{ runner.temp }}/candidate-contract/
+          if-no-files-found: error
+          retention-days: 90
+
   abnahme-macos-arm64:
     name: Abnahme macOS arm64
+    needs: candidate-source
     if: inputs.platforms == 'alle' || inputs.platforms == 'macos-arm64'
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
@@ -78,15 +148,13 @@ jobs:
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
           RUN_ID: ${{ inputs.run_id }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
         run: |
           set -euo pipefail
-          args=()
-          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
-          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
-            --platform macos-arm64 "${args[@]}" \
+            --platform macos-arm64 --source-run-id "$RUN_ID" \
+            --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-macos-arm64"
       - name: DMG-Smoke inkl. Retina- und nativem 3D-Nachweis (#643/#648)
         run: |
@@ -119,12 +187,14 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: abnahme-macos-arm64
+          name: abnahme-macos-arm64-${{ github.run_attempt }}
           path: ${{ runner.temp }}/abnahme-macos-arm64/
           if-no-files-found: error
+          retention-days: 90
 
   abnahme-linux-arm64:
     name: Abnahme Linux aarch64
+    needs: candidate-source
     if: inputs.platforms == 'alle' || inputs.platforms == 'linux-arm64'
     runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 30
@@ -153,15 +223,13 @@ jobs:
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
           RUN_ID: ${{ inputs.run_id }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
         run: |
           set -euo pipefail
-          args=()
-          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
-          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
-            --platform linux-arm64 "${args[@]}" \
+            --platform linux-arm64 --source-run-id "$RUN_ID" \
+            --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
@@ -191,9 +259,10 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: abnahme-linux-arm64
+          name: abnahme-linux-arm64-${{ github.run_attempt }}
           path: ${{ runner.temp }}/abnahme-linux-arm64/
           if-no-files-found: error
+          retention-days: 90
 
   # Linux x86_64 ist bis auf weiteres pausiert (kein GPU-Hardwarezugang,
   # Entscheidung 2026-07-20). Der Job bleibt vollstaendig definiert, laeuft aber
@@ -201,6 +270,7 @@ jobs:
   # Reaktivierung ohne Code-Aenderung: siehe docs/RELEASE_AUTOMATION.md §5.
   abnahme-linux-x86_64:
     name: Abnahme Linux x86_64
+    needs: candidate-source
     if: >-
       (inputs.platforms == 'alle' || inputs.platforms == 'linux-x86_64')
       && vars.ABNAHME_X86_64_ENABLED == 'true'
@@ -231,15 +301,13 @@ jobs:
       - name: Artefakte beziehen und Evidenz anlegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
           RUN_ID: ${{ inputs.run_id }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
         run: |
           set -euo pipefail
-          args=()
-          [ -n "$RELEASE_TAG" ] && args+=(--release-tag "$RELEASE_TAG")
-          [ -n "$RUN_ID" ] && args+=(--source-run-id "$RUN_ID")
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
-            --platform linux-x86_64 "${args[@]}" \
+            --platform linux-x86_64 --source-run-id "$RUN_ID" \
+            --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-linux-x86_64"
       - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
         run: |
@@ -269,9 +337,10 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: abnahme-linux-x86_64
+          name: abnahme-linux-x86_64-${{ github.run_attempt }}
           path: ${{ runner.temp }}/abnahme-linux-x86_64/
           if-no-files-found: error
+          retention-days: 90
 
   # Sichtbarer Hinweis, wenn x86_64 pausiert ist – laeuft auf GitHub-hosted, weil
   # ein passender Self-hosted Runner gerade fehlen kann. So faellt der pausierte
@@ -294,7 +363,7 @@ jobs:
   # menschlich (#646).
   aggregation:
     name: Abschlussmatrix
-    needs: [abnahme-macos-arm64, abnahme-linux-arm64, abnahme-linux-x86_64]
+    needs: [candidate-source, abnahme-macos-arm64, abnahme-linux-arm64, abnahme-linux-x86_64]
     if: always() && !inputs.dry_run
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -310,6 +379,11 @@ jobs:
         with:
           path: ${{ runner.temp }}/abnahme-evidenz
           pattern: abnahme-*
+      - name: Kandidatenvertrag herunterladen
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.candidate-source.outputs.contract_artifact_name }}
+          path: ${{ runner.temp }}/candidate-contract
       - name: Vision-SDK reproduzierbar installieren
         continue-on-error: true
         run: |
@@ -343,15 +417,45 @@ jobs:
           python3 scripts/abnahme_aggregate.py \
             --artifacts-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abschlussmatrix.md" \
-            --commit-sha "${GITHUB_SHA}" \
+            --summary-output "${RUNNER_TEMP}/acceptance-summary.json" \
+            --commit-sha "${{ needs.candidate-source.outputs.head_sha }}" \
             --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             $x86flag
       - uses: actions/upload-artifact@v6
         with:
-          name: abschlussmatrix
+          name: abschlussmatrix-${{ github.run_attempt }}
           path: ${{ runner.temp }}/abschlussmatrix.md
           if-no-files-found: error
+          retention-days: 90
+      - name: Unveraenderliches Freigabemanifest erzeugen
+        env:
+          APPROVAL_ARTIFACT_NAME: release-approval-manifest-${{ github.run_attempt }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/release-approval"
+          python3 scripts/release_contract.py create-approval \
+            --candidate-contract "${RUNNER_TEMP}/candidate-contract/release-candidate-contract.json" \
+            --evidence-dir "${RUNNER_TEMP}/abnahme-evidenz" \
+            --acceptance-summary "${RUNNER_TEMP}/acceptance-summary.json" \
+            --acceptance-run-id "${GITHUB_RUN_ID}" \
+            --acceptance-run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --acceptance-head-sha "$SOURCE_HEAD_SHA" \
+            --approval-artifact-name "$APPROVAL_ARTIFACT_NAME" \
+            --output "${RUNNER_TEMP}/release-approval/release-approval-manifest.json"
+          cp "${RUNNER_TEMP}/candidate-contract/release-freeze-provenance.json" \
+            "${RUNNER_TEMP}/release-approval/release-freeze-provenance.json"
+          cp "${RUNNER_TEMP}/abschlussmatrix.md" \
+            "${RUNNER_TEMP}/release-approval/abschlussmatrix.md"
+      - name: Freigabemanifest als Actions-Artefakt sichern
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-approval-manifest-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-approval/
+          if-no-files-found: error
+          retention-days: 90
       - name: Matrix als Issue-Kommentar posten
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_ISSUE: ${{ inputs.target_issue }}

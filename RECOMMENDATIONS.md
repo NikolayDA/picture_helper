@@ -11,7 +11,7 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-01, v2.7.2-Arbeitsstand nach #740)
+## Aktueller Stand (2026-08-01, v2.7.2-Arbeitsstand nach PR #754)
 
 **v2.7.1 ist veröffentlicht** (2026-07-30, Tag `a3de137a0c0873f93f84186f9bba32d684a48808`, fünf Artefakte). #740 hatte gezeigt, dass AppImage und `.deb` im ersten Nachlauf Code aus dem Checkout luden; #750 korrigierte den Prüfpfad. Der reale Pi-Lauf [30706671985](https://github.com/NikolayDA/picture_helper/actions/runs/30706671985) belegt nun für beide Linux-Pakete Bundle-Herkunft und einen checkout-freien `sys_path_0`; #740 ist geschlossen. Für #680/#685/#686 liegt damit die Linux-Evidenz vor, ihre Abnahmevermerke sind noch nachzuziehen. Der 2.7.2-Kandidat wird künftig aus dem geprüften Workflow-Head abgeleitet statt als späterer SHA-Pin im Freeze-Dokument gepflegt (#742/#743).
 
@@ -33,17 +33,16 @@ Die **Ursachen-Legende U1–U10** ist in #741 als Tabelle ergänzt – zehn Teil
 
 **Alte Basis unverändert abgeschlossen:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte sowie die Releases v2.7.0/v2.7.1. Keine 🔴-Befunde offen.
 
-Live-Stand nach GitHub-Abfrage: **29** offene Issues (#740 nach erfolgreichem Pi-Nachweis geschlossen).
+Live-Stand nach GitHub-Abfrage: **27** offene Issues. #742/#743 sind durch PR
+#754 geschlossen; #744/#747 werden in diesem PR gemeinsam umgesetzt.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-01)
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | Legende und Bestandsaufnahme nachgezogen – Phase 0/1 startbereit |
-| [#743](https://github.com/NikolayDA/picture_helper/issues/743) | Explizite Pfadklasse „release-neutral“ einführen | 🟠 Hoch (entscheidet, welche Änderung Abnahme braucht) | 🟡 Mittel (Klassifikator + Build-Input-Nachweis je Eintrag) | Opus, mittel | **In Umsetzung** – versionierte Positivliste, Drift- und Fail-closed-Tests in diesem PR |
-| [#742](https://github.com/NikolayDA/picture_helper/issues/742) | Freeze-Nachtrags-Commit eliminieren (Pin + Commit-Ledger) | 🟠 Hoch (Hauptquelle der Nacharbeitsschleifen) | 🔴 Hoch (Vertrauensmodell des Gates, ADR nötig) | Opus, hoch | **In Umsetzung** – Workflow-Head + abgeleitete Actions-Provenienz, ADR und Manipulationstests in diesem PR |
-| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish verwendet die abgenommenen Kandidatenartefakte wieder | 🟠 Hoch (abgenommene ≠ veröffentlichte Bytes) | 🔴 Hoch (Veröffentlichungspfad, kaum trocken testbar) | Opus, hoch | Blocked – braucht Provenienz/Manifest aus #742 |
-| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Neuen Gate-Vertrag nach #742/#744 maschinell absichern | 🟡 Mittel (verhindert Vertragsdrift wie #709) | 🟡 Mittel (erweitert das vorhandene `test_release_gate.py`) | Sonnet, mittel | Blocked – im selben Änderungspaket wie #742/#744 |
+| [#744](https://github.com/NikolayDA/picture_helper/issues/744) | publish verwendet die abgenommenen Kandidatenartefakte wieder | 🟠 Hoch (abgenommene ≠ veröffentlichte Bytes) | 🔴 Hoch (Veröffentlichungspfad, kaum trocken testbar) | Opus, hoch | **In Umsetzung** – Freigabemanifest + separater neubaufreier Draft-first-Publish in diesem PR |
+| [#747](https://github.com/NikolayDA/picture_helper/issues/747) | Neuen Gate-Vertrag nach #742/#744 maschinell absichern | 🟡 Mittel (verhindert Vertragsdrift wie #709) | 🟡 Mittel (erweitert vorhandene Tests) | Sonnet, mittel | **In Umsetzung** – Positiv-/Negativ-, Manipulations-, Retry- und Bytegleichheitstests im selben PR |
 | [#746](https://github.com/NikolayDA/picture_helper/issues/746) | Versionierte Abnahme-Checkliste statt Release-Instanz-Issues | 🟡 Mittel (beendet das Neuerfinden der Kriterien je Release) | 🟡 Mittel (Schema, stabile IDs, Waiver-Regeln) | Sonnet, mittel | Startbereit – vor oder mit #745 |
 | [#745](https://github.com/NikolayDA/picture_helper/issues/745) | Release-Runbook als einzige Prozessquelle | 🟡 Mittel (Prozesswissen steckt heute in Issue-Kommentaren) | 🟡 Mittel (Doku + Link-/Governance-Tests) | Sonnet, mittel | Blocked – erst wenn #742/#743/#744 entschieden sind |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-Release-Update-Erkennung aus echtem Vorgängerartefakt | 🟡 Mittel (produktiver Update-Pfad ungeprüft) | 🟠 Hoch (Plattform-/Betriebsarbeit, nur post-release möglich) | Opus, hoch | Blocked – läuft erst nach Publish aus #744 |
@@ -69,14 +68,16 @@ Live-Stand nach GitHub-Abfrage: **29** offene Issues (#740 nach erfolgreichem Pi
 
 ### Als Nächstes empfohlen
 
-1. **#743 + #742** in diesem PR abschließen; CI und Review müssen den neuen Pfad-/Provenienzvertrag bestätigen.
+1. **#744 + #747** in diesem PR abschließen; CI und Review müssen Manifest,
+   neubaufreien Publish und Manipulationstests bestätigen.
 2. **#680/#685/#686** mit Lauf 30706671985 aktualisieren und anhand ihrer übrigen Kriterien schließen.
-3. **#744 (+ #747)** danach – ohne Byte-Wiederverwendung bleibt nach jeder Veröffentlichung ein zweiter Hardware-Abnahmelauf nötig.
+3. **#745/#746** auf den nun entschiedenen Release-Vertrag aufsetzen.
 4. **#737/#752** und die Owner-Entscheidungen zu **#656** (Variante A) und **#731** (A–D) laufen unabhängig davon; #752 braucht den neuen #742-Vertrag.
 5. **#692** (COLOR-ADR) und **#716** bleiben parallel startbar; **#681/#687–#691** unverändert blockiert (TIFF-vs.-PNG-Diskrepanz, reale EufyMake-Hardware).
 
 ## Vorige Runden
 
+- **2026-08-01 (#742/#743 gemergt; #744/#747 in Umsetzung)** — PR #754 ersetzt den selbstreferenziellen Freeze-Pin durch abgeleitete Actions-Provenienz und führt die versionierte, fail-closed Pfadpolicy ein. GitHub-Live-Stand 27. Dieser PR trennt Kandidatenbau, Hardware-Abnahme und Publish, bindet exakt fünf SHA-256 in einem unveränderlichen Freigabemanifest und erweitert die vorhandenen Gate-Tests um Manipulations-/Retry-/Bytegleichheitsfälle.
 - **2026-08-01 (#740 abgeschlossen; #743/#742 in Umsetzung)** — Pi-Lauf 30706671985 belegt Bundle-Code für AppImage und `.deb`; #740 mit Evidenzkommentar geschlossen. GitHub-Live-Stand 29. Die gemeinsame Umsetzung für #743/#742 ersetzt breite/implizite Protokollpfade durch eine versionierte Positivliste und den manuellen Freeze-Pin durch abgeleitete, als Actions-Artefakt gespeicherte Provenienz.
 - **2026-08-01 (Nachprüfung #736/#738/#739/#749/#750/#751)** — sechs gemergte PRs vom 31.07./01.08. vollständig gegen Code, Reviews und Gates geprüft; alle Reviewthreads aufgelöst und alle fünf Workflow-Familien grün. Lokales `make check` grün, Freeze-Kandidat `57517ec` (#750) korrekt protokolliert, Gate 0/0. #740 bleibt zu Recht bis zum realen Pi-`dry_run` offen; im Zeitfenster wurde kein reguläres Issue geschlossen. Recommendations auf Kandidat und nächste Schritte korrigiert; Governance-Folgeissue #752 mit Akzeptanzkriterien angelegt. Live-Stand 30.
 - **2026-07-31 (Release-Prozess-Analyse, Epic #741)** — v2.7.1 am 2026-07-30 veröffentlicht (Tag `a3de137`, fünf Artefakte, Nach-Release-Hardware-Abnahme gegen die veröffentlichten Bytes). Auswertung beider Zyklen: im Fenster `v2.7.0..v2.7.1` 36 Mainline-Commits, davon 18 protocol-only und 7 reine Freeze-Nachträge. Epic #741 mit sieben neuen Teil-Issues (#742–#748) und vier übernommenen (#740/#731/#737/#656) angelegt. Die Owner-Gegenprüfung korrigierte drei Punkte der ersten Fassung (README.md/`docs/i18n/**` sind kandidatenrelevant; `tests/test_release_gate.py` existierte bereits; `ANTHROPIC_API_KEY` ist nicht zweckgebunden) – alle im Code verifiziert. Live-Stand 29. Legende und Windows-Umfang direkt nachgezogen. Die zunächst als Fehler gemeldete Commit-Zahl war selbst falsch (Shallow-Clone) und ist zurückgenommen – Details im Abschnitt oben.

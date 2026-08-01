@@ -8,9 +8,10 @@ analogous to the macOS `.app` bundle:
 - **`.deb`** (second format) — wraps the AppImage for apt users (menu
   integration, clean install/remove on Debian/Ubuntu/Raspberry Pi OS).
 
-A GitHub Actions **release workflow** builds both for **x86_64 and aarch64**
-(Raspberry Pi OS / arm64) on every `v*` tag and attaches them to the release.
-The same workflow also builds the macOS `.dmg` (Apple Silicon/arm64) — see
+A manual GitHub Actions **candidate workflow** builds both for **x86_64 and
+aarch64** (Raspberry Pi OS / arm64). After hardware acceptance, a separate
+workflow promotes exactly those bytes to the release. The candidate workflow
+also builds the macOS `.dmg` (Apple Silicon/arm64) — see
 [`../mac/README.md`](../mac/README.md).
 
 > **Status:** AppImage, `.deb`, aarch64/Pi builds and release publishing are
@@ -24,7 +25,8 @@ The same workflow also builds the macOS `.dmg` (Apple Silicon/arm64) — see
 | `de.bgremover.app.metainfo.xml` | AppStream metadata (software centers, release info) |
 | `build_appimage.sh` | Builds the AppImage via `python-appimage` |
 | `build_deb.sh` | Wraps a built AppImage into a `.deb` |
-| `../../.github/workflows/release-linux.yml` | Builds + publishes both, per arch |
+| `../../.github/workflows/release-linux.yml` | Builds the candidate, per arch |
+| `../../.github/workflows/release-publish.yml` | Publishes an accepted five-file manifest |
 
 The application id `de.bgremover.app` matches the macOS bundle identifier and is
 used identically as the desktop-file id, the AppStream component id and the icon
@@ -81,7 +83,7 @@ sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 
 ### Freeze gate and provenance
 
-Before CI builds any artifact, `verify-tag` runs the versioned freeze contract
+Before CI builds any artifact, `verify-candidate` runs the versioned freeze contract
 from `docs/history/RELEASE-<version>-scope-freeze.md` against the exact workflow
 head. The freeze document contains no candidate pin or manual commit ledger.
 Instead, `scripts/verify_release_freeze.py` derives every first-parent commit
@@ -92,8 +94,8 @@ and changed path since the frozen base SHA, classifies it through
 Unknown paths are candidate-relevant **and block the gate** until the path
 policy is deliberately extended and versioned. A successful Actions run uploads
 the JSON as `release-freeze-provenance-<run-attempt>`; the artifact ID, digest,
-run ID and candidate SHA identify the evidence that #744 will later bind to the
-five accepted artifacts.
+run ID and candidate SHA are bound to the five accepted artifacts by
+`release-approval-manifest-<run-attempt>`.
 
 Local verification and a round-trip manipulation check:
 
@@ -114,8 +116,8 @@ Building the AppImage is not enough — `tests/test_app_smoke.py` only launches 
 **source** app (`python -m bgremover`) and cannot see *frozen-only* failures
 (missing metadata → start crash #304, missing `freeze_support()` → fork bomb
 #305, a broken bundled AI chain → #306). The release workflow therefore
-**launches the freshly built AppImage headlessly** in the `build` job, gated
-before `publish` (`needs: build`):
+**launches the freshly built AppImage headlessly** in the gated `build` job
+before candidate promotion:
 
 - **Start + fork-bomb guard (#307):** `scripts/smoke_launch.py` runs
   `BgRemover-*.AppImage --appimage-extract-and-run` with
@@ -133,15 +135,15 @@ before `publish` (`needs: build`):
 ## Release notes (from the CHANGELOG)
 
 The GitHub Release **body** is derived from the matching `CHANGELOG.md` section,
-not from a hardcoded string (#311). On a `vX.Y.Z` tag the `publish` job runs
-`scripts/extract_release_notes.py X.Y.Z`, which extracts everything between the
+not from a hardcoded string (#311). The separate `release-publish.yml` workflow
+runs `scripts/extract_release_notes.py X.Y.Z` from the accepted commit, which extracts everything between the
 `## [X.Y.Z]` heading and the next `## [` heading and passes it via `--notes-file`
 to `gh release create` (new release) **or** `gh release edit` (reuse of an
 existing release — e.g. on a re-run, so a corrected body actually lands).
 
 If no `## [X.Y.Z]` section exists for the tag, the script exits non-zero and the
-`publish` job fails loudly — there is **no** silent generic fallback. So before
-tagging a release, add its dated `## [X.Y.Z] – YYYY-MM-DD` section to
+publish workflow fails loudly — there is **no** silent generic fallback. So
+before building a candidate, add its dated `## [X.Y.Z] – YYYY-MM-DD` section to
 `CHANGELOG.md` (and mirror it in `docs/i18n/*/CHANGELOG.md`).
 
 To backfill the body of an already-published release by hand, run the same
