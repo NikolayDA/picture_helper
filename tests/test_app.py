@@ -118,6 +118,7 @@ def patched_app(monkeypatch):
     monkeypatch.delenv("BGREMOVER_SCREENSHOT_3D_TIMEOUT_MS", raising=False)
     monkeypatch.delenv("BGREMOVER_ACCEPTANCE_EXTRA", raising=False)
     monkeypatch.delenv("BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT", raising=False)
+    monkeypatch.delenv("BGREMOVER_UPDATE_CHECK_PROBE", raising=False)
     return created
 
 

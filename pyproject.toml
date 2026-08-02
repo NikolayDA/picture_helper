@@ -133,6 +133,7 @@ module = [
     "bgremover.ai_model_status",
     "bgremover.ai_process",
     "bgremover.app_update",
+    "bgremover.update_check_probe",
     "bgremover.image_ops",
     "bgremover.image_utils",
     "bgremover.color_ops",

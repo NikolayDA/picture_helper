@@ -33,6 +33,13 @@ on:
         description: 'Issue fuer den Kommentar mit der Abschlussmatrix'
         type: string
         default: '595'
+      predecessor_tag:
+        description: >-
+          Vorgaenger-Release-Tag (z. B. v2.7.1) fuer den echten UPDATE-01-
+          Nachweis (#748) auf Linux arm64. Leer = Update-Check wird
+          uebersprungen (bleibt PENDING statt fabriziert PASS).
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -231,13 +238,36 @@ jobs:
             --platform linux-arm64 --source-run-id "$RUN_ID" \
             --commit-sha "$SOURCE_HEAD_SHA" \
             --output "${RUNNER_TEMP}/abnahme-linux-arm64"
-      - name: AppImage- und .deb-Smoke inkl. GL-Provenance und nativem 3D-Nachweis (#642/#648)
+      - name: Echten Vorgaenger-Release beziehen (UPDATE-01, #748)
+        if: inputs.predecessor_tag != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
+          SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/release_abnahme.py \
+            --platform linux-arm64 --release-tag "$PREDECESSOR_TAG" \
+            --commit-sha "$SOURCE_HEAD_SHA" \
+            --output "${RUNNER_TEMP}/abnahme-linux-arm64-predecessor"
+      - name: AppImage- und .deb-Smoke inkl. GL-Provenance, nativem 3D- und Update-Check-Nachweis (#642/#648/#748)
+        env:
+          PREDECESSOR_TAG: ${{ inputs.predecessor_tag }}
+          CANDIDATE_VERSION: ${{ needs.candidate-source.outputs.version }}
         run: |
           set -euo pipefail
           unset QT_QPA_PLATFORM
+          predecessor_args=()
+          if [ -n "${PREDECESSOR_TAG}" ]; then
+            predecessor_args=(
+              --predecessor-evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64-predecessor"
+              --candidate-version "${CANDIDATE_VERSION}"
+            )
+          fi
           "${RUNNER_TEMP}/abnahme-venv/bin/python" scripts/abnahme_smoke.py \
             --platform linux-arm64 \
-            --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64"
+            --evidence-dir "${RUNNER_TEMP}/abnahme-linux-arm64" \
+            "${predecessor_args[@]}"
       - name: Native E2E-Regression inkl. 3D-Ready-Nachweis (#644)
         env:
           ABNAHME_EVIDENCE_DIR: ${{ runner.temp }}/abnahme-linux-arm64

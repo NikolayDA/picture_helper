@@ -323,7 +323,21 @@ Ein Paket, `bgremover/`:
   liefert ein strukturiertes `UpdateCheckResult`
   (`UP_TO_DATE`/`UPDATE_AVAILABLE`/`CHECK_FAILED`) – jeder Netzwerk-/
   Parsing-Fehler wird als `CHECK_FAILED` zurückgegeben, nie als Exception
-  (#564). `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
+  (#564). `update_check_probe.py` — Qt-freier Automationshook für die
+  Release-Abnahme (#748): `run_update_check_probe(output_json)` ruft
+  `check_for_update` echt (unauthentifizierter Netzwerk-Roundtrip) auf und
+  schreibt strukturierte Evidenz; in `bgremover.app.main` über
+  `BGREMOVER_UPDATE_CHECK_PROBE` (Ziel-JSON-Pfad) noch vor `QApplication`
+  ausgelöst, analog `BGREMOVER_AI_SELFCHECK`. Da der Hook erst ab dem
+  Kandidaten existiert, der ihn zuerst mitbaut, deckt er den echten
+  `UPDATE_AVAILABLE`-Vorgängernachweis für bereits veröffentlichte Artefakte
+  nicht rückwirkend ab – dafür läuft `scripts/update_probe_cli.py` direkt
+  unter dem im jeweiligen Artefakt gebündelten Interpreter (nur Linux/
+  python-appimage bietet dafür einen generisch aufrufbaren Interpreter;
+  PyInstaller-macOS nicht), verdrahtet in `scripts/abnahme_smoke.py`
+  (`_update_check_linux`, `--predecessor-evidence-dir`/`--candidate-version`)
+  und optional per `predecessor_tag`-Eingabe in `release-abnahme.yml`.
+  `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
   rembg-Cache-Zustand (`U2NET_HOME`/`XDG_DATA_HOME`/`~/.u2net`, Standardmodell
   `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu
   importieren (#568). UI-Anbindung (#565/#569): Extras-Menü „Nach Updates
@@ -422,7 +436,7 @@ Ein Paket, `bgremover/`:
   `tests/conftest.py` `E402`.
 - **mypy:** Die Qt-armen Logikmodule sind streng getypt (`disallow_untyped_defs`
   + `check_untyped_defs`): `ai_model_status`, `ai_process`, `app_update`,
-  `image_ops`, `image_utils`, `color_ops`,
+  `update_check_probe`, `image_ops`, `image_utils`, `color_ops`,
   `eufymake_export/_validate/_writer`, `export_checks`, `gloss_preview`,
   `relief_preview`, `relief_mesh`, `renderer_provenance`, `height_map`,
   `height_ops`, `preview_mode`, `preview3d_camera`, `preview3d_capability`,
