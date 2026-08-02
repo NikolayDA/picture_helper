@@ -102,7 +102,9 @@ def test_workflow_binds_acceptance_to_candidate_run_and_head() -> None:
     assert '--run-id "$SOURCE_RUN_ID"' in text
     assert '--run-id "${{ inputs.run_id }}"' not in text
     assert "SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}" in text
-    assert text.count('--commit-sha "$SOURCE_HEAD_SHA"') == 3
+    # Drei Plattform-Evidenzabrufe plus der optionale Vorgänger-Abruf für den
+    # echten UPDATE-01-Nachweis (#748) binden sich alle an denselben Commit.
+    assert text.count('--commit-sha "$SOURCE_HEAD_SHA"') == 4
     assert "inputs.release_tag" not in text
 
 
@@ -169,3 +171,20 @@ def test_workflow_tags_live_gl_results_with_platform() -> None:
     for platform in ("macos-arm64", "linux-arm64", "linux-x86_64"):
         assert f"--platform {platform}" in text
     assert text.count("--iterations 3") == 3
+
+
+def test_workflow_supports_optional_update_check_predecessor() -> None:
+    """UPDATE-01 (#748): ein optionaler Vorgänger-Tag löst den echten
+    Update-Check-Nachweis auf Linux arm64 aus; leer lässt ihn PENDING statt
+    ein ungeprüftes PASS zu fabrizieren."""
+    text = _workflow_text()
+
+    assert "predecessor_tag:" in text
+    assert "default: ''" in text
+    assert "if: inputs.predecessor_tag != ''" in text
+    assert '--release-tag "$PREDECESSOR_TAG"' in text
+    assert "--predecessor-evidence-dir" in text
+    assert "--candidate-version" in text
+    assert "CANDIDATE_VERSION: ${{ needs.candidate-source.outputs.version }}" in text
+    for script in ("release_abnahme.py", "abnahme_smoke.py", "update_probe_cli.py"):
+        assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"

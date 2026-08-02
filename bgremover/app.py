@@ -84,6 +84,19 @@ def main() -> int:
         print(message)
         return 0 if ok else 1
 
+    # Update-Check-Automationshook (#748): ist BGREMOVER_UPDATE_CHECK_PROBE
+    # gesetzt (Ziel-JSON-Pfad), führt einen echten, unauthentifizierten
+    # GitHub-Releases-API-Roundtrip aus (bgremover.app_update.check_for_update
+    # über bgremover.update_check_probe) und beendet sich mit dem Ergebnis –
+    # wie BGREMOVER_AI_SELFCHECK rein Netzwerk/Logik, ohne QApplication.
+    if os.environ.get("BGREMOVER_UPDATE_CHECK_PROBE"):
+        from bgremover.update_check_probe import run_update_check_probe
+        ok, message = run_update_check_probe(
+            Path(os.environ["BGREMOVER_UPDATE_CHECK_PROBE"])
+        )
+        print(message)
+        return 0 if ok else 1
+
     init_runtime()
     app = QApplication(sys.argv)
     app.setApplicationName("BgRemover")

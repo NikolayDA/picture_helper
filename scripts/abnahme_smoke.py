@@ -64,6 +64,13 @@ DEB_KNOWN_PATHS = (
 # auf dem read-only DMG-Mount, der direkt danach detacht wird.
 TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 
+# Wegwerf-Entpackverzeichnis fuer den Update-Check-Vorgaengernachweis (#748):
+# jede geprüfte AppImage bekommt ihr eigenes Unterverzeichnis (Name = Stem der
+# Datei), damit Vorgänger- und Kandidaten-Entpackung sich nicht überschreiben.
+TEMP_APPIMAGE_EXTRACT_ROOT = "/tmp/abnahme-update-check-appimage"
+UPDATE_CHECK_EVIDENCE_DIR_NAME = "update_check"
+UPDATE_CHECK_PROBE = REPO_ROOT / "scripts" / "update_probe_cli.py"
+
 # Nativer 3D-Screenshot-Nachweis (#648): großzügigeres Timeout als der
 # Headless-Start – Shader-Compile + erster Mesh-Build auf echter (ggf.
 # schwächerer Raspberry-Pi-)Hardware brauchen spürbar länger als der reine
@@ -542,6 +549,139 @@ def _acceptance_extra(
     report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
 
 
+def _extract_appimage(runner: Runner, appimage_path: str, label: str, report: SmokeReport) -> str | None:
+    """Entpackt eine AppImage in ein eigenes Wegwerfverzeichnis und liefert den
+    Pfad zum darin gebündelten Python-Interpreter (#748).
+
+    python-appimage-Layout (``packaging/linux/build_appimage.sh``): eine
+    vollständige, eigenständige CPython-Installation unter
+    ``squashfs-root/usr/bin/pythonX.Y`` mit dem echten ``bgremover``-Paket in
+    ihrem Site-Packages – anders als bei PyInstaller (macOS) ein generisch
+    aufrufbarer Interpreter, kein reiner Bootloader.
+    """
+    dest = f"{TEMP_APPIMAGE_EXTRACT_ROOT}/{Path(appimage_path).stem}"
+    if runner(["rm", "-rf", dest]).returncode != 0:
+        report.fail(f"Update-Check: Entpack-Verzeichnis konnte nicht bereinigt werden: {dest}")
+        return None
+    if runner(["mkdir", "-p", dest]).returncode != 0:
+        report.fail(f"Update-Check: Entpack-Verzeichnis konnte nicht angelegt werden: {dest}")
+        return None
+    abs_appimage = str(Path(appimage_path).resolve())
+    runner(["chmod", "+x", abs_appimage])
+    extract = runner([
+        "/bin/sh", "-c",
+        f"cd {dest} && {abs_appimage} --appimage-extract >/dev/null",
+    ])
+    if extract.returncode != 0:
+        report.fail(
+            f"Update-Check: AppImage-Entpacken fehlgeschlagen ({label}): {_command_detail(extract)}"
+        )
+        return None
+    find_python = runner([
+        "/bin/sh", "-c", f"ls {dest}/squashfs-root/usr/bin/python3.* 2>/dev/null | head -1",
+    ])
+    interpreter = find_python.stdout.strip().splitlines()[0] if find_python.stdout.strip() else ""
+    if not interpreter:
+        report.fail(f"Update-Check: kein gebündelter Interpreter gefunden ({label}): {dest}")
+        return None
+    return interpreter
+
+
+def _update_check(
+    runner: Runner, appimage_path: str, *,
+    label: str, report: SmokeReport, evidence_dir: Path, output_name: str,
+    expect_update_available: bool, expected_latest_version: str | None,
+) -> None:
+    """Echter Update-Check-Nachweis (#748) unter dem im Artefakt gebündelten
+    Interpreter: ruft ``scripts/update_probe_cli.py`` auf, der ausschließlich
+    ``bgremover.app_update``/``bgremover._version`` importiert – beide existieren
+    unverändert seit deutlich vor #748, weshalb dieser Weg auch gegen ein
+    bereits veröffentlichtes, älteres Artefakt funktioniert (kein neuer Hook
+    im geprüften Artefakt nötig).
+
+    ``expect_update_available`` legt fest, welcher Status vom geprüften
+    Artefakt erwartet wird (Vorgänger → ``True``, aktueller Kandidat →
+    ``False``); ``CHECK_FAILED`` ist in beiden Fällen ein Fehlschlag.
+    """
+    interpreter = _extract_appimage(runner, appimage_path, label, report)
+    if interpreter is None:
+        return
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    target = (evidence_dir / output_name).resolve()
+    result = runner([
+        interpreter, str(UPDATE_CHECK_PROBE), "--output", str(target),
+    ])
+    _record_guard(report, result, phase="update_check", artifact_class=label)
+    if not target.is_file():
+        report.fail(
+            f"Update-Check ({label}): keine Evidenz erzeugt: {_command_detail(result)}"
+        )
+        return
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        report.fail(f"Update-Check ({label}): Evidenz-JSON unlesbar: {exc}")
+        return
+
+    status = payload.get("status")
+    if status == "CHECK_FAILED":
+        report.fail(
+            f"Update-Check ({label}): Netzwerk-Roundtrip fehlgeschlagen: {payload.get('error')}"
+        )
+        return
+    expected_status = "UPDATE_AVAILABLE" if expect_update_available else "UP_TO_DATE"
+    if status != expected_status:
+        report.fail(
+            f"Update-Check ({label}): erwartet {expected_status}, gemeldet {status} "
+            f"(current={payload.get('current_version')!r} latest={payload.get('latest_version')!r})"
+        )
+        return
+    if expect_update_available and expected_latest_version:
+        latest = str(payload.get("latest_version") or "").lstrip("v")
+        if latest != expected_latest_version.lstrip("v"):
+            report.fail(
+                f"Update-Check ({label}): meldet UPDATE_AVAILABLE, aber latest_version "
+                f"{payload.get('latest_version')!r} weicht vom erwarteten Kandidaten "
+                f"{expected_latest_version!r} ab."
+            )
+            return
+    report.ok(f"Update-Check ok ({label}): {status}")
+
+
+def _update_check_linux(
+    predecessor_artefacts: list[str], current_artefacts: list[str],
+    report: SmokeReport, runner: Runner, evidence_root: Path, candidate_version: str,
+) -> None:
+    """Echter Vorgänger-Nachweis für ``UPDATE-01`` (#748): ein bereits
+    veröffentlichtes Vorgänger-Release muss ``UPDATE_AVAILABLE`` melden, der
+    aktuell geprüfte Kandidat ``UP_TO_DATE`` – beide über den echten,
+    unauthentifizierten GitHub-Releases-API-Roundtrip aus
+    ``bgremover.app_update``, ausgeführt unter dem jeweils im Artefakt
+    gebündelten Interpreter (siehe ``_update_check``)."""
+    evidence_dir = evidence_root / UPDATE_CHECK_EVIDENCE_DIR_NAME
+    predecessor_appimage = next(
+        (a for a in predecessor_artefacts if a.endswith(".AppImage")), None,
+    )
+    current_appimage = next((a for a in current_artefacts if a.endswith(".AppImage")), None)
+    if predecessor_appimage is None or current_appimage is None:
+        report.fail(
+            "Update-Check: AppImage für Vorgänger und/oder aktuellen Kandidaten fehlt."
+        )
+        return
+
+    _update_check(
+        runner, predecessor_appimage,
+        label=f"Vorgänger {Path(predecessor_appimage).name}",
+        report=report, evidence_dir=evidence_dir, output_name="predecessor.json",
+        expect_update_available=True, expected_latest_version=candidate_version or None,
+    )
+    _update_check(
+        runner, current_appimage, label=f"Kandidat {Path(current_appimage).name}",
+        report=report, evidence_dir=evidence_dir, output_name="current.json",
+        expect_update_available=False, expected_latest_version=None,
+    )
+
+
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:
     """Prüft, dass genau die erwarteten Artefaktklassen vorliegen (kein Teilsatz)."""
     present = {Path(a).suffix for a in artefacts}
@@ -559,9 +699,17 @@ def _require_extensions(artefacts: list[str], required: set[str], report: SmokeR
 
 def run_linux_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober,
-    screenshot_dir: Path,
+    screenshot_dir: Path, *,
+    predecessor_artefacts: list[str] | None = None, candidate_version: str = "",
 ) -> SmokeReport:
-    """AppImage- und ``.deb``-Smoke auf einem Linux-Runner (#642)."""
+    """AppImage- und ``.deb``-Smoke auf einem Linux-Runner (#642).
+
+    ``predecessor_artefacts`` (optional, #748): Dateien eines bereits
+    veröffentlichten Vorgänger-Releases (via ``release_abnahme.fetch_release_
+    assets``). Gesetzt, ergänzt der Smoke den echten UPDATE-01-Vorgänger-
+    nachweis; leer/``None`` lässt ihn ausdrücklich aus (bleibt ``PENDING``
+    statt fabriziert ``PASS``).
+    """
     _require_extensions(artefacts, {".AppImage", ".deb"}, report)
 
     verdict = ra.evaluate_gl_provenance(prober())
@@ -573,6 +721,12 @@ def run_linux_smoke(
             _linux_appimage(artefact, report, runner, screenshot_dir)
         elif artefact.endswith(".deb"):
             _linux_deb(artefact, report, runner, screenshot_dir)
+
+    if predecessor_artefacts:
+        _update_check_linux(
+            predecessor_artefacts, artefacts, report, runner,
+            screenshot_dir.parent, candidate_version,
+        )
 
     return report
 
@@ -828,6 +982,20 @@ def main(argv: list[str] | None = None) -> int:
                         help="Verzeichnis mit evidenz.json (aus release_abnahme.py).")
     parser.add_argument("--scale-factor", type=float, default=0.0,
                         help="devicePixelRatio des macOS-Hauptfensters (nur macOS).")
+    parser.add_argument(
+        "--predecessor-evidence-dir", type=Path, default=None,
+        help=(
+            "Evidenzverzeichnis eines bereits veröffentlichten Vorgänger-"
+            "Releases (release_abnahme.py --release-tag), für den echten "
+            "UPDATE-01-Vorgängernachweis (#748). Nur Linux unterstützt das "
+            "rückwirkend gegen ein bereits gebautes Artefakt."
+        ),
+    )
+    parser.add_argument(
+        "--candidate-version", default="",
+        help="Version des geprüften Kandidaten (z. B. 2.7.2) – Sollwert für "
+        "latest_version im Vorgänger-Update-Check.",
+    )
     args = parser.parse_args(argv)
 
     import json
@@ -838,10 +1006,24 @@ def main(argv: list[str] | None = None) -> int:
         str(args.evidence_dir / "artefakte" / a["name"]) for a in evidence["artefakte"]
     ]
 
+    predecessor_artefacts: list[str] = []
+    if args.predecessor_evidence_dir:
+        predecessor_evidence = json.loads(
+            (args.predecessor_evidence_dir / "evidenz.json").read_text(encoding="utf-8")
+        )
+        predecessor_artefacts = [
+            str(args.predecessor_evidence_dir / "artefakte" / a["name"])
+            for a in predecessor_evidence["artefakte"]
+        ]
+
     screenshot_dir = args.evidence_dir / "screenshots"
     report = SmokeReport()
     if args.platform.startswith("linux"):
-        run_linux_smoke(artefacts, report, _default_runner, _default_prober, screenshot_dir)
+        run_linux_smoke(
+            artefacts, report, _default_runner, _default_prober, screenshot_dir,
+            predecessor_artefacts=predecessor_artefacts,
+            candidate_version=args.candidate_version,
+        )
     else:
         run_macos_smoke(
             artefacts, report, _default_runner, _default_prober, args.scale_factor,
