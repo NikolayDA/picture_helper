@@ -696,34 +696,66 @@ def _validate_freeze(provenance: dict[str, Any], *, source: dict[str, Any], vers
         raise ContractError("Freeze-Provenienz stammt aus einem anderen Build-Run")
 
 
-def _freeze_payload_path(provenance_dir: Path, artifact_name: str) -> Path:
+def _freeze_payload_path(
+    provenance_dir: Path,
+    artifact_name: str,
+    downloaded_artifact_names: set[str],
+) -> Path:
     """Resolve the two layouts emitted by ``download-artifact`` fail-closed.
 
     A pattern matching one artifact is extracted directly into ``path`` by
-    actions/download-artifact@v8.  Multiple matches retain the artifact-name
-    directory.  The candidate contract accepts both deterministic layouts but
-    still requires the download to contain exactly one regular payload file.
+    actions/download-artifact@v8. Multiple matches retain one directory per
+    artifact. The candidate contract accepts both deterministic layouts,
+    validates every downloaded attempt, and returns only the selected attempt.
     """
 
-    entries = sorted(provenance_dir.rglob("*"))
+    if artifact_name not in downloaded_artifact_names:
+        raise ContractError("Ausgewaehlte Freeze-Provenienz fehlt in der Artefaktliste")
+    if not provenance_dir.is_dir():
+        raise ContractError("Freeze-Provenienzdownload fehlt")
+
+    entries = sorted(provenance_dir.iterdir())
     if any(entry.is_symlink() for entry in entries):
         raise ContractError("Freeze-Provenienzdownload enthaelt einen symbolischen Link")
-    files = [entry for entry in entries if entry.is_file()]
-    if len(files) != 1:
-        raise ContractError(
-            "Freeze-Provenienzdownload muss genau eine regulaere Datei enthalten "
-            f"(gefunden: {len(files)})"
-        )
-    payload = files[0]
-    relative = payload.relative_to(provenance_dir)
+
     expected_name = "release-freeze-provenance.json"
-    allowed = {Path(expected_name), Path(artifact_name) / expected_name}
-    if relative not in allowed:
+    flat_payload = provenance_dir / expected_name
+    if flat_payload in entries:
+        if (
+            len(downloaded_artifact_names) != 1
+            or entries != [flat_payload]
+            or not flat_payload.is_file()
+        ):
+            raise ContractError(
+                "Flacher Freeze-Provenienzdownload muss genau eine regulaere Datei "
+                "fuer genau einen Versuch enthalten"
+            )
+        return flat_payload
+
+    expected_directories = {
+        provenance_dir / name for name in downloaded_artifact_names
+    }
+    if set(entries) != expected_directories or any(
+        not directory.is_dir() for directory in expected_directories
+    ):
         raise ContractError(
-            "Freeze-Provenienz liegt in einer unerwarteten Download-Struktur: "
-            f"{relative}"
+            "Benannter Freeze-Provenienzdownload stimmt nicht mit der "
+            "Artefaktliste ueberein"
         )
-    return payload
+
+    for directory in expected_directories:
+        payload = directory / expected_name
+        attempt_entries = sorted(directory.iterdir())
+        if (
+            any(entry.is_symlink() for entry in attempt_entries)
+            or attempt_entries != [payload]
+            or not payload.is_file()
+        ):
+            raise ContractError(
+                f"Freeze-Provenienzartefakt {directory.name!r} muss genau "
+                "eine regulaere Payload enthalten"
+            )
+    return provenance_dir / artifact_name / expected_name
 
 
 def prepare_candidate_contract(
@@ -769,9 +801,16 @@ def prepare_candidate_contract(
             )
     if not freeze_candidates:
         raise ContractError("Build-Run enthaelt keine Freeze-Provenienz")
+    freeze_attempts = [attempt for attempt, _ in freeze_candidates]
+    if len(freeze_attempts) != len(set(freeze_attempts)):
+        raise ContractError("Build-Run enthaelt mehrdeutige Freeze-Provenienzversuche")
     _, freeze_artifact = max(freeze_candidates, key=lambda item: item[0])
     freeze_reference = _artifact_reference(freeze_artifact)
-    freeze_path = _freeze_payload_path(provenance_dir, freeze_reference["name"])
+    freeze_path = _freeze_payload_path(
+        provenance_dir,
+        freeze_reference["name"],
+        {str(item.get("name") or "") for _, item in freeze_candidates},
+    )
     provenance = _load_json(freeze_path)
 
     release = provenance.get("release")

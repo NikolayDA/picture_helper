@@ -66,7 +66,9 @@ def _write_release_files(directory: Path) -> list[dict]:
     return records
 
 
-def _candidate_artifacts() -> list[dict]:
+def _candidate_artifacts(*freeze_attempts: int) -> list[dict]:
+    if not freeze_attempts:
+        freeze_attempts = (1,)
     return [
         {
             "id": index,
@@ -75,7 +77,10 @@ def _candidate_artifacts() -> list[dict]:
             "expired": False,
         }
         for index, name in enumerate(
-            (*rc.ARTIFACT_CONTAINERS, "release-freeze-provenance-1"),
+            (
+                *rc.ARTIFACT_CONTAINERS,
+                *(f"release-freeze-provenance-{attempt}" for attempt in freeze_attempts),
+            ),
             start=1,
         )
     ]
@@ -570,6 +575,38 @@ def test_prepare_candidate_accepts_download_artifact_layouts(
     assert (tmp_path / "out" / "release-freeze-provenance.json").is_file()
 
 
+def test_prepare_candidate_selects_latest_named_provenance_after_rerun(
+    tmp_path: Path,
+) -> None:
+    files = tmp_path / "files"
+    _write_release_files(files)
+    provenance_root = tmp_path / "provenance"
+    _write_freeze_payload(
+        provenance_root
+        / "release-freeze-provenance-1"
+        / "release-freeze-provenance.json",
+        candidate_sha="b" * 40,
+    )
+    _write_freeze_payload(
+        provenance_root
+        / "release-freeze-provenance-2"
+        / "release-freeze-provenance.json"
+    )
+
+    contract = rc.prepare_candidate_contract(
+        run=_run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
+        listing={"artifacts": _candidate_artifacts(1, 2)},
+        candidate_dir=files,
+        provenance_dir=provenance_root,
+        expected_run_id=CANDIDATE_RUN_ID,
+        output_dir=tmp_path / "out",
+    )
+
+    assert contract["candidate"]["freeze_provenance"]["name"] == (
+        "release-freeze-provenance-2"
+    )
+
+
 @pytest.mark.parametrize("payload_count", [0, 2])
 def test_prepare_candidate_rejects_missing_or_ambiguous_freeze_payload(
     tmp_path: Path, payload_count: int
@@ -586,7 +623,7 @@ def test_prepare_candidate_rejects_missing_or_ambiguous_freeze_payload(
             / "release-freeze-provenance.json"
         )
 
-    with pytest.raises(rc.ContractError, match="genau eine regulaere Datei"):
+    with pytest.raises(rc.ContractError, match="Freeze-Provenienzdownload"):
         rc.prepare_candidate_contract(
             run=_run(CANDIDATE_RUN_ID, rc.BUILD_WORKFLOW),
             listing={"artifacts": _candidate_artifacts()},
