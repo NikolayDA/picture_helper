@@ -696,6 +696,36 @@ def _validate_freeze(provenance: dict[str, Any], *, source: dict[str, Any], vers
         raise ContractError("Freeze-Provenienz stammt aus einem anderen Build-Run")
 
 
+def _freeze_payload_path(provenance_dir: Path, artifact_name: str) -> Path:
+    """Resolve the two layouts emitted by ``download-artifact`` fail-closed.
+
+    A pattern matching one artifact is extracted directly into ``path`` by
+    actions/download-artifact@v8.  Multiple matches retain the artifact-name
+    directory.  The candidate contract accepts both deterministic layouts but
+    still requires the download to contain exactly one regular payload file.
+    """
+
+    entries = sorted(provenance_dir.rglob("*"))
+    if any(entry.is_symlink() for entry in entries):
+        raise ContractError("Freeze-Provenienzdownload enthaelt einen symbolischen Link")
+    files = [entry for entry in entries if entry.is_file()]
+    if len(files) != 1:
+        raise ContractError(
+            "Freeze-Provenienzdownload muss genau eine regulaere Datei enthalten "
+            f"(gefunden: {len(files)})"
+        )
+    payload = files[0]
+    relative = payload.relative_to(provenance_dir)
+    expected_name = "release-freeze-provenance.json"
+    allowed = {Path(expected_name), Path(artifact_name) / expected_name}
+    if relative not in allowed:
+        raise ContractError(
+            "Freeze-Provenienz liegt in einer unerwarteten Download-Struktur: "
+            f"{relative}"
+        )
+    return payload
+
+
 def prepare_candidate_contract(
     *,
     run: dict[str, Any],
@@ -741,7 +771,7 @@ def prepare_candidate_contract(
         raise ContractError("Build-Run enthaelt keine Freeze-Provenienz")
     _, freeze_artifact = max(freeze_candidates, key=lambda item: item[0])
     freeze_reference = _artifact_reference(freeze_artifact)
-    freeze_path = provenance_dir / freeze_reference["name"] / "release-freeze-provenance.json"
+    freeze_path = _freeze_payload_path(provenance_dir, freeze_reference["name"])
     provenance = _load_json(freeze_path)
 
     release = provenance.get("release")
