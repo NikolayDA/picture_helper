@@ -10,7 +10,9 @@ schließt genau diese Lücke, analog zu ``screenshot3d.py``/
 ``BGREMOVER_SCREENSHOT_3D`` für den 3D-Nachweis: läuft aus dem **laufenden,
 gepackten Prozess** heraus (AppImage/.deb/.app), nicht aus dem Checkout.
 
-Fünf Prüfungen, alle ohne externe Testdaten aus dem Paket selbst:
+Fünf Prüfungen aus dem gepackten Prozess selbst; nur die 2.7.0-Projekt-Fixture
+(Prüfung 2) kommt als Datei aus dem Source-Checkout, der verarbeitende Code
+stammt aus dem Paket:
 
 0. **Sichtbare Produktversion** – vergleicht die im Fenstertitel angezeigte
    Version mit dem Sollwert aus dem Artefaktdateinamen (#686). Läuft zuerst

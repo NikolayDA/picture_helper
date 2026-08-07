@@ -195,7 +195,7 @@ class _ModeSegments(QWidget):
         return [btn.text() for btn in self._buttons.values()]
 
 
-# ── Tab 1 – Vorschau ─────────────────────────────────────────────
+# ── Vorschau ─────────────────────────────────────────────────────
 
 
 class PreviewTab:
@@ -297,7 +297,7 @@ class PreviewTab:
         }
 
 
-# ── Tab 2 – Auswahl ──────────────────────────────────────────────
+# ── Auswahl ──────────────────────────────────────────────────────
 
 
 class SelectionTab:
@@ -422,7 +422,7 @@ class SelectionTab:
         }
 
 
-# ── Tab 3 – Hintergrund ──────────────────────────────────────────
+# ── Hintergrund ──────────────────────────────────────────────────
 
 
 class BackgroundTab:
@@ -493,7 +493,7 @@ class BackgroundTab:
         }
 
 
-# ── Tab 5 – Transform ────────────────────────────────────────────
+# ── Transform ────────────────────────────────────────────────────
 
 
 class TransformTab:
@@ -582,7 +582,7 @@ class TransformTab:
         }
 
 
-# ── Tab 6 – Form & Zuschnitt ─────────────────────────────────────
+# ── Form & Zuschnitt ─────────────────────────────────────────────
 
 
 class ShapeTab:
@@ -661,7 +661,7 @@ class ShapeTab:
         }
 
 
-# ── Tab 4 – Anpassen (Farbkorrektur) ─────────────────────────────
+# ── Anpassen (Farbkorrektur) ─────────────────────────────────────
 
 
 class AdjustTab:
