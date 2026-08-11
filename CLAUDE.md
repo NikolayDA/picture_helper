@@ -115,9 +115,10 @@ Ein Paket, `bgremover/`:
 - **2D-Relief-/Gloss-Vorschau:** `relief_preview.py` (#385) berechnet aus einem
   `HeightField` ein neutrales, richtungsabhängiges Hillshade (Azimut/Elevation,
   8-/16-Bit-äquivalent, `coverage`-bewusst) und komponiert es multiplikativ über
-  RGBA. `gloss_preview.py` (#386) rendert eine Gloss-Maske als kühlen Sheen und
-  mischt ihn über RGBA. Beide Module sind Qt-frei, strikt getypt, größenvalidiert
-  und erhalten den Alpha-Kanal des Farbmotivs bitgenau. Die Canvas-Pipeline (#387)
+  RGBA. `gloss_preview.gloss_overlay` (#386) rendert eine Gloss-Maske als kühlen
+  Sheen; `gloss_preview.compose_over` mischt ihn über das RGBA-Farbmotiv und
+  erhält dessen Alpha-Kanal bitgenau. Beide Module sind Qt-frei, strikt getypt
+  und größenvalidiert. Die Canvas-Pipeline (#387)
   bietet `COLOR`/`RELIEF`/`HEIGHT`/`GLOSS`/`COMBINED`, gecacht auf genau ein Bild
   je Content-Revision + Anzeigeparameter. Modus, Relief-Stärke und Gloss-Sichtbarkeit
   sind reiner UI-Zustand (keine History-/Dirty-Revision); unsichtbare Datenrollen
@@ -195,8 +196,9 @@ Ein Paket, `bgremover/`:
   [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md). `screenshot3d.py` ist der
   Automationshook für den nativen 3D-Nachweis des **gepackten** Artefakts (#648):
   über die Umgebungsvariable `BGREMOVER_SCREENSHOT_3D` in `app.main` aktiviert
-  (analog `BGREMOVER_SMOKE_TEST`/`BGREMOVER_AI_SELFCHECK`, bewusst kein CLI-Flag),
-  läuft absichtlich **nicht** offscreen und schreibt PNG + Provenance-JSON; ein
+  (analog `BGREMOVER_SMOKE_TEST`; `BGREMOVER_AI_SELFCHECK` ruft
+  `ai_process.run_ai_selfcheck` auf; bewusst kein CLI-Flag), läuft absichtlich
+  **nicht** offscreen und schreibt PNG + Provenance-JSON; ein
   Software-Renderer lässt den Nachweis fehlschlagen. `acceptance_smoke.py`
   (#685-Review) ist das GL-freie Gegenstück für den EufyMake-Export- und den
   2.7.0-Projekt-Öffnen-Nachweis: `tests/test_e2e_release_regression.py` bindet
@@ -237,8 +239,13 @@ Ein Paket, `bgremover/`:
 - **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
-  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen); versioniertes Schema mit
-  Migrationshaken (#333). Eine **neuere** (Zukunfts-)Formatversion wird seit
+  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen). Den vollständigen Round-Trip
+  bilden `project_io.save_project` und `project_io.load_project`. Dabei
+  serialisiert `project_schema.build_manifest` den Modellanteil ins Manifest;
+  `project_schema.project_from_manifest` rekonstruiert ihn zusammen mit bereits
+  dekodierten Bild-/Höhen-Payloads. `project_schema.migrate_manifest` ist der
+  Migrationshaken des versionierten Schemas (#333).
+  Eine **neuere** (Zukunfts-)Formatversion wird seit
   #614 vor jeder Payload-Verarbeitung strikt mit verständlicher, übersetzter
   Meldung abgewiesen (`project.error.future_version`, Datei bleibt
   unangetastet) – kein Best-effort-Laden mehr, damit ein alter Stand fremde
@@ -369,7 +376,7 @@ Ein Paket, `bgremover/`:
   einen zweiten Prozess zu starten – Statusleiste und Dialog werden dadurch
   nie widersprüchliche Zustände zeigen. `RembgWarmupWorker` unterstützt
   kooperativen Abbruch (`cancel()`/`should_cancel`, analog `AIWorker`) mit
-  drei getrennten Signalen (`finished` nur Erfolg, `error` nur Fehler,
+  vier getrennten Signalen (`finished` nur Erfolg, `error` nur Fehler,
   `cancelled` nur Abbruch, `done` immer als Thread-Lifecycle-Signal);
   `WorkerController.cancel_warmup()` bricht sauber ab, ohne den Abbruch
   fälschlich als Erfolg oder Fehler zu melden. `MainWindow._last_warmup_error`
