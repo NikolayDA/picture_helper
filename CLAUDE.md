@@ -39,8 +39,9 @@ headless-Qt-Betrieb:
 - `make gl-stress` — GL-Ressourcen-Langzeitsonde der 3D-Vorschau
   (`scripts/gl_stress_probe.py`, #684; JSON-Nachweis, `--mode gl` für echten Kontext)
 - `make release-freeze-check` — `scripts/verify_release_freeze.py`
-  (#699): prüft den aktuellen Stand als selbstkonsistenten Release-Kandidaten;
-  nur vor einem Kandidatenbau nötig, nicht Teil von `make check`
+  (#699, seit #742/#743 pinfrei): prüft den aktuellen Stand als
+  selbstkonsistenten Release-Kandidaten; nur vor einem Kandidatenbau nötig,
+  nicht Teil von `make check`
 
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
 `tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
@@ -446,11 +447,13 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für die Skripte `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **sechs** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646), `scripts/verify_release_freeze.py`
-  (#699) und `scripts/gl_stress_probe.py` (#684) – als eigenständige Dateien
-  ohne `scripts/__init__.py` explizit per Dateipfad in `files` sowie per
-  Modul-Override (Modulname = Dateibasisname) erfasst.
+  (#699/#742), `scripts/gl_stress_probe.py` (#684),
+  `scripts/release_path_policy.py` (#743) und `scripts/release_contract.py`
+  (#744/#747) – als eigenständige Dateien ohne `scripts/__init__.py` explizit
+  per Dateipfad in `files` sowie per Modul-Override (Modulname =
+  Dateibasisname) erfasst.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
   `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und
   überspringen sich auf Plattformen ohne renderbaren FBO, z. B. `offscreen`;
@@ -484,7 +487,8 @@ Workflows unter `.github/workflows/` (14):
   bindet Hardware-Evidenz und Freeze-Provenienz an genau diesen Build-Run.
   `release-publish.yml` veröffentlicht danach ausschließlich die fünf im
   Freigabemanifest gespeicherten SHA-256, Draft-first und ohne Neubau/Clobber
-  (#744/#747). Der verbindliche Ablauf steht nur im
+  (#744/#747, siehe *Release-Freigabevertrag* unten). Der verbindliche Ablauf
+  steht nur im
   [`Release-Runbook`](docs/RELEASE_PROCESS.md), die stabilen Kriterien nur in
   der [`Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
@@ -500,8 +504,11 @@ Vor jedem Kandidatenbau steht ein Freeze-Dokument je Version:
 von Hand gepflegt, sondern
 **abgeleitet**: Der Kandidat ist der geprüfte Workflow-Head (`GITHUB_SHA`);
 zusätzlich wird der jüngste kandidatenrelevante Inhalts-Commit aus der
-First-Parent-Historie ausgewiesen. `scripts/verify_release_freeze.py` und die
-versionierte Policy `release/path-policy.json` sind die Quellen dieser Regel.
+First-Parent-Historie ausgewiesen. `scripts/verify_release_freeze.py`, der
+geteilte Klassifizierer `scripts/release_path_policy.py` und die versionierte
+Policy `release/path-policy.json` sind die Quellen dieser Regel; die
+Entscheidung steht in ADR
+[`docs/history/ADR-2026-release-freeze-provenienz.md`](docs/history/ADR-2026-release-freeze-provenienz.md).
 
 - Nur eng begründete Einträge der positiven Klasse **release-neutral**
   verschieben den Inhaltskandidaten nicht. Unbekannte Pfade bleiben
@@ -517,6 +524,52 @@ versionierte Policy `release/path-policy.json` sind die Quellen dieser Regel.
   und Kandidaten-SHA werden als unveränderliche Actions-Provenienz aus dem
   Laufkopf erzeugt. Es gibt keinen `--require-pin` und keinen Freeze-Nachtrag.
 - Regressionstests: `tests/test_release_freeze.py`, `tests/test_release_gate.py`.
+
+### Release-Freigabevertrag & Veröffentlichung (#744/#747)
+
+`scripts/release_contract.py` ist der **fail-closed** Vertrag zwischen
+Kandidatenbau, Hardware-Abnahme und Veröffentlichung – Qt-frei, streng getypt,
+ohne Build-Logik. Er bindet genau **einen** erfolgreichen
+`release-linux.yml`-Lauf an genau **einen** erfolgreichen
+`release-abnahme.yml`-Lauf und an exakt **fünf** Dateien (Linux x86_64
+AppImage + `.deb`, Linux arm64 AppImage + `.deb`, macOS arm64 DMG; kein
+Windows). Veröffentlicht werden ausschließlich die aus dem Build-Run geladenen
+Bytes, byteidentisch gegen die im Manifest gespeicherten SHA-256.
+Entscheidung: ADR
+[`docs/history/ADR-2026-release-manifest-publish.md`](docs/history/ADR-2026-release-manifest-publish.md).
+
+- **Unterkommandos:** `prepare-candidate` / `create-approval` /
+  `verify-approval` / `verify-artifacts` / `plan-publish` sowie die
+  Checklisten-Seite `validate-checklist` / `extract-instance` /
+  `set-criterion` / `validate-instance`. `release-abnahme.yml` ruft
+  `prepare-candidate`, `create-approval` und `extract-instance` auf,
+  `release-publish.yml` ausschließlich `verify-approval`, `verify-artifacts`
+  und `plan-publish` (kein Neubau, kein Clobber).
+- **Versionierte Abnahme-Checkliste (#746):**
+  [`docs/RELEASE_ACCEPTANCE_CHECKLIST.md`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md)
+  ist der release-**unabhängige** Vertrag (Schema `1`, Checklisten-Version
+  `1.0.0`, stabile Kriteriums-IDs, Zustände
+  `PASS`/`FAIL`/`WAIVED`/`NOT_APPLICABLE`/`PENDING`, Pflichtgrade
+  `MUST`/`SHOULD`/`POST_RELEASE`). Die konkrete Release-**Instanz** entsteht im
+  Freigabemanifest und pinnt Pfad, Checklisten-Version, Kandidaten-SHA und den
+  SHA-256 der Datei. Seit #757 müssen Markdown-Tabelle und eingebettetes JSON
+  nicht nur in den IDs, sondern auch in Phase, Pflichtgrad und Owner
+  übereinstimmen (Drift wirft), und ein `FAIL` blockiert den Abschluss
+  unabhängig vom Pflichtgrad.
+- **Download-Härtung:** `actions/download-artifact` liefert je nach
+  Trefferzahl eine flache oder eine nach Artefaktnamen verzeichnete Ablage;
+  beide deterministischen Layouts werden akzeptiert, alles andere abgewiesen
+  (#760). Bei Wiederholungsläufen wird der jüngste Freeze-Provenienz-Versuch
+  gewählt, **alle** heruntergeladenen Versuche werden validiert, und
+  mehrdeutige Versuchsnummern brechen ab (#761).
+- **Kanonische Prozessquelle (#745):**
+  [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md) ist das einzige Runbook
+  (neun Schritte inkl. Hotfix/Rollback/Wiederanlauf), Übungsprotokoll unter
+  [`docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md`](docs/history/RELEASE-RUNBOOK-DRY-RUN-2026-08-01.md).
+  `tests/test_release_governance.py` erzwingt, dass hier in CLAUDE.md kein
+  handgepflegter Release-Stand zurückkehrt (#737).
+- Regressionstests: `tests/test_release_contract.py`,
+  `tests/test_release_governance.py`.
 
 ### Release-Abnahme auf echter Hardware (Epic #639, abgeschlossen)
 
@@ -567,6 +620,10 @@ Arbeitsverzeichnis** (`smoke_launch.run(workdir=…)`/`--workdir`,
 Linux-Smoke-Aufrufen von `release-linux.yml`) — das Auslieferungsartefakt
 selbst bleibt unangetastet. Programmpfade müssen dabei **absolut** sein,
 sonst löst `Popen` sie gegen das neutrale Verzeichnis auf.
+Seit #755/#756 erzeugt derselbe Lauf zusätzlich das **Freigabemanifest** und
+die **Release-Instanz** der Abnahme-Checkliste über `release_contract.py`
+(siehe *Release-Freigabevertrag* oben) – damit veröffentlicht
+`release-publish.yml` genau die abgenommenen Bytes.
 Die **Go-/No-Go-Entscheidung bleibt ein menschlicher Schritt.** Kanonischer
 Ablauf: [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md). Betrieb:
 [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md), Entscheidungen:
