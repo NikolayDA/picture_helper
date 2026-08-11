@@ -116,9 +116,9 @@ Ein Paket, `bgremover/`:
   `HeightField` ein neutrales, richtungsabhängiges Hillshade (Azimut/Elevation,
   8-/16-Bit-äquivalent, `coverage`-bewusst) und komponiert es multiplikativ über
   RGBA. `gloss_preview.gloss_overlay` (#386) rendert eine Gloss-Maske als kühlen
-  Sheen und mischt ihn über RGBA. Beide Module sind Qt-frei, strikt getypt,
-  größenvalidiert und erhalten den Alpha-Kanal des Farbmotivs bitgenau. Die
-  Canvas-Pipeline (#387)
+  Sheen; `gloss_preview.compose_over` mischt ihn über das RGBA-Farbmotiv und
+  erhält dessen Alpha-Kanal bitgenau. Beide Module sind Qt-frei, strikt getypt
+  und größenvalidiert. Die Canvas-Pipeline (#387)
   bietet `COLOR`/`RELIEF`/`HEIGHT`/`GLOSS`/`COMBINED`, gecacht auf genau ein Bild
   je Content-Revision + Anzeigeparameter. Modus, Relief-Stärke und Gloss-Sichtbarkeit
   sind reiner UI-Zustand (keine History-/Dirty-Revision); unsichtbare Datenrollen
@@ -239,9 +239,12 @@ Ein Paket, `bgremover/`:
 - **Projekt-Persistenz:** `project_io.py` + `project_schema.py` — Qt-freier
   `.bgrproj`-Round-Trip (ZIP: `manifest.json` + eine RGBA-PNG je Ebene), atomar
   geschrieben (`mkstemp`+`os.replace`) und defensiv geladen (Größen-/Megapixel-
-  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen). In `project_schema.py` bilden
-  `build_manifest` und `project_from_manifest` den Round-Trip ab;
-  `migrate_manifest` ist der Migrationshaken des versionierten Schemas (#333).
+  Limits, Zip-Slip-Abwehr, klare i18n-Meldungen). Den vollständigen Round-Trip
+  bilden `project_io.save_project` und `project_io.load_project`. Dabei
+  serialisiert `project_schema.build_manifest` den Modellanteil ins Manifest;
+  `project_schema.project_from_manifest` rekonstruiert ihn zusammen mit bereits
+  dekodierten Bild-/Höhen-Payloads. `project_schema.migrate_manifest` ist der
+  Migrationshaken des versionierten Schemas (#333).
   Eine **neuere** (Zukunfts-)Formatversion wird seit
   #614 vor jeder Payload-Verarbeitung strikt mit verständlicher, übersetzter
   Meldung abgewiesen (`project.error.future_version`, Datei bleibt
