@@ -14,8 +14,9 @@ zu teuer (vor allem die macOS-Runner). Seit jetzt gilt:
 | Wo                 | Wann                                                                 |
 |--------------------|----------------------------------------------------------------------|
 | **GitHub PR CI**   | bei jedem Pull Request auf `main`/`master` (Ubuntu + Python 3.12)     |
-| **GitHub Full CI** | als **Release-Gate** beim Push eines Versions-Tags (vom Release-Workflow als wiederverwendbarer Workflow aufgerufen, **vor** dem Veröffentlichen), wöchentlich sonntags 06:00 UTC oder **manuell** |
+| **GitHub Full CI** | als **Kandidaten-Gate** vor jedem manuell gestarteten Release-Build (vom Release-Workflow als wiederverwendbarer Workflow aufgerufen, **vor** dem Bau der Artefakte), wöchentlich sonntags 06:00 UTC oder **manuell** |
 | **GitHub UI Nightly** | jede Nacht und manuell (Ubuntu + Python 3.12, UI-Interaktionstests) |
+| **GitHub Coverage** | bei Push auf `main`/`master` (Coverage-Report/Badge) |
 | **Lokal/Mac**      | jederzeit per `make` – dieselben Prüfungen wie die PR-CI plus UI bei Bedarf |
 
 Der Workflow `License Check` ist davon **nicht** betroffen und
@@ -127,9 +128,16 @@ Alles grün ⇒ der Stand entspricht lokal den automatischen PR-Prüfungen;
 
 `tests/test_ui_interactions.py` enthält automatische, qtbot-gesteuerte
 UI-Tests (Smoke, Zeichentools, Menü/Toolbar, Crop-Overlay,
-SettingsDialog). Sie sind mit dem Marker `ui` versehen. Das kleine,
-stabile `ui_smoke`-Subset trägt zusätzlich den Marker `ui_smoke` und
-läuft in jedem normalen `pytest`-Lauf mit:
+SettingsDialog). Sie sind mit dem Marker `ui` versehen. Ein kleines,
+stabiles `ui_smoke`-Subset – über `tests/test_ui_interactions.py` hinaus
+u. a. auch in `tests/test_workflow.py`, `tests/test_right_panel.py`,
+`tests/test_resize_dialog.py`, `tests/test_viewer_3d.py`,
+`tests/test_preview3d_integration.py`, `tests/test_preview3d_acceptance.py`,
+`tests/test_screenshot3d.py`, `tests/test_ai_model_dialog.py`,
+`tests/test_ai_install_dialog.py`, `tests/test_eufymake_export_dialog.py`,
+`tests/test_acceptance_smoke.py` und `tests/test_e2e_release_regression.py` –
+trägt zusätzlich den Marker `ui_smoke` und läuft in jedem normalen
+`pytest`-Lauf mit:
 
 - `pytest` (Standard, und damit auch PR-CI/Full-CI) überspringt die
   volle UI-Suite, nimmt aber `ui_smoke` mit – konfiguriert über
@@ -187,7 +195,7 @@ QT_QPA_PLATFORM=offscreen python -m pytest -m ui -v
 python -m pytest --markers
 ```
 
-## GitHub-Tests bei PR, Tag, manuell oder Release
+## GitHub-Tests bei PR, manuell oder Release
 
 **Pull Request:** Der Workflow **PR CI** läuft automatisch auf
 Ubuntu/Python 3.12 und führt `make pr-check` aus.
@@ -196,19 +204,31 @@ Ubuntu/Python 3.12 und führt `make pr-check` aus.
 Schaltfläche **Run workflow** → Branch wählen → starten. (Möglich dank
 `workflow_dispatch`.)
 
-**Automatisch (Release-Gate):** Beim Push eines Versions-Tags (`v*`) startet
-der Workflow **Release artifacts (Linux + macOS)**. Er ruft die volle Matrix als
-wiederverwendbaren Workflow (`Full CI`) auf und prüft Tag-Format sowie die
-Übereinstimmung von Tag und `project.version`. Build und Veröffentlichung
-hängen per `needs` an diesem Ergebnis: **Erst wenn die volle Matrix für genau
-diesen Commit grün ist**, werden AppImage und `.deb` (x86_64 + aarch64/Raspberry
-Pi OS) sowie ein macOS-`.dmg` (Apple Silicon/arm64) gebaut und an das GitHub
-Release angehängt – ein fehlgeschlagener Test veröffentlicht nichts.
-Zusätzlich läuft die volle Matrix wöchentlich sonntags um 06:00 UTC per
-Schedule. Ein bloßer Branch-Push löst die Test-Matrix **nicht** aus; Pull
-Requests bekommen stattdessen die leichte **PR CI**. Der Workflow
-**UI Nightly** führt die UI-Interaktionstests jede Nacht und bei manueller
-Auslösung separat aus.
+**Release-Kandidat (nur manuell, kein Tag-Trigger):** Der Workflow
+**Release artifacts (Linux + macOS)** (`release-linux.yml`) startet
+ausschließlich per `workflow_dispatch` – ein Tag-Push allein baut nichts.
+Er ruft zuerst die volle Matrix als wiederverwendbaren Workflow (`Full CI`)
+auf; Build und Bau der Artefakte hängen per `needs` an diesem Ergebnis:
+**Erst wenn die volle Matrix für genau diesen Commit grün ist**, werden
+AppImage und `.deb` (x86_64 + aarch64/Raspberry Pi OS) sowie ein
+macOS-`.dmg` (Apple Silicon/arm64) gebaut. Der Workflow **veröffentlicht
+selbst nichts** und hat keine Schreibrechte. Zusätzlich läuft die volle
+Matrix wöchentlich sonntags um 06:00 UTC per Schedule und lässt sich
+jederzeit manuell auslösen. Der Workflow **UI Nightly** führt die
+UI-Interaktionstests jede Nacht und bei manueller Auslösung separat aus;
+**Coverage** läuft bei jedem Push auf `main`/`master`.
+
+Die eigentliche Veröffentlichung ist ein separater, ebenfalls rein manueller
+Zwei-Schritt-Vorgang **nach** einem grünen Kandidatenbau: **Release-Abnahme
+(Self-hosted Hardware)** (`release-abnahme.yml`) sammelt die
+Hardware-Abnahme-Evidenz zu genau diesem Build-Run, danach veröffentlicht
+**Publish accepted release artifacts** (`release-publish.yml`) ausschließlich
+die im Freigabemanifest gespeicherten, byteidentischen fünf Dateien
+(Draft-first, kein Neubau, kein Clobber). Der verbindliche Ablauf steht im
+[Release-Runbook](docs/RELEASE_PROCESS.md), die Kriterien in der
+[Abnahme-Checkliste](docs/RELEASE_ACCEPTANCE_CHECKLIST.md) – diese Anleitung
+hier beschreibt nur die Testautomatisierung, nicht den vollständigen
+Release-Prozess.
 
 ## Fehlerbehebung
 
