@@ -345,6 +345,25 @@ Ein Paket, `bgremover/`:
   PyInstaller-macOS nicht), verdrahtet in `scripts/abnahme_smoke.py`
   (`_update_check_linux`, `--predecessor-evidence-dir`/`--candidate-version`)
   und optional per `predecessor_tag`-Eingabe in `release-abnahme.yml`.
+  `build_update_check_subject` baut je Rolle
+  (`vorgaenger`/`kandidat`) ein `UpdateCheckSubject` aus der Bezugs-Evidenz
+  von `release_abnahme.py` – Quellart (`release-tag` vs. `run-id`, gegen die
+  Rolle geprüft), SHA-256, Digest-Bestätigung, Plattform und die *erwartete*
+  Ausgangsversion. Bewertet wird fail-closed in dieser Reihenfolge:
+  `CHECK_FAILED` (eigener harter Befund), die vom Artefakt **selbst**
+  gemeldete Version gegen die Herkunft (erst damit steht fest, dass das
+  vorgesehene Bundle lief und nicht der Checkout, #740), der Status
+  (Vorgänger `UPDATE_AVAILABLE`, Kandidat `UP_TO_DATE`) und die Zielversion;
+  gleiche Version auf beiden Seiten, nur eine übergebene Rolle oder fehlendes
+  `--candidate-version` brechen ab. Die konsolidierte Evidenz
+  `update_check/update_check.json` (Schema 1, `abnahme-update-check`) hält je
+  Rolle Artefakt, Quelle, Hash, Plattform, Ausgangs-/Zielversion, Status und
+  Befund – dieselben Angaben zusätzlich als `[update-check]`-Joblog-Zeilen.
+  Betrieb und Grenzen: [`docs/RELEASE_AUTOMATION.md`](docs/RELEASE_AUTOMATION.md)
+  §4.2, manuelle Ersatzprozedur
+  [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md) §4.1, Einordnung als
+  Post-Release-Kriterium in [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md)
+  Schritt 9.
   `ai_model_status.py` — Qt-freie `get_model_status()` erkennt den
   rembg-Cache-Zustand (`U2NET_HOME`/`XDG_DATA_HOME`/`~/.u2net`, Standardmodell
   `u2net.onnx`) rein über Pfad-/Dateigrößenprüfung, ohne `rembg` zu

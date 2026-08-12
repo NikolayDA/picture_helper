@@ -186,5 +186,11 @@ def test_workflow_supports_optional_update_check_predecessor() -> None:
     assert "--predecessor-evidence-dir" in text
     assert "--candidate-version" in text
     assert "CANDIDATE_VERSION: ${{ needs.candidate-source.outputs.version }}" in text
+    # Beide Argumente gehören in dieselbe Argumentliste: ohne Sollversion
+    # bricht der Smoke ab (der Nachweis verlangt UPDATE_AVAILABLE mit exakt
+    # der neuen Zielversion, nicht „irgendein Update sichtbar").
+    block = text.split("predecessor_args=(", 1)[1].split("\n            )", 1)[0]
+    assert "--predecessor-evidence-dir" in block
+    assert "--candidate-version" in block
     for script in ("release_abnahme.py", "abnahme_smoke.py", "update_probe_cli.py"):
         assert (ROOT / "scripts" / script).is_file(), f"{script} fehlt"

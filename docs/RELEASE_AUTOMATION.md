@@ -248,6 +248,80 @@ Secrets):
 |---|---|
 | `ANTHROPIC_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler) |
 
+### 4.2 Post-Release-Update-Nachweis `UPDATE-01` (#748)
+
+`UPDATE-01` ist das einzige **Post-Release**-Kriterium. Vor dem Tag kann kein
+Vorgängerartefakt die neue Version am produktiven Endpunkt `/releases/latest`
+sehen; als Pre-Release-Gate wäre der Nachweis logisch unmöglich. Er läuft
+deshalb **nach** Schritt 8 des [Release-Runbooks](RELEASE_PROCESS.md), blockiert
+den Tag nicht und schließt die Veröffentlichung fachlich ab.
+
+**Aufruf.** Denselben `release-abnahme.yml`-Dispatch erneut starten, diesmal mit
+gesetztem `predecessor_tag`:
+
+| Eingabe | Wert |
+|---|---|
+| `run_id` | Run-ID **desselben** `release-linux.yml`-Kandidatenlaufs wie in der Hardware-Abnahme |
+| `platforms` | `linux-arm64` |
+| `predecessor_tag` | Tag des zuletzt veröffentlichten Vorgängers, z. B. `v2.7.1` |
+
+Leerer `predecessor_tag` lässt den Nachweis aus; er bleibt dann `PENDING` und
+wird nie als `PASS` fabriziert.
+
+**Was der Lauf tut.** `release_abnahme.py --release-tag` lädt die Artefakte des
+Vorgängers anonym über `browser_download_url` — derselbe öffentliche
+Anwenderpfad wie in `PUBLIC-DOWNLOAD-01` — und schreibt Hash und Herkunft in ein
+eigenes Evidenzverzeichnis. `abnahme_smoke.py` entpackt danach beide AppImages
+und ruft `scripts/update_probe_cli.py` **unter dem im jeweiligen Artefakt
+gebündelten CPython** auf. Der Update-Check importiert damit
+`bgremover.app_update`/`bgremover._version` aus dem ausgelieferten Bundle statt
+aus dem Checkout — genau der Punkt, an dem #740 zuvor danebenlag.
+
+**Bewertet wird in dieser Reihenfolge**, der erste Verstoß gewinnt:
+
+1. `CHECK_FAILED` — eigener harter Fehlerzustand, nie „kein Update".
+2. Die vom laufenden Artefakt **selbst** gemeldete Version muss zu seiner
+   Herkunft passen (Vorgänger → Release-Tag, Kandidat → Kandidatenversion).
+   Erst damit steht fest, dass wirklich das vorgesehene Bundle lief.
+3. Der Status: Vorgänger `UPDATE_AVAILABLE`, Kandidat `UP_TO_DATE`.
+4. Die vom Vorgänger gemeldete `latest_version` muss exakt die neue
+   Kandidatenversion sein.
+
+Tragen beide Rollen dieselbe Version, bricht der Nachweis ab — er prüfte sonst
+ein Release gegen sich selbst. `--candidate-version` ist mit
+`--predecessor-evidence-dir` Pflicht.
+
+**Evidenz** unter `update_check/` im Plattform-Artefakt:
+
+| Datei | Inhalt |
+|---|---|
+| `predecessor.json` / `current.json` | rohe Sonden-Nutzlast je Rolle |
+| `update_check.json` | zusammenfassender Nachweis je Rolle: Artefaktname, Quelle (`release-tag`/`run-id`), SHA-256, Digest-Bestätigung, Plattform, erwartete und gemeldete Ausgangsversion, Antwortstatus, Zielversion, Befund |
+
+Dieselben Angaben stehen als `[update-check] …`-Zeilen im Joblog, weil der
+Runner die Ausgabe der Teilschritte abfängt. Die Evidenz enthält ausschließlich
+öffentlich Bekanntes — kein Token, keine Header.
+
+**Reichweite und Grenzen.**
+
+- Getragen wird der Nachweis von der **Linux-arm64-AppImage**. Das `.deb`
+  installiert per `packaging/linux/build_deb.sh` genau dieselbe AppImage nach
+  `/opt/BgRemover/BgRemover.AppImage`; ein zweiter Durchlauf prüfte dieselben
+  Bytes und ist deshalb bewusst nicht verdrahtet.
+- **macOS** ist rückwirkend nicht abdeckbar: PyInstaller bettet den Bytecode in
+  den Bootloader ein und liefert keinen generisch aufrufbaren Interpreter. Der
+  In-Prozess-Hook `BGREMOVER_UPDATE_CHECK_PROBE` schließt die Lücke erst, wenn
+  ein Release, das ihn bereits mitbringt, selbst zum **Vorgänger** geworden ist
+  — der Hook kam nach `v2.7.2`, also frühestens beim übernächsten Release.
+- Der Vorgänger muss ein **öffentliches** Release sein; ein versehentlich
+  privates fällt beim anonymen Download auf.
+- Steht kein Runner bereit, ersetzt die manuelle Prozedur in
+  [`PACKAGING_SMOKE.md`](PACKAGING_SMOKE.md) §4.1 den Workflow-Lauf.
+
+**Fehlschlag.** Kein stiller Wiederanlauf: Ein fehlgeschlagener `UPDATE-01` ist
+ein Incident nach Schritt 9 des Runbooks und löst den dort beschriebenen
+Rollback-/Hotfix-Entscheid aus.
+
 ## 5. Pausiert: Linux x86_64 (GPU)
 
 **Entscheidung vom 2026-07-20:** Es besteht bis auf weiteres kein Zugang zu

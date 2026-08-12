@@ -6,6 +6,9 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from typing import Any
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -1204,24 +1207,79 @@ def test_guard_starts_artifacts_outside_the_checkout(tmp_path: Path) -> None:  #
 
 # ── Update-Check-Vorgängernachweis (UPDATE-01, #748) ────────────────────────
 
-_PREDECESSOR_ARTEFACTS = [
-    "/tmp/predecessor/BgRemover-2.7.1-linux-raspberrypi-arm64-ai.AppImage",
-]
+_PREDECESSOR_VERSION = "2.7.1"
+_CANDIDATE_VERSION = "2.7.2"
+# Unterscheidet „nicht übergeben" (Standardrolle bauen) von „bewusst None"
+# (Rolle fehlt) in ``_run_update_check``.
+_SENTINEL = object()
+_PREDECESSOR_OUT = smoke.UPDATE_CHECK_OUTPUT_NAMES[smoke.UPDATE_CHECK_ROLE_PREDECESSOR]
+_CANDIDATE_OUT = smoke.UPDATE_CHECK_OUTPUT_NAMES[smoke.UPDATE_CHECK_ROLE_CANDIDATE]
+
+
+def _evidence_dir(
+    root: Path, name: str, *, source: dict[str, str], version: str,
+    platform: str = "linux-arm64", artefact_names: list[str] | None = None,
+) -> Path:
+    """Evidenzverzeichnis wie von ``release_abnahme.py`` geschrieben."""
+    directory = root / name
+    (directory / "artefakte").mkdir(parents=True, exist_ok=True)
+    names = artefact_names if artefact_names is not None else [
+        f"BgRemover-{version}-linux-raspberrypi-arm64-ai.AppImage",
+        f"BgRemover-{version}-linux-raspberrypi-arm64-ai.deb",
+    ]
+    (directory / "evidenz.json").write_text(
+        json.dumps({
+            "schema": 1, "kind": "abnahme-evidenz", "platform": platform,
+            "status": "offen", "commit_sha": "deadbeef", "quelle": source,
+            "artefakte": [
+                {"name": n, "sha256": f"sha256-of-{n}", "bytes": 1, "digest_geprueft": True}
+                for n in names
+            ],
+        }),
+        encoding="utf-8",
+    )
+    return directory
+
+
+def _predecessor_subject(root: Path, version: str = _PREDECESSOR_VERSION) -> Any:
+    return smoke.build_update_check_subject(
+        _evidence_dir(
+            root, "predecessor", version=version,
+            source={"art": "release-tag", "wert": f"v{version}"},
+        ),
+        smoke.UPDATE_CHECK_ROLE_PREDECESSOR,
+    )
+
+
+def _candidate_subject(root: Path, version: str = _CANDIDATE_VERSION) -> Any:
+    return smoke.build_update_check_subject(
+        _evidence_dir(
+            root, "candidate", version=version, source={"art": "run-id", "wert": "4711"},
+        ),
+        smoke.UPDATE_CHECK_ROLE_CANDIDATE, expected_version=version,
+    )
 
 
 def _update_check_runner(
     statuses: dict[str, str],
     latest_versions: dict[str, str | None] | None = None,
     *,
+    versions: dict[str, str] | None = None,
     find_python_ok: bool = True,
     extraction_ok: bool = True,
 ):
     """Fake-Runner für den Update-Check-Zweig, auf ``_runner_factory``
     aufgesetzt (deckt weiterhin sauberen deb-Cleanup und die Standard-Fakes
     für den 3D-Screenshot-/Zusatz-Hook ab, damit ein Update-Check-Test nicht an
-    unabhängigen Sub-Prüfungen scheitert)."""
+    unabhängigen Sub-Prüfungen scheitert).
+
+    ``versions`` ist die vom jeweils „laufenden Artefakt" gemeldete
+    Ausgangsversion – im Normalfall genau die der Rolle."""
     base = _runner_factory(_CLEAN_DEB)
     latest_versions = latest_versions or {}
+    versions = versions or {
+        _PREDECESSOR_OUT: _PREDECESSOR_VERSION, _CANDIDATE_OUT: _CANDIDATE_VERSION,
+    }
 
     def runner(cmd: list[str]) -> smoke.CommandResult:
         joined = " ".join(cmd)
@@ -1240,10 +1298,11 @@ def _update_check_runner(
             target.write_text(
                 json.dumps({
                     "schema": 1, "kind": "abnahme-update-check-probe",
-                    "current_version": "irrelevant-fuer-den-test",
+                    "current_version": versions.get(key, "unbekannt"),
                     "status": statuses.get(key, "CHECK_FAILED"),
                     "latest_version": latest_versions.get(key),
                     "release_url": None, "error": None,
+                    "interpreter": "/fake/squashfs-root/usr/bin/python3.12",
                 }),
                 encoding="utf-8",
             )
@@ -1253,27 +1312,86 @@ def _update_check_runner(
     return runner
 
 
+def _run_update_check(
+    tmp_path: Path, runner, *, predecessor: Any = _SENTINEL, candidate: Any = _SENTINEL,
+) -> smoke.SmokeReport:
+    """``run_linux_smoke`` mit dem UPDATE-01-Zweig, Standardrollen vorbelegt."""
+    report = smoke.SmokeReport()
+    return smoke.run_linux_smoke(
+        _LINUX_ARTEFACTS, report, runner,
+        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
+        predecessor=_predecessor_subject(tmp_path) if predecessor is _SENTINEL else predecessor,
+        candidate=_candidate_subject(tmp_path) if candidate is _SENTINEL else candidate,
+    )
+
+
+def _summary(tmp_path: Path) -> dict[str, Any]:
+    return json.loads(
+        (
+            tmp_path / smoke.UPDATE_CHECK_EVIDENCE_DIR_NAME / smoke.UPDATE_CHECK_SUMMARY_NAME
+        ).read_text(encoding="utf-8")
+    )
+
+
+# ── Subjektaufbau aus der Bezugs-Evidenz ────────────────────────────────────
+
+
+def test_update_check_subject_carries_provenance(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Quelle, Hash, Digest-Bestätigung und Plattform stammen aus der
+    Bezugs-Evidenz; die erwartete Ausgangsversion des Vorgängers aus seinem
+    Release-Tag (ohne führendes ``v``)."""
+    subject = _predecessor_subject(tmp_path)
+    assert subject.expected_version == _PREDECESSOR_VERSION
+    assert subject.source_kind == "release-tag"
+    assert subject.source_value == f"v{_PREDECESSOR_VERSION}"
+    assert subject.sha256.startswith("sha256-of-")
+    assert subject.digest_verified is True
+    assert subject.platform == "linux-arm64"
+    assert subject.path.endswith(".AppImage")
+
+
+def test_update_check_subject_rejects_wrong_source_kind(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Ein „Vorgänger" aus dem Kandidaten-Build wäre eine Selbstbestätigung –
+    die Quellart muss zur Rolle passen."""
+    directory = _evidence_dir(
+        tmp_path, "wrong", version=_PREDECESSOR_VERSION,
+        source={"art": "run-id", "wert": "4711"},
+    )
+    with pytest.raises(ValueError, match="Evidenzquelle"):
+        smoke.build_update_check_subject(directory, smoke.UPDATE_CHECK_ROLE_PREDECESSOR)
+
+
+def test_update_check_subject_requires_exactly_one_appimage(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Ein Vorgänger-Artefaktsatz ohne (oder mit mehreren) AppImages darf nicht
+    stillschweigend eine Auswahl treffen."""
+    directory = _evidence_dir(
+        tmp_path, "no-appimage", version=_PREDECESSOR_VERSION,
+        source={"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"},
+        artefact_names=["BgRemover-2.7.1-linux-raspberrypi-arm64-ai.deb"],
+    )
+    with pytest.raises(ValueError, match="genau eine AppImage"):
+        smoke.build_update_check_subject(directory, smoke.UPDATE_CHECK_ROLE_PREDECESSOR)
+
+
+# ── Nachweis-Ablauf ─────────────────────────────────────────────────────────
+
+
 def test_linux_smoke_update_check_passes_with_real_predecessor(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """Vorgänger meldet UPDATE_AVAILABLE (mit passender latest_version), der
     aktuelle Kandidat UP_TO_DATE – beide über den echten Interpreter-Pfad."""
-    report = smoke.SmokeReport()
     runner = _update_check_runner(
-        {"predecessor.json": "UPDATE_AVAILABLE", "current.json": "UP_TO_DATE"},
-        {"predecessor.json": "2.7.2"},
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _CANDIDATE_VERSION},
     )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=_PREDECESSOR_ARTEFACTS, candidate_version="2.7.2",
-    )
+    result = _run_update_check(tmp_path, runner)
     assert result.passed, result.notes
-    assert any("Update-Check ok" in n and "Vorgänger" in n for n in result.notes)
-    assert any("Update-Check ok" in n and "Kandidat" in n for n in result.notes)
+    assert any("Update-Check ok" in n and "vorgaenger" in n for n in result.notes)
+    assert any("Update-Check ok" in n and "kandidat" in n for n in result.notes)
 
 
 def test_linux_smoke_update_check_skipped_without_predecessor(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
-    """Ohne ``predecessor_artefacts`` bleibt UPDATE-01 unangetastet (PENDING),
-    statt eine ungeprüfte Annahme als PASS zu fabrizieren."""
+    """Ohne Rollen bleibt UPDATE-01 unangetastet (PENDING), statt eine
+    ungeprüfte Annahme als PASS zu fabrizieren."""
     report = smoke.SmokeReport()
     result = smoke.run_linux_smoke(
         _LINUX_ARTEFACTS, report, _runner_factory(_CLEAN_DEB),
@@ -1283,88 +1401,219 @@ def test_linux_smoke_update_check_skipped_without_predecessor(tmp_path: Path) ->
     assert not any("Update-Check" in n for n in result.notes)
 
 
+def test_linux_smoke_update_check_requires_both_roles(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Nur eine Seite übergeben ist ein Konfigurationsfehler: die halbe Prüfung
+    still durchzuwinken wäre schlimmer als sie auszulassen."""
+    result = _run_update_check(tmp_path, _runner_factory(_CLEAN_DEB), candidate=None)
+    assert not result.passed
+    assert any("nur eine der beiden Rollen" in n for n in result.notes)
+
+
+def test_linux_smoke_update_check_fails_on_identical_versions(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Vorgänger und Kandidat mit derselben Version prüften ein Release gegen
+    sich selbst – das ist kein Nachweis."""
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner({_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"}),
+        predecessor=_predecessor_subject(tmp_path, version=_CANDIDATE_VERSION),
+    )
+    assert not result.passed
+    assert any("dieselbe Version" in n for n in result.notes)
+
+
 def test_linux_smoke_update_check_fails_when_predecessor_reports_up_to_date(  # type: ignore[no-untyped-def]
     tmp_path: Path,
 ) -> None:
     """Ein Vorgänger, der fälschlich UP_TO_DATE meldet (z. B. weil das Release
     noch nicht öffentlich war), muss den Smoke scheitern lassen statt es
     stillschweigend als Erfolg zu werten."""
-    report = smoke.SmokeReport()
-    runner = _update_check_runner(
-        {"predecessor.json": "UP_TO_DATE", "current.json": "UP_TO_DATE"},
-    )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=_PREDECESSOR_ARTEFACTS, candidate_version="2.7.2",
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner({_PREDECESSOR_OUT: "UP_TO_DATE", _CANDIDATE_OUT: "UP_TO_DATE"}),
     )
     assert not result.passed
     assert any("erwartet UPDATE_AVAILABLE" in n for n in result.notes)
+    assert _summary(tmp_path)["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_STATUS
 
 
 def test_linux_smoke_update_check_fails_on_latest_version_mismatch(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """UPDATE_AVAILABLE allein genügt nicht: ``latest_version`` muss auf den
     tatsächlich geprüften Kandidaten zeigen, sonst bliebe ein veraltetes oder
     falsches Release unbemerkt."""
-    report = smoke.SmokeReport()
-    runner = _update_check_runner(
-        {"predecessor.json": "UPDATE_AVAILABLE", "current.json": "UP_TO_DATE"},
-        {"predecessor.json": "2.7.0"},
-    )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=_PREDECESSOR_ARTEFACTS, candidate_version="2.7.2",
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            {_PREDECESSOR_OUT: "2.7.0"},
+        ),
     )
     assert not result.passed
     assert any("weicht vom erwarteten Kandidaten" in n for n in result.notes)
+    assert (
+        _summary(tmp_path)["pruefungen"][0]["befund"]
+        == smoke.UPDATE_CHECK_VERDICT_TARGET_VERSION
+    )
+
+
+def test_linux_smoke_update_check_fails_when_predecessor_reports_foreign_version(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Die Ausgangsversion kommt aus dem laufenden Artefakt – meldet es eine
+    andere als die des bezogenen Releases, lief nicht das geprüfte Bundle
+    (etwa weil ein Checkout das gebündelte Paket beschattet hat, #740)."""
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            {_PREDECESSOR_OUT: _CANDIDATE_VERSION},
+            versions={_PREDECESSOR_OUT: "2.6.0", _CANDIDATE_OUT: _CANDIDATE_VERSION},
+        ),
+    )
+    assert not result.passed
+    assert any("das laufende Artefakt meldet Version" in n for n in result.notes)
+    assert (
+        _summary(tmp_path)["pruefungen"][0]["befund"]
+        == smoke.UPDATE_CHECK_VERDICT_SOURCE_VERSION
+    )
+
+
+def test_linux_smoke_update_check_fails_when_candidate_reports_other_version(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Auch der Kandidat muss sich als die Version ausweisen, die veröffentlicht
+    wurde: eine abweichende Paketversion ergäbe sonst still UP_TO_DATE."""
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            {_PREDECESSOR_OUT: _CANDIDATE_VERSION},
+            versions={_PREDECESSOR_OUT: _PREDECESSOR_VERSION, _CANDIDATE_OUT: "2.7.3"},
+        ),
+    )
+    assert not result.passed
+    assert any("das laufende Artefakt meldet Version" in n for n in result.notes)
 
 
 def test_linux_smoke_update_check_fails_on_check_failed(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """``CHECK_FAILED`` ist in keiner Rolle ein Erfolg – ein Netzwerkfehler
-    darf nicht als bestandener Nachweis durchgehen."""
-    report = smoke.SmokeReport()
-    runner = _update_check_runner(
-        {"predecessor.json": "CHECK_FAILED", "current.json": "UP_TO_DATE"},
-    )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=_PREDECESSOR_ARTEFACTS, candidate_version="2.7.2",
+    darf nicht als bestandener Nachweis durchgehen und bekommt einen eigenen
+    Befund in der Evidenz."""
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner({_PREDECESSOR_OUT: "CHECK_FAILED", _CANDIDATE_OUT: "UP_TO_DATE"}),
     )
     assert not result.passed
     assert any("Netzwerk-Roundtrip fehlgeschlagen" in n for n in result.notes)
+    assert (
+        _summary(tmp_path)["pruefungen"][0]["befund"] == smoke.UPDATE_CHECK_VERDICT_CHECK_FAILED
+    )
 
 
 def test_linux_smoke_update_check_fails_without_bundled_interpreter(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     """Kein gefundener Interpreter (z. B. unerwartetes AppImage-Layout) muss
-    scheitern statt eine leere Prüfung als bestanden zu werten."""
-    report = smoke.SmokeReport()
-    runner = _update_check_runner(
-        {"predecessor.json": "UPDATE_AVAILABLE", "current.json": "UP_TO_DATE"},
-        find_python_ok=False,
-    )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=_PREDECESSOR_ARTEFACTS, candidate_version="2.7.2",
+    scheitern statt eine leere Prüfung als bestanden zu werten – und die
+    Herkunft trotzdem dokumentieren."""
+    result = _run_update_check(
+        tmp_path,
+        _update_check_runner(
+            {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+            find_python_ok=False,
+        ),
     )
     assert not result.passed
     assert any("kein gebündelter Interpreter gefunden" in n for n in result.notes)
+    record = _summary(tmp_path)["pruefungen"][0]
+    assert record["befund"] == smoke.UPDATE_CHECK_VERDICT_NO_EVIDENCE
+    assert record["sha256"].startswith("sha256-of-")
 
 
-def test_linux_smoke_update_check_fails_when_predecessor_has_no_appimage(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
-    """Ein Vorgänger-Artefaktsatz ohne AppImage (unerwartete Release-Struktur)
-    darf nicht stillschweigend übersprungen werden."""
-    report = smoke.SmokeReport()
+# ── Evidenzvertrag (#748: Quelle, Hash, Plattform, Versionen, Status) ───────
+
+
+def test_update_check_summary_documents_source_hash_platform_and_versions(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+) -> None:
+    """Der Nachweis muss ohne Rückgriff auf andere Dateien belegen, WAS geprüft
+    wurde (Artefakt, Quelle, Hash, Plattform) und WAS herauskam (Ausgangs-/
+    Zielversion, Antwortstatus)."""
     runner = _update_check_runner(
-        {"predecessor.json": "UPDATE_AVAILABLE", "current.json": "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _CANDIDATE_VERSION},
     )
-    result = smoke.run_linux_smoke(
-        _LINUX_ARTEFACTS, report, runner,
-        prober=lambda: "Broadcom / V3D 7.1 / 3.1", screenshot_dir=tmp_path / "shots",
-        predecessor_artefacts=["/tmp/predecessor/BgRemover-2.7.1-linux-raspberrypi-arm64-ai.deb"],
-        candidate_version="2.7.2",
+    assert _run_update_check(tmp_path, runner).passed
+
+    summary = _summary(tmp_path)
+    assert summary["schema"] == smoke.UPDATE_CHECK_SUMMARY_SCHEMA
+    assert summary["kind"] == smoke.UPDATE_CHECK_SUMMARY_KIND
+    assert summary["ok"] is True
+    assert summary["kandidaten_version"] == _CANDIDATE_VERSION
+
+    predecessor, candidate = summary["pruefungen"]
+    assert [predecessor["rolle"], candidate["rolle"]] == [
+        smoke.UPDATE_CHECK_ROLE_PREDECESSOR, smoke.UPDATE_CHECK_ROLE_CANDIDATE,
+    ]
+    assert predecessor["artefakt"].endswith(".AppImage")
+    assert predecessor["quelle"] == {"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"}
+    assert predecessor["sha256"].startswith("sha256-of-")
+    assert predecessor["digest_geprueft"] is True
+    assert predecessor["plattform"] == "linux-arm64"
+    assert predecessor["gemeldete_ausgangsversion"] == _PREDECESSOR_VERSION
+    assert predecessor["erwartete_ausgangsversion"] == _PREDECESSOR_VERSION
+    assert predecessor["status"] == "UPDATE_AVAILABLE"
+    assert predecessor["zielversion"] == _CANDIDATE_VERSION
+    assert predecessor["befund"] == smoke.UPDATE_CHECK_VERDICT_OK
+    assert candidate["quelle"]["art"] == "run-id"
+    assert candidate["status"] == "UP_TO_DATE"
+
+
+def test_update_check_summary_carries_no_secrets(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """„ohne sensible Daten": die Evidenz enthält nur öffentlich Bekanntes –
+    kein Token, keine Authorization-Header."""
+    runner = _update_check_runner(
+        {_PREDECESSOR_OUT: "UPDATE_AVAILABLE", _CANDIDATE_OUT: "UP_TO_DATE"},
+        {_PREDECESSOR_OUT: _CANDIDATE_VERSION},
     )
-    assert not result.passed
-    assert any("AppImage für Vorgänger" in n for n in result.notes)
+    _run_update_check(tmp_path, runner)
+    raw = (
+        tmp_path / smoke.UPDATE_CHECK_EVIDENCE_DIR_NAME / smoke.UPDATE_CHECK_SUMMARY_NAME
+    ).read_text(encoding="utf-8").lower()
+    for forbidden in ("token", "authorization", "secret", "password", "bearer"):
+        assert forbidden not in raw
+
+
+# ── CLI-Verdrahtung ─────────────────────────────────────────────────────────
+
+
+def test_cli_requires_candidate_version_with_predecessor(tmp_path, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Ohne Sollversion bliebe vom Nachweis nur „irgendein Update sichtbar";
+    #748 verlangt UPDATE_AVAILABLE mit exakt der neuen Zielversion."""
+    candidate_dir = _evidence_dir(
+        tmp_path, "candidate", version=_CANDIDATE_VERSION,
+        source={"art": "run-id", "wert": "4711"},
+    )
+    predecessor_dir = _evidence_dir(
+        tmp_path, "predecessor", version=_PREDECESSOR_VERSION,
+        source={"art": "release-tag", "wert": f"v{_PREDECESSOR_VERSION}"},
+    )
+    with pytest.raises(SystemExit):
+        smoke.main([
+            "--platform", "linux-arm64", "--evidence-dir", str(candidate_dir),
+            "--predecessor-evidence-dir", str(predecessor_dir),
+        ])
+    assert "--candidate-version" in capsys.readouterr().err
+
+
+def test_cli_rejects_unusable_predecessor_evidence(tmp_path, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Ein unbrauchbares Vorgänger-Evidenzverzeichnis bricht den Lauf ab, statt
+    den Nachweis still auszulassen (das sähe wie „nicht angefordert" aus)."""
+    candidate_dir = _evidence_dir(
+        tmp_path, "candidate", version=_CANDIDATE_VERSION,
+        source={"art": "run-id", "wert": "4711"},
+    )
+    with pytest.raises(SystemExit):
+        smoke.main([
+            "--platform", "linux-arm64", "--evidence-dir", str(candidate_dir),
+            "--predecessor-evidence-dir", str(tmp_path / "fehlt"),
+            "--candidate-version", _CANDIDATE_VERSION,
+        ])
+    assert "nicht aufsetzbar" in capsys.readouterr().err
