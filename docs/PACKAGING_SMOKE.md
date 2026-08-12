@@ -210,6 +210,65 @@ Zusätzlich je Artefakt prüfen:
 - Paketgröße und Startzeit gegen die #591-Baseline messen; Überschreitung
   begründen.
 
+### 4.1 Post-Release-Update-Nachweis `UPDATE-01` (#748, manuell)
+
+Der Nachweis läuft normalerweise als `release-abnahme.yml`-Dispatch mit
+`predecessor_tag` (Bedienung: [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md)
+§4.2). Diese Prozedur ist der Ersatz, wenn kein Runner bereitsteht — und
+zugleich die Beschreibung dessen, was der Workflow tut.
+
+**Erst nach der Veröffentlichung ausführen**: Vor dem Tag meldet
+`/releases/latest` die neue Version nicht, der Vorgänger könnte sie gar nicht
+sehen.
+
+Auf einem Linux-aarch64-Gerät, beide AppImages öffentlich beziehen — Vorgänger
+und neu veröffentlichter Kandidat:
+
+```sh
+# Öffentlicher Anwenderpfad: anonym, ohne GitHub-Anmeldung.
+curl -fL -o predecessor.AppImage "<browser_download_url des Vorgängers>"
+curl -fL -o candidate.AppImage  "<browser_download_url des neuen Release>"
+sha256sum predecessor.AppImage candidate.AppImage   # in die Evidenz übernehmen
+```
+
+Für jede der beiden Dateien den **im Artefakt gebündelten** Interpreter
+benutzen — nur so läuft der ausgelieferte Code und nicht der Checkout:
+
+```sh
+chmod +x predecessor.AppImage
+mkdir -p /tmp/update-check/predecessor && cd /tmp/update-check/predecessor
+"$OLDPWD/predecessor.AppImage" --appimage-extract >/dev/null
+squashfs-root/usr/bin/python3.* "$REPO/scripts/update_probe_cli.py" \
+    --output /tmp/update-check/predecessor.json
+cat /tmp/update-check/predecessor.json
+```
+
+Auswerten (dieselben Regeln wie im Workflow, der erste Verstoß gewinnt):
+
+| Rolle | `current_version` | `status` | `latest_version` |
+|---|---|---|---|
+| Vorgänger | Version des Vorgänger-Tags | `UPDATE_AVAILABLE` | exakt die neue Version |
+| Kandidat | die neue Version | `UP_TO_DATE` | — |
+
+`current_version` stammt aus dem laufenden Bundle selbst; weicht sie vom
+erwarteten Tag ab, wurde nicht das vorgesehene Artefakt geprüft (typischer
+Fund: ein `bgremover/` im Arbeitsverzeichnis beschattet das gebündelte Paket,
+#740 — deshalb liegt das Entpackverzeichnis oben außerhalb des Checkouts).
+`CHECK_FAILED` ist ein **eigener harter Fehlerzustand**: ein Netzwerk-,
+Parsing- oder Versionsfehler darf nie als „kein Update" durchgehen.
+
+Protokolliere je Rolle Artefaktquelle (Tag bzw. Release-URL), SHA-256,
+Plattform, Ausgangs- und Zielversion sowie den Antwortstatus — ohne Token oder
+sonstige Geheimnisse. Ein Fehlschlag ist ein Incident nach Schritt 9 des
+[Release-Runbooks](RELEASE_PROCESS.md) und löst dessen Rollback-/Hotfix-
+Entscheid aus.
+
+Für das `.deb` ist kein eigener Durchlauf nötig: es installiert dieselbe
+AppImage nach `/opt/BgRemover/BgRemover.AppImage`. Für die macOS-`.app` gibt es
+keinen entsprechenden Weg — PyInstaller liefert keinen generisch aufrufbaren
+Interpreter; dort greift der In-Prozess-Hook `BGREMOVER_UPDATE_CHECK_PROBE`
+erst, sobald ein Release mit diesem Hook selbst zum Vorgänger geworden ist.
+
 ## 5. Screenshots
 
 Auf realer Grafikhardware (nicht offscreen) aufnehmen. Der Generator legt den

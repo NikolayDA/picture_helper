@@ -44,6 +44,7 @@ import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +71,41 @@ TEMP_DMG_ROOT = "/tmp/abnahme-macos-dmg"
 TEMP_APPIMAGE_EXTRACT_ROOT = "/tmp/abnahme-update-check-appimage"
 UPDATE_CHECK_EVIDENCE_DIR_NAME = "update_check"
 UPDATE_CHECK_PROBE = REPO_ROOT / "scripts" / "update_probe_cli.py"
+
+# Rollen des Vorgängernachweises. Der Vorgänger MUSS ein bereits
+# veröffentlichtes Release sein (Quelle ``release-tag``), der Kandidat der
+# gerade geprüfte Build (Quelle ``run-id``) – ein vertauschtes Paar wäre kein
+# Nachweis, sondern eine Selbstbestätigung.
+UPDATE_CHECK_ROLE_PREDECESSOR = "vorgaenger"
+UPDATE_CHECK_ROLE_CANDIDATE = "kandidat"
+UPDATE_CHECK_EXPECTED_STATUS = {
+    UPDATE_CHECK_ROLE_PREDECESSOR: "UPDATE_AVAILABLE",
+    UPDATE_CHECK_ROLE_CANDIDATE: "UP_TO_DATE",
+}
+UPDATE_CHECK_EXPECTED_SOURCE = {
+    UPDATE_CHECK_ROLE_PREDECESSOR: "release-tag",
+    UPDATE_CHECK_ROLE_CANDIDATE: "run-id",
+}
+UPDATE_CHECK_OUTPUT_NAMES = {
+    UPDATE_CHECK_ROLE_PREDECESSOR: "predecessor.json",
+    UPDATE_CHECK_ROLE_CANDIDATE: "current.json",
+}
+# Zusammenfassende UPDATE-01-Evidenz: verbindet die Sonden-Nutzlast beider
+# Rollen mit der Herkunft der geprüften Artefakte (#748 verlangt Artefaktquelle,
+# Hash, Plattform, Ausgangs- und Zielversion sowie Antwortstatus an EINER
+# Stelle). Enthält bewusst nur öffentlich Bekanntes – kein Token, keine
+# Authorization-Header, keine Runner-Geheimnisse.
+UPDATE_CHECK_SUMMARY_NAME = "update_check.json"
+UPDATE_CHECK_SUMMARY_SCHEMA = 1
+UPDATE_CHECK_SUMMARY_KIND = "abnahme-update-check"
+# Befunde je Rolle. ``CHECK_FAILED`` ist ein eigener, harter Zustand (#748):
+# ein Netzwerk-/Parsing-Fehler darf nie als „kein Update" durchgehen.
+UPDATE_CHECK_VERDICT_OK = "ok"
+UPDATE_CHECK_VERDICT_CHECK_FAILED = "CHECK_FAILED"
+UPDATE_CHECK_VERDICT_NO_EVIDENCE = "KEINE_EVIDENZ"
+UPDATE_CHECK_VERDICT_SOURCE_VERSION = "AUSGANGSVERSION_ABWEICHEND"
+UPDATE_CHECK_VERDICT_STATUS = "STATUS_UNERWARTET"
+UPDATE_CHECK_VERDICT_TARGET_VERSION = "ZIELVERSION_ABWEICHEND"
 
 # Nativer 3D-Screenshot-Nachweis (#648): großzügigeres Timeout als der
 # Headless-Start – Shader-Compile + erster Mesh-Build auf echter (ggf.
@@ -549,6 +585,96 @@ def _acceptance_extra(
     report.ok(f"EufyMake/2.7.0-Zusatznachweis ok ({label})")
 
 
+@dataclass(frozen=True)
+class UpdateCheckSubject:
+    """Ein für ``UPDATE-01`` geprüftes Artefakt samt Herkunftsnachweis (#748).
+
+    Trägt genau die Angaben, die der Nachweis laut Issue protokollieren muss –
+    Artefaktquelle, Hash, Plattform – plus die *erwartete* Ausgangsversion.
+    Letztere ist der Sollwert für die Version, die das laufende Artefakt SELBST
+    meldet: beim Vorgänger der Release-Tag, beim Kandidaten die
+    Kandidatenversion. Ohne diesen Abgleich stünde die Ausgangsversion zwar in
+    der Evidenz, wäre aber nicht falsifizierbar.
+    """
+
+    role: str
+    path: str
+    expected_version: str
+    sha256: str
+    digest_verified: bool
+    source_kind: str
+    source_value: str
+    platform: str
+
+    @property
+    def label(self) -> str:
+        return f"{self.role} {Path(self.path).name}"
+
+
+def normalize_version(value: str | None) -> str:
+    """Versionsvergleich ohne führendes ``v`` (Tag ``v2.7.1`` ↔ Paket ``2.7.1``)."""
+    return str(value or "").strip().lstrip("vV")
+
+
+def build_update_check_subject(
+    evidence_dir: Path, role: str, *, expected_version: str = "",
+) -> UpdateCheckSubject:
+    """Baut aus einem ``release_abnahme.py``-Evidenzverzeichnis das Subjekt für
+    eine Rolle des Vorgängernachweises (#748).
+
+    Herkunft (Quelle, SHA256, Digest-Bestätigung, Plattform) kommt
+    ausschließlich aus ``evidenz.json`` – dieselbe Datei, die den Bezug der
+    Artefakte belegt; damit lässt sich der Update-Nachweis später lückenlos auf
+    genau diese Bytes zurückführen. Die Quellart wird gegen die Rolle geprüft:
+    ein „Vorgänger" aus dem Kandidaten-Build (oder umgekehrt) wäre eine
+    Selbstbestätigung statt eines Nachweises.
+
+    ``expected_version`` leer heißt beim Vorgänger: aus dem Release-Tag
+    ableiten. Beim Kandidaten muss sie der Aufrufer setzen (die Version steht
+    nicht in der Evidenz).
+    """
+    evidence = json.loads((evidence_dir / "evidenz.json").read_text(encoding="utf-8"))
+    source = evidence.get("quelle") or {}
+    expected_source = UPDATE_CHECK_EXPECTED_SOURCE[role]
+    if source.get("art") != expected_source:
+        raise ValueError(
+            f"Update-Check ({role}): Evidenzquelle {source.get('art')!r} statt "
+            f"{expected_source!r} – {evidence_dir}"
+        )
+    appimages = [
+        a for a in evidence.get("artefakte", []) if str(a.get("name", "")).endswith(".AppImage")
+    ]
+    if len(appimages) != 1:
+        # Genau eine: nur so ist eindeutig, welches Artefakt den Nachweis
+        # getragen hat. Mehrere (oder keine) wären eine stille Auswahl.
+        raise ValueError(
+            f"Update-Check ({role}): genau eine AppImage erwartet, gefunden "
+            f"{[a.get('name') for a in appimages]} – {evidence_dir}"
+        )
+    artefact = appimages[0]
+    version = expected_version
+    if not version and role == UPDATE_CHECK_ROLE_PREDECESSOR:
+        # Nur beim Vorgänger steht die Sollversion in der Quelle – der Tag ist
+        # sie. Beim Kandidaten wäre die Quelle eine Run-ID; sie als Version zu
+        # nehmen hieße, gegen eine Zahl ohne Bedeutung zu prüfen.
+        version = normalize_version(source.get("wert"))
+    if not version:
+        raise ValueError(
+            f"Update-Check ({role}): erwartete Ausgangsversion unbekannt – "
+            "expected_version übergeben."
+        )
+    return UpdateCheckSubject(
+        role=role,
+        path=str(evidence_dir / "artefakte" / str(artefact["name"])),
+        expected_version=normalize_version(version),
+        sha256=str(artefact.get("sha256", "")),
+        digest_verified=bool(artefact.get("digest_geprueft")),
+        source_kind=str(source.get("art", "")),
+        source_value=str(source.get("wert", "")),
+        platform=str(evidence.get("platform", "")),
+    )
+
+
 def _extract_appimage(runner: Runner, appimage_path: str, label: str, report: SmokeReport) -> str | None:
     """Entpackt eine AppImage in ein eigenes Wegwerfverzeichnis und liefert den
     Pfad zum darin gebündelten Python-Interpreter (#748).
@@ -587,11 +713,39 @@ def _extract_appimage(runner: Runner, appimage_path: str, label: str, report: Sm
     return interpreter
 
 
+def _update_check_record(
+    subject: UpdateCheckSubject, *, verdict: str, payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Herkunft + Sondenantwort einer Rolle zu einem Evidenzeintrag verbinden.
+
+    Die Herkunftsfelder stehen auch dann drin, wenn die Sonde gar nicht lief
+    (Entpackfehler): Ein Nachweis, der nur im Erfolgsfall dokumentiert, wovon
+    er handelte, ist im Fehlerfall wertlos.
+    """
+    payload = payload or {}
+    return {
+        "rolle": subject.role,
+        "artefakt": Path(subject.path).name,
+        "quelle": {"art": subject.source_kind, "wert": subject.source_value},
+        "sha256": subject.sha256,
+        "digest_geprueft": subject.digest_verified,
+        "plattform": subject.platform,
+        "erwartete_ausgangsversion": subject.expected_version,
+        "gemeldete_ausgangsversion": payload.get("current_version"),
+        "erwarteter_status": UPDATE_CHECK_EXPECTED_STATUS[subject.role],
+        "status": payload.get("status"),
+        "zielversion": payload.get("latest_version"),
+        "release_url": payload.get("release_url"),
+        "interpreter": payload.get("interpreter"),
+        "fehler": payload.get("error"),
+        "befund": verdict,
+    }
+
+
 def _update_check(
-    runner: Runner, appimage_path: str, *,
-    label: str, report: SmokeReport, evidence_dir: Path, output_name: str,
-    expect_update_available: bool, expected_latest_version: str | None,
-) -> None:
+    runner: Runner, subject: UpdateCheckSubject, *,
+    report: SmokeReport, evidence_dir: Path, expected_latest_version: str,
+) -> dict[str, Any]:
     """Echter Update-Check-Nachweis (#748) unter dem im Artefakt gebündelten
     Interpreter: ruft ``scripts/update_probe_cli.py`` auf, der ausschließlich
     ``bgremover.app_update``/``bgremover._version`` importiert – beide existieren
@@ -599,87 +753,157 @@ def _update_check(
     bereits veröffentlichtes, älteres Artefakt funktioniert (kein neuer Hook
     im geprüften Artefakt nötig).
 
-    ``expect_update_available`` legt fest, welcher Status vom geprüften
-    Artefakt erwartet wird (Vorgänger → ``True``, aktueller Kandidat →
-    ``False``); ``CHECK_FAILED`` ist in beiden Fällen ein Fehlschlag.
+    Die Rolle des Subjekts legt den erwarteten Status fest (Vorgänger →
+    ``UPDATE_AVAILABLE``, Kandidat → ``UP_TO_DATE``). Geprüft wird in dieser
+    Reihenfolge, weil jede Stufe die nächste erst aussagekräftig macht:
+
+    1. ``CHECK_FAILED`` – eigener harter Zustand, nie „kein Update".
+    2. die vom Artefakt SELBST gemeldete Ausgangsversion gegen den Sollwert der
+       Herkunft: erst damit steht fest, dass wirklich der Vorgänger- bzw.
+       Kandidatencode lief und nicht ein danebenliegendes Bundle.
+    3. der Status.
+    4. beim Vorgänger die gemeldete Zielversion gegen den Kandidaten.
+
+    Liefert den Evidenzeintrag der Rolle (auch im Fehlerfall).
     """
-    interpreter = _extract_appimage(runner, appimage_path, label, report)
+    interpreter = _extract_appimage(runner, subject.path, subject.label, report)
     if interpreter is None:
-        return
+        return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
     evidence_dir.mkdir(parents=True, exist_ok=True)
-    target = (evidence_dir / output_name).resolve()
+    target = (evidence_dir / UPDATE_CHECK_OUTPUT_NAMES[subject.role]).resolve()
     result = runner([
         interpreter, str(UPDATE_CHECK_PROBE), "--output", str(target),
     ])
-    _record_guard(report, result, phase="update_check", artifact_class=label)
+    _record_guard(report, result, phase="update_check", artifact_class=subject.label)
     if not target.is_file():
         report.fail(
-            f"Update-Check ({label}): keine Evidenz erzeugt: {_command_detail(result)}"
+            f"Update-Check ({subject.label}): keine Evidenz erzeugt: {_command_detail(result)}"
         )
-        return
+        return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
     try:
         payload = json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        report.fail(f"Update-Check ({label}): Evidenz-JSON unlesbar: {exc}")
-        return
+        report.fail(f"Update-Check ({subject.label}): Evidenz-JSON unlesbar: {exc}")
+        return _update_check_record(subject, verdict=UPDATE_CHECK_VERDICT_NO_EVIDENCE)
 
+    verdict = _update_check_verdict(
+        subject, payload, report, expected_latest_version=expected_latest_version,
+    )
+    if verdict == UPDATE_CHECK_VERDICT_OK:
+        report.ok(f"Update-Check ok ({subject.label}): {payload.get('status')}")
+    return _update_check_record(subject, verdict=verdict, payload=payload)
+
+
+def _update_check_verdict(
+    subject: UpdateCheckSubject, payload: dict[str, Any], report: SmokeReport, *,
+    expected_latest_version: str,
+) -> str:
+    """Bewertet eine Sondenantwort; meldet den ersten Verstoß an *report*."""
     status = payload.get("status")
     if status == "CHECK_FAILED":
         report.fail(
-            f"Update-Check ({label}): Netzwerk-Roundtrip fehlgeschlagen: {payload.get('error')}"
+            f"Update-Check ({subject.label}): Netzwerk-Roundtrip fehlgeschlagen: "
+            f"{payload.get('error')}"
         )
-        return
-    expected_status = "UPDATE_AVAILABLE" if expect_update_available else "UP_TO_DATE"
+        return UPDATE_CHECK_VERDICT_CHECK_FAILED
+
+    reported = normalize_version(payload.get("current_version"))
+    if reported != subject.expected_version:
+        report.fail(
+            f"Update-Check ({subject.label}): das laufende Artefakt meldet Version "
+            f"{payload.get('current_version')!r}, erwartet war {subject.expected_version!r} – "
+            "geprüft wurde nicht das vorgesehene Bundle."
+        )
+        return UPDATE_CHECK_VERDICT_SOURCE_VERSION
+
+    expected_status = UPDATE_CHECK_EXPECTED_STATUS[subject.role]
     if status != expected_status:
         report.fail(
-            f"Update-Check ({label}): erwartet {expected_status}, gemeldet {status} "
+            f"Update-Check ({subject.label}): erwartet {expected_status}, gemeldet {status} "
             f"(current={payload.get('current_version')!r} latest={payload.get('latest_version')!r})"
         )
-        return
-    if expect_update_available and expected_latest_version:
-        latest = str(payload.get("latest_version") or "").lstrip("v")
-        if latest != expected_latest_version.lstrip("v"):
+        return UPDATE_CHECK_VERDICT_STATUS
+
+    if subject.role == UPDATE_CHECK_ROLE_PREDECESSOR:
+        latest = normalize_version(payload.get("latest_version"))
+        if latest != normalize_version(expected_latest_version):
             report.fail(
-                f"Update-Check ({label}): meldet UPDATE_AVAILABLE, aber latest_version "
+                f"Update-Check ({subject.label}): meldet UPDATE_AVAILABLE, aber latest_version "
                 f"{payload.get('latest_version')!r} weicht vom erwarteten Kandidaten "
                 f"{expected_latest_version!r} ab."
             )
-            return
-    report.ok(f"Update-Check ok ({label}): {status}")
+            return UPDATE_CHECK_VERDICT_TARGET_VERSION
+    return UPDATE_CHECK_VERDICT_OK
 
 
 def _update_check_linux(
-    predecessor_artefacts: list[str], current_artefacts: list[str],
-    report: SmokeReport, runner: Runner, evidence_root: Path, candidate_version: str,
+    predecessor: UpdateCheckSubject, candidate: UpdateCheckSubject,
+    report: SmokeReport, runner: Runner, evidence_root: Path,
 ) -> None:
     """Echter Vorgänger-Nachweis für ``UPDATE-01`` (#748): ein bereits
     veröffentlichtes Vorgänger-Release muss ``UPDATE_AVAILABLE`` melden, der
     aktuell geprüfte Kandidat ``UP_TO_DATE`` – beide über den echten,
     unauthentifizierten GitHub-Releases-API-Roundtrip aus
     ``bgremover.app_update``, ausgeführt unter dem jeweils im Artefakt
-    gebündelten Interpreter (siehe ``_update_check``)."""
+    gebündelten Interpreter (siehe ``_update_check``).
+
+    Schreibt anschließend die zusammenfassende Evidenz mit Artefaktquelle,
+    Hash, Plattform, Ausgangs- und Zielversion sowie Antwortstatus je Rolle.
+    """
     evidence_dir = evidence_root / UPDATE_CHECK_EVIDENCE_DIR_NAME
-    predecessor_appimage = next(
-        (a for a in predecessor_artefacts if a.endswith(".AppImage")), None,
-    )
-    current_appimage = next((a for a in current_artefacts if a.endswith(".AppImage")), None)
-    if predecessor_appimage is None or current_appimage is None:
+    if predecessor.expected_version == candidate.expected_version:
+        # Gleiche Version auf beiden Seiten: der Vorgänger könnte gar kein
+        # Update sehen, der „Nachweis" prüfte ein Release gegen sich selbst.
         report.fail(
-            "Update-Check: AppImage für Vorgänger und/oder aktuellen Kandidaten fehlt."
+            f"Update-Check: Vorgänger und Kandidat tragen dieselbe Version "
+            f"{candidate.expected_version!r} – der Nachweis wäre gegenstandslos."
         )
         return
 
-    _update_check(
-        runner, predecessor_appimage,
-        label=f"Vorgänger {Path(predecessor_appimage).name}",
-        report=report, evidence_dir=evidence_dir, output_name="predecessor.json",
-        expect_update_available=True, expected_latest_version=candidate_version or None,
+    records = [
+        _update_check(
+            runner, predecessor, report=report, evidence_dir=evidence_dir,
+            expected_latest_version=candidate.expected_version,
+        ),
+        _update_check(
+            runner, candidate, report=report, evidence_dir=evidence_dir,
+            expected_latest_version=candidate.expected_version,
+        ),
+    ]
+    _write_update_check_summary(evidence_dir, records, candidate.expected_version)
+
+
+def _write_update_check_summary(
+    evidence_dir: Path, records: list[dict[str, Any]], candidate_version: str,
+) -> None:
+    """Zusammenfassende UPDATE-01-Evidenz schreiben und ins Joblog spiegeln.
+
+    Ins Joblog, weil ``_default_runner`` die Ausgaben der Teilschritte per
+    ``capture_output`` abfängt: ohne diese Zeilen stünde die Kernaussage des
+    Nachweises nur in einem mehrere hundert MB großen Evidenz-Artefakt.
+    """
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    summary = {
+        "schema": UPDATE_CHECK_SUMMARY_SCHEMA,
+        "kind": UPDATE_CHECK_SUMMARY_KIND,
+        "erzeugt_am": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "kandidaten_version": candidate_version,
+        "ok": all(r["befund"] == UPDATE_CHECK_VERDICT_OK for r in records),
+        "pruefungen": records,
+    }
+    (evidence_dir / UPDATE_CHECK_SUMMARY_NAME).write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
     )
-    _update_check(
-        runner, current_appimage, label=f"Kandidat {Path(current_appimage).name}",
-        report=report, evidence_dir=evidence_dir, output_name="current.json",
-        expect_update_available=False, expected_latest_version=None,
-    )
+    for record in records:
+        print(
+            f"[update-check] rolle={record['rolle']} artefakt={record['artefakt']} "
+            f"quelle={record['quelle']['art']}:{record['quelle']['wert']} "
+            f"sha256={record['sha256']} plattform={record['plattform']} "
+            f"ausgangsversion={record['gemeldete_ausgangsversion']!r} "
+            f"(erwartet {record['erwartete_ausgangsversion']!r}) "
+            f"status={record['status']} zielversion={record['zielversion']!r} "
+            f"befund={record['befund']}"
+        )
 
 
 def _require_extensions(artefacts: list[str], required: set[str], report: SmokeReport) -> bool:
@@ -700,15 +924,17 @@ def _require_extensions(artefacts: list[str], required: set[str], report: SmokeR
 def run_linux_smoke(
     artefacts: list[str], report: SmokeReport, runner: Runner, prober: Prober,
     screenshot_dir: Path, *,
-    predecessor_artefacts: list[str] | None = None, candidate_version: str = "",
+    predecessor: UpdateCheckSubject | None = None,
+    candidate: UpdateCheckSubject | None = None,
 ) -> SmokeReport:
     """AppImage- und ``.deb``-Smoke auf einem Linux-Runner (#642).
 
-    ``predecessor_artefacts`` (optional, #748): Dateien eines bereits
-    veröffentlichten Vorgänger-Releases (via ``release_abnahme.fetch_release_
-    assets``). Gesetzt, ergänzt der Smoke den echten UPDATE-01-Vorgänger-
-    nachweis; leer/``None`` lässt ihn ausdrücklich aus (bleibt ``PENDING``
-    statt fabriziert ``PASS``).
+    ``predecessor``/``candidate`` (optional, #748): die beiden Rollen des
+    echten UPDATE-01-Vorgängernachweises, gebaut über
+    ``build_update_check_subject``. Beide gesetzt ⇒ der Nachweis läuft; beide
+    ``None`` ⇒ er entfällt ausdrücklich (bleibt ``PENDING`` statt fabriziert
+    ``PASS``). Nur eine Seite gesetzt ist ein Konfigurationsfehler und
+    scheitert, statt still die halbe Prüfung zu machen.
     """
     _require_extensions(artefacts, {".AppImage", ".deb"}, report)
 
@@ -722,10 +948,12 @@ def run_linux_smoke(
         elif artefact.endswith(".deb"):
             _linux_deb(artefact, report, runner, screenshot_dir)
 
-    if predecessor_artefacts:
-        _update_check_linux(
-            predecessor_artefacts, artefacts, report, runner,
-            screenshot_dir.parent, candidate_version,
+    if predecessor is not None and candidate is not None:
+        _update_check_linux(predecessor, candidate, report, runner, screenshot_dir.parent)
+    elif predecessor is not None or candidate is not None:
+        report.fail(
+            "Update-Check: nur eine der beiden Rollen (Vorgänger/Kandidat) übergeben – "
+            "der Nachweis braucht beide."
         )
 
     return report
@@ -994,11 +1222,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--candidate-version", default="",
         help="Version des geprüften Kandidaten (z. B. 2.7.2) – Sollwert für "
-        "latest_version im Vorgänger-Update-Check.",
+        "latest_version im Vorgänger-Update-Check sowie für die vom Kandidaten "
+        "selbst gemeldete Ausgangsversion. Pflicht mit "
+        "--predecessor-evidence-dir.",
     )
     args = parser.parse_args(argv)
 
-    import json
+    if args.predecessor_evidence_dir and not args.candidate_version:
+        # Ohne Sollversion bliebe vom Nachweis nur „irgendein Update sichtbar".
+        # #748 verlangt UPDATE_AVAILABLE mit exakt der neuen Zielversion.
+        parser.error("--candidate-version ist mit --predecessor-evidence-dir Pflicht.")
 
     evidence_path = args.evidence_dir / "evidenz.json"
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
@@ -1006,23 +1239,26 @@ def main(argv: list[str] | None = None) -> int:
         str(args.evidence_dir / "artefakte" / a["name"]) for a in evidence["artefakte"]
     ]
 
-    predecessor_artefacts: list[str] = []
+    predecessor: UpdateCheckSubject | None = None
+    candidate: UpdateCheckSubject | None = None
     if args.predecessor_evidence_dir:
-        predecessor_evidence = json.loads(
-            (args.predecessor_evidence_dir / "evidenz.json").read_text(encoding="utf-8")
-        )
-        predecessor_artefacts = [
-            str(args.predecessor_evidence_dir / "artefakte" / a["name"])
-            for a in predecessor_evidence["artefakte"]
-        ]
+        try:
+            predecessor = build_update_check_subject(
+                args.predecessor_evidence_dir, UPDATE_CHECK_ROLE_PREDECESSOR,
+            )
+            candidate = build_update_check_subject(
+                args.evidence_dir, UPDATE_CHECK_ROLE_CANDIDATE,
+                expected_version=args.candidate_version,
+            )
+        except (OSError, KeyError, ValueError, json.JSONDecodeError) as exc:
+            parser.error(f"Update-Check-Vorgängernachweis nicht aufsetzbar: {exc}")
 
     screenshot_dir = args.evidence_dir / "screenshots"
     report = SmokeReport()
     if args.platform.startswith("linux"):
         run_linux_smoke(
             artefacts, report, _default_runner, _default_prober, screenshot_dir,
-            predecessor_artefacts=predecessor_artefacts,
-            candidate_version=args.candidate_version,
+            predecessor=predecessor, candidate=candidate,
         )
     else:
         run_macos_smoke(

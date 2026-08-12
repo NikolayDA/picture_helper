@@ -44,6 +44,8 @@ RELEASE_ISSUE="ISSUE_NUMMER"
 CANDIDATE_RUN_ID="RUN_ID"
 ACCEPTANCE_RUN_ID="RUN_ID"
 APPROVAL_ARTIFACT_NAME="release-approval-manifest-1"
+# Zuletzt veroeffentlichter Release – Vorgaenger fuer UPDATE-01 (Schritt 9).
+PREDECESSOR_TAG="vX.Y.Z"
 ```
 
 ## Ablauf
@@ -262,9 +264,33 @@ Ergebnis und SHA-256 in einem verlinkbaren Issue-Kommentar oder einem
 unveränderlichen Laufprotokoll. Die URL des Publish-Laufs allein genügt dafür
 nicht, weil dessen Downloads vor der Veröffentlichung authentifiziert
 erfolgen. Prüfe auf den aktiven Plattformen zusätzlich die sichtbare
-Produktversion. Führe danach `UPDATE-01` gemäß #748 mit einem echten
-Vorgängerartefakt aus: Vorgänger meldet `UPDATE_AVAILABLE`, aktuelles Artefakt
-`UP_TO_DATE`, Fehler werden `CHECK_FAILED`.
+Produktversion.
+
+Führe danach `UPDATE-01` gemäß #748 mit einem echten Vorgängerartefakt aus.
+Erst jetzt ist das möglich: vor dem Tag meldet `/releases/latest` die neue
+Version nicht. Starte dazu `release-abnahme.yml` erneut — mit **derselben**
+`run_id` wie in Schritt 5, `platforms = linux-arm64` und dem Tag des
+Vorgängers:
+
+```bash
+gh workflow run release-abnahme.yml \
+  -f run_id="$CANDIDATE_RUN_ID" \
+  -f platforms=linux-arm64 \
+  -f predecessor_tag="$PREDECESSOR_TAG" \
+  -f target_issue="$RELEASE_ISSUE"
+```
+
+Der Lauf zieht das Vorgängerartefakt anonym über `browser_download_url` und
+führt den Update-Check unter dem **im Artefakt gebündelten** Interpreter aus:
+Vorgänger meldet `UPDATE_AVAILABLE` mit exakt der neuen Version, das aktuelle
+Artefakt `UP_TO_DATE`, und beide müssen sich selbst als die erwartete Version
+ausweisen. `CHECK_FAILED` ist ein eigener harter Fehlerzustand und gilt nie als
+„kein Update". Die Evidenz (Artefaktquelle, SHA-256, Plattform, Ausgangs- und
+Zielversion, Antwortstatus je Rolle) liegt als `update_check/update_check.json`
+im Plattform-Artefakt und als `[update-check]`-Zeilen im Joblog. Ablauf,
+Grenzen und die manuelle Ersatzprozedur ohne Runner:
+[RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) §4.2 bzw.
+[PACKAGING_SMOKE.md](PACKAGING_SMOKE.md) §4.1.
 
 Pflege die separate Instanz mit `set-criterion`. Setze zuerst die drei
 automatisierten Publish-Pflichten auf die verknüpfte Publish-Evidenz,
@@ -309,6 +335,15 @@ gh issue comment "$RELEASE_ISSUE" --body-file /tmp/release-acceptance-instance.j
 **Erwartetes Ergebnis:** Publish- und Post-Release-Pflichten sind `PASS`; Release-Issue kann geschlossen werden.
 **Fehler/Wiederanlauf:** Öffentlicher Download-, Versions- oder Updatefehler ist ein Incident.
 Release nicht als abgeschlossen markieren; nach „Rollback und Teilzustände“ entscheiden.
+Das gilt ausdrücklich auch für `UPDATE-01`: Ein `CHECK_FAILED` oder ein
+Vorgänger, der die neue Version nicht sieht, wird **nicht** auf `WAIVED`
+gesetzt — der Fund betrifft alle bereits ausgelieferten Installationen. Kläre
+zuerst, ob der Fehler am Release liegt (falscher/fehlender Tag, privates
+Release, kaputter Asset-Satz) oder am Prüfpfad (Netz, Runner). Am Release ⇒
+„Rollback und Teilzustände“ oder der Hotfix-Pfad mit neuer Patch-Version. Am
+Prüfpfad ⇒ Nachweis wiederholen und den Fehlversuch mitprotokollieren.
+`UPDATE-01` bleibt bis zum bestandenen Lauf `PENDING`; da es post-release ist,
+blockiert es den Tag nicht, aber den Abschluss des Release-Issues.
 
 ## Hotfix-Pfad
 
