@@ -425,7 +425,7 @@ jobs:
             "anthropic==0.117.0"
       - name: Screenshots vorbewerten (Vision, fail-safe)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_VISION_API_KEY: ${{ secrets.ANTHROPIC_VISION_API_KEY }}
         run: |
           set -euo pipefail
           # Kein Key oder API-Fehler ⇒ jedes Kriterium 'unbewertet'; der

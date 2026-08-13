@@ -201,7 +201,7 @@ aus dem Source-Checkout).
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
 über die Claude-Vision-API vor (`abnahme_vision_check.py`, fail-safe – ohne
-`ANTHROPIC_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie),
+`ANTHROPIC_VISION_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie),
 installiert dafür das gepinnte SDK in einem eigenen kurzlebigen venv (auch ein
 Installationsfehler bleibt fail-safe und verhindert die Matrix nicht),
 erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium
@@ -246,7 +246,7 @@ Secrets):
 
 | Secret | Wirkung |
 |---|---|
-| `ANTHROPIC_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler) |
+| `ANTHROPIC_VISION_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler). Bewusst getrennt von `ANTHROPIC_API_KEY` (interaktive Claude-Workflows, #656) – nur der Aggregations-Job liest dieses Secret |
 
 ### 4.2 Post-Release-Update-Nachweis `UPDATE-01` (#748)
 
