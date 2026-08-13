@@ -9,6 +9,18 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- **„Zuletzt geöffnet"-Miniaturansichten luden Dateien nicht mehr direkt über
+  Qt (#769, CVE-2025-5683).** `_recent_thumbnail_icon` nutzte bislang ein
+  direktes `QPixmap(path)`, das den Dateiinhalt anhand der Bytes statt der
+  Endung erkennt und damit an Qts eigenen Bild-Decodern vorbei an der
+  Pillow-Format-Whitelist der App vorbeiging. Eine zwischenzeitlich unter
+  demselben Pfad gegen ein präpariertes ICNS ausgetauschte Datei lädt jetzt
+  wie jedes andere Bild über die validierte Pillow-Pipeline; nicht
+  unterstützte oder ungültige Dateien fallen wie zuvor auf den
+  Gradient-Platzhalter zurück.
+
 ## [2.7.2] – 2026-07-30
 
 ### Geändert

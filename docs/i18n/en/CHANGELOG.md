@@ -8,6 +8,16 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **"Recently opened" thumbnails no longer loaded files directly through Qt
+  (#769, CVE-2025-5683).** `_recent_thumbnail_icon` used a direct
+  `QPixmap(path)`, which sniffs the file content by bytes rather than
+  extension and so bypassed the app's Pillow format whitelist entirely. A
+  file swapped for a crafted ICNS under the same path now loads like any
+  other image, through the validated Pillow pipeline; unsupported or invalid
+  files still fall back to the gradient placeholder as before.
+
 ## [2.7.2] – 2026-07-30
 
 ### Changed
