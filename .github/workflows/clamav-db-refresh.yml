@@ -1,0 +1,74 @@
+name: ClamAV database refresh
+
+# Seeds a versioned, rotating GitHub Actions cache with a freshly fetched
+# ClamAV signature database (#731, ADR docs/history/ADR-2026-clamav-
+# signaturcache.md). release-linux.yml never calls freshclam live anymore -
+# it only restores this cache. Decoupling the fetch from the release-
+# candidate build removes both real failure modes observed at #725: the
+# Linux clamav-freshclam service lock (fixed here by stopping the competing
+# service before the manual fetch) and the macOS "NULL X509 store" TLS error
+# (moot - macOS build legs never call freshclam anymore, they only restore
+# the cache seeded here on a single Linux runner; the signature database
+# itself is platform-independent signed data, not a compiled binary).
+#
+# Cache keys are never reused (unique per run via github.run_id), so writes
+# never collide with GitHub's immutable-cache semantics. release-linux.yml
+# resolves the newest entry via a restore-keys prefix match instead of an
+# exact key - that prefix match is how the "rotation" happens: a candidate
+# build always sees whatever this workflow seeded most recently.
+on:
+  schedule:
+    # Weekly, Monday 03:00 UTC. clamav's daily.cvd changes far more often
+    # than that, but a candidate build only needs *a* recent database, not
+    # the latest possible one - the 14-day freshness check in
+    # release-linux.yml is the actual gate, not this schedule.
+    - cron: '0 3 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  CLAMAV_DB_CACHE_PREFIX: clamav-db-v1
+
+jobs:
+  refresh:
+    name: Fetch and cache ClamAV signatures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ClamAV
+        run: sudo apt-get update && sudo apt-get install -y clamav
+
+      # #731: apt already starts a clamav-freshclam systemd service/timer
+      # that holds the same log/PID path a manual `freshclam` call needs -
+      # that lock conflict, not the public mirror, was the real Linux
+      # failure cause. Stopping the service before the manual fetch avoids
+      # it entirely.
+      - name: Stop competing freshclam service
+        run: |
+          sudo systemctl stop clamav-freshclam.service clamav-freshclam.timer 2>/dev/null || true
+
+      - name: Fetch signature database
+        run: sudo freshclam --quiet
+
+      - name: Stage database for caching
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p clamav-db-cache
+          sudo cp /var/lib/clamav/*.cvd /var/lib/clamav/*.cld clamav-db-cache/ 2>/dev/null || true
+          sudo chown -R "$(id -u):$(id -g)" clamav-db-cache
+          test -n "$(ls -A clamav-db-cache)" \
+            || { echo "::error::keine Signaturdateien nach freshclam gefunden"; exit 1; }
+          ls -lh clamav-db-cache
+
+      - name: Log fetched signature evidence
+        run: |
+          echo "Quelle: ClamAV oeffentlicher Mirror (freshclam, Runner ubuntu-latest)"
+          clamscan --version
+
+      - name: Save rotating cache
+        uses: actions/cache/save@v5
+        with:
+          path: clamav-db-cache
+          key: ${{ env.CLAMAV_DB_CACHE_PREFIX }}-${{ github.run_id }}

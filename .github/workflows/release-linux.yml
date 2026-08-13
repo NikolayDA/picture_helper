@@ -373,48 +373,52 @@ jobs:
       - name: Scan built artifacts for secrets and dev paths
         run: python3 scripts/scan_release_artifacts.py dist
 
-      # #685-Review: scan_release_artifacts.py oben kennt nur Secrets/Dev-Pfade,
-      # keine Malware-Signaturen – ergaenzt die projektuebliche
+      # #685-Review/#731: scan_release_artifacts.py oben kennt nur Secrets/
+      # Dev-Pfade, keine Malware-Signaturen – ergaenzt die projektuebliche
       # Supply-Chain-Pruefung optional um einen echten Virenscan der fuenf
       # gebauten Artefakte. ClamAV statt eines Marketplace-Actions, damit kein
-      # Drittanbieter-Code mit Repo-Zugriff laeuft. Die Definitionsaktualisierung
-      # ist bewusst nicht blockierend (Mirror-Netzwerkschwankungen duerfen den
-      # Build nicht flaky machen, analog zur fail-safe Vision-Vorbewertung in
-      # release-abnahme.yml): ein tatsaechlicher Fund im Scan selbst blockiert
-      # weiterhin hart (clamscan liefert exit code 1), aber eine fehlende
-      # Virendatenbank ueberspringt den Scan mit sichtbarer Warnung statt den
-      # Build zu brechen – ClamAVs oeffentliche Spiegel-Infrastruktur ist von
-      # geteilten CI-Runner-IP-Bereichen (u. a. GitHub Actions) aus haeufig
-      # ratenlimitiert/instabil (reales Bild bei #725: `freshclam --quiet`
-      # scheiterte auf allen drei Matrix-Legs mit "ERROR: NULL X509 store",
-      # ohne dass ein Konfigurationsfehler vorlag). Ein deterministischer
-      # Pflicht-Scan wuerde damit jede Veroeffentlichung an einer externen,
-      # nicht selbst kontrollierten Abhaengigkeit scheitern lassen koennen.
+      # Drittanbieter-Code mit Repo-Zugriff laeuft.
+      #
+      # #731 (ADR docs/history/ADR-2026-clamav-signaturcache.md): dieser Job
+      # ruft freshclam NICHT mehr live auf. Die fruehere Annahme, alle drei
+      # Matrix-Legs scheiterten am selben instabilen oeffentlichen Mirror
+      # ("NULL X509 store" bei #725), war eine Falschdiagnose - real waren es
+      # zwei getrennte Ursachen: Linux scheiterte an einem Log-/PID-Lock des
+      # bereits laufenden clamav-freshclam-Systemdienstes (kein Mirror-
+      # Problem), nur macOS traf tatsaechlich ein TLS-/X509-Problem beim
+      # Live-Abruf. Die Signaturdatenbank wird stattdessen wöchentlich von
+      # einem eigenen Workflow (clamav-db-refresh.yml) auf einem einzelnen
+      # Linux-Runner geholt und in einem rotierenden, unveraenderlichen Cache
+      # abgelegt - das macht die Datenbank (plattformunabhaengige, signierte
+      # Binaerdaten) fuer alle drei Legs gleichermassen verfuegbar, ohne dass
+      # macOS je selbst freshclam aufruft. Ein Cache-Miss (Seed-Job noch nie
+      # gelaufen oder durch GitHubs 7-Tage-Leerlauf-Eviction entfernt) ist
+      # weiterhin bewusst nicht blockierend (analog zur fail-safe Vision-
+      # Vorbewertung in release-abnahme.yml und zu Kriterium MALWARE-01):
+      # sichtbare Warnung, Scan wird uebersprungen. Ein tatsaechlicher Fund
+      # bei vorhandener Datenbank blockiert weiterhin hart (clamscan liefert
+      # exit code 1).
       - name: Install ClamAV (Linux)
         if: matrix.os == 'linux'
         run: sudo apt-get install -y clamav
       - name: Install ClamAV (macOS)
         if: matrix.os == 'macos'
         run: brew install clamav
-      - name: Update ClamAV virus definitions (best-effort)
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          if [ "${{ matrix.os }}" = "macos" ]; then
-            clamav_etc="$(brew --prefix)/etc/clamav"
-            mkdir -p "$clamav_etc"
-            [ -f "$clamav_etc/freshclam.conf" ] || cp "$clamav_etc/freshclam.conf.sample" "$clamav_etc/freshclam.conf"
-            # Homebrews Beispielkonfiguration traegt eine aktive "Example"-
-            # Direktive, die freshclam als unkonfiguriert ablehnt (#685-Review,
-            # Codex) – ohne diese Zeile zu entfernen, bliebe die Datenbank leer
-            # und der nachfolgende Praesenz-Check wuerde jeden macOS-Build hart
-            # abbrechen, obwohl freshclam selbst gar nicht wirklich lief.
-            sed -i '' '/^Example/d' "$clamav_etc/freshclam.conf"
-            freshclam --quiet
-          else
-            sudo freshclam --quiet
-          fi
-      - name: Virus scan built artifacts (ClamAV, best-effort)
+
+      # Praefix-Restore statt exakter Key (#731): der Seed-Workflow erzeugt
+      # bei jedem Lauf einen neuen, niemals wiederverwendeten Key (Actions-
+      # Caches sind unveraenderlich); die primaere ``key`` hier trifft daher
+      # absichtlich nie, ``restore-keys`` liefert stattdessen den zuletzt
+      # erzeugten Cache-Eintrag mit diesem Praefix zurueck.
+      - name: Restore ClamAV signature database (rotating cache)
+        uses: actions/cache/restore@v5
+        with:
+          path: clamav-db-cache
+          key: clamav-db-v1-none-such-key
+          restore-keys: |
+            clamav-db-v1-
+
+      - name: Virus scan built artifacts (ClamAV, cached signatures)
         run: |
           set -euo pipefail
           if [ "${{ matrix.os }}" = "macos" ]; then
@@ -422,20 +426,39 @@ jobs:
           else
             clamav_db="/var/lib/clamav"
           fi
-          # Explizit pruefen, dass freshclam oben tatsaechlich eine
-          # Virendatenbank hinterlassen hat, statt clamscan blind laufen zu
-          # lassen: ohne Datenbank bricht clamscan mit Fehlerstatus 2 ab, was
-          # sich sonst nicht von einem echten Fund (Status 1) unterscheiden
-          # liesse. Fehlt die Datenbank, wird der Scan bewusst uebersprungen
-          # (sichtbare Warnung, kein Build-Abbruch) statt den Build an einer
-          # externen Mirror-Verfuegbarkeit scheitern zu lassen (#685-Review,
-          # reales Bild s. o.); ein tatsaechlicher Fund bei vorhandener
-          # Datenbank blockiert weiterhin hart.
-          if ! find "$clamav_db" -maxdepth 1 \( -name '*.cvd' -o -name '*.cld' \) -print -quit \
-              2>/dev/null | grep -q .; then
-            echo "::warning::ClamAV-Virendatenbank fehlt unter $clamav_db (freshclam-Update nicht verfuegbar) – Virenscan übersprungen, scan_release_artifacts.py oben bleibt die verbindliche Pruefung."
+          mkdir -p "$clamav_db"
+
+          if [ -z "$(ls -A clamav-db-cache 2>/dev/null)" ]; then
+            echo "::warning::ClamAV-Signaturdatenbank UNAVAILABLE (kein Cache-Treffer) – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Virenscan übersprungen, scan_release_artifacts.py oben bleibt die verbindliche Prüfung."
             exit 0
           fi
+
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            cp clamav-db-cache/* "$clamav_db/"
+          else
+            sudo cp clamav-db-cache/* "$clamav_db/"
+          fi
+
+          version_line="$(clamscan --version)"
+          echo "Engine/Signatur: $version_line"
+          python3 - "$version_line" <<'PY'
+          import re
+          import sys
+          from datetime import datetime, timezone
+
+          line = sys.argv[1]
+          match = re.search(r"/(\w{3} \w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4})$", line)
+          if not match:
+              print("Signaturdatum nicht auslesbar - Frische-Check übersprungen")
+              sys.exit(0)
+          text = re.sub(r"\s+", " ", match.group(1))
+          sig_date = datetime.strptime(text, "%a %b %d %H:%M:%S %Y").replace(tzinfo=timezone.utc)
+          age_days = (datetime.now(timezone.utc) - sig_date).days
+          print(f"Signaturalter: {age_days} Tage")
+          if age_days > 14:
+              print(f"::warning::ClamAV-Signaturdatenbank ist {age_days} Tage alt (> 14) - clamav-db-refresh.yml pruefen.")
+          PY
+
           clamscan --recursive --infected --stdout dist
 
       - name: Verify built macOS artifact

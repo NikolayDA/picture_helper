@@ -377,6 +377,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | Abnahme-Runner fällt aus | neuer Abnahmelauf mit derselben Kandidaten-Run-ID | fehlende Plattform als `PASS` markieren |
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
+| ClamAV-Signaturcache leer/veraltet (`MALWARE-01` `UNAVAILABLE` oder Alterswarnung) | `clamav-db-refresh.yml` manuell per `workflow_dispatch` anstoßen, danach Kandidatenlauf ab Schritt 3 neu starten | `MALWARE-01` stillschweigend als bestanden werten |
 | Publish-Draft leer | Publish-Workflow mit denselben gebundenen Inputs neu starten | Dateien lokal neu bauen |
 | Publish-Draft partiell oder Hash abweichend | No-Go, dokumentierte Bereinigung, neuer Publish- oder Hotfix-Pfad | `--clobber` oder stiller Asset-Tausch |
 | Öffentlicher Release fehlerhaft | Yank-Hinweis und neue Hotfix-Version | Tag verschieben oder Asset überschreiben |
