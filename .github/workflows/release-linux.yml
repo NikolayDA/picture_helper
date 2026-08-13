@@ -401,6 +401,19 @@ jobs:
       - name: Install ClamAV (Linux)
         if: matrix.os == 'linux'
         run: sudo apt-get install -y clamav
+
+      # #731 (Codex-Review auf PR #779): apt startet automatisch einen
+      # clamav-freshclam-Systemdienst; der Kandidatenbau soll aber nie selbst
+      # live nachladen (das macht seitdem ausschliesslich der Seed-Workflow).
+      # Dienst konsequent stoppen, analog zum Seed-Job selbst - unabhaengig
+      # davon liest der Scan unten ohnehin nur die eigene Cache-Kopie und
+      # nie ``/var/lib/clamav``, der Dienst kann also auch bei einem
+      # verpassten Stop keine falsche Evidenz mehr erzeugen.
+      - name: Stop auto-started freshclam service (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          sudo systemctl stop clamav-freshclam.service clamav-freshclam.timer 2>/dev/null || true
+
       - name: Install ClamAV (macOS)
         if: matrix.os == 'macos'
         run: brew install clamav
@@ -421,25 +434,18 @@ jobs:
       - name: Virus scan built artifacts (ClamAV, cached signatures)
         run: |
           set -euo pipefail
-          if [ "${{ matrix.os }}" = "macos" ]; then
-            clamav_db="$(brew --prefix)/share/clamav"
-          else
-            clamav_db="/var/lib/clamav"
-          fi
-          mkdir -p "$clamav_db"
-
           if [ -z "$(ls -A clamav-db-cache 2>/dev/null)" ]; then
             echo "::warning::ClamAV-Signaturdatenbank UNAVAILABLE (kein Cache-Treffer) – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Virenscan übersprungen, scan_release_artifacts.py oben bleibt die verbindliche Prüfung."
             exit 0
           fi
 
-          if [ "${{ matrix.os }}" = "macos" ]; then
-            cp clamav-db-cache/* "$clamav_db/"
-          else
-            sudo cp clamav-db-cache/* "$clamav_db/"
-          fi
-
-          version_line="$(clamscan --version)"
+          # --database zeigt clamscan explizit auf die restaurierte
+          # Cache-Kopie (#731, Codex-Review auf PR #779): ClamAVs/Homebrews
+          # konfigurierter Standardpfad unterscheidet sich je Plattform und
+          # Formel-Version (Homebrew nutzt ``var/lib/clamav``, nicht
+          # ``share/clamav``) - der explizite Pfad braucht keinen Bezug
+          # darauf und keine OS-spezifische Kopie in einen Systempfad mehr.
+          version_line="$(clamscan --database clamav-db-cache --version)"
           echo "Engine/Signatur: $version_line"
           python3 - "$version_line" <<'PY'
           import re
@@ -459,7 +465,7 @@ jobs:
               print(f"::warning::ClamAV-Signaturdatenbank ist {age_days} Tage alt (> 14) - clamav-db-refresh.yml pruefen.")
           PY
 
-          clamscan --recursive --infected --stdout dist
+          clamscan --database clamav-db-cache --recursive --infected --stdout dist
 
       - name: Verify built macOS artifact
         if: matrix.os == 'macos'

@@ -111,6 +111,12 @@ reiner Muster-/Metadatenprüfung).
 - Evidenz (Quelle, Engine-Version, Signaturversion, Signaturdatum) landet im
   Job-Log jedes Build-Legs (`clamscan --version`), analog zu den bestehenden
   Provenienz-Logs desselben Workflows.
+- `clamscan` liest die Datenbank im Kandidatenbau ausschließlich über
+  `--database clamav-db-cache` (Codex-Review auf PR #779): kein Bezug auf
+  einen plattform- oder formelabhängigen Systempfad (Homebrews Standard ist
+  `var/lib/clamav`, nicht `share/clamav`) und keine Kopie in einen vom
+  auto-gestarteten `clamav-freshclam`-Dienst mitgenutzten Ort mehr nötig –
+  der Dienst wird auf dem Linux-Bein zusätzlich vorsorglich gestoppt.
 
 ## Konsequenzen
 
