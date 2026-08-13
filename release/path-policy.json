@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 2,
+  "policy_version": 3,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -273,6 +273,7 @@
     {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
     {"id": "release-acceptance-automation-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "sample_path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag der Hardware-Abnahme fest."},
     {"id": "release-manifest-publish-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-manifest-publish.md", "sample_path": "docs/history/ADR-2026-release-manifest-publish.md", "reason": "Die ADR legt die Bindung zwischen Kandidat, Freigabemanifest und veröffentlichten Bytes fest."},
+    {"id": "clamav-signature-cache-adr", "kind": "exact", "path": "docs/history/ADR-2026-clamav-signaturcache.md", "sample_path": "docs/history/ADR-2026-clamav-signaturcache.md", "reason": "Die ADR legt den Sicherheits- und Betriebsvertrag des ClamAV-Signaturbezugs fest."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
     {"id": "changelog-en", "kind": "exact", "path": "docs/i18n/en/CHANGELOG.md", "sample_path": "docs/i18n/en/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-es", "kind": "exact", "path": "docs/i18n/es/CHANGELOG.md", "sample_path": "docs/i18n/es/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
