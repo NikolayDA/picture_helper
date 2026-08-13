@@ -15,7 +15,7 @@
 
 **v2.7.2 ist veröffentlicht** (2026-08-02, Tag `v2.7.2` auf Commit `230c61e6578fd6f73ff650dd737c903ed42b397e`, fünf Artefakte). Kandidatenbau, Hardware-Abnahme (macOS arm64 + Linux arm64, Linux x86_64 weiterhin mangels GPU-Zugang pausiert), Owner-Freigabe der Screenshots und Publish sind vollständig in #758 protokolliert; `PUBLIC-DOWNLOAD-01` ist bestanden (alle fünf Assets anonym über `browser_download_url` geladen und bytegleich gegen das Freigabemanifest geprüft). Offen bleibt ausschließlich `UPDATE-01` (#748): der echte Vorgängerartefakt-Nachweis braucht einen Hardware-Lauf nach Publish und ist noch nicht ausgeführt.
 
-Epic **#741** ist damit größtenteils abgeschlossen: #737 sowie #742–#747 sind erledigt (zuletzt über PR #756/#759/#760/#761), nur #748 (blockiert bis zum Hardware-Lauf) sowie die unabhängigen Owner-Entscheidungen #731 (ClamAV) und #656 (Vision-Secret) bleiben offen.
+Epic **#741** ist damit größtenteils abgeschlossen: #737 sowie #742–#747 sind erledigt (zuletzt über PR #756/#759/#760/#761), nur #748 (blockiert bis zum Hardware-Lauf) sowie die unabhängige Owner-Entscheidung #731 (ClamAV) bleiben offen; #656 (Vision-Secret) ist entschieden (Variante A) und umgesetzt (PR #778), offen bleibt nur der Hardware-Nachweis im nächsten Abnahmelauf.
 
 Zwei neue Sicherheitsbefunde aus dem laufenden CVE-Scan der gepinnten Abhängigkeiten: **#762** (🟠 HIGH, CVSS 8.7, CVE-2026-6210, Qt-SVG-Typkonfusion) und **#769** (🟡 MEDIUM, CVSS 5.1, CVE-2025-5683, ICNS-DoS in `QImage`). Für #762 ist die Wheel-Recherche abgeschlossen: Qt-Versionen ab 6.8 bieten kein `manylinux_2_28_aarch64`-Wheel mehr, die Raspberry-Pi-Ziel-Fixierung auf `PyQt6-Qt6==6.7.3` blockiert daher einen einfachen Versionsbump – eine Owner-Entscheidung zwischen Zielaufgabe und dokumentierter Risikoakzeptanz steht noch aus. **Korrektur (Codex-Review auf PR #774):** Die ursprüngliche Einschätzung „#769 braucht keinen Fix" war unvollständig – `_recent_thumbnail_icon` in `right_panel.py:335-338` lädt Pfade aus der „Zuletzt geöffnet"-Liste direkt über `QPixmap(path)`, ohne die Pillow-Whitelist zu durchlaufen; wird eine dort gemerkte Datei vor dem nächsten Start durch eine präparierte ICNS ersetzt, greift genau der verwundbare Qt-Codepfad. #769 braucht also doch einen Code-Fix (Thumbnail-Pfad auf validierte Pillow-Daten umstellen); hängt weiterhin an derselben Pin-Frage wie #762. Fünf begleitende Doku-Audit-Issues (**#764–#768**, CLAUDE.md-Signaturdrift) sind über PR #771 bereits geschlossen.
 
@@ -29,7 +29,7 @@ Live-Stand nach GitHub-Abfrage: **25** offene Issues – Gesamtzahl unverändert
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | #737/#742–#747 erledigt, v2.7.2 veröffentlicht (#758); nur #748 (Hardware-Lauf) sowie #731/#656 (Owner) offen |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | #737/#742–#747 erledigt, v2.7.2 veröffentlicht (#758); nur #748 (Hardware-Lauf) sowie #731 (Owner) offen, #656 entschieden/umgesetzt (Hardware-Nachweis aussteht) |
 | [#758](https://github.com/NikolayDA/picture_helper/issues/758) | [Release 2.7.2] Abnahme- und Veröffentlichungsprotokoll | 🟠 Hoch (aktuelles Release-Protokoll) | 🟢 Niedrig (GO bereits erteilt, veröffentlicht) | – (Owner/Hardware) + Sonnet, niedrig | `UPDATE-01` (#748) auf Hardware ausführen, dann Issue schließen |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-Release-Update-Erkennung aus echtem Vorgängerartefakt | 🟡 Mittel (produktiver Update-Pfad ungeprüft) | 🟠 Hoch (Plattform-/Betriebsarbeit, nur post-release möglich) | Opus, hoch | v2.7.2 ist veröffentlicht (#758) – jetzt `UPDATE-01` mit echtem v2.7.1-Vorgängerartefakt auf Hardware ausführen |
 | [#762](https://github.com/NikolayDA/picture_helper/issues/762) | [Security] PyQt6-Qt6 6.7.3 — HIGH: Qt-SVG-Typkonfusion (CVE-2026-6210) | 🟠 Hoch (CVSS 8.7, aber schmaler DoS-Vektor) | 🟡 Mittel (Owner-Entscheid statt trivialer Versionsbump) | – (Owner-Entscheid) + Sonnet, niedrig | Owner-Entscheidung: Raspberry-Pi-aarch64-Ziel aufgeben oder Risiko dokumentiert akzeptieren – Wheel-Recherche bereits abgeschlossen |
@@ -61,8 +61,9 @@ Live-Stand nach GitHub-Abfrage: **25** offene Issues – Gesamtzahl unverändert
    herbeiführen; **#769** braucht zusätzlich den Thumbnail-Ladepfad-Fix in `right_panel.py`.
 3. Owner-Entscheidung zu **#680/#685/#686**: als durch v2.7.2 erledigt schließen oder die
    verbleibenden v2.7.1-Kriterien eigenständig abschließen.
-4. **#752**, **#656** (Owner-Variante A) und **#731** (A–D) bleiben unabhängig; #752 soll
-   den neuen Checklisten-/Manifestvertrag statt manueller Zustände prüfen.
+4. **#752** und **#731** (A–D) bleiben unabhängige Owner-Entscheidungen; **#656** ist
+   entschieden (Variante A) und umgesetzt, nur der Hardware-Nachweis steht noch aus. #752
+   soll den neuen Checklisten-/Manifestvertrag statt manueller Zustände prüfen.
 5. **#692** und **#716** sind parallel startbar; **#681/#687–#691** bleiben extern blockiert.
 
 ## Vorige Runden
