@@ -17,7 +17,7 @@
 
 史诗 **#741** 因此已基本完成：#737 以及 #742–#747 均已完成（最近一次通过 PR #756/#759/#760/#761），只剩 #748（受阻于硬件运行）仍未解决；#656（视觉密钥，PR #778）与 #731（ClamAV，方案 A）均已决策并落地——各自仅剩下一次候选/验收运行中的证明。
 
-**#762 与 #769 均已关闭（PR #XXXX）：** #762（🟠 HIGH，CVSS 8.7，CVE-2026-6210，Qt SVG 类型混淆）的所有者决策是接受并记录风险，而非放弃目标平台——议题自身的 wheel 调研已经证明，Qt 6.8 及以后版本不再提供 `manylinux_2_28_aarch64` wheel，版本升级会破坏 Raspberry Pi OS “bookworm” aarch64 支持；其理由（通过原生文件对话框图标触发的、仅限崩溃的窄幅拒绝服务向量，在正常图片编辑流程中不构成远程代码执行）现已永久记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里。#769（🟡 MEDIUM，CVSS 5.1，CVE-2025-5683，`QImage` 中的 ICNS 拒绝服务）已获得 PR #774 的 Codex 评审中发现的代码修复：`_recent_thumbnail_icon`（`right_panel.py`）现在通过经过验证的 Pillow 管线（`open_validated_image`）加载“最近打开”缩略图，而不再直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试，验证精心构造的文件绝不会作为原始路径传给 `QPixmap`。五个过渡性文档审计议题（**#764–#768**，CLAUDE.md 签名漂移）已通过 PR #771 关闭。
+**#762 与 #769 均已关闭（PR #782）：** #762（🟠 HIGH，CVSS 8.7，CVE-2026-6210，Qt SVG 类型混淆）的所有者决策是接受并记录风险，而非放弃目标平台——议题自身的 wheel 调研已经证明，Qt 6.8 及以后版本不再提供 `manylinux_2_28_aarch64` wheel，版本升级会破坏 Raspberry Pi OS “bookworm” aarch64 支持；其理由（通过原生文件对话框图标触发的、仅限崩溃的窄幅拒绝服务向量，在正常图片编辑流程中不构成远程代码执行）现已永久记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里。#769（🟡 MEDIUM，CVSS 5.1，CVE-2025-5683，`QImage` 中的 ICNS 拒绝服务）已获得 PR #774 的 Codex 评审中发现的代码修复：`_recent_thumbnail_icon`（`right_panel.py`）现在通过经过验证的 Pillow 管线（`open_validated_image`）加载“最近打开”缩略图，而不再直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试，验证精心构造的文件绝不会作为原始路径传给 `QPixmap`。五个过渡性文档审计议题（**#764–#768**，CLAUDE.md 签名漂移）已通过 PR #771 关闭。
 
 **标记待所有者复核：** #685/#686（v2.7.1 候选构建/发布）仍带有未完成的清单项，尽管 v2.7.2 已经发布并在事实上取代了它们——是将其作为“已通过 v2.7.2 完成”关闭，还是独立完成剩余标准，属于所有者决策。
 
@@ -60,7 +60,7 @@ GitHub 查询后的实时状态：**23** 个未结议题——#737/#745/#746/#76
 
 ## 以往轮次
 
-- **2026-08-13（#762/#769 已关闭，PR #XXXX）** —— 推动了关于 #762 的所有者决策：接受并记录风险，而非放弃树莓派 aarch64 目标（理由现已记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里）。#769 通过代码修复关闭：`_recent_thumbnail_icon`（`right_panel.py`）现使用 `open_validated_image` 而非直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试。本地 `make check` 通过。实时状态：23。
+- **2026-08-13（#762/#769 已关闭，PR #782）** —— 推动了关于 #762 的所有者决策：接受并记录风险，而非放弃树莓派 aarch64 目标（理由现已记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里）。#769 通过代码修复关闭：`_recent_thumbnail_icon`（`right_panel.py`）现使用 `open_validated_image` 而非直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试。本地 `make check` 通过。实时状态：23。
 - **2026-08-12（Recommendations 同步，v2.7.2 发布，新增安全发现）** —— GitHub 实时状态仍为 25 个未结议题，但自上一轮以来构成发生变化：#737/#745/#746 已通过 PR #756/#759–#761 关闭；新增记录的是 #758（2.7.2 验收/发布协议）、#762（🟠 HIGH CVSS Qt SVG CVE-2026-6210）与 #769（🟡 MEDIUM CVSS ICNS 拒绝服务 CVE-2025-5683）。v2.7.2 已发布（标签 `v2.7.2` 位于 `230c61e6…`，五个产物，`PUBLIC-DOWNLOAD-01` 已通过）；`UPDATE-01`（#748）在真实硬件验证完成前保持未解决。五个过渡性文档审计议题（#764–#768，CLAUDE.md 签名漂移）已通过 PR #771 关闭，未计入本次统计。#762 需要所有者在放弃树莓派 aarch64 目标与接受并记录风险之间做出决策，因为 Qt 6.8 起已不再提供兼容 wheel。#680/#685/#686（v2.7.1 验收）在 v2.7.2 已发布的情况下事实上已被取代，已标记待所有者复核。
 - **2026-08-12（PR #774 修正，Codex 评审）** —— 同一次同步中给出的“#769 无需修复”判断是错误的：`_recent_thumbnail_icon`（`right_panel.py:335-338`）直接通过 `QPixmap(path)` 加载“最近打开”列表中的路径，未经过 Pillow 白名单，因此该路径下的文件若被替换为精心构造的 ICNS，就会命中存在漏洞的 Qt 代码路径。已修正上文的表格与正文；该发现已补记到 #769。
 - **2026-08-01（#744/#747 已合并；#737/#745/#746 进行中）** —— PR #755 仅发布清单绑定的五个候选字节，draft-first 并验证字节。GitHub 实时状态 25。本 PR 移除手工状态，引入带稳定 ID 与固定实例的 checklist 1.0.0，并令 runbook 成为唯一流程来源。
