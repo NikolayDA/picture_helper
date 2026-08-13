@@ -244,6 +244,34 @@ def test_open_step_recent_rows_show_prototype_thumbnail_and_text(qapp, tmp_path)
     assert "padding:9px 8px" in row.styleSheet()
 
 
+def test_recent_thumbnail_never_hands_raw_path_to_qpixmap(qapp, tmp_path, monkeypatch):
+    """#769 (CVE-2025-5683): Recent-Thumbnails dürfen den Pfad nicht direkt an
+    ``QPixmap`` reichen – ein zwischenzeitlich gegen ein präpariertes ICNS
+    ausgetauschter Pfad würde sonst Qts eigenen (verwundbaren) Bild-Decoder
+    anhand der Bytes statt der Endung erreichen. Der Thumbnail-Pfad muss über
+    die Pillow-Format-Whitelist laufen; eine Datei außerhalb der Whitelist
+    (hier: kein valides Bild) fällt auf den Gradient-Swatch zurück."""
+    from bgremover import right_panel
+
+    bogus = tmp_path / "swapped.png"
+    bogus.write_bytes(b"not a real image")
+
+    calls: list[tuple[object, ...]] = []
+    real_qpixmap = right_panel.QPixmap
+
+    class _SpyPixmap(real_qpixmap):  # type: ignore[misc, valid-type]
+        def __init__(self, *args: object) -> None:
+            calls.append(args)
+            super().__init__(*args)
+
+    monkeypatch.setattr(right_panel, "QPixmap", _SpyPixmap)
+
+    icon = right_panel._recent_thumbnail_icon(str(bogus))
+
+    assert not icon.isNull()  # Gradient-Swatch-Fallback bleibt ein gültiges Icon
+    assert all(str(bogus) not in call for call in calls)
+
+
 def test_open_step_recent_card_uses_prototype_background(qapp, tmp_path):
     """Die ganze „Zuletzt geöffnet"-Kachel nutzt den Prototyp-Kartenton."""
     from bgremover.theme import DARK, set_active_palette

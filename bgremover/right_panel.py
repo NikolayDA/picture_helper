@@ -53,6 +53,8 @@ from bgremover.height_map_panel import (
     Preview3DActions,
 )
 from bgremover.i18n import tr
+from bgremover.image_loading import open_validated_image
+from bgremover.image_utils import pil_to_qpixmap
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.right_panel_tabs import (
@@ -333,9 +335,19 @@ def _recent_card_style(p: Palette) -> str:
 
 
 def _recent_thumbnail_icon(path: str) -> QIcon:
-    """Erzeugt ein 30x30-Preview-Icon aus Bilddateien, sonst einen ruhigen Swatch."""
+    """Erzeugt ein 30x30-Preview-Icon aus Bilddateien, sonst einen ruhigen Swatch.
+
+    Lädt über die validierte Pillow-Pipeline (Format-Whitelist, Größen-/
+    Megapixel-Schutz) statt über ein direktes ``QPixmap(path)`` – Letzteres
+    lässt Qt den Dateiinhalt anhand der Bytes selbst erkennen (nicht anhand
+    der Endung) und könnte so einen zwischenzeitlich unter demselben
+    „Zuletzt geöffnet"-Pfad ausgetauschten, präparierten ICNS in Qts eigenen
+    Bild-Decoder routen (#769, CVE-2025-5683). Ein ``.bgrproj``-Pfad (kein
+    Bild) fällt wie zuvor auf den Gradient-Swatch zurück.
+    """
     size = _RECENT_THUMB_SIZE
-    source = QPixmap(path)
+    pil_image, _err = open_validated_image(path)
+    source = pil_to_qpixmap(pil_image) if pil_image is not None else QPixmap()
     target = QPixmap(size, size)
     target.fill(Qt.GlobalColor.transparent)
 
