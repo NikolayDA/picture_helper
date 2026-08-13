@@ -3,9 +3,11 @@
 
 Bewertet die auf echter Hardware aufgenommenen Screenshots gegen einen
 Kriterienkatalog über die Claude API (Vision, Modell ``claude-opus-4-8``). Die
-Bewertung ist ein **fail-safe Zusatz**: ohne ``ANTHROPIC_API_KEY``, ohne
+Bewertung ist ein **fail-safe Zusatz**: ohne ``ANTHROPIC_VISION_API_KEY``, ohne
 installiertes ``anthropic``-SDK oder bei API-/Parsing-Fehler wird jedes
 Kriterium als ``unbewertet`` markiert – der Abnahme-Lauf scheitert daran nie.
+Das eigene Secret hält den Zugang bewusst von ``ANTHROPIC_API_KEY`` getrennt,
+das die interaktiven Claude-Workflows aktiviert (#656).
 ``unsicher``/``nicht_erfuellt`` blockieren nicht automatisch; sie werden in der
 Matrix (#646, ``abnahme_aggregate.py``) sichtbar, die Go-/No-Go-Entscheidung
 bleibt beim Menschen.
@@ -132,11 +134,12 @@ def evaluate_screenshot(
 
 def _default_vision_fn(image_b64: str, media_type: str, prompt: str) -> str:  # pragma: no cover
     """Realer Claude-API-Vision-Aufruf (nur mit Key + SDK; im CI nicht ausgeführt)."""
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise RuntimeError("ANTHROPIC_API_KEY nicht gesetzt")
+    api_key = os.environ.get("ANTHROPIC_VISION_API_KEY")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_VISION_API_KEY nicht gesetzt")
     import anthropic  # lazy: keine Projekt-Pflichtabhängigkeit
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
         model=MODEL,
         max_tokens=1024,

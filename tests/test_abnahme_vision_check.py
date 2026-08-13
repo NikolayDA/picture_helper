@@ -68,7 +68,7 @@ def test_missing_criterion_in_response_is_unbewertet() -> None:
 
 
 def test_default_vision_fn_without_key_raises(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_VISION_API_KEY", raising=False)
     # Ohne Key wirft der Default-Aufruf → evaluate_screenshot fängt ab (unbewertet).
     results = vc.evaluate_screenshot(b"img", "02_main_loaded_selection.png")
     assert results and all(r.verdict == "unbewertet" for r in results)
