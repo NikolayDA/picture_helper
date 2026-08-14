@@ -11,7 +11,7 @@
 | 🟡 | 中 | 对质量、可读性或可测试性有用的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-08-14，#752 已关闭）
+## 当前状态（2026-08-14，#752 已关闭，PR #783）
 
 **#752 已关闭：** 简要状态现在还通过一个可单独运行的 GitHub 实时检查
 （`scripts/recommendations_live_check.py`）和一个无需网络的多语言一致性测试
@@ -64,7 +64,7 @@ GitHub 查询后的实时状态：**22** 个未结议题——#752 已关闭。
 
 ## 以往轮次
 
-- **2026-08-14（#752 已关闭）** —— 修复了继 #669/#728 后第三次已证实的 Recommendations 漂移：`scripts/recommendations_live_check.py` 可单独运行，将分诊表与 GitHub 上实际未结的议题进行比对（缺失的未结议题、仍标记为未结但实际已关闭的议题、总数偏差）；`tests/test_recommendations_live_check.py` 通过保存的 fixture 在无网络环境下覆盖核心逻辑。`tests/test_recommendations_freeze_consistency.py` 从 `pyproject.toml` 确定当前生效的冻结文档，并使 Kurzstatus 日期与实时数量在全部六个语言版本中保持同步；最初计划针对「已记录的候选 SHA」的检查已取消，因为 PR #754 早已从冻结文档中移除该字段。本地 `make check` 通过。实时状态：22。
+- **2026-08-14（#752 已关闭，PR #783）** —— 修复了继 #669/#728 后第三次已证实的 Recommendations 漂移：`scripts/recommendations_live_check.py` 可单独运行，将分诊表与 GitHub 上实际未结的议题进行比对（缺失的未结议题、仍标记为未结但实际已关闭的议题、总数偏差）；`tests/test_recommendations_live_check.py` 通过保存的 fixture 在无网络环境下覆盖核心逻辑。`tests/test_recommendations_freeze_consistency.py` 从 `pyproject.toml` 确定当前生效的冻结文档，并使 Kurzstatus 日期与实时数量在全部六个语言版本中保持同步；最初计划针对「已记录的候选 SHA」的检查已取消，因为 PR #754 早已从冻结文档中移除该字段。本地 `make check` 通过。实时状态：22。
 - **2026-08-13（#762/#769 已关闭，PR #782）** —— 推动了关于 #762 的所有者决策：接受并记录风险，而非放弃树莓派 aarch64 目标（理由现已记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里）。#769 通过代码修复关闭：`_recent_thumbnail_icon`（`right_panel.py`）现使用 `open_validated_image` 而非直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试。本地 `make check` 通过。实时状态：23。
 - **2026-08-12（Recommendations 同步，v2.7.2 发布，新增安全发现）** —— GitHub 实时状态仍为 25 个未结议题，但自上一轮以来构成发生变化：#737/#745/#746 已通过 PR #756/#759–#761 关闭；新增记录的是 #758（2.7.2 验收/发布协议）、#762（🟠 HIGH CVSS Qt SVG CVE-2026-6210）与 #769（🟡 MEDIUM CVSS ICNS 拒绝服务 CVE-2025-5683）。v2.7.2 已发布（标签 `v2.7.2` 位于 `230c61e6…`，五个产物，`PUBLIC-DOWNLOAD-01` 已通过）；`UPDATE-01`（#748）在真实硬件验证完成前保持未解决。五个过渡性文档审计议题（#764–#768，CLAUDE.md 签名漂移）已通过 PR #771 关闭，未计入本次统计。#762 需要所有者在放弃树莓派 aarch64 目标与接受并记录风险之间做出决策，因为 Qt 6.8 起已不再提供兼容 wheel。#680/#685/#686（v2.7.1 验收）在 v2.7.2 已发布的情况下事实上已被取代，已标记待所有者复核。
 - **2026-08-12（PR #774 修正，Codex 评审）** —— 同一次同步中给出的“#769 无需修复”判断是错误的：`_recent_thumbnail_icon`（`right_panel.py:335-338`）直接通过 `QPixmap(path)` 加载“最近打开”列表中的路径，未经过 Pillow 白名单，因此该路径下的文件若被替换为精心构造的 ICNS，就会命中存在漏洞的 Qt 代码路径。已修正上文的表格与正文；该发现已补记到 #769。
