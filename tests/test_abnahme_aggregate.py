@@ -341,6 +341,43 @@ def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
     assert agg.has_blocking_gaps(rows)
 
 
+def test_vision_row_surfaces_failed_criterion_reasoning() -> None:
+    """#781: Begründung fehlgeschlagener/unsicherer Kriterien landet im Hinweis."""
+    verdicts = [
+        {"screenshot": "a.png", "criterion": "fenster_sichtbar", "verdict": "erfuellt"},
+        {
+            "screenshot": "b.png", "criterion": "relief_sichtbar",
+            "verdict": "nicht_erfuellt", "begruendung": "Kein Relief im Screenshot erkennbar.",
+        },
+        {"screenshot": "c.png", "criterion": "3d_aktiv", "verdict": "unsicher"},
+    ]
+    row = agg._vision_row(verdicts)
+    assert row.status == "fehlgeschlagen"
+    assert "relief_sichtbar" in row.hinweis
+    assert "b.png" in row.hinweis
+    assert "Kein Relief im Screenshot erkennbar." in row.hinweis
+    assert "3d_aktiv" in row.hinweis
+    assert "c.png" in row.hinweis
+    # erfuellt-Kriterien bleiben nur in der Zählung, nicht als Detail.
+    assert "fenster_sichtbar" not in row.hinweis
+
+
+def test_vision_row_sanitizes_begruendung_for_markdown_table() -> None:
+    """#781: Pipes/Zeilenumbrüche in der Begründung dürfen die Tabelle nicht brechen."""
+    verdicts = [
+        {
+            "screenshot": "a.png", "criterion": "x", "verdict": "nicht_erfuellt",
+            "begruendung": "Zeile1\nZeile2 | mit Pipe " + "x" * 200,
+        },
+    ]
+    row = agg._vision_row(verdicts)
+    assert "\n" not in row.hinweis
+    assert "\\|" in row.hinweis
+    md = agg.render_markdown([row], commit_sha="abc")
+    # Genau eine Tabellenzeile für diese Zeile: kein eingebetteter Zeilenumbruch.
+    assert sum(1 for line in md.splitlines() if "Screenshots (Vision" in line) == 1
+
+
 def test_vision_load_from_disk(tmp_path: Path) -> None:
     (tmp_path / "vision-verdikte.json").write_text(
         json.dumps({"verdikte": [{"screenshot": "a.png", "criterion": "x", "verdict": "erfuellt"}]}),

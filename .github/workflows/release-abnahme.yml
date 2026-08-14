@@ -439,6 +439,13 @@ jobs:
           "$vision_python" scripts/abnahme_vision_check.py \
             --screenshots-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abnahme-evidenz/vision-verdikte.json"
+      - name: Vision-Verdikte als Actions-Artefakt sichern
+        uses: actions/upload-artifact@v6
+        with:
+          name: vision-verdikte-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/abnahme-evidenz/vision-verdikte.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Abschlussmatrix erzeugen
         run: |
           set -euo pipefail
