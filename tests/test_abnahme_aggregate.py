@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -339,6 +340,54 @@ def test_vision_verdicts_embedded_and_block(tmp_path: Path) -> None:
     row = next(r for r in rows if "Vision" in r.kriterium)
     assert row.status == "fehlgeschlagen"
     assert agg.has_blocking_gaps(rows)
+
+
+def test_vision_row_surfaces_failed_criterion_reasoning() -> None:
+    """#781: Begründung fehlgeschlagener/unsicherer Kriterien landet im Hinweis."""
+    verdicts = [
+        {"screenshot": "a.png", "criterion": "fenster_sichtbar", "verdict": "erfuellt"},
+        {
+            "screenshot": "b.png", "criterion": "relief_sichtbar",
+            "verdict": "nicht_erfuellt", "begruendung": "Kein Relief im Screenshot erkennbar.",
+        },
+        {"screenshot": "c.png", "criterion": "3d_aktiv", "verdict": "unsicher"},
+    ]
+    row = agg._vision_row(verdicts)
+    assert row.status == "fehlgeschlagen"
+    assert "relief_sichtbar" in row.hinweis
+    assert "b.png" in row.hinweis
+    assert "Kein Relief im Screenshot erkennbar." in row.hinweis
+    assert "3d_aktiv" in row.hinweis
+    assert "c.png" in row.hinweis
+    # erfuellt-Kriterien bleiben nur in der Zählung, nicht als Detail.
+    assert "fenster_sichtbar" not in row.hinweis
+
+
+def test_vision_row_sanitizes_begruendung_for_markdown_table() -> None:
+    """#781: Pipes/Zeilenumbrüche in der Begründung dürfen die Tabelle nicht brechen."""
+    verdicts = [
+        {
+            "screenshot": "a.png", "criterion": "x", "verdict": "nicht_erfuellt",
+            "begruendung": "Zeile1\nZeile2 | mit Pipe " + "x" * 200,
+        },
+    ]
+    row = agg._vision_row(verdicts)
+    assert "\n" not in row.hinweis
+    assert "\\|" in row.hinweis
+    md = agg.render_markdown([row], commit_sha="abc")
+    # Genau eine Tabellenzeile für diese Zeile: kein eingebetteter Zeilenumbruch.
+    assert sum(1 for line in md.splitlines() if "Screenshots (Vision" in line) == 1
+
+
+def test_sanitize_cell_escapes_preexisting_backslash_before_pipe() -> None:
+    """Codex-Review PR #787: Ein bereits vorhandenes ``\\|`` darf durch die
+    Pipe-Maskierung keinen wieder freien, trennenden Pipe erzeugen – jedes
+    ``|`` im Ergebnis muss eine ungerade Anzahl vorangehender Backslashes
+    tragen (sonst hebt ``\\\\`` die Maskierung des folgenden Pipes auf)."""
+    sanitized = agg._sanitize_cell("A \\| B")
+    for match in re.finditer(r"\\*\|", sanitized):
+        backslashes = len(match.group()) - 1
+        assert backslashes % 2 == 1, sanitized
 
 
 def test_vision_load_from_disk(tmp_path: Path) -> None:

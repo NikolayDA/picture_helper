@@ -171,6 +171,22 @@ def load_vision(root: Path) -> list[dict[str, Any]]:
     return []
 
 
+def _sanitize_cell(text: str, *, max_len: int = 90) -> str:
+    """Freitext für eine Markdown-Tabellenzelle sichern (#781).
+
+    Entfernt Zeilenumbrüche (brechen sonst die Tabellenzeile) und maskiert
+    Pipe-Zeichen (trennen sonst Spalten); LLM-generierte Begründungen landen
+    unbereinigt in ``begruendung`` und dürfen die Matrix nicht zerstören.
+    Backslashes zuerst verdoppeln, sonst macht ein bereits vorhandenes
+    ``\\|`` aus der Pipe-Maskierung ein escapetes ``\\`` gefolgt von einem
+    wieder freien, trennenden ``|`` (Codex-Review #787).
+    """
+    flat = " ".join(text.split()).replace("\\", "\\\\").replace("|", "\\|")
+    if len(flat) > max_len:
+        flat = flat[: max_len - 1].rstrip() + "…"
+    return flat
+
+
 def _vision_row(verdicts: list[dict[str, Any]]) -> MatrixRow:
     """Screenshots-Zeile aus den Vision-Verdikten zusammenfassen."""
     if not verdicts:
@@ -194,6 +210,19 @@ def _vision_row(verdicts: list[dict[str, Any]]) -> MatrixRow:
         status = "unbewertet"
     note = (f"{counts['erfuellt']}✓ / {counts['nicht_erfuellt']}✗ / "
             f"{counts['unsicher']}? / {counts['unbewertet']}—")
+    # Details zu nicht erfüllten/unsicheren Kriterien direkt in der Matrix
+    # zeigen (#781) – bislang stand nur die Zählung da, die Begründung lag
+    # ausschließlich im separaten Vision-Verdikte-Artefakt.
+    details = [
+        f"{'✗' if v.get('verdict') == 'nicht_erfuellt' else '?'} "
+        f"{_sanitize_cell(str(v.get('criterion', '?')), max_len=40)} "
+        f"({_sanitize_cell(str(v.get('screenshot', '?')), max_len=40)})"
+        + (f": {_sanitize_cell(str(v['begruendung']))}" if v.get("begruendung") else "")
+        for v in verdicts
+        if v.get("verdict") in ("nicht_erfuellt", "unsicher")
+    ]
+    if details:
+        note += " — " + "; ".join(details)
     return MatrixRow("Screenshots (Vision-Vorbewertung)", status, f"{len(verdicts)} Kriterien",
                      "—", note)
 
