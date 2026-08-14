@@ -9,9 +9,27 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [2.7.3] – 2026-08-14
+
 ### 修复
 
 - **“最近打开”缩略图不再直接通过 Qt 加载文件（#769，CVE-2025-5683）。** `_recent_thumbnail_icon` 此前直接调用 `QPixmap(path)`，它根据文件字节而非扩展名识别内容，因而完全绕过了应用的 Pillow 格式白名单。如今，同一路径下被替换为精心构造的 ICNS 文件的图片会像其他任何图片一样，通过经过验证的 Pillow 管线加载；不受支持或无效的文件仍会像以前一样回退到渐变占位符。
+
+### 本版本说明
+
+- **影响：** 纯安全补丁版本。仅修复上述「最近打开」缩略图中的 ICNS 漏洞
+  （CVE-2025-5683）；无新功能，图像、项目或导出行为均无变化。
+- **受影响用户：** 使用「最近打开」列表并打开来自不受信任来源文件的用户——
+  在此前打开过的路径下被替换为精心构造文件的图片，此前可能触达 Qt 自身
+  未经过滤的图像解码器。只打开自己文件的用户不存在紧迫风险，但仍建议更新。
+- **升级相关性：** 建议所有用户升级。无需任何迁移步骤——项目文件
+  （`.bgrproj`）、导出格式和设置保持兼容不变；回退到 2.7.2 同样不会造成
+  数据变化。
+- **支持的平台：** macOS arm64（`.dmg`）、Linux x86_64 与 Linux arm64
+  （均含 `.AppImage` 与 `.deb`），Python ≥ 3.10。所有产物均捆绑 AI 后端
+  （`-ai` 后缀）。macOS 应用为 ad-hoc 签名，未经 Developer ID 公证——首次
+  启动请右键点击→「打开」。
+- **已知限制：** 相比 2.7.2 无新增限制。
 
 ## [2.7.2] – 2026-07-30
 
@@ -1017,7 +1035,9 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
+[2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0

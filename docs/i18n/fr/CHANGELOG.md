@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.3] – 2026-08-14
+
 ### Corrigé
 
 - **Les miniatures « récemment ouverts » ne chargeaient plus les fichiers
@@ -20,6 +22,30 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   quelle autre image, via le pipeline Pillow validé ; les fichiers non
   pris en charge ou invalides retombent toujours sur le motif dégradé comme
   auparavant.
+
+### Notes sur cette version
+
+- **Impact :** Une version corrective purement sécuritaire. Elle corrige
+  exclusivement la vulnérabilité ICNS ci-dessus (CVE-2025-5683) dans les
+  miniatures « récemment ouverts » ; aucune nouvelle fonctionnalité, aucun
+  changement de comportement d'image, de projet ou d'export.
+- **Utilisateurs concernés :** Quiconque utilise la liste « récemment
+  ouverts » et ouvre des fichiers provenant de sources non fiables — un
+  fichier forgé substitué sous un chemin précédemment ouvert pouvait
+  atteindre le décodeur d'image natif et non filtré de Qt. Quiconque
+  n'ouvre que ses propres fichiers n'est pas en danger immédiat, mais
+  devrait tout de même effectuer la mise à jour.
+- **Pertinence de la mise à jour :** Recommandée pour tous les
+  utilisateurs. Aucune étape de migration nécessaire — les fichiers de
+  projet (`.bgrproj`), les formats d'export et les réglages restent
+  compatibles sans changement ; un retour à la 2.7.2 est également possible
+  sans modification des données.
+- **Plateformes prises en charge :** macOS arm64 (`.dmg`), Linux x86_64 et
+  Linux arm64 (`.AppImage` et `.deb` chacun), Python ≥ 3.10. Tous les
+  artefacts intègrent le backend IA (suffixe `-ai`). L'application macOS
+  est signée ad-hoc, non notariée avec un Developer ID — clic droit →
+  « Ouvrir » au premier lancement.
+- **Limitations connues :** Aucune nouvelle limitation au-delà de la 2.7.2.
 
 ## [2.7.2] – 2026-07-30
 
@@ -1441,7 +1467,9 @@ historique `v2.0.0`.
 - README avec architecture, limitations connues et guide
   d'installation ; `INSTALL_MAC.md` détaillé.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
+[2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0

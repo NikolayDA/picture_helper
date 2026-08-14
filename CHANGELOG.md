@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.3] – 2026-08-14
+
 ### Behoben
 
 - **„Zuletzt geöffnet"-Miniaturansichten luden Dateien nicht mehr direkt über
@@ -20,6 +22,28 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   wie jedes andere Bild über die validierte Pillow-Pipeline; nicht
   unterstützte oder ungültige Dateien fallen wie zuvor auf den
   Gradient-Platzhalter zurück.
+
+### Hinweise zu diesem Release
+
+- **Auswirkung:** Reines Sicherheits-Patch-Release. Es behebt ausschließlich
+  die oben genannte ICNS-Schwachstelle (CVE-2025-5683) in den „Zuletzt
+  geöffnet"-Miniaturansichten; keine neuen Funktionen, keine Änderung an
+  Bild-, Projekt- oder Exportverhalten.
+- **Betroffene Anwender:innen:** Wer die „Zuletzt geöffnet"-Liste nutzt und
+  Dateien aus nicht vertrauenswürdigen Quellen öffnet – ein präpariertes,
+  unter einem zuvor geöffneten Pfad ausgetauschtes ICNS konnte bislang Qts
+  eigenen, ungefilterten Bild-Decoder erreichen. Wer nur eigene Dateien
+  öffnet, ist nicht akut gefährdet, sollte aber dennoch aktualisieren.
+- **Upgrade-Relevanz:** Empfohlen für alle Nutzer:innen. Kein
+  Migrationsschritt nötig – Projektdateien (`.bgrproj`), Exportformate und
+  Einstellungen bleiben unverändert kompatibel; ein Downgrade auf 2.7.2 ist
+  ebenso ohne Datenänderung möglich.
+- **Unterstützte Plattformen:** macOS arm64 (`.dmg`), Linux x86_64 und Linux
+  arm64 (je `.AppImage` und `.deb`), Python ≥ 3.10. Alle Artefakte bündeln das
+  KI-Backend (`-ai`-Suffix). Die macOS-App ist ad-hoc signiert, nicht mit
+  Developer ID notarisiert – beim Erststart daher Rechtsklick → „Öffnen".
+- **Bekannte Einschränkungen:** Keine über 2.7.2 hinausgehenden neuen
+  Einschränkungen.
 
 ## [2.7.2] – 2026-07-30
 
@@ -1495,7 +1519,9 @@ Erster dokumentierter 2.0.0-Release-Stand. Ein historischer
 - README mit Architektur, bekannten Einschränkungen und Installations-
   anleitung; ausführliche `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
+[2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0
