@@ -657,7 +657,7 @@ def test_flood_fill_worker_error_signal_on_bad_array(qapp) -> None:
     worker.run()
 
     assert finished == []
-    assert len(errors) == 1
+    assert errors == ["AttributeError: 'str' object has no attribute 'shape'"]
 
 
 # ─────────────────────────────────────────────────────────────
