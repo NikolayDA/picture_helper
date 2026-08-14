@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 3,
+  "policy_version": 4,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -270,6 +270,7 @@
     {"id": "release-process-runbook", "kind": "exact", "path": "docs/RELEASE_PROCESS.md", "sample_path": "docs/RELEASE_PROCESS.md", "reason": "Der für #745 geplante kanonische Release-Prozess ist bewusst kandidatenrelevant klassifiziert."},
     {"id": "release-acceptance-checklist", "kind": "exact", "path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "sample_path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "reason": "Die für #746 geplante versionierte Abnahme-Checkliste bestimmt Evidenzsemantik."},
     {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
+    {"id": "historical-freeze-2.7.2", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument; #780 aktualisierte darin die deklarierte Policy-Version noch innerhalb des jetzigen 2.7.3-Kandidatenfensters. 'current-freeze' zeigt seit dem 2.7.3-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
     {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
     {"id": "release-acceptance-automation-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "sample_path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag der Hardware-Abnahme fest."},
     {"id": "release-manifest-publish-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-manifest-publish.md", "sample_path": "docs/history/ADR-2026-release-manifest-publish.md", "reason": "Die ADR legt die Bindung zwischen Kandidat, Freigabemanifest und veröffentlichten Bytes fest."},

@@ -12,7 +12,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 - **Basis-Tag:** `v2.7.2` (= `230c61e6578fd6f73ff650dd737c903ed42b397e`)
 - **Kandidatenversion:** `2.7.3`
 - **Release-Scope:** `patch-release-2.7.3`
-- **Pfadpolicy:** `release/path-policy.json` (Version `3`)
+- **Pfadpolicy:** `release/path-policy.json` (Version `4`)
 
 Der volle Basis-SHA ist unveränderlich. Der Tagname allein genügt nicht: Das
 Gate weist ein verschobenes Tag zurück. Die Policy-Version bindet die Semantik,
@@ -90,9 +90,13 @@ Die einzige Quelle ist [`release/path-policy.json`](../../release/path-policy.js
 - unbekannte Pfade sind kandidatenrelevant **und blockierend**, bis die Policy
   bewusst ergänzt und versioniert wurde.
 
-Die Policy-Version ist gegenüber dem 2.7.2-Freeze unverändert auf `3`
-(zuletzt durch #780 angehoben, vor dem Basis-Tag v2.7.2 gemergt). Kein
-Policy-Nachtrag ist für diesen Kandidaten nötig.
+Die Policy-Version wurde für diesen Kandidaten von `3` auf `4` angehoben:
+Das Repointen von `current-freeze` auf dieses Dokument ließ den Pfad des
+vorherigen aktiven Freeze-Dokuments (`RELEASE-2.7.2-scope-freeze.md`) ohne
+Klassifikationsregel zurück, obwohl #780 – bereits gemergt, aber innerhalb
+dieses Kandidatenfensters – ihn noch legitim geändert hatte
+([unclassified-path] beim ersten lokalen Gate-Lauf). Ein neuer, expliziter
+`historical-freeze-2.7.2`-Eintrag schließt die Lücke.
 
 ## Verbindliche Konsistenzprüfungen
 
