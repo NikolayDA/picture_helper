@@ -231,6 +231,17 @@ def test_software_renderer_diagnostic_is_rejected(qapp, tmp_path: Path) -> None:
     assert "Software-Renderer" in result.message
 
 
+def test_grab_succeeds_without_right_panel_attrs_on_fake_window(qapp, tmp_path: Path) -> None:
+    """#781: Fehlende ``_right_panel``/``_height_panel`` (Fake-Fenster) duerfen
+    das Scrollen-vor-dem-Grab (Licht-/Qualitaets-Regler sichtbar machen)
+    nicht zum Absturz bringen – nur echte ``MainWindow``-Instanzen haben
+    diese Attribute, der Hook bleibt aber fail-safe."""
+    viewer = _FakeViewer()
+    window = _FakeWindow(_FakeReliefView(state="ready", viewer=viewer), grab_ok=True)
+    result = _run(window, tmp_path)
+    assert result.ok is True, result.message
+
+
 def test_grab_save_failure_is_reported_without_writing_sidecar(qapp, tmp_path: Path) -> None:
     viewer = _FakeViewer()
     window = _FakeWindow(_FakeReliefView(state="ready", viewer=viewer), grab_ok=False)

@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, cast
 
 from PyQt6.QtCore import QDeadlineTimer, QEventLoop, QTimer
 from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import QScrollArea
 
 from bgremover.renderer_provenance import is_software_renderer
 
@@ -138,6 +139,29 @@ def run_native_3d_screenshot(
         return Screenshot3DResult(
             False, state, diagnostic, f"Software-Renderer abgewiesen: {diagnostic}",
         )
+
+    # Licht-/Qualitaets-Regler in den sichtbaren Bereich scrollen (#781): das
+    # rechte Panel ist ein QScrollArea, und Anzeige+Ueberhoehung fuellen bei
+    # der Standard-Fenstergroesse bereits den sichtbaren Bereich – Licht und
+    # Qualitaet (weiter unten im selben Abschnitt) blieben ohne dieses
+    # Scrollen unter der Falz und liessen das ``controls_sichtbar``-Kriterium
+    # der Vision-Vorbewertung reproduzierbar scheitern (bestaetigt ueber
+    # Lauf 31753178219 und den erneuten Nachweislauf nach #787). Bestes-
+    # Ergebnis-Suche statt hartem Abbruch: ein nicht gefundenes Widget soll
+    # diesen ohnehin nur beratenden Nachweis nicht zum Blocker machen.
+    # Gleiches Muster bereits in scripts/generate_app_screenshots.py fuer
+    # 77b_function_preview3d_controls.png.
+    try:
+        page = window._right_panel.stack.currentWidget()
+        scroll = page.findChild(QScrollArea) if page is not None else None
+        quality = window._height_panel._refs.get("preview3d_quality_standard")
+    except AttributeError:
+        scroll, quality = None, None
+    if scroll is not None and quality is not None:
+        scroll.ensureWidgetVisible(quality, 16, 40)
+        app_instance = QGuiApplication.instance()
+        if app_instance is not None:
+            app_instance.processEvents()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     # Ganzes Fenster grabben, nicht nur den GL-Viewer: die Vision-Vorbewertung
