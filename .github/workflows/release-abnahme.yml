@@ -465,6 +465,15 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Unveraenderliches Freigabemanifest erzeugen
+        # Nur ein voller Drei-Plattform-Lauf (platforms=alle) darf ein
+        # Freigabemanifest erzeugen - das verlangt zurecht macOS UND
+        # Linux-arm64 als "approved" (siehe release_contract.py). Ein
+        # bewusster Einzelplattform-Lauf (z. B. der UPDATE-01-Nachlauf aus
+        # Runbook-Schritt 9, #741) fehlt an genau dieser Vollstaendigkeit,
+        # ist aber kein Fehlschlag, sondern ausserhalb des Vertrags dieses
+        # Schritts - ohne dieses Gate schlug create-approval hier hart fehl
+        # und liess den gesamten Lauf rot enden (Repro: Lauf 31833822560).
+        if: inputs.platforms == 'alle'
         env:
           APPROVAL_ARTIFACT_NAME: release-approval-manifest-${{ github.run_attempt }}
           SOURCE_HEAD_SHA: ${{ needs.candidate-source.outputs.head_sha }}
@@ -489,12 +498,22 @@ jobs:
           cp "${RUNNER_TEMP}/abschlussmatrix.md" \
             "${RUNNER_TEMP}/release-approval/abschlussmatrix.md"
       - name: Freigabemanifest als Actions-Artefakt sichern
+        if: inputs.platforms == 'alle'
         uses: actions/upload-artifact@v7
         with:
           name: release-approval-manifest-${{ github.run_attempt }}
           path: ${{ runner.temp }}/release-approval/
           if-no-files-found: error
           retention-days: 90
+      - name: Hinweis auf ausgelassenes Freigabemanifest (Einzelplattform-Lauf)
+        # Sichtbar statt still uebersprungen (dasselbe ADR-Prinzip wie beim
+        # pausierten x86_64-Pfad oben): dieser Lauf deckt bewusst nur
+        # ${{ inputs.platforms }} ab und kann daher kein Freigabemanifest
+        # erzeugen - die Abschlussmatrix oben bleibt trotzdem als
+        # Diagnose-Nachweis erhalten (z. B. fuer UPDATE-01, #741/#748).
+        if: inputs.platforms != 'alle'
+        run: |
+          echo "::notice title=Kein Freigabemanifest::Dieser Lauf deckt bewusst nur '${{ inputs.platforms }}' ab (z. B. Runbook-Schritt 9/UPDATE-01) statt der vollen Drei-Plattform-Matrix und erzeugt daher kein Freigabemanifest. Fuer eine Veroeffentlichung ist ein separater Lauf mit platforms=alle noetig."
       - name: Matrix als Issue-Kommentar posten
         if: always()
         env:

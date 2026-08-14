@@ -174,6 +174,38 @@ def test_workflow_tags_live_gl_results_with_platform() -> None:
     assert text.count("--iterations 3") == 3
 
 
+def test_approval_manifest_gated_to_full_platform_matrix() -> None:
+    """Ein bewusster Einzelplattform-Lauf (z. B. UPDATE-01, Runbook-Schritt 9,
+    #741) darf nicht als Gesamt-Failure enden: create-approval verlangt zu
+    Recht macOS UND Linux-arm64 als "approved", also darf der Schritt nur bei
+    platforms=alle laufen (Repro des vorherigen Fehlschlags: Lauf 31833822560)."""
+    text = _workflow_text()
+
+    def _step_body(start_marker: str, end_marker: str) -> str:
+        after_start = text.split(start_marker, 1)[1]
+        return after_start.split(end_marker, 1)[0]
+
+    gate_block = _step_body(
+        "- name: Unveraenderliches Freigabemanifest erzeugen",
+        "- name: Freigabemanifest als Actions-Artefakt sichern",
+    )
+    assert "if: inputs.platforms == 'alle'" in gate_block
+
+    upload_block = _step_body(
+        "- name: Freigabemanifest als Actions-Artefakt sichern",
+        "- name: Hinweis auf ausgelassenes Freigabemanifest",
+    )
+    assert "if: inputs.platforms == 'alle'" in upload_block
+
+    notice_block = _step_body(
+        "- name: Hinweis auf ausgelassenes Freigabemanifest",
+        "- name: Matrix als Issue-Kommentar posten",
+    )
+    assert "if: inputs.platforms != 'alle'" in notice_block
+    assert "Kein Freigabemanifest" in notice_block
+    assert "platforms=alle" in notice_block
+
+
 def test_workflow_supports_optional_update_check_predecessor() -> None:
     """UPDATE-01 (#748): ein optionaler Vorgänger-Tag löst den echten
     Update-Check-Nachweis auf Linux arm64 aus; leer lässt ihn PENDING statt
