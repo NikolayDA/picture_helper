@@ -1546,7 +1546,8 @@ def main(argv=None):
     ap.add_argument(
         "--generated-date",
         default=None,
-        help="Datumsstempel im Report (YYYY-MM-DD); Default: heute (UTC)",
+        help="Datumsstempel im Report (YYYY-MM-DD); Default: heutiges "
+        "Systemdatum (in der CI = UTC)",
     )
     args = ap.parse_args(argv)
 
