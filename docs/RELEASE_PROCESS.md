@@ -138,8 +138,13 @@ gh run view "$CANDIDATE_RUN_ID" --log
 Prüfe `VERSION-01`, `FREEZE-01`, `BUILD-01`, `BUILD-02`, `PROVENANCE-01`
 und `MALWARE-01`. Genau fünf Produktdateien müssen im Kandidatenvertrag stehen;
 ihre Namen, Größen und SHA-256-Werte sind die spätere Veröffentlichungsquelle.
-Ein Malware-Fund ist immer No-Go. Nicht verfügbare Scanner bleiben sichtbar
-und erfordern die in der Checkliste erlaubte, begründete Entscheidung.
+Ein Malware-Fund ist immer No-Go. Bei vorhandenem Signaturcache muss jedes
+Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss das Log für jedes
+Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
+0 gescannte Bytes und keine `Heuristics.Limits.Exceeded`-Meldung zeigen.
+`Data read` ohne `Data scanned` ist ausdrücklich keine Evidenz. Nicht
+verfügbare Scanner bleiben sichtbar und erfordern die in der Checkliste
+erlaubte, begründete Entscheidung.
 
 **Output/Evidenz:** Links auf Lauf, Kandidatenvertrag, Provenienz und Security-Entscheidung.
 **Erwartetes Ergebnis:** keine zusätzliche oder fehlende Datei, keine ungebundene Provenienz, kein Malware-Fund.
@@ -378,6 +383,7 @@ Ablauf; ältere Tag-basierte oder manuelle Veröffentlichungswege sind ungültig
 | Fachlicher Hardware-Smoke schlägt fehl | Fix-PR und neuer Kandidat ab Schritt 1 | Waiver für nicht waiverfähiges `MUST` |
 | Kandidaten-/Manifestartefakt nach 90 Tagen abgelaufen | neuer Kandidat ab Schritt 1 | gleichnamiges Artefakt aus anderem Lauf einsetzen |
 | ClamAV-Signaturcache leer/veraltet (`MALWARE-01` `UNAVAILABLE` oder Alterswarnung) | `clamav-db-refresh.yml` manuell per `workflow_dispatch` anstoßen, danach Kandidatenlauf ab Schritt 3 neu starten | `MALWARE-01` stillschweigend als bestanden werten |
+| ClamAV-EICAR-Test, Payload-Scan, Limitprüfung oder Nichtnull-Evidenz schlägt bei vorhandenem Cache fehl | Ursache per PR beheben und neuen Kandidaten ab Schritt 1 bauen | Exit 0 oder `Data read` als ausreichenden PASS-Nachweis werten |
 | Publish-Draft leer | Publish-Workflow mit denselben gebundenen Inputs neu starten | Dateien lokal neu bauen |
 | Publish-Draft partiell oder Hash abweichend | No-Go, dokumentierte Bereinigung, neuer Publish- oder Hotfix-Pfad | `--clobber` oder stiller Asset-Tausch |
 | Öffentlicher Release fehlerhaft | Yank-Hinweis und neue Hotfix-Version | Tag verschieben oder Asset überschreiben |

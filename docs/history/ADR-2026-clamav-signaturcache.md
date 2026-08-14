@@ -2,6 +2,7 @@
 
 **Status:** Akzeptiert
 **Datum:** 2026-08-13
+**Sicherheitskorrektur:** 2026-08-15
 **Entscheider:** Repository-Owner
 **Bezug:** #731, Epic #741, Kriterium `MALWARE-01`
 
@@ -28,6 +29,14 @@ Datenbankstand den Scan nur mit sichtbarer Warnung übersprang, lieferte der
 Schritt in jedem realen Lauf bislang **keinen** tatsächlichen Scan – nur die
 Illusion eines vorhandenen Sicherheitsnetzes.
 
+Der Cache-Umbau behob anschließend den Datenbankbezug, aber noch nicht den
+Artefaktscan selbst: Die Kandidatenläufe 31751909210 und 31812097011 meldeten
+auf allen drei Plattformen trotz Exit 0 jeweils ``Data scanned: 0 B``. Die
+130–492 MiB großen Rohartefakte lagen über ClamAVs Standardgrenzen; zudem
+kann ein reiner Scan der komprimierten DMG-/AppImage-/deb-Bytes nicht belegen,
+dass die enthaltene Nutzlast geprüft wurde. Diese nachträglich erkannte zweite
+Ursache wird durch den unten ergänzten Payload- und Evidenzvertrag geschlossen.
+
 ## Entscheidung
 
 Wir wählen **Option A: versionierter, rotierender Datenbank-Cache**, getrennt
@@ -50,8 +59,8 @@ Diese Entkopplung behebt beide dokumentierten Ursachen strukturell:
 - **macOS-X509:** Entfällt vollständig, weil kein macOS-Leg mehr selbst
   `freshclam` aufruft. Die Signaturdatenbank (`main.cvd`/`daily.cvd`/
   `bytecode.cvd`) ist plattformunabhängige, signierte Binärdaten – derselbe,
-  auf Linux geholte Cache-Inhalt wird unverändert in den macOS-Homebrew-
-  Datenbankpfad kopiert.
+  auf Linux geholte Cache-Inhalt wird unverändert über den expliziten
+  `--database`-Pfad verwendet.
 
 Ein Kandidatenbau, der auf keinen Cache-Eintrag trifft (Seed-Job noch nie
 gelaufen oder Cache durch GitHubs 7-Tage-Leerlauf-Eviction entfernt), meldet
@@ -108,9 +117,20 @@ reiner Muster-/Metadatenprüfung).
 - Ein technischer Scan-Ausfall (Cache-Miss) ist **nicht blockierend** – wie
   bisher, konsistent mit `MALWARE-01` (`SHOULD`, `waiver_allowed: true`).
 - Ein Malware-Fund bei vorhandener Datenbank ist **immer hart blockierend**.
+- Vor jedem Artefaktscan muss dieselbe Engine-/Datenbankkombination den
+  standardisierten EICAR-Kontrollstring erkennen; andernfalls ist der
+  Scannerzustand fehlerhaft und der Kandidatenjob schlägt fehl.
+- Jedes Artefakt wird einzeln als Rohdatei **und** mit seiner entpackten
+  Nutzlast geprüft: AppImage per `--appimage-extract`, `.deb` per `dpkg-deb -x`
+  einschließlich der darin gewrappten AppImage und DMG per read-only
+  `hdiutil`-Mount/Kopie.
+- Die ClamAV-Grenzen für Datei- und Containergröße werden explizit auf 2000 MiB
+  gesetzt. `--alert-exceeds-max=yes`, fehlende/inkonsistente Scan-Summaries
+  sowie `Data scanned: 0 B` sind harte Fehler. `Data read` allein ist keine
+  Scan-Evidenz.
 - Evidenz (Quelle, Engine-Version, Signaturversion, Signaturdatum) landet im
-  Job-Log jedes Build-Legs (`clamscan --version`), analog zu den bestehenden
-  Provenienz-Logs desselben Workflows.
+  Job-Log jedes Build-Legs (`clamscan --version`); zusätzlich protokolliert
+  der Scanner EICAR-Erfolg und eine nichtleere Summary je Artefakt.
 - `clamscan` liest die Datenbank im Kandidatenbau ausschließlich über
   `--database clamav-db-cache` (Codex-Review auf PR #779): kein Bezug auf
   einen plattform- oder formelabhängigen Systempfad (Homebrews Standard ist
@@ -124,8 +144,8 @@ reiner Muster-/Metadatenprüfung).
   unabhängiger Workflow `clamav-db-refresh.yml` übernimmt den Bezug.
 - Der irreführende Kommentar („alle drei Legs scheitern am selben Mirror")
   ist korrigiert.
-- Der erste Kandidatenlauf nach diesem Wechsel trifft auf keinen Cache
-  (Seed-Job muss zuerst laufen) – erwartet `UNAVAILABLE`, kein Fehlzustand.
+- Ein Cache-Miss bleibt sichtbar `UNAVAILABLE`; der deterministische
+  Secret-/Entwicklerpfad-Scan läuft trotzdem auf allen entpackten Nutzdaten.
 - Wiederanlauf bei leerem/veraltetem Cache: `clamav-db-refresh.yml` manuell
   per `workflow_dispatch` anstoßen, danach den Kandidatenlauf neu starten
   (siehe Wiederanlaufmatrix in [`RELEASE_PROCESS.md`](../RELEASE_PROCESS.md)).
@@ -137,5 +157,9 @@ reiner Muster-/Metadatenprüfung).
 - [x] `release-linux.yml` auf Cache-Restore statt Live-Fetch umgestellt
 - [x] Evidenz (Quelle/Engine/Signaturversion/-datum) im Job-Log je Leg
 - [x] Alterswarnung (> 14 Tage) und UNAVAILABLE-Zustand nicht blockierend
-- [ ] Erster echter Kandidatenlauf mit Cache-Treffer auf allen drei Legs
-      (Nachweis für `MALWARE-01`, aussteht bis zum nächsten Kandidatenbau)
+- [x] Cache-Treffer auf allen drei Legs in 31751909210/31812097011
+      (dabei 0-Byte-Scan als zweite Ursache identifiziert)
+- [x] Rohartefakt- und Payload-Scan mit 2-GB-Grenzen, Limit-Alarm,
+      EICAR-Selbsttest und 0-Byte-Regression implementiert
+- [ ] Nächster Kandidatenlauf protokolliert für jedes der fünf Artefakte mehr
+      als 0 gescannte Bytes und keine Limitüberschreitung

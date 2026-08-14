@@ -12,6 +12,7 @@ Fehler) lassen sich ohne echten GL-Kontext nicht über ein reales
 (#659, O8), das nur die von ``run_native_3d_screenshot`` genutzte Oberfläche
 nachbildet.
 """
+
 from __future__ import annotations
 
 import json
@@ -22,16 +23,50 @@ import pytest
 from PyQt6.QtWidgets import QApplication
 
 from bgremover import MainWindow
+from bgremover import screenshot3d as screenshot3d_module
 from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
-from bgremover.screenshot3d import Screenshot3DResult, run_native_3d_screenshot
+from bgremover.screenshot3d import (
+    Preview3DControlsEvidence,
+    Screenshot3DResult,
+    ensure_preview3d_controls_visible,
+    run_native_3d_screenshot,
+)
+from bgremover.stepper import WorkflowStep
 
 pytestmark = pytest.mark.ui_smoke
 
 _NON_RENDERABLE = {"offscreen", "minimal", "vnc"}
+_REQUIRED_CONTROLS = {
+    "preview3d_azimuth",
+    "preview3d_elevation",
+    "preview3d_quality_standard",
+}
+
+
+def test_required_preview3d_controls_fit_together_in_scroll_viewport(
+    qapp,
+    qtbot,
+) -> None:  # type: ignore[no-untyped-def]
+    """Der reale Mindestgrößen-Dialog kann alle drei Pflichtregler zeigen."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    win._right_panel.set_step(WorkflowStep.RELIEF)
+    win._height_panel.set_preview3d_active(True)
+    qapp.processEvents()
+    try:
+        evidence = ensure_preview3d_controls_visible(win)
+    finally:
+        win.close()
+
+    assert evidence.ok, evidence.message
+    assert set(evidence.visible_controls) == _REQUIRED_CONTROLS
 
 
 def test_headless_fallback_reports_unavailable_without_writing_file(
-    qapp, qtbot, tmp_path: Path,
+    qapp,
+    qtbot,
+    tmp_path: Path,
 ) -> None:  # type: ignore[no-untyped-def]
     """Offscreen erreicht den dokumentierten Fallback statt eines Fehlers."""
     win = MainWindow()
@@ -51,7 +86,9 @@ def test_headless_fallback_reports_unavailable_without_writing_file(
 
 @pytest.mark.gl_smoke
 def test_native_gl_run_writes_png_and_provenance_sidecar(
-    qapp, qtbot, tmp_path: Path,
+    qapp,
+    qtbot,
+    tmp_path: Path,
 ) -> None:  # type: ignore[no-untyped-def]
     """Unter echtem GL entsteht ein Screenshot + Provenance-JSON (#648)."""
     app = QApplication.instance()
@@ -79,8 +116,11 @@ def test_native_gl_run_writes_png_and_provenance_sidecar(
     sidecar = target.with_name(target.name + ".json")
     assert sidecar.is_file()
     payload = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert payload["schema"] == 2
     assert payload["kind"] == "abnahme-native-3d-screenshot"
     assert payload["gl_provenance"] == result.diagnostic
+    assert payload["preview3d_controls_visible"] is True
+    assert set(payload["preview3d_visible_controls"]) == _REQUIRED_CONTROLS
 
 
 # ── Negative Post-ready-Zweige über ein Fake-Fenster (#659, O8) ──────────
@@ -173,7 +213,9 @@ class _FakeWindow:
 
 def _run(window: _FakeWindow, tmp_path: Path, timeout_ms: int = 200) -> Screenshot3DResult:
     return run_native_3d_screenshot(
-        window, tmp_path / "shot.png", timeout_ms=timeout_ms  # type: ignore[arg-type]
+        window,
+        tmp_path / "shot.png",
+        timeout_ms=timeout_ms,  # type: ignore[arg-type]
     )
 
 
@@ -231,20 +273,30 @@ def test_software_renderer_diagnostic_is_rejected(qapp, tmp_path: Path) -> None:
     assert "Software-Renderer" in result.message
 
 
-def test_grab_succeeds_without_right_panel_attrs_on_fake_window(qapp, tmp_path: Path) -> None:
-    """#781: Fehlende ``_right_panel``/``_height_panel`` (Fake-Fenster) duerfen
-    das Scrollen-vor-dem-Grab (Licht-/Qualitaets-Regler sichtbar machen)
-    nicht zum Absturz bringen – nur echte ``MainWindow``-Instanzen haben
-    diese Attribute, der Hook bleibt aber fail-safe."""
+def test_missing_right_panel_attrs_fail_closed_without_grab(qapp, tmp_path: Path) -> None:
+    """Ohne prüfbare Controls darf kein scheinbar grüner Nachweis entstehen."""
     viewer = _FakeViewer()
     window = _FakeWindow(_FakeReliefView(state="ready", viewer=viewer), grab_ok=True)
     result = _run(window, tmp_path)
-    assert result.ok is True, result.message
+    assert result.ok is False
+    assert "3D-Controls nicht nachweisbar" in result.message
+    assert not (tmp_path / "shot.png").exists()
 
 
-def test_grab_save_failure_is_reported_without_writing_sidecar(qapp, tmp_path: Path) -> None:
+def test_grab_save_failure_is_reported_without_writing_sidecar(
+    qapp,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
     viewer = _FakeViewer()
     window = _FakeWindow(_FakeReliefView(state="ready", viewer=viewer), grab_ok=False)
+    monkeypatch.setattr(
+        screenshot3d_module,
+        "ensure_preview3d_controls_visible",
+        lambda _window: Preview3DControlsEvidence(
+            True, tuple(sorted(_REQUIRED_CONTROLS)), "vollständig sichtbar"
+        ),
+    )
     target = tmp_path / "shot.png"
     result = run_native_3d_screenshot(window, target, timeout_ms=200)  # type: ignore[arg-type]
     assert result.ok is False

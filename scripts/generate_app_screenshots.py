@@ -198,6 +198,7 @@ def main() -> int:
     from bgremover.preview_mode import PreviewMode
     from bgremover.relief_mesh import MeshQuality, build_relief_mesh
     from bgremover.resize_dialog import ResizeDialog
+    from bgremover.screenshot3d import ensure_preview3d_controls_visible
     from bgremover.settings_dialog import SettingsDialog
     from bgremover.stepper import WorkflowStep
     from bgremover.theme import _Theme
@@ -346,19 +347,23 @@ def main() -> int:
         process(250)
         snap(window, "77_function_preview3d_adjusted.png", "Funktion: 3D-Reliefvorschau mit Anzeigeparametern")
 
-        page = window._right_panel.stack.currentWidget()
-        scroll = page.findChild(QScrollArea) if page is not None else None
-        quality = window._height_panel._refs.get("preview3d_quality_standard")
-        if scroll is None or quality is None:
-            raise RuntimeError("Could not locate the 3D quality controls for capture")
-        scroll.ensureWidgetVisible(quality, 16, 40)
+        controls = ensure_preview3d_controls_visible(window)
+        if not controls.ok:
+            raise RuntimeError(
+                f"Could not expose all required 3D controls: {controls.message}"
+            )
         process(120)
         snap(
             window,
             "77b_function_preview3d_controls.png",
             "Funktion: 3D-Reliefvorschau mit vollstaendigen Controls",
         )
-        scroll.verticalScrollBar().setValue(0)
+        page = window._right_panel.stack.currentWidget()
+        scroll = page.findChild(QScrollArea) if page is not None else None
+        if scroll is not None:
+            scroll_bar = scroll.verticalScrollBar()
+            if scroll_bar is not None:
+                scroll_bar.setValue(0)
         process(80)
         window._set_preview3d_mode(False)
 

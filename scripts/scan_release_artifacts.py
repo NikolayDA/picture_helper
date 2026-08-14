@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sekret-/Entwicklerpfad-Scan für gebaute Release-Artefakte (#584).
+"""Sicherheits-Scan für gebaute Release-Artefakte (#584, #731).
 
 Entpackt jedes Artefakt in einem Verzeichnis (z. B. ``dist/``) – AppImage
 (``--appimage-extract``), ``.deb`` (``dpkg-deb -x``, rekursiv für die darin
@@ -30,6 +30,15 @@ Sicherheitswert (empirisch an drei realen CI-Läufen bestätigt, #608). Nur
 Entwicklermaschine könnte sich daher ausschließlich dort zeigen. Funde
 außerhalb bleiben sichtbar (nicht blockierend geloggt), damit nichts still
 verschwindet.
+
+Mit ``--clamav-database`` wird dieselbe entpackte Nutzdatenbasis zusätzlich
+mit ClamAV geprüft. Vor dem Artefaktscan muss die aktive Signaturdatenbank den
+EICAR-Kontrollstring erkennen. Danach wird jedes Artefakt separat zusammen mit
+seinem entpackten Inhalt gescannt. Der Lauf ist nur erfolgreich, wenn ClamAV
+Exit 0, null Funde, keine Limitwarnung und mehr als 0 gescannte Bytes meldet.
+Die expliziten 2-GB-Limits liegen über den bekannten Release-Artefakten; jede
+sonstige Limitüberschreitung wird durch ``--alert-exceeds-max=yes`` zum harten
+Fehler statt zu einem still als sauber gewerteten Skip.
 """
 from __future__ import annotations
 
@@ -84,6 +93,29 @@ _ALLOWED_PATH_USERS = {"runner", "root", "qt", "default"}
 # anschliessen (± ein Zeilenumbruch), nicht irgendwo in einem Lookahead-Fenster.
 _PEM_BODY_START = re.compile(rb"[\r\n]{0,2}[A-Za-z0-9+/=]{40,}")
 
+_CLAMAV_LIMIT_OPTIONS = (
+    "--max-filesize=2000M",
+    "--max-scansize=2000M",
+    "--max-files=2000000",
+    "--max-recursion=2000000",
+    "--max-embeddedpe=2000M",
+    "--pcre-max-filesize=2000M",
+    "--alert-exceeds-max=yes",
+)
+_CLAMAV_DATA_SCANNED = re.compile(
+    r"(?m)^Data scanned:\s*([0-9]+(?:\.[0-9]+)?)\s*([KMGT]?i?B)\s*$",
+    re.IGNORECASE,
+)
+_CLAMAV_INFECTED = re.compile(r"(?m)^Infected files:\s*(\d+)\s*$")
+# Hex statt Klartext: Manche lokale Virenscanner quarantänisieren bereits
+# Quellcode, der den EICAR-Teststring wörtlich enthält. Erst im temporären
+# Arbeitsverzeichnis wird daraus die standardisierte 68-Byte-Kontrolldatei.
+_EICAR_HEX = (
+    "58354f2150254041505b345c505a58353428505e2937434329377d24"
+    "45494341522d5354414e444152442d414e544956495255532d544553"
+    "542d46494c452124482b482a"
+)
+
 
 def _looks_like_real_pem_body(data: bytes, match_end: int) -> bool:
     """Unterscheidet echtes PEM-Schluesselmaterial von einer Bibliotheks-
@@ -128,6 +160,100 @@ def dev_path_users(data: bytes) -> set[str]:
 
 def _run(cmd: list[str], **kwargs: object) -> None:
     subprocess.run(cmd, check=True, capture_output=True, **kwargs)  # type: ignore[arg-type]
+
+
+def _run_clamav(database: Path, targets: list[Path]) -> subprocess.CompletedProcess[str]:
+    """Startet ClamAV mit dem für Release-Artefakte fail-closed Vertrag."""
+    command = [
+        "clamscan",
+        "--database", str(database),
+        "--recursive",
+        "--infected",
+        "--stdout",
+        *_CLAMAV_LIMIT_OPTIONS,
+        *(str(target) for target in targets),
+    ]
+    return subprocess.run(
+        command,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+
+def _print_clamav_output(result: subprocess.CompletedProcess[str]) -> None:
+    output = result.stdout or ""
+    if output:
+        print(output.rstrip())
+
+
+def _positive_scanned_bytes(output: str) -> bool:
+    match = _CLAMAV_DATA_SCANNED.search(output)
+    return match is not None and float(match.group(1)) > 0
+
+
+def clamav_scan_succeeded(result: subprocess.CompletedProcess[str]) -> bool:
+    """Nur echte, limitfreie Scans ohne Fund als Erfolg akzeptieren.
+
+    Insbesondere ist die historische #731-Ausgabe ``Data scanned: 0 B`` bei
+    Exit 0 ein Fehler: ``Data read`` belegt nur Dateizugriff, nicht dass die
+    Engine den Inhalt tatsächlich gegen Signaturen geprüft hat.
+    """
+    output = result.stdout or ""
+    infected = _CLAMAV_INFECTED.search(output)
+    return (
+        result.returncode == 0
+        and infected is not None
+        and int(infected.group(1)) == 0
+        and _positive_scanned_bytes(output)
+        and "Heuristics.Limits.Exceeded" not in output
+    )
+
+
+def verify_clamav_eicar(database: Path, workdir: Path) -> bool:
+    """Beweist vor dem Artefaktscan, dass Engine und Signaturen aktiv sind."""
+    control = workdir / "eicar-clamav-control.com"
+    control.write_bytes(bytes.fromhex(_EICAR_HEX))
+    try:
+        result = _run_clamav(database, [control])
+    finally:
+        control.unlink(missing_ok=True)
+    _print_clamav_output(result)
+    output = result.stdout or ""
+    infected = _CLAMAV_INFECTED.search(output)
+    return (
+        result.returncode == 1
+        and infected is not None
+        and int(infected.group(1)) >= 1
+        and _positive_scanned_bytes(output)
+        and re.search(r"(?i)eicar.*FOUND", output) is not None
+    )
+
+
+def scan_artifact_with_clamav(artifact: Path, extracted: Path, database: Path) -> bool:
+    """Scannt Rohartefakt und Nutzdaten mit je eigener Nichtnull-Evidenz."""
+    payload_files = [
+        member for member in extracted.rglob("*")
+        if member.is_file() and not member.is_symlink()
+    ]
+    if not payload_files:
+        print(f"::error::{artifact.name}: entpackte Nutzlast ist leer.")
+        return False
+
+    print(f">> ClamAV: {artifact.name} (Rohdatei + entpackter Inhalt, getrennt)")
+    for label, target in (("Rohdatei", artifact), ("entpackte Nutzlast", extracted)):
+        print(f"   Teilnachweis: {label}")
+        result = _run_clamav(database, [target])
+        _print_clamav_output(result)
+        if not clamav_scan_succeeded(result):
+            print(
+                f"::error::{artifact.name} ({label}): ClamAV-Nachweis ungültig – "
+                "Fund, Fehler, Limitüberschreitung oder 0 gescannte Bytes."
+            )
+            return False
+    print(f"   OK: ClamAV hat {artifact.name} und seine Nutzdaten getrennt gescannt")
+    return True
 
 
 def extract_payload(archive: Path, dest: Path) -> None:
@@ -205,6 +331,11 @@ def scan_artifact(path: Path, workdir: Path) -> tuple[list[str], set[str], set[s
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--clamav-database",
+        type=Path,
+        help="optionaler Signaturdatenbank-Pfad für den fail-closed Malware-Scan",
+    )
     parser.add_argument("directory", nargs="?", default="dist", help="zu scannendes Verzeichnis")
     args = parser.parse_args(argv)
 
@@ -214,9 +345,26 @@ def main(argv: list[str] | None = None) -> int:
         print(f"::error::Keine Dateien in {directory} gefunden.")
         return 1
 
+    database: Path | None = args.clamav_database
+    if database is not None and (
+        not database.is_dir() or not any(database.iterdir())
+    ):
+        print(f"::error::ClamAV-Signaturdatenbank fehlt oder ist leer: {database}")
+        return 1
+
     failed = False
     with tempfile.TemporaryDirectory(prefix="scan-release-artifacts-") as tmp:
         workdir = Path(tmp)
+        clamav_ready = database is not None
+        if database is not None:
+            print(">> ClamAV-EICAR-Selbsttest: Engine und Signaturdatenbank prüfen")
+            clamav_ready = verify_clamav_eicar(database, workdir)
+            if not clamav_ready:
+                print(
+                    "::error::ClamAV-EICAR-Selbsttest fehlgeschlagen – "
+                    "Artefakte dürfen nicht als malwaregeprüft gelten."
+                )
+                failed = True
         for path in files:
             size_mb = path.stat().st_size / 1_000_000
             print(f">> Scanne {path.name} ({size_mb:.1f} MB, inkl. entpacktem Inhalt)")
@@ -226,6 +374,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"::error::{path.name}: Entpacken zum Scannen fehlgeschlagen – {exc}")
                 failed = True
                 continue
+            extract_dir = workdir / f"{path.name}.extracted"
+            if clamav_ready and database is not None and not scan_artifact_with_clamav(
+                path, extract_dir, database,
+            ):
+                failed = True
             for finding in findings:
                 print(f"::error::{path.name}: möglicher Fund – {finding}")
                 failed = True
@@ -245,9 +398,17 @@ def main(argv: list[str] | None = None) -> int:
                 )
 
     if failed:
-        print("::error::Secret-Scan fehlgeschlagen – siehe obige Funde.")
+        print("::error::Artefakt-Sicherheits-Scan fehlgeschlagen – siehe obige Funde.")
         return 1
-    print(">> Secret-/Pfad-Scan (#584): keine hochkonfidenten Funde in allen Artefakten (inkl. entpacktem Inhalt).")
+    print(
+        ">> Secret-/Pfad-Scan (#584): keine hochkonfidenten Funde in allen "
+        "Artefakten (inkl. entpacktem Inhalt)."
+    )
+    if database is not None:
+        print(
+            ">> Malware-Scan (#731): EICAR-Kontrolle und ClamAV-Scan jedes "
+            "Artefakts samt entpackter Nutzdaten bestanden."
+        )
     return 0
 
 

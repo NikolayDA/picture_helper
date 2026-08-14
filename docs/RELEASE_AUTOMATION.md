@@ -169,10 +169,16 @@ jeweils ein zweites Mal – über
 Automationshook `BGREMOVER_SCREENSHOT_3D` – und liefert Screenshot samt
 GL-Provenance-Sidecar direkt aus dem **laufenden gepackten Prozess** (#648):
 Beispielbild synthetisieren → Höhenkarte erzeugen → 3D-Vorschau aktivieren →
-Framebuffer-Grab, sobald der Viewer `ready` ist. Ein Software-Renderer lässt
-diesen Nachweis fehlschlagen (dasselbe Gate wie die Runner-Hardware-Provenance
-oben); Screenshot und Sidecar landen mit artefaktklassenspezifischen Namen
-unter `screenshots/` in der Plattform-Evidenz. Danach führt derselbe
+Azimut-, Elevations- und Standardqualitäts-Regler gemeinsam in den Scroll-
+Viewport bringen und ihre vollständige Geometrie prüfen → Fenster-Grab,
+sobald der Viewer `ready` ist. Schema 2 der Sidecar verlangt dafür
+`preview3d_controls_visible=true` und die drei Namen in
+`preview3d_visible_controls`; fehlt der Nachweis, scheitert der native Smoke
+für AppImage, installiertes `.deb` und DMG fail-closed. Ein Software-Renderer
+lässt den Nachweis ebenfalls fehlschlagen (dasselbe Gate wie die Runner-
+Hardware-Provenance oben); Screenshot und Sidecar landen mit
+artefaktklassenspezifischen Namen unter `screenshots/` in der Plattform-
+Evidenz. Danach führt derselbe
 Hardware-Job die native
 MainWindow-E2E-Regression aus (Bild öffnen → HEIGHT → 3D-`ready` samt
 hochgeladenem Mesh/gerendertem Frame → Undo/Redo → Save/Open → erneut

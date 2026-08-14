@@ -25,6 +25,7 @@ Die Kernlogik (``parse_triage_issue_numbers``, ``parse_declared_open_count``,
 ``fetch_open_issues``/``main`` sprechen das Netzwerk an. Die Default-Testsuite
 deckt ausschliesslich die Kernlogik ueber gespeicherte Fixtures ab (#752).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -76,7 +77,9 @@ class LiveCheckReport:
 
     @property
     def has_findings(self) -> bool:
-        count_mismatch = self.declared_count is not None and self.declared_count != self.actual_count
+        count_mismatch = (
+            self.declared_count is not None and self.declared_count != self.actual_count
+        )
         return bool(self.missing_open or self.closed_but_listed or count_mismatch)
 
 
@@ -247,6 +250,12 @@ def format_report(report: LiveCheckReport) -> str:
     return "\n".join(lines)
 
 
+def write_report(path: Path, text: str) -> None:
+    """Persistiert den Bericht fuer Actions-Summary und Diagnose-Artefakt."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=_DEFAULT_REPO, help="owner/repo (Default: %(default)s)")
@@ -264,6 +273,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--token", default=None, help="GitHub-Token (optional, erhoeht das Rate-Limit)"
     )
+    parser.add_argument(
+        "--report-output",
+        type=Path,
+        help="Bericht zusaetzlich als UTF-8-Datei sichern (auch bei Fehlern)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -275,10 +289,26 @@ def main(argv: list[str] | None = None) -> int:
             open_issues = fetch_open_issues(args.repo, token=args.token)
         report = run(markdown, open_issues, args.repo)
     except (LiveCheckError, OSError, json.JSONDecodeError) as exc:
+        error_report = f"FEHLER  Live-Check nicht ausfuehrbar: {exc}"
         print(f"::error::{exc}", file=sys.stderr)
+        if args.report_output is not None:
+            try:
+                write_report(args.report_output, error_report)
+            except OSError as report_exc:
+                print(
+                    f"::error::Bericht konnte nicht geschrieben werden: {report_exc}",
+                    file=sys.stderr,
+                )
         return 2
 
-    print(format_report(report))
+    report_text = format_report(report)
+    if args.report_output is not None:
+        try:
+            write_report(args.report_output, report_text)
+        except OSError as exc:
+            print(f"::error::Bericht konnte nicht geschrieben werden: {exc}", file=sys.stderr)
+            return 2
+    print(report_text)
     return 1 if report.has_findings else 0
 
 
