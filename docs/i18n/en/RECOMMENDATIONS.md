@@ -15,11 +15,11 @@
 
 **Live count corrected (#777):** after the last update the short status still claimed 22 open issues, though GitHub had already dropped to 18 — seven already-closed issues (#656, #680, #685, #686, #731, #748, #758) were still listed in the triage table, and three genuinely open ones (#773, #777, #781) were missing. Both gaps are fixed below; `scripts/recommendations_live_check.py` (#752) covers exactly this pattern but didn't run automatically after the last round — a green live run against the real GitHub state is still the outstanding closing proof for #777.
 
-**No new release needed:** `pyproject.toml` still reads **2.7.2**, matching the last published tag (2026-08-02); `[Unreleased]` is empty in all six CHANGELOG files. #758 (acceptance/publish protocol) and #748 (`UPDATE-01`, real predecessor-artifact proof) are now both closed. The next release scope will follow once #692/#687 (the COLOR/EufyMake epics) show meaningful progress or several small fixes (#773 and similar) have accumulated.
+**A patch release is due:** contrary to an earlier version of this section, `[Unreleased]` is **not** empty — all six CHANGELOG files already contain the #769 fix (CVE-2025-5683, ICNS DoS in `_recent_thumbnail_icon`, merged via PR #782, commit `b42c738`), so that security fix is **not yet** in the published v2.7.2 artifacts (Codex review on PR #785). `pyproject.toml` still reads 2.7.2. Recommendation: prepare patch release **v2.7.3** to ship exactly this fix (version bump + CHANGELOG cutover, no additional code needed), then run a candidate build per the release runbook. #758 (acceptance/publish protocol) and #748 (`UPDATE-01`, real predecessor-artifact proof) are closed for v2.7.2.
 
-Epic **#741** has reached its core goal: all of its original sub-issues (#656, #680, #685, #686, #731, #737, #740, #742–#748, #758) are closed — publish byte-identity, anonymous public download, and the real `UPDATE-01` hardware proof are all in place. The epic stays deliberately open: the DoD point "no second hardware acceptance after tag/publish" is not satisfied for v2.7.2 (the publish run ended 2026-08-02 13:11 UTC, and a second dispatch re-ran the full macOS/Linux-arm64 acceptance starting 13:35 UTC) and must be demonstrated in a future release cycle; the new sub-issue #781 additionally tracks persisting the vision per-criterion verdicts from the first real acceptance run with `ANTHROPIC_VISION_API_KEY`.
+Epic **#741** has reached its core goal: all eleven of its original sub-issues (#656, #731, #737, #740, #742–#748) are closed; the separately tracked release-protocol issues #758 (v2.7.2 acceptance/publish) and #680/#685/#686 (v2.7.1, superseded in practice by v2.7.2) are also closed — publish byte-identity, anonymous public download, and the real `UPDATE-01` hardware proof are all in place. The epic stays deliberately open: the DoD point "no second hardware acceptance after tag/publish" is not satisfied for v2.7.2 (the publish run ended 2026-08-02 13:11 UTC, and a second dispatch re-ran the full macOS/Linux-arm64 acceptance starting 13:35 UTC) and must be demonstrated in a future release cycle; the new sub-issue #781 additionally tracks persisting the vision per-criterion verdicts from the first real acceptance run with `ANTHROPIC_VISION_API_KEY`.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2, plus epic #741 with its twelve original sub-issues and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix). No 🔴 finding open.
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2, plus epic #741 with its eleven original sub-issues, the related release-protocol issues #680/#685/#686/#758, and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, still pending release via v2.7.3). No 🔴 finding open.
 
 Live state after the GitHub query: **18** open issues — #656, #680, #685, #686, #731, #748, and #758 have been closed since the last update; #773, #777, and #781 are newly tracked.
 
@@ -48,20 +48,22 @@ Live state after the GitHub query: **18** open issues — #656, #680, #685, #686
 
 ### Recommended Next
 
-1. Close out **#777**: run `scripts/recommendations_live_check.py` green against the real GitHub
+1. Prepare patch release **v2.7.3**: ship the already-merged #769 fix (CVE-2025-5683) via a
+   version bump + CHANGELOG cutover, then run a candidate build per the release runbook.
+2. Close out **#777**: run `scripts/recommendations_live_check.py` green against the real GitHub
    state (needs network access), then close the issue.
-2. Fix **#773** mechanically – a two-line fix across all six CHANGELOG files, a small independent
+3. Fix **#773** mechanically – a two-line fix across all six CHANGELOG files, a small independent
    PR.
-3. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) and
+4. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) and
    **#716** (test audit) remain parallel-ready.
-4. **#781**: implement the artifact upload now; assessing the criterion waits on the next
+5. **#781**: implement the artifact upload now; assessing the criterion waits on the next
    acceptance run.
-5. **#741** stays open until the DoD proof (no second hardware acceptance after publish) lands in
+6. **#741** stays open until the DoD proof (no second hardware acceptance after publish) lands in
    the next release cycle.
 
 ## Previous Rounds
 
-- **2026-08-14 (live-count correction, #777)** — a fresh GitHub query returned 18 open issues instead of the previously claimed 22: #656, #680, #685, #686, #731, #748, and #758 have been closed since the last round (largely completing epic #741) but were still carried in the triage table; #773 (CHANGELOG reference link), #777 (this drift finding itself), and #781 (vision-verdict persistence, a follow-up of #656) were missing. Table and short status corrected across all six languages; a green `recommendations_live_check.py` run against GitHub remains the outstanding closing proof for #777. No new release needed (`pyproject.toml` unchanged at 2.7.2, `[Unreleased]` empty).
+- **2026-08-14 (live-count correction, #777; Codex correction on PR #785)** — a fresh GitHub query returned 18 open issues instead of the previously claimed 22: #656, #680, #685, #686, #731, #748, and #758 have been closed since the last round (largely completing epic #741) but were still carried in the triage table; #773 (CHANGELOG reference link), #777 (this drift finding itself), and #781 (vision-verdict persistence, a follow-up of #656) were missing. Table and short status corrected across all six languages; a green `recommendations_live_check.py` run against GitHub remains the outstanding closing proof for #777. The Codex review on PR #785 caught two follow-on mistakes in that same round: the first draft wrongly claimed an empty `[Unreleased]` (it actually already carries the #769 fix/CVE-2025-5683, unreleased since PR #782) and miscounted epic #741 as twelve original sub-issues instead of eleven, wrongly folding in #680/#685/#686/#758. Both corrected above; a v2.7.3 patch release is now recommended to ship the #769 fix.
 
 - **2026-08-14 (#752 closed, PR #783)** — fixed the third proven Recommendations drift after #669/#728: `scripts/recommendations_live_check.py` compares the triage table, separately runnable, against the actually open GitHub issues (missing open issues, issues still listed as open though closed, deviating totals); `tests/test_recommendations_live_check.py` covers the core logic network-free via stored fixtures. `tests/test_recommendations_freeze_consistency.py` determines the active freeze document from `pyproject.toml` and keeps the Kurzstatus date and live-count in sync across all six language versions; the originally planned check against a "logged candidate SHA" was dropped because PR #754 had already removed that field from the freeze document. `make check` green locally. Live state 22.
 - **2026-08-13 (#762/#769 closed, PR #782)** — drove the owner decision on #762: documented risk acceptance instead of dropping the Raspberry Pi aarch64 target (reasoning now lives in the `PyQt6` pin comment in `requirements/constraints.txt`). Closed #769 with a code fix: `_recent_thumbnail_icon` (`right_panel.py`) now uses `open_validated_image` instead of a direct `QPixmap(path)`, plus a regression test in `tests/test_right_panel.py`. `make check` green locally. Live state 23.
