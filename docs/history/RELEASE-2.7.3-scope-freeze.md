@@ -9,7 +9,7 @@ maschinenlesbare Provenienz außerhalb der Git-Historie gespeichert (siehe
 
 ## Stabile, maschinenlesbare Angaben
 
-- **Basis-Tag:** `v2.7.2` (= `5ceb82be76a9036b9242f1f1300d4c717bb1acc6`)
+- **Basis-Tag:** `v2.7.2` (= `230c61e6578fd6f73ff650dd737c903ed42b397e`)
 - **Kandidatenversion:** `2.7.3`
 - **Release-Scope:** `patch-release-2.7.3`
 - **Pfadpolicy:** `release/path-policy.json` (Version `3`)
