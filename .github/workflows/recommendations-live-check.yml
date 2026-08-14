@@ -10,6 +10,14 @@ name: Recommendations Live Check
 # closed/reopened) - damit der Drift nicht mehr bis zur naechsten manuellen
 # Runde liegen bleibt, sondern spaetestens am naechsten Tag sichtbar (roter
 # Lauf) auffaellt.
+#
+# issues-Events allein reichen nicht: GitHub loest keine Folge-Workflows fuer
+# Aenderungen aus, die mit dem Standard-GITHUB_TOKEN vorgenommen wurden (siehe
+# denselben Hinweis in claude.yml) - genau das trifft auf die von
+# codex-security-scan.yml (create_security_scan_issues.py) und benchmark.yml
+# automatisiert eroeffneten Issues zu. Der zusaetzliche workflow_run-Trigger
+# faengt deren Abschluss ab, unabhaengig vom Token-Limit (Codex-Review auf
+# PR #790).
 on:
   schedule:
     # Taeglich 06:30 UTC - versetzt zu den anderen taeglichen/woechentlichen
@@ -17,6 +25,9 @@ on:
     - cron: '30 6 * * *'
   issues:
     types: [opened, closed, reopened]
+  workflow_run:
+    workflows: ["Codex Security Scan", "Performance Benchmark"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
