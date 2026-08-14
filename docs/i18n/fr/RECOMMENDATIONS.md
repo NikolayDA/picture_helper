@@ -15,7 +15,7 @@
 
 **Nombre en direct corrigé (#777) :** après la dernière mise à jour, l'état bref affirmait encore 22 tickets ouverts, alors que GitHub était déjà retombé à 18 — sept tickets déjà fermés (#656, #680, #685, #686, #731, #748, #758) figuraient encore dans le tableau de triage, et trois réellement ouverts (#773, #777, #781) manquaient. Les deux écarts sont corrigés ci-dessous ; `scripts/recommendations_live_check.py` (#752) couvre exactement ce schéma mais ne s'est pas exécuté automatiquement après le dernier tour — une exécution en direct verte contre l'état réel de GitHub reste la preuve de clôture en attente pour #777.
 
-**Une version corrective est due :** contrairement à une version antérieure de cette section, `[Unreleased]` n'est **pas** vide — les six fichiers CHANGELOG contiennent déjà le correctif de #769 (CVE-2025-5683, DoS ICNS dans `_recent_thumbnail_icon`, fusionné via la PR #782, commit `b42c738`), donc ce correctif de sécurité **n'est pas encore** dans les artefacts v2.7.2 publiés (revue Codex sur la PR #785). `pyproject.toml` reste sur 2.7.2. Recommandation : préparer la version corrective **v2.7.3** pour publier exactement ce correctif (incrément de version + bascule CHANGELOG, aucun code supplémentaire nécessaire), puis lancer un build candidat selon le runbook de release. #758 (protocole de recette/publication) et #748 (`UPDATE-01`, preuve réelle par artefact antérieur) sont clôturés pour v2.7.2.
+**Version corrective 2.7.3 préparée, en attente de fusion :** la PR #786 a déjà effectué la coupe de version — `pyproject.toml` y est sur **2.7.3**, les six fichiers CHANGELOG portent désormais la section `[2.7.3]` avec le correctif de #769 (CVE-2025-5683, DoS ICNS dans `_recent_thumbnail_icon`, initialement fusionné via la PR #782, commit `b42c738`, mais jamais publié jusqu'ici — la revue Codex sur la PR #785 l'a repéré) au lieu d'un `[Unreleased]` vide ; la même PR corrige en plus la définition de lien de référence `[2.7.2]` manquante signalée dans #773. Sur `main`, `pyproject.toml` reste sur 2.7.2 jusqu'à la fusion de la #786. Prochaine étape ensuite : lancer un build candidat selon le runbook de release. #758 (protocole de recette/publication) et #748 (`UPDATE-01`, preuve réelle par artefact antérieur) sont clôturés pour v2.7.2.
 
 L'épopée **#741** a atteint son objectif principal : ses onze tickets enfants d'origine (#656, #731, #737, #740, #742–#748) sont fermés ; les tickets de protocole de release suivis séparément #758 (recette/publication v2.7.2) et #680/#685/#686 (v2.7.1, dépassée dans les faits par v2.7.2) sont également fermés — l'identité octet par octet du publish, le téléchargement public anonyme et la véritable preuve matérielle `UPDATE-01` sont établis. L'épopée reste délibérément ouverte : le point de DoD « pas de seconde recette matérielle après tag/publish » n'est pas satisfait pour v2.7.2 (l'exécution de publish s'est terminée le 2026-08-02 à 13h11 UTC, et un second déclenchement a rejoué toute la recette macOS/Linux-arm64 à partir de 13h35 UTC) et doit être démontré lors d'un prochain cycle de version ; le nouveau ticket enfant #781 suit en plus la persistance des verdicts vision par critère du premier vrai cycle de recette avec `ANTHROPIC_VISION_API_KEY`.
 
@@ -42,24 +42,21 @@ Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est ter
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Recette performance/E2E/documentation/interface laser | 🟡 Moyenne (gate de clôture, pas une nouvelle fonctionnalité) | 🟠 Élevée (suite de benchmarks, E2E, documentation, contrat d'adaptateur) | Opus, élevé | Bloqué – ticket de clôture après #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 | [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Audit de la suite de tests : lacunes mineures (e2e WorkerController, câblage CropBar, assertions faibles) | 🟢 Faible (aucun bug de production, pure qualité de tests) | 🟡 Faible-moyenne (plusieurs points petits et indépendants sur ~8 fichiers de tests) | Sonnet, faible | Prêt à démarrer – liste de tâches déjà dans le ticket, reconfirmée inchangée le 2026-08-12 |
-| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md : référence [2.7.2] manquante, lien de comparaison [Unreleased] obsolète | 🟢 Faible (lien markdown cosmétique, aucun défaut d'exécution) | 🟢 Faible (correctif mécanique de deux lignes sur 6 fichiers) | Sonnet, faible | **Prêt à démarrer** – revalidé le 2026-08-14 ; `tests/test_changelog_metadata.py` ne couvre pas encore le contrat du lien de référence |
+| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md : référence [2.7.2] manquante, lien de comparaison [Unreleased] obsolète | 🟢 Faible (lien markdown cosmétique, aucun défaut d'exécution) | 🟢 Faible (correctif mécanique de deux lignes sur 6 fichiers) | Sonnet, faible | Corrigé dans la PR #786 (partie de la coupe de version 2.7.3) – en attente de fusion ; `tests/test_changelog_metadata.py` ne couvre toujours pas le contrat du lien de référence |
 | [#777](https://github.com/NikolayDA/picture_helper/issues/777) | docs : l'instantané des tickets en direct de RECOMMENDATIONS.md est obsolète malgré le nouveau vérificateur | 🟡 Moyenne (gouvernance/confiance dans l'état bref) | 🟢 Faible (correction purement de données) | Sonnet, faible | Corrigé sur le fond par cette mise à jour (18 au lieu de 22, sept entrées fermées retirées, trois nouvelles ajoutées) – une exécution verte de `recommendations_live_check.py` contre GitHub reste la preuve de clôture en attente |
 | [#781](https://github.com/NikolayDA/picture_helper/issues/781) | Persister le détail du verdict vision, clarifier le critère en échec | 🟡 Moyenne (qualité de preuve de l'automatisation de recette) | 🟡 Moyenne (upload d'artefact + évaluation d'un constat réel) | Sonnet, moyen | L'upload de l'artefact (`vision-verdikte.json`) est immédiatement implémentable ; évaluer le critère en échec de l'exécution 31753178219 nécessite la prochaine exécution de recette avec l'artefact |
 
 ### Recommandé ensuite
 
-1. Préparer la version corrective **v2.7.3** : publier le correctif déjà fusionné de #769
-   (CVE-2025-5683) via un incrément de version + bascule CHANGELOG, puis lancer un build candidat
-   selon le runbook de release.
+1. Fusionner la **PR #786** (coupe de version 2.7.3 incl. la publication de #769 et le correctif
+   de #773), puis lancer un build candidat selon le runbook de release.
 2. Clôturer **#777** : exécuter `scripts/recommendations_live_check.py` en vert contre l'état réel
    de GitHub (accès réseau requis), puis fermer le ticket.
-3. Corriger **#773** mécaniquement – un correctif de deux lignes dans les six fichiers CHANGELOG,
-   un petit PR indépendant.
-4. Lancer **#687** comme premier sous-ticket EufyMake (question de format d'abord) ; **#692**
+3. Lancer **#687** comme premier sous-ticket EufyMake (question de format d'abord) ; **#692**
    (ADR) et **#716** (audit de tests) restent démarrables en parallèle.
-5. **#781** : implémenter dès maintenant l'upload de l'artefact ; l'évaluation du critère attend
+4. **#781** : implémenter dès maintenant l'upload de l'artefact ; l'évaluation du critère attend
    la prochaine exécution de recette.
-6. **#741** reste ouvert jusqu'à ce que la preuve de DoD (pas de seconde recette matérielle après
+5. **#741** reste ouvert jusqu'à ce que la preuve de DoD (pas de seconde recette matérielle après
    publish) arrive lors du prochain cycle de version.
 
 ## Tours précédents

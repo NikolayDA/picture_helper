@@ -15,7 +15,7 @@
 
 **Live-Stand korrigiert (#777):** Der Kurzstatus behauptete nach der letzten Aktualisierung weiterhin 22 offene Issues, obwohl GitHub inzwischen nur noch 18 zählte – sieben bereits geschlossene Issues (#656, #680, #685, #686, #731, #748, #758) standen noch in der Triage-Tabelle, drei tatsächlich offene (#773, #777, #781) fehlten. Beide Abweichungen sind unten korrigiert; `scripts/recommendations_live_check.py` (#752) deckt genau dieses Muster ab, lief aber nicht automatisch nach der letzten Runde – ein grüner Live-Lauf gegen den echten GitHub-Stand steht als Abschlussnachweis für #777 noch aus.
 
-**Ein Patch-Release ist fällig:** `[Unreleased]` ist entgegen einer früheren Fassung dieses Abschnitts **nicht** leer – alle sechs CHANGELOG-Dateien enthalten bereits den #769-Fix (CVE-2025-5683, ICNS-DoS in `_recent_thumbnail_icon`, gemergt über PR #782, Commit `b42c738`); dieser Sicherheitsfix ist damit in den veröffentlichten v2.7.2-Artefakten noch **nicht** enthalten (Codex-Review auf PR #785). `pyproject.toml` steht weiterhin auf 2.7.2. Empfehlung: Patch-Release **v2.7.3** vorbereiten, das ausschließlich diesen Fix veröffentlicht (Versions-Bump + CHANGELOG-Cutover, kein zusätzlicher Code nötig), danach Kandidatenbau nach dem Release-Runbook. #758 (Abnahme-/Veröffentlichungsprotokoll) und #748 (`UPDATE-01`, echter Vorgängerartefakt-Nachweis) sind für v2.7.2 abgeschlossen.
+**Patch-Release 2.7.3 vorbereitet, wartet auf Merge:** PR #786 hat den Versionsschnitt bereits durchgeführt – `pyproject.toml` steht dort auf **2.7.3**, alle sechs CHANGELOG-Dateien haben statt eines leeren `[Unreleased]` jetzt den `[2.7.3]`-Abschnitt mit dem #769-Fix (CVE-2025-5683, ICNS-DoS in `_recent_thumbnail_icon`, ursprünglich gemergt über PR #782, Commit `b42c738`, aber bis dahin nie veröffentlicht – Codex-Review auf PR #785 deckte das auf); derselbe PR behebt außerdem die in #773 gemeldete fehlende `[2.7.2]`-Referenzlink-Definition mit. Auf `main` steht `pyproject.toml` bis zum Merge von #786 weiterhin auf 2.7.2. Nächster Schritt danach: Kandidatenbau nach dem Release-Runbook. #758 (Abnahme-/Veröffentlichungsprotokoll) und #748 (`UPDATE-01`, echter Vorgängerartefakt-Nachweis) sind für v2.7.2 abgeschlossen.
 
 Epic **#741** hat sein Kernziel erreicht: alle elf ursprünglichen Teil-Issues (#656, #731, #737, #740, #742–#748) sind geschlossen; zusätzlich sind die separat geführten Release-Protokoll-Issues #758 (v2.7.2-Abnahme/-Veröffentlichung) sowie #680/#685/#686 (v2.7.1, durch v2.7.2 fachlich überholt) geschlossen – Publish-Byteidentität, anonymer öffentlicher Download und der echte `UPDATE-01`-Hardwarenachweis liegen vor. Die Epic bleibt bewusst offen: Der DoD-Punkt „keine zweite Hardware-Abnahme nach Tag/Publish" ist für v2.7.2 nicht erfüllt (Publish-Lauf endete 2026-08-02 13:11 UTC, ab 13:35 UTC lief erneut die volle macOS-/Linux-arm64-Abnahme) und muss im nächsten Releasezyklus praktisch belegt werden; zusätzlich verfolgt das neue Teil-Issue #781 die Persistenz der Vision-Einzelverdikte aus dem ersten echten Abnahmelauf mit `ANTHROPIC_VISION_API_KEY`.
 
@@ -42,23 +42,21 @@ Live-Stand nach GitHub-Abfrage: **18** offene Issues – #656, #680, #685, #686,
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 | [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Test-Suite-Audit: kleinere Lücken (WorkerController-Mesh-e2e, CropBar-Wiring, schwache Assertions) | 🟢 Niedrig (keine Produktionsfehler, reine Testqualität) | 🟡 Niedrig-Mittel (mehrere kleine, unabhängige Punkte über ~8 Testdateien) | Sonnet, niedrig | **Startbereit** – Checkliste im Issue, am 2026-08-12 erneut unverändert bestätigt |
-| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md: fehlende [2.7.2]-Referenz, veralteter [Unreleased]-Link | 🟢 Niedrig (kosmetischer Markdown-Link, kein Laufzeitfehler) | 🟢 Niedrig (mechanischer Zwei-Zeilen-Fix in 6 Dateien) | Sonnet, niedrig | **Startbereit** – Fix am 2026-08-14 revalidiert; `tests/test_changelog_metadata.py` deckt den Referenzvertrag noch nicht ab |
+| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md: fehlende [2.7.2]-Referenz, veralteter [Unreleased]-Link | 🟢 Niedrig (kosmetischer Markdown-Link, kein Laufzeitfehler) | 🟢 Niedrig (mechanischer Zwei-Zeilen-Fix in 6 Dateien) | Sonnet, niedrig | Fix in PR #786 (Teil des 2.7.3-Versionsschnitts) – wartet auf Merge; `tests/test_changelog_metadata.py` deckt den Referenzvertrag weiterhin nicht ab |
 | [#777](https://github.com/NikolayDA/picture_helper/issues/777) | RECOMMENDATIONS.md: Live-Stand trotz neuem Live-Checker veraltet | 🟡 Mittel (Governance/Doku-Vertrauen in den Kurzstatus) | 🟢 Niedrig (reine Datenkorrektur) | Sonnet, niedrig | Mit dieser Aktualisierung inhaltlich behoben (18 statt 22, sieben geschlossene Einträge entfernt, drei neue ergänzt) – grüner `recommendations_live_check.py`-Lauf gegen GitHub steht als Abschlussnachweis noch aus |
 | [#781](https://github.com/NikolayDA/picture_helper/issues/781) | Vision-Verdikt-Detail persistieren, fehlgeschlagenes Kriterium klären | 🟡 Mittel (Evidenzqualität der Abnahme-Automation) | 🟡 Mittel (Artefakt-Upload + Bewertung eines realen Befunds) | Sonnet, mittel | Artefakt-Upload (`vision-verdikte.json`) sofort umsetzbar; Bewertung des fehlgeschlagenen Kriteriums aus Lauf 31753178219 braucht den nächsten Abnahmelauf mit Artefakt |
 
 ### Als Nächstes empfohlen
 
-1. Patch-Release **v2.7.3** vorbereiten: den bereits gemergten #769-Fix (CVE-2025-5683) über
-   Versions-Bump + CHANGELOG-Cutover veröffentlichen, danach Kandidatenbau nach Release-Runbook.
+1. **PR #786** (Versionsschnitt 2.7.3 inkl. #769-Veröffentlichung und #773-Fix) mergen, danach
+   Kandidatenbau nach Release-Runbook anstoßen.
 2. **#777** abschließen: `scripts/recommendations_live_check.py` gegen den echten GitHub-Stand grün
    laufen lassen (Netzzugriff nötig), danach Issue schließen.
-3. **#773** mechanisch beheben – Zwei-Zeilen-Fix in allen sechs CHANGELOG-Dateien, kleiner
-   unabhängiger PR.
-4. **#687** als erstes EufyMake-Teil-Issue anstoßen (Formatfrage zuerst); **#692** (ADR) und
+3. **#687** als erstes EufyMake-Teil-Issue anstoßen (Formatfrage zuerst); **#692** (ADR) und
    **#716** (Test-Audit) bleiben parallel startbar.
-5. **#781**: Artefakt-Upload jetzt umsetzen, Kriteriumsbewertung wartet auf den nächsten
+4. **#781**: Artefakt-Upload jetzt umsetzen, Kriteriumsbewertung wartet auf den nächsten
    Abnahmelauf.
-6. **#741** bleibt bis zum DoD-Nachweis (keine zweite Hardware-Abnahme nach Publish) im
+5. **#741** bleibt bis zum DoD-Nachweis (keine zweite Hardware-Abnahme nach Publish) im
    nächsten Releasezyklus offen.
 
 ## Vorige Runden
