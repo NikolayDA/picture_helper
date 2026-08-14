@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import importlib.util
-import inspect
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -103,14 +103,47 @@ def test_process_peak_rss_converts_linux_kib_and_macos_bytes() -> None:
     assert bench._process_peak_rss_mb(128 * 1024 * 1024, "darwin") == 128.0
 
 
-def test_real_hook_uses_complete_viewer_render_path() -> None:
-    """Governance-Guard: Shader, beide Attribute und Indizes bleiben gebunden."""
-    source = inspect.getsource(bench._QtGlLiveHooks)
-    for required in (
-        "_VERTEX_SHADER", "_FRAGMENT_SHADER", '"a_pos"', '"a_slope"',
-        "setUniformValue", "glDrawElements", "toImage", "CombinedDepthStencil",
-    ):
-        assert required in source
+@pytest.mark.gl_smoke
+def test_real_hook_renders_and_measures_real_metrics(qapp) -> None:  # type: ignore[no-untyped-def]
+    """Verhaltensnachweis statt Source-Grep (#716): treibt den echten
+    Shader-/Buffer-/Draw-Pfad von ``_QtGlLiveHooks`` end-to-end durch einen
+    echten, renderbaren GL-Kontext, statt nur nach Literal-Substrings im
+    Quelltext zu suchen (das würde bei totem/verschobenem Code weiter grün
+    bleiben). Läuft – wie die übrigen ``gl_smoke``-Tests – nur dort, wo ein
+    echter FBO gerendert werden kann; sonst übersprungen."""
+    from PyQt6.QtWidgets import QApplication
+
+    from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField
+    from bgremover.preview3d_capability import probe_3d_capability, reset_capability_cache
+    from bgremover.relief_mesh import MeshQuality, build_relief_mesh
+
+    app = QApplication.instance()
+    assert app is not None
+    if app.platformName() in {"offscreen", "minimal", "vnc"}:
+        pytest.skip(f"Plattform {app.platformName()!r} kann keinen echten GL-Kontext rendern")
+    reset_capability_cache()
+    if not probe_3d_capability(use_cache=False).ok:
+        pytest.skip("Keine OpenGL-2.1-Capability in dieser Umgebung")
+    available, diagnostic = bench.probe_live_gl()
+    if not available:
+        pytest.skip(f"probe_live_gl meldet keinen Hardware-GL-Kontext ({diagnostic!r})")
+
+    ramp = np.tile(np.linspace(0, HEIGHT_MAX_16BIT, 32, dtype=np.uint16), (32, 1))
+    field = HeightField(ramp, np.full((32, 32), 255, np.uint8), HEIGHT_MAX_16BIT)
+    mesh = build_relief_mesh(field, MeshQuality.REDUCED)
+
+    hooks = bench._QtGlLiveHooks(diagnostic)
+    metrics = bench.measure_preview3d_live(mesh, hooks, frames=3)
+
+    assert metrics["gl_upload_ms"] >= 0.0
+    assert metrics["gl_first_frame_ms"] >= 0.0
+    assert metrics["gl_peak_mb"] > 0.0
+    assert metrics["gl_frame_ms_p50"] >= 0.0
+    assert metrics["gl_frame_ms_p95"] >= 0.0
+    # first_frame()'s Readback-Check hat bereits nachgewiesen gerenderte
+    # Geometrie erzwungen (sonst waere Preview3DLiveUnavailable geflogen);
+    # zusaetzlich mind. ein Frame() lief real durch den Draw-Pfad.
+    assert hooks._frame_number >= 1
 
 
 def test_refuses_without_hardware_gl_offscreen(qapp) -> None:  # type: ignore[no-untyped-def]

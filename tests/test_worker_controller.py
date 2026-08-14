@@ -509,6 +509,10 @@ def test_cancel_warmup_notifies_attached_caller_as_cancelled_not_error(qapp):
 
 def test_cancel_warmup_without_running_warmup_is_noop(controller):
     controller.cancel_warmup()  # darf nicht werfen
+    assert controller.warmup_thread is None
+    assert controller.warmup_worker is None
+    assert controller.is_warmup_running is False
+    assert controller._workers == []
 
 
 def test_start_update_check_releases_worker_and_delivers_result(
@@ -716,6 +720,91 @@ def test_mesh_finish_only_clears_matching_worker(controller):
     controller._finish_mesh_build_thread(new_thread, new_worker)
     assert controller.mesh_build_thread is None
     assert controller.mesh_build_worker is None
+
+
+def test_mesh_build_cancel_and_drain_with_real_thread(qapp, controller, monkeypatch):
+    """e2e-Gegenstück zu ``test_mesh_finish_only_clears_matching_worker``: statt
+    ``_finish_mesh_build_thread`` direkt mit Doubles aufzurufen, treibt dieser
+    Test einen echten ``MeshBuildWorker``/``QThread`` durch ``start_mesh_build``
+    und beweist damit das tatsächliche Draining-Verhalten (Review #620, P1) statt
+    nur die isolierte Aufräum-Logik."""
+    import threading
+
+    import bgremover.relief_mesh as relief_mesh_mod
+    from bgremover.height_map import HeightField
+    from bgremover.relief_mesh import MeshBuildCancelled, MeshQuality
+
+    first_started = threading.Event()
+    release_first = threading.Event()
+    call_count = {"n": 0}
+
+    class _FakeMesh:
+        pass
+
+    def fake_build_relief_mesh(field, quality, *, physical_size_mm=None, cancel=None):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            # Der erste Build blockiert, bis der Test ihn freigibt – so ist er
+            # beim zweiten start_mesh_build-Aufruf garantiert noch aktiv.
+            first_started.set()
+            release_first.wait(timeout=5.0)
+            if cancel is not None and cancel():
+                raise MeshBuildCancelled()
+        return _FakeMesh()
+
+    monkeypatch.setattr(relief_mesh_mod, "build_relief_mesh", fake_build_relief_mesh)
+
+    field = HeightField(
+        values=np.zeros((4, 4), dtype=np.uint16),
+        coverage=np.full((4, 4), 255, dtype=np.uint8),
+    )
+
+    results: list[tuple[object, int]] = []
+    errors: list[tuple[str, int]] = []
+    started_first = controller.start_mesh_build(
+        field, MeshQuality.STANDARD, 1,
+        lambda mesh, gen: results.append((mesh, gen)),
+        on_error=lambda msg, gen: errors.append((msg, gen)),
+    )
+    assert started_first
+    assert first_started.wait(timeout=2.0)
+    first_thread = controller.mesh_build_thread
+    first_worker = controller.mesh_build_worker
+    assert first_thread is not None
+    assert first_thread.isRunning()
+
+    # Zweiter Aufruf waehrend der erste (blockierte) Build noch laeuft: der
+    # erste wird abgebrochen und in die Draining-Liste verschoben, die
+    # Controller-Handles zeigen sofort auf den neuen Build.
+    started_second = controller.start_mesh_build(
+        field, MeshQuality.STANDARD, 2,
+        lambda mesh, gen: results.append((mesh, gen)),
+        on_error=lambda msg, gen: errors.append((msg, gen)),
+    )
+    assert started_second
+    assert controller.mesh_build_thread is not first_thread
+    assert controller.mesh_build_worker is not first_worker
+    assert first_thread in controller._mesh_build_draining
+    assert first_worker._cancelled is True
+
+    # Der zweite Build ist nicht gegated und laeuft uneingeschraenkt durch.
+    _drain(qapp, lambda: controller.mesh_build_thread is None)
+    assert [gen for _mesh, gen in results] == [2]
+    assert errors == []
+
+    # Jetzt den ersten, drainenden Build freigeben – er muss ueber die
+    # Draining-Liste sauber abgeschlossen werden, ohne die (bereits auf None
+    # stehenden) aktuellen Handles erneut anzufassen.
+    release_first.set()
+    _drain(qapp, lambda: controller._mesh_build_draining == [])
+
+    assert sip.isdeleted(first_thread) or first_thread.isFinished()
+    assert controller.mesh_build_thread is None
+    assert controller.mesh_build_worker is None
+    # Der abgebrochene erste Build hat nie ein Ergebnis emittiert.
+    assert [gen for _mesh, gen in results] == [2]
+    assert errors == []
+    assert controller._workers == []
 
 
 def test_flood_fill_releases_worker_on_completion(qapp, controller):

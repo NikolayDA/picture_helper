@@ -80,8 +80,7 @@ def test_reset_restores_default_angles() -> None:
     cam.orbit(90.0, -40.0)
     cam.zoom(0.3)
     cam.reset(_BOX_LO, _BOX_HI)
-    assert cam.azimuth == pytest.approx(DEFAULT_AZIMUTH % 360.0) or \
-        cam.azimuth == pytest.approx(DEFAULT_AZIMUTH)
+    assert cam.azimuth == pytest.approx(DEFAULT_AZIMUTH)
     assert cam.elevation == pytest.approx(DEFAULT_ELEVATION)
 
 
