@@ -48,6 +48,8 @@ _REQUEST_HEADERS: Final = {"Accept": "application/vnd.github+json"}
 #: Der Triage-Abschnitt beginnt bei "## Offene GitHub-Issues" und endet vor der
 #: naechsten Ueberschrift zweiter Ordnung (insbesondere "## Vorige Runden").
 _TRIAGE_SECTION_RE: Final = re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)")
+#: Spalte 1 jeder Tabellenzeile (Text zwischen dem ersten und zweiten "|").
+_TABLE_FIRST_CELL_RE: Final = re.compile(r"(?m)^\|([^|]*)\|")
 _LIVE_COUNT_RE: Final = re.compile(r"Live-Stand nach GitHub-Abfrage: \*\*(\d+)\*\*")
 
 
@@ -95,24 +97,43 @@ def extract_triage_section(markdown: str) -> str:
     return match.group(0)
 
 
-def parse_triage_issue_numbers(markdown: str, repo: str = _DEFAULT_REPO) -> tuple[int, ...]:
-    """Alle in der Triage-Tabelle referenzierten Issue-Nummern, dedupliziert, aufsteigend.
+def issue_numbers_in_first_column(section: str, repo: str = _DEFAULT_REPO) -> tuple[int, ...]:
+    """Alle Issue-Nummern aus Spalte 1 jeder Tabellenzeile in *section*.
 
     Zaehlt nur vollstaendige Issue-Markdown-Links (``[#NNN](.../issues/NNN)``)
-    und loest damit gruppierte Zeilen wie ``#680 / #685 / #686`` korrekt in
-    getrennte Nummern auf (#752), ohne PR-Erwaehnungen oder Zahlen-Ranges in
-    Fliesstext ("#742-#747") mitzuzaehlen.
+    in der ersten Spalte und loest damit gruppierte Zeilen wie
+    ``#680 / #685 / #686`` korrekt in getrennte Nummern auf (#752). Links in
+    anderen Spalten (Titel, Nächster Schritt) zählen bewusst nicht mit - nur
+    Spalte 1 ist der dokumentierte, kanonische Issue-Bezug einer Zeile; ein
+    Verweis auf eine andere Issue in der Beschreibung ist keine eigene
+    Triage-Zeile.
     """
-    section = extract_triage_section(markdown)
     link_re = _issue_link_re(repo)
-    numbers = {int(m.group(1)) for m in link_re.finditer(section)}
+    numbers: set[int] = set()
+    for row in _TABLE_FIRST_CELL_RE.finditer(section):
+        numbers.update(int(m.group(1)) for m in link_re.finditer(row.group(1)))
     return tuple(sorted(numbers))
 
 
-def parse_declared_open_count(markdown: str) -> int | None:
-    """Die im Kurzstatus genannte Anzahl offener Issues, falls vorhanden."""
+def parse_triage_issue_numbers(markdown: str, repo: str = _DEFAULT_REPO) -> tuple[int, ...]:
+    """Alle in Spalte 1 der Triage-Tabelle referenzierten Issue-Nummern (#752)."""
+    return issue_numbers_in_first_column(extract_triage_section(markdown), repo)
+
+
+def parse_declared_open_count(markdown: str) -> int:
+    """Die im Kurzstatus genannte Anzahl offener Issues.
+
+    Wirft :class:`LiveCheckError`, wenn die "Live-Stand"-Zeile fehlt oder
+    umformuliert wurde - eine fehlende Deklaration soll den Check sichtbar
+    scheitern lassen statt als stillschweigend erfolgreicher Abgleich
+    durchzugehen (analog zum fehlenden Triage-Abschnitt).
+    """
     match = _LIVE_COUNT_RE.search(markdown)
-    return int(match.group(1)) if match else None
+    if match is None:
+        raise LiveCheckError(
+            "Zeile 'Live-Stand nach GitHub-Abfrage: **N** offene Issues' nicht gefunden."
+        )
+    return int(match.group(1))
 
 
 def open_issues_from_api_payload(payload: object) -> tuple[OpenIssue, ...]:

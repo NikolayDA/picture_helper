@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from scripts import recommendations_live_check as lc
 from scripts import verify_release_freeze as vrf
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -56,6 +57,19 @@ _LIVE_COUNT_RE = {
     "fr": re.compile(r"requête GitHub : \*\*(\d+)\*\*"),
     "uk": re.compile(r"Live-стан після запиту до GitHub: \*\*(\d+)\*\*"),
     "zh": re.compile(r"查询后的实时状态：\*\*(\d+)\*\*"),
+}
+
+#: Anker für den Beginn des Triage-Abschnitts je Sprache; endet vor der
+#: nächsten Überschrift zweiter Ordnung (dasselbe Muster wie
+#: ``recommendations_live_check._TRIAGE_SECTION_RE``, nur je Sprache verdrahtet
+#: statt fest auf die deutsche Überschrift beschränkt).
+_TRIAGE_SECTION_RE = {
+    "de": re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)"),
+    "en": re.compile(r"(?ms)^## Open GitHub Issues.*?(?=^## |\Z)"),
+    "es": re.compile(r"(?ms)^## Incidencias abiertas de GitHub.*?(?=^## |\Z)"),
+    "fr": re.compile(r"(?ms)^## Tickets GitHub ouverts.*?(?=^## |\Z)"),
+    "uk": re.compile(r"(?ms)^## Відкриті задачі GitHub.*?(?=^## |\Z)"),
+    "zh": re.compile(r"(?ms)^## GitHub 未结议题.*?(?=^## |\Z)"),
 }
 
 
@@ -97,6 +111,30 @@ def test_recommendations_kurzstatus_date_matches_across_languages() -> None:
 def test_recommendations_live_issue_count_matches_across_languages() -> None:
     counts = _extract(_LIVE_COUNT_RE, RECOMMENDATION_DOCS)
     assert len(set(counts.values())) == 1, f"Live-Stand-Anzahl weicht zwischen Sprachen ab: {counts}"
+
+
+def _triage_issue_numbers(docs: dict[str, Path]) -> dict[str, tuple[int, ...]]:
+    """Die Menge der Spalte-1-Issue-Nummern je Sprache (nicht nur ihre Größe).
+
+    Ein reiner Zahlenvergleich (siehe oben) übersieht, dass eine Übersetzung
+    ein geschlossenes Issue behält und ein neu offenes weglässt, solange die
+    Gesamtzahl zufällig gleich bleibt - deshalb vergleicht dieser Test die
+    tatsächlichen Nummern-Mengen (#752, Codex-Review auf PR #783).
+    """
+    numbers: dict[str, tuple[int, ...]] = {}
+    for lang, path in docs.items():
+        text = path.read_text(encoding="utf-8")
+        match = _TRIAGE_SECTION_RE[lang].search(text)
+        assert match is not None, f"{lang}: Triage-Abschnitt nicht gefunden in {path}"
+        numbers[lang] = lc.issue_numbers_in_first_column(match.group(0))
+    return numbers
+
+
+def test_recommendations_triage_issue_sets_match_across_languages() -> None:
+    issue_sets = _triage_issue_numbers(RECOMMENDATION_DOCS)
+    reference = issue_sets["de"]
+    mismatched = {lang: nums for lang, nums in issue_sets.items() if nums != reference}
+    assert not mismatched, f"Triage-Issue-Mengen weichen von der deutschen Fassung ab: {mismatched}"
 
 
 def _write_synthetic_docs(tmp_path: Path, *, stale_lang: str, stale_date: str) -> dict[str, Path]:
@@ -143,6 +181,55 @@ def test_date_drift_between_languages_is_detected(tmp_path: Path) -> None:
     dates = _extract(_STATUS_HEADER_RE, docs)
     assert dates["es"] != dates["de"]
     assert len(set(dates.values())) != 1
+
+
+def _issue_link(number: int) -> str:
+    return f"[#{number}](https://github.com/{lc._DEFAULT_REPO}/issues/{number})"
+
+
+def _write_synthetic_triage_docs(
+    tmp_path: Path, *, stale_lang: str, stale_rows: str, normal_rows: str
+) -> dict[str, Path]:
+    """Sechs Sprachdateien mit Triage-Tabellen - *stale_lang* mit abweichenden
+    Zeilen (*stale_rows* statt *normal_rows*), aber derselben Zeilenzahl,
+    damit ein reiner Zahlenvergleich den Drift nicht sähe.
+    """
+    headers = {
+        "de": "## Offene GitHub-Issues – Triage-Stand (2026-08-01)",
+        "en": "## Open GitHub Issues — Triage Status (2026-08-01)",
+        "es": "## Incidencias abiertas de GitHub — Clasificación (2026-08-01)",
+        "fr": "## Tickets GitHub ouverts — Triage (2026-08-01)",
+        "uk": "## Відкриті задачі GitHub — Стан тріажу (2026-08-01)",
+        "zh": "## GitHub 未结议题 — 分诊状态（2026-08-01）",
+    }
+    docs: dict[str, Path] = {}
+    for lang, header in headers.items():
+        rows = stale_rows if lang == stale_lang else normal_rows
+        path = tmp_path / f"RECOMMENDATIONS.{lang}.md"
+        path.write_text(
+            f"{header}\n\n| # | Titel |\n|---|---|\n{rows}\n## Vorige Runden\n", encoding="utf-8"
+        )
+        docs[lang] = path
+    return docs
+
+
+def test_triage_issue_set_drift_with_equal_row_count_is_detected(tmp_path: Path) -> None:
+    """Regressionsfixtur für den Codex-Review-Befund auf PR #783.
+
+    Eine Übersetzung kann ein bereits geschlossenes Issue behalten und ein
+    neu offenes weglassen, sodass die Zeilenzahl (und damit ein reiner
+    Zahlenvergleich) zufällig gleich bleibt. Diese Fixtur baut genau das
+    nach: zwei Zeilen in jeder Sprache, aber die veraltete Fassung führt
+    #740 statt des tatsächlich neuen #758.
+    """
+    normal_rows = f"| {_issue_link(741)} | Epic |\n| {_issue_link(758)} | Neu |\n"
+    stale_rows = f"| {_issue_link(741)} | Epic |\n| {_issue_link(740)} | Veraltet |\n"
+    docs = _write_synthetic_triage_docs(
+        tmp_path, stale_lang="es", stale_rows=stale_rows, normal_rows=normal_rows
+    )
+    issue_sets = _triage_issue_numbers(docs)
+    assert len({len(numbers) for numbers in issue_sets.values()}) == 1
+    assert issue_sets["es"] != issue_sets["de"]
 
 
 def test_declared_count_drift_after_merged_fix_is_detected(tmp_path: Path) -> None:

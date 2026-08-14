@@ -75,8 +75,26 @@ def test_parse_declared_open_count() -> None:
     assert lc.parse_declared_open_count(markdown) == 42
 
 
-def test_parse_declared_open_count_missing_returns_none() -> None:
-    assert lc.parse_declared_open_count("keine Live-Stand-Zeile hier") is None
+def test_parse_declared_open_count_missing_raises() -> None:
+    """Eine fehlende/umformulierte Live-Stand-Zeile scheitert sichtbar (fail-closed).
+
+    Ohne das würde ein versehentlich entfernter Kurzstatus-Satz mit `exit 0`
+    als "deckungsgleich" durchgehen, obwohl gar nichts geprüft wurde.
+    """
+    with pytest.raises(lc.LiveCheckError):
+        lc.parse_declared_open_count("keine Live-Stand-Zeile hier")
+
+
+def test_parse_triage_issue_numbers_ignores_links_outside_first_column() -> None:
+    """Ein Issue-Link in Titel/Nächster-Schritt zählt nicht als eigene Triage-Zeile.
+
+    Nur Spalte 1 ist der dokumentierte, kanonische Issue-Bezug einer Zeile;
+    ohne diese Einschränkung würde ein beiläufiger Verweis auf eine andere
+    Issue in der Beschreibung fälschlich als eigener Tabelleneintrag zählen.
+    """
+    row = f"| {_link(741)} | siehe auch {_link(692)} für Kontext |\n"
+    markdown = _md(count=1, links=row)
+    assert lc.parse_triage_issue_numbers(markdown) == (741,)
 
 
 # ── open_issues_from_api_payload ────────────────────────────────────────
@@ -172,7 +190,7 @@ def test_format_report_lists_every_finding_kind() -> None:
 
 
 def test_run_end_to_end_on_synthetic_document() -> None:
-    row = f"| {_link(741)} | {_link(748)} |\n"
+    row = f"| {_link(741)} | Epic |\n| {_link(748)} | Update |\n"
     markdown = _md(count=3, links=row)
     open_issues = [lc.OpenIssue(741, "Epic"), lc.OpenIssue(748, "Update"), lc.OpenIssue(758, "Neu")]
     report = lc.run(markdown, open_issues)
@@ -195,7 +213,6 @@ def test_real_recommendations_triage_matches_its_own_declared_count() -> None:
     markdown = (ROOT / "RECOMMENDATIONS.md").read_text(encoding="utf-8")
     triage_numbers = lc.parse_triage_issue_numbers(markdown)
     declared = lc.parse_declared_open_count(markdown)
-    assert declared is not None
     assert len(triage_numbers) == declared, (
         f"Triage-Tabelle listet {len(triage_numbers)} Issues, "
         f"Kurzstatus behauptet {declared}."
