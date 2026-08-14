@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.7.3] – 2026-08-14
+
 ### Fixed
 
 - **"Recently opened" thumbnails no longer loaded files directly through Qt
@@ -17,6 +19,25 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   file swapped for a crafted ICNS under the same path now loads like any
   other image, through the validated Pillow pipeline; unsupported or invalid
   files still fall back to the gradient placeholder as before.
+
+### Notes on this release
+
+- **Impact:** A pure security patch release. It fixes only the ICNS
+  vulnerability above (CVE-2025-5683) in the "recently opened" thumbnails;
+  no new features, no change to image, project, or export behavior.
+- **Affected users:** Anyone who uses the "recently opened" list and opens
+  files from untrusted sources — a crafted file swapped in under a
+  previously opened path could reach Qt's own, unfiltered image decoder.
+  Anyone who only opens their own files isn't acutely at risk but should
+  still update.
+- **Upgrade relevance:** Recommended for everyone. No migration step needed —
+  project files (`.bgrproj`), export formats, and settings remain compatible
+  unchanged; a downgrade to 2.7.2 is likewise possible without data changes.
+- **Supported platforms:** macOS arm64 (`.dmg`), Linux x86_64 and Linux
+  arm64 (`.AppImage` and `.deb` each), Python ≥ 3.10. All artifacts bundle
+  the AI backend (`-ai` suffix). The macOS app is ad-hoc signed, not
+  notarized with a Developer ID — right-click → "Open" on first launch.
+- **Known limitations:** No new limitations beyond 2.7.2.
 
 ## [2.7.2] – 2026-07-30
 
@@ -1384,7 +1405,9 @@ First documented 2.0.0 release state. The repository has no historical
 - README with architecture, known limitations, and installation
   instructions; detailed `INSTALL_MAC.md`.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
+[2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/NikolayDA/picture_helper/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/NikolayDA/picture_helper/compare/v2.5.0...v2.6.0

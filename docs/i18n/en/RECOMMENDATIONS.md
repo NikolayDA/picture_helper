@@ -15,7 +15,7 @@
 
 **Live count corrected (#777):** after the last update the short status still claimed 22 open issues, though GitHub had already dropped to 18 — seven already-closed issues (#656, #680, #685, #686, #731, #748, #758) were still listed in the triage table, and three genuinely open ones (#773, #777, #781) were missing. Both gaps are fixed below; `scripts/recommendations_live_check.py` (#752) covers exactly this pattern but didn't run automatically after the last round — a green live run against the real GitHub state is still the outstanding closing proof for #777.
 
-**A patch release is due:** contrary to an earlier version of this section, `[Unreleased]` is **not** empty — all six CHANGELOG files already contain the #769 fix (CVE-2025-5683, ICNS DoS in `_recent_thumbnail_icon`, merged via PR #782, commit `b42c738`), so that security fix is **not yet** in the published v2.7.2 artifacts (Codex review on PR #785). `pyproject.toml` still reads 2.7.2. Recommendation: prepare patch release **v2.7.3** to ship exactly this fix (version bump + CHANGELOG cutover, no additional code needed), then run a candidate build per the release runbook. #758 (acceptance/publish protocol) and #748 (`UPDATE-01`, real predecessor-artifact proof) are closed for v2.7.2.
+**Patch release 2.7.3 prepared, awaiting merge:** PR #786 already performed the version cut — `pyproject.toml` reads **2.7.3** there, all six CHANGELOG files now carry the `[2.7.3]` section with the #769 fix (CVE-2025-5683, ICNS DoS in `_recent_thumbnail_icon`, originally merged via PR #782, commit `b42c738`, but never shipped until now — the Codex review on PR #785 caught that) instead of an empty `[Unreleased]`; the same PR also fixes the missing `[2.7.2]` reference-link definition reported in #773. On `main`, `pyproject.toml` still reads 2.7.2 until #786 merges. Next step after that: run a candidate build per the release runbook. #758 (acceptance/publish protocol) and #748 (`UPDATE-01`, real predecessor-artifact proof) are closed for v2.7.2.
 
 Epic **#741** has reached its core goal: all eleven of its original sub-issues (#656, #731, #737, #740, #742–#748) are closed; the separately tracked release-protocol issues #758 (v2.7.2 acceptance/publish) and #680/#685/#686 (v2.7.1, superseded in practice by v2.7.2) are also closed — publish byte-identity, anonymous public download, and the real `UPDATE-01` hardware proof are all in place. The epic stays deliberately open: the DoD point "no second hardware acceptance after tag/publish" is not satisfied for v2.7.2 (the publish run ended 2026-08-02 13:11 UTC, and a second dispatch re-ran the full macOS/Linux-arm64 acceptance starting 13:35 UTC) and must be demonstrated in a future release cycle; the new sub-issue #781 additionally tracks persisting the vision per-criterion verdicts from the first real acceptance run with `ANTHROPIC_VISION_API_KEY`.
 
@@ -42,23 +42,21 @@ Live state after the GitHub query: **18** open issues — #656, #680, #685, #686
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Test-suite audit: minor gaps (WorkerController mesh e2e, CropBar wiring, weak assertions) | 🟢 Low (no production bugs, pure test quality) | 🟡 Low-medium (several small, independent items across ~8 test files) | Sonnet, low | Ready to start – checklist already in the issue, reconfirmed unchanged on 2026-08-12 |
-| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md: missing [2.7.2] link reference, stale [Unreleased] compare link | 🟢 Low (cosmetic markdown link, no runtime defect) | 🟢 Low (mechanical two-line fix across 6 files) | Sonnet, low | **Ready to start** – re-validated on 2026-08-14; `tests/test_changelog_metadata.py` doesn't yet cover the reference-link contract |
+| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md: missing [2.7.2] link reference, stale [Unreleased] compare link | 🟢 Low (cosmetic markdown link, no runtime defect) | 🟢 Low (mechanical two-line fix across 6 files) | Sonnet, low | Fixed in PR #786 (part of the 2.7.3 version cut) – awaiting merge; `tests/test_changelog_metadata.py` still doesn't cover the reference-link contract |
 | [#777](https://github.com/NikolayDA/picture_helper/issues/777) | docs: RECOMMENDATIONS.md live issue snapshot is stale despite new checker | 🟡 Medium (governance/trust in the short status) | 🟢 Low (pure data correction) | Sonnet, low | Substantively fixed by this update (18 instead of 22, seven closed entries removed, three new ones added) – a green `recommendations_live_check.py` run against GitHub is still the outstanding closing proof |
 | [#781](https://github.com/NikolayDA/picture_helper/issues/781) | Persist vision-verdict detail, clarify the failed acceptance criterion | 🟡 Medium (evidence quality of the acceptance automation) | 🟡 Medium (artifact upload + assessing one real finding) | Sonnet, medium | Artifact upload (`vision-verdikte.json`) is implementable right away; assessing the failed criterion from run 31753178219 needs the next acceptance run with the artifact |
 
 ### Recommended Next
 
-1. Prepare patch release **v2.7.3**: ship the already-merged #769 fix (CVE-2025-5683) via a
-   version bump + CHANGELOG cutover, then run a candidate build per the release runbook.
+1. Merge **PR #786** (2.7.3 version cut incl. the #769 release and the #773 fix), then run a
+   candidate build per the release runbook.
 2. Close out **#777**: run `scripts/recommendations_live_check.py` green against the real GitHub
    state (needs network access), then close the issue.
-3. Fix **#773** mechanically – a two-line fix across all six CHANGELOG files, a small independent
-   PR.
-4. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) and
+3. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) and
    **#716** (test audit) remain parallel-ready.
-5. **#781**: implement the artifact upload now; assessing the criterion waits on the next
+4. **#781**: implement the artifact upload now; assessing the criterion waits on the next
    acceptance run.
-6. **#741** stays open until the DoD proof (no second hardware acceptance after publish) lands in
+5. **#741** stays open until the DoD proof (no second hardware acceptance after publish) lands in
    the next release cycle.
 
 ## Previous Rounds
