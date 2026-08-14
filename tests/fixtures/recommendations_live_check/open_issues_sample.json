@@ -1,0 +1,20 @@
+[
+  {
+    "number": 758,
+    "title": "[Release 2.7.2] Abnahme- und Veröffentlichungsprotokoll",
+    "state": "open"
+  },
+  {
+    "number": 752,
+    "title": "Recommendations-Live-Stand und Freeze-Provenienz absichern",
+    "state": "open"
+  },
+  {
+    "number": 782,
+    "title": "fix(security): close #762/#769 - accept Qt SVG CVE risk, fix ICNS thumbnail path",
+    "state": "open",
+    "pull_request": {
+      "url": "https://api.github.com/repos/NikolayDA/picture_helper/pulls/782"
+    }
+  }
+]

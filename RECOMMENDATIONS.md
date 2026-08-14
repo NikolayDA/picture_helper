@@ -11,7 +11,13 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-13, #762/#769 abgeschlossen)
+## Aktueller Stand (2026-08-14, #752 abgeschlossen, PR #783)
+
+**#752 ist abgeschlossen:** Der Kurzstatus wird jetzt zusätzlich durch einen
+separat ausführbaren GitHub-Live-Check (`scripts/recommendations_live_check.py`)
+und einen netzfreien Sprachparitätstest (Kurzstatus-Datum/Live-Stand-Zahl über
+alle sechs Fassungen) abgesichert, statt sich allein auf manuelle Pflege zu
+verlassen – Details in [`TESTING.md`](TESTING.md).
 
 **v2.7.2 ist veröffentlicht** (2026-08-02, Tag `v2.7.2` auf Commit `230c61e6578fd6f73ff650dd737c903ed42b397e`, fünf Artefakte). Kandidatenbau, Hardware-Abnahme (macOS arm64 + Linux arm64, Linux x86_64 weiterhin mangels GPU-Zugang pausiert), Owner-Freigabe der Screenshots und Publish sind vollständig in #758 protokolliert; `PUBLIC-DOWNLOAD-01` ist bestanden (alle fünf Assets anonym über `browser_download_url` geladen und bytegleich gegen das Freigabemanifest geprüft). Offen bleibt ausschließlich `UPDATE-01` (#748): der echte Vorgängerartefakt-Nachweis braucht einen Hardware-Lauf nach Publish und ist noch nicht ausgeführt.
 
@@ -23,7 +29,7 @@ Epic **#741** ist damit größtenteils abgeschlossen: #737 sowie #742–#747 sin
 
 **Alte Basis unverändert abgeschlossen:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte sowie die Releases v2.7.0/v2.7.1/v2.7.2. Kein 🔴-Befund offen; #762 stand trotz HIGH-CVSS auf 🟠, weil der reale Angriffspfad im Code eng war (jetzt als Restrisiko dokumentiert akzeptiert, siehe oben).
 
-Live-Stand nach GitHub-Abfrage: **23** offene Issues – #737/#745/#746/#762/#769 sind geschlossen, #758 ist neu.
+Live-Stand nach GitHub-Abfrage: **22** offene Issues – #752 ist geschlossen.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-12)
 
@@ -32,7 +38,6 @@ Live-Stand nach GitHub-Abfrage: **23** offene Issues – #737/#745/#746/#762/#76
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟠 Hoch (zwei Releases mit erheblicher Nacharbeit) | 🟠 Hoch (11 Teil-Issues, Freeze- und Publish-Umbau) | – (Epic) | #737/#742–#747 erledigt, v2.7.2 veröffentlicht (#758); nur #748 (Hardware-Lauf) offen, #656/#731 entschieden/umgesetzt (Nachweis im nächsten Lauf aussteht) |
 | [#758](https://github.com/NikolayDA/picture_helper/issues/758) | [Release 2.7.2] Abnahme- und Veröffentlichungsprotokoll | 🟠 Hoch (aktuelles Release-Protokoll) | 🟢 Niedrig (GO bereits erteilt, veröffentlicht) | – (Owner/Hardware) + Sonnet, niedrig | `UPDATE-01` (#748) auf Hardware ausführen, dann Issue schließen |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-Release-Update-Erkennung aus echtem Vorgängerartefakt | 🟡 Mittel (produktiver Update-Pfad ungeprüft) | 🟠 Hoch (Plattform-/Betriebsarbeit, nur post-release möglich) | Opus, hoch | v2.7.2 ist veröffentlicht (#758) – jetzt `UPDATE-01` mit echtem v2.7.1-Vorgängerartefakt auf Hardware ausführen |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Recommendations-Live-Stand und Freeze-Provenienz absichern | 🟡 Mittel (dritter belegter Drift nach #669/#728) | 🟡 Mittel (lokale Vertragsprüfung + separater GitHub-Live-Check) | Sonnet, mittel | Jetzt auf Policy-, Checklisten- und Manifestvertrag statt manueller Zustände zuschneiden |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | ClamAV-Scan je Plattform tatsächlich lauffähig machen | 🟡 Mittel (Supply-Chain-Zusatzschicht, nicht release-blockierend) | 🟢 Niedrig (Cache-Workflow + Restore-Umstellung umgesetzt) | – (Owner) + Sonnet, niedrig-mittel | Owner-Entscheidung A getroffen (versionierter DB-Cache), `clamav-db-refresh.yml` + `release-linux.yml` umgestellt (ADR-2026-clamav-signaturcache.md) – noch offen: echten Scan mit Cache-Treffer auf allen drei Legs im nächsten Kandidatenlauf nachweisen |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | API-Zugang für Vision-Vorbewertung bewusst scopen | 🟡 Mittel (Evidenzqualität der Screenshots) | 🟢 Niedrig (Secret + Workflow-Umstellung) | – (Owner) + Sonnet, niedrig | Owner-Entscheidung A getroffen, `ANTHROPIC_VISION_API_KEY` angelegt, Workflow/Skript/Doku umgestellt – noch offen: echter API-Aufruf + zwei reale Screenshot-Beispiele im nächsten Abnahmelauf nachweisen |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.1-Release – durch v2.7.2 fachlich überholt | 🟢 Niedrig (v2.7.2 bereits veröffentlicht und abgenommen) | 🟢 Niedrig (nur noch eine Schließungsentscheidung) | – (Owner) | Owner-Entscheidung: als „durch v2.7.2 erledigt“ schließen oder verbleibende v2.7.1-Kriterien eigenständig zu Ende führen |
@@ -57,13 +62,13 @@ Live-Stand nach GitHub-Abfrage: **23** offene Issues – #737/#745/#746/#762/#76
    sobald ein Runner frei ist; danach **#758** und **#741** schließen.
 2. Owner-Entscheidung zu **#680/#685/#686**: als durch v2.7.2 erledigt schließen oder die
    verbleibenden v2.7.1-Kriterien eigenständig abschließen.
-3. **#752** bleibt unabhängig; **#656** und **#731** sind beide entschieden (Variante A) und
-   umgesetzt, nur der jeweilige Nachweis im nächsten Lauf steht noch aus. #752 soll den neuen
-   Checklisten-/Manifestvertrag statt manueller Zustände prüfen.
+3. **#656** und **#731** sind beide entschieden (Variante A) und umgesetzt, nur der jeweilige
+   Nachweis im nächsten Lauf steht noch aus.
 4. **#692** und **#716** sind parallel startbar; **#681/#687–#691** bleiben extern blockiert.
 
 ## Vorige Runden
 
+- **2026-08-14 (#752 abgeschlossen, PR #783)** — Dritter belegter Recommendations-Drift nach #669/#728 behoben: `scripts/recommendations_live_check.py` vergleicht die Triage-Tabelle separat ausführbar gegen die tatsächlich offenen GitHub-Issues (fehlende offene Issues, weiterhin als offen geführte geschlossene Issues, abweichende Gesamtzahl); `tests/test_recommendations_live_check.py` deckt die Kernlogik netzfrei über gespeicherte Fixtures ab. `tests/test_recommendations_freeze_consistency.py` bestimmt das aktive Freeze-Dokument aus `pyproject.toml` und hält Kurzstatus-Datum sowie Live-Stand-Zahl über alle sechs Sprachfassungen synchron; der ursprünglich geplante Abgleich gegen einen „Protokollierten Kandidaten-SHA“ entfiel, weil PR #754 dieses Feld aus dem Freeze-Dokument bereits entfernt hatte. `make check` lokal grün. Live-Stand 22.
 - **2026-08-13 (#762/#769 abgeschlossen, PR #782)** — Owner-Entscheidung zu #762 herbeigeführt: Risiko dokumentiert akzeptiert statt Raspberry-Pi-aarch64-Ziel aufzugeben (Begründung jetzt im `PyQt6`-Pin-Kommentar in `requirements/constraints.txt`). #769 per Code-Fix geschlossen: `_recent_thumbnail_icon` (`right_panel.py`) nutzt jetzt `open_validated_image` statt direktem `QPixmap(path)`, Regressionstest in `tests/test_right_panel.py` ergänzt. `make check` lokal grün. Live-Stand 23.
 - **2026-08-12 (Recommendations-Sync, Release v2.7.2, neue Sicherheitsbefunde)** — GitHub-Live-Stand weiterhin 25 offene Issues, aber mit geänderter Zusammensetzung seit der letzten Runde: #737/#745/#746 sind über PR #756/#759–#761 geschlossen; neu erfasst sind #758 (Abnahme-/Veröffentlichungsprotokoll 2.7.2), #762 (🟠 HIGH-CVSS Qt-SVG-CVE-2026-6210) und #769 (🟡 MEDIUM-CVSS ICNS-DoS CVE-2025-5683). v2.7.2 ist veröffentlicht (Tag `v2.7.2` auf `230c61e6…`, fünf Artefakte, `PUBLIC-DOWNLOAD-01` bestanden); `UPDATE-01` (#748) bleibt bis zum echten Hardware-Nachweis offen. Fünf zwischenzeitliche Doku-Audit-Issues (#764–#768, CLAUDE.md-Signaturdrift) wurden über PR #771 bereits geschlossen und sind in dieser Zählung nicht mehr enthalten. #762 braucht eine Owner-Entscheidung zwischen Aufgabe des Raspberry-Pi-aarch64-Ziels und dokumentierter Risikoakzeptanz, da ab Qt 6.8 kein kompatibles Wheel mehr existiert. #680/#685/#686 (v2.7.1-Abnahme) wirken durch die bereits erfolgte v2.7.2-Veröffentlichung fachlich überholt und sind zur Owner-Prüfung markiert.
 - **2026-08-12 (Korrektur auf PR #774, Codex-Review)** — Die im selben Sync behauptete Einschätzung „#769 braucht keinen Fix" war falsch: `_recent_thumbnail_icon` (`right_panel.py:335-338`) lädt Pfade aus der „Zuletzt geöffnet"-Liste direkt über `QPixmap(path)` ohne Pillow-Whitelist, ein per Pfad ausgetauschtes ICNS trifft daher den verwundbaren Qt-Codepfad. Tabelle und Fließtext oben korrigiert, Befund in #769 nachgetragen.

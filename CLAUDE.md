@@ -473,13 +473,13 @@ Ein Paket, `bgremover/`:
   `preview3d_controller` und `viewer_3d` laufen mit
   `check_untyped_defs` (inhaltliche Prüfung der Callbacks, aber kein
   Annotationszwang); die übrigen UI-Module bleiben bewusst laxer. Dieselbe
-  Strenge gilt für **sechs** Skripte: `scripts/abnahme_vision_check.py`,
+  Strenge gilt für **sieben** Skripte: `scripts/abnahme_vision_check.py`,
   `scripts/abnahme_aggregate.py` (#646), `scripts/verify_release_freeze.py`
   (#699/#742), `scripts/gl_stress_probe.py` (#684),
-  `scripts/release_path_policy.py` (#743) und `scripts/release_contract.py`
-  (#744/#747) – als eigenständige Dateien ohne `scripts/__init__.py` explizit
-  per Dateipfad in `files` sowie per Modul-Override (Modulname =
-  Dateibasisname) erfasst.
+  `scripts/release_path_policy.py` (#743), `scripts/release_contract.py`
+  (#744/#747) und `scripts/recommendations_live_check.py` (#752) – als
+  eigenständige Dateien ohne `scripts/__init__.py` explizit per Dateipfad in
+  `files` sowie per Modul-Override (Modulname = Dateibasisname) erfasst.
 - **Tests:** Marker `ui` (nightly, voll) vs. `ui_smoke` (läuft in CI mit) plus
   `gl_smoke` (Offscreen-3D-Render-Smokes, brauchen einen echten GL-Kontext und
   überspringen sich auf Plattformen ohne renderbaren FBO, z. B. `offscreen`;
@@ -490,7 +490,13 @@ Ein Paket, `bgremover/`:
 - **Befunde** werden in `RECOMMENDATIONS.md` mit IDs geführt (`N#`/`O#`);
   Historie unter `docs/history/`. Abnahme-Matrizen je Epic ebenfalls dort
   ([`EPIC-581-ABNAHME.md`](docs/history/EPIC-581-ABNAHME.md) 16-Bit-Höhenpipeline,
-  [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau).
+  [`EPIC-582-ABNAHME.md`](docs/history/EPIC-582-ABNAHME.md) 3D-Vorschau). Der
+  Kurzstatus driftete mehrfach kurz nach einer Aktualisierung vom
+  GitHub-Live-Stand ab (#669/#728/#752); `scripts/recommendations_live_check.py`
+  vergleicht die Triage-Tabelle separat ausführbar gegen die tatsächlich
+  offenen Issues, `tests/test_recommendations_freeze_consistency.py` hält
+  Kurzstatus-Datum und Live-Stand-Zahl netzfrei über alle sechs
+  Sprachfassungen synchron (Details in [`TESTING.md`](TESTING.md)).
 
 ## CI-Automatisierung
 
