@@ -11,59 +11,54 @@
 | 🟡 | 中 | 对质量、可读性或可测试性有用的改进 |
 | 🟢 | 低 | 可选的打磨或流程改进 |
 
-## 当前状态（2026-08-14，#752 已关闭，PR #783）
+## 当前状态（2026-08-14，实时数量已修正为 18 —— #777）
 
-**#752 已关闭：** 简要状态现在还通过一个可单独运行的 GitHub 实时检查
-（`scripts/recommendations_live_check.py`）和一个无需网络的多语言一致性测试
-（Kurzstatus 日期/实时数量，覆盖全部六个语言版本）加以保障，而不再仅依赖人工维护——详见
-[`TESTING.md`](../../../TESTING.md)。
+**实时数量已修正（#777）：** 上一次更新后，简要状态仍声称有 22 个未结议题，而 GitHub 实际上已降至 18 个——七个已经关闭的议题（#656、#680、#685、#686、#731、#748、#758）仍留在分诊表中，三个真正未结的议题（#773、#777、#781）却缺失。以下已修正这两处偏差；`scripts/recommendations_live_check.py`（#752）正是为覆盖这种漂移模式而生，但在上一轮之后没有自动运行——针对 GitHub 真实状态的绿色实时运行仍是 #777 尚待完成的收尾证明。
 
-**v2.7.2 已发布**（2026-08-02，标签 `v2.7.2` 位于提交 `230c61e6578fd6f73ff650dd737c903ed42b397e`，五个产物）。候选构建、硬件验收（macOS arm64 + Linux arm64，Linux x86_64 因缺少 GPU 访问仍暂停）、所有者对截图的确认以及发布均已完整记录在 #758 中；`PUBLIC-DOWNLOAD-01` 已通过（全部五个资产均通过 `browser_download_url` 匿名下载，并与批准清单逐字节核对一致）。唯一仍未完成的是 `UPDATE-01`（#748）：真实前版产物的验证需要在发布后进行硬件运行，目前尚未执行。
+**目前无需新版本：** `pyproject.toml` 仍为 **2.7.2**，与最近一次发布的标签一致（2026-08-02）；六个 CHANGELOG 文件中的 `[Unreleased]` 均为空。#758（验收/发布协议）与 #748（`UPDATE-01`，真实前版产物证明）现均已关闭。下一个发布范围要等到 #692/#687（COLOR/EufyMake 两个史诗）取得实质进展，或积累了若干小修复（如 #773 之类）之后才会确定。
 
-史诗 **#741** 因此已基本完成：#737 以及 #742–#747 均已完成（最近一次通过 PR #756/#759/#760/#761），只剩 #748（受阻于硬件运行）仍未解决；#656（视觉密钥，PR #778）与 #731（ClamAV，方案 A）均已决策并落地——各自仅剩下一次候选/验收运行中的证明。
+史诗 **#741** 已达成核心目标：其全部原始子议题（#656、#680、#685、#686、#731、#737、#740、#742–#748、#758）均已关闭——publish 的逐字节一致性、匿名公开下载以及真实的 `UPDATE-01` 硬件证明均已到位。该史诗刻意保持未结：v2.7.2 尚未满足「tag/publish 后不应再有第二次硬件验收」这一 DoD 条款（publish 运行于 2026-08-02 13:11 UTC 结束，随后 13:35 UTC 起第二次 dispatch 又重新跑了一遍完整的 macOS/Linux-arm64 验收），需要在下一个发布周期中实际证明；此外，新的子议题 #781 另行跟踪首次使用 `ANTHROPIC_VISION_API_KEY` 的真实验收运行中各条视觉判定细节的持久化问题。
 
-**#762 与 #769 均已关闭（PR #782）：** #762（🟠 HIGH，CVSS 8.7，CVE-2026-6210，Qt SVG 类型混淆）的所有者决策是接受并记录风险，而非放弃目标平台——议题自身的 wheel 调研已经证明，Qt 6.8 及以后版本不再提供 `manylinux_2_28_aarch64` wheel，版本升级会破坏 Raspberry Pi OS “bookworm” aarch64 支持；其理由（通过原生文件对话框图标触发的、仅限崩溃的窄幅拒绝服务向量，在正常图片编辑流程中不构成远程代码执行）现已永久记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里。#769（🟡 MEDIUM，CVSS 5.1，CVE-2025-5683，`QImage` 中的 ICNS 拒绝服务）已获得 PR #774 的 Codex 评审中发现的代码修复：`_recent_thumbnail_icon`（`right_panel.py`）现在通过经过验证的 Pillow 管线（`open_validated_image`）加载“最近打开”缩略图，而不再直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试，验证精心构造的文件绝不会作为原始路径传给 `QPixmap`。五个过渡性文档审计议题（**#764–#768**，CLAUDE.md 签名漂移）已通过 PR #771 关闭。
+保持不变并已关闭：**N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项、v2.7.0/v2.7.1/v2.7.2 三个版本，以及史诗 #741 及其十二个原始子议题，还有安全发现 #762（🟠 HIGH CVSS，已记录并接受风险）和 #769（🟡 MEDIUM CVSS，已通过代码修复关闭）。无未决的 🔴 级发现。
 
-**标记待所有者复核：** #685/#686（v2.7.1 候选构建/发布）仍带有未完成的清单项，尽管 v2.7.2 已经发布并在事实上取代了它们——是将其作为“已通过 v2.7.2 完成”关闭，还是独立完成剩余标准，属于所有者决策。
+GitHub 查询后的实时状态：**18** 个未结议题——#656、#680、#685、#686、#731、#748 与 #758 已在上次更新后关闭；#773、#777 与 #781 为新纳入。
 
-**既有基线保持关闭不变：** **N1/N2/N4/N5/N6/N7/N8**、**O1–O8**、自 **2026-06-25** 起完成的全部事项，以及 v2.7.0/v2.7.1/v2.7.2 三个版本。无未决的 🔴 级发现；#762 曾因代码中真实的攻击路径较窄而评为 🟠（尽管 CVSS 为 HIGH），现已作为已记录并接受的残余风险处理（见上文）。
-
-GitHub 查询后的实时状态：**22** 个未结议题——#752 已关闭。
-
-## GitHub 未结议题 — 分诊状态（2026-08-12）
+## GitHub 未结议题 — 分诊状态（2026-08-14）
 
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [史诗] 发布流程稳定化 —— 直至已发布字节的证据链 | 🟠 高（两个版本均有大量返工） | 🟠 高（11 个子议题，冻结与 publish 改造） | –（史诗） | #737/#742–#747 已完成，v2.7.2 已发布（#758）；仅剩 #748（硬件运行）未解决，#656/#731 已决策/落地（下一次运行的证明待补） |
-| [#758](https://github.com/NikolayDA/picture_helper/issues/758) | [发布 2.7.2] 验收与发布协议 | 🟠 高（当前发布协议） | 🟢 低（GO 已批准，已发布） | –（所有者/硬件）+ Sonnet，低 | 在硬件上执行 `UPDATE-01`（#748），随后关闭该议题 |
-| [#748](https://github.com/NikolayDA/picture_helper/issues/748) | 用真实的前版产物验证发布后的更新检测 | 🟡 中（生产更新路径未经验证） | 🟠 高（平台/运维工作，仅能在发布后进行） | Opus，高 | v2.7.2 已发布（#758）——现在需在硬件上针对真实的 v2.7.1 前版产物执行 `UPDATE-01` |
-| [#731](https://github.com/NikolayDA/picture_helper/issues/731) | 让 ClamAV 扫描在各平台真正可运行 | 🟡 中（供应链附加层，不阻塞发布） | 🟢 低（缓存工作流 + restore 切换已落地） | –（所有者）+ Sonnet，低-中 | 所有者已决定方案 A（版本化数据库缓存），已切换 `clamav-db-refresh.yml` + `release-linux.yml`（ADR-2026-clamav-signaturcache.md）——仍待：在下一次候选运行中证明三个平台均命中缓存并真实扫描 |
-| [#656](https://github.com/NikolayDA/picture_helper/issues/656) | 有意识地限定视觉预评估的 API 访问范围 | 🟡 中（截图证据质量） | 🟢 低（密钥 + 工作流切换） | –（所有者）+ Sonnet，低 | 所有者已决定方案 A，已创建 `ANTHROPIC_VISION_API_KEY`，已切换工作流/脚本/文档 —— 仍待：在下一次验收运行中证明真实 API 调用及两个真实截图示例 |
-| [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.1 发布 —— 已被 v2.7.2 在事实上取代 | 🟢 低（v2.7.2 已发布并通过验收） | 🟢 低（仅剩关闭决策） | –（所有者） | 所有者决策：作为“已通过 v2.7.2 完成”关闭，或独立完成剩余的 v2.7.1 标准 |
-| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | **修正定义** —— 标准描述的是 TIFF，导出写出的是 PNG 产物 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | 尚不具备启动条件 —— 容器/格式问题应成为清单的第一项 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部 + 定义）—— 需以正确格式生成测试样件 |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部 + 定义）—— 先厘清 mm/DPI 的传递途径（N10） |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部 + 定义） |
-| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690；writer 标准提到的是 TIFF 标签/IFD |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [史诗] 发布流程稳定化 —— 直至已发布字节的证据链 | 🟡 中（核心工作已完成，一项流程标准尚未证实） | 🟢 低（只剩 #781） | –（史诗） | 在下一个发布周期中证明「publish 后不应再有第二次硬件验收」这一 DoD 条款；#781 是唯一剩余的子议题 |
+| [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | 定义已于 2026-08-14 修正（PNG 而非 TIFF）—— #687 现已可作为第一个子议题启动 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | **可以开始** —— 容器/格式问题现已是第一条验收标准（定义已修正） |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— 等待 #687 提供测试样件；定义已修正 |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— mm/DPI 的传递途径仍未厘清（N10） |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— 等待 #687 |
+| [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图的基础，非当前活跃缺陷） | 🔴 高（5 个子议题，ADR→核心→UI→集成→验收） | –（Epic） | 进行中 —— 优先启动 #692 |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | 色调/直方图/灰度操作的 ADR + 数据契约 | 🟠 高（为整个 Epic 确立契约） | 🟡 中（架构决策，无需实现） | Opus，高 | 可立即启动 |
 | [#693](https://github.com/NikolayDA/picture_helper/issues/693) | 无 Qt 依赖核心：直方图/灰度/色阶/伽马 | 🟡 中高 | 🟡 中（扩展 `color_ops.py`，隔离良好、易于测试） | Sonnet，高 | 阻塞 —— 等待 ADR #692 |
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | 直方图/色阶/伽马的实时预览 + 操作界面 | 🟡 中 | 🟡 中高（Qt UI，需类似高度预览的防抖/世代保护） | Sonnet，高 | 阻塞 —— 等待核心 #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
-| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 在 OpenAI 平台项目上解决账单/配额问题 |
-| [#716](https://github.com/NikolayDA/picture_helper/issues/716) | 测试套件审计：较小的缺口（WorkerController mesh e2e、CropBar 接线、薄弱断言） | 🟢 低（无生产缺陷，纯测试质量） | 🟡 低-中（约 8 个测试文件中的若干独立小项） | Sonnet，低 | **可以开始** —— 议题中已有清单，机械化实现 |
+| [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
+| [#716](https://github.com/NikolayDA/picture_helper/issues/716) | 测试套件审计：较小的缺口（WorkerController mesh e2e、CropBar 接线、薄弱断言） | 🟢 低（无生产缺陷，纯测试质量） | 🟡 低-中（约 8 个测试文件中的若干独立小项） | Sonnet，低 | 可以开始 —— 议题中已有清单，已于 2026-08-12 再次确认无变化 |
+| [#773](https://github.com/NikolayDA/picture_helper/issues/773) | CHANGELOG.md：缺少 [2.7.2] 引用链接，[Unreleased] 对比链接过时 | 🟢 低（纯粹的 Markdown 链接问题，无运行时缺陷） | 🟢 低（6 个文件的机械式两行修复） | Sonnet，低 | **可以开始** —— 已于 2026-08-14 重新验证；`tests/test_changelog_metadata.py` 尚未覆盖该引用链接契约 |
+| [#777](https://github.com/NikolayDA/picture_helper/issues/777) | docs：尽管有新的检查器，RECOMMENDATIONS.md 的实时议题快照仍然过时 | 🟡 中（对简要状态的治理/信任问题） | 🟢 低（纯数据修正） | Sonnet，低 | 本次更新已在内容上修复（18 而非 22，删除七条已关闭记录，新增三条）——针对 GitHub 的绿色 `recommendations_live_check.py` 运行仍是尚待完成的收尾证明 |
+| [#781](https://github.com/NikolayDA/picture_helper/issues/781) | 持久化视觉判定细节，厘清失败的验收标准 | 🟡 中（验收自动化的证据质量） | 🟡 中（产物上传 + 评估一项真实发现） | Sonnet，中等 | 产物上传（`vision-verdikte.json`）可立即实现；评估运行 31753178219 中失败标准需要下一次带产物的验收运行 |
 
 ### 接下来推荐
 
-1. **#748**（`UPDATE-01`）应尽快在真实硬件上针对 v2.7.1 前版产物执行；完成后关闭 **#758** 与 **#741**。
-2. 推动关于 **#680/#685/#686** 的所有者决策：作为已通过 v2.7.2 完成关闭，或独立完成剩余的 v2.7.1 标准。
-3. **#656** 与 **#731** 均已决策（方案 A）并已落地，各自仅剩下一次运行中的证明。
-4. **#692** 与 **#716** 仍可并行启动；**#681/#687–#691** 继续受外部因素阻塞。
+1. 收尾 **#777**：针对 GitHub 真实状态运行 `scripts/recommendations_live_check.py` 直至变绿
+   （需要网络访问），随后关闭该议题。
+2. 机械式修复 **#773** —— 在全部六个 CHANGELOG 文件中做两行修复，一个小型独立 PR。
+3. 启动 **#687** 作为第一个 EufyMake 子议题（先解决格式问题）；**#692**（ADR）与 **#716**
+   （测试审计）仍可并行启动。
+4. **#781**：现在就实现产物上传；标准评估需等待下一次验收运行。
+5. **#741** 在下一个发布周期给出 DoD 证明（publish 后无第二次硬件验收）之前保持未结。
 
 ## 以往轮次
 
+- **2026-08-14（实时数量修正，#777）** —— 一次新的 GitHub 查询返回 18 个未结议题，而非此前声称的 22 个：#656、#680、#685、#686、#731、#748 与 #758 已在上一轮之后关闭（也因此基本完成了史诗 #741），但仍留在分诊表中；缺失的是 #773（CHANGELOG 引用链接）、#777（这一漂移发现本身）与 #781（视觉判定持久化，#656 的后续议题）。表格与简要状态已在全部六种语言中修正；针对 GitHub 的绿色 `recommendations_live_check.py` 运行仍是 #777 尚待完成的收尾证明。目前无需新版本（`pyproject.toml` 保持 2.7.2 不变，`[Unreleased]` 为空）。
 - **2026-08-14（#752 已关闭，PR #783）** —— 修复了继 #669/#728 后第三次已证实的 Recommendations 漂移：`scripts/recommendations_live_check.py` 可单独运行，将分诊表与 GitHub 上实际未结的议题进行比对（缺失的未结议题、仍标记为未结但实际已关闭的议题、总数偏差）；`tests/test_recommendations_live_check.py` 通过保存的 fixture 在无网络环境下覆盖核心逻辑。`tests/test_recommendations_freeze_consistency.py` 从 `pyproject.toml` 确定当前生效的冻结文档，并使 Kurzstatus 日期与实时数量在全部六个语言版本中保持同步；最初计划针对「已记录的候选 SHA」的检查已取消，因为 PR #754 早已从冻结文档中移除该字段。本地 `make check` 通过。实时状态：22。
 - **2026-08-13（#762/#769 已关闭，PR #782）** —— 推动了关于 #762 的所有者决策：接受并记录风险，而非放弃树莓派 aarch64 目标（理由现已记录在 `requirements/constraints.txt` 中 `PyQt6` 固定版本的注释里）。#769 通过代码修复关闭：`_recent_thumbnail_icon`（`right_panel.py`）现使用 `open_validated_image` 而非直接调用 `QPixmap(path)`，并在 `tests/test_right_panel.py` 中新增回归测试。本地 `make check` 通过。实时状态：23。
 - **2026-08-12（Recommendations 同步，v2.7.2 发布，新增安全发现）** —— GitHub 实时状态仍为 25 个未结议题，但自上一轮以来构成发生变化：#737/#745/#746 已通过 PR #756/#759–#761 关闭；新增记录的是 #758（2.7.2 验收/发布协议）、#762（🟠 HIGH CVSS Qt SVG CVE-2026-6210）与 #769（🟡 MEDIUM CVSS ICNS 拒绝服务 CVE-2025-5683）。v2.7.2 已发布（标签 `v2.7.2` 位于 `230c61e6…`，五个产物，`PUBLIC-DOWNLOAD-01` 已通过）；`UPDATE-01`（#748）在真实硬件验证完成前保持未解决。五个过渡性文档审计议题（#764–#768，CLAUDE.md 签名漂移）已通过 PR #771 关闭，未计入本次统计。#762 需要所有者在放弃树莓派 aarch64 目标与接受并记录风险之间做出决策，因为 Qt 6.8 起已不再提供兼容 wheel。#680/#685/#686（v2.7.1 验收）在 v2.7.2 已发布的情况下事实上已被取代，已标记待所有者复核。
