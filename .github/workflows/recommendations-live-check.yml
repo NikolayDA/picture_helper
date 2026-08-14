@@ -1,0 +1,53 @@
+name: Recommendations Live Check
+
+# Der Kurzstatus in RECOMMENDATIONS.md (root, deutsches Original) driftete
+# wiederholt kurz nach einer Aktualisierung vom tatsaechlichen GitHub-Stand ab
+# (#669, #728, #752, erneut #777) - jedes Mal erst per Hand bemerkt und
+# nachtraeglich korrigiert. scripts/recommendations_live_check.py deckt genau
+# diesen Abgleich ab, lief bislang aber nur manuell. Dieser Workflow macht die
+# Ausfuehrung automatisiert und wiederkehrend: taeglich per Schedule sowie bei
+# jedem issues-Ereignis, das den offenen Bestand sofort veraendert (opened/
+# closed/reopened) - damit der Drift nicht mehr bis zur naechsten manuellen
+# Runde liegen bleibt, sondern spaetestens am naechsten Tag sichtbar (roter
+# Lauf) auffaellt.
+on:
+  schedule:
+    # Taeglich 06:30 UTC - versetzt zu den anderen taeglichen/woechentlichen
+    # Schedules (dependency-audit.yml Mo 05:00, ci.yml So 06:00).
+    - cron: '30 6 * * *'
+  issues:
+    types: [opened, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: recommendations-live-check
+  cancel-in-progress: true
+
+jobs:
+  live-check:
+    name: Live-Abgleich RECOMMENDATIONS.md gegen GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Live-Check gegen den echten offenen Issue-Bestand
+        # GITHUB_TOKEN reicht fuer den Read-only-Zugriff auf /issues und hebt
+        # das anonyme Rate-Limit an; keine weiteren Rechte noetig (siehe
+        # permissions oben). Ein Fund (fehlende offene Issues, weiterhin als
+        # offen gefuehrte geschlossene Issues, abweichende Gesamtzahl) oder
+        # ein Abruf-/Antwortfehler laesst den Job sichtbar rot werden - das
+        # ist die automatisierte, wiederkehrende Ausfuehrung, deren Fehlen
+        # die eigentliche Ursache des #777-Drifts war.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/recommendations_live_check.py --token "$GH_TOKEN"
