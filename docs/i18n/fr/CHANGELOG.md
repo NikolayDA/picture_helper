@@ -9,6 +9,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corrigé
+
+- **Les miniatures « récemment ouverts » ne chargeaient plus les fichiers
+  directement via Qt (#769, CVE-2025-5683).** `_recent_thumbnail_icon`
+  utilisait un `QPixmap(path)` direct, qui détecte le contenu du fichier par
+  ses octets plutôt que par l'extension, contournant ainsi entièrement la
+  liste blanche de formats Pillow de l'application. Un fichier remplacé par
+  un ICNS forgé sous le même chemin se charge désormais comme n'importe
+  quelle autre image, via le pipeline Pillow validé ; les fichiers non
+  pris en charge ou invalides retombent toujours sur le motif dégradé comme
+  auparavant.
+
 ## [2.7.2] – 2026-07-30
 
 ### Modifié

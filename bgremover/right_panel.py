@@ -53,8 +53,11 @@ from bgremover.height_map_panel import (
     Preview3DActions,
 )
 from bgremover.i18n import tr
+from bgremover.image_loading import open_validated_image
+from bgremover.image_utils import pil_to_qpixmap
 from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
+from bgremover.project_io import PROJECT_SUFFIX
 from bgremover.right_panel_tabs import (
     AdjustTab,
     BackgroundTab,
@@ -333,9 +336,25 @@ def _recent_card_style(p: Palette) -> str:
 
 
 def _recent_thumbnail_icon(path: str) -> QIcon:
-    """Erzeugt ein 30x30-Preview-Icon aus Bilddateien, sonst einen ruhigen Swatch."""
+    """Erzeugt ein 30x30-Preview-Icon aus Bilddateien, sonst einen ruhigen Swatch.
+
+    Lädt über die validierte Pillow-Pipeline (Format-Whitelist, Größen-/
+    Megapixel-Schutz) statt über ein direktes ``QPixmap(path)`` – Letzteres
+    lässt Qt den Dateiinhalt anhand der Bytes selbst erkennen (nicht anhand
+    der Endung) und könnte so einen zwischenzeitlich unter demselben
+    „Zuletzt geöffnet"-Pfad ausgetauschten, präparierten ICNS in Qts eigenen
+    Bild-Decoder routen (#769, CVE-2025-5683). Ein ``.bgrproj``-Pfad wird
+    dafür **nicht** angerührt (kein Bild, siehe ``_open_recent_path``s
+    identische Endungsprüfung) – sonst würde jede Panel-Neuerstellung (auch
+    bei jedem Themenwechsel) das komplette Projektarchiv bis zum
+    Dateigrößenlimit von ``open_validated_image`` einlesen, nur um es an der
+    Pillow-Formatprüfung abzuweisen (Codex-Review-Befund zu PR #782). Er
+    fällt wie zuvor sofort auf den Gradient-Swatch zurück.
+    """
     size = _RECENT_THUMB_SIZE
-    source = QPixmap(path)
+    is_project = path.lower().endswith(PROJECT_SUFFIX)
+    pil_image = None if is_project else open_validated_image(path)[0]
+    source = pil_to_qpixmap(pil_image) if pil_image is not None else QPixmap()
     target = QPixmap(size, size)
     target.fill(Qt.GlobalColor.transparent)
 

@@ -58,6 +58,30 @@ PyMatting==1.1.15
 # unstartable on that widely used target OS (confirmed via manual Raspberry
 # Pi 5 testing: ImportError "GLIBC_2.38' not found" in PyQt6.QtGui). Revisit
 # once Raspberry Pi OS ships a newer glibc baseline.
+#
+# Accepted risk (#762, owner decision 2026-08-13): this pin also carries
+# CVE-2026-6210 (Qt SVG type confusion / heap-buffer-overflow, HIGH,
+# CVSS 8.7, fixed 6.8.8/6.11.1) and CVE-2026-15037 (QDom XML injection,
+# LOW, fixed 6.12). Confirmed on PyPI (2026-08-05, see #762 comment
+# history) that no PyQt6-Qt6 release after 6.7.3 ships a
+# manylinux_2_28_aarch64 wheel - the fixed 6.8.8/6.11.1 lines require the
+# same glibc >= 2.39 that already blocks a plain bump above, so this isn't
+# a viable "just upgrade" fix without dropping Raspberry Pi OS "bookworm"
+# aarch64 support. bgremover doesn't call QSvgRenderer/QSvgWidget or build
+# QDomDocument from untrusted input; the residual exposure is a narrow,
+# crash-only DoS via Qt's native file-dialog icon theme path when browsing
+# a folder containing an attacker-supplied SVG, not RCE in normal
+# image-editing use. Tracked as an accepted risk until a glibc-2.36-
+# compatible fixed wheel exists or the aarch64 target is revisited (same
+# glibc baseline as the PyQt6-Qt6 note above).
+#
+# Related: CVE-2025-5683 (#769, ICNS DoS in QImage, same 6.7.3 pin) is
+# mitigated in-app - bgremover.image_loading.open_validated_image is the
+# only path used for user-supplied image bytes (Pillow, explicit format
+# whitelist, no ICNS) and bgremover.right_panel._recent_thumbnail_icon
+# routes recent-file thumbnails through the same validated loader instead
+# of a direct QPixmap(path) (#769 fix). The residual Qt-internal ICNS
+# decoder exposure falls under the same accepted-risk umbrella as above.
 PyQt6==6.7.1
 PyQt6-Qt6==6.7.3
 PyQt6_sip==13.11.1

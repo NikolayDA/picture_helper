@@ -9,6 +9,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corregido
+
+- **Las miniaturas de "Abiertos recientemente" ya no cargaban archivos
+  directamente vía Qt (#769, CVE-2025-5683).** `_recent_thumbnail_icon`
+  usaba un `QPixmap(path)` directo, que detecta el contenido del archivo por
+  sus bytes en vez de por la extensión y por tanto eludía por completo la
+  lista blanca de formatos de Pillow de la app. Un archivo sustituido por un
+  ICNS manipulado bajo la misma ruta ahora se carga como cualquier otra
+  imagen, a través de la canalización Pillow validada; los archivos no
+  soportados o inválidos siguen recurriendo al marcador de gradiente como
+  antes.
+
 ## [2.7.2] – 2026-07-30
 
 ### Cambiado
