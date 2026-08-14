@@ -500,7 +500,7 @@ Ein Paket, `bgremover/`:
 
 ## CI-Automatisierung
 
-Workflows unter `.github/workflows/` (14):
+Workflows unter `.github/workflows/` (15):
 
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
   Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
@@ -513,6 +513,11 @@ Workflows unter `.github/workflows/` (14):
   (**nur** `workflow_dispatch`, Parameter `min_severity`), `dependency-audit.yml`
   (PR + montags), `license-check.yml` (braucht bewusst kein Qt). Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
+- **Doku:** `recommendations-live-check.yml` (#777) — täglich (06:30 UTC), bei
+  jedem `issues`-Ereignis (opened/closed/reopened) und manuell:
+  `scripts/recommendations_live_check.py` gegen den echten GitHub-Live-Stand,
+  schlägt bei Drift sichtbar fehl. Ersetzt das rein manuelle Nachziehen des
+  Kurzstatus, das den Drift in #669/#728/#752/#777 wiederholt reproduzierte.
 - **Release:** `release-linux.yml` baut nur manuell den Kandidaten (zwei
   AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI;
   kein Tag-Trigger, keine Schreibrechte, kein Publish. `release-abnahme.yml`

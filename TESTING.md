@@ -230,6 +230,15 @@ netzfreien Paritätstest noch vom Live-Check angefasst – nur der Kurzstatus
 („## Aktueller Stand") und die Triage-Tabelle darunter müssen den aktuellen
 GitHub-Stand widerspiegeln.
 
+- **Automatisiert, wiederkehrend (#777):** `recommendations-live-check.yml`
+  führt genau diesen Live-Check ohne menschliches Zutun aus – täglich
+  (06:30 UTC), zusätzlich bei jedem `issues`-Ereignis (opened/closed/
+  reopened), und manuell per `workflow_dispatch`. Der Job schlägt sichtbar
+  fehl, sobald `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
+  manuelle Nachziehen allein hatte den Drift in #669/#728/#752 mehrfach und
+  in #777 sogar zweimal am selben Tag reproduziert; die wiederkehrende
+  Ausführung schließt genau diese Lücke.
+
 ## Einzelne Tests / nützliche Aufrufe
 
 ```bash
