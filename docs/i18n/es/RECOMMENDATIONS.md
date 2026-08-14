@@ -11,7 +11,13 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-08-13, #762/#769 cerradas)
+## Estado actual (2026-08-14, #752 cerrada)
+
+**#752 está cerrada:** el estado breve ahora también está respaldado por una
+comprobación en vivo de GitHub ejecutable por separado
+(`scripts/recommendations_live_check.py`) y una prueba de paridad de idiomas
+sin red (fecha del Kurzstatus/cifra en vivo en las seis versiones), en vez de
+depender solo del mantenimiento manual — detalles en [`TESTING.md`](../../../TESTING.md).
 
 **v2.7.2 está publicada** (2026-08-02, etiqueta `v2.7.2` sobre el commit `230c61e6578fd6f73ff650dd737c903ed42b397e`, cinco artefactos). El build del candidato, la aceptación de hardware (macOS arm64 + Linux arm64; Linux x86_64 sigue en pausa por falta de acceso a GPU), la aprobación del propietario sobre las capturas y el publish están completamente registrados en #758; `PUBLIC-DOWNLOAD-01` se superó (los cinco activos se descargaron de forma anónima vía `browser_download_url` y coinciden byte a byte con el manifiesto de aprobación). Solo queda pendiente `UPDATE-01` (#748): la prueba real del artefacto anterior necesita una ejecución en hardware después del publish y aún no se ha realizado.
 
@@ -23,7 +29,7 @@ La épica **#741** queda así en gran parte cerrada: #737 así como #742–#747 
 
 **Base anterior cerrada sin cambios:** **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25** y las versiones v2.7.0/v2.7.1/v2.7.2. Ningún hallazgo 🔴 abierto; #762 se calificó 🟠 pese a su CVSS HIGH porque la ruta de ataque real en el código era estrecha (ahora es un riesgo residual documentado y aceptado, véase arriba).
 
-Estado en vivo tras la consulta a GitHub: **23** incidencias abiertas — #737/#745/#746/#762/#769 están cerradas, #758 es nueva.
+Estado en vivo tras la consulta a GitHub: **22** incidencias abiertas — #752 está cerrada.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-08-12)
 
@@ -32,7 +38,6 @@ Estado en vivo tras la consulta a GitHub: **23** incidencias abiertas — #737/#
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟠 Alta (dos versiones con retrabajo notable) | 🟠 Alta (11 incidencias hijas, reforma de freeze y publish) | – (épica) | #737/#742–#747 hechas, v2.7.2 publicada (#758); solo queda abierta #748 (ejecución en hardware); #656/#731 decididas/implementadas (falta la prueba en la próxima ejecución) |
 | [#758](https://github.com/NikolayDA/picture_helper/issues/758) | [Release 2.7.2] Protocolo de aceptación y publicación | 🟠 Alta (protocolo de release actual) | 🟢 Baja (GO ya concedido, publicado) | – (propietario/hardware) + Sonnet, baja | Ejecutar `UPDATE-01` (#748) en hardware y luego cerrar la incidencia |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Detección de actualización posterior desde un artefacto anterior real | 🟡 Media (ruta de actualización productiva sin verificar) | 🟠 Alta (trabajo de plataforma/operación, solo posible tras publicar) | Opus, alta | v2.7.2 ya está publicada (#758) — ahora ejecutar `UPDATE-01` en hardware contra el artefacto anterior real de v2.7.1 |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Proteger el estado en vivo y la procedencia del freeze en Recommendations | 🟡 Media (tercera deriva acreditada tras #669/#728) | 🟡 Media (contrato local + comprobación GitHub separada) | Sonnet, media | Redefinir ahora sobre contratos de policy, checklist y manifiesto, no estado manual |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Hacer que el escaneo ClamAV se ejecute realmente por plataforma | 🟡 Media (capa adicional de cadena de suministro, no bloquea) | 🟢 Baja (workflow de caché + cambio de restore implementados) | – (propietario) + Sonnet, baja-media | Decisión A del propietario tomada (caché de base de datos versionada), `clamav-db-refresh.yml` + `release-linux.yml` adaptados (ADR-2026-clamav-signaturcache.md) — pendiente: demostrar un escaneo real con acierto de caché en las tres plataformas en la próxima ejecución de candidato |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Acotar deliberadamente el acceso de API para la prevaloración visual | 🟡 Media (calidad de la evidencia de capturas) | 🟢 Baja (secreto + cambio de flujo de trabajo) | – (propietario) + Sonnet, baja | Decisión A del propietario tomada, `ANTHROPIC_VISION_API_KEY` creado, workflow/script/documentación adaptados — pendiente: demostrar una llamada real a la API y dos ejemplos reales de capturas en la próxima ejecución de aceptación |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | Release v2.7.1 — superada en la práctica por v2.7.2 | 🟢 Baja (v2.7.2 ya publicada y aceptada) | 🟢 Baja (solo falta una decisión de cierre) | – (propietario) | Decisión del propietario: cerrar como «hecho vía v2.7.2» o completar de forma independiente los criterios restantes de v2.7.1 |
@@ -57,14 +62,14 @@ Estado en vivo tras la consulta a GitHub: **23** incidencias abiertas — #737/#
    en cuanto haya un runner libre; después cerrar **#758** y **#741**.
 2. Impulsar una decisión del propietario sobre **#680/#685/#686**: cerrar como hecho vía
    v2.7.2 o completar de forma independiente los criterios restantes de v2.7.1.
-3. **#752** sigue siendo independiente; **#656** y **#731** ya están decididas (variante A) e
-   implementadas, solo falta la prueba de cada una en la próxima ejecución. #752 debe verificar
-   el nuevo contrato de checklist/manifiesto en vez de estado manual.
+3. **#656** y **#731** ya están decididas (variante A) e implementadas, solo falta la prueba de
+   cada una en la próxima ejecución.
 4. **#692** y **#716** siguen iniciables en paralelo; **#681/#687–#691** continúan bloqueadas
    externamente.
 
 ## Rondas anteriores
 
+- **2026-08-14 (#752 cerrada)** — resuelta la tercera deriva acreditada de Recommendations tras #669/#728: `scripts/recommendations_live_check.py` compara la tabla de clasificación, ejecutable por separado, contra las incidencias realmente abiertas en GitHub (incidencias abiertas faltantes, incidencias listadas como abiertas aunque ya cerradas, recuento total divergente); `tests/test_recommendations_live_check.py` cubre la lógica central sin red mediante fixtures guardadas. `tests/test_recommendations_freeze_consistency.py` determina el documento de freeze activo a partir de `pyproject.toml` y mantiene sincronizados la fecha del Kurzstatus y el recuento en vivo en las seis versiones de idioma; la comprobación originalmente prevista contra un «SHA de candidato registrado» se descartó porque el PR #754 ya había eliminado ese campo del documento de freeze. `make check` verde en local. Estado en vivo: 22.
 - **2026-08-13 (#762/#769 cerradas, PR #782)** — se impulsó la decisión del propietario sobre #762: riesgo aceptado y documentado en vez de abandonar el objetivo Raspberry Pi aarch64 (el razonamiento vive ahora en el comentario del pin `PyQt6` en `requirements/constraints.txt`). #769 cerrada con una corrección de código: `_recent_thumbnail_icon` (`right_panel.py`) ahora usa `open_validated_image` en vez de un `QPixmap(path)` directo, más una prueba de regresión en `tests/test_right_panel.py`. `make check` verde en local. Estado en vivo: 23.
 - **2026-08-12 (sincronización de Recommendations, release v2.7.2, nuevos hallazgos de seguridad)** — el estado en vivo de GitHub sigue en 25 incidencias abiertas, pero con una composición distinta desde la última ronda: #737/#745/#746 están cerradas mediante PR #756/#759–#761; se registran como nuevas #758 (protocolo de aceptación/publicación de 2.7.2), #762 (🟠 CVSS HIGH, Qt SVG CVE-2026-6210) y #769 (🟡 CVSS MEDIUM, DoS ICNS CVE-2025-5683). v2.7.2 está publicada (etiqueta `v2.7.2` sobre `230c61e6…`, cinco artefactos, `PUBLIC-DOWNLOAD-01` superado); `UPDATE-01` (#748) sigue abierta hasta que se realice la prueba real en hardware. Cinco incidencias intermedias de auditoría documental (#764–#768, deriva de firmas en CLAUDE.md) ya se cerraron mediante el PR #771 y no forman parte de este recuento. #762 necesita una decisión del propietario entre abandonar el objetivo Raspberry Pi aarch64 y aceptar el riesgo documentado, ya que no existe un wheel compatible desde Qt 6.8 en adelante. #680/#685/#686 (aceptación de v2.7.1) parecen superadas en la práctica por el release v2.7.2 ya publicado y quedan marcadas para revisión del propietario.
 - **2026-08-12 (corrección en el PR #774, revisión de Codex)** — la valoración «#769 no necesita corrección» hecha en la misma sincronización era errónea: `_recent_thumbnail_icon` (`right_panel.py:335-338`) carga rutas de la lista de «abiertos recientemente» directamente mediante `QPixmap(path)` sin la lista blanca de Pillow, por lo que una ruta sustituida por un ICNS manipulado activa la ruta de código vulnerable de Qt. Tabla y texto anteriores corregidos; el hallazgo se añadió a #769.

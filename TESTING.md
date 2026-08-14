@@ -188,6 +188,48 @@ bewusst nicht abnahmefähigen Diagnoselauf `--allow-short-run` setzen. Ergebniss
 Die Tests laufen headless über `QT_QPA_PLATFORM=offscreen` – es öffnet
 sich also **kein Fenster**.
 
+## Recommendations-Live-Check (#752)
+
+`RECOMMENDATIONS.md` driftete wiederholt kurz nach einer Aktualisierung vom
+tatsächlichen GitHub-Stand ab (#669, #728, erneut #752). Zwei getrennte
+Prüfungen sichern das ab:
+
+- **Netzfrei, läuft in der Default-Suite mit:**
+  `tests/test_recommendations_freeze_consistency.py` bestimmt das aktive
+  Freeze-Dokument aus `pyproject.toml` und prüft, dass alle sechs
+  Sprachfassungen dasselbe Kurzstatus-Datum und dieselbe im Live-Stand
+  genannte offene-Issue-Anzahl führen. `tests/test_recommendations_live_check.py`
+  deckt die Kernlogik von `scripts/recommendations_live_check.py` (Triage-
+  Tabellen-Parsing inkl. gruppierter Zeilen wie `#680 / #685 / #686`,
+  Vergleichslogik) über gespeicherte Fixtures ab – ohne Netzwerk oder
+  GitHub-Token.
+- **Netzwerkzugriff, separat ausführbar:**
+  `python scripts/recommendations_live_check.py` fragt die tatsächlich
+  offenen GitHub-Issues ab und vergleicht sie gegen die Triage-Tabelle in
+  `RECOMMENDATIONS.md` (Abschnitt `## Offene GitHub-Issues`). Gemeldet
+  werden offene Issues, die in der Tabelle fehlen, Issues, die die Tabelle
+  weiterhin als offen führt, obwohl sie auf GitHub bereits geschlossen sind,
+  sowie eine abweichende Gesamtzahl. Offline/reproduzierbar mit einer
+  gespeicherten API-Antwort:
+
+  ```bash
+  python scripts/recommendations_live_check.py                     # Live-Abfrage
+  python scripts/recommendations_live_check.py \
+    --data tests/fixtures/recommendations_live_check/open_issues_sample.json
+  ```
+
+  Exit 0 = deckungsgleich, 1 = mindestens ein Befund, 2 = Aufruf-/
+  Netzwerkfehler.
+
+**Wann ausführen:** vor jedem PR, der `RECOMMENDATIONS.md` (oder eine der
+fünf Übersetzungen) inhaltlich ändert – insbesondere nach dem Schließen
+oder Neuerfassen von Issues, nicht erst als nachträgliche Korrektur wie bei
+#669/#728. Das Archiv **„Vorige Runden"** ist bewusst historisch: einmal
+geschriebene Einträge dort bleiben unverändert und werden weder vom
+netzfreien Paritätstest noch vom Live-Check angefasst – nur der Kurzstatus
+(„## Aktueller Stand") und die Triage-Tabelle darunter müssen den aktuellen
+GitHub-Stand widerspiegeln.
+
 ## Einzelne Tests / nützliche Aufrufe
 
 ```bash

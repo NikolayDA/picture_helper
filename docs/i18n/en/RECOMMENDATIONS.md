@@ -11,7 +11,13 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-13, #762/#769 closed)
+## Current Status (2026-08-14, #752 closed)
+
+**#752 is closed:** the short status is now additionally safeguarded by a
+separately runnable GitHub live-check (`scripts/recommendations_live_check.py`)
+and a network-free language-parity test (Kurzstatus date/live-count across
+all six versions), instead of relying on manual upkeep alone — details in
+[`TESTING.md`](../../../TESTING.md).
 
 **v2.7.2 is published** (2026-08-02, tag `v2.7.2` on commit `230c61e6578fd6f73ff650dd737c903ed42b397e`, five artifacts). Candidate build, hardware acceptance (macOS arm64 + Linux arm64, Linux x86_64 still paused for lack of GPU access), owner sign-off on the screenshots, and publish are fully logged in #758; `PUBLIC-DOWNLOAD-01` passed (all five assets downloaded anonymously via `browser_download_url` and byte-matched against the approval manifest). Only `UPDATE-01` (#748) remains open: the real predecessor-artifact proof needs a hardware run after publish and hasn't run yet.
 
@@ -23,7 +29,7 @@ Epic **#741** is thereby largely complete: #737 and #742–#747 are done (most r
 
 Prior baseline unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, plus releases v2.7.0/v2.7.1/v2.7.2. No 🔴 finding open; #762 was rated 🟠 despite its HIGH CVSS because the real attack path in the code was narrow (now a documented, accepted residual risk, see above).
 
-Live state after the GitHub query: **23** open issues — #737/#745/#746/#762/#769 are closed, #758 is new.
+Live state after the GitHub query: **22** open issues — #752 is closed.
 
 ## Open GitHub Issues — Triage Status (2026-08-12)
 
@@ -32,7 +38,6 @@ Live state after the GitHub query: **23** open issues — #737/#745/#746/#762/#7
 | [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟠 High (two releases with substantial rework) | 🟠 High (11 sub-issues, freeze and publish rebuild) | – (epic) | #737/#742–#747 done, v2.7.2 published (#758); only #748 (hardware run) remains, #656/#731 decided/implemented (proof in next run pending) |
 | [#758](https://github.com/NikolayDA/picture_helper/issues/758) | [Release 2.7.2] Acceptance and publish protocol | 🟠 High (current release protocol) | 🟢 Low (GO already granted, published) | – (owner/hardware) + Sonnet, low | Run `UPDATE-01` (#748) on hardware, then close the issue |
 | [#748](https://github.com/NikolayDA/picture_helper/issues/748) | Post-release update detection from a real predecessor artifact | 🟡 Medium (production update path unverified) | 🟠 High (platform/ops work, only possible post-release) | Opus, high | v2.7.2 is published (#758) — now run `UPDATE-01` on hardware against the real v2.7.1 predecessor artifact |
-| [#752](https://github.com/NikolayDA/picture_helper/issues/752) | Guard the Recommendations live state and freeze provenance | 🟡 Medium (third proven drift after #669/#728) | 🟡 Medium (local contract check + separate GitHub live check) | Sonnet, medium | Re-scope now to policy, checklist, and manifest contracts instead of manual state |
 | [#731](https://github.com/NikolayDA/picture_helper/issues/731) | Make the ClamAV scan actually run per platform | 🟡 Medium (supply-chain add-on, not release-blocking) | 🟢 Low (cache workflow + restore switch implemented) | – (owner) + Sonnet, low-medium | Owner decision A made (versioned DB cache), `clamav-db-refresh.yml` + `release-linux.yml` switched over (ADR-2026-clamav-signaturcache.md) — still open: prove a real scan with a cache hit on all three legs in the next candidate run |
 | [#656](https://github.com/NikolayDA/picture_helper/issues/656) | Deliberately scope the API access for the vision pre-assessment | 🟡 Medium (screenshot evidence quality) | 🟢 Low (secret + workflow switch) | – (owner) + Sonnet, low | Owner decision A made, `ANTHROPIC_VISION_API_KEY` created, workflow/script/docs switched over — still open: prove a real API call plus two real screenshot examples in the next acceptance run |
 | [#680](https://github.com/NikolayDA/picture_helper/issues/680) / [#685](https://github.com/NikolayDA/picture_helper/issues/685) / [#686](https://github.com/NikolayDA/picture_helper/issues/686) | v2.7.1 release — superseded in practice by v2.7.2 | 🟢 Low (v2.7.2 already published and accepted) | 🟢 Low (only a closing decision remains) | – (owner) | Owner decision: close as "done via v2.7.2" or finish the remaining v2.7.1 criteria independently |
@@ -55,11 +60,13 @@ Live state after the GitHub query: **23** open issues — #737/#745/#746/#762/#7
 
 1. Run **#748** (`UPDATE-01`) on real hardware against the v2.7.1 predecessor artifact as soon as a runner is free; then close **#758** and **#741**.
 2. Drive an owner decision on **#680/#685/#686**: close as done via v2.7.2, or finish the remaining v2.7.1 criteria independently.
-3. **#752** remains independent; **#656** and **#731** are both decided (variant A) and implemented, only the proof in the next run remains for each. #752 should verify the new checklist/manifest contract instead of manual state.
+3. **#656** and **#731** are both decided (variant A) and implemented, only the proof in the next run
+   remains for each.
 4. **#692** and **#716** remain parallel-ready; **#681/#687–#691** stay externally blocked.
 
 ## Previous Rounds
 
+- **2026-08-14 (#752 closed)** — fixed the third proven Recommendations drift after #669/#728: `scripts/recommendations_live_check.py` compares the triage table, separately runnable, against the actually open GitHub issues (missing open issues, issues still listed as open though closed, deviating totals); `tests/test_recommendations_live_check.py` covers the core logic network-free via stored fixtures. `tests/test_recommendations_freeze_consistency.py` determines the active freeze document from `pyproject.toml` and keeps the Kurzstatus date and live-count in sync across all six language versions; the originally planned check against a "logged candidate SHA" was dropped because PR #754 had already removed that field from the freeze document. `make check` green locally. Live state 22.
 - **2026-08-13 (#762/#769 closed, PR #782)** — drove the owner decision on #762: documented risk acceptance instead of dropping the Raspberry Pi aarch64 target (reasoning now lives in the `PyQt6` pin comment in `requirements/constraints.txt`). Closed #769 with a code fix: `_recent_thumbnail_icon` (`right_panel.py`) now uses `open_validated_image` instead of a direct `QPixmap(path)`, plus a regression test in `tests/test_right_panel.py`. `make check` green locally. Live state 23.
 - **2026-08-12 (Recommendations sync, release v2.7.2, new security findings)** — GitHub live state still 25 open issues, but with a changed composition since the last round: #737/#745/#746 are closed via PR #756/#759–#761; newly tracked are #758 (2.7.2 acceptance/publish protocol), #762 (🟠 HIGH-CVSS Qt SVG CVE-2026-6210), and #769 (🟡 MEDIUM-CVSS ICNS DoS CVE-2025-5683). v2.7.2 is published (tag `v2.7.2` on `230c61e6…`, five artifacts, `PUBLIC-DOWNLOAD-01` passed); `UPDATE-01` (#748) remains open until the real hardware proof runs. Five interim doc-audit issues (#764–#768, CLAUDE.md signature drift) were already closed via PR #771 and are no longer part of this count. #762 needs an owner decision between dropping the Raspberry Pi aarch64 target and accepting the documented risk, since no compatible wheel exists from Qt 6.8 onward. #680/#685/#686 (v2.7.1 acceptance) look superseded in practice by the v2.7.2 release already shipped and are flagged for owner review.
 - **2026-08-12 (correction on PR #774, Codex review)** — the assessment "#769 needs no fix" made in the same sync was wrong: `_recent_thumbnail_icon` (`right_panel.py:335-338`) loads paths from the "recently opened" list directly via `QPixmap(path)` without the Pillow whitelist, so a path swapped for a crafted ICNS hits the vulnerable Qt code path. Table and prose above corrected; the finding was added to #769.
