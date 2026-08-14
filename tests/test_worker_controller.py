@@ -736,6 +736,8 @@ def test_mesh_build_cancel_and_drain_with_real_thread(qapp, controller, monkeypa
 
     first_started = threading.Event()
     release_first = threading.Event()
+    second_started = threading.Event()
+    release_second = threading.Event()
     call_count = {"n": 0}
 
     class _FakeMesh:
@@ -750,6 +752,13 @@ def test_mesh_build_cancel_and_drain_with_real_thread(qapp, controller, monkeypa
             release_first.wait(timeout=5.0)
             if cancel is not None and cancel():
                 raise MeshBuildCancelled()
+        else:
+            # Auch der zweite Build blockiert: so ist er noch aktiv, waehrend
+            # der erste (drainende) Build fertig wird – nur so beweist die
+            # anschliessende Assertion, dass ``_finish_mesh_build_thread``
+            # wirklich per Identitaet und nicht blind raeumt (Review #620, P1).
+            second_started.set()
+            release_second.wait(timeout=5.0)
         return _FakeMesh()
 
     monkeypatch.setattr(relief_mesh_mod, "build_relief_mesh", fake_build_relief_mesh)
@@ -782,26 +791,39 @@ def test_mesh_build_cancel_and_drain_with_real_thread(qapp, controller, monkeypa
         on_error=lambda msg, gen: errors.append((msg, gen)),
     )
     assert started_second
-    assert controller.mesh_build_thread is not first_thread
-    assert controller.mesh_build_worker is not first_worker
+    assert second_started.wait(timeout=2.0)
+    second_thread = controller.mesh_build_thread
+    second_worker = controller.mesh_build_worker
+    assert second_thread is not None
+    assert second_thread is not first_thread
+    assert second_worker is not first_worker
     assert first_thread in controller._mesh_build_draining
     assert first_worker._cancelled is True
 
-    # Der zweite Build ist nicht gegated und laeuft uneingeschraenkt durch.
-    _drain(qapp, lambda: controller.mesh_build_thread is None)
-    assert [gen for _mesh, gen in results] == [2]
-    assert errors == []
-
-    # Jetzt den ersten, drainenden Build freigeben – er muss ueber die
-    # Draining-Liste sauber abgeschlossen werden, ohne die (bereits auf None
-    # stehenden) aktuellen Handles erneut anzufassen.
+    # Den ersten (drainenden) Build fertig werden lassen, waehrend der zweite
+    # noch aktiv/gegated ist: eine identitaets-blinde ``_finish_mesh_build_thread``
+    # (die die Handles unbedingt nullt statt nur bei Identitaetstreffer) wuerde
+    # genau hier die Handles des noch laufenden zweiten Builds faelschlich
+    # loeschen – die folgenden Assertions decken das auf.
     release_first.set()
-    _drain(qapp, lambda: controller._mesh_build_draining == [])
+    _drain(qapp, lambda: first_thread not in controller._mesh_build_draining)
 
     assert sip.isdeleted(first_thread) or first_thread.isFinished()
+    assert controller._mesh_build_draining == []
+    assert controller.mesh_build_thread is second_thread
+    assert controller.mesh_build_worker is second_worker
+    assert second_thread.isRunning()
+    # Der abgebrochene erste Build hat nie ein Ergebnis emittiert.
+    assert results == []
+    assert errors == []
+
+    # Jetzt den zweiten, weiterhin aktuellen Build freigeben.
+    release_second.set()
+    _drain(qapp, lambda: controller.mesh_build_thread is None)
+
+    assert sip.isdeleted(second_thread) or second_thread.isFinished()
     assert controller.mesh_build_thread is None
     assert controller.mesh_build_worker is None
-    # Der abgebrochene erste Build hat nie ein Ergebnis emittiert.
     assert [gen for _mesh, gen in results] == [2]
     assert errors == []
     assert controller._workers == []

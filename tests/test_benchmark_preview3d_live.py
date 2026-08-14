@@ -140,10 +140,10 @@ def test_real_hook_renders_and_measures_real_metrics(qapp) -> None:  # type: ign
     assert metrics["gl_peak_mb"] > 0.0
     assert metrics["gl_frame_ms_p50"] >= 0.0
     assert metrics["gl_frame_ms_p95"] >= 0.0
-    # first_frame()'s Readback-Check hat bereits nachgewiesen gerenderte
-    # Geometrie erzwungen (sonst waere Preview3DLiveUnavailable geflogen);
-    # zusaetzlich mind. ein Frame() lief real durch den Draw-Pfad.
-    assert hooks._frame_number >= 1
+    # first_frame() zaehlt einen Draw, die drei angeforderten frame()-Aufrufe
+    # (frames=3) je einen weiteren – ein auf eine Dummy-Zeit ohne echten Draw
+    # regressiertes frame() wuerde den Zaehler bei 1 belassen und hier auffallen.
+    assert hooks._frame_number == 4
 
 
 def test_refuses_without_hardware_gl_offscreen(qapp) -> None:  # type: ignore[no-untyped-def]
