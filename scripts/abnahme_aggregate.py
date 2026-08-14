@@ -177,8 +177,11 @@ def _sanitize_cell(text: str, *, max_len: int = 90) -> str:
     Entfernt Zeilenumbrüche (brechen sonst die Tabellenzeile) und maskiert
     Pipe-Zeichen (trennen sonst Spalten); LLM-generierte Begründungen landen
     unbereinigt in ``begruendung`` und dürfen die Matrix nicht zerstören.
+    Backslashes zuerst verdoppeln, sonst macht ein bereits vorhandenes
+    ``\\|`` aus der Pipe-Maskierung ein escapetes ``\\`` gefolgt von einem
+    wieder freien, trennenden ``|`` (Codex-Review #787).
     """
-    flat = " ".join(text.split()).replace("|", "\\|")
+    flat = " ".join(text.split()).replace("\\", "\\\\").replace("|", "\\|")
     if len(flat) > max_len:
         flat = flat[: max_len - 1].rstrip() + "…"
     return flat

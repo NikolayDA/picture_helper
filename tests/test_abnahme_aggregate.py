@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -376,6 +377,17 @@ def test_vision_row_sanitizes_begruendung_for_markdown_table() -> None:
     md = agg.render_markdown([row], commit_sha="abc")
     # Genau eine Tabellenzeile für diese Zeile: kein eingebetteter Zeilenumbruch.
     assert sum(1 for line in md.splitlines() if "Screenshots (Vision" in line) == 1
+
+
+def test_sanitize_cell_escapes_preexisting_backslash_before_pipe() -> None:
+    """Codex-Review PR #787: Ein bereits vorhandenes ``\\|`` darf durch die
+    Pipe-Maskierung keinen wieder freien, trennenden Pipe erzeugen – jedes
+    ``|`` im Ergebnis muss eine ungerade Anzahl vorangehender Backslashes
+    tragen (sonst hebt ``\\\\`` die Maskierung des folgenden Pipes auf)."""
+    sanitized = agg._sanitize_cell("A \\| B")
+    for match in re.finditer(r"\\*\|", sanitized):
+        backslashes = len(match.group()) - 1
+        assert backslashes % 2 == 1, sanitized
 
 
 def test_vision_load_from_disk(tmp_path: Path) -> None:
