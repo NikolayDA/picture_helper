@@ -272,6 +272,32 @@ def test_recent_thumbnail_never_hands_raw_path_to_qpixmap(qapp, tmp_path, monkey
     assert all(str(bogus) not in call for call in calls)
 
 
+def test_recent_thumbnail_skips_validated_load_for_project_paths(qapp, tmp_path, monkeypatch):
+    """Codex-Review-Befund zu PR #782: ``.bgrproj``-Pfade sind nie Bilder, daher
+    darf ``_recent_thumbnail_icon`` für sie nicht die validierte Pillow-Pipeline
+    aufrufen – die läse sonst bei jeder Panel-Neuerstellung (z. B. jedem
+    Themenwechsel) das komplette Projektarchiv bis zum Dateigrößenlimit ein, nur
+    um es an der Formatprüfung abzuweisen."""
+    from bgremover import right_panel
+
+    project = tmp_path / "motiv.bgrproj"
+    project.write_bytes(b"not a real project archive")
+
+    calls: list[str] = []
+    real_open_validated_image = right_panel.open_validated_image
+
+    def _spy_open_validated_image(path: str):
+        calls.append(path)
+        return real_open_validated_image(path)
+
+    monkeypatch.setattr(right_panel, "open_validated_image", _spy_open_validated_image)
+
+    icon = right_panel._recent_thumbnail_icon(str(project))
+
+    assert not icon.isNull()  # Gradient-Swatch-Fallback bleibt ein gültiges Icon
+    assert calls == []
+
+
 def test_open_step_recent_card_uses_prototype_background(qapp, tmp_path):
     """Die ganze „Zuletzt geöffnet"-Kachel nutzt den Prototyp-Kartenton."""
     from bgremover.theme import DARK, set_active_palette
