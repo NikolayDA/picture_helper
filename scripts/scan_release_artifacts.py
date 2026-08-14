@@ -5,7 +5,8 @@ Entpackt jedes Artefakt in einem Verzeichnis (z. B. ``dist/``) – AppImage
 (``--appimage-extract``), ``.deb`` (``dpkg-deb -x``, rekursiv für die darin
 gewrappte AppImage) bzw. ``.dmg`` (``hdiutil attach``/``detach``) – und prüft
 sowohl die Rohdatei als auch jede entpackte Datei binär auf hochkonfidente
-Geheimnis-Muster (AWS-Keys, GitHub-Tokens, private PEM-Schlüssel). Ein reiner
+Geheimnis-Muster (AWS-Keys, GitHub-Tokens, private PEM-Schlüssel,
+Slack-Tokens). Ein reiner
 Scan der komprimierten Container-Bytes würde eingebettete Geheimnisse in den
 komprimierten Nutzdaten (SquashFS/data.tar/UDZO) verfehlen. Ein Treffer beendet
 den Scan mit Exit 1 – geloggt wird nur ein nicht umkehrbares Fingerprint, nie
