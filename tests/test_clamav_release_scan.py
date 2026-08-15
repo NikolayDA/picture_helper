@@ -79,6 +79,9 @@ def test_clamav_command_scans_raw_and_extracted_payload_with_fail_closed_limits(
     for cmd in (raw_cmd, payload_cmd):
         assert "--max-filesize=2000M" in cmd
         assert "--max-scansize=2000M" in cmd
+        assert "--max-files=2000000" in cmd
+        assert "--max-recursion=100" in cmd
+        assert "--max-recursion=2000000" not in cmd
         assert "--alert-exceeds-max=yes" in cmd
         assert "--recursive" in cmd
     assert raw_cmd[-1] == str(artifact)

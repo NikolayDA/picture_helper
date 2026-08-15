@@ -97,7 +97,10 @@ _CLAMAV_LIMIT_OPTIONS = (
     "--max-filesize=2000M",
     "--max-scansize=2000M",
     "--max-files=2000000",
-    "--max-recursion=2000000",
+    # ClamAV begrenzt diesen Wert selbst auf 100. Die maximale gueltige
+    # Rekursionstiefe verhindert stille Standard-Skips, ohne den gesamten
+    # Aufruf wegen einer ungueltigen Option vor dem ersten Scan abzubrechen.
+    "--max-recursion=100",
     "--max-embeddedpe=2000M",
     "--pcre-max-filesize=2000M",
     "--alert-exceeds-max=yes",
