@@ -71,6 +71,23 @@ oder Manifest-Konvention verlangt.
   verlangt, ersetzt diese bestätigte Konvention die hier genannten
   importorientierten Defaults.
 
+### Nachtrag (2026-08-15, Issue #687)
+
+Eine Schreibtischrecherche (kein Realtest, Herstellerbelege nur über
+Suchmaschinen-Extraktion, Details und Quellen im versionierten
+[Annahmeninventar](EUFYMAKE-687-ANNAHMENINVENTAR.md)) beantwortet den ersten
+Punkt oben auf Evidenzgrad **S**: EufyMake Studio importiert Einzeldateien
+(PNG/JPEG/WEBP/SVG/AI/PSD/PDF), kein Paket und kein Manifest. Der importorientierte
+Exportordner aus Entscheidung 1 bleibt damit die richtige Wahl – ein Wechsel auf
+ein verbindliches Manifest oder feste Ordnernamen (letzter Punkt oben) ist nach
+aktuellem Kenntnisstand **nicht** zu erwarten. Der zweite Punkt (Bittiefe) hat
+ebenfalls neue, unbestätigte Evidenz: der Hersteller nennt 16 Bit/Kanal für
+Höhenkarten „if the option is available" – der Validator markiert seither den
+8-statt den 16-Bit-Pfad als unbestätigt (`eufymake_validate.py`,
+`BIT_DEPTH_UNCONFIRMED`). Alle Punkte bleiben formal **offen**, bis sie an echter
+Hardware (#688–#690) oder am Original der Herstellerquellen (V-01 im
+Annahmeninventar) verifiziert sind.
+
 ## Konsequenzen
 
 - #352 kann mit einem kleinen, testbaren Datenmodell starten und muss keine Qt-,

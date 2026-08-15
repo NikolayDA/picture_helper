@@ -80,8 +80,12 @@ def test_clean_project_has_no_findings() -> None:
     assert validate_export(_color_project()) == ()
 
 
-def test_color_plus_nonconstant_height_is_clean() -> None:
+def test_color_plus_nonconstant_height_at_16bit_is_clean() -> None:
+    # Bei DEFAULT_BIT_DEPTH (8) warnt seit #687 BIT_DEPTH_UNCONFIRMED (siehe
+    # test_8bit_height_is_unconfirmed_warning) – „clean" gilt daher nur noch am
+    # vom Hersteller (unbestätigt) empfohlenen 16-Bit-Pfad.
     project = _with_height(_color_project())
+    project.metadata[META_BIT_DEPTH] = 16
     assert validate_export(project) == ()
 
 
@@ -191,25 +195,36 @@ def test_gloss_always_warns_ink_mode() -> None:
     assert ExportCheckCode.GLOSS_MASK_EMPTY not in _codes(findings)
 
 
-def test_16bit_height_is_unconfirmed_warning() -> None:
+def test_8bit_height_is_unconfirmed_warning() -> None:
+    # 8 Bit ist DEFAULT_BIT_DEPTH – der Default-Pfad ohne META_BIT_DEPTH (#687:
+    # unbestätigte Herstellerhinweise empfehlen 16 Bit für Höhenkarten, daher
+    # warnt gerade der 8-Bit-Pfad statt des 16-Bit-Pfads).
     project = _with_height(_color_project())
-    project.metadata[META_BIT_DEPTH] = 16
     findings = validate_export(project)
     warn = next(f for f in findings if f.code is ExportCheckCode.BIT_DEPTH_UNCONFIRMED)
     assert warn.severity is Severity.WARNING
-    assert warn.params["bits"] == 16
+    assert warn.params["bits"] == 8
 
 
-def test_8bit_height_has_no_bitdepth_warning() -> None:
+def test_16bit_height_has_no_bitdepth_warning() -> None:
     project = _with_height(_color_project())
+    project.metadata[META_BIT_DEPTH] = 16
     assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in _codes(validate_export(project))
 
 
 def test_bit_depth_override_triggers_warning() -> None:
-    # Override 16 ohne Metadaten → Bittiefen-Warnung (UI-Wahl, #355).
+    # Override 8 ohne Metadaten → Bittiefen-Warnung (UI-Wahl, #355).
     project = _with_height(_color_project())
-    findings = validate_export(project, bit_depth=16)
+    findings = validate_export(project, bit_depth=8)
     assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in _codes(findings)
+
+
+def test_bit_depth_override_to_16_clears_warning() -> None:
+    # Override 16 überschreibt einen 8-Bit-Metadatendefault → keine Warnung mehr.
+    project = _with_height(_color_project())
+    project.metadata[META_BIT_DEPTH] = 8
+    findings = validate_export(project, bit_depth=16)
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in _codes(findings)
 
 
 def test_invalid_bit_depth_override_is_error() -> None:
@@ -224,6 +239,35 @@ def test_physical_size_is_warning() -> None:
     warn = next(f for f in findings if f.code is ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED)
     assert warn.severity is Severity.WARNING
     assert warn.role is None
+
+
+# ── Druckflächen-Plausibilität gegen das Standard-Flachbett (#687/EM-G05) ──
+
+
+def test_physical_size_within_flatbed_has_no_print_area_warning() -> None:
+    project = _color_project()
+    project.metadata[META_PHYSICAL_SIZE_MM] = (50.0, 25.0)
+    assert ExportCheckCode.PRINT_AREA_EXCEEDED not in _codes(validate_export(project))
+
+
+def test_physical_size_exceeding_flatbed_warns_print_area() -> None:
+    project = _color_project()
+    project.metadata[META_PHYSICAL_SIZE_MM] = (500.0, 200.0)  # Breite > 330 mm
+    findings = validate_export(project)
+    warn = next(f for f in findings if f.code is ExportCheckCode.PRINT_AREA_EXCEEDED)
+    assert warn.severity is Severity.WARNING
+    assert warn.role is None
+    assert warn.params["width"] == 500.0
+    assert warn.params["height"] == 200.0
+    assert warn.params["medium_w"] == 330.0
+    assert warn.params["medium_h"] == 420.0
+    assert format_finding(warn)                          # rendert ohne KeyError
+
+
+def test_no_physical_size_has_no_print_area_warning() -> None:
+    # Ohne META_PHYSICAL_SIZE_MM ist ``physical_size`` None – kein Zielmedium-
+    # Vergleich möglich, also kein Befund (analog PHYSICAL_SIZE_UNVERIFIED).
+    assert ExportCheckCode.PRINT_AREA_EXCEEDED not in _codes(validate_export(_color_project()))
 
 
 # ── Mehrere Befunde + stabile Sortierung ─────────────────────────────────
@@ -331,7 +375,7 @@ def test_format_finding_renders_every_code() -> None:
         ),
         ExportCheckCode.BIT_DEPTH_UNCONFIRMED: ExportFinding(
             ExportCheckCode.BIT_DEPTH_UNCONFIRMED, Severity.WARNING, LayerRole.HEIGHT_MAP,
-            {"bits": 16},
+            {"bits": 8},
         ),
         ExportCheckCode.HEIGHT_PRECISION_LOSS: ExportFinding(
             ExportCheckCode.HEIGHT_PRECISION_LOSS, Severity.WARNING, LayerRole.HEIGHT_MAP
@@ -341,6 +385,10 @@ def test_format_finding_renders_every_code() -> None:
         ),
         ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED: ExportFinding(
             ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED, Severity.WARNING, None
+        ),
+        ExportCheckCode.PRINT_AREA_EXCEEDED: ExportFinding(
+            ExportCheckCode.PRINT_AREA_EXCEEDED, Severity.WARNING, None,
+            {"width": 500.0, "height": 200.0, "medium_w": 330.0, "medium_h": 420.0},
         ),
     }
     # Jeder Code hat ein Beispiel und rendert in de/en ohne KeyError.
@@ -376,13 +424,15 @@ def _with_height_payload(project: Project, values: np.ndarray) -> Project:
 
 
 def test_8bit_target_with_true_16bit_heights_warns_precision_loss() -> None:
-    """Echte Niederbits + 8-Bit-Ziel → bestätigungspflichtige Warnung (#590)."""
+    """Echte Niederbits + 8-Bit-Ziel → bestätigungspflichtige Warnung (#590), plus
+    die allgemeine Bittiefen-Warnung (#687: 8 Bit ist der unbestätigte Pfad)."""
     values = np.array([[0x1234, 0x0000], [0x8000, 0xFFFF]], dtype=np.uint16)
     project = _with_height_payload(_color_project((2, 2)), values)
     findings = validate_export(
         project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=8)
     codes = [f.code for f in findings]
     assert ExportCheckCode.HEIGHT_PRECISION_LOSS in codes
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in codes
     finding = next(
         f for f in findings if f.code is ExportCheckCode.HEIGHT_PRECISION_LOSS)
     assert finding.severity is Severity.WARNING
@@ -390,22 +440,28 @@ def test_8bit_target_with_true_16bit_heights_warns_precision_loss() -> None:
 
 
 def test_16bit_target_does_not_warn_precision_loss() -> None:
+    # 16 Bit ist seit #687 der unbestätigt *empfohlene* Pfad – weder Präzisions-
+    # noch Bittiefen-Warnung feuert hier mehr.
     values = np.array([[0x1234, 0x0000], [0x8000, 0xFFFF]], dtype=np.uint16)
     project = _with_height_payload(_color_project((2, 2)), values)
     findings = validate_export(
         project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=16)
     codes = [f.code for f in findings]
     assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in codes
-    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in codes
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED not in codes
 
 
-def test_8bit_target_without_low_bits_does_not_warn() -> None:
-    """Reine ×257-Stufen (8-Bit-äquivalent) verlieren nichts – keine Warnung."""
+def test_8bit_target_without_low_bits_does_not_warn_precision_loss() -> None:
+    """Reine ×257-Stufen (8-Bit-äquivalent) verlieren nichts – keine Präzisions-
+    Warnung. Die allgemeine 8-Bit-Bittiefen-Warnung (#687) feuert trotzdem, weil
+    sie unabhängig von der tatsächlichen Quellpräzision gilt."""
     values = (np.array([[0, 1], [128, 255]], dtype=np.uint32) * 257).astype(np.uint16)
     project = _with_height_payload(_color_project((2, 2)), values)
     findings = validate_export(
         project, requested_optional_roles=(LayerRole.HEIGHT_MAP,), bit_depth=8)
-    assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in [f.code for f in findings]
+    codes = [f.code for f in findings]
+    assert ExportCheckCode.HEIGHT_PRECISION_LOSS not in codes
+    assert ExportCheckCode.BIT_DEPTH_UNCONFIRMED in codes
 
 
 def test_low_bit_only_variation_counts_as_non_empty() -> None:

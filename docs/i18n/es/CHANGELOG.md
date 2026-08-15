@@ -9,6 +9,21 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Exportación EufyMake: se invirtió la advertencia de profundidad de bits y
+  se conectó la comprobación del área de impresión (#687).** Una
+  investigación de fuentes del fabricante (grado S, vía extracción de
+  buscadores, sin verificar contra el original) encontró que EufyMake
+  recomienda "16-bit/channel if the option is available" para los mapas de
+  altura: el validador marcaba precisamente esa ruta como no confirmada,
+  mientras que 8 bits pasaba en silencio. `BIT_DEPTH_UNCONFIRMED` ahora se
+  activa con 8 bits en lugar de 16 bits. Un nuevo hallazgo
+  (`PRINT_AREA_EXCEEDED`, advertencia) también comprueba el tamaño físico del
+  motivo frente al flatbed estándar de eufyMake (330 × 420 mm); antes, la
+  comprobación general de área de impresión subyacente nunca se ejecutaba en
+  producción porque ningún llamador pasaba un medio de destino.
+
 ## [2.7.3] – 2026-08-14
 
 ### Corregido

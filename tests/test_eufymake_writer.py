@@ -206,7 +206,10 @@ def test_write_publishes_all_assets(tmp_path: Path) -> None:
     project = _color_project()
     _add_height(project)
     dest = tmp_path / "export"
-    out = write_export(project, dest)
+    # Höhenkarte am DEFAULT_BIT_DEPTH (8) löst seit #687 BIT_DEPTH_UNCONFIRMED
+    # aus (unbestätigte Herstellerempfehlung, 16 Bit) – hier geht es um das
+    # Schreiben der Assets, nicht um die Bittiefen-Bestätigungspflicht.
+    out = write_export(project, dest, confirm_warnings=True)
     assert out == dest
     names = sorted(p.name for p in dest.iterdir())
     assert names == ["color_motif.png", "height_map.png", MANIFEST_FILENAME]
@@ -235,7 +238,7 @@ def test_overwrite_replaces_target(tmp_path: Path) -> None:
     # Anderes Projekt mit zusätzlicher Height-Ebene überschreibt.
     project2 = _color_project((4, 2))
     _add_height(project2)
-    write_export(project2, dest, overwrite=True)
+    write_export(project2, dest, overwrite=True, confirm_warnings=True)
     names = sorted(p.name for p in dest.iterdir())
     assert names == ["color_motif.png", "height_map.png", MANIFEST_FILENAME]
     assert not _temp_leftovers(tmp_path, dest)
@@ -261,7 +264,7 @@ def test_render_error_leaves_no_partial_target(tmp_path: Path, monkeypatch) -> N
 
     monkeypatch.setattr(writer, "_write_png", flaky)
     with pytest.raises(OSError, match="inject"):
-        write_export(project, dest)
+        write_export(project, dest, confirm_warnings=True)
     assert not dest.exists()
     assert not _temp_leftovers(tmp_path, dest)
 
@@ -281,7 +284,7 @@ def test_replace_error_preserves_existing_target(tmp_path: Path, monkeypatch) ->
     project2 = _color_project((4, 2))
     _add_height(project2)
     with pytest.raises(OSError, match="inject"):
-        write_export(project2, dest, overwrite=True)
+        write_export(project2, dest, overwrite=True, confirm_warnings=True)
     # Vorhandenes gültiges Ziel unversehrt, Temp aufgeräumt.
     assert (dest / "color_motif.png").read_bytes() == original
     assert (dest / MANIFEST_FILENAME).read_text(encoding="utf-8") == manifest_before
@@ -309,7 +312,7 @@ def test_replace_restore_path_recovers_existing(tmp_path: Path, monkeypatch) -> 
     project2 = _color_project((4, 2))
     _add_height(project2)
     with pytest.raises(OSError, match="inject"):
-        write_export(project2, dest, overwrite=True)
+        write_export(project2, dest, overwrite=True, confirm_warnings=True)
     assert (dest / "color_motif.png").read_bytes() == original
     assert not (dest / "height_map.png").exists()
     assert not _temp_leftovers(tmp_path, dest)

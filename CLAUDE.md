@@ -291,13 +291,21 @@ Ein Paket, `bgremover/`:
   (`ExportFinding`: stabiler `ExportCheckCode`, `error`/`warning`, Rolle, i18n-Key,
   Platzhalter) deterministisch sortiert. Harte Fehler (fehlendes Farbmotiv, fehlende
   ausgewählte Rolle, Größen-Mismatch, ungültige Zielparameter) blockieren;
-  Warnungen (leere/konstante Height-/Gloss-Daten, 16-Bit unbestätigt,
-  8-Bit-Ziel mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-
-  Hilfsasset, physische Größe ohne Herstellervertrag) erlauben den Export erst nach
-  Bestätigung; die Height-Prüfungen arbeiten auf der kanonischen Payload. `format_finding` liefert die de/en-Meldung (literale `tr`-Keys
-  `eufymake.export.*`). Das Befund-Fundament (`Severity`, `severity_rank`,
-  `has_blocking_errors`, `split_findings`) liegt seit #379 geteilt in
-  `export_checks.py` und wird hier re-exportiert (Rückwärtskompatibilität).
+  Warnungen (leere/konstante Height-/Gloss-Daten, 8-Bit-Höhenkarte unbestätigt
+  gegenüber der (Grad-S-)Herstellerempfehlung von 16 Bit (#687, seit dieser
+  Recherche das gedrehte Vorzeichen ggü. dem ursprünglichen #354-Stand), 8-Bit-Ziel
+  mit echten 16-Bit-Höhen = Präzisionsverlust (#590), Gloss=Ink-Mode-Hilfsasset,
+  physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
+  Standard-Flachbett `STANDARD_FLATBED_MM` = 330 × 420 mm (#687, ebenfalls Grad S))
+  erlauben den Export erst nach Bestätigung; die Height-Prüfungen arbeiten auf der
+  kanonischen Payload. `format_finding` liefert die de/en-Meldung (literale
+  `tr`-Keys `eufymake.export.*`). Das Befund-Fundament (`Severity`,
+  `severity_rank`, `has_blocking_errors`, `split_findings`) liegt seit #379
+  geteilt in `export_checks.py` und wird hier re-exportiert
+  (Rückwärtskompatibilität); `check_print_area` ist seither auch produktiv
+  verdrahtet (zuvor totes Feature, siehe Annahmeninventar unten). Herstellerlage,
+  Evidenzgrade und offene Punkte: versioniertes
+  [`docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md`](docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md).
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys
