@@ -18,16 +18,24 @@ gesetzten Policy.
 ## 1. Vorschlag: Abbruchkriterien Materialverbrauch
 
 - **Gesamtbudget für die aktuelle Matrix:** Das
-  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) listet aktuell **8
-  druckende Testzellen** (I-02, I-03 8-Bit, I-03 16-Bit, I-04, I-05
-  konsistent, I-07, I-08, I-10). Bei „Erst- + eine Wiederholungsmessung" je
-  Zelle (nächster Punkt) ergibt das ein hartes Limit von **maximal 16
-  physischen Drucken** für #688–#690 in der jetzigen Fassung der Matrix.
-  Erweitert sich die Matrix später (neue Testzellen aus offenen
-  Widersprüchen), erhöht sich das Limit nur proportional dazu – nicht
-  automatisch unbegrenzt.
-- Je Testzelle maximal **zwei** physische Drucke einplanen (Erst- + eine
-  Wiederholungsmessung); ein dritter Druck derselben Zelle braucht eine
+  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 8 Tabellenzeilen,
+  aber zwei davon vergleichen selbst zwei physische Varianten – I-08
+  (vor/nach Crop) und I-10 (Gloss-Polarität normal/invertiert) – und
+  brauchen damit unabhängig von einer Wiederholungsmessung mindestens zwei
+  Drucke. Maßgeblich ist daher die Zahl der **druckbaren Varianten**, nicht
+  der Tabellenzeilen: I-02, I-03 8-Bit, I-03 16-Bit, I-04, I-05 konsistent,
+  I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal, I-10 invertiert – **10
+  Varianten**. Bei „Erst- + eine Wiederholungsmessung" je Variante (nächster
+  Punkt) ergibt das ein hartes Limit von **maximal 20 physischen Drucken**
+  für #688–#690 in der jetzigen Fassung der Matrix.
+- Erweitert sich die Matrix später (neue Testzellen aus offenen
+  Widersprüchen), ist die daraus rechnerisch folgende neue Zahl nur ein
+  **Vorschlag** – kein automatisches Zusatzbudget. Neue Zellen lösen immer
+  die Budget-Eskalation unten aus: erst pausieren und die
+  Owner-Bestätigung einholen, bevor über das zuletzt freigegebene Limit
+  hinaus gedruckt wird.
+- Je Variante maximal **zwei** physische Drucke einplanen (Erst- + eine
+  Wiederholungsmessung); ein dritter Druck derselben Variante braucht eine
   bewusste Owner-Entscheidung **und** zählt gegen das Gesamtbudget oben.
 - Vor jeder druckenden Zelle zuerst die materialsparenden Import-only-Zellen
   (Dateivalidierung + Importprotokoll) vollständig abschließen – ein Druck
@@ -43,7 +51,7 @@ gesetzten Policy.
 - Ein Tagesbudget (Vorschlag: so viele Zellen wie an einem Tag mit
   Wiederholungsmessung realistisch nachvollziehbar bleiben) verhindert
   Ermüdungsfehler bei Messung/Protokollierung.
-- **Budget-Eskalation:** Reicht das Gesamtbudget von 16 Drucken absehbar
+- **Budget-Eskalation:** Reicht das Gesamtbudget von 20 Drucken absehbar
   nicht (wiederholte Fehldrucke, neue Testzellen aus offenen Widersprüchen),
   pausieren und den Owner ausdrücklich um eine erweiterte Freigabe bitten,
   statt stillschweigend über das Limit hinaus zu drucken.
