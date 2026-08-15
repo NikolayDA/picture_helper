@@ -415,6 +415,45 @@ wird daher auch in Version 2 nicht vergeben.
 
 ### 2. Korrigierte Entscheidungspunkte
 
+#### Statusinventar V2
+
+Diese Tabelle ist der vollständige V2-Status-Snapshot aller Annahmen aus dem
+V1-Inventar. Sie ersetzt nur deren Statusspalte; Annahmetext, Fundstelle und
+historische Bewertung bleiben in V1 nachvollziehbar. Die Detailabschnitte unter
+der Tabelle begründen alle in V2 geänderten Bewertungen.
+
+| ID | Status V2 | Begründung bzw. Änderung gegenüber V1 |
+| --- | --- | --- |
+| EM-C01 | **nicht belegt / intern** | Für eine Studio-Auswertung von `manifest.json` gibt es keinen dokumentierten Vertrag; I-06 bleibt der erforderliche Negativtest. |
+| EM-C02 | **Produktentscheidung, nicht Herstellervertrag** | Legacy-`.empf`-ZIPs funktionieren laut B9; das aktuelle Exportformat ist verschlüsselt gekapselt. |
+| EM-C03 | **widerlegt** | TIFF ist nach A2 ein Tiefenkarten-Dateiformat, kein Projektcontainer. |
+| EM-C04 | **teilbestätigt** | ZIP ist für Legacy-`.empf` real, aber nicht als Importträger des heutigen BgRemover-Asset-Bündels belegt. |
+| EM-R01 | **bestätigt** | A1/A7 führen PNG als unterstützten Gestaltungsinhalt; am Rollenmodell ändert V2 nichts. |
+| EM-R02 | **bestätigt** | A2/A3 bestätigen eine Graustufen-Höhenkarte am Bildobjekt. |
+| EM-R03 | **teilbestätigt** | Eine separate Spot-UV-Maske ist bestätigt, aber A11 widerlegt die bisherige Hell-Polarität: Schwarz druckt Gloss, Weiß nicht; eine abgestufte Intensitätssemantik bleibt offen. |
+| EM-R04 | **teilbestätigt** | Weiß-Unterlage und Choke sind belegt; die genaue Ableitung aus Alpha/Coverage bleibt indirekt. |
+| EM-F01 | **bestätigt** | PNG/RGBA bleibt ein belegtes, verlustfreies Format für das Farbmotiv. |
+| EM-F02 | **bestätigt** | PNG-Graustufen bleiben belegt; A2 nennt TIFF zusätzlich als zulässiges Höhenformat. |
+| EM-F03 | **widerlegt; Warnlogik umgesetzt** | A2 empfiehlt 16 Bit ausdrücklich. Ob Studio alle 65536 Stufen nutzt, bleibt offen; 8 Bit ist weiterhin zulässig und im Code der Default. |
+| EM-F04 | **teilbestätigt** | Das fehlende `pHYs` ist belegt, aber dessen Auswertung als Import-Startgröße bleibt offen; 300 DPI aus A14 sind allgemeine Druckvorbereitung, kein Studio-Importvertrag. |
+| EM-H01 | **bestätigt** | A2/A3 bestätigen hell = hoch und dunkel = niedrig. |
+| EM-H02 | **bestätigt** | A2/A3 bestätigen Schwarz als niedrigsten Punkt; die Material-/Nullpunktzuordnung bleibt vom Studio-Prozess abhängig. |
+| EM-H03 | **widerlegt** | Die Datei trägt relative Graustufen, keine absolute mm-Höhe. Nur 5 mm für Relief sind zusätzlich durch B6 gestützt; 3 mm/1 mm und die genaue Graustufe→mm-Kennlinie bleiben offen. |
+| EM-H04 | **offen** | Für Clipping bzw. Sättigung bei Vollweiß liegt weiterhin kein belastbarer Beleg vor. |
+| EM-G01 | **nicht belegt / offen** | Weil EM-C01 nicht negativ getestet ist, ist auch die Übergabe von mm/DPI über das Manifest nicht widerlegt, aber ohne Studio-Vertrag rein intern. |
+| EM-G02 | **teilbestätigt** | 300 DPI sind eine sinnvolle allgemeine Qualitätsheuristik (A14), jedoch keine belegte Studio-Grenze; `pHYs`-Auswertung und Startgröße bleiben Realtests. |
+| EM-G03 | **bestätigt** | A10/A15 bestätigen die normale Druckfläche 330×420 mm direkt; 60 mm ist die normale Objekthöhe, 130 mm nur die Zero-Point-Alignment-Grenze. |
+| EM-G04 | **offen** | Für Studio-Meldungen bei Seitenverhältnis-Konflikten liegt weiterhin kein Beleg vor. |
+| EM-G05 | **bestätigt; umgesetzt** | Der EufyMake-spezifische Validator prüft gegen das belegte Standard-Flachbett; der generische Speichern-Pfad bleibt zielneutral. |
+| EM-S01 | **bestätigt; aktualisiert** | Primärachse ist Studio 4.2.2, Firmware 4.0.2 und Editor 1.19.0; ältere Versionen sind Regression-/Historienachsen. |
+| EM-S02 | **widerlegt** | Studio/Editor können Höhenkarten nativ bearbeiten; V2 ändert diese Bewertung nicht. |
+| EM-S03 | **im Einzelfall widerlegt; allgemein offen** | B2 belegt einen stillen Fehlschlag in 2.6.0.2, spätere B9-Kommentare widersprechen aber einem generellen Importproblem. |
+| EM-V01 | **umgesetzt; Textkorrektur offen** | Die Warnrichtung für 8 Bit bleibt richtig; „unbestätigt“ muss durch die verifizierte Herstellerempfehlung ersetzt werden. |
+| EM-V02 | **bestätigt** | Die Ink-Mode-Warnung bleibt richtig; sie ersetzt nicht den separaten Polaritäts-/Registrierungstest für `gloss_mask.png`. |
+| EM-V03 | **teilbestätigt; Textkorrektur offen** | Der Schweregrad bleibt, die Begründung muss fehlenden Datei-/Studio-Vertrag statt eine pauschal „unbestätigte Annahme“ nennen. |
+| EM-V04 | **bestätigt; Studio-Verhalten offen** | Gleiche Asset-Maße bleiben für den Exportvertrag erforderlich; Strecken, Zentrieren oder Ablehnen durch Studio ist noch zu testen. |
+| EM-V05 | **bestätigt; umgesetzt** | A10/A15 bestätigen die 330×420-mm-Schwelle für `PRINT_AREA_EXCEEDED` direkt. |
+
 #### Importträger und `.empf`
 
 Die Aussage „Studio importiert Einzeldateien, nicht Pakete“ war zu absolut.
@@ -434,13 +473,6 @@ Damit bleibt „kein natives `.empf` erzeugen“ eine vernünftige Produktentsch
 ist aber **nicht** durch generelles Importversagen bestätigt. Der heutige
 Asset-Ordner ist brauchbar, sofern UI und Dokumentation klar sagen, dass seine
 Dateien einzeln in Studio importiert/zugeordnet werden müssen.
-
-| ID | Status V2 |
-| --- | --- |
-| EM-C01 | **nicht belegt / intern** – keine dokumentierte Manifestauswertung; I-06 bleibt Negativtest. |
-| EM-C02 | **Produktentscheidung, nicht Herstellervertrag** – alte `.empf`-ZIPs funktionieren laut B9; aktuelles Exportformat ist verschlüsselt gekapselt. |
-| EM-C03 | **bestätigt widerlegt** – TIFF ist in A2 ein Tiefenkarten-Dateiformat, kein Container. |
-| EM-C04 | **teilbestätigt** – ZIP ist für Legacy-`.empf` real, aber nicht für BgRemovers heutiges Asset-Bündel. |
 
 #### Bittiefe und Höhensemantik
 
