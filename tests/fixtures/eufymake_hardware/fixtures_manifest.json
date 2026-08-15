@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 29,
+  "fixture_count": 30,
   "fixtures": [
     {
       "filename": "gloss_checkerboard.png",
@@ -228,6 +228,27 @@
       },
       "sha256": "5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f",
       "bytes": 657
+    },
+    {
+      "filename": "height_wedge_16bit_half.png",
+      "role": "height_map",
+      "pattern": "wedge_pixelsize_half",
+      "bit_depth": 16,
+      "png_mode": "I;16",
+      "width": 128,
+      "height": 128,
+      "params": {
+        "width_px": 128,
+        "height_px": 128,
+        "source_pattern": "wedge",
+        "source_size_px": [
+          256,
+          256
+        ],
+        "resize_method": "bgremover.height_map.resize_height_field (LANCZOS)"
+      },
+      "sha256": "61f4bea48ec290021db7110d55d49281c0ee9dacca54d424a444e95c8709120b",
+      "bytes": 348
     },
     {
       "filename": "height_wedge_8bit.png",

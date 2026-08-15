@@ -89,7 +89,9 @@ def test_fixture_roles_and_counts() -> None:
     for spec in specs:
         by_role[spec.role] = by_role.get(spec.role, 0) + 1
 
-    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2  # 8-Bit + 16-Bit
+    # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß-Variante (kein eigenes
+    # Muster in _HEIGHT_PATTERNS, siehe test_pixel_size_variant_fixture unten).
+    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 1
     assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3  # no_phys/phys/conflict
     assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS)
 
@@ -100,12 +102,50 @@ def test_fixture_roles_and_counts() -> None:
 def test_height_fixtures_cover_8_and_16_bit(tmp_path: Path) -> None:
     out_dir = _write(tmp_path, "run")
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
-    height_entries = [e for e in manifest["fixtures"] if e["role"] == "height_map"]
+    height_entries = [
+        e for e in manifest["fixtures"]
+        if e["role"] == "height_map" and e["pattern"] != gen.PIXEL_SIZE_VARIANT_PATTERN
+    ]
     patterns = {e["pattern"] for e in height_entries}
     assert patterns == {name for name, _ in gen._HEIGHT_PATTERNS}
     for pattern in patterns:
         depths = {e["bit_depth"] for e in height_entries if e["pattern"] == pattern}
         assert depths == {8, 16}, pattern
+
+
+# ── Pixelmaß-Variante (I-04) ─────────────────────────────────────────────
+
+def test_pixel_size_variant_fixture_is_precision_preserving_half_size(
+    tmp_path: Path,
+) -> None:
+    """I-04: 128×128-Kopie von height_wedge_16bit.png, kein neu erzeugtes Muster."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    entry = next(
+        e for e in manifest["fixtures"] if e["filename"] == "height_wedge_16bit_half.png"
+    )
+    assert entry["role"] == "height_map"
+    assert entry["pattern"] == gen.PIXEL_SIZE_VARIANT_PATTERN
+    assert entry["bit_depth"] == 16
+    assert entry["png_mode"] == "I;16"
+    assert (entry["width"], entry["height"]) == gen.PIXEL_SIZE_VARIANT_SIZE
+    # Gleiches Seitenverhältnis wie die 256×256-Referenz (beide Kanten halbiert).
+    source_w, source_h = entry["params"]["source_size_px"]
+    assert entry["width"] / entry["height"] == source_w / source_h
+
+    from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField, resize_height_field
+
+    width, height = gen.HEIGHT_SIZE
+    pattern = gen._pattern_wedge(width, height)
+    values = np.rint(pattern * HEIGHT_MAX_16BIT).astype(np.uint16)
+    coverage = np.full(values.shape, 255, dtype=np.uint8)
+    expected = resize_height_field(
+        HeightField(values, coverage, HEIGHT_MAX_16BIT), *gen.PIXEL_SIZE_VARIANT_SIZE
+    )
+
+    with Image.open(out_dir / entry["filename"]) as img:
+        actual = np.array(img, dtype=np.uint16)
+    assert np.array_equal(actual, expected.values)
 
 
 # ── mm/DPI-Fixtures: pHYs-Varianten und Widerspruchstest ────────────────
