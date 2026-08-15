@@ -360,3 +360,214 @@ SHA-256-Protokoll – noch nicht umgesetzt.
 
 **Bleibt bei den Realtest-Issues:** #688 (H-01…H-04), #689 (G-01…G-03), #690
 (GL-01/GL-02), Verifikation der S-Belege (V-01).
+
+---
+
+## Evidenzversion 2 (2026-08-15)
+
+### 0. Methodik und Grenzen
+
+Version 2 ist die direkte Volltext-Verifikation der für den Exportvertrag
+entscheidenden Quellen aus Version 1. Gelesen wurden die Herstellerseiten A1–A5,
+A7–A11, A14 und A15 im Original sowie die aktuelle 4.2-Release-Note. Zusätzlich
+wurden der vollständige Diskussionsverlauf von B2, der Quellcode von B1 und ein
+frei zugänglicher E1-Praxisthread im PedalPCB-Forum geprüft. Reddit und der in der
+Websuche gefundene Facebook-Thread waren durch deren Netzwerkschutz nicht direkt
+lesbar; deren Suchtreffer gelten deshalb nicht als Tatsachennachweis.
+
+Evidenzgrade in Version 2:
+
+- **P** – Primär-/Herstellerquelle im Volltext gelesen.
+- **C** – Communityquelle im Volltext gelesen; keine Herstellerzusage.
+- **S** – nur Suchtreffer/Snippet gelesen; nicht als Bestätigung ausreichend.
+- **E** – eigene Ableitung aus P- oder C-Material.
+- **T** – reproduzierbarer Realtest mit protokollierter Eingabe und Ausgabe.
+
+Es fand weiterhin kein eigener Studio-, Import- oder Drucktest statt; Grad **T**
+wird daher auch in Version 2 nicht vergeben.
+
+### 1. Verifizierte Quellen und neue Quellen
+
+#### Direkte Revalidierung der Quellen aus Version 1
+
+| ID | Volltextbefund am 2026-08-15 | Grad V2 |
+| --- | --- | --- |
+| A1 | Supportartikel vom 2026-01-23: PC/Web akzeptiert PNG, JPG, WebP (je max. 12800×12800 px), SVG (5 MB), PSD/AI/PDF (je 45 MB). Beschrieben ist Datei-Upload; ein Ordner-/Manifest-Import wird nicht beschrieben. | P |
+| A2 | Supportartikel vom 2026-03-09: separate Graustufen-Tiefenkarte; Weiß = hoch, Schwarz = niedrig; PNG oder TIFF. Im ZBrush/Photoshop-Workflow soll beim Export 16 Bit/Kanal gewählt werden, **wenn verfügbar**. | P |
+| A3 | Herstellerseite vom 2026-06-22, aber namentlich von Community-Autor Willem Post. Bestätigt Hell/Dunkel-Semantik und relative Grauwerte, enthält jedoch keine 16-Bit-Empfehlung. Inhaltlich Communitybeleg, nicht Herstellervertrag. | C |
+| A4 | Supportartikel vom 2025-11-13: Flat, Flat Raised, Pattern, Relief und Customize Texture sowie Upload eigener Graustufenbilder. Im lesbaren Text stehen **keine** Maximalhöhen 5/3/1 mm. | P |
+| A5 | Hersteller-Release vom 2026-07-31: native Height-Map-Bearbeitung in Editor V17; Zero-Point-Alignment von 100 auf 130 mm erweitert, automatische Führung dorthin bei Objekten über 60 mm. | P |
+| A7 | Wiki, zuletzt 2026-04-13 bearbeitet: Content-Import und Verweis auf die unterstützten Dateitypen; kein Paket-/Manifestvertrag. | P |
+| A8 | Wiki, zuletzt 2026-06-23 bearbeitet: Importqualität, Transparenz, Kanten und Texturen. Empfiehlt hochwertige Originaldateien, nennt aber **keine 300-DPI-Grenze**. | P |
+| A9 | Wiki-Releaseübersicht: am 2026-08-15 aktuell sind Studio Desktop **4.2.2**, Firmware **4.0.2** und Editor **1.19.0**; die 4.2-Release-Note ist vom 2026-08-13. | P |
+| A10 | Supportartikel vom 2025-12-19: maximale normale Druckabmessung **330×420×60 mm**. | P |
+| A11 | Herstellerartikel vom 2026-03-04: Spot UV mit zwei Dateien und zweitem Durchgang; in der Schwarz-Weiß-Maske bedeutet **Schwarz = Gloss auftragen**, **Weiß = nichts auftragen**. | P |
+| A14 | Allgemeiner Herstellerblog vom 2026-03-04: empfiehlt 300 DPI für PNG/JPG-Druckvorlagen. Das ist keine E1-Studio-Import- oder `pHYs`-Spezifikation. | P |
+| A15 | Produktseite: Druckbereich bis 330×420 mm und Ausgabeauflösung bis 1440 **DPI**. Sie belegt keinen „1440-ppi-Druckkopf“. | P |
+
+#### Neue Community-/Sekundärquellen
+
+| ID | Quelle | Grad | Relevanter Befund |
+| --- | --- | --- | --- |
+| B9 | [Vollständige Kommentare zu `TapuCosmo/empf-generator` Issue #1](https://github.com/TapuCosmo/empf-generator/issues/1) | C | Ein Nutzer meldete den stillen Bildfehler in Studio 2.6.0.2. Maintainer und ein weiterer Nutzer berichteten später erfolgreiche Importe des alten unverschlüsselten ZIP-Formats; ab Studio 2.7.0.6 exportiert Studio ein verschlüsselt gekapseltes Format, soll alte ZIP-Projekte aber weiterhin importieren. |
+| B10 | [PedalPCB Community Forum, „Adventures in UV Printing – Eufymake E1“](https://forum.pedalpcb.com/threads/adventures-in-uv-printing-eufymake-e1.28238/), ab 2026-01-25 | C | Belegt reale E1-Nutzung und gute Flachdruckqualität; Texturdruck wird dort ausdrücklich noch nicht bewertet. Große Canvas-/Texturdrucke werden als langsam beschrieben. Kein Beleg für Dateivertrag oder Bittiefe. |
+| B11 | [Facebook-Treffer „Bug found in print depth map rendering“ in der Websuche](https://www.google.com/search?q=%22Bug+found+in+print+depth+map+rendering%22+eufymake) | S | Snippet meldet eine mögliche Entkopplung von Crop und Depth Map. Original war nicht zugänglich; nur als neuer Testimpuls I-08 verwendbar. |
+
+### 2. Korrigierte Entscheidungspunkte
+
+#### Statusinventar V2
+
+Diese Tabelle ist der vollständige V2-Status-Snapshot aller Annahmen aus dem
+V1-Inventar. Sie ersetzt nur deren Statusspalte; Annahmetext, Fundstelle und
+historische Bewertung bleiben in V1 nachvollziehbar. Die Detailabschnitte unter
+der Tabelle begründen alle in V2 geänderten Bewertungen.
+
+| ID | Status V2 | Begründung bzw. Änderung gegenüber V1 |
+| --- | --- | --- |
+| EM-C01 | **nicht belegt / intern** | Für eine Studio-Auswertung von `manifest.json` gibt es keinen dokumentierten Vertrag; I-06 bleibt der erforderliche Negativtest. |
+| EM-C02 | **Produktentscheidung, nicht Herstellervertrag** | Legacy-`.empf`-ZIPs funktionieren laut B9; das aktuelle Exportformat ist verschlüsselt gekapselt. |
+| EM-C03 | **widerlegt** | TIFF ist nach A2 ein Tiefenkarten-Dateiformat, kein Projektcontainer. |
+| EM-C04 | **teilbestätigt** | ZIP ist für Legacy-`.empf` real, aber nicht als Importträger des heutigen BgRemover-Asset-Bündels belegt. |
+| EM-R01 | **bestätigt** | A1/A7 führen PNG als unterstützten Gestaltungsinhalt; am Rollenmodell ändert V2 nichts. |
+| EM-R02 | **bestätigt** | A2/A3 bestätigen eine Graustufen-Höhenkarte am Bildobjekt. |
+| EM-R03 | **teilbestätigt** | Eine separate Spot-UV-Maske ist bestätigt, aber A11 widerlegt die bisherige Hell-Polarität: Schwarz druckt Gloss, Weiß nicht; eine abgestufte Intensitätssemantik bleibt offen. |
+| EM-R04 | **teilbestätigt** | Weiß-Unterlage und Choke sind belegt; die genaue Ableitung aus Alpha/Coverage bleibt indirekt. |
+| EM-F01 | **bestätigt** | PNG/RGBA bleibt ein belegtes, verlustfreies Format für das Farbmotiv. |
+| EM-F02 | **bestätigt** | PNG-Graustufen bleiben belegt; A2 nennt TIFF zusätzlich als zulässiges Höhenformat. |
+| EM-F03 | **widerlegt; Warnlogik umgesetzt** | A2 empfiehlt 16 Bit ausdrücklich. Ob Studio alle 65536 Stufen nutzt, bleibt offen; 8 Bit ist weiterhin zulässig und im Code der Default. |
+| EM-F04 | **teilbestätigt** | Das fehlende `pHYs` ist belegt, aber dessen Auswertung als Import-Startgröße bleibt offen; 300 DPI aus A14 sind allgemeine Druckvorbereitung, kein Studio-Importvertrag. |
+| EM-H01 | **bestätigt** | A2/A3 bestätigen hell = hoch und dunkel = niedrig. |
+| EM-H02 | **bestätigt** | A2/A3 bestätigen Schwarz als niedrigsten Punkt; die Material-/Nullpunktzuordnung bleibt vom Studio-Prozess abhängig. |
+| EM-H03 | **widerlegt** | Die Datei trägt relative Graustufen, keine absolute mm-Höhe. Nur 5 mm für Relief sind zusätzlich durch B6 gestützt; 3 mm/1 mm und die genaue Graustufe→mm-Kennlinie bleiben offen. |
+| EM-H04 | **offen** | Für Clipping bzw. Sättigung bei Vollweiß liegt weiterhin kein belastbarer Beleg vor. |
+| EM-G01 | **nicht belegt / offen** | Weil EM-C01 nicht negativ getestet ist, ist auch die Übergabe von mm/DPI über das Manifest nicht widerlegt, aber ohne Studio-Vertrag rein intern. |
+| EM-G02 | **teilbestätigt** | 300 DPI sind eine sinnvolle allgemeine Qualitätsheuristik (A14), jedoch keine belegte Studio-Grenze; `pHYs`-Auswertung und Startgröße bleiben Realtests. |
+| EM-G03 | **bestätigt** | A10/A15 bestätigen die normale Druckfläche 330×420 mm direkt; 60 mm ist die normale Objekthöhe, 130 mm nur die Zero-Point-Alignment-Grenze. |
+| EM-G04 | **offen** | Für Studio-Meldungen bei Seitenverhältnis-Konflikten liegt weiterhin kein Beleg vor. |
+| EM-G05 | **bestätigt; umgesetzt** | Der EufyMake-spezifische Validator prüft gegen das belegte Standard-Flachbett; der generische Speichern-Pfad bleibt zielneutral. |
+| EM-S01 | **bestätigt; aktualisiert** | Primärachse ist Studio 4.2.2, Firmware 4.0.2 und Editor 1.19.0; ältere Versionen sind Regression-/Historienachsen. |
+| EM-S02 | **widerlegt** | Studio/Editor können Höhenkarten nativ bearbeiten; V2 ändert diese Bewertung nicht. |
+| EM-S03 | **im Einzelfall widerlegt; allgemein offen** | B2 belegt einen stillen Fehlschlag in 2.6.0.2, spätere B9-Kommentare widersprechen aber einem generellen Importproblem. |
+| EM-V01 | **umgesetzt; Textkorrektur offen** | Die Warnrichtung für 8 Bit bleibt richtig; „unbestätigt“ muss durch die verifizierte Herstellerempfehlung ersetzt werden. |
+| EM-V02 | **bestätigt** | Die Ink-Mode-Warnung bleibt richtig; sie ersetzt nicht den separaten Polaritäts-/Registrierungstest für `gloss_mask.png`. |
+| EM-V03 | **teilbestätigt; Textkorrektur offen** | Der Schweregrad bleibt, die Begründung muss fehlenden Datei-/Studio-Vertrag statt eine pauschal „unbestätigte Annahme“ nennen. |
+| EM-V04 | **bestätigt; Studio-Verhalten offen** | Gleiche Asset-Maße bleiben für den Exportvertrag erforderlich; Strecken, Zentrieren oder Ablehnen durch Studio ist noch zu testen. |
+| EM-V05 | **bestätigt; umgesetzt** | A10/A15 bestätigen die 330×420-mm-Schwelle für `PRINT_AREA_EXCEEDED` direkt. |
+
+#### Importträger und `.empf`
+
+Die Aussage „Studio importiert Einzeldateien, nicht Pakete“ war zu absolut.
+Korrekt ist:
+
+1. **Gestaltungsinhalte** werden als einzelne unterstützte Dateien hochgeladen
+   (A1/A7, P).
+2. Der BgRemover-Ordner ist ein **Lieferbündel für mehrere manuelle Imports**, kein
+   dokumentierter atomarer Studio-Importträger. Für `manifest.json` ist keine
+   Studio-Auswertung belegt; „widerlegt“ wäre ohne Negativtest zu stark.
+3. Studio öffnet daneben native `.empf`-Projekte. B1 beschreibt das alte
+   unverschlüsselte ZIP-Layout. B9 zeigt, dass neu exportierte `.empf` seit 2.7.0.6
+   verschlüsselt gekapselt sind, das alte ZIP-Layout aber laut Communitytests
+   rückwärtskompatibel importiert wird.
+
+Damit bleibt „kein natives `.empf` erzeugen“ eine vernünftige Produktentscheidung,
+ist aber **nicht** durch generelles Importversagen bestätigt. Der heutige
+Asset-Ordner ist brauchbar, sofern UI und Dokumentation klar sagen, dass seine
+Dateien einzeln in Studio importiert/zugeordnet werden müssen.
+
+#### Bittiefe und Höhensemantik
+
+A2 verifiziert die 16-Bit-Empfehlung im konkreten ZBrush/Photoshop-Workflow. Sie
+belegt, dass Studio eine so exportierte Tiefenkarte importieren soll; sie belegt
+**nicht**, dass Studio intern alle 65536 Stufen erhält oder dass 8 Bit unzulässig
+ist. Die in PR #795 gedrehte Warnung bleibt als **WARNING** sachgerecht. Ihr Text
+sollte künftig „verifizierte Herstellerempfehlung“ statt „unbestätigter Hinweis“
+sagen. Außerdem bleibt `DEFAULT_BIT_DEPTH = 8`; der Standardpfad erzeugt damit
+weiterhin die neue Warnung. Ob der Default auf 16 Bit wechseln soll, gehört nach
+H-01 in #688/#691.
+
+Die Werte „Relief 5 mm / Flat Raised 3 mm / Pattern 1 mm“ sind durch die direkt
+gelesenen A4/A5 nicht vollständig belegt. B6 trägt nur die 5-mm-Angabe für Relief.
+Bis Original-UI oder weitere Herstellerquelle die Werte 3/1 mm bestätigt, dürfen
+sie nur als zu prüfende Matrixwerte, nicht als bestätigte Spezifikation gelten.
+
+#### Gloss
+
+A11 korrigiert die bisherige Richtung der exportierten Hilfsmaske für genau den
+beschriebenen Spot-UV-Dateiworkflow: **Schwarz druckt Gloss, Weiß druckt nichts**.
+Das widerspricht der bisherigen ADR-Annahme „hell = mehr Glanz/Klarlack“. Zugleich
+zeigt B1 native Ink-Modi (`gloss`, `cmyk_gloss`, `white_cmyk_gloss`). Es existieren
+also zwei verschiedene Workflows:
+
+- separater Schwarzmasken-/Zweitdruck-Workflow nach A11;
+- integrierter nativer Ink-Mode im `.empf`-Canvas nach B1.
+
+`GL-02` ist deshalb keine Entweder-oder-Frage mehr. Für BgRemovers separate
+`gloss_mask.png` ist der A11-Workflow der direkte Anker; vor produktiver Nutzung
+müssen Polarität, Registrierung und eine mögliche Intensitätsabstufung in #690
+getestet werden. `GLOSS_INK_MODE` bleibt richtig, aber EM-R03 wechselt von
+„teilbestätigt“ zu **„Polaritätsannahme widerlegt; Intensitätssemantik offen“**.
+
+#### Geometrie, Auflösung und Gerätehöhe
+
+- `STANDARD_FLATBED_MM = (330, 420)` ist nun direkt durch A10/A15 (P) bestätigt;
+  `PRINT_AREA_EXCEEDED` darf auf diese Zahl verweisen. Eine Warnung bleibt sinnvoll,
+  weil Ausrichtung/Drehung und Zubehörflächen gesondert zu behandeln sind.
+- A10 nennt 60 mm normale Objekthöhe. A5 erweitert lediglich die
+  **Zero-Point-Alignment-Grenze** von 100 auf 130 mm und führt Objekte über 60 mm
+  in diesen Modus. „Objekthöhe 100 mm“ war falsch verkürzt.
+- A15 beschreibt bis zu 1440 DPI Ausgabeauflösung, keinen 1440-ppi-Druckkopf.
+- 300 DPI aus A14 ist allgemeine Druckvorbereitung; A8 nennt keine feste Zahl.
+  `imgQuality: 300` aus B1 darf ohne weitere Formatkenntnis nicht mit Bild-DPI oder
+  `pHYs` gleichgesetzt werden. G-01/G-02 bleiben Realtests.
+- C3 bleibt eine plausible Rechnung aus Legacy-`.empf`-Canvasmaßen, aber keine
+  unabhängige Herstellerbestätigung. Besonders die Mini-Flatbed-Ableitung darf
+  nicht als physische Druckfläche verwendet werden.
+
+#### Softwareachse und stilles Verhalten
+
+EM-S01 war bereits am Recherchedatum veraltet. Primäre Testachse ist nun Studio
+**4.2.2**, Firmware **4.0.2**, Editor **1.19.0**; 4.0/V17, 3.7.1 und 2.6.0.2 sind
+Regression-/Historienachsen. Firmware ist öffentlich versioniert.
+
+EM-S03 wird abgeschwächt: Ein stiller Fehlschlag wurde in B2 für einen konkreten
+2.6.0.2-Versuch berichtet, spätere Kommentare widersprechen einem generellen
+Problem. „Nichts passiert/kein Bild“ bleibt ein notwendiger Ergebniswert im
+Protokoll, ist aber kein bestätigtes Standardverhalten.
+
+### 3. Aktualisierte offene Punkte und Testmatrix
+
+| Achse | Primärwert V2 | Regression/Variation |
+| --- | --- | --- |
+| Studio | 4.2.2 | 4.0, 3.7.1, 2.6.0.2 historisch |
+| Editor | 1.19.0 | V17/1.17.0 historisch |
+| Firmware | 4.0.2 | tatsächlich installierte Version protokollieren |
+| Druckbett | Standard 330×420 mm | Mini nur nach eigener Maßverifikation |
+| Bittiefe | 16 Bit empfohlen, Nutzungstiefe offen | 8 Bit als Vergleich |
+| Gloss | A11-Schwarzmaske, separater Durchgang | native Ink-Modi getrennt betrachten |
+
+Ergänzungen/Korrekturen der Importzellen:
+
+| Zelle | Eingabe | Variierter Faktor | Erwartete Beobachtung | Messmethode |
+| --- | --- | --- | --- | --- |
+| I-06 | `manifest.json` allein und kompletter BgRemover-Ordner | Träger | JSON abgelehnt; Ordnerverhalten **offen**, nicht vorab „bestätigt“ | sichtbare Meldung/kein Effekt protokollieren |
+| I-08 | Motiv samt Height Map vor/nach Crop in Studio | Crop | Farbmotiv und Depth Map bleiben registriert; Forumssnippet B11 meldet mögliches Auseinanderlaufen | identische Referenzmarker + Vorschau-Differenz |
+| I-09 | Legacy-`.empf` aus B1 und aktuell von Studio exportiertes `.empf` | Containergeneration | Legacy importierbar; aktuelle Datei nicht als schlichtes ZIP lesbar | Dateisignatur/Importmeldung, keine Umgehung der Verschlüsselung |
+| I-10 | Gloss-Maske schwarz/weiß invertiert, sonst identisch | Polarität | A11: Schwarz erhält Gloss, Weiß nicht | Vorschau und kleiner Zweitdruck nach Sicherheitsfreigabe |
+
+Weiter offen bleiben volle 16-Bit-Nutzung (H-01), Graustufe→mm-Kennlinie (H-02),
+abweichende Kartenmaße (H-03), `pHYs`/Startgröße (G-01/G-02),
+Gloss-Intensitätsabstufung (GL-01) und die Registrierung des Zweitdrucks. Die bisher
+genannten Texturhöhen 3/1 mm werden als eigener UI-/Herstellerquellen-Check ergänzt.
+
+### 4. Konsequenzen aus Version 2
+
+1. Die Codeänderung aus PR #795 zur 330×420-mm-Warnschwelle ist direkt bestätigt.
+2. Die 16-Bit-Warnlogik bleibt vertretbar; nur die Formulierung „unbestätigt“ ist
+   nach A2 überholt. Vollpräzisionsnutzung und Defaultwechsel bleiben offen.
+3. Issue-/Dokuformulierungen müssen Asset-**Lieferbündel** und nativen
+   Studio-Importträger trennen; `manifest.json` ist mangels Vertrag intern, nicht
+   durch bloße Quellenabwesenheit experimentell „widerlegt“.
+4. Vor Einsatz der Gloss-Maske ist die dokumentierte Hell-Polarität gegen die
+   A11-Schwarzmaske zu korrigieren bzw. in #690 real zu testen.
+5. Testmatrix und Protokoll müssen aktuelle öffentliche Software-/Firmwarestände,
+   Containergeneration und Crop/Depth-Map-Registrierung aufnehmen.
