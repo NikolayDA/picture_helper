@@ -8,6 +8,19 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- **EufyMake export: flipped the bit-depth warning, wired up the print-area
+  check (#687).** Vendor-source research (grade S, via search-engine
+  extraction, not verified against the original) found that EufyMake
+  recommends "16-bit/channel if the option is available" for height maps –
+  the validator previously flagged exactly that path as unconfirmed while
+  8-bit sailed through silently. `BIT_DEPTH_UNCONFIRMED` now fires at 8-bit
+  instead of 16-bit. A new finding (`PRINT_AREA_EXCEEDED`, warning) also
+  checks the physical motif size against the eufyMake standard flatbed
+  (330 × 420 mm) – previously the underlying, general print-area check never
+  ran in production because no caller passed a target medium.
+
 ## [2.7.3] – 2026-08-14
 
 ### Fixed

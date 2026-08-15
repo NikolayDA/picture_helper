@@ -9,6 +9,20 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **EufyMake-Export: Bittiefen-Warnung gedreht, Druckflächen-Prüfung verdrahtet
+  (#687).** Eine Recherche zu Herstellerquellen (Grad S, über Suchmaschinen-
+  Extraktion, nicht am Original verifiziert) ergab, dass EufyMake für
+  Höhenkarten „16-bit/channel if the option is available" empfiehlt – der
+  Validator markierte bislang ausgerechnet diesen Pfad als unbestätigt,
+  während 8 Bit stillschweigend durchlief. `BIT_DEPTH_UNCONFIRMED` feuert
+  jetzt bei 8 Bit statt bei 16 Bit. Zusätzlich prüft ein neuer Befund
+  (`PRINT_AREA_EXCEEDED`, Warnung) die physische Motivgröße gegen das
+  eufyMake-Standard-Flachbett (330 × 420 mm) – zuvor lief die zugrunde
+  liegende, allgemeine Druckflächenprüfung im Produktivpfad nie, weil kein
+  Aufrufer ein Zielmedium übergab.
+
 ## [2.7.3] – 2026-08-14
 
 ### Behoben

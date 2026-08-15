@@ -9,6 +9,22 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Modifié
+
+- **Export EufyMake : inversion de l'avertissement de profondeur de bits,
+  branchement du contrôle de zone d'impression (#687).** Une recherche sur
+  les sources du fabricant (niveau S, via extraction moteur de recherche,
+  non vérifiée sur l'original) a montré qu'EufyMake recommande
+  « 16-bit/channel if the option is available » pour les cartes de hauteur –
+  le validateur signalait jusqu'ici précisément ce chemin comme non
+  confirmé, tandis que le 8 bits passait silencieusement.
+  `BIT_DEPTH_UNCONFIRMED` se déclenche désormais en 8 bits, plus en 16 bits.
+  Un nouveau constat (`PRINT_AREA_EXCEEDED`, avertissement) vérifie
+  également la taille physique du motif par rapport au plateau plat
+  standard eufyMake (330 × 420 mm) – auparavant, le contrôle général de
+  zone d'impression sous-jacent ne s'exécutait jamais en production, aucun
+  appelant ne transmettant de support cible.
+
 ## [2.7.3] – 2026-08-14
 
 ### Corrigé
