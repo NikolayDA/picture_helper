@@ -31,12 +31,17 @@ Verzeichnis dokumentiert (Schema :data:`SCHEMA_VERSION`). Die Sollbeziehung
 zwischen Pixelmaß und physischer Größe ist ``mm = Pixel / DPI × 25,4``
 (:func:`px_to_mm`), gerundet auf drei Nachkommastellen.
 
-Vierte Rolle, kein eigenständiges Muster: die **Pixelmaß-Variante** (I-04,
-#688/#689-Testdesign) ist eine präzisionserhaltende 128×128-Kopie von
-``height_wedge_16bit.png`` (halbe Kantenlänge, gleiches Seitenverhältnis wie
-die 256×256-Referenz) über ``bgremover.height_map.resize_height_field`` – das
-ist derselbe Resampling-Pfad, den die App selbst für Höhenfelder verwendet,
-nicht eine zufällig andere Downsampling-Implementierung.
+Zwei weitere, kein eigenständiges Muster im obigen Sinn: die
+**Pixelmaß-Variante** (I-04, #688/#689-Testdesign) ist eine
+präzisionserhaltende 128×128-Kopie von ``height_wedge_16bit.png`` (halbe
+Kantenlänge, gleiches Seitenverhältnis wie die 256×256-Referenz) über
+``bgremover.height_map.resize_height_field`` – das ist derselbe
+Resampling-Pfad, den die App selbst für Höhenfelder verwendet, nicht eine
+zufällig andere Downsampling-Implementierung. Die **Seitenverhältnis-Variante**
+(I-12, H-03, #688-Testdesign) ist demgegenüber bewusst **kein** Resize,
+sondern ein direkt bei 256×128 (2:1) neu erzeugter Keil – anders als bei I-04
+soll hier ein echtes, anderes Seitenverhältnis getestet werden, keine
+verzerrte Ableitung eines quadratischen Musters.
 
 Aufruf: ``python scripts/eufymake_fixture_generator.py generate``.
 """
@@ -80,6 +85,10 @@ MM_PER_INCH = 25.4
 PIXEL_SIZE_VARIANT_SIZE = (HEIGHT_SIZE[0] // 2, HEIGHT_SIZE[1] // 2)
 PIXEL_SIZE_VARIANT_PATTERN = "wedge_pixelsize_half"
 PIXEL_SIZE_VARIANT_SOURCE = "height_wedge_16bit.png"
+# I-12 (H-03, #688): bewusst *anderes* Seitenverhältnis als HEIGHT_SIZE (2:1 statt
+# 1:1) – abzugrenzen von I-04 (Pixelmaß bei gleichem Seitenverhältnis).
+ASPECT_RATIO_VARIANT_SIZE = (HEIGHT_SIZE[0], HEIGHT_SIZE[1] // 2)
+ASPECT_RATIO_VARIANT_PATTERN = "wedge_aspect_ratio"
 
 
 def px_to_mm(px: int, dpi: float) -> float:
@@ -232,6 +241,34 @@ def generate_pixel_size_variant_fixture() -> list[FixtureSpec]:
     )]
 
 
+# ── Seitenverhältnis-Variante (I-12, H-03, #688-Testdesign) ─────────────────
+
+def generate_aspect_ratio_variant_fixture() -> list[FixtureSpec]:
+    """Höhenkarte mit einem echten, anderen Seitenverhältnis als ``HEIGHT_SIZE``.
+
+    Anders als die Pixelmaß-Variante (I-04, gleiches Seitenverhältnis, halbe
+    Kantenlänge) prüft I-12, wie Studio eine Höhenkarte behandelt, deren
+    Breite/Höhe-Verhältnis vom übrigen Testmotiv abweicht (strecken,
+    zentrieren, ablehnen? – H-03). Direkt bei Zielgröße neu generiert (keine
+    Verzerrung eines quadratischen Musters durch nachträgliches Resizing),
+    derselbe deterministische Keil wie die übrigen Höhen-Fixtures.
+    """
+    width, height = ASPECT_RATIO_VARIANT_SIZE
+    pattern = _pattern_wedge(width, height)
+    image = _to_16bit_i16(pattern)
+    params = {
+        "width_px": width,
+        "height_px": height,
+        "reference_size_px": list(HEIGHT_SIZE),
+        "note": "Seitenverhältnis 2:1 statt 1:1 wie die übrigen Höhen-Fixtures (H-03).",
+    }
+    return [FixtureSpec(
+        filename="height_wedge_16bit_aspect.png", role="height_map",
+        pattern=ASPECT_RATIO_VARIANT_PATTERN, bit_depth=16, png_mode="I;16",
+        image=image, params=params,
+    )]
+
+
 # ── mm/DPI-Fixtures (#689-Testdesign) ───────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -368,6 +405,7 @@ def generate_all_fixtures() -> list[FixtureSpec]:
     return [
         *generate_height_fixtures(),
         *generate_pixel_size_variant_fixture(),
+        *generate_aspect_ratio_variant_fixture(),
         *generate_mm_dpi_fixtures(),
         *generate_gloss_fixtures(),
     ]

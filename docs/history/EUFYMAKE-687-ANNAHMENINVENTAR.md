@@ -563,6 +563,15 @@ abweichende Kartenmaße (H-03), `pHYs`/Startgröße (G-01/G-02),
 Gloss-Intensitätsabstufung (GL-01) und die Registrierung des Zweitdrucks. Die bisher
 genannten Texturhöhen 3/1 mm werden als eigener UI-/Herstellerquellen-Check ergänzt.
 
+**Nachtrag (2026-08-15):** H-02 und H-03 hatten in der obigen Tabelle zunächst
+keine eigene Testzelle – die Ergänzungsrunde deckte nur I-06/I-08/I-09/I-10 ab.
+[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
+ergänzt dafür **I-11** (Treppenkeil-Druck für H-02) und **I-12** (Höhenkarte
+mit abweichendem Seitenverhältnis für H-03) samt Fixtures. Beide Fragen
+bleiben im Sinne dieses Abschnitts weiterhin „offen“, bis der jeweilige
+Realtest tatsächlich durchgeführt wurde – die Ergänzung schafft nur die
+fehlende Testzelle, kein Ergebnis.
+
 ### 4. Konsequenzen aus Version 2
 
 1. Die Codeänderung aus PR #795 zur 330×420-mm-Warnschwelle ist direkt bestätigt.
