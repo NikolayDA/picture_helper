@@ -1,19 +1,16 @@
-# EufyMake-Hardware-Testgovernance – Entwurf (Issue #687)
+# EufyMake-Hardware-Testgovernance (Issue #687)
 
-> **Status: ENTWURF.** Dies ist ein Vorschlag zur Freigabe durch den
-> Repo-Owner, **keine bereits entschiedene Policy**. Nichts in diesem
-> Dokument gilt als verbindlich, bis es hier ausdrücklich als freigegeben
-> markiert wird (siehe Abschnitt 4). Bis dahin sind die Vorschläge eine
-> Diskussionsgrundlage für #688–#690, Epic
+> **Status: FREIGEGEBEN** (siehe Abschnitt 4, 2026-08-15). Die Regeln unten
+> sind damit verbindlich für die Realtests aus #688–#690, Epic
 > [#681](https://github.com/NikolayDA/picture_helper/issues/681).
 
 Die letzten beiden mit Hardware verknüpften Akzeptanzkriterien von #687
 verlangen Abbruchkriterien für Materialverbrauch/Gerätebedienung sowie
 geklärte Datenschutz-/Lizenz-/Ablagefragen für Testfotos. Beides braucht eine
 Entscheidung des Repo-Owners (reale Kosten, reales Gerät, ggf. reale
-Personen/Umgebung auf Fotos) und kann nicht allein durch Code oder Doku
-„erledigt" werden – daher dieser Entwurf statt einer stillschweigend
-gesetzten Policy.
+Personen/Umgebung auf Fotos) und konnte nicht allein durch Code oder Doku
+„erledigt" werden – daher zunächst ein Entwurf statt einer stillschweigend
+gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
 
 ## 1. Vorschlag: Abbruchkriterien Materialverbrauch
 
@@ -117,16 +114,17 @@ gesetzten Policy.
 
 ## 4. Freigabe
 
-Dieser Abschnitt bleibt leer, bis der Repo-Owner die Vorschläge oben
-bestätigt oder ändert. Vorschlag für den Freigabe-Vermerk:
-
 ```
-Freigegeben von: <Name/GitHub-Handle>
-Datum:
-Geänderte Punkte gegenüber dem Entwurf:
+Freigegeben von: NikolayDA
+Datum: 2026-08-15
+Geänderte Punkte gegenüber dem Entwurf: keine – Abschnitte 1–3 unverändert
+  freigegeben (Materialbudget 20 physische Drucke über 10 druckbare
+  Varianten, UV-Sicherheitshinweise, iCloud-Drive-Ablage für Testfotos).
 ```
 
-Bis zu einer Freigabe gelten die Realtests aus #688–#690 nicht als bezüglich
-Materialverbrauch/Gerätesicherheit/Datenschutz governance-konform – dieses
-Dokument macht nur den Vorschlag sichtbar und versionierbar, ersetzt aber
-keine Owner-Entscheidung.
+Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus
+#688–#690 als bezüglich Materialverbrauch/Gerätesicherheit/Datenschutz
+governance-konform. Eine inhaltliche Änderung der Regeln (z. B. bei
+Erweiterung der Testmatrix, siehe Budget-Eskalation in Abschnitt 1) braucht
+erneut eine explizite Owner-Entscheidung und einen aktualisierten
+Freigabe-Vermerk hier.

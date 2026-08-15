@@ -180,7 +180,7 @@ behebt, und ob das Motiv beim erneuten Öffnen des Projekts sichtbar wird.
 
 Nur nach abgeschlossenem Import- und Vorschauprotokoll derselben Zelle.
 Materialverbrauch beachten – siehe
-[`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md) (Entwurf).
+[`EUFYMAKE-687-TESTGOVERNANCE.md`](EUFYMAKE-687-TESTGOVERNANCE.md) (freigegeben).
 
 | Testzelle | Datum | Druckeinstellung (Texturmodus/Ink-Mode/Bittiefe) | Position/Skalierung im Layout | Physischer Messwert (Breite × Höhe, ggf. Reliefhöhe, mm) | Messmittel | Geschätzte Messunsicherheit | Fotoreferenz | Wiederholungsmessung (2. Lauf) | Abweichung 1. vs. 2. Lauf | Anmerkung |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
