@@ -89,9 +89,10 @@ def test_fixture_roles_and_counts() -> None:
     for spec in specs:
         by_role[spec.role] = by_role.get(spec.role, 0) + 1
 
-    # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß-Variante (kein eigenes
-    # Muster in _HEIGHT_PATTERNS, siehe test_pixel_size_variant_fixture unten).
-    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 1
+    # 8-Bit + 16-Bit je Muster, plus die I-04-Pixelmaß- und I-12-Seitenverhältnis-
+    # Variante (kein eigenes Muster in _HEIGHT_PATTERNS, siehe die dedizierten
+    # Tests unten).
+    assert by_role["height_map"] == len(gen._HEIGHT_PATTERNS) * 2 + 2
     assert by_role["color_motif"] == len(gen.MM_DPI_COMBOS) * 3  # no_phys/phys/conflict
     assert by_role["gloss_mask"] == len(gen._GLOSS_PATTERNS)
 
@@ -102,9 +103,10 @@ def test_fixture_roles_and_counts() -> None:
 def test_height_fixtures_cover_8_and_16_bit(tmp_path: Path) -> None:
     out_dir = _write(tmp_path, "run")
     manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    variant_patterns = {gen.PIXEL_SIZE_VARIANT_PATTERN, gen.ASPECT_RATIO_VARIANT_PATTERN}
     height_entries = [
         e for e in manifest["fixtures"]
-        if e["role"] == "height_map" and e["pattern"] != gen.PIXEL_SIZE_VARIANT_PATTERN
+        if e["role"] == "height_map" and e["pattern"] not in variant_patterns
     ]
     patterns = {e["pattern"] for e in height_entries}
     assert patterns == {name for name, _ in gen._HEIGHT_PATTERNS}
@@ -146,6 +148,36 @@ def test_pixel_size_variant_fixture_is_precision_preserving_half_size(
     with Image.open(out_dir / entry["filename"]) as img:
         actual = np.array(img, dtype=np.uint16)
     assert np.array_equal(actual, expected.values)
+
+
+# ── Seitenverhältnis-Variante (I-12, H-03) ───────────────────────────────
+
+def test_aspect_ratio_variant_fixture_has_genuinely_different_ratio(
+    tmp_path: Path,
+) -> None:
+    """I-12: echtes anderes Seitenverhältnis, kein Resize eines quadratischen Musters."""
+    out_dir = _write(tmp_path, "run")
+    manifest = json.loads((out_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    entry = next(
+        e for e in manifest["fixtures"] if e["filename"] == "height_wedge_16bit_aspect.png"
+    )
+    assert entry["role"] == "height_map"
+    assert entry["pattern"] == gen.ASPECT_RATIO_VARIANT_PATTERN
+    assert entry["bit_depth"] == 16
+    assert entry["png_mode"] == "I;16"
+    assert (entry["width"], entry["height"]) == gen.ASPECT_RATIO_VARIANT_SIZE
+
+    # Muss sich vom Seitenverhältnis der quadratischen Referenz unterscheiden
+    # (sonst wäre es keine H-03-Variante, sondern nur eine weitere Pixelmaß-Kopie).
+    ref_w, ref_h = entry["params"]["reference_size_px"]
+    assert entry["width"] / entry["height"] != ref_w / ref_h
+
+    expected = np.rint(
+        gen._pattern_wedge(*gen.ASPECT_RATIO_VARIANT_SIZE) * gen.HEIGHT_MAX_16BIT
+    ).astype(np.uint16)
+    with Image.open(out_dir / entry["filename"]) as img:
+        actual = np.array(img, dtype=np.uint16)
+    assert np.array_equal(actual, expected)
 
 
 # ── mm/DPI-Fixtures: pHYs-Varianten und Widerspruchstest ────────────────

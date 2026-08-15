@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "generated_by": "scripts/eufymake_fixture_generator.py",
-  "fixture_count": 30,
+  "fixture_count": 31,
   "fixtures": [
     {
       "filename": "gloss_checkerboard.png",
@@ -228,6 +228,26 @@
       },
       "sha256": "5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f",
       "bytes": 657
+    },
+    {
+      "filename": "height_wedge_16bit_aspect.png",
+      "role": "height_map",
+      "pattern": "wedge_aspect_ratio",
+      "bit_depth": 16,
+      "png_mode": "I;16",
+      "width": 256,
+      "height": 128,
+      "params": {
+        "width_px": 256,
+        "height_px": 128,
+        "reference_size_px": [
+          256,
+          256
+        ],
+        "note": "Seitenverhältnis 2:1 statt 1:1 wie die übrigen Höhen-Fixtures (H-03)."
+      },
+      "sha256": "9067d1ecabfc0067ba64c7036e28004e210945637b2c2ba53886596c90f45053",
+      "bytes": 369
     },
     {
       "filename": "height_wedge_16bit_half.png",

@@ -1,33 +1,31 @@
-# EufyMake-Hardware-Testgovernance – Entwurf (Issue #687)
+# EufyMake-Hardware-Testgovernance (Issue #687)
 
-> **Status: ENTWURF.** Dies ist ein Vorschlag zur Freigabe durch den
-> Repo-Owner, **keine bereits entschiedene Policy**. Nichts in diesem
-> Dokument gilt als verbindlich, bis es hier ausdrücklich als freigegeben
-> markiert wird (siehe Abschnitt 4). Bis dahin sind die Vorschläge eine
-> Diskussionsgrundlage für #688–#690, Epic
+> **Status: FREIGEGEBEN** (siehe Abschnitt 4, 2026-08-15). Die Regeln unten
+> sind damit verbindlich für die Realtests aus #688–#690, Epic
 > [#681](https://github.com/NikolayDA/picture_helper/issues/681).
 
 Die letzten beiden mit Hardware verknüpften Akzeptanzkriterien von #687
 verlangen Abbruchkriterien für Materialverbrauch/Gerätebedienung sowie
 geklärte Datenschutz-/Lizenz-/Ablagefragen für Testfotos. Beides braucht eine
 Entscheidung des Repo-Owners (reale Kosten, reales Gerät, ggf. reale
-Personen/Umgebung auf Fotos) und kann nicht allein durch Code oder Doku
-„erledigt" werden – daher dieser Entwurf statt einer stillschweigend
-gesetzten Policy.
+Personen/Umgebung auf Fotos) und konnte nicht allein durch Code oder Doku
+„erledigt" werden – daher zunächst ein Entwurf statt einer stillschweigend
+gesetzten Policy, jetzt mit expliziter Freigabe (Abschnitt 4).
 
-## 1. Vorschlag: Abbruchkriterien Materialverbrauch
+## 1. Abbruchkriterien Materialverbrauch (verbindlich)
 
 - **Gesamtbudget für die aktuelle Matrix:** Das
-  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 8 Tabellenzeilen,
-  aber zwei davon vergleichen selbst zwei physische Varianten – I-08
-  (vor/nach Crop) und I-10 (Gloss-Polarität normal/invertiert) – und
-  brauchen damit unabhängig von einer Wiederholungsmessung mindestens zwei
-  Drucke. Maßgeblich ist daher die Zahl der **druckbaren Varianten**, nicht
-  der Tabellenzeilen: I-02, I-03 8-Bit, I-03 16-Bit, I-04, I-05 konsistent,
-  I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal, I-10 invertiert – **10
-  Varianten**. Bei „Erst- + eine Wiederholungsmessung" je Variante (nächster
-  Punkt) ergibt das ein hartes Limit von **maximal 20 physischen Drucken**
-  für #688–#690 in der jetzigen Fassung der Matrix.
+  [Druckprotokoll](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md) hat 12 Tabellenzeilen,
+  je eine physisch zu druckende Variante: I-02, I-03 8-Bit, I-03 16-Bit,
+  I-04, I-05 konsistent, I-07, I-08 vor Crop, I-08 nach Crop, I-10 normal,
+  I-10 invertiert, I-11 (Treppenkeil, H-02), I-12 (Seitenverhältnis, H-03) –
+  **12 Varianten**. I-08 und I-10 vergleichen dabei inhaltlich je zwei
+  Ausprägungen (vor/nach Crop bzw. normal/invertiert), stehen aber bereits
+  als zwei getrennte Tabellenzeilen mit je eigener Wiederholungsmessung im
+  Druckprotokoll – Zeilenzahl und Variantenzahl sind hier deckungsgleich.
+  Bei „Erst- + eine Wiederholungsmessung" je Variante (nächster Punkt)
+  ergibt das ein hartes Limit von **maximal 24 physischen Drucken** für
+  #688–#690 in der jetzigen Fassung der Matrix.
 - Erweitert sich die Matrix später (neue Testzellen aus offenen
   Widersprüchen), ist die daraus rechnerisch folgende neue Zahl nur ein
   **Vorschlag** – kein automatisches Zusatzbudget. Neue Zellen lösen immer
@@ -41,22 +39,26 @@ gesetzten Policy.
   (Dateivalidierung + Importprotokoll) vollständig abschließen – ein Druck
   startet nie ohne bereits protokollierten, plausiblen Import.
 - Bei sichtbar fehlgeschlagenem Druck (Papier-/Substratstau, falsches
-  Material, offensichtlich falsche Farbe/Größe) sofort abbrechen, Ursache im
-  Importprotokoll vermerken, **nicht** automatisch wiederholen. Ein
-  Fehldruck zählt gegen das Gesamtbudget, auch ohne verwertbare Messung.
+  Material, offensichtlich falsche Farbe/Größe) sofort abbrechen, Ursache in
+  der Zeile der betroffenen Variante im **Druckprotokoll** vermerken (nicht
+  im Importprotokoll – der Vorfall passiert beim Druck, nicht beim Import,
+  und muss dem physischen Lauf zuordenbar bleiben, der das Budget belastet),
+  **nicht** automatisch wiederholen. Ein Fehldruck zählt gegen das
+  Gesamtbudget, auch ohne verwertbare Messung.
 - Klarlack/Weißtinte/Spezialtinten gelten als knappe Ressource: Gloss-Zellen
   (#690, I-10) nur mit dem in der Testmatrix vorgesehenen Mindestsatz an
   Kombinationen drucken, keine explorativen Zusatzdrucke ohne protokollierte
   Fragestellung.
-- Ein Tagesbudget (Vorschlag: so viele Zellen wie an einem Tag mit
-  Wiederholungsmessung realistisch nachvollziehbar bleiben) verhindert
-  Ermüdungsfehler bei Messung/Protokollierung.
-- **Budget-Eskalation:** Reicht das Gesamtbudget von 20 Drucken absehbar
+- Ein Tagesbudget (Richtwert: so viele Zellen wie an einem Tag mit
+  Wiederholungsmessung realistisch nachvollziehbar bleiben – bewusst kein
+  fixer Zahlenwert, sondern nach eigenem Ermessen am Testtag zu bestimmen)
+  verhindert Ermüdungsfehler bei Messung/Protokollierung.
+- **Budget-Eskalation:** Reicht das Gesamtbudget von 24 Drucken absehbar
   nicht (wiederholte Fehldrucke, neue Testzellen aus offenen Widersprüchen),
   pausieren und den Owner ausdrücklich um eine erweiterte Freigabe bitten,
   statt stillschweigend über das Limit hinaus zu drucken.
 
-## 2. Vorschlag: Sichere Gerätebedienung
+## 2. Sichere Gerätebedienung (verbindlich)
 
 - Herstellerhandbuch/Sicherheitshinweise des eufyMake E1 vor dem ersten Test
   lesen und griffbereit halten; dieses Dokument ersetzt sie nicht.
@@ -72,9 +74,12 @@ gesetzten Policy.
 - Gerät während eines laufenden Druck-/Importvorgangs nicht unbeaufsichtigt
   lassen.
 - Bei Fehlercode, ungewöhnlichem Geräusch, Geruch oder sichtbarer
-  Übertemperatur sofort abbrechen (Nothalt/Netzschalter), Vorfall im
-  Importprotokoll dokumentieren, **keine** Testfortsetzung ohne Klärung der
-  Ursache.
+  Übertemperatur sofort abbrechen (Nothalt/Netzschalter). Vorfall dort
+  dokumentieren, wo er auftritt: während eines laufenden Druckvorgangs in
+  der Zeile der betroffenen Variante im **Druckprotokoll** (mit Verweis auf
+  den Import, falls relevant), während eines reinen Importvorgangs ohne
+  bereits gestarteten Druck im Importprotokoll. **Keine** Testfortsetzung
+  ohne Klärung der Ursache.
 - Persönliche Schutzausrüstung gemäß Hersteller-/Tintenblatt (z. B. bei
   Reinigung, Tintenwechsel, Weißtinten-Underbase-Einstellung gemäß A12 im
   Annahmeninventar) verwenden.
@@ -83,7 +88,7 @@ gesetzten Policy.
   versetzen, nicht einfach stromlos schalten, wenn ein regulärer
   Herunterfahrvorgang existiert.
 
-## 3. Vorschlag: Datenschutz, Lizenz und Ablage für Testfotos
+## 3. Datenschutz, Lizenz und Ablage für Testfotos (verbindlich)
 
 - **Keine personenbezogenen Daten im Bild:** Fotos so aufnehmen, dass keine
   Personen, Gesichter, Kennzeichen oder private Räume erkennbar
@@ -94,10 +99,11 @@ gesetzten Policy.
   können. Gilt auch für kuratierte Ausschnitte, die in `docs/history/`
   landen.
 - **Ablageort:** Rohfotos **nicht** direkt ins Git-Repository (Bildbinärdaten
-  blähen die Historie dauerhaft auf). Ablage in **iCloud Drive** des
-  Repo-Owners, in einem eigenen, nicht geteilten Ordner (Vorschlag:
+  blähen die Historie dauerhaft auf). Verbindlich ist **iCloud Drive** des
+  Repo-Owners, in einem eigenen, nicht geteilten Ordner; die konkrete
+  Ordnerbenennung ist frei wählbar, Beispielkonvention:
   `iCloud Drive/BgRemover-EufyMake-Testfotos/<Issue>/<Testzelle>/`, z. B.
-  `.../688-height/I-03-8bit/`); je Datei SHA-256 bilden und zusammen mit dem
+  `.../688-height/I-03-8bit/`. Je Datei SHA-256 bilden und zusammen mit dem
   iCloud-Pfad (kein öffentlicher Freigabelink) in der Spalte
   „Fotoreferenz" des jeweiligen Protokolls eintragen. Nur kuratierte, für
   die Dokumentation nötige Ausschnitte werden bei Bedarf verkleinert/
@@ -117,16 +123,21 @@ gesetzten Policy.
 
 ## 4. Freigabe
 
-Dieser Abschnitt bleibt leer, bis der Repo-Owner die Vorschläge oben
-bestätigt oder ändert. Vorschlag für den Freigabe-Vermerk:
-
 ```
-Freigegeben von: <Name/GitHub-Handle>
-Datum:
-Geänderte Punkte gegenüber dem Entwurf:
+Freigegeben von: NikolayDA
+Datum: 2026-08-15 (ursprüngliche Freigabe)
+Aktualisiert: 2026-08-15 – Testmatrix um I-11 (H-02, Treppenkeil-Druck) und
+  I-12 (H-03, Seitenverhältnis) erweitert, nachdem sich zeigte, dass die
+  ursprünglich freigegebene 10-Varianten-Matrix zwei im Annahmeninventar als
+  offen markierte #688-Fragen (H-02/H-03) noch keiner Testzelle zugeordnet
+  hatte. Gesamtbudget entsprechend von 20 auf 24 physische Drucke erhöht
+  (12 Varianten × max. 2). UV-Sicherheitshinweise und iCloud-Drive-Ablage
+  (Abschnitte 2–3) unverändert gegenüber der ursprünglichen Freigabe.
 ```
 
-Bis zu einer Freigabe gelten die Realtests aus #688–#690 nicht als bezüglich
-Materialverbrauch/Gerätesicherheit/Datenschutz governance-konform – dieses
-Dokument macht nur den Vorschlag sichtbar und versionierbar, ersetzt aber
-keine Owner-Entscheidung.
+Damit gelten die Regeln aus den Abschnitten 1–3 für die Realtests aus
+#688–#690 als bezüglich Materialverbrauch/Gerätesicherheit/Datenschutz
+governance-konform. Eine inhaltliche Änderung der Regeln (z. B. bei
+Erweiterung der Testmatrix, siehe Budget-Eskalation in Abschnitt 1) braucht
+erneut eine explizite Owner-Entscheidung und einen aktualisierten
+Freigabe-Vermerk hier.
