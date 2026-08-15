@@ -503,7 +503,7 @@ Ein Paket, `bgremover/`:
 
 ## CI-Automatisierung
 
-Workflows unter `.github/workflows/` (15):
+Workflows unter `.github/workflows/` (16):
 
 - **Test/Qualität:** `pr-ci.yml` (jeder PR, Ubuntu + Py3.12), `ci.yml` (volle
   Matrix Ubuntu/macOS × Py3.10–3.13; Kandidaten-Gate, wöchentlich und manuell —
@@ -514,7 +514,10 @@ Workflows unter `.github/workflows/` (15):
 - **Sicherheit/Abhängigkeiten:** `codeql.yml` (automatisierte SAST-Grundabdeckung
   Python: Push/PR auf `main` + wöchentlich + manuell), `codex-security-scan.yml`
   (**nur** `workflow_dispatch`, Parameter `min_severity`), `dependency-audit.yml`
-  (PR + montags), `license-check.yml` (braucht bewusst kein Qt). Modell/Begründung:
+  (PR + montags), `license-check.yml` (braucht bewusst kein Qt),
+  `clamav-db-refresh.yml` (wöchentlich montags 03:00 UTC + manuell; füttert den
+  rotierenden Signaturcache für den Artefakt-Malware-Scan, siehe
+  *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
 - **Doku:** `recommendations-live-check.yml` (#777) — täglich (06:30 UTC), bei
   jedem `issues`-Ereignis (opened/closed/reopened) und manuell:
@@ -540,6 +543,43 @@ Workflows unter `.github/workflows/` (15):
   PRs (#555). `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
+
+### Artefakt-Sicherheitsscan: Secrets + Malware (#584/#608/#731)
+
+`scripts/scan_release_artifacts.py` ist der geteilte Scanner, den
+`release-linux.yml` nach jedem Kandidatenbau über `dist/` laufen lässt. Er
+entpackt jedes Artefakt (AppImage via `--appimage-extract`, `.deb` via
+`dpkg-deb -x` **rekursiv** in die darin gewrappte AppImage, `.dmg` via
+`hdiutil attach`/`detach`) und prüft **Rohdatei und jede entpackte Datei** –
+ein Scan nur der komprimierten Containerbytes würde Funde in
+SquashFS/`data.tar`/UDZO verfehlen.
+
+- **Geheimnisse** (AWS-Key-IDs, GitHub-Token, private PEM-Schlüssel,
+  Slack-Token) blockieren hart; geloggt wird ausschließlich ein nicht
+  umkehrbarer Fingerprint, nie der Treffer selbst.
+- **Entwicklerpfade** (`/home/<user>`, `/Users/<user>` außerhalb der
+  Allowlist `runner`/`root`/`qt`/`default`) blockieren **nur innerhalb des
+  eigenen `bgremover`-Pakets**; Funde in Drittanbieter-Abhängigkeiten bleiben
+  sichtbar, aber nicht blockierend (#608, empirisch an realen CI-Läufen).
+- **Malware** über `--clamav-database`: erst muss die aktive Signaturdatenbank
+  den EICAR-Kontrollstring erkennen, dann wird jedes Artefakt zusammen mit
+  seiner entpackten Nutzlast gescannt. Erfolg heißt Exit 0 **und** null Funde
+  **und** keine Limitwarnung (`--alert-exceeds-max=yes`, 2-GB-Limits) **und**
+  mehr als 0 gescannte Bytes – ein still übersprungener Scan gilt nie als
+  bestanden.
+
+Die Signaturdatenbank wird bewusst **nicht** im Kandidatenbau geholt: der
+eigene Workflow `clamav-db-refresh.yml` füttert einen rotierenden
+Actions-Cache (`clamav-db-v1-<run_id>`, Auflösung per `restore-keys`-Prefix),
+`release-linux.yml` stellt ihn nur wieder her. Das entkoppelt die beiden real
+beobachteten Fehlerursachen aus #725 (Lock des `clamav-freshclam`-Dienstes
+unter Linux, „NULL X509 store" unter macOS) vom Release-Pfad. Fehlt der Cache,
+läuft der Secret-/Pfad-Scan trotzdem und die Malware-Prüfung wird **sichtbar**
+als `UNAVAILABLE` gemeldet (Kriterium `MALWARE-01`, `SHOULD`), eine Datenbank
+älter als 14 Tage erzeugt eine Warnung. Entscheidung: ADR
+[`docs/history/ADR-2026-clamav-signaturcache.md`](docs/history/ADR-2026-clamav-signaturcache.md).
+Regressionstests: `tests/test_scan_release_artifacts.py`,
+`tests/test_clamav_release_scan.py`, `tests/test_release_gate.py`.
 
 ### Release-Freeze & Kandidatenregel (#742/#743)
 
