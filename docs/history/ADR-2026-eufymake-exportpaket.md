@@ -40,8 +40,9 @@ oder Manifest-Konvention verlangt.
    DPI/Auflösung, Bittiefe und Annahmen maschinenlesbar wiederholen, ist aber
    nicht Voraussetzung für den ersten Render-/Schreibschritt. `manifest.json`
    ist ausschließlich BgRemover-interne Dokumentation ohne belegten
-   Studio-Importvertrag (#687, EM-C01) – Studio liest laut Recherche
-   Einzeldateien, kein Manifest.
+   Studio-Importvertrag (#687, EM-C01) – eine Studio-Auswertung ist nicht
+   dokumentiert. „Widerlegt“ wäre ohne den offenen Negativtest I-06 zu stark;
+   der Status bleibt nicht belegt/intern, nicht widerlegt.
 4. **Bildformate:** Alle Assets werden verlustfrei geplant. Das Farbmotiv ist
    ein PNG mit Alpha (`RGBA`). Die Höhenkarte ist ein Graustufen-PNG, bei dem
    **hell = hoch** und **dunkel = niedrig** gilt. Die Gloss-Maske ist ein

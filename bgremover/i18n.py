@@ -139,9 +139,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "erfolgen in EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber Studio liest "
-            "die Größe nachweislich nicht aus unseren Dateien (kein Manifest-Import, kein "
-            "bestätigter pHYs-Import)."
+            "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber es gibt keinen "
+            "belegten Datei-/Studio-Importvertrag dafür – kein dokumentierter "
+            "Manifest-Import, ob „pHYs“ als Startgröße ausgewertet wird, ist ungeklärt "
+            "(#689)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Motiv {width}×{height} mm überschreitet das eufyMake-Standard-Flachbett "
@@ -1046,9 +1047,9 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "happen in EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Physical size and the pixel↔mm/DPI assumption are plausible, but Studio "
-            "verifiably does not read the size from our files (no manifest import, no "
-            "confirmed pHYs import)."
+            "Physical size and the pixel↔mm/DPI assumption are plausible, but there is no "
+            "documented file/Studio import contract for it – no documented manifest "
+            "import, and whether \"pHYs\" is read as the start size remains unclear (#689)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Motif {width}×{height} mm exceeds the eufyMake standard flatbed "
@@ -1951,9 +1952,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "la asignación de capas se hacen en EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero Studio "
-            "demostrablemente no lee el tamaño desde nuestros archivos (sin importación "
-            "de manifest, sin importación confirmada de pHYs)."
+            "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero no existe "
+            "un contrato de importación de archivo/Studio documentado para ello – sin "
+            "importación de manifest documentada, y si Studio interpreta «pHYs» como "
+            "tamaño inicial sigue sin aclararse (#689)."
         ),
         "eufymake.export.print_area_exceeded": (
             "El motivo de {width}×{height} mm supera el flatbed estándar de eufyMake "
@@ -2862,9 +2864,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "l'affectation des calques se font dans EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais Studio "
-            "ne lit manifestement pas la taille depuis nos fichiers (pas d'import de "
-            "manifest, pas d'import pHYs confirmé)."
+            "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais aucun "
+            "contrat d'import fichier/Studio n'est documenté à ce sujet – pas d'import de "
+            "manifest documenté, et la prise en compte de « pHYs » comme taille de départ "
+            "reste à clarifier (#689)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Le motif {width}×{height} mm dépasse le plateau plat standard eufyMake "
@@ -3773,9 +3776,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "призначення шарів виконуються в EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але Studio "
-            "доведено не читає розмір із наших файлів (немає імпорту маніфесту, немає "
-            "підтвердженого імпорту pHYs)."
+            "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але немає "
+            "задокументованого контракту імпорту файлу/Studio для цього — немає "
+            "задокументованого імпорту маніфесту, чи використовується «pHYs» як "
+            "початковий розмір, лишається нез'ясованим (#689)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Мотив {width}×{height} мм перевищує стандартний планшет eufyMake "
@@ -4676,8 +4680,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
         ),
         "eufymake.export.physical_size_unverified": (
-            "物理尺寸及像素↔毫米/DPI 假设合理，但已证实 Studio 并不会从我们的文件中"
-            "读取该尺寸（不导入 manifest，pHYs 导入未获确认）。"
+            "物理尺寸及像素↔毫米/DPI 假设合理，但目前没有已记录的文件/Studio 导入约定——"
+            "没有已记录的 manifest 导入，「pHYs」是否被用作起始尺寸仍不明确（#689）。"
         ),
         "eufymake.export.print_area_exceeded": (
             "图案 {width}×{height} mm 超出 eufyMake 标准平板尺寸"
