@@ -31,6 +31,13 @@ Verzeichnis dokumentiert (Schema :data:`SCHEMA_VERSION`). Die Sollbeziehung
 zwischen Pixelmaß und physischer Größe ist ``mm = Pixel / DPI × 25,4``
 (:func:`px_to_mm`), gerundet auf drei Nachkommastellen.
 
+Vierte Rolle, kein eigenständiges Muster: die **Pixelmaß-Variante** (I-04,
+#688/#689-Testdesign) ist eine präzisionserhaltende 128×128-Kopie von
+``height_wedge_16bit.png`` (halbe Kantenlänge, gleiches Seitenverhältnis wie
+die 256×256-Referenz) über ``bgremover.height_map.resize_height_field`` – das
+ist derselbe Resampling-Pfad, den die App selbst für Höhenfelder verwendet,
+nicht eine zufällig andere Downsampling-Implementierung.
+
 Aufruf: ``python scripts/eufymake_fixture_generator.py generate``.
 """
 from __future__ import annotations
@@ -38,6 +45,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -47,6 +55,15 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from bgremover.height_map import (  # noqa: E402  (Pfad muss vor dem Import stehen)
+    HEIGHT_MAX_16BIT,
+    HeightField,
+    resize_height_field,
+)
+
 DEFAULT_OUT_DIR = ROOT / "tests" / "fixtures" / "eufymake_hardware"
 MANIFEST_FILENAME = "fixtures_manifest.json"
 # Schema 1: erste Fassung (Rolle, Muster, Bittiefe, PNG-Modus, Maße, Parameter,
@@ -59,6 +76,10 @@ GLOSS_SIZE = (256, 256)
 CHECKER_SQUARE = 16  # px je Schachbrettfeld bei 256 px Kantenlänge → 16×16 Felder.
 STEP_LEVELS = 8  # diskrete Stufen für Höhen-/Gloss-„Treppenkeil"-Fixtures.
 MM_PER_INCH = 25.4
+# I-04 (#688/#689): halbe Kantenlänge von HEIGHT_SIZE, gleiches Seitenverhältnis.
+PIXEL_SIZE_VARIANT_SIZE = (HEIGHT_SIZE[0] // 2, HEIGHT_SIZE[1] // 2)
+PIXEL_SIZE_VARIANT_PATTERN = "wedge_pixelsize_half"
+PIXEL_SIZE_VARIANT_SOURCE = "height_wedge_16bit.png"
 
 
 def px_to_mm(px: int, dpi: float) -> float:
@@ -172,6 +193,43 @@ def generate_height_fixtures() -> list[FixtureSpec]:
             bit_depth=16, png_mode="I;16", image=_to_16bit_i16(pattern), params=params,
         ))
     return specs
+
+
+# ── Pixelmaß-Variante (I-04, #688/#689-Testdesign) ──────────────────────────
+
+def generate_pixel_size_variant_fixture() -> list[FixtureSpec]:
+    """128×128-Kopie von ``height_wedge_16bit.png``, präzisionserhaltend resized.
+
+    Bewusst **kein** eigenständig bei 128×128 neu erzeugtes Keilmuster – das
+    würde den Pixelmaß-Test (I-04) mit einer zusätzlichen, unabhängigen
+    Musterrealisierung vermischen. Stattdessen läuft der 256×256-Keil aus
+    :func:`_pattern_wedge` durch denselben ``resize_height_field``-Pfad, den
+    die App für Höhenfelder verwendet (float32-Zwischenpräzision, LANCZOS,
+    ``rint`` + Clamp auf ``uint16`` – siehe ``bgremover/height_map.py``).
+    """
+    width, height = HEIGHT_SIZE
+    pattern = _pattern_wedge(width, height)
+    values = np.rint(pattern * HEIGHT_MAX_16BIT).astype(np.uint16)
+    coverage = np.full(values.shape, 255, dtype=np.uint8)
+    field_full = HeightField(values, coverage, HEIGHT_MAX_16BIT)
+
+    half_w, half_h = PIXEL_SIZE_VARIANT_SIZE
+    field_half = resize_height_field(field_full, half_w, half_h)
+    raw = np.ascontiguousarray(field_half.values, dtype="<u2").tobytes()
+    image = Image.frombytes("I;16", (half_w, half_h), raw)
+
+    params = {
+        "width_px": half_w,
+        "height_px": half_h,
+        "source_pattern": "wedge",
+        "source_size_px": [width, height],
+        "resize_method": "bgremover.height_map.resize_height_field (LANCZOS)",
+    }
+    return [FixtureSpec(
+        filename="height_wedge_16bit_half.png", role="height_map",
+        pattern=PIXEL_SIZE_VARIANT_PATTERN, bit_depth=16, png_mode="I;16",
+        image=image, params=params,
+    )]
 
 
 # ── mm/DPI-Fixtures (#689-Testdesign) ───────────────────────────────────────
@@ -309,6 +367,7 @@ def generate_all_fixtures() -> list[FixtureSpec]:
     """Alle HEIGHT-, mm/DPI- und Gloss-Fixtures (reine In-Memory-Erzeugung)."""
     return [
         *generate_height_fixtures(),
+        *generate_pixel_size_variant_fixture(),
         *generate_mm_dpi_fixtures(),
         *generate_gloss_fixtures(),
     ]
