@@ -332,7 +332,11 @@ Ausgang zu protokollieren (EM-S03). Erst danach die druckenden Zellen
 (Materialverbrauch!): Treppenkeil für H-02, Gradientenkeil für H-01, Gloss-Keil
 für GL-01. Alle Import-Zellen brauchen nur generierte Testbilder (Keile,
 Gradienten, Treppen), reproduzierbar als kleines Skript unter `scripts/` plus
-SHA-256-Protokoll – noch nicht umgesetzt.
+SHA-256-Protokoll – noch nicht umgesetzt (Stand Evidenzversion 1) → umgesetzt:
+`scripts/eufymake_fixture_generator.py` erzeugt HEIGHT-/mm-DPI-/Gloss-Fixtures
+deterministisch nach `tests/fixtures/eufymake_hardware/` mit SHA-256 je Datei
+in `fixtures_manifest.json`; ausfüllbare Protokollvorlagen liegen unter
+[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](EUFYMAKE-687-PROTOKOLL-VORLAGEN.md).
 
 ### 6. Konsequenzen
 

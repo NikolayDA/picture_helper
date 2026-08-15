@@ -31,7 +31,7 @@ GitHub 查询后的实时状态：**14** 个未结议题。#716 已关闭，因�
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | 定义已于 2026-08-14 修正（PNG 而非 TIFF）—— #687 现已可作为第一个子议题启动 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🟡 中（调研/文档工作，无需硬件访问） | Sonnet，中等 | **可以开始** —— 容器/格式问题现已是第一条验收标准（定义已修正） |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— 等待 #687 提供测试样件；定义已修正 |
-| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— mm/DPI 的传递途径仍未厘清（N10） |
+| [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— Studio 导入对话框是否依据 `pHYs`/DPI 推导起始尺寸尚未证实（N10, EM-F04） |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— 等待 #687 |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图的基础，非当前活跃缺陷） | 🔴 高（5 个子议题，ADR→核心→UI→集成→验收） | –（Epic） | 进行中 —— 优先启动 #692 |

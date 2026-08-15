@@ -26,7 +26,10 @@ oder Manifest-Konvention verlangt.
 1. **Paketumfang:** BgRemover erzeugt zunächst ein Import-Asset-Paket für
    EufyMake Studio, kein natives `.empf`-/Studio-Projekt. Das Paket kann als
    Ordner oder ZIP-Container repräsentiert werden; die logische Struktur bleibt
-   identisch und wird im Exportplan beschrieben.
+   identisch und wird im Exportplan beschrieben. Die ZIP-Variante hat nach
+   aktuellem Kenntnisstand keinen Nutzen: Studio importiert laut Recherche
+   Einzeldateien, kein Paket (#687, EM-C04) – der Ordner bleibt die tatsächlich
+   genutzte Form.
 2. **Rollenabbildung:** `LayerRole.COLOR_MOTIF` wird zum Farbmotiv,
    `LayerRole.HEIGHT_MAP` zur Höhen-Graustufe und `LayerRole.GLOSS_MASK` zur
    optionalen Gloss-/Klarlackmaske. Andere Ebenenrollen sind nicht Teil des
@@ -35,12 +38,20 @@ oder Manifest-Konvention verlangt.
    `color_motif.png`, `height_map.png` und optional `gloss_mask.png`. Ein
    optionales Manifest `manifest.json` darf dieselben Assets, Projektgröße,
    DPI/Auflösung, Bittiefe und Annahmen maschinenlesbar wiederholen, ist aber
-   nicht Voraussetzung für den ersten Render-/Schreibschritt.
+   nicht Voraussetzung für den ersten Render-/Schreibschritt. `manifest.json`
+   ist ausschließlich BgRemover-interne Dokumentation ohne belegten
+   Studio-Importvertrag (#687, EM-C01) – eine Studio-Auswertung ist nicht
+   dokumentiert. „Widerlegt“ wäre ohne den offenen Negativtest I-06 zu stark;
+   der Status bleibt nicht belegt/intern, nicht widerlegt.
 4. **Bildformate:** Alle Assets werden verlustfrei geplant. Das Farbmotiv ist
    ein PNG mit Alpha (`RGBA`). Die Höhenkarte ist ein Graustufen-PNG, bei dem
    **hell = hoch** und **dunkel = niedrig** gilt. Die Gloss-Maske ist ein
-   Graustufen-PNG; bis zur Bestätigung durch EufyMake-Doku/Studio-Beispiele gilt
-   **hell = mehr Glanz/Klarlack** als dokumentierte Annahme.
+   Graustufen-PNG; die ursprüngliche Annahme **hell = mehr Glanz/Klarlack** ist
+   widerlegt – die Primärquelle A11 (Volltext gelesen, #687) belegt für die
+   Spot-UV-Maske **Schwarz = Gloss auftragen, Weiß = nichts**. Die echte
+   Polarität einer eigenen `gloss_mask.png` (und eine mögliche
+   Intensitätsabstufung) ist damit noch nicht durch einen Realtest bestätigt;
+   der Gloss-Realtest in #690 steht noch aus.
 5. **Parameterableitung:** Physische Zielgröße wird aus
    `META_PHYSICAL_SIZE_MM` gelesen, sofern vorhanden; sonst bleibt sie
    unbekannt. DPI/Auflösung werden aus Projektpixelgröße plus physischer Größe
