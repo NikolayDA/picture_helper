@@ -198,8 +198,11 @@ Ein Paket, `bgremover/`:
   über die Umgebungsvariable `BGREMOVER_SCREENSHOT_3D` in `app.main` aktiviert
   (analog `BGREMOVER_SMOKE_TEST`; `BGREMOVER_AI_SELFCHECK` ruft
   `ai_process.run_ai_selfcheck` auf; bewusst kein CLI-Flag), läuft absichtlich
-  **nicht** offscreen und schreibt PNG + Provenance-JSON; ein
-  Software-Renderer lässt den Nachweis fehlschlagen. `acceptance_smoke.py`
+  **nicht** offscreen und schreibt PNG + Provenance-JSON. Sidecar-Schema 2
+  belegt fail-closed, dass Azimut-, Elevations- und Standardqualitäts-Regler
+  gleichzeitig vollständig im Scroll-Viewport liegen; AppImage-, `.deb`- und
+  DMG-Smokes verlangen diesen Nachweis. Ein Software-Renderer lässt den
+  Nachweis ebenfalls fehlschlagen. `acceptance_smoke.py`
   (#685-Review) ist das GL-freie Gegenstück für den EufyMake-Export- und den
   2.7.0-Projekt-Öffnen-Nachweis: `tests/test_e2e_release_regression.py` bindet
   dieselben zwei Prüfungen an den Source-Checkout (`release-abnahme.yml`
@@ -516,8 +519,12 @@ Workflows unter `.github/workflows/` (15):
 - **Doku:** `recommendations-live-check.yml` (#777) — täglich (06:30 UTC), bei
   jedem `issues`-Ereignis (opened/closed/reopened) und manuell:
   `scripts/recommendations_live_check.py` gegen den echten GitHub-Live-Stand,
-  schlägt bei Drift sichtbar fehl. Ersetzt das rein manuelle Nachziehen des
-  Kurzstatus, das den Drift in #669/#728/#752/#777 wiederholt reproduzierte.
+  schlägt bei Drift sichtbar fehl und sichert Bericht, Owner und Reaktionsweg
+  in der Job-Zusammenfassung sowie 30 Tage als Artefakt. Ein roter Lauf gehört
+  dem Repository-Owner und bleibt bis zur synchronen Korrektur aller sechs
+  Fassungen aktiv (vor dem nächsten betroffenen Merge, spätestens innerhalb
+  eines Arbeitstags). Der Check bleibt read-only, damit er den geprüften
+  offenen Bestand nicht durch ein eigenes Issue verändert.
 - **Release:** `release-linux.yml` baut nur manuell den Kandidaten (zwei
   AppImages, zwei `.deb`, ein macOS-`.dmg`) nach `verify-candidate` + Full-CI;
   kein Tag-Trigger, keine Schreibrechte, kein Publish. `release-abnahme.yml`

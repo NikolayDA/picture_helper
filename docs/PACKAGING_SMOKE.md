@@ -141,8 +141,12 @@ Bearbeitung/Projekt-Save/Export bleiben voll funktionsfähig.
 > installiertes `.deb`-AppImage und DMG-App) startet getrennt ein zweites Mal
 > nativ (kein `offscreen`) mit dem Automationshook
 > `BGREMOVER_SCREENSHOT_3D` und liefert Screenshot + GL-Provenance-Sidecar aus
-> dem laufenden **gepackten** Prozess (nicht aus dem Source-Checkout) –
-> Software-Renderer lassen den Nachweis scheitern. Zeilen 1 und 3 (Linux
+> dem laufenden **gepackten** Prozess (nicht aus dem Source-Checkout). Der
+> Hook akzeptiert den Grab nur, wenn Azimut-, Elevations- und
+> Standardqualitäts-Steuerung gleichzeitig vollständig im Scroll-Viewport
+> liegen; Sidecar-Schema 2 bindet diesen geometrischen Nachweis, und der Smoke
+> verlangt ihn für AppImage, installiertes `.deb` und DMG. Fehlende Controls
+> und Software-Renderer lassen den Nachweis scheitern. Zeilen 1 und 3 (Linux
 > x86_64) bleiben pausiert (kein GPU-Hardwarezugang, Stand 2026-07-20) und
 > gelten weiterhin als **offen deklariert**. Die Kriterien hier bleiben
 > maßgeblich; die Automatisierung liefert nur den Nachweis, die Go-/No-Go-
@@ -173,6 +177,11 @@ python scripts/smoke_launch.py \
 # Provenance-Sidecar neben dem Screenshot:
 cat /tmp/native_preview3d_ready.png.json
 ```
+
+Der Nachweis ist nur gültig, wenn die Sidecar `schema: 2`,
+`preview3d_controls_visible: true` und in `preview3d_visible_controls` exakt
+`preview3d_azimuth`, `preview3d_elevation` sowie
+`preview3d_quality_standard` enthält. Ein vorhandenes PNG allein genügt nicht.
 
 EufyMake-Export-/2.7.0-Projekt-Zusatznachweis (#685-Review, kein GL nötig,
 funktioniert für AppImage/`.app`-Binary). Seit #686 prüft derselbe Hook auch

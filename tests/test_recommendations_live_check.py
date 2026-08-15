@@ -5,6 +5,7 @@ deckt ausschließlich die reine Kernlogik über gespeicherte Fixtures ab, wie
 von #752 verlangt ("benötigt in der Default-Suite weder Netzwerk noch
 GitHub-Token").
 """
+
 from __future__ import annotations
 
 import json
@@ -101,9 +102,7 @@ def test_parse_triage_issue_numbers_ignores_links_outside_first_column() -> None
 
 
 def test_open_issues_from_api_payload_filters_pull_requests() -> None:
-    payload = json.loads(
-        (FIXTURE_DIR / "open_issues_sample.json").read_text(encoding="utf-8")
-    )
+    payload = json.loads((FIXTURE_DIR / "open_issues_sample.json").read_text(encoding="utf-8"))
     issues = lc.open_issues_from_api_payload(payload)
     assert {issue.number for issue in issues} == {758, 752}
 
@@ -124,7 +123,11 @@ def test_compare_flags_missing_open_issue() -> None:
     """
     report = lc.compare(
         triage_numbers=(741, 748),
-        open_issues=[lc.OpenIssue(741, "Epic"), lc.OpenIssue(748, "Update"), lc.OpenIssue(758, "Neu")],
+        open_issues=[
+            lc.OpenIssue(741, "Epic"),
+            lc.OpenIssue(748, "Update"),
+            lc.OpenIssue(758, "Neu"),
+        ],
         declared_count=2,
     )
     assert report.missing_open == (758,)
@@ -186,6 +189,35 @@ def test_format_report_lists_every_finding_kind() -> None:
     assert "GitHub meldet 3" in text
 
 
+def test_write_report_creates_parent_and_trailing_newline(tmp_path: Path) -> None:
+    output = tmp_path / "nested" / "report.txt"
+    lc.write_report(output, "ok      Testbericht")
+    assert output.read_text(encoding="utf-8") == "ok      Testbericht\n"
+
+
+def test_main_persists_report_for_findings(tmp_path: Path) -> None:
+    markdown = tmp_path / "RECOMMENDATIONS.md"
+    markdown.write_text(_md(count=1, links=f"| {_link(741)} | Epic |\n"), encoding="utf-8")
+    payload = tmp_path / "issues.json"
+    payload.write_text(
+        json.dumps([{"number": 741, "title": "Epic"}, {"number": 752, "title": "Neu"}]),
+        encoding="utf-8",
+    )
+    report = tmp_path / "report.txt"
+
+    assert (
+        lc.main(["--file", str(markdown), "--data", str(payload), "--report-output", str(report)])
+        == 1
+    )
+    assert "#752" in report.read_text(encoding="utf-8")
+
+
+def test_main_persists_report_for_input_error(tmp_path: Path) -> None:
+    report = tmp_path / "report.txt"
+    assert lc.main(["--file", str(tmp_path / "missing.md"), "--report-output", str(report)]) == 2
+    assert "nicht ausfuehrbar" in report.read_text(encoding="utf-8")
+
+
 # ── run() end-to-end auf synthetischem Dokument ─────────────────────────
 
 
@@ -214,6 +246,17 @@ def test_real_recommendations_triage_matches_its_own_declared_count() -> None:
     triage_numbers = lc.parse_triage_issue_numbers(markdown)
     declared = lc.parse_declared_open_count(markdown)
     assert len(triage_numbers) == declared, (
-        f"Triage-Tabelle listet {len(triage_numbers)} Issues, "
-        f"Kurzstatus behauptet {declared}."
+        f"Triage-Tabelle listet {len(triage_numbers)} Issues, Kurzstatus behauptet {declared}."
     )
+
+
+def test_live_workflow_keeps_actionable_report_on_failure() -> None:
+    workflow = (ROOT / ".github/workflows/recommendations-live-check.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "--report-output recommendations-live-report.txt" in workflow
+    assert workflow.count("if: always()") >= 2
+    assert '>> "$GITHUB_STEP_SUMMARY"' in workflow
+    assert "actions/upload-artifact@v7" in workflow
+    assert "Owner: Repository-Owner" in workflow
+    assert "innerhalb eines Arbeitstags" in workflow

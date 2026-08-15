@@ -117,6 +117,12 @@ NATIVE_3D_SCREENSHOT_NAMES = {
     "deb": "native_preview3d_ready_deb.png",
     "dmg": "native_preview3d_ready_dmg.png",
 }
+NATIVE_3D_PROVENANCE_SCHEMA = 2
+NATIVE_3D_REQUIRED_CONTROLS = (
+    "preview3d_azimuth",
+    "preview3d_elevation",
+    "preview3d_quality_standard",
+)
 # Bereitschafts-Timeout des Automationshooks selbst (BGREMOVER_SCREENSHOT_3D_
 # TIMEOUT_MS, siehe bgremover/app.py) – bewusst kleiner als NATIVE_3D_TIMEOUT:
 # der äußere Wächter (smoke_launch.py) braucht danach noch Zeit für
@@ -384,6 +390,27 @@ def _run_ai_selfcheck_if_needed(
         report.fail(f"KI-Selbsttest fehlgeschlagen ({selfcheck.returncode}): {name}")
 
 
+def validate_native_3d_provenance(payload: object) -> tuple[bool, str]:
+    """Prüft Sidecar-Schema und den vollständigen geometrischen Controls-Nachweis."""
+    if not isinstance(payload, dict):
+        return False, "Provenance-Nutzlast ist kein JSON-Objekt"
+    schema = payload.get("schema")
+    visible_controls = payload.get("preview3d_visible_controls")
+    controls_complete = (
+        payload.get("preview3d_controls_visible") is True
+        and isinstance(visible_controls, list)
+        and all(isinstance(name, str) for name in visible_controls)
+        and set(visible_controls) == set(NATIVE_3D_REQUIRED_CONTROLS)
+        and len(visible_controls) == len(NATIVE_3D_REQUIRED_CONTROLS)
+    )
+    if schema != NATIVE_3D_PROVENANCE_SCHEMA or not controls_complete:
+        return (
+            False,
+            f"Schema {schema!r}, Controls {visible_controls!r}",
+        )
+    return True, "geometrischer Controls-Nachweis vollständig"
+
+
 def _native_3d_screenshot(
     runner: Runner,
     launch_cmd: list[str],
@@ -437,6 +464,14 @@ def _native_3d_screenshot(
         provenance = json.loads(sidecar.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         report.fail(f"Nativer 3D-Screenshot: Provenance-JSON unlesbar ({label}): {exc}")
+        return
+
+    controls_ok, controls_detail = validate_native_3d_provenance(provenance)
+    if not controls_ok:
+        report.fail(
+            "Nativer 3D-Screenshot: geometrischer Controls-Nachweis fehlt oder ist "
+            f"unvollständig ({label}; {controls_detail})"
+        )
         return
 
     verdict = ra.evaluate_gl_provenance(str(provenance.get("gl_provenance") or ""))

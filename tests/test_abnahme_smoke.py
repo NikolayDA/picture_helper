@@ -106,7 +106,13 @@ def _fake_native_screenshot(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"fake-png-bytes")
     target.with_name(target.name + ".json").write_text(
-        json.dumps({"gl_provenance": diagnostic}), encoding="utf-8",
+        json.dumps({
+            "schema": smoke.NATIVE_3D_PROVENANCE_SCHEMA,
+            "gl_provenance": diagnostic,
+            "preview3d_controls_visible": True,
+            "preview3d_visible_controls": list(smoke.NATIVE_3D_REQUIRED_CONTROLS),
+        }),
+        encoding="utf-8",
     )
     return smoke.CommandResult(0)
 
@@ -473,6 +479,11 @@ def test_linux_smoke_writes_native_3d_screenshot_and_provenance(tmp_path: Path) 
             target.with_name(target.name + ".json").read_text(encoding="utf-8"),
         )
         assert sidecar["gl_provenance"] == "Broadcom / V3D 7.1 / 3.1"
+        assert sidecar["schema"] == smoke.NATIVE_3D_PROVENANCE_SCHEMA
+        assert sidecar["preview3d_controls_visible"] is True
+        assert set(sidecar["preview3d_visible_controls"]) == set(
+            smoke.NATIVE_3D_REQUIRED_CONTROLS
+        )
 
 
 def test_linux_smoke_native_3d_screenshot_runs_for_appimage_and_deb(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
@@ -536,6 +547,41 @@ def test_native_3d_screenshot_fails_on_software_renderer(tmp_path: Path) -> None
     )
     assert not report.passed
     assert any("Software-Renderer" in n for n in report.notes)
+
+
+@pytest.mark.parametrize(
+    ("sidecar_patch", "expected"),
+    [
+        ({"preview3d_controls_visible": False}, "Controls-Nachweis"),
+        ({"preview3d_visible_controls": ["preview3d_azimuth"]}, "Controls-Nachweis"),
+        ({"schema": 1}, "Schema 1"),
+    ],
+)
+def test_native_3d_screenshot_fails_without_complete_controls_evidence(
+    tmp_path: Path,
+    sidecar_patch: dict[str, Any],
+    expected: str,
+) -> None:
+    screenshot_name = smoke.NATIVE_3D_SCREENSHOT_NAMES["appimage"]
+
+    def runner(cmd: list[str]) -> smoke.CommandResult:
+        result = _fake_native_screenshot(cmd, "Broadcom / V3D 7.1 / 3.1", 0)
+        assert result is not None
+        target = tmp_path / "shots" / screenshot_name
+        sidecar = target.with_name(target.name + ".json")
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+        payload.update(sidecar_patch)
+        sidecar.write_text(json.dumps(payload), encoding="utf-8")
+        return result
+
+    report = smoke.SmokeReport()
+    smoke._native_3d_screenshot(
+        runner, ["launch"], match="x", max_instances=1, label="x.AppImage",
+        report=report, screenshot_dir=tmp_path / "shots",
+        screenshot_name=screenshot_name,
+    )
+    assert not report.passed
+    assert any(expected in note for note in report.notes)
 
 
 def test_native_3d_screenshot_fails_when_process_exits_nonzero(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]

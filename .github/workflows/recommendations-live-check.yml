@@ -9,7 +9,10 @@ name: Recommendations Live Check
 # jedem issues-Ereignis, das den offenen Bestand sofort veraendert (opened/
 # closed/reopened) - damit der Drift nicht mehr bis zur naechsten manuellen
 # Runde liegen bleibt, sondern spaetestens am naechsten Tag sichtbar (roter
-# Lauf) auffaellt.
+# Lauf) auffaellt. Jeder Lauf schreibt ausserdem einen dauerhaften Bericht in
+# die Job-Zusammenfassung und als Artefakt; dort stehen Owner und verbindlicher
+# Reaktionsweg, damit ein roter Lauf nicht nur sichtbar, sondern handlungsfaehig
+# ist.
 #
 # issues-Events allein reichen nicht: GitHub loest keine Folge-Workflows fuer
 # Aenderungen aus, die mit dem Standard-GITHUB_TOKEN vorgenommen wurden (siehe
@@ -61,4 +64,35 @@ jobs:
         # die eigentliche Ursache des #777-Drifts war.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/recommendations_live_check.py --token "$GH_TOKEN"
+        run: >-
+          python scripts/recommendations_live_check.py
+          --token "$GH_TOKEN"
+          --report-output recommendations-live-report.txt
+
+      - name: Bericht und Verantwortlichkeit in Job-Zusammenfassung sichern
+        if: always()
+        run: |
+          {
+            echo "## Recommendations-Live-Check"
+            echo
+            echo '```text'
+            if [ -f recommendations-live-report.txt ]; then
+              cat recommendations-live-report.txt
+            else
+              echo "FEHLER  Der Live-Check hat keinen Bericht erzeugt."
+            fi
+            echo '```'
+            echo
+            echo "### Verantwortung und Reaktion"
+            echo
+            echo "**Owner: Repository-Owner.** Ein roter Lauf bleibt ein aktiver Dokumentationsbefund, bis Kurzstatus und Triage in RECOMMENDATIONS.md sowie allen fuenf Uebersetzungen aktualisiert und der Live-Check erneut gruen ist. Reaktion vor dem naechsten Merge mit Issue-/Recommendations-Bezug, spaetestens innerhalb eines Arbeitstags."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Live-Bericht als Diagnose-Artefakt sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: recommendations-live-report-${{ github.run_attempt }}
+          path: recommendations-live-report.txt
+          if-no-files-found: warn
+          retention-days: 30

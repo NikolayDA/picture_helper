@@ -363,3 +363,35 @@ def test_main_passes_for_deb_with_unknown_dev_path_in_third_party_dependency(tmp
 def test_main_returns_one_for_empty_directory(tmp_path: Path) -> None:
     rc = scan_release_artifacts.main([str(tmp_path)])
     assert rc == 1
+
+
+def test_main_with_clamav_scans_each_raw_deb_and_its_extracted_payload(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    _build_deb(
+        tmp_path / "stage", dist / "clean.deb",
+        {"opt/test/readme.txt": b"nothing interesting here"},
+    )
+    database = tmp_path / "clamav-db"
+    database.mkdir()
+    (database / "daily.cvd").write_bytes(b"test database marker")
+    scanned = []
+
+    monkeypatch.setattr(
+        scan_release_artifacts, "verify_clamav_eicar", lambda db, workdir: True,
+    )
+
+    def fake_scan(artifact: Path, extracted: Path, db: Path) -> bool:
+        scanned.append((artifact, extracted, db))
+        assert (extracted / "opt" / "test" / "readme.txt").is_file()
+        return True
+
+    monkeypatch.setattr(scan_release_artifacts, "scan_artifact_with_clamav", fake_scan)
+    assert scan_release_artifacts.main(
+        ["--clamav-database", str(database), str(dist)],
+    ) == 0
+    assert scanned == [
+        (dist / "clean.deb", scanned[0][1], database),
+    ]

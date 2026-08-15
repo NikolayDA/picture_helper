@@ -237,7 +237,15 @@ GitHub-Stand widerspiegeln.
   fehl, sobald `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
   manuelle Nachziehen allein hatte den Drift in #669/#728/#752 mehrfach und
   in #777 sogar zweimal am selben Tag reproduziert; die wiederkehrende
-  Ausführung schließt genau diese Lücke.
+  Ausführung schließt genau diese Lücke. Unabhängig vom Exit-Status sichert
+  der Workflow den Bericht in der Job-Zusammenfassung und 30 Tage als
+  Actions-Artefakt. **Owner ist der Repository-Owner:** Ein roter Lauf bleibt
+  ein aktiver Dokumentationsbefund, bis Kurzstatus und Triage in der deutschen
+  Fassung sowie allen fünf Übersetzungen aktualisiert sind und der Live-Check
+  erneut grün ist. Die Reaktion erfolgt vor dem nächsten Merge mit Issue- oder
+  Recommendations-Bezug, spätestens innerhalb eines Arbeitstags. Der Check
+  bleibt bewusst read-only und eröffnet kein Tracking-Issue, weil dieses den
+  zu prüfenden offenen Bestand selbst verändern würde.
 
 ## Einzelne Tests / nützliche Aufrufe
 

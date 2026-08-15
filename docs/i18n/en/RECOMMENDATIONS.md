@@ -11,23 +11,23 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-14, v2.7.3 released, #777 closed via an automated live check)
+## Current Status (2026-08-15, v2.7.3 released, live state rechecked)
 
-**#777 closed — automated live check added:** the short status had already been hand-corrected twice that same day (22→18→16), because #773 and #781 were closed the very same day without the triage table catching up right away — exactly the structural drift pattern #777 described. The actual root cause is now fixed instead of just correcting the number once more: the new [`recommendations-live-check.yml`](../../../.github/workflows/recommendations-live-check.yml) workflow runs `scripts/recommendations_live_check.py` automatically — daily on a schedule (06:30 UTC), on every `issues` event (opened/closed/reopened), and manually via `workflow_dispatch` — and fails visibly (a red CI run) whenever the triage table diverges from the real GitHub state. The drift can no longer sit unnoticed between manual rounds.
+**#777 closed — automated live check added:** the short status had already been hand-corrected twice that same day (22→18→16), because #773 and #781 were closed on the same day without the triage table catching up. [`recommendations-live-check.yml`](../../../.github/workflows/recommendations-live-check.yml) now runs `scripts/recommendations_live_check.py` daily (06:30 UTC), on `issues` events, and manually. Every run persists its finding in the job summary and for 30 days as an artifact. The repository owner owns a red run until all six versions are synchronised and the check is green again; response is required before the next related merge, within one working day at the latest. The check deliberately does not open its own issue because that would change the issue set it validates.
 
 **v2.7.3 released:** PR #786 (version cut, closes #773) is merged; #787/#788 then closed the sub-issue #781. The final candidate (commit `2eaf529`, after #787) passed the full macOS/Linux-arm64 hardware acceptance (run 31813701271, 2026-08-14 15:16 UTC) and was published at 19:19:39 UTC with five artifacts (macOS arm64 DMG, Linux x86_64 and arm64 each as AppImage/.deb). Unlike v2.7.2, no separate release-protocol issue (analogous to #758) was opened for v2.7.3.
 
-Epic **#741** now has no sub-issue left open: #781 is closed, after the vision finding "controls_sichtbar" was confirmed reproducible across two independent runs (31813701271, 31833822560) — the automated 3D screenshot grabbed the window without accounting for the height-panel scroll area, so the light/quality controls sat below the fold; fixed via #788 (`make check` green), but the v2.7.3 candidate (commit `2eaf529`) was built **before** #788, so full verification only follows with the next candidate build. The epic still stays open because one process criterion needed re-assessing: the `UPDATE-01` follow-up run prescribed by runbook step 9 ran for v2.7.3 as intended, a single-platform run (`platforms=linux-arm64`, run 31833822560, 19:33 UTC — 14 minutes after publish, against `predecessor_tag=v2.7.2`) and **not** as a full second run like v2.7.2's; the update check itself passed cleanly (predecessor reports `UPDATE_AVAILABLE` → v2.7.3, candidate reports `UP_TO_DATE`, both "befund=ok", job "Abnahme Linux aarch64"). The GitHub run status still shows "failure" because the closeout-matrix/`create-approval` logic structurally still demands the full three-platform matrix and aborts on a deliberately single-platform run (missing macOS criteria alone is enough — Linux x86_64 stays "paused" by default on every run and, per `build_acceptance_summary`, isn't blocking either way; the vision pre-assessment is advisory-only per the ADR regardless). The DoD point "no second hardware acceptance after publish" therefore counts as substantively met for v2.7.3 — not a repeat of v2.7.2's mistake — but an automation fix for single-platform runs is still needed before the epic can formally close.
+Epic **#741** has no open sub-issue. The #781 vision finding "controls_sichtbar" was addressed in #788 by scrolling the panel, but the published v2.7.3 candidate predates that change; native package verification on macOS arm64 and Linux arm64 is therefore still missing. The other former gap is closed: PR #791 lets the intended `UPDATE-01` single-platform run finish without an invalid `create-approval` attempt. The only remaining formal epic evidence is now a new candidate proving that the azimuth, elevation, and quality controls are actually visible in the native 3D screenshot.
 
 Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). No 🔴 finding open.
 
-Live state after the GitHub query: **15** open issues — #777 is closed by this change (the automated live check via `recommendations-live-check.yml` replaces manual catch-up).
+Live state after the GitHub query: **14** open issues. #716 is closed and has therefore been removed from active triage; the historical archive remains unchanged.
 
-## Open GitHub Issues — Triage Status (2026-08-14)
+## Open GitHub Issues — Triage Status (2026-08-15)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟡 Medium (core work done, one process criterion only needs automation) | 🟢 Low (no sub-issue left open) | – (epic) | DoD "no second hardware acceptance after publish" substantively met for v2.7.3 (UPDATE-01 run 31833822560, not a full re-run like v2.7.2); closeout-matrix/`create-approval` fails on single-platform runs — automation fix needed before the epic can formally close |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟡 Medium (core work and single-platform fix #791 complete) | 🟡 Medium (new package run on two hardware platforms required) | – (epic) | Build a new candidate and prove in native macOS/Linux-arm64 acceptance that the azimuth, elevation, and quality controls are visible in the 3D screenshot; only then close formally |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | Definition fixed on 2026-08-14 (PNG instead of TIFF) – #687 is now ready to start as the first sub-issue |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🟡 Medium (research/docs, no hardware access needed) | Sonnet, medium | **Ready to start** – the container/format question is now the first acceptance criterion (definition fixed) |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | Validate HEIGHT bit depth/semantics on real hardware | 🟠 High (directly affects relief height) | 🔴 High (physical printer, fixtures, measurement log) | – (no agent; needs real EufyMake hardware) | Blocked (external) – waits on fixtures from #687; definition already fixed |
@@ -41,16 +41,15 @@ Live state after the GitHub query: **15** open issues — #777 is closed by this
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
-| [#716](https://github.com/NikolayDA/picture_helper/issues/716) | Test-suite audit: minor gaps (WorkerController mesh e2e, CropBar wiring, weak assertions) | 🟢 Low (no production bugs, pure test quality) | 🟡 Low-medium (several small, independent items across ~8 test files) | Sonnet, low | Ready to start – checklist already in the issue, reconfirmed unchanged on 2026-08-12 |
 
 ### Recommended Next
 
-1. **Sharpen the release automation:** adjust `release_contract.py create-approval`/the
-   closeout-matrix logic so that a deliberate runbook-step-9 single-platform run (`UPDATE-01`)
-   doesn't end as an overall failure (repro: run 31833822560); only then can epic **#741**
-   formally close.
-2. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) and
-   **#716** (test audit) remain parallel-ready.
+1. **Close #741 with real package evidence:** the single-platform fix from PR #791 is merged.
+   What remains is full verification of the 3D screenshot fix from #788 with a new candidate on
+   macOS arm64 and Linux arm64; acceptance must prove the azimuth, elevation, and quality
+   controls are visible.
+2. Kick off **#687** as the first EufyMake sub-issue (format question first); **#692** (ADR) is
+   ready in parallel.
 
 ## Previous Rounds
 

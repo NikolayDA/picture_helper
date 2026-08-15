@@ -367,17 +367,16 @@ jobs:
           # Job-Log sichtbar machen (kein zusaetzlicher Download noetig).
           shasum -a 256 dist/*
 
-      # #584: Kein Artefakt darf Secrets oder Entwicklerpfade enthalten. Laeuft
-      # fuer beide OS (kein 'if:'), da dist/ zu diesem Zeitpunkt auf jedem Leg
-      # bereits befuellt ist (der jeweils andere OS-Collect-Schritt ist skipped).
-      - name: Scan built artifacts for secrets and dev paths
-        run: python3 scripts/scan_release_artifacts.py dist
-
-      # #685-Review/#731: scan_release_artifacts.py oben kennt nur Secrets/
-      # Dev-Pfade, keine Malware-Signaturen – ergaenzt die projektuebliche
-      # Supply-Chain-Pruefung optional um einen echten Virenscan der fuenf
-      # gebauten Artefakte. ClamAV statt eines Marketplace-Actions, damit kein
-      # Drittanbieter-Code mit Repo-Zugriff laeuft.
+      # #584/#731: Kein Artefakt darf Secrets, Entwicklerpfade oder bekannte
+      # Malware enthalten. Der gemeinsame Scanner entpackt AppImage, die im
+      # .deb gewrappte AppImage und DMG; ClamAV prueft je Artefakt sowohl die
+      # Rohdatei als auch diesen entpackten Inhalt. Ein reines ``clamscan dist``
+      # hatte in den Laeufen 31751909210/31812097011 wegen der Standardlimits
+      # trotz Exit 0 jeweils ``Data scanned: 0 B`` gemeldet. Deshalb erzwingt
+      # das Skript jetzt EICAR-Erkennung, mehr als 0 gescannte Bytes und einen
+      # harten Fehler bei jeder Limitueberschreitung. ClamAV statt eines
+      # Marketplace-Actions, damit kein Drittanbieter-Code mit Repo-Zugriff
+      # laeuft.
       #
       # #731 (ADR docs/history/ADR-2026-clamav-signaturcache.md): dieser Job
       # ruft freshclam NICHT mehr live auf. Die fruehere Annahme, alle drei
@@ -431,11 +430,15 @@ jobs:
           restore-keys: |
             clamav-db-v1-
 
-      - name: Virus scan built artifacts (ClamAV, cached signatures)
+      - name: Scan built artifacts and extracted payloads (secrets + ClamAV)
         run: |
           set -euo pipefail
           if [ -z "$(ls -A clamav-db-cache 2>/dev/null)" ]; then
-            echo "::warning::ClamAV-Signaturdatenbank UNAVAILABLE (kein Cache-Treffer) – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Virenscan übersprungen, scan_release_artifacts.py oben bleibt die verbindliche Prüfung."
+            # Der deterministische Secret-/Pfad-Scan bleibt auch bei fehlendem
+            # Signaturcache verbindlich. Nur MALWARE-01 wird gemaess Checkliste
+            # sichtbar UNAVAILABLE und benoetigt die dokumentierte Entscheidung.
+            python3 scripts/scan_release_artifacts.py dist
+            echo "::warning::ClamAV-Signaturdatenbank UNAVAILABLE (kein Cache-Treffer) – clamav-db-refresh.yml lief noch nie erfolgreich oder der Cache wurde eviktiert. Malware-Scan übersprungen; Secret-/Pfad-Scan ist bestanden."
             exit 0
           fi
 
@@ -465,7 +468,7 @@ jobs:
               print(f"::warning::ClamAV-Signaturdatenbank ist {age_days} Tage alt (> 14) - clamav-db-refresh.yml pruefen.")
           PY
 
-          clamscan --database clamav-db-cache --recursive --infected --stdout dist
+          python3 scripts/scan_release_artifacts.py --clamav-database clamav-db-cache dist
 
       - name: Verify built macOS artifact
         if: matrix.os == 'macos'

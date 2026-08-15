@@ -89,6 +89,33 @@ def test_release_does_not_swallow_gh_errors() -> None:
     )
 
 
+def test_clamav_scans_extracted_payload_and_rejects_zero_byte_evidence() -> None:
+    """#731: ``clamscan dist`` allein übersieht große/komprimierte Nutzdaten.
+
+    Der Release-Workflow muss deshalb den Artefaktscanner verwenden, der alle
+    Pakettypen entpackt, ClamAV auf Rohdatei und Nutzdaten ansetzt und einen
+    0-Byte-Lauf als Fehler behandelt.
+    """
+    text = _release_text()
+    assert (
+        "python3 scripts/scan_release_artifacts.py "
+        "--clamav-database clamav-db-cache dist"
+    ) in text
+    assert "clamscan --database clamav-db-cache --recursive --infected --stdout dist" not in text
+
+
+def test_clamav_cache_miss_keeps_secret_scan_and_visible_unavailable_state() -> None:
+    """MALWARE-01 bleibt bei Cache-Miss optional, #584 bleibt verbindlich."""
+    text = _release_text()
+    step = text[text.index("Scan built artifacts and extracted payloads") :]
+    cache_miss = step[:step.index('version_line="$(clamscan')]
+    assert "python3 scripts/scan_release_artifacts.py dist" in cache_miss
+    assert "ClamAV-Signaturdatenbank UNAVAILABLE" in cache_miss
+    assert cache_miss.index("python3 scripts/scan_release_artifacts.py dist") < cache_miss.index(
+        "exit 0"
+    )
+
+
 def test_release_handles_existing_release_explicitly() -> None:
     text = _publish_text()
     assert "gh release view" in text, (
