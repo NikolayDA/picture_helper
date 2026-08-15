@@ -130,16 +130,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Gloss-Maske ist leer oder konstant und ist möglicherweise nutzlos."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Höhenkarte wird mit {bits} Bit exportiert – unbestätigte Herstellerhinweise "
-            "(#687) empfehlen für Höhenkarten 16 Bit."
+            "Höhenkarte wird mit {bits} Bit exportiert – der Hersteller empfiehlt 16 Bit "
+            "„falls verfügbar“ für den ZBrush-/Photoshop-Exportworkflow von Tiefenkarten "
+            "(#687); eine allgemeine 16-Bit-Pflicht ist damit nicht belegt."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss ist nur ein Import-/Hilfsasset – Ink-Mode und Layerzuweisung "
             "erfolgen in EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber kein "
-            "bestätigter Herstellervertrag."
+            "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber Studio liest "
+            "die Größe nachweislich nicht aus unseren Dateien (kein Manifest-Import, kein "
+            "bestätigter pHYs-Import)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Motiv {width}×{height} mm überschreitet das eufyMake-Standard-Flachbett "
@@ -196,7 +198,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "RGBA-PNG aus dem Farbkomposit; Transparenz bleibt erhalten."
         ),
         "eufymake.dialog.height": "Höhenkarte einbeziehen",
-        "eufymake.dialog.height.hint": "Graustufen-PNG: hell = hoch, dunkel = niedrig.",
+        "eufymake.dialog.height.hint": (
+            "Graustufen-PNG: hell = hoch, dunkel = niedrig – normalisierte Höhenkarte, "
+            "die physische Maximalhöhe bestimmt EufyMake Studio je Texturmodus."
+        ),
         "eufymake.dialog.height.unavailable": "Keine Höhenebene im Projekt.",
         "eufymake.dialog.gloss": "Gloss-Maske einbeziehen (experimentell)",
         "eufymake.dialog.gloss.hint": (
@@ -1032,16 +1037,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "The gloss mask is empty or constant and may be useless."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Height map exported at {bits}-bit – unverified vendor guidance (#687) "
-            "recommends 16-bit for height maps."
+            "Height map exported at {bits}-bit – the vendor recommends 16-bit "
+            "\"if the option is available\" for the ZBrush/Photoshop depth-map export "
+            "workflow (#687); this is not a general 16-bit requirement."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss is only an import/helper asset – ink mode and layer assignment "
             "happen in EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Physical size and the pixel↔mm/DPI assumption are plausible but not a "
-            "confirmed vendor contract."
+            "Physical size and the pixel↔mm/DPI assumption are plausible, but Studio "
+            "verifiably does not read the size from our files (no manifest import, no "
+            "confirmed pHYs import)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Motif {width}×{height} mm exceeds the eufyMake standard flatbed "
@@ -1097,7 +1104,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "RGBA PNG from the color composite; transparency is preserved."
         ),
         "eufymake.dialog.height": "Include height map",
-        "eufymake.dialog.height.hint": "Grayscale PNG: light = high, dark = low.",
+        "eufymake.dialog.height.hint": (
+            "Grayscale PNG: light = high, dark = low – a normalized height map; "
+            "EufyMake Studio determines the physical maximum height per texture mode."
+        ),
         "eufymake.dialog.height.unavailable": "No height layer in the project.",
         "eufymake.dialog.gloss": "Include gloss mask (experimental)",
         "eufymake.dialog.gloss.hint": (
@@ -1932,16 +1942,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "La máscara de gloss está vacía o es constante y puede ser inútil."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Mapa de altura exportado a {bits} bits: indicaciones del fabricante sin "
-            "confirmar (#687) recomiendan 16 bits para mapas de altura."
+            "Mapa de altura exportado a {bits} bits: el fabricante recomienda 16 bits "
+            "«si la opción está disponible» para el flujo de exportación de mapas de "
+            "profundidad de ZBrush/Photoshop (#687); no es un requisito general de 16 bits."
         ),
         "eufymake.export.gloss_ink_mode": (
             "El gloss es solo un asset auxiliar de importación – el modo de tinta y "
             "la asignación de capas se hacen en EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero no "
-            "un contrato confirmado del fabricante."
+            "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero Studio "
+            "demostrablemente no lee el tamaño desde nuestros archivos (sin importación "
+            "de manifest, sin importación confirmada de pHYs)."
         ),
         "eufymake.export.print_area_exceeded": (
             "El motivo de {width}×{height} mm supera el flatbed estándar de eufyMake "
@@ -1998,7 +2010,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "PNG RGBA de la composición de color; la transparencia se conserva."
         ),
         "eufymake.dialog.height": "Incluir mapa de altura",
-        "eufymake.dialog.height.hint": "PNG en escala de grises: claro = alto, oscuro = bajo.",
+        "eufymake.dialog.height.hint": (
+            "PNG en escala de grises: claro = alto, oscuro = bajo – mapa de altura "
+            "normalizado; EufyMake Studio determina la altura física máxima según el "
+            "modo de textura."
+        ),
         "eufymake.dialog.height.unavailable": "No hay capa de altura en el proyecto.",
         "eufymake.dialog.gloss": "Incluir máscara de gloss (experimental)",
         "eufymake.dialog.gloss.hint": (
@@ -2837,16 +2853,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Le masque gloss est vide ou constant et pourrait être inutile."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Carte de hauteur exportée en {bits} bits : des indications du fabricant non "
-            "confirmées (#687) recommandent 16 bits pour les cartes de hauteur."
+            "Carte de hauteur exportée en {bits} bits : le fabricant recommande 16 bits "
+            "« si l'option est disponible » pour le workflow d'export de cartes de "
+            "profondeur ZBrush/Photoshop (#687) ; ce n'est pas une obligation générale."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Le gloss n'est qu'un asset d'import/d'aide – le mode d'encre et "
             "l'affectation des calques se font dans EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais "
-            "sans contrat fabricant confirmé."
+            "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais Studio "
+            "ne lit manifestement pas la taille depuis nos fichiers (pas d'import de "
+            "manifest, pas d'import pHYs confirmé)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Le motif {width}×{height} mm dépasse le plateau plat standard eufyMake "
@@ -2903,7 +2921,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "PNG RGBA issu du composite couleur ; la transparence est conservée."
         ),
         "eufymake.dialog.height": "Inclure la carte de hauteur",
-        "eufymake.dialog.height.hint": "PNG en niveaux de gris : clair = haut, sombre = bas.",
+        "eufymake.dialog.height.hint": (
+            "PNG en niveaux de gris : clair = haut, sombre = bas – carte de hauteur "
+            "normalisée ; EufyMake Studio détermine la hauteur physique maximale selon "
+            "le mode de texture."
+        ),
         "eufymake.dialog.height.unavailable": "Aucun calque de hauteur dans le projet.",
         "eufymake.dialog.gloss": "Inclure le masque gloss (expérimental)",
         "eufymake.dialog.gloss.hint": (
@@ -3742,16 +3764,18 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Маска глянцю порожня або стала й може бути марною."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Карту висот експортовано в {bits}-бітному форматі — непідтверджені відомості "
-            "виробника (#687) рекомендують 16 біт для карт висот."
+            "Карту висот експортовано в {bits}-бітному форматі — виробник рекомендує "
+            "16 біт «якщо є така можливість» для робочого процесу експорту карт глибини "
+            "ZBrush/Photoshop (#687); це не є загальною вимогою 16 біт."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Глянець – лише допоміжний ресурс для імпорту: режим фарби та "
             "призначення шарів виконуються в EufyMake Studio."
         ),
         "eufymake.export.physical_size_unverified": (
-            "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але не є "
-            "підтвердженим контрактом виробника."
+            "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але Studio "
+            "доведено не читає розмір із наших файлів (немає імпорту маніфесту, немає "
+            "підтвердженого імпорту pHYs)."
         ),
         "eufymake.export.print_area_exceeded": (
             "Мотив {width}×{height} мм перевищує стандартний планшет eufyMake "
@@ -3807,7 +3831,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "RGBA-PNG з колірного композиту; прозорість зберігається."
         ),
         "eufymake.dialog.height": "Додати карту висот",
-        "eufymake.dialog.height.hint": "PNG у відтінках сірого: світле = високо, темне = низько.",
+        "eufymake.dialog.height.hint": (
+            "PNG у відтінках сірого: світле = високо, темне = низько — нормалізована "
+            "карта висот; фізичну максимальну висоту визначає EufyMake Studio залежно "
+            "від режиму текстури."
+        ),
         "eufymake.dialog.height.unavailable": "У проєкті немає шару висот.",
         "eufymake.dialog.gloss": "Додати маску глянцю (експериментально)",
         "eufymake.dialog.gloss.hint": (
@@ -4641,13 +4669,15 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "光泽蒙版为空或恒定，可能没有用处。"
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "高度图以 {bits} 位导出——未经证实的厂商资料（#687）建议高度图使用 16 位。"
+            "高度图以 {bits} 位导出——厂商针对 ZBrush/Photoshop 深度图导出流程建议"
+            "「如可用则选择」16 位（#687）；这并非普遍适用的 16 位强制要求。"
         ),
         "eufymake.export.gloss_ink_mode": (
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
         ),
         "eufymake.export.physical_size_unverified": (
-            "物理尺寸及像素↔毫米/DPI 假设合理，但并非经确认的厂商约定。"
+            "物理尺寸及像素↔毫米/DPI 假设合理，但已证实 Studio 并不会从我们的文件中"
+            "读取该尺寸（不导入 manifest，pHYs 导入未获确认）。"
         ),
         "eufymake.export.print_area_exceeded": (
             "图案 {width}×{height} mm 超出 eufyMake 标准平板尺寸"
@@ -4703,7 +4733,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "来自颜色合成的 RGBA PNG；透明度保持不变。"
         ),
         "eufymake.dialog.height": "包含高度图",
-        "eufymake.dialog.height.hint": "灰度 PNG：亮 = 高，暗 = 低。",
+        "eufymake.dialog.height.hint": (
+            "灰度 PNG：亮 = 高，暗 = 低——归一化的高度图；实际的物理最大高度由 "
+            "EufyMake Studio 按纹理模式决定。"
+        ),
         "eufymake.dialog.height.unavailable": "项目中没有高度图层。",
         "eufymake.dialog.gloss": "包含光泽蒙版（实验性）",
         "eufymake.dialog.gloss.hint": (
