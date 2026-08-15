@@ -73,18 +73,18 @@ Dateinamen prüfen, nicht nur den Hash.
 | I-03 (8 Bit) | `height_wedge_8bit.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_wedge.png` – siehe Hinweis oben |
 | I-03 (16 Bit) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-04 (Referenz) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
-| I-04 (halbierte Kopie) | *manuell aus `height_wedge_16bit.png` zu erzeugen* | – | – | – | – | – | – | – | n. z. | Keine vorgefertigte Fixture – erst im Test aus der Referenz halbieren (z. B. 128×256 px), dann Zeile hier ergänzen |
+| I-04 (halbierte Kopie) | *manuell aus `height_wedge_16bit.png` zu erzeugen* | – | – | – | – | – | – | – | n. z. | Keine vorgefertigte Fixture – erst im Test aus der 256×256-Referenz eine **128×128**-Kopie erzeugen (beide Kanten halbiert, gleiches Seitenverhältnis), sonst vermischt sich der Pixelmaß-Test mit einer zusätzlichen Seitenverhältnis-Verzerrung; dann Zeile hier ergänzen |
 | I-05 (ohne `pHYs`) | `mm_klein_no_phys.png` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | `6eabe8ece8b79a3836e44a710263ad64c1c119432c755e89cbf3252d1dce25e0` | color_motif | RGBA | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-05 (konsistent) | `mm_klein_phys.png` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | `37a78c832895222f3ee659f64589fc9096f9e8925c6058f65394db6e1cfb37c8` | color_motif | RGBA | 8 Bit | vorhanden (5906×5906 px/m ≈ 150.012×150.012 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | 150 dpi → 150,012 ist Rundungsartefakt des `pHYs`-Ganzzahlformats, kein Fehler |
 | I-05 (widersprüchlich) | `mm_klein_phys_conflict.png` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | `1e02f7004559030c7aa859a2c34ecbd7bfce9c4f786a4406eb0b5b5b69fba983` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | Pixelmaß wie `mm_klein_*`, `pHYs` bewusst auf 300 statt 150 dpi gesetzt |
 | I-06 (`manifest.json` allein) | `fixtures_manifest.json` | – (kein Bild-Asset) | – | – | – | – | – | – | n. z. | Kein PNG – Validierung hier bedeutungslos, Testzweck ist Studios Reaktion auf die Datei |
-| I-06 (kompletter Ordner) | alle 29 Dateien in `tests/fixtures/eufymake_hardware/` | siehe alle Zeilen dieser Tabelle | siehe alle Zeilen dieser Tabelle | – | – | – | – | – | ✅ OK (Ordnerinhalt vollständig verifiziert) | Auf Bytegleichheit über Rollen hinweg achten, siehe Hinweis oben |
+| I-06 (kompletter Ordner) | alle 30 Dateien in `tests/fixtures/eufymake_hardware/` (29 PNG-Fixtures + `fixtures_manifest.json`) | siehe alle Zeilen dieser Tabelle | siehe alle Zeilen dieser Tabelle | – | – | – | – | – | ✅ OK (29 PNGs hash-verifiziert; `fixtures_manifest.json` liegt vor, hat aber keinen Selbst-Hash) | Beim Import den **kompletten** Ordner inkl. Manifest verwenden, nicht nur die 29 Bilder – sonst wird nicht das reale BgRemover-Lieferbündel getestet. Auf Bytegleichheit über Rollen hinweg achten, siehe Hinweis oben |
 | I-07 | `height_max_8bit.png` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | `f19e1d8eb9a3e5be118fd10d537b1ac5a9e6fbb7eae5b5ccd49eb51ebf768a44` | height_map | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `gloss_max.png` |
 | I-07 | `height_max_16bit.png` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | `f9e865c79a144fc5f90144136aafae9391e4a8f2efd1e388b8593019a6bdc0ad` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-08 (vor/nach Crop) | `mm_gross_phys.png` | `7aec7e7e67549481f1c97a4069696e00ed51b98ffbeef121037ca2c389b0b318` | `7aec7e7e67549481f1c97a4069696e00ed51b98ffbeef121037ca2c389b0b318` | color_motif | RGBA | 8 Bit | vorhanden (11811×11811 px/m ≈ 299.999×299.999 dpi) | keine (nur IHDR/IDAT/IEND/pHYs) | ✅ OK | |
 | I-08 (vor/nach Crop) | `height_wedge_16bit.png` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | `5e9cf1c3c2f41bc84a9adc9e946dc80c425dc3e74373cfeeb888c85068911a0f` | height_map | I;16 | 16 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | |
 | I-09 (Legacy) | externes `.empf` (nicht im Repo) | – | – | – | – | – | – | – | n. z. | Kein BgRemover-Fixture – aus Community-Quelle B1 (`empf-generator`) zu beschaffen |
-| I-09 (aktuell) | aktuell aus BgRemover exportiertes `.empf` | – | – | – | – | – | – | – | n. z. | Existiert nicht – BgRemover erzeugt bewusst kein `.empf` (`OpenQuestion.NATIVE_EMPF_PROJECT`); Zelle entfällt, solange das Produktentscheidung bleibt |
+| I-09 (aktuell) | ein **aktuell von EufyMake Studio selbst** exportiertes `.empf` (nicht von BgRemover) | – | – | – | – | – | – | – | offen | Kein BgRemover-Fixture – erfordert ein reales Studio-Projekt, aus der aktuellen Studio-Version exportiert. Testzweck laut Annahmeninventar (V2, I-09): prüfen, ob das seit 2.7.0.6 verschlüsselt gekapselte aktuelle `.empf`-Format importierbar bleibt bzw. sich vom alten Legacy-ZIP unterscheidet – **nicht** ob BgRemover `.empf` erzeugen kann (das bleibt bewusst Nicht-Ziel, `OpenQuestion.NATIVE_EMPF_PROJECT`) |
 | I-10 | `gloss_wedge.png` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | `c908eb760796043c54c42ddc167defcd6b2d489af96667a81bf18aa03da020e8` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_8bit.png` |
 | I-10 | `gloss_wedge_inverted.png` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | `ae9f9c1c4d33b7edea15acb9843b0ddda139134383fd9f33f443edafe43c63d6` | gloss_mask | L | 8 Bit | nicht vorhanden | keine (nur IHDR/IDAT/IEND) | ✅ OK | SHA identisch mit `height_wedge_inverted_8bit.png` |
 
@@ -115,9 +115,15 @@ mitverifiziert – bei Bedarf einer eigenen Testzelle zuordnen):
 
 **Ergebnis der Basisprüfung: 29/29 Fixtures OK, 0 Abweichungen.** Damit ist
 die im Repository committete Fixture-Menge nachweislich konsistent mit
-`fixtures_manifest.json` – die Tabellenspalten „Tatsächlicher SHA-256" usw.
-kannst du bei der Prüfung direkt vor dem Import unverändert übernehmen,
-sofern du exakt diese Dateien (unverändert kopiert) verwendest.
+`fixtures_manifest.json`. Das ersetzt **nicht** die Prüfung am Zielrechner:
+die vorausgefüllten „Erwarteter SHA-256"-Werte dienen dort als Referenz, aber
+**„Tatsächlicher SHA-256" muss am Zielrechner neu berechnet** werden (z. B.
+`sha256sum tests/fixtures/eufymake_hardware/<datei>.png`), **bevor** du ihn
+mit dem erwarteten Wert abgleichst und als OK einträgst. Den vorausgefüllten
+Wert unverändert als „tatsächlich" zu übernehmen, würde genau die
+Eigenschaft voraussetzen, die dieser Schritt erst beweisen soll (dass die
+Bytes am Zielrechner unverändert sind) – bei Übertragung per USB/Cloud kann
+das nicht angenommen werden.
 
 ---
 
