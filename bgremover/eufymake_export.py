@@ -52,6 +52,15 @@ _ASSET_FILENAMES: dict[LayerRole, str] = {
 DEFAULT_BIT_DEPTH = 8
 _SUPPORTED_BIT_DEPTHS = (8, 16)
 
+# Druckfläche des eufyMake-E1-Standard-Flachbetts in mm (Breite × Tiefe).
+# **Herstellerquelle, aber nur über Suchmaschinen-Extraktion belegt** (Recherche
+# #687, Grad S: „13 × 16.5 in" ≈ 330 × 420 mm); eine unabhängige Rückrechnung aus
+# der reverse-engineerten ``.empf``-Druckbettgeometrie liegt mit ≈ 333,2 × 418,1 mm
+# in derselben Größenordnung. Vor einem harten Vertrag am Original zu verifizieren
+# (V-01 in #687) – bis dahin nur als Warnschwelle (Severity.WARNING), nicht als
+# blockierender Fehler.
+STANDARD_FLATBED_MM = (330.0, 420.0)
+
 # Die px↔mm↔DPI-Geometrie (``MM_PER_INCH``, Ableitungen) lebt seit #376 zentral in
 # :mod:`bgremover.units`; ``MM_PER_INCH`` wird oben re-exportiert, damit bisherige
 # Importeure (Tests/Module) unverändert weiterfunktionieren.

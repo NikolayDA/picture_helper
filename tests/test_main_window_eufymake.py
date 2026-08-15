@@ -142,7 +142,11 @@ def test_export_with_height_persists_flag(export_win, monkeypatch, tmp_path):
     dest = tmp_path / "out2"
     monkeypatch.setattr(
         mw, "EufyMakeExportDialog",
-        _fake_dialog_cls(accept=True, roles=(LayerRole.HEIGHT_MAP,), dest=str(dest)))
+        # confirm=True: Höhenkarte am (Fake-Default-)8-Bit-Pfad löst seit #687
+        # BIT_DEPTH_UNCONFIRMED aus – dieser Test prüft das Persistieren des
+        # Settings-Flags, nicht die Bittiefen-Bestätigungspflicht.
+        _fake_dialog_cls(
+            accept=True, roles=(LayerRole.HEIGHT_MAP,), dest=str(dest), confirm=True))
     monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
     export_win._export_eufymake()
     assert (dest / "height_map.png").is_file()

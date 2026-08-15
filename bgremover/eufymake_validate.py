@@ -26,6 +26,7 @@ import numpy as np
 from PIL import Image
 
 from bgremover.eufymake_export import (
+    STANDARD_FLATBED_MM,
     InvalidBitDepthError,
     can_render_color_motif,
     coerce_bit_depth,
@@ -34,8 +35,12 @@ from bgremover.eufymake_export import (
 # Geteiltes Befund-Framework (#379): Schweregrad und die Aufteilungs-/Blockier-
 # Helfer liegen zentral in ``export_checks``; hier re-exportiert, damit die
 # bisherigen Importeure (``Severity``/``has_blocking_errors``/``split_findings``
-# aus diesem Modul) unverändert weiterfunktionieren.
+# aus diesem Modul) unverändert weiterfunktionieren. ``check_print_area`` liefert
+# die reine Geometrie-Prüfung (#687/EM-G05); der Fund wird unten in einen eigenen
+# ``ExportCheckCode`` im ``eufymake.export.``-Namensraum übersetzt, statt den
+# Finding-Typ aus ``export_checks`` fremd zu verwenden.
 from bgremover.export_checks import Severity, severity_rank
+from bgremover.export_checks import check_print_area as _check_print_area
 from bgremover.export_checks import has_blocking_errors as has_blocking_errors
 from bgremover.export_checks import split_findings as split_findings
 from bgremover.height_map import layer_to_height
@@ -73,6 +78,7 @@ class ExportCheckCode(Enum):
     HEIGHT_PRECISION_LOSS = "height_precision_loss"
     GLOSS_INK_MODE = "gloss_ink_mode"
     PHYSICAL_SIZE_UNVERIFIED = "physical_size_unverified"
+    PRINT_AREA_EXCEEDED = "print_area_exceeded"
 
 
 # Schweregrad je Code – die einzige Quelle der Wahrheit für „blockiert ja/nein".
@@ -87,6 +93,7 @@ _SEVERITY: dict[ExportCheckCode, Severity] = {
     ExportCheckCode.HEIGHT_PRECISION_LOSS: Severity.WARNING,
     ExportCheckCode.GLOSS_INK_MODE: Severity.WARNING,
     ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED: Severity.WARNING,
+    ExportCheckCode.PRINT_AREA_EXCEEDED: Severity.WARNING,
 }
 
 # Deklarationsrang je Code für die stabile Sortierung.
@@ -236,22 +243,30 @@ def validate_export(
             )
             if int(field_.coverage.max(initial=0)) == 0 or _is_constant(field_.values):
                 findings.append(_finding(ExportCheckCode.HEIGHT_MAP_EMPTY, role=role))
-            if effective_bit_depth == 16:
+            if effective_bit_depth == 8:
+                # Recherche #687 (Grad S, unverifiziert): Herstellerquellen nennen
+                # für Höhenkarten ausdrücklich 16 Bit/Kanal „if the option is
+                # available" – das frühere Vorzeichen (Warnung bei *16* Bit) hatte
+                # ausgerechnet den vom Hersteller genannten Pfad als unbestätigt
+                # markiert, während 8 Bit stillschweigend durchlief. Bis zur
+                # Verifikation am Original (V-01) bleibt die Aussage eine
+                # unbestätigte Empfehlung, keine belegte Anforderung – daher weiter
+                # als WARNING, nicht als ERROR.
                 findings.append(
                     _finding(
                         ExportCheckCode.BIT_DEPTH_UNCONFIRMED, role=role, bits=effective_bit_depth
                     )
                 )
-            elif (
-                layer.height_data is not None
-                and bool(np.any(layer.height_data.values % 257 != 0))
-            ):
-                # 8-Bit-Ziel, aber echte 16-Bit-Präzision im Projekt: die
-                # Quantisierung (rint(v/257), ADR #586) verwirft Niederbits –
-                # Warnung mit Bestätigungspflicht statt stillem Verlust (#590).
-                findings.append(
-                    _finding(ExportCheckCode.HEIGHT_PRECISION_LOSS, role=role)
-                )
+                if (
+                    layer.height_data is not None
+                    and bool(np.any(layer.height_data.values % 257 != 0))
+                ):
+                    # 8-Bit-Ziel, aber echte 16-Bit-Präzision im Projekt: die
+                    # Quantisierung (rint(v/257), ADR #586) verwirft Niederbits –
+                    # Warnung mit Bestätigungspflicht statt stillem Verlust (#590).
+                    findings.append(
+                        _finding(ExportCheckCode.HEIGHT_PRECISION_LOSS, role=role)
+                    )
         elif role is LayerRole.GLOSS_MASK:
             if _is_constant(_gray_array(layer.image)):
                 findings.append(_finding(ExportCheckCode.GLOSS_MASK_EMPTY, role=role))
@@ -261,6 +276,22 @@ def validate_export(
     # ── Physische Größe / DPI: plausibel, aber kein Herstellervertrag ───
     if physical_size is not None:
         findings.append(_finding(ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED))
+        # Druckflächen-Plausibilität gegen das Standard-Flachbett (#687/EM-G05):
+        # ``check_print_area`` lieferte bislang produktiv nie einen Befund, weil
+        # kein Aufrufer ein Zielmedium übergab. Hier – im EufyMake-spezifischen
+        # Pfad, nicht im allgemeinen "Bild speichern" (#380), das kein Druckziel
+        # kennt – ist ein Zielmedium tatsächlich vorhanden.
+        for area_finding in _check_print_area(physical_size, STANDARD_FLATBED_MM):
+            # Direkt konstruiert statt über ``_finding(**params)``: ein generisch
+            # getyptes ``dict[str, object]`` ließe sich sonst nicht sicher gegen
+            # das ``role``-Schlüsselwort der Helferfunktion abgrenzen (mypy).
+            findings.append(
+                ExportFinding(
+                    code=ExportCheckCode.PRINT_AREA_EXCEEDED,
+                    severity=_SEVERITY[ExportCheckCode.PRINT_AREA_EXCEEDED],
+                    params=dict(area_finding.params),
+                )
+            )
 
     return tuple(sorted(findings, key=_sort_key))
 
@@ -300,4 +331,6 @@ def format_finding(finding: ExportFinding) -> str:
         return tr("eufymake.export.gloss_ink_mode")
     if code is ExportCheckCode.PHYSICAL_SIZE_UNVERIFIED:
         return tr("eufymake.export.physical_size_unverified")
+    if code is ExportCheckCode.PRINT_AREA_EXCEEDED:
+        return tr("eufymake.export.print_area_exceeded", **p)
     raise AssertionError(f"Unbehandelter Befund-Code: {code}")  # pragma: no cover

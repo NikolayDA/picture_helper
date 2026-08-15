@@ -130,7 +130,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Gloss-Maske ist leer oder konstant und ist möglicherweise nutzlos."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "{bits}-Bit-Höhenkarte ist für EufyMake Studio nicht offiziell bestätigt."
+            "Höhenkarte wird mit {bits} Bit exportiert – unbestätigte Herstellerhinweise "
+            "(#687) empfehlen für Höhenkarten 16 Bit."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss ist nur ein Import-/Hilfsasset – Ink-Mode und Layerzuweisung "
@@ -139,6 +140,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "Physische Größe bzw. Pixel↔mm/DPI-Annahme ist plausibel, aber kein "
             "bestätigter Herstellervertrag."
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "Motiv {width}×{height} mm überschreitet das eufyMake-Standard-Flachbett "
+            "({medium_w}×{medium_h} mm, unbestätigte Herstellerangabe, #687)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -1027,7 +1032,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "The gloss mask is empty or constant and may be useless."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "A {bits}-bit height map is not officially confirmed for EufyMake Studio."
+            "Height map exported at {bits}-bit – unverified vendor guidance (#687) "
+            "recommends 16-bit for height maps."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Gloss is only an import/helper asset – ink mode and layer assignment "
@@ -1036,6 +1042,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "Physical size and the pixel↔mm/DPI assumption are plausible but not a "
             "confirmed vendor contract."
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "Motif {width}×{height} mm exceeds the eufyMake standard flatbed "
+            "({medium_w}×{medium_h} mm, unverified vendor figure, #687)."
         ),
         # General pre-export checks (#379)
         "export.checks.dimensions_invalid": (
@@ -1922,7 +1932,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "La máscara de gloss está vacía o es constante y puede ser inútil."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Un mapa de altura de {bits} bits no está confirmado oficialmente para EufyMake Studio."
+            "Mapa de altura exportado a {bits} bits: indicaciones del fabricante sin "
+            "confirmar (#687) recomiendan 16 bits para mapas de altura."
         ),
         "eufymake.export.gloss_ink_mode": (
             "El gloss es solo un asset auxiliar de importación – el modo de tinta y "
@@ -1931,6 +1942,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "El tamaño físico y la suposición píxel↔mm/DPI son plausibles, pero no "
             "un contrato confirmado del fabricante."
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "El motivo de {width}×{height} mm supera el flatbed estándar de eufyMake "
+            "({medium_w}×{medium_h} mm, dato del fabricante sin confirmar, #687)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -2822,7 +2837,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Le masque gloss est vide ou constant et pourrait être inutile."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "Une carte de hauteur {bits} bits n'est pas officiellement confirmée pour EufyMake Studio."
+            "Carte de hauteur exportée en {bits} bits : des indications du fabricant non "
+            "confirmées (#687) recommandent 16 bits pour les cartes de hauteur."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Le gloss n'est qu'un asset d'import/d'aide – le mode d'encre et "
@@ -2831,6 +2847,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "La taille physique et l'hypothèse pixel↔mm/DPI sont plausibles, mais "
             "sans contrat fabricant confirmé."
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "Le motif {width}×{height} mm dépasse le plateau plat standard eufyMake "
+            "({medium_w}×{medium_h} mm, donnée du fabricant non confirmée, #687)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -3722,7 +3742,8 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "Маска глянцю порожня або стала й може бути марною."
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "{bits}-бітна карта висот офіційно не підтверджена для EufyMake Studio."
+            "Карту висот експортовано в {bits}-бітному форматі — непідтверджені відомості "
+            "виробника (#687) рекомендують 16 біт для карт висот."
         ),
         "eufymake.export.gloss_ink_mode": (
             "Глянець – лише допоміжний ресурс для імпорту: режим фарби та "
@@ -3731,6 +3752,10 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "eufymake.export.physical_size_unverified": (
             "Фізичний розмір і припущення піксель↔мм/DPI правдоподібні, але не є "
             "підтвердженим контрактом виробника."
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "Мотив {width}×{height} мм перевищує стандартний планшет eufyMake "
+            "({medium_w}×{medium_h} мм, непідтверджені дані виробника, #687)."
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (
@@ -4616,13 +4641,17 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
             "光泽蒙版为空或恒定，可能没有用处。"
         ),
         "eufymake.export.bit_depth_unconfirmed": (
-            "{bits} 位高度图尚未获得 EufyMake Studio 官方确认。"
+            "高度图以 {bits} 位导出——未经证实的厂商资料（#687）建议高度图使用 16 位。"
         ),
         "eufymake.export.gloss_ink_mode": (
             "光泽只是导入辅助素材——墨水模式和图层分配在 EufyMake Studio 中完成。"
         ),
         "eufymake.export.physical_size_unverified": (
             "物理尺寸及像素↔毫米/DPI 假设合理，但并非经确认的厂商约定。"
+        ),
+        "eufymake.export.print_area_exceeded": (
+            "图案 {width}×{height} mm 超出 eufyMake 标准平板尺寸"
+            "（{medium_w}×{medium_h} mm，未经证实的厂商数据，#687）。"
         ),
         # Allgemeine Pre-Export-Prüfung (#379)
         "export.checks.dimensions_invalid": (

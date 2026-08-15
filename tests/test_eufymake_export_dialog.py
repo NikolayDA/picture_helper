@@ -148,16 +148,19 @@ def test_warning_requires_explicit_confirmation(qapp) -> None:
 
 
 @pytest.mark.ui_smoke
-def test_16bit_adds_unconfirmed_warning(qapp) -> None:
+def test_8bit_adds_unconfirmed_warning(qapp) -> None:
+    # Seit #687 (unbestätigte Herstellerempfehlung: 16 Bit für Höhenkarten) ist
+    # der DEFAULT_BIT_DEPTH-Pfad (8) der unbestätigte, nicht mehr 16 Bit.
     project = _with_height(_color_project())
     dlg = EufyMakeExportDialog(project)
     try:
         assert dlg.selected_bit_depth() == 8
-        assert dlg._findings_label.text() == "Keine Beanstandungen."
+        assert "8 Bit" in dlg._findings_label.text()
+        assert not dlg._confirm.isHidden()
         dlg._bit_combo.setCurrentIndex(dlg._bit_combo.findData(16))
         assert dlg.selected_bit_depth() == 16
-        assert "16-Bit" in dlg._findings_label.text()
-        assert not dlg._confirm.isHidden()
+        assert dlg._findings_label.text() == "Keine Beanstandungen."
+        assert dlg._confirm.isHidden()
     finally:
         dlg.close()
 
