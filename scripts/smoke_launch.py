@@ -138,6 +138,32 @@ def _terminate_tree(proc: subprocess.Popen[bytes]) -> None:
         proc.wait(timeout=10)
 
 
+_DRAIN_TIMEOUT = 5.0  # Sekunden: Nachlauf-Wartezeit auf reparentete Enkelprozesse.
+
+
+def _drain_instances(
+    match_token: str, exclude_pids: set[int], *, timeout: float = _DRAIN_TIMEOUT,
+    poll_interval: float = 0.1,
+) -> None:
+    """Wartet nach ``_terminate_tree``, bis keine Instanz mehr *match_token* trägt.
+
+    ``killpg`` beendet zwar die gesamte Prozessgruppe des gestarteten
+    Bundles, aber ``proc.wait`` in ``_terminate_tree`` wartet nur auf den
+    direkten Kindprozess. Enkelprozesse (z. B. der ``multiprocessing``-Tracker
+    der KI-Inferenz aus ``ai_process.py``, per ``spawn`` gestartet) sterben
+    beim SIGKILL zwar mit, werden beim gleichzeitigen Tod ihres Elternteils
+    aber an den Init-Prozess reparentet und erst von dessen Reaping-Loop
+    eingesammelt – ein kurzes Zeitfenster, in dem sie in ``ps -A`` noch
+    sichtbar sind. Ohne diesen Nachlauf kann eine unmittelbar folgende Phase
+    (mehrphasige Hardware-Abnahme, #642) die verbliebene Instanz fälschlich
+    mitzählen und ihr eigenes Fork-Bomb-Limit überschreiten (beobachtet auf
+    realer macOS-Hardware, Abnahme-Lauf 31971337146).
+    """
+    deadline = time.monotonic() + timeout
+    while _count_instances(match_token, exclude_pids) > 0 and time.monotonic() < deadline:
+        time.sleep(poll_interval)
+
+
 def _split_argv(argv: list[str]) -> tuple[list[str], list[str]]:
     """Trennt die eigenen Optionen vom Zielkommando am ersten ``--``."""
     if "--" in argv:
@@ -208,6 +234,7 @@ def run(
             time.sleep(poll_interval)
     finally:
         _terminate_tree(proc)
+        _drain_instances(match_token, exclude)
 
     # Nach dem Beenden (ggf. per SIGKILL) trägt ``proc.returncode`` den
     # tatsächlichen Exit-Code bzw. das negative Signal – aussagekräftiger als
