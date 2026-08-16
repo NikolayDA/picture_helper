@@ -18,6 +18,12 @@ Treppenkeil) und H-03 (Verhalten bei abweichendem Höhenkarten-Seitenverhältnis
 mit einer konkreten, druckbaren Testzelle zu versehen; beide hatten bis dahin
 weder Fixture-Zuordnung noch Protokollzeile.
 
+Für den eigentlichen Testtag bündelt
+[`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md) die
+Reihenfolge dieser drei Protokolle mit dem Budget-Fortschritt und den
+Sicherheitsregeln aus der Governance an einer Stelle – die Protokolltabellen
+hier bleiben die Datenquelle.
+
 **Hinweis zu pHYs/DPI:** PNGs `pHYs`-Chunk speichert Pixel je Meter als
 Ganzzahl; der Rückweg zu DPI rundet deshalb minimal (< 0,01 %, z. B. 150 dpi →
 angezeigt ggf. 150,012). Das ist ein Format-Artefakt, kein Fehler der
