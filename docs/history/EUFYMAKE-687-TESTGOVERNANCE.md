@@ -2,7 +2,9 @@
 
 > **Status: FREIGEGEBEN** (siehe Abschnitt 4, 2026-08-15). Die Regeln unten
 > sind damit verbindlich für die Realtests aus #688–#690, Epic
-> [#681](https://github.com/NikolayDA/picture_helper/issues/681).
+> [#681](https://github.com/NikolayDA/picture_helper/issues/681). Für den
+> Testtag selbst siehe die daraus abgeleitete
+> [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](EUFYMAKE-687-DRUCK-CHECKLISTE.md).
 
 Die letzten beiden mit Hardware verknüpften Akzeptanzkriterien von #687
 verlangen Abbruchkriterien für Materialverbrauch/Gerätebedienung sowie
