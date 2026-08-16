@@ -231,6 +231,7 @@ def generate_pixel_size_variant_fixture() -> list[FixtureSpec]:
         "width_px": half_w,
         "height_px": half_h,
         "source_pattern": "wedge",
+        "source_file": PIXEL_SIZE_VARIANT_SOURCE,
         "source_size_px": [width, height],
         "resize_method": "bgremover.height_map.resize_height_field (LANCZOS)",
     }
