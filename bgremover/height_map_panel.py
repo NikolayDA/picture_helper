@@ -39,6 +39,7 @@ from bgremover.i18n import tr
 from bgremover.project_model import LayerKind
 from bgremover.relief_mesh import MeshQuality
 from bgremover.right_panel_tabs import (
+    _make_accordion_section,
     _make_hdivider,
     _make_label,
     _make_neutral_btn,
@@ -46,6 +47,7 @@ from bgremover.right_panel_tabs import (
     _make_scroll_tab,
     _make_section,
     _make_slider,
+    _mark_expert_only,
     _PanelSpinBox,
     _set_button_selected,
     _style_spin_box,
@@ -351,13 +353,18 @@ class HeightMapPanel:
             tr("right_panel.height.import.tooltip"), icon_name="height_import")
         btn_imp.clicked.connect(lambda _=False: self._actions.import_file())
         body.addWidget(btn_gen)
-        body.addWidget(btn_imp)
+        # „Graustufe importieren…" nur im Experten-Modus (#809); Standard kennt
+        # nur den Primärbutton „Aus Bild erzeugen".
+        body.addWidget(_mark_expert_only(btn_imp))
         self._acquire_widgets += [btn_gen, btn_imp]
         self._refs.update(height_generate=btn_gen, height_import=btn_imp)
         return section
 
     def _build_edit(self) -> QWidget:
+        # Bearbeiten (Stärke/Aufhellen/Abdunkeln/Wert) + Invertieren: nur im
+        # Experten-Modus sichtbar (#809; Standard hat keine eigene Karte dafür).
         section, body = _make_section(tr("right_panel.height.section.edit"))
+        _mark_expert_only(section)
 
         # Interne Bit-Tiefe sichtbar machen (#590): HEIGHT-Ebenen führen ihre
         # Höhen kanonisch als 16 Bit – die 0–255-Regler sind nur die Bedienskala.
@@ -407,7 +414,13 @@ class HeightMapPanel:
         return section
 
     def _build_optimize(self) -> QWidget:
-        section, body = _make_section(tr("right_panel.height.section.optimize"))
+        # Nur im Experten-Modus (#809), dort als Accordion (Standardzustand
+        # eingeklappt) statt einer starren Karte – die Optimierungsregler sind
+        # die dichteste Steuerungsgruppe des Schritts.
+        section, body, header = _make_accordion_section(
+            tr("right_panel.height.section.optimize"))
+        _mark_expert_only(section)
+        self._refs["height_optimize_header"] = header
 
         # Tonwert (Schwarz-/Weißpunkt)
         black = _spin(0, 254, 0)

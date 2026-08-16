@@ -79,6 +79,19 @@ def _mark_expert_only(widget: QWidget) -> QWidget:
     return widget
 
 
+# Gegenstück zu ``EXPERT_ONLY_PROPERTY`` (#809): Widgets, die im Experten-
+# Modus durch eine editierbare Steuerung ersetzt werden, aber im Standard-
+# Modus als reiner (nicht editierbarer) Wert sichtbar bleiben sollen – z. B.
+# die zugewiesene Ebenen-Rolle als Text statt Dropdown.
+STANDARD_ONLY_PROPERTY = "standardOnly"
+
+
+def _mark_standard_only(widget: QWidget) -> QWidget:
+    """Markiert ``widget`` als nur im Standard-Modus sichtbar (#809)."""
+    widget.setProperty(STANDARD_ONLY_PROPERTY, True)
+    return widget
+
+
 def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
     """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
 
@@ -846,6 +859,51 @@ def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBox
     title_lbl.setStyleSheet(section_header_style(p))
     v.addWidget(title_lbl)
     return card, v
+
+
+def _make_accordion_section(title: str) -> tuple[QWidget, QVBoxLayout, QPushButton]:
+    """Einklappbare Karte (Accordion, #809): derselbe Karten-/Kopf-Look wie
+    ``_make_section`` (Fläche, Rand, blauer Akzentstrich, VERSALIEN), der Kopf
+    ist aber ein fokussierbarer Umschalt-Button statt eines reinen Labels.
+    Startzustand **eingeklappt** – Aufrufer/Nutzer schalten per Klick um.
+    """
+    p = active_palette()
+    card = QFrame()
+    card.setObjectName("sectionCard")
+    card.setStyleSheet(f"QFrame#sectionCard {{ {card_style(p)} }}")
+    outer = QVBoxLayout(card)
+    outer.setSpacing(CARD_CONTENT_SPACING)
+    outer.setContentsMargins(*CARD_PADDING)
+
+    header = QPushButton()
+    header.setCheckable(True)
+    header.setCursor(Qt.CursorShape.PointingHandCursor)
+    # Trefferfläche ≥ 24 px (#441); eigener ``:focus``-Zweig, da ``border``
+    # gesetzt wird (Vertrag aus ``test_buttons_with_custom_border_define_their_own_focus_state``).
+    header.setStyleSheet(
+        f"QPushButton {{ color:{p.text2}; font-size:11px; font-weight:bold;"
+        " letter-spacing:.05em; background:transparent; text-align:left;"
+        f" padding:2px 0 2px 8px; border:none; border-left:3px solid {p.accent};"
+        " min-height:24px; }"
+        f"QPushButton:hover {{ background:{p.hover}; }}"
+        f"QPushButton:focus {{ outline:none; background:{p.hover}; }}")
+    outer.addWidget(header)
+
+    body_widget = QWidget()
+    body = QVBoxLayout(body_widget)
+    body.setContentsMargins(0, 0, 0, 0)
+    body.setSpacing(CARD_CONTENT_SPACING)
+    outer.addWidget(body_widget)
+
+    def _apply_expanded(expanded: bool) -> None:
+        chevron = "▾" if expanded else "▸"
+        header.setText(f"{chevron} {title.upper()}")
+        body_widget.setVisible(expanded)
+
+    header.toggled.connect(_apply_expanded)
+    _apply_expanded(False)  # eingeklappt
+
+    return card, body, header
 
 
 def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:

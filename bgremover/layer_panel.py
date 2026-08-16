@@ -32,7 +32,12 @@ from bgremover.canvas import LayerInfo
 from bgremover.i18n import tr
 from bgremover.icons import make_tool_icon
 from bgremover.project_model import LayerRole, role_allowed_for_kind
-from bgremover.right_panel_tabs import _make_scroll_tab, _make_section
+from bgremover.right_panel_tabs import (
+    _make_scroll_tab,
+    _make_section,
+    _mark_expert_only,
+    _mark_standard_only,
+)
 from bgremover.theme import active_palette, combo_style, slider_style
 
 # Reihenfolge der Rollen-Auswahl im Kombinationsfeld (None = keine Rolle).
@@ -113,6 +118,7 @@ class LayerPanel:
         self._actions = actions
         self._list_layout: QVBoxLayout | None = None
         self._role_combo: QComboBox | None = None
+        self._role_readonly_label: QLabel | None = None
         self._action_buttons: list[QPushButton] = []
 
     # ── Aufbau ───────────────────────────────────────────────────────────
@@ -120,7 +126,11 @@ class LayerPanel:
         outer, layout = _make_scroll_tab()
         section, body = _make_section(tr("right_panel.layers.section"))
 
-        body.addLayout(self._build_action_bar())
+        # Icon-Werkzeugleiste (Neu/Duplizieren/Löschen/Reihenfolge/Umbenennen):
+        # nur im Experten-Modus (#809). Standard zeigt die reine Liste.
+        action_bar_wrap = QWidget()
+        action_bar_wrap.setLayout(self._build_action_bar())
+        body.addWidget(_mark_expert_only(action_bar_wrap))
 
         p = active_palette()
         scroll = QScrollArea()
@@ -196,6 +206,11 @@ class LayerPanel:
         # „Wert"): text2 + Gewicht 500 statt gedämpftem text3 (Prototyp-Parität).
         label.setStyleSheet(
             f"color:{p.text2}; font-size:12px; font-weight:500; background:transparent;")
+        row.addWidget(label)
+
+        # Rollen-Zuweisung ist nur im Experten-Modus änderbar (#809); im
+        # Standard-Modus bleibt eine bereits zugewiesene Rolle als reiner
+        # (nicht editierbarer) Text sichtbar statt als Dropdown.
         combo = _PanelComboBox()
         combo.setToolTip(tr("right_panel.layers.role.tooltip"))
         combo.setStyleSheet(combo_style(p))
@@ -203,8 +218,13 @@ class LayerPanel:
             combo.addItem(_role_label(role), role)
         combo.currentIndexChanged.connect(self._on_role_changed)
         self._role_combo = combo
-        row.addWidget(label)
-        row.addWidget(combo, 1)
+        row.addWidget(_mark_expert_only(combo), 1)
+
+        readonly_label = QLabel()
+        readonly_label.setStyleSheet(
+            f"color:{p.text}; font-size:12px; background:transparent;")
+        self._role_readonly_label = readonly_label
+        row.addWidget(_mark_standard_only(readonly_label), 1)
         return row
 
     # ── Aktualisierung ───────────────────────────────────────────────────
@@ -251,6 +271,8 @@ class LayerPanel:
         combo.blockSignals(True)
         combo.setCurrentIndex(index)
         combo.blockSignals(False)
+        if self._role_readonly_label is not None:
+            self._role_readonly_label.setText(_role_label(target))
 
     def _sync_role_options(self, active: LayerInfo | None) -> None:
         """Deaktiviert typunverträgliche Rollen-Optionen (Vertrag #364).

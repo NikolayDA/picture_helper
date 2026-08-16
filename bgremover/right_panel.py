@@ -61,6 +61,7 @@ from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import PROJECT_SUFFIX
 from bgremover.right_panel_tabs import (
     EXPERT_ONLY_PROPERTY,
+    STANDARD_ONLY_PROPERTY,
     AdjustTab,
     BackgroundTab,
     PreviewTab,
@@ -557,13 +558,20 @@ class _RightPanelBuilder:
         hint.setWordWrap(True)
         head_lay.addWidget(hint)
 
-        # Karten/Zeilen, die einzelne Tabs als ``expertOnly`` markiert haben
-        # (#807ff.): zentral eingesammelt, damit kein Tab den Modus selbst
-        # kennen muss. Umschalten zeigt/versteckt sie in allen Schritten sofort
-        # – kein Panel-Neuaufbau (#806-AC).
+        # Karten/Zeilen, die einzelne Tabs als ``expertOnly``/``standardOnly``
+        # markiert haben (#807ff.): zentral eingesammelt, damit kein Tab den
+        # Modus selbst kennen muss. Umschalten zeigt/versteckt sie in allen
+        # Schritten sofort – kein Panel-Neuaufbau (#806-AC). ``standardOnly``
+        # ist das Gegenstück für Steuerungen, die im Experten-Modus durch eine
+        # editierbare Variante ersetzt werden (z. B. Ebenen-Rolle als Text
+        # statt Dropdown, #809).
         expert_only_widgets = [
             w for w in stack.findChildren(QWidget)
             if w.property(EXPERT_ONLY_PROPERTY)
+        ]
+        standard_only_widgets = [
+            w for w in stack.findChildren(QWidget)
+            if w.property(STANDARD_ONLY_PROPERTY)
         ]
 
         def _sync_expert_visuals(checked: bool) -> None:
@@ -575,6 +583,8 @@ class _RightPanelBuilder:
             hint.setStyleSheet(expert_mode_hint_style(p))
             for w in expert_only_widgets:
                 w.setVisible(checked)
+            for w in standard_only_widgets:
+                w.setVisible(not checked)
 
         expert_toggle.toggled.connect(_sync_expert_visuals)
         _sync_expert_visuals(self._expert_mode)

@@ -437,8 +437,13 @@ def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
 
     for palette in (DARK, LIGHT):
         set_active_palette(palette)
+        # Experten-Modus (#809): einige SpinBoxen (Morph-Radius, Größe ändern,
+        # Höhen-Bearbeiten) sind im Standard-Modus progressive-disclosure-
+        # bedingt ausgeblendet; dieser Test prüft ihre Optik unabhängig vom
+        # Modus, also im vollständigen Funktionsumfang.
         panel = build_right_panel(
-            _actions([]), _noop_layer_actions(), _noop_height_actions())
+            _actions([]), _noop_layer_actions(), _noop_height_actions(),
+            expert_mode=True)
 
         spins = panel.frame.findChildren(QSpinBox)
         assert spins, "keine SpinBoxen in der rechten Spalte gefunden"
@@ -1298,6 +1303,128 @@ def test_height_panel_is_mode_contextual(qapp):
     panel.refresh([])
     assert not _button(widget, "Aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+# ── Schritt 5 „Relief & Ebenen": Basic/Expert-Aufteilung (#809, Epic #805) ─
+
+
+def _relief_page(panel):
+    return panel.stack.widget(int(WorkflowStep.RELIEF) - 1)
+
+
+def test_layer_panel_standard_mode_hides_toolbar_shows_role_as_text(qapp):
+    """Standard: reine Liste + Deckkraft, keine Werkzeugleiste, Rolle als Text."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())  # aktive Ebene "Oben" ohne Rolle
+
+    for icon_name in ("layer_add", "layer_duplicate", "layer_delete",
+                      "layer_move_up", "layer_move_down", "layer_rename"):
+        btn = next(
+            b for b in page.findChildren(QPushButton)
+            if b.property("prototypeIconName") == icon_name)
+        assert not btn.isVisibleTo(page)
+
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and not combo.isVisibleTo(page)
+    assert label is not None and label.isVisibleTo(page)
+    assert label.text() == "Keine"
+
+    # Zeile selbst (Sichtbarkeit/Name) und Deckkraft-Slider bleiben sichtbar.
+    assert _button(page, "Oben").isVisibleTo(page)
+    opacity_slider = _row_for(page, "Oben").findChild(QSlider)
+    assert opacity_slider is not None and opacity_slider.isVisibleTo(page)
+
+
+def test_layer_panel_expert_mode_shows_toolbar_and_role_combo(qapp):
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())
+
+    add_btn = next(
+        b for b in page.findChildren(QPushButton)
+        if b.property("prototypeIconName") == "layer_add")
+    assert add_btn.isVisibleTo(page)
+
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and combo.isVisibleTo(page)
+    assert label is not None and not label.isVisibleTo(page)
+
+
+def test_layer_panel_role_readonly_label_tracks_active_layer_role(qapp):
+    """Der Text-Ersatz zeigt stets die zugewiesene Rolle, unabhängig vom Modus."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    panel.layer_panel.refresh(_infos())  # aktive Ebene "Oben": keine Rolle
+    label = panel.layer_panel._role_readonly_label
+    assert label is not None
+    assert label.text() == "Keine"
+
+    colored = [
+        LayerInfo(id="top", name="Oben", kind=LayerKind.COLOR, visible=True,
+                  opacity=1.0, locked=False, role=LayerRole.COLOR_MOTIF, active=True),
+    ]
+    panel.layer_panel.refresh(colored)
+    assert label.text() == "Farbmotiv"
+
+
+def test_layer_panel_toggling_expert_mode_swaps_role_control_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and label is not None
+    assert not combo.isVisibleTo(page)
+    assert label.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert combo.isVisibleTo(page)
+    assert not label.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not combo.isVisibleTo(page)
+    assert label.isVisibleTo(page)
+
+
+def test_height_panel_standard_mode_hides_import_edit_and_optimize(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.height_panel.refresh(_height_layers())
+
+    assert _button(page, "Aus Bild erzeugen").isVisibleTo(page)
+    assert not _button(page, "Graustufe importieren…").isVisibleTo(page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert not _button(page, text).isVisibleTo(page)
+    header = panel.height_panel._refs.get("height_optimize_header")
+    assert header is not None and not header.isVisibleTo(page)
+
+
+def test_height_panel_expert_mode_shows_options_optimize_collapsed(qapp):
+    """Experte: alle Karten sichtbar; „Optimieren" startet eingeklappt (#809-AC)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _relief_page(panel)
+    panel.height_panel.refresh(_height_layers())
+
+    assert _button(page, "Graustufe importieren…").isVisibleTo(page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert _button(page, text).isVisibleTo(page)
+
+    header = panel.height_panel._refs["height_optimize_header"]
+    assert header.isVisibleTo(page)
+    assert not header.isChecked()
+    gamma_spin = panel.height_panel._refs["height_gamma"]
+    assert not gamma_spin.isVisibleTo(page)
+
+    header.setChecked(True)
+    assert gamma_spin.isVisibleTo(page)
+    header.setChecked(False)
+    assert not gamma_spin.isVisibleTo(page)
 
 
 # ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
