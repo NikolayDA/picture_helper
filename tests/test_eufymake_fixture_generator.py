@@ -242,7 +242,22 @@ def test_gloss_min_max_are_solid_extremes(tmp_path: Path) -> None:
 
 # ── Checked-in Fixtures dürfen nicht vom Generator abweichen ────────────
 
+_MANIFEST_CONTENT_KEYS = (
+    "role", "pattern", "bit_depth", "png_mode", "width", "height", "params",
+)
+
+
 def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
+    """Eingecheckte Fixtures dürfen inhaltlich nicht vom aktuellen Generator abweichen.
+
+    Verglichen werden Pixelinhalt und Bildmetadaten (Modus, Maße, ``dpi``) statt
+    PNG-Rohbytes: der zlib-Kompressionsstream unterscheidet sich je nach
+    Plattform/Pillow-Build – auf dem macOS-Kandidatenbau von 2.8.0 (Run
+    31968057273) erzeugte derselbe Generator für dieselben Pixel andere Bytes
+    *und* eine andere Dateigröße als das unter Linux eingecheckte Fixture, obwohl
+    Breite/Höhe/Modus/Parameter bitgenau gleich blieben. Ein reiner Byte-Vergleich
+    wäre daher plattformabhängig und kein echter Drift-Nachweis.
+    """
     assert CHECKED_IN_DIR.is_dir(), (
         "tests/fixtures/eufymake_hardware/ fehlt – "
         "python scripts/eufymake_fixture_generator.py generate ausführen"
@@ -255,7 +270,32 @@ def test_checked_in_fixtures_match_current_generator(tmp_path: Path) -> None:
         "Eingecheckte Fixtures weichen von der Dateiliste des aktuellen "
         "Generators ab – neu generieren und committen."
     )
+
+    checked_in_manifest = json.loads(
+        (CHECKED_IN_DIR / gen.MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    fresh_manifest = json.loads((fresh_dir / gen.MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    checked_in_by_name = {e["filename"]: e for e in checked_in_manifest["fixtures"]}
+    fresh_by_name = {e["filename"]: e for e in fresh_manifest["fixtures"]}
+    assert checked_in_by_name.keys() == fresh_by_name.keys()
+    for filename, fresh_entry in fresh_by_name.items():
+        checked_in_entry = checked_in_by_name[filename]
+        for key in _MANIFEST_CONTENT_KEYS:
+            assert checked_in_entry[key] == fresh_entry[key], f"{filename}: {key} weicht ab"
+
     for name in checked_in_files:
-        assert (CHECKED_IN_DIR / name).read_bytes() == (fresh_dir / name).read_bytes(), (
-            f"{name} weicht vom aktuellen Generator ab – neu generieren und committen."
-        )
+        if name == gen.MANIFEST_FILENAME:
+            continue
+        with (
+            Image.open(CHECKED_IN_DIR / name) as checked_in_img,
+            Image.open(fresh_dir / name) as fresh_img,
+        ):
+            assert checked_in_img.mode == fresh_img.mode, name
+            assert checked_in_img.size == fresh_img.size, name
+            assert checked_in_img.info.get("dpi") == fresh_img.info.get("dpi"), name
+            checked_in_arr = np.array(checked_in_img)
+            fresh_arr = np.array(fresh_img)
+            assert np.array_equal(checked_in_arr, fresh_arr), (
+                f"{name} weicht inhaltlich vom aktuellen Generator ab – "
+                "neu generieren und committen."
+            )
