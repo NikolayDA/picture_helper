@@ -9,6 +9,8 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-08-16
+
 ### Ajouté
 
 - **Bascule standard/expert dans l'inspecteur de cartes (Epic #805,
@@ -40,7 +42,36 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
   également la taille physique du motif par rapport au plateau plat
   standard eufyMake (330 × 420 mm) – auparavant, le contrôle général de
   zone d'impression sous-jacent ne s'exécutait jamais en production, aucun
-  appelant ne transmettant de support cible.
+  appelant ne transmettant de support cible. Les textes d'avertissement sur
+  la profondeur de bits et la taille physique ont aussi été précisés (#797) :
+  ils nomment désormais explicitement le flux d'export ZBrush/Photoshop de
+  la recommandation du fabricant et le contrat d'import Studio encore non
+  résolu, au lieu de suggérer une obligation générale.
+
+### Notes sur cette version
+
+- **Impact :** Version fonctionnelle. Ajoute une bascule globale standard/
+  expert dans l'inspecteur de cartes (divulgation progressive par étape,
+  voir ci-dessus) et précise deux textes d'avertissement de l'export
+  EufyMake ; aucun changement sur le comportement d'image, de projet ou
+  d'export lui-même.
+- **Utilisateurs concernés :** Tous les utilisateurs voient la nouvelle
+  bascule dans l'en-tête de l'inspecteur dès le premier démarrage (par
+  défaut : mode standard, le comportement précédent reste donc visiblement
+  inchangé) ; quiconque utilise l'export EufyMake avec des cartes de hauteur
+  voit des textes d'avertissement plus précis.
+- **Pertinence de la mise à jour :** Recommandée pour tous les
+  utilisateurs. Aucune étape de migration nécessaire – les fichiers de
+  projet (`.bgrproj`), formats d'export et paramètres restent compatibles
+  sans changement ; un retour à la 2.7.3 est possible sans modification de
+  données (la nouvelle clé de paramètre additive `expert_mode` est
+  simplement ignorée par les versions antérieures).
+- **Plateformes prises en charge :** macOS arm64 (`.dmg`), Linux x86_64 et
+  Linux arm64 (chacun `.AppImage` et `.deb`), Python ≥ 3.10. Tous les
+  artefacts intègrent le moteur d'IA (suffixe `-ai`). L'application macOS
+  est signée ad-hoc, non notariée avec un Developer ID – clic droit →
+  « Ouvrir » au premier lancement.
+- **Limitations connues :** Aucune nouvelle limitation au-delà de la 2.7.3.
 
 ## [2.7.3] – 2026-08-14
 

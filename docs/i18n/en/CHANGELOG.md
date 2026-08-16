@@ -8,6 +8,8 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-08-16
+
 ### Added
 
 - **Standard/expert toggle in the card inspector (Epic #805, #806–#811).**
@@ -34,7 +36,32 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
   instead of 16-bit. A new finding (`PRINT_AREA_EXCEEDED`, warning) also
   checks the physical motif size against the eufyMake standard flatbed
   (330 × 420 mm) – previously the underlying, general print-area check never
-  ran in production because no caller passed a target medium.
+  ran in production because no caller passed a target medium. The bit-depth
+  and physical-size warning texts were also sharpened (#797): they now name
+  the vendor recommendation's ZBrush/Photoshop export workflow and the
+  unresolved Studio import contract explicitly, instead of implying a
+  blanket requirement.
+
+### Notes for this release
+
+- **Impact:** Feature release. Adds a global standard/expert toggle in the
+  card inspector (progressive disclosure per step, see above) and sharpens
+  two EufyMake export warning texts; no change to image, project, or export
+  behavior itself.
+- **Affected users:** All users see the new toggle in the inspector header
+  from the first launch (default: standard mode, so prior behavior stays
+  visibly unchanged); anyone using EufyMake export with height maps sees
+  more precise warning texts.
+- **Upgrade relevance:** Recommended for all users. No migration step
+  needed – project files (`.bgrproj`), export formats, and settings remain
+  compatible; downgrading to 2.7.3 is possible without data changes (the
+  new, additive `expert_mode` settings key is simply ignored by older
+  versions).
+- **Supported platforms:** macOS arm64 (`.dmg`), Linux x86_64 and Linux
+  arm64 (each `.AppImage` and `.deb`), Python ≥ 3.10. All artifacts bundle
+  the AI backend (`-ai` suffix). The macOS app is ad-hoc signed, not
+  notarized with a Developer ID – right-click → "Open" on first launch.
+- **Known limitations:** No new limitations beyond 2.7.3.
 
 ## [2.7.3] – 2026-08-14
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy_version": 4,
+  "policy_version": 5,
   "unknown_path_behavior": "candidate-relevant-blocking",
   "release_neutral": [
     {
@@ -228,6 +228,46 @@
       "evidence": ["docs/RELEASE_PROCESS.md ist die kanonische Ablaufbeschreibung; kein Workflow liest das historische Protokoll als Eingabe"]
     },
     {
+      "id": "eufymake-687-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-eufymake-exportpaket.md",
+      "sample_path": "docs/history/ADR-2026-eufymake-exportpaket.md",
+      "reason": "ADR zur (noch nicht abgeschlossenen) EufyMake-Exportgovernance; wird nur in Docstrings erwähnt, kein Code oder Test liest die Datei.",
+      "evidence": ["bgremover/eufymake_export.py und eufymake_validate.py nennen den Pfad nur als Kommentarverweis, kein open()/read_text()"]
+    },
+    {
+      "id": "eufymake-687-annahmeninventar",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md",
+      "sample_path": "docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md",
+      "reason": "Annahmeninventar der EufyMake-Recherche; wird nur in einem Docstring-Verweis erwähnt, kein Code oder Test liest die Datei.",
+      "evidence": ["scripts/eufymake_fixture_generator.py nennt den Pfad nur als Kommentarverweis, kein open()/read_text()"]
+    },
+    {
+      "id": "eufymake-687-protokoll-vorlagen",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md",
+      "sample_path": "docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md",
+      "reason": "Protokollvorlagen für die manuelle EufyMake-Testtag-Durchführung; reine Vorlagendokumentation ohne Build-, Test- oder Gate-Bezug.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "eufymake-687-testgovernance",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-687-TESTGOVERNANCE.md",
+      "sample_path": "docs/history/EUFYMAKE-687-TESTGOVERNANCE.md",
+      "reason": "Governance-Dokumentation zur EufyMake-Testdurchführung; reine Prozessdokumentation ohne Build-, Test- oder Gate-Bezug.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
+      "id": "eufymake-687-druck-checkliste",
+      "kind": "exact",
+      "path": "docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md",
+      "sample_path": "docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md",
+      "reason": "Konsolidierte Druck-Checkliste für den manuellen EufyMake-Testtag; reine Vorlagendokumentation ohne Build-, Test- oder Gate-Bezug.",
+      "evidence": ["Kein Build-, Evidenz- oder Gate-Pfad liest diese Datei"]
+    },
+    {
       "id": "pull-request-template",
       "kind": "exact",
       "path": ".github/PULL_REQUEST_TEMPLATE.md",
@@ -269,13 +309,15 @@
     {"id": "release-automation-runbook", "kind": "exact", "path": "docs/RELEASE_AUTOMATION.md", "sample_path": "docs/RELEASE_AUTOMATION.md", "reason": "Das Runbook definiert Betrieb und Evidenzsemantik der Hardware-Abnahme."},
     {"id": "release-process-runbook", "kind": "exact", "path": "docs/RELEASE_PROCESS.md", "sample_path": "docs/RELEASE_PROCESS.md", "reason": "Der für #745 geplante kanonische Release-Prozess ist bewusst kandidatenrelevant klassifiziert."},
     {"id": "release-acceptance-checklist", "kind": "exact", "path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "sample_path": "docs/RELEASE_ACCEPTANCE_CHECKLIST.md", "reason": "Die für #746 geplante versionierte Abnahme-Checkliste bestimmt Evidenzsemantik."},
-    {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
-    {"id": "historical-freeze-2.7.2", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument; #780 aktualisierte darin die deklarierte Policy-Version noch innerhalb des jetzigen 2.7.3-Kandidatenfensters. 'current-freeze' zeigt seit dem 2.7.3-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
+    {"id": "current-freeze", "kind": "exact", "path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.8.0-scope-freeze.md", "reason": "Das aktive Freeze-Dokument enthält Basis, Scope und Policy-Version."},
+    {"id": "historical-freeze-2.7.3", "kind": "exact", "path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.3-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument fuer den 2.7.3-Kandidaten. 'current-freeze' zeigt seit dem 2.8.0-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
+    {"id": "historical-freeze-2.7.2", "kind": "exact", "path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "sample_path": "docs/history/RELEASE-2.7.2-scope-freeze.md", "reason": "Vormals aktives Freeze-Dokument; #780 aktualisierte darin die deklarierte Policy-Version noch innerhalb des damaligen 2.7.3-Kandidatenfensters. 'current-freeze' zeigt seit dem 2.7.3-Rollover nicht mehr hierher, der Pfad bleibt aber ein candidate-relevanter Release-Governance-Artefakt."},
     {"id": "freeze-provenance-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-freeze-provenienz.md", "sample_path": "docs/history/ADR-2026-release-freeze-provenienz.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag des Release-Gates fest."},
     {"id": "release-acceptance-automation-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "sample_path": "docs/history/ADR-2026-release-abnahme-automatisierung.md", "reason": "Die ADR legt den Vertrauens- und Evidenzvertrag der Hardware-Abnahme fest."},
     {"id": "release-manifest-publish-adr", "kind": "exact", "path": "docs/history/ADR-2026-release-manifest-publish.md", "sample_path": "docs/history/ADR-2026-release-manifest-publish.md", "reason": "Die ADR legt die Bindung zwischen Kandidat, Freigabemanifest und veröffentlichten Bytes fest."},
     {"id": "clamav-signature-cache-adr", "kind": "exact", "path": "docs/history/ADR-2026-clamav-signaturcache.md", "sample_path": "docs/history/ADR-2026-clamav-signaturcache.md", "reason": "Die ADR legt den Sicherheits- und Betriebsvertrag des ClamAV-Signaturbezugs fest."},
     {"id": "path-policy", "kind": "exact", "path": "release/path-policy.json", "sample_path": "release/path-policy.json", "reason": "Die Policy steuert fail-closed Kandidaten- und Freeze-Klassifikation."},
+    {"id": "redesign-spec", "kind": "exact", "path": "docs/REDESIGN_SPEC.md", "sample_path": "docs/REDESIGN_SPEC.md", "reason": "tests/test_theme.py liest §2/§3 als Drift-Guard-Quelle fuer theme.py-Farbtoken; der Inhalt beeinflusst das Ergebnis der Full-CI-Tests im Kandidatenbau (#480)."},
     {"id": "changelog-en", "kind": "exact", "path": "docs/i18n/en/CHANGELOG.md", "sample_path": "docs/i18n/en/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-es", "kind": "exact", "path": "docs/i18n/es/CHANGELOG.md", "sample_path": "docs/i18n/es/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
     {"id": "changelog-fr", "kind": "exact", "path": "docs/i18n/fr/CHANGELOG.md", "sample_path": "docs/i18n/fr/CHANGELOG.md", "reason": "Übersetzter Release-Body und Release-Datum werden vom Gate geprüft."},
@@ -297,7 +339,8 @@
       "docs/RELEASE_AUTOMATION.md",
       "docs/RELEASE_PROCESS.md",
       "docs/RELEASE_ACCEPTANCE_CHECKLIST.md",
-      "docs/history/RELEASE-2.7.3-scope-freeze.md"
+      "docs/history/RELEASE-2.7.3-scope-freeze.md",
+      "docs/history/RELEASE-2.8.0-scope-freeze.md"
     ]
   }
 }
