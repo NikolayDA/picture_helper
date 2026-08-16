@@ -1276,6 +1276,63 @@ def test_height_panel_optimize_ops_wire_correct_functions(qapp):
                           height_ops.clamp_range(field, 50, 180).values)
 
 
+def test_height_panel_edit_and_tools_are_separate_cards(qapp):
+    """#812-Review: „Bearbeiten" (Stärke/Aufhellen/Abdunkeln/Wert) und
+    „Höhenkarte-Werkzeuge" (Invertieren) sind zwei eigenständige Karten
+    (Spec §15), nicht eine gemeinsame."""
+    panel = HeightMapPanel(_noop_height_actions())
+    widget, refs = panel.build()
+
+    invert_btn = refs["height_invert"]
+    strength_spin = refs["height_strength"]
+
+    def _card_of(w: QWidget) -> QWidget:
+        while w is not None and w.objectName() != "sectionCard":
+            parent = w.parentWidget()
+            assert parent is not None
+            w = parent
+        return w
+
+    invert_card = _card_of(invert_btn)
+    edit_card = _card_of(strength_spin)
+    assert invert_card is not edit_card
+    assert invert_btn not in edit_card.findChildren(QPushButton)
+    assert widget.findChild(QLabel, None)  # sanity: widget tree intact
+
+
+def test_height_panel_optimize_collapse_cancels_active_preview(qapp):
+    """#812-Review: Einklappen des Optimieren-Accordions verwirft eine
+    aktive Live-Vorschau, statt sie unerreichbar hängen zu lassen."""
+    calls: list[tuple] = []
+    panel = HeightMapPanel(_recording_height_actions(calls))
+    _widget, refs = panel.build()
+    panel.refresh(_height_layers())
+
+    header = refs["height_optimize_header"]
+    header.setChecked(True)   # aufklappen (kein cancel_preview beim Bau/Aufklappen)
+    refs["height_gamma"].setValue(150)   # löst preview_op aus
+    assert calls[-1][0] == "preview"
+
+    calls.clear()
+    header.setChecked(False)  # einklappen
+    assert calls == [("cancel",)]
+
+
+def test_height_panel_optimize_accordion_header_focus_distinct_from_hover(qapp):
+    """#812-Review: Der Accordion-Kopf hat einen vom Hover unterscheidbaren
+    1-px-Akzent-Fokusrahmen (§12-Fokusring-Vertrag)."""
+    panel = HeightMapPanel(_noop_height_actions())
+    _widget, refs = panel.build()
+    header = refs["height_optimize_header"]
+    style = header.styleSheet()
+
+    assert ":focus" in style
+    hover_block = style.split("QPushButton:hover")[1].split("}")[0]
+    focus_block = style.split(":focus")[1].split("}")[0]
+    assert "border" not in hover_block
+    assert "border" in focus_block
+
+
 @pytest.mark.ui_smoke
 def test_height_panel_is_mode_contextual(qapp):
     panel = HeightMapPanel(_noop_height_actions())

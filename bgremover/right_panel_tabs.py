@@ -868,11 +868,16 @@ def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBox
     return card, v
 
 
-def _make_accordion_section(title: str) -> tuple[QWidget, QVBoxLayout, QPushButton]:
+def _make_accordion_section(
+    title: str, *, on_toggle: Callable[[bool], None] | None = None,
+) -> tuple[QWidget, QVBoxLayout, QPushButton]:
     """Einklappbare Karte (Accordion, #809): derselbe Karten-/Kopf-Look wie
     ``_make_section`` (Fläche, Rand, blauer Akzentstrich, VERSALIEN), der Kopf
     ist aber ein fokussierbarer Umschalt-Button statt eines reinen Labels.
     Startzustand **eingeklappt** – Aufrufer/Nutzer schalten per Klick um.
+    ``on_toggle`` wird zusätzlich zur Sichtbarkeitslogik mit dem neuen
+    Expandiert-Zustand aufgerufen (z. B. um eine transiente Live-Vorschau
+    beim Einklappen zu verwerfen, #812-Review).
     """
     p = active_palette()
     card = QFrame()
@@ -885,15 +890,19 @@ def _make_accordion_section(title: str) -> tuple[QWidget, QVBoxLayout, QPushButt
     header = QPushButton()
     header.setCheckable(True)
     header.setCursor(Qt.CursorShape.PointingHandCursor)
-    # Trefferfläche ≥ 24 px (#441); eigener ``:focus``-Zweig, da ``border``
-    # gesetzt wird (Vertrag aus ``test_buttons_with_custom_border_define_their_own_focus_state``).
+    # Trefferfläche ≥ 24 px (#441); eigener ``:focus``-Zweig mit einem vom
+    # Hover unterscheidbaren 1-px-Akzentrahmen (§12-Fokusring-Vertrag,
+    # #812-Review – der bloße ``hover``-Ton allein war auch im
+    # Tastatur-Fokus sichtbar, aber nicht vom Maus-Hover unterscheidbar).
     header.setStyleSheet(
         f"QPushButton {{ color:{p.text2}; font-size:11px; font-weight:bold;"
         " letter-spacing:.05em; background:transparent; text-align:left;"
         f" padding:2px 0 2px 8px; border:none; border-left:3px solid {p.accent};"
         " min-height:24px; }"
         f"QPushButton:hover {{ background:{p.hover}; }}"
-        f"QPushButton:focus {{ outline:none; background:{p.hover}; }}")
+        "QPushButton:focus { outline:none;"
+        f" border-top:1px solid {p.accent}; border-right:1px solid {p.accent};"
+        f" border-bottom:1px solid {p.accent}; }}")
     outer.addWidget(header)
 
     body_widget = QWidget()
@@ -902,13 +911,18 @@ def _make_accordion_section(title: str) -> tuple[QWidget, QVBoxLayout, QPushButt
     body.setSpacing(CARD_CONTENT_SPACING)
     outer.addWidget(body_widget)
 
-    def _apply_expanded(expanded: bool) -> None:
+    def _set_visuals(expanded: bool) -> None:
         chevron = "▾" if expanded else "▸"
         header.setText(f"{chevron} {title.upper()}")
         body_widget.setVisible(expanded)
 
-    header.toggled.connect(_apply_expanded)
-    _apply_expanded(False)  # eingeklappt
+    def _on_toggled(expanded: bool) -> None:
+        _set_visuals(expanded)
+        if on_toggle is not None:
+            on_toggle(expanded)
+
+    header.toggled.connect(_on_toggled)
+    _set_visuals(False)  # eingeklappt – ohne ``on_toggle`` beim Bau selbst
 
     return card, body, header
 

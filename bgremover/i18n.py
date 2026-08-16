@@ -334,6 +334,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "Beschaffen",
         "right_panel.height.section.edit": "Bearbeiten",
+        "right_panel.height.section.tools": "Höhenkarte-Werkzeuge",
         "right_panel.height.section.optimize": "Optimieren",
         "right_panel.height.generate": "Aus Bild erzeugen",
         "right_panel.height.generate.tooltip": (
@@ -1246,6 +1247,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "Acquire",
         "right_panel.height.section.edit": "Edit",
+        "right_panel.height.section.tools": "Height map tools",
         "right_panel.height.section.optimize": "Optimize",
         "right_panel.height.generate": "Generate from image",
         "right_panel.height.generate.tooltip": (
@@ -2162,6 +2164,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "Obtener",
         "right_panel.height.section.edit": "Editar",
+        "right_panel.height.section.tools": "Herramientas del mapa de altura",
         "right_panel.height.section.optimize": "Optimizar",
         "right_panel.height.generate": "Generar desde la imagen",
         "right_panel.height.generate.tooltip": (
@@ -3081,6 +3084,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "Obtenir",
         "right_panel.height.section.edit": "Modifier",
+        "right_panel.height.section.tools": "Outils de la carte de hauteur",
         "right_panel.height.section.optimize": "Optimiser",
         "right_panel.height.generate": "Générer depuis l'image",
         "right_panel.height.generate.tooltip": (
@@ -3999,6 +4003,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "Отримати",
         "right_panel.height.section.edit": "Редагувати",
+        "right_panel.height.section.tools": "Інструменти карти висот",
         "right_panel.height.section.optimize": "Оптимізувати",
         "right_panel.height.generate": "Згенерувати із зображення",
         "right_panel.height.generate.tooltip": (
@@ -4902,6 +4907,7 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         ),
         "right_panel.height.section.acquire": "获取",
         "right_panel.height.section.edit": "编辑",
+        "right_panel.height.section.tools": "高度图工具",
         "right_panel.height.section.optimize": "优化",
         "right_panel.height.generate": "从图像生成",
         "right_panel.height.generate.tooltip": (

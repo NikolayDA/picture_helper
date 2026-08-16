@@ -164,6 +164,7 @@ class HeightMapPanel:
         layout.addWidget(self._build_acquire())
         layout.addWidget(_make_label(tr("right_panel.height.hint"), "#777", 11))
         layout.addWidget(self._build_edit())
+        layout.addWidget(self._build_tools())
         layout.addWidget(self._build_optimize())
         layout.addStretch()
         self.refresh([])
@@ -361,8 +362,10 @@ class HeightMapPanel:
         return section
 
     def _build_edit(self) -> QWidget:
-        # Bearbeiten (Stärke/Aufhellen/Abdunkeln/Wert) + Invertieren: nur im
-        # Experten-Modus sichtbar (#809; Standard hat keine eigene Karte dafür).
+        # Bearbeiten (Stärke/Aufhellen/Abdunkeln/Wert): nur im Experten-Modus
+        # sichtbar (#809; Standard hat keine eigene Karte dafür). Invertieren
+        # lebt in der separaten Karte „Höhenkarte-Werkzeuge" (_build_tools,
+        # Codex-Review zu PR #812 — Spec §15 sieht zwei getrennte Karten vor).
         section, body = _make_section(tr("right_panel.height.section.edit"))
         _mark_expert_only(section)
 
@@ -401,24 +404,40 @@ class HeightMapPanel:
         btn_set.clicked.connect(lambda _=False: self._actions.set_height(set_value.value()))
         body.addWidget(btn_set)
 
+        self._height_widgets += [strength, btn_light, btn_dark, set_value, btn_set]
+        self._refs.update(
+            height_strength=strength, height_lighten=btn_light, height_darken=btn_dark,
+            height_set_value=set_value, height_set=btn_set)
+        return section
+
+    def _build_tools(self) -> QWidget:
+        # Karte „Höhenkarte-Werkzeuge": nur im Experten-Modus sichtbar (#809);
+        # eigenständig neben „Bearbeiten" (Spec §15).
+        section, body = _make_section(tr("right_panel.height.section.tools"))
+        _mark_expert_only(section)
+
         btn_inv = _make_neutral_btn(
             tr("right_panel.height.invert"),
             tr("right_panel.height.invert.tooltip"))
         btn_inv.clicked.connect(lambda _=False: self._actions.invert())
         body.addWidget(btn_inv)
 
-        self._height_widgets += [strength, btn_light, btn_dark, set_value, btn_set, btn_inv]
-        self._refs.update(
-            height_strength=strength, height_lighten=btn_light, height_darken=btn_dark,
-            height_set_value=set_value, height_set=btn_set, height_invert=btn_inv)
+        self._height_widgets.append(btn_inv)
+        self._refs["height_invert"] = btn_inv
         return section
 
     def _build_optimize(self) -> QWidget:
         # Nur im Experten-Modus (#809), dort als Accordion (Standardzustand
         # eingeklappt) statt einer starren Karte – die Optimierungsregler sind
-        # die dichteste Steuerungsgruppe des Schritts.
+        # die dichteste Steuerungsgruppe des Schritts. Einklappen verwirft
+        # eine evtl. aktive Live-Vorschau (#812-Review): sonst könnte Speichern
+        # oder EufyMake-Export vom unveränderten Modell exportieren, während
+        # der Canvas noch ein nicht committetes Ergebnis zeigt – ohne dass die
+        # Apply-/Verwerfen-Regler dafür noch erreichbar wären.
         section, body, header = _make_accordion_section(
-            tr("right_panel.height.section.optimize"))
+            tr("right_panel.height.section.optimize"),
+            on_toggle=lambda expanded: (
+                None if expanded else self._actions.cancel_preview()))
         _mark_expert_only(section)
         self._refs["height_optimize_header"] = header
 
