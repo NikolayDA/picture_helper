@@ -9,6 +9,8 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-08-16
+
 ### Añadido
 
 - **Interruptor estándar/experto en el inspector de tarjetas (Epic #805,
@@ -39,7 +41,36 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
   (`PRINT_AREA_EXCEEDED`, advertencia) también comprueba el tamaño físico del
   motivo frente al flatbed estándar de eufyMake (330 × 420 mm); antes, la
   comprobación general de área de impresión subyacente nunca se ejecutaba en
-  producción porque ningún llamador pasaba un medio de destino.
+  producción porque ningún llamador pasaba un medio de destino. Los textos de
+  advertencia de profundidad de bits y tamaño físico también se precisaron
+  (#797): ahora nombran explícitamente el flujo de exportación ZBrush/
+  Photoshop de la recomendación del fabricante y el contrato de importación
+  de Studio aún sin resolver, en lugar de sugerir una obligación general.
+
+### Notas sobre esta versión
+
+- **Impacto:** Versión de funcionalidad. Añade un interruptor global
+  estándar/experto en el inspector de tarjetas (divulgación progresiva por
+  paso, ver arriba) y precisa dos textos de advertencia de exportación
+  EufyMake; sin cambios en el comportamiento de imagen, proyecto o
+  exportación en sí.
+- **Usuarios afectados:** Todos los usuarios ven el nuevo interruptor en la
+  cabecera del inspector desde el primer inicio (por defecto: modo estándar,
+  por lo que el comportamiento anterior sigue visible sin cambios); quien use
+  la exportación EufyMake con mapas de altura verá textos de advertencia más
+  precisos.
+- **Relevancia de la actualización:** Recomendada para todos los usuarios.
+  No se necesita ningún paso de migración: los archivos de proyecto
+  (`.bgrproj`), formatos de exportación y ajustes permanecen compatibles sin
+  cambios; es posible volver a la versión 2.7.3 sin cambios de datos (la
+  nueva clave de ajustes aditiva `expert_mode` simplemente es ignorada por
+  versiones anteriores).
+- **Plataformas compatibles:** macOS arm64 (`.dmg`), Linux x86_64 y Linux
+  arm64 (cada uno `.AppImage` y `.deb`), Python ≥ 3.10. Todos los artefactos
+  incluyen el backend de IA (sufijo `-ai`). La app de macOS está firmada
+  ad-hoc, no notarizada con un Developer ID: clic derecho → «Abrir» en el
+  primer inicio.
+- **Limitaciones conocidas:** Ninguna limitación nueva más allá de la 2.7.3.
 
 ## [2.7.3] – 2026-08-14
 

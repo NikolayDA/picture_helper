@@ -9,6 +9,8 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-08-16
+
 ### Hinzugefügt
 
 - **Standard-/Experten-Umschalter im Karten-Inspector (Epic #805, #806–#811).**
@@ -37,7 +39,33 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
   (`PRINT_AREA_EXCEEDED`, Warnung) die physische Motivgröße gegen das
   eufyMake-Standard-Flachbett (330 × 420 mm) – zuvor lief die zugrunde
   liegende, allgemeine Druckflächenprüfung im Produktivpfad nie, weil kein
-  Aufrufer ein Zielmedium übergab.
+  Aufrufer ein Zielmedium übergab. Die Warnungstexte zu Bittiefe und
+  physischer Größe wurden zusätzlich geschärft (#797): Sie verweisen jetzt
+  konkret auf den ZBrush-/Photoshop-Exportworkflow der Herstellerempfehlung
+  bzw. den ungeklärten Studio-Importvertrag, statt pauschale Pflichtaussagen
+  zu suggerieren.
+
+### Hinweise zu diesem Release
+
+- **Auswirkung:** Feature-Release. Fügt einen globalen Standard-/Experten-
+  Umschalter im Karten-Inspector hinzu (progressive Offenlegung je Schritt,
+  siehe oben) und schärft zwei EufyMake-Export-Warnungstexte; keine Änderung
+  an Bild-, Projekt- oder Exportverhalten selbst.
+- **Betroffene Anwender:innen:** Alle Nutzer:innen sehen ab dem ersten Start
+  den neuen Umschalter im Inspector-Kopf (Default: Standard-Modus, bisheriges
+  Verhalten bleibt dadurch unverändert sichtbar); wer EufyMake-Export mit
+  Höhenkarten nutzt, sieht präzisere Warnungstexte.
+- **Upgrade-Relevanz:** Empfohlen für alle Nutzer:innen. Kein
+  Migrationsschritt nötig – Projektdateien (`.bgrproj`), Exportformate und
+  Einstellungen bleiben unverändert kompatibel; ein Downgrade auf 2.7.3 ist
+  ohne Datenänderung möglich (der neue, additive `expert_mode`-Settings-
+  Schlüssel wird von älteren Versionen einfach ignoriert).
+- **Unterstützte Plattformen:** macOS arm64 (`.dmg`), Linux x86_64 und Linux
+  arm64 (je `.AppImage` und `.deb`), Python ≥ 3.10. Alle Artefakte bündeln das
+  KI-Backend (`-ai`-Suffix). Die macOS-App ist ad-hoc signiert, nicht mit
+  Developer ID notarisiert – beim Erststart daher Rechtsklick → „Öffnen".
+- **Bekannte Einschränkungen:** Keine über 2.7.3 hinausgehenden neuen
+  Einschränkungen.
 
 ## [2.7.3] – 2026-08-14
 
