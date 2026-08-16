@@ -555,6 +555,15 @@ class TransformTab:
             row_q1.addWidget(b, 1)
         gr2.addLayout(row_q1)
 
+        # 180°/270° + freier Winkel: nur im Experten-Modus (#808). Standard
+        # kennt nur die schnelle 90°-Drehung oben. Ein Container hält
+        # 180°/270°-Zeile, Trennlinie, Freiwinkel-Regler und Anwenden-Button
+        # zusammen ein-/ausblendbar.
+        rotate_expert_wrap = QWidget()
+        rotate_expert_lay = QVBoxLayout(rotate_expert_wrap)
+        rotate_expert_lay.setContentsMargins(0, 0, 0, 0)
+        rotate_expert_lay.setSpacing(CARD_CONTENT_SPACING)
+
         row_q2 = QHBoxLayout(); row_q2.setSpacing(_OPTION_SPACING)
         for label, deg, tip in [
             (tr("right_panel.transform.rotate_180"), 180,
@@ -565,10 +574,10 @@ class TransformTab:
             b = _make_neutral_btn(label, tip)
             b.clicked.connect(lambda _=False, d=deg: self._actions.rotate(d))
             row_q2.addWidget(b, 1)
-        gr2.addLayout(row_q2)
+        rotate_expert_lay.addLayout(row_q2)
 
-        gr2.addWidget(_make_hdivider())
-        gr2.addWidget(_make_label(tr("right_panel.transform.free_label"), "#888"))
+        rotate_expert_lay.addWidget(_make_hdivider())
+        rotate_expert_lay.addWidget(_make_label(tr("right_panel.transform.free_label"), "#888"))
         row_free = QHBoxLayout(); row_free.setSpacing(_OPTION_SPACING)
         rotation_slider = QSlider(Qt.Orientation.Horizontal)
         rotation_slider.setRange(-180, 180); rotation_slider.setValue(0)
@@ -585,14 +594,15 @@ class TransformTab:
         rotation_spin.valueChanged.connect(lambda v: rotation_slider.setValue(v))
         row_free.addWidget(rotation_slider, 1)
         row_free.addWidget(rotation_spin)
-        gr2.addLayout(row_free)
+        rotate_expert_lay.addLayout(row_free)
 
         btn_rot_free = _make_neutral_btn(
             "↺ " + tr("right_panel.transform.apply_angle"),
             tr("right_panel.transform.apply_angle.tooltip"))
         btn_rot_free.clicked.connect(
             lambda _=False: self._actions.rotate(rotation_spin.value()))
-        gr2.addWidget(btn_rot_free)
+        rotate_expert_lay.addWidget(btn_rot_free)
+        gr2.addWidget(_mark_expert_only(rotate_expert_wrap))
         layout.addWidget(g_rot)
 
         g_flip, gf = _make_section(tr("right_panel.transform.section.flip"))
@@ -629,7 +639,9 @@ class ShapeTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
+        # Karte „Ecken abrunden": nur im Experten-Modus (§9/#808).
         g_corner, gc = _make_section(tr("right_panel.shape.section.corner"))
+        _mark_expert_only(g_corner)
         corner_label = _make_label(tr("right_panel.shape.radius", value=0), "#aaa")
         corner_slider = _make_slider(0, 500, 0,
             tr("right_panel.shape.radius.tooltip"))
@@ -646,8 +658,10 @@ class ShapeTab:
         gc.addWidget(btn_corner)
         layout.addWidget(g_corner)
 
-        # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438)
+        # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438); nur
+        # im Experten-Modus (#808).
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
+        _mark_expert_only(g_size)
         size_row = QHBoxLayout(); size_row.setSpacing(_OPTION_SPACING)
         # 80 px: fünfstellige Größen (bis 60000) + 18-px-Stepper-Spalte (#516).
         resize_w = _PanelSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)

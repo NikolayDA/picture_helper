@@ -1541,6 +1541,72 @@ def test_cutout_step_toggling_expert_mode_preserves_values(qapp):
     assert panel.brush_slider.value() == 88
 
 
+# ── Schritt 4 „Form & Maße": Basic/Expert-Aufteilung (#808, Epic #805) ────
+
+
+def _shape_page(panel):
+    return panel.stack.widget(int(WorkflowStep.SHAPE) - 1)
+
+
+def test_shape_step_standard_mode_shows_only_basic_elements(qapp):
+    """Standard: nur 90°-links/-rechts + Spiegeln + vollständiges Zuschnitt-
+    Format – kein 180°/270°, kein Freiwinkel, keine Ecken/Größe-Karte."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _shape_page(panel)
+
+    assert _button(page, "↺ 90° links").isVisibleTo(page)
+    assert _button(page, "↻ 90° rechts").isVisibleTo(page)
+    assert _button(page, "Horizontal").isVisibleTo(page)
+    assert _button(page, "Vertikal").isVisibleTo(page)
+    for label in ("⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4"):
+        assert _button(page, label).isVisibleTo(page)
+
+    for text in ("↺ 180°", "↺ 270°", "↺ Winkel anwenden", "Ecken abrunden", "Größe anwenden"):
+        assert not _button(page, text).isVisibleTo(page)
+    assert not panel.rotation_slider.isVisibleTo(page)
+    assert not panel.corner_slider.isVisibleTo(page)
+    assert not panel.resize_w.isVisibleTo(page)
+
+
+def test_shape_step_expert_mode_shows_all_options(qapp):
+    """Experte: alle heutigen Form-&-Maße-Optionen sind sichtbar."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _shape_page(panel)
+
+    for text in ("↺ 180°", "↺ 270°", "↺ Winkel anwenden", "Ecken abrunden", "Größe anwenden"):
+        assert _button(page, text).isVisibleTo(page)
+    assert panel.rotation_slider.isVisibleTo(page)
+    assert panel.corner_slider.isVisibleTo(page)
+    assert panel.resize_w.isVisibleTo(page)
+
+
+def test_shape_step_crop_format_card_always_fully_visible(qapp):
+    """#808-AC: „Zuschnitt-Format" bleibt in beiden Modi vollständig sichtbar."""
+    labels = ("⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4")
+    for expert in (False, True):
+        panel = build_right_panel(
+            _actions([]), _noop_layer_actions(), _noop_height_actions(),
+            expert_mode=expert)
+        page = _shape_page(panel)
+        for label in labels:
+            assert _button(page, label).isVisibleTo(page), (expert, label)
+
+
+def test_shape_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _shape_page(panel)
+    btn_corner = _button(page, "Ecken abrunden")
+    assert not btn_corner.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert btn_corner.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not btn_corner.isVisibleTo(page)
+
+
 @pytest.mark.ui_smoke
 def test_open_page_tab_order_is_visual_order(qapp):
     """#441: Fokuskette der Öffnen-Seite: Ablagefeld → „Datei öffnen…" → Recent."""
