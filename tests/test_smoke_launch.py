@@ -7,6 +7,7 @@ und Nicht-Terminieren (Timeout). Der gut sich verhaltende Fall liefert Exit 0.
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 import time
 import uuid
@@ -104,8 +105,8 @@ def test_fork_bomb_is_detected_before_timeout(tmp_path: Path) -> None:
     # Schlägt schnell fehl (Explosion erkannt), nicht erst am 30s-Timeout.
     assert elapsed < 20
     # Der gesamte Prozessbaum wurde per killpg beendet – keine zurückbleibenden
-    # Instanzen mit dem Token.
-    time.sleep(0.5)
+    # Instanzen mit dem Token. ``run`` drained bereits intern (#642-Nachtrag),
+    # kein zusätzlicher Sleep nötig.
     assert smoke_launch._count_instances(token, set()) == 0
 
 
@@ -272,6 +273,35 @@ def test_run_fork_bomb_emits_structured_peak_instances(tmp_path: Path, capsys) -
     assert parsed is not None
     assert parsed["status"] == "fork_bombe"
     assert parsed["peak_instances"] > 2
+
+
+# ── Nachlauf-Wartezeit auf reparentete Enkelprozesse (#642-Nachtrag) ───────
+
+
+def test_drain_instances_waits_for_process_to_disappear() -> None:
+    """Wartet, bis eine noch laufende Instanz mit dem Token verschwunden ist."""
+    token = f"drain-{uuid.uuid4().hex}"
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(0.3)", token])
+    try:
+        assert smoke_launch._count_instances(token, set()) >= 1
+        smoke_launch._drain_instances(token, set(), timeout=3.0, poll_interval=0.02)
+        assert smoke_launch._count_instances(token, set()) == 0
+    finally:
+        proc.wait(timeout=5)
+
+
+def test_drain_instances_gives_up_after_timeout() -> None:
+    """Bleibt eine Instanz am Leben, kehrt der Nachlauf trotzdem zurück (kein Hang)."""
+    token = f"drain-stuck-{uuid.uuid4().hex}"
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)", token])
+    try:
+        start = time.monotonic()
+        smoke_launch._drain_instances(token, set(), timeout=0.3, poll_interval=0.05)
+        elapsed = time.monotonic() - start
+        assert elapsed < 2.0
+    finally:
+        proc.kill()
+        proc.wait(timeout=5)
 
 
 def test_workdir_sets_child_working_directory(tmp_path: Path) -> None:
