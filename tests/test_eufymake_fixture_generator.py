@@ -134,6 +134,9 @@ def test_pixel_size_variant_fixture_is_precision_preserving_half_size(
     # Gleiches Seitenverhältnis wie die 256×256-Referenz (beide Kanten halbiert).
     source_w, source_h = entry["params"]["source_size_px"]
     assert entry["width"] / entry["height"] == source_w / source_h
+    assert entry["params"]["source_file"] == gen.PIXEL_SIZE_VARIANT_SOURCE
+    # Konstante muss zum tatsächlich erzeugten Dateinamen des Referenzmusters passen.
+    assert f"height_{entry['params']['source_pattern']}_16bit.png" == gen.PIXEL_SIZE_VARIANT_SOURCE
 
     from bgremover.height_map import HEIGHT_MAX_16BIT, HeightField, resize_height_field
 

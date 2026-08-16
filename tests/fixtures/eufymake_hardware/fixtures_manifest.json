@@ -261,6 +261,7 @@
         "width_px": 128,
         "height_px": 128,
         "source_pattern": "wedge",
+        "source_file": "height_wedge_16bit.png",
         "source_size_px": [
           256,
           256
