@@ -674,6 +674,25 @@ def test_acceptance_extra_passes_v270_fixture_path(tmp_path: Path) -> None:  # t
     assert f"BGREMOVER_ACCEPTANCE_EXTRA_V270_PROJECT={smoke.V270_FIXTURE}" in native_calls[0]
 
 
+def test_acceptance_extra_adds_instance_margin_for_provenance_child(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    """Der Hook startet selbst einen zusätzlichen spawn-Kindprozess für den
+    Herkunftsnachweis (#738/#740) – das Fork-Bomb-Limit dieser Phase muss
+    daher genau ``max_instances + ACCEPTANCE_EXTRA_INSTANCE_MARGIN`` betragen,
+    nicht das rohe ``max_instances`` der übrigen Phasen (beobachtet in den
+    Abnahmeläufen 31971337146/31976909907: reproduzierbar peak_instanzen=6 bei
+    max_instances=5)."""
+    runner, calls = _recording_runner({})
+    report = smoke.SmokeReport()
+    smoke._acceptance_extra(
+        runner, ["launch"], match="x", max_instances=5, label="x.AppImage",
+        report=report, evidence_dir=tmp_path / "acceptance_extra", artifact_class="appimage",
+    )
+    native_calls = [c for c in calls if "BGREMOVER_ACCEPTANCE_EXTRA=" in c]
+    assert len(native_calls) == 1
+    expected = 5 + smoke.ACCEPTANCE_EXTRA_INSTANCE_MARGIN
+    assert f"--max-instances {expected} " in native_calls[0]
+
+
 def test_acceptance_extra_fails_when_process_exits_nonzero(tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     runner = _runner_factory({}, acceptance_extra_rc=1)
     report = smoke.SmokeReport()

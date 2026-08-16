@@ -135,6 +135,15 @@ NATIVE_3D_READINESS_TIMEOUT_MS = (NATIVE_3D_TIMEOUT - 30) * 1000
 # Shader-Compile – deutlich kürzeres Timeout als der 3D-Screenshot reicht auch
 # auf schwächerer Zielhardware (Raspberry Pi).
 ACCEPTANCE_EXTRA_TIMEOUT = 60
+# Der Hook ruft bgremover.acceptance_smoke._runtime_provenance() auf, die
+# deterministisch einen eigenen multiprocessing-spawn-Kindprozess startet
+# (Herkunftsnachweis Bundle vs. Checkout, #738/#740) – zusätzlich zu GUI +
+# ggf. KI-Warmup-Kind + Tracker. Ohne diesen Spielraum meldet der Fork-Bomb-
+# Wächter auf realer macOS-Hardware reproduzierbar eine Fork-Bombe, obwohl
+# jeder einzelne Prozess erwartet und beabsichtigt ist (beobachtet in den
+# Abnahmeläufen 31971337146 und 31976909907, jeweils peak_instanzen=6 bei
+# max_instances=5 in exakt dieser Phase).
+ACCEPTANCE_EXTRA_INSTANCE_MARGIN = 1
 ACCEPTANCE_EXTRA_NAMES = {
     "appimage": "acceptance_extra_appimage.json",
     "deb": "acceptance_extra_deb.json",
@@ -519,10 +528,13 @@ def _acceptance_extra(
     ]
     if expected_version:
         env_args += ["--env", f"BGREMOVER_ACCEPTANCE_EXTRA_VERSION={expected_version}"]
+    # +ACCEPTANCE_EXTRA_INSTANCE_MARGIN: der Hook startet selbst einen
+    # zusätzlichen, beabsichtigten spawn-Kindprozess (Herkunftsnachweis) –
+    # siehe Konstantendefinition oben.
     result = runner([
         sys.executable, str(SMOKE_LAUNCH),
         "--match", match,
-        "--max-instances", str(max_instances),
+        "--max-instances", str(max_instances + ACCEPTANCE_EXTRA_INSTANCE_MARGIN),
         "--timeout", str(ACCEPTANCE_EXTRA_TIMEOUT),
         "--native",
         "--workdir", str(neutral_workdir()),  # nicht im Checkout starten (#740)
