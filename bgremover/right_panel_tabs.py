@@ -66,6 +66,19 @@ _OPTION_SPACING = 6
 _CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * CARD_STACK_SIDE_MARGIN - 2 * CARD_PADDING[0]
 
 
+# Property-Marker für Karten/Zeilen, die nur im Experten-Modus sichtbar sind
+# (#807, Epic #805). ``right_panel._assemble`` sucht sie zentral per
+# ``findChildren`` und koppelt ihre Sichtbarkeit an den Kopf-Umschalter – ohne
+# dass jede Tab-Klasse den Modus selbst kennen oder verdrahten muss.
+EXPERT_ONLY_PROPERTY = "expertOnly"
+
+
+def _mark_expert_only(widget: QWidget) -> QWidget:
+    """Markiert ``widget`` als nur im Experten-Modus sichtbar (#807)."""
+    widget.setProperty(EXPERT_ONLY_PROPERTY, True)
+    return widget
+
+
 def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
     """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
 
@@ -341,8 +354,16 @@ class SelectionTab:
         tolerance_slider.valueChanged.connect(on_tolerance)
         gs.addWidget(tolerance_label)
         gs.addWidget(tolerance_slider)
-        gs.addWidget(_make_hdivider())
 
+        # Pinselgröße: nur im Experten-Modus sichtbar (#807, Standard-Modus
+        # kennt nur die Toleranz). Eigener Container statt Einzel-Tagging,
+        # damit Trennlinie/Label/Slider gemeinsam ein-/ausgeblendet werden.
+        brush_wrap = QWidget()
+        brush_wrap.setObjectName("selectionBrushExpertRow")
+        brush_lay = QVBoxLayout(brush_wrap)
+        brush_lay.setContentsMargins(0, 0, 0, 0)
+        brush_lay.setSpacing(CARD_CONTENT_SPACING)
+        brush_lay.addWidget(_make_hdivider())
         brush_label = _make_label(
             tr("right_panel.selection.brush_size", value=30), "#aaa")
         brush_slider = _make_slider(4, 200, 30,
@@ -353,12 +374,15 @@ class SelectionTab:
             brush_label.setText(tr("right_panel.selection.brush_size", value=value))
 
         brush_slider.valueChanged.connect(on_brush)
-        gs.addWidget(brush_label)
-        gs.addWidget(brush_slider)
+        brush_lay.addWidget(brush_label)
+        brush_lay.addWidget(brush_slider)
+        gs.addWidget(_mark_expert_only(brush_wrap))
         layout.addWidget(g_sel)
 
-        # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen (§9)
+        # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen: nur im
+        # Experten-Modus (§9/#807; im Standard-Modus keine eigene Karte).
         g_select, gsel = _make_section(tr("right_panel.selection.section.select"))
+        _mark_expert_only(g_select)
         row_ci = QHBoxLayout(); row_ci.setObjectName("selectionActionRow")
         row_ci.setSpacing(_OPTION_SPACING)
         btn_inv = _make_neutral_btn(
@@ -442,8 +466,16 @@ class BackgroundTab:
         btn_rem.clicked.connect(lambda _=False: self._actions.remove_background())
         gb.addWidget(btn_rem)
 
-        gb.addWidget(_make_hdivider())
-        gb.addWidget(_make_label(tr("right_panel.background.color_label"), "#888"))
+        # Farbe wählen/ersetzen: nur im Experten-Modus sichtbar (#807, Standard-
+        # Modus kennt nur „Entfernen (transparent)"). Eigener Container, damit
+        # Trennlinie/Label/Zeile gemeinsam ein-/ausgeblendet werden.
+        color_wrap = QWidget()
+        color_wrap.setObjectName("backgroundColorExpertRow")
+        color_wrap_lay = QVBoxLayout(color_wrap)
+        color_wrap_lay.setContentsMargins(0, 0, 0, 0)
+        color_wrap_lay.setSpacing(CARD_CONTENT_SPACING)
+        color_wrap_lay.addWidget(_make_hdivider())
+        color_wrap_lay.addWidget(_make_label(tr("right_panel.background.color_label"), "#888"))
         color_row = QHBoxLayout(); color_row.setSpacing(8)
         color_button = QPushButton()
         color_button.setFixedSize(_COLOR_BTN_SIZE, _COLOR_BTN_SIZE)
@@ -460,10 +492,13 @@ class BackgroundTab:
             icon_name="replace_color")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
         color_row.addWidget(btn_repl, 1)
-        gb.addLayout(color_row)
+        color_wrap_lay.addLayout(color_row)
+        gb.addWidget(_mark_expert_only(color_wrap))
         layout.addWidget(g_bg)
 
+        # Karte „Kante glätten": nur im Experten-Modus (§9/#807).
         g_edge, ge = _make_section(tr("right_panel.background.section.feather"))
+        _mark_expert_only(g_edge)
         ge.addWidget(_make_label(tr("right_panel.background.feather_hint"), "#888", 11))
         feather_label = _make_label(
             tr("right_panel.background.feather_radius", value=2), "#aaa")

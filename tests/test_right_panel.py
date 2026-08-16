@@ -1399,7 +1399,6 @@ def test_interactive_targets_meet_minimum_hit_size(qapp):
         win.close()
 
 
-@pytest.mark.ui_smoke
 # ── Standard-/Experten-Umschalter (#806, Epic #805) ───────────────────────
 
 
@@ -1471,6 +1470,78 @@ def test_expert_toggle_visible_and_positioned_identically_across_all_steps(qapp)
         assert toggle.mapTo(panel.frame, toggle.rect().topLeft()) == pos_before
 
 
+# ── Schritt 2 „Freistellen": Basic/Expert-Aufteilung (#807, Epic #805) ────
+
+
+def _cutout_page(panel):
+    return panel.stack.widget(int(WorkflowStep.CUTOUT) - 1)
+
+
+def test_cutout_step_standard_mode_shows_only_basic_elements(qapp):
+    """Standard: KI-Button, nur Toleranz, nur „Entfernen (transparent)" – keine
+    Pinselgröße, keine „Auswahl"-Karte, keine Farbzeile, keine „Kante glätten"."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _cutout_page(panel)
+
+    assert _button(page, "Hintergrund entfernen (KI)").isVisibleTo(page)
+    assert panel.tolerance_slider.isVisibleTo(page)
+    assert _button(page, "Entfernen (transparent)").isVisibleTo(page)
+
+    assert not panel.brush_slider.isVisibleTo(page)
+    for text in ("Invertieren", "Aufheben", "+ Erweitern", "− Schrumpfen"):
+        assert not _button(page, text).isVisibleTo(page)
+    assert not _button(page, "Farbe ersetzen").isVisibleTo(page)
+    assert not panel.color_button.isVisibleTo(page)
+    assert not _button(page, "Kante glätten").isVisibleTo(page)
+
+
+def test_cutout_step_expert_mode_shows_all_options(qapp):
+    """Experte: alle heutigen Freistellen-Optionen sind sichtbar (kein
+    Funktionsverlust ggü. dem bisherigen, ungefilterten Panel)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _cutout_page(panel)
+
+    assert panel.brush_slider.isVisibleTo(page)
+    for text in ("Invertieren", "Aufheben", "+ Erweitern", "− Schrumpfen",
+                 "Farbe ersetzen", "Kante glätten"):
+        assert _button(page, text).isVisibleTo(page)
+    assert panel.color_button.isVisibleTo(page)
+
+
+def test_cutout_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    """Umschalten wirkt sofort auf Schritt 2, ohne Panel-Neuaufbau."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _cutout_page(panel)
+    btn_feather = _button(page, "Kante glätten")
+    assert not btn_feather.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert btn_feather.isVisibleTo(page)
+    assert panel.brush_slider.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not btn_feather.isVisibleTo(page)
+    assert not panel.brush_slider.isVisibleTo(page)
+
+
+def test_cutout_step_toggling_expert_mode_preserves_values(qapp):
+    """#807-AC: Umschalten verliert keine ungespeicherten Werte (z. B. Toleranz)."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    panel.tolerance_slider.setValue(77)
+    panel.brush_slider.setValue(88)
+
+    panel.expert_toggle.setChecked(True)
+    assert panel.tolerance_slider.value() == 77
+    assert panel.brush_slider.value() == 88
+
+    panel.expert_toggle.setChecked(False)
+    assert panel.tolerance_slider.value() == 77
+    assert panel.brush_slider.value() == 88
+
+
+@pytest.mark.ui_smoke
 def test_open_page_tab_order_is_visual_order(qapp):
     """#441: Fokuskette der Öffnen-Seite: Ablagefeld → „Datei öffnen…" → Recent."""
     from bgremover.right_panel import _DropFrame
