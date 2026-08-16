@@ -232,7 +232,11 @@ class PreviewTab:
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
+        # Karte „2D-Vorschaumodus": nur im Experten-Modus (§9/#810). Der
+        # Vorschaumodus ist reiner UI-Zustand ohne Einfluss auf den Export
+        # (§13 REDESIGN_SPEC) – im Standard-Modus bleibt er auf „Farbe".
         group, body = _make_section(tr("right_panel.preview.section"))
+        _mark_expert_only(group)
         body.addWidget(_make_label(tr("right_panel.preview.hint"), "#8aaed0", 11))
 
         body.addWidget(_make_label(tr("right_panel.preview.mode"), "#aaa"))
@@ -300,8 +304,11 @@ class PreviewTab:
         gsv.addWidget(btn_save)
         layout.addWidget(g_save)
 
-        # ── Karte „UV-Druck" (§9 Schritt 6, #439) ──
+        # ── Karte „UV-Druck" (§9 Schritt 6, #439): nur im Experten-Modus
+        # (#810). Der Menüpfad „Projekt → Assets für EufyMake Studio
+        # exportieren…" (⌥⌘E) bleibt davon unabhängig immer erreichbar.
         g_uv, guv = _make_section(tr("right_panel.export.section.uvprint"))
+        _mark_expert_only(g_uv)
         btn_eufy = _make_neutral_btn(
             tr("right_panel.export.eufymake"),
             tr("right_panel.export.eufymake.tooltip"), height=40, wrap=True)

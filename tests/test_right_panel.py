@@ -1427,6 +1427,70 @@ def test_height_panel_expert_mode_shows_options_optimize_collapsed(qapp):
     assert not gamma_spin.isVisibleTo(page)
 
 
+# ── Schritt 6 „Export": Basic/Expert-Aufteilung (#810, Epic #805) ────────
+
+
+def _export_page(panel):
+    return panel.stack.widget(int(WorkflowStep.EXPORT) - 1)
+
+
+def test_export_step_standard_mode_shows_only_save_card(qapp):
+    """Standard: nur Dateiformat-Raster + „Bild speichern" – keine Vorschau-
+    modus-Karte, kein UV-Druck."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _export_page(panel)
+
+    for fmt in ("PNG", "JPEG", "WebP", "TIFF"):
+        assert _button(page, fmt).isVisibleTo(page)
+    assert _button(page, "Bild speichern").isVisibleTo(page)
+
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+    assert not panel.preview_relief_slider.isVisibleTo(page)
+    assert not panel.preview_gloss_visible.isVisibleTo(page)
+    assert not _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+
+def test_export_step_expert_mode_shows_preview_and_uvprint_cards(qapp):
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _export_page(panel)
+
+    assert panel.preview_mode_segments.isVisibleTo(page)
+    assert panel.preview_relief_slider.isVisibleTo(page)
+    assert panel.preview_gloss_visible.isVisibleTo(page)
+    assert _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+    # Speichern-Karte bleibt unverändert zusätzlich vorhanden.
+    assert _button(page, "Bild speichern").isVisibleTo(page)
+
+
+def test_export_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _export_page(panel)
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert panel.preview_mode_segments.isVisibleTo(page)
+    assert _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+    assert not _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+
+def test_export_step_preview_mode_switch_is_pure_ui_state(qapp):
+    """#810-AC: Vorschaumodus-Wechsel bleibt reiner UI-Zustand (§13) – nur die
+    ``set_preview_mode``-Aktion wird gemeldet, kein Export-Callback."""
+    calls: list[tuple] = []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+
+    _button(_export_page(panel), "Relief").click()
+
+    assert calls == [("preview_mode", PreviewMode.RELIEF)]
+
+
 # ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
 
 
