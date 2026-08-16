@@ -541,3 +541,69 @@ Statusleiste wäre Redundanz ohne klaren Zusatznutzen. Es entsteht daher
 Menü- und Schrittleiste, die Statusleiste bleibt reiner Text. Diese
 Entscheidung ist bewusst dokumentiert, damit die Frage nicht erneut
 aufkommt (#463/#465).
+
+## §15 Experten-Modus
+
+Epic #805: Der Karten-Inspector zeigt pro Schritt bereits heute (§9) alle
+verfügbaren Optionen — für Einsteiger:innen ist das in dichteren Schritten
+zu viel auf einmal. Ein globaler **Standard-/Experten-Umschalter** im
+Inspector-Kopf löst das über progressive Offenlegung: **nichts wird
+entfernt**, der Experten-Modus zeigt exakt den vollen §9-Funktionsumfang,
+der Standard-Modus blendet je Schritt eine kuratierte Teilmenge ein.
+
+### Umschalter (#806)
+
+- **Position:** rechts neben `stepTitle`/`stepDesc` im Inspector-Kopf,
+  identisch in allen 6 Schritten (`right_panel._assemble`).
+- **Optik:** Pille 40×22 px, Knopf 18 px, Label „EXPERTE" darunter
+  (10 px/600, letter-spacing .03 em). Aus: Fläche `inset`, Rand `border_2`,
+  Label `text3`. An: Fläche/Rand `accent`, Label `accent_text`. Direkt
+  darunter ein Hinweistext (`inset`-Fläche, `text3`, 11.5 px), der den
+  aktiven Modus in einem Satz erklärt.
+- **Bedienung:** `ExpertModeToggle` (`QAbstractButton`, checkbar,
+  `StrongFocus`) reagiert auf Klick, Leertaste (nativ) und Enter (explizit
+  verdrahtet); der Fokusring folgt dem app-weiten `accent`-Kontrakt (§12).
+- **Zustandsmodell:** rein UI-seitig, global über alle 6 Schritte hinweg
+  (kein Schritt hält einen eigenen Modus). Umschalten aktualisiert nur die
+  betroffenen Karten/Zeilen (`expertOnly`/`standardOnly`-Widget-Property,
+  zentral in `right_panel._assemble` eingesammelt und verdrahtet) – **kein**
+  Neuaufbau des gesamten Panels wie beim Theme-Wechsel (§10). Persistiert
+  über `QSettings` (`EXPERT_MODE_KEY`, additiver Schlüssel), Default beim
+  Erststart: **Standard**.
+
+### Basic/Expert-Zuordnung je Schritt (#807–#810)
+
+| Schritt | Standard (Basic) | Zusätzlich im Experten-Modus |
+|---|---|---|
+| 1 · Öffnen | Ablagefeld, „Datei öffnen…", „Zuletzt geöffnet" | *(kein Unterschied — siehe unten)* |
+| 2 · Freistellen | KI-Primärbutton · Karte „Werkzeug-Einstellungen": nur Toleranz · Karte „Hintergrund": nur „Entfernen (transparent)" | „Werkzeug-Einstellungen": + Pinselgröße · neue Karte „Auswahl" (Invertieren/Aufheben, Erweitern/Schrumpfen) · „Hintergrund": + Farbe wählen/ersetzen · neue Karte „Kante glätten" |
+| 3 · Anpassen | Karte „Farbkorrektur" (Helligkeit/Kontrast/Sättigung) | *(kein Unterschied — siehe unten)* |
+| 4 · Form & Maße | Karte „Drehen & Spiegeln": nur 90°-links/-rechts + Horizontal/Vertikal spiegeln · Karte „Zuschnitt-Format": vollständiges 3×2-Raster | „Drehen & Spiegeln": + 180°/270° + Freier-Winkel-Regler mit Anwenden · neue Karte „Ecken abrunden" · neue Karte „Größe ändern" |
+| 5 · Relief & Ebenen | Karte „Ebenen": reine Liste (Sichtbarkeit, Name) + Deckkraft, ohne Werkzeugleiste; zugewiesene Rolle als Text · Karte „Höhenkarte": nur „Höhenkarte erzeugen" | „Ebenen": + Icon-Werkzeugleiste (Neu/Duplizieren/Löschen/Reihenfolge/Umbenennen) + Rollen-Auswahl (Select) · „Höhenkarte": + „Graustufe importieren…" · neue Karte „Bearbeiten" (Stärke, Aufhellen/Abdunkeln, Wert setzen) · neue Karte „Höhenkarte-Werkzeuge" (Invertieren) · neue Karte „Optimieren" als Accordion (Standardzustand eingeklappt: Tonwert, Gamma, Gauß-/Median-Glättung, Schwelle, Stufen, Bereich) |
+| 6 · Export | Karte „Speichern": Dateiformat-Raster + „Bild speichern" | neue Karte „2D-Vorschaumodus" (Segmented Farbe/Relief/Höhe/Gloss, Relief-Stärke, Gloss-Checkbox) · neue Karte „UV-Druck" (EufyMake-Export-Button) |
+
+Regeln, die für alle Schritte gelten:
+
+- Umschalten verliert **nie** ungespeicherte Werte: ausgeblendete Karten/
+  Zeilen werden nur `setVisible(False)`, nicht neu aufgebaut oder entfernt –
+  ein z. B. in Schritt 2 gesetzter Toleranzwert bleibt beim Ein-/Ausblenden
+  der Pinselgröße unverändert erhalten.
+- Tastaturkürzel (W/B/E/L, §8) und alle Menüpfade (inkl. „Projekt → Assets
+  für EufyMake Studio exportieren…", ⌥⌘E) bleiben unabhängig vom Modus
+  identisch erreichbar — der Umschalter betrifft ausschließlich den
+  Inspector, nie Werkzeugleiste, Menüleiste oder Statusleiste.
+- Ohne aktive HEIGHT-Ebene bleiben die Höhen-Bearbeiten-Buttons deaktiviert
+  (bestehende Regel §8/§9, modusunabhängig).
+- Der Vorschaumodus-Wechsel in Schritt 6 bleibt reiner UI-Zustand ohne
+  History-/Dirty-Revision und ohne Einfluss auf den Export (§13) — der
+  Experten-Modus ändert daran nichts, er blendet die Steuerung nur ein.
+
+### Schritte 1 & 3 (#811)
+
+„Öffnen" und „Anpassen" haben bereits heute eine minimale, einheitliche
+Kartenmenge (§9) — hier gibt es **keinen** Basic/Expert-Split. Der
+Umschalter ist dennoch sichtbar (Konsistenz über alle 6 Schritte), zeigt
+aber in beiden Modi identischen Inhalt; ein Moduswechsel erzeugt in diesen
+beiden Schritten keinen sichtbaren Sprung. Die Tabelle „Rail-Inhalt je
+Schritt" (§8) bleibt unverändert — der Umschalter wirkt ausschließlich auf
+den Inspector.

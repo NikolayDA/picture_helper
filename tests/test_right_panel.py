@@ -27,6 +27,7 @@ from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
+from bgremover.right_panel_tabs import EXPERT_ONLY_PROPERTY, STANDARD_ONLY_PROPERTY
 from bgremover.stepper import WorkflowStep
 
 
@@ -1489,6 +1490,119 @@ def test_export_step_preview_mode_switch_is_pure_ui_state(qapp):
     _button(_export_page(panel), "Relief").click()
 
     assert calls == [("preview_mode", PreviewMode.RELIEF)]
+
+
+# ── Schritte 1 & 3 unverändert + Epic-Abschluss-Regressionsschutz (#811) ──
+
+
+def test_open_and_adjust_steps_have_no_basic_expert_split(qapp):
+    """#811-AC: Schritt 1 (Öffnen) und Schritt 3 (Anpassen) kennen keinen
+    Basic/Expert-Split – keine ``expertOnly``/``standardOnly``-markierten
+    Widgets auf diesen beiden Seiten."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    for step in (WorkflowStep.OPEN, WorkflowStep.ADJUST):
+        page = panel.stack.widget(int(step) - 1)
+        tagged = [
+            w for w in page.findChildren(QWidget)
+            if w.property(EXPERT_ONLY_PROPERTY) or w.property(STANDARD_ONLY_PROPERTY)
+        ]
+        assert tagged == [], (step.name, tagged)
+
+
+def test_open_and_adjust_steps_visible_content_identical_across_modes(qapp):
+    """#811-AC: Schritt 1 und Schritt 3 zeigen in beiden Modi exakt denselben
+    Inhalt – kein visueller Sprung beim Umschalten."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        on_open=lambda: None, on_open_path=lambda _p: None, recent=["/tmp/a.png"])
+
+    def visible_snapshot(step: WorkflowStep) -> list[tuple[str, object]]:
+        page = panel.stack.widget(int(step) - 1)
+        return [
+            (type(w).__name__, getattr(w, "text", lambda: None)())
+            for w in page.findChildren(QWidget) if w.isVisibleTo(page)
+        ]
+
+    before = {s: visible_snapshot(s) for s in (WorkflowStep.OPEN, WorkflowStep.ADJUST)}
+    panel.expert_toggle.setChecked(True)
+    after = {s: visible_snapshot(s) for s in (WorkflowStep.OPEN, WorkflowStep.ADJUST)}
+    assert before == after
+
+
+# Vollständiges Kontroll-Inventar der Schritte 2/4/6 im Experten-Modus (Text-
+# Buttons je Schritt) – Schritt 5 (Ebenen/Höhe) und die Nicht-Button-Regler
+# (Slider/SpinBoxen/Combos) prüft der Test unten zusätzlich gezielt. Analog
+# zu ``test_light_palette_matches_prototype_bundle_directly`` (test_theme.py)
+# ist dies der feste Vertrag: kein heute vorhandenes Control darf im
+# Experten-Modus verschwinden.
+_EXPERT_MODE_BUTTON_INVENTORY: dict[WorkflowStep, tuple[str, ...]] = {
+    WorkflowStep.CUTOUT: (
+        "Hintergrund entfernen (KI)",
+        "Aufheben", "Invertieren", "+ Erweitern", "− Schrumpfen",
+        "Entfernen (transparent)", "Farbe ersetzen", "Kante glätten",
+    ),
+    WorkflowStep.SHAPE: (
+        "↺ 90° links", "↻ 90° rechts", "↺ 180°", "↺ 270°",
+        "↺ Winkel anwenden", "Horizontal", "Vertikal",
+        "Ecken abrunden", "Größe anwenden",
+        "⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4",
+    ),
+    WorkflowStep.EXPORT: (
+        "PNG", "JPEG", "WebP", "TIFF", "Bild speichern",
+        "Assets für EufyMake Studio exportieren…",
+        "Farbe", "Relief", "Höhe", "Gloss",
+    ),
+}
+
+
+def test_expert_mode_preserves_every_control_from_before_the_epic(qapp):
+    """#811-AC: Regressionstest, der sicherstellt, dass im Experten-Modus alle
+    heute vorhandenen Controls weiterhin vorhanden und sichtbar sind (kein
+    Funktionsverlust ggü. dem ungefilterten Panel vor Epic #805)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    panel.layer_panel.refresh(_infos())
+    panel.height_panel.refresh(_height_layers())
+
+    for step, expected in _EXPERT_MODE_BUTTON_INVENTORY.items():
+        page = panel.stack.widget(int(step) - 1)
+        for text in expected:
+            assert _button(page, text).isVisibleTo(page), (step.name, text)
+
+    cutout_page = panel.stack.widget(int(WorkflowStep.CUTOUT) - 1)
+    shape_page = panel.stack.widget(int(WorkflowStep.SHAPE) - 1)
+    export_page = panel.stack.widget(int(WorkflowStep.EXPORT) - 1)
+    relief_page = panel.stack.widget(int(WorkflowStep.RELIEF) - 1)
+
+    assert panel.brush_slider.isVisibleTo(cutout_page)
+    assert panel.corner_slider.isVisibleTo(shape_page)
+    assert panel.resize_w.isVisibleTo(shape_page)
+    assert panel.rotation_slider.isVisibleTo(shape_page)
+    assert panel.preview_mode_segments.isVisibleTo(export_page)
+    assert panel.preview_relief_slider.isVisibleTo(export_page)
+    assert panel.preview_gloss_visible.isVisibleTo(export_page)
+
+    for icon_name in ("layer_add", "layer_duplicate", "layer_delete",
+                      "layer_move_up", "layer_move_down", "layer_rename"):
+        btn = next(
+            b for b in relief_page.findChildren(QPushButton)
+            if b.property("prototypeIconName") == icon_name)
+        assert btn.isVisibleTo(relief_page), icon_name
+    combo = panel.layer_panel._role_combo
+    assert combo is not None and combo.isVisibleTo(relief_page)
+    assert _button(relief_page, "Graustufe importieren…").isVisibleTo(relief_page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert _button(relief_page, text).isVisibleTo(relief_page)
+
+    optimize_header = panel.height_panel._refs["height_optimize_header"]
+    assert optimize_header.isVisibleTo(relief_page)
+    optimize_header.setChecked(True)  # Accordion aufklappen, um die Regler zu prüfen
+    for key in ("height_levels_black", "height_levels_white", "height_gamma",
+                "height_gauss", "height_median", "height_threshold", "height_steps",
+                "height_range_lo", "height_range_hi"):
+        widget = panel.height_panel._refs[key]
+        assert widget.isVisibleTo(relief_page), key
 
 
 # ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
