@@ -103,6 +103,7 @@ from bgremover.right_panel import (
 from bgremover.settings_dialog import SettingsDialog
 from bgremover.settings_schema import (
     AUTO_UPDATE_CHECK_KEY,
+    EXPERT_MODE_KEY,
     EXPORT_BIT_DEPTH_KEY,
     EXPORT_DIR_KEY,
     EXPORT_INCLUDE_GLOSS_KEY,
@@ -216,6 +217,10 @@ class MainWindow(QMainWindow):
         # gespiegelt.
         self._light_mode = str(
             self._settings.value(THEME_KEY, "dark")).lower() == "light"
+        # Standard-/Experten-Umschalter im Inspector-Kopf (#806, Epic #805):
+        # additiver Schluessel, Default Standard-Modus (False).
+        self._expert_mode = self._settings.value(
+            EXPERT_MODE_KEY, False, type=bool)
         init_locale_from_settings(
             self._settings.value(SETTINGS_LOCALE_KEY, None))
         self._recent_files = RecentFiles(
@@ -456,10 +461,12 @@ class MainWindow(QMainWindow):
             on_open_path=self._open_recent_path,
             recent=self._recent_files.paths()[:3],
             rembg_available=REMBG_AVAILABLE,
+            expert_mode=self._expert_mode,
         )
         self._right_panel = panel
         panel.nav_prev.clicked.connect(lambda _=False: self._prev_step())
         panel.nav_next.clicked.connect(lambda _=False: self._next_step())
+        panel.expert_toggle.toggled.connect(self._on_expert_mode_toggled)
         self._color_btn = panel.color_button
         self._layer_panel = panel.layer_panel
         self._height_panel = panel.height_panel
@@ -660,6 +667,14 @@ class MainWindow(QMainWindow):
     def _sync_workflow_availability(self) -> None:
         """Sperrt die Schritte 2–6, solange kein Bild geladen ist (Spec §13)."""
         self._stepper.set_locked(not self._canvas.has_image)
+
+    # ── Standard-/Experten-Umschalter (#806, Epic #805) ──────────────────
+
+    def _on_expert_mode_toggled(self, expert: bool) -> None:
+        """Merkt den global geltenden Modus; die Pille selbst hält Label/Hinweis
+        bereits ohne Panel-Neuaufbau aktuell (``right_panel._sync_expert_visuals``)."""
+        self._expert_mode = expert
+        self._settings.setValue(EXPERT_MODE_KEY, expert)
 
     def _on_step_selected(self, step_value: int) -> None:
         """Klick auf einen Schritt in der Schrittleiste (mit Gating)."""

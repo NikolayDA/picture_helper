@@ -935,6 +935,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Datei öffnen…",
         "workflow.locked": "Erst ein Bild öffnen (Schritt 1)",
         "workflow.status.step": "Schritt {num}/{total}: {title}",
+        # Standard-/Experten-Umschalter im Inspector-Kopf (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "EXPERTE",
+        "workflow.expert_mode.toggle.tooltip": "Standard-/Experten-Modus umschalten",
+        "workflow.expert_mode.hint.standard":
+            "Standard-Modus: zeigt je Schritt nur die wichtigsten Optionen.",
+        "workflow.expert_mode.hint.expert":
+            "Experten-Modus: zeigt alle verfügbaren Optionen dieses Schritts.",
     },
     "en": {
         # Status bar messages
@@ -1840,6 +1847,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Open file…",
         "workflow.locked": "Open an image first (Step 1)",
         "workflow.status.step": "Step {num}/{total}: {title}",
+        # Standard/expert toggle in the inspector header (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "EXPERT",
+        "workflow.expert_mode.toggle.tooltip": "Toggle standard/expert mode",
+        "workflow.expert_mode.hint.standard":
+            "Standard mode: shows only the most important options per step.",
+        "workflow.expert_mode.hint.expert":
+            "Expert mode: shows all available options for this step.",
     },
     "es": {
         # Status bar messages
@@ -2752,6 +2766,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Abrir archivo…",
         "workflow.locked": "Abre primero una imagen (paso 1)",
         "workflow.status.step": "Paso {num}/{total}: {title}",
+        # Interruptor estándar/experto en la cabecera del inspector (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "EXPERTO",
+        "workflow.expert_mode.toggle.tooltip": "Cambiar entre modo estándar y experto",
+        "workflow.expert_mode.hint.standard":
+            "Modo estándar: muestra solo las opciones más importantes de cada paso.",
+        "workflow.expert_mode.hint.expert":
+            "Modo experto: muestra todas las opciones disponibles de este paso.",
     },
     "fr": {
         # Status bar messages
@@ -3665,6 +3686,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Ouvrir un fichier…",
         "workflow.locked": "Ouvrez d'abord une image (étape 1)",
         "workflow.status.step": "Étape {num}/{total} : {title}",
+        # Bascule standard/expert dans l'en-tête de l'inspecteur (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "EXPERT",
+        "workflow.expert_mode.toggle.tooltip": "Basculer entre mode standard et expert",
+        "workflow.expert_mode.hint.standard":
+            "Mode standard : n'affiche que les options les plus importantes de chaque étape.",
+        "workflow.expert_mode.hint.expert":
+            "Mode expert : affiche toutes les options disponibles de cette étape.",
     },
     "uk": {
         # Status bar messages
@@ -4573,6 +4601,13 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "Відкрити файл…",
         "workflow.locked": "Спочатку відкрийте зображення (крок 1)",
         "workflow.status.step": "Крок {num}/{total}: {title}",
+        # Перемикач «Стандарт/Експерт» у шапці інспектора (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "ЕКСПЕРТ",
+        "workflow.expert_mode.toggle.tooltip": "Перемкнути стандартний/експертний режим",
+        "workflow.expert_mode.hint.standard":
+            "Стандартний режим: показує лише найважливіші опції кожного кроку.",
+        "workflow.expert_mode.hint.expert":
+            "Експертний режим: показує всі доступні опції цього кроку.",
     },
     "zh": {
         # Status bar messages
@@ -5445,6 +5480,11 @@ _TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "workflow.open.button": "打开文件…",
         "workflow.locked": "请先打开图像（第 1 步）",
         "workflow.status.step": "第 {num}/{total} 步：{title}",
+        # 检查器头部的标准/专家模式开关 (#806, Epic #805)
+        "workflow.expert_mode.toggle_label": "专家",
+        "workflow.expert_mode.toggle.tooltip": "切换标准/专家模式",
+        "workflow.expert_mode.hint.standard": "标准模式：每个步骤仅显示最重要的选项。",
+        "workflow.expert_mode.hint.expert": "专家模式：显示此步骤的所有可用选项。",
     },
 }
 

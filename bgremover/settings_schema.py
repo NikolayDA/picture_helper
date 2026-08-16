@@ -39,6 +39,12 @@ THEME_KEY = "theme_mode"
 # ``False`` – kein Netzwerkzugriff beim Start ohne vorherige Zustimmung.
 AUTO_UPDATE_CHECK_KEY = "auto_update_check"
 
+# Standard-/Experten-Umschalter des Inspector-Kopfs (#806, Epic #805). Additiver
+# Schluessel, reine UI-Praeferenz (kein Projektzustand); fehlt er (aeltere
+# Settings), liest der Umschalter ``False`` (Default: Standard-Modus). Ohne
+# Schema-Migration.
+EXPERT_MODE_KEY = "expert_mode"
+
 # Qualitaetsstufe der 3D-Reliefvorschau (#594, Epic #582). Additiver Schluessel,
 # reine Sitzungs-/UI-Praeferenz (kein Projektzustand, kein abgeleitetes Mesh);
 # fehlt er, greift der Default ``"standard"``. Ohne Schema-Migration.

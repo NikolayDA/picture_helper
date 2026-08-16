@@ -1400,6 +1400,77 @@ def test_interactive_targets_meet_minimum_hit_size(qapp):
 
 
 @pytest.mark.ui_smoke
+# ── Standard-/Experten-Umschalter (#806, Epic #805) ───────────────────────
+
+
+def test_expert_toggle_default_unchecked_and_focusable(qapp):
+    """Default ist Standard-Modus; die Pille ist per Tastatur erreichbar."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    toggle = panel.expert_toggle
+    assert toggle.isCheckable()
+    assert not toggle.isChecked()
+    assert toggle.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    assert toggle.width() == 40
+    assert toggle.height() == 22
+
+
+def test_expert_toggle_honors_initial_expert_mode_param(qapp):
+    """``build_right_panel(expert_mode=True)`` startet bereits im Experten-Modus."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+
+    assert panel.expert_toggle.isChecked()
+    hint = panel.frame.findChild(QLabel, "expertModeHint")
+    assert hint is not None
+    assert "Experten-Modus" in hint.text()
+
+
+def test_expert_toggle_updates_hint_without_rebuilding_panel(qapp):
+    """Klick schaltet um und aktualisiert Label/Hinweis, ohne das Panel neu
+    aufzubauen (#806-AC: „nur betroffene Karten/Zeilen")."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    hint = panel.frame.findChild(QLabel, "expertModeHint")
+    assert hint is not None
+    assert "Standard-Modus" in hint.text()
+
+    panel.expert_toggle.setChecked(True)
+    assert "Experten-Modus" in hint.text()
+    # Dasselbe Frame/Widget – kein Neuaufbau.
+    assert panel.frame.findChild(QLabel, "expertModeHint") is hint
+
+    panel.expert_toggle.setChecked(False)
+    assert "Standard-Modus" in hint.text()
+
+
+def test_expert_toggle_keyboard_activates(qapp):
+    """#806-AC: Enter und Leertaste schalten den fokussierten Umschalter um."""
+    from PyQt6.QtTest import QTest
+
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    toggle = panel.expert_toggle
+    assert not toggle.isChecked()
+
+    QTest.keyClick(toggle, Qt.Key.Key_Return)
+    assert toggle.isChecked()
+
+    QTest.keyClick(toggle, Qt.Key.Key_Space)
+    assert not toggle.isChecked()
+
+
+def test_expert_toggle_visible_and_positioned_identically_across_all_steps(qapp):
+    """#806-AC: Umschalter ist in allen 6 Schritten sichtbar, an derselben
+    Position (fester Kopf, unabhängig vom aktiven Stack-Index)."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    toggle = panel.expert_toggle
+    pos_before = toggle.mapTo(panel.frame, toggle.rect().topLeft())
+    for step in WorkflowStep:
+        panel.set_step(step)
+        assert toggle.isVisibleTo(panel.frame)
+        assert toggle.mapTo(panel.frame, toggle.rect().topLeft()) == pos_before
+
+
 def test_open_page_tab_order_is_visual_order(qapp):
     """#441: Fokuskette der Öffnen-Seite: Ablagefeld → „Datei öffnen…" → Recent."""
     from bgremover.right_panel import _DropFrame
