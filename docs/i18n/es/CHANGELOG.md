@@ -9,6 +9,23 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **Interruptor estándar/experto en el inspector de tarjetas (Epic #805,
+  #806–#811).** Un interruptor persistente en la cabecera del inspector
+  (`QSettings`, por defecto estándar) cambia globalmente entre dos vistas:
+  estándar muestra solo las tarjetas/opciones más importantes por paso,
+  experto muestra el conjunto de funciones completo y sin cambios. Los
+  pasos afectados son «Recortar» (tamaño de pincel, herramientas de
+  selección, reemplazar color, suavizar borde solo en modo experto),
+  «Forma y tamaño» (180°/270°/ángulo libre, redondear esquinas, cambiar
+  tamaño), «Relieve y capas» (barra de herramientas de capas, selector de
+  rol, importar escala de grises, tarjetas de edición/optimización) y
+  «Exportar» (modo de vista previa 2D, exportación UV) – «Abrir» y
+  «Ajustar» permanecen sin cambios. Cambiar de modo nunca pierde valores
+  no guardados y solo reconstruye las tarjetas afectadas, no el panel
+  completo. Detalles: [`docs/REDESIGN_SPEC.md`](../../REDESIGN_SPEC.md) §15.
+
 ### Cambiado
 
 - **Exportación EufyMake: se invirtió la advertencia de profundidad de bits y
