@@ -66,6 +66,32 @@ _OPTION_SPACING = 6
 _CARD_TEXT_WIDTH = _RIGHT_PANEL_WIDTH - 2 * CARD_STACK_SIDE_MARGIN - 2 * CARD_PADDING[0]
 
 
+# Property-Marker für Karten/Zeilen, die nur im Experten-Modus sichtbar sind
+# (#807, Epic #805). ``right_panel._assemble`` sucht sie zentral per
+# ``findChildren`` und koppelt ihre Sichtbarkeit an den Kopf-Umschalter – ohne
+# dass jede Tab-Klasse den Modus selbst kennen oder verdrahten muss.
+EXPERT_ONLY_PROPERTY = "expertOnly"
+
+
+def _mark_expert_only(widget: QWidget) -> QWidget:
+    """Markiert ``widget`` als nur im Experten-Modus sichtbar (#807)."""
+    widget.setProperty(EXPERT_ONLY_PROPERTY, True)
+    return widget
+
+
+# Gegenstück zu ``EXPERT_ONLY_PROPERTY`` (#809): Widgets, die im Experten-
+# Modus durch eine editierbare Steuerung ersetzt werden, aber im Standard-
+# Modus als reiner (nicht editierbarer) Wert sichtbar bleiben sollen – z. B.
+# die zugewiesene Ebenen-Rolle als Text statt Dropdown.
+STANDARD_ONLY_PROPERTY = "standardOnly"
+
+
+def _mark_standard_only(widget: QWidget) -> QWidget:
+    """Markiert ``widget`` als nur im Standard-Modus sichtbar (#809)."""
+    widget.setProperty(STANDARD_ONLY_PROPERTY, True)
+    return widget
+
+
 def _wrap_to_width(text: str, font: QFont, max_width: int) -> str:
     """Bricht ``text`` wortweise um, sodass keine Zeile ``max_width`` überschreitet.
 
@@ -206,7 +232,11 @@ class PreviewTab:
 
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
+        # Karte „2D-Vorschaumodus": nur im Experten-Modus (§9/#810). Der
+        # Vorschaumodus ist reiner UI-Zustand ohne Einfluss auf den Export
+        # (§13 REDESIGN_SPEC) – im Standard-Modus bleibt er auf „Farbe".
         group, body = _make_section(tr("right_panel.preview.section"))
+        _mark_expert_only(group)
         body.addWidget(_make_label(tr("right_panel.preview.hint"), "#8aaed0", 11))
 
         body.addWidget(_make_label(tr("right_panel.preview.mode"), "#aaa"))
@@ -274,8 +304,11 @@ class PreviewTab:
         gsv.addWidget(btn_save)
         layout.addWidget(g_save)
 
-        # ── Karte „UV-Druck" (§9 Schritt 6, #439) ──
+        # ── Karte „UV-Druck" (§9 Schritt 6, #439): nur im Experten-Modus
+        # (#810). Der Menüpfad „Projekt → Assets für EufyMake Studio
+        # exportieren…" (⌥⌘E) bleibt davon unabhängig immer erreichbar.
         g_uv, guv = _make_section(tr("right_panel.export.section.uvprint"))
+        _mark_expert_only(g_uv)
         btn_eufy = _make_neutral_btn(
             tr("right_panel.export.eufymake"),
             tr("right_panel.export.eufymake.tooltip"), height=40, wrap=True)
@@ -341,8 +374,16 @@ class SelectionTab:
         tolerance_slider.valueChanged.connect(on_tolerance)
         gs.addWidget(tolerance_label)
         gs.addWidget(tolerance_slider)
-        gs.addWidget(_make_hdivider())
 
+        # Pinselgröße: nur im Experten-Modus sichtbar (#807, Standard-Modus
+        # kennt nur die Toleranz). Eigener Container statt Einzel-Tagging,
+        # damit Trennlinie/Label/Slider gemeinsam ein-/ausgeblendet werden.
+        brush_wrap = QWidget()
+        brush_wrap.setObjectName("selectionBrushExpertRow")
+        brush_lay = QVBoxLayout(brush_wrap)
+        brush_lay.setContentsMargins(0, 0, 0, 0)
+        brush_lay.setSpacing(CARD_CONTENT_SPACING)
+        brush_lay.addWidget(_make_hdivider())
         brush_label = _make_label(
             tr("right_panel.selection.brush_size", value=30), "#aaa")
         brush_slider = _make_slider(4, 200, 30,
@@ -353,12 +394,15 @@ class SelectionTab:
             brush_label.setText(tr("right_panel.selection.brush_size", value=value))
 
         brush_slider.valueChanged.connect(on_brush)
-        gs.addWidget(brush_label)
-        gs.addWidget(brush_slider)
+        brush_lay.addWidget(brush_label)
+        brush_lay.addWidget(brush_slider)
+        gs.addWidget(_mark_expert_only(brush_wrap))
         layout.addWidget(g_sel)
 
-        # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen (§9)
+        # Karte „Auswahl" – Invertieren/Aufheben + Erweitern/Schrumpfen: nur im
+        # Experten-Modus (§9/#807; im Standard-Modus keine eigene Karte).
         g_select, gsel = _make_section(tr("right_panel.selection.section.select"))
+        _mark_expert_only(g_select)
         row_ci = QHBoxLayout(); row_ci.setObjectName("selectionActionRow")
         row_ci.setSpacing(_OPTION_SPACING)
         btn_inv = _make_neutral_btn(
@@ -442,8 +486,16 @@ class BackgroundTab:
         btn_rem.clicked.connect(lambda _=False: self._actions.remove_background())
         gb.addWidget(btn_rem)
 
-        gb.addWidget(_make_hdivider())
-        gb.addWidget(_make_label(tr("right_panel.background.color_label"), "#888"))
+        # Farbe wählen/ersetzen: nur im Experten-Modus sichtbar (#807, Standard-
+        # Modus kennt nur „Entfernen (transparent)"). Eigener Container, damit
+        # Trennlinie/Label/Zeile gemeinsam ein-/ausgeblendet werden.
+        color_wrap = QWidget()
+        color_wrap.setObjectName("backgroundColorExpertRow")
+        color_wrap_lay = QVBoxLayout(color_wrap)
+        color_wrap_lay.setContentsMargins(0, 0, 0, 0)
+        color_wrap_lay.setSpacing(CARD_CONTENT_SPACING)
+        color_wrap_lay.addWidget(_make_hdivider())
+        color_wrap_lay.addWidget(_make_label(tr("right_panel.background.color_label"), "#888"))
         color_row = QHBoxLayout(); color_row.setSpacing(8)
         color_button = QPushButton()
         color_button.setFixedSize(_COLOR_BTN_SIZE, _COLOR_BTN_SIZE)
@@ -460,10 +512,13 @@ class BackgroundTab:
             icon_name="replace_color")
         btn_repl.clicked.connect(lambda _=False: self._actions.replace_background())
         color_row.addWidget(btn_repl, 1)
-        gb.addLayout(color_row)
+        color_wrap_lay.addLayout(color_row)
+        gb.addWidget(_mark_expert_only(color_wrap))
         layout.addWidget(g_bg)
 
+        # Karte „Kante glätten": nur im Experten-Modus (§9/#807).
         g_edge, ge = _make_section(tr("right_panel.background.section.feather"))
+        _mark_expert_only(g_edge)
         ge.addWidget(_make_label(tr("right_panel.background.feather_hint"), "#888", 11))
         feather_label = _make_label(
             tr("right_panel.background.feather_radius", value=2), "#aaa")
@@ -520,6 +575,15 @@ class TransformTab:
             row_q1.addWidget(b, 1)
         gr2.addLayout(row_q1)
 
+        # 180°/270° + freier Winkel: nur im Experten-Modus (#808). Standard
+        # kennt nur die schnelle 90°-Drehung oben. Ein Container hält
+        # 180°/270°-Zeile, Trennlinie, Freiwinkel-Regler und Anwenden-Button
+        # zusammen ein-/ausblendbar.
+        rotate_expert_wrap = QWidget()
+        rotate_expert_lay = QVBoxLayout(rotate_expert_wrap)
+        rotate_expert_lay.setContentsMargins(0, 0, 0, 0)
+        rotate_expert_lay.setSpacing(CARD_CONTENT_SPACING)
+
         row_q2 = QHBoxLayout(); row_q2.setSpacing(_OPTION_SPACING)
         for label, deg, tip in [
             (tr("right_panel.transform.rotate_180"), 180,
@@ -530,10 +594,10 @@ class TransformTab:
             b = _make_neutral_btn(label, tip)
             b.clicked.connect(lambda _=False, d=deg: self._actions.rotate(d))
             row_q2.addWidget(b, 1)
-        gr2.addLayout(row_q2)
+        rotate_expert_lay.addLayout(row_q2)
 
-        gr2.addWidget(_make_hdivider())
-        gr2.addWidget(_make_label(tr("right_panel.transform.free_label"), "#888"))
+        rotate_expert_lay.addWidget(_make_hdivider())
+        rotate_expert_lay.addWidget(_make_label(tr("right_panel.transform.free_label"), "#888"))
         row_free = QHBoxLayout(); row_free.setSpacing(_OPTION_SPACING)
         rotation_slider = QSlider(Qt.Orientation.Horizontal)
         rotation_slider.setRange(-180, 180); rotation_slider.setValue(0)
@@ -550,14 +614,15 @@ class TransformTab:
         rotation_spin.valueChanged.connect(lambda v: rotation_slider.setValue(v))
         row_free.addWidget(rotation_slider, 1)
         row_free.addWidget(rotation_spin)
-        gr2.addLayout(row_free)
+        rotate_expert_lay.addLayout(row_free)
 
         btn_rot_free = _make_neutral_btn(
             "↺ " + tr("right_panel.transform.apply_angle"),
             tr("right_panel.transform.apply_angle.tooltip"))
         btn_rot_free.clicked.connect(
             lambda _=False: self._actions.rotate(rotation_spin.value()))
-        gr2.addWidget(btn_rot_free)
+        rotate_expert_lay.addWidget(btn_rot_free)
+        gr2.addWidget(_mark_expert_only(rotate_expert_wrap))
         layout.addWidget(g_rot)
 
         g_flip, gf = _make_section(tr("right_panel.transform.section.flip"))
@@ -594,7 +659,9 @@ class ShapeTab:
     def build(self) -> tuple[QWidget, dict[str, QWidget]]:
         outer, layout = _make_scroll_tab()
 
+        # Karte „Ecken abrunden": nur im Experten-Modus (§9/#808).
         g_corner, gc = _make_section(tr("right_panel.shape.section.corner"))
+        _mark_expert_only(g_corner)
         corner_label = _make_label(tr("right_panel.shape.radius", value=0), "#aaa")
         corner_slider = _make_slider(0, 500, 0,
             tr("right_panel.shape.radius.tooltip"))
@@ -611,8 +678,10 @@ class ShapeTab:
         gc.addWidget(btn_corner)
         layout.addWidget(g_corner)
 
-        # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438)
+        # Karte „Größe ändern" – Inline-Felder w × h (§9 Schritt 4, #438); nur
+        # im Experten-Modus (#808).
         g_size, gsz = _make_section(tr("right_panel.shape.section.resize"))
+        _mark_expert_only(g_size)
         size_row = QHBoxLayout(); size_row.setSpacing(_OPTION_SPACING)
         # 80 px: fünfstellige Größen (bis 60000) + 18-px-Stepper-Spalte (#516).
         resize_w = _PanelSpinBox(); resize_w.setRange(1, 60000); resize_w.setValue(1200)
@@ -797,6 +866,65 @@ def _make_section(title: str, accent: str | None = None) -> tuple[QWidget, QVBox
     title_lbl.setStyleSheet(section_header_style(p))
     v.addWidget(title_lbl)
     return card, v
+
+
+def _make_accordion_section(
+    title: str, *, on_toggle: Callable[[bool], None] | None = None,
+) -> tuple[QWidget, QVBoxLayout, QPushButton]:
+    """Einklappbare Karte (Accordion, #809): derselbe Karten-/Kopf-Look wie
+    ``_make_section`` (Fläche, Rand, blauer Akzentstrich, VERSALIEN), der Kopf
+    ist aber ein fokussierbarer Umschalt-Button statt eines reinen Labels.
+    Startzustand **eingeklappt** – Aufrufer/Nutzer schalten per Klick um.
+    ``on_toggle`` wird zusätzlich zur Sichtbarkeitslogik mit dem neuen
+    Expandiert-Zustand aufgerufen (z. B. um eine transiente Live-Vorschau
+    beim Einklappen zu verwerfen, #812-Review).
+    """
+    p = active_palette()
+    card = QFrame()
+    card.setObjectName("sectionCard")
+    card.setStyleSheet(f"QFrame#sectionCard {{ {card_style(p)} }}")
+    outer = QVBoxLayout(card)
+    outer.setSpacing(CARD_CONTENT_SPACING)
+    outer.setContentsMargins(*CARD_PADDING)
+
+    header = QPushButton()
+    header.setCheckable(True)
+    header.setCursor(Qt.CursorShape.PointingHandCursor)
+    # Trefferfläche ≥ 24 px (#441); eigener ``:focus``-Zweig mit einem vom
+    # Hover unterscheidbaren 1-px-Akzentrahmen (§12-Fokusring-Vertrag,
+    # #812-Review – der bloße ``hover``-Ton allein war auch im
+    # Tastatur-Fokus sichtbar, aber nicht vom Maus-Hover unterscheidbar).
+    header.setStyleSheet(
+        f"QPushButton {{ color:{p.text2}; font-size:11px; font-weight:bold;"
+        " letter-spacing:.05em; background:transparent; text-align:left;"
+        f" padding:2px 0 2px 8px; border:none; border-left:3px solid {p.accent};"
+        " min-height:24px; }"
+        f"QPushButton:hover {{ background:{p.hover}; }}"
+        "QPushButton:focus { outline:none;"
+        f" border-top:1px solid {p.accent}; border-right:1px solid {p.accent};"
+        f" border-bottom:1px solid {p.accent}; }}")
+    outer.addWidget(header)
+
+    body_widget = QWidget()
+    body = QVBoxLayout(body_widget)
+    body.setContentsMargins(0, 0, 0, 0)
+    body.setSpacing(CARD_CONTENT_SPACING)
+    outer.addWidget(body_widget)
+
+    def _set_visuals(expanded: bool) -> None:
+        chevron = "▾" if expanded else "▸"
+        header.setText(f"{chevron} {title.upper()}")
+        body_widget.setVisible(expanded)
+
+    def _on_toggled(expanded: bool) -> None:
+        _set_visuals(expanded)
+        if on_toggle is not None:
+            on_toggle(expanded)
+
+    header.toggled.connect(_on_toggled)
+    _set_visuals(False)  # eingeklappt – ohne ``on_toggle`` beim Bau selbst
+
+    return card, body, header
 
 
 def _make_label(text: str, color: str = "#888", size: int = 12) -> QLabel:

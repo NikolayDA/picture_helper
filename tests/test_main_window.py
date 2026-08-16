@@ -1093,6 +1093,60 @@ def test_toggle_light_mode_noop_when_already_active(tmp_path, qapp):
         win.close()
 
 
+# ── Standard-/Experten-Umschalter (#806, Epic #805) ──────────────────────
+
+def test_expert_mode_defaults_to_standard_and_persists_on_toggle(tmp_path, qapp):
+    """Default ist Standard-Modus; Umschalten merkt sich den Zustand (QSettings)."""
+    from bgremover.settings_schema import EXPERT_MODE_KEY
+
+    win = _isolated_window(tmp_path)
+    try:
+        assert win._expert_mode is False
+        assert not win._right_panel.expert_toggle.isChecked()
+
+        win._right_panel.expert_toggle.setChecked(True)
+        assert win._expert_mode is True
+        assert win._settings.value(EXPERT_MODE_KEY, type=bool) is True
+
+        win._right_panel.expert_toggle.setChecked(False)
+        assert win._expert_mode is False
+        assert win._settings.value(EXPERT_MODE_KEY, type=bool) is False
+    finally:
+        win.close()
+
+
+def test_expert_mode_restored_from_settings_on_next_launch(tmp_path, qapp):
+    """Ein neu erzeugtes ``MainWindow`` liest den zuletzt gemerkten Modus."""
+    win = _isolated_window(tmp_path)
+    try:
+        win._right_panel.expert_toggle.setChecked(True)
+    finally:
+        win.close()
+
+    win2 = MainWindow()
+    try:
+        assert win2._expert_mode is True
+        assert win2._right_panel.expert_toggle.isChecked()
+    finally:
+        win2.close()
+
+
+def test_expert_mode_survives_theme_rebuild(tmp_path, qapp):
+    """#806-AC: der Modus bleibt beim (Theme-getriebenen) Panel-Neuaufbau erhalten."""
+    from bgremover.theme import DARK, set_active_palette
+
+    set_active_palette(DARK)
+    win = _isolated_window(tmp_path)
+    try:
+        win._right_panel.expert_toggle.setChecked(True)
+        win._toggle_light_mode(True)
+        assert win._right_panel.expert_toggle.isChecked()
+        assert win._expert_mode is True
+    finally:
+        set_active_palette(DARK)
+        win.close()
+
+
 # ── App-Update-Check (#565) ─────────────────────────────────────────────
 
 def test_check_for_updates_starts_worker_and_shows_busy_message(win, monkeypatch):

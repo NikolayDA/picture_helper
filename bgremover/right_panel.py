@@ -47,6 +47,7 @@ from PyQt6.QtWidgets import (
 
 from bgremover.color_ops import ColorOp
 from bgremover.constants import _RIGHT_PANEL_WIDTH
+from bgremover.expert_mode_toggle import ExpertModeToggle
 from bgremover.height_map_panel import (
     HeightMapActions,
     HeightMapPanel,
@@ -59,6 +60,8 @@ from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_io import PROJECT_SUFFIX
 from bgremover.right_panel_tabs import (
+    EXPERT_ONLY_PROPERTY,
+    STANDARD_ONLY_PROPERTY,
     AdjustTab,
     BackgroundTab,
     PreviewTab,
@@ -77,6 +80,8 @@ from bgremover.theme import (
     Palette,
     _Theme,
     active_palette,
+    expert_mode_hint_style,
+    expert_mode_label_style,
     nav_back_style,
     nav_bar_style,
     nav_next_style,
@@ -254,6 +259,8 @@ class RightPanel:
     stack: QStackedWidget
     step_title: QLabel
     step_desc: QLabel
+    # Standard-/Experten-Umschalter im Inspector-Kopf (#806, Epic #805)
+    expert_toggle: ExpertModeToggle
     nav_prev: QPushButton
     nav_next: QPushButton
     open_button: QPushButton
@@ -314,10 +321,11 @@ def build_right_panel(
     on_open_path: Callable[[str], None] | None = None,
     recent: list[str] | None = None,
     rembg_available: bool = True,
+    expert_mode: bool = False,
 ) -> RightPanel:
     return _RightPanelBuilder(
         actions, layer_actions, height_actions, on_open, on_open_path, recent,
-        rembg_available, preview3d_actions).build()
+        rembg_available, preview3d_actions, expert_mode).build()
 
 
 def _set_value_silently(widget: QSlider | QSpinBox, value: int) -> None:
@@ -401,12 +409,14 @@ class _RightPanelBuilder:
         recent: list[str] | None,
         rembg_available: bool,
         preview3d_actions: Preview3DActions | None = None,
+        expert_mode: bool = False,
     ) -> None:
         self._actions = actions
         self._on_open = on_open
         self._on_open_path = on_open_path
         self._recent = recent or []
         self._rembg_available = rembg_available
+        self._expert_mode = expert_mode
         self._layer_panel = LayerPanel(layer_actions)
         self._height_panel = HeightMapPanel(height_actions, preview3d_actions)
 
@@ -459,13 +469,14 @@ class _RightPanelBuilder:
              tr("right_panel.tab.preview.tooltip"), preview_w),
         ]))
 
-        frame, title, desc, nav_prev, nav_next = self._assemble(stack)
+        frame, title, desc, expert_toggle, nav_prev, nav_next = self._assemble(stack)
 
         panel = RightPanel(
             frame=frame,
             stack=stack,
             step_title=title,
             step_desc=desc,
+            expert_toggle=expert_toggle,
             nav_prev=nav_prev,
             nav_next=nav_next,
             open_button=open_button,
@@ -494,8 +505,9 @@ class _RightPanelBuilder:
 
     def _assemble(
         self, stack: QStackedWidget,
-    ) -> tuple[QFrame, QLabel, QLabel, QPushButton, QPushButton]:
-        """Baut Rahmen mit Kopf, Schritt-Stack und Navigations-Fußzeile."""
+    ) -> tuple[QFrame, QLabel, QLabel, ExpertModeToggle, QPushButton, QPushButton]:
+        """Baut Rahmen mit Kopf (Titel/Beschreibung + Experten-Umschalter #806),
+        Schritt-Stack und Navigations-Fußzeile."""
         p = active_palette()
         frame = QFrame()
         frame.setObjectName("inspectorPanel")
@@ -509,7 +521,13 @@ class _RightPanelBuilder:
         header.setObjectName("inspectorHeader")
         head_lay = QVBoxLayout(header)
         head_lay.setContentsMargins(18, 16, 18, 8)
-        head_lay.setSpacing(4)
+        head_lay.setSpacing(8)
+
+        # Titel/Beschreibung links, Standard-/Experten-Umschalter rechts (Spec §15).
+        top_row = QHBoxLayout()
+        top_row.setSpacing(12)
+        title_col = QVBoxLayout()
+        title_col.setSpacing(4)
         title = QLabel()
         title.setStyleSheet(
             f"color: {p.text}; font-size: 16px; font-weight: 700;"
@@ -518,8 +536,59 @@ class _RightPanelBuilder:
         desc.setWordWrap(True)
         desc.setStyleSheet(
             f"color: {p.text3}; font-size: 12px; background: transparent;")
-        head_lay.addWidget(title)
-        head_lay.addWidget(desc)
+        title_col.addWidget(title)
+        title_col.addWidget(desc)
+        top_row.addLayout(title_col, 1)
+
+        toggle_col = QVBoxLayout()
+        toggle_col.setSpacing(4)
+        expert_toggle = ExpertModeToggle()
+        expert_toggle.setChecked(self._expert_mode)
+        expert_toggle.setToolTip(tr("workflow.expert_mode.toggle.tooltip"))
+        expert_toggle.setAccessibleName(tr("workflow.expert_mode.toggle.tooltip"))
+        expert_label = QLabel(tr("workflow.expert_mode.toggle_label"))
+        expert_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        toggle_col.addWidget(expert_toggle, 0, Qt.AlignmentFlag.AlignHCenter)
+        toggle_col.addWidget(expert_label, 0, Qt.AlignmentFlag.AlignHCenter)
+        top_row.addLayout(toggle_col, 0)
+        head_lay.addLayout(top_row)
+
+        hint = QLabel()
+        hint.setObjectName("expertModeHint")
+        hint.setWordWrap(True)
+        head_lay.addWidget(hint)
+
+        # Karten/Zeilen, die einzelne Tabs als ``expertOnly``/``standardOnly``
+        # markiert haben (#807ff.): zentral eingesammelt, damit kein Tab den
+        # Modus selbst kennen muss. Umschalten zeigt/versteckt sie in allen
+        # Schritten sofort – kein Panel-Neuaufbau (#806-AC). ``standardOnly``
+        # ist das Gegenstück für Steuerungen, die im Experten-Modus durch eine
+        # editierbare Variante ersetzt werden (z. B. Ebenen-Rolle als Text
+        # statt Dropdown, #809).
+        expert_only_widgets = [
+            w for w in stack.findChildren(QWidget)
+            if w.property(EXPERT_ONLY_PROPERTY)
+        ]
+        standard_only_widgets = [
+            w for w in stack.findChildren(QWidget)
+            if w.property(STANDARD_ONLY_PROPERTY)
+        ]
+
+        def _sync_expert_visuals(checked: bool) -> None:
+            expert_label.setStyleSheet(expert_mode_label_style(p, active=checked))
+            if checked:
+                hint.setText(tr("workflow.expert_mode.hint.expert"))
+            else:
+                hint.setText(tr("workflow.expert_mode.hint.standard"))
+            hint.setStyleSheet(expert_mode_hint_style(p))
+            for w in expert_only_widgets:
+                w.setVisible(checked)
+            for w in standard_only_widgets:
+                w.setVisible(not checked)
+
+        expert_toggle.toggled.connect(_sync_expert_visuals)
+        _sync_expert_visuals(self._expert_mode)
+
         outer.addWidget(header)
         outer.addWidget(stack, 1)
 
@@ -536,7 +605,7 @@ class _RightPanelBuilder:
         nav_lay.addWidget(nav_prev)
         nav_lay.addWidget(nav_next, 1)
         outer.addWidget(nav)
-        return frame, title, desc, nav_prev, nav_next
+        return frame, title, desc, expert_toggle, nav_prev, nav_next
 
     def _build_open_page(self) -> tuple[QWidget, QPushButton]:
         """Schritt 1: Ablagefeld + „Datei öffnen…" (Spec §9)."""

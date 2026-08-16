@@ -27,6 +27,7 @@ from bgremover.layer_panel import LayerPanel, LayerPanelActions
 from bgremover.preview_mode import PreviewMode
 from bgremover.project_model import LayerKind, LayerRole
 from bgremover.right_panel import RightPanelActions, build_right_panel
+from bgremover.right_panel_tabs import EXPERT_ONLY_PROPERTY, STANDARD_ONLY_PROPERTY
 from bgremover.stepper import WorkflowStep
 
 
@@ -437,8 +438,13 @@ def test_right_panel_spinboxes_style_stepper_buttons_for_both_themes(qapp):
 
     for palette in (DARK, LIGHT):
         set_active_palette(palette)
+        # Experten-Modus (#809): einige SpinBoxen (Morph-Radius, Größe ändern,
+        # Höhen-Bearbeiten) sind im Standard-Modus progressive-disclosure-
+        # bedingt ausgeblendet; dieser Test prüft ihre Optik unabhängig vom
+        # Modus, also im vollständigen Funktionsumfang.
         panel = build_right_panel(
-            _actions([]), _noop_layer_actions(), _noop_height_actions())
+            _actions([]), _noop_layer_actions(), _noop_height_actions(),
+            expert_mode=True)
 
         spins = panel.frame.findChildren(QSpinBox)
         assert spins, "keine SpinBoxen in der rechten Spalte gefunden"
@@ -1270,6 +1276,63 @@ def test_height_panel_optimize_ops_wire_correct_functions(qapp):
                           height_ops.clamp_range(field, 50, 180).values)
 
 
+def test_height_panel_edit_and_tools_are_separate_cards(qapp):
+    """#812-Review: „Bearbeiten" (Stärke/Aufhellen/Abdunkeln/Wert) und
+    „Höhenkarte-Werkzeuge" (Invertieren) sind zwei eigenständige Karten
+    (Spec §15), nicht eine gemeinsame."""
+    panel = HeightMapPanel(_noop_height_actions())
+    widget, refs = panel.build()
+
+    invert_btn = refs["height_invert"]
+    strength_spin = refs["height_strength"]
+
+    def _card_of(w: QWidget) -> QWidget:
+        while w is not None and w.objectName() != "sectionCard":
+            parent = w.parentWidget()
+            assert parent is not None
+            w = parent
+        return w
+
+    invert_card = _card_of(invert_btn)
+    edit_card = _card_of(strength_spin)
+    assert invert_card is not edit_card
+    assert invert_btn not in edit_card.findChildren(QPushButton)
+    assert widget.findChild(QLabel, None)  # sanity: widget tree intact
+
+
+def test_height_panel_optimize_collapse_cancels_active_preview(qapp):
+    """#812-Review: Einklappen des Optimieren-Accordions verwirft eine
+    aktive Live-Vorschau, statt sie unerreichbar hängen zu lassen."""
+    calls: list[tuple] = []
+    panel = HeightMapPanel(_recording_height_actions(calls))
+    _widget, refs = panel.build()
+    panel.refresh(_height_layers())
+
+    header = refs["height_optimize_header"]
+    header.setChecked(True)   # aufklappen (kein cancel_preview beim Bau/Aufklappen)
+    refs["height_gamma"].setValue(150)   # löst preview_op aus
+    assert calls[-1][0] == "preview"
+
+    calls.clear()
+    header.setChecked(False)  # einklappen
+    assert calls == [("cancel",)]
+
+
+def test_height_panel_optimize_accordion_header_focus_distinct_from_hover(qapp):
+    """#812-Review: Der Accordion-Kopf hat einen vom Hover unterscheidbaren
+    1-px-Akzent-Fokusrahmen (§12-Fokusring-Vertrag)."""
+    panel = HeightMapPanel(_noop_height_actions())
+    _widget, refs = panel.build()
+    header = refs["height_optimize_header"]
+    style = header.styleSheet()
+
+    assert ":focus" in style
+    hover_block = style.split("QPushButton:hover")[1].split("}")[0]
+    focus_block = style.split(":focus")[1].split("}")[0]
+    assert "border" not in hover_block
+    assert "border" in focus_block
+
+
 @pytest.mark.ui_smoke
 def test_height_panel_is_mode_contextual(qapp):
     panel = HeightMapPanel(_noop_height_actions())
@@ -1298,6 +1361,305 @@ def test_height_panel_is_mode_contextual(qapp):
     panel.refresh([])
     assert not _button(widget, "Aus Bild erzeugen").isEnabled()
     assert not _button(widget, "Aufhellen").isEnabled()
+
+
+# ── Schritt 5 „Relief & Ebenen": Basic/Expert-Aufteilung (#809, Epic #805) ─
+
+
+def _relief_page(panel):
+    return panel.stack.widget(int(WorkflowStep.RELIEF) - 1)
+
+
+def test_layer_panel_standard_mode_hides_toolbar_shows_role_as_text(qapp):
+    """Standard: reine Liste + Deckkraft, keine Werkzeugleiste, Rolle als Text."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())  # aktive Ebene "Oben" ohne Rolle
+
+    for icon_name in ("layer_add", "layer_duplicate", "layer_delete",
+                      "layer_move_up", "layer_move_down", "layer_rename"):
+        btn = next(
+            b for b in page.findChildren(QPushButton)
+            if b.property("prototypeIconName") == icon_name)
+        assert not btn.isVisibleTo(page)
+
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and not combo.isVisibleTo(page)
+    assert label is not None and label.isVisibleTo(page)
+    assert label.text() == "Keine"
+
+    # Zeile selbst (Sichtbarkeit/Name) und Deckkraft-Slider bleiben sichtbar.
+    assert _button(page, "Oben").isVisibleTo(page)
+    opacity_slider = _row_for(page, "Oben").findChild(QSlider)
+    assert opacity_slider is not None and opacity_slider.isVisibleTo(page)
+
+
+def test_layer_panel_expert_mode_shows_toolbar_and_role_combo(qapp):
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())
+
+    add_btn = next(
+        b for b in page.findChildren(QPushButton)
+        if b.property("prototypeIconName") == "layer_add")
+    assert add_btn.isVisibleTo(page)
+
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and combo.isVisibleTo(page)
+    assert label is not None and not label.isVisibleTo(page)
+
+
+def test_layer_panel_role_readonly_label_tracks_active_layer_role(qapp):
+    """Der Text-Ersatz zeigt stets die zugewiesene Rolle, unabhängig vom Modus."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    panel.layer_panel.refresh(_infos())  # aktive Ebene "Oben": keine Rolle
+    label = panel.layer_panel._role_readonly_label
+    assert label is not None
+    assert label.text() == "Keine"
+
+    colored = [
+        LayerInfo(id="top", name="Oben", kind=LayerKind.COLOR, visible=True,
+                  opacity=1.0, locked=False, role=LayerRole.COLOR_MOTIF, active=True),
+    ]
+    panel.layer_panel.refresh(colored)
+    assert label.text() == "Farbmotiv"
+
+
+def test_layer_panel_toggling_expert_mode_swaps_role_control_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.layer_panel.refresh(_infos())
+    combo = panel.layer_panel._role_combo
+    label = panel.layer_panel._role_readonly_label
+    assert combo is not None and label is not None
+    assert not combo.isVisibleTo(page)
+    assert label.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert combo.isVisibleTo(page)
+    assert not label.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not combo.isVisibleTo(page)
+    assert label.isVisibleTo(page)
+
+
+def test_height_panel_standard_mode_hides_import_edit_and_optimize(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _relief_page(panel)
+    panel.height_panel.refresh(_height_layers())
+
+    assert _button(page, "Aus Bild erzeugen").isVisibleTo(page)
+    assert not _button(page, "Graustufe importieren…").isVisibleTo(page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert not _button(page, text).isVisibleTo(page)
+    header = panel.height_panel._refs.get("height_optimize_header")
+    assert header is not None and not header.isVisibleTo(page)
+
+
+def test_height_panel_expert_mode_shows_options_optimize_collapsed(qapp):
+    """Experte: alle Karten sichtbar; „Optimieren" startet eingeklappt (#809-AC)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _relief_page(panel)
+    panel.height_panel.refresh(_height_layers())
+
+    assert _button(page, "Graustufe importieren…").isVisibleTo(page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert _button(page, text).isVisibleTo(page)
+
+    header = panel.height_panel._refs["height_optimize_header"]
+    assert header.isVisibleTo(page)
+    assert not header.isChecked()
+    gamma_spin = panel.height_panel._refs["height_gamma"]
+    assert not gamma_spin.isVisibleTo(page)
+
+    header.setChecked(True)
+    assert gamma_spin.isVisibleTo(page)
+    header.setChecked(False)
+    assert not gamma_spin.isVisibleTo(page)
+
+
+# ── Schritt 6 „Export": Basic/Expert-Aufteilung (#810, Epic #805) ────────
+
+
+def _export_page(panel):
+    return panel.stack.widget(int(WorkflowStep.EXPORT) - 1)
+
+
+def test_export_step_standard_mode_shows_only_save_card(qapp):
+    """Standard: nur Dateiformat-Raster + „Bild speichern" – keine Vorschau-
+    modus-Karte, kein UV-Druck."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _export_page(panel)
+
+    for fmt in ("PNG", "JPEG", "WebP", "TIFF"):
+        assert _button(page, fmt).isVisibleTo(page)
+    assert _button(page, "Bild speichern").isVisibleTo(page)
+
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+    assert not panel.preview_relief_slider.isVisibleTo(page)
+    assert not panel.preview_gloss_visible.isVisibleTo(page)
+    assert not _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+
+def test_export_step_expert_mode_shows_preview_and_uvprint_cards(qapp):
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _export_page(panel)
+
+    assert panel.preview_mode_segments.isVisibleTo(page)
+    assert panel.preview_relief_slider.isVisibleTo(page)
+    assert panel.preview_gloss_visible.isVisibleTo(page)
+    assert _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+    # Speichern-Karte bleibt unverändert zusätzlich vorhanden.
+    assert _button(page, "Bild speichern").isVisibleTo(page)
+
+
+def test_export_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _export_page(panel)
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert panel.preview_mode_segments.isVisibleTo(page)
+    assert _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not panel.preview_mode_segments.isVisibleTo(page)
+    assert not _button(page, "Assets für EufyMake Studio exportieren…").isVisibleTo(page)
+
+
+def test_export_step_preview_mode_switch_is_pure_ui_state(qapp):
+    """#810-AC: Vorschaumodus-Wechsel bleibt reiner UI-Zustand (§13) – nur die
+    ``set_preview_mode``-Aktion wird gemeldet, kein Export-Callback."""
+    calls: list[tuple] = []
+    panel = build_right_panel(
+        _actions(calls), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+
+    _button(_export_page(panel), "Relief").click()
+
+    assert calls == [("preview_mode", PreviewMode.RELIEF)]
+
+
+# ── Schritte 1 & 3 unverändert + Epic-Abschluss-Regressionsschutz (#811) ──
+
+
+def test_open_and_adjust_steps_have_no_basic_expert_split(qapp):
+    """#811-AC: Schritt 1 (Öffnen) und Schritt 3 (Anpassen) kennen keinen
+    Basic/Expert-Split – keine ``expertOnly``/``standardOnly``-markierten
+    Widgets auf diesen beiden Seiten."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    for step in (WorkflowStep.OPEN, WorkflowStep.ADJUST):
+        page = panel.stack.widget(int(step) - 1)
+        tagged = [
+            w for w in page.findChildren(QWidget)
+            if w.property(EXPERT_ONLY_PROPERTY) or w.property(STANDARD_ONLY_PROPERTY)
+        ]
+        assert tagged == [], (step.name, tagged)
+
+
+def test_open_and_adjust_steps_visible_content_identical_across_modes(qapp):
+    """#811-AC: Schritt 1 und Schritt 3 zeigen in beiden Modi exakt denselben
+    Inhalt – kein visueller Sprung beim Umschalten."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        on_open=lambda: None, on_open_path=lambda _p: None, recent=["/tmp/a.png"])
+
+    def visible_snapshot(step: WorkflowStep) -> list[tuple[str, object]]:
+        page = panel.stack.widget(int(step) - 1)
+        return [
+            (type(w).__name__, getattr(w, "text", lambda: None)())
+            for w in page.findChildren(QWidget) if w.isVisibleTo(page)
+        ]
+
+    before = {s: visible_snapshot(s) for s in (WorkflowStep.OPEN, WorkflowStep.ADJUST)}
+    panel.expert_toggle.setChecked(True)
+    after = {s: visible_snapshot(s) for s in (WorkflowStep.OPEN, WorkflowStep.ADJUST)}
+    assert before == after
+
+
+# Vollständiges Kontroll-Inventar der Schritte 2/4/6 im Experten-Modus (Text-
+# Buttons je Schritt) – Schritt 5 (Ebenen/Höhe) und die Nicht-Button-Regler
+# (Slider/SpinBoxen/Combos) prüft der Test unten zusätzlich gezielt. Analog
+# zu ``test_light_palette_matches_prototype_bundle_directly`` (test_theme.py)
+# ist dies der feste Vertrag: kein heute vorhandenes Control darf im
+# Experten-Modus verschwinden.
+_EXPERT_MODE_BUTTON_INVENTORY: dict[WorkflowStep, tuple[str, ...]] = {
+    WorkflowStep.CUTOUT: (
+        "Hintergrund entfernen (KI)",
+        "Aufheben", "Invertieren", "+ Erweitern", "− Schrumpfen",
+        "Entfernen (transparent)", "Farbe ersetzen", "Kante glätten",
+    ),
+    WorkflowStep.SHAPE: (
+        "↺ 90° links", "↻ 90° rechts", "↺ 180°", "↺ 270°",
+        "↺ Winkel anwenden", "Horizontal", "Vertikal",
+        "Ecken abrunden", "Größe anwenden",
+        "⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4",
+    ),
+    WorkflowStep.EXPORT: (
+        "PNG", "JPEG", "WebP", "TIFF", "Bild speichern",
+        "Assets für EufyMake Studio exportieren…",
+        "Farbe", "Relief", "Höhe", "Gloss",
+    ),
+}
+
+
+def test_expert_mode_preserves_every_control_from_before_the_epic(qapp):
+    """#811-AC: Regressionstest, der sicherstellt, dass im Experten-Modus alle
+    heute vorhandenen Controls weiterhin vorhanden und sichtbar sind (kein
+    Funktionsverlust ggü. dem ungefilterten Panel vor Epic #805)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    panel.layer_panel.refresh(_infos())
+    panel.height_panel.refresh(_height_layers())
+
+    for step, expected in _EXPERT_MODE_BUTTON_INVENTORY.items():
+        page = panel.stack.widget(int(step) - 1)
+        for text in expected:
+            assert _button(page, text).isVisibleTo(page), (step.name, text)
+
+    cutout_page = panel.stack.widget(int(WorkflowStep.CUTOUT) - 1)
+    shape_page = panel.stack.widget(int(WorkflowStep.SHAPE) - 1)
+    export_page = panel.stack.widget(int(WorkflowStep.EXPORT) - 1)
+    relief_page = panel.stack.widget(int(WorkflowStep.RELIEF) - 1)
+
+    assert panel.brush_slider.isVisibleTo(cutout_page)
+    assert panel.corner_slider.isVisibleTo(shape_page)
+    assert panel.resize_w.isVisibleTo(shape_page)
+    assert panel.rotation_slider.isVisibleTo(shape_page)
+    assert panel.preview_mode_segments.isVisibleTo(export_page)
+    assert panel.preview_relief_slider.isVisibleTo(export_page)
+    assert panel.preview_gloss_visible.isVisibleTo(export_page)
+
+    for icon_name in ("layer_add", "layer_duplicate", "layer_delete",
+                      "layer_move_up", "layer_move_down", "layer_rename"):
+        btn = next(
+            b for b in relief_page.findChildren(QPushButton)
+            if b.property("prototypeIconName") == icon_name)
+        assert btn.isVisibleTo(relief_page), icon_name
+    combo = panel.layer_panel._role_combo
+    assert combo is not None and combo.isVisibleTo(relief_page)
+    assert _button(relief_page, "Graustufe importieren…").isVisibleTo(relief_page)
+    for text in ("Aufhellen", "Abdunkeln", "Höhe setzen", "Invertieren"):
+        assert _button(relief_page, text).isVisibleTo(relief_page)
+
+    optimize_header = panel.height_panel._refs["height_optimize_header"]
+    assert optimize_header.isVisibleTo(relief_page)
+    optimize_header.setChecked(True)  # Accordion aufklappen, um die Regler zu prüfen
+    for key in ("height_levels_black", "height_levels_white", "height_gamma",
+                "height_gauss", "height_median", "height_threshold", "height_steps",
+                "height_range_lo", "height_range_hi"):
+        widget = panel.height_panel._refs[key]
+        assert widget.isVisibleTo(relief_page), key
 
 
 # ── A11y: Fokuszustände, Trefferflächen, Tastaturpfade (#441) ─────────────
@@ -1397,6 +1759,214 @@ def test_interactive_targets_meet_minimum_hit_size(qapp):
         assert panel.nav_next.height() >= 32
     finally:
         win.close()
+
+
+# ── Standard-/Experten-Umschalter (#806, Epic #805) ───────────────────────
+
+
+def test_expert_toggle_default_unchecked_and_focusable(qapp):
+    """Default ist Standard-Modus; die Pille ist per Tastatur erreichbar."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+
+    toggle = panel.expert_toggle
+    assert toggle.isCheckable()
+    assert not toggle.isChecked()
+    assert toggle.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    assert toggle.width() == 40
+    assert toggle.height() == 22
+
+
+def test_expert_toggle_honors_initial_expert_mode_param(qapp):
+    """``build_right_panel(expert_mode=True)`` startet bereits im Experten-Modus."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+
+    assert panel.expert_toggle.isChecked()
+    hint = panel.frame.findChild(QLabel, "expertModeHint")
+    assert hint is not None
+    assert "Experten-Modus" in hint.text()
+
+
+def test_expert_toggle_updates_hint_without_rebuilding_panel(qapp):
+    """Klick schaltet um und aktualisiert Label/Hinweis, ohne das Panel neu
+    aufzubauen (#806-AC: „nur betroffene Karten/Zeilen")."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    hint = panel.frame.findChild(QLabel, "expertModeHint")
+    assert hint is not None
+    assert "Standard-Modus" in hint.text()
+
+    panel.expert_toggle.setChecked(True)
+    assert "Experten-Modus" in hint.text()
+    # Dasselbe Frame/Widget – kein Neuaufbau.
+    assert panel.frame.findChild(QLabel, "expertModeHint") is hint
+
+    panel.expert_toggle.setChecked(False)
+    assert "Standard-Modus" in hint.text()
+
+
+def test_expert_toggle_keyboard_activates(qapp):
+    """#806-AC: Enter und Leertaste schalten den fokussierten Umschalter um."""
+    from PyQt6.QtTest import QTest
+
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    toggle = panel.expert_toggle
+    assert not toggle.isChecked()
+
+    QTest.keyClick(toggle, Qt.Key.Key_Return)
+    assert toggle.isChecked()
+
+    QTest.keyClick(toggle, Qt.Key.Key_Space)
+    assert not toggle.isChecked()
+
+
+def test_expert_toggle_visible_and_positioned_identically_across_all_steps(qapp):
+    """#806-AC: Umschalter ist in allen 6 Schritten sichtbar, an derselben
+    Position (fester Kopf, unabhängig vom aktiven Stack-Index)."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    toggle = panel.expert_toggle
+    pos_before = toggle.mapTo(panel.frame, toggle.rect().topLeft())
+    for step in WorkflowStep:
+        panel.set_step(step)
+        assert toggle.isVisibleTo(panel.frame)
+        assert toggle.mapTo(panel.frame, toggle.rect().topLeft()) == pos_before
+
+
+# ── Schritt 2 „Freistellen": Basic/Expert-Aufteilung (#807, Epic #805) ────
+
+
+def _cutout_page(panel):
+    return panel.stack.widget(int(WorkflowStep.CUTOUT) - 1)
+
+
+def test_cutout_step_standard_mode_shows_only_basic_elements(qapp):
+    """Standard: KI-Button, nur Toleranz, nur „Entfernen (transparent)" – keine
+    Pinselgröße, keine „Auswahl"-Karte, keine Farbzeile, keine „Kante glätten"."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _cutout_page(panel)
+
+    assert _button(page, "Hintergrund entfernen (KI)").isVisibleTo(page)
+    assert panel.tolerance_slider.isVisibleTo(page)
+    assert _button(page, "Entfernen (transparent)").isVisibleTo(page)
+
+    assert not panel.brush_slider.isVisibleTo(page)
+    for text in ("Invertieren", "Aufheben", "+ Erweitern", "− Schrumpfen"):
+        assert not _button(page, text).isVisibleTo(page)
+    assert not _button(page, "Farbe ersetzen").isVisibleTo(page)
+    assert not panel.color_button.isVisibleTo(page)
+    assert not _button(page, "Kante glätten").isVisibleTo(page)
+
+
+def test_cutout_step_expert_mode_shows_all_options(qapp):
+    """Experte: alle heutigen Freistellen-Optionen sind sichtbar (kein
+    Funktionsverlust ggü. dem bisherigen, ungefilterten Panel)."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _cutout_page(panel)
+
+    assert panel.brush_slider.isVisibleTo(page)
+    for text in ("Invertieren", "Aufheben", "+ Erweitern", "− Schrumpfen",
+                 "Farbe ersetzen", "Kante glätten"):
+        assert _button(page, text).isVisibleTo(page)
+    assert panel.color_button.isVisibleTo(page)
+
+
+def test_cutout_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    """Umschalten wirkt sofort auf Schritt 2, ohne Panel-Neuaufbau."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _cutout_page(panel)
+    btn_feather = _button(page, "Kante glätten")
+    assert not btn_feather.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert btn_feather.isVisibleTo(page)
+    assert panel.brush_slider.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not btn_feather.isVisibleTo(page)
+    assert not panel.brush_slider.isVisibleTo(page)
+
+
+def test_cutout_step_toggling_expert_mode_preserves_values(qapp):
+    """#807-AC: Umschalten verliert keine ungespeicherten Werte (z. B. Toleranz)."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    panel.tolerance_slider.setValue(77)
+    panel.brush_slider.setValue(88)
+
+    panel.expert_toggle.setChecked(True)
+    assert panel.tolerance_slider.value() == 77
+    assert panel.brush_slider.value() == 88
+
+    panel.expert_toggle.setChecked(False)
+    assert panel.tolerance_slider.value() == 77
+    assert panel.brush_slider.value() == 88
+
+
+# ── Schritt 4 „Form & Maße": Basic/Expert-Aufteilung (#808, Epic #805) ────
+
+
+def _shape_page(panel):
+    return panel.stack.widget(int(WorkflowStep.SHAPE) - 1)
+
+
+def test_shape_step_standard_mode_shows_only_basic_elements(qapp):
+    """Standard: nur 90°-links/-rechts + Spiegeln + vollständiges Zuschnitt-
+    Format – kein 180°/270°, kein Freiwinkel, keine Ecken/Größe-Karte."""
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _shape_page(panel)
+
+    assert _button(page, "↺ 90° links").isVisibleTo(page)
+    assert _button(page, "↻ 90° rechts").isVisibleTo(page)
+    assert _button(page, "Horizontal").isVisibleTo(page)
+    assert _button(page, "Vertikal").isVisibleTo(page)
+    for label in ("⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4"):
+        assert _button(page, label).isVisibleTo(page)
+
+    for text in ("↺ 180°", "↺ 270°", "↺ Winkel anwenden", "Ecken abrunden", "Größe anwenden"):
+        assert not _button(page, text).isVisibleTo(page)
+    assert not panel.rotation_slider.isVisibleTo(page)
+    assert not panel.corner_slider.isVisibleTo(page)
+    assert not panel.resize_w.isVisibleTo(page)
+
+
+def test_shape_step_expert_mode_shows_all_options(qapp):
+    """Experte: alle heutigen Form-&-Maße-Optionen sind sichtbar."""
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), _noop_height_actions(),
+        expert_mode=True)
+    page = _shape_page(panel)
+
+    for text in ("↺ 180°", "↺ 270°", "↺ Winkel anwenden", "Ecken abrunden", "Größe anwenden"):
+        assert _button(page, text).isVisibleTo(page)
+    assert panel.rotation_slider.isVisibleTo(page)
+    assert panel.corner_slider.isVisibleTo(page)
+    assert panel.resize_w.isVisibleTo(page)
+
+
+def test_shape_step_crop_format_card_always_fully_visible(qapp):
+    """#808-AC: „Zuschnitt-Format" bleibt in beiden Modi vollständig sichtbar."""
+    labels = ("⬤  Kreis", "1:1", "16:9", "4:3", "9:16", "3:4")
+    for expert in (False, True):
+        panel = build_right_panel(
+            _actions([]), _noop_layer_actions(), _noop_height_actions(),
+            expert_mode=expert)
+        page = _shape_page(panel)
+        for label in labels:
+            assert _button(page, label).isVisibleTo(page), (expert, label)
+
+
+def test_shape_step_toggling_expert_mode_shows_and_hides_live(qapp):
+    panel = build_right_panel(_actions([]), _noop_layer_actions(), _noop_height_actions())
+    page = _shape_page(panel)
+    btn_corner = _button(page, "Ecken abrunden")
+    assert not btn_corner.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(True)
+    assert btn_corner.isVisibleTo(page)
+
+    panel.expert_toggle.setChecked(False)
+    assert not btn_corner.isVisibleTo(page)
 
 
 @pytest.mark.ui_smoke

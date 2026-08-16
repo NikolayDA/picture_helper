@@ -8,6 +8,21 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Standard/expert toggle in the card inspector (Epic #805, #806–#811).**
+  A persistent toggle in the inspector header (`QSettings`, default
+  standard) switches globally between two views: standard shows only the
+  most important cards/options per step, expert shows the full, unchanged
+  feature set. Affected steps are "Cut out" (brush size, selection tools,
+  replace color, feather edge only in expert mode), "Shape & Size"
+  (180°/270°/free angle, round corners, resize), "Relief & Layers" (layer
+  toolbar, role selector, import grayscale, edit/optimize cards), and
+  "Export" (2D preview mode, UV print export) – "Open" and "Adjust" remain
+  unchanged. Toggling never loses unsaved values and only rebuilds the
+  affected cards, not the whole panel. Details:
+  [`docs/REDESIGN_SPEC.md`](../../REDESIGN_SPEC.md) §15.
+
 ### Changed
 
 - **EufyMake export: flipped the bit-depth warning, wired up the print-area

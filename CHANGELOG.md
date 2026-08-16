@@ -9,6 +9,22 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Standard-/Experten-Umschalter im Karten-Inspector (Epic #805, #806–#811).**
+  Ein persistenter Umschalter im Inspector-Kopf (`QSettings`, Default
+  Standard) wechselt global zwischen zwei Ansichten: Standard zeigt je
+  Schritt nur die wichtigsten Karten/Optionen, Experte den vollständigen,
+  unveränderten Funktionsumfang. Betroffen sind die Schritte „Freistellen"
+  (Pinselgröße, Auswahl-Werkzeuge, Farbe ersetzen, Kante glätten nur im
+  Experten-Modus), „Form & Maße" (180°/270°/Freiwinkel, Ecken abrunden,
+  Größe ändern), „Relief & Ebenen" (Ebenen-Werkzeugleiste, Rollen-Auswahl,
+  Graustufe importieren, Bearbeiten-/Optimieren-Karten) und „Export"
+  (2D-Vorschaumodus, UV-Druck-Export) – „Öffnen" und „Anpassen" bleiben
+  unverändert. Umschalten verliert keine ungespeicherten Werte und baut nur
+  die betroffenen Karten neu auf, kein volles Panel-Rebuild. Details:
+  [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md) §15.
+
 ### Geändert
 
 - **EufyMake-Export: Bittiefen-Warnung gedreht, Druckflächen-Prüfung verdrahtet

@@ -195,6 +195,23 @@ def section_header_style(p: Palette) -> str:
             " min-height: 13px; max-height: 13px;")
 
 
+def expert_mode_label_style(p: Palette, *, active: bool) -> str:
+    """Label „EXPERTE" unter dem Standard-/Experten-Umschalter (#806, Spec §15).
+
+    Aus: ``text3``, an: ``accent_text`` – dieselbe Aktiv-/Inaktiv-Kontrastregel
+    wie bei anderen Akzent-Beschriftungen (z. B. ``expert_mode_toggle``-Fläche).
+    """
+    color = p.accent_text if active else p.text3
+    return (f"color: {color}; font-size: 10px; font-weight: 600;"
+            " letter-spacing: .03em; background: transparent;")
+
+
+def expert_mode_hint_style(p: Palette) -> str:
+    """Hinweiszeile unter dem Inspector-Kopf, erklärt den aktiven Modus (#806)."""
+    return (f"background: {p.inset}; color: {p.text3}; font-size: 11.5px;"
+            " border-radius: 8px; padding: 6px 10px;")
+
+
 def primary_btn_style(p: Palette) -> str:
     return f"""
     QPushButton {{

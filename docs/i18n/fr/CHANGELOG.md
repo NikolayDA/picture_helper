@@ -9,6 +9,23 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Bascule standard/expert dans l'inspecteur de cartes (Epic #805,
+  #806–#811).** Une bascule persistante dans l'en-tête de l'inspecteur
+  (`QSettings`, standard par défaut) alterne globalement entre deux vues :
+  standard n'affiche que les cartes/options les plus importantes par
+  étape, expert affiche l'ensemble complet et inchangé des fonctionnalités.
+  Les étapes concernées sont « Détourer » (taille du pinceau, outils de
+  sélection, remplacer la couleur, adoucir le bord uniquement en mode
+  expert), « Forme et taille » (180°/270°/angle libre, arrondir les coins,
+  redimensionner), « Relief et calques » (barre d'outils des calques,
+  sélecteur de rôle, importer en niveaux de gris, cartes édition/
+  optimisation) et « Export » (mode d'aperçu 2D, export UV) – « Ouvrir » et
+  « Ajuster » restent inchangées. La bascule ne perd jamais de valeurs non
+  enregistrées et ne reconstruit que les cartes concernées, jamais le
+  panneau entier. Détails : [`docs/REDESIGN_SPEC.md`](../../REDESIGN_SPEC.md) §15.
+
 ### Modifié
 
 - **Export EufyMake : inversion de l'avertissement de profondeur de bits,
