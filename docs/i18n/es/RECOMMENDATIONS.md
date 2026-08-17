@@ -15,7 +15,7 @@
 
 **v2.8.0 publicada:** el PR #813 (corte de versión 2.8.0) y las correcciones #814–#816 están fusionados; el candidato (commit `1bf95b0`) superó la aceptación completa de hardware macOS/Linux-arm64 (ejecución 32031258773, 2026-08-17, todos los criterios cumplidos, visión 6✓) y se publicó a las 13:17 UTC vía `release-publish.yml` con los cinco artefactos vinculados al manifiesto (etiqueta `v2.8.0`). Con ello queda aportada la evidencia de #741 que faltaba: los controles de azimut, elevación y calidad son visibles en la captura 3D nativa. La funcionalidad de esta versión menor es la épica #805 (conmutador estándar/experto en el inspector de tarjetas, PR #812).
 
-**Mantenimiento posterior a la publicación 2026-08-17:** la épica #805 y las sub-incidencias #806–#811 quedaron abiertas por error tras fusionar el PR #812 (el «Löst» alemán no es una palabra clave de cierre automático de GitHub) y se cerraron manualmente. El seguimiento post-publicación de una sola plataforma (`UPDATE-01`, ejecución 32036618118) falló tres veces por infraestructura del runner (HTTP 429 al descargar la action en la Raspberry Pi) y debe repetirse: es el último punto DoD abierto de la épica #741. El intento fallido destapó además #817: `abnahme_vision_check.py` viola su contrato fail-safe cuando falta la evidencia (FileNotFoundError en vez de «sin evaluar»), lo que también impidió publicar la matriz de cierre en #741.
+**Mantenimiento posterior a la publicación 2026-08-17:** la épica #805 y las sub-incidencias #806–#811 quedaron abiertas por error tras fusionar el PR #812 (el «Löst» alemán no es una palabra clave de cierre automático de GitHub) y se cerraron manualmente. El seguimiento post-publicación de una sola plataforma (`UPDATE-01`, ejecución 32036618118) falló tres veces por infraestructura del runner (HTTP 429 al descargar la action en la Raspberry Pi); el cuarto intento quedó en verde el 2026-08-17 a las 16:54 UTC (todos los criterios Linux-aarch64 cumplidos, matriz publicada en #741): toda la evidencia DoD de la épica #741 está aportada y el cierre formal es el paso humano de go/no-go. El intento fallido destapó además #817: `abnahme_vision_check.py` viola su contrato fail-safe cuando falta la evidencia (FileNotFoundError en vez de «sin evaluar»), lo que también impidió publicar la matriz de cierre en #741.
 
 Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0/v2.7.1/v2.7.2/v2.7.3, además de las once sub-incidencias originales de la épica #741, las incidencias de protocolo de release relacionadas #680/#685/#686/#758, #781 (persistencia del veredicto de visión, corregida vía #788) y los hallazgos de seguridad #762 (🟠 CVSS HIGH, riesgo aceptado y documentado) y #769 (🟡 CVSS MEDIUM, cerrado con una corrección de código, ya publicada vía v2.7.3), además de #777 (verificador en vivo de Recommendations ya automatizado por CI, ver arriba). Ningún hallazgo 🔴 abierto.
 
@@ -25,7 +25,7 @@ Estado en vivo tras la consulta a GitHub: **15** incidencias abiertas. #805–#8
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟡 Media (toda la evidencia principal aportada con v2.8.0) | 🟢 Baja (solo falta el seguimiento post-publicación de una plataforma) | – (épica) | Repetir el seguimiento `UPDATE-01` (contra `predecessor_tag=v2.7.3`) cuando el runner de la Pi supere el límite 429 (ejecución 32036618118); cerrar formalmente después |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épica] Estabilización del proceso de publicación — cadena de prueba hasta los bytes publicados | 🟡 Media (toda la evidencia aportada) | 🟢 Baja (solo queda el cierre formal) | – (épica) | Toda la evidencia DoD aportada (seguimiento `UPDATE-01` en verde al 4.º intento, ejecución 32036618118, 2026-08-17); cierre formal = paso humano de go/no-go |
 | [#817](https://github.com/NikolayDA/picture_helper/issues/817) | Aceptación: `abnahme_vision_check.py` viola su contrato fail-safe cuando falta la evidencia | 🟡 Media (si no, los intentos fallidos de aceptación quedan sin documentar) | 🟢 Baja (mkdir de la ruta de salida + degradación controlada + prueba de regresión) | Sonnet, bajo | Lista para empezar – corrección en `scripts/abnahme_vision_check.py` con prueba de regresión |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épica] Perfil objetivo EufyMake – validar Height/Gloss/mm-DPI | 🟠 Alta (corrección del principal objetivo de exportación) | 🔴 Alta (5 sub-incidencias, requiere hardware físico) | – (épica) | Definición corregida el 2026-08-14 (PNG en vez de TIFF) – #687 ya está lista para iniciarse como primera sub-incidencia |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventario de suposiciones, fuentes del fabricante, matriz de pruebas | 🟠 Alta (base vinculante para #688–#691) | 🟡 Media (investigación/documentación, sin necesidad de acceso a hardware) | Sonnet, medio | **Lista para iniciarse** – la cuestión del contenedor/formato ya es el primer criterio de aceptación (definición corregida) |
@@ -43,9 +43,9 @@ Estado en vivo tras la consulta a GitHub: **15** incidencias abiertas. #805–#8
 
 ### Recomendado a continuación
 
-1. **Cerrar #741:** repetir el seguimiento post-publicación de una sola plataforma
-   (`UPDATE-01`, contra `predecessor_tag=v2.7.3`) cuando el runner de la Pi supere el límite
-   429; el resto de la evidencia de la épica ya está aportada con v2.8.0.
+1. **Cerrar #741 formalmente:** toda la evidencia de la épica está aportada con v2.8.0 y el
+   seguimiento `UPDATE-01` en verde (ejecución 32036618118, 4.º intento, 2026-08-17); el
+   go/no-go es un paso humano.
 2. **Corregir #817** – una corrección fail-safe pequeña y bien acotada con prueba de regresión.
 3. Impulsar **#687** como primera sub-incidencia de EufyMake; **#692** (ADR) puede iniciarse en
    paralelo.

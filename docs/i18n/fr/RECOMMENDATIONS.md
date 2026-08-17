@@ -15,7 +15,7 @@
 
 **v2.8.0 publiée :** la PR #813 (coupe de version 2.8.0) et les correctifs #814–#816 sont fusionnés ; le candidat (commit `1bf95b0`) a passé la recette matérielle complète macOS/Linux-arm64 (exécution 32031258773, 2026-08-17, tous les critères remplis, vision 6✓) et a été publié à 13h17 UTC via `release-publish.yml` avec les cinq artefacts liés au manifeste (tag `v2.8.0`). La preuve #741 qui manquait est ainsi apportée : les réglages d'azimut, d'élévation et de qualité sont visibles dans la capture 3D native. La fonctionnalité de cette version mineure est l'épopée #805 (bascule standard/expert dans l'inspecteur de cartes, PR #812).
 
-**Entretien post-publication 2026-08-17 :** l'épopée #805 et les tickets enfants #806–#811 étaient restés ouverts à tort après la fusion de la PR #812 (le « Löst » allemand n'est pas un mot-clé de fermeture automatique GitHub) et ont été fermés manuellement. Le suivi mono-plateforme post-publication (`UPDATE-01`, exécution 32036618118) a échoué trois fois sur l'infrastructure du runner (HTTP 429 au téléchargement de l'action sur le Raspberry Pi) et doit être répété – c'est le dernier point DoD ouvert de l'épopée #741. L'échec a en outre révélé #817 : `abnahme_vision_check.py` viole son contrat fail-safe quand l'évidence manque (FileNotFoundError au lieu de « non évalué »), ce qui a aussi empêché de poster la matrice de clôture dans #741.
+**Entretien post-publication 2026-08-17 :** l'épopée #805 et les tickets enfants #806–#811 étaient restés ouverts à tort après la fusion de la PR #812 (le « Löst » allemand n'est pas un mot-clé de fermeture automatique GitHub) et ont été fermés manuellement. Le suivi mono-plateforme post-publication (`UPDATE-01`, exécution 32036618118) a échoué trois fois sur l'infrastructure du runner (HTTP 429 au téléchargement de l'action sur le Raspberry Pi) ; la quatrième tentative est passée au vert le 2026-08-17 à 16h54 UTC (tous les critères Linux-aarch64 remplis, matrice postée dans #741) – toutes les preuves DoD de l'épopée #741 sont apportées, la clôture formelle est l'étape humaine de go/no-go. L'échec a en outre révélé #817 : `abnahme_vision_check.py` viole son contrat fail-safe quand l'évidence manque (FileNotFoundError au lieu de « non évalué »), ce qui a aussi empêché de poster la matrice de clôture dans #741.
 
 Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0/v2.7.1/v2.7.2/v2.7.3, ainsi que les onze tickets enfants d'origine de l'épopée #741, les tickets de protocole de release associés #680/#685/#686/#758, #781 (persistance du verdict vision, corrigé via #788) et les constats de sécurité #762 (🟠 CVSS ÉLEVÉ, risque accepté et documenté) et #769 (🟡 CVSS MOYEN, fermé par un correctif de code, désormais publié via v2.7.3), ainsi que #777 (vérificateur en direct des Recommendations désormais automatisé par CI, voir ci-dessus). Aucun constat 🔴 ouvert.
 
@@ -25,7 +25,7 @@ Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est ter
 
 | # | Titre | Pertinence | Complexité | Modèle recommandé (effort) | Prochaine étape |
 |---|-------|------------|------------|------------------------------|------------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épopée] Stabilisation du processus de publication — chaîne de preuve jusqu'aux octets publiés | 🟡 Moyenne (toutes les preuves principales apportées avec v2.8.0) | 🟢 Faible (seul le suivi mono-plateforme post-publication reste dû) | – (épopée) | Répéter le suivi `UPDATE-01` (contre `predecessor_tag=v2.7.3`) dès que le runner Pi a dépassé la limite 429 (exécution 32036618118) ; clôturer ensuite |
+| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Épopée] Stabilisation du processus de publication — chaîne de preuve jusqu'aux octets publiés | 🟡 Moyenne (toutes les preuves apportées) | 🟢 Faible (seule la clôture formelle reste) | – (épopée) | Toutes les preuves DoD apportées (suivi `UPDATE-01` vert à la 4e tentative, exécution 32036618118, 2026-08-17) ; clôture formelle = étape humaine de go/no-go |
 | [#817](https://github.com/NikolayDA/picture_helper/issues/817) | Recette : `abnahme_vision_check.py` viole son contrat fail-safe quand l'évidence manque | 🟡 Moyenne (sinon les échecs de recette restent non documentés) | 🟢 Faible (mkdir du chemin de sortie + dégradation contrôlée + test de régression) | Sonnet, faible | Prêt à démarrer – correctif dans `scripts/abnahme_vision_check.py` avec test de régression |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Épopée] Profil cible EufyMake – valider Height/Gloss/mm-DPI | 🟠 Élevée (justesse de la principale cible d'export) | 🔴 Élevée (5 sous-tickets, matériel physique requis) | – (épopée) | Définition corrigée le 2026-08-14 (PNG au lieu de TIFF) – #687 est maintenant prêt à démarrer comme premier sous-ticket |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Inventaire des hypothèses, sources du fabricant, matrice de tests | 🟠 Élevée (base contraignante pour #688–#691) | 🟡 Moyenne (recherche/documentation, aucun accès matériel requis) | Sonnet, moyen | **Prêt à démarrer** – la question du conteneur/format est maintenant le premier critère d'acceptation (définition corrigée) |
@@ -43,9 +43,9 @@ Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est ter
 
 ### Recommandé ensuite
 
-1. **Clore #741 :** répéter le suivi mono-plateforme post-publication (`UPDATE-01`, contre
-   `predecessor_tag=v2.7.3`) dès que le runner Pi a dépassé la limite 429 ; tout le reste des
-   preuves de l'épopée est apporté avec v2.8.0.
+1. **Clore #741 formellement :** toutes les preuves de l'épopée sont apportées avec v2.8.0 et
+   le suivi `UPDATE-01` vert (exécution 32036618118, 4e tentative, 2026-08-17) ; le go/no-go
+   est une étape humaine.
 2. **Corriger #817** – un correctif fail-safe petit et bien délimité, avec test de régression.
 3. Lancer **#687** comme premier sous-ticket EufyMake ; **#692** (ADR) peut démarrer en
    parallèle.
