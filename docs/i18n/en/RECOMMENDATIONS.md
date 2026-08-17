@@ -15,17 +15,16 @@
 
 **v2.8.0 released:** PR #813 (version cut 2.8.0) and the fixes #814–#816 are merged; the candidate (commit `1bf95b0`) passed the full macOS/Linux-arm64 hardware acceptance (run 32031258773, 2026-08-17, all criteria met, vision 6✓) and was published at 13:17 UTC via `release-publish.yml` with the five manifest-bound artifacts (tag `v2.8.0`). This delivers the previously missing #741 evidence that the azimuth, elevation, and quality controls are visible in the native 3D screenshot. The feature of this minor release is epic #805 (standard/expert toggle in the card inspector, PR #812).
 
-**Post-release housekeeping 2026-08-17:** epic #805 and the sub-issues #806–#811 wrongly stayed open after PR #812 was merged (the German "Löst" is not a GitHub auto-close keyword) and were closed manually. The post-publish single-platform follow-up (`UPDATE-01`, run 32036618118) failed three times on runner infrastructure (HTTP 429 on the action download on the Raspberry Pi); the fourth attempt went green on 2026-08-17 at 16:54 UTC (all Linux-aarch64 criteria met, matrix posted to #741) – all DoD evidence for epic #741 is now delivered, the formal close is the human go/no-go step. The failed attempt additionally surfaced #817: `abnahme_vision_check.py` violates its fail-safe contract when evidence is missing (FileNotFoundError instead of "unrated"), which also prevented the closing matrix from being posted to #741.
+**Post-release housekeeping 2026-08-17:** epic #805 and the sub-issues #806–#811 wrongly stayed open after PR #812 was merged (the German "Löst" is not a GitHub auto-close keyword) and were closed manually. The post-publish single-platform follow-up (`UPDATE-01`, run 32036618118) failed three times on runner infrastructure (HTTP 429 on the action download on the Raspberry Pi); the fourth attempt went green on 2026-08-17 at 16:54 UTC (all Linux-aarch64 criteria met, matrix posted to #741) – all DoD evidence for epic #741 was thereby delivered, and the repository owner closed it on 2026-08-17 with a documented go decision. The failed attempt additionally surfaced #817: `abnahme_vision_check.py` violates its fail-safe contract when evidence is missing (FileNotFoundError instead of "unrated"), which also prevented the closing matrix from being posted to #741.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). No 🔴 finding open.
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). Newly completed: **epic #741** (evidence chain down to the published bytes, fully proven with v2.8.0) and **epic #805** with #806–#811. No 🔴 finding open.
 
-Live state after the GitHub query: **15** open issues. #805–#811 are closed and removed from active triage; #817 is new.
+Live state after the GitHub query: **14** open issues. #805–#811 and epic #741 are closed and removed from active triage; #817 is new.
 
 ## Open GitHub Issues — Triage Status (2026-08-17)
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-process stabilization — evidence chain down to the published bytes | 🟡 Medium (all evidence delivered) | 🟢 Low (only the formal close remains) | – (epic) | All DoD evidence delivered (`UPDATE-01` follow-up green on the 4th attempt, run 32036618118, 2026-08-17); formal close = human go/no-go step |
 | [#817](https://github.com/NikolayDA/picture_helper/issues/817) | Acceptance: `abnahme_vision_check.py` violates its fail-safe contract when evidence is missing | 🟡 Medium (failed acceptance runs otherwise stay undocumented) | 🟢 Low (mkdir for the output path + controlled degradation + regression test) | Sonnet, low | Ready to start – fix in `scripts/abnahme_vision_check.py` incl. regression test |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake target profile – validate Height/Gloss/mm-DPI | 🟠 High (correctness of the main export target) | 🔴 High (5 sub-issues, needs physical hardware) | – (epic) | Definition fixed on 2026-08-14 (PNG instead of TIFF) – #687 is now ready to start as the first sub-issue |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Assumption inventory, manufacturer sources, test matrix | 🟠 High (binding foundation for #688–#691) | 🟡 Medium (research/docs, no hardware access needed) | Sonnet, medium | **Ready to start** – the container/format question is now the first acceptance criterion (definition fixed) |
@@ -43,10 +42,9 @@ Live state after the GitHub query: **15** open issues. #805–#811 are closed an
 
 ### Recommended Next
 
-1. **Close #741 formally:** all epic evidence is delivered with v2.8.0 and the green
-   `UPDATE-01` follow-up (run 32036618118, 4th attempt, 2026-08-17); go/no-go is a human step.
-2. **Fix #817** – a small, well-scoped fail-safe fix with a regression test.
-3. Kick off **#687** as the first EufyMake sub-issue; **#692** (ADR) is ready in parallel.
+1. **Fix #817** – a small, well-scoped fail-safe fix with a regression test; it hardens the
+   acceptance automation that epic #741 just completed.
+2. Kick off **#687** as the first EufyMake sub-issue; **#692** (ADR) is ready in parallel.
 
 ## Previous Rounds
 

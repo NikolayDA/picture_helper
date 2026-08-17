@@ -15,17 +15,16 @@
 
 **v2.8.0 veröffentlicht:** PR #813 (Versionsschnitt 2.8.0) und die Fixes #814–#816 sind gemergt; der Kandidat (Commit `1bf95b0`) bestand die volle macOS-/Linux-arm64-Hardware-Abnahme (Lauf 32031258773, 2026-08-17, alle Kriterien erfüllt, Vision 6✓) und wurde um 13:17 UTC über `release-publish.yml` mit den fünf manifestgebundenen Artefakten veröffentlicht (Tag `v2.8.0`). Damit ist der bisher letzte offene #741-Nachweis erbracht, dass Azimut-, Elevations- und Qualitätsregler im nativen 3D-Screenshot sichtbar sind. Feature dieses Minor-Release ist Epic #805 (Standard-/Experten-Umschalter im Karten-Inspector, PR #812).
 
-**Nach-Release-Pflege 2026-08-17:** Epic #805 und die Teil-Issues #806–#811 blieben nach dem Merge von PR #812 fälschlich offen (das deutsche „Löst" ist kein GitHub-Schlüsselwort für Auto-Close) und wurden manuell nachgeschlossen. Der Post-Publish-Einzelplattform-Nachlauf (`UPDATE-01`, Lauf 32036618118) scheiterte dreimal an Runner-Infrastruktur (HTTP 429 beim Action-Download auf dem Raspberry Pi); der vierte Anlauf lief am 2026-08-17 um 16:54 UTC grün (alle Linux-aarch64-Kriterien erfüllt, Matrix nach #741 gepostet) – damit liegen alle DoD-Nachweise von Epic #741 vor, das formale Schließen ist der menschliche Go-/No-Go-Schritt. Der Fehlversuch deckte zusätzlich #817 auf: `abnahme_vision_check.py` verletzt bei fehlender Evidenz seinen Fail-safe-Vertrag (FileNotFoundError statt „unbewertet"), wodurch auch die Abschlussmatrix nicht nach #741 gepostet wurde.
+**Nach-Release-Pflege 2026-08-17:** Epic #805 und die Teil-Issues #806–#811 blieben nach dem Merge von PR #812 fälschlich offen (das deutsche „Löst" ist kein GitHub-Schlüsselwort für Auto-Close) und wurden manuell nachgeschlossen. Der Post-Publish-Einzelplattform-Nachlauf (`UPDATE-01`, Lauf 32036618118) scheiterte dreimal an Runner-Infrastruktur (HTTP 429 beim Action-Download auf dem Raspberry Pi); der vierte Anlauf lief am 2026-08-17 um 16:54 UTC grün (alle Linux-aarch64-Kriterien erfüllt, Matrix nach #741 gepostet) – damit lagen alle DoD-Nachweise von Epic #741 vor, und der Repository-Owner hat es am 2026-08-17 mit dokumentierter Go-Entscheidung geschlossen. Der Fehlversuch deckte zusätzlich #817 auf: `abnahme_vision_check.py` verletzt bei fehlender Evidenz seinen Fail-safe-Vertrag (FileNotFoundError statt „unbewertet"), wodurch auch die Abschlussmatrix nicht nach #741 gepostet wurde.
 
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Kein 🔴-Befund offen.
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Neu abgeschlossen: **Epic #741** (Beweiskette bis zu den veröffentlichten Bytes, mit v2.8.0 vollständig belegt) und **Epic #805** mit #806–#811. Kein 🔴-Befund offen.
 
-Live-Stand nach GitHub-Abfrage: **15** offene Issues. #805–#811 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #817.
+Live-Stand nach GitHub-Abfrage: **14** offene Issues. #805–#811 und Epic #741 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #817.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-17)
 
 | # | Titel | Relevanz | Komplexität | Empfohlenes Modell (Aufwand) | Nächster Schritt |
 |---|-------|----------|--------------|-------------------------------|-------------------|
-| [#741](https://github.com/NikolayDA/picture_helper/issues/741) | [Epic] Release-Prozess-Stabilisierung – Beweiskette bis zu den veröffentlichten Bytes | 🟡 Mittel (alle Nachweise liegen vor) | 🟢 Niedrig (nur noch formaler Abschluss) | – (Epic) | Alle DoD-Nachweise erbracht (`UPDATE-01`-Nachlauf im 4. Anlauf grün, Lauf 32036618118, 2026-08-17); formales Schließen = menschlicher Go-/No-Go-Schritt |
 | [#817](https://github.com/NikolayDA/picture_helper/issues/817) | Abnahme: `abnahme_vision_check.py` verletzt Fail-safe-Vertrag bei fehlender Evidenz | 🟡 Mittel (Fehlversuche der Abnahme bleiben sonst undokumentiert) | 🟢 Niedrig (mkdir des Ausgabepfads + kontrollierte Degradierung + Regressionstest) | Sonnet, niedrig | Startbereit – Fix in `scripts/abnahme_vision_check.py` inkl. Regressionstest |
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake-Zielprofil – Height/Gloss/mm-DPI validieren | 🟠 Hoch (Korrektheit des wichtigsten Exportziels) | 🔴 Hoch (5 Teil-Issues, physische Hardware nötig) | – (Epic) | Definition am 2026-08-14 korrigiert (PNG statt TIFF) – #687 jetzt startbereit als erstes Teil-Issue |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | Annahmeninventar, Herstellerquellen, Testmatrix | 🟠 Hoch (verbindliche Grundlage für #688–#691) | 🟡 Mittel (Recherche/Doku, kein Hardwarezugriff nötig) | Sonnet, mittel | **Startbereit** – Formatfrage ist jetzt erstes Akzeptanzkriterium (Definition korrigiert) |
@@ -43,11 +42,9 @@ Live-Stand nach GitHub-Abfrage: **15** offene Issues. #805–#811 sind geschloss
 
 ### Als Nächstes empfohlen
 
-1. **#741 formal schließen:** alle Epic-Nachweise liegen mit v2.8.0 und dem grünen
-   `UPDATE-01`-Nachlauf (Lauf 32036618118, 4. Anlauf, 2026-08-17) vor; Go/No-Go ist ein
-   menschlicher Schritt.
-2. **#817 beheben** – kleiner, gut abgegrenzter Fail-safe-Fix mit Regressionstest.
-3. **#687** als erstes EufyMake-Teil-Issue anstoßen; **#692** (ADR) ist parallel startbereit.
+1. **#817 beheben** – kleiner, gut abgegrenzter Fail-safe-Fix mit Regressionstest; er härtet
+   die Abnahme-Automatisierung, die mit Epic #741 gerade abgeschlossen wurde.
+2. **#687** als erstes EufyMake-Teil-Issue anstoßen; **#692** (ADR) ist parallel startbereit.
 
 ## Vorige Runden
 
