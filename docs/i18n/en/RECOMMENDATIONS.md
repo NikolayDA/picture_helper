@@ -11,15 +11,15 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-17, v2.8.0 released, post-release housekeeping)
+## Current Status (2026-08-18, v2.8.0 released, triage upkeep automated)
 
 **v2.8.0 released:** PR #813 (version cut 2.8.0) and the fixes #814–#816 are merged; the candidate (commit `1bf95b0`) passed the full macOS/Linux-arm64 hardware acceptance (run 32031258773, 2026-08-17, all criteria met, vision 6✓) and was published at 13:17 UTC via `release-publish.yml` with the five manifest-bound artifacts (tag `v2.8.0`). This delivers the previously missing #741 evidence that the azimuth, elevation, and quality controls are visible in the native 3D screenshot. The feature of this minor release is epic #805 (standard/expert toggle in the card inspector, PR #812).
 
 **Post-release housekeeping 2026-08-17:** epic #805 and the sub-issues #806–#811 wrongly stayed open after PR #812 was merged (the German "Löst" is not a GitHub auto-close keyword) and were closed manually. The post-publish single-platform follow-up (`UPDATE-01`, run 32036618118) failed three times on runner infrastructure (HTTP 429 on the action download on the Raspberry Pi); the fourth attempt went green on 2026-08-17 at 16:54 UTC (all Linux-aarch64 criteria met, matrix posted to #741) – all DoD evidence for epic #741 was thereby delivered, and the repository owner closed it on 2026-08-17 with a documented go decision. The failed attempt additionally surfaced #817: `abnahme_vision_check.py` violated its fail-safe contract when evidence is missing (FileNotFoundError instead of "unrated"), which also prevented the closing matrix from being posted to #741 – fixed by PR #819 (the output directory is created, write errors stay non-blocking, five regression tests). The same PR switches the PR template from "Löst #" to `Closes #` so the auto-close gap cannot recur.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). Newly completed: **epic #741** (evidence chain down to the published bytes, fully proven with v2.8.0), **epic #805** with #806–#811, and **#817** (fail-safe hardening of the vision pre-rating, PR #819). No 🔴 finding open.
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). Newly completed: **epic #741** (evidence chain down to the published bytes, fully proven with v2.8.0), **epic #805** with #806–#811, **#817** (fail-safe hardening of the vision pre-rating, PR #819), and **#821** (triage upkeep from the live state, both stages via PR #823). No 🔴 finding open.
 
-Open items: one row per issue in the triage table below. A separate count is no longer maintained as of #821 (stage 1) – the live check derives it from the table instead of having it proofread across six language versions. #805–#811, epic #741, and #817 are closed and removed from active triage; #821 is new.
+Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work. #805–#811, epic #741, #817, and #821 are closed and removed from active triage.
 
 ## Open GitHub Issues — Triage Status (2026-08-17)
 
@@ -37,7 +37,6 @@ Open items: one row per issue in the triage table below. A separate count is no 
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
-| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Generate the Recommendations triage from the GitHub live state | 🟢 Low (process cost, not a product defect) | 🟡 Medium (stage 1 is small; stage 2 needs a language map and a placeholder rule) | Sonnet, medium | Ready to start – stage 1 first (derive the declared count), decide on stage 2 afterwards |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 
 ### Recommended Next
@@ -45,8 +44,6 @@ Open items: one row per issue in the triage table below. A separate count is no 
 1. Kick off **#687** as the first EufyMake sub-issue (format question first) – it is the only
    ready item of the EufyMake chain; #688–#691 wait on it.
 2. **#692** (ADR) is ready in parallel and opens the COLOR epic #682.
-3. **#821** – stage 1 (deriving the declared count from the table) is small and ends the most
-   frequent drift case; stage 2 is deliberately left open as a decision.
 
 ## Previous Rounds
 

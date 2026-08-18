@@ -11,15 +11,15 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-08-17, v2.8.0 publiée, entretien post-publication)
+## État actuel (2026-08-18, v2.8.0 publiée, entretien du triage automatisé)
 
 **v2.8.0 publiée :** la PR #813 (coupe de version 2.8.0) et les correctifs #814–#816 sont fusionnés ; le candidat (commit `1bf95b0`) a passé la recette matérielle complète macOS/Linux-arm64 (exécution 32031258773, 2026-08-17, tous les critères remplis, vision 6✓) et a été publié à 13h17 UTC via `release-publish.yml` avec les cinq artefacts liés au manifeste (tag `v2.8.0`). La preuve #741 qui manquait est ainsi apportée : les réglages d'azimut, d'élévation et de qualité sont visibles dans la capture 3D native. La fonctionnalité de cette version mineure est l'épopée #805 (bascule standard/expert dans l'inspecteur de cartes, PR #812).
 
 **Entretien post-publication 2026-08-17 :** l'épopée #805 et les tickets enfants #806–#811 étaient restés ouverts à tort après la fusion de la PR #812 (le « Löst » allemand n'est pas un mot-clé de fermeture automatique GitHub) et ont été fermés manuellement. Le suivi mono-plateforme post-publication (`UPDATE-01`, exécution 32036618118) a échoué trois fois sur l'infrastructure du runner (HTTP 429 au téléchargement de l'action sur le Raspberry Pi) ; la quatrième tentative est passée au vert le 2026-08-17 à 16h54 UTC (tous les critères Linux-aarch64 remplis, matrice postée dans #741) – toutes les preuves DoD de l'épopée #741 étaient dès lors apportées, et le propriétaire du dépôt l'a clôturée le 2026-08-17 par une décision de go documentée. L'échec a en outre révélé #817 : `abnahme_vision_check.py` violait son contrat fail-safe quand l'évidence manque (FileNotFoundError au lieu de « non évalué »), ce qui a aussi empêché de poster la matrice de clôture dans #741 – corrigé par la PR #819 (le répertoire de sortie est créé, les erreurs d'écriture restent non bloquantes, cinq tests de régression). La même PR fait passer le modèle de PR de « Löst # » à `Closes #` pour que la faille de clôture automatique ne se reproduise pas.
 
-Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0/v2.7.1/v2.7.2/v2.7.3, ainsi que les onze tickets enfants d'origine de l'épopée #741, les tickets de protocole de release associés #680/#685/#686/#758, #781 (persistance du verdict vision, corrigé via #788) et les constats de sécurité #762 (🟠 CVSS ÉLEVÉ, risque accepté et documenté) et #769 (🟡 CVSS MOYEN, fermé par un correctif de code, désormais publié via v2.7.3), ainsi que #777 (vérificateur en direct des Recommendations désormais automatisé par CI, voir ci-dessus). Nouvellement terminées : l'**épopée #741** (chaîne de preuve jusqu'aux octets publiés, entièrement démontrée avec v2.8.0), l'**épopée #805** avec #806–#811 et **#817** (durcissement fail-safe de la pré-évaluation vision, PR #819). Aucun constat 🔴 ouvert.
+Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0/v2.7.1/v2.7.2/v2.7.3, ainsi que les onze tickets enfants d'origine de l'épopée #741, les tickets de protocole de release associés #680/#685/#686/#758, #781 (persistance du verdict vision, corrigé via #788) et les constats de sécurité #762 (🟠 CVSS ÉLEVÉ, risque accepté et documenté) et #769 (🟡 CVSS MOYEN, fermé par un correctif de code, désormais publié via v2.7.3), ainsi que #777 (vérificateur en direct des Recommendations désormais automatisé par CI, voir ci-dessus). Nouvellement terminées : l'**épopée #741** (chaîne de preuve jusqu'aux octets publiés, entièrement démontrée avec v2.8.0), l'**épopée #805** avec #806–#811, **#817** (durcissement fail-safe de la pré-évaluation vision, PR #819) et **#821** (entretien du triage depuis l'état en direct, les deux étapes via la PR #823). Aucun constat 🔴 ouvert.
 
-En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821 (étape 1), aucun compte séparé n'est plus maintenu – le vérificateur en direct le dérive du tableau au lieu de le faire relire dans six versions linguistiques. #805–#811, l'épopée #741 et #817 sont fermés et retirés du triage actif ; #821 est nouveau.
+En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821, ni le compte ni les lignes ne sont maintenus à la main – `scripts/recommendations_live_check.py --write` met à jour les six versions depuis l'état en direct GitHub, tandis que les colonnes d'évaluation restent un travail éditorial. #805–#811, l'épopée #741, #817 et #821 sont fermés et retirés du triage actif.
 
 ## Tickets GitHub ouverts — Triage (2026-08-17)
 
@@ -37,7 +37,6 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Aperçu en direct + interface pour histogramme/niveaux/gamma | 🟡 Moyenne | 🟡 Moyenne-élevée (UI Qt, garde debounce/génération comme l'aperçu de hauteur) | Sonnet, élevé | Bloqué – attend le noyau #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Intégration calques/sélection/historique/projet | 🟡 Moyenne | 🟠 Élevée (nombreuses transitions d'état : annuler/rétablir, sélection, état modifié) | Opus, élevé | Bloqué – attend #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Recette performance/E2E/documentation/interface laser | 🟡 Moyenne (gate de clôture, pas une nouvelle fonctionnalité) | 🟠 Élevée (suite de benchmarks, E2E, documentation, contrat d'adaptateur) | Opus, élevé | Bloqué – ticket de clôture après #695 |
-| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Générer le triage des Recommendations depuis l'état en direct GitHub | 🟢 Faible (coût de processus, pas un défaut produit) | 🟡 Moyenne (l'étape 1 est petite ; l'étape 2 demande une carte des langues et une règle de gabarit) | Sonnet, moyen | Prêt à démarrer – d'abord l'étape 1 (dériver le compte déclaré), décider ensuite de l'étape 2 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 
 ### Recommandé ensuite
@@ -45,8 +44,6 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 1. Lancer **#687** comme premier sous-ticket EufyMake (la question de format d'abord) : c'est
    le seul point prêt de la chaîne EufyMake, #688–#691 en dépendent.
 2. **#692** (ADR) peut démarrer en parallèle et ouvre l'épopée COLOR #682.
-3. **#821** – l'étape 1 (dériver le compte déclaré depuis le tableau) est petite et met fin au
-   cas de dérive le plus fréquent ; l'étape 2 reste volontairement une décision ouverte.
 
 ## Tours précédents
 
