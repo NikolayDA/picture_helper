@@ -19,7 +19,7 @@
 
 Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0/v2.7.1/v2.7.2/v2.7.3, además de las once sub-incidencias originales de la épica #741, las incidencias de protocolo de release relacionadas #680/#685/#686/#758, #781 (persistencia del veredicto de visión, corregida vía #788) y los hallazgos de seguridad #762 (🟠 CVSS HIGH, riesgo aceptado y documentado) y #769 (🟡 CVSS MEDIUM, cerrado con una corrección de código, ya publicada vía v2.7.3), además de #777 (verificador en vivo de Recommendations ya automatizado por CI, ver arriba). Recién completadas: la **épica #741** (cadena de prueba hasta los bytes publicados, demostrada por completo con v2.8.0), la **épica #805** con #806–#811 y **#817** (endurecimiento fail-safe de la prevaloración de visión, PR #819). Ningún hallazgo 🔴 abierto.
 
-Estado en vivo tras la consulta a GitHub: **13** incidencias abiertas. #805–#811, la épica #741 y #817 están cerradas y retiradas de la clasificación activa.
+Estado en vivo tras la consulta a GitHub: **14** incidencias abiertas. #805–#811, la épica #741 y #817 están cerradas y retiradas de la clasificación activa; #821 es nueva.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-08-17)
 
@@ -37,6 +37,7 @@ Estado en vivo tras la consulta a GitHub: **13** incidencias abiertas. #805–#8
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Vista previa en vivo + interfaz para histograma/niveles/gamma | 🟡 Media | 🟡 Media-alta (UI de Qt, protección de debounce/generación similar a la vista previa de altura) | Sonnet, alto | Bloqueada – espera al núcleo #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Integración de capas/selección/historial/proyecto | 🟡 Media | 🟠 Alta (muchas transiciones de estado: deshacer/rehacer, selección, estado sucio) | Opus, alto | Bloqueada – espera a #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Aceptación de rendimiento/E2E/documentación/interfaz láser | 🟡 Media (gate de cierre, no una función nueva) | 🟠 Alta (suite de benchmarks, E2E, documentación, contrato del adaptador) | Opus, alto | Bloqueada – incidencia de cierre tras #695 |
+| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Generar la clasificación de Recommendations desde el estado en vivo de GitHub | 🟢 Baja (coste de proceso, no un defecto del producto) | 🟡 Media (la etapa 1 es pequeña; la etapa 2 necesita un mapa de idiomas y una regla de marcador) | Sonnet, medio | Lista para empezar – primero la etapa 1 (derivar el recuento declarado), decidir después la etapa 2 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
 
 ### Recomendado a continuación
@@ -44,6 +45,8 @@ Estado en vivo tras la consulta a GitHub: **13** incidencias abiertas. #805–#8
 1. Impulsar **#687** como primera sub-incidencia de EufyMake (primero la cuestión de formato):
    es el único punto listo de la cadena EufyMake, #688–#691 dependen de él.
 2. **#692** (ADR) puede iniciarse en paralelo y abre la épica COLOR #682.
+3. **#821** – la etapa 1 (derivar el recuento declarado de la tabla) es pequeña y termina con el
+   caso de deriva más frecuente; la etapa 2 queda deliberadamente abierta como decisión.
 
 ## Rondas anteriores
 

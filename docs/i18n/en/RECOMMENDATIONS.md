@@ -19,7 +19,7 @@
 
 Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). Newly completed: **epic #741** (evidence chain down to the published bytes, fully proven with v2.8.0), **epic #805** with #806–#811, and **#817** (fail-safe hardening of the vision pre-rating, PR #819). No 🔴 finding open.
 
-Live state after the GitHub query: **13** open issues. #805–#811, epic #741, and #817 are closed and removed from active triage.
+Live state after the GitHub query: **14** open issues. #805–#811, epic #741, and #817 are closed and removed from active triage; #821 is new.
 
 ## Open GitHub Issues — Triage Status (2026-08-17)
 
@@ -37,6 +37,7 @@ Live state after the GitHub query: **13** open issues. #805–#811, epic #741, a
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live preview + UI for histogram/levels/gamma | 🟡 Medium | 🟡 Medium-high (Qt UI, debounce/generation guard like the height preview) | Sonnet, high | Blocked – waits on core #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
+| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Generate the Recommendations triage from the GitHub live state | 🟢 Low (process cost, not a product defect) | 🟡 Medium (stage 1 is small; stage 2 needs a language map and a placeholder rule) | Sonnet, medium | Ready to start – stage 1 first (derive the declared count), decide on stage 2 afterwards |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 
 ### Recommended Next
@@ -44,6 +45,8 @@ Live state after the GitHub query: **13** open issues. #805–#811, epic #741, a
 1. Kick off **#687** as the first EufyMake sub-issue (format question first) – it is the only
    ready item of the EufyMake chain; #688–#691 wait on it.
 2. **#692** (ADR) is ready in parallel and opens the COLOR epic #682.
+3. **#821** – stage 1 (deriving the declared count from the table) is small and ends the most
+   frequent drift case; stage 2 is deliberately left open as a decision.
 
 ## Previous Rounds
 
