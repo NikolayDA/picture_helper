@@ -78,16 +78,26 @@ Nur **ein** Repo-Secret nötig: **`CLAUDE_CODE_OAUTH_TOKEN`** (Settings →
 (Pro/Max/Team/Enterprise) statt über eine API-Abrechnung. Fehlt das Secret,
 überspringen sich beide Workflows sauber – ohne roten Lauf.
 
-Zwei Eigenheiten dieses Wegs: Das Token hängt am Abo der Person, die
-`claude setup-token` ausgeführt hat (für ein org-weit geteiltes Secret ist ein
-API-Key aus der [Claude Console](https://console.anthropic.com) der bessere
-Weg), und es gilt **ein Jahr** ab Erzeugung – läuft es ab, melden die
-Workflows einen Authentifizierungsfehler (kein stilles Überspringen, das
-greift nur bei fehlendem Secret) und ein neues Token muss ins Secret.
+Drei Eigenheiten dieses Wegs:
+
+1. **Das Token hängt am Abo der Person**, die `claude setup-token` ausgeführt
+   hat – für ein org-weit geteiltes Secret ist ein API-Key aus der
+   [Claude Console](https://console.anthropic.com) der bessere Weg.
+2. **Die Läufe zehren am Nutzungslimit dieses Kontos.** Das Review startet bei
+   jedem `opened`/`synchronize`, der On-Demand-Agent bei jeder
+   `@claude`-Erwähnung. Ist das Limit erschöpft, wird der Lauf **rot** – das
+   saubere Überspringen oben gilt ausdrücklich nur für ein *fehlendes* Secret.
+   Dasselbe gilt für ein Modell, das die Abo-Stufe nicht hergibt (der
+   Review-Workflow pinnt `claude-opus-5`).
+3. **Es gilt ein Jahr** ab Erzeugung. Läuft es ab, melden die Workflows einen
+   Authentifizierungsfehler; dann ein neues Token erzeugen und das Secret
+   überschreiben.
 
 Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY` und
-ersetzt in beiden Workflows das Input `claude_code_oauth_token` durch
-`anthropic_api_key` (plus die zugehörige `HAS_CLAUDE_TOKEN`-Prüfung).
+zieht in **beiden** Workflows drei Stellen mit: das Input
+(`claude_code_oauth_token:` → `anthropic_api_key:`), die `env:`-Zeile der
+`HAS_CLAUDE_TOKEN`-Prüfung und den Meldungstext im Skip-Schritt. Bleibt eine
+davon stehen, löst der Workflow still nie aus.
 
 Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
 `GITHUB_TOKEN` durch (`github_token: ${{ secrets.GITHUB_TOKEN }}`), damit die

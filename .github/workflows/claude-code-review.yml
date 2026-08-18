@@ -53,13 +53,6 @@ jobs:
           # nötig).
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_sticky_comment: true
-          # BEFRISTET (Diagnose, PR #825): Die Action verbirgt die SDK-Ausgabe
-          # per Default. Der erste echte Lauf postete den Inline-Kommentar, aber
-          # keine Zusammenfassung, und meldete `permission_denials_count: 1` -
-          # welches Werkzeug abgelehnt wurde, steht nur in der vollen Ausgabe.
-          # Nach der Auswertung wieder entfernen: Das Repository ist oeffentlich,
-          # der Joblog damit weltlesbar.
-          show_full_output: true
           # Automation-/Prompt-Modus (kein track_progress → kein Tag-Modus mit
           # Schreib-/Git-Fähigkeiten). Die allowlist erlaubt ausschließlich
           # Lesen und Kommentieren – Edit/Write/git sind nicht enthalten, das
@@ -88,13 +81,14 @@ jobs:
             abfangen – ergänze menschlich wertvolles Review. Nutze zum Setzen von
             Zeilen-Kommentaren das Inline-Comment-Werkzeug; die Zusammenfassung
             landet im (Sticky-)PR-Kommentar.
-          # Achtung: `claude_args` ist ein Block-Skalar - jede Zeile darin geht
-          # als CLI-Argument an Claude Code. Erklaerungen gehoeren deshalb hier
+          # Achtung: `claude_args` ist ein Block-Skalar – jede Zeile darin geht
+          # als CLI-Argument an Claude Code. Erklärungen gehören deshalb hier
           # herauf, nicht zwischen die Argumente.
-          # --model: Ohne die Zeile nimmt die Action ihren eigenen Default
-          # (zuletzt claude-sonnet-5). Fuer ein Review auf diesem Codebestand ist
-          # das staerkere Modell die bessere Wahl; der Alias `opus` waere
-          # wanderungsfaehig, hier bewusst fest benannt (Repo-Konvention).
+          # --model: Ohne die Zeile nimmt die Action ihren eigenen Default (er
+          # hängt an der Kontoart; im ersten Lauf war das claude-sonnet-5). Für
+          # ein Review auf diesem Codebestand ist das stärkere Modell die bessere
+          # Wahl. Fest benannt statt Alias `opus` – dafür wandert die Zeile nicht
+          # mit: Bei einem Modell-/Auth-Fehler im Review-Job zuerst hier schauen.
           claude_args: |
             --max-turns 20
             --model claude-opus-5
