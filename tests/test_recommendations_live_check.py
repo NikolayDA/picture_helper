@@ -19,11 +19,10 @@ ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "recommendations_live_check"
 
 
-def _md(*, count: int, links: str, body: str = "") -> str:
+def _md(*, links: str, body: str = "") -> str:
     """Baut ein minimales Recommendations-Dokument mit Kurzstatus + Triage."""
     return (
         f"## Aktueller Stand (2026-08-01, Test)\n\n"
-        f"Live-Stand nach GitHub-Abfrage: **{count}** offene Issues.\n\n"
         f"## Offene GitHub-Issues – Triage-Stand (2026-08-01)\n\n"
         f"| # | Titel |\n|---|---|\n{links}\n{body}"
         f"## Vorige Runden\n\n"
@@ -42,7 +41,7 @@ def _link(number: int, repo: str = lc._DEFAULT_REPO) -> str:
 def test_parse_triage_issue_numbers_resolves_grouped_row() -> None:
     """Eine gruppierte Zeile wie '#680 / #685 / #686' ergibt drei Nummern (#752)."""
     row = f"| {_link(680)} / {_link(685)} / {_link(686)} | v2.7.1 – überholt |\n"
-    markdown = _md(count=3, links=row)
+    markdown = _md(links=row)
     assert lc.parse_triage_issue_numbers(markdown) == (680, 685, 686)
 
 
@@ -54,14 +53,14 @@ def test_parse_triage_issue_numbers_ignores_plain_text_mentions() -> None:
     beisteuern und Prosa-Erwähnungen wie 'PR #756' als Issue-Referenz zählen.
     """
     row = f"| {_link(741)} | erledigt via PR #756/#759–#761, siehe #742–#747 |\n"
-    markdown = _md(count=1, links=row)
+    markdown = _md(links=row)
     assert lc.parse_triage_issue_numbers(markdown) == (741,)
 
 
 def test_parse_triage_issue_numbers_ignores_historical_archive() -> None:
     """Issues, die nur im Archiv 'Vorige Runden' auftauchen, zählen nicht."""
     row = f"| {_link(752)} | aktuell offen |\n"
-    markdown = _md(count=1, links=row)
+    markdown = _md(links=row)
     # #740 kommt nur im Archiv-Teil von _md() vor.
     assert lc.parse_triage_issue_numbers(markdown) == (752,)
 
@@ -69,21 +68,6 @@ def test_parse_triage_issue_numbers_ignores_historical_archive() -> None:
 def test_parse_triage_issue_numbers_missing_section_raises() -> None:
     with pytest.raises(lc.LiveCheckError):
         lc.parse_triage_issue_numbers("# Nur eine Überschrift ohne Triage-Abschnitt\n")
-
-
-def test_parse_declared_open_count() -> None:
-    markdown = _md(count=42, links="")
-    assert lc.parse_declared_open_count(markdown) == 42
-
-
-def test_parse_declared_open_count_missing_raises() -> None:
-    """Eine fehlende/umformulierte Live-Stand-Zeile scheitert sichtbar (fail-closed).
-
-    Ohne das würde ein versehentlich entfernter Kurzstatus-Satz mit `exit 0`
-    als "deckungsgleich" durchgehen, obwohl gar nichts geprüft wurde.
-    """
-    with pytest.raises(lc.LiveCheckError):
-        lc.parse_declared_open_count("keine Live-Stand-Zeile hier")
 
 
 def test_parse_triage_issue_numbers_ignores_links_outside_first_column() -> None:
@@ -94,7 +78,7 @@ def test_parse_triage_issue_numbers_ignores_links_outside_first_column() -> None
     Issue in der Beschreibung fälschlich als eigener Tabelleneintrag zählen.
     """
     row = f"| {_link(741)} | siehe auch {_link(692)} für Kontext |\n"
-    markdown = _md(count=1, links=row)
+    markdown = _md(links=row)
     assert lc.parse_triage_issue_numbers(markdown) == (741,)
 
 
@@ -128,7 +112,6 @@ def test_compare_flags_missing_open_issue() -> None:
             lc.OpenIssue(748, "Update"),
             lc.OpenIssue(758, "Neu"),
         ],
-        declared_count=2,
     )
     assert report.missing_open == (758,)
     assert report.closed_but_listed == ()
@@ -144,24 +127,9 @@ def test_compare_flags_closed_but_listed_issue() -> None:
     report = lc.compare(
         triage_numbers=(740, 741),
         open_issues=[lc.OpenIssue(741, "Epic")],
-        declared_count=2,
     )
     assert report.closed_but_listed == (740,)
     assert report.missing_open == ()
-    assert report.has_findings
-
-
-def test_compare_flags_count_mismatch_even_without_number_drift() -> None:
-    """Eine abweichende Gesamtzahl wird auch ohne Einzelabweichung gemeldet."""
-    report = lc.compare(
-        triage_numbers=(741,),
-        open_issues=[lc.OpenIssue(741, "Epic")],
-        declared_count=25,
-    )
-    assert report.declared_count == 25
-    assert report.actual_count == 1
-    assert report.missing_open == ()
-    assert report.closed_but_listed == ()
     assert report.has_findings
 
 
@@ -169,7 +137,6 @@ def test_compare_clean_state_has_no_findings() -> None:
     report = lc.compare(
         triage_numbers=(741, 748),
         open_issues=[lc.OpenIssue(741, "Epic"), lc.OpenIssue(748, "Update")],
-        declared_count=2,
     )
     assert not report.has_findings
     assert "deckungsgleich" in lc.format_report(report)
@@ -177,7 +144,6 @@ def test_compare_clean_state_has_no_findings() -> None:
 
 def test_format_report_lists_every_finding_kind() -> None:
     report = lc.LiveCheckReport(
-        declared_count=2,
         actual_count=3,
         missing_open=(758,),
         closed_but_listed=(740,),
@@ -185,8 +151,8 @@ def test_format_report_lists_every_finding_kind() -> None:
     text = lc.format_report(report)
     assert "#758" in text
     assert "#740" in text
-    assert "Datei nennt 2" in text
-    assert "GitHub meldet 3" in text
+    # Beide Befundarten stehen als eigene FEHLER-Zeile im Bericht.
+    assert text.count("FEHLER") == 2
 
 
 def test_write_report_creates_parent_and_trailing_newline(tmp_path: Path) -> None:
@@ -197,7 +163,7 @@ def test_write_report_creates_parent_and_trailing_newline(tmp_path: Path) -> Non
 
 def test_main_persists_report_for_findings(tmp_path: Path) -> None:
     markdown = tmp_path / "RECOMMENDATIONS.md"
-    markdown.write_text(_md(count=1, links=f"| {_link(741)} | Epic |\n"), encoding="utf-8")
+    markdown.write_text(_md(links=f"| {_link(741)} | Epic |\n"), encoding="utf-8")
     payload = tmp_path / "issues.json"
     payload.write_text(
         json.dumps([{"number": 741, "title": "Epic"}, {"number": 752, "title": "Neu"}]),
@@ -223,31 +189,30 @@ def test_main_persists_report_for_input_error(tmp_path: Path) -> None:
 
 def test_run_end_to_end_on_synthetic_document() -> None:
     row = f"| {_link(741)} | Epic |\n| {_link(748)} | Update |\n"
-    markdown = _md(count=3, links=row)
+    markdown = _md(links=row)
     open_issues = [lc.OpenIssue(741, "Epic"), lc.OpenIssue(748, "Update"), lc.OpenIssue(758, "Neu")]
     report = lc.run(markdown, open_issues)
     assert report.missing_open == (758,)
-    assert report.declared_count == 3
     assert report.actual_count == 3
 
 
 # ── Strukturelle Smoke-Prüfung gegen das echte RECOMMENDATIONS.md ──────
 
 
-def test_real_recommendations_triage_matches_its_own_declared_count() -> None:
+def test_real_recommendations_triage_stays_parsable() -> None:
     """RECOMMENDATIONS.md bleibt für den Live-Check parsebar (#752).
 
-    Kein Netzwerkzugriff: prüft nur, dass die im Kurzstatus genannte Zahl mit
-    der Anzahl der in der Triage-Tabelle verlinkten Issues übereinstimmt –
-    die eigentliche Übereinstimmung mit GitHub prüft der separat
-    ausführbare Live-Check (siehe TESTING.md).
+    Kein Netzwerkzugriff und keine inhaltliche Aussage über den Bestand: Der
+    Triage-Abschnitt muss auffindbar sein und mindestens eine verlinkte
+    Issue-Zeile enthalten, damit ein umbenannter oder leer gelaufener
+    Abschnitt hier auffällt statt erst im CI-Lauf. Die Übereinstimmung mit
+    GitHub prüft der separat ausführbare Live-Check (siehe TESTING.md); seit
+    #821 (Stufe 1) gibt es keine zweite, handgepflegte Zahl mehr, gegen die
+    hier gegengerechnet werden könnte.
     """
     markdown = (ROOT / "RECOMMENDATIONS.md").read_text(encoding="utf-8")
     triage_numbers = lc.parse_triage_issue_numbers(markdown)
-    declared = lc.parse_declared_open_count(markdown)
-    assert len(triage_numbers) == declared, (
-        f"Triage-Tabelle listet {len(triage_numbers)} Issues, Kurzstatus behauptet {declared}."
-    )
+    assert triage_numbers, "Triage-Tabelle enthält keine verlinkte Issue-Zeile."
 
 
 def test_live_workflow_keeps_actionable_report_on_failure() -> None:

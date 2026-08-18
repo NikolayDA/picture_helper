@@ -19,7 +19,7 @@
 
 Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Neu abgeschlossen: **Epic #741** (Beweiskette bis zu den veröffentlichten Bytes, mit v2.8.0 vollständig belegt), **Epic #805** mit #806–#811 und **#817** (Fail-safe-Härtung der Vision-Vorbewertung, PR #819). Kein 🔴-Befund offen.
 
-Live-Stand nach GitHub-Abfrage: **14** offene Issues. #805–#811, Epic #741 und #817 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #821.
+Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Eine zusätzliche Zahl wird seit #821 (Stufe 1) nicht mehr gepflegt – der Live-Check leitet sie aus der Tabelle ab, statt sie in sechs Sprachfassungen gegenzulesen. #805–#811, Epic #741 und #817 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #821.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-17)
 

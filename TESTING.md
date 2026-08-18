@@ -197,8 +197,11 @@ Prüfungen sichern das ab:
 - **Netzfrei, läuft in der Default-Suite mit:**
   `tests/test_recommendations_freeze_consistency.py` bestimmt das aktive
   Freeze-Dokument aus `pyproject.toml` und prüft, dass alle sechs
-  Sprachfassungen dasselbe Kurzstatus-Datum und dieselbe im Live-Stand
-  genannte offene-Issue-Anzahl führen. `tests/test_recommendations_live_check.py`
+  Sprachfassungen dasselbe Kurzstatus-Datum und dieselbe Menge an
+  Triage-Issue-Nummern führen (der Mengenvergleich ersetzt seit #821 den
+  früheren Vergleich einer separat deklarierten Anzahl: gleiche Mengen heißt
+  gleiche Anzahl, und die Zahl musste zuvor sechsfach von Hand gepflegt
+  werden). `tests/test_recommendations_live_check.py`
   deckt die Kernlogik von `scripts/recommendations_live_check.py` (Triage-
   Tabellen-Parsing inkl. gruppierter Zeilen wie `#680 / #685 / #686`,
   Vergleichslogik) über gespeicherte Fixtures ab – ohne Netzwerk oder
@@ -207,9 +210,10 @@ Prüfungen sichern das ab:
   `python scripts/recommendations_live_check.py` fragt die tatsächlich
   offenen GitHub-Issues ab und vergleicht sie gegen die Triage-Tabelle in
   `RECOMMENDATIONS.md` (Abschnitt `## Offene GitHub-Issues`). Gemeldet
-  werden offene Issues, die in der Tabelle fehlen, Issues, die die Tabelle
-  weiterhin als offen führt, obwohl sie auf GitHub bereits geschlossen sind,
-  sowie eine abweichende Gesamtzahl. Offline/reproduzierbar mit einer
+  werden offene Issues, die in der Tabelle fehlen, sowie Issues, die die
+  Tabelle weiterhin als offen führt, obwohl sie auf GitHub bereits
+  geschlossen sind. Die Anzahl offener Issues nennt der Bericht, leitet sie
+  aber aus der Tabelle ab (#821, Stufe 1). Offline/reproduzierbar mit einer
   gespeicherten API-Antwort:
 
   ```bash

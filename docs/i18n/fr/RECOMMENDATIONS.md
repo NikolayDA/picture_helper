@@ -19,7 +19,7 @@
 
 Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0/v2.7.1/v2.7.2/v2.7.3, ainsi que les onze tickets enfants d'origine de l'épopée #741, les tickets de protocole de release associés #680/#685/#686/#758, #781 (persistance du verdict vision, corrigé via #788) et les constats de sécurité #762 (🟠 CVSS ÉLEVÉ, risque accepté et documenté) et #769 (🟡 CVSS MOYEN, fermé par un correctif de code, désormais publié via v2.7.3), ainsi que #777 (vérificateur en direct des Recommendations désormais automatisé par CI, voir ci-dessus). Nouvellement terminées : l'**épopée #741** (chaîne de preuve jusqu'aux octets publiés, entièrement démontrée avec v2.8.0), l'**épopée #805** avec #806–#811 et **#817** (durcissement fail-safe de la pré-évaluation vision, PR #819). Aucun constat 🔴 ouvert.
 
-État en direct après la requête GitHub : **14** tickets ouverts. #805–#811, l'épopée #741 et #817 sont fermés et retirés du triage actif ; #821 est nouveau.
+En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821 (étape 1), aucun compte séparé n'est plus maintenu – le vérificateur en direct le dérive du tableau au lieu de le faire relire dans six versions linguistiques. #805–#811, l'épopée #741 et #817 sont fermés et retirés du triage actif ; #821 est nouveau.
 
 ## Tickets GitHub ouverts — Triage (2026-08-17)
 

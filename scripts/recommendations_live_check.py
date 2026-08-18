@@ -9,8 +9,14 @@ GitHub-Issues und meldet:
 
 - offene Issues, die in der Tabelle fehlen,
 - Issues, die die Tabelle als offen fuehrt, obwohl sie auf GitHub bereits
-  geschlossen sind,
-- eine von der im Kurzstatus genannten Zahl abweichende Gesamtzahl.
+  geschlossen sind.
+
+Die Anzahl offener Issues wird **abgeleitet**, nicht deklariert (#821,
+Stufe 1): Frueher nannte der Kurzstatus sie zusaetzlich als eigene Zahl, die
+in sechs Sprachfassungen von Hand gepflegt werden musste. Sie war gegenueber
+dem Mengenvergleich redundant - stimmen die Mengen ueberein, stimmen auch die
+Anzahlen - und driftete regelmaessig gegen die Tabelle (#669, #728, #752,
+#777). Der Bericht nennt die Anzahl weiterhin, liest sie aber aus der Tabelle.
 
 Nur die Zeilen des Triage-Abschnitts zaehlen; das Archiv ``## Vorige Runden``
 ist bewusst historisch und wird nicht geprueft (siehe TESTING.md). Referenziert
@@ -20,8 +26,8 @@ gruppierte Zeilen wie ``[#680](...) / [#685](...) / [#686](...)`` korrekt in
 drei Nummern auf, ohne PR-Erwaehnungen oder Zahlen-Ranges in Fliesstext
 ("#742-#747") faelschlich als Issue-Referenz zu werten.
 
-Die Kernlogik (``parse_triage_issue_numbers``, ``parse_declared_open_count``,
-``open_issues_from_api_payload``, ``compare``) ist rein und netzfrei; nur
+Die Kernlogik (``parse_triage_issue_numbers``, ``open_issues_from_api_payload``,
+``compare``) ist rein und netzfrei; nur
 ``fetch_open_issues``/``main`` sprechen das Netzwerk an. Die Default-Testsuite
 deckt ausschliesslich die Kernlogik ueber gespeicherte Fixtures ab (#752).
 """
@@ -51,7 +57,6 @@ _REQUEST_HEADERS: Final = {"Accept": "application/vnd.github+json"}
 _TRIAGE_SECTION_RE: Final = re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)")
 #: Spalte 1 jeder Tabellenzeile (Text zwischen dem ersten und zweiten "|").
 _TABLE_FIRST_CELL_RE: Final = re.compile(r"(?m)^\|([^|]*)\|")
-_LIVE_COUNT_RE: Final = re.compile(r"Live-Stand nach GitHub-Abfrage: \*\*(\d+)\*\*")
 
 
 def _issue_link_re(repo: str) -> re.Pattern[str]:
@@ -70,17 +75,13 @@ class OpenIssue:
 class LiveCheckReport:
     """Ergebnis eines Abgleichs von Triage-Tabelle gegen den GitHub-Live-Stand."""
 
-    declared_count: int | None
     actual_count: int
     missing_open: tuple[int, ...]
     closed_but_listed: tuple[int, ...]
 
     @property
     def has_findings(self) -> bool:
-        count_mismatch = (
-            self.declared_count is not None and self.declared_count != self.actual_count
-        )
-        return bool(self.missing_open or self.closed_but_listed or count_mismatch)
+        return bool(self.missing_open or self.closed_but_listed)
 
 
 class LiveCheckError(RuntimeError):
@@ -121,22 +122,6 @@ def issue_numbers_in_first_column(section: str, repo: str = _DEFAULT_REPO) -> tu
 def parse_triage_issue_numbers(markdown: str, repo: str = _DEFAULT_REPO) -> tuple[int, ...]:
     """Alle in Spalte 1 der Triage-Tabelle referenzierten Issue-Nummern (#752)."""
     return issue_numbers_in_first_column(extract_triage_section(markdown), repo)
-
-
-def parse_declared_open_count(markdown: str) -> int:
-    """Die im Kurzstatus genannte Anzahl offener Issues.
-
-    Wirft :class:`LiveCheckError`, wenn die "Live-Stand"-Zeile fehlt oder
-    umformuliert wurde - eine fehlende Deklaration soll den Check sichtbar
-    scheitern lassen statt als stillschweigend erfolgreicher Abgleich
-    durchzugehen (analog zum fehlenden Triage-Abschnitt).
-    """
-    match = _LIVE_COUNT_RE.search(markdown)
-    if match is None:
-        raise LiveCheckError(
-            "Zeile 'Live-Stand nach GitHub-Abfrage: **N** offene Issues' nicht gefunden."
-        )
-    return int(match.group(1))
 
 
 def open_issues_from_api_payload(payload: object) -> tuple[OpenIssue, ...]:
@@ -201,13 +186,11 @@ def fetch_open_issues(
 def compare(
     triage_numbers: Sequence[int],
     open_issues: Sequence[OpenIssue],
-    declared_count: int | None,
 ) -> LiveCheckReport:
     """Vergleicht Triage-Nummern gegen tatsaechlich offene Issues."""
     triage_set = set(triage_numbers)
     open_set = {issue.number for issue in open_issues}
     return LiveCheckReport(
-        declared_count=declared_count,
         actual_count=len(open_issues),
         missing_open=tuple(sorted(open_set - triage_set)),
         closed_but_listed=tuple(sorted(triage_set - open_set)),
@@ -220,11 +203,7 @@ def run(
     repo: str = _DEFAULT_REPO,
 ) -> LiveCheckReport:
     """Parst *markdown* und vergleicht es gegen *open_issues*."""
-    return compare(
-        parse_triage_issue_numbers(markdown, repo),
-        open_issues,
-        parse_declared_open_count(markdown),
-    )
+    return compare(parse_triage_issue_numbers(markdown, repo), open_issues)
 
 
 def format_report(report: LiveCheckReport) -> str:
@@ -239,11 +218,6 @@ def format_report(report: LiveCheckReport) -> str:
         lines.append(
             "FEHLER  weiterhin als offen gefuehrte, tatsaechlich geschlossene Issues: "
             + ", ".join(f"#{n}" for n in report.closed_but_listed)
-        )
-    if report.declared_count is not None and report.declared_count != report.actual_count:
-        lines.append(
-            f"FEHLER  abweichende Gesamtzahl: Datei nennt {report.declared_count}, "
-            f"GitHub meldet {report.actual_count} offene Issues."
         )
     if not lines:
         lines.append(f"ok      Live-Stand deckungsgleich ({report.actual_count} offene Issues).")

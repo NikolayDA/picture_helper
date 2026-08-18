@@ -506,8 +506,12 @@ Ein Paket, `bgremover/`:
   GitHub-Live-Stand ab (#669/#728/#752); `scripts/recommendations_live_check.py`
   vergleicht die Triage-Tabelle separat ausführbar gegen die tatsächlich
   offenen Issues, `tests/test_recommendations_freeze_consistency.py` hält
-  Kurzstatus-Datum und Live-Stand-Zahl netzfrei über alle sechs
-  Sprachfassungen synchron (Details in [`TESTING.md`](TESTING.md)).
+  Kurzstatus-Datum und Triage-Issue-Menge netzfrei über alle sechs
+  Sprachfassungen synchron. Eine separat deklarierte Anzahl offener Issues
+  gibt es seit #821 (Stufe 1) nicht mehr – sie war gegenüber dem
+  Mengenvergleich redundant und musste dafür sechsfach gepflegt werden; der
+  Live-Check leitet die Zahl aus der Tabelle ab (Details in
+  [`TESTING.md`](TESTING.md)).
 
 ## CI-Automatisierung
 
