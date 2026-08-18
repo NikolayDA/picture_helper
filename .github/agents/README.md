@@ -81,9 +81,9 @@ Nur **ein** Repo-Secret nötig: **`CLAUDE_CODE_OAUTH_TOKEN`** (Settings →
 Zwei Eigenheiten dieses Wegs: Das Token hängt am Abo der Person, die
 `claude setup-token` ausgeführt hat (für ein org-weit geteiltes Secret ist ein
 API-Key aus der [Claude Console](https://console.anthropic.com) der bessere
-Weg), und es ist langlebig, aber nicht unbegrenzt gültig – läuft es ab, melden
-die Workflows einen Authentifizierungsfehler und ein neues Token muss ins
-Secret. Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY`
+Weg), und es gilt **ein Jahr** ab Erzeugung – läuft es ab, melden die
+Workflows einen Authentifizierungsfehler (kein stilles Überspringen, das
+greift nur bei fehlendem Secret) und ein neues Token muss ins Secret. Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY`
 und ersetzt in beiden Workflows das Input `claude_code_oauth_token` durch
 `anthropic_api_key` (plus die zugehörige `HAS_CLAUDE_TOKEN`-Prüfung).
 
