@@ -93,3 +93,66 @@ def test_vision_main_writes_json(tmp_path: Path) -> None:
     assert rc == 0
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["verdikte"] and data["verdikte"][0]["screenshot"] == "02_main_loaded_selection.png"
+
+
+# ── Fail-safe bis zur Ausgabe (#817) ───────────────────────────────────────
+#
+# Beobachtet im Abnahme-Lauf 32036618118: Der Hardware-Job brach vor der
+# Evidenz ab, ``write_text`` scheiterte deshalb mit FileNotFoundError, und der
+# Absturz riss die Abschlussmatrix mit – der Fehlversuch wurde dadurch nirgends
+# sichtbar. Der dokumentierte Vertrag lautet aber „blockiert nie".
+
+
+def test_main_creates_missing_output_directory(tmp_path: Path) -> None:
+    """Fehlt das Zielverzeichnis, wird es angelegt statt zu werfen (#817)."""
+    shots = tmp_path / "abnahme-evidenz"
+    shots.mkdir()
+    (shots / "02_main_loaded_selection.png").write_bytes(b"img")
+    out = tmp_path / "fehlt" / "noch" / "vision-verdikte.json"
+
+    rc = vc.main(["--screenshots-dir", str(shots), "--output", str(out)])
+
+    assert rc == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["verdikte"]
+
+
+def test_main_without_screenshots_dir_stays_fail_safe(tmp_path: Path) -> None:
+    """Fehlt das Evidenzverzeichnis ganz, endet der Lauf mit 0 und leerer Datei."""
+    out = tmp_path / "evidenz" / "vision-verdikte.json"
+
+    rc = vc.main(["--screenshots-dir", str(tmp_path / "gibt-es-nicht"), "--output", str(out)])
+
+    assert rc == 0
+    assert json.loads(out.read_text(encoding="utf-8")) == {"verdikte": []}
+
+
+def test_scan_and_evaluate_without_directory_returns_empty(tmp_path: Path) -> None:
+    assert vc.scan_and_evaluate(tmp_path / "gibt-es-nicht") == []
+
+
+def test_main_survives_unwritable_output(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Auch ein endgültig fehlschlagender Schreibversuch blockiert nicht (#817).
+
+    ``abnahme_aggregate.load_vision`` verträgt eine fehlende Verdikt-Datei,
+    deshalb ist ein Abbruch hier nie die richtige Reaktion. Der Konflikt wird
+    über eine *Datei* im Zielpfad erzeugt – ``mkdir`` scheitert daran auch als
+    root, anders als an Verzeichnisrechten.
+    """
+    shots = tmp_path / "evidenz"
+    shots.mkdir()
+    (shots / "02_main_loaded_selection.png").write_bytes(b"img")
+    blocker = tmp_path / "blocker"
+    blocker.write_bytes(b"keine Datei-als-Verzeichnis")
+    out = blocker / "vision-verdikte.json"
+
+    rc = vc.main(["--screenshots-dir", str(shots), "--output", str(out)])
+
+    assert rc == 0
+    assert not out.exists()
+    assert "nicht schreibbar" in capsys.readouterr().out
+
+
+def test_write_verdicts_reports_success(tmp_path: Path) -> None:
+    out = tmp_path / "neu" / "vision-verdikte.json"
+    assert vc.write_verdicts(out, []) is True
+    assert json.loads(out.read_text(encoding="utf-8")) == {"verdikte": []}

@@ -12,6 +12,10 @@ das die interaktiven Claude-Workflows aktiviert (#656).
 Matrix (#646, ``abnahme_aggregate.py``) sichtbar, die Go-/No-Go-Entscheidung
 bleibt beim Menschen.
 
+Der Vertrag gilt bis einschliesslich der Ausgabe (#817): Ein fehlendes
+Screenshot-Verzeichnis und ein nicht angelegtes Zielverzeichnis sind erwartbare
+Folgen einer abgebrochenen Vorphase und duerfen den Lauf nicht abbrechen.
+
 Der eigentliche API-Aufruf ist in ``_default_vision_fn`` isoliert (nicht im
 CI-Test ausführbar); die Katalog-/Verdikt-/Fail-safe-Logik ist über eine
 injizierbare ``vision_fn`` Qt-frei getestet.
@@ -162,6 +166,12 @@ def scan_and_evaluate(
     from pathlib import Path as _Path
 
     root = _Path(screenshots_dir)
+    if not root.is_dir():
+        # Bricht eine vorgelagerte Phase ab, fehlt das Evidenzverzeichnis ganz -
+        # dann gibt es schlicht nichts zu bewerten (#817). Explizit geprueft,
+        # damit das Verhalten nicht nur zufaellig aus der Toleranz von ``rglob``
+        # gegenueber fehlenden Pfaden folgt.
+        return []
     verdicts: list[dict[str, str]] = []
     for path in sorted(root.rglob("*.png")) + sorted(root.rglob("*.jpg")):
         if not criteria_for(path.name):
@@ -178,6 +188,29 @@ def scan_and_evaluate(
     return verdicts
 
 
+def write_verdicts(output: Path, verdicts: list[dict[str, str]]) -> bool:
+    """Verdikte nach *output* schreiben; meldet den Erfolg, wirft aber nie (#817).
+
+    Das Zielverzeichnis wird mit angelegt: Bricht eine vorgelagerte Phase ab,
+    existiert das Evidenzverzeichnis nicht, und ``write_text`` scheiterte bis
+    #817 mit ``FileNotFoundError`` - beobachtet im Abnahme-Lauf 32036618118,
+    wo dieser Absturz die Abschlussmatrix mitriss und den Fehlversuch damit
+    unsichtbar machte. Auch ein danach noch fehlschlagender Schreibversuch
+    bleibt nicht-blockierend, weil ``abnahme_aggregate.load_vision`` eine
+    fehlende Datei bereits als leere Verdiktliste vertraegt.
+    """
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps({"verdikte": verdicts}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:  # fail-safe: Ausgabefehler brechen die Abnahme nicht ab
+        print(f"Vision: Verdikte nicht schreibbar ({type(exc).__name__}) - {output}")
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
     from pathlib import Path as _Path
@@ -188,13 +221,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="Ziel-JSON mit den Verdikten (vision-verdikte.json).")
     args = parser.parse_args(argv)
 
+    if not args.screenshots_dir.is_dir():
+        # Sichtbar machen, warum null Kriterien herauskommen (#817).
+        print(f"Vision: kein Evidenzverzeichnis unter {args.screenshots_dir} - "
+              "keine Screenshots zu bewerten.")
     verdicts = scan_and_evaluate(args.screenshots_dir)
-    args.output.write_text(
-        json.dumps({"verdikte": verdicts}, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    written = write_verdicts(args.output, verdicts)
     rated = sum(1 for v in verdicts if v["verdict"] != "unbewertet")
-    print(f"Vision: {len(verdicts)} Kriterien, {rated} bewertet → {args.output}")
+    ziel = args.output if written else "(nicht geschrieben)"
+    print(f"Vision: {len(verdicts)} Kriterien, {rated} bewertet → {ziel}")
     return 0
 
 
