@@ -72,9 +72,20 @@ für diese Aufrufe.
 
 ### Voraussetzung
 
-Nur **ein** Repo-Secret nötig: **`ANTHROPIC_API_KEY`** (Settings → *Secrets and
-variables* → *Actions*). Fehlt es, überspringen sich beide Workflows sauber –
-ohne roten Lauf.
+Nur **ein** Repo-Secret nötig: **`CLAUDE_CODE_OAUTH_TOKEN`** (Settings →
+*Secrets and variables* → *Actions*). Das Token erzeugt man lokal mit
+`claude setup-token`; die Läufe rechnen damit über das Claude-Abo
+(Pro/Max/Team/Enterprise) statt über eine API-Abrechnung. Fehlt das Secret,
+überspringen sich beide Workflows sauber – ohne roten Lauf.
+
+Zwei Eigenheiten dieses Wegs: Das Token hängt am Abo der Person, die
+`claude setup-token` ausgeführt hat (für ein org-weit geteiltes Secret ist ein
+API-Key aus der [Claude Console](https://console.anthropic.com) der bessere
+Weg), und es ist langlebig, aber nicht unbegrenzt gültig – läuft es ab, melden
+die Workflows einen Authentifizierungsfehler und ein neues Token muss ins
+Secret. Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY`
+und ersetzt in beiden Workflows das Input `claude_code_oauth_token` durch
+`anthropic_api_key` (plus die zugehörige `HAS_CLAUDE_TOKEN`-Prüfung).
 
 Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
 `GITHUB_TOKEN` durch (`github_token: ${{ secrets.GITHUB_TOKEN }}`), damit die

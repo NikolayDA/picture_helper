@@ -6,9 +6,12 @@ name: Claude Code
 # die konkrete Aufgabe wird direkt in der Erwähnung beschrieben, z. B.
 # "@claude fixe den fehlschlagenden Test in tests/test_height_ops.py".
 #
-# Voraussetzung: Ein Repo-Secret ANTHROPIC_API_KEY (Settings → Secrets and
-# variables → Actions). Alternativ CLAUDE_CODE_OAUTH_TOKEN – dann unten das
-# Input entsprechend ersetzen. Ohne Secret wird der Claude-Schritt sauber
+# Voraussetzung: Ein Repo-Secret CLAUDE_CODE_OAUTH_TOKEN (Settings → Secrets
+# and variables → Actions), lokal erzeugt mit `claude setup-token`. Der Lauf
+# rechnet damit über das Claude-Abo (Pro/Max/Team/Enterprise) statt über eine
+# API-Abrechnung; das Token hängt am Abo der Person, die es erzeugt hat.
+# Alternativ ANTHROPIC_API_KEY – dann unten wieder das Input
+# `anthropic_api_key` einsetzen. Ohne Secret wird der Claude-Schritt sauber
 # übersprungen (kein roter Lauf).
 
 on:
@@ -42,7 +45,7 @@ jobs:
       id-token: write
       actions: read  # Damit Claude CI-Ergebnisse auf PRs lesen kann.
     env:
-      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -50,18 +53,19 @@ jobs:
           fetch-depth: 1
 
       - name: Hinweis bei fehlendem Secret
-        if: env.HAS_ANTHROPIC_KEY != 'true'
+        if: env.HAS_CLAUDE_TOKEN != 'true'
         run: |
-          echo "::warning::ANTHROPIC_API_KEY ist nicht gesetzt – Claude-Schritt übersprungen. \
-          Secret unter Settings → Secrets and variables → Actions ergänzen."
+          echo "::warning::CLAUDE_CODE_OAUTH_TOKEN ist nicht gesetzt – Claude-Schritt \
+          übersprungen. Token lokal mit 'claude setup-token' erzeugen und unter \
+          Settings → Secrets and variables → Actions ergänzen."
 
       - name: Run Claude Code
-        if: env.HAS_ANTHROPIC_KEY == 'true'
+        if: env.HAS_CLAUDE_TOKEN == 'true'
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Standard-GITHUB_TOKEN statt der Claude-GitHub-App – so genügt als
-          # Secret ANTHROPIC_API_KEY. Hinweis: Commits, die Claude damit pusht,
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Standard-GITHUB_TOKEN statt der Claude-GitHub-App – so genügt das
+          # Abo-Token als einziges Secret. Hinweis: Commits, die Claude damit pusht,
           # lösen keine nachgelagerten Workflows aus (GITHUB_TOKEN-Limit). Wer
           # das braucht, installiert die Claude-GitHub-App und entfernt diese
           # Zeile (siehe .github/agents/README.md).
