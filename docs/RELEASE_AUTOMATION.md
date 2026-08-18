@@ -207,7 +207,10 @@ aus dem Source-Checkout).
 Nach den Plattform-Jobs läuft (außer bei `dry_run`) der **Aggregations-Job**
 (#646): Er lädt alle `abnahme-*`-Artefakte, bewertet aufgefundene Screenshots
 über die Claude-Vision-API vor (`abnahme_vision_check.py`, fail-safe – ohne
-`ANTHROPIC_VISION_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie),
+`ANTHROPIC_VISION_API_KEY` bleibt jedes Kriterium `unbewertet` und blockiert nie;
+seit #817 gilt das auch für die Ausgabe: fehlt das Evidenzverzeichnis, weil eine
+Plattform-Phase abgebrochen ist, wird das Zielverzeichnis angelegt und eine leere
+Verdiktliste geschrieben, statt den Aggregations-Job mitzureißen),
 installiert dafür das gepinnte SDK in einem eigenen kurzlebigen venv (auch ein
 Installationsfehler bleibt fail-safe und verhindert die Matrix nicht),
 erzeugt daraus die **Abschlussmatrix** (`abnahme_aggregate.py`: je Kriterium

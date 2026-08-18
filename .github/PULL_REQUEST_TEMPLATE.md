@@ -7,7 +7,16 @@ und CLAUDE.md). Keine Secrets/Tokens/internen Hosts eintragen.
 
 <!-- Was ändert dieser PR und warum? -->
 
-Löst #
+<!--
+Nur die englischen Schlüsselwörter schließen ein Issue automatisch:
+`Closes #123` / `Fixes #123` / `Resolves #123`. Ein deutsches „Löst #123"
+wertet GitHub NICHT aus – bei PR #812 blieben dadurch sieben umgesetzte
+Issues (#805–#811) nach dem Merge offen und mussten von Hand nachgezogen
+werden (#817-Runde). Schließt der PR kein Issue, die Zeile durch einen
+reinen Verweis ersetzen, z. B. „Bezug: #123".
+-->
+
+Closes #
 
 ## Standard-Gate
 
