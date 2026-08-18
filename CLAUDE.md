@@ -510,8 +510,13 @@ Ein Paket, `bgremover/`:
   Sprachfassungen synchron. Eine separat deklarierte Anzahl offener Issues
   gibt es seit #821 (Stufe 1) nicht mehr – sie war gegenüber dem
   Mengenvergleich redundant und musste dafür sechsfach gepflegt werden; der
-  Live-Check leitet die Zahl aus der Tabelle ab (Details in
-  [`TESTING.md`](TESTING.md)).
+  Live-Check leitet die Zahl aus der Tabelle ab. Mit `--write` schreibt
+  dasselbe Skript die Tabellen aller sechs Fassungen aus dem Live-Stand fort
+  (#821, Stufe 2): Nummer und Titel kommen aus der API, die redaktionellen
+  Spalten bleiben Handarbeit und tragen bis dahin `TODO`; bestehende Zeilen
+  werden nie verändert. `TRIAGE_SECTION_PATTERNS`/`RECOMMENDATION_DOCS` im
+  Skript sind die einzige Quelle der Sprachanker und Pfade – die Tests lesen
+  sie von dort (Details in [`TESTING.md`](TESTING.md)).
 
 ## CI-Automatisierung
 

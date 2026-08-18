@@ -32,13 +32,10 @@ from scripts import verify_release_freeze as vrf
 
 ROOT = Path(__file__).resolve().parent.parent
 
+#: Pfade ebenfalls aus dem Skript, damit eine neue Sprachfassung nur an einer
+#: Stelle eingetragen werden muss (#821).
 RECOMMENDATION_DOCS = {
-    "de": ROOT / "RECOMMENDATIONS.md",
-    "en": ROOT / "docs/i18n/en/RECOMMENDATIONS.md",
-    "es": ROOT / "docs/i18n/es/RECOMMENDATIONS.md",
-    "fr": ROOT / "docs/i18n/fr/RECOMMENDATIONS.md",
-    "uk": ROOT / "docs/i18n/uk/RECOMMENDATIONS.md",
-    "zh": ROOT / "docs/i18n/zh/RECOMMENDATIONS.md",
+    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
 }
 
 #: Anker für die Kurzstatus-Überschrift je Sprache; Gruppe 1 ist das Datum.
@@ -54,18 +51,10 @@ _STATUS_HEADER_RE = {
     "zh": re.compile(r"^## 当前状态（(\d{4}-\d{2}-\d{2})", re.MULTILINE),
 }
 
-#: Anker für den Beginn des Triage-Abschnitts je Sprache; endet vor der
-#: nächsten Überschrift zweiter Ordnung (dasselbe Muster wie
-#: ``recommendations_live_check._TRIAGE_SECTION_RE``, nur je Sprache verdrahtet
-#: statt fest auf die deutsche Überschrift beschränkt).
-_TRIAGE_SECTION_RE = {
-    "de": re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)"),
-    "en": re.compile(r"(?ms)^## Open GitHub Issues.*?(?=^## |\Z)"),
-    "es": re.compile(r"(?ms)^## Incidencias abiertas de GitHub.*?(?=^## |\Z)"),
-    "fr": re.compile(r"(?ms)^## Tickets GitHub ouverts.*?(?=^## |\Z)"),
-    "uk": re.compile(r"(?ms)^## Відкриті задачі GitHub.*?(?=^## |\Z)"),
-    "zh": re.compile(r"(?ms)^## GitHub 未结议题.*?(?=^## |\Z)"),
-}
+#: Die Triage-Anker leben seit #821 in ``recommendations_live_check`` und
+#: werden hier nur noch referenziert - eine zweite Kopie waere genau die Art
+#: Drift, die diese Datei verhindern soll.
+_TRIAGE_SECTION_RE = lc.TRIAGE_SECTION_PATTERNS
 
 
 def _pyproject_version() -> str:
@@ -218,3 +207,20 @@ def test_triage_issue_set_drift_with_equal_row_count_is_detected(tmp_path: Path)
     issue_sets = _triage_issue_numbers(docs)
     assert len({len(numbers) for numbers in issue_sets.values()}) == 1
     assert issue_sets["es"] != issue_sets["de"]
+
+
+def test_no_language_version_keeps_an_unrated_placeholder() -> None:
+    """Generierte Zeilen muessen vor dem Merge bewertet werden (#821, Stufe 2).
+
+    ``recommendations_live_check.py --write`` traegt Nummer und Titel aus der
+    API ein und setzt in den redaktionellen Spalten ``TODO``. Diese Bewertung
+    ist Handarbeit; ein unausgefuellter Platzhalter soll hier auffallen und
+    nicht erst im taeglichen Live-Lauf - und zwar in **allen sechs**
+    Fassungen, waehrend der Live-Check nur das deutsche Original prueft.
+    """
+    unrated = {}
+    for lang, path in RECOMMENDATION_DOCS.items():
+        numbers = lc.unrated_issue_numbers(path.read_text(encoding="utf-8"), lang=lang)
+        if numbers:
+            unrated[lang] = numbers
+    assert not unrated, f"Unbewertete Triage-Zeilen (Platzhalter {lc.UNRATED_PLACEHOLDER}): {unrated}"

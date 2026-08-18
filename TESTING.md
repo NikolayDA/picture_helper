@@ -234,6 +234,19 @@ netzfreien Paritätstest noch vom Live-Check angefasst – nur der Kurzstatus
 („## Aktueller Stand") und die Triage-Tabelle darunter müssen den aktuellen
 GitHub-Stand widerspiegeln.
 
+- **Schreibmodus (#821, Stufe 2):** `python scripts/recommendations_live_check.py --write`
+  schreibt die Triage-Tabellen **aller sechs** Sprachfassungen auf den
+  Live-Stand fort: Zeilen geschlossener Issues entfallen, neu offene Issues
+  bekommen eine Zeile mit Nummer und Titel aus der API sowie `TODO` in den
+  redaktionellen Spalten. Bestehende Zeilen bleiben wortgleich und in ihrer
+  Reihenfolge – Relevanz, Komplexität, Modell und „Nächster Schritt" sind
+  Handarbeit, ebenso die Übersetzung des Titels. Der Lauf endet mit Exit 1,
+  solange ein `TODO` offen ist; `tests/test_recommendations_freeze_consistency.py`
+  prüft dasselbe netzfrei für alle sechs Fassungen, damit ein unbewerteter
+  Platzhalter nicht gemergt wird. Das Werkzeug läuft bewusst **lokal**, sein
+  Ergebnis geht wie jede andere Änderung durch einen PR – der CI-Check bleibt
+  read-only.
+
 - **Automatisiert, wiederkehrend (#777):** `recommendations-live-check.yml`
   führt genau diesen Live-Check ohne menschliches Zutun aus – täglich
   (06:30 UTC), zusätzlich bei jedem `issues`-Ereignis (opened/closed/

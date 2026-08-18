@@ -225,3 +225,119 @@ def test_live_workflow_keeps_actionable_report_on_failure() -> None:
     assert "actions/upload-artifact@v7" in workflow
     assert "Owner: Repository-Owner" in workflow
     assert "innerhalb eines Arbeitstags" in workflow
+
+
+# ── Schreibmodus: Triage-Tabelle fortschreiben (#821, Stufe 2) ─────────────
+
+
+def _table(*rows: str) -> str:
+    """Ein Triage-Abschnitt mit sechsspaltigem Kopf und *rows* als Datenzeilen."""
+    head = (
+        "## Offene GitHub-Issues – Triage-Stand (2026-08-01)\n\n"
+        "| # | Titel | Relevanz | Komplexität | Modell | Nächster Schritt |\n"
+        "|---|-------|----------|-------------|--------|------------------|\n"
+    )
+    return head + "".join(f"{row}\n" for row in rows) + "\n### Als Nächstes\n\n1. Nichts.\n"
+
+
+def _rated(number: int, note: str = "Bewertung") -> str:
+    return f"| {_link(number)} | Titel {number} | 🟠 Hoch | 🟡 Mittel | Opus | {note} |"
+
+
+def test_update_triage_table_keeps_rated_rows_verbatim() -> None:
+    """Bestehende Zeilen bleiben wortgleich - Bewertungen sind Handarbeit."""
+    row = _rated(741, "Sehr spezifischer nächster Schritt")
+    section = _table(row)
+    updated = lc.update_triage_table(section, [lc.OpenIssue(741, "Ganz anderer Titel")])
+    assert row in updated
+    assert "Ganz anderer Titel" not in updated
+
+
+def test_update_triage_table_drops_row_of_closed_issue() -> None:
+    section = _table(_rated(741), _rated(748))
+    updated = lc.update_triage_table(section, [lc.OpenIssue(741, "Epic")])
+    assert _link(741) in updated
+    assert _link(748) not in updated
+
+
+def test_update_triage_table_appends_unrated_row_for_new_issue() -> None:
+    section = _table(_rated(741))
+    updated = lc.update_triage_table(section, [lc.OpenIssue(741, "Epic"), lc.OpenIssue(999, "Neu")])
+    assert f"| {_link(999)} | Neu | TODO | TODO | TODO | TODO |" in updated
+
+
+def test_update_triage_table_preserves_existing_order_and_appends_at_end() -> None:
+    """Die Reihenfolge ist thematisch gruppiert, nicht sortiert - nie umsortieren."""
+    section = _table(_rated(748), _rated(741))
+    updated = lc.update_triage_table(
+        section, [lc.OpenIssue(741, "Epic"), lc.OpenIssue(748, "Update"), lc.OpenIssue(300, "Neu")]
+    )
+    positions = [updated.index(_link(n)) for n in (748, 741, 300)]
+    assert positions == sorted(positions)
+
+
+def test_update_triage_table_is_idempotent() -> None:
+    section = _table(_rated(741))
+    issues = [lc.OpenIssue(741, "Epic"), lc.OpenIssue(999, "Neu")]
+    once = lc.update_triage_table(section, issues)
+    assert lc.update_triage_table(once, issues) == once
+
+
+def test_update_triage_table_keeps_grouped_row_while_one_issue_stays_open() -> None:
+    """Eine Zeile mit mehreren Issues bleibt, solange eines davon offen ist."""
+    grouped = f"| {_link(680)} / {_link(685)} | Sammelzeile | 🟢 | 🟢 | – | offen |"
+    section = _table(grouped)
+    updated = lc.update_triage_table(section, [lc.OpenIssue(685, "Noch offen")])
+    assert grouped in updated
+
+
+def test_render_triage_row_escapes_pipe_in_title() -> None:
+    """Ein Pipe im Titel darf die Tabellenstruktur nicht zerlegen."""
+    row = lc.render_triage_row(lc.OpenIssue(999, "a | b"), columns=6)
+    assert row.count("|") == 7 + 1  # 7 Trenner der 6 Spalten + das maskierte Pipe
+    assert r"a \| b" in row
+
+
+def test_update_markdown_leaves_surrounding_sections_untouched() -> None:
+    markdown = (
+        "## Aktueller Stand (2026-08-01, Test)\n\nKurzstatus bleibt.\n\n"
+        + _table(_rated(741))
+        + "\n## Vorige Runden\n\n- Archiv bleibt.\n"
+    )
+    updated = lc.update_markdown(markdown, [lc.OpenIssue(741, "Epic")])
+    assert "Kurzstatus bleibt." in updated
+    assert "- Archiv bleibt." in updated
+    assert "### Als Nächstes" in updated
+
+
+def test_unrated_issue_numbers_finds_generated_rows() -> None:
+    markdown = _table(_rated(741), lc.render_triage_row(lc.OpenIssue(999, "Neu"), columns=6))
+    assert lc.unrated_issue_numbers(markdown) == (999,)
+
+
+def test_unrated_issue_numbers_ignores_todo_inside_prose() -> None:
+    """Nur eine Zelle, die exakt der Marker ist, gilt als unbewertet."""
+    row = _rated(741, "Noch TODO: Messwerte nachtragen")
+    assert lc.unrated_issue_numbers(_table(row)) == ()
+
+
+def test_update_triage_table_rejects_interrupted_table() -> None:
+    section = (
+        "## Offene GitHub-Issues – Triage-Stand (2026-08-01)\n\n"
+        "| # | Titel |\n|---|-------|\n"
+        f"{_rated(741)}\nFremdzeile mittendrin\n{_rated(748)}\n"
+    )
+    with pytest.raises(lc.LiveCheckError, match="unterbrochen"):
+        lc.update_triage_table(section, [lc.OpenIssue(741, "Epic")])
+
+
+def test_extract_triage_section_rejects_unknown_language() -> None:
+    with pytest.raises(lc.LiveCheckError, match="Unbekannte Sprachfassung"):
+        lc.extract_triage_section(_table(_rated(741)), lang="xx")
+
+
+def test_extract_triage_section_works_for_every_shipped_language() -> None:
+    """Jede der sechs Fassungen muss mit ihrem eigenen Anker parsebar sein."""
+    for lang, relative in lc.RECOMMENDATION_DOCS.items():
+        markdown = (ROOT / relative).read_text(encoding="utf-8")
+        assert lc.issue_numbers_in_first_column(lc.extract_triage_section(markdown, lang)), lang
