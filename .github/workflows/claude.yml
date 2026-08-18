@@ -73,5 +73,14 @@ jobs:
           trigger_phrase: "@claude"
           # Projektkontext (make check als Gate, Konventionen, N6-Drift) liest
           # Claude Code automatisch aus CLAUDE.md im Repo-Root.
+          # Achtung: `claude_args` ist ein Block-Skalar – jede Zeile darin geht
+          # als CLI-Argument an Claude Code. Erklärungen gehören deshalb hier
+          # herauf, nicht zwischen die Argumente.
+          # --model: dasselbe Modell wie im Review-Workflow. Dieser Agent
+          # schreibt Code, das nur lesende Review liefe sonst auf dem stärkeren
+          # Modell als der schreibende Teil. Fest benannt statt Alias `opus` –
+          # dafür wandert die Zeile nicht mit: Bei Modell-/Auth-Fehlern in
+          # diesem Job zuerst hier schauen.
           claude_args: |
             --max-turns 25
+            --model claude-opus-5

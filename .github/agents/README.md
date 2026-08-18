@@ -87,8 +87,8 @@ Drei Eigenheiten dieses Wegs:
    jedem `opened`/`synchronize`, der On-Demand-Agent bei jeder
    `@claude`-Erwähnung. Ist das Limit erschöpft, wird der Lauf **rot** – das
    saubere Überspringen oben gilt ausdrücklich nur für ein *fehlendes* Secret.
-   Dasselbe gilt für ein Modell, das die Abo-Stufe nicht hergibt (der
-   Review-Workflow pinnt `claude-opus-5`).
+   Dasselbe gilt für ein Modell, das die Abo-Stufe nicht hergibt – beide
+   Workflows pinnen `claude-opus-5`.
 3. **Es gilt ein Jahr** ab Erzeugung. Läuft es ab, melden die Workflows einen
    Authentifizierungsfehler; dann ein neues Token erzeugen und das Secret
    überschreiben.
