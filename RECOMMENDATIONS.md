@@ -11,15 +11,15 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-17, v2.8.0 veröffentlicht, Nach-Release-Pflege)
+## Aktueller Stand (2026-08-18, v2.8.0 veröffentlicht, Triage-Pflege automatisiert)
 
 **v2.8.0 veröffentlicht:** PR #813 (Versionsschnitt 2.8.0) und die Fixes #814–#816 sind gemergt; der Kandidat (Commit `1bf95b0`) bestand die volle macOS-/Linux-arm64-Hardware-Abnahme (Lauf 32031258773, 2026-08-17, alle Kriterien erfüllt, Vision 6✓) und wurde um 13:17 UTC über `release-publish.yml` mit den fünf manifestgebundenen Artefakten veröffentlicht (Tag `v2.8.0`). Damit ist der bisher letzte offene #741-Nachweis erbracht, dass Azimut-, Elevations- und Qualitätsregler im nativen 3D-Screenshot sichtbar sind. Feature dieses Minor-Release ist Epic #805 (Standard-/Experten-Umschalter im Karten-Inspector, PR #812).
 
 **Nach-Release-Pflege 2026-08-17:** Epic #805 und die Teil-Issues #806–#811 blieben nach dem Merge von PR #812 fälschlich offen (das deutsche „Löst" ist kein GitHub-Schlüsselwort für Auto-Close) und wurden manuell nachgeschlossen. Der Post-Publish-Einzelplattform-Nachlauf (`UPDATE-01`, Lauf 32036618118) scheiterte dreimal an Runner-Infrastruktur (HTTP 429 beim Action-Download auf dem Raspberry Pi); der vierte Anlauf lief am 2026-08-17 um 16:54 UTC grün (alle Linux-aarch64-Kriterien erfüllt, Matrix nach #741 gepostet) – damit lagen alle DoD-Nachweise von Epic #741 vor, und der Repository-Owner hat es am 2026-08-17 mit dokumentierter Go-Entscheidung geschlossen. Der Fehlversuch deckte zusätzlich #817 auf: `abnahme_vision_check.py` verletzte bei fehlender Evidenz seinen Fail-safe-Vertrag (FileNotFoundError statt „unbewertet"), wodurch auch die Abschlussmatrix nicht nach #741 gepostet wurde – behoben mit PR #819 (Zielverzeichnis wird angelegt, Schreibfehler bleiben nicht-blockierend, fünf Regressionstests). Derselbe PR stellt die PR-Vorlage von „Löst #" auf `Closes #` um, damit die Auto-Close-Lücke nicht erneut auftritt.
 
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Neu abgeschlossen: **Epic #741** (Beweiskette bis zu den veröffentlichten Bytes, mit v2.8.0 vollständig belegt), **Epic #805** mit #806–#811 und **#817** (Fail-safe-Härtung der Vision-Vorbewertung, PR #819). Kein 🔴-Befund offen.
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Neu abgeschlossen: **Epic #741** (Beweiskette bis zu den veröffentlichten Bytes, mit v2.8.0 vollständig belegt), **Epic #805** mit #806–#811, **#817** (Fail-safe-Härtung der Vision-Vorbewertung, PR #819) und **#821** (Triage-Pflege aus dem Live-Stand, beide Stufen mit PR #823). Kein 🔴-Befund offen.
 
-Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Eine zusätzliche Zahl wird seit #821 (Stufe 1) nicht mehr gepflegt – der Live-Check leitet sie aus der Tabelle ab, statt sie in sechs Sprachfassungen gegenzulesen. #805–#811, Epic #741 und #817 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #821.
+Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit. #805–#811, Epic #741, #817 und #821 sind geschlossen und aus der aktiven Triage entfernt.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-17)
 
@@ -37,7 +37,6 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Eine zusätzli
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
-| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Recommendations-Triage aus dem GitHub-Live-Stand generieren | 🟢 Niedrig (Prozesskosten, kein Produktfehler) | 🟡 Mittel (Stufe 1 klein; Stufe 2 braucht Sprach-Map und Platzhalter-Regel) | Sonnet, mittel | Startbereit – zuerst Stufe 1 (deklarierte Zahl ableiten), Stufe 2 danach entscheiden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 
 ### Als Nächstes empfohlen
@@ -45,8 +44,6 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Eine zusätzli
 1. **#687** als erstes EufyMake-Teil-Issue anstoßen (Formatfrage zuerst) – es ist der einzige
    startbereite Punkt der EufyMake-Kette, #688–#691 warten darauf.
 2. **#692** (ADR) ist parallel startbereit und öffnet den COLOR-Epic #682.
-3. **#821** – Stufe 1 (die deklarierte Zahl aus der Tabelle ableiten) ist klein und beendet den
-   häufigsten Driftfall; Stufe 2 ist bewusst als Entscheidung offen gehalten.
 
 ## Vorige Runden
 
