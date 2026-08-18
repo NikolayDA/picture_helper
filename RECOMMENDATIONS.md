@@ -19,7 +19,7 @@
 
 Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0/v2.7.1/v2.7.2/v2.7.3 sowie die ursprünglichen elf Teil-Issues von Epic #741, die zugehörigen Release-Protokoll-Issues #680/#685/#686/#758, #781 (Vision-Verdikt-Persistenz, Fix #788) und die Sicherheitsbefunde #762 (🟠 HIGH-CVSS, dokumentierte Risikoakzeptanz) und #769 (🟡 MEDIUM-CVSS, per Code-Fix geschlossen, mit v2.7.3 veröffentlicht) sowie #777 (Recommendations-Live-Check jetzt per CI automatisiert, siehe oben). Neu abgeschlossen: **Epic #741** (Beweiskette bis zu den veröffentlichten Bytes, mit v2.8.0 vollständig belegt), **Epic #805** mit #806–#811 und **#817** (Fail-safe-Härtung der Vision-Vorbewertung, PR #819). Kein 🔴-Befund offen.
 
-Live-Stand nach GitHub-Abfrage: **13** offene Issues. #805–#811, Epic #741 und #817 sind geschlossen und aus der aktiven Triage entfernt.
+Live-Stand nach GitHub-Abfrage: **14** offene Issues. #805–#811, Epic #741 und #817 sind geschlossen und aus der aktiven Triage entfernt; neu hinzugekommen ist #821.
 
 ## Offene GitHub-Issues – Triage-Stand (2026-08-17)
 
@@ -37,6 +37,7 @@ Live-Stand nach GitHub-Abfrage: **13** offene Issues. #805–#811, Epic #741 und
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Live-Vorschau + Bedienoberfläche Histogramm/Levels/Gamma | 🟡 Mittel | 🟡 Mittel-Hoch (Qt-UI, Debounce/Generation-Schutz analog Höhen-Vorschau) | Sonnet, hoch | Blocked – wartet auf Kern #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Ebenen-/Auswahl-/History-/Projektintegration | 🟡 Mittel | 🟠 Hoch (viele Zustandsübergänge: Undo/Redo, Auswahl, Dirty-State) | Opus, hoch | Blocked – wartet auf #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
+| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Recommendations-Triage aus dem GitHub-Live-Stand generieren | 🟢 Niedrig (Prozesskosten, kein Produktfehler) | 🟡 Mittel (Stufe 1 klein; Stufe 2 braucht Sprach-Map und Platzhalter-Regel) | Sonnet, mittel | Startbereit – zuerst Stufe 1 (deklarierte Zahl ableiten), Stufe 2 danach entscheiden |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 
 ### Als Nächstes empfohlen
@@ -44,6 +45,8 @@ Live-Stand nach GitHub-Abfrage: **13** offene Issues. #805–#811, Epic #741 und
 1. **#687** als erstes EufyMake-Teil-Issue anstoßen (Formatfrage zuerst) – es ist der einzige
    startbereite Punkt der EufyMake-Kette, #688–#691 warten darauf.
 2. **#692** (ADR) ist parallel startbereit und öffnet den COLOR-Epic #682.
+3. **#821** – Stufe 1 (die deklarierte Zahl aus der Tabelle ableiten) ist klein und beendet den
+   häufigsten Driftfall; Stufe 2 ist bewusst als Entscheidung offen gehalten.
 
 ## Vorige Runden
 

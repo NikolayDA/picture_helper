@@ -19,7 +19,7 @@
 
 Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0/v2.7.1/v2.7.2/v2.7.3, ainsi que les onze tickets enfants d'origine de l'épopée #741, les tickets de protocole de release associés #680/#685/#686/#758, #781 (persistance du verdict vision, corrigé via #788) et les constats de sécurité #762 (🟠 CVSS ÉLEVÉ, risque accepté et documenté) et #769 (🟡 CVSS MOYEN, fermé par un correctif de code, désormais publié via v2.7.3), ainsi que #777 (vérificateur en direct des Recommendations désormais automatisé par CI, voir ci-dessus). Nouvellement terminées : l'**épopée #741** (chaîne de preuve jusqu'aux octets publiés, entièrement démontrée avec v2.8.0), l'**épopée #805** avec #806–#811 et **#817** (durcissement fail-safe de la pré-évaluation vision, PR #819). Aucun constat 🔴 ouvert.
 
-État en direct après la requête GitHub : **13** tickets ouverts. #805–#811, l'épopée #741 et #817 sont fermés et retirés du triage actif.
+État en direct après la requête GitHub : **14** tickets ouverts. #805–#811, l'épopée #741 et #817 sont fermés et retirés du triage actif ; #821 est nouveau.
 
 ## Tickets GitHub ouverts — Triage (2026-08-17)
 
@@ -37,6 +37,7 @@ Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est ter
 | [#694](https://github.com/NikolayDA/picture_helper/issues/694) | Aperçu en direct + interface pour histogramme/niveaux/gamma | 🟡 Moyenne | 🟡 Moyenne-élevée (UI Qt, garde debounce/génération comme l'aperçu de hauteur) | Sonnet, élevé | Bloqué – attend le noyau #693 |
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Intégration calques/sélection/historique/projet | 🟡 Moyenne | 🟠 Élevée (nombreuses transitions d'état : annuler/rétablir, sélection, état modifié) | Opus, élevé | Bloqué – attend #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Recette performance/E2E/documentation/interface laser | 🟡 Moyenne (gate de clôture, pas une nouvelle fonctionnalité) | 🟠 Élevée (suite de benchmarks, E2E, documentation, contrat d'adaptateur) | Opus, élevé | Bloqué – ticket de clôture après #695 |
+| [#821](https://github.com/NikolayDA/picture_helper/issues/821) | Générer le triage des Recommendations depuis l'état en direct GitHub | 🟢 Faible (coût de processus, pas un défaut produit) | 🟡 Moyenne (l'étape 1 est petite ; l'étape 2 demande une carte des langues et une règle de gabarit) | Sonnet, moyen | Prêt à démarrer – d'abord l'étape 1 (dériver le compte déclaré), décider ensuite de l'étape 2 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 
 ### Recommandé ensuite
@@ -44,6 +45,8 @@ Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est ter
 1. Lancer **#687** comme premier sous-ticket EufyMake (la question de format d'abord) : c'est
    le seul point prêt de la chaîne EufyMake, #688–#691 en dépendent.
 2. **#692** (ADR) peut démarrer en parallèle et ouvre l'épopée COLOR #682.
+3. **#821** – l'étape 1 (dériver le compte déclaré depuis le tableau) est petite et met fin au
+   cas de dérive le plus fréquent ; l'étape 2 reste volontairement une décision ouverte.
 
 ## Tours précédents
 
