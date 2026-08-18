@@ -83,8 +83,10 @@ Zwei Eigenheiten dieses Wegs: Das Token hängt am Abo der Person, die
 API-Key aus der [Claude Console](https://console.anthropic.com) der bessere
 Weg), und es gilt **ein Jahr** ab Erzeugung – läuft es ab, melden die
 Workflows einen Authentifizierungsfehler (kein stilles Überspringen, das
-greift nur bei fehlendem Secret) und ein neues Token muss ins Secret. Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY`
-und ersetzt in beiden Workflows das Input `claude_code_oauth_token` durch
+greift nur bei fehlendem Secret) und ein neues Token muss ins Secret.
+
+Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY` und
+ersetzt in beiden Workflows das Input `claude_code_oauth_token` durch
 `anthropic_api_key` (plus die zugehörige `HAS_CLAUDE_TOKEN`-Prüfung).
 
 Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
