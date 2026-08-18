@@ -9,8 +9,14 @@ GitHub-Issues und meldet:
 
 - offene Issues, die in der Tabelle fehlen,
 - Issues, die die Tabelle als offen fuehrt, obwohl sie auf GitHub bereits
-  geschlossen sind,
-- eine von der im Kurzstatus genannten Zahl abweichende Gesamtzahl.
+  geschlossen sind.
+
+Die Anzahl offener Issues wird **abgeleitet**, nicht deklariert (#821,
+Stufe 1): Frueher nannte der Kurzstatus sie zusaetzlich als eigene Zahl, die
+in sechs Sprachfassungen von Hand gepflegt werden musste. Sie war gegenueber
+dem Mengenvergleich redundant - stimmen die Mengen ueberein, stimmen auch die
+Anzahlen - und driftete regelmaessig gegen die Tabelle (#669, #728, #752,
+#777). Der Bericht nennt die Anzahl weiterhin, liest sie aber aus der Tabelle.
 
 Nur die Zeilen des Triage-Abschnitts zaehlen; das Archiv ``## Vorige Runden``
 ist bewusst historisch und wird nicht geprueft (siehe TESTING.md). Referenziert
@@ -20,8 +26,17 @@ gruppierte Zeilen wie ``[#680](...) / [#685](...) / [#686](...)`` korrekt in
 drei Nummern auf, ohne PR-Erwaehnungen oder Zahlen-Ranges in Fliesstext
 ("#742-#747") faelschlich als Issue-Referenz zu werten.
 
-Die Kernlogik (``parse_triage_issue_numbers``, ``parse_declared_open_count``,
-``open_issues_from_api_payload``, ``compare``) ist rein und netzfrei; nur
+Mit ``--write`` schreibt dasselbe Werkzeug den Bestand zurueck (#821, Stufe 2):
+Zeilen geschlossener Issues entfallen, neu offene Issues bekommen eine Zeile mit
+Nummer und Titel aus der API sowie ``TODO`` in den redaktionellen Spalten.
+Bestehende Zeilen werden **nie** veraendert - Relevanz, Komplexitaet, Modell und
+"Naechster Schritt" sind die eigentliche redaktionelle Leistung, die kein
+Generator ersetzt, und Spalte 2 bleibt unangetastet, damit handgepflegte
+Uebersetzungen erhalten bleiben. Auch die Reihenfolge bleibt erhalten (sie ist
+thematisch gruppiert, nicht sortiert); neue Zeilen haengen hinten an.
+
+Die Kernlogik (``parse_triage_issue_numbers``, ``open_issues_from_api_payload``,
+``compare``, ``update_triage_table``) ist rein und netzfrei; nur
 ``fetch_open_issues``/``main`` sprechen das Netzwerk an. Die Default-Testsuite
 deckt ausschliesslich die Kernlogik ueber gespeicherte Fixtures ab (#752).
 """
@@ -46,12 +61,36 @@ _DEFAULT_REPO: Final = "NikolayDA/picture_helper"
 _ISSUES_API_URL: Final = "https://api.github.com/repos/{repo}/issues"
 _REQUEST_HEADERS: Final = {"Accept": "application/vnd.github+json"}
 
-#: Der Triage-Abschnitt beginnt bei "## Offene GitHub-Issues" und endet vor der
+#: Der Triage-Abschnitt beginnt bei der Bestands-Ueberschrift und endet vor der
 #: naechsten Ueberschrift zweiter Ordnung (insbesondere "## Vorige Runden").
-_TRIAGE_SECTION_RE: Final = re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)")
+#: Je Sprachfassung ein eigener Anker - die **einzige** Quelle dieser Muster,
+#: aus der auch tests/test_recommendations_freeze_consistency.py liest (#821).
+TRIAGE_SECTION_PATTERNS: Final[dict[str, re.Pattern[str]]] = {
+    "de": re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)"),
+    "en": re.compile(r"(?ms)^## Open GitHub Issues.*?(?=^## |\Z)"),
+    "es": re.compile(r"(?ms)^## Incidencias abiertas de GitHub.*?(?=^## |\Z)"),
+    "fr": re.compile(r"(?ms)^## Tickets GitHub ouverts.*?(?=^## |\Z)"),
+    "uk": re.compile(r"(?ms)^## Відкриті задачі GitHub.*?(?=^## |\Z)"),
+    "zh": re.compile(r"(?ms)^## GitHub 未结议题.*?(?=^## |\Z)"),
+}
+_DEFAULT_LANG: Final = "de"
+
+#: Pfad je Sprachfassung, relativ zum Repository-Wurzelverzeichnis.
+RECOMMENDATION_DOCS: Final[dict[str, str]] = {
+    "de": "RECOMMENDATIONS.md",
+    "en": "docs/i18n/en/RECOMMENDATIONS.md",
+    "es": "docs/i18n/es/RECOMMENDATIONS.md",
+    "fr": "docs/i18n/fr/RECOMMENDATIONS.md",
+    "uk": "docs/i18n/uk/RECOMMENDATIONS.md",
+    "zh": "docs/i18n/zh/RECOMMENDATIONS.md",
+}
+
+#: Platzhalter in den redaktionellen Spalten einer frisch generierten Zeile.
+#: Exakt verglichen (Zellinhalt == Marker), damit ein "TODO" im Fliesstext
+#: einer bewerteten Zeile nicht faelschlich als unbewertet gilt.
+UNRATED_PLACEHOLDER: Final = "TODO"
 #: Spalte 1 jeder Tabellenzeile (Text zwischen dem ersten und zweiten "|").
 _TABLE_FIRST_CELL_RE: Final = re.compile(r"(?m)^\|([^|]*)\|")
-_LIVE_COUNT_RE: Final = re.compile(r"Live-Stand nach GitHub-Abfrage: \*\*(\d+)\*\*")
 
 
 def _issue_link_re(repo: str) -> re.Pattern[str]:
@@ -70,33 +109,32 @@ class OpenIssue:
 class LiveCheckReport:
     """Ergebnis eines Abgleichs von Triage-Tabelle gegen den GitHub-Live-Stand."""
 
-    declared_count: int | None
     actual_count: int
     missing_open: tuple[int, ...]
     closed_but_listed: tuple[int, ...]
 
     @property
     def has_findings(self) -> bool:
-        count_mismatch = (
-            self.declared_count is not None and self.declared_count != self.actual_count
-        )
-        return bool(self.missing_open or self.closed_but_listed or count_mismatch)
+        return bool(self.missing_open or self.closed_but_listed)
 
 
 class LiveCheckError(RuntimeError):
     """Dokument-, Netzwerk- oder Antwortfehler beim Live-Check."""
 
 
-def extract_triage_section(markdown: str) -> str:
+def extract_triage_section(markdown: str, lang: str = _DEFAULT_LANG) -> str:
     """Der Text des Triage-Abschnitts, ohne das historische Archiv.
 
     Wirft :class:`LiveCheckError`, wenn der Abschnitt fehlt - ein umbenannter
     oder geloeschter Abschnitt soll den Check sichtbar scheitern lassen statt
     still eine leere Tabelle zu melden.
     """
-    match = _TRIAGE_SECTION_RE.search(markdown)
+    pattern = TRIAGE_SECTION_PATTERNS.get(lang)
+    if pattern is None:
+        raise LiveCheckError(f"Unbekannte Sprachfassung: {lang!r}")
+    match = pattern.search(markdown)
     if match is None:
-        raise LiveCheckError("Abschnitt 'Offene GitHub-Issues' nicht gefunden.")
+        raise LiveCheckError(f"Triage-Abschnitt nicht gefunden (Sprache {lang}).")
     return match.group(0)
 
 
@@ -118,25 +156,11 @@ def issue_numbers_in_first_column(section: str, repo: str = _DEFAULT_REPO) -> tu
     return tuple(sorted(numbers))
 
 
-def parse_triage_issue_numbers(markdown: str, repo: str = _DEFAULT_REPO) -> tuple[int, ...]:
+def parse_triage_issue_numbers(
+    markdown: str, repo: str = _DEFAULT_REPO, lang: str = _DEFAULT_LANG
+) -> tuple[int, ...]:
     """Alle in Spalte 1 der Triage-Tabelle referenzierten Issue-Nummern (#752)."""
-    return issue_numbers_in_first_column(extract_triage_section(markdown), repo)
-
-
-def parse_declared_open_count(markdown: str) -> int:
-    """Die im Kurzstatus genannte Anzahl offener Issues.
-
-    Wirft :class:`LiveCheckError`, wenn die "Live-Stand"-Zeile fehlt oder
-    umformuliert wurde - eine fehlende Deklaration soll den Check sichtbar
-    scheitern lassen statt als stillschweigend erfolgreicher Abgleich
-    durchzugehen (analog zum fehlenden Triage-Abschnitt).
-    """
-    match = _LIVE_COUNT_RE.search(markdown)
-    if match is None:
-        raise LiveCheckError(
-            "Zeile 'Live-Stand nach GitHub-Abfrage: **N** offene Issues' nicht gefunden."
-        )
-    return int(match.group(1))
+    return issue_numbers_in_first_column(extract_triage_section(markdown, lang), repo)
 
 
 def open_issues_from_api_payload(payload: object) -> tuple[OpenIssue, ...]:
@@ -201,13 +225,11 @@ def fetch_open_issues(
 def compare(
     triage_numbers: Sequence[int],
     open_issues: Sequence[OpenIssue],
-    declared_count: int | None,
 ) -> LiveCheckReport:
     """Vergleicht Triage-Nummern gegen tatsaechlich offene Issues."""
     triage_set = set(triage_numbers)
     open_set = {issue.number for issue in open_issues}
     return LiveCheckReport(
-        declared_count=declared_count,
         actual_count=len(open_issues),
         missing_open=tuple(sorted(open_set - triage_set)),
         closed_but_listed=tuple(sorted(triage_set - open_set)),
@@ -220,11 +242,106 @@ def run(
     repo: str = _DEFAULT_REPO,
 ) -> LiveCheckReport:
     """Parst *markdown* und vergleicht es gegen *open_issues*."""
-    return compare(
-        parse_triage_issue_numbers(markdown, repo),
-        open_issues,
-        parse_declared_open_count(markdown),
-    )
+    return compare(parse_triage_issue_numbers(markdown, repo), open_issues)
+
+
+
+# ── Schreibmodus: Triage-Tabelle aus dem Live-Stand fortschreiben (#821) ──
+
+
+def _table_span(lines: list[str]) -> tuple[int, int]:
+    """Index der ersten und letzten Tabellenzeile (Kopf, Trenner, Datenzeilen).
+
+    Wirft :class:`LiveCheckError`, wenn keine oder eine unterbrochene Tabelle
+    gefunden wird - lieber sichtbar abbrechen als eine halbe Tabelle
+    ueberschreiben.
+    """
+    indices = [i for i, line in enumerate(lines) if line.startswith("|")]
+    if len(indices) < 3:
+        raise LiveCheckError("Triage-Abschnitt enthaelt keine vollstaendige Tabelle.")
+    if indices != list(range(indices[0], indices[-1] + 1)):
+        raise LiveCheckError("Triage-Tabelle ist durch Fremdzeilen unterbrochen.")
+    return indices[0], indices[-1]
+
+
+def _cells(row: str) -> list[str]:
+    """Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe)."""
+    return [cell.strip() for cell in row.strip().strip("|").split("|")]
+
+
+def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO) -> str:
+    """Eine neue, noch unbewertete Tabellenzeile fuer *issue*.
+
+    Nummer und Titel stammen aus der API, alle redaktionellen Spalten tragen
+    :data:`UNRATED_PLACEHOLDER`. Pipes im Titel werden maskiert, damit ein
+    Titel wie ``a | b`` die Tabellenstruktur nicht zerlegt.
+    """
+    title = issue.title.replace("|", "\\|").strip()
+    link = f"[#{issue.number}](https://github.com/{repo}/issues/{issue.number})"
+    rest = [UNRATED_PLACEHOLDER] * max(columns - 2, 0)
+    return "| " + " | ".join([link, title, *rest]) + " |"
+
+
+def update_triage_table(
+    section: str, open_issues: Sequence[OpenIssue], repo: str = _DEFAULT_REPO
+) -> str:
+    """Schreibt die Tabelle in *section* auf den Stand von *open_issues* fort.
+
+    Bestehende Zeilen bleiben **wortgleich und in ihrer Reihenfolge** erhalten,
+    solange ihr Issue offen ist; Zeilen geschlossener Issues entfallen; neu
+    offene Issues haengen als unbewertete Zeilen hinten an. Alles ausserhalb
+    der Tabelle (Ueberschrift, Folgeabschnitte) bleibt unberuehrt.
+    """
+    lines = section.split("\n")
+    first, last = _table_span(lines)
+    header, separator = lines[first], lines[first + 1]
+    columns = len(_cells(header))
+    link_re = _issue_link_re(repo)
+    open_numbers = {issue.number for issue in open_issues}
+
+    kept: list[str] = []
+    covered: set[int] = set()
+    for row in lines[first + 2 : last + 1]:
+        numbers = {int(m.group(1)) for m in link_re.finditer(_cells(row)[0])}
+        if numbers and not (numbers & open_numbers):
+            continue  # jedes Issue dieser Zeile ist geschlossen
+        kept.append(row)
+        covered |= numbers
+
+    new_rows = [
+        render_triage_row(issue, columns, repo)
+        for issue in open_issues
+        if issue.number not in covered
+    ]
+    table = [header, separator, *kept, *new_rows]
+    return "\n".join([*lines[:first], *table, *lines[last + 1 :]])
+
+
+def update_markdown(
+    markdown: str,
+    open_issues: Sequence[OpenIssue],
+    repo: str = _DEFAULT_REPO,
+    lang: str = _DEFAULT_LANG,
+) -> str:
+    """Ersetzt den Triage-Abschnitt in *markdown* durch seine fortgeschriebene Fassung."""
+    section = extract_triage_section(markdown, lang)
+    return markdown.replace(section, update_triage_table(section, open_issues, repo), 1)
+
+
+def unrated_issue_numbers(
+    markdown: str, repo: str = _DEFAULT_REPO, lang: str = _DEFAULT_LANG
+) -> tuple[int, ...]:
+    """Issue-Nummern der Zeilen, die noch :data:`UNRATED_PLACEHOLDER` tragen."""
+    section = extract_triage_section(markdown, lang)
+    lines = section.split("\n")
+    first, last = _table_span(lines)
+    link_re = _issue_link_re(repo)
+    numbers: set[int] = set()
+    for row in lines[first + 2 : last + 1]:
+        cells = _cells(row)
+        if any(cell == UNRATED_PLACEHOLDER for cell in cells):
+            numbers.update(int(m.group(1)) for m in link_re.finditer(cells[0]))
+    return tuple(sorted(numbers))
 
 
 def format_report(report: LiveCheckReport) -> str:
@@ -240,11 +357,6 @@ def format_report(report: LiveCheckReport) -> str:
             "FEHLER  weiterhin als offen gefuehrte, tatsaechlich geschlossene Issues: "
             + ", ".join(f"#{n}" for n in report.closed_but_listed)
         )
-    if report.declared_count is not None and report.declared_count != report.actual_count:
-        lines.append(
-            f"FEHLER  abweichende Gesamtzahl: Datei nennt {report.declared_count}, "
-            f"GitHub meldet {report.actual_count} offene Issues."
-        )
     if not lines:
         lines.append(f"ok      Live-Stand deckungsgleich ({report.actual_count} offene Issues).")
     return "\n".join(lines)
@@ -254,6 +366,43 @@ def write_report(path: Path, text: str) -> None:
     """Persistiert den Bericht fuer Actions-Summary und Diagnose-Artefakt."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+
+
+def _load_open_issues(args: argparse.Namespace) -> tuple[OpenIssue, ...]:
+    """Offene Issues aus der API oder aus einer gespeicherten Antwort (``--data``)."""
+    if args.data is not None:
+        return open_issues_from_api_payload(json.loads(args.data.read_text(encoding="utf-8")))
+    return fetch_open_issues(args.repo, token=args.token)
+
+
+def _write_all(open_issues: Sequence[OpenIssue], repo: str) -> int:
+    """Schreibt alle sechs Sprachfassungen fort und meldet unbewertete Zeilen.
+
+    Rueckgabe 1, wenn danach Zeilen ohne Bewertung stehen - der Generator
+    liefert nur Nummer und Titel, die redaktionellen Spalten bleiben Handarbeit
+    (#821). Ein Aufrufer soll das als offene Aufgabe sehen, nicht als Erfolg.
+    """
+    unrated: dict[str, tuple[int, ...]] = {}
+    for lang, relative in RECOMMENDATION_DOCS.items():
+        path = _REPO_ROOT / relative
+        markdown = path.read_text(encoding="utf-8")
+        updated = update_markdown(markdown, open_issues, repo, lang)
+        if updated != markdown:
+            path.write_text(updated, encoding="utf-8")
+            print(f"{lang}: aktualisiert ({relative})")
+        else:
+            print(f"{lang}: unveraendert ({relative})")
+        found = unrated_issue_numbers(updated, repo, lang)
+        if found:
+            unrated[lang] = found
+    if unrated:
+        for lang, numbers in sorted(unrated.items()):
+            joined = ", ".join(f"#{n}" for n in numbers)
+            print(f"OFFEN   {lang}: unbewertete Zeilen ({UNRATED_PLACEHOLDER}): {joined}")
+        print("Bewertungsspalten von Hand ausfuellen, dann erneut pruefen.")
+        return 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -278,7 +427,21 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Bericht zusaetzlich als UTF-8-Datei sichern (auch bei Fehlern)",
     )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Triage-Tabellen aller sechs Sprachfassungen auf den Live-Stand "
+             "fortschreiben, statt nur zu pruefen (#821, Stufe 2)",
+    )
     args = parser.parse_args(argv)
+
+    if args.write:
+        try:
+            open_issues = _load_open_issues(args)
+        except (LiveCheckError, OSError, json.JSONDecodeError) as exc:
+            print(f"::error::{exc}", file=sys.stderr)
+            return 2
+        return _write_all(open_issues, args.repo)
 
     try:
         markdown = args.file.read_text(encoding="utf-8")

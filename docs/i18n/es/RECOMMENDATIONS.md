@@ -19,7 +19,7 @@
 
 Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0/v2.7.1/v2.7.2/v2.7.3, además de las once sub-incidencias originales de la épica #741, las incidencias de protocolo de release relacionadas #680/#685/#686/#758, #781 (persistencia del veredicto de visión, corregida vía #788) y los hallazgos de seguridad #762 (🟠 CVSS HIGH, riesgo aceptado y documentado) y #769 (🟡 CVSS MEDIUM, cerrado con una corrección de código, ya publicada vía v2.7.3), además de #777 (verificador en vivo de Recommendations ya automatizado por CI, ver arriba). Recién completadas: la **épica #741** (cadena de prueba hasta los bytes publicados, demostrada por completo con v2.8.0), la **épica #805** con #806–#811 y **#817** (endurecimiento fail-safe de la prevaloración de visión, PR #819). Ningún hallazgo 🔴 abierto.
 
-Estado en vivo tras la consulta a GitHub: **14** incidencias abiertas. #805–#811, la épica #741 y #817 están cerradas y retiradas de la clasificación activa; #821 es nueva.
+Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo. Desde #821 (etapa 1) ya no se mantiene un recuento aparte: el verificador en vivo lo deriva de la tabla en lugar de revisarlo en seis versiones de idioma. #805–#811, la épica #741 y #817 están cerradas y retiradas de la clasificación activa; #821 es nueva.
 
 ## Incidencias abiertas de GitHub — Clasificación (2026-08-17)
 

@@ -19,7 +19,7 @@
 
 Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0/v2.7.1/v2.7.2/v2.7.3, plus the eleven original sub-issues of epic #741, the related release-protocol issues #680/#685/#686/#758, #781 (vision-verdict persistence, fixed via #788), and the security findings #762 (🟠 HIGH CVSS, documented risk acceptance) and #769 (🟡 MEDIUM CVSS, closed with a code fix, now released via v2.7.3), plus #777 (Recommendations live check now automated via CI, see above). Newly completed: **epic #741** (evidence chain down to the published bytes, fully proven with v2.8.0), **epic #805** with #806–#811, and **#817** (fail-safe hardening of the vision pre-rating, PR #819). No 🔴 finding open.
 
-Live state after the GitHub query: **14** open issues. #805–#811, epic #741, and #817 are closed and removed from active triage; #821 is new.
+Open items: one row per issue in the triage table below. A separate count is no longer maintained as of #821 (stage 1) – the live check derives it from the table instead of having it proofread across six language versions. #805–#811, epic #741, and #817 are closed and removed from active triage; #821 is new.
 
 ## Open GitHub Issues — Triage Status (2026-08-17)
 

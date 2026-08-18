@@ -13,9 +13,14 @@ Was lokal, netzfrei und sinnvoll bleibt:
 1. Das aktive Freeze-Dokument lässt sich allein aus ``pyproject.toml``
    bestimmen (unverändert Teil des #752-Plans).
 2. Alle sechs Sprachfassungen führen dasselbe Kurzstatus-Datum und dieselbe
-   im Live-Stand genannte offene Issue-Anzahl - der Teil von #752, der ohne
-   GitHub-Zugriff prüfbar bleibt. Der GitHub-Live-Check selbst lebt in
+   Menge an Triage-Issue-Nummern - der Teil von #752, der ohne GitHub-Zugriff
+   prüfbar bleibt. Der GitHub-Live-Check selbst lebt in
    ``scripts/recommendations_live_check.py`` / ``tests/test_recommendations_live_check.py``.
+
+Die früher zusätzlich geprüfte, im Kurzstatus deklarierte Anzahl offener
+Issues ist mit #821 (Stufe 1) entfallen: Sie war gegenüber dem
+Mengenvergleich unten redundant - gleiche Mengen heißt gleiche Anzahl - und
+musste dafür in sechs Dateien von Hand nachgezogen werden.
 """
 from __future__ import annotations
 
@@ -27,13 +32,10 @@ from scripts import verify_release_freeze as vrf
 
 ROOT = Path(__file__).resolve().parent.parent
 
+#: Pfade ebenfalls aus dem Skript, damit eine neue Sprachfassung nur an einer
+#: Stelle eingetragen werden muss (#821).
 RECOMMENDATION_DOCS = {
-    "de": ROOT / "RECOMMENDATIONS.md",
-    "en": ROOT / "docs/i18n/en/RECOMMENDATIONS.md",
-    "es": ROOT / "docs/i18n/es/RECOMMENDATIONS.md",
-    "fr": ROOT / "docs/i18n/fr/RECOMMENDATIONS.md",
-    "uk": ROOT / "docs/i18n/uk/RECOMMENDATIONS.md",
-    "zh": ROOT / "docs/i18n/zh/RECOMMENDATIONS.md",
+    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
 }
 
 #: Anker für die Kurzstatus-Überschrift je Sprache; Gruppe 1 ist das Datum.
@@ -49,28 +51,10 @@ _STATUS_HEADER_RE = {
     "zh": re.compile(r"^## 当前状态（(\d{4}-\d{2}-\d{2})", re.MULTILINE),
 }
 
-#: Anker für die "Live-Stand"-Zeile je Sprache; Gruppe 1 ist die Anzahl.
-_LIVE_COUNT_RE = {
-    "de": re.compile(r"Live-Stand nach GitHub-Abfrage: \*\*(\d+)\*\*"),
-    "en": re.compile(r"Live state after the GitHub query: \*\*(\d+)\*\*"),
-    "es": re.compile(r"Estado en vivo tras la consulta a GitHub: \*\*(\d+)\*\*"),
-    "fr": re.compile(r"requête GitHub : \*\*(\d+)\*\*"),
-    "uk": re.compile(r"Live-стан після запиту до GitHub: \*\*(\d+)\*\*"),
-    "zh": re.compile(r"查询后的实时状态：\*\*(\d+)\*\*"),
-}
-
-#: Anker für den Beginn des Triage-Abschnitts je Sprache; endet vor der
-#: nächsten Überschrift zweiter Ordnung (dasselbe Muster wie
-#: ``recommendations_live_check._TRIAGE_SECTION_RE``, nur je Sprache verdrahtet
-#: statt fest auf die deutsche Überschrift beschränkt).
-_TRIAGE_SECTION_RE = {
-    "de": re.compile(r"(?ms)^## Offene GitHub-Issues.*?(?=^## |\Z)"),
-    "en": re.compile(r"(?ms)^## Open GitHub Issues.*?(?=^## |\Z)"),
-    "es": re.compile(r"(?ms)^## Incidencias abiertas de GitHub.*?(?=^## |\Z)"),
-    "fr": re.compile(r"(?ms)^## Tickets GitHub ouverts.*?(?=^## |\Z)"),
-    "uk": re.compile(r"(?ms)^## Відкриті задачі GitHub.*?(?=^## |\Z)"),
-    "zh": re.compile(r"(?ms)^## GitHub 未结议题.*?(?=^## |\Z)"),
-}
+#: Die Triage-Anker leben seit #821 in ``recommendations_live_check`` und
+#: werden hier nur noch referenziert - eine zweite Kopie waere genau die Art
+#: Drift, die diese Datei verhindern soll.
+_TRIAGE_SECTION_RE = lc.TRIAGE_SECTION_PATTERNS
 
 
 def _pyproject_version() -> str:
@@ -108,18 +92,15 @@ def test_recommendations_kurzstatus_date_matches_across_languages() -> None:
     assert len(set(dates.values())) == 1, f"Kurzstatus-Datum weicht zwischen Sprachen ab: {dates}"
 
 
-def test_recommendations_live_issue_count_matches_across_languages() -> None:
-    counts = _extract(_LIVE_COUNT_RE, RECOMMENDATION_DOCS)
-    assert len(set(counts.values())) == 1, f"Live-Stand-Anzahl weicht zwischen Sprachen ab: {counts}"
-
-
 def _triage_issue_numbers(docs: dict[str, Path]) -> dict[str, tuple[int, ...]]:
     """Die Menge der Spalte-1-Issue-Nummern je Sprache (nicht nur ihre Größe).
 
-    Ein reiner Zahlenvergleich (siehe oben) übersieht, dass eine Übersetzung
-    ein geschlossenes Issue behält und ein neu offenes weglässt, solange die
+    Ein reiner Zahlenvergleich übersieht, dass eine Übersetzung ein
+    geschlossenes Issue behält und ein neu offenes weglässt, solange die
     Gesamtzahl zufällig gleich bleibt - deshalb vergleicht dieser Test die
-    tatsächlichen Nummern-Mengen (#752, Codex-Review auf PR #783).
+    tatsächlichen Nummern-Mengen (#752, Codex-Review auf PR #783). Seit #821
+    (Stufe 1) ist er der einzige Bestandsvergleich zwischen den Sprachen; die
+    deklarierte Zahl gibt es nicht mehr.
     """
     numbers: dict[str, tuple[int, ...]] = {}
     for lang, path in docs.items():
@@ -152,19 +133,15 @@ def _write_synthetic_docs(tmp_path: Path, *, stale_lang: str, stale_date: str) -
         "uk": "## Поточний стан ({date}, Test)",
         "zh": "## 当前状态（{date}，Test）",
     }
-    live_lines = {
-        "de": "Live-Stand nach GitHub-Abfrage: **23** offene Issues.",
-        "en": "Live state after the GitHub query: **23** open issues.",
-        "es": "Estado en vivo tras la consulta a GitHub: **23** incidencias abiertas.",
-        "fr": "État en direct après la requête GitHub : **23** tickets ouverts.",
-        "uk": "Live-стан після запиту до GitHub: **23** відкритих задачі.",
-        "zh": "GitHub 查询后的实时状态：**23** 个未结议题。",
-    }
     docs: dict[str, Path] = {}
     for lang in headers:
         date = stale_date if lang == stale_lang else "2026-08-13"
         path = tmp_path / f"RECOMMENDATIONS.{lang}.md"
-        path.write_text(f"{headers[lang].format(date=date)}\n\n{live_lines[lang]}\n", encoding="utf-8")
+        # Nur die Kurzstatus-Überschrift ist für diese Fixtur relevant; ein
+        # Rumpfsatz hält das Dokument realistisch, ohne eine Aussage zu machen.
+        path.write_text(
+            f"{headers[lang].format(date=date)}\n\nRumpftext.\n", encoding="utf-8"
+        )
         docs[lang] = path
     return docs
 
@@ -232,24 +209,18 @@ def test_triage_issue_set_drift_with_equal_row_count_is_detected(tmp_path: Path)
     assert issue_sets["es"] != issue_sets["de"]
 
 
-def test_declared_count_drift_after_merged_fix_is_detected(tmp_path: Path) -> None:
-    """Regressionsfixtur für das #740/#750-Drift-Muster aus #752.
+def test_no_language_version_keeps_an_unrated_placeholder() -> None:
+    """Generierte Zeilen muessen vor dem Merge bewertet werden (#821, Stufe 2).
 
-    #750 hat #740 geschlossen; die Recommendations-Datei behauptete den
-    alten offenen Stand trotzdem unverändert weiter. Baut das mit derselben
-    Extraktionslogik nach, die der echte Paritätstest gegen die realen
-    Dateien anwendet: eine Datei, die nach dem Fix nicht aktualisiert wurde,
-    weicht vom tatsächlich niedrigeren Live-Stand ab - die GitHub-Gegenprobe
-    selbst übernimmt der separate Live-Check
-    (``scripts/recommendations_live_check.py``).
+    ``recommendations_live_check.py --write`` traegt Nummer und Titel aus der
+    API ein und setzt in den redaktionellen Spalten ``TODO``. Diese Bewertung
+    ist Handarbeit; ein unausgefuellter Platzhalter soll hier auffallen und
+    nicht erst im taeglichen Live-Lauf - und zwar in **allen sechs**
+    Fassungen, waehrend der Live-Check nur das deutsche Original prueft.
     """
-    stale = tmp_path / "RECOMMENDATIONS.md"
-    stale.write_text(
-        "## Aktueller Stand (2026-08-01, vor #750)\n\n"
-        "Live-Stand nach GitHub-Abfrage: **30** offene Issues.\n",
-        encoding="utf-8",
-    )
-    declared = _LIVE_COUNT_RE["de"].search(stale.read_text(encoding="utf-8"))
-    assert declared is not None
-    actual_after_fix = 29  # #740 tatsächlich geschlossen (#750 gemergt)
-    assert int(declared.group(1)) != actual_after_fix
+    unrated = {}
+    for lang, path in RECOMMENDATION_DOCS.items():
+        numbers = lc.unrated_issue_numbers(path.read_text(encoding="utf-8"), lang=lang)
+        if numbers:
+            unrated[lang] = numbers
+    assert not unrated, f"Unbewertete Triage-Zeilen (Platzhalter {lc.UNRATED_PLACEHOLDER}): {unrated}"

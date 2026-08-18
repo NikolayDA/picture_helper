@@ -57,8 +57,9 @@ jobs:
       - name: Live-Check gegen den echten offenen Issue-Bestand
         # GITHUB_TOKEN reicht fuer den Read-only-Zugriff auf /issues und hebt
         # das anonyme Rate-Limit an; keine weiteren Rechte noetig (siehe
-        # permissions oben). Ein Fund (fehlende offene Issues, weiterhin als
-        # offen gefuehrte geschlossene Issues, abweichende Gesamtzahl) oder
+        # permissions oben). Ein Fund (fehlende offene Issues oder weiterhin
+        # als offen gefuehrte geschlossene Issues; die Gesamtzahl wird seit
+        # #821 aus der Tabelle abgeleitet statt separat deklariert) oder
         # ein Abruf-/Antwortfehler laesst den Job sichtbar rot werden - das
         # ist die automatisierte, wiederkehrende Ausfuehrung, deren Fehlen
         # die eigentliche Ursache des #777-Drifts war.
