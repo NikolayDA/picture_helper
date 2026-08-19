@@ -37,6 +37,54 @@ def _changelog_release_date(version: str) -> str:
     return match.group(1)
 
 
+_HEADING_LINE_RE = re.compile(r"(?m)^## \[(\d+\.\d+\.\d+)\](.*)$")
+_HEADING_DATE_RE = re.compile(r" – \d{4}-\d{2}-\d{2}$")
+
+
+def _version_headings(text: str, path: Path) -> list[str]:
+    """Version headings, in file order. A malformed date/dash raises instead of
+    silently dropping the heading out of every check below (fail-closed)."""
+
+    versions = []
+    for match in _HEADING_LINE_RE.finditer(text):
+        version, rest = match.group(1), match.group(2)
+        assert _HEADING_DATE_RE.fullmatch(rest), (
+            f"{path.relative_to(ROOT)}: heading '## [{version}]{rest}' does not "
+            f"match '## [X.Y.Z] – YYYY-MM-DD' (wrong dash or date format?)"
+        )
+        versions.append(version)
+    return versions
+
+
+def _footer_link_entries(text: str) -> list[tuple[str, str]]:
+    return re.findall(r"(?m)^\[(\d+\.\d+\.\d+)\]: (\S+)$", text)
+
+
+_COMPARE_TARGET_RE = re.compile(r"\.\.\.v(\d+\.\d+\.\d+)$")
+_COMPARE_BASE_RE = re.compile(r"compare/v(\d+\.\d+\.\d+)\.\.\.")
+
+# Pre-tag history: these footer links' compare *target* is a raw commit SHA
+# (or, for 2.0.0, a /tree/ link) instead of the 'vX.Y.Z' compare convention
+# used by every later release, so they don't end in '...vX.Y.Z'.
+_LEGACY_SHA_LINKED_VERSIONS = frozenset({"2.0.0", "2.1.0", "2.2.0"})
+
+# Same idea for the compare *base*: 2.3.0's target already uses the 'vX.Y.Z'
+# convention, but its base is still a raw SHA (predates the 2.4.0 tag), so it
+# needs its own, one-element-wider allowlist.
+_LEGACY_SHA_BASE_VERSIONS = _LEGACY_SHA_LINKED_VERSIONS | {"2.3.0"}
+
+
+def _unreleased_footer_target(text: str, path: Path) -> str:
+    match = re.search(r"(?m)^\[Unreleased\]: (\S+)$", text)
+    assert match is not None, f"{path.relative_to(ROOT)} needs an [Unreleased] footer link"
+    return match.group(1)
+
+
+ALL_CHANGELOGS = (ROOT / "CHANGELOG.md",) + tuple(
+    ROOT / "docs" / "i18n" / language / "CHANGELOG.md" for language in LANGUAGES
+)
+
+
 def test_translated_changelogs_keep_unreleased_entries_in_sync() -> None:
     """Translated changelogs mirror the German [Unreleased] bullet count."""
 
@@ -48,6 +96,122 @@ def test_translated_changelogs_keep_unreleased_entries_in_sync() -> None:
         assert translated_count == german_count, (
             f"{path.relative_to(ROOT)} has {translated_count} top-level [Unreleased] "
             f"entries, expected {german_count}"
+        )
+
+
+def test_changelog_version_headings_have_matching_footer_links() -> None:
+    """Every '## [X.Y.Z]' heading needs a matching '[X.Y.Z]: https://...' footer
+    link, and [Unreleased] must compare against the latest released version.
+
+    Regression test for #773/#827: the same mechanical footer-link bug (missing
+    entry for the newest heading, stale [Unreleased] compare target) slipped
+    through untested at two consecutive release cuts because nothing checked
+    the footer against the headings. Also catches the adjacent mechanical
+    slips of the same class: a duplicate footer definition, a footer entry
+    without a matching heading (typo'd version, or leftover after a retracted
+    release), and a copy-paste compare link whose base or target doesn't match
+    its neighbouring headings.
+    """
+
+    headings_by_path: dict[Path, list[str]] = {}
+    links_by_path: dict[Path, dict[str, str]] = {}
+    unreleased_by_path: dict[Path, str] = {}
+
+    for path in ALL_CHANGELOGS:
+        text = _read(path)
+        headings = _version_headings(text, path)
+        assert headings, f"{path.relative_to(ROOT)} has no version headings"
+        headings_by_path[path] = headings
+        heading_index = {version: i for i, version in enumerate(headings)}
+
+        entries = _footer_link_entries(text)
+        links_by_path[path] = dict(entries)
+        footer_versions = [version for version, _link in entries]
+        duplicates = sorted({v for v in footer_versions if footer_versions.count(v) > 1})
+        assert not duplicates, (
+            f"{path.relative_to(ROOT)}: duplicate footer link definition(s) for {duplicates}"
+        )
+
+        missing = [v for v in headings if v not in footer_versions]
+        assert not missing, (
+            f"{path.relative_to(ROOT)}: version heading(s) {missing} have no "
+            f"matching '[X.Y.Z]: https://...' footer link definition"
+        )
+
+        extra = sorted(set(v for v in footer_versions if v not in heading_index))
+        assert not extra, (
+            f"{path.relative_to(ROOT)}: footer link(s) {extra} have no matching "
+            f"'## [X.Y.Z]' heading"
+        )
+
+        for version, link in entries:
+            target_match = _COMPARE_TARGET_RE.search(link)
+            if target_match is not None:
+                assert target_match.group(1) == version, (
+                    f"{path.relative_to(ROOT)}: footer link [{version}] targets "
+                    f"...v{target_match.group(1)}, expected ...v{version}"
+                )
+            else:
+                assert version in _LEGACY_SHA_LINKED_VERSIONS, (
+                    f"{path.relative_to(ROOT)}: footer link [{version}] doesn't end "
+                    f"in '...vX.Y.Z' and isn't one of the known historical "
+                    f"SHA-/tree-based links {sorted(_LEGACY_SHA_LINKED_VERSIONS)}"
+                )
+
+            idx = heading_index[version]
+            if idx + 1 < len(headings):
+                expected_base = headings[idx + 1]
+                base_match = _COMPARE_BASE_RE.search(link)
+                if base_match is not None:
+                    assert base_match.group(1) == expected_base, (
+                        f"{path.relative_to(ROOT)}: footer link [{version}] has base "
+                        f"v{base_match.group(1)}, expected v{expected_base} (the next "
+                        f"older release heading)"
+                    )
+                else:
+                    assert version in _LEGACY_SHA_BASE_VERSIONS, (
+                        f"{path.relative_to(ROOT)}: footer link [{version}] has no "
+                        f"'compare/vX.Y.Z...' base (missing 'v'?) and isn't one of the "
+                        f"known historical SHA-based links {sorted(_LEGACY_SHA_BASE_VERSIONS)}"
+                    )
+
+        order = [tuple(int(p) for p in v.split(".")) for v in headings]
+        assert order == sorted(order, reverse=True), (
+            f"{path.relative_to(ROOT)}: version headings are not in descending "
+            f"order ({headings})"
+        )
+        latest = headings[0]
+
+        unreleased_target = _unreleased_footer_target(text, path)
+        unreleased_by_path[path] = unreleased_target
+        expected_suffix = f"compare/v{latest}...HEAD"
+        assert unreleased_target.endswith(expected_suffix), (
+            f"{path.relative_to(ROOT)}: [Unreleased] points at {unreleased_target!r}, "
+            f"expected it to end with {expected_suffix!r} (latest release is {latest})"
+        )
+
+    # The six changelogs share identical, language-independent footer links —
+    # only the release-note prose differs. Comparing them against the German
+    # original catches drift the per-file checks above can't: a wrong host/
+    # fork in a translated link, or a mismatched historical SHA link (neither
+    # ever matches the '...vX.Y.Z' regexes above, so they're otherwise
+    # unchecked in every file but German).
+    german_path = ROOT / "CHANGELOG.md"
+    german_headings = headings_by_path[german_path]
+    german_links = links_by_path[german_path]
+    german_unreleased = unreleased_by_path[german_path]
+    for path, headings in headings_by_path.items():
+        assert headings == german_headings, (
+            f"{path.relative_to(ROOT)}: version headings {headings} differ from "
+            f"the German changelog's {german_headings}"
+        )
+        assert links_by_path[path] == german_links, (
+            f"{path.relative_to(ROOT)}: footer link targets differ from the German "
+            f"changelog's (they are language-independent URLs and must match)"
+        )
+        assert unreleased_by_path[path] == german_unreleased, (
+            f"{path.relative_to(ROOT)}: [Unreleased] target {unreleased_by_path[path]!r} "
+            f"differs from the German changelog's {german_unreleased!r}"
         )
 
 

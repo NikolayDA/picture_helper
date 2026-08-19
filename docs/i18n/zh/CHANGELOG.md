@@ -1079,7 +1079,8 @@ BgRemover 的所有值得注意的变更都记录在本文件中。
 - 带有架构、已知限制和安装
   说明的 README；详细的 `INSTALL_MAC.md`。
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1

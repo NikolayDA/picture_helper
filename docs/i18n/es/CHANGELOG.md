@@ -1513,7 +1513,8 @@ tag Git histórico `v2.0.0`.
 - README con arquitectura, limitaciones conocidas e instrucciones de
   instalación; `INSTALL_MAC.md` detallado.
 
-[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...HEAD
+[Unreleased]: https://github.com/NikolayDA/picture_helper/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/NikolayDA/picture_helper/compare/v2.7.3...v2.8.0
 [2.7.3]: https://github.com/NikolayDA/picture_helper/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/NikolayDA/picture_helper/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/NikolayDA/picture_helper/compare/v2.7.0...v2.7.1
