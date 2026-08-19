@@ -29,9 +29,9 @@
 |---|------|--------|--------|--------------------|--------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | #687 的案头工作已完成（11/17 项验收标准）—— 整条链路（#687 剩余部分 + #688–#690）现共同等待 Studio/打印机硬件 |
 | [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（案头部分已完成；剩余部分需要真实的 Studio/打印机硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 11/17 项验收标准（PR #795–#814，共九个，见上文：清单/治理/fixture 均已合并）；待完成：I-06 负向测试、三份协议、最终测试文件核对、收尾评审——与 #688–#690 一样依赖硬件 |
-| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— 等待 #687 提供测试样件；定义已修正 |
+| [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— #687 提供的测试样件/协议模板均已就绪；现在只差打印机/Studio 硬件 |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— Studio 导入对话框是否依据 `pHYs`/DPI 推导起始尺寸尚未证实（N10, EM-F04） |
-| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— 等待 #687 |
+| [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— #687 的前期工作已完成；现在只差硬件 |
 | [#691](https://github.com/NikolayDA/picture_helper/issues/691) | 将带版本号的目标配置文件整合进 validator/writer/对话框/文档 | 🟠 高（强化生产环境导出路径） | 🟠 高（横跨 eufymake_export/_validate/_writer + UI） | Opus，高 | 阻塞 —— 等待 #688–#690 |
 | [#682](https://github.com/NikolayDA/picture_helper/issues/682) | [Epic] COLOR 色调/灰度引擎 | 🟡 中高（激光路线图的基础，非当前活跃缺陷） | 🔴 高（5 个子议题，ADR→核心→UI→集成→验收） | –（Epic） | 进行中 —— 优先启动 #692 |
 | [#692](https://github.com/NikolayDA/picture_helper/issues/692) | 色调/直方图/灰度操作的 ADR + 数据契约 | 🟠 高（为整个 Epic 确立契约） | 🟡 中（架构决策，无需实现） | Opus，高 | 可立即启动 |
