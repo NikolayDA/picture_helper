@@ -85,6 +85,11 @@ make doctor
 
 Pull Requests, die `make check` nicht bestehen, werden nicht gemergt.
 
+Als Überblick sind Commit, PR-Erstellung, PR-Durchführung und Release als
+UML-Aktivitätsdiagramme gezeichnet: [Prozessdiagramme](docs/PROZESSE_UML.md).
+Sie bilden ab, sie bestimmen nicht — verbindlich bleiben diese Datei, das
+PR-Template und das Release-Runbook.
+
 ## Konventionen
 
 | Bereich | Regel |
