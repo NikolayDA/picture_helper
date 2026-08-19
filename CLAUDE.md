@@ -46,7 +46,10 @@ headless-Qt-Betrieb:
 Bei direkten `pytest`-Aufrufen `QT_QPA_PLATFORM=offscreen` setzen; `make` und
 `tests/conftest.py` (per `setdefault`) erledigen das selbst. Das PR-Template
 (`.github/PULL_REQUEST_TEMPLATE.md`) führt die Standard-Gate-Checkliste (#557).
-Wann welche CI-Stufe greift, steht in [`TESTING.md`](TESTING.md).
+Wann welche CI-Stufe greift, steht in [`TESTING.md`](TESTING.md); die vier
+Abläufe Commit → PR erstellen → PR durchführen → Release veröffentlichen sind
+als nicht-normative UML-Aktivitätsdiagramme in
+[`docs/PROZESSE_UML.md`](docs/PROZESSE_UML.md) gezeichnet.
 
 ## Architektur
 
