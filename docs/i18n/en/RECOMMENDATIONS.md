@@ -13,7 +13,9 @@
 
 ## Current Status (2026-08-19, v2.8.0 stable, EufyMake groundwork on #687 corrected)
 
-**Routine check 2026-08-19:** the GitHub live state is unchanged at the 13 issues in the table below (no new ones, none closed, no new comments since the previous round on 2026-08-17/18, see Previous Rounds). No new release is due – since v2.8.0 (two days ago) only the recommendations-upkeep PRs #818–#824 landed, plus the still-open, issue-less PR #825 (CI: switch the Claude workflows to `CLAUDE_CODE_OAUTH_TOKEN`). No 🔴 finding open.
+**Routine check 2026-08-19:** the GitHub live state is now at 17 open issues – four newly logged (#826–#829, see below), the 13 from the previous round unchanged (none closed, no new comments since 2026-08-17/18, see Previous Rounds). No new release is due – since v2.8.0 (two days ago) only the recommendations-upkeep PRs #818–#824 and PR #825 (CI: switch the Claude workflows to `CLAUDE_CODE_OAUTH_TOKEN`, now merged) landed. No 🔴 finding open.
+
+**Four new issues 2026-08-19:** #826 (doc audit, the `gl_smoke` marker list in TESTING.md was incomplete; the fix is already done on branch `claude/festive-gates-ktqmjq`, just not yet a PR), #827 (CHANGELOG.md: missing `[2.8.0]` link reference and stale `[Unreleased]` compare link – a second recurrence of the same regression as #773, with the exact fix already spelled out in the issue), #828 (an observation task on the new review automation from #825: 3 of the first 6 runs hit the turn-budget limit, stage 1 just collects data on upcoming PRs, no code change now), and #829 (follow-up from the 2026-08-17/18 PR review, six smaller findings in release automation/triage upkeep, two of them 🟡 concerning the fail-safe contract of #817). Details and assessment in the table below.
 
 **Correction for #687:** the previous table entry ("ready to start") was stale. Nine PRs merged since the 2026-08-15 comment (#795–#797, #799–#801, #803–#804, #814) delivered the assumption inventory ([`EUFYMAKE-687-ANNAHMENINVENTAR.md`](../../history/EUFYMAKE-687-ANNAHMENINVENTAR.md), evidence version 2 with full-text verification of the manufacturer sources), an owner-approved test governance including abort/safety/privacy criteria ([`EUFYMAKE-687-TESTGOVERNANCE.md`](../../history/EUFYMAKE-687-TESTGOVERNANCE.md)), protocol templates ([`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](../../history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md), [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](../../history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)), and a reproducible fixture generator (`scripts/eufymake_fixture_generator.py`). 11 of 17 acceptance criteria in #687 are checked off; the remaining 6 (folder/manifest negative test I-06, three protocols still to be filled in, final test-file reconciliation, closeout review) all need real Studio/printer access. #687 is therefore no longer a standalone item startable without hardware — it is effectively part of the same hardware blocker as #688–#690, so the table and recommendation below are corrected.
 
@@ -38,13 +40,24 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | Layer/selection/history/project integration | 🟡 Medium | 🟠 High (many state transitions: undo/redo, selection, dirty state) | Opus, high | Blocked – waits on #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
+| [#826](https://github.com/NikolayDA/picture_helper/issues/826) | TESTING.md audit: gl_smoke marker list incomplete (fixed) | 🟢 Low (pure doc correctness, no code impact) | 🟢 Low (one-line fix, already done) | Sonnet, low | **Ready to start** – fix already committed on branch `claude/festive-gates-ktqmjq` (one commit), just needs a PR opened and merged |
+| [#827](https://github.com/NikolayDA/picture_helper/issues/827) | CHANGELOG.md: missing [2.8.0] link reference, stale [Unreleased] compare link (regression of #773) | 🟡 Medium (broken links in published docs, second recurrence of the same regression) | 🟢 Low (mechanical two-line fix × 6 language versions, exact diff given in the issue) | Sonnet, low | **Ready to start** – apply the fix plus add a regression test (check footer links against version headings) so this doesn't recur a third time |
+| [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review automation after #825: assess turn-budget aborts and decide tool scope | 🟡 Medium (CI cost/reliability of the automated review, not product-critical) | 🟡 Medium (stage 1 is pure observation, no code; stages 2/3 are conditional and need a decision) | – (stage 1: no agent, pure observation over 3 future PRs) | Observation task – watch the next 3 regular PRs unrelated to the review config and log the diagnostic values; only then decide on stage 2/3 |
+| [#829](https://github.com/NikolayDA/picture_helper/issues/829) | Follow-up from the 2026-08-17/18 PR review: six findings in release automation and triage upkeep | 🟡 Medium (two findings directly affect the #817 fail-safe contract) | 🟡 Medium (6 independent sub-fixes across scripts/workflows/docs, each individually small) | Sonnet, medium | **Ready to start** – clearly specified; finding 3 (`if-no-files-found: error` defeats #817) first, since it concretely breaks the fail-safe contract |
 
 ### Recommended Next
 
-1. **#692** (ADR) is the only item startable without hardware access – it opens the COLOR epic #682.
-2. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
+1. **#826** first – the fix already sits ready on a branch, just needs a PR opened (minutes of work).
+2. **#827** – mechanical CHANGELOG link fix with the diff already spelled out, plus a regression test
+   against a third recurrence of the same regression (#773).
+3. **#829** – six small, independent governance fixes; finding 3 (the #817 fail-safe contract) is the
+   highest priority.
+4. **#692** (ADR) opens the COLOR epic #682.
+5. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
    templates, and approved abort criteria are already fully in place.
+6. **#828** rides along passively (stage 1 = observation over the next three regular PRs) – no action
+   needed now.
 
 ## Previous Rounds
 
