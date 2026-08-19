@@ -37,8 +37,23 @@ def _changelog_release_date(version: str) -> str:
     return match.group(1)
 
 
-def _version_headings(text: str) -> list[str]:
-    return re.findall(r"(?m)^## \[(\d+\.\d+\.\d+)\] – \d{4}-\d{2}-\d{2}$", text)
+_HEADING_LINE_RE = re.compile(r"(?m)^## \[(\d+\.\d+\.\d+)\](.*)$")
+_HEADING_DATE_RE = re.compile(r" – \d{4}-\d{2}-\d{2}$")
+
+
+def _version_headings(text: str, path: Path) -> list[str]:
+    """Version headings, in file order. A malformed date/dash raises instead of
+    silently dropping the heading out of every check below (fail-closed)."""
+
+    versions = []
+    for match in _HEADING_LINE_RE.finditer(text):
+        version, rest = match.group(1), match.group(2)
+        assert _HEADING_DATE_RE.fullmatch(rest), (
+            f"{path.relative_to(ROOT)}: heading '## [{version}]{rest}' does not "
+            f"match '## [X.Y.Z] – YYYY-MM-DD' (wrong dash or date format?)"
+        )
+        versions.append(version)
+    return versions
 
 
 def _footer_link_entries(text: str) -> list[tuple[str, str]]:
@@ -46,6 +61,7 @@ def _footer_link_entries(text: str) -> list[tuple[str, str]]:
 
 
 _COMPARE_TARGET_RE = re.compile(r"\.\.\.v(\d+\.\d+\.\d+)$")
+_COMPARE_BASE_RE = re.compile(r"compare/v(\d+\.\d+\.\d+)\.\.\.")
 
 
 def _unreleased_footer_target(text: str) -> str:
@@ -81,15 +97,17 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
     entry for the newest heading, stale [Unreleased] compare target) slipped
     through untested at two consecutive release cuts because nothing checked
     the footer against the headings. Also catches the adjacent mechanical
-    slips of the same class: a duplicate footer definition, and a copy-paste
-    compare target that doesn't match its own version key (e.g. accidentally
-    reusing the previous release's target).
+    slips of the same class: a duplicate footer definition, a footer entry
+    without a matching heading (typo'd version, or leftover after a retracted
+    release), and a copy-paste compare link whose base or target doesn't match
+    its neighbouring headings.
     """
 
     for path in ALL_CHANGELOGS:
         text = _read(path)
-        headings = _version_headings(text)
+        headings = _version_headings(text, path)
         assert headings, f"{path.relative_to(ROOT)} has no version headings"
+        heading_index = {version: i for i, version in enumerate(headings)}
 
         entries = _footer_link_entries(text)
         footer_versions = [version for version, _link in entries]
@@ -104,6 +122,12 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
             f"matching '[X.Y.Z]: https://...' footer link definition"
         )
 
+        extra = sorted(set(v for v in footer_versions if v not in heading_index))
+        assert not extra, (
+            f"{path.relative_to(ROOT)}: footer link(s) {extra} have no matching "
+            f"'## [X.Y.Z]' heading"
+        )
+
         for version, link in entries:
             target_match = _COMPARE_TARGET_RE.search(link)
             if target_match is not None:
@@ -111,6 +135,17 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
                     f"{path.relative_to(ROOT)}: footer link [{version}] targets "
                     f"...v{target_match.group(1)}, expected ...v{version}"
                 )
+
+            idx = heading_index[version]
+            if idx + 1 < len(headings):
+                expected_base = headings[idx + 1]
+                base_match = _COMPARE_BASE_RE.search(link)
+                if base_match is not None:
+                    assert base_match.group(1) == expected_base, (
+                        f"{path.relative_to(ROOT)}: footer link [{version}] has base "
+                        f"v{base_match.group(1)}, expected v{expected_base} (the next "
+                        f"older release heading)"
+                    )
 
         latest = max(headings, key=lambda v: tuple(int(p) for p in v.split(".")))
         assert headings[0] == latest, (
