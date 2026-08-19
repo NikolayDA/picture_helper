@@ -41,8 +41,11 @@ def _version_headings(text: str) -> list[str]:
     return re.findall(r"(?m)^## \[(\d+\.\d+\.\d+)\] – \d{4}-\d{2}-\d{2}$", text)
 
 
-def _footer_link_versions(text: str) -> set[str]:
-    return set(re.findall(r"(?m)^\[(\d+\.\d+\.\d+)\]: https://", text))
+def _footer_link_entries(text: str) -> list[tuple[str, str]]:
+    return re.findall(r"(?m)^\[(\d+\.\d+\.\d+)\]: (\S+)$", text)
+
+
+_COMPARE_TARGET_RE = re.compile(r"\.\.\.v(\d+\.\d+\.\d+)$")
 
 
 def _unreleased_footer_target(text: str) -> str:
@@ -77,7 +80,10 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
     Regression test for #773/#827: the same mechanical footer-link bug (missing
     entry for the newest heading, stale [Unreleased] compare target) slipped
     through untested at two consecutive release cuts because nothing checked
-    the footer against the headings.
+    the footer against the headings. Also catches the adjacent mechanical
+    slips of the same class: a duplicate footer definition, and a copy-paste
+    compare target that doesn't match its own version key (e.g. accidentally
+    reusing the previous release's target).
     """
 
     for path in ALL_CHANGELOGS:
@@ -85,14 +91,33 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
         headings = _version_headings(text)
         assert headings, f"{path.relative_to(ROOT)} has no version headings"
 
-        footer_versions = _footer_link_versions(text)
+        entries = _footer_link_entries(text)
+        footer_versions = [version for version, _link in entries]
+        duplicates = sorted({v for v in footer_versions if footer_versions.count(v) > 1})
+        assert not duplicates, (
+            f"{path.relative_to(ROOT)}: duplicate footer link definition(s) for {duplicates}"
+        )
+
         missing = [v for v in headings if v not in footer_versions]
         assert not missing, (
             f"{path.relative_to(ROOT)}: version heading(s) {missing} have no "
             f"matching '[X.Y.Z]: https://...' footer link definition"
         )
 
-        latest = headings[0]
+        for version, link in entries:
+            target_match = _COMPARE_TARGET_RE.search(link)
+            if target_match is not None:
+                assert target_match.group(1) == version, (
+                    f"{path.relative_to(ROOT)}: footer link [{version}] targets "
+                    f"...v{target_match.group(1)}, expected ...v{version}"
+                )
+
+        latest = max(headings, key=lambda v: tuple(int(p) for p in v.split(".")))
+        assert headings[0] == latest, (
+            f"{path.relative_to(ROOT)}: version headings are not in descending "
+            f"order (top heading {headings[0]}, newest release {latest})"
+        )
+
         unreleased_target = _unreleased_footer_target(text)
         expected_suffix = f"compare/v{latest}...HEAD"
         assert unreleased_target.endswith(expected_suffix), (
