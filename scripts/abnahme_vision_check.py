@@ -6,8 +6,8 @@ Kriterienkatalog über die Claude API (Vision, Modell ``claude-opus-4-8``). Die
 Bewertung ist ein **fail-safe Zusatz**: ohne ``ANTHROPIC_VISION_API_KEY``, ohne
 installiertes ``anthropic``-SDK oder bei API-/Parsing-Fehler wird jedes
 Kriterium als ``unbewertet`` markiert – der Abnahme-Lauf scheitert daran nie.
-Das eigene Secret hält den Zugang bewusst von ``ANTHROPIC_API_KEY`` getrennt,
-das die interaktiven Claude-Workflows aktiviert (#656).
+Das eigene Secret hält den Zugang bewusst von ``CLAUDE_CODE_OAUTH_TOKEN``
+getrennt, das die interaktiven Claude-Workflows aktiviert (#656).
 ``unsicher``/``nicht_erfuellt`` blockieren nicht automatisch; sie werden in der
 Matrix (#646, ``abnahme_aggregate.py``) sichtbar, die Go-/No-Go-Entscheidung
 bleibt beim Menschen.

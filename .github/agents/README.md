@@ -72,9 +72,40 @@ für diese Aufrufe.
 
 ### Voraussetzung
 
-Nur **ein** Repo-Secret nötig: **`ANTHROPIC_API_KEY`** (Settings → *Secrets and
-variables* → *Actions*). Fehlt es, überspringen sich beide Workflows sauber –
-ohne roten Lauf.
+Nur **ein** Repo-Secret nötig: **`CLAUDE_CODE_OAUTH_TOKEN`** (Settings →
+*Secrets and variables* → *Actions*). Das Token erzeugt man lokal mit
+`claude setup-token`; die Läufe rechnen damit über das Claude-Abo
+(Pro/Max/Team/Enterprise) statt über eine API-Abrechnung. Fehlt das Secret,
+überspringen sich beide Workflows sauber – ohne roten Lauf.
+
+Drei Eigenheiten dieses Wegs:
+
+1. **Das Token hängt am Abo der Person**, die `claude setup-token` ausgeführt
+   hat – für ein org-weit geteiltes Secret ist ein API-Key aus der
+   [Claude Console](https://console.anthropic.com) der bessere Weg.
+2. **Die Läufe zehren am Nutzungslimit dieses Kontos.** Das Review startet bei
+   jedem `opened`/`synchronize`, der On-Demand-Agent bei jeder
+   `@claude`-Erwähnung. Ist das Limit erschöpft, wird der Lauf **rot** – das
+   saubere Überspringen oben gilt ausdrücklich nur für ein *fehlendes* Secret.
+   Dasselbe gilt für ein Modell, das die Abo-Stufe nicht hergibt – beide
+   Workflows pinnen `claude-opus-5`.
+3. **Es gilt ein Jahr** ab Erzeugung. Läuft es ab, melden die Workflows einen
+   Authentifizierungsfehler; dann ein neues Token erzeugen und das Secret
+   überschreiben.
+
+Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY` und
+zieht in **beiden** Workflows vier Stellen mit. Sie wirken unterschiedlich –
+bleibt eine stehen, sieht der Fehler jeweils anders aus:
+
+| Stelle | Bleibt sie stehen |
+|---|---|
+| `env:`-Zeile der `HAS_CLAUDE_TOKEN`-Prüfung | Workflow löst **still nie aus** |
+| Input `claude_code_oauth_token:` | Job läuft an und scheitert **rot** mit Auth-Fehler |
+| Meldungstext im Skip-Schritt | folgenlos, aber irreführende Warnung |
+| Kopfkommentar der Workflow-Datei | folgenlos, aber die Datei widerspricht sich |
+
+Der stille Fall ist der teuerste: Bei einem roten Lauf sucht man wenigstens an
+der richtigen Stelle.
 
 Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
 `GITHUB_TOKEN` durch (`github_token: ${{ secrets.GITHUB_TOKEN }}`), damit die
