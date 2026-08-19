@@ -243,6 +243,23 @@ Checklisten-Version, ihren Dateihash und den Kandidaten-Commit. Veröffentlichun
 Wiederholung, Teilzustände und Rollback sind ausschließlich in Schritt 6 bis 9
 des [Release-Runbooks](RELEASE_PROCESS.md) beschrieben.
 
+**Ref-Bindung des Aggregations-Jobs (#829, Befund 2):** Keiner der
+`actions/checkout`-Schritte in `release-abnahme.yml` setzt `ref:` – auch der
+Aggregations-Job läuft damit auf dem Ref, gegen den der Workflow dispatcht
+wurde, genau wie die evidenzerzeugenden Plattform-Jobs. Das ist für Letztere
+beabsichtigt und Kern des Beweisketten-Modells (#641): Evidenz muss vom
+exakt geprüften Kandidaten-Commit stammen. Für den Aggregations-Job – der
+Evidenz nur **auswertet**, keine erzeugt – hat das eine Nebenwirkung: Ein
+späterer Nachlauf desselben Kandidaten (z. B. Runbook-Schritt 9) führt
+`abnahme_vision_check.py`/`abnahme_aggregate.py` weiterhin in der Fassung
+aus, die zum Kandidatenzeitpunkt in `main` lag – ein danach auf `main`
+gemergter Fix an diesen Auswertungsskripten wirkt für diese Kandidatenlinie
+nicht rückwirkend, sondern erst ab dem nächsten Kandidaten, der ihn selbst
+mitbaut. Das ist eine bewusst in Kauf genommene Eigenschaft, keine Lücke:
+Sie hält die Auswertung reproduzierbar zum Kandidatenstand, auf Kosten davon,
+dass ein Auswertungsfehler für die Lebensdauer der Kandidatenlinie
+eingefroren bleibt.
+
 Repository-Variablen (Settings → Secrets and variables → Actions →
 Variables):
 

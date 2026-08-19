@@ -35,6 +35,15 @@ Generator ersetzt, und Spalte 2 bleibt unangetastet, damit handgepflegte
 Uebersetzungen erhalten bleiben. Auch die Reihenfolge bleibt erhalten (sie ist
 thematisch gruppiert, nicht sortiert); neue Zeilen haengen hinten an.
 
+Eine **gruppierte** Zeile (mehrere Issue-Links in Spalte 1, z. B.
+``[#680](...) / [#685](...) / [#686](...)``) bleibt unveraendert stehen,
+solange **mindestens eines** ihrer Issues offen ist - auch wenn andere Issues
+der Gruppe bereits geschlossen sind. ``--write`` trennt eine solche Zeile
+nicht automatisch auf (das waere ein Eingriff in eine redaktionelle Zeile
+und widerspraeche der Regel oben); der Live-Check meldet die geschlossene
+Nummer in diesem Fall dauerhaft als ``closed_but_listed``, bis die Zeile von
+Hand aufgeteilt wird (#829, Befund 4).
+
 Die Kernlogik (``parse_triage_issue_numbers``, ``open_issues_from_api_payload``,
 ``compare``, ``update_triage_table``) ist rein und netzfrei; nur
 ``fetch_open_issues``/``main`` sprechen das Netzwerk an. Die Default-Testsuite
@@ -275,6 +284,17 @@ def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO)
     Nummer und Titel stammen aus der API, alle redaktionellen Spalten tragen
     :data:`UNRATED_PLACEHOLDER`. Pipes im Titel werden maskiert, damit ein
     Titel wie ``a | b`` die Tabellenstruktur nicht zerlegt.
+
+    Spalte 2 (Titel) erhaelt bewusst den unuebersetzten API-Titel, identisch
+    in allen sechs Sprachfassungen - anders als die redaktionellen Spalten
+    gibt es dafuer keinen Platzhalter, der die fehlende Uebersetzung sichtbar
+    machen wuerde. Das ist eine akzeptierte Eigenschaft, keine Luecke:
+    ``unrated_issue_numbers()`` und die Freeze-Konsistenzpruefung
+    (``tests/test_recommendations_freeze_consistency.py``) melden nichts,
+    sobald die redaktionellen Spalten ausgefuellt sind, auch wenn der Titel
+    in einer nicht-deutschen Fassung unuebersetzt geblieben ist. Die
+    Uebersetzung bleibt Handarbeit, die TESTING.md benennt, aber keine
+    Pruefung erzwingt (#829, Befund 5).
     """
     title = issue.title.replace("|", "\\|").strip()
     link = f"[#{issue.number}](https://github.com/{repo}/issues/{issue.number})"
@@ -291,6 +311,10 @@ def update_triage_table(
     solange ihr Issue offen ist; Zeilen geschlossener Issues entfallen; neu
     offene Issues haengen als unbewertete Zeilen hinten an. Alles ausserhalb
     der Tabelle (Ueberschrift, Folgeabschnitte) bleibt unberuehrt.
+
+    Eine gruppierte Zeile mit mehreren Issue-Nummern bleibt komplett stehen,
+    solange eines ihrer Issues offen ist - eine bereits geschlossene Nummer
+    darin wird nicht entfernt (siehe Modul-Docstring, #829 Befund 4).
     """
     lines = section.split("\n")
     first, last = _table_span(lines)

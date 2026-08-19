@@ -156,8 +156,13 @@ def _drain_instances(
     eingesammelt – ein kurzes Zeitfenster, in dem sie in ``ps -A`` noch
     sichtbar sind. Ohne diesen Nachlauf kann eine unmittelbar folgende Phase
     (mehrphasige Hardware-Abnahme, #642) die verbliebene Instanz fälschlich
-    mitzählen und ihr eigenes Fork-Bomb-Limit überschreiten (beobachtet auf
-    realer macOS-Hardware, Abnahme-Lauf 31971337146).
+    mitzählen und ihr eigenes Fork-Bomb-Limit überschreiten. Die Wartezeit
+    bleibt vorsorgliche Härtung gegen dieses Zeitfenster, ohne dass ihr ein
+    beobachteter Fehlschlag ursächlich zugeordnet ist (Lauf 31971337146
+    gehört zu #816, nicht zu dieser Stelle – dort erklärt der deterministisch
+    je Aufruf gestartete Spawn-Kindprozess aus
+    ``acceptance_smoke._runtime_provenance()`` den beobachteten Peak-Wert
+    vollständig, #829 Befund 1).
     """
     deadline = time.monotonic() + timeout
     while _count_instances(match_token, exclude_pids) > 0 and time.monotonic() < deadline:

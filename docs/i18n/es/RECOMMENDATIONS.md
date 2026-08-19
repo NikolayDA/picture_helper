@@ -23,7 +23,7 @@ Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado
 
 Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo. Desde #821 no se mantienen a mano ni el recuento ni las filas: `scripts/recommendations_live_check.py --write` actualiza las seis versiones desde el estado en vivo de GitHub, mientras que las columnas de valoración siguen siendo trabajo editorial.
 
-## Incidencias abiertas de GitHub — Clasificación (2026-08-19)
+## Incidencias abiertas de GitHub — Clasificación
 
 | # | Título | Relevancia | Complejidad | Modelo recomendado (esfuerzo) | Próximo paso |
 |---|--------|------------|-------------|--------------------------------|--------------|
