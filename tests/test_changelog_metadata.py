@@ -63,6 +63,11 @@ def _footer_link_entries(text: str) -> list[tuple[str, str]]:
 _COMPARE_TARGET_RE = re.compile(r"\.\.\.v(\d+\.\d+\.\d+)$")
 _COMPARE_BASE_RE = re.compile(r"compare/v(\d+\.\d+\.\d+)\.\.\.")
 
+# Pre-tag history: these footer links point at raw commit SHAs (or, for
+# 2.0.0, a /tree/ link) instead of the 'vX.Y.Z' compare convention used by
+# every later release, so they don't end in '...vX.Y.Z'.
+_LEGACY_SHA_LINKED_VERSIONS = frozenset({"2.0.0", "2.1.0", "2.2.0"})
+
 
 def _unreleased_footer_target(text: str) -> str:
     match = re.search(r"(?m)^\[Unreleased\]: (\S+)$", text)
@@ -134,6 +139,12 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
                 assert target_match.group(1) == version, (
                     f"{path.relative_to(ROOT)}: footer link [{version}] targets "
                     f"...v{target_match.group(1)}, expected ...v{version}"
+                )
+            else:
+                assert version in _LEGACY_SHA_LINKED_VERSIONS, (
+                    f"{path.relative_to(ROOT)}: footer link [{version}] doesn't end "
+                    f"in '...vX.Y.Z' and isn't one of the known historical "
+                    f"SHA-/tree-based links {sorted(_LEGACY_SHA_LINKED_VERSIONS)}"
                 )
 
             idx = heading_index[version]
