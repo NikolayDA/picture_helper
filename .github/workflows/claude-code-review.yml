@@ -5,8 +5,10 @@ name: Claude Code Review
 # code-review.yml. Bewertet nur (Kommentare/Review) – schreibt keinen Code und
 # blockt den Merge nicht (das erledigen die required Checks aus pr-ci.yml).
 #
-# Voraussetzung: Repo-Secret ANTHROPIC_API_KEY. Ohne Secret wird das Review
-# sauber übersprungen (kein roter Lauf).
+# Voraussetzung: Repo-Secret CLAUDE_CODE_OAUTH_TOKEN (lokal erzeugt mit
+# `claude setup-token`; rechnet über das Claude-Abo statt über eine
+# API-Abrechnung). Ohne Secret wird das Review sauber übersprungen (kein
+# roter Lauf).
 
 on:
   pull_request:
@@ -27,7 +29,7 @@ jobs:
       id-token: write
       actions: read  # Damit Claude die CI-Ergebnisse des PR lesen kann.
     env:
-      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -35,18 +37,21 @@ jobs:
           fetch-depth: 1
 
       - name: Hinweis bei fehlendem Secret
-        if: env.HAS_ANTHROPIC_KEY != 'true'
+        if: env.HAS_CLAUDE_TOKEN != 'true'
         run: |
-          echo "::warning::ANTHROPIC_API_KEY ist nicht gesetzt – Review übersprungen. \
-          Secret unter Settings → Secrets and variables → Actions ergänzen."
+          echo "::warning::CLAUDE_CODE_OAUTH_TOKEN ist nicht gesetzt – Review \
+          übersprungen. Token lokal mit 'claude setup-token' erzeugen und unter \
+          Settings → Secrets and variables → Actions ergänzen."
 
       - name: Claude Review
-        if: env.HAS_ANTHROPIC_KEY == 'true'
+        id: claude
+        if: env.HAS_CLAUDE_TOKEN == 'true'
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Standard-GITHUB_TOKEN statt der Claude-GitHub-App verwenden – so
-          # genügt als Secret ANTHROPIC_API_KEY (keine App-Installation nötig).
+          # genügt das Abo-Token als einziges Secret (keine App-Installation
+          # nötig).
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_sticky_comment: true
           # Automation-/Prompt-Modus (kein track_progress → kein Tag-Modus mit
@@ -54,6 +59,16 @@ jobs:
           # Lesen und Kommentieren – Edit/Write/git sind nicht enthalten, das
           # Review kann also keinen Code committen/pushen (zusätzlich ist
           # contents auf read beschränkt).
+          # WebFetch ist auf Doku-/Quell-Hosts begrenzt (PR #825): Ohne den
+          # Zugriff schlug das Review Action-Inputs nicht nach, sondern riet –
+          # und meldete die Vermutung als Blocker. `raw.githubusercontent.com`
+          # ist dabei bewusst breit (jedes öffentliche Repo). Tragend ist dabei
+          # nicht "nur lesen" – geholter Fremdinhalt fließt in einen Agenten mit
+          # `pull-requests: write`, also die klassische Prompt-Injection-Kante.
+          # Tragend ist der Trigger: `on: pull_request` reicht Forks keine
+          # Secrets durch, `HAS_CLAUDE_TOKEN` bleibt dort leer und der Job
+          # überspringt sich. Ein Wechsel auf `pull_request_target` würde genau
+          # diese Absicherung aufheben.
           prompt: |
             Reviewe diesen Pull Request für das Projekt BgRemover (PyQt6-Desktop-App,
             Python >= 3.10). Gib fokussiertes, umsetzbares Feedback – bevorzugt als
@@ -77,6 +92,73 @@ jobs:
             abfangen – ergänze menschlich wertvolles Review. Nutze zum Setzen von
             Zeilen-Kommentaren das Inline-Comment-Werkzeug; die Zusammenfassung
             landet im (Sticky-)PR-Kommentar.
+
+            Recherche ist erwünscht, aber nicht um jeden Preis: Ist eine Quelle
+            nicht abrufbar, weil Werkzeug oder Domain nicht freigegeben sind,
+            notiere die Aussage als **unbelegt** und fahre fort. Suche keine
+            Umwege über andere Werkzeuge – jeder abgelehnte Versuch kostet einen
+            Turn. Poste deine Befunde rechtzeitig: Ein Lauf, der das Turn-Budget
+            aufbraucht, bevor er kommentiert hat, ist wertlos.
+          # Achtung: `claude_args` ist ein Block-Skalar – jede Zeile darin geht
+          # als CLI-Argument an Claude Code. Erklärungen gehören deshalb hier
+          # herauf, nicht zwischen die Argumente.
+          # --model: Ohne die Zeile nimmt die Action ihren eigenen Default (er
+          # hängt an der Kontoart; im ersten Lauf war das claude-sonnet-5). Für
+          # ein Review auf diesem Codebestand ist das stärkere Modell die bessere
+          # Wahl. Fest benannt statt Alias `opus` – dafür wandert die Zeile nicht
+          # mit: Bei einem Modell-/Auth-Fehler im Review-Job zuerst hier schauen.
           claude_args: |
-            --max-turns 20
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Grep,Glob"
+            --max-turns 30
+            --model claude-opus-5
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Grep,Glob,WebFetch(domain:docs.claude.com),WebFetch(domain:code.claude.com),WebFetch(domain:platform.claude.com),WebFetch(domain:docs.anthropic.com),WebFetch(domain:docs.github.com),WebFetch(domain:raw.githubusercontent.com)"
+
+      # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
+      # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
+      # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war
+      # genau das die entscheidende Information: Ein Agent, der eine Quelle
+      # nicht abrufen darf, rät stillschweigend statt nachzuschlagen, und
+      # abgelehnte Aufrufe verbrauchen zusätzlich Turns bis zum Budgetende.
+      # Der Block ist in beiden Claude-Workflows wortgleich;
+      # tests/test_claude_workflow_diagnostics.py hält ihn synchron.
+      # `continue-on-error`: Die Diagnose darf einen sonst grünen Lauf nie rot
+      # färben. Das Gating hängt am Schritt-Ergebnis statt am Output-Pfad –
+      # bricht die Action früh ab (Auth, Nutzungslimit, Modell nicht gedeckt),
+      # gibt es kein `execution_file`, und genau dann wird die Diagnose am
+      # dringendsten gebraucht.
+      - name: Abgelehnte Werkzeugaufrufe ausweisen
+        if: always() && steps.claude.outcome != 'skipped'
+        continue-on-error: true
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "$EXECUTION_FILE" ]; then
+            echo "Kein Protokoll unter '$EXECUTION_FILE' – nichts auszuwerten."
+            exit 0
+          fi
+          # Ein jq-Fehler darf nicht als "0 Ablehnungen" durchgehen: Das wäre im
+          # Log nicht vom sauberen Lauf zu unterscheiden – dieselbe Falle, die
+          # CLAUDE.md für den ClamAV-Scan ausschließt ("ein still übersprungener
+          # Scan gilt nie als bestanden"). Der Abschluss-Datensatz liegt je nach
+          # Ausgabeform verschieden tief; die rekursive Suche findet ihn so oder so.
+          if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
+                                | .permission_denials[]?
+                                | "\(.tool_name): \(.tool_input | tostring | .[0:300])"' \
+            "$EXECUTION_FILE"); then
+            echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
+            exit 0
+          fi
+          # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
+          # in einem anderen Datensatz als `permission_denials`, ein Fallback
+          # darauf meldete sonst "0" neben einer nicht leeren Liste.
+          count=0
+          if [ -n "$denials" ]; then
+            count=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
+          fi
+          jq -r '.. | objects | select(has("num_turns"))
+                 | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
+            "$EXECUTION_FILE" || true
+          echo "Abgelehnte Aufrufe: $count"
+          if [ "$count" -gt 0 ]; then
+            printf '%s\n' "$denials"
+          fi

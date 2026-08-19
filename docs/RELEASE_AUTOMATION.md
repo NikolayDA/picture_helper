@@ -255,7 +255,7 @@ Secrets):
 
 | Secret | Wirkung |
 |---|---|
-| `ANTHROPIC_VISION_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler). Bewusst getrennt von `ANTHROPIC_API_KEY` (interaktive Claude-Workflows, #656) – nur der Aggregations-Job liest dieses Secret |
+| `ANTHROPIC_VISION_API_KEY` | aktiviert die Vision-Vorbewertung der Screenshots; fehlt es, bleibt die Screenshot-Zeile `unbewertet` (fail-safe, kein Fehler). Bewusst getrennt vom Secret der interaktiven Claude-Workflows (`CLAUDE_CODE_OAUTH_TOKEN`, #656) – nur der Aggregations-Job liest dieses Secret |
 
 ### 4.2 Post-Release-Update-Nachweis `UPDATE-01` (#748)
 
