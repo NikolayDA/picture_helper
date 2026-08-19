@@ -37,6 +37,25 @@ def _changelog_release_date(version: str) -> str:
     return match.group(1)
 
 
+def _version_headings(text: str) -> list[str]:
+    return re.findall(r"(?m)^## \[(\d+\.\d+\.\d+)\] – \d{4}-\d{2}-\d{2}$", text)
+
+
+def _footer_link_versions(text: str) -> set[str]:
+    return set(re.findall(r"(?m)^\[(\d+\.\d+\.\d+)\]: https://", text))
+
+
+def _unreleased_footer_target(text: str) -> str:
+    match = re.search(r"(?m)^\[Unreleased\]: (\S+)$", text)
+    assert match is not None, "CHANGELOG.md needs an [Unreleased] footer link"
+    return match.group(1)
+
+
+ALL_CHANGELOGS = (ROOT / "CHANGELOG.md",) + tuple(
+    ROOT / "docs" / "i18n" / language / "CHANGELOG.md" for language in LANGUAGES
+)
+
+
 def test_translated_changelogs_keep_unreleased_entries_in_sync() -> None:
     """Translated changelogs mirror the German [Unreleased] bullet count."""
 
@@ -48,6 +67,37 @@ def test_translated_changelogs_keep_unreleased_entries_in_sync() -> None:
         assert translated_count == german_count, (
             f"{path.relative_to(ROOT)} has {translated_count} top-level [Unreleased] "
             f"entries, expected {german_count}"
+        )
+
+
+def test_changelog_version_headings_have_matching_footer_links() -> None:
+    """Every '## [X.Y.Z]' heading needs a matching '[X.Y.Z]: https://...' footer
+    link, and [Unreleased] must compare against the latest released version.
+
+    Regression test for #773/#827: the same mechanical footer-link bug (missing
+    entry for the newest heading, stale [Unreleased] compare target) slipped
+    through untested at two consecutive release cuts because nothing checked
+    the footer against the headings.
+    """
+
+    for path in ALL_CHANGELOGS:
+        text = _read(path)
+        headings = _version_headings(text)
+        assert headings, f"{path.relative_to(ROOT)} has no version headings"
+
+        footer_versions = _footer_link_versions(text)
+        missing = [v for v in headings if v not in footer_versions]
+        assert not missing, (
+            f"{path.relative_to(ROOT)}: version heading(s) {missing} have no "
+            f"matching '[X.Y.Z]: https://...' footer link definition"
+        )
+
+        latest = headings[0]
+        unreleased_target = _unreleased_footer_target(text)
+        expected_suffix = f"compare/v{latest}...HEAD"
+        assert unreleased_target.endswith(expected_suffix), (
+            f"{path.relative_to(ROOT)}: [Unreleased] points at {unreleased_target!r}, "
+            f"expected it to end with {expected_suffix!r} (latest release is {latest})"
         )
 
 
