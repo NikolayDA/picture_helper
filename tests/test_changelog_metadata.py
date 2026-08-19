@@ -114,6 +114,8 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
     """
 
     headings_by_path: dict[Path, list[str]] = {}
+    links_by_path: dict[Path, dict[str, str]] = {}
+    unreleased_by_path: dict[Path, str] = {}
 
     for path in ALL_CHANGELOGS:
         text = _read(path)
@@ -123,6 +125,7 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
         heading_index = {version: i for i, version in enumerate(headings)}
 
         entries = _footer_link_entries(text)
+        links_by_path[path] = dict(entries)
         footer_versions = [version for version, _link in entries]
         duplicates = sorted({v for v in footer_versions if footer_versions.count(v) > 1})
         assert not duplicates, (
@@ -180,18 +183,35 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
         latest = headings[0]
 
         unreleased_target = _unreleased_footer_target(text, path)
+        unreleased_by_path[path] = unreleased_target
         expected_suffix = f"compare/v{latest}...HEAD"
         assert unreleased_target.endswith(expected_suffix), (
             f"{path.relative_to(ROOT)}: [Unreleased] points at {unreleased_target!r}, "
             f"expected it to end with {expected_suffix!r} (latest release is {latest})"
         )
 
+    # The six changelogs share identical, language-independent footer links —
+    # only the release-note prose differs. Comparing them against the German
+    # original catches drift the per-file checks above can't: a wrong host/
+    # fork in a translated link, or a mismatched historical SHA link (neither
+    # ever matches the '...vX.Y.Z' regexes above, so they're otherwise
+    # unchecked in every file but German).
     german_path = ROOT / "CHANGELOG.md"
     german_headings = headings_by_path[german_path]
+    german_links = links_by_path[german_path]
+    german_unreleased = unreleased_by_path[german_path]
     for path, headings in headings_by_path.items():
         assert headings == german_headings, (
             f"{path.relative_to(ROOT)}: version headings {headings} differ from "
             f"the German changelog's {german_headings}"
+        )
+        assert links_by_path[path] == german_links, (
+            f"{path.relative_to(ROOT)}: footer link targets differ from the German "
+            f"changelog's (they are language-independent URLs and must match)"
+        )
+        assert unreleased_by_path[path] == german_unreleased, (
+            f"{path.relative_to(ROOT)}: [Unreleased] target {unreleased_by_path[path]!r} "
+            f"differs from the German changelog's {german_unreleased!r}"
         )
 
 
