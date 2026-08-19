@@ -23,7 +23,7 @@ Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything complete
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
-## Open GitHub Issues — Triage Status (2026-08-19)
+## Open GitHub Issues — Triage Status
 
 | # | Title | Relevance | Complexity | Recommended model (effort) | Next step |
 |---|-------|-----------|------------|------------------------------|-----------|

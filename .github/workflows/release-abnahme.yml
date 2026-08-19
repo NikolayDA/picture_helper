@@ -440,11 +440,20 @@ jobs:
             --screenshots-dir "${RUNNER_TEMP}/abnahme-evidenz" \
             --output "${RUNNER_TEMP}/abnahme-evidenz/vision-verdikte.json"
       - name: Vision-Verdikte als Actions-Artefakt sichern
+        # if-no-files-found: warn statt error (#829, Befund 3): write_verdicts()
+        # meldet einen Schreibfehler bewusst als Rueckgabewert statt zu werfen
+        # (#819) - genau damit ein Ausgabefehler die Abnahme nicht abbricht
+        # (abnahme_aggregate.load_vision behandelt eine fehlende Datei als
+        # leere Verdiktliste). Mit "error" haette dieser Upload-Schritt den
+        # Fail-safe-Vertrag eine Stufe spaeter wieder ausgehebelt: die Datei
+        # fehlt, der Job bricht ab, Abschlussmatrix und Issue-Kommentar
+        # entstehen nie. Der Fehlversuch bleibt trotzdem sichtbar, weil das
+        # Skript ihn selbst als ::warning:: meldet.
         uses: actions/upload-artifact@v6
         with:
           name: vision-verdikte-${{ github.run_attempt }}
           path: ${{ runner.temp }}/abnahme-evidenz/vision-verdikte.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
       - name: Abschlussmatrix erzeugen
         run: |

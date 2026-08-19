@@ -242,12 +242,18 @@ GitHub-Stand widerspiegeln.
   bekommen eine Zeile mit Nummer und Titel aus der API sowie `TODO` in den
   redaktionellen Spalten. Bestehende Zeilen bleiben wortgleich und in ihrer
   Reihenfolge – Relevanz, Komplexität, Modell und „Nächster Schritt" sind
-  Handarbeit, ebenso die Übersetzung des Titels. Der Lauf endet mit Exit 1,
+  Handarbeit, ebenso die Übersetzung des Titels: Anders als die
+  redaktionellen Spalten trägt Spalte 2 keinen Platzhalter, eine
+  unübersetzt gebliebene Fassung wird von keinem Test gemeldet (#829,
+  Befund 5). Der Lauf endet mit Exit 1,
   solange ein `TODO` offen ist; `tests/test_recommendations_freeze_consistency.py`
   prüft dasselbe netzfrei für alle sechs Fassungen, damit ein unbewerteter
   Platzhalter nicht gemergt wird. Das Werkzeug läuft bewusst **lokal**, sein
   Ergebnis geht wie jede andere Änderung durch einen PR – der CI-Check bleibt
-  read-only.
+  read-only. Eine **gruppierte** Zeile (mehrere Issue-Links in Spalte 1)
+  bleibt komplett stehen, solange eines ihrer Issues offen ist – eine
+  bereits geschlossene Nummer darin trennt `--write` nicht automatisch ab;
+  das erfordert Handarbeit (#829, Befund 4).
 
 - **Automatisiert, wiederkehrend (#777):** `recommendations-live-check.yml`
   führt genau diesen Live-Check ohne menschliches Zutun aus – täglich
