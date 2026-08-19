@@ -63,10 +63,15 @@ def _footer_link_entries(text: str) -> list[tuple[str, str]]:
 _COMPARE_TARGET_RE = re.compile(r"\.\.\.v(\d+\.\d+\.\d+)$")
 _COMPARE_BASE_RE = re.compile(r"compare/v(\d+\.\d+\.\d+)\.\.\.")
 
-# Pre-tag history: these footer links point at raw commit SHAs (or, for
-# 2.0.0, a /tree/ link) instead of the 'vX.Y.Z' compare convention used by
-# every later release, so they don't end in '...vX.Y.Z'.
+# Pre-tag history: these footer links' compare *target* is a raw commit SHA
+# (or, for 2.0.0, a /tree/ link) instead of the 'vX.Y.Z' compare convention
+# used by every later release, so they don't end in '...vX.Y.Z'.
 _LEGACY_SHA_LINKED_VERSIONS = frozenset({"2.0.0", "2.1.0", "2.2.0"})
+
+# Same idea for the compare *base*: 2.3.0's target already uses the 'vX.Y.Z'
+# convention, but its base is still a raw SHA (predates the 2.4.0 tag), so it
+# needs its own, one-element-wider allowlist.
+_LEGACY_SHA_BASE_VERSIONS = _LEGACY_SHA_LINKED_VERSIONS | {"2.3.0"}
 
 
 def _unreleased_footer_target(text: str, path: Path) -> str:
@@ -159,6 +164,12 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
                         f"{path.relative_to(ROOT)}: footer link [{version}] has base "
                         f"v{base_match.group(1)}, expected v{expected_base} (the next "
                         f"older release heading)"
+                    )
+                else:
+                    assert version in _LEGACY_SHA_BASE_VERSIONS, (
+                        f"{path.relative_to(ROOT)}: footer link [{version}] has no "
+                        f"'compare/vX.Y.Z...' base (missing 'v'?) and isn't one of the "
+                        f"known historical SHA-based links {sorted(_LEGACY_SHA_BASE_VERSIONS)}"
                     )
 
         order = [tuple(int(p) for p in v.split(".")) for v in headings]
