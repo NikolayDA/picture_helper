@@ -60,6 +60,7 @@ jobs:
           Settings → Secrets and variables → Actions ergänzen."
 
       - name: Run Claude Code
+        id: claude
         if: env.HAS_CLAUDE_TOKEN == 'true'
         uses: anthropics/claude-code-action@v1
         with:
@@ -84,3 +85,54 @@ jobs:
           claude_args: |
             --max-turns 25
             --model claude-opus-5
+
+      # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
+      # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
+      # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war
+      # genau das die entscheidende Information: Ein Agent, der eine Quelle
+      # nicht abrufen darf, rät stillschweigend statt nachzuschlagen, und
+      # abgelehnte Aufrufe verbrauchen zusätzlich Turns bis zum Budgetende.
+      # Der Block ist in beiden Claude-Workflows wortgleich;
+      # tests/test_claude_workflow_diagnostics.py hält ihn synchron.
+      # `continue-on-error`: Die Diagnose darf einen sonst grünen Lauf nie rot
+      # färben. Das Gating hängt am Schritt-Ergebnis statt am Output-Pfad –
+      # bricht die Action früh ab (Auth, Nutzungslimit, Modell nicht gedeckt),
+      # gibt es kein `execution_file`, und genau dann wird die Diagnose am
+      # dringendsten gebraucht.
+      - name: Abgelehnte Werkzeugaufrufe ausweisen
+        if: always() && steps.claude.outcome != 'skipped'
+        continue-on-error: true
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "$EXECUTION_FILE" ]; then
+            echo "Kein Protokoll unter '$EXECUTION_FILE' – nichts auszuwerten."
+            exit 0
+          fi
+          # Ein jq-Fehler darf nicht als "0 Ablehnungen" durchgehen: Das wäre im
+          # Log nicht vom sauberen Lauf zu unterscheiden – dieselbe Falle, die
+          # CLAUDE.md für den ClamAV-Scan ausschließt ("ein still übersprungener
+          # Scan gilt nie als bestanden"). Der Abschluss-Datensatz liegt je nach
+          # Ausgabeform verschieden tief; die rekursive Suche findet ihn so oder so.
+          if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
+                                | .permission_denials[]?
+                                | "\(.tool_name): \(.tool_input | tostring | .[0:300])"' \
+            "$EXECUTION_FILE"); then
+            echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
+            exit 0
+          fi
+          # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
+          # in einem anderen Datensatz als `permission_denials`, ein Fallback
+          # darauf meldete sonst "0" neben einer nicht leeren Liste.
+          count=0
+          if [ -n "$denials" ]; then
+            count=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
+          fi
+          jq -r '.. | objects | select(has("num_turns"))
+                 | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
+            "$EXECUTION_FILE" || true
+          echo "Abgelehnte Aufrufe: $count"
+          if [ "$count" -gt 0 ]; then
+            printf '%s\n' "$denials"
+          fi

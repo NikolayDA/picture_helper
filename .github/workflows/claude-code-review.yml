@@ -62,7 +62,13 @@ jobs:
           # WebFetch ist auf Doku-/Quell-Hosts begrenzt (PR #825): Ohne den
           # Zugriff schlug das Review Action-Inputs nicht nach, sondern riet –
           # und meldete die Vermutung als Blocker. `raw.githubusercontent.com`
-          # ist dabei bewusst breit (jedes öffentliche Repo), aber rein lesend.
+          # ist dabei bewusst breit (jedes öffentliche Repo). Tragend ist dabei
+          # nicht "nur lesen" – geholter Fremdinhalt fließt in einen Agenten mit
+          # `pull-requests: write`, also die klassische Prompt-Injection-Kante.
+          # Tragend ist der Trigger: `on: pull_request` reicht Forks keine
+          # Secrets durch, `HAS_CLAUDE_TOKEN` bleibt dort leer und der Job
+          # überspringt sich. Ein Wechsel auf `pull_request_target` würde genau
+          # diese Absicherung aufheben.
           prompt: |
             Reviewe diesen Pull Request für das Projekt BgRemover (PyQt6-Desktop-App,
             Python >= 3.10). Gib fokussiertes, umsetzbares Feedback – bevorzugt als
@@ -109,28 +115,39 @@ jobs:
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
       # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
       # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war
-      # genau das die entscheidende Information: Ein Review, das eine Quelle
+      # genau das die entscheidende Information: Ein Agent, der eine Quelle
       # nicht abrufen darf, rät stillschweigend statt nachzuschlagen, und
       # abgelehnte Aufrufe verbrauchen zusätzlich Turns bis zum Budgetende.
-      # `continue-on-error`: Die Diagnose darf ein sonst grünes Review nie rot
-      # färben.
+      # Der Block ist in beiden Claude-Workflows wortgleich;
+      # tests/test_claude_workflow_diagnostics.py hält ihn synchron.
+      # `continue-on-error`: Die Diagnose darf einen sonst grünen Lauf nie rot
+      # färben. Das Gating hängt am Schritt-Ergebnis statt am Output-Pfad –
+      # bricht die Action früh ab (Auth, Nutzungslimit, Modell nicht gedeckt),
+      # gibt es kein `execution_file`, und genau dann wird die Diagnose am
+      # dringendsten gebraucht.
       - name: Abgelehnte Werkzeugaufrufe ausweisen
-        if: always() && steps.claude.outputs.execution_file != ''
+        if: always() && steps.claude.outcome != 'skipped'
         continue-on-error: true
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
           set -euo pipefail
           if [ ! -f "$EXECUTION_FILE" ]; then
-            echo "Kein Protokoll unter $EXECUTION_FILE – nichts auszuwerten."
+            echo "Kein Protokoll unter '$EXECUTION_FILE' – nichts auszuwerten."
             exit 0
           fi
-          # Der Abschluss-Datensatz liegt je nach Ausgabeform verschieden tief;
-          # die rekursive Suche findet ihn in beiden Fällen.
-          denials=$(jq -r '.. | objects | select(has("permission_denials"))
-                           | .permission_denials[]?
-                           | "\(.tool_name): \(.tool_input | tostring | .[0:300])"' \
-            "$EXECUTION_FILE" || true)
+          # Ein jq-Fehler darf nicht als "0 Ablehnungen" durchgehen: Das wäre im
+          # Log nicht vom sauberen Lauf zu unterscheiden – dieselbe Falle, die
+          # CLAUDE.md für den ClamAV-Scan ausschließt ("ein still übersprungener
+          # Scan gilt nie als bestanden"). Der Abschluss-Datensatz liegt je nach
+          # Ausgabeform verschieden tief; die rekursive Suche findet ihn so oder so.
+          if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
+                                | .permission_denials[]?
+                                | "\(.tool_name): \(.tool_input | tostring | .[0:300])"' \
+            "$EXECUTION_FILE"); then
+            echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
+            exit 0
+          fi
           # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
           # in einem anderen Datensatz als `permission_denials`, ein Fallback
           # darauf meldete sonst "0" neben einer nicht leeren Liste.

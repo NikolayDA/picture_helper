@@ -94,10 +94,18 @@ Drei Eigenheiten dieses Wegs:
    überschreiben.
 
 Wer stattdessen per API abrechnen will, hinterlegt `ANTHROPIC_API_KEY` und
-zieht in **beiden** Workflows drei Stellen mit: das Input
-(`claude_code_oauth_token:` → `anthropic_api_key:`), die `env:`-Zeile der
-`HAS_CLAUDE_TOKEN`-Prüfung und den Meldungstext im Skip-Schritt. Bleibt eine
-davon stehen, löst der Workflow still nie aus.
+zieht in **beiden** Workflows vier Stellen mit. Sie wirken unterschiedlich –
+bleibt eine stehen, sieht der Fehler jeweils anders aus:
+
+| Stelle | Bleibt sie stehen |
+|---|---|
+| `env:`-Zeile der `HAS_CLAUDE_TOKEN`-Prüfung | Workflow löst **still nie aus** |
+| Input `claude_code_oauth_token:` | Job läuft an und scheitert **rot** mit Auth-Fehler |
+| Meldungstext im Skip-Schritt | folgenlos, aber irreführende Warnung |
+| Kopfkommentar der Workflow-Datei | folgenlos, aber die Datei widerspricht sich |
+
+Der stille Fall ist der teuerste: Bei einem roten Lauf sucht man wenigstens an
+der richtigen Stelle.
 
 Für den GitHub-Zugriff reichen die Workflows bewusst das automatische
 `GITHUB_TOKEN` durch (`github_token: ${{ secrets.GITHUB_TOKEN }}`), damit die
