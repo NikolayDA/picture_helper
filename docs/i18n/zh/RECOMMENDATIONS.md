@@ -13,9 +13,9 @@
 
 ## 当前状态（2026-08-19，v2.8.0 稳定，#687 的 EufyMake 前期工作已更正）
 
-**2026-08-19 例行检查：** GitHub 实时状态现为 17 个未结议题——新增记录四个（#826–#829，详见下文），上一轮的 13 个保持不变（无关闭、自 2026-08-17/18 以来无新评论，详见以往轮次）。目前不需要发布新版本——自 v2.8.0（两天前）以来，仅新增了 Recommendations 维护 PR #818–#824 以及 PR #825（CI：将 Claude 工作流切换为使用 `CLAUDE_CODE_OAUTH_TOKEN`，现已合并）。无未决的 🔴 级发现。
+**2026-08-19 例行检查：** GitHub 实时状态新增记录四个议题（#826–#829，详见下文）；上一轮的议题保持不变（无关闭、自 2026-08-17/18 以来无新评论，详见以往轮次）。目前不需要发布新版本——自 v2.8.0（两天前）以来，仅新增了 Recommendations 维护 PR #818–#824 以及 PR #825（CI：将 Claude 工作流切换为使用 `CLAUDE_CODE_OAUTH_TOKEN`，现已合并）。无未决的 🔴 级发现。
 
-**2026-08-19 新增四个议题：** #826（文档审计，TESTING.md 中的 `gl_smoke` 标记列表不完整；修复已在分支 `claude/festive-gates-ktqmjq` 上就绪，只差提交 PR）、#827（CHANGELOG.md：缺少 `[2.8.0]` 链接引用，`[Unreleased]` 比较链接已过期——与 #773 相同回归问题的第二次重现，议题中已给出确切修复方案）、#828（针对 #825 新引入的评审自动化的观察任务：最初 6 次运行中有 3 次触及回合预算上限，第一阶段仅在后续 PR 上收集数据，暂不改代码）以及 #829（2026-08-17/18 PR 复查的后续，发布自动化与分诊维护中的六项较小发现，其中两项 🟡 涉及 #817 的 fail-safe 契约）。详情与评估见下方表格。
+**2026-08-19 新增四个议题：** #826（文档审计，TESTING.md 中的 `gl_smoke` 标记列表不完整；修复已在一个独立分支上就绪，只差提交 PR）、#827（CHANGELOG.md：缺少 `[2.8.0]` 链接引用，`[Unreleased]` 比较链接已过期——与 #773 相同回归问题的第二次重现，议题中已给出确切修复方案）、#828（针对 #825 新引入的评审自动化的观察任务：最初 6 次运行中有 3 次触及回合预算上限，第一阶段仅在后续 PR 上收集数据，暂不改代码）以及 #829（2026-08-17/18 PR 复查的后续，发布自动化与分诊维护中的六项较小发现，其中两项 🟡 涉及 #817 的 fail-safe 契约）。详情与评估见下方表格。
 
 **关于 #687 的更正：** 表格此前的状态（「可启动」）已经过时。自 2026-08-15 的评论以来合并的九个 PR（#795–#797、#799–#801、#803–#804、#814）已交付假设清单（[`EUFYMAKE-687-ANNAHMENINVENTAR.md`](../../history/EUFYMAKE-687-ANNAHMENINVENTAR.md)，证据版本 2，包含对厂商资料的全文核实）、经仓库所有者批准的测试治理文件，含中止/安全/隐私标准（[`EUFYMAKE-687-TESTGOVERNANCE.md`](../../history/EUFYMAKE-687-TESTGOVERNANCE.md)）、协议模板（[`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](../../history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)、[`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](../../history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)）以及可复现的 fixture 生成器（`scripts/eufymake_fixture_generator.py`）。#687 的 17 项验收标准中已勾选 11 项；剩余 6 项（文件夹/清单负向测试 I-06、三份待填写的协议、最终测试文件核对、收尾评审）全部需要真实的 Studio/打印机访问权限。因此 #687 已不再是可在无硬件条件下独立启动的事项，而实际上与 #688–#690 归入同一个硬件阻塞点——下方表格与建议已相应更正。
 
@@ -28,7 +28,7 @@
 | # | 标题 | 相关性 | 复杂度 | 建议模型（投入） | 下一步 |
 |---|------|--------|--------|--------------------|--------|
 | [#681](https://github.com/NikolayDA/picture_helper/issues/681) | [Epic] EufyMake 目标配置文件 —— 验证 Height/Gloss/mm-DPI | 🟠 高（关系到最重要导出目标的正确性） | 🔴 高（5 个子议题，需要物理硬件） | –（Epic） | #687 的案头工作已完成（11/17 项验收标准）—— 整条链路（#687 剩余部分 + #688–#690）现共同等待 Studio/打印机硬件 |
-| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（案头部分已完成；剩余部分需要真实的 Studio/打印机硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 11/17 项验收标准（PR #795–#814：清单/治理/fixture 均已合并）；待完成：I-06 负向测试、三份协议、收尾评审——与 #688–#690 一样依赖硬件 |
+| [#687](https://github.com/NikolayDA/picture_helper/issues/687) | 假设清单、厂商资料来源、测试矩阵 | 🟠 高（#688–#691 的约束性基础） | 🔴 高（案头部分已完成；剩余部分需要真实的 Studio/打印机硬件） | –（无需 Agent；需要真实的 EufyMake 硬件） | 阻塞（外部）—— 已完成 11/17 项验收标准（PR #795–#814，共九个，见上文：清单/治理/fixture 均已合并）；待完成：I-06 负向测试、三份协议、最终测试文件核对、收尾评审——与 #688–#690 一样依赖硬件 |
 | [#688](https://github.com/NikolayDA/picture_helper/issues/688) | 在真实硬件上验证 HEIGHT 位深/语义 | 🟠 高（直接影响浮雕高度） | 🔴 高（需物理打印机、测试样件、测量记录） | –（无需 Agent；需要真实 EufyMake 硬件） | 阻塞（外部）—— 等待 #687 提供测试样件；定义已修正 |
 | [#689](https://github.com/NikolayDA/picture_helper/issues/689) | 验证 mm/DPI、目标尺寸、定位契约 | 🟠 高（打印尺寸/对位） | 🔴 高（物理测量、对照图案） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— Studio 导入对话框是否依据 `pHYs`/DPI 推导起始尺寸尚未证实（N10, EM-F04） |
 | [#690](https://github.com/NikolayDA/picture_helper/issues/690) | 验证 gloss/亮光漆语义 | 🟡 中（代码中 gloss 已标记为“experimental”） | 🔴 高（需物理打印、消耗材料） | –（无需 Agent；需要真实硬件） | 阻塞（外部）—— 等待 #687 |
@@ -40,7 +40,7 @@
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
-| [#826](https://github.com/NikolayDA/picture_helper/issues/826) | TESTING.md 审计：gl_smoke 标记列表不完整（已修复） | 🟢 低（纯文档正确性问题，不影响代码） | 🟢 低（单行修复，已就绪） | Sonnet，低 | **可以开始** —— 修复已提交至分支 `claude/festive-gates-ktqmjq`（一个提交），只需开启并合并 PR |
+| [#826](https://github.com/NikolayDA/picture_helper/issues/826) | TESTING.md 审计：gl_smoke 标记列表不完整（已修复） | 🟢 低（纯文档正确性问题，不影响代码） | 🟢 低（单行修复，已就绪） | Sonnet，低 | **可以开始** —— 修复已在一个独立分支上就绪（一个提交），只需开启并合并 PR |
 | [#827](https://github.com/NikolayDA/picture_helper/issues/827) | CHANGELOG.md：缺少 [2.8.0] 链接引用，[Unreleased] 比较链接已过期（#773 的回归） | 🟡 中（已发布文档中的失效链接，同一回归问题第二次出现） | 🟢 低（机械式两行修复 × 6 个语言版本，议题中已给出确切 diff） | Sonnet，低 | **可以开始** —— 应用修复并补充回归测试（校验页脚链接与版本标题是否对应），避免第三次重现 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性问题，非产品关键） | 🟡 中（第一阶段仅为观察，不涉及代码；第二/三阶段视情况而定，需要决策） | –（第一阶段：无需 Agent，纯粹观察 3 个未来 PR） | 观察任务 —— 等待接下来 3 个与评审配置无关的常规 PR，记录诊断数值；之后再决定是否进入第二/三阶段 |
 | [#829](https://github.com/NikolayDA/picture_helper/issues/829) | 2026-08-17/18 PR 复查后续：发布自动化与分诊维护中的六项发现 | 🟡 中（其中两项发现直接涉及 #817 的 fail-safe 契约） | 🟡 中（脚本/工作流/文档中 6 项独立子修复，单项均较小） | Sonnet，中 | **可以开始** —— 已明确说明；发现 3（`if-no-files-found: error` 使 #817 失效）优先处理，因其直接破坏 fail-safe 契约 |
