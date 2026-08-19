@@ -69,9 +69,9 @@ _COMPARE_BASE_RE = re.compile(r"compare/v(\d+\.\d+\.\d+)\.\.\.")
 _LEGACY_SHA_LINKED_VERSIONS = frozenset({"2.0.0", "2.1.0", "2.2.0"})
 
 
-def _unreleased_footer_target(text: str) -> str:
+def _unreleased_footer_target(text: str, path: Path) -> str:
     match = re.search(r"(?m)^\[Unreleased\]: (\S+)$", text)
-    assert match is not None, "CHANGELOG.md needs an [Unreleased] footer link"
+    assert match is not None, f"{path.relative_to(ROOT)} needs an [Unreleased] footer link"
     return match.group(1)
 
 
@@ -108,10 +108,13 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
     its neighbouring headings.
     """
 
+    headings_by_path: dict[Path, list[str]] = {}
+
     for path in ALL_CHANGELOGS:
         text = _read(path)
         headings = _version_headings(text, path)
         assert headings, f"{path.relative_to(ROOT)} has no version headings"
+        headings_by_path[path] = headings
         heading_index = {version: i for i, version in enumerate(headings)}
 
         entries = _footer_link_entries(text)
@@ -158,17 +161,26 @@ def test_changelog_version_headings_have_matching_footer_links() -> None:
                         f"older release heading)"
                     )
 
-        latest = max(headings, key=lambda v: tuple(int(p) for p in v.split(".")))
-        assert headings[0] == latest, (
+        order = [tuple(int(p) for p in v.split(".")) for v in headings]
+        assert order == sorted(order, reverse=True), (
             f"{path.relative_to(ROOT)}: version headings are not in descending "
-            f"order (top heading {headings[0]}, newest release {latest})"
+            f"order ({headings})"
         )
+        latest = headings[0]
 
-        unreleased_target = _unreleased_footer_target(text)
+        unreleased_target = _unreleased_footer_target(text, path)
         expected_suffix = f"compare/v{latest}...HEAD"
         assert unreleased_target.endswith(expected_suffix), (
             f"{path.relative_to(ROOT)}: [Unreleased] points at {unreleased_target!r}, "
             f"expected it to end with {expected_suffix!r} (latest release is {latest})"
+        )
+
+    german_path = ROOT / "CHANGELOG.md"
+    german_headings = headings_by_path[german_path]
+    for path, headings in headings_by_path.items():
+        assert headings == german_headings, (
+            f"{path.relative_to(ROOT)}: version headings {headings} differ from "
+            f"the German changelog's {german_headings}"
         )
 
 
