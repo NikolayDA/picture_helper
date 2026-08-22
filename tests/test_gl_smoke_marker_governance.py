@@ -160,8 +160,21 @@ def test_single_test_gl_smoke_files_have_exactly_one_marked_test() -> None:
     ohnehin geprüften Dateiliste abgeleitet (``documented -
     _MODULE_WIDE_GL_SMOKE_FILES``) statt als zweite Hand-Liste geführt – ein
     künftiges drittes Einzeldekorator-Modul wird damit automatisch mitgeprüft.
+
+    ``_MODULE_WIDE_GL_SMOKE_FILES`` selbst bleibt eine Hand-Konstante (ob eine
+    Datei tatsächlich *modulweit* markiert ist – alle ihre Tests, nicht nur
+    zufällig genau einer – wird hier bewusst nicht verifiziert, das bräuchte
+    eine zweite, ungefilterte Kollektion). Die Sicherheitsnetz-Assertion
+    unten verhindert wenigstens, dass die Konstante nach einer Umbenennung/
+    Entfernung der Datei in TESTING.md stillschweigend ins Leere läuft
+    (#845-Review).
     """
     documented = _documented_gl_smoke_files()
+    assert documented >= _MODULE_WIDE_GL_SMOKE_FILES, (
+        f"_MODULE_WIDE_GL_SMOKE_FILES {sorted(_MODULE_WIDE_GL_SMOKE_FILES)} "
+        f"nicht (mehr) in TESTING.md dokumentiert ({sorted(documented)}) - "
+        "Konstante nachziehen."
+    )
     single_test_files = documented - _MODULE_WIDE_GL_SMOKE_FILES
     counts = _actual_gl_smoke_counts()
     wrong = {
