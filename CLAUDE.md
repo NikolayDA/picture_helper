@@ -479,9 +479,13 @@ Ein Paket, `bgremover/`:
   Karten/Zeilen selbst (`right_panel_tabs.EXPERT_ONLY_PROPERTY`/
   `STANDARD_ONLY_PROPERTY` über die Helfer `_mark_expert_only`/
   `_mark_standard_only`, auch von `layer_panel` und `height_map_panel` genutzt);
-  `right_panel._assemble` sammelt sie **einmal** per `findChildren` ein und
-  koppelt ihre Sichtbarkeit an den Umschalter – kein Tab kennt den Modus selbst,
-  und Umschalten baut das Panel **nicht** neu (anders als der Theme-Wechsel).
+  `right_panel._assemble` sammelt sie **einmal beim Panel-Aufbau** per
+  `findChildren` ein und koppelt ihre Sichtbarkeit an den Umschalter – kein Tab
+  kennt den Modus selbst, und Umschalten baut das Panel **nicht** neu (anders
+  als der Theme-Wechsel). Marker gehören deshalb zwingend in den `build`-Pfad:
+  erst danach erzeugte Zeilen (z. B. aus `LayerPanel.refresh()`) erfasst der
+  Umschalter nicht mehr, und ein dort gesetztes `_mark_expert_only` bliebe
+  wirkungslos, ohne dass Test oder Typcheck anschlagen.
   `standardOnly` ist das Gegenstück für Steuerungen, die im Experten-Modus durch
   eine editierbare Variante ersetzt werden (Ebenen-Rolle als Text statt
   Dropdown, #809). Reiner UI-Zustand, global über alle sechs Schritte,
