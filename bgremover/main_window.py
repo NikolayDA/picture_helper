@@ -693,6 +693,15 @@ class MainWindow(QMainWindow):
         # die 3D-Ansicht zeigt.
         if step is not WorkflowStep.RELIEF and self._preview3d_active:
             self._set_preview3d_mode(False)
+        # Eine aktive, nicht committete Höhen-Optimieren-Vorschau (Höhen-Tab,
+        # nur im Relief-Schritt erreichbar) beim Verlassen verwerfen (#846-
+        # Review auf #839): sonst bliebe sie am Canvas sichtbar, während die
+        # Apply-/Verwerfen-Regler im Export-Schritt nicht mehr erreichbar
+        # sind – derselbe Export-vom-unveränderten-Modell-Fall wie beim
+        # Experten→Standard-Wechsel, nur über den Schrittwechsel erreicht.
+        # ``cancel_height_preview`` ist ein No-op ohne aktive Vorschau.
+        if step is not WorkflowStep.RELIEF:
+            self._canvas.cancel_height_preview()
         self._step = step
         self._stepper.set_current(int(step))
         self._right_panel.set_step(step)
