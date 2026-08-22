@@ -166,10 +166,12 @@ Details zum manuellen Nachweis unter echtem GL:
 [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
 
 Die Liste oben synchron zum tatsächlichen Marker-Bestand zu halten, sichert
-`tests/test_gl_smoke_marker_governance.py` (#832) ab: Der Test fragt pytest
-selbst per `--collect-only -m gl_smoke`, welche Module tatsächlich
-`gl_smoke`-markierte Tests enthalten, und vergleicht das Ergebnis gegen die
-oben genannten Dateien.
+`tests/test_gl_smoke_marker_governance.py` (#832) ab: Der Test lässt pytest
+in einem Subprozess ungefiltert sammeln und liest die Marker über das
+Mini-Plugin `tests/_marker_collect_plugin.py` direkt aus den Item-Objekten
+aus; verglichen werden sowohl die Dateiliste als auch die
+Granularitätsaussage (modulweit vs. je ein markierter Test) gegen die oben
+genannten Angaben.
 
 ### GL-Ressourcen-Langzeittest (#684)
 
