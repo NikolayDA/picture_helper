@@ -22,8 +22,9 @@ Diagramm ist der Fehler.
 ### Aktueller GitHub-Rahmen
 
 Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
-des versionierten Codes (Stand: 22. August 2026). Sie müssen bei Änderungen in
-den GitHub-Einstellungen erneut abgeglichen werden:
+des versionierten Codes (manuell und authentifiziert geprüft am 22. August
+2026). Dieser Snapshot hat noch keinen automatischen Drift-Test und muss bei
+Änderungen in den GitHub-Einstellungen erneut abgeglichen werden:
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
@@ -32,9 +33,13 @@ den GitHub-Einstellungen erneut abgeglichen werden:
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
 | Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
 
-Öffentlich prüfbar sind unter anderem die
+Der erforderliche Status ist anonym über die
 [`main`-Branch-Metadaten](https://api.github.com/repos/NikolayDA/picture_helper/branches/main)
-und die [Repository-Einstellungen](https://api.github.com/repos/NikolayDA/picture_helper).
+prüfbar. Merge-Methoden, Auto-Merge und automatische Branch-Löschung fehlen
+dagegen in der anonymen Repository-API; ihre Werte wurden mit administrativem
+Zugriff geprüft und müssen in den
+[Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
+authentifiziert kontrolliert werden.
 
 ## Notation
 
@@ -173,8 +178,6 @@ flowchart TD
     P3["Closes #123 eintragen<br/>nur die englischen Schlüsselwörter Closes/Fixes/Resolves schließen automatisch"]
     P4["bei reinem Bezug: Bezug: #123<br/>ohne Issue darf die Referenz entfallen"]
     P5["PR öffnen, gegebenenfalls als Draft<br/>dies löst sofort das Ereignis opened aus"]
-    PD{"Als Draft geöffnet?"}
-    P6["Nach Fertigstellung als Ready for review markieren<br/>dieser Ereignistyp startet hier keinen eigenen Workflow"]
   end
 
   subgraph GH["Partition: GitHub · Ereignis pull_request opened bzw. synchronize"]
@@ -198,9 +201,6 @@ flowchart TD
   PQ -->|"ja"| P3 --> P5
   PQ -->|"nein"| P4 --> P5
   P5 --> F1
-  F1 --> PD
-  PD -->|"ja"| P6 --> J1
-  PD -->|"nein"| J1
   F1 --> C1
   F1 --> C2
   F1 --> C3
@@ -228,8 +228,8 @@ flowchart TD
   `ready_for_review`, daher ist das Markieren eines Drafts nicht der Startpunkt
   der Prüfungen.
 - `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
-  Audit ist aktuell jedoch **kein** erforderlicher Branch-Protection-Status;
-  technisch erforderlich ist nur `Lightweight PR checks`.
+  Audit ist laut dem aktuellen [GitHub-Rahmen](#aktueller-github-rahmen) kein
+  erforderlicher Branch-Protection-Status.
 - `codeql.yml` hat zusätzlich zum gezeichneten PR-Einstieg einen wöchentlichen
   Frische-Lauf am Montag um 05:17 UTC.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
@@ -274,7 +274,7 @@ flowchart TD
     F1["Ursache lokal reproduzieren und beheben<br/>make check erneut grün bekommen"]
     F2["git push in denselben Branch<br/>Ereignis synchronize: Checks neu, laufendes Review wird abgebrochen"]
     FQ{"Behebung lokal?"}
-    F3["Optional @claude im PR-Kommentar für Fixes<br/>danach wegen GITHUB_TOKEN-Limit einen<br/>menschlich authentifizierten Folge-Push auslösen"]
+    F3["Optional @claude im PR-Kommentar für Fixes<br/>Bot-Fix prüfen und wegen GITHUB_TOKEN-Limit<br/>ein menschlich authentifiziertes Folge-Update vorbereiten"]
   end
 
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
@@ -302,7 +302,7 @@ flowchart TD
   RQ1 -->|"ja"| RB --> RQ2
   RQ2 -->|"ja"| FQ
   FQ -->|"ja"| F1
-  FQ -->|"nein · @claude"| F3 --> R1
+  FQ -->|"nein · @claude"| F3 --> F2
   RQ2 -->|"nein"| A1 --> M1 --> J2
   J2 --> MQ
   MQ -->|"ja"| M2 --> ENDE(("Ende")):::terminal
@@ -327,8 +327,8 @@ flowchart TD
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
-  Maintainer müssen Befunde trotzdem bewusst bewerten; nur der Status
-  `Lightweight PR checks` ist technisch erforderlich.
+  Maintainer müssen Befunde trotzdem bewusst bewerten; die technische
+  Durchsetzung ist im [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
 - Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
   Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
