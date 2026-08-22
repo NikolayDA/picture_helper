@@ -43,15 +43,13 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Recette performance/E2E/documentation/interface laser | 🟡 Moyenne (gate de clôture, pas une nouvelle fonctionnalité) | 🟠 Élevée (suite de benchmarks, E2E, documentation, contrat d'adaptateur) | Opus, élevé | Bloqué – ticket de clôture après #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Automatisation de revue après #825 : abandons et périmètre d'outils | 🟡 Moyenne (coût/fiabilité CI, non critique pour le produit) | 🟡 Moyenne (mesure terminée ; plusieurs questions distinctes) | – (ticket chapeau) | Mesure terminée ; réaliser le correctif allowlist/prompt dans #841. PR #842 reconfirme le défaut ; sticky, bruit des triggers, coûts et expiration restent ici |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md : la liste des marqueurs gl_smoke dérive sans être remarquée (pas de test de gouvernance) | 🟡 Moyenne (évite une classe de dérive récurrente, même cause racine que #826) | 🟡 Moyenne (nouveau test de gouvernance sans réseau analogue à `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, approche esquissée dans le ticket : comparer `pytest --collect-only -m gl_smoke` à la liste de TESTING.md) | Sonnet, moyen | **Prêt à démarrer** – petit et bien cadré |
 | [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md : protéger les listes de marqueurs ui/ui_smoke via l'inventaire de marqueurs (suite de #832) | 🟢 Faible (même classe de dérive que #832, mais pure protection documentaire) | 🟢 Faible (second parseur de documentation contre l'inventaire de marqueurs disponible depuis la PR #845) | Sonnet, faible | **Prêt à démarrer après la fusion de la PR #845** – confronter les énumérations ui/ui_smoke à `_marker_inventory()`, en renommant éventuellement le module en `test_marker_governance.py` |
 
 ### Recommandé ensuite
 
-1. **#832** – test de gouvernance contre la dérive de `gl_smoke` ; mise en œuvre en cours dans la PR #845.
-2. **#847** – après la fusion de la PR #845 : protéger les listes ui/ui_smoke via le même inventaire de marqueurs.
-3. **#692** (ADR) ouvre l'épopée COLOR #682.
-4. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
+1. **#847** – après la fusion de la PR #845 : protéger les listes ui/ui_smoke via le même inventaire de marqueurs.
+2. **#692** (ADR) ouvre l'épopée COLOR #682.
+3. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
    les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
    modèles de protocole et critères d'abandon approuvés sont déjà entièrement prêts.
 

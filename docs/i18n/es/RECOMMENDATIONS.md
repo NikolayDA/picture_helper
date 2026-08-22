@@ -43,15 +43,13 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Aceptación de rendimiento/E2E/documentación/interfaz láser | 🟡 Media (gate de cierre, no una función nueva) | 🟠 Alta (suite de benchmarks, E2E, documentación, contrato del adaptador) | Opus, alto | Bloqueada – incidencia de cierre tras #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Automatización de revisión tras #825: evaluar abortos y alcance de herramientas | 🟡 Media (coste/fiabilidad de CI, no crítico para el producto) | 🟡 Media (medición terminada; varias preguntas separadas) | – (tracker general) | Medición terminada; implementar allowlist/prompt en #841. PR #842 confirma de nuevo el defecto; aquí quedan sticky, ruido de triggers, costes y caducidad del token |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md: la lista de marcadores gl_smoke se desvía sin aviso (sin prueba de gobernanza) | 🟡 Media (evita una clase de deriva recurrente, misma causa raíz que #826) | 🟡 Media (nueva prueba de gobernanza sin red análoga a `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, enfoque esbozado en la incidencia: cotejar `pytest --collect-only -m gl_smoke` con la lista de TESTING.md) | Sonnet, medio | **Listo para empezar** – pequeño y bien delimitado |
 | [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: proteger las listas de marcadores ui/ui_smoke mediante el inventario de marcadores (seguimiento de #832) | 🟢 Baja (misma clase de deriva que #832, pero pura salvaguarda documental) | 🟢 Baja (segundo parser de documentación contra el inventario de marcadores disponible desde el PR #845) | Sonnet, baja | **Lista para empezar tras fusionar el PR #845** – contrastar las enumeraciones ui/ui_smoke con `_marker_inventory()`, renombrando opcionalmente el módulo a `test_marker_governance.py` |
 
 ### Recomendado a continuación
 
-1. **#832** – prueba de gobernanza contra la deriva de `gl_smoke`; en curso en el PR #845.
-2. **#847** – tras fusionar el PR #845: proteger las listas ui/ui_smoke con el mismo inventario de marcadores.
-3. **#692** (ADR) abre la épica COLOR #682.
-4. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
+1. **#847** – tras fusionar el PR #845: proteger las listas ui/ui_smoke con el mismo inventario de marcadores.
+2. **#692** (ADR) abre la épica COLOR #682.
+3. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
    pruebas reales ya preparadas de #687 (resto, en particular I-06), #688, #689 y #690 – fixtures,
    plantillas de protocolo y criterios de aborto aprobados ya están completamente listos.
 

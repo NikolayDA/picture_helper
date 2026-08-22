@@ -43,15 +43,13 @@
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（测量已完成；仍有多个独立问题） | –（上层跟踪议题） | 测量已完成；在 #841 中实现 allowlist/提示修复。PR #842 再次确认缺陷；这里保留置顶评论、触发噪声、成本和令牌过期事项 |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md：gl_smoke 标记列表悄然漂移（无治理测试） | 🟡 中（防止一类反复出现的漂移，与 #826 同根因） | 🟡 中（新增无网络的治理测试，类似 `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`，议题中已勾勒思路：将 `pytest --collect-only -m gl_smoke` 与 TESTING.md 列表比对） | Sonnet，中 | **可开始** —— 小而范围清晰 |
 | [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md：通过标记清单保护 ui/ui_smoke 标记列表（#832 的后续） | 🟢 低（与 #832 同一漂移类别，但纯属文档保障） | 🟢 低（针对自 PR #845 起已有的标记清单再写一个文档解析器） | Sonnet，低 | **PR #845 合并后即可开始** – 将 ui/ui_smoke 列表与 `_marker_inventory()` 对照，可顺带将模块重命名为 `test_marker_governance.py` |
 
 ### 接下来推荐
 
-1. **#832** —— 防止 `gl_smoke` 漂移的治理测试；正在 PR #845 中实施。
-2. **#847** —— PR #845 合并后：用同一标记清单保护 ui/ui_smoke 列表。
-3. **#692**（ADR）开启 COLOR 史诗 #682。
-4. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
+1. **#847** —— PR #845 合并后：用同一标记清单保护 ui/ui_smoke 列表。
+2. **#692**（ADR）开启 COLOR 史诗 #682。
+3. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
    在一次打包会话中执行——fixture、协议模板和已批准的中止标准均已齐备。
 
 ## 以往轮次

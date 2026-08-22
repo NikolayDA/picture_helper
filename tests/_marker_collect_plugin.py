@@ -24,7 +24,7 @@ import pytest
 
 # ``trylast``: erst nach den anderen Implementierungen dieses Hooks laufen
 # (u. a. dem eingebauten ``mark``-Plugin, das den ``-m``-Filter deselektiert,
-# und moeglichen ``conftest``-Hooks, die Marker nachtraeglich setzen) - die
+# und möglichen ``conftest``-Hooks, die Marker nachträglich setzen) – die
 # Inventur liest damit garantiert den Endstand.
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(items) -> None:

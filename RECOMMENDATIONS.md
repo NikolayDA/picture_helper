@@ -43,15 +43,13 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance-/E2E-/Doku-/Laser-Schnittstellenabnahme | 🟡 Mittel (Abschluss-Gate, kein neues Feature) | 🟠 Hoch (Benchmark-Suite, E2E, Doku, Adapter-Contract) | Opus, hoch | Blocked – Abschluss-Issue nach #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | OpenAI-Quota für manuellen Codex-Scan wiederherstellen | 🟢 Niedrig (blockiert nur einen optionalen manuellen Scan) | 🟢 Niedrig (rein operativ, kein Code) | – (kein Agent; Repo-Owner: Billing) | Blocked (extern) – letzter Lauf (29233060507, 2026-07-13) belegt keinen erfolgreichen Scan; Billing/Quota weiterhin offen |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review-Automatisierung nach #825: Turn-Budget-Abbrüche einordnen und Werkzeugumfang entscheiden | 🟡 Mittel (CI-Kosten/Zuverlässigkeit des automatischen Reviews, nicht produktkritisch) | 🟡 Mittel (Messung abgeschlossen; mehrere getrennte Automationsfragen) | – (übergeordneter Tracker) | Messung abgeschlossen; Allowlist-/Prompt-Fix in #841 umsetzen. PR #842 bestätigt den Fehler erneut; hier verbleiben Sticky-Kommentar, Trigger-Rauschen, Kosten und Token-Ablauf |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md: gl_smoke-Markerliste driftet unbemerkt (kein Governance-Test) | 🟡 Mittel (verhindert eine wiederkehrende Drift-Klasse, gleiche Ursache wie #826) | 🟡 Mittel (neuer netzfreier Governance-Test analog `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, Ansatz im Issue skizziert: `pytest --collect-only -m gl_smoke` gegen die TESTING.md-Liste abgleichen) | Sonnet, mittel | **Startbereit** – klein und klar umrissen |
 | [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: ui-/ui_smoke-Markerlisten über die Marker-Inventur absichern (Folge zu #832) | 🟢 Niedrig (gleiche Drift-Klasse wie #832, aber reine Doku-Absicherung) | 🟢 Niedrig (zweiter Doku-Parser gegen die seit PR #845 vorhandene Marker-Inventur) | Sonnet, niedrig | **Startbereit nach Merge von PR #845** – ui-/ui_smoke-Aufzählungen gegen `_marker_inventory()` abgleichen, Modul ggf. in `test_marker_governance.py` umbenennen |
 
 ### Als Nächstes empfohlen
 
-1. **#832** – Governance-Test gegen `gl_smoke`-Markerlisten-Drift; Umsetzung läuft in PR #845.
-2. **#847** – nach dem Merge von PR #845: ui-/ui_smoke-Listen über dieselbe Marker-Inventur absichern.
-3. **#692** (ADR) öffnet den COLOR-Epic #682.
-4. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
+1. **#847** – nach dem Merge von PR #845: ui-/ui_smoke-Listen über dieselbe Marker-Inventur absichern.
+2. **#692** (ADR) öffnet den COLOR-Epic #682.
+3. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
    (Rest, insbesondere I-06), #688, #689 und #690 in einer gebündelten Session ausführen – Fixtures,
    Protokollvorlagen und freigegebene Abbruchkriterien liegen bereits vollständig vor.
 
