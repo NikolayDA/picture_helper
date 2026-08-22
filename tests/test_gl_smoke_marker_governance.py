@@ -157,11 +157,16 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
 
 
 def _marker_inventory() -> dict[str, dict[str, list[str]]]:
-    """Gecachtes Sammelergebnis; Fehler -> ``pytest.fail``."""
+    """Gecachtes Sammelergebnis; Fehler -> ``pytest.fail``.
+
+    Gibt eine flache Kopie je Datei zurück - ``@cache`` teilt sonst dasselbe
+    verschachtelte Dict zwischen allen Aufrufern, und eine spätere In-place-
+    Normalisierung (naheliegend bei der #847-Erweiterung) würde still
+    testreihenfolge-abhängig."""
     result = _collect_markers()
     if isinstance(result, str):
         pytest.fail(result)
-    return result
+    return {path: dict(functions) for path, functions in result.items()}
 
 
 def _gl_smoke_counts(inventory: dict[str, dict[str, list[str]]]) -> dict[str, int]:
