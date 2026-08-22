@@ -155,9 +155,10 @@ und `test_e2e_release_regression.py` tragen beide Marker.
   laufen dabei **nicht** zusätzlich mit; sie sind bereits über jeden
   normalen `pytest`-Lauf abgedeckt.
 
-<!-- Achtung Maschinenformat: Die Klammer-Aufzählung und die Klausel
-"; modulweit nur in `…`" im folgenden Absatz werden von
-tests/test_gl_smoke_marker_governance.py geparst - bei Umformulierung dort
+<!-- Achtung Maschinenformat: Der Satzanfang "Ein weiterer Marker,
+`gl_smoke`", die Klammer-Aufzählung und die Klausel "; modulweit nur in
+`…`" im folgenden Absatz werden von
+tests/test_gl_smoke_marker_governance.py geparst – bei Umformulierung dort
 die Anker nachziehen (gleiches Muster wie die N6-Hinweise in den
 Qt-Paketlisten). -->
 Ein weiterer Marker, `gl_smoke`, kennzeichnet die wenigen Tests mit echtem

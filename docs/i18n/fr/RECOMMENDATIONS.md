@@ -11,9 +11,9 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-08-22, v2.8.0 stable, 18 tickets ouverts audités)
+## État actuel (2026-08-22, v2.8.0 stable, inventaire ouvert entièrement audité)
 
-**Contrôle de routine 2026-08-22 :** `scripts/recommendations_live_check.py --write` a synchronisé les six tableaux avec GitHub : #837 a été clôturé via PR #838 et retiré ; #839 et #841 ont été ajoutés. Depuis v2.8.0, PR #840 a mis à jour la documentation et PR #842 la documentation de processus, un petit détail du workflow d'audit de dépendances et des tests anti-dérive, sans fonctionnalité produit livrée. Aucune nouvelle version n'est requise et aucun constat 🔴 n'est ouvert.
+**Contrôle de routine 2026-08-22 :** `scripts/recommendations_live_check.py --write` a synchronisé les six tableaux avec GitHub : #837 a été clôturé via PR #838 et retiré ; #839 et #841 ont été ajoutés. Depuis v2.8.0, PR #840 a mis à jour la documentation et PR #842 la documentation de processus, un petit détail du workflow d'audit de dépendances et des tests anti-dérive, sans fonctionnalité produit livrée. Aucune nouvelle version n'est requise et aucun constat 🔴 n'est ouvert. **Addendum (même jour) :** #836, #839 et #841 ont depuis été clôturés (PR #844, PR #846 et PR #843) et retirés du tableau ; le ticket de suivi #847 a été ajouté et évalué. État vivant : 16.
 
 **Audit complet des 18 tickets ouverts :** chaque description, critère d'acceptation, commentaire et étiquette a été vérifié contre `main`. #839 décrit un écart limité mais réel entre l'aperçu de hauteur et le modèle enregistré/exporté lors du passage en mode Standard. #841 transforme les mesures de #828 en défaut concret du workflow. #836 couvre désormais les six langues du guide plus la régénération PDF ; #694 couvre les modes Standard/Expert et les aperçus COLOR actifs.
 
@@ -44,16 +44,14 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Automatisation de revue après #825 : abandons et périmètre d'outils | 🟡 Moyenne (coût/fiabilité CI, non critique pour le produit) | 🟡 Moyenne (mesure terminée ; plusieurs questions distinctes) | – (ticket chapeau) | Mesure terminée ; réaliser le correctif allowlist/prompt dans #841. PR #842 reconfirme le défaut ; sticky, bruit des triggers, coûts et expiration restent ici |
 | [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md : la liste des marqueurs gl_smoke dérive sans être remarquée (pas de test de gouvernance) | 🟡 Moyenne (évite une classe de dérive récurrente, même cause racine que #826) | 🟡 Moyenne (nouveau test de gouvernance sans réseau analogue à `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, approche esquissée dans le ticket : comparer `pytest --collect-only -m gl_smoke` à la liste de TESTING.md) | Sonnet, moyen | **Prêt à démarrer** – petit et bien cadré |
-| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: ui-/ui_smoke-Markerlisten über die Marker-Inventur absichern (Folge zu #832) | 🟢 Faible (même classe de dérive que #832, mais pure protection documentaire) | 🟢 Faible (second parseur de documentation contre l'inventaire de marqueurs disponible depuis la PR #845) | Sonnet, faible | **Prêt à démarrer après la fusion de la PR #845** – confronter les énumérations ui/ui_smoke à `_marker_inventory()`, en renommant éventuellement le module en `test_marker_governance.py` |
+| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md : protéger les listes de marqueurs ui/ui_smoke via l'inventaire de marqueurs (suite de #832) | 🟢 Faible (même classe de dérive que #832, mais pure protection documentaire) | 🟢 Faible (second parseur de documentation contre l'inventaire de marqueurs disponible depuis la PR #845) | Sonnet, faible | **Prêt à démarrer après la fusion de la PR #845** – confronter les énumérations ui/ui_smoke à `_marker_inventory()`, en renommant éventuellement le module en `test_marker_governance.py` |
 
 ### Recommandé ensuite
 
-1. **#841** – stabiliser la revue systématiquement rouge avec des outils de lecture limités.
-2. **#839** – corriger l'écart canvas/export lors du passage Expert→Standard.
-3. **#836** – corriger l'erreur dans les six guides et le PDF.
-4. **#832** – petit test de gouvernance contre la dérive de `gl_smoke`.
-5. **#692** (ADR) ouvre l'épopée COLOR #682.
-6. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
+1. **#832** – test de gouvernance contre la dérive de `gl_smoke` ; mise en œuvre en cours dans la PR #845.
+2. **#847** – après la fusion de la PR #845 : protéger les listes ui/ui_smoke via le même inventaire de marqueurs.
+3. **#692** (ADR) ouvre l'épopée COLOR #682.
+4. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
    les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
    modèles de protocole et critères d'abandon approuvés sont déjà entièrement prêts.
 

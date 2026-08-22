@@ -11,9 +11,9 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-22, v2.8.0 stable, all 18 open issues audited)
+## Current Status (2026-08-22, v2.8.0 stable, open inventory fully audited)
 
-**Routine check 2026-08-22:** `scripts/recommendations_live_check.py --write` synchronized all six triage tables with GitHub: #837 was closed by PR #838 and removed; #839 and #841 were added. Since v2.8.0, PR #840 updated documentation and PR #842 updated process documentation, a small dependency-audit workflow detail, and drift tests—no shipped product feature. No new release is due and no 🔴 finding is open.
+**Routine check 2026-08-22:** `scripts/recommendations_live_check.py --write` synchronized all six triage tables with GitHub: #837 was closed by PR #838 and removed; #839 and #841 were added. Since v2.8.0, PR #840 updated documentation and PR #842 updated process documentation, a small dependency-audit workflow detail, and drift tests—no shipped product feature. No new release is due and no 🔴 finding is open. **Addendum (same day):** #836, #839, and #841 have since been closed (PR #844, PR #846, and PR #843) and removed from the table; the follow-up issue #847 was added and rated. Live count 16.
 
 **Full audit of the 18 open issues:** every description, acceptance criterion, comment, and label was checked against `main`. #839 captures a narrow but real mismatch between the height preview and the saved/exported model when switching to Standard mode. #841 turns the measurements from #828 into a concrete workflow bug. #836 now covers all six guide languages plus PDF regeneration; #694 now covers Standard/Expert mode and active COLOR previews.
 
@@ -44,16 +44,14 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review automation after #825: assess turn-budget aborts and decide tool scope | 🟡 Medium (CI cost/reliability of automated review, not product-critical) | 🟡 Medium (measurement complete; several separate automation questions) | – (umbrella tracker) | Measurement complete; implement the allowlist/prompt fix in #841. PR #842 reconfirms the bug; sticky comment, trigger noise, cost, and token expiry remain here |
 | [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md: gl_smoke marker list drifts silently (no governance test) | 🟡 Medium (prevents a recurring drift class, same root cause as #826) | 🟡 Medium (new net-free governance test analogous to `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, approach sketched in the issue: match `pytest --collect-only -m gl_smoke` against the TESTING.md list) | Sonnet, medium | **Ready to start** – small and well-scoped |
-| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: ui-/ui_smoke-Markerlisten über die Marker-Inventur absichern (Folge zu #832) | 🟢 Low (same drift class as #832, but pure documentation safeguarding) | 🟢 Low (second doc parser against the marker inventory available since PR #845) | Sonnet, low | **Ready to start after PR #845 merges** – match the ui/ui_smoke enumerations against `_marker_inventory()`, optionally rename the module to `test_marker_governance.py` |
+| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: cover the ui/ui_smoke marker lists via the marker inventory (follow-up to #832) | 🟢 Low (same drift class as #832, but pure documentation safeguarding) | 🟢 Low (second doc parser against the marker inventory available since PR #845) | Sonnet, low | **Ready to start after PR #845 merges** – match the ui/ui_smoke enumerations against `_marker_inventory()`, optionally rename the module to `test_marker_governance.py` |
 
 ### Recommended Next
 
-1. **#841** – stabilize the systematically red review workflow with tightly scoped read-only tools.
-2. **#839** – close the canvas/export mismatch on the Expert→Standard transition.
-3. **#836** – fix the documented error in all six guides and the PDF.
-4. **#832** – small governance test against renewed `gl_smoke` marker-list drift.
-5. **#692** (ADR) opens the COLOR epic #682.
-6. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
+1. **#832** – governance test against `gl_smoke` marker-list drift; implementation under way in PR #845.
+2. **#847** – after PR #845 merges: cover the ui/ui_smoke lists via the same marker inventory.
+3. **#692** (ADR) opens the COLOR epic #682.
+4. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
    templates, and approved abort criteria are already fully in place.
 

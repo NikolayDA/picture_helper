@@ -11,9 +11,9 @@
 | 🟡 | Media | Mejora útil de calidad, legibilidad o testabilidad |
 | 🟢 | Baja | Pulido opcional o mejora de proceso |
 
-## Estado actual (2026-08-22, v2.8.0 estable, 18 incidencias abiertas auditadas)
+## Estado actual (2026-08-22, v2.8.0 estable, inventario abierto auditado por completo)
 
-**Revisión rutinaria 2026-08-22:** `scripts/recommendations_live_check.py --write` sincronizó las seis tablas con GitHub: #837 se cerró mediante PR #838 y fue retirada; se añadieron #839 y #841. Desde v2.8.0, PR #840 actualizó documentación y PR #842 actualizó documentación de procesos, un detalle menor del workflow de auditoría de dependencias y pruebas contra deriva, sin función de producto publicada. No procede una nueva versión y no hay hallazgos 🔴 abiertos.
+**Revisión rutinaria 2026-08-22:** `scripts/recommendations_live_check.py --write` sincronizó las seis tablas con GitHub: #837 se cerró mediante PR #838 y fue retirada; se añadieron #839 y #841. Desde v2.8.0, PR #840 actualizó documentación y PR #842 actualizó documentación de procesos, un detalle menor del workflow de auditoría de dependencias y pruebas contra deriva, sin función de producto publicada. No procede una nueva versión y no hay hallazgos 🔴 abiertos. **Adenda (mismo día):** #836, #839 y #841 se han cerrado desde entonces (PR #844, PR #846 y PR #843) y se retiraron de la tabla; se añadió y evaluó la incidencia de seguimiento #847. Recuento vivo: 16.
 
 **Auditoría completa de las 18 incidencias abiertas:** cada descripción, criterio de aceptación, comentario y etiqueta se comprobó contra `main`. #839 registra una discrepancia limitada pero real entre la vista previa de altura y el modelo guardado/exportado al pasar al modo Estándar. #841 convierte las mediciones de #828 en un defecto concreto del workflow. #836 abarca ahora los seis idiomas de la guía más la regeneración del PDF; #694 contempla modo Estándar/Experto y vistas previas COLOR activas.
 
@@ -44,16 +44,14 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurar la cuota de OpenAI para la comprobación manual de Codex Security | 🟢 Baja (solo bloquea un escaneo manual opcional) | 🟢 Baja (puramente operativo, sin código) | – (sin agente; propietario del repo: facturación) | Bloqueada (externa) – la última ejecución (29233060507, 2026-07-13) no demuestra un escaneo exitoso; facturación/cuota sigue sin resolver |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Automatización de revisión tras #825: evaluar abortos y alcance de herramientas | 🟡 Media (coste/fiabilidad de CI, no crítico para el producto) | 🟡 Media (medición terminada; varias preguntas separadas) | – (tracker general) | Medición terminada; implementar allowlist/prompt en #841. PR #842 confirma de nuevo el defecto; aquí quedan sticky, ruido de triggers, costes y caducidad del token |
 | [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md: la lista de marcadores gl_smoke se desvía sin aviso (sin prueba de gobernanza) | 🟡 Media (evita una clase de deriva recurrente, misma causa raíz que #826) | 🟡 Media (nueva prueba de gobernanza sin red análoga a `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, enfoque esbozado en la incidencia: cotejar `pytest --collect-only -m gl_smoke` con la lista de TESTING.md) | Sonnet, medio | **Listo para empezar** – pequeño y bien delimitado |
-| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: ui-/ui_smoke-Markerlisten über die Marker-Inventur absichern (Folge zu #832) | 🟢 Baja (misma clase de deriva que #832, pero pura salvaguarda documental) | 🟢 Baja (segundo parser de documentación contra el inventario de marcadores disponible desde el PR #845) | Sonnet, baja | **Lista para empezar tras fusionar el PR #845** – contrastar las enumeraciones ui/ui_smoke con `_marker_inventory()`, renombrando opcionalmente el módulo a `test_marker_governance.py` |
+| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: proteger las listas de marcadores ui/ui_smoke mediante el inventario de marcadores (seguimiento de #832) | 🟢 Baja (misma clase de deriva que #832, pero pura salvaguarda documental) | 🟢 Baja (segundo parser de documentación contra el inventario de marcadores disponible desde el PR #845) | Sonnet, baja | **Lista para empezar tras fusionar el PR #845** – contrastar las enumeraciones ui/ui_smoke con `_marker_inventory()`, renombrando opcionalmente el módulo a `test_marker_governance.py` |
 
 ### Recomendado a continuación
 
-1. **#841** – estabilizar la revisión sistemáticamente roja con herramientas de solo lectura limitadas.
-2. **#839** – cerrar la discrepancia canvas/exportación al pasar de Experto a Estándar.
-3. **#836** – corregir el error en las seis guías y el PDF.
-4. **#832** – pequeña prueba de gobernanza contra la deriva de `gl_smoke`.
-5. **#692** (ADR) abre la épica COLOR #682.
-6. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
+1. **#832** – prueba de gobernanza contra la deriva de `gl_smoke`; en curso en el PR #845.
+2. **#847** – tras fusionar el PR #845: proteger las listas ui/ui_smoke con el mismo inventario de marcadores.
+3. **#692** (ADR) abre la épica COLOR #682.
+4. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
    pruebas reales ya preparadas de #687 (resto, en particular I-06), #688, #689 y #690 – fixtures,
    plantillas de protocolo y criterios de aborto aprobados ya están completamente listos.
 

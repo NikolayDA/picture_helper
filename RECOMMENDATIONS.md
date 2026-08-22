@@ -11,9 +11,9 @@
 | 🟡 | Mittel | Sinnvolle Verbesserung für Qualität, Lesbarkeit oder Testbarkeit |
 | 🟢 | Niedrig | Optionales Polishing oder Prozessverbesserung |
 
-## Aktueller Stand (2026-08-22, v2.8.0 stabil, 18 offene Issues vollständig geprüft)
+## Aktueller Stand (2026-08-22, v2.8.0 stabil, offener Bestand vollständig geprüft)
 
-**Turnusprüfung 2026-08-22:** `scripts/recommendations_live_check.py --write` hat die Tabellen aller sechs Sprachfassungen auf den GitHub-Live-Stand gebracht: #837 ist über PR #838 geschlossen und wurde entfernt; neu hinzugekommen sind #839 und #841. Seit v2.8.0 folgten PR #840 mit Dokumentation sowie PR #842 mit Prozessdokumentation, einer kleinen Dependency-Audit-Anpassung und Drift-Tests – keine ausgelieferte Produktfunktion. Kein neues Release ist fällig, kein 🔴-Befund offen.
+**Turnusprüfung 2026-08-22:** `scripts/recommendations_live_check.py --write` hat die Tabellen aller sechs Sprachfassungen auf den GitHub-Live-Stand gebracht: #837 ist über PR #838 geschlossen und wurde entfernt; neu hinzugekommen sind #839 und #841. Seit v2.8.0 folgten PR #840 mit Dokumentation sowie PR #842 mit Prozessdokumentation, einer kleinen Dependency-Audit-Anpassung und Drift-Tests – keine ausgelieferte Produktfunktion. Kein neues Release ist fällig, kein 🔴-Befund offen. **Nachtrag (gleicher Tag):** #836, #839 und #841 sind inzwischen geschlossen (PR #844, PR #846 bzw. PR #843) und aus der Tabelle entfernt; neu aufgenommen und bewertet ist das Folge-Issue #847. Live-Stand 16.
 
 **Vollaudit der 18 offenen Issues:** Alle Beschreibungen, Akzeptanzkriterien, Kommentare und Labels wurden gegen `main` geprüft. #839 dokumentiert eine enge, aber reale Inkonsistenz zwischen Höhen-Live-Vorschau und Export beim Wechsel in den Standard-Modus. #841 konkretisiert den in #828 gemessenen systematischen Fehler des Review-Workflows. #836 umfasst nach dem Audit alle sechs Anleitungssprachen plus die neu zu erzeugende PDF; #694 berücksichtigt nun den Standard-/Experten-Modus und aktive COLOR-Vorschauen.
 
@@ -48,12 +48,10 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 ### Als Nächstes empfohlen
 
-1. **#841** – den systematisch roten Review-Workflow mit eng begrenzten Lese-Werkzeugen stabilisieren.
-2. **#839** – die Canvas-/Export-Inkonsistenz beim Experten→Standard-Wechsel schließen.
-3. **#836** – den dokumentierten Fehler in allen sechs Anleitungen und der PDF korrigieren.
-4. **#832** – kleiner Governance-Test gegen erneute `gl_smoke`-Markerlisten-Drift.
-5. **#692** (ADR) öffnet den COLOR-Epic #682.
-6. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
+1. **#832** – Governance-Test gegen `gl_smoke`-Markerlisten-Drift; Umsetzung läuft in PR #845.
+2. **#847** – nach dem Merge von PR #845: ui-/ui_smoke-Listen über dieselbe Marker-Inventur absichern.
+3. **#692** (ADR) öffnet den COLOR-Epic #682.
+4. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
    (Rest, insbesondere I-06), #688, #689 und #690 in einer gebündelten Session ausführen – Fixtures,
    Protokollvorlagen und freigegebene Abbruchkriterien liegen bereits vollständig vor.
 
