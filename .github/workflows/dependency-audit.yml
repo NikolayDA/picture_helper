@@ -8,9 +8,13 @@ name: Dependency Audit
 # Keine dieser Ebenen meldet jedoch eine NEU veroeffentlichte CVE gegen eine
 # bereits gepinnte Version – genau diese Luecke schliesst dieser Job.
 on:
-  # PR-Gate: laeuft fuer jeden Pull Request. Branch Protection erwartet diesen
-  # Check auch bei Docs-only-Aenderungen; ein paths-Filter wuerde den Workflow
-  # dann gar nicht starten und den PR dauerhaft auf "Expected" lassen.
+  # PR-Audit: laeuft bewusst fuer jeden Pull Request, auch bei Docs-only-
+  # Aenderungen, damit der Abhaengigkeitsstand einheitlich sichtbar bleibt.
+  # Ob der Job technisch erforderlich ist, folgt der Live-Konfiguration; der
+  # manuelle Snapshot steht in docs/PROZESSE_UML.md. Kein paths-Filter: Wird
+  # der Check spaeter erforderlich, startet ein gefilterter Workflow bei
+  # Docs-only-PRs gar nicht und laesst den PR dauerhaft auf "Expected" stehen.
+  # Workflow, Snapshot und Live-Einstellung dann gemeinsam abgleichen.
   pull_request: {}
   # Frische-Gate: Eine CVE kann ohne jede Dateiaenderung auftauchen. Der
   # woechentliche Lauf (Mo 05:00 UTC) prueft den unveraenderten Snapshot daher

@@ -124,7 +124,7 @@ Artefaktcontainer sowie Freeze-Provenienz mit IDs und Digests ab.
 Nach einer Code-/Dokumentänderung bei Schritt 1 beginnen; bei reinem Infrastrukturfehler darf
 derselbe Workflow auf demselben unveränderten SHA neu gestartet werden, erhält aber eine neue Run-ID.
 
-### 4. Kandidatenvertrag und Sicherheitsbefunde prüfen
+### 4. Kandidatenartefakte und Sicherheitsbefunde vorprüfen
 
 **Trigger:** Schritt 3 ist erfolgreich.
 **Owner:** Release-Owner; Malwarebefunde zusätzlich Security-Owner.
@@ -135,9 +135,17 @@ gh api "repos/NikolayDA/picture_helper/actions/runs/${CANDIDATE_RUN_ID}/artifact
 gh run view "$CANDIDATE_RUN_ID" --log
 ```
 
-Prüfe `VERSION-01`, `FREEZE-01`, `BUILD-01`, `BUILD-02`, `PROVENANCE-01`
-und `MALWARE-01`. Genau fünf Produktdateien müssen im Kandidatenvertrag stehen;
-ihre Namen, Größen und SHA-256-Werte sind die spätere Veröffentlichungsquelle.
+`release-linux.yml` erzeugt an dieser Stelle **noch keinen Kandidatenvertrag**.
+Prüfe den erfolgreichen Lauf, seine drei Produkt-Artefaktcontainer mit
+insgesamt fünf Produktdateien, die Freeze-Provenienz und die Security-Logs als
+Vorprüfung für `VERSION-01`, `FREEZE-01`, `BUILD-01`, `BUILD-02`,
+`PROVENANCE-01` und `MALWARE-01`. Für die fünf mit `candidate-contract`
+verifizierten Kriterien ist das noch keine formale Evidenz: Sie entsteht
+geschlossen zu Beginn von Schritt 5, wenn `candidate-source` den
+maschinenlesbaren Kandidatenvertrag aus den heruntergeladenen Dateien und
+GitHub-Metadaten erzeugt. Nur `MALWARE-01` wird bereits hier abschließend durch
+den Security-Owner entschieden.
+
 Ein Malware-Fund ist immer No-Go. Bei vorhandenem Signaturcache muss jedes
 Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss das Log für jedes
 Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
@@ -146,9 +154,9 @@ Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
 verfügbare Scanner bleiben sichtbar und erfordern die in der Checkliste
 erlaubte, begründete Entscheidung.
 
-**Output/Evidenz:** Links auf Lauf, Kandidatenvertrag, Provenienz und Security-Entscheidung.
-**Erwartetes Ergebnis:** keine zusätzliche oder fehlende Datei, keine ungebundene Provenienz, kein Malware-Fund.
-**Fehler/Wiederanlauf:** Bei Vertrags- oder Hashfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
+**Output/Evidenz:** Links auf Lauf, Build-Artefaktcontainer, Provenienz und Security-Entscheidung.
+**Erwartetes Ergebnis:** erwartete Build-Container, gebundene Provenienz und kein Malware-Fund; die formale Dateiprüfung folgt in Schritt 5.
+**Fehler/Wiederanlauf:** Bei Artefakt- oder Provenienzfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
 Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdrücklich erlaubten Waiver.
 
 ### 5. Abnahme auf echter Hardware durchführen
@@ -158,14 +166,40 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 **Input:** `CANDIDATE_RUN_ID`, Zielplattformen `alle`, Release-Issue.
 
 ```bash
-gh workflow run release-abnahme.yml --ref main \
-  -f run_id="$CANDIDATE_RUN_ID" \
-  -f platforms=alle \
-  -f dry_run=false \
-  -f target_issue="$RELEASE_ISSUE"
-gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
-gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
+MAIN_SHA="$(gh api "repos/NikolayDA/picture_helper/commits/main" --jq .sha)"
+if [ -z "$CANDIDATE_SHA" ] || [ -z "$MAIN_SHA" ] || [ "$MAIN_SHA" != "$CANDIDATE_SHA" ]; then
+  echo "Kandidat oder main ist nicht verifizierbar beziehungsweise main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1." >&2
+  false
+else
+  gh workflow run release-abnahme.yml --ref main \
+    -f run_id="$CANDIDATE_RUN_ID" \
+    -f platforms=alle \
+    -f dry_run=false \
+    -f target_issue="$RELEASE_ISSUE"
+  gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
+  gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
+fi
 ```
+
+`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. `MAIN_SHA` wird
+klonunabhängig direkt aus dem kanonischen GitHub-Repository gelesen. Ein
+leerer Wert oder eine Abweichung liefert mit `false` einen Fehlerstatus, ohne
+eine interaktive Shell zu beenden. In diesem Fall darf die Abnahme nicht auf
+`main` gestartet werden: Der Kandidat wird verworfen und der Ablauf beginnt
+mit dem aktuellen Stand bei Schritt 1. Ein temporärer Branch oder Tag auf dem
+alten Kandidaten ist in diesem Verfahren bewusst kein erlaubter Wiederanlauf;
+eine solche Optimierung braucht zuerst eine eigene, fail-closed abgesicherte
+Prozessentscheidung. Der Workflow erzwingt die SHA-Bindung zusätzlich, indem
+`candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht.
+
+Vor den Hardware-Jobs lädt `candidate-source` exakt die Produktdateien und die
+Freeze-Provenienz aus dem Kandidatenlauf, validiert Anzahl, Namen, Größen,
+SHA-256 und GitHub-Artefaktmetadaten und lädt den erzeugten Vertrag als
+`release-candidate-contract-<attempt>` mit 90 Tagen Aufbewahrung hoch. Erst
+dieser Schritt liefert die formale Evidenz für `VERSION-01`, `FREEZE-01`,
+`BUILD-01`, `BUILD-02` und `PROVENANCE-01` und schließt damit die
+Kandidatenvertragsprüfung ab.
 
 Die genaue Geräteprozedur steht in `PACKAGING_SMOKE.md`. Verbindlich sind die
 stabilen IDs in `RELEASE_ACCEPTANCE_CHECKLIST.md`, darunter echter Start aus
@@ -278,12 +312,20 @@ Version nicht. Starte dazu `release-abnahme.yml` erneut — mit **derselben**
 Vorgängers:
 
 ```bash
-gh workflow run release-abnahme.yml \
+gh workflow run release-abnahme.yml --ref "$RELEASE_TAG" \
   -f run_id="$CANDIDATE_RUN_ID" \
   -f platforms=linux-arm64 \
+  -f dry_run=false \
   -f predecessor_tag="$PREDECESSOR_TAG" \
   -f target_issue="$RELEASE_ISSUE"
 ```
+
+Für `workflow_dispatch` definiert GitHub `GITHUB_SHA` als den letzten Commit
+des ausgewählten Branches oder Tags
+([Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+Der in Schritt 7 erzeugte annotierte Release-Tag löst hier deshalb auf den
+Kandidaten-Commit auf, nicht auf den separaten Tag-Objekt-SHA. Der zusätzliche
+Vergleich in `candidate-source` bleibt als fail-closed Sicherung bestehen.
 
 Der Lauf zieht das Vorgängerartefakt anonym über `browser_download_url` und
 führt den Update-Check unter dem **im Artefakt gebündelten** Interpreter aus:
