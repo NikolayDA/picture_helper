@@ -30,16 +30,21 @@ _WORKFLOWS = (
 )
 _DIAGNOSTIC_NAME = "Abgelehnte Werkzeugaufrufe ausweisen"
 _REVIEW_WORKFLOW = ".github/workflows/claude-code-review.yml"
+_EXPECTED_REVIEW_GIT_TOOLS = {
+    "Bash(git status --short)",
+    "Bash(git show-ref --head)",
+    "Bash(git log --oneline --decorate --max-count=30 HEAD)",
+    "Bash(git diff --stat HEAD^ HEAD)",
+    "Bash(git diff --name-only HEAD^ HEAD)",
+    "Bash(git show --stat --oneline HEAD)",
+    "Bash(git show --format=fuller --no-patch HEAD)",
+}
 _EXPECTED_REVIEW_BASH_TOOLS = {
     "Bash(gh pr diff:*)",
     "Bash(gh pr view:*)",
     "Bash(gh pr list:*)",
     "Bash(gh pr comment:*)",
-    "Bash(git show:*)",
-    "Bash(git diff:*)",
-    "Bash(git log:*)",
-    "Bash(git status:*)",
-    "Bash(git show-ref:*)",
+    *_EXPECTED_REVIEW_GIT_TOOLS,
 }
 
 
@@ -70,9 +75,13 @@ def _review_allowed_tools() -> set[str]:
     return set(match.group("tools").split(","))
 
 
+def _review_workflow_text() -> str:
+    return (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8")
+
+
 def _review_prompt() -> str:
     """Prompt-Block ohne optionale PyYAML-Abhängigkeit extrahieren."""
-    lines = (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8").splitlines()
+    lines = _review_workflow_text().splitlines()
     marker = "          prompt: |"
     try:
         start = lines.index(marker) + 1
@@ -169,13 +178,34 @@ def test_review_allowlist_keeps_checkout_and_remote_mutations_forbidden() -> Non
     )
     assert not offenders, f"Review-Allowlist erweitert Schreib-/Ausführungsscope: {offenders}"
 
-    workflow = (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8")
+    workflow = _review_workflow_text()
     review_prefix = re.search(
         r"(?ms)^  review:\n(?P<body>.*?)(?=^    steps:\n)",
         workflow,
     )
     assert review_prefix, "Review-Jobkopf nicht gefunden"
     assert re.search(r"(?m)^      contents: read\s*$", review_prefix.group("body"))
+
+
+def test_review_git_allowlist_uses_only_exact_non_writing_forms() -> None:
+    """Review-Befund: Git-Präfixe würden ``--output``-Schreibzugriffe erlauben."""
+    git_tools = {
+        tool for tool in _review_allowed_tools()
+        if tool.startswith("Bash(git ")
+    }
+    assert git_tools == _EXPECTED_REVIEW_GIT_TOOLS
+    assert all("*" not in tool for tool in git_tools), "Git-Regel mit Präfix-Wildcard"
+    assert all("--output" not in tool for tool in git_tools), "Git-Regel schreibt Dateien"
+
+
+def test_review_checkout_provides_history_before_git_inspection() -> None:
+    """Review-Befund: Der Agent darf nicht auf einem Merge-Commit ohne Eltern lesen."""
+    checkout = re.search(
+        r"(?ms)^      - name: Checkout repository\n(?P<body>.*?)(?=^      - name:)",
+        _review_workflow_text(),
+    )
+    assert checkout, "Checkout-Schritt im Review-Workflow nicht gefunden"
+    assert re.search(r"(?m)^          fetch-depth: 0\s*$", checkout.group("body"))
 
 
 def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
@@ -189,6 +219,9 @@ def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
         "gh api",
         "git checkout`/`restore",
         "Read, Grep oder Glob",
+        "verwende **nur** eine der folgenden exakten Formen",
+        "git diff --stat HEAD^ HEAD",
+        "ohne weitere Flags",
         "**unbelegt**",
     )
     missing = [phrase for phrase in required_phrases if phrase not in prompt]
@@ -197,7 +230,7 @@ def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
 
 def test_review_allowlist_rationale_stays_above_claude_args() -> None:
     """Hausstil aus #841: Risikoerklärung steht über, nie im Argumentblock."""
-    text = (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8")
+    text = _review_workflow_text()
     args_index = text.index("          claude_args: |")
     rationale = "          # Nur-Lese-Freigaben (#841):"
     rationale_index = text.index(rationale)

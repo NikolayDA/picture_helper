@@ -73,9 +73,12 @@ für diese Aufrufe.
 Das automatische Review bleibt dagegen strikt bewertend. Seine Allowlist
 erlaubt neben PR-Diff/-Metadaten nur die belegten Nur-Lese-Inspektionen
 `gh pr list` sowie `git show`, `git diff`, `git log`, `git status` und
-`git show-ref`. Historie nachladen, PR-Code lokal ausführen, generisches
-`gh api` und Änderungen am Checkout bleiben ausgeschlossen (#841). Die
-zugehörigen Prompt- und Allowlist-Grenzen sind in
+`git show-ref`. Die Git-Befehle sind als vollständig ausgeschriebene, feste
+Argumentformen freigegeben – keine Präfix-Wildcards, über die etwa `--output`
+Dateien schreiben könnte. Die benötigte Historie stellt der kontrollierte
+Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen, PR-Code lokal
+ausführen, generisches `gh api` und Änderungen am Checkout bleiben
+ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
 Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem

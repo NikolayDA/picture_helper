@@ -36,7 +36,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 1
+          # Der Agent selbst darf keine Historie nachladen. Der kontrollierte
+          # Checkout stellt deshalb Merge-Eltern und Historie vorab bereit, damit
+          # die unten exakt freigegebenen Git-Leseformen belastbare Daten sehen.
+          fetch-depth: 0
 
       - name: Hinweis bei fehlendem Secret
         if: env.HAS_CLAUDE_TOKEN != 'true'
@@ -102,6 +105,17 @@ jobs:
             Erlaubt sind nur die freigegebenen Leseabfragen; nutze pro Bash-Aufruf
             genau ein solches Kommando und für Text-/Dateisuche Read, Grep oder Glob.
 
+            Nutze für Inhaltsänderungen `gh pr diff`. Wenn Git-Metadaten nötig sind,
+            verwende **nur** eine der folgenden exakten Formen – ohne weitere Flags,
+            Pfade, Umleitungen, Pipes oder Verkettungen:
+            - `git status --short`
+            - `git show-ref --head`
+            - `git log --oneline --decorate --max-count=30 HEAD`
+            - `git diff --stat HEAD^ HEAD`
+            - `git diff --name-only HEAD^ HEAD`
+            - `git show --stat --oneline HEAD`
+            - `git show --format=fuller --no-patch HEAD`
+
             Versuche insbesondere **nicht**, Git-Historie nachzuladen (`git fetch`),
             Tests oder PR-Code lokal auszuführen, generische `gh api`-Umwege zu
             verwenden oder den Arbeitsbaum zu verändern (`git checkout`/`restore`,
@@ -125,14 +139,16 @@ jobs:
           # mit: Bei einem Modell-/Auth-Fehler im Review-Job zuerst hier schauen.
           # Nur-Lese-Freigaben (#841): `gh pr list` sowie `git show`, `diff`,
           # `log`, `status` und `show-ref` sind die in realen Fehlläufen belegten
-          # Inspektionswege. Sie lesen ausschließlich PR-/Checkout-Zustand; die
-          # Kommentierwerkzeuge bleiben die einzigen schreibenden Fähigkeiten.
+          # Inspektionswege. Git erhält bewusst keine Präfix-Wildcards: `show`,
+          # `diff` und `log` könnten sonst mit `--output` Dateien schreiben. Nur
+          # die unten vollständig ausgeschriebenen Argumentformen sind erlaubt;
+          # die Historie dafür kommt kontrolliert aus `actions/checkout`.
           # Bewusst nicht freigegeben sind `git fetch`, lokale Testausführung,
           # pauschales `gh api`, Edit/Write und alle Git-/Datei-Schreibbefehle.
           claude_args: |
             --max-turns 30
             --model claude-opus-5
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(git show:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show-ref:*),Read,Grep,Glob,WebFetch(domain:docs.claude.com),WebFetch(domain:code.claude.com),WebFetch(domain:platform.claude.com),WebFetch(domain:docs.anthropic.com),WebFetch(domain:docs.github.com),WebFetch(domain:raw.githubusercontent.com)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(git status --short),Bash(git show-ref --head),Bash(git log --oneline --decorate --max-count=30 HEAD),Bash(git diff --stat HEAD^ HEAD),Bash(git diff --name-only HEAD^ HEAD),Bash(git show --stat --oneline HEAD),Bash(git show --format=fuller --no-patch HEAD),Read,Grep,Glob,WebFetch(domain:docs.claude.com),WebFetch(domain:code.claude.com),WebFetch(domain:platform.claude.com),WebFetch(domain:docs.anthropic.com),WebFetch(domain:docs.github.com),WebFetch(domain:raw.githubusercontent.com)"
 
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
       # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
