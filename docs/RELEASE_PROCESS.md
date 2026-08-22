@@ -124,7 +124,7 @@ Artefaktcontainer sowie Freeze-Provenienz mit IDs und Digests ab.
 Nach einer Code-/Dokumentänderung bei Schritt 1 beginnen; bei reinem Infrastrukturfehler darf
 derselbe Workflow auf demselben unveränderten SHA neu gestartet werden, erhält aber eine neue Run-ID.
 
-### 4. Kandidatenvertrag und Sicherheitsbefunde prüfen
+### 4. Kandidatenartefakte und Sicherheitsbefunde vorprüfen
 
 **Trigger:** Schritt 3 ist erfolgreich.
 **Owner:** Release-Owner; Malwarebefunde zusätzlich Security-Owner.
@@ -135,9 +135,15 @@ gh api "repos/NikolayDA/picture_helper/actions/runs/${CANDIDATE_RUN_ID}/artifact
 gh run view "$CANDIDATE_RUN_ID" --log
 ```
 
-Prüfe `VERSION-01`, `FREEZE-01`, `BUILD-01`, `BUILD-02`, `PROVENANCE-01`
-und `MALWARE-01`. Genau fünf Produktdateien müssen im Kandidatenvertrag stehen;
-ihre Namen, Größen und SHA-256-Werte sind die spätere Veröffentlichungsquelle.
+`release-linux.yml` erzeugt an dieser Stelle **noch keinen Kandidatenvertrag**.
+Prüfe den erfolgreichen Lauf, seine drei Produkt-Artefaktcontainer mit
+insgesamt fünf Produktdateien, die Freeze-Provenienz und die Security-Logs als
+Vorprüfung für `VERSION-01`,
+`FREEZE-01`, `BUILD-01`, `PROVENANCE-01` und `MALWARE-01`. Die formale
+Dateimengen-, Größen- und SHA-256-Prüfung für `BUILD-02` erfolgt zu Beginn von
+Schritt 5: Dort erzeugt `candidate-source` den maschinenlesbaren
+Kandidatenvertrag aus den heruntergeladenen Dateien und GitHub-Metadaten.
+
 Ein Malware-Fund ist immer No-Go. Bei vorhandenem Signaturcache muss jedes
 Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss das Log für jedes
 Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
@@ -146,9 +152,9 @@ Artefakt den separaten Scan von Rohdatei und entpackter Nutzlast sowie mehr als
 verfügbare Scanner bleiben sichtbar und erfordern die in der Checkliste
 erlaubte, begründete Entscheidung.
 
-**Output/Evidenz:** Links auf Lauf, Kandidatenvertrag, Provenienz und Security-Entscheidung.
-**Erwartetes Ergebnis:** keine zusätzliche oder fehlende Datei, keine ungebundene Provenienz, kein Malware-Fund.
-**Fehler/Wiederanlauf:** Bei Vertrags- oder Hashfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
+**Output/Evidenz:** Links auf Lauf, Build-Artefaktcontainer, Provenienz und Security-Entscheidung.
+**Erwartetes Ergebnis:** erwartete Build-Container, gebundene Provenienz und kein Malware-Fund; die formale Dateiprüfung folgt in Schritt 5.
+**Fehler/Wiederanlauf:** Bei Artefakt- oder Provenienzfehler Kandidatenlauf verwerfen und Ursache per PR beheben.
 Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdrücklich erlaubten Waiver.
 
 ### 5. Abnahme auf echter Hardware durchführen
@@ -158,6 +164,9 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 **Input:** `CANDIDATE_RUN_ID`, Zielplattformen `alle`, Release-Issue.
 
 ```bash
+CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
+git fetch origin main
+test "$(git rev-parse origin/main)" = "$CANDIDATE_SHA"
 gh workflow run release-abnahme.yml --ref main \
   -f run_id="$CANDIDATE_RUN_ID" \
   -f platforms=alle \
@@ -166,6 +175,19 @@ gh workflow run release-abnahme.yml --ref main \
 gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
 gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
 ```
+
+`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. Ist `main`
+inzwischen weitergelaufen, darf die Abnahme nicht auf `main` gestartet werden:
+Der Kandidat wird verworfen und der Ablauf beginnt mit dem aktuellen Stand bei
+Schritt 1. Der Workflow erzwingt dieselbe Bindung nochmals fail-closed, indem
+`candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht.
+
+Vor den Hardware-Jobs lädt `candidate-source` exakt die Produktdateien und die
+Freeze-Provenienz aus dem Kandidatenlauf, validiert Anzahl, Namen, Größen,
+SHA-256 und GitHub-Artefaktmetadaten und lädt den erzeugten Vertrag als
+`release-candidate-contract-<attempt>` mit 90 Tagen Aufbewahrung hoch. Erst
+dieser Schritt liefert die formale Evidenz für `BUILD-02` und die vollständige
+Kandidatenvertragsprüfung.
 
 Die genaue Geräteprozedur steht in `PACKAGING_SMOKE.md`. Verbindlich sind die
 stabilen IDs in `RELEASE_ACCEPTANCE_CHECKLIST.md`, darunter echter Start aus
@@ -278,9 +300,10 @@ Version nicht. Starte dazu `release-abnahme.yml` erneut — mit **derselben**
 Vorgängers:
 
 ```bash
-gh workflow run release-abnahme.yml \
+gh workflow run release-abnahme.yml --ref "$RELEASE_TAG" \
   -f run_id="$CANDIDATE_RUN_ID" \
   -f platforms=linux-arm64 \
+  -f dry_run=false \
   -f predecessor_tag="$PREDECESSOR_TAG" \
   -f target_issue="$RELEASE_ISSUE"
 ```

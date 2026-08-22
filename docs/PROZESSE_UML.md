@@ -19,6 +19,23 @@ Verbindlich bleiben:
 Weicht ein Diagramm von einer dieser Quellen ab, gilt die Quelle und das
 Diagramm ist der Fehler.
 
+### Aktueller GitHub-Rahmen
+
+Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
+des versionierten Codes (Stand: 22. August 2026). Sie müssen bei Änderungen in
+den GitHub-Einstellungen erneut abgeglichen werden:
+
+| Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
+|---|---|---|
+| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; für Nicht-Admins erzwungen | Weitere Checks und Reviews liefern Befunde, sind aber derzeit keine technischen Merge-Sperren |
+| Merge-Methoden | Merge-Commit, Squash und Rebase sind erlaubt | Squash ist die gelebte Projektkonvention, nicht die einzige von GitHub erlaubte Methode |
+| Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
+| Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
+
+Öffentlich prüfbar sind unter anderem die
+[`main`-Branch-Metadaten](https://api.github.com/repos/NikolayDA/picture_helper/branches/main)
+und die [Repository-Einstellungen](https://api.github.com/repos/NikolayDA/picture_helper).
+
 ## Notation
 
 Gezeichnet wird in Mermaid (GitHub rendert es direkt) mit
@@ -38,8 +55,9 @@ UML-Aktivitätsdiagramm-Semantik:
 
 ## 1. Commit in einem Branch
 
-**Auslöser:** Ein Issue oder ein Befund aus `RECOMMENDATIONS.md` ist zur
-Umsetzung freigegeben.
+**Auslöser:** Eine Änderung soll umgesetzt werden. Ein Issue oder ein Befund
+aus `RECOMMENDATIONS.md` kann die Grundlage sein; größere Änderungen werden
+vorher in einem Issue abgestimmt.
 **Ergebnis:** Ein Commit auf einem Feature-Branch liegt auf `origin`, das
 Standard-Gate war lokal grün.
 **Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“,
@@ -52,10 +70,10 @@ flowchart TD
 
   subgraph DEV["Partition: Entwickler:in"]
     direction TB
-    D1["Arbeitsgrundlage klären<br/>Issue bzw. Befund N-/O-Nummer in RECOMMENDATIONS.md"]
+    D1["Arbeitsgrundlage klären<br/>bei größerer Änderung Issue abstimmen; sonst Issue, Befund oder klar umrissener Beitrag"]
     D2["main aktualisieren<br/>git fetch origin main · git pull --ff-only origin main"]
     D3["Feature-Branch anlegen<br/>git checkout -b feature/kurze-beschreibung"]
-    D4["Code ändern<br/>deutsche Kommentare, englische Identifier, kompakter Stil, ruff-Zeilenlänge 100"]
+    D4["Code ändern<br/>deutsche Kommentare; Identifier auf Deutsch oder Englisch; kompakter Stil; ruff-Zeilenlänge 100"]
     D5["Tests ergänzen oder anpassen<br/>Marker ui / ui_smoke / gl_smoke"]
     D7["Befunde beheben"]
     D8["Commit erstellen<br/>git commit, Imperativ, z. B. feat(canvas): ... oder fix(workers): ..."]
@@ -85,7 +103,8 @@ flowchart TD
     G2["make type<br/>mypy"]
     G3["make test<br/>pytest mit QT_QPA_PLATFORM=offscreen, Filter: nicht ui, aber ui_smoke"]
     GQ{"Gate grün?"}
-    G4["bei Bedarf tiefer prüfen<br/>make coverage Schwelle 86 · make ui · make pr-check wie die PR-CI"]
+    GQ2{"Vertiefende Prüfung erforderlich?"}
+    G4["Zusätzliche passende Prüfung<br/>make coverage Schwelle 86 · make ui · make pr-check im CI-nahen Umfeld"]
   end
 
   subgraph REM["Partition: Git-Remote"]
@@ -104,7 +123,10 @@ flowchart TD
   DQ3 -->|"nein"| G1
   G1 --> G2 --> G3 --> GQ
   GQ -->|"nein · Lint, Typ oder Test rot"| D7 --> G1
-  GQ -->|"ja"| G4 --> D8 --> D9 --> R1 --> ENDE(("Ende")):::terminal
+  GQ -->|"ja"| GQ2
+  GQ2 -->|"ja"| G4 --> D8
+  GQ2 -->|"nein"| D8
+  D8 --> D9 --> R1 --> ENDE(("Ende")):::terminal
 
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
 ```
@@ -114,9 +136,11 @@ flowchart TD
 - `make check` ist die maßgebliche Baseline und ruft `lint` → `type` → `test`
   in dieser Reihenfolge; ein rotes Teilziel bricht ab, deshalb die Rückkante
   auf `make lint`.
-- `make pr-check` ist die exakte lokale Entsprechung von
-  [`pr-ci.yml`](../.github/workflows/pr-ci.yml): nicht-editabler Install,
-  `doctor`, dann `check`. Wer das lokal grün hat, überrascht die PR-CI nicht.
+- `make pr-check` führt dasselbe Projekt-Gate wie
+  [`pr-ci.yml`](../.github/workflows/pr-ci.yml) aus: nicht-editabler Install,
+  `doctor`, dann `check`. Die CI legt zusätzlich Python 3.12 fest, aktualisiert
+  `pip` und installiert Qt-Systembibliotheken sowie `shellcheck`; lokal ist das
+  Ergebnis deshalb nur in einer vergleichbaren Umgebung gleichwertig.
 - Die volle qtbot-UI-Suite (`make ui`) läuft regulär nur nachts
   ([`ui-nightly.yml`](../.github/workflows/ui-nightly.yml)), nicht im
   Standard-Gate.
@@ -143,12 +167,14 @@ flowchart TD
 
   subgraph DEV["Partition: Entwickler:in"]
     direction TB
-    P1["Pull Request gegen main öffnen"]
+    P1["Pull Request gegen main im GitHub-Formular vorbereiten"]
     P2["Template ausfüllen<br/>Kurzbeschreibung, Standard-Gate-Haken, Testabschnitt"]
     PQ{"Schließt der PR ein Issue?"}
-    P3["Closes 123 eintragen<br/>nur die englischen Schlüsselwörter Closes/Fixes/Resolves schließen automatisch"]
-    P4["stattdessen reinen Verweis eintragen<br/>Bezug: 123"]
-    P5["PR als bereit zur Prüfung markieren"]
+    P3["Closes #123 eintragen<br/>nur die englischen Schlüsselwörter Closes/Fixes/Resolves schließen automatisch"]
+    P4["bei reinem Bezug: Bezug: #123<br/>ohne Issue darf die Referenz entfallen"]
+    P5["PR öffnen, gegebenenfalls als Draft<br/>dies löst sofort das Ereignis opened aus"]
+    PD{"Als Draft geöffnet?"}
+    P6["Nach Fertigstellung als Ready for review markieren<br/>dieser Ereignistyp startet hier keinen eigenen Workflow"]
   end
 
   subgraph GH["Partition: GitHub · Ereignis pull_request opened bzw. synchronize"]
@@ -162,7 +188,7 @@ flowchart TD
     C1["pr-ci.yml<br/>make pr-check auf Ubuntu, Python 3.12"]
     C2["codeql.yml<br/>SAST für Python"]
     C3["dependency-audit.yml<br/>Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
-    C4["license-check.yml<br/>Lizenzreport ohne Qt"]
+    C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6,<br/>aber ohne Linux-Qt-Systempakete"]
     CQ{"Secret CLAUDE_CODE_OAUTH_TOKEN verfügbar?"}
     C5["claude-code-review.yml<br/>Review als Inline-Kommentare plus Sticky-Zusammenfassung"]
     C6["Review sichtbar übersprungen<br/>Warnung statt rotem Lauf; bei Fork-PRs immer der Fall"]
@@ -172,6 +198,9 @@ flowchart TD
   PQ -->|"ja"| P3 --> P5
   PQ -->|"nein"| P4 --> P5
   P5 --> F1
+  P5 --> PD
+  PD -->|"ja"| P6 --> J1
+  PD -->|"nein"| J1
   F1 --> C1
   F1 --> C2
   F1 --> C3
@@ -191,25 +220,33 @@ flowchart TD
 
 **Anmerkungen**
 
-- Die Schlüsselwort-Entscheidung ist keine Formalie: Ein deutsches „Löst 123“
+- Die Schlüsselwort-Entscheidung ist keine Formalie: Ein deutsches „Löst #123“
   wertet GitHub nicht aus. Bei PR 812 blieben dadurch sieben umgesetzte Issues
   nach dem Merge offen und mussten von Hand nachgezogen werden.
-- `dependency-audit.yml` läuft bewusst ohne Pfadfilter, weil die Branch
-  Protection den Check auch bei reinen Doku-PRs erwartet — ein gefilterter
-  Workflow bliebe dauerhaft auf „Expected“ stehen.
+- Das Öffnen des PR startet die gezeichneten PR-Workflows sofort; ein weiterer
+  Commit löst `synchronize` aus. Keiner dieser Workflows hört auf
+  `ready_for_review`, daher ist das Markieren eines Drafts nicht der Startpunkt
+  der Prüfungen.
+- `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
+  Audit ist aktuell jedoch **kein** erforderlicher Branch-Protection-Status;
+  technisch erforderlich ist nur `Lightweight PR checks`.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
-  Review-Workflow schreiben.
+  Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
+  Commits starten keine nachgelagerten Workflows; danach müssen die Checks per
+  geeignetem manuellem Dispatch oder durch einen menschlich authentifizierten
+  Push ausgelöst werden.
 
 ---
 
 ## 3. Pull Request durchführen (Review bis Merge)
 
 **Auslöser:** Der PR ist offen, die Checks laufen.
-**Ergebnis:** Der PR ist als ein Commit auf `main` gemergt, verknüpfte Issues
-sind geschlossen, die Folgeautomatisierung ist angestoßen.
+**Ergebnis:** Der PR ist nach der üblichen Squash-Konvention auf `main`
+gemergt; vorhandene Closing-Verknüpfungen und die passende
+Folgeautomatisierung sind verarbeitet.
 **Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) („PRs, die `make check`
 nicht bestehen, werden nicht gemergt“),
 [`claude-code-review.yml`](../.github/workflows/claude-code-review.yml),
@@ -224,48 +261,56 @@ flowchart TD
 
   subgraph CI["Partition: CI und Bots"]
     direction TB
-    R1["Pflicht-Checks laufen auf dem PR-Kopf"]
-    RQ1{"Alle Pflicht-Checks grün?"}
-    RB["Review-Befunde liegen vor<br/>Sticky-Kommentar plus Inline-Kommentare"]
+    R1["PR-Workflows laufen<br/>actions/checkout prüft beim pull_request standardmäßig GitHubs Merge-Ref refs/pull/N/merge"]
+    RQ1{"Erforderlicher Status<br/>Lightweight PR checks grün?"}
+    RB["Weitere Check- und Review-Befunde liegen vor<br/>unter anderem Sticky- und Inline-Kommentare"]
   end
 
   subgraph DEV["Partition: Entwickler:in"]
     direction TB
     F1["Ursache lokal reproduzieren und beheben<br/>make check erneut grün bekommen"]
     F2["git push in denselben Branch<br/>Ereignis synchronize: Checks neu, laufendes Review wird abgebrochen"]
-    F3["Rückfragen beantworten<br/>optional @claude im PR-Kommentar für Fixes"]
+    FQ{"Behebung lokal?"}
+    F3["Optional @claude im PR-Kommentar für Fixes<br/>danach Checks wegen GITHUB_TOKEN-Limit per geeignetem Dispatch<br/>oder menschlich authentifiziertem Push auslösen"]
   end
 
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
     direction TB
     RQ2{"Änderungswünsche offen?"}
-    A1["Freigabe erteilen"]
-    M1["Squash-Merge nach main<br/>ein Commit je PR, Betreff endet auf die PR-Nummer"]
-    M2["Feature-Branch löschen"]
+    A1["Merge-Entscheidung treffen<br/>formales Approval ist möglich, aber aktuell nicht technisch vorgeschrieben"]
+    M1["Üblicher Squash-Merge nach main<br/>GitHub erlaubt daneben Merge-Commit und Rebase"]
+    MQ{"Feature-Branch manuell löschen?"}
+    M2["Feature-Branch löschen<br/>automatische Löschung ist deaktiviert"]
   end
 
   subgraph POST["Partition: main und Folgeautomatisierung"]
     direction TB
     J2["Fork"]:::bar
+    IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
     N3["Ereignis issues closed<br/>recommendations-live-check.yml prüft gegen den Live-Stand"]
     NQ{"Drift in der Triage-Tabelle?"}
-    N4["Kurzstatus in sechs Sprachfassungen nachziehen<br/>scripts/recommendations_live_check.py --write"]
+    N4["Kurzstatus lokal in sechs Sprachfassungen nachziehen<br/>scripts/recommendations_live_check.py --write, prüfen, committen und per Folge-PR einreichen"]
   end
 
   R1 --> RQ1
   RQ1 -->|"nein"| F1 --> F2 --> R1
   RQ1 -->|"ja"| RB --> RQ2
-  RQ2 -->|"ja"| F3 --> F1
+  RQ2 -->|"ja"| FQ
+  FQ -->|"ja"| F1
+  FQ -->|"nein · @claude"| F3 --> R1
   RQ2 -->|"nein"| A1 --> M1 --> J2
-  J2 --> M2
-  J2 --> N1 --> N3 --> NQ
+  J2 --> MQ
+  MQ -->|"ja"| M2 --> ENDE
+  MQ -->|"nein"| ENDE
+  J2 --> IQ
+  IQ -->|"ja"| N1 --> N3 --> NQ
+  IQ -->|"nein"| ENDE
   J2 --> N2
-  NQ -->|"ja"| N4 --> ENDE(("Ende")):::terminal
+  NQ -->|"ja"| N4 --> FOLGE(("Folge-PR")):::terminal
   NQ -->|"nein"| ENDE
   N2 --> ENDE
-  M2 --> ENDE
 
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
@@ -276,16 +321,25 @@ flowchart TD
 - Die Rückkante `synchronize` ist der eigentliche Takt dieses Prozesses: Jeder
   neue Commit startet `pr-ci.yml` neu und bricht ein laufendes Claude-Review ab
   (`concurrency: cancel-in-progress`).
-- Der Merge ist ein Squash: `main` hat keine Merge-Commits, jeder Commit-Betreff
-  endet auf die PR-Nummer. Das ist aus der Historie belegt, nicht separat
-  dokumentiert.
+- Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
+  erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
+- Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
+  Maintainer müssen Befunde trotzdem bewusst bewerten; nur der Status
+  `Lightweight PR checks` ist technisch erforderlich.
 - Nicht im Flussdiagramm, weil zeitgesteuert statt PR-getrieben:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
-  `dependency-audit.yml` und `benchmark.yml` (montags),
+  `dependency-audit.yml`, `benchmark.yml` und `codeql.yml` (montags; CodeQL
+  05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags).
 - Ein roter `recommendations-live-check` gehört dem Repository-Owner und bleibt
-  bis zur synchronen Korrektur aller sechs Fassungen aktiv.
+  bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
+  nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen
+  Commit und PR.
+- GitHub-verwaltete Abläufe wie `Dependabot Updates` und `Dependency Graph`
+  sind nicht als Dateien unter `.github/workflows` versioniert. Dependabot kann
+  eigene Bot-Branches und PRs erzeugen; dieser alternative Einstieg ist im
+  manuellen Feature-Branch-Diagramm nicht dargestellt.
 
 ---
 
@@ -317,8 +371,9 @@ flowchart TD
     SQ1{"Freeze konsistent?"}
     S2F["Pfadklassifikation oder Doku per PR korrigieren<br/>zurück zu Schritt 1, nicht taggen"]
     S3["Schritt 3 · Kandidatenbau starten<br/>gh workflow run release-linux.yml -f with_ai=true"]
-    S4["Schritt 4 · Kandidatenvertrag und Sicherheitsbefunde prüfen<br/>VERSION-01, FREEZE-01, BUILD-01, BUILD-02, PROVENANCE-01, MALWARE-01"]
-    SQ2{"Vertrag sauber und kein Malware-Fund?"}
+    S4["Schritt 4 · Kandidatenartefakte und Sicherheitsbefunde vorprüfen<br/>Build-Container, Freeze-Provenienz und Logs; noch kein Kandidatenvertrag"]
+    SQ2{"Artefakte plausibel und kein Malware-Fund?"}
+    SQ4{"main zeigt noch auf den Kandidaten-SHA?"}
     S6["Schritt 6 · Freigabemanifest und Release-Instanz abnehmen<br/>extract-instance · validate-instance --through-phase pre-release"]
     SQ3{"Alle Pre-Release-MUST auf PASS?"}
   end
@@ -335,8 +390,8 @@ flowchart TD
 
   subgraph HW["Partition: Hardware-Abnahme · release-abnahme.yml"]
     direction TB
-    H0["Schritt 5 · Abnahme starten<br/>run_id des Kandidaten, platforms=alle"]
-    H1["candidate-source<br/>Artefaktmenge und Commit an den Build-Run binden"]
+    H0["Schritt 5 · Abnahme starten<br/>--ref main · run_id des Kandidaten · platforms=alle · dry_run=false · target_issue"]
+    H1["candidate-source<br/>fünf Dateien laden, Hashes prüfen, release-candidate-contract-&lt;attempt&gt; erzeugen<br/>und Workflow-SHA hart an den Kandidaten binden"]
     HF["Fork"]:::bar
     H2["macOS arm64<br/>DMG-Start, Retina, natives 3D, E2E, GL-Suite"]
     H3["Linux arm64<br/>AppImage- und .deb-Zyklus, GL-Provenance, natives 3D, E2E"]
@@ -349,8 +404,10 @@ flowchart TD
   S1 --> S2 --> SQ1
   SQ1 -->|"nein"| S2F --> S1
   SQ1 -->|"ja"| S3 --> B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> S4 --> SQ2
-  SQ2 -->|"nein · Fund oder Hashfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
-  SQ2 -->|"ja"| H0 --> H1 --> HF
+  SQ2 -->|"nein · Fund oder Artefaktfehler"| NOGO["No-Go protokollieren<br/>Kandidat verwerfen, Ursache per PR beheben, neu ab Schritt 1"]
+  SQ2 -->|"ja"| SQ4
+  SQ4 -->|"nein · main ist weitergelaufen"| NOGO
+  SQ4 -->|"ja"| H0 --> H1 --> HF
   HF --> H2 --> HJ
   HF --> H3 --> HJ
   HF --> H4 --> HJ
@@ -374,7 +431,7 @@ flowchart TD
     T1["Schritt 7 · Tag setzen<br/>git tag -a auf candidate.head_sha aus dem Manifest, prüfen, pushen"]
     T2["Schritt 8 · Veröffentlichung starten<br/>gh workflow run release-publish.yml mit tag, candidate_run_id, acceptance_run_id, approval_artifact_name"]
     T3["Schritt 9 · öffentliche Prüfung<br/>alle fünf Assets anonym über browser_download_url laden und Hashes vergleichen"]
-    T4["Post-Release-Nachweis UPDATE-01<br/>release-abnahme.yml erneut, gleiche run_id, platforms=linux-arm64, predecessor_tag"]
+    T4["Post-Release-Nachweis UPDATE-01<br/>release-abnahme.yml --ref RELEASE_TAG, gleiche run_id,<br/>platforms=linux-arm64, predecessor_tag, target_issue"]
     T5["Instanz pflegen<br/>set-criterion für PUBLISH-01 bis 03, PUBLIC-DOWNLOAD-01, UPDATE-01<br/>validate-instance --through-phase post-release, Kommentar ins Release-Issue"]
   end
 
@@ -421,6 +478,12 @@ flowchart TD
 
 - Die drei Release-Workflows sind ausschließlich `workflow_dispatch`. Es gibt
   keinen Tag-Trigger und keinen Weg, der am Manifest vorbei veröffentlicht.
+- `release-linux.yml` erzeugt noch keinen Kandidatenvertrag. Erst
+  `candidate-source` am Anfang von `release-abnahme.yml` lädt die fünf Dateien,
+  prüft ihre Metadaten und Hashes und veröffentlicht
+  `release-candidate-contract-<attempt>`. Weil dieser Job außerdem
+  `GITHUB_SHA` hart mit dem Kandidaten-SHA vergleicht, darf Schritt 5 auf
+  `--ref main` nur starten, solange `main` noch exakt auf dem Kandidaten steht.
 - Der Publish-Lauf baut nichts. Seine einzige Dateiquelle ist die im Manifest
   gebundene Build-Run-ID; veröffentlicht werden genau die Bytes, deren SHA-256
   im Manifest stehen.
@@ -438,6 +501,8 @@ flowchart TD
   fehlender Signaturcache wird sichtbar `UNAVAILABLE` statt still bestanden.
 - `UPDATE-01` ist erst nach dem Tag prüfbar, weil `/releases/latest` die neue
   Version vorher nicht meldet. Es blockiert den Tag nicht, aber den Abschluss
-  des Release-Issues; `CHECK_FAILED` gilt nie als „kein Update“.
+  des Release-Issues; `CHECK_FAILED` gilt nie als „kein Update“. Der erneute
+  Abnahme-Lauf muss mit `--ref "$RELEASE_TAG"` auf dem Kandidaten-Commit laufen,
+  nicht auf einem möglicherweise weitergelaufenen `main`.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.
