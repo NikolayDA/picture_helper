@@ -158,7 +158,7 @@ und `test_e2e_release_regression.py` tragen beide Marker.
 Ein weiterer Marker, `gl_smoke`, kennzeichnet die wenigen Tests mit echtem
 OpenGL-Rendering (`tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py`,
 `tests/test_benchmark_preview3d_live.py`, ADR #591; modulweit nur in
-`test_viewer_3d_gl.py`, in den beiden anderen Modulen an je einem Test). Sie
+`test_viewer_3d_gl.py`, in den übrigen Modulen an je einem Test). Sie
 laufen in jedem normalen `pytest`-Lauf mit, überspringen sich aber automatisch,
 sobald keine renderfähige Qt-Plattform verfügbar ist – das trifft auf
 `offscreen` (und damit auf CI sowie diese Anleitung) zu.

@@ -21,6 +21,7 @@ import sys
 from collections import Counter
 from functools import cache
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 
@@ -33,18 +34,22 @@ _GL_SMOKE_FILE_LIST_RE = re.compile(
 #: Nur Backtick-umschlossene ``tests/test_*.py``-Pfade – reiner Fließtext
 #: (z. B. „ADR #591") darf nicht als Datei zählen.
 _TEST_FILE_RE = re.compile(r"`(tests/test_\w+\.py)`")
-
-#: Das einzige Modul, in dem der Marker modulweit (``pytestmark``) hängt –
-#: TESTING.md verspricht dafür bewusst keine feste Testanzahl (ein künftig
-#: dort ergänzter Test würde den Marker automatisch mitführen). Alle
-#: *anderen* dokumentierten Dateien müssen laut TESTING.md an genau einem
-#: Test hängen; das wird unten gegen ``_documented_gl_smoke_files() -
-#: _MODULE_WIDE_GL_SMOKE_FILES`` geprüft, statt die Gegenmenge als zweiten,
-#: separat zu pflegenden Hand-Vertrag zu wiederholen (#832-Review).
-_MODULE_WIDE_GL_SMOKE_FILES = {"tests/test_viewer_3d_gl.py"}
+#: Die „modulweit nur in `X`"-Klausel benennt die Datei ohne ``tests/``-
+#: Präfix; genau diese eine Nennung ist die dokumentierte Quelle der
+#: modulweiten Markierung – der Test leitet sie von hier ab, statt sie als
+#: Hand-Konstante zu doppeln (#845-Review).
+_MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(test_\w+\.py)`")
 
 
-def _documented_gl_smoke_files() -> set[str]:
+class _DocumentedGlSmoke(NamedTuple):
+    """Beide TESTING.md-Aussagen aus derselben Klammer: Dateiliste +
+    modulweit markierte Teilmenge."""
+
+    files: frozenset[str]
+    module_wide: frozenset[str]
+
+
+def _documented_gl_smoke() -> _DocumentedGlSmoke:
     text = TESTING_MD.read_text(encoding="utf-8")
     match = _GL_SMOKE_FILE_LIST_RE.search(text)
     assert match is not None, (
@@ -65,7 +70,22 @@ def _documented_gl_smoke_files() -> set[str]:
         "- Wortlaut geändert? Anker im re.split hier nachziehen (sonst würde "
         "der Schnitt stillschweigend entfallen und Prosa mitscannen)."
     )
-    return set(_TEST_FILE_RE.findall(parts[0]))
+    files = frozenset(_TEST_FILE_RE.findall(parts[0]))
+    # Die modulweite Teilmenge aus derselben Klausel ableiten, gegen die der
+    # Schnitt oben trennt - Doku-Wortlaut und Prüfung haben damit eine
+    # gemeinsame Quelle statt einer separat zu pflegenden Hand-Konstante.
+    module_wide_names = _MODULE_WIDE_RE.findall("modulweit" + parts[1])
+    assert module_wide_names, (
+        "„modulweit nur in `…`\"-Nennung in TESTING.md nicht gefunden - "
+        "Wortlaut geändert? Anker in _MODULE_WIDE_RE nachziehen."
+    )
+    module_wide = frozenset(f"tests/{name}" for name in module_wide_names)
+    assert module_wide <= files, (
+        f"Die als modulweit dokumentierten Dateien {sorted(module_wide)} "
+        f"fehlen in der dokumentierten Dateiliste {sorted(files)} - "
+        "TESTING.md in sich inkonsistent."
+    )
+    return _DocumentedGlSmoke(files=files, module_wide=module_wide)
 
 
 def _decode(data: bytes | str | None) -> str:
@@ -79,23 +99,27 @@ def _decode(data: bytes | str | None) -> str:
 
 
 @cache
-def _actual_gl_smoke_counts() -> Counter[str]:
+def _collect_gl_smoke() -> Counter[str] | str:
     """Fragt pytest selbst, welche Module tatsächlich ``gl_smoke``-markierte
     Tests enthalten (Datei -> Anzahl markierter Test*funktionen*, nicht
-    Node-IDs – siehe unten).
+    Node-IDs – siehe unten). Rückgabe im Fehlerfall ein ``str`` mit der
+    Diagnose statt einer Exception: ``functools.cache`` speichert nur
+    erfolgreiche Rückgaben, ein geworfener Fehler liefe also bei jedem der
+    beiden Aufrufer erneut durch den vollen Subprozess (im Timeout-Fall
+    2 × 300 s) – als gecachter Wert fällt er nur einmal an (#845-Review);
+    die Testfunktionen unten übersetzen ihn in ``pytest.fail``.
 
     Läuft als eigener Prozess (nicht ``pytest.main`` im laufenden Lauf), damit
     Konfiguration/Plugins des äußeren Laufs unberührt bleiben – kostet dafür
     eine zweite Kollektion aller ``tests/*.py`` (wenige Sekunden bei warmem
     Import-Cache lokal gemessen, #832-Review; auf CI-Runnern mit kaltem
     Cache und wachsender Testanzahl tendenziell mehr – fällt dafür einmal
-    **je Testlauf** an, ``@cache`` teilt das Ergebnis zwischen den beiden
-    Testfunktionen unten, die es sonst je einmal aufgerufen hätten).
-    ``--collect-only -q`` liefert nur bei Verbosity
-    **-1** stabile Node-IDs (``pfad::testname``); Verbosity 0 (kein ``-q``)
-    druckt einen Baum ohne ``tests/…``-Zeilen, und ein zweites ``-q``
-    obendrauf ergäbe Verbosity -2 (``pfad: N`` statt Node-IDs) – deshalb
-    neutralisieren ``-o addopts=`` **und** eine leere
+    **je Testlauf** an, ``@cache`` teilt Ergebnis wie Fehler zwischen den
+    beiden Testfunktionen unten). ``--collect-only -q`` liefert nur bei
+    Verbosity **-1** stabile Node-IDs (``pfad::testname``); Verbosity 0
+    (kein ``-q``) druckt einen Baum ohne ``tests/…``-Zeilen, und ein zweites
+    ``-q`` obendrauf ergäbe Verbosity -2 (``pfad: N`` statt Node-IDs) –
+    deshalb neutralisieren ``-o addopts=`` **und** eine leere
     ``PYTEST_ADDOPTS``-Umgebungsvariable jede geerbte Verbosity (aus
     ``pyproject.toml`` bzw. der Aufrufumgebung), bevor das hier gesetzte
     einzige ``-q`` greift. ``-p no:warnings`` unterdrückt die abschließende
@@ -104,7 +128,7 @@ def _actual_gl_smoke_counts() -> Counter[str]:
     als falsche Node-IDs durch den Filter unten rutschen.
 
     Gezählt werden **Testfunktionen**, nicht rohe Node-IDs: Eine spätere
-    Parametrisierung eines der beiden Einzeldekorator-Tests (``test_x.py::
+    Parametrisierung eines der Einzeldekorator-Tests (``test_x.py::
     test_y[a]``, ``…[b]``) verdoppelt sonst den Node-ID-Zähler, obwohl die
     TESTING.md-Aussage „an je einem Test" (Einzeldekorator statt
     modulweitem ``pytestmark``) unverändert stimmt – der ``[...]``-Suffix
@@ -123,18 +147,20 @@ def _actual_gl_smoke_counts() -> Counter[str]:
             argv, cwd=ROOT, capture_output=True, text=True, timeout=300, env=env,
         )
     except subprocess.TimeoutExpired as exc:
-        pytest.fail(
+        return (
             "pytest-Sammlung für gl_smoke nach 300s abgebrochen (Timeout, "
             "überlasteter Runner?) - stdout bisher:\n"
             f"{_decode(exc.stdout)}\nstderr bisher:\n{_decode(exc.stderr)}"
         )
     # 5 = NO_TESTS_COLLECTED (kein gl_smoke-Test mehr vorhanden) - kein
-    # Kollektionsfehler, sondern genau der Drift-Fall, den die zweite
-    # Assertion unten praezise meldet.
-    assert result.returncode in (0, 5), (
-        f"pytest-Sammlung für gl_smoke fehlgeschlagen (exit {result.returncode}):\n"
-        f"{result.stdout}\n{result.stderr}"
-    )
+    # Kollektionsfehler, sondern genau der Drift-Fall, den die praezisere
+    # Meldung unten abdeckt.
+    if result.returncode not in (0, 5):
+        return (
+            f"pytest-Sammlung für gl_smoke fehlgeschlagen (exit "
+            f"{result.returncode}; ggf. Folgefehler eines unbeteiligten "
+            f"Kollektionsfehlers im Testbaum):\n{result.stdout}\n{result.stderr}"
+        )
     per_file_functions: dict[str, set[str]] = {}
     for line in result.stdout.splitlines():
         if not line.startswith("tests/") or "::" not in line:
@@ -142,16 +168,24 @@ def _actual_gl_smoke_counts() -> Counter[str]:
         file_path, test_part = line.split("::", 1)
         base_name = test_part.split("[", 1)[0]  # Parametrisierung abschneiden
         per_file_functions.setdefault(file_path, set()).add(base_name)
-    counts = Counter({path: len(names) for path, names in per_file_functions.items()})
-    assert counts, (
-        "Kein gl_smoke-markierter Test gefunden - Marker versehentlich entfernt "
-        "oder Sammlung kaputt?\n" + result.stdout
-    )
-    return counts
+    if not per_file_functions:
+        return (
+            "Kein gl_smoke-markierter Test gefunden - Marker versehentlich "
+            "entfernt oder Sammlung kaputt?\n" + result.stdout
+        )
+    return Counter({path: len(names) for path, names in per_file_functions.items()})
+
+
+def _actual_gl_smoke_counts() -> Counter[str]:
+    """Wertet das gecachte Sammelergebnis aus; Fehler -> ``pytest.fail``."""
+    result = _collect_gl_smoke()
+    if isinstance(result, str):
+        pytest.fail(result)
+    return result
 
 
 def test_testing_md_gl_smoke_list_matches_actual_markers() -> None:
-    documented = _documented_gl_smoke_files()
+    documented = _documented_gl_smoke().files
     actual = set(_actual_gl_smoke_counts())
     assert documented == actual, (
         f"TESTING.md nennt {sorted(documented)}, tatsächlich gl_smoke-markiert "
@@ -162,27 +196,17 @@ def test_testing_md_gl_smoke_list_matches_actual_markers() -> None:
 
 def test_single_test_gl_smoke_files_have_exactly_one_marked_test() -> None:
     """Sichert die zweite TESTING.md-Aussage ab: In allen dokumentierten
-    Modulen außer ``test_viewer_3d_gl.py`` hängt der Marker an genau einem
-    Test (Einzeldekorator), nicht modulweit. Die Gegenmenge wird aus der
-    ohnehin geprüften Dateiliste abgeleitet (``documented -
-    _MODULE_WIDE_GL_SMOKE_FILES``) statt als zweite Hand-Liste geführt – ein
-    künftiges drittes Einzeldekorator-Modul wird damit automatisch mitgeprüft.
-
-    ``_MODULE_WIDE_GL_SMOKE_FILES`` selbst bleibt eine Hand-Konstante (ob eine
-    Datei tatsächlich *modulweit* markiert ist – alle ihre Tests, nicht nur
-    zufällig genau einer – wird hier bewusst nicht verifiziert, das bräuchte
-    eine zweite, ungefilterte Kollektion). Die Sicherheitsnetz-Assertion
-    unten verhindert wenigstens, dass die Konstante nach einer Umbenennung/
-    Entfernung der Datei in TESTING.md stillschweigend ins Leere läuft
-    (#845-Review).
+    Modulen außer den als „modulweit" genannten hängt der Marker an genau
+    einem Test (Einzeldekorator). Beide Mengen kommen aus derselben
+    TESTING.md-Klammer (``_documented_gl_smoke``) – keine separat zu
+    pflegende Hand-Liste, ein künftiges weiteres Einzeldekorator-Modul wird
+    automatisch mitgeprüft (#845-Review). Ob eine „modulweit" genannte Datei
+    tatsächlich modulweit markiert ist (alle ihre Tests, nicht nur zufällig
+    genau einer), wird bewusst nicht verifiziert – das bräuchte eine zweite,
+    ungefilterte Kollektion und bleibt eine dokumentierte Grenze.
     """
-    documented = _documented_gl_smoke_files()
-    assert documented >= _MODULE_WIDE_GL_SMOKE_FILES, (
-        f"_MODULE_WIDE_GL_SMOKE_FILES {sorted(_MODULE_WIDE_GL_SMOKE_FILES)} "
-        f"nicht (mehr) in TESTING.md dokumentiert ({sorted(documented)}) - "
-        "Konstante nachziehen."
-    )
-    single_test_files = documented - _MODULE_WIDE_GL_SMOKE_FILES
+    documented = _documented_gl_smoke()
+    single_test_files = documented.files - documented.module_wide
     counts = _actual_gl_smoke_counts()
     wrong = {
         path: counts.get(path, 0)
@@ -191,6 +215,6 @@ def test_single_test_gl_smoke_files_have_exactly_one_marked_test() -> None:
     }
     assert not wrong, (
         f"Erwartet genau ein gl_smoke-markierter Test je Datei, tatsächlich: "
-        f"{wrong}. TESTING.md-Aussage „in den beiden anderen Modulen an je "
-        f'einem Test" nachziehen (#832-Review).'
+        f"{wrong}. TESTING.md-Aussage „in den übrigen Modulen an je einem "
+        f'Test" nachziehen (#832-Review).'
     )
