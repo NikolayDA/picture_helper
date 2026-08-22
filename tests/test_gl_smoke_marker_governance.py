@@ -34,11 +34,13 @@ _GL_SMOKE_FILE_LIST_RE = re.compile(
 #: Nur Backtick-umschlossene ``tests/test_*.py``-Pfade – reiner Fließtext
 #: (z. B. „ADR #591") darf nicht als Datei zählen.
 _TEST_FILE_RE = re.compile(r"`(tests/test_\w+\.py)`")
-#: Die „modulweit nur in `X`"-Klausel benennt die Datei ohne ``tests/``-
-#: Präfix; genau diese eine Nennung ist die dokumentierte Quelle der
+#: Die „modulweit nur in `X`"-Klausel ist die dokumentierte Quelle der
 #: modulweiten Markierung – der Test leitet sie von hier ab, statt sie als
-#: Hand-Konstante zu doppeln (#845-Review).
-_MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(test_\w+\.py)`")
+#: Hand-Konstante zu doppeln (#845-Review). Das ``tests/``-Präfix ist
+#: optional, damit eine redaktionelle Vereinheitlichung mit den drei
+#: Nennungen daneben (alle *mit* Präfix) keinen Fehlalarm auslöst;
+#: normalisiert wird unten ohnehin auf ``tests/<name>``.
+_MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(?:tests/)?(test_\w+\.py)`")
 
 
 class _DocumentedGlSmoke(NamedTuple):
