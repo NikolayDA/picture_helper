@@ -636,3 +636,26 @@ def test_move_tool_pans_with_left_drag(window):
         Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
         QPointF(0.0, 0.0))
     assert consumed is False
+
+
+@pytest.mark.ui_smoke
+def test_leaving_relief_step_discards_active_height_preview(window):
+    """#846-Review (Folge von #839): Eine offene Höhen-Optimieren-Vorschau
+    darf nicht nur beim Experten→Standard-Wechsel verworfen werden, sondern
+    auch beim Verlassen des Relief-Schritts – sonst bliebe die nicht
+    committete Vorschau am Canvas sichtbar, während Apply-/Verwerfen-Regler
+    im Export-Schritt nicht mehr erreichbar sind (derselbe Export-vom-
+    unveränderten-Modell-Fall, nur über den Schrittwechsel statt den
+    Moduswechsel erreicht)."""
+    from bgremover import height_ops
+
+    w = window
+    _load_image(w)
+    w._go_to_step(WorkflowStep.RELIEF)
+    w._canvas.generate_height_map()  # neue HEIGHT-Ebene wird aktiv
+    w._canvas.preview_height_op(lambda f: height_ops.gamma(f, 1.5))
+    assert w._canvas._preview_layer_override is not None
+
+    w._go_to_step(WorkflowStep.EXPORT)
+
+    assert w._canvas._preview_layer_override is None

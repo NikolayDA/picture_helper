@@ -1485,6 +1485,42 @@ def test_height_panel_expert_mode_shows_options_optimize_collapsed(qapp):
     assert not gamma_spin.isVisibleTo(page)
 
 
+def test_expert_to_standard_toggle_discards_active_height_preview(qapp):
+    """#839: eine offene Optimieren-Karte darf beim Verlassen des Experten-
+    Modus keine nicht committete Vorschau am Canvas zurücklassen.
+
+    ``_sync_expert_visuals`` blendet die Optimieren-Karte bisher nur per
+    ``setVisible`` aus, ohne den Accordion-Header selbst einzuklappen – die
+    bestehende ``on_toggle → cancel_preview``-Absicherung
+    (``_make_accordion_section``) griff dadurch beim Moduswechsel nicht,
+    obwohl sie beim manuellen Einklappen greift.
+    """
+    cancel_calls: list[None] = []
+    actions = HeightMapActions(
+        generate=lambda: None,
+        import_file=lambda: None,
+        lighten=lambda _a: None,
+        darken=lambda _a: None,
+        set_height=lambda _v: None,
+        invert=lambda: None,
+        preview_op=lambda _op: None,
+        apply_op=lambda _op: None,
+        cancel_preview=lambda: cancel_calls.append(None),
+    )
+    panel = build_right_panel(
+        _actions([]), _noop_layer_actions(), actions, expert_mode=True)
+    panel.height_panel.refresh(_height_layers())
+
+    header = panel.height_panel._refs["height_optimize_header"]
+    header.setChecked(True)  # Karte aufklappen, wie vor einer Live-Vorschau
+    assert not cancel_calls
+
+    panel.expert_toggle.setChecked(False)  # Wechsel in den Standard-Modus
+
+    assert cancel_calls, "cancel_preview() wurde beim Moduswechsel nicht aufgerufen"
+    assert not header.isChecked(), "Optimieren-Karte bleibt intern expandiert"
+
+
 # ── Schritt 6 „Export": Basic/Expert-Aufteilung (#810, Epic #805) ────────
 
 
