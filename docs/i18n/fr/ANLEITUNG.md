@@ -255,7 +255,7 @@ que les outils de l'étape actuellement active. De haut en bas :
 
 | Icône | Outil | Fonction |
 |---|---|---|
-| ✥ | **Déplacer / Zoom** | Glisser avec le clic gauche déplace la vue, la molette zoome. Actif dans toutes les étapes sauf *Détourer* et *Relief & calques*. |
+| ✥ | **Déplacer / Zoom** | Glisser avec le clic gauche déplace la vue, la molette zoome (le zoom fonctionne toujours, quel que soit l'outil actif). Déplacer/Zoom est présélectionné à l'entrée dans une étape, sauf dans *Détourer*, où le dernier outil de sélection utilisé reprend la main. C'est aussi l'état de départ dans *Relief & calques* ; la peinture de hauteur s'active en cliquant sur Éclaircir/Assombrir dès qu'un calque de hauteur est actif. |
 
 ### Outils de sélection (uniquement à l'étape « Détourer »)
 
