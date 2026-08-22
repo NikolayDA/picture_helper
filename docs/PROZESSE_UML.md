@@ -198,7 +198,7 @@ flowchart TD
   PQ -->|"ja"| P3 --> P5
   PQ -->|"nein"| P4 --> P5
   P5 --> F1
-  P5 --> PD
+  F1 --> PD
   PD -->|"ja"| P6 --> J1
   PD -->|"nein"| J1
   F1 --> C1
@@ -230,14 +230,17 @@ flowchart TD
 - `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
   Audit ist aktuell jedoch **kein** erforderlicher Branch-Protection-Status;
   technisch erforderlich ist nur `Lightweight PR checks`.
+- `codeql.yml` hat zusätzlich zum gezeichneten PR-Einstieg einen wöchentlichen
+  Frische-Lauf am Montag um 05:17 UTC.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
-  Commits starten keine nachgelagerten Workflows; danach müssen die Checks per
-  geeignetem manuellem Dispatch oder durch einen menschlich authentifizierten
-  Push ausgelöst werden.
+  Commits starten keine nachgelagerten Workflows. Für die vollständige
+  PR-Workflow-Kette ist danach ein menschlich authentifizierter Folge-Push
+  nötig; ein manueller Dispatch ist nur bei einzelnen Workflows vorhanden und
+  daher kein gleichwertiger Ersatz.
 
 ---
 
@@ -271,7 +274,7 @@ flowchart TD
     F1["Ursache lokal reproduzieren und beheben<br/>make check erneut grün bekommen"]
     F2["git push in denselben Branch<br/>Ereignis synchronize: Checks neu, laufendes Review wird abgebrochen"]
     FQ{"Behebung lokal?"}
-    F3["Optional @claude im PR-Kommentar für Fixes<br/>danach Checks wegen GITHUB_TOKEN-Limit per geeignetem Dispatch<br/>oder menschlich authentifiziertem Push auslösen"]
+    F3["Optional @claude im PR-Kommentar für Fixes<br/>danach wegen GITHUB_TOKEN-Limit einen<br/>menschlich authentifizierten Folge-Push auslösen"]
   end
 
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
@@ -302,7 +305,7 @@ flowchart TD
   FQ -->|"nein · @claude"| F3 --> R1
   RQ2 -->|"nein"| A1 --> M1 --> J2
   J2 --> MQ
-  MQ -->|"ja"| M2 --> ENDE
+  MQ -->|"ja"| M2 --> ENDE(("Ende")):::terminal
   MQ -->|"nein"| ENDE
   J2 --> IQ
   IQ -->|"ja"| N1 --> N3 --> NQ
@@ -326,9 +329,10 @@ flowchart TD
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
   Maintainer müssen Befunde trotzdem bewusst bewerten; nur der Status
   `Lightweight PR checks` ist technisch erforderlich.
-- Nicht im Flussdiagramm, weil zeitgesteuert statt PR-getrieben:
+- Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
+  Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
-  `dependency-audit.yml`, `benchmark.yml` und `codeql.yml` (montags; CodeQL
+  `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` (montags
   05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags).
@@ -503,6 +507,11 @@ flowchart TD
   Version vorher nicht meldet. Es blockiert den Tag nicht, aber den Abschluss
   des Release-Issues; `CHECK_FAILED` gilt nie als „kein Update“. Der erneute
   Abnahme-Lauf muss mit `--ref "$RELEASE_TAG"` auf dem Kandidaten-Commit laufen,
-  nicht auf einem möglicherweise weitergelaufenen `main`.
+  nicht auf einem möglicherweise weitergelaufenen `main`. Bei
+  `workflow_dispatch` ist `GITHUB_SHA` laut
+  [GitHub-Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)
+  der letzte Commit des ausgewählten Branches oder Tags; auch der annotierte
+  Release-Tag bindet den Lauf daher an den Kandidaten-Commit statt an den
+  Tag-Objekt-SHA.
 - Ein Hotfix überspringt keinen Schritt: neue Patch-Version, neuer Kandidat,
   neue Abnahme, neues Manifest, neuer Tag.

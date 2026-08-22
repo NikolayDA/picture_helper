@@ -166,7 +166,8 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
 git fetch origin main
-test "$(git rev-parse origin/main)" = "$CANDIDATE_SHA"
+test "$(git rev-parse origin/main)" = "$CANDIDATE_SHA" \
+  || { echo "main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1."; exit 1; }
 gh workflow run release-abnahme.yml --ref main \
   -f run_id="$CANDIDATE_RUN_ID" \
   -f platforms=alle \
@@ -307,6 +308,13 @@ gh workflow run release-abnahme.yml --ref "$RELEASE_TAG" \
   -f predecessor_tag="$PREDECESSOR_TAG" \
   -f target_issue="$RELEASE_ISSUE"
 ```
+
+Für `workflow_dispatch` definiert GitHub `GITHUB_SHA` als den letzten Commit
+des ausgewählten Branches oder Tags
+([Ereignisreferenz](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)).
+Der in Schritt 7 erzeugte annotierte Release-Tag löst hier deshalb auf den
+Kandidaten-Commit auf, nicht auf den separaten Tag-Objekt-SHA. Der zusätzliche
+Vergleich in `candidate-source` bleibt als fail-closed Sicherung bestehen.
 
 Der Lauf zieht das Vorgängerartefakt anonym über `browser_download_url` und
 führt den Update-Check unter dem **im Artefakt gebündelten** Interpreter aus:
