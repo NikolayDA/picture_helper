@@ -471,6 +471,24 @@ class _RightPanelBuilder:
 
         frame, title, desc, expert_toggle, nav_prev, nav_next = self._assemble(stack)
 
+        # Beim Wechsel in den Standard-Modus die Optimieren-Karte einklappen
+        # (#839): ``_sync_expert_visuals`` blendet sie nur per ``setVisible``
+        # aus, ohne den Accordion-Header selbst umzuschalten – eine aktive,
+        # nicht committete Höhen-Live-Vorschau bliebe dadurch am Canvas
+        # sichtbar, während Apply-/Verwerfen-Regler nicht mehr erreichbar
+        # sind (dasselbe Leck, das die Einklapp-Absicherung in
+        # ``_make_accordion_section`` beim manuellen Einklappen bereits
+        # verhindert). ``setChecked`` löst dieselbe ``on_toggle →
+        # cancel_preview``-Absicherung erneut aus und lässt die Karte beim
+        # nächsten Experten-Wechsel konsistent eingeklappt starten.
+        optimize_header = cast(QPushButton, refs["height_optimize_header"])
+
+        def _collapse_height_optimize_on_standard(expert: bool) -> None:
+            if not expert:
+                optimize_header.setChecked(False)
+
+        expert_toggle.toggled.connect(_collapse_height_optimize_on_standard)
+
         panel = RightPanel(
             frame=frame,
             stack=stack,

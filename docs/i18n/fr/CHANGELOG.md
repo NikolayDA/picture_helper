@@ -9,6 +9,17 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corrigé
+
+- **Le mode Standard n'annulait pas un aperçu d'optimisation de hauteur
+  actif (#839).** En passant du mode Expert au mode Standard alors que la
+  carte « Optimiser » était dépliée avec un aperçu en direct non appliqué,
+  l'aperçu restait visible sur le canevas bien que les contrôles Appliquer/
+  Annuler ne soient plus accessibles — Enregistrer/l'export EufyMake
+  auraient alors exporté le modèle inchangé. Le changement de mode replie
+  désormais la carte et annule l'aperçu, comme le repliage manuel le
+  faisait déjà.
+
 ## [2.8.0] – 2026-08-16
 
 ### Ajouté

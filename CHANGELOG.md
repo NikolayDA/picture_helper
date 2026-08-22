@@ -9,6 +9,17 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+
+- **Standard-Modus verwarf eine aktive Höhen-Optimieren-Vorschau nicht
+  (#839).** Wechselte man mit aufgeklappter „Optimieren"-Karte und einer
+  nicht angewendeten Live-Vorschau vom Experten- in den Standard-Modus,
+  blieb die Vorschau am Canvas sichtbar, obwohl die Apply-/Verwerfen-Regler
+  nicht mehr erreichbar waren – Speichern/EufyMake-Export hätten dann vom
+  unveränderten Modell exportiert. Der Moduswechsel klappt die Karte jetzt
+  mit ein und verwirft die Vorschau, wie es das manuelle Einklappen bereits
+  tut.
+
 ## [2.8.0] – 2026-08-16
 
 ### Hinzugefügt
