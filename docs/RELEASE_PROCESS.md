@@ -166,15 +166,17 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
 git fetch origin main
-test "$(git rev-parse origin/main)" = "$CANDIDATE_SHA" \
-  || { echo "main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1."; exit 1; }
-gh workflow run release-abnahme.yml --ref main \
-  -f run_id="$CANDIDATE_RUN_ID" \
-  -f platforms=alle \
-  -f dry_run=false \
-  -f target_issue="$RELEASE_ISSUE"
-gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
-gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
+if [ "$(git rev-parse origin/main)" != "$CANDIDATE_SHA" ]; then
+  echo "main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1."
+else
+  gh workflow run release-abnahme.yml --ref main \
+    -f run_id="$CANDIDATE_RUN_ID" \
+    -f platforms=alle \
+    -f dry_run=false \
+    -f target_issue="$RELEASE_ISSUE"
+  gh run list --workflow release-abnahme.yml --branch main --event workflow_dispatch --limit 5
+  gh run watch "$ACCEPTANCE_RUN_ID" --exit-status
+fi
 ```
 
 `CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. Ist `main`

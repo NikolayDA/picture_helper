@@ -41,6 +41,11 @@ Zugriff geprüft und müssen in den
 [Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
 authentifiziert kontrolliert werden.
 
+Verantwortlich für den Snapshot ist der Repository-Owner. Er wird bei jeder
+Änderung der GitHub-Einstellungen und bei der Turnusprüfung in
+[`RECOMMENDATIONS.md`](../RECOMMENDATIONS.md) erneut mit der Live-Konfiguration
+verglichen.
+
 ## Notation
 
 Gezeichnet wird in Mermaid (GitHub rendert es direkt) mit
@@ -65,7 +70,8 @@ aus `RECOMMENDATIONS.md` kann die Grundlage sein; größere Änderungen werden
 vorher in einem Issue abgestimmt.
 **Ergebnis:** Ein Commit auf einem Feature-Branch liegt auf `origin`, das
 Standard-Gate war lokal grün.
-**Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“,
+**Quellen:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) §„Code beitragen“ und
+§„Konventionen“,
 [`Makefile`](../Makefile), [`CLAUDE.md`](../CLAUDE.md) §„Standard-Gate“,
 [`.claude/hooks/session-start.sh`](../.claude/hooks/session-start.sh).
 
@@ -78,7 +84,7 @@ flowchart TD
     D1["Arbeitsgrundlage klären<br/>bei größerer Änderung Issue abstimmen; sonst Issue, Befund oder klar umrissener Beitrag"]
     D2["main aktualisieren<br/>git fetch origin main · git pull --ff-only origin main"]
     D3["Feature-Branch anlegen<br/>git checkout -b feature/kurze-beschreibung"]
-    D4["Code ändern<br/>deutsche Kommentare; Identifier auf Deutsch oder Englisch; kompakter Stil; ruff-Zeilenlänge 100"]
+    D4["Code ändern<br/>deutsche Kommentare; englische Identifier; kompakter Stil; ruff-Zeilenlänge 100"]
     D5["Tests ergänzen oder anpassen<br/>Marker ui / ui_smoke / gl_smoke"]
     D7["Befunde beheben"]
     D8["Commit erstellen<br/>git commit, Imperativ, z. B. feat(canvas): ... oder fix(workers): ..."]
@@ -188,7 +194,7 @@ flowchart TD
 
   subgraph CI["Partition: Automatische Prüfungen"]
     direction TB
-    C1["pr-ci.yml<br/>make pr-check auf Ubuntu, Python 3.12"]
+    C1["pr-ci.yml · Job Lightweight PR checks<br/>make pr-check auf Ubuntu, Python 3.12"]
     C2["codeql.yml<br/>SAST für Python"]
     C3["dependency-audit.yml<br/>Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
     C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6,<br/>aber ohne Linux-Qt-Systempakete"]
@@ -230,8 +236,6 @@ flowchart TD
 - `dependency-audit.yml` läuft ohne Pfadfilter auch bei reinen Doku-PRs. Der
   Audit ist laut dem aktuellen [GitHub-Rahmen](#aktueller-github-rahmen) kein
   erforderlicher Branch-Protection-Status.
-- `codeql.yml` hat zusätzlich zum gezeichneten PR-Einstieg einen wöchentlichen
-  Frische-Lauf am Montag um 05:17 UTC.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
@@ -332,10 +336,10 @@ flowchart TD
 - Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
   Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),
-  `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` (montags
-  05:17 UTC),
+  `dependency-audit.yml` (montags 05:00 UTC), `benchmark.yml` und `codeql.yml`
+  (montags 05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
-  `clamav-db-refresh.yml` (montags).
+  `clamav-db-refresh.yml` (montags 03:00 UTC).
 - Ein roter `recommendations-live-check` gehört dem Repository-Owner und bleibt
   bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
   nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen

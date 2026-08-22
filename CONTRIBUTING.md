@@ -95,7 +95,8 @@ PR-Template und das Release-Runbook.
 | Bereich | Regel |
 |---------|-------|
 | **Sprache (Kommentare/Docstrings)** | Deutsch |
-| **Sprache (Code-Identifier, Commits, PR-Titel)** | Englisch oder Deutsch |
+| **Sprache (Code-Identifier)** | Englisch |
+| **Sprache (Commits, PR-Titel)** | Englisch oder Deutsch |
 | **Zeilenlänge** | 100 Zeichen (ruff, `E501` ignoriert) |
 | **Linter** | `ruff check` mit Regeln `E,F,W,I,B,UP,SIM` |
 | **Formatter** | `ruff format` |
