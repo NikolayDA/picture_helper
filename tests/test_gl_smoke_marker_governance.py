@@ -59,8 +59,13 @@ def _documented_gl_smoke_files() -> set[str]:
     # braucht") fälschlich als vierte dokumentierte Datei gelesen –
     # Backticks + ``tests/``-Präfix allein schützen davor nicht, weil genau
     # so eine Ergänzung beides trägt (#832-Review).
-    file_list_part = re.split(r";\s*modulweit", match.group(1), maxsplit=1)[0]
-    return set(_TEST_FILE_RE.findall(file_list_part))
+    parts = re.split(r";\s*modulweit", match.group(1), maxsplit=1)
+    assert len(parts) == 2, (
+        '„; modulweit …"-Klausel in der TESTING.md-Aufzählung nicht gefunden '
+        "- Wortlaut geändert? Anker im re.split hier nachziehen (sonst würde "
+        "der Schnitt stillschweigend entfallen und Prosa mitscannen)."
+    )
+    return set(_TEST_FILE_RE.findall(parts[0]))
 
 
 def _decode(data: bytes | str | None) -> str:
@@ -81,10 +86,12 @@ def _actual_gl_smoke_counts() -> Counter[str]:
 
     Läuft als eigener Prozess (nicht ``pytest.main`` im laufenden Lauf), damit
     Konfiguration/Plugins des äußeren Laufs unberührt bleiben – kostet dafür
-    eine zweite Kollektion aller ``tests/*.py`` (~1,7 s lokal gemessen, #832-
-    Review; fällt einmal **je Testlauf** an – ``@cache`` teilt das Ergebnis
-    zwischen den beiden Testfunktionen unten, die es sonst je einmal
-    aufgerufen hätten). ``--collect-only -q`` liefert nur bei Verbosity
+    eine zweite Kollektion aller ``tests/*.py`` (wenige Sekunden bei warmem
+    Import-Cache lokal gemessen, #832-Review; auf CI-Runnern mit kaltem
+    Cache und wachsender Testanzahl tendenziell mehr – fällt dafür einmal
+    **je Testlauf** an, ``@cache`` teilt das Ergebnis zwischen den beiden
+    Testfunktionen unten, die es sonst je einmal aufgerufen hätten).
+    ``--collect-only -q`` liefert nur bei Verbosity
     **-1** stabile Node-IDs (``pfad::testname``); Verbosity 0 (kein ``-q``)
     druckt einen Baum ohne ``tests/…``-Zeilen, und ein zweites ``-q``
     obendrauf ergäbe Verbosity -2 (``pfad: N`` statt Node-IDs) – deshalb
