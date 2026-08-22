@@ -138,11 +138,13 @@ gh run view "$CANDIDATE_RUN_ID" --log
 `release-linux.yml` erzeugt an dieser Stelle **noch keinen Kandidatenvertrag**.
 Prüfe den erfolgreichen Lauf, seine drei Produkt-Artefaktcontainer mit
 insgesamt fünf Produktdateien, die Freeze-Provenienz und die Security-Logs als
-Vorprüfung für `VERSION-01`,
-`FREEZE-01`, `BUILD-01`, `PROVENANCE-01` und `MALWARE-01`. Die formale
-Dateimengen-, Größen- und SHA-256-Prüfung für `BUILD-02` erfolgt zu Beginn von
-Schritt 5: Dort erzeugt `candidate-source` den maschinenlesbaren
-Kandidatenvertrag aus den heruntergeladenen Dateien und GitHub-Metadaten.
+Vorprüfung für `VERSION-01`, `FREEZE-01`, `BUILD-01`, `BUILD-02`,
+`PROVENANCE-01` und `MALWARE-01`. Für die fünf mit `candidate-contract`
+verifizierten Kriterien ist das noch keine formale Evidenz: Sie entsteht
+geschlossen zu Beginn von Schritt 5, wenn `candidate-source` den
+maschinenlesbaren Kandidatenvertrag aus den heruntergeladenen Dateien und
+GitHub-Metadaten erzeugt. Nur `MALWARE-01` wird bereits hier abschließend durch
+den Security-Owner entschieden.
 
 Ein Malware-Fund ist immer No-Go. Bei vorhandenem Signaturcache muss jedes
 Build-Leg zuerst den EICAR-Selbsttest bestehen. Danach muss das Log für jedes
@@ -165,9 +167,10 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
-git fetch origin main
-if [ "$(git rev-parse origin/main)" != "$CANDIDATE_SHA" ]; then
-  echo "main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1."
+MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+if [ -z "$MAIN_SHA" ] || [ "$MAIN_SHA" != "$CANDIDATE_SHA" ]; then
+  echo "main ist nicht verifizierbar oder weitergelaufen – Kandidat verwerfen, neu ab Schritt 1." >&2
+  false
 else
   gh workflow run release-abnahme.yml --ref main \
     -f run_id="$CANDIDATE_RUN_ID" \
@@ -179,18 +182,21 @@ else
 fi
 ```
 
-`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. Ist `main`
-inzwischen weitergelaufen, darf die Abnahme nicht auf `main` gestartet werden:
-Der Kandidat wird verworfen und der Ablauf beginnt mit dem aktuellen Stand bei
-Schritt 1. Der Workflow erzwingt dieselbe Bindung nochmals fail-closed, indem
+`CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. `MAIN_SHA` wird
+direkt vom Remote gelesen; ein leerer Wert oder eine Abweichung liefert mit
+`false` einen Fehlerstatus, ohne eine interaktive Shell zu beenden. In diesem
+Fall darf die Abnahme nicht auf `main` gestartet werden: Der Kandidat wird
+verworfen und der Ablauf beginnt mit dem aktuellen Stand bei Schritt 1. Der
+Workflow erzwingt dieselbe Bindung nochmals fail-closed, indem
 `candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht.
 
 Vor den Hardware-Jobs lädt `candidate-source` exakt die Produktdateien und die
 Freeze-Provenienz aus dem Kandidatenlauf, validiert Anzahl, Namen, Größen,
 SHA-256 und GitHub-Artefaktmetadaten und lädt den erzeugten Vertrag als
 `release-candidate-contract-<attempt>` mit 90 Tagen Aufbewahrung hoch. Erst
-dieser Schritt liefert die formale Evidenz für `BUILD-02` und die vollständige
-Kandidatenvertragsprüfung.
+dieser Schritt liefert die formale Evidenz für `VERSION-01`, `FREEZE-01`,
+`BUILD-01`, `BUILD-02` und `PROVENANCE-01` und schließt damit die
+Kandidatenvertragsprüfung ab.
 
 Die genaue Geräteprozedur steht in `PACKAGING_SMOKE.md`. Verbindlich sind die
 stabilen IDs in `RELEASE_ACCEPTANCE_CHECKLIST.md`, darunter echter Start aus
