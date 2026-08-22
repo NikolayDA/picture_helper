@@ -245,7 +245,7 @@ die Werkzeuge des aktuell aktiven Schritts. Von oben nach unten:
 
 | Symbol | Werkzeug | Funktion |
 |---|---|---|
-| ✥ | **Verschieben / Zoom** | Linksklick-Ziehen verschiebt den Bildausschnitt, das Mausrad zoomt. Aktiv in allen Schritten außer *Freistellen* und *Relief & Ebenen*. |
+| ✥ | **Verschieben / Zoom** | Linksklick-Ziehen verschiebt den Bildausschnitt, das Mausrad zoomt. Aktiv in allen Schritten außer *Freistellen* (dort ist standardmäßig das zuletzt gewählte Auswahlwerkzeug aktiv). Im Schritt *Relief & Ebenen* ist Verschieben/Zoom der Startzustand; Höhen-Malen ist per Klick auf Aufhellen/Abdunkeln zuschaltbar. |
 
 ### Auswahl-Werkzeuge (nur im Schritt „Freistellen")
 
