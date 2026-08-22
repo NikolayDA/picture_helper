@@ -155,15 +155,34 @@ und `test_e2e_release_regression.py` tragen beide Marker.
   laufen dabei **nicht** zusätzlich mit; sie sind bereits über jeden
   normalen `pytest`-Lauf abgedeckt.
 
+<!-- Achtung Maschinenformat: Der Satzanfang "Ein weiterer Marker,
+`gl_smoke`", die Klammer-Aufzählung und die Klausel "; modulweit nur in
+`…`" im folgenden Absatz werden von
+tests/test_gl_smoke_marker_governance.py geparst – bei Umformulierung dort
+die Anker nachziehen (gleiches Muster wie die N6-Hinweise in den
+Qt-Paketlisten). -->
 Ein weiterer Marker, `gl_smoke`, kennzeichnet die wenigen Tests mit echtem
 OpenGL-Rendering (`tests/test_viewer_3d_gl.py`, `tests/test_screenshot3d.py`,
 `tests/test_benchmark_preview3d_live.py`, ADR #591; modulweit nur in
-`test_viewer_3d_gl.py`, in den beiden anderen Modulen an je einem Test). Sie
+`test_viewer_3d_gl.py`, in den übrigen Modulen an je einem Test). Sie
 laufen in jedem normalen `pytest`-Lauf mit, überspringen sich aber automatisch,
 sobald keine renderfähige Qt-Plattform verfügbar ist – das trifft auf
 `offscreen` (und damit auf CI sowie diese Anleitung) zu.
 Details zum manuellen Nachweis unter echtem GL:
 [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
+
+Die Liste oben synchron zum tatsächlichen Marker-Bestand zu halten, sichert
+`tests/test_gl_smoke_marker_governance.py` (#832) ab: Der Test lässt pytest
+in einem Subprozess ungefiltert sammeln und liest die Marker über das
+Mini-Plugin `tests/_marker_collect_plugin.py` direkt aus den Item-Objekten
+aus; verglichen werden sowohl die Dateiliste als auch die
+Granularitätsaussage (modulweit vs. je ein markierter Test) gegen die oben
+genannten Angaben. Die Inventur kostet je Testlauf einmalig eine zweite,
+ungefilterte Kollektion des `tests/`-Baums (einige Sekunden, geteilt
+zwischen den Prüfungen) – die kurze Pause beim ersten dieser Tests ist
+also erwartet, kein Hänger. Die `ui`-/`ui_smoke`-Aufzählungen weiter oben
+bleiben dagegen vorerst Handarbeit; die Erweiterung auf dieselbe
+Marker-Inventur ist als #847 notiert.
 
 ### GL-Ressourcen-Langzeittest (#684)
 

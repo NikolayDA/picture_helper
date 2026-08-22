@@ -11,11 +11,11 @@
 | 🟡 | Moyenne | Amélioration utile de qualité, lisibilité ou testabilité |
 | 🟢 | Faible | Peaufinage optionnel ou amélioration de processus |
 
-## État actuel (2026-08-22, v2.8.0 stable, 18 tickets ouverts audités)
+## État actuel (2026-08-22, v2.8.0 stable, inventaire ouvert entièrement audité)
 
-**Contrôle de routine 2026-08-22 :** `scripts/recommendations_live_check.py --write` a synchronisé les six tableaux avec GitHub : #837 a été clôturé via PR #838 et retiré ; #839 et #841 ont été ajoutés. Depuis v2.8.0, PR #840 a mis à jour la documentation et PR #842 la documentation de processus, un petit détail du workflow d'audit de dépendances et des tests anti-dérive, sans fonctionnalité produit livrée. Aucune nouvelle version n'est requise et aucun constat 🔴 n'est ouvert.
+**Contrôle de routine 2026-08-22 :** `scripts/recommendations_live_check.py --write` a synchronisé les six tableaux avec GitHub : #837 a été clôturé via PR #838 et retiré ; #839 et #841 ont été ajoutés. Depuis v2.8.0, PR #840 a mis à jour la documentation et PR #842 la documentation de processus, un petit détail du workflow d'audit de dépendances et des tests anti-dérive, sans fonctionnalité produit livrée. Aucune nouvelle version n'est requise et aucun constat 🔴 n'est ouvert. **Addendum (même jour) :** #836, #839 et #841 ont depuis été clôturés (PR #844, PR #846 et PR #843) et retirés du tableau ; le ticket de suivi #847 a été ajouté et évalué (inventaire : voir le tableau ci-dessous).
 
-**Audit complet des 18 tickets ouverts :** chaque description, critère d'acceptation, commentaire et étiquette a été vérifié contre `main`. #839 décrit un écart limité mais réel entre l'aperçu de hauteur et le modèle enregistré/exporté lors du passage en mode Standard. #841 transforme les mesures de #828 en défaut concret du workflow. #836 couvre désormais les six langues du guide plus la régénération PDF ; #694 couvre les modes Standard/Expert et les aperçus COLOR actifs.
+**Audit complet (instantané du contrôle de routine, avant l'addendum ; #836/#839/#841 ont depuis été clôturés) :** chaque description, critère d'acceptation, commentaire et étiquette a été vérifié contre `main`. #839 décrit un écart limité mais réel entre l'aperçu de hauteur et le modèle enregistré/exporté lors du passage en mode Standard. #841 transforme les mesures de #828 en défaut concret du workflow. #836 couvre désormais les six langues du guide plus la régénération PDF ; #694 couvre les modes Standard/Expert et les aperçus COLOR actifs.
 
 **#828/#841 et PR #842 :** l'échantillon 3/3 de #828 est terminé et son hypothèse initiale est réfutée. La dernière revue de PR #842 ([32572985972](https://github.com/NikolayDA/picture_helper/actions/runs/32572985972)) ajoute un résultat de référence : `error_max_turns`, 31 tours et 9 refus. Elle précise le correctif #841 avec `git show-ref` comme outil de lecture utile et une interdiction explicite dans le prompt de `git fetch`, des tests locaux et des détours génériques `gh api` ; elle ne compte pas parmi les trois vérifications après correctif. #828 conserve les sujets généraux commentaire sticky, bruit des triggers, coût et expiration du jeton.
 
@@ -43,19 +43,13 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Recette performance/E2E/documentation/interface laser | 🟡 Moyenne (gate de clôture, pas une nouvelle fonctionnalité) | 🟠 Élevée (suite de benchmarks, E2E, documentation, contrat d'adaptateur) | Opus, élevé | Bloqué – ticket de clôture après #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restaurer le quota OpenAI pour la vérification manuelle Codex Security | 🟢 Faible (ne bloque qu'un scan manuel optionnel) | 🟢 Faible (purement opérationnel, aucun code) | – (aucun agent ; propriétaire du dépôt : facturation) | Bloquée (externe) – la dernière exécution (29233060507, 2026-07-13) ne prouve aucun scan réussi ; facturation/quota toujours non résolu |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Automatisation de revue après #825 : abandons et périmètre d'outils | 🟡 Moyenne (coût/fiabilité CI, non critique pour le produit) | 🟡 Moyenne (mesure terminée ; plusieurs questions distinctes) | – (ticket chapeau) | Mesure terminée ; réaliser le correctif allowlist/prompt dans #841. PR #842 reconfirme le défaut ; sticky, bruit des triggers, coûts et expiration restent ici |
-| [#836](https://github.com/NikolayDA/picture_helper/issues/836) | docs(ANLEITUNG.md) : « Relief & Calques » est cité à tort comme exception pour Déplacer/Zoom | 🟢 Faible (justesse documentaire, aucun impact code) | 🟢 Faible (six langues plus régénération PDF) | Sonnet, faible | **Prêt à démarrer** – corriger les six `ANLEITUNG.md`, régénérer `ANLEITUNG.pdf` et lancer les tests doc/i18n |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md : la liste des marqueurs gl_smoke dérive sans être remarquée (pas de test de gouvernance) | 🟡 Moyenne (évite une classe de dérive récurrente, même cause racine que #826) | 🟡 Moyenne (nouveau test de gouvernance sans réseau analogue à `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, approche esquissée dans le ticket : comparer `pytest --collect-only -m gl_smoke` à la liste de TESTING.md) | Sonnet, moyen | **Prêt à démarrer** – petit et bien cadré |
-| [#841](https://github.com/NikolayDA/picture_helper/issues/841) | Le workflow de revue échoue avec `error_max_turns` | 🟡 Moyenne (revues rouges, constats tronqués, budget gaspillé) | 🟡 Moyenne (allowlist/prompt en lecture seule plus trois vérifications réelles) | Sonnet, moyen | **Prêt et recommandé en premier** – autoriser l'inspection `gh`/`git` en lecture seule, dont `git show-ref`, exclure écriture/fetch/tests, préciser le prompt et évaluer trois PR consécutives |
-| [#839](https://github.com/NikolayDA/picture_helper/issues/839) | Le passage Expert→Standard ne supprime pas l'aperçu de hauteur actif | 🟡 Moyenne (écart réel entre canvas et modèle enregistré/exporté) | 🟢 Faible (replier l'accordéon ou annuler l'aperçu plus test) | Sonnet, faible | **Prêt à démarrer** – supprimer l'aperçu au passage en Standard et tester la transition |
+| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md : protéger les listes de marqueurs ui/ui_smoke via l'inventaire de marqueurs (suite de #832) | 🟢 Faible (même classe de dérive que #832, mais pure protection documentaire) | 🟢 Faible (second parseur de documentation contre l'inventaire de marqueurs disponible depuis la PR #845) | Sonnet, faible | **Prêt à démarrer après la fusion de la PR #845** – confronter les énumérations ui/ui_smoke à `_marker_inventory()`, en renommant éventuellement le module en `test_marker_governance.py` |
 
 ### Recommandé ensuite
 
-1. **#841** – stabiliser la revue systématiquement rouge avec des outils de lecture limités.
-2. **#839** – corriger l'écart canvas/export lors du passage Expert→Standard.
-3. **#836** – corriger l'erreur dans les six guides et le PDF.
-4. **#832** – petit test de gouvernance contre la dérive de `gl_smoke`.
-5. **#692** (ADR) ouvre l'épopée COLOR #682.
-6. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
+1. **#847** – après la fusion de la PR #845 : protéger les listes ui/ui_smoke via le même inventaire de marqueurs.
+2. **#692** (ADR) ouvre l'épopée COLOR #682.
+3. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
    les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
    modèles de protocole et critères d'abandon approuvés sont déjà entièrement prêts.
 

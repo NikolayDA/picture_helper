@@ -11,11 +11,11 @@
 | 🟡 | Medium | Useful improvement for quality, readability, or testability |
 | 🟢 | Low | Optional polish or process improvement |
 
-## Current Status (2026-08-22, v2.8.0 stable, all 18 open issues audited)
+## Current Status (2026-08-22, v2.8.0 stable, open inventory fully audited)
 
-**Routine check 2026-08-22:** `scripts/recommendations_live_check.py --write` synchronized all six triage tables with GitHub: #837 was closed by PR #838 and removed; #839 and #841 were added. Since v2.8.0, PR #840 updated documentation and PR #842 updated process documentation, a small dependency-audit workflow detail, and drift tests—no shipped product feature. No new release is due and no 🔴 finding is open.
+**Routine check 2026-08-22:** `scripts/recommendations_live_check.py --write` synchronized all six triage tables with GitHub: #837 was closed by PR #838 and removed; #839 and #841 were added. Since v2.8.0, PR #840 updated documentation and PR #842 updated process documentation, a small dependency-audit workflow detail, and drift tests—no shipped product feature. No new release is due and no 🔴 finding is open. **Addendum (same day):** #836, #839, and #841 have since been closed (PR #844, PR #846, and PR #843) and removed from the table; the follow-up issue #847 was added and rated (inventory: see the table below).
 
-**Full audit of the 18 open issues:** every description, acceptance criterion, comment, and label was checked against `main`. #839 captures a narrow but real mismatch between the height preview and the saved/exported model when switching to Standard mode. #841 turns the measurements from #828 into a concrete workflow bug. #836 now covers all six guide languages plus PDF regeneration; #694 now covers Standard/Expert mode and active COLOR previews.
+**Full audit (snapshot at the routine check, before the addendum; #836/#839/#841 have since been closed):** every description, acceptance criterion, comment, and label was checked against `main`. #839 captures a narrow but real mismatch between the height preview and the saved/exported model when switching to Standard mode. #841 turns the measurements from #828 into a concrete workflow bug. #836 now covers all six guide languages plus PDF regeneration; #694 now covers Standard/Expert mode and active COLOR previews.
 
 **#828/#841 and PR #842:** the 3/3 sample in #828 is complete and its original hypothesis is refuted. PR #842's final review run ([32572985972](https://github.com/NikolayDA/picture_helper/actions/runs/32572985972)) adds another baseline result: `error_max_turns`, 31 turns, and 9 denials. It sharpens #841's fix by adding `git show-ref` as a useful read-only tool and by explicitly forbidding `git fetch`, local tests, and generic `gh api` workarounds in the prompt; it does not count toward the three post-fix verification runs. #828 retains the broader sticky-comment, trigger-noise, cost, and token-expiry questions.
 
@@ -43,19 +43,13 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review automation after #825: assess turn-budget aborts and decide tool scope | 🟡 Medium (CI cost/reliability of automated review, not product-critical) | 🟡 Medium (measurement complete; several separate automation questions) | – (umbrella tracker) | Measurement complete; implement the allowlist/prompt fix in #841. PR #842 reconfirms the bug; sticky comment, trigger noise, cost, and token expiry remain here |
-| [#836](https://github.com/NikolayDA/picture_helper/issues/836) | docs(ANLEITUNG.md): toolbar table wrongly lists "Relief & Layers" as an exception for Move/Zoom | 🟢 Low (documentation correctness, no code impact) | 🟢 Low (six language versions plus PDF regeneration) | Sonnet, low | **Ready to start** – fix all six `ANLEITUNG.md` versions, regenerate `ANLEITUNG.pdf`, and run doc/i18n checks |
-| [#832](https://github.com/NikolayDA/picture_helper/issues/832) | TESTING.md: gl_smoke marker list drifts silently (no governance test) | 🟡 Medium (prevents a recurring drift class, same root cause as #826) | 🟡 Medium (new net-free governance test analogous to `test_ci_qt_packages.py`/`test_recommendations_freeze_consistency.py`, approach sketched in the issue: match `pytest --collect-only -m gl_smoke` against the TESTING.md list) | Sonnet, medium | **Ready to start** – small and well-scoped |
-| [#841](https://github.com/NikolayDA/picture_helper/issues/841) | Review workflow reproducibly fails with `error_max_turns` | 🟡 Medium (systematically red reviews, truncated findings, and wasted model budget) | 🟡 Medium (targeted read-only allowlist/prompt change plus three real verification runs) | Sonnet, medium | **Ready and recommended first** – allow read-only `gh`/`git` inspection including `git show-ref`, keep write/fetch/test paths excluded, tighten the prompt, and evaluate three consecutive PR runs |
-| [#839](https://github.com/NikolayDA/picture_helper/issues/839) | Expert→Standard switch does not discard active height live preview | 🟡 Medium (narrow but real mismatch between canvas display and saved/exported model) | 🟢 Low (collapse accordion or cancel preview plus regression test) | Sonnet, low | **Ready to start** – discard the Optimize preview on switching to Standard mode and test the state transition |
+| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: cover the ui/ui_smoke marker lists via the marker inventory (follow-up to #832) | 🟢 Low (same drift class as #832, but pure documentation safeguarding) | 🟢 Low (second doc parser against the marker inventory available since PR #845) | Sonnet, low | **Ready to start after PR #845 merges** – match the ui/ui_smoke enumerations against `_marker_inventory()`, optionally rename the module to `test_marker_governance.py` |
 
 ### Recommended Next
 
-1. **#841** – stabilize the systematically red review workflow with tightly scoped read-only tools.
-2. **#839** – close the canvas/export mismatch on the Expert→Standard transition.
-3. **#836** – fix the documented error in all six guides and the PDF.
-4. **#832** – small governance test against renewed `gl_smoke` marker-list drift.
-5. **#692** (ADR) opens the COLOR epic #682.
-6. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
+1. **#847** – after PR #845 merges: cover the ui/ui_smoke lists via the same marker inventory.
+2. **#692** (ADR) opens the COLOR epic #682.
+3. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
    templates, and approved abort criteria are already fully in place.
 
