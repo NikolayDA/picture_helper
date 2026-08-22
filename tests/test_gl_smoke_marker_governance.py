@@ -151,6 +151,11 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
         # Auch dieser Fehler muss als str durch den @cache - eine Exception
         # liefe je Aufrufer erneut durch den vollen Subprozess.
         return f"Marker-Inventur nicht lesbar ({exc}):\n{_tail(raw)}"
+    if "__filtered__" in data:
+        return (
+            f"Marker-Inventur entstand unter aktivem Filter ({data['__filtered__']}) "
+            "- das Plugin verlangt eine ungefilterte Kollektion."
+        )
     if not data:
         return "Marker-Inventur leer - Kollektion kaputt?\n" + _tail(result.stdout)
     return data
@@ -159,14 +164,17 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
 def _marker_inventory() -> dict[str, dict[str, list[str]]]:
     """Gecachtes Sammelergebnis; Fehler -> ``pytest.fail``.
 
-    Gibt eine flache Kopie je Datei zurück - ``@cache`` teilt sonst dasselbe
-    verschachtelte Dict zwischen allen Aufrufern, und eine spätere In-place-
-    Normalisierung (naheliegend bei der #847-Erweiterung) würde still
-    testreihenfolge-abhängig."""
+    Gibt je Datei/Funktion eigene Container zurück - ``@cache`` teilt sonst
+    dieselben verschachtelten Objekte zwischen allen Aufrufern, und eine
+    spätere In-place-Normalisierung (naheliegend bei der #847-Erweiterung)
+    würde still testreihenfolge-abhängig."""
     result = _collect_markers()
     if isinstance(result, str):
         pytest.fail(result)
-    return {path: dict(functions) for path, functions in result.items()}
+    return {
+        path: {name: list(markers) for name, markers in functions.items()}
+        for path, functions in result.items()
+    }
 
 
 def _gl_smoke_counts(inventory: dict[str, dict[str, list[str]]]) -> dict[str, int]:
@@ -248,9 +256,11 @@ def test_default_marker_filter_matches_documented_claim() -> None:
     text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'(?m)^addopts = "(.*)"$', text)
     assert match is not None, "addopts in pyproject.toml nicht gefunden."
-    assert match.group(1) == "-q -m 'not ui or ui_smoke'", (
-        f"Default-addopts geändert ({match.group(1)!r}) - TESTING.md-Aussage "
-        "zur Default-Selektion und diese Governance-Prüfungen nachziehen."
+    # Bewusst nur der Markerausdruck: andere addopts-Ergänzungen (z. B.
+    # --strict-markers, -ra) berühren die Default-Selektion nicht.
+    assert "-m 'not ui or ui_smoke'" in match.group(1), (
+        f"Default-Markerfilter geändert ({match.group(1)!r}) - TESTING.md-"
+        "Aussage zur Default-Selektion und diese Governance-Prüfungen nachziehen."
     )
 
 

@@ -22,14 +22,23 @@ import os
 import pytest
 
 
-# ``trylast``: erst nach den anderen Implementierungen dieses Hooks laufen
-# (u. a. dem eingebauten ``mark``-Plugin, das den ``-m``-Filter deselektiert,
-# und möglichen ``conftest``-Hooks, die Marker nachträglich setzen) – die
-# Inventur liest damit garantiert den Endstand.
+# ``trylast``: erst nach möglichen ``conftest``-Hooks laufen, die Marker
+# nachträglich setzen. Achtung: Das eingebaute ``mark``-Plugin deselektiert
+# den ``-m``-Filter ebenfalls in diesem Hook (in place, ohne Ordnung) –
+# ``trylast`` sieht also die bereits GEFILTERTE Liste. Eine ungefilterte
+# Inventur garantiert allein der Aufrufer (``-o addopts=`` + leeres
+# ``PYTEST_ADDOPTS``); läuft das Plugin doch unter einem aktiven Filter,
+# schreibt es fail-closed einen Fehlermarker statt einer Teil-Inventur.
 @pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(items) -> None:
+def pytest_collection_modifyitems(config, items) -> None:
     target = os.environ.get("BGREMOVER_MARKER_COLLECT_JSON")
     if not target:  # ohne Zielpfad still wirkungslos (versehentlich geladen)
+        return
+    markexpr = getattr(config.option, "markexpr", "") or ""
+    keyword = getattr(config.option, "keyword", "") or ""
+    if markexpr or keyword:
+        with open(target, "w", encoding="utf-8") as fh:
+            json.dump({"__filtered__": {"markexpr": markexpr, "keyword": keyword}}, fh)
         return
     out: dict[str, dict[str, list[str]]] = {}
     for item in items:
