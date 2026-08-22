@@ -59,8 +59,10 @@ def _tail(text: str, limit: int = 2000) -> str:
     return f"... [{len(text) - limit} Zeichen gekürzt] ...{text[-limit:]}"
 
 
-def _documented_gl_smoke() -> _DocumentedGlSmoke:
-    text = TESTING_MD.read_text(encoding="utf-8")
+def _documented_gl_smoke(text: str | None = None) -> _DocumentedGlSmoke:
+    """Parst die beiden Doku-Aussagen; *text* nur für die Negativkontrollen."""
+    if text is None:
+        text = TESTING_MD.read_text(encoding="utf-8")
     match = _GL_SMOKE_FILE_LIST_RE.search(text)
     assert match is not None, (
         "gl_smoke-Klammer-Aufzählung in TESTING.md nicht gefunden - Wortlaut "
@@ -231,3 +233,44 @@ def test_gl_smoke_tests_run_in_the_default_selection() -> None:
         f"Filter deselektiert und laufen nicht mehr in jedem normalen Lauf "
         f"mit: {sorted(deselected)}."
     )
+
+
+def test_default_marker_filter_matches_documented_claim() -> None:
+    """Anker für die zweite Hälfte der Default-Selektions-Aussage: der Filter
+    selbst. Ändert sich ``addopts`` in ``pyproject.toml`` (z. B. um einen
+    ``gl_smoke``-Ausschluss), stimmt „laufen in jedem normalen pytest-Lauf
+    mit" nicht mehr - dann TESTING.md und diese Prüfungen mit anpassen."""
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'(?m)^addopts = "(.*)"$', text)
+    assert match is not None, "addopts in pyproject.toml nicht gefunden."
+    assert match.group(1) == "-q -m 'not ui or ui_smoke'", (
+        f"Default-addopts geändert ({match.group(1)!r}) - TESTING.md-Aussage "
+        "zur Default-Selektion und diese Governance-Prüfungen nachziehen."
+    )
+
+
+def test_doc_parser_detects_synthetic_drift() -> None:
+    """Negativkontrolle für den Doku-Parser (Muster von
+    ``test_recommendations_freeze_consistency``): synthetische Fassungen des
+    Absatzes müssen erkennbar anders parsen bzw. laut scheitern - sonst wäre
+    ein leerer oder zu großzügiger Capture von einem korrekten nicht zu
+    unterscheiden."""
+    base = (
+        "Ein weiterer Marker, `gl_smoke`, kennzeichnet X\n"
+        "(`tests/test_a.py`, `tests/test_b.py`; modulweit nur in\n"
+        "`test_a.py`, Rest je ein Test). Prosa danach."
+    )
+    parsed = _documented_gl_smoke(base)
+    assert parsed.files == {"tests/test_a.py", "tests/test_b.py"}
+    assert parsed.module_wide == {"tests/test_a.py"}
+
+    entfernt = _documented_gl_smoke(base.replace("`tests/test_b.py`", ""))
+    assert entfernt.files == {"tests/test_a.py"}
+
+    ergaenzt = _documented_gl_smoke(
+        base.replace("`tests/test_b.py`", "`tests/test_b.py`, `tests/test_c.py`")
+    )
+    assert "tests/test_c.py" in ergaenzt.files
+
+    with pytest.raises(AssertionError, match="modulweit"):
+        _documented_gl_smoke(base.replace("; modulweit nur in", " – modulweit nur in"))
