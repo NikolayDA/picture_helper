@@ -165,6 +165,12 @@ sobald keine renderfähige Qt-Plattform verfügbar ist – das trifft auf
 Details zum manuellen Nachweis unter echtem GL:
 [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
 
+Die Liste oben synchron zum tatsächlichen Marker-Bestand zu halten, sichert
+`tests/test_gl_smoke_marker_governance.py` (#832) ab: Der Test fragt pytest
+selbst per `--collect-only -m gl_smoke`, welche Module tatsächlich
+`gl_smoke`-markierte Tests enthalten, und vergleicht das Ergebnis gegen die
+oben genannten Dateien.
+
 ### GL-Ressourcen-Langzeittest (#684)
 
 `tests/test_viewer_3d_gl_lifecycle.py` sichert den Lebenszyklus der
