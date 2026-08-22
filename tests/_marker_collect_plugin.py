@@ -2,7 +2,7 @@
 
 Schreibt während der Kollektion je Testdatei die Marker aller Testfunktionen
 als JSON (Pfad -> {Funktionsname -> [Markernamen]}) in die über die
-Umgebungsvariable ``MARKER_COLLECT_JSON`` benannte Datei. Der Governance-Test
+Umgebungsvariable ``BGREMOVER_MARKER_COLLECT_JSON`` benannte Datei. Der Governance-Test
 lädt es per ``-p tests._marker_collect_plugin`` in einen
 Kollektions-Subprozess (Paketname - ``cwd`` = Repo-Wurzel genügt, kein
 ``PYTHONPATH``-Eingriff) und
@@ -28,7 +28,7 @@ import pytest
 # Inventur liest damit garantiert den Endstand.
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(items) -> None:
-    target = os.environ.get("MARKER_COLLECT_JSON")
+    target = os.environ.get("BGREMOVER_MARKER_COLLECT_JSON")
     if not target:  # ohne Zielpfad still wirkungslos (versehentlich geladen)
         return
     out: dict[str, dict[str, list[str]]] = {}

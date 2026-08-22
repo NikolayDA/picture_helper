@@ -112,7 +112,7 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
     # ``tests/`` ist ein Paket (``tests/__init__.py``) und via cwd=ROOT
     # bereits importierbar - kein PYTHONPATH-Eingriff nötig, der ``tests/``
     # sonst vorn in den Suchpfad des Kindes stellte.
-    env = dict(os.environ, PYTEST_ADDOPTS="", MARKER_COLLECT_JSON=json_path)
+    env = dict(os.environ, PYTEST_ADDOPTS="", BGREMOVER_MARKER_COLLECT_JSON=json_path)
     argv = [
         sys.executable, "-m", "pytest",
         "-o", "addopts=",
@@ -271,6 +271,18 @@ def test_doc_parser_detects_synthetic_drift() -> None:
         base.replace("`tests/test_b.py`", "`tests/test_b.py`, `tests/test_c.py`")
     )
     assert "tests/test_c.py" in ergaenzt.files
+
+    # Prosa hinter der ``modulweit``-Klausel darf keine Datei beisteuern.
+    prosa = _documented_gl_smoke(
+        base.replace("Rest je ein Test", "Rest je ein Test, siehe `tests/test_z.py`")
+    )
+    assert "tests/test_z.py" not in prosa.files
+
+    # Eine frühere Klammer im selben Satz darf den Capture nicht kapern.
+    frueher = _documented_gl_smoke(
+        base.replace("kennzeichnet X", "kennzeichnet X (siehe `tests/test_y.py`)")
+    )
+    assert frueher.files == {"tests/test_a.py", "tests/test_b.py"}
 
     with pytest.raises(AssertionError, match="modulweit"):
         _documented_gl_smoke(base.replace("; modulweit nur in", " – modulweit nur in"))
