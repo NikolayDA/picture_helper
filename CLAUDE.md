@@ -314,8 +314,11 @@ Ein Paket, `bgremover/`:
   (seit 2026-08-15 **freigegeben**, #801: Materialbudget/Abbruchkriterien über
   12 Druckvarianten, Gerätebedienung, Datenschutz-/Lizenz-/Ablageregeln für
   Testfotos), [`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
-  (Datei-, Import- und Druckprotokoll – die **einzige** Ablage für SHA-256,
-  Studio-Meldungen und Messwerte) und die daraus abgeleitete Ablauf-Checkliste
+  (Datei-, Import- und Druckprotokoll – die **einzige** Ablage der am
+  Zielrechner *beobachteten* Werte: „Tatsächlicher SHA-256", Studio-Meldungen
+  und Messwerte; die *erwarteten* SHA-256 bleiben kanonisch im unten genannten
+  `fixtures_manifest.json`, das Protokoll stellt beide Spalten gegenüber) und
+  die daraus abgeleitete Ablauf-Checkliste
   für den Testtag [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)
   (#803; bündelt nur Reihenfolge/Budget/Sicherheitsregeln, ist bewusst *keine*
   eigene Datenquelle – bei Widerspruch gelten die beiden Quelldokumente). Die
