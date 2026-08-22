@@ -190,7 +190,7 @@ Ein Paket, `bgremover/`:
   (`PREVIEW3D_QUALITY_KEY`). Der Viewer ist **reine Darstellung ohne Schreibpfad
   ins Modell** – „Bild speichern", EufyMake- und Projekt-Export bleiben
   unverändert; die 2D-`PreviewMode`-Pipeline bleibt der garantierte Fallback.
-  i18n-Keys `preview3d.*` (de/en). Abnahme-Nachweise (#595): Mesh-Build-Benchmark
+  i18n-Keys `preview3d.*`. Abnahme-Nachweise (#595): Mesh-Build-Benchmark
   (`scripts/benchmark.py`, `mesh_*`-Metriken je 1/16/40 MP, reproduzierbar via
   `--suite height`), headless-Abnahme in
   `tests/test_preview3d_acceptance.py`, Kriterien↔Nachweis in
@@ -301,7 +301,7 @@ Ein Paket, `bgremover/`:
   physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
   Standard-Flachbett `STANDARD_FLATBED_MM` = 330 × 420 mm (#687, ebenfalls Grad S))
   erlauben den Export erst nach Bestätigung; die Height-Prüfungen arbeiten auf der
-  kanonischen Payload. `format_finding` liefert die de/en-Meldung (literale
+  kanonischen Payload. `format_finding` liefert die übersetzte Meldung (literale
   `tr`-Keys `eufymake.export.*`). Das Befund-Fundament (`Severity`,
   `severity_rank`, `has_blocking_errors`, `split_findings`) liegt seit #379
   geteilt in `export_checks.py` und wird hier re-exportiert
@@ -309,6 +309,24 @@ Ein Paket, `bgremover/`:
   verdrahtet (zuvor totes Feature, siehe Annahmeninventar unten). Herstellerlage,
   Evidenzgrade und offene Punkte: versioniertes
   [`docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md`](docs/history/EUFYMAKE-687-ANNAHMENINVENTAR.md).
+  Die daraus folgenden **Hardware-Realtests** (#688–#690, Epic #681) sind
+  separat verregelt: [`EUFYMAKE-687-TESTGOVERNANCE.md`](docs/history/EUFYMAKE-687-TESTGOVERNANCE.md)
+  (Status/Freigabe siehe dort Abschnitt 4; #801: Materialbudget/Abbruchkriterien über
+  12 Druckvarianten, Gerätebedienung, Datenschutz-/Lizenz-/Ablageregeln für
+  Testfotos), [`EUFYMAKE-687-PROTOKOLL-VORLAGEN.md`](docs/history/EUFYMAKE-687-PROTOKOLL-VORLAGEN.md)
+  (Datei-, Import- und Druckprotokoll – die **einzige** Ablage der am
+  Zielrechner *beobachteten* Werte: „Tatsächlicher SHA-256", Studio-Meldungen
+  und Messwerte; die *erwarteten* SHA-256 bleiben kanonisch im unten genannten
+  `fixtures_manifest.json`, das Protokoll stellt beide Spalten gegenüber) und
+  die daraus abgeleitete Ablauf-Checkliste
+  für den Testtag [`EUFYMAKE-687-DRUCK-CHECKLISTE.md`](docs/history/EUFYMAKE-687-DRUCK-CHECKLISTE.md)
+  (#803; bündelt nur Reihenfolge/Budget/Sicherheitsregeln, ist bewusst *keine*
+  eigene Datenquelle – bei Widerspruch gelten die beiden Quelldokumente). Die
+  Fixtures erzeugt `scripts/eufymake_fixture_generator.py` (`generate`)
+  deterministisch (reine Formel-/Rastermuster, keine Zufallszahlen) nach
+  `tests/fixtures/eufymake_hardware/` inkl. `fixtures_manifest.json` mit SHA-256
+  je Datei – erst das macht „war das wirklich die getestete Datei?" vor dem
+  Studio-Import beantwortbar.
 - **Allgemeine Pre-Export-Prüfung:** `export_checks.py` — Qt-freie, strikt getypte,
   geteilte Basis (#379): generischer `Finding`/`CheckCode`/`Severity`-Vertrag mit
   deterministischer Sortierung und `format_finding` (literale `tr`-Keys
@@ -435,7 +453,8 @@ Ein Paket, `bgremover/`:
   aktiv, Optimierung mit Live-Vorschau über `preview_height_op`/`apply_height_op`),
   `settings_dialog.py`, `menu_actions.py` (inkl. „Projekt"-Menü: Neu/Öffnen/
   Speichern für `.bgrproj`), `crop_bar.py`, `history_popup.py`,
-  `theme.py`, `icons*.py`.
+  `theme.py`, `icons.py` (+ PNG-Assets unter `bgremover/icons/`),
+  `expert_mode_toggle.py` (Standard-/Experten-Umschalter, siehe unten).
 - **Geführter Workflow & Redesign (Epics #413/#418/#424/#455/#463):** Das
   MainWindow führt durch **sechs Schritte** (`WorkflowStep` in `stepper.py`:
   OPEN/CUTOUT/ADJUST/SHAPE/RELIEF/EXPORT). `stepper.py` (`Stepper`) ist die
@@ -450,6 +469,31 @@ Ein Paket, `bgremover/`:
   (palettengetriebene `*_style`-Builder, u. a. `card_style`/`stepper_style`/
   `zoom_pill_style`, Tokens `ACCENT`/`CARD_STYLE`, hell/dunkel). Referenz-Spec:
   [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md), Prototyp unter `design/`.
+- **Standard-/Experten-Modus des Inspectors (Epic #805, #806–#810):** Ein
+  persistenter Umschalter im Inspector-Kopf (`expert_mode_toggle.py`,
+  `ExpertModeToggle` – checkbare 40×22-Pille auf eigener `QPainter`-Fläche statt
+  QSS-Subcontrols, Klick/Leertaste/Enter, Fokusring nach `accent`-Kontrakt)
+  blendet je Schritt eine kuratierte Teilmenge ein, **ohne** Funktionen zu
+  entfernen: der Experten-Modus zeigt exakt den vollen Spec-§9-Umfang. Die
+  Zuordnung liegt nicht im Umschalter, sondern als Widget-Property an den
+  Karten/Zeilen selbst (`right_panel_tabs.EXPERT_ONLY_PROPERTY`/
+  `STANDARD_ONLY_PROPERTY` über die Helfer `_mark_expert_only`/
+  `_mark_standard_only`, auch von `layer_panel` und `height_map_panel` genutzt);
+  `right_panel._assemble` sammelt sie **einmal beim Panel-Aufbau** per
+  `findChildren` über den Schritt-`stack` ein und koppelt ihre Sichtbarkeit an
+  den Umschalter – kein Tab kennt den Modus selbst, und Umschalten baut das
+  Panel **nicht** neu (anders als der Theme-Wechsel). Ein Marker muss deshalb
+  **zweierlei** erfüllen: im `build`-Pfad gesetzt sein (später erzeugte Zeilen,
+  etwa aus `LayerPanel.refresh()`, erfasst der Umschalter nicht mehr) **und**
+  innerhalb des Stacks liegen (Inspector-Kopf und Navigationsleiste liegen
+  außerhalb des `findChildren`-Bereichs). Beide Verstöße bleiben still –
+  weder Test noch Typcheck schlagen an.
+  `standardOnly` ist das Gegenstück für Steuerungen, die im Experten-Modus durch
+  eine editierbare Variante ersetzt werden (Ebenen-Rolle als Text statt
+  Dropdown, #809). Reiner UI-Zustand, global über alle sechs Schritte,
+  persistiert über `settings_schema.EXPERT_MODE_KEY` (additiver Schlüssel, keine
+  Schema-Migration, Default **Standard**); i18n-Keys `workflow.expert_mode.*`.
+  Vertrag: [`docs/REDESIGN_SPEC.md`](docs/REDESIGN_SPEC.md) §15.
 - **Maßeinheiten/Geometrie:** `units.py` — Qt-freie, strikt getypte px↔mm↔DPI-Mathematik
   (#376): leitet aus je zwei bekannten Größen die dritte deterministisch ab
   (`MM_PER_INCH = 25.4`), validiert Eingaben und meldet ungültige Werte als strukturierte
@@ -465,8 +509,12 @@ Ein Paket, `bgremover/`:
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
   („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
   Dispatch nach Endung im MainWindow, #335).
-- **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
-  (en/es/fr/uk/zh) unter `docs/i18n/`.
+- **i18n:** `i18n.py` — Runtime-Sprachen **de/en/es/fr/uk/zh** umschaltbar;
+  `available_locales()` bietet genau die Locales an, für die `_TRANSLATIONS`
+  eine vollständige Tabelle hält (`LOCALE_NAMES` liefert nur die Endonyme).
+  Neue Keys gehören deshalb in **alle sechs** Tabellen –
+  `tests/test_i18n_rollout.py` erzwingt Key- und Platzhalter-Parität gegen das
+  Deutsche. Doku-Übersetzungen (en/es/fr/uk/zh) unter `docs/i18n/`.
 
 ## Konventionen
 
@@ -533,8 +581,11 @@ Workflows unter `.github/workflows/` (16):
   nach `main`).
 - **Sicherheit/Abhängigkeiten:** `codeql.yml` (automatisierte SAST-Grundabdeckung
   Python: Push/PR auf `main` + wöchentlich + manuell), `codex-security-scan.yml`
-  (**nur** `workflow_dispatch`, Parameter `min_severity`), `dependency-audit.yml`
-  (PR + montags), `license-check.yml` (braucht bewusst kein Qt),
+  (**nur** `workflow_dispatch`, Parameter `min_severity`; legt Befunde über
+  `scripts/create_security_scan_issues.py` als deduplizierte GitHub-Issues an),
+  `dependency-audit.yml`
+  (PR + montags), `license-check.yml` (braucht bewusst kein Qt,
+  `scripts/generate_license_report.py`),
   `clamav-db-refresh.yml` (wöchentlich montags 03:00 UTC + manuell; füttert den
   rotierenden Signaturcache für den Artefakt-Malware-Scan, siehe
   *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
