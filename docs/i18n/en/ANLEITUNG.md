@@ -230,7 +230,7 @@ of the currently active step. From top to bottom:
 
 | Icon | Tool | Function |
 |---|---|---|
-| ✥ | **Move / Zoom** | Left-click drag pans the view, the mouse wheel zooms. Active in every step except *Cut out* and *Relief & Layers*. |
+| ✥ | **Move / Zoom** | Left-click drag pans the view, the mouse wheel zooms (zoom always works, regardless of the active tool). Move/Zoom is pre-selected when entering a step – except in *Cut out*, where the last-used selection tool takes over. It's also the starting state in *Relief & Layers*; height painting can be toggled on via Lighten/Darken once a height layer is active. |
 
 ### Selection tools (only in the "Cut out" step)
 

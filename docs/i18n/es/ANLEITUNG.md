@@ -255,7 +255,7 @@ las herramientas del paso actualmente activo. De arriba abajo:
 
 | Ícono | Herramienta | Función |
 |---|---|---|
-| ✥ | **Mover / Zoom** | Arrastrar con clic izquierdo desplaza el encuadre de la imagen, la rueda del ratón hace zoom. Activa en todos los pasos excepto *Quitar fondo* y *Relieve y capas*. |
+| ✥ | **Mover / Zoom** | Arrastrar con clic izquierdo desplaza el encuadre de la imagen, la rueda del ratón hace zoom (el zoom siempre funciona, sin importar la herramienta activa). Mover/Zoom está preseleccionada al entrar en un paso, excepto en *Quitar fondo*, donde se usa la última herramienta de selección elegida. También es el estado inicial en *Relieve y capas*; el pintado de altura se activa con un clic en Aclarar/Oscurecer en cuanto haya una capa de altura activa. |
 
 ### Herramientas de selección (solo en el paso "Quitar fondo")
 
