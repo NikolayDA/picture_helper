@@ -3,7 +3,9 @@
 Schreibt während der Kollektion je Testdatei die Marker aller Testfunktionen
 als JSON (Pfad -> {Funktionsname -> [Markernamen]}) in die über die
 Umgebungsvariable ``MARKER_COLLECT_JSON`` benannte Datei. Der Governance-Test
-lädt es per ``-p _marker_collect_plugin`` in einen Kollektions-Subprozess und
+lädt es per ``-p tests._marker_collect_plugin`` in einen
+Kollektions-Subprozess (Paketname - ``cwd`` = Repo-Wurzel genügt, kein
+``PYTHONPATH``-Eingriff) und
 liest die Marker damit über die öffentliche Hook-/Item-API statt über das
 Terminal-Ausgabeformat von ``--collect-only`` – das Parsing samt seiner
 Verbosity-/Warnings-Choreografie entfällt vollständig.
