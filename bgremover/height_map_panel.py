@@ -326,6 +326,18 @@ class HeightMapPanel:
             )
         self._select_quality(quality)
 
+    def collapse_optimize(self) -> None:
+        """Klappt die Optimieren-Karte ein und verwirft damit eine evtl.
+        aktive Live-Vorschau (#839-Review): ``setChecked(False)`` löst die
+        ``on_toggle → cancel_preview``-Absicherung in
+        ``_make_accordion_section`` erneut aus, wie beim manuellen
+        Einklappen. Aufrufer (z. B. der Standard-/Experten-Umschalter in
+        ``right_panel.py``) müssen dafür nicht in ``_refs`` nach dem Header
+        greifen."""
+        header = self._refs.get("height_optimize_header")
+        if isinstance(header, QPushButton):
+            header.setChecked(False)
+
     def set_preview3d_active(self, is_3d: bool) -> None:
         """Spiegelt den 2D/3D-Segmentzustand und schaltet die 3D-Regler frei."""
         if self._btn_2d is not None:

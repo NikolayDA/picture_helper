@@ -10,13 +10,14 @@ the project follows [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 
-- **Standard mode did not discard an active height-optimize preview
-  (#839).** Switching from Expert to Standard mode while the "Optimize"
-  card was expanded with an uncommitted live preview left the preview
-  visible on the canvas even though the Apply/Discard controls were no
-  longer reachable — Save/EufyMake export would then have exported the
-  unchanged model. The mode switch now collapses the card and discards the
-  preview, just like collapsing it manually already did.
+- **Standard mode and step navigation did not discard an active
+  height-optimize preview (#839).** Switching from Expert to Standard mode
+  or leaving the Relief step while the "Optimize" card was expanded with
+  an uncommitted live preview left the preview visible on the canvas even
+  though the Apply/Discard controls were no longer reachable — Save/
+  EufyMake export would then have exported the unchanged model. Both
+  paths now reliably discard the preview, just like collapsing it
+  manually already did.
 
 ## [2.8.0] – 2026-08-16
 

@@ -11,14 +11,14 @@ folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
-- **Standard-Modus verwarf eine aktive Höhen-Optimieren-Vorschau nicht
-  (#839).** Wechselte man mit aufgeklappter „Optimieren"-Karte und einer
-  nicht angewendeten Live-Vorschau vom Experten- in den Standard-Modus,
-  blieb die Vorschau am Canvas sichtbar, obwohl die Apply-/Verwerfen-Regler
-  nicht mehr erreichbar waren – Speichern/EufyMake-Export hätten dann vom
-  unveränderten Modell exportiert. Der Moduswechsel klappt die Karte jetzt
-  mit ein und verwirft die Vorschau, wie es das manuelle Einklappen bereits
-  tut.
+- **Standard-Modus und Schrittwechsel verwarfen eine aktive
+  Höhen-Optimieren-Vorschau nicht (#839).** Wechselte man mit aufgeklappter
+  „Optimieren"-Karte und einer nicht angewendeten Live-Vorschau vom
+  Experten- in den Standard-Modus oder verließ den Relief-Schritt, blieb
+  die Vorschau am Canvas sichtbar, obwohl die Apply-/Verwerfen-Regler nicht
+  mehr erreichbar waren – Speichern/EufyMake-Export hätten dann vom
+  unveränderten Modell exportiert. Beide Wege verwerfen die Vorschau jetzt
+  zuverlässig, wie es das manuelle Einklappen bereits tut.
 
 ## [2.8.0] – 2026-08-16
 

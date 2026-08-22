@@ -478,14 +478,15 @@ class _RightPanelBuilder:
         # sichtbar, während Apply-/Verwerfen-Regler nicht mehr erreichbar
         # sind (dasselbe Leck, das die Einklapp-Absicherung in
         # ``_make_accordion_section`` beim manuellen Einklappen bereits
-        # verhindert). ``setChecked`` löst dieselbe ``on_toggle →
-        # cancel_preview``-Absicherung erneut aus und lässt die Karte beim
-        # nächsten Experten-Wechsel konsistent eingeklappt starten.
-        optimize_header = cast(QPushButton, refs["height_optimize_header"])
-
+        # verhindert). ``HeightMapPanel.collapse_optimize()`` kapselt den
+        # Zugriff auf den Header im eigenen Panel (#846-Review) – hier wird
+        # nicht mehr per String-Key in fremde ``_refs`` gegriffen, und ein
+        # pauschales "jeden markierten Checkable-Button einklappen" bliebe
+        # aus (das träfe z. B. auch die Vorschaumodus-Segmente im
+        # Export-Schritt, die keine Vorschau zu verwerfen haben).
         def _collapse_height_optimize_on_standard(expert: bool) -> None:
             if not expert:
-                optimize_header.setChecked(False)
+                self._height_panel.collapse_optimize()
 
         expert_toggle.toggled.connect(_collapse_height_optimize_on_standard)
 
