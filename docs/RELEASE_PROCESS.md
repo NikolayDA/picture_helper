@@ -167,9 +167,9 @@ Bei Scanner-Ausfall entscheidet der Security-Owner über Wiederholung oder ausdr
 
 ```bash
 CANDIDATE_SHA="$(gh run view "$CANDIDATE_RUN_ID" --json headSha --jq .headSha)"
-MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-if [ -z "$MAIN_SHA" ] || [ "$MAIN_SHA" != "$CANDIDATE_SHA" ]; then
-  echo "main ist nicht verifizierbar oder weitergelaufen – Kandidat verwerfen, neu ab Schritt 1." >&2
+MAIN_SHA="$(gh api "repos/NikolayDA/picture_helper/commits/main" --jq .sha)"
+if [ -z "$CANDIDATE_SHA" ] || [ -z "$MAIN_SHA" ] || [ "$MAIN_SHA" != "$CANDIDATE_SHA" ]; then
+  echo "Kandidat oder main ist nicht verifizierbar beziehungsweise main ist weitergelaufen – Kandidat verwerfen, neu ab Schritt 1." >&2
   false
 else
   gh workflow run release-abnahme.yml --ref main \
@@ -183,11 +183,14 @@ fi
 ```
 
 `CANDIDATE_SHA` ist der vollständige `headSha` aus Schritt 3. `MAIN_SHA` wird
-direkt vom Remote gelesen; ein leerer Wert oder eine Abweichung liefert mit
-`false` einen Fehlerstatus, ohne eine interaktive Shell zu beenden. In diesem
-Fall darf die Abnahme nicht auf `main` gestartet werden: Der Kandidat wird
-verworfen und der Ablauf beginnt mit dem aktuellen Stand bei Schritt 1. Der
-Workflow erzwingt dieselbe Bindung nochmals fail-closed, indem
+klonunabhängig direkt aus dem kanonischen GitHub-Repository gelesen. Ein
+leerer Wert oder eine Abweichung liefert mit `false` einen Fehlerstatus, ohne
+eine interaktive Shell zu beenden. In diesem Fall darf die Abnahme nicht auf
+`main` gestartet werden: Der Kandidat wird verworfen und der Ablauf beginnt
+mit dem aktuellen Stand bei Schritt 1. Ein temporärer Branch oder Tag auf dem
+alten Kandidaten ist in diesem Verfahren bewusst kein erlaubter Wiederanlauf;
+eine solche Optimierung braucht zuerst eine eigene, fail-closed abgesicherte
+Prozessentscheidung. Der Workflow erzwingt die SHA-Bindung zusätzlich, indem
 `candidate-source` den Workflow-SHA mit dem Kandidaten-SHA vergleicht.
 
 Vor den Hardware-Jobs lädt `candidate-source` exakt die Produktdateien und die

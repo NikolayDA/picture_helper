@@ -293,6 +293,7 @@ flowchart TD
   subgraph POST["Partition: main und Folgeautomatisierung"]
     direction TB
     J2["Fork"]:::bar
+    J3["Join"]:::bar
     IQ{"Closing-Verknüpfung vorhanden?"}
     N1["verknüpfte Issues schließen automatisch"]
     N2["push auf main<br/>coverage.yml, codeql.yml, license-check.yml"]
@@ -309,15 +310,16 @@ flowchart TD
   FQ -->|"nein · @claude"| F3 --> F2
   RQ2 -->|"nein"| A1 --> M1 --> J2
   J2 --> MQ
-  MQ -->|"ja"| M2 --> ENDE(("Ende")):::terminal
-  MQ -->|"nein"| ENDE
+  MQ -->|"ja"| M2 --> J3
+  MQ -->|"nein"| J3
   J2 --> IQ
   IQ -->|"ja"| N1 --> N3 --> NQ
-  IQ -->|"nein"| ENDE
+  IQ -->|"nein"| J3
   J2 --> N2
-  NQ -->|"ja"| N4 --> FOLGE(("Folge-PR")):::terminal
-  NQ -->|"nein"| ENDE
-  N2 --> ENDE
+  NQ -->|"ja"| N4 --> FOLGE["Artefakt: Folge-PR eingereicht"] --> J3
+  NQ -->|"nein"| J3
+  N2 --> J3
+  J3 --> ENDE(("Ende")):::terminal
 
   classDef terminal fill:#37474f,stroke:#37474f,color:#ffffff;
   classDef bar fill:#37474f,stroke:#37474f,color:#ffffff;
