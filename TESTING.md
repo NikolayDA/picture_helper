@@ -171,7 +171,9 @@ in einem Subprozess ungefiltert sammeln und liest die Marker über das
 Mini-Plugin `tests/_marker_collect_plugin.py` direkt aus den Item-Objekten
 aus; verglichen werden sowohl die Dateiliste als auch die
 Granularitätsaussage (modulweit vs. je ein markierter Test) gegen die oben
-genannten Angaben.
+genannten Angaben. Die `ui`-/`ui_smoke`-Aufzählungen weiter oben bleiben
+dagegen bewusst Handarbeit (Erweiterung auf dieselbe Marker-Inventur wäre
+ein möglicher Folgeschritt).
 
 ### GL-Ressourcen-Langzeittest (#684)
 
