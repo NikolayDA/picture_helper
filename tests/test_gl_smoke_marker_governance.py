@@ -25,16 +25,21 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 TESTING_MD = ROOT / "TESTING.md"
 
-# Die Klammer identifiziert sich über ihren Inhalt („modulweit") statt als
-# erste Klammer nach dem Anker - ein später eingeschobener Klammer-Einschub
-# im selben Satz würde den Capture sonst still verschieben.
+# Die Klammer identifiziert sich über ihren Inhalt („modulweit nur in")
+# statt als erste Klammer nach dem Anker - ein später eingeschobener
+# Klammer-Einschub im selben Satz würde den Capture sonst still verschieben.
+# ``[^()]`` verhindert zusätzlich, dass der Match über eine geschachtelte
+# Klammer hinweg in einen späteren Absatz rutscht (TESTING.md nennt
+# „modulweit" weiter unten erneut in einer Klammer).
 _GL_SMOKE_FILE_LIST_RE = re.compile(
-    r"Ein weiterer Marker, `gl_smoke`.*?\(([^)]*modulweit[^)]*)\)", re.DOTALL
+    r"Ein weiterer Marker, `gl_smoke`.*?\(([^()]*modulweit nur in[^()]*)\)",
+    re.DOTALL,
 )
-# Nur Backtick-umschlossene Pfade; das ``tests/``-Präfix ist in der
-# „modulweit"-Nennung optional (die Doku schreibt ihn dort heute ohne),
-# normalisiert wird auf ``tests/<name>``.
-_TEST_FILE_RE = re.compile(r"`(tests/test_\w+\.py)`")
+# Nur Backtick-umschlossene Pfade; das ``tests/``-Präfix ist in beiden
+# Regexes optional, damit eine redaktionelle Vereinheitlichung in beide
+# Richtungen keinen Fehlalarm auslöst - normalisiert wird auf
+# ``tests/<name>``.
+_TEST_FILE_RE = re.compile(r"`(?:tests/)?(test_\w+\.py)`")
 _MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(?:tests/)?(test_\w+\.py)`")
 
 
@@ -60,7 +65,7 @@ def _documented_gl_smoke() -> _DocumentedGlSmoke:
         '„; modulweit …"-Klausel in der TESTING.md-Aufzählung nicht gefunden '
         "- Wortlaut geändert? Anker im re.split hier nachziehen."
     )
-    files = frozenset(_TEST_FILE_RE.findall(parts[0]))
+    files = frozenset(f"tests/{name}" for name in _TEST_FILE_RE.findall(parts[0]))
     module_wide_names = _MODULE_WIDE_RE.findall("modulweit" + parts[1])
     assert module_wide_names, (
         "„modulweit nur in `…`\"-Nennung in TESTING.md nicht gefunden - "
@@ -132,7 +137,12 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
             "Marker-Plugin hat keine Daten geschrieben - Plugin nicht geladen "
             "oder Kollektion leer?\n" + result.stdout
         )
-    data: dict[str, dict[str, list[str]]] = json.loads(raw)
+    try:
+        data: dict[str, dict[str, list[str]]] = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        # Auch dieser Fehler muss als str durch den @cache - eine Exception
+        # liefe je Aufrufer erneut durch den vollen Subprozess.
+        return f"Marker-Inventur nicht lesbar ({exc}):\n{raw[:2000]}"
     if not data:
         return "Marker-Inventur leer - Kollektion kaputt?\n" + result.stdout
     return data
