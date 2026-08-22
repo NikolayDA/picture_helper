@@ -14,6 +14,7 @@ schlicht selbst, welche Module ``gl_smoke``-markierte Tests enthalten
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -22,41 +23,59 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 TESTING_MD = ROOT / "TESTING.md"
 
-#: Der Absatz, der die gl_smoke-Dateien aufzählt – Anker bewusst eng am
-#: Wortlaut, damit eine Umformulierung diesen Test sichtbar scheitern lässt
-#: statt still den falschen Abschnitt zu matchen.
-_GL_SMOKE_PARAGRAPH_RE = re.compile(
-    r"Ein weiterer Marker, `gl_smoke`.*?\n\n", re.DOTALL
+#: Nur die Klammer-Aufzählung nach „gl_smoke`" matchen, nicht den ganzen
+#: Absatz: Ein Prosa-Zusatz danach (z. B. eine klärende Ergänzung, die ein
+#: *anderes* ``tests/test_*.py`` beim Namen nennt, ohne dass es tatsächlich
+#: gl_smoke-markiert ist) darf keinen falschen Treffer erzeugen. Anker
+#: bewusst eng am Wortlaut, damit eine Umformulierung diesen Test sichtbar
+#: scheitern lässt statt still den falschen Abschnitt zu matchen.
+_GL_SMOKE_FILE_LIST_RE = re.compile(
+    r"Ein weiterer Marker, `gl_smoke`.*?\(([^)]*)\)", re.DOTALL
 )
 _TEST_FILE_RE = re.compile(r"tests/test_\w+\.py")
 
 
 def _documented_gl_smoke_files() -> set[str]:
     text = TESTING_MD.read_text(encoding="utf-8")
-    match = _GL_SMOKE_PARAGRAPH_RE.search(text)
+    match = _GL_SMOKE_FILE_LIST_RE.search(text)
     assert match is not None, (
-        "gl_smoke-Absatz in TESTING.md nicht gefunden - Wortlaut geändert? "
-        "Anker in _GL_SMOKE_PARAGRAPH_RE nachziehen."
+        "gl_smoke-Klammer-Aufzählung in TESTING.md nicht gefunden - Wortlaut "
+        "geändert? Anker in _GL_SMOKE_FILE_LIST_RE nachziehen."
     )
-    return set(_TEST_FILE_RE.findall(match.group(0)))
+    return set(_TEST_FILE_RE.findall(match.group(1)))
 
 
 def _actual_gl_smoke_files() -> set[str]:
     """Fragt pytest selbst nach den tatsächlich ``gl_smoke``-markierten Modulen.
 
     Läuft als eigener Prozess (nicht ``pytest.main`` im laufenden Lauf), damit
-    Konfiguration/Plugins des äußeren Laufs unberührt bleiben. ``--collect-only``
-    ohne ``-q`` liefert stabile Node-IDs (``pfad::testname``) statt eines
-    Format, das sich zwischen pytest-Versionen ändern könnte.
+    Konfiguration/Plugins des äußeren Laufs unberührt bleiben. ``--collect-only
+    -q`` liefert nur bei Verbosity **-1** stabile Node-IDs (``pfad::testname``);
+    Verbosity 0 (kein ``-q``) druckt einen Baum ohne ``tests/…``-Zeilen, und
+    ein zweites ``-q`` obendrauf ergäbe Verbosity -2 (``pfad: N`` statt
+    Node-IDs) – deshalb neutralisieren ``-o addopts=`` **und** eine leere
+    ``PYTEST_ADDOPTS``-Umgebungsvariable jede geerbte Verbosity (aus
+    ``pyproject.toml`` bzw. der Aufrufumgebung), bevor das hier gesetzte
+    einzige ``-q`` greift.
     """
+    env = dict(os.environ, PYTEST_ADDOPTS="")
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-m", "gl_smoke", "tests"],
+        [
+            sys.executable, "-m", "pytest",
+            "-o", "addopts=",
+            "-p", "no:cacheprovider",
+            "--collect-only", "-q", "-m", "gl_smoke", "tests",
+        ],
         cwd=ROOT,
         capture_output=True,
         text=True,
         timeout=120,
+        env=env,
     )
-    assert result.returncode == 0, (
+    # 5 = NO_TESTS_COLLECTED (kein gl_smoke-Test mehr vorhanden) - kein
+    # Kollektionsfehler, sondern genau der Drift-Fall, den die zweite
+    # Assertion unten praezise meldet.
+    assert result.returncode in (0, 5), (
         f"pytest-Sammlung für gl_smoke fehlgeschlagen (exit {result.returncode}):\n"
         f"{result.stdout}\n{result.stderr}"
     )
