@@ -23,21 +23,24 @@ Diagramm ist der Fehler.
 
 Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
 des versionierten Codes (manuell und authentifiziert geprüft am 22. August
-2026). Dieser Snapshot hat noch keinen automatischen Drift-Test und muss bei
-Änderungen in den GitHub-Einstellungen erneut abgeglichen werden:
+2026; vollständig nachgeprüft am 23. August 2026). Dieser Snapshot hat noch
+keinen automatischen Drift-Test und muss bei Änderungen in den
+GitHub-Einstellungen erneut abgeglichen werden:
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
-| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; für Nicht-Admins erzwungen | Weitere Checks und Reviews liefern Befunde, sind aber derzeit keine technischen Merge-Sperren |
+| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); alle Review-Konversationen müssen aufgelöst sein; kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder eine offene Review-Konversation dagegen schon |
 | Merge-Methoden | Merge-Commit, Squash und Rebase sind erlaubt | Squash ist die gelebte Projektkonvention, nicht die einzige von GitHub erlaubte Methode |
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
 | Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
 
-Der erforderliche Status ist anonym über die
+Der erforderliche Status samt Durchsetzungsebene ist anonym über die
 [`main`-Branch-Metadaten](https://api.github.com/repos/NikolayDA/picture_helper/branches/main)
-prüfbar. Merge-Methoden, Auto-Merge und automatische Branch-Löschung fehlen
-dagegen in der anonymen Repository-API; ihre Werte wurden mit administrativem
-Zugriff geprüft und müssen in den
+prüfbar. Die `strict`-Vorgabe, die Konversationsauflösung, die Zahl der
+erforderlichen Approvals sowie Merge-Methoden, Auto-Merge und automatische
+Branch-Löschung fehlen dagegen in dieser anonymen Antwort; ihre Werte wurden
+über den authentifizierten Branch-Protection-/Repository-Endpunkt geprüft und
+müssen in den
 [Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
 authentifiziert kontrolliert werden.
 
@@ -279,12 +282,14 @@ flowchart TD
     F2["git push in denselben Branch<br/>Ereignis synchronize: Checks neu, laufendes Review wird abgebrochen"]
     FQ{"Behebung lokal?"}
     F3["Optional @claude im PR-Kommentar für Fixes<br/>Bot-Fix prüfen und wegen GITHUB_TOKEN-Limit<br/>ein menschlich authentifiziertes Folge-Update vorbereiten"]
+    F4["Technische Merge-Sperre auflösen<br/>Branch auf main aktualisieren oder offene Review-Konversationen abschließen"]
   end
 
   subgraph REV["Partition: Reviewer bzw. Maintainer"]
     direction TB
     RQ2{"Änderungswünsche offen?"}
     A1["Merge-Entscheidung treffen<br/>formales Approval ist möglich, aber aktuell nicht technisch vorgeschrieben"]
+    RQ3{"Branch aktuell zu main<br/>und alle Review-Konversationen aufgelöst?"}
     M1["Üblicher Squash-Merge nach main<br/>GitHub erlaubt daneben Merge-Commit und Rebase"]
     MQ{"Feature-Branch manuell löschen?"}
     M2["Feature-Branch löschen<br/>automatische Löschung ist deaktiviert"]
@@ -308,7 +313,9 @@ flowchart TD
   RQ2 -->|"ja"| FQ
   FQ -->|"ja"| F1
   FQ -->|"nein · @claude"| F3 --> F2
-  RQ2 -->|"nein"| A1 --> M1 --> J2
+  RQ2 -->|"nein"| A1 --> RQ3
+  RQ3 -->|"nein"| F4 --> R1
+  RQ3 -->|"ja"| M1 --> J2
   J2 --> MQ
   MQ -->|"ja"| M2 --> J3
   MQ -->|"nein"| J3
@@ -333,8 +340,10 @@ flowchart TD
 - Squash-Merge ist die aus der `main`-Historie belegte Projektpraxis. GitHub
   erzwingt sie nicht: Auch Merge-Commit und Rebase sind freigeschaltet.
 - Ein formales `APPROVED`-Review ist derzeit keine Branch-Protection-Pflicht.
-  Maintainer müssen Befunde trotzdem bewusst bewerten; die technische
-  Durchsetzung ist im [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
+  GitHub erzwingt für Nicht-Admins aber einen gegenüber `main` aktuellen
+  Branch (`strict`) und die Auflösung aller Review-Konversationen. Maintainer
+  müssen weitere Befunde bewusst bewerten; die technische Durchsetzung ist im
+  [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
 - Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
   Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),

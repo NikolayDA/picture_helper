@@ -12,10 +12,10 @@ Diese Konfigurationen aktivieren zwei Agents mit hoher Priorität:
 - ✅ `make test` (pytest Unit-Tests)
 - ✅ Coverage ≥ 86%
 
-**Aktualisiert automatisch:**
+**Die Spezifikation beschreibt:**
 - Kommentare bei Fehlern
 - Verbesserungsvorschläge
-- Blockt Merge bei Failures
+- Blocker bei Fehlern
 
 **Labels:** `agent:code-review`, `needs-review`
 
@@ -69,6 +69,20 @@ Für die On-Demand-Aufgaben beschreibt man die Aufgabe direkt in der Erwähnung,
 z. B. `@claude schreib Tests für height_ops.py` oder `@claude fixe den roten
 PR-CI-Lauf`. Die `*.yml`-Dateien hier dienen als **Aufgaben-/Persona-Referenz**
 für diese Aufrufe.
+
+Das automatische Review bleibt dagegen strikt bewertend. Seine Allowlist
+erlaubt neben PR-Diff/-Metadaten nur die belegten Nur-Lese-Inspektionen
+`gh pr list` sowie `git show`, `git diff`, `git log`, `git status` und
+`git show-ref`. Die Git-Befehle sind als vollständig ausgeschriebene, feste
+Argumentformen freigegeben – keine Präfix-Wildcards, über die etwa `--output`
+Dateien schreiben könnte. Die benötigte Historie stellt der kontrollierte
+Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen, PR-Code lokal
+ausführen, generisches `gh api` und Änderungen am Checkout bleiben
+ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
+`tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
+Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
+wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
+den Merge, bis die Konversation aufgelöst ist.
 
 ### Voraussetzung
 
