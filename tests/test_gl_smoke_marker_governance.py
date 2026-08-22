@@ -28,8 +28,13 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 TESTING_MD = ROOT / "TESTING.md"
 
+#: Die Klammer identifiziert sich über ihren eigenen Inhalt („modulweit"),
+#: statt blind die erste Klammer nach dem Anker zu greifen – ein später in
+#: denselben Satz eingeschobener Klammer-Einschub (z. B. „(siehe ADR #591)")
+#: würde den Capture sonst still verschieben und die Fehlermeldung auf den
+#: falschen Anker zeigen lassen (#845-Review).
 _GL_SMOKE_FILE_LIST_RE = re.compile(
-    r"Ein weiterer Marker, `gl_smoke`.*?\(([^)]*)\)", re.DOTALL
+    r"Ein weiterer Marker, `gl_smoke`.*?\(([^)]*modulweit[^)]*)\)", re.DOTALL
 )
 #: Nur Backtick-umschlossene ``tests/test_*.py``-Pfade – reiner Fließtext
 #: (z. B. „ADR #591") darf nicht als Datei zählen.
