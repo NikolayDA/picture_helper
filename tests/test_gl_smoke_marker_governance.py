@@ -50,6 +50,15 @@ class _DocumentedGlSmoke(NamedTuple):
     module_wide: frozenset[str]
 
 
+def _tail(text: str, limit: int = 2000) -> str:
+    """Kürzt lange Kind-Ausgaben in Fehlermeldungen auf das lesbare Ende
+    (die Ursache steht bei pytest am Schluss, ``-q`` druckt davor je
+    gesammeltem Test eine Zeile)."""
+    if len(text) <= limit:
+        return text
+    return f"... [{len(text) - limit} Zeichen gekürzt] ...{text[-limit:]}"
+
+
 def _documented_gl_smoke() -> _DocumentedGlSmoke:
     text = TESTING_MD.read_text(encoding="utf-8")
     match = _GL_SMOKE_FILE_LIST_RE.search(text)
@@ -66,12 +75,14 @@ def _documented_gl_smoke() -> _DocumentedGlSmoke:
         "- Wortlaut geändert? Anker im re.split hier nachziehen."
     )
     files = frozenset(f"tests/{name}" for name in _TEST_FILE_RE.findall(parts[0]))
-    module_wide_names = _MODULE_WIDE_RE.findall("modulweit" + parts[1])
-    assert module_wide_names, (
+    # Der Parser versteht genau EINE modulweite Datei (fester Präfix vor dem
+    # Namen) - nennt die Doku künftig mehrere, Regex zur Aufzählung erweitern.
+    module_wide_match = _MODULE_WIDE_RE.search("modulweit" + parts[1])
+    assert module_wide_match is not None, (
         "„modulweit nur in `…`\"-Nennung in TESTING.md nicht gefunden - "
         "Wortlaut geändert? Anker in _MODULE_WIDE_RE nachziehen."
     )
-    module_wide = frozenset(f"tests/{name}" for name in module_wide_names)
+    module_wide = frozenset({f"tests/{module_wide_match.group(1)}"})
     assert module_wide <= files, (
         f"Als modulweit dokumentierte Dateien {sorted(module_wide)} fehlen in "
         f"der dokumentierten Dateiliste {sorted(files)} - TESTING.md in sich "
@@ -96,21 +107,15 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
     """
     json_fd, json_path = tempfile.mkstemp(suffix=".json", prefix="gl_smoke_markers_")
     os.close(json_fd)
-    env = dict(
-        os.environ,
-        PYTEST_ADDOPTS="",
-        MARKER_COLLECT_JSON=json_path,
-        # ``-p`` lädt früh über importlib; ``tests/`` liegt dann noch nicht
-        # auf sys.path.
-        PYTHONPATH=os.pathsep.join(
-            p for p in (str(ROOT / "tests"), os.environ.get("PYTHONPATH")) if p
-        ),
-    )
+    # ``tests/`` ist ein Paket (``tests/__init__.py``) und via cwd=ROOT
+    # bereits importierbar - kein PYTHONPATH-Eingriff nötig, der ``tests/``
+    # sonst vorn in den Suchpfad des Kindes stellte.
+    env = dict(os.environ, PYTEST_ADDOPTS="", MARKER_COLLECT_JSON=json_path)
     argv = [
         sys.executable, "-m", "pytest",
         "-o", "addopts=",
         "-p", "no:cacheprovider",
-        "-p", "_marker_collect_plugin",
+        "-p", "tests._marker_collect_plugin",
         "--collect-only", "-q", "tests",
     ]
     try:
@@ -127,7 +132,8 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
             return (
                 f"pytest-Sammlung für die Marker-Inventur fehlgeschlagen (exit "
                 f"{result.returncode}; ggf. Folgefehler eines unbeteiligten "
-                f"Kollektionsfehlers im Testbaum):\n{result.stdout}\n{result.stderr}"
+                f"Kollektionsfehlers im Testbaum):\n"
+                f"{_tail(result.stdout)}\n{_tail(result.stderr)}"
             )
         raw = Path(json_path).read_text(encoding="utf-8")
     finally:
@@ -135,16 +141,16 @@ def _collect_markers() -> dict[str, dict[str, list[str]]] | str:
     if not raw:
         return (
             "Marker-Plugin hat keine Daten geschrieben - Plugin nicht geladen "
-            "oder Kollektion leer?\n" + result.stdout
+            "oder Kollektion leer?\n" + _tail(result.stdout)
         )
     try:
         data: dict[str, dict[str, list[str]]] = json.loads(raw)
     except json.JSONDecodeError as exc:
         # Auch dieser Fehler muss als str durch den @cache - eine Exception
         # liefe je Aufrufer erneut durch den vollen Subprozess.
-        return f"Marker-Inventur nicht lesbar ({exc}):\n{raw[:2000]}"
+        return f"Marker-Inventur nicht lesbar ({exc}):\n{_tail(raw)}"
     if not data:
-        return "Marker-Inventur leer - Kollektion kaputt?\n" + result.stdout
+        return "Marker-Inventur leer - Kollektion kaputt?\n" + _tail(result.stdout)
     return data
 
 

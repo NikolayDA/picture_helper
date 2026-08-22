@@ -30,5 +30,8 @@ def pytest_collection_modifyitems(items) -> None:
         markers = {m.name for m in item.iter_markers()}
         per_file = out.setdefault(file_path, {})
         per_file[name] = sorted(set(per_file.get(name, [])) | markers)
-    with open(os.environ["MARKER_COLLECT_JSON"], "w", encoding="utf-8") as fh:
+    target = os.environ.get("MARKER_COLLECT_JSON")
+    if not target:  # ohne Zielpfad still wirkungslos (versehentlich geladen)
+        return
+    with open(target, "w", encoding="utf-8") as fh:
         json.dump(out, fh)
