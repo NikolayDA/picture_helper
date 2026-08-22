@@ -213,3 +213,21 @@ def test_gl_smoke_marker_granularity_matches_testing_md() -> None:
         f"{wrong}. TESTING.md-Aussage „in den übrigen Modulen an je einem "
         f'Test" nachziehen.'
     )
+
+
+def test_gl_smoke_tests_run_in_the_default_selection() -> None:
+    """TESTING.md: „Sie laufen in jedem normalen ``pytest``-Lauf mit" - gilt
+    nur, solange kein ``gl_smoke``-Test zusätzlich ``ui`` ohne ``ui_smoke``
+    trägt; sonst deselektiert ihn der Default-Filter ``-m 'not ui or
+    ui_smoke'`` still."""
+    deselected = {
+        f"{path}::{name}"
+        for path, functions in _marker_inventory().items()
+        for name, markers in functions.items()
+        if "gl_smoke" in markers and "ui" in markers and "ui_smoke" not in markers
+    }
+    assert not deselected, (
+        f"gl_smoke-Tests mit ``ui`` ohne ``ui_smoke`` werden vom Default-"
+        f"Filter deselektiert und laufen nicht mehr in jedem normalen Lauf "
+        f"mit: {sorted(deselected)}."
+    )

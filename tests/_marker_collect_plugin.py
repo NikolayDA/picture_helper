@@ -24,11 +24,12 @@ def pytest_collection_modifyitems(items) -> None:
     out: dict[str, dict[str, list[str]]] = {}
     for item in items:
         file_path = item.nodeid.split("::", 1)[0]
-        # ``originalname`` ist der unparametrisierte Funktionsname (ohne
-        # ``[...]``-Suffix); Items ohne dieses Attribut fallen auf ``name``
-        # zurück. Parametrisierte Varianten teilen sich den Funktionsnamen -
-        # ihre Marker werden vereinigt statt überschrieben.
-        name = getattr(item, "originalname", None) or item.name
+        # Node-ID ohne Datei-Präfix und ohne ``[...]``-Parametrisierung:
+        # dedupliziert parametrisierte Varianten (Marker werden vereinigt),
+        # hält aber gleichnamige Tests aus verschiedenen Klassen auseinander
+        # (``originalname`` würde sie zu einem Eintrag verschmelzen).
+        rest = item.nodeid.split("::", 1)[1] if "::" in item.nodeid else item.name
+        name = rest.split("[", 1)[0]
         markers = {m.name for m in item.iter_markers()}
         per_file = out.setdefault(file_path, {})
         per_file[name] = sorted(set(per_file.get(name, [])) | markers)
