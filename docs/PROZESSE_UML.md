@@ -344,10 +344,13 @@ flowchart TD
   bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
   nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen
   Commit und PR.
-- GitHub-verwaltete Abläufe wie `Dependabot Updates` und `Dependency Graph`
-  sind nicht als Dateien unter `.github/workflows` versioniert. Dependabot kann
-  eigene Bot-Branches und PRs erzeugen; dieser alternative Einstieg ist im
-  manuellen Feature-Branch-Diagramm nicht dargestellt.
+- GitHub-verwaltete Funktionen wie der `Dependency Graph` sind nicht als
+  Workflows versioniert. Regelmäßige Dependabot-Versionsupdates sind nicht
+  konfiguriert, weil `.github/dependabot.yml` fehlt. Nur sofern
+  Dependabot-Sicherheitsupdates in den Repository-Einstellungen aktiviert sind
+  (Live-Konfiguration, siehe [GitHub-Rahmen](#aktueller-github-rahmen)), kann
+  Dependabot eigene Bot-Branches und PRs erzeugen; dieser alternative Einstieg
+  ist im manuellen Feature-Branch-Diagramm nicht dargestellt.
 
 ---
 
