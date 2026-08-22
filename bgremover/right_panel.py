@@ -471,6 +471,25 @@ class _RightPanelBuilder:
 
         frame, title, desc, expert_toggle, nav_prev, nav_next = self._assemble(stack)
 
+        # Beim Wechsel in den Standard-Modus die Optimieren-Karte einklappen
+        # (#839): ``_sync_expert_visuals`` blendet sie nur per ``setVisible``
+        # aus, ohne den Accordion-Header selbst umzuschalten – eine aktive,
+        # nicht committete Höhen-Live-Vorschau bliebe dadurch am Canvas
+        # sichtbar, während Apply-/Verwerfen-Regler nicht mehr erreichbar
+        # sind (dasselbe Leck, das die Einklapp-Absicherung in
+        # ``_make_accordion_section`` beim manuellen Einklappen bereits
+        # verhindert). ``HeightMapPanel.collapse_optimize()`` kapselt den
+        # Zugriff auf den Header im eigenen Panel (#846-Review) – hier wird
+        # nicht mehr per String-Key in fremde ``_refs`` gegriffen, und ein
+        # pauschales "jeden markierten Checkable-Button einklappen" bliebe
+        # aus (das träfe z. B. auch die Vorschaumodus-Segmente im
+        # Export-Schritt, die keine Vorschau zu verwerfen haben).
+        def _collapse_height_optimize_on_standard(expert: bool) -> None:
+            if not expert:
+                self._height_panel.collapse_optimize()
+
+        expert_toggle.toggled.connect(_collapse_height_optimize_on_standard)
+
         panel = RightPanel(
             frame=frame,
             stack=stack,

@@ -9,6 +9,18 @@ suit le [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corrigé
+
+- **Le mode Standard et la navigation entre étapes n'annulaient pas un
+  aperçu d'optimisation de hauteur actif (#839).** En passant du mode
+  Expert au mode Standard ou en quittant l'étape Relief alors que la carte
+  « Optimiser » était dépliée avec un aperçu en direct non appliqué,
+  l'aperçu restait visible sur le canevas bien que les contrôles Appliquer/
+  Annuler ne soient plus accessibles — Enregistrer/l'export EufyMake
+  auraient alors exporté le modèle inchangé. Les deux chemins annulent
+  désormais l'aperçu de façon fiable, comme le repliage manuel le faisait
+  déjà.
+
 ## [2.8.0] – 2026-08-16
 
 ### Ajouté

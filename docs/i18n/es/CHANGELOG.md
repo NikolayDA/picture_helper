@@ -9,6 +9,18 @@ sigue [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Corregido
+
+- **El modo Estándar y la navegación entre pasos no descartaban una vista
+  previa de optimización de altura activa (#839).** Al cambiar del modo
+  Experto al Estándar o al salir del paso Relieve con la tarjeta
+  "Optimizar" desplegada y una vista previa en vivo sin aplicar, la vista
+  previa seguía visible en el lienzo aunque los controles de Aplicar/
+  Descartar ya no eran accesibles — Guardar/la exportación a EufyMake
+  habrían exportado entonces el modelo sin cambios. Ambas rutas descartan
+  ahora la vista previa de forma fiable, igual que ya hacía el plegado
+  manual.
+
 ## [2.8.0] – 2026-08-16
 
 ### Añadido
