@@ -190,7 +190,7 @@ Ein Paket, `bgremover/`:
   (`PREVIEW3D_QUALITY_KEY`). Der Viewer ist **reine Darstellung ohne Schreibpfad
   ins Modell** – „Bild speichern", EufyMake- und Projekt-Export bleiben
   unverändert; die 2D-`PreviewMode`-Pipeline bleibt der garantierte Fallback.
-  i18n-Keys `preview3d.*` (de/en). Abnahme-Nachweise (#595): Mesh-Build-Benchmark
+  i18n-Keys `preview3d.*`. Abnahme-Nachweise (#595): Mesh-Build-Benchmark
   (`scripts/benchmark.py`, `mesh_*`-Metriken je 1/16/40 MP, reproduzierbar via
   `--suite height`), headless-Abnahme in
   `tests/test_preview3d_acceptance.py`, Kriterien↔Nachweis in
@@ -301,7 +301,7 @@ Ein Paket, `bgremover/`:
   physische Größe ohne Herstellervertrag, Motiv überschreitet das eufyMake-
   Standard-Flachbett `STANDARD_FLATBED_MM` = 330 × 420 mm (#687, ebenfalls Grad S))
   erlauben den Export erst nach Bestätigung; die Height-Prüfungen arbeiten auf der
-  kanonischen Payload. `format_finding` liefert die de/en-Meldung (literale
+  kanonischen Payload. `format_finding` liefert die übersetzte Meldung (literale
   `tr`-Keys `eufymake.export.*`). Das Befund-Fundament (`Severity`,
   `severity_rank`, `has_blocking_errors`, `split_findings`) liegt seit #379
   geteilt in `export_checks.py` und wird hier re-exportiert
@@ -507,8 +507,12 @@ Ein Paket, `bgremover/`:
   `status_messages.py` (zentrale Meldungsstrings), `recent_files.py`
   („Zuletzt geöffnet"-Persistenz für Bilder **und** `.bgrproj`-Projekte,
   Dispatch nach Endung im MainWindow, #335).
-- **i18n:** `i18n.py` — Runtime-Sprachen **de/en** umschaltbar; Doku-Übersetzungen
-  (en/es/fr/uk/zh) unter `docs/i18n/`.
+- **i18n:** `i18n.py` — Runtime-Sprachen **de/en/es/fr/uk/zh** umschaltbar;
+  `available_locales()` bietet genau die Locales an, für die `_TRANSLATIONS`
+  eine vollständige Tabelle hält (`LOCALE_NAMES` liefert nur die Endonyme).
+  Neue Keys gehören deshalb in **alle sechs** Tabellen –
+  `tests/test_i18n_rollout.py` erzwingt Key- und Platzhalter-Parität gegen das
+  Deutsche. Doku-Übersetzungen (en/es/fr/uk/zh) unter `docs/i18n/`.
 
 ## Konventionen
 
