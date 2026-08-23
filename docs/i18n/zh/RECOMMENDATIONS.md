@@ -43,7 +43,7 @@
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（测量已完成；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复已通过 #841/PR #850 完成。此处保留：置顶效果（`--edit-last`/`--create-if-none`）、触发噪声、成本、令牌过期（2027-08-18），以及从 PR #850 推迟的事项——提示结构（规则置于任务之后）、单一权威分类而非三处、`issues: read`、输出原因字段值、#841 的定性验收标准 |
-| [#841](https://github.com/NikolayDA/picture_helper/issues/841) | 评审工作流可复现地以 error_max_turns 失败——allowlist 未覆盖所用的检查命令 | 🟠 高（没有可用的评审，每个 PR 都未经检查） | 🟢 低（修复已合并；仅剩测量序列） | –（无代码改动；观察运行） | 修复已通过 PR #850 合并（allowlist 增加 `gh issue view`、提示收窄、拒绝分类、加固的诊断步骤）。待办：连续三次绿色评审运行——以行锚定方式核对（`grep -c '^Abgelehnte Aufrufe: 0$'`）；PR #850 自身的运行不计入 |
+| [#841](https://github.com/NikolayDA/picture_helper/issues/841) | 评审工作流可复现地以 error_max_turns 失败——allowlist 未覆盖所用的检查命令 | 🟠 高（没有可用的评审，每个 PR 都未经检查） | 🟢 低（修复已合并；仍剩测量序列与该标准的定性一半） | –（无代码改动；观察运行） | 修复已通过 PR #850 合并（allowlist 增加 `gh issue view`、提示收窄、拒绝分类、加固的诊断步骤）。待办：连续三次绿色评审运行——以行锚定方式核对（`grep -c '^Abgelehnte Aufrufe: 0$'`）；PR #850 自身的运行不计入。该标准因此只定了一半：定性验收标准（评审的实质内容，而非仅拒绝次数）在 #828 中跟踪，提案已作为评论提交至 #841 |
 | [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md：通过标记清单保护 ui/ui_smoke 标记列表（#832 的后续） | 🟢 低（与 #832 同一漂移类别，但纯属文档保障） | 🟢 低（针对自 PR #845 起已有的标记清单再写一个文档解析器） | Sonnet，低 | **PR #845 合并后即可开始** – 将 ui/ui_smoke 列表与 `_marker_inventory()` 对照，可顺带将模块重命名为 `test_marker_governance.py` |
 
 ### 接下来推荐
