@@ -80,7 +80,7 @@ def _diagnostic_block(relative: str) -> str:
     """Den Diagnoseschritt aus *relative* rein textbasiert herausschneiden."""
     text = (_ROOT / relative).read_text(encoding="utf-8")
     match = re.search(
-        rf"(?ms)^      - name: {re.escape(_DIAGNOSTIC_NAME)}\n.*?(?=\n\S|\Z)",
+        rf"(?ms)^      - name: {re.escape(_DIAGNOSTIC_NAME)}\n.*?(?=^      - |\n\S|\Z)",
         text,
     )
     assert match, f"{relative}: Diagnoseschritt nicht gefunden"
@@ -325,8 +325,6 @@ def test_review_taxonomy_names_its_own_scope() -> None:
     """Die Taxonomie muss sagen, dass sie nur für das Review gilt."""
     text = _review_workflow_text()
     assert "gilt ausschließlich für dieses Review" in text
-
-
 
 
 def test_review_promises_no_sticky_comment_it_cannot_keep() -> None:

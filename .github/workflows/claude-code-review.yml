@@ -58,12 +58,17 @@ jobs:
           # genügt das Abo-Token als einziges Secret (keine App-Installation
           # nötig).
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # `use_sticky_comment` ist hier bewusst nicht gesetzt (#828): Die
-          # Action pflegt einen Sticky-Kommentar nur im Tag-/`track_progress`-
-          # Modus selbst. Im Prompt-Modus postete jeder beobachtete Lauf über
-          # `gh pr comment` eine neue Zusammenfassung statt einer
-          # aktualisierten – das Input versprach eine Wirkung, die es nicht
-          # hatte, und der Prompt gab dieses Versprechen weiter.
+          # `use_sticky_comment` ist hier bewusst nicht gesetzt (#828). Tragend
+          # ist die Beobachtung, nicht eine Zuschreibung an die Action: Im
+          # Prompt-Modus postet die Zusammenfassung der Agent selbst per
+          # `gh pr comment` – auf diesen Aufruf kann eine Sticky-Logik der
+          # Action nicht wirken, und jeder beobachtete Lauf hinterließ
+          # entsprechend einen neuen statt eines aktualisierten Kommentars.
+          # Das Input versprach damit eine Wirkung, die es nicht hatte, und
+          # der Prompt gab dieses Versprechen weiter. Offen bleibt der Effekt
+          # selbst (ein Kommentar je `synchronize`); er wird in #828
+          # entschieden, sobald belegt ist, welche `gh pr comment`-Flags die
+          # `gh`-Version auf `ubuntu-latest` kennt.
           # Automation-/Prompt-Modus (kein track_progress → kein Tag-Modus mit
           # Schreib-/Git-Fähigkeiten). Die Allowlist erlaubt ausschließlich
           # Lesen und Kommentieren – Edit/Write sowie schreibende Git-Kommandos
@@ -163,6 +168,15 @@ jobs:
           # daran abgewiesen. Der Agent liest das im PR referenzierte Issue –
           # bei jedem `Closes #NNN` der Normalfall –, und das Kommando ist rein
           # lesend, dieselbe Familie wie das längst freigegebene `gh pr view`.
+          # „Rein lesend" heißt hier aber nicht „unkritisch": Ein Issue darf
+          # jeder GitHub-Account anlegen, `--repo` ist nicht auf dieses
+          # Repository begrenzt, und der Text fließt in einen Agenten mit
+          # `pull-requests: write`. Das ist dieselbe Prompt-Injection-Kante wie
+          # bei WebFetch weiter oben – nur greift das dortige Gegenargument
+          # („Forks bekommen keine Secrets") für Issue-Inhalte nicht. Das
+          # Risiko ist mit der WebFetch-Freigabe bereits akzeptiert; tragend
+          # bleibt, dass der Agent nichts schreiben kann (`contents: read`,
+          # keine Edit-/Write-/Git-Schreibrechte).
           # Taxonomie der Ablehnungen, zugleich Auswertungsregel für die
           # Diagnose weiter unten und für die Abnahme von #841:
           #   L = lesende Inspektion (freigegebene `gh`-/Git-Formen, Read,
