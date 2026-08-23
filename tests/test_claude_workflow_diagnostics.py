@@ -475,8 +475,17 @@ def test_prompt_bars_the_flags_that_remove_findings() -> None:
     # Flag-Liste hätte gestrichen werden können, ohne dass der Test anschlägt.
     # Geprüft wird deshalb als Nähe-Bedingung zum Gegenstand, nicht über das
     # Signalwort allein.
-    assert re.search(r"--delete-last[^#]{0,400}ist hier UNBELEGT", block), (
-        "Der Evidenzgrad der Flag-Liste fehlt oder steht nicht mehr bei ihr; "
+    # Nicht `"UNBELEGT" in block`: Das Wort steht im Ausschnitt zweimal, der
+    # zweite Treffer gehört zur 10-000-Zeichen-Schwelle im Taxonomie-Block.
+    # Auch keine Nähe-Bedingung zu `--delete-last` — ein erläuternder Absatz
+    # dazwischen (etwa der Sticky-Hinweis) riss sie auf, ohne dass der Grad
+    # verschwunden wäre. Der ganze Satz nennt seinen Gegenstand selbst und
+    # kann deshalb nicht von einem fremden Treffer erfüllt werden.
+    assert (
+        "Welche dieser Flags die `gh`-Version des Runners tatsächlich führt, "
+        "ist hier UNBELEGT" in block
+    ), (
+        "Der Evidenzgrad der Flag-Liste fehlt oder gehört nicht mehr zu ihr; "
         "sie liest sich dann als geprüft"
     )
 
@@ -1515,7 +1524,12 @@ def test_prompt_bars_the_file_egress_on_the_output_path() -> None:
     assert "nie über `--body-file`/`-F`" in prompt, (
         "Prompt lässt den Datei-Egress über den einzigen Ausgabeweg offen"
     )
-    begruendung = " ".join(_review_workflow_text().replace("#", " ").split())
+    # Review-Befund auf 0805ccd: Letzter Guard über die ganze Datei statt
+    # über den Ausschnitt. Wanderte der Satz in den Prompt oder einen anderen
+    # Kommentar — bei der für #828 angekündigten Umstrukturierung plausibel —,
+    # bliebe der Test grün, obwohl die „zweite Schicht" wieder beanspruchte,
+    # auch die Leserichtung zu decken.
+    begruendung = " ".join(_shared_allowlist_rationale().replace("#", " ").split())
     assert "deckt nur die SCHREIB-Richtung" in begruendung, (
         "Die zweite Schicht beansprucht weiter, auch die Leserichtung zu decken"
     )

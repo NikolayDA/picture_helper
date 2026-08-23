@@ -326,7 +326,13 @@ jobs:
           # Die LESE-Richtung ist nicht die einzige offene: `gh pr comment`
           # kennt je nach Version auch Flags, die BESTEHENDE Kommentare
           # ändern oder entfernen (`--edit-last`, `--create-if-none`,
-          # `--delete-last`). Welche davon die `gh`-Version des Runners
+          # `--delete-last`). ACHTUNG BEIM STICKY-NACHZUG (#828): `--edit-last`
+          # und `--create-if-none` sind zugleich die Kandidaten für den
+          # offenen Sticky-Rest. Wer sie einführt, muss Prompt, diesen Block
+          # und `test_prompt_bars_the_flags_that_remove_findings` gemeinsam
+          # anfassen – die Verengung hier ist heute richtig, aber sie ist
+          # dann keine reine Streichung mehr.
+          # Welche dieser Flags die `gh`-Version des Runners
           # tatsächlich führt, ist hier UNBELEGT – aus dieser Sitzung sind die
           # `gh`-Referenzdomains nicht erreichbar. Die Prompt-Verengung ist
           # davon unabhängig richtig und deshalb gezogen: für `gh pr comment`
@@ -685,6 +691,16 @@ jobs:
           # *unbekannt*, nicht leer. Ist etwas nicht auswertbar, nennt die
           # Zeile deshalb keine Zahl, die als Urteil gelesen werden könnte –
           # auch nicht als Teilkette. Der saubere Fall bleibt unverändert.
+          # ZEILENANKER BEIM AUSWERTEN: Diese Zusage gilt der Kopfzeile, nicht
+          # den Belegzeilen darunter. Die tragen bis zu 300 Zeichen
+          # `tool_input`, und der wahrscheinlichste abgelehnte Aufruf hier ist
+          # ein `gh pr comment` mit einer Zusammenfassung, die die
+          # Diagnoseausgabe zitiert. Nachgestellt: Kopfzeile „Abgelehnte
+          # Aufrufe: 1", Belegzeile enthält „Abgelehnte Aufrufe: 0" – eine
+          # Teilkettensuche läse den Lauf als sauber, ausgerechnet im
+          # teuersten Fall. Beide Zweige tragen eine `jq`-gesetzte Marke am
+          # Zeilenanfang, ein Vergleich mit Anker ist also eindeutig:
+          # `grep -c '^Abgelehnte Aufrufe: 0$'`, nie eine Teilkettensuche.
           if [ "$anomalien" -gt 0 ]; then
             echo "::warning::Nicht auswertbare Datensätze: $anomalien"
             echo "Abgelehnte Aufrufe: unbestimmt ($count auswertbar, $anomalien nicht auswertbar)"
