@@ -120,6 +120,20 @@ def _review_taxonomy() -> str:
     return text[text.index(head):text.index(args)]
 
 
+def _class_l_definition(text: str, start: str, end: str) -> str:
+    """Nur die L-Definition herausschneiden, nicht den ganzen Block.
+
+    Ein ``"WebFetch" in block`` bestünde auch, wenn das Wort nur in der
+    Freigabe-Begründung darüber steht — die Negativkontrolle hat genau das
+    gezeigt. Die Marker unterscheiden sich je Fundstelle: Der Workflow
+    schreibt ``L = …``, die README ``**L** (…)``.
+    """
+    assert start in text, f"Klassenmarke {start!r} nicht gefunden"
+    begin = text.index(start)
+    assert end in text[begin:], f"Klassenmarke {end!r} nicht nach {start!r} gefunden"
+    return text[begin:text.index(end, begin)]
+
+
 def _agents_readme() -> str:
     """Die agents-README mit normalisiertem Whitespace (Absatz ist umbrochen)."""
     return " ".join((_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split())
@@ -345,7 +359,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
     taxonomy = _review_taxonomy()
     for phrase in (
         "L = lesende Inspektion",
-        "darf NIE abgelehnt werden",
+        "NIE abgelehnt werden",
         "A = Ausführung",
         "N = Netzzugriff",
         "S = Schreibzugriff",
@@ -523,6 +537,45 @@ def test_class_p_survives_deliberately_narrow_forms() -> None:
             "widersprechen sich sonst am selben Prüfstein"
         )
         assert "--max-count=200" in text, f"{label}: Prüfstein der Gegenrichtung fehlt"
+
+
+def test_class_l_covers_every_allowlisted_read_form() -> None:
+    """Review-Befund auf PR #850: WebFetch fiel durch das Klassenraster.
+
+    L zählte nur `gh`-/Git-Formen, Read, Grep und Glob auf; N meint
+    ausdrücklich Domains **außerhalb** der Freigabe. Eine Ablehnung von
+    `WebFetch(domain:docs.claude.com)` war damit unklassifizierbar, obwohl sie
+    sachlich eine L-Ablehnung ist — im Zweifel als N verbucht und damit als
+    erwartbar getarnt. Die Definition hängt jetzt an der Allowlist statt an
+    einer Aufzählung, die mit jeder neuen Freigabe erneut driftet.
+    """
+    for label, text, start, end in (
+        ("Workflow-Kommentar", _review_taxonomy(), "L = lesende Inspektion", "A = Ausführung"),
+        ("agents/README.md", _agents_readme(), "**L** (lesende", "**A** (Ausführung)"),
+    ):
+        definition = _class_l_definition(text, start, end)
+        assert "WebFetch" in definition, f"{label}: WebFetch fehlt in der L-Definition"
+        assert "freigegebenen Form" in definition, (
+            f"{label}: L nicht über die Allowlist definiert, sondern als Aufzählung"
+        )
+        assert "außerhalb der WebFetch-Domains" not in text, (
+            f"{label}: N muss die NICHT freigegebenen Domains meinen"
+        )
+    assert "WebFetch" in " ".join(_review_prompt().split()), "Prompt nennt WebFetch nicht als L"
+
+
+def test_prompt_names_the_form_that_actually_yields_ci_status() -> None:
+    """Review-Befund auf PR #850: `gh pr view` allein liefert keine Checks.
+
+    Der Prompt nennt die CI-Ergebnisse als Grundlage. Die Standardausgabe von
+    `gh pr view` enthält sie nicht — ein Agent, der die genannte Form strikt
+    liest, markiert den CI-Stand als unbelegt, ohne dass eine Ablehnung im
+    Joblog steht.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "--json statusCheckRollup" in prompt, (
+        "Prompt verlangt den CI-Stand über eine Form, die ihn nicht liefert"
+    )
 
 
 def test_review_taxonomy_names_its_own_scope() -> None:

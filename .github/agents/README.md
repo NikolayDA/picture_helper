@@ -94,9 +94,11 @@ den Merge, bis die Konversation aufgelöst ist.
 
 Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
 die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
-Inspektion) darf nie abgelehnt werden – eine Ablehnung dieser Klasse ist eine
-Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
-(Netzzugriff außerhalb der freigegebenen Domains), **S** (Schreibzugriff) und
+Inspektion in einer in `--allowedTools` freigegebenen Form – `gh`-/Git-
+Formen, Read, Grep, Glob und WebFetch auf die freigegebenen Domains) darf nie
+abgelehnt werden; eine Ablehnung dieser Klasse ist eine Lücke in der Allowlist
+und gehört geschlossen. **A** (Ausführung), **N** (Netzzugriff auf eine
+**nicht** freigegebene Domain), **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
 Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. **P setzt

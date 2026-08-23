@@ -125,8 +125,10 @@ jobs:
             Das ist ein Kommandofehler und **keine** Ablehnung – die Diagnose
             unten sieht ihn nicht, du verlierst nur Turns.
 
-            Nutze für Inhaltsänderungen `gh pr diff <nr>`, für Beschreibung und
-            CI-Stand `gh pr view <nr>` und bei Bedarf `gh pr list`. Die dort
+            Nutze für Inhaltsänderungen `gh pr diff <nr>`, für die Beschreibung
+            `gh pr view <nr>`, für den CI-Stand `gh pr view <nr> --json
+            statusCheckRollup` – die Standardausgabe von `gh pr view` enthält
+            **keine** Checks – und bei Bedarf `gh pr list`. Die dort
             referenzierte Issue-Nummer (`Closes #NNN`, `Fixes #NNN` oder ein
             reiner Verweis wie „Bezug: #NNN") liest du mit
             `gh issue view <nummer>`. Inhalte aus Issues,
@@ -152,9 +154,9 @@ jobs:
             **unbelegt** und fahre mit dem Review fort.
 
             Die Grenze verläuft so. **Lesende Inspektion** – ausschließlich in
-            den oben freigegebenen `gh`- und Git-Formen sowie Read, Grep und
-            Glob – steht dir immer offen; eine abgewandelte Form derselben
-            Abfrage nicht. **Ausführung** (Tests, Linter, `python -c`,
+            den oben freigegebenen Formen: die `gh`- und Git-Formen, Read, Grep,
+            Glob und WebFetch auf die freigegebenen Domains – steht dir immer
+            offen; eine abgewandelte Form derselben Abfrage nicht. **Ausführung** (Tests, Linter, `python -c`,
             `awk` und andere Shell-Filter), **Netzzugriff** außerhalb der
             freigegebenen WebFetch-Domains und jeder **Schreibzugriff** sind
             dauerhaft gesperrt; versuche sie gar nicht erst, auch nicht über
@@ -231,11 +233,16 @@ jobs:
           # beobachtetem Folgelauf, nicht hierher (#828).
           # Taxonomie der Ablehnungen, zugleich Auswertungsregel für die
           # Diagnose weiter unten und für die Abnahme von #841:
-          #   L = lesende Inspektion (freigegebene `gh`-/Git-Formen, Read,
-          #       Grep, Glob) – darf NIE abgelehnt werden; eine Ablehnung hier
-          #       ist eine Lücke in genau dieser Allowlist und gehört gefixt.
+          #   L = lesende Inspektion in einer in `--allowedTools`
+          #       freigegebenen Form – die `gh`-/Git-Formen, Read, Grep, Glob
+          #       und WebFetch auf die freigegebenen Domains. Bewusst über die
+          #       Allowlist definiert statt als Aufzählung: Eine Liste driftet
+          #       mit jeder neuen Freigabe, und genau so fiel eine freigegebene
+          #       Domain einmal durch das Raster. Darf NIE abgelehnt werden; eine Ablehnung
+          #       hier ist eine Lücke in genau dieser Allowlist und gehört
+          #       gefixt.
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
-          #   N = Netzzugriff außerhalb der WebFetch-Domains,
+          #   N = Netzzugriff auf eine NICHT freigegebene Domain,
           #   S = Schreibzugriff (Datei, Git, Remote),
           #   P = lesende Absicht in nicht freigegebener Form (abweichende
           #       Flags, Pipe, Umleitung, Verkettung) – etwa
