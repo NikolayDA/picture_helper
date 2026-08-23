@@ -103,7 +103,10 @@ freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
 Erreichbarkeit, nicht die Form. Das endet, wo die Allowlist nicht mehr
 entscheidet: Liegt die Ursache außerhalb von `--allowedTools`, könnte keine
 Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführung),
-**N** (Netzzugriff auf eine **nicht** freigegebene Domain),
+**N** (Netzzugriff auf eine **nicht** freigegebene Domain – **N geht L vor**,
+denn die Domain-Auswahl ist selbst eine dokumentierte
+Ausschlussentscheidung, obwohl eine weitere Domain wörtlich eine Erweiterung
+dieser Allowlist wäre),
 **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von

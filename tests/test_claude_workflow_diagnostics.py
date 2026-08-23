@@ -1008,6 +1008,36 @@ def test_the_documented_hash_denial_is_filed_as_the_boundary_not_as_a_gap() -> N
     )
 
 
+def test_class_n_takes_precedence_over_the_reachability_rule() -> None:
+    """Review-Befund auf a3f5343: N wurde von der neuen L-Definition aufgesogen.
+
+    Seit L über die Erreichbarkeit definiert ist („eine Erweiterung GENAU
+    DIESER Allowlist könnte sie schließen"), erfüllt eine abgewiesene Domain
+    den Buchstaben von L: Die WebFetch-Domains stehen in derselben Allowlist,
+    eine weitere wäre genau so eine Erweiterung. Zugleich ist der Fall per
+    Definition N und damit erwartbar. Die zweite P-Ausnahme greift nicht — die
+    regeltragende Aufzählung „Bewusst nicht freigegeben" nennt Kommandos, keine
+    Domains.
+
+    Das ist keine Spitzfindigkeit: Der Prompt ermutigt zur Recherche, der erste
+    Abruf außerhalb der sechs Domains kommt also sicher, und das Kriterium von
+    #841 hängt an „kein L in drei Läufen". Ohne Vorrangregel entschiede der
+    Auswerter, nicht die Regel — genau die Hintertür, die die P-Abgrenzung
+    an anderer Stelle schließt.
+    """
+    taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
+    assert "N GEHT L VOR" in taxonomy, (
+        "Ohne Vorrangregel ist eine abgewiesene Domain zugleich N und L"
+    )
+    assert "dokumentierte Ausschlussentscheidung" in taxonomy, (
+        "Die Vorrangregel nennt ihren Grund nicht und liest sich als Setzung"
+    )
+    readme = _agents_readme()
+    assert "**N geht L vor**" in readme, (
+        "Zweite Fundstelle: Die README klassifiziert denselben Fall sonst anders"
+    )
+
+
 def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     """#841: L fordert „gehört gefixt" – das setzt voraus, dass ein Fix existiert.
 

@@ -337,7 +337,16 @@ jobs:
           #       ausführbar ist, und das Kriterium von #841 hinge an einer
           #       Formatierungsregel statt an der Werkzeuggrenze.
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
-          #   N = Netzzugriff auf eine NICHT freigegebene Domain,
+          #   N = Netzzugriff auf eine NICHT freigegebene Domain. N GEHT L
+          #       VOR: Die sechs Domains stehen in derselben Allowlist, eine
+          #       weitere wäre also wörtlich „eine Erweiterung genau dieser
+          #       Allowlist" und damit nach dem Buchstaben L. Die
+          #       Domain-Auswahl ist aber selbst eine dokumentierte
+          #       Ausschlussentscheidung, ihre Enge gewollt – symmetrisch zur
+          #       zweiten P-Ausnahme unten. Ohne diese Vorrangregel wäre jeder
+          #       Abruf außerhalb der sechs Domains zugleich N (erwartbar) und
+          #       L (Lücke), und da der Prompt ausdrücklich zur Recherche
+          #       ermutigt, käme der Fall sicher.
           #   S = Schreibzugriff (Datei, Git, Remote),
           #   P = lesende Absicht in nicht freigegebener Form (abweichende
           #       Flags, Pipe, Umleitung, Verkettung) – etwa
@@ -484,9 +493,21 @@ jobs:
           # einer Ablehnung nur aus Kommando plus Allowlist-Stand erschließen.
           # Die Feldliste beantwortet das im nächsten echten Lauf, ohne fremden
           # Inhalt unbesehen ins Log zu kippen.
+          # Die Typprüfung steht dabei VOR jedem Feldzugriff, nicht als
+          # `keys?`-Rückfall dahinter: `.tool_name` bricht auf jedem
+          # Nicht-Objekt außer `null` mit „Cannot index …" ab, bevor ein
+          # Rückfall überhaupt erreichbar wäre – nachgestellt mit einem
+          # String-Eintrag, Exit 5. Das ganze `jq` scheitert dann, der
+          # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
+          # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
+          # und der kaputte Datensatz wird als solcher sichtbar.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
-                                | "\(.tool_name) [Felder: \(. | keys? // ["?"] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
+                                | if type == "object"
+                                  then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
+                                       + "\(.tool_input | tostring | .[0:300])"
+                                  else "? [Nicht-Objekt: \(type)]: \(tostring | .[0:300])"
+                                  end' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0

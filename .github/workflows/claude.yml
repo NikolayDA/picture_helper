@@ -138,9 +138,21 @@ jobs:
           # einer Ablehnung nur aus Kommando plus Allowlist-Stand erschließen.
           # Die Feldliste beantwortet das im nächsten echten Lauf, ohne fremden
           # Inhalt unbesehen ins Log zu kippen.
+          # Die Typprüfung steht dabei VOR jedem Feldzugriff, nicht als
+          # `keys?`-Rückfall dahinter: `.tool_name` bricht auf jedem
+          # Nicht-Objekt außer `null` mit „Cannot index …" ab, bevor ein
+          # Rückfall überhaupt erreichbar wäre – nachgestellt mit einem
+          # String-Eintrag, Exit 5. Das ganze `jq` scheitert dann, der
+          # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
+          # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
+          # und der kaputte Datensatz wird als solcher sichtbar.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
-                                | "\(.tool_name) [Felder: \(. | keys? // ["?"] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
+                                | if type == "object"
+                                  then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
+                                       + "\(.tool_input | tostring | .[0:300])"
+                                  else "? [Nicht-Objekt: \(type)]: \(tostring | .[0:300])"
+                                  end' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0
