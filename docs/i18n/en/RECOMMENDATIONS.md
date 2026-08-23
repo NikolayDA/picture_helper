@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), and #839 (PR #846) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (closed by the owner), and #847 (this PR) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
@@ -43,15 +43,12 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review automation after #825: assess turn-budget aborts and decide tool scope | 🟡 Medium (CI cost/reliability of automated review, not product-critical) | 🟡 Medium (measurement complete; several separate automation questions) | – (umbrella tracker) | Allowlist/prompt fix merged via PR #850, verification running in #841. Remaining here: sticky effect (`--edit-last`/`--create-if-none`), trigger noise, cost, token expiry (2027-08-18), plus the items deferred from PR #850 – prompt structure (rules behind the task), one canonical taxonomy instead of three, `issues: read`, printing the reason-field value, a qualitative acceptance criterion for #841 |
-| [#841](https://github.com/NikolayDA/picture_helper/issues/841) | Review workflow fails reproducibly with error_max_turns – allowlist does not cover the inspection commands in use | 🟠 High (without a usable review, every PR goes unchecked) | 🟢 Low (fix is merged; the measurement series and the qualitative half of the criterion remain) | – (no code change; observe the runs) | Fix merged via PR #850 (allowlist, prompt narrowings, denial taxonomy, hardened diagnostic step). Open: three consecutive green review runs after the merge. Criteria **and** evaluation procedure (anchoring, where to read it, silent exits) live [in #841 itself](https://github.com/NikolayDA/picture_helper/issues/841#issuecomment-5388345406) – there, because `--write` removes this row outright once the issue closes. The qualitative half of the criterion is tracked in #828 |
-| [#847](https://github.com/NikolayDA/picture_helper/issues/847) | TESTING.md: cover the ui/ui_smoke marker lists via the marker inventory (follow-up to #832) | 🟢 Low (same drift class as #832, but pure documentation safeguarding) | 🟢 Low (second doc parser against the marker inventory available since PR #845) | Sonnet, low | **Ready to start after PR #845 merges** – match the ui/ui_smoke enumerations against `_marker_inventory()`, optionally rename the module to `test_marker_governance.py` |
 
 ### Recommended Next
 
-1. **#828/#841** – first settle the qualitative acceptance measure in **#828** (only the quantitative half of the criterion is defined so far), and observe the next three review runs for **#841** alongside. No code work; criteria and evaluation procedure live in #841 itself, the table row merely points at them.
-2. **#847** – after PR #845 merges: cover the ui/ui_smoke lists via the same marker inventory.
-3. **#692** (ADR) opens the COLOR epic #682.
-4. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
+1. **#828** – settle the qualitative acceptance measure (only the quantitative half is defined so far). The owner closed #841 on 2026-08-23 without waiting for the measurement series; Criteria and evaluation procedure live in [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md) – in the repository rather than an issue comment, so they survive both `--write` and the issue being closed.
+2. **#692** (ADR) opens the COLOR epic #682.
+3. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
    templates, and approved abort criteria are already fully in place.
 

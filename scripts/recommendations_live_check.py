@@ -279,52 +279,44 @@ def table_span(lines: list[str]) -> tuple[int, int]:
     return indices[0], indices[-1]
 
 
-#: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
-#: Backslash maskiert ist. Ein maskiertes ``\|`` gehoert zum Zellinhalt und
-#: rendert dort als literales Pipe - genau die Schreibweise, die
-#: :func:`render_triage_row` fuer Titel mit Pipe selbst erzeugt.
-_CELL_SEPARATOR: Final = re.compile(r"(?<!\\)\|")
-
-
 def cells(row: str) -> list[str]:
-    r"""Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe).
+    """Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe).
 
-    Maskierungsbewusst und bewusst oeffentlich (#851): Skript und
+    Maskierungsbewusst und bewusst oeffentlich (#851/#852): Skript und
     ``tests/test_recommendations_docs.py`` zerlegen eine Zeile nach derselben
     Regel, statt jeder nach einer eigenen.
 
-    **Zwei Grenzen, die diese Zusicherung nicht ueberdehnen:**
+    Getrennt wird an einem Pipe, dem eine **gerade** Zahl von Backslashes
+    vorangeht - nur dann ist es ein Trenner und kein Zellinhalt. Ein regulaerer
+    Ausdruck mit einstelligem Lookbehind kann das nicht: Er haelt ``\\|``
+    (maskierter Backslash, danach ein echter Trenner) faelschlich fuer ein
+    maskiertes Pipe. Regressionsfaelle in
+    ``test_cells_splits_only_on_unescaped_pipes``.
 
-    * :data:`_TABLE_FIRST_CELL_RE` ist eine zweite, maskierungsunbewusste
-      Regel fuer *Spalte 1* und speist den read-only Pruefpfad
-      (:func:`issue_numbers_in_first_column`). Bei einer Spalte-1-Zelle mit
-      maskiertem Pipe divergieren beide: ``cells(row)[0]`` behaelt
-      ``… \| Gruppe``, das Muster schneidet am ``\|`` ab. Heute nicht
-      ausloesbar - Spalte 1 traegt nur Issue-Links - und bewusst nicht
-      umgestellt, weil ``issue_numbers_in_first_column`` auf dem rohen
-      Abschnitt arbeitet und ueber :func:`table_span` ein
-      :class:`LiveCheckError` bekaeme, wo es heute still weiterlaeuft.
-    * Das Lookbehind ``(?<!\\)`` unterscheidet ``\\|`` (maskierter
-      Backslash, echter Trenner) nicht von ``\|``. In diesem Dokument
-      irrelevant, aber es ist keine vollstaendige GFM-Implementierung.
-
-    Die naive Fassung (``split("|")``) hat ein maskiertes ``\|`` als Trenner
-    mitgezaehlt. Folge, an einer handgepflegten Bewertungszelle reproduziert:
-    ``Fix in a \| TODO`` zerfiel in ``Fix in a \`` und ``TODO`` - der zweite
-    Teil ist exakt :data:`UNRATED_PLACEHOLDER`, also meldete
-    :func:`unrated_issue_numbers` eine vollstaendig bewertete Zeile als
-    unbewertet und ``--write`` endete mit Exit 1. Ausgeloest wurde das
-    ausgerechnet von der Empfehlung des Doku-Waechters, ein Pipe in einer
-    Zelle als ``\|`` zu schreiben.
-
-    Die aeusseren Delimiter werden mit ``removeprefix``/``removesuffix``
-    genau einmal entfernt, nicht mit ``strip("|")``: Letzteres frisst eine
-    leere Randzelle mit (``| a | b ||`` ergaebe 2 statt 3 Zellen) und liesse
-    den Doku-Waechter falsch-rot anschlagen - die Gegenrichtung des Schadens,
-    den er finden soll.
+    Ausgenommen bleibt :data:`_TABLE_FIRST_CELL_RE`: eine zweite, bewusst naive
+    Regel fuer *Spalte 1*, die den read-only Pruefpfad speist
+    (:func:`issue_numbers_in_first_column`). Sie arbeitet auf dem rohen
+    Abschnitt und bekaeme ueber :func:`table_span` ein
+    :class:`LiveCheckError`, wo sie heute still weiterlaeuft.
     """
     inner = row.strip().removeprefix("|").removesuffix("|")
-    return [cell.strip() for cell in _CELL_SEPARATOR.split(inner)]
+    parts: list[str] = []
+    current: list[str] = []
+    escaped = False
+    for char in inner:
+        if escaped:
+            current.append(char)
+            escaped = False
+        elif char == "\\":
+            current.append(char)
+            escaped = True
+        elif char == "|":
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    parts.append("".join(current).strip())
+    return parts
 
 
 def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO) -> str:
@@ -345,7 +337,12 @@ def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO)
     Uebersetzung bleibt Handarbeit, die TESTING.md benennt, aber keine
     Pruefung erzwingt (#829, Befund 5).
     """
-    title = issue.title.replace("|", "\\|").strip()
+    # Erst Backslashes, dann Pipes: Ein Titel, der bereits ``\\|`` enthaelt -
+    # etwa weil er die in TESTING.md dokumentierte Schreibweise zitiert - wuerde
+    # sonst zu ``\\\\|``, und das liest GFM als maskierten Backslash plus
+    # echten Trenner. Die Zeile braeche auf, erzeugt von genau dem Pfad, der die
+    # Maskierung vornimmt (#852).
+    title = issue.title.replace("\\", "\\\\").replace("|", "\\|").strip()
     link = f"[#{issue.number}](https://github.com/{repo}/issues/{issue.number})"
     rest = [UNRATED_PLACEHOLDER] * max(columns - 2, 0)
     return "| " + " | ".join([link, title, *rest]) + " |"

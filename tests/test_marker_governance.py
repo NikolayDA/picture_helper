@@ -1,12 +1,17 @@
-"""Drift-Schutz für die ``gl_smoke``-Markerangaben in ``TESTING.md`` (#832).
+"""Drift-Schutz für **alle drei** Markerlisten in ``TESTING.md`` (#832, #847).
 
-``TESTING.md`` zählt die ``gl_smoke``-markierten Testdateien samt
-Granularität (modulweit vs. Einzeldekorator) von Hand auf; #826 zeigte, dass
-so eine Liste unbemerkt unvollständig wird. Analog zu
-``test_ci_qt_packages.py`` (Befund N6) hält dieser Test Doku und Bestand
-synchron: pytest sammelt die Marker selbst – über die Hook-API des
-Mini-Plugins ``tests/_marker_collect_plugin.py``, nicht über das
-Terminal-Ausgabeformat von ``--collect-only``.
+``TESTING.md`` zählt von Hand auf, welche Testdateien ``gl_smoke``, ``ui``
+und ``ui_smoke`` tragen; #826 zeigte, dass so eine Liste unbemerkt
+unvollständig wird. Analog zu ``test_ci_qt_packages.py`` (Befund N6) hält
+dieser Test Doku und Bestand synchron: pytest sammelt die Marker selbst –
+über die Hook-API des Mini-Plugins ``tests/_marker_collect_plugin.py``,
+nicht über das Terminal-Ausgabeformat von ``--collect-only``.
+
+Die teure Hälfte – die ungefilterte Zweit-Kollektion – ist seit #832 ohnehin
+je Testlauf bezahlt und über ``@cache`` geteilt; die ``ui``-/``ui_smoke``-
+Prüfungen aus #847 kosten daher nur je einen Doku-Parser. Das Modul hieß bis
+#847 ``test_gl_smoke_marker_governance.py`` und deckt jetzt alle drei Listen
+ab, daher der allgemeinere Name.
 """
 from __future__ import annotations
 
@@ -43,11 +48,35 @@ _TEST_FILE_RE = re.compile(r"`(?:tests/)?(test_\w+\.py)`")
 _MODULE_WIDE_RE = re.compile(r"modulweit nur in\s*`(?:tests/)?(test_\w+\.py)`")
 
 
+# Die beiden UI-Aufzählungen (#847). Beide Captures enden an einem Satz, der
+# nicht mehr zur Liste gehört - sie können dadurch nicht in den Folgeabsatz
+# rutschen und dort eine Datei aufsammeln.
+_UI_LIST_RE = re.compile(r"## Die UI-Tests\n(.*?)Nur diese `ui`-markierten Tests", re.DOTALL)
+_UI_SMOKE_LIST_RE = re.compile(
+    r"Marker `ui_smoke`\s*[–-]\s*(.*?)Die meisten dieser Module", re.DOTALL
+)
+# Zwischen allen Tokens ``\s+`` statt fester Leerzeichen: TESTING.md ist auf
+# ~76 Zeichen umbrochen, ein Zeilenumbruch kann redaktionell an jeder Stelle
+# des Satzes landen. Ein Muster mit festen Leerzeichen scheitert dann laut,
+# aber grundlos.
+_BOTH_MARKERS_RE = re.compile(
+    r"nur\s+`(?:tests/)?(test_\w+\.py)`\s+und\s+`(?:tests/)?(test_\w+\.py)`"
+    r"\s+tragen\s+beide\s+Marker"
+)
+
+
 class _DocumentedGlSmoke(NamedTuple):
     """Beide TESTING.md-Aussagen aus derselben Klammer."""
 
     files: frozenset[str]
     module_wide: frozenset[str]
+
+
+class _DocumentedUiSmoke(NamedTuple):
+    """Die ``ui_smoke``-Aufzählung und die Aussage zur Doppelmarkierung."""
+
+    files: frozenset[str]
+    both: frozenset[str]
 
 
 def _tail(text: str, limit: int = 2000) -> str:
@@ -91,6 +120,51 @@ def _documented_gl_smoke(text: str | None = None) -> _DocumentedGlSmoke:
         "inkonsistent."
     )
     return _DocumentedGlSmoke(files=files, module_wide=module_wide)
+
+
+def _documented_ui_modules(text: str | None = None) -> frozenset[str]:
+    """Die als ``ui``-markiert dokumentierten Module (#847).
+
+    *text* nur für die Negativkontrollen.
+    """
+    if text is None:
+        text = TESTING_MD.read_text(encoding="utf-8")
+    match = _UI_LIST_RE.search(text)
+    assert match is not None, (
+        "ui-Aufzählung in TESTING.md nicht gefunden - Wortlaut geändert? "
+        "Anker in _UI_LIST_RE nachziehen."
+    )
+    files = frozenset(f"tests/{name}" for name in _TEST_FILE_RE.findall(match.group(1)))
+    assert files, (
+        "ui-Aufzählung geparst, aber leer - ohne diese Zusicherung wäre ein zu "
+        "enger Anker von einer korrekt leeren Liste nicht zu unterscheiden."
+    )
+    return files
+
+
+def _documented_ui_smoke(text: str | None = None) -> _DocumentedUiSmoke:
+    """Die ``ui_smoke``-Aufzählung und die Aussage zur Doppelmarkierung (#847)."""
+    if text is None:
+        text = TESTING_MD.read_text(encoding="utf-8")
+    match = _UI_SMOKE_LIST_RE.search(text)
+    assert match is not None, (
+        "ui_smoke-Aufzählung in TESTING.md nicht gefunden - Wortlaut geändert? "
+        "Anker in _UI_SMOKE_LIST_RE nachziehen."
+    )
+    files = frozenset(f"tests/{name}" for name in _TEST_FILE_RE.findall(match.group(1)))
+    assert files, "ui_smoke-Aufzählung geparst, aber leer - Anker zu eng?"
+    both_match = _BOTH_MARKERS_RE.search(text)
+    assert both_match is not None, (
+        '„nur `…` und `…` tragen beide Marker"-Aussage in TESTING.md nicht '
+        "gefunden - Wortlaut geändert? Anker in _BOTH_MARKERS_RE nachziehen."
+    )
+    both = frozenset(f"tests/{name}" for name in both_match.groups())
+    assert both <= files, (
+        f"Als doppelt markiert dokumentiert {sorted(both)}, steht aber nicht in "
+        f"der ui_smoke-Aufzählung {sorted(files)} - TESTING.md in sich "
+        "inkonsistent."
+    )
+    return _DocumentedUiSmoke(files=files, both=both)
 
 
 @cache
@@ -174,6 +248,15 @@ def _marker_inventory() -> dict[str, dict[str, list[str]]]:
     return {
         path: {name: list(markers) for name, markers in functions.items()}
         for path, functions in result.items()
+    }
+
+
+def _modules_with_marker(inventory: dict[str, dict[str, list[str]]], marker: str) -> set[str]:
+    """Alle Dateien, in denen mindestens ein Test *marker* trägt (#847)."""
+    return {
+        path
+        for path, functions in inventory.items()
+        if any(marker in markers for markers in functions.values())
     }
 
 
@@ -262,6 +345,90 @@ def test_default_marker_filter_matches_documented_claim() -> None:
         f"Default-Markerfilter geändert ({match.group(1)!r}) - TESTING.md-"
         "Aussage zur Default-Selektion und diese Governance-Prüfungen nachziehen."
     )
+
+
+def test_testing_md_ui_list_matches_actual_markers() -> None:
+    """Die ``ui``-Aufzählung gegen den Ist-Bestand (#847).
+
+    Exakte Gleichheit: Der Absatz zählt die drei Module abschließend auf
+    („Sie sind mit dem Marker `ui` versehen, ebenso … und …"), und
+    ``make ui`` führt genau diese Menge aus.
+    """
+    documented = _documented_ui_modules()
+    actual = _modules_with_marker(_marker_inventory(), "ui")
+    assert actual, "Kein ui-markierter Test gefunden - Marker versehentlich entfernt?"
+    assert documented == actual, (
+        f"TESTING.md nennt als ui-markiert {sorted(documented)}, tatsächlich "
+        f"sind es {sorted(actual)}. Liste in TESTING.md nachziehen (#847, "
+        f"gleiches Drift-Muster wie #826/#832)."
+    )
+
+
+def test_testing_md_ui_smoke_list_matches_actual_markers() -> None:
+    """Die ``ui_smoke``-Aufzählung gegen den Ist-Bestand (#847).
+
+    Ebenfalls exakte Gleichheit. Die Aufzählung stand bis #847 unter „u. a."
+    und war damit ausdrücklich unvollständig — eine so formulierte Liste ist
+    gegen genau den Schaden nicht absicherbar, um den es hier geht (#826: die
+    Liste wird unbemerkt unvollständig). Das „u. a." ist deshalb entfallen und
+    das dort fehlende ``test_e2e_release_regression.py`` ergänzt.
+    """
+    documented = _documented_ui_smoke().files
+    actual = _modules_with_marker(_marker_inventory(), "ui_smoke")
+    assert actual, "Kein ui_smoke-markierter Test gefunden - Marker versehentlich entfernt?"
+    assert documented == actual, (
+        f"TESTING.md nennt als ui_smoke-markiert {sorted(documented)}, "
+        f"tatsächlich sind es {sorted(actual)}. Liste in TESTING.md nachziehen."
+    )
+
+
+def test_testing_md_double_marker_claim_matches_actual_markers() -> None:
+    """„nur X und Y tragen beide Marker" gegen den Ist-Bestand (#847)."""
+    documented = _documented_ui_smoke().both
+    inventory = _marker_inventory()
+    actual = _modules_with_marker(inventory, "ui") & _modules_with_marker(inventory, "ui_smoke")
+    assert documented == actual, (
+        f"TESTING.md nennt {sorted(documented)} als doppelt markiert, "
+        f"tatsächlich tragen {sorted(actual)} beide Marker. Aussage in "
+        f"TESTING.md nachziehen."
+    )
+
+
+def test_ui_doc_parsers_detect_synthetic_drift() -> None:
+    """Negativkontrollen für die beiden UI-Parser (#847).
+
+    Ohne sie wäre ein zu großzügiger oder ins Leere laufender Capture von
+    einem korrekten nicht zu unterscheiden - derselbe Grund wie bei
+    ``test_doc_parser_detects_synthetic_drift`` für ``gl_smoke``.
+    """
+    ui_text = (
+        "## Die UI-Tests\n\n`tests/test_a.py` enthält X, ebenso\n"
+        "`tests/test_b.py`. Nur diese `ui`-markierten Tests laufen bei make ui.\n"
+        "Spaeterer Absatz nennt `tests/test_zzz.py`.\n"
+    )
+    assert _documented_ui_modules(ui_text) == {"tests/test_a.py", "tests/test_b.py"}, (
+        "Capture reicht in den Folgeabsatz - test_zzz.py darf nicht mitzählen."
+    )
+
+    smoke_text = (
+        "Subset trägt den Marker `ui_smoke` – in `tests/test_a.py` und\n"
+        "`tests/test_b.py`. Die meisten dieser Module tragen nur `ui_smoke`,\n"
+        "nicht zusätzlich `ui` – nur `test_a.py` und `test_b.py` tragen beide\n"
+        "Marker. Danach `tests/test_zzz.py`.\n"
+    )
+    parsed = _documented_ui_smoke(smoke_text)
+    assert parsed.files == {"tests/test_a.py", "tests/test_b.py"}
+    assert parsed.both == {"tests/test_a.py", "tests/test_b.py"}
+
+    with pytest.raises(AssertionError, match="_UI_LIST_RE"):
+        _documented_ui_modules("Kein UI-Abschnitt hier.")
+    with pytest.raises(AssertionError, match="_UI_SMOKE_LIST_RE"):
+        _documented_ui_smoke("Kein ui_smoke-Absatz hier.")
+    with pytest.raises(AssertionError, match="in sich\ninkonsistent|in sich inkonsistent"):
+        _documented_ui_smoke(
+            "Marker `ui_smoke` – in `tests/test_a.py`. Die meisten dieser Module "
+            "tragen nur das – nur `test_a.py` und `test_c.py` tragen beide Marker."
+        )
 
 
 def test_doc_parser_detects_synthetic_drift() -> None:
