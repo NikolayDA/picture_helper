@@ -334,19 +334,40 @@ def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
 def test_review_allowlist_rationale_stays_above_claude_args() -> None:
     """Hausstil aus #841: Risikoerklärung steht über, nie im Argumentblock.
 
-    Geprüft wird die Angrenzung selbst statt eines Zeichenabstands: Zwischen
-    Begründung und ``claude_args`` darf nichts als Kommentar stehen. Ein
-    Längenbudget hätte jede sachlich gewachsene Begründung rot gefärbt.
+    Review-Befund auf PR #850: Die erste Fassung prüfte den Bereich *über*
+    ``claude_args`` auf Nicht-Kommentarzeilen — dort sind weitere
+    Action-Inputs aber völlig regulär, der Test hätte also falsch angeschlagen.
+    Die Hausregel meint die andere Seite: „jede Zeile darin geht als
+    CLI-Argument an Claude Code". Geprüft wird deshalb die Position der
+    Begründung **und** der Blockinhalt selbst.
     """
     text = _review_workflow_text()
     args_index = text.index("          claude_args: |")
-    rationale = "          # Nur-Lese-Freigaben (#841):"
-    rationale_index = text.index(rationale)
-    assert rationale_index < args_index
+    rationale_index = text.index("          # Nur-Lese-Freigaben (#841):")
+    assert rationale_index < args_index, "Begründung steht nicht über dem Argumentblock"
 
-    between = text[rationale_index:args_index].splitlines()
-    intruders = [line for line in between if line.strip() and not line.lstrip().startswith("#")]
-    assert not intruders, f"Zwischen Begründung und Argumentblock steht Nicht-Kommentar: {intruders}"
+
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_claude_args_block_carries_only_arguments(relative: str) -> None:
+    """Die Hausregel selbst: im Block-Skalar steht nichts als CLI-Argumente.
+
+    Eine `#`-Zeile dort wäre kein Kommentar, sondern ein Argument, das an
+    Claude Code durchgereicht wird — genau der Fehler, vor dem der
+    Workflow-Kommentar warnt und den bisher kein Test abdeckte.
+    """
+    text = (_ROOT / relative).read_text(encoding="utf-8")
+    match = re.search(
+        # Nur MULTILINE, kein DOTALL: Mit `s` würde `.*` über Zeilenenden
+        # hinweg greifen und den Rest der Datei in den Block ziehen.
+        r"(?m)^          claude_args: \|\n(?P<body>(?:^ {12}[^\n]*\n|^[ \t]*\n)*)",
+        text,
+    )
+    assert match, f"{relative}: claude_args-Block nicht gefunden"
+    strays = [
+        line for line in match.group("body").splitlines()
+        if line.strip() and not line.lstrip().startswith("--")
+    ]
+    assert not strays, f"{relative}: Nicht-Argument im claude_args-Block: {strays}"
 
 
 def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
@@ -500,6 +521,17 @@ def test_prompt_names_every_allowlisted_gh_form() -> None:
     assert not missing, (
         f"freigegeben, aber im Prompt nicht genannt: {missing} – "
         "der Agent nutzt sie dann nicht und die Diagnose sieht es nicht"
+    )
+
+    # Bloße Nennung genügt nicht: `gh pr comment` stand einmal nur passiv in
+    # der S-Ausnahme und erfüllte die Zusicherung formal, ohne dem Agenten
+    # eine aufrufbare Form zu zeigen. Die drei Formen, die im Detached-HEAD-
+    # Checkout eine Nummer brauchen, müssen mit ihr im Prompt stehen.
+    needs_number = ("gh pr diff", "gh pr view", "gh pr comment")
+    formless = [form for form in needs_number if f"{form} <nr>" not in prompt]
+    assert not formless, (
+        f"ohne aufrufbare Form im Prompt genannt: {formless} – ohne Nummer "
+        "scheitern sie im Detached-HEAD-Checkout als Kommandofehler"
     )
 
 
