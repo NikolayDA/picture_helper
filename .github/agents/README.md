@@ -78,13 +78,17 @@ ausgeschriebene, feste Argumentformen freigegeben – keine Präfix-Wildcards,
 über die etwa `--output` Dateien schreiben könnte. `gh issue view` ist rein
 lesend, aber nicht harmlos: Issue-Text kann jeder Account verfassen, und er
 erreicht einen Agenten mit `pull-requests: write` – dieselbe Kante wie bei
-WebFetch, tragend bleibt `contents: read`. Die benötigte Historie stellt der
+WebFetch. Tragend ist dabei nicht „der Agent kann nichts schreiben" (die
+beiden Ausgabewege sind offen), sondern die Prompt-Regel, dass Fremdinhalt
+Daten und keine Anweisung ist; `contents: read` verhindert nur den
+Code-Weg. Die benötigte Historie stellt der
 kontrollierte Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen,
 PR-Code lokal ausführen, generisches `gh api` und Änderungen am Checkout
 bleiben ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen
 sind in `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz
-verankert. Der
-Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
+verankert.
+
+Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
 den Merge, bis die Konversation aufgelöst ist.
 

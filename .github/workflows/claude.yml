@@ -99,9 +99,10 @@ jobs:
       # `contents: write`, und die Aufgabe ist ausdrücklich Code schreiben,
       # testen und committen. Eine abgelehnte Ausführung oder ein abgelehnter
       # Schreibzugriff ist deshalb NICHT erwartbar, sondern genau der Befund,
-      # der die Aufgabe blockiert hat. Die L/A/N/S-Einteilung des
-      # Review-Workflows darf hier nicht übernommen werden – sie würde die
-      # interessanten Fälle als „normal" abstempeln.
+      # der die Aufgabe blockiert hat. Die Ablehnungsklassen des
+      # Review-Workflows dürfen hier nicht übernommen werden – sie würden die
+      # interessanten Fälle als „normal" abstempeln. Bewusst ohne Aufzählung:
+      # Eine ausgeschriebene Liste driftet mit jeder neuen Klasse.
 
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
       # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
