@@ -102,6 +102,7 @@ jobs:
       # der die Aufgabe blockiert hat. Die L/A/N/S-Einteilung des
       # Review-Workflows darf hier nicht übernommen werden – sie würde die
       # interessanten Fälle als „normal" abstempeln.
+
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
       # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
       # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war

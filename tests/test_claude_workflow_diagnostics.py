@@ -280,7 +280,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
         "A = Ausführung",
         "N = Netzzugriff",
         "S = Schreibzugriff",
-        "DÜRFEN immer abgelehnt werden",
+        "DÜRFEN abgelehnt werden",
     ):
         assert phrase in taxonomy, f"Taxonomie unvollständig: {phrase!r} fehlt"
 
@@ -319,6 +319,28 @@ def test_interactive_workflow_rejects_the_review_taxonomy() -> None:
     text = (_ROOT / ".github/workflows/claude.yml").read_text(encoding="utf-8")
     assert "NICHT erwartbar" in text, "umgekehrte Lesart des interaktiven Agenten fehlt"
     assert "darf hier nicht übernommen werden" in text
+
+
+def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
+    """Review-Befund auf PR #850: sonst tarnt sich der schlimmste Fall.
+
+    Die beiden Ausgabewege des Jobs – Inline-Kommentar-Werkzeug und
+    ``gh pr comment`` – sind selbst Remote-Schreibzugriffe. Fielen sie unter
+    die Klasse S („darf abgelehnt werden"), stünde ausgerechnet der Fall
+    „Befund gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review" als
+    Normalfall im Joblog. Der Prompt nennt genau das das Scheitern.
+    """
+    text = _review_workflow_text()
+    rationale_index = text.index("          # Taxonomie der Ablehnungen")
+    taxonomy = text[rationale_index:text.index("          claude_args: |")]
+    assert "Ausnahme" in taxonomy, "Ausgabewege sind nicht von Klasse S ausgenommen"
+    assert "gh pr comment" in taxonomy
+    assert "zählt wie L" in taxonomy
+
+    prompt = _review_prompt()
+    assert "Ausgenommen sind deine beiden Ausgabewege" in prompt, (
+        "Prompt sperrt jeden Schreibzugriff, verlangt aber einen Kommentar"
+    )
 
 
 def test_review_taxonomy_names_its_own_scope() -> None:

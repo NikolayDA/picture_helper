@@ -141,6 +141,9 @@ jobs:
             freigegebenen WebFetch-Domains und jeder **Schreibzugriff** sind
             dauerhaft gesperrt; versuche sie gar nicht erst, auch nicht über
             Umwege. Was du dort bräuchtest, liefern die CI-Ergebnisse des PR.
+            Ausgenommen sind deine beiden Ausgabewege – das
+            Inline-Kommentar-Werkzeug und `gh pr comment`. Sie sind technisch
+            Schreibzugriffe, aber genau dein Auftrag: Nutze sie.
 
             Recherche ist erwünscht, aber nicht um jeden Preis: Ist eine Quelle
             nicht abrufbar, weil Werkzeug oder Domain nicht freigegeben sind,
@@ -185,9 +188,14 @@ jobs:
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
           #   N = Netzzugriff außerhalb der WebFetch-Domains,
           #   S = Schreibzugriff (Datei, Git, Remote).
-          # A, N und S DÜRFEN immer abgelehnt werden – sie sind ein
-          # Prompt-Befund, kein Berechtigungsfehler, und rechtfertigen keine
-          # Erweiterung der Allowlist.
+          # A, N und S DÜRFEN abgelehnt werden – sie sind ein Prompt-Befund,
+          # kein Berechtigungsfehler, und rechtfertigen keine Erweiterung der
+          # Allowlist. Genau eine Ausnahme: Die beiden Ausgabewege des Reviews
+          # (Inline-Kommentar-Werkzeug und `gh pr comment`) sind selbst
+          # Remote-Schreibzugriffe und bewusst freigegeben. Ihre Ablehnung
+          # zählt wie L – sie ist eine Lücke und gehört gefixt. Sonst stünde
+          # ausgerechnet der schlimmste Fall als Normalfall im Joblog: Befund
+          # gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review.
           # Diese Einteilung gilt ausschließlich für dieses Review: Sie folgt
           # aus `contents: read` plus enger Allowlist. Für den interaktiven
           # Agenten in `claude.yml` gilt sie nicht – der darf schreiben und
