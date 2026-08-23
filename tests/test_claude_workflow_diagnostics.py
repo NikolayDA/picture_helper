@@ -349,7 +349,15 @@ def test_review_allowlist_rationale_stays_above_claude_args() -> None:
     Die Hausregel meint die andere Seite: „jede Zeile darin geht als
     CLI-Argument an Claude Code". Geprüft wird hier nur die Position der
     Begründung; den Blockinhalt sichert
-    ``test_claude_args_block_carries_only_arguments``.
+    ``test_claude_args_block_carries_only_arguments`` — das ist die andere
+    Seite derselben Grenze, nicht dieselbe Zusicherung.
+
+    Die *Nähe* zum Block prüft seit dem Wegfall des Zeichenbudgets bewusst
+    niemand mehr: Bei einem so kommentarreichen Block schlägt eine Zeilen-
+    oder Zeichenzahl vor allem falsch an. Was bleibt, ist schwach — die
+    Kopfzeile müsste unter den Block wandern (wo sie YAML-syntaktisch nicht
+    hingehört) oder umbenannt werden. Beides ist genau der Umbau, bei dem
+    dieser Test etwas sagen soll.
     """
     text = _review_workflow_text()
     args_index = text.index("          claude_args: |")
@@ -389,8 +397,8 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
     """
     taxonomy = _review_taxonomy()
     for phrase in (
-        "L = lesende Inspektion",
-        "NIE abgelehnt werden",
+        "L = lesende Ablehnung",
+        "NIE vorkommen",
         "A = Ausführung",
         "N = Netzzugriff",
         "S = Schreibzugriff",
@@ -608,18 +616,30 @@ def test_class_l_covers_every_allowlisted_read_form() -> None:
     sachlich eine L-Ablehnung ist — im Zweifel als N verbucht und damit als
     erwartbar getarnt. Die Definition hängt jetzt an der Allowlist statt an
     einer Aufzählung, die mit jeder neuen Freigabe erneut driftet.
+
+    Zweiter Befund auf demselben PR: Über die *Form* definiert widersprach L
+    seiner eigenen Abgrenzung, die ein gänzlich fehlendes Lesekommando als L
+    führt (so lag `gh issue view` vor #850) — und die alte Fassung dieses
+    Tests hielt genau den Widerspruch per Assertion fest. Tragend ist die
+    **Erreichbarkeit**: L ist die Ablehnung, die eine Erweiterung genau dieser
+    Allowlist schließen könnte. Darauf wird hier geprüft.
     """
     for label, text, start, end in (
-        ("Workflow-Kommentar", _review_taxonomy(), "L = lesende Inspektion", "S = Schreibzugriff"),
+        ("Workflow-Kommentar", _review_taxonomy(), "L = lesende Ablehnung", "S = Schreibzugriff"),
         ("agents/README.md", _agents_readme(), "**L** (lesende", "**S** (Schreibzugriff)"),
     ):
         # Endmarker hinter der N-Definition, damit auch die vierte Zusicherung
         # auf demselben Ausschnitt arbeitet. Sie prüfte vorher die ganze Datei
         # und wäre an einer Passage rot geworden, die nur den Prompt zitiert.
-        definition = _class_l_definition(text, start, end)
+        definition = " ".join(_class_l_definition(text, start, end).replace("#", " ").split())
         assert "WebFetch" in definition, f"{label}: WebFetch fehlt in der L-Definition"
-        assert "freigegebenen Form" in definition, (
-            f"{label}: L nicht über die Allowlist definiert, sondern als Aufzählung"
+        assert "Erweiterung" in definition and "Allowlist schließen könnte" in definition, (
+            f"{label}: L nicht über die Erreichbarkeit definiert, sondern über die Form"
+        )
+        # Case-insensitiv: Der Workflow hebt tragende Begriffe in Versalien
+        # hervor (wie „GRENZE DER KLASSE"), die README nicht.
+        assert "erreichbarkeit, nicht die form" in definition.lower(), (
+            f"{label}: Ohne diesen Satz führt die Formdefinition L gegen die eigene Abgrenzung"
         )
         assert "außerhalb der WebFetch-Domains" not in definition, (
             f"{label}: N muss die NICHT freigegebenen Domains meinen"
@@ -716,7 +736,6 @@ def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
     verschieden – lautlos, weil bisher nur die *Wendung* geprüft war.
     """
     workflow = _review_workflow_text()
-    readme = (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
     fundstellen = {
         "Freigabe-Begründung": _exclusion_list(
             workflow, "Bewusst nicht freigegeben sind ", "Diese Aufzählung ist regeltragend"
@@ -724,8 +743,11 @@ def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
         "P-Abgrenzung": _exclusion_list(
             workflow, 'unter "Bewusst nicht freigegeben" (', "), bleibt"
         ),
+        # Auf dem normalisierten README-Text: Marken mit hartem Zeilenumbruch
+        # wären an einem reinen Reflow des Absatzes mit „Marke nicht gefunden"
+        # gescheitert statt mit der Drift-Meldung, die dieser Test tragen soll.
         "agents-README": _exclusion_list(
-            readme, "nicht freigegeben\" (", "); eine\ndokumentierte"
+            _agents_readme(), 'nicht freigegeben" (', "); eine dokumentierte"
         ),
     }
     kanonisch = (
@@ -755,3 +777,100 @@ def test_run_logs_are_excluded_in_prompt_and_permission_comment() -> None:
     begruendung = workflow[: workflow.index("      actions: read")]
     assert "Kein freigegebenes Kommando erreicht die Actions-API" in begruendung
     assert "statusCheckRollup" in begruendung
+
+
+def test_prompt_covers_the_apostrophe_that_breaks_single_quoting() -> None:
+    """#850: Die Umstellung auf `'…'` tauschte eine stille Fehlerart gegen die nächste.
+
+    Doppelte Anführungszeichen expandierten Backticks und ``$(…)`` aus der
+    Zusammenfassung. Einfache tun das nicht, kennen dafür aber keine
+    Escape-Sequenz: Ein `'` im Text – Apostroph, Code-Zitat aus dem Diff –
+    beendet das Quoting mitten im Body. Der Aufruf scheitert dann als
+    Kommandofehler, also ohne Kommentar und ohne Eintrag in
+    ``permission_denials``. Genau der stille Ausgang, gegen den der ganze
+    Prompt gebaut ist, und er träfe den einzigen Ausgabeweg.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "--body '…'" in prompt, "Prompt gibt die einfachen Anführungszeichen nicht vor"
+    assert "keine Escape-Sequenz" in prompt, "Prompt benennt die Lücke der einfachen Quotes nicht"
+    assert "'\\''" in prompt, "Prompt nennt das Ersatzmuster für ein Apostroph nicht"
+
+
+def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
+    """#841: Der einzige empirisch belegte Ablehnungsgrund am Ausgabeweg.
+
+    Lauf 32640784005 wies `gh pr comment 850 --body '## …'` ab – die
+    Kommandoprüfung beanstandet eine Argumentzeile, die mit `#` beginnt. Die
+    sieben zuvor erfolgreich geposteten Zusammenfassungen begannen alle mit
+    `**Review-Zusammenfassung**`, die eine abgelehnte mit `## …`; ein
+    Reviewlauf hat den Grund von sich aus protokolliert.
+
+    Für #841 ist das der teuerste Fall: Die Ablehnung trifft einen Ausgabeweg,
+    zählt nach der S-Ausnahme „wie L" und stünde damit als Allowlist-Lücke im
+    Protokoll – obwohl nur die Formatierung schuld war.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "KEINE Zeile des Textes mit `#`" in prompt, (
+        "Prompt verbietet die Raute am Zeilenanfang nicht"
+    )
+    assert "**Überschrift**` statt `## Überschrift" in prompt, (
+        "Prompt nennt die Ersatzform für Überschriften nicht"
+    )
+    assert "32640784005" in prompt, (
+        "Ohne den Lauf als Beleg liest sich die Regel als Stilwunsch und wird zurückgedreht"
+    )
+
+
+def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
+    """#841: L fordert „gehört gefixt" – das setzt voraus, dass ein Fix existiert.
+
+    ``Read``/``Grep``/``Glob`` stehen ohne Pfadmuster in der Allowlist. Wird ein
+    solcher Aufruf trotzdem abgelehnt, entscheidet das eine Werkzeugregel von
+    Claude Code, nicht diese Datei; keine Erweiterung von ``--allowedTools``
+    könnte die Ablehnung schließen. Ohne die Grenze hätte L einen Fall, dessen
+    geforderte Konsequenz nicht ausführbar ist – und das Akzeptanzkriterium
+    hinge an etwas, das die Konfiguration nicht steuert.
+
+    Geprüft wird auf dem Ausschnitt der L-Definition, nicht auf der Datei: Die
+    Stichwörter kommen auch in der Freigabe-Begründung vor.
+    """
+    definition = _class_l_definition(
+        _review_taxonomy(), "L = lesende Ablehnung", "A = Ausführung"
+    )
+    wortlaut = " ".join(definition.replace("#", " ").split())
+    assert "GRENZE DER KLASSE" in wortlaut, "L-Definition trägt keine Grenze"
+    # Dritte Fundstelle der Regel. Ohne sie stünde in der README weiterhin ein
+    # ausnahmsloses „gehört geschlossen" — dieselbe Drift wie zuletzt bei der
+    # Ausschlussliste, nur an der Klasse, die das Kriterium trägt.
+    readme = _class_l_definition(_agents_readme(), "**L** (lesende", "**A** (Ausführung)")
+    assert "außerhalb von `--allowedTools`" in readme, (
+        "agents-README kennt die Grenze der Klasse L nicht"
+    )
+    assert "sie zählt als P" in readme, "agents-README nennt die Ersatzklasse nicht"
+    assert "außerhalb des" in wortlaut and "Arbeitsverzeichnisses" in wortlaut, (
+        "Der auslösende Fall (Ziel außerhalb des Arbeitsverzeichnisses) ist nicht benannt"
+    )
+    assert "sondern P" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
+    assert "Prüfbar am Pfad im Joblog" in wortlaut, (
+        "Ohne prüfbares Merkmal wäre die Grenze die Hintertür, die die P-Abgrenzung schließt"
+    )
+
+
+def test_block_scalar_warning_sits_directly_above_claude_args() -> None:
+    """#850: Die Hausregel muss dort stehen, wo man sie bricht.
+
+    ``test_review_allowlist_rationale_stays_above_claude_args`` prüft nur noch,
+    dass die Begründung irgendwo oberhalb steht – nach dem Wegfall des
+    Zeichenbudgets sind daraus rund 130 Kommentarzeilen Abstand geworden. Drei
+    Reviews nacheinander haben genau das angemerkt: Die Warnung erreicht den
+    nächsten Bearbeiter nicht mehr. Statt eine Zeilenzahl zu prüfen (die bei
+    einem so kommentarreichen Block ständig falsch anschlägt), verlangt dieser
+    Test eine Kurzform unmittelbar über dem Block.
+    """
+    lines = _review_workflow_text().splitlines()
+    index = lines.index("          claude_args: |")
+    davor = " ".join(" ".join(lines[index - 5:index]).replace("#", " ").split())
+    assert "Block-Skalar" in davor, "Keine Kurzwarnung unmittelbar über `claude_args:`"
+    assert "CLI-Argument an Claude Code" in davor, (
+        "Die Kurzform nennt nicht, was beim Bruch der Regel passiert"
+    )

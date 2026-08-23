@@ -94,10 +94,18 @@ den Merge, bis die Konversation aufgelöst ist.
 
 Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
 die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
-Inspektion in einer in `--allowedTools` freigegebenen Form – `gh`-/Git-
-Formen, Read, Grep, Glob und WebFetch auf die freigegebenen Domains) darf nie
-abgelehnt werden; eine Ablehnung dieser Klasse ist eine Lücke in der Allowlist
-und gehört geschlossen. **A** (Ausführung), **N** (Netzzugriff auf eine
+Ablehnung, die eine Erweiterung genau dieser Allowlist schließen könnte) darf
+nie vorkommen; tritt sie auf, ist sie die Lücke und gehört geschlossen. Zwei
+Zweige: eine in `--allowedTools` freigegebenen Form wird dennoch abgelehnt
+(`gh`-/Git-Formen, Read, Grep, Glob, WebFetch auf die freigegebenen Domains) –
+so geschehen in Lauf 32640784005, weil eine Argumentzeile mit `#` begann –,
+oder eine lesende Abfrage, deren Information keine freigegebene Form liefert
+und die nicht unter „Bewusst nicht freigegeben" steht, wie `gh issue view` vor
+#850. Tragend ist beide Male die Erreichbarkeit, nicht die Form. Das endet,
+wo die Allowlist nicht mehr entscheidet: `Read`, `Grep` und `Glob` stehen ohne
+Pfadmuster darin, und eine Ablehnung aus einer Werkzeugregel außerhalb von
+`--allowedTools` (etwa ein Ziel außerhalb des Arbeitsverzeichnisses) könnte
+keine Erweiterung schließen – sie zählt als P. **A** (Ausführung), **N** (Netzzugriff auf eine
 **nicht** freigegebene Domain), **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
