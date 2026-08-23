@@ -416,11 +416,17 @@ jobs:
           # PR-Konversationskommentare auf `pull-requests` oder auf `issues`
           # abbildet – die laufen in der REST-API über den
           # `issues`-Endpunkt. Das Fehlersymptom eines zu engen Rechts wäre
-          # **still**: Lauf grün, aber keine Zusammenfassung. Deshalb ist die
-          # Absenkung an einen beobachteten Lauf gebunden statt an eine
-          # Annahme – der Reviewlauf des PR, der sie einführt, muss seine
-          # Zusammenfassung posten. Tut er das nicht, ist `issues: write`
-          # die belegte Untergrenze und gehört zurückgesetzt.
+          # **still**: Lauf grün, aber keine Zusammenfassung. Die Absenkung
+          # hängt deshalb an einem beobachteten Lauf, nicht an einer Annahme.
+          # GEMESSEN, nicht angenommen: Lauf 32670229428 auf PR #853 lief
+          # bereits unter `issues: read` und hat um 22:25 UTC sowohl seine
+          # Zusammenfassung als PR-Kommentar als auch Inline-Befunde gepostet.
+          # `pull-requests: write` genügt für beide Ausgabewege; der stille
+          # Fehlermodus ist damit ausgeschlossen, nicht nur unwahrscheinlich.
+          # Wichtig für eine spätere Prüfung: Der Beleg ist der Kommentar,
+          # nicht das grüne Häkchen – ein Lauf ohne Ausgabe wäre ebenfalls
+          # grün. Bleibt die Ausgabe künftig aus, ist `issues: write` die
+          # belegte Untergrenze und gehört zurückgesetzt.
           # `gh issue view` (Bezugsissues) bleibt davon unberührt: lesend.
           # Taxonomie der Ablehnungen, zugleich Auswertungsregel für die
           # Diagnose weiter unten und für die Abnahme von #841:
