@@ -3,14 +3,16 @@
 import re
 from pathlib import Path
 
+from scripts import recommendations_live_check as lc
+
 ROOT = Path(__file__).resolve().parent.parent
+#: Pfade und Sprachanker kommen aus ``recommendations_live_check`` — CLAUDE.md
+#: nennt sie als einzige Quelle, und ``test_recommendations_freeze_consistency``
+#: leitet sie ebenso ab. Eine zweite, handgepflegte Liste hier hätte eine
+#: siebte Sprachfassung still übergangen, obwohl ``--write`` deren Tabelle
+#: mitschreibt — genau die Drift, gegen die diese Tests antreten.
 RECOMMENDATION_DOCS = {
-    "de": ROOT / "RECOMMENDATIONS.md",
-    "en": ROOT / "docs/i18n/en/RECOMMENDATIONS.md",
-    "es": ROOT / "docs/i18n/es/RECOMMENDATIONS.md",
-    "fr": ROOT / "docs/i18n/fr/RECOMMENDATIONS.md",
-    "uk": ROOT / "docs/i18n/uk/RECOMMENDATIONS.md",
-    "zh": ROOT / "docs/i18n/zh/RECOMMENDATIONS.md",
+    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
 }
 ARCHIVE_DOCS = {
     "de": ROOT / "docs/history/RECOMMENDATIONS-2026-pre-v2.2.md",
@@ -87,7 +89,7 @@ def _read(path: Path) -> str:
 
 
 #: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
-#: Backslash maskiert ist. Ein maskiertes ``\|`` gehoert zum Zellinhalt und
+#: Backslash maskiert ist. Ein maskiertes ``\|`` gehört zum Zellinhalt und
 #: rendert dort als literales Pipe.
 _CELL_SEPARATOR = re.compile(r"(?<!\\)\|")
 
@@ -99,31 +101,39 @@ def _table_cells(row: str) -> list[str]:
 def test_triage_rows_have_exactly_the_header_column_count() -> None:
     """Ein unmaskiertes Pipe in einer Zelle verschluckt den Rest der Zeile.
 
-    Auf PR #851 real passiert: Die Zelle „Naechster Schritt" der neuen
-    #841-Zeile zitierte ein `grep -cE '(^|[[:space:]])…'`. Backticks schuetzen
+    Auf PR #851 real passiert: Die Zelle „Nächster Schritt" der neuen
+    #841-Zeile zitierte ein `grep -cE '(^|[[:space:]])…'`. Backticks schützen
     in GFM **nicht** vor der Zellentrennung — die Zeile bekam eine siebte
-    Zelle bei sechs Kopfspalten, GFM verwirft die ueberzaehligen, und alles ab
+    Zelle bei sechs Kopfspalten, GFM verwirft die überzähligen, und alles ab
     dem Pipe war in der gerenderten Ansicht unsichtbar. Betroffen waren alle
     sechs Fassungen; gerade die Passage, die den Verifikationsmodus
     definiert, fiel weg.
 
-    Kein bestehender Test faengt das: ``recommendations_live_check`` wertet
+    Kein bestehender Test fängt das: ``recommendations_live_check`` wertet
     nur ``_cells(row)[0]`` aus, der Konsistenztest nur die Nummernmenge —
-    ``make check`` blieb gruen, der Schaden war rein visuell. Das Skript
-    maskiert beim Fortschreiben laengst selbst (``render_triage_row``); nur
+    ``make check`` blieb grün, der Schaden war rein visuell. Das Skript
+    maskiert beim Fortschreiben längst selbst (``render_triage_row``); nur
     die handgepflegten Bewertungsspalten fallen nicht unter diese Automatik.
+
+    Geprüft wird nur der Triage-Abschnitt, nicht jede Tabellenzeile der
+    Datei: Eine künftige Tabelle mit Issue-Links und anderer Spaltenzahl —
+    etwa unter „Vorige Runden" — würde sonst falsch-rot.
     """
     for lang, path in RECOMMENDATION_DOCS.items():
-        zeilen = _read(path).splitlines()
-        kopf = next(z for z in zeilen if re.match(r"^\|\s*#\s*\|", z))
-        spalten = len(_table_cells(kopf))
-        for nummer, zeile in enumerate(zeilen, start=1):
-            if not zeile.startswith("| [#"):
+        section = lc.TRIAGE_SECTION_PATTERNS[lang].search(_read(path))
+        assert section is not None, f"{lang}: Triage-Abschnitt nicht gefunden in {path}"
+        lines = section.group(0).splitlines()
+        header = next((line for line in lines if re.match(r"^\|\s*#\s*\|", line)), None)
+        assert header is not None, f"{lang}: keine Triage-Kopfzeile gefunden"
+        columns = len(_table_cells(header))
+        for row in lines:
+            if not row.startswith("| [#"):
                 continue
-            ist = len(_table_cells(zeile))
-            assert ist == spalten, (
-                f"{lang}:{nummer}: {ist} Zellen statt {spalten} — ein unmaskiertes "
-                "`|` in einer Zelle; GFM verwirft alles danach. Als `\\|` schreiben."
+            actual = len(_table_cells(row))
+            assert actual == columns, (
+                f"{lang}: {actual} Zellen statt {columns} — ein unmaskiertes `|` in "
+                f"einer Zelle; GFM verwirft alles danach. Als `\\|` schreiben. "
+                f"Zeile: {row[:80]}…"
             )
 
 
