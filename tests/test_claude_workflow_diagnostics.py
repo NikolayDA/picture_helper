@@ -937,7 +937,7 @@ def test_block_scalar_warning_sits_directly_above_claude_args() -> None:
     index = lines.index("          claude_args: |")
     letzte = lines[index - 1].strip()
     assert letzte.startswith("#"), f"Vor `claude_args:` steht kein Kommentar, sondern: {letzte!r}"
-    assert "Kurzform als LETZTE Zeile vor dem Block" in letzte, (
+    assert "als LETZTE Zeile vor dem Block" in letzte, (
         f"Die Kurzwarnung grenzt nicht an `claude_args:` an; dort steht: {letzte!r}"
     )
     # Der Warntext selbst darf wachsen, muss aber oberhalb zusammenhängen.
@@ -945,4 +945,15 @@ def test_block_scalar_warning_sits_directly_above_claude_args() -> None:
     assert "ACHTUNG, Block-Skalar" in block, "Keine Kurzwarnung über `claude_args:`"
     assert "CLI-Argument an Claude Code" in block, (
         "Die Kurzform nennt nicht, was beim Bruch der Regel passiert"
+    )
+    # Review-Befund auf 2c52eb5: Der Verweis auf die lange Begründung stand als
+    # „rund 130 Zeilen weiter oben" und zeigte auf 153 – eine Zahl, die beim
+    # nächsten Einschub erneut driftet, in einem Kommentar, dessen Zweck die
+    # Auffindbarkeit ist. Verwiesen wird deshalb über eine Textmarke.
+    warnung = block[block.index("ACHTUNG, Block-Skalar"):]
+    assert not re.search(r"\d+\s+Zeilen (weiter )?(oben|höher)", warnung), (
+        "Die Kurzwarnung verweist über eine Zeilenzahl – die driftet beim nächsten Einschub"
+    )
+    assert "Achtung: `claude_args` ist ein Block-Skalar" in warnung, (
+        "Der Verweis nennt keine Textmarke, über die die lange Begründung auffindbar bleibt"
     )

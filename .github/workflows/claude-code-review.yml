@@ -368,8 +368,11 @@ jobs:
           # steht die Einteilung hier und nicht im geteilten Diagnoseschritt.
           # ACHTUNG, Block-Skalar: Jede Zeile unter `claude_args:` geht als
           # CLI-Argument an Claude Code – Erklärungen gehören hierher, nicht
-          # dorthin. Die Begründung dazu steht rund 130 Zeilen weiter oben,
-          # deshalb steht die Kurzform als LETZTE Zeile vor dem Block.
+          # dorthin. Ausführlich steht das oben an der Kopfzeile „Achtung:
+          # `claude_args` ist ein Block-Skalar" – bewusst als Textmarke statt
+          # als Zeilenzahl: Die driftet beim nächsten Einschub selbst, und
+          # dieser Verweis soll auffindbar bleiben. Deshalb steht die Kurzform
+          # als LETZTE Zeile vor dem Block.
           claude_args: |
             --max-turns 30
             --model claude-opus-5
