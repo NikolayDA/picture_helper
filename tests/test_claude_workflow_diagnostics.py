@@ -389,6 +389,20 @@ def test_claude_args_block_carries_only_arguments(relative: str) -> None:
     # mehr sieht. Genau die Bauart, die dieser PR sonst per Negativkontrolle
     # aussortiert.
     assert match.group("body").strip(), f"{relative}: claude_args-Block leer erfasst"
+    # Zweiter Befund derselben Bauart, eine Zeile später: Der Guard oben fängt
+    # die LEERE Erfassung, nicht die ABGESCHNITTENE. Eine Zeile mit elf Spaces
+    # oder einem Tab mitten im Block beendet das Match — `body` trägt dann die
+    # ersten Argumente (der Guard hält), alles danach inklusive
+    # `--allowedTools` liegt außerhalb, `strays` bleibt leer, Test grün und
+    # blind. Geprüft wird deshalb, dass das Match am Blockende stoppt: Die
+    # nächste nicht-leere Zeile muss ein YAML-Schlüssel oder Kommentar auf
+    # höchstens zehn Spalten sein. Elf Spaces oder ein Tab fallen durch.
+    rest = text[match.end():]
+    stopper = next((line for line in rest.splitlines() if line.strip()), "")
+    assert not stopper or re.match(r"^ {0,10}[^\s]", stopper), (
+        f"{relative}: claude_args-Block bricht mitten drin ab bei {stopper!r} – "
+        "der Rest des Blocks wird nicht geprüft"
+    )
     strays = [
         line for line in match.group("body").splitlines()
         if line.strip() and not line.lstrip().startswith("--")

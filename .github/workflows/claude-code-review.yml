@@ -257,9 +257,16 @@ jobs:
           # einer Ausgabeumleitung (`>`, `>>`, `2>`) wird zusätzlich als
           # Dateischreibzugriff geprüft („a rule such as `Bash(git commit *)`
           # allows the command, not the target"). Es bleibt damit der
-          # Argumentraum der freigegebenen Unterkommandos selbst – vor allem
-          # `--repo` und eine vollständige URL bei `gh issue view`, beide unten
-          # als akzeptiertes Restrisiko geführt.
+          # Argumentraum der freigegebenen Unterkommandos selbst: `-R/--repo`
+          # nehmen `pr view`, `pr diff` und `pr list` genauso wie `issue view`,
+          # dazu bei `issue view` eine vollständige URL als Positionsargument.
+          # Der cross-repo-LESEkanal ist damit älter als dieser PR – die drei
+          # `gh pr`-Formen stehen seit jeher als `:*` in der Allowlist;
+          # `gh issue view` erweitert ihn, eröffnet ihn nicht. Für die
+          # Schreibrichtung ändert das nichts: Der `GITHUB_TOKEN` ist auf
+          # dieses Repository begrenzt, `gh pr comment -R fremd/repo`
+          # scheitert. Alles unten als akzeptiertes Restrisiko geführt; tragend
+          # bleibt die Prompt-Regel, nicht die Flagliste.
           # Zweite Schicht (nicht die tragende): Keines
           # der freigegebenen Unterkommandos (`pr diff|view|list|comment`,
           # `issue view`) kennt selbst ein dateischreibendes Flag. Bei Git
