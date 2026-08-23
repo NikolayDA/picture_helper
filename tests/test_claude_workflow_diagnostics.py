@@ -375,6 +375,36 @@ def test_a_non_empty_denial_list_can_never_report_zero(relative: str) -> None:
     )
 
 
+def test_prompt_carries_no_literal_pr_number_in_a_callable_form() -> None:
+    """Review-Befund auf 20e4eee: Eine kopierfähige Nummer auf dem Ausgabeweg.
+
+    Der Beleg für die `#`-Regel zitierte den echten Aufruf samt Nummer —
+    `gh pr comment 850 --body '## …'` —, und das war die **einzige**
+    vollständig ausgeschriebene `gh`-Form im ganzen Prompt. Alle anderen
+    Stellen schreiben `<nr>` und verweisen auf die Event-Nummer.
+
+    Der Schaden wäre kein Kommandofehler und keine Ablehnung, sondern ein
+    öffentlicher Kommentar auf einem FREMDEN PR: `Abgelehnte Aufrufe: 0`,
+    Lauf grün, Review am falschen Ort. Wieder ein stiller Ausgang, wieder auf
+    dem einzigen Ausgabeweg — und die Diagnose sähe ihn nicht.
+
+    Der Beleg hängt ohnehin an der Lauf-ID, nicht an der Nummer. Geprüft wird
+    deshalb strukturell: keine Ziffernfolge als Argument eines `gh`-Aufrufs,
+    unabhängig davon, welche Nummer ein späterer Umbau einsetzt.
+    """
+    prompt = " ".join(_review_prompt().split())
+    literale = re.findall(r"gh (?:pr|issue) [a-z-]+ (\d+)", prompt)
+    assert not literale, (
+        f"Der Prompt zeigt eine kopierfähige `gh`-Form mit fester Nummer {literale}: "
+        "Ein späterer Lauf kommentiert damit auf einem fremden PR, und die "
+        "Diagnose meldet trotzdem null Ablehnungen"
+    )
+    assert "32640784005" in prompt, (
+        "Ohne die Lauf-ID trägt der Beleg nichts mehr — sie ist der Grund, "
+        "warum die Nummer im Beispiel entbehrlich ist"
+    )
+
+
 def test_prompt_bars_the_flags_that_remove_findings() -> None:
     """Review-Befund auf 6f7dd87: Die fünfte Verengung fehlte.
 

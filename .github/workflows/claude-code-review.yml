@@ -143,7 +143,7 @@ jobs:
               entscheidet es jedenfalls nicht, denn innerhalb einfacher
               Anführungszeichen ist `#` nie ein Kommentarzeichen; hier prüft
               die Kommandoanalyse. Kein Stilwunsch: In Lauf 32640784005 wurde
-              `gh pr comment 850 --body '## …'` abgelehnt, weil eine
+              `gh pr comment <nr> --body '## …'` abgelehnt, weil eine
               Argumentzeile mit `#` begann.
               Das ist eine Formregel, KEIN Grund für eine dünne
               Zusammenfassung: Längere Codezitate gehören ohnehin in die
