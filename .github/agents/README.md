@@ -81,21 +81,28 @@ erreicht einen Agenten mit `pull-requests: write` – dieselbe Kante wie bei
 WebFetch, tragend bleibt `contents: read`. Die benötigte Historie stellt der
 kontrollierte Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen,
 PR-Code lokal ausführen, generisches `gh api` und Änderungen am Checkout
-bleiben ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
-`tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert. Der
+bleiben ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen
+sind in `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz
+verankert. Der
 Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
 den Merge, bis die Konversation aufgelöst ist.
 
 Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
-die Einteilung über `claude_args`: **L** (lesende Inspektion) darf nie
-abgelehnt werden – eine Ablehnung dieser Klasse ist eine Lücke in der
-Allowlist und gehört geschlossen. **A** (Ausführung), **N** (Netzzugriff
-außerhalb der freigegebenen Domains) und **S** (Schreibzugriff)
-dürfen dagegen immer abgelehnt werden; sie sind ein Prompt-Befund und
-rechtfertigen keine Erweiterung der Freigaben. Ohne diese Trennung ist ein
-grüner Lauf keine Aussage über die Werkzeuggrenze: Lauf 32600075322 meldete
-`Lauf: success` bei sechs Ablehnungen.
+die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
+Inspektion) darf nie abgelehnt werden – eine Ablehnung dieser Klasse ist eine
+Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
+(Netzzugriff außerhalb der freigegebenen Domains), **S** (Schreibzugriff) und
+**P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
+Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
+Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. Genau eine
+Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
+Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
+Remote-Schreibzugriffe; ihre Ablehnung zählt wie **L**, sonst stünde der
+schlimmste Fall (Befund gefunden, Kommentar abgewiesen, PR ohne Review) als
+Normalfall im Joblog. Ohne diese Trennung ist ein grüner Lauf keine Aussage
+über die Werkzeuggrenze: Lauf 32600075322 meldete `Lauf: success` bei sechs
+Ablehnungen.
 
 Für den interaktiven Agenten in `claude.yml` gilt diese Einteilung **nicht**.
 Er hat keine Allowlist, hält `contents: write` und soll Code schreiben,

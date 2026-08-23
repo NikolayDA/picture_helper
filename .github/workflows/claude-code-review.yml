@@ -165,6 +165,12 @@ jobs:
           # `diff` und `log` könnten sonst mit `--output` Dateien schreiben. Nur
           # die unten vollständig ausgeschriebenen Argumentformen sind erlaubt;
           # die Historie dafür kommt kontrolliert aus `actions/checkout`.
+          # Die `gh`-Familie behält dagegen ihre Präfix-Wildcards: Ihre
+          # Argumente sind PR-/Issue-Nummern, feste Formen wären dort nicht
+          # praktikabel, und keines der freigegebenen Unterkommandos
+          # (`pr diff|view|list|comment`, `issue view`) kennt ein Flag, das
+          # eine Datei schreibt. Der Unterschied ist also nicht Nachlässigkeit,
+          # sondern folgt der Frage, ob eine feste Argumentform möglich ist.
           # Bewusst nicht freigegeben sind `git fetch`, lokale Testausführung,
           # pauschales `gh api`, Edit/Write und alle Git-/Datei-Schreibbefehle.
           # `gh issue view` nachgezogen (#841): Lauf 32600652295 wurde zweimal
@@ -187,8 +193,16 @@ jobs:
           #       ist eine Lücke in genau dieser Allowlist und gehört gefixt.
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
           #   N = Netzzugriff außerhalb der WebFetch-Domains,
-          #   S = Schreibzugriff (Datei, Git, Remote).
-          # A, N und S DÜRFEN abgelehnt werden – sie sind ein Prompt-Befund,
+          #   S = Schreibzugriff (Datei, Git, Remote),
+          #   P = lesende Absicht in nicht freigegebener Form (abweichende
+          #       Flags, Pipe, Umleitung, Verkettung) – etwa
+          #       `git log … --max-count=20` statt der freigegebenen 30.
+          #       Zählt als Prompt-Befund, NICHT als Allowlist-Lücke: Die
+          #       exakten Formen stehen im Prompt, und die Allowlist ist
+          #       bewusst exakt-formig. Ohne diese Klasse fiele der häufigste
+          #       Ablehnungsfall durch das Raster und das zweite
+          #       Akzeptanzkriterium von #841 wäre nicht entscheidbar.
+          # A, N, S und P DÜRFEN abgelehnt werden – sie sind ein Prompt-Befund,
           # kein Berechtigungsfehler, und rechtfertigen keine Erweiterung der
           # Allowlist. Genau eine Ausnahme: Die beiden Ausgabewege des Reviews
           # (Inline-Kommentar-Werkzeug und `gh pr comment`) sind selbst

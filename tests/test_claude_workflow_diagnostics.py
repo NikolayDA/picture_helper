@@ -80,10 +80,27 @@ def _diagnostic_block(relative: str) -> str:
     """Den Diagnoseschritt aus *relative* rein textbasiert herausschneiden."""
     text = (_ROOT / relative).read_text(encoding="utf-8")
     match = re.search(
-        rf"(?ms)^      - name: {re.escape(_DIAGNOSTIC_NAME)}\n.*?(?=^      - |\n\S|\Z)",
+        rf"(?ms)^      - name: {re.escape(_DIAGNOSTIC_NAME)}\n.*?(?=^      [-#]|\n\S|\Z)",
         text,
     )
     assert match, f"{relative}: Diagnoseschritt nicht gefunden"
+    return match.group(0)
+
+
+def _shared_comment_block(relative: str) -> str:
+    """Den #825-Kommentarblock über dem Diagnoseschritt herausschneiden.
+
+    Er beginnt an seiner Kopfzeile und endet am Schritt selbst; die in
+    ``claude.yml`` darüber stehende workflow-spezifische Deutung ist durch
+    eine Leerzeile abgetrennt und damit nicht Teil des Ausschnitts.
+    """
+    text = (_ROOT / relative).read_text(encoding="utf-8")
+    match = re.search(
+        r"(?ms)^      # Abgelehnte Werkzeugaufrufe sichtbar machen \(#825\)\..*?"
+        r"(?=^      - name:)",
+        text,
+    )
+    assert match, f"{relative}: geteilter #825-Kommentarblock nicht gefunden"
     return match.group(0)
 
 
@@ -137,6 +154,38 @@ def test_diagnostic_step_is_identical_in_both_workflows() -> None:
     """Beide Kopien müssen wortgleich bleiben (Drift-Schutz analog N6)."""
     first, second = (_step_by_name(w, _DIAGNOSTIC_NAME) for w in _WORKFLOWS)
     assert first == second, "Diagnoseschritt driftet zwischen den Claude-Workflows"
+
+
+def test_shared_comment_block_is_identical_in_both_workflows() -> None:
+    """Der Block behauptet seine eigene Wortgleichheit – also prüfen wir sie.
+
+    Review-Befund auf PR #850: ``test_diagnostic_step_is_identical_in_both_
+    workflows`` vergleicht ``yaml.safe_load``-Ergebnisse, Kommentare fallen
+    dabei weg. Der #825-Kommentarblock trug seine Zusage („in beiden
+    Claude-Workflows wortgleich") also ungedeckt – und seit diesem PR steht
+    in ``claude.yml`` workflow-spezifische Prosa direkt daneben.
+    """
+    first, second = (_shared_comment_block(relative) for relative in _WORKFLOWS)
+    assert first == second, "geteilter #825-Kommentarblock ist auseinandergelaufen"
+
+
+def test_agents_readme_carries_the_denial_taxonomy() -> None:
+    """Dritte Fundstelle der Klassen – bisher ohne Drift-Schutz (N6-Muster).
+
+    Whitespace wird normalisiert: Der Absatz ist umbrochen, eine Klasse darf
+    also über einem Zeilenwechsel stehen, ohne den Test zu brechen.
+    """
+    readme = " ".join(
+        (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split()
+    )
+    for phrase in (
+        "**L** (lesende",
+        "**A** (Ausführung)",
+        "**N** (Netzzugriff",
+        "**S** (Schreibzugriff)",
+        "**P** (lesende Absicht in nicht freigegebener Form",
+    ):
+        assert phrase in readme, f"agents/README.md nennt die Klasse nicht: {phrase!r}"
 
 
 def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
@@ -280,6 +329,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
         "A = Ausführung",
         "N = Netzzugriff",
         "S = Schreibzugriff",
+        "P = lesende Absicht in nicht freigegebener Form",
         "DÜRFEN abgelehnt werden",
     ):
         assert phrase in taxonomy, f"Taxonomie unvollständig: {phrase!r} fehlt"
