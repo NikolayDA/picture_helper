@@ -278,6 +278,147 @@ def test_diagnostic_never_reports_a_verdict_it_cannot_reach(relative: str) -> No
     )
 
 
+def test_class_p_takes_precedence_for_the_parameter_branch() -> None:
+    """Review-Befund auf 78f5495: Der Parameter-Zweig hatte keine Vorrangregel.
+
+    L ist über die Erreichbarkeit definiert. Der Prüfstein `--max-count=200`
+    erfüllt das wörtlich — die 200er-Form nachzuziehen *würde* die Allowlist
+    erweitern, und über die freigegebene 30er-Form ist dieselbe Information
+    gerade **nicht** erreichbar (200 Commits ⊅ 30). Die Parameter-Ausnahme in
+    der P-Abgrenzung sagt trotzdem P. Zwei Regeln, entgegengesetztes Ergebnis,
+    und die Auflösung stand nur auf der P-Seite.
+
+    Für die identische Kollision bei N ist die Vorrangregel längst gezogen
+    („N GEHT L VOR"). Ohne das Gegenstück hinge ausgerechnet der Prüfstein,
+    der die Gegenrichtung sichern soll, wieder an der Auslegung des
+    Auswertenden — genau die Hintertür, die die Abgrenzung schließen soll.
+    """
+    taxonomie = " ".join(_review_taxonomy().replace("#", " ").split())
+    assert "P GEHT L VOR" in taxonomie, (
+        "Ohne Vorrangregel ist `--max-count=200` zugleich P und L"
+    )
+    assert "PARAMETER eines bereits freigegebenen Kommandos" in taxonomie, (
+        "Die Vorrangregel nennt ihren Geltungsbereich nicht und griffe zu weit"
+    )
+    assert "symmetrisch zu" in taxonomie, (
+        "Ohne den Bezug auf die N-Regel liest sich der Vorrang als Einzelfall"
+    )
+    readme = " ".join(_agents_readme().split())
+    assert "**P geht L vor**" in readme, (
+        "Zweite Fundstelle: Die README klassifiziert den Prüfstein sonst anders"
+    )
+
+
+def test_taxonomy_separates_what_is_observed_from_what_is_documented() -> None:
+    """Review-Befund auf 78f5495: Die Doku-Stelle deckt diesen Fall nicht.
+
+    Der Kommentar führte zwei unterschiedlich belegte Aussagen als eine
+    Quelle: dass ein Parse-Fehler einen freigegebenen Aufruf kippt (Lauf
+    32640784005, beobachtet) und dass jedes Kommando über 10 000 Zeichen
+    nachfragt (Doku). An der Quelle nachgeprüft: Der Satz steht unter
+    „Read-only commands", in der Liste „In Manual mode, commands from this
+    set still prompt in these cases" — also für den EINGEBAUTEN Read-only-
+    Satz (`ls`, `cat`, `grep`, …). `gh pr comment` gehört nicht dazu, es ist
+    allein über `Bash(gh pr comment:*)` erlaubt. Die Übertragung ist
+    plausibel, aber nicht dokumentiert.
+
+    In einem PR mit dem Maßstab „belegt statt angenommen" muss der
+    Evidenzgrad mitstehen, sonst wird die nächste lange Ablehnung „laut
+    Doku" als W verbucht, obwohl die Doku diese Stufe nicht abdeckt.
+    """
+    taxonomie = " ".join(_review_taxonomy().replace("#", " ").split())
+    assert "UNBELEGT für diesen Fall ist die 10-000-Zeichen-Schwelle" in taxonomie, (
+        "Der Evidenzgrad der Schwelle fehlt; sie liest sich wieder wie ein Zitat"
+    )
+    assert "Read-only commands" in taxonomie and "nicht gehört" in taxonomie, (
+        "Der Grund steht nicht dabei — ohne ihn kommt die Verkürzung zurück"
+    )
+    assert "BELEGT ist der Vorgang" in taxonomie, (
+        "Die beobachtete Hälfte ist nicht mehr als solche gekennzeichnet"
+    )
+    prompt = " ".join(_review_prompt().split())
+    assert "Ein Fall ist belegt, einer ist Vorsichtsmaß" in prompt, (
+        "Der Prompt kündigt weiter zwei belegte Fälle an, obwohl einer es nicht ist"
+    )
+    assert "Vorsichtsmaß, kein Zitat" in prompt, (
+        "Die Längenregel steht im Prompt wieder als Doku-Zitat"
+    )
+
+
+def test_prompt_does_not_explain_the_denial_with_shell_semantics() -> None:
+    """Review-Befund auf 78f5495: falscher Mechanismus in der Begründung.
+
+    Der Absatz stellt richtig fest, dass die Kommandoanalyse entscheidet,
+    begründete die Abhilfe dann aber mit dem Kommentarverhalten der Shell.
+    Für den beschriebenen Aufruf gilt das nicht: Der Body steht in einfachen
+    Anführungszeichen, und dort ist `#` nie ein Kommentarzeichen — mit oder
+    ohne führendes Leerzeichen. Dieselbe Kategorie wie die zuvor gestrichene
+    unbelegte Abhilfe, nur als Begründung statt als Empfehlung, und wieder
+    am einzigen Ausgabeweg.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "In der Shell beginnt `#` einen Kommentar" not in prompt, (
+        "Die Begründung über die Shell-Kommentarregel ist zurück — sie ist auf "
+        "einen Body in einfachen Anführungszeichen nicht anwendbar"
+    )
+    assert "ist UNBELEGT" in prompt, (
+        "Ohne die ausdrückliche Kennzeichnung liest sich der Rat wieder als Regel"
+    )
+    assert "hier prüft die Kommandoanalyse" in prompt, (
+        "Der zuständige Mechanismus wird nicht mehr benannt"
+    )
+
+
+def test_prompt_bounds_how_many_issues_the_review_reads() -> None:
+    """Review-Befund auf 78f5495: „die Issue-Nummer" ist Singular.
+
+    PR-Beschreibungen dieses Repositorys nennen regelmäßig vier bis fünf
+    Nummern. Der Satz war damit nicht nur ungedeckelt, sondern mehrdeutig:
+    Zwei Läufe können ihn verschieden lesen, und die Verifikationsmessung
+    für #841 vergliche dann Läufe mit unterschiedlichem Leseumfang. Jede
+    zusätzliche Nummer kostet außerdem einen Turn von dreißig, bevor
+    irgendetwas gepostet ist — und bringt fremdverfassten Text zu einem
+    Agenten mit `pull-requests: write`.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "höchstens ZWEI insgesamt" in prompt, (
+        "Der Leseumfang ist wieder unbegrenzt; die Messung vergleicht dann "
+        "Läufe, die verschieden viel gelesen haben"
+    )
+    assert "Das **erste** im Kopf der Beschreibung genannte Bezugsissue" in prompt, (
+        "Ohne die Auswahlregel bleibt offen, welches Issue gemeint ist"
+    )
+
+
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_diagnostic_marks_the_class_on_both_branches(relative: str) -> None:
+    """Review-Befund auf 78f5495: Die Klassentrennung war textbasiert.
+
+    `tojson` und `gsub` machen „genau eine Zeile je Ablehnung" strukturell
+    wahr; die Aufteilung in `count`/`anomalien` fiel eine Zeile später
+    zurück und erkannte die Anomalie am gerenderten Präfix. Ohne Marke auf
+    dem regulären Zweig beginnt eine gewöhnliche Zeile mit dem rohen
+    `tool_name` — ein `tool_name`, der mit `[ANOMALIE] ` anfängt, liefe in
+    die falsche Zahl, und zwar in die, die das Kriterium von #841 trägt.
+
+    Beide Zweige tragen jetzt eine Marke, die `jq` selbst setzt. Damit ist
+    das erste Feld nie Fremdinhalt, und die Kollision ist strukturell
+    ausgeschlossen statt unwahrscheinlich.
+    """
+    script = _step_by_name(relative, _DIAGNOSTIC_NAME)["run"]
+    assert '"[OK] \\(.tool_name' in script, (
+        f"{relative}: Der reguläre Zweig trägt keine Marke — das erste Feld "
+        "der Zeile ist wieder der rohe `tool_name`"
+    )
+    assert "grep -c '^\\[OK\\] '" in script, (
+        f"{relative}: Gezählt wird nicht über die Marke, sondern über ihr Fehlen"
+    )
+    assert "grep -cv" not in script, (
+        f"{relative}: Die Zählung per Ausschluss ist zurück; sie verbucht einen "
+        "`tool_name` mit Anomalie-Präfix als Anomalie"
+    )
+
+
 def test_review_bash_allowlist_matches_inspection_and_comment_boundary() -> None:
     """#841: nur belegte Lesewege und der PR-Kommentar dürfen Bash nutzen."""
     allowed = _review_allowed_tools()
@@ -1250,7 +1391,7 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     # Die Quellen selbst stehen jetzt bei der Klasse W, nicht mehr in der
     # Grenze – geprüft wird deshalb auf dem ganzen Taxonomie-Block.
     ganze = " ".join(_review_taxonomy().replace("#", " ").split())
-    for quelle in ("nicht vollständig", "10 000 Zeichen", "Pfadregel"):
+    for quelle in ("nicht vollständig", "10-000-Zeichen-Schwelle", "Pfadregel"):
         assert quelle in ganze, f"Die Ursachen der Klasse W fehlen: {quelle!r}"
     # Review-Befund auf a4836bc, in einem Reviewlauf beobachtet: Eine
     # WebFetch-Umleitung auf einen fremden Host erzeugt gar keine Ablehnung —

@@ -85,9 +85,9 @@ Code-Weg. Die benötigte Historie stellt der
 kontrollierte Checkout vor dem Agentenlauf bereit. Was bewusst draußen
 bleibt, steht als eine Aufzählung weiter unten in der Ablehnungs-Einteilung
 (#841) – hier absichtlich nicht wiederholt: Die Liste entscheidet über P statt
-L, und eine vierte Fundstelle wäre die vierte, die driften kann. Die zugehörigen Prompt- und Allowlist-Grenzen
-sind in `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz
-verankert.
+L, und eine vierte Fundstelle wäre die vierte, die driften kann. Die
+zugehörigen Prompt- und Allowlist-Grenzen sind in
+`tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
 
 Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
@@ -102,7 +102,12 @@ Eintrag zu eng geschnitten ist – auch `WebFetch` auf eine der freigegebenen
 Domains gehört hierher –, oder eine lesende Abfrage, deren
 Information keine freigegebene Form liefert und die nicht unter „Bewusst nicht
 freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
-Erreichbarkeit, nicht die Form. Das endet, wo die Allowlist nicht mehr
+Erreichbarkeit, nicht die Form. **P geht L vor**, wenn die Enge nur die
+Parameter eines bereits freigegebenen Kommandos betrifft – symmetrisch zur
+Domain-Regel unten: Die konkrete Argumentform ist selbst eine dokumentierte
+Entscheidung. Ohne diesen Vorrang erfüllt `--max-count=200` beide
+Definitionen und der Prüfstein hinge an der Auslegung. Das endet, wo die
+Allowlist nicht mehr
 entscheidet: Liegt die Ursache außerhalb von `--allowedTools`, könnte keine
 Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführung),
 **N** (Netzzugriff auf eine **nicht** freigegebene Domain – **N geht L vor**,

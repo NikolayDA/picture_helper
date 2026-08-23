@@ -131,23 +131,26 @@ jobs:
             Die Regel dahinter: Der Body muss als **ein** Shell-Argument
             parsebar bleiben. Kann die Kommandoanalyse ihn nicht vollständig
             parsen, fragt sie nach – und ohne Interaktion ist Nachfragen die
-            Ablehnung. Zwei Fälle sind belegt:
+            Ablehnung. Ein Fall ist belegt, einer ist Vorsichtsmaß:
 
             - Beginne KEINE Zeile des Textes mit `#` – nutze
               `**Überschrift**` statt `## Überschrift`. Das gilt auch INNERHALB
               von Codeblöcken, und dort trifft es dich häufiger: Der Diff
               dieses Repositorys besteht großenteils aus YAML-/Python-
               Kommentaren. Zitiere solche Zeilen **inline in Backticks** –
-              nicht im Fence, und auch nicht eingerückt: In der Shell beginnt
-              `#` einen Kommentar auch nach führendem Leerzeichen, ein
-              Einrücken hilft also vermutlich gerade nicht. Kein Stilwunsch:
-              In Lauf
-              32640784005 wurde `gh pr comment 850 --body '## …'` abgelehnt,
-              weil eine Argumentzeile mit `#` begann.
-            - Halte die Zusammenfassung deutlich unter 10 000 Zeichen. Ein
-              Kommando über dieser Länge wird laut Doku IMMER zur Nachfrage,
-              und der Body zählt in die Kommandolänge. Im Zweifel kürzen statt
-              anhängen.
+              nicht im Fence, und auch nicht eingerückt: Ob ein führendes
+              Leerzeichen die Prüfung ändert, ist UNBELEGT. Die Shell
+              entscheidet es jedenfalls nicht, denn innerhalb einfacher
+              Anführungszeichen ist `#` nie ein Kommentarzeichen; hier prüft
+              die Kommandoanalyse. Kein Stilwunsch: In Lauf 32640784005 wurde
+              `gh pr comment 850 --body '## …'` abgelehnt, weil eine
+              Argumentzeile mit `#` begann.
+            - Halte die Zusammenfassung deutlich unter 10 000 Zeichen. Die
+              Schwelle ist für einen freigegebenen Aufruf UNBELEGT – die Doku
+              nennt sie für den eingebauten Read-only-Satz, zu dem
+              `gh pr comment` nicht gehört. Sie ist ein Vorsichtsmaß, kein
+              Zitat; der Body zählt aber in die Kommandolänge, und die
+              Analysestufe ist dieselbe. Im Zweifel kürzen statt anhängen.
 
             Beides trifft deinen Ausgabeweg und lässt den Lauf seinen Zweck
             verfehlen, obwohl nur die Form schuld ist. Für Inline-Kommentare
@@ -188,10 +191,12 @@ jobs:
             **keine** Checks – und bei Bedarf `gh pr list`. Run-IDs, die eine
             PR-Beschreibung als Evidenz zitiert, liest du **nicht** nach:
             `gh run` ist bewusst nicht freigegeben, Actions-Logs gehören nicht
-            zu deinem Auftrag. Die dort
-            referenzierte Issue-Nummer (`Closes #NNN`, `Fixes #NNN` oder ein
-            reiner Verweis wie „Bezug: #NNN") liest du mit
-            `gh issue view <nummer>`. **Alle** `gh`-Aufrufe gelten diesem
+            zu deinem Auftrag. Das **erste** im Kopf der Beschreibung
+            genannte Bezugsissue (`Closes #NNN`, `Fixes #NNN` oder ein reiner
+            Verweis wie „Bezug: #NNN") liest du mit `gh issue view <nummer>`,
+            höchstens ZWEI insgesamt: Beschreibungen dieses Repositorys nennen
+            regelmäßig vier bis fünf Nummern, und jede kostet einen Turn von
+            dreißig, bevor irgendetwas gepostet ist. **Alle** `gh`-Aufrufe gelten diesem
             Repository: nie `-R`/`--repo`, nie eine vollständige URL. Das
             betrifft nicht nur `issue view` – `pr view`, `pr diff` und
             `pr list` nehmen das Flag genauso, und eine injizierte
@@ -355,6 +360,16 @@ jobs:
           #           Form liefert und die nicht unter „Bewusst nicht
           #           freigegeben" steht – so lag `gh issue view` vor diesem PR.
           #       Tragend ist beide Male die ERREICHBARKEIT, nicht die Form.
+          #       P GEHT L VOR, wenn die Enge nur die PARAMETER eines bereits
+          #       freigegebenen Kommandos betrifft – symmetrisch zu „N geht L
+          #       vor": Die konkrete Argumentform ist selbst eine
+          #       dokumentierte Entscheidung. Ohne diese Zeile erfüllt der
+          #       Prüfstein `--max-count=200` beide Definitionen (die 200er-
+          #       Form nachzuziehen WÜRDE die Allowlist wörtlich erweitern,
+          #       und über die freigegebene 30er-Form ist dieselbe Information
+          #       gerade NICHT erreichbar) – ausgerechnet der Prüfstein, der
+          #       die Gegenrichtung sichern soll, hinge dann an der Auslegung
+          #       des Auswertenden.
           #       Nur über die Form definiert widerspräche L der P-Abgrenzung
           #       unten, die (b) als L führt; und die Aufzählung allein driftet
           #       mit jeder neuen Freigabe – genau so fiel eine freigegebene
@@ -423,14 +438,26 @@ jobs:
           #       weder eine lesende Absicht noch eine abweichende Form voraus
           #       (also nicht P – der belegte Fall unten ist ein SCHREIBaufruf
           #       in FREIGEGEBENER Form). Der Fix sitzt im Prompt oder im
-          #       Inhalt, nie in der Allowlist. Bekannte Quellen, beide aus
-          #       https://code.claude.com/docs/en/permissions:
+          #       Inhalt, nie in der Allowlist. Bekannte Quellen, mit
+          #       AUSDRÜCKLICH GETRENNTEN EVIDENZGRADEN:
           #       (1) Die Kommandoanalyse kann das Kommando nicht vollständig
-          #           parsen („when Claude Code can't fully parse a command, it
-          #           asks for approval"; ohne Interaktion ist Nachfragen die
-          #           Ablehnung) – dazu zählt ausdrücklich jedes Kommando über
-          #           10 000 Zeichen. Da der Body in die Kommandolänge eingeht,
-          #           kippt eine zu lange Zusammenfassung den Ausgabeweg.
+          #           parsen. BELEGT ist der Vorgang: Lauf 32640784005 wies
+          #           einen über `Bash(gh pr comment:*)` freigegebenen Aufruf
+          #           ab, weil eine Argumentzeile mit `#` begann. Die Ursache
+          #           ist daraus erschlossen; der Doku-Satz „when Claude Code
+          #           can't fully parse a command, it asks for approval"
+          #           (https://code.claude.com/docs/en/permissions) passt dazu.
+          #           UNBELEGT für diesen Fall ist die 10-000-Zeichen-Schwelle
+          #           aus derselben Quelle: Sie steht unter „Read-only
+          #           commands", in der Liste „In Manual mode, commands from
+          #           this set still prompt in these cases" – also für den
+          #           EINGEBAUTEN Read-only-Satz (`ls`, `cat`, `grep`, …), zu
+          #           dem `gh pr comment` nicht gehört. Die Übertragung auf
+          #           einen allowlist-gedeckten Aufruf ist plausibel (dieselbe
+          #           Analysestufe), aber nicht dokumentiert. Deshalb steht die
+          #           Länge im Prompt als Vorsichtsmaß, nicht als Zitat: Sonst
+          #           wird die nächste lange Ablehnung „laut Doku" als W
+          #           verbucht, obwohl die Doku diese Stufe nicht abdeckt.
           #       (2) Eine Pfadregel für die ohne Pfadmuster freigegebenen
           #           `Read`/`Grep`/`Glob` (der Prompt nennt den Checkout als
           #           Grundlage).
@@ -532,10 +559,10 @@ jobs:
           # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
           # und der kaputte Datensatz wird als solcher sichtbar.
           # Die Typprüfung gilt für Container UND Elemente. `.permission_denials[]?`
-          # allein haerte nur die Elemente: Ist das Feld selbst kein Array
-          # (String, Zahl, `null`), schluckt `[]?` den Fehler, `jq` laeuft
+          # allein härte nur die Elemente: Ist das Feld selbst kein Array
+          # (String, Zahl, `null`), schluckt `[]?` den Fehler, `jq` läuft
           # durch, `count` wird 0 und der Joblog meldet „Abgelehnte Aufrufe:
-          # 0" — der stille Durchlauf, den dieser Schritt gerade ausschliessen
+          # 0" — der stille Durchlauf, den dieser Schritt gerade ausschließen
           # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
           # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
           # Das abschliessende `gsub` macht „genau eine Ausgabezeile je
@@ -555,7 +582,7 @@ jobs:
                                 | if (.permission_denials | type) == "array"
                                   then .permission_denials[]
                                        | if type == "object"
-                                         then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
+                                         then "[OK] \(.tool_name // "?") [Felder: \(keys | join(","))]: "
                                               + "\(.tool_input | tojson | .[0:300])"
                                          else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
@@ -569,28 +596,39 @@ jobs:
           # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
           # in einem anderen Datensatz als `permission_denials`, ein Fallback
           # darauf meldete sonst "0" neben einer nicht leeren Liste.
-          # Anomalien zählen getrennt. `has("permission_denials")` ist auch für
-          # ein explizites `null` wahr; liefe die Anomaliezeile in dieselbe
-          # Zahl, färbte ein Serialisierer, der die leere Liste als `null`
-          # schreibt, jeden sauberen Lauf – und das Kriterium von #841 lautet
-          # wörtlich „null Ablehnungen". Fail-closed bleibt: Die Zeile wird
-          # ausgegeben, nur eben als eigene Größe.
+          # Anomalien zählen getrennt, und die Klasse steht als ERSTES FELD
+          # der Zeile – beide Zweige tragen eine Marke. Am Präfix allein
+          # ließe sie sich nicht ablesen: Ohne `[OK]` beginnt eine reguläre
+          # Zeile mit dem rohen `tool_name`, und ein `tool_name`, der mit
+          # `[ANOMALIE] ` anfängt, liefe in die falsche Zahl – ausgerechnet
+          # in die, die das Kriterium von #841 trägt. Heute kein realer Fund
+          # (der Name kommt aus dem SDK), aber dieselbe Sorte Annahme, die
+          # `tojson` und `gsub` oben gerade ablegen.
+          # `has("permission_denials")` ist auch für ein explizites `null`
+          # wahr, und `null` wird bewusst als Anomalie gebucht statt als
+          # „keine Ablehnungen": Beobachtet ist nur der Array-Fall, und die
+          # Gleichsetzung mit `[]` wäre die gefährlichere Wette. EHRLICH
+          # GESAGT heisst das: Träfe die Action diese Serialisierung je,
+          # meldete JEDER Lauf „unbestimmt" plus Warnung, und die Messreihe
+          # zu #841 stünde still, bis der Fall entschieden ist. Die getrennte
+          # Zählung verhindert das nicht – sie macht es nur sichtbar statt
+          # still, und genau das ist hier der Zweck.
           count=0
           anomalien=0
           if [ -n "$denials" ]; then
-            count=$(printf '%s\n' "$denials" | grep -cv '^\[ANOMALIE\] ' || true)
+            count=$(printf '%s\n' "$denials" | grep -c '^\[OK\] ' || true)
             anomalien=$(printf '%s\n' "$denials" | grep -c '^\[ANOMALIE\] ' || true)
           fi
           jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE" || true
-          # Wortlaut und Reihenfolge: Bei ausschliesslich Anomalien stand hier
-          # zuerst woertlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
+          # Wortlaut und Reihenfolge: Bei ausschließlich Anomalien stand hier
+          # zuerst wörtlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
           # nach der beim Auswerten von #841 gesucht wird. Sie behauptete
           # etwas, das der Schritt nicht wissen kann: Die Liste ist
           # *unbekannt*, nicht leer. Ist etwas nicht auswertbar, nennt die
-          # Zeile deshalb keine Zahl, die als Urteil gelesen werden koennte –
-          # auch nicht als Teilkette. Der saubere Fall bleibt unveraendert.
+          # Zeile deshalb keine Zahl, die als Urteil gelesen werden könnte –
+          # auch nicht als Teilkette. Der saubere Fall bleibt unverändert.
           if [ "$anomalien" -gt 0 ]; then
             echo "::warning::Nicht auswertbare Datensätze: $anomalien"
             echo "Abgelehnte Aufrufe: unbestimmt ($count auswertbar, $anomalien nicht auswertbar)"
