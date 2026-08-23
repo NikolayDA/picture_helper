@@ -776,7 +776,10 @@ def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
         "Arbeite ausschließlich bewertend",
         "lasse den Checkout unverändert",
         "git fetch",
-        "Tests oder PR-Code lokal auszuführen",
+        # Seit #828 steht die Grenze einmal kanonisch statt dreifach verteilt;
+        # der Anker zeigt auf die Ausführungsklasse dieser einen Fassung.
+        "**Ausführung** (Tests, Linter",
+        "dauerhaft gesperrt",
         "gh api",
         "git checkout`/`restore",
         "Read, Grep oder Glob",

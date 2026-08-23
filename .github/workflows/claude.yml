@@ -13,6 +13,21 @@ name: Claude Code
 # Alternativ ANTHROPIC_API_KEY – dann unten wieder das Input
 # `anthropic_api_key` einsetzen. Ohne Secret wird der Claude-Schritt sauber
 # übersprungen (kein roter Lauf).
+#
+# Token-Ablauf (#828): `claude setup-token` erzeugt ein Token mit einem Jahr
+# Gueltigkeit. Das aktuelle stammt vom 2026-08-18 und laeuft damit am
+# 2027-08-18 ab. Danach scheitern beide Claude-Workflows mit einem
+# Authentifizierungsfehler - rot, nicht still. Erneuern: lokal
+# `claude setup-token`, Ergebnis als Repo-Secret CLAUDE_CODE_OAUTH_TOKEN.
+#
+# Kosten und Nutzungslimit (#828): Beide Workflows sind auf Opus gepinnt und
+# rechnen ueber das persoenliche Abo des Token-Inhabers. Ist das Limit
+# erschoepft, wird der Lauf **rot**, nicht uebersprungen; das beobachtete
+# Fehlerbild ist ein frueher Abbruch ohne Modellnutzung (`subtype: success`
+# zusammen mit `is_error: true`, 0-1 Turns, 0 Ablehnungen - siehe Lauf
+# 32605664173). Muss zurueckgedreht werden, ist `claude.yml` die erste
+# Stelle: Der interaktive Agent schreibt Code und hat mit `--max-turns 25`
+# das groessere Budget, waehrend das Review nur bewertet.
 
 on:
   issue_comment:
@@ -170,8 +185,9 @@ jobs:
                                 | if (.permission_denials | type) == "array"
                                   then .permission_denials[]
                                        | if type == "object"
-                                         then "[ABLEHNUNG] \(.tool_name // "?") [Felder: \(keys | join(","))]: "
-                                              + "\(.tool_input | tojson | .[0:300])"
+                                         then "[ABLEHNUNG] \(.tool_name // "?") [Felder: \(keys | join(","))]"
+                                              + (if has("reason") then " [Grund: \(.reason | tojson | .[0:200])]" else "" end)
+                                              + ": \(.tool_input | tojson | .[0:300])"
                                          else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
                                   else "[ANOMALIE] permission_denials ist \(.permission_denials | type), kein Array"
@@ -217,9 +233,17 @@ jobs:
             # eine Ebene tiefer gerade ablegen.
             anomalien=$(( gesamt - count ))
           fi
-          jq -r '.. | objects | select(has("num_turns"))
+          if ! abschluss=$(jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
-            "$EXECUTION_FILE" || true
+            "$EXECUTION_FILE"); then
+            echo "::warning::Abschlussdatensatz nicht auswertbar."
+            echo "Lauf: unbestimmt"
+          elif [ -z "$abschluss" ]; then
+            echo "::warning::Kein Abschlussdatensatz im Protokoll."
+            echo "Lauf: unbestimmt"
+          else
+            printf '%s\n' "$abschluss"
+          fi
           # Wortlaut und Reihenfolge: Bei ausschließlich Anomalien stand hier
           # zuerst wörtlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
           # nach der beim Auswerten gesucht wird. Sie behauptete

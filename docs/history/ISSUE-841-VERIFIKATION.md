@@ -54,6 +54,32 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    daraus nicht maschinell rekonstruierbar. Maßgeblich ist die Definition in
    `.github/workflows/claude-code-review.yml`, nicht eine Zusammenfassung davon.
 
-Die qualitative Hälfte — *wie gut* ein Review war — bleibt außerhalb dieses
-maschinell prüfbaren Teils und wird in
-[#828](https://github.com/NikolayDA/picture_helper/issues/828) geführt.
+## Qualitative Hälfte (#828)
+
+Die vier Punkte oben messen **Ablehnungen**, der Zweck des Jobs ist aber ein
+gutes Review. Ein Lauf mit `Abgelehnte Aufrufe: 0` und einer inhaltsarmen
+Zusammenfassung erfüllt sie formal — der Diagnoseschritt zählt, was abgewiesen
+wurde, nie was geleistet wurde. Deshalb aus
+[#828](https://github.com/NikolayDA/picture_helper/issues/828) als fünfte,
+bewusst nicht maschinell prüfbare Bedingung:
+
+> Ein Lauf zählt nur, wenn er auch etwas geliefert hat: mindestens eine
+> Zusammenfassung als PR-Kommentar mit konkretem Bezug zum Diff, und
+> Inline-Befunde, sofern der Diff welche hergibt. Ein ablehnungsfreier Lauf
+> ohne Befunde und ohne nachvollziehbare Prüfung zählt nicht als grün, sondern
+> gar nicht.
+
+Der Anlass ist konkret: Der Prompt in `.github/workflows/claude-code-review.yml`
+ist mit #850 von rund 40 auf über 100 Zeilen gewachsen, und der Zuwachs ist fast
+vollständig Werkzeug- und Formatgovernance. Der fachliche Auftrag steht
+unverändert in sechs Zeilen ganz oben. Anweisungen wirken auch über Umfang und
+Nachdrücklichkeit, und Regeln optimieren zuverlässig auf die Messgröße.
+
+Die Go-/No-Go-Entscheidung ist ohnehin ein menschlicher Schritt; diese Bedingung
+verhindert nur, dass die Zahl allein den Ausschlag gibt.
+
+**#828 bleibt offen.** Sein Akzeptanzkriterium verlangt einen Folgelauf mit
+*weniger Ablehnungen* als der jeweilige Referenzlauf. Diese Messreihe hat nie
+stattgefunden: #841 wurde vor ihrem Beginn geschlossen. Die Kriterien stehen
+deshalb hier, das Issue bleibt bis zu einer echten Messung offen — ein Haken
+ohne Messwert wäre genau die Lücke, gegen die dieses Dokument geschrieben ist.

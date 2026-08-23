@@ -11,6 +11,21 @@ name: Claude Code Review
 # `claude setup-token`; rechnet über das Claude-Abo statt über eine
 # API-Abrechnung). Ohne Secret wird das Review sauber übersprungen (kein
 # roter Lauf).
+#
+# Token-Ablauf (#828): `claude setup-token` erzeugt ein Token mit einem Jahr
+# Gueltigkeit. Das aktuelle stammt vom 2026-08-18 und laeuft damit am
+# 2027-08-18 ab. Danach scheitern beide Claude-Workflows mit einem
+# Authentifizierungsfehler - rot, nicht still. Erneuern: lokal
+# `claude setup-token`, Ergebnis als Repo-Secret CLAUDE_CODE_OAUTH_TOKEN.
+#
+# Kosten und Nutzungslimit (#828): Beide Workflows sind auf Opus gepinnt und
+# rechnen ueber das persoenliche Abo des Token-Inhabers. Ist das Limit
+# erschoepft, wird der Lauf **rot**, nicht uebersprungen; das beobachtete
+# Fehlerbild ist ein frueher Abbruch ohne Modellnutzung (`subtype: success`
+# zusammen mit `is_error: true`, 0-1 Turns, 0 Ablehnungen - siehe Lauf
+# 32605664173). Muss zurueckgedreht werden, ist `claude.yml` die erste
+# Stelle: Der interaktive Agent schreibt Code und hat mit `--max-turns 25`
+# das groessere Budget, waehrend das Review nur bewertet.
 
 on:
   pull_request:
@@ -27,7 +42,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
+      issues: read
       id-token: write
       # Kein `checks: read` – und das ist belegt, nicht angenommen: Der
       # Prompt verlangt den CI-Stand über `gh pr view --json
@@ -165,8 +180,8 @@ jobs:
             Arbeite ausschließlich bewertend und lasse den Checkout unverändert.
             Grundlage sind der PR-Diff, die bereits ausgecheckten Dateien, die
             vorhandenen Git-Referenzen und die von GitHub gemeldeten CI-Ergebnisse.
-            Erlaubt sind nur die freigegebenen Leseabfragen; nutze pro Bash-Aufruf
-            genau ein solches Kommando und für Text-/Dateisuche Read, Grep oder Glob.
+            Die vollständige Werkzeuggrenze steht weiter unten unter „Die Grenze
+            verläuft so" – dort einmal, nicht verteilt.
 
             Dieser Pull Request hat die Nummer ${{ github.event.pull_request.number }}.
             Gib sie in jedem `gh pr diff|view|comment`-Aufruf explizit an –
@@ -233,22 +248,21 @@ jobs:
             - `git show --stat --oneline HEAD`
             - `git show --format=fuller --no-patch HEAD`
 
-            Versuche insbesondere **nicht**, Git-Historie nachzuladen (`git fetch`),
-            Tests oder PR-Code lokal auszuführen, generische `gh api`-Umwege zu
-            verwenden oder den Arbeitsbaum zu verändern (`git checkout`/`restore`,
-            `cp`, `mv`, Edit/Write, Commit oder Push). Wenn der vorhandene Checkout,
-            Diff und CI-Stand eine Aussage nicht belegen, markiere sie als
-            **unbelegt** und fahre mit dem Review fort.
-
-            Die Grenze verläuft so. **Lesende Inspektion** – ausschließlich in
+            Die Grenze verläuft so – **einmal vollständig, das ist die
+            maßgebliche Fassung**. **Lesende Inspektion** – ausschließlich in
             den oben freigegebenen Formen: die `gh`- und Git-Formen, Read, Grep,
             Glob und WebFetch auf die freigegebenen Domains – steht dir immer
             offen; eine abgewandelte Form derselben Abfrage nicht.
             **Ausführung** (Tests, Linter, `python -c`,
             `awk` und andere Shell-Filter), **Netzzugriff** außerhalb der
-            freigegebenen WebFetch-Domains und jeder **Schreibzugriff** sind
-            dauerhaft gesperrt; versuche sie gar nicht erst, auch nicht über
-            Umwege. Was du dort bräuchtest, liefern – soweit vorhanden – die
+            freigegebenen WebFetch-Domains – dazu zählt auch das Nachladen von
+            Git-Historie (`git fetch`) und jeder generische `gh api`-Umweg – und
+            jeder **Schreibzugriff** (`git checkout`/`restore`, `cp`, `mv`,
+            Edit/Write, Commit, Push) sind dauerhaft gesperrt; versuche sie gar
+            nicht erst, auch nicht über Umwege. Nutze pro Bash-Aufruf genau ein
+            freigegebenes Kommando und für Text-/Dateisuche Read, Grep oder Glob.
+            Belegt der vorhandene Checkout, Diff und CI-Stand eine Aussage
+            nicht, markiere sie als **unbelegt** und fahre mit dem Review fort. Was du dort bräuchtest, liefern – soweit vorhanden – die
             CI-Ergebnisse des PR. Rechne damit, dass sie es nicht tun: Review
             und PR-CI starten am selben Ereignis, das Gate steht beim Review
             meist noch auf `IN_PROGRESS`. Ein laufender Check ist keine
@@ -377,7 +391,7 @@ jobs:
           # („Forks bekommen keine Secrets") für Issue-Inhalte nicht. Das
           # Risiko ist mit der WebFetch-Freigabe bereits akzeptiert. Tragend
           # ist dabei NICHT „der Agent kann nichts schreiben" – der Job hält
-          # `pull-requests: write` und `issues: write`, und die beiden
+          # `pull-requests: write` (seit #828 reicht `issues: read`), und die beiden
           # Ausgabewege sind bewusst offen. Der interessante Angriff ist auch
           # nicht „Code committen" (das verhindert `contents: read` samt
           # fehlender Edit-/Write-/Git-Rechte), sondern eine injizierte,
@@ -391,14 +405,17 @@ jobs:
           # ist ein Egress-Kanal, den `contents: read` nicht berührt. Tragend
           # bleibt auch dagegen der Trigger – `on: pull_request` reicht Forks
           # keine Secrets durch – plus dieselbe Prompt-Regel.
-          # `issues: write` bleibt bewusst stehen, obwohl das Review keine
-          # Issues schreibt: PR-Konversationskommentare laufen in der
-          # REST-API über den `issues`-Endpunkt, und ob die Rechteprüfung
-          # dort auf `pull-requests` oder `issues` abbildet, ist unbelegt.
-          # Ein Absenken auf `issues: read` wäre die strukturell bessere
-          # Absicherung, hätte als Fehlersymptom aber „Lauf grün, keine
-          # Kommentare" – das gehört in eine eigene Änderung mit
-          # beobachtetem Folgelauf, nicht hierher (#828).
+          # `issues: read` seit #828 (vorher `write`). Das Review schreibt
+          # keine Issues; unbelegt war nur, ob die Rechteprüfung für
+          # PR-Konversationskommentare auf `pull-requests` oder auf `issues`
+          # abbildet – die laufen in der REST-API über den
+          # `issues`-Endpunkt. Das Fehlersymptom eines zu engen Rechts wäre
+          # **still**: Lauf grün, aber keine Zusammenfassung. Deshalb ist die
+          # Absenkung an einen beobachteten Lauf gebunden statt an eine
+          # Annahme – der Reviewlauf des PR, der sie einführt, muss seine
+          # Zusammenfassung posten. Tut er das nicht, ist `issues: write`
+          # die belegte Untergrenze und gehört zurückgesetzt.
+          # `gh issue view` (Bezugsissues) bleibt davon unberührt: lesend.
           # Taxonomie der Ablehnungen, zugleich Auswertungsregel für die
           # Diagnose weiter unten und für die Abnahme von #841:
           #   L = lesende Ablehnung, die eine Erweiterung GENAU DIESER
@@ -634,8 +651,9 @@ jobs:
                                 | if (.permission_denials | type) == "array"
                                   then .permission_denials[]
                                        | if type == "object"
-                                         then "[ABLEHNUNG] \(.tool_name // "?") [Felder: \(keys | join(","))]: "
-                                              + "\(.tool_input | tojson | .[0:300])"
+                                         then "[ABLEHNUNG] \(.tool_name // "?") [Felder: \(keys | join(","))]"
+                                              + (if has("reason") then " [Grund: \(.reason | tojson | .[0:200])]" else "" end)
+                                              + ": \(.tool_input | tojson | .[0:300])"
                                          else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
                                   else "[ANOMALIE] permission_denials ist \(.permission_denials | type), kein Array"
@@ -681,9 +699,17 @@ jobs:
             # eine Ebene tiefer gerade ablegen.
             anomalien=$(( gesamt - count ))
           fi
-          jq -r '.. | objects | select(has("num_turns"))
+          if ! abschluss=$(jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
-            "$EXECUTION_FILE" || true
+            "$EXECUTION_FILE"); then
+            echo "::warning::Abschlussdatensatz nicht auswertbar."
+            echo "Lauf: unbestimmt"
+          elif [ -z "$abschluss" ]; then
+            echo "::warning::Kein Abschlussdatensatz im Protokoll."
+            echo "Lauf: unbestimmt"
+          else
+            printf '%s\n' "$abschluss"
+          fi
           # Wortlaut und Reihenfolge: Bei ausschließlich Anomalien stand hier
           # zuerst wörtlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
           # nach der beim Auswerten gesucht wird. Sie behauptete
