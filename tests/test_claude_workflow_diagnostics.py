@@ -353,13 +353,21 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
 
 
 def test_review_prompt_carries_the_tool_boundary() -> None:
-    """Die Taxonomie muss den Agenten erreichen, nicht nur die Auswertung."""
-    prompt = _review_prompt()
+    """Die Taxonomie muss den Agenten erreichen, nicht nur die Auswertung.
+
+    Whitespace normalisiert: Der Prompt ist umbrochen, eine Wendung darf also
+    über einem Zeilenwechsel stehen, ohne den Test zu brechen.
+    """
+    prompt = " ".join(_review_prompt().split())
     for phrase in (
         "**Lesende Inspektion**",
         "**Ausführung**",
         "**Netzzugriff**",
         "**Schreibzugriff**",
+        # Klasse P wird im Prompt nur von diesem Halbsatz getragen – fällt er
+        # beim Umformulieren weg, bleibt der Test sonst grün, obwohl gerade
+        # der häufigste Ablehnungsfall nicht mehr an der Quelle verhindert wird.
+        "eine abgewandelte Form derselben Abfrage nicht",
     ):
         assert phrase in prompt, f"Prompt benennt die Klasse nicht: {phrase!r}"
 
@@ -394,9 +402,11 @@ def test_interactive_workflow_rejects_the_review_taxonomy() -> None:
     assert "dürfen hier nicht übernommen werden" in text
     # Keine ausgeschriebene Klassenliste: Sie driftete innerhalb dieses PR
     # bereits einmal (blieb bei L/A/N/S, als P dazukam).
-    assert "L/A/N/S" not in text, (
-        "claude.yml zählt die Klassen auf und driftet damit bei jeder neuen"
-    )
+    for spelling in ("L/A/N/S", "L, A, N, S"):
+        assert spelling not in text, (
+            f"claude.yml zählt die Klassen auf ({spelling!r}) und driftet "
+            "damit bei jeder neuen"
+        )
 
 
 def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
@@ -474,6 +484,37 @@ def test_prompt_names_every_allowlisted_gh_form() -> None:
         f"freigegeben, aber im Prompt nicht genannt: {missing} – "
         "der Agent nutzt sie dann nicht und die Diagnose sieht es nicht"
     )
+
+
+def test_prompt_supplies_the_pr_number_for_gh_calls() -> None:
+    """Review-Befund auf PR #850: ohne Nummer scheitern die `gh pr`-Aufrufe.
+
+    `actions/checkout` stellt bei ``on: pull_request`` den Merge-Ref als
+    Detached HEAD bereit. `gh pr diff|view|comment` leiten die Nummer sonst
+    aus dem aktuellen Branch ab und brechen ab — als **Kommandofehler**, nicht
+    als Ablehnung. Der Diagnoseschritt sieht das nicht, `Abgelehnte Aufrufe`
+    bleibt bei 0. Die Nummer kommt aus dem Event und ist ein Integer, also
+    nicht injizierbar (anders als `title` oder `body`).
+    """
+    prompt = _review_prompt()
+    assert "github.event.pull_request.number" in prompt, "PR-Nummer nicht im Prompt"
+    assert "could not determine current branch" in prompt, (
+        "Prompt nennt das Fehlerbild nicht, an dem der Agent es erkennt"
+    )
+
+
+def test_class_p_survives_deliberately_narrow_forms() -> None:
+    """Review-Befund auf PR #850: sonst kippt die Regel in die Gegenrichtung.
+
+    Die Git-Formen sind bewusst eng (`--max-count=30`, `HEAD^ HEAD`,
+    `--no-patch`). Ohne Abbruchkriterium wäre jede dieser Verengungen per
+    Definition eine Allowlist-Lücke, sobald der Agent mehr sehen will — und
+    „drei grüne Läufe ohne L" nie erfüllbar.
+    """
+    taxonomy = _review_taxonomy()
+    assert "ES SEI DENN" in taxonomy, "P/L-Regel ohne Abbruchkriterium"
+    assert "bewusst enger gefasst" in taxonomy
+    assert "--max-count=200" in taxonomy, "Prüfstein für die Gegenrichtung fehlt"
 
 
 def test_review_taxonomy_names_its_own_scope() -> None:
