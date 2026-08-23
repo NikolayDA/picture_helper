@@ -468,8 +468,16 @@ def test_prompt_bars_the_flags_that_remove_findings() -> None:
         "Der Kommentarblock nennt die destruktiven Flags nicht — die fünfte "
         "Verengung steht dann ohne Begründung im Prompt"
     )
-    assert "UNBELEGT" in block, (
-        "Der Evidenzgrad der Flag-Liste fehlt; sie liest sich als geprüft"
+    # Review-Befund auf ce83ccc: `"UNBELEGT" in block` war wirkungslos —
+    # das Wort steht im Ausschnitt zweimal, und der zweite Treffer gehört zum
+    # völlig anderen Sachverhalt der 10-000-Zeichen-Schwelle im
+    # Taxonomie-Block, der innerhalb desselben Schnitts liegt. Der Grad der
+    # Flag-Liste hätte gestrichen werden können, ohne dass der Test anschlägt.
+    # Geprüft wird deshalb als Nähe-Bedingung zum Gegenstand, nicht über das
+    # Signalwort allein.
+    assert re.search(r"--delete-last[^#]{0,400}ist hier UNBELEGT", block), (
+        "Der Evidenzgrad der Flag-Liste fehlt oder steht nicht mehr bei ihr; "
+        "sie liest sich dann als geprüft"
     )
 
 
