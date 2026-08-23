@@ -608,6 +608,34 @@ def test_prompt_names_every_allowlisted_gh_form() -> None:
     )
 
 
+def test_prompt_names_every_allowlisted_git_form() -> None:
+    """Dritte Fundstelle derselben Invariante: freigegeben ⇒ im Prompt genannt.
+
+    Für die ``gh``-Formen und die WebFetch-Domains ist das gedeckt, für die
+    exakten Git-Formen war es das nicht — heute stimmen beide Listen überein,
+    aber unbewacht. Wer morgen `Bash(git blame …)` in die Allowlist nachzieht
+    und den Prompt vergisst, bekommt eine Freigabe, die der Agent nie aufruft:
+    kein Eintrag im Joblog, und für die #841-Messung genau der stille Ausgang,
+    den die beiden Nachbartests schließen.
+
+    Anders als bei ``gh`` steht hier die vollständige Argumentform in der
+    Allowlist (keine Präfix-Wildcard), sie muss also wortgleich im Prompt
+    auftauchen.
+    """
+    prompt = " ".join(_review_prompt().split())
+    git_forms = sorted(
+        tool[len("Bash("):-len(")")]
+        for tool in _review_allowed_tools()
+        if tool.startswith("Bash(git ") and not tool.endswith(":*)")
+    )
+    assert git_forms, "keine exakten Git-Formen in der Allowlist gefunden"
+    missing = [form for form in git_forms if form not in prompt]
+    assert not missing, (
+        f"freigegeben, aber im Prompt nicht genannt: {missing} – "
+        "der Agent nutzt sie dann nicht und die Diagnose sieht es nicht"
+    )
+
+
 def test_prompt_supplies_the_pr_number_for_gh_calls() -> None:
     """Review-Befund auf PR #850: ohne Nummer scheitern die `gh pr`-Aufrufe.
 
