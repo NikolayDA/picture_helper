@@ -13,19 +13,25 @@ name: Claude Code Review
 # roter Lauf).
 #
 # Token-Ablauf (#828): `claude setup-token` erzeugt ein Token mit einem Jahr
-# Gueltigkeit. Das aktuelle stammt vom 2026-08-18 und laeuft damit am
+# Gültigkeit. Das aktuelle stammt vom 2026-08-18 und läuft damit am
 # 2027-08-18 ab. Danach scheitern beide Claude-Workflows mit einem
-# Authentifizierungsfehler - rot, nicht still. Erneuern: lokal
+# Authentifizierungsfehler – rot, nicht still. Erneuern: lokal
 # `claude setup-token`, Ergebnis als Repo-Secret CLAUDE_CODE_OAUTH_TOKEN.
 #
 # Kosten und Nutzungslimit (#828): Beide Workflows sind auf Opus gepinnt und
-# rechnen ueber das persoenliche Abo des Token-Inhabers. Ist das Limit
-# erschoepft, wird der Lauf **rot**, nicht uebersprungen; das beobachtete
-# Fehlerbild ist ein frueher Abbruch ohne Modellnutzung (`subtype: success`
-# zusammen mit `is_error: true`, 0-1 Turns, 0 Ablehnungen - siehe Lauf
-# 32605664173). Muss zurueckgedreht werden, ist `claude.yml` die erste
-# Stelle: Der interaktive Agent schreibt Code und hat mit `--max-turns 25`
-# das groessere Budget, waehrend das Review nur bewertet.
+# rechnen über das persönliche Abo des Token-Inhabers. Ist das Limit
+# erschöpft, wird der Lauf **rot**, nicht übersprungen; das beobachtete
+# Fehlerbild ist ein früher Abbruch ohne Modellnutzung (`subtype: success`
+# zusammen mit `is_error: true`, 0–1 Turns, 0 Ablehnungen – siehe Lauf
+# 32605664173). Muss zurückgedreht werden, ist `claude.yml` die erste Stelle
+# – aber NICHT wegen des Turn-Budgets: Dort stehen 25 Turns gegen 30 im
+# Review, die Zahl spricht also dagegen. Tragend ist, was ein Turn kostet und
+# wie oft er anfällt: Der interaktive Agent schreibt Code (lange Werkzeug-
+# ausgaben, ganze Dateien im Kontext), das Review bewertet nur einen Diff.
+# Dafür läuft das Review bei jedem `opened`/`synchronize` automatisch,
+# `claude.yml` nur auf ausdrückliche `@claude`-Erwähnung – die Häufigkeit
+# spricht wiederum für das Review. Vor dem Zurückdrehen also erst nachsehen,
+# welcher der beiden im fraglichen Zeitraum tatsächlich verbraucht hat.
 
 on:
   pull_request:
@@ -261,13 +267,13 @@ jobs:
             Edit/Write, Commit, Push) sind dauerhaft gesperrt; versuche sie gar
             nicht erst, auch nicht über Umwege. Nutze pro Bash-Aufruf genau ein
             freigegebenes Kommando und für Text-/Dateisuche Read, Grep oder Glob.
-            Belegt der vorhandene Checkout, Diff und CI-Stand eine Aussage
-            nicht, markiere sie als **unbelegt** und fahre mit dem Review fort. Was du dort bräuchtest, liefern – soweit vorhanden – die
-            CI-Ergebnisse des PR. Rechne damit, dass sie es nicht tun: Review
-            und PR-CI starten am selben Ereignis, das Gate steht beim Review
-            meist noch auf `IN_PROGRESS`. Ein laufender Check ist keine
-            Grundlage; vermerke die Aussage dann als **unbelegt**, statt zu
-            raten.
+            Was du für das Gesperrte bräuchtest, liefern – soweit vorhanden –
+            die CI-Ergebnisse des PR. Rechne damit, dass sie es nicht tun:
+            Review und PR-CI starten am selben Ereignis, das Gate steht beim
+            Review meist noch auf `IN_PROGRESS`. Belegen der vorhandene
+            Checkout, Diff und CI-Stand eine Aussage nicht – auch ein noch
+            laufender Check belegt nichts –, dann markiere sie als **unbelegt**
+            und fahre mit dem Review fort, statt zu raten.
             Ausgenommen sind deine beiden Ausgabewege – das
             Inline-Kommentar-Werkzeug und `gh pr comment`. Sie sind technisch
             Schreibzugriffe, aber genau dein Auftrag: Nutze sie.
@@ -540,11 +546,13 @@ jobs:
           #       `gh pr comment 850 --body '## …'` ab, weil eine Zeile des
           #       Arguments mit `#` begann. `Bash(gh pr comment:*)` stand
           #       bereits in der Allowlist; der Fix steht im Prompt, nicht hier.
-          #       Die Ursache wird aus Kommando UND Allowlist-Stand erschlossen,
-          #       nicht im Joblog abgelesen: Der Diagnoseschritt gibt
-          #       `tool_name` und ein gekürztes `tool_input` aus, keinen
-          #       Ablehnungsgrund. Ob die Action einen mitliefert, beantwortet
-          #       die dort mitgeschriebene Feldliste im nächsten echten Lauf.
+          #       Die Ursache wird aus Kommando UND Allowlist-Stand erschlossen.
+          #       Seit #828 gibt der Diagnoseschritt einen vorhandenen
+          #       Ablehnungsgrund zusätzlich im Klartext aus (`[Grund: …]`);
+          #       er ist ein Hinweis, nicht die Einteilung. Ob die Action
+          #       überhaupt einen mitliefert, ist weiterhin unbelegt – fehlt
+          #       das Feld, steht die Zeile ohne `[Grund: …]` da, und es bleibt
+          #       bei Kommando plus Allowlist-Stand.
           #       Beide Größen sind nachprüfbar und stehen nicht in der
           #       Zuschreibung dessen, der auswertet – sonst wäre es dieselbe
           #       Hintertür, die die P-Abgrenzung oben schließt.
@@ -614,11 +622,17 @@ jobs:
           # CLAUDE.md für den ClamAV-Scan ausschließt ("ein still übersprungener
           # Scan gilt nie als bestanden"). Der Abschluss-Datensatz liegt je nach
           # Ausgabeform verschieden tief; die rekursive Suche findet ihn so oder so.
-          # `keys` mitschreiben: Ob ein Ablehnungsdatensatz einen Grund nennt,
-          # ist von außen nicht bekannt, und ohne Grund lässt sich die Ursache
-          # einer Ablehnung nur aus Kommando plus Allowlist-Stand erschließen.
-          # Die Feldliste beantwortet das im nächsten echten Lauf, ohne fremden
-          # Inhalt unbesehen ins Log zu kippen.
+          # `keys` mitschreiben: Ob ein Ablehnungsdatensatz überhaupt ein
+          # `reason` führt, ist von außen unbelegt – die Feldliste beantwortet
+          # das im nächsten echten Lauf. Seit #828 wird ein vorhandenes
+          # `reason` zusätzlich im Klartext ausgegeben (`[Grund: …]`), nicht
+          # mehr nur sein Feldname: Ohne den Wert ließ sich die Klasse einer
+          # Ablehnung aus dem Joblog nicht bestimmen, obwohl sie im Protokoll
+          # stand. Der Wert ist Fremdinhalt und deshalb dreifach eingehegt –
+          # `tojson` (keine rohen Steuerzeichen), 200 Zeichen Deckel und das
+          # abschließende `gsub`, das die Zusicherung „genau eine Zeile je
+          # Ablehnung" auch über den neuen Teilausdruck hält. Die Klassenmarke
+          # steht weiterhin VOR ihm, der Zeilenanker bleibt also eindeutig.
           # Die Typprüfung steht dabei VOR jedem Feldzugriff, nicht als
           # `keys?`-Rückfall dahinter: `.tool_name` bricht auf jedem
           # Nicht-Objekt außer `null` mit „Cannot index …" ab, bevor ein

@@ -218,6 +218,19 @@ def test_diagnostic_step_is_identical_in_both_workflows() -> None:
     assert first == second, "Diagnoseschritt driftet zwischen den Claude-Workflows"
 
 
+def _token_cost_block(relative: str) -> str:
+    """Den #828-Kopfblock (Token-Ablauf plus Kosten) herausschneiden.
+
+    Er beginnt an seiner Kopfzeile und endet an der ersten Zeile, die kein
+    Kommentar mehr ist. Beide Workflows tragen ihn zeichengleich; alles davor
+    ist workflow-spezifisch und liegt vor dem Anker.
+    """
+    text = (_ROOT / relative).read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^# Token-Ablauf \(#828\):.*?(?=^[^#])", text)
+    assert match, f"{relative}: #828-Kopfblock nicht gefunden"
+    return match.group(0)
+
+
 def test_shared_comment_block_is_identical_in_both_workflows() -> None:
     """Der Block behauptet seine eigene Wortgleichheit – also prüfen wir sie.
 
@@ -229,6 +242,30 @@ def test_shared_comment_block_is_identical_in_both_workflows() -> None:
     """
     first, second = (_shared_comment_block(relative) for relative in _WORKFLOWS)
     assert first == second, "geteilter #825-Kommentarblock ist auseinandergelaufen"
+
+
+def test_token_cost_block_is_identical_in_both_workflows() -> None:
+    """#828-Kopfblock: zeichengleich in beiden Workflows, ohne Deckung bisher.
+
+    Review-Befund auf diesem PR: Der Block ist YAML-*Kommentar* und fällt
+    deshalb aus ``test_diagnostic_step_is_identical_in_both_workflows`` heraus
+    – das vergleicht ``yaml.safe_load``-Ergebnisse. Konkreter Anlass: Wird das
+    Token 2027 erneuert, ändert jemand plausibel nur eines der beiden Daten,
+    und die zweite Stelle behauptet danach still ein falsches Ablaufdatum.
+    Gleiches Muster wie ``_shared_comment_block`` und die N6-Paketlisten.
+    """
+    first, second = (_token_cost_block(relative) for relative in _WORKFLOWS)
+    assert first == second, "#828-Kopfblock ist zwischen den Workflows auseinandergelaufen"
+    # Ohne diese Zusicherung wäre der Vergleich auch dann grün, wenn der Anker
+    # ins Leere liefe und beide Seiten denselben Rumpf lieferten.
+    assert "2027-08-18" in first, "Ablaufdatum fehlt im Block - Anker zu eng?"
+    assert "Nutzungslimit" in first, "Kostenpassage fehlt im Block - Anker zu eng?"
+    # Die Turn-Gegenüberstellung stand zunächst falsch herum im Block (25 als
+    # das größere Budget gegen 30). Der Vergleich gegen den echten Wert bleibt
+    # hier festgenagelt, damit die Korrektur nicht unbemerkt zurückgedreht wird.
+    assert "25 Turns gegen 30" in first, (
+        "Die Turn-Gegenüberstellung fehlt oder steht wieder falsch herum"
+    )
 
 
 def test_agents_readme_carries_the_denial_taxonomy() -> None:
@@ -1739,18 +1776,22 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     )
     assert "sondern W" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
     # Review-Befund auf 926441e: Der Satz behauptete, die Ursache stehe im
-    # Joblog. Sie steht dort nicht — der Diagnoseschritt gibt `tool_name` und
-    # ein gekürztes `tool_input` aus, keinen Grund. Geprüft wird deshalb, dass
-    # die Grenze ein nachprüfbares Merkmal nennt UND nicht mehr verspricht,
-    # als der Schritt hergibt.
+    # Joblog. Geprüft wird deshalb, dass die Grenze ein nachprüfbares Merkmal
+    # nennt UND nicht mehr verspricht, als der Schritt hergibt.
     assert "aus Kommando UND Allowlist-Stand" in ganze, (
         "Ohne prüfbares Merkmal wäre die Grenze die Hintertür, die die P-Abgrenzung schließt"
     )
-    assert "keinen" in ganze and "Ablehnungsgrund" in ganze, (
-        "Die Einteilung verschweigt, dass der Diagnoseschritt keinen Grund ausgibt"
+    # Seit #828 gibt der Schritt einen vorhandenen Grund im Klartext aus. Die
+    # frühere Zusicherung („nennt keinen Ablehnungsgrund") war damit selbst
+    # veraltet und hätte die Einteilung auf einen falschen Stand festgenagelt.
+    # An ihre Stelle tritt die Bedingung, die weiterhin gilt: Der Grund ist ein
+    # Hinweis, die Einteilung bleibt an Kommando und Allowlist-Stand gebunden,
+    # und dass die Action überhaupt einen liefert, bleibt unbelegt.
+    assert "Hinweis, nicht die Einteilung" in ganze, (
+        "Die Einteilung macht den Ablehnungsgrund zum Kriterium, statt ihn als Hinweis zu führen"
     )
-    assert "im Joblog abgelesen" not in ganze.replace("nicht im Joblog abgelesen", ""), (
-        "Die alte Behauptung ist zurück: Die Ursache steht im Joblog gerade nicht"
+    assert "weiterhin unbelegt" in ganze, (
+        "Die Einteilung behauptet, die Action liefere einen Grund - das ist nicht belegt"
     )
 
 
