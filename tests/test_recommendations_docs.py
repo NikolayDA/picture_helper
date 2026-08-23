@@ -113,8 +113,14 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
     nicht unter diese Automatik.
 
     Geprüft wird nur der Triage-Abschnitt, nicht jede Tabellenzeile der
-    Datei: Eine künftige Tabelle mit Issue-Links und anderer Spaltenzahl —
-    etwa unter „Vorige Runden" — würde sonst falsch-rot.
+    Datei. Das ist keine prinzipielle Grenze, sondern eine Folge der
+    Vergleichsbasis: Alle Zeilen werden gegen **den** Triage-Kopf gehalten,
+    eine Tabelle mit anderer Spaltenzahl — etwa unter „Vorige Runden" —
+    würde deshalb falsch-rot. Vergliche man jede Tabelle gegen ihren
+    **eigenen** Kopf, ließe sich der Wächter auf die Archivtabellen
+    ausweiten, die denselben Renderschaden erleiden können und heute
+    niemand prüft. ``table_span`` liefert dafür nicht genug (es findet
+    genau die erste zusammenhängende Tabelle); das wäre ein eigener Beitrag.
     """
     for lang, path in RECOMMENDATION_DOCS.items():
         lines = lc.extract_triage_section(_read(path), lang).split("\n")

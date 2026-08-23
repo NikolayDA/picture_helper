@@ -301,8 +301,15 @@ def cells(row: str) -> list[str]:
     unbewertet und ``--write`` endete mit Exit 1. Ausgeloest wurde das
     ausgerechnet von der Empfehlung des Doku-Waechters, ein Pipe in einer
     Zelle als ``\|`` zu schreiben.
+
+    Die aeusseren Delimiter werden mit ``removeprefix``/``removesuffix``
+    genau einmal entfernt, nicht mit ``strip("|")``: Letzteres frisst eine
+    leere Randzelle mit (``| a | b ||`` ergaebe 2 statt 3 Zellen) und liesse
+    den Doku-Waechter falsch-rot anschlagen - die Gegenrichtung des Schadens,
+    den er finden soll.
     """
-    return [cell.strip() for cell in _CELL_SEPARATOR.split(row.strip().strip("|"))]
+    inner = row.strip().removeprefix("|").removesuffix("|")
+    return [cell.strip() for cell in _CELL_SEPARATOR.split(inner)]
 
 
 def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO) -> str:

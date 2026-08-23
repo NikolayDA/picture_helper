@@ -332,6 +332,8 @@ def test_cells_splits_only_on_unescaped_pipes() -> None:
     assert len(lc.cells("| a | b | c |")) == 3
     assert len(lc.cells(r"| a | b \| c |")) == 2, "maskiertes Pipe ist Zellinhalt"
     assert len(lc.cells("| a | `x|y` |")) == 3, "Backticks schützen in GFM nicht"
+    assert len(lc.cells("| a | b ||")) == 3, "leere Randzelle zaehlt mit"
+    assert len(lc.cells("|| a | b |")) == 3, "leere Randzelle zaehlt mit"
 
 
 def test_unrated_issue_numbers_ignores_todo_after_an_escaped_pipe() -> None:
