@@ -188,31 +188,41 @@ jobs:
           # der Zeile – beide Zweige tragen eine Marke. Am Präfix allein
           # ließe sie sich nicht ablesen: Ohne `[OK]` beginnt eine reguläre
           # Zeile mit dem rohen `tool_name`, und ein `tool_name`, der mit
-          # `[ANOMALIE] ` anfängt, liefe in die falsche Zahl – ausgerechnet
-          # in die, die das Kriterium von #841 trägt. Heute kein realer Fund
+          # `[ANOMALIE] ` anfängt, liefe in die falsche Zahl – und zwar in
+          # die, an der die Auswertung hängt. Heute kein realer Fund
           # (der Name kommt aus dem SDK), aber dieselbe Sorte Annahme, die
           # `tojson` und `gsub` oben gerade ablegen.
           # `has("permission_denials")` ist auch für ein explizites `null`
           # wahr, und `null` wird bewusst als Anomalie gebucht statt als
           # „keine Ablehnungen": Beobachtet ist nur der Array-Fall, und die
           # Gleichsetzung mit `[]` wäre die gefährlichere Wette. EHRLICH
-          # GESAGT heisst das: Träfe die Action diese Serialisierung je,
-          # meldete JEDER Lauf „unbestimmt" plus Warnung, und die Messreihe
-          # zu #841 stünde still, bis der Fall entschieden ist. Die getrennte
+          # GESAGT heißt das: Träfe die Action diese Serialisierung je,
+          # meldete JEDER Lauf „unbestimmt" plus Warnung, und jede Auswertung
+          # dieser Zahl stünde still, bis der Fall entschieden ist. Die getrennte
           # Zählung verhindert das nicht – sie macht es nur sichtbar statt
           # still, und genau das ist hier der Zweck.
           count=0
           anomalien=0
           if [ -n "$denials" ]; then
+            gesamt=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
             count=$(printf '%s\n' "$denials" | grep -c '^\[OK\] ' || true)
-            anomalien=$(printf '%s\n' "$denials" | grep -c '^\[ANOMALIE\] ' || true)
+            # Der Rest ist per Definition nicht auswertbar – die
+            # `[ANOMALIE]`-Zeilen ebenso wie eine künftig unmarkierte. Nur so
+            # bleibt die Invariante „nicht leere Liste ⇒ nie 0" bestehen, die
+            # vorher das reine `wc -l` trug: Zwei Marken zu zählen ließe eine
+            # dritte Zeilenart durch beide Zahlen fallen, meldete „Abgelehnte
+            # Aufrufe: 0" und unterdrückte zugleich die Liste, an der man es
+            # hätte sehen können. Heute schließt die jq-Konstruktion das aus –
+            # genau die Annahme, die `tojson`, `gsub` und die `[OK]`-Marke
+            # eine Ebene tiefer gerade ablegen.
+            anomalien=$(( gesamt - count ))
           fi
           jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE" || true
           # Wortlaut und Reihenfolge: Bei ausschließlich Anomalien stand hier
           # zuerst wörtlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
-          # nach der beim Auswerten von #841 gesucht wird. Sie behauptete
+          # nach der beim Auswerten gesucht wird. Sie behauptete
           # etwas, das der Schritt nicht wissen kann: Die Liste ist
           # *unbekannt*, nicht leer. Ist etwas nicht auswertbar, nennt die
           # Zeile deshalb keine Zahl, die als Urteil gelesen werden könnte –
@@ -223,6 +233,6 @@ jobs:
           else
             echo "Abgelehnte Aufrufe: $count"
           fi
-          if [ "$count" -gt 0 ] || [ "$anomalien" -gt 0 ]; then
+          if [ -n "$denials" ]; then
             printf '%s\n' "$denials"
           fi

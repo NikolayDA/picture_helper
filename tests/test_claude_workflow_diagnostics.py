@@ -309,6 +309,41 @@ def test_class_p_takes_precedence_for_the_parameter_branch() -> None:
     )
 
 
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_a_non_empty_denial_list_can_never_report_zero(relative: str) -> None:
+    """Review-Befund auf a3d4752: Die `[OK]`-Marke riss eine neue Lücke auf.
+
+    Vorher zählte `wc -l` jede Zeile — eine nicht leere Liste konnte nie als
+    `0` gemeldet werden. Mit zwei Marken-`grep`s fiel eine unmarkierte Zeile
+    durch beide Zahlen: `count=0` und `anomalien=0` druckten genau die
+    Zeichenkette des sauberen Laufs UND unterdrückten die Liste, an der man
+    es hätte sehen können. Nachgestellt an einer probeweise entfernten
+    `[OK]`-Marke: eine echte Ablehnung wurde als „Abgelehnte Aufrufe: 0"
+    ohne jede Ausgabezeile gemeldet.
+
+    Heute schließt die jq-Konstruktion das aus — genau die Bauart „kann
+    nicht vorkommen, also nicht geprüft", die `tojson`, `gsub`, die
+    Container-Typprüfung und die `[OK]`-Marke selbst gerade ablegen. Die
+    Invariante hängt deshalb wieder an der Zeilenzahl: Was keine
+    `[OK]`-Marke trägt, ist nicht auswertbar, ohne dritte Kategorie.
+    """
+    script = _step_by_name(relative, _DIAGNOSTIC_NAME)["run"]
+    assert "gesamt=$(printf '%s\\n' \"$denials\" | wc -l" in script, (
+        f"{relative}: Die Gesamtzahl wird nicht mehr erhoben — eine unmarkierte "
+        "Zeile fällt dann durch beide Zahlen"
+    )
+    assert "anomalien=$(( gesamt - count ))" in script, (
+        f"{relative}: Die Anomalien werden wieder über ihre eigene Marke gezählt; "
+        "eine dritte Zeilenart zählt dann nirgends mit"
+    )
+    # Die Ausgabe darf nicht mehr an den Zahlen hängen: Sind beide 0, obwohl
+    # die Liste nicht leer ist, verschwände gerade der Beleg.
+    assert 'if [ -n "$denials" ]; then\n  printf' in script, (
+        f"{relative}: Die Liste wird wieder von den Zählern abhängig gedruckt — "
+        "im Fehlerfall verschwindet genau der Beleg"
+    )
+
+
 def test_taxonomy_separates_what_is_observed_from_what_is_documented() -> None:
     """Review-Befund auf 78f5495: Die Doku-Stelle deckt diesen Fall nicht.
 
@@ -659,6 +694,17 @@ def test_denial_taxonomy_stays_out_of_the_shared_diagnostic_step(relative: str) 
         assert leaked not in shared, (
             f"{relative}: workflow-spezifische Deutung im geteilten Teil ({leaked!r})"
         )
+    # Review-Befund auf a3d4752: Die drei Verbotswörter deckten die Legende
+    # ab, nicht den Bezug auf die Messung selbst. Beim Begründen der
+    # Anomaliezählung sind „das Kriterium von #841" und „die Messreihe zu
+    # #841" in den geteilten Block gewandert — in einen Workflow, der weder
+    # Allowlist noch Messreihe hat. Der Bezug ist die eigentliche Deutung;
+    # neutral formuliert („die Zahl, an der die Auswertung hängt") trägt die
+    # Begründung genauso weit und bleibt in beiden Workflows wahr.
+    assert "841" not in shared, (
+        f"{relative}: Der geteilte Teil bezieht sich wieder auf die "
+        "Allowlist-Messung des Reviews — für den interaktiven Job gibt es sie nicht"
+    )
 
 
 def test_interactive_workflow_rejects_the_review_taxonomy() -> None:
