@@ -146,6 +146,13 @@ jobs:
           # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
           # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
           # und der kaputte Datensatz wird als solcher sichtbar.
+          # Die Typprüfung gilt für Container UND Elemente. `.permission_denials[]?`
+          # allein haerte nur die Elemente: Ist das Feld selbst kein Array
+          # (String, Zahl, `null`), schluckt `[]?` den Fehler, `jq` laeuft
+          # durch, `count` wird 0 und der Joblog meldet „Abgelehnte Aufrufe:
+          # 0" — der stille Durchlauf, den dieser Schritt gerade ausschliessen
+          # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
+          # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
           # `tojson` statt `tostring`: Auf einem String ist `tostring` die
           # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
           # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
@@ -154,11 +161,14 @@ jobs:
           # `permission_denials_count`-Fallback: eine Zahl, die nicht zur
           # Liste passt. Auf Objekten sind beide identisch.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
-                                | .permission_denials[]?
-                                | if type == "object"
-                                  then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
-                                       + "\(.tool_input | tojson | .[0:300])"
-                                  else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                | if (.permission_denials | type) == "array"
+                                  then .permission_denials[]
+                                       | if type == "object"
+                                         then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
+                                              + "\(.tool_input | tojson | .[0:300])"
+                                         else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                         end
+                                  else "? [permission_denials ist \(.permission_denials | type), kein Array]"
                                   end' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."

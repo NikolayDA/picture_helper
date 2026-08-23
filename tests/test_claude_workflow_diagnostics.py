@@ -969,6 +969,48 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     )
 
 
+def test_prompt_bars_the_file_egress_on_the_output_path() -> None:
+    """Review-Befund auf d53d054: `--body-file` ist ein Egress-Kanal.
+
+    Die „zweite Schicht" der Freigabe-Begründung („kein Unterkommando kennt ein
+    dateischreibendes Flag") beantwortet die Schreib-, nicht die Leserichtung.
+    `gh pr comment --body-file`/`-F` schiebt in einem einzigen freigegebenen
+    Aufruf eine beliebige Runner-Datei wortwörtlich in einen öffentlichen
+    Kommentar — und der Diagnoseschritt sähe nur einen kurzen Pfad. Dieselbe
+    billige Verengung wie bei `--repo`, der Issue-URL und `--comments`; tragend
+    bleibt die Daten-Regel.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "nie über `--body-file`/`-F`" in prompt, (
+        "Prompt lässt den Datei-Egress über den einzigen Ausgabeweg offen"
+    )
+    begruendung = " ".join(_review_workflow_text().replace("#", " ").split())
+    assert "deckt nur die SCHREIB-Richtung" in begruendung, (
+        "Die zweite Schicht beansprucht weiter, auch die Leserichtung zu decken"
+    )
+
+
+def test_prompt_warns_about_the_diff_that_costs_turns_silently() -> None:
+    """Review-Befund auf d53d054, in einem Reviewlauf beobachtet.
+
+    `gh pr diff` lieferte auf diesem PR 91,9 KB; die Werkzeugschicht gibt das
+    nicht zurück, sondern legt es als Datei ab. Keine Ablehnung, kein
+    Kommandofehler — nur Turns aus einem Budget von 30, und zwar am Anfang,
+    bevor etwas gepostet ist. Für #841 ist das derselbe stille Ausgang wie ein
+    Kommandofehler: Die Diagnose sieht ihn nicht.
+
+    `--name-only` ist von `Bash(gh pr diff:*)` gedeckt, kostet also keine
+    Erweiterung der Allowlist.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "`gh pr diff <nr> --name-only`" in prompt, (
+        "Prompt nennt den billigen Einstieg für große Diffs nicht"
+    )
+    assert "wird dann als Datei abgelegt" in prompt, (
+        "Ohne das Fehlerbild liest sich der Hinweis als Stilfrage"
+    )
+
+
 def test_prompt_keeps_the_issue_read_to_the_body() -> None:
     """Review-Befund auf a3f5343: `--comments` vergrößert die Injektionsfläche.
 

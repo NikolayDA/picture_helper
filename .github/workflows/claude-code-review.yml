@@ -118,7 +118,10 @@ jobs:
             Kontext steht in CLAUDE.md. Wiederhole nicht, was die CI-Checks ohnehin
             abfangen – ergänze menschlich wertvolles Review. Nutze zum Setzen von
             Zeilen-Kommentaren das Inline-Comment-Werkzeug; die Zusammenfassung
-            landet über `gh pr comment <nr> --body '…'` in einem PR-Kommentar.
+            landet über `gh pr comment <nr> --body '…'` in einem PR-Kommentar –
+            ausschließlich so, nie über `--body-file`/`-F`: Damit ginge der
+            Inhalt einer beliebigen Datei wortwörtlich in einen öffentlichen
+            Kommentar.
             Einfache Anführungszeichen sind Pflicht: In doppelten expandiert die
             Shell Backticks und `$(…)` aus deinem Markdown. Sie kennen dafür
             aber keine Escape-Sequenz – enthält dein Text selbst ein `'`
@@ -165,6 +168,11 @@ jobs:
             Diagnoseschritt dieses Workflows sieht ihn nicht, du verlierst nur
             Turns.
 
+            Bei einem großen PR zuerst `gh pr diff <nr> --name-only`, dann
+            gezielt `Read`/`Grep` auf die betroffenen Dateien: Ein voller Diff
+            kann zu groß für eine Antwort sein und wird dann als Datei
+            abgelegt – keine Ablehnung, kein Kommandofehler, nur zusätzliche
+            Turns, und zwar bevor du etwas gepostet hast.
             Nutze für Inhaltsänderungen `gh pr diff <nr>`, für die Beschreibung
             `gh pr view <nr>`, für den CI-Stand `gh pr view <nr> --json
             statusCheckRollup` – die Standardausgabe von `gh pr view` enthält
@@ -270,10 +278,17 @@ jobs:
           # dieses Repository begrenzt, `gh pr comment -R fremd/repo`
           # scheitert. Alles unten als akzeptiertes Restrisiko geführt; tragend
           # bleibt die Prompt-Regel, nicht die Flagliste.
-          # Zweite Schicht (nicht die tragende): Keines
-          # der freigegebenen Unterkommandos (`pr diff|view|list|comment`,
-          # `issue view`) kennt selbst ein dateischreibendes Flag. Bei Git
-          # war eine feste Form möglich, deshalb gibt es sie dort.
+          # Zweite Schicht (nicht die tragende), und sie deckt nur die
+          # SCHREIB-Richtung: Keines der freigegebenen Unterkommandos
+          # (`pr diff|view|list|comment`, `issue view`) kennt ein
+          # dateischreibendes Flag. Die LESE-Richtung deckt sie nicht:
+          # `gh pr comment --body-file`/`-F` schiebt in einem einzigen
+          # freigegebenen Aufruf eine beliebige Runner-Datei wortwörtlich in
+          # einen öffentlichen Kommentar, und der Diagnoseschritt sähe nur
+          # einen kurzen Pfad. Das ist derselbe Egress-Kanal, den der Absatz
+          # weiter unten als den schlimmeren Fall benennt; der Prompt verengt
+          # ihn auf `--body '…'`. Bei Git war eine feste Form möglich,
+          # deshalb gibt es sie dort.
           # Bewusst nicht freigegeben sind `git fetch`, lokale Testausführung,
           # pauschales `gh api`, `gh run` (Actions-Logs), Edit/Write und alle
           # Git-/Datei-Schreibbefehle.
@@ -504,6 +519,13 @@ jobs:
           # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
           # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
           # und der kaputte Datensatz wird als solcher sichtbar.
+          # Die Typprüfung gilt für Container UND Elemente. `.permission_denials[]?`
+          # allein haerte nur die Elemente: Ist das Feld selbst kein Array
+          # (String, Zahl, `null`), schluckt `[]?` den Fehler, `jq` laeuft
+          # durch, `count` wird 0 und der Joblog meldet „Abgelehnte Aufrufe:
+          # 0" — der stille Durchlauf, den dieser Schritt gerade ausschliessen
+          # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
+          # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
           # `tojson` statt `tostring`: Auf einem String ist `tostring` die
           # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
           # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
@@ -512,11 +534,14 @@ jobs:
           # `permission_denials_count`-Fallback: eine Zahl, die nicht zur
           # Liste passt. Auf Objekten sind beide identisch.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
-                                | .permission_denials[]?
-                                | if type == "object"
-                                  then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
-                                       + "\(.tool_input | tojson | .[0:300])"
-                                  else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                | if (.permission_denials | type) == "array"
+                                  then .permission_denials[]
+                                       | if type == "object"
+                                         then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
+                                              + "\(.tool_input | tojson | .[0:300])"
+                                         else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                         end
+                                  else "? [permission_denials ist \(.permission_denials | type), kein Array]"
                                   end' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
