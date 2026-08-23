@@ -125,16 +125,28 @@ jobs:
             (Apostroph, Code-Zitat aus dem Diff), schreibe dort `'\''` oder
             formuliere ohne. Das endet sonst als Kommandofehler: kein
             Kommentar, und nichts davon in der Ablehnungsdiagnose.
-            Beginne außerdem KEINE Zeile des Textes mit `#` – nutze
-            `**Überschrift**` statt `## Überschrift`. Das gilt auch INNERHALB
-            von Codeblöcken, und dort trifft es dich häufiger: Der Diff dieses
-            Repositorys besteht großenteils aus YAML-/Python-Kommentaren.
-            Zitiere solche Zeilen inline in Backticks oder rücke sie im Block
-            um ein Leerzeichen ein. Das ist kein Stilwunsch:
-            In Lauf 32640784005 wurde `gh pr comment 850 --body '## …'`
-            abgelehnt, weil eine Argumentzeile mit `#` begann. Diese Ablehnung
-            trifft deinen Ausgabeweg und lässt den Lauf seinen Zweck
-            verfehlen, obwohl nur die Formatierung schuld ist.
+            Die Regel dahinter: Der Body muss als **ein** Shell-Argument
+            parsebar bleiben. Kann die Kommandoanalyse ihn nicht vollständig
+            parsen, fragt sie nach – und ohne Interaktion ist Nachfragen die
+            Ablehnung. Zwei Fälle sind belegt:
+
+            - Beginne KEINE Zeile des Textes mit `#` – nutze
+              `**Überschrift**` statt `## Überschrift`. Das gilt auch INNERHALB
+              von Codeblöcken, und dort trifft es dich häufiger: Der Diff
+              dieses Repositorys besteht großenteils aus YAML-/Python-
+              Kommentaren. Zitiere solche Zeilen inline in Backticks oder rücke
+              sie im Block um ein Leerzeichen ein. Kein Stilwunsch: In Lauf
+              32640784005 wurde `gh pr comment 850 --body '## …'` abgelehnt,
+              weil eine Argumentzeile mit `#` begann.
+            - Halte die Zusammenfassung deutlich unter 10 000 Zeichen. Ein
+              Kommando über dieser Länge wird laut Doku IMMER zur Nachfrage,
+              und der Body zählt in die Kommandolänge. Im Zweifel kürzen statt
+              anhängen.
+
+            Beides trifft deinen Ausgabeweg und lässt den Lauf seinen Zweck
+            verfehlen, obwohl nur die Form schuld ist. Für Inline-Kommentare
+            gilt das alles NICHT: Sie laufen über das Kommentar-Werkzeug, nicht
+            über die Shell, und werden von keiner Kommandoanalyse geprüft.
 
             Arbeite ausschließlich bewertend und lasse den Checkout unverändert.
             Grundlage sind der PR-Diff, die bereits ausgecheckten Dateien, die
@@ -237,10 +249,18 @@ jobs:
           # Die `gh`-Familie behält dagegen ihre Präfix-Wildcards, weil ihre
           # Argumente PR-/Issue-Nummern sind und eine feste Form damit nicht
           # praktikabel wäre. Ehrlich benannt: Das ist ein akzeptiertes
-          # Restrisiko, keine bewiesene Sicherheit. Ob der Matcher hinter dem
-          # freigegebenen Präfix eine Umleitung, Pipe oder Verkettung zuließe,
-          # ist hier nicht belegt – das entscheidet Claude Code, nicht die
-          # Flagliste von `gh`. Zweite Schicht (nicht die tragende): Keines
+          # Restrisiko, keine bewiesene Sicherheit – aber ein kleineres als
+          # zunächst angenommen: Umleitung, Pipe und Verkettung sind laut
+          # https://code.claude.com/docs/en/permissions abgedeckt. Erkannte
+          # Trenner sind `&&`, `||`, `;`, `|`, `|&`, `&` und Zeilenumbrüche,
+          # und „a rule must match each subcommand independently"; das Ziel
+          # einer Ausgabeumleitung (`>`, `>>`, `2>`) wird zusätzlich als
+          # Dateischreibzugriff geprüft („a rule such as `Bash(git commit *)`
+          # allows the command, not the target"). Es bleibt damit der
+          # Argumentraum der freigegebenen Unterkommandos selbst – vor allem
+          # `--repo` und eine vollständige URL bei `gh issue view`, beide unten
+          # als akzeptiertes Restrisiko geführt.
+          # Zweite Schicht (nicht die tragende): Keines
           # der freigegebenen Unterkommandos (`pr diff|view|list|comment`,
           # `issue view`) kennt selbst ein dateischreibendes Flag. Bei Git
           # war eine feste Form möglich, deshalb gibt es sie dort.
@@ -357,14 +377,24 @@ jobs:
           #       weder eine lesende Absicht noch eine abweichende Form voraus
           #       (also nicht P – der belegte Fall unten ist ein SCHREIBaufruf
           #       in FREIGEGEBENER Form). Der Fix sitzt im Prompt oder im
-          #       Inhalt, nie in der Allowlist. Drei bekannte Quellen: die
-          #       Kommandoprüfung am Argumentinhalt, eine Pfadregel für die
-          #       ohne Pfadmuster freigegebenen `Read`/`Grep`/`Glob` (der
-          #       Prompt nennt den Checkout als Grundlage), und eine Umleitung,
-          #       die WebFetch von einer freigegebenen Domain auf einen fremden
-          #       Host führt (Redirect-Verhalten von hier aus unbelegt – die
-          #       Ursachenformulierung deckt den Fall auch ohne diese Antwort
-          #       ab). Belegter Fall: Lauf 32640784005 wies
+          #       Inhalt, nie in der Allowlist. Bekannte Quellen, beide aus
+          #       https://code.claude.com/docs/en/permissions:
+          #       (1) Die Kommandoanalyse kann das Kommando nicht vollständig
+          #           parsen („when Claude Code can't fully parse a command, it
+          #           asks for approval"; ohne Interaktion ist Nachfragen die
+          #           Ablehnung) – dazu zählt ausdrücklich jedes Kommando über
+          #           10 000 Zeichen. Da der Body in die Kommandolänge eingeht,
+          #           kippt eine zu lange Zusammenfassung den Ausgabeweg.
+          #       (2) Eine Pfadregel für die ohne Pfadmuster freigegebenen
+          #           `Read`/`Grep`/`Glob` (der Prompt nennt den Checkout als
+          #           Grundlage).
+          #       NICHT dazu zählt eine WebFetch-Umleitung von einer
+          #       freigegebenen Domain auf einen fremden Host: Das Werkzeug
+          #       folgt Cross-Host-Redirects nicht, sondern gibt sie als
+          #       reguläres Ergebnis zurück. Erst ein erneuter Aufruf des
+          #       fremden Hosts wird abgelehnt – und den entscheidet die
+          #       Allowlist, das ist ein gewöhnliches N.
+          #       Belegter Fall zu (1): Lauf 32640784005 wies
           #       `gh pr comment 850 --body '## …'` ab, weil eine Zeile des
           #       Arguments mit `#` begann. `Bash(gh pr comment:*)` stand
           #       bereits in der Allowlist; der Fix steht im Prompt, nicht hier.
@@ -376,20 +406,26 @@ jobs:
           #       Beide Größen sind nachprüfbar und stehen nicht in der
           #       Zuschreibung dessen, der auswertet – sonst wäre es dieselbe
           #       Hintertür, die die P-Abgrenzung oben schließt.
-          # A, N, S, P und W DÜRFEN abgelehnt werden – sie sind ein Prompt-Befund,
-          # kein Berechtigungsfehler, und rechtfertigen keine Erweiterung der
-          # Allowlist. Genau eine Ausnahme: Die beiden Ausgabewege des Reviews
+          # A, N, S, P und W DÜRFEN abgelehnt werden und rechtfertigen keine
+          # Erweiterung der Allowlist. Der Unterschied dahinter ist die
+          # Fix-Adresse: A, N und S sind ERWARTBAR und kein Befund – dort wirkt
+          # die Konfiguration genau wie gewollt, es gibt nichts zu beheben.
+          # P und W sind ein PROMPT-Befund: Der Prompt hat den Agenten in eine
+          # Form oder einen Inhalt laufen lassen, den die Werkzeugschicht
+          # abweist. Ein Satz für alle fünf gäbe drei Klassen die falsche
+          # Adresse. Genau eine Ausnahme: Die beiden Ausgabewege des Reviews
           # (Inline-Kommentar-Werkzeug und `gh pr comment`) sind selbst
           # Remote-Schreibzugriffe und bewusst freigegeben. Ihre Ablehnung
           # BLOCKIERT die Abnahme unabhängig von der Klasse. Sonst stünde
           # ausgerechnet der schlimmste Fall als Normalfall im Joblog: Befund
           # gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review.
           # Klasse und Blockade sind hier bewusst zwei Fragen: Die Klasse sagt,
-          # WO der Fix sitzt (Allowlist bei L, Prompt bei P), die Blockade, ob
-          # der Lauf seinen Zweck erfüllt hat. Die `#`-Ablehnung von oben ist
-          # P und blockiert trotzdem – wer beides gleichsetzt, muss entweder
-          # eine unschließbare Lücke buchen oder den schlimmsten Fall
-          # durchwinken.
+          # WO der Fix sitzt (Allowlist bei L, Prompt bei P und W), die
+          # Blockade, ob der Lauf seinen Zweck erfüllt hat. Die `#`-Ablehnung
+          # von oben ist W und blockiert trotzdem; eine abgelehnte Pipe auf
+          # dem Ausgabeweg wäre P und blockierte ebenso – wer Klasse und
+          # Blockade gleichsetzt, muss entweder eine unschließbare Lücke
+          # buchen oder den schlimmsten Fall durchwinken.
           # Diese Einteilung gilt ausschließlich für dieses Review: Sie folgt
           # aus `contents: read` plus enger Allowlist. Für den interaktiven
           # Agenten in `claude.yml` gilt sie nicht – der darf schreiben und
@@ -443,7 +479,7 @@ jobs:
           # Inhalt unbesehen ins Log zu kippen.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
-                                | "\(.tool_name) [Felder: \(. | keys? // [""] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
+                                | "\(.tool_name) [Felder: \(. | keys? // ["?"] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0

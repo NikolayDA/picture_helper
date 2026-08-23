@@ -140,7 +140,7 @@ jobs:
           # Inhalt unbesehen ins Log zu kippen.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
-                                | "\(.tool_name) [Felder: \(. | keys? // [""] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
+                                | "\(.tool_name) [Felder: \(. | keys? // ["?"] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0

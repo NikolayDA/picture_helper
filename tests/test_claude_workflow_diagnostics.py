@@ -488,8 +488,18 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     assert "gh pr comment" in taxonomy
     # „zählt wie L" stand hier bis zum Review auf 2c52eb5. Es setzte Klasse
     # und Blockade gleich — und der einzige belegte Fall (die `#`-Ablehnung)
-    # ist P, blockiert aber trotzdem. Geprüft wird jetzt die Blockade.
+    # ist W, blockiert aber trotzdem. Geprüft wird jetzt die Blockade.
     assert "BLOCKIERT die Abnahme unabhängig von der Klasse" in taxonomy
+    # Review-Befund auf a4836bc: Der Absatz sagte weiter „ist P", obwohl W den
+    # Fall trägt — und kein Test schlug an, weil er nur die Anwesenheit der
+    # W-Marke prüfte, nicht die Abwesenheit der alten Zuordnung.
+    normal = " ".join(taxonomy.replace("#", " ").split())
+    assert "von oben ist W und blockiert trotzdem" in normal, (
+        "Der belegte Fall steht hier weiter unter der falschen Klasse"
+    )
+    assert "Prompt bei P und W" in normal, (
+        "Die Fix-Adresse nennt W nicht, obwohl der Fix dort ebenfalls im Prompt sitzt"
+    )
     assert "zählt wie L" not in taxonomy, (
         "Die alte Gleichsetzung ist zurück – dann ist entweder eine unschließbare "
         "Lücke zu buchen oder der schlimmste Fall durchzuwinken"
@@ -509,6 +519,16 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     assert "blockiert die Abnahme unabhängig von" in readme, (
         "Dritte Fundstelle: Ohne die Trennung sagt die README weiter „wie L"
     )
+    # A/N/S sind erwartbar und kein Befund — die Klasse beantwortet „wo sitzt
+    # der Fix", und für drei von sechs Klassen gibt es keinen.
+    # Case-insensitiv: Der Workflow hebt tragende Begriffe in Versalien hervor.
+    for stelle, text in (
+        ("Workflow", " ".join(taxonomy.replace("#", " ").split()).lower()),
+        ("agents-README", readme.lower()),
+    ):
+        assert "erwartbar" in text and "kein befund" in text, (
+            f"{stelle}: A/N/S erben die Fix-Adresse von P/W, obwohl dort nichts zu beheben ist"
+        )
 
 
 def test_class_p_is_bound_to_a_checkable_property() -> None:
@@ -872,13 +892,31 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     `**Review-Zusammenfassung**`, die eine abgelehnte mit `## …`; ein
     Reviewlauf hat den Grund von sich aus protokolliert.
 
-    Für #841 ist das der teuerste Fall: Die Ablehnung trifft einen Ausgabeweg,
-    zählt nach der S-Ausnahme „wie L" und stünde damit als Allowlist-Lücke im
-    Protokoll – obwohl nur die Formatierung schuld war.
+    Für #841 ist das der teuerste Fall: Die Ablehnung trifft einen Ausgabeweg
+    und blockiert die Abnahme – obwohl nur die Form schuld war. Klasse ist sie
+    W, nicht L: `Bash(gh pr comment:*)` stand bereits in der Allowlist.
+
+    Die Raute ist dabei nur ein Symptom. Die dokumentierte Ursache ist
+    allgemeiner – die Kommandoanalyse muss den Body parsen können – und
+    umfasst eine zweite, teurere Falle: Kommandos über 10 000 Zeichen fragen
+    laut Doku immer nach, und der Body zählt in die Kommandolänge. Eine
+    Zusammenfassung im hier üblichen Umfang erreicht das realistisch.
     """
     prompt = " ".join(_review_prompt().split())
     assert "KEINE Zeile des Textes mit `#`" in prompt, (
         "Prompt verbietet die Raute am Zeilenanfang nicht"
+    )
+    assert "unter 10 000 Zeichen" in prompt, (
+        "Die zweite dokumentierte Falle am Ausgabeweg fehlt – ein langer Body "
+        "kippt ihn genauso, und die 300-Zeichen-Kürzung der Diagnose schneidet "
+        "den Beleg dafür ab"
+    )
+    assert "als **ein** Shell-Argument" in prompt, (
+        "Die Raute steht ohne die allgemeine Regel da; die nächste Ablehnung mit "
+        "anderem Auslöser läse sich dann wie ein neues Phänomen"
+    )
+    assert "Für Inline-Kommentare gilt das alles NICHT" in prompt, (
+        "Die Regel überdehnt auf den zweiten Ausgabeweg, der gar nicht über die Shell läuft"
     )
     assert "**Überschrift**` statt `## Überschrift" in prompt, (
         "Prompt nennt die Ersatzform für Überschriften nicht"
@@ -903,7 +941,7 @@ def test_the_documented_hash_denial_is_filed_as_the_boundary_not_as_a_gap() -> N
     der Werkzeuggrenze. Er gehört deshalb unter die Grenze der Klasse.
 
     Zweitens muss die Ausnahme für die Ausgabewege Klasse und Blockade
-    trennen: Die Ablehnung ist P, blockiert die Abnahme aber trotzdem.
+    trennen: Die Ablehnung ist W, blockiert die Abnahme aber trotzdem.
     """
     taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
     klasse_w = taxonomy[taxonomy.index("W = Ablehnung, deren Ursache"):]
@@ -961,8 +999,18 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     # Die Quellen selbst stehen jetzt bei der Klasse W, nicht mehr in der
     # Grenze – geprüft wird deshalb auf dem ganzen Taxonomie-Block.
     ganze = " ".join(_review_taxonomy().replace("#", " ").split())
-    for quelle in ("Kommandoprüfung am Argumentinhalt", "Pfadregel", "Umleitung"):
+    for quelle in ("nicht vollständig", "10 000 Zeichen", "Pfadregel"):
         assert quelle in ganze, f"Die Ursachen der Klasse W fehlen: {quelle!r}"
+    # Review-Befund auf a4836bc, in einem Reviewlauf beobachtet: Eine
+    # WebFetch-Umleitung auf einen fremden Host erzeugt gar keine Ablehnung —
+    # das Werkzeug folgt Cross-Host-Redirects nicht, sondern gibt sie als
+    # reguläres Ergebnis zurück. Erst ein erneuter Aufruf des fremden Hosts
+    # wird abgewiesen, und den entscheidet die Allowlist: ein gewöhnliches N.
+    # Stünde der Fall unter W ("darf abgelehnt werden"), wäre die erste echte
+    # Auswertung wieder eine Zuschreibungsfrage.
+    assert "das ist ein gewöhnliches N" in ganze, (
+        "Die WebFetch-Umleitung ist nicht als N abgegrenzt und kann wieder als W gelten"
+    )
     assert "sondern W" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
     # Review-Befund auf 926441e: Der Satz behauptete, die Ursache stehe im
     # Joblog. Sie steht dort nicht — der Diagnoseschritt gibt `tool_name` und

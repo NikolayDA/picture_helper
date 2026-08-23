@@ -107,10 +107,13 @@ Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführu
 **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von
-`--allowedTools` liegt – Kommandoprüfung am Argumentinhalt, Pfadregel für die
-ohne Pfadmuster freigegebenen `Read`/`Grep`/`Glob`, Umleitung bei WebFetch)
-dürfen dagegen abgelehnt werden; sie sind ein Prompt-Befund und rechtfertigen
-keine Erweiterung der Freigaben. **W** ist bewusst eine eigene Klasse und
+`--allowedTools` liegt – ein für die Kommandoanalyse nicht parsebares Kommando,
+darunter jedes über 10 000 Zeichen, oder eine Pfadregel für die ohne
+Pfadmuster freigegebenen `Read`/`Grep`/`Glob`)
+dürfen dagegen abgelehnt werden und rechtfertigen keine Erweiterung der
+Freigaben. Die Fix-Adresse unterscheidet sich aber: **A**, **N** und **S** sind
+erwartbar und gar kein Befund – dort wirkt die Konfiguration wie gewollt. Nur
+**P** und **W** sind ein Prompt-Befund. **W** ist bewusst eine eigene Klasse und
 nicht ein Zweig von P: Der belegte Fall – Lauf 32640784005 wies
 `gh pr comment` ab, weil eine Argumentzeile mit `#` begann – ist ein
 Schreibaufruf in freigegebener Form und erfüllt damit keines der beiden
