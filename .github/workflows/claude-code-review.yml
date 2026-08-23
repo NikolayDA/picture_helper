@@ -116,7 +116,9 @@ jobs:
             genau ein solches Kommando und für Text-/Dateisuche Read, Grep oder Glob.
 
             Dieser Pull Request hat die Nummer ${{ github.event.pull_request.number }}.
-            Gib sie in **jedem** `gh pr`-Aufruf explizit an. Ohne Nummer leiten
+            Gib sie in jedem `gh pr diff|view|comment`-Aufruf explizit an –
+            `gh pr list` nimmt dagegen keine Nummer, sondern nur Filter-Flags.
+            Ohne Nummer leiten
             `gh pr diff|view|comment` sie aus dem aktuellen Branch ab und
             scheitern hier mit „could not determine current branch": Der
             Checkout steht auf dem Merge-Ref, also auf einem Detached HEAD.
