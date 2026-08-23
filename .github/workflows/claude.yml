@@ -153,6 +153,12 @@ jobs:
           # 0" — der stille Durchlauf, den dieser Schritt gerade ausschliessen
           # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
           # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
+          # Das abschliessende `gsub` macht „genau eine Ausgabezeile je
+          # Ablehnung" strukturell wahr, statt pro Feld: `tool_name` und die
+          # Feldnamen gehen roh in die Interpolation, und ein Zeilenumbruch
+          # darin ist in JSON zulaessig – nachgestellt, `count` sprang auf 2.
+          # So haengt die Zusicherung nicht daran, dass jeder kuenftige
+          # Feldzugriff daran denkt.
           # `tojson` statt `tostring`: Auf einem String ist `tostring` die
           # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
           # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
@@ -169,7 +175,8 @@ jobs:
                                          else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
                                          end
                                   else "? [permission_denials ist \(.permission_denials | type), kein Array]"
-                                  end' \
+                                  end
+                                | gsub("\n"; " ")' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0

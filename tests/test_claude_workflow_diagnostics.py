@@ -967,6 +967,29 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     assert "Für Inline-Kommentare gilt das alles NICHT" in prompt, (
         "Die Regel überdehnt auf den zweiten Ausgabeweg, der gar nicht über die Shell läuft"
     )
+    assert "**Überschrift**` statt `## Überschrift" in prompt, (
+        "Prompt nennt die Ersatzform für Überschriften nicht"
+    )
+    assert "32640784005" in prompt, (
+        "Ohne den Lauf als Beleg liest sich die Regel als Stilwunsch und wird zurückgedreht"
+    )
+    assert "auch INNERHALB von Codeblöcken" in prompt, (
+        "In diesem Repository gerät ein `#` häufiger über ein Code-Zitat an den "
+        "Zeilenanfang als über eine Überschrift – dafür passt `**Überschrift**` nicht"
+    )
+    # Review-Befund auf 24259f5: Die zweite Abhilfe („im Block um ein
+    # Leerzeichen einrücken") war nicht belegt — die Regel steht auf Lauf
+    # 32640784005, das Einrücken auf nichts. In der Shell beginnt `#` einen
+    # Kommentar auch nach führendem Leerzeichen, es hilft also vermutlich
+    # gerade nicht. Auf dem einzigen Ausgabeweg eine erfundene Abhilfe zu
+    # empfehlen ist teurer als sie wegzulassen: Inline-Backticks reichen.
+    assert "rücke" not in prompt or "Leerzeichen ein" not in prompt, (
+        "Die unbelegte Einrückungs-Abhilfe ist zurück — ein späterer Lauf "
+        "probiert sie am Ausgabeweg aus"
+    )
+    assert "**inline in Backticks**" in prompt, (
+        "Die voraussetzungsfreie Abhilfe fehlt"
+    )
 
 
 def test_prompt_bars_the_file_egress_on_the_output_path() -> None:
@@ -1025,16 +1048,6 @@ def test_prompt_keeps_the_issue_read_to_the_body() -> None:
     assert "`--comments` brauchst du nicht" in prompt, (
         "Prompt verzichtet nicht auf `--comments`, obwohl die Wildcard es zulässt"
     )
-    assert "**Überschrift**` statt `## Überschrift" in prompt, (
-        "Prompt nennt die Ersatzform für Überschriften nicht"
-    )
-    assert "32640784005" in prompt, (
-        "Ohne den Lauf als Beleg liest sich die Regel als Stilwunsch und wird zurückgedreht"
-    )
-    assert "auch INNERHALB von Codeblöcken" in prompt, (
-        "In diesem Repository gerät ein `#` häufiger über ein Code-Zitat an den "
-        "Zeilenanfang als über eine Überschrift – dafür passt `**Überschrift**` nicht"
-    )
 
 
 def test_the_documented_hash_denial_is_filed_as_the_boundary_not_as_a_gap() -> None:
@@ -1091,6 +1104,14 @@ def test_class_n_takes_precedence_over_the_reachability_rule() -> None:
     an anderer Stelle schließt.
     """
     taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
+    # Review-Befund auf 24259f5: Das Zahlwort „sechs" stand hartkodiert neben
+    # der Domainliste — in einer Vorrangregel, die eine Klassifizierung trägt,
+    # und als einzige Aussage darüber ohne Test. Nach der nächsten Freigabe
+    # wäre es still falsch. Die Aussage trägt sich jetzt selbst.
+    import re as _re
+    assert not _re.search(r"(sechs|sieben|fünf|\b\d+) (freigegebenen? )?Domains", taxonomy), (
+        "Die Domainzahl ist wieder hartkodiert und driftet bei der nächsten Freigabe"
+    )
     assert "N GEHT L VOR" in taxonomy, (
         "Ohne Vorrangregel ist eine abgewiesene Domain zugleich N und L"
     )

@@ -137,8 +137,11 @@ jobs:
               `**Überschrift**` statt `## Überschrift`. Das gilt auch INNERHALB
               von Codeblöcken, und dort trifft es dich häufiger: Der Diff
               dieses Repositorys besteht großenteils aus YAML-/Python-
-              Kommentaren. Zitiere solche Zeilen inline in Backticks oder rücke
-              sie im Block um ein Leerzeichen ein. Kein Stilwunsch: In Lauf
+              Kommentaren. Zitiere solche Zeilen **inline in Backticks** –
+              nicht im Fence, und auch nicht eingerückt: In der Shell beginnt
+              `#` einen Kommentar auch nach führendem Leerzeichen, ein
+              Einrücken hilft also vermutlich gerade nicht. Kein Stilwunsch:
+              In Lauf
               32640784005 wurde `gh pr comment 850 --body '## …'` abgelehnt,
               weil eine Argumentzeile mit `#` begann.
             - Halte die Zusammenfassung deutlich unter 10 000 Zeichen. Ein
@@ -356,13 +359,13 @@ jobs:
           #       Formatierungsregel statt an der Werkzeuggrenze.
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
           #   N = Netzzugriff auf eine NICHT freigegebene Domain. N GEHT L
-          #       VOR: Die sechs Domains stehen in derselben Allowlist, eine
+          #       VOR: Die freigegebenen Domains stehen in derselben Allowlist, eine
           #       weitere wäre also wörtlich „eine Erweiterung genau dieser
           #       Allowlist" und damit nach dem Buchstaben L. Die
           #       Domain-Auswahl ist aber selbst eine dokumentierte
           #       Ausschlussentscheidung, ihre Enge gewollt – symmetrisch zur
           #       zweiten P-Ausnahme unten. Ohne diese Vorrangregel wäre jeder
-          #       Abruf außerhalb der sechs Domains zugleich N (erwartbar) und
+          #       Abruf außerhalb der freigegebenen Domains zugleich N (erwartbar) und
           #       L (Lücke), und da der Prompt ausdrücklich zur Recherche
           #       ermutigt, käme der Fall sicher.
           #   S = Schreibzugriff (Datei, Git, Remote),
@@ -526,6 +529,12 @@ jobs:
           # 0" — der stille Durchlauf, den dieser Schritt gerade ausschliessen
           # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
           # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
+          # Das abschliessende `gsub` macht „genau eine Ausgabezeile je
+          # Ablehnung" strukturell wahr, statt pro Feld: `tool_name` und die
+          # Feldnamen gehen roh in die Interpolation, und ein Zeilenumbruch
+          # darin ist in JSON zulaessig – nachgestellt, `count` sprang auf 2.
+          # So haengt die Zusicherung nicht daran, dass jeder kuenftige
+          # Feldzugriff daran denkt.
           # `tojson` statt `tostring`: Auf einem String ist `tostring` die
           # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
           # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
@@ -542,7 +551,8 @@ jobs:
                                          else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
                                          end
                                   else "? [permission_denials ist \(.permission_denials | type), kein Array]"
-                                  end' \
+                                  end
+                                | gsub("\n"; " ")' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0

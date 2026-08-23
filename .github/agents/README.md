@@ -97,8 +97,8 @@ die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
 Ablehnung, die eine Erweiterung genau dieser Allowlist schließen könnte) darf
 nie vorkommen; tritt sie auf, ist sie die Lücke und gehört geschlossen. Zwei
 Zweige: eine Form, die die Allowlist decken sollte, wird abgelehnt, weil der
-Eintrag zu eng geschnitten ist – auch `WebFetch` auf eine der sechs
-freigegebenen Domains gehört hierher –, oder eine lesende Abfrage, deren
+Eintrag zu eng geschnitten ist – auch `WebFetch` auf eine der freigegebenen
+Domains gehört hierher –, oder eine lesende Abfrage, deren
 Information keine freigegebene Form liefert und die nicht unter „Bewusst nicht
 freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
 Erreichbarkeit, nicht die Form. Das endet, wo die Allowlist nicht mehr
