@@ -191,10 +191,11 @@ jobs:
             **keine** Checks – und bei Bedarf `gh pr list`. Run-IDs, die eine
             PR-Beschreibung als Evidenz zitiert, liest du **nicht** nach:
             `gh run` ist bewusst nicht freigegeben, Actions-Logs gehören nicht
-            zu deinem Auftrag. Das **erste** im Kopf der Beschreibung
-            genannte Bezugsissue (`Closes #NNN`, `Fixes #NNN` oder ein reiner
-            Verweis wie „Bezug: #NNN") liest du mit `gh issue view <nummer>`,
-            höchstens ZWEI insgesamt: Beschreibungen dieses Repositorys nennen
+            zu deinem Auftrag. Die **ersten zwei** im Kopf der Beschreibung
+            genannten Bezugsissues (`Closes #NNN`, `Fixes #NNN` oder ein
+            reiner Verweis wie „Bezug: #NNN") liest du mit
+            `gh issue view <nummer>`, mehr nicht – auch dann nicht, wenn der
+            Fließtext weitere nennt. Beschreibungen dieses Repositorys nennen
             regelmäßig vier bis fünf Nummern, und jede kostet einen Turn von
             dreißig, bevor irgendetwas gepostet ist. **Alle** `gh`-Aufrufe gelten diesem
             Repository: nie `-R`/`--repo`, nie eine vollständige URL. Das
@@ -306,6 +307,24 @@ jobs:
           # weiter unten als den schlimmeren Fall benennt; der Prompt verengt
           # ihn auf `--body '…'`. Bei Git war eine feste Form möglich,
           # deshalb gibt es sie dort.
+          # WARUM KEINE DENY-REGEL als zweite Schicht? Sie würde mechanisch
+          # greifen: Bash-Regeln erlauben `*` „at the beginning, middle, or
+          # end", und eine Deny-Regel schlägt jede Allow-Regel
+          # (https://code.claude.com/docs/en/permissions). Die richtige Form
+          # wäre `Bash(gh pr comment *--body-file*)` – NICHT die naheliegende
+          # `:*`-Schreibweise, denn „the `:*` form is only recognized at the
+          # end of a pattern".
+          # Sie ist trotzdem falsch, und zwar gefährlich falsch: Ein `*`
+          # matcht „any sequence of characters including spaces", der Body
+          # aber ist Teil desselben Kommandostrings. Eine Zusammenfassung, die
+          # `--body-file` bloß ERWÄHNT – in diesem Repository der Normalfall,
+          # dieser PR-Thread tut es dutzendfach –, träfe die Regel genauso und
+          # bliebe ungepostet. Für die Kurzform `-F` ist es noch schlimmer:
+          # `*-F *` matcht jedes Vorkommen im Fließtext. Eine Deny-Regel
+          # könnte hier das Flag nicht von seiner Erwähnung unterscheiden und
+          # würde den EINZIGEN Ausgabeweg sperren, statt ihn zu verengen –
+          # teurer als das Restrisiko, das sie abdecken soll. Tragend bleibt
+          # deshalb die Prompt-Regel.
           # Bewusst nicht freigegeben sind `git fetch`, lokale Testausführung,
           # pauschales `gh api`, `gh run` (Actions-Logs), Edit/Write und alle
           # Git-/Datei-Schreibbefehle.

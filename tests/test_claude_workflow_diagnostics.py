@@ -39,6 +39,22 @@ _EXPECTED_REVIEW_GIT_TOOLS = {
     "Bash(git show --stat --oneline HEAD)",
     "Bash(git show --format=fuller --no-patch HEAD)",
 }
+# Review-Befund auf 0cb5d3e: Die Domainliste war nur einseitig gesichert.
+# `test_prompt_names_every_allowlisted_webfetch_domain` prüft „freigegeben ⇒
+# im Prompt genannt"; die Gegenrichtung fing bei `gh`/git die Mengengleichheit
+# ab, für WebFetch gab es kein Pendant (die Nicht-Bash-Einträge werden nur mit
+# `>=` geprüft). Eine gestrichene oder vertippte Domain, die im Prompt stehen
+# bleibt, ließ alles grün — und die Folgeablehnung läse sich nach der
+# Taxonomie als erwartbares N, obwohl ein Mismatch die Ursache ist.
+_EXPECTED_REVIEW_WEBFETCH_DOMAINS = {
+    "WebFetch(domain:docs.claude.com)",
+    "WebFetch(domain:code.claude.com)",
+    "WebFetch(domain:platform.claude.com)",
+    "WebFetch(domain:docs.anthropic.com)",
+    "WebFetch(domain:docs.github.com)",
+    "WebFetch(domain:raw.githubusercontent.com)",
+}
+
 _EXPECTED_REVIEW_BASH_TOOLS = {
     "Bash(gh pr diff:*)",
     "Bash(gh pr view:*)",
@@ -108,6 +124,21 @@ def _shared_comment_block(relative: str) -> str:
 
 def _review_workflow_text() -> str:
     return (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8")
+
+
+def _shared_allowlist_rationale() -> str:
+    """Die Freigabe-Begründung über ``claude_args`` des Review-Workflows.
+
+    Beginnt an ihrer Kopfzeile und endet am Argumentblock — die
+    Ablehnungs-Einteilung dazwischen gehört mit dazu, der Block selbst nicht.
+    Ein Ausschnitt statt der ganzen Datei: Ein Guard über den Gesamttext wäre
+    schon durch ein Vorkommen im Prompt oder in einem Kommentar erfüllt, und
+    genau daran sind in diesem PR zwei Zusicherungen wirkungslos geblieben.
+    """
+    text = _review_workflow_text()
+    start = text.index("          # Nur-Lese-Freigaben (#841):")
+    ende = text.index("          claude_args: |", start)
+    return text[start:ende]
 
 
 def _review_taxonomy() -> str:
@@ -344,6 +375,40 @@ def test_a_non_empty_denial_list_can_never_report_zero(relative: str) -> None:
     )
 
 
+def test_the_deny_rule_question_is_answered_not_left_open() -> None:
+    """Review-Befund auf 0cb5d3e: Ist eine Deny-Regel die zweite Schicht?
+
+    Der Befund ließ die Frage ausdrücklich offen („ob mittige Wildcards
+    greifen, ist mir unbelegt") und verlangte entweder die Regel oder einen
+    widerlegenden Satz — wie ihn `checks: read` und `issues: write` schon
+    tragen. An der Quelle nachgeschlagen ist beides belegt: Bash-Regeln
+    erlauben `*` „at the beginning, middle, or end", eine Deny-Regel schlägt
+    jede Allow-Regel, und die `:*`-Kurzform gilt nur am Musterende — die im
+    Befund vorgeschlagene Schreibweise wäre also gar nicht getroffen worden.
+
+    Entscheidend ist aber die zweite Doku-Aussage: Ein `*` matcht „any
+    sequence of characters including spaces", und der Body ist Teil desselben
+    Kommandostrings. Eine Regel gegen `--body-file` träfe damit jede
+    Zusammenfassung, die das Flag bloß erwähnt — in diesem Repository der
+    Normalfall. Die zweite Schicht würde den einzigen Ausgabeweg sperren
+    statt ihn zu verengen. Der Kommentar muss das festhalten, sonst kommt die
+    Frage bei jedem Lesen zurück und irgendwann als vermeintliche Auslassung.
+    """
+    block = " ".join(_shared_allowlist_rationale().replace("#", " ").split())
+    assert "WARUM KEINE DENY-REGEL" in block, (
+        "Die Deny-Regel-Frage ist wieder offen; sie kommt dann bei jedem Lesen zurück"
+    )
+    assert "only recognized at the end of a pattern" in block, (
+        "Ohne die Musterregel liest sich die naheliegende `:*`-Schreibweise als gangbar"
+    )
+    assert "including spaces" in block, (
+        "Der Grund fehlt: Ohne ihn wirkt die Ablehnung der Deny-Regel wie Bequemlichkeit"
+    )
+    assert "EINZIGEN Ausgabeweg sperren" in block, (
+        "Die Konsequenz fehlt — sie ist der Grund, warum die Regel teurer wäre als das Risiko"
+    )
+
+
 def test_taxonomy_separates_what_is_observed_from_what_is_documented() -> None:
     """Review-Befund auf 78f5495: Die Doku-Stelle deckt diesen Fall nicht.
 
@@ -416,12 +481,25 @@ def test_prompt_bounds_how_many_issues_the_review_reads() -> None:
     Agenten mit `pull-requests: write`.
     """
     prompt = " ".join(_review_prompt().split())
-    assert "höchstens ZWEI insgesamt" in prompt, (
-        "Der Leseumfang ist wieder unbegrenzt; die Messung vergleicht dann "
-        "Läufe, die verschieden viel gelesen haben"
+    # Review-Befund auf 0cb5d3e: Auswahlregel und Obergrenze widersprachen
+    # sich. „Das **erste** … Bezugsissue" nannte eines, „höchstens ZWEI
+    # insgesamt" erlaubte zwei — welches das zweite sein darf, sagte der Satz
+    # nicht. Zwei Läufe lösen das verschieden auf, und die Messung vergleicht
+    # dann wieder Läufe mit unterschiedlichem Leseumfang: genau die
+    # Nicht-Vergleichbarkeit, die dieser Test beseitigen soll. Die Zahl hängt
+    # jetzt AN der Auswahlregel statt daneben zu stehen.
+    assert "Die **ersten zwei** im Kopf der Beschreibung" in prompt, (
+        "Auswahl und Obergrenze stehen wieder getrennt; welches Issue das "
+        "zweite ist, bleibt dann Auslegung"
     )
-    assert "Das **erste** im Kopf der Beschreibung genannte Bezugsissue" in prompt, (
-        "Ohne die Auswahlregel bleibt offen, welches Issue gemeint ist"
+    assert "mehr nicht" in prompt, (
+        "Die Obergrenze ist wieder offen"
+    )
+    assert "auch dann nicht, wenn der Fließtext weitere nennt" in prompt, (
+        "Der Fließtext bleibt eine zweite Lesart und damit eine zweite Messgröße"
+    )
+    assert "Das **erste** im Kopf" not in prompt, (
+        "Die widersprüchliche Einzahl-Fassung ist zurück"
     )
 
 
@@ -462,6 +540,12 @@ def test_review_bash_allowlist_matches_inspection_and_comment_boundary() -> None
         "Review-Bash-Allowlist weicht vom engen Lese-/Kommentierrahmen ab: "
         f"fehlt={sorted(_EXPECTED_REVIEW_BASH_TOOLS - allowed_bash)}, "
         f"unerwartet={sorted(allowed_bash - _EXPECTED_REVIEW_BASH_TOOLS)}"
+    )
+    allowed_webfetch = {tool for tool in allowed if tool.startswith("WebFetch(")}
+    assert allowed_webfetch == _EXPECTED_REVIEW_WEBFETCH_DOMAINS, (
+        "Review-WebFetch-Allowlist weicht ab: "
+        f"fehlt={sorted(_EXPECTED_REVIEW_WEBFETCH_DOMAINS - allowed_webfetch)}, "
+        f"unerwartet={sorted(allowed_webfetch - _EXPECTED_REVIEW_WEBFETCH_DOMAINS)}"
     )
     assert allowed >= {
         "mcp__github_inline_comment__create_inline_comment",
