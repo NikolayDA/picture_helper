@@ -443,6 +443,20 @@ def test_taxonomy_separates_what_is_observed_from_what_is_documented() -> None:
     assert "Vorsichtsmaß, kein Zitat" in prompt, (
         "Die Längenregel steht im Prompt wieder als Doku-Zitat"
     )
+    # Review-Befund auf 6f7dd87: Die dritte kanonische Fundstelle fiel durch
+    # das Raster. Die README führte die Schwelle weiter als Tatsache — und sie
+    # ist die Stelle, in der beim Auswerten der drei Läufe nachgeschlagen
+    # wird. Dort stand damit genau der Fehlschluss festgeschrieben, den der
+    # Workflow-Kommentar als Folgeschaden benennt: eine lange Ablehnung
+    # belegfrei als W statt als offene Frage.
+    readme = " ".join(_agents_readme().split())
+    assert "für einen allowlist-gedeckten Aufruf unbelegt" in readme, (
+        "agents-README führt die Schwelle wieder als Tatsache; sie ist der "
+        "Nachschlageort beim Auswerten"
+    )
+    assert "darunter jedes über 10 000 Zeichen" not in readme, (
+        "Die Tatsachenfassung ist zurück"
+    )
 
 
 def test_prompt_does_not_explain_the_denial_with_shell_semantics() -> None:

@@ -117,9 +117,12 @@ dieser Allowlist wäre),
 **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von
-`--allowedTools` liegt – ein für die Kommandoanalyse nicht parsebares Kommando,
-darunter jedes über 10 000 Zeichen, oder eine Pfadregel für die ohne
-Pfadmuster freigegebenen `Read`/`Grep`/`Glob`)
+`--allowedTools` liegt – ein für die Kommandoanalyse nicht parsebares Kommando
+(belegt: eine Argumentzeile, die mit `#` beginnt; die 10-000-Zeichen-Schwelle
+der Dokumentation gilt dem eingebauten Read-only-Satz und ist für einen
+allowlist-gedeckten Aufruf unbelegt – sie steht im Prompt nur als
+Vorsichtsmaß), oder eine Pfadregel für die ohne Pfadmuster freigegebenen
+`Read`/`Grep`/`Glob`)
 dürfen dagegen abgelehnt werden und rechtfertigen keine Erweiterung der
 Freigaben. Die Fix-Adresse unterscheidet sich aber: **A**, **N** und **S** sind
 erwartbar und gar kein Befund – dort wirkt die Konfiguration wie gewollt. Nur
