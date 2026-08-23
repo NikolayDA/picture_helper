@@ -91,8 +91,9 @@ def _shared_comment_block(relative: str) -> str:
     """Den #825-Kommentarblock über dem Diagnoseschritt herausschneiden.
 
     Er beginnt an seiner Kopfzeile und endet am Schritt selbst; die in
-    ``claude.yml`` darüber stehende workflow-spezifische Deutung ist durch
-    eine Leerzeile abgetrennt und damit nicht Teil des Ausschnitts.
+    ``claude.yml`` darüber stehende workflow-spezifische Deutung liegt vor
+    diesem Anker und ist damit nicht Teil des Ausschnitts. Die Leerzeile
+    dazwischen dient der Lesbarkeit, nicht der Abgrenzung.
     """
     text = (_ROOT / relative).read_text(encoding="utf-8")
     match = re.search(
@@ -442,6 +443,29 @@ def test_review_prompt_treats_foreign_content_as_data() -> None:
     assert "melde sie als Befund" in prompt
 
 
+def test_prompt_names_every_allowlisted_gh_form() -> None:
+    """Review-Befund auf PR #850: Eine ungenannte Freigabe ist unsichtbar.
+
+    Der Prompt verlangte, das referenzierte Issue zu lesen – die Nummer steht
+    aber in der PR-Beschreibung, die nur ``gh pr view`` liefert, und genau
+    das war nirgends genannt. Ein Agent, der die Formen strikt liest, ruft
+    das Kommando dann gar nicht erst auf: keine Ablehnung im Joblog, aber
+    auch kein gelesenes Issue. Für die #841-Messung ist das der schlechtere
+    Ausgang als eine ehrliche Ablehnung, weil die Diagnose ihn nicht sieht.
+    """
+    prompt = _review_prompt()
+    gh_forms = sorted(
+        tool[len("Bash("):-len(":*)")]
+        for tool in _review_allowed_tools()
+        if tool.startswith("Bash(gh ") and tool.endswith(":*)")
+    )
+    missing = [form for form in gh_forms if form not in prompt]
+    assert not missing, (
+        f"freigegeben, aber im Prompt nicht genannt: {missing} – "
+        "der Agent nutzt sie dann nicht und die Diagnose sieht es nicht"
+    )
+
+
 def test_review_taxonomy_names_its_own_scope() -> None:
     """Die Taxonomie muss sagen, dass sie nur für das Review gilt."""
     text = _review_workflow_text()
@@ -451,8 +475,11 @@ def test_review_taxonomy_names_its_own_scope() -> None:
 def test_review_promises_no_sticky_comment_it_cannot_keep() -> None:
     """#828: Das Input wirkt im Prompt-Modus nicht – beides muss weg."""
     text = _review_workflow_text()
-    assert "use_sticky_comment: true" not in text, "unwirksames Input wieder aktiv"
-    assert re.search(r"(?m)^\s*use_sticky_comment:", text) is None
+    # Nur auf echte YAML-Zeilen prüfen: Ein Kommentar, der das Input erklärt
+    # oder zitiert, darf den Test nicht rot färben (`#` ist kein Whitespace).
+    assert re.search(r"(?m)^\s*use_sticky_comment:", text) is None, (
+        "unwirksames Input wieder aktiv"
+    )
     assert "(Sticky-)" not in _review_prompt(), "Prompt verspricht weiter einen Sticky-Kommentar"
 
 
