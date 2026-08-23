@@ -2,14 +2,16 @@
 
 from pathlib import Path
 
+from scripts import recommendations_live_check as lc
+
 ROOT = Path(__file__).resolve().parent.parent
+#: Pfade und Sprachanker kommen aus ``recommendations_live_check`` — CLAUDE.md
+#: nennt sie als einzige Quelle, und ``test_recommendations_freeze_consistency``
+#: leitet sie ebenso ab. Eine zweite, handgepflegte Liste hier hätte eine
+#: siebte Sprachfassung still übergangen, obwohl ``--write`` deren Tabelle
+#: mitschreibt — genau die Drift, gegen die diese Tests antreten.
 RECOMMENDATION_DOCS = {
-    "de": ROOT / "RECOMMENDATIONS.md",
-    "en": ROOT / "docs/i18n/en/RECOMMENDATIONS.md",
-    "es": ROOT / "docs/i18n/es/RECOMMENDATIONS.md",
-    "fr": ROOT / "docs/i18n/fr/RECOMMENDATIONS.md",
-    "uk": ROOT / "docs/i18n/uk/RECOMMENDATIONS.md",
-    "zh": ROOT / "docs/i18n/zh/RECOMMENDATIONS.md",
+    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
 }
 ARCHIVE_DOCS = {
     "de": ROOT / "docs/history/RECOMMENDATIONS-2026-pre-v2.2.md",
@@ -83,6 +85,69 @@ CURRENT_STATUS_TOKENS = (
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def test_triage_rows_have_exactly_the_header_column_count() -> None:
+    """Ein unmaskiertes Pipe in einer Zelle verschluckt den Rest der Zeile.
+
+    Auf PR #851 real passiert: Die Zelle „Nächster Schritt" der neuen
+    #841-Zeile zitierte ein `grep -cE '(^|[[:space:]])…'`. Backticks schützen
+    in GFM **nicht** vor der Zellentrennung — die Zeile bekam eine siebte
+    Zelle bei sechs Kopfspalten, GFM verwirft die überzähligen, und alles ab
+    dem Pipe war in der gerenderten Ansicht unsichtbar. Betroffen waren alle
+    sechs Fassungen; gerade die Passage, die den Verifikationsmodus
+    definiert, fiel weg.
+
+    Kein bestehender Test fing das: ``recommendations_live_check`` wertet von
+    einer Datenzeile nur ``cells(row)[0]`` aus, der Konsistenztest nur die
+    Nummernmenge — ``make check`` blieb grün, der Schaden war rein visuell.
+    Das Skript maskiert beim Fortschreiben längst selbst
+    (``render_triage_row``); nur die handgepflegten Bewertungsspalten fallen
+    nicht unter diese Automatik.
+
+    Die Zellentrennung kommt aus dem Skript (``lc.cells``) — dort erzeugt
+    ``render_triage_row`` die Maskierung, dort gehört auch ihr Gegenstück
+    hin. Eine zweite, test-lokale Fassung wäre genau die Drift, gegen die
+    dieser Wächter antritt; die Negativkontrolle des Splitters liegt neben
+    ihm in ``tests/test_recommendations_live_check.py``.
+
+    Geprüft wird nur der Triage-Abschnitt, nicht jede Tabellenzeile der
+    Datei. Das ist keine prinzipielle Grenze, sondern eine Folge der
+    Vergleichsbasis: Alle Zeilen werden gegen **den** Triage-Kopf gehalten,
+    eine Tabelle mit anderer Spaltenzahl — etwa unter „Vorige Runden" —
+    würde deshalb falsch-rot. Vergliche man jede Tabelle gegen ihren
+    **eigenen** Kopf, ließe sich der Wächter auf die Archivtabellen
+    ausweiten, die denselben Renderschaden erleiden können und heute
+    niemand prüft. ``table_span`` liefert dafür nicht genug (es findet
+    genau die erste zusammenhängende Tabelle); das wäre ein eigener Beitrag.
+    """
+    for lang, path in RECOMMENDATION_DOCS.items():
+        lines = lc.extract_triage_section(_read(path), lang).split("\n")
+        first, last = lc.table_span(lines)
+        columns = len(lc.cells(lines[first]))
+        # Ab first + 1, also inklusive Trennzeile: Stimmt deren Spaltenzahl
+        # nicht mit dem Kopf ueberein, erkennt GFM den Block gar nicht erst
+        # als Tabelle und zeigt rohes "| … |" - derselbe Schaden, nur groesser.
+        for row in lines[first + 1 : last + 1]:
+            actual = len(lc.cells(row))
+            # Beide Richtungen sind ein Fehler, aber nicht derselbe: zu viele
+            # Zellen heißt „unmaskiertes Pipe, GFM verwirft den Rest", zu wenige
+            # heißt „Spalte fehlt" — GFM füllt die dann still leer auf. Eine
+            # Meldung für beide schickt die Hälfte der Fälle in die Irre.
+            if actual > columns:
+                reason = (
+                    "ein unmaskiertes `|` in einer Zelle (als `\\|` schreiben) "
+                    "oder eine Trennzeile mit abweichender Spaltenzahl; GFM "
+                    "verwirft den Rest bzw. rendert gar keine Tabelle."
+                )
+            else:
+                reason = (
+                    "eine Spalte fehlt; GFM füllt sie still leer auf, die Zeile "
+                    "rendert unvollständig."
+                )
+            assert actual == columns, (
+                f"{lang}: {actual} Zellen statt {columns} — {reason} Zeile: {row[:80]}…"
+            )
 
 
 def test_recommendations_docs_have_current_shortform_structure() -> None:

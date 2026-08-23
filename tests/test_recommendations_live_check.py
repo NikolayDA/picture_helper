@@ -321,6 +321,42 @@ def test_unrated_issue_numbers_ignores_todo_inside_prose() -> None:
     assert lc.unrated_issue_numbers(_table(row)) == ()
 
 
+def test_cells_splits_only_on_unescaped_pipes() -> None:
+    """Negativkontrolle für den Splitter selbst.
+
+    Der Doku-Wächter in ``tests/test_recommendations_docs.py`` vergleicht
+    Kopf- und Datenzeile mit **derselben** Funktion und nur relativ. Träfe
+    ``_CELL_SEPARATOR`` eines Tages nichts mehr, lieferte sie für beide genau
+    eine Zelle — ``1 == 1``, Wächter grün, Zeile trotzdem abgeschnitten.
+    """
+    assert len(lc.cells("| a | b | c |")) == 3
+    assert len(lc.cells(r"| a | b \| c |")) == 2, "maskiertes Pipe ist Zellinhalt"
+    assert len(lc.cells("| a | `x|y` |")) == 3, "Backticks schützen in GFM nicht"
+    assert len(lc.cells("| a | b ||")) == 3, "leere Randzelle zaehlt mit"
+    assert len(lc.cells("|| a | b |")) == 3, "leere Randzelle zaehlt mit"
+
+
+def test_unrated_issue_numbers_ignores_todo_after_an_escaped_pipe() -> None:
+    r"""Ein maskiertes ``\|`` darf keine Zelle in den Marker zerlegen.
+
+    Die naive Zerlegung machte aus ``Fix in a \| TODO`` die Teile
+    ``Fix in a \`` und ``TODO``; der zweite ist exakt der Platzhalter, also
+    galt eine vollständig bewertete Zeile als unbewertet und ``--write``
+    endete mit Exit 1. Der Auslöser war ausgerechnet die Empfehlung des
+    Doku-Wächters, ein Pipe in einer Zelle als ``\|`` zu schreiben.
+
+    Nur diese enge Form löste es aus: ``\| TODO nachziehen`` (Text folgt)
+    und ``\| TODO \|`` (Backslash bleibt an der Zelle) waren nie betroffen —
+    beide sind hier als Kontrollen mitgeführt.
+    """
+    assert lc.unrated_issue_numbers(_table(_rated(741, r"Fix in a \| TODO"))) == ()
+    assert lc.unrated_issue_numbers(_table(_rated(741, r"Fix in a \| TODO nachziehen"))) == ()
+    assert lc.unrated_issue_numbers(_table(_rated(741, r"c \| TODO \| d"))) == ()
+    assert lc.unrated_issue_numbers(_table(_rated(741, "TODO"))) == (741,), (
+        "eine Zelle, die exakt der Platzhalter ist, muss weiterhin anschlagen"
+    )
+
+
 def test_update_triage_table_rejects_interrupted_table() -> None:
     section = (
         "## Offene GitHub-Issues – Triage-Stand (2026-08-01)\n\n"

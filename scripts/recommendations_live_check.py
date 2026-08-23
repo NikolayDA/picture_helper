@@ -258,12 +258,18 @@ def run(
 # ── Schreibmodus: Triage-Tabelle aus dem Live-Stand fortschreiben (#821) ──
 
 
-def _table_span(lines: list[str]) -> tuple[int, int]:
+def table_span(lines: list[str]) -> tuple[int, int]:
     """Index der ersten und letzten Tabellenzeile (Kopf, Trenner, Datenzeilen).
 
     Wirft :class:`LiveCheckError`, wenn keine oder eine unterbrochene Tabelle
     gefunden wird - lieber sichtbar abbrechen als eine halbe Tabelle
     ueberschreiben.
+
+    Bewusst oeffentlich (#851): Auch ``tests/test_recommendations_docs.py``
+    muss Kopfzeile und Datenzeilenmenge genau so bestimmen wie der
+    ``--write``-Pfad. Eine eigene Heuristik dort wuerde still untererfassen -
+    eine Zeile, die nicht mit einem Issue-Link beginnt, faellt durchs Raster,
+    und genau sie kann das unmaskierte Pipe tragen.
     """
     indices = [i for i, line in enumerate(lines) if line.startswith("|")]
     if len(indices) < 3:
@@ -273,9 +279,52 @@ def _table_span(lines: list[str]) -> tuple[int, int]:
     return indices[0], indices[-1]
 
 
-def _cells(row: str) -> list[str]:
-    """Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe)."""
-    return [cell.strip() for cell in row.strip().strip("|").split("|")]
+#: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
+#: Backslash maskiert ist. Ein maskiertes ``\|`` gehoert zum Zellinhalt und
+#: rendert dort als literales Pipe - genau die Schreibweise, die
+#: :func:`render_triage_row` fuer Titel mit Pipe selbst erzeugt.
+_CELL_SEPARATOR: Final = re.compile(r"(?<!\\)\|")
+
+
+def cells(row: str) -> list[str]:
+    r"""Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe).
+
+    Maskierungsbewusst und bewusst oeffentlich (#851): Skript und
+    ``tests/test_recommendations_docs.py`` zerlegen eine Zeile nach derselben
+    Regel, statt jeder nach einer eigenen.
+
+    **Zwei Grenzen, die diese Zusicherung nicht ueberdehnen:**
+
+    * :data:`_TABLE_FIRST_CELL_RE` ist eine zweite, maskierungsunbewusste
+      Regel fuer *Spalte 1* und speist den read-only Pruefpfad
+      (:func:`issue_numbers_in_first_column`). Bei einer Spalte-1-Zelle mit
+      maskiertem Pipe divergieren beide: ``cells(row)[0]`` behaelt
+      ``… \| Gruppe``, das Muster schneidet am ``\|`` ab. Heute nicht
+      ausloesbar - Spalte 1 traegt nur Issue-Links - und bewusst nicht
+      umgestellt, weil ``issue_numbers_in_first_column`` auf dem rohen
+      Abschnitt arbeitet und ueber :func:`table_span` ein
+      :class:`LiveCheckError` bekaeme, wo es heute still weiterlaeuft.
+    * Das Lookbehind ``(?<!\\)`` unterscheidet ``\\|`` (maskierter
+      Backslash, echter Trenner) nicht von ``\|``. In diesem Dokument
+      irrelevant, aber es ist keine vollstaendige GFM-Implementierung.
+
+    Die naive Fassung (``split("|")``) hat ein maskiertes ``\|`` als Trenner
+    mitgezaehlt. Folge, an einer handgepflegten Bewertungszelle reproduziert:
+    ``Fix in a \| TODO`` zerfiel in ``Fix in a \`` und ``TODO`` - der zweite
+    Teil ist exakt :data:`UNRATED_PLACEHOLDER`, also meldete
+    :func:`unrated_issue_numbers` eine vollstaendig bewertete Zeile als
+    unbewertet und ``--write`` endete mit Exit 1. Ausgeloest wurde das
+    ausgerechnet von der Empfehlung des Doku-Waechters, ein Pipe in einer
+    Zelle als ``\|`` zu schreiben.
+
+    Die aeusseren Delimiter werden mit ``removeprefix``/``removesuffix``
+    genau einmal entfernt, nicht mit ``strip("|")``: Letzteres frisst eine
+    leere Randzelle mit (``| a | b ||`` ergaebe 2 statt 3 Zellen) und liesse
+    den Doku-Waechter falsch-rot anschlagen - die Gegenrichtung des Schadens,
+    den er finden soll.
+    """
+    inner = row.strip().removeprefix("|").removesuffix("|")
+    return [cell.strip() for cell in _CELL_SEPARATOR.split(inner)]
 
 
 def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO) -> str:
@@ -317,16 +366,16 @@ def update_triage_table(
     darin wird nicht entfernt (siehe Modul-Docstring, #829 Befund 4).
     """
     lines = section.split("\n")
-    first, last = _table_span(lines)
+    first, last = table_span(lines)
     header, separator = lines[first], lines[first + 1]
-    columns = len(_cells(header))
+    columns = len(cells(header))
     link_re = _issue_link_re(repo)
     open_numbers = {issue.number for issue in open_issues}
 
     kept: list[str] = []
     covered: set[int] = set()
     for row in lines[first + 2 : last + 1]:
-        numbers = {int(m.group(1)) for m in link_re.finditer(_cells(row)[0])}
+        numbers = {int(m.group(1)) for m in link_re.finditer(cells(row)[0])}
         if numbers and not (numbers & open_numbers):
             continue  # jedes Issue dieser Zeile ist geschlossen
         kept.append(row)
@@ -358,13 +407,13 @@ def unrated_issue_numbers(
     """Issue-Nummern der Zeilen, die noch :data:`UNRATED_PLACEHOLDER` tragen."""
     section = extract_triage_section(markdown, lang)
     lines = section.split("\n")
-    first, last = _table_span(lines)
+    first, last = table_span(lines)
     link_re = _issue_link_re(repo)
     numbers: set[int] = set()
     for row in lines[first + 2 : last + 1]:
-        cells = _cells(row)
-        if any(cell == UNRATED_PLACEHOLDER for cell in cells):
-            numbers.update(int(m.group(1)) for m in link_re.finditer(cells[0]))
+        row_cells = cells(row)
+        if any(cell == UNRATED_PLACEHOLDER for cell in row_cells):
+            numbers.update(int(m.group(1)) for m in link_re.finditer(row_cells[0]))
     return tuple(sorted(numbers))
 
 

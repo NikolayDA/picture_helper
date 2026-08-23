@@ -226,7 +226,14 @@ Prüfungen sichern das ab:
   deckt die Kernlogik von `scripts/recommendations_live_check.py` (Triage-
   Tabellen-Parsing inkl. gruppierter Zeilen wie `#680 / #685 / #686`,
   Vergleichslogik) über gespeicherte Fixtures ab – ohne Netzwerk oder
-  GitHub-Token.
+  GitHub-Token. `tests/test_recommendations_docs.py` prüft als dritte
+  netzfreie Absicherung, dass jede Triage-Zeile genau so viele Zellen hat
+  wie die Kopfzeile. **Daraus folgt eine Schreibregel für die
+  handgepflegten Bewertungsspalten: Ein Pipe im Zellinhalt muss als `\|`
+  geschrieben werden** – auch innerhalb von Backticks, denn GFM trennt die
+  Zellen *vor* der Inline-Auswertung und verwirft die überzähligen. Nur den
+  API-Titel maskiert `render_triage_row` selbst; alle übrigen Spalten sind
+  Handarbeit (#851).
 - **Netzwerkzugriff, separat ausführbar:**
   `python scripts/recommendations_live_check.py` fragt die tatsächlich
   offenen GitHub-Issues ab und vergleicht sie gegen die Triage-Tabelle in
