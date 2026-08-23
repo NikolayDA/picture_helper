@@ -258,12 +258,18 @@ def run(
 # ── Schreibmodus: Triage-Tabelle aus dem Live-Stand fortschreiben (#821) ──
 
 
-def _table_span(lines: list[str]) -> tuple[int, int]:
+def table_span(lines: list[str]) -> tuple[int, int]:
     """Index der ersten und letzten Tabellenzeile (Kopf, Trenner, Datenzeilen).
 
     Wirft :class:`LiveCheckError`, wenn keine oder eine unterbrochene Tabelle
     gefunden wird - lieber sichtbar abbrechen als eine halbe Tabelle
     ueberschreiben.
+
+    Bewusst oeffentlich (#851): Auch ``tests/test_recommendations_docs.py``
+    muss Kopfzeile und Datenzeilenmenge genau so bestimmen wie der
+    ``--write``-Pfad. Eine eigene Heuristik dort wuerde still untererfassen -
+    eine Zeile, die nicht mit einem Issue-Link beginnt, faellt durchs Raster,
+    und genau sie kann das unmaskierte Pipe tragen.
     """
     indices = [i for i, line in enumerate(lines) if line.startswith("|")]
     if len(indices) < 3:
@@ -317,7 +323,7 @@ def update_triage_table(
     darin wird nicht entfernt (siehe Modul-Docstring, #829 Befund 4).
     """
     lines = section.split("\n")
-    first, last = _table_span(lines)
+    first, last = table_span(lines)
     header, separator = lines[first], lines[first + 1]
     columns = len(_cells(header))
     link_re = _issue_link_re(repo)
@@ -358,7 +364,7 @@ def unrated_issue_numbers(
     """Issue-Nummern der Zeilen, die noch :data:`UNRATED_PLACEHOLDER` tragen."""
     section = extract_triage_section(markdown, lang)
     lines = section.split("\n")
-    first, last = _table_span(lines)
+    first, last = table_span(lines)
     link_re = _issue_link_re(repo)
     numbers: set[int] = set()
     for row in lines[first + 2 : last + 1]:

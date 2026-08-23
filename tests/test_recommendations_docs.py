@@ -98,6 +98,19 @@ def _table_cells(row: str) -> list[str]:
     return [cell.strip() for cell in _CELL_SEPARATOR.split(row.strip().strip("|"))]
 
 
+def test_table_cells_splits_only_on_unescaped_pipes() -> None:
+    """Negativkontrolle für den Splitter, auf dem der Wächter unten aufsetzt.
+
+    Ohne sie könnte der Wächter still bestehen: Kopf- und Datenzeile werden
+    mit **derselben** Funktion zerlegt und nur relativ verglichen. Trifft
+    ``_CELL_SEPARATOR`` eines Tages nichts mehr, liefert sie für beide genau
+    eine Zelle — ``1 == 1``, Test grün, Zeile trotzdem abgeschnitten.
+    """
+    assert len(_table_cells("| a | b | c |")) == 3
+    assert len(_table_cells(r"| a | b \| c |")) == 2, "maskiertes Pipe ist Zellinhalt"
+    assert len(_table_cells("| a | `x|y` |")) == 3, "Backticks schützen in GFM nicht"
+
+
 def test_triage_rows_have_exactly_the_header_column_count() -> None:
     """Ein unmaskiertes Pipe in einer Zelle verschluckt den Rest der Zeile.
 
@@ -120,15 +133,10 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
     etwa unter „Vorige Runden" — würde sonst falsch-rot.
     """
     for lang, path in RECOMMENDATION_DOCS.items():
-        section = lc.TRIAGE_SECTION_PATTERNS[lang].search(_read(path))
-        assert section is not None, f"{lang}: Triage-Abschnitt nicht gefunden in {path}"
-        lines = section.group(0).splitlines()
-        header = next((line for line in lines if re.match(r"^\|\s*#\s*\|", line)), None)
-        assert header is not None, f"{lang}: keine Triage-Kopfzeile gefunden"
-        columns = len(_table_cells(header))
-        for row in lines:
-            if not row.startswith("| [#"):
-                continue
+        lines = lc.extract_triage_section(_read(path), lang).split("\n")
+        first, last = lc.table_span(lines)
+        columns = len(_table_cells(lines[first]))
+        for row in lines[first + 2 : last + 1]:
             actual = len(_table_cells(row))
             assert actual == columns, (
                 f"{lang}: {actual} Zellen statt {columns} — ein unmaskiertes `|` in "
