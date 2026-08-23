@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691:** Die vorhandenen 31 Fixtures, Protokollvorlagen und die freigegebene Testgovernance sind jetzt in den Issues abgebildet. #687 steht bei 16/18 Kriterien; offen bleiben I-06 (Ordner/Manifest) und die Abschluss-Review nach den Realtests. Herstellerquelle und Testhypothese für den separaten Spot-UV-Pfad lauten Schwarz = Gloss, Weiß = kein Gloss; volle 16-Bit-Nutzung, `pHYs`-Priorität, Graustufe→mm und Gloss-Intensität bleiben echte Hardwarefragen aus #688–#690.
 
-Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #837 (PR #838) (Details: Vorige Runden).
+Unverändert abgeschlossen: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, alles seit **2026-06-25** Erledigte, die Releases v2.7.0–v2.8.0 sowie Epic #741 mit seinen elf Teil-Issues, Epic #805 mit #806–#811, #817 und #821; seit dem letzten Sync neu geschlossen: #836 (PR #844), #837 (PR #838) und #839 (PR #846) (Details: Vorige Runden).
 
 Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noch Zeilen werden seit #821 von Hand gepflegt – `scripts/recommendations_live_check.py --write` schreibt die Tabellen aller sechs Fassungen aus dem GitHub-Live-Stand fort, die Bewertungsspalten bleiben Handarbeit.
 

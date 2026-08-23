@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691:** the 31 fixtures, protocol templates, and approved test governance are now reflected in the issues. #687 is at 16/18 criteria; only I-06 (folder/manifest) and the closeout review after the real tests remain. For the separate Spot UV path, the manufacturer-backed hypothesis is black = gloss and white = no gloss. Full 16-bit use, `pHYs` priority, grayscale-to-mm mapping, and gloss intensity remain hardware questions in #688–#690.
 
-Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #837 (PR #838) (details: Previous Rounds).
+Unchanged and closed: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, everything completed since **2026-06-25**, releases v2.7.0–v2.8.0, epic #741 with its eleven sub-issues, epic #805 with #806–#811, #817, and #821; newly closed since the last sync: #836 (PR #844), #837 (PR #838), and #839 (PR #846) (details: Previous Rounds).
 
 Open items: one row per issue in the triage table below. Neither the count nor the rows are maintained by hand as of #821 – `scripts/recommendations_live_check.py --write` updates all six versions from the GitHub live state, while the rating columns stay editorial work.
 
