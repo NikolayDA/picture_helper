@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691:** los 31 fixtures, las plantillas de protocolo y la gobernanza aprobada ya constan en las incidencias. #687 está en 16/18 criterios; solo faltan I-06 (carpeta/manifiesto) y la revisión final tras las pruebas reales. Para la ruta Spot UV separada, la hipótesis respaldada por el fabricante es negro = gloss y blanco = sin gloss. El uso completo de 16 bits, la prioridad de `pHYs`, el mapeo de gris a mm y la intensidad gloss siguen siendo preguntas de hardware en #688–#690.
 
-Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0 a v2.8.0, además de la épica #741 con sus once sub-incidencias, la épica #805 con #806–#811, #817 y #821; cerradas desde la última sincronización: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (cerrada por el owner) y #847 (este PR) (detalles: Rondas anteriores).
+Sin cambios y cerrado: **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, todo lo completado desde **2026-06-25**, las versiones v2.7.0 a v2.8.0, además de la épica #741 con sus once sub-incidencias, la épica #805 con #806–#811, #817 y #821; cerradas desde la última sincronización: #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (cerrada por el owner) y #847 (PR #852) (detalles: Rondas anteriores).
 
 Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo. Desde #821 no se mantienen a mano ni el recuento ni las filas: `scripts/recommendations_live_check.py --write` actualiza las seis versiones desde el estado en vivo de GitHub, mientras que las columnas de valoración siguen siendo trabajo editorial.
 

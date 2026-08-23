@@ -21,7 +21,7 @@
 
 **EufyMake #681/#687–#691 :** les 31 fixtures, modèles de protocole et la gouvernance approuvée sont maintenant reflétés dans les tickets. #687 est à 16/18 critères ; seuls I-06 (dossier/manifeste) et la revue finale après les tests réels restent ouverts. Pour le chemin Spot UV séparé, l'hypothèse appuyée par le fabricant est noir = gloss et blanc = sans gloss. L'utilisation complète des 16 bits, la priorité `pHYs`, la conversion gris→mm et l'intensité gloss restent des questions matérielles de #688–#690.
 
-Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner) et #847 (cette PR) (détails : Tours précédents).
+Inchangé et fermé : **N1/N2/N4/N5/N6/N7/N8**, **O1–O8**, tout ce qui est terminé depuis le **2026-06-25**, les versions v2.7.0 à v2.8.0, ainsi que l'épopée #741 avec ses onze tickets enfants, l'épopée #805 avec #806–#811, #817 et #821 ; nouvellement clôturés depuis la dernière synchronisation : #836 (PR #844), #837 (PR #838), #839 (PR #846), #849 (PR #851), #841 (fermée par l'owner) et #847 (PR #852) (détails : Tours précédents).
 
 En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #821, ni le compte ni les lignes ne sont maintenus à la main – `scripts/recommendations_live_check.py --write` met à jour les six versions depuis l'état en direct GitHub, tandis que les colonnes d'évaluation restent un travail éditorial.
 
