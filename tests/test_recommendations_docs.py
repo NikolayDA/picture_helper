@@ -125,7 +125,10 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
         lines = lc.extract_triage_section(_read(path), lang).split("\n")
         first, last = lc.table_span(lines)
         columns = len(lc.cells(lines[first]))
-        for row in lines[first + 2 : last + 1]:
+        # Ab first + 1, also inklusive Trennzeile: Stimmt deren Spaltenzahl
+        # nicht mit dem Kopf ueberein, erkennt GFM den Block gar nicht erst
+        # als Tabelle und zeigt rohes "| … |" - derselbe Schaden, nur groesser.
+        for row in lines[first + 1 : last + 1]:
             actual = len(lc.cells(row))
             # Beide Richtungen sind ein Fehler, aber nicht derselbe: zu viele
             # Zellen heißt „unmaskiertes Pipe, GFM verwirft den Rest", zu wenige
@@ -133,8 +136,9 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
             # Meldung für beide schickt die Hälfte der Fälle in die Irre.
             if actual > columns:
                 reason = (
-                    "ein unmaskiertes `|` in einer Zelle; GFM verwirft alles "
-                    "danach. Als `\\|` schreiben."
+                    "ein unmaskiertes `|` in einer Zelle (als `\\|` schreiben) "
+                    "oder eine Trennzeile mit abweichender Spaltenzahl; GFM "
+                    "verwirft den Rest bzw. rendert gar keine Tabelle."
                 )
             else:
                 reason = (
