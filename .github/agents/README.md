@@ -103,9 +103,10 @@ und gehört geschlossen. **A** (Ausführung), **N** (Netzzugriff auf eine
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
 Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. **P setzt
 voraus, dass dieselbe Information über eine freigegebene Form erreichbar
-gewesen wäre – sonst ist die Ablehnung L, es sei denn, die freigegebene Form
-ist bewusst enger gefasst (Tiefe, Commit-Bereich, Ausgabeumfang); dann bleibt
-es P.** Ohne den ersten Teil ließe sich jede unbequeme L-Ablehnung als P
+gewesen wäre – sonst ist die Ablehnung L, es sei denn, die Enge betrifft die
+**Parameter eines bereits freigegebenen Kommandos** (Tiefe, Commit-Bereich,
+Ausgabeumfang); dann bleibt es P. Ein gänzlich fehlendes Kommando fällt nie
+darunter.** Ohne den ersten Teil ließe sich jede unbequeme L-Ablehnung als P
 verbuchen; ohne den zweiten wäre jede gewollte Verengung per Definition eine
 Lücke. Prüfsteine: `--max-count=20` und `--max-count=200` sind beide P (die
 freigegebenen 30 sind gewollt), `gh issue view` war nie P. Genau eine

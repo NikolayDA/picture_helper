@@ -121,7 +121,7 @@ def _review_taxonomy() -> str:
 
 
 def _class_l_definition(text: str, start: str, end: str) -> str:
-    """Nur die L-Definition herausschneiden, nicht den ganzen Block.
+    """Die L- und N-Definitionen herausschneiden, nicht den ganzen Block.
 
     Ein ``"WebFetch" in block`` bestünde auch, wenn das Wort nur in der
     Freigabe-Begründung darüber steht — die Negativkontrolle hat genau das
@@ -532,9 +532,17 @@ def test_class_p_survives_deliberately_narrow_forms() -> None:
         ("Workflow-Kommentar", _review_taxonomy()),
         ("agents/README.md", _agents_readme()),
     ):
-        assert "bewusst enger gefasst" in text, (
+        assert "Parameter eines bereits freigegebenen Kommandos" in text, (
             f"{label}: P/L-Regel ohne Abbruchkriterium – die Fundstellen "
             "widersprechen sich sonst am selben Prüfstein"
+        )
+        # "fällt nie darunter" steht nur in der Regel, nicht im Prüfstein —
+        # eine Zusicherung auf "fehlendes Kommando" allein bestünde auch,
+        # wenn nur das Beispiel es nennt und die Regel es weglässt.
+        assert "fällt nie darunter" in text, (
+            f"{label}: Das Abbruchkriterium schließt ein gänzlich fehlendes "
+            "Kommando nicht aus – eine Allowlist ist immer bewusst gewählt, "
+            "'bewusst enger' allein träfe also auf jede fehlende Fähigkeit zu"
         )
         assert "--max-count=200" in text, f"{label}: Prüfstein der Gegenrichtung fehlt"
 
@@ -550,15 +558,18 @@ def test_class_l_covers_every_allowlisted_read_form() -> None:
     einer Aufzählung, die mit jeder neuen Freigabe erneut driftet.
     """
     for label, text, start, end in (
-        ("Workflow-Kommentar", _review_taxonomy(), "L = lesende Inspektion", "A = Ausführung"),
-        ("agents/README.md", _agents_readme(), "**L** (lesende", "**A** (Ausführung)"),
+        ("Workflow-Kommentar", _review_taxonomy(), "L = lesende Inspektion", "S = Schreibzugriff"),
+        ("agents/README.md", _agents_readme(), "**L** (lesende", "**S** (Schreibzugriff)"),
     ):
+        # Endmarker hinter der N-Definition, damit auch die vierte Zusicherung
+        # auf demselben Ausschnitt arbeitet. Sie prüfte vorher die ganze Datei
+        # und wäre an einer Passage rot geworden, die nur den Prompt zitiert.
         definition = _class_l_definition(text, start, end)
         assert "WebFetch" in definition, f"{label}: WebFetch fehlt in der L-Definition"
         assert "freigegebenen Form" in definition, (
             f"{label}: L nicht über die Allowlist definiert, sondern als Aufzählung"
         )
-        assert "außerhalb der WebFetch-Domains" not in text, (
+        assert "außerhalb der WebFetch-Domains" not in definition, (
             f"{label}: N muss die NICHT freigegebenen Domains meinen"
         )
     assert "WebFetch" in " ".join(_review_prompt().split()), "Prompt nennt WebFetch nicht als L"

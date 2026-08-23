@@ -156,7 +156,8 @@ jobs:
             Die Grenze verläuft so. **Lesende Inspektion** – ausschließlich in
             den oben freigegebenen Formen: die `gh`- und Git-Formen, Read, Grep,
             Glob und WebFetch auf die freigegebenen Domains – steht dir immer
-            offen; eine abgewandelte Form derselben Abfrage nicht. **Ausführung** (Tests, Linter, `python -c`,
+            offen; eine abgewandelte Form derselben Abfrage nicht.
+            **Ausführung** (Tests, Linter, `python -c`,
             `awk` und andere Shell-Filter), **Netzzugriff** außerhalb der
             freigegebenen WebFetch-Domains und jeder **Schreibzugriff** sind
             dauerhaft gesperrt; versuche sie gar nicht erst, auch nicht über
@@ -259,9 +260,12 @@ jobs:
           #       ABGRENZUNG ZU L, prüfbar statt nach Gefühl: P setzt voraus,
           #       dass **dieselbe Information** über eine der im Prompt
           #       genannten Formen erreichbar gewesen wäre. War sie das nicht,
-          #       ist die Ablehnung L – ES SEI DENN, die freigegebene Form ist
-          #       bewusst enger gefasst (Tiefe, Commit-Bereich, Ausgabeumfang);
-          #       dann bleibt es P. Ohne den ersten Teil unterscheiden sich L
+          #       ist die Ablehnung L – ES SEI DENN, die Enge betrifft die
+          #       **Parameter eines bereits freigegebenen Kommandos** (Tiefe,
+          #       Commit-Bereich, Ausgabeumfang); dann bleibt es P. Ein in der
+          #       Allowlist gänzlich fehlendes Kommando fällt nie darunter:
+          #       Eine Allowlist ist immer bewusst gewählt, "bewusst enger"
+          #       allein träfe also auf jede fehlende Fähigkeit zu. Ohne den ersten Teil unterscheiden sich L
           #       und P nur in der Zuschreibung, und P könnte jede unbequeme
           #       L-Ablehnung aufnehmen – das Kriterium wäre nachträglich
           #       erfüllbar. Ohne den zweiten Teil kippt es in die
@@ -270,7 +274,8 @@ jobs:
           #       Agent mehr Historie sehen will. Prüfsteine:
           #       `--max-count=20` ist P (die 30er-Form liefert dasselbe),
           #       `--max-count=200` ist ebenfalls P (die 30 sind gewollt),
-          #       `gh issue view` war nie P – keine freigegebene Form lieferte
+          #       `gh issue view` war nie P – ein fehlendes Kommando, und keine
+          #       freigegebene Form lieferte
           #       den Issue-Text, deshalb war es eine echte Lücke.
           # A, N, S und P DÜRFEN abgelehnt werden – sie sind ein Prompt-Befund,
           # kein Berechtigungsfehler, und rechtfertigen keine Erweiterung der
