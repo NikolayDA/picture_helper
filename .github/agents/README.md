@@ -72,17 +72,92 @@ für diese Aufrufe.
 
 Das automatische Review bleibt dagegen strikt bewertend. Seine Allowlist
 erlaubt neben PR-Diff/-Metadaten nur die belegten Nur-Lese-Inspektionen
-`gh pr list` sowie `git show`, `git diff`, `git log`, `git status` und
-`git show-ref`. Die Git-Befehle sind als vollständig ausgeschriebene, feste
-Argumentformen freigegeben – keine Präfix-Wildcards, über die etwa `--output`
-Dateien schreiben könnte. Die benötigte Historie stellt der kontrollierte
-Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen, PR-Code lokal
-ausführen, generisches `gh api` und Änderungen am Checkout bleiben
-ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
+`gh pr list`, `gh issue view` sowie `git show`, `git diff`, `git log`,
+`git status` und `git show-ref`. Die Git-Befehle sind als vollständig
+ausgeschriebene, feste Argumentformen freigegeben – keine Präfix-Wildcards,
+über die etwa `--output` Dateien schreiben könnte. `gh issue view` ist rein
+lesend, aber nicht harmlos: Issue-Text kann jeder Account verfassen, und er
+erreicht einen Agenten mit `pull-requests: write` – dieselbe Kante wie bei
+WebFetch. Tragend ist dabei nicht „der Agent kann nichts schreiben" (die
+beiden Ausgabewege sind offen), sondern die Prompt-Regel, dass Fremdinhalt
+Daten und keine Anweisung ist; `contents: read` verhindert nur den
+Code-Weg. Die benötigte Historie stellt der
+kontrollierte Checkout vor dem Agentenlauf bereit. Was bewusst draußen
+bleibt, steht als eine Aufzählung weiter unten in der Ablehnungs-Einteilung
+(#841) – hier absichtlich nicht wiederholt: Die Liste entscheidet über P statt
+L, und eine vierte Fundstelle wäre die vierte, die driften kann. Die
+zugehörigen Prompt- und Allowlist-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
+
 Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
 den Merge, bis die Konversation aufgelöst ist.
+
+Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
+die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
+Ablehnung, die eine Erweiterung genau dieser Allowlist schließen könnte) darf
+nie vorkommen; tritt sie auf, ist sie die Lücke und gehört geschlossen. Zwei
+Zweige: eine Form, die die Allowlist decken sollte, wird abgelehnt, weil der
+Eintrag zu eng geschnitten ist – auch `WebFetch` auf eine der freigegebenen
+Domains gehört hierher –, oder eine lesende Abfrage, deren
+Information keine freigegebene Form liefert und die nicht unter „Bewusst nicht
+freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
+Erreichbarkeit, nicht die Form. **P geht L vor**, wenn die Enge nur die
+Parameter eines bereits freigegebenen Kommandos betrifft – symmetrisch zur
+Domain-Regel unten: Die konkrete Argumentform ist selbst eine dokumentierte
+Entscheidung. Ohne diesen Vorrang erfüllt `--max-count=200` beide
+Definitionen und der Prüfstein hinge an der Auslegung. Das endet, wo die
+Allowlist nicht mehr
+entscheidet: Liegt die Ursache außerhalb von `--allowedTools`, könnte keine
+Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführung),
+**N** (Netzzugriff auf eine **nicht** freigegebene Domain – **N geht L vor**,
+denn die Domain-Auswahl ist selbst eine dokumentierte
+Ausschlussentscheidung, obwohl eine weitere Domain wörtlich eine Erweiterung
+dieser Allowlist wäre),
+**S** (Schreibzugriff) und
+**P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
+Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von
+`--allowedTools` liegt – ein für die Kommandoanalyse nicht parsebares Kommando
+(belegt: eine Argumentzeile, die mit `#` beginnt; die 10-000-Zeichen-Schwelle
+der Dokumentation gilt dem eingebauten Read-only-Satz und ist für einen
+allowlist-gedeckten Aufruf unbelegt – sie steht im Prompt nur als
+Vorsichtsmaß), oder eine Pfadregel für die ohne Pfadmuster freigegebenen
+`Read`/`Grep`/`Glob`)
+dürfen dagegen abgelehnt werden und rechtfertigen keine Erweiterung der
+Freigaben. Die Fix-Adresse unterscheidet sich aber: **A**, **N** und **S** sind
+erwartbar und gar kein Befund – dort wirkt die Konfiguration wie gewollt. Nur
+**P** und **W** sind ein Prompt-Befund. **W** ist bewusst eine eigene Klasse und
+nicht ein Zweig von P: Der belegte Fall – Lauf 32640784005 wies
+`gh pr comment` ab, weil eine Argumentzeile mit `#` begann – ist ein
+Schreibaufruf in freigegebener Form und erfüllt damit keines der beiden
+P-Merkmale. P setzt
+voraus, dass dieselbe Information über eine freigegebene Form erreichbar
+gewesen wäre – sonst ist die Ablehnung L, es sei denn, die Enge betrifft die
+**Parameter eines bereits freigegebenen Kommandos** (Tiefe, Commit-Bereich,
+Ausgabeumfang); dann bleibt es P. Ein gänzlich fehlendes Kommando fällt nie
+darunter – es sei denn, es steht im Workflow ausdrücklich unter „Bewusst
+nicht freigegeben" (`git fetch`, lokale Testausführung, pauschales `gh api`,
+`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle); eine
+dokumentierte Ausschlussentscheidung ist keine Lücke. Ohne den ersten Teil
+ließe sich jede unbequeme L-Ablehnung als P verbuchen; ohne den zweiten wäre
+jede gewollte Verengung per Definition eine Lücke. Prüfsteine:
+`--max-count=20` und `--max-count=200` sind beide P (die freigegebenen 30 sind
+gewollt), `gh issue view` war nie P. Genau eine
+Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
+Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
+Remote-Schreibzugriffe; ihre Ablehnung **blockiert die Abnahme unabhängig von
+der Klasse**, sonst stünde der
+schlimmste Fall (Befund gefunden, Kommentar abgewiesen, PR ohne Review) als
+Normalfall im Joblog. Ohne diese Trennung ist ein grüner Lauf keine Aussage
+über die Werkzeuggrenze: Lauf 32600075322 meldete `Lauf: success` bei sechs
+Ablehnungen.
+
+Für den interaktiven Agenten in `claude.yml` gilt diese Einteilung **nicht**.
+Er hat keine Allowlist, hält `contents: write` und soll Code schreiben,
+testen und committen – eine abgelehnte Ausführung oder ein abgelehnter
+Schreibzugriff ist dort kein Normalfall, sondern der Befund, der die Aufgabe
+blockiert hat. Der geteilte Diagnoseschritt meldet deshalb nur die
+Rohdaten; gedeutet wird je Workflow.
 
 ### Voraussetzung
 
