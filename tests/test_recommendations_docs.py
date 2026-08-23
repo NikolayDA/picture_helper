@@ -1,5 +1,6 @@
 """Static checks for the recommendation/roadmap documentation."""
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -83,6 +84,47 @@ CURRENT_STATUS_TOKENS = (
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+#: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
+#: Backslash maskiert ist. Ein maskiertes ``\|`` gehoert zum Zellinhalt und
+#: rendert dort als literales Pipe.
+_CELL_SEPARATOR = re.compile(r"(?<!\\)\|")
+
+
+def _table_cells(row: str) -> list[str]:
+    return [cell.strip() for cell in _CELL_SEPARATOR.split(row.strip().strip("|"))]
+
+
+def test_triage_rows_have_exactly_the_header_column_count() -> None:
+    """Ein unmaskiertes Pipe in einer Zelle verschluckt den Rest der Zeile.
+
+    Auf PR #851 real passiert: Die Zelle „Naechster Schritt" der neuen
+    #841-Zeile zitierte ein `grep -cE '(^|[[:space:]])…'`. Backticks schuetzen
+    in GFM **nicht** vor der Zellentrennung — die Zeile bekam eine siebte
+    Zelle bei sechs Kopfspalten, GFM verwirft die ueberzaehligen, und alles ab
+    dem Pipe war in der gerenderten Ansicht unsichtbar. Betroffen waren alle
+    sechs Fassungen; gerade die Passage, die den Verifikationsmodus
+    definiert, fiel weg.
+
+    Kein bestehender Test faengt das: ``recommendations_live_check`` wertet
+    nur ``_cells(row)[0]`` aus, der Konsistenztest nur die Nummernmenge —
+    ``make check`` blieb gruen, der Schaden war rein visuell. Das Skript
+    maskiert beim Fortschreiben laengst selbst (``render_triage_row``); nur
+    die handgepflegten Bewertungsspalten fallen nicht unter diese Automatik.
+    """
+    for lang, path in RECOMMENDATION_DOCS.items():
+        zeilen = _read(path).splitlines()
+        kopf = next(z for z in zeilen if re.match(r"^\|\s*#\s*\|", z))
+        spalten = len(_table_cells(kopf))
+        for nummer, zeile in enumerate(zeilen, start=1):
+            if not zeile.startswith("| [#"):
+                continue
+            ist = len(_table_cells(zeile))
+            assert ist == spalten, (
+                f"{lang}:{nummer}: {ist} Zellen statt {spalten} — ein unmaskiertes "
+                "`|` in einer Zelle; GFM verwirft alles danach. Als `\\|` schreiben."
+            )
 
 
 def test_recommendations_docs_have_current_shortform_structure() -> None:
