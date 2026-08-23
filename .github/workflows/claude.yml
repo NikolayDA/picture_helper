@@ -172,9 +172,9 @@ jobs:
                                        | if type == "object"
                                          then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
                                               + "\(.tool_input | tojson | .[0:300])"
-                                         else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                         else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
-                                  else "? [permission_denials ist \(.permission_denials | type), kein Array]"
+                                  else "[ANOMALIE] permission_denials ist \(.permission_denials | type), kein Array"
                                   end
                                 | gsub("\n"; " ")' \
             "$EXECUTION_FILE"); then
@@ -184,14 +184,26 @@ jobs:
           # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
           # in einem anderen Datensatz als `permission_denials`, ein Fallback
           # darauf meldete sonst "0" neben einer nicht leeren Liste.
+          # Anomalien zählen getrennt. `has("permission_denials")` ist auch für
+          # ein explizites `null` wahr; liefe die Anomaliezeile in dieselbe
+          # Zahl, färbte ein Serialisierer, der die leere Liste als `null`
+          # schreibt, jeden sauberen Lauf – und das Kriterium von #841 lautet
+          # wörtlich „null Ablehnungen". Fail-closed bleibt: Die Zeile wird
+          # ausgegeben, nur eben als eigene Größe.
           count=0
+          anomalien=0
           if [ -n "$denials" ]; then
-            count=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
+            count=$(printf '%s\n' "$denials" | grep -cv '^\[ANOMALIE\] ' || true)
+            anomalien=$(printf '%s\n' "$denials" | grep -c '^\[ANOMALIE\] ' || true)
           fi
           jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE" || true
           echo "Abgelehnte Aufrufe: $count"
-          if [ "$count" -gt 0 ]; then
+          if [ "$anomalien" -gt 0 ]; then
+            echo "::warning::Nicht auswertbare Datensätze: $anomalien"
+            echo "Nicht auswertbare Datensätze: $anomalien"
+          fi
+          if [ "$count" -gt 0 ] || [ "$anomalien" -gt 0 ]; then
             printf '%s\n' "$denials"
           fi

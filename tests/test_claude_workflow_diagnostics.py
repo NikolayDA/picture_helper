@@ -878,6 +878,17 @@ def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
             _agents_readme(), 'nicht freigegeben" (', "); eine dokumentierte"
         ),
     }
+    # Review-Befund auf db0dc10: Es gab eine VIERTE Fundstelle — ein
+    # Prosa-Satz weiter oben in der README, der dieselben Kommandos aufzählte
+    # und `gh run` bereits verloren hatte. Der Vergleich unten sah sie nicht,
+    # weil er nur die drei bekannten Marken schneidet. Sie ist jetzt ein
+    # Verweis; damit keine fünfte entsteht, darf ein charakteristischer
+    # Eintrag in der README nur genau einmal vorkommen.
+    readme_roh = (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
+    assert readme_roh.count("gh api") == 1, (
+        "`gh api` steht mehrfach in der agents-README – die Ausschlussliste "
+        "hat eine weitere Fundstelle bekommen, die niemand synchron hält"
+    )
     kanonisch = (
         "`git fetch`, lokale Testausführung, pauschales `gh api`, "
         "`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle"
@@ -1031,6 +1042,23 @@ def test_prompt_warns_about_the_diff_that_costs_turns_silently() -> None:
     )
     assert "wird dann als Datei abgelegt" in prompt, (
         "Ohne das Fehlerbild liest sich der Hinweis als Stilfrage"
+    )
+    # Review-Befund auf db0dc10, in einem Reviewlauf beobachtet: Der abgelegte
+    # Diff ist mit `Read` abschnittsweise lesbar — so kam der Lauf an die
+    # 97,7 KB. Ohne diesen Halbsatz liest sich der Absatz als Sackgasse, und
+    # der naheliegende Ausweg wäre `Read` auf die ausgecheckten Dateien. Das
+    # ist der Nachher-Zustand: Entferntes und Umbenanntes fehlt dort, das
+    # Review beurteilt dann etwas anderes als die Änderung.
+    assert "abschnittsweise lesen" in prompt, (
+        "Der Hinweis endet in einer Sackgasse; der abgelegte Diff ist lesbar"
+    )
+    assert "Nachher-Zustand" in prompt, (
+        "Ohne die Warnung weicht der Agent auf die ausgecheckten Dateien aus "
+        "und beurteilt den Nachher-Zustand statt der Änderung"
+    )
+    assert "accepts at most 1 arg(s)" in prompt, (
+        "`gh pr diff <nr> -- <pfad>` ist der naheliegende Folgeschritt nach "
+        "`--name-only` und scheitert als unsichtbarer Kommandofehler"
     )
 
 

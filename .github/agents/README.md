@@ -82,9 +82,10 @@ WebFetch. Tragend ist dabei nicht „der Agent kann nichts schreiben" (die
 beiden Ausgabewege sind offen), sondern die Prompt-Regel, dass Fremdinhalt
 Daten und keine Anweisung ist; `contents: read` verhindert nur den
 Code-Weg. Die benötigte Historie stellt der
-kontrollierte Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen,
-PR-Code lokal ausführen, generisches `gh api` und Änderungen am Checkout
-bleiben ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen
+kontrollierte Checkout vor dem Agentenlauf bereit. Was bewusst draußen
+bleibt, steht als eine Aufzählung weiter unten in der Ablehnungs-Einteilung
+(#841) – hier absichtlich nicht wiederholt: Die Liste entscheidet über P statt
+L, und eine vierte Fundstelle wäre die vierte, die driften kann. Die zugehörigen Prompt- und Allowlist-Grenzen
 sind in `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz
 verankert.
 

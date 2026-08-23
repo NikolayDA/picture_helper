@@ -171,11 +171,17 @@ jobs:
             Diagnoseschritt dieses Workflows sieht ihn nicht, du verlierst nur
             Turns.
 
-            Bei einem großen PR zuerst `gh pr diff <nr> --name-only`, dann
-            gezielt `Read`/`Grep` auf die betroffenen Dateien: Ein voller Diff
-            kann zu groß für eine Antwort sein und wird dann als Datei
-            abgelegt – keine Ablehnung, kein Kommandofehler, nur zusätzliche
-            Turns, und zwar bevor du etwas gepostet hast.
+            Bei einem großen PR zuerst `gh pr diff <nr> --name-only`: Ein
+            voller Diff kann zu groß für eine Antwort sein und wird dann als
+            Datei abgelegt – keine Ablehnung, kein Kommandofehler, nur
+            zusätzliche Turns, und zwar bevor du etwas gepostet hast. Den
+            abgelegten Pfad kannst du mit `Read` abschnittsweise lesen; das
+            bleibt der **Diff**. Weiche nicht auf `Read` der ausgecheckten
+            Dateien aus, wenn du die Änderung beurteilen willst: Das ist der
+            Nachher-Zustand, Entferntes und Umbenanntes siehst du dort nicht
+            mehr. Ein Pfad-Argument kennt `gh pr diff` nicht
+            (`gh pr diff <nr> -- <pfad>` scheitert mit
+            „accepts at most 1 arg(s)" – wieder ein Kommandofehler).
             Nutze für Inhaltsänderungen `gh pr diff <nr>`, für die Beschreibung
             `gh pr view <nr>`, für den CI-Stand `gh pr view <nr> --json
             statusCheckRollup` – die Standardausgabe von `gh pr view` enthält
@@ -548,9 +554,9 @@ jobs:
                                        | if type == "object"
                                          then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
                                               + "\(.tool_input | tojson | .[0:300])"
-                                         else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
+                                         else "[ANOMALIE] Nicht-Objekt: \(type): \(tojson | .[0:300])"
                                          end
-                                  else "? [permission_denials ist \(.permission_denials | type), kein Array]"
+                                  else "[ANOMALIE] permission_denials ist \(.permission_denials | type), kein Array"
                                   end
                                 | gsub("\n"; " ")' \
             "$EXECUTION_FILE"); then
@@ -560,14 +566,26 @@ jobs:
           # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
           # in einem anderen Datensatz als `permission_denials`, ein Fallback
           # darauf meldete sonst "0" neben einer nicht leeren Liste.
+          # Anomalien zählen getrennt. `has("permission_denials")` ist auch für
+          # ein explizites `null` wahr; liefe die Anomaliezeile in dieselbe
+          # Zahl, färbte ein Serialisierer, der die leere Liste als `null`
+          # schreibt, jeden sauberen Lauf – und das Kriterium von #841 lautet
+          # wörtlich „null Ablehnungen". Fail-closed bleibt: Die Zeile wird
+          # ausgegeben, nur eben als eigene Größe.
           count=0
+          anomalien=0
           if [ -n "$denials" ]; then
-            count=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
+            count=$(printf '%s\n' "$denials" | grep -cv '^\[ANOMALIE\] ' || true)
+            anomalien=$(printf '%s\n' "$denials" | grep -c '^\[ANOMALIE\] ' || true)
           fi
           jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE" || true
           echo "Abgelehnte Aufrufe: $count"
-          if [ "$count" -gt 0 ]; then
+          if [ "$anomalien" -gt 0 ]; then
+            echo "::warning::Nicht auswertbare Datensätze: $anomalien"
+            echo "Nicht auswertbare Datensätze: $anomalien"
+          fi
+          if [ "$count" -gt 0 ] || [ "$anomalien" -gt 0 ]; then
             printf '%s\n' "$denials"
           fi
