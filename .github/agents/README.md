@@ -72,14 +72,24 @@ für diese Aufrufe.
 
 Das automatische Review bleibt dagegen strikt bewertend. Seine Allowlist
 erlaubt neben PR-Diff/-Metadaten nur die belegten Nur-Lese-Inspektionen
-`gh pr list` sowie `git show`, `git diff`, `git log`, `git status` und
-`git show-ref`. Die Git-Befehle sind als vollständig ausgeschriebene, feste
+`gh pr list`, `gh issue view` sowie `git show`, `git diff`, `git log`,
+`git status` und `git show-ref`. Die Git-Befehle sind als vollständig ausgeschriebene, feste
 Argumentformen freigegeben – keine Präfix-Wildcards, über die etwa `--output`
 Dateien schreiben könnte. Die benötigte Historie stellt der kontrollierte
 Checkout vor dem Agentenlauf bereit. Eigenständiges Nachladen, PR-Code lokal
 ausführen, generisches `gh api` und Änderungen am Checkout bleiben
 ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
+
+Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Workflow führt die
+Einteilung über `claude_args` und gibt sie im Joblog aus: **L** (lesende
+Inspektion) darf nie abgelehnt werden – eine Ablehnung dieser Klasse ist eine
+Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
+(Netzzugriff außerhalb der freigegebenen Domains) und **S** (Schreibzugriff)
+dürfen dagegen immer abgelehnt werden; sie sind ein Prompt-Befund und
+rechtfertigen keine Erweiterung der Freigaben. Ohne diese Trennung ist ein
+grüner Lauf keine Aussage über die Werkzeuggrenze: Lauf 32600075322 meldete
+`Lauf: success` bei sechs Ablehnungen.
 Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
 den Merge, bis die Konversation aufgelöst ist.
