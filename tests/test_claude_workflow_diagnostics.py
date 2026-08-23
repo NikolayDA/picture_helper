@@ -425,7 +425,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
     allein sagt also nichts. Erst die Einteilung trennt die Allowlist-Lücke
     (lesende Inspektion) von den erwartbaren Ablehnungen.
     """
-    taxonomy = _review_taxonomy()
+    taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
     for phrase in (
         "L = lesende Ablehnung",
         "NIE vorkommen",
@@ -505,7 +505,7 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     „Befund gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review" als
     Normalfall im Joblog. Der Prompt nennt genau das das Scheitern.
     """
-    taxonomy = _review_taxonomy()
+    taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
     assert "Ausnahme" in taxonomy, "Ausgabewege sind nicht von Klasse S ausgenommen"
     assert "gh pr comment" in taxonomy
     # „zählt wie L" stand hier bis zum Review auf 2c52eb5. Es setzte Klasse
@@ -562,7 +562,7 @@ def test_class_p_is_bound_to_a_checkable_property() -> None:
     Läufe auswertet. Die Regel bindet P an die Frage, ob dieselbe Information
     über eine freigegebene Form erreichbar gewesen wäre.
     """
-    taxonomy = _review_taxonomy()
+    taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
     assert "ABGRENZUNG ZU L" in taxonomy, "Klasse P ohne prüfbare Abgrenzung"
     assert "dieselbe Information" in taxonomy
     assert "ist die Ablehnung L" in taxonomy
@@ -1073,6 +1073,14 @@ def test_prompt_keeps_the_issue_read_to_the_body() -> None:
     Reihe wie `--repo` und die vollständige URL.
     """
     prompt = " ".join(_review_prompt().split())
+    # Review-Befund auf 03e63cc: Die `--repo`-Verengung stand nur bei
+    # `gh issue view`, obwohl der Kommentarblock selbst festhält, dass
+    # `pr view`, `pr diff` und `pr list` das Flag genauso nehmen. Eine
+    # injizierte Leseaufforderung auf ein fremdes Repository traf damit auf
+    # keine Prompt-Regel. Jetzt gilt sie für die ganze `gh`-Familie.
+    assert "**Alle** `gh`-Aufrufe gelten diesem Repository" in prompt, (
+        "Die Repository-Verengung deckt nur ein Unterkommando ab"
+    )
     assert "`--comments` brauchst du nicht" in prompt, (
         "Prompt verzichtet nicht auf `--comments`, obwohl die Wildcard es zulässt"
     )
@@ -1136,8 +1144,7 @@ def test_class_n_takes_precedence_over_the_reachability_rule() -> None:
     # der Domainliste — in einer Vorrangregel, die eine Klassifizierung trägt,
     # und als einzige Aussage darüber ohne Test. Nach der nächsten Freigabe
     # wäre es still falsch. Die Aussage trägt sich jetzt selbst.
-    import re as _re
-    assert not _re.search(r"(sechs|sieben|fünf|\b\d+) (freigegebenen? )?Domains", taxonomy), (
+    assert not re.search(r"(sechs|sieben|fünf|\b\d+) (freigegebenen? )?Domains", taxonomy), (
         "Die Domainzahl ist wieder hartkodiert und driftet bei der nächsten Freigabe"
     )
     assert "N GEHT L VOR" in taxonomy, (
