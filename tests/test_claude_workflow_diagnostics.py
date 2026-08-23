@@ -375,6 +375,42 @@ def test_a_non_empty_denial_list_can_never_report_zero(relative: str) -> None:
     )
 
 
+def test_prompt_bars_the_flags_that_remove_findings() -> None:
+    """Review-Befund auf 6f7dd87: Die fünfte Verengung fehlte.
+
+    Der Block nannte vier (`-R`/`--repo`, vollständige URL, `--comments`,
+    `--body-file`/`-F`) — alle gegen Egress oder Fremdrepository. Dasselbe
+    freigegebene Unterkommando kennt aber je nach Version auch Flags, die
+    BESTEHENDE Kommentare ändern oder entfernen (`--edit-last`,
+    `--create-if-none`, `--delete-last`). Das ist das Spiegelbild der
+    Injektionssorge: nicht einen Befund fälschen, sondern einen entfernen —
+    auf einem PR, dessen Merge an der Auflösung von Review-Konversationen
+    hängt.
+
+    Welche Flags die `gh`-Version des Runners führt, ist unbelegt (die
+    Referenzdomains sind aus der Arbeitssitzung nicht erreichbar). Die
+    Verengung ist davon unabhängig korrekt, deshalb steht sie trotzdem — und
+    der Evidenzgrad steht dabei, wie an den anderen unbelegten Stellen.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "SONST KEIN Flag" in prompt, (
+        "Der Prompt verengt `gh pr comment` nicht auf `--body`; die Flags, die "
+        "bestehende Kommentare entfernen, bleiben offen"
+    )
+    assert "verändert oder entfernt" in prompt, (
+        "Die Richtung „einen Befund entfernen\" ist nicht benannt und liest sich wie "
+        "eine reine Stilregel"
+    )
+    block = " ".join(_shared_allowlist_rationale().replace("#", " ").split())
+    assert "--delete-last" in block, (
+        "Der Kommentarblock nennt die destruktiven Flags nicht — die fünfte "
+        "Verengung steht dann ohne Begründung im Prompt"
+    )
+    assert "UNBELEGT" in block, (
+        "Der Evidenzgrad der Flag-Liste fehlt; sie liest sich als geprüft"
+    )
+
+
 def test_the_deny_rule_question_is_answered_not_left_open() -> None:
     """Review-Befund auf 0cb5d3e: Ist eine Deny-Regel die zweite Schicht?
 
@@ -1120,9 +1156,22 @@ def test_prompt_names_every_allowlisted_webfetch_domain() -> None:
 
 
 def test_review_taxonomy_names_its_own_scope() -> None:
-    """Die Taxonomie muss sagen, dass sie nur für das Review gilt."""
-    text = _review_workflow_text()
-    assert "gilt ausschließlich für dieses Review" in text
+    """Die Taxonomie muss sagen, dass sie nur für das Review gilt.
+
+    Review-Befund auf 6f7dd87: Die Zusicherung lief über die **ganze**
+    Workflow-Datei, während die Nachbartests bewusst auf den Ausschnitt
+    eingeschränkt sind. Genau diese Bauart benennt der Docstring von
+    `_shared_allowlist_rationale` als Fehlerquelle, und zweimal ist in diesem
+    PR eine Zusicherung daran wirkungslos geblieben. Wandert der Satz aus dem
+    Taxonomie-Block in den Prompt oder in die `gh issue view`-Begründung —
+    beides plausibel bei der für #828 angekündigten Umstrukturierung —, bliebe
+    der Test grün, obwohl die Taxonomie ihren Geltungsbereich nicht mehr nennt.
+    """
+    taxonomie = " ".join(_review_taxonomy().replace("#", " ").split())
+    assert "gilt ausschließlich für dieses Review" in taxonomie, (
+        "Der Taxonomie-Block nennt seinen Geltungsbereich nicht mehr — ohne ihn "
+        "liest ein Auswerter die Einteilung auch für den interaktiven Workflow"
+    )
 
 
 def test_review_promises_no_sticky_comment_it_cannot_keep() -> None:
@@ -1207,11 +1256,18 @@ def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
     # weil er nur die drei bekannten Marken schneidet. Sie ist jetzt ein
     # Verweis; damit keine fünfte entsteht, darf ein charakteristischer
     # Eintrag in der README nur genau einmal vorkommen.
+    # Review-Befund auf 6f7dd87: Der Wächter hing an einem einzigen Eintrag.
+    # Ein neuer Prosa-Absatz, der drei der fünf nennt und `gh api` weglässt,
+    # entstünde unbemerkt — und genau so lag die beanstandete vierte
+    # Fundstelle, die `gh run` bereits verloren hatte. Geprüft werden deshalb
+    # mehrere charakteristische Einträge.
     readme_roh = (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
-    assert readme_roh.count("gh api") == 1, (
-        "`gh api` steht mehrfach in der agents-README – die Ausschlussliste "
-        "hat eine weitere Fundstelle bekommen, die niemand synchron hält"
-    )
+    for eintrag in ("gh api", "gh run", "git fetch"):
+        assert readme_roh.count(eintrag) == 1, (
+            f"`{eintrag}` steht {readme_roh.count(eintrag)}× in der agents-README – "
+            "die Ausschlussliste hat eine weitere Fundstelle bekommen, die "
+            "niemand synchron hält"
+        )
     kanonisch = (
         "`git fetch`, lokale Testausführung, pauschales `gh api`, "
         "`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle"
@@ -1279,10 +1335,15 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     und blockiert die Abnahme – obwohl nur die Form schuld war. Klasse ist sie
     W, nicht L: `Bash(gh pr comment:*)` stand bereits in der Allowlist.
 
-    Die Raute ist dabei nur ein Symptom. Die dokumentierte Ursache ist
-    allgemeiner – die Kommandoanalyse muss den Body parsen können – und
-    umfasst eine zweite, teurere Falle: Kommandos über 10 000 Zeichen fragen
-    laut Doku immer nach, und der Body zählt in die Kommandolänge. Eine
+    Die Raute ist dabei nur ein Symptom. Die erschlossene Ursache ist
+    allgemeiner – die Kommandoanalyse muss den Body parsen können – und legt
+    eine zweite, teurere Falle nahe: sehr lange Kommandos. Die
+    10-000-Zeichen-Schwelle der Doku gilt allerdings dem eingebauten
+    Read-only-Satz, zu dem `gh pr comment` nicht gehört; für einen
+    allowlist-gedeckten Aufruf ist sie UNBELEGT und steht im Prompt als
+    Vorsichtsmaß, nicht als Zitat (Review-Befund auf 6f7dd87 – dieser
+    Docstring war die fünfte Fundstelle, die den Grad noch falsch führte).
+    Der Body zählt in die Kommandolänge. Eine
     Zusammenfassung im hier üblichen Umfang erreicht das realistisch.
     """
     prompt = " ".join(_review_prompt().split())
@@ -1290,7 +1351,7 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
         "Prompt verbietet die Raute am Zeilenanfang nicht"
     )
     assert "unter 10 000 Zeichen" in prompt, (
-        "Die zweite dokumentierte Falle am Ausgabeweg fehlt – ein langer Body "
+        "Die zweite Falle am Ausgabeweg (Kommandolänge) fehlt – ein langer Body "
         "kippt ihn genauso, und die 300-Zeichen-Kürzung der Diagnose schneidet "
         "den Beleg dafür ab"
     )
@@ -1335,6 +1396,24 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     )
     assert "**inline in Backticks**" in prompt, (
         "Die voraussetzungsfreie Abhilfe fehlt"
+    )
+    # Review-Befund auf 557a653: Die Reichweite der Regel ist in diesem
+    # Repository teuer — der Diff besteht großenteils aus `#`-Kommentarzeilen,
+    # also verbietet sie faktisch jedes mehrzeilige Codezitat. Zusammen mit
+    # der Längenregel drängt das auf genau die Ausgabe, die der PR selbst als
+    # Lücke im Kriterium benennt: `Abgelehnte Aufrufe: 0` bei dünner
+    # Zusammenfassung. Ein Verbot ohne Ausweg löst der Agent am ehesten durch
+    # Weglassen; deshalb müssen beide Auswege danebenstehen.
+    assert "KEIN Grund für eine dünne Zusammenfassung" in prompt, (
+        "Die Formregel steht ohne Ausweg da — Weglassen wird dann die "
+        "naheliegende Auflösung, und der Lauf ist formal grün und wertlos"
+    )
+    assert "als `datei:zeile`" in prompt, (
+        "Der positive Ersatz fürs Zitieren fehlt"
+    )
+    assert "gehören ohnehin in die Inline-Kommentare" in prompt, (
+        "Der Umleitungshinweis fehlt; die Ausnahme steht zwar weiter unten, "
+        "aber ohne Bezug auf das Zitierproblem"
     )
 
 

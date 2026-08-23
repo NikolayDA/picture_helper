@@ -145,6 +145,11 @@ jobs:
               die Kommandoanalyse. Kein Stilwunsch: In Lauf 32640784005 wurde
               `gh pr comment 850 --body '## …'` abgelehnt, weil eine
               Argumentzeile mit `#` begann.
+              Das ist eine Formregel, KEIN Grund für eine dünne
+              Zusammenfassung: Längere Codezitate gehören ohnehin in die
+              Inline-Kommentare, wo keine dieser Regeln gilt, und in der
+              Zusammenfassung referenzierst du sie als `datei:zeile` statt sie
+              zu zitieren. Weglassen ist die falsche Auflösung.
             - Halte die Zusammenfassung deutlich unter 10 000 Zeichen. Die
               Schwelle ist für einen freigegebenen Aufruf UNBELEGT – die Doku
               nennt sie für den eingebauten Read-only-Satz, zu dem
@@ -198,7 +203,10 @@ jobs:
             Fließtext weitere nennt. Beschreibungen dieses Repositorys nennen
             regelmäßig vier bis fünf Nummern, und jede kostet einen Turn von
             dreißig, bevor irgendetwas gepostet ist. **Alle** `gh`-Aufrufe gelten diesem
-            Repository: nie `-R`/`--repo`, nie eine vollständige URL. Das
+            Repository: nie `-R`/`--repo`, nie eine vollständige URL.
+            Für `gh pr comment` nutzt du `<nr> --body '…'` und SONST KEIN
+            Flag – kein `--body-file`/`-F`, und vor allem nichts, was
+            bestehende Kommentare verändert oder entfernt. Das
             betrifft nicht nur `issue view` – `pr view`, `pr diff` und
             `pr list` nehmen das Flag genauso, und eine injizierte
             Leseaufforderung auf ein fremdes Repository trifft sonst auf keine
@@ -307,6 +315,17 @@ jobs:
           # weiter unten als den schlimmeren Fall benennt; der Prompt verengt
           # ihn auf `--body '…'`. Bei Git war eine feste Form möglich,
           # deshalb gibt es sie dort.
+          # Die LESE-Richtung ist nicht die einzige offene: `gh pr comment`
+          # kennt je nach Version auch Flags, die BESTEHENDE Kommentare
+          # ändern oder entfernen (`--edit-last`, `--create-if-none`,
+          # `--delete-last`). Welche davon die `gh`-Version des Runners
+          # tatsächlich führt, ist hier UNBELEGT – aus dieser Sitzung sind die
+          # `gh`-Referenzdomains nicht erreichbar. Die Prompt-Verengung ist
+          # davon unabhängig richtig und deshalb gezogen: für `gh pr comment`
+          # nur `<nr> --body '…'`, sonst kein Flag. Der Fall ist das
+          # Spiegelbild der Injektionssorge weiter unten – nicht einen Befund
+          # fälschen, sondern einen entfernen, auf einem PR, dessen Merge an
+          # der Auflösung von Review-Konversationen hängt.
           # WARUM KEINE DENY-REGEL als zweite Schicht? Sie würde mechanisch
           # greifen: Bash-Regeln erlauben `*` „at the beginning, middle, or
           # end", und eine Deny-Regel schlägt jede Allow-Regel
