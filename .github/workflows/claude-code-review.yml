@@ -584,10 +584,18 @@ jobs:
           jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE" || true
-          echo "Abgelehnte Aufrufe: $count"
+          # Wortlaut und Reihenfolge: Bei ausschliesslich Anomalien stand hier
+          # zuerst woertlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
+          # nach der beim Auswerten von #841 gesucht wird. Sie behauptete
+          # etwas, das der Schritt nicht wissen kann: Die Liste ist
+          # *unbekannt*, nicht leer. Ist etwas nicht auswertbar, nennt die
+          # Zeile deshalb keine Zahl, die als Urteil gelesen werden koennte –
+          # auch nicht als Teilkette. Der saubere Fall bleibt unveraendert.
           if [ "$anomalien" -gt 0 ]; then
             echo "::warning::Nicht auswertbare Datensätze: $anomalien"
-            echo "Nicht auswertbare Datensätze: $anomalien"
+            echo "Abgelehnte Aufrufe: unbestimmt ($count auswertbar, $anomalien nicht auswertbar)"
+          else
+            echo "Abgelehnte Aufrufe: $count"
           fi
           if [ "$count" -gt 0 ] || [ "$anomalien" -gt 0 ]; then
             printf '%s\n' "$denials"

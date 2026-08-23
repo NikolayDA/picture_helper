@@ -240,6 +240,44 @@ def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
     assert "::warning::Protokoll nicht auswertbar" in script
 
 
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_diagnostic_never_reports_a_verdict_it_cannot_reach(relative: str) -> None:
+    """Review-Befund auf 03e63cc: Der Messwert stand vor seinem Vorbehalt.
+
+    Anomalien getrennt zu zählen war richtig, die Reihenfolge hob es im Log
+    wieder auf: Ein Lauf mit ausschließlich Anomalien druckte zuerst wörtlich
+    „Abgelehnte Aufrufe: 0" und erst danach die Warnung. Genau diese
+    Zeichenkette ist es, nach der beim Auswerten von #841 gesucht wird – sie
+    behauptete eine Aussage, die der Schritt nicht treffen kann: Die Liste ist
+    *unbekannt*, nicht leer. Dieselbe Falle wie beim verworfenen
+    `permission_denials_count`-Fallback, nur eine Ebene höher.
+
+    Der Vorbehalt darf deshalb nicht neben der Zahl stehen, sondern an ihrer
+    Stelle: Im Anomaliefall nennt die Zeile keine Zahl, die als Urteil gelesen
+    werden könnte – auch nicht als Teilkette, denn `grep "Abgelehnte Aufrufe:
+    0"` fände „0 (unvollständig…)" weiterhin.
+    """
+    script = _step_by_name(relative, _DIAGNOSTIC_NAME)["run"]
+    zweig = re.search(
+        r'(?ms)^if \[ "\$anomalien" -gt 0 \]; then\n(.*?)^fi$',
+        script,
+    )
+    assert zweig, f"{relative}: Anomaliezweig nicht gefunden"
+    anomaliefall, _, sauberer_fall = zweig.group(1).partition("else\n")
+    assert sauberer_fall, f"{relative}: Der saubere Fall hängt nicht am selben Zweig"
+    assert "Abgelehnte Aufrufe: $count" not in anomaliefall, (
+        f"{relative}: Der Anomaliefall druckt weiter die Zahl, nach der beim "
+        "Auswerten gesucht wird – ein unbekanntes Ergebnis liest sich dann wie „0"
+    )
+    assert "Abgelehnte Aufrufe: unbestimmt" in anomaliefall, (
+        f"{relative}: Der Anomaliefall nennt sein Ergebnis nicht als unbestimmt"
+    )
+    assert 'echo "Abgelehnte Aufrufe: $count"' in sauberer_fall, (
+        f"{relative}: Die Zeichenkette des sauberen Laufs hat sich geändert – "
+        "das Kriterium von #841 hängt wörtlich an ihr"
+    )
+
+
 def test_review_bash_allowlist_matches_inspection_and_comment_boundary() -> None:
     """#841: nur belegte Lesewege und der PR-Kommentar dürfen Bash nutzen."""
     allowed = _review_allowed_tools()
@@ -994,9 +1032,21 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     # Kommentar auch nach führendem Leerzeichen, es hilft also vermutlich
     # gerade nicht. Auf dem einzigen Ausgabeweg eine erfundene Abhilfe zu
     # empfehlen ist teurer als sie wegzulassen: Inline-Backticks reichen.
-    assert "rücke" not in prompt or "Leerzeichen ein" not in prompt, (
+    # Review-Befund auf 03e63cc: Die Zusicherung hielt nur über ein Komma.
+    # „rücke" IST im Prompt enthalten — als Teilkette von „Ein**rücke**n hilft
+    # also vermutlich gerade nicht"; „Leerzeichen ein" fehlt allein deshalb,
+    # weil dort „führendem Leerzeichen, ein Einrücken" steht. Streicht jemand
+    # das Komma, meldet der Test die Rückkehr der Abhilfe, obwohl der Prompt
+    # von ihr abrät. Geprüft wird deshalb die verbotene Empfehlung als
+    # Nähe-Bedingung ohne Satzende dazwischen — und die Widerlegung selbst,
+    # die die alte Fassung überhaupt nicht sicherte.
+    assert not re.search(r"rücke\b[^.]{0,80}Leerzeichen ein\b", prompt), (
         "Die unbelegte Einrückungs-Abhilfe ist zurück — ein späterer Lauf "
         "probiert sie am Ausgabeweg aus"
+    )
+    assert "auch nicht eingerückt" in prompt, (
+        "Die Widerlegung ist verschwunden; ohne sie kommt das Einrücken als "
+        "vermeintliche Auslassung zurück"
     )
     assert "**inline in Backticks**" in prompt, (
         "Die voraussetzungsfreie Abhilfe fehlt"
@@ -1134,7 +1184,7 @@ def test_class_n_takes_precedence_over_the_reachability_rule() -> None:
     Domains.
 
     Das ist keine Spitzfindigkeit: Der Prompt ermutigt zur Recherche, der erste
-    Abruf außerhalb der sechs Domains kommt also sicher, und das Kriterium von
+    Abruf außerhalb der freigegebenen Domains kommt also sicher, und das Kriterium von
     #841 hängt an „kein L in drei Läufen". Ohne Vorrangregel entschiede der
     Auswerter, nicht die Regel — genau die Hintertür, die die P-Abgrenzung
     an anderer Stelle schließt.
@@ -1144,9 +1194,17 @@ def test_class_n_takes_precedence_over_the_reachability_rule() -> None:
     # der Domainliste — in einer Vorrangregel, die eine Klassifizierung trägt,
     # und als einzige Aussage darüber ohne Test. Nach der nächsten Freigabe
     # wäre es still falsch. Die Aussage trägt sich jetzt selbst.
-    assert not re.search(r"(sechs|sieben|fünf|\b\d+) (freigegebenen? )?Domains", taxonomy), (
-        "Die Domainzahl ist wieder hartkodiert und driftet bei der nächsten Freigabe"
-    )
+    # Review-Befund auf 90eb9a1: Die Zahlwortliste war lückenhaft (`vier`,
+    # `acht`, `neun`, `zehn` fehlten) und der Wächter lief nur über den
+    # Workflow. Die README trägt dieselbe Vorrangregel und dürfte die Zahl
+    # damit weiter hartkodieren — jede andere Zusicherung dieses PR läuft
+    # über beide Fundstellen.
+    zahlwort = r"\b(zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|\d+)\s+(freigegebenen?\s+)?Domains"
+    for fundstelle, text in (("Workflow", taxonomy), ("agents-README", _agents_readme())):
+        assert not re.search(zahlwort, text), (
+            f"{fundstelle}: Die Domainzahl ist wieder hartkodiert und driftet "
+            "bei der nächsten Freigabe"
+        )
     assert "N GEHT L VOR" in taxonomy, (
         "Ohne Vorrangregel ist eine abgewiesene Domain zugleich N und L"
     )
