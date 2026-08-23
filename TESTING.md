@@ -134,13 +134,13 @@ Nur diese `ui`-markierten Tests laufen bei `make ui`/`pytest -m ui`
 (volle, nightly UI-Suite).
 
 Daneben trägt ein kleines, stabiles Subset schnellerer qtbot-Tests den
-Marker `ui_smoke` – u. a. in `tests/test_workflow.py`,
+Marker `ui_smoke` – in `tests/test_workflow.py`,
 `tests/test_right_panel.py`, `tests/test_resize_dialog.py`,
 `tests/test_viewer_3d.py`, `tests/test_preview3d_integration.py`,
 `tests/test_preview3d_acceptance.py`, `tests/test_screenshot3d.py`,
 `tests/test_ai_model_dialog.py`, `tests/test_ai_install_dialog.py`,
-`tests/test_eufymake_export_dialog.py`, `tests/test_acceptance_smoke.py`
-und `tests/test_ui_interactions.py`. Die meisten dieser Module tragen
+`tests/test_eufymake_export_dialog.py`, `tests/test_acceptance_smoke.py`,
+`tests/test_e2e_release_regression.py` und `tests/test_ui_interactions.py`. Die meisten dieser Module tragen
 **nur** `ui_smoke`, nicht zusätzlich `ui` – nur `test_ui_interactions.py`
 und `test_e2e_release_regression.py` tragen beide Marker.
 
@@ -158,7 +158,7 @@ und `test_e2e_release_regression.py` tragen beide Marker.
 <!-- Achtung Maschinenformat: Der Satzanfang "Ein weiterer Marker,
 `gl_smoke`", die Klammer-Aufzählung und die Klausel "; modulweit nur in
 `…`" im folgenden Absatz werden von
-tests/test_gl_smoke_marker_governance.py geparst – bei Umformulierung dort
+tests/test_marker_governance.py geparst – bei Umformulierung dort
 die Anker nachziehen (gleiches Muster wie die N6-Hinweise in den
 Qt-Paketlisten). -->
 Ein weiterer Marker, `gl_smoke`, kennzeichnet die wenigen Tests mit echtem
@@ -172,7 +172,7 @@ Details zum manuellen Nachweis unter echtem GL:
 [`docs/PACKAGING_SMOKE.md`](docs/PACKAGING_SMOKE.md).
 
 Die Liste oben synchron zum tatsächlichen Marker-Bestand zu halten, sichert
-`tests/test_gl_smoke_marker_governance.py` (#832) ab: Der Test lässt pytest
+`tests/test_marker_governance.py` (#832/#847) ab: Der Test lässt pytest
 in einem Subprozess ungefiltert sammeln und liest die Marker über das
 Mini-Plugin `tests/_marker_collect_plugin.py` direkt aus den Item-Objekten
 aus; verglichen werden sowohl die Dateiliste als auch die
@@ -180,9 +180,13 @@ Granularitätsaussage (modulweit vs. je ein markierter Test) gegen die oben
 genannten Angaben. Die Inventur kostet je Testlauf einmalig eine zweite,
 ungefilterte Kollektion des `tests/`-Baums (einige Sekunden, geteilt
 zwischen den Prüfungen) – die kurze Pause beim ersten dieser Tests ist
-also erwartet, kein Hänger. Die `ui`-/`ui_smoke`-Aufzählungen weiter oben
-bleiben dagegen vorerst Handarbeit; die Erweiterung auf dieselbe
-Marker-Inventur ist als #847 notiert.
+also erwartet, kein Hänger. Dieselbe Inventur sichert seit #847 auch die
+`ui`- und `ui_smoke`-Aufzählungen weiter oben ab – Dateilisten und die
+Aussage „nur … tragen beide Marker", jeweils auf exakte Gleichheit. Das
+frühere „u. a." vor der `ui_smoke`-Liste ist dabei entfallen: Eine
+ausdrücklich unvollständige Aufzählung lässt sich gegen genau den Schaden
+nicht absichern, um den es hier geht (#826 – die Liste wird unbemerkt
+unvollständig).
 
 ### GL-Ressourcen-Langzeittest (#684)
 
