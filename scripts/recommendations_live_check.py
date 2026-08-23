@@ -289,9 +289,24 @@ _CELL_SEPARATOR: Final = re.compile(r"(?<!\\)\|")
 def cells(row: str) -> list[str]:
     r"""Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe).
 
-    Maskierungsbewusst und bewusst oeffentlich (#851): Es gibt genau **eine**
-    Regel, was eine Zelle ist, und sowohl das Skript als auch
-    ``tests/test_recommendations_docs.py`` benutzen sie.
+    Maskierungsbewusst und bewusst oeffentlich (#851): Skript und
+    ``tests/test_recommendations_docs.py`` zerlegen eine Zeile nach derselben
+    Regel, statt jeder nach einer eigenen.
+
+    **Zwei Grenzen, die diese Zusicherung nicht ueberdehnen:**
+
+    * :data:`_TABLE_FIRST_CELL_RE` ist eine zweite, maskierungsunbewusste
+      Regel fuer *Spalte 1* und speist den read-only Pruefpfad
+      (:func:`issue_numbers_in_first_column`). Bei einer Spalte-1-Zelle mit
+      maskiertem Pipe divergieren beide: ``cells(row)[0]`` behaelt
+      ``… \| Gruppe``, das Muster schneidet am ``\|`` ab. Heute nicht
+      ausloesbar - Spalte 1 traegt nur Issue-Links - und bewusst nicht
+      umgestellt, weil ``issue_numbers_in_first_column`` auf dem rohen
+      Abschnitt arbeitet und ueber :func:`table_span` ein
+      :class:`LiveCheckError` bekaeme, wo es heute still weiterlaeuft.
+    * Das Lookbehind ``(?<!\\)`` unterscheidet ``\\|`` (maskierter
+      Backslash, echter Trenner) nicht von ``\|``. In diesem Dokument
+      irrelevant, aber es ist keine vollstaendige GFM-Implementierung.
 
     Die naive Fassung (``split("|")``) hat ein maskiertes ``\|`` als Trenner
     mitgezaehlt. Folge, an einer handgepflegten Bewertungszelle reproduziert:

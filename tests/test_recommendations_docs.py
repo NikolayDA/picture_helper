@@ -87,13 +87,6 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-#: Die Zellentrennung kommt aus dem Skript (``lc.cells``) — dort erzeugt
-#: ``render_triage_row`` die Maskierung, dort gehört auch ihr Gegenstück hin.
-#: Eine zweite, test-lokale Fassung wäre genau die Drift, gegen die dieser
-#: Wächter antritt. Die Negativkontrolle des Splitters liegt neben ihm in
-#: ``tests/test_recommendations_live_check.py``.
-
-
 def test_triage_rows_have_exactly_the_header_column_count() -> None:
     """Ein unmaskiertes Pipe in einer Zelle verschluckt den Rest der Zeile.
 
@@ -112,6 +105,12 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
     (``render_triage_row``); nur die handgepflegten Bewertungsspalten fallen
     nicht unter diese Automatik.
 
+    Die Zellentrennung kommt aus dem Skript (``lc.cells``) — dort erzeugt
+    ``render_triage_row`` die Maskierung, dort gehört auch ihr Gegenstück
+    hin. Eine zweite, test-lokale Fassung wäre genau die Drift, gegen die
+    dieser Wächter antritt; die Negativkontrolle des Splitters liegt neben
+    ihm in ``tests/test_recommendations_live_check.py``.
+
     Geprüft wird nur der Triage-Abschnitt, nicht jede Tabellenzeile der
     Datei. Das ist keine prinzipielle Grenze, sondern eine Folge der
     Vergleichsbasis: Alle Zeilen werden gegen **den** Triage-Kopf gehalten,
@@ -128,10 +127,22 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
         columns = len(lc.cells(lines[first]))
         for row in lines[first + 2 : last + 1]:
             actual = len(lc.cells(row))
+            # Beide Richtungen sind ein Fehler, aber nicht derselbe: zu viele
+            # Zellen heißt „unmaskiertes Pipe, GFM verwirft den Rest", zu wenige
+            # heißt „Spalte fehlt" — GFM füllt die dann still leer auf. Eine
+            # Meldung für beide schickt die Hälfte der Fälle in die Irre.
+            if actual > columns:
+                reason = (
+                    "ein unmaskiertes `|` in einer Zelle; GFM verwirft alles "
+                    "danach. Als `\\|` schreiben."
+                )
+            else:
+                reason = (
+                    "eine Spalte fehlt; GFM füllt sie still leer auf, die Zeile "
+                    "rendert unvollständig."
+                )
             assert actual == columns, (
-                f"{lang}: {actual} Zellen statt {columns} — ein unmaskiertes `|` in "
-                f"einer Zelle; GFM verwirft alles danach. Als `\\|` schreiben. "
-                f"Zeile: {row[:80]}…"
+                f"{lang}: {actual} Zellen statt {columns} — {reason} Zeile: {row[:80]}…"
             )
 
 
