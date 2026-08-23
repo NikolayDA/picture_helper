@@ -202,7 +202,7 @@ flowchart TD
     C3["dependency-audit.yml<br/>Abhängigkeits-Audit, läuft auch bei Docs-only-PRs"]
     C4["license-check.yml<br/>Lizenzreport mit Python-, AI- und Test-Abhängigkeiten einschließlich PyQt6,<br/>aber ohne Linux-Qt-Systempakete"]
     CQ{"Secret CLAUDE_CODE_OAUTH_TOKEN verfügbar?"}
-    C5["claude-code-review.yml<br/>Review als Inline-Kommentare plus Sticky-Zusammenfassung"]
+    C5["claude-code-review.yml<br/>Review als Inline-Kommentare plus Zusammenfassung"]
     C6["Review sichtbar übersprungen<br/>Warnung statt rotem Lauf; bei Fork-PRs immer der Fall"]
   end
 
@@ -273,7 +273,7 @@ flowchart TD
     direction TB
     R1["PR-Workflows laufen<br/>actions/checkout prüft beim pull_request standardmäßig GitHubs Merge-Ref refs/pull/N/merge"]
     RQ1{"Erforderlicher Status<br/>Lightweight PR checks grün?"}
-    RB["Weitere Check- und Review-Befunde liegen vor<br/>unter anderem Sticky- und Inline-Kommentare"]
+    RB["Weitere Check- und Review-Befunde liegen vor<br/>unter anderem Zusammenfassungs- und Inline-Kommentare"]
   end
 
   subgraph DEV["Partition: Entwickler:in"]

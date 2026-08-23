@@ -31,6 +31,14 @@ concurrency:
 jobs:
   claude:
     # Nur laufen, wenn "@claude" tatsächlich erwähnt wurde.
+    # Trigger-Rauschen aus #828 (sieben Thread-Antworten erzeugten 14 Läufe):
+    # Dieses Job-`if` ist bereits die engste verfügbare Filterung. GitHub
+    # filtert Ereignisse nur nach Typ, Branch, Pfad und Tag, nicht nach
+    # Kommentartext – der Lauf wird also angelegt und sofort übersprungen. Der
+    # Eintrag in der Checkliste ist die Anzeige dieses Übersprungs, kein
+    # Verbrauch. Enger ginge es nur, indem man Ereignistypen ganz aufgibt (etwa
+    # keine Review-Kommentare mehr); dann bliebe eine Erwähnung dort
+    # unbeantwortet – der schlechtere Tausch.
     if: >-
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
@@ -134,5 +142,10 @@ jobs:
             "$EXECUTION_FILE" || true
           echo "Abgelehnte Aufrufe: $count"
           if [ "$count" -gt 0 ]; then
+            # Einordnung nach der Taxonomie, die im Review-Workflow über
+            # `claude_args` steht. Ohne sie liest sich jede Ablehnung gleich –
+            # dabei ist nur die Klasse L ein Berechtigungsfehler.
+            echo "Einordnung: L (lesende Inspektion) = Lücke in der Allowlist, gehört gefixt;"
+            echo "            A/N/S (Ausführung, Netzzugriff, Schreibzugriff) = erwartbar."
             printf '%s\n' "$denials"
           fi

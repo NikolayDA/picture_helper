@@ -44,6 +44,7 @@ _EXPECTED_REVIEW_BASH_TOOLS = {
     "Bash(gh pr view:*)",
     "Bash(gh pr list:*)",
     "Bash(gh pr comment:*)",
+    "Bash(gh issue view:*)",
     *_EXPECTED_REVIEW_GIT_TOOLS,
 }
 
@@ -73,6 +74,17 @@ def _review_allowed_tools() -> set[str]:
     )
     assert match, "--allowedTools im Review-Workflow nicht gefunden"
     return set(match.group("tools").split(","))
+
+
+def _diagnostic_block(relative: str) -> str:
+    """Den Diagnoseschritt aus *relative* rein textbasiert herausschneiden."""
+    text = (_ROOT / relative).read_text(encoding="utf-8")
+    match = re.search(
+        rf"(?ms)^      - name: {re.escape(_DIAGNOSTIC_NAME)}\n.*?(?=\n\S|\Z)",
+        text,
+    )
+    assert match, f"{relative}: Diagnoseschritt nicht gefunden"
+    return match.group(0)
 
 
 def _review_workflow_text() -> str:
@@ -170,6 +182,9 @@ def test_review_allowlist_keeps_checkout_and_remote_mutations_forbidden() -> Non
         "Bash(git push",
         "Bash(git fetch",
         "Bash(gh api",
+        "Bash(gh issue comment",
+        "Bash(gh issue edit",
+        "Bash(gh issue close",
         "Bash(pytest",
         "Bash(python",
     )
@@ -229,10 +244,86 @@ def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
 
 
 def test_review_allowlist_rationale_stays_above_claude_args() -> None:
-    """Hausstil aus #841: Risikoerklärung steht über, nie im Argumentblock."""
+    """Hausstil aus #841: Risikoerklärung steht über, nie im Argumentblock.
+
+    Geprüft wird die Angrenzung selbst statt eines Zeichenabstands: Zwischen
+    Begründung und ``claude_args`` darf nichts als Kommentar stehen. Ein
+    Längenbudget hätte jede sachlich gewachsene Begründung rot gefärbt.
+    """
     text = _review_workflow_text()
     args_index = text.index("          claude_args: |")
     rationale = "          # Nur-Lese-Freigaben (#841):"
     rationale_index = text.index(rationale)
     assert rationale_index < args_index
-    assert args_index - rationale_index < 1200, "Begründung steht nicht direkt am Block"
+
+    between = text[rationale_index:args_index].splitlines()
+    intruders = [line for line in between if line.strip() and not line.lstrip().startswith("#")]
+    assert not intruders, f"Zwischen Begründung und Argumentblock steht Nicht-Kommentar: {intruders}"
+
+
+def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
+    """#841/#828: Ohne Klassen ist „drei grüne Läufe" nicht entscheidbar.
+
+    Belegt in Lauf 32600075322: ``Lauf: success`` bei sechs Ablehnungen. Grün
+    allein sagt also nichts. Erst die Einteilung trennt die Allowlist-Lücke
+    (lesende Inspektion) von den erwartbaren Ablehnungen.
+    """
+    text = _review_workflow_text()
+    rationale_index = text.index("          # Taxonomie der Ablehnungen")
+    args_index = text.index("          claude_args: |")
+    assert rationale_index < args_index, "Taxonomie steht nicht über dem Argumentblock"
+
+    taxonomy = text[rationale_index:args_index]
+    for phrase in (
+        "L = lesende Inspektion",
+        "darf NIE abgelehnt werden",
+        "A = Ausführung",
+        "N = Netzzugriff",
+        "S = Schreibzugriff",
+        "DÜRFEN immer abgelehnt werden",
+    ):
+        assert phrase in taxonomy, f"Taxonomie unvollständig: {phrase!r} fehlt"
+
+
+def test_review_prompt_carries_the_same_three_way_boundary() -> None:
+    """Die Taxonomie muss den Agenten erreichen, nicht nur die Auswertung."""
+    prompt = _review_prompt()
+    for phrase in (
+        "**Lesende Inspektion**",
+        "**Ausführung**",
+        "**Netzzugriff**",
+        "**Schreibzugriff**",
+    ):
+        assert phrase in prompt, f"Prompt benennt die Klasse nicht: {phrase!r}"
+
+
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_diagnostic_legend_classifies_denials_in_the_joblog(relative: str) -> None:
+    """Wer den Joblog liest, braucht die Klassen dort – nicht nur im YAML.
+
+    Textbasiert wie die übrigen #841-Invarianten, damit die Prüfung auch ohne
+    die optionale PyYAML-Abhängigkeit läuft.
+    """
+    block = _diagnostic_block(relative)
+    assert "L (lesende Inspektion)" in block, "Joblog ordnet Ablehnungen nicht ein"
+    assert "Lücke in der Allowlist" in block
+    assert "A/N/S" in block
+
+
+
+
+def test_review_promises_no_sticky_comment_it_cannot_keep() -> None:
+    """#828: Das Input wirkt im Prompt-Modus nicht – beides muss weg."""
+    text = _review_workflow_text()
+    assert "use_sticky_comment: true" not in text, "unwirksames Input wieder aktiv"
+    assert re.search(r"(?m)^\s*use_sticky_comment:", text) is None
+    assert "(Sticky-)" not in _review_prompt(), "Prompt verspricht weiter einen Sticky-Kommentar"
+
+
+def test_interactive_workflow_documents_why_the_trigger_stays_broad() -> None:
+    """#828: Die Entscheidung „nicht enger" braucht ihre Begründung im Workflow."""
+    text = (_ROOT / ".github/workflows/claude.yml").read_text(encoding="utf-8")
+    condition_index = text.index("    if: >-")
+    rationale = text[:condition_index]
+    assert "Trigger-Rauschen aus #828" in rationale
+    assert "nicht nach" in rationale and "Kommentartext" in rationale
