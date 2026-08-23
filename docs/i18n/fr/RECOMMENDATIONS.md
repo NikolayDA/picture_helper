@@ -48,7 +48,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 ### Recommandé ensuite
 
-1. **#841** – plus de travail de code, seulement de l'observation : vérifier `Abgelehnte Aufrufe: 0` sur les trois prochaines revues. Le critère n'est ainsi rempli qu'à moitié : sa moitié qualitative est fixée au préalable dans **#828**.
+1. **#841** – plus de travail de code, seulement de l'observation : vérifier les trois prochaines revues au regard du critère de la ligne #841 (sa source unique). Seule sa moitié quantitative est définie à ce jour ; la moitié qualitative est fixée au préalable dans **#828**.
 2. **#847** – après la fusion de la PR #845 : protéger les listes ui/ui_smoke via le même inventaire de marqueurs.
 3. **#692** (ADR) ouvre l'épopée COLOR #682.
 4. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée

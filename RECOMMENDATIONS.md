@@ -48,7 +48,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 ### Als Nächstes empfohlen
 
-1. **#841** – keine Codearbeit mehr, nur Beobachtung: die nächsten drei Review-Läufe auf `Abgelehnte Aufrufe: 0` prüfen. Das Kriterium ist damit erst zur Hälfte erfüllt – seine qualitative Hälfte wird vorher in **#828** festgelegt.
+1. **#841** – keine Codearbeit mehr, nur Beobachtung: die nächsten drei Review-Läufe gegen das Kriterium der #841-Tabellenzeile prüfen (sie ist dessen einzige Quelle). Bestimmt ist bislang nur seine quantitative Hälfte – die qualitative wird vorher in **#828** festgelegt.
 2. **#847** – nach dem Merge von PR #845: ui-/ui_smoke-Listen über dieselbe Marker-Inventur absichern.
 3. **#692** (ADR) öffnet den COLOR-Epic #682.
 4. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687

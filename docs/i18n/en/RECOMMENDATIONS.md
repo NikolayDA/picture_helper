@@ -48,7 +48,7 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 
 ### Recommended Next
 
-1. **#841** – no code work left, observation only: check the next three review runs for `Abgelehnte Aufrufe: 0`. That satisfies only half the criterion – its qualitative half is settled beforehand in **#828**.
+1. **#841** – no code work left, observation only: check the next three review runs against the criterion in the #841 table row (its single source). Only the quantitative half of that criterion is settled so far – the qualitative half is defined beforehand in **#828**.
 2. **#847** – after PR #845 merges: cover the ui/ui_smoke lists via the same marker inventory.
 3. **#692** (ADR) opens the COLOR epic #682.
 4. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687

@@ -48,7 +48,7 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 ### Recomendado a continuación
 
-1. **#841** – sin trabajo de código, solo observación: comprobar `Abgelehnte Aufrufe: 0` en las tres próximas revisiones. Con ello el criterio solo se cumple a medias: su mitad cualitativa se fija antes en **#828**.
+1. **#841** – sin trabajo de código, solo observación: comprobar las tres próximas revisiones contra el criterio de la fila #841 (su única fuente). Hasta ahora solo está definida su mitad cuantitativa; la cualitativa se fija antes en **#828**.
 2. **#847** – tras fusionar el PR #845: proteger las listas ui/ui_smoke con el mismo inventario de marcadores.
 3. **#692** (ADR) abre la épica COLOR #682.
 4. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
