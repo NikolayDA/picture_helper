@@ -208,6 +208,9 @@ def test_agents_readme_carries_the_denial_taxonomy() -> None:
     assert "sonst ist die Ablehnung L" in readme, (
         "agents/README.md führt Klasse P ohne ihre prüfbare Abgrenzung"
     )
+    assert "ist die Ablehnung L" in _review_taxonomy(), (
+        "Workflow-Kommentar führt Klasse P ohne ihre prüfbare Abgrenzung"
+    )
 
 
 def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
@@ -511,10 +514,15 @@ def test_class_p_survives_deliberately_narrow_forms() -> None:
     Definition eine Allowlist-Lücke, sobald der Agent mehr sehen will — und
     „drei grüne Läufe ohne L" nie erfüllbar.
     """
-    taxonomy = _review_taxonomy()
-    assert "ES SEI DENN" in taxonomy, "P/L-Regel ohne Abbruchkriterium"
-    assert "bewusst enger gefasst" in taxonomy
-    assert "--max-count=200" in taxonomy, "Prüfstein für die Gegenrichtung fehlt"
+    for label, text in (
+        ("Workflow-Kommentar", _review_taxonomy()),
+        ("agents/README.md", _agents_readme()),
+    ):
+        assert "bewusst enger gefasst" in text, (
+            f"{label}: P/L-Regel ohne Abbruchkriterium – die Fundstellen "
+            "widersprechen sich sonst am selben Prüfstein"
+        )
+        assert "--max-count=200" in text, f"{label}: Prüfstein der Gegenrichtung fehlt"
 
 
 def test_review_taxonomy_names_its_own_scope() -> None:

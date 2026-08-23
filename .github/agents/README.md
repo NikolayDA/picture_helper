@@ -101,8 +101,12 @@ Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
 Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. **P setzt
 voraus, dass dieselbe Information über eine freigegebene Form erreichbar
-gewesen wäre – sonst ist die Ablehnung L.** Ohne diese Bedingung ließe sich
-jede unbequeme L-Ablehnung als P verbuchen. Genau eine
+gewesen wäre – sonst ist die Ablehnung L, es sei denn, die freigegebene Form
+ist bewusst enger gefasst (Tiefe, Commit-Bereich, Ausgabeumfang); dann bleibt
+es P.** Ohne den ersten Teil ließe sich jede unbequeme L-Ablehnung als P
+verbuchen; ohne den zweiten wäre jede gewollte Verengung per Definition eine
+Lücke. Prüfsteine: `--max-count=20` und `--max-count=200` sind beide P (die
+freigegebenen 30 sind gewollt), `gh issue view` war nie P. Genau eine
 Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
 Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
 Remote-Schreibzugriffe; ihre Ablehnung zählt wie **L**, sonst stünde der
