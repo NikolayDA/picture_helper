@@ -101,17 +101,20 @@ Eintrag zu eng geschnitten ist, oder eine lesende Abfrage, deren Information
 keine freigegebene Form liefert und die nicht unter „Bewusst nicht
 freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
 Erreichbarkeit, nicht die Form. Das endet, wo die Allowlist nicht mehr
-entscheidet: Liegt die Ursache außerhalb von `--allowedTools` – die
-Kommandoprüfung am Argumentinhalt, eine Pfadregel für die ohne Pfadmuster
-freigegebenen `Read`/`Grep`/`Glob`, eine Umleitung bei WebFetch –, könnte
-keine Erweiterung sie schließen; sie zählt als P. Belegter Fall: Lauf
-32640784005 wies `gh pr comment` ab, weil eine Argumentzeile mit `#` begann;
-`Bash(gh pr comment:*)` stand längst in der Allowlist. **A** (Ausführung),
+entscheidet: Liegt die Ursache außerhalb von `--allowedTools`, könnte keine
+Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführung),
 **N** (Netzzugriff auf eine **nicht** freigegebene Domain),
 **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
-Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
-Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. P setzt
+Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von
+`--allowedTools` liegt – Kommandoprüfung am Argumentinhalt, Pfadregel für die
+ohne Pfadmuster freigegebenen `Read`/`Grep`/`Glob`, Umleitung bei WebFetch)
+dürfen dagegen abgelehnt werden; sie sind ein Prompt-Befund und rechtfertigen
+keine Erweiterung der Freigaben. **W** ist bewusst eine eigene Klasse und
+nicht ein Zweig von P: Der belegte Fall – Lauf 32640784005 wies
+`gh pr comment` ab, weil eine Argumentzeile mit `#` begann – ist ein
+Schreibaufruf in freigegebener Form und erfüllt damit keines der beiden
+P-Merkmale. P setzt
 voraus, dass dieselbe Information über eine freigegebene Form erreichbar
 gewesen wäre – sonst ist die Ablehnung L, es sei denn, die Enge betrifft die
 **Parameter eines bereits freigegebenen Kommandos** (Tiefe, Commit-Bereich,

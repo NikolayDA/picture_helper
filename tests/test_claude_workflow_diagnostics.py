@@ -213,6 +213,7 @@ def test_agents_readme_carries_the_denial_taxonomy() -> None:
         "**N** (Netzzugriff",
         "**S** (Schreibzugriff)",
         "**P** (lesende Absicht in nicht freigegebener Form",
+        "**W** (Ablehnung, deren Ursache außerhalb von",
     ):
         assert phrase in readme, f"agents/README.md nennt die Klasse nicht: {phrase!r}"
 
@@ -403,6 +404,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
         "N = Netzzugriff",
         "S = Schreibzugriff",
         "P = lesende Absicht in nicht freigegebener Form",
+        "W = Ablehnung, deren Ursache AUSSERHALB von `--allowedTools`",
         "DÜRFEN abgelehnt werden",
     ):
         assert phrase in taxonomy, f"Taxonomie unvollständig: {phrase!r} fehlt"
@@ -658,7 +660,14 @@ def test_class_l_covers_every_allowlisted_read_form() -> None:
         # auf demselben Ausschnitt arbeitet. Sie prüfte vorher die ganze Datei
         # und wäre an einer Passage rot geworden, die nur den Prompt zitiert.
         definition = " ".join(_class_l_definition(text, start, end).replace("#", " ").split())
-        assert "WebFetch" in definition, f"{label}: WebFetch fehlt in der L-Definition"
+        # WebFetch stand früher als Aufzählungspunkt in der L-Definition. Seit
+        # L über die Erreichbarkeit definiert ist, deckt die Bedingung den Fall
+        # ohne Aufzählung ab — der Regressionsschutz bleibt trotzdem nötig, nur
+        # eine Ebene höher: Irgendwo in der Einteilung muss WebFetch vorkommen,
+        # sonst fällt eine Ablehnung auf einer freigegebenen Domain wieder
+        # durchs Raster (genau der ursprüngliche Befund).
+        einteilung = " ".join(text.replace("#", " ").split())
+        assert "WebFetch" in einteilung, f"{label}: WebFetch fehlt in der Einteilung"
         assert "Erweiterung" in definition and "Allowlist schließen könnte" in definition, (
             f"{label}: L nicht über die Erreichbarkeit definiert, sondern über die Form"
         )
@@ -890,12 +899,22 @@ def test_the_documented_hash_denial_is_filed_as_the_boundary_not_as_a_gap() -> N
     trennen: Die Ablehnung ist P, blockiert die Abnahme aber trotzdem.
     """
     taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
-    grenze = taxonomy[taxonomy.index("GRENZE DER KLASSE"):]
-    assert "32640784005" in grenze, (
-        "Der belegte Fall steht nicht unter der Grenze der Klasse"
+    klasse_w = taxonomy[taxonomy.index("W = Ablehnung, deren Ursache"):]
+    assert "32640784005" in klasse_w, (
+        "Der belegte Fall steht nicht bei der Klasse, die ihn tragen soll"
     )
-    assert "stand bereits in der Allowlist" in grenze and "nicht hier" in grenze, (
+    assert "stand bereits in der Allowlist" in klasse_w and "nicht hier" in klasse_w, (
         "Ohne diesen Halbsatz bleibt offen, warum der Fall keine Allowlist-Lücke ist"
+    )
+    # Review-Befund auf 6f7c383: Der Fall war als P geführt und erfüllt beide
+    # P-Merkmale nicht — er ist ein SCHREIBaufruf in FREIGEGEBENER Form. Genau
+    # das muss die Klasse W von sich aus sagen, sonst kehrt die Einsortierung
+    # bei der ersten echten Auswertung als Zuschreibungsfrage zurück.
+    assert "SCHREIBaufruf" in klasse_w and "FREIGEGEBENER Form" in klasse_w, (
+        "W begründet nicht, warum der belegte Fall kein P sein kann"
+    )
+    assert "weder in L noch in P passt" in klasse_w, (
+        "Ohne die Abgrenzung liest sich W wie ein Zweig von P"
     )
     assert "BLOCKIERT die Abnahme unabhängig von der Klasse" in taxonomy, (
         "Die Ausgabeweg-Ausnahme setzt Klasse und Blockade wieder gleich"
@@ -931,22 +950,25 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     assert "außerhalb von `--allowedTools`" in readme, (
         "agents-README kennt die Grenze der Klasse L nicht"
     )
-    assert "sie zählt als P" in readme, "agents-README nennt die Ersatzklasse nicht"
+    assert "die eigene Klasse **W**" in readme, "agents-README nennt die Ersatzklasse nicht"
+    # Die Quellen selbst stehen jetzt bei der Klasse W, nicht mehr in der
+    # Grenze – geprüft wird deshalb auf dem ganzen Taxonomie-Block.
+    ganze = " ".join(_review_taxonomy().replace("#", " ").split())
     for quelle in ("Kommandoprüfung am Argumentinhalt", "Pfadregel", "Umleitung"):
-        assert quelle in wortlaut, f"Die Grenze benennt die Ursache nicht: {quelle!r}"
-    assert "sondern P" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
+        assert quelle in ganze, f"Die Ursachen der Klasse W fehlen: {quelle!r}"
+    assert "sondern W" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
     # Review-Befund auf 926441e: Der Satz behauptete, die Ursache stehe im
     # Joblog. Sie steht dort nicht — der Diagnoseschritt gibt `tool_name` und
     # ein gekürztes `tool_input` aus, keinen Grund. Geprüft wird deshalb, dass
     # die Grenze ein nachprüfbares Merkmal nennt UND nicht mehr verspricht,
     # als der Schritt hergibt.
-    assert "aus Kommando UND Allowlist-Stand" in wortlaut, (
+    assert "aus Kommando UND Allowlist-Stand" in ganze, (
         "Ohne prüfbares Merkmal wäre die Grenze die Hintertür, die die P-Abgrenzung schließt"
     )
-    assert "keinen" in wortlaut and "Ablehnungsgrund" in wortlaut, (
-        "Die Grenze verschweigt, dass der Diagnoseschritt keinen Grund ausgibt"
+    assert "keinen" in ganze and "Ablehnungsgrund" in ganze, (
+        "Die Einteilung verschweigt, dass der Diagnoseschritt keinen Grund ausgibt"
     )
-    assert "im Joblog abgelesen" not in wortlaut.replace("nicht im Joblog abgelesen", ""), (
+    assert "im Joblog abgelesen" not in ganze.replace("nicht im Joblog abgelesen", ""), (
         "Die alte Behauptung ist zurück: Die Ursache steht im Joblog gerade nicht"
     )
 
