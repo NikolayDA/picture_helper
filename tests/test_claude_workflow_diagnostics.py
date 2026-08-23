@@ -257,7 +257,16 @@ def test_review_bash_allowlist_matches_inspection_and_comment_boundary() -> None
 
 
 def test_review_allowlist_keeps_checkout_and_remote_mutations_forbidden() -> None:
-    """#841 erweitert Lesezugriffe, nicht die Schreib- oder Ausführungsrechte."""
+    """#841 erweitert Lesezugriffe, nicht die Schreib- oder Ausführungsrechte.
+
+    Bewusst redundant zur Mengengleichheit in
+    ``test_review_bash_allowlist_matches_inspection_and_comment_boundary``:
+    Diese Liste hält die Grenze auch dann, wenn jemand die Mengengleichheit
+    später zu einem ``>=`` aufweicht, um eine Freigabe schneller nachzuziehen.
+    Sie ist deshalb kein Vollständigkeitsversprechen über alle
+    ``gh``-Unterkommandos, sondern eine zweite Schicht unter den Fällen, die
+    hier real vorkamen.
+    """
     allowed = _review_allowed_tools()
     forbidden_prefixes = (
         "Edit",
@@ -680,3 +689,69 @@ def test_interactive_workflow_documents_why_the_trigger_stays_broad() -> None:
     rationale = text[:condition_index]
     assert "Trigger-Rauschen aus #828" in rationale
     assert "nicht nach" in rationale and "Kommentartext" in rationale
+
+
+def _exclusion_list(text: str, start: str, end: str) -> str:
+    """Die Aufzählung „Bewusst nicht freigegeben" normalisiert herausschneiden.
+
+    Alle drei Fundstellen sind umbrochen und zwei davon zusätzlich mit
+    Kommentar-Präfixen eingerückt. Verglichen wird deshalb der Wortlaut ohne
+    ``#`` und ohne Mehrfach-Whitespace, nicht der rohe Text.
+    """
+    assert start in text, f"Marke {start!r} nicht gefunden"
+    begin = text.index(start) + len(start)
+    assert end in text[begin:], f"Marke {end!r} nicht nach {start!r} gefunden"
+    raw = text[begin:text.index(end, begin)]
+    return " ".join(raw.replace("#", " ").split())
+
+
+def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
+    """#841: Die Ausschlussliste entscheidet über P statt L – also darf sie nicht driften.
+
+    Seit der zweiten P-Ausnahme ist die Aufzählung regeltragend: Ein dort
+    genanntes Kommando bleibt bei Ablehnung ein Prompt-Befund, ein nicht
+    genanntes wird zur Allowlist-Lücke. Sie steht an drei Stellen
+    (Freigabe-Begründung, P-Abgrenzung, agents-README). Ergänzt jemand einen
+    Eintrag nur an einer, klassifizieren die drei Fassungen denselben Lauf
+    verschieden – lautlos, weil bisher nur die *Wendung* geprüft war.
+    """
+    workflow = _review_workflow_text()
+    readme = (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
+    fundstellen = {
+        "Freigabe-Begründung": _exclusion_list(
+            workflow, "Bewusst nicht freigegeben sind ", "Diese Aufzählung ist regeltragend"
+        ),
+        "P-Abgrenzung": _exclusion_list(
+            workflow, 'unter "Bewusst nicht freigegeben" (', "), bleibt"
+        ),
+        "agents-README": _exclusion_list(
+            readme, "nicht freigegeben\" (", "); eine\ndokumentierte"
+        ),
+    }
+    kanonisch = (
+        "`git fetch`, lokale Testausführung, pauschales `gh api`, "
+        "`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle"
+    )
+    abweichend = {
+        name: wortlaut.rstrip(".")
+        for name, wortlaut in fundstellen.items()
+        if wortlaut.rstrip(".") != kanonisch
+    }
+    assert not abweichend, f"Ausschlussliste driftet: {abweichend}"
+
+
+def test_run_logs_are_excluded_in_prompt_and_permission_comment() -> None:
+    """#841: `gh run` muss als Ausschluss ankommen, sonst wäre die Ablehnung eine L-Lücke.
+
+    PR-Beschreibungen in diesem Repository zitieren Run-IDs als Evidenz. Ohne
+    Prompt-Regel greift der Agent danach; ohne Eintrag in der Ausschlussliste
+    zählte diese Ablehnung als Allowlist-Lücke und verhinderte einen
+    ablehnungsfreien Lauf. Gegenstück dazu: `actions: read` darf nicht länger
+    eine Lesefähigkeit versprechen, die kein freigegebenes Kommando einlöst.
+    """
+    prompt = _review_prompt()
+    assert "Run-IDs" in prompt and "`gh run` ist bewusst nicht freigegeben" in prompt
+    workflow = _review_workflow_text()
+    begruendung = workflow[: workflow.index("      actions: read")]
+    assert "Kein freigegebenes Kommando erreicht die Actions-API" in begruendung
+    assert "statusCheckRollup" in begruendung

@@ -29,7 +29,12 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
-      actions: read  # Damit Claude die CI-Ergebnisse des PR lesen kann.
+      # Kein freigegebenes Kommando erreicht die Actions-API: Der CI-Stand
+      # kommt über `gh pr view --json statusCheckRollup` aus der PR-API.
+      # Die Berechtigung bleibt, weil unbelegt ist, ob die Action sie
+      # selbst braucht; ein Absenken gehört in eine eigene Änderung mit
+      # beobachtetem Folgelauf (#828).
+      actions: read
     env:
       HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
@@ -124,13 +129,17 @@ jobs:
             `gh pr diff|view|comment` sie aus dem aktuellen Branch ab und
             scheitern hier mit „could not determine current branch": Der
             Checkout steht auf dem Merge-Ref, also auf einem Detached HEAD.
-            Das ist ein Kommandofehler und **keine** Ablehnung – die Diagnose
-            unten sieht ihn nicht, du verlierst nur Turns.
+            Das ist ein Kommandofehler und **keine** Ablehnung – der
+            Diagnoseschritt dieses Workflows sieht ihn nicht, du verlierst nur
+            Turns.
 
             Nutze für Inhaltsänderungen `gh pr diff <nr>`, für die Beschreibung
             `gh pr view <nr>`, für den CI-Stand `gh pr view <nr> --json
             statusCheckRollup` – die Standardausgabe von `gh pr view` enthält
-            **keine** Checks – und bei Bedarf `gh pr list`. Die dort
+            **keine** Checks – und bei Bedarf `gh pr list`. Run-IDs, die eine
+            PR-Beschreibung als Evidenz zitiert, liest du **nicht** nach:
+            `gh run` ist bewusst nicht freigegeben, Actions-Logs gehören nicht
+            zu deinem Auftrag. Die dort
             referenzierte Issue-Nummer (`Closes #NNN`, `Fixes #NNN` oder ein
             reiner Verweis wie „Bezug: #NNN") liest du mit
             `gh issue view <nummer>` – nur Issues **dieses** Repositorys, kein
@@ -204,7 +213,12 @@ jobs:
           # `issue view`) kennt selbst ein dateischreibendes Flag. Bei Git
           # war eine feste Form möglich, deshalb gibt es sie dort.
           # Bewusst nicht freigegeben sind `git fetch`, lokale Testausführung,
-          # pauschales `gh api`, Edit/Write und alle Git-/Datei-Schreibbefehle.
+          # pauschales `gh api`, `gh run` (Actions-Logs), Edit/Write und alle
+          # Git-/Datei-Schreibbefehle.
+          # Diese Aufzählung ist regeltragend – sie entscheidet unten über P
+          # statt L – und steht wortgleich hier, in der P-Abgrenzung und in
+          # `.github/agents/README.md`;
+          # `test_deliberate_exclusion_list_is_identical_everywhere` erzwingt das.
           # `gh issue view` nachgezogen (#841): Lauf 32600652295 wurde zweimal
           # daran abgewiesen. Der Agent liest das im PR referenzierte Issue –
           # bei jedem `Closes #NNN` der Normalfall –, und das Kommando ist rein
@@ -271,7 +285,8 @@ jobs:
           #       allein träfe also auf jede fehlende Fähigkeit zu. ZWEITE
           #       AUSNAHME, symmetrisch: Steht das Kommando oben ausdrücklich
           #       unter "Bewusst nicht freigegeben" (`git fetch`, lokale
-          #       Testausführung, pauschales `gh api`, Schreibbefehle), bleibt
+          #       Testausführung, pauschales `gh api`, `gh run` (Actions-Logs),
+          #       Edit/Write und alle Git-/Datei-Schreibbefehle), bleibt
           #       es P – eine dokumentierte Ausschlussentscheidung ist keine
           #       Lücke. Ohne diesen Zweig wäre jeder `gh api`-Versuch ein L
           #       und das Kriterium unerfüllbar, oder die Regel drängte zur

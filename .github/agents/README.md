@@ -107,12 +107,13 @@ gewesen wäre – sonst ist die Ablehnung L, es sei denn, die Enge betrifft die
 **Parameter eines bereits freigegebenen Kommandos** (Tiefe, Commit-Bereich,
 Ausgabeumfang); dann bleibt es P. Ein gänzlich fehlendes Kommando fällt nie
 darunter – es sei denn, es steht im Workflow ausdrücklich unter „Bewusst
-nicht freigegeben" (`gh api`, `git fetch`, lokale Testausführung,
-Schreibbefehle); eine dokumentierte Ausschlussentscheidung ist keine
-Lücke. Ohne den ersten Teil ließe sich jede unbequeme L-Ablehnung als P
-verbuchen; ohne den zweiten wäre jede gewollte Verengung per Definition eine
-Lücke. Prüfsteine: `--max-count=20` und `--max-count=200` sind beide P (die
-freigegebenen 30 sind gewollt), `gh issue view` war nie P. Genau eine
+nicht freigegeben" (`git fetch`, lokale Testausführung, pauschales `gh api`,
+`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle); eine
+dokumentierte Ausschlussentscheidung ist keine Lücke. Ohne den ersten Teil
+ließe sich jede unbequeme L-Ablehnung als P verbuchen; ohne den zweiten wäre
+jede gewollte Verengung per Definition eine Lücke. Prüfsteine:
+`--max-count=20` und `--max-count=200` sind beide P (die freigegebenen 30 sind
+gewollt), `gh issue view` war nie P. Genau eine
 Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
 Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
 Remote-Schreibzugriffe; ihre Ablehnung zählt wie **L**, sonst stünde der
