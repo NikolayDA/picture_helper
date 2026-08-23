@@ -342,21 +342,21 @@ def test_class_p_takes_precedence_for_the_parameter_branch() -> None:
 
 @pytest.mark.parametrize("relative", _WORKFLOWS)
 def test_a_non_empty_denial_list_can_never_report_zero(relative: str) -> None:
-    """Review-Befund auf a3d4752: Die `[OK]`-Marke riss eine neue Lücke auf.
+    """Review-Befund auf a3d4752: Die Klassenmarke riss eine neue Lücke auf.
 
     Vorher zählte `wc -l` jede Zeile — eine nicht leere Liste konnte nie als
     `0` gemeldet werden. Mit zwei Marken-`grep`s fiel eine unmarkierte Zeile
     durch beide Zahlen: `count=0` und `anomalien=0` druckten genau die
     Zeichenkette des sauberen Laufs UND unterdrückten die Liste, an der man
     es hätte sehen können. Nachgestellt an einer probeweise entfernten
-    `[OK]`-Marke: eine echte Ablehnung wurde als „Abgelehnte Aufrufe: 0"
+    Marke (damals `[OK]`, heute `[ABLEHNUNG]`): eine echte Ablehnung wurde als „Abgelehnte Aufrufe: 0"
     ohne jede Ausgabezeile gemeldet.
 
     Heute schließt die jq-Konstruktion das aus — genau die Bauart „kann
     nicht vorkommen, also nicht geprüft", die `tojson`, `gsub`, die
-    Container-Typprüfung und die `[OK]`-Marke selbst gerade ablegen. Die
+    Container-Typprüfung und die Klassenmarke selbst gerade ablegen. Die
     Invariante hängt deshalb wieder an der Zeilenzahl: Was keine
-    `[OK]`-Marke trägt, ist nicht auswertbar, ohne dritte Kategorie.
+    Klassenmarke trägt, ist nicht auswertbar, ohne dritte Kategorie.
     """
     script = _step_by_name(relative, _DIAGNOSTIC_NAME)["run"]
     assert "gesamt=$(printf '%s\\n' \"$denials\" | wc -l" in script, (
@@ -661,11 +661,11 @@ def test_diagnostic_marks_the_class_on_both_branches(relative: str) -> None:
     ausgeschlossen statt unwahrscheinlich.
     """
     script = _step_by_name(relative, _DIAGNOSTIC_NAME)["run"]
-    assert '"[OK] \\(.tool_name' in script, (
+    assert '"[ABLEHNUNG] \\(.tool_name' in script, (
         f"{relative}: Der reguläre Zweig trägt keine Marke — das erste Feld "
         "der Zeile ist wieder der rohe `tool_name`"
     )
-    assert "grep -c '^\\[OK\\] '" in script, (
+    assert "grep -c '^\\[ABLEHNUNG\\] '" in script, (
         f"{relative}: Gezählt wird nicht über die Marke, sondern über ihr Fehlen"
     )
     assert "grep -cv" not in script, (
@@ -1353,12 +1353,23 @@ def test_deliberate_exclusion_list_is_identical_everywhere() -> None:
     # entstünde unbemerkt — und genau so lag die beanstandete vierte
     # Fundstelle, die `gh run` bereits verloren hatte. Geprüft werden deshalb
     # mehrere charakteristische Einträge.
-    readme_roh = (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
+    # Review-Befund auf 46c7025: Der Zähler maß „genau einmal in der ganzen
+    # Datei", die Meldung behauptete „weitere Fundstelle der Ausschlussliste".
+    # Ein legitimes Vorkommen anderswo (etwa im Abschnitt zum interaktiven
+    # Agenten) wäre rot geworden — mit einer Diagnose, die auf ein Drift-
+    # Problem zeigt, das nicht vorliegt, und die beim nächsten Mal durch
+    # Streichen des Zählers gelöst würde. Gezählt wird deshalb, was AUSSERHALB
+    # des Listenausschnitts steht: dort dürfen die Einträge nicht auftauchen.
+    readme_norm = " ".join(_plain_quotes(
+        (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8")
+    ).replace("#", " ").split())
+    liste = fundstellen["agents-README"]
+    ausserhalb = readme_norm.replace(liste, "", 1)
     for eintrag in ("gh api", "gh run", "git fetch"):
-        assert readme_roh.count(eintrag) == 1, (
-            f"`{eintrag}` steht {readme_roh.count(eintrag)}× in der agents-README – "
-            "die Ausschlussliste hat eine weitere Fundstelle bekommen, die "
-            "niemand synchron hält"
+        assert eintrag not in ausserhalb, (
+            f"`{eintrag}` steht außerhalb des Listenausschnitts in der "
+            "agents-README – eine weitere Fundstelle der Ausschlussliste, "
+            "die niemand synchron hält"
         )
     kanonisch = (
         "`git fetch`, lokale Testausführung, pauschales `gh api`, "
@@ -1780,4 +1791,15 @@ def test_block_scalar_warning_sits_directly_above_claude_args() -> None:
     )
     assert "Achtung: `claude_args` ist ein Block-Skalar" in warnung, (
         "Der Verweis nennt keine Textmarke, über die die lange Begründung auffindbar bleibt"
+    )
+    # Review-Befund auf 46c7025: Der Wächter sicherte das Zitat, nicht sein
+    # Ziel. `warnung` beginnt AB der Kurzwarnung — die lange Begründung mit
+    # der Textmarke steht davor und war nie Teil des Ausschnitts. Wer die
+    # Kopfzeile der Begründung umformuliert, bekam einen grünen Test und
+    # einen ins Leere zeigenden Verweis. Die Marke muss deshalb auch
+    # OBERHALB der Kurzwarnung stehen.
+    davor = block[: block.index("ACHTUNG, Block-Skalar")]
+    assert "Achtung: `claude_args` ist ein Block-Skalar" in davor, (
+        "Die Textmarke existiert nur noch als Zitat in der Kurzwarnung — der "
+        "Verweis zeigt ins Leere"
     )
