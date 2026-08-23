@@ -322,8 +322,16 @@ def test_review_checkout_provides_history_before_git_inspection() -> None:
 
 
 def test_review_prompt_states_the_non_mutating_tool_boundary() -> None:
-    """Prompt verhindert die in #841 belegten Ablehnungs- und Schreibversuche."""
-    prompt = _review_prompt()
+    """Prompt verhindert die in #841 belegten Ablehnungs- und Schreibversuche.
+
+    Wie alle Prompt-Zusicherungen dieser Datei auf normalisiertem Whitespace:
+    Der Prompt ist ein umbrochener YAML-Block, und dieser PR hat mehrfach an
+    seinen Absätzen umbrochen. Rutscht eine geprüfte Wendung über einen
+    Zeilenwechsel, wäre der Test sonst rot mit einer Meldung, die auf den
+    Inhalt zeigt statt auf den Umbruch — dieselbe Falle, die ``_plain_quotes``
+    und ``_exclusion_list`` an ihren Fundstellen bewusst schließen.
+    """
+    prompt = " ".join(_review_prompt().split())
     required_phrases = (
         "Arbeite ausschließlich bewertend",
         "lasse den Checkout unverändert",
@@ -519,7 +527,7 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
         "Lücke zu buchen oder der schlimmste Fall durchzuwinken"
     )
 
-    prompt = _review_prompt()
+    prompt = " ".join(_review_prompt().split())
     assert "Ausgenommen sind deine beiden Ausgabewege" in prompt, (
         "Prompt sperrt jeden Schreibzugriff, verlangt aber einen Kommentar"
     )
@@ -598,7 +606,7 @@ def test_prompt_names_every_allowlisted_gh_form() -> None:
     auch kein gelesenes Issue. Für die #841-Messung ist das der schlechtere
     Ausgang als eine ehrliche Ablehnung, weil die Diagnose ihn nicht sieht.
     """
-    prompt = _review_prompt()
+    prompt = " ".join(_review_prompt().split())
     gh_forms = sorted(
         tool[len("Bash("):-len(":*)")]
         for tool in _review_allowed_tools()
@@ -660,7 +668,7 @@ def test_prompt_supplies_the_pr_number_for_gh_calls() -> None:
     bleibt bei 0. Die Nummer kommt aus dem Event und ist ein Integer, also
     nicht injizierbar (anders als `title` oder `body`).
     """
-    prompt = _review_prompt()
+    prompt = " ".join(_review_prompt().split())
     assert "github.event.pull_request.number" in prompt, "PR-Nummer nicht im Prompt"
     assert "could not determine current branch" in prompt, (
         "Prompt nennt das Fehlerbild nicht, an dem der Agent es erkennt"
@@ -892,7 +900,7 @@ def test_run_logs_are_excluded_in_prompt_and_permission_comment() -> None:
     ablehnungsfreien Lauf. Gegenstück dazu: `actions: read` darf nicht länger
     eine Lesefähigkeit versprechen, die kein freigegebenes Kommando einlöst.
     """
-    prompt = _review_prompt()
+    prompt = " ".join(_review_prompt().split())
     assert "Run-IDs" in prompt and "`gh run` ist bewusst nicht freigegeben" in prompt
     workflow = _review_workflow_text()
     begruendung = workflow[: workflow.index("      actions: read")]
@@ -959,6 +967,22 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     )
     assert "Für Inline-Kommentare gilt das alles NICHT" in prompt, (
         "Die Regel überdehnt auf den zweiten Ausgabeweg, der gar nicht über die Shell läuft"
+    )
+
+
+def test_prompt_keeps_the_issue_read_to_the_body() -> None:
+    """Review-Befund auf a3f5343: `--comments` vergrößert die Injektionsfläche.
+
+    `Bash(gh issue view:*)` lässt das Flag zu, und Kommentare darf jeder
+    Account schreiben — auch in einem Repository, das das Anlegen von Issues
+    einschränkt. Der Rumpf genügt für den Zweck (die referenzierte Nummer
+    nachlesen), also ist der Verzicht kostenlos. Tragend bleibt die
+    Daten-Regel; das hier ist die billige Verengung daneben, in derselben
+    Reihe wie `--repo` und die vollständige URL.
+    """
+    prompt = " ".join(_review_prompt().split())
+    assert "`--comments` brauchst du nicht" in prompt, (
+        "Prompt verzichtet nicht auf `--comments`, obwohl die Wildcard es zulässt"
     )
     assert "**Überschrift**` statt `## Überschrift" in prompt, (
         "Prompt nennt die Ersatzform für Überschriften nicht"
