@@ -107,7 +107,9 @@ jobs:
             Kontext steht in CLAUDE.md. Wiederhole nicht, was die CI-Checks ohnehin
             abfangen – ergänze menschlich wertvolles Review. Nutze zum Setzen von
             Zeilen-Kommentaren das Inline-Comment-Werkzeug; die Zusammenfassung
-            landet über `gh pr comment <nr> --body "…"` in einem PR-Kommentar.
+            landet über `gh pr comment <nr> --body '…'` in einem PR-Kommentar
+            (einfache Anführungszeichen: in doppelten expandiert die Shell
+            Backticks und `$(…)` aus deinem Markdown).
 
             Arbeite ausschließlich bewertend und lasse den Checkout unverändert.
             Grundlage sind der PR-Diff, die bereits ausgecheckten Dateien, die

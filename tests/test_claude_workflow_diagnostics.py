@@ -338,8 +338,9 @@ def test_review_allowlist_rationale_stays_above_claude_args() -> None:
     ``claude_args`` auf Nicht-Kommentarzeilen — dort sind weitere
     Action-Inputs aber völlig regulär, der Test hätte also falsch angeschlagen.
     Die Hausregel meint die andere Seite: „jede Zeile darin geht als
-    CLI-Argument an Claude Code". Geprüft wird deshalb die Position der
-    Begründung **und** der Blockinhalt selbst.
+    CLI-Argument an Claude Code". Geprüft wird hier nur die Position der
+    Begründung; den Blockinhalt sichert
+    ``test_claude_args_block_carries_only_arguments``.
     """
     text = _review_workflow_text()
     args_index = text.index("          claude_args: |")
