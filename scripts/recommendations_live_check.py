@@ -279,9 +279,30 @@ def table_span(lines: list[str]) -> tuple[int, int]:
     return indices[0], indices[-1]
 
 
-def _cells(row: str) -> list[str]:
-    """Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe)."""
-    return [cell.strip() for cell in row.strip().strip("|").split("|")]
+#: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
+#: Backslash maskiert ist. Ein maskiertes ``\|`` gehoert zum Zellinhalt und
+#: rendert dort als literales Pipe - genau die Schreibweise, die
+#: :func:`render_triage_row` fuer Titel mit Pipe selbst erzeugt.
+_CELL_SEPARATOR: Final = re.compile(r"(?<!\\)\|")
+
+
+def cells(row: str) -> list[str]:
+    r"""Die Zellen einer Markdown-Tabellenzeile (ohne fuehrende/schliessende Pipe).
+
+    Maskierungsbewusst und bewusst oeffentlich (#851): Es gibt genau **eine**
+    Regel, was eine Zelle ist, und sowohl das Skript als auch
+    ``tests/test_recommendations_docs.py`` benutzen sie.
+
+    Die naive Fassung (``split("|")``) hat ein maskiertes ``\|`` als Trenner
+    mitgezaehlt. Folge, an einer handgepflegten Bewertungszelle reproduziert:
+    ``Fix in a \| TODO`` zerfiel in ``Fix in a \`` und ``TODO`` - der zweite
+    Teil ist exakt :data:`UNRATED_PLACEHOLDER`, also meldete
+    :func:`unrated_issue_numbers` eine vollstaendig bewertete Zeile als
+    unbewertet und ``--write`` endete mit Exit 1. Ausgeloest wurde das
+    ausgerechnet von der Empfehlung des Doku-Waechters, ein Pipe in einer
+    Zelle als ``\|`` zu schreiben.
+    """
+    return [cell.strip() for cell in _CELL_SEPARATOR.split(row.strip().strip("|"))]
 
 
 def render_triage_row(issue: OpenIssue, columns: int, repo: str = _DEFAULT_REPO) -> str:
@@ -325,14 +346,14 @@ def update_triage_table(
     lines = section.split("\n")
     first, last = table_span(lines)
     header, separator = lines[first], lines[first + 1]
-    columns = len(_cells(header))
+    columns = len(cells(header))
     link_re = _issue_link_re(repo)
     open_numbers = {issue.number for issue in open_issues}
 
     kept: list[str] = []
     covered: set[int] = set()
     for row in lines[first + 2 : last + 1]:
-        numbers = {int(m.group(1)) for m in link_re.finditer(_cells(row)[0])}
+        numbers = {int(m.group(1)) for m in link_re.finditer(cells(row)[0])}
         if numbers and not (numbers & open_numbers):
             continue  # jedes Issue dieser Zeile ist geschlossen
         kept.append(row)
@@ -368,9 +389,9 @@ def unrated_issue_numbers(
     link_re = _issue_link_re(repo)
     numbers: set[int] = set()
     for row in lines[first + 2 : last + 1]:
-        cells = _cells(row)
-        if any(cell == UNRATED_PLACEHOLDER for cell in cells):
-            numbers.update(int(m.group(1)) for m in link_re.finditer(cells[0]))
+        row_cells = cells(row)
+        if any(cell == UNRATED_PLACEHOLDER for cell in row_cells):
+            numbers.update(int(m.group(1)) for m in link_re.finditer(row_cells[0]))
     return tuple(sorted(numbers))
 
 

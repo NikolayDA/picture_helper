@@ -1,6 +1,5 @@
 """Static checks for the recommendation/roadmap documentation."""
 
-import re
 from pathlib import Path
 
 from scripts import recommendations_live_check as lc
@@ -88,27 +87,11 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-#: Zellentrenner einer GFM-Tabellenzeile: ein Pipe, das **nicht** mit einem
-#: Backslash maskiert ist. Ein maskiertes ``\|`` gehört zum Zellinhalt und
-#: rendert dort als literales Pipe.
-_CELL_SEPARATOR = re.compile(r"(?<!\\)\|")
-
-
-def _table_cells(row: str) -> list[str]:
-    return [cell.strip() for cell in _CELL_SEPARATOR.split(row.strip().strip("|"))]
-
-
-def test_table_cells_splits_only_on_unescaped_pipes() -> None:
-    """Negativkontrolle für den Splitter, auf dem der Wächter unten aufsetzt.
-
-    Ohne sie könnte der Wächter still bestehen: Kopf- und Datenzeile werden
-    mit **derselben** Funktion zerlegt und nur relativ verglichen. Trifft
-    ``_CELL_SEPARATOR`` eines Tages nichts mehr, liefert sie für beide genau
-    eine Zelle — ``1 == 1``, Test grün, Zeile trotzdem abgeschnitten.
-    """
-    assert len(_table_cells("| a | b | c |")) == 3
-    assert len(_table_cells(r"| a | b \| c |")) == 2, "maskiertes Pipe ist Zellinhalt"
-    assert len(_table_cells("| a | `x|y` |")) == 3, "Backticks schützen in GFM nicht"
+#: Die Zellentrennung kommt aus dem Skript (``lc.cells``) — dort erzeugt
+#: ``render_triage_row`` die Maskierung, dort gehört auch ihr Gegenstück hin.
+#: Eine zweite, test-lokale Fassung wäre genau die Drift, gegen die dieser
+#: Wächter antritt. Die Negativkontrolle des Splitters liegt neben ihm in
+#: ``tests/test_recommendations_live_check.py``.
 
 
 def test_triage_rows_have_exactly_the_header_column_count() -> None:
@@ -122,11 +105,12 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
     sechs Fassungen; gerade die Passage, die den Verifikationsmodus
     definiert, fiel weg.
 
-    Kein bestehender Test fängt das: ``recommendations_live_check`` wertet
-    nur ``_cells(row)[0]`` aus, der Konsistenztest nur die Nummernmenge —
-    ``make check`` blieb grün, der Schaden war rein visuell. Das Skript
-    maskiert beim Fortschreiben längst selbst (``render_triage_row``); nur
-    die handgepflegten Bewertungsspalten fallen nicht unter diese Automatik.
+    Kein bestehender Test fing das: ``recommendations_live_check`` wertet von
+    einer Datenzeile nur ``cells(row)[0]`` aus, der Konsistenztest nur die
+    Nummernmenge — ``make check`` blieb grün, der Schaden war rein visuell.
+    Das Skript maskiert beim Fortschreiben längst selbst
+    (``render_triage_row``); nur die handgepflegten Bewertungsspalten fallen
+    nicht unter diese Automatik.
 
     Geprüft wird nur der Triage-Abschnitt, nicht jede Tabellenzeile der
     Datei: Eine künftige Tabelle mit Issue-Links und anderer Spaltenzahl —
@@ -135,9 +119,9 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
     for lang, path in RECOMMENDATION_DOCS.items():
         lines = lc.extract_triage_section(_read(path), lang).split("\n")
         first, last = lc.table_span(lines)
-        columns = len(_table_cells(lines[first]))
+        columns = len(lc.cells(lines[first]))
         for row in lines[first + 2 : last + 1]:
-            actual = len(_table_cells(row))
+            actual = len(lc.cells(row))
             assert actual == columns, (
                 f"{lang}: {actual} Zellen statt {columns} — ein unmaskiertes `|` in "
                 f"einer Zelle; GFM verwirft alles danach. Als `\\|` schreiben. "
