@@ -571,6 +571,16 @@ def test_class_p_survives_deliberately_narrow_forms() -> None:
         # "fällt nie darunter" steht nur in der Regel, nicht im Prüfstein —
         # eine Zusicherung auf "fehlendes Kommando" allein bestünde auch,
         # wenn nur das Beispiel es nennt und die Regel es weglässt.
+        # Zweiter, symmetrischer Zweig: Ohne ihn wäre jedes bewusst
+        # ausgeschlossene Lesekommando (`gh api` &c.) per Definition eine
+        # Lücke — die Regel stünde gegen die Allowlist-Begründung derselben
+        # Datei, und das Kriterium wäre unerfüllbar.
+        # Kein `or`-Rückfall: Eine zweite, weichere Bedingung hat in dieser
+        # Datei schon dreimal dazu geführt, dass die Zusicherung bestand,
+        # obwohl die geprüfte Stelle die Aussage nicht mehr trug.
+        assert "Bewusst nicht freigegeben" in text, (
+            f"{label}: dokumentierte Ausschlussentscheidungen zählen sonst als Lücke"
+        )
         assert "fällt nie darunter" in text, (
             f"{label}: Das Abbruchkriterium schließt ein gänzlich fehlendes "
             "Kommando nicht aus – eine Allowlist ist immer bewusst gewählt, "
