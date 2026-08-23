@@ -298,16 +298,33 @@ def test_review_prompt_carries_the_same_three_way_boundary() -> None:
 
 
 @pytest.mark.parametrize("relative", _WORKFLOWS)
-def test_diagnostic_legend_classifies_denials_in_the_joblog(relative: str) -> None:
-    """Wer den Joblog liest, braucht die Klassen dort – nicht nur im YAML.
+def test_denial_taxonomy_stays_out_of_the_shared_diagnostic_step(relative: str) -> None:
+    """Die Einteilung ist workflow-spezifisch und darf nicht geteilt werden.
 
-    Textbasiert wie die übrigen #841-Invarianten, damit die Prüfung auch ohne
-    die optionale PyYAML-Abhängigkeit läuft.
+    Codex-Befund auf PR #850: Eine im geteilten Schritt ausgegebene Legende
+    „A/N/S = erwartbar" gilt für ``claude.yml`` gerade nicht – der Job hält
+    ``contents: write``, führt keine Allowlist und soll schreiben. Dort ist
+    eine Ausführungs-/Schreib-Ablehnung der eigentliche Befund. Der geteilte
+    Schritt meldet deshalb nur Rohdaten; die Deutung steht je Workflow.
     """
     block = _diagnostic_block(relative)
-    assert "L (lesende Inspektion)" in block, "Joblog ordnet Ablehnungen nicht ein"
-    assert "Lücke in der Allowlist" in block
-    assert "A/N/S" in block
+    for leaked in ("lesende Inspektion", "A/N/S", "erwartbar"):
+        assert leaked not in block, (
+            f"{relative}: workflow-spezifische Deutung im geteilten Schritt ({leaked!r})"
+        )
+
+
+def test_interactive_workflow_rejects_the_review_taxonomy() -> None:
+    """``claude.yml`` muss die umgekehrte Lesart ausdrücklich festhalten."""
+    text = (_ROOT / ".github/workflows/claude.yml").read_text(encoding="utf-8")
+    assert "NICHT erwartbar" in text, "umgekehrte Lesart des interaktiven Agenten fehlt"
+    assert "darf hier nicht übernommen werden" in text
+
+
+def test_review_taxonomy_names_its_own_scope() -> None:
+    """Die Taxonomie muss sagen, dass sie nur für das Review gilt."""
+    text = _review_workflow_text()
+    assert "gilt ausschließlich für dieses Review" in text
 
 
 

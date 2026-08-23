@@ -81,8 +81,8 @@ ausführen, generisches `gh api` und Änderungen am Checkout bleiben
 ausgeschlossen (#841). Die zugehörigen Prompt- und Allowlist-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
 
-Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Workflow führt die
-Einteilung über `claude_args` und gibt sie im Joblog aus: **L** (lesende
+Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
+die Einteilung über `claude_args`: **L** (lesende
 Inspektion) darf nie abgelehnt werden – eine Ablehnung dieser Klasse ist eine
 Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
 (Netzzugriff außerhalb der freigegebenen Domains) und **S** (Schreibzugriff)
@@ -90,6 +90,13 @@ dürfen dagegen immer abgelehnt werden; sie sind ein Prompt-Befund und
 rechtfertigen keine Erweiterung der Freigaben. Ohne diese Trennung ist ein
 grüner Lauf keine Aussage über die Werkzeuggrenze: Lauf 32600075322 meldete
 `Lauf: success` bei sechs Ablehnungen.
+
+Für den interaktiven Agenten in `claude.yml` gilt diese Einteilung **nicht**.
+Er hat keine Allowlist, hält `contents: write` und soll Code schreiben, testen
+und committen – eine abgelehnte Ausführung oder ein abgelehnter Schreibzugriff
+ist dort kein Normalfall, sondern der Befund, der die Aufgabe blockiert hat.
+Der geteilte Diagnoseschritt meldet deshalb nur die Rohdaten; gedeutet wird je
+Workflow.
 Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
 wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
 den Merge, bis die Konversation aufgelöst ist.

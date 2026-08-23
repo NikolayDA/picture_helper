@@ -94,6 +94,14 @@ jobs:
             --max-turns 25
             --model claude-opus-5
 
+      # Lesart der Ablehnungen in diesem Workflow: Anders als beim rein
+      # bewertenden Review gibt es hier keine Allowlist, der Job hält
+      # `contents: write`, und die Aufgabe ist ausdrücklich Code schreiben,
+      # testen und committen. Eine abgelehnte Ausführung oder ein abgelehnter
+      # Schreibzugriff ist deshalb NICHT erwartbar, sondern genau der Befund,
+      # der die Aufgabe blockiert hat. Die L/A/N/S-Einteilung des
+      # Review-Workflows darf hier nicht übernommen werden – sie würde die
+      # interessanten Fälle als „normal" abstempeln.
       # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
       # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
       # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war
@@ -142,10 +150,5 @@ jobs:
             "$EXECUTION_FILE" || true
           echo "Abgelehnte Aufrufe: $count"
           if [ "$count" -gt 0 ]; then
-            # Einordnung nach der Taxonomie, die im Review-Workflow über
-            # `claude_args` steht. Ohne sie liest sich jede Ablehnung gleich –
-            # dabei ist nur die Klasse L ein Berechtigungsfehler.
-            echo "Einordnung: L (lesende Inspektion) = Lücke in der Allowlist, gehört gefixt;"
-            echo "            A/N/S (Ausführung, Netzzugriff, Schreibzugriff) = erwartbar."
             printf '%s\n' "$denials"
           fi
