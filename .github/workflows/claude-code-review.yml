@@ -134,7 +134,7 @@ jobs:
             Diff und CI-Stand eine Aussage nicht belegen, markiere sie als
             **unbelegt** und fahre mit dem Review fort.
 
-            Diese Grenze ist bewusst dreigeteilt. **Lesende Inspektion** – die
+            Die Grenze verläuft so. **Lesende Inspektion** – die
             oben freigegebenen `gh`- und Git-Formen sowie Read, Grep und Glob –
             steht dir immer offen. **Ausführung** (Tests, Linter, `python -c`,
             `awk` und andere Shell-Filter), **Netzzugriff** außerhalb der

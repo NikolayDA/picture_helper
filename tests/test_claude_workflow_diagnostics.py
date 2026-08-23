@@ -335,7 +335,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
         assert phrase in taxonomy, f"Taxonomie unvollständig: {phrase!r} fehlt"
 
 
-def test_review_prompt_carries_the_same_three_way_boundary() -> None:
+def test_review_prompt_carries_the_tool_boundary() -> None:
     """Die Taxonomie muss den Agenten erreichen, nicht nur die Auswertung."""
     prompt = _review_prompt()
     for phrase in (
@@ -356,11 +356,17 @@ def test_denial_taxonomy_stays_out_of_the_shared_diagnostic_step(relative: str) 
     ``contents: write``, führt keine Allowlist und soll schreiben. Dort ist
     eine Ausführungs-/Schreib-Ablehnung der eigentliche Befund. Der geteilte
     Schritt meldet deshalb nur Rohdaten; die Deutung steht je Workflow.
+
+    Geprüft wird Schritt **und** Kommentar-Präambel: Die Präambel trägt die
+    gesamte Begründung des Schritts und ist damit die naheliegendste Stelle,
+    an der eine Legende wieder auftauchen würde. Die Verbotswörter sind
+    bewusst taxonomie-spezifisch – ein generisches „erwartbar" hätte auch
+    einen sachfremden Kommentar im Skript rot gefärbt.
     """
-    block = _diagnostic_block(relative)
-    for leaked in ("lesende Inspektion", "A/N/S", "erwartbar"):
-        assert leaked not in block, (
-            f"{relative}: workflow-spezifische Deutung im geteilten Schritt ({leaked!r})"
+    shared = _diagnostic_block(relative) + _shared_comment_block(relative)
+    for leaked in ("lesende Inspektion", "A/N/S", "Lücke in der Allowlist"):
+        assert leaked not in shared, (
+            f"{relative}: workflow-spezifische Deutung im geteilten Teil ({leaked!r})"
         )
 
 
@@ -390,6 +396,15 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     prompt = _review_prompt()
     assert "Ausgenommen sind deine beiden Ausgabewege" in prompt, (
         "Prompt sperrt jeden Schreibzugriff, verlangt aber einen Kommentar"
+    )
+
+    readme = " ".join(
+        (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split()
+    )
+    assert "Ausnahme von **S**" in readme, (
+        "agents/README.md ist der naheliegendste Nachschlageort beim Auswerten "
+        "eines Joblogs – ohne die Ausnahme klassifiziert man dort den "
+        "gefährlichsten Fall als erwartbar"
     )
 
 
