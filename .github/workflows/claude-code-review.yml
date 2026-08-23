@@ -120,11 +120,15 @@ jobs:
             formuliere ohne. Das endet sonst als Kommandofehler: kein
             Kommentar, und nichts davon in der Ablehnungsdiagnose.
             Beginne ausserdem KEINE Zeile des Textes mit `#` – nutze
-            `**Überschrift**` statt `## Überschrift`. Das ist kein Stilwunsch:
+            `**Überschrift**` statt `## Überschrift`. Das gilt auch INNERHALB
+            von Codeblöcken, und dort trifft es dich häufiger: Der Diff dieses
+            Repositorys besteht großenteils aus YAML-/Python-Kommentaren.
+            Zitiere solche Zeilen inline in Backticks oder rücke sie im Block
+            um ein Leerzeichen ein. Das ist kein Stilwunsch:
             In Lauf 32640784005 wurde `gh pr comment 850 --body '## …'`
             abgelehnt, weil eine Argumentzeile mit `#` begann. Diese Ablehnung
-            trifft deinen Ausgabeweg und wird als Allowlist-Lücke gezählt,
-            obwohl nur die Formatierung schuld ist.
+            trifft deinen Ausgabeweg und lässt den Lauf seinen Zweck
+            verfehlen, obwohl nur die Formatierung schuld ist.
 
             Arbeite ausschließlich bewertend und lasse den Checkout unverändert.
             Grundlage sind der PR-Diff, die bereits ausgecheckten Dateien, die
@@ -269,12 +273,10 @@ jobs:
           #   L = lesende Ablehnung, die eine Erweiterung GENAU DIESER
           #       Allowlist schließen könnte. Darf NIE vorkommen; tritt sie
           #       auf, ist sie die Lücke und gehört gefixt. Zwei Zweige:
-          #       (a) Eine in `--allowedTools` freigegebene Form wird dennoch
-          #           abgelehnt – die `gh`-/Git-Formen, Read, Grep, Glob,
-          #           WebFetch auf die freigegebenen Domains. Kein
-          #           theoretischer Fall: Lauf 32640784005 wies
-          #           `gh pr comment 850 --body '## …'` ab, weil eine Zeile des
-          #           Arguments mit `#` begann.
+          #       (a) Eine Form, die die Allowlist decken SOLLTE, wird
+          #           abgelehnt, weil der Eintrag sie nicht trifft – die
+          #           Freigabe ist zu eng geschnitten. Zu schließen durch
+          #           Nachziehen genau dieses Eintrags.
           #       (b) Eine lesende Abfrage, deren Information KEINE freigegebene
           #           Form liefert und die nicht unter „Bewusst nicht
           #           freigegeben" steht – so lag `gh issue view` vor diesem PR.
@@ -283,20 +285,26 @@ jobs:
           #       unten, die (b) als L führt; und die Aufzählung allein driftet
           #       mit jeder neuen Freigabe – genau so fiel eine freigegebene
           #       WebFetch-Domain einmal durch das Raster.
-          #       GRENZE DER KLASSE: „könnte schließen" ist die Bedingung, nicht
-          #       die Verzierung. `Read`, `Grep` und `Glob` stehen ohne
-          #       Pfadmuster in der Allowlist; wird ein solcher Aufruf dennoch
-          #       abgewiesen, kann die Ursache außerhalb dieser Datei liegen –
-          #       etwa ein Ziel außerhalb des Arbeitsverzeichnisses, worüber
-          #       Claude Code entscheidet und was von hier aus unbelegt ist.
-          #       Keine Erweiterung könnte das schließen, also ist es nicht L,
-          #       sondern P: Der Prompt nennt den Checkout als Grundlage.
-          #       Prüfbar am Pfad im Joblog, nicht an der Zuschreibung – sonst
-          #       wäre es dieselbe Hintertür, die die P-Abgrenzung unten
+          #       GRENZE DER KLASSE, über die URSACHE und nicht über eine
+          #       Werkzeugliste: Liegt der Grund der Ablehnung AUSSERHALB von
+          #       `--allowedTools`, ist es nicht L, sondern P – keine Freigabe
+          #       könnte sie schließen. Drei bekannte Quellen: die
+          #       Kommandoprüfung am Argumentinhalt, eine Pfadregel für die
+          #       ohne Pfadmuster freigegebenen `Read`/`Grep`/`Glob` (der
+          #       Prompt nennt den Checkout als Grundlage), und eine Umleitung,
+          #       die WebFetch von einer freigegebenen Domain auf einen fremden
+          #       Host führt (Redirect-Verhalten von hier aus unbelegt – die
+          #       Ursachenformulierung deckt den Fall auch ohne diese Antwort
+          #       ab). Belegter Fall: Lauf 32640784005 wies
+          #       `gh pr comment 850 --body '## …'` ab, weil eine Zeile des
+          #       Arguments mit `#` begann. `Bash(gh pr comment:*)` stand
+          #       bereits in der Allowlist; der Fix steht im Prompt, nicht hier.
+          #       Prüfbar an der Ursache im Joblog, nicht an der Zuschreibung –
+          #       sonst wäre es dieselbe Hintertür, die die P-Abgrenzung unten
           #       schließt. Ohne diese Grenze hätte L einen Fall, dessen
           #       geforderte Konsequenz („gehört gefixt") nicht ausführbar ist,
-          #       und das Kriterium von #841 hinge an etwas, das die
-          #       Konfiguration nicht steuert.
+          #       und das Kriterium von #841 hinge an einer Formatierungsregel
+          #       statt an der Werkzeuggrenze.
           #   A = Ausführung (pytest, ruff, `python -c`, `awk`),
           #   N = Netzzugriff auf eine NICHT freigegebene Domain,
           #   S = Schreibzugriff (Datei, Git, Remote),
@@ -318,7 +326,7 @@ jobs:
           #       Eine Allowlist ist immer bewusst gewählt, „bewusst enger"
           #       allein träfe also auf jede fehlende Fähigkeit zu. ZWEITE
           #       AUSNAHME, symmetrisch: Steht das Kommando oben ausdrücklich
-          #       unter "Bewusst nicht freigegeben" (`git fetch`, lokale
+          #       unter „Bewusst nicht freigegeben" (`git fetch`, lokale
           #       Testausführung, pauschales `gh api`, `gh run` (Actions-Logs),
           #       Edit/Write und alle Git-/Datei-Schreibbefehle), bleibt
           #       es P – eine dokumentierte Ausschlussentscheidung ist keine
@@ -344,9 +352,15 @@ jobs:
           # Allowlist. Genau eine Ausnahme: Die beiden Ausgabewege des Reviews
           # (Inline-Kommentar-Werkzeug und `gh pr comment`) sind selbst
           # Remote-Schreibzugriffe und bewusst freigegeben. Ihre Ablehnung
-          # zählt wie L – sie ist eine Lücke und gehört gefixt. Sonst stünde
+          # BLOCKIERT die Abnahme unabhängig von der Klasse. Sonst stünde
           # ausgerechnet der schlimmste Fall als Normalfall im Joblog: Befund
           # gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review.
+          # Klasse und Blockade sind hier bewusst zwei Fragen: Die Klasse sagt,
+          # WO der Fix sitzt (Allowlist bei L, Prompt bei P), die Blockade, ob
+          # der Lauf seinen Zweck erfüllt hat. Die `#`-Ablehnung von oben ist
+          # P und blockiert trotzdem – wer beides gleichsetzt, muss entweder
+          # eine unschließbare Lücke buchen oder den schlimmsten Fall
+          # durchwinken.
           # Diese Einteilung gilt ausschließlich für dieses Review: Sie folgt
           # aus `contents: read` plus enger Allowlist. Für den interaktiven
           # Agenten in `claude.yml` gilt sie nicht – der darf schreiben und
@@ -355,7 +369,7 @@ jobs:
           # ACHTUNG, Block-Skalar: Jede Zeile unter `claude_args:` geht als
           # CLI-Argument an Claude Code – Erklärungen gehören hierher, nicht
           # dorthin. Die Begründung dazu steht rund 130 Zeilen weiter oben,
-          # deshalb hier die Kurzform am Ort des Fehlers.
+          # deshalb steht die Kurzform als LETZTE Zeile vor dem Block.
           claude_args: |
             --max-turns 30
             --model claude-opus-5

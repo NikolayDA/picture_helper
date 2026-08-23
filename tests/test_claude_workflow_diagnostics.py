@@ -477,7 +477,14 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     taxonomy = _review_taxonomy()
     assert "Ausnahme" in taxonomy, "Ausgabewege sind nicht von Klasse S ausgenommen"
     assert "gh pr comment" in taxonomy
-    assert "zählt wie L" in taxonomy
+    # „zählt wie L" stand hier bis zum Review auf 2c52eb5. Es setzte Klasse
+    # und Blockade gleich — und der einzige belegte Fall (die `#`-Ablehnung)
+    # ist P, blockiert aber trotzdem. Geprüft wird jetzt die Blockade.
+    assert "BLOCKIERT die Abnahme unabhängig von der Klasse" in taxonomy
+    assert "zählt wie L" not in taxonomy, (
+        "Die alte Gleichsetzung ist zurück – dann ist entweder eine unschließbare "
+        "Lücke zu buchen oder der schlimmste Fall durchzuwinken"
+    )
 
     prompt = _review_prompt()
     assert "Ausgenommen sind deine beiden Ausgabewege" in prompt, (
@@ -489,6 +496,9 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
         "agents/README.md ist der naheliegendste Nachschlageort beim Auswerten "
         "eines Joblogs – ohne die Ausnahme klassifiziert man dort den "
         "gefährlichsten Fall als erwartbar"
+    )
+    assert "blockiert die Abnahme unabhängig von" in readme, (
+        "Dritte Fundstelle: Ohne die Trennung sagt die README weiter „wie L"
     )
 
 
@@ -711,13 +721,30 @@ def test_interactive_workflow_documents_why_the_trigger_stays_broad() -> None:
     assert "nicht nach" in rationale and "Kommentartext" in rationale
 
 
+def _plain_quotes(text: str) -> str:
+    """Typografische Anführungszeichen auf ASCII abbilden.
+
+    Review-Befund auf PR #850: Eine der drei Fundstellen führte ASCII-Quotes,
+    die anderen die typografischen. Die Marke hing an der ASCII-Fassung — ein
+    reines Angleichen der Zeichen hätte den Drift-Wächter mit „Marke nicht
+    gefunden" gebrochen statt mit der Drift-Meldung, die er tragen soll.
+    """
+    for quote in ("\u201e", "\u201c", "\u201d", "\u00ab", "\u00bb"):
+        text = text.replace(quote, '"')
+    return text
+
+
 def _exclusion_list(text: str, start: str, end: str) -> str:
     """Die Aufzählung „Bewusst nicht freigegeben" normalisiert herausschneiden.
 
     Alle drei Fundstellen sind umbrochen und zwei davon zusätzlich mit
     Kommentar-Präfixen eingerückt. Verglichen wird deshalb der Wortlaut ohne
-    ``#`` und ohne Mehrfach-Whitespace, nicht der rohe Text.
+    ``#``, ohne Mehrfach-Whitespace und mit vereinheitlichten
+    Anführungszeichen, nicht der rohe Text.
     """
+    text = _plain_quotes(text)
+    start = _plain_quotes(start)
+    end = _plain_quotes(end)
     assert start in text, f"Marke {start!r} nicht gefunden"
     begin = text.index(start) + len(start)
     assert end in text[begin:], f"Marke {end!r} nicht nach {start!r} gefunden"
@@ -819,6 +846,36 @@ def test_prompt_forbids_the_hash_prefix_that_was_actually_denied() -> None:
     assert "32640784005" in prompt, (
         "Ohne den Lauf als Beleg liest sich die Regel als Stilwunsch und wird zurückgedreht"
     )
+    assert "auch INNERHALB von Codeblöcken" in prompt, (
+        "In diesem Repository gerät ein `#` häufiger über ein Code-Zitat an den "
+        "Zeilenanfang als über eine Überschrift – dafür passt `**Überschrift**` nicht"
+    )
+
+
+def test_the_documented_hash_denial_is_filed_as_the_boundary_not_as_a_gap() -> None:
+    """#841: Der einzige belegte Fall darf nicht die Klasse sprengen, die er belegen soll.
+
+    `Bash(gh pr comment:*)` stand bei der Ablehnung aus Lauf 32640784005
+    bereits in der Allowlist, und der Fix steht im Prompt. Als Beleg für „eine
+    freigegebene Form wird abgelehnt → L" geführt, widerspräche der Fall der
+    Bedingung von L selbst („eine Erweiterung dieser Allowlist könnte sie
+    schließen") – und das Kriterium hinge an einer Formatierungsregel statt an
+    der Werkzeuggrenze. Er gehört deshalb unter die Grenze der Klasse.
+
+    Zweitens muss die Ausnahme für die Ausgabewege Klasse und Blockade
+    trennen: Die Ablehnung ist P, blockiert die Abnahme aber trotzdem.
+    """
+    taxonomy = " ".join(_review_taxonomy().replace("#", " ").split())
+    grenze = taxonomy[taxonomy.index("GRENZE DER KLASSE"):]
+    assert "32640784005" in grenze, (
+        "Der belegte Fall steht nicht unter der Grenze der Klasse"
+    )
+    assert "stand bereits in der Allowlist" in grenze and "nicht hier" in grenze, (
+        "Ohne diesen Halbsatz bleibt offen, warum der Fall keine Allowlist-Lücke ist"
+    )
+    assert "BLOCKIERT die Abnahme unabhängig von der Klasse" in taxonomy, (
+        "Die Ausgabeweg-Ausnahme setzt Klasse und Blockade wieder gleich"
+    )
 
 
 def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
@@ -839,6 +896,10 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
     )
     wortlaut = " ".join(definition.replace("#", " ").split())
     assert "GRENZE DER KLASSE" in wortlaut, "L-Definition trägt keine Grenze"
+    assert "Liegt der Grund der Ablehnung AUSSERHALB von `--allowedTools`" in wortlaut, (
+        "Die Grenze hängt an einer Werkzeugliste statt an der Ursache – dann fällt "
+        "jede neue Ursache (Kommandoprüfung, Redirect) wieder unter L"
+    )
     # Dritte Fundstelle der Regel. Ohne sie stünde in der README weiterhin ein
     # ausnahmsloses „gehört geschlossen" — dieselbe Drift wie zuletzt bei der
     # Ausschlussliste, nur an der Klasse, die das Kriterium trägt.
@@ -847,11 +908,10 @@ def test_class_l_ends_where_the_allowlist_stops_deciding() -> None:
         "agents-README kennt die Grenze der Klasse L nicht"
     )
     assert "sie zählt als P" in readme, "agents-README nennt die Ersatzklasse nicht"
-    assert "außerhalb des" in wortlaut and "Arbeitsverzeichnisses" in wortlaut, (
-        "Der auslösende Fall (Ziel außerhalb des Arbeitsverzeichnisses) ist nicht benannt"
-    )
+    for quelle in ("Kommandoprüfung am Argumentinhalt", "Pfadregel", "Umleitung"):
+        assert quelle in wortlaut, f"Die Grenze benennt die Ursache nicht: {quelle!r}"
     assert "sondern P" in wortlaut, "Die Grenze sagt nicht, welche Klasse stattdessen greift"
-    assert "Prüfbar am Pfad im Joblog" in wortlaut, (
+    assert "Prüfbar an der Ursache im Joblog" in wortlaut, (
         "Ohne prüfbares Merkmal wäre die Grenze die Hintertür, die die P-Abgrenzung schließt"
     )
 
@@ -863,14 +923,26 @@ def test_block_scalar_warning_sits_directly_above_claude_args() -> None:
     dass die Begründung irgendwo oberhalb steht – nach dem Wegfall des
     Zeichenbudgets sind daraus rund 130 Kommentarzeilen Abstand geworden. Drei
     Reviews nacheinander haben genau das angemerkt: Die Warnung erreicht den
-    nächsten Bearbeiter nicht mehr. Statt eine Zeilenzahl zu prüfen (die bei
-    einem so kommentarreichen Block ständig falsch anschlägt), verlangt dieser
-    Test eine Kurzform unmittelbar über dem Block.
+    nächsten Bearbeiter nicht mehr.
+
+    Die erste Fassung dieses Tests nahm ein Fenster von fünf Zeilen — und ein
+    Review hielt zu Recht dagegen, dass das wieder ein Budget ist: Der
+    Docstring verwirft Zeilen- und Zeichenzahlen und führte dann eine ein,
+    die zwei zusätzliche Kommentarzeilen gerissen hätten. Geprüft wird deshalb
+    die **Angrenzung** ohne jede Zahl: Die letzte Kommentarzeile vor dem Block
+    muss die Schlusszeile der Kurzwarnung sein. Schiebt jemand etwas dazwischen,
+    fällt der Test — unabhängig davon, wie lang die Warnung selbst wird.
     """
     lines = _review_workflow_text().splitlines()
     index = lines.index("          claude_args: |")
-    davor = " ".join(" ".join(lines[index - 5:index]).replace("#", " ").split())
-    assert "Block-Skalar" in davor, "Keine Kurzwarnung unmittelbar über `claude_args:`"
-    assert "CLI-Argument an Claude Code" in davor, (
+    letzte = lines[index - 1].strip()
+    assert letzte.startswith("#"), f"Vor `claude_args:` steht kein Kommentar, sondern: {letzte!r}"
+    assert "Kurzform als LETZTE Zeile vor dem Block" in letzte, (
+        f"Die Kurzwarnung grenzt nicht an `claude_args:` an; dort steht: {letzte!r}"
+    )
+    # Der Warntext selbst darf wachsen, muss aber oberhalb zusammenhängen.
+    block = " ".join(" ".join(lines[:index]).replace("#", " ").split())
+    assert "ACHTUNG, Block-Skalar" in block, "Keine Kurzwarnung über `claude_args:`"
+    assert "CLI-Argument an Claude Code" in block, (
         "Die Kurzform nennt nicht, was beim Bruch der Regel passiert"
     )

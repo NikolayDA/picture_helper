@@ -96,17 +96,19 @@ Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
 die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
 Ablehnung, die eine Erweiterung genau dieser Allowlist schließen könnte) darf
 nie vorkommen; tritt sie auf, ist sie die Lücke und gehört geschlossen. Zwei
-Zweige: eine in `--allowedTools` freigegebenen Form wird dennoch abgelehnt
-(`gh`-/Git-Formen, Read, Grep, Glob, WebFetch auf die freigegebenen Domains) –
-so geschehen in Lauf 32640784005, weil eine Argumentzeile mit `#` begann –,
-oder eine lesende Abfrage, deren Information keine freigegebene Form liefert
-und die nicht unter „Bewusst nicht freigegeben" steht, wie `gh issue view` vor
-#850. Tragend ist beide Male die Erreichbarkeit, nicht die Form. Das endet,
-wo die Allowlist nicht mehr entscheidet: `Read`, `Grep` und `Glob` stehen ohne
-Pfadmuster darin, und eine Ablehnung aus einer Werkzeugregel außerhalb von
-`--allowedTools` (etwa ein Ziel außerhalb des Arbeitsverzeichnisses) könnte
-keine Erweiterung schließen – sie zählt als P. **A** (Ausführung), **N** (Netzzugriff auf eine
-**nicht** freigegebene Domain), **S** (Schreibzugriff) und
+Zweige: eine Form, die die Allowlist decken sollte, wird abgelehnt, weil der
+Eintrag zu eng geschnitten ist, oder eine lesende Abfrage, deren Information
+keine freigegebene Form liefert und die nicht unter „Bewusst nicht
+freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
+Erreichbarkeit, nicht die Form. Das endet, wo die Allowlist nicht mehr
+entscheidet: Liegt die Ursache außerhalb von `--allowedTools` – die
+Kommandoprüfung am Argumentinhalt, eine Pfadregel für die ohne Pfadmuster
+freigegebenen `Read`/`Grep`/`Glob`, eine Umleitung bei WebFetch –, könnte
+keine Erweiterung sie schließen; sie zählt als P. Belegter Fall: Lauf
+32640784005 wies `gh pr comment` ab, weil eine Argumentzeile mit `#` begann;
+`Bash(gh pr comment:*)` stand längst in der Allowlist. **A** (Ausführung),
+**N** (Netzzugriff auf eine **nicht** freigegebene Domain),
+**S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
 Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. P setzt
@@ -124,7 +126,8 @@ jede gewollte Verengung per Definition eine Lücke. Prüfsteine:
 gewollt), `gh issue view` war nie P. Genau eine
 Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
 Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
-Remote-Schreibzugriffe; ihre Ablehnung zählt wie **L**, sonst stünde der
+Remote-Schreibzugriffe; ihre Ablehnung **blockiert die Abnahme unabhängig von
+der Klasse**, sonst stünde der
 schlimmste Fall (Befund gefunden, Kommentar abgewiesen, PR ohne Review) als
 Normalfall im Joblog. Ohne diese Trennung ist ein grüner Lauf keine Aussage
 über die Werkzeuggrenze: Lauf 32600075322 meldete `Lauf: success` bei sechs
