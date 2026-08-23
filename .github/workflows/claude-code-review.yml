@@ -165,9 +165,13 @@ jobs:
             Inline-Kommentar-Werkzeug und `gh pr comment`. Sie sind technisch
             Schreibzugriffe, aber genau dein Auftrag: Nutze sie.
 
-            Recherche ist erwünscht, aber nicht um jeden Preis: Ist eine Quelle
-            nicht abrufbar, weil Werkzeug oder Domain nicht freigegeben sind,
-            notiere die Aussage als **unbelegt** und fahre fort. Suche keine
+            Recherche ist erwünscht, aber nicht um jeden Preis. Freigegeben sind
+            genau diese Domains: `docs.claude.com`, `code.claude.com`,
+            `platform.claude.com`, `docs.anthropic.com`, `docs.github.com` und
+            `raw.githubusercontent.com`. Andere brauchst du gar nicht erst zu
+            versuchen. Ist eine Quelle nicht abrufbar, weil Werkzeug oder
+            Domain nicht freigegeben sind, notiere die Aussage als **unbelegt**
+            und fahre fort. Suche keine
             Umwege über andere Werkzeuge – jeder abgelehnte Versuch kostet einen
             Turn. Poste deine Befunde rechtzeitig: Ein Lauf, der das Turn-Budget
             aufbraucht, bevor er kommentiert hat, ist wertlos.

@@ -578,6 +578,30 @@ def test_prompt_names_the_form_that_actually_yields_ci_status() -> None:
     )
 
 
+def test_prompt_names_every_allowlisted_webfetch_domain() -> None:
+    """Dieselbe Invariante wie für die `gh`-Formen, nur für WebFetch.
+
+    Seit die L-Definition WebFetch ausdrücklich als „immer offen" führt,
+    muss der Prompt auch sagen, *wohin*. Sonst rät der Agent (die Ablehnung
+    steht dann als N im Log, obwohl der Prompt-Mangel die Ursache ist) oder
+    lässt Recherche ganz weg — der stille Ausgang, den die Diagnose nicht
+    sieht. Eigener Test statt Erweiterung des `gh`-Pendants, damit beide
+    Namen sagen, was sie prüfen.
+    """
+    prompt = " ".join(_review_prompt().split())
+    domains = sorted(
+        tool[len("WebFetch(domain:"):-1]
+        for tool in _review_allowed_tools()
+        if tool.startswith("WebFetch(domain:")
+    )
+    assert domains, "keine WebFetch-Freigaben gefunden – Extraktion prüfen"
+    missing = [domain for domain in domains if domain not in prompt]
+    assert not missing, (
+        f"freigegeben, aber im Prompt nicht genannt: {missing} – "
+        "der Agent rät dann oder verzichtet, beides sieht die Diagnose nicht"
+    )
+
+
 def test_review_taxonomy_names_its_own_scope() -> None:
     """Die Taxonomie muss sagen, dass sie nur für das Review gilt."""
     text = _review_workflow_text()
