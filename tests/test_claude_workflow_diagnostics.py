@@ -382,6 +382,13 @@ def test_claude_args_block_carries_only_arguments(relative: str) -> None:
         text,
     )
     assert match, f"{relative}: claude_args-Block nicht gefunden"
+    # Review-Befund auf 6f7c383: Der `body`-Teil ist mit `*` quantifiziert und
+    # fängt damit auch null Zeilen. Trifft die Einrückung nicht mehr genau
+    # `^ {12}` — YAML ließe unter `claude_args:` (10 Spaces) auch 11 zu —,
+    # bliebe `strays` leer und der Test grün, obwohl er den Block gar nicht
+    # mehr sieht. Genau die Bauart, die dieser PR sonst per Negativkontrolle
+    # aussortiert.
+    assert match.group("body").strip(), f"{relative}: claude_args-Block leer erfasst"
     strays = [
         line for line in match.group("body").splitlines()
         if line.strip() and not line.lstrip().startswith("--")

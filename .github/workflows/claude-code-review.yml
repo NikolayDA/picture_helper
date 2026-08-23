@@ -225,9 +225,12 @@ jobs:
           # ein Review auf diesem Codebestand ist das stärkere Modell die bessere
           # Wahl. Fest benannt statt Alias `opus` – dafür wandert die Zeile nicht
           # mit: Bei einem Modell-/Auth-Fehler im Review-Job zuerst hier schauen.
-          # Nur-Lese-Freigaben (#841): `gh pr list` sowie `git show`, `diff`,
-          # `log`, `status` und `show-ref` sind die in realen Fehlläufen belegten
-          # Inspektionswege. Git erhält bewusst keine Präfix-Wildcards: `show`,
+          # Nur-Lese-Freigaben (#841): `gh pr list`, `gh issue view` sowie
+          # `git show`, `diff`, `log`, `status` und `show-ref` sind die in
+          # realen Fehlläufen belegten Inspektionswege (`gh issue view` seit
+          # Lauf 32600652295). Dieselbe Aufzählung führt
+          # `.github/agents/README.md`; beim Nachziehen einer Freigabe gehören
+          # immer beide angefasst. Git erhält bewusst keine Präfix-Wildcards: `show`,
           # `diff` und `log` könnten sonst mit `--output` Dateien schreiben. Nur
           # die unten vollständig ausgeschriebenen Argumentformen sind erlaubt;
           # die Historie dafür kommt kontrolliert aus `actions/checkout`.
@@ -440,7 +443,7 @@ jobs:
           # Inhalt unbesehen ins Log zu kippen.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
-                                | "\(.tool_name) [Felder: \(. | keys | join(","))]: \(.tool_input | tostring | .[0:300])"' \
+                                | "\(.tool_name) [Felder: \(. | keys? // [""] | join(","))]: \(.tool_input | tostring | .[0:300])"' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0
