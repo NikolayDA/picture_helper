@@ -504,12 +504,19 @@ jobs:
           # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
           # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
           # und der kaputte Datensatz wird als solcher sichtbar.
+          # `tojson` statt `tostring`: Auf einem String ist `tostring` die
+          # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
+          # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
+          # Nachgestellt: ein dreizeiliger String meldete „Abgelehnte
+          # Aufrufe: 4" statt 2. Dieselbe Falle wie beim verworfenen
+          # `permission_denials_count`-Fallback: eine Zahl, die nicht zur
+          # Liste passt. Auf Objekten sind beide identisch.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | .permission_denials[]?
                                 | if type == "object"
                                   then "\(.tool_name // "?") [Felder: \(keys | join(","))]: "
-                                       + "\(.tool_input | tostring | .[0:300])"
-                                  else "? [Nicht-Objekt: \(type)]: \(tostring | .[0:300])"
+                                       + "\(.tool_input | tojson | .[0:300])"
+                                  else "? [Nicht-Objekt: \(type)]: \(tojson | .[0:300])"
                                   end' \
             "$EXECUTION_FILE"); then
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."

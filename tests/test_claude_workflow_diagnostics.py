@@ -737,14 +737,13 @@ def test_class_l_covers_every_allowlisted_read_form() -> None:
         # auf demselben Ausschnitt arbeitet. Sie prüfte vorher die ganze Datei
         # und wäre an einer Passage rot geworden, die nur den Prompt zitiert.
         definition = " ".join(_class_l_definition(text, start, end).replace("#", " ").split())
-        # WebFetch stand früher als Aufzählungspunkt in der L-Definition. Seit
-        # L über die Erreichbarkeit definiert ist, deckt die Bedingung den Fall
-        # ohne Aufzählung ab — der Regressionsschutz bleibt trotzdem nötig, nur
-        # eine Ebene höher: Irgendwo in der Einteilung muss WebFetch vorkommen,
-        # sonst fällt eine Ablehnung auf einer freigegebenen Domain wieder
-        # durchs Raster (genau der ursprüngliche Befund).
-        einteilung = " ".join(text.replace("#", " ").split())
-        assert "WebFetch" in einteilung, f"{label}: WebFetch fehlt in der Einteilung"
+        # WebFetch muss in der KLASSENDEFINITION vorkommen, nicht irgendwo in
+        # der Datei. Die erste Fassung dieses Guards prüfte `text` — für die
+        # README also das ganze Dokument, in dem `WebFetch` genau einmal steht,
+        # nämlich in der `gh issue view`-Begründung. Der Test war grün, während
+        # die Einteilung dort den Begriff nie führte: derselbe Fehler, den der
+        # Docstring von ``_class_l_definition`` beschreibt, eine Ebene höher.
+        assert "WebFetch" in definition, f"{label}: WebFetch fehlt in der L-Definition"
         assert "Erweiterung" in definition and "Allowlist schließen könnte" in definition, (
             f"{label}: L nicht über die Erreichbarkeit definiert, sondern über die Form"
         )
