@@ -46,7 +46,7 @@ Offener Bestand: eine Zeile je Issue in der Triage-Tabelle unten. Weder Zahl noc
 
 ### Als Nächstes empfohlen
 
-1. **#828** – das qualitative Abnahmemerkmal festlegen (bislang ist nur die quantitative Hälfte bestimmt). #841 hat der Owner am 2026-08-23 geschlossen, ohne die Messreihe abzuwarten; Kriterien und Auswertungsprozedur bleiben als Kommentar dort dokumentiert, falls das Muster wiederkehrt.
+1. **#828** – das qualitative Abnahmemerkmal festlegen (bislang ist nur die quantitative Hälfte bestimmt). #841 hat der Owner am 2026-08-23 geschlossen, ohne die Messreihe abzuwarten; Kriterien und Auswertungsprozedur liegen in [docs/history/ISSUE-841-VERIFIKATION.md](docs/history/ISSUE-841-VERIFIKATION.md) – im Repository statt in einem Issue-Kommentar, damit sie `--write` und das Schließen des Issues überleben.
 2. **#692** (ADR) öffnet den COLOR-Epic #682.
 3. Sobald Studio-/Druckerhardware verfügbar ist: die bereits vorbereiteten Realtests aus #687
    (Rest, insbesondere I-06), #688, #689 und #690 in einer gebündelten Session ausführen – Fixtures,

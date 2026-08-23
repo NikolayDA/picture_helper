@@ -130,23 +130,27 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
         # als Tabelle und zeigt rohes "| … |" - derselbe Schaden, nur groesser.
         for row in lines[first + 1 : last + 1]:
             actual = len(lc.cells(row))
+            if actual == columns:
+                continue
             # Beide Richtungen sind ein Fehler, aber nicht derselbe: zu viele
             # Zellen heißt „unmaskiertes Pipe, GFM verwirft den Rest", zu wenige
-            # heißt „Spalte fehlt" — GFM füllt die dann still leer auf. Eine
-            # Meldung für beide schickt die Hälfte der Fälle in die Irre.
+            # heißt „Spalte fehlt". Für die Trennzeile gilt in *beiden*
+            # Richtungen die härtere Folge — GFM erkennt den Block dann gar
+            # nicht als Tabelle. Eine Meldung für alles schickt einen Teil der
+            # Fälle in die Irre.
+            separator = " (Trennzeile: GFM rendert dann gar keine Tabelle)"
+            is_separator = row is lines[first + 1]
             if actual > columns:
                 reason = (
-                    "ein unmaskiertes `|` in einer Zelle (als `\\|` schreiben) "
-                    "oder eine Trennzeile mit abweichender Spaltenzahl; GFM "
-                    "verwirft den Rest bzw. rendert gar keine Tabelle."
+                    "ein unmaskiertes `|` in einer Zelle; GFM verwirft alles "
+                    "danach. Als `\\|` schreiben."
                 )
             else:
-                reason = (
-                    "eine Spalte fehlt; GFM füllt sie still leer auf, die Zeile "
-                    "rendert unvollständig."
-                )
-            assert actual == columns, (
-                f"{lang}: {actual} Zellen statt {columns} — {reason} Zeile: {row[:80]}…"
+                reason = "eine Spalte fehlt; GFM füllt sie still leer auf."
+            excerpt = row[:80] + ("…" if len(row) > 80 else "")
+            raise AssertionError(
+                f"{lang}: {actual} Zellen statt {columns} — {reason}"
+                f"{separator if is_separator else ''} Zeile: {excerpt}"
             )
 
 

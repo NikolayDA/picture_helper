@@ -46,7 +46,7 @@ Bandeja abierta: una fila por incidencia en la tabla de clasificación de abajo.
 
 ### Recomendado a continuación
 
-1. **#828** – fijar el criterio cualitativo de aceptación (hasta ahora solo está definida la mitad cuantitativa). El owner cerró #841 el 2026-08-23 sin esperar la serie de mediciones; los criterios y el procedimiento siguen documentados allí como comentario por si el patrón reaparece.
+1. **#828** – fijar el criterio cualitativo de aceptación (hasta ahora solo está definida la mitad cuantitativa). El owner cerró #841 el 2026-08-23 sin esperar la serie de mediciones; Los criterios y el procedimiento están en [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md): en el repositorio y no en un comentario de issue, para que sobrevivan a `--write` y al cierre del issue.
 2. **#692** (ADR) abre la épica COLOR #682.
 3. En cuanto haya hardware de Studio/impresora disponible: ejecutar en una sola sesión conjunta las
    pruebas reales ya preparadas de #687 (resto, en particular I-06), #688, #689 y #690 – fixtures,

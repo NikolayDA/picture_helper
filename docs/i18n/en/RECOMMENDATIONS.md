@@ -46,7 +46,7 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 
 ### Recommended Next
 
-1. **#828** – settle the qualitative acceptance measure (only the quantitative half is defined so far). The owner closed #841 on 2026-08-23 without waiting for the measurement series; criteria and evaluation procedure remain documented as a comment there in case the pattern returns.
+1. **#828** – settle the qualitative acceptance measure (only the quantitative half is defined so far). The owner closed #841 on 2026-08-23 without waiting for the measurement series; Criteria and evaluation procedure live in [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md) – in the repository rather than an issue comment, so they survive both `--write` and the issue being closed.
 2. **#692** (ADR) opens the COLOR epic #682.
 3. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol

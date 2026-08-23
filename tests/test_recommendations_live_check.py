@@ -326,7 +326,7 @@ def test_cells_splits_only_on_unescaped_pipes() -> None:
 
     Der Doku-Wächter in ``tests/test_recommendations_docs.py`` vergleicht
     Kopf- und Datenzeile mit **derselben** Funktion und nur relativ. Träfe
-    ``_CELL_SEPARATOR`` eines Tages nichts mehr, lieferte sie für beide genau
+    die Zerlegung eines Tages nicht mehr trennte, lieferte sie für beide genau
     eine Zelle — ``1 == 1``, Wächter grün, Zeile trotzdem abgeschnitten.
     """
     assert len(lc.cells("| a | b | c |")) == 3
@@ -334,6 +334,24 @@ def test_cells_splits_only_on_unescaped_pipes() -> None:
     assert len(lc.cells("| a | `x|y` |")) == 3, "Backticks schützen in GFM nicht"
     assert len(lc.cells("| a | b ||")) == 3, "leere Randzelle zaehlt mit"
     assert len(lc.cells("|| a | b |")) == 3, "leere Randzelle zaehlt mit"
+    # Backslash-Paritaet (#852): Ein einstelliges Lookbehind lag hier falsch.
+    assert len(lc.cells(r"| a \\| b |")) == 2, "maskierter Backslash, echter Trenner"
+    assert len(lc.cells(r"| a \\\| b |")) == 1, "maskierter Backslash, maskiertes Pipe"
+
+
+def test_render_triage_row_escapes_backslashes_before_pipes() -> None:
+    r"""``--write`` darf keine Zeile erzeugen, die GFM anders liest als ``cells``.
+
+    Ein API-Titel, der bereits ``\|`` enthaelt - etwa weil er die in TESTING.md
+    dokumentierte Schreibweise zitiert -, wurde mit reiner Pipe-Maskierung zu
+    ``\|``. GFM liest das als maskierten Backslash plus **echten** Trenner:
+    Die Zeile bekommt eine Zelle zu viel und rendert abgeschnitten. Der
+    Doku-Waechter sah das nicht, weil sein Splitter dieselbe Fehleinschaetzung
+    machte - beide zaehlten gleich, also blieb er gruen.
+    """
+    row = lc.render_triage_row(lc.OpenIssue(900, r"Regel: als a \| b schreiben"), 6)
+    assert len(lc.cells(row)) == 6, f"Zeile zerfaellt: {row}"
+    assert r"\\|" in row, "Backslash muss vor dem Pipe maskiert sein"
 
 
 def test_unrated_issue_numbers_ignores_todo_after_an_escaped_pipe() -> None:

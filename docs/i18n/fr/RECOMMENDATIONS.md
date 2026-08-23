@@ -46,7 +46,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 ### Recommandé ensuite
 
-1. **#828** – fixer le critère d'acceptation qualitatif (seule la moitié quantitative est définie à ce jour). L'owner a fermé #841 le 2026-08-23 sans attendre la série de mesures ; les critères et la procédure restent documentés là-bas en commentaire, au cas où le motif reviendrait.
+1. **#828** – fixer le critère d'acceptation qualitatif (seule la moitié quantitative est définie à ce jour). L'owner a fermé #841 le 2026-08-23 sans attendre la série de mesures ; Les critères et la procédure figurent dans [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md) – dans le dépôt plutôt que dans un commentaire d'issue, pour qu'ils survivent à `--write` et à la clôture de l'issue.
 2. **#692** (ADR) ouvre l'épopée COLOR #682.
 3. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
    les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
