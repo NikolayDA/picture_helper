@@ -99,7 +99,10 @@ Lücke in der Allowlist und gehört geschlossen. **A** (Ausführung), **N**
 (Netzzugriff außerhalb der freigegebenen Domains), **S** (Schreibzugriff) und
 **P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
 Flags oder einer Pipe) dürfen dagegen abgelehnt werden; sie sind ein
-Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. Genau eine
+Prompt-Befund und rechtfertigen keine Erweiterung der Freigaben. **P setzt
+voraus, dass dieselbe Information über eine freigegebene Form erreichbar
+gewesen wäre – sonst ist die Ablehnung L.** Ohne diese Bedingung ließe sich
+jede unbequeme L-Ablehnung als P verbuchen. Genau eine
 Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
 Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
 Remote-Schreibzugriffe; ihre Ablehnung zählt wie **L**, sonst stünde der

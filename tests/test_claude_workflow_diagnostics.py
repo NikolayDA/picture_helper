@@ -92,8 +92,9 @@ def _shared_comment_block(relative: str) -> str:
 
     Er beginnt an seiner Kopfzeile und endet am Schritt selbst; die in
     ``claude.yml`` darüber stehende workflow-spezifische Deutung liegt vor
-    diesem Anker und ist damit nicht Teil des Ausschnitts. Die Leerzeile
-    dazwischen dient der Lesbarkeit, nicht der Abgrenzung.
+    diesem Anker und ist damit nicht Teil des Ausschnitts – alles vor der
+    Kopfzeile fällt weg. Die Leerzeile dazwischen dient der Lesbarkeit und
+    hat auf das Muster keine Wirkung.
     """
     text = (_ROOT / relative).read_text(encoding="utf-8")
     match = re.search(
@@ -107,6 +108,21 @@ def _shared_comment_block(relative: str) -> str:
 
 def _review_workflow_text() -> str:
     return (_ROOT / _REVIEW_WORKFLOW).read_text(encoding="utf-8")
+
+
+def _review_taxonomy() -> str:
+    """Den Taxonomie-Kommentarblock über ``claude_args`` herausschneiden."""
+    text = _review_workflow_text()
+    head = "          # Taxonomie der Ablehnungen"
+    args = "          claude_args: |"
+    assert head in text, "Taxonomie-Kopfzeile im Review-Workflow nicht gefunden"
+    assert text.index(head) < text.index(args), "Taxonomie steht nicht über claude_args"
+    return text[text.index(head):text.index(args)]
+
+
+def _agents_readme() -> str:
+    """Die agents-README mit normalisiertem Whitespace (Absatz ist umbrochen)."""
+    return " ".join((_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split())
 
 
 def _review_prompt() -> str:
@@ -176,9 +192,7 @@ def test_agents_readme_carries_the_denial_taxonomy() -> None:
     Whitespace wird normalisiert: Der Absatz ist umbrochen, eine Klasse darf
     also über einem Zeilenwechsel stehen, ohne den Test zu brechen.
     """
-    readme = " ".join(
-        (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split()
-    )
+    readme = _agents_readme()
     for phrase in (
         "**L** (lesende",
         "**A** (Ausführung)",
@@ -187,6 +201,13 @@ def test_agents_readme_carries_the_denial_taxonomy() -> None:
         "**P** (lesende Absicht in nicht freigegebener Form",
     ):
         assert phrase in readme, f"agents/README.md nennt die Klasse nicht: {phrase!r}"
+
+    # Namen allein genügen nicht: Ohne die P-Bedingung ließe sich hier – am
+    # naheliegendsten Nachschlageort – jede unbequeme L-Ablehnung als P
+    # verbuchen, während die Regel nur in der Workflow-Datei stünde.
+    assert "sonst ist die Ablehnung L" in readme, (
+        "agents/README.md führt Klasse P ohne ihre prüfbare Abgrenzung"
+    )
 
 
 def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
@@ -318,12 +339,7 @@ def test_review_documents_the_denial_taxonomy_above_claude_args() -> None:
     allein sagt also nichts. Erst die Einteilung trennt die Allowlist-Lücke
     (lesende Inspektion) von den erwartbaren Ablehnungen.
     """
-    text = _review_workflow_text()
-    rationale_index = text.index("          # Taxonomie der Ablehnungen")
-    args_index = text.index("          claude_args: |")
-    assert rationale_index < args_index, "Taxonomie steht nicht über dem Argumentblock"
-
-    taxonomy = text[rationale_index:args_index]
+    taxonomy = _review_taxonomy()
     for phrase in (
         "L = lesende Inspektion",
         "darf NIE abgelehnt werden",
@@ -392,9 +408,7 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
     „Befund gefunden, Kommentar abgewiesen, Lauf grün, PR ohne Review" als
     Normalfall im Joblog. Der Prompt nennt genau das das Scheitern.
     """
-    text = _review_workflow_text()
-    rationale_index = text.index("          # Taxonomie der Ablehnungen")
-    taxonomy = text[rationale_index:text.index("          claude_args: |")]
+    taxonomy = _review_taxonomy()
     assert "Ausnahme" in taxonomy, "Ausgabewege sind nicht von Klasse S ausgenommen"
     assert "gh pr comment" in taxonomy
     assert "zählt wie L" in taxonomy
@@ -404,9 +418,7 @@ def test_taxonomy_exempts_the_reviews_own_output_paths() -> None:
         "Prompt sperrt jeden Schreibzugriff, verlangt aber einen Kommentar"
     )
 
-    readme = " ".join(
-        (_ROOT / ".github/agents/README.md").read_text(encoding="utf-8").split()
-    )
+    readme = _agents_readme()
     assert "Ausnahme von **S**" in readme, (
         "agents/README.md ist der naheliegendste Nachschlageort beim Auswerten "
         "eines Joblogs – ohne die Ausnahme klassifiziert man dort den "
@@ -423,9 +435,7 @@ def test_class_p_is_bound_to_a_checkable_property() -> None:
     Läufe auswertet. Die Regel bindet P an die Frage, ob dieselbe Information
     über eine freigegebene Form erreichbar gewesen wäre.
     """
-    text = _review_workflow_text()
-    taxonomy = text[text.index("          # Taxonomie der Ablehnungen"):
-                    text.index("          claude_args: |")]
+    taxonomy = _review_taxonomy()
     assert "ABGRENZUNG ZU L" in taxonomy, "Klasse P ohne prüfbare Abgrenzung"
     assert "dieselbe Information" in taxonomy
     assert "ist die Ablehnung L" in taxonomy
