@@ -30,7 +30,10 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    gewöhnlichen PRs — es werden keine PRs oder Pushes als Messvehikel erzeugt.
    Zwischenzeitliche Konfigurationsänderungen setzen die Zählung **nicht**
    zurück: Jeder Lauf wird gegen die zu seinem Zeitpunkt aktive Konfiguration
-   gelesen und mit deren Commit-SHA notiert. Die frühere Regel („drei
+   gelesen und mit deren Commit-SHA notiert. Jeder reale Lauf belegt genau
+   einen der zehn Stichprobenplätze, unabhängig davon, ob er grün oder rot
+   endet; das Ergebnis ist die Messgröße, nicht die Eintrittskarte in die
+   Stichprobe. Die frühere Regel („drei
    aufeinanderfolgende grüne Läufe; Läufe auf dem Fix-PR zählen nicht") hatte
    sich als selbstblockierend erwiesen: Jeder Konfig-Fix disqualifizierte die
    eigene Messreihe und erzeugte Folge-PRs als Messvehikel — Belege und
@@ -105,22 +108,23 @@ Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
 Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
-**Live-Abgleich vom 2026-08-24:** **0/10** abschließend protokollierte Läufe.
-PR #859 initialisiert diese Tabelle, deshalb werden seine eigenen Review-Läufe
-hier noch nicht ausgewertet: Andernfalls würde jeder neue Lauf einen weiteren
-Commit im gerade gemessenen PR erzwingen und die Messung auf ihren eigenen
-Nachtrag zurückkoppeln. Die Läufe eines PRs werden erst nach dessen Merge oder
-Schließung in einem getrennten Nachtrag bewertet. Das verschiebt ihre
-Auswertung, verwirft sie aber nicht.
+**Live-Abgleich vom 2026-08-24:** **3/10** reale Läufe ausgewertet; Bilanz:
+**1 grün, 2 rot**. PR #859 ist gemergt, seine drei Review-Läufe können deshalb
+ohne Rückkopplung auf den gemessenen PR ausgewertet werden. Der erste Lauf
+erfüllt alle Kriterien. Beide ausdrücklich angeforderten Re-Reviews
+veröffentlichten ebenfalls konkrete Befunde, ihre Jobs endeten wegen 29
+beziehungsweise 30 Turns über dem Deckel von 25 aber rot.
 
-Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
-Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
-`grün`, wenn Abschlussgrund, Ablehnungszähler und qualitative Hälfte gemeinsam
-erfüllt sind.
+Für jeden der zehn realen Läufe wird genau eine nummerierte Zeile ergänzt.
+`Konfiguration` ist die Commit-SHA des zu diesem Lauf aktiven Workflow-Stands;
+`Ergebnis` ist nur dann `grün`, wenn Abschlussgrund, Ablehnungszähler und
+qualitative Hälfte gemeinsam erfüllt sind.
 
 | Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
 |---:|---:|---:|---|---|---:|---|---|
-| – | – | – | – | Noch kein Lauf nach Abschluss seines Quell-PRs ausgewertet | – | – | 0/10 |
+| 1 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32776206368](https://github.com/NikolayDA/picture_helper/actions/runs/32776206368) | `62a3826` | Job `success`; `success` (22 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| 2 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32777452835](https://github.com/NikolayDA/picture_helper/actions/runs/32777452835) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und Inline-Befunde veröffentlicht | Rot – Turn-Deckel überschritten |
+| 3 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32779114518](https://github.com/NikolayDA/picture_helper/actions/runs/32779114518) | `62a3826` | Job `failure`; Action-Result `success` (30 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Rot – Turn-Deckel überschritten |
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
