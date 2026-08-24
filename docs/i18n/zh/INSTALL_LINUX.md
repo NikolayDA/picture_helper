@@ -37,8 +37,9 @@ chmod +x BgRemover-*-linux-x86_64-ai.AppImage
 sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
-直接启动 AppImage 需要 FUSE 2（`libfuse.so.2`）。如果缺少该库，请根据发行版
-安装 `libfuse2` 或 `libfuse2t64`，也可以不使用 FUSE 启动：
+直接启动 AppImage 需要 FUSE 2（`libfuse.so.2`）。如果缺少该库，请安装对应的
+发行版软件包：Debian/Ubuntu 使用 `libfuse2` 或 `libfuse2t64`，Fedora/RHEL
+使用 `fuse-libs`，Arch/Manjaro 使用 `fuse2`。也可以不使用 FUSE 启动：
 
 ```bash
 ./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
@@ -285,9 +286,10 @@ git checkout <branch> && git pull      # 更新某个特定分支
 ## 故障排除
 
 - **AppImage 报告 `dlopen(): error loading libfuse.so.2` 或 “AppImages
-  require FUSE to run”** → 缺少 FUSE 2。请根据发行版安装 `libfuse2` 或
-  `libfuse2t64`，或者使用 `--appimage-extract-and-run` 启动 AppImage。
-  对于 `.deb`，`apt` 会自动安装该依赖项。
+  require FUSE to run”** → 缺少 FUSE 2。请安装 `libfuse2`/`libfuse2t64`
+  （Debian/Ubuntu）、`fuse-libs`（Fedora/RHEL）或 `fuse2`（Arch/Manjaro）；
+  也可以使用 `--appimage-extract-and-run` 启动 AppImage。对于 `.deb`，
+  `apt` 会自动安装该依赖项。
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
   缺少 Qt 系统库。请补装*“安装系统软件包”*
   一节中的软件包（尤其是 Ubuntu 24.04 上的

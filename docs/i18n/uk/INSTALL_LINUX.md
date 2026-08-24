@@ -39,8 +39,9 @@ sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
 Для прямого запуску AppImage потрібен FUSE 2 (`libfuse.so.2`). Якщо цієї
-бібліотеки немає, встановіть `libfuse2` або `libfuse2t64` відповідно до
-дистрибутива або запустіть без FUSE:
+бібліотеки немає, встановіть відповідний пакет: `libfuse2` або `libfuse2t64`
+у Debian/Ubuntu, `fuse-libs` у Fedora/RHEL чи `fuse2` в Arch/Manjaro.
+Альтернативно запустіть без FUSE:
 
 ```bash
 ./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
@@ -293,8 +294,9 @@ Editable-встановлення (`pip install -e`) **не** потрібно
 ## Усунення несправностей
 
 - **AppImage повідомляє `dlopen(): error loading libfuse.so.2` або «AppImages
-  require FUSE to run»** → Відсутній FUSE 2. Встановіть `libfuse2` або
-  `libfuse2t64` відповідно до дистрибутива чи запустіть AppImage з
+  require FUSE to run»** → Відсутній FUSE 2. Встановіть `libfuse2`/
+  `libfuse2t64` (Debian/Ubuntu), `fuse-libs` (Fedora/RHEL) чи `fuse2`
+  (Arch/Manjaro); альтернативно запустіть AppImage з
   `--appimage-extract-and-run`. Для `.deb` менеджер `apt` встановлює
   залежність автоматично.
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →

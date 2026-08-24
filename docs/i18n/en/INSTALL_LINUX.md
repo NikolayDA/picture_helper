@@ -40,8 +40,9 @@ sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
 Direct AppImage launches require FUSE 2 (`libfuse.so.2`). If that library is
-missing, either install your distribution's `libfuse2` or `libfuse2t64`
-package, or launch without FUSE:
+missing, install the matching distribution package: `libfuse2` or
+`libfuse2t64` on Debian/Ubuntu, `fuse-libs` on Fedora/RHEL, or `fuse2` on
+Arch/Manjaro. Alternatively, launch without FUSE:
 
 ```bash
 ./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
@@ -292,10 +293,10 @@ again after `git pull` — unless the dependencies in
 ## Troubleshooting
 
 - **AppImage reports `dlopen(): error loading libfuse.so.2` or “AppImages
-  require FUSE to run”** → FUSE 2 is missing. Install `libfuse2` or
-  `libfuse2t64`, depending on the distribution, or launch the AppImage with
-  `--appimage-extract-and-run`. For the `.deb`, `apt` installs the dependency
-  automatically.
+  require FUSE to run”** → FUSE 2 is missing. Install `libfuse2`/
+  `libfuse2t64` (Debian/Ubuntu), `fuse-libs` (Fedora/RHEL), or `fuse2`
+  (Arch/Manjaro); alternatively, launch with `--appimage-extract-and-run`.
+  For the `.deb`, `apt` installs the dependency automatically.
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
   Qt system libraries are missing. Install the packages from the section
   *"Installing system packages"* afterwards (in particular

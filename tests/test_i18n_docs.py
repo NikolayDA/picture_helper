@@ -200,6 +200,8 @@ def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
         "libfuse.so.2",
         "`libfuse2`",
         "`libfuse2t64`",
+        "`fuse-libs`",
+        "`fuse2`",
         "--appimage-extract-and-run",
     )
     for path in _all_language_paths("INSTALL_LINUX.md"):
