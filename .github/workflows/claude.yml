@@ -33,9 +33,11 @@ name: Claude Code
 # Review, die Zahl spricht also dagegen. Tragend ist, was ein Turn kostet und
 # wie oft er anfällt: Der interaktive Agent schreibt Code (lange Werkzeug-
 # ausgaben, ganze Dateien im Kontext), das Review bewertet nur einen Diff.
-# Dafür läuft das Review bei jedem `opened`/`synchronize` automatisch,
+# Dafür lief das Review bis zur Reviewschleifen-Entschärfung bei jedem
+# `opened`/`synchronize`; seither startet es je PR genau einmal (`opened`/
+# `ready_for_review`, Wiederholung nur über das Label `re-review`),
 # `claude.yml` nur auf ausdrückliche `@claude`-Erwähnung – die Häufigkeit
-# spricht wiederum für das Review. Vor dem Zurückdrehen also erst nachsehen,
+# beider ist damit ähnlich niedrig. Vor dem Zurückdrehen also erst nachsehen,
 # welcher der beiden im fraglichen Zeitraum tatsächlich verbraucht hat.
 
 on:

@@ -612,7 +612,14 @@ Workflows unter `.github/workflows/` (16):
   der [`Abnahme-Checkliste`](docs/RELEASE_ACCEPTANCE_CHECKLIST.md).
 - **Claude:** `claude.yml` — interaktiver Agent, reagiert auf `@claude`-Erwähnungen
   in Issues/PR-Kommentaren; `claude-code-review.yml` — automatisches Review neuer
-  PRs (#555). `.github/agents/` hält die Agent-Konfigurationen (Code Review,
+  PRs (#555), seit der Reviewschleifen-Entschärfung genau **einmal je PR**
+  (`opened`/`ready_for_review`; Wiederholung nur per Label `re-review`,
+  Doku-Pfade ausgenommen) und ohne Merge-Sperre durch seine Konversationen.
+  Es gilt die **Konvergenzregel**: höchstens zwei Bot-Review-Runden je PR,
+  danach entscheidet ein Mensch gesammelt über die Befunde; Umbauten an der
+  Review-Mechanik sind bis zur Prompt-Verschlankung eingefroren (ADR
+  [`docs/history/ADR-2026-reviewschleifen-entschaerfung.md`](docs/history/ADR-2026-reviewschleifen-entschaerfung.md)).
+  `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).
 

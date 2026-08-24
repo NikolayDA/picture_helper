@@ -228,6 +228,14 @@
       "evidence": ["docs/RELEASE_PROCESS.md ist die kanonische Ablaufbeschreibung; kein Workflow liest das historische Protokoll als Eingabe"]
     },
     {
+      "id": "reviewschleifen-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-reviewschleifen-entschaerfung.md",
+      "sample_path": "docs/history/ADR-2026-reviewschleifen-entschaerfung.md",
+      "reason": "ADR zur Entschärfung der Review-Schleifen (Trigger, Konvergenzregel, Meta-Freeze); reine Entscheidungs-Historie, kein Code oder Test liest die Datei als Eingabe.",
+      "evidence": ["Nur Markdown-Querverweise aus docs/PROZESSE_UML.md, docs/history/ISSUE-841-VERIFIKATION.md und Workflow-Kommentaren; kein open()/read_text() im Code"]
+    },
+    {
       "id": "eufymake-687-adr",
       "kind": "exact",
       "path": "docs/history/ADR-2026-eufymake-exportpaket.md",

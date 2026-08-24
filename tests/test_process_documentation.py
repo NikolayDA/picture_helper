@@ -50,23 +50,66 @@ def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
     """Der manuelle Live-Snapshot darf nicht nur den Status-Check kopieren.
 
     Der authentifizierte Abgleich vom 23.08.2026 ergab zusätzlich
-    ``required_status_checks.strict == true``, aufzulösende Konversationen
-    und null erforderliche Approvals. Diese Regeln ändern den tatsächlichen
-    Mergepfad und müssen deshalb in Tabelle und Diagramm sichtbar bleiben.
+    ``required_status_checks.strict == true`` und null erforderliche
+    Approvals. Die Konversationsauflösungs-Pflicht ist mit der
+    Reviewschleifen-Entschärfung (ADR-2026-reviewschleifen-entschaerfung)
+    aus der Branch Protection entfernt; der Snapshot muss diesen Soll-Stand
+    ausdrücklich benennen, statt die alte Sperre weiter zu behaupten – und
+    Tabelle wie Diagramm dürfen den `strict`-Mergepfad nicht verlieren.
     """
     snapshot = _process_documentation()
     row = _branch_protection_row(snapshot)
     required_row_phrases = (
         "Branch muss aktuell zu `main` sein (`strict`)",
-        "alle Review-Konversationen müssen aufgelöst sein",
+        "Review-Konversationen sind keine Merge-Sperre",
         "kein formales Approval erforderlich",
         "für Admins nicht erzwungen",
     )
     missing = [phrase for phrase in required_row_phrases if phrase not in row]
     assert not missing, f"Branch-Protection-Snapshot unvollständig: {missing}"
+    assert "müssen aufgelöst sein" not in row, (
+        "Die entfernte Konversationsauflösungs-Pflicht steht wieder als "
+        "Merge-Sperre im Snapshot"
+    )
 
-    assert "Branch aktuell zu main<br/>und alle Review-Konversationen aufgelöst?" in snapshot
+    assert 'RQ3{"Branch aktuell zu main?"}' in snapshot
     assert "RQ3 -->|\"nein\"| F4 --> R1" in snapshot
+
+
+def test_review_workflow_runs_once_per_pr_not_per_push() -> None:
+    """Der Ein-Review-Trigger der Reviewschleifen-Entschärfung darf nicht driften.
+
+    Sechs Doku-Stellen (CLAUDE.md, CONTRIBUTING.md, PROZESSE_UML.md, die
+    agents-README und die Köpfe beider Claude-Workflows) beschreiben „einmal
+    je PR-Start statt je Push, Wiederholung nur per Label ``re-review``,
+    Doku-Pfade ausgenommen". Die einzige Quelle der Wahrheit ist der
+    Trigger-Block von ``claude-code-review.yml`` – ohne diesen Wächter würde
+    ein wieder ergänztes ``synchronize`` alle sechs Stellen still falsch
+    machen und ``make check`` bliebe grün (Review-Befund auf PR #857).
+    Textbasiert statt über PyYAML, aus demselben Grund wie der
+    workflow_run-Wächter unten.
+    """
+    text = (_ROOT / ".github/workflows/claude-code-review.yml").read_text(encoding="utf-8")
+    trigger = re.search(r"(?ms)^on:\n.*?(?=^\S)", text)
+    assert trigger, "Trigger-Block in claude-code-review.yml nicht gefunden"
+    block = trigger.group(0)
+    assert block.count("types:") == 1, "Trigger-Block führt nicht genau eine types-Liste"
+    assert re.search(r"(?m)^    types: \[opened, ready_for_review, labeled\]$", block), (
+        "Der Ein-Review-Trigger (opened/ready_for_review/labeled) ist verändert – "
+        "sechs Doku-Stellen behaupten ihn weiterhin"
+    )
+    assert "paths-ignore:" in block, (
+        "Die Doku-Pfad-Ausnahme (paths-ignore) fehlt im Trigger-Block"
+    )
+    job_if = re.search(r"(?ms)^    if: >-\n(?P<body>(?:^      .*\n)+)", text)
+    assert job_if, "Job-if des Review-Jobs nicht gefunden"
+    body = job_if.group("body")
+    for condition in (
+        "github.event.pull_request.state == 'open'",
+        "github.event.pull_request.draft == false",
+        "github.event.label.name == 're-review'",
+    ):
+        assert condition in body, f"Job-if verliert die Bedingung {condition!r}"
 
 
 def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
