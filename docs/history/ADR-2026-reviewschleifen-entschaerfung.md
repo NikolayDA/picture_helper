@@ -34,7 +34,12 @@ sperrten weiter (21 von 30 auf #850).
    Job-`if`. Eine Wiederholung gibt es nur auf ausdrückliche Anforderung über
    das Label `re-review` (Label entfernen und neu setzen wiederholt erneut).
    Reine Doku-PRs (`**/*.md`, `docs/**`) sind per `paths-ignore` ausgenommen;
-   dort bleibt die `@claude`-Erwähnung. Die Branch-Protection-Pflicht
+   dort bleibt die `@claude`-Erwähnung. Die Concurrency-Gruppe liegt auf
+   Job-Ebene, damit ein beliebiges Label den einzigen Review-Lauf nicht
+   abbrechen kann (Codex-P1 auf PR #857); ein erneuter Draft-Zyklus
+   (zurück in den Draft und wieder ready) zählt bewusst als
+   Wiederholungs-Anforderung der Autor:in statt Zustands-Tracking
+   einzuführen (Codex-P2 ebd.). Die Branch-Protection-Pflicht
    „Require conversation resolution before merging" wird entfernt —
    Review-Befunde sperren den Merge nicht mehr technisch. Der frühere
    Sticky-Kommentar-Rest aus #828 ist damit gegenstandslos: Ein Review je PR

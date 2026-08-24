@@ -54,7 +54,12 @@ on:
     # normal geöffnete PRs, `ready_for_review` den Übergang aus dem Draft;
     # `labeled` trägt die ausdrückliche Wiederholung – das Job-`if` unten
     # lässt davon nur das Label `re-review` durch (Label entfernen und neu
-    # setzen wiederholt das Review erneut).
+    # setzen wiederholt das Review erneut). Ein erneuter Draft-Zyklus
+    # (zurück in den Draft und wieder ready) löst ebenfalls ein weiteres
+    # Review aus – bewusst so belassen (Codex-P2 auf PR #857): Das ist eine
+    # ausdrückliche Autor-Handlung und zählt als Wiederholungs-Anforderung;
+    # ein Zustands-Tracking „wurde schon reviewt?" wäre genau der
+    # Mechanik-Ausbau, den der Meta-Freeze ausschließt.
     types: [opened, ready_for_review, labeled]
     # Doku-only-PRs (Markdown inkl. der sechs Sprachspiegel, docs/-Assets)
     # bekommen kein Opus-Review; `paths-ignore` überspringt den Lauf nur,
@@ -65,10 +70,6 @@ on:
       - "**/*.md"
       - "docs/**"
 
-concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   review:
     # Drafts erst beim Verlassen des Draft-Status reviewen; vom
@@ -77,6 +78,17 @@ jobs:
     if: >-
       github.event.pull_request.draft == false &&
       (github.event.action != 'labeled' || github.event.label.name == 're-review')
+    # Concurrency bewusst auf JOB-Ebene (Codex-P1 auf PR #857): Auf
+    # Workflow-Ebene griffe `cancel-in-progress` VOR dem Job-`if` – ein
+    # beliebiges, während des laufenden Reviews gesetztes Label startete
+    # einen neuen Run derselben Gruppe, bräche den einzigen Review-Lauf ab
+    # und würde selbst am `if` übersprungen: der PR bliebe ohne Review, und
+    # ohne `synchronize`-Trigger holte nichts es nach. Ein übersprungener
+    # Job betritt die Gruppe dagegen nie; nur ein echtes `re-review` löst
+    # den gewollten Abbruch eines noch laufenden älteren Laufs aus.
+    concurrency:
+      group: claude-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
