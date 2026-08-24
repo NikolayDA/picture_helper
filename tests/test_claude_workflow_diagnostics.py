@@ -222,11 +222,12 @@ def test_review_job_carries_the_cost_bounds() -> None:
     Der Deckel ist die Kostenbremse selbst; ein bewusstes Anheben gehört
     laut ADR zuerst dorthin und dann synchron hierher (Codex-P2 auf #858:
     ein bloßes „irgendein --max-turns existiert" ließe 30, 200 oder ein
-    Duplikat grün durchlaufen)."""
+    Duplikat grün durchlaufen). Die 25 ist an zwei realen Groß-Diff-Läufen
+    kalibriert (leer bei 21, erfolgreich mit 23 Turns; ADR Entscheidung 4)."""
     assert re.search(r"(?m)^    timeout-minutes: 15$", _text(_REVIEW_WORKFLOW))
     args = _claude_args(_REVIEW_WORKFLOW)
     turn_args = [a for a in args if a.startswith("--max-turns")]
-    assert turn_args == ["--max-turns 20"], (
+    assert turn_args == ["--max-turns 25"], (
         f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
     )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
