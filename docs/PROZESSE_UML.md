@@ -241,6 +241,16 @@ flowchart TD
   erforderlicher Branch-Protection-Status.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
+- Die Raute prüft nur, ob das Secret vorhanden ist. Der andere Fehlerweg ist
+  seit #828 (PR #853) im Workflow-Kopf festgehalten: Ein vorhandenes, aber
+  abgelaufenes Token (`claude setup-token` erzeugt ein Jahr Gültigkeit; der
+  konkrete Stichtag steht drift-geschützt in beiden Workflow-Köpfen) oder ein
+  erschöpftes Nutzungslimit des Abos macht den Lauf rot, statt ihn zu
+  überspringen. Belegt ist das Fehlerbild nur für den Limitfall (früher
+  Abbruch ohne Modellnutzung); der Ablauffall wäre ein
+  Authentifizierungsfehler. Endet ein roter Lauf ohne Review-Ausgabe, ist
+  der PR weder blockiert noch geprüft — auch der indirekte Sperrweg über
+  aufzulösende Inline-Konversationen entfällt dann.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
@@ -262,7 +272,11 @@ nicht bestehen, werden nicht gemergt“),
 [`claude-code-review.yml`](../.github/workflows/claude-code-review.yml),
 [`claude.yml`](../.github/workflows/claude.yml),
 [`coverage.yml`](../.github/workflows/coverage.yml),
+[`codeql.yml`](../.github/workflows/codeql.yml),
+[`license-check.yml`](../.github/workflows/license-check.yml),
 [`recommendations-live-check.yml`](../.github/workflows/recommendations-live-check.yml),
+[`codex-security-scan.yml`](../.github/workflows/codex-security-scan.yml),
+[`benchmark.yml`](../.github/workflows/benchmark.yml),
 sowie die lineare Commit-Historie von `main` (ein Squash-Commit je PR).
 
 ```mermaid
@@ -351,6 +365,11 @@ flowchart TD
   (montags 05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags 03:00 UTC).
+- Ebenfalls nicht gezeichnet ist der `workflow_run`-Einstieg von
+  `recommendations-live-check.yml` nach jedem Abschluss von
+  `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
+  Issues entstehen mit dem Standard-`GITHUB_TOKEN` und lösen deshalb selbst
+  kein `issues`-Ereignis für Folge-Workflows aus.
 - Ein roter `recommendations-live-check` gehört dem Repository-Owner und bleibt
   bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
   nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen

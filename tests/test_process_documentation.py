@@ -67,3 +67,114 @@ def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
 
     assert "Branch aktuell zu main<br/>und alle Review-Konversationen aufgelöst?" in snapshot
     assert "RQ3 -->|\"nein\"| F4 --> R1" in snapshot
+
+
+def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
+    """Die dokumentierte workflow_run-Quellliste darf nicht vom Workflow driften.
+
+    Der workflow_run-Einstieg von recommendations-live-check.yml steht in
+    drei Doku-Stellen (PROZESSE_UML.md, TESTING.md, CLAUDE.md). Die
+    Anzeigenamen aus dem Trigger werden über das ``name:``-Feld der
+    Workflow-Dateien auf Dateinamen abgebildet; jede Doku-Stelle muss alle
+    Quellworkflows im Umfeld ihrer ``workflow_run``-Erwähnung nennen
+    (Muster wie N6/gl_smoke: Listenkopie ohne Abgleich driftet still).
+
+    PyYAML ist keine deklarierte Projekt-Abhängigkeit (auch nicht in den
+    Constraints); ohne PyYAML läuft deshalb ein textbasierter Rückfall
+    (Muster aus test_release_gate: textbasierte Invarianten laufen immer),
+    damit dieser Wächter im ``.[test]``-Env nie still übersprungen wird.
+    """
+    workflow_dir = _ROOT / ".github" / "workflows"
+    workflow_files = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
+    trigger_text = (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
+    try:
+        import yaml
+    except ImportError:
+        yaml = None
+
+    by_name: dict[str, list[str]] = {}
+    if yaml is not None:
+        trigger_doc = yaml.safe_load(trigger_text)
+        # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``; ein
+        # quotiertes ``"on":`` bliebe ein String. Die ``get``-Kette (Idiom aus
+        # test_release_gate) lässt jeden Driftfall am ``assert`` mit seiner
+        # Aussage enden statt an einem nackten ``KeyError``.
+        triggers = trigger_doc.get(True, trigger_doc.get("on")) or {}
+        display_names = (triggers.get("workflow_run") or {}).get("workflows") or []
+        # Einmalige Namenstabelle statt erneutem Parsen je Anzeigename; die
+        # Parsebarkeit sichert bereits tests/test_ci_workflow_yaml.py.
+        for path in workflow_files:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+            if isinstance(doc, dict) and isinstance(doc.get("name"), str):
+                by_name.setdefault(doc["name"], []).append(path.name)
+    else:
+        # Rückfall bewusst nur für die heutige Inline-Flow-/Quoting-
+        # Schreibweise: Eine Umformung fällt hier fail-closed als fehlender
+        # Trigger auf, statt den Wächter still zu überspringen.
+        block = re.search(
+            r"(?ms)^  workflow_run:\n\s*workflows:\s*\[(?P<names>[^\]]*)\]",
+            trigger_text,
+        )
+        assert block, "workflow_run-Trigger in recommendations-live-check.yml nicht gefunden"
+        display_names = re.findall(r"""["']([^"']+)["']""", block.group("names"))
+        for path in workflow_files:
+            name_match = re.search(
+                r"""(?m)^name:\s*["']?(?P<name>[^"'\n]+?)["']?\s*$""",
+                path.read_text(encoding="utf-8"),
+            )
+            if name_match:
+                by_name.setdefault(name_match.group("name"), []).append(path.name)
+    assert display_names, "workflow_run-Trigger ohne Workflow-Namen"
+
+    filenames = []
+    for display in display_names:
+        matches = by_name.get(display, [])
+        # Der leere Fall ist der wertvollste Fund: Der Anzeigename passt auf
+        # kein name:-Feld mehr, der Trigger feuert also nie wieder.
+        assert matches, (
+            f"Anzeigename {display!r} passt auf kein name:-Feld mehr – "
+            "der workflow_run-Einstieg würde nie wieder feuern"
+        )
+        assert len(matches) == 1, (
+            f"Anzeigename {display!r} nicht eindeutig auflösbar: {matches}"
+        )
+        filenames.append(matches[0])
+
+    # Mengenvergleich statt Teilmengenprüfung: So fällt auch ein aus dem
+    # Trigger ENTFERNTER Quellworkflow auf, den die Doku noch behauptet.
+    # Verglichen wird je Doku-Stelle der Aufzählungspunkt/Absatz um die
+    # ``workflow_run``-Erwähnung; die Doku ist damit bewusst an die
+    # Backtick-Schreibweise der Workflow-Dateinamen gebunden. Der
+    # Trigger-Workflow selbst zählt nicht als Quelle. Der GANZE Punkt zählt:
+    # Auch ein dort ergänzter, unbeteiligter Workflow-Verweis macht den Test
+    # rot – bewusst fail-closed; die Meldung stellt beide Mengen gegenüber.
+    expected = set(filenames)
+    for doc in ("docs/PROZESSE_UML.md", "TESTING.md", "CLAUDE.md"):
+        text = (_ROOT / doc).read_text(encoding="utf-8")
+        anchors = [match.start() for match in re.finditer(r"`workflow_run`", text)]
+        assert anchors, f"{doc} erwähnt den workflow_run-Einstieg nicht"
+        segments = []
+        for anchor in anchors:
+            start = max(text.rfind("\n- ", 0, anchor), text.rfind("\n\n", 0, anchor), 0)
+            ends = [
+                pos
+                for pos in (text.find("\n- ", anchor), text.find("\n\n", anchor))
+                if pos != -1
+            ]
+            segment = text[start : min(ends) if ends else len(text)]
+            mentioned = {
+                name
+                for name in re.findall(r"`([A-Za-z0-9_.-]+\.ya?ml)`", segment)
+                if (workflow_dir / name).is_file()
+            }
+            mentioned.discard("recommendations-live-check.yml")
+            segments.append(mentioned)
+        # ``all`` statt ``any``: Jede Erwähnung muss zum Trigger passen –
+        # sonst könnte eine später ergänzte, driftende Zweitnennung hinter
+        # einer noch passenden Erstnennung verschwinden. Die Segmentgrenzen
+        # kennen nur Top-Level-Aufzählungspunkte; ein verschachtelter Punkt
+        # fiele auf den Elternpunkt zurück und schlüge fail-closed an.
+        assert all(mentioned == expected for mentioned in segments), (
+            f"workflow_run-Quellworkflows in {doc} decken sich nicht mit dem "
+            f"Trigger: erwartet {sorted(expected)}, gefunden {[sorted(m) for m in segments]}"
+        )
