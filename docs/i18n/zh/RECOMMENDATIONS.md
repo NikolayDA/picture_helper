@@ -42,7 +42,7 @@
 | [#695](https://github.com/NikolayDA/picture_helper/issues/695) | 图层/选区/历史/项目集成 | 🟡 中 | 🟠 高（大量状态转换：撤销/重做、选区、脏状态） | Opus，高 | 阻塞 —— 等待 #693/#694 |
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
-| [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（测量已完成；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。此处保留：测量序列及其定性验收标准、置顶效果（`--edit-last`/`--create-if-none`）、提示结构（规则置于任务之后）、降权至 `actions: read`，以及作为第二层的 `Read` 路径规则（源自 PR #850 评审） |
+| [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（测量已完成；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。此处保留：测量序列及其定性验收标准、置顶效果（`--edit-last`/`--create-if-none`）、提示结构（规则置于任务之后）、移除 `actions: read`（该 action 自身是否需要它尚无实证），以及作为第二层的 `Read` 路径规则（源自 PR #850 评审） |
 
 ### 接下来推荐
 
