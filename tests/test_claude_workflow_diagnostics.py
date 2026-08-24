@@ -242,9 +242,19 @@ def _configured_max_turns(relative: str) -> int:
     #853-Review: Die Turn-Gegenüberstellung des Kopfblocks stand als Literal
     im Test – eine Budget-Änderung ließe den Kommentar still falsch werden.
     Abgeleitet aus der Datei prüft der Vergleich den echten Stand.
+
+    Verankert am ``claude_args: |``-Marker statt an einer festen Einrückung
+    (#855-Review): erst der Marker, dahinter ``--max-turns`` mit beliebiger
+    Einrückung – eine rein strukturelle YAML-Umstellung bricht den Test so
+    nicht grundlos. Dass die Suche bis Dateiende reicht, stört nicht: Keine
+    Zeile außerhalb des Blocks beginnt (nach Einrückung) mit ``--max-turns``,
+    und den Blockinhalt selbst sichert
+    ``test_claude_args_block_carries_only_arguments``.
     """
     text = (_ROOT / relative).read_text(encoding="utf-8")
-    match = re.search(r"(?m)^            --max-turns (\d+)$", text)
+    marker = re.search(r"(?m)^\s*claude_args: \|\s*$", text)
+    assert marker, f"{relative}: claude_args-Block nicht gefunden"
+    match = re.search(r"(?m)^\s*--max-turns (\d+)\s*$", text[marker.end():])
     assert match, f"{relative}: --max-turns im claude_args-Block nicht gefunden"
     return int(match.group(1))
 
