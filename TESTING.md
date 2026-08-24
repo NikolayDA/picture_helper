@@ -124,6 +124,15 @@ make all
 Alles grün ⇒ der Stand entspricht lokal den automatischen PR-Prüfungen;
 `make all` deckt zusätzlich die bewusst lokalen UI-Interaktionstests ab.
 
+<!-- Achtung Maschinenformat: Die beiden folgenden Absätze werden von
+tests/test_marker_governance.py geparst. Anker sind die Überschrift
+"## Die UI-Tests" samt Folgetext bis zum Satz "Nur diese `ui`-markierten
+Tests", die Wendung "Marker `ui_smoke`" samt Gedankenstrich bis zum Satz
+"Die meisten dieser Module" sowie die Aussage über die zwei Dateien, die
+"beide Marker" tragen. Jede in Backticks genannte test_*.py-Datei
+innerhalb dieser Spannen zählt als dokumentiert - bei Umformulierung dort
+die Anker nachziehen (gleiches Muster wie beim gl_smoke-Absatz unten,
+#847/#852). -->
 ## Die UI-Tests
 
 `tests/test_ui_interactions.py` enthält automatische, qtbot-gesteuerte
@@ -140,7 +149,8 @@ Marker `ui_smoke` – in `tests/test_workflow.py`,
 `tests/test_preview3d_acceptance.py`, `tests/test_screenshot3d.py`,
 `tests/test_ai_model_dialog.py`, `tests/test_ai_install_dialog.py`,
 `tests/test_eufymake_export_dialog.py`, `tests/test_acceptance_smoke.py`,
-`tests/test_e2e_release_regression.py` und `tests/test_ui_interactions.py`. Die meisten dieser Module tragen
+`tests/test_e2e_release_regression.py` und `tests/test_ui_interactions.py`.
+Die meisten dieser Module tragen
 **nur** `ui_smoke`, nicht zusätzlich `ui` – nur `test_ui_interactions.py`
 und `test_e2e_release_regression.py` tragen beide Marker.
 

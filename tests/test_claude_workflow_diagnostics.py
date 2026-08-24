@@ -222,13 +222,31 @@ def _token_cost_block(relative: str) -> str:
     """Den #828-Kopfblock (Token-Ablauf plus Kosten) herausschneiden.
 
     Er beginnt an seiner Kopfzeile und endet an der ersten Zeile, die kein
-    Kommentar mehr ist. Beide Workflows tragen ihn zeichengleich; alles davor
-    ist workflow-spezifisch und liegt vor dem Anker.
+    Kommentar mehr ist – eine Leerzeile eingeschlossen, denn ``[^#]`` matcht
+    auch deren Zeilenumbruch (#853-Review: der Anker läuft also nicht offen
+    bis zur nächsten Nicht-Kommentarzeile). Eine spätere workflow-spezifische
+    Kopfnotiz gehört deshalb durch eine Leerzeile getrennt HINTER den Block,
+    sonst fiele sie in den Zeichengleichheits-Vergleich. Beide Workflows
+    tragen den Block zeichengleich; alles davor ist workflow-spezifisch und
+    liegt vor dem Anker.
     """
     text = (_ROOT / relative).read_text(encoding="utf-8")
     match = re.search(r"(?ms)^# Token-Ablauf \(#828\):.*?(?=^[^#])", text)
     assert match, f"{relative}: #828-Kopfblock nicht gefunden"
     return match.group(0)
+
+
+def _configured_max_turns(relative: str) -> int:
+    """Das ``--max-turns``-Budget aus dem ``claude_args``-Block von *relative*.
+
+    #853-Review: Die Turn-Gegenüberstellung des Kopfblocks stand als Literal
+    im Test – eine Budget-Änderung ließe den Kommentar still falsch werden.
+    Abgeleitet aus der Datei prüft der Vergleich den echten Stand.
+    """
+    text = (_ROOT / relative).read_text(encoding="utf-8")
+    match = re.search(r"(?m)^            --max-turns (\d+)$", text)
+    assert match, f"{relative}: --max-turns im claude_args-Block nicht gefunden"
+    return int(match.group(1))
 
 
 def test_shared_comment_block_is_identical_in_both_workflows() -> None:
@@ -261,10 +279,20 @@ def test_token_cost_block_is_identical_in_both_workflows() -> None:
     assert "2027-08-18" in first, "Ablaufdatum fehlt im Block - Anker zu eng?"
     assert "Nutzungslimit" in first, "Kostenpassage fehlt im Block - Anker zu eng?"
     # Die Turn-Gegenüberstellung stand zunächst falsch herum im Block (25 als
-    # das größere Budget gegen 30). Der Vergleich gegen den echten Wert bleibt
-    # hier festgenagelt, damit die Korrektur nicht unbemerkt zurückgedreht wird.
-    assert "25 Turns gegen 30" in first, (
-        "Die Turn-Gegenüberstellung fehlt oder steht wieder falsch herum"
+    # das größere Budget gegen 30) und danach als Literal in diesem Test
+    # (#853-Review). Abgeleitet aus den echten `--max-turns`-Werten bleibt der
+    # Vergleich auch nach einer Budget-Änderung richtig; die Richtung – das
+    # Argument des Blocks hängt am kleineren claude.yml-Budget – wird gleich
+    # mitgeprüft.
+    interactive = _configured_max_turns(".github/workflows/claude.yml")
+    review = _configured_max_turns(_REVIEW_WORKFLOW)
+    assert interactive < review, (
+        "Der Kopfblock argumentiert mit dem kleineren claude.yml-Budget – "
+        "diese Richtung stimmt nicht mehr; Block und Test gemeinsam nachziehen"
+    )
+    assert f"{interactive} Turns gegen {review}" in first, (
+        "Die Turn-Gegenüberstellung fehlt, steht wieder falsch herum oder "
+        "nennt nicht mehr die konfigurierten Budgets"
     )
 
 
@@ -306,6 +334,37 @@ def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
     script = _step_by_name(_WORKFLOWS[0], _DIAGNOSTIC_NAME)["run"]
     assert "if ! denials=$(jq" in script, "jq-Fehler wird nicht abgefangen"
     assert "::warning::Protokoll nicht auswertbar" in script
+
+
+@pytest.mark.parametrize("relative", _WORKFLOWS)
+def test_diagnostic_pins_reason_output_and_unbestimmt_fallbacks(relative: str) -> None:
+    """#853-Review: Die drei neuen Zusicherungen hingen an keinem Test.
+
+    Taxonomie, agents-README und ISSUE-841-VERIFIKATION.md sagen seit #853 zu,
+    dass ein vorhandener Ablehnungsgrund im Klartext erscheint (``[Grund: …]``)
+    und ein nicht auswertbarer Abschlussdatensatz als „Lauf: unbestimmt"
+    gemeldet wird statt still (vorher ``|| true``). Der Identitätstest fängt
+    das nicht – er vergleicht nur beide Kopien miteinander, ein beidseitig
+    entfernter Zweig bliebe grün, während die Doku die Ausgabe weiter zusagt.
+    Textbasiert über ``_diagnostic_block``, damit die Anker auch ohne PyYAML
+    laufen – gleiches Muster wie
+    ``test_diagnostic_reports_unreadable_log_instead_of_zero``.
+    """
+    block = _diagnostic_block(relative)
+    assert 'if .reason != null then " [Grund: ' in block, (
+        f"{relative}: Der Klartext-Grund fehlt oder prüft wieder nur `has` – "
+        "ein explizites `null` stünde dann als `[Grund: null]` in der Zeile"
+    )
+    assert "if ! abschluss=$(jq" in block, (
+        f"{relative}: Der Abschlussdatensatz wird wieder ohne Fehlerpfad gelesen"
+    )
+    assert 'elif [ -z "$abschluss" ]' in block, (
+        f"{relative}: Ein Protokoll ohne Abschlussdatensatz fiele wieder still durch"
+    )
+    assert block.count('echo "Lauf: unbestimmt"') == 2, (
+        f"{relative}: Beide nicht auswertbaren Ausgänge müssen als "
+        "„Lauf: unbestimmt\" enden – das frühere `|| true` war still"
+    )
 
 
 @pytest.mark.parametrize("relative", _WORKFLOWS)
