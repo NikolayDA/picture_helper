@@ -340,10 +340,11 @@ def test_diagnostic_reports_unreadable_log_instead_of_zero() -> None:
 def test_diagnostic_pins_reason_output_and_unbestimmt_fallbacks(relative: str) -> None:
     """#853-Review: Die drei neuen Zusicherungen hingen an keinem Test.
 
-    Taxonomie, agents-README und ISSUE-841-VERIFIKATION.md sagen seit #853 zu,
-    dass ein vorhandener Ablehnungsgrund im Klartext erscheint (``[Grund: …]``)
-    und ein nicht auswertbarer Abschlussdatensatz als „Lauf: unbestimmt"
-    gemeldet wird statt still (vorher ``|| true``). Der Identitätstest fängt
+    Die Workflow-Taxonomie und ISSUE-841-VERIFIKATION.md (Punkt 5) sagen seit
+    #853 zu, dass ein vorhandener Ablehnungsgrund im Klartext erscheint
+    (``[Grund: …]``); dass ein nicht auswertbarer Abschlussdatensatz als
+    „Lauf: unbestimmt" gemeldet wird statt still (vorher ``|| true``), sagt
+    der Diagnoseschritt selbst zu. Der Identitätstest fängt
     das nicht – er vergleicht nur beide Kopien miteinander, ein beidseitig
     entfernter Zweig bliebe grün, während die Doku die Ausgabe weiter zusagt.
     Textbasiert über ``_diagnostic_block``, damit die Anker auch ohne PyYAML
