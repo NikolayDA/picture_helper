@@ -36,8 +36,12 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    eigene Messreihe und erzeugte Folge-PRs als Messvehikel — Belege und
    Entscheidung in
    [ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md).
-2. **Abschlussgrund.** Der Diagnoseschritt muss `Lauf: success,` melden. Ein
-   `error_max_turns` ist kein bestandener Lauf, auch nicht mit null Ablehnungen.
+2. **Abschlussgrund und Jobstatus.** Der Diagnoseschritt muss
+   `Lauf: success,` melden **und** der GitHub-Actions-Job muss mit `success`
+   enden. Ein `error_max_turns` oder ein roter Job ist kein bestandener Lauf,
+   auch nicht mit null Ablehnungen. Beleg für die zweite Hälfte ist Lauf
+   32777452835: Das Action-Ergebnis trug `subtype: success` und 29 Turns, der
+   Job wurde wegen des auf 25 gepinnten Turn-Deckels trotzdem korrekt rot.
 3. **Ablehnungszähler.** Der Diagnosezähler muss **0** sein. Geprüft wird
    vollzeilenverankert auf der **rohen Schrittausgabe**:
 
@@ -101,10 +105,11 @@ Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
 Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
-**Live-Abgleich vom 2026-08-24:** **0/10** zählbare Läufe. Der jüngste bei
-GitHub sichtbare Review-Lauf gehört zu PR #858; seit dessen Merge gab es noch
-keinen realen gewöhnlichen PR-Lauf. Dieser Nullstand ist kein Fehler und kein
-Anlass für einen künstlichen Mess-PR.
+**Live-Abgleich vom 2026-08-24:** **1/10** zählbare Läufe. PR #859 ist der
+erste reale gewöhnliche PR nach dem Startpunkt: Er ändert die Review-Mechanik
+nicht und ist kein Messvehikel. Sein erster Review-Lauf erfüllt alle Kriterien
+und zählt grün. Der nach den ersten Befunden regulär angeforderte Re-Review
+wird ebenfalls protokolliert, zählt wegen seines roten Jobstatus aber nicht.
 
 Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
 Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
@@ -113,7 +118,8 @@ erfüllt sind.
 
 | Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
 |---:|---:|---:|---|---|---:|---|---|
-| – | – | – | `62a3826` | – | – | Noch kein zählbarer Lauf | 0/10 |
+| 1 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32776206368](https://github.com/NikolayDA/picture_helper/actions/runs/32776206368) | `62a3826` | Job `success`; `success` (22 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| – | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32777452835](https://github.com/NikolayDA/picture_helper/actions/runs/32777452835) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und Inline-Befunde veröffentlicht | Nicht gezählt – Job rot |
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die

@@ -194,7 +194,7 @@ def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
     packaging_guide = _read(ROOT / "packaging" / "linux" / "README.md")
     deb_builder = _read(ROOT / "packaging" / "linux" / "build_deb.sh")
     assert "--appimage-extract-and-run" in packaging_guide
-    assert "libfuse2 | libfuse2t64" in deb_builder
+    assert re.search(r"libfuse2\s*\|\s*libfuse2t64", deb_builder)
 
     required_markers = (
         "libfuse.so.2",
@@ -206,8 +206,24 @@ def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
     )
     for path in _all_language_paths("INSTALL_LINUX.md"):
         text = _read(path)
-        for marker in required_markers:
-            assert marker in text, f"{path.relative_to(ROOT)} misses Linux prerequisite: {marker}"
+        quick_start_match = re.search(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)", text)
+        assert quick_start_match, f"{path.relative_to(ROOT)} has no quick-start section"
+        quick_start = quick_start_match.group(0)
+        missing_quick_start = [marker for marker in required_markers if marker not in quick_start]
+        assert not missing_quick_start, (
+            f"{path.relative_to(ROOT)} quick start misses Linux prerequisites: "
+            f"{missing_quick_start}"
+        )
+
+        matching_paragraphs = [
+            paragraph
+            for paragraph in text.split("\n\n")
+            if all(marker in paragraph for marker in required_markers)
+        ]
+        assert matching_paragraphs, (
+            f"{path.relative_to(ROOT)} must keep all distribution packages and "
+            "the fallback together in troubleshooting"
+        )
 
 
 def test_mac_install_docs_cover_prebuilt_dmg_scope() -> None:

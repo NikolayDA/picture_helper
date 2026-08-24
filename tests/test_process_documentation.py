@@ -71,8 +71,8 @@ def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
         "Die entfernte Konversationsauflösungs-Pflicht steht wieder als "
         "Merge-Sperre im Snapshot"
     )
-    assert "Soll-Stand" not in row, (
-        "Die abgeschlossene Live-Umstellung steht noch als Soll-Stand im Snapshot"
+    assert "Soll-Stand" not in snapshot, (
+        "Die abgeschlossene Live-Umstellung steht noch als Soll-Stand in der Doku"
     )
     assert "Übergangsfenster" not in snapshot, (
         "Die abgeschlossene Live-Umstellung steht noch als Übergangsfenster in der Doku"
