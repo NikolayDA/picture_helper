@@ -129,6 +129,12 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
     filenames = []
     for display in display_names:
         matches = by_name.get(display, [])
+        # Der leere Fall ist der wertvollste Fund: Der Anzeigename passt auf
+        # kein name:-Feld mehr, der Trigger feuert also nie wieder.
+        assert matches, (
+            f"Anzeigename {display!r} passt auf kein name:-Feld mehr – "
+            "der workflow_run-Einstieg würde nie wieder feuern"
+        )
         assert len(matches) == 1, (
             f"Anzeigename {display!r} nicht eindeutig auflösbar: {matches}"
         )
@@ -139,7 +145,9 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
     # Verglichen wird je Doku-Stelle der Aufzählungspunkt/Absatz um die
     # ``workflow_run``-Erwähnung; die Doku ist damit bewusst an die
     # Backtick-Schreibweise der Workflow-Dateinamen gebunden. Der
-    # Trigger-Workflow selbst zählt nicht als Quelle.
+    # Trigger-Workflow selbst zählt nicht als Quelle. Der GANZE Punkt zählt:
+    # Auch ein dort ergänzter, unbeteiligter Workflow-Verweis macht den Test
+    # rot – bewusst fail-closed; die Meldung stellt beide Mengen gegenüber.
     expected = set(filenames)
     for doc in ("docs/PROZESSE_UML.md", "TESTING.md", "CLAUDE.md"):
         text = (_ROOT / doc).read_text(encoding="utf-8")
