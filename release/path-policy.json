@@ -228,6 +228,14 @@
       "evidence": ["docs/RELEASE_PROCESS.md ist die kanonische Ablaufbeschreibung; kein Workflow liest das historische Protokoll als Eingabe"]
     },
     {
+      "id": "review-verschlankung-adr",
+      "kind": "exact",
+      "path": "docs/history/ADR-2026-review-workflow-verschlankung.md",
+      "sample_path": "docs/history/ADR-2026-review-workflow-verschlankung.md",
+      "reason": "ADR zur Verschlankung des Review-Workflows (Prompt, Prosa, Taxonomie, Turn-Budget); reine Entscheidungs-Historie, kein Code oder Test liest die Datei als Eingabe.",
+      "evidence": ["Nur Markdown-/Kommentar-Querverweise aus den Claude-Workflows, der agents-README und docs/history; kein open()/read_text() im Code"]
+    },
+    {
       "id": "reviewschleifen-adr",
       "kind": "exact",
       "path": "docs/history/ADR-2026-reviewschleifen-entschaerfung.md",

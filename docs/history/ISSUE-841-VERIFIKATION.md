@@ -62,8 +62,10 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    Ablehnung `tool_name`, die Feldliste (`[Felder: …]`), einen vorhandenen
    Ablehnungsgrund im Klartext (`[Grund: …]`, seit #853) und die ersten
    300 Zeichen des `tool_input` aus. Der Grund ist ein Hinweis, nicht die
-   Einteilung: L/A/N/S/P bleibt Handarbeit. Maßgeblich ist die Definition in
-   `.github/workflows/claude-code-review.yml`, nicht eine Zusammenfassung davon.
+   Einteilung: L/A/N/S/P/W bleibt Handarbeit. Maßgeblich ist seit der
+   Verschlankung die Definition in
+   [ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md),
+   nicht eine Zusammenfassung davon.
 
 ## Qualitative Hälfte (#828)
 
@@ -80,19 +82,24 @@ bewusst nicht maschinell prüfbare Bedingung (Punkt 4 verweist hierher):
 > ohne Befunde und ohne nachvollziehbare Prüfung zählt nicht als grün, sondern
 > gar nicht.
 
-Der Anlass ist konkret: Der Prompt in `.github/workflows/claude-code-review.yml`
-ist mit #850 von rund 40 auf über 100 Zeilen gewachsen, und der Zuwachs ist fast
-vollständig Werkzeug- und Formatgovernance. Der fachliche Auftrag steht
-unverändert in sechs Zeilen ganz oben. Anweisungen wirken auch über Umfang und
-Nachdrücklichkeit, und Regeln optimieren zuverlässig auf die Messgröße.
+Der Anlass war konkret: Der Prompt in `.github/workflows/claude-code-review.yml`
+war mit #850 von rund 40 auf über 100 Zeilen gewachsen, der Zuwachs fast
+vollständig Werkzeug- und Formatgovernance, während der fachliche Auftrag
+unverändert in sechs Zeilen ganz oben stand. Anweisungen wirken auch über
+Umfang und Nachdrücklichkeit, und Regeln optimieren zuverlässig auf die
+Messgröße. Mit der Verschlankung vom 2026-08-24
+([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md))
+ist der Prompt wieder auf den Auftrag reduziert.
 
 Die Go-/No-Go-Entscheidung ist ohnehin ein menschlicher Schritt; diese Bedingung
 verhindert nur, dass die Zahl allein den Ausschlag gibt.
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
-Lücke, gegen die dieses Dokument geschrieben ist. Bis die Messreihe steht und
-der Review-Prompt verschlankt ist, werden **keine weiteren Umbauten an der
+Lücke, gegen die dieses Dokument geschrieben ist. Die Prompt-Verschlankung ist
+am 2026-08-24 erfolgt
+([ADR-2026-review-workflow-verschlankung.md](ADR-2026-review-workflow-verschlankung.md));
+bis die Messreihe steht, werden **keine weiteren Umbauten an der
 Review-Mechanik** vorgenommen (Meta-Freeze, Begründung im
 [ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md)):
 Vom 22.–24.08.2026 waren acht von zehn gemergten PRs Änderungen am
