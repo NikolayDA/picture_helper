@@ -241,6 +241,11 @@ flowchart TD
   erforderlicher Branch-Protection-Status.
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
+- Die Raute prüft nur, ob das Secret vorhanden ist. Der andere Fehlerweg ist
+  seit #853 im Workflow-Kopf festgehalten: Ein vorhandenes, aber abgelaufenes
+  Token (Jahresfrist, das aktuelle bis 2027-08-18) oder ein erschöpftes
+  Nutzungslimit des Abos macht den Lauf rot, statt ihn zu überspringen — das
+  beobachtete Fehlerbild ist ein früher Abbruch ohne Modellnutzung.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
@@ -351,6 +356,11 @@ flowchart TD
   (montags 05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags 03:00 UTC).
+  `recommendations-live-check.yml` hat daneben einen ebenfalls nicht
+  gezeichneten `workflow_run`-Einstieg nach jedem Abschluss von
+  `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
+  Issues entstehen mit dem Standard-`GITHUB_TOKEN` und lösen deshalb selbst
+  kein `issues`-Ereignis für Folge-Workflows aus.
 - Ein roter `recommendations-live-check` gehört dem Repository-Owner und bleibt
   bis zur synchronen Korrektur aller sechs Fassungen aktiv. Der Workflow hat
   nur Leserechte; `--write` ändert lokale Dateien und braucht daher einen neuen
