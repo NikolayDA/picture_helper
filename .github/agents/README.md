@@ -83,74 +83,31 @@ beiden Ausgabewege sind offen), sondern die Prompt-Regel, dass Fremdinhalt
 Daten und keine Anweisung ist; `contents: read` verhindert nur den
 Code-Weg. Die benötigte Historie stellt der
 kontrollierte Checkout vor dem Agentenlauf bereit. Was bewusst draußen
-bleibt, steht als eine Aufzählung weiter unten in der Ablehnungs-Einteilung
-(#841) – hier absichtlich nicht wiederholt: Die Liste entscheidet über P statt
-L, und eine vierte Fundstelle wäre die vierte, die driften kann. Die
-zugehörigen Prompt- und Allowlist-Grenzen sind in
+bleibt (`git fetch`, lokale Testausführung, pauschales `gh api`, `gh run`,
+Edit/Write und alle Git-/Datei-Schreibbefehle), steht seit der Verschlankung
+als einzige Fundstelle im
+[ADR](../../docs/history/ADR-2026-review-workflow-verschlankung.md) – hier
+absichtlich nicht wiederholt: Die Liste entscheidet über P statt L, und jede
+weitere Kopie könnte driften. Die Allowlist- und Prompt-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
 
-Der Review-Job ist selbst kein Required Check; ein Inline-Befund verhindert
-wegen der Branch-Protection-Regel für offene Review-Konversationen trotzdem
-den Merge, bis die Konversation aufgelöst ist.
+Der Review-Job ist selbst kein Required Check und seit der
+Reviewschleifen-Entschärfung auch keine indirekte Merge-Sperre mehr:
+Review-Konversationen müssen für den Merge nicht aufgelöst werden; für den
+Umgang mit Befunden gilt die Konvergenzregel (CONTRIBUTING.md).
 
-Abgelehnte Aufrufe sind dabei nicht gleichwertig. Der Review-Workflow führt
-die Einteilung im Kommentarblock über dem `claude_args`-Block: **L** (lesende
-Ablehnung, die eine Erweiterung genau dieser Allowlist schließen könnte) darf
-nie vorkommen; tritt sie auf, ist sie die Lücke und gehört geschlossen. Zwei
-Zweige: eine Form, die die Allowlist decken sollte, wird abgelehnt, weil der
-Eintrag zu eng geschnitten ist – auch `WebFetch` auf eine der freigegebenen
-Domains gehört hierher –, oder eine lesende Abfrage, deren
-Information keine freigegebene Form liefert und die nicht unter „Bewusst nicht
-freigegeben" steht, wie `gh issue view` vor #850. Tragend ist beide Male die
-Erreichbarkeit, nicht die Form. **P geht L vor**, wenn die Enge nur die
-Parameter eines bereits freigegebenen Kommandos betrifft – symmetrisch zur
-Domain-Regel unten: Die konkrete Argumentform ist selbst eine dokumentierte
-Entscheidung. Ohne diesen Vorrang erfüllt `--max-count=200` beide
-Definitionen und der Prüfstein hinge an der Auslegung. Das endet, wo die
-Allowlist nicht mehr
-entscheidet: Liegt die Ursache außerhalb von `--allowedTools`, könnte keine
-Erweiterung sie schließen – das ist die eigene Klasse **W**. **A** (Ausführung),
-**N** (Netzzugriff auf eine **nicht** freigegebene Domain – **N geht L vor**,
-denn die Domain-Auswahl ist selbst eine dokumentierte
-Ausschlussentscheidung, obwohl eine weitere Domain wörtlich eine Erweiterung
-dieser Allowlist wäre),
-**S** (Schreibzugriff) und
-**P** (lesende Absicht in nicht freigegebener Form, etwa mit abweichenden
-Flags oder einer Pipe) sowie **W** (Ablehnung, deren Ursache außerhalb von
-`--allowedTools` liegt – ein für die Kommandoanalyse nicht parsebares Kommando
-(belegt: eine Argumentzeile, die mit `#` beginnt; die 10-000-Zeichen-Schwelle
-der Dokumentation gilt dem eingebauten Read-only-Satz und ist für einen
-allowlist-gedeckten Aufruf unbelegt – sie steht im Prompt nur als
-Vorsichtsmaß), oder eine Pfadregel für die ohne Pfadmuster freigegebenen
-`Read`/`Grep`/`Glob`)
-dürfen dagegen abgelehnt werden und rechtfertigen keine Erweiterung der
-Freigaben. Die Fix-Adresse unterscheidet sich aber: **A**, **N** und **S** sind
-erwartbar und gar kein Befund – dort wirkt die Konfiguration wie gewollt. Nur
-**P** und **W** sind ein Prompt-Befund. **W** ist bewusst eine eigene Klasse und
-nicht ein Zweig von P: Der belegte Fall – Lauf 32640784005 wies
-`gh pr comment` ab, weil eine Argumentzeile mit `#` begann – ist ein
-Schreibaufruf in freigegebener Form und erfüllt damit keines der beiden
-P-Merkmale. P setzt
-voraus, dass dieselbe Information über eine freigegebene Form erreichbar
-gewesen wäre – sonst ist die Ablehnung L, es sei denn, die Enge betrifft die
-**Parameter eines bereits freigegebenen Kommandos** (Tiefe, Commit-Bereich,
-Ausgabeumfang); dann bleibt es P. Ein gänzlich fehlendes Kommando fällt nie
-darunter – es sei denn, es steht im Workflow ausdrücklich unter „Bewusst
-nicht freigegeben" (`git fetch`, lokale Testausführung, pauschales `gh api`,
-`gh run` (Actions-Logs), Edit/Write und alle Git-/Datei-Schreibbefehle); eine
-dokumentierte Ausschlussentscheidung ist keine Lücke. Ohne den ersten Teil
-ließe sich jede unbequeme L-Ablehnung als P verbuchen; ohne den zweiten wäre
-jede gewollte Verengung per Definition eine Lücke. Prüfsteine:
-`--max-count=20` und `--max-count=200` sind beide P (die freigegebenen 30 sind
-gewollt), `gh issue view` war nie P. Genau eine
-Ausnahme von **S**: Die beiden Ausgabewege des Reviews – das
-Inline-Kommentar-Werkzeug und `gh pr comment` – sind selbst
-Remote-Schreibzugriffe; ihre Ablehnung **blockiert die Abnahme unabhängig von
-der Klasse**, sonst stünde der
-schlimmste Fall (Befund gefunden, Kommentar abgewiesen, PR ohne Review) als
-Normalfall im Joblog. Ohne diese Trennung ist ein grüner Lauf keine Aussage
-über die Werkzeuggrenze: Lauf 32600075322 meldete `Lauf: success` bei sechs
-Ablehnungen.
+Abgelehnte Aufrufe sind dabei nicht gleichwertig. Die verbindliche
+Einteilung (L/A/N/S/P/W samt Vorrang- und Abgrenzungsregeln) steht seit der
+Verschlankung an genau einer Stelle:
+[ADR-2026-review-workflow-verschlankung.md](../../docs/history/ADR-2026-review-workflow-verschlankung.md).
+Operativ tragend: **L** (eine lesende Ablehnung, die eine Erweiterung genau
+dieser Allowlist schließen könnte) darf nie vorkommen und gehört gefixt;
+**A**, **N**, **S**, **P** und **W** dürfen abgelehnt werden und
+rechtfertigen keine Erweiterung der Freigaben (P und W sind Prompt-Befunde).
+Eine Ablehnung auf einem der zwei Ausgabewege – Inline-Kommentar-Werkzeug
+oder `gh pr comment` – blockiert die Abnahme unabhängig von der Klasse, und
+ein grüner Lauf allein ist keine Aussage über die Werkzeuggrenze: Lauf
+32600075322 meldete `Lauf: success` bei sechs Ablehnungen.
 
 Für den interaktiven Agenten in `claude.yml` gilt diese Einteilung **nicht**.
 Er hat keine Allowlist, hält `contents: write` und soll Code schreiben,

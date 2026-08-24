@@ -617,8 +617,10 @@ Workflows unter `.github/workflows/` (16):
   Doku-Pfade ausgenommen) und ohne Merge-Sperre durch seine Konversationen.
   Es gilt die **Konvergenzregel**: höchstens zwei Bot-Review-Runden je PR,
   danach entscheidet ein Mensch gesammelt über die Befunde; Umbauten an der
-  Review-Mechanik sind bis zur Prompt-Verschlankung eingefroren (ADR
-  [`docs/history/ADR-2026-reviewschleifen-entschaerfung.md`](docs/history/ADR-2026-reviewschleifen-entschaerfung.md)).
+  Review-Mechanik sind bis zum Abschluss der Zehn-Läufe-Messung eingefroren
+  (ADRs [`docs/history/ADR-2026-reviewschleifen-entschaerfung.md`](docs/history/ADR-2026-reviewschleifen-entschaerfung.md)
+  und — Prompt-Verschlankung, Turn-Budget 20, Taxonomie kanonisch dort —
+  [`docs/history/ADR-2026-review-workflow-verschlankung.md`](docs/history/ADR-2026-review-workflow-verschlankung.md)).
   `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in
   [`.github/agents/README.md`](.github/agents/README.md).

@@ -15,30 +15,20 @@ name: Claude Code
 # übersprungen (kein roter Lauf).
 #
 # Token-Ablauf (#828): `claude setup-token` erzeugt ein Token mit einem Jahr
-# Gültigkeit. Das aktuelle stammt vom 2026-08-18 und läuft damit am
-# 2027-08-18 ab. Danach scheitern beide Claude-Workflows mit einem
-# Authentifizierungsfehler – rot, nicht still. Erneuern: lokal
-# `claude setup-token`, Ergebnis als Repo-Secret CLAUDE_CODE_OAUTH_TOKEN.
+# Gültigkeit; das aktuelle stammt vom 2026-08-18 und läuft am 2027-08-18 ab.
+# Danach scheitern beide Claude-Workflows rot mit Authentifizierungsfehler.
+# Erneuern: lokal `claude setup-token`, Ergebnis als Repo-Secret
+# CLAUDE_CODE_OAUTH_TOKEN.
 #
 # Kosten und Nutzungslimit (#828): Beide Workflows sind auf Opus gepinnt und
-# rechnen – bei Authentifizierung über `CLAUDE_CODE_OAUTH_TOKEN`, dem
-# Regelfall beider Workflows – über das persönliche Abo des Token-Inhabers;
-# unter der `ANTHROPIC_API_KEY`-Alternative gälte stattdessen die
-# API-Abrechnung. Ist das Limit
+# rechnen über das Abo des Token-Inhabers (unter der
+# `ANTHROPIC_API_KEY`-Alternative gälte die API-Abrechnung). Ist das Limit
 # erschöpft, wird der Lauf **rot**, nicht übersprungen; das beobachtete
 # Fehlerbild ist ein früher Abbruch ohne Modellnutzung (`subtype: success`
-# zusammen mit `is_error: true`, 0–1 Turns, 0 Ablehnungen – siehe Lauf
-# 32605664173). Muss zurückgedreht werden, ist `claude.yml` die erste Stelle
-# – aber NICHT wegen des Turn-Budgets: Dort stehen 25 Turns gegen 30 im
-# Review, die Zahl spricht also dagegen. Tragend ist, was ein Turn kostet und
-# wie oft er anfällt: Der interaktive Agent schreibt Code (lange Werkzeug-
-# ausgaben, ganze Dateien im Kontext), das Review bewertet nur einen Diff.
-# Dafür lief das Review bis zur Reviewschleifen-Entschärfung bei jedem
-# `opened`/`synchronize`; seither startet es je PR genau einmal (`opened`/
-# `ready_for_review`, Wiederholung nur über das Label `re-review`),
-# `claude.yml` nur auf ausdrückliche `@claude`-Erwähnung – die Häufigkeit
-# beider ist damit ähnlich niedrig. Vor dem Zurückdrehen also erst nachsehen,
-# welcher der beiden im fraglichen Zeitraum tatsächlich verbraucht hat.
+# zusammen mit `is_error: true`, 0–1 Turns — siehe Lauf 32605664173).
+# Das Review läuft je PR genau einmal (Wiederholung nur per Label
+# `re-review`, Doku-Pfade ausgenommen), `claude.yml` nur auf ausdrückliche
+# `@claude`-Erwähnung; Turn-Budgets: Review 20, interaktiv 25.
 
 on:
   issue_comment:
@@ -130,19 +120,14 @@ jobs:
       # interessanten Fälle als „normal" abstempeln. Bewusst ohne Aufzählung:
       # Eine ausgeschriebene Liste driftet mit jeder neuen Klasse.
 
-      # Abgelehnte Werkzeugaufrufe sichtbar machen (#825). Statt der vollen
-      # SDK-Ausgabe (`show_full_output`, weltlesbarer Joblog) wird gezielt nur
-      # `permission_denials` aus dem Protokoll der Action gezogen. Zweimal war
-      # genau das die entscheidende Information: Ein Agent, der eine Quelle
-      # nicht abrufen darf, rät stillschweigend statt nachzuschlagen, und
-      # abgelehnte Aufrufe verbrauchen zusätzlich Turns bis zum Budgetende.
-      # Der Block ist in beiden Claude-Workflows wortgleich;
+      # Abgelehnte Werkzeugaufrufe sichtbar machen (#825): gezielt nur
+      # `permission_denials` aus dem Action-Protokoll, nicht die volle
+      # SDK-Ausgabe (weltlesbarer Joblog). `continue-on-error`: Die Diagnose
+      # färbt einen grünen Lauf nie rot; das Gating hängt am
+      # Schritt-Ergebnis, denn bei frühem Abbruch (Auth, Limit) fehlt
+      # `execution_file` — genau dann wird die Diagnose gebraucht. Der Block
+      # ist in beiden Claude-Workflows wortgleich;
       # tests/test_claude_workflow_diagnostics.py hält ihn synchron.
-      # `continue-on-error`: Die Diagnose darf einen sonst grünen Lauf nie rot
-      # färben. Das Gating hängt am Schritt-Ergebnis statt am Output-Pfad –
-      # bricht die Action früh ab (Auth, Nutzungslimit, Modell nicht gedeckt),
-      # gibt es kein `execution_file`, und genau dann wird die Diagnose am
-      # dringendsten gebraucht.
       - name: Abgelehnte Werkzeugaufrufe ausweisen
         if: always() && steps.claude.outcome != 'skipped'
         continue-on-error: true
@@ -154,54 +139,13 @@ jobs:
             echo "Kein Protokoll unter '$EXECUTION_FILE' – nichts auszuwerten."
             exit 0
           fi
-          # Ein jq-Fehler darf nicht als "0 Ablehnungen" durchgehen: Das wäre im
-          # Log nicht vom sauberen Lauf zu unterscheiden – dieselbe Falle, die
-          # CLAUDE.md für den ClamAV-Scan ausschließt ("ein still übersprungener
-          # Scan gilt nie als bestanden"). Der Abschluss-Datensatz liegt je nach
-          # Ausgabeform verschieden tief; die rekursive Suche findet ihn so oder so.
-          # `keys` mitschreiben: Ob ein Ablehnungsdatensatz überhaupt ein
-          # `reason` führt, ist von außen unbelegt – die Feldliste beantwortet
-          # das im nächsten echten Lauf. Seit #828 wird ein vorhandenes
-          # `reason` zusätzlich im Klartext ausgegeben (`[Grund: …]`), nicht
-          # mehr nur sein Feldname: Ohne den Wert ließ sich die Klasse einer
-          # Ablehnung aus dem Joblog nicht bestimmen, obwohl sie im Protokoll
-          # stand. Geprüft wird `.reason != null` statt `has("reason")`: Ein
-          # explizites `null` trägt keinen Grund und stünde sonst als
-          # `[Grund: null]` in der Zeile – dass das Feld existiert, zeigt
-          # weiterhin die Feldliste (#853-Review).
-          # Der Wert ist Fremdinhalt und deshalb dreifach eingehegt –
-          # `tojson` (keine rohen Steuerzeichen), 200 Zeichen Deckel und das
-          # abschließende `gsub`, das die Zusicherung „genau eine Zeile je
-          # Ablehnung" auch über den neuen Teilausdruck hält. Die Klassenmarke
-          # steht weiterhin VOR ihm, der Zeilenanker bleibt also eindeutig.
-          # Die Typprüfung steht dabei VOR jedem Feldzugriff, nicht als
-          # `keys?`-Rückfall dahinter: `.tool_name` bricht auf jedem
-          # Nicht-Objekt außer `null` mit „Cannot index …" ab, bevor ein
-          # Rückfall überhaupt erreichbar wäre – nachgestellt mit einem
-          # String-Eintrag, Exit 5. Das ganze `jq` scheitert dann, der
-          # `if !`-Zweig meldet „nicht auswertbar" und der Lauf verliert die
-          # Ablehnungsliste vollständig. So bleibt der Rest der Liste erhalten
-          # und der kaputte Datensatz wird als solcher sichtbar.
-          # Die Typprüfung gilt für Container UND Elemente. `.permission_denials[]?`
-          # allein härte nur die Elemente: Ist das Feld selbst kein Array
-          # (String, Zahl, `null`), schluckt `[]?` den Fehler, `jq` läuft
-          # durch, `count` wird 0 und der Joblog meldet „Abgelehnte Aufrufe:
-          # 0" — der stille Durchlauf, den dieser Schritt gerade ausschließen
-          # soll. Nachgestellt mit beiden Formen. Jetzt steht dort eine
-          # eigene Zeile, die den Typ nennt; count wird 1 statt 0.
-          # Das abschließende `gsub` macht „genau eine Ausgabezeile je
-          # Ablehnung" strukturell wahr, statt pro Feld: `tool_name` und die
-          # Feldnamen gehen roh in die Interpolation, und ein Zeilenumbruch
-          # darin ist in JSON zulässig – nachgestellt, `count` sprang auf 2.
-          # So hängt die Zusicherung nicht daran, dass jeder künftige
-          # Feldzugriff daran denkt.
-          # `tojson` statt `tostring`: Auf einem String ist `tostring` die
-          # Identität, ein mehrzeiliger Datensatz erzeugte also mehrere
-          # Ausgabezeilen – und `count` zählt direkt darunter mit `wc -l`.
-          # Nachgestellt: ein dreizeiliger String meldete „Abgelehnte
-          # Aufrufe: 4" statt 2. Dieselbe Falle wie beim verworfenen
-          # `permission_denials_count`-Fallback: eine Zahl, die nicht zur
-          # Liste passt. Auf Objekten sind beide identisch.
+          # Fail-sichtbar statt still: Ein jq-Fehler wird als Warnung
+          # gemeldet, nie als "0 Ablehnungen" gebucht. Container- UND
+          # Element-Typprüfung; `tojson` + Zeichen-Deckel + `gsub` erzwingen
+          # genau eine Zeile je Ablehnung; die Klassenmarke steht am
+          # Zeilenanfang, ausgewertet wird nur zeilenverankert. Herleitung
+          # aller Invarianten:
+          # docs/history/ADR-2026-review-workflow-verschlankung.md.
           if ! denials=$(jq -r '.. | objects | select(has("permission_denials"))
                                 | if (.permission_denials | type) == "array"
                                   then .permission_denials[]
@@ -218,47 +162,15 @@ jobs:
             echo "::warning::Protokoll nicht auswertbar – abgelehnte Aufrufe unbekannt."
             exit 0
           fi
-          # Anzahl aus der Liste selbst zählen: `permission_denials_count` steht
-          # in einem anderen Datensatz als `permission_denials`, ein Fallback
-          # darauf meldete sonst "0" neben einer nicht leeren Liste.
-          # Anomalien zählen getrennt, und die Klasse steht als ERSTES FELD
-          # der Zeile – beide Zweige tragen eine Marke. Am Präfix allein
-          # ließe sie sich nicht ablesen: Ohne Marke beginnt eine reguläre
-          # Zeile mit dem rohen `tool_name`, und ein `tool_name`, der mit
-          # `[ANOMALIE] ` anfängt, liefe in die falsche Zahl – und zwar in
-          # die, an der die Auswertung hängt. Heute kein realer Fund
-          # (der Name kommt aus dem SDK), aber dieselbe Sorte Annahme, die
-          # `tojson` und `gsub` oben gerade ablegen.
-          # `has("permission_denials")` ist auch für ein explizites `null`
-          # wahr, und `null` wird bewusst als Anomalie gebucht statt als
-          # „keine Ablehnungen": Beobachtet ist nur der Array-Fall, und die
-          # Gleichsetzung mit `[]` wäre die gefährlichere Wette. EHRLICH
-          # GESAGT heißt das: Träfe die Action diese Serialisierung je,
-          # meldete JEDER Lauf „unbestimmt" plus Warnung, und jede Auswertung
-          # dieser Zahl stünde still, bis der Fall entschieden ist. Die getrennte
-          # Zählung verhindert das nicht – sie macht es nur sichtbar statt
-          # still, und genau das ist hier der Zweck.
+          # Anzahl aus der Liste selbst; Anomalien getrennt gezählt
+          # (nicht leere Liste ergibt nie "0").
           count=0
           anomalien=0
           if [ -n "$denials" ]; then
             gesamt=$(printf '%s\n' "$denials" | wc -l | tr -d ' ')
             count=$(printf '%s\n' "$denials" | grep -c '^\[ABLEHNUNG\] ' || true)
-            # Der Rest ist per Definition nicht auswertbar – die
-            # `[ANOMALIE]`-Zeilen ebenso wie eine künftig unmarkierte. Nur so
-            # bleibt die Invariante „nicht leere Liste ⇒ nie 0" bestehen, die
-            # vorher das reine `wc -l` trug: Zwei Marken zu zählen ließe eine
-            # dritte Zeilenart durch beide Zahlen fallen, meldete „Abgelehnte
-            # Aufrufe: 0" und unterdrückte zugleich die Liste, an der man es
-            # hätte sehen können. Heute schließt die jq-Konstruktion das aus –
-            # genau die Annahme, die `tojson`, `gsub` und die Klassenmarke
-            # eine Ebene tiefer gerade ablegen.
             anomalien=$(( gesamt - count ))
           fi
-          # Der `if !`-Zweig hier ist Defense-in-depth und praktisch
-          # unerreichbar: Ein nicht parsebares Protokoll endet oben schon am
-          # ersten `jq` (Warnung + exit 0). Er fängt nur Fehler dieses Filters
-          # selbst und hält die Zusage „nie still" auch bei Umbauten
-          # (#853-Review).
           if ! abschluss=$(jq -r '.. | objects | select(has("num_turns"))
                  | "Lauf: \(.subtype // "?"), Turns: \(.num_turns)"' \
             "$EXECUTION_FILE"); then
@@ -270,23 +182,7 @@ jobs:
           else
             printf '%s\n' "$abschluss"
           fi
-          # Wortlaut und Reihenfolge: Bei ausschließlich Anomalien stand hier
-          # zuerst wörtlich „Abgelehnte Aufrufe: 0" – genau die Zeichenkette,
-          # nach der beim Auswerten gesucht wird. Sie behauptete
-          # etwas, das der Schritt nicht wissen kann: Die Liste ist
-          # *unbekannt*, nicht leer. Ist etwas nicht auswertbar, nennt die
-          # Zeile deshalb keine Zahl, die als Urteil gelesen werden könnte –
-          # auch nicht als Teilkette. Der saubere Fall bleibt unverändert.
-          # ZEILENANKER BEIM AUSWERTEN: Diese Zusage gilt der Kopfzeile, nicht
-          # den Belegzeilen darunter. Die tragen bis zu 300 Zeichen
-          # `tool_input`, und der wahrscheinlichste abgelehnte Aufruf hier ist
-          # ein `gh pr comment` mit einer Zusammenfassung, die die
-          # Diagnoseausgabe zitiert. Nachgestellt: Kopfzeile „Abgelehnte
-          # Aufrufe: 1", Belegzeile enthält „Abgelehnte Aufrufe: 0" – eine
-          # Teilkettensuche läse den Lauf als sauber, ausgerechnet im
-          # teuersten Fall. Beide Zweige tragen eine `jq`-gesetzte Marke am
-          # Zeilenanfang, ein Vergleich mit Anker ist also eindeutig:
-          # `grep -c '^Abgelehnte Aufrufe: 0$'`, nie eine Teilkettensuche.
+          # Nicht Auswertbares nennt keine Zahl, die als Urteil lesbar wäre.
           if [ "$anomalien" -gt 0 ]; then
             echo "::warning::Nicht auswertbare Datensätze: $anomalien"
             echo "Abgelehnte Aufrufe: unbestimmt ($count auswertbar, $anomalien nicht auswertbar)"
