@@ -128,7 +128,9 @@ jobs:
 
             Werkzeuggrenze (vollständige Begründung im ADR
             docs/history/ADR-2026-review-workflow-verschlankung.md).
-            Lesend erlaubt sind Read, Grep, Glob; `gh pr diff <nr>`,
+            Ein Bash-Aufruf trägt genau ein freigegebenes Kommando — keine
+            Pipes, Umleitungen oder Verkettungen (belegt abgewiesener Fall,
+            kostet sonst einen Turn). Lesend erlaubt sind Read, Grep, Glob; `gh pr diff <nr>`,
             `gh pr view <nr>`, `gh pr view <nr> --json statusCheckRollup`
             (nur so liefert `gh pr view` den CI-Stand), `gh pr list`;
             `gh issue view <nummer>` für höchstens die ersten zwei im
@@ -136,7 +138,7 @@ jobs:
             `--comments`); WebFetch auf docs.claude.com, code.claude.com,
             platform.claude.com, docs.anthropic.com, docs.github.com und
             raw.githubusercontent.com; sowie genau diese Git-Formen, ohne
-            weitere Flags, Pfade, Pipes, Umleitungen oder Verkettungen:
+            weitere Flags oder Pfade:
             - `git status --short`
             - `git show-ref --head`
             - `git log --oneline --decorate --max-count=30 HEAD`
@@ -145,8 +147,10 @@ jobs:
             - `git show --stat --oneline HEAD`
             - `git show --format=fuller --no-patch HEAD`
             Alle `gh`-Aufrufe gelten diesem Repository: nie `-R`/`--repo`,
-            nie eine URL, und die PR-Nummer immer explizit angeben (der
-            Checkout ist ein Detached HEAD). Ausführung (Tests, Linter,
+            nie eine URL. Bei `gh pr diff`, `gh pr view`, `gh pr comment`
+            und `gh issue view` die Nummer immer explizit angeben (der
+            Checkout ist ein Detached HEAD); `gh pr list` nimmt dagegen
+            keine Nummer, nur Filter-Flags. Ausführung (Tests, Linter,
             `python -c`, Shell-Filter), Netzzugriff außerhalb der Domains,
             `git fetch`, pauschales `gh api`, `gh run` (Actions-Logs) und
             jeder Schreibzugriff außer deinen zwei Ausgabewegen sind

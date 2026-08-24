@@ -230,6 +230,15 @@ def test_review_job_carries_the_cost_bounds() -> None:
         f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
     )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
+    # Der geteilte #828-Block nennt BEIDE Budgets („Review 20, interaktiv
+    # 25") — also beide pinnen, sonst kann die wortgleich gepinnte Aussage
+    # falsch werden (Review-Befund auf PR #858).
+    interactive = [
+        a for a in _claude_args(_INTERACTIVE_WORKFLOW) if a.startswith("--max-turns")
+    ]
+    assert interactive == ["--max-turns 25"], (
+        f"Interaktives Turn-Budget weicht vom #828-Block ab: {interactive!r}"
+    )
 
 
 @pytest.mark.parametrize("relative", _WORKFLOWS)
