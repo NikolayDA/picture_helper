@@ -105,11 +105,13 @@ Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
 Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
-**Live-Abgleich vom 2026-08-24:** **1/10** zählbare Läufe. PR #859 ist der
-erste reale gewöhnliche PR nach dem Startpunkt: Er ändert die Review-Mechanik
-nicht und ist kein Messvehikel. Sein erster Review-Lauf erfüllt alle Kriterien
-und zählt grün. Der nach den ersten Befunden regulär angeforderte Re-Review
-wird ebenfalls protokolliert, zählt wegen seines roten Jobstatus aber nicht.
+**Live-Abgleich vom 2026-08-24:** **0/10** abschließend protokollierte Läufe.
+PR #859 initialisiert diese Tabelle, deshalb werden seine eigenen Review-Läufe
+hier noch nicht ausgewertet: Andernfalls würde jeder neue Lauf einen weiteren
+Commit im gerade gemessenen PR erzwingen und die Messung auf ihren eigenen
+Nachtrag zurückkoppeln. Die Läufe eines PRs werden erst nach dessen Merge oder
+Schließung in einem getrennten Nachtrag bewertet. Das verschiebt ihre
+Auswertung, verwirft sie aber nicht.
 
 Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
 Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
@@ -118,8 +120,7 @@ erfüllt sind.
 
 | Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
 |---:|---:|---:|---|---|---:|---|---|
-| 1 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32776206368](https://github.com/NikolayDA/picture_helper/actions/runs/32776206368) | `62a3826` | Job `success`; `success` (22 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
-| – | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32777452835](https://github.com/NikolayDA/picture_helper/actions/runs/32777452835) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und Inline-Befunde veröffentlicht | Nicht gezählt – Job rot |
+| – | – | – | – | Noch kein Lauf nach Abschluss seines Quell-PRs ausgewertet | – | – | 0/10 |
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die

@@ -33,10 +33,20 @@ _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 _SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
+_H2_SECTION_RE = re.compile(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)")
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _h2_sections_containing(text: str, *markers: str) -> list[str]:
+    """Liefert H2-Abschnitte, die alle stabilen Inhaltsanker enthalten."""
+    return [
+        match.group(0)
+        for match in _H2_SECTION_RE.finditer(text)
+        if all(marker in match.group(0) for marker in markers)
+    ]
 
 
 def _without_fenced_code(text: str) -> str:
@@ -206,23 +216,34 @@ def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
     )
     for path in _all_language_paths("INSTALL_LINUX.md"):
         text = _read(path)
-        quick_start_match = re.search(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)", text)
-        assert quick_start_match, f"{path.relative_to(ROOT)} has no quick-start section"
-        quick_start = quick_start_match.group(0)
+        quick_start_sections = _h2_sections_containing(
+            text,
+            "chmod +x BgRemover-*-linux-x86_64-ai.AppImage",
+            "sudo apt install ./BgRemover-*-linux-x86_64-ai.deb",
+        )
+        assert len(quick_start_sections) == 1, (
+            f"{path.relative_to(ROOT)} must have exactly one release-artifact "
+            "quick-start section"
+        )
+        quick_start = quick_start_sections[0]
         missing_quick_start = [marker for marker in required_markers if marker not in quick_start]
         assert not missing_quick_start, (
             f"{path.relative_to(ROOT)} quick start misses Linux prerequisites: "
             f"{missing_quick_start}"
         )
 
-        matching_paragraphs = [
-            paragraph
-            for paragraph in text.split("\n\n")
-            if all(marker in paragraph for marker in required_markers)
+        troubleshooting_sections = _h2_sections_containing(text, "dlopen", "libfuse.so.2")
+        assert len(troubleshooting_sections) == 1, (
+            f"{path.relative_to(ROOT)} must have exactly one troubleshooting "
+            "section for the libfuse.so.2 dlopen error"
+        )
+        troubleshooting = troubleshooting_sections[0]
+        missing_troubleshooting = [
+            marker for marker in required_markers if marker not in troubleshooting
         ]
-        assert matching_paragraphs, (
-            f"{path.relative_to(ROOT)} must keep all distribution packages and "
-            "the fallback together in troubleshooting"
+        assert not missing_troubleshooting, (
+            f"{path.relative_to(ROOT)} troubleshooting misses Linux prerequisites: "
+            f"{missing_troubleshooting}"
         )
 
 
