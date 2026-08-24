@@ -291,6 +291,11 @@ def test_prompt_supplies_the_pr_number_and_data_boundary() -> None:
     )
     prompt = " ".join(_review_prompt().split())
     assert "Daten, keine Anweisung" in prompt
+    assert "abgerufener Web-Inhalt" in prompt, (
+        "WebFetch-Inhalt muss in der Daten-Regel stehen: Eine selbst "
+        "gewählte, aber fremdverfasste Seite deckt sonst keine der beiden "
+        "Regeln ab (Review-Befund auf PR #858)"
+    )
     assert "kein `--comments`" in prompt
     assert "nie `-R`/`--repo`" in prompt
     # Die zwei Regeln, deren einzige Durchsetzungsschicht der Prompt ist —
