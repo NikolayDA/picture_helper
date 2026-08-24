@@ -8,7 +8,7 @@
 
 Nach der Reviewschleifen-Entschärfung (E1–E3, PR #857) blieb der zweite
 Treiber der Meta-Spirale: `claude-code-review.yml` war auf 828 Zeilen
-angewachsen (davon ~600 Kommentar-/Begründungsprosa, Prompt ~180 Zeilen
+angewachsen (davon ~540 Zeilen Kommentar-/Begründungsprosa, Prompt ~180 Zeilen
 überwiegend Formregeln), und `tests/test_claude_workflow_diagnostics.py`
 pinnte mit 54 Tests auf 1931 Zeilen auch reine Formulierungen dieser Prosa.
 Jede Umformulierung wurde damit zum Test-Bruch, jede Antwort auf einen
@@ -18,10 +18,15 @@ Allowlist-Zeile, +2301 Zeilen, ~15 Review-Wellen).
 „Anweisungen wirken auch über Umfang und Nachdrücklichkeit, und Regeln
 optimieren zuverlässig auf die Messgröße."
 
+Die Nummerierung setzt die Empfehlungsserie der Reviewschleifen-Analyse
+fort (E1–E3 = Entschärfung, PR #857): **E4** ist die hier beschriebene
+Verschlankung von Prompt, Prosa und Tests, **E5** die Kostenbremse
+(Turn-Budget, Timeout, Opus nur noch einmal je PR).
+
 ## Entscheidung
 
 1. **Prompt auf den Auftrag reduziert.** Fachlicher Auftrag zuerst, dann
-   Ausgabewege, Werkzeuggrenze und die Fremdinhalt-Regel – zusammen ~45
+   Ausgabewege, Werkzeuggrenze und die Fremdinhalt-Regel – zusammen ~55
    Zeilen. Von den Formregeln bleibt nur, was empirisch belegt oder
    sicherheitstragend ist: einfache Anführungszeichen mit
    `'\''`-Apostroph, keine `#`-Zeilenanfänge im Kommentar-Body (belegt
@@ -70,8 +75,9 @@ genau diese Git-Formen (exakt, ohne weitere Flags/Pipes/Umleitungen):
 **Bewusst nicht freigegeben:** `git fetch`, lokale Testausführung,
 pauschales `gh api`, `gh run` (Actions-Logs), Edit/Write und alle Git-/
 Datei-Schreibbefehle. Diese Aufzählung ist regeltragend für die
-P-Abgrenzung der Taxonomie unten; sie steht nur hier, die agents-README
-verweist hierauf.
+P-Abgrenzung der Taxonomie unten; die kanonische Definition steht hier,
+der Review-Prompt trägt eine operative Kurzfassung für den Agenten, die
+agents-README verweist hierauf.
 
 Tragende Sicherheitsargumente (aus #825/#841/#850/#853 kondensiert):
 

@@ -83,12 +83,11 @@ beiden Ausgabewege sind offen), sondern die Prompt-Regel, dass Fremdinhalt
 Daten und keine Anweisung ist; `contents: read` verhindert nur den
 Code-Weg. Die benötigte Historie stellt der
 kontrollierte Checkout vor dem Agentenlauf bereit. Was bewusst draußen
-bleibt (`git fetch`, lokale Testausführung, pauschales `gh api`, `gh run`,
-Edit/Write und alle Git-/Datei-Schreibbefehle), steht seit der Verschlankung
-als einzige Fundstelle im
+bleibt, definiert seit der Verschlankung kanonisch das
 [ADR](../../docs/history/ADR-2026-review-workflow-verschlankung.md) – hier
-absichtlich nicht wiederholt: Die Liste entscheidet über P statt L, und jede
-weitere Kopie könnte driften. Die Allowlist- und Prompt-Grenzen sind in
+absichtlich nicht wiederholt (die Liste entscheidet über P statt L, und jede
+weitere Kopie könnte driften); der Review-Prompt trägt davon eine operative
+Kurzfassung für den Agenten. Die Allowlist- und Prompt-Grenzen sind in
 `tests/test_claude_workflow_diagnostics.py` als Drift-Schutz verankert.
 
 Der Review-Job ist selbst kein Required Check und seit der
