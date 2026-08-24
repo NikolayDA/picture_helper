@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 _ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -78,25 +80,26 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
     Workflow-Dateien auf Dateinamen abgebildet; jede Doku-Stelle muss alle
     Quellworkflows im Umfeld ihrer ``workflow_run``-Erwähnung nennen
     (Muster wie N6/gl_smoke: Listenkopie ohne Abgleich driftet still).
+
+    ``yaml`` ist keine deklarierte Projekt-Abhängigkeit, aber im Test-Env
+    vorhanden – fehlt es, wird nur dieser Test übersprungen.
     """
-    workflow_dir = _ROOT / ".github/workflows"
-    trigger = (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
-    block = re.search(
-        r"(?ms)^  workflow_run:\n\s*workflows:\s*\[(?P<names>[^\]]*)\]", trigger
+    yaml = pytest.importorskip("yaml")
+    workflow_dir = _ROOT / ".github" / "workflows"
+    workflow_files = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
+    trigger_doc = yaml.safe_load(
+        (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
     )
-    assert block, "workflow_run-Trigger in recommendations-live-check.yml nicht gefunden"
-    display_names = re.findall(r'"([^"]+)"', block.group("names"))
+    # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``.
+    display_names = trigger_doc[True]["workflow_run"]["workflows"]
     assert display_names, "workflow_run-Trigger ohne Workflow-Namen"
 
     filenames = []
     for display in display_names:
         matches = [
             path.name
-            for path in sorted(workflow_dir.glob("*.yml"))
-            if re.search(
-                rf"(?m)^name:\s*{re.escape(display)}\s*$",
-                path.read_text(encoding="utf-8"),
-            )
+            for path in workflow_files
+            if yaml.safe_load(path.read_text(encoding="utf-8")).get("name") == display
         ]
         assert len(matches) == 1, (
             f"Anzeigename {display!r} nicht eindeutig auflösbar: {matches}"
