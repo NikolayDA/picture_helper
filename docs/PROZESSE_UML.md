@@ -246,8 +246,9 @@ flowchart TD
   abgelaufenes Token (`claude setup-token` erzeugt ein Jahr Gültigkeit; der
   konkrete Stichtag steht drift-geschützt in beiden Workflow-Köpfen) oder ein
   erschöpftes Nutzungslimit des Abos macht den Lauf rot, statt ihn zu
-  überspringen — das beobachtete Fehlerbild ist ein früher Abbruch ohne
-  Modellnutzung.
+  überspringen. Belegt ist das Fehlerbild nur für den Limitfall (früher
+  Abbruch ohne Modellnutzung); der Ablauffall wäre ein
+  Authentifizierungsfehler.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
