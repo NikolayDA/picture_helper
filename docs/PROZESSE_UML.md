@@ -242,10 +242,12 @@ flowchart TD
 - Das Review kommentiert nur; es hat weder Schreibrechte auf den Code noch
   blockiert es den Merge. Das erledigen die Pflicht-Checks.
 - Die Raute prüft nur, ob das Secret vorhanden ist. Der andere Fehlerweg ist
-  seit #853 im Workflow-Kopf festgehalten: Ein vorhandenes, aber abgelaufenes
-  Token (Jahresfrist, das aktuelle bis 2027-08-18) oder ein erschöpftes
-  Nutzungslimit des Abos macht den Lauf rot, statt ihn zu überspringen — das
-  beobachtete Fehlerbild ist ein früher Abbruch ohne Modellnutzung.
+  seit #828 (PR #853) im Workflow-Kopf festgehalten: Ein vorhandenes, aber
+  abgelaufenes Token (`claude setup-token` erzeugt ein Jahr Gültigkeit; der
+  konkrete Stichtag steht drift-geschützt in beiden Workflow-Köpfen) oder ein
+  erschöpftes Nutzungslimit des Abos macht den Lauf rot, statt ihn zu
+  überspringen — das beobachtete Fehlerbild ist ein früher Abbruch ohne
+  Modellnutzung.
 - `claude.yml` ist ein eigener, hier nicht gezeichneter Pfad: Er reagiert auf
   `@claude`-Erwähnungen in Issues, PRs und Reviews und darf im Gegensatz zum
   Review-Workflow schreiben. Seine mit dem Standard-`GITHUB_TOKEN` erzeugten
@@ -356,8 +358,8 @@ flowchart TD
   (montags 05:17 UTC),
   `recommendations-live-check.yml` (täglich 06:30 UTC),
   `clamav-db-refresh.yml` (montags 03:00 UTC).
-  `recommendations-live-check.yml` hat daneben einen ebenfalls nicht
-  gezeichneten `workflow_run`-Einstieg nach jedem Abschluss von
+- Ebenfalls nicht gezeichnet ist der `workflow_run`-Einstieg von
+  `recommendations-live-check.yml` nach jedem Abschluss von
   `codex-security-scan.yml` und `benchmark.yml`: Deren automatisch eröffnete
   Issues entstehen mit dem Standard-`GITHUB_TOKEN` und lösen deshalb selbst
   kein `issues`-Ereignis für Folge-Workflows aus.

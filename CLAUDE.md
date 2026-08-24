@@ -591,7 +591,8 @@ Workflows unter `.github/workflows/` (16):
   *Artefakt-Sicherheitsscan* unten). Modell/Begründung:
   ADR [`docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md`](docs/history/ADR-2026-codeql-codex-sicherheitsmodell.md).
 - **Doku:** `recommendations-live-check.yml` (#777) — täglich (06:30 UTC), bei
-  jedem `issues`-Ereignis (opened/closed/reopened) und manuell:
+  jedem `issues`-Ereignis (opened/closed/reopened), nach jedem Abschluss von
+  `codex-security-scan.yml`/`benchmark.yml` (`workflow_run`) und manuell:
   `scripts/recommendations_live_check.py` gegen den echten GitHub-Live-Stand,
   schlägt bei Drift sichtbar fehl und sichert Bericht, Owner und Reaktionsweg
   in der Job-Zusammenfassung sowie 30 Tage als Artefakt. Ein roter Lauf gehört
