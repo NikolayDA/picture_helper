@@ -198,8 +198,8 @@ def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
 
     required_markers = (
         "libfuse.so.2",
-        "libfuse2",
-        "libfuse2t64",
+        "`libfuse2`",
+        "`libfuse2t64`",
         "--appimage-extract-and-run",
     )
     for path in _all_language_paths("INSTALL_LINUX.md"):
@@ -216,8 +216,15 @@ def test_mac_install_docs_cover_prebuilt_dmg_scope() -> None:
     required_markers = ("macOS 11", "Big Sur", "arm64", "Intel", ".dmg")
     for path in _all_language_paths("INSTALL_MAC.md"):
         text = _read(path)
-        for marker in required_markers:
-            assert marker in text, f"{path.relative_to(ROOT)} misses macOS scope: {marker}"
+        matching_paragraphs = [
+            paragraph
+            for paragraph in text.split("\n\n")
+            if all(marker in paragraph for marker in required_markers)
+        ]
+        assert matching_paragraphs, (
+            f"{path.relative_to(ROOT)} must keep the macOS version, architecture, "
+            "and Intel boundary together in the prebuilt-DMG paragraph"
+        )
 
 
 def test_i18n_docs_match_canonical_structure() -> None:
