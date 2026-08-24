@@ -106,19 +106,30 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
         )
         filenames.append(matches[0])
 
-    window = 600
+    # Mengenvergleich statt Teilmengenprüfung: So fällt auch ein aus dem
+    # Trigger ENTFERNTER Quellworkflow auf, den die Doku noch behauptet.
+    # Verglichen wird je Doku-Stelle der Aufzählungspunkt/Absatz um die
+    # ``workflow_run``-Erwähnung; die Doku ist damit bewusst an die
+    # Backtick-Schreibweise der Workflow-Dateinamen gebunden. Der
+    # Trigger-Workflow selbst zählt nicht als Quelle.
+    expected = set(filenames)
     for doc in ("docs/PROZESSE_UML.md", "TESTING.md", "CLAUDE.md"):
         text = (_ROOT / doc).read_text(encoding="utf-8")
         anchors = [match.start() for match in re.finditer(r"`workflow_run`", text)]
         assert anchors, f"{doc} erwähnt den workflow_run-Einstieg nicht"
-        covered = any(
-            all(
-                f"`{filename}`" in text[max(0, anchor - window) : anchor + window]
-                for filename in filenames
-            )
-            for anchor in anchors
-        )
-        assert covered, (
-            f"workflow_run-Quellworkflows fehlen im Umfeld der Erwähnung in {doc}: "
-            f"{filenames}"
+        segments = []
+        for anchor in anchors:
+            start = max(text.rfind("\n- ", 0, anchor), text.rfind("\n\n", 0, anchor), 0)
+            ends = [pos for pos in (text.find("\n- ", anchor), text.find("\n\n", anchor)) if pos != -1]
+            segment = text[start : min(ends) if ends else len(text)]
+            mentioned = {
+                name
+                for name in re.findall(r"`([A-Za-z0-9_.-]+\.ya?ml)`", segment)
+                if (workflow_dir / name).is_file()
+            }
+            mentioned.discard("recommendations-live-check.yml")
+            segments.append(mentioned)
+        assert any(mentioned == expected for mentioned in segments), (
+            f"workflow_run-Quellworkflows in {doc} decken sich nicht mit dem "
+            f"Trigger: erwartet {sorted(expected)}, gefunden {[sorted(m) for m in segments]}"
         )

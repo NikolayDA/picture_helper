@@ -300,8 +300,8 @@ GitHub-Stand widerspiegeln.
   reopened), nach jedem Abschluss von `codex-security-scan.yml` und
   `benchmark.yml` (`workflow_run`; deren mit dem Standard-`GITHUB_TOKEN`
   eröffnete Issues lösen selbst kein `issues`-Ereignis aus) und manuell per
-  `workflow_dispatch`. Der Job schlägt sichtbar
-  fehl, sobald `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
+  `workflow_dispatch`. Der Job schlägt sichtbar fehl, sobald
+  `RECOMMENDATIONS.md` vom echten GitHub-Stand abweicht. Das
   manuelle Nachziehen allein hatte den Drift in #669/#728/#752 mehrfach und
   in #777 sogar zweimal am selben Tag reproduziert; die wiederkehrende
   Ausführung schließt genau diese Lücke. Unabhängig vom Exit-Status sichert
