@@ -46,7 +46,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 ### Recommandé ensuite
 
-1. **#828** – mesurer passivement les critères qualitatifs et quantitatifs définis sur neuf autres revues réelles admissibles ; critères et procédure dans [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md).
+1. **#828** – mesurer passivement les critères qualitatifs et quantitatifs définis sur sept autres revues réelles ; critères et procédure dans [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md).
 2. **#692** (ADR) ouvre l'épopée COLOR #682.
 3. Dès que le matériel Studio/imprimante est disponible : exécuter en une seule session groupée
    les tests réels déjà préparés de #687 (reste, notamment I-06), #688, #689 et #690 – fixtures,
@@ -54,6 +54,7 @@ En cours : une ligne par ticket dans le tableau de triage ci-dessous. Depuis #82
 
 ## Tours précédents
 
+- **2026-08-25 (#856 terminé, mesure #828 à 3/10)** — [PR #859](https://github.com/NikolayDA/picture_helper/pull/859) a ajouté les prérequis FUSE et macOS aux six guides ; la [PR #860](https://github.com/NikolayDA/picture_helper/pull/860) de suivi retire la ligne de triage ouverte et ferme [#856](https://github.com/NikolayDA/picture_helper/issues/856) de façon synchronisée. Les trois revues de #859 occupent les trois premières places de l'échantillon fixe de dix exécutions : une verte et deux rouges au plafond de tours ; sept exécutions réelles restent à observer.
 - **2026-08-22 (audit complet des tickets ouverts, PR #842 revérifiée)** — Le générateur a retiré #837 après PR #838 et ajouté #839/#841 aux six langues ; les 18 tickets ouverts ont été vérifiés contre `main` et évalués. PR #842 ne change aucun périmètre produit ou matériel, mais reconfirme #841 avec une autre exécution (`error_max_turns`, 31 tours, 9 refus) et précise allowlist/prompt avec `git show-ref` et des limites explicites contre fetch, tests locaux et détours génériques `gh api`. #836 couvre six guides plus PDF, #694 Standard/Expert et #687 reflète 16/18 critères. Aucune nouvelle version. Décompte 18.
 - **2026-08-20 (dérive de #837 corrigée, étape 1 de #828 évaluée)** — État en direct de GitHub à nouveau 17 tickets ouverts, mais #826/#827/#829 sont clôturés via PR #831/#833/#834 et trois nouveaux (#832, #836, #837) ont été ajoutés ; `scripts/recommendations_live_check.py --write` a réécrit les tableaux de triage des six versions linguistiques, les trois nouvelles lignes ont été évaluées à la main. L'observation de l'étape 1 de #828 (3/3 exécutions sur la PR #830) est terminée : l'hypothèse initiale est réfutée, l'étape 2 (garde-fou de prompt) est recommandée. Aucune nouvelle version requise (uniquement des PR de documentation/gouvernance depuis v2.8.0). Décompte en direct 17.
 
