@@ -5,14 +5,7 @@ from pathlib import Path
 from scripts import recommendations_live_check as lc
 
 ROOT = Path(__file__).resolve().parent.parent
-#: Pfade und Sprachanker kommen aus ``recommendations_live_check`` — CLAUDE.md
-#: nennt sie als einzige Quelle, und ``test_recommendations_freeze_consistency``
-#: leitet sie ebenso ab. Eine zweite, handgepflegte Liste hier hätte eine
-#: siebte Sprachfassung still übergangen, obwohl ``--write`` deren Tabelle
-#: mitschreibt — genau die Drift, gegen die diese Tests antreten.
-RECOMMENDATION_DOCS = {
-    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
-}
+RECOMMENDATION_DOCS = lc.recommendation_doc_paths(ROOT)
 ARCHIVE_DOCS = {
     "de": ROOT / "docs/history/RECOMMENDATIONS-2026-pre-v2.2.md",
     "en": ROOT / "docs/history/RECOMMENDATIONS-2026-pre-v2.2.en.md",

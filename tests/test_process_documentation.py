@@ -49,11 +49,11 @@ def test_required_status_name_matches_pr_ci_job() -> None:
 def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
     """Der manuelle Live-Snapshot darf nicht nur den Status-Check kopieren.
 
-    Der authentifizierte Abgleich vom 23.08.2026 ergab zusätzlich
+    Der authentifizierte Abgleich vom 24.08.2026 ergab zusätzlich
     ``required_status_checks.strict == true`` und null erforderliche
     Approvals. Die Konversationsauflösungs-Pflicht ist mit der
     Reviewschleifen-Entschärfung (ADR-2026-reviewschleifen-entschaerfung)
-    aus der Branch Protection entfernt; der Snapshot muss diesen Soll-Stand
+    aus der Branch Protection entfernt; der Snapshot muss diesen Live-Stand
     ausdrücklich benennen, statt die alte Sperre weiter zu behaupten – und
     Tabelle wie Diagramm dürfen den `strict`-Mergepfad nicht verlieren.
     """
@@ -70,6 +70,12 @@ def test_branch_protection_snapshot_covers_all_live_merge_gates() -> None:
     assert "müssen aufgelöst sein" not in row, (
         "Die entfernte Konversationsauflösungs-Pflicht steht wieder als "
         "Merge-Sperre im Snapshot"
+    )
+    assert "Soll-Stand" not in row, (
+        "Die abgeschlossene Live-Umstellung steht noch als Soll-Stand im Snapshot"
+    )
+    assert "Übergangsfenster" not in snapshot, (
+        "Die abgeschlossene Live-Umstellung steht noch als Übergangsfenster in der Doku"
     )
 
     assert 'RQ3{"Branch aktuell zu main?"}' in snapshot

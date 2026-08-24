@@ -23,21 +23,14 @@ Diagramm ist der Fehler.
 
 Die folgenden Repository-Einstellungen sind **Live-Konfiguration**, nicht Teil
 des versionierten Codes (manuell und authentifiziert geprüft am 22. August
-2026; vollständig nachgeprüft am 23. August 2026). Dieser Snapshot hat noch
-keinen automatischen Drift-Test und muss bei Änderungen in den
-GitHub-Einstellungen erneut abgeglichen werden.
-
-**Soll-Stand seit dem 24. August 2026** (Reviewschleifen-Entschärfung,
-[ADR](history/ADR-2026-reviewschleifen-entschaerfung.md)): Die
-Konversationsauflösungs-Pflicht („Require conversation resolution before
-merging") wird aus der Branch Protection entfernt. Der Repository-Owner
-stellt das beim Übernehmen dieser Änderung unter *Settings → Branches* um;
-bis dahin weicht die Live-Konfiguration in genau diesem Punkt von der
-folgenden Tabelle ab:
+2026; vollständig nachgeprüft und auf den Stand der Reviewschleifen-
+Entschärfung umgestellt am 24. August 2026). Dieser Snapshot hat noch keinen
+automatischen Drift-Test und muss bei Änderungen in den GitHub-Einstellungen
+erneut abgeglichen werden.
 
 | Einstellung | Aktueller Stand | Bedeutung für die Diagramme |
 |---|---|---|
-| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre (Konversationsauflösungs-Pflicht mit der Reviewschleifen-Entschärfung entfernt; **Soll-Stand** – bis zur Live-Umstellung durch den Owner, ADR Abschnitt *Aktivierung*, erzwingt GitHub die alte Pflicht ggf. noch); kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
+| Branch Protection für `main` | einziger erforderlicher Status: `Lightweight PR checks`; Branch muss aktuell zu `main` sein (`strict`); Review-Konversationen sind keine Merge-Sperre (Konversationsauflösungs-Pflicht am 24.08.2026 entfernt); kein formales Approval erforderlich; für Admins nicht erzwungen | Weitere Checks, Review-Kommentare und ein `APPROVED`-Review sind keine technischen Merge-Sperren, ein veralteter Branch oder ein roter Pflichtstatus dagegen schon |
 | Merge-Methoden | Merge-Commit, Squash und Rebase sind erlaubt | Squash ist die gelebte Projektkonvention, nicht die einzige von GitHub erlaubte Methode |
 | Auto-Merge | deaktiviert | Die Merge-Entscheidung erfolgt manuell |
 | Branch nach Merge automatisch löschen | deaktiviert | Das Löschen eines Feature-Branches ist ein optionaler manueller Schritt |
@@ -381,10 +374,6 @@ flowchart TD
   Branch (`strict`); Review-Konversationen sperren den Merge nicht mehr.
   Maintainer müssen Befunde deshalb bewusst bewerten; die technische
   Durchsetzung ist im [GitHub-Rahmen](#aktueller-github-rahmen) festgehalten.
-- Übergangsfenster: Bis der Owner die Konversationsauflösungs-Pflicht in den
-  Live-Einstellungen entfernt hat (ADR, Abschnitt *Aktivierung*), kann GitHub
-  am `RQ3`-Gate zusätzlich noch offene Review-Konversationen anmahnen; der
-  Ausweg ist dann das manuelle Auflösen der Threads.
 - Nicht gezeichnet sind reine Zeitplan-Einstiege beziehungsweise zusätzliche
   Zeitplan-Läufe neben den gezeichneten Ereignispfaden:
   `ui-nightly.yml` (täglich 03:00 UTC), `ci.yml` (sonntags, volle Matrix),

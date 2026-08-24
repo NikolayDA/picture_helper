@@ -14,6 +14,10 @@ laden. Für Apple Silicon (arm64) gibt es `BgRemover-<Version>-macos-arm64-ai.dm
 (der Dateiname nennt Plattform und Architektur); die KI-Hintergrundentfernung
 ist bereits eingebaut — erkennbar am `-ai`-Suffix, wie bei den Linux-Artefakten.
 
+Das fertige `.dmg` unterstützt ausschließlich **Apple Silicon (arm64)** und
+benötigt **macOS 11 (Big Sur) oder neuer**. Ein Intel-`.dmg` wird derzeit nicht
+gebaut; Intel-Macs nutzen den Quellbuild-Weg weiter unten.
+
 1. `.dmg` öffnen und `BgRemover.app` in den Ordner **Programme** ziehen.
 2. Beim **ersten** Start per **Rechtsklick → „Öffnen"** bestätigen – das Bundle
    ist noch nicht von Apple signiert/notarisiert, daher warnt Gatekeeper sonst
@@ -30,7 +34,8 @@ Anpassungen), folgt den Abschnitten unten.
 
 ## Voraussetzungen
 
-- **macOS**
+- **macOS** — für das fertige `.dmg`: macOS 11 (Big Sur) oder neuer und
+  Apple Silicon (arm64)
 - **Python 3.10 oder neuer** — prüfen mit:
   ```bash
   python3 --version

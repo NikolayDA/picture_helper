@@ -619,7 +619,7 @@ Workflows unter `.github/workflows/` (16):
   danach entscheidet ein Mensch gesammelt über die Befunde; Umbauten an der
   Review-Mechanik sind bis zum Abschluss der Zehn-Läufe-Messung eingefroren
   (ADRs [`docs/history/ADR-2026-reviewschleifen-entschaerfung.md`](docs/history/ADR-2026-reviewschleifen-entschaerfung.md)
-  und — Prompt-Verschlankung, Turn-Budget 20, Taxonomie kanonisch dort —
+  und — Prompt-Verschlankung, Turn-Budget 25, Taxonomie kanonisch dort —
   [`docs/history/ADR-2026-review-workflow-verschlankung.md`](docs/history/ADR-2026-review-workflow-verschlankung.md)).
   `.github/agents/` hält die Agent-Konfigurationen (Code Review,
   Bug Fix, Documentation, Test, Performance; #547/#548), Details in

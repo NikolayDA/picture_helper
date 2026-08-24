@@ -124,6 +124,11 @@ def _translated_doc_paths() -> list[Path]:
     return [I18N_ROOT / language / name for language in LANGUAGES for name in DOC_NAMES]
 
 
+def _all_language_paths(name: str) -> list[Path]:
+    """Return the canonical German file followed by all translations."""
+    return [ROOT / name, *(I18N_ROOT / language / name for language in LANGUAGES)]
+
+
 def test_i18n_expected_docs_exist() -> None:
     for name in DOC_NAMES:
         assert (ROOT / name).is_file(), f"missing canonical documentation source: {name}"
@@ -183,6 +188,36 @@ def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
         assert (path.parent / target).resolve().is_file(), (
             f"{path.relative_to(ROOT)} links to a missing 3D screenshot: {target}"
         )
+
+
+def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
+    packaging_guide = _read(ROOT / "packaging" / "linux" / "README.md")
+    deb_builder = _read(ROOT / "packaging" / "linux" / "build_deb.sh")
+    assert "--appimage-extract-and-run" in packaging_guide
+    assert "libfuse2 | libfuse2t64" in deb_builder
+
+    required_markers = (
+        "libfuse.so.2",
+        "libfuse2",
+        "libfuse2t64",
+        "--appimage-extract-and-run",
+    )
+    for path in _all_language_paths("INSTALL_LINUX.md"):
+        text = _read(path)
+        for marker in required_markers:
+            assert marker in text, f"{path.relative_to(ROOT)} misses Linux prerequisite: {marker}"
+
+
+def test_mac_install_docs_cover_prebuilt_dmg_scope() -> None:
+    packaging_guide = _read(ROOT / "packaging" / "mac" / "README.md")
+    assert "macOS 11" in packaging_guide
+    assert "arm64-only" in packaging_guide
+
+    required_markers = ("macOS 11", "Big Sur", "arm64", "Intel", ".dmg")
+    for path in _all_language_paths("INSTALL_MAC.md"):
+        text = _read(path)
+        for marker in required_markers:
+            assert marker in text, f"{path.relative_to(ROOT)} misses macOS scope: {marker}"
 
 
 def test_i18n_docs_match_canonical_structure() -> None:

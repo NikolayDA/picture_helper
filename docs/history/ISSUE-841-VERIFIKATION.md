@@ -94,6 +94,27 @@ ist der Prompt wieder auf den Auftrag reduziert.
 Die Go-/No-Go-Entscheidung ist ohnehin ein menschlicher Schritt; diese Bedingung
 verhindert nur, dass die Zahl allein den Ausschlag gibt.
 
+## Messprotokoll für #828
+
+**Startpunkt:** finaler Konfigurationsstand aus PR #858, Merge-Commit `62a3826`.
+Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
+Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
+Punkt 1 sind.
+
+**Live-Abgleich vom 2026-08-24:** **0/10** zählbare Läufe. Der jüngste bei
+GitHub sichtbare Review-Lauf gehört zu PR #858; seit dessen Merge gab es noch
+keinen realen gewöhnlichen PR-Lauf. Dieser Nullstand ist kein Fehler und kein
+Anlass für einen künstlichen Mess-PR.
+
+Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
+Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
+`grün`, wenn Abschlussgrund, Ablehnungszähler und qualitative Hälfte gemeinsam
+erfüllt sind.
+
+| Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
+|---:|---:|---:|---|---|---:|---|---|
+| – | – | – | `62a3826` | – | – | Noch kein zählbarer Lauf | 0/10 |
+
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
 Lücke, gegen die dieses Dokument geschrieben ist. Die Prompt-Verschlankung ist
