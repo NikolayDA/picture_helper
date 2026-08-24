@@ -366,14 +366,26 @@ def test_diagnostic_pins_reason_output_and_unbestimmt_fallbacks(relative: str) -
         f"{relative}: Der Klartext-Grund fehlt oder prüft wieder nur `has` – "
         "ein explizites `null` stünde dann als `[Grund: null]` in der Zeile"
     )
+    # Auch die Feldliste ist eine Punkt-5-Zusage aus ISSUE-841-VERIFIKATION.md
+    # (#855-Review): Sie ist älter als #853, aber die Doku-Zeile, die sie
+    # verspricht, entsteht in diesem PR – ohne Anker bliebe ein beidseitig
+    # entfernter Teilausdruck grün, während Punkt 5 ihn weiter zusagt.
+    assert '[Felder: \\(keys | join(","))]' in block, (
+        f"{relative}: Die Feldliste fehlt – ISSUE-841-VERIFIKATION.md Punkt 5 "
+        "sagt sie je Ablehnung zu"
+    )
     assert "if ! abschluss=$(jq" in block, (
         f"{relative}: Der Abschlussdatensatz wird wieder ohne Fehlerpfad gelesen"
     )
     assert 'elif [ -z "$abschluss" ]' in block, (
         f"{relative}: Ein Protokoll ohne Abschlussdatensatz fiele wieder still durch"
     )
+    # Genau zwei, weil der Diagnoseschritt heute genau zwei nicht auswertbare
+    # Ausgänge kennt (jq-Fehler und leerer Abschlussdatensatz); kommt ein
+    # dritter dazu, Zahl UND Meldung mitziehen – gleiches Aritätsmuster wie
+    # ``_BOTH_MARKERS_RE`` in ``tests/test_marker_governance.py`` (#855-Review).
     assert block.count('echo "Lauf: unbestimmt"') == 2, (
-        f"{relative}: Beide nicht auswertbaren Ausgänge müssen als "
+        f"{relative}: Jeder nicht auswertbare Ausgang muss als "
         "„Lauf: unbestimmt\" enden – das frühere `|| true` war still"
     )
 
