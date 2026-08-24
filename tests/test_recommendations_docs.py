@@ -128,7 +128,7 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
         # Ab first + 1, also inklusive Trennzeile: Stimmt deren Spaltenzahl
         # nicht mit dem Kopf ueberein, erkennt GFM den Block gar nicht erst
         # als Tabelle und zeigt rohes "| … |" - derselbe Schaden, nur groesser.
-        for row in lines[first + 1 : last + 1]:
+        for offset, row in enumerate(lines[first + 1 : last + 1]):
             actual = len(lc.cells(row))
             if actual == columns:
                 continue
@@ -136,11 +136,18 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
             # Zellen heißt „unmaskiertes Pipe, GFM verwirft den Rest", zu wenige
             # heißt „Spalte fehlt". Für die Trennzeile gilt in *beiden*
             # Richtungen die härtere Folge — GFM erkennt den Block dann gar
-            # nicht als Tabelle. Eine Meldung für alles schickt einen Teil der
-            # Fälle in die Irre.
-            separator = " (Trennzeile: GFM rendert dann gar keine Tabelle)"
-            is_separator = row is lines[first + 1]
-            if actual > columns:
+            # nicht als Tabelle —, deshalb ERSETZT ihre Meldung die
+            # Richtungsdiagnose, statt neben einer irreführenden zu stehen
+            # (#852-Review). Erkannt wird sie über die Position statt über
+            # `row is lines[first + 1]` — die Absicht „erste Zeile nach dem
+            # Kopf" steht damit direkt im Code statt in geteilter
+            # Slice-Referenzidentität.
+            if offset == 0:
+                reason = (
+                    "die Trennzeile passt nicht zum Kopf; GFM erkennt den "
+                    "Block dann gar nicht als Tabelle."
+                )
+            elif actual > columns:
                 reason = (
                     "ein unmaskiertes `|` in einer Zelle; GFM verwirft alles "
                     "danach. Als `\\|` schreiben."
@@ -149,8 +156,7 @@ def test_triage_rows_have_exactly_the_header_column_count() -> None:
                 reason = "eine Spalte fehlt; GFM füllt sie still leer auf."
             excerpt = row[:80] + ("…" if len(row) > 80 else "")
             raise AssertionError(
-                f"{lang}: {actual} Zellen statt {columns} — {reason}"
-                f"{separator if is_separator else ''} Zeile: {excerpt}"
+                f"{lang}: {actual} Zellen statt {columns} — {reason} Zeile: {excerpt}"
             )
 
 

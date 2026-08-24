@@ -47,21 +47,24 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    Zeilen tragen einen Zeitstempel-Präfix — dort vorher abschneiden.
 4. **Ein Nullwert genügt nicht.** Kommandofehler erzeugen keinen
    `permission_denials`-Eintrag. Fünf solcher stillen Ausgänge sind in #841
-   tabelliert. Zweite Bedingung: Der Lauf muss auch tatsächlich etwas
-   veröffentlicht haben — mindestens eine Zusammenfassung als PR-Kommentar.
-5. **Klasse je Ablehnung von Hand notieren.** Der Diagnoseschritt gibt nur
-   `tool_name` und die ersten 300 Zeichen aus; die Einteilung L/A/N/S/P ist
-   daraus nicht maschinell rekonstruierbar. Maßgeblich ist die Definition in
+   tabelliert. Deshalb gilt zusätzlich die qualitative Bedingung unten: Der
+   Lauf muss tatsächlich etwas veröffentlicht haben (Wortlaut dort, nicht
+   hier doppelt).
+5. **Klasse je Ablehnung von Hand notieren.** Der Diagnoseschritt gibt je
+   Ablehnung `tool_name`, die Feldliste (`[Felder: …]`), einen vorhandenen
+   Ablehnungsgrund im Klartext (`[Grund: …]`, seit #853) und die ersten
+   300 Zeichen des `tool_input` aus. Der Grund ist ein Hinweis, nicht die
+   Einteilung: L/A/N/S/P bleibt Handarbeit. Maßgeblich ist die Definition in
    `.github/workflows/claude-code-review.yml`, nicht eine Zusammenfassung davon.
 
 ## Qualitative Hälfte (#828)
 
-Die vier Punkte oben messen **Ablehnungen**, der Zweck des Jobs ist aber ein
+Die fünf Punkte oben messen **Ablehnungen**, der Zweck des Jobs ist aber ein
 gutes Review. Ein Lauf mit `Abgelehnte Aufrufe: 0` und einer inhaltsarmen
 Zusammenfassung erfüllt sie formal — der Diagnoseschritt zählt, was abgewiesen
 wurde, nie was geleistet wurde. Deshalb aus
-[#828](https://github.com/NikolayDA/picture_helper/issues/828) als fünfte,
-bewusst nicht maschinell prüfbare Bedingung:
+[#828](https://github.com/NikolayDA/picture_helper/issues/828) als sechste,
+bewusst nicht maschinell prüfbare Bedingung (Punkt 4 verweist hierher):
 
 > Ein Lauf zählt nur, wenn er auch etwas geliefert hat: mindestens eine
 > Zusammenfassung als PR-Kommentar mit konkretem Bezug zum Diff, und
