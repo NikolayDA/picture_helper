@@ -105,13 +105,12 @@ Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
 Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
 Punkt 1 sind.
 
-**Live-Abgleich vom 2026-08-24:** **0/10** abschließend protokollierte Läufe.
-PR #859 initialisiert diese Tabelle, deshalb werden seine eigenen Review-Läufe
-hier noch nicht ausgewertet: Andernfalls würde jeder neue Lauf einen weiteren
-Commit im gerade gemessenen PR erzwingen und die Messung auf ihren eigenen
-Nachtrag zurückkoppeln. Die Läufe eines PRs werden erst nach dessen Merge oder
-Schließung in einem getrennten Nachtrag bewertet. Das verschiebt ihre
-Auswertung, verwirft sie aber nicht.
+**Live-Abgleich vom 2026-08-24:** **1/10** qualifizierende Läufe. PR #859 ist
+gemergt; seine drei Review-Läufe können deshalb ohne Rückkopplung auf den
+gemessenen PR ausgewertet werden. Der erste Lauf erfüllt alle Kriterien und
+zählt. Beide ausdrücklich angeforderten Re-Reviews veröffentlichten ebenfalls
+konkrete Befunde, ihre Jobs endeten wegen 29 beziehungsweise 30 Turns über dem
+Deckel von 25 aber rot und zählen deshalb nicht.
 
 Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
 Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
@@ -120,7 +119,9 @@ erfüllt sind.
 
 | Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
 |---:|---:|---:|---|---|---:|---|---|
-| – | – | – | – | Noch kein Lauf nach Abschluss seines Quell-PRs ausgewertet | – | – | 0/10 |
+| 1 | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32776206368](https://github.com/NikolayDA/picture_helper/actions/runs/32776206368) | `62a3826` | Job `success`; `success` (22 Turns) | 0 | Erfüllt – konkrete Zusammenfassung und zwei Inline-Befunde veröffentlicht | Grün |
+| – | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32777452835](https://github.com/NikolayDA/picture_helper/actions/runs/32777452835) | `62a3826` | Job `failure`; Action-Result `success` (29 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und Inline-Befunde veröffentlicht | Nicht gezählt – Job rot |
+| – | [#859](https://github.com/NikolayDA/picture_helper/pull/859) | [32779114518](https://github.com/NikolayDA/picture_helper/actions/runs/32779114518) | `62a3826` | Job `failure`; Action-Result `success` (30 Turns) über Deckel 25 | 0 | Erfüllt – konkrete Zusammenfassung und vier Inline-Befunde veröffentlicht | Nicht gezählt – Job rot |
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die

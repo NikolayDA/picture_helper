@@ -43,14 +43,12 @@ Open items: one row per issue in the triage table below. Neither the count nor t
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | Performance/E2E/docs/laser-interface acceptance | 🟡 Medium (closeout gate, not a new feature) | 🟠 High (benchmark suite, E2E, docs, adapter contract) | Opus, high | Blocked – closeout issue after #695 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | Restore OpenAI quota for the manual Codex security check | 🟢 Low (blocks only an optional manual scan) | 🟢 Low (purely operational, no code) | – (no agent; repo owner: billing) | Blocked (external) – the last run (29233060507, 2026-07-13) proves no successful scan; billing/quota still unresolved |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | Review automation after #825: assess turn-budget aborts and decide tool scope | 🟡 Medium (CI cost/reliability of automated review, not product-critical) | 🟡 Medium (passive measurement; several separate automation questions) | – (umbrella tracker) | Allowlist/prompt fix (PR #850) and operations follow-up (PR #853: cost/token expiry documented, `issues: read`, reason output, one canonical taxonomy) are merged; #841 was closed without the measurement series, criteria in docs/history/ISSUE-841-VERIFIKATION.md. Since the review-loop de-escalation (2026-08-24, docs/history/ADR-2026-reviewschleifen-entschaerfung.md): the measurement series runs passively over the next ten real review runs without being reset by config fixes, the sticky effect is moot thanks to the one-review-per-PR trigger; the prompt slimming happened on 2026-08-24 (docs/history/ADR-2026-review-workflow-verschlankung.md: prompt ~55 lines, turn budget and timeout capped (values in the ADR), prose and taxonomy moved into the ADR), and the remaining mechanics work (removing `actions: read`, `Read` path rule) stays frozen until the ten-run measurement completes |
-| [#856](https://github.com/NikolayDA/picture_helper/issues/856) | Installation guides: add FUSE and macOS prerequisites | 🟢 Low (prevents avoidable installation failures; documentation only) | 🟢 Low (additive notes in six language versions) | Sonnet, low | In progress – the FUSE fallback and macOS 11+/arm64 boundary are present in all six versions and guarded by documentation tests; after this merge, remove the triage row in a follow-up PR that closes #856 |
 
 ### Recommended Next
 
-1. **#856** – merge the added installation notes; then use a follow-up PR to remove the triage row and close the issue in sync.
-2. **#828** – passively measure the defined qualitative and quantitative acceptance criteria over the next ten real review runs; criteria and procedure are in [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md).
-3. **#692** (ADR) opens the COLOR epic #682.
-4. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
+1. **#828** – passively measure the defined qualitative and quantitative acceptance criteria over nine more qualifying real review runs; criteria and procedure are in [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md).
+2. **#692** (ADR) opens the COLOR epic #682.
+3. Once Studio/printer hardware is available: run the already-prepared real-world tests from #687
    (remainder, especially I-06), #688, #689, and #690 in one bundled session – fixtures, protocol
    templates, and approved abort criteria are already fully in place.
 

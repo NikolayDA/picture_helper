@@ -43,14 +43,12 @@
 | [#696](https://github.com/NikolayDA/picture_helper/issues/696) | 性能/E2E/文档/激光接口验收 | 🟡 中（收尾关卡，非新功能） | 🟠 高（基准测试套件、E2E、文档、适配器契约） | Opus，高 | 阻塞 —— #695 完成后的收尾议题 |
 | [#245](https://github.com/NikolayDA/picture_helper/issues/245) | 为手动 Codex 安全检查恢复 OpenAI 配额 | 🟢 低（仅阻塞一次可选的手动扫描） | 🟢 低（纯运维性质，无代码） | –（无需 Agent；由仓库所有者处理账单） | 阻塞（外部）—— 最近一次运行（29233060507，2026-07-13）并未证明扫描成功；账单/配额仍未解决 |
 | [#828](https://github.com/NikolayDA/picture_helper/issues/828) | #825 后的评审自动化：评估回合预算中断并决定工具范围 | 🟡 中（自动评审的 CI 成本/可靠性，非产品关键） | 🟡 中（被动测量；仍有多个独立问题） | –（上层跟踪议题） | allowlist/提示修复（PR #850）与运维补齐（PR #853：成本/令牌过期已记录、`issues: read`、原因输出、单一权威分类）均已合并；#841 在未进行测量序列的情况下关闭，判据见 docs/history/ISSUE-841-VERIFIKATION.md。自评审循环降级（2026-08-24，docs/history/ADR-2026-reviewschleifen-entschaerfung.md）起：测量序列在接下来的十次真实评审运行中被动进行，不因配置修复而重置；得益于每个 PR 仅一次评审的触发器，置顶问题已不复存在；提示精简已于 2026-08-24 完成（docs/history/ADR-2026-review-workflow-verschlankung.md：提示约 55 行、回合预算与超时设上限（数值见 ADR）、论证与分类法移入 ADR），其余改造（移除 `actions: read`、`Read` 路径规则）冻结至十次运行测量完成 |
-| [#856](https://github.com/NikolayDA/picture_helper/issues/856) | 安装指南：补充 FUSE 与 macOS 前置条件 | 🟢 低（避免安装失败；仅文档） | 🟢 低（六种语言的增补说明） | Sonnet，低 | 进行中 —— FUSE 后备方案和 macOS 11+/arm64 边界已写入六种语言并由文档测试保护；本次合并后，在后续 PR 中移除分诊行并同步关闭 #856 |
 
 ### 接下来推荐
 
-1. **#856** —— 合并新增的安装说明；随后在后续 PR 中移除分诊行并同步关闭议题。
-2. **#828** —— 在接下来的十次真实评审运行中被动衡量已定义的定性和定量标准；判据与流程见 [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md)。
-3. **#692**（ADR）开启 COLOR 史诗 #682。
-4. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
+1. **#828** —— 在接下来的九次合格真实评审运行中被动衡量已定义的定性和定量标准；判据与流程见 [../../history/ISSUE-841-VERIFIKATION.md](../../history/ISSUE-841-VERIFIKATION.md)。
+2. **#692**（ADR）开启 COLOR 史诗 #682。
+3. 一旦有 Studio/打印机硬件：将 #687（剩余，尤其 I-06）、#688、#689、#690 已准备好的真实测试
    在一次打包会话中执行——fixture、协议模板和已批准的中止标准均已齐备。
 
 ## 以往轮次
