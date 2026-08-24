@@ -73,11 +73,12 @@ sperrten weiter (21 von 30 auf #850).
 - Ein Draft-PR erhält bis `ready_for_review` kein Review; ein Doku-PR keins
   automatisch. Beides ist Absicht (Budget, Rauschen).
 
-## Aktivierung (manuelle Schritte des Owners)
+## Aktivierung (am 24.08.2026 abgeschlossen)
 
-1. In den [Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
-   unter *Branches → main* den Haken **„Require conversation resolution
-   before merging" entfernen** (der Soll-Stand steht im Snapshot in
-   `docs/PROZESSE_UML.md`; danach dort das Prüfdatum nachziehen).
-2. Das Label **`re-review`** im Repository anlegen (*Issues → Labels*),
-   damit die Wiederholungs-Anforderung sofort nutzbar ist.
+1. [x] In den [Repository-Einstellungen](https://github.com/NikolayDA/picture_helper/settings)
+   unter *Branches → main* **„Require conversation resolution before
+   merging"** entfernt. Pflichtstatus `Lightweight PR checks` und
+   `strict`-Modus blieben unverändert; der Live-Snapshot in
+   `docs/PROZESSE_UML.md` ist nachgezogen.
+2. [x] Das Label **`re-review`** im Repository angelegt (*Issues → Labels*),
+   damit die Wiederholungs-Anforderung nutzbar ist.

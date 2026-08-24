@@ -15,6 +15,10 @@ For Apple Silicon (arm64) there is `BgRemover-<version>-macos-arm64-ai.dmg`
 removal is already built in — visible from the `-ai` suffix, same as the
 Linux artifacts.
 
+The prebuilt `.dmg` supports **Apple Silicon (arm64) only** and requires
+**macOS 11 (Big Sur) or newer**. No Intel `.dmg` is currently produced;
+Intel Macs use the source-build path below.
+
 1. Open the `.dmg` and drag `BgRemover.app` into **Applications**.
 2. On the **first** launch confirm via **right-click → “Open”** — the bundle is
    not yet Apple-signed/notarized, so Gatekeeper would otherwise warn about an
@@ -31,7 +35,8 @@ follow the sections below.
 
 ## Requirements
 
-- **macOS**
+- **macOS** — for the prebuilt `.dmg`: macOS 11 (Big Sur) or newer and
+  Apple Silicon (arm64)
 - **Python 3.10 or newer** — check with:
   ```bash
   python3 --version

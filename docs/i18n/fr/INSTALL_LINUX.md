@@ -39,6 +39,17 @@ chmod +x BgRemover-*-linux-x86_64-ai.AppImage
 sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
+Le lancement direct de l'AppImage nécessite FUSE 2 (`libfuse.so.2`). Si cette
+bibliothèque manque, installez le paquet correspondant : `libfuse2` ou
+`libfuse2t64` sous Debian/Ubuntu, `fuse-libs` sous Fedora/RHEL, ou `fuse2`
+sous Arch/Manjaro. Vous pouvez aussi lancer l'application sans FUSE :
+
+```bash
+./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
+```
+
+Pour le `.deb`, `apt` résout automatiquement cette dépendance.
+
 Des builds existent pour **x86_64** (`linux-x86_64`) et **aarch64/Raspberry
 Pi OS 64-bit** (`linux-raspberrypi-arm64`) — en AppImage et en `.deb`, avec un
 suffixe `-ai` dès que la suppression d'arrière-plan par IA est intégrée (par
@@ -284,6 +295,12 @@ réexécutée après `git pull` — sauf si les dépendances dans
 
 ## Dépannage
 
+- **L'AppImage affiche `dlopen(): error loading libfuse.so.2` ou « AppImages
+  require FUSE to run »** → FUSE 2 manque. Installez `libfuse2`/
+  `libfuse2t64` (Debian/Ubuntu), `fuse-libs` (Fedora/RHEL) ou `fuse2`
+  (Arch/Manjaro) ; sinon, lancez l'AppImage avec
+  `--appimage-extract-and-run`. Pour le `.deb`, `apt` installe la dépendance
+  automatiquement.
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
   Il manque des bibliothèques système Qt. Réinstaller les paquets de la section
   *« Installer les paquets système »* (en particulier

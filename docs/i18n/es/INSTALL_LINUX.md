@@ -38,6 +38,17 @@ chmod +x BgRemover-*-linux-x86_64-ai.AppImage
 sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
+El inicio directo del AppImage requiere FUSE 2 (`libfuse.so.2`). Si falta esa
+biblioteca, instala el paquete correspondiente: `libfuse2` o `libfuse2t64`
+en Debian/Ubuntu, `fuse-libs` en Fedora/RHEL o `fuse2` en Arch/Manjaro.
+También puedes iniciarlo sin FUSE:
+
+```bash
+./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
+```
+
+En el caso del `.deb`, `apt` resuelve esta dependencia automáticamente.
+
 Hay builds para **x86_64** (`linux-x86_64`) y **aarch64/Raspberry Pi OS
 64-bit** (`linux-raspberrypi-arm64`) — como AppImage y `.deb`, con el sufijo
 `-ai` cuando la eliminación de fondo por IA está integrada (el valor
@@ -284,6 +295,11 @@ en `pyproject.toml` o `requirements/constraints.txt`.
 
 ## Resolución de problemas
 
+- **El AppImage muestra `dlopen(): error loading libfuse.so.2` o «AppImages
+  require FUSE to run»** → Falta FUSE 2. Instala `libfuse2`/`libfuse2t64`
+  (Debian/Ubuntu), `fuse-libs` (Fedora/RHEL) o `fuse2` (Arch/Manjaro); como
+  alternativa, inicia el AppImage con `--appimage-extract-and-run`. Para el
+  `.deb`, `apt` instala la dependencia automáticamente.
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
   Faltan bibliotecas de sistema de Qt. Instala adicionalmente los
   paquetes de la sección *«Instalar paquetes de sistema»* (en

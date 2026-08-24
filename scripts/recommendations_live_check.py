@@ -94,6 +94,12 @@ RECOMMENDATION_DOCS: Final[dict[str, str]] = {
     "zh": "docs/i18n/zh/RECOMMENDATIONS.md",
 }
 
+
+def recommendation_doc_paths(root: Path) -> dict[str, Path]:
+    """Löst die kanonische Sprach-/Pfadliste gegen ``root`` auf."""
+    return {lang: root / relative for lang, relative in RECOMMENDATION_DOCS.items()}
+
+
 #: Platzhalter in den redaktionellen Spalten einer frisch generierten Zeile.
 #: Exakt verglichen (Zellinhalt == Marker), damit ein "TODO" im Fliesstext
 #: einer bewerteten Zeile nicht faelschlich als unbewertet gilt.
@@ -454,8 +460,8 @@ def _write_all(open_issues: Sequence[OpenIssue], repo: str) -> int:
     (#821). Ein Aufrufer soll das als offene Aufgabe sehen, nicht als Erfolg.
     """
     unrated: dict[str, tuple[int, ...]] = {}
-    for lang, relative in RECOMMENDATION_DOCS.items():
-        path = _REPO_ROOT / relative
+    for lang, path in recommendation_doc_paths(_REPO_ROOT).items():
+        relative = RECOMMENDATION_DOCS[lang]
         markdown = path.read_text(encoding="utf-8")
         updated = update_markdown(markdown, open_issues, repo, lang)
         if updated != markdown:

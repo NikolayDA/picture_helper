@@ -33,10 +33,20 @@ _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+]\(([^)]+)\)")
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 _SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
+_H2_SECTION_RE = re.compile(r"(?ms)^## [^\n]+\n.*?(?=^## |\Z)")
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _h2_sections_containing(text: str, *markers: str) -> list[str]:
+    """Liefert H2-Abschnitte, die alle stabilen Inhaltsanker enthalten."""
+    return [
+        match.group(0)
+        for match in _H2_SECTION_RE.finditer(text)
+        if all(marker in match.group(0) for marker in markers)
+    ]
 
 
 def _without_fenced_code(text: str) -> str:
@@ -124,6 +134,11 @@ def _translated_doc_paths() -> list[Path]:
     return [I18N_ROOT / language / name for language in LANGUAGES for name in DOC_NAMES]
 
 
+def _all_language_paths(name: str) -> list[Path]:
+    """Return the canonical German file followed by all translations."""
+    return [ROOT / name, *(I18N_ROOT / language / name for language in LANGUAGES)]
+
+
 def test_i18n_expected_docs_exist() -> None:
     for name in DOC_NAMES:
         assert (ROOT / name).is_file(), f"missing canonical documentation source: {name}"
@@ -182,6 +197,72 @@ def test_readmes_document_3d_feature_usage_and_screenshot() -> None:
         assert target is not None
         assert (path.parent / target).resolve().is_file(), (
             f"{path.relative_to(ROOT)} links to a missing 3D screenshot: {target}"
+        )
+
+
+def test_linux_install_docs_cover_appimage_fuse_prerequisite() -> None:
+    packaging_guide = _read(ROOT / "packaging" / "linux" / "README.md")
+    deb_builder = _read(ROOT / "packaging" / "linux" / "build_deb.sh")
+    assert "--appimage-extract-and-run" in packaging_guide
+    assert re.search(r"libfuse2\s*\|\s*libfuse2t64", deb_builder)
+
+    required_markers = (
+        "libfuse.so.2",
+        "`libfuse2`",
+        "`libfuse2t64`",
+        "`fuse-libs`",
+        "`fuse2`",
+        "--appimage-extract-and-run",
+    )
+    for path in _all_language_paths("INSTALL_LINUX.md"):
+        text = _read(path)
+        quick_start_sections = _h2_sections_containing(
+            text,
+            "chmod +x BgRemover-*-linux-x86_64-ai.AppImage",
+            "sudo apt install ./BgRemover-*-linux-x86_64-ai.deb",
+        )
+        assert len(quick_start_sections) == 1, (
+            f"{path.relative_to(ROOT)} must have exactly one release-artifact "
+            "quick-start section"
+        )
+        quick_start = quick_start_sections[0]
+        missing_quick_start = [marker for marker in required_markers if marker not in quick_start]
+        assert not missing_quick_start, (
+            f"{path.relative_to(ROOT)} quick start misses Linux prerequisites: "
+            f"{missing_quick_start}"
+        )
+
+        troubleshooting_sections = _h2_sections_containing(text, "dlopen", "libfuse.so.2")
+        assert len(troubleshooting_sections) == 1, (
+            f"{path.relative_to(ROOT)} must have exactly one troubleshooting "
+            "section for the libfuse.so.2 dlopen error"
+        )
+        troubleshooting = troubleshooting_sections[0]
+        missing_troubleshooting = [
+            marker for marker in required_markers if marker not in troubleshooting
+        ]
+        assert not missing_troubleshooting, (
+            f"{path.relative_to(ROOT)} troubleshooting misses Linux prerequisites: "
+            f"{missing_troubleshooting}"
+        )
+
+
+def test_mac_install_docs_cover_prebuilt_dmg_scope() -> None:
+    packaging_guide = _read(ROOT / "packaging" / "mac" / "README.md")
+    assert "macOS 11" in packaging_guide
+    assert "arm64-only" in packaging_guide
+
+    required_markers = ("macOS 11", "Big Sur", "arm64", "Intel", ".dmg")
+    for path in _all_language_paths("INSTALL_MAC.md"):
+        text = _read(path)
+        matching_paragraphs = [
+            paragraph
+            for paragraph in text.split("\n\n")
+            if all(marker in paragraph for marker in required_markers)
+        ]
+        assert matching_paragraphs, (
+            f"{path.relative_to(ROOT)} must keep the macOS version, architecture, "
+            "and Intel boundary together in the prebuilt-DMG paragraph"
         )
 
 

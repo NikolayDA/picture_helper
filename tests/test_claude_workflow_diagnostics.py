@@ -231,7 +231,7 @@ def test_review_job_carries_the_cost_bounds() -> None:
         f"Turn-Budget weicht vom E5-Deckel ab: {turn_args!r}"
     )
     assert "--model claude-opus-5" in args, "Modell-Pin fehlt (Kosten-/Auth-Anker)"
-    # Der geteilte #828-Block nennt BEIDE Budgets („Review 20, interaktiv
+    # Der geteilte #828-Block nennt BEIDE Budgets („Review 25, interaktiv
     # 25") — also beide pinnen, sonst kann die wortgleich gepinnte Aussage
     # falsch werden (Review-Befund auf PR #858).
     interactive = [

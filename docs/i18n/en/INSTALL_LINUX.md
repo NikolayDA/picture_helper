@@ -39,6 +39,17 @@ chmod +x BgRemover-*-linux-x86_64-ai.AppImage
 sudo apt install ./BgRemover-*-linux-x86_64-ai.deb
 ```
 
+Direct AppImage launches require FUSE 2 (`libfuse.so.2`). If that library is
+missing, install the matching distribution package: `libfuse2` or
+`libfuse2t64` on Debian/Ubuntu, `fuse-libs` on Fedora/RHEL, or `fuse2` on
+Arch/Manjaro. Alternatively, launch without FUSE:
+
+```bash
+./BgRemover-*-linux-x86_64-ai.AppImage --appimage-extract-and-run
+```
+
+For the `.deb`, `apt` resolves this dependency automatically.
+
 Builds are available for **x86_64** (`linux-x86_64`) and **aarch64/Raspberry
 Pi OS 64-bit** (`linux-raspberrypi-arm64`) — both as AppImage and `.deb`, with
 an `-ai` suffix once AI background removal is built in (the default for
@@ -281,6 +292,11 @@ again after `git pull` — unless the dependencies in
 
 ## Troubleshooting
 
+- **AppImage reports `dlopen(): error loading libfuse.so.2` or “AppImages
+  require FUSE to run”** → FUSE 2 is missing. Install `libfuse2`/
+  `libfuse2t64` (Debian/Ubuntu), `fuse-libs` (Fedora/RHEL), or `fuse2`
+  (Arch/Manjaro); alternatively, launch with `--appimage-extract-and-run`.
+  For the `.deb`, `apt` installs the dependency automatically.
 - **`qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`** →
   Qt system libraries are missing. Install the packages from the section
   *"Installing system packages"* afterwards (in particular

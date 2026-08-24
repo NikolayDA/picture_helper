@@ -32,11 +32,7 @@ from scripts import verify_release_freeze as vrf
 
 ROOT = Path(__file__).resolve().parent.parent
 
-#: Pfade ebenfalls aus dem Skript, damit eine neue Sprachfassung nur an einer
-#: Stelle eingetragen werden muss (#821).
-RECOMMENDATION_DOCS = {
-    lang: ROOT / relative for lang, relative in lc.RECOMMENDATION_DOCS.items()
-}
+RECOMMENDATION_DOCS = lc.recommendation_doc_paths(ROOT)
 
 #: Anker für die Kurzstatus-Überschrift je Sprache; Gruppe 1 ist das Datum.
 #: Sprachneutral je Datei fest verdrahtet - ändert sich der Wortlaut einer

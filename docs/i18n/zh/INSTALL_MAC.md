@@ -14,6 +14,10 @@
 `BgRemover-<version>-macos-arm64-ai.dmg`(文件名标明了平台和架构)；AI 抠图已经
 内置——从 `-ai` 后缀即可看出，与 Linux 构件一致。
 
+预构建的 `.dmg` 仅支持 **Apple Silicon（arm64）**，并且需要
+**macOS 11（Big Sur）或更新版本**。目前不提供 Intel `.dmg`；Intel Mac
+请使用下文的源码构建方式。
+
 1. 打开 `.dmg`，将 `BgRemover.app` 拖入**应用程序**文件夹。
 2. **首次**启动时通过**右键点击 →“打开”**确认——该程序包尚未经过 Apple
    签名/公证，否则 Gatekeeper 会警告“来自身份不明的开发者”。
@@ -28,7 +32,8 @@ xattr -dr com.apple.quarantine /Applications/BgRemover.app
 
 ## 前提条件
 
-- **macOS**
+- **macOS**——对于预构建的 `.dmg`：macOS 11（Big Sur）或更新版本，且为
+  Apple Silicon（arm64）
 - **Python 3.10 或更新版本**——用以下命令检查：
   ```bash
   python3 --version

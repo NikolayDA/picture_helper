@@ -36,8 +36,12 @@ die Regel sowohl `--write` als auch das Schließen des Issues.
    eigene Messreihe und erzeugte Folge-PRs als Messvehikel — Belege und
    Entscheidung in
    [ADR-2026-reviewschleifen-entschaerfung.md](ADR-2026-reviewschleifen-entschaerfung.md).
-2. **Abschlussgrund.** Der Diagnoseschritt muss `Lauf: success,` melden. Ein
-   `error_max_turns` ist kein bestandener Lauf, auch nicht mit null Ablehnungen.
+2. **Abschlussgrund und Jobstatus.** Der Diagnoseschritt muss
+   `Lauf: success,` melden **und** der GitHub-Actions-Job muss mit `success`
+   enden. Ein `error_max_turns` oder ein roter Job ist kein bestandener Lauf,
+   auch nicht mit null Ablehnungen. Beleg für die zweite Hälfte ist Lauf
+   32777452835: Das Action-Ergebnis trug `subtype: success` und 29 Turns, der
+   Job wurde wegen des auf 25 gepinnten Turn-Deckels trotzdem korrekt rot.
 3. **Ablehnungszähler.** Der Diagnosezähler muss **0** sein. Geprüft wird
    vollzeilenverankert auf der **rohen Schrittausgabe**:
 
@@ -93,6 +97,30 @@ ist der Prompt wieder auf den Auftrag reduziert.
 
 Die Go-/No-Go-Entscheidung ist ohnehin ein menschlicher Schritt; diese Bedingung
 verhindert nur, dass die Zahl allein den Ausschlag gibt.
+
+## Messprotokoll für #828
+
+**Startpunkt:** finaler Konfigurationsstand aus PR #858, Merge-Commit `62a3826`.
+Die Läufe auf #857 und #858 selbst zählen nicht, weil beide PRs die
+Review-Mechanik geändert haben und damit keine gewöhnlichen PRs im Sinne von
+Punkt 1 sind.
+
+**Live-Abgleich vom 2026-08-24:** **0/10** abschließend protokollierte Läufe.
+PR #859 initialisiert diese Tabelle, deshalb werden seine eigenen Review-Läufe
+hier noch nicht ausgewertet: Andernfalls würde jeder neue Lauf einen weiteren
+Commit im gerade gemessenen PR erzwingen und die Messung auf ihren eigenen
+Nachtrag zurückkoppeln. Die Läufe eines PRs werden erst nach dessen Merge oder
+Schließung in einem getrennten Nachtrag bewertet. Das verschiebt ihre
+Auswertung, verwirft sie aber nicht.
+
+Für jeden künftigen Lauf wird genau eine Zeile ergänzt. `Konfiguration` ist die
+Commit-SHA des zu diesem Lauf aktiven Workflow-Stands; `Ergebnis` ist nur dann
+`grün`, wenn Abschlussgrund, Ablehnungszähler und qualitative Hälfte gemeinsam
+erfüllt sind.
+
+| Nr. | PR | Review-Lauf | Konfiguration | Abschlussgrund | Ablehnungen | Qualitative Hälfte | Ergebnis |
+|---:|---:|---:|---|---|---:|---|---|
+| – | – | – | – | Noch kein Lauf nach Abschluss seines Quell-PRs ausgewertet | – | – | 0/10 |
 
 **#828 bleibt offen, ist aber eingefroren.** Sein Akzeptanzkriterium ist die
 passive Zehn-Läufe-Messung aus Punkt 1; ein Haken ohne Messwert wäre genau die
