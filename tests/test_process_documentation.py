@@ -90,17 +90,25 @@ def test_workflow_run_sources_are_documented_at_all_three_places() -> None:
     trigger_doc = yaml.safe_load(
         (workflow_dir / "recommendations-live-check.yml").read_text(encoding="utf-8")
     )
-    # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``.
-    display_names = trigger_doc[True]["workflow_run"]["workflows"]
+    # PyYAML (YAML 1.1) liest den Schlüssel ``on:`` als ``True``; ein
+    # quotiertes ``"on":`` bliebe ein String. Die ``get``-Kette (Idiom aus
+    # test_release_gate) lässt jeden Driftfall am ``assert`` mit seiner
+    # Aussage enden statt an einem nackten ``KeyError``.
+    triggers = trigger_doc.get(True, trigger_doc.get("on")) or {}
+    display_names = (triggers.get("workflow_run") or {}).get("workflows") or []
     assert display_names, "workflow_run-Trigger ohne Workflow-Namen"
+
+    # Einmalige Namenstabelle statt erneutem Parsen je Anzeigename; die
+    # Parsebarkeit der Dateien sichert bereits tests/test_ci_workflow_yaml.py.
+    by_name: dict[str, list[str]] = {}
+    for path in workflow_files:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if isinstance(doc, dict) and isinstance(doc.get("name"), str):
+            by_name.setdefault(doc["name"], []).append(path.name)
 
     filenames = []
     for display in display_names:
-        matches = [
-            path.name
-            for path in workflow_files
-            if yaml.safe_load(path.read_text(encoding="utf-8")).get("name") == display
-        ]
+        matches = by_name.get(display, [])
         assert len(matches) == 1, (
             f"Anzeigename {display!r} nicht eindeutig auflösbar: {matches}"
         )

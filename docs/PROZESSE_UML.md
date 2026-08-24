@@ -271,6 +271,8 @@ nicht bestehen, werden nicht gemergt“),
 [`claude.yml`](../.github/workflows/claude.yml),
 [`coverage.yml`](../.github/workflows/coverage.yml),
 [`recommendations-live-check.yml`](../.github/workflows/recommendations-live-check.yml),
+[`codex-security-scan.yml`](../.github/workflows/codex-security-scan.yml),
+[`benchmark.yml`](../.github/workflows/benchmark.yml),
 sowie die lineare Commit-Historie von `main` (ein Squash-Commit je PR).
 
 ```mermaid
